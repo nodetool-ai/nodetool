@@ -22,8 +22,7 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
-  useRef,
-  useState
+  useRef
 } from "react";
 import { useTranslation } from "react-i18next";
 import { useGlobalCombo } from "../../../stores/KeyPressedStore";
@@ -84,7 +83,7 @@ import {
 import { MOTION, FONT_SIZE_SANS, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
 import type { TimelineClip, TimelineMarker } from "@nodetool-ai/timeline";
 
-type EditorMode = "script" | "write";
+export type TranscriptEditorMode = "script" | "write";
 
 // ── Editor-state <-> clips bridge ($-helpers, run inside read/update) ─────────
 
@@ -743,8 +742,8 @@ const EditorSurface = styled("div")(({ theme }) => ({
  * Esc finishes). Lives inside the composer so it can drive the editor.
  */
 const EditorBody: React.FC<{
-  mode: EditorMode;
-  setMode: (mode: EditorMode) => void;
+  mode: TranscriptEditorMode;
+  setMode: (mode: TranscriptEditorMode) => void;
 }> = ({ mode, setMode }) => {
   const { t } = useTranslation();
   const [editor] = useLexicalComposerContext();
@@ -933,6 +932,16 @@ const EditorBody: React.FC<{
     [playbackApi, uiApi]
   );
 
+  // Double-clicking a word starts Write mode with the caret in that word.
+  const onDoubleClick = useCallback(
+    (e: React.MouseEvent) => {
+      if (writing) return;
+      if (!(e.target as HTMLElement).closest?.(".transcript-word")) return;
+      setMode("write");
+    },
+    [writing, setMode]
+  );
+
   return (
     <EditorSurface
       ref={surfaceRef}
@@ -942,6 +951,7 @@ const EditorBody: React.FC<{
       className={writing ? "is-writing" : undefined}
       onKeyDown={onKeyDown}
       onClick={onClick}
+      onDoubleClick={onDoubleClick}
       data-testid="transcript-surface"
     >
       <div className="transcript-editor-area">
@@ -972,8 +982,15 @@ const EditorBody: React.FC<{
   );
 };
 
-export const TranscriptEditor: React.FC = () => {
-  const [mode, setMode] = useState<EditorMode>("script");
+interface TranscriptEditorProps {
+  mode: TranscriptEditorMode;
+  onModeChange: (mode: TranscriptEditorMode) => void;
+}
+
+export const TranscriptEditor: React.FC<TranscriptEditorProps> = ({
+  mode,
+  onModeChange
+}) => {
   const docApi = useTimelineStoreApi();
 
   const initialConfig = useMemo<InitialConfigType>(
@@ -994,7 +1011,7 @@ export const TranscriptEditor: React.FC = () => {
 
   return (
     <LexicalComposer initialConfig={initialConfig}>
-      <EditorBody mode={mode} setMode={setMode} />
+      <EditorBody mode={mode} setMode={onModeChange} />
     </LexicalComposer>
   );
 };

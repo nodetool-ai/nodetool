@@ -1,20 +1,21 @@
+import { useTranslation } from "react-i18next";
 import HistoryIcon from "@mui/icons-material/History";
 import {
   Box,
   FlexRow,
-  SaveState,
+  SaveStatus,
   Text,
   Tooltip,
   SPACING
 } from "../ui_primitives";
-import type { SaveStateValue } from "../ui_primitives";
+import type { SaveStatusValue } from "../ui_primitives";
 import { useScriptSaveStatus } from "../../stores/script/ScriptStore";
 
 interface ScriptSaveIndicatorProps {
   scriptId: string;
 }
 
-const SAVE_STATE: Record<string, SaveStateValue> = {
+const SAVE_STATE: Record<string, SaveStatusValue> = {
   unsaved: "dirty",
   saving: "saving",
   error: "error"
@@ -26,11 +27,13 @@ const SAVE_STATE: Record<string, SaveStateValue> = {
  * work with the server copy. This surfaces those transitions so the author
  * knows whether their changes are safe.
  *
- * The lifecycle is drawn by the shared `SaveState`. "Reloaded" has no
+ * The lifecycle is drawn by the shared `SaveStatus`. "Reloaded" has no
  * counterpart there, so it stays a warning readout of its own.
  */
 const ScriptSaveIndicator = ({ scriptId }: ScriptSaveIndicatorProps) => {
-  const { t } = useTranslation("translation", { keyPrefix: "screen_scripts_text" });
+  const { t } = useTranslation("translation", {
+    keyPrefix: "screen_scripts_text"
+  });
   const status = useScriptSaveStatus(scriptId);
 
   if (status === "reloaded") {
@@ -49,7 +52,7 @@ const ScriptSaveIndicator = ({ scriptId }: ScriptSaveIndicatorProps) => {
   const tooltipKey =
     status === "unsaved" ? "unsaved" : status === "error" ? "error" : "saved";
   const tooltip = t(`script.save.${tooltipKey}`);
-  const readout = <SaveState state={SAVE_STATE[status] ?? "saved"} />;
+  const readout = <SaveStatus state={SAVE_STATE[status] ?? "saved"} />;
   return tooltip ? (
     <Tooltip title={tooltip}>
       <Box component="span" sx={{ display: "inline-flex" }}>
@@ -62,4 +65,3 @@ const ScriptSaveIndicator = ({ scriptId }: ScriptSaveIndicatorProps) => {
 };
 
 export default ScriptSaveIndicator;
-import { useTranslation } from "react-i18next";

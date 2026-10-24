@@ -25,6 +25,7 @@ import VolumeOffOutlinedIcon from "@mui/icons-material/VolumeOffOutlined";
 import VolumeUpOutlinedIcon from "@mui/icons-material/VolumeUpOutlined";
 import DeleteOutlineOutlinedIcon from "@mui/icons-material/DeleteOutlineOutlined";
 import GraphicEqOutlinedIcon from "@mui/icons-material/GraphicEqOutlined";
+import ShowChartOutlinedIcon from "@mui/icons-material/ShowChartOutlined";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import DriveFileRenameOutlineIcon from "@mui/icons-material/DriveFileRenameOutline";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
@@ -77,6 +78,7 @@ import type { SelectOption } from "../../ui_primitives";
 import { useLongPress } from "../../../hooks/timeline/useLongPress";
 import type { LongPressPoint } from "../../../hooks/timeline/useLongPress";
 import { trackRowHeightPx } from "./trackHeight";
+import { trackSupportsAutomation } from "./automation/automationTargets";
 import { useTimelineLayoutStore } from "../../../stores/timeline/TimelineLayoutStore";
 import { trackTypeMeta, trackTypeAccent } from "./trackVisuals";
 export const TRACK_HEADER_WIDTH_PX = DEFAULT_TRACK_HEADER_WIDTH_PX;
@@ -670,6 +672,16 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
       toggleExpandedFx(track.id);
     }, [toggleExpandedFx, track.id]);
 
+    const supportsAutomation = trackSupportsAutomation(track);
+    const automationShown = useTimelineUIStore((s) =>
+      s.shownAutomationTrackIds.includes(track.id)
+    );
+    const toggleTrackAutomation = useTimelineUIStore((s) => s.toggleTrackAutomation);
+    const handleAutomationToggle = useCallback(() => {
+      toggleTrackAutomation(track.id);
+    }, [toggleTrackAutomation, track.id]);
+    const automationCount = track.automation?.length ?? 0;
+
     // Drag-reorder: the grip is the HTML5 drag source; the whole header is the drop target.
     // Reordering is constrained to same-type tracks (see trackReorder). The drop
     // target / indicator state lives in the UI store so sibling headers can show
@@ -884,7 +896,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
                 onEditingChange={setEditingName}
                 onCommit={commitName}
                 ariaLabel={t("i18n-next6.trackHeader.trackName", { name: track.name })}
-                title={t("i18n-next6.trackHeader.doubleClickToRename")}
+                title={t("i18n-next6.trackHeader.clickToRename")}
               />
               {track.type === "chord" ? (
                 <span
@@ -1037,6 +1049,35 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
                   data-testid={`track-fx-${track.id}`}
                 >
                   <GraphicEqOutlinedIcon />
+                </button>
+              </Tooltip>
+            )}
+
+            {supportsAutomation && (
+              <Tooltip
+                title={
+                  automationShown
+                    ? t("timelineAutomation.hideLanes")
+                    : t("timelineAutomation.showLanes")
+                }
+              >
+                <button
+                  type="button"
+                  css={
+                    automationCount > 0 || automationShown
+                      ? iconButtonOnCss
+                      : iconButtonOffCss
+                  }
+                  onClick={handleAutomationToggle}
+                  aria-label={
+                    automationShown
+                      ? t("timelineAutomation.hideLanes")
+                      : t("timelineAutomation.showLanes")
+                  }
+                  aria-pressed={automationShown}
+                  data-testid={`track-automation-${track.id}`}
+                >
+                  <ShowChartOutlinedIcon />
                 </button>
               </Tooltip>
             )}

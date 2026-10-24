@@ -36,6 +36,7 @@ import {
 } from "./fal-base.js";
 import type { FalImageResult } from "./fal-base.js";
 import { reportFalCost } from "./fal-cost.js";
+import { applyAccessoryArgs, isAccessoryPropType } from "./fal-accessories.js";
 
 export interface FalManifestEntry {
   endpointId: string;
@@ -205,6 +206,10 @@ async function buildArgs(
   for (const field of spec.inputFields) {
     if (field.parentField) continue;
 
+    // Keyframes, elements and shots carry media to upload and are shaped
+    // together after the loop (applyAccessoryArgs).
+    if (isAccessoryPropType(field.propType)) continue;
+
     // Image-gen nodes always produce a single output — force num_images to 1
     // regardless of any saved value, since the field is no longer exposed.
     if (field.name === "num_images") {
@@ -295,6 +300,13 @@ async function buildArgs(
       );
     }
   }
+
+  await applyAccessoryArgs(
+    spec.inputFields.filter((field) => !field.parentField),
+    (name) => propertyOf(instance, name),
+    args,
+    (ref) => assetToFalUrl(apiKey, ref, context)
+  );
 
   removeNulls(args);
   return args;

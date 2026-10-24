@@ -607,6 +607,7 @@ describe("GeminiProvider – model listing", () => {
     expect(models[0].provider).toBe("gemini");
     expect(models.map((model) => model.id)).toEqual([
       "gemini-3.1-flash-image",
+      "gemini-nano-banana-2.1",
       "gemini-3.1-flash-lite-image",
       "gemini-3-pro-image"
     ]);

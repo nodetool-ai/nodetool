@@ -301,6 +301,8 @@ export const Playhead: React.FC<PlayheadProps> = memo(
 
     const handlePointerDown = useCallback(
       (e: React.PointerEvent<HTMLDivElement>) => {
+        // Only the primary button grabs; a right press belongs to the menu.
+        if (e.button !== 0) return;
         // A keyframe diamond under the line wins: the playhead parks on a
         // keyframe whenever one is clicked, and would otherwise cover it.
         // jsdom has no elementsFromPoint.
@@ -347,6 +349,31 @@ export const Playhead: React.FC<PlayheadProps> = memo(
       setDragging(false);
     }, []);
 
+    // A click on a lane parks the playhead under the pointer, so the next
+    // right-click lands on the grab zone, not the lane, and the lane's "Add
+    // text" menu never opens. Hand the menu to whatever lies beneath.
+    const handleContextMenu = useCallback(
+      (e: React.MouseEvent<HTMLDivElement>) => {
+        const root = hitAreaRef.current;
+        // jsdom has no elementsFromPoint.
+        const beneath = (document.elementsFromPoint?.(e.clientX, e.clientY) ?? [])
+          .find((el) => !(root && root.contains(el)));
+        if (!beneath) return;
+        e.preventDefault();
+        beneath.dispatchEvent(
+          new MouseEvent("contextmenu", {
+            bubbles: true,
+            cancelable: true,
+            clientX: e.clientX,
+            clientY: e.clientY,
+            button: 2,
+            buttons: 2
+          })
+        );
+      },
+      []
+    );
+
     const handleKeyDown = useCallback(
       (e: React.KeyboardEvent<HTMLDivElement>) => {
         const frameMs = 1000 / Math.max(1, fps);
@@ -388,6 +415,7 @@ export const Playhead: React.FC<PlayheadProps> = memo(
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
+        onContextMenu={handleContextMenu}
         onKeyDown={handleKeyDown}
       >
         <div

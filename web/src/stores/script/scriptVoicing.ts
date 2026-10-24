@@ -15,7 +15,7 @@ import { useSyncExternalStore } from "react";
 import type { ScriptSetup } from "@nodetool-ai/protocol/api-schemas/scripts.js";
 
 import { randomRequestId, rpcRequest } from "../../lib/websocket/rpcRequest";
-import { paceSpeed } from "../../hooks/script/scriptPace";
+import { paceSpeed, providerAppliesPace } from "../../hooks/script/scriptPace";
 import { isScriptWriting } from "../../hooks/script/scriptWrites";
 import { useAssetStore } from "../AssetStore";
 import { getAssetUrl } from "../../utils/assetHelpers";
@@ -133,6 +133,8 @@ export async function voiceLine(
     );
   }
 
+  const direction = line.direction?.trim();
+  const speed = paceSpeed(script.setup?.pace);
   store.getState().setVoicing(lineId, true);
   try {
     const ttsResult = await rpcRequest("generate_media", {
@@ -141,8 +143,10 @@ export async function voiceLine(
       model: voice.model,
       voice: voice.voice,
       // The pace the flow was set to, which until now reached nothing (F12).
-      speed: paceSpeed(script.setup?.pace),
-      prompt: text
+      speed,
+      prompt: text,
+      // The line's delivery note, for providers that take a voice direction.
+      ...(direction && { instructions: direction })
     });
     const assetIds = Array.isArray(ttsResult.asset_ids)
       ? (ttsResult.asset_ids as unknown[]).filter(
@@ -174,6 +178,9 @@ export async function voiceLine(
       words,
       textSnapshot: line.text,
       voiceSnapshot: voice,
+      // What else shaped the audio, so editing either marks the take stale.
+      directionSnapshot: direction ?? "",
+      ...(providerAppliesPace(voice.provider) && { speedSnapshot: speed ?? null }),
       createdAt: new Date().toISOString(),
       costCredits:
         isNumber(ttsResult.cost_credits)
@@ -191,6 +198,14 @@ export async function voiceLine(
   }
 }
 
+/**
+ * The pace speed a voicing of this script sends now, null for the provider
+ * default. The third argument of {@link lineStatus}.
+ */
+export function scriptSpeed(script: Pick<ScriptDraft, "setup">): number | null {
+  return paceSpeed(script.setup?.pace) ?? null;
+}
+
 /** A line `voiceAll` would voice, with the voice it would use. */
 export interface VoiceTarget {
   line: ScriptLine;
@@ -203,13 +218,14 @@ export interface VoiceTarget {
  * toolbar quotes is what the click will voice.
  */
 export function voiceTargets(script: ScriptDraft): VoiceTarget[] {
+  const speed = scriptSpeed(script);
   const targets: VoiceTarget[] = [];
   for (const section of script.sections) {
     for (const line of section.lines) {
       if (!line.text.trim()) continue;
       const voice = effectiveVoice(line, script.cast);
       // Re-voice drafts and stale lines; skip up-to-date ones.
-      if (!voice || lineStatus(line, voice) === "voiced") continue;
+      if (!voice || lineStatus(line, voice, speed) === "voiced") continue;
       targets.push({ line, voice });
     }
   }
@@ -478,7 +494,10 @@ function isHandledElsewhere(scriptId: string, lineId: string): boolean {
     .flatMap((section) => section.lines)
     .find((candidate) => candidate.id === lineId);
   if (!script || !line) return false;
-  return lineStatus(line, effectiveVoice(line, script.cast)) === "voiced";
+  return (
+    lineStatus(line, effectiveVoice(line, script.cast), scriptSpeed(script)) ===
+    "voiced"
+  );
 }
 
 async function runLines(

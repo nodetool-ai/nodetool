@@ -330,6 +330,10 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
    * have routing keys but should update global state.
    */
   private routeMessage(message: WebSocketMessage): void {
+    if (message.type === "resource_resync") {
+      invalidateAllResourceQueries();
+      return;
+    }
     if (isResourceChange(message)) {
       try {
         handleResourceChange(message);

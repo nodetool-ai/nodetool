@@ -119,7 +119,8 @@ script failure appear in the console ahead of the error.
 `maxTickMs` accepts 1 through 20 ms, defaults to 8 ms, and cannot raise the
 host's 20 ms ceiling. It counts the CPU time of the thread running the script, from just
 before the call (or before compiling its source) until its output is checked.
-Waiting for a processor does not count. A call ends only when both its CPU time
+Waiting for a processor does not count, and on Node neither do garbage collection
+pauses during the call. A call ends only when both its CPU time
 and its wall time reach the limit. Browsers have no thread CPU clock, so there
 the limit counts wall time. The 50 ms script budget for a whole tick and the
 100 ms limit for evaluating a source during preparation count wall time on

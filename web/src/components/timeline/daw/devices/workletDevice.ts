@@ -14,7 +14,7 @@
 
 import type { MidiInstrument } from "@nodetool-ai/timeline";
 
-import type { LiveInstrumentDevice, LiveNoteEvent } from "./liveDevice";
+import type { DeviceAutomationLane, LiveInstrumentDevice, LiveNoteEvent } from "./liveDevice";
 
 /** Encode events for the worklet's `evs` message. */
 export function encodeLiveEvents(
@@ -29,6 +29,54 @@ export function encodeLiveEvents(
     out[i * 4 + 3] = event.on ? Math.min(1, Math.max(0, event.velocity / 127)) : 0;
   });
   return out;
+}
+
+/**
+ * Send automation lanes to a processor that loaded
+ * `param-automation-worklet.js`: every lane it plays is replaced.
+ */
+export function postAutomation(
+  port: MessagePort,
+  lanes: readonly DeviceAutomationLane[],
+  sampleRate: number
+): void {
+  const encoded = lanes.map((lane) => {
+    const ev = new Float64Array(lane.points.length * 2);
+    lane.points.forEach((point, i) => {
+      ev[i * 2] = Math.round(point.timeSec * sampleRate);
+      ev[i * 2 + 1] = point.value;
+    });
+    return { k: lane.param, ev };
+  });
+  port.postMessage(
+    { t: "pauto", clear: true, lanes: encoded },
+    encoded.map((lane) => lane.ev.buffer)
+  );
+}
+
+const SYNC_TIMEOUT_MS = 2000;
+let syncSerial = 0;
+
+/**
+ * Resolves once the processor has handled every message posted to `port`
+ * before this call, or after a timeout, so a render never hangs on it.
+ */
+export function syncAutomation(port: MessagePort): Promise<void> {
+  const n = ++syncSerial;
+  return new Promise((resolve) => {
+    const done = () => {
+      clearTimeout(timer);
+      port.removeEventListener("message", onMessage);
+      resolve();
+    };
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data as { t?: string; n?: number } | null;
+      if (data?.t === "pauto-ack" && data.n === n) done();
+    };
+    const timer = setTimeout(done, SYNC_TIMEOUT_MS);
+    port.addEventListener("message", onMessage);
+    port.postMessage({ t: "pauto-sync", n });
+  });
 }
 
 export abstract class WorkletInstrumentDevice implements LiveInstrumentDevice {
@@ -66,6 +114,14 @@ export abstract class WorkletInstrumentDevice implements LiveInstrumentDevice {
       this.queued.set(key, pending);
       this.post(pending);
     }
+  }
+
+  setAutomation(lanes: readonly DeviceAutomationLane[]): void {
+    postAutomation(this.node.port, lanes, this.ctx.sampleRate);
+  }
+
+  syncAutomation(): Promise<void> {
+    return syncAutomation(this.node.port);
   }
 
   dispose(): void {

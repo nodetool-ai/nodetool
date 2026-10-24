@@ -9,6 +9,7 @@ import {
 } from "./base-model.js";
 import { getPortableDb } from "./db.js";
 import { scripts } from "./schema/scripts.js";
+import { removeDocumentSharing } from "./document-sharing.js";
 
 /** One word of a take with clip-local timing (mirrors timeline CaptionWord). */
 export interface ScriptCaptionWord {
@@ -33,6 +34,8 @@ export interface ScriptTake {
   words: ScriptCaptionWord[];
   textSnapshot: string;
   voiceSnapshot: VoiceBinding | null;
+  directionSnapshot?: string;
+  speedSnapshot?: number | null;
   createdAt: string;
   favorite?: boolean;
   costCredits?: number;
@@ -193,6 +196,7 @@ export class Script extends DBModel {
     const row = await Script.findById(id);
     if (!row || row.user_id !== userId) return false;
     await row.delete();
+    await removeDocumentSharing("script", id);
     return true;
   }
 

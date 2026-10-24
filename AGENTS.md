@@ -63,7 +63,7 @@ Guidelines](docs/BRAND.md).
 - **[Agent Harnesses & Tooling](#agent-harnesses--tooling)** — Validate, debug, run, single-node, browser, deploy, trace (the tools that close the build→verify loop)
 - **[Harness Reference](docs/harnesses.md)** — Every harness and agent tool surface in full: flags, what it simulates, the design behind it. CLI flags: [docs/cli.md](docs/cli.md)
 - **[Production Deploy (Docker)](docs/docker-production-deploy.md)** — How `main` reaches api.nodetool.ai: the release gates, restricted SSH, and rolling drain
-- **[Dev Environment](docs/dev-environment.md)** — Sandboxed/proxied `npm install`, WebGPU without a Vulkan driver
+- **[Dev Environment](docs/dev-environment.md)** — Sandboxed/proxied `npm install`, WebGPU without a Vulkan driver, building the VST instrument host
 - **[TypeScript Backend](packages/AGENTS.md)** — TypeScript backend packages (`packages/`), and the index of the per-package overlays
 - **[Agent System](packages/agents/AGENTS.md)** — Planning, execution, parallelism, skills, tuning
 - **[Agent Architecture & Tools](docs/AGENTS.md)** — Agent architecture, tools, skills, workflow nodes
@@ -417,6 +417,11 @@ verification requirements.
   The gate must compare output and fail on differences or an empty comparison.
   See [FAL codegen](packages/fal-codegen/README.md) and
   [KIE codegen](packages/kie-codegen/README.md).
+- FAL and Replicate nodes exist only for ids in their codegen `src/configs/`,
+  and Gemini image models are listed by hand. `npm run check:provider-gaps`
+  (needs provider keys) lists upstream models with no node. It runs weekly in
+  `model-watch.yml` and opens a `provider-gap` issue. Skip a model on purpose in
+  `scripts/provider-gaps/ignore.json`, with the reason.
 - Anti-slop override blocks are generated. Do not hand-edit them. The backlog
   config is report-only (`npm run lint:anti-slop`), while enforced rules run
   inside `npm run lint`. Use `lint:anti-slop:count`, `:targets`, `:write`, and

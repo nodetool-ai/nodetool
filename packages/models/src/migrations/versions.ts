@@ -198,6 +198,41 @@ const ANALYTICS_DDL: readonly string[] = [
 ];
 
 /**
+ * DDL for the document sharing tables, valid on both dialects. Applied by
+ * their migration, and by `initTestDb` through {@link POST_BASELINE_TABLE_DDL}.
+ * See schema/document-sharing.ts.
+ */
+const DOCUMENT_SHARING_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS nodetool_document_collaborators (
+    id TEXT PRIMARY KEY NOT NULL,
+    document_type TEXT NOT NULL,
+    document_id TEXT NOT NULL,
+    user_id TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'viewer',
+    invited_by TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_dcol_document_user
+    ON nodetool_document_collaborators (document_type, document_id, user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_dcol_user_id
+    ON nodetool_document_collaborators (user_id)`,
+  `CREATE TABLE IF NOT EXISTS nodetool_document_shares (
+    id TEXT PRIMARY KEY NOT NULL,
+    document_type TEXT NOT NULL,
+    document_id TEXT NOT NULL,
+    token TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'viewer',
+    created_by TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    revoked_at TEXT
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_dshare_token
+    ON nodetool_document_shares (token)`,
+  `CREATE INDEX IF NOT EXISTS idx_dshare_document
+    ON nodetool_document_shares (document_type, document_id)`
+];
+
+/**
  * Idempotent DDL for tables created by migrations newer than the frozen
  * SQLite baseline, in migration order. Only `initTestDb` reads it: the
  * in-memory test database is built synchronously from the baseline and would
@@ -244,7 +279,12 @@ content_expired INTEGER NOT NULL DEFAULT 0)`,
 
 const JOB_TRACE_MARKER_DDL = "ALTER TABLE nodetool_jobs ADD COLUMN has_run_trace INTEGER NOT NULL DEFAULT 0";
 const ASSET_FAVORITE_DDL = "ALTER TABLE nodetool_assets ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0";
-export const POST_BASELINE_TABLE_DDL: readonly string[] = [...ERROR_TRACES_DDL,...BUG_REPORTS_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ...ANALYTICS_DDL];
+export const RESOURCE_CHANGE_OUTBOX_DDL: readonly string[] = [
+  'CREATE TABLE IF NOT EXISTS "resource_change_outbox" ("id" text PRIMARY KEY NOT NULL, "payload" text NOT NULL, "created_at" text NOT NULL)',
+  'CREATE INDEX IF NOT EXISTS "idx_resource_change_outbox_created_at" ON "resource_change_outbox" ("created_at")'
+];
+
+export const POST_BASELINE_TABLE_DDL: readonly string[] = [...RESOURCE_CHANGE_OUTBOX_DDL,...ERROR_TRACES_DDL,...BUG_REPORTS_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL, ...ANALYTICS_DDL, ...DOCUMENT_SHARING_DDL];
 
 export const migrations: MigrationDef[] = [
   // ── 001: Create workflows ──────────────────────────────────────────
@@ -4190,6 +4230,45 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP INDEX IF EXISTS idx_analytics_daily_day_event");
       await db.execute("DROP TABLE IF EXISTS nodetool_analytics_events");
       await db.execute("DROP TABLE IF EXISTS nodetool_analytics_daily");
+    }
+  },
+  {
+    version: "20261023_000000",
+    name: "resource_change_outbox",
+    createsTables: ["resource_change_outbox"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of RESOURCE_CHANGE_OUTBOX_DDL) { await db.execute(statement); }
+      if (db.dbType === "postgres") {
+        await db.execute("ALTER TABLE resource_change_outbox ENABLE ROW LEVEL SECURITY");
+      }
+    },
+    async down(db) { await db.execute("DROP TABLE IF EXISTS resource_change_outbox"); }
+  },
+
+  // ── Document sharing ────────────────────────────────────────────────
+  // Collaborators and share links for storyboards, scripts, timelines,
+  // sketches, apps and JS scripts. Workflows keep their own tables.
+  {
+    version: "20261024_000000",
+    name: "create_document_sharing_tables",
+    createsTables: [
+      "nodetool_document_collaborators",
+      "nodetool_document_shares"
+    ],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of DOCUMENT_SHARING_DDL) {
+        await db.execute(statement);
+      }
+    },
+    async down(db) {
+      await db.execute("DROP INDEX IF EXISTS idx_dcol_document_user");
+      await db.execute("DROP INDEX IF EXISTS idx_dcol_user_id");
+      await db.execute("DROP TABLE IF EXISTS nodetool_document_collaborators");
+      await db.execute("DROP INDEX IF EXISTS idx_dshare_token");
+      await db.execute("DROP INDEX IF EXISTS idx_dshare_document");
+      await db.execute("DROP TABLE IF EXISTS nodetool_document_shares");
     }
   }
 ];

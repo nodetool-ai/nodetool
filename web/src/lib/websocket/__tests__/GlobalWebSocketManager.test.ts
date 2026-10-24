@@ -1,7 +1,7 @@
 import { TextEncoder, TextDecoder } from "util";
 import { FrontendToolRegistry } from "../../tools/frontendTools";
 import { globalWebSocketManager } from "../GlobalWebSocketManager";
-import { handleResourceChange } from "../../../stores/resourceChangeHandler";
+import { handleResourceChange, invalidateAllResourceQueries } from "../../../stores/resourceChangeHandler";
 import { ResourceChangeUpdate } from "../../../stores/ApiTypes";
 import type { WebSocketMessage } from "../GlobalWebSocketManager";
 import { validateInboundMessage } from "../validateInboundMessage";
@@ -50,7 +50,8 @@ jest.mock("../../tools/frontendTools", () => ({
 
 // Mock resourceChangeHandler
 jest.mock("../../../stores/resourceChangeHandler", () => ({
-  handleResourceChange: jest.fn()
+  handleResourceChange: jest.fn(),
+  invalidateAllResourceQueries: jest.fn()
 }));
 
 describe("GlobalWebSocketManager", () => {
@@ -239,4 +240,10 @@ describe("GlobalWebSocketManager", () => {
       expect(consoleErrorSpy).not.toHaveBeenCalled();
     });
   });
+});
+
+it("invalidates resources once on a server listener resync", () => {
+  jest.mocked(invalidateAllResourceQueries).mockClear();
+  ingest({ type: "resource_resync" });
+  expect(invalidateAllResourceQueries).toHaveBeenCalledTimes(1);
 });

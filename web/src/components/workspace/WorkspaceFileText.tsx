@@ -1,11 +1,17 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import SaveIcon from "@mui/icons-material/Save";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
 import { trpcClient } from "../../trpc/client";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -17,28 +23,37 @@ import { workspaceFileName } from "./workspaceFileRef";
 import type { WorkspaceFileKind } from "./workspaceFileKind";
 import type { WorkspaceTabMode } from "../../stores/WorkspaceTabsStore";
 import ErrorBanner from "../support/ErrorBanner";
+import { useClipboard } from "../../hooks/browser/useClipboard";
 import {
   AlertBanner,
   Caption,
-  CopyButton,
   DataTable,
-  EditorButton,
+  DocumentBar,
   FlexColumn,
-  FlexRow,
   LoadingSpinner,
+  MenuItemPrimitive,
   ScrollArea,
-  Text, getSpacingPx, SPACING,
-  SaveState,
-  Toolbar,
-  EmptyState,
-  EYEBROW
+  getSpacingPx,
+  SPACING,
+  SaveStatus,
+  UndoRedoButtons,
+  EmptyState
 } from "../ui_primitives";
+import type { DocumentBarRender } from "../ui_primitives";
+import {
+  DocumentMoreMenu,
+  DocumentSaveButton,
+  explicitSaveStatus,
+  useMonacoHistory
+} from "./documentBarParts";
 
 interface WorkspaceFileTextProps {
   workspaceId: string;
   path: string;
   kind: WorkspaceFileKind;
   mode: WorkspaceTabMode;
+  /** Draws the document bar. Defaults to a bar titled with the file name. */
+  documentBar?: DocumentBarRender;
 }
 
 /** Cap CSV/TSV rows so a huge file can't lock up the table render. */
@@ -52,13 +67,6 @@ const styles = (theme: Theme) =>
     width: "100%",
     height: "100%",
     backgroundColor: theme.vars.palette.background.default,
-    ".filename": {
-      color: theme.vars.palette.text.primary,
-      fontWeight: 500
-    },
-    ".kind-tag": {
-      ...EYEBROW,
-    },
     ".file-body": {
       flex: 1,
       minHeight: 0
@@ -100,7 +108,11 @@ const CsvTableView = ({ text, name }: { text: string; name: string }) => {
   if (columns.length === 0) {
     return (
       <FlexColumn className="status">
-        <EmptyState size="small" variant="no-data" title={t("i18n-next51.common.tableEmpty")} />
+        <EmptyState
+          size="small"
+          variant="no-data"
+          title={t("i18n-next51.common.tableEmpty")}
+        />
       </FlexColumn>
     );
   }
@@ -122,7 +134,7 @@ const CsvTableView = ({ text, name }: { text: string; name: string }) => {
  * `workspace.readFile`, renders it per kind in view mode (markdown rendered,
  * CSV/TSV as a table, everything else in read-only Monaco) and edits it in
  * Monaco in edit mode, saving through `workspace.writeFile` on Cmd/Ctrl+S or
- * the toolbar button.
+ * the document bar's Save. Copy sits in the bar's ⋮ menu.
  *
  * A file the backend truncated is read-only: saving would write the prefix
  * back over the whole file.
@@ -131,7 +143,8 @@ const WorkspaceFileText = ({
   workspaceId,
   path,
   kind,
-  mode
+  mode,
+  documentBar
 }: WorkspaceFileTextProps) => {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -141,6 +154,8 @@ const WorkspaceFileText = ({
     (state) => state.addNotification
   );
 
+  const { writeClipboard } = useClipboard();
+  const history = useMonacoHistory();
   const name = workspaceFileName(path);
   const language = useMemo(
     () => languageFromAsset({ name }) ?? "plaintext",
@@ -150,7 +165,8 @@ const WorkspaceFileText = ({
   const queryKey = workspaceFileTextKey(workspaceId, path);
   const { data, isLoading, error } = useQuery({
     queryKey,
-    queryFn: () => trpcClient.workspace.readFile.query({ id: workspaceId, path })
+    queryFn: () =>
+      trpcClient.workspace.readFile.query({ id: workspaceId, path })
   });
 
   const loadedText = data?.content;
@@ -252,6 +268,7 @@ const WorkspaceFileText = ({
           readOnly={truncated}
           onChange={setContent}
           onSave={handleSave}
+          onEditorMount={history.onEditorMount}
         />
       );
     }
@@ -273,39 +290,63 @@ const WorkspaceFileText = ({
     }
   };
 
+  const editing = mode === "edit";
+  const barSlots = {
+    status: !editing ? undefined : truncated ? (
+      <SaveStatus state="readOnly" />
+    ) : (
+      <SaveStatus
+        state={explicitSaveStatus({
+          saving: isSaving,
+          dirty: isDirty,
+          failed: saveMutation.isError
+        })}
+        onRetry={handleSave}
+      />
+    ),
+    history:
+      editing && !truncated ? (
+        <UndoRedoButtons
+          canUndo={history.canUndo}
+          canRedo={history.canRedo}
+          onUndo={history.undo}
+          onRedo={history.redo}
+        />
+      ) : undefined,
+    actions: (
+      <>
+        {editing && !truncated && (
+          <DocumentSaveButton
+            onSave={handleSave}
+            saving={isSaving}
+            disabled={!canSave}
+          />
+        )}
+        <DocumentMoreMenu
+          items={(close) => [
+            <MenuItemPrimitive
+              key="copy"
+              icon={<ContentCopyIcon fontSize="small" />}
+              label={t("i18n-next103.documentBar.copyContents")}
+              disabled={content === null}
+              onClick={() => {
+                close();
+                if (content !== null) void writeClipboard(content, true);
+              }}
+            />
+          ]}
+        />
+      </>
+    )
+  };
+
   return (
     <FlexColumn css={paneStyles} sx={{ width: "100%", height: "100%" }}>
-      <Toolbar
-        className="file-header"
-        sx={{ justifyContent: "space-between", pl: SPACING.lg }}
-      >
-        <FlexRow align="center" gap={1} sx={{ minWidth: 0 }}>
-          <Text className="filename" size="small">
-            {name}
-          </Text>
-          <Caption className="kind-tag">{kind}</Caption>
-        </FlexRow>
-        <FlexRow align="center" gap={0.5}>
-          {content !== null && (
-            <CopyButton value={content} buttonSize="small" />
-          )}
-          {mode === "edit" && (
-            <>
-              <SaveState state={isDirty ? "dirty" : "idle"} showLabel={false} />
-              <EditorButton
-                variant="contained"
-                size="small"
-                startIcon={<SaveIcon />}
-                disabled={!canSave}
-                loading={isSaving}
-                onClick={handleSave}
-              >
-                {isSaving ? t("i18n-next51.common.saving") : t("i18n-next51.common.save")}
-              </EditorButton>
-            </>
-          )}
-        </FlexRow>
-      </Toolbar>
+      {documentBar ? (
+        documentBar(barSlots)
+      ) : (
+        <DocumentBar title={name} {...barSlots} />
+      )}
       {truncated && (
         <AlertBanner severity="warning" compact>
           Showing the first part of this file only — it is too large to load in

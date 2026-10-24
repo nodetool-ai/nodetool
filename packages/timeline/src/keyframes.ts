@@ -214,8 +214,13 @@ type CurveKeyframe = KeyframeCurve["keyframes"][number];
 /**
  * A curve's value at `t`, by the sampler's rule: held flat outside the first
  * and last keyframes, and each segment eased by its later keyframe's easing.
+ * `keyframes` must be sorted by `t` and non-empty. Track automation lanes
+ * evaluate through it too, with `t` in document milliseconds.
  */
-function curveValueAtT(keyframes: readonly CurveKeyframe[], t: number): number {
+export function curveValueAtT(
+  keyframes: readonly { t: number; value: number; easing?: string }[],
+  t: number
+): number {
   if (t <= keyframes[0].t) return keyframes[0].value;
   const last = keyframes[keyframes.length - 1];
   if (t >= last.t) return last.value;

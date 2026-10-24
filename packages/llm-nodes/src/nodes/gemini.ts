@@ -268,6 +268,7 @@ export class ImageGenerationNode extends BaseNode {
     description: "The image generation model to use",
     values: [
       "gemini-3.1-flash-image",
+      "gemini-nano-banana-2.1",
       "gemini-3.1-flash-lite-image",
       "gemini-3-pro-image",
       "imagen-4.0-generate-001"

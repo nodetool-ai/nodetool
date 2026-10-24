@@ -13,6 +13,8 @@ export interface ThreadListProps {
   onNewThread: () => void;
   onSelectThread: (id: string) => void;
   onDeleteThread: (id: string) => void;
+  /** Renames a thread from its row. Without it the row offers no rename. */
+  onRenameThread?: (id: string, title: string) => void;
   getThreadPreview: (id: string) => string;
   /** True when the list is showing the result of an active search filter. */
   isFiltered?: boolean;
@@ -27,5 +29,6 @@ export interface ThreadItemProps {
   onSelect: (id: string) => void;
   /** Asks the list for confirmation; the list owns the single dialog. */
   onRequestDelete: (id: string) => void;
+  onRename?: (id: string, title: string) => void;
   previewText: string;
 }

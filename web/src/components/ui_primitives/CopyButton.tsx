@@ -27,6 +27,7 @@ import {
 } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
 import { isString } from "../../utils/typePredicates";
+import { iconButtonBoxSx } from "./ToolbarIconButton";
 
 const FEEDBACK_TIMEOUT = 2000;
 
@@ -199,10 +200,11 @@ export const CopyButton = memo(
             disabled={disabled}
             size={buttonSize}
             sx={{
-              color: theme.vars.palette.grey[300],
+              ...iconButtonBoxSx(buttonSize),
+              color: theme.vars.palette.text.secondary,
               "&:hover": {
-                color: theme.vars.palette.grey[100],
-                backgroundColor: `rgba(${theme.vars.palette.common.whiteChannel ?? '255 255 255'} / 0.08)`
+                color: theme.vars.palette.text.primary,
+                backgroundColor: theme.vars.palette.action.hover
               },
               ...(sx ?? {})
             }}

@@ -31,10 +31,11 @@ import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import {
   FlexRow,
   SelectField,
+  ToolbarDivider,
   Tooltip,
   MOTION,
-  BORDER_RADIUS,
   CONTROL,
+  ICON_SIZE,
   FONT_WEIGHT,
   SPACING,
   TYPOGRAPHY,
@@ -186,45 +187,44 @@ const buttonStyles = (
   compact: boolean,
   iconOnly = false
 ) =>
+  // The look of ToolbarIconButton: a 28px box, a 16px glyph, text.secondary
+  // at rest and the shared toolbar active state (action.selected fill,
+  // primary icon). A labelled tool keeps the box height and pads its text.
   css({
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    gap: getSpacingPx(SPACING.sm),
-    height: compact ? CONTROL.height.sm : CONTROL.height.xs,
-    minWidth: compact
-      ? CONTROL.height.sm
-      : iconOnly
-        ? CONTROL.height.xs
-        : undefined,
+    flexShrink: 0,
+    gap: getSpacingPx(SPACING.xs),
+    height: CONTROL.height.sm,
+    minWidth: CONTROL.height.sm,
     padding:
-      compact || iconOnly ? 0 : theme.spacing(0, SPACING.lg, 0, SPACING.md),
+      compact || iconOnly ? 0 : theme.spacing(0, SPACING.md, 0, SPACING.sm),
     background: active ? theme.vars.palette.action.selected : "transparent",
-    border: `1px solid ${active ? theme.vars.palette.divider : "transparent"}`,
+    border: "none",
     color: active
-      ? theme.vars.palette.text.primary
+      ? theme.vars.palette.primary.main
       : theme.vars.palette.text.secondary,
     cursor: "pointer",
     fontSize: theme.fontSizeSmall,
     fontWeight: FONT_WEIGHT.medium,
-    letterSpacing: "0.01em",
     fontFamily: theme.typography.fontFamily,
-    borderRadius: BORDER_RADIUS.md,
-    transition: `background-color ${MOTION.fast}, color ${MOTION.fast}, border-color ${MOTION.fast}`,
+    borderRadius: CONTROL.radius,
+    transition: `background-color ${MOTION.fast}, color ${MOTION.fast}`,
     "&:hover": {
       backgroundColor: active
         ? theme.vars.palette.action.selected
         : theme.vars.palette.action.hover,
-      color: theme.vars.palette.text.primary,
-      borderColor: theme.vars.palette.divider
+      color: active
+        ? theme.vars.palette.primary.main
+        : theme.vars.palette.text.primary
     },
     "&:focus-visible": {
       outline: `2px solid ${theme.vars.palette.primary.main}`,
       outlineOffset: 2
     },
-    // Icon glyphs scale with the label (em is allowed for icons only).
     "& svg": {
-      fontSize: compact ? "1.25em" : "1.1em"
+      fontSize: ICON_SIZE.sm
     }
   });
 
@@ -234,7 +234,7 @@ const gridSelectStyles = css({
   // Wide enough for the longest division label.
   minWidth: `calc(2 * ${getSpacingPx(SPACING.xxxl)} + ${getSpacingPx(SPACING.md)})`,
   "& .MuiInputBase-root": {
-    height: CONTROL.height.xs
+    height: CONTROL.height.sm
   }
 });
 
@@ -265,14 +265,6 @@ const compactRowStyles = (theme: Theme) =>
 const compactGroupStyles = css({
   flexShrink: 0,
   "& > *": { flexShrink: 0 }
-});
-
-const dividerStyles = css({
-  width: 1,
-  height: getSpacingPx(SPACING.xl),
-  margin: `0 ${getSpacingPx(SPACING.xs)}`,
-  background: "currentColor",
-  opacity: 0.2
 });
 
 const DROP_MODES = ["overwrite", "insert", "overlap"] as const;
@@ -452,7 +444,7 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
       >
         <SwapHorizOutlinedIcon />
       </ToolButton>
-      <span css={dividerStyles} aria-hidden />
+      <ToolbarDivider />
       <FlexRow
         gap={0.5}
         align="center"
@@ -492,7 +484,7 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
         <LayersOutlinedIcon />
       </ToolButton>
       </FlexRow>
-      <span css={dividerStyles} aria-hidden />
+      <ToolbarDivider />
       <ToolButton
         label={t("i18n-next3.timeline.tools.snap")}
         shortcut={formatActionShortcut(preset, "toggleSnap")}
@@ -521,7 +513,7 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
         onChange={handleGridChange}
         css={gridSelectStyles}
       />
-      <span css={dividerStyles} aria-hidden />
+      <ToolbarDivider />
       <ToolButton
         label={t("i18n-next3.timeline.tools.linked")}
         description={t("i18n-next3.timeline.tools.linkedDescription")}

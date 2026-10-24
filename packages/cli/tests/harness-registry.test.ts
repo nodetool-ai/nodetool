@@ -25,6 +25,7 @@ import {
   UNCLAIMED_PATHS,
   auditHarnessCoverage,
   auditPathClaims,
+  isUnclaimedPath,
   planGate
 } from "../src/harness/registry.js";
 import {
@@ -189,6 +190,30 @@ describe("path claims", () => {
 
       expect(UNCLAIMED_PATHS[key], key).toBeTruthy();
     }
+  });
+
+  it("every surface path names something on disk", () => {
+    // A path left behind by a move routes nothing: the code it named now
+    // lives elsewhere and a diff to it skips this surface's checks. A path
+    // may be a name prefix (`schema/generation-`), so one entry of its
+    // parent directory starting with it is enough.
+    const stale: string[] = [];
+    for (const s of SURFACES) {
+      for (const p of s.paths) {
+        const target = join(repoRoot, p.replace(/\/$/, ""));
+        if (statSync(target, { throwIfNoEntry: false })) continue;
+        const parent = dirname(target);
+        const base = target.slice(parent.length + 1);
+        const siblings = statSync(parent, { throwIfNoEntry: false })?.isDirectory()
+          ? readdirSync(parent)
+          : [];
+        if (!p.endsWith("/") && siblings.some((name) => name.startsWith(base))) {
+          continue;
+        }
+        stale.push(`${s.id}: ${p}`);
+      }
+    }
+    expect(stale).toEqual([]);
   });
 
   it("audit catches a directory no surface or UNCLAIMED_PATHS entry claims", () => {
@@ -442,6 +467,31 @@ describe("harness gate", () => {
     expect(plan.unmappedFiles).toEqual([]);
   });
 
+  it("routes the moved timeline and sketch version capabilities to their surfaces", () => {
+    expect(
+      planGate(["packages/agents/src/capabilities/timelines.ts"]).surfaces.map((s) => s.id)
+    ).toContain("timeline");
+    expect(
+      planGate(["packages/agents/src/capabilities/sketches.specs.ts"]).surfaces.map((s) => s.id)
+    ).toContain("sketch");
+  });
+
+  it("routes a ./-prefixed or backslashed command-line path like its repo path", () => {
+    const expected = planGate(["packages/timeline/src/script.ts"]);
+    for (const spelled of [
+      "./packages/timeline/src/script.ts",
+      "packages\\timeline\\src\\script.ts"
+    ]) {
+      const plan = planGate([spelled]);
+      expect(plan.unmappedFiles, spelled).toEqual([]);
+      expect(plan.surfaces.map((s) => s.id), spelled).toEqual(
+        expected.surfaces.map((s) => s.id)
+      );
+      expect(plan.changedFiles).toEqual(["packages/timeline/src/script.ts"]);
+    }
+    expect(isUnclaimedPath("./packages/compute/src/index.ts")).toBe(true);
+  });
+
   it("reports files no surface claims", () => {
     const plan = planGate(["README.md"]);
     expect(plan.unmappedFiles).toEqual(["README.md"]);
@@ -594,6 +644,19 @@ describe("capability mapping gate", () => {
     );
     expect([...blocks.keys()]).toEqual(["a", "b"]);
     expect(blocks.get("a")).toContain('contract: "1111"');
+  });
+
+  it("keeps reading blocks past a gap note that mentions braces or brackets", () => {
+    const blocks = extractCoverageBlocks(
+      table([
+        block("a", "1111", '    gap: "returns {ok} or ] only", // a } in a comment'),
+        block("b", "2222", "    gap: 'needs a fixture with \\'{\\' in it',"),
+        block("c", "3333")
+      ])
+    );
+    expect([...blocks.keys()]).toEqual(["a", "b", "c"]);
+    expect(blocks.get("b")).toContain('contract: "2222"');
+    expect(blocks.get("c")).not.toContain("1111");
   });
 
   it("fails a contract change that left the mapping untouched", () => {

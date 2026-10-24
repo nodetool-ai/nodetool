@@ -43,6 +43,11 @@ export interface ConnectedToolTopBarProps {
   menuItems?: (close: () => void) => React.ReactNode[];
   /** The dock's Layout menu, drawn beside the assistant toggle. */
   layoutMenu?: React.ReactNode;
+  /**
+   * Leave out the trailing action cluster. The workspace tab sets this, as
+   * its document bar carries those actions.
+   */
+  hideEditorActions?: boolean;
 }
 
 export const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
@@ -165,11 +170,13 @@ export const ConnectedToolTopBar = memo(function ConnectedToolTopBar(
       onClearSegmentPrompts={props.onClearSegmentPrompts}
       onCheckSegmentModel={props.segmentation.checkModel}
       trailingActions={
-        <ConnectedEditorActions
-          inlineActions={props.headerActions}
-          menuItems={props.menuItems}
-          layoutMenu={props.layoutMenu}
-        />
+        props.hideEditorActions ? undefined : (
+          <ConnectedEditorActions
+            inlineActions={props.headerActions}
+            menuItems={props.menuItems}
+            layoutMenu={props.layoutMenu}
+          />
+        )
       }
       settingsCollapsed={toolSettingsCollapsed}
       onToggleSettingsCollapsed={toggleToolSettingsCollapsed}

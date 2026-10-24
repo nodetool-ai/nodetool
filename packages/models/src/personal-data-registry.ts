@@ -98,6 +98,15 @@ export interface PersonalDataEntry {
 export const WITHHELD_VALUE = "[withheld: credential material]";
 
 export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
+  {
+    table: "resource_change_outbox",
+    schemaExport: "resourceChangeOutbox",
+    disposition: "delete",
+    reach: { kind: "none" },
+    exported: false,
+    justification:
+      "Temporary delivery copies of document edits, including personal content. Erasure matches payload.owner_user_id inside the JSON envelope. The active transport also sweeps expired rows after a minute. Exports include the source documents instead of these delivery copies."
+  },
   // ── Identity, credentials and consent ──────────────────────────────
 
   {
@@ -287,6 +296,25 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
     exported: true,
     justification:
       "Membership rows, in both directions. Erasure removes the rows where this person is the collaborator, and also the rows on this person's own workflows — those name *other* people and must not be left pointing at a deleted graph. The export is deliberately narrower: only rows whose user_id is the subject, because the other rows are other people's memberships and are not this person's to receive."
+  },
+  {
+    table: "nodetool_document_collaborators",
+    schemaExport: "documentCollaborators",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: true,
+    justification:
+      "Membership rows on shared storyboards, scripts, timelines, sketches, apps and JS scripts. Erasure removes the rows where this person is the collaborator and the rows on this person's own documents, found by `invited_by` because only an owner mints the links a grant comes from. The export holds only rows whose user_id is the subject, since the rest are other people's memberships."
+  },
+  {
+    table: "nodetool_document_shares",
+    schemaExport: "documentShares",
+    disposition: "delete",
+    reach: { kind: "direct", column: "created_by" },
+    withheldColumns: ["token"],
+    exported: true,
+    justification:
+      "Share links on this person's documents. The owner is `created_by`. `token` is a live bearer credential and is withheld from the export."
   },
   {
     table: "nodetool_workflow_shares",

@@ -27,6 +27,21 @@ import {
 
 type Skill = RouterOutputs["skills"]["list"][number];
 
+/** A composer command the `/` menu offers above the skills, e.g. `/compact`. */
+export interface SlashCommand {
+  name: string;
+  description: string;
+}
+
+/** One row of the `/` menu: a command or a skill, completed the same way. */
+interface SlashEntry {
+  key: string;
+  name: string;
+  description: string;
+}
+
+const NO_COMMANDS: readonly SlashCommand[] = [];
+
 interface SkillTrigger {
   start: number;
   end: number;
@@ -66,7 +81,7 @@ const readCaret = (element: HTMLTextAreaElement, value: string): number =>
 
 
 interface SkillMentionMenuProps {
-  skills: readonly Skill[];
+  entries: readonly SlashEntry[];
   selectedIndex: number;
   onSelect: (index: number) => void;
   onHighlight: (index: number) => void;
@@ -78,7 +93,7 @@ interface SkillMentionMenuProps {
  * surface and row styles so it reads as one with every other menu.
  */
 const SkillMentionMenu: React.FC<SkillMentionMenuProps> = ({
-  skills,
+  entries,
   selectedIndex,
   onSelect,
   onHighlight
@@ -100,27 +115,27 @@ const SkillMentionMenu: React.FC<SkillMentionMenuProps> = ({
         }
       ]}
     >
-      {skills.map((skill, index) => (
+      {entries.map((entry, index) => (
         <div
-          key={skill.id}
+          key={entry.key}
           role="option"
           className={index === selectedIndex ? "Mui-selected" : undefined}
           aria-selected={index === selectedIndex}
-          data-testid={`skill-option-${skill.name}`}
+          data-testid={`skill-option-${entry.name}`}
           onMouseDown={(event) => event.preventDefault()}
           onMouseEnter={() => onHighlight(index)}
           onClick={() => onSelect(index)}
           css={[menuItemStyles(theme), { display: "block", cursor: "pointer" }]}
         >
-          <div>/{skill.name}</div>
-          {skill.description && (
+          <div>/{entry.name}</div>
+          {entry.description && (
             <Text size="smaller" color="secondary" truncate component="div">
-              {skill.description}
+              {entry.description}
             </Text>
           )}
         </div>
       ))}
-      {skills.length === 0 && (
+      {entries.length === 0 && (
         <Text
           size="small"
           color="secondary"
@@ -137,6 +152,8 @@ interface UseTextareaSkillMentionOptions {
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
   value: string;
   setValue: (next: string) => void;
+  /** Commands listed above the skills. */
+  commands?: readonly SlashCommand[];
 }
 
 interface UseTextareaSkillMention {
@@ -150,7 +167,8 @@ interface UseTextareaSkillMention {
 export const useTextareaSkillMention = ({
   textareaRef,
   value,
-  setValue
+  setValue,
+  commands = NO_COMMANDS
 }: UseTextareaSkillMentionOptions): UseTextareaSkillMention => {
   // The shipped skills answer to `/name` in a turn exactly as a user's own row
   // does, so the menu that completes that name offers both.
@@ -162,15 +180,28 @@ export const useTextareaSkillMention = ({
   const pendingCaretRef = useRef<number | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
 
-  const matchingSkills = useMemo(() => {
+  const matchingEntries = useMemo((): SlashEntry[] => {
     const query = trigger?.query.trim().toLocaleLowerCase() ?? "";
     if (!trigger) {
       return [];
     }
-    return skills.filter((skill) =>
-      `${skill.name} ${skill.description}`.toLocaleLowerCase().includes(query)
-    );
-  }, [skills, trigger]);
+    const matches = (entry: { name: string; description: string }) =>
+      `${entry.name} ${entry.description}`.toLocaleLowerCase().includes(query);
+    return [
+      ...commands
+        .filter(matches)
+        .map((command) => ({
+          key: `command:${command.name}`,
+          name: command.name,
+          description: command.description
+        })),
+      ...skills.filter(matches).map((skill: Skill) => ({
+        key: skill.id,
+        name: skill.name,
+        description: skill.description
+      }))
+    ];
+  }, [commands, skills, trigger]);
 
   const measure = useCallback(() => {
     const element = textareaRef.current;
@@ -265,10 +296,10 @@ export const useTextareaSkillMention = ({
     }
   }, [textareaRef, value]);
 
-  const selectSkill = useCallback(
-    (skill: Skill) => {
+  const selectEntry = useCallback(
+    (entry: SlashEntry) => {
       if (trigger) {
-        const inserted = `/${skill.name} `;
+        const inserted = `/${entry.name} `;
         pendingCaretRef.current = trigger.start + inserted.length;
         setValue(
           value.slice(0, trigger.start) + inserted + value.slice(trigger.end)
@@ -281,12 +312,12 @@ export const useTextareaSkillMention = ({
 
   const selectIndex = useCallback(
     (index: number) => {
-      const skill = matchingSkills[index];
-      if (skill) {
-        selectSkill(skill);
+      const entry = matchingEntries[index];
+      if (entry) {
+        selectEntry(entry);
       }
     },
-    [matchingSkills, selectSkill]
+    [matchingEntries, selectEntry]
   );
 
   const handleKeyDown = useCallback(
@@ -300,29 +331,29 @@ export const useTextareaSkillMention = ({
         close();
         return true;
       }
-      if (matchingSkills.length === 0) {
+      if (matchingEntries.length === 0) {
         return false;
       }
       if (event.key === "ArrowDown") {
         event.preventDefault();
-        setSelectedIndex((index) => (index + 1) % matchingSkills.length);
+        setSelectedIndex((index) => (index + 1) % matchingEntries.length);
         return true;
       }
       if (event.key === "ArrowUp") {
         event.preventDefault();
         setSelectedIndex(
-          (index) => (index - 1 + matchingSkills.length) % matchingSkills.length
+          (index) => (index - 1 + matchingEntries.length) % matchingEntries.length
         );
         return true;
       }
       if (event.key === "Enter" || event.key === "Tab") {
         event.preventDefault();
-        selectIndex(Math.min(selectedIndex, matchingSkills.length - 1));
+        selectIndex(Math.min(selectedIndex, matchingEntries.length - 1));
         return true;
       }
       return false;
     },
-    [close, matchingSkills.length, selectIndex, selectedIndex, trigger]
+    [close, matchingEntries.length, selectIndex, selectedIndex, trigger]
   );
 
   const skillMenu = useMemo(() => {
@@ -332,7 +363,7 @@ export const useTextareaSkillMention = ({
     return createPortal(
       <div id={SKILL_MENU_ID} ref={menuRef} style={mentionMenuPosition(rect)}>
         <SkillMentionMenu
-          skills={matchingSkills}
+          entries={matchingEntries}
           selectedIndex={selectedIndex}
           onSelect={selectIndex}
           onHighlight={setSelectedIndex}
@@ -340,7 +371,7 @@ export const useTextareaSkillMention = ({
       </div>,
       document.body
     );
-  }, [matchingSkills, rect, selectIndex, selectedIndex, trigger]);
+  }, [matchingEntries, rect, selectIndex, selectedIndex, trigger]);
 
   return {
     skillMenu,

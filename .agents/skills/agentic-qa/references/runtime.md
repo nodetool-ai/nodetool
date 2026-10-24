@@ -174,6 +174,7 @@ Choose the data state per campaign and label it in the report:
 | `working-run` | The empty account plus the same "Packing list" workflow on the OpenAI test model, which runs as left | OpenAI connected | Changing a working graph on the canvas |
 | `unwired-run` | The `working-run` account and workflow without the wire from "Trip notes" to the Agent's prompt, so a run writes a list that never reads the notes | OpenAI connected | Reading and repairing a graph's wires |
 | `storyboard` | The empty account plus the installed "Cold brew pour" example storyboard, renamed "Cold brew ad", whose four stills are shipped package files | OpenAI connected | Editing, reordering, previewing and exporting a storyboard |
+| `timeline` | The empty account plus one photo video, "City at night": three photos on a Video track (wet street 0 to 4 s, motorbike at dusk 4 to 12 s, tunnel 12 to 16 s) and a 16 s music clip on a Music track, with the four files in the Library | OpenAI connected | Editing an existing video in the timeline editor |
 | `seeded-demo` (default) | Example workflows, threads, assets, and seven provider keys | Every provider connected | Returning-user or feature sessions |
 
 Nothing seeds the browser in either state, so onboarding, the model picker,

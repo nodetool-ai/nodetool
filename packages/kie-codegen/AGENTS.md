@@ -43,6 +43,9 @@ changes.
   `list[dict]`, `list[int]`, `list[float]`, `list[str]`. Never fall back to
   `list[image]`: an asset-typed field with no upload config is skipped by
   `kie-factory.ts`, so the parameter silently never reaches the request.
+  Kling 3.0's element and shot arrays are the exception: `withAccessoryType`
+  in `schema-parser.ts` types them `list[video_element]` and `list[shot]`, and
+  `kie-accessories.ts` builds their request params from Element and Shot nodes.
 - A `_url`/`_urls` parameter is media even when KIE declares it `type: object`
   (Wan 3.0 reuses one YAML anchor for all of them). A `_file_urls` /
   `_link_urls` parameter is not media — it stays `list[str]`.

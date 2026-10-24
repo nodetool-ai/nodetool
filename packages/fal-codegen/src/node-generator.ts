@@ -7,6 +7,8 @@
 
 import { classNameToTitle } from "@nodetool-ai/node-sdk";
 
+import { withAccessoryType } from "./accessory-fields.js";
+
 import type {
   NodeSpec,
   NodeConfig,
@@ -215,6 +217,10 @@ export class NodeGenerator {
         return f;
       });
     }
+
+    spec.inputFields = spec.inputFields.map((f) =>
+      withAccessoryType(spec.endpointId, f)
+    );
 
     if (config.fieldOverrides) {
       spec.inputFields = spec.inputFields.map((f) => {

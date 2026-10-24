@@ -32,9 +32,10 @@ import {
 } from "@nodetool-ai/protocol";
 import { createTopDownRoomGame, createNative3DGame } from "@nodetool-ai/game-runtime";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
-import AddPhotoAlternateOutlinedIcon from "@mui/icons-material/AddPhotoAlternateOutlined";
+import AttachFileOutlinedIcon from "@mui/icons-material/AttachFileOutlined";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
+import CreateNewFolderOutlinedIcon from "@mui/icons-material/CreateNewFolderOutlined";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExploreOutlinedIcon from "@mui/icons-material/ExploreOutlined";
 import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
@@ -59,6 +60,7 @@ import {
   CloseButton,
   Divider,
   EditorButton,
+  EYEBROW,
   FlexColumn,
   FlexRow,
   GAP,
@@ -113,6 +115,7 @@ import {
   type GuidedFlowTarget
 } from "../../stores/WorkspaceTabsStore";
 import {
+  useCreateProject,
   useOpenProject,
   useProjectSummaries
 } from "../../hooks/useProjects";
@@ -535,6 +538,9 @@ const NewProjectSurface = ({
   const [entityPickerOpen, setEntityPickerOpen] = useState(false);
   const [submenu, setSubmenu] = useState<SubmenuAnchor | null>(null);
   const [starting, setStarting] = useState(false);
+  // Off by default: new work files into the open project. The composer's
+  // "New project" pill turns it on for the next send or card.
+  const [startInNewProject, setStartInNewProject] = useState(false);
   const modelCreationInFlight = useRef(false);
   // The card that was clicked, while its documents are being made. Set, and
   // that card says so while the other cards are off (PRD § 6.1: one click
@@ -595,9 +601,6 @@ const NewProjectSurface = ({
     getFileContents
   } = useFileHandling();
   const { uploadFiles, isUploading } = useComposerAssetUpload(addDroppedFiles);
-  const referenceImageCount = droppedFiles.filter((file) =>
-    file.type.startsWith("image/")
-  ).length;
   const { data: entities } = useEntities();
   // Both the user's own skills and the ones NodeTool ships: either is a
   // starter, and either is invoked the same way.
@@ -610,6 +613,7 @@ const NewProjectSurface = ({
   const createScript = useCreateScript();
   const createWorkflow = useWorkflowManager((state) => state.create);
   const openProject = useOpenProject();
+  const createProject = useCreateProject();
   const closeTab = useWorkspaceTabsStore((state) => state.closeTab);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const hasHomeTab = useWorkspaceTabsStore((state) =>
@@ -720,6 +724,23 @@ const NewProjectSurface = ({
     [prompt, starter]
   );
 
+  // The project the next piece of work goes into: the open one, or, with the
+  // "New project" pill on, a project made now and named after the prompt.
+  // Throws when the create fails, so the caller starts nothing.
+  const resolveStartProject = useCallback(async (): Promise<{
+    projectId: string;
+    created: boolean;
+  }> => {
+    if (!startInNewProject) {
+      return { projectId: creationProjectId(), created: false };
+    }
+    const project = await createProject.mutateAsync({
+      name: projectNameFromPrompt(prompt, starter)
+    });
+    setStartInNewProject(false);
+    return { projectId: project.id, created: true };
+  }, [createProject, prompt, starter, startInNewProject]);
+
   // The folded row still shows the picked starter, wherever it ranks, so the
   // pill that is lit is never one that is hidden.
   const visibleStarters = useMemo(() => {
@@ -809,30 +830,17 @@ const NewProjectSurface = ({
       setValue: setPrompt
     });
 
-  const handleRefImages = useCallback(
+  // Any file attaches: a picture shows as a thumbnail and is a reference for
+  // the image flows, any other file shows as a named chip, as a dropped one
+  // does. Study 15 found people asking about a notes file here and the box
+  // refusing it.
+  const handleAttachFiles = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
-      const files = Array.from(event.target.files ?? []);
-      // The picker's image filter is a default a person can switch off, and a
-      // text file taken as a reference showed as a broken picture.
-      const images = files.filter((file) => file.type.startsWith("image/"));
-      const skipped = files.filter((file) => !file.type.startsWith("image/"));
-      if (skipped.length > 0) {
-        addNotification({
-          type: "warning",
-          alert: true,
-          content: t("pass3_32.projects.home.unsupportedReferenceFiles", {
-            files: skipped.map((file) => file.name).join(", "),
-            count: skipped.length
-          })
-        });
-      }
-      if (images.length > 0) {
-        uploadFiles(images);
-      }
+      uploadFiles(Array.from(event.target.files ?? []));
       // Clear the input so picking the same file twice still registers.
       event.target.value = "";
     },
-    [addNotification, uploadFiles, t]
+    [uploadFiles]
   );
 
   const handleStart = useCallback(async () => {
@@ -902,9 +910,17 @@ const NewProjectSurface = ({
         },
         ...getFileContents()
       ];
-      const projectId = creationProjectId();
+      const { projectId, created } = await resolveStartProject();
       const threadId = await createNewThread(undefined, null, { projectId });
       stageChatTurn(threadId, content);
+      // A chat started in a new project opens that project, or its tab
+      // would be filed where it cannot be seen.
+      if (
+        created &&
+        !(await showDocumentProject(projectId, projectNameFromPrompt(text, starter)))
+      ) {
+        return;
+      }
       openTab({
         type: "chat",
         ref: threadId,
@@ -938,6 +954,8 @@ const NewProjectSurface = ({
     providerReadiness.loading,
     openTab,
     prompt,
+    resolveStartProject,
+    showDocumentProject,
     t,
     selectedEntities,
     selectedModel,
@@ -1048,7 +1066,7 @@ const NewProjectSurface = ({
             : carries.references;
       const leftOver = droppedFiles.length - carried;
       if (leftOver > 0) {
-        left.push(t("pass3_32.projects.home.referenceImageCount", { count: leftOver }));
+        left.push(t("pass3_32.projects.home.attachedFileCount", { count: leftOver }));
       }
       if (!carries.entities && selectedEntities.length > 0) {
         left.push(
@@ -1283,7 +1301,11 @@ const NewProjectSurface = ({
         text.length > 0 ? projectNameFromPrompt(text, null) : t("pass3_32.projects.home.documentNames.image");
       setStarting(true);
       try {
-        const references = await uploadComposerReferences(droppedFiles);
+        // Only a picture can guide a picture; another attached file is named
+        // as left behind.
+        const references = await uploadComposerReferences(
+          droppedFiles.filter((file) => file.type.startsWith("image/"))
+        );
         const started = await startImageFlow({
           name,
           projectId,
@@ -1562,9 +1584,27 @@ const NewProjectSurface = ({
       // Marked before the first await, so the card reads as busy on the click
       // rather than on the create's first render.
       setPendingFlow(id);
-      void starters[id](creationProjectId()).finally(() => setPendingFlow(null));
+      void resolveStartProject()
+        .then(
+          ({ projectId }) => starters[id](projectId),
+          // Only the project's create is caught here: each flow reports
+          // its own failures.
+          (error: unknown) => {
+            addNotification({
+              type: "error",
+              alert: true,
+              content: t("pass3_32.projects.home.newProjectError", {
+                error: error instanceof Error ? error.message : String(error)
+              })
+            });
+          }
+        )
+        .finally(() => setPendingFlow(null));
     },
     [
+      addNotification,
+      resolveStartProject,
+      t,
       startAppFlow,
       startEntityFlow,
       startGameFlow,
@@ -2260,7 +2300,7 @@ const NewProjectSurface = ({
   // One project's work: its documents, then its latest chats, both scoped by
   // the project picker in the documents header.
   const projectWork = (
-    <FlexColumn gap={SPACING.xl}>
+    <FlexColumn sx={{ gap: { xs: SPACING.xl, sm: SPACING.xxl } }}>
       <CurrentProjectDocuments />
       <RecentChats />
     </FlexColumn>
@@ -2326,7 +2366,12 @@ const NewProjectSurface = ({
                 </Text>
                 <Text
                   color="secondary"
-                  sx={{ maxWidth: INTRO_TEXT_WIDTH, textAlign: "center" }}
+                  // Balanced, so the second line is not one orphaned word.
+                  sx={{
+                    maxWidth: INTRO_TEXT_WIDTH,
+                    textAlign: "center",
+                    textWrap: "balance"
+                  }}
                 >
                   {t("pass3_32.projects.home.intro")}
                 </Text>
@@ -2416,21 +2461,20 @@ const NewProjectSurface = ({
                     variant="text"
                     color="inherit"
                     density="normal"
-                    startIcon={<AddPhotoAlternateOutlinedIcon />}
+                    startIcon={<AttachFileOutlinedIcon />}
                     onClick={() => refInputRef.current?.click()}
                     sx={composerPillSx}
                   >
-                    {referenceImageCount === 0
-                      ? t("pass3_32.projects.home.referenceImages")
-                      : t("pass3_32.projects.home.referenceImageCountShort", { count: referenceImageCount })}
+                    {droppedFiles.length === 0
+                      ? t("pass3_32.projects.home.attachFiles")
+                      : t("pass3_32.projects.home.attachedFileCountShort", { count: droppedFiles.length })}
                   </EditorButton>
                   <input
                     ref={refInputRef}
                     type="file"
-                    accept="image/*"
                     multiple
-                    aria-label={t("pass3_32.projects.home.referenceImages")}
-                    onChange={handleRefImages}
+                    aria-label={t("pass3_32.projects.home.attachFiles")}
+                    onChange={handleAttachFiles}
                     style={{ display: "none" }}
                   />
                   <EditorButton
@@ -2463,6 +2507,36 @@ const NewProjectSurface = ({
                         })
                       : t("pass3_32.projects.home.selectModel")}
                   </EditorButton>
+                  {/* Off: the work files into the open project. On: the next
+                      send or card makes a project named after the prompt. */}
+                  <Tooltip
+                    title={t("pass3_32.projects.home.newProjectHint")}
+                    placement="bottom"
+                    describeChild
+                  >
+                    <EditorButton
+                      variant="text"
+                      color="inherit"
+                      density="normal"
+                      aria-pressed={startInNewProject}
+                      startIcon={<CreateNewFolderOutlinedIcon />}
+                      onClick={() => setStartInNewProject((on) => !on)}
+                      sx={{
+                        ...composerPillSx,
+                        ...(startInNewProject && {
+                          color: "primary.main",
+                          borderColor: "primary.main",
+                          bgcolor: "action.selected",
+                          "&:hover": {
+                            color: "primary.main",
+                            bgcolor: "action.selected"
+                          }
+                        })
+                      }}
+                    >
+                      {t("pass3_32.projects.home.newProject")}
+                    </EditorButton>
+                  </Tooltip>
                   <Box sx={{ flex: 1 }} />
                   {estimate && (
                     <Box
@@ -2620,10 +2694,7 @@ const NewProjectSurface = ({
         >
           <Divider />
           <FlexRow align="baseline" gap={SPACING.md} wrap>
-            <Caption
-              color="muted"
-              sx={{ textTransform: "uppercase", letterSpacing: "0.08em" }}
-            >
+            <Caption sx={{ ...EYEBROW, color: "text.secondary" }}>
               {t("pass3_32.projects.home.blankDocument")}
             </Caption>
             <Caption color="muted">

@@ -34,6 +34,7 @@ export * from "./transitionAtCut.js";
 export * from "./audioFade.js";
 export * from "./clipAudio.js";
 export * from "./keyframes.js";
+export * from "./automation.js";
 export * from "./model3d.js";
 export * from "./model3dBake.js";
 export * from "./sourceRate.js";

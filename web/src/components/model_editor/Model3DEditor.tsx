@@ -50,7 +50,6 @@ import {
   AlertBanner,
   Box,
   ConfirmDialog,
-  Divider,
   EditorButton,
   EmptyState,
   FlexColumn,
@@ -60,17 +59,26 @@ import {
   Text,
   ToggleGroup,
   ToggleOption,
+  Toolbar,
+  ToolbarDivider,
   ToolbarIconButton,
   Tooltip,
   UndoRedoButtons,
   CloseButton,
   PanelHeader,
+  SaveStatus,
   BORDER_RADIUS,
   SPACING,
   StatusDot,
   Z_INDEX,
   getSpacingPx
 } from "../ui_primitives";
+import type { DocumentBarRender } from "../ui_primitives";
+import {
+  DocumentMoreMenu,
+  DocumentSaveButton,
+  explicitSaveStatus
+} from "../workspace/documentBarParts";
 import ReportBugButton from "../support/ReportBugButton";
 import { deserializeDragData, DRAG_DATA_MIME } from "../../lib/dragdrop/serialization";
 import { resolveMediaUri, resolveStaticMediaUri } from "../../utils/resolveMediaUri";
@@ -232,16 +240,6 @@ const styles = (theme: Theme) =>
       minHeight: 0,
       backgroundColor: theme.vars.palette.background.default
     },
-    ".editor-toolbar": {
-      padding: `${getSpacingPx(SPACING.sm)} ${getSpacingPx(SPACING.lg)}`,
-      gap: getSpacingPx(SPACING.sm),
-      alignItems: "center",
-      borderBottom: `1px solid ${theme.vars.palette.divider}`,
-      backgroundColor: theme.vars.palette.background.paper,
-      flexShrink: 0,
-      flexWrap: "wrap",
-      minHeight: 44
-    },
     ".editor-title": {
       maxWidth: "240px",
       overflow: "hidden",
@@ -402,7 +400,8 @@ interface Model3DEditorProps {
   url: string;
   name?: string;
   onSave: (blob: Blob) => Promise<void> | void;
-  onClose: () => void;
+  /** Draws a Close button. A workspace tab leaves it out (it has View/Edit). */
+  onClose?: () => void;
   /**
    * Drive the camera from outside instead of from the user's mouse. Replaces
    * `OrbitControls` while set; leave it undefined for an interactive editor.
@@ -429,6 +428,12 @@ interface Model3DEditorProps {
   /** Reopen the file from storage, discarding the unsaved edits. */
   onReloadExternal?: () => void;
   onDismissExternal?: () => void;
+  /**
+   * Draws the document bar (a workspace tab). The title, save status,
+   * Undo/Redo, the render and assistant toggles, Save and the ⋮ menu move
+   * into it, Close goes away, and the tool row keeps only the editing tools.
+   */
+  documentBar?: DocumentBarRender;
 }
 
 const Model3DEditor = ({
@@ -442,7 +447,8 @@ const Model3DEditor = ({
   onDirtyChange,
   externallyChanged = false,
   onReloadExternal,
-  onDismissExternal
+  onDismissExternal,
+  documentBar
 }: Model3DEditorProps) => {
   const { t, i18n } = useTranslation();
   const theme = useTheme();
@@ -1324,7 +1330,7 @@ const Model3DEditor = ({
     if (isDirty) {
       setConfirmCloseOpen(true);
     } else {
-      onClose();
+      onClose?.();
     }
   }, [isDirty, onClose]);
 
@@ -1505,6 +1511,110 @@ const Model3DEditor = ({
     [saveError, t]
   );
 
+  const undoRedo = (
+    <UndoRedoButtons
+      canUndo={history.canUndo()}
+      canRedo={history.canRedo()}
+      onUndo={undo}
+      onRedo={redo}
+      size="small"
+      undoTooltip={withShortcut(undoLabel ? t("i18n-cont-model-editor-11.modelEditor.actions.undoNamed", { label: undoLabel }) : t("i18n-cont-model-editor-11.modelEditor.actions.undo"), "undo")}
+      redoTooltip={withShortcut(redoLabel ? t("i18n-cont-model-editor-11.modelEditor.actions.redoNamed", { label: redoLabel }) : t("i18n-cont-model-editor-11.modelEditor.actions.redo"), "redo")}
+    />
+  );
+  const panelToggles = (
+    <>
+      <ToolbarIconButton
+        icon={<PhotoCameraOutlinedIcon fontSize="small" />}
+        tooltip={t(showAiRender ? "i18n-cont-model-editor-11.modelEditor.actions.hideAiRender" : "i18n-cont-model-editor-11.modelEditor.actions.renderAi")}
+        onClick={toggleAiRender}
+        active={showAiRender}
+        size="small"
+        ariaLabel={t("i18n-cont-model-editor-11.modelEditor.actions.renderAi")}
+      />
+      <ToolbarIconButton
+        icon={<CameraEnhanceOutlinedIcon fontSize="small" />}
+        tooltip={t(showBlenderRender ? "i18n-cont-model-editor-11.modelEditor.actions.hideBlenderRender" : "i18n-cont-model-editor-11.modelEditor.actions.renderBlender")}
+        onClick={toggleBlenderRender}
+        active={showBlenderRender}
+        size="small"
+        ariaLabel={t("i18n-cont-model-editor-11.modelEditor.actions.renderBlender")}
+      />
+      <ToolbarIconButton
+        icon={<AutoAwesomeIcon fontSize="small" />}
+        tooltip={t(showAssistant ? "i18n-cont-model-editor-11.modelEditor.actions.hideAssistant" : "i18n-cont-model-editor-11.modelEditor.actions.showAssistant")}
+        onClick={toggleAssistant}
+        active={showAssistant}
+        size="small"
+      />
+    </>
+  );
+  const exportItems = (close: () => void) =>
+    [false, true].flatMap((onlySelection) =>
+      EXPORT_FORMATS.map((info, index) => (
+        <MenuItemPrimitive
+          key={`${onlySelection ? "selection" : "scene"}-${info.format}`}
+          label={t(onlySelection ? "i18n-cont-model-editor-11.modelEditor.actions.exportSelectionAs" : "i18n-cont-model-editor-11.modelEditor.actions.exportSceneAs", { format: info.label })}
+          secondary={info.detail}
+          dividerBefore={onlySelection && index === 0}
+          disabled={isExporting || !canSave || (onlySelection && !selectedObject)}
+          onClick={() => {
+            void handleExport(info.format, onlySelection);
+            close();
+          }}
+        />
+      ))
+    );
+
+  const bar = documentBar?.({
+    status: (
+      <SaveStatus
+        state={explicitSaveStatus({
+          saving: isSaving,
+          dirty: isDirty,
+          failed: saveError !== null
+        })}
+        onRetry={() => void handleSave()}
+      />
+    ),
+    history: undoRedo,
+    view: panelToggles,
+    actions: (
+      <>
+        <DocumentSaveButton
+          onSave={() => void handleSave()}
+          saving={isSaving}
+          disabled={!canSave || !isDirty}
+        />
+        <DocumentMoreMenu
+          items={(close) => [
+            ...exportItems(close),
+            <MenuItemPrimitive
+              key="transform"
+              label={t("transformWithWorkflow.open")}
+              icon={<AutoFixHighOutlinedIcon fontSize="small" />}
+              dividerBefore
+              disabled={isExporting || !canSave}
+              onClick={() => {
+                close();
+                void handleTransform();
+              }}
+            />,
+            <MenuItemPrimitive
+              key="shortcuts"
+              label={t("i18n-cont-model-editor-11.modelEditor.actions.shortcuts")}
+              icon={<KeyboardIcon fontSize="small" />}
+              onClick={() => {
+                close();
+                actions.showShortcuts();
+              }}
+            />
+          ]}
+        />
+      </>
+    )
+  });
+
   return (
     <FlexColumn
       ref={containerRef}
@@ -1513,30 +1623,27 @@ const Model3DEditor = ({
       fullWidth
       fullHeight
     >
-      <FlexRow className="editor-toolbar" fullWidth>
-        <FlexRow align="center" gap={SPACING.xs} sx={{ minWidth: 0 }}>
-          <Text size="small" weight={600} className="editor-title" title={name}>
-            {name || t("i18n-cont-model-editor-11.modelEditor.title")}
-          </Text>
-          {isDirty && (
-            <Tooltip title={t("i18n-cont-model-editor-11.modelEditor.unsavedChanges")}>
-              <StatusDot tone="warning" label={t("i18n-cont-model-editor-11.modelEditor.unsavedChanges")} />
-            </Tooltip>
-          )}
-        </FlexRow>
-        <Divider orientation="vertical" flexItem />
-        <UndoRedoButtons
-          canUndo={history.canUndo()}
-          canRedo={history.canRedo()}
-          onUndo={undo}
-          onRedo={redo}
-          size="small"
-          undoTooltip={withShortcut(undoLabel ? t("i18n-cont-model-editor-11.modelEditor.actions.undoNamed", { label: undoLabel }) : t("i18n-cont-model-editor-11.modelEditor.actions.undo"), "undo")}
-          redoTooltip={withShortcut(redoLabel ? t("i18n-cont-model-editor-11.modelEditor.actions.redoNamed", { label: redoLabel }) : t("i18n-cont-model-editor-11.modelEditor.actions.redo"), "redo")}
-        />
-        <Divider orientation="vertical" flexItem />
+      {bar}
+      <Toolbar className="editor-toolbar" sx={{ flexWrap: "wrap" }}>
+        {!documentBar && (
+          <>
+            <FlexRow align="center" gap={SPACING.xs} sx={{ minWidth: 0 }}>
+              <Text size="small" weight={600} className="editor-title" title={name}>
+                {name || t("i18n-cont-model-editor-11.modelEditor.title")}
+              </Text>
+              {isDirty && (
+                <Tooltip title={t("i18n-cont-model-editor-11.modelEditor.unsavedChanges")}>
+                  <StatusDot tone="warning" label={t("i18n-cont-model-editor-11.modelEditor.unsavedChanges")} />
+                </Tooltip>
+              )}
+            </FlexRow>
+            <ToolbarDivider />
+            {undoRedo}
+            <ToolbarDivider />
+          </>
+        )}
         <ToggleGroup
-          size="small"
+          segmented
           exclusive
           value={gizmoMode}
           onChange={(_e, value) => value && setGizmoMode(value as GizmoMode)}
@@ -1578,7 +1685,7 @@ const Model3DEditor = ({
           size="small"
           ariaLabel={t("i18n-cont-model-editor-11.modelEditor.snap.toggle")}
         />
-        <Divider orientation="vertical" flexItem />
+        <ToolbarDivider />
         <MenuButton label={t("i18n-cont-model-editor-11.modelEditor.actions.add")} icon={<AddIcon />} tooltip={t("i18n-cont-model-editor-11.modelEditor.actions.addTooltip")}>
           {(close) =>
             ADD_MENU_GROUPS.flatMap((group, groupIndex) =>
@@ -1644,85 +1751,49 @@ const Model3DEditor = ({
           disabled={!selectedObject}
           size="small"
         />
-        <FlexRow sx={{ marginLeft: "auto" }} gap={SPACING.xs} align="center">
-          <ToolbarIconButton
-            icon={<KeyboardIcon fontSize="small" />}
-            tooltip={t("i18n-cont-model-editor-11.modelEditor.actions.shortcuts")}
-          shortcut={shortcutKeys("showShortcuts")}
-            onClick={actions.showShortcuts}
-            size="small"
-          />
-          <ToolbarIconButton
-            icon={<PhotoCameraOutlinedIcon fontSize="small" />}
-            tooltip={t(showAiRender ? "i18n-cont-model-editor-11.modelEditor.actions.hideAiRender" : "i18n-cont-model-editor-11.modelEditor.actions.renderAi")}
-            onClick={toggleAiRender}
-            active={showAiRender}
-            size="small"
-            ariaLabel={t("i18n-cont-model-editor-11.modelEditor.actions.renderAi")}
-          />
-          <ToolbarIconButton
-            icon={<CameraEnhanceOutlinedIcon fontSize="small" />}
-            tooltip={t(showBlenderRender ? "i18n-cont-model-editor-11.modelEditor.actions.hideBlenderRender" : "i18n-cont-model-editor-11.modelEditor.actions.renderBlender")}
-            onClick={toggleBlenderRender}
-            active={showBlenderRender}
-            size="small"
-            ariaLabel={t("i18n-cont-model-editor-11.modelEditor.actions.renderBlender")}
-          />
-          <ToolbarIconButton
-            icon={<AutoAwesomeIcon fontSize="small" />}
-            tooltip={t(showAssistant ? "i18n-cont-model-editor-11.modelEditor.actions.hideAssistant" : "i18n-cont-model-editor-11.modelEditor.actions.showAssistant")}
-            onClick={toggleAssistant}
-            active={showAssistant}
-            size="small"
-          />
-          <ToolbarIconButton
-            icon={<AutoFixHighOutlinedIcon fontSize="small" />}
-            tooltip={t("transformWithWorkflow.open")}
-            onClick={() => void handleTransform()}
-            disabled={isExporting || !canSave}
-            size="small"
-            ariaLabel={t("transformWithWorkflow.open")}
-          />
-          <MenuButton
-            label={t("i18n-cont-model-editor-11.modelEditor.actions.export")}
-            icon={<FileDownloadOutlinedIcon />}
-            tooltip={t("i18n-cont-model-editor-11.modelEditor.actions.exportTooltip")}
-          >
-            {(close) =>
-              [false, true].flatMap((onlySelection) =>
-                EXPORT_FORMATS.map((info, index) => (
-                  <MenuItemPrimitive
-                    key={`${onlySelection ? "selection" : "scene"}-${info.format}`}
-                    label={t(onlySelection ? "i18n-cont-model-editor-11.modelEditor.actions.exportSelectionAs" : "i18n-cont-model-editor-11.modelEditor.actions.exportSceneAs", { format: info.label })}
-                    secondary={info.detail}
-                    dividerBefore={onlySelection && index === 0}
-                    disabled={isExporting || !canSave || (onlySelection && !selectedObject)}
-                    onClick={() => {
-                      void handleExport(info.format, onlySelection);
-                      close();
-                    }}
-                  />
-                ))
-              )
-            }
-          </MenuButton>
-          <Tooltip title={withShortcut(t(isDirty ? "i18n-cont-model-editor-11.modelEditor.actions.saveChanges" : "i18n-cont-model-editor-11.modelEditor.actions.noUnsavedChanges"), "save")}>
-            <span>
-              <EditorButton
-                density="compact"
-                variant={isDirty ? "contained" : "outlined"}
-                startIcon={<SaveIcon />}
-                onClick={() => void handleSave()}
-                disabled={!canSave}
-                loading={isSaving}
-              >
-                {isSaving ? t("i18n-cont-model-editor-11.modelEditor.loading.saving") : t("i18n-cont-model-editor-11.modelEditor.actions.save")}
-              </EditorButton>
-            </span>
-          </Tooltip>
-          <CloseButton onClick={requestClose} tooltip={t("i18n-cont-model-editor-11.modelEditor.actions.close")} />
-        </FlexRow>
-      </FlexRow>
+        {!documentBar && (
+          <FlexRow sx={{ marginLeft: "auto" }} gap={SPACING.xs} align="center">
+            <ToolbarIconButton
+              icon={<KeyboardIcon fontSize="small" />}
+              tooltip={t("i18n-cont-model-editor-11.modelEditor.actions.shortcuts")}
+            shortcut={shortcutKeys("showShortcuts")}
+              onClick={actions.showShortcuts}
+              size="small"
+            />
+            {panelToggles}
+            <ToolbarIconButton
+              icon={<AutoFixHighOutlinedIcon fontSize="small" />}
+              tooltip={t("transformWithWorkflow.open")}
+              onClick={() => void handleTransform()}
+              disabled={isExporting || !canSave}
+              size="small"
+              ariaLabel={t("transformWithWorkflow.open")}
+            />
+            <MenuButton
+              label={t("i18n-cont-model-editor-11.modelEditor.actions.export")}
+              icon={<FileDownloadOutlinedIcon />}
+              tooltip={t("i18n-cont-model-editor-11.modelEditor.actions.exportTooltip")}
+            >
+              {exportItems}
+            </MenuButton>
+            <Tooltip title={withShortcut(t(isDirty ? "i18n-cont-model-editor-11.modelEditor.actions.saveChanges" : "i18n-cont-model-editor-11.modelEditor.actions.noUnsavedChanges"), "save")}>
+              <span>
+                <EditorButton
+                  density="compact"
+                  variant={isDirty ? "contained" : "outlined"}
+                  startIcon={<SaveIcon />}
+                  onClick={() => void handleSave()}
+                  disabled={!canSave}
+                  loading={isSaving}
+                >
+                  {isSaving ? t("i18n-cont-model-editor-11.modelEditor.loading.saving") : t("i18n-cont-model-editor-11.modelEditor.actions.save")}
+                </EditorButton>
+              </span>
+            </Tooltip>
+            {onClose && <CloseButton onClick={requestClose} tooltip={t("i18n-cont-model-editor-11.modelEditor.actions.close")} />}
+          </FlexRow>
+        )}
+      </Toolbar>
 
       <FlexRow className="editor-body" fullWidth>
         <FlexColumn className="side-panel left" fullHeight>
@@ -2084,7 +2155,7 @@ const Model3DEditor = ({
         onClose={() => setConfirmCloseOpen(false)}
         onConfirm={() => {
           setConfirmCloseOpen(false);
-          onClose();
+          onClose?.();
         }}
         title={t("i18n-cont-model-editor-11.modelEditor.closeConfirm.title")}
         content={t("i18n-cont-model-editor-11.modelEditor.closeConfirm.content")}

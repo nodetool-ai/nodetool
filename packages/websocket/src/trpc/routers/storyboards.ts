@@ -32,6 +32,10 @@ import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
+import {
+  hasDocumentRole,
+  type DocumentRole
+} from "../../lib/document-access.js";
 
 const listInput = z.object({
   projectId: z.string().optional()
@@ -59,13 +63,21 @@ const stylePresetEntity = z.object({
   thumbnail: z.string()
 });
 
+/**
+ * Load a storyboard the caller holds at least `minimum` on: reads take "viewer",
+ * saves "editor", and delete stays with the owner. See lib/document-access.ts.
+ */
 async function loadOwned(
   ctxUserId: string | null,
-  id: string
+  id: string,
+  minimum: DocumentRole = "owner"
 ): Promise<Storyboard> {
   if (!ctxUserId) throwApiError(ApiErrorCode.UNAUTHORIZED, "Unauthorized");
   const board = await Storyboard.findById(id);
-  if (!board || board.user_id !== ctxUserId) {
+  if (
+    !board ||
+    !(await hasDocumentRole("storyboard", board, ctxUserId, minimum))
+  ) {
     throwApiError(ApiErrorCode.NOT_FOUND, "Storyboard not found");
   }
   return board;
@@ -90,7 +102,7 @@ export const storyboardsRouter = router({
     .input(idInput)
     .output(storyboardResponse)
     .query(async ({ ctx, input }) => {
-      const board = await loadOwned(ctx.userId, input.id);
+      const board = await loadOwned(ctx.userId, input.id, "viewer");
       return storyboardResponse.parse(board.toResponse());
     }),
 
@@ -122,7 +134,7 @@ export const storyboardsRouter = router({
     .input(updateInput)
     .output(storyboardResponse)
     .mutation(async ({ ctx, input }) => {
-      const board = await loadOwned(ctx.userId, input.id);
+      const board = await loadOwned(ctx.userId, input.id, "editor");
 
       // CAS on updated_at so the conflict check and the write are atomic.
       const expectedUpdatedAt = input.baseUpdatedAt ?? board.updated_at;

@@ -203,7 +203,7 @@ it("says the documents are ordered most recent first", () => {
   documentCount = 9;
   renderDocuments();
   expect(
-    screen.getByText("Documents · 9 · most recent first")
+    screen.getByText("9 documents · most recent first")
   ).toBeInTheDocument();
 });
 
@@ -222,7 +222,7 @@ it("lists a saved text file, counts it, and opens it in its text tab (study-7-I5
     screen.queryByText("No documents in this project yet")
   ).not.toBeInTheDocument();
   expect(
-    screen.getByText("Documents · 2 · most recent first")
+    screen.getByText("2 documents · most recent first")
   ).toBeInTheDocument();
   await userEvent.click(screen.getByRole("button", { name: "Notes.md" }));
   expect(openTab).toHaveBeenCalledWith({

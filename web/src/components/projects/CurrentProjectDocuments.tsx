@@ -6,9 +6,7 @@ import {
   Box,
   Caption,
   EditorButton,
-  FlexColumn,
   FlexRow,
-  LoadingSpinner,
   SPACING,
   EmptyState
 } from "../ui_primitives";
@@ -22,8 +20,15 @@ import ProjectDocumentCard from "./ProjectDocumentCard";
 import { PROJECT_DOCUMENTS_ID } from "./projectDocumentsAnchor";
 import ProjectSelector from "./ProjectSelector";
 import type { ProjectDocument } from "./projectStatus";
+import StartSection, {
+  START_CARD_COLUMNS,
+  START_CARD_GRID_SX,
+  StartCardSkeletons
+} from "./StartSection";
 
-const DOCUMENTS_PER_PAGE = 4;
+const DOCUMENTS_PER_PAGE = START_CARD_COLUMNS;
+/** A compact document card's height, for the loading placeholders. */
+const SKELETON_HEIGHT = 136;
 
 const CurrentProjectDocuments = () => {
   const { t } = useTranslation();
@@ -106,21 +111,20 @@ const CurrentProjectDocuments = () => {
   const documents = data?.documents ?? [];
   const firstDocument = page * DOCUMENTS_PER_PAGE;
   return (
-    <FlexColumn
+    <StartSection
       id={PROJECT_DOCUMENTS_ID}
-      gap={SPACING.md}
-      aria-label={t("pass3_32.projects.documents.regionLabel")}
+      title={t("pass3_32.projects.documents.title")}
+      ariaLabel={t("pass3_32.projects.documents.regionLabel")}
+      subtitle={
+        total > 0
+          ? t("pass3_32.projects.documents.countSubtitle", { count: total })
+          : undefined
+      }
+      // The picker scopes this section and the chats below it.
+      action={<ProjectSelector inline />}
     >
-      <FlexRow align="center" gap={SPACING.md} wrap>
-        <ProjectSelector inline />
-        <Caption color="muted">
-          {total > 0
-            ? t("pass3_32.projects.documents.countAndSort", { count: total })
-            : t("pass3_32.projects.documents.title")}
-        </Caption>
-      </FlexRow>
       {isPending ? (
-        <LoadingSpinner />
+        <StartCardSkeletons height={SKELETON_HEIGHT} />
       ) : error ? (
         <ErrorBanner
           report={{
@@ -134,14 +138,7 @@ const CurrentProjectDocuments = () => {
       ) : documents.length === 0 ? (
         <EmptyState size="small" title={t("pass3_32.projects.documents.emptyTitle")} />
       ) : (
-        <Box
-          sx={{
-            display: "grid",
-            gap: SPACING.md,
-            gridTemplateColumns:
-              "repeat(auto-fill, minmax(min(100%, 190px), 1fr))"
-          }}
-        >
+        <Box sx={START_CARD_GRID_SX}>
           {documents.map((document) => (
             <ProjectDocumentCard
               key={`${document.type}:${document.ref}`}
@@ -181,7 +178,7 @@ const CurrentProjectDocuments = () => {
           </EditorButton>
         </FlexRow>
       )}
-    </FlexColumn>
+    </StartSection>
   );
 };
 

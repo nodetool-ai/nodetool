@@ -176,12 +176,13 @@ Name the provider on every model field and warn when its key is missing.
 
 ### 3.1 Leaving an editor never drops what is on screen
 
-Switching to View, closing a tab or pressing "Done" must keep the draft.
+Switching to View or closing a tab must keep the draft.
 
 - "View" before "Save" threw away a text file's draft in 3 of 3, all of whom
   named it the hardest moment (`study-7-I1`).
 - "Done" and "Save to image" were indistinguishable, and "Done" left a blank
-  image (`study-5-I5`). "Done" now saves.
+  image (`study-5-I5`). "Done" is gone: View/Edit in the document bar
+  leaves the editor, and "Save to image" is its one action.
 
 Most NodeTool documents save as you go, so people assume all of them do. A
 surface that does not autosave saves on close.
@@ -195,6 +196,10 @@ A side effect nobody sees is a lost result.
 - Dropping a photo inside the previous clip trimmed that clip without a word
   in 2 of 2 (`study-6-I4`). The drop now snaps to the clip's end.
 - Creating a project closed the open tabs silently (study 5 defects).
+- A new overlay track went under the full-frame video, so a title on it
+  never showed in 3 of 3 (`study-16-I1`). A new layer goes where it is seen.
+- Dragging a picture onto another to reorder replaced it in 3 of 3, and
+  people found out only by reading clip names (`study-16-I3`).
 
 Do what the person meant. Where the side effect must stay, show it with an
 undo ("Trimmed beach-morning.jpg by 1.8 s").
@@ -352,7 +357,10 @@ name the difference ("Save and close").
 A one-line field for "one benefit per line" joined the lines silently in 3 of
 3 (`study-1-I4`). A text file attached with "@" showed as a broken
 reference image (`study-4-I5`). Multi-line data gets a multi-line
-field, and a file shows as what it is.
+field, and a file shows as what it is. An attach control takes every kind
+of file its box can use: the home box's "Reference images" refused a notes
+file in 2 of 3, and 3 of 3 left for the Library to upload it
+(`study-15-I1`).
 
 ## 6. Acting on items
 
@@ -361,6 +369,13 @@ field, and a file shows as what it is.
 3 of 3 looked for rename on the Home card, the list row or the heading, and
 it existed only on the open tab (`study-2-I1`). Rename, duplicate
 and delete belong on every surface that lists the item: card, row and tab.
+Conversations repeated it: 3 of 3 right-clicked or double-clicked the Chats
+row to rename, and with a rename button on the row 3 of 3 used it
+(`study-15-I3`).
+
+An editor's main additions belong in its toolbar, not only in a right-click
+menu. 6 of 6 asked to put words over a video looked in the timeline toolbar,
+and 3 of 6 never found "Add text" in the lane menu (`study-16-I2`).
 
 ### 6.2 A shortcut also has a visible control
 
@@ -428,6 +443,7 @@ records the decision.
 | One search across chats, documents and files | study-7-I5 |
 | How side panels behave below about 1100 px | study-5-I8, study-6-I10 |
 | Which port names the canvas shows without hovering | study-9-I4 |
+| What a clip dropped on another clip does, and whether shortening a clip closes the gap | study-16-I3, study-16-I5 |
 
 ## 10. Checklist for a UI change
 

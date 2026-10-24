@@ -12,7 +12,12 @@
  * stale render can never be handed back.
  */
 
-import { midiRenderKey, renderMidiClip } from "@nodetool-ai/timeline";
+import {
+  midiClipFrames,
+  midiClipVoiceEvents,
+  midiRenderKey,
+  renderMidiClip
+} from "@nodetool-ai/timeline";
 import type {
   MidiInstrument,
   MidiNote,
@@ -24,6 +29,7 @@ import type {
 } from "./midiRender.worker";
 import { getSamplerAudio, clearSamplerAudioCache } from "./samplerAudio";
 import { createMidiRenderWorker } from "./midiRenderWorkerClient";
+import { renderVstBuffer } from "./vstRender";
 
 /** The slice of a clip a render reads. */
 export type MidiRenderClip = Pick<
@@ -89,7 +95,8 @@ function renderSamples(request: Omit<MidiRenderRequest, "id">): Promise<Float32A
 }
 
 /**
- * The clip's window as a mono {@link AudioBuffer} on `ctx`.
+ * The clip's window as an {@link AudioBuffer} on `ctx`: mono from the built-in
+ * voices, stereo from a VST instrument.
  *
  * `renderMidiClip` already sizes the buffer to the window (it accounts for
  * `inPointMs` / `durationMs`), so the caller schedules it from offset 0.
@@ -116,7 +123,45 @@ export async function getMidiClipBuffer(
   if (running) return running;
 
   const notes: MidiNote[] = clip.notes ?? [];
-  const promise = getSamplerAudio(ctx, instrument).then(samples => renderSamples({
+  const rendered: Promise<AudioBuffer> =
+    instrument.type === "vst"
+      ? renderVstBuffer(
+          ctx,
+          instrument,
+          midiClipVoiceEvents(clip, bpm, sampleRate),
+          midiClipFrames(clip, sampleRate)
+        )
+      : renderMonoBuffer(ctx, clip, notes, bpm, instrument);
+  const promise = rendered
+    .then((buffer) => {
+      cache.set(key, buffer);
+      inFlight.delete(key);
+      while (cache.size > RENDER_CACHE_MAX) {
+        const oldest = cache.keys().next().value;
+        if (oldest === undefined || oldest === key) break;
+        cache.delete(oldest);
+      }
+      return buffer;
+    })
+    .catch((error) => {
+      inFlight.delete(key);
+      throw error;
+    });
+
+  inFlight.set(key, promise);
+  return promise;
+}
+
+/** A built-in voice rendered by the shared renderer, off the main thread. */
+function renderMonoBuffer(
+  ctx: BaseAudioContext,
+  clip: MidiRenderClip,
+  notes: MidiNote[],
+  bpm: number,
+  instrument: MidiInstrument
+): Promise<AudioBuffer> {
+  const sampleRate = ctx.sampleRate;
+  return getSamplerAudio(ctx, instrument).then(samples => renderSamples({
     notes,
     inPointMs: clip.inPointMs ?? 0,
     durationMs: clip.durationMs,
@@ -134,22 +179,8 @@ export async function getMidiClipBuffer(
       // `set` rather than `copyToChannel`: the renderer's Float32Array is
       // typed over ArrayBufferLike, which copyToChannel's signature refuses.
       buffer.getChannelData(0).set(samples);
-      cache.set(key, buffer);
-      inFlight.delete(key);
-      while (cache.size > RENDER_CACHE_MAX) {
-        const oldest = cache.keys().next().value;
-        if (oldest === undefined || oldest === key) break;
-        cache.delete(oldest);
-      }
       return buffer;
-    })
-    .catch((error) => {
-      inFlight.delete(key);
-      throw error;
     });
-
-  inFlight.set(key, promise);
-  return promise;
 }
 
 /** Drop every cached render. Exported for tests and teardown. */

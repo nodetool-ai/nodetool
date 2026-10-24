@@ -65,7 +65,8 @@ export const INSTRUMENT_NAMES: Record<MidiInstrument["type"], string> = {
   wavetable: "WT-1 Wavetable",
   bass: "BL-1 Bass",
   drum: "DR-1 Drums",
-  sampler: "Sampler"
+  sampler: "Sampler",
+  vst: "VST"
 };
 
 /** The `deviceViews` key of an effect: its type, or `fable:<kind>`. */
@@ -277,14 +278,16 @@ const InstrumentDevice: React.FC<{
 }> = memo(({ track, collapsed, onToggleCollapsed, layout }) => {
   const type = track.instrument?.type;
   const View = instrumentView(type);
-  const title = type ? INSTRUMENT_NAMES[type] : "Instrument";
+  const vstPlugin = track.instrument?.type === "vst" ? track.instrument.plugin : null;
+  const title = vstPlugin ? vstPlugin.name : type ? INSTRUMENT_NAMES[type] : "Instrument";
   return (
     <DeviceCard
       title={title}
-      kind="Instrument"
+      kind={type === "vst" ? "VST3 instrument" : "Instrument"}
       collapsed={collapsed}
       onToggleCollapsed={() => onToggleCollapsed("instrument")}
-      width={View ? INSTRUMENT_VIEW_WIDTH : 360}
+      // The VST view is a plug-in picker; the plug-in draws in its own window.
+      width={View && type !== "vst" ? INSTRUMENT_VIEW_WIDTH : 360}
       layout={layout}
       testId={`device-instrument-${track.id}`}
     >

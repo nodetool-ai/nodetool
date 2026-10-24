@@ -183,10 +183,10 @@ const ImageSizeProperty = (props: PropertyProps<ImageSizeValue>) => {
             icon={locked ? <Lock sx={{ fontSize: ICON_SIZE.sm }} /> : <LockOpen sx={{ fontSize: ICON_SIZE.sm }} />}
             className="aspect-lock-button"
             onClick={toggleLock}
+            active={locked}
             size="small"
             sx={{
                 p: 0.5,
-                color: locked ? 'primary.main' : 'text.secondary',
                 alignSelf: 'center',
             }}
           />

@@ -80,9 +80,6 @@ const styles = (theme: Theme) =>
       gridTemplateColumns: "minmax(0, 1fr)",
       "& .tool-top-bar__global-actions": { marginLeft: 0 }
     },
-    "& .MuiIconButton-root": {
-      padding: theme.spacing(1)
-    },
     ...settingRowChildrenSx(theme)
   });
 

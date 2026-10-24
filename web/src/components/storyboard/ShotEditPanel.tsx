@@ -34,7 +34,7 @@ import type { Entity, Scene, Shot } from "@nodetool-ai/protocol";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 
 import {
   Box,
@@ -841,7 +841,7 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
           {!readOnly && (
             <>
               <ToolbarIconButton
-                icon={<MoreHorizIcon fontSize="inherit" />}
+                icon={<MoreVertIcon fontSize="inherit" />}
                 tooltip={t("screens4_16.shotEditPanel.moreActions")}
                 ariaLabel={t("screens4_16.shotEditPanel.moreShotActions")}
                 onClick={(event) => setMenuAnchor(event.currentTarget)}

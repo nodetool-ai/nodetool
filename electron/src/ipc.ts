@@ -43,6 +43,7 @@ import {
 import { applyVaultSwitch } from "./vaultSwitch";
 import { setMenuSnapToGrid } from "./menu";
 import { installMcpBundle } from "./mcpBundle";
+import { getVstHost } from "./vstHost";
 import { IpcRequest } from "./types.d";
 import {
   registerWorkflowShortcut,
@@ -150,6 +151,8 @@ const SENSITIVE_CHANNELS = ["clipboard:write-text", "clipboard:read-text"];
 const QUIET_CHANNELS = [
   "settings-get-close-behavior",
   "frontend-log",
+  // Renders carry plug-in state and note lists, one per clip edit.
+  "vst-render",
 ];
 /**
  * Defense-in-depth check for URLs passed to `shell.openExternal` / browser.
@@ -996,6 +999,21 @@ export function initializeIpcHandlers(): void {
     logMessage("Installing NodeTool MCP bundle (.mcpb)");
     return installMcpBundle();
   });
+
+  // VST3 instruments: the helper process hosts the plug-ins (vstHost.ts).
+  createIpcMainHandler(IpcChannels.VST_STATUS, async () => getVstHost().status());
+  createIpcMainHandler(IpcChannels.VST_SCAN, async (_event, request) =>
+    getVstHost().scan(request?.rescan === true),
+  );
+  createIpcMainHandler(IpcChannels.VST_RENDER, async (_event, request) =>
+    getVstHost().render(request),
+  );
+  createIpcMainHandler(IpcChannels.VST_OPEN_EDITOR, async (_event, request) =>
+    getVstHost().openEditor(request),
+  );
+  createIpcMainHandler(IpcChannels.VST_CLOSE_EDITOR, async (_event, instance) =>
+    getVstHost().closeEditor(instance),
+  );
 
   createIpcMainHandler(IpcChannels.SHELL_BEEP, async () => {
     shell.beep();

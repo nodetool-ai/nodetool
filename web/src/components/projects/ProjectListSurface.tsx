@@ -49,6 +49,7 @@ import {
   useUnassignedDocuments
 } from "../../hooks/useProjects";
 import ProjectCard from "./ProjectCard";
+import { useResumeProject } from "../../hooks/useResumeProject";
 import ProjectLifecycleActions from "./ProjectLifecycleActions";
 import NewProjectDialog from "./NewProjectDialog";
 import { PROJECT_COLOR, PROJECT_GLYPH } from "./projectIdentity";
@@ -232,11 +233,19 @@ const ProjectListSurface = () => {
     [unassigned.data]
   );
 
+  // Same as a Recent projects card: land on the project's latest document,
+  // not on a start page that looks like nothing happened.
+  const resumeProject = useResumeProject();
   const handleOpen = useCallback(
     (project: ProjectDetail["project"]) => {
-      void openProject(project);
+      const detail = summaries.data?.find((d) => d.project.id === project.id);
+      if (detail) {
+        resumeProject(detail);
+      } else {
+        void openProject(project);
+      }
     },
-    [openProject]
+    [openProject, resumeProject, summaries.data]
   );
 
   const handleDropDocument = useCallback(

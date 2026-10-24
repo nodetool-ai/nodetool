@@ -16,6 +16,7 @@ import AudioFileIcon from "@mui/icons-material/AudioFile";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import MicNoneIcon from "@mui/icons-material/MicNone";
+import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
 import {
   FlexColumn,
   FlexRow,
@@ -44,7 +45,9 @@ import {
   Z_INDEX,
   ICON_SIZE
 } from "../ui_primitives";
+import type { DocumentBarRender } from "../ui_primitives";
 import { formatDuration } from "../../utils/formatUtils";
+import { getErrorMessage } from "../../utils/errorHandling";
 import { useInStudio } from "../../studio/StudioContext";
 import {
   useScript,
@@ -86,7 +89,10 @@ import { useScriptLineFocus } from "../../hooks/script/useScriptLineFocus";
 import StoryboardLinkControl from "./StoryboardLinkControl";
 import ScriptSaveIndicator from "./ScriptSaveIndicator";
 import { scriptWorkflowMedia } from "./scriptWorkflowMedia";
-import { SendToWorkflowButton } from "../workflows/SendToWorkflowMenu";
+import {
+  SendToWorkflowButton,
+  SendToWorkflowMenu
+} from "../workflows/SendToWorkflowMenu";
 import { useContextCommands } from "../../hooks/useContextCommands";
 import type { ContextCommand } from "../../stores/CommandMenuStore";
 
@@ -95,6 +101,12 @@ interface ScriptDocumentPaneProps {
   readOnly: boolean;
   /** Whether the pane's tab is on screen; lists its commands in the Cmd+K menu. */
   active?: boolean;
+  /**
+   * Draws the document bar (a workspace tab). The header leaves the pane:
+   * the save status, history and actions go to the bar, and the line, word
+   * and voice counts to a status line under the lines.
+   */
+  documentBar?: DocumentBarRender;
 }
 
 /** A pending drop position: land the dragged line before `beforeLineId` (or at
@@ -427,6 +439,24 @@ const SectionBlockInner = ({
           </Box>
         )}
       </FlexRow>
+      {/* An empty section has no rows or seams to drop on: while a line is
+          dragged it shows one drop zone. */}
+      {section.lines.length === 0 && dragActive && !readOnly && (
+        <Box
+          aria-hidden
+          data-empty-section-drop={section.id}
+          onDragOver={onGapDragOver(null)}
+          onDrop={onGapDrop}
+          sx={{
+            marginLeft: `${inset}px`,
+            height: CONTROL.height.md,
+            borderRadius: BORDER_RADIUS.lg,
+            border: "1px dashed",
+            borderColor: isTarget(null) ? "primary.main" : "divider",
+            transition: MOTION.border
+          }}
+        />
+      )}
       {/* The section's lines read as one sheet, a hairline between rows. */}
       {section.lines.length > 0 && (
       <Box
@@ -646,6 +676,7 @@ const VoicingStrip = ({
     })
   );
   const [retrying, setRetrying] = useState<readonly string[]>([]);
+  const [retryError, setRetryError] = useState<string | null>(null);
   const live = useVoicingLive(scriptId);
   // Voicing refuses while a write replaces the lines.
   const writing = useScriptWriting(scriptId);
@@ -655,9 +686,18 @@ const VoicingStrip = ({
   const retry = useCallback(
     (lineIds: readonly string[]) => {
       setRetrying(lineIds);
-      void retryVoicing(scriptId, lineIds).finally(() => setRetrying([]));
+      setRetryError(null);
+      // A refused retry (another tab voicing, a write in progress) has to say
+      // so; left to `.finally` it became an unhandled rejection.
+      void retryVoicing(scriptId, lineIds)
+        .catch((error: unknown) =>
+          setRetryError(
+            getErrorMessage(error, t("i18n-next25.script.line.voicingFailed"))
+          )
+        )
+        .finally(() => setRetrying([]));
     },
-    [scriptId]
+    [scriptId, t]
   );
 
   if (!run || (run.total === 0 && run.failed.length === 0)) {
@@ -751,6 +791,7 @@ const VoicingStrip = ({
             ))}
           </FlexColumn>
         )}
+        {retryError && <Caption color="error">{retryError}</Caption>}
         {readOnly || run.failed.length < 2 ? null : (
           <FlexRow>
             <EditorButton
@@ -773,7 +814,8 @@ const VoicingStrip = ({
 const ScriptDocumentPane = ({
   scriptId,
   readOnly,
-  active = false
+  active = false,
+  documentBar
 }: ScriptDocumentPaneProps) => {
   const { t } = useTranslation();
   const theme = useTheme();
@@ -788,8 +830,7 @@ const ScriptDocumentPane = ({
   const addLine = useScriptStore((s) => s.addLine);
   const addSection = useScriptStore((s) => s.addSection);
   const moveLine = useScriptStore((s) => s.moveLine);
-  const insertLine = useScriptStore((s) => s.insertLine);
-  const patchLine = useScriptStore((s) => s.patchLine);
+  const splitLine = useScriptStore((s) => s.splitLine);
   const removeLine = useScriptStore((s) => s.removeLine);
   const undo = useScriptStore((s) => s.undo);
   const redo = useScriptStore((s) => s.redo);
@@ -804,6 +845,7 @@ const ScriptDocumentPane = ({
   const focusedLineId = useScriptLineFocus(scriptId, sections.length > 0);
   const highlightedLineId = currentLineId ?? focusedLineId;
   const [voicingAll, setVoicingAll] = useState(false);
+  const [voiceAllError, setVoiceAllError] = useState<string | null>(null);
   // A run started elsewhere in this page, such as the guided flow's last step,
   // is voicing these lines already: a second Voice all would pay for them twice.
   const voicingLive = useVoicingLive(scriptId);
@@ -811,6 +853,7 @@ const ScriptDocumentPane = ({
   // pay for takes the write throws away. Voicing refuses it.
   const writing = useScriptWriting(scriptId);
   const [moreAnchor, setMoreAnchor] = useState<HTMLElement | null>(null);
+  const [sendAnchor, setSendAnchor] = useState<HTMLElement | null>(null);
   const { assemble, assembling, error: assembleError } =
     useAssembleScriptTimeline();
   const { exportAudio, exporting: exportingAudio } =
@@ -870,27 +913,12 @@ const ScriptDocumentPane = ({
     (lineId: string, nav: LineKeyNav) => {
       const script = useScriptStore.getState().getScript(scriptId);
       if (!script) return;
-      const located = (() => {
-        for (const section of script.sections) {
-          const index = section.lines.findIndex((l) => l.id === lineId);
-          if (index >= 0) return { section, index };
-        }
-        return null;
-      })();
-      if (!located) return;
-      const { section, index } = located;
-      const line = section.lines[index];
-
       if (nav.type === "split") {
-        patchLine(scriptId, lineId, { text: nav.before });
-        const newId = insertLine(scriptId, section.id, index + 1);
-        // Continue the same speaker so a run of dialogue doesn't need
-        // re-tagging after every Enter.
-        patchLine(scriptId, newId, {
-          text: nav.after,
-          speakerId: line.speakerId ?? null
-        });
-        focusLine(newId, "start");
+        // One undo step. The new line continues the same speaker and
+        // direction, so a run of dialogue doesn't need re-tagging after
+        // every Enter.
+        const newId = splitLine(scriptId, lineId, nav.before, nav.after);
+        if (newId) focusLine(newId, "start");
         return;
       }
 
@@ -911,17 +939,23 @@ const ScriptDocumentPane = ({
       const targetId = flatLineIds[pos + nav.dir];
       if (targetId) focusLine(targetId, nav.dir < 0 ? "end" : "start");
     },
-    [scriptId, patchLine, insertLine, removeLine, focusLine]
+    [scriptId, splitLine, removeLine, focusLine]
   );
 
   const onVoiceAll = useCallback(async () => {
     setVoicingAll(true);
+    setVoiceAllError(null);
     try {
       await voiceAll(scriptId);
+    } catch (error) {
+      // voiceAll refuses while a write or another tab holds the script.
+      setVoiceAllError(
+        getErrorMessage(error, t("i18n-next25.script.line.voicingFailed"))
+      );
     } finally {
       setVoicingAll(false);
     }
-  }, [scriptId]);
+  }, [scriptId, t]);
 
   // What the click above is about to spend, over the same lines it will voice.
   const voiceCost = useVoiceCostEstimate(scriptId);
@@ -951,10 +985,11 @@ const ScriptDocumentPane = ({
 
   // Every header stat from one walk; `hasVoicedLine` used to rescan the whole
   // document on each render.
-  const { lineCount, wordCount, hasVoicedLine, voicedDurationMs } = useMemo(() => {
+  const { lineCount, wordCount, hasVoicedLine, allVoiced, voicedDurationMs } = useMemo(() => {
     let lines = 0;
     let words = 0;
     let voiced = false;
+    let voicedLines = 0;
     let durationMs = 0;
     for (const section of sections)
       for (const line of section.lines) {
@@ -964,6 +999,7 @@ const ScriptDocumentPane = ({
         const take = line.takes.find((t) => t.id === line.currentTakeId);
         if (take) {
           voiced = true;
+          voicedLines += 1;
           durationMs += take.durationMs + (line.pauseAfterMs ?? 0);
         }
       }
@@ -971,6 +1007,7 @@ const ScriptDocumentPane = ({
       lineCount: lines,
       wordCount: words,
       hasVoicedLine: voiced,
+      allVoiced: lines > 0 && voicedLines === lines,
       voicedDurationMs: durationMs
     };
   }, [sections]);
@@ -1028,224 +1065,135 @@ const ScriptDocumentPane = ({
   ]);
   useContextCommands(t("i18n-next25.script.document.scriptContext"), menuCommands, active);
 
-  return (
-    <FlexColumn
-      data-focus-id="script-document"
-      gap={SPACING.md}
-      sx={{ flex: 1, minWidth: 0, height: "100%", overflowY: "auto" }}
-    >
-      {/* A stacked two-row header: Toolbar's surface and rule, column layout. */}
-      <Toolbar
-        sx={{
-          position: "sticky",
-          top: 0,
-          zIndex: Z_INDEX.sticky,
-          flexDirection: "column",
-          alignItems: "stretch",
-          gap: SPACING.none,
-          px: SPACING.none
-        }}
-      >
-      <FlexRow
-        align="center"
-        gap={SPACING.md}
-        wrap
-        sx={{
-          paddingTop: SPACING.lg,
-          paddingBottom: SPACING.sm,
-          paddingX: isMobile ? SPACING.md : SPACING.xl
-        }}
-      >
-        <DescriptionOutlinedIcon
-          fontSize="small"
-          sx={{ color: "warning.main", flexShrink: 0 }}
-        />
-        <TruncatedText
-          component="h2"
-          sx={{
-            ...TYPOGRAPHY.sans.title,
-            margin: SPACING.none,
-            minWidth: 0,
-            flex: "1 1 auto",
-            color: "text.primary"
-          }}
-        >
-          {title ? t("i18n-next25.script.document.titledScript", { title }) : t("i18n-next25.script.document.untitledScript")}
-        </TruncatedText>
-        {!isEmpty && (
-          <MetaChip>
-            {t("i18n-next25.script.document.lineWordCount", {
-              lines: t("i18n-next25.script.document.lineCount", { count: lineCount }),
-              words: t("i18n-next25.script.document.wordCount", { count: wordCount })
-            })}
-            {durationLabel ? ` · ${durationLabel}` : ""}
-          </MetaChip>
-        )}
-        {castCount > 0 && (
-          <MetaChip icon={<MicNoneIcon fontSize="inherit" />}>
-            {t("i18n-next25.script.document.voiceCount", { count: castCount })}
-          </MetaChip>
-        )}
-        {!readOnly && <ScriptSaveIndicator scriptId={scriptId} />}
-      </FlexRow>
-      <FlexRow
-        align="center"
-        gap={SPACING.sm}
-        wrap
-        sx={{
-          paddingBottom: SPACING.sm,
-          paddingX: isMobile ? SPACING.sm : SPACING.lg,
-          "& .MuiButton-root": { whiteSpace: "nowrap", flexShrink: 0 }
-        }}
-      >
-        {!readOnly && (
-          <UndoRedoButtons
-            canUndo={canUndo}
-            canRedo={canRedo}
-            onUndo={onUndo}
-            onRedo={onRedo}
-            undoTooltip={t("i18n-next25.script.document.undo")}
-            redoTooltip={t("i18n-next25.script.document.redo")}
-          />
-        )}
-        {!readOnly &&
-          (voicingAll || voicingLive || writing ? (
-            <FlexRow align="center" gap={SPACING.xs}>
-              <LoadingSpinner inline size={16} />
-              <Text size="smaller">
-                {voicingAll || voicingLive ? t("i18n-next25.script.document.voicing") : t("i18n-next25.script.document.writing")}
-              </Text>
-            </FlexRow>
-          ) : (
-            <VoiceAllButton
-              estimate={voiceCost}
-              onClick={() => void onVoiceAll()}
-            />
-          ))}
-        {playing ? (
-          <EditorButton
-            size="small"
-            variant="text"
-            startIcon={<StopIcon />}
-            onClick={stop}
-          >
-            {t("i18n-next25.script.document.stop")}
-          </EditorButton>
-        ) : (
-          <Tooltip
-            title={
-              hasVoicedLine
-                ? t("i18n-next25.script.document.playCurrentTakesTooltip")
-                : t("i18n-next25.script.document.voiceToPlayTooltip")
-            }
-          >
-            <span>
-              <EditorButton
-                size="small"
-                variant="text"
-                startIcon={<PlayArrowIcon />}
-                onClick={play}
-                disabled={!hasVoicedLine}
-              >
-                {t("i18n-next25.script.document.playThrough")}
-              </EditorButton>
-            </span>
-          </Tooltip>
-        )}
-        <Box sx={{ flex: 1 }} />
-        {exportingAudio && (
-          <FlexRow align="center" gap={SPACING.xs}>
-            <LoadingSpinner inline size={16} />
-            <Text size="smaller">
-              {t("i18n-next25.script.document.exportingAudio", { format: exportingAudio.toUpperCase() })}
-            </Text>
-          </FlexRow>
-        )}
-        {showAssemble && (
-          <EditorButton
-            size="small"
-            variant="text"
-            startIcon={<MovieIcon />}
-            onClick={onSendToTimeline}
-            disabled={assembling || !hasVoicedLine}
-            tooltip={
-              storyboardId
-                ? t("i18n-next25.script.document.assembleStoryboardTooltip")
-                : undefined
-            }
-            disabledReason={
-              hasVoicedLine
-                ? undefined
-                : t("i18n-next25.script.document.voiceToTimelineTooltip")
-            }
-          >
-            {assembling
-              ? t("i18n-next25.script.document.assembling")
-              : storyboardId
-                ? t("i18n-next25.script.document.assembleVideo")
-                : timelineId
-                  ? t("i18n-next25.script.document.updateTimeline")
-                  : t("i18n-next25.script.document.sendToTimeline")}
-          </EditorButton>
-        )}
-        {hasVoicedLine && (
-          <SendToWorkflowButton
-            items={workflowMedia}
-            tooltip={t("i18n-next25.script.document.sendTakesToWorkflow")}
-          />
-        )}
-        {!readOnly && <StoryboardLinkControl scriptId={scriptId} />}
-        {!readOnly && (
-          <>
-            <ToolbarIconButton
-              tooltip={t("i18n-next25.script.document.moreActions")}
-              ariaLabel={t("i18n-next25.script.document.moreActions")}
-              onClick={(e) => setMoreAnchor(e.currentTarget)}
-              icon={<MoreVertIcon fontSize="small" />}
-            />
-            <EditorMenu
-              anchorEl={moreAnchor}
-              open={!!moreAnchor}
-              onClose={() => setMoreAnchor(null)}
-            >
-              <MenuItemPrimitive
-                icon={<SubtitlesIcon fontSize="small" />}
-                label={t("i18n-next25.script.document.exportSrt")}
-                disabled={!hasVoicedLine}
-                tooltip={
-                  hasVoicedLine
-                    ? undefined
-                    : t("i18n-next25.script.document.voiceToExportSubtitles")
-                }
-                onClick={() => {
-                  setMoreAnchor(null);
-                  onExportSubtitles();
-                }}
-              />
-              {(["wav", "mp3"] as const).map((format) => (
-                <MenuItemPrimitive
-                  key={format}
-                  icon={<AudioFileIcon fontSize="small" />}
-                  label={t("i18n-next25.script.document.exportFormat", { format: format.toUpperCase() })}
-                  disabled={!hasVoicedLine || exportingAudio !== null}
-                  tooltip={
-                    hasVoicedLine
-                      ? undefined
-                      : t("i18n-next25.script.document.voiceToExportAudio")
-                  }
-                  onClick={() => {
-                    setMoreAnchor(null);
-                    void exportAudio(format);
-                  }}
-                />
-              ))}
-            </EditorMenu>
-          </>
-        )}
-      </FlexRow>
-      </Toolbar>
+  const assembleLabel = storyboardId
+    ? t("i18n-next25.script.document.assembleVideo")
+    : timelineId
+      ? t("i18n-next25.script.document.updateTimeline")
+      : t("i18n-next25.script.document.sendToTimeline");
 
+  const chips = (
+    <>
+      {!isEmpty && (
+        <MetaChip>
+          {t("i18n-next25.script.document.lineWordCount", {
+            lines: t("i18n-next25.script.document.lineCount", { count: lineCount }),
+            words: t("i18n-next25.script.document.wordCount", { count: wordCount })
+          })}
+          {durationLabel ? ` · ${durationLabel}` : ""}
+        </MetaChip>
+      )}
+      {castCount > 0 && (
+        <MetaChip icon={<MicNoneIcon fontSize="inherit" />}>
+          {t("i18n-next25.script.document.voiceCount", { count: castCount })}
+        </MetaChip>
+      )}
+    </>
+  );
+
+  const voiceAllControl =
+    voicingAll || voicingLive || writing ? (
+      <FlexRow align="center" gap={SPACING.xs}>
+        <LoadingSpinner inline size={16} />
+        <Text size="smaller">
+          {voicingAll || voicingLive ? t("i18n-next25.script.document.voicing") : t("i18n-next25.script.document.writing")}
+        </Text>
+      </FlexRow>
+    ) : (
+      <VoiceAllButton
+        estimate={voiceCost}
+        onClick={() => void onVoiceAll()}
+      />
+    );
+
+  const playControl = playing ? (
+    <EditorButton
+      size="small"
+      variant="text"
+      startIcon={<StopIcon />}
+      onClick={stop}
+    >
+      {t("i18n-next25.script.document.stop")}
+    </EditorButton>
+  ) : (
+    <Tooltip
+      title={
+        hasVoicedLine
+          ? t("i18n-next25.script.document.playCurrentTakesTooltip")
+          : t("i18n-next25.script.document.voiceToPlayTooltip")
+      }
+    >
+      <span>
+        <EditorButton
+          size="small"
+          variant="text"
+          startIcon={<PlayArrowIcon />}
+          onClick={play}
+          disabled={!hasVoicedLine}
+        >
+          {t("i18n-next25.script.document.playThrough")}
+        </EditorButton>
+      </span>
+    </Tooltip>
+  );
+
+  const exportingProgress = exportingAudio && (
+    <FlexRow align="center" gap={SPACING.xs}>
+      <LoadingSpinner inline size={16} />
+      <Text size="smaller">
+        {t("i18n-next25.script.document.exportingAudio", { format: exportingAudio.toUpperCase() })}
+      </Text>
+    </FlexRow>
+  );
+
+  const exportItems = [
+    <MenuItemPrimitive
+      key="srt"
+      icon={<SubtitlesIcon fontSize="small" />}
+      label={t("i18n-next25.script.document.exportSrt")}
+      disabled={!hasVoicedLine}
+      tooltip={
+        hasVoicedLine
+          ? undefined
+          : t("i18n-next25.script.document.voiceToExportSubtitles")
+      }
+      onClick={() => {
+        setMoreAnchor(null);
+        onExportSubtitles();
+      }}
+    />,
+    ...(["wav", "mp3"] as const).map((format) => (
+      <MenuItemPrimitive
+        key={format}
+        icon={<AudioFileIcon fontSize="small" />}
+        label={t("i18n-next25.script.document.exportFormat", { format: format.toUpperCase() })}
+        disabled={!hasVoicedLine || exportingAudio !== null}
+        tooltip={
+          hasVoicedLine
+            ? undefined
+            : t("i18n-next25.script.document.voiceToExportAudio")
+        }
+        onClick={() => {
+          setMoreAnchor(null);
+          void exportAudio(format);
+        }}
+      />
+    ))
+  ];
+
+  const content = (
+    <>
       <VoicingStrip scriptId={scriptId} readOnly={readOnly} />
+
+      {!readOnly && voiceAllError && (
+        <AlertBanner
+          severity="error"
+          compact
+          onClose={() => setVoiceAllError(null)}
+          sx={{ marginX: SPACING.md }}
+        >
+          {voiceAllError}
+        </AlertBanner>
+      )}
 
       {!readOnly && assembleError && (
         <AlertBanner
@@ -1307,6 +1255,246 @@ const ScriptDocumentPane = ({
           </FlexRow>
         )}
       </FlexColumn>
+    </>
+  );
+
+  if (documentBar) {
+    // The primary action follows the document: Voice all while lines lack a
+    // voice, then Send to timeline (or Update timeline, Assemble video).
+    const assembleIsPrimary = showAssemble && allVoiced;
+    const assemblePrimary = (
+      <EditorButton
+        variant="contained"
+        density="normal"
+        startIcon={<MovieIcon />}
+        onClick={onSendToTimeline}
+        disabled={assembling || !hasVoicedLine}
+        tooltip={
+          storyboardId
+            ? t("i18n-next25.script.document.assembleStoryboardTooltip")
+            : undefined
+        }
+      >
+        {assembling ? t("i18n-next25.script.document.assembling") : assembleLabel}
+      </EditorButton>
+    );
+    const closeMore = () => setMoreAnchor(null);
+    return (
+      <FlexColumn sx={{ flex: 1, minWidth: 0, height: "100%" }}>
+        {documentBar({
+          status: readOnly ? undefined : <ScriptSaveIndicator scriptId={scriptId} />,
+          history: readOnly ? undefined : (
+            <UndoRedoButtons
+              canUndo={canUndo}
+              canRedo={canRedo}
+              onUndo={onUndo}
+              onRedo={onRedo}
+              undoTooltip={t("i18n-next25.script.document.undo")}
+              redoTooltip={t("i18n-next25.script.document.redo")}
+            />
+          ),
+          actions: (
+            <>
+              {exportingProgress}
+              {!readOnly && (assembleIsPrimary ? assemblePrimary : voiceAllControl)}
+              {playControl}
+              {!readOnly && <StoryboardLinkControl scriptId={scriptId} />}
+              <ToolbarIconButton
+                tooltip={t("i18n-next25.script.document.moreActions")}
+                ariaLabel={t("i18n-next25.script.document.moreActions")}
+                onClick={(e) => setMoreAnchor(e.currentTarget)}
+                icon={<MoreVertIcon fontSize="small" />}
+              />
+              <EditorMenu anchorEl={moreAnchor} open={!!moreAnchor} onClose={closeMore}>
+                {showAssemble && !assembleIsPrimary && (
+                  <MenuItemPrimitive
+                    icon={<MovieIcon fontSize="small" />}
+                    label={assembleLabel}
+                    disabled={assembling || !hasVoicedLine}
+                    tooltip={
+                      hasVoicedLine
+                        ? undefined
+                        : t("i18n-next25.script.document.voiceToTimelineTooltip")
+                    }
+                    onClick={() => {
+                      closeMore();
+                      onSendToTimeline();
+                    }}
+                  />
+                )}
+                {!inStudio && (
+                  <MenuItemPrimitive
+                    icon={<AccountTreeOutlinedIcon fontSize="small" />}
+                    label={t("i18n-next25.script.document.sendTakesToWorkflow")}
+                    disabled={workflowMedia.length === 0}
+                    dividerAfter
+                    onClick={() => {
+                      setSendAnchor(moreAnchor);
+                      closeMore();
+                    }}
+                  />
+                )}
+                {exportItems}
+              </EditorMenu>
+              {sendAnchor && (
+                <SendToWorkflowMenu
+                  items={workflowMedia}
+                  anchorEl={sendAnchor}
+                  onClose={() => setSendAnchor(null)}
+                />
+              )}
+            </>
+          )
+        })}
+        <FlexColumn
+          data-focus-id="script-document"
+          gap={SPACING.md}
+          sx={{ flex: 1, minHeight: 0, overflowY: "auto", pt: SPACING.md }}
+        >
+          {content}
+        </FlexColumn>
+        {(!isEmpty || castCount > 0) && (
+          <FlexRow
+            className="script-status-line"
+            align="center"
+            gap={SPACING.sm}
+            sx={{
+              flexShrink: 0,
+              paddingX: SPACING.lg,
+              paddingY: SPACING.xs,
+              borderTop: "1px solid",
+              borderColor: "divider"
+            }}
+          >
+            {chips}
+          </FlexRow>
+        )}
+      </FlexColumn>
+    );
+  }
+
+  return (
+    <FlexColumn
+      data-focus-id="script-document"
+      gap={SPACING.md}
+      sx={{ flex: 1, minWidth: 0, height: "100%", overflowY: "auto" }}
+    >
+      {/* A stacked two-row header: Toolbar's surface and rule, column layout. */}
+      <Toolbar
+        sx={{
+          position: "sticky",
+          top: 0,
+          zIndex: Z_INDEX.sticky,
+          flexDirection: "column",
+          alignItems: "stretch",
+          gap: SPACING.none,
+          px: SPACING.none
+        }}
+      >
+      <FlexRow
+        align="center"
+        gap={SPACING.md}
+        wrap
+        sx={{
+          paddingTop: SPACING.lg,
+          paddingBottom: SPACING.sm,
+          paddingX: isMobile ? SPACING.md : SPACING.xl
+        }}
+      >
+        <DescriptionOutlinedIcon
+          fontSize="small"
+          sx={{ color: "warning.main", flexShrink: 0 }}
+        />
+        <TruncatedText
+          component="h2"
+          sx={{
+            ...TYPOGRAPHY.sans.title,
+            margin: SPACING.none,
+            minWidth: 0,
+            flex: "1 1 auto",
+            color: "text.primary"
+          }}
+        >
+          {title ? t("i18n-next25.script.document.titledScript", { title }) : t("i18n-next25.script.document.untitledScript")}
+        </TruncatedText>
+        {chips}
+        {!readOnly && <ScriptSaveIndicator scriptId={scriptId} />}
+      </FlexRow>
+      <FlexRow
+        align="center"
+        gap={SPACING.sm}
+        wrap
+        sx={{
+          paddingBottom: SPACING.sm,
+          paddingX: isMobile ? SPACING.sm : SPACING.lg,
+          "& .MuiButton-root": { whiteSpace: "nowrap", flexShrink: 0 }
+        }}
+      >
+        {!readOnly && (
+          <UndoRedoButtons
+            canUndo={canUndo}
+            canRedo={canRedo}
+            onUndo={onUndo}
+            onRedo={onRedo}
+            undoTooltip={t("i18n-next25.script.document.undo")}
+            redoTooltip={t("i18n-next25.script.document.redo")}
+          />
+        )}
+        {!readOnly && voiceAllControl}
+        {playControl}
+        <Box sx={{ flex: 1 }} />
+        {exportingProgress}
+        {showAssemble && (
+          <EditorButton
+            size="small"
+            variant="text"
+            startIcon={<MovieIcon />}
+            onClick={onSendToTimeline}
+            disabled={assembling || !hasVoicedLine}
+            tooltip={
+              storyboardId
+                ? t("i18n-next25.script.document.assembleStoryboardTooltip")
+                : undefined
+            }
+            disabledReason={
+              hasVoicedLine
+                ? undefined
+                : t("i18n-next25.script.document.voiceToTimelineTooltip")
+            }
+          >
+            {assembling
+              ? t("i18n-next25.script.document.assembling")
+              : assembleLabel}
+          </EditorButton>
+        )}
+        {hasVoicedLine && (
+          <SendToWorkflowButton
+            items={workflowMedia}
+            tooltip={t("i18n-next25.script.document.sendTakesToWorkflow")}
+          />
+        )}
+        {!readOnly && <StoryboardLinkControl scriptId={scriptId} />}
+        {!readOnly && (
+          <>
+            <ToolbarIconButton
+              tooltip={t("i18n-next25.script.document.moreActions")}
+              ariaLabel={t("i18n-next25.script.document.moreActions")}
+              onClick={(e) => setMoreAnchor(e.currentTarget)}
+              icon={<MoreVertIcon fontSize="small" />}
+            />
+            <EditorMenu
+              anchorEl={moreAnchor}
+              open={!!moreAnchor}
+              onClose={() => setMoreAnchor(null)}
+            >
+              {exportItems}
+            </EditorMenu>
+          </>
+        )}
+      </FlexRow>
+      </Toolbar>
+
+      {content}
     </FlexColumn>
   );
 };

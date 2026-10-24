@@ -84,6 +84,12 @@ export interface LookStepControls {
   setModel: (provider: string, model: string) => void;
   /** False until an available model is chosen. */
   canAdvance: boolean;
+  /**
+   * True when everything but the canvas size is ready. The idea step's quick
+   * path reads it, because its generate moves the canvas to a size the model
+   * accepts instead of asking the creator to pick one.
+   */
+  modelReady: boolean;
   /** Why the button is off, in the creator's words. */
   blockedReason: string;
   /** What the click spends, or undefined when nothing priced it. */
@@ -104,8 +110,20 @@ export interface LookStepControls {
    * same ids before any job is started.
    */
   generate: (
-    onCreated?: (layerIds: readonly string[]) => void
+    onCreated?: (layerIds: readonly string[]) => void,
+    options?: GenerateOptions
   ) => Promise<string[]>;
+}
+
+/** How the quick path from the idea step differs from the look step's batch. */
+export interface GenerateOptions {
+  /**
+   * Render the typed brief alone. A refined brief written from an earlier
+   * sentence would otherwise render in place of the one in the box.
+   */
+  briefOnly?: boolean;
+  /** Move the canvas to the model's first accepted size when it has none. */
+  fitSize?: boolean;
 }
 
 /**
@@ -204,13 +222,29 @@ export function useLookStep(): LookStepControls {
 
   const generate = useCallback(
     async (
-      onCreated?: (layerIds: readonly string[]) => void
+      onCreated?: (layerIds: readonly string[]) => void,
+      options?: GenerateOptions
     ): Promise<string[]> => {
       const current = useSketchStore.getState().document.setup;
+      if (options?.fitSize && sizePresets.length > 0) {
+        const { width, height } = useSketchStore.getState().document.canvas;
+        const preset = sizePresetFor(width, height);
+        if (
+          !preset ||
+          !sizePresets.some((entry) => entry.aspectRatio === preset.aspectRatio)
+        ) {
+          useSketchStore
+            .getState()
+            .resizeCanvas(sizePresets[0].width, sizePresets[0].height);
+        }
+      }
       const size = useSketchStore.getState().document.canvas;
       const created = await generateVariations(
         {
-          prompt: composeImagePrompt(current, styleDescriptor),
+          prompt: composeImagePrompt(
+            options?.briefOnly ? { brief: current?.brief ?? "" } : current,
+            styleDescriptor
+          ),
           provider,
           model,
           width: size.width,
@@ -222,7 +256,7 @@ export function useLookStep(): LookStepControls {
       );
       return created.map((variation) => variation.layerId);
     },
-    [generateVariations, model, provider, styleDescriptor]
+    [generateVariations, model, provider, sizePresets, styleDescriptor]
   );
 
   // The batch creates `variations` bindings with exactly these fields, so it
@@ -279,19 +313,21 @@ export function useLookStep(): LookStepControls {
                     ? t("pass3_8.image.look.blocked.styleLoading")
                     : t("pass3_8.image.look.blocked.chooseModel");
 
+  const modelReady =
+    availability === "ready" &&
+    model.length > 0 &&
+    !modelMissing &&
+    sizePresets.length > 0 &&
+    !styleLoading;
+
   return {
     styleChoice: persisted.styleChoice,
     setStyleChoice,
     provider,
     model,
     setModel,
-    canAdvance:
-      availability === "ready" &&
-      model.length > 0 &&
-      !modelMissing &&
-      sizePresets.length > 0 &&
-      !sizeUnsupported &&
-      !styleLoading,
+    canAdvance: modelReady && !sizeUnsupported,
+    modelReady,
     blockedReason,
     primaryDetail,
     perImageDetail,
@@ -313,7 +349,7 @@ const connectImageProvider = (reason: string): void => {
 };
 
 /** What the grid shows in place of tiles when the query answered otherwise. */
-const ModelListState: React.FC<{
+export const ModelListState: React.FC<{
   availability: ModelAvailability;
   onRetry: () => void;
 }> = ({ availability, onRetry }) => {

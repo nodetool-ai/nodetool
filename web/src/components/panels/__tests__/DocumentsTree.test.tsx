@@ -28,6 +28,25 @@ jest.mock("../../../hooks/useDocumentTreeData", () => ({
   useDocumentTreeData: jest.fn()
 }));
 
+let mockSharedGroup: unknown = null;
+jest.mock("../../../hooks/useSharedDocumentGroup", () => ({
+  useSharedDocumentGroup: () => mockSharedGroup
+}));
+
+const mockOpenSharedDocument = jest.fn();
+jest.mock("../../../lib/openSharedDocument", () => ({
+  openSharedDocument: (document: unknown) => mockOpenSharedDocument(document)
+}));
+
+jest.mock("../../sharing/ShareDocumentDialog", () => ({
+  __esModule: true,
+  default: ({ target }: { target: { type: string; name: string } }) => (
+    <div data-testid="share-dialog">
+      Sharing {target.type} {target.name}
+    </div>
+  )
+}));
+
 const mockDeleteMutate = jest.fn();
 jest.mock("../../../serverState/useDeleteDocument", () => ({
   useDeleteDocument: () => ({ mutate: mockDeleteMutate })
@@ -118,6 +137,7 @@ const data = {
 beforeEach(() => {
   jest.clearAllMocks();
   mockUseDocumentTreeData.mockReturnValue(data);
+  mockSharedGroup = null;
 });
 
 it("renders only non-empty groups and gives disclosure controls to groups", () => {
@@ -533,4 +553,67 @@ it("does not re-render a row whose document a refetch did not change", () => {
   );
 
   expect(mockDeleteButtonRender).not.toHaveBeenCalled();
+});
+
+it("shares a workflow or a document from its row, and not a game", async () => {
+  const user = userEvent.setup();
+  renderTree();
+
+  await user.click(
+    screen.getByRole("button", { name: "Share Normalize Brief" })
+  );
+  expect(screen.getByTestId("share-dialog")).toHaveTextContent(
+    "Sharing jsscript Normalize Brief"
+  );
+
+  fireEvent.contextMenu(
+    screen.getByRole("treeitem", { name: /^Campaign Generator Workflow$/ }),
+    { clientX: 20, clientY: 20 }
+  );
+  await user.click(await screen.findByRole("menuitem", { name: "Share…" }));
+  expect(screen.getByTestId("share-dialog")).toHaveTextContent(
+    "Sharing workflow Campaign Generator"
+  );
+
+  mockUseDocumentTreeData.mockReturnValue(textAndGameData);
+  renderTree();
+  expect(
+    screen.queryByRole("button", { name: "Share Platformer" })
+  ).not.toBeInTheDocument();
+});
+
+it("lists documents shared with the user and opens them by role, without owner actions", async () => {
+  const user = userEvent.setup();
+  mockSharedGroup = {
+    id: "shared",
+    label: "Shared with me",
+    children: [
+      {
+        id: "board-9",
+        name: "Their Board",
+        type: "storyboard",
+        typeLabel: "Storyboard",
+        sharedRole: "viewer"
+      }
+    ]
+  };
+  renderTree();
+
+  expect(screen.getByText("Shared with me")).toBeInTheDocument();
+  for (const action of ["Share", "Rename", "Delete", "Duplicate"]) {
+    expect(
+      screen.queryByRole("button", { name: `${action} Their Board` })
+    ).not.toBeInTheDocument();
+  }
+
+  await user.click(
+    screen.getByRole("treeitem", { name: /^Their Board Storyboard$/ })
+  );
+  expect(mockOpenSharedDocument).toHaveBeenCalledWith({
+    type: "storyboard",
+    id: "board-9",
+    name: "Their Board",
+    role: "viewer"
+  });
+  expect(mockOpenTab).not.toHaveBeenCalled();
 });

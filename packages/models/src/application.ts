@@ -37,6 +37,10 @@ import {
 import { appInstances } from "./schema/app-instances.js";
 import { applicationDeployments } from "./schema/application-deployments.js";
 import {
+  documentCollaborators,
+  documentShares
+} from "./schema/document-sharing.js";
+import {
   applicationBudgets,
   applicationInvocations
 } from "./schema/application-budgets.js";
@@ -304,6 +308,22 @@ export class Application extends DBModel {
       tx
         .delete(applicationDeployments)
         .where(eq(applicationDeployments.application_id, id)),
+      tx
+        .delete(documentCollaborators)
+        .where(
+          and(
+            eq(documentCollaborators.document_type, "application"),
+            eq(documentCollaborators.document_id, id)
+          )
+        ),
+      tx
+        .delete(documentShares)
+        .where(
+          and(
+            eq(documentShares.document_type, "application"),
+            eq(documentShares.document_id, id)
+          )
+        ),
       tx.delete(applications).where(eq(applications.id, id))
     ];
 

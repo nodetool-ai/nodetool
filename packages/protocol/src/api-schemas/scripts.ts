@@ -47,6 +47,12 @@ export const take = z.object({
   textSnapshot: z.string(),
   /** The voice this take was voiced with (staleness comparison). */
   voiceSnapshot: voiceBinding.nullable(),
+  /** The trimmed delivery note sent with this take, when the voicing path
+   * sends one. Absent on takes that predate it (no staleness comparison). */
+  directionSnapshot: z.string().optional(),
+  /** The speed sent with this take (null for the provider default), when the
+   * provider applies pace. Absent when pace did not reach the provider. */
+  speedSnapshot: z.number().nullable().optional(),
   createdAt: z.string(),
   favorite: z.boolean().optional(),
   costCredits: z.number().optional()

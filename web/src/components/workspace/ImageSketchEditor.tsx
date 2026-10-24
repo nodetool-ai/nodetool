@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 
-import { EmptyState, FlexColumn, FlexRow, LoadingSpinner } from "../ui_primitives";
+import { EmptyState, FlexColumn, LoadingSpinner } from "../ui_primitives";
+import type { DocumentBarRender } from "../ui_primitives";
 import { EditorButton } from "../editor_ui";
 import StandaloneSketchEditor from "../sketch/StandaloneSketchEditor";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -14,17 +15,18 @@ import type { Asset } from "../../stores/ApiTypes";
 
 interface ImageSketchEditorProps {
   asset: Asset;
-  onClose: () => void;
+  /** Draws the tab's document bar. */
+  documentBar?: DocumentBarRender;
 }
 
 /**
  * Edit-mode body for the workspace image tab: the sketch editor embedded inline
  * on the asset's backing sketch document (created and linked on first edit).
- * "Save to image" renders the composite back into the asset. "Done" saves the
- * same way and returns the tab to view mode, or stays when the save fails. Both live in the editor's tool bar. The sketch document
- * autosaves independently.
+ * "Save to image", the primary action of the document bar, renders the
+ * composite back into the asset. The sketch document autosaves independently.
+ * View/Edit in the bar returns to the viewer.
  */
-const ImageSketchEditor = ({ asset, onClose }: ImageSketchEditorProps) => {
+const ImageSketchEditor = ({ asset, documentBar }: ImageSketchEditorProps) => {
   const { t } = useTranslation();
   const updateAsset = useAssetStore((state) => state.update);
   const [documentId, setDocumentId] = useState<string | null>(() =>
@@ -32,42 +34,19 @@ const ImageSketchEditor = ({ asset, onClose }: ImageSketchEditorProps) => {
   );
   const [error, setError] = useState<string | null>(null);
   const { save, saving } = useSaveSketchToAsset(asset.id);
-  const saveAndClose = useCallback(async () => {
-    if (await save()) {
-      onClose();
-    }
-  }, [save, onClose]);
 
   const headerActions = useMemo(
     () => (
-      <FlexRow
-        align="center"
-        gap={1}
-        sx={{
-          flexShrink: 0,
-          pl: 1,
-          borderLeft: "1px solid var(--palette-divider)"
-        }}
+      <EditorButton
+        variant="contained"
+        density="normal"
+        onClick={save}
+        loading={saving}
       >
-        <EditorButton
-          variant="contained"
-          size="small"
-          onClick={save}
-          loading={saving}
-        >
-          {saving ? t("i18n-next51.imageSketch.saving") : t("i18n-next51.imageSketch.saveToImage")}
-        </EditorButton>
-        <EditorButton
-          variant="text"
-          size="small"
-          onClick={saveAndClose}
-          disabled={saving}
-        >
-          {t("i18n-next110.imageSketch.done")}
-        </EditorButton>
-      </FlexRow>
+        {saving ? t("i18n-next51.imageSketch.saving") : t("i18n-next51.imageSketch.saveToImage")}
+      </EditorButton>
     ),
-    [save, saving, saveAndClose]
+    [save, saving, t]
   );
 
   useEffect(() => {
@@ -89,21 +68,27 @@ const ImageSketchEditor = ({ asset, onClose }: ImageSketchEditorProps) => {
 
   if (error) {
     return (
-      <FlexColumn fullWidth fullHeight align="center" justify="center">
-        <EmptyState
-          variant="error"
-          title={t("i18n-next51.imageSketch.openErrorTitle")}
-          description={error}
-        />
-      </FlexColumn>
+      <>
+        {documentBar?.({})}
+        <FlexColumn fullWidth fullHeight align="center" justify="center">
+          <EmptyState
+            variant="error"
+            title={t("i18n-next51.imageSketch.openErrorTitle")}
+            description={error}
+          />
+        </FlexColumn>
+      </>
     );
   }
 
   if (!documentId) {
     return (
-      <FlexColumn fullWidth fullHeight align="center" justify="center">
-        <LoadingSpinner />
-      </FlexColumn>
+      <>
+        {documentBar?.({})}
+        <FlexColumn fullWidth fullHeight align="center" justify="center">
+          <LoadingSpinner />
+        </FlexColumn>
+      </>
     );
   }
 
@@ -111,6 +96,7 @@ const ImageSketchEditor = ({ asset, onClose }: ImageSketchEditorProps) => {
     <StandaloneSketchEditor
       documentId={documentId}
       headerActions={headerActions}
+      documentBar={documentBar}
     />
   );
 };

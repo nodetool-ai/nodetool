@@ -35,6 +35,10 @@ function containsInlineTraceMedia(value: unknown, depth = 0): boolean {
   if ("type" in value && (value.type === "Buffer" || (typeof value.type === "string" && TRACE_MEDIA_TYPES.has(value.type) && "data" in value))) { return true; }
   return Object.values(value).slice(0, 1_000).some((entry) => containsInlineTraceMedia(entry, depth + 1));
 }
+const SECRET_KEY = /^(?:password|api[_-]?key|authorization|cookie|secret|access[_-]?token|refresh[_-]?token)$/i;
+function redactName(name: string, secrets: readonly string[]): string {
+  return redactErrorText(name, { secretValues: secrets }).slice(0, 200);
+}
 function sanitizeValue(value: unknown, secrets: readonly string[], depth = 0): SanitizedTraceValue {
   if (typeof value === "string") {
     let text = value;
@@ -50,23 +54,19 @@ function sanitizeValue(value: unknown, secrets: readonly string[], depth = 0): S
   if (typeof value === "boolean" || value === null) { return value; }
   if (depth > 10 || value instanceof ArrayBuffer || ArrayBuffer.isView(value)) { return "[omitted]"; }
   if (Array.isArray(value)) { return value.slice(0, 1_000).map((entry) => sanitizeValue(entry, secrets, depth + 1)); }
-  if (typeof value === "object" && value !== null) {
-    if ("type" in value && value.type === "Buffer") { return "[omitted:media]"; }
-    const media = "type" in value && typeof value.type === "string" && TRACE_MEDIA_TYPES.has(value.type);
-    return Object.fromEntries(Object.entries(value).slice(0, 1_000).map(([key, entry]) => [
-      redactErrorText(key, { secretValues: secrets }).slice(0, 200),
-      media && key === "data" ? "[omitted:media]" : /^(?:password|api[_-]?key|authorization|cookie|secret|access[_-]?token|refresh[_-]?token)$/i.test(key)
-        ? "[REDACTED:secret]" : sanitizeValue(entry, secrets, depth + 1)
-    ]));
-  }
-  return null;
+  if (typeof value !== "object") { return null; }
+  const type = "type" in value ? value.type : undefined;
+  if (type === "Buffer") { return "[omitted:media]"; }
+  const media = typeof type === "string" && TRACE_MEDIA_TYPES.has(type);
+  return Object.fromEntries(Object.entries(value).slice(0, 1_000).map(([key, entry]) => [
+    redactName(key, secrets),
+    media && key === "data" ? "[omitted:media]" : SECRET_KEY.test(key) ? "[REDACTED:secret]" : sanitizeValue(entry, secrets, depth + 1)
+  ]));
 }
 function sanitizeAttributes(attributes: Record<string, unknown>, secrets: readonly string[]): Record<string, unknown> {
   return Object.fromEntries(Object.entries(attributes).slice(0, 1_000).map(([key, value]) => [
-    !isTraceContentKey(key) || TRACE_CONTENT_KEYS.some((contentKey) => contentKey === key)
-      ? key : redactErrorText(key, { secretValues: secrets }).slice(0, 200),
-    /^(?:password|api[_-]?key|authorization|cookie|secret|access[_-]?token|refresh[_-]?token)$/i.test(key)
-      ? "[REDACTED:secret]" : sanitizeValue(value, secrets)
+    !isTraceContentKey(key) || TRACE_CONTENT_KEYS.some((contentKey) => contentKey === key) ? key : redactName(key, secrets),
+    SECRET_KEY.test(key) ? "[REDACTED:secret]" : sanitizeValue(value, secrets)
   ]));
 }
 function safeSummary(error: string | null | undefined, secrets: readonly string[] = []): string | null {

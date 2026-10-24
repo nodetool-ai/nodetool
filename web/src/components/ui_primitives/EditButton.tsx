@@ -20,6 +20,7 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
+import { iconButtonBoxSx } from "./ToolbarIconButton";
 
 export interface EditButtonProps {
   /**
@@ -139,7 +140,8 @@ export const EditButton = memo(
             disabled={disabled}
             size={buttonSize}
             sx={{
-              color: theme.vars.palette.grey[300],
+              ...iconButtonBoxSx(buttonSize),
+              color: theme.vars.palette.text.secondary,
               "&:hover": {
                 color: theme.vars.palette.primary.main,
                 backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.08)`

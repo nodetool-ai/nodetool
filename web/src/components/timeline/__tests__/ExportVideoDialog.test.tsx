@@ -91,6 +91,27 @@ describe("ExportVideoDialog", () => {
     expect(onExport).toHaveBeenCalledWith({ format: "mp4", alpha: false });
   });
 
+  it("exports MP3 with the transparency switch off", () => {
+    const { onExport } = renderDialog();
+    chooseFormat("WebM (VP9)");
+    fireEvent.click(alphaSwitch());
+    chooseFormat("MP3 audio (320 kbps)");
+    expect(alphaSwitch()).not.toBeChecked();
+    expect(alphaSwitch()).toBeDisabled();
+    expect(screen.getByText(/audio mixdown in stereo/i)).toBeInTheDocument();
+    clickExport();
+    expect(onExport).toHaveBeenCalledWith({ format: "mp3", alpha: false });
+  });
+
+  it("exports WAV with the transparency switch off", () => {
+    const { onExport } = renderDialog();
+    chooseFormat("WAV audio (16-bit)");
+    expect(alphaSwitch()).toBeDisabled();
+    expect(screen.getByText(/uncompressed at 48 kHz/i)).toBeInTheDocument();
+    clickExport();
+    expect(onExport).toHaveBeenCalledWith({ format: "wav", alpha: false });
+  });
+
   // UX study 3: all three participants' default MP4 export failed in a
   // browser without an H.264 encoder, with the encoder's configuration string.
   it("turns MP4 off and starts on WebM where the browser cannot encode it", async () => {

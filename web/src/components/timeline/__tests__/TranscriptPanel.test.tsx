@@ -110,6 +110,26 @@ describe("TranscriptPanel", () => {
     expect(world.getAttribute("data-start")).toBe("300");
   });
 
+  it("makes the transcript editable from the Edit button and from a word double-click", () => {
+    renderPanel();
+    seed([voicedBeat([{ word: "hello", startMs: 0, endMs: 300 }])], 300);
+
+    const editor = screen.getByTestId("transcript-editor");
+    expect(editor).toHaveAttribute("contenteditable", "false");
+
+    fireEvent.click(screen.getByRole("button", { name: "Edit transcript" }));
+    expect(editor).toHaveAttribute("contenteditable", "true");
+
+    fireEvent.click(screen.getByRole("button", { name: "Finish editing" }));
+    expect(editor).toHaveAttribute("contenteditable", "false");
+
+    fireEvent.doubleClick(screen.getByText("hello"));
+    expect(editor).toHaveAttribute("contenteditable", "true");
+
+    pressKey(screen.getByTestId("transcript-surface"), "Escape");
+    expect(editor).toHaveAttribute("contenteditable", "false");
+  });
+
   it("seeks the playhead and highlights the word when a word is clicked", () => {
     renderPanel();
     seed(

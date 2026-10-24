@@ -6138,7 +6138,8 @@
       "documents": {
         "title": "文档",
         "regionLabel": "当前项目文档",
-        "countAndSort": "文档 · {{count}} · 按最近更新排序",
+        "countSubtitle_one": "1 个文档 · 按最近更新排序",
+        "countSubtitle_other": "{{count}} 个文档 · 按最近更新排序",
         "loadFailureSummary": "无法加载项目文档",
         "emptyTitle": "此项目中还没有文档",
         "previousPage": "上一页",
@@ -6169,8 +6170,8 @@
           "app": "应用",
           "chat": "聊天"
         },
-        "referenceImageCount_one": "{{count}} 张参考图片",
-        "referenceImageCount_other": "{{count}} 张参考图片",
+        "attachedFileCount_one": "{{count}} 个附加文件",
+        "attachedFileCount_other": "{{count}} 个附加文件",
         "singleEntity": "实体 {{name}}",
         "entityCount_one": "{{count}} 个实体",
         "entityCount_other": "{{count}} 个实体",
@@ -6252,9 +6253,9 @@
         "chatPromptLabel": "聊天提示",
         "promptPlaceholder": "描述你想创建的内容。输入 / 选择技能，输入 @ 选择文件或实体。",
         "removeReference": "移除 {{name}}",
-        "referenceImages": "参考图片",
-        "referenceImageCountShort_one": "参考图片 · {{count}}",
-        "referenceImageCountShort_other": "参考图片 · {{count}}",
+        "attachFiles": "附加文件",
+        "attachedFileCountShort_one": "文件 · {{count}}",
+        "attachedFileCountShort_other": "文件 · {{count}}",
         "entitiesNone": "实体 · 无",
         "entitiesSelected": "实体 · {{entities}}",
         "selectedModel": "模型 · {{name}}",
@@ -6269,6 +6270,9 @@
         "gameDimension": "游戏类型",
         "game2d": "2D 游戏",
         "game3d": "3D 探索",
+        "newProject": "新建项目",
+        "newProjectHint": "在以提示命名的新项目中开始",
+        "newProjectError": "无法创建项目：{{error}}",
         "blankDocument": "空白文档",
         "blankDocumentDescription": "— 将作为独立标签页打开，不属于任何项目",
         "browseExamples": "浏览示例",
@@ -6299,8 +6303,6 @@
           "tsv": "TSV (.tsv)",
           "txt": "纯文本 (.txt)"
         },
-        "unsupportedReferenceFiles_one": "参考图片只能使用图片文件。未添加 {{files}}。",
-        "unsupportedReferenceFiles_other": "参考图片只能使用图片文件。未添加 {{files}}。",
         "createCards": {
           "image": {
             "title": "创建图像",
@@ -6460,6 +6462,7 @@
         "selectedProject": "当前项目：{{name}}",
         "selectProject": "选择项目",
         "projectHome": "项目主页",
+        "openProjectHome": "打开项目主页：{{name}}",
         "newProject": "新建项目",
         "searchProjects": "搜索项目",
         "loadingProjects": "正在加载项目",
@@ -7124,14 +7127,14 @@
         "blankTitle": "从空白画布开始",
         "blankDescription": "跳过创意说明，直接开始绘制",
         "heading": "你想制作什么图片？",
-        "intro": "先描述一次。我们会完善创意说明并生成多个变体供你挑选。",
+        "intro": "描述后立即生成，或逐步完善，先选择用途、创意说明和外观。",
         "imageLabel": "你的图片",
         "placeholder": "写一句话就够了。",
         "uploadFailed": "图片上传失败",
         "promptContext": "随提示一同提供",
         "referenceImages": "参考图片",
         "entities": "实体",
-        "referencesHelp": "完善创意说明时会参考这些图片。",
+        "referencesHelp": "逐步完善时会参考这些图片。直接生成只使用你的文字。",
         "entitiesHelp": "设置期间，这些实体会保留在文档中。",
         "alternativesLabel": "其他开始方式"
       },
@@ -7913,6 +7916,7 @@
           "differentScenes": "此场景片段中的镜头已不再属于同一场景。",
           "addShot": "请先向分镜板添加镜头。",
           "renderStill": "请至少渲染一个镜头的静帧。",
+          "addEntityImage": "请先为分镜板上的一个实体添加参考图。",
           "noVideoModel": "尚未选择视频模型。",
           "imageLimit": "{{imageCount}} 张图片超过了 {{limit}} 张的上限。请移除 {{remove}} 张。",
           "durationUnavailable": "{{model}} 不支持 {{duration}} 的片段时长。请选择以下时长之一：{{choices}}。",
@@ -12477,6 +12481,8 @@
       "full": "完整",
       "fullscreen": "全屏",
       "half": "一半",
+      "goToStart": "转到开头",
+      "goToEnd": "转到结尾",
       "loop": "循环",
       "loopOnDescription": "循环已开启：播放会重复入点到出点的范围",
       "loopPlayback": "循环播放",
@@ -12500,6 +12506,10 @@
       "volume": "音量"
     },
     "topBar": {
+      "export": "导出",
+      "workspace": "工作区",
+      "videoEditing": "视频剪辑",
+      "audioDaw": "音频（DAW）",
       "adaptFormat": "调整格式",
       "code": "代码",
       "daw": "DAW",
@@ -12528,10 +12538,10 @@
       "videoLayout": "视频布局"
     },
     "trackHeader": {
+      "clickToRename": "单击以重命名",
       "custom": "自定义",
       "deleteTrack": "删除轨道",
       "deleteTrackQuestion": "删除轨道？",
-      "doubleClickToRename": "双击以重命名",
       "dragToReorder": "拖动以重新排序轨道",
       "duplicateTrack": "复制轨道",
       "editInstrument": "编辑乐器",
@@ -13261,6 +13271,7 @@
       },
       "errors": {
         "sendMessage": "无法发送消息：{{error}}",
+        "compact": "无法压缩对话：{{error}}",
         "copyConversation": "无法复制对话。",
         "rewindConversation": "无法回退对话：{{error}}"
       },
@@ -13854,7 +13865,8 @@
         "creative": "创意文档",
         "text": "文本文件",
         "agents": "代理和代码",
-        "entities": "实体"
+        "entities": "实体",
+        "shared": "与我共享"
       },
       "type": {
         "workflow": "工作流",
@@ -13949,7 +13961,7 @@
       "recent": "最近使用",
       "saved": "已保存",
       "noRecentMatch": "没有匹配的最近使用资源。",
-      "noRecentAssets": "尚未使用资源。生成或拖入一个资源。",
+      "noRecentAssets": "还没有文件。附加或拖入一个文件。",
       "noAssetsMatch": "没有匹配的资源。",
       "noSavedAssets": "尚未保存资源。",
       "entities": "实体",
@@ -14743,6 +14755,10 @@
       "mp4Note": "可在任何地方播放。不支持透明度。",
       "webmNote": "VP9 视频，带 Opus 音频。",
       "pngSequenceNote": "压缩包中每帧一个 PNG，并通过 manifest.json 标注帧率和尺寸。不含音频。",
+      "wav": "WAV 音频（16 位）",
+      "wavNote": "整个时间线的立体声音频混音，48 kHz 无压缩。不含视频。",
+      "mp3": "MP3 音频（320 kbps）",
+      "mp3Note": "整个时间线的立体声音频混音。不含视频。",
       "mp4Unsupported": "此浏览器无法写入 MP4，因此已关闭。",
       "alphaLabel": "导出透明背景",
       "title": "导出时间线",
@@ -14751,7 +14767,9 @@
       "alphaNote": {
         "mp4": "MP4 不支持 Alpha 通道。请选择 WebM 或 PNG 序列。",
         "webm": "合成到透明背景上并保留 Alpha 通道。",
-        "png_sequence": "每个 PNG 都会保留 Alpha 通道。"
+        "png_sequence": "每个 PNG 都会保留 Alpha 通道。",
+        "mp3": "MP3 没有画面，因此无需透明处理。",
+        "wav": "WAV 没有画面，因此无需透明处理。"
       }
     },
     "source": {
@@ -15794,6 +15812,7 @@
       "code": "代码",
       "run": "运行",
       "script": "脚本",
+      "scriptSettings": "脚本设置",
       "assistant": "助手"
     },
     "model3d": {
@@ -16633,6 +16652,20 @@
         "moveTenPixels": "将片段移动十个像素",
         "resetTransform": "重置变换"
       }
+    },
+    "vst": {
+      "desktopOnly": "VST 乐器只能在 NodeTool 桌面应用中播放。在浏览器中此轨道静音。",
+      "checking": "正在查找 VST 主机",
+      "hostMissing": "未安装 VST 主机。",
+      "plugin": "VST 乐器",
+      "choose": "选择插件",
+      "missingPlugin": "{{name}}（本机未安装）",
+      "scanning": "正在扫描插件文件夹",
+      "none": "在标准插件文件夹中未找到 VST3 乐器。",
+      "openWindow": "打开插件窗口",
+      "closeWindow": "关闭插件窗口",
+      "rescan": "重新扫描",
+      "hint": "在插件窗口中所做的音色更改会随时间线一起保存。片段播放时通过插件渲染。"
     }
   },
   "i18n-next63": {
@@ -16878,14 +16911,41 @@
         "importFailed": "导入失败：{{error}}",
         "extractFailed": "提取脚本失败：{{error}}",
         "transcriptLabel": "转录",
-        "scriptLabel": "脚本",
+        "wordsLabel": "文字",
         "paragraphs_one": "1 个段落",
         "paragraphs_other": "{{count}} 个段落",
         "removeFillers": "移除填充词（{{count}}）",
         "importTooltip": "导入音频或视频进行转录",
         "importLabel": "导入音频或视频",
         "extractTooltip": "将此转录提取为可编辑脚本",
-        "extractLabel": "提取为脚本"
+        "extractLabel": "提取为脚本",
+        "editTooltip": "编辑转录文本（或双击某个词）",
+        "editLabel": "编辑转录",
+        "doneEditingTooltip": "完成编辑（Esc）",
+        "doneEditingLabel": "完成编辑"
+      },
+      "linkedScript": {
+        "addLine": "添加台词",
+        "lineLabel": "台词文本",
+        "linePlaceholder": "写一句台词",
+        "lines_one": "1 句台词",
+        "lines_other": "{{count}} 句台词",
+        "linkFailed": "无法关联脚本：{{error}}",
+        "unlinkFailed": "无法取消关联脚本：{{error}}",
+        "linkLabel": "关联脚本",
+        "linkTooltip": "将脚本关联到此时间线",
+        "newScript": "新建脚本",
+        "newScriptName": "{{name}} 脚本",
+        "openLabel": "在脚本编辑器中打开",
+        "openTooltip": "在脚本编辑器中打开此脚本",
+        "timeline": "时间线",
+        "unlinkLabel": "取消关联脚本",
+        "unlinkTooltip": "取消关联脚本。其片段保留在时间线上。",
+        "untitled": "未命名脚本",
+        "voiceDraftTooltip": "尚未配音。为此台词配音。",
+        "voiceFailed": "配音失败：{{error}}",
+        "voiceLabel": "为台词配音",
+        "voiceStaleTooltip": "文本在上次配音后已更改。请重新为此台词配音。"
       }
     }
   },
@@ -17963,6 +18023,13 @@
       },
       "skills": "技能",
       "noMatchingSkills": "没有匹配的技能",
+      "commands": {
+        "compact": "总结目前的对话以释放上下文",
+        "model": "选择模型",
+        "mode": "权限：plan、default、auto",
+        "new": "开始新对话",
+        "rewind": "撤回上一条消息并编辑"
+      },
       "selectModel": "选择模型",
       "selectMusicModel": "选择音乐模型",
       "selectEditModel": "选择编辑模型",
@@ -18086,6 +18153,8 @@
       "noConversations": "暂无对话",
       "tryDifferentSearch": "请尝试其他搜索词。",
       "startConversation": "开始对话，用自然语言探索 AI 工作流。",
+      "rename": "重命名对话",
+      "renameLabel": "对话名称",
       "deleteTitle": "删除对话",
       "deleteContent": "删除“{{name}}”？此操作无法撤销。",
       "delete": "删除"
@@ -18277,6 +18346,19 @@
       "saving": "正在保存…",
       "saved": "已保存",
       "error": "保存失败"
+    },
+    "saveStatus": {
+      "notSaved": "未保存",
+      "retry": "重试",
+      "readOnly": "只读"
+    },
+    "documentBar": {
+      "mode": "文档模式",
+      "label": "{{title}} 文档",
+      "rename": "文档名称",
+      "renameHint": "双击重命名",
+      "moreActions": "更多操作",
+      "copyContents": "复制内容"
     }
   },
   "i18n-next105": {
@@ -18288,9 +18370,6 @@
     }
   },
   "i18n-next110": {
-    "imageSketch": {
-      "done": "完成"
-    },
     "workspaceFile": {
       "invalidReference": "工作区文件引用无效"
     }
@@ -18764,5 +18843,44 @@
       "model3d": "3D 模型",
       "script": "脚本"
     }
+  },
+  "shareDocument": {
+    "description": "登录此服务器的任何人打开查看或编辑链接后，都会获得该链接对应的角色。查看者可以打开文档，编辑者还可以保存更改。只有你可以删除文档或更改访问权限。撤销链接后，新用户将无法加入。已加入的用户仍会列在下方。",
+    "shareAction": "共享…",
+    "shareNamed": "共享 {{name}}",
+    "accept": {
+      "invalidLink": "此共享链接无效或已被撤销。请向文档所有者索取新链接。",
+      "goToWorkspace": "前往工作区",
+      "opening": "正在打开共享文档"
+    }
+  },
+  "timelineAutomation": {
+    "groups": {
+      "mixer": "混音器",
+      "clips": "此轨道上的片段"
+    },
+    "params": {
+      "volume": "音量",
+      "pan": "声像",
+      "opacity": "不透明度",
+      "scale": "缩放",
+      "positionX": "位置 X",
+      "positionY": "位置 Y",
+      "rotation": "旋转",
+      "brightness": "亮度",
+      "contrast": "对比度",
+      "saturation": "饱和度",
+      "hue": "色相",
+      "blur": "模糊"
+    },
+    "showLanes": "显示自动化轨道",
+    "hideLanes": "隐藏自动化轨道",
+    "addLane": "自动化参数",
+    "turnOff": "关闭此轨道",
+    "turnOn": "开启此轨道",
+    "removeLane": "移除轨道",
+    "missingTarget": "已移除的设备",
+    "laneLabel": "自动化轨道：{{name}}",
+    "deletePoint": "删除点"
   }
 }

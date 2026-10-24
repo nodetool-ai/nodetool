@@ -429,8 +429,8 @@ describe("TimelineEditor", () => {
       renderEditor();
       expect(screen.queryByTestId("assistant-panel")).not.toBeInTheDocument();
       expect(screen.queryByTestId("history-panel")).not.toBeInTheDocument();
-      await userEvent.click(screen.getByRole("button", { name: /Editing/ }));
-      // The Layouts section lists the workspaces before the Panels section.
+      await userEvent.click(screen.getByRole("button", { name: /Video editing/ }));
+      // The Layouts section lists the layouts before the Panels section.
       await userEvent.click((await screen.findAllByRole("menuitem", { name: "Assistant" }))[0]);
       expect(await screen.findByTestId("assistant-panel")).toBeInTheDocument();
     });

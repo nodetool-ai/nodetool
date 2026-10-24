@@ -6138,7 +6138,8 @@
       "documents": {
         "title": "Dokumente",
         "regionLabel": "Dokumente im aktuellen Projekt",
-        "countAndSort": "Dokumente · {{count}} · neueste zuerst",
+        "countSubtitle_one": "1 Dokument · neueste zuerst",
+        "countSubtitle_other": "{{count}} Dokumente · neueste zuerst",
         "loadFailureSummary": "Projekt-Dokumente konnten nicht geladen werden",
         "emptyTitle": "Noch keine Dokumente in diesem Projekt",
         "previousPage": "Vorherige",
@@ -6169,8 +6170,8 @@
           "app": "App",
           "chat": "Chat"
         },
-        "referenceImageCount_one": "{{count}} Referenzbild",
-        "referenceImageCount_other": "{{count}} Referenzbilder",
+        "attachedFileCount_one": "{{count}} angehängte Datei",
+        "attachedFileCount_other": "{{count}} angehängte Dateien",
         "singleEntity": "die Entität {{name}}",
         "entityCount_one": "{{count}} Entität",
         "entityCount_other": "{{count}} Entitäten",
@@ -6252,9 +6253,9 @@
         "chatPromptLabel": "Chat-Prompt",
         "promptPlaceholder": "Beschreib, was du erstellen möchtest. Tippe / für einen Skill, @ für eine Datei oder Entität.",
         "removeReference": "{{name}} entfernen",
-        "referenceImages": "Referenzbilder",
-        "referenceImageCountShort_one": "Referenzbilder · {{count}}",
-        "referenceImageCountShort_other": "Referenzbilder · {{count}}",
+        "attachFiles": "Dateien anhängen",
+        "attachedFileCountShort_one": "Dateien · {{count}}",
+        "attachedFileCountShort_other": "Dateien · {{count}}",
         "entitiesNone": "Entitäten · keine",
         "entitiesSelected": "Entitäten · {{entities}}",
         "selectedModel": "Modell · {{name}}",
@@ -6269,6 +6270,9 @@
         "gameDimension": "Spieltyp",
         "game2d": "2D-Spiel",
         "game3d": "3D-Erkundung",
+        "newProject": "Neues Projekt",
+        "newProjectHint": "In einem neuen Projekt starten, benannt nach deinem Prompt",
+        "newProjectError": "Das Projekt konnte nicht erstellt werden: {{error}}",
         "blankDocument": "Leeres Dokument",
         "blankDocumentDescription": "— wird als lose Registerkarte außerhalb eines Projekts geöffnet",
         "browseExamples": "Beispiele durchsuchen",
@@ -6299,8 +6303,6 @@
           "tsv": "TSV (.tsv)",
           "txt": "Klartext (.txt)"
         },
-        "unsupportedReferenceFiles_one": "Nur Bilder können als Referenzbilder verwendet werden. {{files}} wurde nicht hinzugefügt.",
-        "unsupportedReferenceFiles_other": "Nur Bilder können als Referenzbilder verwendet werden. {{files}} wurden nicht hinzugefügt.",
         "createCards": {
           "image": {
             "title": "Bild erstellen",
@@ -6460,6 +6462,7 @@
         "selectedProject": "Ausgewähltes Projekt: {{name}}",
         "selectProject": "Projekt auswählen",
         "projectHome": "Projektübersicht",
+        "openProjectHome": "Projektübersicht öffnen: {{name}}",
         "newProject": "Neues Projekt",
         "searchProjects": "Projekte durchsuchen",
         "loadingProjects": "Projekte werden geladen",
@@ -7124,14 +7127,14 @@
         "blankTitle": "Mit einer leeren Leinwand beginnen",
         "blankDescription": "Brief überspringen und selbst malen",
         "heading": "Welches Bild möchtest du?",
-        "intro": "Beschreib es einmal. Wir verfeinern den Brief und erstellen Varianten zur Auswahl.",
+        "intro": "Beschreib es und erstelle es sofort, oder verfeinere es Schritt für Schritt und wähle zuerst Verwendungszweck, Brief und Look.",
         "imageLabel": "Dein Bild",
         "placeholder": "Ein Satz genügt.",
         "uploadFailed": "Bild konnte nicht hochgeladen werden",
         "promptContext": "Mit deinem Prompt geliefert",
         "referenceImages": "Referenzbilder",
         "entities": "Entitäten",
-        "referencesHelp": "Die Verfeinerung berücksichtigt diese Angaben beim Schreiben deines Briefs.",
+        "referencesHelp": "Der Schritt-für-Schritt-Brief berücksichtigt diese Bilder. Sofort erstellen verwendet nur deinen Text.",
         "entitiesHelp": "Diese Angaben bleiben beim Einrichten im Dokument erhalten.",
         "alternativesLabel": "Weitere Startmöglichkeiten"
       },
@@ -7917,6 +7920,7 @@
           "differentScenes": "Die Einstellungen in diesem Szenenclip gehören nicht mehr zu derselben Szene.",
           "addShot": "Füge zuerst eine Einstellung zum Board hinzu.",
           "renderStill": "Rendere mindestens ein Standbild.",
+          "addEntityImage": "Gib zuerst einer Entität auf dem Board ein Referenzbild.",
           "noVideoModel": "Kein Videomodell ausgewählt.",
           "imageLimit": "{{imageCount}} Bilder überschreiten das Limit von {{limit}}. Entferne {{remove}}.",
           "durationUnavailable": "{{model}} bietet keinen {{duration}}-Clip an. Wähle eine dieser Optionen: {{choices}}.",
@@ -12477,6 +12481,8 @@
       "full": "Vollständig",
       "fullscreen": "Vollbild",
       "half": "Halb",
+      "goToStart": "Zum Anfang",
+      "goToEnd": "Zum Ende",
       "loop": "Schleife",
       "loopOnDescription": "Wiederholung aktiv: Die Wiedergabe wiederholt den In- bis Out-Bereich",
       "loopPlayback": "Wiedergabe wiederholen",
@@ -12500,6 +12506,10 @@
       "volume": "Lautstärke"
     },
     "topBar": {
+      "export": "Exportieren",
+      "workspace": "Arbeitsbereich",
+      "videoEditing": "Videoschnitt",
+      "audioDaw": "Audio (DAW)",
       "adaptFormat": "Format anpassen",
       "code": "Code",
       "daw": "DAW",
@@ -12528,10 +12538,10 @@
       "videoLayout": "Videolayout"
     },
     "trackHeader": {
+      "clickToRename": "Zum Umbenennen klicken",
       "custom": "Benutzerdefiniert",
       "deleteTrack": "Spur löschen",
       "deleteTrackQuestion": "Spur löschen?",
-      "doubleClickToRename": "Zum Umbenennen doppelklicken",
       "dragToReorder": "Ziehen, um die Spur neu anzuordnen",
       "duplicateTrack": "Spur duplizieren",
       "editInstrument": "Instrument bearbeiten",
@@ -13261,6 +13271,7 @@
       },
       "errors": {
         "sendMessage": "Nachricht konnte nicht gesendet werden: {{error}}",
+        "compact": "Unterhaltung konnte nicht verdichtet werden: {{error}}",
         "copyConversation": "Unterhaltung konnte nicht kopiert werden.",
         "rewindConversation": "Unterhaltung konnte nicht zurückgespult werden: {{error}}"
       },
@@ -13854,7 +13865,8 @@
         "creative": "Kreativdokumente",
         "text": "Textdateien",
         "agents": "Agenten und Code",
-        "entities": "Entitäten"
+        "entities": "Entitäten",
+        "shared": "Mit mir geteilt"
       },
       "type": {
         "workflow": "Workflow",
@@ -13949,7 +13961,7 @@
       "recent": "Zuletzt verwendet",
       "saved": "Gespeichert",
       "noRecentMatch": "Keine aktuellen Assets passen.",
-      "noRecentAssets": "Bisher wurden keine Assets verwendet. Erzeuge eines oder ziehe eines hierher.",
+      "noRecentAssets": "Noch keine Dateien. Hänge eine an oder ziehe eine hierher.",
       "noAssetsMatch": "Keine passenden Assets.",
       "noSavedAssets": "Noch keine Assets gespeichert.",
       "entities": "Entitäten",
@@ -14743,6 +14755,10 @@
       "mp4Note": "Wird überall abgespielt. Keine Transparenz.",
       "webmNote": "VP9-Video mit Opus-Audio.",
       "pngSequenceNote": "Eine PNG-Datei pro Frame in einem ZIP-Archiv, mit einer manifest.json für Bildrate und Größe. Kein Audio.",
+      "wav": "WAV-Audio (16 Bit)",
+      "wavNote": "Der Audio-Mixdown der ganzen Timeline in Stereo, unkomprimiert mit 48 kHz. Kein Video.",
+      "mp3": "MP3-Audio (320 kbit/s)",
+      "mp3Note": "Der Audio-Mixdown der ganzen Timeline in Stereo. Kein Video.",
       "mp4Unsupported": "Dieser Browser kann keine MP4-Dateien schreiben. Daher ist diese Option deaktiviert.",
       "alphaLabel": "Mit Transparenz exportieren",
       "title": "Timeline exportieren",
@@ -14751,7 +14767,9 @@
       "alphaNote": {
         "mp4": "MP4 unterstützt keinen Alphakanal. Wähle WebM oder eine PNG-Sequenz.",
         "webm": "Wird über einen transparenten Hintergrund gelegt und behält den Alphakanal bei.",
-        "png_sequence": "Jede PNG-Datei behält ihren Alphakanal."
+        "png_sequence": "Jede PNG-Datei behält ihren Alphakanal.",
+        "mp3": "Eine MP3-Datei hat kein Bild, daher gibt es nichts transparent zu machen.",
+        "wav": "Eine WAV-Datei hat kein Bild, daher gibt es nichts transparent zu machen."
       }
     },
     "source": {
@@ -15794,6 +15812,7 @@
       "code": "Code",
       "run": "Ausführen",
       "script": "Skript",
+      "scriptSettings": "Skript-Einstellungen",
       "assistant": "Assistent"
     },
     "model3d": {
@@ -16633,6 +16652,20 @@
         "moveTenPixels": "Clip um zehn Pixel verschieben",
         "resetTransform": "Transformation zurücksetzen"
       }
+    },
+    "vst": {
+      "desktopOnly": "VST-Instrumente spielen in der NodeTool-Desktop-App. Im Browser ist diese Spur stumm.",
+      "checking": "VST-Host wird gesucht",
+      "hostMissing": "Der VST-Host ist nicht installiert.",
+      "plugin": "VST-Instrument",
+      "choose": "Plug-in auswählen",
+      "missingPlugin": "{{name}} (hier nicht installiert)",
+      "scanning": "Plug-in-Ordner werden durchsucht",
+      "none": "In den Standardordnern für Plug-ins wurden keine VST3-Instrumente gefunden.",
+      "openWindow": "Plug-in-Fenster öffnen",
+      "closeWindow": "Plug-in-Fenster schließen",
+      "rescan": "Erneut suchen",
+      "hint": "Klangänderungen im Plug-in-Fenster werden mit der Timeline gespeichert. Clips werden beim Abspielen durch das Plug-in gerendert."
     }
   },
   "i18n-next63": {
@@ -16878,14 +16911,41 @@
         "importFailed": "Import fehlgeschlagen: {{error}}",
         "extractFailed": "Als Skript extrahieren fehlgeschlagen: {{error}}",
         "transcriptLabel": "TRANSKRIPT",
-        "scriptLabel": "SKRIPT",
+        "wordsLabel": "WÖRTER",
         "paragraphs_one": "1 Absatz",
         "paragraphs_other": "{{count}} Absätze",
         "removeFillers": "Füllwörter entfernen ({{count}})",
         "importTooltip": "Audio oder Video zum Transkribieren importieren",
         "importLabel": "Audio oder Video importieren",
         "extractTooltip": "Dieses Transkript als bearbeitbares Skript extrahieren",
-        "extractLabel": "Als Skript extrahieren"
+        "extractLabel": "Als Skript extrahieren",
+        "editTooltip": "Transkript bearbeiten (oder auf ein Wort doppelklicken)",
+        "editLabel": "Transkript bearbeiten",
+        "doneEditingTooltip": "Bearbeitung beenden (Esc)",
+        "doneEditingLabel": "Bearbeitung beenden"
+      },
+      "linkedScript": {
+        "addLine": "Zeile hinzufügen",
+        "lineLabel": "Zeilentext",
+        "linePlaceholder": "Zeile schreiben",
+        "lines_one": "1 Zeile",
+        "lines_other": "{{count}} Zeilen",
+        "linkFailed": "Skript konnte nicht verknüpft werden: {{error}}",
+        "unlinkFailed": "Skript konnte nicht getrennt werden: {{error}}",
+        "linkLabel": "Skript verknüpfen",
+        "linkTooltip": "Ein Skript mit dieser Timeline verknüpfen",
+        "newScript": "Neues Skript",
+        "newScriptName": "Skript zu {{name}}",
+        "openLabel": "Im Skripteditor öffnen",
+        "openTooltip": "Das Skript im Skripteditor öffnen",
+        "timeline": "Timeline",
+        "unlinkLabel": "Skript trennen",
+        "unlinkTooltip": "Das Skript trennen. Seine Clips bleiben in der Timeline.",
+        "untitled": "Unbenanntes Skript",
+        "voiceDraftTooltip": "Noch nicht vertont. Diese Zeile vertonen.",
+        "voiceFailed": "Vertonung fehlgeschlagen: {{error}}",
+        "voiceLabel": "Zeile vertonen",
+        "voiceStaleTooltip": "Der Text hat sich seit der letzten Aufnahme geändert. Diese Zeile neu vertonen."
       }
     }
   },
@@ -17963,6 +18023,13 @@
       },
       "skills": "Skills",
       "noMatchingSkills": "Keine passenden Skills",
+      "commands": {
+        "compact": "Bisherige Unterhaltung zusammenfassen, um Kontext freizugeben",
+        "model": "Modell auswählen",
+        "mode": "Berechtigungen: plan, default, auto",
+        "new": "Neue Unterhaltung beginnen",
+        "rewind": "Letzte Nachricht zurücknehmen und bearbeiten"
+      },
       "selectModel": "Modell auswählen",
       "selectMusicModel": "Musikmodell auswählen",
       "selectEditModel": "Bearbeitungsmodell auswählen",
@@ -18086,6 +18153,8 @@
       "noConversations": "Noch keine Unterhaltungen",
       "tryDifferentSearch": "Versuch es mit einem anderen Suchbegriff.",
       "startConversation": "Starte eine Unterhaltung, um KI-Workflows in natürlicher Sprache zu erkunden.",
+      "rename": "Unterhaltung umbenennen",
+      "renameLabel": "Name der Unterhaltung",
       "deleteTitle": "Unterhaltung löschen",
       "deleteContent": "„{{name}}“ löschen? Das lässt sich nicht rückgängig machen.",
       "delete": "Löschen"
@@ -18277,6 +18346,19 @@
       "saving": "Wird gespeichert…",
       "saved": "Gespeichert",
       "error": "Speichern fehlgeschlagen"
+    },
+    "saveStatus": {
+      "notSaved": "Nicht gespeichert",
+      "retry": "Erneut versuchen",
+      "readOnly": "Schreibgeschützt"
+    },
+    "documentBar": {
+      "mode": "Dokumentmodus",
+      "label": "Dokument {{title}}",
+      "rename": "Dokumentname",
+      "renameHint": "Zum Umbenennen doppelklicken",
+      "moreActions": "Weitere Aktionen",
+      "copyContents": "Inhalt kopieren"
     }
   },
   "i18n-next105": {
@@ -18288,9 +18370,6 @@
     }
   },
   "i18n-next110": {
-    "imageSketch": {
-      "done": "Fertig"
-    },
     "workspaceFile": {
       "invalidReference": "Ungültiger Dateiverweis im Arbeitsbereich"
     }
@@ -18764,5 +18843,44 @@
       "model3d": "3D-Modell",
       "script": "Skript"
     }
+  },
+  "shareDocument": {
+    "description": "Wer auf diesem Server angemeldet ist und einen Ansichts- oder Bearbeitungslink öffnet, erhält die Rolle dieses Links. Betrachter können das Dokument öffnen. Bearbeiter können außerdem Änderungen speichern. Nur Sie können es löschen oder ändern, wer Zugriff hat. Wenn Sie einen Link widerrufen, kann niemand Neues mehr beitreten. Personen, die bereits beigetreten sind, bleiben unten aufgeführt.",
+    "shareAction": "Teilen…",
+    "shareNamed": "{{name}} teilen",
+    "accept": {
+      "invalidLink": "Dieser Freigabelink ist ungültig oder wurde widerrufen. Bitten Sie die Person, der das Dokument gehört, um einen neuen Link.",
+      "goToWorkspace": "Zum Arbeitsbereich",
+      "opening": "Geteiltes Dokument wird geöffnet"
+    }
+  },
+  "timelineAutomation": {
+    "groups": {
+      "mixer": "Mixer",
+      "clips": "Clips auf dieser Spur"
+    },
+    "params": {
+      "volume": "Lautstärke",
+      "pan": "Panorama",
+      "opacity": "Deckkraft",
+      "scale": "Skalierung",
+      "positionX": "Position X",
+      "positionY": "Position Y",
+      "rotation": "Drehung",
+      "brightness": "Helligkeit",
+      "contrast": "Kontrast",
+      "saturation": "Sättigung",
+      "hue": "Farbton",
+      "blur": "Unschärfe"
+    },
+    "showLanes": "Automationsspuren anzeigen",
+    "hideLanes": "Automationsspuren ausblenden",
+    "addLane": "Parameter automatisieren",
+    "turnOff": "Spur ausschalten",
+    "turnOn": "Spur einschalten",
+    "removeLane": "Spur entfernen",
+    "missingTarget": "Entferntes Gerät",
+    "laneLabel": "Automationsspur: {{name}}",
+    "deletePoint": "Punkt löschen"
   }
 }

@@ -11,11 +11,13 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import {
   tabId,
   useWorkspaceTabsStore,
+  type WorkspaceTab,
   type WorkspaceTabMode
 } from "../../stores/WorkspaceTabsStore";
 import { BASE_URL } from "../../stores/BASE_URL";
 
 import DocumentLoadStatus from "./DocumentLoadStatus";
+import { WithDocumentBar, workspaceDocumentBar } from "./documentBarParts";
 
 const Model3DEditor = React.lazy(() => import("../model_editor/Model3DEditor"));
 
@@ -23,6 +25,8 @@ interface Model3DSurfaceProps {
   refId: string;
   mode: WorkspaceTabMode;
   active: boolean;
+  /** The workspace tab, whose document bar tops the surface. */
+  tab: WorkspaceTab;
 }
 
 /**
@@ -101,14 +105,15 @@ const withVersion = (url: string, version: string): string =>
  * back to the asset. For "view" mode — or any model the editor can't open — it
  * falls back to the lazy 3D viewer. Mirrors how AssetEditor wires Model3DEditor,
  * but loads the asset here and passes data down so no editor edits are needed.
+ * The editor draws the tab's document bar; the viewer and the load states get
+ * the bar with the title and View/Edit.
  */
-const Model3DSurface = ({ refId, mode, active }: Model3DSurfaceProps) => {
+const Model3DSurface = ({ refId, mode, active, tab }: Model3DSurfaceProps) => {
   const { t } = useTranslation();
   const { data: asset, isPending, refetch } = useAssetById(refId);
 
   const updateAsset = useAssetStore((state) => state.update);
   const invalidateQueries = useAssetStore((state) => state.invalidateQueries);
-  const setMode = useWorkspaceTabsStore((state) => state.setMode);
 
   const editorUrl = useMemo(() => {
     if (!asset || !isEditableModel3DAsset(asset)) {
@@ -205,18 +210,16 @@ const Model3DSurface = ({ refId, mode, active }: Model3DSurfaceProps) => {
     [asset, updateAsset, invalidateQueries, documentTabId]
   );
 
-  const handleClose = useCallback(() => {
-    setMode(tabId("model3d", refId), "view");
-  }, [setMode, refId]);
-
   if (!asset) {
     return (
-      <DocumentLoadStatus
-        state={isPending ? "loading" : "error"}
-        label={t("i18n-next51.model3d.asset")}
-        onRetry={() => { void refetch(); }}
-        onClose={() => useWorkspaceTabsStore.getState().closeTab(tabId("model3d", refId))}
-      />
+      <WithDocumentBar tab={tab}>
+        <DocumentLoadStatus
+          state={isPending ? "loading" : "error"}
+          label={t("i18n-next51.model3d.asset")}
+          onRetry={() => { void refetch(); }}
+          onClose={() => useWorkspaceTabsStore.getState().closeTab(tabId("model3d", refId))}
+        />
+      </WithDocumentBar>
     );
   }
 
@@ -224,13 +227,15 @@ const Model3DSurface = ({ refId, mode, active }: Model3DSurfaceProps) => {
     return (
       <Suspense
         fallback={
-          <FlexColumn
-            fullWidth
-            fullHeight
-            sx={{ alignItems: "center", justifyContent: "center" }}
-          >
-            <LoadingSpinner />
-          </FlexColumn>
+          <WithDocumentBar tab={tab}>
+            <FlexColumn
+              fullWidth
+              fullHeight
+              sx={{ alignItems: "center", justifyContent: "center" }}
+            >
+              <LoadingSpinner />
+            </FlexColumn>
+          </WithDocumentBar>
         }
       >
         <Model3DEditor
@@ -238,8 +243,8 @@ const Model3DSurface = ({ refId, mode, active }: Model3DSurfaceProps) => {
           url={pinnedEditorUrl}
           name={asset.name}
           onSave={persistBlob}
-          onClose={handleClose}
           active={active}
+          documentBar={workspaceDocumentBar(tab)}
           onDirtyChange={handleDirtyChange}
           externallyChanged={externallyChanged}
           onReloadExternal={reloadExternal}
@@ -249,7 +254,11 @@ const Model3DSurface = ({ refId, mode, active }: Model3DSurfaceProps) => {
     );
   }
 
-  return <LazyModel3DViewer asset={asset} />;
+  return (
+    <WithDocumentBar tab={tab}>
+      <LazyModel3DViewer asset={asset} />
+    </WithDocumentBar>
+  );
 };
 
 export default Model3DSurface;

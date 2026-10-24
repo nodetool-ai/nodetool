@@ -6,7 +6,7 @@
  * A section's `lines` merge per line inside the section, and a line's
  * `takes` per take inside the line — so a take added on the server to a
  * line whose text is dirty is not a conflict (takes and text are separate
- * fields of the unit). Title and link fields are last-write-wins scalars.
+ * fields of the unit). Title, link and setup fields are last-write-wins scalars.
  */
 import type { DocumentOp } from "@nodetool-ai/protocol";
 import type {
@@ -23,6 +23,7 @@ export interface ScriptMergeDoc {
   timelineId: string | null;
   storyboardId: string | null;
   creativeContext?: unknown;
+  setup?: unknown;
 }
 
 const named = (unit: unknown): { id: string; name?: string } =>
@@ -45,7 +46,7 @@ export const scriptMergeAdapter: DocumentMergeAdapter<ScriptMergeDoc> = {
       read: (doc) => doc.sections,
       write: (doc, sections) => ({ ...doc, sections }),
       unitId: (unit) => named(unit).id,
-      unitLabel: (unit) => named(unit).name || "Section",
+      unitLabel: (unit) => (unit as { title?: string }).title || "Section",
       unitFields: [
         {
           field: "lines",
@@ -93,6 +94,14 @@ export const scriptMergeAdapter: DocumentMergeAdapter<ScriptMergeDoc> = {
       name: "creativeContext",
       read: (doc) => doc.creativeContext,
       write: (doc, value) => ({ ...doc, creativeContext: value })
+    },
+    {
+      // The guided setup, with the Voice all run record under it. Without a
+      // slot here a dirty draft kept its own copy and saved it over the
+      // server's.
+      name: "setup",
+      read: (doc) => doc.setup,
+      write: (doc, value) => ({ ...doc, setup: value })
     }
   ],
   unitsTouchedByOp: (op: DocumentOp): { kind: string; unitId?: string }[] => {

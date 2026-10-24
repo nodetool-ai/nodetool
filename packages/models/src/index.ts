@@ -15,6 +15,7 @@ export {
   getDb,
   getDatabase,
   getDbType,
+  getPostgresClient,
   getRawDb,
   pingDb,
   closeDb
@@ -158,6 +159,14 @@ export {
   type CollaboratorRole
 } from "./workflow-collaborator.js";
 export { WorkflowShare, type ShareRole } from "./workflow-share.js";
+export {
+  DocumentCollaborator,
+  DocumentShare,
+  SHARED_DOCUMENT_TYPES,
+  isSharedDocumentType,
+  removeDocumentSharing,
+  type SharedDocumentType
+} from "./document-sharing.js";
 
 export { Asset } from "./asset.js";
 export type { AssetRow, AssetInsert } from "./asset.js";
@@ -593,3 +602,5 @@ export type { RunReaderSpan } from "./run-readers.js";
 export { threadHasTraceContentTools } from "./trace-provenance.js";
 
 export { listAppInstanceMetadata } from "./app-instance-list.js";
+
+export { openResourceChangeChannel, resolveResourceChangeListenerUrl, NOTIFY_PAYLOAD_LIMIT } from "./resource-change-channel.js";

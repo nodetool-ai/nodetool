@@ -92,9 +92,14 @@ export const InspectorValueInput = memo(function InspectorValueInput({
   // (the stepped value, or the old one when the owner rejected it) instead of
   // the draft. Typing turns this off.
   const [followValue, setFollowValue] = useState(false);
+  // Whether the person typed since focusing. A focused field they have not
+  // typed in still follows its value: when the owner switches what the field
+  // edits (another clip selected), leaving the field must not write the old
+  // value to the new target.
+  const [typed, setTyped] = useState(false);
   if (value !== syncedValue) {
     setSyncedValue(value);
-    if (!focused || followValue) setDraft(value);
+    if (!focused || followValue || !typed) setDraft(value);
   }
 
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -211,6 +216,7 @@ export const InspectorValueInput = memo(function InspectorValueInput({
       onChange={(event) => {
         steppedValueRef.current = null;
         setFollowValue(false);
+        setTyped(true);
         setDraft(event.target.value);
       }}
       onFocus={() => setFocused(true)}
@@ -221,6 +227,7 @@ export const InspectorValueInput = memo(function InspectorValueInput({
         else commit();
         steppedValueRef.current = null;
         setFollowValue(false);
+        setTyped(false);
         setDraft(value);
       }}
       onKeyUp={(event) => {

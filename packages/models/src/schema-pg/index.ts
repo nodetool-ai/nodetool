@@ -8,6 +8,7 @@ export { secrets } from "./secrets.js";
 export { workspaces } from "./workspaces.js";
 export { workflowVersions } from "./workflow-versions.js";
 export { workflowCollaborators, workflowShares } from "./workflow-sharing.js";
+export { documentCollaborators, documentShares } from "./document-sharing.js";
 export { oauthCredentials } from "./oauth-credentials.js";
 export { predictions } from "./predictions.js";
 export { runEvents } from "./run-events.js";
@@ -54,3 +55,5 @@ export { generationAttachments } from "./generation-attachments.js";
 export * from "./app-instances.js";
 
 export * from "./run-traces.js";
+
+export { resourceChangeOutbox } from "./resource-change-outbox.js";

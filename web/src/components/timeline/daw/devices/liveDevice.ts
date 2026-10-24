@@ -20,6 +20,14 @@ export interface LiveNoteEvent {
   on: boolean;
 }
 
+/** One automated device parameter as ramps on the device's context clock. */
+export interface DeviceAutomationLane {
+  /** The device's own parameter id. */
+  param: string;
+  /** In time order. The value ramps linearly between them and holds outside. */
+  points: readonly { timeSec: number; value: number }[];
+}
+
 export interface LiveInstrumentDevice {
   /** Stereo output. The host connects it; the device never touches the destination. */
   readonly output: AudioNode;
@@ -43,6 +51,13 @@ export interface LiveInstrumentDevice {
    * LFOs and delays.
    */
   setTempo(bpm: number, beatZeroSec: number): void;
+  /**
+   * Replace every automation lane the device plays. Optional, so a device
+   * without automation still plays its parameters' stored values.
+   */
+  setAutomation?(lanes: readonly DeviceAutomationLane[]): void;
+  /** Resolves once the processor holds every automation lane sent before. */
+  syncAutomation?(): Promise<void>;
   dispose(): void;
 }
 

@@ -27,6 +27,7 @@ import type {
   MessageDocumentContent,
   MessageImageContent,
   MessageTextContent,
+  ProviderCacheControl,
   ProviderEffort,
   ProviderId,
   ProviderStreamItem,
@@ -44,7 +45,18 @@ interface AnthropicProviderOptions {
     ClientOptions,
     "authToken" | "credentials" | "config" | "profile" | "baseURL"
   >;
+  /**
+   * Top-level automatic caching marker. When set it caches the conversation
+   * tail in place of the explicit tail breakpoint, and its TTL is reused for
+   * the system breakpoint.
+   */
   cacheControl?: { type: "ephemeral"; ttl?: "5m" | "1h" };
+  /**
+   * Place prompt-cache breakpoints on the system prompt and the conversation
+   * tail. On by default; pass `false` for a gateway that rejects
+   * `cache_control`.
+   */
+  promptCaching?: boolean;
   betas?: string[];
   /**
    * Provider id reported by this instance. Defaults to `"anthropic"`.
@@ -324,6 +336,56 @@ function mergeToolResultMessages(
   return merged;
 }
 
+/** Anthropic rejects a request that carries more cache breakpoints than this. */
+const MAX_CACHE_BREAKPOINTS = 4;
+
+/** Block types Anthropic refuses a `cache_control` marker on. */
+const UNCACHEABLE_BLOCK_TYPES = new Set(["thinking", "redacted_thinking"]);
+
+function isCacheableBlock(block: unknown): boolean {
+  if (!isObjectLike(block)) return false;
+  const type = (block as { type?: unknown }).type;
+  if (!isString(type) || UNCACHEABLE_BLOCK_TYPES.has(type)) return false;
+  // An empty text block cannot carry a marker either.
+  if (type === "text") {
+    const text = (block as { text?: unknown }).text;
+    return isString(text) && text.length > 0;
+  }
+  return true;
+}
+
+/**
+ * Put a cache breakpoint on the last cacheable block of the conversation, so
+ * the next request (the next tool round, or the next turn) reads everything up
+ * to here from the cache instead of re-processing it. Each round moves the
+ * breakpoint forward and the API looks back from it for the previous one.
+ * Returns the messages unchanged when the last message has nothing to mark.
+ */
+function withConversationBreakpoint(
+  messages: AnthropicRawBlock[],
+  marker: ProviderCacheControl
+): AnthropicRawBlock[] {
+  const last = messages[messages.length - 1];
+  if (!last) return messages;
+  let content: unknown[];
+  if (isString(last.content)) {
+    if (last.content.length === 0) return messages;
+    content = [{ type: "text", text: last.content, cache_control: marker }];
+  } else if (Array.isArray(last.content)) {
+    let index = last.content.length - 1;
+    while (index >= 0 && !isCacheableBlock(last.content[index])) index--;
+    if (index < 0) return messages;
+    content = last.content.map((block, i) =>
+      i === index
+        ? { ...(block as AnthropicRawBlock), cache_control: marker }
+        : block
+    );
+  } else {
+    return messages;
+  }
+  return [...messages.slice(0, -1), { ...last, content }];
+}
+
 type ThinkingPolicy =
   | "manual"
   | "adaptive_optional"
@@ -447,6 +509,7 @@ export class AnthropicProvider extends BaseProvider {
   private _fetch: typeof fetch;
   private _clientOptions: AnthropicProviderOptions["clientOptions"];
   private _cacheControl: AnthropicProviderOptions["cacheControl"];
+  private _promptCaching: boolean;
   private _betas: string[];
 
   constructor(
@@ -476,6 +539,7 @@ export class AnthropicProvider extends BaseProvider {
     this._client = options.client ?? null;
     this._clientOptions = options.clientOptions;
     this._cacheControl = options.cacheControl;
+    this._promptCaching = options.promptCaching ?? true;
     this._betas = options.betas ?? [];
     this._clientFactory =
       options.clientFactory ??
@@ -1145,7 +1209,7 @@ export class AnthropicProvider extends BaseProvider {
     type AnthropicRequestBody = {
       model: string;
       messages: typeof args.messages;
-      system: string;
+      system: string | AnthropicRawBlock[];
       max_tokens: number;
       tools?: typeof formattedTools;
       tool_choice?: typeof toolChoice;
@@ -1175,7 +1239,44 @@ export class AnthropicProvider extends BaseProvider {
     if (this._cacheControl) {
       request.cache_control = this._cacheControl;
     }
+    this.applyCacheBreakpoints(request, args.tools ?? []);
     return request;
+  }
+
+  /**
+   * Mark the request so consecutive calls reuse the provider's KV cache. The
+   * prefix renders as tools, then system, then messages, so one breakpoint at
+   * the end of the system prompt caches the tool catalog and the prompt, and
+   * one on the last message block caches the conversation so far. A tool loop
+   * resends that whole prefix every round, which then bills as cache reads.
+   * Breakpoints the caller set on tools count against the four allowed.
+   */
+  private applyCacheBreakpoints(
+    request: {
+      system: string | AnthropicRawBlock[];
+      messages: AnthropicRawBlock[];
+    },
+    tools: ProviderTool[]
+  ): void {
+    if (!this._promptCaching) return;
+    const marker: ProviderCacheControl = this._cacheControl ?? {
+      type: "ephemeral"
+    };
+    let available =
+      MAX_CACHE_BREAKPOINTS -
+      tools.filter((tool) => tool.cacheControl).length -
+      (this._cacheControl ? 1 : 0);
+    if (available > 0 && isString(request.system) && request.system) {
+      request.system = [
+        { type: "text", text: request.system, cache_control: marker }
+      ];
+      available--;
+    }
+    // Top-level `cache_control` already caches the tail; a second marker on
+    // the last block would make it a no-op at best.
+    if (available > 0 && !this._cacheControl) {
+      request.messages = withConversationBreakpoint(request.messages, marker);
+    }
   }
 
   async *generateMessages(args: {

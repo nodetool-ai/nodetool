@@ -1,0 +1,7 @@
+[
+  { "action": "run" },
+  { "action": "stream_input", "at": "node_update:sink:running", "nodeId": "src", "value": "one" },
+  { "action": "stream_input", "nodeId": "src", "value": "two" },
+  { "action": "stream_input", "nodeId": "src", "value": "three" },
+  { "action": "end_input_stream", "nodeId": "src" }
+]

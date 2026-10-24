@@ -77,6 +77,10 @@ jest.mock("../../../trpc/client", () => ({
   }
 }));
 
+jest.mock("../../../hooks/useRenameDocument", () => ({
+  useRenameDocument: () => jest.fn()
+}));
+
 import TimelineSurface from "../TimelineSurface";
 
 const renderSurface = (mode: "view" | "edit" = "edit") =>
@@ -179,5 +183,37 @@ describe("TimelineSurface setup resume", () => {
 
     expect(screen.queryByTestId("video-setup")).not.toBeInTheDocument();
     expect(screen.queryByTestId("timeline-editor")).not.toBeInTheDocument();
+  });
+
+  it("keeps View/Edit in reach while the player or the flow shows", () => {
+    const tab = {
+      id: "timeline:seq-1",
+      type: "timeline" as const,
+      ref: "seq-1",
+      mode: "view" as const,
+      title: "Launch cut"
+    };
+    mockTimelineQuery.value = {
+      isPending: false,
+      isError: false,
+      stage: "idea"
+    };
+    const { rerender } = render(
+      <ThemeProvider theme={mockTheme}>
+        <TimelineSurface refId="seq-1" mode="view" active tab={tab} />
+      </ThemeProvider>
+    );
+    expect(screen.getByTestId("timeline-player")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Edit" })).toBeInTheDocument();
+
+    rerender(
+      <ThemeProvider theme={mockTheme}>
+        <TimelineSurface refId="seq-1" mode="edit" active tab={{ ...tab, mode: "edit" }} />
+      </ThemeProvider>
+    );
+    expect(screen.getByTestId("video-setup")).toBeInTheDocument();
+    expect(
+      screen.getByRole("toolbar", { name: "Launch cut document" })
+    ).toBeInTheDocument();
   });
 });

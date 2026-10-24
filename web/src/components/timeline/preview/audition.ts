@@ -8,8 +8,9 @@
  */
 
 import { getSamplerAudio } from "./samplerAudio";
-import { auditionPitch, renderAuditionNote } from "@nodetool-ai/timeline";
+import { auditionPitch, renderAuditionNote, VST_TAIL_MS } from "@nodetool-ai/timeline";
 import type { MidiInstrument } from "@nodetool-ai/timeline";
+import { renderVstBuffer } from "./vstRender";
 
 /** How long the auditioned note is held before its release. */
 export const AUDITION_NOTE_MS = 600;
@@ -40,17 +41,7 @@ export async function playAuditionNote(
     await (ctx as AudioContext).resume();
   }
   try {
-  const recordings = await getSamplerAudio(ctx, instrument);
-  const samples = renderAuditionNote({
-    samples: recordings,
-    pitch: pitch ?? auditionPitch(instrument),
-    velocity,
-    durationMs: AUDITION_NOTE_MS,
-    instrument,
-    sampleRate: ctx.sampleRate
-  });
-  const buffer = ctx.createBuffer(1, Math.max(1, samples.length), ctx.sampleRate);
-  buffer.getChannelData(0).set(samples);
+  const buffer = await auditionBuffer(ctx, instrument, pitch ?? auditionPitch(instrument), velocity);
   const source = ctx.createBufferSource();
   source.buffer = buffer;
   source.connect(ctx.destination);
@@ -64,4 +55,34 @@ export async function playAuditionNote(
     if (isLive) await ctx.close();
     throw error;
   }
+}
+
+async function auditionBuffer(
+  ctx: BaseAudioContext,
+  instrument: MidiInstrument,
+  pitch: number,
+  velocity: number
+): Promise<AudioBuffer> {
+  const sampleRate = ctx.sampleRate;
+  if (instrument.type === "vst") {
+    const gateOffFrame = Math.round((AUDITION_NOTE_MS / 1000) * sampleRate);
+    return renderVstBuffer(
+      ctx,
+      instrument,
+      [{ pitch, velocity, startFrame: 0, gateOffFrame }],
+      Math.round(((AUDITION_NOTE_MS + VST_TAIL_MS) / 1000) * sampleRate)
+    );
+  }
+  const recordings = await getSamplerAudio(ctx, instrument);
+  const samples = renderAuditionNote({
+    samples: recordings,
+    pitch,
+    velocity,
+    durationMs: AUDITION_NOTE_MS,
+    instrument,
+    sampleRate
+  });
+  const buffer = ctx.createBuffer(1, Math.max(1, samples.length), sampleRate);
+  buffer.getChannelData(0).set(samples);
+  return buffer;
 }

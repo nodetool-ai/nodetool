@@ -12,7 +12,7 @@
  * workspaces: Editing, Script, Assistant and Review. Panels move, group,
  * resize and maximize, and the layout is saved per user.
  *
- * DAW mode (TopBar switch, Alt+M) puts `DawWorkspace` in the Program panel
+ * DAW mode (the Workspace menu, Alt+M) puts `DawWorkspace` in the Program panel
  * and takes the Source, Timeline and Script panels out of the dock: a
  * transport strip (the preview mounted audio-only), the tracks, and a
  * resizable dock with the mixer, the device chain, the piano roll and harmony.
@@ -72,7 +72,12 @@ import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import PianoOutlinedIcon from "@mui/icons-material/PianoOutlined";
 import MovieCreationOutlinedIcon from "@mui/icons-material/MovieCreationOutlined";
 
-import { TopBar } from "./TopBar";
+import { TimelineDocumentBar } from "./TimelineDocumentBar";
+import { formatActionShortcut } from "./timelineKeymap";
+import { useGlobalCombo } from "../../stores/KeyPressedStore";
+import { isMac } from "../../utils/platform";
+import { useSettingsStore } from "../../stores/SettingsStore";
+import type { WorkspaceTab } from "../../stores/WorkspaceTabsStore";
 import { TimelineGenerateDialog } from "./TimelineGenerateDialog";
 import { BottomStatusBar } from "./BottomStatusBar";
 import { PlayheadReadout } from "./PlayheadReadout";
@@ -111,7 +116,11 @@ import TimelineVersionHistoryPanel from "./TimelineVersionHistoryPanel";
 import TimelineStoryboardPanel from "./storyboard/TimelineStoryboardPanel";
 import { useTimelineAgentBridge } from "../../hooks/timeline/useTimelineAgentBridge";
 import { useTimelineMenuCommands } from "../../hooks/timeline/useTimelineMenuCommands";
-import { TranscriptPanel } from "./TranscriptPanel";
+import { TimelineScriptPanel } from "./TimelineScriptPanel";
+import {
+  useLinkedScriptId,
+  useLinkedScriptSync
+} from "../../hooks/timeline/useLinkedScript";
 import { useHasScript } from "../../hooks/timeline/useHasScript";
 import { useTimelineLayoutStore } from "../../stores/timeline/TimelineLayoutStore";
 import { useTimelineDockLayoutStore } from "../../stores/timeline/useTimelineDockLayoutStore";
@@ -136,7 +145,6 @@ import TimelineShotPanel, {
 import TimelineLinkedBoards from "./shot/TimelineLinkedBoards";
 import { useTimelineHasCode } from "../../serverState/useTimelineCode";
 import CodeIcon from "@mui/icons-material/Code";
-import { ActivityIndicator } from "./ActivityIndicator";
 import {
   useGeneratingCount,
   useFailedCount
@@ -152,7 +160,6 @@ import { useTimelineExport } from "../../hooks/timeline/useTimelineExport";
 import { useTimelineIsMobile } from "../../hooks/timeline/useTimelineIsMobile";
 import { useGuardedPanelTab } from "../../hooks/timeline/useGuardedPanelTab";
 import { ensureBundledFontsLoaded } from "./preview/fontLoading";
-import { useWorkspaceHeaderActions } from "../workspace/WorkspaceHeaderActionsContext";
 
 // The `@font-face` rules for the bundled corpus, pointing at the same files
 // the server rasterizer registers (D8). Imported by the editor rather than
@@ -483,7 +490,7 @@ const MobilePanelSheet: React.FC<{
         ) : activeTab === "agent" ? (
           <TimelineAgentPanel />
         ) : activeTab === "script" ? (
-          <TranscriptPanel />
+          <TimelineScriptPanel />
         ) : activeTab === "code" ? (
           <CodePanel />
         ) : (
@@ -533,6 +540,9 @@ const TimelineStatusBar: React.FC<{ actionSlot?: React.ReactNode }> = memo(
 );
 TimelineStatusBar.displayName = "TimelineStatusBar";
 
+/** Saves now. The keyboard store sorts a combo's keys. */
+const SAVE_COMBO = isMac() ? "meta+s" : "control+s";
+
 interface TimelineEditorProps {
   /**
    * Sequence id to load. When omitted, falls back to the `:sequenceId`
@@ -547,11 +557,23 @@ interface TimelineEditorProps {
    * standalone route; the workspace tab passes its active flag.
    */
   active?: boolean;
+  /**
+   * The workspace tab, when the editor is a tab's surface. Its document bar
+   * then carries the tab title and the View/Edit switch.
+   */
+  tab?: WorkspaceTab;
 }
+
+/** Keeps the linked script loaded and reconciled into this timeline. */
+const LinkedScriptSync: React.FC<{ scriptId: string }> = ({ scriptId }) => {
+  useLinkedScriptSync(scriptId);
+  return null;
+};
 
 const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   sequenceId: sequenceIdProp,
-  active = true
+  active = true,
+  tab
 }) => {
   const { t } = useTranslation();
   const { sequenceId: sequenceIdParam } = useParams<{ sequenceId: string }>();
@@ -579,10 +601,11 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   const pianoRollOpen = useTimelineUIStore((s) => s.pianoRollClipId !== null);
   const pianoRollFullScreen = isMobile && pianoRollOpen;
 
-  // TopBar's Code button — shown only when this timeline embeds authoring
+  // The document bar's Code item — shown only when this timeline embeds authoring
   // code, opens the Code panel (dock on desktop, sheet on phone).
   const hasCode = useTimelineHasCode(sequenceId);
   const hasScript = useHasScript();
+  const linkedScriptId = useLinkedScriptId(sequenceId ?? null);
   const dawMode = useTimelineLayoutStore((s) => s.dawMode);
   const setDawMode = useTimelineLayoutStore((s) => s.setDawMode);
   const { hasMidiTrack, hasSourceAsset, hasShotClip } = useContextualPanelFlags();
@@ -739,7 +762,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   );
   const isExportingMedia = exportingArchive === "media";
 
-  // "Save as asset" — anchor the folder chooser to the TopBar button, then
+  // "Save as asset" — anchor the folder chooser to the document bar's ⋮ button, then
   // render the timeline into a new asset in the chosen folder.
   const [saveAssetAnchor, setSaveAssetAnchor] = useState<HTMLElement | null>(
     null
@@ -757,8 +780,6 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   const handleOpenAdaptFormat = useCallback(() => setAdaptFormatOpen(true), []);
   const handleCloseAdaptFormat = useCallback(() => setAdaptFormatOpen(false), []);
   const mediaTracks = useTimelineStore((state) => state.mediaTracks);
-  // Stable element so `activitySlot` doesn't defeat TopBar's memo every render.
-  const activitySlot = useMemo(() => <ActivityIndicator />, []);
 
   // Tracks resize ─────────────────────────────────────────────────────────
   // The stored height is the user's choice; the rendered height is clamped so
@@ -965,7 +986,7 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
       node: <TimelineTracksPanel onGenerate={sequenceUnavailable ? undefined : openGenerate} />,
       visible: !dawActive
     },
-    { id: "transcript", node: <TranscriptPanel />, visible: hasScript && !dawActive },
+    { id: "transcript", node: <TimelineScriptPanel />, visible: (hasScript || !!linkedScriptId) && !dawActive },
     { id: "storyboard", node: <TimelineStoryboardPanel />, visible: !dawActive },
     { id: "inspector", node: <TimelineInspector /> },
     { id: "shot", node: <TimelineShotPanel />, visible: hasShotClip },
@@ -1045,7 +1066,12 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   // contextual panel appears or goes.
   const dockPanelKey = dockViews.map((view) => view.id).join();
   const dockPanelIds = useMemo(() => dockPanelKey.split(","), [dockPanelKey]);
-  const layoutMenu = useMemo(
+  const keyboardPreset = useSettingsStore(
+    (s) => s.settings.timelineKeyboardPreset
+  );
+  const dawShortcut = formatActionShortcut(keyboardPreset, "toggleDawMode");
+  // Video or DAW, then the layouts: one Workspace menu (no phone dock).
+  const workspaceMenu = useMemo(
     () =>
       isMobile ? undefined : (
         <DockLayoutMenu
@@ -1053,95 +1079,79 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
           panels={dockRegistrations.filter((entry) =>
             dockPanelIds.includes(entry.id)
           )}
+          workspaces={
+            sequenceUnavailable
+              ? undefined
+              : [
+                  {
+                    id: "video",
+                    label: t("i18n-next6.topBar.videoEditing"),
+                    selected: !dawMode,
+                    // The shortcut toggles, so it names the other workspace.
+                    shortcut: dawMode ? dawShortcut || undefined : undefined,
+                    onSelect: () => setDawMode(false)
+                  },
+                  {
+                    id: "daw",
+                    label: t("i18n-next6.topBar.audioDaw"),
+                    selected: dawMode,
+                    shortcut: dawMode ? undefined : dawShortcut || undefined,
+                    onSelect: () => setDawMode(true)
+                  }
+                ]
+          }
         />
       ),
-    [dockStore, dockRegistrations, dockPanelIds, isMobile]
-  );
-
-  const headerActions = useMemo(
-    () => (
-      <TopBar
-        onExportVideo={sequenceUnavailable ? undefined : handleExportVideo}
-        isExporting={isExporting}
-        onExportBundle={sequenceUnavailable ? undefined : handleExportBundle}
-        isExportingBundle={isExportingBundle}
-        onExportPremiere={
-          sequenceUnavailable ? undefined : handleExportPremiere
-        }
-        isExportingPremiere={isExportingPremiere}
-        onExportMedia={sequenceUnavailable ? undefined : handleExportMedia}
-        isExportingMedia={isExportingMedia}
-        onSave={sequenceUnavailable ? undefined : handleSave}
-        isSaving={isSaving}
-        onSaveToAssets={sequenceUnavailable ? undefined : handleSaveToAssets}
-        onOpenSettings={sequenceUnavailable ? undefined : handleOpenSettings}
-        onAdaptFormat={sequenceUnavailable ? undefined : handleOpenAdaptFormat}
-        activitySlot={activitySlot}
-        hasCode={!sequenceUnavailable && hasCode}
-        onOpenCode={handleOpenCode}
-        layoutMenu={layoutMenu}
-        sequenceId={sequenceUnavailable ? undefined : sequenceId}
-        onToggleTranscript={
-          !isMobile && hasScript && !dawMode ? toggleTranscript : undefined
-        }
-        transcriptVisible={transcriptVisible}
-        onToggleSidePanel={isMobile ? undefined : toggleSidePanel}
-        sidePanelVisible={sidePanelVisible}
-        onSetDawMode={sequenceUnavailable ? undefined : setDawMode}
-        dawMode={dawMode}
-      />
-    ),
     [
       dawMode,
-      layoutMenu,
-      setDawMode,
-      hasScript,
+      dawShortcut,
+      dockStore,
+      dockRegistrations,
+      dockPanelIds,
       isMobile,
-      sidePanelVisible,
-      toggleSidePanel,
-      toggleTranscript,
-      transcriptVisible,
-      activitySlot,
-      handleExportBundle,
-      handleExportMedia,
-      handleExportPremiere,
-      handleExportVideo,
-      handleOpenCode,
-      handleOpenSettings,
-      handleOpenAdaptFormat,
-      handleSave,
-      handleSaveToAssets,
-      hasCode,
-      isExporting,
-      isExportingBundle,
-      isExportingMedia,
-      isExportingPremiere,
-      isSaving,
-      sequenceId,
-      sequenceUnavailable
+      sequenceUnavailable,
+      setDawMode,
+      t
     ]
   );
-  const workspaceHeader = useWorkspaceHeaderActions();
-  const registerHeaderActions = workspaceHeader?.registerActions;
-  const unregisterHeaderActions = workspaceHeader?.unregisterActions;
-  useEffect(() => {
-    if (
-      !active ||
-      !registerHeaderActions ||
-      !unregisterHeaderActions ||
-      !sequenceId
-    ) {
-      return;
-    }
-    registerHeaderActions(sequenceId, headerActions);
-    return () => unregisterHeaderActions(sequenceId);
-  }, [
-    active,
-    headerActions,
-    registerHeaderActions,
-    sequenceId,
-    unregisterHeaderActions
-  ]);
+
+  // Cmd/Ctrl+S forces the autosave now, in the tab that is in front.
+  useGlobalCombo(SAVE_COMBO, () => void handleSave(), {
+    active: active && !sequenceUnavailable,
+    allowInInputs: true
+  });
+
+  const documentBar = (
+    <TimelineDocumentBar
+      tab={tab}
+      title={sequence?.name ?? ""}
+      sequenceId={sequenceUnavailable ? undefined : sequenceId}
+      isSaving={isSaving}
+      showHistory={!sequenceUnavailable}
+      workspaceMenu={workspaceMenu}
+      dawMode={dawMode}
+      onSetDawMode={sequenceUnavailable ? undefined : setDawMode}
+      onToggleTranscript={
+        !isMobile && hasScript && !dawMode ? toggleTranscript : undefined
+      }
+      transcriptVisible={transcriptVisible}
+      onToggleSidePanel={isMobile ? undefined : toggleSidePanel}
+      sidePanelVisible={sidePanelVisible}
+      onExportVideo={sequenceUnavailable ? undefined : handleExportVideo}
+      isExporting={isExporting}
+      onOpenSettings={sequenceUnavailable ? undefined : handleOpenSettings}
+      onAdaptFormat={sequenceUnavailable ? undefined : handleOpenAdaptFormat}
+      onSaveToAssets={sequenceUnavailable ? undefined : handleSaveToAssets}
+      onExportBundle={sequenceUnavailable ? undefined : handleExportBundle}
+      isExportingBundle={isExportingBundle}
+      onExportPremiere={sequenceUnavailable ? undefined : handleExportPremiere}
+      isExportingPremiere={isExportingPremiere}
+      onExportMedia={sequenceUnavailable ? undefined : handleExportMedia}
+      isExportingMedia={isExportingMedia}
+      hasCode={!sequenceUnavailable && hasCode}
+      onOpenCode={handleOpenCode}
+    />
+  );
 
   // Export dialog action button — memoized so re-renders unrelated to export
   // state (e.g. the tracks-resize drag) don't allocate a fresh element that
@@ -1172,8 +1182,9 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
     <FieldDensityContext.Provider value="compact">
     <TimelineDockContext.Provider value={dock}>
     <FlexColumn fullWidth fullHeight css={editorStyles(theme)}>
-      {!workspaceHeader && headerActions}
+      {documentBar}
       {conflictBanner}
+      {linkedScriptId ? <LinkedScriptSync scriptId={linkedScriptId} /> : null}
       {/* The guided video flow's landing strip: progress, retries and next
        *  steps. Renders nothing on a sequence that never went through it. */}
       <VideoLandingStrip

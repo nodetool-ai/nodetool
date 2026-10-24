@@ -1,7 +1,11 @@
 /**
  * @jest-environment node
  */
-import { sortThreadsByDate } from "../threadUtils";
+import {
+  isTitleFromQuestion,
+  sortThreadsByDate,
+  titleFromQuestion
+} from "../threadUtils";
 import { stub } from "../../../../test-utils/doubles";
 import type { ThreadInfo } from "../../types/thread.types";
 
@@ -82,5 +86,32 @@ describe("sortThreadsByDate", () => {
 
     expect(sorted[0][0]).toBe("later");
     expect(sorted[1][0]).toBe("earlier");
+  });
+});
+
+describe("titleFromQuestion", () => {
+  it("keeps a short question whole and flattens its whitespace", () => {
+    expect(titleFromQuestion("  How long to boil\na duck egg? ")).toBe(
+      "How long to boil a duck egg?"
+    );
+  });
+
+  it("cuts a long question to the server's 60 characters", () => {
+    const title = titleFromQuestion("a".repeat(80));
+    expect(title).toHaveLength(60);
+    expect(title.endsWith("...")).toBe(true);
+  });
+});
+
+describe("isTitleFromQuestion", () => {
+  const question = "Write a two-line birthday verse for a friend who loves lighthouses";
+
+  it("recognises the server's and the client's derived titles", () => {
+    expect(isTitleFromQuestion(titleFromQuestion(question), question)).toBe(true);
+    expect(isTitleFromQuestion(`${question.substring(0, 50)}...`, question)).toBe(true);
+  });
+
+  it("treats any other title as the person's own", () => {
+    expect(isTitleFromQuestion("Card for Mia", question)).toBe(false);
   });
 });

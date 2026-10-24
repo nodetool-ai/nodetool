@@ -2253,12 +2253,31 @@ npm run nodetool -- reliability run <journey> --faults provider-429 --diff
 npm run nodetool -- reliability update-goldens <journey>
 ```
 
-`--faults` replaces the journey's own matrix for that run. The provider-seam
-faults are implemented (`provider-429`, `provider-500`, `provider-timeout`,
-`truncated-stream`, `malformed-sse`, `slow-drip`, `cost-omission`); the
-`ws`/`bridge`/`host`/`client` names are recognized but report as unimplemented.
+`--faults` replaces the journey's own matrix for that run. Each fault seam has
+implemented faults:
+
+| Seam | Faults | Surface |
+|---|---|---|
+| Provider | `provider-429`, `provider-500`, `provider-timeout`, `provider-truncated-stream`, `provider-malformed-sse`, `provider-slow-drip`, `provider-cost-omission` | kernel, ws-server |
+| WS transport | `ws-delay`, `ws-reorder`, `ws-fragment`, `ws-drop-no-fin`, `ws-stall-reads`, `ws-abrupt-close` | ws-server |
+| Python bridge | `bridge-exit-mid-request`, `bridge-framing-violation`, `bridge-never-ready`, `bridge-epipe`, `bridge-version-mismatch` | kernel, ws-server |
+| Host | `host-disk-full` | kernel |
+| Client | `client-slow-consumer` | kernel |
+
+The other names in `KNOWN_FAULT_TYPES` (`reliability/harness/src/cli.ts`)
+report as unimplemented. A fault module that sets `preservesOutcome` still has
+its journey's goldens compared, and every other faulted run skips them.
 `update-goldens` rewrites `expected/` from a fresh unfaulted kernel run — it
 cannot tell a fixed bug from a new one, so read the diff before committing it.
+
+Two rings run the journeys in CI. `npm run reliability:ring0`
+(`scripts/reliability-ring0.mjs`) runs the fast hermetic journeys on the kernel
+and is the `reliability-ring0` selfcheck that `harness gate` selects for
+execution changes. `npm run reliability:ring1` (`scripts/reliability-ring1.mjs`)
+runs every journey on the kernel and the ws-server with `--diff`, and the
+packaged backend with `--packaged`, on every push to `main`. A journey added to
+`reliability/journeys/` joins Ring 1 automatically. Add it to `RING0_JOURNEYS`
+when it is hermetic and fast.
 
 ### nodetool package (Node-Pack Authoring)
 

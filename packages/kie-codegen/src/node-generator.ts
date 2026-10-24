@@ -70,7 +70,14 @@ function isAssetType(type: string): boolean {
  * how `kie-factory.ts` builds the same parameter at runtime.
  */
 function isValueListType(type: string): boolean {
-  return ["list[str]", "list[int]", "list[float]", "list[dict]"].includes(type);
+  return [
+    "list[str]",
+    "list[int]",
+    "list[float]",
+    "list[dict]",
+    "list[video_element]",
+    "list[shot]"
+  ].includes(type);
 }
 
 /**

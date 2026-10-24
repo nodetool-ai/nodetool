@@ -57,6 +57,7 @@ it("focuses the image brief after an example is picked", async () => {
     <ImageIdeaStep
       onStartBlank={jest.fn()}
       upload={{ error: null, clearError: jest.fn() } as never}
+      look={{ availability: "ready" } as never}
     />
   );
   const inspiration = screen.getByRole("group", { name: "Inspiration" });

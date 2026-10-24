@@ -1,0 +1,15 @@
+{
+  "name": "workflow-loop",
+  "description": "A `nodetool.control.Loop` whose body feeds `next` and `condition` back into the Loop, the only cycle a graph may contain (docs/workflow-loops.md). The body appends one character per pass and asks for another pass while the text is shorter than four characters, so the run ends on the condition, not on `max_iterations`, and `done` delivers \"abab\". Pins the Loop actor's iteration, termination and EOS handling (packages/kernel/src/loop.ts) and the cycle check in correlation analysis on the kernel and the ws-server.",
+  "workflow": { "ref": "workflow.json" },
+  "params": {},
+  "interactions": "interactions.json",
+  "surfaces": ["kernel", "ws-server"],
+  "faults": [],
+  "timeoutMs": 30000,
+  "assertions": {
+    "invariants": ["lifecycle-pairing", "terminal-uniqueness", "cleanup-leaks"],
+    "outputs": true,
+    "streamShape": false
+  }
+}

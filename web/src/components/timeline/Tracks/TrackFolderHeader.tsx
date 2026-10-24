@@ -3,7 +3,7 @@ import { useTranslation } from "react-i18next";
 import FolderOutlinedIcon from "@mui/icons-material/FolderOutlined";
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
 import KeyboardArrowRightIcon from "@mui/icons-material/KeyboardArrowRight";
-import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import MoreVertIcon from "@mui/icons-material/MoreVert";
 import type { TimelineTrackFolder } from "@nodetool-ai/timeline";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
@@ -79,7 +79,7 @@ export const TrackFolderHeader: React.FC<TrackFolderHeaderProps> = ({
         />
         <Caption aria-label={t("i18n-next59.folder.trackCount", { count })}>({count})</Caption>
         <ToolbarIconButton
-          icon={<MoreHorizIcon fontSize="small" />}
+          icon={<MoreVertIcon fontSize="small" />}
           onClick={(event) => setMenuAnchor(event.currentTarget)}
           aria-label={t("i18n-next59.folder.options", { name: folder.name })}
           size="small"

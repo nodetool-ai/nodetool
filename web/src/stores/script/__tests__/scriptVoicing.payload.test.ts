@@ -1,6 +1,7 @@
 /**
  * Pins the `generate_media` request the script voicer sends per line: mode,
- * provider, model, voice and the line text as prompt. The transcription
+ * provider, model, voice, the line text as prompt and the line's delivery
+ * note as instructions. The transcription
  * follow-up is best-effort and asserted only for its asset linkage.
  */
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
@@ -114,6 +115,29 @@ describe("voiceLine generate_media payloads", () => {
     }
   );
 
+  it.each([
+    { direction: "  Whisper, out of breath.  ", instructions: "Whisper, out of breath." },
+    { direction: "   ", instructions: undefined },
+    { direction: undefined, instructions: undefined }
+  ])(
+    "sends delivery note $direction as instructions $instructions",
+    async ({ direction, instructions }) => {
+      useScriptStore.getState().patchLine("sc-1", "ln-1", { direction });
+      const done = voiceLine("sc-1", "ln-1");
+      await flush();
+      const frame = sendFrames[0] as {
+        request_id?: string;
+        data: Record<string, unknown>;
+      };
+      expect(frame.data.instructions).toBe(instructions);
+      expect("instructions" in frame.data).toBe(instructions !== undefined);
+      respond(frame.request_id as string, {
+        error: { message: "stop after observing request" }
+      });
+      await expect(done).rejects.toThrow("stop after observing request");
+    }
+  );
+
   it("sends mode audio with the speaker's voice binding and the line text", async () => {
     const done = voiceLine("sc-1", "ln-1");
     await flush();
@@ -148,5 +172,8 @@ describe("voiceLine generate_media payloads", () => {
     const take = await done;
     expect(take.assetId).toBe("aud-1");
     expect(take.textSnapshot).toBe("We are closed.");
+    // What else shaped the audio, so editing it later marks the take stale.
+    expect(take.directionSnapshot).toBe("");
+    expect(take.speedSnapshot).toBeNull();
   });
 });

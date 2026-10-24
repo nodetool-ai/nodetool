@@ -766,6 +766,13 @@ class MidiFiles {
     // The instrument belongs to the track, not the clip.
     const instrument =
       this.tracks.get(clip.trackId)?.instrument ?? DEFAULT_MIDI_INSTRUMENT;
+    if (instrument.type === "vst") {
+      // The plug-in is native code on the machine that chose it; only the
+      // desktop editor's export can host it. Refuse rather than render silence.
+      throw new Error(
+        `Track "${this.tracks.get(clip.trackId)?.name ?? clip.trackId}" plays a VST instrument, which renders only in the NodeTool desktop app's export. Export from the desktop editor, or mute the track.`
+      );
+    }
     const mono = renderMidiClip({
       clip,
       bpm: this.bpm,

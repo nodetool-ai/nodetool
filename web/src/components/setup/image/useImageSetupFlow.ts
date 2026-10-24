@@ -180,23 +180,47 @@ export const useImageSetupFlow = ({
   const promptIsWritable =
     composeImagePrompt({ brief, refined }).trim().length > 0;
 
+  const hasBrief = brief.trim().length > 0;
+
   const steps = useMemo<SetupStep<SketchSetupStage>[]>(
     () => [
       {
+        // The quick path: the sentence goes straight to the image model with
+        // the look's defaults, and the contact sheet's `Back to generation
+        // settings` is the way into size and style afterwards. The step-by-step
+        // path (use case, refined brief, look) is the secondary action.
         stage: "idea",
         label: "Idea",
-        primaryLabel: "Continue",
-        canAdvance: brief.trim().length > 0,
-        blockedReason: "Describe the image, or upload one to edit",
-        // An upload finishes the flow when it lands, so Continue waits for it
+        primaryLabel: "Generate your image",
+        canAdvance: hasBrief && look.modelReady,
+        blockedReason: hasBrief
+          ? look.blockedReason
+          : "Describe the image, or upload one to edit",
+        primaryDetail: look.primaryDetail,
+        // An upload finishes the flow when it lands, so the step waits for it
         // rather than racing it to the next step (F17).
         pending: upload.uploading,
         pendingLabel: "Reading your file",
         onCancel: upload.cancel,
         footerControls: (context) =>
-          createElement(BriefModelFooterField, { readOnly: context.readOnly }),
+          createElement(ImageModelFooterField, {
+            look,
+            readOnly: context.readOnly
+          }),
         render: () =>
-          createElement(IdeaStep, { onStartBlank: startBlank, upload })
+          createElement(IdeaStep, { onStartBlank: startBlank, upload, look }),
+        // `generate` writes `done` itself, so the shell must not move the
+        // document on to the use case afterwards.
+        onAdvance: async () => {
+          // A refined brief from an earlier sentence describes another image.
+          await look.generate(onGenerated, {
+            briefOnly: !briefIsCurrent,
+            fitSize: true
+          });
+          return false;
+        },
+        skipLabel: "Refine step by step",
+        onSkip: () => undefined
       },
       {
         // Use case and review are both step 2, so they collapse into one
@@ -264,9 +288,9 @@ export const useImageSetupFlow = ({
       }
     ],
     [
-      brief,
       briefIsCurrent,
       cancel,
+      hasBrief,
       look,
       onGenerated,
       promptIsWritable,

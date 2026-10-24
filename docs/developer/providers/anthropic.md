@@ -123,6 +123,22 @@ The adapter also passes `strict`, `input_examples`, `cache_control`,
 `defer_loading`, and `allowed_callers` when configured. Tool execution failures
 are returned with Anthropic's `is_error` marker.
 
+### Prompt caching
+
+Every request carries two cache breakpoints. The first sits at the end of the
+system prompt. Anthropic renders tools ahead of the system prompt, so this one
+breakpoint caches the tool catalog and the prompt. The second sits on the last
+cacheable block of the conversation, so the next tool round or turn reads the
+history from the cache. Breakpoints set on tools count against Anthropic's
+limit of four. Pass `promptCaching: false` for a gateway that rejects
+`cache_control`. The `cacheControl` option sends top-level automatic caching
+in place of the tail breakpoint. Cache hits show up as
+`cache_read_input_tokens` in usage.
+
+A cached prefix survives only while its bytes stay the same. Keep turn-scoped
+context out of the system prompt and append it to the last user message, as
+the chat turn does with memory, invoked skills, and the user's open documents.
+
 Image input supports JPEG, PNG, GIF, and WebP through inline base64 blocks.
 Document input supports inline PDF data, HTTPS PDF URLs, and plain text, including
 document titles, context, and citation configuration. See Anthropic's

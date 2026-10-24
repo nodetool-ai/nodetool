@@ -98,7 +98,7 @@ around it is not exempt.
 | Section header | `SectionHeader size="small"` in lists and panels, `FormSection` in forms, `InspectorSection` in properties panels | `EYEBROW`: 11px, uppercase, `0.06em`, `text.secondary` | `text/hand-eyebrow` | [Panels](#10-panels) |
 | Panel | `PanelHeader` over a body inset by `SPACING.lg` | 36px title strip, 13px/500 title, 1px `divider` below, `ToolbarIconButton` actions | — | [Panels](#10-panels) |
 | Docked panel group | `DockTabStrip` | 28px tab strip, active tab on `background.paper` with a 2px accent | — | [Docked panel groups](#docked-panel-groups) |
-| Toolbar, status bar | `Toolbar`, `ToolbarGroup`, `ToolbarDivider`, `StatusBar`, `FloatingToolbar`, `SaveState` | 40px or 28px on `background.paper` with a `divider` rule. Floating bars use the menu paper | `surface/grey-chrome` | [Toolbars and status bars](#toolbars-and-status-bars) |
+| Toolbar, status bar | `Toolbar`, `ToolbarGroup`, `ToolbarDivider`, `StatusBar`, `FloatingToolbar`, `SaveState`; `DocumentBar` with `SaveStatus` and `ModeSwitch` as a document's first row | 40px or 28px on `background.paper` with a `divider` rule. Floating bars use the menu paper | `surface/grey-chrome` | [Toolbars and status bars](#toolbars-and-status-bars) |
 | Surface | `Surface`, `Card`, `Panel` | `background.paper` or `background.default`, `divider` border. Never `grey[700-900]` | `layout/raw-paper`, `surface/grey-chrome` | [Color](#3-color) |
 | Resize handle | `ResizeHandle` | Transparent at rest, `primary.main` while hovered or dragged | — | [Resize handles](#resize-handles) |
 | Scroll area | `ScrollArea`, or `scrollbarStyles` / `thinScrollbarStyles` | 10px or 6px scrollbar in `c_scroll_*` | — | [Scrollbars](#9-scrollbars) |
@@ -1185,6 +1185,9 @@ hand-written background, border and height.
 | `ToolbarGroup`, `ToolbarDivider` | A cluster of related controls (4px gap) and the vertical rule between clusters. Never draw a divider with `borderLeft` or a pseudo-element. |
 | `StatusBar`, `StatusBarItem` | The bottom strip for selection, hints, counts and zoom. A compact bottom `Toolbar` with caption type in `text.secondary`. `StatusBarItem grow` is the one item that takes the free width and truncates. |
 | `SaveState` | The one save readout: `state="dirty"` is an 8px `warning.main` dot, `saving` a small spinner, `saved` a `success.main` dot, `error` an `error.main` dot. `showLabel={false}` keeps only the dot (labelled for screen readers) when the Save button beside it already says "Saving…". Override the text with `labels`. |
+| `DocumentBar` | The first row of a document surface, under the workspace app bar. Fixed slots in a fixed order: Identity (title, renamed inline, then `SaveStatus`), History (undo, redo), Mode (one `ModeSwitch`), View (layout menu, panel toggles), Actions (at most one filled button, then secondary buttons, then ⋮). An empty slot takes no width. The surface renders it; it never registers into the app bar. In the workspace use `WorkspaceDocumentBar`, which adds the tab title and the View/Edit switch. See [Workspace header and document bar](workspace-document-bar-design.md). |
+| `SaveStatus` | The save readout in a document bar: "Saved", "Saving…", "Unsaved changes", "Not saved" with Retry, "Read only". Built on `SaveState`. |
+| `ModeSwitch` | The one mode control of a document bar, a segmented `ToggleGroup`. `iconOnly` puts each label in its tooltip, as the View/Edit switch does. |
 | `FloatingToolbar` | A bar over a selection, a hovered card or a node. It uses the menu paper (`menuPaperStyles`): overlay paper, divider frame, `BORDER_RADIUS.lg`, `SHADOW.lg`. The caller owns position, z-index and visibility. |
 
 Rules:
@@ -1199,6 +1202,19 @@ Rules:
 - Do not copy a `.dirty-dot` block. Render `SaveState`.
 - A bar taller than its density (a stacked two-row header) overrides
   `flexDirection` and `px` in `sx` but keeps the surface and rule.
+
+Buttons in a bar, in every editor (workflow, sketch, timeline, 3D, text,
+script, storyboard):
+
+| Part | Rule |
+|---|---|
+| Icon-only command | `ToolbarIconButton` with `tooltip` (and `shortcut`). It is a 28px square with a 16px glyph at the default `size="small"` (32/18 at `medium`, 36/20 at `large`), `text.secondary` at rest, `action.hover` and `text.primary` on hover. Do not pass `fontSize` to its icon, and do not restyle it with a `.MuiIconButton-root` or class override on the bar |
+| On/off state | `active` on the `ToolbarIconButton`: an `action.selected` fill and a `primary.main` icon. Passing `active` also sets `aria-pressed`, unless the button opens a menu or panel and says so with `aria-expanded` or `aria-haspopup`. Never colour the icon by hand (`sx={{ color: on ? "primary.main" : … }}`) |
+| Text command | `EditorButton` (`density="compact"` in a compact bar). Never put a text label inside a `ToolbarIconButton` |
+| One of a few modes | `ToggleGroup segmented` |
+| Groups | Related buttons sit in a `ToolbarGroup`. A `ToolbarDivider` (a 16px rule) separates groups. Never a MUI `Divider orientation="vertical"` or a hand-drawn border |
+| Order | History (undo, redo) first, then tools and modes, then view toggles, then document actions (save, export), then the overflow menu, then close |
+| Overflow | One `MoreVert` `ToolbarIconButton` with a "More actions" style tooltip, opening an `EditorMenu` |
 
 ---
 

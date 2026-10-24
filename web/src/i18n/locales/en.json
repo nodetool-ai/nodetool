@@ -6138,7 +6138,8 @@
       "documents": {
         "title": "Documents",
         "regionLabel": "Current project documents",
-        "countAndSort": "Documents · {{count}} · most recent first",
+        "countSubtitle_one": "1 document · most recent first",
+        "countSubtitle_other": "{{count}} documents · most recent first",
         "loadFailureSummary": "Project documents failed to load",
         "emptyTitle": "No documents in this project yet",
         "previousPage": "Previous",
@@ -6169,8 +6170,8 @@
           "app": "app",
           "chat": "chat"
         },
-        "referenceImageCount_one": "{{count}} reference image",
-        "referenceImageCount_other": "{{count}} reference images",
+        "attachedFileCount_one": "{{count}} attached file",
+        "attachedFileCount_other": "{{count}} attached files",
         "singleEntity": "the entity {{name}}",
         "entityCount_one": "{{count}} entity",
         "entityCount_other": "{{count}} entities",
@@ -6252,9 +6253,9 @@
         "chatPromptLabel": "Chat prompt",
         "promptPlaceholder": "Describe what you want to create. Type / for a skill, @ for a file or entity.",
         "removeReference": "Remove {{name}}",
-        "referenceImages": "Reference images",
-        "referenceImageCountShort_one": "Ref images · {{count}}",
-        "referenceImageCountShort_other": "Ref images · {{count}}",
+        "attachFiles": "Attach files",
+        "attachedFileCountShort_one": "Files · {{count}}",
+        "attachedFileCountShort_other": "Files · {{count}}",
         "entitiesNone": "Entities · none",
         "entitiesSelected": "Entities · {{entities}}",
         "selectedModel": "Model · {{name}}",
@@ -6269,6 +6270,9 @@
         "gameDimension": "Game type",
         "game2d": "2D game",
         "game3d": "3D exploration",
+        "newProject": "New project",
+        "newProjectHint": "Start this in a new project, named after your prompt",
+        "newProjectError": "Could not create the project: {{error}}",
         "blankDocument": "Blank document",
         "blankDocumentDescription": "— opens as a loose tab, outside any project",
         "browseExamples": "Browse examples",
@@ -6299,8 +6303,6 @@
           "tsv": "TSV (.tsv)",
           "txt": "Plain text (.txt)"
         },
-        "unsupportedReferenceFiles_one": "Reference images only accept pictures. {{files}} was not added.",
-        "unsupportedReferenceFiles_other": "Reference images only accept pictures. {{files}} were not added.",
         "createCards": {
           "image": {
             "title": "Create image",
@@ -6460,6 +6462,7 @@
         "selectedProject": "Selected project: {{name}}",
         "selectProject": "Select project",
         "projectHome": "Project home",
+        "openProjectHome": "Open project home: {{name}}",
         "newProject": "New project",
         "searchProjects": "Search projects",
         "loadingProjects": "Loading projects",
@@ -7124,14 +7127,14 @@
         "blankTitle": "Start with a blank canvas",
         "blankDescription": "Skip the brief and paint it yourself",
         "heading": "What image do you want?",
-        "intro": "Describe it once. We'll refine the brief and render variations to pick from.",
+        "intro": "Describe it and generate it now, or refine it step by step to choose the use case, brief and look first.",
         "imageLabel": "Your image",
         "placeholder": "One sentence is enough.",
         "uploadFailed": "Image upload failed",
         "promptContext": "Came with your prompt",
         "referenceImages": "Reference images",
         "entities": "Entities",
-        "referencesHelp": "The refinement reads these when it writes your brief.",
+        "referencesHelp": "The step-by-step brief reads these. Generating right away uses your text only.",
         "entitiesHelp": "These stay with the document as you set it up.",
         "alternativesLabel": "Other ways to start"
       },
@@ -7917,6 +7920,7 @@
           "differentScenes": "The shots in this scene clip are no longer in one scene.",
           "addShot": "Add a shot to the board first.",
           "renderStill": "Render a still for at least one shot.",
+          "addEntityImage": "Give an entity on the board a reference image first.",
           "noVideoModel": "No video model chosen.",
           "imageLimit": "{{imageCount}} images is over the limit of {{limit}}. Remove {{remove}}.",
           "durationUnavailable": "{{model}} does not offer a {{duration}} clip. Pick one of {{choices}}.",
@@ -12477,6 +12481,8 @@
       "full": "Full",
       "fullscreen": "Fullscreen",
       "half": "Half",
+      "goToStart": "Go to start",
+      "goToEnd": "Go to end",
       "loop": "Loop",
       "loopOnDescription": "Loop on: playback repeats the in to out range",
       "loopPlayback": "Loop playback",
@@ -12500,6 +12506,10 @@
       "volume": "Volume"
     },
     "topBar": {
+      "export": "Export",
+      "workspace": "Workspace",
+      "videoEditing": "Video editing",
+      "audioDaw": "Audio (DAW)",
       "adaptFormat": "Adapt format",
       "code": "Code",
       "daw": "DAW",
@@ -12528,10 +12538,10 @@
       "videoLayout": "Video layout"
     },
     "trackHeader": {
+      "clickToRename": "Click to rename",
       "custom": "Custom",
       "deleteTrack": "Delete track",
       "deleteTrackQuestion": "Delete track?",
-      "doubleClickToRename": "Double-click to rename",
       "dragToReorder": "Drag to reorder track",
       "duplicateTrack": "Duplicate track",
       "editInstrument": "Edit instrument",
@@ -13261,6 +13271,7 @@
       },
       "errors": {
         "sendMessage": "Could not send the message: {{error}}",
+        "compact": "Could not compact the conversation: {{error}}",
         "copyConversation": "Could not copy the conversation.",
         "rewindConversation": "Could not rewind the conversation: {{error}}"
       },
@@ -13854,7 +13865,8 @@
         "creative": "Creative documents",
         "text": "Text files",
         "agents": "Agents & code",
-        "entities": "Entities"
+        "entities": "Entities",
+        "shared": "Shared with me"
       },
       "type": {
         "workflow": "Workflow",
@@ -13949,7 +13961,7 @@
       "recent": "Recent",
       "saved": "Saved",
       "noRecentMatch": "No recent assets match.",
-      "noRecentAssets": "No assets used yet. Generate or drag one in.",
+      "noRecentAssets": "No files yet. Attach or drag one in.",
       "noAssetsMatch": "No assets match.",
       "noSavedAssets": "No saved assets yet.",
       "entities": "Entities",
@@ -14743,6 +14755,10 @@
       "mp4Note": "Plays everywhere. No transparency.",
       "webmNote": "VP9 video with Opus audio.",
       "pngSequenceNote": "One PNG per frame in a zip, with a manifest.json naming the rate and size. No audio.",
+      "wav": "WAV audio (16-bit)",
+      "wavNote": "The whole timeline's audio mixdown in stereo, uncompressed at 48 kHz. No video.",
+      "mp3": "MP3 audio (320 kbps)",
+      "mp3Note": "The whole timeline's audio mixdown in stereo. No video.",
       "mp4Unsupported": "This browser cannot write MP4, so it is turned off.",
       "alphaLabel": "Export with transparency",
       "title": "Export timeline",
@@ -14751,7 +14767,9 @@
       "alphaNote": {
         "mp4": "MP4 carries no alpha channel. Choose WebM or a PNG sequence.",
         "webm": "Composites over a transparent ground and keeps the alpha channel.",
-        "png_sequence": "Every PNG keeps its alpha channel."
+        "png_sequence": "Every PNG keeps its alpha channel.",
+        "mp3": "An MP3 has no picture, so there is nothing to make transparent.",
+        "wav": "A WAV has no picture, so there is nothing to make transparent."
       }
     },
     "source": {
@@ -15794,6 +15812,7 @@
       "code": "Code",
       "run": "Run",
       "script": "Script",
+      "scriptSettings": "Script settings",
       "assistant": "Assistant"
     },
     "model3d": {
@@ -16633,6 +16652,20 @@
         "moveTenPixels": "Move the clip ten pixels",
         "resetTransform": "Reset the transform"
       }
+    },
+    "vst": {
+      "desktopOnly": "VST instruments play in the NodeTool desktop app. In the browser this track is silent.",
+      "checking": "Looking for the VST host",
+      "hostMissing": "The VST host is not installed.",
+      "plugin": "VST instrument",
+      "choose": "Choose a plug-in",
+      "missingPlugin": "{{name}} (not installed here)",
+      "scanning": "Scanning plug-in folders",
+      "none": "No VST3 instruments were found in the standard plug-in folders.",
+      "openWindow": "Open plug-in window",
+      "closeWindow": "Close plug-in window",
+      "rescan": "Rescan",
+      "hint": "Sound changes made in the plug-in window are saved with the timeline. Clips render through the plug-in when they play."
     }
   },
   "i18n-next63": {
@@ -16878,14 +16911,41 @@
         "importFailed": "Import failed: {{error}}",
         "extractFailed": "Extract as script failed: {{error}}",
         "transcriptLabel": "TRANSCRIPT",
-        "scriptLabel": "SCRIPT",
+        "wordsLabel": "WORDS",
         "paragraphs_one": "1 paragraph",
         "paragraphs_other": "{{count}} paragraphs",
         "removeFillers": "Remove fillers ({{count}})",
         "importTooltip": "Import audio or video to transcribe",
         "importLabel": "Import audio or video",
         "extractTooltip": "Extract this transcript as an editable script",
-        "extractLabel": "Extract as script"
+        "extractLabel": "Extract as script",
+        "editTooltip": "Edit the transcript (or double-click a word)",
+        "editLabel": "Edit transcript",
+        "doneEditingTooltip": "Finish editing (Esc)",
+        "doneEditingLabel": "Finish editing"
+      },
+      "linkedScript": {
+        "addLine": "Add line",
+        "lineLabel": "Line text",
+        "linePlaceholder": "Write a line",
+        "lines_one": "1 line",
+        "lines_other": "{{count}} lines",
+        "linkFailed": "Could not link the script: {{error}}",
+        "unlinkFailed": "Could not unlink the script: {{error}}",
+        "linkLabel": "Link a script",
+        "linkTooltip": "Link a script to this timeline",
+        "newScript": "New script",
+        "newScriptName": "{{name}} script",
+        "openLabel": "Open in script editor",
+        "openTooltip": "Open the script in the script editor",
+        "timeline": "Timeline",
+        "unlinkLabel": "Unlink script",
+        "unlinkTooltip": "Unlink the script. Its clips stay on the timeline.",
+        "untitled": "Untitled script",
+        "voiceDraftTooltip": "Not voiced yet. Voice this line.",
+        "voiceFailed": "Voicing failed: {{error}}",
+        "voiceLabel": "Voice line",
+        "voiceStaleTooltip": "The text changed after the last take. Voice this line again."
       }
     }
   },
@@ -17963,6 +18023,13 @@
       },
       "skills": "Skills",
       "noMatchingSkills": "No matching skills",
+      "commands": {
+        "compact": "Summarize the conversation so far to free up context",
+        "model": "Choose a model",
+        "mode": "Permissions: plan, default, auto",
+        "new": "Start a new conversation",
+        "rewind": "Take back your last message and edit it"
+      },
       "selectModel": "Select model",
       "selectMusicModel": "Select music model",
       "selectEditModel": "Select edit model",
@@ -18086,6 +18153,8 @@
       "noConversations": "No conversations yet",
       "tryDifferentSearch": "Try a different search term.",
       "startConversation": "Start a conversation to explore AI workflows with natural language.",
+      "rename": "Rename conversation",
+      "renameLabel": "Conversation name",
       "deleteTitle": "Delete conversation",
       "deleteContent": "Delete \"{{name}}\"? This cannot be undone.",
       "delete": "Delete"
@@ -18277,6 +18346,19 @@
       "saving": "Saving…",
       "saved": "Saved",
       "error": "Save failed"
+    },
+    "saveStatus": {
+      "notSaved": "Not saved",
+      "retry": "Retry",
+      "readOnly": "Read only"
+    },
+    "documentBar": {
+      "mode": "Document mode",
+      "label": "{{title}} document",
+      "rename": "Document name",
+      "renameHint": "Double-click to rename",
+      "moreActions": "More actions",
+      "copyContents": "Copy contents"
     }
   },
   "i18n-next105": {
@@ -18288,9 +18370,6 @@
     }
   },
   "i18n-next110": {
-    "imageSketch": {
-      "done": "Done"
-    },
     "workspaceFile": {
       "invalidReference": "Invalid workspace file reference"
     }
@@ -18764,5 +18843,44 @@
       "model3d": "3D model",
       "script": "Script"
     }
+  },
+  "shareDocument": {
+    "description": "Anyone signed in to this server who opens a view or edit link gets the role assigned to that link. Viewers can open the document. Editors can also save changes. Only you can delete it or change who has access. Revoking a link stops new people from joining. People who already joined remain listed below.",
+    "shareAction": "Share…",
+    "shareNamed": "Share {{name}}",
+    "accept": {
+      "invalidLink": "This share link is invalid or has been revoked. Ask the document owner for a new one.",
+      "goToWorkspace": "Go to workspace",
+      "opening": "Opening shared document"
+    }
+  },
+  "timelineAutomation": {
+    "groups": {
+      "mixer": "Mixer",
+      "clips": "Clips on this track"
+    },
+    "params": {
+      "volume": "Volume",
+      "pan": "Pan",
+      "opacity": "Opacity",
+      "scale": "Scale",
+      "positionX": "Position X",
+      "positionY": "Position Y",
+      "rotation": "Rotation",
+      "brightness": "Brightness",
+      "contrast": "Contrast",
+      "saturation": "Saturation",
+      "hue": "Hue",
+      "blur": "Blur"
+    },
+    "showLanes": "Show automation lanes",
+    "hideLanes": "Hide automation lanes",
+    "addLane": "Automate a parameter",
+    "turnOff": "Turn lane off",
+    "turnOn": "Turn lane on",
+    "removeLane": "Remove lane",
+    "missingTarget": "Removed device",
+    "laneLabel": "Automation lane: {{name}}",
+    "deletePoint": "Delete point"
   }
 }

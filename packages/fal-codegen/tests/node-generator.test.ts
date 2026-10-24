@@ -434,6 +434,47 @@ describe("NodeGenerator.generateModule()", () => {
 describe("NodeGenerator.applyConfig()", () => {
   const gen = new NodeGenerator();
 
+  it("types keyframe, element and shot fields as accessory lists", () => {
+    const flux = gen.applyConfig(
+      makeSpec({
+        endpointId: "blackforestlabs/flux-3/keyframes-to-video",
+        inputFields: [
+          makeField({ name: "keyframes", propType: "list[Flux3Keyframe]", default: [] })
+        ]
+      }),
+      {}
+    );
+    expect(flux.inputFields[0]).toMatchObject({
+      propType: "list[keyframe]",
+      default: []
+    });
+
+    const kling = gen.applyConfig(
+      makeSpec({
+        endpointId: "fal-ai/kling-video/v3/pro/image-to-video",
+        inputFields: [
+          makeField({ name: "elements" }),
+          makeField({ name: "multi_prompt" }),
+          makeField({ name: "prompt" })
+        ]
+      }),
+      {}
+    );
+    expect(kling.inputFields.map((f) => f.propType)).toEqual([
+      "list[video_element]",
+      "list[shot]",
+      "str"
+    ]);
+
+    // Only Kling's string fallback is retyped; another model's `elements`
+    // string keeps its type.
+    const other = gen.applyConfig(
+      makeSpec({ inputFields: [makeField({ name: "elements" })] }),
+      {}
+    );
+    expect(other.inputFields[0].propType).toBe("str");
+  });
+
   it("overrides className", () => {
     const spec = makeSpec({ className: "Original" });
     const result = gen.applyConfig(spec, { className: "Renamed" });

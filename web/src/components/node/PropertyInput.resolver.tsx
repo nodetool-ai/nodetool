@@ -274,6 +274,12 @@ function handleListType(
         return TextListProperty;
       case "entity":
         return EntityProperty;
+      // Built by the Keyframe, Element and Shot nodes; there is nothing to
+      // type in, so the property is its label and handle.
+      case "keyframe":
+      case "video_element":
+      case "shot":
+        return InputProperty;
     }
   }
   return ListProperty;

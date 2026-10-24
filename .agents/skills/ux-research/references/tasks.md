@@ -84,11 +84,21 @@ never put it in a packet.
 | `own-app` | One of the ready-made tools here shows how different AI models answer the same question. Make your own version of that tool, give it a name of your choice, and change one thing in it. Then go back to where you started and open your version again. | empty | 35 | Copying an example app |
 | `play-example` | Find a ready-made game in this app and play it until something in it changes because of what you did. | empty | 20 | Example games |
 | `trim-example` | Find a ready-made short video in this app, watch it from the start, then make your own shorter version of it and watch that. | empty | 35 | Example videos |
+| `shorter-photo` | This app already holds a video called "City at night". In this video, the second picture stays on screen much longer than the others. Make it about as long as the others, then play the video from the start to check. | timeline | 25 | Changing how long a picture shows |
+| `add-words` | This app already holds a video called "City at night". You want the words "Late ride home" to show over the opening of this video. Put them there, then play the start to check. | timeline | 30 | Putting words over a video |
+| `send-video` | A friend who does not use this app wants to watch this video. Get it out of the app as a file you could send them. | timeline | 15 | Exporting a video |
+| `last-first` | This app already holds a video called "City at night". Make the last picture in this video come first, and keep the other two in their order. Then play the video from the start to check. | timeline | 50 | Reordering pictures in a video |
+| `quieter-music` | This app already holds a video called "City at night". The music in this video is too loud. Make it quieter, without removing it. | timeline | 25 | Changing the music's volume |
+| `add-photo-end` | You have one more photo from the same night. Add it so it shows after the last picture, then play the end of the video to check. | timeline | 20 | Adding a photo to an existing video |
 | `reconnect` | Someone left something here that should turn trip notes into a packing list, but the list it makes never uses the notes. Make it use them, then run it once. | unwired-run | 20 | Reading and repairing a graph's wires |
+| `chat-picture` | You are making a birthday card for a friend who loves lighthouses. Ask the app for a two-line verse for the card. Then, in the same conversation, get a picture of a lighthouse to go with the verse, until you see the picture. | empty | 30 | Getting a picture inside a conversation |
+| `fix-question` | Ask the app how long to boil a hen's egg. Then you realise you meant a duck egg. Change the question you already sent so that it asks about a duck egg, until you see an answer to the changed question. | empty | 25 | Editing a sent message |
+| `rename-chat` | Someone on this computer once asked the app for meal ideas without meat. Give that conversation a name that tells you it was for your sister's visit. | seeded-demo | 15 | Renaming a conversation |
+| `remove-chat` | You no longer need the conversation about a story of space explorers. Remove it so it no longer shows up anywhere in this app. | seeded-demo | 15 | Deleting a conversation |
 
 `add-key`, `read-aloud`, `make-tool`, `make-game`, `keep-answer`, `same-character`, `photo-variant`, `compare-answers`, `own-version`, `ad-from-photo` and `own-app` need a test key in
 `credentials`. `add-photo`, `change-photo`, `photo-variant` and `ad-from-photo` need an image in `assets`, `photo-video` two
-photos of different scenes, `sort-photos` three photos of two trips, and `ask-file` a text file, and `same-character` one photo named for the cat. The `storyboard` state seeds one example board and an OpenAI key for `change-scene`, `reorder-scenes`, `watch-plan` and `send-plan`. `switch-model` on `seeded-demo` has every provider connected, so it
+photos of different scenes, `sort-photos` three photos of two trips, and `ask-file` a text file, and `same-character` one photo named for the cat. The `storyboard` state seeds one example board and an OpenAI key for `change-scene`, `reorder-scenes`, `watch-plan` and `send-plan`. The `timeline` state seeds the photo video "City at night", its media and an OpenAI key for `shorter-photo`, `add-words`, `send-video`, `last-first`, `quieter-music` and `add-photo-end`, and `add-photo-end` needs one more photo in `assets`. `switch-model` on `seeded-demo` has every provider connected, so it
 studies the choice and not the setup.
 
 ## End states and routes
@@ -152,6 +162,16 @@ studies the choice and not the setup.
 | `own-app` | An installed copy of Model Arena (an app, not the workflow) with a changed name and one other change, reopened from a list after leaving it. | Whether it used "Edit app", and where it looked for the copy. | [app-first-use](../../agentic-qa/references/protocols/first-use.md#app-first-use) |
 | `play-example` | The game view changed in response to the participant's keys or clicks. | Whether it found the Games tab, and whether the controls in the card were enough. | [game](../../agentic-qa/references/protocols/creative.md#game) |
 | `trim-example` | A copy of an example timeline, shorter than the original, played from the start. | Whether it installed a copy, and how it looked for a way to shorten it. | [timeline](../../agentic-qa/references/protocols/creative.md#timeline) |
+| `chat-picture` | A picture in the same thread as the verse request. | Whether it asked for the picture in words first, and how it read the "Chat" mode chip. | [chat](../../agentic-qa/references/protocols/chat.md#chat) |
+| `fix-question` | The first question edited in place to a duck egg, with a reply under it and no second copy above. A new message counts as a workaround. | Whether it found the pencil on hover, and whether the tab title followed. | [chat](../../agentic-qa/references/protocols/chat.md#chat) |
+| `rename-chat` | "Vegan recipe suggestions" renamed to a title that mentions the sister or the visit, visible in the Chats panel. | Where it looked for rename: the row, a right-click, or the tab. | [chat-find](../../agentic-qa/references/protocols/chat.md#chat-find) |
+| `remove-chat` | "Creative story about space explorers" gone from the Chats panel and every open tab. | Whether it trusted the dialog, or checked other lists afterwards. | [chat-delete](../../agentic-qa/references/protocols/chat.md#chat-delete) |
+| `shorter-photo` | The motorbike clip is 3 to 5 s long and the participant played from 0. | Whether it used the clip's edge or the Inspector's Duration, and whether it closed the gap after the clip. | [timeline](../../agentic-qa/references/protocols/creative.md#timeline) |
+| `add-words` | A text clip reading "Late ride home" starts at or near 0 and shows in the preview during playback. | Where it looked for text first (the toolbar, the lane menu, "Add script"), and which track the text went on. | [timeline](../../agentic-qa/references/protocols/creative.md#timeline) |
+| `send-video` | The receipt says the browser downloaded a video file. | Where it looked for export, and which format it chose. | [timeline](../../agentic-qa/references/protocols/creative.md#timeline) |
+| `last-first` | The tunnel clip starts at 0, then the wet street, then the motorbike, with no overlap or gap that hides a picture, played from 0. | Whether a drag overwrote a clip, and whether it reordered by dragging, by Insert mode or by typing Start times. | [timeline](../../agentic-qa/references/protocols/creative.md#timeline) |
+| `quieter-music` | The music clip's or track's volume is below 0 dB and the clip is still there. | Whether it used the clip's Volume, the mixer, or the track's mute. | [timeline](../../agentic-qa/references/protocols/creative.md#timeline) |
+| `add-photo-end` | A clip of the new photo starts at the tunnel's end (16 s) with no gap, no clip is cut, and the participant played the end. | Where the drop landed, and whether the open Library left room to aim it. | [timeline](../../agentic-qa/references/protocols/creative.md#timeline) |
 
 Study 2 found two tasks whose end state asks more than their text:
 `switch-model` ("Change it") lets a participant stop at the picker without
@@ -242,6 +262,22 @@ the fold. `own-app` needs the test server's install route (added in the study
 Chromium cannot play the H.264 example videos, so gallery previews stay at
 0:00 and playback jumps to the end. Judge it on finding the copy and a way to
 shorten it, not on playback.
+
+Study 15 found that `ask-file` takes 22 to 25 actions on `empty` before the
+study 15 PR, 6 of them on the key, and 16 to 22 after it, so give it 25.
+`chat-picture` takes 23 and `fix-question` 14 to 18. `rename-chat` and
+`remove-chat` together take 14 to 21. On the fakes the chat answers a request
+for a picture in words with text, because the fake model never calls a tool,
+so judge `chat-picture` on the route to the picture mode, or run it on a real
+language model.
+
+Study 16 found that the `timeline` state's tasks each need 10 to 20 actions
+to find "City at night" from Home, through the rail's Documents panel, before
+the task starts. Give `shorter-photo` 25, `quieter-music` 25, `add-words` 30
+and `last-first` 50, and run `send-video` second so it inherits the open
+editor. `last-first` takes 30 to 49 actions when the participant reorders by
+typing Start times. In the test Chromium the MP4 encoder has no AAC audio, so
+`send-video` exports WebM.
 
 ## Adding a task
 

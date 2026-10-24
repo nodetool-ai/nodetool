@@ -472,7 +472,8 @@ export type DrumPad = z.infer<typeof drumPad>;
  *
  * `subtractive` is the built-in synth. The other three are ports of the
  * FableSynth instruments (github.com/georgi/fablesynth): WT-1 the wavetable
- * synth, BL-1 the acid bassline, DR-1 the drum machine.
+ * synth, BL-1 the acid bassline, DR-1 the drum machine. `vst` is a VST3
+ * instrument the desktop app hosts.
  */
 export const samplerZone = z.object({
   id: z.string().min(1),
@@ -495,8 +496,28 @@ export const samplerMidiInstrument = z.object({
     gainDb: z.number().min(-60).max(12)
   });
 
+/** `VstPluginRef` in `@nodetool-ai/timeline`: the VST3 plug-in a track loads. */
+export const vstPluginRef = z.object({
+  uid: z.string().min(1).max(512),
+  name: z.string().max(256),
+  vendor: z.string().max(256),
+  path: z.string().min(1).max(4096)
+});
+
+/** Base64 plug-in state above this is refused, so one track cannot bloat the document. */
+export const VST_STATE_MAX_CHARS = 8_000_000;
+
+/** A VST3 instrument hosted by the desktop app. Silent wherever no host runs. */
+export const vstMidiInstrument = z.object({
+  type: z.literal("vst"),
+  plugin: vstPluginRef.nullable(),
+  state: z.string().max(VST_STATE_MAX_CHARS).nullable(),
+  gainDb: z.number().min(-60).max(12)
+});
+
 export const midiInstrument = z.discriminatedUnion("type", [
   samplerMidiInstrument,
+  vstMidiInstrument,
   z.object({
     type: z.literal("subtractive"),
     waveform: z.enum(["saw", "square", "triangle", "sine"]),
@@ -647,6 +668,35 @@ export const clipHarmony = z.object({
 });
 export type ClipHarmony = z.infer<typeof clipHarmony>;
 
+/** How many lanes one track may hold, and points one lane. */
+export const MAX_AUTOMATION_LANES_PER_TRACK = 256;
+export const MAX_AUTOMATION_POINTS_PER_LANE = 10000;
+
+/** `AutomationTarget` in `@nodetool-ai/timeline`: the control a lane drives. */
+export const automationTarget = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("mixer"), param: z.enum(["volumeDb", "pan"]) }),
+  z.object({ kind: z.literal("device"), deviceId: z.string().min(1), param: z.string().min(1) }),
+  z.object({ kind: z.literal("clip"), property: z.string().min(1) })
+]);
+export type AutomationTarget = z.infer<typeof automationTarget>;
+
+/** `AutomationLane` in `@nodetool-ai/timeline`: one parameter's curve over document time. */
+export const automationLane = z.object({
+  id: z.string(),
+  target: automationTarget,
+  points: z
+    .array(
+      z.object({
+        timeMs: z.number().finite().min(0),
+        value: z.number().finite(),
+        easing: z.string().optional()
+      })
+    )
+    .max(MAX_AUTOMATION_POINTS_PER_LANE),
+  enabled: z.boolean().optional()
+});
+export type AutomationLane = z.infer<typeof automationLane>;
+
 export const timelineTrack = z.object({
   id: z.string(),
   name: z.string(),
@@ -667,7 +717,9 @@ export const timelineTrack = z.object({
   pan: z.number().min(-1).max(1).optional(),
   /** Chord regions of a `chord` track. Without this field Zod strips them on
    * every PATCH, so the progression disappears after one save. */
-  chords: z.array(timelineChord).max(MAX_CHORDS_PER_TRACK).optional()
+  chords: z.array(timelineChord).max(MAX_CHORDS_PER_TRACK).optional(),
+  /** Automation lanes. Without this field Zod strips them on every PATCH. */
+  automation: z.array(automationLane).max(MAX_AUTOMATION_LANES_PER_TRACK).optional()
 });
 export type TimelineTrack = z.infer<typeof timelineTrack>;
 

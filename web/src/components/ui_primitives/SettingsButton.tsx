@@ -21,6 +21,7 @@ import {
   TOOLTIP_ENTER_NEXT_DELAY
 } from "../../config/constants";
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
+import { iconButtonBoxSx } from "./ToolbarIconButton";
 
 export interface SettingsButtonProps {
   /**
@@ -142,10 +143,11 @@ export const SettingsButton = memo(
             size={buttonSize}
             aria-label={resolvedTooltip}
             sx={{
-              color: theme.vars.palette.grey[300],
+              ...iconButtonBoxSx(buttonSize),
+              color: theme.vars.palette.text.secondary,
               "&:hover": {
-                color: theme.vars.palette.grey[100],
-                backgroundColor: `rgb(${theme.vars.palette.background.paperChannel} / 0.08)`
+                color: theme.vars.palette.text.primary,
+                backgroundColor: theme.vars.palette.action.hover
               },
               ...sx
             }}

@@ -206,7 +206,7 @@ export async function createDr1DeviceInstance(
   const drum = asDrum(instrument);
   const [assets] = await Promise.all([
     loadDrumAssets(),
-    loadFableWorklets(ctx, ["ott", "lab", "dr1"])
+    loadFableWorklets(ctx, ["pauto", "ott", "lab", "dr1"])
   ]);
   const params = dr1ParamsFromInstrument(drum);
   const lists = workletAssetLists(assets);

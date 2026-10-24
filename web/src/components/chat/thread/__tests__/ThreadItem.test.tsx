@@ -85,4 +85,27 @@ describe("ThreadItem", () => {
     expect(onRequestDelete).toHaveBeenCalledWith("thread-1");
     expect(onSelect).not.toHaveBeenCalled();
   });
+
+  // UX research study 15: 3 of 3 people looked for rename on the row.
+  it("renames the thread from the row without selecting it", async () => {
+    const user = userEvent.setup();
+    const onRename = jest.fn();
+    const { onSelect } = renderItem({ onRename });
+
+    await user.click(screen.getByRole("button", { name: "Rename conversation" }));
+    const input = screen.getByRole("textbox", { name: "Conversation name" });
+    expect(input).toHaveValue("Fixing the encoder");
+    await user.clear(input);
+    await user.type(input, "Encoder for the sister's visit{Enter}");
+
+    expect(onRename).toHaveBeenCalledWith("thread-1", "Encoder for the sister's visit");
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("offers no rename when the list cannot rename", () => {
+    renderItem();
+    expect(
+      screen.queryByRole("button", { name: "Rename conversation" })
+    ).not.toBeInTheDocument();
+  });
 });

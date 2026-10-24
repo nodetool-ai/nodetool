@@ -29,6 +29,7 @@ import {
   Z_INDEX
 } from "../../ui_primitives";
 import ChatThreadView from "../thread/ChatThreadView";
+import { isCompactionMessage } from "../message/CompactionCard";
 import ChatInputSection from "./ChatInputSection";
 import ChatErrorBanner from "./ChatErrorBanner";
 import MobileRailTabs, { type MobileRail } from "./MobileRailTabs";
@@ -44,8 +45,13 @@ import {
   resolveUiContext,
   type UiContextInput
 } from "../../../lib/chat/uiContext";
-import { CHAT_COLUMN_MAX_WIDTH, type ChatStatus } from "../types/chat.types";
+import {
+  CHAT_COLUMN_MAX_WIDTH,
+  type ChatCommand,
+  type ChatStatus
+} from "../types/chat.types";
 import { conversationToMarkdown } from "../utils/conversationMarkdown";
+import { isTitleFromQuestion, titleFromQuestion } from "../utils/threadUtils";
 import type {
   ChatOutgoingMessage,
   MediaGenerationRequest
@@ -327,6 +333,23 @@ const ChatView = ({
     [sendMessage, buildOutgoing, addNotification, effectiveThreadId, t]
   );
 
+  const compactThread = useGlobalChatStore((state) => state.compactThread);
+  const handleCompact = useCallback(async () => {
+    if (!effectiveThreadId) {
+      return;
+    }
+    try {
+      await compactThread(effectiveThreadId);
+    } catch (error) {
+      addNotification({
+        type: "error",
+        content: t("i18n-next23.chat.errors.compact", {
+          error: error instanceof Error ? error.message : String(error)
+        })
+      });
+    }
+  }, [compactThread, effectiveThreadId, addNotification, t]);
+
   const todos = useGlobalChatStore((state) => {
     const id = resolveThreadId(threadId, state.currentThreadId);
     return (id && state.todosByThread[id]) || NO_TODOS;
@@ -439,6 +462,22 @@ const ChatView = ({
               { type: "text", text },
               ...blocks.filter((block) => block.type !== "text")
             ];
+      // UX research study 15: an edited opening question kept the old
+      // question as the tab's title. A title the person chose stays.
+      const { threads, messageCache, updateThreadTitle } =
+        useGlobalChatStore.getState();
+      const firstQuestion = messageCache[effectiveThreadId]?.find(
+        (cached) => cached.role === "user"
+      );
+      const oldText = blocks.find((block) => block.type === "text");
+      const currentTitle = threads[effectiveThreadId]?.title;
+      const retitle =
+        text !== undefined &&
+        firstQuestion !== undefined &&
+        firstQuestion.id === message.id &&
+        oldText?.type === "text" &&
+        Boolean(currentTitle) &&
+        isTitleFromQuestion(currentTitle ?? "", oldText.text ?? "");
       if (message.id) {
         try {
           await rewindThread(effectiveThreadId, message.id);
@@ -451,6 +490,9 @@ const ChatView = ({
           });
           return;
         }
+      }
+      if (retitle && text !== undefined) {
+        void updateThreadTitle(effectiveThreadId, titleFromQuestion(text));
       }
       await handleSendMessage(
         content,
@@ -469,6 +511,74 @@ const ChatView = ({
   // A demo replay owns its messages, and a running turn would keep writing
   // into the history a rewind cuts.
   const canResend = !isBusy && !externalScroll && Boolean(effectiveThreadId);
+
+  // `/rewind` takes back the last prompt. A compaction record is stored as a
+  // user message, but it is not a prompt the user can take back.
+  const lastPrompt = useMemo(() => {
+    for (let index = messages.length - 1; index >= 0; index--) {
+      const message = messages[index];
+      if (message.role === "user" && !isCompactionMessage(message)) {
+        return message;
+      }
+    }
+    return null;
+  }, [messages]);
+  const handleRewind = useCallback(async (): Promise<string | void> => {
+    if (!effectiveThreadId || !lastPrompt?.id) {
+      return;
+    }
+    try {
+      await rewindThread(effectiveThreadId, lastPrompt.id);
+    } catch (error) {
+      addNotification({
+        type: "error",
+        content: t("i18n-next23.chat.errors.rewindConversation", {
+          error: error instanceof Error ? error.message : String(error)
+        })
+      });
+      return;
+    }
+    // The prompt's text returns to the composer, ready to edit and send.
+    return (messageBlocks(lastPrompt) ?? [])
+      .flatMap((block) => (block.type === "text" ? [block.text] : []))
+      .join("\n");
+  }, [effectiveThreadId, lastPrompt, rewindThread, addNotification, t]);
+
+  const commands = useMemo((): ChatCommand[] => {
+    const list: ChatCommand[] = [];
+    if (onNewChat) {
+      list.push({
+        name: "new",
+        description: t("i18n-next54.composer.commands.new"),
+        run: onNewChat,
+        whileBusy: true
+      });
+    }
+    // A demo replay owns its messages, so it takes no thread command.
+    if (effectiveThreadId && !externalScroll) {
+      list.push({
+        name: "compact",
+        description: t("i18n-next54.composer.commands.compact"),
+        run: handleCompact
+      });
+      if (lastPrompt?.id) {
+        list.push({
+          name: "rewind",
+          description: t("i18n-next54.composer.commands.rewind"),
+          run: handleRewind
+        });
+      }
+    }
+    return list;
+  }, [
+    onNewChat,
+    effectiveThreadId,
+    externalScroll,
+    lastPrompt,
+    handleCompact,
+    handleRewind,
+    t
+  ]);
 
   // Every open workspace tab stays mounted and inactive ones are `inert`, so
   // a shortcut must only act for the ChatView the user can actually see.
@@ -613,6 +723,7 @@ const ChatView = ({
         <ChatInputSection
           status={status}
           onSendMessage={handleSendMessage}
+          commands={commands}
           onStop={onStop}
           selectedModel={model}
           onModelChange={onModelChange}

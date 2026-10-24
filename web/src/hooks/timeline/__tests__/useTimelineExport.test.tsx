@@ -5,12 +5,18 @@
 import { act, renderHook } from "@testing-library/react";
 
 const renderTimelineMock = jest.fn();
+const renderTimelineAudioFileMock = jest.fn();
 const addNotificationMock = jest.fn();
 
 const storeState: Record<string, unknown> = {};
 
 jest.mock("../../../components/timeline/render/TimelineRenderer", () => ({
   renderTimeline: (options: unknown) => renderTimelineMock(options)
+}));
+
+jest.mock("../../../components/timeline/render/encodeAudio", () => ({
+  renderTimelineAudioFile: (options: unknown) =>
+    renderTimelineAudioFileMock(options)
 }));
 
 jest.mock("../../../stores/timeline/TimelineStore", () => ({
@@ -61,6 +67,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   renderTimelineMock.mockReset();
+  renderTimelineAudioFileMock.mockReset();
   addNotificationMock.mockReset();
 });
 
@@ -113,5 +120,51 @@ describe("useTimelineExport success message", () => {
       await result.current.exportVideo("cut");
     });
     expect(addNotificationMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("useTimelineExport MP3", () => {
+  it("mixes the audio alone and saves an .mp3, without rendering frames", async () => {
+    setClips([{ startMs: 0, durationMs: 4000 }], 10000);
+    renderTimelineAudioFileMock.mockResolvedValue({
+      bytes: new Uint8Array([0xff, 0xfb]),
+      mimeType: "audio/mpeg",
+      extension: "mp3"
+    });
+    const { result } = renderHook(() => useTimelineExport());
+    await act(async () => {
+      await result.current.exportVideo("Theme", { format: "mp3" });
+    });
+    expect(renderTimelineMock).not.toHaveBeenCalled();
+    expect(renderTimelineAudioFileMock.mock.calls[0][0]).toMatchObject({
+      format: "mp3",
+      durationMs: 4000
+    });
+    expect(addNotificationMock).toHaveBeenCalledWith({
+      type: "success",
+      content: "Exported Theme.mp3."
+    });
+    expect(result.current.isExporting).toBe(false);
+  });
+
+  it("routes WAV to the same audio-only path", async () => {
+    setClips([{ startMs: 0, durationMs: 2000 }], 2000);
+    renderTimelineAudioFileMock.mockResolvedValue({
+      bytes: new Uint8Array([0x52]),
+      mimeType: "audio/wav",
+      extension: "wav"
+    });
+    const { result } = renderHook(() => useTimelineExport());
+    await act(async () => {
+      await result.current.exportVideo("Theme", { format: "wav" });
+    });
+    expect(renderTimelineMock).not.toHaveBeenCalled();
+    expect(renderTimelineAudioFileMock.mock.calls[0][0]).toMatchObject({
+      format: "wav"
+    });
+    expect(addNotificationMock).toHaveBeenCalledWith({
+      type: "success",
+      content: "Exported Theme.wav."
+    });
   });
 });

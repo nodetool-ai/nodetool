@@ -22,6 +22,7 @@ import {
 import { editorClassNames, cn } from "../editor_ui/editorUtils";
 import { MOTION } from "./tokens";
 import { isString } from "../../utils/typePredicates";
+import { iconButtonBoxSx } from "./ToolbarIconButton";
 
 export interface DeleteButtonProps {
   /**
@@ -127,6 +128,7 @@ export const DeleteButton = memo(
         buttonSize === "small" ? 18 : buttonSize === "medium" ? 20 : 24;
 
       const buttonSx = useMemo(() => ({
+        ...iconButtonBoxSx(buttonSize),
         color: "inherit",
         transition: MOTION.fast,
         "&:hover": {
@@ -135,7 +137,7 @@ export const DeleteButton = memo(
           transform: "scale(1.1)"
         },
         ...sx
-      }), [theme, sx]);
+      }), [theme, sx, buttonSize]);
 
       const renderIcon = () => {
         if (iconVariant === "clear") {

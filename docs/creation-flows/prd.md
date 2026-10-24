@@ -948,15 +948,24 @@ misattribute a line but cannot reword it.
 
 ### 10.1 Step 1 — Idea
 
-Heading "What image do you want?", subline "Describe it once. We'll refine the
-brief and render variations to pick from." Inspiration chips from the shipped
+Heading "What image do you want?", subline "Describe it and generate it now,
+or refine it step by step to choose the use case, brief and look first."
+Inspiration chips from the shipped
 example images. Alternatives:
 
 - **Upload an image to edit** — creates the sketch document with the upload as
   its first layer, stage `done`, opens the editor.
 - **Start with a blank canvas** — stage `done`.
 
-`Continue` writes the brief and stage `useCase`.
+Step 1 offers two paths:
+
+- **Quick.** `Generate your image` is the primary button. It renders the brief
+  as § 10.3 does, with the look's defaults: the footer's image model, the
+  current canvas (moved to the model's first accepted size when it accepts
+  none of it), the persisted style or none, and `variations` or 1. A refined
+  brief written from another sentence is not used. The landing's `Back to
+  generation settings` opens § 10.3.
+- **Step by step.** `Refine step by step` writes stage `useCase`.
 
 ### 10.2 Step 2 — Use case
 
@@ -1034,6 +1043,8 @@ estimate.
 5. `Pick` opens the editor with the picked layer visible and the others hidden,
    each with its version record.
 6. Every criterion also passes through the § 10.6 tools.
+7. `Generate your image` on step 1 creates the batch with no language model
+   call, and `Refine step by step` creates no layer and no job.
 
 ## 11. E5 — Workflow
 

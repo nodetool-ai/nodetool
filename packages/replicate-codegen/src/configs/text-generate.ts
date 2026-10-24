@@ -138,6 +138,10 @@ export const textGenerateConfig: ModuleConfig = {
       className: "Kimi_K2_5",
       returnType: "str"
     },
+    "anthropic/claude-opus-5.5": {
+      className: "Claude_Opus_5_5",
+      returnType: "str"
+    },
     "anthropic/claude-opus-4.7": {
       className: "Claude_Opus_4_7",
       returnType: "str"
