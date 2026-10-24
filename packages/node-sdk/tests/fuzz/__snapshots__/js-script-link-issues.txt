@@ -1,0 +1,15 @@
+[{"id":"s1","version":1},{"id":"s2","version":2},{"id":"s3","version":1}]
+[]
+none match warning js_script_unverified Node "match" is linked to JS script s1 v1, whose freshness cannot be verified here — no script store is available. The node runs the body it copied at link time.
+none mismatch warning js_script_unverified Node "mismatch" is linked to JS script s2 v2, whose freshness cannot be verified here — no script store is available. The node runs the body it copied at link time.
+none duplicate warning js_script_unverified Node "duplicate" is linked to JS script s1 v1, whose freshness cannot be verified here — no script store is available. The node runs the body it copied at link time.
+none unknown warning js_script_unverified Node "unknown" is linked to JS script s3 v1, whose freshness cannot be verified here — no script store is available. The node runs the body it copied at link time.
+empty match warning js_script_missing Node "match" is linked to JS script s1 v1, which no longer exists, so the link's freshness cannot be verified. The node runs the body it copied at link time.
+empty mismatch warning js_script_missing Node "mismatch" is linked to JS script s2 v2, which no longer exists, so the link's freshness cannot be verified. The node runs the body it copied at link time.
+empty duplicate warning js_script_missing Node "duplicate" is linked to JS script s1 v1, which no longer exists, so the link's freshness cannot be verified. The node runs the body it copied at link time.
+empty unknown warning js_script_missing Node "unknown" is linked to JS script s3 v1, which no longer exists, so the link's freshness cannot be verified. The node runs the body it copied at link time.
+resolving mismatch error js_script_ports Node "mismatch": the linked script declares inputs "a", "b", which the node has no slot for.
+resolving mismatch error js_script_ports Node "mismatch": the node has input slot "text", which the linked script does not declare.
+resolving mismatch error js_script_ports Node "mismatch": the linked script declares output "r", which the node does not declare.
+resolving mismatch error js_script_ports Node "mismatch": the node declares output "count", which the linked script does not produce.
+resolving unknown warning js_script_missing Node "unknown" is linked to JS script s3 v1, which no longer exists, so the link's freshness cannot be verified. The node runs the body it copied at link time.
