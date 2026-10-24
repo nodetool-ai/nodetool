@@ -160,6 +160,7 @@ import { RunNodeTool } from "../agent/run-node-tool.js";
 import { extractEmbeddedImage } from "./asset-autosave.js";
 import {
   buildChatAgentSystemPrompt,
+  buildUiContextSection,
   focusedUiToolNames,
   normalizeToolCallName,
   RESIDENT_TOOL_NAMES,
@@ -1695,12 +1696,7 @@ export class ChatTurnHandler {
     const userSkills = await this.loadUserSkills(userId);
     const skillCatalogSection = formatSkillCatalogForPrompt(userSkills);
     const buildSystemContent = (): string => {
-      const base = buildChatAgentSystemPrompt(
-        permissionMode,
-        extraSystemPrompt,
-        uiContext,
-        workflowId
-      );
+      const base = buildChatAgentSystemPrompt(permissionMode, extraSystemPrompt);
       const sections = [base];
       if (codeactPromptSection) sections.push(codeactPromptSection);
       if (skillCatalogSection) sections.push(skillCatalogSection);
@@ -2281,6 +2277,10 @@ export class ChatTurnHandler {
     // — which is exactly why it must sit behind every byte a later turn will
     // reuse. See `appendContextToLastUser`.
     const volatileContext: string[] = [];
+    // What the user is looking at (focus, open tabs, selection) changes from
+    // turn to turn, so it rides here rather than in the system prompt.
+    const uiContextSection = buildUiContextSection(uiContext, workflowId);
+    if (uiContextSection) volatileContext.push(uiContextSection);
     // Durable memories (memory_* tools), so the agent starts each turn aware
     // of what it recorded — project facts, decisions, and the assets it
     // generated for reuse. This thread's in full, the rest as a count it can

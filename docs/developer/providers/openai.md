@@ -223,6 +223,16 @@ and tracks OpenAI pricing. If a brand-new model is missing from the catalog,
 wait for a `@pydantic/genai-prices` release or pin an interim entry by adding a
 dummy `MODEL_TO_TIER` key that maps to an existing tier.
 
+### Prompt caching
+
+OpenAI caches prompt prefixes automatically. Every request from the `openai`
+provider also carries a `prompt_cache_key`, a hash of the thread id or, without
+a thread, of the system prompt. OpenAI routes requests with the same key and
+prefix to the machine that already holds the prefix, so a thread's tool rounds
+and turns read it back as `cached_tokens`. OpenAI-compatible subclasses send no
+key, because their endpoints may reject the field. The Responses loop also
+chains turns with `previous_response_id`.
+
 ---
 
 ## Verify

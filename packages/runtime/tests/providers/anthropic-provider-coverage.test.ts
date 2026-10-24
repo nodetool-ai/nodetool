@@ -439,7 +439,7 @@ describe("AnthropicProvider – extractSystemMessage", () => {
       messages: [{ role: "user", content: "hi" }]
     });
 
-    expect(create.mock.calls[0][0].system).toBe("You are a helpful assistant.");
+    expect(create.mock.calls[0][0].system[0].text).toBe("You are a helpful assistant.");
   });
 
   it("extracts system from array content", async () => {
@@ -466,7 +466,7 @@ describe("AnthropicProvider – extractSystemMessage", () => {
       ]
     });
 
-    expect(create.mock.calls[0][0].system).toBe("part1 part2");
+    expect(create.mock.calls[0][0].system[0].text).toBe("part1 part2");
   });
 });
 
@@ -638,7 +638,7 @@ describe("AnthropicProvider – extractSystemMessage non-string non-array conten
       ]
     });
 
-    expect(create.mock.calls[0][0].system).toBe("42");
+    expect(create.mock.calls[0][0].system[0].text).toBe("42");
   });
 
   it("uses default for system with null content", async () => {
@@ -659,7 +659,7 @@ describe("AnthropicProvider – extractSystemMessage non-string non-array conten
       ]
     });
 
-    expect(create.mock.calls[0][0].system).toBe("You are a helpful assistant.");
+    expect(create.mock.calls[0][0].system[0].text).toBe("You are a helpful assistant.");
   });
 });
 
@@ -908,7 +908,7 @@ describe("AnthropicProvider – extended thinking (T-RT-5)", () => {
         { role: "user", content: "hello" }
       ]
     });
-    expect(create.mock.calls[0][0].system).toBe("first\n\nsecond");
+    expect(create.mock.calls[0][0].system[0].text).toBe("first\n\nsecond");
   });
 
   it("allows deprecated manual thinking on Opus 4.6", async () => {

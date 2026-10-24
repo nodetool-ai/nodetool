@@ -62,7 +62,8 @@ interface CapturedMessage {
 /** Run one chat turn and return the messages the provider was handed. */
 async function runTurn(
   threadId: string,
-  content: string
+  content: string,
+  extra: Record<string, unknown> = {}
 ): Promise<CapturedMessage[]> {
   let captured: CapturedMessage[] = [];
   const provider = async () =>
@@ -101,7 +102,13 @@ async function runTurn(
   await runner.connect(ws);
   await runner.handleCommand({
     command: "chat_message",
-    data: { thread_id: threadId, content, provider: "mock", model: "m" }
+    data: {
+      thread_id: threadId,
+      content,
+      provider: "mock",
+      model: "m",
+      ...extra
+    }
   });
   await new Promise((r) => setTimeout(r, 200));
   await runner.disconnect();
@@ -256,6 +263,34 @@ describe("chat prompt placement", () => {
     const last = lastUser(second);
     expect(textOf(last)).toContain("A memory saved between the two turns.");
     expect(textOf(last)).toContain("Lead with what changed.");
+  });
+
+  it("puts what the user is looking at in the last user message, not the system message", async () => {
+    const turn = (selected: string) =>
+      runTurn("t-ui", "Tidy this up", {
+        ui_context: {
+          focused: { type: "sketch", id: "sk-1", title: "Fox" },
+          open: [{ type: "sketch", id: "sk-1", title: "Fox" }],
+          selection: { layer_ids: [selected] },
+          source: "sketch_assistant"
+        },
+        workflow_id: "wf-42"
+      });
+    const first = await turn("layer-1");
+    const second = await turn("layer-2");
+
+    // Focus and selection change between turns; the system message does not.
+    expect(textOf(second[0])).toBe(textOf(first[0]));
+    expect(textOf(first[0])).not.toContain("## What the user is looking at");
+    expect(textOf(first[0])).not.toContain("sk-1");
+    expect(textOf(first[0])).not.toContain("wf-42");
+
+    const tail = textOf(lastUser(second));
+    expect(tail).toContain("## What the user is looking at");
+    expect(tail).toContain('image document "Fox" (id: sk-1)');
+    expect(tail).toContain("layer: layer-2");
+    expect(tail).toContain("wf-42");
+    expect(tail).toContain("Tidy this up");
   });
 
   it("keeps the system message byte-identical when the turn compacts", async () => {
