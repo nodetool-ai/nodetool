@@ -397,7 +397,10 @@
     "nodetool.model3d.TextTo3D",
     "nodetool.model3d.ImageTo3D",
     "nodetool.model3d.RenderToImage",
-    "lib.video.download.YtDlpDownload"
+    "lib.video.download.YtDlpDownload",
+    "nodetool.video.Keyframe",
+    "nodetool.video.Element",
+    "nodetool.video.Shot"
   ],
   "llm": [
     "nodetool.agents.Summarizer",

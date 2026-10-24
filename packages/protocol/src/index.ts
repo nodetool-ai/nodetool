@@ -33,6 +33,7 @@ export {
 } from "./wrap-primitives.js";
 export * from "./toolSchemas.js";
 export * from "./creative.js";
+export * from "./video-accessories.js";
 export * from "./shot-prompt.js";
 export * from "./one-take.js";
 export * from "./render-record.js";

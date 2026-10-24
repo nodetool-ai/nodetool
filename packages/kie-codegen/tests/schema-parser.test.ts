@@ -745,7 +745,8 @@ describe("parseKieSchema value arrays", () => {
     const typeOf = (name: string) =>
       node?.fields.find((field) => field.name === name)?.type;
 
-    expect(typeOf("multi_prompt")).toBe("list[dict]");
+    // Kling 3.0's shot list takes the Shot node's values, not raw objects.
+    expect(typeOf("multi_prompt")).toBe("list[shot]");
     expect(typeOf("mask_indexs")).toBe("list[int]");
     expect(typeOf("weights")).toBe("list[float]");
     expect(typeOf("tags")).toBe("list[str]");

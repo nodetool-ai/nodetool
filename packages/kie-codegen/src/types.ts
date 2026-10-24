@@ -50,6 +50,8 @@ export interface FieldDef {
     | "list[int]"
     | "list[float]"
     | "list[dict]"
+    | "list[video_element]"
+    | "list[shot]"
     | "list[image]"
     | "list[video]"
     | "list[audio]";

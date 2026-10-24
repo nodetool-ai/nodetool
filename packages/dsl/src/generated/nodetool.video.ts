@@ -526,3 +526,50 @@ export interface LipSyncOutputs {
 export function lipSync(inputs: LipSyncInputs, options?: NodeOptions): NodeWithOutputs<LipSyncOutputs, "output"> {
   return createNode("nodetool.video.LipSync", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"video"}, defaultOutput: "output" });
 }
+
+// Keyframe — nodetool.video.Keyframe
+export type KeyframeInputs = {
+  image?: Connectable<ImageRef>;
+  time?: Connectable<number>;
+};
+
+export interface KeyframeOutputs {
+  output: unknown;
+}
+
+export function keyframe(inputs: KeyframeInputs, options?: NodeOptions): NodeWithOutputs<KeyframeOutputs, "output"> {
+  return createNode("nodetool.video.Keyframe", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"keyframe"}, defaultOutput: "output" });
+}
+
+// Element — nodetool.video.Element
+export type ElementInputs = {
+  name?: Connectable<string>;
+  frontal_image?: Connectable<ImageRef>;
+  reference_images?: Connectable<ImageRef[]>;
+  video?: Connectable<VideoRef>;
+  entity?: Connectable<Entity>;
+  voice_id?: Connectable<string>;
+};
+
+export interface ElementOutputs {
+  output: unknown;
+}
+
+export function element(inputs: ElementInputs, options?: NodeOptions): NodeWithOutputs<ElementOutputs, "output"> {
+  return createNode("nodetool.video.Element", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"video_element"}, defaultOutput: "output" });
+}
+
+// Shot — nodetool.video.Shot
+export type ShotInputs = {
+  previous?: Connectable<unknown[]>;
+  prompt?: Connectable<string>;
+  duration?: Connectable<number>;
+};
+
+export interface ShotOutputs {
+  output: unknown[];
+}
+
+export function shot(inputs: ShotInputs, options?: NodeOptions): NodeWithOutputs<ShotOutputs, "output"> {
+  return createNode("nodetool.video.Shot", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"list[shot]"}, defaultOutput: "output" });
+}
