@@ -114,9 +114,10 @@ const TRACK_TYPES: TrackTypeOption[] = [
 interface AddTrackButtonProps {
   /** Phone toolbar: drop the "Track" label, keep the icon and a 28px target. */
   compact?: boolean;
+  testId?: string;
 }
 
-export const AddTrackButton: React.FC<AddTrackButtonProps> = memo(({ compact = false }) => {
+export const AddTrackButton: React.FC<AddTrackButtonProps> = memo(({ compact = false, testId = "add-track-button" }) => {
   const { t } = useTranslation();
   const theme = useTheme();
   const addTrack = useTimelineStore((s) => s.addTrack);
@@ -153,7 +154,7 @@ export const AddTrackButton: React.FC<AddTrackButtonProps> = memo(({ compact = f
           onClick={handleOpen}
           aria-label={t("i18n-next59.tracks.addTrack")}
           aria-haspopup="menu"
-          data-testid="add-track-button"
+          data-testid={testId}
         >
           <AddIcon />
           {!compact && <span>{t("i18n-next59.tracks.track")}</span>}
