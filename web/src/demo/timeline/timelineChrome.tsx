@@ -1,6 +1,7 @@
 /** @jsxImportSource @emotion/react */
 /**
- * The timeline editor's chrome, as a replay mounts it: the production `TopBar`,
+ * The timeline editor's chrome, as a replay mounts it: the production
+ * `TimelineDocumentBar`,
  * `TimelineInspector`, and `BottomStatusBar`, wired to the stores the replay
  * engine seeds instead of to a live sequence.
  *
@@ -12,7 +13,7 @@ import React from "react";
 
 import { BottomStatusBar } from "../../components/timeline/BottomStatusBar";
 import { TimelineInspector } from "../../components/timeline/Inspector/TimelineInspector";
-import { TopBar } from "../../components/timeline/TopBar";
+import { TimelineDocumentBar } from "../../components/timeline/TimelineDocumentBar";
 import {
   useFailedCount,
   useGeneratingCount
@@ -29,13 +30,13 @@ const DEFAULT_MS_PER_PX = 10;
 const noop = (): void => {};
 
 /**
- * The editor's top bar with every action present and inert — a tutorial should
- * show where Save and Export live, and a replay must not run them.
+ * The editor's document bar with every action present and inert — a tutorial
+ * should show where Export lives, and a replay must not run it.
  */
 export function DemoTopBar(): React.JSX.Element {
   return (
-    <TopBar
-      onSave={noop}
+    <TimelineDocumentBar
+      title="Timeline"
       onExportVideo={noop}
       onSaveToAssets={noop}
       onOpenSettings={noop}

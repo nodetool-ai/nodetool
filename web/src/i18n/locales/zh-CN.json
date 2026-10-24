@@ -12502,6 +12502,10 @@
       "volume": "音量"
     },
     "topBar": {
+      "export": "导出",
+      "workspace": "工作区",
+      "videoEditing": "视频剪辑",
+      "audioDaw": "音频（DAW）",
       "adaptFormat": "调整格式",
       "code": "代码",
       "daw": "DAW",

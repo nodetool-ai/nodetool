@@ -58,9 +58,6 @@ import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { useStore } from "zustand";
-import UndoIcon from "@mui/icons-material/Undo";
-import RedoIcon from "@mui/icons-material/Redo";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 
 import {
@@ -132,7 +129,6 @@ import {
   HelpButton,
   ResizeHandle,
   Toolbar,
-  ToolbarDivider,
   ToolbarIconButton,
   TYPOGRAPHY,
   FONT_SIZE_MONO,
@@ -181,7 +177,6 @@ import {
   type TimelineClip
 } from "@nodetool-ai/timeline";
 import { useSettingsStore } from "../../../stores/SettingsStore";
-import { isMac } from "../../../utils/platform";
 
 
 /** A clip dialog a shortcut opened, with the clips it acts on. */
@@ -219,9 +214,6 @@ const ZOOM_TOOL_IN_FACTOR = 0.5;
 const ZOOM_TOOL_OUT_FACTOR = 2;
 /** Padding kept on each side when Shift+Z fits content to the viewport (px). */
 const ZOOM_FIT_PADDING_PX = 64;
-/** Modifier shown in the undo/redo tooltips. */
-const modKeyLabel = isMac() ? "⌘" : "Ctrl";
-
 const containerStyles = (theme: Theme) =>
   css({
     position: "relative",
@@ -1849,21 +1841,6 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     const expandedFxTrackId = useTimelineUIStore((s) => s.expandedFxTrackId);
     const shownAutomationTrackIds = useTimelineUIStore((s) => s.shownAutomationTrackIds);
 
-    // Toolbar undo/redo: the same temporal store the Ctrl+Z / Ctrl+Shift+Z
-    // shortcuts drive, read reactively so the buttons disable at either end.
-    const canUndo = useStore(docStore.temporal, (s) => s.pastStates.length > 0);
-    const canRedo = useStore(
-      docStore.temporal,
-      (s) => s.futureStates.length > 0
-    );
-    const handleUndo = useCallback(
-      () => docStore.temporal.getState().undo(),
-      [docStore]
-    );
-    const handleRedo = useCallback(
-      () => docStore.temporal.getState().redo(),
-      [docStore]
-    );
     const hasClips = useTimelineStore((s) => s.clips.length > 0);
     // Precompute per-type index map (O(n)) to avoid O(n²) per-header lookups.
     const typedIndexMap = useMemo(() => buildTypedIndexMap(tracks), [tracks]);
@@ -2015,24 +1992,6 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           sx={toolbarSx(toolbarCompact)}
           data-testid="timeline-toolbar"
         >
-          {/* History first, as in every editor toolbar. */}
-          <ToolbarIconButton
-            icon={<UndoIcon />}
-            tooltip={t("i18n-next73.tracks.undo", { shortcut: `${modKeyLabel}+Z` })}
-            ariaLabel={t("i18n-next73.tracks.undoLabel")}
-            onClick={handleUndo}
-            disabled={!canUndo}
-            data-testid="timeline-undo"
-          />
-          <ToolbarIconButton
-            icon={<RedoIcon />}
-            tooltip={t("i18n-next73.tracks.redo", { shortcut: `${modKeyLabel}+Shift+Z` })}
-            ariaLabel={t("i18n-next73.tracks.redoLabel")}
-            onClick={handleRedo}
-            disabled={!canRedo}
-            data-testid="timeline-redo"
-          />
-          <ToolbarDivider />
           <ToolToggle compact={toolbarCompact} />
           {onGenerate && (
             <EditorButton
