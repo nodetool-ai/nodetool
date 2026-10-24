@@ -10982,7 +10982,8 @@
         "lab": "实验室",
         "chorus": "合唱",
         "echo": "磁带回声",
-        "reverb": "混响"
+        "reverb": "混响",
+        "limiter": "限幅器"
       },
       "parameters": {
         "gainDb": "增益",
@@ -15206,6 +15207,11 @@
       "frames": "帧",
       "deleteFrame": "删除帧",
       "addFrame": "添加帧"
+    },
+    "limiter": {
+      "ariaLabel": "限幅器",
+      "caption": "上限 {{ceiling}} dB",
+      "displayAria": "限幅器：输入峰值 {{input}} dB，输出峰值 {{output}} dB，增益衰减 {{reduction}} dB"
     }
   },
   "i18n-next46": {

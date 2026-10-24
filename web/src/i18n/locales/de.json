@@ -10982,7 +10982,8 @@
         "lab": "Lab",
         "chorus": "Chorus",
         "echo": "Tape-Echo",
-        "reverb": "Hall"
+        "reverb": "Hall",
+        "limiter": "Limiter"
       },
       "parameters": {
         "gainDb": "Lautstärke",
@@ -15206,6 +15207,11 @@
       "frames": "Frames",
       "deleteFrame": "Frame löschen",
       "addFrame": "Frame hinzufügen"
+    },
+    "limiter": {
+      "ariaLabel": "Limiter",
+      "caption": "Obergrenze {{ceiling}} dB",
+      "displayAria": "Limiter: Eingangsspitze {{input}} dB, Ausgangsspitze {{output}} dB, Pegelreduktion {{reduction}} dB"
     }
   },
   "i18n-next46": {

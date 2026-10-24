@@ -99,6 +99,7 @@ const FX_VIEW_WIDTHS: Record<FableEffectKind, number | string> = {
   chorus: 300 + FX_CARD_EXTRA,
   echo: 300 + FX_CARD_EXTRA,
   reverb: 300 + FX_CARD_EXTRA,
+  limiter: 300 + FX_CARD_EXTRA,
   lab: "clamp(560px, 70%, 1120px)"
 };
 const FX_VIEW_WIDTH = 480;

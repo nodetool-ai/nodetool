@@ -407,6 +407,12 @@ export const PARAM_DEFS: ParamDef[] = [
   // COMP side-chain (src/engine/sidechain.ts), appended to keep positions.
   { id: 'fx.comp.sc', type: 'enum', options: SC_SOURCES, def: 0 },
   { id: 'fx.comp.schp', ...SC_HP_DEF },
+  // Lookahead peak limiter. Only the timeline's limiter insert runs it; WT-1
+  // has no limiter stage and ignores these ids. Appended to keep positions.
+  { id: 'fx.limit.on', type: 'bool', def: 1 },
+  { id: 'fx.limit.gain', label: 'INPUT', min: 0, max: 24, def: 0, curve: 'lin', fmt: (v) => '+' + v.toFixed(1) + ' dB' },
+  { id: 'fx.limit.ceil', label: 'CEILING', min: -12, max: 0, def: -1, curve: 'lin', fmt: (v) => v.toFixed(1) + ' dB' },
+  { id: 'fx.limit.rel', label: 'RELEASE', min: 0.01, max: 1, def: 0.1, curve: 'log', fmt: fmtSec },
 ];
 
 export const PARAMS: Record<string, ParamDef> = Object.fromEntries(PARAM_DEFS.map((d) => [d.id, d]));

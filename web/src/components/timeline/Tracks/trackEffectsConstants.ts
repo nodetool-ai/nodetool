@@ -50,7 +50,8 @@ export const FABLE_DEVICE_WIDTHS = {
   lab: 1080,
   chorus: 320,
   echo: 320,
-  reverb: 320
+  reverb: 320,
+  limiter: 320
 } satisfies Record<FableEffectKind, number>;
 
 /** Device-rack width (px) of an effect. */

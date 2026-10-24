@@ -10982,7 +10982,8 @@
         "lab": "Lab",
         "chorus": "Chorus",
         "echo": "Tape echo",
-        "reverb": "Reverb"
+        "reverb": "Reverb",
+        "limiter": "Limiter"
       },
       "parameters": {
         "gainDb": "Gain",
@@ -15206,6 +15207,11 @@
       "frames": "Frames",
       "deleteFrame": "Delete frame",
       "addFrame": "Add frame"
+    },
+    "limiter": {
+      "ariaLabel": "Limiter",
+      "caption": "Ceiling {{ceiling}} dB",
+      "displayAria": "Limiter: input peak {{input}} dB, output peak {{output}} dB, gain reduction {{reduction}} dB"
     }
   },
   "i18n-next46": {

@@ -156,7 +156,8 @@ describe("MixerView", () => {
       "Lab",
       "Chorus",
       "Tape Echo",
-      "Reverb"
+      "Reverb",
+      "Limiter"
     ]);
     await userEvent.click(screen.getByRole("menuitem", { name: "Compressor" }));
     const effect = doc(instance).tracks[2].effects![0];
@@ -167,8 +168,8 @@ describe("MixerView", () => {
     expect(screen.getByTestId("effect-popover")).toHaveTextContent(effect.id);
 
     await userEvent.click(screen.getByRole("button", { name: "Add an effect to Master" }));
-    await userEvent.click(await screen.findByRole("menuitem", { name: "Reverb" }));
-    expect(doc(instance).master?.effects?.[0]).toMatchObject({ type: "fable", kind: "reverb" });
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Limiter" }));
+    expect(doc(instance).master?.effects?.[0]).toMatchObject({ type: "fable", kind: "limiter" });
   });
 
   it("removes an insert with its button or the Delete key, one undo entry each", async () => {
@@ -176,14 +177,14 @@ describe("MixerView", () => {
     await userEvent.click(screen.getByRole("button", { name: "Add an effect to Vox" }));
     await userEvent.click(await screen.findByRole("menuitem", { name: "Reverb" }));
     await userEvent.click(screen.getByRole("button", { name: "Add an effect to Master" }));
-    await userEvent.click(await screen.findByRole("menuitem", { name: "Chorus" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Limiter" }));
 
     const undoBefore = timelineTemporalOf(instance.doc).pastStates.length;
     await userEvent.click(screen.getByRole("button", { name: "Remove Reverb" }));
     expect(doc(instance).tracks[2].effects).toEqual([]);
     expect(timelineTemporalOf(instance.doc).pastStates.length).toBe(undoBefore + 1);
 
-    screen.getByRole("button", { name: "Open Chorus" }).focus();
+    screen.getByRole("button", { name: "Open Limiter" }).focus();
     await userEvent.keyboard("{Delete}");
     expect(doc(instance).master?.effects).toEqual([]);
   });

@@ -249,7 +249,7 @@ export const trackFableEffect = z.object({
   id: z.string(),
   type: z.literal("fable"),
   enabled: z.boolean(),
-  kind: z.enum(["eq", "ott", "comp", "drive", "lab", "chorus", "echo", "reverb"]),
+  kind: z.enum(["eq", "ott", "comp", "drive", "lab", "chorus", "echo", "reverb", "limiter"]),
   params: z.record(z.string(), z.number())
 });
 
