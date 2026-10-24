@@ -17,8 +17,7 @@ import {
   dropTargetIndex,
   isTabInScope,
   useWorkspaceTabsStore,
-  type WorkspaceTab,
-  type WorkspaceTabType
+  type WorkspaceTab
 } from "../../stores/WorkspaceTabsStore";
 import { useWorkflowManagerStore } from "../../contexts/WorkflowManagerContext";
 import { tabCanRename } from "./tabRename";
@@ -47,32 +46,6 @@ import ProjectSelector from "../projects/ProjectSelector";
 import { ActivityIndicator } from "../timeline/ActivityIndicator";
 import { TYPE_COLOR, TYPE_GLYPH } from "./tabTypeIdentity";
 import { useWorkspaceHeaderActions } from "./WorkspaceHeaderActionsContext";
-
-/** Whether a document type supports both View and Edit (vs view-only). */
-const SUPPORTS_BOTH_MODES = {
-  workflow: false,
-  image: true,
-  svg: true,
-  sketch: false,
-  timeline: true,
-  storyboard: false,
-  script: false,
-  jsscript: false,
-  skill: true,
-  model3d: true,
-  text: true,
-  audio: true,
-  "workspace-file": true,
-  chat: false,
-  application: true,
-  "example-app": false,
-  game: true,
-  page: false,
-  "project-list": false,
-  project: false,
-  "guided-flow": false,
-  "project-new": false
-} satisfies Record<WorkspaceTabType, boolean>;
 
 /** One half of a two-way switch in the tab bar, level with the 28px icon buttons. */
 const segmentStyles = (theme: Theme) => ({
@@ -183,7 +156,7 @@ const styles = (theme: Theme) =>
 
     // Every tab-bar control draws the shared inset keyboard ring; the strip
     // scrolls, so a ring outside the box would be clipped.
-    "& .tab:focus-visible, & .new-tab:focus-visible, & .mode-toggle button:focus-visible":
+    "& .tab:focus-visible, & .new-tab:focus-visible":
       focusRing(theme),
 
     "& .glyph": { flexShrink: 0, fontSize: "var(--fontSizeSmall)" },
@@ -254,22 +227,6 @@ const styles = (theme: Theme) =>
     "& .tabbar-spacer": {
       flex: 1,
       minWidth: getSpacingPx(SPACING.xl)
-    },
-
-    "& .mode-toggle": {
-      WebkitAppRegion: "no-drag",
-      display: "flex",
-      alignItems: "center",
-      padding: `0 ${getSpacingPx(SPACING.md)}`,
-      flexShrink: 0,
-      "& button": {
-        ...segmentStyles(theme),
-        "&.on": {
-          color: theme.vars.palette.primary.contrastText,
-          backgroundColor: theme.vars.palette.primary.main,
-          borderColor: theme.vars.palette.primary.main
-        }
-      }
     },
 
     "& .document-actions": {
@@ -360,9 +317,6 @@ const styles = (theme: Theme) =>
         padding: `0 ${getSpacingPx(SPACING.lg)}`,
         "& .new-tab-caret": { display: "none" }
       },
-      "& .document-row .mode-toggle": {
-        padding: `0 ${getSpacingPx(SPACING.sm)}`
-      },
       "& .actions-row .right-actions": {
         flex: 1,
         justifyContent: "flex-end",
@@ -384,7 +338,6 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
     closeOtherDocuments: handleCloseOthers,
     closeAllDocuments: handleCloseAll
   } = useWorkspaceDocumentClose();
-  const setMode = useWorkspaceTabsStore((state) => state.setMode);
   const moveTab = useWorkspaceTabsStore((state) => state.moveTab);
   const renameDocument = useRenameDocument();
   const headerActions = useWorkspaceHeaderActions()?.actions;
@@ -550,27 +503,6 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
     />
   );
 
-  const modeToggle = activeTab && SUPPORTS_BOTH_MODES[activeTab.type] && (
-    <div className="mode-toggle">
-      <button
-        type="button"
-        className={activeTab.mode === "view" ? "on" : ""}
-        aria-pressed={activeTab.mode === "view"}
-        onClick={() => setMode(activeTab.id, "view")}
-      >
-        {t("i18n-next51.tabBar.view")}
-      </button>
-      <button
-        type="button"
-        className={activeTab.mode === "edit" ? "on" : ""}
-        aria-pressed={activeTab.mode === "edit"}
-        onClick={() => setMode(activeTab.id, "edit")}
-      >
-        {t("i18n-next51.tabBar.edit")}
-      </button>
-    </div>
-  );
-
   if (isMobile) {
     // Phones get two labelled rows instead of one strip of glyphs: the top
     // row says where you are (menu, project, app status), the second says
@@ -601,7 +533,6 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
             onClose={handleClose}
             onCloseAll={handleCloseAll}
           />
-          {modeToggle}
           {mobileNewTabButton}
         </div>
         {headerActions && (
@@ -617,7 +548,7 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
   return (
     <div
       css={tabBarStyles}
-      className={`workspace-tabbar${headerActions || (activeTab && SUPPORTS_BOTH_MODES[activeTab.type]) ? " has-document-actions" : ""}`}
+      className={`workspace-tabbar${headerActions ? " has-document-actions" : ""}`}
     >
       <ProjectSelector />
       <div className="tabs">
@@ -660,8 +591,6 @@ const WorkspaceTabBar = React.memo(function WorkspaceTabBar() {
       {openMenu}
 
       <div className="document-actions">
-        {modeToggle}
-
         <div className="right-actions">
           {headerActions}
           <ActivityIndicator />

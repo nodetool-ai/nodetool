@@ -1,8 +1,12 @@
 import React, { memo, Suspense } from "react";
 import { useTranslation } from "react-i18next";
-import type { WorkspaceTab } from "../../stores/WorkspaceTabsStore";
-import { LoadingSpinner } from "../ui_primitives";
+import type {
+  WorkspaceTab,
+  WorkspaceTabType
+} from "../../stores/WorkspaceTabsStore";
+import { FlexColumn, LoadingSpinner } from "../ui_primitives";
 import { isPageTabKey } from "./pageTabs";
+import WorkspaceDocumentBar from "./WorkspaceDocumentBar";
 
 // One surface per document type, each behind its own chunk. Imported eagerly
 // they landed in the workspace chunk together — opening the app downloaded the
@@ -35,6 +39,25 @@ const ProjectListSurface = React.lazy(
 const NewProjectSurface = React.lazy(
   () => import("../projects/NewProjectSurface")
 );
+
+/**
+ * Types whose surface does not render its own `DocumentBar` yet. They get the
+ * generic bar (title and View/Edit) above the surface, so the View/Edit switch
+ * still has a place now that it left the app bar. A type leaves this set when
+ * its surface renders `WorkspaceDocumentBar` itself.
+ */
+const GENERIC_DOCUMENT_BAR_TYPES: ReadonlySet<WorkspaceTabType> = new Set([
+  "image",
+  "svg",
+  "timeline",
+  "skill",
+  "model3d",
+  "text",
+  "audio",
+  "workspace-file",
+  "application",
+  "game"
+]);
 
 interface TabContentProps {
   tab: WorkspaceTab;
@@ -130,7 +153,7 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
 const TabContent = ({ tab, active }: TabContentProps) => {
   const { t } = useTranslation();
 
-  return (
+  const surface = (
     <Suspense
       fallback={
         <LoadingSpinner text={t("i18n-next84.tabContent.loading")} />
@@ -138,6 +161,18 @@ const TabContent = ({ tab, active }: TabContentProps) => {
     >
       {surfaceFor(tab, active)}
     </Suspense>
+  );
+
+  if (!GENERIC_DOCUMENT_BAR_TYPES.has(tab.type)) {
+    return surface;
+  }
+  return (
+    <>
+      <WorkspaceDocumentBar tab={tab} />
+      <FlexColumn sx={{ flex: 1, minHeight: 0, position: "relative" }}>
+        {surface}
+      </FlexColumn>
+    </>
   );
 };
 
