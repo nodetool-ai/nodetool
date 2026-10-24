@@ -6462,6 +6462,7 @@
         "selectedProject": "Selected project: {{name}}",
         "selectProject": "Select project",
         "projectHome": "Project home",
+        "openProjectHome": "Open project home: {{name}}",
         "newProject": "New project",
         "searchProjects": "Search projects",
         "loadingProjects": "Loading projects",
