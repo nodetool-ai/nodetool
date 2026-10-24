@@ -133,6 +133,7 @@ export async function voiceLine(
     );
   }
 
+  const direction = line.direction?.trim();
   store.getState().setVoicing(lineId, true);
   try {
     const ttsResult = await rpcRequest("generate_media", {
@@ -142,7 +143,9 @@ export async function voiceLine(
       voice: voice.voice,
       // The pace the flow was set to, which until now reached nothing (F12).
       speed: paceSpeed(script.setup?.pace),
-      prompt: text
+      prompt: text,
+      // The line's delivery note, for providers that take a voice direction.
+      ...(direction && { instructions: direction })
     });
     const assetIds = Array.isArray(ttsResult.asset_ids)
       ? (ttsResult.asset_ids as unknown[]).filter(
