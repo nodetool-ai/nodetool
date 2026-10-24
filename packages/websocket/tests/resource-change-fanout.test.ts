@@ -11,6 +11,7 @@ import {
   DBModel,
   ModelChangeEvent,
   ModelObserver,
+  DocumentCollaborator,
   Workflow as StoredWorkflow,
   WorkflowCollaborator
 } from "@nodetool-ai/models";
@@ -23,6 +24,8 @@ import {
 import { notifyResourceChange, resourceEvents } from "../src/resource-events.js";
 import { notifyPythonBridgeResourceChanges } from "../src/python-bridge-resource-events.js";
 import {
+  RECIPIENT_CACHE_LIMIT,
+  recipientCacheSize,
   subscribeResourceChanges,
   type ResourceChangeFrame
 } from "../src/lib/resource-change-fanout.js";
@@ -272,6 +275,71 @@ describe("resource change fanout", () => {
     await flush();
     expect(changeFrames(open[1].ws)).toHaveLength(1);
     expect(grants).toHaveBeenCalledTimes(2);
+  });
+
+  it("delivers a storyboard change to its collaborators only, and stops after a revoke", async () => {
+    const grants = vi.spyOn(DocumentCollaborator, "listForDocument")
+      .mockResolvedValue([new DocumentCollaborator({ user_id: "u2" })]);
+    open = [await connectAs("u1"), await connectAs("u2"), await connectAs("u3")];
+    const payload = {
+      resource_type: "storyboard", event: "updated",
+      resource: { id: "sb1", etag: "etag" }, owner_user_id: "u1"
+    };
+    const publish = () => resourceChangeBus.receive(JSON.stringify({ origin: "peer", payload }));
+    publish();
+    await flush();
+    expect(grants).toHaveBeenCalledWith("storyboard", "sb1");
+    expect(changeFrames(open[0].ws)).toHaveLength(1);
+    expect(changeFrames(open[1].ws)).toHaveLength(1);
+    expect(changeFrames(open[2].ws)).toHaveLength(0);
+    grants.mockResolvedValue([]);
+    resourceChangeBus.receive(JSON.stringify({ origin: "peer", payload: {
+      resource_type: "documentcollaborator", event: "deleted",
+      resource: { id: "grant" }, owner_user_id: "u1"
+    } }));
+    publish();
+    await flush();
+    expect(changeFrames(open[0].ws)).toHaveLength(2);
+    expect(changeFrames(open[1].ws)).toHaveLength(1);
+    expect(grants).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    ["timelinesequence", "timeline"],
+    ["imagedocument", "sketch"],
+    ["jsscript", "jsscript"],
+    ["script", "script"],
+    ["application", "application"]
+  ])("maps %s changes to %s grants", async (resourceType, documentType) => {
+    const grants = vi.spyOn(DocumentCollaborator, "listForDocument")
+      .mockResolvedValue([]);
+    open = [await connectAs("u1")];
+    resourceChangeBus.receive(JSON.stringify({ origin: "peer", payload: {
+      resource_type: resourceType, event: "updated",
+      resource: { id: "d1", etag: "e" }, owner_user_id: "u1"
+    } }));
+    await flush();
+    expect(grants).toHaveBeenCalledWith(documentType, "d1");
+  });
+
+  it("bounds the recipient caches", async () => {
+    vi.spyOn(DocumentCollaborator, "listForDocument").mockResolvedValue([]);
+    vi.spyOn(WorkflowCollaborator, "listForWorkflow").mockResolvedValue([]);
+    vi.spyOn(StoredWorkflow, "get").mockResolvedValue(new StoredWorkflow({ user_id: "u1" }));
+    open = [await connectAs("u1")];
+    const total = RECIPIENT_CACHE_LIMIT + 50;
+    for (let i = 0; i < total; i++) {
+      for (const resource_type of ["storyboard", "workflow"]) {
+        resourceChangeBus.receive(JSON.stringify({ origin: "peer", payload: {
+          resource_type, event: "updated",
+          resource: { id: `r${i}`, etag: "e" }, owner_user_id: "u1"
+        } }));
+      }
+    }
+    await flush();
+    await flush();
+    expect(recipientCacheSize()).toBeLessThanOrEqual(2 * RECIPIENT_CACHE_LIMIT);
+    expect(recipientCacheSize()).toBeGreaterThan(RECIPIENT_CACHE_LIMIT);
   });
 
   it("keeps delivering to the others when one subscriber throws", () => {
