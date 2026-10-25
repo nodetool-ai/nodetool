@@ -1,6 +1,6 @@
 import { findInstrumentPreset, type BassMidiInstrument } from "@nodetool-ai/timeline";
 
-import { defaultBassParams } from "../../fablesynth/bass/params";
+import { BASS_PARAMS, defaultBassParams } from "../../fablesynth/bass/params";
 import { FACTORY_PATCHES } from "../../fablesynth/bass/patches";
 import {
   BL1_CORE_PARAMS,
@@ -9,6 +9,7 @@ import {
   bl1ParamRecord,
   bl1ParamsFromCore,
   changedBl1Params,
+  clampBl1Param,
   setBl1Param
 } from "../bl1Params";
 
@@ -121,5 +122,33 @@ describe("BL-1 params and core fields", () => {
     const a = bl1ParamRecord(preset("bl1-acid"));
     const b = { ...a, "flt.cut": 500, "fx.reverb.mix": 0.4 };
     expect(changedBl1Params(a, b).sort()).toEqual(["flt.cut", "fx.reverb.mix"]);
+  });
+});
+
+describe("clampBl1Param", () => {
+  it.each([
+    ["osc.pos", -1, 0],
+    ["osc.pos", 2, 1],
+    ["osc.pos", 0.3, 0.3],
+    ["osc.tune", 2.6, 3],
+    ["osc.tune", 99, 24],
+    ["sub.oct", -1.4, -1],
+    ["flt.type", 9, 4],
+    ["flt.type", -3, 0],
+    ["flt.type", 1.5, 2],
+    ["fx.reverb.on", 0.5, 0],
+    ["fx.reverb.on", 0.51, 1],
+    ["fx.reverb.on", -4, 0],
+    ["flt.cut", Infinity, 20000],
+    ["flt.cut", -Infinity, 20],
+    ["not.a.param", 123.4, 123.4]
+  ])("%s: %p -> %p", (id, value, expected) => {
+    expect(clampBl1Param(id, value)).toBe(expected);
+  });
+
+  it("falls back to the declared default for NaN on every param", () => {
+    for (const [id, def] of Object.entries(BASS_PARAMS)) {
+      expect(clampBl1Param(id, NaN)).toBe(def.def);
+    }
   });
 });
