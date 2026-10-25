@@ -7,6 +7,17 @@ import path from 'node:path';
 import { compare } from './compare-ctest.mjs';
 import { loadSuites, checkSuiteReport } from '../../scripts/op-conformance.mjs';
 
+test('main uses the resolved source after default startup dispatch', () => {
+  const source = readFileSync(new URL('../main.cpp', import.meta.url), 'utf8');
+  const main = source.match(/\bint\s+main\s*\(/);
+  assert.ok(main, 'main entry point must be inspected');
+  const body = source.slice(main.index);
+  const dispatch = body.match(/\bnt::app::dispatchDefaultStartup\s*\(/);
+  assert.ok(dispatch, 'main must dispatch default startup');
+  assert.doesNotMatch(body.slice(dispatch.index), /\bpositionalArguments\s*\(/,
+    'use the resolved source instead of rereading positional arguments after default startup');
+});
+
 test('ctest contract comparison detects missing tests and changed properties', () => {
   const before = { tests: [{ name: 'existing', command: ['/build/test', '--arg'], properties: [
     { name: 'ENVIRONMENT', value: ['QT_QPA_PLATFORM=offscreen'] },
