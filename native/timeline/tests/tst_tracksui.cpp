@@ -22,6 +22,7 @@
 #include "ui/BenchMedia.h"
 #include "ui/MediaPreviews.h"
 #include "server/AutosaveController.h"
+#include "server/AssetCache.h"
 #include "TestHttpServer.h"
 #include "ui/RulerCanvas.h"
 #include "ui/TimelineGestureArea.h"
@@ -2031,14 +2032,14 @@ private slots:
 
 
     // Review F3: the banners with the real AutosaveController against a test
-    // server: a conflict, a strip whose copy was written, and a strip whose
-    // copy could not be written. No banner claims a copy it was not told of.
+    // server. A strip must not advertise a recovery of an earlier edit.
     void saveBannersFollowTheRealController() {
         load({1, 1});
         TestHttpServer http;
         QUndoStack undo;
         QJsonObject raw = model->timeline().raw;
         QTemporaryDir dir;
+        QVERIFY(dir.isValid());
         const auto banners = [&](nt::server::AutosaveController* saver) {
             QQmlComponent c(view->engine());
             c.setData("import QtQuick\nimport NodeTool.Timeline\nSaveBanners { width: 900 }", QUrl());
@@ -2076,6 +2077,7 @@ private slots:
             http.setPost([&](const QByteArray&, const QByteArray&) { return stripOk; });
             nt::server::SaveTarget t{http.base(), QString(), QStringLiteral("ui"), QStringLiteral("/dev/null/no-such-folder")};
             nt::server::AutosaveController saver(t, &undo, docFn, QStringLiteral("u0"));
+            saver.setQuitFallbackDirs({QStringLiteral("/dev/null/also-not")});
             saver.setAutosave(false);
             undo.push(new Bump(&value));
             const nt::server::SaveResult r = saver.saveNow();
@@ -2087,11 +2089,72 @@ private slots:
             QVERIFY2(detail.startsWith(QStringLiteral("clips.0.lut")), qPrintable(detail));
             QVERIFY2(!detail.contains(QStringLiteral("kept")), qPrintable(detail));
         }
+        // m2b F3: a stale recovery must not appear in the strip banner.
+        {
+            int calls = 0;
+            const QByteArray unavailable = R"({"error":{"message":"Unavailable","data":{"code":"INTERNAL_SERVER_ERROR","httpStatus":503}}})";
+            http.setPost([&](const QByteArray&, const QByteArray&) { return ++calls == 1 ? unavailable : stripOk; });
+            const QString backup = dir.filePath(QStringLiteral("stale-copy"));
+            nt::server::SaveTarget t{http.base(), QString(), QStringLiteral("ui"), backup};
+            nt::server::AutosaveController saver(t, &undo, docFn, QStringLiteral("u0"));
+            saver.setQuitFallbackDirs({QStringLiteral("/dev/null/also-not")});
+            saver.setAutosave(false);
+            undo.push(new Bump(&value));
+            const QJsonObject firstDoc = docFn();
+            const auto failed = saver.saveNow();
+            QVERIFY(!failed.ok && !failed.conflict);
+            const QString recovery = dir.filePath(QStringLiteral("stale-copy/ui.recovery.json"));
+            QCOMPARE(failed.keptCopy, recovery);
+            QFile oldCopy(recovery);
+            QVERIFY(oldCopy.open(QIODevice::ReadOnly));
+            QCOMPARE(QJsonDocument::fromJson(oldCopy.readAll()).object(), firstDoc);
+            oldCopy.close();
+            auto root = banners(&saver);
+            undo.push(new Bump(&value));
+            QVERIFY(docFn() != firstDoc);
+            QVERIFY(QDir(backup).mkpath(QStringLiteral("ui.stripped.json")));
+            QVERIFY(saver.saveNow().ok);
+            frame();
+            QVERIFY(visible(root.get(), "strippedBanner"));
+            const QString detail = text(root.get(), "strippedBanner", "alertDetail");
+            QVERIFY2(!detail.contains(recovery), qPrintable(detail));
+            QVERIFY2(!detail.contains(QStringLiteral("A copy of your edits is in ")), qPrintable(detail));
+            QVERIFY2(detail.contains(QStringLiteral("could not be written")), qPrintable(detail));
+            QVERIFY(saver.keptCopy().isEmpty());
+            QVERIFY(!saver.recoveryError().isEmpty());
+            QVERIFY(oldCopy.open(QIODevice::ReadOnly));
+            QCOMPARE(QJsonDocument::fromJson(oldCopy.readAll()).object(), firstDoc);
+        }
+        // A fallback copy is named exactly, including its server/account scope.
+        {
+            http.setPost([&](const QByteArray&, const QByteArray&) { return stripOk; });
+            nt::server::SaveTarget t{http.base(), QString(), QStringLiteral("ui"), QStringLiteral("/dev/null/no-such-folder")};
+            nt::server::AutosaveController saver(t, &undo, docFn, QStringLiteral("u0"));
+            const QString fallback = dir.filePath(QStringLiteral("fallback"));
+            saver.setQuitFallbackDirs({fallback});
+            saver.setAutosave(false);
+            undo.push(new Bump(&value));
+            const auto saved = saver.saveNow();
+            QVERIFY(saved.ok);
+            nt::server::ServerClient client(http.base(), QString());
+            const QString expected = QDir(fallback).filePath(nt::server::safePathPart(client.serverKey()) + u'/' +
+                nt::server::safePathPart(client.userKey()) + QStringLiteral("/ui.stripped.json"));
+            QCOMPARE(saved.keptCopy, expected);
+            QFile copy(expected);
+            QVERIFY(copy.open(QIODevice::ReadOnly));
+            QCOMPARE(QJsonDocument::fromJson(copy.readAll()).object(), docFn());
+            auto root = banners(&saver);
+            frame();
+            QVERIFY(visible(root.get(), "strippedBanner"));
+            QCOMPARE(text(root.get(), "strippedBanner", "alertDetail"),
+                     QStringLiteral("clips.0.lut. A copy of your edits is in ") + expected + u'.');
+        }
         // A conflict: the banner shows, with the controller's own error.
         {
             http.setPost([&](const QByteArray&, const QByteArray&) { return conflictBody; });
             nt::server::SaveTarget t{http.base(), QString(), QStringLiteral("ui"), dir.path()};
             nt::server::AutosaveController saver(t, &undo, docFn, QStringLiteral("u0"));
+            saver.setQuitFallbackDirs({dir.filePath(QStringLiteral("fallback"))});
             saver.setAutosave(false);
             undo.push(new Bump(&value));
             const nt::server::SaveResult r = saver.saveNow();

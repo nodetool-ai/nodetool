@@ -10,8 +10,7 @@
 //   - success: the response's `updatedAt` becomes the next base, and the sent
 //     content becomes the acknowledged content. A non-empty `stripped` list is
 //     a warning: the server dropped those fields. The sent document is kept
-//     next to the raw backup of the last load (`<id>.stripped.json`), so the
-//     dropped data is recoverable.
+//     as `<id>.stripped.json` in the backup folder or a fallback folder.
 //   - conflict (`error.data.apiCode` ALREADY_EXISTS, or `code` CONFLICT):
 //     the current local document is written to `<id>.local.json`, and
 //     autosave stops. Nothing overwrites the server copy, and a conflict is
@@ -28,8 +27,12 @@
 // Autosave runs 750 ms after the last command (D34) while the document is
 // dirty and no conflict is open. `flushBeforeQuit` saves what is pending
 // within a bounded elapsed time, or leaves a recovery file (in a fallback
-// folder when the backup folder takes none). A recovery file stays until a
-// save replaces it: a clean save, or a strip whose copy was written.
+// folder when the backup folder takes none). Fallbacks are namespaced by
+// serverKey/userKey. Acknowledged content is preserved only if the server
+// kept every field or a written copy holds it. `keptCopy` names only the
+// current raw document. Recovery stays until a replacement is written.
+// If every folder rejects quit recovery, compact JSON goes to stderr between
+// explicit markers. No file was kept, so the exit code still reports loss.
 
 #include "server/ServerClient.h"
 
@@ -39,6 +42,7 @@
 #include <QTimer>
 #include <QUrl>
 
+#include <cstdio>
 #include <functional>
 #include <memory>
 
@@ -76,8 +80,7 @@ class AutosaveController : public QObject {
     Q_PROPERTY(bool conflict READ conflict NOTIFY stateChanged)
     Q_PROPERTY(QStringList stripped READ stripped NOTIFY stateChanged)
     Q_PROPERTY(QString lastError READ lastError NOTIFY stateChanged)
-    // The copy of the local document written on a conflict, a strip or a
-    // failed save; empty when none is pending (a clean save removes it).
+    // A written copy of the current raw document, or empty.
     Q_PROPERTY(QString keptCopy READ keptCopy NOTIFY stateChanged)
     // Why that copy could not be written; empty when it was.
     Q_PROPERTY(QString recoveryError READ recoveryError NOTIFY stateChanged)
@@ -93,16 +96,18 @@ public:
     bool conflict() const { return m_conflict; }
     QStringList stripped() const { return m_stripped; }
     QString lastError() const { return m_lastError; }
-    QString keptCopy() const { return m_keptCopy; }
-    QString recoveryError() const { return m_recoveryError; }
+    QString keptCopy() const;
+    QString recoveryError() const;
     QString baseUpdatedAt() const { return m_base; }
 
     void setDebounceMs(int ms) { m_timer.setInterval(ms); }
     void setAutosave(bool on);
     void setRetryBaseMs(int ms) { m_retryBaseMs = ms; }
-    // Where `flushBeforeQuit` writes the recovery copy when the backup folder
-    // takes no file. Default: the app's local data folder, then the temp folder.
+    // Fallback roots for quit recovery and strip copies, each with server/user
+    // subfolders. Default: the app's local data folder, then the temp folder.
     void setQuitFallbackDirs(const QStringList& dirs) { m_fallbackDirs = dirs; }
+    // Borrowed stream for the final quit recovery log.
+    void setLastResortStream(FILE* stream) { m_lastResortStream = stream; }
 
     // Saves now, dirty or not. Blocks until the server answers.
     SaveResult saveNow();
@@ -110,7 +115,9 @@ public:
     // time. Returns true when the server holds the current document; otherwise
     // the current document is in `<id>.recovery.json` (or `<id>.local.json` on
     // a conflict), in the backup folder or else a fallback folder; `keptCopy`
-    // names it, and is empty when no folder took it.
+    // names it, and is empty when no folder took it. A clean but unpreserved
+    // strip writes a copy without another server save. Total write failure
+    // also logs the full document to the last-resort stream.
     bool flushBeforeQuit(int timeoutMs);
     // The document changed outside the undo stack's index (a merge).
     void documentChanged();
@@ -128,6 +135,7 @@ private:
     void syncClean();
     // Writes `doc` to `<id>.<suffix>.json`; returns the path, or sets `error`.
     QString writeCopy(const QString& suffix, const QJsonObject& doc, QString* error = nullptr) const;
+    QString writeCopyWithFallbacks(const QString& suffix, const QJsonObject& doc, QString* error) const;
     QString writeCopyIn(const QString& dir, const QString& suffix, const QJsonObject& doc, QString* error) const;
     QString copyPath(const QString& suffix) const;  // in the backup folder; empty without one
     void removeCopy(const QString& suffix) const;
@@ -142,6 +150,8 @@ private:
     int m_retryBaseMs = 1000;
     int m_retryAttempt = 0;
     QByteArray m_ackHash;  // the content the server acknowledged (or the load)
+    bool m_ackComplete = true;  // false when the server stripped fields
+    QByteArray m_copyHash;  // the raw document in m_keptCopy
     bool m_syncing = false;
     bool m_autosave = true;
     bool m_saving = false;
@@ -151,6 +161,7 @@ private:
     QString m_keptCopy;
     QString m_recoveryError;
     QStringList m_fallbackDirs;
+    FILE* m_lastResortStream = stderr;
 };
 
 // main()'s exit code after the window closed: flushes `autosave` (may be
