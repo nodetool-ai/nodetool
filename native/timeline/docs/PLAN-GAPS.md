@@ -80,8 +80,14 @@ Goal: let each later package add code without editing a shared file.
 
 - CMake: each `src/<module>/` folder gets a `module.cmake` that lists its
   sources and tests. The top-level `CMakeLists.txt` includes every
-  `src/*/module.cmake`. Move the existing modules to this form with no
-  behaviour change.
+  `module.cmake` under `src/` at any depth (`file(GLOB_RECURSE ...
+  CONFIGURE_DEPENDS src/module.cmake)`), in sorted path order. A nested
+  module such as `src/preview/transitions/` has its own `module.cmake`, and
+  its parent's `module.cmake` does not list it. Wave 1 packages put their
+  modules in nested folders (`src/edit/tracks/`, `src/preview/crop/`,
+  `src/preview/transitions/` and others), which a one-level
+  `src/*/module.cmake` glob misses. Move the existing modules to this form
+  with no behaviour change.
 - CLI modes: a registry (`src/app/CliModes.h`). A package adds a mode by
   registering it in its own module. `main.cpp` dispatches through the
   registry.
@@ -102,11 +108,26 @@ Goal: let each later package add code without editing a shared file.
   them.
 - Oracle runner: let `scripts/op-conformance.mjs` load extra suites from
   `scripts/conformance/suites/*.mjs`, so each package adds its own suite.
+- Server writes: `ServerClient` gets the write interface that packages A, B
+  and T share. `mutate(procedure, input)` stays the tRPC JSON write.
+  `upload(json, filePath, contentType)` sends the multipart
+  `POST /api/assets` that `AssetStore.ts` and the `upload` helper in
+  `scripts/scratch-server.mjs` send: a `json` part with the asset fields and
+  a `file` part with the file. It returns the asset JSON from the answer and
+  follows no redirect. Both calls go through one private write path that
+  keeps the current instance check (`GET /ready`, the write, then the check
+  on the answer). Package T later changes only that private path, so B
+  writes its import against `upload` in wave 1 and does not touch
+  `ServerClient.*`.
 
 Exit: the build, ctest, the plan check and the op check give the same results
-as before the change. A test package that adds a module, a CLI mode, an edit,
-a panel and a menu item touches no shared file (prove it with `git diff
---stat`).
+as before the change. A test package that adds a module in a nested folder
+(`src/<module>/<name>/module.cmake`), a CLI mode, an edit, a panel and a
+menu item touches no shared file (prove it with `git diff --stat`), and its
+test runs in ctest. `upload` of a media fixture to the scratch server
+returns the asset, and `assets.get` returns the same asset. With an expected
+instance and a test listener whose `/ready` answer lacks it, `upload` sends
+no multipart body (`tst_serverclient`).
 
 ## Wave 1: independent packages
 
@@ -134,7 +155,9 @@ merges first, so the sanitizer gate applies to every later merge.
 - Server: `assets.list`, `assets.get`, the upload route that
   `useAssetUpload.ts` calls, `assets.ensureProxy`.
 - Native: `src/assets/`, `qml/assets/`. Upload by file dialog and by drag of
-  files from the OS. Drag of an asset onto a lane uses the drop modes of M4.
+  files from the OS, through `ServerClient::upload` from S1. B adds no
+  request code of its own and does not edit `ServerClient.*`. Drag of an
+  asset onto a lane uses the drop modes of M4.
 - Exit: an imported file appears as an asset, gets a proxy when the server
   makes one, and drops as a clip with the same JSON that
   `assetToClipAdapter.ts` makes (oracle test). A dropped video with sound
@@ -358,9 +381,12 @@ local process that read one answer can replay it. The JavaScript helpers
   the alternatives. Record the choice and the reason in the header comment
   of `ServerClient.h`.
 - Every write takes this path: `timeline.update` from
-  `AutosaveController`, and the create, delete and upload calls that
-  packages A and B add. A and B call `ServerClient::mutate` and add no
-  request code of their own.
+  `AutosaveController`, the create and delete calls that package A adds
+  through `ServerClient::mutate`, and the asset upload that package B adds
+  through `ServerClient::upload`. S1 adds both calls on one private write
+  path. T changes that path and keeps both signatures, so a merged A or B
+  needs no change. The writer sends the multipart upload body on the proven
+  connection, as it sends the JSON body of `mutate`.
 - A client with no expected instance, such as one on the user's own
   server, keeps its current behaviour and sends no identity request.
 - `SaveCli` gets `--wait-before-write FILE`: after the identity check it
@@ -381,7 +407,10 @@ connection error and does not retry. With only the flag added and the old
 `mutate`, the same check fails because the POST reaches the new listener. A
 listener that answers `/ready` with headers copied from a real scratch
 server answer gets no write, in `tst_serveridentity` and in the check
-script. `scratch-safety.test.mjs` shows that `mutate` and `upload` send no
+script. In `tst_serveridentity`, `ServerClient::upload` sends no byte of
+its multipart body to a listener that replaces the server after the
+identity check, and an upload to the scratch server still stores the
+asset. `scratch-safety.test.mjs` shows that `mutate` and `upload` send no
 body to a replacement listener. A save against the scratch server still
 writes, and `timeline.get` returns the edit. `tst_autosave` and
 `tst_serverclient` pass. A client with no expected instance sends one
@@ -407,7 +436,9 @@ reference for the results, not for the cost.
 - Native: move the cut records (`incomingRecord`, `outgoingRecord` and their
   helpers), `resolveTransition` and `resolveDocumentTransitions` from
   `SceneEval.cpp` into `src/preview/transitions/`, with its own
-  `module.cmake` in the S1 form. In `SceneEval.cpp`, change only the removal
+  `src/preview/transitions/module.cmake` in the S1 form. S1's recursive
+  include finds it, so U edits neither `src/preview/module.cmake` nor
+  `CMakeLists.txt`. In `SceneEval.cpp`, change only the removal
   and the two call sites (`transitionOpacitiesAt` and `evaluateScene`).
 - The linear pass walks the siblings in start order once. It keeps the
   largest end among clips with a strictly earlier start, and the clip that
