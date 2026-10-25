@@ -27,6 +27,7 @@ export const BUNDLED_PACK_MODULES: Readonly<Record<string, () => Promise<object>
   "@nodetool-ai/document-nodes/lib/pdf-text": () => import("@nodetool-ai/document-nodes/lib/pdf-text"),
   "@nodetool-ai/game-nodes": () => import("@nodetool-ai/game-nodes"),
   "@nodetool-ai/integration-nodes": () => import("@nodetool-ai/integration-nodes"),
+  "@nodetool-ai/transformers-js-nodes": () => import("@nodetool-ai/transformers-js-nodes"),
   "@nodetool-ai/video-nodes/nodes/model3d/render3d-headless": () => import("@nodetool-ai/video-nodes/nodes/model3d/render3d-headless"),
   "@nodetool-ai/video-nodes/nodes/timeline": () => import("@nodetool-ai/video-nodes/nodes/timeline"),
   "@nodetool-ai/video-nodes/nodes/timeline/assetFiles": () => import("@nodetool-ai/video-nodes/nodes/timeline/assetFiles"),
