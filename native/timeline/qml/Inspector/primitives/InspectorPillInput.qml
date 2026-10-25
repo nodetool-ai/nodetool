@@ -40,10 +40,15 @@ Rectangle {
         draft = value
         typed = false
     }
+    function finishGesture() {
+        commit(draft)
+        draft = value
+        typed = false
+    }
     function endStep() {
         if (!stepping) return
         stepping = false
-        commitDraft()
+        finishGesture()
     }
     TextInput {
         id: input
@@ -70,7 +75,7 @@ Rectangle {
             }
         }
         onAccepted: root.forceActiveFocus()
-        Keys.onEscapePressed: { root.typed = false; root.draft = root.value; root.stepping = false; root.forceActiveFocus() }
+        Keys.onEscapePressed: { root.endStep(); root.typed = false; root.draft = root.value; root.stepping = false; root.forceActiveFocus() }
         Keys.onPressed: event => {
             if (!root.scrub || (event.key !== Qt.Key_Up && event.key !== Qt.Key_Down)) return
             const base = parseFloat(root.draft)
@@ -129,9 +134,9 @@ Rectangle {
             root.preview(root.draft)
         }
         onReleased: {
-            if (moved) root.commitDraft()
+            if (moved) { moved = false; root.finishGesture() }
             else { input.forceActiveFocus(); input.selectAll() }
         }
-        onCanceled: if (moved) root.commitDraft()
+        onCanceled: if (moved) { moved = false; root.finishGesture() }
     }
 }

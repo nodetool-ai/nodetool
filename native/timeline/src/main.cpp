@@ -755,10 +755,19 @@ int main(int argc, char** argv) {
                                 .constData());
         return 0;
     }
-    if (parser.positionalArguments().size() != 1) {
+    auto sources = parser.positionalArguments();
+    if (sources.isEmpty()) {
+        if (const auto startup = nt::app::dispatchDefaultStartup(app, parser)) {
+            if (const auto* exitCode = std::get_if<int>(&*startup)) {
+                return *exitCode;
+            }
+            sources.append(std::get<QString>(*startup));
+        }
+    }
+    if (sources.size() != 1) {
         parser.showHelp(2);
     }
-    const auto loaded = nt::server::loadTimelineSource(parser.positionalArguments().first());
+    const auto loaded = nt::server::loadTimelineSource(sources.first());
     if (!loaded.timeline) {
         std::fprintf(stderr, "error: %s\n", qPrintable(loaded.error));
         return 1;

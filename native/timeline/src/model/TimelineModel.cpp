@@ -10,6 +10,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <memory>
 
 namespace {
 
@@ -305,7 +306,8 @@ bool TimelineModel::applyEdit(const QString& name, const QJsonObject& payload) {
             return false;
         }
     }
-    m_undo->push(new DocumentCommand(name, before, after, [this](const QJsonObject& raw) { replaceDocument(raw); }));
+    auto command = std::make_unique<DocumentCommand>(name, before, after, [this](const QJsonObject& raw) { replaceDocument(raw); });
+    m_undo->push(command.release());
     return true;
 }
 
