@@ -43,6 +43,7 @@
 #include <QtQmlIntegration/qqmlintegration.h>
 
 #include <atomic>
+#include <functional>
 #include <list>
 #include <memory>
 #include <vector>
@@ -52,6 +53,12 @@
 class QQuickWindow;
 
 namespace nt::ui {
+
+#ifdef Q_OS_UNIX
+using LocalIoHook = std::function<void(const char* operation, const QString& path)>;
+void setLocalIoStallForTesting(LocalIoHook hook);
+int outstandingLocalIoForTesting();
+#endif
 
 inline constexpr int FULL_ASSET_PEAK_COUNT = 2000;
 inline constexpr int THUMBNAIL_COUNT = 24;     // SOURCE_COUNT
@@ -88,10 +95,10 @@ std::shared_ptr<const AudioPeaks> computeAudioPeaks(const QString& path, int cou
 std::vector<Thumbnail> extractThumbnails(const QString& path, int count = THUMBNAIL_COUNT,
                                          int width = THUMBNAIL_WIDTH_PX, const std::atomic<bool>* cancel = nullptr,
                                          int openTimeoutMs = OPEN_TIMEOUT_MS);
-// Qt's image readers cannot be interrupted: `cancel` is checked before the
-// read only.
+// On Unix the image reader uses interruptible local I/O with the same deadline.
+// Other platforms check cancellation before and after the image read.
 std::vector<Thumbnail> loadImageThumbnail(const QString& path, int width = 2 * THUMBNAIL_WIDTH_PX,
-                                          const std::atomic<bool>* cancel = nullptr);
+                                          const std::atomic<bool>* cancel = nullptr, int openTimeoutMs = OPEN_TIMEOUT_MS);
 // The thumbnails with their atlas.
 std::shared_ptr<const ThumbnailSet> makeThumbnailSet(std::vector<Thumbnail> thumbs);
 

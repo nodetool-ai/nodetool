@@ -419,16 +419,22 @@ function nativeOffscreen(seed) {
 
 // ── the verdict ───────────────────────────────────────────────────────────
 
+function measuredSummary(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value)
+    && Number.isFinite(value.count) && value.count > 0
+    && Number.isFinite(value.p50) && Number.isFinite(value.p95);
+}
+
 /** What fails one fixture's measurement with one decoder (fail closed). */
 export function fixtureFailures(tag, decoder, seed, web, native) {
   const out = [];
   if (web.submittedFrames === 0) out.push(`${tag}: the web preview composited no frame`);
   for (const k of ["submitIntervalMs", "rafIntervalMs", "frameWorkMs"]) {
-    if (!web[k]) out.push(`${tag}: ${k} has no samples`);
+    if (!measuredSummary(web[k])) out.push(`${tag}: ${k} has no samples`);
   }
   if (decoder === "webcodecs" && seed.label.startsWith("video-")) {
     if (!web.decoders.webcodecs) out.push(`${tag}: no WebCodecs decoder opened (${JSON.stringify(web.decoders)})`);
-    if (!web.frameError) out.push(`${tag}: frameError has no samples (no frame-presented diagnostics)`);
+    if (!measuredSummary(web.frameError)) out.push(`${tag}: frameError has no samples (no frame-presented diagnostics)`);
     if (web.untimedPresentedFrames > 0) {
       out.push(`${tag}: ${web.untimedPresentedFrames} presented layers have no source frame timing`);
     }
@@ -443,8 +449,16 @@ export function fixtureFailures(tag, decoder, seed, web, native) {
   }
   if (seed.label.startsWith("video-")) {
     const u = native.uiBench;
-    const measured = u && u.exit === 0 && !u.error && u.frames > 0 && u.frameMs && u.renderMs && u.guiMs && u.compositedFrames > 0;
-    if (!measured) out.push(`${tag}: native uiBench failed or measured nothing (${JSON.stringify(u)})`);
+    if (!u || u.exit !== 0 || u.error) {
+      out.push(`${tag}: native uiBench failed or measured nothing (${JSON.stringify(u)})`);
+    } else {
+      for (const field of ["frames", "compositedFrames"]) {
+        if (!Number.isFinite(u[field]) || u[field] <= 0) out.push(`${tag}: native uiBench ${field} measured nothing`);
+      }
+      for (const field of ["frameMs", "renderMs", "guiMs"]) {
+        if (!measuredSummary(u[field])) out.push(`${tag}: native uiBench ${field} has no samples`);
+      }
+    }
   }
   return out;
 }
