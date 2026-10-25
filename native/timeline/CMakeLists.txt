@@ -411,7 +411,7 @@ if(UNIX AND NOT APPLE AND Vulkan_FOUND AND LIBVA_FOUND)
     target_link_libraries(tst_vulkaninterop PRIVATE timeline_core timeline_decode Qt6::Gui Qt6::GuiPrivate Qt6::Test
         PkgConfig::FFMPEG)
     add_test(NAME tst_vulkaninterop COMMAND tst_vulkaninterop)
-    set_tests_properties(tst_vulkaninterop PROPERTIES LABELS render)
+    set_tests_properties(tst_vulkaninterop PROPERTIES LABELS render FIXTURES_REQUIRED media)
 endif()
 # Native easing against the web's values (scene/Animation.h).
 qt_add_executable(tst_easing tests/tst_easing.cpp)

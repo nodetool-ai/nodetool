@@ -19,7 +19,11 @@
 // deliberately retained for the process lifetime, keeping the VA surface
 // out of the decoder pool. Each retained mapping is logged and counted by
 // testing::releaseStats(), with no retention limit. An unexpected fence-wait
-// failure is logged and the device is treated as lost. Nothing waits
+// failure is retried up to three attempts. If completion or device loss is
+// still unconfirmed, that pending entry's command buffer, fence, images,
+// memory and DRM mapping, plus the command pool, are deliberately retained
+// for the process lifetime, logged and counted. Other pending entries are
+// still waited on. Only VK_ERROR_DEVICE_LOST marks the device lost. Nothing waits
 // on a fence with a timeout: submissions on Qt's queue
 // are ordered before the frames that sample the images, and finished
 // submissions are collected on each flush(). A lost device frees everything
@@ -63,11 +67,16 @@ namespace testing {
 // Release-only injection: positive counts fail the next N attempts, negative
 // fails every attempt. Zero restores native submissions. Counters are cumulative.
 void setReleaseFailures(int count);
+// Teardown waits only: fail the next N waits with out-of-host-memory without
+// calling Vulkan. Negative fails every wait. Zero restores native waits.
+void setFenceWaitFailures(int count);
 struct ReleaseStats {
     int submitted;
     int completed;
     int freedWithoutRelease;
     int retainedMappings;
+    // Pending submissions retained after teardown could not confirm completion.
+    int unconfirmedPending;
 };
 ReleaseStats releaseStats();
 }  // namespace testing
