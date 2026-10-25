@@ -24,6 +24,88 @@ cmake --build native/timeline/build
 ctest --test-dir native/timeline/build
 ```
 
+### Linux
+
+Tested on Arch Linux with GCC 16, CMake 4, Qt 6.12.0 from `aqtinstall`
+(`linux_gcc_64` with `qtshadertools`), the distribution's FFmpeg 9.0
+(`libavcodec` 63) with its headers, libva 2.24, the Vulkan loader and
+headers, and an NVIDIA RTX 3060 with `nvidia-vaapi-driver` 0.0.18 (direct
+backend) for VAAPI. The system FFmpeg builds as is; the LGPL build of
+`scripts/build-ffmpeg-lgpl.sh` is the packaging and CI choice, not a
+requirement. Run from `native/timeline/`:
+
+```bash
+cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=$HOME/qt/6.12.0/gcc_64
+cmake --build build
+scripts/make-fixtures.sh
+QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=vulkan xvfb-run -a -s "-screen 0 1920x1080x24" \
+    ctest --test-dir build -j 2 --output-on-failure
+node scripts/plan-conformance.mjs --bin build/nodetool-timeline
+node scripts/op-conformance.mjs --bin build/timeline-ops
+QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=vulkan xvfb-run -a -s "-screen 0 1920x1080x24" \
+    node scripts/check-group-surfaces.mjs --bin build/nodetool-timeline
+```
+
+Every GUI run goes through Xvfb (`xvfb-run`) or the offscreen platform, so
+no window reaches the desktop. The render tests need a Vulkan device:
+`vulkaninfo --summary` must name the GPU, not `llvmpipe`. Hardware decode
+needs a VAAPI driver that exports DMA-BUF: `vainfo --display drm --device
+/dev/dri/renderD128` lists its profiles. Check a run with
+`QSG_INFO=1 QT_LOGGING_RULES="qt.rhi.general=true"`: the log names the
+physical device. The loader report says `ok (vaapi)` for a clip on the
+hardware path, and the bench reports `cpuCopies` 0 and
+`hardwareLayerFrames` equal to frames times layers.
+
+Without `QSG_RHI_BACKEND`, Qt Quick on xcb uses OpenGL, which under Xvfb is
+Mesa llvmpipe. `--decode hw` and `auto` select Vulkan
+(`hw::selectGraphicsApi`). Stills and screenshots are correct on both
+backends: an OpenGL readback, bottom row first, is flipped before it is
+saved.
+
+Linux results (October 2026, the machine above):
+
+- All 35 ctest tests pass under Xvfb on the NVIDIA Vulkan device, with the
+  hardware tests (`tst_ffmpegsource`, `tst_sourcepool`) on VAAPI. Skipped
+  inside them: `tst_editpreview` `liveEditCostOnALargeDocument` until
+  `node scripts/make-ui-fixture.mjs` has written its fixture (as on every
+  platform; it passes once the fixture exists). `macho_deps` is registered
+  on macOS only.
+- `--decode hw` stills equal `--decode sw` stills on the same backend
+  (PSNR infinite) for `video-4tracks`, `video-8tracks`, `video-4k-hevc`,
+  `video-cuts`, `media-tracks`, `video-scrub-intra`, `video-scrub-gop`,
+  `video-scrub-4k-hevc` and `av-sync`.
+- NVDEC has no lossless or 4:4:4 H.264 profile: the colour-bar fixtures
+  (High 4:4:4 Predictive, `-qp 0`) and the GBRP files show the placeholder
+  with `--decode hw` and fall back to software with `auto`.
+- With `VK_LOADER_LAYERS_ENABLE='*validation*'`, the only message is Qt's
+  own: `vkCreateImage(): pCreateInfo->initialLayout is
+  VK_IMAGE_LAYOUT_PREINITIALIZED but tiling is VK_IMAGE_TILING_OPTIMAL`
+  (VUID-VkImageCreateInfo-initialLayout-12478), once per `QRhiTexture`,
+  also with software decode.
+- Audio: `--audio-devices` lists the PulseAudio devices (PipeWire) and
+  opens none; the offline mix and the null-device A/V sync pass in ctest.
+  The real-time checks of `scripts/window-checks.sh` play sound and were
+  not run.
+
+Two driver limits shape the Linux hardware path. nvidia-vaapi-driver
+numbers every surface a decode context uses and allows 32: past that,
+`vaBeginPicture` fails with `VA_STATUS_ERROR_MAX_NUM_EXCEEDED` and a later
+`vaSyncSurface` on that surface never returns. The scrub cache therefore
+keeps a system-memory NV12 copy of each VAAPI frame instead of its surface
+(`hw::cacheCopy`): 2.5 ms per 1080p frame and 8.7 ms per 4K frame on the
+decoder thread. And a surface whose first `vaSyncSurface` comes from the
+render thread, while the decoder decodes into the same context, can wait
+forever, so the decoder thread syncs every frame first (`hw::syncFrame`).
+
+On the development machine, the loaded NVIDIA kernel module (610.57) did
+not match the installed userspace (615.78); a matching 610.57 userspace
+unpacked in `~/.local/nvidia-610`, sourced before each GPU run, worked
+around that. Without it, Vulkan silently fell back to llvmpipe. This is a
+note about that machine, not a requirement.
+
+`scripts/make-fixtures.sh` keeps files that exist. After pulling a change
+to how it writes a file, delete that file or pass `--force`.
+
 ## Run
 
 Run from `native/timeline/`:
@@ -694,8 +776,8 @@ hardware failure before the first frame falls back to software (D15).
   non-mach CPU counters). Its ctest runs; the hardware tests skip, as they
   do anywhere with `NT_NO_HW_DECODE=1`. `-DNT_CHECK_VULKAN_HEADERS=DIR`
   compiles the Linux hardware path against Qt's Vulkan API (objects only).
-- **Not compiled yet.** The Windows path needs the Windows SDK; the Linux
-  path has not been linked or run on Linux. `.github/workflows/native-timeline.yml`
+- **Not compiled yet.** The Windows path needs the Windows SDK. The Linux
+  path builds and runs on Linux (see [Linux](#linux)). `.github/workflows/native-timeline.yml`
   builds and runs the headless ctest on macOS, Linux and Windows. The
   offscreen platform has no QRhi, so only the window-event tests set it
   (ctest `ENVIRONMENT`). The render tests (ctest label `render`) run on
@@ -976,7 +1058,7 @@ can write back the fields the model does not own.
 | `src/preview/YuvFormat` | YUV to RGB matrices for BT.709 and BT.601, limited and full range |
 | `src/preview/hw/VideoToolboxInterop` | `CVMetalTextureCache` and `QRhiTexture::createFrom` wrappers for VideoToolbox frames; `FrameRef` |
 | `src/preview/hw/HwInterop`, `HwWindow` | The hardware decode seam (D15, M6): decoder setup, frame checks and wrapping per platform; graphics API and shared device |
-| `src/preview/hw/D3D11Interop`, `VulkanInterop` | Windows D3D11VA and Linux VAAPI-to-Vulkan frame import (not compiled for their platforms yet) |
+| `src/preview/hw/D3D11Interop`, `VulkanInterop` | Windows D3D11VA (not compiled on Windows yet) and Linux VAAPI-to-Vulkan frame import |
 | `src/platform/PlatformStubs.cpp` | Linux and Windows: no-op App Nap and occlusion hooks |
 | `src/preview/RetireQueue.h` | Releases a replaced frame's GPU resources after `FramesInFlight` frames (D11) |
 | `src/platform/` | `ProcessActivity` (no App Nap during measured runs) and `CpuUsage` (process and thread CPU time) |

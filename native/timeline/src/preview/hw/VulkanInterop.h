@@ -35,7 +35,8 @@
 // and the device extensions of requiredDeviceExtensions(). Without them
 // create() returns null and the sources decode in software.
 //
-// Written for M6 and not compiled yet: the development machine is macOS.
+// Frame completion (FrameRef::releasedInFlight): each frame records a small
+// buffer readback, which QRhi completes once that frame has run.
 
 #include <QByteArrayList>
 #include <QSize>

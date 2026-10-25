@@ -2,7 +2,7 @@
 // web-baseline.mjs): started from this checkout with their own HOME, data,
 // database, assets and SECRETS_MASTER_KEY, never on port 7777, written to
 // only after the ownership checks of scratch-safety.mjs: the child is alive
-// and every listener on the port is in its process group (lsof), checked
+// and every listener on the port is in its process group (lsof or ss), checked
 // right before each write. Each server also carries an instance token that
 // only its own process sends (scratch-safety.mjs instancePreloadOption): the
 // native client gets it in `nativeEnv(server)` and writes nowhere else.

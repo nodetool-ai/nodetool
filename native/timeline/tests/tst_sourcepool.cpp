@@ -211,6 +211,17 @@ private slots:
         QElapsedTimer t;
         t.start();
         bool exact = false;
+        // Spend the frames the session keeps at 0 s first. A device that
+        // opens slowly (VAAPI) would otherwise decode them after the seek to
+        // 3 s, and the last of them, followed by the end of the stream, would
+        // count as the exact pick there.
+        while (!exact && t.elapsed() < 4000) {
+            frame(pool, tl, 0.0, &exact);
+            QThread::msleep(2);
+        }
+        QVERIFY(exact);
+        exact = false;
+        t.restart();
         double pts = -1.0;
         while (reportFor(pool).fallback.empty() && t.elapsed() < 5000) {
             frame(pool, tl, 3000.0, &exact);
@@ -240,7 +251,7 @@ private slots:
             QThread::msleep(5);
         }
         const MediaReport r = reportFor(pool);
-        QCOMPARE(r.decoder, std::string("videotoolbox"));
+        QCOMPARE(r.decoder, std::string(hw::decoderName()));
         QCOMPARE(r.fallback, std::string());
     }
 };

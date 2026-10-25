@@ -9,7 +9,7 @@
 // VECTORSTORE_DB_PATH, ASSET_FOLDER, STORAGE_PATH and SECRETS_MASTER_KEY (no
 // keychain), on a port that is never 7777 and must be free before launch.
 // Before any write the script proves that every listener on the port is in
-// the process group it started (lsof, ps), and it re-checks that before each
+// the process group it started (lsof or ss, ps), and it re-checks that before each
 // write. It refuses every redirect. It checks that the server logged its
 // database under the scratch folder and stored an upload there. It stops each
 // server's whole process group (SIGTERM, then SIGKILL after a deadline), also

@@ -115,7 +115,9 @@ private:
 QString mediaLogLine(const MediaReportEntry& r) {
     if (!r.ok) return QStringLiteral("media %1: not used: %2 (placeholder)").arg(r.clipId, r.reason);
     QString line = QStringLiteral("media %1: ok (%2)").arg(r.clipId, r.decoder);
-    if (!r.fallback.isEmpty()) line += QStringLiteral(", VideoToolbox fallback: %1").arg(r.fallback);
+    if (!r.fallback.isEmpty()) {
+        line += QStringLiteral(", %1 fallback: %2").arg(QString::fromUtf8(nt::hw::apiName()), r.fallback);
+    }
     return line;
 }
 
@@ -461,8 +463,10 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, QSize size, const Q
             QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
         }
         renderFrame(true);
-        const QImage img(reinterpret_cast<const uchar*>(readback.data.constData()), readback.pixelSize.width(),
-                         readback.pixelSize.height(), QImage::Format_RGBA8888_Premultiplied);
+        QImage img(reinterpret_cast<const uchar*>(readback.data.constData()), readback.pixelSize.width(),
+                   readback.pixelSize.height(), QImage::Format_RGBA8888_Premultiplied);
+        // OpenGL (the Linux default) reads a texture back bottom row first.
+        if (rhi->isYUpInFramebuffer()) img = img.flipped(Qt::Vertical);
         const bool saved = img.convertToFormat(QImage::Format_RGB888).save(shotPath);
         std::fprintf(stderr, "screenshot %s: %s\n", qPrintable(shotPath), saved ? "saved" : "FAILED");
         return saved ? 0 : 1;
@@ -915,7 +919,8 @@ int main(int argc, char** argv) {
     // The loader report (D10a): log each media clip once, as the pool opens it.
     if (compositor) {
         auto logged = std::make_shared<std::set<QString>>();
-        QObject::connect(&view, &QQuickWindow::afterAnimating, &app, [compositor, logged]() {
+        // The compositor is the context: the teardown test deletes it mid-run.
+        QObject::connect(&view, &QQuickWindow::afterAnimating, compositor, [compositor, logged]() {
             for (const MediaReportEntry& r : compositor->mediaReport()) {
                 if (!logged->insert(r.clipId + r.decoder + r.fallback + r.reason).second) continue;
                 std::fprintf(stderr, "%s\n", qPrintable(mediaLogLine(r)));

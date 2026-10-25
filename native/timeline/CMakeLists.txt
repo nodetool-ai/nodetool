@@ -340,6 +340,11 @@ target_compile_definitions(tst_tracksui PRIVATE NT_FIXTURES_DIR="${CMAKE_CURRENT
 target_link_libraries(tst_tracksui PRIVATE timeline_core timeline_decode Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick
     Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
 nt_add_timeline_qml(tst_tracksui OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_tracksui_qml/NodeTool/Timeline)
+# Linux: the render-control case attaches a Vulkan instance (hw::prepareWindow)
+# when the scene graph runs on Vulkan, as CI and the render tests do.
+if(UNIX AND NOT APPLE)
+    target_sources(tst_tracksui PRIVATE src/preview/hw/HwWindow.h src/preview/hw/HwWindow.cpp)
+endif()
 add_test(NAME tst_tracksui COMMAND tst_tracksui)
 # No window is ever shown: the offscreen platform and the software renderer.
 set_tests_properties(tst_tracksui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
