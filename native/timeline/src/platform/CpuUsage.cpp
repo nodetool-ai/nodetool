@@ -150,12 +150,13 @@ unsigned currentThread() {
 }
 
 int64_t threadNs(unsigned thread) {
-    NativeThread native;
-    {
-        std::lock_guard lock(g_mutex);
-        if (thread == 0 || thread > g_threads.size() || !g_threads[thread - 1].live) return -1;
-        native = g_threads[thread - 1].native;
-    }
+    // The lock is held through the native query (review F2): a thread's exit
+    // releases its slot under the same lock, so a live slot here means the
+    // thread has not finished, its pthread_t is valid and its Windows handle
+    // is still open (not closed and reused for another thread).
+    std::lock_guard lock(g_mutex);
+    if (thread == 0 || thread > g_threads.size() || !g_threads[thread - 1].live) return -1;
+    const NativeThread native = g_threads[thread - 1].native;
 #if defined(_WIN32)
     FILETIME created, exited, kernel, user;
     if (!GetThreadTimes(native, &created, &exited, &kernel, &user)) return -1;

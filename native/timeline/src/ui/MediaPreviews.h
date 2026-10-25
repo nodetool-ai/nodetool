@@ -57,6 +57,9 @@ inline constexpr int FULL_ASSET_PEAK_COUNT = 2000;
 inline constexpr int THUMBNAIL_COUNT = 24;     // SOURCE_COUNT
 inline constexpr int THUMBNAIL_WIDTH_PX = 160;  // THUMB_WIDTH_PX
 inline constexpr int FILMSTRIP_CELL_PX = 60;
+// How long a file's open and stream probe may take: a stalled read (a slow
+// disk, a pipe) gives up after it. 0: no limit.
+inline constexpr int OPEN_TIMEOUT_MS = 20000;
 
 struct AudioPeaks {
     std::vector<float> peaks;
@@ -76,13 +79,19 @@ struct ThumbnailSet {
     QSize thumbSize;
 };
 
-// Decoding, on the calling thread. Empty or null on failure, or when
-// `cancel` turns true.
+// Decoding, on the calling thread. Empty or null on failure, when `cancel`
+// turns true (checked at every read, the open and probe included), or when
+// the open and probe take longer than `openTimeoutMs`.
 std::shared_ptr<const AudioPeaks> computeAudioPeaks(const QString& path, int count = FULL_ASSET_PEAK_COUNT,
-                                                    const std::atomic<bool>* cancel = nullptr);
+                                                    const std::atomic<bool>* cancel = nullptr,
+                                                    int openTimeoutMs = OPEN_TIMEOUT_MS);
 std::vector<Thumbnail> extractThumbnails(const QString& path, int count = THUMBNAIL_COUNT,
-                                         int width = THUMBNAIL_WIDTH_PX, const std::atomic<bool>* cancel = nullptr);
-std::vector<Thumbnail> loadImageThumbnail(const QString& path, int width = 2 * THUMBNAIL_WIDTH_PX);
+                                         int width = THUMBNAIL_WIDTH_PX, const std::atomic<bool>* cancel = nullptr,
+                                         int openTimeoutMs = OPEN_TIMEOUT_MS);
+// Qt's image readers cannot be interrupted: `cancel` is checked before the
+// read only.
+std::vector<Thumbnail> loadImageThumbnail(const QString& path, int width = 2 * THUMBNAIL_WIDTH_PX,
+                                          const std::atomic<bool>* cancel = nullptr);
 // The thumbnails with their atlas.
 std::shared_ptr<const ThumbnailSet> makeThumbnailSet(std::vector<Thumbnail> thumbs);
 
@@ -130,6 +139,9 @@ public:
     int cachedThumbnailSets() const { return static_cast<int>(m_thumbs.size()); }
     // Decodes that ran on the GUI thread (tests: none should).
     int guiThreadDecodes() const { return m_guiThreadDecodes.load(); }
+    // How long a file's open and probe may take before the job gives up
+    // (tests; a negative value restores the default).
+    void setOpenTimeoutMs(int ms);
 
 signals:
     void peaksReady(const QString& path);
@@ -143,6 +155,7 @@ private:
         QString path;
         QString kind;  // "peaks", "video" or "image"
         QString version;
+        int openTimeoutMs = OPEN_TIMEOUT_MS;
         std::atomic<bool> cancel{false};
         QSet<const QObject*> subscribers;
     };
@@ -162,6 +175,7 @@ private:
     int m_decodes = 0;
     std::atomic<int> m_cancelled{0};
     std::atomic<int> m_guiThreadDecodes{0};
+    int m_openTimeoutMs = OPEN_TIMEOUT_MS;
 };
 
 struct FilmstripTextureStats {
@@ -299,6 +313,8 @@ public:
     double stripedFraction() const { return m_stripedFraction; }
     // The thumbnail index of each cell (tests).
     Q_INVOKABLE QVariantList cellThumbnails() const;
+    // The cells the last paint drew, in item coordinates (tests).
+    Q_INVOKABLE QVariantList cellRects() const;
 
 protected:
     QSGNode* updatePaintNode(QSGNode* old, UpdatePaintNodeData* data) override;
@@ -314,7 +330,10 @@ private:
     // The textures the current node uses, by image key, in the window's cache.
     QPointer<QQuickWindow> m_textureWindow;
     QList<qint64> m_textureKeys;
+    // The cache generation the keys are counted in.
+    quint64 m_textureGeneration = 0;
     int m_cellCount = 0;
     int m_drawnCells = 0;
+    std::vector<QRectF> m_cellRects;
     double m_stripedFraction = 0;
 };

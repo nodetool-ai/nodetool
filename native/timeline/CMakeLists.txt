@@ -391,6 +391,13 @@ qt_add_shaders(tst_editpreview "tst_editpreview_shaders"
     BASE shaders
     FILES shaders/composite.vert shaders/composite.frag)
 add_test(NAME tst_editpreview COMMAND tst_editpreview)
+# The label `render` marks the tests that need the platform QRhi: no
+# QT_QPA_PLATFORM=offscreen (that platform has no QRhi, so Qt Quick falls back
+# to the software scene graph). CI runs them on Cocoa/Metal, on xcb under Xvfb
+# with Vulkan on lavapipe, and on the Windows platform with D3D11 on WARP, and
+# checks the backend in their log (.github/workflows/native-timeline.yml).
+# The window-event tests set the offscreen platform in their ENVIRONMENT.
+set_tests_properties(tst_editpreview PROPERTIES LABELS render)
 # Native easing against the web's values (scene/Animation.h).
 qt_add_executable(tst_easing tests/tst_easing.cpp)
 set_target_properties(tst_easing PROPERTIES MACOSX_BUNDLE FALSE)
@@ -411,6 +418,16 @@ add_test(NAME tst_flexlayout COMMAND tst_flexlayout)
 add_test(NAME plan_compare COMMAND node --test ${CMAKE_CURRENT_SOURCE_DIR}/scripts/plan-compare.test.mjs)
 # The scratch-server safety rules of scripts/server-check.mjs (node:test).
 add_test(NAME scratch_safety COMMAND node --test ${CMAKE_CURRENT_SOURCE_DIR}/scripts/scratch-safety.test.mjs)
+# The verdicts of scripts/web-baseline.mjs and scripts/peaks-check.mjs on
+# mocked inputs (node:test; no server, no browser).
+add_test(NAME web_baseline_checks COMMAND node --test ${CMAKE_CURRENT_SOURCE_DIR}/scripts/conformance/web-baseline.test.mjs)
+add_test(NAME peaks_check_plan COMMAND node --test ${CMAKE_CURRENT_SOURCE_DIR}/scripts/conformance/peaks-check.test.mjs)
+# The bundle dependency audit of scripts/macho-deps.py (review F5): builds
+# tiny Mach-O files with clang.
+if(APPLE)
+    find_program(NT_PYTHON3 NAMES python3 NO_CACHE REQUIRED)
+    add_test(NAME macho_deps COMMAND ${NT_PYTHON3} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/macho-deps.test.py)
+endif()
 # Scene evaluation cost per frame (manual bench, not a ctest).
 qt_add_executable(bench_scene tests/bench_scene.cpp)
 set_target_properties(bench_scene PROPERTIES MACOSX_BUNDLE FALSE)

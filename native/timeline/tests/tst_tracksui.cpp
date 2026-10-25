@@ -47,7 +47,18 @@
 #include <QTest>
 #include <QWheelEvent>
 #include <QAbstractItemModelTester>
+#include <QQuickRenderControl>
+#include <QQuickRenderTarget>
+#include <rhi/qrhi.h>
 #include <qpa/qwindowsysteminterface.h>
+
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <unistd.h>
+
+#include <atomic>
+#include <csignal>
+#include <thread>
 
 #include <cmath>
 #include <functional>
@@ -1373,10 +1384,22 @@ private slots:
         std::sort(halves.begin(), halves.end());
         QCOMPARE(halves, (QList<std::pair<double, double>>{{1000, 300}, {1300, 500}}));
         QCOMPARE(model->undoStack()->count(), 1);
-        // On an edge grip the Cut tool still cuts (BODY_TOOLS), here at 1003 ms.
-        QTest::mouseClick(view.get(), Qt::LeftButton, {}, clipPoint("c-0-2", 0.3));
+        // Inside an 8 px edge grip the Cut tool still cuts (BODY_TOOLS): 3 px
+        // into c-0-2 (2000..2800 ms) is 2030 ms.
+        QTest::mouseClick(view.get(), Qt::LeftButton, {}, clipPoint("c-0-2", 3));
         frame();
-        QCOMPARE(model->clipCount(), before + 1);  // at the edge: refused (no-op split)
+        QCOMPARE(model->clipCount(), before + 2);
+        QVERIFY(clipJson("c-0-2").isEmpty());
+        halves.clear();
+        for (const QJsonValue& v : model->clipsJson()) {
+            const QJsonObject c = v.toObject();
+            if (c.value("trackId").toString() == "track-0" && c.value("startMs").toDouble() >= 2000 &&
+                c.value("startMs").toDouble() < 3000)
+                halves.append({c.value("startMs").toDouble(), c.value("durationMs").toDouble()});
+        }
+        std::sort(halves.begin(), halves.end());
+        QCOMPARE(halves, (QList<std::pair<double, double>>{{2000, 30}, {2030, 770}}));
+        QCOMPARE(model->undoStack()->count(), 2);
     }
 
     void trackSelectToolSelectsFromThePointerOn() {
@@ -1775,6 +1798,11 @@ private slots:
         // A 4000 ms clip at 10 ms/px is 400 px: 6 cells of 60 px, from 1 s on.
         QCOMPARE(strip->cellCount(), 6);
         QCOMPARE(strip->cellThumbnails(), (QVariantList{1, 2, 3, 4, 5, 6}));
+        // The six cells are drawn over the whole strip, and the frame shows them.
+        QCOMPARE(strip->drawnCells(), 6);
+        QVERIFY(coversSpan(strip->cellRects(), 0, strip->width()));
+        QVERIFY2(pictureColours(strip, 0, strip->width()) > 64,
+                 qPrintable(QString::number(pictureColours(strip, 0, strip->width()))));
 
         // D30: playback repaints no picture; a zoom does.
         const int wavePaints = wave->paintCount();
@@ -1941,11 +1969,34 @@ private slots:
     // Review F7: X marks the clip (markClipRange), and the sheet shows the
     // actions the native editor does not run as unavailable.
     void markClipAndUnavailableShortcuts() {
-        load({3, 6});
+        // Each track's clip under 2300 ms has its own span, and the top
+        // track is locked: the mark is the span of track 1's clip.
+        Layout l{3, 6};
+        QJsonObject json = makeTimelineJson(l);
+        QJsonArray tracks = json.value("tracks").toArray();
+        QJsonObject top = tracks.at(0).toObject();
+        top.insert("locked", true);
+        tracks.replace(0, top);
+        json.insert("tracks", tracks);
+        json = withClipFields(json, "c-1-2", {{"startMs", 2100}, {"durationMs", 900}});
+        json = withClipFields(json, "c-2-2", {{"startMs", 1900}, {"durationMs", 600}});
+        loadJson(json, l);
         seed(10, 0);
         region->forceActiveFocus();
         auto* g = controller();
-        // No selection: the clip under the playhead on the topmost track.
+        // No selection: the clip under the playhead on the topmost unlocked track.
+        clock->seek(2300);
+        key(Qt::Key_X, {}, "x");
+        QCOMPARE(vs->rangeInMs(), 2100.0);
+        QCOMPARE(vs->rangeOutMs(), 3000.0);
+        // The top track unlocked: its clip wins over the lower ones.
+        top.insert("locked", false);
+        tracks.replace(0, top);
+        json.insert("tracks", tracks);
+        loadJson(json, l);
+        seed(10, 0);
+        region->forceActiveFocus();
+        g = controller();
         clock->seek(2300);
         key(Qt::Key_X, {}, "x");
         QCOMPARE(vs->rangeInMs(), 2000.0);
@@ -1957,7 +2008,7 @@ private slots:
         QCOMPARE(vs->rangeOutMs(), 3800.0);
         // In a gap with nothing selected: no change.
         g->setSelection({});
-        clock->seek(2900);
+        clock->seek(3900);
         key(Qt::Key_X, {}, "x");
         QCOMPARE(vs->rangeInMs(), 1000.0);
 
@@ -2069,6 +2120,31 @@ private slots:
         json.insert("durationMs", std::max(1000.0, start));
         return json;
     }
+    // Whether rects (cells 2 px apart) leave no gap over [from, to].
+    static bool coversSpan(const QVariantList& rects, double from, double to) {
+        std::vector<std::pair<double, double>> spans;
+        for (const QVariant& r : rects) spans.emplace_back(r.toRectF().left(), r.toRectF().right());
+        std::sort(spans.begin(), spans.end());
+        double reach = from;
+        for (const auto& [a, b] : spans) {
+            if (a > reach + 2.5) break;
+            reach = std::max(reach, b);
+        }
+        if (reach < to - 2.5) qWarning("covered %g..%g of %g..%g (%d rects)", from, reach, from, to, int(rects.size()));
+        return reach >= to - 2.5;
+    }
+    // The distinct colours the window shows over [from, to] of `item` (its
+    // own px), on the screen part: a drawn filmstrip shows many, a bare
+    // clip body a few.
+    int pictureColours(QQuickItem* item, double from, double to) {
+        const QImage shot = view->grabWindow();
+        const QRect area = item->mapRectToScene(QRectF(from, 0, to - from, item->height())).toAlignedRect() &
+                           QRect(QPoint(int(kHeaderWidth), 0), QSize(int(shot.width() - kHeaderWidth), shot.height()));
+        QSet<QRgb> colours;
+        for (int y = area.top(); y <= area.bottom(); y += 2)
+            for (int x = area.left(); x <= area.right(); x += 2) colours.insert(shot.pixel(x, y));
+        return int(colours.size());
+    }
     QQuickItem* pictureItem(const QString& clipId, const QString& name) {
         QQuickItem* found = nullptr;
         if (QQuickItem* c = itemNamed(QStringLiteral("clip-") + clipId))
@@ -2174,11 +2250,22 @@ private slots:
         QVERIFY2(wave->barCount() <= int(3 * viewport / 2) + 2, qPrintable(QString::number(wave->barCount())));
         QVERIFY2(strip->drawnCells() <= int(3 * viewport / 60) + 2, qPrintable(QString::number(strip->drawnCells())));
         QCOMPARE(strip->cellCount(), int(std::floor(40000.0 / 60)));
-        // Far along the clip the bars there exist; the start is not drawn.
+        // The cells cover the visible part, and the frame shows them.
+        QVERIFY2(strip->drawnCells() >= int(viewport / 60), qPrintable(QString::number(strip->drawnCells())));
+        QVERIFY(coversSpan(strip->cellRects(), 0, viewport));
+        QVERIFY(pictureColours(strip, 0, viewport) > 64);
+        // Far along the clip the bars and cells there exist; the start is not drawn.
         const int paints = wave->paintCount();
+        const int stripPaints = strip->paintCount();
         vs->setScrollLeftPx(30000);
         frame();
         QVERIFY(wave->paintCount() > paints);
+        QVERIFY(strip->paintCount() > stripPaints);
+        QVERIFY2(strip->drawnCells() >= int(viewport / 60) && strip->drawnCells() <= int(3 * viewport / 60) + 2,
+                 qPrintable(QString::number(strip->drawnCells())));
+        QVERIFY(coversSpan(strip->cellRects(), 30000, 30000 + viewport));
+        QVERIFY(strip->cellRects().first().toRectF().left() >= 30000 - 2 * viewport - 62);
+        QVERIFY(pictureColours(strip, 30000, 30000 + viewport) > 64);
         const QVariantList bars = wave->barRects();
         QVERIFY(!bars.isEmpty());
         QVERIFY(bars.first().toRectF().left() >= 30000 - 2 * viewport - 2);
@@ -2190,13 +2277,229 @@ private slots:
         QCOMPARE(wave->paintCount(), paints2);
     }
 
+    // rv2 F1: the scene graph invalidated and made again. The textures the
+    // filmstrip holds are those of the new graph: none of them reads as
+    // unused, and a trim to a zero budget frees none the frame draws. The
+    // software scene graph cannot be invalidated and made again, so the case
+    // runs in a child process on the platform QRhi through
+    // QQuickRenderControl (Metal on macOS): no window is created.
+    void filmstripTexturesSurviveASceneGraphInvalidation() {
+        if (!qEnvironmentVariableIsSet("NT_TRACKSUI_RHI")) {
+            QProcess child;
+            QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+            env.remove(QStringLiteral("QT_QPA_PLATFORM"));
+            env.remove(QStringLiteral("QT_QUICK_BACKEND"));
+            env.insert(QStringLiteral("NT_TRACKSUI_RHI"), QStringLiteral("1"));
+            child.setProcessEnvironment(env);
+            child.setProcessChannelMode(QProcess::MergedChannels);
+            child.start(QCoreApplication::applicationFilePath(),
+                        {QStringLiteral("filmstripTexturesSurviveASceneGraphInvalidation")});
+            QVERIFY(child.waitForFinished(120000));
+            const QByteArray out = child.readAll();
+            // A host with no platform QRhi (a CI runner with no display).
+            if (out.contains("SKIP   : TestTracksUi::filmstripTexturesSurviveASceneGraphInvalidation()") ||
+                (child.exitCode() != 0 && out.contains("platform plugin")))
+                QSKIP(qPrintable(QStringLiteral("no platform QRhi for the render control:\n") + QString::fromUtf8(out)));
+            QVERIFY2(child.exitStatus() == QProcess::NormalExit && child.exitCode() == 0, out.constData());
+            QVERIFY2(out.contains("PASS   : TestTracksUi::filmstripTexturesSurviveASceneGraphInvalidation()"),
+                     out.constData());
+            return;
+        }
+        MediaPreviewCache& cache = MediaPreviewCache::instance();
+        cache.clear();
+        const QSize size(400, 60);
+        QQuickRenderControl control;
+        QQuickWindow window(&control);
+        window.resize(size);
+        auto* strip = new FilmstripItem(window.contentItem());
+        strip->setSize(QSizeF(size));
+        strip->setClipWidthPx(size.width());
+        strip->setInPointMs(0);
+        strip->setOutPointMs(4000);
+        strip->setSource(QStringLiteral(NT_FIXTURES_DIR "/media/numbered-a-1080p30.mp4"));
+        // The render target lives in the render control's QRhi: made after
+        // each initialize, gone before each invalidate.
+        struct Target {
+            std::unique_ptr<QRhiTexture> texture;
+            std::unique_ptr<QRhiRenderBuffer> depthStencil;
+            std::unique_ptr<QRhiTextureRenderTarget> rt;
+            std::unique_ptr<QRhiRenderPassDescriptor> rp;
+            void reset() {
+                rt.reset();
+                rp.reset();
+                depthStencil.reset();
+                texture.reset();
+            }
+        } target;
+        const auto start = [&]() -> bool {
+            if (!control.initialize()) return false;
+            QRhi* rhi = control.rhi();
+            target.texture.reset(rhi->newTexture(QRhiTexture::RGBA8, size, 1, QRhiTexture::RenderTarget));
+            target.depthStencil.reset(rhi->newRenderBuffer(QRhiRenderBuffer::DepthStencil, size));
+            if (!target.texture->create() || !target.depthStencil->create()) return false;
+            QRhiTextureRenderTargetDescription desc{QRhiColorAttachment(target.texture.get())};
+            desc.setDepthStencilBuffer(target.depthStencil.get());
+            target.rt.reset(rhi->newTextureRenderTarget(desc));
+            target.rp.reset(target.rt->newCompatibleRenderPassDescriptor());
+            target.rt->setRenderPassDescriptor(target.rp.get());
+            if (!target.rt->create()) return false;
+            window.setRenderTarget(QQuickRenderTarget::fromRhiRenderTarget(target.rt.get()));
+            return true;
+        };
+        const auto render = [&]() {
+            QCoreApplication::processEvents();
+            control.polishItems();
+            control.beginFrame();
+            control.sync();
+            control.render();
+            control.endFrame();
+        };
+        if (!start()) QSKIP("no QRhi for the render control");
+        QTRY_VERIFY_WITH_TIMEOUT(strip->loaded(), 30000);
+        render();
+        render();
+        FilmstripTextureStats st = filmstripTextureStats(&window);
+        QCOMPARE(st.textures, 1);
+        QCOMPARE(st.unused, 0);
+
+        QSignalSpy invalidated(&window, &QQuickWindow::sceneGraphInvalidated);
+        window.setRenderTarget(QQuickRenderTarget());
+        target.reset();
+        control.invalidate();
+        QCOMPARE(invalidated.count(), 1);
+        QCOMPARE(filmstripTextureStats(&window).textures, 0);
+        QVERIFY2(start(), "no QRhi for the render control after the invalidation");
+        render();
+        render();
+        st = filmstripTextureStats(&window);
+        QCOMPARE(st.textures, 1);
+        QCOMPARE(st.unused, 0);
+        // With no budget for unused textures the trim keeps the drawn one.
+        setFilmstripTextureBudget(&window, 0);
+        strip->setOutPointMs(3990);  // a repaint with the same texture
+        render();
+        render();
+        st = filmstripTextureStats(&window);
+        QCOMPARE(st.textures, 1);
+        QCOMPARE(st.unused, 0);
+        QCOMPARE(strip->drawnCells(), strip->cellCount());
+        delete strip;
+        render();
+        window.setRenderTarget(QQuickRenderTarget());
+        target.reset();
+        control.invalidate();
+    }
+
+    // m2b F5: an open that stalls (a pipe fed a few bytes at a time) stops
+    // when nobody waits for it, and gives up after the open timeout when
+    // somebody does.
+    void stalledOpensStopAndTimeOut() {
+        MediaPreviewCache& cache = MediaPreviewCache::instance();
+        cache.clear();
+        ::signal(SIGPIPE, SIG_IGN);
+        QTemporaryDir dir;
+        // A writer that opens the pipe once a reader does, then trickles
+        // bytes until told to stop (at most 8 s).
+        struct Trickle {
+            std::atomic<bool> stop{false};
+            std::atomic<bool> connected{false};
+            std::thread thread;
+            explicit Trickle(const QByteArray& path) {
+                thread = std::thread([this, path]() {
+                    QElapsedTimer t;
+                    t.start();
+                    int fd = -1;
+                    while (fd < 0 && !stop && t.elapsed() < 8000) {
+                        fd = ::open(path.constData(), O_WRONLY | O_NONBLOCK);
+                        if (fd < 0) std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                    }
+                    if (fd < 0) return;
+                    connected = true;
+                    const char bytes[16] = {0x12, 0x34, 0x56, 0x78, 0x1, 0x2, 0x3, 0x4, 0x5, 0x6, 0x7, 0x8, 0x9, 0xa, 0xb, 0xc};
+                    while (!stop && t.elapsed() < 8000) {
+                        if (::write(fd, bytes, sizeof bytes) < 0 && errno == EPIPE) break;
+                        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+                    }
+                    ::close(fd);
+                });
+            }
+            ~Trickle() {
+                stop = true;
+                thread.join();
+            }
+        };
+        const auto pipeAt = [&](const QString& name) {
+            const QByteArray path = QFile::encodeName(dir.filePath(name));
+            if (::mkfifo(path.constData(), 0600) != 0) qFatal("mkfifo failed");
+            return path;
+        };
+
+        // Abandoned: the open stops at its next read.
+        {
+            const QByteArray path = pipeAt("abandoned.mp4");
+            Trickle writer(path);
+            auto subscriber = std::make_unique<QObject>();
+            QVERIFY(!cache.thumbnails(QFile::decodeName(path), QStringLiteral("video"), subscriber.get()));
+            QTRY_VERIFY_WITH_TIMEOUT(writer.connected.load(), 5000);
+            QTest::qWait(200);  // inside the probe
+            QElapsedTimer timer;
+            timer.start();
+            subscriber.reset();
+            cache.waitForIdle();
+            QVERIFY2(timer.elapsed() < 1500, qPrintable(QString::number(timer.elapsed())));
+            QCOMPARE(cache.pendingCount(), 0);
+        }
+        // Waited for, but stalled: the open gives up after the timeout.
+        {
+            cache.setOpenTimeoutMs(500);
+            const QByteArray path = pipeAt("stalled.wav");
+            Trickle writer(path);
+            QObject subscriber;
+            QVERIFY(!cache.peaks(QFile::decodeName(path), &subscriber));
+            QElapsedTimer timer;
+            timer.start();
+            QTRY_COMPARE_WITH_TIMEOUT(cache.pendingCount(), 0, 6000);
+            QVERIFY2(timer.elapsed() < 3000, qPrintable(QString::number(timer.elapsed())));
+            cache.setOpenTimeoutMs(-1);
+        }
+        cache.clear();
+    }
+
+    // m4 F7: an audio clip known only by its audioPath, whose probe fails or
+    // is still pending, is capped at its out-point as an asset clip is.
+    void audioPathOnlyClipsHaveTheFallbackCap() {
+        QJsonObject json = makeTimelineJson({4, 0});
+        QJsonArray clips;
+        clips.append(QJsonObject{{"id", "sound"}, {"trackId", "track-3"}, {"name", "sound"}, {"startMs", 0},
+                                 {"durationMs", 1000}, {"inPointMs", 0}, {"outPointMs", 1000},
+                                 {"mediaType", "audio"}, {"audioPath", "/nonexistent/nodetool/sound.wav"},
+                                 {"sourceType", "imported"}, {"status", "generated"}});
+        json.insert("clips", clips);
+        json.insert("durationMs", 20000);
+        loadJson(json, {4, 0});
+        seed(10, 0);
+        auto* g = controller();
+        g->setSnapEnabled(false);
+        QCOMPARE(g->sourceCapMs("sound"), 1000.0);
+        drag(clipPoint("sound", 96), clipPoint("sound", 96) + QPoint(200, 0), 10);
+        QCOMPARE(clipJson("sound").value("durationMs").toDouble(), 1000.0);
+        QCOMPARE(clipJson("sound").value("outPointMs").toDouble(), 1000.0);
+    }
+
 };
 
 int main(int argc, char** argv) {
-    // No window may appear on screen: force the offscreen platform and the
-    // software scene graph even when the test runs outside ctest.
-    qputenv("QT_QPA_PLATFORM", "offscreen");
-    qputenv("QT_QUICK_BACKEND", "software");
+    if (qEnvironmentVariableIsSet("NT_TRACKSUI_RHI")) {
+        // The child of a render-control case: the platform QRhi, never a
+        // window, never the foreground (as main.cpp does for --screenshot).
+        qputenv("QT_MAC_DISABLE_FOREGROUND_APPLICATION_TRANSFORM", "1");
+        qputenv("QT_MAC_SET_RAISE_PROCESS", "0");
+    } else {
+        // No window may appear on screen: force the offscreen platform and the
+        // software scene graph even when the test runs outside ctest.
+        qputenv("QT_QPA_PLATFORM", "offscreen");
+        qputenv("QT_QUICK_BACKEND", "software");
+    }
     QGuiApplication app(argc, argv);
     TestTracksUi test;
     return QTest::qExec(&test, argc, argv);

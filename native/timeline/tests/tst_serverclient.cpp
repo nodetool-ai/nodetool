@@ -13,6 +13,8 @@
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QTcpServer>
+#include <QTcpSocket>
 #include <QTemporaryDir>
 #include <QUrlQuery>
 #include <QtTest>
@@ -78,6 +80,53 @@ const QString kNone = QStringLiteral("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa4");
 const QString kMissing = QStringLiteral("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa5");
 const QString kAudio = QStringLiteral("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6");
 
+// Answers a GET with `getInstance` and a POST with `postInstance` in
+// `X-Nodetool-Instance` (none when empty), and records the methods.
+class InstanceServer : public QObject {
+public:
+    InstanceServer() {
+        connect(&m_server, &QTcpServer::newConnection, this, [this]() {
+            while (QTcpSocket* s = m_server.nextPendingConnection()) {
+                auto buffer = std::make_shared<QByteArray>();
+                connect(s, &QTcpSocket::readyRead, s, [this, s, buffer]() {
+                    buffer->append(s->readAll());
+                    const int end = buffer->indexOf("\r\n\r\n");
+                    if (end < 0) return;
+                    qint64 length = 0;
+                    for (const QByteArray& line : buffer->left(end).split('\n')) {
+                        if (line.toLower().startsWith("content-length:")) length = line.mid(15).trimmed().toLongLong();
+                    }
+                    if (buffer->size() < end + 4 + length) return;
+                    const QByteArray method = buffer->left(buffer->indexOf(' '));
+                    buffer->remove(0, end + 4 + length);
+                    methods << method;
+                    const QByteArray instance = method == "POST" ? postInstance : getInstance;
+                    const QByteArray body = envelope(QJsonObject{{QStringLiteral("updatedAt"), QStringLiteral("u1")}});
+                    QByteArray out = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: " +
+                                     QByteArray::number(body.size()) + "\r\n";
+                    if (!instance.isEmpty()) out += "X-Nodetool-Instance: " + instance + "\r\n";
+                    s->write(out + "\r\n" + body);
+                });
+                connect(s, &QTcpSocket::disconnected, s, &QObject::deleteLater);
+            }
+        });
+        m_server.listen(QHostAddress::LocalHost, 0);
+    }
+    QUrl base() const { return QUrl(QStringLiteral("http://127.0.0.1:%1").arg(m_server.serverPort())); }
+    int count(const QByteArray& method) const { return static_cast<int>(methods.count(method)); }
+
+    QByteArray getInstance;
+    QByteArray postInstance;
+    QList<QByteArray> methods;
+
+private:
+    QTcpServer m_server;
+};
+
+QJsonObject saveInput() {
+    return QJsonObject{{QStringLiteral("id"), QStringLiteral("seq")}, {QStringLiteral("baseUpdatedAt"), QStringLiteral("u0")}};
+}
+
 }  // namespace
 
 class TestServerClient : public QObject {
@@ -138,6 +187,60 @@ private slots:
         QCOMPARE(http.requests().back().headers.value("authorization"), QByteArray("Bearer secret"));
         QVERIFY(withToken.userKey().startsWith(QStringLiteral("token-")));
         QVERIFY(!withToken.userKey().contains(QStringLiteral("secret")));
+    }
+
+    // ── m5b F4: a write goes only to the expected server instance ──
+
+    void mutateWithoutAnExpectationSendsDirectly() {
+        InstanceServer http;
+        ServerClient client(http.base());
+        QVERIFY(client.mutate(QStringLiteral("timeline.update"), saveInput()).ok());
+        QCOMPARE(http.count("POST"), 1);
+        QCOMPARE(http.count("GET"), 0);
+    }
+
+    void mutateRefusesAnotherInstance() {
+        InstanceServer http;
+        http.getInstance = "someone-else";
+        http.postInstance = "someone-else";
+        ServerClient client(http.base());
+        client.setExpectedInstance(QStringLiteral("mine"));
+        const QueryResult r = client.mutate(QStringLiteral("timeline.update"), saveInput());
+        QVERIFY(!r.ok());
+        QCOMPARE(r.error.code, QStringLiteral("WRONG_SERVER"));
+        QCOMPARE(http.count("POST"), 0);
+        QCOMPARE(http.count("GET"), 1);
+    }
+
+    void mutateRefusesAServerWithoutAnInstance() {
+        InstanceServer http;
+        ServerClient client(http.base());
+        client.setExpectedInstance(QStringLiteral("mine"));
+        QCOMPARE(client.mutate(QStringLiteral("timeline.update"), saveInput()).error.code, QStringLiteral("WRONG_SERVER"));
+        QCOMPARE(http.count("POST"), 0);
+    }
+
+    void mutateWritesToTheExpectedInstance() {
+        InstanceServer http;
+        http.getInstance = "mine";
+        http.postInstance = "mine";
+        ServerClient client(http.base());
+        client.setExpectedInstance(QStringLiteral("mine"));
+        const QueryResult r = client.mutate(QStringLiteral("timeline.update"), saveInput());
+        QVERIFY2(r.ok(), qPrintable(r.describe()));
+        QCOMPARE(r.data.toObject().value(u"updatedAt").toString(), QStringLiteral("u1"));
+        QCOMPARE(http.methods, (QList<QByteArray>{"GET", "POST"}));
+    }
+
+    void mutateFlagsAnAnswerFromAnotherInstance() {
+        InstanceServer http;
+        http.getInstance = "mine";
+        http.postInstance = "someone-else";
+        ServerClient client(http.base());
+        client.setExpectedInstance(QStringLiteral("mine"));
+        const QueryResult r = client.mutate(QStringLiteral("timeline.update"), saveInput());
+        QVERIFY(!r.ok());
+        QCOMPARE(r.error.code, QStringLiteral("WRONG_SERVER"));
     }
 
     // Codex review F5: the cache folder must tell apart servers whose
@@ -221,8 +324,9 @@ private slots:
     }
 
     // A text clip whose animations change its text moves its flex tree every
-    // frame; the layout reads the animated style (scene/TextAnimation.h), so
-    // no clip of the tree is out of the plan.
+    // frame. The layout reads the animated style (scene/TextAnimation.h), so
+    // the audit puts no clip of the tree out of the plan. The animated layout
+    // itself is tested in tst_flexlayout (kFlexDoc's ticker).
     void auditKeepsFlexTreesWithAnimatedText() {
         const auto group = [](const char* id, const char* parent, bool flex) {
             QJsonObject g = clipJson(QLatin1String(id), QStringLiteral("group"), 0, QString());
@@ -250,11 +354,30 @@ private slots:
                                                        text("t1", "p", true), text("t2", "r", false), group("s", nullptr, true),
                                                        text("t3", "s", false)});
         const QJsonObject audit = auditTimelineFields(seq);
+        // The whole report is there: a missing key must not pass as empty.
+        for (const char* key : {"planUnsupported", "sequence", "tracks", "clips", "fields"}) {
+            QVERIFY2(audit.value(QLatin1String(key)).isArray() || audit.value(QLatin1String(key)).isObject(), key);
+        }
         QCOMPARE(audit.value(u"planUnsupported").toArray(), QJsonArray{});
+        // The audit saw t1's animated text: drawn (pixels), not a plan gap.
         const QJsonObject fields = audit.value(u"fields").toObject();
+        QVERIFY2(fields.contains(QStringLiteral("clip.animations.styleTracks")),
+                 QJsonDocument(fields).toJson(QJsonDocument::Compact).constData());
+        QCOMPARE(fields.value(u"clip.animations.styleTracks").toObject(),
+                 (QJsonObject{{QStringLiteral("effect"), QStringLiteral("pixels")}, {QStringLiteral("count"), 1}}));
+        // No plan entry, no flex field (`layout`, `flexItem`), nothing inherited.
         for (auto it = fields.begin(); it != fields.end(); ++it) {
             QVERIFY2(it.value().toObject().value(u"effect").toString() != u"plan", qPrintable(it.key()));
+            for (const char* prefix : {"clip.layout", "clip.flexItem", "clip.parent"}) {
+                QVERIFY2(!it.key().startsWith(QLatin1String(prefix)), qPrintable(it.key()));
+            }
         }
+        // Only text clips have entries (text is drawn as pixels); no group does.
+        const QJsonArray clips = audit.value(u"clips").toArray();
+        QStringList ids;
+        for (const QJsonValue& c : clips) ids << c.toObject().value(u"id").toString();
+        QVERIFY2(ids.contains(QStringLiteral("t1")), qPrintable(ids.join(u',')));
+        for (const QString& id : ids) QVERIFY2(id.startsWith(u't'), qPrintable(id));
     }
 
     // Codex review F2 (M1e): what a group surface does not draw is reported.

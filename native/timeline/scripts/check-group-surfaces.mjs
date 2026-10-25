@@ -5,22 +5,41 @@
 //      (the scrub runner's `frames` report);
 //   2. an injected surface allocation failure (NT_TEST_FAIL_SURFACES=1) is not
 //      a finished frame: the frame is not exact and reports the failure, and
-//      a still run exits 1 with the reason.
+//      a still run exits 1 (not a crash, a signal or a timeout) with the
+//      reason.
 //
-// Usage: node native/timeline/scripts/check-group-surfaces.mjs [--decode sw|hw|auto] [--json]
+// Usage: node native/timeline/scripts/check-group-surfaces.mjs [--bin PATH] [--decode sw|hw|auto] [--json]
+// --bin is the nodetool-timeline binary under test (default: the newest
+// build*/nodetool-timeline); every run, the golden comparison included, uses
+// it. A binary older than its sources is refused.
 
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { newestBinary, staleSources } from "./plan-compare.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const bin = path.join(root, "build", "nodetool-timeline");
-const args = { decode: "auto", json: false };
+const args = { bin: null, decode: "auto", json: false };
 for (let i = 2; i < process.argv.length; i++) {
-  if (process.argv[i] === "--decode") args.decode = process.argv[++i];
+  if (process.argv[i] === "--bin") args.bin = path.resolve(process.argv[++i]);
+  else if (process.argv[i] === "--decode") args.decode = process.argv[++i];
   else if (process.argv[i] === "--json") args.json = true;
+  else {
+    console.error(`check-group-surfaces: unknown argument ${process.argv[i]}`);
+    process.exit(2);
+  }
+}
+const bin = args.bin ?? newestBinary(root);
+if (!bin || !fs.existsSync(bin)) {
+  console.error(`check-group-surfaces: no binary at ${bin ?? "build*/nodetool-timeline"} (pass --bin)`);
+  process.exit(2);
+}
+const stale = staleSources(root, bin);
+if (stale.length > 0) {
+  console.error(`check-group-surfaces: ${bin} is older than ${stale.length} source file(s), newest ${stale[0]}; rebuild it or pass --bin`);
+  process.exit(2);
 }
 
 // Fixture, frame, and the surfaces that frame must draw.
@@ -55,7 +74,7 @@ for (const c of cases) {
   const fixture = path.join(root, "fixtures", c.fixture);
   const failures = [];
   const golden = run(process.execPath, [
-    path.join(root, "scripts", "compare-golden.mjs"), fixture, "--frames", String(c.frame), "--min-psnr", "40", "--decode", args.decode, "--json"
+    path.join(root, "scripts", "compare-golden.mjs"), fixture, "--bin", bin, "--frames", String(c.frame), "--min-psnr", "40", "--decode", args.decode, "--json"
   ]);
   let psnr = null;
   try {
@@ -88,15 +107,20 @@ for (const c of cases) {
   const stills = run(bin, [fixture, "--decode", args.decode, "--stills", path.join(tmp, "stills"), "--still-frames", "15"], {
     NT_TEST_FAIL_SURFACES: "1"
   });
-  if (stills.status === 0) failures.push("the still run exited 0 with its group missing");
+  // Exit 1 exactly: a hang (killed at the timeout), a signal or a crash is
+  // not the reported failure (review F6).
+  if (stills.error) failures.push(`the still run did not finish: ${stills.error.message}`);
+  else if (stills.signal) failures.push(`the still run ended by ${stills.signal}`);
+  else if (stills.status !== 1) failures.push(`the still run exited ${stills.status}, expected 1`);
   else if (!/surface/i.test(stills.stderr)) failures.push(`the still run gave no reason: ${String(stills.stderr).trim().split("\n").pop()}`);
   results.push({ case: "injected surface failure", pass: failures.length === 0, failures });
 }
 fs.rmSync(tmp, { recursive: true, force: true });
 
 const verdict = results.every((r) => r.pass) ? "pass" : "fail";
-if (args.json) console.log(JSON.stringify({ decode: args.decode, verdict, results }));
+if (args.json) console.log(JSON.stringify({ bin, decode: args.decode, verdict, results }));
 else {
+  console.log(`binary: ${bin}`);
   for (const r of results) {
     console.log(`${r.pass ? "ok  " : "FAIL"} ${r.case}${r.psnr != null ? ` (PSNR ${r.psnr}, surfaces ${r.surfaces})` : ""}`);
     for (const f of r.failures) console.log(`       ${f}`);

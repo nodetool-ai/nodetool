@@ -5,7 +5,8 @@
 // and computes the PSNR of each pair with ffmpeg's psnr filter (RGB, average
 // over the three channels).
 //
-// Usage: node native/timeline/scripts/compare-golden.mjs <fixture.json> --frames a,b,c --min-psnr DB [--decode sw|hw|auto] [--json]
+// Usage: node native/timeline/scripts/compare-golden.mjs <fixture.json> --frames a,b,c --min-psnr DB [--bin PATH] [--decode sw|hw|auto] [--json]
+// --bin is the nodetool-timeline binary (default native/timeline/build/nodetool-timeline).
 // Exit 0 only when every pair exists and every PSNR is at least --min-psnr.
 
 import { execFileSync } from "node:child_process";
@@ -16,16 +17,17 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 function parseArgs(argv) {
-  const args = { fixture: null, frames: null, minPsnr: null, json: false, decode: "sw" };
+  const args = { fixture: null, frames: null, minPsnr: null, json: false, decode: "sw", bin: path.join(root, "build", "nodetool-timeline") };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--frames") args.frames = argv[++i];
+    else if (argv[i] === "--bin") args.bin = path.resolve(argv[++i]);
     else if (argv[i] === "--decode") args.decode = argv[++i];
     else if (argv[i] === "--min-psnr") args.minPsnr = Number(argv[++i]);
     else if (argv[i] === "--json") args.json = true;
     else args.fixture = path.resolve(argv[i]);
   }
   if (!args.fixture || !args.frames || !Number.isFinite(args.minPsnr)) {
-    console.error("usage: compare-golden.mjs <fixture.json> --frames a,b,c --min-psnr DB [--json]");
+    console.error("usage: compare-golden.mjs <fixture.json> --frames a,b,c --min-psnr DB [--bin PATH] [--decode sw|hw|auto] [--json]");
     process.exit(2);
   }
   return args;
@@ -57,7 +59,7 @@ try {
 }
 fs.rmSync(nativeOut, { recursive: true, force: true });
 try {
-  execFileSync(path.join(root, "build", "nodetool-timeline"), [args.fixture, "--stills", nativeOut, "--still-frames", args.frames, "--decode", args.decode], {
+  execFileSync(args.bin, [args.fixture, "--stills", nativeOut, "--still-frames", args.frames, "--decode", args.decode], {
     stdio: ["ignore", "ignore", "pipe"]
   });
 } catch (error) {

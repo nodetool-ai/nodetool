@@ -20,7 +20,9 @@
 #include <QThreadPool>
 
 #include <algorithm>
+#include <chrono>
 #include <cmath>
+#include <optional>
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -57,12 +59,35 @@ using CodecPtr = std::unique_ptr<AVCodecContext, CodecCloser>;
 using FramePtr = std::unique_ptr<AVFrame, FrameCloser>;
 using PacketPtr = std::unique_ptr<AVPacket, PacketCloser>;
 
+// FFmpeg's interrupt callback for one file: true once `cancel` turns true,
+// or while opening, once the open deadline passed. It runs before every
+// read, so a cancelled or stalled job stops in its open and probe too. It
+// must outlive the format context.
+struct ReadGuard {
+    const std::atomic<bool>* cancel = nullptr;
+    std::optional<std::chrono::steady_clock::time_point> openDeadline;
+    static int interrupted(void* opaque) {
+        const auto* g = static_cast<const ReadGuard*>(opaque);
+        if (g->cancel && g->cancel->load()) return 1;
+        return g->openDeadline && std::chrono::steady_clock::now() > *g->openDeadline ? 1 : 0;
+    }
+};
+
 // The first stream of `type` and an open decoder for it.
-bool openStream(const QString& path, AVMediaType type, FormatPtr& format, CodecPtr& codec, int& streamIndex) {
-    AVFormatContext* f = nullptr;
+bool openStream(const QString& path, AVMediaType type, FormatPtr& format, CodecPtr& codec, int& streamIndex,
+                ReadGuard& guard, int openTimeoutMs) {
+    if (openTimeoutMs > 0) {
+        guard.openDeadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(openTimeoutMs);
+    }
+    AVFormatContext* f = avformat_alloc_context();
+    if (!f) return false;
+    f->interrupt_callback.callback = &ReadGuard::interrupted;
+    f->interrupt_callback.opaque = &guard;
+    // On failure the open frees the context.
     if (avformat_open_input(&f, path.toUtf8().constData(), nullptr, nullptr) < 0) return false;
     format.reset(f);
     if (avformat_find_stream_info(f, nullptr) < 0) return false;
+    guard.openDeadline.reset();  // the decode itself stops on `cancel` only
     streamIndex = -1;
     for (unsigned i = 0; i < f->nb_streams; ++i) {
         if (f->streams[i]->codecpar->codec_type == type) {
@@ -82,11 +107,13 @@ bool openStream(const QString& path, AVMediaType type, FormatPtr& format, CodecP
 
 }  // namespace
 
-std::shared_ptr<const AudioPeaks> computeAudioPeaks(const QString& path, int count, const std::atomic<bool>* cancel) {
+std::shared_ptr<const AudioPeaks> computeAudioPeaks(const QString& path, int count, const std::atomic<bool>* cancel,
+                                                    int openTimeoutMs) {
+    ReadGuard guard{cancel, std::nullopt};
     FormatPtr format;
     CodecPtr codec;
     int stream = -1;
-    if (count <= 0 || !openStream(path, AVMEDIA_TYPE_AUDIO, format, codec, stream)) return nullptr;
+    if (count <= 0 || !openStream(path, AVMEDIA_TYPE_AUDIO, format, codec, stream, guard, openTimeoutMs)) return nullptr;
     const int sampleRate = codec->sample_rate;
     if (sampleRate <= 0) return nullptr;
     const double durationSec = format->duration > 0 ? double(format->duration) / AV_TIME_BASE : -1;
@@ -202,12 +229,15 @@ std::shared_ptr<const AudioPeaks> computeAudioPeaks(const QString& path, int cou
     return result;
 }
 
-std::vector<Thumbnail> extractThumbnails(const QString& path, int count, int width, const std::atomic<bool>* cancel) {
+std::vector<Thumbnail> extractThumbnails(const QString& path, int count, int width, const std::atomic<bool>* cancel,
+                                         int openTimeoutMs) {
     std::vector<Thumbnail> thumbs;
+    ReadGuard guard{cancel, std::nullopt};
     FormatPtr format;
     CodecPtr codec;
     int stream = -1;
-    if (count <= 0 || width <= 0 || !openStream(path, AVMEDIA_TYPE_VIDEO, format, codec, stream)) return thumbs;
+    if (count <= 0 || width <= 0 || !openStream(path, AVMEDIA_TYPE_VIDEO, format, codec, stream, guard, openTimeoutMs))
+        return thumbs;
     const AVStream* st = format->streams[stream];
     double durationSec = st->duration > 0 ? st->duration * av_q2d(st->time_base) : -1;
     if (durationSec <= 0 && format->duration > 0) durationSec = double(format->duration) / AV_TIME_BASE;
@@ -285,7 +315,8 @@ std::vector<Thumbnail> extractThumbnails(const QString& path, int count, int wid
     return thumbs;
 }
 
-std::vector<Thumbnail> loadImageThumbnail(const QString& path, int width) {
+std::vector<Thumbnail> loadImageThumbnail(const QString& path, int width, const std::atomic<bool>* cancel) {
+    if (cancel && cancel->load()) return {};
     QImageReader reader(path);
     reader.setAutoTransform(true);
     const QSize size = reader.size();
@@ -293,7 +324,7 @@ std::vector<Thumbnail> loadImageThumbnail(const QString& path, int width) {
         reader.setScaledSize(QSize(width, std::max(1, static_cast<int>(std::lround(double(width) * size.height() / size.width())))));
     }
     QImage image = reader.read();
-    if (image.isNull()) return {};
+    if (image.isNull() || (cancel && cancel->load())) return {};
     return {Thumbnail{0, std::move(image)}};
 }
 
@@ -449,6 +480,7 @@ void MediaPreviewCache::start(const QString& key, const QString& path, const QSt
     job->path = path;
     job->kind = kind;
     job->version = version;
+    job->openTimeoutMs = m_openTimeoutMs;
     subscribe(job, subscriber);
     m_jobs.insert(key, job);
     ++m_decodes;
@@ -459,13 +491,13 @@ void MediaPreviewCache::start(const QString& key, const QString& path, const QSt
         if (!job->cancel) {
             if (QThread::currentThread() == qApp->thread() && self) ++self->m_guiThreadDecodes;
             if (job->kind == u"peaks") {
-                peaks = computeAudioPeaks(job->path, FULL_ASSET_PEAK_COUNT, &job->cancel);
+                peaks = computeAudioPeaks(job->path, FULL_ASSET_PEAK_COUNT, &job->cancel, job->openTimeoutMs);
             } else {
                 // The atlas is built here too, once per file version.
                 thumbs = makeThumbnailSet(job->kind == u"image"
-                                              ? loadImageThumbnail(job->path)
+                                              ? loadImageThumbnail(job->path, 2 * THUMBNAIL_WIDTH_PX, &job->cancel)
                                               : extractThumbnails(job->path, THUMBNAIL_COUNT, THUMBNAIL_WIDTH_PX,
-                                                                  &job->cancel));
+                                                                  &job->cancel, job->openTimeoutMs));
             }
         }
         QMetaObject::invokeMethod(qApp, [self, job, peaks, thumbs]() {
@@ -549,6 +581,10 @@ void MediaPreviewCache::clear() {
     m_cancelled = 0;
 }
 
+void MediaPreviewCache::setOpenTimeoutMs(int ms) {
+    m_openTimeoutMs = ms < 0 ? OPEN_TIMEOUT_MS : ms;
+}
+
 void MediaPreviewCache::waitForIdle() {
     decodePool().waitForDone();
 }
@@ -580,9 +616,11 @@ public:
         return registry().value(window);
     }
 
-    // The texture of `image`, with one more user. Scene graph thread.
-    QSGTexture* acquire(const QImage& image, bool repeat) {
+    // The texture of `image`, with one more user, and the generation that
+    // user is counted in. Scene graph thread.
+    QSGTexture* acquire(const QImage& image, bool repeat, quint64* generation) {
         QMutexLocker guard(&m_lock);
+        *generation = m_generation;
         const qint64 key = image.cacheKey();
         Entry& e = m_entries[key];
         if (!e.texture) {
@@ -603,9 +641,13 @@ public:
         e.lastUse = ++m_clock;
         return e.texture;
     }
-    // One user fewer. Any thread; the texture stays until a trim.
-    void release(qint64 key) {
+    // One user fewer, counted in `generation`. A user of a generation the
+    // scene graph has since invalidated was dropped with the textures: its
+    // release would take a user of the new graph's texture. Any thread; the
+    // texture stays until a trim.
+    void release(qint64 key, quint64 generation) {
         QMutexLocker guard(&m_lock);
+        if (generation != m_generation) return;
         const auto it = m_entries.find(key);
         if (it != m_entries.end() && it->users > 0) --it->users;
     }
@@ -666,6 +708,7 @@ private:
         QMutexLocker guard(&m_lock);
         for (const Entry& e : std::as_const(m_entries)) delete e.texture;
         m_entries.clear();
+        ++m_generation;
     }
 
     QQuickWindow* m_window;
@@ -673,6 +716,7 @@ private:
     QHash<qint64, Entry> m_entries;
     qint64 m_budget = qint64(64) << 20;
     quint64 m_clock = 0;
+    quint64 m_generation = 0;  // advanced by each clear (scene graph invalidation)
 };
 
 }  // namespace
@@ -918,7 +962,7 @@ FilmstripItem::~FilmstripItem() {
 
 void FilmstripItem::releaseTextures() {
     if (auto* cache = m_textureWindow ? nt::ui::TextureCache::existing(m_textureWindow) : nullptr) {
-        for (qint64 key : std::as_const(m_textureKeys)) cache->release(key);
+        for (qint64 key : std::as_const(m_textureKeys)) cache->release(key, m_textureGeneration);
     }
     m_textureKeys.clear();
 }
@@ -967,6 +1011,12 @@ QVariantList FilmstripItem::cellThumbnails() const {
     return out;
 }
 
+QVariantList FilmstripItem::cellRects() const {
+    QVariantList out;
+    for (const QRectF& r : m_cellRects) out.append(r);
+    return out;
+}
+
 QSGNode* FilmstripItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*) {
     if (!m_dirty && old) return old;
     m_dirty = false;
@@ -974,18 +1024,20 @@ QSGNode* FilmstripItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*) {
     delete old;
     m_cellCount = 0;
     m_drawnCells = 0;
+    m_cellRects.clear();
     m_stripedFraction = 0;
     m_drawn = drawSpan();
     QMetaObject::invokeMethod(this, &FilmstripItem::painted, Qt::QueuedConnection);
     // The textures of the new node are taken before the old ones are let go,
     // so one the two share is never unused in between.
     const QList<qint64> previous = m_textureKeys;
+    const quint64 previousGeneration = m_textureGeneration;
     QPointer<QQuickWindow> previousWindow = m_textureWindow;
     m_textureKeys.clear();
     m_textureWindow = window();
     const auto done = [&](QSGNode* node) {
         if (auto* cache = previousWindow ? nt::ui::TextureCache::existing(previousWindow) : nullptr) {
-            for (qint64 key : previous) cache->release(key);
+            for (qint64 key : previous) cache->release(key, previousGeneration);
         }
         return node;
     };
@@ -994,7 +1046,7 @@ QSGNode* FilmstripItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*) {
         return done(nullptr);
     }
     auto* cache = nt::ui::TextureCache::of(window());
-    QSGTexture* texture = cache->acquire(m_thumbs->atlas, false);
+    QSGTexture* texture = cache->acquire(m_thumbs->atlas, false, &m_textureGeneration);
     if (!texture) return done(nullptr);
     m_textureKeys.append(m_thumbs->atlas.cacheKey());
 
@@ -1008,6 +1060,7 @@ QSGNode* FilmstripItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*) {
         node->setTexture(texture);
         node->setFiltering(QSGTexture::Linear);
         node->setRect(rect);
+        m_cellRects.push_back(rect);
         node->setSourceRect(coverSource(QRectF(index * thumbSize.width(), 0, thumbSize.width(), thumbSize.height()),
                                         rect.size()));
         root->appendChildNode(node);
@@ -1040,7 +1093,7 @@ QSGNode* FilmstripItem::updatePaintNode(QSGNode* old, UpdatePaintNodeData*) {
         const double tailFrom = std::max(w - fraction * w, m_drawn.from);
         const double tailTo = std::min(w, m_drawn.to);
         const QImage& tile = sharedStripeTile(m_stripe);
-        QSGTexture* stripes = tailTo > tailFrom ? cache->acquire(tile, true) : nullptr;
+        QSGTexture* stripes = tailTo > tailFrom ? cache->acquire(tile, true, &m_textureGeneration) : nullptr;
         if (stripes) {
             m_textureKeys.append(tile.cacheKey());
             auto* node = new QSGSimpleTextureNode;

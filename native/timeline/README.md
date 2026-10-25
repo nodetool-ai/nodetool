@@ -665,14 +665,24 @@ hardware failure before the first frame falls back to software (D15).
   the virtual keyboard, Qt 3D), adds the full licence texts (`licenses/`,
   the FFmpeg source's, miniaudio's, the fonts') and
   `Contents/Resources/source/` (the FFmpeg source tarball and
-  `SOURCES.txt`: FFmpeg's configuration, Qt's source archives with their
-  checksums), and renews the ad-hoc signatures. The bundle has no identity signature and no notarization:
+  `SOURCES.txt`: FFmpeg's configuration, then each Homebrew keg the bundle
+  holds a file of, with its source archive, patches and recipe checksum),
+  and renews the ad-hoc signatures. `macho-deps.py notices` builds that
+  list from the bundle's Mach-O files, not from a fixed list, so OpenSSL,
+  GLib, PCRE2, ICU, FreeType and every other library that `macdeployqt`
+  copies get their licence texts (`licenses/third-party/<formula>/`) and
+  their source. Each keg's source comes from its install record
+  (`sbom.spdx.json`, `.brew/<formula>.rb`), not from the current Homebrew
+  metadata, which can name a newer Qt than the one installed. The bundle has no identity signature and no notarization:
   that is a release step for the owner of a Developer ID.
   `check-package-macos.sh` copies the bundle to a temp folder and fails on
   any library path or rpath outside the bundle and the system, any
   `@rpath`, `@loader_path` or `@executable_path` reference that does not
   resolve to a file inside the bundle (`macho-deps.py check`), a dangling
-  link, a missing licence text or source, an FFmpeg that is not LGPL or
+  link, a missing licence text or source, a bundled library with no
+  component in `components.json` (`macho-deps.py notices-check`), a Qt
+  framework whose version is not the version of its named source, an
+  FFmpeg that is not LGPL or
   carries `--enable-gpl`, an identity signature or a stapled ticket, and checks
   that the copy runs headless (`--audio-dry-run`, `--dump-plan`,
   `--probe-media`, `--screenshot` of the QML editor, `--stills` with
@@ -686,11 +696,16 @@ hardware failure before the first frame falls back to software (D15).
   compiles the Linux hardware path against Qt's Vulkan API (objects only).
 - **Not compiled yet.** The Windows path needs the Windows SDK; the Linux
   path has not been linked or run on Linux. `.github/workflows/native-timeline.yml`
-  builds and runs the headless ctest on macOS (the Cocoa platform: the
-  offscreen platform has no Metal QRhi), Linux (Qt offscreen, Vulkan on Mesa
-  lavapipe, with a `QVulkanInstance` attached by `hw::prepareWindow`) and
-  Windows (offscreen, D3D11), and packages the macOS app. It also holds a
-  Windows `windeployqt` package and a Linux AppImage step, both unverified.
+  builds and runs the headless ctest on macOS, Linux and Windows. The
+  offscreen platform has no QRhi, so only the window-event tests set it
+  (ctest `ENVIRONMENT`). The render tests (ctest label `render`) run on
+  Metal on the Cocoa platform, on Vulkan on Mesa lavapipe through xcb under
+  Xvfb (a `QVulkanInstance` attached by `hw::prepareWindow`), and on D3D11 on
+  the WARP adapter through the Windows platform, and the step checks the
+  backend and the adapter in their log. It packages the macOS app. It also
+  holds a Windows `windeployqt` package, whose smoke runs use a copy with
+  PATH cut to the system folders (`--screenshot`, `--stills`), and a Linux
+  AppImage step, both unverified.
   The workflow has not run.
 - **Budgets.** `bench/budgets-<platform>-m1b.json` and `-m1c.json` carry the
   macOS measurements and a `_machine` record to fill in on the reference

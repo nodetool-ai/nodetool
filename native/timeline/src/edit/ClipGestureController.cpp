@@ -838,10 +838,13 @@ bool hasFiniteSource(const QJsonObject& clip) {
 }
 
 // The asset a clip's source belongs to: `currentAssetId`, or for the
-// prototype's local files the raw `mediaPath`.
+// prototype's local files the raw `mediaPath`, else the raw `audioPath` (a
+// sound known only by its file).
 QString assetKeyOf(const QJsonObject& clip) {
     const QString asset = clip.value(u"currentAssetId").toString();
-    return asset.isEmpty() ? clip.value(u"mediaPath").toString() : asset;
+    if (!asset.isEmpty()) return asset;
+    const QString media = clip.value(u"mediaPath").toString();
+    return media.isEmpty() ? clip.value(u"audioPath").toString() : media;
 }
 
 }  // namespace

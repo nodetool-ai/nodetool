@@ -4,8 +4,10 @@
 #   1. every Mach-O file in the bundle links only the system, @rpath,
 #      @executable_path or @loader_path: no /opt/homebrew, /usr/local or
 #      build path, and no LC_RPATH outside the bundle;
-#   2. FFmpeg in the bundle is the LGPL build (its licence string), and no
-#      library carries --enable-gpl in its configuration;
+#   2. FFmpeg in the bundle is the LGPL build (its licence string), no
+#      library carries --enable-gpl in its configuration, every bundled
+#      library has its licence texts and source (macho-deps.py
+#      notices-check), and each Qt framework's source is its own version;
 #   3. the signature is ad-hoc only: no team identifier, no notarization ticket;
 #   4. the bundled binary runs headless from the copy: --audio-dry-run,
 #      --dump-plan, --probe-media and --stills, and DYLD_PRINT_LIBRARIES
@@ -94,7 +96,12 @@ tarball=$(ls "$srcdir"/ffmpeg-*.tar.xz 2> /dev/null | head -1)
 if [[ -z "$tarball" ]] || ! grep -q "$(shasum -a 256 "$tarball" | cut -d' ' -f1)" "$srcdir/SOURCES.txt" 2> /dev/null; then
     fail+=("the FFmpeg source or its checksum in SOURCES.txt is missing")
 fi
-grep -q "qtbase-everywhere-src" "$srcdir/SOURCES.txt" 2> /dev/null || fail+=("SOURCES.txt does not name the Qt sources")
+# Every bundled library has a notice: a component with full licence texts and
+# a source in SOURCES.txt, from the bundle's own Mach-O files (M6 F8). Each Qt
+# framework's version is the version of the source named for it (review F4).
+notices_json=$(python3 scripts/macho-deps.py notices-check "$app")
+[[ $? == 0 ]] || fail+=("bundled libraries without notices or with the wrong source")
+notice_problems=$(node -e 'console.log(JSON.parse(process.argv[1]).problems.length)' "$notices_json")
 
 # 3. Signature.
 sig=$(codesign -dv "$app" 2>&1)
@@ -143,12 +150,13 @@ awk -v p="$psnr_min" 'BEGIN{exit !(p >= 50)}' || fail+=("stills differ from the 
 pass=true
 [[ ${#fail[@]} == 0 ]] || pass=false
 node -e '
-const [pass, machos, homebrew, badLinks, badRpaths, license, signature, team, loaded, outside, stills, psnr, tmp, deps, ...fail] = process.argv.slice(1);
+const [pass, machos, homebrew, badLinks, badRpaths, license, signature, team, loaded, outside, stills, psnr, tmp, deps, notices, ...fail] = process.argv.slice(1);
 console.log(JSON.stringify({pass: pass === "true", machoFiles: Number(machos), homebrewReferences: Number(homebrew),
   absoluteLinks: badLinks ? badLinks.split("\n") : [], outsideRpaths: badRpaths ? badRpaths.split("\n") : [],
   ffmpegLicense: license, signature, teamIdentifier: team || null, librariesLoadedFromBundle: Number(loaded),
   librariesLoadedFromOutside: outside ? outside.split("\n") : [], stills: Number(stills), stillsMinPsnrDb: Number(psnr),
-  copy: tmp, unresolvedReferences: Number(deps), failures: fail}));
+  copy: tmp, unresolvedReferences: Number(deps), noticeProblems: Number(notices), failures: fail}));
 ' "$pass" "${#machos[@]}" "$homebrew_refs" "$bad_links" "$bad_rpaths" "$license" "$signature" "$team" \
-    "$loaded_from_bundle" "$outside" "$stills" "$psnr_min" "$tmp" "$deps_problems" "${fail[@]+"${fail[@]}"}"
+    "$loaded_from_bundle" "$outside" "$stills" "$psnr_min" "$tmp" "$deps_problems" "$notice_problems" \
+    "${fail[@]+"${fail[@]}"}"
 [[ $pass == true ]]

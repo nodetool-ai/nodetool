@@ -26,7 +26,11 @@
 //   frameError        per submitted frame, the largest |shown - expected|
 //                     source frame index over its WebCodecs layers
 //                     (`frame-presented`: frameSec against targetSec, the D17
-//                     rule at the clip's frame rate). Native: frameError.
+//                     rule). The index counts in the source's own frames, from
+//                     ffprobe's packet times of the fixture's media file, so a
+//                     source at another or a variable rate is measured right.
+//                     A layer whose source has no known times counts as
+//                     untimed and fails a video fixture. Native: frameError.
 //   heldFrames        submitted frames with a layer showing an older frame
 //                     than its target. Native: heldFrames.
 //   lateFrames        `frame-late` diagnostics (a newer decoded frame was
@@ -36,7 +40,8 @@
 // The element path emits no per-frame diagnostic, so frameError, heldFrames
 // and lateFrames exist for `webcodecs` only.
 // A mapped counter with no samples fails the run (fail closed), and so does
-// a fixture that composited no frame.
+// a fixture that composited no frame, and a native counterpart that did not
+// run or measured nothing.
 //
 // Chromium runs in its new headless mode (Playwright channel "chromium"),
 // which gets the Metal WebGPU adapter. The default headless shell gets only
@@ -100,14 +105,16 @@ function parseArgs(argv) {
   return a;
 }
 
-const args = parseArgs(process.argv.slice(2));
+// Set when the file runs as the script; a test imports the pure checks only.
+const isMain = process.argv[1] !== undefined && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+let args = null;
+let work = null;
+let scratch = null;
 const log = (...m) => {
-  if (!args.json) console.error(...m);
+  if (!args?.json) console.error(...m);
 };
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
-const work = makeScratch(verifiedBuildDir(root, "build-m5"), "web-baseline-");
 const assertInWork = (p) => assertInWorkIn(work, p);
-const scratch = createScratchSession({ work, repo, assertInWork, log });
 
 // ── load ──────────────────────────────────────────────────────────────────
 
@@ -158,20 +165,33 @@ async function seedFixture(server, name) {
   if (name.startsWith("example:")) {
     const slug = name.slice(8);
     const seq = await scratch.mutate(server.base, "timeline.installExample", { slug });
-    return { id: seq.id, label: name, fps: seq.fps, localFile: path.join(root, "build-m5", "plan-examples", `${slug}.json`) };
+    // An example's media lives on the server only: its layers stay untimed.
+  return { id: seq.id, label: name, fps: seq.fps, localFile: path.join(root, "build-m5", "plan-examples", `${slug}.json`), frameTimes: new Map() };
   }
   const fixture = path.join(root, "fixtures", `${name}.json`);
   const doc = JSON.parse(fs.readFileSync(fixture, "utf8"));
   const byPath = new Map();
+  const timesByFile = new Map();
+  const frameTimes = new Map();  // clip id -> its source's frame times
   for (const clip of doc.clips) {
     if (!clip.mediaPath) continue;
     const file = path.resolve(path.dirname(fixture), clip.mediaPath);
     if (!byPath.has(file)) byPath.set(file, (await scratch.upload(server, file)).id);
+    if (clip.mediaType === "video") {
+      if (!timesByFile.has(file)) timesByFile.set(file, sourceFrameTimes(file));
+      frameTimes.set(clip.id, timesByFile.get(file));
+    }
     clip.currentAssetId = byPath.get(file);
     clip.status = "generated";
     delete clip.mediaPath;
   }
-  return { id: await scratch.createTimeline(server.base, `web baseline ${name}`, doc), label: name, fps: doc.fps, localFile: fixture };
+  return {
+    id: await scratch.createTimeline(server.base, `web baseline ${name}`, doc),
+    label: name,
+    fps: doc.fps,
+    localFile: fixture,
+    frameTimes
+  };
 }
 
 // ── the browser side ──────────────────────────────────────────────────────
@@ -204,10 +224,53 @@ function summarize(values) {
   return { count: s.length, p50: round(q(0.5)), p95: round(q(0.95)), max: round(s.at(-1)) };
 }
 
-/** Per submitted frame: the presented layers between it and the previous submit. */
-function frameCorrectness(state, fps) {
+/** The index of the last of the sorted frame times at or before `sec` (0 before the first). */
+export function frameIndexAt(times, sec) {
+  let lo = 0;
+  let hi = times.length - 1;
+  let found = 0;
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1;
+    if (times[mid] <= sec + 1e-6) {
+      found = mid;
+      lo = mid + 1;
+    } else {
+      hi = mid - 1;
+    }
+  }
+  return found;
+}
+
+/** The sorted presentation times (s) of a file's first video stream's packets. */
+export function sourceFrameTimes(file) {
+  const out = execFileSync("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_entries", "packet=pts_time", "-of", "csv=p=0", file], {
+    encoding: "utf8",
+    maxBuffer: 64 << 20
+  });
+  const times = out.split("\n").map((l) => Number.parseFloat(l)).filter((t) => Number.isFinite(t)).sort((a, b) => a - b);
+  if (times.length === 0) throw new Error(`ffprobe found no video packets in ${file}`);
+  return times;
+}
+
+/** The frame times of a `frame-presented` source id (`<clipId>:<assetUrl>`), from a clip-id map. */
+export function timingByClip(frameTimes) {
+  return (sourceId) => {
+    for (const [clipId, times] of frameTimes) if (sourceId.startsWith(`${clipId}:`)) return times;
+    return null;
+  };
+}
+
+/**
+ * Per submitted frame: the presented layers between it and the previous
+ * submit. `timingFor(sourceId)` gives the source's sorted frame times; the
+ * expected frame is the last at or before the target, the shown one the
+ * last at or before its timestamp. A layer with no times is counted as
+ * untimed.
+ */
+export function frameCorrectness(state, timingFor) {
   const errors = [];
   let held = 0;
+  let untimed = 0;
   let p = 0;
   let prevAt = -Infinity;
   for (const submit of state.submits) {
@@ -216,9 +279,12 @@ function frameCorrectness(state, fps) {
     while (p < state.presented.length && state.presented[p].at <= submit.at) {
       const e = state.presented[p++];
       if (e.at <= prevAt || typeof e.target !== "number" || typeof e.shown !== "number") continue;
-      const expected = Math.floor(e.target * fps + 1e-6);
-      const shown = Math.round(e.shown * fps);
-      const error = shown - expected;
+      const times = timingFor(e.source ?? "");
+      if (!times || times.length === 0) {
+        untimed += 1;
+        continue;
+      }
+      const error = frameIndexAt(times, e.shown) - frameIndexAt(times, e.target);
       if (error < 0) older = true;
       worst = Math.max(worst ?? 0, Math.abs(error));
     }
@@ -226,7 +292,7 @@ function frameCorrectness(state, fps) {
     if (worst !== null) errors.push(worst);
     if (older) held += 1;
   }
-  return { errors, held };
+  return { errors, held, untimed };
 }
 
 /** The `decoder-open` events by implementation, with the fallback reasons. */
@@ -269,7 +335,7 @@ async function measure(page, baseUrl, seed) {
     while (r + 1 < state.rafs.length && state.rafs[r + 1] <= s.at) r++;
     if (state.rafs[r] !== undefined && state.rafs[r] <= s.at) work.push(s.at - state.rafs[r]);
   }
-  const { errors, held } = frameCorrectness(state, seed.fps);
+  const { errors, held, untimed } = frameCorrectness(state, timingByClip(seed.frameTimes));
   return {
     fixture: seed.label,
     loadAverage: { before: load, after: loadAfter },
@@ -282,6 +348,7 @@ async function measure(page, baseUrl, seed) {
     frameError: summarize(errors),
     frameErrorZeroFraction: errors.length ? Math.round((errors.filter((e) => e === 0).length / errors.length) * 1000) / 1000 : null,
     heldFrames: errors.length ? held : null,
+    untimedPresentedFrames: untimed,
     lateFrames: state.late,
     sourceUploads: state.uploads,
     presentedLayerFrames: state.presented.length,
@@ -350,6 +417,38 @@ function nativeOffscreen(seed) {
   return result;
 }
 
+// ── the verdict ───────────────────────────────────────────────────────────
+
+/** What fails one fixture's measurement with one decoder (fail closed). */
+export function fixtureFailures(tag, decoder, seed, web, native) {
+  const out = [];
+  if (web.submittedFrames === 0) out.push(`${tag}: the web preview composited no frame`);
+  for (const k of ["submitIntervalMs", "rafIntervalMs", "frameWorkMs"]) {
+    if (!web[k]) out.push(`${tag}: ${k} has no samples`);
+  }
+  if (decoder === "webcodecs" && seed.label.startsWith("video-")) {
+    if (!web.decoders.webcodecs) out.push(`${tag}: no WebCodecs decoder opened (${JSON.stringify(web.decoders)})`);
+    if (!web.frameError) out.push(`${tag}: frameError has no samples (no frame-presented diagnostics)`);
+    if (web.untimedPresentedFrames > 0) {
+      out.push(`${tag}: ${web.untimedPresentedFrames} presented layers have no source frame timing`);
+    }
+  }
+  // The native counterparts: bench_scene on every fixture with a local
+  // document, --ui-bench on every fixture with local media.
+  if (fs.existsSync(seed.localFile)) {
+    const s = native.sceneEvalMs;
+    if (!s || !Number.isFinite(s.p50) || !Number.isFinite(s.p95) || !(s.frames > 0)) {
+      out.push(`${tag}: native sceneEvalMs did not run or measured nothing (${JSON.stringify(s)})`);
+    }
+  }
+  if (seed.label.startsWith("video-")) {
+    const u = native.uiBench;
+    const measured = u && u.exit === 0 && !u.error && u.frames > 0 && u.frameMs && u.renderMs && u.guiMs && u.compositedFrames > 0;
+    if (!measured) out.push(`${tag}: native uiBench failed or measured nothing (${JSON.stringify(u)})`);
+  }
+  return out;
+}
+
 // ── the run ───────────────────────────────────────────────────────────────
 
 const failures = [];
@@ -415,36 +514,34 @@ async function measureDecoder(browser, baseUrl, seeds, decoder) {
       const web = await measure(page, baseUrl, seed);
       const native = nativeOffscreen(seed);
       results.push({ fixture: seed.label, decoder, web, native });
-      if (web.submittedFrames === 0) failures.push(`${tag}: the web preview composited no frame`);
-      for (const k of ["submitIntervalMs", "rafIntervalMs", "frameWorkMs"]) {
-        if (!web[k]) failures.push(`${tag}: ${k} has no samples`);
-      }
-      if (decoder === "webcodecs" && seed.label.startsWith("video-")) {
-        if (!web.decoders.webcodecs) failures.push(`${tag}: no WebCodecs decoder opened (${JSON.stringify(web.decoders)})`);
-        if (!web.frameError) failures.push(`${tag}: frameError has no samples (no frame-presented diagnostics)`);
-      }
+      for (const f of fixtureFailures(tag, decoder, seed, web, native)) if (!failures.includes(f)) failures.push(f);
     }
   } finally {
     await context.close();
   }
 }
 
-try {
-  await main();
-} catch (err) {
-  failures.push(`run: ${err instanceof Error ? err.stack : String(err)}`);
-} finally {
+if (isMain) {
+  args = parseArgs(process.argv.slice(2));
+  work = makeScratch(verifiedBuildDir(root, "build-m5"), "web-baseline-");
+  scratch = createScratchSession({ work, repo, assertInWork, log });
   try {
-    if (vite) await stopGroups([vite.pid]);
-    await scratch.stopServers();
+    await main();
   } catch (err) {
-    failures.push(`cleanup: ${String(err)}`);
+    failures.push(`run: ${err instanceof Error ? err.stack : String(err)}`);
+  } finally {
+    try {
+      if (vite) await stopGroups([vite.pid]);
+      await scratch.stopServers();
+    } catch (err) {
+      failures.push(`cleanup: ${String(err)}`);
+    }
   }
+  const verdict = failures.length === 0 ? "pass" : "fail";
+  const report = { kind: "native-timeline-web-baseline-v1", verdict, failures, environment, host: { os: `${os.platform()} ${os.release()}`, cpus: os.cpus()[0]?.model }, results };
+  const outPath = path.join(root, "build-m5", args.headed ? "web-baseline-headed.json" : "web-baseline.json");
+  fs.writeFileSync(outPath, `${JSON.stringify(report, null, 2)}\n`);
+  if (verdict === "pass" && !args.keep) fs.rmSync(work, { recursive: true, force: true });
+  console.log(args.json ? JSON.stringify(report) : JSON.stringify(report, null, 2));
+  process.exit(verdict === "pass" ? 0 : 1);
 }
-const verdict = failures.length === 0 ? "pass" : "fail";
-const report = { kind: "native-timeline-web-baseline-v1", verdict, failures, environment, host: { os: `${os.platform()} ${os.release()}`, cpus: os.cpus()[0]?.model }, results };
-const outPath = path.join(root, "build-m5", args.headed ? "web-baseline-headed.json" : "web-baseline.json");
-fs.writeFileSync(outPath, `${JSON.stringify(report, null, 2)}\n`);
-if (verdict === "pass" && !args.keep) fs.rmSync(work, { recursive: true, force: true });
-console.log(args.json ? JSON.stringify(report) : JSON.stringify(report, null, 2));
-process.exit(verdict === "pass" ? 0 : 1);

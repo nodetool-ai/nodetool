@@ -7,6 +7,9 @@
 //  - A port must be free before a launch, and every listener on it must be in
 //    the process group the script started before any write.
 //  - Requests refuse redirects, so none can reach another server (7777).
+//  - Each scratch server runs with an instance token (instancePreloadOption):
+//    every answer it sends carries it, and a native save goes out only after
+//    the server answered with it, so another listener on the port gets no write.
 //  - Cleanup stops whole process groups: SIGTERM, then SIGKILL after a deadline.
 
 import { spawnSync } from "node:child_process";
@@ -84,6 +87,31 @@ export async function noRedirectFetch(url, init = {}) {
     throw new Error(`refusing a redirect from ${url} to ${r.headers.get("location")}`);
   }
   return r;
+}
+
+export const INSTANCE_ENV = "NT_SCRATCH_INSTANCE";
+export const INSTANCE_HEADER = "x-nodetool-instance";
+/** The native client's variable for the token it requires (ServerSource.h). */
+export const NATIVE_EXPECT_ENV = "NODETOOL_TIMELINE_EXPECT_INSTANCE";
+
+/**
+ * A NODE_OPTIONS entry that preloads a module into every Node process of the
+ * server: each HTTP answer gets `x-nodetool-instance: $NT_SCRATCH_INSTANCE`.
+ * It runs inside the server process, so only that process can send the token.
+ */
+export function instancePreloadOption() {
+  const code = [
+    'import http from "node:http";',
+    `const token = process.env.${INSTANCE_ENV};`,
+    "if (token) {",
+    "  const writeHead = http.ServerResponse.prototype.writeHead;",
+    "  http.ServerResponse.prototype.writeHead = function (...args) {",
+    `    if (!this.headersSent) this.setHeader("${INSTANCE_HEADER}", token);`,
+    "    return writeHead.apply(this, args);",
+    "  };",
+    "}"
+  ].join("\n");
+  return `--import=data:text/javascript,${encodeURIComponent(code)}`;
 }
 
 export function groupAlive(pgid) {

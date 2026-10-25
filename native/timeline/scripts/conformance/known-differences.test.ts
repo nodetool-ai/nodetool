@@ -16,6 +16,16 @@ import * as native from "./native-ops.ts";
 export const REFUSAL =
   "the native editor does not slice keyframe or source-anchored animation curves yet";
 
+/** The message of the error `fn` throws; a call that throws nothing fails. */
+function thrownMessage(fn: () => unknown): string {
+  try {
+    fn();
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  }
+  throw new Error("expected the call to throw");
+}
+
 function makeBaseClip(): any {
   return {
     id: "clip-1",
@@ -86,10 +96,10 @@ describe("known differences", () => {
     ["source-anchored", sourceAnchored]
   ] as const) {
     it(`refuses to split a ${label} animation with the exact error`, () => {
-      expect(() => native.splitClip(clip, 250)).toThrow(`splitClip: ${REFUSAL}`);
+      expect(thrownMessage(() => native.splitClip(clip, 250))).toBe(`splitClip: ${REFUSAL}`);
     });
     it(`refuses to trim a ${label} animation with the exact error`, () => {
-      expect(() => native.trimClip(clip, "end", 100)).toThrow(`trimClip: ${REFUSAL}`);
+      expect(thrownMessage(() => native.trimClip(clip, "end", 100))).toBe(`trimClip: ${REFUSAL}`);
     });
   }
 });

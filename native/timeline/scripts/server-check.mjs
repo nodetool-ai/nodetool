@@ -89,7 +89,7 @@ const safeRm = (p) => safeRmIn(work, p);
 
 // ── scratch servers (scratch-server.mjs) ─────────────────────────────────
 
-const { servers, startServer, stopServers, assertScratch, query, mutate, upload, waitProxy, createTimeline } = createScratchSession({
+const { servers, startServer, stopServers, assertScratch, nativeEnv, query, mutate, upload, waitProxy, createTimeline } = createScratchSession({
   work,
   repo,
   assertInWork,
@@ -136,11 +136,14 @@ const cacheDir = path.join(work, "cache");
 /**
  * `nodetool-timeline --server ... --timeline ID --save [args]`. The native
  * client writes to the server, so the ownership check runs right before it
- * starts and again when it ends (a lost port fails the run).
+ * starts and again when it ends (a lost port fails the run). The client gets
+ * the server's instance token (`nativeEnv`) and refuses to write to any
+ * listener that does not answer with it.
  */
 async function saveNative(server, id, extra = []) {
   await assertScratch(server.base);
   const r = spawnSync(args.bin, ["--server", server.base, "--timeline", id, "--cache-dir", cacheDir, "--save", ...extra], {
+    env: nativeEnv(server),
     encoding: "utf8",
     maxBuffer: 256 * 1024 * 1024,
     timeout: 120_000
@@ -199,7 +202,7 @@ function openNative(server, id, mode, extra = []) {
     timeout: 300_000,
     // --stills renders through QQuickRenderControl with no window; it needs
     // the native platform plugin for its QRhi, so QT_QPA_PLATFORM stays unset.
-    env: process.env
+    env: nativeEnv(server)
   });
   const wallMs = Date.now() - started;
   const report = fs.existsSync(reportPath) ? JSON.parse(fs.readFileSync(reportPath, "utf8")) : null;
@@ -462,7 +465,7 @@ async function main() {
     const bEdit = Math.round(cb.startMs + 222);
     await assertScratch(a.base);
     const child = spawn(args.bin, ["--server", a.base, "--timeline", seed.id, "--cache-dir", cacheDir, "--save",
-      "--move-clip", `${ca.id}:${aEdit}`, "--wait-before-save", go], { stdio: ["ignore", "pipe", "pipe"] });
+      "--move-clip", `${ca.id}:${aEdit}`, "--wait-before-save", go], { env: nativeEnv(a), stdio: ["ignore", "pipe", "pipe"] });
     let stdout = "";
     let stderr = "";
     child.stdout.on("data", (d) => (stdout += d));

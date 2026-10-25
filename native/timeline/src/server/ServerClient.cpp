@@ -1,11 +1,14 @@
 #include "server/ServerClient.h"
 
 #include <QCryptographicHash>
+#include <QElapsedTimer>
 #include <QEventLoop>
 #include <QJsonDocument>
 #include <QNetworkProxy>
 #include <QNetworkReply>
 #include <QTimer>
+
+#include <algorithm>
 
 namespace nt::server {
 
@@ -156,26 +159,76 @@ QueryResult ServerClient::query(const QString& procedure, const QJsonObject& inp
     return queryAll({{procedure, input}}).front();
 }
 
+namespace {
+
+QueryResult failed(const QString& code, const QString& message, int status = 0) {
+    QueryResult r;
+    r.error.code = code;
+    r.error.message = message;
+    r.error.httpStatus = status;
+    return r;
+}
+
+}  // namespace
+
 QueryResult ServerClient::mutate(const QString& procedure, const QJsonObject& input) {
+    QElapsedTimer clock;
+    clock.start();
+    // Sends one request, aborted at the deadline. Returns false on the abort.
+    const auto send = [&](QNetworkRequest req, const QByteArray* body, HttpResponse& resp) {
+        req.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
+        decorate(req);
+        QEventLoop loop;
+        QNetworkReply* reply = body ? m_nam->post(req, *body) : m_nam->get(req);
+        QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
+        bool aborted = false;
+        QTimer deadline;
+        if (m_deadlineMs > 0) {
+            deadline.setSingleShot(true);
+            QObject::connect(&deadline, &QTimer::timeout, reply, [reply, &aborted]() {
+                aborted = true;
+                reply->abort();
+            });
+            deadline.start(static_cast<int>(std::max<qint64>(0, m_deadlineMs - clock.elapsed())));
+        }
+        if (!reply->isFinished()) loop.exec();
+        resp.status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+        resp.body = reply->readAll();
+        for (const auto& pair : reply->rawHeaderPairs()) resp.headers.insert(pair.first.toLower(), pair.second);
+        if (reply->error() != QNetworkReply::NoError && resp.status == 0) resp.networkError = reply->errorString();
+        reply->deleteLater();
+        return !aborted;
+    };
+    const auto timedOut = [&]() {
+        return failed(QStringLiteral("TIMEOUT"),
+                      QStringLiteral("%1: no answer within %2 ms").arg(procedure).arg(m_deadlineMs));
+    };
+    const auto wrongServer = [&](const char* when, const HttpResponse& resp) {
+        const QByteArray got = resp.header(kInstanceHeader);
+        return failed(QStringLiteral("WRONG_SERVER"),
+                      QStringLiteral("%1 %2: %3 is not the expected server instance (it answered %4)")
+                          .arg(QString::fromLatin1(when), procedure, m_base.toString(),
+                               got.isEmpty() ? QStringLiteral("no instance") : QString::fromLatin1(got)),
+                      resp.status);
+    };
+
+    if (!m_expectedInstance.isEmpty()) {
+        HttpResponse check;
+        if (!send(QNetworkRequest(m_base.resolved(QUrl(QStringLiteral("/ready")))), nullptr, check)) return timedOut();
+        if (check.status == 0) return parseTrpcResponse(check);  // no answer: a transient failure, nothing sent
+        if (check.header(kInstanceHeader) != m_expectedInstance) return wrongServer("refusing to write", check);
+    }
+
     QNetworkRequest req(m_base.resolved(QUrl(QStringLiteral("/trpc/") + procedure)));
-    req.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
     req.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
-    decorate(req);
-    QEventLoop loop;
-    QNetworkReply* reply = m_nam->post(req, QJsonDocument(input).toJson(QJsonDocument::Compact));
-    QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
-    loop.exec();
+    const QByteArray body = QJsonDocument(input).toJson(QJsonDocument::Compact);
     HttpResponse resp;
-    resp.status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-    resp.body = reply->readAll();
-    if (reply->error() != QNetworkReply::NoError && resp.status == 0) resp.networkError = reply->errorString();
-    reply->deleteLater();
+    if (!send(req, &body, resp)) return timedOut();
+    if (!m_expectedInstance.isEmpty() && resp.status != 0 && resp.header(kInstanceHeader) != m_expectedInstance) {
+        return wrongServer("the answer to", resp);
+    }
     if (resp.status >= 300 && resp.status < 400) {
-        QueryResult r;
-        r.error.message = QStringLiteral("refusing a redirect from %1").arg(procedure);
-        r.error.code = QStringLiteral("REDIRECT");
-        r.error.httpStatus = resp.status;
-        return r;
+        return failed(QStringLiteral("REDIRECT"), QStringLiteral("refusing a redirect from %1").arg(procedure), resp.status);
     }
     return parseTrpcResponse(resp);
 }

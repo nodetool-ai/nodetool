@@ -1,5 +1,6 @@
 // node --test native/timeline/scripts/scratch-safety.test.mjs
-// Works only under native/timeline/build-m5/ and on loopback ports it opens.
+// Works only under native/timeline/build-m5/ (or SCRATCH_SAFETY_BUILD_DIR, a
+// folder name next to it) and on loopback ports it opens.
 
 import { spawn } from "node:child_process";
 import fs from "node:fs";
@@ -13,6 +14,9 @@ import {
   assertInWork,
   groupAlive,
   groupOwnsPort,
+  INSTANCE_ENV,
+  INSTANCE_HEADER,
+  instancePreloadOption,
   makeScratch,
   noRedirectFetch,
   safeRm,
@@ -21,7 +25,7 @@ import {
 } from "./scratch-safety.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const area = fs.mkdtempSync(path.join(verifiedBuildDir(root, "build-m5"), "test-safety-"));
+const area = fs.mkdtempSync(path.join(verifiedBuildDir(root, process.env.SCRATCH_SAFETY_BUILD_DIR ?? "build-m5"), "test-safety-"));
 test.after(() => fs.rmSync(area, { recursive: true, force: true }));
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -117,4 +121,65 @@ test("stopGroups ends descendants that outlive the leader and ignore SIGTERM", a
   assert.equal(groupAlive(child.pid), true, "the grandchild keeps the group alive");
   await stopGroups([child.pid], { termMs: 300, killMs: 2000 });
   assert.equal(groupAlive(child.pid), false);
+});
+
+/** Starts `code` (CommonJS) with the instance preload; resolves with the port it prints. */
+async function startWithPreload(code, instance) {
+  const env = { ...process.env, NODE_OPTIONS: instancePreloadOption() };
+  if (instance) env[INSTANCE_ENV] = instance;
+  else delete env[INSTANCE_ENV];
+  const child = spawn(process.execPath, ["-e", code], { detached: true, stdio: ["ignore", "pipe", "inherit"], env });
+  const port = await new Promise((resolve, reject) => {
+    let out = "";
+    child.stdout.on("data", (d) => {
+      out += d;
+      const m = out.match(/port (\d+)/);
+      if (m) resolve(Number(m[1]));
+    });
+    child.on("exit", (c) => reject(new Error(`exited ${c}`)));
+  });
+  return { child, port };
+}
+
+const listen = `.listen(0,"127.0.0.1",function(){console.log("port "+this.address().port)})`;
+
+test("the instance preload marks every answer of the server it runs in", async () => {
+  // writeHead with headers (Fastify), an implicit head, and an error status.
+  const code = `require("http").createServer((q,s)=>{
+    if (q.url==="/a") { s.writeHead(200,{"content-type":"application/json"}); s.end("{}"); }
+    else if (q.url==="/b") s.end("plain");
+    else { s.statusCode=404; s.end(); }
+  })${listen}`;
+  const { child, port } = await startWithPreload(code, "token-1");
+  try {
+    for (const p of ["/a", "/b", "/missing"]) {
+      const r = await fetch(`http://127.0.0.1:${port}${p}`);
+      assert.equal(r.headers.get(INSTANCE_HEADER), "token-1", p);
+    }
+    const post = await fetch(`http://127.0.0.1:${port}/a`, { method: "POST", body: "x" });
+    assert.equal(post.headers.get(INSTANCE_HEADER), "token-1");
+  } finally {
+    await stopGroups([child.pid], { termMs: 2000 });
+  }
+});
+
+test("the instance preload reaches a server started by a launcher (tsx)", async () => {
+  // The launcher spawns the server, as tsx's CLI does; NODE_OPTIONS is inherited.
+  const server = `require("http").createServer((q,s)=>s.end("ok"))${listen}`;
+  const code = `require("child_process").spawn(process.execPath,["-e",${JSON.stringify(server)}],{stdio:"inherit"})`;
+  const { child, port } = await startWithPreload(code, "token-2");
+  try {
+    assert.equal((await fetch(`http://127.0.0.1:${port}/`)).headers.get(INSTANCE_HEADER), "token-2");
+  } finally {
+    await stopGroups([child.pid], { termMs: 2000 });
+  }
+});
+
+test("without a token the preload adds no instance header", async () => {
+  const { child, port } = await startWithPreload(`require("http").createServer((q,s)=>s.end("ok"))${listen}`, null);
+  try {
+    assert.equal((await fetch(`http://127.0.0.1:${port}/`)).headers.get(INSTANCE_HEADER), null);
+  } finally {
+    await stopGroups([child.pid], { termMs: 2000 });
+  }
 });
