@@ -1,6 +1,7 @@
 /** Opens a document for the user and waits for its loaded editor handler. */
 
 import { z } from "zod";
+import type { ResourceKind } from "@nodetool-ai/protocol";
 import {
   FrontendToolRegistry,
   type FrontendToolContext
@@ -35,6 +36,14 @@ import {
   whenSketchAgentReady
 } from "../../../components/sketch/sketchAgentBridge";
 import {
+  hasSvgAgentHandler,
+  whenSvgAgentReady
+} from "../../../components/workspace/svgAgentBridge";
+import {
+  hasAudioAgentHandler,
+  whenAudioAgentReady
+} from "../../../components/audio_editor/audioAgentBridge";
+import {
   hasPuckAgentHandler,
   whenPuckAgentReady
 } from "../../../components/appbuilder/puck/puckAgentBridge";
@@ -50,7 +59,9 @@ const OPENABLE_TYPES = [
   "script",
   "jsscript",
   "sketch",
-  "app"
+  "app",
+  "svg",
+  "audio"
 ] as const;
 
 type OpenableType = (typeof OPENABLE_TYPES)[number];
@@ -62,7 +73,9 @@ const TAB_TYPE = {
   script: "script",
   jsscript: "jsscript",
   sketch: "sketch",
-  app: "application"
+  app: "application",
+  svg: "svg",
+  audio: "audio"
 } satisfies Record<OpenableType, WorkspaceTabType>;
 
 const LABEL = {
@@ -72,8 +85,23 @@ const LABEL = {
   script: "script",
   jsscript: "JS script",
   sketch: "image document",
-  app: "app"
+  app: "app",
+  svg: "SVG asset",
+  audio: "audio asset"
 } satisfies Record<OpenableType, string>;
+
+/** SVG and audio documents are assets, and their links say so. */
+const RESOURCE_KIND = {
+  workflow: "workflow",
+  timeline: "timeline",
+  storyboard: "storyboard",
+  script: "script",
+  jsscript: "jsscript",
+  sketch: "sketch",
+  app: "app",
+  svg: "asset",
+  audio: "asset"
+} satisfies Record<OpenableType, ResourceKind>;
 
 /** Editors register after loading, so handler presence means readiness. */
 const isReady = {
@@ -83,7 +111,9 @@ const isReady = {
   script: (id) => hasScriptAgentHandler(id),
   jsscript: (id) => hasJsScriptAgentHandler(id),
   sketch: (id) => hasSketchAgentHandler(id),
-  app: (id) => hasPuckAgentHandler(id)
+  app: (id) => hasPuckAgentHandler(id),
+  svg: (id) => hasSvgAgentHandler(id),
+  audio: (id) => hasAudioAgentHandler(id)
 } satisfies Record<
   OpenableType,
   (id: string, ctx: FrontendToolContext) => boolean
@@ -123,7 +153,9 @@ const waitUntilReady = (
     script: whenScriptAgentReady,
     jsscript: whenJsScriptAgentReady,
     sketch: whenSketchAgentReady,
-    app: whenPuckAgentReady
+    app: whenPuckAgentReady,
+    svg: whenSvgAgentReady,
+    audio: whenAudioAgentReady
   };
   return wait[type](id, ctx.abortSignal);
 };
@@ -166,7 +198,7 @@ export async function openDocument(
       type,
       id,
       already_open: true,
-      url: docUrl(type, id)
+      url: docUrl(RESOURCE_KIND[type], id)
     };
   }
 
@@ -194,7 +226,7 @@ export async function openDocument(
       type,
       id,
       already_open: wasOpen,
-      url: docUrl(type, id)
+      url: docUrl(RESOURCE_KIND[type], id)
     };
   }
 
@@ -213,7 +245,7 @@ export async function openDocument(
 FrontendToolRegistry.register({
   name: "ui_open_document",
   description:
-    "Open a document in the workspace as a tab so the other ui_* tools can act on it. Use this to show a document to the user. For edits to a closed timeline, storyboard, script or sketch, use its server edit capability. Types: workflow, timeline, storyboard, script, jsscript, sketch, app. The id is the document's id (from list_timelines, list_sketches, list_storyboards, list_scripts, list_js_scripts, a resource link, or the user). Documents open in edit mode; already-open documents are focused rather than duplicated. Returns once the editor has loaded and the document's tools are usable.",
+    "Open a document in the workspace as a tab so the other ui_* tools can act on it. Use this to show a document to the user. For edits to a closed timeline, storyboard, script or sketch, use its server edit capability. Types: workflow, timeline, storyboard, script, jsscript, sketch, app, svg, audio. The id is the document's id (from list_timelines, list_sketches, list_storyboards, list_scripts, list_js_scripts, a resource link, or the user); for svg and audio it is the asset id. Documents open in edit mode; already-open documents are focused rather than duplicated. Returns once the editor has loaded and the document's tools are usable.",
   parameters: z.object({
     type: z
       .enum(OPENABLE_TYPES)

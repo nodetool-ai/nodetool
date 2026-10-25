@@ -817,6 +817,16 @@ export const EVAL_SUITES: readonly EvalSuite[] = [
     (mod) => mod.MODEL3D_TOOL_LOOP_CASES
   ),
   makeToolLoopSuite(
+    "svg-tools",
+    "Run the SVG editor surface tool-loop eval suite (ui_svg_* tools) against a provider/model",
+    (mod) => mod.SVG_TOOL_LOOP_CASES
+  ),
+  makeToolLoopSuite(
+    "audio-tools",
+    "Run the audio editor surface tool-loop eval suite (ui_audio_* tools) against a provider/model",
+    (mod) => mod.AUDIO_TOOL_LOOP_CASES
+  ),
+  makeToolLoopSuite(
     "app-tools",
     "Run the App Builder surface tool-loop eval suite (ui_app_* tools) against a provider/model",
     (mod) => mod.APP_TOOL_LOOP_CASES

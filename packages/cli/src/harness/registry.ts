@@ -194,6 +194,17 @@ const TIMELINE_NATIVE_MEDIA_EDITING_SUITES =
   " && npm run test --workspace=packages/websocket -- generation-recovery-media";
 
 /**
+ * The SVG and audio editor agent tools: the headless `svg-tools` and
+ * `audio-tools` bridges with a golden transcript per eval case, and the browser
+ * side of the same `ui_svg_*` / `ui_audio_*` contracts (tool parsing, the live
+ * editor handlers, the shared effect catalog). One constant so the entry's
+ * `command` and its `selfcheck` cannot drift.
+ */
+const ASSET_EDITOR_TOOL_SUITES =
+  "npm run test --workspace=packages/agents -- svg-tool-loop audio-tool-loop && " +
+  "npm run test --workspace=web -- svgTools audioTools audioAgentOps audioEffects AudioSampleEditor SvgSurface AudioSurface";
+
+/**
  * The audio-driven-motion suites: `bake_audio_animation`'s own arithmetic
  * (the two clock hops, the envelope/beats curve shapes) plus the end-to-end
  * demonstration that bakes a beat-synced pulse onto a clip that already
@@ -594,6 +605,16 @@ export const HARNESSES: HarnessEntry[] = [
     agentTool: "ui_timeline_generatively_edit_clip",
     docs: "docs/native-media-editing/prd.md § 9",
     selfcheck: { command: TIMELINE_NATIVE_MEDIA_EDITING_SUITES, cost: "cheap" }
+  },
+  {
+    id: "asset-editor-tools",
+    title: "SVG and audio editor agent tools (ui_svg_*, ui_audio_*)",
+    command: ASSET_EDITOR_TOOL_SUITES,
+    kind: "static",
+    capabilities: ["no-db"],
+    agentTool: "ui_audio_edit",
+    docs: "packages/agents/AGENTS.md § Tool-loop eval suites",
+    selfcheck: { command: ASSET_EDITOR_TOOL_SUITES, cost: "cheap" }
   },
   {
     id: "timeline-audio-drive",
@@ -1806,6 +1827,33 @@ export const SURFACES: SurfaceEntry[] = [
       "web/src/components/model_editor/",
       "web/src/components/workspace/Model3DSurface.tsx",
       "web/src/lib/tools/builtin/model3d.ts"
+    ]
+  },
+  {
+    id: "svg-editor",
+    title: "SVG editor (markup draft, ui_svg_* tools, assistant panel)",
+    harnesses: ["asset-editor-tools", "eval"],
+    paths: [
+      "packages/protocol/src/api-schemas/asset-editor-tool-contracts.ts",
+      "packages/agents/src/evals/surfaces/svg.ts",
+      "web/src/components/workspace/SvgSurface.tsx",
+      "web/src/components/workspace/SvgPreview.tsx",
+      "web/src/components/workspace/svgAgentBridge.ts",
+      "web/src/components/workspace/AssetAgentPanel.tsx",
+      "web/src/lib/tools/builtin/svg.ts"
+    ]
+  },
+  {
+    id: "audio-editor",
+    title: "Audio sample editor (PCM edits, effects, ui_audio_* tools, assistant panel)",
+    harnesses: ["asset-editor-tools", "eval"],
+    paths: [
+      "packages/protocol/src/api-schemas/asset-editor-tool-contracts.ts",
+      "packages/agents/src/evals/surfaces/audio.ts",
+      "web/src/components/audio_editor/",
+      "web/src/components/workspace/AudioSurface.tsx",
+      "web/src/components/workspace/AssetAgentPanel.tsx",
+      "web/src/lib/tools/builtin/audio.ts"
     ]
   },
   {

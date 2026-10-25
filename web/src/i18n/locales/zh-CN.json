@@ -15793,7 +15793,11 @@
       "askAgent": "询问代理"
     },
     "audio": {
-      "asset": "音频资源"
+      "asset": "音频资源",
+      "assistant": "助手",
+      "resizeAssistant": "调整音频助手大小",
+      "assistantWelcomeTitle": "音频助手",
+      "assistantWelcomeBody": "让我编辑这段音频，例如“剪掉开头的静音”“让最后两秒淡出”或“加一点混响”。在你保存之前，修改不会保存。"
     },
     "chat": {
       "conversation": "对话",
@@ -15893,7 +15897,11 @@
       "loadError": "无法加载此 SVG。",
       "notFound": "未找到 SVG",
       "mayHaveBeenDeleted": "它可能已被删除。",
-      "contentLoadError": "无法加载 SVG 内容。"
+      "contentLoadError": "无法加载 SVG 内容。",
+      "assistant": "助手",
+      "resizeAssistant": "调整 SVG 助手大小",
+      "assistantWelcomeTitle": "SVG 助手",
+      "assistantWelcomeBody": "让我修改这张图，例如“把圆形改成红色”“添加投影”或“简化路径”。在你保存之前，修改不会保存。"
     },
     "text": {
       "loadError": "无法加载此文本文件。",

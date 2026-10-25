@@ -15793,7 +15793,11 @@
       "askAgent": "Ask agent"
     },
     "audio": {
-      "asset": "audio asset"
+      "asset": "audio asset",
+      "assistant": "Assistant",
+      "resizeAssistant": "Resize audio assistant",
+      "assistantWelcomeTitle": "Audio assistant",
+      "assistantWelcomeBody": "Ask me to edit this audio, for example \"trim the silence at the start\", \"fade out the last two seconds\" or \"add some reverb\". Edits stay unsaved until you save."
     },
     "chat": {
       "conversation": "conversation",
@@ -15893,7 +15897,11 @@
       "loadError": "Could not load this SVG.",
       "notFound": "SVG not found",
       "mayHaveBeenDeleted": "It may have been deleted.",
-      "contentLoadError": "Could not load the SVG content."
+      "contentLoadError": "Could not load the SVG content.",
+      "assistant": "Assistant",
+      "resizeAssistant": "Resize SVG assistant",
+      "assistantWelcomeTitle": "SVG assistant",
+      "assistantWelcomeBody": "Ask me to change this drawing, for example \"make the circle red\", \"add a drop shadow\" or \"simplify the paths\". Edits stay unsaved until you save."
     },
     "text": {
       "loadError": "Could not load this text file.",

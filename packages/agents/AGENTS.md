@@ -2116,7 +2116,7 @@ loop completed *and* no critical check failed, and `successRate` — what
 provider error" is reported alongside as `completionRate`: it is a liveness
 signal, not a result, and a model that called zero tools scores 100% on it.
 
-Eleven suites are registered:
+Thirteen suites are registered:
 
 | Suite | Tools | Bridge (`src/evals/`) |
 |---|---|---|
@@ -2128,6 +2128,8 @@ Eleven suites are registered:
 | `timeline-tools` | `ui_timeline_*` | `surfaces/timeline.ts` |
 | `storyboard-tools` | `ui_storyboard_*` | `surfaces/storyboard.ts` |
 | `model3d-tools` | `ui_3d_*` | `surfaces/model3d.ts` |
+| `svg-tools` | `ui_svg_*` SVG markup editor | `surfaces/svg.ts` |
+| `audio-tools` | `ui_audio_*` audio sample editor | `surfaces/audio.ts` |
 | `app-tools` | `ui_app_*` App Builder | `surfaces/app.ts` |
 | `memory-tools` | `memory_*` / `asset_*` | `surfaces/memory.ts` |
 | `creative-pipeline` | the three creative surfaces, composed, plus `ui_brief_*` / `ui_review_*` | `surfaces/creative-pipeline.ts` |
@@ -2271,6 +2273,16 @@ does not have before accepting it isn't there. Run it with
 Harness tests, including a golden transcript per case so no case can be
 unsatisfiable: `tests/escalation-tool-loop.test.ts`.
 
+The `svg-tools` and `audio-tools` bridges build every tool from the shared
+contracts in `@nodetool-ai/protocol/api-schemas/asset-editor-tool-contracts`,
+the same record the browser tools read, and apply its exact-once replacement,
+range and effect-parameter rules. The SVG bridge checks markup with
+fast-xml-parser where the browser uses `DOMParser`. The audio bridge edits a
+mono buffer at `AUDIO_BRIDGE_SAMPLE_RATE` and validates effects without
+rendering them, because rendering needs an `OfflineAudioContext`. It records
+each effect with its filled-in parameters, and `speed` changes the length as
+the real render does.
+
 `memory-tools` is the odd one out: instead of reimplementing a browser
 surface, its bridge executes the **real backend tools** (`memory_save`,
 `memory_list`, `memory_search`, `asset_search`) plus a stub `generate_image`
@@ -2326,7 +2338,7 @@ npm run dev:nodetool -- eval model3d-tools -p openai -m gpt-5.4-mini --min-succe
 ```
 
 Harness tests (scripted provider, no network): `tests/tool-loop-eval.test.ts`
-plus one per surface (`tests/{script,js-script,sketch,timeline,storyboard,model3d,app,memory,creative-pipeline}-tool-loop.test.ts`).
+plus one per surface (`tests/{script,js-script,sketch,timeline,storyboard,model3d,svg,audio,app,memory,creative-pipeline}-tool-loop.test.ts`).
 For a live check against a real model, run the eval command above — a suite
 whose verdict depends on what a model chose belongs behind an explicit
 invocation, not in the unit suite, where a weak local model fails the run for

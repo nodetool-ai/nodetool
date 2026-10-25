@@ -22,7 +22,7 @@ describe("buildChatAgentSystemPrompt — the workflow the turn is bound to", () 
     "workspace_chat", "workflow_canvas", "sketch_assistant",
     "timeline_assistant", "game_assistant", "storyboard_assistant", "script_assistant",
     "jsscript_assistant", "app_builder", "code_assistant", "text_editor",
-    "model3d_assistant"
+    "model3d_assistant", "svg_assistant", "audio_assistant"
   ] as const satisfies readonly ChatSource[];
 
   it.each(sources)("keeps product knowledge with surface guidance (%s)", (source) => {

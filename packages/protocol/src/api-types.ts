@@ -780,8 +780,8 @@ export interface UiDocumentRef {
   /**
    * The document's id: `image_documents.id` for sketch, `timeline_sequences.id`
    * for timeline, `storyboards.id`, `scripts.id`, `js_scripts.id` for
-   * `jsscript`, `workflows.id` for `workflow`, and `applications.id` for
-   * `app`.
+   * `jsscript`, `workflows.id` for `workflow`, `applications.id` for
+   * `app`, and `assets.id` for `svg` and `audio`.
    */
   id: string;
   title?: string | null;
@@ -796,6 +796,8 @@ export type UiSurfaceType =
   | "script"
   | "jsscript"
   | "app"
+  | "svg"
+  | "audio"
   | "chat";
 
 /**
@@ -814,7 +816,9 @@ export type ChatSource =
   | "app_builder"
   | "code_assistant"
   | "text_editor"
-  | "model3d_assistant";
+  | "model3d_assistant"
+  | "svg_assistant"
+  | "audio_assistant";
 
 export interface UiRunReference {
   run_id: string;
