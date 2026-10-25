@@ -11,10 +11,12 @@
 #include "preview/YuvFormat.h"
 
 #include <atomic>
+#include <chrono>
 #include <condition_variable>
 #include <functional>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <thread>
 
@@ -37,6 +39,16 @@ void setTestDecodeFailureAfterPackets(int packets);
 // Test seam: decoders created after this call fail VideoToolbox setup at
 // their open number `open` (0 is the first open, 1 the first reopen); -1 off.
 void setTestHardwareSetupFailureOnOpen(int open);
+// Test seam: VideoToolbox decoders created after this call block in their
+// packet send after `packets` packets, as a VideoToolbox session that never
+// returns. The block ignores stop requests; releaseTestStalls() ends every
+// such block. -1 turns it off.
+void setTestHardwareStallAfterPackets(int packets);
+void releaseTestStalls();
+// Test seam: VideoToolbox decoders created after this call drop every
+// decoded frame after the first `frames`, as a session that accepts packets
+// and returns nothing. -1 turns it off.
+void setTestHardwareFrameLossAfterFrames(int frames);
 
 // The QoS class of the last decode worker that started (bench diagnostics).
 const char* lastDecodeWorkerQos();
@@ -84,10 +96,19 @@ struct DecodedFrame {
     ~DecodedFrame();
 };
 
+// The memory a decoded frame keeps allocated: its padded software buffers,
+// or its IOSurface's allocation for a VideoToolbox frame (review F3).
+size_t frameBytes(const DecodedFrame& f);
+
+// The watchdog limit: a VideoToolbox decoder with a pending target that makes
+// no progress for this long is stalled.
+inline constexpr std::chrono::milliseconds kDecoderStallLimit{1000};
+
 class FfmpegDecoder {
 public:
     // Starts the worker, which opens `path` and pre-rolls to `initialSec`.
-    FfmpegDecoder(std::string path, double initialSec);
+    // `mode` overrides the --decode mode for this decoder.
+    FfmpegDecoder(std::string path, double initialSec, std::optional<DecodeMode> mode = std::nullopt);
     // Stops the worker: an interrupt callback ends blocking FFmpeg I/O, then
     // the thread is joined. Call it off the render thread (SourcePool retires
     // decoders on its own thread).
@@ -110,6 +131,19 @@ public:
 
     // Asks the worker to stop; the destructor waits for it.
     void requestStop();
+
+    // Render thread, the watchdog: true when the worker decodes with
+    // VideoToolbox, the last frameAt() was not exact (a target is pending),
+    // and the worker made no progress (no decoded frame, no idle wait with a
+    // full queue) for `limit`. A VideoToolbox session can block in
+    // VTDecompressionSessionDecodeFrame, or accept packets and return no frame.
+    bool stalled(std::chrono::milliseconds limit = kDecoderStallLimit) const;
+
+    // Stops `decoder` and joins its worker if the worker ends within `grace`.
+    // Otherwise the worker is abandoned: its queued frames are dropped now,
+    // its thread is detached, and the decoder deletes itself if the worker
+    // ever returns. Never blocks longer than `grace`. True when joined.
+    static bool stopWithin(std::unique_ptr<FfmpegDecoder> decoder, std::chrono::milliseconds grace);
 
     // Render thread: a VideoToolbox frame could not be imported to the GPU.
     // Before any hardware frame was shown, Auto reopens in software with the
@@ -135,12 +169,16 @@ public:
 private:
     void run();
     void publishFacts(const MediaFacts& facts);
+    void beat();
+    void publishSkipFloor(long long gen, double floorSec);
     static int interruptCallback(void* opaque);
 
     std::string m_path;
     DecodeMode m_mode = DecodeMode::Software;
     int m_failAfterPackets = -1;  // test seam
     int m_failHardwareOnOpen = -1;  // test seam
+    int m_stallAfterPackets = -1;   // test seam
+    int m_frameLossAfterFrames = -1;  // test seam
     FrameRing<DecodedFrame> m_ring;
 
     // Requests from the render thread.
@@ -159,6 +197,20 @@ private:
 
     mutable std::mutex m_factsMutex;
     std::shared_ptr<const MediaFacts> m_facts;
+
+    // Watchdog state the worker writes: the time of its last loop step, and
+    // whether it decodes with VideoToolbox.
+    std::atomic<long long> m_heartbeatNs{0};
+    std::atomic<bool> m_hardwareActive{false};
+    // The latest anchor that justified a skipped frame in run `m_skipFloorGen`.
+    std::mutex m_skipMutex;
+    long long m_skipFloorGen = 0;
+    double m_skipFloorSec = -1e300;
+    // The worker's end, for a bounded stop.
+    std::mutex m_doneMutex;
+    std::condition_variable m_doneCv;
+    bool m_done = false;
+    bool m_abandoned = false;
 
     std::mutex m_wakeMutex;
     std::condition_variable m_wake;
@@ -180,7 +232,8 @@ private:
 // thread while the textures are released on it.
 class FfmpegSource final : public LayerSource {
 public:
-    FfmpegSource(std::string path, double initialSec, QSize nominalSize);
+    FfmpegSource(std::string path, double initialSec, QSize nominalSize,
+                 std::optional<DecodeMode> mode = std::nullopt);
     ~FfmpegSource() override;
 
     QSize frameSize() const override;

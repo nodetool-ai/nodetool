@@ -1,20 +1,83 @@
-// Mirrors web/src/components/timeline/Tracks/Playhead.tsx. The parent binds x
-// to PlaybackClock.time, so playback moves this item and nothing else.
+// Mirrors web/src/components/timeline/Tracks/Playhead.tsx: a 1.5 px
+// secondary line with a timecode pill at the top, and a 16 px grab zone below
+// the ruler. Its x is the only thing that follows the clock (D30): a move
+// touches no model, no lane and not the ruler.
 import QtQuick
 import NodeTool.Timeline
 
 Item {
-    width: 1
+    id: playhead
+    required property PlaybackClock clock
+    required property TimelineViewState viewState
+    property double fps: 30
+    // Height of the band at the top that does not grab (the ruler).
+    property double grabTopPx: Theme.rulerHeight
+    // Content end; a drag stops there.
+    property double endMs: 0
+    // The lanes' viewport width, so the pill stays whole at the edges.
+    property double viewportWidthPx: 0
+
+    readonly property double lineLeftPx: clock.time / viewState.msPerPx - viewState.scrollLeftPx
+
+    objectName: "playhead"
+    x: lineLeftPx - 8                       // HIT_AREA_WIDTH_PX / 2
+    width: 16
+    z: 10
+
+    // The line and its glow (boxShadow 0 0 10px secondary/40%).
     Rectangle {
-        x: -5
-        width: 11
-        height: 10
-        radius: 2
-        color: Theme.playhead
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: 7
+        height: parent.height
+        color: Qt.rgba(Theme.secondary.r, Theme.secondary.g, Theme.secondary.b, 0.12)
     }
     Rectangle {
-        width: 1
+        anchors.horizontalCenter: parent.horizontalCenter
+        width: 1.5                          // LINE_WIDTH_PX
         height: parent.height
-        color: Theme.playhead
+        color: Theme.secondary
+        antialiasing: true
+    }
+
+    Rectangle {
+        id: pill
+        objectName: "playheadPill"
+        y: 4
+        height: 20                          // PILL_HEIGHT_PX
+        width: pillText.implicitWidth + 2 * Theme.spacingMd
+        radius: 10
+        color: Theme.secondary
+        x: (playhead.width - width) / 2 + Math.round(TimelineFormat.pillShift(playhead.lineLeftPx, width, playhead.viewportWidthPx))
+        Text {
+            id: pillText
+            anchors.centerIn: parent
+            text: TimelineFormat.playheadTimecode(playhead.clock.time, playhead.fps)
+            color: Theme.secondaryContrast
+            font.family: Theme.monoFamily
+            font.pixelSize: Theme.fontSizeSmaller
+            font.weight: Font.DemiBold
+        }
+    }
+
+    // The grab zone: jump-and-grab drag along the line, below the ruler.
+    MouseArea {
+        objectName: "playheadGrab"
+        y: playhead.grabTopPx
+        width: parent.width
+        height: Math.max(0, parent.height - playhead.grabTopPx)
+        acceptedButtons: Qt.LeftButton
+        preventStealing: true
+        cursorShape: pressed ? Qt.ClosedHandCursor : Qt.SizeHorCursor
+        property double startSceneX: 0
+        property double startMs: 0
+        onPressed: mouse => {
+            startSceneX = mapToItem(null, mouse.x, 0).x
+            startMs = playhead.clock.time
+        }
+        onPositionChanged: mouse => {
+            const deltaMs = (mapToItem(null, mouse.x, 0).x - startSceneX) * playhead.viewState.msPerPx
+            const cap = playhead.endMs > 0 ? playhead.endMs : Number.MAX_SAFE_INTEGER
+            playhead.clock.seek(Math.max(0, Math.min(cap, startMs + deltaMs)))
+        }
     }
 }

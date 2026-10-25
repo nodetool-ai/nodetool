@@ -1,5 +1,7 @@
 #include "platform/CpuUsage.h"
 
+#if defined(__APPLE__) && !defined(NT_PORTABLE_PLATFORM)
+
 #include <mach/mach.h>
 #include <pthread.h>
 #include <pthread/qos.h>
@@ -48,3 +50,108 @@ int processNice() {
 }
 
 }  // namespace nt::cpu
+
+#else
+
+// Linux and Windows (M6), and macOS with NT_PORTABLE_PLATFORM. A thread
+// handle is an index into a table of native thread handles, because a
+// pthread_t or a Windows HANDLE does not fit the `unsigned` of the API.
+#include <mutex>
+#include <vector>
+
+#if defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <windows.h>
+#else
+#include <pthread.h>
+#include <sys/resource.h>
+#include <time.h>
+#endif
+
+namespace nt::cpu {
+namespace {
+#if defined(_WIN32)
+using NativeThread = HANDLE;
+int64_t fileTimeNs(const FILETIME& t) {
+    ULARGE_INTEGER v;
+    v.LowPart = t.dwLowDateTime;
+    v.HighPart = t.dwHighDateTime;
+    return static_cast<int64_t>(v.QuadPart) * 100;  // 100 ns units
+}
+#else
+using NativeThread = pthread_t;
+#endif
+std::mutex g_mutex;
+std::vector<NativeThread> g_threads;
+}  // namespace
+
+int64_t processNs() {
+#if defined(_WIN32)
+    FILETIME created, exited, kernel, user;
+    if (!GetProcessTimes(GetCurrentProcess(), &created, &exited, &kernel, &user)) return -1;
+    return fileTimeNs(kernel) + fileTimeNs(user);
+#else
+    rusage usage{};
+    if (getrusage(RUSAGE_SELF, &usage) != 0) return -1;
+    const auto ns = [](const timeval& tv) { return int64_t(tv.tv_sec) * 1000000000 + int64_t(tv.tv_usec) * 1000; };
+    return ns(usage.ru_utime) + ns(usage.ru_stime);
+#endif
+}
+
+unsigned currentThread() {
+#if defined(_WIN32)
+    HANDLE self = nullptr;
+    if (!DuplicateHandle(GetCurrentProcess(), GetCurrentThread(), GetCurrentProcess(), &self,
+                         THREAD_QUERY_LIMITED_INFORMATION, FALSE, 0)) {
+        return 0;
+    }
+#else
+    const pthread_t self = pthread_self();
+#endif
+    std::lock_guard lock(g_mutex);
+    g_threads.push_back(self);
+    return static_cast<unsigned>(g_threads.size());
+}
+
+int64_t threadNs(unsigned thread) {
+    NativeThread native;
+    {
+        std::lock_guard lock(g_mutex);
+        if (thread == 0 || thread > g_threads.size()) return -1;
+        native = g_threads[thread - 1];
+    }
+#if defined(_WIN32)
+    FILETIME created, exited, kernel, user;
+    if (!GetThreadTimes(native, &created, &exited, &kernel, &user)) return -1;
+    return fileTimeNs(kernel) + fileTimeNs(user);
+#elif defined(__APPLE__)
+    // NT_PORTABLE_PLATFORM on macOS (a compile check of this branch): macOS
+    // has no per-thread CPU clock id.
+    (void)native;
+    return -1;
+#else
+    clockid_t clock;
+    if (pthread_getcpuclockid(native, &clock) != 0) return -1;
+    timespec ts{};
+    if (clock_gettime(clock, &ts) != 0) return -1;
+    return int64_t(ts.tv_sec) * 1000000000 + ts.tv_nsec;
+#endif
+}
+
+// QoS classes are a macOS concept.
+const char* currentThreadQos() {
+    return "unspecified";
+}
+
+int processNice() {
+#if defined(_WIN32)
+    return 0;
+#else
+    return getpriority(PRIO_PROCESS, 0);
+#endif
+}
+
+}  // namespace nt::cpu
+
+#endif

@@ -65,6 +65,130 @@ Space toggles play. Click or drag the ruler to seek. Other options:
 `--size WxH` sets the window size, `--background` keeps an interactive run
 in the background.
 
+Only a plain interactive launch plays sound on the default output device
+(`--audio system`): no options, or only `--size`, `--seek`, `--play`,
+`--decode`/`--decoder` and `--on-top`. Any other option, in either spelling
+(`--play-stills DIR` or `--play-stills=DIR`), defaults to `--audio none`.
+`--audio-dry-run` prints the mode a command line selects and exits without
+opening a device. See [Audio](#audio-m3).
+
+## Tracks UI (M2)
+
+The tracks region copies `web/src/components/timeline/Tracks/` component by
+component (`TracksRegion`, `TimeRuler`, `TrackHeader`, `TrackLane`, `Clip`,
+`ClipBody`, `Playhead`, `TimelineZoomControls`, `TimelineScrollbar`), with the
+web theme tokens in `qml/Theme.qml`, the web fonts (Inter, JetBrains Mono,
+OFL, in `fonts/`) and the Material icon paths in `qml/Icons.qml`
+(`node scripts/extract-icons.mjs` regenerates it).
+
+- Zoom and pan (D29): `src/ui/TimelineWheel` holds the wheel, pinch, scroll
+  bar and anchored-zoom math of `timelineWheel.ts`, `TimelineScrollbar.tsx`
+  and `TracksRegion.tsx`. `TimelineViewState` holds msPerPx, the scroll and
+  the viewport; `TimelineGestureArea` turns Qt wheel and `ZoomNativeGesture`
+  events into DOM deltas (a trackpad pixel delta negated, a mouse notch as
+  Chromium's 100 px, a pinch as `-100 * ln(1 + value)`), and the zoom of one
+  frame applies once, in the item's polish step.
+- Virtualization (D27, D28): `TrackWindowModel` exposes the rows of
+  `visibleTrackWindow` (3 rows of overscan); each lane's `LaneClipModel`
+  holds the clips inside the viewport plus 320 px on each side, and the clip
+  under a drag (pinned until the drop).
+- The playhead is the only item bound to the clock (D30).
+- A clip drag moves the clip with `TimelineModel::moveClip` on the drop; the
+  undo stack and the other edits are M4.
+
+```bash
+./build/tst_tracksui        # offscreen: QT_QPA_PLATFORM=offscreen, software scene graph
+./build/tst_timelinewheel   # the pure math, with the web test cases
+node scripts/make-ui-fixture.mjs   # fixtures/generated/ui-200tracks.json: 200 tracks, 2000 clips
+./build/nodetool-timeline fixtures/generated/ui-200tracks.json --ui-bench --size 1920x1080 --ui-gui-p95 8
+```
+
+`tst_tracksui` loads `TracksRegion` into a `QQuickView` on the offscreen
+platform (no window appears) and sends synthetic wheel, native-gesture and
+mouse events. It checks the anchored zoom, the per-frame zoom batching,
+pinch, pan, vertical scroll, the scroll bar, the ruler seek, the row and
+clip windows on 50 x 200 and 200 x 10 clip timelines, a drag past the
+overscan (the delegate and the grab survive, the drop lands at the pointer),
+and that 60 frames of playback change no model, no delegate and no ruler
+paint.
+
+`--ui-bench` plays the preview and zooms and pans the tracks on a script
+(pinch in, swipe, pinch out, scroll, Ctrl-wheel, swipe back; 2 events per
+frame), then prints one `uiBench` JSON line. Offscreen (the default) it
+renders through `QQuickRenderControl` with no window and reports each stage
+of the GUI thread: `inputMs` (the clock tick and the synthetic events),
+`polishMs`, `syncMs`, `renderMs`; `guiMs` is input + polish + sync, the GUI
+thread's share of a frame in a threaded render loop. This mode (`mode:
+offscreen-throughput`) has no vsync and does not measure the presentation
+rate. Sampling starts once the 4 media layers draw decoded frames, and the
+run fails (exit 1) unless 95% of the measured frames drew them and the shown
+time moved (`preview`). `--ui-gui-p95 MS` fails the run at or over the limit.
+`--ui-window` runs the same script in a window, adds `frameIntervalMs`, and
+is run only by `scripts/window-checks.sh`.
+
+## Editing (M4)
+
+The clip edits copy the web: the operations of `packages/timeline`
+(`trimClip`, `splitClip`, `rippleEdit`, `dropResolve`, snapping) in
+`src/edit/ClipOps`, the store actions that wrap them with the lock and link
+rules (`TimelineStore.ts`) in `src/edit/EditActions`, the gestures of
+`useClipDrag.ts` and `useClipTrim.ts` (`trimModeFor`) in
+`src/edit/ClipGestureController`, and the keys of `timelineKeymap.ts` in
+`src/edit/Keymap` (the table is generated: `node scripts/extract-keymap.mjs`,
+`--check` for drift). Every edit works on the raw clip JSON and keeps the
+fields it does not own (D4).
+
+- Move (body drag): snaps both edges within 8 px, Alt moves freely, follows
+  the pointer onto a lane whose type takes the clip, moves a multi-selection
+  together, and settles the drop with the drop mode (Overwrite; Ctrl/Cmd on
+  release inserts). A click selects; Shift adds, Ctrl/Cmd toggles.
+- Trim (the 8 px grips): plain, ripple (the Ripple toggle in the toolbar, or
+  the B tool) or roll (Ctrl/Cmd, or the Shift+B tool).
+- Keys (NodeTool preset): S split at the playhead, Delete, Shift+Delete
+  ripple delete, Ctrl+A / Ctrl+Shift+A, arrows nudge a frame (Shift: a
+  second), Ctrl+Z / Ctrl+Shift+Z, N snap, V/B/Shift+B tools, the zoom keys.
+- Undo: a `QUndoStack` on `TimelineModel`. A gesture is one entry, a held
+  nudge key one entry.
+- Escape cancels a gesture and puts back the state at the press; any other
+  editing key cancels the gesture first. A new document ends a gesture with
+  no write (gestures are bound to the document generation).
+- Trims, ripples and rolls stop at the source's end: the probed length of
+  the media file (probed off the GUI thread), or until that is known the
+  furthest out-point seen on the asset; a head roll uses the neighbour's.
+- An edited clip keeps the media its load resolved (a relative path or a
+  server cache path), so a split or an undone delete plays the same file.
+
+Not ported, refused rather than half done: slicing keyframe and
+source-anchored animation curves on a split or trim (a link unit with such
+a member does not split at all), group clips as edit targets (a ripple still
+moves a group with its children), a split or drop that would split or
+remove a clip owning a media track, sync lock and track
+targeting (every unlocked track counts), the Rate stretch, Slip, Slide,
+Cut and Track select tools, duplicate and copy/paste, gap selection, the
+marquee.
+
+```bash
+node native/timeline/scripts/op-conformance.mjs   # needs build-m2/timeline-ops
+./build/tst_tracksui                               # gestures, keys, undo (offscreen)
+./build/tst_editpreview                            # the preview draws an edit on the next frame
+```
+
+`op-conformance.mjs` checks the native code against the TypeScript in four
+ways, through `timeline-ops` (one call per process, JSON in and out):
+the package's own tests for the operations run unchanged with their imports
+answered by the native code; a randomized differential of the operations;
+a randomized differential of the web store's actions (`TimelineStore.ts`,
+run in jsdom) against the native actions; and every key with every
+modifier in each keymap preset. It lists the known failures with their
+The package tests the native code does not pass are skipped by name and
+replaced in `conformance/known-differences.test.ts`: the `toBe` identity
+case with deep equality, and each unported-curve case with the exact
+refusal error. The run fails when vitest fails, a requested suite is
+missing, does not load or compares nothing, or a skipped test no longer
+exists. Ids are compared strictly: every input id must come back unchanged,
+only fresh 32-hex ids are renamed, clip ids must be unique and every
+`parentId` must name a clip.
+
 ## Bench
 
 ```bash
@@ -273,10 +397,14 @@ native/timeline/scripts/window-checks.sh   # writes build/window-checks/summary.
 ```
 
 Every check that needs a real window runs from this one script: the M1b and
-M1c budgeted benches, the teardown case, and six stall measurements (F7) with
-the process nice values, the expose and occlusion log, and the stall lists.
-The bench window never takes focus, but it is visible, so run the script when
-nobody is using the machine. Everything else (ctest, stills, play captures,
+M1c budgeted benches, the teardown case, six stall measurements (F7) with
+the process nice values, the expose and occlusion log, and the stall lists,
+and the M2 tracks UI bench in a window (`--ui-bench --ui-window`), and the
+M3 checks that need the system output: the live A/V sync on a loopback
+device (`--av-sync-live`) and a 600 s soak with 4 video tracks and 8 audio
+clips that counts underruns in the device callback. The M3 checks play
+sound. The bench window never takes focus, but it is visible, so run the
+script when nobody is using the machine. Everything else (ctest, stills, play captures,
 the plan, frame-number, golden and Metal-validation checks) runs offscreen.
 
 A frame VideoToolbox decoded but the GPU cannot import is part of the
@@ -287,6 +415,168 @@ VideoToolbox frame takes the same fallback; later, it fails the clip with
 the reason instead of freezing on the last frame. The first open and every
 reopen apply the same hardware policy.
 
+## Scrub and seek (M1d)
+
+```bash
+node native/timeline/scripts/check-scrub.mjs native/timeline/fixtures/video-scrub-gop.json --max-p95-ms 100 --decode hw
+node native/timeline/scripts/check-scrub.mjs native/timeline/fixtures/video-scrub-intra.json --max-p95-ms 30 --decode hw
+./build/nodetool-timeline fixtures/video-scrub-gop.json --scrub-script scrub/m1d.json --json
+```
+
+`--scrub-script FILE` runs a scripted scrub offscreen (no window) and prints
+one JSON report. `scrub/m1d.json` has three parts:
+
+- `exactSeeks`: paused seeks to random frames, one at a time, with the scrub
+  cache emptied before each (`coldCache`). Each is timed from the request to
+  the first frame where every layer shows its exact frame: `latencyMs` and
+  `framesToExact` percentiles.
+- `cacheSeeks`: show a frame, seek away, seek back. The report has the
+  trials attempted, the trials whose setup seeks timed out, `returnHits`
+  (seeks back answered by the cache) and `sameFrame` (seeks back exact on the
+  first frame after the request).
+- `scrubs`: random-walk seeks at `rateHz` for `seconds` (mostly drag steps,
+  one in twenty a jump), then stop. Each run records the requests, renders and
+  wall time it delivered, whether the last request settled on its exact
+  frame, how long that took, and a still for the barcode check.
+
+The report also has the cache memory: resident bytes and their peak (after
+eviction, and before eviction), the bytes the cache evicted while another
+owner still holds them (`pinnedElsewhereBytes`), and the budget. It lists the
+loader report per clip (`media`, with any fallback) and the hardware frames
+still wrapped for the GPU (`liveFrameRefs`).
+
+`check-scrub.mjs` runs it with a time limit (`--timeout-s`, default 300; the
+child is killed and the verdict fails) and fails on:
+
+- a seek p95 over `--max-p95-ms`, or a seek that never became exact;
+- a scrub whose still does not carry the barcode of its last request;
+- a run that did not deliver the script: fewer runs or seeks than scripted,
+  a request rate under 90 % of `rateHz`, or a run shorter than `seconds`;
+- a cache trial that timed out, missed the cache, or was not exact on its
+  first frame;
+- a missing or non-finite measurement, a budget other than 256 MB, or a peak
+  over it.
+
+`node --test scripts/check-scrub.test.mjs` checks the verdict against broken
+reports and a run that never finishes.
+
+The scrub cache (`src/preview/FrameCache`, D19) keeps decoded frames after
+they leave a decoder's queue, keyed by media and pts, least recently used out
+first, within a shared 256 MB of real allocations. A paused seek checks it
+before it seeks. A cached frame is shown only when the frame decoded right
+after it in the same run is cached and starts after the target. A header
+frame rate proves nothing. While a decoder catches up to a seek target it
+skips a non-reference frame only when a packet read earlier starts after it
+and by the target, so a frame before a long presentation gap still decodes.
+
+**Open GOP:** x265 writes open GOPs by default. The frames just before a
+random access point are decoded after it and reference the GOP before it. A
+seek to such a frame can land on the random access point, where those frames
+are dropped, so the first frame out starts after the target. The decoder then
+seeks further back (1 s, then double) in the same run. Before this, the
+render thread restarted the seek at the same place on every frame (about 50
+seeks a second), which was the "VideoToolbox hang" that M1d first reported
+on `video-scrub-4k-hevc.json`. Software decode had the same loop
+(`openGopFramesBeforeRandomAccessPoint`).
+
+**Watchdog (hardware decode):** a hardware decoder can stop returning
+frames: it blocks inside `VTDecompressionSessionDecodeFrame`, or accepts
+packets and returns nothing. A hardware decoder with a pending target that
+decodes no frame for 1 s is stalled. The pool retires it off the render
+thread (a worker that does not end within 100 ms is abandoned), reopens the
+clip in software for the rest of the session, and the loader report says
+"hw decoder stalled, fell back to sw". `tst_sourcepool` proves both stall
+forms with test seams. After the open-GOP fix, the 24-scrub 4K stress run did
+not trigger it.
+
+Fixtures: `video-scrub-gop.json` (1080p H.264, 2 s GOP),
+`video-scrub-intra.json` (the all-intra 960 px proxy that `make-fixtures.sh`
+writes, like the server's F4 proxy), and `video-scrub-4k-hevc.json` (4K HEVC,
+2 s GOP, no proxy: the PLAN risk).
+
+## Audio (M3)
+
+```bash
+ctest --test-dir build -R 'fade|mixer|audioclock|mix_reference|av_sync'
+node scripts/check-av-sync.mjs --json
+node scripts/check-mix.mjs
+./build/nodetool-timeline fixtures/audio-mix.json --render-audio /tmp/mix.f32
+./build/nodetool-timeline fixtures/av-sync.json --av-sync
+./build/nodetool-timeline fixtures/av-sync.json --play-stills /tmp/play --still-frames 15,45 --audio null --audio-report /tmp/audio.json
+./build/nodetool-timeline --audio-devices
+```
+
+No automated check makes a sound. The offline render reads the sources
+directly, and every real-time check runs on miniaudio's null backend, which
+renders at the device rate to no device.
+
+- `--audio none|null|system` picks the output. With an engine, the device is
+  the master clock (DESIGN.md D21): the playhead is the audible position.
+  `--audio-latency-ms` sets the latency the null device reports, and
+  `--audio-report FILE` writes the engine counters at exit: underruns
+  (counted in the device callback), late starts, play start, the played
+  length, source open failures (with the clip and reason) and decode
+  errors, decoders opened and closed, output latency (on CoreAudio also the
+  device, safety offset, stream and buffer frames). A decoder closes once
+  its clip has played out or leaves the 3 s lookahead.
+- `--render-audio OUT.f32` writes the offline mix as raw float32 stereo at
+  48 kHz (`--from`, `--to`, `--rate`).
+- `--av-sync` runs M3 exit 1 on a fixture whose sources click every second:
+  each click of the offline mix within 1 ms of the time the clip placement
+  gives it, and on the null device the clock reading that time within 1 ms
+  when the click is audible, across a device change with a new latency. It
+  also fails on an underrun, a late start, or a play start of 300 ms or more.
+- `scripts/check-av-sync.mjs` adds the picture: at each click frame the
+  settled still and the first picture of a real-time play on the audio
+  clock (`--play-stills --audio null`) are the white flash with the expected
+  barcode.
+- `scripts/check-mix.mjs` diffs the offline mix with a reference that
+  decodes the sources with the ffmpeg CLI and takes every rule from the
+  TypeScript (`videoClipsWithOwnAudio`, `soundTrackSoloed`,
+  `effectiveAssetId`, `resolveClipFades`, `clipFadeGain`, `sourceRate`, and
+  the solo group and gain chain of `renderAudio.ts` and `AudioGraph.ts`), on
+  the fixture and on solo, mute and master variants. Tolerance 1e-6.
+- `scripts/fade-vectors.mjs` samples the TypeScript fade functions for
+  `tst_fadecurves` (tolerance 1e-6). ctest runs it before the test.
+- `tst_audioclock` drives `PlaybackClock` with a fake device that runs the
+  real callback half of the clock on simulated time: play, seek, rate
+  change, device change, fallback to the monotonic clock and back, the
+  300 ms start deadline, and an hour on a device 100 ppm fast.
+- `--av-sync-live` (window checks only) plays on the system output and
+  records a loopback capture device, and compares each click's arrival with
+  the audio-master clock. It fails, before any sound, when no loopback
+  device is present. It is not M3 exit 3, which needs the presentation time
+  of the flash frame on the drawable; no harness records that yet, so the
+  window checks report exit 3 as not met. `--audio-devices` lists the devices and opens
+  none.
+
+The mix copies the web rules: clip `volumeDb` and fades, then the track
+fader and pan for audio and midi tracks (a video track's own audio keeps
+unity gain and centre pan, as `AudioGraph` never sets that chain), then
+`master.volumeDb`. Mute, solo, the clip status, and the extracted-audio link
+decide which clips sound. A clip speed reads the source at `sourceRate`,
+resampled linearly (the pitch shifts, as with WebAudio `playbackRate`). A
+cross-fade is two overlapping clips with fades, as `applyAudioCrossfades`
+writes them. Not mixed yet: midi clips, clip and track effects, automation,
+time remaps, and reverse play (a rate of 0 or less runs the monotonic clock
+in silence). An edit applies to the sound from the next play or seek.
+
+Play and seek send a seek command to the device. The decode worker fills a
+PCM ring per clip near the position, and the callback starts the new
+position once every clip within 250 ms holds 250 ms of PCM, or at the 300 ms
+deadline (counted as a late start). The playhead holds at the target until
+that position is audible. A rate change continues the timeline in the
+callback without a refill.
+
+`make-fixtures.sh` writes the audio media: float WAV tones
+(`tone-440-48k-mono.wav`, `tone-220-48k-mono.wav`, `tone-lr-48k-stereo.wav`,
+`tone-660-44k-mono.wav`), a click track (`clicks-48k.wav`: a 10 ms 1 kHz
+cosine burst at each second), and `flash-beep-720p30.mov` (H.264 with a
+white flash on frame 30 n, the barcode on top, and the click track as PCM
+audio). `scripts/make-audio-soak.mjs` writes the soak fixture (4 video
+tracks and 8 audio clips at every moment) and, with `--kind av-sync`, a
+long flash-and-beep fixture.
+
 ## Plan check
 
 ```bash
@@ -294,16 +584,41 @@ npm run build:packages   # once, for the @nodetool-ai/timeline dist
 node native/timeline/scripts/plan-conformance.mjs [--json]
 ```
 
+```bash
+node native/timeline/scripts/plan-conformance.mjs --examples   # the 7 shipped example timelines
+node native/timeline/scripts/make-scene-fixtures.mjs           # rewrites fixtures/scene-*.json
+```
+
 The script runs `--dump-plan` on every fixture at a 100 ms grid plus each clip
-edge (±1 ms) and transition midpoint. It compares the result with
-`computeActiveLayers`, `resolveAnimatedLayerProps` and `buildTransformMatrix`
-from `@nodetool-ai/timeline/scene`: the active set, the draw order, z, opacity,
-and the matrix, with a tolerance of 1e-6. Each fixture must first pass the
-protocol's `timelineSequenceResponse` Zod schema. It exits non-zero on a
-schema error or a mismatch, and when it compared 0 layers. It checks that
-every native layer has finite numbers and a 16-element matrix before it
-compares, and counts a layer only when every value matches. `--json` prints
-one object with the verdict and the result per fixture.
+edge (±1 ms) and transition midpoint. It compares the result with the web
+scene model from `@nodetool-ai/timeline/scene`, built the way the browser
+compositors build a frame: `computeActiveLayersWithHorizon` with the sequence
+canvas and camera, `resolveAnimatedLayerProps`, `transitionTransform` and
+`buildTransformMatrix` with the group's matrix. It compares the active set, the
+draw order, and per layer z, kind, opacity, blend mode, stack order,
+precompose surface, the animated transform, the cut geometry and the matrix,
+with a tolerance of 1e-6, and the precomposite surfaces and the dropped layers.
+Each fixture must first pass the protocol's `timelineSequenceResponse` Zod
+schema. It exits non-zero on a schema error or a mismatch, and when it compared
+0 layers. It checks that every native layer has finite numbers and a 16-element
+matrix before it compares, and counts a layer only when every value matches.
+`--json` prints one object with the verdict and the result per fixture.
+
+The excluded clips and their reasons must equal `fixtures/plan/exclusions.json`
+(rewrite it with `--update-exclusions` after a deliberate change), and the
+flex exclusions must equal the flex trees the script finds itself. The times
+are a 100 ms grid plus ±1 ms around every clip edge, cut end, animation window
+edge, keyframe and loop seam. `tests/tst_easing.cpp` compares every easing
+with the web's values from `scripts/ease-vectors.mjs`, inside and outside
+[0, 1].
+
+Clips with a plan-level unsupported field (`planUnsupported` in the dump:
+flex layout, animation links, the `followPath` preset, `line` staggers, beats,
+track automation, track bindings, own or inherited from a group) are left out
+on both sides; the result says how many. The `scene-*` fixtures cover nested
+groups, precomposites, a parent cycle, the scene camera, 2.5D transforms, a
+matte, a caption, every easing and ported preset, repeaters, echoes, stepped
+time, a source-time curve, staggers, and every transition type.
 
 ## Golden import
 
@@ -323,6 +638,62 @@ overlaps the NodeTool data, asset or database folder, the fixture folder, the
 sources outside `build/`, or the repository. It exits 1 when the fixture fails the
 Zod check, a media file is missing, a clip was skipped, or a still is missing.
 `--frames` and `--out` change the selection and the output folder.
+
+## Server open
+
+```bash
+./build-m5/nodetool-timeline --server http://127.0.0.1:7777 --timeline <id>
+./build-m5/nodetool-timeline --server http://127.0.0.1:7777 --timeline <id> --dump-plan --times 0,500
+./build-m5/nodetool-timeline --server http://127.0.0.1:7777 --list-timelines
+node native/timeline/scripts/server-check.mjs       # M5a exit checks on scratch servers
+```
+
+`--server URL --timeline ID` takes the place of the fixture file in every
+mode (`--stills`, `--dump-plan`, `--probe-media`, `--bench`). The client
+(`src/server/`) only reads: `timeline.get`, `timeline.list` and `assets.get`
+over tRPC GET, `HEAD` for `package://` files, and `GET` with `Range` for
+bytes. It sends no `Origin` header, so a loopback server runs it as user `1`.
+`--token` (or `NODETOOL_API_TOKEN`) sends a bearer token instead.
+
+Asset bytes go to a disk cache before decode: `--cache-dir`, else
+`NODETOOL_TIMELINE_CACHE_DIR`, else the user cache folder. The path is
+`<server>/<user>/<assetId>/<variant>/<version>.<ext>` (DESIGN.md D33). The
+picture reads the proxy only when `proxy_status` is `ready`. Audio always
+reads the original. A partial download resumes with `Range` after a
+re-check of the version, and restarts from 0 on any mismatch. The raw
+document of the last load stays in `<server>/<user>/timelines/<id>.json`.
+
+The loader report (`--loader-report FILE`, else `<id>.report.json` next to
+the raw document) lists each field with a value the model does not apply, per
+sequence, track and clip, with its effect (`plan`, `pixels`, `audio`, or
+`unknown` for a field not in the schema). It also lists the missing assets and
+the rejected media (D10a) per clip, and the time of each load step. A load
+fails only when `timeline.get` or the parse fails.
+
+A server timeline saves itself (M5b): 750 ms after the last edit, while the
+undo stack is not clean, the app sends `timeline.update` with
+`baseUpdatedAt` from the load and the raw document (D4). On a conflict
+(`apiCode` ALREADY_EXISTS) it keeps the local document, writes it to
+`<server>/<user>/timelines/<id>.local.json`, stops autosaving and reports the
+conflict (`autosave.conflict` for QML). A non-empty `stripped` list is a
+warning, and the sent document goes to `<id>.stripped.json` next to the raw
+backup of the load. It never saves without a base. The harness:
+
+```bash
+./build-m5/nodetool-timeline --server URL --timeline ID --save [--move-clip CLIP:MS] \
+    [--set-clip-field CLIP:KEY=JSON] [--wait-before-save FILE] [--autosave]
+```
+
+prints one JSON line (ok, conflict, updatedAt, stripped, dirty before and
+after, the document it holds) and exits 0, 3 on a conflict, or 1.
+
+`server-check.mjs` starts its own servers from this checkout on port 7799,
+never 7777. Each server gets a fresh folder under `build-m5/scratch/` with its
+own `HOME`, `XDG_*`, `DB_PATH`, `ASSET_FOLDER`, `STORAGE_PATH` and
+`SECRETS_MASTER_KEY`. The script seeds the shipped example timelines, two media
+fixtures, and one timeline with a ready, pending (held encode), failed and
+absent proxy. A second server whose `ffmpeg` hides libx264 makes a VP9 proxy
+(`scripts/fake-ffmpeg.sh`). The script writes only to these servers.
 
 ## Fixtures
 
@@ -348,6 +719,12 @@ Zod check, a media file is missing, a clip was skipped, or a still is missing.
   bars as GBRP H.264 and RGB24 PNG.
 - `fixtures/video-rejections.json`: one file for each D10a rejection
   (rotation, pixel aspect, alpha, HDR) and one usable file.
+- `fixtures/audio-mix.json`: the mix rules (M3): fades on all four curves, a
+  plus3dB cross-fade, an in-point, a 1.5x clip, track gain and pan, a muted
+  track, a failed clip, a video clip's own audio, and a master fader.
+- `fixtures/av-sync.json`, `fixtures/av-sync-fractional.json`: the
+  flash-and-beep video at an in-point on the sample grid, and 0.05 frame off
+  it.
 
 `scripts/make-fixtures.sh` writes the media to `fixtures/media/` (not checked
 in), also `annexb-360p30.h264` (raw H.264, no timestamps) and three RGB
@@ -364,30 +741,39 @@ All fixtures parse with `timelineSequenceResponse` from
 
 The model in `src/model/TimelineTypes.h` uses the schema's field names:
 
-- Sequence: `id`, `name`, `fps`, `width`, `height`, `durationMs`, `tracks`, `clips`.
-- Track: `id`, `name`, `type`, `index`, `visible`, `locked`, `muted`.
+- Sequence: `id`, `name`, `fps`, `width`, `height`, `durationMs`, `tracks`,
+  `clips`, `master.volumeDb`, and the scene camera `camera2d`.
+- Track: `id`, `name`, `type`, `index`, `visible`, `locked`, `muted`, `solo`,
+  `volumeDb`, `pan`.
 - Clip: `id`, `trackId`, `name`, `startMs`, `durationMs`, `inPointMs`,
-  `mediaType`, `width`, `height`, `hidden`, `muted`, `opacity`, and
-  `transform` (`position`, `scale`, `rotation` in radians, `anchor`), and
-  `transitionIn` (`type`, `durationMs`, `easing`). Transitions set opacity
-  only: the incoming and outgoing opacity of each type, the auto dissolve
-  across a same-track overlap, and `durationMs <= 0` as a hard cut. Easing
-  and transition geometry and effects are not applied yet. `fadeInMs`,
-  `fadeOutMs`, `fadeInShape` and `fadeOutShape` scale the picture opacity
-  (`clipFadeGain`). `speedMultiplier` and `speedBaked` set the source time
-  (`clipSourceMsAt` without time remap).
+  `mediaType`, `width`, `height`, `hidden`, `muted`, `opacity`, `volumeDb`,
+  `status`, `linkId`, `fadeInMs`, `fadeOutMs`, `fadeInShape`, `fadeOutShape`,
+  `speedMultiplier`, `speedBaked`, `transform` (all eight fields) and
+  `transitionIn` (every type, with easing, direction, color and softness).
+- Scene fields, parsed once into `src/scene/ClipScene.h`: `parentId`,
+  `animations` (presets and custom curves, `src/scene/Animation.h`),
+  `repeater`, `temporalEcho`, `steppedTime`, `caption` words, `matte`,
+  `generatedMatte`, `blendMode`, whether `effects` has an enabled entry, and
+  whether a text, shape or 3D style is present.
 - `mediaPath` on a clip is a prototype-only field, not in the schema. A real
-  document references `currentAssetId`.
+  document references `currentAssetId`; a server open sets `mediaPath` and
+  `audioPath` from the asset cache.
 
-Each sequence, track, and clip also keeps its raw `QJsonObject`, so a later
-save can write back the fields the model does not own.
+`src/preview/SceneEval` resolves a frame from these fields the way
+`sceneModel.ts` does (see the table in DESIGN.md § Scene evaluation). Each
+sequence, track, and clip also keeps its raw `QJsonObject`, so a later save
+can write back the fields the model does not own.
 
 ## Layout
 
 | Path | Contents |
 |---|---|
-| `src/model/` | Plain structs, JSON parsing, `TimelineModel` and `TrackListModel` for QML |
-| `src/playback/PlaybackClock` | Play, pause, seek. The time comes from a monotonic clock |
+| `src/model/` | Plain structs, JSON parsing, `TimelineModel`, `TrackListModel`, `TrackWindowModel` (visible rows) and `LaneClipModel` (visible clips) for QML |
+| `src/ui/` | Tracks UI: `TimelineWheel` and `TimelineFormat` (pure math and labels), `TimelineViewState`, `TimelineGestureArea`, `RulerCanvas`, `UiBench` |
+| `src/playback/PlaybackClock` | Play, pause, seek, rate. The time comes from the audio device when one runs, else from a monotonic clock |
+| `src/playback/AudioClockFeed` | The seqlocked state between the clock and the device callback, and the callback half of the clock (`CallbackClockDriver`) |
+| `src/audio/` | `AudioEngine` (miniaudio device, decode worker, PCM rings), `Mixer` (the mix rules and `mixBlock`), `FadeCurves`, `AudioSource` (FFmpeg and libswresample), `OutputLatency` (CoreAudio), `LoopbackCapture`, the audio CLI modes |
+| `third_party/miniaudio.h` | miniaudio 0.11.22, one header (MIT No Attribution or public domain) |
 | `src/preview/SceneEval` | `activeLayersAt(timeline, t)` and the layer matrix. Pure functions |
 | `src/preview/PreviewCompositor` | `QQuickRhiItem`: layers into a canvas texture, then the canvas letterboxed into the item |
 | `src/preview/LayerSource.h` | The per-clip source interface. `SyntheticSource` and `FfmpegSource` implement it |
@@ -397,9 +783,10 @@ save can write back the fields the model does not own.
 | `src/preview/hw/VideoToolboxInterop` | `CVMetalTextureCache` and `QRhiTexture::createFrom` wrappers for VideoToolbox frames; `FrameRef` |
 | `src/preview/RetireQueue.h` | Releases a replaced frame's GPU resources after `FramesInFlight` frames (D11) |
 | `src/platform/` | `ProcessActivity` (no App Nap during measured runs) and `CpuUsage` (process and thread CPU time) |
+| `src/server/` | `ServerClient` (tRPC GET), `AssetCache` (D33 disk cache, Range resume), `FieldAudit` and `ServerTimeline` (the loader report), `ServerSource` (the `--server` arguments) |
 | `src/preview/SourcePool` | Opens, pre-rolls and closes decoders (D18), draws placeholders for rejected media, keeps the loader report. Decoders are stopped and joined on a retire thread, never on the render thread |
 | `shaders/` | Textured quad with a per-layer matrix and opacity, RGBA or YUV planes, premultiplied "over" |
 | `qml/` | `TimelineEditor`, `preview/PreviewArea`, `Tracks/*`, named after the React components in `web/src/components/timeline/` |
 | `src/bench/BenchReport` | Bench measurements, the budget parser, and the verdict. Pure |
 | `budgets/m1a.json`, `budgets/m1b.json`, `budgets/m1c.json` | The M1a, M1b and M1c exit budgets |
-| `tests/` | Qt Test suites for `SceneEval`, `TimelineJson`, `BenchReport`, `FrameRing`, `YuvFormat`, `FfmpegSource`, `SourcePool` and `RetireQueue` |
+| `tests/` | Qt Test suites for `SceneEval`, `TimelineJson`, `BenchReport`, `FrameRing`, `YuvFormat`, `FfmpegSource`, `SourcePool`, `RetireQueue`, `TimelineWheel` and the tracks UI (`tst_tracksui`) |

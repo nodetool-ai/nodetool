@@ -11,9 +11,35 @@
 #   4. The stall measurements (M1c F7): six 4-track hw benches without
 #      --on-top, with the process nice/stat/priority of the bench and its
 #      parents, the expose and occlusion log, and the stall list.
+#   5. The M2 tracks UI bench in a window: 200 tracks and 2000 clips, a
+#      scripted pinch zoom and pan while the preview plays 4 tracks. Pass:
+#      GUI-thread frame time p95 under 8 ms and frame interval p95 under
+#      17.5 ms (60 fps).
+#   6. M3 audio, on the system output: THESE PLAY SOUND through the default
+#      output device.
+#      a. The audio clock against the speakers' signal: 60 s of the
+#         flash-and-beep fixture, each click recorded on a loopback capture
+#         device (BlackHole, Loopback, or NT_LOOPBACK_DEVICE) and compared
+#         with the audio-master clock at its arrival. Pass: every click
+#         within 33 ms. This is NOT M3 exit 3: exit 3 compares each click
+#         with the presentation time of its flash frame on the drawable, and
+#         no harness records that time yet. The summary reports exit 3 as not
+#         met (m3.exit3.met = false) whatever 6a measures.
+#         The loopback hears the output only when the default output is a
+#         Multi-Output Device with the built-in speakers and the loopback
+#         device; otherwise the clicks are missing and the check fails.
+#      b. The soak (M3 exits 4 and 6): a 600 s realtime bench in a window
+#         with 4 video tracks and 8 audio clips on the system output. Pass:
+#         the bench exits 0, the device mixed at least 594 s of playback
+#         (`playedSeconds`), 0 underruns counted in the device callback, 0
+#         late starts, 0 source open failures and decode errors, play start
+#         under 300 ms. The audio report also records the CoreAudio
+#         output latency (device, safety offset, stream, buffer frames).
+#      Measure once more on a Bluetooth output by hand (PLAN M3 risk): set it
+#      as the default output and rerun 6a.
 #
-# Exit 0 only when every budgeted bench and the teardown case pass. The F7
-# runs are measurements, not pass/fail.
+# Exit 0 only when every budgeted bench, the teardown case and the M3
+# checks pass. The F7 runs are measurements, not pass/fail.
 set -uo pipefail
 
 cd "$(dirname "$0")/.."
@@ -60,6 +86,32 @@ for i in 1 2 3 4 5 6; do
     wait "$pid"
     echo $? > "$out/f7-$i.exit"
 done
+
+# M2: the tracks UI bench in a real window (threaded render loop, vsync).
+node scripts/make-ui-fixture.mjs > /dev/null
+"$bin" fixtures/generated/ui-200tracks.json --ui-bench --ui-window --size 1920x1080 --ui-gui-p95 8 \
+    > "$out/m2-ui-window.json" 2> "$out/m2-ui-window.log"
+echo $? > "$out/m2-ui-window.exit"
+[[ $(cat "$out/m2-ui-window.exit") == 0 ]] || status=1
+
+# M3: audio on the system output (these play sound).
+"$bin" --audio-devices > "$out/m3-devices.json" 2> /dev/null
+node scripts/make-audio-soak.mjs --kind av-sync --seconds 70 > /dev/null
+"$bin" fixtures/generated/av-sync-long.json --av-sync-live --seconds 60 \
+    > "$out/m3-av-sync-live.json" 2> "$out/m3-av-sync-live.log"
+echo $? > "$out/m3-av-sync-live.exit"
+[[ $(cat "$out/m3-av-sync-live.exit") == 0 ]] || status=1
+node scripts/make-audio-soak.mjs --seconds 600 > /dev/null
+"$bin" fixtures/generated/audio-soak.json --bench --realtime 600 --size 1920x1080 --on-top \
+    --audio system --audio-report "$out/m3-soak-audio.json" \
+    > "$out/m3-soak.json" 2> "$out/m3-soak.log"
+echo $? > "$out/m3-soak.exit"
+[[ $(cat "$out/m3-soak.exit") == 0 ]] || status=1
+node -e '
+const r = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+process.exit(r.backend !== "Null" && r.playedSeconds >= 594 && r.underruns === 0 && r.lateStarts === 0 &&
+  r.openFailures === 0 && r.decodeErrors === 0 && r.callbacks > 0 && r.playStartMs >= 0 && r.playStartMs < 300 ? 0 : 1);
+' "$out/m3-soak-audio.json" || status=1
 
 node - "$out" <<'EOF'
 const fs = require("fs");
@@ -116,8 +168,51 @@ for (let i = 1; i <= 6; i++) {
     processes: read(`f7-${i}.ps`).trim().split("\n")
   });
 }
-const pass = Object.values(benches).every((b) => b.pass) && teardown.exit === 0 && teardown.validationFailures === 0;
-const summary = { pass, benches, teardown, f7 };
+const ui = json("m2-ui-window.json")?.uiBench ?? null;
+const m2 = {
+  exit: Number(read("m2-ui-window.exit")),
+  guiMs: ui?.guiMs ?? null,
+  frameIntervalMs: ui?.frameIntervalMs ?? null,
+  clipItemsMax: ui?.clipItemsMax ?? null,
+  previewLayers: ui?.previewLayers ?? null,
+  pass: (ui?.budget?.pass ?? false) && (ui?.frameIntervalMs?.p95 ?? Infinity) < 17.5
+};
+const live = json("m3-av-sync-live.json");
+const soakAudio = json("m3-soak-audio.json");
+const m3 = {
+  devices: json("m3-devices.json"),
+  avSyncLive: {
+    exit: Number(read("m3-av-sync-live.exit")),
+    pass: live?.pass ?? false,
+    measures: "audio clock vs loopback arrival (not M3 exit 3)",
+    error: live?.error ?? null,
+    maxErrorMs: live?.maxErrorMs ?? null,
+    matched: live?.matched ?? null,
+    expected: live?.expected ?? null,
+    output: live?.output ?? null,
+    outputLatencyMs: live?.outputLatencyMs ?? null,
+    clicks: live?.clicks ?? null
+  },
+  soak: {
+    benchExit: Number(read("m3-soak.exit")),
+    audio: soakAudio,
+    pass:
+      Number(read("m3-soak.exit")) === 0 && soakAudio !== null && soakAudio.backend !== "Null" &&
+      soakAudio.playedSeconds >= 594 && soakAudio.underruns === 0 && soakAudio.lateStarts === 0 &&
+      soakAudio.openFailures === 0 && soakAudio.decodeErrors === 0 &&
+      soakAudio.callbacks > 0 && soakAudio.playStartMs >= 0 && soakAudio.playStartMs < 300
+  },
+  // M3 exit 3 needs the flash frame's presentation time on the drawable;
+  // 6a measures the audio clock only, so exit 3 stays open.
+  exit3: {
+    met: false,
+    reason: "no flash-frame presentation time on the drawable is recorded; 6a compares clicks with the audio clock only"
+  }
+};
+const pass =
+  Object.values(benches).every((b) => b.pass) && teardown.exit === 0 && teardown.validationFailures === 0 && m2.pass &&
+  m3.avSyncLive.pass && m3.soak.pass;
+const summary = { pass, benches, teardown, f7, m2, m3 };
 fs.writeFileSync(path.join(dir, "summary.json"), JSON.stringify(summary, null, 2));
 console.log(JSON.stringify(summary));
 EOF

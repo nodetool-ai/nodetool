@@ -4,6 +4,7 @@
 //                     [--bench [--frames N] [--warmup N] [--budget FILE|SPEC] [--no-vsync]]
 //                     [--screenshot PATH]
 //   nodetool-timeline <fixture.json> --dump-plan --times a,b,c
+//   nodetool-timeline --server URL --timeline ID [...any mode above]   (src/server/ServerSource.h)
 //
 // --bench renders --warmup frames at t=0, then steps the playhead one
 // sequence frame per rendered frame for --frames frames, with vsync on unless
@@ -18,11 +19,20 @@
 #include "preview/PreviewCompositor.h"
 #include "preview/FfmpegSource.h"
 #include "preview/SceneEval.h"
-#include "preview/hw/VideoToolboxInterop.h"
+#include "preview/hw/HwInterop.h"
+#include "preview/hw/HwWindow.h"
 #include "platform/CpuUsage.h"
 #include "platform/ProcessActivity.h"
 #include "platform/SchedulingDiagnostics.h"
 #include "bench/BenchReport.h"
+#include "bench/ScrubRun.h"
+#include "ui/UiBench.h"
+#include "audio/AppAudio.h"
+#include "audio/AudioCli.h"
+#include "audio/AudioMode.h"
+#include "server/FieldAudit.h"
+#include "server/SaveCli.h"
+#include "server/ServerSource.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -47,6 +57,7 @@ extern "C" {
 #include <QJsonObject>
 #include <QJsonValue>
 #include <QQmlComponent>
+#include <QQmlContext>
 #include <QQmlEngine>
 #include <QQuickItem>
 #include <QQuickRenderControl>
@@ -65,6 +76,7 @@ extern "C" {
 #include <set>
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 
 namespace {
 
@@ -217,33 +229,29 @@ nt::bench::BenchData benchData(const std::vector<FrameStat>& stats, BenchRun& ru
     return d;
 }
 
-QJsonArray matrixJson(const std::array<float, 16>& m) {
-    QJsonArray a;
-    for (float v : m) a.append(static_cast<double>(v));
-    return a;
-}
-
 // FramePlan JSON (DESIGN.md D6). Layers are bottom to top.
 QJsonObject framePlanJson(const nt::Timeline& tl, const QString& fixture, const std::vector<double>& times) {
     QJsonArray frames;
     for (double t : times) {
-        const nt::FramePlan plan = nt::buildFramePlan(tl, t);
-        QJsonArray layers;
-        for (const nt::PlanLayer& pl : plan.layers) {
-            layers.append(QJsonObject{
-                {QStringLiteral("clipId"), QString::fromStdString(pl.layer.clipId)},
-                {QStringLiteral("trackIndex"), pl.layer.trackIndex},
-                {QStringLiteral("z"), pl.layer.z},
-                {QStringLiteral("opacity"), pl.layer.opacity},
-                {QStringLiteral("sourceTimeMs"), pl.layer.sourceTimeMs},
-                {QStringLiteral("matrix"), matrixJson(pl.matrix)},
-            });
+        // Layers, precomposites and dropped layers (preview/SceneEval.h).
+        frames.append(nt::framePlanJson(nt::buildFramePlan(tl, t)));
+    }
+    // The clips the plan does not cover (a plan-level unsupported field, own
+    // or inherited): plan-conformance.mjs leaves them out on both sides.
+    const QJsonObject audit = nt::server::auditTimelineFields(tl.raw);
+    QJsonObject why;  // clip id -> its plan-level fields
+    for (const QJsonValue& c : audit.value(u"clips").toArray()) {
+        QJsonArray fields;
+        for (const QJsonValue& f : c.toObject().value(u"fields").toArray()) {
+            if (f.toObject().value(u"effect").toString() == u"plan") fields.append(f.toObject().value(u"field"));
         }
-        frames.append(QJsonObject{{QStringLiteral("timeMs"), t}, {QStringLiteral("layers"), layers}});
+        if (!fields.isEmpty()) why.insert(c.toObject().value(u"id").toString(), fields);
     }
     return QJsonObject{{QStringLiteral("fixture"), fixture},
                        {QStringLiteral("width"), tl.width},
                        {QStringLiteral("height"), tl.height},
+                       {QStringLiteral("planUnsupported"), audit.value(u"planUnsupported")},
+                       {QStringLiteral("planUnsupportedFields"), why},
                        {QStringLiteral("frames"), frames}};
 }
 
@@ -261,7 +269,7 @@ int probeMediaReport(int argc, char** argv) {
         return 2;
     }
     const QString fixture = parser.positionalArguments().first();
-    const auto loaded = nt::loadTimelineFile(fixture);
+    const auto loaded = nt::server::loadTimelineSource(fixture);
     if (!loaded.timeline) {
         std::fprintf(stderr, "error: %s\n", qPrintable(loaded.error));
         return 1;
@@ -315,7 +323,7 @@ int dumpPlan(int argc, char** argv) {
         times.push_back(t);
     }
     const QString fixture = parser.positionalArguments().first();
-    const auto loaded = nt::loadTimelineFile(fixture);
+    const auto loaded = nt::server::loadTimelineSource(fixture);
     if (!loaded.timeline) {
         std::fprintf(stderr, "error: %s\n", qPrintable(loaded.error));
         return 1;
@@ -333,23 +341,43 @@ int dumpPlan(int argc, char** argv) {
 // timer. --stills reads the compositor canvas back at each frame once every
 // layer shows its exact frame. --screenshot reads the whole editor back.
 int runOffscreen(TimelineModel& model, PlaybackClock& clock, QSize size, const QString& shotPath,
-                 const QString& stillsDir, const QString& playDir, const std::vector<long long>& frames) {
+                 const QString& stillsDir, const QString& playDir, const std::vector<long long>& frames,
+                 const QString& scrubScript = {}, const QString& scrubOut = {}, const QString& fixture = {},
+                 const QString& decodeName = {}) {
     QQuickRenderControl control;
     QQuickWindow window(&control);
+    nt::hw::prepareWindow(&window);
     window.resize(size);
     window.setColor(QColor(18, 18, 20));
+    // A screenshot shows the whole editor (QML). Stills, play captures and
+    // scrubs read only the compositor canvas, so they create the compositor
+    // item directly: they then depend on no QML file, and on nothing in the
+    // tracks UI that another milestone may be changing.
     QQmlEngine engine;
     QQmlComponent component(&engine);
-    component.loadFromModule("NodeTool.Timeline", "TimelineEditor");
-    std::unique_ptr<QObject> rootObject(component.createWithInitialProperties(
-        {{QStringLiteral("timeline"), QVariant::fromValue(&model)}, {QStringLiteral("clock"), QVariant::fromValue(&clock)}}));
-    auto* root = qobject_cast<QQuickItem*>(rootObject.get());
-    if (!root) {
-        std::fprintf(stderr, "error: %s\n", qPrintable(component.errorString()));
-        return 1;
+    std::unique_ptr<QObject> rootObject;
+    PreviewCompositor* compositor = nullptr;
+    if (!shotPath.isEmpty()) {
+        component.loadFromModule("NodeTool.Timeline", "TimelineEditor");
+        rootObject.reset(component.createWithInitialProperties(
+            {{QStringLiteral("timeline"), QVariant::fromValue(&model)}, {QStringLiteral("clock"), QVariant::fromValue(&clock)}}));
+        auto* root = qobject_cast<QQuickItem*>(rootObject.get());
+        if (!root) {
+            std::fprintf(stderr, "error: %s\n", qPrintable(component.errorString()));
+            return 1;
+        }
+        root->setParentItem(window.contentItem());
+        root->setSize(QSizeF(size));
+        compositor = root->findChild<PreviewCompositor*>(QStringLiteral("previewCompositor"));
+    } else {
+        auto* item = new PreviewCompositor();
+        rootObject.reset(item);
+        item->setTimeline(&model);
+        item->setClock(&clock);
+        item->setParentItem(window.contentItem());
+        item->setSize(QSizeF(size));
+        compositor = item;
     }
-    root->setParentItem(window.contentItem());
-    root->setSize(QSizeF(size));
     if (!control.initialize()) {
         std::fprintf(stderr, "error: QQuickRenderControl could not create a QRhi\n");
         return 1;
@@ -370,7 +398,6 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, QSize size, const Q
     rt->create();
     window.setRenderTarget(QQuickRenderTarget::fromRhiRenderTarget(rt.get()));
 
-    auto* compositor = root->findChild<PreviewCompositor*>(QStringLiteral("previewCompositor"));
     if (!compositor) {
         std::fprintf(stderr, "error: no PreviewCompositor in the scene\n");
         return 1;
@@ -427,6 +454,28 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, QSize size, const Q
     }
 
     const double fps = model.fps();
+    if (!scrubScript.isEmpty()) {
+        // The scripted scrub (M1d): seeks and scrubs measured offscreen.
+        QFile file(scrubScript);
+        if (!file.open(QIODevice::ReadOnly)) {
+            std::fprintf(stderr, "error: cannot read %s\n", qPrintable(scrubScript));
+            return 2;
+        }
+        const QJsonObject script = QJsonDocument::fromJson(file.readAll()).object();
+        nt::bench::ScrubContext ctx;
+        ctx.renderFrame = [&]() { renderFrame(false); logReport(); };
+        ctx.compositor = compositor;
+        ctx.clock = &clock;
+        ctx.fps = fps;
+        ctx.durationMs = model.durationMs();
+        ctx.fixture = fixture;
+        ctx.decode = decodeName;
+        ctx.outDir = scrubOut;
+        const QJsonObject report = nt::bench::runScrubScript(ctx, script);
+        std::printf("%s\n", QJsonDocument(report).toJson(QJsonDocument::Compact).constData());
+        std::fflush(stdout);
+        return report.contains(u"error") ? 1 : 0;
+    }
     if (!playDir.isEmpty()) {
         const nt::ProcessActivity activity("nodetool-timeline play captures");
         // Play captures: play the clock in real time from up to 3 s before
@@ -522,6 +571,12 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, QSize size, const Q
 }
 
 int main(int argc, char** argv) {
+    // --server URL --timeline ID replaces the fixture argument (src/server/ServerSource.h).
+    if (const int rc = nt::server::takeServerArgs(argc, argv)) return rc;
+    if (nt::server::listTimelinesRequested()) {
+        QCoreApplication app(argc, argv);
+        return nt::server::listTimelinesMain();
+    }
     // Parse before QGuiApplication: --bench changes the surface format and
     // --dump-plan runs without a GUI.
     bool bench = false;
@@ -530,13 +585,22 @@ int main(int argc, char** argv) {
     for (int i = 1; i < argc; ++i) {
         if (qstrcmp(argv[i], "--bench") == 0) bench = true;
         if (qstrcmp(argv[i], "--no-vsync") == 0) noVsync = true;
-        if (qstrcmp(argv[i], "--background") == 0 || qstrcmp(argv[i], "--teardown-test") == 0 ||
-            qstrcmp(argv[i], "--screenshot") == 0 ||
-            qstrcmp(argv[i], "--stills") == 0 || qstrcmp(argv[i], "--play-stills") == 0) {
+        // Both spellings: `--opt value` and `--opt=value`.
+        const auto isOpt = [&](const char* name) {
+            const std::size_t n = std::strlen(name);
+            return std::strncmp(argv[i], name, n) == 0 && (argv[i][n] == '\0' || argv[i][n] == '=');
+        };
+        if (isOpt("--background") || isOpt("--teardown-test") || isOpt("--screenshot") || isOpt("--stills") ||
+            isOpt("--play-stills") || isOpt("--scrub-script") || isOpt("--ui-bench")) {
             background = true;
         }
+        if (qstrcmp(argv[i], "--save") == 0) return nt::server::saveCli(argc, argv);  // M5b harness
         if (qstrcmp(argv[i], "--dump-plan") == 0) return dumpPlan(argc, argv);
         if (qstrcmp(argv[i], "--probe-media") == 0) return probeMediaReport(argc, argv);
+        if (qstrcmp(argv[i], "--render-audio") == 0) return nt::audio::renderAudioCli(argc, argv);
+        if (qstrcmp(argv[i], "--av-sync") == 0) return nt::audio::avSyncCli(argc, argv);
+        if (qstrcmp(argv[i], "--av-sync-live") == 0) return nt::audio::avSyncLiveCli(argc, argv);
+        if (qstrcmp(argv[i], "--audio-devices") == 0) return nt::audio::audioDevicesCli(argc, argv);
     }
     background = background || bench;
     if (background) {
@@ -590,6 +654,12 @@ int main(int argc, char** argv) {
                                        QStringLiteral("Bench budget: a JSON file, or key=value,... (fails closed)"),
                                        QStringLiteral("FILE|SPEC"));
     const QCommandLineOption noVsyncOpt(QStringLiteral("no-vsync"), QStringLiteral("Bench without vsync"));
+    const QCommandLineOption scrubOpt(QStringLiteral("scrub-script"),
+                                      QStringLiteral("Run a scripted scrub offscreen and print its JSON report"),
+                                      QStringLiteral("FILE"));
+    const QCommandLineOption scrubOutOpt(QStringLiteral("scrub-out"),
+                                         QStringLiteral("Folder for the scrub's final stills"), QStringLiteral("DIR"));
+    const QCommandLineOption jsonOpt(QStringLiteral("json"), QStringLiteral("Print JSON (the scrub always does)"));
     const QCommandLineOption onTopOpt(QStringLiteral("on-top"),
                                       QStringLiteral("Keep the window above other windows, without taking focus "
                                                      "(so other windows cannot cover a bench)"));
@@ -612,7 +682,28 @@ int main(int argc, char** argv) {
     const QCommandLineOption realtimeOpt(QStringLiteral("realtime"),
                                          QStringLiteral("Bench: play in real time for SECONDS, then close the timeline"),
                                          QStringLiteral("SECONDS"));
-    parser.addOptions({benchOpt, framesOpt, sizeOpt, seekOpt, playOpt, shotOpt, warmupOpt, budgetOpt, noVsyncOpt, realtimeOpt, stillsOpt, stillFramesOpt, backgroundOpt, playStillsOpt, decodeOpt, decoderOpt, teardownOpt, hideTestOpt, onTopOpt});
+    const QCommandLineOption uiBenchOpt(QStringLiteral("ui-bench"),
+                                        QStringLiteral("Zoom and pan the tracks on a script while the preview plays; "
+                                                       "print the GUI frame time (offscreen)"));
+    const QCommandLineOption uiWindowOpt(QStringLiteral("ui-window"),
+                                         QStringLiteral("Run --ui-bench in a real window (window-checks.sh only)"));
+    const QCommandLineOption uiBudgetOpt(QStringLiteral("ui-gui-p95"),
+                                         QStringLiteral("--ui-bench fails when guiMs.p95 reaches MS"), QStringLiteral("MS"));
+    parser.addOptions({uiBenchOpt, uiWindowOpt, uiBudgetOpt});
+    // Audio (M3, src/audio/AppAudio.h). Only the interactive app defaults to
+    // the system device; every automated mode defaults to none.
+    const QCommandLineOption audioOpt(QStringLiteral("audio"), QStringLiteral("Audio output: none, null or system"),
+                                      QStringLiteral("MODE"));
+    const QCommandLineOption audioLatencyOpt(QStringLiteral("audio-latency-ms"),
+                                             QStringLiteral("Output latency the null device reports"),
+                                             QStringLiteral("MS"), QStringLiteral("0"));
+    const QCommandLineOption audioReportOpt(QStringLiteral("audio-report"),
+                                            QStringLiteral("Write the audio engine stats as JSON at exit"),
+                                            QStringLiteral("FILE"));
+    const QCommandLineOption audioDryRunOpt(QStringLiteral("audio-dry-run"),
+                                            QStringLiteral("Print the audio mode this run would use and exit"));
+    parser.addOptions({audioOpt, audioLatencyOpt, audioReportOpt, audioDryRunOpt});
+    parser.addOptions({benchOpt, framesOpt, sizeOpt, seekOpt, playOpt, shotOpt, warmupOpt, budgetOpt, noVsyncOpt, realtimeOpt, stillsOpt, stillFramesOpt, backgroundOpt, playStillsOpt, decodeOpt, decoderOpt, teardownOpt, hideTestOpt, onTopOpt, scrubOpt, scrubOutOpt, jsonOpt});
     parser.process(app);
 
     std::fprintf(stderr, "nodetool-timeline: Qt %s, libavformat %s, libavcodec %s, libavutil %s, libswscale %s\n",
@@ -622,7 +713,7 @@ int main(int argc, char** argv) {
     if (parser.positionalArguments().size() != 1) {
         parser.showHelp(2);
     }
-    const auto loaded = nt::loadTimelineFile(parser.positionalArguments().first());
+    const auto loaded = nt::server::loadTimelineSource(parser.positionalArguments().first());
     if (!loaded.timeline) {
         std::fprintf(stderr, "error: %s\n", qPrintable(loaded.error));
         return 1;
@@ -662,6 +753,8 @@ int main(int argc, char** argv) {
             std::fprintf(stderr, "error: --decode takes sw, hw or auto\n");
             return 2;
         }
+        // The graphics API a hardware decoder shares (M6, hw/HwWindow.h).
+        nt::hw::selectGraphicsApi(nt::decodeMode() != nt::DecodeMode::Software);
     }
     double realtimeSeconds = 0.0;
     if (parser.isSet(realtimeOpt)) {
@@ -696,7 +789,39 @@ int main(int argc, char** argv) {
     PlaybackClock clock;
     clock.setDurationMs(model.durationMs());
     clock.seek(parser.value(seekOpt).toDouble());
+    nt::audio::AppAudio audio;
+    {
+        // From the parsed options, so `--opt=value` and `--opt value` agree.
+        const QString mode = nt::audio::resolveAudioMode(parser);
+        if (parser.isSet(audioDryRunOpt)) {
+            std::printf("audio mode: %s\n", qPrintable(mode));
+            return 0;
+        }
+        QString error;
+        if (!audio.start(mode, parser.value(audioLatencyOpt).toDouble(), model, clock, &error)) {
+            std::fprintf(stderr, "error: audio: %s\n", qPrintable(error));
+            return 2;
+        }
+        if (parser.isSet(audioReportOpt)) audio.setReportPath(parser.value(audioReportOpt));
+    }
 
+    if (parser.isSet(uiBenchOpt)) {
+        nt::ui::UiBenchOptions options;
+        options.fixture = parser.positionalArguments().first();
+        options.size = QSize(winW, winH);
+        if (parser.isSet(framesOpt)) options.frames = benchFrames;
+        options.windowed = parser.isSet(uiWindowOpt);
+        options.guiP95BudgetMs = parser.value(uiBudgetOpt).toDouble();
+        return nt::ui::runUiBench(model, clock, options);
+    }
+    if (parser.isSet(scrubOpt)) {
+        const QString fixture = parser.positionalArguments().first();
+        const QString out = parser.isSet(scrubOutOpt)
+                                ? parser.value(scrubOutOpt)
+                                : QStringLiteral("build/scrub/%1").arg(QFileInfo(fixture).completeBaseName());
+        return runOffscreen(model, clock, QSize(winW, winH), {}, {}, {}, {}, parser.value(scrubOpt), out, fixture,
+                            parser.isSet(decoderOpt) ? parser.value(decoderOpt) : parser.value(decodeOpt));
+    }
     if (parser.isSet(shotOpt) || parser.isSet(stillsOpt) || parser.isSet(playStillsOpt)) {
         // Screenshots and stills render with no window at all (offscreen).
         std::vector<long long> frames;
@@ -720,11 +845,20 @@ int main(int argc, char** argv) {
     }
 
     QQuickView view;
+    nt::hw::prepareWindow(&view);
     view.setResizeMode(QQuickView::SizeRootObjectToView);
     view.setColor(QColor(18, 18, 20));
     view.setTitle(QStringLiteral("NodeTool Timeline — %1").arg(model.name()));
     view.setInitialProperties({{QStringLiteral("timeline"), QVariant::fromValue(&model)},
                                {QStringLiteral("clock"), QVariant::fromValue(&clock)}});
+    // A server timeline saves itself (D34); QML reads `autosave` for its state.
+    std::unique_ptr<nt::server::AutosaveController> autosave;
+    if (const auto target = nt::server::serverSaveTarget()) {
+        autosave = std::make_unique<nt::server::AutosaveController>(
+            *target, model.undoStack(), [&model]() { return model.timeline().raw; },
+            loaded.timeline->raw.value(u"updatedAt").toString());
+    }
+    view.rootContext()->setContextProperty(QStringLiteral("autosave"), autosave.get());
     view.loadFromModule("NodeTool.Timeline", "TimelineEditor");
     if (view.status() != QQuickView::Ready) {
         return 1;

@@ -6,8 +6,9 @@
 #include "preview/FrameRing.h"
 #include "platform/CpuUsage.h"
 #include "preview/RetireQueue.h"
-#include "preview/hw/VideoToolboxInterop.h"
+#include "preview/hw/HwInterop.h"
 #include "preview/SourcePool.h"
+#include "preview/SurfacePool.h"
 #include "preview/SyntheticSource.h"
 
 #include <rhi/qrhi.h>
@@ -18,6 +19,8 @@
 #include <QQuickWindow>
 
 #include <algorithm>
+#include <limits>
+#include <optional>
 #include <chrono>
 #include <cmath>
 #include <mutex>
@@ -84,6 +87,7 @@ public:
         // retain the textures they use. Only then is the queue released.
         m_sources.clear();
         m_pool.clear();
+        m_surfaces.clear();
         if (m_rhi && !m_retire.empty()) m_rhi->finish();
         m_retire.clear();
     }
@@ -110,6 +114,17 @@ private:
         std::array<QRhiTexture*, 3> bound{};
         long long lastUsedFrame = 0;
     };
+
+    // One pooled intermediate surface (D35): a canvas-sized target the
+    // group's children draw into, and the bindings and uniforms that draw it
+    // as one layer of its container.
+    struct Surface {
+        std::unique_ptr<QRhiTexture> texture;
+        std::unique_ptr<QRhiTextureRenderTarget> rt;
+        std::unique_ptr<QRhiBuffer> ubuf;
+        std::unique_ptr<QRhiShaderResourceBindings> srb;
+    };
+    std::unique_ptr<Surface> makeSurface(QSize size);
 
     void ensureCanvas();
     void ensureBlitPipeline();
@@ -138,14 +153,16 @@ private:
     // Declared before the sources and the pool, so it is destroyed after
     // them: their last hardware frames retire into it.
     nt::RetireQueue m_retire;
-    std::shared_ptr<nt::hw::VideoToolboxInterop> m_interop;
+    std::shared_ptr<nt::hw::PlatformInterop> m_interop;
     std::unordered_map<std::string, SourceEntry> m_sources;
     nt::SourcePool m_pool;
+    nt::SurfacePool<Surface> m_surfaces{[this](QSize size) { return makeSurface(size); }};
 
     // Snapshot from synchronize() (D8).
     std::shared_ptr<const nt::Timeline> m_timeline;
     double m_timeMs = 0.0;
     std::vector<nt::ActiveLayer> m_layers;
+    std::vector<nt::PrecompositeLayer> m_precomposites;  // innermost first
     QSize m_wantedCanvas{1920, 1080};
     double m_fps = 30.0;
     bool m_playing = false;
@@ -212,6 +229,7 @@ void PreviewCompositorRenderer::initialize(QRhiCommandBuffer*) {
     if (m_rhi != rhi()) {
         // New QRhi (first run, or a device change): drop every resource.
         m_sources.clear();
+        m_surfaces.clear();
         m_retire.clear();
         m_interop.reset();
         m_layerPipeline.reset();
@@ -228,7 +246,7 @@ void PreviewCompositorRenderer::initialize(QRhiCommandBuffer*) {
         m_rhi = rhi();
     }
     if (!m_interop) {
-        m_interop = nt::hw::VideoToolboxInterop::create(m_rhi);
+        m_interop = nt::hw::PlatformInterop::create(m_rhi);
     }
     if (!m_vbuf) {
         m_vs = loadShader(QStringLiteral(":/shaders/composite.vert.qsb"));
@@ -285,6 +303,7 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
     }
 
     m_layers.clear();
+    m_precomposites.clear();
     m_playing = false;
     if (!item->m_timeline) {
         m_timeline.reset();
@@ -295,7 +314,9 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
     m_fps = m_timeline->fps;
     m_timeMs = item->m_clock ? item->m_clock->currentTimeMs() : 0.0;
     m_playing = item->m_clock && item->m_clock->playing();
-    m_layers = nt::activeLayersAt(*m_timeline, m_timeMs);
+    nt::SceneFrame scene = nt::evaluateScene(*m_timeline, m_timeMs);
+    m_layers = std::move(scene.layers);
+    m_precomposites = std::move(scene.precomposites);
 }
 
 std::unique_ptr<QRhiGraphicsPipeline> PreviewCompositorRenderer::makePipeline(QRhiRenderPassDescriptor* rp,
@@ -330,6 +351,7 @@ void PreviewCompositorRenderer::ensureCanvas() {
     if (m_canvas && m_canvasSize == m_wantedCanvas) {
         return;
     }
+    m_surfaces.clear();  // their targets use the canvas's pass descriptor
     m_layerPipeline.reset();
     m_canvasRt.reset();
     m_canvasRp.reset();
@@ -359,6 +381,32 @@ void PreviewCompositorRenderer::ensureCanvas() {
     m_blitSrb->create();
     m_canvasDrawn = false;
     m_layerPipeline = makePipeline(m_canvasRp.get(), true);
+}
+
+std::unique_ptr<PreviewCompositorRenderer::Surface> PreviewCompositorRenderer::makeSurface(QSize size) {
+    auto s = std::make_unique<Surface>();
+    s->texture.reset(m_rhi->newTexture(QRhiTexture::RGBA8, size, 1, QRhiTexture::RenderTarget));
+    if (!s->texture->create()) return nullptr;
+    s->rt.reset(m_rhi->newTextureRenderTarget({s->texture.get()}));
+    // The canvas's pass descriptor: same single RGBA8 attachment, so the
+    // layer pipeline draws into a surface as into the canvas.
+    s->rt->setRenderPassDescriptor(m_canvasRp.get());
+    if (!s->rt->create()) return nullptr;
+    s->ubuf.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, sizeof(LayerUniforms)));
+    s->ubuf->create();
+    s->srb.reset(m_rhi->newShaderResourceBindings());
+    const auto stages = QRhiShaderResourceBinding::VertexStage | QRhiShaderResourceBinding::FragmentStage;
+    s->srb->setBindings({
+        QRhiShaderResourceBinding::uniformBuffer(0, stages, s->ubuf.get()),
+        QRhiShaderResourceBinding::sampledTexture(1, QRhiShaderResourceBinding::FragmentStage, s->texture.get(),
+                                                  m_sampler.get()),
+        QRhiShaderResourceBinding::sampledTexture(2, QRhiShaderResourceBinding::FragmentStage, s->texture.get(),
+                                                  m_sampler.get()),
+        QRhiShaderResourceBinding::sampledTexture(3, QRhiShaderResourceBinding::FragmentStage, s->texture.get(),
+                                                  m_sampler.get()),
+    });
+    s->srb->create();
+    return s;
 }
 
 void PreviewCompositorRenderer::ensureBlitPipeline() {
@@ -419,8 +467,12 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     int hardwareLayers = 0;
 
     const QMatrix4x4 corr = m_rhi->clipSpaceCorrMatrix();
+    // One item of a container's stack (D35): a layer or a group surface.
     struct Draw {
         QRhiShaderResourceBindings* srb;
+        int z = 0;
+        std::optional<int> stackOrder;
+        std::string container;  // precomposeGroupId; empty: the frame
     };
     std::vector<Draw> draws;
     draws.reserve(m_layers.size());
@@ -493,40 +545,96 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
             e.srb->create();
             e.bound = planes;
         }
-        const auto m = nt::layerMatrix(layer.transform, frame.size.width(), frame.size.height(),
-                                       m_canvasSize.width(), m_canvasSize.height());
+        // The cut geometry and the group's matrix included (DESIGN.md D35).
+        const auto m = nt::layerDrawMatrix(layer, frame.size.width(), frame.size.height(), m_canvasSize.width(),
+                                           m_canvasSize.height());
         QMatrix4x4 model;
         std::copy(m.begin(), m.end(), model.data());
         LayerUniforms u{};
         writeMatrix(u, corr * model);
         std::memcpy(u.colorMatrix, frame.colorMatrix.data(), sizeof(u.colorMatrix));
+        // Its own opacity: a group's opacity applies once, to its surface (D35).
         u.opacity = static_cast<float>(layer.opacity);
         u.flipV = 0.0f;
         u.mode = modeFor(frame.format);
         updates->updateDynamicBuffer(e.ubuf.get(), 0, sizeof(u), &u);
-        draws.push_back({e.srb.get()});
+        draws.push_back({e.srb.get(), layer.z, layer.stackOrder, layer.precomposeGroupId});
     }
+    const int layerDraws = static_cast<int>(draws.size());
+
+    // Intermediate surfaces (D35), innermost first: each drawn group gets a
+    // pooled target and becomes one item of its own container.
+    struct SurfacePass {
+        Surface* surface;
+        std::string groupId;
+    };
+    std::vector<SurfacePass> surfacePasses;
+    const auto hasItems = [&](const std::string& groupId) {
+        return std::any_of(draws.begin(), draws.end(), [&](const Draw& d) { return d.container == groupId; });
+    };
+    for (const nt::PrecompositeLayer& pc : m_precomposites) {
+        if (!hasItems(pc.clipId)) continue;  // nothing drawn: no target
+        Surface* surface = m_surfaces.acquire(m_canvasSize, m_frame);
+        if (!surface) continue;
+        // Frame-sized, so only the group's cut moves it; its matrix already
+        // rode into each child.
+        nt::ActiveLayer placement;
+        placement.transition = pc.transition;
+        const auto m = nt::layerDrawMatrix(placement, m_canvasSize.width(), m_canvasSize.height(),
+                                           m_canvasSize.width(), m_canvasSize.height());
+        QMatrix4x4 model;
+        std::copy(m.begin(), m.end(), model.data());
+        LayerUniforms u{};
+        writeMatrix(u, corr * model);
+        u.opacity = static_cast<float>(pc.opacity);
+        u.flipV = 0.0f;
+        u.mode = 0.0f;  // premultiplied RGBA
+        updates->updateDynamicBuffer(surface->ubuf.get(), 0, sizeof(u), &u);
+        surfacePasses.push_back({surface, pc.clipId});
+        draws.push_back({surface->srb.get(), pc.z, pc.stackOrder, pc.precomposeGroupId});
+    }
+    // `sortStack`: by z, then stack order (absent last), stable.
+    std::stable_sort(draws.begin(), draws.end(), [](const Draw& a, const Draw& b) {
+        if (a.z != b.z) return a.z < b.z;
+        const int sa = a.stackOrder.value_or(std::numeric_limits<int>::max());
+        const int sb = b.stackOrder.value_or(std::numeric_limits<int>::max());
+        return sa < sb;
+    });
 
     // Present rules (D12): with layers in the plan and none drawn, keep the
     // last picture instead of a black frame (a cut onto a decoder still
     // opening). With no layers, the canvas is black: a real gap.
-    const bool held = !m_layers.empty() && draws.empty() && m_canvasDrawn;
+    const bool held = !m_layers.empty() && layerDraws == 0 && m_canvasDrawn;
     const QRhiCommandBuffer::VertexInput vin(m_vbuf.get(), 0);
-    if (held) {
-        cb->resourceUpdate(updates);
-    } else {
-        // Pass 1: layers into the canvas, bottom to top.
-        cb->beginPass(m_canvasRt.get(), QColor(0, 0, 0, 255), {1.0f, 0}, updates);
+    // One pass per container: its items bottom to top.
+    const auto drawContainer = [&](QRhiRenderTarget* rt, const QColor& clear, const std::string& container,
+                                   QRhiResourceUpdateBatch* batch) {
+        cb->beginPass(rt, clear, {1.0f, 0}, batch);
         cb->setGraphicsPipeline(m_layerPipeline.get());
         cb->setViewport({0, 0, float(m_canvasSize.width()), float(m_canvasSize.height())});
         for (const Draw& d : draws) {
+            if (d.container != container) continue;
             cb->setShaderResources(d.srb);
             cb->setVertexInput(0, 1, &vin);
             cb->draw(4);
         }
         cb->endPass();
+    };
+    if (held) {
+        cb->resourceUpdate(updates);
+    } else {
+        // Surfaces first, innermost first, over transparency; the first pass
+        // carries the frame's uploads. Then the canvas.
+        QRhiResourceUpdateBatch* batch = updates;
+        for (const SurfacePass& sp : surfacePasses) {
+            drawContainer(sp.surface->rt.get(), QColor(0, 0, 0, 0), sp.groupId, batch);
+            batch = nullptr;
+        }
+        drawContainer(m_canvasRt.get(), QColor(0, 0, 0, 255), std::string(), batch);
         m_canvasDrawn = true;
     }
+    const int drawnSurfaces = held ? 0 : static_cast<int>(surfacePasses.size());
+    m_surfaces.endFrame(m_frame, m_canvasSize);
 
     // Stills: read the canvas back once every layer shows its exact frame.
     // An immediate capture takes this frame as it is (the first picture at a
@@ -591,7 +699,10 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     stat.renderCpuMs = double(m_clock.nsecsElapsed() - startNs) / 1.0e6;
     const double gpuSec = cb->lastCompletedGpuTime();
     stat.windowGpuObservationMs = gpuSec > 0.0 ? gpuSec * 1000.0 : -1.0;
-    stat.layers = static_cast<int>(draws.size());
+    stat.layers = layerDraws;
+    stat.surfaces = drawnSurfaces;
+    stat.surfaceTargets = m_surfaces.size();
+    stat.surfaceTargetsCreated = m_surfaces.created();
     stat.framesInFlight = m_rhi->resourceLimit(QRhi::FramesInFlight);
     stat.frameError = frameError;
     stat.held = held;

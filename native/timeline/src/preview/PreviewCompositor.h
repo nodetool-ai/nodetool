@@ -36,6 +36,11 @@ struct FrameStat {
     int hardwareLayers = 0;     // layers drawn from imported decoder surfaces
     int liveFrameRefs = 0;      // hardware FrameRefs alive (process-wide)
     bool allExact = false;      // every layer showed its exact frame (D22 readiness)
+    // Intermediate surfaces (D35): drawn this frame, render targets in the
+    // pool after it, and targets created since the renderer started.
+    int surfaces = 0;
+    int surfaceTargets = 0;
+    long long surfaceTargetsCreated = 0;
 };
 
 struct MediaReportEntry {

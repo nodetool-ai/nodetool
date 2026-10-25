@@ -1,9 +1,7 @@
 #include "model/TrackListModel.h"
 
-#include <QVariantList>
-#include <QVariantMap>
-
 #include <algorithm>
+#include <map>
 
 namespace {
 
@@ -19,38 +17,52 @@ QString trackTypeName(nt::TrackType type) {
     return QStringLiteral("video");
 }
 
-QString mediaTypeName(nt::MediaType type) {
-    switch (type) {
-    case nt::MediaType::Image: return QStringLiteral("image");
-    case nt::MediaType::Video: return QStringLiteral("video");
-    case nt::MediaType::Audio: return QStringLiteral("audio");
-    case nt::MediaType::Overlay: return QStringLiteral("overlay");
-    case nt::MediaType::Text: return QStringLiteral("text");
-    case nt::MediaType::Shape: return QStringLiteral("shape");
-    case nt::MediaType::Model3d: return QStringLiteral("model3d");
-    case nt::MediaType::Group: return QStringLiteral("group");
-    case nt::MediaType::Adjustment: return QStringLiteral("adjustment");
-    case nt::MediaType::Midi: return QStringLiteral("midi");
-    }
-    return QStringLiteral("video");
-}
-
 }  // namespace
 
 TrackListModel::TrackListModel(QObject* parent) : QAbstractListModel(parent) {}
 
+namespace {
+
+std::vector<const nt::Track*> sortedTracks(const nt::Timeline* timeline) {
+    std::vector<const nt::Track*> rows;
+    if (timeline) {
+        for (const auto& t : timeline->tracks) {
+            rows.push_back(&t);
+        }
+        std::stable_sort(rows.begin(), rows.end(),
+                         [](const nt::Track* a, const nt::Track* b) { return a->index < b->index; });
+    }
+    return rows;
+}
+
+}  // namespace
+
 void TrackListModel::reset(const nt::Timeline* timeline) {
     beginResetModel();
     m_timeline = timeline;
-    m_rows.clear();
+    m_rows = sortedTracks(timeline);
+    // `buildTypedIndexMap` counts in document order, not row order.
+    m_typedIndex.assign(m_rows.size(), 1);
     if (timeline) {
+        std::map<nt::TrackType, int> counters;
+        std::map<const nt::Track*, int> byTrack;
         for (const auto& t : timeline->tracks) {
-            m_rows.push_back(&t);
+            byTrack[&t] = ++counters[t.type];
         }
-        std::stable_sort(m_rows.begin(), m_rows.end(),
-                         [](const nt::Track* a, const nt::Track* b) { return a->index < b->index; });
+        for (size_t i = 0; i < m_rows.size(); ++i) {
+            m_typedIndex[i] = byTrack[m_rows[i]];
+        }
     }
     endResetModel();
+}
+
+void TrackListModel::rebind(const nt::Timeline* timeline) {
+    m_timeline = timeline;
+    m_rows = sortedTracks(timeline);
+}
+
+const nt::Track* TrackListModel::trackAt(int row) const {
+    return row >= 0 && row < rowCount() ? m_rows[static_cast<size_t>(row)] : nullptr;
 }
 
 int TrackListModel::rowCount(const QModelIndex& parent) const {
@@ -70,23 +82,9 @@ QVariant TrackListModel::data(const QModelIndex& index, int role) const {
     case VisibleRole: return t.visible;
     case LockedRole: return t.locked;
     case MutedRole: return t.muted;
-    case ClipsRole: {
-        QVariantList clips;
-        for (const auto& c : m_timeline->clips) {
-            if (c.trackId != t.id) {
-                continue;
-            }
-            clips.append(QVariantMap{
-                {QStringLiteral("clipId"), QString::fromStdString(c.id)},
-                {QStringLiteral("name"), QString::fromStdString(c.name)},
-                {QStringLiteral("startMs"), c.startMs},
-                {QStringLiteral("durationMs"), c.durationMs},
-                {QStringLiteral("mediaType"), mediaTypeName(c.mediaType)},
-                {QStringLiteral("hidden"), c.hidden},
-            });
-        }
-        return clips;
-    }
+    case SoloRole: return t.raw.value(QStringLiteral("solo")).toBool(false);
+    case HeightPxRole: return t.raw.value(QStringLiteral("heightPx")).toDouble(64.0);
+    case TypedIndexRole: return m_typedIndex[static_cast<size_t>(index.row())];
     default: return {};
     }
 }
@@ -95,6 +93,7 @@ QHash<int, QByteArray> TrackListModel::roleNames() const {
     return {
         {TrackIdRole, "trackId"},  {NameRole, "name"},     {TypeRole, "trackType"},
         {IndexRole, "trackIndex"}, {VisibleRole, "trackVisible"}, {LockedRole, "locked"},
-        {MutedRole, "muted"},      {ClipsRole, "clips"},
+        {MutedRole, "muted"},      {SoloRole, "solo"},       {HeightPxRole, "heightPx"},
+        {TypedIndexRole, "typedIndex"},
     };
 }

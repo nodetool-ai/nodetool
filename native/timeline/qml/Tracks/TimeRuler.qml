@@ -1,51 +1,36 @@
-// Mirrors web/src/components/timeline/Tracks/TimeRuler.tsx: second ticks with
-// labels, scrolled with the lanes. Click or drag to seek.
+// Mirrors web/src/components/timeline/Tracks/TimeRuler.tsx: the tick canvas
+// above the lanes, scrolled with them. A press seeks; a drag that started
+// here scrubs.
 import QtQuick
 import NodeTool.Timeline
 
 Rectangle {
     id: ruler
-    property real pxPerMs: 0.06
-    property real contentX: 0
-    property real durationMs: 0
+    required property TimelineViewState viewState
+    property double fps: 30
     signal seekRequested(real ms)
 
-    color: Theme.panel
+    objectName: "timeRuler"
+    height: Theme.rulerHeight
+    color: Theme.backgroundPaper
     clip: true
 
-    // Tick spacing in seconds that keeps labels at least 60 px apart.
-    readonly property real stepSec: {
-        const steps = [0.5, 1, 2, 5, 10, 30, 60]
-        for (const s of steps) {
-            if (s * 1000 * pxPerMs >= 60) return s
-        }
-        return 120
+    RulerCanvas {
+        id: canvas
+        objectName: "rulerCanvas"
+        width: parent.width
+        height: parent.height - 1
+        msPerPx: ruler.viewState.msPerPx
+        scrollLeftPx: ruler.viewState.scrollLeftPx
+        fps: ruler.fps
+        background: Theme.backgroundPaper
+        textColor: Theme.textSecondary
+        tickColor: Theme.divider
+        font.family: Theme.monoFamily
+        font.pixelSize: Theme.fontSizeSmaller
     }
 
-    Repeater {
-        model: Math.floor(ruler.durationMs / 1000 / ruler.stepSec) + 1
-        delegate: Item {
-            required property int index
-            readonly property real sec: index * ruler.stepSec
-            x: sec * 1000 * ruler.pxPerMs - ruler.contentX
-            height: ruler.height
-            Rectangle {
-                y: parent.height - 8
-                width: 1
-                height: 8
-                color: Theme.textMuted
-            }
-            Text {
-                x: 4
-                y: 4
-                text: Theme.timecode(parent.sec * 1000, 30).slice(0, 5)
-                color: Theme.textMuted
-                font.pixelSize: 10
-                font.family: "Menlo"
-            }
-        }
-    }
-
+    // borderBottom: 1px divider.
     Rectangle {
         anchors.bottom: parent.bottom
         width: parent.width
@@ -54,11 +39,16 @@ Rectangle {
     }
 
     MouseArea {
+        objectName: "rulerSeekArea"
         anchors.fill: parent
+        acceptedButtons: Qt.LeftButton
+        preventStealing: true
         function seekTo(mx) {
-            ruler.seekRequested(Math.max(0, (mx + ruler.contentX) / ruler.pxPerMs))
+            ruler.seekRequested(Math.max(0, mx * ruler.viewState.msPerPx + ruler.viewState.scrollLeftPx * ruler.viewState.msPerPx))
         }
         onPressed: mouse => seekTo(mouse.x)
-        onPositionChanged: mouse => seekTo(mouse.x)
+        onPositionChanged: mouse => {
+            if (pressed) seekTo(mouse.x)
+        }
     }
 }

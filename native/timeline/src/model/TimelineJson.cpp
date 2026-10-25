@@ -1,5 +1,7 @@
 #include "model/TimelineJson.h"
 
+#include "scene/ClipScene.h"
+
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -65,6 +67,7 @@ ParseResult parseTimelineJson(const QByteArray& json, const QString& baseDir) {
     tl.width = root.value(u"width").toInt(1920);
     tl.height = root.value(u"height").toInt(1080);
     tl.durationMs = root.value(u"durationMs").toDouble(0.0);
+    tl.masterVolumeDb = root.value(u"master").toObject().value(u"volumeDb").toDouble(0.0);
     if (tl.fps <= 0.0 || tl.width <= 0 || tl.height <= 0) {
         result.error = QStringLiteral("fps, width and height must be positive");
         return result;
@@ -85,6 +88,9 @@ ParseResult parseTimelineJson(const QByteArray& json, const QString& baseDir) {
         track.visible = t.value(u"visible").toBool(true);
         track.locked = t.value(u"locked").toBool(false);
         track.muted = t.value(u"muted").toBool(false);
+        track.solo = t.value(u"solo").toBool(false);
+        track.volumeDb = t.value(u"volumeDb").toDouble(0.0);
+        track.pan = t.value(u"pan").toDouble(0.0);
         track.raw = t;
         tl.tracks.push_back(std::move(track));
     }
@@ -115,6 +121,9 @@ ParseResult parseTimelineJson(const QByteArray& json, const QString& baseDir) {
         clip.fadeOutShape = c.value(u"fadeOutShape").toString().toStdString();
         clip.speedMultiplier = c.value(u"speedMultiplier").toDouble(1.0);
         clip.speedBaked = c.value(u"speedBaked").toBool(false);
+        clip.volumeDb = c.value(u"volumeDb").toDouble(0.0);
+        clip.linkId = c.value(u"linkId").toString().toStdString();
+        clip.status = c.value(u"status").toString().toStdString();
         if (c.value(u"transform").isObject()) {
             const QJsonObject t = c.value(u"transform").toObject();
             ClipTransform xf;
@@ -122,6 +131,10 @@ ParseResult parseTimelineJson(const QByteArray& json, const QString& baseDir) {
             xf.scale = vec2From(t.value(u"scale"), xf.scale);
             xf.rotation = t.value(u"rotation").toDouble(0.0);
             xf.anchor = vec2From(t.value(u"anchor"), xf.anchor);
+            if (t.value(u"rotationX").isDouble()) xf.rotationX = t.value(u"rotationX").toDouble();
+            if (t.value(u"rotationY").isDouble()) xf.rotationY = t.value(u"rotationY").toDouble();
+            if (t.value(u"perspective").isDouble()) xf.perspective = t.value(u"perspective").toDouble();
+            if (t.value(u"depthPx").isDouble()) xf.depthPx = t.value(u"depthPx").toDouble();
             clip.transform = xf;
         }
         if (c.value(u"transitionIn").isObject()) {
@@ -139,6 +152,7 @@ ParseResult parseTimelineJson(const QByteArray& json, const QString& baseDir) {
                                  : QDir(baseDir).filePath(mediaPath).toStdString();
         }
         clip.raw = c;
+        clip.scene = scene::parseClipScene(c);
         if (!tl.findTrack(clip.trackId)) {
             result.error = QStringLiteral("clip %1: unknown trackId").arg(QString::fromStdString(clip.id));
             return result;
@@ -150,6 +164,7 @@ ParseResult parseTimelineJson(const QByteArray& json, const QString& baseDir) {
         tl.clips.push_back(std::move(clip));
     }
 
+    tl.scene = scene::parseSequenceScene(root);
     tl.raw = root;
     result.timeline = std::move(tl);
     return result;
