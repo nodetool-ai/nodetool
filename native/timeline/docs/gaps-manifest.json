@@ -2,6 +2,7 @@
   "plan": "native/timeline/docs/PLAN-GAPS.md",
   "baseBranch": "feat/native-timeline",
   "maxConcurrentBuilds": 4,
+  "sanitizerGate": {"after": "V", "preset": "sanitize", "baseline": "tools/sanitizers/baseline.md", "rule": "After V has merged, every merge also runs the sanitize ctest on the merged tree. A report not in the baseline fails the merge."},
   "review": "codex exec -m gpt-6-astra -s read-only -C <worktree> -o <report> -",
   "packages": [
     {
@@ -229,6 +230,20 @@
       ]
     },
     {
+      "id": "V", "wave": 1, "needs": ["S1"], "gaps": [], "priority": "first",
+      "title": "Memory-safety tooling",
+      "owns": ["CMakeLists.txt", "CMakePresets.json", "cmake/Sanitizers.cmake", "cmake/Hardening.cmake", ".clang-tidy", "tools/sanitizers/", "tests/fuzz/", "src/platform/ThreadSafety.h", "../../.github/workflows/native-timeline.yml"],
+      "web": [],
+      "server": [],
+      "exit": [
+        "The sanitize (ASan + UBSan) and tsan ctest runs report nothing outside tools/sanitizers/baseline.md",
+        "Each tool fails once on a planted defect (use after free, out-of-bounds operator[] under hardening, data race, fuzz crash), then the plant is removed",
+        "The full checks pass with the hardening flags on",
+        "Each fuzz target (timeline JSON parser, media probe) runs 10 minutes without a new crash",
+        "clang-tidy reports nothing outside its baseline"
+      ]
+    },
+    {
       "id": "G", "wave": 2, "needs": ["C", "D2", "F"], "gaps": ["F7"],
       "title": "Context menus",
       "owns": ["qml/menus/"],
@@ -269,6 +284,6 @@
       "exit": ["Movable panels and the built-in workspaces match TimelineDockLayout.ts"]
     }
   ],
-  "mergeOrder": ["S1", "A", "B", "C", "D1", "D2", "D3", "D4", "D5", "E", "F", "H", "I", "J", "K", "L", "M", "N", "P1", "R", "G", "O", "D6", "P2", "Q"],
+  "mergeOrder": ["S1", "V", "A", "B", "C", "D1", "D2", "D3", "D4", "D5", "E", "F", "H", "I", "J", "K", "L", "M", "N", "P1", "R", "G", "O", "D6", "P2", "Q"],
   "outOfPlan": ["F19 signing and notarization", "Windows and Linux reference-machine benches", "AI features", "MIDI clips and instruments"]
 }
