@@ -19,13 +19,70 @@
 //
 //   node native/timeline/scripts/op-conformance.mjs [--bin path] [--cases N] [--json]
 import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, "..", "..", "..");
+// Each .mjs exports {config, tests, env?: ({bin}) => env}. Configs stay in
+// conformance/, and every requested test must pass at least one comparison.
+export async function loadSuites(directory, context) {
+  const runs = [];
+  const problems = [];
+  if (!existsSync(directory)) return { runs, problems };
+  for (const name of readdirSync(directory).filter(n => n.endsWith(".mjs")).sort()) {
+    try {
+      const { default: suite } = await import(pathToFileURL(path.join(directory, name)).href);
+      if (!suite || !["vitest.config.mts", "vitest.store.config.mts"].includes(suite.config) ||
+          !Array.isArray(suite.tests) || suite.tests.length === 0 ||
+          suite.tests.some(t => typeof t !== "string" || !t)) {
+        throw new Error("expected an existing config and a nonempty tests array");
+      }
+      runs.push({ ...suite, env: suite.env ? suite.env(context) : {} });
+    } catch (error) {
+      problems.push(`${name}: suite failed to load: ${error.message}`);
+    }
+  }
+  return { runs, problems };
+}
+
+export function checkSuiteReport(report, skipped = {}) {
+  const files = [];
+  const problems = [];
+  const skippedSeen = new Set();
+  let passed = 0;
+  if (report.exitCode !== 0) problems.push(`vitest exited ${report.exitCode}`);
+  // Every requested suite ran, with no load or collection error, and
+  // compared something.
+  for (const requested of report.tests) {
+    const abs = path.isAbsolute(requested) ? requested : path.join(repo, "packages/timeline", requested);
+    const file = report.testResults.find((f) => path.resolve(f.name) === path.resolve(abs));
+    const rel = path.relative(repo, abs);
+    if (!file) {
+      problems.push(`${rel}: suite missing from the report`);
+      continue;
+    }
+    let filePassed = 0;
+    let fileFailed = 0;
+    for (const t of file.assertionResults) {
+      const name = [...t.ancestorTitles, t.title].join(" ");
+      if (t.status === "passed") filePassed += 1;
+      else if (t.status === "failed") {
+        fileFailed += 1;
+        problems.push(`${rel} > ${name}: ${(t.failureMessages ?? [])[0]?.split("\n")[0]}`);
+      } else if (skipped[name]) skippedSeen.add(name);
+    }
+    if (file.status === "failed" && fileFailed === 0) problems.push(`${rel}: suite error: ${(file.message ?? "").split("\n")[0]}`);
+    if (filePassed === 0) problems.push(`${rel}: no passing comparison`);
+    passed += filePassed;
+    files.push({ file: rel, passed: filePassed, failed: fileFailed });
+  }
+  return { files, problems, skippedSeen, passed };
+}
+
+async function main() {
 const argv = process.argv.slice(2);
 const opt = (name, fallback) => {
   const i = argv.indexOf(name);
@@ -96,11 +153,14 @@ const runs = [
   { config: "vitest.config.mts", tests: [...PACKAGE_TESTS, DIFFERENTIAL, KNOWN], skip: SKIP_PATTERN },
   { config: "vitest.store.config.mts", tests: WEB_TESTS }
 ];
+const extensions = await loadSuites(path.join(here, "conformance", "suites"), { bin });
+runs.push(...extensions.runs);
 const reports = [];
 for (const [i, run] of runs.entries()) {
   const reportFile = path.join(work, `report-${i}.json`);
   const env = {
     ...process.env,
+    ...run.env,
     NT_TIMELINE_OPS: bin,
     NT_OPS_COUNT_FILE: countFile,
     NT_DIFF_CASES: opt("--cases", "300"),
@@ -126,36 +186,15 @@ const calls = existsSync(countFile)
 rmSync(work, { recursive: true, force: true });
 
 const files = [];
-const problems = [];
+const problems = [...extensions.problems];
 const skippedSeen = new Set();
 let passed = 0;
 for (const report of reports) {
-  if (report.exitCode !== 0) problems.push(`vitest exited ${report.exitCode}`);
-  // Every requested suite ran, with no load or collection error, and
-  // compared something.
-  for (const requested of report.tests) {
-    const abs = path.isAbsolute(requested) ? requested : path.join(repo, "packages/timeline", requested);
-    const file = report.testResults.find((f) => path.resolve(f.name) === path.resolve(abs));
-    const rel = path.relative(repo, abs);
-    if (!file) {
-      problems.push(`${rel}: suite missing from the report`);
-      continue;
-    }
-    let filePassed = 0;
-    let fileFailed = 0;
-    for (const t of file.assertionResults) {
-      const name = [...t.ancestorTitles, t.title].join(" ");
-      if (t.status === "passed") filePassed += 1;
-      else if (t.status === "failed") {
-        fileFailed += 1;
-        problems.push(`${rel} > ${name}: ${(t.failureMessages ?? [])[0]?.split("\n")[0]}`);
-      } else if (SKIPPED[name]) skippedSeen.add(name);
-    }
-    if (file.status === "failed" && fileFailed === 0) problems.push(`${rel}: suite error: ${(file.message ?? "").split("\n")[0]}`);
-    if (filePassed === 0) problems.push(`${rel}: no passing comparison`);
-    passed += filePassed;
-    files.push({ file: rel, passed: filePassed, failed: fileFailed });
-  }
+  const checked = checkSuiteReport(report, SKIPPED);
+  files.push(...checked.files);
+  problems.push(...checked.problems);
+  passed += checked.passed;
+  for (const name of checked.skippedSeen) skippedSeen.add(name);
 }
 for (const name of Object.keys(SKIPPED)) {
   if (!skippedSeen.has(name)) problems.push(`skipped test not found in the package: ${name}`);
@@ -171,3 +210,6 @@ if (argv.includes("--json")) {
   console.log(`${ok ? "PASS" : "FAIL"}: ${passed} passed, ${Object.keys(SKIPPED).length} skipped and replaced, ${problems.length} problems, ${calls} native calls`);
 }
 process.exit(ok ? 0 : 1);
+
+}
+if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();
