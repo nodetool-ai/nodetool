@@ -27,7 +27,9 @@
 // cannot pass for saved. The undo stack's clean state follows it, for the UI.
 // Autosave runs 750 ms after the last command (D34) while the document is
 // dirty and no conflict is open. `flushBeforeQuit` saves what is pending
-// within a bounded time, or leaves a recovery file.
+// within a bounded elapsed time, or leaves a recovery file (in a fallback
+// folder when the backup folder takes none). A recovery file stays until a
+// save replaces it: a clean save, or a strip whose copy was written.
 
 #include "server/ServerClient.h"
 
@@ -49,6 +51,9 @@ struct SaveTarget {
     QString token;
     QString timelineId;
     QString backupDir;  // the folder that holds `<id>.json`, the raw backup of the last load
+    // When set, a save goes only to the server that answers with this
+    // instance token (ServerClient::setExpectedInstance).
+    QString expectedInstance = {};
 };
 
 struct SaveResult {
@@ -95,12 +100,17 @@ public:
     void setDebounceMs(int ms) { m_timer.setInterval(ms); }
     void setAutosave(bool on);
     void setRetryBaseMs(int ms) { m_retryBaseMs = ms; }
+    // Where `flushBeforeQuit` writes the recovery copy when the backup folder
+    // takes no file. Default: the app's local data folder, then the temp folder.
+    void setQuitFallbackDirs(const QStringList& dirs) { m_fallbackDirs = dirs; }
 
     // Saves now, dirty or not. Blocks until the server answers.
     SaveResult saveNow();
-    // Before the app quits: saves pending edits within `timeoutMs`. Returns
-    // true when the server holds the current document; otherwise the current
-    // document is in `<id>.recovery.json` (or `<id>.local.json` on a conflict).
+    // Before the app quits: saves pending edits within `timeoutMs` of elapsed
+    // time. Returns true when the server holds the current document; otherwise
+    // the current document is in `<id>.recovery.json` (or `<id>.local.json` on
+    // a conflict), in the backup folder or else a fallback folder; `keptCopy`
+    // names it, and is empty when no folder took it.
     bool flushBeforeQuit(int timeoutMs);
     // The document changed outside the undo stack's index (a merge).
     void documentChanged();
@@ -118,6 +128,8 @@ private:
     void syncClean();
     // Writes `doc` to `<id>.<suffix>.json`; returns the path, or sets `error`.
     QString writeCopy(const QString& suffix, const QJsonObject& doc, QString* error = nullptr) const;
+    QString writeCopyIn(const QString& dir, const QString& suffix, const QJsonObject& doc, QString* error) const;
+    QString copyPath(const QString& suffix) const;  // in the backup folder; empty without one
     void removeCopy(const QString& suffix) const;
 
     SaveTarget m_target;
@@ -138,6 +150,13 @@ private:
     QString m_lastError;
     QString m_keptCopy;
     QString m_recoveryError;
+    QStringList m_fallbackDirs;
 };
+
+// main()'s exit code after the window closed: flushes `autosave` (may be
+// null), keeps `rc` when the server or a copy on disk holds the edits, and
+// returns kExitUnsavedEditsLost when nothing does.
+inline constexpr int kExitUnsavedEditsLost = 4;
+int exitCodeAfterQuit(AutosaveController* autosave, int rc, int timeoutMs);
 
 }  // namespace nt::server

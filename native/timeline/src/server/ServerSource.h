@@ -12,7 +12,8 @@
 // the positional fixture argument, so every mode keeps its own parser.
 // `loadTimelineSource` then loads that label from the server, and any other
 // argument from its file. The token can also come from NODETOOL_API_TOKEN,
-// the cache folder from NODETOOL_TIMELINE_CACHE_DIR.
+// the cache folder from NODETOOL_TIMELINE_CACHE_DIR. NODETOOL_TIMELINE_EXPECT_INSTANCE
+// limits saves to the server instance with that token (SaveTarget).
 //
 // A server open prints a summary line of the loader report to stderr and
 // writes the full report to --loader-report, or next to the raw document in

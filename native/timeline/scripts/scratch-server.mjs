@@ -3,7 +3,9 @@
 // database, assets and SECRETS_MASTER_KEY, never on port 7777, written to
 // only after the ownership checks of scratch-safety.mjs: the child is alive
 // and every listener on the port is in its process group (lsof), checked
-// right before each write. No check reads anything the server could set.
+// right before each write. Each server also carries an instance token that
+// only its own process sends (scratch-safety.mjs instancePreloadOption): the
+// native client gets it in `nativeEnv(server)` and writes nowhere else.
 
 import { spawn } from "node:child_process";
 import crypto from "node:crypto";
@@ -13,7 +15,11 @@ import path from "node:path";
 import {
   groupAlive,
   groupOwnsPort,
+  INSTANCE_ENV,
+  INSTANCE_HEADER,
+  instancePreloadOption,
   listenerPids,
+  NATIVE_EXPECT_ENV,
   noRedirectFetch,
   stopGroups
 } from "./scratch-safety.mjs";
@@ -30,7 +36,7 @@ export function createScratchSession({ work, repo, assertInWork, log = () => {} 
   
   const servers = [];
   
-  function scratchEnv(dir, port, extra) {
+  function scratchEnv(dir, port, instance, extra) {
     const env = { ...process.env };
     for (const key of Object.keys(env)) {
       if (/^(DATABASE_URL|DIRECT_URL|SUPABASE_|NODETOOL_|DB_PATH|ASSET_|STORAGE_|S3_|VECTORSTORE_)/.test(key)) delete env[key];
@@ -53,7 +59,8 @@ export function createScratchSession({ work, repo, assertInWork, log = () => {} 
       NODETOOL_VIDEO_PROXY_MIN_SIZE_PX: "-1",
       HOST: "127.0.0.1",
       PORT: String(port),
-      NODE_OPTIONS: "--conditions=nodetool-dev",
+      NODE_OPTIONS: `--conditions=nodetool-dev ${instancePreloadOption()}`,
+      [INSTANCE_ENV]: instance,
       PATH: `${path.join(work, "fake-bin")}:${env.PATH}`,
       ...extra
     };
@@ -72,7 +79,8 @@ export function createScratchSession({ work, repo, assertInWork, log = () => {} 
     const dir = assertInWork(path.join(work, name));
     if (fs.existsSync(dir)) throw new Error(`${dir} exists already`);
     for (const sub of ["home", "data", "assets"]) fs.mkdirSync(path.join(dir, sub), { recursive: true });
-    const env = scratchEnv(dir, port, extra);
+    const instance = crypto.randomBytes(16).toString("hex");
+    const env = scratchEnv(dir, port, instance, extra);
     const logPath = path.join(dir, "server.log");
     const out = fs.openSync(logPath, "w");
     const child = spawn(process.execPath, [path.join(repo, "node_modules", "tsx", "dist", "cli.mjs"), "packages/websocket/src/server.ts"], {
@@ -81,17 +89,20 @@ export function createScratchSession({ work, repo, assertInWork, log = () => {} 
       detached: true, // its own process group, so cleanup also ends ffmpeg children
       stdio: ["ignore", out, out]
     });
-    const server = { name, dir, port, base: `http://127.0.0.1:${port}`, child, logPath, env, owned: false };
+    const server = { name, dir, port, base: `http://127.0.0.1:${port}`, child, logPath, env, instance, owned: false };
     child.on("exit", () => {
       server.owned = false;  // a later write can never reach a replacement on the port
     });
     servers.push(server);
     const deadline = Date.now() + 180_000;
     let healthy = false;
+    let answeredBy = null;
     while (Date.now() < deadline && !healthy) {
       if (child.exitCode !== null) throw new Error(`${name} exited early, see ${logPath}`);
       try {
-        healthy = (await scratchFetch(`${server.base}/health`)).ok;
+        const r = await scratchFetch(`${server.base}/health`);
+        healthy = r.ok;
+        answeredBy = r.headers.get(INSTANCE_HEADER);
       } catch (err) {
         if (/redirect/.test(String(err))) throw err;
       }
@@ -101,6 +112,7 @@ export function createScratchSession({ work, repo, assertInWork, log = () => {} 
     // Ownership: the answer must come from the process group started here,
     // never from another server that holds the port.
     if (!ownsPort(server)) throw new Error(`${name}: the listener on ${port} is not the scratch server's process group`);
+    if (answeredBy !== instance) throw new Error(`${name}: /health answered as instance ${answeredBy}, not this server's`);
     server.owned = true;
     const text = fs.readFileSync(logPath, "utf8");
     const db = text.match(/Initializing SQLite database at: (\S+)/)?.[1];
@@ -158,6 +170,19 @@ export function createScratchSession({ work, repo, assertInWork, log = () => {} 
     return body.result.data;
   }
   
+  /** Throws unless the answer came from `base`'s scratch server instance. */
+  function assertAnsweredBy(base, r) {
+    const server = servers.find((s) => s.base === base);
+    if (!server || r.headers.get(INSTANCE_HEADER) !== server.instance) {
+      throw new Error(`${base}: the answer came from another server instance`);
+    }
+  }
+
+  /** The environment for a native client that may write to `server`, and only to it. */
+  function nativeEnv(server) {
+    return { ...process.env, [NATIVE_EXPECT_ENV]: server.instance };
+  }
+
   async function mutate(base, proc, input) {
     await assertScratch(base);
     const r = await scratchFetch(`${base}/trpc/${proc}`, {
@@ -165,6 +190,7 @@ export function createScratchSession({ work, repo, assertInWork, log = () => {} 
       headers: { "content-type": "application/json" },
       body: JSON.stringify(input)
     });
+    assertAnsweredBy(base, r);
     const body = await r.json();
     if (body.error) throw new Error(`${proc}: ${body.error.message}`);
     return body.result.data;
@@ -176,6 +202,7 @@ export function createScratchSession({ work, repo, assertInWork, log = () => {} 
     form.append("json", JSON.stringify({ name: path.basename(file), content_type: contentType }));
     form.append("file", new Blob([fs.readFileSync(file)], { type: contentType }), path.basename(file));
     const r = await scratchFetch(`${server.base}/api/assets`, { method: "POST", body: form });
+    assertAnsweredBy(server.base, r);
     if (!r.ok) throw new Error(`upload ${file}: HTTP ${r.status} ${await r.text()}`);
     const asset = await r.json();
     const stored = path.join(server.dir, "assets", asset.user_id, `${asset.id}${path.extname(file)}`);
@@ -212,5 +239,5 @@ export function createScratchSession({ work, repo, assertInWork, log = () => {} 
   }
   
   
-  return { servers, startServer, stopServers, assertScratch, query, mutate, upload, waitProxy, createTimeline };
+  return { servers, startServer, stopServers, assertScratch, nativeEnv, query, mutate, upload, waitProxy, createTimeline };
 }

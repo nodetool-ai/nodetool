@@ -192,9 +192,12 @@ private slots:
         const quint64 r3 = model.timeline().revision;
         QVERIFY(r3 > r2);
         QVERIFY(model.replaceMarkers(QJsonArray{QJsonObject{{QStringLiteral("id"), QStringLiteral("m")}, {QStringLiteral("timeMs"), 0}}}));
-        QVERIFY(model.timeline().revision > r3);
+        const quint64 r4 = model.timeline().revision;
+        QVERIFY(r4 > r3);
+        // Review F8: against the revision just before close(), not r3, which
+        // replaceMarkers() already superseded.
         model.close();
-        QVERIFY(model.timeline().revision > r3);
+        QVERIFY(model.timeline().revision > r4);
     }
 
     // The layout is computed once per revision, canvas and animated text,

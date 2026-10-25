@@ -1143,9 +1143,9 @@ int main(int argc, char** argv) {
         clock.play();
     }
 
-    const int rc = app.exec();
-    // Unsaved server edits: save them (at most 5 s) or leave a recovery file.
-    if (autosave) autosave->flushBeforeQuit(5000);
+    // Unsaved server edits: save them (at most 5 s) or leave a recovery file;
+    // exit code 4 when no folder took them.
+    const int rc = nt::server::exitCodeAfterQuit(autosave.get(), app.exec(), 5000);
     if ((bench || parser.isSet(teardownOpt)) && !*completed) {
         std::fprintf(stderr, "error: the window closed before the %s finished; no report\n",
                      "bench");

@@ -381,13 +381,27 @@ struct NodeDeleter {
         gLiveNodes.fetch_sub(1, std::memory_order_relaxed);
     }
 };
-using NodeArena = std::vector<std::unique_ptr<YGNode, NodeDeleter>>;
+// The nodes of one tree, parents before children (buildTree creates a node
+// before its children). They are freed in that order: a freed parent clears
+// its children's owner in one pass, so no child's free searches its parent's
+// child list, which would be quadratic in the number of children.
+struct NodeArena {
+    std::vector<std::unique_ptr<YGNode, NodeDeleter>> nodes;
+    NodeArena() = default;
+    NodeArena(const NodeArena&) = delete;
+    NodeArena& operator=(const NodeArena&) = delete;
+    ~NodeArena() {
+        for (auto& n : nodes) n.reset();
+    }
+};
 
 YGNodeRef newNode(NodeArena& arena) {
-    arena.reserve(arena.size() + 1);  // a failed push must not leak the node
-    YGNodeRef node = YGNodeNew();
+    // Owned from its creation, so a failed push frees it; the arena grows
+    // geometrically (review F4: a reserve of one more each time is quadratic).
+    std::unique_ptr<YGNode, NodeDeleter> owner(YGNodeNew());
     gLiveNodes.fetch_add(1, std::memory_order_relaxed);
-    arena.emplace_back(node);
+    YGNodeRef node = owner.get();
+    arena.nodes.push_back(std::move(owner));
     return node;
 }
 

@@ -80,12 +80,23 @@ cp fonts/LICENSE-JetBrainsMono.txt "$lic/JetBrainsMono-OFL-1.1.txt"
 cp third_party/yoga/LICENSE "$lic/Yoga-MIT.txt"
 for f in "$lic"/*.txt; do [[ -s "$f" ]] || { echo "error: empty licence $f" >&2; exit 1; }; done
 # The corresponding source of the LGPL libraries. FFmpeg: the exact source
-# tarball and configure line, in the bundle. Qt: the unmodified Homebrew
-# build; its source archives with their checksums, from Homebrew.
+# tarball and configure line, in the bundle. Qt and every other library that
+# macdeployqt copied (OpenSSL, GLib, PCRE2, ICU, FreeType...): the unmodified
+# Homebrew bottles. The list comes from the Mach-O files in the bundle, and
+# each keg's own install record (sbom.spdx.json, .brew/<formula>.rb) names
+# its source archive, patches and licence texts, so a newer Homebrew metadata
+# cannot name a source the bundle was not built from (review F4, M6 F8).
 src="$app/Contents/Resources/source"
 rm -rf "$src"
 mkdir -p "$src"
 cp build-ffmpeg-lgpl/ffmpeg-*.tar.xz "$src/"
+ffmpeg_tar=$(basename "$src"/ffmpeg-*.tar.xz)
+ffmpeg_version=${ffmpeg_tar#ffmpeg-}
+ffmpeg_version=${ffmpeg_version%.tar.xz}
+# Qt's kegs carry no licence file of their own: the LGPL and GPL texts above.
+python3 scripts/macho-deps.py notices "$app" --brew-prefix "$(brew --prefix)" \
+    --local "{\"name\":\"FFmpeg\",\"match\":\"^lib(avcodec|avformat|avutil|avfilter|swscale|swresample)[.]\",\"version\":\"$ffmpeg_version\",\"licenses\":[\"FFmpeg-LGPL-2.1.txt\"],\"source\":{\"file\":\"$ffmpeg_tar\"}}" \
+    --default-licence "qt=Qt-LGPL-3.0.txt,Qt-GPL-3.0.txt" > "$build/package-notices.txt"
 {
     echo "NodeTool Timeline $(git rev-parse --short HEAD 2> /dev/null || echo unknown): corresponding source and build information"
     echo
@@ -100,13 +111,10 @@ cp build-ffmpeg-lgpl/ffmpeg-*.tar.xz "$src/"
     echo "  configured with: $(grep -m1 -- '^--prefix=' "$build/avcodec-strings.txt")"
     echo "  built by: native/timeline/scripts/build-ffmpeg-lgpl.sh"
     echo
-    echo "Qt $(brew info --json=v2 qtbase | python3 -c 'import json,sys;print(json.load(sys.stdin)["formulae"][0]["installed"][0]["version"])') (GNU LGPL 3, licenses/Qt-LGPL-3.0.txt and Qt-GPL-3.0.txt)"
-    echo "  the Homebrew build, unmodified, of these source archives:"
-    brew info --json=v2 $(brew deps qt | grep '^qt') | python3 -c '
-import json, sys
-for f in json.load(sys.stdin)["formulae"]:
-    u = f["urls"]["stable"]
-    print("    %s %s\n      %s\n      sha256 %s" % (f["name"], f["versions"]["stable"], u["url"], u.get("checksum")))'
+    echo "Qt (GNU LGPL 3, licenses/Qt-LGPL-3.0.txt and Qt-GPL-3.0.txt) and the other libraries in"
+    echo "Contents/Frameworks and Contents/PlugIns: Homebrew kegs, each with its source, patches,"
+    echo "recipe and licence texts (licenses/third-party/<formula>/; components.json in this folder):"
+    cat "$build/package-notices.txt"
     echo
     echo "miniaudio 0.11.22 (public domain or MIT No Attribution, licenses/miniaudio.txt), compiled in."
     echo "Yoga 3.2.1 (MIT), compiled in (licenses/Yoga-MIT.txt)."

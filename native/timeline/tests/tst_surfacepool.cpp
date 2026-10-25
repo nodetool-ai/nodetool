@@ -94,19 +94,53 @@ private slots:
 
     // A frame that alone needs more than the budget still gets its targets,
     // and the pool reports it; the next frame within budget clears it.
+    // Review F1 (surfaces): the frame's recorded passes still reference its
+    // targets when endFrame() runs, before the frame is submitted, so none of
+    // them may be freed then. The trim waits for a later frame, when they
+    // were last used in a frame already submitted.
     void frameOverBudgetIsReported() {
         int live = 0;
         const QSize size(10, 10);
         SurfacePool<FakeTarget> pool([&](QSize) { return std::make_unique<FakeTarget>(&live); }, 800);
-        for (int i = 0; i < 3; ++i) QVERIFY(pool.acquire(size, 1));
+        FakeTarget* used[3] = {};
+        for (FakeTarget*& t : used) QVERIFY((t = pool.acquire(size, 1)));
         QCOMPARE(pool.bytes(), size_t(1200));
         pool.endFrame(1, size);
         QVERIFY(pool.lastFrameOverBudget());
-        QCOMPARE(pool.bytes(), size_t(800));  // trimmed once the frame is done
-        pool.acquire(size, 2);
+        // Frame 1 is not submitted yet: all three of its targets stay.
+        QCOMPARE(live, 3);
+        QCOMPARE(pool.size(), 3);
+        QCOMPARE(pool.bytes(), size_t(1200));
+        QCOMPARE(pool.freed(), 0LL);
+        // Frame 2 uses one target. Frame 1 is submitted, so the frame-1-only
+        // targets may go; the one frame 2 draws with stays to its end.
+        FakeTarget* again = pool.acquire(size, 2);
+        QVERIFY(again == used[0] || again == used[1] || again == used[2]);
         pool.endFrame(2, size);
         QVERIFY(!pool.lastFrameOverBudget());
+        QCOMPARE(pool.bytes(), size_t(800));  // trimmed to the budget
+        QCOMPARE(live, 2);
+        QCOMPARE(pool.acquire(size, 3), again);  // the target frame 2 used survived the trim
+        pool.endFrame(3, size);
         QCOMPARE(SurfacePool<FakeTarget>::bytesFor(QSize(3840, 2160)), size_t(33177600));  // 31.6 MiB
+    }
+
+    // No eviction path frees a target the current frame acquired, whatever
+    // the budget: a budget of 0 with one surface a frame.
+    void targetsOfTheCurrentFrameAreNeverFreed() {
+        int live = 0;
+        const QSize size(10, 10);
+        SurfacePool<FakeTarget> pool([&](QSize) { return std::make_unique<FakeTarget>(&live); }, 0);
+        FakeTarget* previous = nullptr;
+        for (long long frame = 1; frame <= 5; ++frame) {
+            FakeTarget* t = pool.acquire(size, frame);
+            QVERIFY(t);
+            if (previous) QCOMPARE(t, previous);  // it served the frame before, too
+            pool.endFrame(frame, size);
+            QCOMPARE(live, 1);  // this frame's target outlives its endFrame()
+            previous = t;
+        }
+        QCOMPARE(pool.created(), 1LL);
     }
 
     void failedCreateReturnsNull() {

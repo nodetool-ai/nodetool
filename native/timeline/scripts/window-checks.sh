@@ -56,8 +56,9 @@
 #      measurement, not pass/fail: the run's verdict says only whether every
 #      counter has samples.
 #
-# Exit 0 only when every budgeted bench, the teardown case and the M3
-# checks pass. The F7 runs are measurements, not pass/fail.
+# Exit 0 only when the paused-seek gate, every budgeted bench, the teardown
+# case and the M3 checks pass, and the summary says pass. The F7 runs are
+# measurements, not pass/fail.
 set -uo pipefail
 
 cd "$(dirname "$0")/.."
@@ -103,6 +104,10 @@ seek() {
     after=$(load1)
     echo "{\"exit\":$rc,\"loadBefore\":$before,\"loadAfter\":$after,\"skip\":\"$skip\",\"decode\":\"$decode\",\"fixture\":\"$fixture\",\"limitMs\":$limit}" \
         > "$out/seek-$name.meta.json"
+    # The gate runs are pass/fail; the A/B runs are measurements.
+    if [[ $name == gate-* && $rc != 0 ]]; then
+        status=1
+    fi
 }
 
 for decode in sw hw; do
@@ -189,7 +194,8 @@ node scripts/web-baseline.mjs --headed > "$out/m0-web-headed.log" 2>&1
 echo $? > "$out/m0-web-headed.exit"
 cp build-m5/web-baseline-headed.json "$out/m0-web-headed.json" 2> /dev/null
 
-node - "$out" <<'EOF'
+# The summary's verdict also sets the exit status.
+node - "$out" <<'EOF' || status=1
 const fs = require("fs");
 const path = require("path");
 const dir = process.argv[2];
@@ -343,5 +349,6 @@ const m0 = {
 const summary = { pass, seekGate, benches, teardown, f7, m2, m3, m0 };
 fs.writeFileSync(path.join(dir, "summary.json"), JSON.stringify(summary, null, 2));
 console.log(JSON.stringify(summary));
+process.exit(pass ? 0 : 1);
 EOF
 exit $status

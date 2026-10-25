@@ -1,7 +1,10 @@
 # Native timeline prototype (native/timeline/, PLAN M6): build and run the
 # headless ctest suite on macOS, Linux and Windows. No test opens a window or
-# plays a sound: rendering is offscreen (Metal on macOS, Mesa lavapipe for
-# Vulkan on Linux, WARP for D3D11 on Windows) and audio runs on miniaudio's
+# plays a sound. The render tests (ctest label `render`) need the platform
+# QRhi: Metal on Cocoa (macOS), Vulkan on Mesa lavapipe through xcb under Xvfb
+# (Linux), D3D11 on WARP through the Windows platform (Windows); a step checks
+# the backend and the adapter in their log. The window-event tests set the
+# offscreen platform themselves (ctest ENVIRONMENT). Audio runs on miniaudio's
 # null backend. Hosted runners have no hardware video decoder, so the
 # hardware decode tests are skipped (NT_NO_HW_DECODE=1); the benches and the
 # window checks (scripts/window-checks.sh) need a reference machine.
@@ -70,8 +73,21 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ninja-build pkg-config nasm ffmpeg libva-dev libvulkan-dev \
-            mesa-vulkan-drivers libgl1-mesa-dev libxkbcommon-dev libfontconfig1-dev libegl1 \
-            libasound2-dev libpulse-dev
+            mesa-vulkan-drivers vulkan-tools libgl1-mesa-dev libxkbcommon-dev libfontconfig1-dev libegl1 \
+            libasound2-dev libpulse-dev \
+            xvfb xauth libx11-xcb1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
+            libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 \
+            libxcb-xinerama0 libxcb-xkb1
+          # Vulkan on lavapipe only: the loader sees no other driver.
+          icd=$(compgen -G '/usr/share/vulkan/icd.d/lvp_icd*.json' | head -1 || true)
+          if [[ -z "$icd" ]]; then
+            echo "::error::mesa-vulkan-drivers installed no lavapipe ICD"
+            exit 1
+          fi
+          echo "VK_DRIVER_FILES=$icd" >> "$GITHUB_ENV"
+          echo "VK_ICD_FILENAMES=$icd" >> "$GITHUB_ENV"
+          VK_DRIVER_FILES=$icd vulkaninfo --summary | tee "$RUNNER_TEMP/vulkaninfo.txt"
+          grep -qi "llvmpipe" "$RUNNER_TEMP/vulkaninfo.txt"
           pipx run aqtinstall install-qt linux desktop "$QT_VERSION" linux_gcc_64 -m qtshadertools -O "$RUNNER_TEMP/qt"
           echo "QT_PREFIX=$RUNNER_TEMP/qt/$QT_VERSION/gcc_64" >> "$GITHUB_ENV"
           # FFmpeg as LGPL shared libraries, as the packages ship it.
@@ -120,28 +136,56 @@ jobs:
       - name: Build
         run: cmake --build native/timeline/build-ci
 
-      # macOS renders windowless through Metal on the Cocoa platform: the
-      # offscreen platform has no Metal QRhi (tst_editpreview fails there).
-      # The tests that need the offscreen platform set it themselves (ctest
-      # ENVIRONMENT). Linux: offscreen, and Vulkan on Mesa lavapipe; the
-      # renderers attach a QVulkanInstance (hw/HwWindow.cpp). Windows:
-      # offscreen with D3D11 (WARP when no GPU).
+      # The offscreen QPA platform has no QRhi: Qt Quick falls back to the
+      # software scene graph there, and tst_editpreview cannot initialize its
+      # render control. So no step sets QT_QPA_PLATFORM=offscreen globally;
+      # the window-event tests set it in their ctest ENVIRONMENT.
+      # macOS renders windowless through Metal on the Cocoa platform. Linux:
+      # xcb on Xvfb, Vulkan on lavapipe (the renderers attach a
+      # QVulkanInstance, hw/HwWindow.cpp). Windows: the Windows platform,
+      # D3D11 on the WARP software adapter.
+      # The render tests run apart, with the scene graph and QRhi logs on, and
+      # the log must name the backend and the adapter.
       - name: Test (headless, macOS)
         if: runner.os == 'macOS'
-        run: ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2
+        run: |
+          ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -LE render
+          QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" \
+            ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -L render --no-tests=error -V \
+            | tee "$RUNNER_TEMP/render.log"
+          grep -q "Creating QRhi with backend Metal" "$RUNNER_TEMP/render.log" ||
+            { echo "::error::the render tests did not run on Metal"; exit 1; }
 
       - name: Test (headless, Linux)
         if: runner.os == 'Linux'
         env:
-          QT_QPA_PLATFORM: offscreen
+          QT_QPA_PLATFORM: xcb
           QSG_RHI_BACKEND: vulkan
-        run: ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2
+        run: |
+          xvfb-run -a -s "-screen 0 1920x1080x24" \
+            ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -LE render
+          QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" xvfb-run -a -s "-screen 0 1920x1080x24" \
+            ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -L render --no-tests=error -V \
+            | tee "$RUNNER_TEMP/render.log"
+          grep -q "Creating QRhi with backend Vulkan" "$RUNNER_TEMP/render.log" ||
+            { echo "::error::the render tests did not run on Vulkan"; exit 1; }
+          grep -A1 "Physical device [0-9]*: 'llvmpipe" "$RUNNER_TEMP/render.log" | grep -q "using this physical device" ||
+            { echo "::error::the render tests did not run on lavapipe"; exit 1; }
 
       - name: Test (headless, Windows)
         if: runner.os == 'Windows'
         env:
-          QT_QPA_PLATFORM: offscreen
-        run: ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2
+          QSG_RHI_BACKEND: d3d11
+          QSG_RHI_PREFER_SOFTWARE_RENDERER: "1"
+        run: |
+          ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -LE render
+          QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" \
+            ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -L render --no-tests=error -V \
+            | tee "$RUNNER_TEMP/render.log"
+          grep -q "Creating QRhi with backend D3D11" "$RUNNER_TEMP/render.log" ||
+            { echo "::error::the render tests did not run on D3D11"; exit 1; }
+          grep -A1 "Adapter [0-9]*: 'Microsoft Basic Render Driver'" "$RUNNER_TEMP/render.log" | grep -q "using this adapter" ||
+            { echo "::error::the render tests did not run on WARP"; exit 1; }
 
       - name: Package (macOS, unsigned)
         if: runner.os == 'macOS'
@@ -150,6 +194,12 @@ jobs:
           DEV_BIN=build-ci/nodetool-timeline native/timeline/scripts/check-package-macos.sh
 
       # Not verified: written for M6 (review F12); no run has checked it.
+      # The smoke runs use a copy of the package in a fresh folder, with PATH
+      # cut to the Windows system folders and no Qt variable, so a DLL, a
+      # plug-in or a QML import missing from the package cannot load from the
+      # Qt or FFmpeg folders of the build (review F3). They render the whole
+      # QML editor (--screenshot) and decode video through the packaged
+      # FFmpeg (--stills).
       - name: Package (Windows, windeployqt, unverified)
         if: runner.os == 'Windows'
         run: |
@@ -160,8 +210,27 @@ jobs:
           cp "$FFMPEG_LGPL_BIN"/*.dll "$out/"
           mkdir -p "$out/licenses"
           cp native/timeline/licenses/*.txt native/timeline/fonts/LICENSE-*.txt "$out/licenses/"
-          "$out/nodetool-timeline.exe" native/timeline/fixtures/three-tracks.json --dump-plan --times 0,8500 > /dev/null
-          "$out/nodetool-timeline.exe" native/timeline/fixtures/av-sync.json --audio-dry-run
+          tmp=$(cygpath -u "$RUNNER_TEMP")
+          copy="$tmp/package-copy"
+          rm -rf "$copy" && cp -R "$out" "$copy"
+          smoke="$tmp/package-smoke"
+          rm -rf "$smoke" && mkdir -p "$smoke"
+          cd native/timeline
+          (
+            export PATH="/c/Windows/System32:/c/Windows:/c/Windows/System32/Wbem"
+            unset QT_PLUGIN_PATH QML_IMPORT_PATH QML2_IMPORT_PATH QT_QPA_PLATFORM_PLUGIN_PATH QT_QPA_PLATFORM
+            export QSG_RHI_BACKEND=d3d11 QSG_RHI_PREFER_SOFTWARE_RENDERER=1
+            exe="$copy/nodetool-timeline.exe"
+            "$exe" fixtures/three-tracks.json --dump-plan --times 0,8500 > /dev/null
+            dry=$("$exe" fixtures/av-sync.json --audio-dry-run)
+            [[ "$dry" == "audio mode: system" ]] || { echo "::error::--audio-dry-run printed '$dry'"; exit 1; }
+            "$exe" fixtures/three-tracks.json --screenshot "$smoke/editor.png" --audio none
+            [[ -s "$smoke/editor.png" ]] || { echo "::error::--screenshot of the packaged editor wrote nothing"; exit 1; }
+            "$exe" fixtures/video-cuts.json --stills "$smoke/stills" --still-frames 0,59,60 --audio none
+            shopt -s nullglob  # only bash builtins here: PATH has no Git tools
+            stills=("$smoke"/stills/frame_*.png)
+            [[ ${#stills[@]} == 3 ]] || { echo "::error::expected 3 stills from the package, got ${#stills[@]}"; exit 1; }
+          )
 
       # Not verified: written for M6 (review F12); no run has checked it.
       - name: Package (Linux AppImage, unverified)

@@ -12,6 +12,14 @@
 // already exceed the budget, the pool still creates them (the picture stays
 // right) and reports the frame as over budget.
 //
+// Lifetime (review F1): endFrame() runs after the frame's passes are
+// recorded and before the frame is submitted, and those commands still use
+// the targets the frame acquired. So no target is freed in the frame that
+// used it: every eviction takes only targets last used in an earlier frame,
+// which the renderer has already submitted (QRhi then defers the native
+// release until the GPU is done with it). A frame over the budget is trimmed
+// at the end of the next frame, or by the next frame's first acquire.
+//
 // `Target` is whatever the renderer keeps per surface (a texture, its render
 // target, its bindings); the factory creates one of a size. No GPU types
 // here, so the policy is tested without a device.
@@ -53,7 +61,7 @@ public:
             }
         }
         const size_t need = bytesFor(size);
-        evictFreeUntil(need);
+        evictFreeUntil(need, frame);
         std::unique_ptr<Target> t = m_factory(size);
         if (!t) return nullptr;
         ++m_created;
@@ -63,14 +71,17 @@ public:
         return m_slots.back().target.get();
     }
 
-    // The frame is done: every target is free again. Frees idle targets and
-    // free targets of a size this frame did not use.
+    // The frame's passes are recorded (not yet submitted): every target is
+    // free again. Frees idle targets, targets of a size this frame did not
+    // use, and the least recently used ones over the budget, all only among
+    // targets this frame did not use.
     void endFrame(long long frame, QSize frameSize) {
         m_lastFrameOverBudget = m_overBudget;
         m_overBudget = false;
         for (auto it = m_slots.begin(); it != m_slots.end();) {
             it->inUse = false;
-            if (frame - it->lastUsed > kIdleFrames || it->size != frameSize) {
+            const bool usedThisFrame = it->lastUsed >= frame;
+            if (!usedThisFrame && (frame - it->lastUsed > kIdleFrames || it->size != frameSize)) {
                 m_bytes -= bytesFor(it->size);
                 it = m_slots.erase(it);
                 ++m_freed;
@@ -78,7 +89,7 @@ public:
                 ++it;
             }
         }
-        evictFreeUntil(0);  // back under the budget once the frame is done
+        evictFreeUntil(0, frame);  // toward the budget, keeping this frame's targets
     }
 
     // Frees every target (device loss, renderer teardown).
@@ -96,13 +107,14 @@ public:
     bool lastFrameOverBudget() const { return m_lastFrameOverBudget; }
 
 private:
-    // Frees free targets, least recently used first, until `extra` more bytes
-    // fit in the budget or no free target is left.
-    void evictFreeUntil(size_t extra) {
+    // Frees free targets last used before `frame`, least recently used
+    // first, until `extra` more bytes fit in the budget or none is left.
+    void evictFreeUntil(size_t extra, long long frame) {
         while (m_bytes + extra > m_budget) {
             auto victim = m_slots.end();
             for (auto it = m_slots.begin(); it != m_slots.end(); ++it) {
-                if (!it->inUse && (victim == m_slots.end() || it->lastUsed < victim->lastUsed)) victim = it;
+                if (it->inUse || it->lastUsed >= frame) continue;
+                if (victim == m_slots.end() || it->lastUsed < victim->lastUsed) victim = it;
             }
             if (victim == m_slots.end()) return;
             m_bytes -= bytesFor(victim->size);

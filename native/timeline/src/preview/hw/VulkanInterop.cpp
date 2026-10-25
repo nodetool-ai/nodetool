@@ -89,6 +89,11 @@ struct VulkanInterop::Vk {
     std::recursive_mutex mutex;
     std::vector<Pending> pending;
     std::vector<VkFence> freeFences;
+    // Retired frames whose release to the foreign family could not be
+    // submitted (no command buffer, no fence, a failed submit). Their VA
+    // surfaces stay out of the decoder's free list until a release succeeds
+    // (retried on each flush()) or the device is lost.
+    std::vector<Owned> unreleased;
     bool lost = false;
 
     void freeOwned(Owned& o) {
@@ -111,6 +116,8 @@ struct VulkanInterop::Vk {
             freeOwned(p.owned);
         }
         pending.clear();
+        for (Owned& o : unreleased) freeOwned(o);
+        unreleased.clear();
     }
 
     // Frees what the completed submissions held.
@@ -185,6 +192,43 @@ struct VulkanInterop::Vk {
         pending.push_back(Pending{fence, cb, owned});
         owned = Owned{};
         return true;
+    }
+
+    // Submits the release of `owned`'s images to the foreign family in the
+    // external layout; `owned` is then freed when that submission completes.
+    // False when nothing was submitted: `owned` is still the caller's.
+    bool release(Owned& owned, std::string* why) {
+        VkImageMemoryBarrier barriers[2]{};
+        std::uint32_t count = 0;
+        for (size_t i = 0; i < 2; ++i) {
+            if (!owned.images[i]) continue;
+            VkImageMemoryBarrier& b = barriers[count++];
+            b.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+            b.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+            b.dstAccessMask = 0;
+            b.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+            b.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+            b.srcQueueFamilyIndex = queueFamily;
+            b.dstQueueFamilyIndex = VK_QUEUE_FAMILY_FOREIGN_EXT;
+            b.image = owned.images[i];
+            b.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+        }
+        if (count == 0) {
+            *why = "no image to release";
+            return false;
+        }
+        return submit(barriers, count, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                      owned, why);
+    }
+
+    // Retries the releases that could not be submitted, oldest first; stops
+    // at the first that fails again (the same shortage fails the rest).
+    void retryReleases() {
+        while (!lost && !unreleased.empty()) {
+            std::string why;
+            if (!release(unreleased.front(), &why)) return;  // a lost device freed them
+            unreleased.erase(unreleased.begin());
+        }
     }
 
     // The memory planes `modifier` needs for `format`, after checking that a
@@ -281,7 +325,9 @@ VulkanInterop::~VulkanInterop() {
     Vk& vk = *m_vk;
     if (!vk.dev || !vk.df) return;
     // Teardown: wait for every submission (the device may only be idle or
-    // lost here), then free.
+    // lost here), then free. A frame whose release never ran is freed too:
+    // no frame samples it (the retire queue waited for its last use), and
+    // the decoder that would reuse its VA surface is going as well.
     for (Pending& p : vk.pending) {
         if (!vk.lost && vk.df->vkWaitForFences(vk.dev, 1, &p.fence, VK_TRUE, UINT64_MAX) == VK_ERROR_DEVICE_LOST) {
             vk.lost = true;
@@ -291,13 +337,17 @@ VulkanInterop::~VulkanInterop() {
         vk.freeOwned(p.owned);
     }
     vk.pending.clear();
+    for (Owned& o : vk.unreleased) vk.freeOwned(o);
+    vk.unreleased.clear();
     for (VkFence f : vk.freeFences) vk.df->vkDestroyFence(vk.dev, f, nullptr);
     if (vk.pool) vk.df->vkDestroyCommandPool(vk.dev, vk.pool, nullptr);
 }
 
 void VulkanInterop::flush() {
     std::lock_guard lock(m_vk->mutex);
-    if (!m_vk->lost) m_vk->collect();
+    if (m_vk->lost) return;
+    m_vk->collect();
+    m_vk->retryReleases();
 }
 
 void VulkanInterop::retire(std::array<std::uint64_t, 2> images, std::array<std::uint64_t, 2> memory, AVFrame* drm,
@@ -310,38 +360,24 @@ void VulkanInterop::retire(std::array<std::uint64_t, 2> images, std::array<std::
         owned.memory[i] = reinterpret_cast<VkDeviceMemory>(memory[i]);
     }
     owned.drm = drm;
-    if (vk.lost || !acquired) {
-        // Never on the GPU (no acquire), or the device is gone.
+    if (vk.lost || !acquired || (!owned.images[0] && !owned.images[1])) {
+        // Never on the GPU (no acquire, no image), or the device is gone.
         vk.freeOwned(owned);
         return;
     }
     // Release to the foreign family in the external layout, then free with
     // the surface once that has run (review F1). The retire queue already
     // waited until no frame in flight samples the images.
-    VkImageMemoryBarrier barriers[2]{};
-    std::uint32_t count = 0;
-    for (size_t i = 0; i < 2; ++i) {
-        if (!owned.images[i]) continue;
-        VkImageMemoryBarrier& b = barriers[count++];
-        b.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-        b.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        b.dstAccessMask = 0;
-        b.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        b.newLayout = VK_IMAGE_LAYOUT_GENERAL;
-        b.srcQueueFamilyIndex = vk.queueFamily;
-        b.dstQueueFamilyIndex = VK_QUEUE_FAMILY_FOREIGN_EXT;
-        b.image = owned.images[i];
-        b.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
-    }
     std::string why;
-    if (count == 0 || !vk.submit(barriers, count, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
-                                 VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, owned, &why)) {
-        // No release could be submitted. Free once the queue has finished
-        // everything that may use the images (a rare error path; a lost
-        // device returns at once).
-        if (!vk.lost) vk.df->vkQueueWaitIdle(vk.queue);
-        vk.freeOwned(owned);
+    if (vk.release(owned, &why)) return;
+    if (vk.lost) {
+        vk.freeOwned(owned);  // submit() lost the device: nothing runs any more
+        return;
     }
+    // No release could be submitted. Waiting for the queue would not move
+    // the images to the foreign family, so the VA surface must not go back
+    // to the decoder yet: keep it until a retried release succeeds.
+    vk.unreleased.push_back(owned);
 }
 
 QByteArrayList VulkanInterop::requiredDeviceExtensions() {

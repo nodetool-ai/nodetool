@@ -130,6 +130,8 @@ std::optional<SaveTarget> serverSaveTarget() {
     t.server = QUrl(a.server);
     t.token = a.token;
     t.timelineId = a.timeline;
+    // Set by scripts/scratch-server.mjs: saves go only to that server instance.
+    t.expectedInstance = qEnvironmentVariable("NODETOOL_TIMELINE_EXPECT_INSTANCE");
     const ServerClient client(t.server, t.token);
     t.backupDir = QDir(a.cacheDir).filePath(safePathPart(client.serverKey()) + u'/' + safePathPart(client.userKey()) +
                                             QStringLiteral("/timelines"));

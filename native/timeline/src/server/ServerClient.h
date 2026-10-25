@@ -12,6 +12,12 @@
 // Reads are GET and HEAD. The one write is `timeline.update` (M5b, D34),
 // a POST with the JSON input as the body; redirects are never followed.
 // Calls block on a local event loop. Use one client per thread.
+//
+// With an expected instance, a write goes out only after `GET /ready` on the
+// same server answers `X-Nodetool-Instance: <that token>`, and the write's
+// own answer must carry it too (code WRONG_SERVER otherwise). The scratch
+// servers of scripts/scratch-server.mjs send the header, so a write cannot
+// go to another listener that took the port.
 
 #include <QByteArray>
 #include <QHash>
@@ -28,6 +34,7 @@
 namespace nt::server {
 
 inline constexpr const char* kClientHeader = "native-timeline/0.1.0";
+inline constexpr const char* kInstanceHeader = "x-nodetool-instance";
 
 struct HttpResponse {
     int status = 0;            // 0 when the request did not get a response
@@ -87,7 +94,15 @@ public:
     std::vector<HttpResponse> sendAll(const std::vector<HttpRequest>& requests);
 
     // POST /trpc/<procedure> with `input` as the JSON body.
+    // Refused (code WRONG_SERVER) when an expected instance is set and the
+    // server does not answer with it.
     QueryResult mutate(const QString& procedure, const QJsonObject& input);
+    // Empty: no instance check.
+    void setExpectedInstance(const QString& instance) { m_expectedInstance = instance.toUtf8(); }
+    // A bound on the whole of `mutate`, check included, in elapsed time; the
+    // transfer timeout only bounds silence. 0: none. Aborted calls fail with
+    // code TIMEOUT.
+    void setDeadlineMs(int ms) { m_deadlineMs = ms; }
 
     QueryResult getTimeline(const QString& id) { return query(QStringLiteral("timeline.get"), {{QStringLiteral("id"), id}}); }
     QueryResult listTimelines(const QString& projectId = QString());
@@ -97,6 +112,8 @@ private:
     QUrl m_base;
     QString m_token;
     int m_timeoutMs;
+    QByteArray m_expectedInstance;
+    int m_deadlineMs = 0;
     std::unique_ptr<QNetworkAccessManager> m_nam;
 };
 

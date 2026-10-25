@@ -11,7 +11,10 @@
 // VK_IMAGE_LAYOUT_GENERAL, which keeps the decoded contents. A retired frame
 // submits the matching release back to the foreign family; its images, its
 // memory and the VA surface are freed only after that submission's fence
-// signals. Nothing waits on a fence with a timeout: submissions on Qt's queue
+// signals. A release that cannot be submitted is retried on each flush(), and
+// its VA surface stays out of the decoder's pool until one is submitted (a
+// queue wait would not move the images to the foreign family). Nothing waits
+// on a fence with a timeout: submissions on Qt's queue
 // are ordered before the frames that sample the images, and finished
 // submissions are collected on each flush(). A lost device frees everything
 // at once and turns the interop off (the sources fall back to software).
