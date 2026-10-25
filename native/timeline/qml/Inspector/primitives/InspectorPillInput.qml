@@ -78,7 +78,8 @@ Rectangle {
         Keys.onEscapePressed: { root.endStep(); root.typed = false; root.draft = root.value; root.stepping = false; root.forceActiveFocus() }
         Keys.onPressed: event => {
             if (!root.scrub || (event.key !== Qt.Key_Up && event.key !== Qt.Key_Down)) return
-            const base = parseFloat(root.draft)
+            const current = parseFloat(root.draft)
+            const base = Number.isFinite(current) ? current : parseFloat(root.value)
             if (!Number.isFinite(base)) return
             event.accepted = true
             if (!root.stepping) { root.stepping = true; root.gestureStarted() }

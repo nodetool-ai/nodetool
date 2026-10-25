@@ -105,6 +105,43 @@ InspectorPillInput { width: 140; value: "10"; scrub: ({step:1,min:0,max:100}); o
         item->forceActiveFocus();
         QCOMPARE(commits.count(), 1);
     }
+    void arrowStepFallsBackToStoredValueAfterClearing() {
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData(R"(import QtQuick
+import NodeTool.Timeline
+InspectorPillInput { width: 140; value: "10"; scrub: ({step:1,min:0,max:100}); onPreview: next => value = next })", QUrl());
+        std::unique_ptr<QObject> object(component.create());
+        QVERIFY2(object, qPrintable(component.errorString()));
+        auto* item = qobject_cast<QQuickItem*>(object.get());
+        QVERIFY(item);
+        QQuickWindow window;
+        window.resize(140, 40);
+        item->setParentItem(window.contentItem());
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QSignalSpy starts(object.get(), SIGNAL(gestureStarted()));
+        QSignalSpy previews(object.get(), SIGNAL(preview(QString)));
+        QSignalSpy commits(object.get(), SIGNAL(commit(QString)));
+        QVERIFY(starts.isValid());
+        QVERIFY(previews.isValid());
+        QVERIFY(commits.isValid());
+        QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier, {10, 14});
+        QTest::keyClick(&window, Qt::Key_A, Qt::ControlModifier);
+        QTest::keyClick(&window, Qt::Key_Backspace);
+        QCOMPARE(object->property("draft").toString(), QString(""));
+        QCOMPARE(object->property("value").toString(), QString("10"));
+        QTest::keyPress(&window, Qt::Key_Up);
+        QCOMPARE(commits.count(), 0);
+        QTest::keyRelease(&window, Qt::Key_Up);
+        QCOMPARE(starts.count(), 1);
+        QVERIFY(!previews.isEmpty());
+        QCOMPARE(previews.last()[0].toString(), QString("11"));
+        QCOMPARE(commits.count(), 1);
+        QCOMPARE(commits[0][0].toString(), QString("11"));
+        item->forceActiveFocus();
+        QCOMPARE(commits.count(), 1);
+    }
     void documentEditsUseIncrementalPaths() {
         TimelineModel model;
         auto parsed = nt::parseTimelineJson(R"({"name":"Before","width":640,"height":360,"fps":30,"durationMs":5000,"tracks":[{"id":"v","type":"video","name":"Video","index":0}],"clips":[{"id":"c","trackId":"v","startMs":0,"durationMs":1000,"mediaType":"video"}]})");
