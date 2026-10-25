@@ -3,6 +3,7 @@
 // strip warning, the base rule, and the 750 ms autosave debounce.
 
 #include "server/AutosaveController.h"
+#include "server/AssetCache.h"
 #include "TestHttpServer.h"
 
 #include <QCoreApplication>
@@ -17,6 +18,9 @@
 #include <QTemporaryDir>
 #include <QUndoStack>
 #include <QtTest>
+
+#include <cstdio>
+#include <memory>
 
 using namespace nt::server;
 
@@ -156,6 +160,7 @@ class TestAutosave : public QObject {
     void make(const QString& base = QStringLiteral("u0")) {
         SaveTarget t{m_http->base(), QString(), QStringLiteral("seq"), m_dir.path(), QString()};
         m_save = std::make_unique<AutosaveController>(t, m_undo.get(), [this]() { return rawDoc(m_value); }, base);
+        m_save->setQuitFallbackDirs({m_dir.filePath(QStringLiteral("fallback"))});
         m_save->setAutosave(false);
     }
     int posts() const { return m_http->countRequests("POST", "/trpc/timeline.update"); }
@@ -172,6 +177,7 @@ class TestAutosave : public QObject {
 
 private slots:
     void init() {
+        QVERIFY(m_dir.isValid());
         m_http = std::make_unique<TestHttpServer>();
         m_undo = std::make_unique<QUndoStack>();
         m_value = 0;
@@ -358,6 +364,7 @@ private slots:
         m_http->setPost([](const QByteArray&, const QByteArray&) { return failure(400, QStringLiteral("BAD_REQUEST")); });
         SaveTarget t{m_http->base(), QString(), QStringLiteral("seq"), QStringLiteral("/dev/null/no-such-folder"), QString()};
         m_save = std::make_unique<AutosaveController>(t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
+        m_save->setQuitFallbackDirs({m_dir.filePath(QStringLiteral("fallback"))});
         m_save->setAutosave(false);
         m_undo->push(new Bump(&m_value));
         const SaveResult r = m_save->saveNow();
@@ -408,6 +415,7 @@ private slots:
         m_http->setPost([](const QByteArray&, const QByteArray&) { return failure(400, QStringLiteral("BAD_REQUEST")); });
         SaveTarget t{m_http->base(), QString(), QStringLiteral("seq"), QStringLiteral("/dev/null/no-such-folder"), QString()};
         m_save = std::make_unique<AutosaveController>(t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
+        m_save->setQuitFallbackDirs({m_dir.filePath(QStringLiteral("fallback"))});
         m_save->setAutosave(false);
         m_undo->push(new Bump(&m_value));
         const SaveResult r = m_save->saveNow();
@@ -469,31 +477,101 @@ private slots:
         int calls = 0;
         m_http->setPost([&calls](const QByteArray&, const QByteArray&) {
             return ++calls == 1 ? failure(503, QStringLiteral("INTERNAL_SERVER_ERROR"))
-                                : ok(QStringLiteral("u1"), QJsonArray{QStringLiteral("clips.0.invented")});
+                                : ok(QStringLiteral("u1"), QJsonArray{QStringLiteral("clips.0.startMs")});
         });
         make();
+        const QString fallback = m_dir.filePath(QStringLiteral("strip-fallback"));
+        m_save->setQuitFallbackDirs({fallback});
         m_undo->push(new Bump(&m_value));
         QVERIFY(!m_save->saveNow().ok);
-        const QString recovery = QDir(m_dir.path()).filePath(QStringLiteral("seq.recovery.json"));
+        const QString recovery = m_dir.filePath(QStringLiteral("seq.recovery.json"));
         QVERIFY(QFileInfo::exists(recovery));
-        // The strip copy cannot be written: a folder holds its name.
-        QFile::remove(QDir(m_dir.path()).filePath(QStringLiteral("seq.stripped.json")));
+        m_undo->push(new Bump(&m_value));  // v2 differs from the recovery v1
+        QFile::remove(m_dir.filePath(QStringLiteral("seq.stripped.json")));
         QVERIFY(QDir(m_dir.path()).mkpath(QStringLiteral("seq.stripped.json")));
         const SaveResult r = m_save->saveNow();
         QVERIFY(r.ok);
-        QVERIFY(!r.recoveryError.isEmpty());
-        QVERIFY2(QFileInfo::exists(recovery), "the recovery copy is the only copy of the dropped fields");
-        QFile f(recovery);
+        QFile f(m_save->keptCopy());
         QVERIFY(f.open(QIODevice::ReadOnly));
-        QCOMPARE(QJsonDocument::fromJson(f.readAll()).object(), rawDoc(1));
-        QCOMPARE(m_save->keptCopy(), recovery);
-        QVERIFY(!m_save->recoveryError().isEmpty());
-        // The next clean save with a written copy removes it.
+        QCOMPARE(QJsonDocument::fromJson(f.readAll()).object(), rawDoc(2));
+        QCOMPARE(m_save->keptCopy(), r.keptCopy);
+        ServerClient client(m_http->base(), QString());
+        QCOMPARE(m_save->keptCopy(), QDir(fallback).filePath(safePathPart(client.serverKey()) + u'/' +
+            safePathPart(client.userKey()) + QStringLiteral("/seq.stripped.json")));
+        QCOMPARE(m_save->recoveryError(), QString());
+        QVERIFY(!QFileInfo::exists(recovery));  // the replacement was written
+        const int beforeQuit = posts();
+        QCOMPARE(exitCodeAfterQuit(m_save.get(), 7, 2000), 7);
+        QCOMPARE(posts(), beforeQuit);
+        // A later strip written in the backup folder also replaces recovery.
         QVERIFY(QDir(m_dir.path()).rmdir(QStringLiteral("seq.stripped.json")));
         m_undo->push(new Bump(&m_value));
         QVERIFY(m_save->saveNow().ok);
-        QVERIFY(!QFileInfo::exists(recovery));
-        QVERIFY(m_save->keptCopy().endsWith(QStringLiteral("seq.stripped.json")));
+        QCOMPARE(m_save->keptCopy(), m_dir.filePath(QStringLiteral("seq.stripped.json")));
+    }
+
+    void aFailedStripCopyRetainsACurrentRecovery() {
+        int calls = 0;
+        m_http->setPost([&calls](const QByteArray&, const QByteArray&) {
+            return ++calls == 1 ? failure(503, QStringLiteral("INTERNAL_SERVER_ERROR"))
+                                : ok(QStringLiteral("u1"), QJsonArray{QStringLiteral("clips.0.startMs")});
+        });
+        make();
+        const QString blocked = m_dir.filePath(QStringLiteral("no-strip-fallback"));
+        QFile blocker(blocked);
+        QVERIFY(blocker.open(QIODevice::WriteOnly));
+        blocker.close();
+        m_save->setQuitFallbackDirs({blocked});
+        m_undo->push(new Bump(&m_value));
+        QVERIFY(!m_save->saveNow().ok);
+        const QString recovery = m_save->keptCopy();
+        QFile::remove(m_dir.filePath(QStringLiteral("seq.stripped.json")));
+        QVERIFY(QDir(m_dir.path()).mkpath(QStringLiteral("seq.stripped.json")));
+        QVERIFY(m_save->saveNow().ok);  // no edit: recovery already holds this document
+        QCOMPARE(m_save->keptCopy(), recovery);
+        QFile file(recovery);
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        QCOMPARE(QJsonDocument::fromJson(file.readAll()).object(), rawDoc(1));
+        const int beforeQuit = posts();
+        QCOMPARE(exitCodeAfterQuit(m_save.get(), 7, 2000), 7);
+        QCOMPARE(posts(), beforeQuit);
+        QVERIFY(QDir(m_dir.path()).rmdir(QStringLiteral("seq.stripped.json")));
+    }
+
+    void aCleanButUnpreservedStripFailsQuitWithoutResaving() {
+        int calls = 0;
+        m_http->setPost([&calls](const QByteArray&, const QByteArray&) {
+            return ++calls == 1 ? failure(503, QStringLiteral("INTERNAL_SERVER_ERROR"))
+                                : ok(QStringLiteral("u1"), QJsonArray{QStringLiteral("clips.0.startMs")});
+        });
+        const QString backup = m_dir.filePath(QStringLiteral("blocked-backup"));
+        const QString oldBackup = backup + QStringLiteral("-old");
+        SaveTarget t{m_http->base(), QString(), QStringLiteral("seq"), backup, QString()};
+        m_save = std::make_unique<AutosaveController>(t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
+        m_save->setAutosave(false);
+        m_save->setQuitFallbackDirs({m_dir.filePath(QStringLiteral("blocked-fallback"))});
+        QFile blockedFallback(m_dir.filePath(QStringLiteral("blocked-fallback")));
+        QVERIFY(blockedFallback.open(QIODevice::WriteOnly));
+        blockedFallback.close();
+        m_undo->push(new Bump(&m_value));
+        QVERIFY(!m_save->saveNow().ok);
+        m_undo->push(new Bump(&m_value));
+        // Keep v1 on disk while making every primary copy path unwritable.
+        QVERIFY(QDir().rename(backup, oldBackup));
+        QFile blockedBackup(backup);
+        QVERIFY(blockedBackup.open(QIODevice::WriteOnly));
+        blockedBackup.close();
+        QVERIFY(m_save->saveNow().ok);
+        QVERIFY(!m_save->dirty());
+        const int beforeQuit = posts();
+        QVERIFY(!m_save->flushBeforeQuit(2000));
+        QCOMPARE(exitCodeAfterQuit(m_save.get(), 7, 2000), kExitUnsavedEditsLost);
+        QCOMPARE(posts(), beforeQuit);
+        QCOMPARE(m_save->keptCopy(), QString());
+        QVERIFY(!m_save->recoveryError().isEmpty());
+        QFile oldRecovery(QDir(oldBackup).filePath(QStringLiteral("seq.recovery.json")));
+        QVERIFY(oldRecovery.open(QIODevice::ReadOnly));
+        QCOMPARE(QJsonDocument::fromJson(oldRecovery.readAll()).object(), rawDoc(1));
     }
 
     // ── Review F2 (save): the quit timeout is a deadline, not inactivity ──
@@ -503,6 +581,7 @@ private slots:
         TrickleServer slow(ok(QStringLiteral("u1")).leftJustified(60, ' '), 100);
         SaveTarget t{slow.base(), QString(), QStringLiteral("seq"), m_dir.path(), QString()};
         m_save = std::make_unique<AutosaveController>(t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
+        m_save->setQuitFallbackDirs({m_dir.filePath(QStringLiteral("fallback"))});
         m_save->setAutosave(false);
         m_undo->push(new Bump(&m_value));
         QElapsedTimer clock;
@@ -534,6 +613,94 @@ private slots:
         QCOMPARE(QJsonDocument::fromJson(f.readAll()).object(), rawDoc(1));
     }
 
+    void fallbackCopiesAreNamespaced_data() {
+        QTest::addColumn<bool>("differentServer");
+        QTest::newRow("servers") << true;
+        QTest::newRow("accounts") << false;
+    }
+
+    void fallbackCopiesAreNamespaced() {
+        QFETCH(bool, differentServer);
+        TestHttpServer otherHttp;
+        const auto offline = [](const QByteArray&, const QByteArray&) {
+            return failure(503, QStringLiteral("INTERNAL_SERVER_ERROR"));
+        };
+        m_http->setPost(offline);
+        otherHttp.setPost(offline);
+        SaveTarget first{m_http->base(), QStringLiteral("first"), QStringLiteral("seq"),
+                         QStringLiteral("/dev/null/backup"), QString()};
+        SaveTarget second{differentServer ? otherHttp.base() : m_http->base(),
+                          differentServer ? first.token : QStringLiteral("second"), first.timelineId,
+                          first.backupDir, QString()};
+        int firstValue = 0;
+        int secondValue = 0;
+        QUndoStack firstUndo;
+        QUndoStack secondUndo;
+        AutosaveController firstSave(first, &firstUndo, [&]() { return rawDoc(firstValue); }, QStringLiteral("u0"));
+        AutosaveController secondSave(second, &secondUndo, [&]() { return rawDoc(secondValue); }, QStringLiteral("u0"));
+        const QString fallback = m_dir.filePath(QStringLiteral("shared-fallback"));
+        firstSave.setAutosave(false);
+        secondSave.setAutosave(false);
+        firstSave.setQuitFallbackDirs({fallback});
+        secondSave.setQuitFallbackDirs({fallback});
+        firstUndo.push(new Bump(&firstValue));
+        secondUndo.push(new Bump(&secondValue));
+        secondUndo.push(new Bump(&secondValue));
+        QVERIFY(!firstSave.flushBeforeQuit(2000));
+        QVERIFY(!secondSave.flushBeforeQuit(2000));
+        QVERIFY(firstSave.keptCopy() != secondSave.keptCopy());
+        for (const auto& entry : {std::pair{&first, &firstSave}, std::pair{&second, &secondSave}}) {
+            ServerClient client(entry.first->server, entry.first->token);
+            const QString expected = QDir(fallback).filePath(safePathPart(client.serverKey()) + u'/' +
+                safePathPart(client.userKey()) + QStringLiteral("/seq.recovery.json"));
+            QCOMPARE(entry.second->keptCopy(), expected);
+            QFile file(expected);
+            QVERIFY(file.open(QIODevice::ReadOnly));
+            QCOMPARE(QJsonDocument::fromJson(file.readAll()).object(), rawDoc(entry.first == &first ? 1 : 2));
+        }
+    }
+
+    void quitWithNoWritableFolderLogsTheFullDocument() {
+        const auto closeFile = [](FILE* file) { std::fclose(file); };
+        const QByteArray logPath = QFile::encodeName(m_dir.filePath(QStringLiteral("last-resort.log")));
+        const std::unique_ptr<FILE, decltype(closeFile)> stream(std::fopen(logPath.constData(), "w+b"), closeFile);
+        QVERIFY(stream);
+        m_http->setPost([](const QByteArray&, const QByteArray&) {
+            return failure(503, QStringLiteral("INTERNAL_SERVER_ERROR"));
+        });
+        const QString blocked = m_dir.filePath(QStringLiteral("no-copy"));
+        QFile blocker(blocked);
+        QVERIFY(blocker.open(QIODevice::WriteOnly));
+        blocker.close();
+        SaveTarget t{m_http->base(), QString(), QStringLiteral("seq"), blocked, QString()};
+        m_save = std::make_unique<AutosaveController>(t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
+        m_save->setAutosave(false);
+        m_save->setQuitFallbackDirs({blocked});
+        m_save->setLastResortStream(stream.get());
+        m_undo->push(new Bump(&m_value));
+        QCOMPARE(exitCodeAfterQuit(m_save.get(), 7, 2000), kExitUnsavedEditsLost);
+        QCOMPARE(m_save->keptCopy(), QString());
+        QVERIFY(!m_save->recoveryError().isEmpty());
+        QCOMPARE(std::fflush(stream.get()), 0);
+        std::rewind(stream.get());
+        QByteArray log;
+        char buffer[1024];
+        while (const auto n = std::fread(buffer, 1, sizeof(buffer), stream.get())) {
+            log.append(buffer, static_cast<qsizetype>(n));
+        }
+        QCOMPARE(std::ferror(stream.get()), 0);
+        const QByteArray begin = "save: BEGIN unsaved document seq\n";
+        const QByteArray end = "\nsave: END unsaved document seq\n";
+        const auto start = log.indexOf(begin);
+        QVERIFY2(start >= 0, log.constData());
+        const auto finish = log.indexOf(end, start + begin.size());
+        QVERIFY2(finish > start, log.constData());
+        const QByteArray json = log.mid(start + begin.size(), finish - start - begin.size());
+        QCOMPARE(QJsonDocument::fromJson(json).object(), rawDoc(m_value));
+        QCOMPARE(json, QJsonDocument(rawDoc(m_value)).toJson(QJsonDocument::Compact));
+        m_save.reset();  // the borrowed stream outlives the controller
+    }
+
     // The exit code main() returns after the window closes.
     void quitExitCodeReportsLostEdits() {
         m_http->setPost([](const QByteArray&, const QByteArray&) { return failure(503, QStringLiteral("INTERNAL_SERVER_ERROR")); });
@@ -541,18 +708,26 @@ private slots:
         m_save = std::make_unique<AutosaveController>(t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
         m_save->setAutosave(false);
         m_save->setQuitFallbackDirs({QStringLiteral("/dev/null/also-not")});
-        QCOMPARE(exitCodeAfterQuit(m_save.get(), 0, 2000), 0);  // nothing to save
-        QCOMPARE(exitCodeAfterQuit(nullptr, 0, 2000), 0);       // a fixture file
         m_undo->push(new Bump(&m_value));
-        QCOMPARE(exitCodeAfterQuit(m_save.get(), 0, 2000), kExitUnsavedEditsLost);
+        QCOMPARE(exitCodeAfterQuit(m_save.get(), 7, 2000), kExitUnsavedEditsLost);
         QCOMPARE(m_save->keptCopy(), QString());
+    }
+
+    void quitExitCodeKeepsTheRunsCodeWhenClean() {
+        make();
+        QCOMPARE(exitCodeAfterQuit(m_save.get(), 7, 2000), 7);
+        QCOMPARE(posts(), 0);
+    }
+
+    void quitExitCodeKeepsTheRunsCodeWithoutAController() {
+        QCOMPARE(exitCodeAfterQuit(nullptr, 7, 2000), 7);
     }
 
     void quitExitCodeKeepsTheRunsCodeWhenACopyIsKept() {
         m_http->setPost([](const QByteArray&, const QByteArray&) { return failure(503, QStringLiteral("INTERNAL_SERVER_ERROR")); });
         make();
         m_undo->push(new Bump(&m_value));
-        QCOMPARE(exitCodeAfterQuit(m_save.get(), 0, 2000), 0);
+        QCOMPARE(exitCodeAfterQuit(m_save.get(), 7, 2000), 7);
         QVERIFY(QFileInfo::exists(m_save->keptCopy()));
     }
 
@@ -560,12 +735,14 @@ private slots:
 
     void aWrongServerInstanceIsNeverWritten() {
         ServedFile ready(QByteArray("{\"status\":\"ok\"}"));
+        ready.status = 503;
         ready.extraHeaders.insert("X-Nodetool-Instance", "someone-else");
         m_http->setFile("/ready", ready);
         m_http->setPost([](const QByteArray&, const QByteArray&) { return ok(QStringLiteral("u1")); });
         SaveTarget t{m_http->base(), QString(), QStringLiteral("seq"), m_dir.path(), QString()};
         t.expectedInstance = QStringLiteral("mine");
         m_save = std::make_unique<AutosaveController>(t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
+        m_save->setQuitFallbackDirs({m_dir.filePath(QStringLiteral("fallback"))});
         m_save->setRetryBaseMs(50);
         m_save->setAutosave(false);
         m_undo->push(new Bump(&m_value));
@@ -574,9 +751,12 @@ private slots:
         QCOMPARE(posts(), 0);
         QVERIFY2(r.error.contains(QStringLiteral("instance")), qPrintable(r.error));
         QVERIFY(QFileInfo::exists(r.keptCopy));
+        QCOMPARE(m_http->countRequests("GET", "/ready"), 1);
         QTest::qWait(300);  // a refusal is not retried
+        QCOMPARE(m_http->countRequests("GET", "/ready"), 1);
         QCOMPARE(posts(), 0);
         QVERIFY(!m_save->flushBeforeQuit(1000));
+        QCOMPARE(m_http->countRequests("GET", "/ready"), 2);
         QCOMPARE(posts(), 0);
     }
 

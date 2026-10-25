@@ -30,6 +30,7 @@ struct RecordedRequest {
 struct ServedFile {
     ServedFile(QByteArray bytes = {}) : data(std::move(bytes)) {}
     QByteArray data;
+    int status = 200;
     QHash<QByteArray, QByteArray> extraHeaders;
     int dropAfterBytes = -1;  // > 0: close the connection after this many body bytes
     int dropCount = 0;        // how many of the next GETs drop
@@ -158,7 +159,7 @@ private:
         QHash<QByteArray, QByteArray> headers = f->extraHeaders;
         headers.insert("Accept-Ranges", "bytes");
         qint64 start = 0;
-        int status = 200;
+        int status = f->status;
         const QByteArray range = req.headers.value("range");
         if (!range.isEmpty() && !f->ignoreRange && range.startsWith("bytes=") && range.endsWith('-')) {
             start = range.mid(6, range.size() - 7).toLongLong();

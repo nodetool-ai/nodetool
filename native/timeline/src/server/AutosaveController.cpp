@@ -5,7 +5,6 @@
 #include <QCryptographicHash>
 #include <QDir>
 #include <QFile>
-#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QSaveFile>
@@ -74,6 +73,17 @@ QByteArray AutosaveController::currentHash() const { return contentHash(document
 
 bool AutosaveController::dirty() const { return currentHash() != m_ackHash; }
 
+QString AutosaveController::keptCopy() const {
+    return contentHash(m_document()) == m_copyHash ? m_keptCopy : QString();
+}
+
+QString AutosaveController::recoveryError() const {
+    if (!m_keptCopy.isEmpty() && keptCopy().isEmpty()) {
+        return QStringLiteral("the recovery copy does not contain the current document");
+    }
+    return m_recoveryError;
+}
+
 void AutosaveController::syncClean() {
     if (m_syncing) return;
     m_syncing = true;
@@ -130,6 +140,23 @@ QString AutosaveController::writeCopyIn(const QString& dir, const QString& suffi
     return path;
 }
 
+QString AutosaveController::writeCopyWithFallbacks(const QString& suffix, const QJsonObject& doc,
+                                                   QString* error) const {
+    QString why;
+    QString path = writeCopy(suffix, doc, &why);
+    QStringList failures;
+    if (path.isEmpty()) failures << why;
+    for (const QString& fallback : m_fallbackDirs) {
+        if (!path.isEmpty()) break;
+        const QString dir = QDir(fallback).filePath(safePathPart(m_client->serverKey()) + u'/' +
+                                                   safePathPart(m_client->userKey()));
+        path = writeCopyIn(dir, suffix, doc, &why);
+        if (path.isEmpty()) failures << why;
+    }
+    *error = path.isEmpty() ? failures.join(QStringLiteral("; ")) : QString();
+    return path;
+}
+
 void AutosaveController::removeCopy(const QString& suffix) const {
     const QString path = copyPath(suffix);
     if (!path.isEmpty()) QFile::remove(path);
@@ -172,16 +199,25 @@ SaveResult AutosaveController::save(ServerClient& client) {
         result.updatedAt = data.value(u"updatedAt").toString();
         for (const QJsonValue& p : data.value(u"stripped").toArray()) result.stripped << p.toString();
         m_base = result.updatedAt;
-        m_ackHash = sentHash;  // what the server holds now
+        m_ackHash = sentHash;  // acknowledged even when fields were dropped
+        m_ackComplete = result.stripped.isEmpty();
         m_retryAttempt = 0;
         m_retry.stop();
         m_lastError.clear();
         m_stripped = result.stripped;
+        bool stripCopyWritten = false;
         if (!result.stripped.isEmpty()) {
             // D4: the server dropped these; the sent document keeps them.
             QString why;
-            result.keptCopy = writeCopy(QStringLiteral("stripped"), raw, &why);
-            if (result.keptCopy.isEmpty()) result.recoveryError = why;
+            const QJsonObject current = m_document();
+            const QString previousCopy = keptCopy();
+            result.keptCopy = writeCopyWithFallbacks(QStringLiteral("stripped"), current, &why);
+            stripCopyWritten = !result.keptCopy.isEmpty();
+            if (!stripCopyWritten) result.keptCopy = previousCopy;
+            result.recoveryError = why;
+            m_keptCopy = result.keptCopy;
+            m_copyHash = contentHash(current);
+            m_recoveryError = why;
             std::fprintf(stderr, "save: warning: the server dropped %d field(s): %s; sent document kept in %s\n",
                          static_cast<int>(result.stripped.size()), qPrintable(result.stripped.join(u", ")),
                          qPrintable(result.keptCopy.isEmpty() ? why : result.keptCopy));
@@ -190,25 +226,15 @@ SaveResult AutosaveController::save(ServerClient& client) {
         syncClean();
         // A recovery copy stays until a copy that replaces it is written: the
         // server copy, or the strip copy of what the server dropped.
-        const bool stripCopyFailed = !result.stripped.isEmpty() && result.keptCopy.isEmpty();
         // An edit made while the save was in flight is not in the server copy.
         if (dirty()) {
             scheduleSave();
-        } else if (!stripCopyFailed) {
+        } else if (result.stripped.isEmpty() || stripCopyWritten) {
             removeCopy(QStringLiteral("recovery"));
         }
-        const QString recovery = copyPath(QStringLiteral("recovery"));
-        const bool recoveryOnDisk = !recovery.isEmpty() && QFileInfo::exists(recovery);
-        // The pending copy: the stripped document, else a recovery copy an
-        // unsaved edit or a dropped field still needs, else none.
-        const bool recoveryKept = recoveryOnDisk && (dirty() || stripCopyFailed);
-        if (!result.stripped.isEmpty()) {
-            m_keptCopy = stripCopyFailed && recoveryOnDisk ? recovery : result.keptCopy;
-            m_recoveryError = result.recoveryError;
-        } else if (recoveryKept) {
-            m_keptCopy = recovery;
-        } else {
+        if (result.stripped.isEmpty() && !dirty()) {
             m_keptCopy.clear();
+            m_copyHash.clear();
             m_recoveryError.clear();
         }
         emit saved(result.updatedAt);
@@ -227,6 +253,7 @@ SaveResult AutosaveController::save(ServerClient& client) {
         result.keptCopy = writeCopy(QStringLiteral("local"), current, &why);
         result.recoveryError = why;
         m_keptCopy = result.keptCopy;
+        m_copyHash = contentHash(current);
         m_recoveryError = why;
         m_lastError = QStringLiteral("conflict: %1").arg(r.error.message);
         if (!why.isEmpty()) m_lastError += QStringLiteral("; the local recovery copy failed: %1").arg(why);
@@ -241,6 +268,7 @@ SaveResult AutosaveController::save(ServerClient& client) {
     result.keptCopy = writeCopy(QStringLiteral("recovery"), current, &why);
     result.recoveryError = why;
     m_keptCopy = result.keptCopy;
+    m_copyHash = contentHash(current);
     m_recoveryError = why;
     m_lastError = result.error;
     if (!why.isEmpty()) m_lastError += QStringLiteral("; the recovery copy failed: %1").arg(why);
@@ -259,8 +287,8 @@ SaveResult AutosaveController::save(ServerClient& client) {
 bool AutosaveController::flushBeforeQuit(int timeoutMs) {
     m_timer.stop();
     m_retry.stop();
-    if (!dirty()) return true;
-    if (!m_conflict) {
+    if (!dirty() && m_ackComplete) return true;
+    if (dirty() && !m_conflict) {
         // `timeoutMs` bounds the elapsed time; the transfer timeout only
         // bounds silence, which a slow answer never reaches.
         ServerClient bounded(m_target.server, m_target.token, timeoutMs);
@@ -268,31 +296,27 @@ bool AutosaveController::flushBeforeQuit(int timeoutMs) {
         bounded.setDeadlineMs(timeoutMs);
         const SaveResult r = save(bounded);
         m_retry.stop();
-        if (r.ok && !dirty()) return true;
+        if (r.ok && !dirty() && m_ackComplete) return true;
     }
-    const QString suffix = m_conflict ? QStringLiteral("local") : QStringLiteral("recovery");
+    if (!dirty() && !keptCopy().isEmpty()) return false;
+    const QString suffix = m_conflict ? QStringLiteral("local")
+                                     : !dirty() && !m_ackComplete ? QStringLiteral("stripped")
+                                                                  : QStringLiteral("recovery");
     const QJsonObject doc = m_document();
-    QString why;
-    QString path = writeCopy(suffix, doc, &why);
-    // The last chance for the edits: any folder that takes the file.
-    QStringList failures;
-    if (path.isEmpty()) failures << why;
-    for (int i = 0; path.isEmpty() && i < m_fallbackDirs.size(); ++i) {
-        QString fallbackWhy;
-        path = writeCopyIn(m_fallbackDirs.at(i), suffix, doc, &fallbackWhy);
-        if (path.isEmpty()) failures << fallbackWhy;
-    }
+    const QString path = writeCopyWithFallbacks(suffix, doc, &m_recoveryError);
     m_keptCopy = path;
-    m_recoveryError = path.isEmpty() ? failures.join(QStringLiteral("; ")) : QString();
+    m_copyHash = contentHash(doc);
     emit stateChanged();
     if (path.isEmpty()) {
         std::fprintf(stderr, "save: error: quitting with unsaved edits that no folder took: %s\n",
                      qPrintable(m_recoveryError));
+        const QByteArray json = QJsonDocument(doc).toJson(QJsonDocument::Compact);
+        std::fprintf(m_lastResortStream, "save: BEGIN unsaved document %s\n", qPrintable(m_target.timelineId));
+        std::fwrite(json.constData(), 1, static_cast<size_t>(json.size()), m_lastResortStream);
+        std::fprintf(m_lastResortStream, "\nsave: END unsaved document %s\n", qPrintable(m_target.timelineId));
+        std::fflush(m_lastResortStream);
     } else {
-        std::fprintf(stderr, "save: quitting with unsaved edits; current document kept in %s%s\n", qPrintable(path),
-                     failures.isEmpty() ? ""
-                                        : qPrintable(QStringLiteral(" (") + failures.join(QStringLiteral("; ")) +
-                                                     QStringLiteral(")")));
+        std::fprintf(stderr, "save: quitting with unsaved edits; current document kept in %s\n", qPrintable(path));
     }
     return false;
 }
