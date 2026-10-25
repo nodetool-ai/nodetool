@@ -50,6 +50,7 @@
 #include <QQuickView>
 #include <QRandomGenerator>
 #include <QSignalSpy>
+#include <QScopeGuard>
 #include <QTest>
 #include <QWheelEvent>
 #include <QAbstractItemModelTester>
@@ -58,12 +59,14 @@
 #include <rhi/qrhi.h>
 #include <qpa/qwindowsysteminterface.h>
 
+#ifdef Q_OS_UNIX
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <csignal>
+#endif
 
 #include <atomic>
-#include <csignal>
 #include <thread>
 
 #include <cmath>
@@ -139,6 +142,48 @@ void collect(QQuickItem* item, const std::function<void(QQuickItem*)>& fn) {
 void dropDeferredDeletes() {
     QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
 }
+
+#ifdef Q_OS_UNIX
+// The writer releases a blocked old-code syscall even when an assertion fails.
+class StalledFifo {
+public:
+    std::atomic<bool> connected{false};
+    std::atomic<bool> sent{false};
+
+    StalledFifo(const QByteArray& path, bool connectWriter, const QByteArray& bytes = {})
+        : m_thread([this, path, connectWriter, bytes](std::stop_token stop) {
+            const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(8);
+            int fd = -1;
+            while (std::chrono::steady_clock::now() < deadline) {
+                if (connectWriter || stop.stop_requested()) {
+                    fd = ::open(path.constData(), O_WRONLY | O_NONBLOCK);
+                    if (fd >= 0) break;
+                    if (stop.stop_requested()) return;
+                }
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            }
+            if (fd < 0) return;
+            QFile writer;
+            if (!writer.open(fd, QIODevice::WriteOnly, QFileDevice::AutoCloseHandle)) {
+                ::close(fd);
+                return;
+            }
+            connected = true;
+            sent = bytes.isEmpty() || writer.write(bytes) == bytes.size();
+            writer.flush();
+            while (!stop.stop_requested() && std::chrono::steady_clock::now() < deadline) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            }
+        }) {}
+    ~StalledFifo() { release(); }
+    void release() { m_thread.request_stop(); }
+    StalledFifo(const StalledFifo&) = delete;
+    StalledFifo& operator=(const StalledFifo&) = delete;
+
+private:
+    std::jthread m_thread;
+};
+#endif
 
 }  // namespace
 
@@ -2735,6 +2780,108 @@ private slots:
         control.invalidate();
     }
 
+#ifdef Q_OS_UNIX
+    void m2bF5RegularImageStillDecodes() {
+        QTemporaryDir dir;
+        // No extension: the device must still allow content-based probing.
+        const QString path = dir.filePath("picture");
+        QImage image(640, 320, QImage::Format_RGB32);
+        image.fill(QColor(42, 84, 126));
+        QVERIFY(image.save(path, "PNG"));
+        const auto thumbs = loadImageThumbnail(path, 160, nullptr, 500);
+        QCOMPARE(thumbs.size(), size_t(1));
+        QCOMPARE(thumbs[0].image.size(), QSize(160, 80));
+        QCOMPARE(thumbs[0].image.pixelColor(80, 40), image.pixelColor(320, 160));
+    }
+
+    void m2bF5NoWriterTimesOut_data() {
+        QTest::addColumn<QString>("kind");
+        QTest::newRow("peaks") << QStringLiteral("peaks");
+        QTest::newRow("video") << QStringLiteral("video");
+    }
+
+    void m2bF5NoWriterTimesOut() {
+        QFETCH(QString, kind);
+        MediaPreviewCache& cache = MediaPreviewCache::instance();
+        cache.clear();
+        cache.setOpenTimeoutMs(500);
+        const auto restoreTimeout = qScopeGuard([&cache]() { cache.setOpenTimeoutMs(-1); });
+        QTemporaryDir dir;
+        const QByteArray path = QFile::encodeName(dir.filePath(kind == u"peaks" ? "stalled.wav" : "stalled.mp4"));
+        QCOMPARE(::mkfifo(path.constData(), 0600), 0);
+        StalledFifo writer(path, false);
+        QObject subscriber;
+        if (kind == u"peaks") {
+            QVERIFY(!cache.peaks(QFile::decodeName(path), &subscriber));
+        } else {
+            QVERIFY(!cache.thumbnails(QFile::decodeName(path), kind, &subscriber));
+        }
+        const bool finished = QTest::qWaitFor([&cache]() { return cache.pendingCount() == 0; }, 3000);
+        writer.release();
+        cache.waitForIdle();
+        QCoreApplication::processEvents();
+        QVERIFY2(finished, "M2b F5: no-writer FIFO exceeded the 3 s bound");
+        QCOMPARE(cache.pendingCount(), 0);
+    }
+
+    void m2bF5SilentReadStops_data() {
+        QTest::addColumn<QString>("kind");
+        QTest::addColumn<bool>("abandon");
+        for (const auto& kind : {QStringLiteral("peaks"), QStringLiteral("video"), QStringLiteral("image")}) {
+            QTest::newRow(qPrintable(kind + "-abandoned")) << kind << true;
+            QTest::newRow(qPrintable(kind + "-timeout")) << kind << false;
+        }
+    }
+
+    void m2bF5SilentReadStops() {
+        QFETCH(QString, kind);
+        QFETCH(bool, abandon);
+        MediaPreviewCache& cache = MediaPreviewCache::instance();
+        cache.clear();
+        cache.setOpenTimeoutMs(abandon ? 0 : 500);
+        const auto restoreTimeout = qScopeGuard([&cache]() { cache.setOpenTimeoutMs(-1); });
+        QTemporaryDir dir;
+        const QString suffix = kind == u"image" ? ".png" : kind == u"peaks" ? ".wav" : ".mp4";
+        const QByteArray path = QFile::encodeName(dir.filePath("silent" + suffix));
+        QCOMPARE(::mkfifo(path.constData(), 0600), 0);
+        // PNG signature, IHDR length/type and a partial width, then no bytes.
+        const QByteArray partialPng = kind == u"image" ? QByteArray::fromHex("89504e470d0a1a0a0000000d494844520000") : QByteArray();
+        StalledFifo writer(path, true, partialPng);
+        auto subscriber = std::make_unique<QObject>();
+        if (kind == u"peaks") {
+            QVERIFY(!cache.peaks(QFile::decodeName(path), subscriber.get()));
+        } else {
+            QVERIFY(!cache.thumbnails(QFile::decodeName(path), kind, subscriber.get()));
+        }
+        QVERIFY(QTest::qWaitFor([&writer]() { return writer.connected.load() && writer.sent.load(); }, 2000));
+        QTest::qWait(100);  // let the worker enter the stalled read
+        if (abandon) {
+            QElapsedTimer timer;
+            timer.start();
+            std::jthread releaseOnTimeout([&writer](std::stop_token stop) {
+                const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(1500);
+                while (!stop.stop_requested() && std::chrono::steady_clock::now() < deadline) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                }
+                if (!stop.stop_requested()) writer.release();
+            });
+            subscriber.reset();
+            cache.waitForIdle();
+            const qint64 elapsed = timer.elapsed();
+            releaseOnTimeout.request_stop();
+            QVERIFY2(elapsed < 1500, qPrintable(QStringLiteral("M2b F5: abandoned %1 read took %2 ms").arg(kind).arg(elapsed)));
+        } else {
+            const bool finished = QTest::qWaitFor([&cache]() { return cache.pendingCount() == 0; }, 3000);
+            writer.release();
+            cache.waitForIdle();
+            QCoreApplication::processEvents();
+            QVERIFY2(finished, "M2b F5: silent FIFO exceeded the 3 s bound");
+        }
+        QCOMPARE(cache.pendingCount(), 0);
+    }
+#endif
+
+#ifdef Q_OS_UNIX
     // m2b F5: an open that stalls (a pipe fed a few bytes at a time) stops
     // when nobody waits for it, and gives up after the open timeout when
     // somebody does.
@@ -2809,6 +2956,8 @@ private slots:
         }
         cache.clear();
     }
+
+#endif
 
     // m4 F7: an audio clip known only by its audioPath, whose probe fails or
     // is still pending, is capped at its out-point as an asset clip is.

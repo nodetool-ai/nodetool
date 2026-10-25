@@ -22,23 +22,42 @@ import { fileURLToPath } from "node:url";
  * asset needs audio when a clip of the raw document that uses it is audio
  * or video (ServerTimeline.cpp needsAudio). One that needs audio and has no
  * downloaded audio file fails, with the loader's error. Without the raw
- * document every asset the loader reports an error for fails.
+ * document every failed asset and missing clip fails. Required clips absent
+ * from both lists also fail.
  */
 export function planPeaksCheck(report, rawDocument) {
   const compare = [];
   const failures = [];
   const assets = report.assets ?? [];
-  if (assets.length === 0) failures.push("the loader report lists no asset");
-  const typeOf = new Map((rawDocument?.clips ?? []).map((c) => [c.id, c.mediaType]));
+  const missing = report.missingAssets ?? [];
+  const required = new Set((rawDocument?.clips ?? [])
+    .filter((clip) => clip.mediaType === "audio" || clip.mediaType === "video").map((clip) => clip.id));
+  const handled = new Set();
+  if (assets.length === 0 && missing.length === 0 && required.size === 0) failures.push("the loader report lists no asset");
+  for (const entry of missing) {
+    if ((!rawDocument || required.has(entry.clipId)) && !handled.has(entry.clipId)) {
+      failures.push(`${entry.clipId}: no audio file (${entry.reason ?? "the loader downloaded none"})`);
+      handled.add(entry.clipId);
+    }
+  }
   for (const asset of assets) {
     if (asset.audio?.path) {
       compare.push({ assetId: asset.assetId, path: asset.audio.path });
-      continue;
+      for (const id of asset.clips ?? []) handled.add(id);
     }
-    const needsAudio = rawDocument
-      ? (asset.clips ?? []).some((id) => typeOf.get(id) === "audio" || typeOf.get(id) === "video")
-      : Boolean(asset.error);
-    if (needsAudio) failures.push(`${asset.assetId}: no audio file (${asset.error ?? "the loader downloaded none"})`);
+  }
+  for (const asset of assets) {
+    if (asset.audio?.path) continue;
+    const uncovered = (asset.clips ?? []).filter((id) => (!rawDocument || required.has(id)) && !handled.has(id));
+    const needsAudio = rawDocument ? uncovered.length > 0
+      : Boolean(asset.error) && (!(asset.clips?.length) || uncovered.length > 0);
+    if (needsAudio) {
+      failures.push(`${asset.assetId}${uncovered.length ? ` (${uncovered.join(", ")})` : ""}: no audio file (${asset.error ?? "the loader downloaded none"})`);
+      for (const id of uncovered) handled.add(id);
+    }
+  }
+  for (const id of required) {
+    if (!handled.has(id)) failures.push(`${id}: not in the loader report`);
   }
   return { compare, failures };
 }

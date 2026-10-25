@@ -5,6 +5,8 @@
 
 #include <QDateTime>
 #include <QImageReader>
+#include <QFile>
+#include <QUrl>
 #include <QMetaObject>
 #include <QPainter>
 #include <QPainterPath>
@@ -23,6 +25,16 @@
 #include <chrono>
 #include <cmath>
 #include <optional>
+#include <utility>
+#include <limits>
+
+#ifdef Q_OS_UNIX
+#include <cerrno>
+#include <fcntl.h>
+#include <poll.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#endif
 
 extern "C" {
 #include <libavcodec/avcodec.h>
@@ -59,10 +71,8 @@ using CodecPtr = std::unique_ptr<AVCodecContext, CodecCloser>;
 using FramePtr = std::unique_ptr<AVFrame, FrameCloser>;
 using PacketPtr = std::unique_ptr<AVPacket, PacketCloser>;
 
-// FFmpeg's interrupt callback for one file: true once `cancel` turns true,
-// or while opening, once the open deadline passed. It runs before every
-// read, so a cancelled or stalled job stops in its open and probe too. It
-// must outlive the format context.
+// Shared by FFmpeg's interrupt callback and local I/O. It must outlive
+// the format context and the custom I/O callbacks.
 struct ReadGuard {
     const std::atomic<bool>* cancel = nullptr;
     std::optional<std::chrono::steady_clock::time_point> openDeadline;
@@ -73,9 +83,127 @@ struct ReadGuard {
     }
 };
 
+#ifdef Q_OS_UNIX
+class FileDescriptor {
+public:
+    explicit FileDescriptor(int fd) : m_fd(fd) {}
+    ~FileDescriptor() {
+        if (m_fd >= 0) ::close(m_fd);
+    }
+    FileDescriptor(const FileDescriptor&) = delete;
+    FileDescriptor& operator=(const FileDescriptor&) = delete;
+    FileDescriptor(FileDescriptor&& other) noexcept : m_fd(std::exchange(other.m_fd, -1)) {}
+    FileDescriptor& operator=(FileDescriptor&& other) noexcept {
+        if (this != &other) {
+            FileDescriptor old(std::exchange(m_fd, std::exchange(other.m_fd, -1)));
+        }
+        return *this;
+    }
+    int get() const { return m_fd; }
+
+private:
+    int m_fd;
+};
+
+class InterruptibleFile : public QIODevice {
+public:
+    InterruptibleFile(const QString& path, ReadGuard& guard)
+        : m_fd(::open(QFile::encodeName(path).constData(), O_RDONLY | O_NONBLOCK | O_CLOEXEC)), m_guard(guard) {
+        struct stat st {};
+        if (m_fd.get() >= 0 && ::fstat(m_fd.get(), &st) == 0) {
+            m_regular = S_ISREG(st.st_mode);
+            m_size = st.st_size;
+            open(QIODevice::ReadOnly);
+        }
+    }
+    bool isSequential() const override { return !m_regular; }
+    qint64 size() const override { return m_regular ? m_size : 0; }
+    bool seek(qint64 pos) override {
+        if (seekOffset(pos, SEEK_SET) < 0) return false;
+        return QIODevice::seek(pos);
+    }
+    qint64 seekOffset(qint64 offset, int whence) {
+        if (!m_regular) return AVERROR(ESPIPE);
+        const auto pos = ::lseek(m_fd.get(), offset, whence);
+        return pos < 0 ? AVERROR(errno) : pos;
+    }
+    int readBytes(char* data, int maxSize) {
+        if (maxSize <= 0) return 0;
+        while (!ReadGuard::interrupted(&m_guard)) {
+            pollfd descriptor{m_fd.get(), POLLIN, 0};
+            const int ready = ::poll(&descriptor, 1, 50);
+            if (ready < 0) {
+                if (errno == EINTR) continue;
+                return AVERROR(errno);
+            }
+            if (ready == 0) continue;
+            if (descriptor.revents & POLLNVAL) return AVERROR(EBADF);
+            if (ReadGuard::interrupted(&m_guard)) return AVERROR_EXIT;
+            const auto n = ::read(m_fd.get(), data, static_cast<size_t>(maxSize));
+            if (n >= 0) return static_cast<int>(n);
+            if (errno != EAGAIN && errno != EINTR) return AVERROR(errno);
+        }
+        return AVERROR_EXIT;
+    }
+
+protected:
+    qint64 readData(char* data, qint64 maxSize) override {
+        const int n = readBytes(data, static_cast<int>(std::min<qint64>(maxSize, std::numeric_limits<int>::max())));
+        return n < 0 ? -1 : n;
+    }
+    qint64 writeData(const char*, qint64) override { return -1; }
+
+private:
+    FileDescriptor m_fd;
+    ReadGuard& m_guard;
+    bool m_regular = false;
+    qint64 m_size = 0;
+};
+
+struct AvioCloser {
+    void operator()(AVIOContext* context) const {
+        av_freep(&context->buffer);
+        avio_context_free(&context);
+    }
+};
+#endif
+
+// Declared before FormatPtr by callers: FFmpeg borrows pb and never frees it.
+struct InputIo {
+#ifdef Q_OS_UNIX
+    std::unique_ptr<InterruptibleFile> file;
+    std::unique_ptr<AVIOContext, AvioCloser> context;
+
+    bool open(const QString& path, ReadGuard& guard) {
+        file = std::make_unique<InterruptibleFile>(path, guard);
+        if (!file->isOpen()) return false;
+        constexpr int bufferSize = 32768;
+        auto* buffer = static_cast<unsigned char*>(av_malloc(bufferSize));
+        if (!buffer) return false;
+        context.reset(avio_alloc_context(buffer, bufferSize, 0, file.get(),
+            [](void* opaque, uint8_t* data, int size) {
+                const int n = static_cast<InterruptibleFile*>(opaque)->readBytes(reinterpret_cast<char*>(data), size);
+                return n == 0 ? AVERROR_EOF : n;
+            }, nullptr,
+            [](void* opaque, int64_t offset, int whence) -> int64_t {
+                auto* file = static_cast<InterruptibleFile*>(opaque);
+                whence &= ~AVSEEK_FORCE;
+                if (whence == AVSEEK_SIZE) return file->isSequential() ? AVERROR(ESPIPE) : file->size();
+                return file->seekOffset(offset, whence);
+            }));
+        if (!context) {
+            av_free(buffer);
+            return false;
+        }
+        context->seekable = file->isSequential() ? 0 : AVIO_SEEKABLE_NORMAL;
+        return true;
+    }
+#endif
+};
+
 // The first stream of `type` and an open decoder for it.
 bool openStream(const QString& path, AVMediaType type, FormatPtr& format, CodecPtr& codec, int& streamIndex,
-                ReadGuard& guard, int openTimeoutMs) {
+                ReadGuard& guard, int openTimeoutMs, [[maybe_unused]] InputIo& io) {
     if (openTimeoutMs > 0) {
         guard.openDeadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(openTimeoutMs);
     }
@@ -83,8 +211,22 @@ bool openStream(const QString& path, AVMediaType type, FormatPtr& format, CodecP
     if (!f) return false;
     f->interrupt_callback.callback = &ReadGuard::interrupted;
     f->interrupt_callback.opaque = &guard;
+#ifdef Q_OS_UNIX
+    const QUrl url(path);
+    if (url.scheme().isEmpty() || url.isLocalFile()) {
+        if (!io.open(url.isLocalFile() ? url.toLocalFile() : path, guard)) {
+            avformat_free_context(f);
+            return false;
+        }
+        f->pb = io.context.get();
+        f->flags |= AVFMT_FLAG_CUSTOM_IO;
+    }
+    // On failure the open frees the format context, but custom pb stays ours.
+    if (avformat_open_input(&f, path.toUtf8().constData(), nullptr, nullptr) < 0) return false;
+#else
     // On failure the open frees the context.
     if (avformat_open_input(&f, path.toUtf8().constData(), nullptr, nullptr) < 0) return false;
+#endif
     format.reset(f);
     if (avformat_find_stream_info(f, nullptr) < 0) return false;
     guard.openDeadline.reset();  // the decode itself stops on `cancel` only
@@ -110,10 +252,11 @@ bool openStream(const QString& path, AVMediaType type, FormatPtr& format, CodecP
 std::shared_ptr<const AudioPeaks> computeAudioPeaks(const QString& path, int count, const std::atomic<bool>* cancel,
                                                     int openTimeoutMs) {
     ReadGuard guard{cancel, std::nullopt};
+    InputIo io;
     FormatPtr format;
     CodecPtr codec;
     int stream = -1;
-    if (count <= 0 || !openStream(path, AVMEDIA_TYPE_AUDIO, format, codec, stream, guard, openTimeoutMs)) return nullptr;
+    if (count <= 0 || !openStream(path, AVMEDIA_TYPE_AUDIO, format, codec, stream, guard, openTimeoutMs, io)) return nullptr;
     const int sampleRate = codec->sample_rate;
     if (sampleRate <= 0) return nullptr;
     const double durationSec = format->duration > 0 ? double(format->duration) / AV_TIME_BASE : -1;
@@ -233,10 +376,11 @@ std::vector<Thumbnail> extractThumbnails(const QString& path, int count, int wid
                                          int openTimeoutMs) {
     std::vector<Thumbnail> thumbs;
     ReadGuard guard{cancel, std::nullopt};
+    InputIo io;
     FormatPtr format;
     CodecPtr codec;
     int stream = -1;
-    if (count <= 0 || width <= 0 || !openStream(path, AVMEDIA_TYPE_VIDEO, format, codec, stream, guard, openTimeoutMs))
+    if (count <= 0 || width <= 0 || !openStream(path, AVMEDIA_TYPE_VIDEO, format, codec, stream, guard, openTimeoutMs, io))
         return thumbs;
     const AVStream* st = format->streams[stream];
     double durationSec = st->duration > 0 ? st->duration * av_q2d(st->time_base) : -1;
@@ -315,9 +459,20 @@ std::vector<Thumbnail> extractThumbnails(const QString& path, int count, int wid
     return thumbs;
 }
 
-std::vector<Thumbnail> loadImageThumbnail(const QString& path, int width, const std::atomic<bool>* cancel) {
+std::vector<Thumbnail> loadImageThumbnail(const QString& path, int width, const std::atomic<bool>* cancel,
+                                           [[maybe_unused]] int openTimeoutMs) {
     if (cancel && cancel->load()) return {};
+#ifdef Q_OS_UNIX
+    ReadGuard guard{cancel, std::nullopt};
+    if (openTimeoutMs > 0) {
+        guard.openDeadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(openTimeoutMs);
+    }
+    InterruptibleFile file(path, guard);
+    if (!file.isOpen()) return {};
+    QImageReader reader(&file);
+#else
     QImageReader reader(path);
+#endif
     reader.setAutoTransform(true);
     const QSize size = reader.size();
     if (size.isValid() && size.width() > width) {
@@ -495,7 +650,7 @@ void MediaPreviewCache::start(const QString& key, const QString& path, const QSt
             } else {
                 // The atlas is built here too, once per file version.
                 thumbs = makeThumbnailSet(job->kind == u"image"
-                                              ? loadImageThumbnail(job->path, 2 * THUMBNAIL_WIDTH_PX, &job->cancel)
+                                              ? loadImageThumbnail(job->path, 2 * THUMBNAIL_WIDTH_PX, &job->cancel, job->openTimeoutMs)
                                               : extractThumbnails(job->path, THUMBNAIL_COUNT, THUMBNAIL_WIDTH_PX,
                                                                   &job->cancel, job->openTimeoutMs));
             }
