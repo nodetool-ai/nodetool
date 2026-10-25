@@ -44,6 +44,8 @@ export async function importPack<T extends object = object>(
   const target = packSpecifier(pack, specifier);
   const bundled = bundledModules.get(target);
   if (bundled) {
+    // SAFETY: the host registered this loader for exactly this specifier, so
+    // it returns the module T describes, as the dynamic imports below do.
     const module = (await bundled()) as T;
     return module;
   }
