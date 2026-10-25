@@ -61,6 +61,8 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <csignal>
+#include <condition_variable>
+#include <mutex>
 #endif
 
 #include <atomic>
@@ -141,6 +143,37 @@ void dropDeferredDeletes() {
 }
 
 #ifdef Q_OS_UNIX
+class StalledLocalIo {
+    struct State {
+        std::mutex mutex;
+        std::condition_variable changed;
+        bool released = false;
+        std::atomic<int> entered{0};
+    };
+    std::shared_ptr<State> m_state = std::make_shared<State>();
+
+public:
+    StalledLocalIo(const QStringList& paths, const QByteArray& operation) {
+        setLocalIoStallForTesting([state = m_state, paths, operation](const char* op, const QString& path) {
+            if (operation != op || !paths.contains(path)) return;
+            std::unique_lock lock(state->mutex);
+            ++state->entered;
+            // A final bound also protects the red run from a broken watchdog.
+            state->changed.wait_for(lock, std::chrono::seconds(15), [&state]() { return state->released; });
+        });
+    }
+    ~StalledLocalIo() {
+        setLocalIoStallForTesting({});
+        release();
+    }
+    int entered() const { return m_state->entered.load(); }
+    void release() {
+        std::scoped_lock lock(m_state->mutex);
+        m_state->released = true;
+        m_state->changed.notify_all();
+    }
+};
+
 // The writer releases a blocked old-code syscall even when an assertion fails.
 class StalledFifo {
 public:
@@ -2442,6 +2475,116 @@ private slots:
     }
 
 #ifdef Q_OS_UNIX
+    void m2bF5RegularStallStops_data() {
+        QTest::addColumn<QString>("kind");
+        QTest::addColumn<QByteArray>("operation");
+        QTest::addColumn<bool>("abandon");
+        for (const auto& kind : {QStringLiteral("peaks"), QStringLiteral("video"), QStringLiteral("image")}) {
+            for (const auto& operation : {QByteArray("open"), QByteArray("fstat"), QByteArray("read"), QByteArray("lseek")}) {
+                if (kind != u"video" && operation == "lseek") continue;
+                for (bool abandon : {true, false}) {
+                    if (operation == "lseek" && !abandon) continue;
+                    const QByteArray name = kind.toUtf8() + '-' + operation + (abandon ? "-abandoned" : "-timeout");
+                    QTest::newRow(name.constData()) << kind << operation << abandon;
+                }
+            }
+        }
+    }
+
+    void m2bF5RegularStallStops() {
+        QFETCH(QString, kind);
+        QFETCH(QByteArray, operation);
+        QFETCH(bool, abandon);
+        auto& cache = MediaPreviewCache::instance();
+        cache.clear();
+        cache.setOpenTimeoutMs(abandon ? 0 : 500);
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString path = dir.filePath(kind == u"image" ? "stalled.png" : kind == u"peaks" ? "stalled.wav" : "stalled.mp4");
+        if (kind == u"image") {
+            QImage image(64, 32, QImage::Format_RGB32);
+            image.fill(Qt::blue);
+            QVERIFY(image.save(path));
+        } else {
+            const QString fixture = kind == u"peaks" ? "tone-440-48k-mono.wav" : "seek-360p30.mp4";
+            QVERIFY(QFile::copy(QStringLiteral(NT_FIXTURES_DIR "/media/") + fixture, path));
+        }
+        StalledLocalIo stall({path}, operation);
+        const auto cleanup = qScopeGuard([&]() {
+            stall.release();
+            cache.setOpenTimeoutMs(-1);
+            cache.clear();
+        });
+        auto subscriber = std::make_unique<QObject>();
+        if (kind == u"peaks") {
+            QVERIFY(!cache.peaks(path, subscriber.get()));
+        } else {
+            QVERIFY(!cache.thumbnails(path, kind, subscriber.get()));
+        }
+        QVERIFY2(QTest::qWaitFor([&]() { return stall.entered() > 0; }, 2000), "regular-file syscall hook was not reached");
+        if (abandon) {
+            QElapsedTimer timer;
+            timer.start();
+            std::jthread releaseOnTimeout([&stall](std::stop_token stop) {
+                const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(1500);
+                while (!stop.stop_requested() && std::chrono::steady_clock::now() < deadline) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                }
+                if (!stop.stop_requested()) stall.release();
+            });
+            subscriber.reset();
+            cache.waitForIdle();
+            const qint64 elapsed = timer.elapsed();
+            releaseOnTimeout.request_stop();
+            stall.release();
+            QCoreApplication::processEvents();
+            QVERIFY2(elapsed < 1500, qPrintable(QStringLiteral("M2b F5: abandoned regular %1 %2 took %3 ms")
+                                                 .arg(kind, QString::fromLatin1(operation)).arg(elapsed)));
+        } else {
+            const bool finished = QTest::qWaitFor([&]() { return cache.pendingCount() == 0; }, 3000);
+            stall.release();
+            QVERIFY2(finished, "M2b F5: regular-file syscall exceeded the 3 s deadline bound");
+        }
+        QCOMPARE(cache.pendingCount(), 0);
+    }
+
+    void m2bF5RegularStallsDoNotExhaustPool_data() {
+        QTest::addColumn<QByteArray>("operation");
+        QTest::newRow("open") << QByteArray("open");
+        QTest::newRow("read") << QByteArray("read");
+    }
+
+    void m2bF5RegularStallsDoNotExhaustPool() {
+        QFETCH(QByteArray, operation);
+        auto& cache = MediaPreviewCache::instance();
+        cache.clear();
+        cache.setOpenTimeoutMs(0);
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString fixture = QStringLiteral(NT_FIXTURES_DIR "/media/tone-440-48k-mono.wav");
+        const QString first = dir.filePath("first.wav"), second = dir.filePath("second.wav");
+        QVERIFY(QFile::copy(fixture, first));
+        QVERIFY(QFile::copy(fixture, second));
+        StalledLocalIo stall({first, second}, operation);
+        const auto cleanup = qScopeGuard([&]() {
+            stall.release();
+            cache.setOpenTimeoutMs(-1);
+            cache.clear();
+        });
+        auto a = std::make_unique<QObject>();
+        auto b = std::make_unique<QObject>();
+        QVERIFY(!cache.peaks(first, a.get()));
+        QVERIFY(!cache.peaks(second, b.get()));
+        QVERIFY2(QTest::qWaitFor([&]() { return stall.entered() == 2; }, 2000), "two regular-file jobs did not stall");
+        a.reset();
+        b.reset();
+        QObject third;
+        QVERIFY(!cache.peaks(fixture, &third));
+        const bool completed = QTest::qWaitFor([&]() { return cache.peaks(fixture, &third) != nullptr; }, 1500);
+        stall.release();
+        QVERIFY2(completed, "M2b F5: two abandoned regular-file jobs exhausted the decode pool");
+    }
+
     void m2bF5RegularImageStillDecodes() {
         QTemporaryDir dir;
         // No extension: the device must still allow content-based probing.

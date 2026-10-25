@@ -30,9 +30,13 @@
 
 #ifdef Q_OS_UNIX
 #include <cerrno>
+#include <condition_variable>
 #include <fcntl.h>
+#include <mutex>
 #include <poll.h>
+#include <span>
 #include <sys/stat.h>
+#include <thread>
 #include <unistd.h>
 #endif
 
@@ -84,6 +88,12 @@ struct ReadGuard {
 };
 
 #ifdef Q_OS_UNIX
+std::atomic<std::shared_ptr<const LocalIoHook>> localIoHook;
+
+void beforeLocalIo(const char* operation, const QString& path) {
+    if (const auto hook = localIoHook.load()) (*hook)(operation, path);
+}
+
 class FileDescriptor {
 public:
     explicit FileDescriptor(int fd) : m_fd(fd) {}
@@ -106,15 +116,43 @@ private:
 };
 
 class InterruptibleFile : public QIODevice {
+    enum class Request { None, Read, Seek };
+    struct State {
+        std::mutex mutex;
+        std::condition_variable changed;
+        std::atomic<bool> abandoned{false};
+        bool stop = false;
+        bool completed = false;
+        bool regular = false;
+        qint64 size = 0;
+        Request request = Request::None;
+        size_t readSize = 0;
+        qint64 offset = 0;
+        int whence = SEEK_SET;
+        qint64 result = 0;
+        std::vector<char> buffer;
+    };
+
 public:
     InterruptibleFile(const QString& path, ReadGuard& guard)
-        : m_fd(::open(QFile::encodeName(path).constData(), O_RDONLY | O_NONBLOCK | O_CLOEXEC)), m_guard(guard) {
-        struct stat st {};
-        if (m_fd.get() >= 0 && ::fstat(m_fd.get(), &st) == 0) {
-            m_regular = S_ISREG(st.st_mode);
-            m_size = st.st_size;
+        : m_guard(guard), m_thread([state = m_state, path]() { serve(state, path); }) {
+        std::unique_lock lock(m_state->mutex);
+        if (waitForResult(lock) && m_state->result >= 0) {
+            m_regular = m_state->regular;
+            m_size = m_state->size;
             open(QIODevice::ReadOnly);
         }
+    }
+    ~InterruptibleFile() override {
+        {
+            std::scoped_lock lock(m_state->mutex);
+            m_state->stop = true;
+        }
+        m_state->changed.notify_all();
+        // A stuck syscall owns only shared state and its own buffer, never
+        // the QIODevice, ReadGuard or a decoder's output memory.
+        if (m_state->abandoned.load()) m_thread.detach();
+        else m_thread.join();
     }
     bool isSequential() const override { return !m_regular; }
     qint64 size() const override { return m_regular ? m_size : 0; }
@@ -124,13 +162,53 @@ public:
     }
     qint64 seekOffset(qint64 offset, int whence) {
         if (!m_regular) return AVERROR(ESPIPE);
-        const auto pos = ::lseek(m_fd.get(), offset, whence);
-        return pos < 0 ? AVERROR(errno) : pos;
+        std::unique_lock lock(m_state->mutex);
+        if (m_state->abandoned.load()) return AVERROR_EXIT;
+        m_state->offset = offset;
+        m_state->whence = whence;
+        return request(Request::Seek, lock);
     }
-    int readBytes(char* data, int maxSize) {
-        if (maxSize <= 0) return 0;
-        while (!ReadGuard::interrupted(&m_guard)) {
-            pollfd descriptor{m_fd.get(), POLLIN, 0};
+    int readBytes(std::span<char> data) {
+        if (data.empty()) return 0;
+        std::unique_lock lock(m_state->mutex);
+        if (m_state->abandoned.load()) return AVERROR_EXIT;
+        m_state->readSize = data.size();
+        const auto n = request(Request::Read, lock);
+        if (n > 0) std::copy_n(m_state->buffer.begin(), static_cast<size_t>(n), data.begin());
+        return static_cast<int>(n);
+    }
+
+protected:
+    qint64 readData(char* data, qint64 maxSize) override {
+        const auto size = static_cast<size_t>(std::clamp<qint64>(maxSize, 0, std::numeric_limits<int>::max()));
+        const int n = readBytes(std::span<char>(data, size));
+        return n < 0 ? -1 : n;
+    }
+    qint64 writeData(const char*, qint64) override { return -1; }
+
+private:
+    bool waitForResult(std::unique_lock<std::mutex>& lock) {
+        for (;;) {
+            if (ReadGuard::interrupted(&m_guard) || m_state->abandoned.load()) {
+                m_state->abandoned = true;
+                m_state->changed.notify_all();
+                return false;
+            }
+            if (m_state->completed) return true;
+            m_state->changed.wait_for(lock, std::chrono::milliseconds(50));
+        }
+    }
+    qint64 request(Request operation, std::unique_lock<std::mutex>& lock) {
+        if (m_state->abandoned.load()) return AVERROR_EXIT;
+        m_state->completed = false;
+        m_state->request = operation;
+        m_state->changed.notify_all();
+        return waitForResult(lock) ? m_state->result : AVERROR_EXIT;
+    }
+    static qint64 readFile(int fd, State& state, const QString& path) {
+        state.buffer.resize(state.readSize);
+        while (!state.abandoned.load()) {
+            pollfd descriptor{fd, POLLIN, 0};
             const int ready = ::poll(&descriptor, 1, 50);
             if (ready < 0) {
                 if (errno == EINTR) continue;
@@ -138,24 +216,59 @@ public:
             }
             if (ready == 0) continue;
             if (descriptor.revents & POLLNVAL) return AVERROR(EBADF);
-            if (ReadGuard::interrupted(&m_guard)) return AVERROR_EXIT;
-            const auto n = ::read(m_fd.get(), data, static_cast<size_t>(maxSize));
-            if (n >= 0) return static_cast<int>(n);
+            if (state.abandoned.load()) return AVERROR_EXIT;
+            beforeLocalIo("read", path);
+            const auto n = ::read(fd, state.buffer.data(), state.buffer.size());
+            if (n >= 0) return n;
             if (errno != EAGAIN && errno != EINTR) return AVERROR(errno);
         }
         return AVERROR_EXIT;
     }
-
-protected:
-    qint64 readData(char* data, qint64 maxSize) override {
-        const int n = readBytes(data, static_cast<int>(std::min<qint64>(maxSize, std::numeric_limits<int>::max())));
-        return n < 0 ? -1 : n;
+    static void serve(const std::shared_ptr<State>& state, const QString& path) {
+        if (state->abandoned.load()) return;
+        beforeLocalIo("open", path);
+        FileDescriptor fd(::open(QFile::encodeName(path).constData(), O_RDONLY | O_NONBLOCK | O_CLOEXEC));
+        qint64 result = fd.get() < 0 ? AVERROR(errno) : 0;
+        struct stat st {};
+        if (fd.get() >= 0) {
+            if (state->abandoned.load()) return;
+            beforeLocalIo("fstat", path);
+            if (::fstat(fd.get(), &st) < 0) result = AVERROR(errno);
+        }
+        std::unique_lock lock(state->mutex);
+        state->regular = S_ISREG(st.st_mode);
+        state->size = st.st_size;
+        state->result = result;
+        state->completed = true;
+        state->changed.notify_all();
+        if (result < 0) return;
+        for (;;) {
+            state->changed.wait(lock, [&]() {
+                return state->stop || state->abandoned.load() || state->request != Request::None;
+            });
+            if (state->stop || state->abandoned.load()) return;
+            const Request operation = state->request;
+            lock.unlock();
+            if (operation == Request::Read) {
+                result = readFile(fd.get(), *state, path);
+            } else {
+                if (state->abandoned.load()) return;
+                beforeLocalIo("lseek", path);
+                const auto pos = ::lseek(fd.get(), state->offset, state->whence);
+                result = pos < 0 ? AVERROR(errno) : pos;
+            }
+            lock.lock();
+            if (state->abandoned.load()) return;
+            state->request = Request::None;
+            state->result = result;
+            state->completed = true;
+            state->changed.notify_all();
+        }
     }
-    qint64 writeData(const char*, qint64) override { return -1; }
 
-private:
-    FileDescriptor m_fd;
+    std::shared_ptr<State> m_state = std::make_shared<State>();
     ReadGuard& m_guard;
+    std::jthread m_thread;
     bool m_regular = false;
     qint64 m_size = 0;
 };
@@ -182,7 +295,8 @@ struct InputIo {
         if (!buffer) return false;
         context.reset(avio_alloc_context(buffer, bufferSize, 0, file.get(),
             [](void* opaque, uint8_t* data, int size) {
-                const int n = static_cast<InterruptibleFile*>(opaque)->readBytes(reinterpret_cast<char*>(data), size);
+                const int n = static_cast<InterruptibleFile*>(opaque)->readBytes(
+                    std::span<char>(reinterpret_cast<char*>(data), static_cast<size_t>(std::max(0, size))));
                 return n == 0 ? AVERROR_EOF : n;
             }, nullptr,
             [](void* opaque, int64_t offset, int whence) -> int64_t {
@@ -248,6 +362,12 @@ bool openStream(const QString& path, AVMediaType type, FormatPtr& format, CodecP
 }
 
 }  // namespace
+
+#ifdef Q_OS_UNIX
+void setLocalIoStallForTesting(LocalIoHook hook) {
+    localIoHook.store(hook ? std::make_shared<const LocalIoHook>(std::move(hook)) : nullptr);
+}
+#endif
 
 std::shared_ptr<const AudioPeaks> computeAudioPeaks(const QString& path, int count, const std::atomic<bool>* cancel,
                                                     int openTimeoutMs) {
