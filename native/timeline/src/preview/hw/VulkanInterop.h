@@ -57,6 +57,7 @@
 
 #include <array>
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 
@@ -85,6 +86,17 @@ struct ReleaseStats {
     int unconfirmedUnreleased;
 };
 ReleaseStats releaseStats();
+struct DestructionStats {
+    int images;
+    int memory;
+};
+// Actual owned-handle destruction, independent of release/retention accounting.
+DestructionStats destructionStats();
+// Simulate Qt dropping the next readback without invoking its callback.
+void dropNextReadback();
+int completedReadbacks();
+// Render-thread observer, called before each callback touches its mark.
+void setReadbackObserver(std::function<void(int liveMarks)> observer);
 }  // namespace testing
 
 class VulkanInterop;
