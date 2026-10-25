@@ -10,8 +10,8 @@
 //   document. The web has no such warning, so the wording here is new.
 //
 // A banner names a recovery copy only when the controller says where it is
-// (`keptCopy`) or why it is missing (`recoveryError`). After a strip whose
-// copy failed, `keptCopy` is the recovery copy the controller kept.
+// (`keptCopy`) or why it is missing (`recoveryError`). The named copy always
+// contains the current document, including fields stripped by the server.
 import QtQuick
 import NodeTool.Timeline
 
