@@ -43,6 +43,7 @@
 #include <QtQmlIntegration/qqmlintegration.h>
 
 #include <atomic>
+#include <functional>
 #include <list>
 #include <memory>
 #include <vector>
@@ -52,6 +53,11 @@
 class QQuickWindow;
 
 namespace nt::ui {
+
+#ifdef Q_OS_UNIX
+using LocalIoHook = std::function<void(const char* operation, const QString& path)>;
+void setLocalIoStallForTesting(LocalIoHook hook);
+#endif
 
 inline constexpr int FULL_ASSET_PEAK_COUNT = 2000;
 inline constexpr int THUMBNAIL_COUNT = 24;     // SOURCE_COUNT
