@@ -244,6 +244,35 @@
       ]
     },
     {
+      "id": "T", "wave": 1, "needs": ["S1"], "gaps": [],
+      "title": "Server identity before a write",
+      "owns": ["src/server/ServerClient.*", "src/server/ServerIdentity*", "src/server/SaveCli.*", "tests/tst_serveridentity.cpp", "tests/tst_serverclient.cpp", "tests/tst_autosave.cpp", "tests/TestHttpServer.h", "scripts/scratch-safety.mjs", "scripts/scratch-safety.test.mjs", "scripts/scratch-server.mjs", "scripts/check-server-identity.mjs"],
+      "web": [],
+      "server": ["timeline.update", "GET /ready"],
+      "exit": [
+        "Closes m5b F4 (docs/reviews/round3-save.md): the identity proof covers the connection that carries the write, and a copied /ready answer does not pass it",
+        "check-server-identity.mjs swaps the scratch server for a recording listener during --wait-before-write. The listener receives no byte of the POST, and the client exits 1 with WRONG_SERVER or a connection error and does not retry. With only the flag added and the old mutate, the check fails",
+        "A listener that replays headers copied from a real scratch server /ready answer gets no write (tst_serveridentity and the check script)",
+        "scratch-safety.test.mjs: mutate and upload send no body to a replacement listener",
+        "A save against the scratch server still writes, and timeline.get returns the edit. tst_autosave and tst_serverclient pass",
+        "A client with no expected instance sends one request (mutateWithoutAnExpectationSendsDirectly)",
+        "No check sends a request to port 7777"
+      ]
+    },
+    {
+      "id": "U", "wave": 1, "needs": ["S1"], "gaps": [],
+      "title": "Linear transition resolver",
+      "owns": ["src/preview/transitions/", "src/preview/SceneEval.cpp", "tests/tst_transitionresolver.cpp"],
+      "web": ["packages/timeline/src/render/transition.ts", "packages/timeline/src/render/sceneModel.ts"],
+      "server": [],
+      "exit": [
+        "plan-conformance.mjs passes with no problems, with and without --examples",
+        "Differential test: the new resolver equals the old quadratic one (keys and every field, doubles bit for bit) on every timeline fixture and example at 30 fps, and on 1,000 generated buckets with shared starts, equal ends, zero and negative durations, hidden and adjustment clips and nested groups. A planted tie change (>= for >) fails it once",
+        "Timing test: one bucket of n overlapping active clips at n = 2,000 and n = 32,000, median of 5 runs, larger run under 40 times the smaller. It fails against the old resolver",
+        "SceneEval.cpp changes only by the removal of the moved code and the two call sites (transitionOpacitiesAt, evaluateScene)"
+      ]
+    },
+    {
       "id": "G", "wave": 2, "needs": ["C", "D2", "F"], "gaps": ["F7"],
       "title": "Context menus",
       "owns": ["qml/menus/"],
@@ -284,6 +313,6 @@
       "exit": ["Movable panels and the built-in workspaces match TimelineDockLayout.ts"]
     }
   ],
-  "mergeOrder": ["S1", "V", "A", "B", "C", "D1", "D2", "D3", "D4", "D5", "E", "F", "H", "I", "J", "K", "L", "M", "N", "P1", "R", "G", "O", "D6", "P2", "Q"],
+  "mergeOrder": ["S1", "V", "A", "B", "C", "D1", "D2", "D3", "D4", "D5", "E", "F", "H", "I", "J", "K", "L", "M", "N", "P1", "R", "T", "U", "G", "O", "D6", "P2", "Q"],
   "outOfPlan": ["F19 signing and notarization", "Windows and Linux reference-machine benches", "AI features", "MIDI clips and instruments"]
 }
