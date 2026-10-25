@@ -26,6 +26,7 @@
 #include "platform/SchedulingDiagnostics.h"
 #include "bench/BenchReport.h"
 #include "bench/ScrubRun.h"
+#include "ui/MediaPreviews.h"
 #include "ui/UiBench.h"
 #include "audio/AppAudio.h"
 #include "audio/AudioCli.h"
@@ -431,6 +432,14 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, QSize size, const Q
         }
     };
 
+    // A GPU resource the compositor could not create leaves the frame
+    // incomplete: a capture run stops with the reason instead of saving it.
+    const auto renderFailed = [&]() {
+        if (compositor->renderError().isEmpty()) return false;
+        std::fprintf(stderr, "error: incomplete frame: %s\n", qPrintable(compositor->renderError()));
+        return true;
+    };
+
     if (!shotPath.isEmpty()) {
         // Wait until every layer shows its exact frame, then grab the editor.
         compositor->requestCapture();
@@ -439,11 +448,17 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, QSize size, const Q
         while (!compositor->captureReady()) {
             renderFrame(false);
             logReport();
+            if (renderFailed()) return 1;
             if (timer.elapsed() > 15000) {
                 std::fprintf(stderr, "error: no exact frame within 15 s\n");
                 return 1;
             }
             QCoreApplication::processEvents();
+        }
+        // The clip pictures decode off the GUI thread: wait for them too.
+        while (nt::ui::MediaPreviewCache::instance().pendingCount() > 0 && timer.elapsed() < 30000) {
+            renderFrame(false);
+            QCoreApplication::processEvents(QEventLoop::AllEvents, 20);
         }
         renderFrame(true);
         const QImage img(reinterpret_cast<const uchar*>(readback.data.constData()), readback.pixelSize.width(),
@@ -511,6 +526,7 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, QSize size, const Q
             compositor->requestCapture(true);
             renderFrame(false);
             logReport();
+            if (renderFailed()) return 1;
             if (!compositor->captureReady()) continue;
             const double t = compositor->captureTimeMs();
             const QImage capture = compositor->takeCapture();
@@ -553,6 +569,7 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, QSize size, const Q
         while (!compositor->captureReady()) {
             renderFrame(false);
             logReport();
+            if (renderFailed()) return 1;
             if (timer.elapsed() > 15000) {
                 std::fprintf(stderr, "error: frame %lld: no exact frame within 15 s\n", frame);
                 return 1;
@@ -703,6 +720,12 @@ int main(int argc, char** argv) {
     const QCommandLineOption audioDryRunOpt(QStringLiteral("audio-dry-run"),
                                             QStringLiteral("Print the audio mode this run would use and exit"));
     parser.addOptions({audioOpt, audioLatencyOpt, audioReportOpt, audioDryRunOpt});
+    // The waveform peaks of one file as the server's peaks route answers
+    // (scripts/peaks-check.mjs compares the two).
+    const QCommandLineOption peaksOpt(QStringLiteral("peaks"),
+                                      QStringLiteral("Print the 2000 waveform peaks of FILE as JSON and exit"),
+                                      QStringLiteral("FILE"));
+    parser.addOption(peaksOpt);
     parser.addOptions({benchOpt, framesOpt, sizeOpt, seekOpt, playOpt, shotOpt, warmupOpt, budgetOpt, noVsyncOpt, realtimeOpt, stillsOpt, stillFramesOpt, backgroundOpt, playStillsOpt, decodeOpt, decoderOpt, teardownOpt, hideTestOpt, onTopOpt, scrubOpt, scrubOutOpt, jsonOpt});
     parser.process(app);
 
@@ -710,6 +733,17 @@ int main(int argc, char** argv) {
                  qVersion(), qPrintable(avVersion(avformat_version())), qPrintable(avVersion(avcodec_version())),
                  qPrintable(avVersion(avutil_version())), qPrintable(avVersion(swscale_version())));
 
+    if (parser.isSet(peaksOpt)) {
+        const auto peaks = nt::ui::computeAudioPeaks(parser.value(peaksOpt));
+        if (!peaks) return 1;
+        QJsonArray values;
+        for (float v : peaks->peaks) values.append(double(v));
+        std::printf("%s\n", QJsonDocument(QJsonObject{{QStringLiteral("peaks"), values},
+                                                     {QStringLiteral("duration_ms"), peaks->durationMs}})
+                                .toJson(QJsonDocument::Compact)
+                                .constData());
+        return 0;
+    }
     if (parser.positionalArguments().size() != 1) {
         parser.showHelp(2);
     }
@@ -1110,6 +1144,8 @@ int main(int argc, char** argv) {
     }
 
     const int rc = app.exec();
+    // Unsaved server edits: save them (at most 5 s) or leave a recovery file.
+    if (autosave) autosave->flushBeforeQuit(5000);
     if ((bench || parser.isSet(teardownOpt)) && !*completed) {
         std::fprintf(stderr, "error: the window closed before the %s finished; no report\n",
                      "bench");

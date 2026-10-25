@@ -49,6 +49,11 @@ int processNice() {
     return getpriority(PRIO_PROCESS, 0);
 }
 
+// Mach thread ports need no registration: each live thread counts once.
+int registeredThreads() {
+    return 0;
+}
+
 }  // namespace nt::cpu
 
 #else
@@ -82,8 +87,35 @@ int64_t fileTimeNs(const FILETIME& t) {
 #else
 using NativeThread = pthread_t;
 #endif
+// One slot per registered thread; a slot is freed (and its Windows handle
+// closed) when its thread ends, and stays empty: handles are not reused.
+struct Slot {
+    NativeThread native{};
+    bool live = false;
+};
 std::mutex g_mutex;
-std::vector<NativeThread> g_threads;
+std::vector<Slot> g_threads;
+int g_live = 0;
+
+void releaseSlot(unsigned index) {
+    std::lock_guard lock(g_mutex);
+    Slot& slot = g_threads[index - 1];
+    if (!slot.live) return;
+#if defined(_WIN32)
+    CloseHandle(slot.native);
+#endif
+    slot.live = false;
+    --g_live;
+}
+
+// The calling thread's registration, made once and released at thread exit.
+struct Registration {
+    unsigned index = 0;
+    ~Registration() {
+        if (index) releaseSlot(index);
+    }
+};
+thread_local Registration t_registration;
 }  // namespace
 
 int64_t processNs() {
@@ -100,6 +132,7 @@ int64_t processNs() {
 }
 
 unsigned currentThread() {
+    if (t_registration.index) return t_registration.index;
 #if defined(_WIN32)
     HANDLE self = nullptr;
     if (!DuplicateHandle(GetCurrentProcess(), GetCurrentThread(), GetCurrentProcess(), &self,
@@ -110,16 +143,18 @@ unsigned currentThread() {
     const pthread_t self = pthread_self();
 #endif
     std::lock_guard lock(g_mutex);
-    g_threads.push_back(self);
-    return static_cast<unsigned>(g_threads.size());
+    g_threads.push_back(Slot{self, true});
+    ++g_live;
+    t_registration.index = static_cast<unsigned>(g_threads.size());
+    return t_registration.index;
 }
 
 int64_t threadNs(unsigned thread) {
     NativeThread native;
     {
         std::lock_guard lock(g_mutex);
-        if (thread == 0 || thread > g_threads.size()) return -1;
-        native = g_threads[thread - 1];
+        if (thread == 0 || thread > g_threads.size() || !g_threads[thread - 1].live) return -1;
+        native = g_threads[thread - 1].native;
     }
 #if defined(_WIN32)
     FILETIME created, exited, kernel, user;
@@ -137,6 +172,11 @@ int64_t threadNs(unsigned thread) {
     if (clock_gettime(clock, &ts) != 0) return -1;
     return int64_t(ts.tv_sec) * 1000000000 + ts.tv_nsec;
 #endif
+}
+
+int registeredThreads() {
+    std::lock_guard lock(g_mutex);
+    return g_live;
 }
 
 // QoS classes are a macOS concept.

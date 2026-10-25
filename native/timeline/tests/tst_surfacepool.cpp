@@ -71,6 +71,44 @@ private slots:
         QCOMPARE(live, 0);
     }
 
+    // The byte budget: free targets go least recently used first.
+    void budgetEvictsTheOldestIdleTargetFirst() {
+        int live = 0;
+        const QSize size(10, 10);  // 400 bytes
+        SurfacePool<FakeTarget> pool([&](QSize) { return std::make_unique<FakeTarget>(&live); }, 800);
+        FakeTarget* first = pool.acquire(size, 1);
+        pool.acquire(size, 1);
+        pool.endFrame(1, size);
+        QCOMPARE(pool.bytes(), size_t(800));
+        QCOMPARE(pool.acquire(size, 2), first);  // reused; the other idles since frame 1
+        pool.endFrame(2, size);
+        pool.setBudgetBytes(400);
+        pool.acquire(size, 3);  // reuses `first`, and the idle one is over the budget
+        pool.endFrame(3, size);
+        QCOMPARE(pool.size(), 1);
+        QCOMPARE(pool.bytes(), size_t(400));
+        QCOMPARE(pool.acquire(size, 4), first);
+        pool.endFrame(4, size);
+        QVERIFY(!pool.lastFrameOverBudget());
+    }
+
+    // A frame that alone needs more than the budget still gets its targets,
+    // and the pool reports it; the next frame within budget clears it.
+    void frameOverBudgetIsReported() {
+        int live = 0;
+        const QSize size(10, 10);
+        SurfacePool<FakeTarget> pool([&](QSize) { return std::make_unique<FakeTarget>(&live); }, 800);
+        for (int i = 0; i < 3; ++i) QVERIFY(pool.acquire(size, 1));
+        QCOMPARE(pool.bytes(), size_t(1200));
+        pool.endFrame(1, size);
+        QVERIFY(pool.lastFrameOverBudget());
+        QCOMPARE(pool.bytes(), size_t(800));  // trimmed once the frame is done
+        pool.acquire(size, 2);
+        pool.endFrame(2, size);
+        QVERIFY(!pool.lastFrameOverBudget());
+        QCOMPARE(SurfacePool<FakeTarget>::bytesFor(QSize(3840, 2160)), size_t(33177600));  // 31.6 MiB
+    }
+
     void failedCreateReturnsNull() {
         SurfacePool<FakeTarget> pool([](QSize) { return std::unique_ptr<FakeTarget>(); });
         QVERIFY(!pool.acquire(QSize(10, 10), 1));

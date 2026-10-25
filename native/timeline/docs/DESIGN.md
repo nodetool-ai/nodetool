@@ -256,6 +256,15 @@ dialogs, `ExportVideoDialog`, and the gizmo and tracking overlays.
      surface and returns them all at its end, so a steady scene allocates no
      target after its first frame. A target unused for 300 frames is freed,
      and a canvas size change frees all of them.
+     The pool has a byte budget, 512 MiB by default (`NT_SURFACE_BUDGET_MIB`).
+     A 4K surface is about 31.6 MiB. A new target first evicts free targets,
+     the least recently used first. A frame whose own surfaces exceed the
+     budget still gets them, so the picture stays right, and the frame stats
+     and a warning report it.
+  6. A surface, a layer uniform buffer or a set of bindings that cannot be
+     created is a resource failure. The frame is then incomplete: it is never
+     exact, its stats count the failures, and a still or screenshot run stops
+     with the reason instead of saving the picture.
   Not drawn yet, and listed in the loader report for the group clip with
   effect `pixels`: the group's blend mode and effect chain
   (`precomposite.blendMode`, `precomposite.effects`), its cut's mask, iris,
@@ -343,10 +352,18 @@ dialogs, `ExportVideoDialog`, and the gizmo and tracking overlays.
     `QRhiTexture::createFrom()` wraps each one. No CPU copy.
   - Windows (M6): D3D11VA on the `ID3D11Device` from `QRhiD3D11NativeHandles`,
     so decoder and renderer share one device. Each frame is a slice of an NV12
-    texture array. If `createFrom()` cannot address one slice and plane, copy the
-    slice to a single NV12 texture with `CopySubresourceRegion` (a GPU copy).
-  - Linux (M6): FFmpeg Vulkan decode on the `VkDevice` from
-    `QRhiVulkanNativeHandles` first. VAAPI with DMA-BUF import is the fallback.
+    texture array. `createFrom()` cannot address one slice, so each frame is
+    copied to a single NV12 texture with `CopySubresourceRegion` (a GPU copy),
+    which is wrapped twice, as R8 and as RG8. The window's device is created
+    with `D3D11_CREATE_DEVICE_VIDEO_SUPPORT` and multithread protection.
+  - Linux (M6): VAAPI, each frame exported as DMA-BUF with one layer per
+    plane and imported into the `VkDevice` from `QRhiVulkanNativeHandles` as
+    an R8 and an R8G8 `VkImage` (DRM format modifier, foreign queue family
+    acquire). Reason: FFmpeg's Vulkan decoder outputs one multi-planar image,
+    and QRhi samples one colour-aspect view per texture, which a multi-planar
+    image does not allow. Needs a Vulkan QRhi and four device extensions
+    (`VulkanInterop::requiredDeviceExtensions`).
+  - All three sit behind one compile-time seam, `src/preview/hw/HwInterop.h`.
   - Any hardware failure before the first frame falls back to software for that
     source, as `DecodedFrameSource` retries with `preferSoftware`.
   - Watchdog (M1d): a hardware decoder with a pending target that decodes no
@@ -606,7 +623,13 @@ Every capability is driven from the command line first
   not accept a `CVMetalTexture`'s texture. Retire with a 200-line spike before
   M1c, on one H.264 and one HEVC file.
 - **R4.** D3D11VA texture arrays do not map to `QRhiTexture::createFrom()`.
-  Retire with a spike at the start of M6. The fallback is a GPU slice copy.
+  The code takes the GPU slice copy from the start (D15). Still open: that an
+  R8 and an RG8 view of one NV12 texture both sample on a real device, and
+  that the Vulkan DMA-BUF import (a foreign-family acquire from the external
+  layout `VK_IMAGE_LAYOUT_GENERAL`, a release back before the VA surface
+  returns, every memory plane of a CCS modifier) shows the decoded picture
+  on Intel and AMD drivers. Retire both on the reference Windows and Linux
+  machines; neither path has been compiled for its platform yet.
 - **R5.** Session limits: VideoToolbox and NVDEC limit concurrent sessions per
   process. Retire by opening 12 sessions in the M1c bench. The fallback is
   software decode for the lowest track.

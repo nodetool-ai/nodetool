@@ -1,6 +1,7 @@
 #include "edit/ClipGestureController.h"
 
 #include "edit/Keymap.h"
+#include "ui/MediaVersion.h"
 #include "preview/FfmpegSource.h"
 #include "ui/TimelineWheel.h"
 
@@ -112,6 +113,11 @@ void ClipGestureController::setTimeline(TimelineModel* m) {
         connect(m_timeline, &TimelineModel::documentReplaced, this, [this]() {
             dropGesture();
             m_observedEnds.clear();
+            // A new document probes its files again: one replaced in place
+            // has a new length. Results still in flight are dropped.
+            m_sourceMs.clear();
+            m_probing.clear();
+            ++m_probeGeneration;
         });
         connect(m_timeline, &TimelineModel::timelineChanged, this, &ClipGestureController::probeSources);
         // A clip the document lost leaves the selection.
@@ -257,13 +263,38 @@ QString ClipGestureController::trackUnderPointer(double sceneX, double sceneY) c
     return {};
 }
 
-bool ClipGestureController::pressClip(const QString& id, const QString& part, double sceneX, double sceneY,
+double ClipGestureController::laneMsAt(double sceneX) const {
+    if (!m_viewport || !m_view) return 0;
+    const double x = m_viewport->mapFromScene(QPointF(sceneX, 0)).x() + m_view->scrollLeftPx();
+    return x * m_view->msPerPx();
+}
+
+bool ClipGestureController::pressClip(const QString& id, const QString& pressedPart, double sceneX, double sceneY,
                                       int modifiers) {
     if (!m_timeline || !m_view) return false;
     const EditDoc doc = editDoc();
     const QJsonObject* clip = findClip(doc.clips, id);
     if (!clip) return false;
     const auto mods = static_cast<Qt::KeyboardModifiers>(modifiers);
+    // useClipTrim BODY_TOOLS: these tools act on the whole clip.
+    static const QSet<QString> bodyTools{QStringLiteral("cut"),         QStringLiteral("slip"),
+                                         QStringLiteral("slide"),       QStringLiteral("trackSelect"),
+                                         QStringLiteral("trackSelectBackward"), QStringLiteral("hand"),
+                                         QStringLiteral("zoom")};
+    const QString part = bodyTools.contains(m_tool) ? QStringLiteral("body") : pressedPart;
+    // Hand and Zoom act on the lanes (TracksRegion.qml).
+    if (m_tool == u"hand" || m_tool == u"zoom") return false;
+    const bool locked = !editableUserTargets(doc, IdSet{id}, false, false).count(id);
+    if (m_tool == u"cut") {
+        // Split at the pointer; no-op splits at the clip's edges are refused.
+        if (locked) return false;
+        const double atMs = laneMsAt(sceneX);
+        if (atMs > clipStartMs(*clip) && atMs < clipEndMs(*clip)) {
+            const QJsonArray before = m_timeline->clipsJson();
+            m_timeline->commitEdit(QStringLiteral("Split"), before, toArray(splitClipAtTime(doc, id, atMs)));
+        }
+        return true;
+    }
     Gesture g;
     g.clipId = id;
     g.startX = g.lastX = sceneX;
@@ -273,7 +304,25 @@ bool ClipGestureController::pressClip(const QString& id, const QString& part, do
     g.gestureMsPerPx = m_view->msPerPx();
     g.before = m_timeline->clipsJson();
     g.generation = m_timeline->documentGeneration();
-    if (part == u"body") {
+    if (part == u"body" && (m_tool == u"slip" || m_tool == u"slide")) {
+        if (locked) return false;
+        g.kind = m_tool;
+        g.dragStartMs = clipStartMs(*clip);
+        g.inAtStart = clip->value(u"inPointMs").toDouble(0);
+    } else if (part == u"body") {
+        if (m_tool == u"trackSelect" || m_tool == u"trackSelectBackward") {
+            // trackSelectIds; Shift keeps to the clip's track. The clicked
+            // clip leads, so the drag moves the whole block with it.
+            const QStringList ids =
+                trackSelectIds(doc.clips, laneMsAt(sceneX),
+                               m_tool == u"trackSelect" ? QStringLiteral("forward") : QStringLiteral("backward"),
+                               (mods & Qt::ShiftModifier) ? clipTrackId(*clip) : QString());
+            QStringList next{id};
+            for (const QString& other : ids) {
+                if (other != id) next.append(other);
+            }
+            setSelection(next);
+        }
         g.kind = QStringLiteral("move");
         g.dragStartMs = clipStartMs(*clip);
         // In a multi-selection the companions move too; their edges are not
@@ -361,7 +410,18 @@ void ClipGestureController::applyTrim() {
     }
     ClipList next;
     bool landed = false;
-    if (g.edge == u"start") {
+    if (g.mode == u"stretch") {
+        // Rate stretch: the edge sets the length, the speed follows.
+        if (g.edge == u"start") {
+            next = rateStretchClip(doc, g.clipId, QStringLiteral("start"), clipEndMs(*fresh) - valueMs, m_linked);
+            const QJsonObject* t = findClip(next, g.clipId);
+            landed = t && clipStartMs(*t) == valueMs;
+        } else {
+            next = rateStretchClip(doc, g.clipId, QStringLiteral("end"), valueMs - clipStartMs(*fresh), m_linked);
+            const QJsonObject* t = findClip(next, g.clipId);
+            landed = t && clipEndMs(*t) == valueMs;
+        }
+    } else if (g.edge == u"start") {
         if (g.mode == u"ripple") {
             // A ripple head trim keeps the clip parked: the pointer's travel is
             // the total, the duration says how much is applied already.
@@ -401,6 +461,40 @@ void ClipGestureController::applyTrim() {
     setSnapGuide(landed ? guideMs : -1);
 }
 
+bool ClipGestureController::pressLane(const QString& trackId, double atMs, int modifiers) {
+    if (m_tool != u"trackSelect" && m_tool != u"trackSelectBackward") return false;
+    const bool shift = static_cast<Qt::KeyboardModifiers>(modifiers) & Qt::ShiftModifier;
+    setSelection(trackSelectIds(editDoc().clips, atMs,
+                                m_tool == u"trackSelect" ? QStringLiteral("forward") : QStringLiteral("backward"),
+                                shift ? trackId : QString()));
+    return true;
+}
+
+void ClipGestureController::applySlip() {
+    // useClipDrag beginSlipDrag: moving right shows earlier source.
+    Gesture& g = m_gesture;
+    const EditDoc doc = editDoc();
+    const QJsonObject* fresh = findClip(doc.clips, g.clipId);
+    if (!fresh) return;
+    const double wantedIn = g.inAtStart - (g.lastX - g.startX) * m_view->msPerPx() * sourceRate(*fresh);
+    const auto patches = planSlip(doc, *fresh, wantedIn - fresh->value(u"inPointMs").toDouble(0), sourceCap(*fresh),
+                                  m_linked);
+    if (!patches) return;
+    g.dragging = true;
+    setDoc(applyPatches(doc.clips, *patches));
+}
+
+void ClipGestureController::applySlide() {
+    // useClipDrag beginSlideDrag: the store's slideClip with no source lengths.
+    Gesture& g = m_gesture;
+    const EditDoc doc = editDoc();
+    const QJsonObject* fresh = findClip(doc.clips, g.clipId);
+    if (!fresh) return;
+    const double wantedMs = g.dragStartMs + (g.lastX - g.startX) * m_view->msPerPx();
+    g.dragging = true;
+    setDoc(slideClip(doc, g.clipId, wantedMs - clipStartMs(*fresh), m_linked));
+}
+
 void ClipGestureController::mouseMoveEvent(QMouseEvent* event) {
     if (m_gesture.kind.isEmpty()) {
         event->ignore();
@@ -411,6 +505,10 @@ void ClipGestureController::mouseMoveEvent(QMouseEvent* event) {
     if (m_gesture.kind == u"move") {
         applyMove();
         if (m_gesture.dragging) polish();  // the edge auto-scroll
+    } else if (m_gesture.kind == u"slip") {
+        applySlip();
+    } else if (m_gesture.kind == u"slide") {
+        applySlide();
     } else {
         applyTrim();
     }
@@ -483,12 +581,16 @@ void ClipGestureController::finishGesture(bool completed, Qt::KeyboardModifiers 
     setSnapGuide(-1);
     if (!m_timeline) return;
     if (g.dragging && completed) {
-        m_timeline->commitEdit(g.kind == u"move" ? QStringLiteral("Move clips") : QStringLiteral("Trim clip"), g.before,
-                               m_timeline->clipsJson());
+        static const QHash<QString, QString> names{{QStringLiteral("move"), QStringLiteral("Move clips")},
+                                                   {QStringLiteral("trim"), QStringLiteral("Trim clip")},
+                                                   {QStringLiteral("slip"), QStringLiteral("Slip clip")},
+                                                   {QStringLiteral("slide"), QStringLiteral("Slide clip")}};
+        m_timeline->commitEdit(names.value(g.kind), g.before, m_timeline->clipsJson());
     } else if (g.dragging) {
         // Cancelled: back to the state at the press, with no entry.
         m_timeline->replaceClips(g.before);
-    } else if (g.kind == u"move" && completed) {
+    } else if (g.kind == u"move" && completed && m_tool != u"trackSelect" && m_tool != u"trackSelectBackward") {
+        // A track-select tool chose the selection at the press.
         clickSelect(g.clipId, modifiers);
     }
     if (window() && window()->mouseGrabberItem() == this) ungrabMouse();
@@ -596,6 +698,94 @@ bool ClipGestureController::handleKey(int key, const QString& text, int modifier
         setSnapEnabled(!m_snapEnabled);
         return true;
     }
+    if (action == u"toggleShortcuts") {
+        emit shortcutsToggled();
+        return true;
+    }
+    // The in/out range and the markers (TracksRegion.tsx key handler).
+    if (m_view && action == u"markIn") {
+        m_view->setRangeIn(std::max(0.0, playheadMs()));
+        return true;
+    }
+    if (m_view && action == u"markOut") {
+        m_view->setRangeOut(std::max(0.0, playheadMs()));
+        return true;
+    }
+    if (m_view && action == u"markClip") {
+        // markClipRange: the span of the selection, else of the clip under
+        // the playhead on the topmost targeted (unlocked) track.
+        const EditDoc doc = editDoc();
+        std::vector<const QJsonObject*> marked;
+        for (const auto& c : doc.clips) {
+            if (m_selection.contains(clipId(c))) marked.push_back(&c);
+        }
+        if (marked.empty()) {
+            QHash<QString, int> order;
+            for (const QJsonValue& t : m_timeline->timeline().raw.value(u"tracks").toArray()) {
+                order.insert(t.toObject().value(u"id").toString(), t.toObject().value(u"index").toInt());
+            }
+            const IdSet locked = lockedTrackIds(doc);
+            const double at = playheadMs();
+            const QJsonObject* top = nullptr;
+            for (const auto& c : doc.clips) {
+                if (isGroupClip(c) || locked.count(clipTrackId(c)) || !(clipStartMs(c) <= at && at < clipEndMs(c)))
+                    continue;
+                if (!top || order.value(clipTrackId(c)) < order.value(clipTrackId(*top))) top = &c;
+            }
+            if (top) marked.push_back(top);
+        }
+        if (marked.empty()) return false;
+        double in = clipStartMs(*marked.front());
+        double out = clipEndMs(*marked.front());
+        for (const QJsonObject* c : marked) {
+            in = std::min(in, clipStartMs(*c));
+            out = std::max(out, clipEndMs(*c));
+        }
+        m_view->clearRange();
+        m_view->setRangeIn(in);
+        m_view->setRangeOut(out);
+        return true;
+    }
+    if (m_view && action == u"clearRange") {
+        m_view->clearRange();
+        return true;
+    }
+    if (m_view && m_clock && (action == u"goToIn" || action == u"goToOut")) {
+        const double target = action == u"goToIn" ? m_view->rangeInMs() : m_view->rangeOutMs();
+        if (target < 0) return false;
+        m_clock->seek(target);
+        return true;
+    }
+    if (action == u"addMarker") {
+        // Holding the key must not stack a marker per repeat.
+        if (!autoRepeat) {
+            m_timeline->addMarker(playheadMs(),
+                                  QStringLiteral("Marker %1").arg(m_timeline->markersJson().size() + 1));
+        }
+        return true;
+    }
+    if (m_clock && (action == u"nextMarker" || action == u"prevMarker")) {
+        // seekToNeighbour: the nearest marker more than 1 ms away.
+        std::vector<double> times;
+        for (const QJsonValue& m : m_timeline->markersJson()) times.push_back(m.toObject().value(u"timeMs").toDouble());
+        std::sort(times.begin(), times.end());
+        const double now = playheadMs();
+        std::optional<double> target;
+        if (action == u"nextMarker") {
+            for (double t : times) {
+                if (t > now + 1) {
+                    target = t;
+                    break;
+                }
+            }
+        } else {
+            for (double t : times) {
+                if (t < now - 1) target = t;
+            }
+        }
+        if (target) m_clock->seek(*target);
+        return true;
+    }
     if (action == u"selectTool") {
         setActiveTool(QStringLiteral("select"));
         return true;
@@ -606,6 +796,20 @@ bool ClipGestureController::handleKey(int key, const QString& text, int modifier
     }
     if (action == u"rollTool") {
         setActiveTool(QStringLiteral("roll"));
+        return true;
+    }
+    // TOOL_FOR_ACTION
+    static const QHash<QString, QString> toolFor{
+        {QStringLiteral("trackSelectTool"), QStringLiteral("trackSelect")},
+        {QStringLiteral("trackSelectBackwardTool"), QStringLiteral("trackSelectBackward")},
+        {QStringLiteral("slideTool"), QStringLiteral("slide")},
+        {QStringLiteral("handTool"), QStringLiteral("hand")},
+        {QStringLiteral("zoomTool"), QStringLiteral("zoom")},
+        {QStringLiteral("rateStretchTool"), QStringLiteral("rateStretch")},
+        {QStringLiteral("cutTool"), QStringLiteral("cut")},
+        {QStringLiteral("slipTool"), QStringLiteral("slip")}};
+    if (toolFor.contains(action)) {
+        setActiveTool(toolFor.value(action));
         return true;
     }
     if (m_view && (action == u"zoomIn" || action == u"zoomOut" || action == u"zoomFit")) {
@@ -646,17 +850,20 @@ void ClipGestureController::probeSources() {
     // Probe each media file once, off the GUI thread (a blocking FFmpeg open).
     if (!m_timeline) return;
     QPointer<ClipGestureController> self(this);
+    const quint64 generation = m_probeGeneration;
     for (const auto& c : m_timeline->timeline().clips) {
         const QString file = sourceFileOf(c);
         if (file.isEmpty() || m_sourceMs.contains(file) || m_probing.contains(file)) continue;
         m_probing.insert(file);
-        QThreadPool::globalInstance()->start([self, file]() {
+        // The version the probe reads: a result for another one is dropped.
+        const QString version = nt::ui::mediaVersionKey(file);
+        QThreadPool::globalInstance()->start([self, file, version, generation]() {
             const nt::MediaFacts facts = nt::probeMedia(file.toStdString());
             const double ms = facts.opened && facts.durationSec > 0 ? facts.durationSec * 1000.0 : -1.0;
-            QMetaObject::invokeMethod(qApp, [self, file, ms]() {
-                if (!self) return;
+            QMetaObject::invokeMethod(qApp, [self, file, version, generation, ms]() {
+                if (!self || generation != self->m_probeGeneration) return;
                 self->m_probing.remove(file);
-                if (ms > 0) self->m_sourceMs.insert(file, ms);
+                if (ms > 0 && nt::ui::mediaVersionKey(file) == version) self->m_sourceMs.insert(file, ms);
             });
         });
     }
@@ -682,6 +889,42 @@ std::optional<double> ClipGestureController::sourceCap(const QJsonObject& clip) 
     const double seen = std::max(outPoint, m_observedEnds.value(asset, 0.0));
     m_observedEnds.insert(asset, seen);
     return seen;
+}
+
+QString ClipGestureController::shortcutFor(const QString& action) const {
+    return formatActionShortcut(m_preset, action);
+}
+
+const QSet<QString>& ClipGestureController::availableActions() {
+    static const QSet<QString> actions{
+        // handleKey
+        "escape", "deleteSelected", "rippleDeleteSelected", "splitAtPlayhead", "selectAll", "deselectAll",
+        "nudgeLeft", "nudgeRight", "nudgeLeftLarge", "nudgeRightLarge", "undo", "redo", "toggleSnap",
+        "toggleShortcuts", "markIn", "markOut", "markClip", "clearRange", "goToIn", "goToOut", "addMarker",
+        "nextMarker", "prevMarker", "zoomIn", "zoomOut", "zoomFit", "selectTool", "trackSelectTool",
+        "trackSelectBackwardTool", "rippleTool", "rollTool", "rateStretchTool", "cutTool", "slipTool", "slideTool",
+        "handTool", "zoomTool",
+        // key-only rows: Space in TimelineEditor, and the drag modifiers
+        "playPause", "rollCut", "disableSnapping", "insertOnDrop"};
+    return actions;
+}
+
+QVariantMap ClipGestureController::shortcutSheet() const {
+    QJsonObject sheet = nt::edit::shortcutSheet(m_preset);
+    QJsonArray groups;
+    for (const QJsonValue& g : sheet.value(u"groups").toArray()) {
+        QJsonObject group = g.toObject();
+        QJsonArray rows;
+        for (const QJsonValue& r : group.value(u"rows").toArray()) {
+            QJsonObject row = r.toObject();
+            row.insert(QStringLiteral("available"), availableActions().contains(row.value(u"id").toString()));
+            rows.append(row);
+        }
+        group.insert(QStringLiteral("rows"), rows);
+        groups.append(group);
+    }
+    sheet.insert(QStringLiteral("groups"), groups);
+    return sheet.toVariantMap();
 }
 
 double ClipGestureController::sourceCapMs(const QString& id) {

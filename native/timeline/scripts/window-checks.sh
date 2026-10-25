@@ -4,6 +4,17 @@
 # so run this when nobody is using the machine. It writes one JSON summary to
 # build/window-checks/summary.json and prints it.
 #
+#   0. The paused-seek latency gate (PLAN M1d exit 1), first and offscreen:
+#      it waits up to 10 minutes for a 1-minute load average under 4 (else
+#      the summary says "not idle" and the numbers are not clean), then runs
+#      check-scrub.mjs on the 2 s GOP fixture (limit 100 ms) and the
+#      all-intra fixture (limit 30 ms), sw and hw. Then an interleaved A/B of
+#      the safe non-reference skip rule against no skipping
+#      (NT_DECODE_SKIP=off), 3 rounds of 40 cold seeks on the GOP fixture, sw
+#      and hw. Every number in the summary carries the load before and after
+#      its run.
+#      --dry-run prints the commands of section 0 and runs nothing.
+#
 #   1. The M1b budgeted bench (software decode, 4 tracks).
 #   2. The M1c budgeted benches: 4 tracks sw and hw, 8 tracks hw, 4K HEVC hw.
 #   3. The teardown case (M1c F1): delete the preview item while hardware
@@ -37,6 +48,13 @@
 #         output latency (device, safety offset, stream, buffer frames).
 #      Measure once more on a Bluetooth output by hand (PLAN M3 risk): set it
 #      as the default output and rerun 6a.
+#   7. M0, the web baseline in a real browser window: web-baseline.mjs
+#      --headed plays the fixtures in the web editor in a visible Chromium
+#      window (real vsync and frame pacing, Metal WebGPU), against its own
+#      scratch server and Vite (ports 7799 and 3799, never 7777). The native
+#      counterparts with vsync are the benches of sections 1 and 2. A
+#      measurement, not pass/fail: the run's verdict says only whether every
+#      counter has samples.
 #
 # Exit 0 only when every budgeted bench, the teardown case and the M3
 # checks pass. The F7 runs are measurements, not pass/fail.
@@ -45,9 +63,62 @@ set -uo pipefail
 cd "$(dirname "$0")/.."
 bin=build/nodetool-timeline
 out=build/window-checks
-rm -rf "$out"
-mkdir -p "$out"
+dry_run=0
+[[ "${1:-}" == "--dry-run" ]] && dry_run=1
+if [[ $dry_run == 0 ]]; then
+    rm -rf "$out"
+    mkdir -p "$out"
+fi
 status=0
+
+# --- 0. Paused-seek latency gate (offscreen) ---------------------------------
+load1() { sysctl -n vm.loadavg | awk '{print $2}'; }
+idle=1
+waited=0
+if [[ $dry_run == 0 ]]; then
+    while awk -v l="$(load1)" 'BEGIN { exit !(l >= 4) }'; do
+        if (( waited >= 600 )); then
+            idle=0
+            break
+        fi
+        sleep 10
+        waited=$((waited + 10))
+    done
+    echo "{\"idle\":$idle,\"waitedS\":$waited,\"load\":$(load1)}" > "$out/seek-idle.json"
+fi
+
+# seek NAME FIXTURE DECODE LIMIT_MS SCRIPT SKIP(on|off)
+seek() {
+    local name=$1 fixture=$2 decode=$3 limit=$4 script=$5 skip=$6
+    local cmd=(node scripts/check-scrub.mjs "fixtures/$fixture.json" --max-p95-ms "$limit" --decode "$decode"
+               --script "$script" --json)
+    if [[ $dry_run == 1 ]]; then
+        echo "NT_DECODE_SKIP=$skip ${cmd[*]}"
+        return
+    fi
+    local before after rc
+    before=$(load1)
+    NT_DECODE_SKIP=$skip "${cmd[@]}" > "$out/seek-$name.json" 2> "$out/seek-$name.log"
+    rc=$?
+    after=$(load1)
+    echo "{\"exit\":$rc,\"loadBefore\":$before,\"loadAfter\":$after,\"skip\":\"$skip\",\"decode\":\"$decode\",\"fixture\":\"$fixture\",\"limitMs\":$limit}" \
+        > "$out/seek-$name.meta.json"
+}
+
+for decode in sw hw; do
+    seek "gate-gop-$decode" video-scrub-gop "$decode" 100 scrub/m1d.json on
+    seek "gate-intra-$decode" video-scrub-intra "$decode" 30 scrub/m1d.json on
+done
+for round in 1 2 3; do
+    for decode in sw hw; do
+        seek "ab-$round-safe-$decode" video-scrub-gop "$decode" 100 scrub/seek-only.json on
+        seek "ab-$round-noskip-$decode" video-scrub-gop "$decode" 100 scrub/seek-only.json off
+    done
+done
+if [[ $dry_run == 1 ]]; then
+    echo "dry run: section 0 only; the window checks did not run"
+    exit 0
+fi
 
 # bench NAME FIXTURE DECODE BUDGET [EXTRA...]
 bench() {
@@ -113,6 +184,11 @@ process.exit(r.backend !== "Null" && r.playedSeconds >= 594 && r.underruns === 0
   r.openFailures === 0 && r.decodeErrors === 0 && r.callbacks > 0 && r.playStartMs >= 0 && r.playStartMs < 300 ? 0 : 1);
 ' "$out/m3-soak-audio.json" || status=1
 
+# M0: the web baseline in a real browser window (section 7).
+node scripts/web-baseline.mjs --headed > "$out/m0-web-headed.log" 2>&1
+echo $? > "$out/m0-web-headed.exit"
+cp build-m5/web-baseline-headed.json "$out/m0-web-headed.json" 2> /dev/null
+
 node - "$out" <<'EOF'
 const fs = require("fs");
 const path = require("path");
@@ -124,6 +200,48 @@ const json = (f) => {
   } catch {
     return null;
   }
+};
+// Section 0: the paused-seek gate and the skip A/B, each with its load.
+const seekRun = (name) => {
+  const meta = json(`seek-${name}.meta.json`) ?? {};
+  const r = json(`seek-${name}.json`);
+  return {
+    ...meta,
+    verdict: r?.verdict ?? "no report",
+    p50: r?.seekLatencyMs?.p50 ?? null,
+    p95: r?.seekLatencyMs?.p95 ?? null,
+    failures: r?.failures ?? ["no report"]
+  };
+};
+const idleInfo = json("seek-idle.json") ?? { idle: 0 };
+const gate = {};
+for (const d of ["sw", "hw"]) {
+  gate[`gop-${d}`] = seekRun(`gate-gop-${d}`);
+  gate[`intra-${d}`] = seekRun(`gate-intra-${d}`);
+}
+const ab = { rounds: [], medianP95: {} };
+for (const round of [1, 2, 3]) {
+  for (const d of ["sw", "hw"]) {
+    for (const rule of ["safe", "noskip"]) ab.rounds.push({ round, rule, ...seekRun(`ab-${round}-${rule}-${d}`) });
+  }
+}
+const median = (xs) => {
+  const v = xs.filter((x) => typeof x === "number").sort((a, b) => a - b);
+  return v.length ? v[Math.floor(v.length / 2)] : null;
+};
+for (const d of ["sw", "hw"]) {
+  for (const rule of ["safe", "noskip"]) {
+    ab.medianP95[`${rule}-${d}`] = median(ab.rounds.filter((r) => r.decode === d && r.rule === rule).map((r) => r.p95));
+  }
+}
+const seekGate = {
+  idle: idleInfo.idle === 1 ? true : "not idle",
+  waitedS: idleInfo.waitedS ?? null,
+  loadAtStart: idleInfo.load ?? null,
+  clean: idleInfo.idle === 1,
+  pass: Object.values(gate).every((g) => g.verdict === "pass"),
+  gate,
+  ab
 };
 const benches = {};
 for (const name of ["m1b-4tracks-sw", "m1c-4tracks-sw", "m1c-4tracks-hw", "m1c-8tracks-hw", "m1c-4k-hevc-hw"]) {
@@ -210,9 +328,19 @@ const m3 = {
   }
 };
 const pass =
+  seekGate.pass &&
   Object.values(benches).every((b) => b.pass) && teardown.exit === 0 && teardown.validationFailures === 0 && m2.pass &&
   m3.avSyncLive.pass && m3.soak.pass;
-const summary = { pass, benches, teardown, f7, m2, m3 };
+// Section 7: a measurement; it does not change `pass`.
+const m0Web = json("m0-web-headed.json");
+const m0 = {
+  exit: Number(read("m0-web-headed.exit")),
+  verdict: m0Web?.verdict ?? "no report",
+  failures: m0Web?.failures ?? ["no report"],
+  environment: m0Web?.environment ?? null,
+  results: m0Web?.results ?? []
+};
+const summary = { pass, seekGate, benches, teardown, f7, m2, m3, m0 };
 fs.writeFileSync(path.join(dir, "summary.json"), JSON.stringify(summary, null, 2));
 console.log(JSON.stringify(summary));
 EOF

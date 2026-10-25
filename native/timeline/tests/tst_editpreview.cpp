@@ -15,6 +15,8 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QQuickRenderControl>
+
+#include "preview/hw/HwWindow.h"
 #include <QQuickRenderTarget>
 #include <QQuickWindow>
 #include <QTest>
@@ -72,6 +74,7 @@ private slots:
         {
             QQuickRenderControl control;
             QQuickWindow window(&control);
+            nt::hw::prepareWindow(&window);  // a Vulkan scene graph needs its instance (M6)
             const QSize size(320, 180);
             window.resize(size);
             auto* compositor = new PreviewCompositor();
@@ -79,7 +82,7 @@ private slots:
             compositor->setClock(&playback);
             compositor->setParentItem(window.contentItem());
             compositor->setSize(QSizeF(size));
-            QVERIFY2(control.initialize(), "no Metal QRhi for the render control");
+            QVERIFY2(control.initialize(), "no QRhi for the render control");
             QRhi* rhi = control.rhi();
             std::unique_ptr<QRhiTexture> target(rhi->newTexture(QRhiTexture::RGBA8, size, 1, QRhiTexture::RenderTarget));
             QVERIFY(target->create());
@@ -238,6 +241,31 @@ private slots:
         QVERIFY(doc.replaceClips(split));
         QCOMPARE(doc.timeline().clips[1].mediaPath, before[1].mediaPath);
         QCOMPARE(doc.timeline().clips[2].audioPath, before[1].audioPath);
+    }
+
+    // Two audio clips that differ only in `audioPath` keep their own files
+    // through an edit (review F9: the media identity left `audioPath` out).
+    void distinctAudioSourcesStayDistinct() {
+        const QByteArray json = R"({"id":"s","name":"s","fps":30,"width":1920,"height":1080,"durationMs":4000,
+"tracks":[{"id":"a1","name":"A1","type":"audio","index":0,"visible":true,"locked":false,"muted":false}],
+"clips":[{"id":"x","trackId":"a1","name":"x","startMs":0,"durationMs":1000,"mediaType":"audio","audioPath":"x.wav",
+"sourceType":"imported","status":"generated","versions":[]},
+{"id":"y","trackId":"a1","name":"y","startMs":1000,"durationMs":1000,"mediaType":"audio","audioPath":"y.wav",
+"sourceType":"imported","status":"generated","versions":[]}]})";
+        nt::ParseResult parsed = nt::parseTimelineJson(json, QStringLiteral("/media-root"));
+        QVERIFY(parsed.timeline);
+        TimelineModel doc;
+        doc.setTimeline(*parsed.timeline);
+        QCOMPARE(doc.timeline().clips[0].audioPath, std::string("/media-root/x.wav"));
+        const QJsonArray all = doc.clipsJson();
+        for (int victim = 0; victim < 2; ++victim) {
+            QJsonArray without = all;
+            without.removeAt(victim);
+            QVERIFY(doc.commitEdit("Delete", all, without));
+            doc.undoStack()->undo();
+            QCOMPARE(doc.timeline().clips[0].audioPath, std::string("/media-root/x.wav"));
+            QCOMPARE(doc.timeline().clips[1].audioPath, std::string("/media-root/y.wav"));
+        }
     }
 
     // D4 and undo on a document as a person or another tool wrote it: keys in

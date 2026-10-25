@@ -25,6 +25,9 @@ Item {
     required property string fadeOutShape
     required property string transitionType
     required property double transitionMs
+    required property string mediaSource
+    required property double inPointMs
+    required property double sourceOutMs
 
     property double laneHeight: Theme.trackHeight
     property bool trackLocked: false
@@ -63,6 +66,11 @@ Item {
         fadeOutShape: clipItem.fadeOutShape
         transitionType: clipItem.transitionType
         transitionMs: clipItem.transitionMs
+        mediaSource: clipItem.mediaSource
+        inPointMs: clipItem.inPointMs
+        sourceOutMs: clipItem.sourceOutMs
+        contentX: clipItem.x
+        viewState: clipItem.viewState
         // Only a clip with a transition reads the scroll.
         visibleFromPx: clipItem.transitionMs > 0 && clipItem.viewState ? clipItem.viewState.scrollLeftPx - clipItem.x : 0
         visibleToPx: clipItem.transitionMs > 0 && clipItem.viewState

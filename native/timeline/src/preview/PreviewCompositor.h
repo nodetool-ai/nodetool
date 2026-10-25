@@ -41,6 +41,11 @@ struct FrameStat {
     int surfaces = 0;
     int surfaceTargets = 0;
     long long surfaceTargetsCreated = 0;
+    long long surfaceBytes = 0;      // bytes of the targets in the pool after this frame
+    bool surfaceOverBudget = false;  // this frame alone needed more than the pool budget
+    // GPU resources this frame needed and could not create (a surface, a
+    // layer's uniform buffer or bindings). Such a frame is never exact.
+    int resourceFailures = 0;
 };
 
 struct MediaReportEntry {
@@ -85,6 +90,10 @@ public:
     int liveFrameRefs() const { return m_liveFrameRefs; }
     // The loader report: one entry per media clip opened so far. GUI thread.
     const std::vector<MediaReportEntry>& mediaReport() const { return m_mediaReport; }
+    // The first GPU resource the renderer could not create (a group surface,
+    // a layer's buffer or bindings), or empty. A frame missing a resource is
+    // never exact, so a still cannot settle on it. GUI thread.
+    QString renderError() const { return m_renderError; }
 
     // Stills: asks for a read-back of the canvas once every layer shows its
     // exact frame for the current time. takeCapture() returns it once ready.
@@ -120,6 +129,7 @@ private:
     unsigned m_renderThread = 0;
     const char* m_renderThreadQos = "unknown";
     std::vector<MediaReportEntry> m_mediaReport;
+    QString m_renderError;
     long long m_mediaReportVersion = -1;
     bool m_captureRequested = false;
     bool m_captureImmediate = false;

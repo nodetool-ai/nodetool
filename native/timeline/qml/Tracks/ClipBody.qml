@@ -1,9 +1,10 @@
 // Mirrors web/src/components/timeline/Tracks/ClipBody.tsx: the drawn clip.
 // A rounded paper block with the media-type tint and border, the header strip
 // (type dot, name, duration), the fade ramps, the incoming transition wedge,
-// the trim grips and the lock badge. Pure presentation: Clip passes every
-// value in. The filmstrip, waveform, keyframe and status layers wait for the
-// thumbnail and peak sources.
+// the trim grips and the lock badge, and the clip pictures (M2b): the
+// filmstrip of a video, the picture of an image, the waveform of an audio
+// clip. Pure presentation: Clip passes every value in. The keyframe and
+// status layers are not drawn yet.
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Shapes
@@ -25,6 +26,14 @@ Item {
     property string fadeOutShape: "linear"
     property string transitionType
     property double transitionMs: 0
+    // The local media file, the source in-point and the source out-point.
+    property string mediaSource
+    property double inPointMs: 0
+    property double sourceOutMs: 0
+    // The body's x in the lanes content and the view: the pictures draw only
+    // the part near the viewport.
+    property double contentX: 0
+    property TimelineViewState viewState: null
     // The part of the body inside the lanes viewport, in body coordinates.
     // Only the transition stripes read it.
     property double visibleFromPx: 0
@@ -66,6 +75,42 @@ Item {
         anchors.fill: parent
         radius: body.radius
         color: Theme.clipSurfaceTint(body.mediaType)
+    }
+
+    // The filmstrip (video) or the picture (image): inset 6 px, under the
+    // 20 px header, rounded 2 px.
+    Loader {
+        active: body.mediaSource !== "" && (body.mediaType === "video" || body.mediaType === "overlay"
+                                            || body.mediaType === "image")
+        x: 6
+        y: 20
+        width: Math.max(0, body.width - 12)
+        height: Math.max(0, body.height - 26)
+        sourceComponent: FilmstripItem {
+            objectName: "filmstrip"
+            source: body.mediaSource
+            kind: body.mediaType === "image" ? "image" : "video"
+            inPointMs: body.inPointMs
+            outPointMs: body.sourceOutMs
+            clipWidthPx: body.width
+            stripeColor: Theme.overlayStrong
+            contentX: body.contentX + 6
+            viewState: body.viewState
+        }
+    }
+    // The waveform: the whole body, the clip's in-point plus its duration.
+    Loader {
+        active: body.mediaSource !== "" && body.mediaType === "audio"
+        anchors.fill: parent
+        sourceComponent: WaveformItem {
+            objectName: "waveform"
+            source: body.mediaSource
+            inPointMs: body.inPointMs
+            outPointMs: body.inPointMs + body.durationMs
+            color: Theme.success
+            contentX: body.contentX
+            viewState: body.viewState
+        }
     }
 
     // Fade ramps: the shaded part is the signal the fade removes.

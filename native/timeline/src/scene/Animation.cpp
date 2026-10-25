@@ -186,14 +186,17 @@ std::optional<EasingFn> compileEasing(const std::string& idIn) {
     return std::nullopt;
 }
 
-const std::optional<EasingFn>& parsedEasing(const std::string& id) {
+// The parsed easing, shared: a caller keeps it alive while it evaluates,
+// even when another thread clears the cache meanwhile. Null: not an easing.
+std::shared_ptr<const EasingFn> parsedEasing(const std::string& id) {
     static std::mutex mutex;
-    static std::unordered_map<std::string, std::optional<EasingFn>> cache;
+    static std::unordered_map<std::string, std::shared_ptr<const EasingFn>> cache;
     std::lock_guard lock(mutex);
     auto it = cache.find(id);
     if (it == cache.end()) {
         if (cache.size() >= 512) cache.clear();
-        it = cache.emplace(id, compileEasing(id)).first;
+        auto fn = compileEasing(id);
+        it = cache.emplace(id, fn ? std::make_shared<const EasingFn>(std::move(*fn)) : nullptr).first;
     }
     return it->second;
 }
@@ -722,12 +725,14 @@ void clampSample(AnimationSample& s) {
 
 }  // namespace
 
+std::optional<double> animationProgressAt(const CompiledAnimation& anim, double localMs) { return windowT(anim, localMs); }
+
 double ease(const std::string& id, double t) {
-    const auto& fn = parsedEasing(id);
+    const auto fn = parsedEasing(id);
     return fn ? (*fn)(t) : t;
 }
 
-bool isKnownEasing(const std::string& id) { return parsedEasing(id).has_value(); }
+bool isKnownEasing(const std::string& id) { return parsedEasing(id) != nullptr; }
 
 std::optional<Channel> channelFromName(const QString& name) {
     for (const ChannelInfo& c : kChannels) {

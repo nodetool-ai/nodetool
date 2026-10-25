@@ -1,10 +1,13 @@
 #include "preview/SceneEval.h"
 
 #include "scene/ClipScene.h"
+#include "scene/FlexLayout.h"
+#include "scene/TextAnimation.h"
 
 #include <QJsonArray>
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <deque>
 #include <map>
@@ -422,6 +425,104 @@ AnimatedProps resolveAnimated(const Clip& clip, const std::optional<ClipTransfor
     return props;
 }
 
+// ── layoutClipsAt ─────────────────────────────────────────────────────────
+
+// The animated text style of each text clip with animations under a flex
+// group: its size moves the tree, so the layout reads it at this frame.
+std::unordered_map<std::string, scene::TextStyle> flexTextStylesAt(const std::vector<const Clip*>& clips, double t,
+                                                                   double w, double h) {
+    std::unordered_map<std::string, scene::TextStyle> out;
+    std::unordered_map<std::string, const Clip*> byId;
+    for (const Clip* c : clips) byId[c->id] = c;
+    const auto inFlexTree = [&](const Clip& clip) {
+        std::string cursor = sceneOf(clip).parentId;
+        for (int hops = 0; !cursor.empty() && hops < 64; hops++) {
+            const auto it = byId.find(cursor);
+            if (it == byId.end()) return false;
+            if (it->second->raw.value(u"layout").toObject().value(u"display").toString() == u"flex") return true;
+            cursor = sceneOf(*it->second).parentId;
+        }
+        return false;
+    };
+    for (const Clip* c : clips) {
+        const QJsonValue style = c->raw.value(u"textStyle");
+        const QJsonArray animations = c->raw.value(u"animations").toArray();
+        if (!style.isObject() || animations.isEmpty() || !inFlexTree(*c)) continue;
+        const auto& s = sceneOf(*c);
+        const auto compiled = compiledFor(s.animations, *c, w, h);
+        const double localMs = steppedTime(*c, t) - c->startMs;
+        out.emplace(c->id, scene::animatedTextStyle(scene::parseTextStyle(style.toObject()), animations, *compiled, localMs));
+    }
+    return out;
+}
+
+// The layout cache (`layoutCache` in layout.ts): one layout per document
+// revision, canvas size and set of animated text styles. A ticker's layout
+// changes only when its text does, so playback hits the cache between
+// changes. The measurer is the fallback rule everywhere, so it is not part
+// of the key. Shared by the GUI and render threads.
+struct FlexCacheEntry {
+    std::uint64_t revision = 0;
+    double w = 0, h = 0;
+    std::string textKey;
+    std::shared_ptr<const scene::FlexResult> result;
+};
+std::mutex gFlexMutex;
+std::deque<FlexCacheEntry> gFlexCache;  // most recent first
+std::atomic<std::uint64_t> gFlexHits{0}, gFlexMisses{0};
+constexpr size_t kFlexCacheMax = 64;
+
+// The animated styles as a key: every field the text box reads.
+std::string textStylesKey(const std::unordered_map<std::string, scene::TextStyle>& styles) {
+    std::vector<const std::pair<const std::string, scene::TextStyle>*> sorted;
+    for (const auto& e : styles) sorted.push_back(&e);
+    std::sort(sorted.begin(), sorted.end(), [](const auto* a, const auto* b) { return a->first < b->first; });
+    QByteArray key;
+    const auto num = [&key](const std::optional<double>& v) {
+        key += v ? QByteArray::number(*v, 'g', 17) : QByteArray("-");
+        key += '\x1f';
+    };
+    for (const auto* e : sorted) {
+        const scene::TextStyle& s = e->second;
+        key += QByteArray::fromStdString(e->first) + '\x1f' + s.text.toUtf8() + '\x1f' + s.align.toUtf8() + '\x1f' +
+               s.verticalAlign.toUtf8() + '\x1f';
+        num(s.fontSizePx);
+        num(s.lineHeight);
+        num(s.letterSpacingPx);
+        num(s.maxWidthFrac);
+        key += '\x1e';
+    }
+    return key.toStdString();
+}
+
+std::shared_ptr<const scene::FlexResult> flexLayoutFor(const Timeline& timeline, const std::vector<const Clip*>& clips,
+                                                       double t, double w, double h) {
+    const auto styles = flexTextStylesAt(clips, t, w, h);
+    if (timeline.revision == 0) {
+        gFlexMisses.fetch_add(1, std::memory_order_relaxed);
+        return std::make_shared<const scene::FlexResult>(scene::resolveClipLayouts(clips, w, h, styles));
+    }
+    const std::string key = textStylesKey(styles);
+    {
+        std::lock_guard lock(gFlexMutex);
+        for (auto it = gFlexCache.begin(); it != gFlexCache.end(); ++it) {
+            if (it->revision == timeline.revision && it->w == w && it->h == h && it->textKey == key) {
+                FlexCacheEntry hit = *it;
+                gFlexCache.erase(it);
+                gFlexCache.push_front(hit);
+                gFlexHits.fetch_add(1, std::memory_order_relaxed);
+                return hit.result;
+            }
+        }
+    }
+    gFlexMisses.fetch_add(1, std::memory_order_relaxed);
+    auto result = std::make_shared<const scene::FlexResult>(scene::resolveClipLayouts(clips, w, h, styles));
+    std::lock_guard lock(gFlexMutex);
+    gFlexCache.push_front(FlexCacheEntry{timeline.revision, w, h, key, result});
+    if (gFlexCache.size() > kFlexCacheMax) gFlexCache.pop_back();
+    return result;
+}
+
 // ── temporal.ts ───────────────────────────────────────────────────────────
 
 std::vector<const Clip*> expandTemporal(const std::vector<Clip>& clips, std::deque<Clip>& store) {
@@ -667,6 +768,10 @@ double clipSourceMsAt(const Clip& clip, double timeMs) {
     return std::max(0.0, (timeMs - clip.startMs) * rate + clip.inPointMs);
 }
 
+FlexCacheStats flexLayoutCacheStats() {
+    return FlexCacheStats{gFlexHits.load(std::memory_order_relaxed), gFlexMisses.load(std::memory_order_relaxed)};
+}
+
 std::unordered_map<std::string, double> transitionOpacitiesAt(const Timeline& timeline, double timeMs) {
     std::vector<const Clip*> clips;
     for (const Clip& c : timeline.clips) clips.push_back(&c);
@@ -785,7 +890,28 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
     std::deque<Clip> store;
     const std::vector<const Clip*> clips = expandTemporal(timeline.clips, store);
     const auto transitions = resolveDocumentTransitions(clips, timeMs);
-    const auto groups = resolveGroups(clips, timeMs, W, H, transitions, camera);
+    // Flex layout (layout.ts) over every clip, active or not. A laid-out
+    // group places its children from its resolved transform; a nested flex
+    // container with its position zeroed, since its children's boxes already
+    // hold its translation (`groupPatchedFor`).
+    std::shared_ptr<const scene::FlexResult> flex;
+    if (scene::hasFlexLayout(clips)) flex = flexLayoutFor(timeline, clips, timeMs, W, H);
+    std::vector<const Clip*> groupClips = clips;
+    if (flex && !flex->transforms.empty()) {
+        for (const Clip*& c : groupClips) {
+            if (c->mediaType != MediaType::Group) continue;
+            const auto it = flex->transforms.find(c->id);
+            if (it == flex->transforms.end()) continue;
+            Clip patched = *c;
+            patched.transform = it->second;
+            if (patched.raw.value(u"layout").toObject().value(u"display").toString() == u"flex") {
+                patched.transform->position = Vec2{0, 0};
+            }
+            store.push_back(std::move(patched));
+            c = &store.back();
+        }
+    }
+    const auto groups = resolveGroups(groupClips, timeMs, W, H, transitions, camera);
 
     std::unordered_map<std::string, const Clip*> clipById;
     std::unordered_map<std::string, std::vector<const Clip*>> clipsByTrack;
@@ -889,6 +1015,18 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
             const auto emitLayer = [&](const std::string& kind) {
                 Pending p{base, &clip, clip.transform, cameraHere};
                 p.layer.kind = kind;
+                if (flex) {
+                    const auto t = flex->transforms.find(clip.id);
+                    if (t != flex->transforms.end()) p.transform = t->second;
+                    const auto size = flex->sizes.find(clip.id);
+                    if (size != flex->sizes.end() && W > 0 && H > 0) {
+                        if (clip.mediaType == MediaType::Shape && cs.hasShapeStyle) {
+                            p.layer.flexShapeBox = std::array<double, 4>{0, 0, size->second.width / W, size->second.height / H};
+                        } else if (clip.mediaType == MediaType::Text && cs.hasTextStyle) {
+                            p.layer.flexTextMaxWidthFrac = std::min(1.0, std::max(0.05, size->second.width / W));
+                        }
+                    }
+                }
                 if (matteSources.count(clip.id)) matteLayers.emplace(clip.id, std::move(p));
                 else media.push_back(std::move(p));
             };
@@ -1039,6 +1177,14 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
     for (Pending& p : captions) finish(p);
     std::stable_sort(frame.layers.begin(), frame.layers.end(),
                      [](const ActiveLayer& a, const ActiveLayer& b) { return a.z < b.z; });
+    for (PrecompositeLayer& g : frame.precomposites) {
+        for (const ActiveLayer& l : frame.layers) {
+            if (l.precomposeGroupId == g.clipId) g.children.push_back(l.clipId);
+        }
+        for (const PrecompositeLayer& inner : frame.precomposites) {
+            if (inner.precomposeGroupId == g.clipId) g.children.push_back(inner.clipId);
+        }
+    }
     return frame;
 }
 
@@ -1077,6 +1223,11 @@ QJsonObject framePlanJson(const FramePlan& plan) {
         if (l.stackOrder) o.insert(QStringLiteral("stackOrder"), *l.stackOrder);
         if (l.assetId) o.insert(QStringLiteral("assetId"), QString::fromStdString(*l.assetId));
         if (!l.precomposeGroupId.empty()) o.insert(QStringLiteral("precomposeGroupId"), QString::fromStdString(l.precomposeGroupId));
+        if (l.flexShapeBox) {
+            const auto& box = *l.flexShapeBox;
+            o.insert(QStringLiteral("flexShapeBox"), QJsonArray{box[0], box[1], box[2], box[3]});
+        }
+        if (l.flexTextMaxWidthFrac) o.insert(QStringLiteral("flexTextMaxWidthFrac"), *l.flexTextMaxWidthFrac);
         if (l.transition) o.insert(QStringLiteral("transition"), transitionJson(*l.transition));
         if (l.mask) {
             o.insert(QStringLiteral("mask"), QJsonObject{{QStringLiteral("direction"), QString::fromStdString(l.mask->direction)},
@@ -1108,6 +1259,9 @@ QJsonObject framePlanJson(const FramePlan& plan) {
         if (g.stackOrder) o.insert(QStringLiteral("stackOrder"), *g.stackOrder);
         if (!g.precomposeGroupId.empty()) o.insert(QStringLiteral("precomposeGroupId"), QString::fromStdString(g.precomposeGroupId));
         if (g.transition) o.insert(QStringLiteral("transition"), transitionJson(*g.transition));
+        QJsonArray children;
+        for (const std::string& c : g.children) children.append(QString::fromStdString(c));
+        o.insert(QStringLiteral("children"), children);
         precomposites.append(o);
     }
     QJsonArray dropped;

@@ -2,7 +2,9 @@
 // Writes src/edit/KeymapData.h: the keyboard presets of
 // web/src/components/timeline/timelineKeymap.ts as JSON, so the native
 // resolver reads the same table the web resolves keys through. Actions keep
-// their declaration order (it breaks ties between equal bindings).
+// their declaration order (it breaks ties between equal bindings). It also
+// writes the shortcut sheet: TIMELINE_SHORTCUT_GROUPS of
+// TimelineShortcutsDialog.tsx with the English strings of the web locale.
 //
 //   node native/timeline/scripts/extract-keymap.mjs        # write
 //   node native/timeline/scripts/extract-keymap.mjs --check # exit 1 on drift
@@ -24,6 +26,38 @@ for (const preset of TIMELINE_KEYBOARD_PRESETS) {
 process.stdout.write(JSON.stringify(out));
 `;
 const json = execFileSync(tsx, ["--eval", program], { encoding: "utf8" });
+
+// The dialog module imports React and the UI kit, so the groups are read as
+// the object literal they are, not imported.
+const dialog = readFileSync(path.join(repo, "web/src/components/timeline/TimelineShortcutsDialog.tsx"), "utf8");
+const literal = dialog.match(/TIMELINE_SHORTCUT_GROUPS: readonly Group\[\] = (\[[\s\S]*?\n\]);/);
+if (!literal) {
+  console.error("TIMELINE_SHORTCUT_GROUPS not found in TimelineShortcutsDialog.tsx");
+  process.exit(1);
+}
+const groups = new Function(`return ${literal[1]}`)();
+const en = JSON.parse(readFileSync(path.join(repo, "web/src/i18n/locales/en.json"), "utf8"))["i18n-next59"].shortcuts;
+const sheet = {
+  title: en.title,
+  layout: en.layout,
+  or: en.or,
+  press: en.press,
+  toggleHint: en.toggleHint,
+  presets: en.presets,
+  groups: groups.map((g) => ({
+    title: en.groups?.[g.title] ?? g.title,
+    rows: g.rows.map((r) => ({
+      id: r.action ?? r.translationKey,
+      label: en.rows?.[r.action ?? r.translationKey] ?? r.label,
+      ...(r.action ? { action: r.action } : { keys: r.keys })
+    }))
+  }))
+};
+const rows = sheet.groups.reduce((n, g) => n + g.rows.length, 0);
+if (rows === 0) {
+  console.error("no shortcut rows read");
+  process.exit(1);
+}
 const presets = JSON.parse(json);
 const actions = Object.values(presets).reduce((n, p) => n + p.length, 0);
 if (actions === 0) {
@@ -38,6 +72,9 @@ namespace nt::edit {
 
 inline constexpr const char* KEYMAP_JSON = R"keymap(${json})keymap";
 
+// TimelineShortcutsDialog.tsx TIMELINE_SHORTCUT_GROUPS and its strings.
+inline constexpr const char* SHORTCUT_SHEET_JSON = R"sheet(${JSON.stringify(sheet)})sheet";
+
 }  // namespace nt::edit
 `;
 const target = path.join(here, "..", "src/edit/KeymapData.h");
@@ -47,8 +84,8 @@ if (process.argv.includes("--check")) {
     console.error("src/edit/KeymapData.h is out of date: run scripts/extract-keymap.mjs");
     process.exit(1);
   }
-  console.log(`keymap up to date: ${Object.keys(presets).length} presets, ${actions} entries`);
+  console.log(`keymap up to date: ${Object.keys(presets).length} presets, ${actions} entries, ${rows} sheet rows`);
 } else {
   writeFileSync(target, header);
-  console.log(`wrote ${Object.keys(presets).length} presets, ${actions} entries`);
+  console.log(`wrote ${Object.keys(presets).length} presets, ${actions} entries, ${rows} sheet rows`);
 }

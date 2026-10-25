@@ -205,8 +205,9 @@ private slots:
         const QJsonObject fields = audit.value(u"fields").toObject();
         auto effect = [&](const char* name) { return fields.value(QLatin1String(name)).toObject().value(u"effect").toString(); };
         QCOMPARE(effect("clip.animations.preset=followPath"), QStringLiteral("plan"));
-        QCOMPARE(effect("clip.flexLayout"), QStringLiteral("plan"));
-        QCOMPARE(effect("clip.layout.flex"), QStringLiteral("pixels"));
+        // Flex layout is in the plan (scene/FlexLayout.h): no entry.
+        QVERIFY(!fields.contains(QStringLiteral("clip.flexLayout")));
+        QVERIFY(!fields.contains(QStringLiteral("clip.layout.flex")));
         QCOMPARE(effect("clip.parent"), QStringLiteral("plan"));  // h inherits from c1
         QCOMPARE(effect("clip.mask"), QStringLiteral("pixels"));
         QCOMPARE(effect("clip.blendMode=multiply"), QStringLiteral("pixels"));
@@ -214,9 +215,46 @@ private slots:
         QCOMPARE(effect("clip.inventedField"), QStringLiteral("unknown"));
         QVERIFY(!fields.contains(QStringLiteral("clip.transform.rotationX")));
         QVERIFY(!fields.contains(QStringLiteral("sequence.camera2d")));
-        QCOMPARE(fields.size(), 8);
+        QCOMPARE(fields.size(), 6);
         QCOMPARE(audit.value(u"planUnsupported").toArray(), (QJsonArray{QStringLiteral("c1"), QStringLiteral("h")}));
         QCOMPARE(audit.value(u"tracks").toArray().size(), 0);
+    }
+
+    // A text clip whose animations change its text moves its flex tree every
+    // frame; the layout reads the animated style (scene/TextAnimation.h), so
+    // no clip of the tree is out of the plan.
+    void auditKeepsFlexTreesWithAnimatedText() {
+        const auto group = [](const char* id, const char* parent, bool flex) {
+            QJsonObject g = clipJson(QLatin1String(id), QStringLiteral("group"), 0, QString());
+            g.remove(QStringLiteral("currentAssetId"));
+            if (parent) g.insert(QStringLiteral("parentId"), QLatin1String(parent));
+            if (flex) g.insert(QStringLiteral("layout"), QJsonObject{{QStringLiteral("display"), QStringLiteral("flex")}});
+            return g;
+        };
+        const auto text = [](const char* id, const char* parent, bool animated) {
+            QJsonObject t = clipJson(QLatin1String(id), QStringLiteral("text"), 0, QString());
+            t.remove(QStringLiteral("currentAssetId"));
+            t.insert(QStringLiteral("parentId"), QLatin1String(parent));
+            t.insert(QStringLiteral("textStyle"), QJsonObject{{QStringLiteral("text"), QStringLiteral("12")}, {QStringLiteral("fontSizePx"), 40}});
+            QJsonObject a{{QStringLiteral("id"), QStringLiteral("a")}, {QStringLiteral("role"), QStringLiteral("in")},
+                          {QStringLiteral("durationMs"), 500}};
+            if (animated) a.insert(QStringLiteral("textAnimator"), QJsonObject{{QStringLiteral("kind"), QStringLiteral("ticker")},
+                                                                               {QStringLiteral("from"), 0}, {QStringLiteral("to"), 12}});
+            t.insert(QStringLiteral("animations"), QJsonArray{a});
+            return t;
+        };
+        // Root r (flex) > nested n (flex) > plain group p > animated text t1;
+        // r > static text t2. A second root s has only a static text t3.
+        QJsonObject seq{{QStringLiteral("id"), QStringLiteral("s")}};
+        seq.insert(QStringLiteral("clips"), QJsonArray{group("r", nullptr, true), group("n", "r", true), group("p", "n", false),
+                                                       text("t1", "p", true), text("t2", "r", false), group("s", nullptr, true),
+                                                       text("t3", "s", false)});
+        const QJsonObject audit = auditTimelineFields(seq);
+        QCOMPARE(audit.value(u"planUnsupported").toArray(), QJsonArray{});
+        const QJsonObject fields = audit.value(u"fields").toObject();
+        for (auto it = fields.begin(); it != fields.end(); ++it) {
+            QVERIFY2(it.value().toObject().value(u"effect").toString() != u"plan", qPrintable(it.key()));
+        }
     }
 
     // Codex review F2 (M1e): what a group surface does not draw is reported.
@@ -235,6 +273,10 @@ private slots:
         b.insert(QStringLiteral("id"), QStringLiteral("b"));
         QJsonObject plain = clipJson(QStringLiteral("plain"), QStringLiteral("group"), 2000, QString());
         plain.remove(QStringLiteral("currentAssetId"));
+        // A cut the surface draws (offset, scale, opacity) is not reported.
+        plain.insert(QStringLiteral("transitionIn"), QJsonObject{{QStringLiteral("type"), QStringLiteral("push")},
+                                                                 {QStringLiteral("durationMs"), 300},
+                                                                 {QStringLiteral("direction"), QStringLiteral("left")}});
         const QJsonObject seq{{QStringLiteral("id"), QStringLiteral("s")}, {QStringLiteral("clips"), QJsonArray{g, a, b, plain}}};
         const QJsonObject fields = auditTimelineFields(seq).value(u"fields").toObject();
         for (const char* name : {"clip.precomposite.blendMode", "clip.precomposite.cut=wipe", "clip.transitionIn.type=wipe"}) {
@@ -244,6 +286,8 @@ private slots:
         // Drawn by the surface (D35): opacity over overlapping children, stacking.
         QVERIFY(!fields.contains(QStringLiteral("clip.precomposite.opacityOverlap")));
         QVERIFY(!fields.contains(QStringLiteral("clip.precomposite.stacking")));
+        QVERIFY(!fields.contains(QStringLiteral("clip.precomposite.cut=push")));
+        QVERIFY(!fields.contains(QStringLiteral("clip.transitionIn.type=push")));
     }
 
     void proxyOrOriginal() {

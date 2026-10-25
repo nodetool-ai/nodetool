@@ -43,6 +43,10 @@ class TimelineViewState : public QObject {
     Q_PROPERTY(bool canZoomOut READ canZoomOut NOTIFY msPerPxChanged)
     Q_PROPERTY(int flushCount READ flushCount NOTIFY flushed)
     Q_PROPERTY(int clipWindowUpdates READ clipWindowUpdates NOTIFY clipWindowChanged)
+    // The in/out range (TimelinePlaybackStore rangeInMs, rangeOutMs; I and
+    // O); -1 when not set.
+    Q_PROPERTY(double rangeInMs READ rangeInMs NOTIFY rangeChanged)
+    Q_PROPERTY(double rangeOutMs READ rangeOutMs NOTIFY rangeChanged)
 
 public:
     // Where a wheel event landed. The web listens for zoom on the whole
@@ -83,6 +87,8 @@ public:
     int flushCount() const { return m_flushCount; }
     int clipWindowUpdates() const { return m_clipWindowUpdates; }
     bool flushPending() const { return m_flushRequested; }
+    double rangeInMs() const { return m_rangeInMs; }
+    double rangeOutMs() const { return m_rangeOutMs; }
 
     // One wheel event in DOM terms. Returns whether the region consumed it.
     bool wheel(const nt::ui::WheelSrc& event, nt::ui::DeltaMode mode, double cursorPx, WheelTarget target);
@@ -111,6 +117,11 @@ public slots:
                             double trackWidth) const;
     double thumbDragScrollLeft(double startScroll, double deltaPx, double trackWidth) const;
     double troughClickScrollLeft(double pointerInTroughPx, double trackWidth) const;
+    // setRangeIn: an out point at or before the in point is dropped (and
+    // the reverse for setRangeOut). A negative time clears that point.
+    void setRangeIn(double ms);
+    void setRangeOut(double ms);
+    void clearRange();
     // The clip-drag auto-scroll speed for a pointer x in the lanes viewport.
     double autoScrollSpeed(double viewportX) const {
         return nt::ui::autoScrollSpeed(viewportX, 0.0, m_viewportWidthPx);
@@ -127,6 +138,7 @@ signals:
     void clipCountChanged();
     void extentChanged();
     void clipWindowChanged();
+    void rangeChanged();
     // Asks the owner of the frame (TimelineGestureArea) to call flush().
     void flushRequested();
     void flushed();
@@ -138,6 +150,8 @@ private:
     void reclampScroll();
 
     double m_msPerPx = nt::ui::DEFAULT_MS_PER_PX;
+    double m_rangeInMs = -1;
+    double m_rangeOutMs = -1;
     double m_verticalZoom = 1.0;
     double m_scrollLeftPx = 0.0;
     double m_scrollTopPx = 0.0;

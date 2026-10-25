@@ -211,6 +211,31 @@ void TimelineViewState::zoomTo(double msPerPx, double playheadMs) {
     setMsPerPxAndScroll(next, playheadPinnedScrollLeft(playheadMs, m_msPerPx, next, m_scrollLeftPx));
 }
 
+void TimelineViewState::setRangeIn(double ms) {
+    const double in = ms < 0 ? -1 : ms;
+    const double out = in >= 0 && m_rangeOutMs >= 0 && m_rangeOutMs <= in ? -1 : m_rangeOutMs;
+    if (in == m_rangeInMs && out == m_rangeOutMs) return;
+    m_rangeInMs = in;
+    m_rangeOutMs = out;
+    emit rangeChanged();
+}
+
+void TimelineViewState::setRangeOut(double ms) {
+    const double out = ms < 0 ? -1 : ms;
+    const double in = out >= 0 && m_rangeInMs >= 0 && m_rangeInMs >= out ? -1 : m_rangeInMs;
+    if (in == m_rangeInMs && out == m_rangeOutMs) return;
+    m_rangeInMs = in;
+    m_rangeOutMs = out;
+    emit rangeChanged();
+}
+
+void TimelineViewState::clearRange() {
+    if (m_rangeInMs < 0 && m_rangeOutMs < 0) return;
+    m_rangeInMs = -1;
+    m_rangeOutMs = -1;
+    emit rangeChanged();
+}
+
 void TimelineViewState::zoomBy(double factor, double playheadMs) {
     zoomTo(m_msPerPx * factor, playheadMs);
 }

@@ -86,24 +86,6 @@ export async function noRedirectFetch(url, init = {}) {
   return r;
 }
 
-// The run's identity: a scratch server starts with IDENTITY_SETTING set to a
-// value only this run knows, and `settings.list` (a GET) echoes non-secret
-// settings from the environment. A different process on the port cannot
-// answer with it.
-export const IDENTITY_SETTING = "MANIMGX_PATH";
-
-/** True when the server at `base` echoes `expected` as IDENTITY_SETTING. */
-export async function serverIdentityMatches(base, expected) {
-  try {
-    const r = await noRedirectFetch(`${base}/trpc/settings.list?input=${encodeURIComponent("{}")}`);
-    const body = await r.json();
-    const entry = (body?.result?.data?.settings ?? []).find((s) => s.env_var === IDENTITY_SETTING);
-    return entry?.value === expected;
-  } catch {
-    return false;
-  }
-}
-
 export function groupAlive(pgid) {
   try {
     process.kill(-pgid, 0);

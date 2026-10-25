@@ -16,7 +16,6 @@ import {
   makeScratch,
   noRedirectFetch,
   safeRm,
-  serverIdentityMatches,
   stopGroups,
   verifiedBuildDir
 } from "./scratch-safety.mjs";
@@ -118,30 +117,4 @@ test("stopGroups ends descendants that outlive the leader and ignore SIGTERM", a
   assert.equal(groupAlive(child.pid), true, "the grandchild keeps the group alive");
   await stopGroups([child.pid], { termMs: 300, killMs: 2000 });
   assert.equal(groupAlive(child.pid), false);
-});
-
-test("only a server that echoes this run's identity counts", async () => {
-  let value = "run-a";
-  let redirect = false;
-  const server = http.createServer((q, s) => {
-    if (redirect) {
-      s.writeHead(302, { Location: "http://127.0.0.1:7777/trpc/settings.list" });
-      s.end();
-      return;
-    }
-    s.setHeader("content-type", "application/json");
-    s.end(JSON.stringify({ result: { data: { settings: [{ env_var: "MANIMGX_PATH", value }] } } }));
-  });
-  await new Promise((r) => server.listen(0, "127.0.0.1", r));
-  const base = `http://127.0.0.1:${server.address().port}`;
-  try {
-    assert.equal(await serverIdentityMatches(base, "run-a"), true);
-    value = "another-run";
-    assert.equal(await serverIdentityMatches(base, "run-a"), false, "another server's identity");
-    redirect = true;
-    assert.equal(await serverIdentityMatches(base, "another-run"), false, "a redirect is never followed");
-  } finally {
-    await new Promise((r) => server.close(r));
-  }
-  assert.equal(await serverIdentityMatches(base, "run-a"), false, "nothing listening");
 });

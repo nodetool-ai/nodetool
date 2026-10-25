@@ -2,15 +2,33 @@
 
 #include "server/AssetCache.h"
 
+#include <QCryptographicHash>
 #include <QDir>
+#include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QSaveFile>
 #include <QUndoStack>
 
+#include <algorithm>
 #include <cstdio>
 
 namespace nt::server {
+namespace {
+
+QByteArray contentHash(const QJsonObject& document) {
+    return QCryptographicHash::hash(QJsonDocument(document).toJson(QJsonDocument::Compact), QCryptographicHash::Sha256);
+}
+
+// No answer, a server error or throttling: worth another try. A conflict or
+// a rejected document is not.
+bool transient(const QueryResult& r) {
+    const int status = r.error.httpStatus;
+    return r.error.code == u"NETWORK" || r.error.code == u"TIMEOUT" || r.error.code == u"TOO_MANY_REQUESTS" ||
+           r.error.code == u"INTERNAL_SERVER_ERROR" || status == 0 || status == 429 || status >= 500;
+}
+
+}  // namespace
 
 QJsonObject documentForSave(const QJsonObject& raw) {
     QJsonObject doc = raw;
@@ -31,19 +49,41 @@ AutosaveController::AutosaveController(SaveTarget target, QUndoStack* undo, Docu
       m_document(std::move(document)),
       m_base(std::move(baseUpdatedAt)),
       m_client(std::make_unique<ServerClient>(m_target.server, m_target.token)) {
+    m_ackHash = currentHash();  // the loaded content is what the server holds
     m_timer.setSingleShot(true);
     m_timer.setInterval(750);  // D34
     connect(&m_timer, &QTimer::timeout, this, [this]() {
         if (m_autosave && dirty() && !m_conflict && !m_saving) saveNow();
     });
-    connect(m_undo, &QUndoStack::indexChanged, this, [this]() {
-        scheduleSave();
-        emit stateChanged();
+    m_retry.setSingleShot(true);
+    connect(&m_retry, &QTimer::timeout, this, [this]() {
+        if (dirty() && !m_conflict && !m_saving) saveNow();
     });
+    connect(m_undo, &QUndoStack::indexChanged, this, &AutosaveController::documentChanged);
     connect(m_undo, &QUndoStack::cleanChanged, this, &AutosaveController::stateChanged);
 }
 
-bool AutosaveController::dirty() const { return !m_undo->isClean(); }
+QByteArray AutosaveController::currentHash() const { return contentHash(documentForSave(m_document())); }
+
+bool AutosaveController::dirty() const { return currentHash() != m_ackHash; }
+
+void AutosaveController::syncClean() {
+    if (m_syncing) return;
+    m_syncing = true;
+    if (!dirty()) {
+        m_undo->setClean();
+    } else if (m_undo->isClean()) {
+        m_undo->resetClean();  // this index's content is not the saved content
+    }
+    m_syncing = false;
+}
+
+void AutosaveController::documentChanged() {
+    if (m_syncing) return;
+    syncClean();
+    scheduleSave();
+    emit stateChanged();
+}
 
 void AutosaveController::setAutosave(bool on) {
     m_autosave = on;
@@ -54,22 +94,34 @@ void AutosaveController::scheduleSave() {
     if (m_autosave && !m_conflict) m_timer.start();  // restarts: 750 ms after the last command
 }
 
-QString AutosaveController::writeCopy(const QString& suffix, const QJsonObject& doc) const {
-    if (m_target.backupDir.isEmpty()) return {};
-    QDir().mkpath(m_target.backupDir);
+QString AutosaveController::writeCopy(const QString& suffix, const QJsonObject& doc, QString* error) const {
+    const auto fail = [&](const QString& why) {
+        if (error) *error = why;
+        return QString();
+    };
+    if (m_target.backupDir.isEmpty()) return fail(QStringLiteral("no folder for the %1 copy").arg(suffix));
+    if (!QDir().mkpath(m_target.backupDir)) return fail(QStringLiteral("cannot create %1").arg(m_target.backupDir));
     const QString path =
         QDir(m_target.backupDir).filePath(safePathPart(m_target.timelineId) + u'.' + suffix + QStringLiteral(".json"));
     QSaveFile f(path);
-    if (!f.open(QIODevice::WriteOnly)) return {};
+    if (!f.open(QIODevice::WriteOnly)) return fail(QStringLiteral("cannot open %1: %2").arg(path, f.errorString()));
     const QByteArray bytes = QJsonDocument(doc).toJson(QJsonDocument::Indented);
     if (f.write(bytes) != bytes.size()) {
         f.cancelWriting();
-        return {};
+        return fail(QStringLiteral("cannot write %1").arg(path));
     }
-    return f.commit() ? path : QString();
+    if (!f.commit()) return fail(QStringLiteral("cannot save %1: %2").arg(path, f.errorString()));
+    return path;
 }
 
-SaveResult AutosaveController::saveNow() {
+void AutosaveController::removeCopy(const QString& suffix) const {
+    if (m_target.backupDir.isEmpty()) return;
+    QFile::remove(QDir(m_target.backupDir).filePath(safePathPart(m_target.timelineId) + u'.' + suffix + QStringLiteral(".json")));
+}
+
+SaveResult AutosaveController::saveNow() { return save(*m_client); }
+
+SaveResult AutosaveController::save(ServerClient& client) {
     SaveResult result;
     if (m_saving) {
         result.error = QStringLiteral("a save is in flight");
@@ -88,13 +140,15 @@ SaveResult AutosaveController::saveNow() {
         return result;
     }
     m_saving = true;
+    m_timer.stop();
     emit stateChanged();
-    const int indexAtSend = m_undo->index();
     const QJsonObject raw = m_document();
+    const QJsonObject sent = documentForSave(raw);
+    const QByteArray sentHash = contentHash(sent);
     const QJsonObject input{{QStringLiteral("id"), m_target.timelineId},
                             {QStringLiteral("baseUpdatedAt"), m_base},
-                            {QStringLiteral("document"), documentForSave(raw)}};
-    const QueryResult r = m_client->mutate(QStringLiteral("timeline.update"), input);
+                            {QStringLiteral("document"), sent}};
+    const QueryResult r = client.mutate(QStringLiteral("timeline.update"), input);
     m_saving = false;
     if (r.ok()) {
         const QJsonObject data = r.data.toObject();
@@ -102,43 +156,102 @@ SaveResult AutosaveController::saveNow() {
         result.updatedAt = data.value(u"updatedAt").toString();
         for (const QJsonValue& p : data.value(u"stripped").toArray()) result.stripped << p.toString();
         m_base = result.updatedAt;
+        m_ackHash = sentHash;  // what the server holds now
+        m_retryAttempt = 0;
+        m_retry.stop();
         m_lastError.clear();
         m_stripped = result.stripped;
         if (!result.stripped.isEmpty()) {
             // D4: the server dropped these; the sent document keeps them.
-            result.keptCopy = writeCopy(QStringLiteral("stripped"), raw);
+            QString why;
+            result.keptCopy = writeCopy(QStringLiteral("stripped"), raw, &why);
+            if (result.keptCopy.isEmpty()) result.recoveryError = why;
             std::fprintf(stderr, "save: warning: the server dropped %d field(s): %s; sent document kept in %s\n",
                          static_cast<int>(result.stripped.size()), qPrintable(result.stripped.join(u", ")),
-                         qPrintable(result.keptCopy));
+                         qPrintable(result.keptCopy.isEmpty() ? why : result.keptCopy));
             emit strippedWarning(result.stripped);
         }
+        syncClean();
         // An edit made while the save was in flight is not in the server copy.
-        if (m_undo->index() == indexAtSend) {
-            m_undo->setClean();
-        } else {
+        if (dirty()) {
             scheduleSave();
+        } else {
+            removeCopy(QStringLiteral("recovery"));
+        }
+        // The pending copy: the stripped document, else a recovery copy an
+        // unsaved edit still needs, else none.
+        const bool recoveryKept = dirty() && m_keptCopy.endsWith(QStringLiteral(".recovery.json"));
+        if (!result.stripped.isEmpty()) {
+            m_keptCopy = result.keptCopy;
+            m_recoveryError = result.recoveryError;
+        } else if (!recoveryKept) {
+            m_keptCopy.clear();
+            m_recoveryError.clear();
         }
         emit saved(result.updatedAt);
         emit stateChanged();
         return result;
     }
+    // The current document, edits made during the request included.
+    const QJsonObject current = m_document();
+    QString why;
     if (r.error.apiCode == u"ALREADY_EXISTS" || r.error.code == u"CONFLICT") {
         m_conflict = true;
         m_timer.stop();
+        m_retry.stop();
         result.conflict = true;
         result.error = r.error.message;
-        result.keptCopy = writeCopy(QStringLiteral("local"), raw);
+        result.keptCopy = writeCopy(QStringLiteral("local"), current, &why);
+        result.recoveryError = why;
+        m_keptCopy = result.keptCopy;
+        m_recoveryError = why;
         m_lastError = QStringLiteral("conflict: %1").arg(r.error.message);
-        std::fprintf(stderr, "save: conflict: the server copy changed since the load; local document kept in %s\n",
-                     qPrintable(result.keptCopy));
+        if (!why.isEmpty()) m_lastError += QStringLiteral("; the local recovery copy failed: %1").arg(why);
+        std::fprintf(stderr, "save: conflict: the server copy changed since the load; local document %s\n",
+                     result.keptCopy.isEmpty() ? qPrintable(QStringLiteral("NOT kept: ") + why)
+                                               : qPrintable(QStringLiteral("kept in ") + result.keptCopy));
         emit conflictDetected();
         emit stateChanged();
         return result;
     }
     result.error = r.describe();
+    result.keptCopy = writeCopy(QStringLiteral("recovery"), current, &why);
+    result.recoveryError = why;
+    m_keptCopy = result.keptCopy;
+    m_recoveryError = why;
     m_lastError = result.error;
+    if (!why.isEmpty()) m_lastError += QStringLiteral("; the recovery copy failed: %1").arg(why);
+    std::fprintf(stderr, "save: failed: %s; %s\n", qPrintable(result.error),
+                 result.keptCopy.isEmpty() ? qPrintable(QStringLiteral("recovery copy NOT written: ") + why)
+                                           : qPrintable(QStringLiteral("recovery copy in ") + result.keptCopy));
+    if (transient(r)) {
+        const int delay = std::min(30000, m_retryBaseMs << std::min(m_retryAttempt, 15));
+        ++m_retryAttempt;
+        m_retry.start(delay);
+    }
     emit stateChanged();
     return result;
+}
+
+bool AutosaveController::flushBeforeQuit(int timeoutMs) {
+    m_timer.stop();
+    m_retry.stop();
+    if (!dirty()) return true;
+    if (!m_conflict) {
+        ServerClient bounded(m_target.server, m_target.token, timeoutMs);
+        const SaveResult r = save(bounded);
+        m_retry.stop();
+        if (r.ok && !dirty()) return true;
+    }
+    QString why;
+    const QString path = writeCopy(m_conflict ? QStringLiteral("local") : QStringLiteral("recovery"), m_document(), &why);
+    m_keptCopy = path;
+    m_recoveryError = why;
+    emit stateChanged();
+    std::fprintf(stderr, "save: quitting with unsaved edits; %s\n",
+                 path.isEmpty() ? qPrintable(QStringLiteral("recovery copy NOT written: ") + why)
+                                : qPrintable(QStringLiteral("current document kept in ") + path));
+    return false;
 }
 
 }  // namespace nt::server

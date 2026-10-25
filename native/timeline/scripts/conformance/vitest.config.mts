@@ -12,9 +12,10 @@ export default defineConfig({
   resolve: {
     alias: [
       {
-        find: /^\.\.\/src\/(trimClip|splitClip|rippleEdit|dropResolve|snap|snapping\/resolveSnap|snapping\/buildSnapPoints)\.js$/,
+        find: /^\.\.\/src\/(trimClip|splitClip|rippleEdit|dropResolve|snap|snapping\/resolveSnap|snapping\/buildSnapPoints|slideEdit)\.js$/,
         replacement: shim
       },
+      { find: /^\.\.\/src\/clipSpeed\.js$/, replacement: resolve(here, "native-clipspeed.ts") },
       { find: /^@nodetool-ai\/timeline$/, replacement: resolve(pkg, "src/index.ts") }
     ]
   },

@@ -51,6 +51,13 @@ public:
         FadeOutShapeRole,
         TransitionTypeRole,
         TransitionMsRole,
+        // The clip pictures (M2b): the local file its waveform or filmstrip
+        // reads (audio: `audioPath`, else `mediaPath`), the source in-point,
+        // and the source out-point of clipSourceWindow (`outPointMs`, else
+        // in + duration x source rate).
+        MediaSourceRole,
+        InPointMsRole,
+        SourceOutMsRole,
     };
 
     explicit LaneClipModel(QObject* parent = nullptr);

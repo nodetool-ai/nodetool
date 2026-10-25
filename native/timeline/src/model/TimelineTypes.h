@@ -10,6 +10,8 @@
 
 #include <QJsonObject>
 
+#include <atomic>
+#include <cstdint>
 #include <memory>
 #include <optional>
 #include <string>
@@ -131,6 +133,10 @@ struct Timeline {
     // The scene camera (camera2d), parsed from `raw` (src/scene/ClipScene.h).
     std::shared_ptr<const scene::SequenceScene> scene;
     QJsonObject raw;  // the whole sequence object, tracks and clips included
+    // Names this snapshot's content: TimelineModel gives every new snapshot a
+    // new value from nextTimelineRevision(), so a cache keyed by it (the flex
+    // layout's) is never stale. 0: a document no model owns, never cached.
+    std::uint64_t revision = 0;
 
     const Track* findTrack(const std::string& trackId) const {
         for (const auto& t : tracks) {
@@ -141,5 +147,11 @@ struct Timeline {
         return nullptr;
     }
 };
+
+// A process-wide counter: two snapshots never share a revision.
+inline std::uint64_t nextTimelineRevision() {
+    static std::atomic<std::uint64_t> next{1};
+    return next.fetch_add(1, std::memory_order_relaxed);
+}
 
 }  // namespace nt

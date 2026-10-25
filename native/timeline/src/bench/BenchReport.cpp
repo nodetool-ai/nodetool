@@ -135,6 +135,9 @@ BudgetParse parseBudget(const QString& text) {
         }
         const QJsonObject o = doc.object();
         for (auto it = o.begin(); it != o.end(); ++it) {
+            // "_machine", "_note": what a platform budget file was measured
+            // on (PLAN M6), not a budget.
+            if (it.key().startsWith(QLatin1Char('_'))) continue;
             if (!it.value().isDouble()) {
                 out.error = QStringLiteral("budget '%1' is not a number").arg(it.key());
                 return out;

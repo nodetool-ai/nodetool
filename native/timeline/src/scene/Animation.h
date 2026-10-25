@@ -114,6 +114,10 @@ struct CompileContext {
 std::vector<CompiledAnimation> compileAnimations(const std::vector<AnimationDef>& defs, double clipDurationMs,
                                                  const CompileContext& ctx);
 
+// `animationProgressAt`: the animation's progress at a clip-local time, or
+// nullopt outside its window.
+std::optional<double> animationProgressAt(const CompiledAnimation& anim, double localMs);
+
 // `sampleAnimations`: the block-level fold (staggered animations fold only
 // their effect channels here).
 AnimationSample sampleAnimations(const std::vector<CompiledAnimation>& compiled, double localMs,

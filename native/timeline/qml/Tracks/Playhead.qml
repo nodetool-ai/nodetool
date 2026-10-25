@@ -18,6 +18,20 @@ Item {
     property double viewportWidthPx: 0
 
     readonly property double lineLeftPx: clock.time / viewState.msPerPx - viewState.scrollLeftPx
+    // Follow playhead (followPlayhead.ts): while playing, page the lanes when
+    // the line leaves [0, 95 %] of the view, so it sits at 10 % again. Only a
+    // page jump moves the scroll.
+    property bool follow: false
+    onLineLeftPxChanged: {
+        if (!follow || !clock.playing || viewportWidthPx <= 0) return
+        if (lineLeftPx >= 0 && lineLeftPx <= viewportWidthPx * 0.95) return
+        // After this change settles: the page jump moves lineLeftPx again.
+        Qt.callLater(playhead.followPage)
+    }
+    function followPage() {
+        if (lineLeftPx >= 0 && lineLeftPx <= viewportWidthPx * 0.95) return
+        viewState.scrollLeftPx = Math.max(0, clock.time / viewState.msPerPx - viewportWidthPx * 0.1)
+    }
 
     objectName: "playhead"
     x: lineLeftPx - 8                       // HIT_AREA_WIDTH_PX / 2
