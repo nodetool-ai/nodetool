@@ -46,7 +46,7 @@
     {
       "id": "C", "wave": 1, "needs": ["S1"], "gaps": ["F2"],
       "title": "Track management",
-      "owns": ["src/edit/tracks/", "qml/Tracks/AddTrackButton.qml", "qml/Tracks/TrackHeaderMenu.qml"],
+      "owns": ["src/edit/tracks/", "qml/Tracks/AddTrackButton.qml", "qml/Tracks/TrackHeaderMenu.qml", "qml/Tracks/TracksRegion.qml"],
       "web": ["web/src/components/timeline/Tracks/AddTrackButton.tsx", "web/src/components/timeline/Tracks/TrackHeader.tsx", "web/src/stores/timeline/TimelineStore.ts"],
       "server": [],
       "exit": [
@@ -212,7 +212,7 @@
     {
       "id": "P1", "wave": 1, "needs": ["S1"], "gaps": ["F16"],
       "title": "Audio effects",
-      "owns": ["src/audio/effects/", "qml/fx/"],
+      "owns": ["src/audio/effects/", "qml/fx/", "src/audio/Mixer.cpp", "src/audio/Mixer.h"],
       "web": ["web/src/components/timeline/daw/fx/", "web/src/components/timeline/preview/audioEffectNodes.ts", "packages/protocol/src/api-schemas/timeline.ts"],
       "server": [],
       "exit": [
