@@ -35,6 +35,7 @@ import {
   type VoiceBinding
 } from "../../stores/script/ScriptStore";
 import { useEntities } from "../../serverState/useEntities";
+import { useScriptWriting } from "../../hooks/script/scriptWrites";
 import { ENTITY_KIND_COLOR } from "../entities/entityKind";
 import ScriptSpeakerAvatar from "./ScriptSpeakerAvatar";
 
@@ -265,9 +266,13 @@ const SpeakerCard = ({
 const ScriptCastPanel = ({
   scriptId,
   cast,
-  readOnly
+  readOnly: readOnlyProp
 }: ScriptCastPanelProps) => {
   const { t } = useTranslation();
+  // A running write replaces the cast with the writer's, so the cast locks
+  // until it lands, as the lines do.
+  const writing = useScriptWriting(scriptId);
+  const readOnly = readOnlyProp || writing;
   const theme = useTheme();
   const addSpeaker = useScriptStore((s) => s.addSpeaker);
   // Studio hands a new speaker a curated voice, so the beginner shell never

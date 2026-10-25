@@ -389,6 +389,7 @@ export const useTimelineAgentBridge = (
         if (
           op.op !== "get_state" &&
           op.op !== "list_animation_presets" &&
+          op.op !== "list_instruments" &&
           op.op !== "list_tracks" &&
           op.op !== "list_takes" &&
           op.op !== "retarget_format" &&

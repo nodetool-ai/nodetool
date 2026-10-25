@@ -39,7 +39,7 @@
   padding: 0 10px;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: #0c0f16;
+  background: var(--palette-background-paper);
   color: var(--ac-a);
   font-size: 10px;
   letter-spacing: 0.08em;
@@ -50,7 +50,7 @@
   height: 5px;
   border-radius: 50%;
   background: var(--ac-a);
-  box-shadow: 0 0 6px rgba(77, 255, 158, 0.8);
+  box-shadow: none;
   flex: none;
 }
 .fablesynth.fablesynth-bl1 .bl-patchname-input {
@@ -59,14 +59,14 @@
   padding: 0 10px;
   border: 1px solid var(--ac-a);
   border-radius: 6px;
-  background: #07090e;
+  background: var(--palette-background-default);
   color: var(--ac-a);
   font-family: 'IBM Plex Mono', 'SF Mono', Menlo, monospace;
   font-size: 10px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   outline: none;
-  box-shadow: 0 0 8px rgba(77, 255, 158, 0.25);
+  box-shadow: none;
 }
 .fablesynth.fablesynth-bl1 .bl-voicemode {
   color: var(--text-dim);
@@ -118,7 +118,7 @@
   height: 104px;
   border: 1px solid var(--line);
   border-radius: 9px;
-  background: #07090e;
+  background: var(--palette-background-default);
   margin-bottom: 8px;
 }
 /* ---- OSC ---- */
@@ -137,7 +137,7 @@
   height: 100%;
   border: 1px solid var(--line);
   border-radius: 9px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 30%), #07090e;
+  background: var(--palette-c_editor_bg_color);
 }
 .fablesynth.fablesynth-bl1 .bl-pos-slider {
   grid-column: 2;
@@ -156,7 +156,7 @@
   width: 9px;
   border: 1px solid var(--line);
   border-radius: 5px;
-  background: #0a0d13;
+  background: var(--palette-background-paper);
 }
 .fablesynth.fablesynth-bl1 .bl-pos-fill {
   position: absolute;
@@ -164,7 +164,7 @@
   left: 0;
   right: 0;
   border-radius: 0 0 5px 5px;
-  background: linear-gradient(180deg, var(--ac-a), rgba(77, 255, 158, 0.2));
+  background: var(--ac-a);
   opacity: 0.55;
 }
 .fablesynth.fablesynth-bl1 .bl-pos-handle {
@@ -175,8 +175,8 @@
   transform: translate(-50%, 50%);
   border: 1px solid color-mix(in srgb, var(--ac-a) 55%, transparent);
   border-radius: 3px;
-  background: linear-gradient(180deg, #2b3344, #161b25);
-  box-shadow: 0 0 8px rgba(77, 255, 158, 0.35);
+  background: var(--palette-c_gray4);
+  box-shadow: none;
 }
 .fablesynth.fablesynth-bl1 .bl-pos-label {
   margin-top: 5px;
@@ -200,7 +200,7 @@
   padding: 10px 8px;
   border: 1px solid var(--line);
   border-radius: 9px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 30%), #07090e;
+  background: var(--palette-c_editor_bg_color);
 }
 .fablesynth.fablesynth-bl1 .bl-sub-steppers {
   display: flex;
@@ -246,7 +246,7 @@
   height: 44px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: #07090e;
+  background: var(--palette-background-default);
 }
 .fablesynth.fablesynth-bl1 .bl-lfo-steppers {
   display: flex;
@@ -280,15 +280,15 @@
   flex: 1;
   min-width: 0;
   padding: 0;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--palette-divider);
   border-radius: 0 0 4px 4px;
-  background: linear-gradient(180deg, #d7dee9, #a9b3c4);
-  box-shadow: inset 0 -6px 10px rgba(0, 0, 0, 0.18);
+  background: var(--palette-grey-200);
+  box-shadow: none;
   cursor: pointer;
 }
 .fablesynth.fablesynth-bl1 .bl-key-white.hot {
-  background: linear-gradient(180deg, #7dffb8, #2fbf76);
-  box-shadow: 0 0 12px rgba(77, 255, 158, 0.7);
+  background: var(--ac-a);
+  box-shadow: none;
 }
 .fablesynth.fablesynth-bl1 .bl-key-black {
   position: absolute;
@@ -297,15 +297,15 @@
   width: 4.1%;
   height: 58%;
   padding: 0;
-  border: 1px solid rgba(0, 0, 0, 0.7);
+  border: 1px solid var(--palette-divider);
   border-radius: 0 0 3px 3px;
-  background: linear-gradient(180deg, #222835, #0c0f15);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.6);
+  background: var(--palette-c_gray1);
+  box-shadow: none;
   cursor: pointer;
 }
 .fablesynth.fablesynth-bl1 .bl-key-black.hot {
-  background: linear-gradient(180deg, #2fbf76, #14522f);
-  box-shadow: 0 0 10px rgba(77, 255, 158, 0.7);
+  background: var(--ac-a);
+  box-shadow: none;
 }
 /* ============ fx rack ============ */
 .fablesynth.fablesynth-bl1 .bl-fx-rack {
@@ -329,8 +329,8 @@
   padding: 8px 9px 7px;
   border: 1px solid var(--line);
   border-radius: 8px;
-  background: linear-gradient(180deg, rgba(24, 28, 38, 0.72), rgba(9, 12, 18, 0.8));
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  background: var(--palette-background-paper);
+  box-shadow: none;
 }
 .fablesynth.fablesynth-bl1 .fx-group-head {
   display: flex;
@@ -348,9 +348,9 @@
   letter-spacing: 0.18em;
 }
 .fablesynth.fablesynth-bl1 .fx-power.on {
-  background: radial-gradient(circle at 38% 32%, #e5fff1, var(--ac-a) 40%, #1b8752 80%);
+  background: var(--ac-a);
   border-color: color-mix(in srgb, var(--ac-a) 65%, white);
-  box-shadow: 0 0 9px rgba(77, 255, 158, 0.7);
+  box-shadow: none;
 }
 .fablesynth.fablesynth-bl1 .fx-knobs {
   display: flex;

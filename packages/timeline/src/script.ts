@@ -64,12 +64,17 @@ export const effectiveVoice = (
 
 /**
  * Whether a line needs (re-)voicing: it has no current take, or the text,
- * voice or recorded delivery note drifted from what that take was voiced from.
- * Staleness is derived, never stored.
+ * voice, recorded delivery note or recorded pace drifted from what that take
+ * was voiced from. Staleness is derived, never stored.
+ *
+ * `speed` is the pace speed a voicing would send now (null for the provider
+ * default, `paceSpeed` of the script's setup pace). Leave it out where the
+ * script's pace is unknown; a take compares pace only when it recorded one.
  */
 export const needsVoicing = (
   line: ScriptLine,
-  voice: VoiceBinding | null
+  voice: VoiceBinding | null,
+  speed?: number | null
 ): boolean => {
   const take = currentTake(line);
   if (!take) return true;
@@ -79,7 +84,10 @@ export const needsVoicing = (
     // Only a take that recorded the direction it was voiced with can drift
     // from it; older takes and paths that send no direction record none.
     (take.directionSnapshot !== undefined &&
-      take.directionSnapshot !== (line.direction?.trim() ?? ""))
+      take.directionSnapshot !== (line.direction?.trim() ?? "")) ||
+    (take.speedSnapshot !== undefined &&
+      speed !== undefined &&
+      take.speedSnapshot !== speed)
   );
 };
 

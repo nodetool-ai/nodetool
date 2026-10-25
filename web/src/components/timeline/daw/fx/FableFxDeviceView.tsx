@@ -15,6 +15,7 @@ import { DrivePanel } from "../fablesynth/components/panels/DrivePanel";
 import { DynamicsPanel } from "../fablesynth/components/panels/DynamicsPanel";
 import { EqPanel } from "../fablesynth/components/panels/EqPanel";
 import { LabPanel } from "../fablesynth/components/panels/LabPanel";
+import { LimiterPanel } from "../fablesynth/components/panels/LimiterPanel";
 import { ReverbPanel } from "../fablesynth/components/panels/ReverbPanel";
 import { TapeEchoPanel } from "../fablesynth/components/panels/TapeEchoPanel";
 import type { FxPanelAdapter } from "../fablesynth/components/panels/fxAdapter";
@@ -40,6 +41,8 @@ function renderPanel(kind: FableEffectKind, adapter: FxPanelAdapter): React.Reac
       return <TapeEchoPanel adapter={adapter} />;
     case "reverb":
       return <ReverbPanel adapter={adapter} />;
+    case "limiter":
+      return <LimiterPanel adapter={adapter} />;
   }
 }
 
@@ -80,6 +83,7 @@ export const LabDeviceView = view("lab");
 export const ChorusDeviceView = view("chorus");
 export const EchoDeviceView = view("echo");
 export const ReverbDeviceView = view("reverb");
+export const LimiterDeviceView = view("limiter");
 
 export const FABLE_FX_VIEWS: Record<FableEffectKind, (props: FxDeviceViewProps) => React.ReactElement | null> = {
   eq: EqDeviceView,
@@ -89,5 +93,6 @@ export const FABLE_FX_VIEWS: Record<FableEffectKind, (props: FxDeviceViewProps) 
   lab: LabDeviceView,
   chorus: ChorusDeviceView,
   echo: EchoDeviceView,
-  reverb: ReverbDeviceView
+  reverb: ReverbDeviceView,
+  limiter: LimiterDeviceView
 };

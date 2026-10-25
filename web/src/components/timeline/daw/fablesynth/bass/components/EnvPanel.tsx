@@ -53,10 +53,8 @@ function EnvView() {
       fplot(1);
       ctx.strokeStyle = '#4dff9e';
       ctx.lineWidth = 1.6;
-      ctx.shadowColor = '#4dff9e';
-      ctx.shadowBlur = 6;
+
       ctx.stroke();
-      ctx.shadowBlur = 0;
       // accent-boosted ghost (shorter decay)
       fplot(1 - 0.35 * p.accAmt);
       ctx.strokeStyle = 'rgba(255,161,77,0.55)';

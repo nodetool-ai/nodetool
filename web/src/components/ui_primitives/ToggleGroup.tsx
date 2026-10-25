@@ -86,6 +86,9 @@ const ToggleGroupInternal: React.FC<ToggleGroupProps> = ({
           borderRadius: 0,
           margin: 0,
           height: "100%",
+          // The theme's control min-height would push the options past a
+          // group shorter than 32px (ModeSwitch sits at 28px).
+          minHeight: 0,
           minWidth: 0,
           py: 0,
           px: 1.5,

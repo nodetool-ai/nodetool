@@ -543,6 +543,8 @@ export enum IpcChannels {
   VST_OPEN_EDITOR = "vst-open-editor",
   VST_CLOSE_EDITOR = "vst-close-editor",
   VST_EVENT = "vst-event",
+  // Native OS notifications, shown while no app window is focused
+  SYSTEM_NOTIFICATION_SHOW = "system-notification-show",
 }
 
 /** Whether VST3 instruments can play, and why not when they cannot. */
@@ -605,6 +607,17 @@ export interface VstHostEvent {
   event: "state" | "editorClosed" | "exited";
   instance?: string;
   state?: string;
+}
+
+/** A native notification the renderer asks the main process to show. */
+export interface SystemNotificationRequest {
+  /** Defaults to "NodeTool". */
+  title?: string;
+  body: string;
+  /** A later notification with the same tag replaces this one. */
+  tag?: string;
+  /** Show it without the platform's notification sound. */
+  silent?: boolean;
 }
 
 /** Result of handing the bundled `.mcpb` to the OS for Claude Desktop. */
@@ -778,6 +791,7 @@ export interface IpcRequest {
   [IpcChannels.VST_RENDER]: VstRenderRequest;
   [IpcChannels.VST_OPEN_EDITOR]: VstOpenEditorRequest;
   [IpcChannels.VST_CLOSE_EDITOR]: string;
+  [IpcChannels.SYSTEM_NOTIFICATION_SHOW]: SystemNotificationRequest;
 }
 
 export type WindowCloseAction = "ask" | "quit" | "background";
@@ -880,6 +894,7 @@ export interface IpcResponse {
   [IpcChannels.VST_RENDER]: VstRenderResult;
   [IpcChannels.VST_OPEN_EDITOR]: void;
   [IpcChannels.VST_CLOSE_EDITOR]: void;
+  [IpcChannels.SYSTEM_NOTIFICATION_SHOW]: boolean;
 }
 
 // Event types for each IPC channel

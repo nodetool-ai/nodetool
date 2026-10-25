@@ -99,9 +99,19 @@ const FX_VIEW_WIDTHS: Record<FableEffectKind, number | string> = {
   chorus: 300 + FX_CARD_EXTRA,
   echo: 300 + FX_CARD_EXTRA,
   reverb: 300 + FX_CARD_EXTRA,
+  limiter: 300 + FX_CARD_EXTRA,
   lab: "clamp(560px, 70%, 1120px)"
 };
 const FX_VIEW_WIDTH = 480;
+
+/**
+ * The width a registered effect view is drawn for. A view sizes itself by
+ * container queries, so its container must set this width: at `max-content`
+ * the view collapses to its narrowest control.
+ */
+export function effectViewWidth(effect: TrackEffect): number | string {
+  return effect.type === "fable" ? FX_VIEW_WIDTHS[effect.kind] : FX_VIEW_WIDTH;
+}
 
 const layoutStyles = (theme: Theme, mobile: boolean) =>
   css({
@@ -235,9 +245,7 @@ const EffectDevice: React.FC<{
     [ops, effect.id]
   );
   const width = View
-    ? effect.type === "fable"
-      ? FX_VIEW_WIDTHS[effect.kind]
-      : FX_VIEW_WIDTH
+    ? effectViewWidth(effect)
     : (DEVICE_WIDTHS as Record<string, number>)[effect.type] ?? "max-content";
   return (
     <DeviceCard
@@ -334,7 +342,7 @@ const AddEffectCard: React.FC<{ onAdd: (effect: TrackEffect["type"] | TrackEffec
           {FABLE_FX_KINDS.map((kind) => (
             <MenuItemPrimitive
               key={`fable:${kind}`}
-              label={`FableSynth ${FABLE_FX_LABELS[kind]}`}
+              label={FABLE_FX_LABELS[kind]}
               onClick={() => {
                 close();
                 onAdd(makeFableEffect(kind));

@@ -21,6 +21,24 @@ const projects = {
 };
 
 const documentsQuery = jest.fn();
+const menuDocuments = {
+  data: [
+    {
+      type: "timeline",
+      ref: "t1",
+      name: "Beacon cut",
+      updatedAt: "2026-10-02T00:00:00Z"
+    },
+    {
+      type: "script",
+      ref: "s1",
+      name: "Beacon voiceover",
+      updatedAt: "2026-10-03T00:00:00Z"
+    }
+  ],
+  isPending: false,
+  error: null
+};
 const createProject = jest.fn();
 const updateProject = jest.fn();
 jest.mock("../../../trpc/client", () => {
@@ -38,6 +56,7 @@ jest.mock("../../../trpc/client", () => {
     }),
     projects: {
       list: { useQuery: () => ({ ...projects }) },
+      documents: { useQuery: () => ({ ...menuDocuments }) },
       create: {
         useMutation: () => ({ mutateAsync: createProject, isPending: false })
       }
@@ -61,6 +80,12 @@ const renderSelector = (inline = false, mobile = false) =>
       <ProjectSelector inline={inline} mobile={mobile} />
     </ThemeProvider>
   );
+
+beforeAll(() => {
+  // jsdom has no layout, so it leaves out the scroll methods.
+  Element.prototype.scrollIntoView = jest.fn();
+  Element.prototype.scrollTo = jest.fn();
+});
 
 beforeEach(() => {
   jest.clearAllMocks();
@@ -248,5 +273,37 @@ describe("ProjectSelector", () => {
     expect(start).toBe(0);
     expect(personal).toBeGreaterThan(start);
     expect(screen.queryByText("Manage projects")).toBeNull();
+  });
+
+  it("lists the active project's documents in the menu and opens one", async () => {
+    const user = userEvent.setup();
+    useWorkspaceTabsStore.getState().setActiveProjectId("b");
+    renderSelector();
+    await user.click(screen.getByRole("button", { name: "Select project" }));
+
+    const items = screen
+      .getAllByRole("menuitem")
+      .map((item) => item.textContent ?? "");
+    const voiceover = items.findIndex((text) => text.includes("Beacon voiceover"));
+    const cut = items.findIndex((text) => text.includes("Beacon cut"));
+    expect(voiceover).toBeGreaterThanOrEqual(0);
+    expect(voiceover).toBeLessThan(cut);
+
+    const search = screen.getByRole("textbox", {
+      name: "Search projects and documents"
+    });
+    // "b" starts "Beacon": the menu type-ahead must not move focus there.
+    await user.type(search, "beacon cut");
+    expect(search).toHaveFocus();
+    expect(search).toHaveValue("beacon cut");
+    expect(screen.getByRole("menu", { name: "Documents" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("menuitem", { name: /Beacon voiceover/ })
+    ).not.toBeInTheDocument();
+    await user.click(screen.getByRole("menuitem", { name: /Beacon cut/ }));
+
+    const state = useWorkspaceTabsStore.getState();
+    const active = state.tabs.find((tab) => tab.id === state.activeTabId);
+    expect(active).toMatchObject({ type: "timeline", ref: "t1", projectId: "b" });
   });
 });

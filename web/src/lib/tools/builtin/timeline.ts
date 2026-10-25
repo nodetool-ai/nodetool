@@ -3,6 +3,7 @@ import { z } from "zod";
 import { trpcClient } from "../../../trpc/client";
 import {
   findInstrumentPreset,
+  listMidiInstruments,
   MIDI_INSTRUMENT_PRESETS,
   ANIMATED_PROPERTIES,
   ANIMATION_PRESETS,
@@ -666,6 +667,13 @@ FrontendToolRegistry.register({
       custom: CUSTOM_ANIMATION_CONTRACT,
       properties: CUSTOM_ANIMATION_CONTRACT.properties
     };
+  }
+});
+
+FrontendToolRegistry.register({
+  ...sharedWithoutSequence("ui_timeline_list_instruments"),
+  async execute() {
+    return { ok: true, instruments: listMidiInstruments() };
   }
 });
 

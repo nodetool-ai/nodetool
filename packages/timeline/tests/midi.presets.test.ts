@@ -3,6 +3,7 @@ import { midiInstrument } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import {
   MIDI_INSTRUMENT_PRESETS,
   findInstrumentPreset,
+  listMidiInstruments,
   presetIdForInstrument
 } from "../src/midi/presets.js";
 import {
@@ -168,5 +169,22 @@ describe("instrument presets", () => {
       expect(peak(samples), pad.name).toBeLessThan(0.85);
       expect(peak(samples.subarray(-frame(50))), pad.name).toBe(0);
     }
+  });
+});
+
+describe("MIDI_INSTRUMENT_CHOICES", () => {
+  it("offers every non-legacy preset under its own instrument once", () => {
+    const listed = listMidiInstruments().flatMap((choice) =>
+      choice.presets.map((preset) => {
+        expect(findInstrumentPreset(preset.id)?.instrument.type).toBe(choice.type);
+        return preset.id;
+      })
+    );
+    expect([...listed].sort()).toEqual(
+      MIDI_INSTRUMENT_PRESETS.filter((p) => p.instrument.type !== "subtractive")
+        .map((p) => p.id)
+        .sort()
+    );
+    expect(listMidiInstruments().every((choice) => choice.presets.length > 0)).toBe(true);
   });
 });

@@ -8,6 +8,11 @@ export interface DynamicsMessage {
   ott: { input: number; output: number; levels: number[]; gains: number[]; makeup: number };
   /** `trace` is the compressor's detector input (max |L|,|R|) for this block, one value per sample. */
   comp: { input: number; output: number; reduction: number; makeup: number; trace?: Float32Array };
+  /**
+   * Present from a limiter insert: input and output RMS, the peak gain
+   * reduction in dB, and the sample peaks of the driven input and the output.
+   */
+  limiter?: { input: number; output: number; reduction: number; inputPeak: number; outputPeak: number };
 }
 
 export const idleDynamics = (): DynamicsMessage => ({

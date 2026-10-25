@@ -38,7 +38,7 @@ import type {
   ShotScaffold
 } from "@nodetool-ai/protocol";
 import type { CaptionWord } from "@nodetool-ai/timeline";
-import { paceSpeed } from "@nodetool-ai/protocol";
+import { paceSpeed, providerAppliesPace } from "@nodetool-ai/protocol";
 import {
   isFunction,
   isNonBlankString,
@@ -274,18 +274,27 @@ interface LineOutcome {
   error?: string;
 }
 
+/** The pace speed a voicing of this script sends now, null for the default. */
+const scriptSpeed = (doc: ScriptDocument): number | null =>
+  paceSpeed(doc.setup?.pace) ?? null;
+
 /** The voicing state of a line, as the editor's gutter shows it. */
 function lineStatus(
   line: ScriptLine,
   voice: ScriptVoiceBinding | null,
+  speed: number | null,
   helpers: {
     currentTake: (line: ScriptLine) => ScriptTake | undefined;
-    needsVoicing: (line: ScriptLine, voice: ScriptVoiceBinding) => boolean;
+    needsVoicing: (
+      line: ScriptLine,
+      voice: ScriptVoiceBinding,
+      speed?: number | null
+    ) => boolean;
   }
 ): "draft" | "stale" | "voiced" | "no_voice" {
   if (!voice) return "no_voice";
   if (!helpers.currentTake(line)) return "draft";
-  return helpers.needsVoicing(line, voice) ? "stale" : "voiced";
+  return helpers.needsVoicing(line, voice, speed) ? "stale" : "voiced";
 }
 
 // ---------------------------------------------------------------------------
@@ -405,7 +414,7 @@ const listScripts: CapabilityExport = {
           lines: lines.length,
           voiced: lines.filter(
             (line) =>
-              lineStatus(line, effectiveVoice(line, doc.cast), {
+              lineStatus(line, effectiveVoice(line, doc.cast), scriptSpeed(doc), {
                 currentTake,
                 needsVoicing
               }) === "voiced"
@@ -505,7 +514,10 @@ const getScript: CapabilityExport = {
           direction: line.direction,
           pause_after_ms: line.pauseAfterMs,
           voice,
-          status: lineStatus(line, voice, { currentTake, needsVoicing }),
+          status: lineStatus(line, voice, scriptSpeed(doc), {
+            currentTake,
+            needsVoicing
+          }),
           take_count: line.takes.length,
           shot_id: link.shot_id_by_line_id[line.id] ?? null,
           orphaned: link.linked && orphans.has(line.id)
@@ -572,7 +584,11 @@ function selectLines(
       line: ScriptLine,
       cast: ScriptDocument["cast"]
     ) => ScriptVoiceBinding | null;
-    needsVoicing: (line: ScriptLine, voice: ScriptVoiceBinding) => boolean;
+    needsVoicing: (
+      line: ScriptLine,
+      voice: ScriptVoiceBinding,
+      speed?: number | null
+    ) => boolean;
   }
 ): SelectedLine[] | ToolError {
   if (targets === undefined || targets === null) {
@@ -583,7 +599,7 @@ function selectLines(
         return (
           line.text.trim().length > 0 &&
           !!voice &&
-          helpers.needsVoicing(line, voice)
+          helpers.needsVoicing(line, voice, scriptSpeed(doc))
         );
       });
   }
@@ -712,6 +728,12 @@ const voiceScriptLines: CapabilityExport = {
           if (speed !== undefined) {
             speechParams["speed"] = speed;
           }
+          // The line's delivery note, for models that take a direction, as
+          // the editor sends it.
+          const direction = line.direction?.trim() ?? "";
+          if (direction) {
+            speechParams["instructions"] = direction;
+          }
           const synthesized = (await generateSpeech.impl(speechRun, speechParams)) as {
             asset_id?: string;
             asset_uri?: string;
@@ -743,6 +765,11 @@ const voiceScriptLines: CapabilityExport = {
             words,
             textSnapshot: line.text,
             voiceSnapshot: voice,
+            // What else shaped the audio, so editing either marks it stale.
+            directionSnapshot: direction,
+            ...(providerAppliesPace(voice.provider) && {
+              speedSnapshot: speed ?? null
+            }),
             createdAt: new Date().toISOString()
           };
           const saved = await appendTake(row.id, line.id, take);

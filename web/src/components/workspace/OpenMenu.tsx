@@ -59,7 +59,7 @@ const STATUS_BAR_SELECTOR = ".panel-tabbar";
  * the last rows ("New skill", "New 3D model") at 1280×720. A fixed share of the
  * viewport hid most blank documents on short windows with no cue to scroll.
  */
-const menuMaxHeight = (anchorEl: HTMLElement | null): string => {
+export const menuMaxHeight = (anchorEl: HTMLElement | null): string => {
   if (!anchorEl) {
     return "70vh";
   }

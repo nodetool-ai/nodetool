@@ -6469,7 +6469,14 @@
         "projectListLoadFailed": "Projektliste konnte nicht geladen werden",
         "couldNotLoadProjects": "Projekte konnten nicht geladen werden",
         "noMatchingProjects": "Keine passenden Projekte",
-        "noNamedProjects": "Noch keine benannten Projekte"
+        "noNamedProjects": "Noch keine benannten Projekte",
+        "documents": "Dokumente",
+        "projects": "Projekte",
+        "loadingDocuments": "Dokumente werden geladen…",
+        "couldNotLoadDocuments": "Dokumente konnten nicht geladen werden",
+        "noDocuments": "Noch keine Dokumente",
+        "noMatchingDocuments": "Keine passenden Dokumente",
+        "searchProjectsAndDocuments": "Projekte und Dokumente durchsuchen"
       },
       "rail": {
         "projects": "Projekte"
@@ -9200,6 +9207,10 @@
         "soundNotifications": {
           "label": "Tonbenachrichtigungen",
           "description": "Spiele einen Systemton ab, wenn Workflows abgeschlossen sind, Exporte fertig sind oder andere wichtige Ereignisse eintreten."
+        },
+        "systemNotifications": {
+          "label": "Desktop-Benachrichtigungen",
+          "description": "Zeige eine Systembenachrichtigung, wenn ein Lauf oder eine Chat-Antwort fertig ist, während NodeTool im Hintergrund ist."
         }
       },
       "updates": {
@@ -10614,6 +10625,9 @@
       "off": "Aus",
       "stop": "Anhalten",
       "miniMap": "Minikarte",
+      "showInspector": "Inspektor einblenden",
+      "hideInspector": "Inspektor ausblenden",
+      "toggleInspector": "Inspektor ein-/ausblenden",
       "visible": "Sichtbar",
       "hidden": "Ausgeblendet",
       "downloadJson": "JSON herunterladen",
@@ -10975,7 +10989,8 @@
         "lab": "Lab",
         "chorus": "Chorus",
         "echo": "Tape-Echo",
-        "reverb": "Hall"
+        "reverb": "Hall",
+        "limiter": "Limiter"
       },
       "parameters": {
         "gainDb": "Lautstärke",
@@ -12543,7 +12558,6 @@
     },
     "trackHeader": {
       "clickToRename": "Zum Umbenennen klicken",
-      "custom": "Benutzerdefiniert",
       "deleteTrack": "Spur löschen",
       "deleteTrackQuestion": "Spur löschen?",
       "dragToReorder": "Ziehen, um die Spur neu anzuordnen",
@@ -12557,6 +12571,7 @@
       "insertTrackAbove": "{{type}}-Spur darüber einfügen",
       "insertTrackBelow": "{{type}}-Spur darunter einfügen",
       "instrumentFor": "Instrument für {{name}}",
+      "presetFor": "Preset für {{name}}",
       "lockTrack": "Spur sperren",
       "moveToFolder": "Zu {{name}} verschieben",
       "mute": "Stummschalten",
@@ -15199,6 +15214,11 @@
       "frames": "Frames",
       "deleteFrame": "Frame löschen",
       "addFrame": "Frame hinzufügen"
+    },
+    "limiter": {
+      "ariaLabel": "Limiter",
+      "caption": "Obergrenze {{ceiling}} dB",
+      "displayAria": "Limiter: Eingangsspitze {{input}} dB, Ausgangsspitze {{output}} dB, Pegelreduktion {{reduction}} dB"
     }
   },
   "i18n-next46": {
@@ -16511,7 +16531,7 @@
     },
     "instrument": {
       "preset": "Instrumenten-Preset",
-      "custom": "Benutzerdefiniert",
+      "type": "Instrument",
       "keyboard": "Tastatur",
       "loading": "Instrument wird geladen",
       "device": "Instrumentengerät",
@@ -16713,6 +16733,7 @@
       "copyName": "{{name}} (Kopie)",
       "createScriptAction": "das Skript erstellen",
       "duplicateScriptAction": "das Skript duplizieren",
+      "deleteScriptAction": "das Skript löschen",
       "singular": "Script",
       "plural": "Skripte",
       "emptyDescription": "Erstelle mit der Schaltfläche + oben ein neues Skript.",
@@ -17495,6 +17516,7 @@
         "bypass": "{{title}} umgehen",
         "enable": "{{title}} aktivieren",
         "open": "{{title}} öffnen",
+        "remove": "{{title}} entfernen",
         "add": "Effekt zu {{channel}} hinzufügen"
       }
     }

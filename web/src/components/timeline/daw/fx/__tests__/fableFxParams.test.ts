@@ -51,7 +51,7 @@ describe("fable effect params", () => {
     expect(defaultFableFxParams("lab")["fx.crush.on"]).toBe(1);
   });
 
-  it("names all eight kinds", () => {
+  it("names every kind", () => {
     expect(FABLE_EFFECT_KINDS.map((kind) => FABLE_FX_LABELS[kind])).toEqual([
       "EQ",
       "OTT",
@@ -60,7 +60,8 @@ describe("fable effect params", () => {
       "Lab",
       "Chorus",
       "Tape Echo",
-      "Reverb"
+      "Reverb",
+      "Limiter"
     ]);
   });
 

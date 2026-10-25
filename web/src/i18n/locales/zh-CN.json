@@ -6469,7 +6469,14 @@
         "projectListLoadFailed": "项目列表加载失败",
         "couldNotLoadProjects": "无法加载项目",
         "noMatchingProjects": "没有匹配的项目",
-        "noNamedProjects": "暂无命名项目"
+        "noNamedProjects": "暂无命名项目",
+        "documents": "文档",
+        "projects": "项目",
+        "loadingDocuments": "正在加载文档…",
+        "couldNotLoadDocuments": "无法加载文档",
+        "noDocuments": "暂无文档",
+        "noMatchingDocuments": "没有匹配的文档",
+        "searchProjectsAndDocuments": "搜索项目和文档"
       },
       "rail": {
         "projects": "项目"
@@ -9200,6 +9207,10 @@
         "soundNotifications": {
           "label": "声音通知",
           "description": "工作流完成、导出结束或发生其他重要事件时播放系统提示音。"
+        },
+        "systemNotifications": {
+          "label": "桌面通知",
+          "description": "NodeTool 在后台时，运行或聊天回复完成后显示系统通知。"
         }
       },
       "updates": {
@@ -10614,6 +10625,9 @@
       "off": "关",
       "stop": "停止",
       "miniMap": "小地图",
+      "showInspector": "显示检查器",
+      "hideInspector": "隐藏检查器",
+      "toggleInspector": "切换检查器",
       "visible": "可见",
       "hidden": "隐藏",
       "downloadJson": "下载 JSON",
@@ -10975,7 +10989,8 @@
         "lab": "实验室",
         "chorus": "合唱",
         "echo": "磁带回声",
-        "reverb": "混响"
+        "reverb": "混响",
+        "limiter": "限幅器"
       },
       "parameters": {
         "gainDb": "增益",
@@ -12543,7 +12558,6 @@
     },
     "trackHeader": {
       "clickToRename": "单击以重命名",
-      "custom": "自定义",
       "deleteTrack": "删除轨道",
       "deleteTrackQuestion": "删除轨道？",
       "dragToReorder": "拖动以重新排序轨道",
@@ -12557,6 +12571,7 @@
       "insertTrackAbove": "在上方插入{{type}}轨道",
       "insertTrackBelow": "在下方插入{{type}}轨道",
       "instrumentFor": "{{name}}的乐器",
+      "presetFor": "{{name}}的预设",
       "lockTrack": "锁定轨道",
       "moveToFolder": "移至{{name}}",
       "mute": "静音",
@@ -15199,6 +15214,11 @@
       "frames": "帧",
       "deleteFrame": "删除帧",
       "addFrame": "添加帧"
+    },
+    "limiter": {
+      "ariaLabel": "限幅器",
+      "caption": "上限 {{ceiling}} dB",
+      "displayAria": "限幅器：输入峰值 {{input}} dB，输出峰值 {{output}} dB，增益衰减 {{reduction}} dB"
     }
   },
   "i18n-next46": {
@@ -16511,7 +16531,7 @@
     },
     "instrument": {
       "preset": "乐器预设",
-      "custom": "自定义",
+      "type": "乐器",
       "keyboard": "键盘",
       "loading": "正在加载乐器",
       "device": "乐器设备",
@@ -16713,6 +16733,7 @@
       "copyName": "{{name}}（副本）",
       "createScriptAction": "创建脚本",
       "duplicateScriptAction": "复制脚本",
+      "deleteScriptAction": "删除脚本",
       "singular": "脚本",
       "plural": "脚本",
       "emptyDescription": "点击上方的 + 按钮创建新脚本。",
@@ -17495,6 +17516,7 @@
         "bypass": "旁通 {{title}}",
         "enable": "启用 {{title}}",
         "open": "打开 {{title}}",
+        "remove": "移除 {{title}}",
         "add": "向 {{channel}} 添加效果"
       }
     }

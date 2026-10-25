@@ -47,24 +47,19 @@ it("changes time and track scale with independent zoom sliders", () => {
     "[data-timeline-lanes]"
   );
   expect(lanes).toHaveStyle({ height: "64px" });
-  const viewButton = screen.getByRole("button", { name: "Timeline view" });
-  expect(screen.getByTestId("timeline-toolbar").lastElementChild).toBe(
-    viewButton
-  );
-  expect(screen.queryByRole("slider", { name: "Horizontal zoom" })).toBeNull();
-  fireEvent.click(viewButton);
-  expect(viewButton).toHaveAttribute("aria-expanded", "true");
-  expect(screen.getByRole("dialog", { name: "Timeline view" })).toBeInTheDocument();
+  // Horizontal zoom sits in the toolbar and track height in the tracks
+  // header, both inline with no popover to open first.
+  const toolbar = screen.getByTestId("timeline-toolbar");
   const horizontal = screen.getByRole("slider", { name: "Horizontal zoom" });
-  const vertical = screen.getByRole("slider", { name: "Vertical zoom" });
+  expect(toolbar).toContainElement(horizontal);
+  const vertical = screen.getByRole("slider", { name: "Track height" });
+  expect(toolbar).not.toContainElement(vertical);
   fireEvent.keyDown(horizontal, { key: "ArrowRight" });
   expect(useTimelineUIStore.getState().msPerPx).toBeLessThan(10);
   fireEvent.keyDown(vertical, { key: "ArrowRight" });
   expect(useTimelineUIStore.getState().verticalZoom).toBeCloseTo(1.05);
   expect(lanes).toHaveStyle({ height: "67.2px" });
   expect(useTimelineStore.getState().tracks[0].heightPx).toBeUndefined();
-  fireEvent.click(screen.getByRole("button", { name: "Increase track height" }));
-  expect(useTimelineUIStore.getState().verticalZoom).toBeCloseTo(1.15);
 });
 
 it("windows sparse Serein-style tracks as the timeline scrolls", () => {

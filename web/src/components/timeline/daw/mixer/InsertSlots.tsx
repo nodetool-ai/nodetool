@@ -1,8 +1,9 @@
 /** @jsxImportSource @emotion/react */
 /**
  * A channel strip's insert slots: one row per effect in signal order, each
- * with its bypass toggle and a button that opens the effect's device, then an
- * add button listing the built-in effects and the FableSynth FX.
+ * with its bypass toggle, a button that opens the effect's device and a
+ * remove button, then an add button listing the built-in effects and the
+ * FableSynth FX. Delete or Backspace on a focused effect removes it too.
  */
 
 import React, { memo, useCallback, useMemo, useState } from "react";
@@ -11,6 +12,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/AddOutlined";
+import CloseIcon from "@mui/icons-material/CloseOutlined";
 import PowerSettingsNewIcon from "@mui/icons-material/PowerSettingsNew";
 import type { TrackEffect } from "@nodetool-ai/timeline";
 
@@ -37,6 +39,7 @@ export interface InsertSlotsProps {
   onAdd: (effect: TrackEffect["type"] | TrackEffect) => void;
   onToggle: (effectId: string, enabled: boolean) => void;
   onOpen: (effectId: string, anchor: HTMLElement) => void;
+  onRemove: (effectId: string) => void;
 }
 
 const NATIVE_TYPES = AUDIO_EFFECT_TYPES.filter((type) => type !== "fable");
@@ -69,7 +72,7 @@ const slotsStyles = (theme: Theme) =>
       backgroundColor: theme.vars.palette.action.hover,
       flexShrink: 0
     },
-    ".insert__power, .insert__add": {
+    ".insert__power, .insert__remove, .insert__add": {
       display: "flex",
       alignItems: "center",
       justifyContent: "center",
@@ -84,6 +87,9 @@ const slotsStyles = (theme: Theme) =>
       cursor: "pointer",
       transition: MOTION.background,
       "& svg": { fontSize: TYPOGRAPHY.sans.label.fontSize }
+    },
+    ".insert__remove:hover": {
+      color: theme.vars.palette.text.primary
     },
     ".insert__power[aria-pressed='true']": {
       color: theme.vars.palette.success.main
@@ -127,7 +133,7 @@ const slotsStyles = (theme: Theme) =>
   });
 
 export const InsertSlots: React.FC<InsertSlotsProps> = memo(
-  ({ channel, effects, onAdd, onToggle, onOpen }) => {
+  ({ channel, effects, onAdd, onToggle, onOpen, onRemove }) => {
     const { t } = useTranslation();
     const theme = useTheme();
     const styles = useMemo(() => slotsStyles(theme), [theme]);
@@ -169,10 +175,23 @@ export const InsertSlots: React.FC<InsertSlotsProps> = memo(
                       className="insert__name"
                       aria-haspopup="dialog"
                       onClick={(event) => onOpen(effect.id, event.currentTarget)}
+                      onKeyDown={(event) => {
+                        if (event.key !== "Delete" && event.key !== "Backspace") return;
+                        event.preventDefault();
+                        onRemove(effect.id);
+                      }}
                     >
                       {title}
                     </button>
                   </Tooltip>
+                  <button
+                    type="button"
+                    className="insert__remove"
+                    aria-label={t("i18n-next77.mixer.inserts.remove", { title })}
+                    onClick={() => onRemove(effect.id)}
+                  >
+                    <CloseIcon />
+                  </button>
                 </div>
               );
             })}
@@ -200,7 +219,7 @@ export const InsertSlots: React.FC<InsertSlotsProps> = memo(
           {FABLE_FX_KINDS.map((kind) => (
             <MenuItemPrimitive
               key={`fable:${kind}`}
-              label={`FableSynth ${FABLE_FX_LABELS[kind]}`}
+              label={FABLE_FX_LABELS[kind]}
               onClick={() => add(makeFableEffect(kind))}
             />
           ))}

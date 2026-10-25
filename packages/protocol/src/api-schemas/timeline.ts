@@ -249,7 +249,7 @@ export const trackFableEffect = z.object({
   id: z.string(),
   type: z.literal("fable"),
   enabled: z.boolean(),
-  kind: z.enum(["eq", "ott", "comp", "drive", "lab", "chorus", "echo", "reverb"]),
+  kind: z.enum(["eq", "ott", "comp", "drive", "lab", "chorus", "echo", "reverb", "limiter"]),
   params: z.record(z.string(), z.number())
 });
 
@@ -515,6 +515,12 @@ export const vstMidiInstrument = z.object({
   gainDb: z.number().min(-60).max(12)
 });
 
+/**
+ * The FableSynth device parameters with no core field, by FableSynth param
+ * id. The live device plays them; the server render reads only the core.
+ */
+const fableParams = z.record(z.string(), z.number());
+
 export const midiInstrument = z.discriminatedUnion("type", [
   samplerMidiInstrument,
   vstMidiInstrument,
@@ -538,6 +544,7 @@ export const midiInstrument = z.discriminatedUnion("type", [
   }),
   z.object({
     type: z.literal("wavetable"),
+    fableParams: fableParams.optional(),
     oscA: wavetableOscillator,
     oscB: wavetableOscillator,
     /** Sine sub-oscillator level, 0..1. */
@@ -562,6 +569,7 @@ export const midiInstrument = z.discriminatedUnion("type", [
   }),
   z.object({
     type: z.literal("bass"),
+    fableParams: fableParams.optional(),
     table: midiWavetableName,
     position: z.number().min(0).max(1),
     /** Offset from the played note, in semitones. */
@@ -590,6 +598,7 @@ export const midiInstrument = z.discriminatedUnion("type", [
   }),
   z.object({
     type: z.literal("drum"),
+    fableParams: fableParams.optional(),
     /** The MIDI note pad 0 answers to. Pads run `baseNote`..`baseNote + 15`. */
     baseNote: z.number().int().min(0).max(127),
     pads: z.array(drumPad),

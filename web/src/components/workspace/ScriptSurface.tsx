@@ -15,6 +15,7 @@ import {
   useScriptCast,
   useScriptTitle
 } from "../../stores/script/ScriptStore";
+import { redoScript, undoScript } from "../../stores/script/timelineSync";
 import { useScriptServerSync } from "../../hooks/script/useScriptServerSync";
 import { useScriptAgentBridge } from "../../hooks/script/useScriptAgentBridge";
 import { useDocumentUndoShortcuts } from "../../hooks/useDocumentUndoShortcuts";
@@ -70,8 +71,6 @@ const ScriptSurface = ({ refId, mode, active, tab }: ScriptSurfaceProps) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const ensureScript = useScriptStore((state) => state.ensureScript);
-  const undo = useScriptStore((state) => state.undo);
-  const redo = useScriptStore((state) => state.redo);
   const setTabTitle = useWorkspaceTabsStore((state) => state.setTitle);
   // Narrow subscriptions on purpose: the whole-script view also carries
   // `sections`, which changes on every keystroke and would re-render the cast
@@ -107,8 +106,8 @@ const ScriptSurface = ({ refId, mode, active, tab }: ScriptSurfaceProps) => {
   useDocumentUndoShortcuts({
     active,
     enabled: !readOnly && setupStage === "done",
-    onUndo: useCallback(() => undo(refId), [undo, refId]),
-    onRedo: useCallback(() => redo(refId), [redo, refId]),
+    onUndo: useCallback(() => undoScript(refId), [refId]),
+    onRedo: useCallback(() => redoScript(refId), [refId]),
     menuHeading: t("i18n-next51.script.menuHeading")
   });
 

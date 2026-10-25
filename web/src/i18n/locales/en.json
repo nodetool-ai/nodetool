@@ -6469,7 +6469,14 @@
         "projectListLoadFailed": "Project list failed to load",
         "couldNotLoadProjects": "Could not load projects",
         "noMatchingProjects": "No matching projects",
-        "noNamedProjects": "No named projects yet"
+        "noNamedProjects": "No named projects yet",
+        "documents": "Documents",
+        "projects": "Projects",
+        "loadingDocuments": "Loading documents…",
+        "couldNotLoadDocuments": "Could not load documents",
+        "noDocuments": "No documents yet",
+        "noMatchingDocuments": "No matching documents",
+        "searchProjectsAndDocuments": "Search projects and documents"
       },
       "rail": {
         "projects": "Projects"
@@ -9200,6 +9207,10 @@
         "soundNotifications": {
           "label": "Sound notifications",
           "description": "Play a system beep sound when workflows complete, exports finish, or other important events occur."
+        },
+        "systemNotifications": {
+          "label": "Desktop notifications",
+          "description": "Show a system notification when a run or chat reply finishes while NodeTool is in the background."
         }
       },
       "updates": {
@@ -10614,6 +10625,9 @@
       "off": "Off",
       "stop": "Stop",
       "miniMap": "Mini map",
+      "showInspector": "Show inspector",
+      "hideInspector": "Hide inspector",
+      "toggleInspector": "Toggle inspector",
       "visible": "Visible",
       "hidden": "Hidden",
       "downloadJson": "Download JSON",
@@ -10975,7 +10989,8 @@
         "lab": "Lab",
         "chorus": "Chorus",
         "echo": "Tape echo",
-        "reverb": "Reverb"
+        "reverb": "Reverb",
+        "limiter": "Limiter"
       },
       "parameters": {
         "gainDb": "Gain",
@@ -12543,7 +12558,6 @@
     },
     "trackHeader": {
       "clickToRename": "Click to rename",
-      "custom": "Custom",
       "deleteTrack": "Delete track",
       "deleteTrackQuestion": "Delete track?",
       "dragToReorder": "Drag to reorder track",
@@ -12557,6 +12571,7 @@
       "insertTrackAbove": "Insert {{type}} track above",
       "insertTrackBelow": "Insert {{type}} track below",
       "instrumentFor": "Instrument for {{name}}",
+      "presetFor": "Preset for {{name}}",
       "lockTrack": "Lock track",
       "moveToFolder": "Move to {{name}}",
       "mute": "Mute",
@@ -15199,6 +15214,11 @@
       "frames": "Frames",
       "deleteFrame": "Delete frame",
       "addFrame": "Add frame"
+    },
+    "limiter": {
+      "ariaLabel": "Limiter",
+      "caption": "Ceiling {{ceiling}} dB",
+      "displayAria": "Limiter: input peak {{input}} dB, output peak {{output}} dB, gain reduction {{reduction}} dB"
     }
   },
   "i18n-next46": {
@@ -16511,7 +16531,7 @@
     },
     "instrument": {
       "preset": "Instrument preset",
-      "custom": "Custom",
+      "type": "Instrument",
       "keyboard": "Keyboard",
       "loading": "Loading instrument",
       "device": "Instrument device",
@@ -16713,6 +16733,7 @@
       "copyName": "{{name}} (copy)",
       "createScriptAction": "create the script",
       "duplicateScriptAction": "duplicate the script",
+      "deleteScriptAction": "delete the script",
       "singular": "script",
       "plural": "scripts",
       "emptyDescription": "Create a new script with the + button above.",
@@ -17495,6 +17516,7 @@
         "bypass": "Bypass {{title}}",
         "enable": "Enable {{title}}",
         "open": "Open {{title}}",
+        "remove": "Remove {{title}}",
         "add": "Add an effect to {{channel}}"
       }
     }

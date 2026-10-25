@@ -5,9 +5,9 @@ import { useTranslation } from "react-i18next";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { findInstrumentPreset, presetIdForInstrument, auditionPitch } from "@nodetool-ai/timeline";
+import { findInstrumentPreset, auditionPitch } from "@nodetool-ai/timeline";
 import type { MidiInstrument } from "@nodetool-ai/timeline";
-import { DEFAULT_TIMELINE_INSTRUMENT, TIMELINE_INSTRUMENT_PRESETS } from "../../../stores/timeline/instrumentPresets";
+import { DEFAULT_TIMELINE_INSTRUMENT, INSTRUMENT_TYPE_OPTIONS, instrumentForType, instrumentSelection } from "../../../stores/timeline/instrumentPresets";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { playAuditionNote } from "../preview/audition";
@@ -41,7 +41,7 @@ export const TrackInstrumentPanel: React.FC<TrackInstrumentPanelProps> = memo(
     );
     const showKeyboard = useTimelineUIStore(s => !!s.instrumentKeyboards[trackId]);
     const toggleKeyboard = useTimelineUIStore(s => s.toggleInstrumentKeyboard);
-    const presetId = instrument.type === "subtractive" ? "custom" : presetIdForInstrument(instrument) ?? "custom";
+    const selection = instrumentSelection(instrument);
     const setTrackInstrument = useTimelineStore((s) => s.setTrackInstrument);
     // The device's own view, when one is registered for this instrument.
     const DeviceView = instrumentView(instrument.type);
@@ -84,22 +84,29 @@ export const TrackInstrumentPanel: React.FC<TrackInstrumentPanelProps> = memo(
       >
         <FlexColumn gap={SPACING.md}>
           <SelectField
-            label={t("i18n-next59.instrument.preset")}
+            label={t("i18n-next59.instrument.type")}
             css={css({ width: "100%", alignSelf: "flex-start" })}
             size="small"
-            value={presetId}
-            options={[
-              ...TIMELINE_INSTRUMENT_PRESETS.map((preset) => ({
-                value: preset.id,
-                label: preset.name
-              })),
-              { value: "custom", label: t("i18n-next59.instrument.custom") }
-            ]}
-            onChange={(id) => {
-              const preset = findInstrumentPreset(id);
-              if (preset) commit(preset.instrument);
+            value={selection.type}
+            options={INSTRUMENT_TYPE_OPTIONS}
+            onChange={(type) => {
+              const next = instrumentForType(type);
+              if (next) commit(next);
             }}
           />
+          {selection.presetOptions.length > 1 && (
+            <SelectField
+              label={t("i18n-next59.instrument.preset")}
+              css={css({ width: "100%", alignSelf: "flex-start" })}
+              size="small"
+              value={selection.presetId}
+              options={selection.presetOptions}
+              onChange={(id) => {
+                const preset = findInstrumentPreset(id);
+                if (preset) commit(preset.instrument);
+              }}
+            />
+          )}
           <Button size="small" variant="text" aria-pressed={showKeyboard}
             sx={{ alignSelf: "flex-start", color: showKeyboard ? "primary.main" : "text.secondary", backgroundColor: showKeyboard ? "action.selected" : "transparent" }}
             onClick={() => toggleKeyboard(trackId)}>{t("i18n-next59.instrument.keyboard")}</Button>

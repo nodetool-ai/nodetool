@@ -22,7 +22,6 @@ export function TableThumb({ table, accent, selected }: {
     }
     ctx.strokeStyle = selected ? accent : '#8893a8';
     ctx.lineWidth = 1.3;
-    if (selected) { ctx.shadowColor = accent; ctx.shadowBlur = 6; }
     ctx.stroke();
   }, [table, accent, selected]);
   return <canvas ref={ref} className="wte-thumb" width={46} height={28} />;

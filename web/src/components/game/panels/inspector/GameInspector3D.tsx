@@ -12,7 +12,6 @@ import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import { diffGameDocuments3D } from "../../../../stores/game/diffGameDocuments3D";
 import { Box, Caption, CONTROL, FieldDensityContext, FlexColumn, FlexRow, FONT_SIZE_SANS, InspectorFieldRow, InspectorSection, InspectorValueInput, Label, SPACING, Text, TextInput, ToolbarIconButton } from "../../../ui_primitives";
 import ErrorBanner from "../../../support/ErrorBanner";
-import ReportBugButton from "../../../support/ReportBugButton";
 import SchemaFields from "../../inspector/SchemaFields";
 import { GAME_COMPONENT_EDITORS } from "../../inspector/componentEditors";
 import GameOverrideFields from "../../GameOverrideFields";

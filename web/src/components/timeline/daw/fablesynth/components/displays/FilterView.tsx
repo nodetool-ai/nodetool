@@ -97,7 +97,7 @@ export function FilterView({ filters, route, accent, className }: FilterViewProp
       return h * 0.45 - (db / 30) * h * 0.42;
     };
 
-    const plot = (fn: (f: number) => number, stroke: string, width: number, glow: number) => {
+    const plot = (fn: (f: number) => number, stroke: string, width: number) => {
       ctx.beginPath();
       for (let i = 0; i <= 120; i++) {
         const f = fmin * Math.pow(fmax / fmin, i / 120);
@@ -107,16 +107,14 @@ export function FilterView({ filters, route, accent, className }: FilterViewProp
       }
       ctx.strokeStyle = stroke;
       ctx.lineWidth = width;
-      ctx.shadowColor = accent;
-      ctx.shadowBlur = glow;
+
       ctx.stroke();
-      ctx.shadowBlur = 0;
     };
 
     // individual responses (faint) for any enabled filter
     for (const fl of filters) {
       if (!fl.on) continue;
-      plot((f) => magFor(fl.type, fl.cutoff, fl.res, f), 'rgba(177,140,255,0.28)', 1, 0);
+      plot((f) => magFor(fl.type, fl.cutoff, fl.res, f), 'rgba(177,140,255,0.28)', 1);
     }
 
     // combined response per routing: serial multiplies, parallel/split sum
@@ -127,7 +125,7 @@ export function FilterView({ filters, route, accent, className }: FilterViewProp
       if (route === 0) return (m1 ?? 1) * (m2 ?? 1);
       return (m1 ?? 0) + (m2 ?? 0);
     };
-    plot(combined, anyOn ? accent : '#5a6275', 1.8, anyOn ? 7 : 0);
+    plot(combined, anyOn ? accent : '#5a6275', 1.8);
   }, [filters, route, accent, resizeTick]);
 
   return <canvas ref={canvasRef} className={className} />;

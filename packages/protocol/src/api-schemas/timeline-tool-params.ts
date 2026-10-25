@@ -1635,7 +1635,7 @@ export const midiInstrumentPresetRef = z.object({
   preset: z
     .string()
     .describe(
-      "A shipped voice by id. sampler starts an empty sample instrument. For recordings pass a full sampler instrument: type sampler, zones [{id, name, assetId (full audio asset id), rootNote, lowNote, highNote, gainDb}], oneShot, attackMs, releaseMs, gainDb. One-shot plays full recordings; gated mode releases on note-off. Recordings must be at most 60 seconds. Soundtrack presets: wt1-cinematic-strings, wt1-chamber-strings, wt1-short-strings, wt1-low-strings, wt1-warm-brass, wt1-air-choir, wt1-dark-swell, wt1-soft-keys, wt1-glass-mallet, wt1-muted-pluck, bl1-cinematic-sub, bl1-score-pulse, bl1-rounded-bass, dr1-cinematic. Also available: saw-lead, square-lead, soft-pad, pluck, bass, bell, wt1-prime-lead, wt1-bloom-pad, wt1-vox-morph, wt1-chime-bell, bl1-acid, bl1-deep, bl1-rubber, dr1-tr-void. Orchestral voices are synthesized. Play low strings around MIDI 36–55, ensembles around 48–79, and basses around 28–48. Drum pads use MIDI 36–51."
+      "A shipped voice by id. ui_timeline_list_instruments lists the ids under each instrument. sampler starts an empty sample instrument. For recordings pass a full sampler instrument: type sampler, zones [{id, name, assetId (full audio asset id), rootNote, lowNote, highNote, gainDb}], oneShot, attackMs, releaseMs, gainDb. One-shot plays full recordings; gated mode releases on note-off. Recordings must be at most 60 seconds. Soundtrack presets: wt1-cinematic-strings, wt1-chamber-strings, wt1-short-strings, wt1-low-strings, wt1-warm-brass, wt1-air-choir, wt1-dark-swell, wt1-soft-keys, wt1-glass-mallet, wt1-muted-pluck, bl1-cinematic-sub, bl1-score-pulse, bl1-rounded-bass, dr1-cinematic. Also available: saw-lead, square-lead, soft-pad, pluck, bass, bell, wt1-prime-lead, wt1-bloom-pad, wt1-vox-morph, wt1-chime-bell, bl1-acid, bl1-deep, bl1-rubber, dr1-tr-void. Orchestral voices are synthesized. Play low strings around MIDI 36–55, ensembles around 48–79, and basses around 28–48. Drum pads use MIDI 36–51."
     )
 });
 export type MidiInstrumentPresetRef = z.infer<typeof midiInstrumentPresetRef>;
@@ -1863,6 +1863,7 @@ export const SHARED_TIMELINE_TOOL_NAMES = [
   "ui_timeline_set_notes",
   "ui_timeline_set_tempo",
   "ui_timeline_set_track_instrument",
+  "ui_timeline_list_instruments",
   // A2's note edits. Each rewrites the clip's whole note list, keeping ids.
   "ui_timeline_transpose_clip",
   "ui_timeline_quantize_notes",

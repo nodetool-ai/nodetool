@@ -37,4 +37,16 @@ describe("needsVoicing", () => {
   it("ignores direction on a take that recorded none", () => {
     expect(needsVoicing(line("angry", take()), voice)).toBe(false);
   });
+
+  it("re-voices a take whose recorded pace no longer matches", () => {
+    const t = take({ speedSnapshot: 1.15 });
+    expect(needsVoicing(line(undefined, t), voice, 1.15)).toBe(false);
+    expect(needsVoicing(line(undefined, t), voice, null)).toBe(true);
+    expect(needsVoicing(line(undefined, take({ speedSnapshot: null })), voice, 0.85)).toBe(true);
+  });
+
+  it("ignores pace on a take that recorded none, or when the pace is unknown", () => {
+    expect(needsVoicing(line(undefined, take()), voice, 1.15)).toBe(false);
+    expect(needsVoicing(line(undefined, take({ speedSnapshot: 1.15 })), voice)).toBe(false);
+  });
 });

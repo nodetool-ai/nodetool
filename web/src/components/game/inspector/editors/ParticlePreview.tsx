@@ -6,7 +6,6 @@ import { createGameParticlePreview, FixedTickClock, PARTICLE_PREVIEW_HEIGHT, PAR
 import { resolveMediaUri } from "../../../../utils/resolveMediaUri";
 import { BORDER_RADIUS, Box, Caption, EditorButton, FlexColumn, FlexRow, SPACING } from "../../../ui_primitives";
 import ErrorBanner from "../../../support/ErrorBanner";
-import ReportBugButton from "../../../support/ReportBugButton";
 
 interface ParticlePreviewProps {
   readonly particles: GameParticles;

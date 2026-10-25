@@ -146,6 +146,11 @@ const scriptToDocument = (script: ScriptDraft): ScriptWireDocument => {
   if (script.creativeContext) {
     document.creative_context = script.creativeContext;
   }
+  // The server replaces the whole document, so a field left out here is
+  // erased on the first save.
+  if (script.templateId) {
+    document.templateId = script.templateId;
+  }
   return document;
 };
 
@@ -163,6 +168,9 @@ const responseToScript = (
   };
   if (doc.creative_context) {
     draft.creativeContext = doc.creative_context;
+  }
+  if (doc.templateId) {
+    draft.templateId = doc.templateId;
   }
   return draft;
 };
@@ -565,6 +573,20 @@ export const useScriptServerSync = (
         }
         if (conflict.unit.kind === "field" && conflict.unit.id === "setup") {
           s.loadScript(scriptId, { ...draft, setup: serverScript.setup ?? null });
+        }
+        // The other scalars the merge adapter lists. Without these, Accept
+        // cleared the banner entry and kept the draft's value.
+        if (conflict.unit.kind === "field" && conflict.unit.id === "timelineId") {
+          s.setTimelineLink(scriptId, serverScript.timelineId);
+        }
+        if (conflict.unit.kind === "field" && conflict.unit.id === "storyboardId") {
+          s.setStoryboardLink(scriptId, serverScript.storyboardId);
+        }
+        if (
+          conflict.unit.kind === "field" &&
+          conflict.unit.id === "creativeContext"
+        ) {
+          s.setCreativeContext(scriptId, serverScript.creativeContext);
         }
       };
 

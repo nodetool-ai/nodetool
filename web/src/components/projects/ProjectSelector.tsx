@@ -1,6 +1,12 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type KeyboardEvent
+} from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -10,14 +16,21 @@ import HomeRoundedIcon from "@mui/icons-material/HomeRounded";
 import ErrorBanner from "../support/ErrorBanner";
 import {
   BORDER_RADIUS,
+  Box,
   Caption,
   CONTROL,
   ContextMenu,
+  FieldDensityContext,
   FlexRow,
   focusRing,
   InlineEditableText,
+  ListSubheader,
+  MENU_ICON_SIZE,
   MenuItemPrimitive,
+  MenuList,
+  menuListStyles,
   MOTION,
+  Popover,
   SearchInput,
   SPACING,
   TruncatedText,
@@ -26,7 +39,8 @@ import {
 } from "../ui_primitives";
 import {
   LOOSE_PROJECT_ID,
-  useWorkspaceTabsStore
+  useWorkspaceTabsStore,
+  type WorkspaceTabType
 } from "../../stores/WorkspaceTabsStore";
 import {
   useOpenNewProjectTab,
@@ -35,6 +49,9 @@ import {
 } from "../../hooks/useProjects";
 import { useAuth } from "../../stores/useAuth";
 import { trpc, trpcClient } from "../../trpc/client";
+import { menuMaxHeight } from "../workspace/OpenMenu";
+import { TYPE_COLOR, TYPE_GLYPH } from "../workspace/tabTypeIdentity";
+import { relativeTime } from "../../utils/formatDateAndTime";
 import NewProjectDialog from "./NewProjectDialog";
 import { PROJECT_COLOR, PROJECT_GLYPH } from "./projectIdentity";
 
@@ -168,6 +185,17 @@ const selectorStyles = (theme: Theme, inline: boolean, mobile: boolean) =>
           }
   });
 
+/** A type glyph in a menu row's icon slot, centred so the labels align. */
+const MenuGlyph = ({ glyph, color }: { glyph: string; color: string }) => (
+  <Box
+    component="span"
+    aria-hidden
+    sx={{ width: MENU_ICON_SIZE, textAlign: "center", lineHeight: 1, color }}
+  >
+    {glyph}
+  </Box>
+);
+
 interface ProjectSelectorProps {
   inline?: boolean;
   /**
@@ -225,6 +253,17 @@ const ProjectSelector = ({
   useEffect(() => {
     if (resolvedPersonalId) resolvePersonalProject(resolvedPersonalId);
   }, [resolvePersonalProject, resolvedPersonalId]);
+  const documentsProjectId =
+    activeProjectId && activeProjectId !== LOOSE_PROJECT_ID
+      ? activeProjectId
+      : resolvedPersonalId;
+  // The home page beside the inline picker already lists the documents.
+  const showDocuments = !inline && Boolean(documentsProjectId);
+  const documentsQuery = trpc.projects.documents.useQuery(
+    { id: documentsProjectId ?? "" },
+    { enabled: open && showDocuments, staleTime: 15_000 }
+  );
+  const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const close = useCallback(() => {
     setOpen(false);
     setSearch("");
@@ -328,11 +367,84 @@ const ProjectSelector = ({
     openNewProjectTab();
   }, [close, openNewProjectTab]);
 
+  const openDocument = useCallback(
+    (document: { type: WorkspaceTabType; ref: string; name: string }) => {
+      close();
+      if (!documentsProjectId) return;
+      openTab({
+        type: document.type,
+        ref: document.ref,
+        title: document.name,
+        projectId: documentsProjectId
+      });
+    },
+    [close, documentsProjectId, openTab]
+  );
+
   const needle = search.trim().toLowerCase();
+  const matchingDocuments = (documentsQuery.data ?? [])
+    .filter((document) => document.name.toLowerCase().includes(needle))
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
   const visibleProjects = (projects ?? []).filter(
     (project) =>
       !project.isPersonal && project.name.toLowerCase().includes(needle)
   );
+  const searchLabel = showDocuments
+    ? t("pass3_34.projects.selector.searchProjectsAndDocuments")
+    : t("pass3_34.projects.selector.searchProjects");
+
+  const projectsListRef = useRef<HTMLUListElement>(null);
+  const documentsListRef = useRef<HTMLUListElement>(null);
+  const firstItem = (list: HTMLUListElement | null) =>
+    list?.querySelector<HTMLElement>('[role="menuitem"]') ?? null;
+
+  // The search field sits outside both lists, so the menu's type-ahead
+  // cannot take its keystrokes. Arrow down steps into the project list.
+  const handleSearchKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLInputElement>) => {
+      if (event.key !== "ArrowDown") return;
+      const target =
+        firstItem(projectsListRef.current) ??
+        firstItem(documentsListRef.current);
+      if (!target) return;
+      event.preventDefault();
+      target.focus();
+    },
+    []
+  );
+
+  // Left and right arrows move between the two columns.
+  const handleColumnKeyDown = useCallback(
+    (event: KeyboardEvent<HTMLUListElement>) => {
+      const target =
+        event.key === "ArrowRight"
+          ? firstItem(documentsListRef.current)
+          : event.key === "ArrowLeft"
+            ? firstItem(projectsListRef.current)
+            : null;
+      if (!target || event.currentTarget.contains(target)) return;
+      event.preventDefault();
+      target.focus();
+    },
+    []
+  );
+
+  // Bring the current project into view when the menu opens.
+  useEffect(() => {
+    if (!open) return;
+    const frame = requestAnimationFrame(() => {
+      projectsListRef.current
+        ?.querySelector(".Mui-selected")
+        ?.scrollIntoView({ block: "nearest" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [open]);
+
+  // A new query starts both columns at their first match.
+  useEffect(() => {
+    projectsListRef.current?.scrollTo({ top: 0 });
+    documentsListRef.current?.scrollTo({ top: 0 });
+  }, [needle]);
 
   return (
     <FlexRow
@@ -432,13 +544,19 @@ const ProjectSelector = ({
           </span>
         </button>
       )}
-      <ContextMenu
+      <Popover
         open={open}
         anchorEl={anchorRef.current}
         onClose={close}
         paperSx={{
-          width: getSpacingPx(80),
+          width: showDocuments
+            ? { xs: getSpacingPx(80), sm: getSpacingPx(160) }
+            : getSpacingPx(80),
           maxWidth: `calc(100vw - ${getSpacingPx(SPACING.xxxl)})`,
+          maxHeight: open ? menuMaxHeight(anchorRef.current) : undefined,
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
           "& .project-menu-item .MuiListItemText-primary": {
             overflow: "hidden",
             textOverflow: "ellipsis",
@@ -446,76 +564,175 @@ const ProjectSelector = ({
           }
         }}
       >
-        {mobile && (
-          <MenuItemPrimitive
-            label={t("pass3_34.projects.selector.projectHome")}
-            icon={<HomeRoundedIcon />}
-            onClick={openProjectHome}
-            dividerAfter
-          />
-        )}
-        {!inline && (
-          <MenuItemPrimitive
-            label={t("pass3_34.projects.selector.newProject")}
-            icon={<AddOutlinedIcon />}
-            onClick={openNewProject}
-            color="primary"
-            dividerAfter
-          />
-        )}
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder={t("pass3_34.projects.selector.searchProjects")}
-          ariaLabel={t("pass3_34.projects.selector.searchProjects")}
-          fullWidth
-          sx={{ my: SPACING.xs, px: SPACING.xs, boxSizing: "border-box" }}
-        />
-        <MenuItemPrimitive
-          label={t("pass3_34.projects.selector.personal")}
-          className="project-menu-item"
-          selected={
-            activeProjectId === resolvedPersonalId ||
-            activeProjectId === null ||
-            activeProjectId === LOOSE_PROJECT_ID
-          }
-          onClick={selectPersonal}
-        />
-        {isPending && (
-          <LoadingSpinner
-            size="small"
-            text={t("pass3_34.projects.selector.loadingProjects")}
-          />
-        )}
-        {error && (
-          <ErrorBanner
-            sx={{ mx: SPACING.sm, my: SPACING.xs }}
-            report={{
-              source: "operation-failure",
-              summary: t("pass3_34.projects.selector.projectListLoadFailed"),
-              errorText: error.message
+        <Box
+          sx={{
+            p: SPACING.sm,
+            borderBottom: `1px solid ${theme.vars.palette.divider}`
+          }}
+        >
+          <FieldDensityContext.Provider value="compact">
+            <SearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder={searchLabel}
+              ariaLabel={searchLabel}
+              autoFocus
+              fullWidth
+              onKeyDown={handleSearchKeyDown}
+            />
+          </FieldDensityContext.Provider>
+        </Box>
+        <Box
+          sx={{
+            display: "grid",
+            gridTemplateColumns: {
+              xs: "minmax(0, 1fr)",
+              sm: showDocuments
+                ? "minmax(0, 1fr) minmax(0, 1fr)"
+                : "minmax(0, 1fr)"
+            },
+            flex: 1,
+            minHeight: 0,
+            // A phone stacks the columns and scrolls them as one list; wider
+            // windows scroll each column on its own.
+            overflowY: { xs: "auto", sm: "hidden" }
+          }}
+        >
+          <MenuList
+            ref={projectsListRef}
+            aria-label={t("pass3_34.projects.selector.projects")}
+            onKeyDown={handleColumnKeyDown}
+            sx={{
+              ...menuListStyles(theme),
+              minHeight: 0,
+              overflowY: { xs: "visible", sm: "auto" },
+              borderRight: showDocuments
+                ? { sm: `1px solid ${theme.vars.palette.divider}` }
+                : undefined
             }}
           >
-            {t("pass3_34.projects.selector.couldNotLoadProjects")}
-          </ErrorBanner>
-        )}
-        {visibleProjects.map((project) => (
-          <MenuItemPrimitive
-            key={project.id}
-            label={project.name}
-            className="project-menu-item"
-            selected={project.id === activeProjectId}
-            onClick={() => selectProject(project)}
-          />
-        ))}
-        {!isPending && !error && visibleProjects.length === 0 && (
-          <Caption sx={{ px: SPACING.lg, py: SPACING.sm }}>
-            {needle
-              ? t("pass3_34.projects.selector.noMatchingProjects")
-              : t("pass3_34.projects.selector.noNamedProjects")}
-          </Caption>
-        )}
-      </ContextMenu>
+            {showDocuments && (
+              <ListSubheader>{t("pass3_34.projects.selector.projects")}</ListSubheader>
+            )}
+            {mobile && (
+              <MenuItemPrimitive
+                label={t("pass3_34.projects.selector.projectHome")}
+                icon={<HomeRoundedIcon />}
+                onClick={openProjectHome}
+              />
+            )}
+            {!inline && (
+              <MenuItemPrimitive
+                label={t("pass3_34.projects.selector.newProject")}
+                icon={<AddOutlinedIcon />}
+                onClick={openNewProject}
+                color="primary"
+                dividerAfter
+              />
+            )}
+            <MenuItemPrimitive
+              label={t("pass3_34.projects.selector.personal")}
+              className="project-menu-item"
+              icon={<MenuGlyph glyph={PROJECT_GLYPH} color={PROJECT_COLOR} />}
+              selected={
+                activeProjectId === resolvedPersonalId ||
+                activeProjectId === null ||
+                activeProjectId === LOOSE_PROJECT_ID
+              }
+              onClick={selectPersonal}
+            />
+            {isPending && (
+              <LoadingSpinner
+                size="small"
+                text={t("pass3_34.projects.selector.loadingProjects")}
+              />
+            )}
+            {error && (
+              <ErrorBanner
+                sx={{ mx: SPACING.sm, my: SPACING.xs }}
+                report={{
+                  source: "operation-failure",
+                  summary: t("pass3_34.projects.selector.projectListLoadFailed"),
+                  errorText: error.message
+                }}
+              >
+                {t("pass3_34.projects.selector.couldNotLoadProjects")}
+              </ErrorBanner>
+            )}
+            {visibleProjects.map((project) => (
+              <MenuItemPrimitive
+                key={project.id}
+                label={project.name}
+                className="project-menu-item"
+                icon={<MenuGlyph glyph={PROJECT_GLYPH} color={PROJECT_COLOR} />}
+                selected={project.id === activeProjectId}
+                onClick={() => selectProject(project)}
+              />
+            ))}
+            {!isPending && !error && visibleProjects.length === 0 && (
+              <Caption sx={{ px: SPACING.lg, py: SPACING.sm }}>
+                {needle
+                  ? t("pass3_34.projects.selector.noMatchingProjects")
+                  : t("pass3_34.projects.selector.noNamedProjects")}
+              </Caption>
+            )}
+          </MenuList>
+          {showDocuments && (
+            <MenuList
+              ref={documentsListRef}
+              aria-label={t("pass3_34.projects.selector.documents")}
+              onKeyDown={handleColumnKeyDown}
+              sx={{
+                ...menuListStyles(theme),
+                minHeight: 0,
+                overflowY: { xs: "visible", sm: "auto" }
+              }}
+            >
+              <ListSubheader>{t("pass3_34.projects.selector.documents")}</ListSubheader>
+              {documentsQuery.isPending && (
+                <LoadingSpinner
+                  size="small"
+                  text={t("pass3_34.projects.selector.loadingDocuments")}
+                />
+              )}
+              {documentsQuery.error && (
+                <ErrorBanner
+                  sx={{ mx: SPACING.sm, my: SPACING.xs }}
+                  report={{
+                    source: "operation-failure",
+                    summary: t("pass3_34.projects.selector.couldNotLoadDocuments"),
+                    errorText: documentsQuery.error.message
+                  }}
+                >
+                  {t("pass3_34.projects.selector.couldNotLoadDocuments")}
+                </ErrorBanner>
+              )}
+              {matchingDocuments.map((document) => (
+                <MenuItemPrimitive
+                  key={`${document.type}:${document.ref}`}
+                  label={document.name}
+                  className="project-menu-item"
+                  icon={
+                    <MenuGlyph
+                      glyph={TYPE_GLYPH[document.type]}
+                      color={TYPE_COLOR[document.type]}
+                    />
+                  }
+                  shortcut={relativeTime(document.updatedAt)}
+                  onClick={() => openDocument(document)}
+                />
+              ))}
+              {documentsQuery.data && matchingDocuments.length === 0 && (
+                <Caption sx={{ px: SPACING.lg, py: SPACING.sm }}>
+                  {needle
+                    ? t("pass3_34.projects.selector.noMatchingDocuments")
+                    : t("pass3_34.projects.selector.noDocuments")}
+                </Caption>
+              )}
+            </MenuList>
+          )}
+        </Box>
+      </Popover>
       <NewProjectDialog open={newProjectOpen} onClose={closeNewProject} />
     </FlexRow>
   );

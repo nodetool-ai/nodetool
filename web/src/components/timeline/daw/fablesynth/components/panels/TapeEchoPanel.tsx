@@ -58,19 +58,17 @@ export function TapeEchoPanel({ adapter }: { adapter: FxPanelAdapter }) {
         text(channel === 0 ? 'L' : 'R', 12, y + 3);
         c.strokeStyle = slate; c.globalAlpha = 0.22; c.beginPath(); c.moveTo(left, y); c.lineTo(right, y); c.stroke(); c.globalAlpha = 1;
         const amp = (m: EchoMessage) => clamp((m[key] + 72) / 72, 0, 1) * 18;
-        const grad = c.createLinearGradient(left, 0, right, 0);
-        grad.addColorStop(0, 'transparent'); grad.addColorStop(1, color);
         if (samples.length > 1) {
           c.beginPath(); samples.forEach((m, i) => { const x = X(i), a = amp(m); if (i) c.lineTo(x, y - a); else c.moveTo(x, y - a); });
           for (let i = samples.length - 1; i >= 0; i--) c.lineTo(X(i), y + amp(samples[i]));
-          c.closePath(); c.fillStyle = grad; c.globalAlpha = 0.18; c.fill(); c.globalAlpha = 1;
+          c.closePath(); c.fillStyle = color; c.globalAlpha = 0.18; c.fill(); c.globalAlpha = 1;
           c.beginPath(); samples.forEach((m, i) => { if (i) c.lineTo(X(i), y - amp(m)); else c.moveTo(X(i), y - amp(m)); });
-          c.strokeStyle = grad; c.lineWidth = 1.3; c.stroke(); c.lineWidth = 1;
+          c.strokeStyle = color; c.lineWidth = 1.3; c.stroke(); c.lineWidth = 1;
         }
         const a = amp(data);
         if (a > 0) {
-          c.strokeStyle = color; c.shadowColor = color; c.shadowBlur = 6;
-          c.beginPath(); c.moveTo(right, y - a); c.lineTo(right, y + a); c.stroke(); c.shadowBlur = 0;
+          c.strokeStyle = color;
+          c.beginPath(); c.moveTo(right, y - a); c.lineTo(right, y + a); c.stroke();
         }
       });
       const y = h - 13;

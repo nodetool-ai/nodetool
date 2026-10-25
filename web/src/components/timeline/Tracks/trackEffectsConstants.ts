@@ -34,13 +34,12 @@ export const EFFECT_LABELS = {
   chromaKey: "Chroma key"
 } satisfies Record<TrackEffect["type"], string>;
 
-/** Effect types available on audio tracks. */
-export const AUDIO_EFFECT_TYPES: TrackEffect["type"][] = [
-  "gain",
-  "eq3",
-  "filter",
-  "compressor"
-];
+/**
+ * Built-in effect types the add menus offer on audio tracks. The FableSynth
+ * EQ and compressor replace `eq3` and `compressor`, which stay supported for
+ * documents that already use them.
+ */
+export const AUDIO_EFFECT_TYPES: TrackEffect["type"][] = ["gain", "filter"];
 
 /** Device-rack width (px) of each FableSynth insert, sized to its upstream panel. */
 export const FABLE_DEVICE_WIDTHS = {
@@ -51,7 +50,8 @@ export const FABLE_DEVICE_WIDTHS = {
   lab: 1080,
   chorus: 320,
   echo: 320,
-  reverb: 320
+  reverb: 320,
+  limiter: 320
 } satisfies Record<FableEffectKind, number>;
 
 /** Device-rack width (px) of an effect. */

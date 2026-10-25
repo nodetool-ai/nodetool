@@ -19,6 +19,7 @@ export * from "../../capabilities/timeline-bridge.js";
 export const TIMELINE_READ_ONLY_TOOLS: readonly string[] = [
   "ui_timeline_get_state",
   "ui_timeline_list_animation_presets",
+  "ui_timeline_list_instruments",
   "ui_timeline_select_clip",
   "ui_timeline_preview_transition_candidate",
   "ui_timeline_seek",

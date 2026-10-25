@@ -51,7 +51,7 @@ function FilterView() {
         const db = Math.max(-30, Math.min(24, 20 * Math.log10(Math.max(1e-6, m))));
         return h * 0.45 - (db / 30) * h * 0.42;
       };
-      const plot = (stroke: string, width: number, glow: number) => {
+      const plot = (stroke: string, width: number) => {
         ctx.beginPath();
         for (let i = 0; i <= 120; i++) {
           const f = FMIN * Math.pow(FMAX / FMIN, i / 120);
@@ -61,13 +61,11 @@ function FilterView() {
         }
         ctx.strokeStyle = stroke;
         ctx.lineWidth = width;
-        ctx.shadowColor = '#b18cff';
-        ctx.shadowBlur = glow;
+
         ctx.stroke();
-        ctx.shadowBlur = 0;
       };
-      plot('rgba(177,140,255,0.28)', 1, 0);
-      plot('#b18cff', 1.8, 7);
+      plot('rgba(177,140,255,0.28)', 1);
+      plot('#b18cff', 1.8);
       ctx.fillStyle = '#6b768c';
       ctx.font = '7px "IBM Plex Mono", monospace';
       ctx.fillText(t('i18n-next98.filter.responseLabel'), pad + 2, 10);
