@@ -20,6 +20,7 @@
 #include "preview/PreviewCompositor.h"
 #ifdef Q_OS_LINUX
 #include "preview/hw/HwWindow.h"
+#include <QDir>
 #endif
 #include "ui/BenchMedia.h"
 #include "ui/MediaPreviews.h"
@@ -66,6 +67,8 @@
 #include <csignal>
 #include <condition_variable>
 #include <mutex>
+#include <string>
+#include <utility>
 #endif
 
 #include <atomic>
@@ -177,6 +180,29 @@ public:
     }
 };
 
+class FifoDescriptor {
+public:
+    explicit FifoDescriptor(int fd) : m_fd(fd) {}
+    ~FifoDescriptor() {
+        if (m_fd >= 0) {
+            ::close(m_fd);
+        }
+    }
+    FifoDescriptor(const FifoDescriptor&) = delete;
+    FifoDescriptor& operator=(const FifoDescriptor&) = delete;
+    FifoDescriptor(FifoDescriptor&& other) noexcept : m_fd(std::exchange(other.m_fd, -1)) {}
+    FifoDescriptor& operator=(FifoDescriptor&& other) noexcept {
+        if (this != &other) {
+            FifoDescriptor old(std::exchange(m_fd, std::exchange(other.m_fd, -1)));
+        }
+        return *this;
+    }
+    int get() const { return m_fd; }
+
+private:
+    int m_fd;
+};
+
 // The writer releases a blocked old-code syscall even when an assertion fails.
 class StalledFifo {
 public:
@@ -184,26 +210,21 @@ public:
     std::atomic<bool> sent{false};
 
     StalledFifo(const QByteArray& path, bool connectWriter, const QByteArray& bytes = {})
-        : m_thread([this, path, connectWriter, bytes](std::stop_token stop) {
+        : m_thread([this, path = path.toStdString(), connectWriter, bytes = bytes.toStdString()](std::stop_token stop) {
             const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(8);
             int fd = -1;
             while (std::chrono::steady_clock::now() < deadline) {
                 if (connectWriter || stop.stop_requested()) {
-                    fd = ::open(path.constData(), O_WRONLY | O_NONBLOCK);
+                    fd = ::open(path.c_str(), O_WRONLY | O_NONBLOCK);
                     if (fd >= 0) break;
                     if (stop.stop_requested()) return;
                 }
                 std::this_thread::sleep_for(std::chrono::milliseconds(5));
             }
             if (fd < 0) return;
-            QFile writer;
-            if (!writer.open(fd, QIODevice::WriteOnly, QFileDevice::AutoCloseHandle)) {
-                ::close(fd);
-                return;
-            }
+            FifoDescriptor writer(fd);
             connected = true;
-            sent = bytes.isEmpty() || writer.write(bytes) == bytes.size();
-            writer.flush();
+            sent = bytes.empty() || ::write(writer.get(), bytes.data(), bytes.size()) == static_cast<ssize_t>(bytes.size());
             while (!stop.stop_requested() && std::chrono::steady_clock::now() < deadline) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(5));
             }
@@ -2814,6 +2835,129 @@ private slots:
     }
 
 #ifdef Q_OS_UNIX
+    void m2bF5AbandonedHelpersBounded_data() {
+        QTest::addColumn<QByteArray>("operation");
+        QTest::newRow("open") << QByteArray("open");
+        QTest::newRow("read") << QByteArray("read");
+    }
+
+    void m2bF5AbandonedHelpersBounded() {
+        QFETCH(QByteArray, operation);
+        constexpr int helperCap = 8;
+        auto& cache = MediaPreviewCache::instance();
+        cache.clear();
+        cache.setOpenTimeoutMs(0);
+        const auto restoreTimeout = qScopeGuard([&cache]() { cache.setOpenTimeoutMs(-1); });
+        QVERIFY(QTest::qWaitFor([]() { return outstandingLocalIoForTesting() == 0; }, 3000));
+        QTest::qWait(1);  // Initialize Qt's event dispatcher before counting descriptors.
+#ifdef Q_OS_LINUX
+        const auto descriptorCount = []() {
+            return QDir(QStringLiteral("/proc/self/fd")).entryList(QDir::AllEntries | QDir::NoDotAndDotDot).size();
+        };
+        const auto baselineDescriptors = descriptorCount();
+        QVERIFY(baselineDescriptors > 0);
+#endif
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString fixture = QStringLiteral(NT_FIXTURES_DIR "/media/tone-440-48k-mono.wav");
+        QStringList paths;
+        for (int i = 0; i < helperCap + 4; ++i) {
+            paths.append(dir.filePath(QStringLiteral("stalled-%1.wav").arg(i)));
+            QVERIFY(QFile::copy(fixture, paths.last()));
+        }
+        const QString normal = dir.filePath("normal.wav");
+        QVERIFY(QFile::copy(fixture, normal));
+        StalledLocalIo stall(paths, operation);
+        const auto cleanup = qScopeGuard([&]() {
+            stall.release();
+            cache.clear();
+            QVERIFY2(QTest::qWaitFor([]() { return outstandingLocalIoForTesting() == 0; }, 3000),
+                     "helpers did not exit during cleanup");
+        });
+        const auto abandon = [&](std::unique_ptr<QObject>& subscriber) {
+            std::jthread releaseOnTimeout([&stall](std::stop_token stop) {
+                const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(1500);
+                while (!stop.stop_requested() && std::chrono::steady_clock::now() < deadline) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                }
+                if (!stop.stop_requested()) {
+                    stall.release();
+                }
+            });
+            subscriber.reset();
+            QElapsedTimer timer;
+            timer.start();
+            cache.waitForIdle();
+            const auto elapsed = timer.elapsed();
+            releaseOnTimeout.request_stop();
+            QCoreApplication::processEvents();
+            return elapsed < 1500;
+        };
+        for (int round = 0; round < 6; ++round) {
+            // Fast failures are cached for 30 s. Every round must start a job.
+            cache.clear();
+            auto subscriber = std::make_unique<QObject>();
+            const int before = cache.decodeCount();
+            const int entries = stall.entered();
+            QVERIFY(!cache.peaks(paths.first(), subscriber.get()));
+            QCOMPARE(cache.decodeCount(), before + 1);
+            const bool reachedOrFailed = QTest::qWaitFor([&]() {
+                return stall.entered() > entries || cache.pendingCount() == 0;
+            }, 2000);
+            if (!reachedOrFailed) {
+                stall.release();
+            }
+            QVERIFY2(reachedOrFailed, "repeated request neither reached the hook nor failed fast");
+            QVERIFY2(abandon(subscriber), "abandonment blocked the decode worker");
+        }
+        QCOMPARE(outstandingLocalIoForTesting(), 1);
+        QCOMPARE(stall.entered(), 1);
+
+        QObject normalSubscriber;
+        QVERIFY(!cache.peaks(normal, &normalSubscriber));
+        const bool normalCompleted = QTest::qWaitFor([&]() {
+            return cache.peaks(normal, &normalSubscriber) != nullptr;
+        }, 1500);
+        if (!normalCompleted) {
+            stall.release();
+        }
+        QVERIFY2(normalCompleted, "an abandoned helper blocked normal decoding");
+
+        for (qsizetype i = 1; i < paths.size(); ++i) {
+            auto subscriber = std::make_unique<QObject>();
+            const int before = cache.decodeCount();
+            const int entries = stall.entered();
+            QVERIFY(!cache.peaks(paths[i], subscriber.get()));
+            QCOMPARE(cache.decodeCount(), before + 1);
+            const bool reachedOrFailed = QTest::qWaitFor([&]() {
+                return stall.entered() > entries || cache.pendingCount() == 0;
+            }, 2000);
+            if (!reachedOrFailed) {
+                stall.release();
+            }
+            QVERIFY2(reachedOrFailed, "distinct request neither reached the hook nor failed fast");
+            QVERIFY2(abandon(subscriber), "saturated helpers blocked the decode worker");
+            QCOMPARE(outstandingLocalIoForTesting(), std::min(helperCap, static_cast<int>(i) + 1));
+        }
+        QCOMPARE(stall.entered(), helperCap);
+        // At capacity even an unstalled local file must fail without waiting.
+        QVERIFY(!cache.peaks(fixture, &normalSubscriber));
+        const bool saturatedCompleted = QTest::qWaitFor([&cache]() { return cache.pendingCount() == 0; }, 1500);
+        stall.release();
+        QVERIFY2(saturatedCompleted, "admission at capacity blocked a decode worker");
+        QVERIFY(!cache.peaks(fixture, &normalSubscriber));
+        QVERIFY(QTest::qWaitFor([]() { return outstandingLocalIoForTesting() == 0; }, 3000));
+        cache.waitForIdle();
+#ifdef Q_OS_LINUX
+        QVERIFY2(QTest::qWaitFor([&]() { return descriptorCount() <= baselineDescriptors; }, 3000),
+                 "abandoned helpers leaked file descriptors");
+#endif
+        cache.clear();
+        QVERIFY(!cache.peaks(fixture, &normalSubscriber));
+        QVERIFY2(QTest::qWaitFor([&]() { return cache.peaks(fixture, &normalSubscriber) != nullptr; }, 1500),
+                 "the decode pool did not recover after helper reclamation");
+    }
+
     void m2bF5RegularStallStops_data() {
         QTest::addColumn<QString>("kind");
         QTest::addColumn<QByteArray>("operation");
