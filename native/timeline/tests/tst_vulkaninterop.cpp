@@ -255,6 +255,50 @@ private slots:
         QCOMPARE(after.completed - before.completed, frameCount - retained);
     }
 
+    void teardownRetainsUnreleasedImagesAfterUnconfirmedAcquire() {
+        const QString path = QStringLiteral(NT_FIXTURES_DIR "/media/seek-360p30.mp4");
+        if (!QFileInfo::exists(path)) {
+            QSKIP("run scripts/make-fixtures.sh for the VAAPI fixture");
+        }
+        VaapiFixture fixture;
+        const auto decodeError = fixture.decode(path.toStdString());
+        if (!decodeError.empty()) {
+            QSKIP(decodeError.c_str());
+        }
+        RestoreReleaseSubmissions restoreReleases;
+        RestoreFenceWaits restoreWaits;
+        auto interop = VulkanInterop::create(m_rhi.get());
+        if (!interop) {
+            QSKIP("the device cannot import DMA-BUF frames");
+        }
+        const auto before = testing::releaseStats();
+        std::weak_ptr<VulkanInterop> oldInterop = interop;
+        std::string error;
+        auto frame = interop->wrap(fixture.frame.get(), &error);
+        QVERIFY2(frame, error.c_str());
+        av_frame_unref(fixture.frame.get());
+        // Wrap only one frame and never flush: nothing collects its acquire.
+        // It is never sampled, so retirement needs no frame completion mark.
+        interop.reset();
+        QVERIFY(!oldInterop.expired());
+        testing::setReleaseFailures(-1);
+        testing::setFenceWaitFailures(-1);
+        frame.reset();  // failed retire and teardown release, then failed acquire waits
+        QVERIFY(oldInterop.expired());
+        const auto after = testing::releaseStats();
+        QCOMPARE(after.unconfirmedUnreleased - before.unconfirmedUnreleased, 1);
+        QCOMPARE(after.unconfirmedPending - before.unconfirmedPending, 1);
+        QCOMPARE(after.retainedMappings - before.retainedMappings, 1);
+        QCOMPARE(after.freedWithoutRelease, before.freedWithoutRelease);
+        QCOMPARE(after.submitted, before.submitted);
+        QCOMPARE(after.completed, before.completed);
+
+        // Abandoned native handles must not invalidate the test's live QRhi.
+        QRhiCommandBuffer* cb = nullptr;
+        QCOMPARE(m_rhi->beginOffscreenFrame(&cb), QRhi::FrameOpSuccess);
+        QCOMPARE(m_rhi->endOffscreenFrame(), QRhi::FrameOpSuccess);
+    }
+
     void cleanupTestCase() { m_rhi.reset(); }
 
 private:

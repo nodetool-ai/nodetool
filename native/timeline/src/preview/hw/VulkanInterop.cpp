@@ -40,6 +40,7 @@ std::atomic<int> g_releasesCompleted{0};
 std::atomic<int> g_freedWithoutRelease{0};
 std::atomic<int> g_retainedMappings{0};
 std::atomic<int> g_unconfirmedPending{0};
+std::atomic<int> g_unconfirmedUnreleased{0};
 std::atomic<int> g_liveFrameRefs{0};
 std::atomic<int> g_liveCompletionMarks{0};
 std::atomic<int> g_releasedInFlight{0};
@@ -415,7 +416,7 @@ void testing::setFenceWaitFailures(int count) {
 
 testing::ReleaseStats testing::releaseStats() {
     return {g_releasesSubmitted.load(), g_releasesCompleted.load(), g_freedWithoutRelease.load(),
-            g_retainedMappings.load(), g_unconfirmedPending.load()};
+            g_retainedMappings.load(), g_unconfirmedPending.load(), g_unconfirmedUnreleased.load()};
 }
 
 void trackCompletion(QRhiCommandBuffer* cb, long long frameNumber) {
@@ -501,9 +502,17 @@ VulkanInterop::~VulkanInterop() {
     }
     vk.pending.clear();
     for (Owned& o : vk.unreleased) {
-        // All GPU uses have finished, so Vulkan objects can go. Without a
-        // foreign release the DRM mapping must keep the VA surface pinned.
+        // A confirmed later fence covers earlier acquires on the same queue.
+        // Without a submitted release, an unconfirmed acquire may still use
+        // these images. Keep the VA surface pinned and abandon its handles.
         if (!vk.lost) retainMapping(o.drm);
+        if (!vk.lost && unconfirmedPending && (o.images[0] || o.images[1])) {
+            qWarning("Vulkan teardown acquire completion unconfirmed: retaining unreleased images and memory "
+                     "for process lifetime");
+            o.images = {};
+            o.memory = {};
+            ++g_unconfirmedUnreleased;
+        }
         vk.freeOwned(o);
     }
     vk.unreleased.clear();
