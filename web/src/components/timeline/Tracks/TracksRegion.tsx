@@ -104,7 +104,7 @@ import { Playhead } from "./Playhead";
 import { AddTextButton } from "./AddTextButton";
 import { AddTrackButton } from "./AddTrackButton";
 import { ScriptToggleButton } from "./ScriptToggleButton";
-import { TimelineViewControls } from "./TimelineViewControls";
+import { TimelineZoomControls, TrackHeightSlider } from "./TimelineZoomControls";
 import {
   TimelineScrollbar,
   TIMELINE_SCROLLBAR_HEIGHT_PX
@@ -264,7 +264,6 @@ const tracksSectionHeaderStyles = (theme: Theme, compact: boolean) =>
 
 const trackCountChipStyles = (theme: Theme) =>
   css({
-    marginLeft: "auto",
     minWidth: 18,
     height: 16,
     padding: theme.spacing(0, 1.5),
@@ -2034,7 +2033,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
               tooltip={t("i18n-next73.tracks.keyboardShortcuts")}
             />
           )}
-          <TimelineViewControls
+          <TimelineZoomControls
             compact={toolbarCompact}
             onZoomToFit={zoomToFit}
           />
@@ -2044,6 +2043,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         <FlexRow align="stretch" fullWidth>
           <div css={tracksSectionHeaderStyles(theme, isMobile)}>
             <span>{t("i18n-next73.tracks.title")}</span>
+            <TrackHeightSlider />
             <span
               css={trackCountChipStyles(theme)}
               aria-label={t("i18n-next73.tracks.count", { count: tracks.length })}
