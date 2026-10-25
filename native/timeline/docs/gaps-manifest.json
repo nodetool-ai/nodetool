@@ -8,12 +8,15 @@
     {
       "id": "S1", "wave": 0, "needs": [], "gaps": [],
       "title": "Seams for parallel work",
-      "owns": ["CMakeLists.txt", "src/*/module.cmake", "src/app/", "src/main.cpp", "src/model/TimelineModel.*", "qml/TimelineEditor.qml", "qml/Inspector/primitives/", "scripts/op-conformance.mjs", "scripts/conformance/suites/"],
+      "owns": ["CMakeLists.txt", "src/*/module.cmake", "src/app/", "src/server/ServerClient.*", "tests/tst_serverclient.cpp", "tests/TestHttpServer.h", "src/main.cpp", "src/model/TimelineModel.*", "qml/TimelineEditor.qml", "qml/Inspector/primitives/", "scripts/op-conformance.mjs", "scripts/conformance/suites/"],
       "web": ["web/src/components/timeline/Inspector/InspectorPrimitives.tsx", "web/src/components/timeline/Inspector/InspectorPrimitives.helpers.ts"],
       "server": [],
       "exit": [
         "Build, ctest, plan check and op check give the same results as before the change",
-        "A test package that adds a module, CLI mode, edit, panel and menu item touches no shared file (git diff --stat)"
+        "CMakeLists.txt includes every module.cmake under src/ at any depth (GLOB_RECURSE, sorted), so nested modules such as src/preview/transitions/ register without a shared edit",
+        "A test package that adds a module in a nested folder (src/<module>/<name>/module.cmake), CLI mode, edit, panel and menu item touches no shared file (git diff --stat), and its test runs in ctest",
+        "ServerClient::upload(json, filePath, contentType) sends the multipart POST /api/assets of AssetStore.ts through the same private write path as mutate: an upload of a media fixture to the scratch server returns the asset and assets.get returns it",
+        "With an expected instance and a listener whose /ready answer lacks it, upload sends no multipart body (tst_serverclient)"
       ]
     },
     {
@@ -33,7 +36,7 @@
       "title": "Media import and asset browser",
       "owns": ["src/assets/", "qml/assets/"],
       "web": ["web/src/components/assets/AssetExplorer.tsx", "web/src/components/assets/AssetGrid.tsx", "web/src/components/assets/AssetItem.tsx", "web/src/serverState/useAssetUpload.ts", "web/src/components/timeline/AddClipMenu.tsx", "web/src/components/timeline/dnd/assetToClipAdapter.ts", "web/src/components/timeline/packageClipMedia.ts"],
-      "server": ["assets.list", "assets.get", "assets.ensureProxy", "the upload route used by useAssetUpload.ts"],
+      "server": ["assets.list", "assets.get", "assets.ensureProxy", "POST /api/assets through ServerClient::upload from S1 (B adds no request code and does not edit ServerClient.*)"],
       "exit": [
         "Imported file appears as an asset and gets a proxy when the server makes one",
         "Dropped asset gives the same clip JSON as assetToClipAdapter.ts (oracle)",
@@ -253,6 +256,8 @@
         "Closes m5b F4 (docs/reviews/round3-save.md): the identity proof covers the connection that carries the write, and a copied /ready answer does not pass it",
         "check-server-identity.mjs swaps the scratch server for a recording listener during --wait-before-write. The listener receives no byte of the POST, and the client exits 1 with WRONG_SERVER or a connection error and does not retry. With only the flag added and the old mutate, the check fails",
         "A listener that replays headers copied from a real scratch server /ready answer gets no write (tst_serveridentity and the check script)",
+        "ServerClient::upload takes the same proof: a listener that replaces the server after the identity check receives no byte of the multipart body, and an upload to the scratch server still stores the asset (tst_serveridentity)",
+        "mutate and upload keep the signatures S1 gave them, so merged A and B need no change",
         "scratch-safety.test.mjs: mutate and upload send no body to a replacement listener",
         "A save against the scratch server still writes, and timeline.get returns the edit. tst_autosave and tst_serverclient pass",
         "A client with no expected instance sends one request (mutateWithoutAnExpectationSendsDirectly)",
@@ -269,7 +274,8 @@
         "plan-conformance.mjs passes with no problems, with and without --examples",
         "Differential test: the new resolver equals the old quadratic one (keys and every field, doubles bit for bit) on every timeline fixture and example at 30 fps, and on 1,000 generated buckets with shared starts, equal ends, zero and negative durations, hidden and adjustment clips and nested groups. A planted tie change (>= for >) fails it once",
         "Timing test: one bucket of n overlapping active clips at n = 2,000 and n = 32,000, median of 5 runs, larger run under 40 times the smaller. It fails against the old resolver",
-        "SceneEval.cpp changes only by the removal of the moved code and the two call sites (transitionOpacitiesAt, evaluateScene)"
+        "SceneEval.cpp changes only by the removal of the moved code and the two call sites (transitionOpacitiesAt, evaluateScene)",
+        "src/preview/transitions/module.cmake registers the resolver and its test through S1's recursive include, with no edit to src/preview/module.cmake or CMakeLists.txt"
       ]
     },
     {
