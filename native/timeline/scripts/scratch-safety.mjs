@@ -63,9 +63,13 @@ export function safeRm(work, p) {
   fs.rmSync(abs, { recursive: true, force: true });
 }
 
-/** PIDs listening on a TCP port (lsof). */
+/** PIDs listening on a TCP port (lsof, or ss on a Linux without lsof). */
 export function listenerPids(port) {
   const r = spawnSync("lsof", ["-nP", `-iTCP:${port}`, "-sTCP:LISTEN", "-t"], { encoding: "utf8" });
+  if (r.error?.code === "ENOENT" && process.platform === "linux") {
+    const ss = spawnSync("ss", ["-H", "-ltnp", `sport = :${port}`], { encoding: "utf8" });
+    return [...new Set([...(ss.stdout ?? "").matchAll(/pid=(\d+)/g)].map((m) => Number(m[1])))];
+  }
   return (r.stdout ?? "").split("\n").map((l) => Number(l.trim())).filter((n) => n > 0);
 }
 

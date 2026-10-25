@@ -35,7 +35,8 @@
 // and the device extensions of requiredDeviceExtensions(). Without them
 // create() returns null and the sources decode in software.
 //
-// Written for M6 and not compiled yet: the development machine is macOS.
+// Frame completion (FrameRef::releasedInFlight): each frame records a small
+// buffer readback, which QRhi completes once that frame has run.
 
 #include <QByteArrayList>
 #include <QSize>
@@ -98,6 +99,8 @@ public:
     // The device extensions the import needs; HwWindow.cpp asks Qt Quick to
     // enable them.
     static QByteArrayList requiredDeviceExtensions();
+    // The frame completion marks allocated, by every interop (tests).
+    static int liveCompletionMarks();
 
 private:
     friend class FrameRef;

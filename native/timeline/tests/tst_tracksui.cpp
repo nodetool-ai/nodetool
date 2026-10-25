@@ -16,6 +16,9 @@
 #include "edit/EditActions.h"
 #include "playback/PlaybackClock.h"
 #include "preview/PreviewCompositor.h"
+#ifdef Q_OS_LINUX
+#include "preview/hw/HwWindow.h"
+#endif
 #include "ui/BenchMedia.h"
 #include "ui/MediaPreviews.h"
 #include "server/AutosaveController.h"
@@ -2311,6 +2314,9 @@ private slots:
         QQuickRenderControl control;
         QQuickWindow window(&control);
         window.resize(size);
+#ifdef Q_OS_LINUX
+        nt::hw::prepareWindow(&window);  // a Vulkan scene graph needs an instance on the window
+#endif
         auto* strip = new FilmstripItem(window.contentItem());
         strip->setSize(QSizeF(size));
         strip->setClipWidthPx(size.width());

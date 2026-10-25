@@ -340,6 +340,11 @@ target_compile_definitions(tst_tracksui PRIVATE NT_FIXTURES_DIR="${CMAKE_CURRENT
 target_link_libraries(tst_tracksui PRIVATE timeline_core timeline_decode Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick
     Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
 nt_add_timeline_qml(tst_tracksui OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_tracksui_qml/NodeTool/Timeline)
+# Linux: the render-control case attaches a Vulkan instance (hw::prepareWindow)
+# when the scene graph runs on Vulkan, as CI and the render tests do.
+if(UNIX AND NOT APPLE)
+    target_sources(tst_tracksui PRIVATE src/preview/hw/HwWindow.h src/preview/hw/HwWindow.cpp)
+endif()
 add_test(NAME tst_tracksui COMMAND tst_tracksui)
 # No window is ever shown: the offscreen platform and the software renderer.
 set_tests_properties(tst_tracksui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
@@ -398,6 +403,14 @@ add_test(NAME tst_editpreview COMMAND tst_editpreview)
 # checks the backend in their log (.github/workflows/native-timeline.yml).
 # The window-event tests set the offscreen platform in their ENVIRONMENT.
 set_tests_properties(tst_editpreview PROPERTIES LABELS render)
+# Linux: the VAAPI interop's frame completion marks on a Vulkan QRhi.
+if(UNIX AND NOT APPLE AND Vulkan_FOUND AND LIBVA_FOUND)
+    qt_add_executable(tst_vulkaninterop tests/tst_vulkaninterop.cpp)
+    target_compile_options(tst_vulkaninterop PRIVATE ${NT_WARNINGS})
+    target_link_libraries(tst_vulkaninterop PRIVATE timeline_core timeline_decode Qt6::Gui Qt6::GuiPrivate Qt6::Test)
+    add_test(NAME tst_vulkaninterop COMMAND tst_vulkaninterop)
+    set_tests_properties(tst_vulkaninterop PROPERTIES LABELS render)
+endif()
 # Native easing against the web's values (scene/Animation.h).
 qt_add_executable(tst_easing tests/tst_easing.cpp)
 set_target_properties(tst_easing PROPERTIES MACOSX_BUNDLE FALSE)

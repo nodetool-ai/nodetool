@@ -108,4 +108,24 @@ std::size_t frameBytes(const AVFrame* frame);
 // Wraps a hardware frame as two textures. Null with `error` set on failure.
 std::shared_ptr<FrameRef> wrapFrame(PlatformInterop& interop, const AVFrame* frame, std::string* error);
 
+#if NT_HW_VAAPI
+// Waits on the decoder thread until the decode into the frame's surface has
+// finished (vaSyncSurface). nvidia-vaapi-driver can leave a surface whose
+// first sync comes from the render thread, while the decoder thread decodes
+// into the same context, waiting forever. 0, or a negative AVERROR.
+int syncFrame(const AVFrame* frame);
+
+// A system-memory NV12 copy of a VAAPI frame, which the scrub cache keeps in
+// its place (D19), or null. A VAAPI decode context numbers every surface it
+// decodes into, and nvidia-vaapi-driver allows 32 per context: past that,
+// vaBeginPicture fails (VA_STATUS_ERROR_MAX_NUM_EXCEEDED) and a later
+// vaSyncSurface on the undecoded surface never returns. Cached surfaces
+// would count against that limit, so the cache holds none.
+struct CacheFrameFree {
+    void operator()(AVFrame* frame) const;
+};
+using CacheFrame = std::unique_ptr<AVFrame, CacheFrameFree>;
+CacheFrame cacheCopy(const AVFrame* frame);
+#endif
+
 }  // namespace nt::hw

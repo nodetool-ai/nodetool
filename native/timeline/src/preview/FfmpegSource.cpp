@@ -760,6 +760,17 @@ void FfmpegDecoder::run() {
             continue;
         }
         beat();
+#if NT_HW_VAAPI
+        if (frm->format == hw::pixelFormat()) {
+            // On this thread, before the render thread maps it (hw::syncFrame).
+            const int synced = hw::syncFrame(frm.get());
+            if (synced < 0) {
+                av_frame_unref(frm.get());
+                if (!decodeError(synced, "VAAPI sync")) return;
+                continue;
+            }
+        }
+#endif
         if (s.hardware && !s.gotFrame) {
             const std::string bad = checkHardwareFrame(frm.get());
             if (!bad.empty()) {
@@ -884,9 +895,27 @@ void FfmpegDecoder::run() {
             out->frame = conv;
         }
         av_frame_unref(frm.get());
-        const size_t bytes = frameBytes(*out);
         const double pts = out->ptsSec;
         std::shared_ptr<DecodedFrame> cached = out;
+#if NT_HW_VAAPI
+        if (out->hardware) {
+            // The cache keeps a system-memory copy, not the VA surface
+            // (hw::cacheCopy). Without one, this frame is not cached.
+            cached.reset();
+            if (hw::CacheFrame copy = hw::cacheCopy(out->frame)) {
+                cached = std::make_shared<DecodedFrame>();
+                cached->frame = copy.release();  // DecodedFrame frees it
+                cached->ptsSec = out->ptsSec;
+                cached->generation = out->generation;
+                cached->layout = PlaneLayout::Nv12;
+                cached->matrix = out->matrix;
+                cached->range = out->range;
+                cached->width = out->width;
+                cached->height = out->height;
+            }
+        }
+#endif
+        const size_t bytes = cached ? frameBytes(*cached) : 0;
         if (m_ring.push(std::move(out))) {
             m_ring.prune(m_targetSec.load());  // keep only the newest frame behind the target
             // The scrub cache keeps it after it leaves the queue (D19); the
@@ -894,8 +923,12 @@ void FfmpegDecoder::run() {
             // Two frames are neighbours only when no skipped frame can lie
             // between them: skipped frames all start before the run's floor.
             const bool contiguous = lastCachedPts >= runSkipFloor - kTimestampEpsilonSec;
-            FrameCache::shared().insert(m_path, pts, std::move(cached), bytes, contiguous ? lastCachedPts : -1.0);
-            lastCachedPts = pts;
+            if (cached) {
+                FrameCache::shared().insert(m_path, pts, std::move(cached), bytes, contiguous ? lastCachedPts : -1.0);
+                lastCachedPts = pts;
+            } else {
+                lastCachedPts = -1.0;  // the next frame has no cached predecessor
+            }
         }
     }
 }

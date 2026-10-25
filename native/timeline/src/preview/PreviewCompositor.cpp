@@ -684,11 +684,12 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
         const double captureTime = m_timeMs;
         m_captureInFlight = true;
         m_readback = QRhiReadbackResult();
-        m_readback.completed = [this, captureTime] {
+        // OpenGL (the Linux default) reads a texture back bottom row first.
+        m_readback.completed = [this, captureTime, flip = m_rhi->isYUpInFramebuffer()] {
             const QImage img(reinterpret_cast<const uchar*>(m_readback.data.constData()), m_readback.pixelSize.width(),
                              m_readback.pixelSize.height(), QImage::Format_RGBA8888_Premultiplied);
             std::lock_guard lock(m_captureMutex);
-            m_captured = img.copy();
+            m_captured = flip ? img.flipped(Qt::Vertical) : img.copy();
             m_capturedTimeMs = captureTime;
             m_captureInFlight = false;
         };
