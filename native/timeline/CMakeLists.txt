@@ -403,6 +403,14 @@ add_test(NAME tst_editpreview COMMAND tst_editpreview)
 # checks the backend in their log (.github/workflows/native-timeline.yml).
 # The window-event tests set the offscreen platform in their ENVIRONMENT.
 set_tests_properties(tst_editpreview PROPERTIES LABELS render)
+# Linux: the VAAPI interop's frame completion marks on a Vulkan QRhi.
+if(UNIX AND NOT APPLE AND Vulkan_FOUND AND LIBVA_FOUND)
+    qt_add_executable(tst_vulkaninterop tests/tst_vulkaninterop.cpp)
+    target_compile_options(tst_vulkaninterop PRIVATE ${NT_WARNINGS})
+    target_link_libraries(tst_vulkaninterop PRIVATE timeline_core timeline_decode Qt6::Gui Qt6::GuiPrivate Qt6::Test)
+    add_test(NAME tst_vulkaninterop COMMAND tst_vulkaninterop)
+    set_tests_properties(tst_vulkaninterop PROPERTIES LABELS render)
+endif()
 # Native easing against the web's values (scene/Animation.h).
 qt_add_executable(tst_easing tests/tst_easing.cpp)
 set_target_properties(tst_easing PROPERTIES MACOSX_BUNDLE FALSE)

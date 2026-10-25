@@ -99,6 +99,8 @@ public:
     // The device extensions the import needs; HwWindow.cpp asks Qt Quick to
     // enable them.
     static QByteArrayList requiredDeviceExtensions();
+    // The frame completion marks allocated, by every interop (tests).
+    static int liveCompletionMarks();
 
 private:
     friend class FrameRef;

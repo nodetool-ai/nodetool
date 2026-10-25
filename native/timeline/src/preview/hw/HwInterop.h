@@ -121,7 +121,11 @@ int syncFrame(const AVFrame* frame);
 // vaBeginPicture fails (VA_STATUS_ERROR_MAX_NUM_EXCEEDED) and a later
 // vaSyncSurface on the undecoded surface never returns. Cached surfaces
 // would count against that limit, so the cache holds none.
-AVFrame* cacheCopy(const AVFrame* frame);
+struct CacheFrameFree {
+    void operator()(AVFrame* frame) const;
+};
+using CacheFrame = std::unique_ptr<AVFrame, CacheFrameFree>;
+CacheFrame cacheCopy(const AVFrame* frame);
 #endif
 
 }  // namespace nt::hw

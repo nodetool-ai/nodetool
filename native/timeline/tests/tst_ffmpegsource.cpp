@@ -22,6 +22,7 @@ extern "C" {
 
 #include <cmath>
 #include <random>
+#include <type_traits>
 
 using namespace nt;
 
@@ -90,7 +91,8 @@ bool needsHardware() {
     static const QSet<QByteArray> functions{"hardwareSeekBetweenFrames", "twelveHardwareSessions", "hardwareFallback",
                                             "importFailureFallsBackInAuto", "importFailureFailsTheClipInHardware",
                                             "sendErrorBeforeFirstFrameFallsBack", "hardwareSetupFailurePolicy",
-                                            "hardwareDecodeIsNotStarvedByHeldFrames"};
+                                            "hardwareDecodeIsNotStarvedByHeldFrames",
+                                            "vaapiCacheCopyIsOwned"};
     const QByteArray tag(QTest::currentDataTag() ? QTest::currentDataTag() : "");
     return functions.contains(QTest::currentTestFunction()) || tag == "hw" || tag.contains(", hw") ||
            tag.contains(", auto");
@@ -310,6 +312,28 @@ private slots:
         f = waitExact(d, 5.0);
         QVERIFY(f);
         QCOMPARE(hardwareBarcode(*f), 150);
+    }
+
+    // The scrub cache's copy of a VAAPI frame has an owner from its
+    // allocation on: a throwing allocation before DecodedFrame takes it
+    // cannot leak the frame and its pixel buffers.
+    void vaapiCacheCopyIsOwned() {
+#if !NT_HW_VAAPI
+        QSKIP("VAAPI only");
+#else
+        QVERIFY2(!std::is_pointer_v<decltype(hw::cacheCopy(nullptr))>, "cacheCopy returns an unowned AVFrame*");
+        ModeScope mode(DecodeMode::Hardware);
+        FfmpegDecoder d(media("seek-360p30.mp4"), 0.0);
+        const auto f = waitExact(d, 0.050);
+        QVERIFY(f);
+        QVERIFY(f->hardware);
+        const auto copy = hw::cacheCopy(f->frame);
+        QVERIFY(copy);
+        QCOMPARE(copy->format, int(AV_PIX_FMT_NV12));
+        QCOMPARE(copy->width, f->frame->width);
+        QCOMPARE(copy->height, f->frame->height);
+        QVERIFY(copy->data[0] && copy->data[1]);
+#endif
     }
 
     // M1c exit 4 (R5): 12 VideoToolbox sessions open at once, all decoding.

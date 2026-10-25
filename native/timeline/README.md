@@ -36,7 +36,7 @@ requirement. Run from `native/timeline/`:
 
 ```bash
 cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH=$HOME/qt/6.12.0/gcc_64
-cmake --build build
+nice -n 10 cmake --build build -j 2
 scripts/make-fixtures.sh
 QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=vulkan xvfb-run -a -s "-screen 0 1920x1080x24" \
     ctest --test-dir build -j 2 --output-on-failure
@@ -46,7 +46,8 @@ QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=vulkan xvfb-run -a -s "-screen 0 1920x1080x2
     node scripts/check-group-surfaces.mjs --bin build/nodetool-timeline
 ```
 
-Every GUI run goes through Xvfb (`xvfb-run`) or the offscreen platform, so
+The build runs at low priority with two jobs, so concurrent builds do not
+overload the machine. Every GUI run goes through Xvfb (`xvfb-run`) or the offscreen platform, so
 no window reaches the desktop. The render tests need a Vulkan device:
 `vulkaninfo --summary` must name the GPU, not `llvmpipe`. Hardware decode
 needs a VAAPI driver that exports DMA-BUF: `vainfo --display drm --device
@@ -64,7 +65,7 @@ saved.
 
 Linux results (October 2026, the machine above):
 
-- All 35 ctest tests pass under Xvfb on the NVIDIA Vulkan device, with the
+- All 36 ctest tests pass under Xvfb on the NVIDIA Vulkan device, with the
   hardware tests (`tst_ffmpegsource`, `tst_sourcepool`) on VAAPI. Skipped
   inside them: `tst_editpreview` `liveEditCostOnALargeDocument` until
   `node scripts/make-ui-fixture.mjs` has written its fixture (as on every
