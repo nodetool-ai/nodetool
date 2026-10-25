@@ -34,10 +34,12 @@ namespace nt::hw {
 namespace {
 
 std::atomic<int> g_releaseFailures{0};
+std::atomic<int> g_fenceWaitFailures{0};
 std::atomic<int> g_releasesSubmitted{0};
 std::atomic<int> g_releasesCompleted{0};
 std::atomic<int> g_freedWithoutRelease{0};
 std::atomic<int> g_retainedMappings{0};
+std::atomic<int> g_unconfirmedPending{0};
 std::atomic<int> g_liveFrameRefs{0};
 std::atomic<int> g_liveCompletionMarks{0};
 std::atomic<int> g_releasedInFlight{0};
@@ -193,6 +195,16 @@ struct VulkanInterop::Vk {
     bool lost = false;
     std::unique_ptr<QRhiBuffer> markBuffer;
     std::deque<std::unique_ptr<CompletionMark>> marks;  // in frame order
+
+    VkResult waitForFence(VkFence fence) {
+        int failures = g_fenceWaitFailures.load();
+        while (failures != 0) {
+            if (failures < 0 || g_fenceWaitFailures.compare_exchange_weak(failures, failures - 1)) {
+                return VK_ERROR_OUT_OF_HOST_MEMORY;
+            }
+        }
+        return df->vkWaitForFences(dev, 1, &fence, VK_TRUE, UINT64_MAX);
+    }
 
     void freeOwned(Owned& o) {
         if (o.drm && o.needsRelease && !lost) {
@@ -397,9 +409,13 @@ void testing::setReleaseFailures(int count) {
     g_releaseFailures.store(count);
 }
 
+void testing::setFenceWaitFailures(int count) {
+    g_fenceWaitFailures.store(count);
+}
+
 testing::ReleaseStats testing::releaseStats() {
     return {g_releasesSubmitted.load(), g_releasesCompleted.load(), g_freedWithoutRelease.load(),
-            g_retainedMappings.load()};
+            g_retainedMappings.load(), g_unconfirmedPending.load()};
 }
 
 void trackCompletion(QRhiCommandBuffer* cb, long long frameNumber) {
@@ -451,15 +467,30 @@ VulkanInterop::~VulkanInterop() {
         // waits below finish. Device loss may clear both vectors.
         (void)vk.release(vk.unreleased[i], &why);
     }
+    bool unconfirmedPending = false;
     for (Pending& p : vk.pending) {
         if (!vk.lost) {
-            const VkResult result = vk.df->vkWaitForFences(vk.dev, 1, &p.fence, VK_TRUE, UINT64_MAX);
+            VkResult result = VK_SUCCESS;
+            for (int attempt = 0; attempt < 3; ++attempt) {
+                result = vk.waitForFence(p.fence);
+                if (result == VK_SUCCESS || result == VK_ERROR_DEVICE_LOST) {
+                    break;
+                }
+            }
             if (result == VK_ERROR_DEVICE_LOST) {
                 vk.lost = true;
             } else if (result != VK_SUCCESS) {
-                qWarning("Vulkan teardown could not wait for a submitted release (%d), treating device as lost",
+                qWarning("Vulkan teardown fence wait failed after 3 attempts (%d): retaining pending Vulkan objects "
+                         "and command pool for process lifetime",
                          static_cast<int>(result));
-                vk.lost = true;
+                retainMapping(p.owned.drm);
+                // Abandon the handles so Owned's destructor cannot free
+                // resources the GPU may still use. The pool must stay too.
+                p.owned.images = {};
+                p.owned.memory = {};
+                ++g_unconfirmedPending;
+                unconfirmedPending = true;
+                continue;
             } else {
                 p.owned.releaseCompleted = true;
             }
@@ -477,7 +508,9 @@ VulkanInterop::~VulkanInterop() {
     }
     vk.unreleased.clear();
     for (VkFence f : vk.freeFences) vk.df->vkDestroyFence(vk.dev, f, nullptr);
-    if (vk.pool) vk.df->vkDestroyCommandPool(vk.dev, vk.pool, nullptr);
+    if (vk.pool && !unconfirmedPending) {
+        vk.df->vkDestroyCommandPool(vk.dev, vk.pool, nullptr);
+    }
     // QRhi still writes a readback that has not completed: its callback
     // takes the mark and frees it (CompletionMark).
     for (auto& mark : vk.marks) {

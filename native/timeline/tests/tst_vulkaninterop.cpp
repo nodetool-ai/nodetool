@@ -18,6 +18,8 @@ extern "C" {
 #include <rhi/qrhi.h>
 
 #include <memory>
+#include <utility>
+#include <vector>
 
 using namespace nt::hw;
 
@@ -86,6 +88,9 @@ struct VaapiFixture {
 
 struct RestoreReleaseSubmissions {
     ~RestoreReleaseSubmissions() { testing::setReleaseFailures(0); }
+};
+struct RestoreFenceWaits {
+    ~RestoreFenceWaits() { testing::setFenceWaitFailures(0); }
 };
 }  // namespace
 
@@ -182,6 +187,72 @@ private slots:
         QCOMPARE(after.submitted - before.submitted, persistentFailure ? 0 : 1);
         QCOMPARE(after.completed - before.completed, persistentFailure ? 0 : 1);
         QCOMPARE(after.retainedMappings - before.retainedMappings, persistentFailure ? 1 : 0);
+    }
+
+    void teardownRequiresConfirmedFenceWait_data() {
+        QTest::addColumn<int>("waitFailures");
+        QTest::addColumn<int>("frameCount");
+        QTest::addColumn<int>("retained");
+        QTest::newRow("persistent-wait-failure") << -1 << 1 << 1;
+        QTest::newRow("transient-wait-failure") << 1 << 1 << 0;
+        QTest::newRow("later-pending-entry-completes") << 3 << 2 << 1;
+    }
+
+    void teardownRequiresConfirmedFenceWait() {
+        QFETCH(int, waitFailures);
+        QFETCH(int, frameCount);
+        QFETCH(int, retained);
+        const QString path = QStringLiteral(NT_FIXTURES_DIR "/media/seek-360p30.mp4");
+        if (!QFileInfo::exists(path)) {
+            QSKIP("run scripts/make-fixtures.sh for the VAAPI fixture");
+        }
+        std::vector<VaapiFixture> fixtures(static_cast<size_t>(frameCount));
+        for (auto& fixture : fixtures) {
+            const auto error = fixture.decode(path.toStdString());
+            if (!error.empty()) {
+                QSKIP(error.c_str());
+            }
+        }
+        RestoreFenceWaits restore;
+        auto interop = VulkanInterop::create(m_rhi.get());
+        if (!interop) {
+            QSKIP("the device cannot import DMA-BUF frames");
+        }
+        const auto before = testing::releaseStats();
+        std::weak_ptr<VulkanInterop> oldInterop = interop;
+        std::vector<std::shared_ptr<FrameRef>> frames;
+        for (auto& fixture : fixtures) {
+            std::string error;
+            auto frame = interop->wrap(fixture.frame.get(), &error);
+            QVERIFY2(frame, error.c_str());
+            av_frame_unref(fixture.frame.get());
+            frames.push_back(std::move(frame));
+        }
+        QRhiCommandBuffer* cb = nullptr;
+        QCOMPARE(m_rhi->beginOffscreenFrame(&cb), QRhi::FrameOpSuccess);
+        trackCompletion(cb, 4000);
+        for (const auto& frame : frames) {
+            frame->markUsed(4000);
+        }
+        interop->flush();
+        QCOMPARE(m_rhi->endOffscreenFrame(), QRhi::FrameOpSuccess);
+        m_rhi->finish();
+        QVERIFY(completedFrame() >= 4000);
+        // Collect the acquire submissions, leaving only releases for teardown.
+        interop->flush();
+        interop.reset();
+        QVERIFY(!oldInterop.expired());
+        testing::setFenceWaitFailures(waitFailures);
+        frames.clear();  // successful retire submissions, then interop teardown
+        QVERIFY(oldInterop.expired());
+        const auto after = testing::releaseStats();
+        QCOMPARE(after.submitted - before.submitted, frameCount);
+        QCOMPARE(after.freedWithoutRelease, before.freedWithoutRelease);
+        // False device loss suppresses freedWithoutRelease, so retention and
+        // confirmed completion must also be checked independently.
+        QCOMPARE(after.unconfirmedPending - before.unconfirmedPending, retained);
+        QCOMPARE(after.retainedMappings - before.retainedMappings, retained);
+        QCOMPARE(after.completed - before.completed, frameCount - retained);
     }
 
     void cleanupTestCase() { m_rhi.reset(); }
