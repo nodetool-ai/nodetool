@@ -7,6 +7,40 @@ description: Guides C++ code toward modern idioms (C++20/23/26). Use when writin
 
 Guide for writing modern C++ using C++20, C++23, and C++26 idioms. Focuses on patterns that eliminate vulnerability classes and reduce boilerplate, with a security emphasis from Trail of Bits.
 
+## NodeTool Project Rules
+
+These rules take precedence over the rest of this skill when you work in
+`native/timeline/`. The plan in
+[PLAN-GAPS.md](../../../native/timeline/docs/PLAN-GAPS.md) is the source of
+truth when the two differ.
+
+- **The standard is C++20.** `CMAKE_CXX_STANDARD` is 20, and the code builds
+  with libc++ (macOS), libstdc++ (Linux) and MSVC (Windows). Do not use
+  C++23 or C++26 features: no `std::expected`, `std::print`, deducing
+  `this`, `std::flat_map`, monadic `std::optional`, contracts or reflection.
+  For a fallible function, follow the surrounding code: `std::optional`, or a
+  result struct with an error string.
+- **Package V owns the compiler flags.** Do not add warning, hardening or
+  sanitizer flags in a package. V adds hardening (`_GLIBCXX_ASSERTIONS`
+  for libstdc++, the libc++ hardening mode, `_FORTIFY_SOURCE=3`,
+  `-fstack-protector-strong`, `-ftrivial-auto-var-init=zero`), the
+  `sanitize` and `tsan` presets, and clang-tidy. Warnings stay `-Wall
+  -Wextra` (MSVC `/W4`). V measures `-Werror` and `-Wpedantic` against a
+  baseline. New code adds no warning.
+- **Qt objects follow Qt ownership.** A `QObject` with a parent is owned.
+  Every `connect()` with a lambda passes a context object. A lambda that can
+  outlive an object holds a `QPointer`. moc and `Q_OBJECT` stay.
+- **C handles have one owner.** Wrap each FFmpeg object, VA surface, Vulkan
+  handle and file descriptor in a `std::unique_ptr` with a deleter or a
+  move-only class.
+- **Output:** the app logs through Qt logging. CLI modes keep the existing
+  `stdout`/`stderr` output. Do not convert existing `fprintf` calls.
+- **Threads:** use `std::jthread` for a new plain thread. Use `QThread` when
+  Qt objects live in the thread. Do not rewrite threads in files that your
+  package does not own.
+- **Modernize only the code you change.** Unrelated modernization in a
+  file you touch is out of scope.
+
 ## When to Use This Skill
 
 - Writing new C++ functions, classes, or libraries
@@ -30,17 +64,17 @@ Guide for writing modern C++ using C++20, C++23, and C++26 idioms. Focuses on pa
 | Raw owning pointers | `std::unique_ptr`, `std::shared_ptr` | RAII ownership semantics |
 | C arrays (`int arr[N]`) | `std::array<int, N>` | Bounds-aware, value semantics |
 | Pointer + length params | `std::span<T>` | Non-owning, bounds-checkable |
-| `printf` / `sprintf` | `std::format`, `std::print` | Type-safe, no buffer overflow |
+| `printf` / `sprintf` | `std::format` (`std::print` is C++23, not in NodeTool) | Type-safe, no buffer overflow |
 | C-style casts `(int)x` | `static_cast<int>(x)` | Explicit intent, auditable |
 | `#define` constants | `constexpr` variables | Scoped, typed, debuggable |
 | SFINAE / `enable_if` | Concepts + `requires` | Readable constraints and errors |
-| Error codes + out params | `std::expected<T, E>` | Composable, type-safe errors |
+| Error codes + out params | `std::expected<T, E>` (C++23; NodeTool uses `std::optional` or a result struct) | Composable, type-safe errors |
 | `union` | `std::variant` | Type-safe, no silent UB |
 | Raw `mutex.lock()/unlock()` | `std::scoped_lock` | Exception-safe, no deadlocks |
 | `std::thread` | `std::jthread` | Auto-join, stop token support |
-| `assert()` macro | `contract_assert` (C++26) | Visible to tooling, configurable |
-| Manual CRTP | Deducing `this` (C++23) | Simpler, no template boilerplate |
-| Macro code generation | Reflection (C++26) | Zero-overhead, composable |
+| `assert()` macro | `contract_assert` (C++26, not in NodeTool) | Visible to tooling, configurable |
+| Manual CRTP | Deducing `this` (C++23, not in NodeTool) | Simpler, no template boilerplate |
+| Macro code generation | Reflection (C++26, not in NodeTool; moc stays) | Zero-overhead, composable |
 
 See [anti-patterns.md](./references/anti-patterns.md) for the full table (30+ patterns).
 
@@ -52,6 +86,7 @@ What are you doing?
 +-- Writing new C++ code?
 |   +-- Use modern idioms by default (C++20/23)
 |   +-- Choose the newest standard your compiler supports
+|   |   (NodeTool: C++20 only, see NodeTool Project Rules)
 |   +-- See Feature Tiers below
 |
 +-- Modernizing existing code?
@@ -102,7 +137,8 @@ These improve safety without changing your C++ standard version:
 - **Compiler hardening flags** — `-D_FORTIFY_SOURCE=3`, `-fstack-protector-strong`, `-ftrivial-auto-var-init=zero`
 - **Hardened libc++** — `-D_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST` for ~0.3% overhead bounds-checking
 - **Sanitizers in CI** — ASan + UBSan as minimum; TSan for concurrent code
-- **Warning flags** — `-Wall -Wextra -Wpedantic -Werror`
+- **Warning flags** — `-Wall -Wextra -Wpedantic -Werror` (NodeTool: package V owns the flags and measures `-Werror` against a baseline)
+- **Hardened libstdc++** — `-D_GLIBCXX_ASSERTIONS` bounds-checks `operator[]` and similar calls on GCC's standard library
 
 See [compiler-hardening.md](./references/compiler-hardening.md).
 
@@ -125,6 +161,8 @@ See [cpp26-features.md](./references/cpp26-features.md).
 ## Compiler Hardening Quick Reference
 
 ### Essential Flags (GCC + Clang)
+
+In NodeTool, package V sets these flags. A package does not add them.
 
 ```
 -Wall -Wextra -Wpedantic -Werror
@@ -168,7 +206,7 @@ See [compiler-hardening.md](./references/compiler-hardening.md) for the full gui
 
 - [ ] Use smart pointers for ownership, raw pointers only for non-owning observation
 - [ ] Prefer `std::span` over pointer + length for function parameters
-- [ ] Use `std::expected` for functions that can fail with typed errors
+- [ ] Use `std::expected` for functions that can fail with typed errors (NodeTool: `std::optional` or a result struct, as the surrounding code does)
 - [ ] Constrain templates with concepts, not SFINAE
 - [ ] Enable compiler hardening flags and hardened libc++ in all builds
 - [ ] Run ASan + UBSan in CI; add TSan for concurrent code
@@ -185,3 +223,11 @@ See [compiler-hardening.md](./references/compiler-hardening.md) for the full gui
 - [cpp26-features.md](./references/cpp26-features.md) — Reflection, contracts, memory safety improvements
 - [compiler-hardening.md](./references/compiler-hardening.md) — Flags, sanitizers, hardened libc++
 - [safe-idioms.md](./references/safe-idioms.md) — Security patterns by vulnerability class
+
+## Source
+
+Adapted from [trailofbits/skills](https://github.com/trailofbits/skills/tree/123037ec8aed26f0d86327cc39137ee5043e5deb/plugins/modern-cpp/skills/modern-cpp)
+under [CC BY-SA 4.0](../LICENSE-trailofbits-skills). NodeTool changed this
+file: it added the NodeTool Project Rules section and the NodeTool notes in
+the anti-pattern table, the decision tree, Tier 2, the flag reference and
+the checklist. The reference files are unchanged.

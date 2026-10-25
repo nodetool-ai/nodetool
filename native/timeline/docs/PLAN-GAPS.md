@@ -34,6 +34,10 @@ differ.
   Do not measure performance while the load average is above 10.
 - Write the failing test first for each bug fix. Prove each new check fails
   once on bad input.
+- Load the modern-cpp skill
+  ([.agents/skills/modern-cpp/SKILL.md](../../../.agents/skills/modern-cpp/SKILL.md))
+  before writing C++. Its NodeTool Project Rules section says where this
+  plan overrides it.
 - Follow the memory-safety rules in new and changed code. Each FFmpeg
   object, VA surface, Vulkan handle and file descriptor has one owner: a
   `std::unique_ptr` with a deleter or a move-only class. Every
