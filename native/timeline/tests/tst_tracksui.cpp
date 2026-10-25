@@ -13,6 +13,8 @@
 #include "model/TrackWindowModel.h"
 #include "preview/FfmpegSource.h"
 #include "edit/ClipGestureController.h"
+#include "app/EditRegistry.h"
+#include <QScopeGuard>
 #include "edit/EditActions.h"
 #include "playback/PlaybackClock.h"
 #include "preview/PreviewCompositor.h"
@@ -294,6 +296,12 @@ class TestTracksUi : public QObject {
         QKeyEvent release(QEvent::KeyRelease, k, mods, text, autoRepeat);
         QCoreApplication::sendEvent(view.get(), &release);
         frame();
+    }
+
+    static void registryModes() {
+        QTest::addColumn<bool>("registered");
+        QTest::newRow("builtins") << true;
+        QTest::newRow("fallback") << false;
     }
 
 private slots:
@@ -889,8 +897,227 @@ private slots:
 
     // ── M4: editing ──
 
+    // S1 F1: every registered controller edit can replace the built-in action.
+    void controllerEditsUseRegistry_data() {
+        QTest::addColumn<QString>("registration");
+        QTest::addColumn<QString>("editName");
+        QTest::addColumn<QString>("tool");
+        QTest::addColumn<QString>("part");
+        QTest::addColumn<int>("keyCode");
+        QTest::addColumn<int>("modifiers");
+        QTest::addColumn<bool>("rippleMode");
+        QTest::addColumn<bool>("multi");
+        const auto row = [](const char* label, const char* name, const char* tool, const char* part,
+                            int key = 0, int modifiers = 0, bool ripple = false, bool multi = false) {
+            for (const QString& registration : {QStringLiteral("override"), QStringLiteral("register"),
+                                                QStringLiteral("refuse")}) {
+                const QByteArray rowName = QByteArray(label) + '-' + registration.toLatin1();
+                QTest::newRow(rowName.constData()) << registration << QString::fromLatin1(name)
+                    << QString::fromLatin1(tool) << QString::fromLatin1(part) << key << modifiers << ripple << multi;
+            }
+        };
+        row("delete", "deleteSelected", "select", "", Qt::Key_Delete);
+        row("shift-delete", "rippleDeleteSelected", "select", "", Qt::Key_Delete, Qt::ShiftModifier);
+        row("ripple-mode-delete", "rippleDeleteSelected", "select", "", Qt::Key_Delete, 0, true);
+        row("plain-head", "trimClipStart", "select", "start");
+        row("plain-tail", "trimClipEnd", "select", "end");
+        row("ripple-head", "rippleTrimClipStart", "ripple", "start");
+        row("ripple-tail", "rippleTrimClipEnd", "ripple", "end");
+        row("roll-head", "rollClipEdge", "roll", "start");
+        row("roll-tail", "rollClipEdge", "select", "end", 0, Qt::ControlModifier);
+        row("stretch-head", "rateStretchClip", "rateStretch", "start");
+        row("stretch-tail", "rateStretchClip", "rateStretch", "end");
+        row("insert-drop", "resolveDropAction", "select", "body", 0, Qt::ControlModifier);
+        row("move", "moveClip", "select", "body");
+        row("multi-move", "moveSelectedClips", "select", "body", 0, 0, false, true);
+        row("slip", "slipClip", "slip", "body");
+        row("slide", "slideClip", "slide", "body");
+        row("cut", "splitClipAtTime", "cut", "body");
+        row("split-key", "splitSelectedAtPlayhead", "select", "", Qt::Key_S);
+        row("nudge", "nudge", "select", "", Qt::Key_Right);
+    }
+
+    void controllerEditsUseRegistry() {
+        QFETCH(QString, registration);
+        QFETCH(QString, editName);
+        QFETCH(QString, tool);
+        QFETCH(QString, part);
+        QFETCH(int, keyCode);
+        QFETCH(int, modifiers);
+        QFETCH(bool, rippleMode);
+        QFETCH(bool, multi);
+        load({4, 20, 800, 800});
+        seed(10, 0);
+        auto* g = controller();
+        g->setSnapEnabled(false);
+        g->setLinkedSelection(false);
+        g->setActiveTool(tool);
+        g->setRippleMode(rippleMode);
+        g->setSelection(multi ? QStringList{"c-0-2", "c-1-2"} : QStringList{"c-0-2"});
+        clock->seek(2000);
+        // A finite source cap, including the neighbour that bounds a head roll.
+        QJsonArray clips = model->clipsJson();
+        for (qsizetype i = 0; i < clips.size(); ++i) {
+            auto clip = clips.at(i).toObject();
+            clip.insert("currentAssetId", "asset-" + clip.value("id").toString());
+            clip.insert("inPointMs", 200);
+            clip.insert("outPointMs", 1000);
+            clips.replace(i, clip);
+        }
+        QVERIFY(model->replaceClips(clips));
+        frame();
+        const QJsonArray before = model->clipsJson();
+        const QByteArray documentBefore = model->documentJson();
+        const QJsonObject rawBefore = model->timeline().raw;
+        const auto previousEdits = nt::app::edits();
+        const auto previousOverrides = nt::app::editOverrides();
+        const auto restore = qScopeGuard([previousEdits, previousOverrides] {
+            nt::app::edits() = previousEdits;
+            nt::app::editOverrides() = previousOverrides;
+        });
+        const bool refusing = registration == "refuse";
+        std::vector<QJsonObject> documents;
+        std::vector<QJsonObject> payloads;
+        std::vector<int> undoCounts;
+        const nt::app::Edit edit = [&](QJsonObject raw, const QJsonObject& payload) {
+            documents.push_back(raw);
+            payloads.push_back(payload);
+            undoCounts.push_back(model->undoStack()->count());
+            if (refusing) {
+                return raw;
+            }
+            QJsonArray result = raw.value("clips").toArray();
+            for (qsizetype i = 0; i < result.size(); ++i) {
+                auto clip = result.at(i).toObject();
+                clip.insert("registryVisits", clip.value("registryVisits").toInt() + 1);
+                result.replace(i, clip);
+            }
+            raw.insert("clips", result);
+            return raw;
+        };
+        if (registration == "register") {
+            nt::app::edits().remove(editName);
+            QVERIFY(nt::app::registerEdit(editName, edit));
+        } else {
+            QVERIFY(nt::app::overrideEdit(editName, edit));
+        }
+        if (keyCode) {
+            QVERIFY(g->handleKey(keyCode, keyCode == Qt::Key_S ? "s" : "", modifiers, false));
+        } else {
+            const double x = part == "start" ? 3 : part == "end" ? 76 : 30;
+            const QPoint from = clipPoint("c-0-2", x);
+            const auto mods = static_cast<Qt::KeyboardModifiers>(modifiers);
+            drag(from, from + QPoint(30, 0), 6,
+                 editName == "resolveDropAction" ? Qt::NoModifier : mods,
+                 editName == "resolveDropAction" ? mods : Qt::NoModifier);
+        }
+        QVERIFY2(!payloads.empty(), qPrintable(editName + " bypassed its registered override"));
+        QCOMPARE(clipJson("c-0-2").value("registryVisits").toInt(), refusing ? 0 : int(payloads.size()));
+        for (size_t i = 0; i < documents.size(); ++i) {
+            auto raw = documents[i];
+            const auto inputClips = raw.take("clips").toArray();
+            auto expectedRaw = rawBefore;
+            expectedRaw.remove("clips");
+            QCOMPARE(raw, expectedRaw);
+            QCOMPARE(inputClips.at(0).toObject().value("registryVisits").toInt(), refusing ? 0 : int(i));
+            QCOMPARE(undoCounts[i], 0);  // previews never push commands
+            QCOMPARE(payloads[i].value("linked"), QJsonValue(false));
+        }
+        const auto payload = payloads.back();
+        if (editName == "deleteSelected" || editName == "rippleDeleteSelected" || editName == "resolveDropAction") {
+            QCOMPARE(payload.value("selectedIds").toArray(), QJsonArray{"c-0-2"});
+        } else if (editName == "splitSelectedAtPlayhead") {
+            QCOMPARE(payload.value("selectedIds").toArray(), QJsonArray{"c-0-2"});
+            QCOMPARE(payload.value("timeMs"), QJsonValue(2000));
+        } else {
+            QCOMPARE(payload.value("clipId").toString(), QStringLiteral("c-0-2"));
+        }
+        if (part == "end" || editName == "rollClipEdge" || editName == "slipClip") {
+            if (editName != "rateStretchClip") {
+                QCOMPARE(payload.value("maxSourceDurationMs"), QJsonValue(1000));
+            }
+        }
+        if (editName == "rateStretchClip") {
+            QCOMPARE(payload.value("edge").toString(), part);
+            QCOMPARE(payload.value("durationMs"), QJsonValue(part == "start" ? 500 : 1100));
+        } else if (editName == "slipClip") {
+            QCOMPARE(payload.value("sourceDeltaMs"), QJsonValue(-300));
+        } else if (editName == "splitClipAtTime") {
+            QCOMPARE(payload.value("atMs"), QJsonValue(1900));
+        } else if (editName == "nudge") {
+            QCOMPARE(payload.value("deltaMs"), QJsonValue(33));
+        } else if (editName.contains("Trim") || editName.startsWith("trim") || editName == "rollClipEdge" ||
+                   editName == "moveClip" || editName == "moveSelectedClips" || editName == "slideClip") {
+            QCOMPARE(payload.value("deltaMs"), QJsonValue(part == "start" && editName != "rollClipEdge" ? -300 : 300));
+        }
+        if (editName == "rollClipEdge") {
+            QCOMPARE(payload.value("edge").toString(), part);
+        }
+        if (editName == "moveSelectedClips") {
+            QCOMPARE(payload.value("selectedIds").toArray(), (QJsonArray{"c-0-2", "c-1-2"}));
+        }
+        if (editName == "resolveDropAction") {
+            QCOMPARE(payload.value("mode").toString(), QStringLiteral("insert"));
+            QVERIFY(documents.front().value("clips").toArray() != before);  // receives the live move
+        }
+        QCOMPARE(model->undoStack()->count(), refusing && editName != "resolveDropAction" ? 0 : 1);
+        if (editName == "deleteSelected" || editName == "rippleDeleteSelected") {
+            if (!refusing) {
+                QCOMPARE(model->undoStack()->undoText(), rippleMode || modifiers & Qt::ShiftModifier
+                         ? QStringLiteral("Ripple delete") : QStringLiteral("Delete clips"));
+            }
+            g->setSelection({});
+            QVERIFY(!g->handleKey(Qt::Key_Delete, "", modifiers, false));
+            QCOMPARE(payloads.size(), size_t(1));
+        }
+        const QByteArray after = model->documentJson();
+        model->undoStack()->undo();
+        QCOMPARE(model->documentJson(), documentBefore);
+        QVERIFY(!model->undoStack()->canUndo());
+        model->undoStack()->redo();
+        QCOMPARE(model->documentJson(), after);
+    }
+
+    void registeredSplitKeepsTheRightHalvesSelectedOnALargeDocument() {
+        TimelineModel timeline;
+        timeline.setTimeline(makeTimeline({4, 10000}));
+        PlaybackClock playback;
+        playback.setDurationMs(timeline.contentEndMs());
+        playback.seek(2400);
+        ClipGestureController gestures;
+        gestures.setTimeline(&timeline);
+        gestures.setClock(&playback);
+        gestures.setSelection({"c-0-2", "c-1-2"});
+        const auto before = timeline.clipsJson();
+        const auto doc = gestures.editDoc();
+        QStringList rightHalves;
+        const auto previousOverrides = nt::app::editOverrides();
+        const auto restore = qScopeGuard([previousOverrides] { nt::app::editOverrides() = previousOverrides; });
+        QVERIFY(nt::app::overrideEdit("splitSelectedAtPlayhead", [&](QJsonObject raw, const QJsonObject& payload) {
+            const auto split = nt::edit::splitSelectedAtPlayhead(doc, payload.value("timeMs").toDouble(),
+                                                                {"c-0-2", "c-1-2"});
+            rightHalves = split.rightHalfIds;
+            raw.insert("clips", toJsonArray(split.clips));
+            return raw;
+        }));
+        QVERIFY(gestures.handleKey(Qt::Key_S, "s", 0, false));
+        QCOMPARE(rightHalves.size(), 2);
+        QCOMPARE(gestures.selection(), rightHalves);
+        QCOMPARE(timeline.clipCount(), 40002);
+        QCOMPARE(timeline.undoStack()->count(), 1);
+        timeline.undoStack()->undo();
+        QCOMPARE(timeline.clipsJson(), before);
+    }
+
     // A drag of any length is one undo entry, applied live on every move.
+    void aDragIsOneUndoEntry_data() { registryModes(); }
     void aDragIsOneUndoEntry() {
+        QFETCH(bool, registered);
+        const auto previousEdits = nt::app::edits();
+        const auto restore = qScopeGuard([previousEdits] { nt::app::edits() = previousEdits; });
+        if (!registered) {
+            nt::app::edits().clear();
+        }
         load({4, 20});
         seed(10, 0);
         QUndoStack* undo = model->undoStack();
@@ -908,7 +1135,14 @@ private slots:
 
     // A trim gesture gives the document the store action gives (the actions
     // are checked against the web store by scripts/op-conformance.mjs).
+    void trimGesturesMatchTheStoreActions_data() { registryModes(); }
     void trimGesturesMatchTheStoreActions() {
+        QFETCH(bool, registered);
+        const auto previousEdits = nt::app::edits();
+        const auto restore = qScopeGuard([previousEdits] { nt::app::edits() = previousEdits; });
+        if (!registered) {
+            nt::app::edits().clear();
+        }
         load({4, 20, 800, 800});  // abutting clips: every edge is a cut
         seed(10, 0);
         auto* g = controller();
@@ -962,7 +1196,14 @@ private slots:
 
     // A clip follows the pointer onto another lane whose type takes it, and
     // the overwrite drop clears what it lands on there.
+    void moveAcrossLanes_data() { registryModes(); }
     void moveAcrossLanes() {
+        QFETCH(bool, registered);
+        const auto previousEdits = nt::app::edits();
+        const auto restore = qScopeGuard([previousEdits] { nt::app::edits() = previousEdits; });
+        if (!registered) {
+            nt::app::edits().clear();
+        }
         load({4, 10});
         seed(10, 0);
         drag(clipPoint("c-0-2", 30), clipPoint("c-0-2", 30) + QPoint(0, 64), 8, Qt::AltModifier);
@@ -1002,7 +1243,14 @@ private slots:
     }
 
     // The editing keys resolve through the web keymap (NodeTool preset).
+    void editingKeys_data() { registryModes(); }
     void editingKeys() {
+        QFETCH(bool, registered);
+        const auto previousEdits = nt::app::edits();
+        const auto restore = qScopeGuard([previousEdits] { nt::app::edits() = previousEdits; });
+        if (!registered) {
+            nt::app::edits().clear();
+        }
         load({2, 10});
         seed(10, 0);
         region->forceActiveFocus();
@@ -1367,7 +1615,14 @@ private slots:
         return it->mapToScene(QPointF(it->width() / 2, it->height() / 2)).toPoint();
     }
 
+    void cutToolSplitsAtThePointer_data() { registryModes(); }
     void cutToolSplitsAtThePointer() {
+        QFETCH(bool, registered);
+        const auto previousEdits = nt::app::edits();
+        const auto restore = qScopeGuard([previousEdits] { nt::app::edits() = previousEdits; });
+        if (!registered) {
+            nt::app::edits().clear();
+        }
         load({2, 6});
         seed(10, 0);
         controller()->setActiveTool(QStringLiteral("cut"));
@@ -1430,7 +1685,14 @@ private slots:
         QCOMPARE(g->selection(), (QStringList{"c-1-2", "c-1-0", "c-1-1"}));
     }
 
+    void slipToolMovesTheSourceUnderTheClip_data() { registryModes(); }
     void slipToolMovesTheSourceUnderTheClip() {
+        QFETCH(bool, registered);
+        const auto previousEdits = nt::app::edits();
+        const auto restore = qScopeGuard([previousEdits] { nt::app::edits() = previousEdits; });
+        if (!registered) {
+            nt::app::edits().clear();
+        }
         Layout l{2, 4};
         loadJson(withClipFields(makeTimelineJson(l), "c-0-1", QJsonObject{{"inPointMs", 1000}}), l);
         seed(10, 0);
@@ -1447,7 +1709,14 @@ private slots:
         QCOMPARE(clipJson("c-0-1").value("inPointMs").toDouble(), 0.0);
     }
 
+    void slideToolTrimsTheNeighbours_data() { registryModes(); }
     void slideToolTrimsTheNeighbours() {
+        QFETCH(bool, registered);
+        const auto previousEdits = nt::app::edits();
+        const auto restore = qScopeGuard([previousEdits] { nt::app::edits() = previousEdits; });
+        if (!registered) {
+            nt::app::edits().clear();
+        }
         Layout l{2, 4, 1000, 1000};  // touching clips
         load(l);
         seed(10, 0);
@@ -1463,7 +1732,14 @@ private slots:
         QCOMPARE(clipJson("c-0-1").value("startMs").toDouble(), 1000.0);
     }
 
+    void rateStretchToolChangesTheSpeed_data() { registryModes(); }
     void rateStretchToolChangesTheSpeed() {
+        QFETCH(bool, registered);
+        const auto previousEdits = nt::app::edits();
+        const auto restore = qScopeGuard([previousEdits] { nt::app::edits() = previousEdits; });
+        if (!registered) {
+            nt::app::edits().clear();
+        }
         load({2, 4});
         seed(10, 0);
         controller()->setActiveTool(QStringLiteral("rateStretch"));

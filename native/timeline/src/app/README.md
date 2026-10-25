@@ -56,8 +56,9 @@ linker. Register extensions at startup, before dispatch or QML engine creation.
   `commitEdit` remains available to existing clip gestures.
   `overrideEdit(name, function)` takes precedence over `registerEdit` regardless
   of registration order. A second override of the same name is refused.
-  The existing `ClipGestureController::handleKey` still calls edit functions
-  directly and requires routing through the registry in the edit package.
+  Clip gestures and editing keys resolve these names through the registry,
+  falling back to the built-in function when nothing is registered. Gestures
+  preview live clips and commit one undo step on release.
 - `registerPanel({slot, id, source, order, title})` supplies a QML URL to
   `left`, `right`, `bottom` or `overlay`. Side panels stack vertically, bottom
   panels horizontally, and overlays fill the editor. The QML component owns
