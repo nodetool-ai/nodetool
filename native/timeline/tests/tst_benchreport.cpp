@@ -148,6 +148,65 @@ private slots:
         QCOMPARE(buildReport(d, std::nullopt).json.value(u"skippedSubmits").toInt(), 3);
     }
 
+    // M1c F5: with the basic render loop the GUI and render threads are one
+    // thread; its CPU time is subtracted once, not twice.
+    void sharedGuiAndRenderThreadCountsOnce() {
+        BenchData d = sampleData();
+        d.cpuWallMs = 1000.0;
+        d.processCpuPercent = 50.0;
+        d.mainCpuPercent = 20.0;
+        d.renderCpuPercent = 20.0;  // the same thread as main
+        d.guiAndRenderShareThread = true;
+        const QJsonObject cpu = buildReport(d, std::nullopt).json.value(u"cpu").toObject();
+        QCOMPARE(cpu.value(u"decodeAndOtherPercent").toDouble(), 30.0);
+        QVERIFY(cpu.value(u"renderThreadPercent").isNull());
+        QCOMPARE(cpu.value(u"guiAndRenderShareThread").toBool(), true);
+    }
+
+    // F5: a CPU query that failed is unavailable, not 0.
+    void failedCpuQueryIsUnavailable() {
+        BenchData d = sampleData();
+        d.cpuWallMs = 1000.0;
+        d.processCpuPercent = 50.0;
+        d.mainCpuPercent = 5.0;
+        d.renderCpuPercent = std::nullopt;  // thread_info failed
+        const QJsonObject cpu = buildReport(d, std::nullopt).json.value(u"cpu").toObject();
+        QVERIFY(cpu.value(u"renderThreadPercent").isNull());
+        QVERIFY(cpu.value(u"decodeAndOtherPercent").isNull());
+        QCOMPARE(cpu.value(u"processPercent").toDouble(), 50.0);
+    }
+
+    // M1c F6: skips count against the explicit target rate (60 Hz in the
+    // budgets), so a steady 30 Hz run fails although its cadence is even.
+    void steady30HzFailsA60HzTarget() {
+        BenchData d = sampleData();
+        d.refreshHz = 120.0;
+        d.frames = 300;
+        d.submitIntervalMs.assign(299, 33.33);
+        const Report r = buildReport(d, Budget{{"targetHz", 60.0}, {"skippedSubmitsFraction", 0.01}});
+        QCOMPARE(r.json.value(u"measuredCadenceHz").toDouble(), 30.0);
+        QCOMPARE(r.json.value(u"targetHz").toDouble(), 60.0);
+        QCOMPARE(r.json.value(u"skippedSubmits").toInt(), 299);
+        QVERIFY(!r.pass);
+    }
+
+    // targetHz is a parameter of the budget, not a limit.
+    void targetHzIsNotALimit() {
+        const auto b = parseBudget(QStringLiteral("targetHz=60,skippedSubmitsFraction=0.01"));
+        QVERIFY2(b.budget.has_value(), qPrintable(b.error));
+        const Report r = buildReport(sampleData(), b.budget);
+        for (const auto& result : r.budget) QVERIFY(result.key != "targetHz");
+    }
+
+    // F7: a run whose window lost exposure (Qt stops rendering it) fails.
+    void exposureLossFailsTheRun() {
+        BenchData d = sampleData();
+        d.exposureLosses = 1;
+        const Report r = buildReport(d, Budget{{"cpuMs.p95", 100.0}});
+        QVERIFY(!r.pass);
+        QCOMPARE(r.json.value(u"exposureLosses").toInt(), 1);
+    }
+
     void noBudgetPasses() {
         QVERIFY(buildReport(sampleData(), std::nullopt).pass);
     }

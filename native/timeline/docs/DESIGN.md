@@ -498,9 +498,16 @@ Every capability is driven from the command line first
 - **R5.** Session limits: VideoToolbox and NVDEC limit concurrent sessions per
   process. Retire by opening 12 sessions in the M1c bench. The fallback is
   software decode for the lowest track.
-- **R6.** Colour mismatch with the web: Chromium chooses the matrix and range
-  from the stream and its own defaults. Retire with a colour-bar fixture in each
-  of BT.601, BT.709, limited, and full, compared against `timeline render --stills`.
+- **R6.** Resolved. Colour mismatch with the web: Chromium chooses the matrix
+  and range from the stream and its own defaults. The colour-bar fixtures in
+  BT.601 and BT.709, limited and full range, match `timeline render --stills`
+  at 48.8 dB on both decoders. For untagged media the native path keeps the
+  D10 default (BT.601 below 720 lines, BT.709 at 720 or more). Reason: untagged
+  HD is almost always BT.709, common players guess by height, and the export's
+  BT.601 for untagged media comes from the swscale default, not from a
+  decision. Follow-up for the export path in `packages/` (`timeline render`):
+  apply the same height rule to untagged media. This branch does not change
+  the export.
 - **R7.** Save data loss through a field the native model touches without
   understanding all of it, such as a `transform` with fields added later.
   Retire by writing per field, never per object, and with the no-edit round

@@ -18,6 +18,10 @@
 #include "preview/PreviewCompositor.h"
 #include "preview/FfmpegSource.h"
 #include "preview/SceneEval.h"
+#include "preview/hw/VideoToolboxInterop.h"
+#include "platform/CpuUsage.h"
+#include "platform/ProcessActivity.h"
+#include "platform/SchedulingDiagnostics.h"
 #include "bench/BenchReport.h"
 
 extern "C" {
@@ -30,6 +34,8 @@ extern "C" {
 #include <QCommandLineParser>
 #include <QCoreApplication>
 #include <QElapsedTimer>
+#include <QEvent>
+#include <QTimer>
 #include <QFile>
 #include <QDir>
 #include <QFileInfo>
@@ -66,6 +72,40 @@ QString avVersion(unsigned v) {
     return QStringLiteral("%1.%2.%3").arg(AV_VERSION_MAJOR(v)).arg(AV_VERSION_MINOR(v)).arg(AV_VERSION_MICRO(v));
 }
 
+// Logs the window's expose events (exposed or not) with a steady-clock time.
+// Qt stops rendering a window that is not exposed, which macOS reports when
+// another window or a Space switch covers it. The bench counts those losses.
+class ExposeLogger : public QObject {
+public:
+    explicit ExposeLogger(QQuickWindow* window) : QObject(window), m_window(window) {}
+    int losses() const { return m_losses; }
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override {
+        if (event->type() == QEvent::Expose) {
+            const double ms =
+                std::chrono::duration<double, std::milli>(std::chrono::steady_clock::now().time_since_epoch()).count();
+            const bool exposed = m_window->isExposed();
+            if (!exposed) ++m_losses;
+            std::fprintf(stderr, "diag: %.1f ms expose %s\n", ms, exposed ? "exposed" : "not exposed");
+        }
+        return QObject::eventFilter(watched, event);
+    }
+
+private:
+    QQuickWindow* m_window;
+    int m_losses = 0;
+};
+
+// One line of the loader report: the clip, and which decoder draws it or why
+// nothing does.
+QString mediaLogLine(const MediaReportEntry& r) {
+    if (!r.ok) return QStringLiteral("media %1: not used: %2 (placeholder)").arg(r.clipId, r.reason);
+    QString line = QStringLiteral("media %1: ok (%2)").arg(r.clipId, r.decoder);
+    if (!r.fallback.isEmpty()) line += QStringLiteral(", VideoToolbox fallback: %1").arg(r.fallback);
+    return line;
+}
+
 // Samples the bench collects while the event loop runs. Shared with the
 // callbacks by shared_ptr, so it outlives the block that creates it.
 struct BenchRun {
@@ -80,6 +120,17 @@ struct BenchRun {
     size_t last = 0;            // one past the last measured frame stat
     QElapsedTimer closeTimer;
     std::optional<double> closeMs;
+    std::optional<double> frameRefCloseMs;
+    int exposureLossesAtStart = 0;
+    QElapsedTimer warmupTimer;
+    bool warmupReady = false;
+    // CPU snapshots at the start and end of the measured window.
+    unsigned mainThread = 0;
+    unsigned renderThread = 0;
+    QElapsedTimer cpuWall;
+    int64_t processStart = 0, mainStart = 0, renderStart = 0;
+    double cpuWallMs = 0.0;
+    int64_t processUsed = -1, mainUsed = -1, renderUsed = -1;
     std::shared_ptr<bool> completed;
     std::mutex submitMutex;
     std::vector<qint64> submitNs;  // frameSwapped times, steady clock
@@ -119,6 +170,8 @@ nt::bench::BenchData benchData(const std::vector<FrameStat>& stats, BenchRun& ru
             d.gpuObservationsMs.push_back(f.windowGpuObservationMs);
         }
         if (f.frameError >= 0) d.frameError.push_back(f.frameError);
+        d.cpuCopies += f.cpuCopies;
+        d.hardwareLayerFrames += f.hardwareLayers;
         if (f.mediaLayers > 0) {
             ++d.mediaFrames;
             if (f.missingMediaLayers > 0) ++d.missingMediaFrames;
@@ -128,9 +181,25 @@ nt::bench::BenchData benchData(const std::vector<FrameStat>& stats, BenchRun& ru
         d.cutMisses += f.cutMisses;
         d.missingLayerFrames += f.missingLayers;
         d.layersMax = std::max(d.layersMax, f.layers);
+        if (i > first && f.intervalMs > 50.0) {
+            d.stalls.push_back({static_cast<int>(i - first), static_cast<double>(f.startNs - stats[first].startNs) / 1.0e6,
+                                f.intervalMs, f.renderCpuMs});
+        }
         d.openDecodersMax = std::max(d.openDecodersMax, f.openDecoders);
     }
     d.decoderCloseMs = run.closeMs;
+    d.frameRefCloseMs = run.frameRefCloseMs;
+    if (run.cpuWallMs > 0.0) {
+        const auto pct = [&](int64_t ns) -> std::optional<double> {
+            if (ns < 0) return std::nullopt;  // a failed query: unavailable, not 0
+            return static_cast<double>(ns) / 1.0e6 / run.cpuWallMs * 100.0;
+        };
+        d.cpuWallMs = run.cpuWallMs;
+        d.processCpuPercent = pct(run.processUsed);
+        d.mainCpuPercent = pct(run.mainUsed);
+        d.renderCpuPercent = pct(run.renderUsed);
+        d.guiAndRenderShareThread = run.mainThread != 0 && run.mainThread == run.renderThread;
+    }
     // Submissions inside the measured window, from the first measured render
     // start to the start of the first frame after the window, so both
     // endpoints of every interval are measured frames.
@@ -289,7 +358,13 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, QSize size, const Q
     std::unique_ptr<QRhiTexture> target(
         rhi->newTexture(QRhiTexture::RGBA8, size, 1, QRhiTexture::RenderTarget | QRhiTexture::UsedAsTransferSource));
     target->create();
-    std::unique_ptr<QRhiTextureRenderTarget> rt(rhi->newTextureRenderTarget({target.get()}));
+    // Qt Quick's renderer depth-tests its opaque batches, so the target needs
+    // a depth-stencil buffer (Metal validation fails a draw without one).
+    std::unique_ptr<QRhiRenderBuffer> depthStencil(rhi->newRenderBuffer(QRhiRenderBuffer::DepthStencil, size));
+    depthStencil->create();
+    QRhiTextureRenderTargetDescription rtDesc{QRhiColorAttachment(target.get())};
+    rtDesc.setDepthStencilBuffer(depthStencil.get());
+    std::unique_ptr<QRhiTextureRenderTarget> rt(rhi->newTextureRenderTarget(rtDesc));
     std::unique_ptr<QRhiRenderPassDescriptor> rp(rt->newCompatibleRenderPassDescriptor());
     rt->setRenderPassDescriptor(rp.get());
     rt->create();
@@ -324,9 +399,8 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, QSize size, const Q
     std::set<QString> logged;
     const auto logReport = [&]() {
         for (const MediaReportEntry& r : compositor->mediaReport()) {
-            if (!logged.insert(r.clipId).second) continue;
-            std::fprintf(stderr, "media %s: %s%s%s\n", qPrintable(r.clipId), r.ok ? "ok" : "not used: ",
-                         qPrintable(r.reason), r.ok ? "" : " (placeholder)");
+            if (!logged.insert(r.clipId + r.decoder + r.fallback + r.reason).second) continue;
+            std::fprintf(stderr, "%s\n", qPrintable(mediaLogLine(r)));
         }
     };
 
@@ -354,6 +428,7 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, QSize size, const Q
 
     const double fps = model.fps();
     if (!playDir.isEmpty()) {
+        const nt::ProcessActivity activity("nodetool-timeline play captures");
         // Play captures: play the clock in real time from up to 3 s before
         // the first frame, read back every rendered frame as it is, and keep
         // the first one shown at each requested sequence frame. This is what
@@ -455,7 +530,8 @@ int main(int argc, char** argv) {
     for (int i = 1; i < argc; ++i) {
         if (qstrcmp(argv[i], "--bench") == 0) bench = true;
         if (qstrcmp(argv[i], "--no-vsync") == 0) noVsync = true;
-        if (qstrcmp(argv[i], "--background") == 0 || qstrcmp(argv[i], "--screenshot") == 0 ||
+        if (qstrcmp(argv[i], "--background") == 0 || qstrcmp(argv[i], "--teardown-test") == 0 ||
+            qstrcmp(argv[i], "--screenshot") == 0 ||
             qstrcmp(argv[i], "--stills") == 0 || qstrcmp(argv[i], "--play-stills") == 0) {
             background = true;
         }
@@ -514,13 +590,29 @@ int main(int argc, char** argv) {
                                        QStringLiteral("Bench budget: a JSON file, or key=value,... (fails closed)"),
                                        QStringLiteral("FILE|SPEC"));
     const QCommandLineOption noVsyncOpt(QStringLiteral("no-vsync"), QStringLiteral("Bench without vsync"));
+    const QCommandLineOption onTopOpt(QStringLiteral("on-top"),
+                                      QStringLiteral("Keep the window above other windows, without taking focus "
+                                                     "(so other windows cannot cover a bench)"));
+    const QCommandLineOption hideTestOpt(
+        QStringLiteral("test-hide-after"),
+        QStringLiteral("Bench test: hide the window after MS ms, as an occlusion stops its rendering"),
+        QStringLiteral("MS"));
+    const QCommandLineOption teardownOpt(
+        QStringLiteral("teardown-test"),
+        QStringLiteral("Play, then delete the preview item while frames are in flight, render on, and exit"));
+    const QCommandLineOption decodeOpt(QStringLiteral("decode"),
+                                       QStringLiteral("Video decoder: sw (FFmpeg software), hw (VideoToolbox, a "
+                                                      "failure fails the clip) or auto (hw, else sw). Default sw"),
+                                       QStringLiteral("sw|hw|auto"), QStringLiteral("sw"));
+    const QCommandLineOption decoderOpt(QStringLiteral("decoder"), QStringLiteral("PLAN spelling of --decode: sw|vt|auto"),
+                                        QStringLiteral("sw|vt|auto"));
     const QCommandLineOption backgroundOpt(QStringLiteral("background"),
                                            QStringLiteral("Never take focus or come to the front (implied by "
                                                           "--bench, --screenshot and --stills)"));
     const QCommandLineOption realtimeOpt(QStringLiteral("realtime"),
                                          QStringLiteral("Bench: play in real time for SECONDS, then close the timeline"),
                                          QStringLiteral("SECONDS"));
-    parser.addOptions({benchOpt, framesOpt, sizeOpt, seekOpt, playOpt, shotOpt, warmupOpt, budgetOpt, noVsyncOpt, realtimeOpt, stillsOpt, stillFramesOpt, backgroundOpt, playStillsOpt});
+    parser.addOptions({benchOpt, framesOpt, sizeOpt, seekOpt, playOpt, shotOpt, warmupOpt, budgetOpt, noVsyncOpt, realtimeOpt, stillsOpt, stillFramesOpt, backgroundOpt, playStillsOpt, decodeOpt, decoderOpt, teardownOpt, hideTestOpt, onTopOpt});
     parser.process(app);
 
     std::fprintf(stderr, "nodetool-timeline: Qt %s, libavformat %s, libavcodec %s, libavutil %s, libswscale %s\n",
@@ -556,6 +648,20 @@ int main(int argc, char** argv) {
         // At least one: the first frame has no render interval.
         std::fprintf(stderr, "error: --warmup must be 1 or more\n");
         return 2;
+    }
+    {
+        QString mode = parser.isSet(decoderOpt) ? parser.value(decoderOpt) : parser.value(decodeOpt);
+        if (mode == u"vt") mode = QStringLiteral("hw");
+        if (mode == u"sw") {
+            nt::setDecodeMode(nt::DecodeMode::Software);
+        } else if (mode == u"hw") {
+            nt::setDecodeMode(nt::DecodeMode::Hardware);
+        } else if (mode == u"auto") {
+            nt::setDecodeMode(nt::DecodeMode::Auto);
+        } else {
+            std::fprintf(stderr, "error: --decode takes sw, hw or auto\n");
+            return 2;
+        }
     }
     double realtimeSeconds = 0.0;
     if (parser.isSet(realtimeOpt)) {
@@ -627,10 +733,13 @@ int main(int argc, char** argv) {
     if (background) {
         view.setFlags(view.flags() | Qt::WindowDoesNotAcceptFocus);
     }
+    if (parser.isSet(onTopOpt)) {
+        view.setFlags(view.flags() | Qt::WindowStaysOnTopHint);
+    }
     view.show();  // never raise() or requestActivate()
 
     auto* compositor = view.rootObject()->findChild<PreviewCompositor*>(QStringLiteral("previewCompositor"));
-    if (bench && !compositor) {
+    if ((bench || parser.isSet(teardownOpt)) && !compositor) {
         std::fprintf(stderr, "error: no PreviewCompositor in the scene\n");
         return 1;
     }
@@ -640,9 +749,8 @@ int main(int argc, char** argv) {
         auto logged = std::make_shared<std::set<QString>>();
         QObject::connect(&view, &QQuickWindow::afterAnimating, &app, [compositor, logged]() {
             for (const MediaReportEntry& r : compositor->mediaReport()) {
-                if (!logged->insert(r.clipId).second) continue;
-                std::fprintf(stderr, "media %s: %s%s%s\n", qPrintable(r.clipId), r.ok ? "ok" : "not used: ",
-                             qPrintable(r.reason), r.ok ? "" : " (placeholder)");
+                if (!logged->insert(r.clipId + r.decoder + r.fallback + r.reason).second) continue;
+                std::fprintf(stderr, "%s\n", qPrintable(mediaLogLine(r)));
             }
         });
     }
@@ -652,6 +760,12 @@ int main(int argc, char** argv) {
     auto completed = std::make_shared<bool>(false);
     // The callbacks below run from app.exec(), after this block's locals are
     // gone, so they own their state through value captures.
+    // A measured run holds a user-initiated, latency-critical activity, so
+    // macOS does not nap the background process mid-measurement.
+    std::unique_ptr<nt::ProcessActivity> activity;
+    if (bench) {
+        activity = std::make_unique<nt::ProcessActivity>("nodetool-timeline bench");
+    }
     if (bench) {
         // Warm-up: render at the start time until `warmup` frames are done,
         // so start-up (window show, source creation, decoder open, pipeline
@@ -676,11 +790,56 @@ int main(int argc, char** argv) {
         const double refreshHz = view.screen() ? view.screen()->refreshRate() : 0.0;
         const QString fixture = parser.positionalArguments().first();
         const double startMs = clock.time();
+        const QString decodeName = parser.isSet(decoderOpt) ? parser.value(decoderOpt) : parser.value(decodeOpt);
+        auto scheduling = std::make_shared<QJsonObject>();
+        // F7 diagnostics: exposure changes of the bench window, with a
+        // steady-clock time, next to the occlusion log.
+        auto* exposeLogger = new ExposeLogger(&view);
+        view.installEventFilter(exposeLogger);
+        // Watchdog: while the window is not exposed Qt renders nothing and
+        // sends no afterAnimating, so a run would wait forever. After 3 s with
+        // no rendered frame the bench ends with an invalid report and exit 1.
+        auto watchdog = new QTimer(&app);
+        auto lastFrames = std::make_shared<long long>(-1);
+        auto stillFor = std::make_shared<QElapsedTimer>();
+        stillFor->start();
+        QObject::connect(watchdog, &QTimer::timeout, &app, [&app, compositor, run, lastFrames, stillFor, exposeLogger]() {
+            if (run->phase == BenchRun::Phase::Done) return;
+            if (compositor->framesRendered() != *lastFrames) {
+                *lastFrames = compositor->framesRendered();
+                stillFor->restart();
+                return;
+            }
+            if (stillFor->elapsed() < 3000) return;
+            run->phase = BenchRun::Phase::Done;
+            std::printf("{\"invalid\":\"no frame rendered for %lld ms\",\"exposureLosses\":%d}\n",
+                        static_cast<long long>(stillFor->elapsed()), exposeLogger->losses());
+            std::fflush(stdout);
+            std::fprintf(stderr, "error: the bench window stopped rendering (not exposed); no valid report\n");
+            *run->completed = true;
+            app.exit(4);
+        });
+        watchdog->start(250);
+        if (parser.isSet(hideTestOpt)) {
+            QTimer::singleShot(parser.value(hideTestOpt).toInt(), &view, [&view]() { view.hide(); });
+        }
         QObject::connect(
             &view, &QQuickWindow::afterAnimating, &app,
-            [&app, &clock, &model, view = &view, compositor, run, budget, vsync, refreshHz, fixture, startMs]() {
+            [&app, &clock, &model, view = &view, compositor, run, budget, vsync, refreshHz, fixture, startMs,
+             decodeName, scheduling, exposeLogger]() {
                 using Phase = BenchRun::Phase;
                 const auto& stats = compositor->frameStats();
+                const auto endCpu = [&]() {
+                    if (run->cpuWallMs > 0.0) return;
+                    run->cpuWallMs = static_cast<double>(run->cpuWall.nsecsElapsed()) / 1.0e6;
+                    // Each delta is -1 when either end of it failed.
+                    const auto delta = [](int64_t end, int64_t start) -> int64_t {
+                        return end < 0 || start < 0 ? -1 : end - start;
+                    };
+                    run->processUsed = delta(nt::cpu::processNs(), run->processStart);
+                    run->mainUsed = delta(nt::cpu::threadNs(run->mainThread), run->mainStart);
+                    run->renderUsed = delta(nt::cpu::threadNs(run->renderThread), run->renderStart);
+                };
                 const auto finish = [&]() {
                     run->phase = Phase::Done;
                     nt::bench::BenchData data = benchData(stats, *run);
@@ -688,9 +847,19 @@ int main(int argc, char** argv) {
                     data.vsync = vsync;
                     data.refreshHz = refreshHz;
                     data.realtime = run->seconds > 0.0;
+                    data.decode = decodeName;
+                    (*scheduling)[QStringLiteral("exposureLosses")] = exposeLogger->losses() - run->exposureLossesAtStart;
+                    if (run->first < stats.size()) {
+                        (*scheduling)[QStringLiteral("measureStartSteadyMs")] =
+                            static_cast<double>(stats[run->first].startNs) / 1.0e6;
+                    }
+                    (*scheduling)[QStringLiteral("warmupReady")] = run->warmupReady;
+                    data.scheduling = *scheduling;
                     data.windowWidth = view->width();
                     data.windowHeight = view->height();
                     data.devicePixelRatio = view->devicePixelRatio();
+                    data.exposureLosses = exposeLogger->losses() - run->exposureLossesAtStart;
+                    data.framesReleasedInFlight = nt::hw::FrameRef::releasedInFlight();
                     const nt::bench::Report report = nt::bench::buildReport(data, budget);
                     std::printf("%s\n", QJsonDocument(report.json).toJson(QJsonDocument::Compact).constData());
                     std::fflush(stdout);
@@ -700,13 +869,36 @@ int main(int argc, char** argv) {
                 switch (run->phase) {
                 case Phase::Done:
                     return;
-                case Phase::Warmup:
-                    if (compositor->framesRendered() < run->warmup) {
+                case Phase::Warmup: {
+                    // Hold at the start time for `warmup` frames and until
+                    // every layer shows its exact frame (D22: play waits for
+                    // the sources), at most 3 s more. Without the wait, eight
+                    // decoders still seeking made the first measured frames
+                    // show frames from up to a second earlier.
+                    if (!run->warmupTimer.isValid()) run->warmupTimer.start();
+                    const bool ready = !stats.empty() && stats.back().allExact;
+                    if (compositor->framesRendered() < run->warmup ||
+                        (!ready && run->warmupTimer.elapsed() < 3000 + 1000)) {
                         compositor->update();  // hold at the start time
                         return;
                     }
+                    run->warmupReady = ready;
+                }
                     run->phase = Phase::Measure;
                     run->first = stats.size();
+                    run->exposureLossesAtStart = exposeLogger->losses();
+                    (*scheduling)[QStringLiteral("nice")] = nt::cpu::processNice();
+                    (*scheduling)[QStringLiteral("mainThreadQos")] = nt::cpu::currentThreadQos();
+                    (*scheduling)[QStringLiteral("renderThreadQos")] = compositor->renderThreadQos();
+                    (*scheduling)[QStringLiteral("decodeWorkerQos")] = nt::lastDecodeWorkerQos();
+                    (*scheduling)[QStringLiteral("occlusionAtStart")] =
+                        QString::fromStdString(nt::diag::watchOcclusion(view));
+                    run->mainThread = nt::cpu::currentThread();
+                    run->renderThread = compositor->renderThread();
+                    run->processStart = nt::cpu::processNs();
+                    run->mainStart = nt::cpu::threadNs(run->mainThread);
+                    run->renderStart = nt::cpu::threadNs(run->renderThread);
+                    run->cpuWall.start();
                     if (run->seconds > 0.0) {
                         clock.setLoop(false);  // stop at the end instead of wrapping to 0
                         clock.play();
@@ -719,6 +911,7 @@ int main(int argc, char** argv) {
                             return;
                         }
                         run->last = stats.size();
+                        endCpu();
                         clock.pause();
                         model.close();  // every clip leaves: decoders must close
                         run->closeTimer.start();
@@ -729,29 +922,61 @@ int main(int argc, char** argv) {
                     // One more frame than measured, to bound the submission window.
                     if (stats.size() > run->first + static_cast<size_t>(run->frames)) {
                         run->last = run->first + static_cast<size_t>(run->frames);
+                        endCpu();
                         finish();
                         return;
                     }
                     clock.seek(startMs + static_cast<double>(run->measuredFrame++) * run->frameMs);
                     return;
-                case Phase::Close:
-                    if (compositor->openDecoders() == 0) {
-                        run->closeMs = static_cast<double>(run->closeTimer.nsecsElapsed()) / 1.0e6;
-                        finish();
-                    } else if (run->closeTimer.elapsed() > 3000) {
-                        finish();  // decoderCloseMs stays null: fails a budget on it
+                case Phase::Close: {
+                    const double ms = static_cast<double>(run->closeTimer.nsecsElapsed()) / 1.0e6;
+                    if (!run->closeMs && compositor->openDecoders() == 0) run->closeMs = ms;
+                    if (!run->frameRefCloseMs && compositor->liveFrameRefs() == 0) run->frameRefCloseMs = ms;
+                    if ((run->closeMs && run->frameRefCloseMs) || run->closeTimer.elapsed() > 3000) {
+                        finish();  // a count still above 0 after 3 s stays null: fails a budget on it
                     } else {
                         compositor->update();
                     }
                     return;
                 }
+                }
             });
+    } else if (parser.isSet(teardownOpt)) {
+        // Teardown under load (M1c F1): play in a real window, then delete the
+        // preview item mid-playback. Its renderer is destroyed on the render
+        // thread while earlier frames may still be on the GPU; the Metal debug
+        // layer must report nothing. 60 frames of playback, delete, 60 more.
+        clock.setLoop(true);
+        clock.play();
+        auto frames = std::make_shared<int>(0);
+        auto deleted = std::make_shared<bool>(false);
+        QObject::connect(&view, &QQuickWindow::afterAnimating, &app,
+                         [&app, &view, compositor, frames, deleted, completed]() mutable {
+                             ++*frames;
+                             if (!*deleted && *frames >= 60) {
+                                 *deleted = true;
+                                 compositor->setParentItem(nullptr);
+                                 delete compositor;
+                                 std::fprintf(stderr, "teardown: preview deleted at frame %d\n", *frames);
+                             }
+                             if (*frames >= 120 && !*completed) {
+                                 const int live = nt::hw::FrameRef::live();
+                                 const int early = nt::hw::FrameRef::releasedInFlight();
+                                 std::fprintf(stderr, "teardown: done, %d live FrameRefs, %d released in flight\n",
+                                              live, early);
+                                 *completed = true;
+                                 app.exit(live == 0 && early == 0 ? 0 : 1);
+                                 return;
+                             }
+                             if (*completed) return;
+                             view.update();
+                         });
     } else if (parser.isSet(playOpt)) {
         clock.play();
     }
 
     const int rc = app.exec();
-    if (bench && !*completed) {
+    if ((bench || parser.isSet(teardownOpt)) && !*completed) {
         std::fprintf(stderr, "error: the window closed before the %s finished; no report\n",
                      "bench");
         return 3;

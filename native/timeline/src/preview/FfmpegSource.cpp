@@ -2,6 +2,7 @@
 
 extern "C" {
 #include <libavcodec/avcodec.h>
+#include <libavutil/hwcontext.h>
 #include <libavformat/avformat.h>
 #include <libavutil/display.h>
 #include <libavutil/imgutils.h>
@@ -9,6 +10,11 @@ extern "C" {
 #include <libswscale/swscale.h>
 }
 
+#include "platform/CpuUsage.h"
+#include "preview/RetireQueue.h"
+#include "preview/hw/VideoToolboxInterop.h"
+
+#include <CoreVideo/CVPixelBuffer.h>
 #include <QByteArray>
 
 #include <chrono>
@@ -16,6 +22,43 @@ extern "C" {
 #include <optional>
 
 namespace nt {
+
+namespace {
+std::atomic<DecodeMode> g_decodeMode{DecodeMode::Software};
+}  // namespace
+
+void setDecodeMode(DecodeMode mode) {
+    g_decodeMode = mode;
+}
+
+DecodeMode decodeMode() {
+    return g_decodeMode.load();
+}
+
+namespace {
+std::atomic<int> g_testFailAfterPackets{-1};
+}  // namespace
+
+void setTestDecodeFailureAfterPackets(int packets) {
+    g_testFailAfterPackets = packets;
+}
+
+namespace {
+std::atomic<int> g_testFailHardwareOnOpen{-1};
+}  // namespace
+
+void setTestHardwareSetupFailureOnOpen(int open) {
+    g_testFailHardwareOnOpen = open;
+}
+
+namespace {
+std::atomic<const char*> g_decodeWorkerQos{"none"};
+}  // namespace
+
+const char* lastDecodeWorkerQos() {
+    return g_decodeWorkerQos.load();
+}
+
 namespace {
 
 struct FormatCloser {
@@ -29,6 +72,9 @@ struct FrameFree {
 };
 struct PacketFree {
     void operator()(AVPacket* p) const { av_packet_free(&p); }
+};
+struct BufferUnref {
+    void operator()(AVBufferRef* b) const { av_buffer_unref(&b); }
 };
 struct SwsFree {
     void operator()(SwsContext* s) const { sws_freeContext(s); }
@@ -135,6 +181,9 @@ YuvMatrix matrixFor(AVColorSpace cs, int height) {
 struct Stream {
     Opened o;
     std::unique_ptr<AVCodecContext, CodecCloser> ctx;
+    std::unique_ptr<AVBufferRef, BufferUnref> hwDevice;
+    bool hardware = false;   // decoding with VideoToolbox
+    bool gotFrame = false;   // a frame came out since the stream opened
     double tb = 0.0;
     int64_t start = 0;
     double frameDur = 1.0 / 30.0;
@@ -146,14 +195,60 @@ struct Stream {
     std::optional<double> lastPts;  // unset until a frame is placed
 };
 
-bool openDecoder(Stream& s, const std::string& path, const AVIOInterruptCB* interrupt) {
+// Offers VideoToolbox when the decoder lists it, else the first (software)
+// format, which is how FFmpeg declines a stream VideoToolbox cannot decode.
+AVPixelFormat pickVideoToolbox(AVCodecContext*, const AVPixelFormat* formats) {
+    for (const AVPixelFormat* f = formats; *f != AV_PIX_FMT_NONE; ++f) {
+        if (*f == AV_PIX_FMT_VIDEOTOOLBOX) return *f;
+    }
+    return formats[0];
+}
+
+// Sets up VideoToolbox on `ctx` (D15). Empty on success, else why not.
+std::string setUpVideoToolbox(Stream& s) {
+    bool supported = false;
+    for (int i = 0;; ++i) {
+        const AVCodecHWConfig* config = avcodec_get_hw_config(s.o.codec, i);
+        if (!config) break;
+        if (config->device_type == AV_HWDEVICE_TYPE_VIDEOTOOLBOX &&
+            (config->methods & AV_CODEC_HW_CONFIG_METHOD_HW_DEVICE_CTX)) {
+            supported = true;
+            break;
+        }
+    }
+    if (!supported) return std::string("no VideoToolbox decoder for ") + s.o.facts.codec;
+    AVBufferRef* device = nullptr;
+    const int rc = av_hwdevice_ctx_create(&device, AV_HWDEVICE_TYPE_VIDEOTOOLBOX, nullptr, nullptr, 0);
+    if (rc < 0) return "VideoToolbox device: " + avError(rc);
+    s.hwDevice.reset(device);
+    s.ctx->hw_device_ctx = av_buffer_ref(device);
+    s.ctx->get_format = pickVideoToolbox;
+    return {};
+}
+
+// Opens the container and the codec. With `hardware`, it tries VideoToolbox
+// first and writes why not into `hwReason` when that fails.
+bool openDecoder(Stream& s, const std::string& path, const AVIOInterruptCB* interrupt, bool hardware,
+                 std::string* hwReason, bool failHardwareForTest = false) {
     s.o = openStream(path, interrupt);
     s.ctx.reset();
+    s.hwDevice.reset();
+    s.hardware = false;
+    s.gotFrame = false;
     if (!s.o.facts.usable()) return false;
     s.ctx.reset(avcodec_alloc_context3(s.o.codec));
     avcodec_parameters_to_context(s.ctx.get(), s.o.stream->codecpar);
-    s.ctx->thread_count = 2;  // D14
-    s.ctx->thread_type = FF_THREAD_FRAME;
+    if (hardware) {
+        const std::string reason = failHardwareForTest ? std::string("VideoToolbox setup failed (test)") : setUpVideoToolbox(s);
+        s.hardware = reason.empty();
+        if (hwReason) *hwReason = reason;
+    }
+    if (s.hardware) {
+        s.ctx->thread_count = 1;  // VideoToolbox decodes on its own threads
+    } else {
+        s.ctx->thread_count = 2;  // D14
+        s.ctx->thread_type = FF_THREAD_FRAME;
+    }
     const int rc = avcodec_open2(s.ctx.get(), s.o.codec, nullptr);
     if (rc < 0) {
         s.o.facts.error = "codec open: " + avError(rc);
@@ -169,6 +264,7 @@ bool openDecoder(Stream& s, const std::string& path, const AVIOInterruptCB* inte
         s.o.facts.frameRate = codecRate > 0.0 ? codecRate : 30.0;
     }
     s.frameDur = 1.0 / s.o.facts.frameRate;
+    s.o.facts.decoder = s.hardware ? "videotoolbox" : "software";
     s.draining = false;
     s.eof = false;
     s.fromStart = true;
@@ -176,9 +272,22 @@ bool openDecoder(Stream& s, const std::string& path, const AVIOInterruptCB* inte
     return true;
 }
 
+// Whether a VideoToolbox frame holds the 8-bit NV12 pixel buffer the zero-copy
+// path wraps. Empty when it does, else why not.
+std::string checkHardwareFrame(const AVFrame* frame) {
+    if (frame->format != AV_PIX_FMT_VIDEOTOOLBOX) return "VideoToolbox returned a software frame";
+    auto pb = reinterpret_cast<CVPixelBufferRef>(frame->data[3]);
+    const OSType f = CVPixelBufferGetPixelFormatType(pb);
+    if (f != kCVPixelFormatType_420YpCbCr8BiPlanarVideoRange && f != kCVPixelFormatType_420YpCbCr8BiPlanarFullRange) {
+        return "VideoToolbox output is not 8-bit NV12 (10-bit waits for P010)";
+    }
+    return {};
+}
+
 }  // namespace
 
 MediaFacts probeMedia(const std::string& path) {
+    // Facts only; the decoder in use is known once a source decodes.
     return openStream(path, nullptr).facts;
 }
 
@@ -187,7 +296,12 @@ DecodedFrame::~DecodedFrame() {
 }
 
 FfmpegDecoder::FfmpegDecoder(std::string path, double initialSec)
-    : m_path(std::move(path)), m_targetSec(initialSec), m_restartSec(initialSec) {
+    : m_path(std::move(path)),
+      m_mode(decodeMode()),
+      m_failAfterPackets(g_testFailAfterPackets.load()),
+      m_failHardwareOnOpen(g_testFailHardwareOnOpen.load()),
+      m_targetSec(initialSec),
+      m_restartSec(initialSec) {
     m_thread = std::thread([this] { run(); });
 }
 
@@ -200,6 +314,16 @@ void FfmpegDecoder::testPush(double ptsSec) {
     f->ptsSec = ptsSec;
     f->generation = m_requestGen.load();
     m_ring.push(std::move(f));
+}
+
+void FfmpegDecoder::reportImportFailure(const std::string& reason, bool hardwareFrameShown) {
+    {
+        std::lock_guard lock(m_importMutex);
+        m_importFailure = reason;
+        m_importAfterShown = hardwareFrameShown;
+    }
+    m_importFailed = true;
+    m_wake.notify_one();
 }
 
 void FfmpegDecoder::requestStop() {
@@ -267,11 +391,38 @@ std::shared_ptr<DecodedFrame> FfmpegDecoder::frameAt(double targetSec) {
 }
 
 void FfmpegDecoder::run() {
+    g_decodeWorkerQos = cpu::currentThreadQos();
     const AVIOInterruptCB interrupt{&FfmpegDecoder::interruptCallback, this};
+    const DecodeMode mode = m_mode;
     Stream s;
-    const bool opened = openDecoder(s, m_path, &interrupt);
-    publishFacts(s.o.facts);
-    if (!opened) {
+    std::string fallback;  // why VideoToolbox is not used, in Auto
+    int opens = 0;
+    // One open policy for the first open and every reopen (F4). With
+    // VideoToolbox wanted, a setup or codec-open failure fails the clip in
+    // Hardware mode and continues in software in Auto, with the reason.
+    const auto openWithPolicy = [&](bool wantHardware) -> bool {
+        std::string reason;
+        bool ok = openDecoder(s, m_path, &interrupt, wantHardware, &reason, m_failHardwareOnOpen == opens++);
+        const bool streamFine = s.o.facts.opened && s.o.facts.rejection.empty();
+        if (wantHardware && streamFine && (!ok || !s.hardware)) {
+            if (!ok) reason = s.o.facts.error;  // the codec did not open with VideoToolbox
+            if (mode == DecodeMode::Hardware) {
+                MediaFacts failed = s.o.facts;
+                failed.error = "hardware decode: " + reason;
+                failed.fallback = fallback;
+                publishFacts(failed);
+                return false;
+            }
+            fallback = reason;
+            if (!ok) ok = openDecoder(s, m_path, &interrupt, false, nullptr);
+        }
+        MediaFacts facts = s.o.facts;
+        facts.fallback = fallback;
+        if (!ok && facts.error.empty() && facts.rejection.empty()) facts.error = "open failed";
+        publishFacts(facts);
+        return ok;
+    };
+    if (!openWithPolicy(mode != DecodeMode::Software)) {
         return;  // rejected or failed: the pool draws a placeholder
     }
 
@@ -283,22 +434,67 @@ void FfmpegDecoder::run() {
 
     // Reopens the input to decode from its first packet: the recovery when a
     // seek fails, or when frames after a seek carry no timestamps (F3, F4).
-    const auto reopen = [&]() -> bool {
+    // `hardware` keeps or drops VideoToolbox.
+    const auto reopen = [&](bool hardware) -> bool {
         ++m_reopenCount;
-        if (!openDecoder(s, m_path, &interrupt)) {
+        return openWithPolicy(hardware);
+    };
+    bool pendingPacket = false;  // `pkt` holds a packet the decoder refused with EAGAIN
+    // Sends a packet; the test seam fails one send after N packets.
+    int packetsSent = 0;
+    int failAfter = m_failAfterPackets;
+    const auto sendPacket = [&](AVPacket* packet) -> int {
+        if (failAfter >= 0 && packetsSent++ >= failAfter) {
+            failAfter = -1;
+            return AVERROR_INVALIDDATA;
+        }
+        return avcodec_send_packet(s.ctx.get(), packet);
+    };
+    // VideoToolbox failed before its first frame: Auto continues in software
+    // from the same position (D15), Hardware fails the clip.
+    const auto hardwareFailed = [&](const std::string& reason, long long gen) -> bool {
+        if (mode == DecodeMode::Hardware) {
             MediaFacts failed = s.o.facts;
-            if (failed.error.empty()) failed.error = "reopen failed";
+            failed.error = "hardware decode: " + reason;
             publishFacts(failed);
             return false;
         }
+        fallback = reason;
+        if (!reopen(false)) return false;
+        m_ring.reset(gen);
         return true;
     };
 
     while (!m_stop) {
         const long long gen = m_requestGen.load();
         const double target = m_targetSec.load();
+        if (m_importFailed.exchange(false)) {
+            std::string reason;
+            bool afterShown = false;
+            {
+                std::lock_guard lock(m_importMutex);
+                reason = "GPU import: " + m_importFailure;
+                afterShown = m_importAfterShown;
+            }
+            if (s.hardware && mode == DecodeMode::Auto && !afterShown) {
+                fallback = reason;
+                if (!reopen(false)) return;
+                m_ring.reset(gen);
+                workerGen = 0;  // seek the software decoder to the target
+                continue;
+            }
+            MediaFacts failed = s.o.facts;
+            failed.error = "hardware decode: " + reason;
+            failed.fallback = fallback;
+            publishFacts(failed);
+            return;  // the pool shows a placeholder with the reason
+        }
         if (gen != workerGen) {
             seekTarget = target;
+            if (pendingPacket) {  // a packet from before the seek
+                av_packet_unref(pkt.get());
+                pendingPacket = false;
+            }
             // From the first packet, a target within the sequential gap
             // decodes through: no seek, which also serves streams with no
             // seek index (a raw Annex-B file).
@@ -314,7 +510,7 @@ void FfmpegDecoder::run() {
                     s.eof = false;
                     s.fromStart = false;
                     s.lastPts.reset();
-                } else if (!reopen()) {
+                } else if (!reopen(s.hardware)) {
                     return;  // the failure is in the facts: the pool shows a placeholder
                 }
             }
@@ -328,6 +524,28 @@ void FfmpegDecoder::run() {
             continue;
         }
 
+        // Send and receive errors take one path (F3). EAGAIN from send keeps
+        // the packet for after the next receive; EOF is the end, not an
+        // error. Any other error before VideoToolbox's first frame falls back
+        // (Auto) or fails the clip (Hardware); later, it fails the clip with
+        // the reason, so the report never says "ok" over a frozen picture.
+        const auto decodeError = [&](int code, const char* where) -> bool {
+            const std::string reason = std::string(where) + ": " + avError(code);
+            if (s.hardware && !s.gotFrame) {
+                if (!hardwareFailed("VideoToolbox decode " + reason, gen)) return false;
+                pendingPacket = false;
+                av_packet_unref(pkt.get());
+                workerGen = 0;  // seek the software decoder to the target
+                return true;
+            }
+            MediaFacts failed = s.o.facts;
+            failed.error = "decode failed" + (s.lastPts ? " after " + std::to_string(*s.lastPts) + " s" : std::string()) +
+                           " (" + reason + ")";
+            failed.fallback = fallback;
+            publishFacts(failed);
+            return false;
+        };
+
         int rc = avcodec_receive_frame(s.ctx.get(), frm.get());
         if (rc == AVERROR(EAGAIN)) {
             if (s.draining) {
@@ -335,24 +553,51 @@ void FfmpegDecoder::run() {
                 m_ring.setEof(gen);
                 continue;
             }
-            rc = av_read_frame(s.o.fmt.get(), pkt.get());
-            if (rc == AVERROR_EOF) {
-                avcodec_send_packet(s.ctx.get(), nullptr);  // drain
-                s.draining = true;
-            } else if (rc >= 0) {
-                if (pkt->stream_index == s.o.stream->index) avcodec_send_packet(s.ctx.get(), pkt.get());
-                av_packet_unref(pkt.get());
-            } else {
-                s.eof = true;  // read error or interrupt: keep the last frame
-                m_ring.setEof(gen);
+            if (!pendingPacket) {
+                rc = av_read_frame(s.o.fmt.get(), pkt.get());
+                if (rc == AVERROR_EOF) {
+                    const int drain = avcodec_send_packet(s.ctx.get(), nullptr);
+                    if (drain < 0 && drain != AVERROR_EOF && !decodeError(drain, "drain")) return;
+                    s.draining = true;
+                    continue;
+                }
+                if (rc < 0) {
+                    if (m_stop) return;  // the interrupt callback ended the read
+                    if (!decodeError(rc, "read")) return;
+                    continue;
+                }
+                if (pkt->stream_index != s.o.stream->index) {
+                    av_packet_unref(pkt.get());
+                    continue;
+                }
+                pendingPacket = true;
             }
+            rc = sendPacket(pkt.get());
+            if (rc == AVERROR(EAGAIN)) continue;  // receive first, then send it again
+            av_packet_unref(pkt.get());
+            pendingPacket = false;
+            if (rc < 0 && rc != AVERROR_EOF && !decodeError(rc, "send")) return;
             continue;
         }
-        if (rc < 0) {
-            s.eof = true;  // AVERROR_EOF, or a decode error: keep the last frame
+        if (rc == AVERROR_EOF) {
+            s.eof = true;
             m_ring.setEof(gen);
             continue;
         }
+        if (rc < 0) {
+            if (!decodeError(rc, "receive")) return;
+            continue;
+        }
+        if (s.hardware && !s.gotFrame) {
+            const std::string bad = checkHardwareFrame(frm.get());
+            if (!bad.empty()) {
+                av_frame_unref(frm.get());
+                if (!hardwareFailed(bad, gen)) return;
+                workerGen = 0;
+                continue;
+            }
+        }
+        s.gotFrame = true;
 
         // Presentation time: the frame's timestamp, else one frame after the
         // last placed frame, else 0 at the start of the stream. A frame with
@@ -368,7 +613,11 @@ void FfmpegDecoder::run() {
             ptsSec = 0.0;
         } else {
             av_frame_unref(frm.get());
-            if (!reopen()) return;
+            if (pendingPacket) {
+                av_packet_unref(pkt.get());
+                pendingPacket = false;
+            }
+            if (!reopen(s.hardware)) return;
             m_ring.reset(gen);
             continue;
         }
@@ -384,7 +633,15 @@ void FfmpegDecoder::run() {
         const AVColorSpace cs =
             frm->colorspace != AVCOL_SPC_UNSPECIFIED ? frm->colorspace : s.o.stream->codecpar->color_space;
         const bool full = frm->color_range == AVCOL_RANGE_JPEG || fmt == AV_PIX_FMT_YUVJ420P;
-        if (fmt == AV_PIX_FMT_YUV420P || fmt == AV_PIX_FMT_YUVJ420P || fmt == AV_PIX_FMT_NV12) {
+        if (fmt == AV_PIX_FMT_VIDEOTOOLBOX) {
+            // Zero copy: the frame keeps its CVPixelBuffer; the render thread
+            // wraps its planes as Metal textures.
+            out->layout = PlaneLayout::Nv12;
+            out->hardware = true;
+            out->matrix = matrixFor(cs, frm->height);
+            out->range = full ? YuvRange::Full : YuvRange::Limited;
+            out->frame = av_frame_clone(frm.get());
+        } else if (fmt == AV_PIX_FMT_YUV420P || fmt == AV_PIX_FMT_YUVJ420P || fmt == AV_PIX_FMT_NV12) {
             out->layout = fmt == AV_PIX_FMT_NV12 ? PlaneLayout::Nv12 : PlaneLayout::I420;
             out->matrix = matrixFor(cs, frm->height);
             out->range = full ? YuvRange::Full : YuvRange::Limited;
@@ -440,7 +697,11 @@ void FfmpegDecoder::run() {
 FfmpegSource::FfmpegSource(std::string path, double initialSec, QSize nominalSize)
     : m_decoder(std::make_unique<FfmpegDecoder>(std::move(path), initialSec)), m_nominalSize(nominalSize) {}
 
-FfmpegSource::~FfmpegSource() = default;
+FfmpegSource::~FfmpegSource() {
+    // The displayed hardware frame may still be sampled by a command buffer
+    // in flight: it goes to the retire queue, not straight to release (D11).
+    if (m_retire && m_frameRef) m_retire->retire(std::move(m_frameRef), m_lastUseFrame);
+}
 
 std::unique_ptr<FfmpegDecoder> FfmpegSource::takeDecoder() {
     if (m_decoder) m_decoder->requestStop();
@@ -483,35 +744,82 @@ bool FfmpegSource::ensureTextures(QRhi* rhi, const DecodedFrame& f) {
     return true;
 }
 
-LayerFrame FfmpegSource::frameAt(QRhi* rhi, QRhiResourceUpdateBatch* updates, double sourceTimeMs) {
+LayerFrame FfmpegSource::hardwareFrame(const FrameContext& ctx, const std::shared_ptr<DecodedFrame>& shown) {
+    // An import failure is part of the source's state: the decoder falls
+    // back to software or fails the clip, so the picture is not silently
+    // missing (F2).
+    const auto importFailed = [&](const std::string& reason) {
+        if (!m_importReported) {
+            m_decoder->reportImportFailure(reason, m_importOk);
+            m_importReported = true;
+        }
+        return LayerFrame{};
+    };
+    if (!ctx.interop) return importFailed("no Metal texture cache for VideoToolbox frames");
+    if (shown.get() != m_wrapped) {
+        std::string error;
+        std::shared_ptr<hw::FrameRef> ref =
+            ctx.interop->wrap(reinterpret_cast<void*>(shown->frame->data[3]), &error);
+        if (!ref) {
+            if (m_frameRef && ctx.retire) ctx.retire->retire(std::move(m_frameRef), m_lastUseFrame);
+            m_wrapped = nullptr;
+            return importFailed(error);
+        }
+        m_importOk = true;
+        // The replaced frame waits in the retire queue until no command
+        // buffer that sampled it is in flight.
+        if (m_frameRef) ctx.retire->retire(std::move(m_frameRef), m_lastUseFrame);
+        m_frameRef = ref;
+        m_wrapped = shown.get();
+    }
+    auto* ref = static_cast<hw::FrameRef*>(m_frameRef.get());
+    m_lastUseFrame = ctx.frameNumber;
+    ref->markUsed(ctx.frameNumber);
+    LayerFrame out;
+    out.format = LayerFrame::Format::Nv12;
+    out.planes = {ref->plane(0), ref->plane(1), nullptr};
+    out.size = ref->size();
+    out.hardware = true;
+    return out;
+}
+
+LayerFrame FfmpegSource::frameAt(const FrameContext& ctx, double sourceTimeMs) {
     if (!m_decoder) return {};
+    m_retire = ctx.retire;
     const std::shared_ptr<DecodedFrame> shown = m_decoder->frameAt(sourceTimeMs / 1000.0);
-    if (!shown || !shown->frame || !ensureTextures(rhi, *shown)) {
+    if (!shown || !shown->frame) {
         return {};
     }
-    if (shown.get() != m_uploaded) {
-        const AVFrame* fr = shown->frame;
-        const int planes = shown->layout == PlaneLayout::I420 ? 3 : (shown->layout == PlaneLayout::Nv12 ? 2 : 1);
-        for (int i = 0; i < planes; ++i) {
-            const int rows = i == 0 ? fr->height : (fr->height + 1) / 2;
-            const int cols = i == 0 ? fr->width : (fr->width + 1) / 2;
-            // The batch is submitted in this render(), while `shown` is alive,
-            // so the plane memory is read in place.
-            QRhiTextureSubresourceUploadDescription desc(
-                QByteArray::fromRawData(reinterpret_cast<const char*>(fr->data[i]), fr->linesize[i] * rows));
-            desc.setDataStride(static_cast<quint32>(fr->linesize[i]));
-            desc.setSourceSize(QSize(cols, rows));
-            updates->uploadTexture(m_planes[static_cast<size_t>(i)].get(), QRhiTextureUploadEntry(0, 0, desc));
-        }
-        m_uploaded = shown.get();
-        m_uploadedRef = shown;
-    }
     LayerFrame out;
-    out.format = shown->layout == PlaneLayout::I420   ? LayerFrame::Format::I420
-                 : shown->layout == PlaneLayout::Nv12 ? LayerFrame::Format::Nv12
-                                                      : LayerFrame::Format::Rgba8Premultiplied;
-    out.planes = {m_planes[0].get(), m_planes[1].get(), m_planes[2].get()};
-    out.size = m_texSize;
+    if (shown->hardware) {
+        out = hardwareFrame(ctx, shown);
+        if (out.format == LayerFrame::Format::None) return {};
+    } else {
+        if (!ensureTextures(ctx.rhi, *shown)) return {};
+        if (shown.get() != m_uploaded) {
+            const AVFrame* fr = shown->frame;
+            const int planes = shown->layout == PlaneLayout::I420 ? 3 : (shown->layout == PlaneLayout::Nv12 ? 2 : 1);
+            for (int i = 0; i < planes; ++i) {
+                const int rows = i == 0 ? fr->height : (fr->height + 1) / 2;
+                const int cols = i == 0 ? fr->width : (fr->width + 1) / 2;
+                // The batch is submitted in this render(), while `shown` is
+                // alive, so the plane memory is read in place.
+                QRhiTextureSubresourceUploadDescription desc(
+                    QByteArray::fromRawData(reinterpret_cast<const char*>(fr->data[i]), fr->linesize[i] * rows));
+                desc.setDataStride(static_cast<quint32>(fr->linesize[i]));
+                desc.setSourceSize(QSize(cols, rows));
+                ctx.updates->uploadTexture(m_planes[static_cast<size_t>(i)].get(), QRhiTextureUploadEntry(0, 0, desc));
+            }
+            m_uploaded = shown.get();
+            m_uploadedRef = shown;
+            out.cpuCopies = planes;
+        }
+        out.format = shown->layout == PlaneLayout::I420   ? LayerFrame::Format::I420
+                     : shown->layout == PlaneLayout::Nv12 ? LayerFrame::Format::Nv12
+                                                          : LayerFrame::Format::Rgba8Premultiplied;
+        out.planes = {m_planes[0].get(), m_planes[1].get(), m_planes[2].get()};
+        out.size = m_texSize;
+    }
     out.colorMatrix = yuvToRgbMatrix(shown->matrix, shown->range);
     out.ptsSec = shown->ptsSec;
     if (const auto facts = m_decoder->facts()) {

@@ -8,6 +8,7 @@ extern "C" {
 #include <libavutil/frame.h>
 }
 
+#include <CoreVideo/CVPixelBuffer.h>
 #include <QElapsedTimer>
 #include <QTest>
 #include <QThread>
@@ -47,6 +48,28 @@ int barcode(const DecodedFrame& f) {
     }
     return value;
 }
+
+// The barcode of a VideoToolbox frame, read from its pixel buffer's Y plane
+// (a CPU read for the test only; the app never maps hardware frames).
+int hardwareBarcode(const DecodedFrame& f) {
+    auto pb = reinterpret_cast<CVPixelBufferRef>(f.frame->data[3]);
+    CVPixelBufferLockBaseAddress(pb, kCVPixelBufferLock_ReadOnly);
+    const auto* y = static_cast<const uint8_t*>(CVPixelBufferGetBaseAddressOfPlane(pb, 0));
+    const size_t stride = CVPixelBufferGetBytesPerRowOfPlane(pb, 0);
+    const int width = static_cast<int>(CVPixelBufferGetWidthOfPlane(pb, 0));
+    int value = 0;
+    for (int k = 0; k < std::min(16, width / 80); ++k) {
+        if (y[20 * stride + static_cast<size_t>(80 * k + 40)] > 128) value |= 1 << k;
+    }
+    CVPixelBufferUnlockBaseAddress(pb, kCVPixelBufferLock_ReadOnly);
+    return value;
+}
+
+// Sets the decode mode for one test and restores software after it.
+struct ModeScope {
+    explicit ModeScope(DecodeMode mode) { setDecodeMode(mode); }
+    ~ModeScope() { setDecodeMode(DecodeMode::Software); }
+};
 
 }  // namespace
 
@@ -229,6 +252,228 @@ private slots:
                                     .arg(i)
                                     .arg(rgb[static_cast<size_t>(i)] * 255)
                                     .arg(want[i] * 255)));
+        }
+    }
+
+    // M1c: VideoToolbox frames land on the same D17 frame as software.
+    void hardwareSeekBetweenFrames() {
+        ModeScope mode(DecodeMode::Hardware);
+        FfmpegDecoder d(media("seek-360p30.mp4"), 0.0);
+        auto f = waitExact(d, 0.050);
+        QVERIFY(f);
+        QVERIFY(f->hardware);
+        QCOMPARE(d.facts()->decoder, std::string("videotoolbox"));
+        QCOMPARE(hardwareBarcode(*f), 1);
+        f = waitExact(d, 5.0);
+        QVERIFY(f);
+        QCOMPARE(hardwareBarcode(*f), 150);
+    }
+
+    // M1c exit 4 (R5): 12 VideoToolbox sessions open at once, all decoding.
+    void twelveHardwareSessions() {
+        ModeScope mode(DecodeMode::Hardware);
+        const char* files[] = {"numbered-a-1080p30.mp4", "numbered-b-1080p30.mp4", "numbered-c-1080p30.mp4",
+                               "numbered-d-1080p30.mp4"};
+        std::vector<std::unique_ptr<FfmpegDecoder>> decoders;
+        for (int i = 0; i < 12; ++i) {
+            decoders.push_back(std::make_unique<FfmpegDecoder>(media(files[i % 4]), 1.0 + i * 0.1));
+        }
+        for (int i = 0; i < 12; ++i) {
+            const double target = 1.0 + i * 0.1;
+            auto f = waitExact(*decoders[static_cast<size_t>(i)], target, 8000);
+            QVERIFY2(f, qPrintable(QStringLiteral("session %1 produced no frame").arg(i)));
+            QVERIFY2(f->hardware, qPrintable(QStringLiteral("session %1 fell back: %2")
+                                                 .arg(i)
+                                                 .arg(QString::fromStdString(decoders[static_cast<size_t>(i)]->facts()->fallback))));
+            QCOMPARE(hardwareBarcode(*f), static_cast<int>(std::floor(target * 30.0 + 1e-6)));
+        }
+    }
+
+    // M1c: a stream VideoToolbox cannot decode (4:4:4 H.264) falls back to
+    // software in Auto, with the reason, and fails the clip in Hardware.
+    void hardwareFallback() {
+        {
+            ModeScope mode(DecodeMode::Auto);
+            FfmpegDecoder d(media("yuv444-untagged-720p.mp4"), 0.0);
+            auto f = waitExact(d, 0.0);
+            QVERIFY(f);
+            QVERIFY(!f->hardware);
+            const auto facts = d.facts();
+            QCOMPARE(facts->decoder, std::string("software"));
+            QVERIFY2(!facts->fallback.empty(), "no fallback reason");
+        }
+        {
+            ModeScope mode(DecodeMode::Hardware);
+            FfmpegDecoder d(media("yuv444-untagged-720p.mp4"), 0.0);
+            QElapsedTimer t;
+            t.start();
+            while (t.elapsed() < 4000 && !(d.facts() && !d.facts()->error.empty())) {
+                d.frameAt(0.0);
+                QThread::msleep(5);
+            }
+            QVERIFY(d.facts());
+            QVERIFY2(!d.facts()->error.empty(), "Hardware mode did not fail the clip");
+            QVERIFY(!d.facts()->usable());
+        }
+    }
+
+    // M1c F2: a frame VideoToolbox decoded but the GPU cannot import (no
+    // Metal interop) must not leave the picture missing. FfmpegSource reports
+    // it; before the first frame is shown, Auto retries in software.
+    void importFailureFallsBackInAuto() {
+        ModeScope mode(DecodeMode::Auto);
+        FfmpegSource source(media("seek-360p30.mp4"), 0.0, QSize(640, 360));
+        FrameContext ctx;  // no QRhi and no interop: every import fails
+        QElapsedTimer t;
+        t.start();
+        while (t.elapsed() < 4000) {
+            if (const auto f = source.decoder().frameAt(0.0); f && !f->hardware) break;
+            if (const auto f = source.decoder().frameAt(0.0); f && f->hardware) source.frameAt(ctx, 0.0);
+            QThread::msleep(2);
+        }
+        const auto facts = source.decoder().facts();
+        QVERIFY(facts);
+        QCOMPARE(facts->decoder, std::string("software"));
+        QVERIFY2(facts->fallback.find("import") != std::string::npos, facts->fallback.c_str());
+        auto f = waitExact(source.decoder(), 0.0);
+        QVERIFY(f);
+        QVERIFY(!f->hardware);
+        QCOMPARE(barcode(*f), 0);
+    }
+
+    void importFailureFailsTheClipInHardware() {
+        ModeScope mode(DecodeMode::Hardware);
+        FfmpegSource source(media("seek-360p30.mp4"), 0.0, QSize(640, 360));
+        FrameContext ctx;
+        QElapsedTimer t;
+        t.start();
+        while (t.elapsed() < 4000) {
+            const auto facts = source.decoder().facts();
+            if (facts && !facts->error.empty()) break;
+            source.frameAt(ctx, 0.0);
+            QThread::msleep(2);
+        }
+        const auto facts = source.decoder().facts();
+        QVERIFY(facts);
+        QVERIFY2(facts->error.find("import") != std::string::npos, facts->error.c_str());
+        QVERIFY(!facts->usable());
+    }
+
+    // M1c F3: a decode error in the middle of a stream (here from
+    // avcodec_send_packet, injected after 30 packets) is reported, not
+    // turned into end of stream with a frozen picture and an "ok" report.
+    void midStreamDecodeErrorIsReported() {
+        setTestDecodeFailureAfterPackets(30);
+        FfmpegDecoder d(media("seek-360p30.mp4"), 0.0);
+        setTestDecodeFailureAfterPackets(-1);
+        QVERIFY(waitExact(d, 0.3));
+        QElapsedTimer t;
+        t.start();
+        while (t.elapsed() < 4000 && !(d.facts() && !d.facts()->error.empty())) {
+            d.frameAt(t.elapsed() / 1000.0);
+            QThread::msleep(5);
+        }
+        QVERIFY(d.facts());
+        QVERIFY2(!d.facts()->error.empty(), "a mid-stream decode error was not reported");
+        QVERIFY(!d.facts()->usable());
+    }
+
+    // F3: the same error before the first frame, in Auto, falls back to
+    // software (send errors take the same path as receive errors).
+    void sendErrorBeforeFirstFrameFallsBack() {
+        ModeScope mode(DecodeMode::Auto);
+        setTestDecodeFailureAfterPackets(0);
+        FfmpegDecoder d(media("seek-360p30.mp4"), 0.0);
+        setTestDecodeFailureAfterPackets(-1);
+        auto f = waitExact(d, 0.0);
+        QVERIFY(f);
+        QVERIFY(!f->hardware);
+        QVERIFY2(d.facts()->fallback.find("decode") != std::string::npos, d.facts()->fallback.c_str());
+        QCOMPARE(barcode(*f), 0);
+    }
+
+    // M1c F4: the first open and a reopen apply the same hardware policy.
+    // VideoToolbox setup is made to fail at the first open, or at the reopen
+    // that a seek in a timestamp-less stream needs.
+    void hardwareSetupFailurePolicy_data() {
+        QTest::addColumn<int>("failingOpen");  // 0: first open, 1: the reopen after a seek
+        QTest::addColumn<int>("mode");         // DecodeMode
+        QTest::newRow("first open, hw") << 0 << int(DecodeMode::Hardware);
+        QTest::newRow("first open, auto") << 0 << int(DecodeMode::Auto);
+        QTest::newRow("after seek, hw") << 1 << int(DecodeMode::Hardware);
+        QTest::newRow("after seek, auto") << 1 << int(DecodeMode::Auto);
+    }
+    void hardwareSetupFailurePolicy() {
+        QFETCH(int, failingOpen);
+        QFETCH(int, mode);
+        ModeScope scope(static_cast<DecodeMode>(mode));
+        setTestHardwareSetupFailureOnOpen(failingOpen);
+        FfmpegDecoder d(media("annexb-360p30.h264"), 0.0);
+        setTestHardwareSetupFailureOnOpen(-1);
+        // Waits for the exact frame, or for the clip to fail.
+        const auto exactOrError = [&d](double target) -> std::shared_ptr<DecodedFrame> {
+            QElapsedTimer t;
+            t.start();
+            while (t.elapsed() < 8000) {
+                auto f = d.frameAt(target);
+                if (f && d.exact()) return f;
+                if (d.facts() && !d.facts()->error.empty()) return nullptr;
+                QThread::msleep(2);
+            }
+            return nullptr;
+        };
+        // Show frame 0, then seek far ahead: the stream has no timestamps, so
+        // the decoder reopens.
+        const auto first = exactOrError(0.0);
+        if (failingOpen == 0 && mode == int(DecodeMode::Hardware)) {
+            QVERIFY(!first);
+            QVERIFY(d.facts() && !d.facts()->error.empty());
+            return;
+        }
+        QVERIFY(first);
+        const double rate = d.facts()->frameRate;
+        const auto later = exactOrError(150.0 / rate);
+        const auto facts = d.facts();
+        QVERIFY(facts);
+        QVERIFY(d.reopens() >= (failingOpen == 1 ? 1 : 0));
+        if (mode == int(DecodeMode::Hardware)) {
+            QVERIFY2(!facts->error.empty(), "hw: a failed VideoToolbox setup at reopen went unreported");
+            QVERIFY(!facts->usable());
+        } else {
+            QVERIFY(later);
+            QVERIFY(!later->hardware);
+            QCOMPARE(facts->decoder, std::string("software"));
+            QVERIFY2(!facts->fallback.empty(), "auto: the fallback has no reason");
+            QCOMPARE(barcode(*later), 150 & 0xff);
+        }
+    }
+
+    // R6: untagged media keeps the D10 guess by height. HD (720 lines and
+    // up) reads as BT.709, SD as BT.601, and the colour comes back right.
+    void untaggedGuessByHeight_data() {
+        QTest::addColumn<QString>("file");
+        QTest::addColumn<int>("matrix");
+        QTest::newRow("HD 720p is BT.709") << "untagged-hd-720p.mp4" << int(YuvMatrix::Bt709);
+        QTest::newRow("SD 480p is BT.601") << "untagged-sd-480p.mp4" << int(YuvMatrix::Bt601);
+    }
+    void untaggedGuessByHeight() {
+        QFETCH(QString, file);
+        QFETCH(int, matrix);
+        FfmpegDecoder d(media(qPrintable(file)), 0.0);
+        auto f = waitExact(d, 0.0);
+        QVERIFY(f);
+        QCOMPARE(int(f->matrix), matrix);
+        QCOMPARE(f->range, YuvRange::Limited);
+        const AVFrame* fr = f->frame;
+        const int x = fr->width / 2;
+        const int y = fr->height / 2;
+        const auto rgb = yuvToRgb(f->matrix, f->range, fr->data[0][y * fr->linesize[0] + x],
+                                  fr->data[1][(y / 2) * fr->linesize[1] + x / 2],
+                                  fr->data[2][(y / 2) * fr->linesize[2] + x / 2]);
+        const double want[3] = {0xC0 / 255.0, 0x20 / 255.0, 0x40 / 255.0};
+        for (int i = 0; i < 3; ++i) {
+            QVERIFY2(std::abs(rgb[static_cast<size_t>(i)] - want[i]) < 3.0 / 255.0,
+                     qPrintable(QStringLiteral("channel %1: %2").arg(i).arg(rgb[static_cast<size_t>(i)] * 255)));
         }
     }
 

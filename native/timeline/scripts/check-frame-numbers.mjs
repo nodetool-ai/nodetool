@@ -11,7 +11,7 @@
 //     does a frame playback never showed.
 // The default frames are every cut frame and the frames on either side.
 //
-// Usage: node native/timeline/scripts/check-frame-numbers.mjs [fixture.json] [--frames a,b,c] [--json]
+// Usage: node native/timeline/scripts/check-frame-numbers.mjs [fixture.json] [--frames a,b,c] [--decode sw|hw|auto] [--json]
 // Default fixture: native/timeline/fixtures/video-cuts.json. Needs
 // scripts/make-fixtures.sh and a display (the stills come from the app).
 // Exit 0 only when every still was read and every number matches.
@@ -26,9 +26,10 @@ const EPS = 1e-6;
 const SOURCE_FPS = 30; // make-fixtures.sh numbers frames at 30 fps
 
 function parseArgs(argv) {
-  const args = { fixture: path.join(root, "fixtures", "video-cuts.json"), frames: null, json: false };
+  const args = { fixture: path.join(root, "fixtures", "video-cuts.json"), frames: null, json: false, decode: "sw" };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--frames") args.frames = argv[++i].split(",").map(Number);
+    else if (argv[i] === "--decode") args.decode = argv[++i];
     else if (argv[i] === "--json") args.json = true;
     else args.fixture = path.resolve(argv[i]);
   }
@@ -79,7 +80,7 @@ if (!frames) {
   frames = [...set].sort((a, b) => a - b);
 }
 const bin = path.join(root, "build", "nodetool-timeline");
-const base = path.join(root, "build", "frame-numbers", path.basename(args.fixture, ".json"));
+const base = path.join(root, "build", "frame-numbers", `${path.basename(args.fixture, ".json")}-${args.decode}`);
 
 // Reads the barcode of each still and compares it with the D17 pick for the
 // clip on screen at `timeMs`.
@@ -109,7 +110,9 @@ function check(dir, entries) {
 function run(flag, dir) {
   fs.rmSync(dir, { recursive: true, force: true });
   try {
-    execFileSync(bin, [args.fixture, flag, dir, "--still-frames", frames.join(",")], { stdio: ["ignore", "ignore", "pipe"] });
+    execFileSync(bin, [args.fixture, flag, dir, "--still-frames", frames.join(","), "--decode", args.decode], {
+      stdio: ["ignore", "ignore", "pipe"]
+    });
     return null;
   } catch (error) {
     return `${flag} exited ${error.status}: ${String(error.stderr).trim().split("\n").slice(-2).join(" | ")}`;
@@ -141,6 +144,7 @@ if (args.json) {
   console.log(
     JSON.stringify({
       fixture: path.relative(process.cwd(), args.fixture),
+      decode: args.decode,
       verdict: pass ? "pass" : "fail",
       settled: { verdict: settledPass ? "pass" : "fail", ...(settledError && { error: settledError }), results: settled },
       play: { verdict: playPass ? "pass" : "fail", ...(playError && { error: playError }), results: play }

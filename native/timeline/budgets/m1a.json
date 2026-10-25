@@ -1,5 +1,5 @@
 {
-  "submitIntervalMs.p95": 17.5,
+  "targetHz": 60,
   "cpuMs.p95": 2,
   "skippedSubmitsFraction": 0.01
 }

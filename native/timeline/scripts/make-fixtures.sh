@@ -45,8 +45,12 @@ h264() {
 legacy() {
     local name=$1 src=$2 size=$3 seconds=$4
     if ! need "$name"; then kept "$name"; return; fi
+    # Tagged BT.601 limited, which is what the conversion to YUV wrote, so no
+    # golden check depends on the untagged guess (R6).
     ff -f lavfi -i "${src}=size=${size}:rate=30:duration=${seconds}" \
-        -c:v libx264 -pix_fmt yuv420p -preset veryfast -g 30 "$out/$name"
+        -vf "scale=out_color_matrix=bt601:out_range=tv,format=yuv420p" \
+        -c:v libx264 -preset veryfast -g 30 \
+        -colorspace smpte170m -color_primaries smpte170m -color_trc smpte170m -color_range tv "$out/$name"
     wrote "$name"
 }
 legacy background-1080p.mp4 testsrc2 1920x1080 20
@@ -59,6 +63,21 @@ h264 numbered-a-1080p30.mp4 "$(numbered testsrc2 1920 1080 20)"
 h264 numbered-b-1080p30.mp4 "$(numbered smptehdbars 1920 1080 20)"
 h264 numbered-c-1080p30.mp4 "$(numbered testsrc 1920 1080 20)"
 h264 numbered-d-1080p30.mp4 "$(numbered rgbtestsrc 1920 1080 20)"
+
+# --- video-4k-hevc.json: two numbered 4K30 HEVC sources (8-bit 4:2:0 BT.709) ---
+hevc4k() {
+    local name=$1 src=$2
+    if ! need "$name"; then kept "$name"; return; fi
+    ff -f lavfi -i "$(numbered "$src" 3840 2160 15)" \
+        -vf "scale=out_color_matrix=bt709:out_range=tv,format=yuv420p" \
+        -c:v libx265 -preset ultrafast -crf 26 \
+        -x265-params log-level=error:keyint=60:min-keyint=60:scenecut=0:colorprim=bt709:transfer=bt709:colormatrix=bt709 \
+        -colorspace bt709 -color_primaries bt709 -color_trc bt709 -color_range tv -tag:v hvc1 \
+        -movflags +faststart "$out/$name"
+    wrote "$name"
+}
+hevc4k numbered-a-2160p30-hevc.mp4 testsrc2
+hevc4k numbered-b-2160p30-hevc.mp4 smptehdbars
 
 # --- seek tests (ctest): small numbered files --------------------------------
 h264 seek-360p30.mp4 "$(numbered testsrc2 640 360 10)"
@@ -122,6 +141,20 @@ if need yuv444-untagged-720p.mp4; then
 else
     kept yuv444-untagged-720p.mp4
 fi
+
+# --- untagged media: the D10 guess by height (R6) ----------------------------
+# No colour tags. HD content is BT.709 and SD content BT.601, which is what
+# the guess must pick.
+untagged() {
+    local name=$1 size=$2 matrix=$3
+    if ! need "$name"; then kept "$name"; return; fi
+    ff -f lavfi -i "color=c=0xC02040:size=${size}:rate=30:duration=1" \
+        -vf "scale=out_color_matrix=${matrix}:out_range=tv,format=yuv420p,setparams=colorspace=unknown:color_primaries=unknown:color_trc=unknown:range=unknown" \
+        -c:v libx264 -qp 0 "$out/$name"
+    wrote "$name"
+}
+untagged untagged-hd-720p.mp4 1280x720 bt709
+untagged untagged-sd-480p.mp4 854x480 bt601
 
 # --- D10a rejections: one file per reason ------------------------------------
 if need reject-rotation.mp4; then

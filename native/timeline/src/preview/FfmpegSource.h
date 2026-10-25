@@ -22,6 +22,25 @@ struct AVFrame;
 
 namespace nt {
 
+// Which decoder a source uses (--decode). Software is the M1b path. Hardware
+// decodes with VideoToolbox and fails the clip when that is not possible.
+// Auto tries VideoToolbox and falls back to software before the first frame,
+// with the reason in the loader report.
+enum class DecodeMode { Software, Hardware, Auto };
+void setDecodeMode(DecodeMode mode);
+DecodeMode decodeMode();
+
+// Test seam: decoders created after this call fail their packet send with
+// AVERROR_INVALIDDATA after `packets` packets (once, on the first decoder
+// open); -1 turns it off.
+void setTestDecodeFailureAfterPackets(int packets);
+// Test seam: decoders created after this call fail VideoToolbox setup at
+// their open number `open` (0 is the first open, 1 the first reopen); -1 off.
+void setTestHardwareSetupFailureOnOpen(int open);
+
+// The QoS class of the last decode worker that started (bench diagnostics).
+const char* lastDecodeWorkerQos();
+
 // What opening a stream found out (D10a facts) and why it was refused.
 struct MediaFacts {
     bool opened = false;
@@ -38,6 +57,8 @@ struct MediaFacts {
     int sarNum = 1;
     int sarDen = 1;
     std::string transfer;
+    std::string decoder;   // "videotoolbox" or "software", once decoding
+    std::string fallback;  // why hardware decode was not used (Auto), or empty
 
     bool usable() const { return opened && rejection.empty() && error.empty(); }
 };
@@ -57,6 +78,9 @@ struct DecodedFrame {
     YuvRange range = YuvRange::Limited;
     int width = 0;
     int height = 0;
+    // A VideoToolbox frame: `frame->data[3]` is an NV12 CVPixelBufferRef and
+    // there are no CPU planes.
+    bool hardware = false;
     ~DecodedFrame();
 };
 
@@ -87,6 +111,12 @@ public:
     // Asks the worker to stop; the destructor waits for it.
     void requestStop();
 
+    // Render thread: a VideoToolbox frame could not be imported to the GPU.
+    // Before any hardware frame was shown, Auto reopens in software with the
+    // reason as its fallback; otherwise, and in Hardware mode, the clip fails
+    // with the reason (D15).
+    void reportImportFailure(const std::string& reason, bool hardwareFrameShown);
+
     // For tests: seeks started (one per restart), reopens after a failed seek
     // or missing timestamps, and the queue state at the last frameAt().
     long long seeks() const { return m_seekCount.load(); }
@@ -108,6 +138,9 @@ private:
     static int interruptCallback(void* opaque);
 
     std::string m_path;
+    DecodeMode m_mode = DecodeMode::Software;
+    int m_failAfterPackets = -1;  // test seam
+    int m_failHardwareOnOpen = -1;  // test seam
     FrameRing<DecodedFrame> m_ring;
 
     // Requests from the render thread.
@@ -116,6 +149,12 @@ private:
     double m_restartSec;  // target of the newest restart (render thread)
 
     std::atomic<long long> m_seekCount{0};
+
+    // An import failure for the worker to act on (render thread to worker).
+    std::mutex m_importMutex;
+    std::string m_importFailure;
+    bool m_importAfterShown = false;
+    std::atomic<bool> m_importFailed{false};
     std::atomic<long long> m_reopenCount{0};
 
     mutable std::mutex m_factsMutex;
@@ -145,13 +184,14 @@ public:
     ~FfmpegSource() override;
 
     QSize frameSize() const override;
-    LayerFrame frameAt(QRhi* rhi, QRhiResourceUpdateBatch* updates, double sourceTimeMs) override;
+    LayerFrame frameAt(const FrameContext& ctx, double sourceTimeMs) override;
 
     FfmpegDecoder& decoder() { return *m_decoder; }
     std::unique_ptr<FfmpegDecoder> takeDecoder();
 
 private:
     bool ensureTextures(QRhi* rhi, const DecodedFrame& f);
+    LayerFrame hardwareFrame(const FrameContext& ctx, const std::shared_ptr<DecodedFrame>& shown);
 
     std::unique_ptr<FfmpegDecoder> m_decoder;
     QSize m_nominalSize;
@@ -160,6 +200,15 @@ private:
     QSize m_texSize;
     const DecodedFrame* m_uploaded = nullptr;
     std::shared_ptr<DecodedFrame> m_uploadedRef;  // keeps the uploaded frame alive
+
+    // Hardware frames (D11): the displayed FrameRef, the frame it wraps, the
+    // last frame number that drew with it, and where to retire it.
+    std::shared_ptr<void> m_frameRef;
+    bool m_importOk = false;        // a hardware frame was imported and shown
+    bool m_importReported = false;  // the decoder was told about a failure
+    const DecodedFrame* m_wrapped = nullptr;
+    long long m_lastUseFrame = 0;
+    RetireQueue* m_retire = nullptr;
 };
 
 }  // namespace nt

@@ -40,6 +40,24 @@ struct LayerFrame {
     // Whether this is the exact frame for the requested time (the D17 pick),
     // not a held frame while the decoder catches up.
     bool exact = true;
+    // Planes copied from CPU memory to the GPU for this frame (0 for a held
+    // frame and for an imported hardware frame).
+    int cpuCopies = 0;
+    bool hardware = false;  // planes are imported decoder surfaces (zero copy)
+};
+
+class RetireQueue;
+namespace hw {
+class VideoToolboxInterop;
+}
+
+// What a source gets for one composited frame, on the render thread.
+struct FrameContext {
+    QRhi* rhi = nullptr;
+    QRhiResourceUpdateBatch* updates = nullptr;  // submitted before the first draw
+    long long frameNumber = 0;                   // the renderer's frame counter
+    RetireQueue* retire = nullptr;               // for resources a frame still uses
+    hw::VideoToolboxInterop* interop = nullptr;  // null when hardware frames are unavailable
 };
 
 class LayerSource {
@@ -55,7 +73,7 @@ public:
     // returns the frame it showed last, or Format::None before its first.
     // Uploads go into `updates`, which the compositor submits before its
     // first draw. The textures stay owned by the source.
-    virtual LayerFrame frameAt(QRhi* rhi, QRhiResourceUpdateBatch* updates, double sourceTimeMs) = 0;
+    virtual LayerFrame frameAt(const FrameContext& ctx, double sourceTimeMs) = 0;
 };
 
 }  // namespace nt

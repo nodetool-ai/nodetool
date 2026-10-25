@@ -32,6 +32,10 @@ struct FrameStat {
     int mediaLayers = 0;        // layers in the plan with media
     int missingMediaLayers = 0; // of those, layers with no picture
     double timeMs = 0.0;        // the clock time this frame showed
+    int cpuCopies = 0;          // planes uploaded from CPU memory this frame
+    int hardwareLayers = 0;     // layers drawn from imported decoder surfaces
+    int liveFrameRefs = 0;      // hardware FrameRefs alive (process-wide)
+    bool allExact = false;      // every layer showed its exact frame (D22 readiness)
 };
 
 struct MediaReportEntry {
@@ -39,6 +43,8 @@ struct MediaReportEntry {
     QString mediaPath;
     bool ok = false;
     QString reason;
+    QString decoder;
+    QString fallback;
 };
 
 // The GPU preview. Every frame it takes the SceneEval layer list at the clock
@@ -66,6 +72,12 @@ public:
     long long framesRendered() const { return m_framesRendered; }
     // Decoders open at the last frame. GUI thread.
     int openDecoders() const { return m_openDecoders; }
+    // The render thread, for its CPU time (nt::cpu::threadNs); 0 before the
+    // first frame. GUI thread.
+    unsigned renderThread() const { return m_renderThread; }
+    const char* renderThreadQos() const { return m_renderThreadQos; }
+    // Hardware FrameRefs alive at the last frame. GUI thread.
+    int liveFrameRefs() const { return m_liveFrameRefs; }
     // The loader report: one entry per media clip opened so far. GUI thread.
     const std::vector<MediaReportEntry>& mediaReport() const { return m_mediaReport; }
 
@@ -99,7 +111,11 @@ private:
     std::vector<FrameStat> m_stats;  // written in synchronize(), GUI thread blocked
     long long m_framesRendered = 0;  // written in synchronize(), GUI thread blocked
     int m_openDecoders = 0;
+    int m_liveFrameRefs = 0;
+    unsigned m_renderThread = 0;
+    const char* m_renderThreadQos = "unknown";
     std::vector<MediaReportEntry> m_mediaReport;
+    long long m_mediaReportVersion = -1;
     bool m_captureRequested = false;
     bool m_captureImmediate = false;
     double m_captureTimeMs = 0.0;

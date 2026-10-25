@@ -4,6 +4,9 @@
 #include "playback/PlaybackClock.h"
 #include "preview/SceneEval.h"
 #include "preview/FrameRing.h"
+#include "platform/CpuUsage.h"
+#include "preview/RetireQueue.h"
+#include "preview/hw/VideoToolboxInterop.h"
 #include "preview/SourcePool.h"
 #include "preview/SyntheticSource.h"
 
@@ -18,6 +21,7 @@
 #include <chrono>
 #include <cmath>
 #include <mutex>
+#include <cstdio>
 #include <cstring>
 #include <memory>
 #include <string>
@@ -72,6 +76,18 @@ void writeMatrix(LayerUniforms& u, const QMatrix4x4& m) {
 
 class PreviewCompositorRenderer final : public QQuickRhiItemRenderer {
 public:
+    ~PreviewCompositorRenderer() override {
+        // D11: the renderer has no release hook, so its destructor drains
+        // the retire queue. The sources go first (their displayed hardware
+        // frames retire into the queue), then the GPU finishes every command
+        // buffer that may sample them: Qt's Metal command buffers do not
+        // retain the textures they use. Only then is the queue released.
+        m_sources.clear();
+        m_pool.clear();
+        if (m_rhi && !m_retire.empty()) m_rhi->finish();
+        m_retire.clear();
+    }
+
     PreviewCompositorRenderer()
         : m_steadyOriginNs(std::chrono::duration_cast<std::chrono::nanoseconds>(
                                std::chrono::steady_clock::now().time_since_epoch())
@@ -119,6 +135,10 @@ private:
     std::unique_ptr<QRhiShaderResourceBindings> m_blitSrb;
     std::unique_ptr<QRhiGraphicsPipeline> m_blitPipeline;
 
+    // Declared before the sources and the pool, so it is destroyed after
+    // them: their last hardware frames retire into it.
+    nt::RetireQueue m_retire;
+    std::shared_ptr<nt::hw::VideoToolboxInterop> m_interop;
     std::unordered_map<std::string, SourceEntry> m_sources;
     nt::SourcePool m_pool;
 
@@ -192,6 +212,8 @@ void PreviewCompositorRenderer::initialize(QRhiCommandBuffer*) {
     if (m_rhi != rhi()) {
         // New QRhi (first run, or a device change): drop every resource.
         m_sources.clear();
+        m_retire.clear();
+        m_interop.reset();
         m_layerPipeline.reset();
         m_blitPipeline.reset();
         m_blitSrb.reset();
@@ -204,6 +226,9 @@ void PreviewCompositorRenderer::initialize(QRhiCommandBuffer*) {
         m_sampler.reset();
         m_vbufUploaded = false;
         m_rhi = rhi();
+    }
+    if (!m_interop) {
+        m_interop = nt::hw::VideoToolboxInterop::create(m_rhi);
     }
     if (!m_vbuf) {
         m_vs = loadShader(QStringLiteral(":/shaders/composite.vert.qsb"));
@@ -230,13 +255,18 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
     m_pendingStats.clear();
     m_collectStats = item->m_collectStats;
     item->m_openDecoders = m_pool.openDecoders();
+    item->m_liveFrameRefs = nt::hw::FrameRef::live();
+    item->m_renderThread = nt::cpu::currentThread();  // synchronize() runs on the render thread
+    item->m_renderThreadQos = nt::cpu::currentThreadQos();
     {
-        const auto report = m_pool.report();
-        if (report.size() != item->m_mediaReport.size()) {
+        const long long version = m_pool.reportVersion();
+        if (version != item->m_mediaReportVersion) {
+            item->m_mediaReportVersion = version;
             item->m_mediaReport.clear();
-            for (const auto& r : report) {
+            for (const auto& r : m_pool.report()) {
                 item->m_mediaReport.push_back({QString::fromStdString(r.clipId), QString::fromStdString(r.mediaPath),
-                                               r.ok, QString::fromStdString(r.reason)});
+                                               r.ok, QString::fromStdString(r.reason),
+                                               QString::fromStdString(r.decoder), QString::fromStdString(r.fallback)});
             }
         }
     }
@@ -374,6 +404,20 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
         m_pool.update(nt::Timeline{}, 0.0);
     }
 
+    if (m_interop) nt::hw::trackCompletion(cb, m_frame);
+    // Release hardware frames no command buffer in flight can sample (D11).
+    const int framesInFlight = m_rhi->resourceLimit(QRhi::FramesInFlight);
+    m_retire.collect(m_frame, framesInFlight);
+    if (m_interop) m_interop->flush();
+    nt::FrameContext fctx;
+    fctx.rhi = m_rhi;
+    fctx.updates = updates;
+    fctx.frameNumber = m_frame;
+    fctx.retire = &m_retire;
+    fctx.interop = m_interop.get();
+    int cpuCopies = 0;
+    int hardwareLayers = 0;
+
     const QMatrix4x4 corr = m_rhi->clipSpaceCorrMatrix();
     struct Draw {
         QRhiShaderResourceBindings* srb;
@@ -392,7 +436,9 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
         e.lastUsedFrame = m_frame;
         nt::LayerSource* source = e.synthetic ? e.synthetic.get() : m_pool.sourceFor(layer.clipId);
         const nt::LayerFrame frame =
-            source ? source->frameAt(m_rhi, updates, layer.sourceTimeMs) : nt::LayerFrame{};
+            source ? source->frameAt(fctx, layer.sourceTimeMs) : nt::LayerFrame{};
+        cpuCopies += frame.cpuCopies;
+        if (frame.hardware) ++hardwareLayers;
         if (!layer.mediaPath.empty()) ++mediaLayers;
         if (frame.format == nt::LayerFrame::Format::None || !frame.planes[0]) {
             // No frame yet (decoder opening or seeking): the layer is left out.
@@ -421,7 +467,12 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
                 expectedClamped = std::min(expected, std::max(0LL, last));
             }
             const long long shown = std::llround(frame.ptsSec * frame.frameRate);
-            frameError = std::max(frameError, static_cast<int>(std::llabs(expectedClamped - shown)));
+            const int error = static_cast<int>(std::llabs(expectedClamped - shown));
+            frameError = std::max(frameError, error);
+            if (error > 2 && qEnvironmentVariableIsSet("NT_DIAG_FRAME_ERROR")) {
+                std::fprintf(stderr, "diag: frame %lld clip %s source %.3f s shows %.3f s (error %d, exact %d, hw %d)\n",
+                             m_frame, layer.clipId.c_str(), sourceSec, frame.ptsSec, error, frame.exact, frame.hardware);
+            }
         }
         std::array<QRhiTexture*, 3> planes = frame.planes;
         for (auto& p : planes) {
@@ -547,6 +598,10 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     stat.missingLayers = missing;
     stat.cutMisses = cutMisses;
     stat.mediaLayers = mediaLayers;
+    stat.cpuCopies = cpuCopies;
+    stat.hardwareLayers = hardwareLayers;
+    stat.liveFrameRefs = nt::hw::FrameRef::live();
+    stat.allExact = allExact && missing == 0;
     stat.missingMediaLayers = missingMedia;
     stat.timeMs = m_timeMs;
     stat.openDecoders = m_pool.openDecoders();
@@ -555,7 +610,7 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     }
     m_lastRenderNs = startNs;
 
-    if (m_playing || m_waitingForFrames || m_captureInFlight || missing > 0 || !allExact) {
+    if (m_playing || m_waitingForFrames || m_captureInFlight || missing > 0 || !allExact || !m_retire.empty()) {
         update();  // next frame at vsync; also while decoders catch up
     }
 }

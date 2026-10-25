@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.22)
 
-project(NodeToolTimeline VERSION 0.1.0 LANGUAGES CXX)
+project(NodeToolTimeline VERSION 0.1.0 LANGUAGES CXX OBJCXX)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -28,7 +28,8 @@ add_library(timeline_core STATIC
     src/model/TimelineTypes.h
     src/model/TimelineJson.h src/model/TimelineJson.cpp
     src/preview/SceneEval.h src/preview/SceneEval.cpp
-    src/bench/BenchReport.h src/bench/BenchReport.cpp)
+    src/bench/BenchReport.h src/bench/BenchReport.cpp
+    src/platform/CpuUsage.h src/platform/CpuUsage.cpp)
 target_include_directories(timeline_core PUBLIC src)
 target_link_libraries(timeline_core PUBLIC Qt6::Core)
 target_compile_options(timeline_core PRIVATE ${NT_WARNINGS})
@@ -40,17 +41,24 @@ add_library(timeline_decode STATIC
     src/preview/YuvFormat.h src/preview/YuvFormat.cpp
     src/preview/FfmpegSource.h src/preview/FfmpegSource.cpp
     src/preview/SourcePool.h src/preview/SourcePool.cpp
-    src/preview/SyntheticSource.h src/preview/SyntheticSource.cpp)
-target_link_libraries(timeline_decode PUBLIC timeline_core Qt6::Gui Qt6::GuiPrivate PkgConfig::FFMPEG)
+    src/preview/SyntheticSource.h src/preview/SyntheticSource.cpp
+    src/preview/RetireQueue.h
+    src/preview/hw/VideoToolboxInterop.h src/preview/hw/VideoToolboxInterop.mm)
+set_source_files_properties(src/preview/hw/VideoToolboxInterop.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
+target_link_libraries(timeline_decode PUBLIC timeline_core Qt6::Gui Qt6::GuiPrivate PkgConfig::FFMPEG
+    "-framework CoreVideo" "-framework Metal" "-framework Foundation")
 target_compile_options(timeline_decode PRIVATE ${NT_WARNINGS})
 
-qt_add_executable(nodetool-timeline src/main.cpp)
+qt_add_executable(nodetool-timeline src/main.cpp src/platform/ProcessActivity.h src/platform/ProcessActivity.mm
+    src/platform/SchedulingDiagnostics.h src/platform/SchedulingDiagnostics.mm)
+set_source_files_properties(src/platform/ProcessActivity.mm src/platform/SchedulingDiagnostics.mm
+    PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
 set_target_properties(nodetool-timeline PROPERTIES MACOSX_BUNDLE FALSE)
 target_compile_options(nodetool-timeline PRIVATE ${NT_WARNINGS})
 # The generated QML type registrations include the headers by base name.
 target_include_directories(nodetool-timeline PRIVATE src/model src/playback src/preview)
 target_link_libraries(nodetool-timeline PRIVATE
-    timeline_core timeline_decode Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 PkgConfig::FFMPEG)
+    "-framework Foundation" "-framework AppKit" timeline_core timeline_decode Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 PkgConfig::FFMPEG)
 
 set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 qt_add_qml_module(nodetool-timeline
@@ -78,7 +86,7 @@ qt_add_shaders(nodetool-timeline "compositor_shaders"
     BASE shaders
     FILES shaders/composite.vert shaders/composite.frag)
 
-foreach(test_name tst_sceneeval tst_timelinejson tst_benchreport tst_framering tst_yuvformat tst_ffmpegsource tst_sourcepool)
+foreach(test_name tst_sceneeval tst_timelinejson tst_benchreport tst_framering tst_yuvformat tst_ffmpegsource tst_sourcepool tst_retirequeue)
     qt_add_executable(${test_name} tests/${test_name}.cpp)
     set_target_properties(${test_name} PROPERTIES MACOSX_BUNDLE FALSE)
     target_compile_options(${test_name} PRIVATE ${NT_WARNINGS})
@@ -92,3 +100,4 @@ endforeach()
 add_test(NAME make_fixtures COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/make-fixtures.sh)
 set_tests_properties(make_fixtures PROPERTIES FIXTURES_SETUP media)
 set_tests_properties(tst_ffmpegsource PROPERTIES FIXTURES_REQUIRED media)
+target_link_libraries(tst_ffmpegsource PRIVATE "-framework CoreVideo")

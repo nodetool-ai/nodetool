@@ -25,7 +25,7 @@ public:
     ~SyntheticSource() override;
 
     QSize frameSize() const override { return m_size; }
-    LayerFrame frameAt(QRhi* rhi, QRhiResourceUpdateBatch* updates, double sourceTimeMs) override;
+    LayerFrame frameAt(const FrameContext& ctx, double sourceTimeMs) override;
 
     // Stable colour for a clip id, so a clip looks the same every run.
     static QColor colorForId(const QString& id);
@@ -48,6 +48,7 @@ private:
     QSize m_glyphSize;
     std::unique_ptr<QRhiTexture> m_texture;
     long long m_uploadedFrame = -1;
+    int m_lastCopies = 0;
 };
 
 }  // namespace nt
