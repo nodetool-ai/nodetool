@@ -1,5 +1,6 @@
 #include "edit/ClipGestureController.h"
 
+#include "app/EditRegistry.h"
 #include "edit/Keymap.h"
 #include "ui/MediaVersion.h"
 #include "preview/FfmpegSource.h"
@@ -209,6 +210,28 @@ EditDoc ClipGestureController::editDoc() const {
     return doc;
 }
 
+ClipList ClipGestureController::resolveEdit(const QString& name, QJsonObject payload,
+                                             const std::function<ClipList()>& fallback,
+                                             std::optional<double> maxSourceDurationMs) const {
+    const auto edit = nt::app::findEdit(name);
+    if (!edit) {
+        return fallback();
+    }
+    // Gestures own preview and undo. Registered edits see the live clips,
+    // including previews that have not been committed to the raw document.
+    QJsonObject raw = m_timeline->timeline().raw;
+    raw.insert("clips", m_timeline->clipsJson());
+    payload.insert("linked", m_linked);
+    if (maxSourceDurationMs) {
+        payload.insert("maxSourceDurationMs", *maxSourceDurationMs);
+    }
+    ClipList result;
+    for (const auto& clip : edit(std::move(raw), payload).value("clips").toArray()) {
+        result.push_back(clip.toObject());
+    }
+    return result;
+}
+
 void ClipGestureController::setDoc(const ClipList& clips) {
     if (m_timeline && m_timeline->replaceClips(toArray(clips))) {
         ++m_liveUpdates;
@@ -291,7 +314,9 @@ bool ClipGestureController::pressClip(const QString& id, const QString& pressedP
         const double atMs = laneMsAt(sceneX);
         if (atMs > clipStartMs(*clip) && atMs < clipEndMs(*clip)) {
             const QJsonArray before = m_timeline->clipsJson();
-            m_timeline->commitEdit(QStringLiteral("Split"), before, toArray(splitClipAtTime(doc, id, atMs)));
+            const auto next = resolveEdit("splitClipAtTime", {{"clipId", id}, {"atMs", atMs}},
+                                          [&] { return splitClipAtTime(doc, id, atMs); });
+            m_timeline->commitEdit(QStringLiteral("Split"), before, toArray(next));
         }
         return true;
     }
@@ -385,8 +410,12 @@ void ClipGestureController::applyMove() {
         }
     }
     const bool multi = m_selection.contains(g.clipId) && m_selection.size() > 1;
-    const ClipList next = multi ? moveSelectedClips(doc, g.clipId, m_selection, adjustedDeltaMs, target, m_linked)
-                                : moveClip(doc, g.clipId, adjustedDeltaMs, target, m_linked);
+    const ClipList next = resolveEdit(multi ? "moveSelectedClips" : "moveClip",
+                                     {{"clipId", g.clipId}, {"selectedIds", QJsonArray::fromStringList(m_selection)},
+                                      {"deltaMs", adjustedDeltaMs}, {"toTrackId", target}}, [&] {
+        return multi ? moveSelectedClips(doc, g.clipId, m_selection, adjustedDeltaMs, target, m_linked)
+                     : moveClip(doc, g.clipId, adjustedDeltaMs, target, m_linked);
+    });
     setDoc(next);
     const QJsonObject* moved = findClip(next, g.clipId);
     setSnapGuide(moved && clipStartMs(*moved) == snapped.startMs ? snapped.guideMs : -1);
@@ -413,11 +442,19 @@ void ClipGestureController::applyTrim() {
     if (g.mode == u"stretch") {
         // Rate stretch: the edge sets the length, the speed follows.
         if (g.edge == u"start") {
-            next = rateStretchClip(doc, g.clipId, QStringLiteral("start"), clipEndMs(*fresh) - valueMs, m_linked);
+            next = resolveEdit("rateStretchClip",
+                               {{"clipId", g.clipId}, {"edge", "start"}, {"durationMs", clipEndMs(*fresh) - valueMs}},
+                               [&] {
+                return rateStretchClip(doc, g.clipId, "start", clipEndMs(*fresh) - valueMs, m_linked);
+            });
             const QJsonObject* t = findClip(next, g.clipId);
             landed = t && clipStartMs(*t) == valueMs;
         } else {
-            next = rateStretchClip(doc, g.clipId, QStringLiteral("end"), valueMs - clipStartMs(*fresh), m_linked);
+            next = resolveEdit("rateStretchClip",
+                               {{"clipId", g.clipId}, {"edge", "end"}, {"durationMs", valueMs - clipStartMs(*fresh)}},
+                               [&] {
+                return rateStretchClip(doc, g.clipId, "end", valueMs - clipStartMs(*fresh), m_linked);
+            });
             const QJsonObject* t = findClip(next, g.clipId);
             landed = t && clipEndMs(*t) == valueMs;
         }
@@ -427,7 +464,8 @@ void ClipGestureController::applyTrim() {
             // the total, the duration says how much is applied already.
             const double wantedMs = g.edgeMsAtStart - valueMs;
             const double appliedMs = clipDurationMs(*fresh) - g.durationMsAtStart;
-            next = rippleTrimClipStart(doc, g.clipId, wantedMs - appliedMs, m_linked);
+            next = resolveEdit("rippleTrimClipStart", {{"clipId", g.clipId}, {"deltaMs", wantedMs - appliedMs}},
+                               [&] { return rippleTrimClipStart(doc, g.clipId, wantedMs - appliedMs, m_linked); });
             const QJsonObject* t = findClip(next, g.clipId);
             landed = t && clipDurationMs(*t) == g.durationMsAtStart + wantedMs;
         } else {
@@ -437,9 +475,11 @@ void ClipGestureController::applyTrim() {
                 // source caps the roll.
                 const int n = findRollNeighbour(doc.clips, *fresh, QStringLiteral("start"));
                 const auto cap = n >= 0 ? sourceCap(doc.clips[static_cast<size_t>(n)]) : std::nullopt;
-                next = rollClipEdge(doc, g.clipId, QStringLiteral("start"), -deltaMs, cap, m_linked);
+                next = resolveEdit("rollClipEdge", {{"clipId", g.clipId}, {"edge", "start"}, {"deltaMs", -deltaMs}},
+                                   [&] { return rollClipEdge(doc, g.clipId, "start", -deltaMs, cap, m_linked); }, cap);
             } else {
-                next = trimClipStart(doc, g.clipId, deltaMs, m_linked);
+                next = resolveEdit("trimClipStart", {{"clipId", g.clipId}, {"deltaMs", deltaMs}},
+                                   [&] { return trimClipStart(doc, g.clipId, deltaMs, m_linked); });
             }
             const QJsonObject* t = findClip(next, g.clipId);
             landed = t && clipStartMs(*t) == valueMs;
@@ -448,11 +488,14 @@ void ClipGestureController::applyTrim() {
         const double deltaMs = valueMs - clipEndMs(*fresh);
         const auto cap = sourceCap(*fresh);
         if (g.mode == u"roll") {
-            next = rollClipEdge(doc, g.clipId, QStringLiteral("end"), deltaMs, cap, m_linked);
+            next = resolveEdit("rollClipEdge", {{"clipId", g.clipId}, {"edge", "end"}, {"deltaMs", deltaMs}},
+                               [&] { return rollClipEdge(doc, g.clipId, "end", deltaMs, cap, m_linked); }, cap);
         } else if (g.mode == u"ripple") {
-            next = rippleTrimClipEnd(doc, g.clipId, deltaMs, cap, m_linked);
+            next = resolveEdit("rippleTrimClipEnd", {{"clipId", g.clipId}, {"deltaMs", deltaMs}},
+                               [&] { return rippleTrimClipEnd(doc, g.clipId, deltaMs, cap, m_linked); }, cap);
         } else {
-            next = trimClipEnd(doc, g.clipId, deltaMs, cap, m_linked);
+            next = resolveEdit("trimClipEnd", {{"clipId", g.clipId}, {"deltaMs", deltaMs}},
+                               [&] { return trimClipEnd(doc, g.clipId, deltaMs, cap, m_linked); }, cap);
         }
         const QJsonObject* t = findClip(next, g.clipId);
         landed = t && clipEndMs(*t) == valueMs;
@@ -477,11 +520,13 @@ void ClipGestureController::applySlip() {
     const QJsonObject* fresh = findClip(doc.clips, g.clipId);
     if (!fresh) return;
     const double wantedIn = g.inAtStart - (g.lastX - g.startX) * m_view->msPerPx() * sourceRate(*fresh);
-    const auto patches = planSlip(doc, *fresh, wantedIn - fresh->value(u"inPointMs").toDouble(0), sourceCap(*fresh),
-                                  m_linked);
-    if (!patches) return;
+    const double sourceDeltaMs = wantedIn - fresh->value(u"inPointMs").toDouble(0);
+    const auto cap = sourceCap(*fresh);
     g.dragging = true;
-    setDoc(applyPatches(doc.clips, *patches));
+    setDoc(resolveEdit("slipClip", {{"clipId", g.clipId}, {"sourceDeltaMs", sourceDeltaMs}}, [&] {
+        const auto patches = planSlip(doc, *fresh, sourceDeltaMs, cap, m_linked);
+        return patches ? applyPatches(doc.clips, *patches) : doc.clips;
+    }, cap));
 }
 
 void ClipGestureController::applySlide() {
@@ -492,7 +537,9 @@ void ClipGestureController::applySlide() {
     if (!fresh) return;
     const double wantedMs = g.dragStartMs + (g.lastX - g.startX) * m_view->msPerPx();
     g.dragging = true;
-    setDoc(slideClip(doc, g.clipId, wantedMs - clipStartMs(*fresh), m_linked));
+    const double deltaMs = wantedMs - clipStartMs(*fresh);
+    setDoc(resolveEdit("slideClip", {{"clipId", g.clipId}, {"deltaMs", deltaMs}},
+                       [&] { return slideClip(doc, g.clipId, deltaMs, m_linked); }));
 }
 
 void ClipGestureController::mouseMoveEvent(QMouseEvent* event) {
@@ -576,7 +623,10 @@ void ClipGestureController::finishGesture(bool completed, Qt::KeyboardModifiers 
         const bool multi = m_selection.contains(g.clipId) && m_selection.size() > 1;
         const IdSet moved = multi ? IdSet(m_selection.begin(), m_selection.end()) : IdSet{g.clipId};
         const bool insert = modifiers & (Qt::ControlModifier | Qt::MetaModifier);
-        setDoc(resolveDropAction(editDoc(), moved, insert ? QStringLiteral("insert") : m_dropMode));
+        const QString mode = insert ? QStringLiteral("insert") : m_dropMode;
+        const QStringList movedIds = multi ? m_selection : QStringList{g.clipId};
+        setDoc(resolveEdit("resolveDropAction", {{"selectedIds", QJsonArray::fromStringList(movedIds)}, {"mode", mode}},
+                           [&] { return resolveDropAction(editDoc(), moved, mode); }));
     }
     setSnapGuide(-1);
     if (!m_timeline) return;
@@ -616,7 +666,11 @@ void ClipGestureController::clickSelect(const QString& id, Qt::KeyboardModifiers
 void ClipGestureController::nudge(double deltaMs, bool merge) {
     if (m_selection.isEmpty() || !m_timeline) return;
     const QJsonArray before = m_timeline->clipsJson();
-    const ClipList next = moveSelectedClips(editDoc(), m_selection.first(), m_selection, deltaMs, {}, m_linked);
+    const ClipList next = resolveEdit("nudge", {{"clipId", m_selection.first()},
+                                              {"selectedIds", QJsonArray::fromStringList(m_selection)},
+                                              {"deltaMs", deltaMs}}, [&] {
+        return moveSelectedClips(editDoc(), m_selection.first(), m_selection, deltaMs, {}, m_linked);
+    });
     m_timeline->commitEdit(QStringLiteral("Nudge clips"), before, toArray(next), NUDGE_MERGE_ID, merge);
 }
 
@@ -637,7 +691,10 @@ bool ClipGestureController::handleKey(int key, const QString& text, int modifier
         if (m_selection.isEmpty()) return false;
         const EditDoc doc = editDoc();
         const bool ripple = action == u"rippleDeleteSelected" || m_rippleMode;
-        const ClipList next = ripple ? rippleDeleteSelected(doc, selected) : deleteSelected(doc, selected);
+        const ClipList next = resolveEdit(ripple ? "rippleDeleteSelected" : "deleteSelected",
+                                         {{"selectedIds", QJsonArray::fromStringList(m_selection)}}, [&] {
+            return ripple ? rippleDeleteSelected(doc, selected) : deleteSelected(doc, selected);
+        });
         m_timeline->commitEdit(ripple ? QStringLiteral("Ripple delete") : QStringLiteral("Delete clips"), before,
                                toArray(next));
         return true;
@@ -645,7 +702,32 @@ bool ClipGestureController::handleKey(int key, const QString& text, int modifier
     if (action == u"splitAtPlayhead") {
         // Read before the commit: the commit prunes the split clips' ids.
         const QStringList selection = m_selection;
-        const SplitResult r = splitSelectedAtPlayhead(editDoc(), playheadMs(), selection);
+        const EditDoc doc = editDoc();
+        const double timeMs = playheadMs();
+        SplitResult r;
+        r.clips = resolveEdit("splitSelectedAtPlayhead", {{"timeMs", timeMs},
+                              {"selectedIds", QJsonArray::fromStringList(selection)}}, [&] {
+            return splitSelectedAtPlayhead(doc, timeMs, selection).clips;
+        });
+        // The registry returns clips rather than SplitResult. Recover the
+        // right halves on tracks whose originals were replaced by the split.
+        IdSet oldIds;
+        IdSet newIds;
+        for (const auto& clip : r.clips) {
+            newIds.insert(clipId(clip));
+        }
+        IdSet splitTracks;
+        for (const auto& clip : doc.clips) {
+            oldIds.insert(clipId(clip));
+            if (!newIds.count(clipId(clip))) {
+                splitTracks.insert(clipTrackId(clip));
+            }
+        }
+        for (const auto& clip : r.clips) {
+            if (!oldIds.count(clipId(clip)) && splitTracks.count(clipTrackId(clip)) && clipStartMs(clip) == timeMs) {
+                r.rightHalfIds.append(clipId(clip));
+            }
+        }
         m_timeline->commitEdit(QStringLiteral("Split"), before, toArray(r.clips));
         // The halves have new ids: keep the next split on the same clips.
         if (!selection.isEmpty() && !r.rightHalfIds.isEmpty()) {

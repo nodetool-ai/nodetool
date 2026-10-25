@@ -35,6 +35,8 @@
 #include "playback/PlaybackClock.h"
 #include "ui/TimelineViewState.h"
 
+#include <functional>
+
 #include <QHash>
 #include <QJsonArray>
 #include <QPointer>
@@ -173,6 +175,9 @@ private:
         quint64 generation = 0;
     };
 
+    nt::edit::ClipList resolveEdit(const QString& name, QJsonObject payload,
+                                   const std::function<nt::edit::ClipList()>& fallback,
+                                   std::optional<double> maxSourceDurationMs = std::nullopt) const;
     void setDoc(const nt::edit::ClipList& clips);
     void applyMove();
     void applyTrim();
