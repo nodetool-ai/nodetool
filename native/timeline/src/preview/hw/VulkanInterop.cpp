@@ -27,16 +27,41 @@ extern "C" {
 #include <cstdlib>
 #include <deque>
 #include <mutex>
+#include <utility>
 #include <vector>
 
 namespace nt::hw {
 namespace {
 
+std::atomic<int> g_releaseFailures{0};
+std::atomic<int> g_releasesSubmitted{0};
+std::atomic<int> g_releasesCompleted{0};
+std::atomic<int> g_freedWithoutRelease{0};
+std::atomic<int> g_retainedMappings{0};
 std::atomic<int> g_liveFrameRefs{0};
 std::atomic<int> g_liveCompletionMarks{0};
 std::atomic<int> g_releasedInFlight{0};
 std::atomic<long long> g_completedFrame{-1};
 std::atomic<int> g_framesInFlight{2};
+
+// Never destroy this store: its mappings must not return to live decoders,
+// even during static destruction.
+struct DrmFrameFree {
+    void operator()(AVFrame* frame) const { av_frame_free(&frame); }
+};
+struct RetainedMappings {
+    std::mutex mutex;
+    std::vector<std::unique_ptr<AVFrame, DrmFrameFree>> frames;
+};
+
+void retainMapping(std::unique_ptr<AVFrame, DrmFrameFree>& frame) {
+    if (!frame) return;
+    static auto* const retained = std::make_unique<RetainedMappings>().release();
+    std::lock_guard lock(retained->mutex);
+    retained->frames.push_back(std::move(frame));
+    ++g_retainedMappings;
+    qWarning("Vulkan foreign release failed at teardown: retaining DRM mapping for process lifetime");
+}
 
 void advanceCompleted(long long frame) {
     long long seen = g_completedFrame.load();
@@ -79,9 +104,48 @@ std::uint64_t handleBits(T handle) {
 
 // Resources a submission still uses: freed when its fence signals.
 struct Owned {
+    QVulkanDeviceFunctions* df = nullptr;
+    VkDevice dev = VK_NULL_HANDLE;
     std::array<VkImage, 2> images{};
     std::array<VkDeviceMemory, 2> memory{};
-    AVFrame* drm = nullptr;
+    std::unique_ptr<AVFrame, DrmFrameFree> drm;
+    bool needsRelease = false;
+    bool releaseCompleted = false;
+
+    Owned() = default;
+    Owned(QVulkanDeviceFunctions* functions, VkDevice device) : df(functions), dev(device) {}
+    ~Owned() { reset(); }
+    Owned(const Owned&) = delete;
+    Owned& operator=(const Owned&) = delete;
+    Owned(Owned&& other) noexcept { swap(other); }
+    Owned& operator=(Owned&& other) noexcept {
+        if (this != &other) {
+            reset();
+            swap(other);
+        }
+        return *this;
+    }
+
+    void reset() {
+        for (size_t i = 0; i < images.size(); ++i) {
+            if (images[i]) df->vkDestroyImage(dev, images[i], nullptr);
+            if (memory[i]) df->vkFreeMemory(dev, memory[i], nullptr);
+            images[i] = VK_NULL_HANDLE;
+            memory[i] = VK_NULL_HANDLE;
+        }
+        drm.reset();
+    }
+
+private:
+    void swap(Owned& other) noexcept {
+        std::swap(df, other.df);
+        std::swap(dev, other.dev);
+        images.swap(other.images);
+        memory.swap(other.memory);
+        drm.swap(other.drm);
+        std::swap(needsRelease, other.needsRelease);
+        std::swap(releaseCompleted, other.releaseCompleted);
+    }
 };
 
 // A 16-byte buffer readback recorded in a frame: QRhi completes it once that
@@ -131,13 +195,11 @@ struct VulkanInterop::Vk {
     std::deque<std::unique_ptr<CompletionMark>> marks;  // in frame order
 
     void freeOwned(Owned& o) {
-        for (size_t i = 0; i < 2; ++i) {
-            if (o.images[i]) df->vkDestroyImage(dev, o.images[i], nullptr);
-            if (o.memory[i]) df->vkFreeMemory(dev, o.memory[i], nullptr);
-            o.images[i] = VK_NULL_HANDLE;
-            o.memory[i] = VK_NULL_HANDLE;
+        if (o.drm && o.needsRelease && !lost) {
+            if (o.releaseCompleted) ++g_releasesCompleted;
+            else ++g_freedWithoutRelease;
         }
-        av_frame_free(&o.drm);  // releases the DMA-BUF fds and returns the VA surface
+        o.reset();  // releases the DMA-BUF fds and returns the VA surface
     }
 
     // The device is gone: every submission counts as complete, and every
@@ -169,6 +231,7 @@ struct VulkanInterop::Vk {
             df->vkFreeCommandBuffers(dev, pool, 1, &pending[i].cb);
             df->vkResetFences(dev, 1, &pending[i].fence);
             freeFences.push_back(pending[i].fence);
+            pending[i].owned.releaseCompleted = true;
             freeOwned(pending[i].owned);
             pending.erase(pending.begin() + static_cast<std::ptrdiff_t>(i));
         }
@@ -223,8 +286,7 @@ struct VulkanInterop::Vk {
             *why = rc == VK_ERROR_DEVICE_LOST ? "the Vulkan device is lost" : "vkQueueSubmit failed";
             return false;
         }
-        pending.push_back(Pending{fence, cb, owned});
-        owned = Owned{};
+        pending.push_back(Pending{fence, cb, std::move(owned)});
         return true;
     }
 
@@ -232,6 +294,13 @@ struct VulkanInterop::Vk {
     // external layout; `owned` is then freed when that submission completes.
     // False when nothing was submitted: `owned` is still the caller's.
     bool release(Owned& owned, std::string* why) {
+        int failures = g_releaseFailures.load();
+        while (failures != 0) {
+            if (failures < 0 || g_releaseFailures.compare_exchange_weak(failures, failures - 1)) {
+                *why = "no command buffer (test injection)";
+                return false;
+            }
+        }
         VkImageMemoryBarrier barriers[2]{};
         std::uint32_t count = 0;
         for (size_t i = 0; i < 2; ++i) {
@@ -251,8 +320,10 @@ struct VulkanInterop::Vk {
             *why = "no image to release";
             return false;
         }
-        return submit(barriers, count, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-                      owned, why);
+        if (!submit(barriers, count, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                    owned, why)) return false;
+        ++g_releasesSubmitted;
+        return true;
     }
 
     // Retries the releases that could not be submitted, oldest first; stops
@@ -322,6 +393,15 @@ struct VulkanInterop::Vk {
     }
 };
 
+void testing::setReleaseFailures(int count) {
+    g_releaseFailures.store(count);
+}
+
+testing::ReleaseStats testing::releaseStats() {
+    return {g_releasesSubmitted.load(), g_releasesCompleted.load(), g_freedWithoutRelease.load(),
+            g_retainedMappings.load()};
+}
+
 void trackCompletion(QRhiCommandBuffer* cb, long long frameNumber) {
     // QRhi has waited for frame N - FramesInFlight when frame N begins. The
     // buffer readback that flush() records in frame N completes once frame N
@@ -363,20 +443,38 @@ VulkanInterop::VulkanInterop() : m_vk(std::make_unique<Vk>()) {}
 VulkanInterop::~VulkanInterop() {
     Vk& vk = *m_vk;
     if (!vk.dev || !vk.df) return;
-    // Teardown: wait for every submission (the device may only be idle or
-    // lost here), then free. A frame whose release never ran is freed too:
-    // no frame samples it (the retire queue waited for its last use), and
-    // the decoder that would reuse its VA surface is going as well.
+    // A source may outlive renderer ownership of this interop. Its decoder
+    // can still reuse the surface, so retry every foreign release first.
+    for (size_t i = 0; !vk.lost && i < vk.unreleased.size(); ++i) {
+        std::string why;
+        // Success moves ownership to pending. Failures stay here until the
+        // waits below finish. Device loss may clear both vectors.
+        (void)vk.release(vk.unreleased[i], &why);
+    }
     for (Pending& p : vk.pending) {
-        if (!vk.lost && vk.df->vkWaitForFences(vk.dev, 1, &p.fence, VK_TRUE, UINT64_MAX) == VK_ERROR_DEVICE_LOST) {
-            vk.lost = true;
+        if (!vk.lost) {
+            const VkResult result = vk.df->vkWaitForFences(vk.dev, 1, &p.fence, VK_TRUE, UINT64_MAX);
+            if (result == VK_ERROR_DEVICE_LOST) {
+                vk.lost = true;
+            } else if (result != VK_SUCCESS) {
+                qWarning("Vulkan teardown could not wait for a submitted release (%d), treating device as lost",
+                         static_cast<int>(result));
+                vk.lost = true;
+            } else {
+                p.owned.releaseCompleted = true;
+            }
         }
         vk.df->vkFreeCommandBuffers(vk.dev, vk.pool, 1, &p.cb);
         vk.df->vkDestroyFence(vk.dev, p.fence, nullptr);
         vk.freeOwned(p.owned);
     }
     vk.pending.clear();
-    for (Owned& o : vk.unreleased) vk.freeOwned(o);
+    for (Owned& o : vk.unreleased) {
+        // All GPU uses have finished, so Vulkan objects can go. Without a
+        // foreign release the DRM mapping must keep the VA surface pinned.
+        if (!vk.lost) retainMapping(o.drm);
+        vk.freeOwned(o);
+    }
     vk.unreleased.clear();
     for (VkFence f : vk.freeFences) vk.df->vkDestroyFence(vk.dev, f, nullptr);
     if (vk.pool) vk.df->vkDestroyCommandPool(vk.dev, vk.pool, nullptr);
@@ -427,12 +525,13 @@ void VulkanInterop::retire(std::array<std::uint64_t, 2> images, std::array<std::
                            bool acquired) {
     Vk& vk = *m_vk;
     std::lock_guard lock(vk.mutex);
-    Owned owned;
+    Owned owned(vk.df, vk.dev);
     for (size_t i = 0; i < 2; ++i) {
         owned.images[i] = reinterpret_cast<VkImage>(images[i]);
         owned.memory[i] = reinterpret_cast<VkDeviceMemory>(memory[i]);
     }
-    owned.drm = drm;
+    owned.drm.reset(drm);
+    owned.needsRelease = acquired;
     if (vk.lost || !acquired || (!owned.images[0] && !owned.images[1])) {
         // Never on the GPU (no acquire, no image), or the device is gone.
         vk.freeOwned(owned);
@@ -450,7 +549,7 @@ void VulkanInterop::retire(std::array<std::uint64_t, 2> images, std::array<std::
     // No release could be submitted. Waiting for the queue would not move
     // the images to the foreign family, so the VA surface must not go back
     // to the decoder yet: keep it until a retried release succeeds.
-    vk.unreleased.push_back(owned);
+    vk.unreleased.push_back(std::move(owned));
 }
 
 QByteArrayList VulkanInterop::requiredDeviceExtensions() {

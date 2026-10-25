@@ -13,7 +13,13 @@
 // memory and the VA surface are freed only after that submission's fence
 // signals. A release that cannot be submitted is retried on each flush(), and
 // its VA surface stays out of the decoder's pool until one is submitted (a
-// queue wait would not move the images to the foreign family). Nothing waits
+// queue wait would not move the images to the foreign family). Teardown
+// retries every remaining release and waits for all submitted fences. If a
+// release still cannot be submitted on a live device, its DRM mapping is
+// deliberately retained for the process lifetime, keeping the VA surface
+// out of the decoder pool. Each retained mapping is logged and counted by
+// testing::releaseStats(), with no retention limit. An unexpected fence-wait
+// failure is logged and the device is treated as lost. Nothing waits
 // on a fence with a timeout: submissions on Qt's queue
 // are ordered before the frames that sample the images, and finished
 // submissions are collected on each flush(). A lost device frees everything
@@ -52,6 +58,19 @@ class QRhiCommandBuffer;
 struct AVFrame;
 
 namespace nt::hw {
+
+namespace testing {
+// Release-only injection: positive counts fail the next N attempts, negative
+// fails every attempt. Zero restores native submissions. Counters are cumulative.
+void setReleaseFailures(int count);
+struct ReleaseStats {
+    int submitted;
+    int completed;
+    int freedWithoutRelease;
+    int retainedMappings;
+};
+ReleaseStats releaseStats();
+}  // namespace testing
 
 class VulkanInterop;
 
