@@ -129,7 +129,6 @@ import {
   HelpButton,
   ResizeHandle,
   Toolbar,
-  ToolbarIconButton,
   TYPOGRAPHY,
   FONT_SIZE_MONO,
   FONT_WEIGHT,

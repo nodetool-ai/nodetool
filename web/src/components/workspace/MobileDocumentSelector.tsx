@@ -93,7 +93,7 @@ const styles = (theme: Theme) =>
     }
   });
 
-const sheetStyles = (theme: Theme) =>
+const sheetStyles = () =>
   css({
     paddingBottom: getSpacingPx(SPACING.xl),
     "& .row-glyph": {
@@ -154,7 +154,7 @@ const MobileDocumentSelector = ({
   const { t } = useTranslation();
   const theme = useTheme();
   const buttonStyles = useMemo(() => styles(theme), [theme]);
-  const listStyles = useMemo(() => sheetStyles(theme), [theme]);
+  const listStyles = useMemo(() => sheetStyles(), []);
   const [open, setOpen] = useState(false);
 
   const activeTab = useMemo(
