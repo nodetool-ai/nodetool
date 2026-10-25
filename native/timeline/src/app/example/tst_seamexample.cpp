@@ -1,4 +1,6 @@
 #include "app/CliModes.h"
+#include "app/EditRegistry.h"
+#include <QCommandLineParser>
 #include "app/MenuRegistry.h"
 #include "app/PanelRegistry.h"
 #include "model/TimelineModel.h"
@@ -10,19 +12,59 @@
 #include <QQuickItem>
 #include <QSignalSpy>
 #include <QtTest>
+#include <array>
 #include <memory>
 
 class TestSeamExample : public QObject {
     Q_OBJECT
 private slots:
     void cliDispatch() {
-        char name[] = "timeline";
-        char flag[] = "--seam-example";
-        char equals[] = "--seam-example=value";
-        char* args[] = {name, flag};
-        QCOMPARE(nt::app::dispatchCliMode(2, args).value(), 37);
-        args[1] = equals;
-        QVERIFY(!nt::app::dispatchCliMode(2, args));
+        auto name = std::to_array("timeline");
+        auto flag = std::to_array("--seam-example");
+        auto equals = std::to_array("--seam-example=value");
+        std::array args{name.data(), flag.data()};
+        QCOMPARE(nt::app::dispatchCliMode(2, args.data()).value(), 37);
+        args[1] = equals.data();
+        QVERIFY(!nt::app::dispatchCliMode(2, args.data()));
+    }
+    void defaultStartup() {
+        QCommandLineParser parser;
+        parser.addOption(QCommandLineOption("exit"));
+        QVERIFY(parser.parse({"timeline"}));
+        QVERIFY(!nt::app::dispatchDefaultStartup(*QCoreApplication::instance(), parser));
+        QVERIFY(nt::app::registerDefaultStartup([](QCoreApplication& app, QCommandLineParser& args) -> nt::app::StartupResult {
+            return args.isSet("exit") ? nt::app::StartupResult{41} : nt::app::StartupResult{app.applicationName() + ".json"};
+        }));
+        QVERIFY(!nt::app::registerDefaultStartup([](QCoreApplication&, QCommandLineParser&) -> nt::app::StartupResult { return 99; }));
+        const auto source = nt::app::dispatchDefaultStartup(*QCoreApplication::instance(), parser);
+        QVERIFY(source);
+        QCOMPARE(std::get<QString>(*source), QCoreApplication::applicationName() + ".json");
+        QVERIFY(parser.parse({"timeline", "--exit"}));
+        QCOMPARE(std::get<int>(*nt::app::dispatchDefaultStartup(*QCoreApplication::instance(), parser)), 41);
+    }
+    void overrideEditAndUndo() {
+        const auto override = [](QJsonObject raw, const QJsonObject&) {
+            raw.insert("name", "Overridden ripple delete");
+            return raw;
+        };
+        QVERIFY(nt::app::overrideEdit("rippleDeleteSelected", override));
+        QVERIFY(!nt::app::overrideEdit("rippleDeleteSelected", override));
+        // Builtin registration before or after the override cannot replace it.
+        QVERIFY(nt::app::overrideEdit("example.lateBuiltin", override));
+        QVERIFY(nt::app::registerEdit("example.lateBuiltin", [](QJsonObject raw, const QJsonObject&) { return raw; }));
+        QCOMPARE(nt::app::findEdit("example.lateBuiltin")({}, {}).value("name").toString(), QString("Overridden ripple delete"));
+        TimelineModel model;
+        auto parsed = nt::parseTimelineJson(R"({"name":"Before","width":640,"height":360,"fps":30,"durationMs":1000,"tracks":[],"clips":[]})");
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        const auto before = model.documentJson();
+        QVERIFY(model.applyEdit("rippleDeleteSelected", {}));
+        QCOMPARE(model.name(), QString("Overridden ripple delete"));
+        QCOMPARE(model.undoStack()->count(), 1);
+        model.undoStack()->undo();
+        QCOMPARE(model.documentJson(), before);
+        model.undoStack()->redo();
+        QCOMPARE(model.name(), QString("Overridden ripple delete"));
     }
     void editAndUndo() {
         TimelineModel model;

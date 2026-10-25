@@ -19,6 +19,92 @@
 class TestInspectorPrimitives : public QObject {
     Q_OBJECT
 private slots:
+    void init() {
+        QTest::failOnWarning(QRegularExpression(".*Binding loop.*"));
+    }
+    void sectionActivation_data() {
+        QTest::addColumn<bool>("disabled");
+        QTest::newRow("enabled") << false;
+        QTest::newRow("disabled") << true;
+    }
+    void sectionActivation() {
+        QFETCH(bool, disabled);
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData(R"(import QtQuick
+import NodeTool.Timeline
+InspectorSection { width: 300; title: "Effect"; checkable: true; checked: true })", QUrl());
+        std::unique_ptr<QObject> object(component.create());
+        QVERIFY2(object, qPrintable(component.errorString()));
+        QSignalSpy changes(object.get(), SIGNAL(checkedChangedByUser(bool)));
+        QVERIFY(changes.isValid());
+        QVERIFY(object->setProperty("checkboxDisabled", disabled));
+        auto* item = qobject_cast<QQuickItem*>(object.get());
+        QVERIFY(item);
+        QQuickWindow window;
+        window.resize(300, 100);
+        item->setParentItem(window.contentItem());
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QQuickItem* checkbox = nullptr;
+        for (auto* child : item->findChildren<QQuickItem*>()) {
+            if (child->property("checkState").isValid()) {
+                checkbox = child;
+                break;
+            }
+        }
+        QVERIFY(checkbox);
+        const auto center = checkbox->mapToScene(QPointF(checkbox->width() / 2, checkbox->height() / 2)).toPoint();
+        QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier, center);
+        QCOMPARE(changes.count(), disabled ? 0 : 1);
+        if (!disabled) {
+            QCOMPARE(changes[0][0].toBool(), false);
+        }
+    }
+    void previewFeedback_data() {
+        QTest::addColumn<bool>("keyboard");
+        QTest::newRow("scrub") << false;
+        QTest::newRow("arrow") << true;
+    }
+    void previewFeedback() {
+        QFETCH(bool, keyboard);
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData(R"(import QtQuick
+import NodeTool.Timeline
+InspectorPillInput { width: 140; value: "10"; scrub: ({step:1,min:0,max:100}); onPreview: next => value = next })", QUrl());
+        std::unique_ptr<QObject> object(component.create());
+        QVERIFY2(object, qPrintable(component.errorString()));
+        auto* item = qobject_cast<QQuickItem*>(object.get());
+        QVERIFY(item);
+        QQuickWindow window;
+        window.resize(140, 40);
+        item->setParentItem(window.contentItem());
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QSignalSpy starts(object.get(), SIGNAL(gestureStarted()));
+        QSignalSpy previews(object.get(), SIGNAL(preview(QString)));
+        QSignalSpy commits(object.get(), SIGNAL(commit(QString)));
+        if (keyboard) {
+            QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier, {10, 14});
+            QTest::keyPress(&window, Qt::Key_Up);
+            QTest::keyPress(&window, Qt::Key_Up);
+            QCOMPARE(commits.count(), 0);
+            QTest::keyRelease(&window, Qt::Key_Up);
+        } else {
+            QTest::mousePress(&window, Qt::LeftButton, Qt::NoModifier, {10, 14});
+            QTest::mouseMove(&window, {30, 14});
+            QCOMPARE(commits.count(), 0);
+            QTest::mouseRelease(&window, Qt::LeftButton, Qt::NoModifier, {30, 14});
+        }
+        QCOMPARE(starts.count(), 1);
+        QVERIFY(!previews.isEmpty());
+        QCOMPARE(commits.count(), 1);
+        QCOMPARE(commits[0][0], previews.last()[0]);
+        // Losing focus after release must not commit the same gesture twice.
+        item->forceActiveFocus();
+        QCOMPARE(commits.count(), 1);
+    }
     void documentEditsUseIncrementalPaths() {
         TimelineModel model;
         auto parsed = nt::parseTimelineJson(R"({"name":"Before","width":640,"height":360,"fps":30,"durationMs":5000,"tracks":[{"id":"v","type":"video","name":"Video","index":0}],"clips":[{"id":"c","trackId":"v","startMs":0,"durationMs":1000,"mediaType":"video"}]})");

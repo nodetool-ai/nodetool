@@ -141,7 +141,9 @@ endfunction()
 function(nt_tests callback)
     set_property(GLOBAL APPEND PROPERTY NT_test_callbacks ${callback})
 endfunction()
-file(GLOB_RECURSE NT_MODULES CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/src/*/module.cmake")
+file(GLOB_RECURSE NT_MODULES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/src/*/module.cmake"
+    "${CMAKE_CURRENT_SOURCE_DIR}/qml/module.cmake")
 list(SORT NT_MODULES)
 foreach(module IN LISTS NT_MODULES)
     include(${module})
@@ -149,6 +151,8 @@ endforeach()
 foreach(group core decode audio app ops qml qml_files qml_resources qml_includes server bench_scene)
     get_property(NT_${group} GLOBAL PROPERTY NT_${group})
 endforeach()
+
+include(src/app/QmlDiscovery.cmake)
 
 # Model and scene evaluation: no GUI, shared by the app and the tests.
 add_library(timeline_core STATIC ${NT_core})

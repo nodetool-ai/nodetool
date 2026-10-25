@@ -48,7 +48,7 @@ Item {
             font.family: Theme.sansFamily
             font.pixelSize: Theme.fontSizeSmaller
             font.weight: Font.Medium
-            font.letterSpacing: font.pixelSize * 0.06
+            font.letterSpacing: Theme.fontSizeSmaller * 0.06
         }
         Text { text: root.meta; color: Theme.textSecondary; font.family: Theme.monoFamily; font.pixelSize: Theme.fontSizeSmaller }
         Controls.ToolButton {

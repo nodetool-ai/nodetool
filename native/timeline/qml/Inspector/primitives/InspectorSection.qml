@@ -7,6 +7,7 @@ Item {
     property alias icon: heading.icon
     property alias meta: heading.meta
     property alias checked: heading.checked
+    property alias checkboxDisabled: heading.checkboxDisabled
     property alias checkable: heading.checkable
     property alias action: heading.action
     property bool defaultOpen: true
@@ -14,6 +15,7 @@ Item {
     property bool divider: true
     default property alias content: body.data
     signal toggled(bool open)
+    signal checkedChangedByUser(bool next)
     implicitHeight: header.height + Theme.spacingXs + (open ? body.implicitHeight + Theme.spacingMicro + Theme.spacingMd : 0)
     Rectangle { width: parent.width; height: root.divider ? 1 : 0; color: Theme.divider }
     Item {
@@ -28,7 +30,12 @@ Item {
         Accessible.role: Accessible.Button
         Accessible.name: heading.title
         Text { text: root.open ? "⌄" : "›"; color: Theme.textSecondary; font.pixelSize: Theme.fontSizeSmall }
-        InspectorSectionTitle { id: heading; x: Theme.spacingXl; width: parent.width - x }
+        InspectorSectionTitle {
+            id: heading
+            x: Theme.spacingXl
+            width: parent.width - x
+            onCheckedChangedByUser: next => root.checkedChangedByUser(next)
+        }
     }
     Column {
         id: body
