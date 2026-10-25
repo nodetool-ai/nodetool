@@ -1097,8 +1097,14 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       // Clear any sources an older gesture registered, right before
       // scheduling the new ones — so the latest gesture always wins.
       graph.stopAll();
-      await graph.scheduleClips(validClips, tracks, startMs, isStale, globalRate);
-      if (isStale()) return;
+      const anchorSec = await graph.scheduleClips(
+        validClips,
+        tracks,
+        startMs,
+        isStale,
+        globalRate
+      );
+      if (anchorSec === null || isStale()) return;
 
       for (const { clip } of validClips) {
         scheduledClipIdsRef.current.add(clip.id);
@@ -1106,11 +1112,16 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         if (key !== null) scheduledAudioKeysRef.current.set(clip.id, key);
       }
 
-      clock.start(startMs, globalRate, ctx, endMs || Infinity, clockOptions);
+      // The playhead and the metronome start on the clock reading the clips
+      // were scheduled against, so they stay on the beat of the audio.
+      clock.start(startMs, globalRate, ctx, endMs || Infinity, {
+        ...clockOptions,
+        audioStartTimeSec: anchorSec
+      });
       if (metronomeOn) {
         metronomeRef.current.start({
           context: ctx,
-          anchorContextSec: ctx.currentTime,
+          anchorContextSec: anchorSec,
           anchorMs: startMs,
           rate: globalRate,
           tempo: resolveTempo(timelineApi.getState())

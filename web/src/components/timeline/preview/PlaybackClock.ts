@@ -18,7 +18,7 @@ export class PlaybackClock {
   private startPositionMs = 0;
   private startWallMs = 0;
   private audioContext: BaseAudioContext | null = null;
-  /** AudioContext.currentTime captured at start() */
+  /** The context time at which `startPositionMs` plays. */
   private audioStartTimeSec = 0;
   private rate = 1;
   private durationMs = Infinity;
@@ -29,14 +29,20 @@ export class PlaybackClock {
    * Run from `positionMs` at `rate` (negative plays backwards) until the
    * position leaves [`floorMs`, `durationMs`]. Reaching the end calls
    * `onReachEnd` when given (a loop restarts from there) and pauses
-   * otherwise; reaching the floor always pauses.
+   * otherwise; reaching the floor always pauses. `audioStartTimeSec` is the
+   * context time at which `positionMs` plays (default: now), so the playhead
+   * follows audio that was scheduled against an earlier clock reading.
    */
   start(
     positionMs: number,
     rate = 1,
     audioContext: BaseAudioContext | null = null,
     durationMs = Infinity,
-    options: { floorMs?: number; onReachEnd?: () => void } = {}
+    options: {
+      floorMs?: number;
+      onReachEnd?: () => void;
+      audioStartTimeSec?: number;
+    } = {}
   ): void {
     this.stop();
     this.startPositionMs = positionMs;
@@ -47,7 +53,8 @@ export class PlaybackClock {
     this.onReachEnd = options.onReachEnd ?? null;
     this.audioContext = audioContext;
     if (audioContext) {
-      this.audioStartTimeSec = audioContext.currentTime;
+      this.audioStartTimeSec =
+        options.audioStartTimeSec ?? audioContext.currentTime;
     }
     this.tick();
   }

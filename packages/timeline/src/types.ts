@@ -659,7 +659,8 @@ export type FableEffectKind =
   | "lab"
   | "chorus"
   | "echo"
-  | "reverb";
+  | "reverb"
+  | "limiter";
 
 export const FABLE_EFFECT_KINDS: readonly FableEffectKind[] = [
   "eq",
@@ -669,7 +670,8 @@ export const FABLE_EFFECT_KINDS: readonly FableEffectKind[] = [
   "lab",
   "chorus",
   "echo",
-  "reverb"
+  "reverb",
+  "limiter"
 ];
 
 /**

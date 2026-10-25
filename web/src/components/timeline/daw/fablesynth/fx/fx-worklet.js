@@ -10,6 +10,7 @@
 //   { t: 'dynamics' | 'echo' | 'reverb', on } turns telemetry on or off.
 // Params use the FableSynth ids (fx.reverb.size, fx.delay.fb, ...). `enabled`
 // drives the stage's own `.on` switch, so bypass ramps exactly as in WT-1.
+// The limiter has no WT-1 stage: it is the timeline's own peak limiter.
 
 class Smooth {
   constructor() { this.cur = 0; this.target = 0; this.coef = 0.01; }
@@ -190,8 +191,11 @@ const LAB_FIELDS = {
 const LAB_KEYS = Object.entries(LAB_FIELDS).flatMap(([stage, fields]) =>
   fields.map(f => [`fx.${stage}.${f}`, stage + f[0].toUpperCase() + f.slice(1), f === 'on']));
 // The WT-1 param id prefix of each kind's `.on` switch.
-const ON_PARAM = { eq: 'fx.eq.on', ott: 'fx.ott.on', comp: 'fx.comp.on', drive: 'fx.drive.on', chorus: 'fx.chorus.on', echo: 'fx.delay.on', reverb: 'fx.reverb.on' };
-const KINDS = ['eq', 'ott', 'comp', 'drive', 'lab', 'chorus', 'echo', 'reverb'];
+const ON_PARAM = { eq: 'fx.eq.on', ott: 'fx.ott.on', comp: 'fx.comp.on', drive: 'fx.drive.on', chorus: 'fx.chorus.on', echo: 'fx.delay.on', reverb: 'fx.reverb.on', limiter: 'fx.limit.on' };
+const KINDS = ['eq', 'ott', 'comp', 'drive', 'lab', 'chorus', 'echo', 'reverb', 'limiter'];
+// Limiter lookahead. The output is this much late, enabled or bypassed.
+const LIMITER_LOOKAHEAD_S = 0.0015;
+const dbToGain = db => Math.pow(10, db / 20);
 
 function stereoEnergy(L, R, n) {
   let energy = 0;
@@ -287,6 +291,27 @@ class FableFxProcessor extends AudioWorkletProcessor {
         this.verbWet.setTime(0.02); this.verbDry.setTime(0.02); this.verbDry.snap(1);
         this.verbOff = false; this.verbGated = false;
         break;
+      case 'limiter': {
+        const look = Math.max(1, Math.round(LIMITER_LOOKAHEAD_S * sampleRate));
+        this.limLook = look;
+        // Driven and raw input, delayed by the lookahead.
+        this.limDelL = new Float64Array(look); this.limDelR = new Float64Array(look);
+        this.limRawL = new Float64Array(look); this.limRawR = new Float64Array(look);
+        this.limPos = 0;
+        // The gain each sample needs, held over the lookahead plus one sample.
+        this.limReq = new Float64Array(look + 1).fill(1); this.limReqPos = 0;
+        // A box average of the held gain over the lookahead: the gain ramps
+        // down over `look` samples and reaches the needed gain at the peak.
+        this.limBox = new Float64Array(look).fill(1); this.limBoxPos = 0; this.limBoxSum = look;
+        this.limGain = 1; this.limRelCoef = 0;
+        // Sample peaks since the last report: driven input and output.
+        this.limInPeak = 0; this.limOutPeak = 0;
+        this.limIn = new Smooth(); this.limCeil = new Smooth();
+        this.limWet = new Smooth(); this.limDry = new Smooth();
+        for (const s of [this.limIn, this.limCeil, this.limWet, this.limDry]) s.setTime(0.02);
+        this.limPrimed = false;
+        break;
+      }
     }
     this.meterOn = false; this.meterSamples = 0; this.meterEnergy = new Float64Array(3); this.meterReduction = 0;
   }
@@ -368,6 +393,20 @@ class FableFxProcessor extends AudioWorkletProcessor {
         this.verbOff = !on;
         this.verbWet.target = mixGate(on, this.get('fx.reverb.mix', 0.3) * 0.9, true);
         this.verbDry.target = mixGate(on, this.get('fx.reverb.mix', 0.3) * 0.9, false);
+        break;
+      }
+      case 'limiter': {
+        this.limIn.target = dbToGain(Math.max(0, Math.min(24, this.get('fx.limit.gain', 0))));
+        this.limCeil.target = dbToGain(Math.max(-12, Math.min(0, this.get('fx.limit.ceil', -1))));
+        const release = Math.max(0.01, Math.min(1, this.get('fx.limit.rel', 0.1)));
+        this.limRelCoef = 1 - Math.exp(-1 / (release * sampleRate));
+        this.limWet.target = on ? 1 : 0;
+        this.limDry.target = on ? 0 : 1;
+        // The first settings apply at once; later edits ramp.
+        if (!this.limPrimed) {
+          for (const s of [this.limIn, this.limCeil, this.limWet, this.limDry]) s.snap(s.target);
+          this.limPrimed = true;
+        }
         break;
       }
     }
@@ -540,6 +579,55 @@ class FableFxProcessor extends AudioWorkletProcessor {
     if (meter) { energy[1] += stereoEnergy(L, R, n); this.meterSamples += n; }
   }
 
+  // Stereo-linked lookahead peak limiter. The gain is the lowest gain any
+  // sample in the lookahead needs, box-averaged over the lookahead, so it
+  // reaches that gain when the peak leaves the delay. It recovers along the
+  // release. A final clip catches the rounding error of the running sum.
+  processLimiter(L, R, n) {
+    const look = this.limLook, meter = this.meterOn, energy = this.meterEnergy;
+    const req = this.limReq, box = this.limBox;
+    let reduction = this.meterReduction;
+    for (let i = 0; i < n; i++) {
+      const rawL = Number.isFinite(L[i]) ? L[i] : 0, rawR = Number.isFinite(R[i]) ? R[i] : 0;
+      const drive = this.limIn.next(), ceil = this.limCeil.next();
+      const l = rawL * drive, r = rawR * drive;
+      const peak = Math.max(Math.abs(l), Math.abs(r));
+      req[this.limReqPos] = peak > ceil ? ceil / peak : 1;
+      if (++this.limReqPos > look) this.limReqPos = 0;
+      let held = 1;
+      for (let k = 0; k <= look; k++) if (req[k] < held) held = req[k];
+      this.limBoxSum += held - box[this.limBoxPos];
+      box[this.limBoxPos] = held;
+      if (++this.limBoxPos >= look) {
+        this.limBoxPos = 0;
+        let sum = 0;
+        for (let k = 0; k < look; k++) sum += box[k];
+        this.limBoxSum = sum;
+      }
+      const target = Math.min(1, this.limBoxSum / look);
+      this.limGain = target < this.limGain ? target : this.limGain + (target - this.limGain) * this.limRelCoef;
+      const pos = this.limPos;
+      const dl = this.limDelL[pos], dr = this.limDelR[pos];
+      const outRawL = this.limRawL[pos], outRawR = this.limRawR[pos];
+      this.limDelL[pos] = l; this.limDelR[pos] = r;
+      this.limRawL[pos] = rawL; this.limRawR[pos] = rawR;
+      if (++this.limPos >= look) this.limPos = 0;
+      const limL = Math.max(-ceil, Math.min(ceil, dl * this.limGain));
+      const limR = Math.max(-ceil, Math.min(ceil, dr * this.limGain));
+      const wet = this.limWet.next(), dry = this.limDry.next();
+      L[i] = dry * outRawL + wet * limL;
+      R[i] = dry * outRawR + wet * limR;
+      if (meter) {
+        energy[0] += 0.5 * (rawL * rawL + rawR * rawR);
+        if (this.limWet.target > 0) reduction = Math.max(reduction, -20 * Math.log10(Math.max(1e-9, this.limGain)));
+        if (peak > this.limInPeak) this.limInPeak = peak;
+        const outPeak = Math.max(Math.abs(L[i]), Math.abs(R[i]));
+        if (outPeak > this.limOutPeak) this.limOutPeak = outPeak;
+      }
+    }
+    if (meter) { energy[1] += stereoEnergy(L, R, n); this.meterSamples += n; this.meterReduction = reduction; }
+  }
+
   report() {
     if (!this.meterOn || this.meterSamples < sampleRate / 30) return;
     const energy = this.meterEnergy, count = this.meterSamples;
@@ -551,6 +639,13 @@ class FableFxProcessor extends AudioWorkletProcessor {
     } else if (this.kind === 'echo') {
       this.port.postMessage({ t: 'echo', input: power(0), left: power(1), right: power(2),
         time: this.dlTime.cur, driftL: this.dlDriftL, driftR: this.dlDriftR });
+    } else if (this.kind === 'limiter') {
+      this.port.postMessage({ t: 'dynamics',
+        ott: { input: -90, output: -90, levels: [-90, -90, -90], gains: [0, 0, 0], makeup: 0 },
+        comp: { input: -90, output: -90, reduction: 0, makeup: 0 },
+        limiter: { input: power(0), output: power(1), reduction: this.meterReduction,
+          inputPeak: dbOf(this.limInPeak), outputPeak: dbOf(this.limOutPeak) } });
+      this.limInPeak = 0; this.limOutPeak = 0;
     } else if (this.kind === 'ott' || this.kind === 'comp') {
       const idleOtt = { input: -90, output: -90, levels: [-90, -90, -90], gains: [0, 0, 0], makeup: 0 };
       const idleComp = { input: -90, output: -90, reduction: 0, makeup: 0 };
@@ -597,8 +692,10 @@ class FableFxProcessor extends AudioWorkletProcessor {
       case 'chorus': this.processChorus(L, R, n); break;
       case 'echo': this.processEcho(L, R, n); break;
       case 'reverb': this.processReverb(L, R, n); break;
+      case 'limiter': this.processLimiter(L, R, n); break;
     }
-    this.guard.process(L, R, n);
+    // The limiter holds its own ceiling, which may sit above the guard's.
+    if (this.kind !== 'limiter' || !this.enabled) this.guard.process(L, R, n);
     const outL = output[0], outR = output[1] || output[0];
     for (let i = 0; i < n; i++) { outL[i] = L[i]; outR[i] = R[i]; }
     this.report();
