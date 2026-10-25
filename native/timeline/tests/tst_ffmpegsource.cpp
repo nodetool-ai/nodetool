@@ -305,7 +305,7 @@ private slots:
         auto f = waitExact(d, 0.050);
         QVERIFY(f);
         QVERIFY(f->hardware);
-        QCOMPARE(d.facts()->decoder, std::string("videotoolbox"));
+        QCOMPARE(d.facts()->decoder, std::string(hw::decoderName()));
         QCOMPARE(hardwareBarcode(*f), 1);
         f = waitExact(d, 5.0);
         QVERIFY(f);
@@ -741,7 +741,7 @@ private slots:
         // Either VideoToolbox decoded throughout, or the watchdog moved the
         // clip to software and said so.
         if (mode == int(DecodeMode::Hardware)) {
-            QVERIFY2((decoder == "videotoolbox" && fallback.empty()) ||
+            QVERIFY2((decoder == hw::decoderName() && fallback.empty()) ||
                          (decoder == "software" && fallback == kStallFallback),
                      qPrintable(QStringLiteral("decoder %1, fallback '%2'")
                                     .arg(QString::fromStdString(decoder), QString::fromStdString(fallback))));

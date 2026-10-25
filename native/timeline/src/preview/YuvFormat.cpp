@@ -1,5 +1,7 @@
 #include "preview/YuvFormat.h"
 
+#include <cstddef>
+
 namespace nt {
 
 std::array<float, 16> yuvToRgbMatrix(YuvMatrix matrix, YuvRange range) {
@@ -47,8 +49,8 @@ std::array<double, 3> yuvToRgb(YuvMatrix matrix, YuvRange range, int y, int cb, 
     std::array<double, 3> rgb{};
     for (int row = 0; row < 3; ++row) {
         double sum = 0.0;
-        for (int col = 0; col < 4; ++col) sum += static_cast<double>(m[static_cast<size_t>(col * 4 + row)]) * v[col];
-        rgb[static_cast<size_t>(row)] = sum;
+        for (int col = 0; col < 4; ++col) sum += static_cast<double>(m[static_cast<std::size_t>(col * 4 + row)]) * v[col];
+        rgb[static_cast<std::size_t>(row)] = sum;
     }
     return rgb;
 }

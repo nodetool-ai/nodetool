@@ -1,6 +1,5 @@
 // Linux hardware decode (D15, M6): VAAPI frames imported into the QRhi's
-// Vulkan device through DMA-BUF. See VulkanInterop.h. Written for M6 and not
-// compiled on Linux yet (the development machine is macOS).
+// Vulkan device through DMA-BUF. See VulkanInterop.h.
 
 #include "preview/hw/VulkanInterop.h"
 
@@ -17,6 +16,7 @@ extern "C" {
 #include <libavutil/error.h>
 #include <libavutil/hwcontext.h>
 #include <libavutil/hwcontext_drm.h>
+#include <libavutil/hwcontext_vaapi.h>
 }
 
 #include <vulkan/vulkan.h>
@@ -25,6 +25,7 @@ extern "C" {
 
 #include <atomic>
 #include <cstdlib>
+#include <deque>
 #include <mutex>
 #include <vector>
 
@@ -35,6 +36,20 @@ std::atomic<int> g_liveFrameRefs{0};
 std::atomic<int> g_releasedInFlight{0};
 std::atomic<long long> g_completedFrame{-1};
 std::atomic<int> g_framesInFlight{2};
+
+void advanceCompleted(long long frame) {
+    long long seen = g_completedFrame.load();
+    while (seen < frame && !g_completedFrame.compare_exchange_weak(seen, frame)) {
+    }
+}
+
+// The frame trackCompletion() saw last on this (the render) thread, for the
+// next flush() to mark.
+struct FrameMark {
+    QRhiCommandBuffer* cb = nullptr;
+    long long frame = -1;
+};
+thread_local FrameMark t_frameMark;
 
 std::string avError(int rc) {
     char buf[AV_ERROR_MAX_STRING_SIZE] = {};
@@ -68,6 +83,13 @@ struct Owned {
     AVFrame* drm = nullptr;
 };
 
+// A 16-byte buffer readback recorded in a frame: QRhi completes it once that
+// frame's commands have run, as Metal's completed handler does on macOS.
+struct CompletionMark {
+    QRhiReadbackResult result;
+    std::atomic<bool> done{false};
+};
+
 struct Pending {
     VkFence fence = VK_NULL_HANDLE;
     VkCommandBuffer cb = VK_NULL_HANDLE;
@@ -95,6 +117,8 @@ struct VulkanInterop::Vk {
     // (retried on each flush()) or the device is lost.
     std::vector<Owned> unreleased;
     bool lost = false;
+    std::unique_ptr<QRhiBuffer> markBuffer;
+    std::deque<std::unique_ptr<CompletionMark>> marks;  // in frame order
 
     void freeOwned(Owned& o) {
         for (size_t i = 0; i < 2; ++i) {
@@ -288,11 +312,12 @@ struct VulkanInterop::Vk {
     }
 };
 
-void trackCompletion(QRhiCommandBuffer*, long long frameNumber) {
-    const long long done = frameNumber - g_framesInFlight.load();
-    long long seen = g_completedFrame.load();
-    while (seen < done && !g_completedFrame.compare_exchange_weak(seen, done)) {
-    }
+void trackCompletion(QRhiCommandBuffer* cb, long long frameNumber) {
+    // QRhi has waited for frame N - FramesInFlight when frame N begins. The
+    // buffer readback that flush() records in frame N completes once frame N
+    // has run, which also covers the last frame before QRhi::finish().
+    advanceCompleted(frameNumber - g_framesInFlight.load());
+    t_frameMark = {cb, frameNumber};
 }
 
 long long completedFrame() {
@@ -341,13 +366,44 @@ VulkanInterop::~VulkanInterop() {
     vk.unreleased.clear();
     for (VkFence f : vk.freeFences) vk.df->vkDestroyFence(vk.dev, f, nullptr);
     if (vk.pool) vk.df->vkDestroyCommandPool(vk.dev, vk.pool, nullptr);
+    // QRhi still writes a readback that has not completed: leave it allocated.
+    for (auto& mark : vk.marks) {
+        if (!mark->done.load()) (void)mark.release();
+    }
 }
 
 void VulkanInterop::flush() {
-    std::lock_guard lock(m_vk->mutex);
-    if (m_vk->lost) return;
-    m_vk->collect();
-    m_vk->retryReleases();
+    Vk& vk = *m_vk;
+    std::lock_guard lock(vk.mutex);
+    while (!vk.marks.empty() && vk.marks.front()->done.load()) vk.marks.pop_front();
+    if (t_frameMark.cb && m_rhi) {
+        QRhiResourceUpdateBatch* batch = m_rhi->nextResourceUpdateBatch();
+        if (!vk.markBuffer) {
+            vk.markBuffer.reset(m_rhi->newBuffer(QRhiBuffer::Immutable, QRhiBuffer::VertexBuffer, 16));
+            if (vk.markBuffer->create()) {
+                static const char zeros[16] = {};
+                batch->uploadStaticBuffer(vk.markBuffer.get(), zeros);
+            } else {
+                vk.markBuffer.reset();
+            }
+        }
+        if (vk.markBuffer) {
+            auto mark = std::make_unique<CompletionMark>();
+            CompletionMark* m = mark.get();
+            const long long frame = t_frameMark.frame;
+            m->result.completed = [m, frame] {
+                advanceCompleted(frame);
+                m->done = true;
+            };
+            batch->readBackBuffer(vk.markBuffer.get(), 0, 16, &m->result);
+            vk.marks.push_back(std::move(mark));
+        }
+        t_frameMark.cb->resourceUpdate(batch);
+        t_frameMark = {};
+    }
+    if (vk.lost) return;
+    vk.collect();
+    vk.retryReleases();
 }
 
 void VulkanInterop::retire(std::array<std::uint64_t, 2> images, std::array<std::uint64_t, 2> memory, AVFrame* drm,
@@ -381,8 +437,11 @@ void VulkanInterop::retire(std::array<std::uint64_t, 2> images, std::array<std::
 }
 
 QByteArrayList VulkanInterop::requiredDeviceExtensions() {
+    // VK_EXT_image_drm_format_modifier needs VK_KHR_image_format_list below
+    // Vulkan 1.2, and the instance asks for 1.1 (HwWindow.cpp).
     return {QByteArrayLiteral("VK_KHR_external_memory_fd"), QByteArrayLiteral("VK_EXT_external_memory_dma_buf"),
-            QByteArrayLiteral("VK_EXT_image_drm_format_modifier"), QByteArrayLiteral("VK_EXT_queue_family_foreign")};
+            QByteArrayLiteral("VK_KHR_image_format_list"), QByteArrayLiteral("VK_EXT_image_drm_format_modifier"),
+            QByteArrayLiteral("VK_EXT_queue_family_foreign")};
 }
 
 std::shared_ptr<VulkanInterop> VulkanInterop::create(QRhi* rhi) {
@@ -635,6 +694,25 @@ std::size_t frameBytes(const AVFrame* frame) {
 
 std::shared_ptr<FrameRef> wrapFrame(PlatformInterop& interop, const AVFrame* frame, std::string* error) {
     return interop.wrap(frame, error);
+}
+
+int syncFrame(const AVFrame* frame) {
+    if (!frame->hw_frames_ctx) return AVERROR(EINVAL);
+    const auto* frames = reinterpret_cast<const AVHWFramesContext*>(frame->hw_frames_ctx->data);
+    const auto* device = static_cast<const AVVAAPIDeviceContext*>(frames->device_ctx->hwctx);
+    const auto surface = static_cast<VASurfaceID>(reinterpret_cast<std::uintptr_t>(frame->data[3]));
+    return vaSyncSurface(device->display, surface) == VA_STATUS_SUCCESS ? 0 : AVERROR_EXTERNAL;
+}
+
+AVFrame* cacheCopy(const AVFrame* frame) {
+    AVFrame* copy = av_frame_alloc();
+    if (!copy) return nullptr;
+    copy->format = AV_PIX_FMT_NV12;
+    if (av_hwframe_transfer_data(copy, frame, 0) < 0 || av_frame_copy_props(copy, frame) < 0) {
+        av_frame_free(&copy);
+        return nullptr;
+    }
+    return copy;
 }
 
 }  // namespace nt::hw

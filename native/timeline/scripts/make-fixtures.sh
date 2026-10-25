@@ -178,7 +178,9 @@ rgb() {
     esac
     wrote "$name"
 }
-rgb rgb-solid-720p.mp4 "color=c=0xC02040:size=1280x720:rate=30:duration=1" x264rgb
+# The colour source is YUV unless asked for RGB: FFmpeg 9 converts 0xC02040
+# to BF 1E 3E on the way to bgr0, 2 codes off in green and blue.
+rgb rgb-solid-720p.mp4 "color=c=0xC02040:size=1280x720:rate=30:duration=1,format=gbrp" x264rgb
 rgb rgb-bars-gbrp.mp4 "smptehdbars=size=1920x1080:rate=30:duration=3" x264rgb
 rgb rgb-bars-png.mov "smptehdbars=size=1920x1080:rate=30:duration=1" png
 # 4:4:4 YUV, BT.709 values with no colour tags: converted to I420 on the
@@ -198,7 +200,8 @@ fi
 untagged() {
     local name=$1 size=$2 matrix=$3
     if ! need "$name"; then kept "$name"; return; fi
-    ff -f lavfi -i "color=c=0xC02040:size=${size}:rate=30:duration=1" \
+    # From RGB: FFmpeg 9's colour source in YUV comes out 4 codes off in blue.
+    ff -f lavfi -i "color=c=0xC02040:size=${size}:rate=30:duration=1,format=gbrp" \
         -vf "scale=out_color_matrix=${matrix}:out_range=tv,format=yuv420p,setparams=colorspace=unknown:color_primaries=unknown:color_trc=unknown:range=unknown" \
         -c:v libx264 -qp 0 "$out/$name"
     wrote "$name"
