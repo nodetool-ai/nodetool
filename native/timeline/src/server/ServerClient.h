@@ -1,6 +1,6 @@
 #pragma once
 
-// A read-only tRPC client for the NodeTool server (DESIGN.md D31, D32).
+// A tRPC and asset upload client for the NodeTool server (DESIGN.md D31, D32).
 //
 // tRPC over HTTP with plain JSON: `GET /trpc/<procedure>?input=<json>`
 // answers `{"result":{"data":...}}` or `{"error":{"message","data":{"code",
@@ -9,15 +9,15 @@
 // token it sends `Authorization: Bearer <token>`. Every request carries
 // `X-Nodetool-Client: native-timeline/<version>` (D4).
 //
-// Reads are GET and HEAD. The one write is `timeline.update` (M5b, D34),
-// a POST with the JSON input as the body; redirects are never followed.
+// Reads are GET and HEAD. Writes use tRPC JSON or multipart asset upload.
+// Redirects are never followed.
 // Calls block on a local event loop. Use one client per thread.
 //
 // With an expected instance, a write goes out only after `GET /ready` on the
 // same server answers `X-Nodetool-Instance: <that token>`, and the write's
 // own answer must carry it too (code WRONG_SERVER otherwise). The scratch
-// servers of scripts/scratch-server.mjs send the header, so a write cannot
-// go to another listener that took the port.
+// servers of scripts/scratch-server.mjs send the header. These are separate
+// requests. Package T adds proof on the connection that carries the write.
 
 #include <QByteArray>
 #include <QHash>
@@ -30,6 +30,8 @@
 
 #include <memory>
 #include <vector>
+
+class QHttpMultiPart;
 
 namespace nt::server {
 
@@ -97,9 +99,10 @@ public:
     // Refused (code WRONG_SERVER) when an expected instance is set and the
     // server does not answer with it.
     QueryResult mutate(const QString& procedure, const QJsonObject& input);
+    QueryResult upload(const QJsonObject& json, const QString& filePath, const QString& contentType);
     // Empty: no instance check.
     void setExpectedInstance(const QString& instance) { m_expectedInstance = instance.toUtf8(); }
-    // A bound on the whole of `mutate`, check included, in elapsed time; the
+    // A bound on the private write path, check included, in elapsed time; the
     // transfer timeout only bounds silence. 0: none. Aborted calls fail with
     // code TIMEOUT.
     void setDeadlineMs(int ms) { m_deadlineMs = ms; }
@@ -109,6 +112,8 @@ public:
     QueryResult getAsset(const QString& id) { return query(QStringLiteral("assets.get"), {{QStringLiteral("id"), id}}); }
 
 private:
+    QueryResult write(const QString& operation, QNetworkRequest request, const QByteArray* json,
+                      std::unique_ptr<QHttpMultiPart> multipart = nullptr);
     QUrl m_base;
     QString m_token;
     int m_timeoutMs;

@@ -72,6 +72,8 @@ public:
     bool commitEdit(const QString& text, const QJsonArray& before, const QJsonArray& after, int mergeId = 0,
                     bool continuation = false);
 
+    Q_INVOKABLE bool applyEdit(const QString& name, const QJsonObject& payload);
+
     // Moves one clip to a new start on its track, as one undoable edit.
     Q_INVOKABLE bool moveClip(const QString& clipId, double startMs);
 
@@ -92,6 +94,7 @@ signals:
     void markersChanged();
 
 private:
+    bool replaceDocument(const QJsonObject& raw);
     std::shared_ptr<const nt::Timeline> m_timeline;
     TrackListModel* m_tracks;
     QUndoStack* m_undo;

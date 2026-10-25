@@ -1,6 +1,7 @@
 #include "model/TimelineModel.h"
 
 #include "model/TimelineJson.h"
+#include "app/EditRegistry.h"
 
 #include <QHash>
 #include <QJsonDocument>
@@ -9,6 +10,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <memory>
 
 namespace {
 
@@ -60,6 +62,19 @@ private:
     TimelineModel* m_model;
     QJsonArray m_before;
     QJsonArray m_after;
+};
+
+class DocumentCommand : public QUndoCommand {
+public:
+    DocumentCommand(QString name, QJsonObject before, QJsonObject after,
+                    std::function<void(const QJsonObject&)> replace)
+        : QUndoCommand(name), m_before(std::move(before)), m_after(std::move(after)), m_replace(std::move(replace)) {}
+    void redo() override { m_replace(m_after); }
+    void undo() override { m_replace(m_before); }
+private:
+    QJsonObject m_before;
+    QJsonObject m_after;
+    std::function<void(const QJsonObject&)> m_replace;
 };
 
 }  // namespace
@@ -235,4 +250,110 @@ void TimelineModel::close() {
     empty.width = m_timeline->width;
     empty.height = m_timeline->height;
     setTimeline(std::move(empty));
+}
+
+bool TimelineModel::applyEdit(const QString& name, const QJsonObject& payload) {
+    const auto edit = nt::app::findEdit(name);
+    if (!edit) {
+        return false;
+    }
+    const auto before = m_timeline->raw;
+    const auto after = edit(before, payload);
+    if (before == after) {
+        return false;
+    }
+    auto beforeFields = before;
+    auto afterFields = after;
+    beforeFields.remove("clips");
+    afterFields.remove("clips");
+    if (beforeFields == afterFields) {
+        if (!after.value("clips").isArray()) {
+            return false;
+        }
+        QHash<QString, QJsonObject> existing;
+        existing.reserve(static_cast<int>(m_timeline->clips.size()));
+        for (const auto& clip : m_timeline->clips) {
+            existing.insert(QString::fromStdString(clip.id), clip.raw);
+        }
+        QJsonArray changed;
+        for (const auto& value : after.value("clips").toArray()) {
+            if (!value.isObject()) {
+                return false;
+            }
+            const auto clip = value.toObject();
+            if (existing.value(clip.value("id").toString()) != clip) {
+                changed.append(clip);
+            }
+        }
+        if (!changed.isEmpty()) {
+            auto part = after;
+            part.insert("clips", changed);
+            const auto parsed = nt::parseTimelineJson(QJsonDocument(part).toJson(QJsonDocument::Compact));
+            if (!parsed.timeline || parsed.timeline->clips.size() != static_cast<size_t>(changed.size())) {
+                return false;
+            }
+        }
+    } else {
+        beforeFields = before;
+        afterFields = after;
+        beforeFields.remove("markers");
+        afterFields.remove("markers");
+        if (beforeFields == afterFields) {
+            if (!after.value("markers").isArray()) {
+                return false;
+            }
+        } else if (!nt::parseTimelineJson(QJsonDocument(after).toJson(QJsonDocument::Compact)).timeline) {
+            return false;
+        }
+    }
+    auto command = std::make_unique<DocumentCommand>(name, before, after, [this](const QJsonObject& raw) { replaceDocument(raw); });
+    m_undo->push(command.release());
+    return true;
+}
+
+bool TimelineModel::replaceDocument(const QJsonObject& raw) {
+    if (raw == m_timeline->raw) {
+        return false;
+    }
+    auto beforeFields = m_timeline->raw;
+    auto afterFields = raw;
+    beforeFields.remove("clips");
+    afterFields.remove("clips");
+    if (beforeFields == afterFields && raw.contains("clips")) {
+        return replaceClips(raw.value("clips").toArray());
+    }
+    beforeFields = m_timeline->raw;
+    afterFields = raw;
+    beforeFields.remove("markers");
+    afterFields.remove("markers");
+    if (beforeFields == afterFields && raw.contains("markers")) {
+        return replaceMarkers(raw.value("markers").toArray());
+    }
+    auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson(QJsonDocument::Compact));
+    if (!parsed.timeline) {
+        return false;
+    }
+    const bool tracksChanged = raw.value("tracks") != m_timeline->raw.value("tracks");
+    const bool markersChangedValue = raw.value("markers") != m_timeline->raw.value("markers");
+    auto next = std::move(*parsed.timeline);
+    for (auto& clip : next.clips) {
+        const auto media = m_media.constFind(mediaKey(clip.raw));
+        if (media != m_media.constEnd()) {
+            clip.mediaPath = media->first;
+            clip.audioPath = media->second;
+        }
+    }
+    next.revision = nt::nextTimelineRevision();
+    m_timeline = std::make_shared<const nt::Timeline>(std::move(next));
+    if (tracksChanged) {
+        m_tracks->reset(m_timeline.get());
+    } else {
+        m_tracks->rebind(m_timeline.get());
+    }
+    emit clipsChanged();
+    emit timelineChanged();
+    if (markersChangedValue) {
+        emit markersChanged();
+    }
+    return true;
 }

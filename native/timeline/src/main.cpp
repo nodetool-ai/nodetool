@@ -13,6 +13,7 @@
 // --screenshot grabs the window after a few frames, saves it, and exits.
 // --dump-plan prints the FramePlan JSON at the given times (ms), no window.
 
+#include "app/CliModes.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
@@ -592,11 +593,24 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, QSize size, const Q
 }
 
 int main(int argc, char** argv) {
+    nt::app::registerCliMode({"--save", nt::server::saveCli});
+    nt::app::registerCliMode({"--dump-plan", dumpPlan});
+    nt::app::registerCliMode({"--probe-media", probeMediaReport});
+    nt::app::registerCliMode({"--render-audio", nt::audio::renderAudioCli});
+    nt::app::registerCliMode({"--av-sync", nt::audio::avSyncCli});
+    nt::app::registerCliMode({"--av-sync-live", nt::audio::avSyncLiveCli});
+    nt::app::registerCliMode({"--audio-devices", nt::audio::audioDevicesCli});
+    if (const auto rc = nt::app::dispatchCliMode(argc, argv, nt::app::CliStage::BeforeServerArgs)) {
+        return *rc;
+    }
     // --server URL --timeline ID replaces the fixture argument (src/server/ServerSource.h).
     if (const int rc = nt::server::takeServerArgs(argc, argv)) return rc;
     if (nt::server::listTimelinesRequested()) {
         QCoreApplication app(argc, argv);
         return nt::server::listTimelinesMain();
+    }
+    if (const auto rc = nt::app::dispatchCliMode(argc, argv)) {
+        return *rc;
     }
     // Parse before QGuiApplication: --bench changes the surface format and
     // --dump-plan runs without a GUI.
@@ -615,13 +629,6 @@ int main(int argc, char** argv) {
             isOpt("--play-stills") || isOpt("--scrub-script") || isOpt("--ui-bench")) {
             background = true;
         }
-        if (qstrcmp(argv[i], "--save") == 0) return nt::server::saveCli(argc, argv);  // M5b harness
-        if (qstrcmp(argv[i], "--dump-plan") == 0) return dumpPlan(argc, argv);
-        if (qstrcmp(argv[i], "--probe-media") == 0) return probeMediaReport(argc, argv);
-        if (qstrcmp(argv[i], "--render-audio") == 0) return nt::audio::renderAudioCli(argc, argv);
-        if (qstrcmp(argv[i], "--av-sync") == 0) return nt::audio::avSyncCli(argc, argv);
-        if (qstrcmp(argv[i], "--av-sync-live") == 0) return nt::audio::avSyncLiveCli(argc, argv);
-        if (qstrcmp(argv[i], "--audio-devices") == 0) return nt::audio::audioDevicesCli(argc, argv);
     }
     background = background || bench;
     if (background) {
@@ -748,10 +755,20 @@ int main(int argc, char** argv) {
                                 .constData());
         return 0;
     }
-    if (parser.positionalArguments().size() != 1) {
+    auto sources = parser.positionalArguments();
+    if (sources.isEmpty()) {
+        if (const auto startup = nt::app::dispatchDefaultStartup(app, parser)) {
+            if (const auto* exitCode = std::get_if<int>(&*startup)) {
+                return *exitCode;
+            }
+            sources.append(std::get<QString>(*startup));
+        }
+    }
+    if (sources.size() != 1) {
         parser.showHelp(2);
     }
-    const auto loaded = nt::server::loadTimelineSource(parser.positionalArguments().first());
+    const QString source = sources.first();
+    const auto loaded = nt::server::loadTimelineSource(source);
     if (!loaded.timeline) {
         std::fprintf(stderr, "error: %s\n", qPrintable(loaded.error));
         return 1;
@@ -845,7 +862,7 @@ int main(int argc, char** argv) {
 
     if (parser.isSet(uiBenchOpt)) {
         nt::ui::UiBenchOptions options;
-        options.fixture = parser.positionalArguments().first();
+        options.fixture = source;
         options.size = QSize(winW, winH);
         if (parser.isSet(framesOpt)) options.frames = benchFrames;
         options.windowed = parser.isSet(uiWindowOpt);
@@ -853,11 +870,10 @@ int main(int argc, char** argv) {
         return nt::ui::runUiBench(model, clock, options);
     }
     if (parser.isSet(scrubOpt)) {
-        const QString fixture = parser.positionalArguments().first();
         const QString out = parser.isSet(scrubOutOpt)
                                 ? parser.value(scrubOutOpt)
-                                : QStringLiteral("build/scrub/%1").arg(QFileInfo(fixture).completeBaseName());
-        return runOffscreen(model, clock, QSize(winW, winH), {}, {}, {}, {}, parser.value(scrubOpt), out, fixture,
+                                : QStringLiteral("build/scrub/%1").arg(QFileInfo(source).completeBaseName());
+        return runOffscreen(model, clock, QSize(winW, winH), {}, {}, {}, {}, parser.value(scrubOpt), out, source,
                             parser.isSet(decoderOpt) ? parser.value(decoderOpt) : parser.value(decodeOpt));
     }
     if (parser.isSet(shotOpt) || parser.isSet(stillsOpt) || parser.isSet(playStillsOpt)) {
@@ -961,7 +977,6 @@ int main(int argc, char** argv) {
             Qt::DirectConnection);
         const bool vsync = !noVsync;
         const double refreshHz = view.screen() ? view.screen()->refreshRate() : 0.0;
-        const QString fixture = parser.positionalArguments().first();
         const double startMs = clock.time();
         const QString decodeName = parser.isSet(decoderOpt) ? parser.value(decoderOpt) : parser.value(decodeOpt);
         auto scheduling = std::make_shared<QJsonObject>();
@@ -998,7 +1013,7 @@ int main(int argc, char** argv) {
         }
         QObject::connect(
             &view, &QQuickWindow::afterAnimating, &app,
-            [&app, &clock, &model, view = &view, compositor, run, budget, vsync, refreshHz, fixture, startMs,
+            [&app, &clock, &model, view = &view, compositor, run, budget, vsync, refreshHz, source, startMs,
              decodeName, scheduling, exposeLogger]() {
                 using Phase = BenchRun::Phase;
                 const auto& stats = compositor->frameStats();
@@ -1016,7 +1031,7 @@ int main(int argc, char** argv) {
                 const auto finish = [&]() {
                     run->phase = Phase::Done;
                     nt::bench::BenchData data = benchData(stats, *run);
-                    data.fixture = fixture;
+                    data.fixture = source;
                     data.vsync = vsync;
                     data.refreshHz = refreshHz;
                     data.realtime = run->seconds > 0.0;
