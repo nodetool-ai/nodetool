@@ -1,6 +1,7 @@
 /**
  * The document bar of a workflow tab's canvas: save status, Undo/Redo over
- * the graph history, the Graph/Chain switch, the chat and mini map toggles,
+ * the graph history, the Graph/Chain switch, the chat, mini map and inspector
+ * toggles,
  * and ⋮ with the app and the exports. Run stays in the floating dock beside
  * the composer that starts a run.
  */
@@ -18,6 +19,7 @@ import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import DashboardCustomizeOutlinedIcon from "@mui/icons-material/DashboardCustomizeOutlined";
 import DataObjectOutlinedIcon from "@mui/icons-material/DataObjectOutlined";
 import TerminalIcon from "@mui/icons-material/Terminal";
+import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 
 import { useNodes, useTemporalNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -27,6 +29,7 @@ import { useWorkflowScriptExport } from "../../hooks/useWorkflowScriptExport";
 import { useCanvasConversation } from "../../hooks/useCanvasConversation";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useMiniMapStore } from "../../stores/MiniMapStore";
+import { useRightPanelStore } from "../../stores/RightPanelStore";
 import useCanvasChatDockStore from "../../stores/CanvasChatDockStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import type { WorkspaceTab } from "../../stores/WorkspaceTabsStore";
@@ -112,6 +115,12 @@ const WorkflowDocumentBar = ({ tab }: WorkflowDocumentBarProps) => {
     useShallow((state) => ({
       conversationCollapsed: state.conversationCollapsed,
       toggleConversation: state.toggleConversation
+    }))
+  );
+  const { inspectorVisible, toggleInspector } = useRightPanelStore(
+    useShallow((state) => ({
+      inspectorVisible: state.panel.isVisible,
+      toggleInspector: state.toggleInspector
     }))
   );
   const { conversationCount } = useCanvasConversation(workflowId);
@@ -204,6 +213,17 @@ const WorkflowDocumentBar = ({ tab }: WorkflowDocumentBarProps) => {
               onClick={toggleMiniMap}
             />
           )}
+          <ToolbarIconButton
+            icon={<TuneOutlinedIcon />}
+            tooltip={
+              inspectorVisible
+                ? t("i18n-cont-panels-12.toolbar.hideInspector")
+                : t("i18n-cont-panels-12.toolbar.showInspector")
+            }
+            ariaLabel={t("i18n-cont-panels-12.toolbar.toggleInspector")}
+            active={inspectorVisible}
+            onClick={toggleInspector}
+          />
         </>
       }
       actions={
