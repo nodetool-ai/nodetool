@@ -1,0 +1,274 @@
+{
+  "plan": "native/timeline/docs/PLAN-GAPS.md",
+  "baseBranch": "feat/native-timeline",
+  "maxConcurrentBuilds": 4,
+  "review": "codex exec -m gpt-6-astra -s read-only -C <worktree> -o <report> -",
+  "packages": [
+    {
+      "id": "S1", "wave": 0, "needs": [], "gaps": [],
+      "title": "Seams for parallel work",
+      "owns": ["CMakeLists.txt", "src/*/module.cmake", "src/app/", "src/main.cpp", "src/model/TimelineModel.*", "qml/TimelineEditor.qml", "qml/Inspector/primitives/", "scripts/op-conformance.mjs", "scripts/conformance/suites/"],
+      "web": ["web/src/components/timeline/Inspector/InspectorPrimitives.tsx", "web/src/components/timeline/Inspector/InspectorPrimitives.helpers.ts"],
+      "server": [],
+      "exit": [
+        "Build, ctest, plan check and op check give the same results as before the change",
+        "A test package that adds a module, CLI mode, edit, panel and menu item touches no shared file (git diff --stat)"
+      ]
+    },
+    {
+      "id": "A", "wave": 1, "needs": ["S1"], "gaps": ["F5"],
+      "title": "Open and create timelines",
+      "owns": ["src/server/TimelineList*", "qml/TimelineListPanel.qml", "qml/ProjectSettingsDialog.qml"],
+      "web": ["web/src/components/timeline/TimelineListPanel.tsx", "web/src/components/timeline/TimelineDocumentBar.tsx", "web/src/components/timeline/ProjectSettingsDialog.tsx", "web/src/components/projects/"],
+      "server": ["timeline.list", "timeline.create", "timeline.delete", "packages/websocket/src/trpc/routers/projects.ts"],
+      "exit": [
+        "List, open, create with web defaults, rename and delete work against the scratch server",
+        "Project settings change canvas and rate with undo",
+        "Offscreen screenshot matches the web layout"
+      ]
+    },
+    {
+      "id": "B", "wave": 1, "needs": ["S1"], "gaps": ["F1"],
+      "title": "Media import and asset browser",
+      "owns": ["src/assets/", "qml/assets/"],
+      "web": ["web/src/components/assets/AssetExplorer.tsx", "web/src/components/assets/AssetGrid.tsx", "web/src/components/assets/AssetItem.tsx", "web/src/serverState/useAssetUpload.ts", "web/src/components/timeline/AddClipMenu.tsx", "web/src/components/timeline/dnd/assetToClipAdapter.ts", "web/src/components/timeline/packageClipMedia.ts"],
+      "server": ["assets.list", "assets.get", "assets.ensureProxy", "the upload route used by useAssetUpload.ts"],
+      "exit": [
+        "Imported file appears as an asset and gets a proxy when the server makes one",
+        "Dropped asset gives the same clip JSON as assetToClipAdapter.ts (oracle)",
+        "Video with sound drops as the linked video and audio pair"
+      ]
+    },
+    {
+      "id": "C", "wave": 1, "needs": ["S1"], "gaps": ["F2"],
+      "title": "Track management",
+      "owns": ["src/edit/tracks/", "qml/Tracks/AddTrackButton.qml", "qml/Tracks/TrackHeaderMenu.qml"],
+      "web": ["web/src/components/timeline/Tracks/AddTrackButton.tsx", "web/src/components/timeline/Tracks/TrackHeader.tsx", "web/src/stores/timeline/TimelineStore.ts"],
+      "server": [],
+      "exit": [
+        "Add, delete, rename, reorder, colour, mute, solo, lock, hide and height match the web store actions (store differential)",
+        "Undo restores the document"
+      ]
+    },
+    {
+      "id": "D1", "wave": 1, "needs": ["S1"], "gaps": ["F3"],
+      "title": "Inspector: transform and keyframes",
+      "owns": ["qml/Inspector/TimelineInspector.qml", "qml/Inspector/Motion*", "qml/Inspector/Keyframe*", "src/edit/keyframes/"],
+      "web": ["web/src/components/timeline/Inspector/TimelineInspector.tsx", "web/src/components/timeline/Inspector/InspectorMotionFields.tsx", "web/src/components/timeline/Inspector/KeyframedPropertyRow.tsx", "web/src/components/timeline/Inspector/keyframeRows.ts", "web/src/components/timeline/Inspector/ClipAnimations.tsx", "web/src/components/timeline/Tracks/ClipKeyframeDiamonds.tsx"],
+      "server": [],
+      "exit": [
+        "Transform fields edit with undo",
+        "Stopwatch, add, delete, step, retime and easing match keyframeRows.ts (oracle)",
+        "Keyframe diamonds drag the same way",
+        "Preview shows the change in the next frame"
+      ]
+    },
+    {
+      "id": "D2", "wave": 1, "needs": ["S1"], "gaps": ["F3"],
+      "title": "Inspector: audio",
+      "owns": ["qml/Inspector/Audio*", "qml/Tracks/ClipFadeShapeMenu.qml"],
+      "web": ["web/src/components/timeline/Inspector/ClipAudioEffects.tsx", "web/src/components/timeline/Inspector/ClipAudioDrive.tsx", "web/src/components/timeline/clipDialogs/AudioGainDialog.tsx", "web/src/components/timeline/fadeShapes.ts", "web/src/components/timeline/Tracks/ClipFadeShapeMenu.tsx"],
+      "server": [],
+      "exit": [
+        "Gain, pan, fade lengths and the four curves edit with undo",
+        "Fade grips on the clip match the web",
+        "check-mix.mjs passes on edited documents"
+      ]
+    },
+    {
+      "id": "D3", "wave": 1, "needs": ["S1"], "gaps": ["F3"],
+      "title": "Inspector: speed and time remap",
+      "owns": ["qml/Inspector/Speed*", "src/edit/speed/"],
+      "web": ["web/src/components/timeline/Inspector/ClipTimeRemap.tsx", "web/src/components/timeline/clipDialogs/SpeedDurationDialog.tsx", "packages/timeline/src/clipSpeed.ts"],
+      "server": [],
+      "exit": [
+        "Speed, reverse, keep pitch, duration and remap curve match the web operations (oracle)",
+        "Preview and mix follow the new timing"
+      ]
+    },
+    {
+      "id": "D4", "wave": 1, "needs": ["S1"], "gaps": ["F3"],
+      "title": "Inspector: transitions",
+      "owns": ["qml/Inspector/Transition*"],
+      "web": ["web/src/components/timeline/Inspector/ClipTransitionSection.tsx", "packages/timeline/src/render/sceneModel.ts"],
+      "server": [],
+      "exit": [
+        "Type, length, easing and parameters edit with undo",
+        "Plan check passes on documents edited this way"
+      ]
+    },
+    {
+      "id": "D5", "wave": 1, "needs": ["S1"], "gaps": ["F3"],
+      "title": "Inspector: crop and reframe",
+      "owns": ["qml/Inspector/Reframe*", "src/preview/crop/"],
+      "web": ["web/src/components/timeline/Inspector/ClipReframe.tsx", "packages/timeline/src/crop.ts", "web/src/components/timeline/preview/ReframeFocusOverlay.tsx"],
+      "server": [],
+      "exit": [
+        "Crop edges, fit mode and reframe focus match the web",
+        "Compositor draws the crop (golden against timeline render --stills)"
+      ]
+    },
+    {
+      "id": "E", "wave": 1, "needs": ["S1"], "gaps": ["F4"],
+      "title": "Export",
+      "owns": ["src/export/", "qml/ExportVideoDialog.qml"],
+      "web": ["web/src/components/timeline/ExportVideoDialog.tsx", "web/src/components/timeline/render/TimelineRenderer.ts", "web/src/components/timeline/render/renderAudio.ts", "web/src/components/timeline/render/encodeAudio.ts", "web/src/components/timeline/render/canEncodeMp4.ts"],
+      "server": [],
+      "exit": [
+        "Export of each media fixture matches nodetool timeline render at 40 dB or better per checked frame",
+        "Audio matches the offline mix",
+        "Duration and frame count are exact",
+        "Cancel leaves no partial file"
+      ]
+    },
+    {
+      "id": "F", "wave": 1, "needs": ["S1"], "gaps": ["F6"],
+      "title": "Clipboard and structure",
+      "owns": ["src/edit/clipboard/", "src/edit/groups/", "qml/Tracks/RubberBandOverlay.qml", "qml/Tracks/GroupBracket.qml", "qml/PasteAttributesDialog.qml"],
+      "web": ["web/src/stores/timeline/clipboardOps.ts", "web/src/stores/timeline/pasteAttributes.ts", "web/src/components/timeline/clipDialogs/PasteAttributesDialog.tsx", "web/src/stores/timeline/TimelineStore.ts", "web/src/components/timeline/Tracks/RubberBandOverlay.tsx", "web/src/components/timeline/Tracks/GroupBracket.tsx"],
+      "server": [],
+      "exit": [
+        "Copy, cut, paste, paste attributes, duplicate, Alt-drag copy, group, ungroup, marquee and gap selection match the web (store differential, oracle on clipboardOps.ts)",
+        "Group targets for move, trim and delete are no longer refused"
+      ]
+    },
+    {
+      "id": "H", "wave": 1, "needs": ["S1"], "gaps": ["F8"],
+      "title": "Transform gizmo",
+      "owns": ["qml/preview/TransformGizmoOverlay.qml", "qml/preview/ClipTransformContextMenu.qml"],
+      "web": ["web/src/components/timeline/preview/TransformGizmoOverlay.tsx", "web/src/components/timeline/preview/ClipTransformContextMenu.tsx"],
+      "server": [],
+      "exit": [
+        "Drag, scale and rotate in the program monitor with the web handles and snapping",
+        "One gesture is one undo command",
+        "Drag on an animated property keys it"
+      ]
+    },
+    {
+      "id": "I", "wave": 1, "needs": ["S1"], "gaps": ["F9"],
+      "title": "Text, shapes and captions",
+      "owns": ["src/render2d/", "src/scene/TextBlock.*", "qml/Inspector/Text*", "qml/Inspector/Shape*", "qml/Inspector/Caption*"],
+      "web": ["web/src/components/timeline/preview/textRender.ts", "web/src/components/timeline/preview/textMeasure.ts", "web/src/components/timeline/preview/fontLoading.ts", "web/src/components/timeline/preview/shapeRender.ts", "web/src/components/timeline/preview/captionRender.ts", "web/src/components/timeline/Inspector/ClipTextStyleSection.tsx", "web/src/components/timeline/Inspector/ClipShapeSection.tsx", "web/src/components/timeline/Inspector/ClipCaptionStyle.tsx", "web/src/components/timeline/Inspector/FontPicker.tsx"],
+      "server": [],
+      "exit": [
+        "The 7 shipped examples match timeline render --stills at 35 dB or better on frames with text and shapes",
+        "Plan check keeps passing",
+        "Window check added: serein on the M0 counters against the web"
+      ]
+    },
+    {
+      "id": "J", "wave": 1, "needs": ["S1"], "gaps": ["F9"],
+      "title": "Effects, adjustments, masks and blend modes",
+      "owns": ["shaders/effects/", "src/preview/effects/"],
+      "web": ["web/src/components/timeline/preview/gpu/compositor.ts", "web/src/components/timeline/preview/maskRender.ts", "web/src/components/timeline/preview/matteOverlay.ts", "web/src/components/timeline/Inspector/ClipAdjustments.tsx", "web/src/components/timeline/Inspector/ClipEffectsList.tsx", "web/src/components/timeline/Inspector/ToneCurveEditor.tsx", "web/src/components/timeline/Inspector/ClipMaskMatte.tsx", "packages/protocol/src/api-schemas/timeline.ts"],
+      "server": [],
+      "exit": [
+        "Each effect, blend mode, mask and matte has a golden fixture at 40 dB or better against the export",
+        "Group blend mode and group effects from D35 are drawn"
+      ]
+    },
+    {
+      "id": "K", "wave": 1, "needs": ["S1"], "gaps": ["F11", "F12"],
+      "title": "Range playback and live audio edits",
+      "owns": ["src/playback/", "src/audio/AudioEngine.*"],
+      "web": ["web/src/components/timeline/preview/PlaybackClock.ts", "web/src/components/timeline/preview/playbackSync.ts", "web/src/stores/timeline/TimelinePlaybackStore.ts"],
+      "server": [],
+      "exit": [
+        "Loop, play in to out and J/K/L shuttle speeds match the web",
+        "Edit during playback changes the sound within one audio block (headless mix test)"
+      ]
+    },
+    {
+      "id": "L", "wave": 1, "needs": ["S1"], "gaps": ["F13"],
+      "title": "Keyframes on split and trim",
+      "owns": ["src/edit/ClipOps.*"],
+      "web": ["packages/timeline/src/keyframes.ts", "packages/timeline/src/animation/"],
+      "server": [],
+      "exit": [
+        "The 7 refused op-conformance cases pass",
+        "No refusal remains for source-anchored curves"
+      ]
+    },
+    {
+      "id": "M", "wave": 1, "needs": ["S1"], "gaps": ["F14"],
+      "title": "Sync lock and track targeting",
+      "owns": ["src/edit/targeting/"],
+      "web": ["web/src/stores/timeline/TimelineStore.ts", "web/src/components/timeline/Tracks/TrackHeader.tsx"],
+      "server": [],
+      "exit": ["Ripple, insert and delete respect targets and sync lock as in the web (store differential)"]
+    },
+    {
+      "id": "N", "wave": 1, "needs": ["S1"], "gaps": ["F15"],
+      "title": "Tempo, bars and beat snapping",
+      "owns": ["src/ui/Tempo*", "qml/Tracks/GridDivisionSelect.qml"],
+      "web": ["web/src/components/timeline/Tracks/TimeRuler.tsx", "packages/timeline/src/beats.ts"],
+      "server": [],
+      "exit": ["Bars ruler, grid select and beat snapping match the web (oracle on beats.ts)"]
+    },
+    {
+      "id": "P1", "wave": 1, "needs": ["S1"], "gaps": ["F16"],
+      "title": "Audio effects",
+      "owns": ["src/audio/effects/", "qml/fx/"],
+      "web": ["web/src/components/timeline/daw/fx/", "web/src/components/timeline/preview/audioEffectNodes.ts", "packages/protocol/src/api-schemas/timeline.ts"],
+      "server": [],
+      "exit": [
+        "Gain, EQ, filter, compressor, echo, reverb and distortion run in the native mixer and match an offline web render within a stated tolerance",
+        "Effect UI matches FxControls.tsx"
+      ]
+    },
+    {
+      "id": "R", "wave": 1, "needs": ["S1"], "gaps": ["F18"],
+      "title": "App shell",
+      "owns": ["src/app/Menus*", "src/app/Preferences*", "qml/Preferences*"],
+      "web": ["web/src/components/timeline/TimelineRoute.tsx", "web/src/components/timeline/timelineKeymap.ts"],
+      "server": [],
+      "exit": [
+        "macOS menu bar with File, Edit, View, Playback and Help and the keymap shortcuts",
+        "Preferences: keyboard layout, cache folder and budget, decoder mode, audio device",
+        "Recent timelines"
+      ]
+    },
+    {
+      "id": "G", "wave": 2, "needs": ["C", "D2", "F"], "gaps": ["F7"],
+      "title": "Context menus",
+      "owns": ["qml/menus/"],
+      "web": ["web/src/components/timeline/Tracks/ClipContextMenu.tsx", "web/src/components/timeline/Tracks/TrackHeader.tsx", "web/src/components/timeline/Tracks/TrackLane.tsx", "web/src/components/timeline/Tracks/TimeRuler.tsx"],
+      "server": [],
+      "exit": ["Clip, track, lane and ruler menus match the web, and each item runs the same action as its shortcut"]
+    },
+    {
+      "id": "O", "wave": 2, "needs": ["B"], "gaps": ["F10"],
+      "title": "Source viewer",
+      "owns": ["qml/SourceViewerPanel.qml", "src/edit/sourceEdit/"],
+      "web": ["web/src/components/timeline/SourceViewerPanel.tsx", "web/src/components/timeline/sourceEdit.ts"],
+      "server": [],
+      "exit": ["Mark in and out on an asset, then append, insert or overwrite, matching sourceEdit.ts (oracle)"]
+    },
+    {
+      "id": "D6", "wave": 2, "needs": ["J"], "gaps": ["F3"],
+      "title": "Inspector: adjustments and effects UI",
+      "owns": ["qml/Inspector/Adjust*", "qml/Inspector/Effects*", "qml/Inspector/ToneCurve*"],
+      "web": ["web/src/components/timeline/Inspector/ClipAdjustments.tsx", "web/src/components/timeline/Inspector/ToneCurveEditor.tsx", "web/src/components/timeline/Inspector/ClipEffectsList.tsx"],
+      "server": [],
+      "exit": ["Colour, tone curve and effect list edit with undo, and the preview shows them (golden)"]
+    },
+    {
+      "id": "P2", "wave": 2, "needs": ["P1", "M"], "gaps": ["F16"],
+      "title": "Automation and mixer",
+      "owns": ["src/audio/automation/", "qml/mixer/", "qml/Tracks/automation/"],
+      "web": ["web/src/components/timeline/Tracks/automation/", "web/src/components/timeline/daw/mixer/", "packages/timeline/src/automation.ts"],
+      "server": [],
+      "exit": ["Automation lanes and the mixer match the web, and the mix follows automation (oracle on automation.ts)"]
+    },
+    {
+      "id": "Q", "wave": 2, "needs": ["A", "B", "D1"], "gaps": ["F17"],
+      "title": "Dock and workspaces",
+      "owns": ["qml/dock/"],
+      "web": ["web/src/components/dock/", "web/src/stores/timeline/TimelineDockLayout.ts", "web/src/components/timeline/dock/timelinePanels.tsx"],
+      "server": [],
+      "exit": ["Movable panels and the built-in workspaces match TimelineDockLayout.ts"]
+    }
+  ],
+  "mergeOrder": ["S1", "A", "B", "C", "D1", "D2", "D3", "D4", "D5", "E", "F", "H", "I", "J", "K", "L", "M", "N", "P1", "R", "G", "O", "D6", "P2", "Q"],
+  "outOfPlan": ["F19 signing and notarization", "Windows and Linux reference-machine benches", "AI features", "MIDI clips and instruments"]
+}
