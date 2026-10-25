@@ -34,6 +34,15 @@ differ.
   Do not measure performance while the load average is above 10.
 - Write the failing test first for each bug fix. Prove each new check fails
   once on bad input.
+- Follow the memory-safety rules in new and changed code. Each FFmpeg
+  object, VA surface, Vulkan handle and file descriptor has one owner: a
+  `std::unique_ptr` with a deleter or a move-only class. Every
+  `connect()` with a lambda passes a context object, so the connection ends
+  with its receiver. A lambda that can outlive an object holds a `QPointer`,
+  never a raw pointer. A raw `new` needs a Qt parent; otherwise use
+  `std::make_unique`. Pass buffers as `std::span`, not a pointer and a
+  length, and use `std::bit_cast` instead of `reinterpret_cast` for type
+  punning.
 - Do not commit. The integration stage commits.
 
 ## How the work runs in parallel
@@ -51,7 +60,10 @@ differ.
 4. **The integration stage merges one package at a time** into
    `feat/native-timeline`, in manifest order. After each merge it builds,
    runs the full ctest, the plan check and the op check, and commits. A merge
-   that fails goes back to its package.
+   that fails goes back to its package. After package V has merged, the
+   integration stage also runs the sanitizer ctest (V's `sanitize` preset)
+   on the merged tree. A report that is not in V's baseline file fails the
+   merge.
 5. **At most 4 packages build at the same time.** The workflow runs a wave in
    chunks of 4. Earlier runs with 4 parallel builds at `-j 3` reached a load
    average of 205.
@@ -94,7 +106,8 @@ a panel and a menu item touches no shared file (prove it with `git diff
 
 ## Wave 1: independent packages
 
-Wave 1 has 19 packages. They depend only on S1.
+Wave 1 has 20 packages. They depend only on S1. Package V starts first and
+merges first, so the sanitizer gate applies to every later merge.
 
 ### A: Open and create timelines (F5)
 
@@ -272,6 +285,45 @@ Wave 1 has 19 packages. They depend only on S1.
   shortcuts, preferences (keyboard layout, cache folder and budget, decoder
   mode, audio device), and recent timelines.
 
+### V: Memory-safety tooling
+
+Goal: find memory and threading defects with tools, not reviews. The Linux
+bring-up crashed on a lambda that kept a pointer to a destroyed compositor,
+and the open decode findings are about Vulkan and VA handles freed without
+their release. No sanitizer, static analysis or hardening flag covered
+either.
+
+- Sanitizers: a CMake option `NT_SANITIZE` (`address,undefined` or
+  `thread`) in `cmake/Sanitizers.cmake`, and CMake presets `sanitize` and
+  `tsan`. Suppression files for Qt, Mesa and the NVIDIA driver go in
+  `tools/sanitizers/`. Qt is not built with TSan, so the `tsan` run covers
+  the threaded units (source pool, FFmpeg source, CPU counter, audio engine,
+  easing cache) and suppresses reports inside Qt itself.
+- Baseline: `tools/sanitizers/baseline.md` lists each report that the first
+  run finds in a file that another wave 1 package owns: file, stack, owner
+  package. V fixes the reports in files that no wave 1 package owns. A
+  package that owns a baseline entry fixes it and removes the entry.
+- Hardening in every build: `-D_GLIBCXX_ASSERTIONS` (libstdc++) and
+  `_LIBCPP_HARDENING_MODE=_LIBCPP_HARDENING_MODE_FAST` (libc++),
+  `-D_FORTIFY_SOURCE=3` in optimized builds, `-fstack-protector-strong`,
+  `-ftrivial-auto-var-init=zero`. Set them in `cmake/Hardening.cmake`.
+- Static analysis: `.clang-tidy` with `bugprone-*`, `clang-analyzer-*` and
+  `cppcoreguidelines-owning-memory`, and GCC's `-Wdangling-reference`.
+  Clang thread-safety annotations (`GUARDED_BY`) with `-Wthread-safety` on
+  the mutex-protected classes go in a header in `src/platform/`. Existing
+  warnings go in a baseline, and new code adds none.
+- Fuzzing: libFuzzer targets for the timeline JSON parser and media probing
+  in `tests/fuzz/`, built only with Clang.
+- CI: Linux jobs in `.github/workflows/native-timeline.yml` for the
+  `sanitize` and `tsan` presets on lavapipe. Do not start CI.
+
+Exit: the `sanitize` and `tsan` ctest runs report nothing outside the
+baseline. Each tool fails once on a planted defect (a use after free, an
+out-of-bounds `operator[]` under hardening, a data race, a fuzz crash), and
+the plant is removed again. The full checks pass with hardening on. Each
+fuzz target runs 10 minutes without a new crash. clang-tidy reports nothing
+outside its baseline.
+
 ## Wave 2: packages that need wave 1
 
 | Package | Needs | Scope |
@@ -311,3 +363,7 @@ Wave 1 has 19 packages. They depend only on S1.
   source. Its review must check the behaviour by reading the web code.
 - R4: export parity depends on the server render. If `timeline render` and
   the web exporter differ, the web exporter is the reference.
+- R5: the first sanitizer run will report defects in code that is already
+  merged, some in files that other wave 1 packages own. The baseline keeps
+  those reports from blocking unrelated merges. The owning package fixes
+  them. The integration stage fails only on new reports.
