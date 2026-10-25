@@ -1,0 +1,5 @@
+{
+  "exactSeeks": { "count": 40, "seed": 7, "coldCache": true },
+  "cacheSeeks": { "count": 20, "seed": 9 },
+  "scrubs": { "runs": 5, "rateHz": 60, "seconds": 10, "seed": 3, "maxStepFrames": 9 }
+}

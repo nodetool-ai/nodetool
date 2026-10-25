@@ -10,11 +10,17 @@
 
 #include <QJsonObject>
 
+#include <memory>
 #include <optional>
 #include <string>
 #include <vector>
 
 namespace nt {
+
+namespace scene {
+struct ClipScene;      // src/scene/ClipScene.h: what SceneEval reads beyond the fields below
+struct SequenceScene;
+}  // namespace scene
 
 struct Vec2 {
     double x = 0.0;
@@ -29,6 +35,13 @@ struct ClipTransform {
     Vec2 scale{1.0, 1.0};
     double rotation = 0.0;
     Vec2 anchor{0.5, 0.5};
+    // 2.5D: degrees about the x and y axes, the perspective distance in px,
+    // and the depth that orders cards in a track and places them under the
+    // scene camera (camera2d).
+    std::optional<double> rotationX;
+    std::optional<double> rotationY;
+    std::optional<double> perspective;
+    std::optional<double> depthPx;
 };
 
 // `clipTransition` on the incoming clip. Only the fields that set the opacity
@@ -51,6 +64,11 @@ struct Track {
     bool visible = true;
     bool locked = false;
     bool muted = false;
+    // The mix (DESIGN.md D25): `solo` groups audio and midi tracks, the fader
+    // in dB, and the stereo pan in [-1, 1].
+    bool solo = false;
+    double volumeDb = 0.0;
+    double pan = 0.0;
     QJsonObject raw;
 };
 
@@ -76,6 +94,11 @@ struct Clip {
     // Source rate: `speedBaked` media plays at 1, else `speedMultiplier`.
     double speedMultiplier = 1.0;
     bool speedBaked = false;
+    // The mix (D25): clip gain in dB, the link to an extracted-audio partner,
+    // and the generation status (`effectiveAssetId` in clipAudio.ts).
+    double volumeDb = 0.0;
+    std::string linkId;
+    std::string status;
     std::optional<ClipTransform> transform;
     // Absent: the clip dissolves in across its head overlap with an earlier
     // clip on the same track (the web's auto cross-fade).
@@ -83,6 +106,13 @@ struct Clip {
     // Prototype-only, not in the schema: a local media file for the decoder
     // step. A real document references `currentAssetId` instead.
     std::string mediaPath;
+    // The local file that audio reads. A server open (src/server/) sets it to
+    // the original even when `mediaPath` is the video proxy, which has no
+    // audio track (DESIGN.md F4). Empty: audio reads `mediaPath`.
+    std::string audioPath;
+    // Groups, animations, repeaters, mattes and the other scene fields,
+    // parsed once from `raw` (src/scene/ClipScene.h). Null: none of them.
+    std::shared_ptr<const scene::ClipScene> scene;
     QJsonObject raw;
 
     double endMs() const { return startMs + durationMs; }
@@ -95,8 +125,11 @@ struct Timeline {
     int width = 1920;
     int height = 1080;
     double durationMs = 0.0;
+    double masterVolumeDb = 0.0;  // `master.volumeDb`
     std::vector<Track> tracks;
     std::vector<Clip> clips;
+    // The scene camera (camera2d), parsed from `raw` (src/scene/ClipScene.h).
+    std::shared_ptr<const scene::SequenceScene> scene;
     QJsonObject raw;  // the whole sequence object, tracks and clips included
 
     const Track* findTrack(const std::string& trackId) const {

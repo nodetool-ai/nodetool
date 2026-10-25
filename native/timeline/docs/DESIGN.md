@@ -176,13 +176,31 @@ dialogs, `ExportVideoDialog`, and the gizmo and tracking overlays.
      same document content (all fields except `updatedAt` and `createdAt`) and
      an empty `stripped` list. A second test sends a document with an invented
      field and asserts that the client reports the strip.
+  4. Edits keep data the native model does not own, and refuse an edit that
+     would strand it: a split or a drop never splits or removes a clip that
+     owns a media track (`mediaTracks[].clipId` would dangle), and a link
+     unit splits whole or not at all. Web follow-ups, the same defects in the
+     store (not changed by this branch): `resolveDrop` (`dropResolve.ts`) can
+     split or remove a media-track owner on an insert or overwrite drop, and
+     `splitClipsLinkAware` (`TimelineStore.ts`) catches a refused split per
+     clip, so a time-remapped member leaves its partner split alone.
+  5. What a round trip keeps: the JSON values, not the original bytes. The
+     model holds parsed JSON (keys sorted, numbers as doubles), as the server
+     does: `1.0` reads back as `1`, digits past a double are lost, and `-0`
+     reads as `0` (JSON.stringify drops its sign too). Undo restores the
+     model's own bytes exactly (`tst_editpreview`).
 - **D5.** `TimelineModel` exposes tracks through `TrackListModel`
   (`QAbstractListModel`, one row per track, roles for header fields and row
   geometry). Clips are exposed per track through a `LaneClipModel` that holds
   only the clips in the visible time window (see Tracks UI). Edits go through
-  `QUndoCommand`s from M4. One gesture is one command: a drag merges its moves
-  with `mergeWith()`. Reason: the web audit found one undo entry per pointer
-  move, which empties the 100-entry history in two seconds.
+  `QUndoCommand`s from M4. One gesture is one command: a gesture applies each
+  move to the model with no entry, and the release pushes one command from
+  the clips at the press to the clips at the release; a held nudge key
+  merges its repeats with `mergeWith()`. Reason: the web audit found one undo
+  entry per pointer move, which empties the 100-entry history in two seconds.
+  An edit replaces the raw `clips` array (D4) and re-derives only the clips
+  whose JSON changed; undo restores the previous array, so the document comes
+  back byte for byte.
 
 ## Scene evaluation
 
@@ -208,6 +226,46 @@ dialogs, `ExportVideoDialog`, and the gizmo and tracking overlays.
 | Auto dissolve | `resolveTransition` in `transition.ts` | with no `transitionIn`, the later clip fades in across its overlap with the earlier clip on the same track. The outgoing clip stays opaque. `durationMs <= 0` is a hard cut |
 | Placement | `containBaseScale`, `computeTransformMatrix` in `transform.ts` | contain fit, then scale, aspect-corrected rotation (radians), position in sequence pixels from the centre (y down), anchor in [0,1]. `rotationX`/`rotationY` in degrees with `perspective` |
 | Blending | `GpuFrameCompositor` | premultiplied, in the non-linear RGBA8 space, on an opaque black ground |
+| Groups | `resolveGroups` | a group draws nothing. A child inherits the group's window, opacity and matrix (`parentMatrix`), parents before children, a cycle resolved unparented |
+| Precomposite | `groupNeedsPrecomposite`, `collectPrecomposites` | a group with an effect, a blend mode, a cut or an adjustment child composites its children on a surface; the plan lists the surfaces innermost first, with stack orders |
+| Animations | `compileClipAnimations`, `sampleAnimations` | presets and custom curves, roles, windows, loops, holds, easing (named, `cubic-bezier`, `spring`, `hold`), the fold table, `steppedTime`. Not ported: beats, `followPath`, `line` staggers |
+| Repeats | `expandTemporalClips` | repeater copies (`<id>:repeat:<n>`) and echoes (`<id>:echo:<n>`) |
+| Camera | `resolveCamera2D` | the scene camera scales and moves a layer by its depth |
+| Cut geometry | `resolveTransition`, `transitionTransform` | the eased progress, offset, scale, wipe, iris and dip solid of each cut; the draw matrix includes the offset and the scale |
+
+- **D35.** Intermediate surfaces. Each precomposite of the frame (the
+  `SceneFrame.precomposites` list, innermost first) renders into its own
+  offscreen RGBA8 render target at the canvas size, as the web's
+  `composePrecomposites` does (`packages/timeline/src/render/frameCompositor.ts`):
+  1. Every layer and every surface belongs to one container: the frame, or the
+     surface named by its `precomposeGroupId`. A container's items are its
+     layers in scene order, then its surfaces in list order, sorted stably by
+     `z`, then `stackOrder` (absent sorts last), as `sortStack`.
+  2. A surface is cleared to transparent and its items draw into it with
+     premultiplied "over". A child draws with its own `opacity`, not
+     `drawOpacity`: the group's opacity applies once, to the composed surface.
+     So two overlapping opaque children at group opacity 0.5 cover 0.5, not
+     0.75.
+  3. The finished surface draws as one layer of its container, at the group's
+     stacking position, with the group's opacity and its cut geometry
+     (`transitionTransform` of no transform: the cut's offset and scale). The
+     surface is frame-sized, so it needs no other placement: the group's matrix
+     already rode into each child through `parentMatrix`.
+  4. A surface with no drawn item is skipped and allocates nothing.
+  5. Render targets come from a pool. A frame takes one target per drawn
+     surface and returns them all at its end, so a steady scene allocates no
+     target after its first frame. A target unused for 300 frames is freed,
+     and a canvas size change frees all of them.
+  Not drawn yet, and listed in the loader report for the group clip with
+  effect `pixels`: the group's blend mode and effect chain
+  (`precomposite.blendMode`, `precomposite.effects`), its cut's mask, iris,
+  dip solid and effect (`precomposite.cut=<type>`), adjustments inside a group
+  (`precomposite.adjustment`), and the depth-of-field blur
+  (`precomposite.cameraBlur`). Plain layers have the same limits: the
+  compositor draws every layer with normal blending and no mask. The report
+  also lists cuts whose mask, iris, dip solid or effect the compositor does not
+  draw (`transitionIn.type=<t>`), and animations with wipe, blur or grade
+  channels (`animations.effectChannels`).
 
 ## Preview pipeline
 
@@ -291,6 +349,14 @@ dialogs, `ExportVideoDialog`, and the gizmo and tracking overlays.
     `QRhiVulkanNativeHandles` first. VAAPI with DMA-BUF import is the fallback.
   - Any hardware failure before the first frame falls back to software for that
     source, as `DecodedFrameSource` retries with `preferSoftware`.
+  - Watchdog (M1d): a hardware decoder with a pending target that decodes no
+    frame for 1 s is stalled: the session blocks in
+    `VTDecompressionSessionDecodeFrame`, or it accepts packets and returns no
+    frame. `SourcePool` retires the stalled
+    decoder on its retire thread without a join on the render thread, and a
+    worker that does not end within 100 ms is abandoned (detached, its queued
+    frames dropped). The media then decodes in software for the rest of the
+    session, and the loader report says "hw decoder stalled, fell back to sw".
 - **D16.** Decode ahead, copied from the web design
   ([D5](../../../docs/timeline-preview-frame-source-design.md#d5-decode-ahead-with-a-bounded-queue)):
   each source keeps at most 8 frames or 250 ms ahead of the clock, whichever is
@@ -307,6 +373,15 @@ dialogs, `ExportVideoDialog`, and the gizmo and tracking overlays.
   only `pts`. A smaller forward jump decodes through. When paused, the latest
   seek request wins and a superseded seek still paints if it lands first
   (web D4).
+  On an open GOP, a seek can land on a random access point whose leading
+  frames (presented before it) cannot be decoded and are dropped. When the
+  first frame of a seek starts after the target, the decoder seeks 1 s
+  further back, then double that, in the same run.
+  A container time base coarser than the frame grid rounds frame times
+  (WebM stores 1/1000 s, so frame 2 at 30 fps is stored as 67 ms). A frame
+  time within half a tick of the grid of the stream's rate is moved onto it
+  before the pick. A time further off the grid is a real variable rate and is
+  kept.
 - **D18.** Concurrency: `SourcePool` keeps at most 12 open decoders, which is 8
   active layers plus 4 lookahead (`MAX_OPEN_DECODERS`). A clip within 2 s of its
   start opens a decoder and pre-rolls its first frame (web D6). At the cap, the
@@ -315,6 +390,20 @@ dialogs, `ExportVideoDialog`, and the gizmo and tracking overlays.
   `pts`, with a shared budget of 256 MB. A paused scrub checks the cache first,
   then the proxy (F4), then a keyframe seek. Reverse play on a long-GOP source
   is out of scope.
+  - A cached frame is the D17 pick only when its successor in presentation
+    order, from the same decode run, is cached and starts after the target. A
+    header frame rate proves nothing: a stream can claim a constant rate and
+    have irregular timestamps.
+  - The budget counts real allocations: padded software buffers, and the
+    IOSurface allocation of a hardware frame. Frames the cache evicted while
+    another owner holds them are reported apart, as pinned elsewhere.
+  - Catch-up after a seek skips the decode of a non-reference frame only when
+    a packet read earlier in the run starts after it and by the target. That
+    packet is the skip floor: a target below it starts a new run.
+  - A paused seek on a long-GOP source uses the proxy when one exists. M5a owns
+    the proxy route (PLAN M1d scope), so M1d records this rule and does not
+    implement it. M5a now picks the proxy for every picture read of a video
+    with a ready proxy (`ServerTimeline`), which covers paused seeks.
 
 ## Clock and A/V sync
 
@@ -339,7 +428,11 @@ dialogs, `ExportVideoDialog`, and the gizmo and tracking overlays.
   4. Timeline time is `anchorTimelineMs + (audible - anchorAudible) * 1000 * rate`.
      Play, seek, a rate change, and a device change each set a new anchor
      pair. A device change also flushes the PCM rings, so the new device
-     starts at the anchored position.
+     starts at the anchored position. The device callback sets the anchor
+     frame: the first frame it renders for the new command. A play or a seek
+     holds the playhead at its target until that frame is audible. A rate
+     change continues the previous anchor's timeline at that frame, so it
+     needs no refill and the playhead does not move.
   5. The monotonic clock (D20) is used when no device runs. A switch between
      the two clocks re-anchors at the current timeline time, so the playhead
      does not jump.
@@ -363,7 +456,11 @@ dialogs, `ExportVideoDialog`, and the gizmo and tracking overlays.
 - **D25.** The mix copies the web rules: clip `volumeDb`, track `volumeDb` and
   `pan`, `muted`, `solo` (`soundTrackSoloed`), `master.volumeDb`, and the video
   clips that sound their own audio (`videoClipsWithOwnAudio` in
-  `packages/timeline/src/clipAudio.ts`). Speed other than 1 is out of scope.
+  `packages/timeline/src/clipAudio.ts`). A video track's own audio keeps unity
+  gain and centre pan, because `AudioGraph` never sets that chain. A clip
+  speed reads the source at `sourceRate`, resampled linearly, so the pitch
+  shifts as with WebAudio `playbackRate`. Time remaps, effects, automation
+  and midi clips are out of scope.
 - **D26.** Fades use `resolveClipFades` (cap each fade at the clip, and at half
   when the two cross) and the four curves of `fadeShapeGain` in
   `packages/timeline/src/audioFade.ts`, for `t` in [0, 1]:
@@ -381,9 +478,13 @@ dialogs, `ExportVideoDialog`, and the gizmo and tracking overlays.
 
 ## Tracks UI
 
-- **D27.** Vertical virtualization: `TracksRegion.qml` holds one `ListView` of
-  track rows (`TrackHeader` plus `TrackLane`). Headers and lanes share one
-  `contentY`. Row heights come from `trackRowHeightPx` (default 64 px).
+- **D27.** Vertical virtualization: a `TrackWindowModel` lays the rows out with
+  exact tops (`layoutTrackRows`) and exposes only the rows of
+  `visibleTrackWindow` (`trackWindow.ts`, 3 rows of overscan). Headers and
+  lanes are two `Repeater`s over it and share one vertical offset. Reason: a
+  `ListView` estimates the height of rows it has not built, so the scroll
+  range and a header's position would drift from the web layout with mixed
+  row heights. Row heights come from `trackRowHeightPx` (default 64 px).
 - **D28.** Horizontal culling: all lanes share one `contentX` (the web
   `scrollLeftPx`). Each `LaneClipModel` holds only the clips that intersect
   `[scrollLeft - 320 px, scrollLeft + width + 320 px]` in time
@@ -392,19 +493,30 @@ dialogs, `ExportVideoDialog`, and the gizmo and tracking overlays.
   when it leaves the window, as the web pins `pinnedClipId` in
   `visibleClipIdsByTrack`. Otherwise the delegate that holds the pointer grab
   is destroyed mid-drag. The pin lasts until the gesture ends or is cancelled.
-- **D29.** Zoom and pan copy `Tracks/timelineWheel.ts` and the anchored zoom in
-  `TracksRegion.tsx`:
+- **D29.** Zoom and pan copy `Tracks/timelineWheel.ts` (`wheelZoomFactor`)
+  and the anchored zoom in `TracksRegion.tsx` as committed on `main` in
+  e173cc68f6 ("cap mouse wheel zoom steps and speed up pinch zoom"). This
+  branch's own copy of `web/` predates that commit and still uses
+  `exp(deltaY * 0.001)` without a cap; the native code follows `main`.
   - `msPerPx` stays in `[0.5, 500]`, default 10.
-  - Ctrl or Cmd with the wheel zooms. Shift with the wheel pans. A horizontal
-    trackpad swipe (`|dx| > |dy|`) pans. A vertical wheel scrolls the tracks.
-  - Factor per event: `exp(clamp(deltaPx, -15, 15) * 0.02)`. A line-mode
-    delta is 16 px per line. A macOS pinch (`QNativeGestureEvent`,
-    `ZoomNativeGesture`) maps to `deltaY = -100 * ln(1 + value)`, which is
-    the delta Chromium reports for a pinch.
+  - Ctrl or Cmd with the wheel zooms, over the ruler and the headers too.
+    Shift with the wheel pans. A horizontal trackpad swipe (`|dx| > |dy|`)
+    pans. A vertical wheel scrolls the tracks; over the headers it scrolls
+    the lanes.
+  - Factor per event: `exp(clamp(deltaPx, -15, 15) * 0.02)`, so a 2x pinch
+    zooms 4x and a mouse notch is one step of about 1.35x. A line-mode delta
+    is 16 px per line. A Qt trackpad pixel delta is the DOM delta negated; a
+    mouse notch (angle delta 120) is Chromium's 100 px. A macOS pinch
+    (`QNativeGestureEvent`, `ZoomNativeGesture`) maps to
+    `deltaY = -100 * ln(1 + value)`, the delta Chromium reports for a pinch.
   - Events in one frame multiply into one factor and apply once.
   - The time under the cursor stays under the cursor:
-    `scrollLeft' = anchorTimeMs / msPerPx' - cursorPx`.
-  - Fit (Shift+Z): `msPerPx = contentEndMs / (viewportWidth - padding)`.
+    `scrollLeft' = anchorTimeMs / msPerPx' - cursorPx`, then clamped to the
+    scroll range. A button or slider zoom keeps the playhead's viewport x.
+  - Fit (Shift+Z): `msPerPx = contentEndMs / (viewportWidth - 64)`, content
+    start at the left edge. A timeline opens fitted when its first clips
+    overflow the lanes, and refits on a resize until the person zooms; a
+    later edit never refits.
 - **D30.** The playhead is its own item above the lanes. Its `x` is set from
   the clock in the `FrameAnimation` handler (D2). A move does not touch any
   model, the ruler, or a lane.

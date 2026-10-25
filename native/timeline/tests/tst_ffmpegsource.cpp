@@ -3,17 +3,25 @@
 // seek), the last frame stays at end of stream, and the D10a rejections.
 
 #include "preview/FfmpegSource.h"
+#include "preview/FrameCache.h"
+#include "preview/SourcePool.h"
+#include "preview/hw/HwInterop.h"
 
 extern "C" {
 #include <libavutil/frame.h>
+#include <libavutil/hwcontext.h>
 }
 
+#if NT_HW_VIDEOTOOLBOX
 #include <CoreVideo/CVPixelBuffer.h>
+#endif
+#include <QSet>
 #include <QElapsedTimer>
 #include <QTest>
 #include <QThread>
 
 #include <cmath>
+#include <random>
 
 using namespace nt;
 
@@ -49,9 +57,20 @@ int barcode(const DecodedFrame& f) {
     return value;
 }
 
-// The barcode of a VideoToolbox frame, read from its pixel buffer's Y plane
-// (a CPU read for the test only; the app never maps hardware frames).
+// The barcode of a hardware frame, read back to the CPU (the test only; the
+// app never maps hardware frames).
 int hardwareBarcode(const DecodedFrame& f) {
+#if !NT_HW_VIDEOTOOLBOX
+    AVFrame* sw = av_frame_alloc();
+    int value = 0;
+    if (av_hwframe_transfer_data(sw, f.frame, 0) == 0) {
+        for (int k = 0; k < std::min(16, sw->width / 80); ++k) {
+            if (sw->data[0][20 * sw->linesize[0] + 80 * k + 40] > 128) value |= 1 << k;
+        }
+    }
+    av_frame_free(&sw);
+    return value;
+#else
     auto pb = reinterpret_cast<CVPixelBufferRef>(f.frame->data[3]);
     CVPixelBufferLockBaseAddress(pb, kCVPixelBufferLock_ReadOnly);
     const auto* y = static_cast<const uint8_t*>(CVPixelBufferGetBaseAddressOfPlane(pb, 0));
@@ -63,6 +82,18 @@ int hardwareBarcode(const DecodedFrame& f) {
     }
     CVPixelBufferUnlockBaseAddress(pb, kCVPixelBufferLock_ReadOnly);
     return value;
+#endif
+}
+
+// A test that decodes in hardware, or a data row that does ("hw", "auto").
+bool needsHardware() {
+    static const QSet<QByteArray> functions{"hardwareSeekBetweenFrames", "twelveHardwareSessions", "hardwareFallback",
+                                            "importFailureFallsBackInAuto", "importFailureFailsTheClipInHardware",
+                                            "sendErrorBeforeFirstFrameFallsBack", "hardwareSetupFailurePolicy",
+                                            "hardwareDecodeIsNotStarvedByHeldFrames"};
+    const QByteArray tag(QTest::currentDataTag() ? QTest::currentDataTag() : "");
+    return functions.contains(QTest::currentTestFunction()) || tag == "hw" || tag.contains(", hw") ||
+           tag.contains(", auto");
 }
 
 // Sets the decode mode for one test and restores software after it.
@@ -77,6 +108,18 @@ class TestFfmpegSource : public QObject {
     Q_OBJECT
 
 private slots:
+    // Each test starts with an empty scrub cache: a frame cached by an
+    // earlier test would answer for its decoder and skip the path under test.
+    void init() {
+        FrameCache::shared().clear();
+        // A build or a machine without hardware decode (NT_HW_NONE, a CI
+        // runner with no GPU decoder: NT_NO_HW_DECODE=1) runs the software
+        // tests only.
+        if (needsHardware() && (std::string(hw::decoderName()) == "none" || qEnvironmentVariableIsSet("NT_NO_HW_DECODE"))) {
+            QSKIP("no hardware decode in this build or on this machine");
+        }
+    }
+
     void rejections_data() {
         QTest::addColumn<QString>("file");
         QTest::addColumn<QString>("reason");
@@ -474,6 +517,236 @@ private slots:
         for (int i = 0; i < 3; ++i) {
             QVERIFY2(std::abs(rgb[static_cast<size_t>(i)] - want[i]) < 3.0 / 255.0,
                      qPrintable(QStringLiteral("channel %1: %2").arg(i).arg(rgb[static_cast<size_t>(i)] * 255)));
+        }
+    }
+
+    // M1d exit 3 (D19): a frame decoded earlier is shown from the scrub cache
+    // on the first call after a seek back, exact, with no decoder seek.
+    void cacheHitDrawsInTheSameFrame_data() {
+        QTest::addColumn<int>("mode");
+        QTest::newRow("sw") << int(DecodeMode::Software);
+        QTest::newRow("hw") << int(DecodeMode::Hardware);
+    }
+    void cacheHitDrawsInTheSameFrame() {
+        QFETCH(int, mode);
+        ModeScope scope(static_cast<DecodeMode>(mode));
+        FrameCache::shared().clear();
+        FfmpegDecoder d(media("seek-360p30.mp4"), 0.0);
+        for (int n = 0; n <= 20; ++n) QVERIFY(waitExact(d, n / 30.0));  // decode frames 0-20
+        QVERIFY(waitExact(d, 6.0));  // seek away
+        const long long seeksBefore = d.seeks();
+        auto f = d.frameAt(15.0 / 30.0);  // back: one call, no waiting
+        QVERIFY2(f && d.exact(), "the cached frame was not shown on the first call");
+        QCOMPARE(std::lround(f->ptsSec * 30.0), 15L);
+        QCOMPARE(d.seeks(), seeksBefore);  // the cache answered; the decoder did not seek
+        QVERIFY(FrameCache::shared().hits() > 0);
+    }
+
+    // M1d: a seek catches up with non-reference frames skipped. The cache
+    // must not link two decoded frames as neighbours across a skipped one,
+    // or a lookup between them would return the older frame as the pick.
+    void cacheNeverProvesAcrossSkippedFrames() {
+        FrameCache::shared().clear();
+        FfmpegDecoder d(media("seek-360p30.mp4"), 0.0);
+        QVERIFY(waitExact(d, 0.0));
+        QVERIFY(waitExact(d, 5.9));  // a seek to the keyframe at 4.0 s, then catch-up to 5.9 s
+        // From before the seek's keyframe to past the decode-ahead: proofs
+        // exist from the target on, and every one must be right.
+        int checked = 0;
+        for (int n = 120; n < 190; ++n) {
+            const double t = n / 30.0 + 0.001;
+            const auto f = FrameCache::shared().lookup(media("seek-360p30.mp4"), t);
+            if (!f) continue;
+            ++checked;
+            QCOMPARE(std::lround(f->ptsSec * 30.0), static_cast<long>(n));
+        }
+        QVERIFY2(checked > 0, "no successor proof was checked");
+    }
+
+    // A VP9 WebM stream (1/1000 time base): every frame time shows that
+    // frame, also where the frame starts exactly on the target (frame 15 at
+    // 500 ms). Stepped forward, then each frame as a fresh seek.
+    void webmFrameOnItsOwnTimestamp() {
+        FfmpegDecoder d(media("numbered-vp9-360p.webm"), 0.0);
+        for (int n = 0; n < 60; ++n) {
+            auto f = waitExact(d, n * 1000.0 / 30.0 / 1000.0);
+            QVERIFY(f);
+            QCOMPARE(barcode(*f), n);
+        }
+        for (const int n : {15, 30, 14, 45, 1}) {
+            FfmpegDecoder fresh(media("numbered-vp9-360p.webm"), n / 30.0);
+            auto f = waitExact(fresh, n / 30.0);
+            QVERIFY(f);
+            QCOMPARE(barcode(*f), n);
+        }
+    }
+
+    // Open GOP (x265's default): the frames just before each random access
+    // point (CRA at 2 s, 4 s) are decoded after it and reference the GOP
+    // before it. A seek can land on the CRA, where those frames cannot be
+    // decoded and are dropped, so the first frame out is after the target.
+    // The decoder must then seek further back, not restart at the same
+    // place forever.
+    void openGopFramesBeforeRandomAccessPoint_data() {
+        QTest::addColumn<int>("mode");
+        QTest::newRow("sw") << int(DecodeMode::Software);
+        QTest::newRow("hw") << int(DecodeMode::Hardware);
+    }
+    void openGopFramesBeforeRandomAccessPoint() {
+        QFETCH(int, mode);
+        ModeScope scope(static_cast<DecodeMode>(mode));
+        for (const int n : {58, 59, 118, 119, 178, 179}) {
+            FrameCache::shared().clear();
+            FfmpegDecoder d(media("numbered-a-2160p30-hevc.mp4"), n / 30.0);
+            auto f = waitExact(d, n / 30.0, 6000);
+            QVERIFY2(f, qPrintable(QStringLiteral("frame %1 never became exact (seeks %2)").arg(n).arg(d.seeks())));
+            QCOMPARE(std::lround(f->ptsSec * 30.0), static_cast<long>(n));
+        }
+    }
+
+    // M1d review F2: a non-reference B-frame followed by a long presentation
+    // gap (I 0 ms, B 33 ms, P 1067 ms). For 800 ms the B-frame is the D17
+    // pick: catch-up skipping must not drop it.
+    void longGapKeepsNonReferencePick() {
+        FfmpegDecoder d(media("bframe-gap.mp4"), 0.8);
+        auto f = waitExact(d, 0.8);
+        QVERIFY(f);
+        QCOMPARE(std::lround(f->ptsSec * 1000.0), 33L);
+    }
+
+    // M1d review F3: a cached frame counts its real allocation: at least
+    // the packed 4:2:0 size, padding included, for software and for the
+    // IOSurface of a VideoToolbox frame.
+    void frameBytesCountRealAllocations_data() {
+        QTest::addColumn<int>("mode");
+        QTest::newRow("sw") << int(DecodeMode::Software);
+        QTest::newRow("hw") << int(DecodeMode::Hardware);
+    }
+    void frameBytesCountRealAllocations() {
+        QFETCH(int, mode);
+        ModeScope scope(static_cast<DecodeMode>(mode));
+        FfmpegDecoder d(media("numbered-a-1080p30.mp4"), 0.0);
+        auto f = waitExact(d, 0.0);
+        QVERIFY(f);
+        const size_t packed = size_t(1920) * 1080 * 3 / 2;
+        const size_t bytes = frameBytes(*f);
+        QVERIFY2(bytes >= packed && bytes < packed * 2,
+                 qPrintable(QStringLiteral("%1 bytes for a packed %2").arg(bytes).arg(packed)));
+        qInfo("%s: %zu bytes (packed %zu)", mode == int(DecodeMode::Hardware) ? "hw" : "sw", bytes, packed);
+    }
+
+    // M1d review F1: the header claims 30 fps (average and base rate agree),
+    // but frames start at 0, 50, 67 ms. A cached 50 ms frame with no proven
+    // successor is not the pick for 70 ms.
+    void headerRateProvesNoInterval() {
+        const MediaFacts facts = probeMedia(media("vfr-header-cfr.mp4"));
+        QVERIFY(facts.constantRate);  // the header's claim
+        FrameCache cache;
+        auto frame = std::make_shared<DecodedFrame>();
+        frame->ptsSec = 0.050;
+        cache.insert("vfr", 0.050, frame, 1, -1.0);
+        QVERIFY(!cache.lookup("vfr", 0.070));
+    }
+
+    // M1d: the scrub cache holds hardware frames (their CVPixelBuffers).
+    // Stepping through 5 s of 4K HEVC with the cache full must keep decoding.
+    void hardwareDecodeIsNotStarvedByHeldFrames() {
+        ModeScope scope(DecodeMode::Hardware);
+        FrameCache::shared().clear();
+        FfmpegDecoder d(media("numbered-a-2160p30-hevc.mp4"), 0.0);
+        for (int n = 0; n < 150; ++n) {
+            auto f = waitExact(d, n / 30.0, 3000);
+            QVERIFY2(f, qPrintable(QStringLiteral("frame %1 never became exact (cache %2 MB)")
+                                       .arg(n)
+                                       .arg(FrameCache::shared().bytes() / 1048576)));
+        }
+    }
+
+    // M1d: a fast scrub over a long-GOP 4K stream, then stop: the clip must
+    // land on the exact frame of the last request. It runs through the
+    // SourcePool, as the compositor does, so the watchdog applies:
+    // VideoToolbox can hang on this open-GOP HEVC stream under fast seeking,
+    // and the pool then reopens the clip in software with the reason in the
+    // report.
+    void scrubThenStopSettles_data() {
+        QTest::addColumn<int>("mode");
+        QTest::newRow("sw") << int(DecodeMode::Software);
+        QTest::newRow("hw") << int(DecodeMode::Hardware);
+    }
+    void scrubThenStopSettles() {
+        QFETCH(int, mode);
+        ModeScope scope(static_cast<DecodeMode>(mode));
+        FrameCache::shared().clear();
+        Timeline tl;
+        tl.durationMs = 15000;
+        Track track;
+        track.id = "t";
+        tl.tracks.push_back(track);
+        Clip clip;
+        clip.id = "c";
+        clip.trackId = "t";
+        clip.durationMs = 15000;
+        clip.mediaPath = media("numbered-a-2160p30-hevc.mp4");
+        tl.clips.push_back(clip);
+        SourcePool pool;
+        // One render frame: the pool update, then the clip's decoder.
+        const auto step = [&](int n) -> std::shared_ptr<DecodedFrame> {
+            pool.update(tl, n * 1000.0 / 30.0);
+            auto* src = dynamic_cast<FfmpegSource*>(pool.sourceFor("c"));
+            if (!src) return nullptr;
+            auto f = src->decoder().frameAt(n / 30.0);
+            return f && src->decoder().exact() ? f : nullptr;
+        };
+        const auto settle = [&](int n, int timeoutMs) -> std::shared_ptr<DecodedFrame> {
+            QElapsedTimer t;
+            t.start();
+            while (t.elapsed() < timeoutMs) {
+                if (auto f = step(n)) return f;
+                QThread::msleep(2);
+            }
+            return nullptr;
+        };
+        QVERIFY(settle(0, 8000));
+        std::mt19937 rng(3);
+        std::uniform_int_distribution<int> start(0, 449);
+        std::uniform_real_distribution<double> stepFrames(-9.0, 9.0);
+        std::uniform_real_distribution<double> jump(0.0, 1.0);
+        for (int run = 0; run < 6; ++run) {
+            int frame = start(rng);
+            QElapsedTimer t;
+            t.start();
+            qint64 next = 0;
+            while (t.elapsed() < 2000) {
+                if (t.elapsed() >= next) {
+                    frame = jump(rng) < 0.05 ? start(rng)
+                                             : std::clamp(frame + static_cast<int>(std::lround(stepFrames(rng))), 0, 449);
+                    next += 16;
+                }
+                step(frame);
+                QThread::msleep(2);
+            }
+            auto f = settle(frame, 5000);
+            QVERIFY2(f, qPrintable(QStringLiteral("run %1: frame %2 never became exact").arg(run).arg(frame)));
+            QCOMPARE(std::lround(f->ptsSec * 30.0), static_cast<long>(frame));
+        }
+        std::string fallback = "no report";
+        std::string decoder;
+        for (const MediaReport& r : pool.report()) {
+            if (r.clipId == "c") {
+                fallback = r.fallback;
+                decoder = r.decoder;
+            }
+        }
+        // Either VideoToolbox decoded throughout, or the watchdog moved the
+        // clip to software and said so.
+        if (mode == int(DecodeMode::Hardware)) {
+            QVERIFY2((decoder == "videotoolbox" && fallback.empty()) ||
+                         (decoder == "software" && fallback == kStallFallback),
+                     qPrintable(QStringLiteral("decoder %1, fallback '%2'")
+                                    .arg(QString::fromStdString(decoder), QString::fromStdString(fallback))));
+            if (!fallback.empty()) qInfo("watchdog fell back: %s", fallback.c_str());
+        } else {
+            QCOMPARE(decoder, std::string("software"));
         }
     }
 

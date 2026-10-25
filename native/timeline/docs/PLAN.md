@@ -224,9 +224,11 @@ the `FramePlan` JSON form (D6), and the bench JSON line.
      the same input (`splitClip.ts`, `trimClip.ts`, `rippleEdit.ts`).
   2. A drag of any length is 1 undo entry.
   3. The preview shows an edit on the next frame.
-- **Check.** `scripts/op-conformance.mjs` runs the TypeScript operations, and
-  `nodetool-timeline --apply ops.json --dump-doc` runs the native commands. The
-  test diffs the two. Qt tests for undo and redo.
+- **Check.** `scripts/op-conformance.mjs` runs the package's operation tests
+  against the native code (`timeline-ops`, one call per process), and
+  randomized differentials of the operations, the web store's actions and the
+  keymap. Qt tests for the gestures, undo and redo (`tst_tracksui`) and the
+  next-frame preview (`tst_editpreview`).
 - **Risk.** Ripple and linked-clip rules have many cases. Port the web test
   cases, not only the code.
 

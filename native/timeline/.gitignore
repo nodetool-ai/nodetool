@@ -1,2 +1,4 @@
 build/
 fixtures/media/
+build-*/
+fixtures/generated/

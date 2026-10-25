@@ -1254,7 +1254,8 @@ export const HARNESSES: HarnessEntry[] = [
     id: "native-timeline-plan",
     title: "Native timeline frame plan vs the web scene model",
     command:
-      "ctest --test-dir native/timeline/build && node native/timeline/scripts/plan-conformance.mjs --json",
+      "ctest --test-dir native/timeline/build && node native/timeline/scripts/plan-conformance.mjs --json && " +
+      "node native/timeline/scripts/plan-conformance.mjs --examples --json",
     kind: "static",
     capabilities: ["json", "no-db"],
     docs: "native/timeline/README.md § Plan check"
@@ -1282,12 +1283,43 @@ export const HARNESSES: HarnessEntry[] = [
     docs: "native/timeline/README.md § Hardware decode"
   },
   {
+    id: "native-timeline-scrub",
+    title: "Native timeline scrubbing: seek latency, scrub settle, scrub cache (offscreen)",
+    command:
+      "node --test native/timeline/scripts/check-scrub.test.mjs && " +
+      "node native/timeline/scripts/check-scrub.mjs native/timeline/fixtures/video-scrub-gop.json --max-p95-ms 100 --json && " +
+      "node native/timeline/scripts/check-scrub.mjs native/timeline/fixtures/video-scrub-intra.json --max-p95-ms 30 --json",
+    kind: "execution",
+    capabilities: ["json"],
+    docs: "native/timeline/README.md § Scrub and seek"
+  },
+  {
     id: "native-timeline-golden",
     title: "Native timeline golden import (media fixture through timeline render --stills)",
     command: "node native/timeline/scripts/golden-import.mjs",
     kind: "execution",
     capabilities: ["json"],
     docs: "native/timeline/README.md § Golden import"
+  },
+  {
+    id: "native-timeline-server",
+    title: "Native timeline server read and asset cache: examples and fixtures from scratch servers, proxy states, plan, warm open",
+    command:
+      "ctest --test-dir native/timeline/build-m5 -R 'tst_assetcache|tst_serverclient' && " +
+      "node native/timeline/scripts/server-check.mjs --json",
+    kind: "execution",
+    capabilities: ["json"],
+    docs: "native/timeline/README.md § Server open"
+  },
+  {
+    id: "native-timeline-audio",
+    title: "Native timeline audio: fade curves vs TypeScript, mixer vs the web rules, audio-master clock, headless A/V sync (null device, no sound)",
+    command:
+      "ctest --test-dir native/timeline/build -R 'fade|mixer|audioclock|mix_reference|av_sync' && " +
+      "node native/timeline/scripts/check-av-sync.mjs --bin native/timeline/build/nodetool-timeline --json",
+    kind: "execution",
+    capabilities: ["json"],
+    docs: "native/timeline/README.md § Audio"
   }
 ];
 
@@ -2275,7 +2307,10 @@ export const SURFACES: SurfaceEntry[] = [
       "native-timeline-bench",
       "native-timeline-media",
       "native-timeline-videotoolbox",
-      "native-timeline-golden"
+      "native-timeline-scrub",
+      "native-timeline-golden",
+      "native-timeline-server",
+      "native-timeline-audio"
     ],
     paths: ["native/timeline/"],
     gap:

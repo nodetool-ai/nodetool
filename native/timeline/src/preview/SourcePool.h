@@ -11,7 +11,13 @@
 // Closing a decoder joins its worker, which can wait on I/O. The render
 // thread never does that: it releases the textures and hands the decoder to
 // a retire thread, which stops it (its FFmpeg interrupt callback ends any
-// blocking read) and joins it.
+// blocking read) and joins it. A worker that does not end within its grace
+// time is abandoned (FfmpegDecoder::stopWithin), so the retire thread and the
+// teardown stay bounded.
+//
+// The watchdog: a VideoToolbox decoder that is stalled (no progress for 1 s
+// with a target pending) is retired with no wait, and its media decodes in
+// software for the rest of the session, with kStallFallback in the report.
 
 #include "model/TimelineTypes.h"
 #include "preview/LayerSource.h"
@@ -23,16 +29,20 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <optional>
+#include <set>
 #include <string>
 #include <vector>
 
 namespace nt {
 
 class FfmpegDecoder;
+enum class DecodeMode;
 class FfmpegSource;
 
 inline constexpr int kMaxOpenDecoders = 12;  // MAX_OPEN_DECODERS: 8 layers + 4 ahead
 inline constexpr double kPrerollMs = 2000.0;
+inline constexpr const char* kStallFallback = "hw decoder stalled, fell back to sw";
 
 struct MediaReport {
     std::string clipId;
@@ -77,8 +87,10 @@ private:
     };
     void checkOpened(const std::string& clipId, Entry& e, const std::string& mediaPath);
     // Render thread: drops the textures, hands the decoder to the retire thread.
-    void retire(Entry& e);
+    // A stalled decoder gets no grace time before it is abandoned.
+    void retire(Entry& e, bool stalled = false);
     void reapLoop();
+    std::optional<DecodeMode> modeFor(const std::string& mediaPath) const;
 
     std::map<std::string, Entry> m_entries;
     std::atomic<int> m_open{0};
@@ -86,7 +98,13 @@ private:
     // Retire thread: joins decoders off the render thread.
     std::mutex m_reapMutex;
     std::condition_variable m_reapCv;
-    std::deque<std::unique_ptr<FfmpegDecoder>> m_reapQueue;
+    struct Retiring {
+        std::unique_ptr<FfmpegDecoder> decoder;
+        bool stalled = false;
+    };
+    std::deque<Retiring> m_reapQueue;
+    // Media whose VideoToolbox decoder stalled: software for the session.
+    std::set<std::string> m_softwareOnly;
     bool m_reapStop = false;
     std::atomic<int> m_retiring{0};
     std::thread m_reaper;

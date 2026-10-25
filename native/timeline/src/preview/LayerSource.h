@@ -15,6 +15,8 @@
 
 #include <array>
 
+#include "preview/hw/HwInterop.h"
+
 namespace nt {
 
 struct LayerFrame {
@@ -47,9 +49,7 @@ struct LayerFrame {
 };
 
 class RetireQueue;
-namespace hw {
-class VideoToolboxInterop;
-}
+
 
 // What a source gets for one composited frame, on the render thread.
 struct FrameContext {
@@ -57,7 +57,7 @@ struct FrameContext {
     QRhiResourceUpdateBatch* updates = nullptr;  // submitted before the first draw
     long long frameNumber = 0;                   // the renderer's frame counter
     RetireQueue* retire = nullptr;               // for resources a frame still uses
-    hw::VideoToolboxInterop* interop = nullptr;  // null when hardware frames are unavailable
+    hw::PlatformInterop* interop = nullptr;  // null when hardware frames are unavailable (hw/HwInterop.h)
 };
 
 class LayerSource {

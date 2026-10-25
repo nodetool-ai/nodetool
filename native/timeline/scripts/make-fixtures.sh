@@ -79,6 +79,19 @@ hevc4k() {
 hevc4k numbered-a-2160p30-hevc.mp4 testsrc2
 hevc4k numbered-b-2160p30-hevc.mp4 smptehdbars
 
+# --- M1d: an all-intra proxy like the server's (F4: H.264, 960 px long side,
+# every frame a keyframe), numbered, so every seek is a one-frame decode ----
+if need numbered-a-proxy-960-intra.mp4; then
+    ff -f lavfi -i "$(numbered testsrc2 960 540 20)" \
+        -vf "scale=out_color_matrix=bt709:out_range=tv,format=yuv420p" \
+        -c:v libx264 -preset veryfast -crf 20 -g 1 -keyint_min 1 -sc_threshold 0 \
+        -colorspace bt709 -color_primaries bt709 -color_trc bt709 -color_range tv \
+        -movflags +faststart "$out/numbered-a-proxy-960-intra.mp4"
+    wrote numbered-a-proxy-960-intra.mp4
+else
+    kept numbered-a-proxy-960-intra.mp4
+fi
+
 # --- seek tests (ctest): small numbered files --------------------------------
 h264 seek-360p30.mp4 "$(numbered testsrc2 640 360 10)"
 # Raw Annex-B H.264 with no container timestamps: the decoder must not rely
@@ -100,6 +113,43 @@ if need vfr-360p.mp4; then
     wrote vfr-360p.mp4
 else
     kept vfr-360p.mp4
+fi
+# VP9 in WebM, as the server's VP9 proxy: a 1/1000 time base, so frame 15
+# starts at exactly 500 ms and frame 14 at 467 ms (rounded).
+if need numbered-vp9-360p.webm; then
+    ff -f lavfi -i "$(numbered testsrc2 640 360 2)" -vf format=yuv420p \
+        -c:v libvpx-vp9 -deadline realtime -cpu-used 8 -b:v 2M -g 60 "$out/numbered-vp9-360p.webm"
+    wrote numbered-vp9-360p.webm
+else
+    kept numbered-vp9-360p.webm
+fi
+# M1d review F1: a variable rate whose header claims a constant 30 fps
+# (avg_frame_rate = r_frame_rate = 30): the frame at 33 ms moves to 50 ms, so
+# frames start at 0, 50, 67, 100 ms. A header rate proves no frame interval.
+if need vfr-header-cfr.mp4; then
+    tmp="$out/.vfr-header-cfr-600.mp4"
+    ff -f lavfi -i "testsrc2=size=320x240:rate=30" -frames:v 30 -c:v libx264 -bf 0 -g 30 \
+        -pix_fmt yuv420p -video_track_timescale 600 "$tmp"
+    ff -i "$tmp" -c copy -bsf:v "setts=pts='if(eq(PTS,20),30,PTS)':dts='if(eq(DTS,20),30,DTS)'" \
+        "$out/vfr-header-cfr.mp4"
+    rm -f "$tmp"
+    wrote vfr-header-cfr.mp4
+else
+    kept vfr-header-cfr.mp4
+fi
+# M1d review F2: a long presentation gap after a non-reference B-frame.
+# Frames: I at 0 ms, B (non-reference) at 33 ms, P at 1067 ms. For a target
+# of 800 ms the B-frame is the D17 pick, so it must not be skipped.
+if need bframe-gap.mp4; then
+    tmp="$out/.bframe-gap-30.mp4"
+    ff -f lavfi -i "testsrc2=size=320x240:rate=30" -frames:v 3 -c:v libx264 -bf 1 -b_strategy 0 \
+        -x264-params "b-pyramid=none:b-adapt=0:scenecut=0" -g 30 -pix_fmt yuv420p \
+        -video_track_timescale 30 "$tmp"
+    ff -i "$tmp" -c copy -bsf:v "setts=pts='if(eq(PTS,2),32,PTS)'" "$out/bframe-gap.mp4"
+    rm -f "$tmp"
+    wrote bframe-gap.mp4
+else
+    kept bframe-gap.mp4
 fi
 
 # --- colour bars: BT.709 / BT.601, limited / full range ----------------------
@@ -188,4 +238,34 @@ if need reject-hdr.mp4; then
     wrote reject-hdr.mp4
 else
     kept reject-hdr.mp4
+fi
+
+# --- M3 audio: tones, a click track, and a flash-and-beep video --------------
+# Float WAV at 48 kHz decodes without loss, so the mixer checks are sample
+# exact. The click track has a 10 ms 1 kHz cosine burst at the start of each
+# second, so each onset is a full-scale sample at frame 48000 n.
+wav() {
+    local name=$1 graph=$2
+    if ! need "$name"; then kept "$name"; return; fi
+    ff -f lavfi -i "$graph" -c:a pcm_f32le "$out/$name"
+    wrote "$name"
+}
+click="if(lt(mod(t\,1)\,0.01)\,0.5*cos(2*PI*1000*t)\,0)"
+wav tone-440-48k-mono.wav "sine=frequency=440:sample_rate=48000:duration=6"
+wav tone-220-48k-mono.wav "aevalsrc=0.4*sin(2*PI*220*t):s=48000:d=8"
+wav tone-lr-48k-stereo.wav "aevalsrc=0.3*sin(2*PI*330*t)|0.2*sin(2*PI*550*t):s=48000:d=8"
+wav tone-660-44k-mono.wav "aevalsrc=0.3*sin(2*PI*660*t):s=44100:d=4"
+wav clicks-48k.wav "aevalsrc=${click}|${click}:s=48000:d=20"
+# The A/V sync fixture: frame 30 n is all white (with the barcode on top) and
+# the sound track clicks at 1000 n ms, so flash and click mark the same time.
+if need flash-beep-720p30.mov; then
+    ff -f lavfi -i "color=c=0x101010:size=1280x720:rate=30:duration=20,drawbox=enable='eq(mod(n\,30)\,0)':x=0:y=0:w=iw:h=ih:color=white:t=fill[base];color=black:size=1280x40:rate=30:duration=20,format=gray,geq=lum='if(mod(floor(N/pow(2\,floor(X/80)))\,2)\,255\,0)'[bar];[base][bar]overlay=0:0:shortest=1,drawtext=text='%{frame_num}':x=(w-tw)/2:y=h-th-90:fontsize=90:fontcolor=white:box=1:boxcolor=black@0.6" \
+        -f lavfi -i "aevalsrc=${click}|${click}:s=48000:d=20" \
+        -vf "scale=out_color_matrix=bt709:out_range=tv,format=yuv420p" \
+        -c:v libx264 -preset veryfast -crf 18 -g 30 -keyint_min 30 -sc_threshold 0 \
+        -colorspace bt709 -color_primaries bt709 -color_trc bt709 -color_range tv \
+        -c:a pcm_s16le -shortest "$out/flash-beep-720p30.mov"
+    wrote flash-beep-720p30.mov
+else
+    kept flash-beep-720p30.mov
 fi
