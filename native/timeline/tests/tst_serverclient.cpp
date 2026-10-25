@@ -8,11 +8,18 @@
 #include "TestHttpServer.h"
 
 #include <QCoreApplication>
+#include <QChildEvent>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QHttpMultiPart>
+#include <QNetworkReply>
+#include <QPointer>
+#include <QProcess>
+#include <QProcessEnvironment>
+#include <QStandardPaths>
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QTemporaryDir>
@@ -22,6 +29,29 @@
 using namespace nt::server;
 
 namespace {
+
+class UploadLifetimeProbe : public QObject {
+public:
+    UploadLifetimeProbe() { qApp->installEventFilter(this); }
+
+    QPointer<QNetworkReply> reply;
+    QPointer<QHttpMultiPart> multipart;
+    QPointer<QFile> file;
+
+protected:
+    bool eventFilter(QObject* watched, QEvent* event) override {
+        if (event->type() == QEvent::ChildAdded) {
+            auto* networkReply = qobject_cast<QNetworkReply*>(watched);
+            auto* parts = qobject_cast<QHttpMultiPart*>(static_cast<QChildEvent*>(event)->child());
+            if (networkReply && parts) {
+                reply = networkReply;
+                multipart = parts;
+                file = parts->findChild<QFile*>();
+            }
+        }
+        return false;
+    }
+};
 
 QByteArray envelope(const QJsonValue& data) {
     return QJsonDocument(QJsonObject{{QStringLiteral("result"), QJsonObject{{QStringLiteral("data"), data}}}})
@@ -133,6 +163,188 @@ class TestServerClient : public QObject {
     Q_OBJECT
 
 private slots:
+    void uploadMultipartAndReadBack_data() {
+        QTest::addColumn<bool>("expected");
+        QTest::newRow("direct") << false;
+        QTest::newRow("expected-instance") << true;
+    }
+    void uploadMultipartAndReadBack() {
+        QFETCH(bool, expected);
+        TestHttpServer http;
+        QTemporaryDir dir;
+        const QString path = dir.filePath("sample.wav");
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        const QByteArray bytes("RIFF\0test\r\n", 11);
+        QCOMPARE(file.write(bytes), bytes.size());
+        file.close();
+        const QJsonObject asset{{"id", kReady}, {"name", "sample.wav"}, {"content_type", "audio/wav"}};
+        http.setPost([&](const QByteArray&, const QByteArray&) {
+            return QJsonDocument(asset).toJson(QJsonDocument::Compact);
+        });
+        http.setJson([&](const QByteArray&, const QUrl&) { return envelope(asset); });
+        ServerClient client(http.base(), "secret");
+        if (expected) {
+            http.setFile("/ready", ServedFile("{}"));
+            http.setResponseHeaders({{"X-Nodetool-Instance", "mine"}});
+            client.setExpectedInstance("mine");
+        }
+        const auto result = client.upload(asset, path, "audio/wav");
+        QVERIFY2(result.ok(), qPrintable(result.describe()));
+        QCOMPARE(result.data.toObject(), asset);
+        QCOMPARE(client.getAsset(result.data.toObject().value("id").toString()).data.toObject(), asset);
+        const auto request = http.requests().at(expected ? 1 : 0);
+        QCOMPARE(request.method, QByteArray("POST"));
+        QCOMPARE(request.target, QByteArray("/api/assets"));
+        QVERIFY(!request.headers.contains("origin"));
+        QCOMPARE(request.headers.value("x-nodetool-client"), QByteArray(kClientHeader));
+        QCOMPARE(request.headers.value("authorization"), QByteArray("Bearer secret"));
+        const auto contentType = request.headers.value("content-type");
+        QVERIFY(contentType.startsWith("multipart/form-data; boundary="));
+        auto boundary = contentType.mid(contentType.indexOf("boundary=") + 9);
+        if (boundary.startsWith('"')) {
+            boundary = boundary.mid(1, boundary.size() - 2);
+        }
+        QVERIFY(request.body.startsWith("--" + boundary + "\r\n"));
+        QVERIFY(request.body.endsWith("--" + boundary + "--\r\n"));
+        QVERIFY(request.body.toLower().contains("content-disposition: form-data; name=\"json\"\r\n"));
+        QVERIFY(request.body.contains(QJsonDocument(asset).toJson(QJsonDocument::Compact)));
+        QVERIFY(request.body.contains("name=\"file\"; filename=\"sample.wav\""));
+        QVERIFY(request.body.toLower().contains("content-type: audio/wav\r\n"));
+        QVERIFY(request.body.contains(bytes));
+        QVERIFY(!request.body.contains(dir.path().toUtf8()));
+    }
+
+    void uploadRefusesMissingInstanceBeforeBody() {
+        TestHttpServer http;
+        http.setFile("/ready", ServedFile("{}"));
+        QTemporaryDir dir;
+        QFile file(dir.filePath("sample.wav"));
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("RIFF");
+        file.close();
+        ServerClient client(http.base());
+        client.setExpectedInstance("mine");
+        const auto result = client.upload({}, file.fileName(), "audio/wav");
+        QCOMPARE(result.error.code, QString("WRONG_SERVER"));
+        QCOMPARE(http.countRequests("GET", "/ready"), 1);
+        QCOMPARE(http.countRequests("POST", "/"), 0);
+        QCOMPARE(http.requests().size(), size_t(1));
+        QVERIFY(http.requests().front().body.isEmpty());
+    }
+
+    void uploadRejectsRedirectsAndChangedInstance() {
+        TestHttpServer http;
+        TestHttpServer other;
+        QTemporaryDir dir;
+        QFile file(dir.filePath("sample.wav"));
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("RIFF");
+        file.close();
+        ServedFile redirect;
+        redirect.redirectTo = other.base().toEncoded() + "/api/assets";
+        http.setFile("/api/assets", redirect);
+        ServerClient client(http.base());
+        QCOMPARE(client.upload({}, file.fileName(), "audio/wav").error.code, QString("REDIRECT"));
+        QCOMPARE(other.requests().size(), size_t(0));
+        http.setFile("/ready", ServedFile("{}"));
+        http.file("/ready").extraHeaders.insert("X-Nodetool-Instance", "mine");
+        http.setPost([](const QByteArray&, const QByteArray&) { return QByteArray("{\"id\":\"asset\"}"); });
+        client.setExpectedInstance("mine");
+        QCOMPARE(client.upload({}, file.fileName(), "audio/wav").error.code, QString("WRONG_SERVER"));
+    }
+
+    void uploadHasAnElapsedDeadline() {
+        TestHttpServer http;
+        ServedFile slow(QByteArray(32768, ' '));
+        slow.chunkDelayMs = 100;
+        http.setFile("/api/assets", slow);
+        QTemporaryDir dir;
+        QFile file(dir.filePath("sample.wav"));
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("RIFF");
+        file.close();
+        ServerClient client(http.base());
+        client.setDeadlineMs(20);
+        const auto result = client.upload({}, file.fileName(), "audio/wav");
+        QCOMPARE(result.error.code, QString("TIMEOUT"));
+    }
+
+    void uploadDevicesLiveUntilReplyDeletion_data() {
+        QTest::addColumn<bool>("abort");
+        QTest::newRow("finished") << false;
+        QTest::newRow("deadline-abort") << true;
+    }
+
+    void uploadDevicesLiveUntilReplyDeletion() {
+        QFETCH(bool, abort);
+        TestHttpServer http;
+        ServedFile response(abort ? QByteArray(32768, ' ') : QByteArray("{\"id\":\"asset\"}"));
+        response.chunkDelayMs = abort ? 100 : 0;
+        http.setFile("/api/assets", response);
+        QTemporaryDir dir;
+        QFile file(dir.filePath("sample.wav"));
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("RIFF");
+        file.close();
+        ServerClient client(http.base());
+        if (abort) {
+            client.setDeadlineMs(20);
+        }
+        UploadLifetimeProbe lifetime;
+        const auto result = client.upload({}, file.fileName(), "audio/wav");
+        if (abort) {
+            QCOMPARE(result.error.code, QString("TIMEOUT"));
+        } else {
+            QVERIFY2(result.ok(), qPrintable(result.describe()));
+        }
+        QVERIFY(lifetime.reply);
+        QVERIFY(lifetime.multipart);
+        QVERIFY(lifetime.file);
+        QCOMPARE(lifetime.multipart->parent(), lifetime.reply.data());
+        QCOMPARE(lifetime.file->parent(), lifetime.multipart.data());
+        QVERIFY(lifetime.file->isOpen());
+        QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+        QVERIFY(lifetime.reply.isNull());
+        QVERIFY(lifetime.multipart.isNull());
+        QVERIFY(lifetime.file.isNull());
+    }
+
+    void uploadCliUsesRegistryAndReadsTheAsset() {
+        TestHttpServer http;
+        http.setFile("/ready", ServedFile("{}"));
+        http.setResponseHeaders({{"X-Nodetool-Instance", "mine"}});
+        const QJsonObject asset{{"id", kReady}, {"name", "sample.wav"}, {"content_type", "audio/wav"}};
+        http.setPost([&](const QByteArray&, const QByteArray&) { return QJsonDocument(asset).toJson(QJsonDocument::Compact); });
+        QJsonObject seen;
+        QByteArray getPath;
+        http.setJson([&](const QByteArray& path, const QUrl& url) { seen = inputOf(url); getPath = path; return envelope(asset); });
+        QTemporaryDir dir;
+        QFile file(dir.filePath("sample.wav"));
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("RIFF");
+        file.close();
+        const auto binary = QStandardPaths::findExecutable("nodetool-timeline", {QCoreApplication::applicationDirPath()});
+        QVERIFY(!binary.isEmpty());
+        QProcess child;
+        auto environment = QProcessEnvironment::systemEnvironment();
+        environment.insert("QT_QPA_PLATFORM", "offscreen");
+        environment.insert("NODETOOL_TIMELINE_EXPECT_INSTANCE", "mine");
+        child.setProcessEnvironment(environment);
+        child.start(binary, {"--upload-asset", "--server", http.base().toString(), "--file", file.fileName(), "--content-type", "audio/wav"});
+        QVERIFY(child.waitForStarted());
+        QTRY_VERIFY_WITH_TIMEOUT(child.state() == QProcess::NotRunning, 10000);
+        QCOMPARE(child.exitStatus(), QProcess::NormalExit);
+        const auto errors = child.readAllStandardError();
+        QVERIFY2(child.exitCode() == 0, errors.constData());
+        const auto result = QJsonDocument::fromJson(child.readAllStandardOutput()).object();
+        QCOMPARE(result, (QJsonObject{{"uploaded", asset}, {"get", asset}}));
+        QCOMPARE(getPath, QByteArray("/trpc/assets.get"));
+        QCOMPARE(seen.value("id").toString(), kReady);
+        QCOMPARE(http.countRequests("GET", "/ready"), 1);
+        QCOMPARE(http.countRequests("POST", "/api/assets"), 1);
+    }
+
     void parsesResultEnvelope() {
         HttpResponse r;
         r.status = 200;

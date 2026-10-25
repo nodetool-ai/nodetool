@@ -13,6 +13,7 @@
 // --screenshot grabs the window after a few frames, saves it, and exits.
 // --dump-plan prints the FramePlan JSON at the given times (ms), no window.
 
+#include "app/CliModes.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
@@ -592,11 +593,24 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, QSize size, const Q
 }
 
 int main(int argc, char** argv) {
+    nt::app::registerCliMode({"--save", nt::server::saveCli});
+    nt::app::registerCliMode({"--dump-plan", dumpPlan});
+    nt::app::registerCliMode({"--probe-media", probeMediaReport});
+    nt::app::registerCliMode({"--render-audio", nt::audio::renderAudioCli});
+    nt::app::registerCliMode({"--av-sync", nt::audio::avSyncCli});
+    nt::app::registerCliMode({"--av-sync-live", nt::audio::avSyncLiveCli});
+    nt::app::registerCliMode({"--audio-devices", nt::audio::audioDevicesCli});
+    if (const auto rc = nt::app::dispatchCliMode(argc, argv, nt::app::CliStage::BeforeServerArgs)) {
+        return *rc;
+    }
     // --server URL --timeline ID replaces the fixture argument (src/server/ServerSource.h).
     if (const int rc = nt::server::takeServerArgs(argc, argv)) return rc;
     if (nt::server::listTimelinesRequested()) {
         QCoreApplication app(argc, argv);
         return nt::server::listTimelinesMain();
+    }
+    if (const auto rc = nt::app::dispatchCliMode(argc, argv)) {
+        return *rc;
     }
     // Parse before QGuiApplication: --bench changes the surface format and
     // --dump-plan runs without a GUI.
@@ -615,13 +629,6 @@ int main(int argc, char** argv) {
             isOpt("--play-stills") || isOpt("--scrub-script") || isOpt("--ui-bench")) {
             background = true;
         }
-        if (qstrcmp(argv[i], "--save") == 0) return nt::server::saveCli(argc, argv);  // M5b harness
-        if (qstrcmp(argv[i], "--dump-plan") == 0) return dumpPlan(argc, argv);
-        if (qstrcmp(argv[i], "--probe-media") == 0) return probeMediaReport(argc, argv);
-        if (qstrcmp(argv[i], "--render-audio") == 0) return nt::audio::renderAudioCli(argc, argv);
-        if (qstrcmp(argv[i], "--av-sync") == 0) return nt::audio::avSyncCli(argc, argv);
-        if (qstrcmp(argv[i], "--av-sync-live") == 0) return nt::audio::avSyncLiveCli(argc, argv);
-        if (qstrcmp(argv[i], "--audio-devices") == 0) return nt::audio::audioDevicesCli(argc, argv);
     }
     background = background || bench;
     if (background) {

@@ -24,38 +24,49 @@ Rectangle {
         onTriggered: root.clock.tick()
     }
 
-    ColumnLayout {
+    RowLayout {
         anchors.fill: parent
         spacing: 0
-
-        DocumentBar {
-            Layout.fillWidth: true
-            timeline: root.timeline
-            autosave: root.saver
-        }
-
-        SaveBanners {
-            Layout.fillWidth: true
-            autosave: root.saver
-        }
-
-        PreviewArea {
+        PanelSlot { slot: "left"; Layout.fillHeight: true }
+        ColumnLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.preferredHeight: root.height * 0.55
-            timeline: root.timeline
-            clock: root.clock
-        }
+            spacing: 0
 
-        TracksRegion {
-            id: tracksRegion
-            Layout.fillWidth: true
-            Layout.preferredHeight: root.height * 0.45
-            timeline: root.timeline
-            clock: root.clock
-            onShortcutsRequested: shortcuts.open = !shortcuts.open
+            DocumentBar {
+                Layout.fillWidth: true
+                timeline: root.timeline
+                autosave: root.saver
+            }
+
+            SaveBanners {
+                Layout.fillWidth: true
+                autosave: root.saver
+            }
+
+            PreviewArea {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                Layout.preferredHeight: root.height * 0.55
+                timeline: root.timeline
+                clock: root.clock
+            }
+
+            TracksRegion {
+                id: tracksRegion
+                Layout.fillWidth: true
+                Layout.preferredHeight: root.height * 0.45
+                timeline: root.timeline
+                clock: root.clock
+                onShortcutsRequested: shortcuts.open = !shortcuts.open
+            }
+
+            PanelSlot { slot: "bottom"; Layout.fillWidth: true }
         }
+        PanelSlot { slot: "right"; Layout.fillHeight: true }
     }
+
+    PanelSlot { slot: "overlay"; anchors.fill: parent }
 
     ShortcutsSheet {
         id: shortcuts

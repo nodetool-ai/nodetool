@@ -3,12 +3,16 @@
 #include <QCryptographicHash>
 #include <QElapsedTimer>
 #include <QEventLoop>
+#include <QFile>
+#include <QFileInfo>
+#include <QHttpMultiPart>
 #include <QJsonDocument>
 #include <QNetworkProxy>
 #include <QNetworkReply>
 #include <QTimer>
 
 #include <algorithm>
+#include <utility>
 
 namespace nt::server {
 
@@ -172,14 +176,51 @@ QueryResult failed(const QString& code, const QString& message, int status = 0) 
 }  // namespace
 
 QueryResult ServerClient::mutate(const QString& procedure, const QJsonObject& input) {
+    QNetworkRequest request(m_base.resolved(QUrl(QStringLiteral("/trpc/") + procedure)));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
+    const QByteArray body = QJsonDocument(input).toJson(QJsonDocument::Compact);
+    return write(procedure, request, &body);
+}
+
+QueryResult ServerClient::upload(const QJsonObject& json, const QString& filePath, const QString& contentType) {
+    auto multipart = std::make_unique<QHttpMultiPart>(QHttpMultiPart::FormDataType);
+    auto* file = new QFile(filePath, multipart.get());
+    if (!file->open(QIODevice::ReadOnly)) {
+        return failed("FILE", file->errorString());
+    }
+    QHttpPart fields;
+    fields.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data; name=\"json\"");
+    fields.setBody(QJsonDocument(json).toJson(QJsonDocument::Compact));
+    multipart->append(fields);
+    QHttpPart media;
+    QString filename = QFileInfo(filePath).fileName();
+    filename.replace('\\', "\\\\");
+    filename.replace('"', "\\\"");
+    filename.remove('\r');
+    filename.remove('\n');
+    media.setHeader(QNetworkRequest::ContentDispositionHeader,
+                    QStringLiteral("form-data; name=\"file\"; filename=\"%1\"").arg(filename));
+    media.setHeader(QNetworkRequest::ContentTypeHeader, contentType);
+    media.setBodyDevice(file);
+    multipart->append(media);
+    return write("upload", QNetworkRequest(m_base.resolved(QUrl("/api/assets"))), nullptr, std::move(multipart));
+}
+
+QueryResult ServerClient::write(const QString& procedure, QNetworkRequest request, const QByteArray* json,
+                                std::unique_ptr<QHttpMultiPart> multipart) {
+    const bool isUpload = multipart != nullptr;
     QElapsedTimer clock;
     clock.start();
     // Sends one request, aborted at the deadline. Returns false on the abort.
-    const auto send = [&](QNetworkRequest req, const QByteArray* body, HttpResponse& resp) {
+    const auto send = [&](QNetworkRequest req, const QByteArray* body, QHttpMultiPart* parts, HttpResponse& resp) {
         req.setAttribute(QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::ManualRedirectPolicy);
         decorate(req);
         QEventLoop loop;
-        QNetworkReply* reply = body ? m_nam->post(req, *body) : m_nam->get(req);
+        QNetworkReply* reply = parts ? m_nam->post(req, parts) : body ? m_nam->post(req, *body) : m_nam->get(req);
+        if (parts) {
+            parts->setParent(reply);
+            multipart.release();
+        }
         QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
         bool aborted = false;
         QTimer deadline;
@@ -193,7 +234,7 @@ QueryResult ServerClient::mutate(const QString& procedure, const QJsonObject& in
         }
         if (!reply->isFinished()) loop.exec();
         resp.status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        resp.body = reply->readAll();
+        resp.body = reply->isOpen() ? reply->readAll() : QByteArray();
         for (const auto& pair : reply->rawHeaderPairs()) resp.headers.insert(pair.first.toLower(), pair.second);
         if (reply->error() != QNetworkReply::NoError && resp.status == 0) resp.networkError = reply->errorString();
         reply->deleteLater();
@@ -214,21 +255,36 @@ QueryResult ServerClient::mutate(const QString& procedure, const QJsonObject& in
 
     if (!m_expectedInstance.isEmpty()) {
         HttpResponse check;
-        if (!send(QNetworkRequest(m_base.resolved(QUrl(QStringLiteral("/ready")))), nullptr, check)) return timedOut();
+        if (!send(QNetworkRequest(m_base.resolved(QUrl(QStringLiteral("/ready")))), nullptr, nullptr, check)) return timedOut();
         if (check.status == 0) return parseTrpcResponse(check);  // no answer: a transient failure, nothing sent
         if (check.header(kInstanceHeader) != m_expectedInstance) return wrongServer("refusing to write", check);
     }
 
-    QNetworkRequest req(m_base.resolved(QUrl(QStringLiteral("/trpc/") + procedure)));
-    req.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
-    const QByteArray body = QJsonDocument(input).toJson(QJsonDocument::Compact);
+    if (m_deadlineMs > 0 && clock.elapsed() >= m_deadlineMs) {
+        return timedOut();
+    }
     HttpResponse resp;
-    if (!send(req, &body, resp)) return timedOut();
+    if (!send(request, json, multipart.get(), resp)) {
+        return timedOut();
+    }
     if (!m_expectedInstance.isEmpty() && resp.status != 0 && resp.header(kInstanceHeader) != m_expectedInstance) {
         return wrongServer("the answer to", resp);
     }
     if (resp.status >= 300 && resp.status < 400) {
         return failed(QStringLiteral("REDIRECT"), QStringLiteral("refusing a redirect from %1").arg(procedure), resp.status);
+    }
+    if (isUpload && resp.status != 0) {
+        QJsonParseError error;
+        const auto doc = QJsonDocument::fromJson(resp.body, &error);
+        if (resp.status < 200 || resp.status >= 300) {
+            return failed("HTTP", QStringLiteral("upload: HTTP %1: %2").arg(resp.status).arg(QString::fromUtf8(resp.body)), resp.status);
+        }
+        if (error.error != QJsonParseError::NoError || !doc.isObject()) {
+            return failed("BAD_RESPONSE", "upload: response is not an asset JSON object", resp.status);
+        }
+        QueryResult result;
+        result.data = doc.object();
+        return result;
     }
     return parseTrpcResponse(resp);
 }

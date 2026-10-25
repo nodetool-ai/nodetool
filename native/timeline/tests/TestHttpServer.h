@@ -61,6 +61,7 @@ public:
     ServedFile& file(const QByteArray& path) { return m_files[path]; }
     void setJson(JsonHandler h) { m_json = std::move(h); }
     void setPost(PostHandler h) { m_post = std::move(h); }
+    void setResponseHeaders(QHash<QByteArray, QByteArray> headers) { m_headers = std::move(headers); }
 
     std::vector<RecordedRequest> requests() const {
         QMutexLocker l(&m_mutex);
@@ -100,9 +101,11 @@ private:
         QObject::connect(socket, &QTcpSocket::disconnected, socket, &QObject::deleteLater);
     }
 
-    static void writeHead(QTcpSocket* s, int status, const char* reason, const QHash<QByteArray, QByteArray>& headers) {
+    void writeHead(QTcpSocket* s, int status, const char* reason, const QHash<QByteArray, QByteArray>& headers) {
         QByteArray out = "HTTP/1.1 " + QByteArray::number(status) + ' ' + reason + "\r\n";
-        for (auto it = headers.begin(); it != headers.end(); ++it) out += it.key() + ": " + it.value() + "\r\n";
+        auto combined = m_headers;
+        for (auto it = headers.begin(); it != headers.end(); ++it) combined.insert(it.key(), it.value());
+        for (auto it = combined.begin(); it != combined.end(); ++it) out += it.key() + ": " + it.value() + "\r\n";
         out += "\r\n";
         s->write(out);
     }
@@ -125,7 +128,7 @@ private:
         const QUrl url(QString::fromLatin1(req.target));
         const QByteArray path = url.path(QUrl::FullyEncoded).toLatin1();
 
-        if (path.startsWith("/trpc/") && req.method == "POST" && m_post) {
+        if ((path.startsWith("/trpc/") || path == "/api/assets") && req.method == "POST" && m_post) {
             const QByteArray body = m_post(path, requestBody);
             writeHead(socket, 200, "OK",
                       {{"Content-Type", "application/json"}, {"Content-Length", QByteArray::number(body.size())}});
@@ -219,4 +222,5 @@ private:
     std::vector<RecordedRequest> m_requests;
     JsonHandler m_json;
     PostHandler m_post;
+    QHash<QByteArray, QByteArray> m_headers;
 };
