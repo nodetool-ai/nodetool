@@ -147,7 +147,11 @@ import { assetMediaType } from "../dnd/assetToClipAdapter";
 import { dropShotOnTrack, isShotDrag } from "../dnd/shotToClipAdapter";
 import { getSourceCapMs } from "./useClipSourceDuration";
 import { buildTypedIndexMap } from "./trackVisuals";
-import { partitionTimelineWheel, normalizeWheelDeltaPx } from "./timelineWheel";
+import {
+  partitionTimelineWheel,
+  normalizeWheelDeltaPx,
+  wheelZoomFactor
+} from "./timelineWheel";
 import { followScrollLeft } from "./followPlayhead";
 import { nextToolbarFit, type ToolbarFit } from "./toolbarFit";
 import {
@@ -201,7 +205,6 @@ const TOOL_FOR_ACTION: Record<
   cutTool: "cut",
   slipTool: "slip"
 };
-const ZOOM_SENSITIVITY = 0.001;
 /** How much one expand or shrink keypress changes the track-height scale. */
 const TRACK_HEIGHT_STEP = 0.25;
 /** Extra gap (ms) inserted after the source clip when using Ctrl+Shift+D. */
@@ -723,10 +726,13 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         e.preventDefault();
         if (webkitGestureActiveRef.current) return;
         const { zoomDelta } = partitionTimelineWheel(e);
-        // Exponential, so a large delta (a fast mouse wheel, a hard flick)
-        // zooms by a bounded factor instead of crossing zero and pinning the
-        // zoom to its limit, and equal opposite deltas cancel exactly.
-        pendingZoomFactorRef.current *= Math.exp(zoomDelta * ZOOM_SENSITIVITY);
+        // A pinch follows the fingers 1:1, and a mouse wheel notch is capped
+        // to one bounded step (see wheelZoomFactor).
+        pendingZoomFactorRef.current *= wheelZoomFactor(
+          zoomDelta,
+          e.deltaMode,
+          el.clientWidth
+        );
         pendingZoomClientXRef.current = e.clientX;
         if (zoomRafIdRef.current === null) {
           zoomRafIdRef.current = requestAnimationFrame(flushZoom);
