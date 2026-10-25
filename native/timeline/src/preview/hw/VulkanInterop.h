@@ -22,8 +22,12 @@
 // failure is retried up to three attempts. If completion or device loss is
 // still unconfirmed, that pending entry's command buffer, fence, images,
 // memory and DRM mapping, plus the command pool, are deliberately retained
-// for the process lifetime, logged and counted. Other pending entries are
-// still waited on. Only VK_ERROR_DEVICE_LOST marks the device lost. Nothing waits
+// for the process lifetime, logged and counted. On a live device, any
+// unconfirmed pending submission also retains the images and memory of
+// unreleased frames for the process lifetime, logged and counted by
+// ReleaseStats::unconfirmedUnreleased. Their DRM mappings stay pinned as
+// above. Other pending entries are still waited on. Only VK_ERROR_DEVICE_LOST
+// marks the device lost. Nothing waits
 // on a fence with a timeout: submissions on Qt's queue
 // are ordered before the frames that sample the images, and finished
 // submissions are collected on each flush(). A lost device frees everything
@@ -77,6 +81,8 @@ struct ReleaseStats {
     int retainedMappings;
     // Pending submissions retained after teardown could not confirm completion.
     int unconfirmedPending;
+    // Unreleased image sets retained because a pending submission was unconfirmed.
+    int unconfirmedUnreleased;
 };
 ReleaseStats releaseStats();
 }  // namespace testing
