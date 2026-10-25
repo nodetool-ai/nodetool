@@ -57,6 +57,7 @@ namespace nt::ui {
 #ifdef Q_OS_UNIX
 using LocalIoHook = std::function<void(const char* operation, const QString& path)>;
 void setLocalIoStallForTesting(LocalIoHook hook);
+int outstandingLocalIoForTesting();
 #endif
 
 inline constexpr int FULL_ASSET_PEAK_COUNT = 2000;

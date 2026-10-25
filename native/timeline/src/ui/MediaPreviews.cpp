@@ -88,6 +88,7 @@ struct ReadGuard {
 };
 
 #ifdef Q_OS_UNIX
+constexpr size_t MAX_LOCAL_IO_HELPERS = 8;
 std::atomic<std::shared_ptr<const LocalIoHook>> localIoHook;
 
 void beforeLocalIo(const char* operation, const QString& path) {
@@ -132,10 +133,48 @@ class InterruptibleFile : public QIODevice {
         qint64 result = 0;
         std::vector<char> buffer;
     };
+    struct Registry {
+        std::mutex mutex;
+        std::vector<std::pair<QString, std::shared_ptr<State>>> running;
+    };
+
+    static Registry& registry() {
+        // Detached helpers may finish during process teardown.
+        static auto* value = new Registry;
+        return *value;
+    }
+    static void unregisterHelper(const std::shared_ptr<State>& state) {
+        auto& helpers = registry();
+        std::scoped_lock lock(helpers.mutex);
+        std::erase_if(helpers.running, [&state](const auto& entry) { return entry.second == state; });
+    }
 
 public:
     InterruptibleFile(const QString& path, ReadGuard& guard)
-        : m_guard(guard), m_thread([state = m_state, path]() { serve(state, path); }) {
+        : m_guard(guard) {
+        {
+            auto& helpers = registry();
+            std::scoped_lock lock(helpers.mutex);
+            // Reserve active slots too, so simultaneous abandonments stay bounded.
+            if (helpers.running.size() >= MAX_LOCAL_IO_HELPERS) {
+                return;
+            }
+            if (std::any_of(helpers.running.begin(), helpers.running.end(), [&path](const auto& entry) {
+                    return entry.first == path && entry.second->abandoned.load();
+                })) {
+                return;
+            }
+            helpers.running.emplace_back(path, m_state);
+        }
+        try {
+            m_thread = std::jthread([state = m_state, path]() {
+                serve(state, path);
+                unregisterHelper(state);
+            });
+        } catch (...) {
+            unregisterHelper(m_state);
+            throw;
+        }
         std::unique_lock lock(m_state->mutex);
         if (waitForResult(lock) && m_state->result >= 0) {
             m_regular = m_state->regular;
@@ -143,7 +182,15 @@ public:
             open(QIODevice::ReadOnly);
         }
     }
+    static int outstanding() {
+        auto& helpers = registry();
+        std::scoped_lock lock(helpers.mutex);
+        return static_cast<int>(helpers.running.size());
+    }
     ~InterruptibleFile() override {
+        if (!m_thread.joinable()) {
+            return;
+        }
         {
             std::scoped_lock lock(m_state->mutex);
             m_state->stop = true;
@@ -366,6 +413,9 @@ bool openStream(const QString& path, AVMediaType type, FormatPtr& format, CodecP
 #ifdef Q_OS_UNIX
 void setLocalIoStallForTesting(LocalIoHook hook) {
     localIoHook.store(hook ? std::make_shared<const LocalIoHook>(std::move(hook)) : nullptr);
+}
+int outstandingLocalIoForTesting() {
+    return InterruptibleFile::outstanding();
 }
 #endif
 
