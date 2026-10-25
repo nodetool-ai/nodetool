@@ -14,8 +14,11 @@
 //     stepped time, repeaters and temporal echoes, the scene camera;
 //   - transitions: opacity, easing, and the geometry (offset, scale, wipe,
 //     iris, dip solid).
-// Flex layout, animation links, track bindings and track automation are not
-// ported; the loader report lists the clips they touch (effect "plan").
+//   - flex layout (scene/FlexLayout.h, on Yoga): the transforms and the
+//     rect, ellipse and text sizes of the clips in a flex group, laid out
+//     again each frame with animated text (scene/TextAnimation.h).
+// Animation links, track bindings and track automation are not ported; the
+// loader report lists the clips they touch (effect "plan").
 // Pure functions, no Qt GUI or GPU types.
 
 #include "model/TimelineTypes.h"
@@ -65,9 +68,10 @@ struct ActiveLayer {
     double sourceTimeMs = 0.0; // the frame the source shows
     // The animated opacity: clip, group, fade, transition and animation.
     double opacity = 1.0;
-    // `opacity` times every enclosing precomposite's opacity. The compositor
-    // draws precomposited children straight onto the frame (DESIGN.md D35),
-    // so this is the opacity it draws with.
+    // `opacity` times every enclosing precomposite's opacity: the coverage
+    // the layer ends up with. Plan output only (compared with the web); the
+    // compositor draws a child into its group surface with its own `opacity`
+    // and applies the group's once, to the surface (DESIGN.md D35).
     double drawOpacity = 1.0;
     std::string blendMode = "normal";
     // The animated transform, the camera applied. Absent: the clip has none.
@@ -80,6 +84,11 @@ struct ActiveLayer {
     int sourceHeight = 0;
     std::string mediaPath;
     std::optional<std::string> assetId;  // `effectiveAssetId`
+    // Set when a flex group resized this leaf: a rect or ellipse draws in
+    // this box (x, y, width, height in canvas fractions), and a text clip
+    // wraps at this `maxWidthFrac`.
+    std::optional<std::array<double, 4>> flexShapeBox;
+    std::optional<double> flexTextMaxWidthFrac;
 };
 
 // A group that composites its children before they blend (`PrecompositeLayer`).
@@ -93,6 +102,9 @@ struct PrecompositeLayer {
     bool effects = false;  // the group runs an effect chain on its surface
     std::optional<LayerTransition> transition;
     std::string precomposeGroupId;  // the surface this one draws into
+    // What draws into this surface: its layers in frame order (SceneFrame
+    // layers), then its nested surfaces in list order.
+    std::vector<std::string> children;
 };
 
 struct DroppedLayer {
@@ -130,6 +142,14 @@ double clipSourceMsAt(const Clip& clip, double timeMs);
 // The opacity multiplier each clip in a cut carries at `timeMs`, keyed by
 // clip id (`resolveDocumentTransitions`). Clips not in a cut are absent.
 std::unordered_map<std::string, double> transitionOpacitiesAt(const Timeline& timeline, double timeMs);
+
+// The flex layout cache since the start: frames that reused a layout, and
+// layouts computed (a revision-0 document computes every frame).
+struct FlexCacheStats {
+    quint64 hits = 0;
+    quint64 misses = 0;
+};
+FlexCacheStats flexLayoutCacheStats();
 
 // The whole scene at `timeMs`.
 SceneFrame evaluateScene(const Timeline& timeline, double timeMs);

@@ -197,6 +197,16 @@ QVariant LaneClipModel::data(const QModelIndex& index, int role) const {
     case FadeOutShapeRole: return QString::fromStdString(c.fadeOutShape.empty() ? "linear" : c.fadeOutShape);
     case TransitionTypeRole: return c.transitionIn ? QString::fromStdString(c.transitionIn->type) : QString();
     case TransitionMsRole: return c.transitionIn ? c.transitionIn->durationMs : 0.0;
+    case MediaSourceRole:
+        return QString::fromStdString(c.mediaType == nt::MediaType::Audio && !c.audioPath.empty() ? c.audioPath
+                                                                                                   : c.mediaPath);
+    case InPointMsRole: return c.inPointMs;
+    case SourceOutMsRole: {
+        const QJsonValue out = c.raw.value(QStringLiteral("outPointMs"));
+        if (out.isDouble()) return out.toDouble();
+        const double rate = c.speedBaked ? 1.0 : std::max(0.0001, c.speedMultiplier);
+        return c.inPointMs + c.durationMs * rate;
+    }
     default: return {};
     }
 }
@@ -217,5 +227,8 @@ QHash<int, QByteArray> LaneClipModel::roleNames() const {
         {FadeOutShapeRole, "fadeOutShape"},
         {TransitionTypeRole, "transitionType"},
         {TransitionMsRole, "transitionMs"},
+        {MediaSourceRole, "mediaSource"},
+        {InPointMsRole, "inPointMs"},
+        {SourceOutMsRole, "sourceOutMs"},
     };
 }

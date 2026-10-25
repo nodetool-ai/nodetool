@@ -3,7 +3,9 @@
  *
  * - "splitClip preserves clip metadata and source references across both
  *   halves" checks `toBe` on nested objects. A value that crossed a process
- *   boundary is a copy, so the same case runs with deep equality.
+ *   boundary is a copy, so the same case runs with deep equality. The same
+ *   applies to "rateStretchClips leaves a time-remapped clip alone" and
+ *   "slideClips leaves a group clip alone".
  * - The keyframe and source-anchored curve cases: the native split and trim
  *   refuse those clips. The refusal must be exactly this error, for each of
  *   the four entry points, so a different failure cannot pass as known.
@@ -90,4 +92,19 @@ describe("known differences", () => {
       expect(() => native.trimClip(clip, "end", 100)).toThrow(`trimClip: ${REFUSAL}`);
     });
   }
+});
+
+describe("unchanged results, with deep equality", () => {
+  const clip = (id: string, extra: any = {}) => ({
+    id, trackId: "v1", name: id, startMs: 0, durationMs: 1000, mediaType: "video",
+    sourceType: "imported", status: "draft", locked: false, versions: [], ...extra
+  });
+  it("rateStretchClips leaves a time-remapped clip alone", () => {
+    const remapped = clip("a", { timeRemap: { keyframes: [{ t: 0, sourceMs: 0 }] } });
+    expect(native.rateStretchClips([remapped], new Set(["a"]), "a", "end", 2000)).toEqual([remapped]);
+  });
+  it("slideClips leaves a group clip alone", () => {
+    const grouped = [clip("g", { mediaType: "group" })];
+    expect(native.slideClips(grouped, new Set(["g"]), 100)).toEqual(grouped);
+  });
 });

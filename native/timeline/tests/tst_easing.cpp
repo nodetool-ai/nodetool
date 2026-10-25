@@ -9,12 +9,43 @@
 #include <QJsonObject>
 #include <QtTest>
 
+#include <atomic>
 #include <cmath>
+#include <string>
+#include <thread>
+#include <vector>
 
 class TestEasing : public QObject {
     Q_OBJECT
 
 private slots:
+    // Codex review F3 (M5b): the easing cache clears at 512 entries while
+    // another thread evaluates an easing it looked up. Run under ASan.
+    void cacheSurvivesClearsFromAnotherThread() {
+        std::atomic<bool> stop{false};
+        std::atomic<long> bad{0};
+        std::vector<std::thread> readers;
+        for (int r = 0; r < 4; ++r) {
+            readers.emplace_back([&]() {
+                while (!stop) {
+                    const double v = nt::scene::ease("spring(190,18,1)", 0.5);
+                    if (!(v > 0.5 && v < 1.5)) ++bad;
+                }
+            });
+        }
+        std::thread writer([&]() {
+            for (int round = 0; round < 300; ++round) {
+                for (int i = 0; i < 600; ++i) {
+                    nt::scene::ease("cubic-bezier(0." + std::to_string(i % 97) + ",0,0.5," + std::to_string(round + i) + ")", 0.3);
+                }
+            }
+            stop = true;
+        });
+        writer.join();
+        for (auto& t : readers) t.join();
+        QCOMPARE(bad.load(), 0L);
+    }
+
     void matchesTheWeb() {
         QFile f(QStringLiteral(NT_FIXTURES_DIR "/plan/ease-vectors.json"));
         QVERIFY(f.open(QIODevice::ReadOnly));

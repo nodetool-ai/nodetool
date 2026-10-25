@@ -1296,7 +1296,7 @@ export const HARNESSES: HarnessEntry[] = [
   {
     id: "native-timeline-golden",
     title: "Native timeline golden import (media fixture through timeline render --stills)",
-    command: "node native/timeline/scripts/golden-import.mjs",
+    command: "node native/timeline/scripts/golden-import.mjs && node native/timeline/scripts/check-group-surfaces.mjs --json",
     kind: "execution",
     capabilities: ["json"],
     docs: "native/timeline/README.md § Golden import"
@@ -1320,6 +1320,16 @@ export const HARNESSES: HarnessEntry[] = [
     kind: "execution",
     capabilities: ["json"],
     docs: "native/timeline/README.md § Audio"
+  },
+  {
+    id: "native-timeline-package",
+    title: "Native timeline packaging and portability: unsigned macOS bundle check, portable build, Linux hardware path compile",
+    command:
+      "native/timeline/scripts/package-macos.sh && native/timeline/scripts/check-package-macos.sh && " +
+      "native/timeline/scripts/check-portable.sh",
+    kind: "execution",
+    capabilities: ["json"],
+    docs: "native/timeline/README.md § Platforms and packaging (M6)"
   }
 ];
 
@@ -2310,7 +2320,8 @@ export const SURFACES: SurfaceEntry[] = [
       "native-timeline-scrub",
       "native-timeline-golden",
       "native-timeline-server",
-      "native-timeline-audio"
+      "native-timeline-audio",
+      "native-timeline-package"
     ],
     paths: ["native/timeline/"],
     gap:

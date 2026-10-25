@@ -16,6 +16,7 @@ extern "C" {
 #include "preview/hw/HwInterop.h"
 
 #include <QByteArray>
+#include <QString>
 
 #include <chrono>
 #include <cmath>
@@ -333,6 +334,7 @@ FfmpegDecoder::FfmpegDecoder(std::string path, double initialSec, std::optional<
       m_failHardwareOnOpen(g_testFailHardwareOnOpen.load()),
       m_stallAfterPackets(g_testStallAfterPackets.load()),
       m_frameLossAfterFrames(g_testFrameLossAfterFrames.load()),
+      m_skipNonReference(qEnvironmentVariable("NT_DECODE_SKIP") != QLatin1String("off")),
       m_targetSec(initialSec),
       m_restartSec(initialSec) {
     beat();
@@ -728,7 +730,7 @@ void FfmpegDecoder::run() {
                 bool skip = false;
                 if (pkt->pts != AV_NOPTS_VALUE) {
                     const double packetSec = static_cast<double>(pkt->pts - s.start) * s.tb;
-                    skip = packetSec < anchorSec - kTimestampEpsilonSec;
+                    skip = m_skipNonReference && packetSec < anchorSec - kTimestampEpsilonSec;
                     if (skip) {
                         publishSkipFloor(gen, anchorSec);
                         runSkipFloor = std::max(runSkipFloor, anchorSec);

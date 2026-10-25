@@ -50,23 +50,16 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { USER_PORT, createScratchSession } from "./scratch-server.mjs";
 import {
   assertInWork as assertInWorkIn,
-  groupAlive,
-  groupOwnsPort,
-  listenerPids,
   makeScratch,
-  IDENTITY_SETTING,
-  noRedirectFetch,
   safeRm as safeRmIn,
-  serverIdentityMatches,
-  stopGroups,
   verifiedBuildDir
 } from "./scratch-safety.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repo = path.resolve(root, "..", "..");
-const USER_PORT = 7777;
 
 function parseArgs(argv) {
   const args = { bin: path.join(root, "build-m5", "nodetool-timeline"), port: 7799, json: false, keep: false };
@@ -94,195 +87,14 @@ const work = makeScratch(verifiedBuildDir(root, "build-m5"));
 const assertInWork = (p) => assertInWorkIn(work, p);
 const safeRm = (p) => safeRmIn(work, p);
 
-// ── scratch servers ───────────────────────────────────────────────────────
+// ── scratch servers (scratch-server.mjs) ─────────────────────────────────
 
-const servers = [];
-
-function scratchEnv(dir, port, extra) {
-  const env = { ...process.env };
-  for (const key of Object.keys(env)) {
-    if (/^(DATABASE_URL|DIRECT_URL|SUPABASE_|NODETOOL_|DB_PATH|ASSET_|STORAGE_|S3_|VECTORSTORE_)/.test(key)) delete env[key];
-  }
-  const home = path.join(dir, "home");
-  return {
-    ...env,
-    HOME: home,
-    XDG_DATA_HOME: path.join(home, ".local", "share"),
-    XDG_CONFIG_HOME: path.join(home, ".config"),
-    XDG_CACHE_HOME: path.join(home, ".cache"),
-    DB_PATH: path.join(dir, "data", "nodetool.sqlite3"),
-    VECTORSTORE_DB_PATH: path.join(dir, "data", "vectorstore.db"),
-    ASSET_FOLDER: path.join(dir, "assets"),
-    STORAGE_PATH: path.join(dir, "assets"),
-    // A scratch key: the secret store never asks the keychain.
-    SECRETS_MASTER_KEY: crypto.randomBytes(32).toString("base64"),
-    NODETOOL_ENV: "development",
-    // Proxies only on request (assets.ensureProxy), so each state is set by the script.
-    NODETOOL_VIDEO_PROXY_MIN_SIZE_PX: "-1",
-    HOST: "127.0.0.1",
-    PORT: String(port),
-    NODE_OPTIONS: "--conditions=nodetool-dev",
-    PATH: `${path.join(work, "fake-bin")}:${env.PATH}`,
-    ...extra
-  };
-}
-
-
-
-
-
-const ownsPort = (server) => groupOwnsPort(server.child.pid, server.port);
-const scratchFetch = noRedirectFetch;
-
-async function startServer(name, port, extra = {}) {
-  if (port === USER_PORT) throw new Error("refusing to start on 7777");
-  if (listenerPids(port).length > 0) throw new Error(`port ${port} is already in use; refusing to start ${name}`);
-  const dir = assertInWork(path.join(work, name));
-  if (fs.existsSync(dir)) throw new Error(`${dir} exists already`);
-  for (const sub of ["home", "data", "assets"]) fs.mkdirSync(path.join(dir, sub), { recursive: true });
-  // A value only this run knows; the server echoes it (serverIdentityMatches).
-  const identity = path.join(dir, `identity-${crypto.randomBytes(16).toString("hex")}`);
-  const env = scratchEnv(dir, port, { ...extra, [IDENTITY_SETTING]: identity });
-  const logPath = path.join(dir, "server.log");
-  const out = fs.openSync(logPath, "w");
-  const child = spawn(process.execPath, [path.join(repo, "node_modules", "tsx", "dist", "cli.mjs"), "packages/websocket/src/server.ts"], {
-    cwd: repo,
-    env,
-    detached: true, // its own process group, so cleanup also ends ffmpeg children
-    stdio: ["ignore", out, out]
-  });
-  const server = { name, dir, port, base: `http://127.0.0.1:${port}`, child, logPath, env, identity, owned: false };
-  child.on("exit", () => {
-    server.owned = false;  // a later write can never reach a replacement on the port
-  });
-  servers.push(server);
-  const deadline = Date.now() + 180_000;
-  let healthy = false;
-  while (Date.now() < deadline && !healthy) {
-    if (child.exitCode !== null) throw new Error(`${name} exited early, see ${logPath}`);
-    try {
-      healthy = (await scratchFetch(`${server.base}/health`)).ok;
-    } catch (err) {
-      if (/redirect/.test(String(err))) throw err;
-    }
-    if (!healthy) await sleep(1000);
-  }
-  if (!healthy) throw new Error(`${name}: no /health answer, see ${logPath}`);
-  // Ownership: the answer must come from the process group started here,
-  // never from another server that holds the port.
-  if (!ownsPort(server)) throw new Error(`${name}: the listener on ${port} is not the scratch server's process group`);
-  if (!(await serverIdentityMatches(server.base, identity))) throw new Error(`${name}: the server on ${port} does not echo this run's identity`);
-  server.owned = true;
-  const text = fs.readFileSync(logPath, "utf8");
-  const db = text.match(/Initializing SQLite database at: (\S+)/)?.[1];
-  if (!db || !db.startsWith(dir + path.sep)) throw new Error(`${name}: database ${db} is not under ${dir}`);
-  log(`server ${name}: ${server.base}, pgid ${child.pid}, database ${db}`);
-  return server;
-}
-
-
-/** Stops every running server's whole process group (scratch-safety.mjs stopGroups). */
-async function stopServers() {
-  const groups = servers.map((s) => s.child.pid);
-  servers.length = 0;
-  await stopGroups(groups);
-}
-
-// The last resort when the process exits some other way: no waiting allowed.
-process.on("exit", () => {
-  for (const s of servers) {
-    try {
-      process.kill(-s.child.pid, "SIGKILL");
-    } catch {
-      /* gone */
-    }
-  }
+const { servers, startServer, stopServers, assertScratch, query, mutate, upload, waitProxy, createTimeline } = createScratchSession({
+  work,
+  repo,
+  assertInWork,
+  log
 });
-for (const sig of ["SIGINT", "SIGTERM"]) {
-  process.on(sig, () => {
-    stopServers()
-      .catch((err) => console.error(String(err)))
-      .finally(() => process.exit(130));
-  });
-}
-
-// ── tRPC (reads anywhere, writes only to a scratch server) ────────────────
-
-/**
- * Checked right before every write, never cached: the child is alive, every
- * listener on the port is in its process group, and the server echoes this
- * run's identity.
- */
-async function assertScratch(base) {
-  const server = servers.find((s) => s.base === base);
-  if (!server || !server.owned) throw new Error(`refusing a write to ${base}: not a scratch server`);
-  if (server.child.exitCode !== null || server.child.signalCode !== null || !groupAlive(server.child.pid)) {
-    throw new Error(`refusing a write to ${base}: the scratch server exited`);
-  }
-  if (!ownsPort(server)) throw new Error(`refusing a write to ${base}: the port is not the scratch server's`);
-  if (!(await serverIdentityMatches(base, server.identity))) throw new Error(`refusing a write to ${base}: identity mismatch`);
-  if (!server.owned) throw new Error(`refusing a write to ${base}: the scratch server exited`);
-}
-
-async function query(base, proc, input = {}) {
-  const r = await scratchFetch(`${base}/trpc/${proc}?input=${encodeURIComponent(JSON.stringify(input))}`);
-  const body = await r.json();
-  if (body.error) throw new Error(`${proc}: ${body.error.message}`);
-  return body.result.data;
-}
-
-async function mutate(base, proc, input) {
-  await assertScratch(base);
-  const r = await scratchFetch(`${base}/trpc/${proc}`, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(input)
-  });
-  const body = await r.json();
-  if (body.error) throw new Error(`${proc}: ${body.error.message}`);
-  return body.result.data;
-}
-
-async function upload(server, file, contentType = "video/mp4") {
-  await assertScratch(server.base);
-  const form = new FormData();
-  form.append("json", JSON.stringify({ name: path.basename(file), content_type: contentType }));
-  form.append("file", new Blob([fs.readFileSync(file)], { type: contentType }), path.basename(file));
-  const r = await scratchFetch(`${server.base}/api/assets`, { method: "POST", body: form });
-  if (!r.ok) throw new Error(`upload ${file}: HTTP ${r.status} ${await r.text()}`);
-  const asset = await r.json();
-  const stored = path.join(server.dir, "assets", asset.user_id, `${asset.id}${path.extname(file)}`);
-  if (!fs.existsSync(stored)) throw new Error(`upload ${file}: not stored under the scratch folder (${stored})`);
-  return asset;
-}
-
-async function waitProxy(base, id, want, timeoutMs = 120_000) {
-  const deadline = Date.now() + timeoutMs;
-  let a;
-  while (Date.now() < deadline) {
-    a = await query(base, "assets.get", { id });
-    if (a.proxy_status === want) return a;
-    await sleep(500);
-  }
-  throw new Error(`asset ${id}: proxy_status ${a?.proxy_status}, wanted ${want}`);
-}
-
-/** Create a timeline from a document (tracks, clips) on a scratch server. */
-async function createTimeline(base, name, doc) {
-  const seq = await mutate(base, "timeline.create", {
-    name,
-    projectId: "default",
-    fps: doc.fps,
-    width: doc.width,
-    height: doc.height
-  });
-  await mutate(base, "timeline.update", {
-    id: seq.id,
-    durationMs: Math.round(doc.durationMs),
-    document: { tracks: doc.tracks, clips: doc.clips, markers: [] }
-  });
-  return seq.id;
-}
 
 // ── media ─────────────────────────────────────────────────────────────────
 
@@ -321,8 +133,13 @@ const cacheDir = path.join(work, "cache");
 
 // ── saving (M5b) ──────────────────────────────────────────────────────────
 
-/** `nodetool-timeline --server ... --timeline ID --save [args]`, synchronously. */
-function saveNative(server, id, extra = []) {
+/**
+ * `nodetool-timeline --server ... --timeline ID --save [args]`. The native
+ * client writes to the server, so the ownership check runs right before it
+ * starts and again when it ends (a lost port fails the run).
+ */
+async function saveNative(server, id, extra = []) {
+  await assertScratch(server.base);
   const r = spawnSync(args.bin, ["--server", server.base, "--timeline", id, "--cache-dir", cacheDir, "--save", ...extra], {
     encoding: "utf8",
     maxBuffer: 256 * 1024 * 1024,
@@ -335,6 +152,7 @@ function saveNative(server, id, extra = []) {
   } catch {
     /* no JSON */
   }
+  await assertScratch(server.base);
   return { status: r.status, out, stderr: r.stderr ?? "" };
 }
 
@@ -576,13 +394,13 @@ async function main() {
   for (const seed of saveSeeds) {
     const before = await query(a.base, "timeline.get", { id: seed.id });
     // No edit: the server copy keeps its content and strips nothing.
-    const plain = saveNative(a, seed.id);
+    const plain = await saveNative(a, seed.id);
     const afterPlain = await query(a.base, "timeline.get", { id: seed.id });
     const plainDiff = firstDiff(canonical(before), canonical(afterPlain));
     // One edit: the reloaded document is the edited one.
     const clip = before.clips.find((c) => c.mediaType !== "group") ?? before.clips[0];
     const moved = Math.round(clip.startMs + 250);
-    const edited = saveNative(a, seed.id, ["--move-clip", `${clip.id}:${moved}`]);
+    const edited = await saveNative(a, seed.id, ["--move-clip", `${clip.id}:${moved}`]);
     const afterEdit = await query(a.base, "timeline.get", { id: seed.id });
     const expected = structuredClone(before);
     expected.clips.find((c) => c.id === clip.id).startMs = moved;
@@ -615,7 +433,7 @@ async function main() {
     const seed = saveSeeds[0];
     const doc = await query(a.base, "timeline.get", { id: seed.id });
     const clip = doc.clips[0];
-    const r = saveNative(a, seed.id, ["--set-clip-field", `${clip.id}:inventedField={"kept":true}`]);
+    const r = await saveNative(a, seed.id, ["--set-clip-field", `${clip.id}:inventedField={"kept":true}`]);
     const after = await query(a.base, "timeline.get", { id: seed.id });
     const kept = r.out?.keptCopy && fs.existsSync(r.out.keptCopy) ? JSON.parse(fs.readFileSync(r.out.keptCopy, "utf8")) : null;
     const backup = path.join(path.dirname(r.out?.keptCopy ?? ""), `${seed.id}.json`);
@@ -642,6 +460,7 @@ async function main() {
     const go = assertInWork(path.join(work, "conflict-go"));
     const aEdit = Math.round(ca.startMs + 111);
     const bEdit = Math.round(cb.startMs + 222);
+    await assertScratch(a.base);
     const child = spawn(args.bin, ["--server", a.base, "--timeline", seed.id, "--cache-dir", cacheDir, "--save",
       "--move-clip", `${ca.id}:${aEdit}`, "--wait-before-save", go], { stdio: ["ignore", "pipe", "pipe"] });
     let stdout = "";
@@ -650,9 +469,11 @@ async function main() {
     child.stderr.on("data", (d) => (stderr += d));
     const deadline = Date.now() + 60_000;
     while (!/"loaded"/.test(stdout) && Date.now() < deadline && child.exitCode === null) await sleep(50);
-    const b = saveNative(a, seed.id, ["--move-clip", `${cb.id}:${bEdit}`]);
+    const b = await saveNative(a, seed.id, ["--move-clip", `${cb.id}:${bEdit}`]);
+    await assertScratch(a.base);  // right before A's save goes out
     fs.writeFileSync(go, "go");
     const aStatus = await new Promise((resolve) => (child.exitCode !== null ? resolve(child.exitCode) : child.on("exit", resolve)));
+    await assertScratch(a.base);
     const aOut = JSON.parse(stdout.trim().split("\n").at(-1));
     const after = await query(a.base, "timeline.get", { id: seed.id });
     const kept = aOut.keptCopy && fs.existsSync(aOut.keptCopy) ? JSON.parse(fs.readFileSync(aOut.keptCopy, "utf8")) : null;
@@ -678,7 +499,7 @@ async function main() {
     const doc = await query(a.base, "timeline.get", { id: seed.id });
     const clip = doc.clips.find((c) => c.mediaType !== "group") ?? doc.clips[0];
     const moved = Math.round(clip.startMs + 333);
-    const r = saveNative(a, seed.id, ["--autosave", "--move-clip", `${clip.id}:${moved}`]);
+    const r = await saveNative(a, seed.id, ["--autosave", "--move-clip", `${clip.id}:${moved}`]);
     const after = await query(a.base, "timeline.get", { id: seed.id });
     const entry = { status: r.status, afterMs: r.out?.autosaveAfterMs, saved: after.clips.find((c) => c.id === clip.id)?.startMs === moved };
     results.autosave.push(entry);

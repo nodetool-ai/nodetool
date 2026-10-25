@@ -4,8 +4,23 @@
 // Each frame is exported as DMA-BUF (av_hwframe_map to DRM PRIME, one layer
 // per plane) and each plane is imported into the QRhi's Vulkan device as its
 // own VkImage (R8 for Y, R8G8 for CbCr) with its DRM format modifier, then
-// wrapped with QRhiTexture::createFrom(). No CPU copy. A one-time barrier
-// acquires the images from the foreign (VAAPI) queue family.
+// wrapped with QRhiTexture::createFrom(). No CPU copy.
+//
+// Ownership (review F1, F2): each import submits a barrier that acquires the
+// images from the foreign (VAAPI) queue family in the external layout
+// VK_IMAGE_LAYOUT_GENERAL, which keeps the decoded contents. A retired frame
+// submits the matching release back to the foreign family; its images, its
+// memory and the VA surface are freed only after that submission's fence
+// signals. Nothing waits on a fence with a timeout: submissions on Qt's queue
+// are ordered before the frames that sample the images, and finished
+// submissions are collected on each flush(). A lost device frees everything
+// at once and turns the interop off (the sources fall back to software).
+//
+// Modifiers (review F3): the format and DRM modifier are checked with
+// vkGetPhysicalDeviceImageFormatProperties2 before import; a modifier with
+// several memory planes (an Intel CCS layout) gets every plane's offset and
+// pitch, and a layout this import cannot express (planes in separate
+// objects, a plane count that does not match) is rejected before import.
 //
 // D15 names FFmpeg's Vulkan decoder first and VAAPI as the fallback. This
 // build takes VAAPI with DMA-BUF import: FFmpeg's Vulkan decoder outputs one
@@ -60,6 +75,7 @@ private:
     std::array<std::unique_ptr<QRhiTexture>, 2> m_planes;
     QSize m_size;
     long long m_lastUse = -1;
+    bool m_acquired = false;  // the acquire barrier was submitted
 };
 
 // QRhi guarantees frame N - FramesInFlight completed when frame N begins.
@@ -73,7 +89,8 @@ public:
     ~VulkanInterop();
 
     std::shared_ptr<FrameRef> wrap(const AVFrame* frame, std::string* error);
-    void flush() {}
+    // Frees the resources of the submissions that have completed.
+    void flush();
 
     // The device extensions the import needs; HwWindow.cpp asks Qt Quick to
     // enable them.
@@ -83,7 +100,9 @@ private:
     friend class FrameRef;
     struct Vk;
     VulkanInterop();
-    void destroyPlane(std::uint64_t image, std::uint64_t memory);
+    // Called by ~FrameRef: releases the planes to the foreign queue family
+    // and frees them, with the DRM frame, once that has completed.
+    void retire(std::array<std::uint64_t, 2> images, std::array<std::uint64_t, 2> memory, AVFrame* drm, bool acquired);
 
     QRhi* m_rhi = nullptr;
     std::unique_ptr<Vk> m_vk;

@@ -16,6 +16,9 @@ unsigned currentThread();
 // User plus system CPU time of a thread from currentThread(); -1 when the
 // query fails (the thread is gone, or the handle is 0).
 int64_t threadNs(unsigned thread);
+// Threads registered by currentThread() and still alive (tests). A thread
+// registers once; its entry and any owned handle go when it ends.
+int registeredThreads();
 
 // The calling thread's QoS class ("user-interactive", "user-initiated",
 // "default", "utility", "background" or "unspecified").

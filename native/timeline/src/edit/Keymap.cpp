@@ -111,4 +111,61 @@ QString resolveTimelineAction(const KeyEventLike& e, const QString& preset) {
     return best;
 }
 
+std::vector<QStringList> actionBindingKeys(const QString& preset, const QString& action) {
+    static const QHash<QString, QString> labels{{QStringLiteral("ArrowLeft"), QStringLiteral("\u2190")},
+                                                {QStringLiteral("ArrowRight"), QStringLiteral("\u2192")},
+                                                {QStringLiteral("ArrowUp"), QStringLiteral("\u2191")},
+                                                {QStringLiteral("ArrowDown"), QStringLiteral("\u2193")},
+                                                {QStringLiteral(" "), QStringLiteral("Space")},
+                                                {QStringLiteral("Escape"), QStringLiteral("Esc")},
+                                                {QStringLiteral("PageUp"), QStringLiteral("Page Up")},
+                                                {QStringLiteral("PageDown"), QStringLiteral("Page Down")}};
+    std::vector<QStringList> out;
+    const auto it = keymaps().constFind(preset);
+    if (it == keymaps().constEnd()) return out;
+    for (const Entry& entry : *it) {
+        if (entry.action != action) continue;
+        for (const Binding& b : entry.bindings) {
+            QStringList parts;
+            if (b.ctrl) parts.append(QStringLiteral("Ctrl"));
+            if (b.alt) parts.append(QStringLiteral("Alt"));
+            if (b.shift) parts.append(QStringLiteral("Shift"));
+            parts.append(labels.value(b.key, b.key.toUpper()));
+            out.push_back(parts);
+        }
+    }
+    return out;
+}
+
+QString formatActionShortcut(const QString& preset, const QString& action) {
+    const auto combos = actionBindingKeys(preset, action);
+    return combos.empty() ? QString() : combos.front().join(u'+');
+}
+
+QJsonObject shortcutSheet(const QString& preset) {
+    QJsonObject sheet = QJsonDocument::fromJson(QByteArray(SHORTCUT_SHEET_JSON)).object();
+    QJsonArray groups;
+    for (const QJsonValue& g : sheet.value(u"groups").toArray()) {
+        QJsonObject group = g.toObject();
+        QJsonArray rows;
+        for (const QJsonValue& r : group.value(u"rows").toArray()) {
+            QJsonObject row = r.toObject();
+            QJsonArray combos;
+            if (row.contains(u"action")) {
+                for (const QStringList& keys : actionBindingKeys(preset, row.value(u"action").toString())) {
+                    combos.append(QJsonArray::fromStringList(keys));
+                }
+            } else {
+                combos.append(row.value(u"keys"));
+            }
+            row.insert(QStringLiteral("combos"), combos);
+            rows.append(row);
+        }
+        group.insert(QStringLiteral("rows"), rows);
+        groups.append(group);
+    }
+    sheet.insert(QStringLiteral("groups"), groups);
+    return sheet;
+}
+
 }  // namespace nt::edit

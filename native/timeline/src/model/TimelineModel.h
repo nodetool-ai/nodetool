@@ -27,6 +27,9 @@ class TimelineModel : public QObject {
     Q_PROPERTY(TrackListModel* tracks READ tracks CONSTANT)
     // The edit history (D5): one command per edit, one per gesture.
     Q_PROPERTY(QUndoStack* undoStack READ undoStack CONSTANT)
+    // The document's `markers` ({id, timeMs, label, color?, note?}), in
+    // document order.
+    Q_PROPERTY(QVariantList markers READ markers NOTIFY markersChanged)
 
 public:
     explicit TimelineModel(QObject* parent = nullptr);
@@ -72,12 +75,21 @@ public:
     // Moves one clip to a new start on its track, as one undoable edit.
     Q_INVOKABLE bool moveClip(const QString& clipId, double startMs);
 
+    // Markers (TimelineStore addMarker, deleteMarker): each one undoable
+    // edit of the raw `markers` array; other fields of a marker stay as read.
+    QVariantList markers() const;
+    QJsonArray markersJson() const;
+    bool replaceMarkers(const QJsonArray& markers);
+    Q_INVOKABLE QString addMarker(double timeMs, const QString& label);
+    Q_INVOKABLE bool deleteMarker(const QString& markerId);
+
 signals:
     void timelineChanged();
     // The clips changed: an edit, or a new document (then the tracks reset too).
     void clipsChanged();
     // A new document replaced the old one (emitted before clipsChanged).
     void documentReplaced();
+    void markersChanged();
 
 private:
     std::shared_ptr<const nt::Timeline> m_timeline;

@@ -9,6 +9,13 @@
 //   scene-transitions.json every transition type with directions, colors,
 //                          softness and eased progress, the auto dissolve,
 //                          and a cut between two groups
+//   scene-flex.json        flex groups (Yoga): directions, wrap, justify and
+//                          align values, gaps, padding, percent and min/max
+//                          sizes, basis, grow, shrink, margins, absolute
+//                          children, nested and rotated containers, plain
+//                          groups and path shapes as leaves, text leaves with
+//                          spacing and alignment, animated text (ticker,
+//                          scramble, font size), root anchors and a cycle
 // The clips draw synthetic placeholders (shapes and asset-less videos), so the
 // fixtures need no media. plan-conformance.mjs checks them with the rest.
 //
@@ -315,11 +322,77 @@ function transitionsFixture() {
   return sequence("seq-scene-transitions", "Scene transitions", 3500, tracks, clips);
 }
 
+function text(id, trackId, startMs, durationMs, textStyle, extra = {}) {
+  const t = clip(id, trackId, startMs, durationMs, { mediaType: "text", textStyle: { color: "#ffffff", fontSizePx: 48, ...textStyle }, ...extra });
+  delete t.shapeStyle;
+  return t;
+}
+
+function flexFixture() {
+  const tracks = [track("f0", 0), track("f1", 1), track("f2", 2), track("f3", 3)];
+  const flex = (layout) => ({ layout: { display: "flex", ...layout } });
+  const rect = (w, h, extra = {}) => ({ shapeStyle: { kind: "rect", width: w, height: h, fill: "#4a90d9" }, ...extra });
+  const clips = [
+    // Row: wrap, space-between, padding object, percent width, gaps.
+    group("row", "f0", 0, 4000, { transform: xf(-300, -200), ...flex({ flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between",
+      alignItems: "center", alignContent: "space-around", gap: 12, rowGap: 20, padding: { top: 10, left: 30, right: 5 }, width: "60%", height: 400 }) }),
+    clip("row_a", "f1", 0, 4000, { parentId: "row", ...rect(0.1, 0.1), flexItem: { grow: 1, basis: 100 } }),
+    clip("row_b", "f1", 0, 4000, { parentId: "row", ...rect(0.2, 0.05), flexItem: { shrink: 2, basis: "30%", margin: { left: 8, top: 4 } } }),
+    clip("row_c", "f1", 0, 4000, { parentId: "row", shapeStyle: { kind: "ellipse", width: 0.15, height: 0.15, fill: "#d94a4a" }, flexItem: { alignSelf: "flex-end", width: "25%" } }),
+    clip("row_d", "f1", 0, 4000, { parentId: "row", ...rect(0.3, 0.1), flexItem: { position: "absolute", inset: { top: 5, right: 7 } } }),
+    clip("row_e", "f1", 0, 4000, { parentId: "row", ...rect(0.05, 0.05), transform: xf(40, 30), flexItem: { position: "absolute" } }),
+    text("row_t", "f1", 0, 4000, { text: "Wrapped title over a few words", fontSizePx: 40, letterSpacingPx: 2, lineHeight: 1.4, align: "left" },
+      { parentId: "row", flexItem: { basis: "40%" } }),
+    // Column: space-evenly, baseline, min/max, a nested row rotated, a plain group leaf, path leaves.
+    group("col", "f0", 0, 4000, { transform: xf(400, 50, 0.9, 0.9, 0.1, { anchor: { x: 0, y: 0 } }), ...flex({ flexDirection: "column",
+      justifyContent: "space-evenly", alignItems: "baseline", padding: 16, minWidth: 300, maxWidth: "40%", minHeight: 500 }) }),
+    group("col_n", "f2", 0, 4000, { parentId: "col", transform: xf(0, 0, 1, 1, 0.3), ...flex({ justifyContent: "flex-end", alignItems: "stretch",
+      columnGap: 9, width: "80%", maxHeight: 200 }), flexItem: { margin: 6 } }),
+    clip("col_n1", "f3", 0, 4000, { parentId: "col_n", ...rect(0.08, 0.2) }),
+    text("col_n2", "f3", 0, 4000, { text: "Right\naligned", align: "right", verticalAlign: "top" }, { parentId: "col_n" }),
+    group("col_p", "f2", 0, 4000, { parentId: "col", transform: xf(10, 0) }),
+    clip("col_p1", "f3", 0, 4000, { parentId: "col_p", ...rect(0.1, 0.1), transform: xf(-50, 20, 1.2, 1.2, 0.4) }),
+    clip("col_p2", "f3", 0, 4000, { parentId: "col_p", ...rect(0.05, 0.2), transform: xf(80, -40) }),
+    clip("col_path", "f2", 0, 4000, { parentId: "col", shapeStyle: { kind: "path", d: "M0.1 0.1 L0.3 0.12 Q0.4 0.3 0.25 0.35 A0.05 0.08 30 1 0 0.12 0.2 Z", fill: "#888888" } }),
+    clip("col_path2", "f2", 0, 4000, { parentId: "col", shapeStyle: { kind: "path", d: "m 0.5 0.5 h 0.1 v 0.1 c 0.02 0.05 -0.05 0.05 -0.1 0 s -0.02 -0.1 0 -0.1 t 0.05 0.02 z", width: 0.2, height: 0.1, fill: "#888888" }, flexItem: { height: 60 } }),
+    clip("col_v", "f2", 0, 4000, { parentId: "col", mediaType: "video", width: 1280, height: 720, flexItem: { width: 240, height: 135 } }),
+    // Animated text: a ticker, a scramble and a font-size track move their siblings.
+    group("anim", "f0", 0, 4000, { transform: xf(0, 350), ...flex({ flexDirection: "row", justifyContent: "space-around", alignItems: "flex-end", gap: 24 }) }),
+    text("anim_tick", "f1", 0, 4000, { text: "0" }, { parentId: "anim", animations: [{ id: "tick", role: "in", preset: "custom", durationMs: 2000,
+      delayMs: 200, easing: "easeOutExpo", custom: { curves: [] }, textAnimator: { kind: "ticker", from: 0, to: 1234567.5, decimals: 0, groupSeparator: ",", prefix: "$", padTo: 4 } }] }),
+    text("anim_tick2", "f1", 0, 4000, { text: "0" }, { parentId: "anim", animations: [{ id: "tick2", role: "in", preset: "custom", durationMs: 1500,
+      custom: { curves: [] }, textAnimator: { kind: "ticker", from: -3, to: 2.5, decimals: 2, suffix: " %" } }] }),
+    text("anim_scr", "f1", 0, 4000, { text: "DECODE ME" }, { parentId: "anim", animations: [{ id: "scr", role: "in", preset: "custom", durationMs: 900,
+      easing: "easeOut", custom: { curves: [] }, textAnimator: { kind: "scramble", seed: 4, charset: "#%&@" } }] }),
+    text("anim_size", "f1", 0, 4000, { text: "Grow" }, { parentId: "anim", animations: [{ id: "size", role: "in", preset: "custom", durationMs: 1200,
+      custom: { curves: [curve("opacity", [{ t: 0, value: 1 }, { t: 1, value: 1 }])] }, styleTracks: [
+        { target: "text.fontSizePx", keyframes: [{ t: 0, value: 20 }, { t: 0.6, value: 90, easing: "easeOutBack" }, { t: 1, value: 64 }] },
+        { target: "text.letterSpacingPx", keyframes: [{ t: 0, value: 12 }, { t: 1, value: 0, easing: "easeIn" }] },
+        { target: "text.lineHeight", keyframes: [{ t: 0, value: 2 }, { t: 1, value: 1.1 }] }] }] }),
+    clip("anim_box", "f1", 0, 4000, { parentId: "anim", ...rect(0.05, 0.05), flexItem: { grow: 1, height: 30 } }),
+    // Overflow: children with no `shrink` shrink (the CSS default of 1).
+    group("tight", "f0", 0, 4000, { transform: xf(500, -400), ...flex({ flexDirection: "row", width: 200, height: 80 }) }),
+    clip("tight_a", "f1", 0, 4000, { parentId: "tight", ...rect(0.1, 0.05), flexItem: { width: 150 } }),
+    clip("tight_b", "f1", 0, 4000, { parentId: "tight", ...rect(0.1, 0.05), flexItem: { width: 150, margin: 5 } }),
+    text("tight_t", "f1", 0, 4000, { text: "A long caption that cannot fit", fontSizePx: 24 }, { parentId: "tight" }),
+    // A flex root inside a plain group, and a parent cycle (no root at all).
+    group("outer", "f0", 0, 4000, { transform: xf(-500, 300, 0.5, 0.5) }),
+    group("inner", "f2", 0, 4000, { parentId: "outer", transform: xf(100, 0), ...flex({ flexDirection: "column", gap: 4, height: "30%" }) }),
+    clip("inner_a", "f3", 0, 4000, { parentId: "inner", ...rect(0.1, 0.03), flexItem: { grow: 2 } }),
+    clip("inner_b", "f3", 0, 4000, { parentId: "inner", ...rect(0.1, 0.03), flexItem: { grow: 1 } }),
+    group("cyc_a", "f2", 0, 4000, { parentId: "cyc_b", ...flex({}) }),
+    group("cyc_b", "f2", 0, 4000, { parentId: "cyc_a", ...flex({}) }),
+    clip("cyc_c", "f3", 0, 4000, { parentId: "cyc_a", ...rect(0.1, 0.1) })
+  ];
+  return sequence("seq-scene-flex", "Scene flex layout", 4000, tracks, clips);
+}
+
 const out = path.join(root, "fixtures");
 for (const [name, doc] of [
   ["scene-groups.json", groupsFixture()],
   ["scene-easing.json", easingFixture()],
-  ["scene-transitions.json", transitionsFixture()]
+  ["scene-transitions.json", transitionsFixture()],
+  ["scene-flex.json", flexFixture()]
 ]) {
   fs.writeFileSync(path.join(out, name), `${JSON.stringify(doc, null, 2)}\n`);
   console.log(`wrote fixtures/${name}: ${doc.clips.length} clips`);

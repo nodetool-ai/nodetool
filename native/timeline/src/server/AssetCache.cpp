@@ -40,7 +40,9 @@ std::shared_ptr<std::mutex> folderMutex(const QString& dir) {
 }
 
 struct Attempt {
-    enum Kind { Complete, Restart, Fail, Redirect } kind = Fail;
+    enum Kind { Complete, Restart, Fail, Redirect };
+    Attempt(Kind k = Fail, QString why = {}) : kind(k), reason(std::move(why)) {}
+    Kind kind;
     QString reason;
     bool resumed = false;
     bool keepPartial = false;  // a transport failure mid-body leaves a valid prefix

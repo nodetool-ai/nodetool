@@ -62,6 +62,30 @@ void RulerCanvas::setFont(const QFont& f) {
     changedValue();
 }
 
+void RulerCanvas::setMarkerColor(const QColor& c) {
+    if (c == m_marker) return;
+    m_marker = c;
+    changedValue();
+}
+
+void RulerCanvas::setRangeInMs(double v) {
+    if (v == m_rangeInMs) return;
+    m_rangeInMs = v;
+    changedValue();
+}
+
+void RulerCanvas::setRangeOutMs(double v) {
+    if (v == m_rangeOutMs) return;
+    m_rangeOutMs = v;
+    changedValue();
+}
+
+void RulerCanvas::setMarkers(const QVariantList& markers) {
+    if (markers == m_markers) return;
+    m_markers = markers;
+    changedValue();
+}
+
 void RulerCanvas::paint(QPainter* painter) {
     ++m_paintCount;
     const double w = width();
@@ -71,6 +95,23 @@ void RulerCanvas::paint(QPainter* painter) {
         m_labelCount = 0;
         emit painted();
         return;
+    }
+    // In/out range: a band at 18 % from the in point (or 0) to the out point
+    // (or the right edge), with a 2 px line at each point that is set.
+    if (m_rangeInMs >= 0 || m_rangeOutMs >= 0) {
+        const double inPx = m_rangeInMs < 0 ? 0 : m_rangeInMs / m_msPerPx - m_scrollLeftPx;
+        const double outPx = m_rangeOutMs < 0 ? w : m_rangeOutMs / m_msPerPx - m_scrollLeftPx;
+        QColor band = m_marker;
+        band.setAlphaF(0.18 * m_marker.alphaF());
+        const double left = std::max(0.0, inPx);
+        painter->fillRect(QRectF(left, 0, std::min(w, outPx) - left, h), band);
+        QPen edge(m_marker);
+        edge.setWidthF(2.0);
+        painter->setPen(edge);
+        for (const double px : {m_rangeInMs < 0 ? -1.0 : inPx, m_rangeOutMs < 0 ? -1.0 : outPx}) {
+            if (px < 0 || px > w) continue;
+            painter->drawLine(QPointF(px, 0), QPointF(px, h));
+        }
     }
     const nt::ui::TickIntervals ticks = nt::ui::computeTickIntervals(m_msPerPx);
     const double visibleStartMs = m_scrollLeftPx * m_msPerPx;
@@ -97,6 +138,17 @@ void RulerCanvas::paint(QPainter* painter) {
         painter->drawText(QPointF(px + 3.0, 3.0 + metrics.ascent()),
                           nt::ui::formatRulerTimecode(tMs, ticks.majorMs, m_fps));
         ++labels;
+    }
+    // Markers: a full-height guide line; the flag is a QML item on top.
+    for (const QVariant& v : m_markers) {
+        const QVariantMap m = v.toMap();
+        const double px = m.value(QStringLiteral("timeMs")).toDouble() / m_msPerPx - m_scrollLeftPx;
+        if (px < 0 || px > w) continue;
+        const QString color = m.value(QStringLiteral("color")).toString();
+        QPen pen(color.isEmpty() ? m_marker : QColor(color));
+        pen.setWidthF(1.0);
+        painter->setPen(pen);
+        painter->drawLine(QPointF(px + 0.5, 0), QPointF(px + 0.5, h));
     }
     m_labelCount = labels;
     emit painted();

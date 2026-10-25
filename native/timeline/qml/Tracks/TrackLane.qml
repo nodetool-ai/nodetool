@@ -42,6 +42,9 @@ Rectangle {
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton
         onPressed: mouse => {
+            const atMs = Math.max(0, mouse.x * lane.viewState.msPerPx)
+            // Under a track select tool the press selects the block.
+            if (lane.gestures && lane.gestures.pressLane(lane.trackId, atMs, mouse.modifiers)) return
             // A press on the empty lane starts a marquee in the web, which
             // replaces the selection with what it covers: nothing yet.
             if (lane.gestures) lane.gestures.selection = []

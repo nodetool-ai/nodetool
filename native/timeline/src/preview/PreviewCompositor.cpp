@@ -60,6 +60,12 @@ float modeFor(nt::LayerFrame::Format f) {
     }
 }
 
+size_t surfaceBudgetBytes() {
+    bool ok = false;
+    const int mib = qEnvironmentVariableIntValue("NT_SURFACE_BUDGET_MIB", &ok);
+    return ok && mib > 0 ? static_cast<size_t>(mib) * 1024 * 1024 : nt::SurfacePool<int>::kDefaultBudgetBytes;
+}
+
 // Drop a clip's source when it has not drawn for this many frames.
 constexpr long long kEvictAfterFrames = 300;
 
@@ -112,6 +118,7 @@ private:
         std::unique_ptr<QRhiBuffer> ubuf;
         std::unique_ptr<QRhiShaderResourceBindings> srb;
         std::array<QRhiTexture*, 3> bound{};
+        bool ubufOk = false;
         long long lastUsedFrame = 0;
     };
 
@@ -156,13 +163,16 @@ private:
     std::shared_ptr<nt::hw::PlatformInterop> m_interop;
     std::unordered_map<std::string, SourceEntry> m_sources;
     nt::SourcePool m_pool;
-    nt::SurfacePool<Surface> m_surfaces{[this](QSize size) { return makeSurface(size); }};
+    // Budget: NT_SURFACE_BUDGET_MIB, else 512 MiB (D35).
+    nt::SurfacePool<Surface> m_surfaces{[this](QSize size) { return makeSurface(size); }, surfaceBudgetBytes()};
 
     // Snapshot from synchronize() (D8).
     std::shared_ptr<const nt::Timeline> m_timeline;
     double m_timeMs = 0.0;
     std::vector<nt::ActiveLayer> m_layers;
     std::vector<nt::PrecompositeLayer> m_precomposites;  // innermost first
+    std::string m_resourceError;  // the first GPU resource failure, for the GUI side
+    bool m_warnedOverBudget = false;
     QSize m_wantedCanvas{1920, 1080};
     double m_fps = 30.0;
     bool m_playing = false;
@@ -252,12 +262,12 @@ void PreviewCompositorRenderer::initialize(QRhiCommandBuffer*) {
         m_vs = loadShader(QStringLiteral(":/shaders/composite.vert.qsb"));
         m_fs = loadShader(QStringLiteral(":/shaders/composite.frag.qsb"));
         m_vbuf.reset(m_rhi->newBuffer(QRhiBuffer::Immutable, QRhiBuffer::VertexBuffer, sizeof(kQuad)));
-        m_vbuf->create();
+        if (!m_vbuf->create()) qFatal("vertex buffer create failed");
         m_sampler.reset(m_rhi->newSampler(QRhiSampler::Linear, QRhiSampler::Linear, QRhiSampler::None,
                                           QRhiSampler::ClampToEdge, QRhiSampler::ClampToEdge));
-        m_sampler->create();
+        if (!m_sampler->create()) qFatal("sampler create failed");
         m_blitUbuf.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, sizeof(LayerUniforms)));
-        m_blitUbuf->create();
+        if (!m_blitUbuf->create()) qFatal("uniform buffer create failed");
     }
     // The item's render target changes on resize; its pass descriptor stays
     // compatible, so the blit pipeline survives.
@@ -273,6 +283,9 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
     m_pendingStats.clear();
     m_collectStats = item->m_collectStats;
     item->m_openDecoders = m_pool.openDecoders();
+    if (!m_resourceError.empty() && item->m_renderError.isEmpty()) {
+        item->m_renderError = QString::fromStdString(m_resourceError);
+    }
     item->m_liveFrameRefs = nt::hw::FrameRef::live();
     item->m_renderThread = nt::cpu::currentThread();  // synchronize() runs on the render thread
     item->m_renderThreadQos = nt::cpu::currentThreadQos();
@@ -359,11 +372,11 @@ void PreviewCompositorRenderer::ensureCanvas() {
     // UsedAsTransferSource: stills read the canvas back (QRhi requires the flag).
     m_canvas.reset(m_rhi->newTexture(QRhiTexture::RGBA8, m_canvasSize, 1,
                                      QRhiTexture::RenderTarget | QRhiTexture::UsedAsTransferSource));
-    m_canvas->create();
+    if (!m_canvas->create()) qFatal("canvas texture create failed");
     m_canvasRt.reset(m_rhi->newTextureRenderTarget({m_canvas.get()}));
     m_canvasRp.reset(m_canvasRt->newCompatibleRenderPassDescriptor());
     m_canvasRt->setRenderPassDescriptor(m_canvasRp.get());
-    m_canvasRt->create();
+    if (!m_canvasRt->create()) qFatal("canvas render target create failed");
 
     // The blit samples the canvas, so its bindings follow the canvas texture.
     m_blitSrb.reset(m_rhi->newShaderResourceBindings());
@@ -378,12 +391,15 @@ void PreviewCompositorRenderer::ensureCanvas() {
         QRhiShaderResourceBinding::sampledTexture(3, QRhiShaderResourceBinding::FragmentStage, m_canvas.get(),
                                                   m_sampler.get()),
     });
-    m_blitSrb->create();
+    if (!m_blitSrb->create()) qFatal("canvas bindings create failed");
     m_canvasDrawn = false;
     m_layerPipeline = makePipeline(m_canvasRp.get(), true);
 }
 
 std::unique_ptr<PreviewCompositorRenderer::Surface> PreviewCompositorRenderer::makeSurface(QSize size) {
+    // Test seam: every surface allocation fails (scripts/check-group-surfaces.mjs).
+    static const bool failForTest = qEnvironmentVariableIsSet("NT_TEST_FAIL_SURFACES");
+    if (failForTest) return nullptr;
     auto s = std::make_unique<Surface>();
     s->texture.reset(m_rhi->newTexture(QRhiTexture::RGBA8, size, 1, QRhiTexture::RenderTarget));
     if (!s->texture->create()) return nullptr;
@@ -393,7 +409,7 @@ std::unique_ptr<PreviewCompositorRenderer::Surface> PreviewCompositorRenderer::m
     s->rt->setRenderPassDescriptor(m_canvasRp.get());
     if (!s->rt->create()) return nullptr;
     s->ubuf.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, sizeof(LayerUniforms)));
-    s->ubuf->create();
+    if (!s->ubuf->create()) return nullptr;
     s->srb.reset(m_rhi->newShaderResourceBindings());
     const auto stages = QRhiShaderResourceBinding::VertexStage | QRhiShaderResourceBinding::FragmentStage;
     s->srb->setBindings({
@@ -405,7 +421,7 @@ std::unique_ptr<PreviewCompositorRenderer::Surface> PreviewCompositorRenderer::m
         QRhiShaderResourceBinding::sampledTexture(3, QRhiShaderResourceBinding::FragmentStage, s->texture.get(),
                                                   m_sampler.get()),
     });
-    s->srb->create();
+    if (!s->srb->create()) return nullptr;
     return s;
 }
 
@@ -427,7 +443,7 @@ PreviewCompositorRenderer::SourceEntry& PreviewCompositorRenderer::entryFor(cons
             QSize(layer.sourceWidth, layer.sourceHeight), m_fps);
     }
     e.ubuf.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, sizeof(LayerUniforms)));
-    e.ubuf->create();
+    e.ubufOk = e.ubuf->create();
     e.srb.reset(m_rhi->newShaderResourceBindings());
     return m_sources.emplace(layer.clipId, std::move(e)).first->second;
 }
@@ -464,6 +480,16 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     fctx.retire = &m_retire;
     fctx.interop = m_interop.get();
     int cpuCopies = 0;
+    // GPU resources this frame could not create: the frame is incomplete,
+    // never exact, and the first reason is kept for the stills (F1).
+    int resourceFailures = 0;
+    const auto resourceFailed = [&](const std::string& what) {
+        ++resourceFailures;
+        if (m_resourceError.empty()) {
+            m_resourceError = what;
+            std::fprintf(stderr, "error: %s\n", what.c_str());
+        }
+    };
     int hardwareLayers = 0;
 
     const QMatrix4x4 corr = m_rhi->clipSpaceCorrMatrix();
@@ -530,6 +556,10 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
         for (auto& p : planes) {
             if (!p) p = frame.planes[0];  // unused samplers still need a texture
         }
+        if (!e.ubufOk) {
+            resourceFailed("cannot create the uniform buffer of clip " + layer.clipId);
+            continue;
+        }
         if (e.bound != planes) {
             e.srb->setBindings({
                 QRhiShaderResourceBinding::uniformBuffer(0, QRhiShaderResourceBinding::VertexStage |
@@ -542,7 +572,11 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
                 QRhiShaderResourceBinding::sampledTexture(3, QRhiShaderResourceBinding::FragmentStage, planes[2],
                                                           m_sampler.get()),
             });
-            e.srb->create();
+            if (!e.srb->create()) {
+                e.bound = {};
+                resourceFailed("cannot create the bindings of clip " + layer.clipId);
+                continue;
+            }
             e.bound = planes;
         }
         // The cut geometry and the group's matrix included (DESIGN.md D35).
@@ -575,7 +609,11 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     for (const nt::PrecompositeLayer& pc : m_precomposites) {
         if (!hasItems(pc.clipId)) continue;  // nothing drawn: no target
         Surface* surface = m_surfaces.acquire(m_canvasSize, m_frame);
-        if (!surface) continue;
+        if (!surface) {
+            // The group and everything in it are missing from this frame.
+            resourceFailed("cannot allocate the surface of group " + pc.clipId);
+            continue;
+        }
         // Frame-sized, so only the group's cut moves it; its matrix already
         // rode into each child.
         nt::ActiveLayer placement;
@@ -639,7 +677,7 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     // Stills: read the canvas back once every layer shows its exact frame.
     // An immediate capture takes this frame as it is (the first picture at a
     // cut during playback); a settled one waits for every exact frame.
-    const bool settled = allExact && missing == 0 && !held;
+    const bool settled = allExact && missing == 0 && !held && resourceFailures == 0;
     m_waitingForFrames = m_captureWanted && !m_captureImmediate && !settled;
     if (m_captureWanted && !m_captureInFlight && (m_captureImmediate || settled)) {
         m_captureWanted = false;
@@ -712,7 +750,15 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     stat.cpuCopies = cpuCopies;
     stat.hardwareLayers = hardwareLayers;
     stat.liveFrameRefs = nt::hw::FrameRef::live();
-    stat.allExact = allExact && missing == 0;
+    stat.allExact = allExact && missing == 0 && resourceFailures == 0;
+    stat.resourceFailures = resourceFailures;
+    stat.surfaceBytes = static_cast<long long>(m_surfaces.bytes());
+    stat.surfaceOverBudget = m_surfaces.lastFrameOverBudget();
+    if (stat.surfaceOverBudget && !m_warnedOverBudget) {
+        m_warnedOverBudget = true;
+        std::fprintf(stderr, "warning: group surfaces need more than the %zu MiB budget in one frame\n",
+                     m_surfaces.budgetBytes() / (1024 * 1024));
+    }
     stat.missingMediaLayers = missingMedia;
     stat.timeMs = m_timeMs;
     stat.openDecoders = m_pool.openDecoders();

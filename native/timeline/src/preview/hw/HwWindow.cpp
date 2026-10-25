@@ -7,7 +7,12 @@
 #include <QQuickWindow>
 #include <QSGRendererInterface>
 
-#if NT_HW_VAAPI
+// A Vulkan scene graph (Linux CI on lavapipe with QSG_RHI_BACKEND=vulkan,
+// or the VAAPI path) needs a QVulkanInstance on the window before
+// QQuickRenderControl::initialize() or show(). Wherever the Vulkan headers
+// exist, prepareWindow() attaches one when the scene graph uses Vulkan.
+#if __has_include(<vulkan/vulkan.h>)
+#define NT_WINDOW_VULKAN 1
 #include <QVulkanInstance>
 #include <QtGlobal>
 #endif
@@ -20,9 +25,13 @@
 
 namespace nt::hw {
 
-#if NT_HW_VAAPI
-
 namespace {
+#if NT_WINDOW_VULKAN
+bool usesVulkan() {
+    return QQuickWindow::graphicsApi() == QSGRendererInterface::Vulkan ||
+           qEnvironmentVariable("QSG_RHI_BACKEND") == QLatin1String("vulkan");
+}
+
 QVulkanInstance* sharedInstance() {
     static QVulkanInstance* instance = []() {
         auto* inst = new QVulkanInstance();  // lives for the process
@@ -36,7 +45,21 @@ QVulkanInstance* sharedInstance() {
     }();
     return instance;
 }
+
+// Returns true when the window renders with Vulkan (an instance is attached).
+bool attachVulkan(QQuickWindow* window) {
+    if (!usesVulkan()) return false;
+    if (QVulkanInstance* inst = sharedInstance()) window->setVulkanInstance(inst);
+    return true;
+}
+#else
+bool attachVulkan(QQuickWindow*) {
+    return false;
+}
+#endif
 }  // namespace
+
+#if NT_HW_VAAPI
 
 void selectGraphicsApi(bool hardwareDecode) {
     if (hardwareDecode && qEnvironmentVariableIsEmpty("QSG_RHI_BACKEND")) {
@@ -45,8 +68,7 @@ void selectGraphicsApi(bool hardwareDecode) {
 }
 
 void prepareWindow(QQuickWindow* window) {
-    if (QQuickWindow::graphicsApi() != QSGRendererInterface::Vulkan) return;
-    if (QVulkanInstance* inst = sharedInstance()) window->setVulkanInstance(inst);
+    if (!attachVulkan(window)) return;
     QQuickGraphicsConfiguration config = window->graphicsConfiguration();
     config.setDeviceExtensions(VulkanInterop::requiredDeviceExtensions());
     window->setGraphicsConfiguration(config);
@@ -57,6 +79,7 @@ void prepareWindow(QQuickWindow* window) {
 void selectGraphicsApi(bool) {}
 
 void prepareWindow(QQuickWindow* window) {
+    if (attachVulkan(window)) return;
     if (QQuickWindow::graphicsApi() != QSGRendererInterface::Direct3D11) return;
     ID3D11Device* device = nullptr;
     ID3D11DeviceContext* context = nullptr;
@@ -72,7 +95,9 @@ void prepareWindow(QQuickWindow* window) {
 
 void selectGraphicsApi(bool) {}
 
-void prepareWindow(QQuickWindow*) {}
+void prepareWindow(QQuickWindow* window) {
+    attachVulkan(window);
+}
 
 #endif
 

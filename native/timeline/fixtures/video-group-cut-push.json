@@ -1,0 +1,122 @@
+{
+  "id": "seq-group-cut",
+  "projectId": "native-prototype",
+  "name": "Group surface cut geometry",
+  "fps": 30,
+  "width": 1280,
+  "height": 720,
+  "durationMs": 1000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "t0",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t1",
+      "name": "t1",
+      "type": "video",
+      "index": 1,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t2",
+      "name": "t2",
+      "type": "video",
+      "index": 2,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "g",
+      "trackId": "t0",
+      "name": "g",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "group",
+      "sourceType": "imported",
+      "status": "draft",
+      "locked": false,
+      "versions": [],
+      "opacity": 1,
+      "transitionIn": {
+        "type": "push",
+        "durationMs": 900,
+        "direction": "right"
+      }
+    },
+    {
+      "id": "a",
+      "trackId": "t1",
+      "name": "a",
+      "startMs": 0,
+      "durationMs": 1000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "media/rgb-solid-720p.mp4",
+      "parentId": "g",
+      "transform": {
+        "position": {
+          "x": -160,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "b",
+      "trackId": "t2",
+      "name": "b",
+      "startMs": 0,
+      "durationMs": 1000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "media/rgb-solid-720p.mp4",
+      "parentId": "g",
+      "transform": {
+        "position": {
+          "x": 160,
+          "y": 0
+        },
+        "scale": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z"
+}

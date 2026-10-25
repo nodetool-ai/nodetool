@@ -560,6 +560,7 @@ private slots:
             ++checked;
             QCOMPARE(std::lround(f->ptsSec * 30.0), static_cast<long>(n));
         }
+        qInfo("successor proofs checked: %d", checked);
         QVERIFY2(checked > 0, "no successor proof was checked");
     }
 

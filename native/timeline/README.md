@@ -93,13 +93,13 @@ OFL, in `fonts/`) and the Material icon paths in `qml/Icons.qml`
   holds the clips inside the viewport plus 320 px on each side, and the clip
   under a drag (pinned until the drop).
 - The playhead is the only item bound to the clock (D30).
-- A clip drag moves the clip with `TimelineModel::moveClip` on the drop; the
-  undo stack and the other edits are M4.
+- Clip drags, trims and the editing keys are M4 (below).
 
 ```bash
 ./build/tst_tracksui        # offscreen: QT_QPA_PLATFORM=offscreen, software scene graph
 ./build/tst_timelinewheel   # the pure math, with the web test cases
 node scripts/make-ui-fixture.mjs   # fixtures/generated/ui-200tracks.json: 200 tracks, 2000 clips
+node scripts/make-ui-fixture.mjs --audio-media   # the same with a waveform on each audio clip
 ./build/nodetool-timeline fixtures/generated/ui-200tracks.json --ui-bench --size 1920x1080 --ui-gui-p95 8
 ```
 
@@ -120,11 +120,74 @@ of the GUI thread: `inputMs` (the clock tick and the synthetic events),
 `polishMs`, `syncMs`, `renderMs`; `guiMs` is input + polish + sync, the GUI
 thread's share of a frame in a threaded render loop. This mode (`mode:
 offscreen-throughput`) has no vsync and does not measure the presentation
-rate. Sampling starts once the 4 media layers draw decoded frames, and the
-run fails (exit 1) unless 95% of the measured frames drew them and the shown
-time moved (`preview`). `--ui-gui-p95 MS` fails the run at or over the limit.
+rate. Sampling starts once the newest frame draws every media layer (at
+least 4) within one frame of its expected frame, the same rule the run
+counts, and the run fails (exit 1) unless 95% of the measured frames drew
+them and the shown time moved (`preview`). A hardware decoder that opens
+mid-GOP shows the keyframe before its in-point while it catches up, so the
+measured range waits for that. `NT_UIBENCH_MISSES=1` prints each measured
+frame that missed, with its layer counts and frame error. `--ui-gui-p95 MS` fails the run at or over the limit.
 `--ui-window` runs the same script in a window, adds `frameIntervalMs`, and
 is run only by `scripts/window-checks.sh`.
+
+### Toolbar, clip pictures, markers, save state (M2b)
+
+- Toolbar (`ToolToggle.tsx`): the ten pointer tools in Premiere's order, the
+  Ripple toggle, the drop modes (one exclusive choice), Snap, Linked and
+  Follow, then Help and the zoom. The tooltips show the shortcut of the
+  keyboard layout. The row drops its labels when it overflows and takes them
+  back only when the bar is as wide as the labelled row was
+  (`toolbarFit.ts`). The tools act as on the web: Cut splits at the pointer,
+  Slip moves the source (`planSlip`), Slide trims the neighbours
+  (`slideClip`), Track select selects from the pointer on (Shift: that
+  track), Rate stretch turns an edge drag into a speed change
+  (`rateStretchClip`), Hand drags the lanes, Zoom zooms x0.5 at the click
+  (Alt: x2). `op-conformance.mjs` runs the package's `rateStretch` and
+  `slideEdit` tests against the native ops, and the store differential
+  covers `rateStretchClip`, `slideClip` and `planSlip`.
+- Help (`?` or the button) opens the shortcut sheet of
+  `TimelineShortcutsDialog.tsx`. `scripts/extract-keymap.mjs` reads its
+  groups and the English strings into `KeymapData.h`, next to the keymap.
+  A row the native editor does not run yet is dimmed and says so
+  (`ClipGestureController::availableActions`).
+- Clip pictures (`src/ui/MediaPreviews`): the waveform of an audio clip and
+  the filmstrip of a video clip (the picture of an image clip). The peaks are
+  the server's (`audio-peaks.ts`: channel 0, block maxima, 2000 peaks rounded
+  to 1/10000). The thumbnails are `clipThumbnails.ts`'s (24 frames at
+  i / 23 of the length, 160 px wide, in one atlas built on the worker). Both
+  decode off the GUI thread, two files at a time, into a process cache keyed
+  by file version (path, size, modification time), so a file replaced in
+  place decodes again and a completion for an old version is dropped. Each
+  request names its item. A job whose items are all gone is dropped, or
+  interrupted when it runs. The cache keeps the thumbnails of the 32 most
+  recent files, and a failure retries after 30 s. The waveform is one
+  geometry node and the filmstrip texture nodes over one shared texture per
+  atlas and window. Unused textures are freed beyond a 64 MiB budget. Both
+  draw only the part of the clip within one viewport of the view, so a long
+  clip at the finest zoom costs no more than a short one. Playback repaints
+  nothing (D30).
+  `node scripts/peaks-check.mjs SERVER TIMELINE_ID` compares the native
+  peaks with the server's route for every audio asset of a timeline opened
+  once with `--server` (`--peaks FILE` prints the native ones).
+- Markers and the in/out range: `M` adds a marker at the playhead (an undo
+  entry on the raw `markers` array), Shift+M and Ctrl+Shift+M go to the next
+  and previous one, a flag's label seeks and its x deletes it. I and O set
+  the range (view state, as the web's playback store), X marks the selection
+  or the clip under the playhead, Shift+I and Shift+O go to it, Ctrl+Shift+X
+  clears it. The ruler draws the band and the marker
+  lines.
+- Save state of a server timeline (`autosave`, M5b): the document bar shows
+  the name, the save state (Saved, Unsaved changes, Saving..., Not saved)
+  and Undo and Redo. A conflict shows a warning banner with `lastError`. A
+  stripped save shows a dismissible banner that lists the fields. A banner
+  names a recovery copy only through the controller's `keptCopy` and
+  `recoveryError`, which it does not expose yet.
+
+Not here yet: loop and play-in-to-out (the clock has no range), the Bars
+ruler and the grid division (no tempo grid), Generate,
+Add text and the Script toggle, the web's per-change conflict merge (Accept
+and Discard), and Retry on a failed save (the controller has no invokable
+save).
 
 ## Editing (M4)
 
@@ -577,6 +640,62 @@ audio). `scripts/make-audio-soak.mjs` writes the soak fixture (4 video
 tracks and 8 audio clips at every moment) and, with `--kind av-sync`, a
 long flash-and-beep fixture.
 
+## Platforms and packaging (M6)
+
+```bash
+scripts/package-macos.sh          # build-package/NodeTool Timeline.app
+scripts/check-package-macos.sh    # verifies a copy of it in a temp folder
+scripts/check-portable.sh         # the non-Apple code, as far as macOS can build it
+scripts/build-ffmpeg-lgpl.sh      # FFmpeg 8.0 as LGPL shared libraries
+```
+
+Hardware decode sits behind one compile-time seam,
+`src/preview/hw/HwInterop.h`: VideoToolbox on macOS, D3D11VA on Windows
+(`D3D11Interop`: a GPU copy of each slice of the decoder's texture array
+into one NV12 texture, wrapped as R8 and RG8), VAAPI on Linux
+(`VulkanInterop`: DMA-BUF planes imported into the QRhi's Vulkan device),
+or none. `HwWindow` picks the graphics API and the shared device. Any
+hardware failure before the first frame falls back to software (D15).
+
+- **macOS package.** `package-macos.sh` builds with the LGPL FFmpeg only
+  (pkg-config sees no other), runs `macdeployqt` with the QML imports,
+  rewrites the absolute paths that Homebrew's split Qt kegs leave, drops
+  every rpath that leaves the bundle and every plug-in or QML module whose
+  libraries the bundle does not have (`scripts/macho-deps.py prune`: QtPdf,
+  the virtual keyboard, Qt 3D), adds the full licence texts (`licenses/`,
+  the FFmpeg source's, miniaudio's, the fonts') and
+  `Contents/Resources/source/` (the FFmpeg source tarball and
+  `SOURCES.txt`: FFmpeg's configuration, Qt's source archives with their
+  checksums), and renews the ad-hoc signatures. The bundle has no identity signature and no notarization:
+  that is a release step for the owner of a Developer ID.
+  `check-package-macos.sh` copies the bundle to a temp folder and fails on
+  any library path or rpath outside the bundle and the system, any
+  `@rpath`, `@loader_path` or `@executable_path` reference that does not
+  resolve to a file inside the bundle (`macho-deps.py check`), a dangling
+  link, a missing licence text or source, an FFmpeg that is not LGPL or
+  carries `--enable-gpl`, an identity signature or a stapled ticket, and checks
+  that the copy runs headless (`--audio-dry-run`, `--dump-plan`,
+  `--probe-media`, `--screenshot` of the QML editor, `--stills` with
+  `DYLD_PRINT_LIBRARIES`) with stills equal
+  to the development build's. Do not open the bundle with `open` or Finder
+  in an automated run: the editor would play sound.
+- **Portable code on macOS.** `-DNT_PORTABLE=ON` builds without VideoToolbox
+  and with the portable platform code (`src/platform/PlatformStubs.cpp`, the
+  non-mach CPU counters). Its ctest runs; the hardware tests skip, as they
+  do anywhere with `NT_NO_HW_DECODE=1`. `-DNT_CHECK_VULKAN_HEADERS=DIR`
+  compiles the Linux hardware path against Qt's Vulkan API (objects only).
+- **Not compiled yet.** The Windows path needs the Windows SDK; the Linux
+  path has not been linked or run on Linux. `.github/workflows/native-timeline.yml`
+  builds and runs the headless ctest on macOS (the Cocoa platform: the
+  offscreen platform has no Metal QRhi), Linux (Qt offscreen, Vulkan on Mesa
+  lavapipe, with a `QVulkanInstance` attached by `hw::prepareWindow`) and
+  Windows (offscreen, D3D11), and packages the macOS app. It also holds a
+  Windows `windeployqt` package and a Linux AppImage step, both unverified.
+  The workflow has not run.
+- **Budgets.** `bench/budgets-<platform>-m1b.json` and `-m1c.json` carry the
+  macOS measurements and a `_machine` record to fill in on the reference
+  Windows and Linux machines. Keys that start with `_` are not budgets.
+
 ## Plan check
 
 ```bash
@@ -603,22 +722,50 @@ schema. It exits non-zero on a schema error or a mismatch, and when it compared
 0 layers. It checks that every native layer has finite numbers and a 16-element
 matrix before it compares, and counts a layer only when every value matches.
 `--json` prints one object with the verdict and the result per fixture.
+Without `--bin` it runs the most recently built `build*/nodetool-timeline`.
+It refuses (exit 2) a binary older than any source of the plan (`src/scene`,
+`src/preview`, `src/model`, `src/server`, `src/main.cpp`, `third_party/yoga`),
+and names the newest such file.
 
 The excluded clips and their reasons must equal `fixtures/plan/exclusions.json`
-(rewrite it with `--update-exclusions` after a deliberate change), and the
-flex exclusions must equal the flex trees the script finds itself. The times
+(rewrite it with `--update-exclusions` after a deliberate change). A flex
+reason fails the run, since flex is ported. The script audits every excluded
+clip: it compares the clip's own layers and surfaces and those of its
+descendants (so a group is judged by what it places), and an excluded clip
+whose evidence all matches fails the run as a stale exclusion. An excluded
+clip with nothing drawn at the sampled times is listed as having no coverage.
+A clip excluded only for a `line` stagger is compared as usual: the oracle
+has no text measurer, so both sides count explicit line breaks, and the
+result lists the measured wrapping as unverified. Each layer a flex group
+resized also carries `flexShapeBox` or `flexTextMaxWidthFrac`, compared with
+the web's resized shape or text style. The times
 are a 100 ms grid plus ±1 ms around every clip edge, cut end, animation window
 edge, keyframe and loop seam. `tests/tst_easing.cpp` compares every easing
 with the web's values from `scripts/ease-vectors.mjs`, inside and outside
 [0, 1].
 
 Clips with a plan-level unsupported field (`planUnsupported` in the dump:
-flex layout, animation links, the `followPath` preset, `line` staggers, beats,
+animation links, the `followPath` preset, `line` staggers, beats,
 track automation, track bindings, own or inherited from a group) are left out
 on both sides; the result says how many. The `scene-*` fixtures cover nested
 groups, precomposites, a parent cycle, the scene camera, 2.5D transforms, a
 matte, a caption, every easing and ported preset, repeaters, echoes, stepped
-time, a source-time curve, staggers, and every transition type.
+time, a source-time curve, staggers, every transition type, and flex groups
+(`scene-flex.json`: wrap, justify and align values, percent and min/max sizes,
+absolute children, nested and rotated containers, path leaves, animated text).
+
+The flex layout (`src/scene/FlexLayout`) runs the web's algorithm on Yoga
+3.2.1, the C++ source of the `yoga-layout` npm package, built without fused
+multiply-add so its float rounding matches the WebAssembly build. Text leaves
+measure with the scene model's fallback rule (`text.length * fontSizePx *
+0.6`), the rule the oracle uses; the browser measures with its fonts, so a
+flex tree with text can sit differently in the web editor than in this
+prototype.
+
+The layout is cached (`flexLayoutFor` in SceneEval) by document revision,
+canvas size and the animated text styles, as `layout.ts` caches it by the clips
+array. `TimelineModel` gives every new snapshot a new `Timeline::revision`; a
+revision of 0 (a document no model owns) is never cached.
 
 ## Golden import
 
@@ -638,6 +785,36 @@ overlaps the NodeTool data, asset or database folder, the fixture folder, the
 sources outside `build/`, or the repository. It exits 1 when the fixture fails the
 Zod check, a media file is missing, a clip was skipped, or a still is missing.
 `--frames` and `--out` change the selection and the output folder.
+
+Group surfaces (DESIGN.md D35) against the export:
+
+```bash
+node native/timeline/scripts/check-group-surfaces.mjs [--decode auto] [--json]
+```
+
+For each fixture it runs `compare-golden.mjs` (PSNR at least 40 dB) and checks
+how many surfaces the frame drew (the scrub runner's `frames` report). Then it
+injects a surface allocation failure (`NT_TEST_FAIL_SURFACES=1`): the frame
+must not be exact, must report the failure, and a still run must exit 1.
+
+- `video-group-opacity.json`: two overlapping opaque children in a group at
+  opacity 0.5. The overlap covers 0.5, not the 0.75 that drawing each child
+  at half opacity gives.
+- `video-group-stacking.json`: the group's surface stacks at the group's
+  track, below an unrelated clip that sits between its children's tracks.
+- `video-group-cut-push.json`, `video-group-cut-zoom.json`: the group's cut
+  moves and scales the composed group.
+- `video-group-nested.json`: a group at 0.7 holds a group at 0.6 with two
+  children at 0.5, over colour bars (2 surfaces).
+- `video-group-tie.json`, `video-group-tie-below.json`: a group and a clip at
+  the same track and start; the stack order sets which one is on top.
+- `video-group-empty.json`: a group with no active child draws no surface.
+
+Their children use RGB H.264 (`rgb-solid-720p.mp4`), which VideoToolbox does
+not decode, so `--decode hw` shows placeholders by design. Use `auto`.
+`check-metal-validation.sh <fixture> <frames>` runs the Metal layer on any
+fixture, and the scrub report's `surfaces` field gives the surfaces drawn per
+frame and the render targets the pool created and holds.
 
 ## Server open
 
@@ -774,6 +951,8 @@ can write back the fields the model does not own.
 | `src/playback/AudioClockFeed` | The seqlocked state between the clock and the device callback, and the callback half of the clock (`CallbackClockDriver`) |
 | `src/audio/` | `AudioEngine` (miniaudio device, decode worker, PCM rings), `Mixer` (the mix rules and `mixBlock`), `FadeCurves`, `AudioSource` (FFmpeg and libswresample), `OutputLatency` (CoreAudio), `LoopbackCapture`, the audio CLI modes |
 | `third_party/miniaudio.h` | miniaudio 0.11.22, one header (MIT No Attribution or public domain) |
+| `third_party/yoga/` | Yoga 3.2.1, the flex layout engine (MIT, `LICENSE`), unchanged |
+| `src/scene/FlexLayout`, `TextBlock`, `TextAnimation`, `SvgPath` | Flex layout, the text block box, animated text styles and SVG path bounds, ported from `@nodetool-ai/timeline` |
 | `src/preview/SceneEval` | `activeLayersAt(timeline, t)` and the layer matrix. Pure functions |
 | `src/preview/PreviewCompositor` | `QQuickRhiItem`: layers into a canvas texture, then the canvas letterboxed into the item |
 | `src/preview/LayerSource.h` | The per-clip source interface. `SyntheticSource` and `FfmpegSource` implement it |
@@ -781,6 +960,9 @@ can write back the fields the model does not own.
 | `src/preview/FrameRing` | The decode-ahead queue and the frame-pick rules. Pure rules, unit tested |
 | `src/preview/YuvFormat` | YUV to RGB matrices for BT.709 and BT.601, limited and full range |
 | `src/preview/hw/VideoToolboxInterop` | `CVMetalTextureCache` and `QRhiTexture::createFrom` wrappers for VideoToolbox frames; `FrameRef` |
+| `src/preview/hw/HwInterop`, `HwWindow` | The hardware decode seam (D15, M6): decoder setup, frame checks and wrapping per platform; graphics API and shared device |
+| `src/preview/hw/D3D11Interop`, `VulkanInterop` | Windows D3D11VA and Linux VAAPI-to-Vulkan frame import (not compiled for their platforms yet) |
+| `src/platform/PlatformStubs.cpp` | Linux and Windows: no-op App Nap and occlusion hooks |
 | `src/preview/RetireQueue.h` | Releases a replaced frame's GPU resources after `FramesInFlight` frames (D11) |
 | `src/platform/` | `ProcessActivity` (no App Nap during measured runs) and `CpuUsage` (process and thread CPU time) |
 | `src/server/` | `ServerClient` (tRPC GET), `AssetCache` (D33 disk cache, Range resume), `FieldAudit` and `ServerTimeline` (the loader report), `ServerSource` (the `--server` arguments) |

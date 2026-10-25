@@ -46,6 +46,21 @@ private slots:
         QVERIFY(path.endsWith(QStringLiteral("fixtures/media/background-1080p.mp4")));
     }
 
+    // `audioPath` (prototype-only, like `mediaPath`): the file the sound
+    // reads when `mediaPath` is a video proxy with no audio (M5a, review F11).
+    void resolvesAudioPathAgainstFixtureDir() {
+        const auto r = nt::loadTimelineFile(QStringLiteral(NT_FIXTURES_DIR "/audio-proxy.json"));
+        QVERIFY2(r.timeline.has_value(), qPrintable(r.error));
+        const nt::Clip& proxied = r.timeline->clips[0];
+        QVERIFY(QString::fromStdString(proxied.mediaPath).endsWith(QStringLiteral("fixtures/media/numbered-a-1080p30.mp4")));
+        const QString audio = QString::fromStdString(proxied.audioPath);
+        QVERIFY(QFileInfo(audio).isAbsolute());
+        QVERIFY(audio.endsWith(QStringLiteral("fixtures/media/tone-lr-48k-stereo.wav")));
+        const nt::Clip& audioOnly = r.timeline->clips[1];
+        QVERIFY(audioOnly.mediaPath.empty());
+        QVERIFY(QString::fromStdString(audioOnly.audioPath).endsWith(QStringLiteral("fixtures/media/tone-220-48k-mono.wav")));
+    }
+
     void defaultsOptionalFields() {
         const QByteArray json = R"({"id":"s","name":"n","fps":24,"width":640,"height":360,"durationMs":1000,
             "tracks":[{"id":"t","name":"T","type":"video","index":0,"visible":true,"locked":false}],

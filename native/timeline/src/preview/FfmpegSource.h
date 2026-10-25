@@ -179,6 +179,9 @@ private:
     int m_failHardwareOnOpen = -1;  // test seam
     int m_stallAfterPackets = -1;   // test seam
     int m_frameLossAfterFrames = -1;  // test seam
+    // Catch-up skipping of non-reference frames (D19). NT_DECODE_SKIP=off
+    // turns it off, for the latency A/B in scripts/window-checks.sh.
+    bool m_skipNonReference = true;
     FrameRing<DecodedFrame> m_ring;
 
     // Requests from the render thread.

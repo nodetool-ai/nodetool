@@ -5,15 +5,18 @@
 #include <QHash>
 #include <QJsonDocument>
 #include <QUndoCommand>
+#include <QUuid>
 
 #include <algorithm>
+#include <cmath>
 
 namespace {
 
-// The media identity of a clip: what decides which file a loader resolves.
+// The media identity of a clip: every field that decides which files a
+// loader resolves (the picture, the sound and the asset).
 QString mediaKey(const QJsonObject& raw) {
     return raw.value(u"mediaType").toString() + QChar(0x1f) + raw.value(u"mediaPath").toString() + QChar(0x1f) +
-           raw.value(u"currentAssetId").toString();
+           raw.value(u"audioPath").toString() + QChar(0x1f) + raw.value(u"currentAssetId").toString();
 }
 
 // One edit of the clips array: undo restores the array that was there.
@@ -45,6 +48,20 @@ private:
     bool m_continuation;
 };
 
+// One edit of the `markers` array.
+class MarkersCommand : public QUndoCommand {
+public:
+    MarkersCommand(TimelineModel* model, QJsonArray before, QJsonArray after, const QString& text)
+        : QUndoCommand(text), m_model(model), m_before(std::move(before)), m_after(std::move(after)) {}
+    void redo() override { m_model->replaceMarkers(m_after); }
+    void undo() override { m_model->replaceMarkers(m_before); }
+
+private:
+    TimelineModel* m_model;
+    QJsonArray m_before;
+    QJsonArray m_after;
+};
+
 }  // namespace
 
 TimelineModel::TimelineModel(QObject* parent)
@@ -58,6 +75,7 @@ void TimelineModel::setTimeline(nt::Timeline timeline) {
     for (const auto& c : timeline.clips) {
         if (!c.mediaPath.empty() || !c.audioPath.empty()) m_media.insert(mediaKey(c.raw), {c.mediaPath, c.audioPath});
     }
+    timeline.revision = nt::nextTimelineRevision();
     m_timeline = std::make_shared<const nt::Timeline>(std::move(timeline));
     ++m_generation;
     emit documentReplaced();
@@ -67,6 +85,7 @@ void TimelineModel::setTimeline(nt::Timeline timeline) {
     // reset must drop the old snapshot.
     emit clipsChanged();
     emit timelineChanged();
+    emit markersChanged();
 }
 
 double TimelineModel::contentEndMs() const {
@@ -141,6 +160,7 @@ bool TimelineModel::replaceClips(const QJsonArray& clips) {
     nt::Timeline full = old;
     full.raw = raw;
     full.clips = std::move(nextClips);
+    full.revision = nt::nextTimelineRevision();
     m_timeline = std::make_shared<const nt::Timeline>(std::move(full));
     m_tracks->rebind(m_timeline.get());
     emit clipsChanged();
@@ -165,6 +185,47 @@ bool TimelineModel::moveClip(const QString& clipId, double startMs) {
         return commitEdit(QStringLiteral("Move clip"), clipsJson(), clips);
     }
     return false;
+}
+
+QJsonArray TimelineModel::markersJson() const {
+    return m_timeline->raw.value(u"markers").toArray();
+}
+
+QVariantList TimelineModel::markers() const {
+    return markersJson().toVariantList();
+}
+
+bool TimelineModel::replaceMarkers(const QJsonArray& markers) {
+    if (markers == markersJson()) return false;
+    nt::Timeline next = *m_timeline;
+    next.raw.insert(QStringLiteral("markers"), markers);
+    next.revision = nt::nextTimelineRevision();
+    m_timeline = std::make_shared<const nt::Timeline>(std::move(next));
+    m_tracks->rebind(m_timeline.get());
+    emit markersChanged();
+    return true;
+}
+
+QString TimelineModel::addMarker(double timeMs, const QString& label) {
+    // makeMarker: a fresh id, the time rounded to whole ms and not negative.
+    const QString id = QUuid::createUuid().toString(QUuid::Id128);
+    QJsonArray after = markersJson();
+    after.append(QJsonObject{{QStringLiteral("id"), id},
+                             {QStringLiteral("timeMs"), std::max(0.0, std::round(timeMs))},
+                             {QStringLiteral("label"), label}});
+    m_undo->push(new MarkersCommand(this, markersJson(), after, QStringLiteral("Add marker")));
+    return id;
+}
+
+bool TimelineModel::deleteMarker(const QString& markerId) {
+    QJsonArray after;
+    const QJsonArray before = markersJson();
+    for (const QJsonValue& m : before) {
+        if (m.toObject().value(u"id").toString() != markerId) after.append(m);
+    }
+    if (after.size() == before.size()) return false;
+    m_undo->push(new MarkersCommand(this, before, after, QStringLiteral("Delete marker")));
+    return true;
 }
 
 void TimelineModel::close() {

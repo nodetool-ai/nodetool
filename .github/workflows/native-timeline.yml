@@ -1,0 +1,188 @@
+# Native timeline prototype (native/timeline/, PLAN M6): build and run the
+# headless ctest suite on macOS, Linux and Windows. No test opens a window or
+# plays a sound: rendering is offscreen (Metal on macOS, Mesa lavapipe for
+# Vulkan on Linux, WARP for D3D11 on Windows) and audio runs on miniaudio's
+# null backend. Hosted runners have no hardware video decoder, so the
+# hardware decode tests are skipped (NT_NO_HW_DECODE=1); the benches and the
+# window checks (scripts/window-checks.sh) need a reference machine.
+name: Native timeline
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "native/timeline/**"
+      - ".github/workflows/native-timeline.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-timeline-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  QT_VERSION: "6.12.0"
+  NT_NO_HW_DECODE: "1"
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: macOS
+            os: macos-14
+          - name: Linux
+            os: ubuntu-24.04
+          - name: Windows
+            os: windows-2022
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: ".nvmrc"
+
+      # The fade vectors, the mix reference and the plan check import the
+      # TypeScript timeline package.
+      - name: Build the TypeScript timeline packages
+        run: |
+          npm ci --ignore-scripts
+          npm run build --workspace=packages/protocol --workspace=packages/timeline
+
+      - name: Install dependencies (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          brew install qt ninja pkgconf ffmpeg
+          echo "QT_PREFIX=$(brew --prefix qt)" >> "$GITHUB_ENV"
+
+      - name: Install dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build pkg-config nasm ffmpeg libva-dev libvulkan-dev \
+            mesa-vulkan-drivers libgl1-mesa-dev libxkbcommon-dev libfontconfig1-dev libegl1 \
+            libasound2-dev libpulse-dev
+          pipx run aqtinstall install-qt linux desktop "$QT_VERSION" linux_gcc_64 -m qtshadertools -O "$RUNNER_TEMP/qt"
+          echo "QT_PREFIX=$RUNNER_TEMP/qt/$QT_VERSION/gcc_64" >> "$GITHUB_ENV"
+          # FFmpeg as LGPL shared libraries, as the packages ship it.
+          native/timeline/scripts/build-ffmpeg-lgpl.sh
+          echo "PKG_CONFIG_PATH=$GITHUB_WORKSPACE/native/timeline/build-ffmpeg-lgpl/install/lib/pkgconfig" >> "$GITHUB_ENV"
+          echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/native/timeline/build-ffmpeg-lgpl/install/lib" >> "$GITHUB_ENV"
+
+      - name: Install dependencies (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          choco install -y ninja pkgconfiglite
+          pipx run aqtinstall install-qt windows desktop "$QT_VERSION" win64_msvc2022_64 -m qtshadertools -O "$RUNNER_TEMP/qt"
+          qt="$RUNNER_TEMP/qt/$QT_VERSION/msvc2022_64"
+          echo "QT_PREFIX=$qt" >> "$GITHUB_ENV"
+          # Qt's DLLs, for the tests and windeployqt.
+          echo "$qt/bin" >> "$GITHUB_PATH"
+          # FFmpeg 8.0 LGPL shared libraries for linking, and the GPL command
+          # line tool (libx264, drawtext) for the test media only. A pinned,
+          # retained BtbN release, checked against its published checksums.
+          base=https://github.com/BtbN/FFmpeg-Builds/releases/download/autobuild-2026-02-28-12-59
+          lgpl=ffmpeg-n8.0.1-66-g27b8d1a017-win64-lgpl-shared-8.0
+          gpl=ffmpeg-n8.0.1-66-g27b8d1a017-win64-gpl-8.0
+          curl -sSfL -o "$RUNNER_TEMP/$lgpl.zip" "$base/$lgpl.zip"
+          curl -sSfL -o "$RUNNER_TEMP/$gpl.zip" "$base/$gpl.zip"
+          (cd "$RUNNER_TEMP" && sha256sum -c - <<'SUMS'
+          e7b1087c310cf8b91f5467b8ada6d7e47ce26f2777efa2317c7cc271087e5100  ffmpeg-n8.0.1-66-g27b8d1a017-win64-lgpl-shared-8.0.zip
+          e1f9fc491ef1969e666cfe36ec1d6c02b53baf49df800d5256eda10c942b1251  ffmpeg-n8.0.1-66-g27b8d1a017-win64-gpl-8.0.zip
+          SUMS
+          )
+          7z x -o"$RUNNER_TEMP" "$RUNNER_TEMP/$lgpl.zip" > /dev/null
+          7z x -o"$RUNNER_TEMP" "$RUNNER_TEMP/$gpl.zip" > /dev/null
+          echo "PKG_CONFIG_PATH=$RUNNER_TEMP/$lgpl/lib/pkgconfig" >> "$GITHUB_ENV"
+          echo "FFMPEG_LGPL_BIN=$RUNNER_TEMP/$lgpl/bin" >> "$GITHUB_ENV"
+          echo "$RUNNER_TEMP/$lgpl/bin" >> "$GITHUB_PATH"
+          echo "$RUNNER_TEMP/$gpl/bin" >> "$GITHUB_PATH"
+
+      - name: Set up MSVC (Windows)
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+
+      - name: Configure
+        run: |
+          cmake -S native/timeline -B native/timeline/build-ci -G Ninja -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH="$QT_PREFIX"
+
+      - name: Build
+        run: cmake --build native/timeline/build-ci
+
+      # macOS renders windowless through Metal on the Cocoa platform: the
+      # offscreen platform has no Metal QRhi (tst_editpreview fails there).
+      # The tests that need the offscreen platform set it themselves (ctest
+      # ENVIRONMENT). Linux: offscreen, and Vulkan on Mesa lavapipe; the
+      # renderers attach a QVulkanInstance (hw/HwWindow.cpp). Windows:
+      # offscreen with D3D11 (WARP when no GPU).
+      - name: Test (headless, macOS)
+        if: runner.os == 'macOS'
+        run: ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2
+
+      - name: Test (headless, Linux)
+        if: runner.os == 'Linux'
+        env:
+          QT_QPA_PLATFORM: offscreen
+          QSG_RHI_BACKEND: vulkan
+        run: ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2
+
+      - name: Test (headless, Windows)
+        if: runner.os == 'Windows'
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2
+
+      - name: Package (macOS, unsigned)
+        if: runner.os == 'macOS'
+        run: |
+          native/timeline/scripts/package-macos.sh
+          DEV_BIN=build-ci/nodetool-timeline native/timeline/scripts/check-package-macos.sh
+
+      # Not verified: written for M6 (review F12); no run has checked it.
+      - name: Package (Windows, windeployqt, unverified)
+        if: runner.os == 'Windows'
+        run: |
+          out=native/timeline/build-ci/package-windows
+          rm -rf "$out" && mkdir -p "$out"
+          cp native/timeline/build-ci/nodetool-timeline.exe "$out/"
+          windeployqt --release --qmldir native/timeline/qml --no-translations "$out/nodetool-timeline.exe"
+          cp "$FFMPEG_LGPL_BIN"/*.dll "$out/"
+          mkdir -p "$out/licenses"
+          cp native/timeline/licenses/*.txt native/timeline/fonts/LICENSE-*.txt "$out/licenses/"
+          "$out/nodetool-timeline.exe" native/timeline/fixtures/three-tracks.json --dump-plan --times 0,8500 > /dev/null
+          "$out/nodetool-timeline.exe" native/timeline/fixtures/av-sync.json --audio-dry-run
+
+      # Not verified: written for M6 (review F12); no run has checked it.
+      - name: Package (Linux AppImage, unverified)
+        if: runner.os == 'Linux'
+        run: |
+          dir=native/timeline/build-ci/AppDir
+          rm -rf "$dir" && mkdir -p "$dir/usr/bin" "$dir/usr/share/licenses/nodetool-timeline"
+          cp native/timeline/build-ci/nodetool-timeline "$dir/usr/bin/"
+          cp native/timeline/licenses/*.txt native/timeline/fonts/LICENSE-*.txt "$dir/usr/share/licenses/nodetool-timeline/"
+          printf '[Desktop Entry]\nType=Application\nName=NodeTool Timeline\nExec=nodetool-timeline\nIcon=nodetool-timeline\nCategories=AudioVideo;\n' > "$dir/nodetool-timeline.desktop"
+          convert -size 256x256 xc:'#202024' "$dir/nodetool-timeline.png" 2> /dev/null || cp /usr/share/pixmaps/debian-logo.png "$dir/nodetool-timeline.png" || true
+          curl -sSfL -o "$RUNNER_TEMP/linuxdeploy" https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20250213-2/linuxdeploy-x86_64.AppImage
+          curl -sSfL -o "$RUNNER_TEMP/linuxdeploy-qt" https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/1-alpha-20250213-1/linuxdeploy-plugin-qt-x86_64.AppImage
+          (cd "$RUNNER_TEMP" && sha256sum -c - <<'SUMS'
+          4648f278ab3ef31f819e67c30d50f462640e5365a77637d7e6f2ad9fd0b4522a  linuxdeploy
+          15106be885c1c48a021198e7e1e9a48ce9d02a86dd0a1848f00bdbf3c1c92724  linuxdeploy-qt
+          SUMS
+          )
+          chmod +x "$RUNNER_TEMP/linuxdeploy" "$RUNNER_TEMP/linuxdeploy-qt"
+          export PATH="$RUNNER_TEMP:$PATH" QMAKE="$QT_PREFIX/bin/qmake" QML_SOURCES_PATHS=native/timeline/qml APPIMAGE_EXTRACT_AND_RUN=1
+          ln -sf "$RUNNER_TEMP/linuxdeploy-qt" "$RUNNER_TEMP/linuxdeploy-plugin-qt"
+          linuxdeploy --appdir "$dir" --desktop-file "$dir/nodetool-timeline.desktop" --icon-file "$dir/nodetool-timeline.png" \
+            --plugin qt --output appimage
+          ls -la ./*.AppImage

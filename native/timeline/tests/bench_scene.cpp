@@ -25,7 +25,10 @@ int main(int argc, char** argv) {
         std::fprintf(stderr, "error: %s\n", qPrintable(loaded.error));
         return 1;
     }
-    const nt::Timeline& tl = *loaded.timeline;
+    // A revision, as TimelineModel gives a document: the flex layout cache
+    // applies, as in the app.
+    nt::Timeline tl = *loaded.timeline;
+    tl.revision = nt::nextTimelineRevision();
     std::vector<double> ms;
     size_t layers = 0;
     for (int pass = 0; pass < 2; ++pass) {

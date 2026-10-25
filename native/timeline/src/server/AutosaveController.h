@@ -7,18 +7,27 @@
 // sent, edited clips included) without the sequence-row fields (id, name,
 // fps, size, duration, timestamps). The server compares `baseUpdatedAt` and
 // swaps atomically:
-//   - success: the response's `updatedAt` becomes the next base, and the undo
-//     stack is marked clean when no edit happened during the save. A non-empty
-//     `stripped` list is a warning: the server dropped those fields. The sent
-//     document is kept next to the raw backup of the last load
-//     (`<id>.stripped.json`), so the dropped data is recoverable.
+//   - success: the response's `updatedAt` becomes the next base, and the sent
+//     content becomes the acknowledged content. A non-empty `stripped` list is
+//     a warning: the server dropped those fields. The sent document is kept
+//     next to the raw backup of the last load (`<id>.stripped.json`), so the
+//     dropped data is recoverable.
 //   - conflict (`error.data.apiCode` ALREADY_EXISTS, or `code` CONFLICT):
-//     the local document stays as it is, is written to `<id>.local.json`, and
-//     autosave stops. Nothing overwrites the server copy.
-// The client never saves without a base.
+//     the current local document is written to `<id>.local.json`, and
+//     autosave stops. Nothing overwrites the server copy, and a conflict is
+//     never retried.
+//   - any other failure: the current document is written to
+//     `<id>.recovery.json`; a transient one (no answer, 5xx, 429) is retried
+//     with a doubling delay, up to 30 s.
+// A recovery or conflict file that cannot be written is reported
+// (`recoveryError`, `lastError`). The client never saves without a base.
 //
-// Dirty is the undo stack's clean state. Autosave runs 750 ms after the last
-// command (D34) while the document is dirty and no conflict is open.
+// Dirty compares the current document with the acknowledged content (a hash
+// of the saved JSON), so a merged command, an undo during a save, or a branch
+// cannot pass for saved. The undo stack's clean state follows it, for the UI.
+// Autosave runs 750 ms after the last command (D34) while the document is
+// dirty and no conflict is open. `flushBeforeQuit` saves what is pending
+// within a bounded time, or leaves a recovery file.
 
 #include "server/ServerClient.h"
 
@@ -49,6 +58,7 @@ struct SaveResult {
     QStringList stripped;
     QString error;
     QString keptCopy;  // the local document written on a conflict or a strip
+    QString recoveryError;  // a recovery or conflict file that could not be written
 };
 
 // The document part of a raw sequence: everything but the sequence-row fields.
@@ -61,6 +71,11 @@ class AutosaveController : public QObject {
     Q_PROPERTY(bool conflict READ conflict NOTIFY stateChanged)
     Q_PROPERTY(QStringList stripped READ stripped NOTIFY stateChanged)
     Q_PROPERTY(QString lastError READ lastError NOTIFY stateChanged)
+    // The copy of the local document written on a conflict, a strip or a
+    // failed save; empty when none is pending (a clean save removes it).
+    Q_PROPERTY(QString keptCopy READ keptCopy NOTIFY stateChanged)
+    // Why that copy could not be written; empty when it was.
+    Q_PROPERTY(QString recoveryError READ recoveryError NOTIFY stateChanged)
 
 public:
     using DocumentFn = std::function<QJsonObject()>;
@@ -73,13 +88,22 @@ public:
     bool conflict() const { return m_conflict; }
     QStringList stripped() const { return m_stripped; }
     QString lastError() const { return m_lastError; }
+    QString keptCopy() const { return m_keptCopy; }
+    QString recoveryError() const { return m_recoveryError; }
     QString baseUpdatedAt() const { return m_base; }
 
     void setDebounceMs(int ms) { m_timer.setInterval(ms); }
     void setAutosave(bool on);
+    void setRetryBaseMs(int ms) { m_retryBaseMs = ms; }
 
     // Saves now, dirty or not. Blocks until the server answers.
     SaveResult saveNow();
+    // Before the app quits: saves pending edits within `timeoutMs`. Returns
+    // true when the server holds the current document; otherwise the current
+    // document is in `<id>.recovery.json` (or `<id>.local.json` on a conflict).
+    bool flushBeforeQuit(int timeoutMs);
+    // The document changed outside the undo stack's index (a merge).
+    void documentChanged();
 
 signals:
     void stateChanged();
@@ -89,7 +113,12 @@ signals:
 
 private:
     void scheduleSave();
-    QString writeCopy(const QString& suffix, const QJsonObject& doc) const;
+    SaveResult save(ServerClient& client);
+    QByteArray currentHash() const;
+    void syncClean();
+    // Writes `doc` to `<id>.<suffix>.json`; returns the path, or sets `error`.
+    QString writeCopy(const QString& suffix, const QJsonObject& doc, QString* error = nullptr) const;
+    void removeCopy(const QString& suffix) const;
 
     SaveTarget m_target;
     QUndoStack* m_undo;
@@ -97,11 +126,18 @@ private:
     QString m_base;
     std::unique_ptr<ServerClient> m_client;
     QTimer m_timer;
+    QTimer m_retry;
+    int m_retryBaseMs = 1000;
+    int m_retryAttempt = 0;
+    QByteArray m_ackHash;  // the content the server acknowledged (or the load)
+    bool m_syncing = false;
     bool m_autosave = true;
     bool m_saving = false;
     bool m_conflict = false;
     QStringList m_stripped;
     QString m_lastError;
+    QString m_keptCopy;
+    QString m_recoveryError;
 };
 
 }  // namespace nt::server

@@ -29,6 +29,33 @@ private:
     int* m_value;
 };
 
+// A command that merges into the previous one of its kind (a held key):
+// the content changes, the undo index does not.
+class Nudge : public QUndoCommand {
+public:
+    explicit Nudge(int* value) : m_value(value) {}
+    void redo() override { *m_value += 10; m_applied += 10; }
+    void undo() override { *m_value -= m_applied; m_applied = 0; }
+    int id() const override { return 7; }
+    bool mergeWith(const QUndoCommand* other) override {
+        if (other->id() != id()) return false;
+        m_applied += static_cast<const Nudge*>(other)->m_applied;
+        return true;
+    }
+
+private:
+    int* m_value;
+    int m_applied = 0;
+};
+
+QByteArray failure(int status, const QString& code) {
+    return QJsonDocument(QJsonObject{{QStringLiteral("error"),
+                                      QJsonObject{{QStringLiteral("message"), QStringLiteral("boom")},
+                                                  {QStringLiteral("data"), QJsonObject{{QStringLiteral("code"), code},
+                                                                                       {QStringLiteral("httpStatus"), status}}}}}})
+        .toJson(QJsonDocument::Compact);
+}
+
 QByteArray ok(const QString& updatedAt, const QJsonArray& stripped = {}) {
     QJsonObject data{{QStringLiteral("id"), QStringLiteral("seq")}, {QStringLiteral("updatedAt"), updatedAt}};
     if (!stripped.isEmpty()) data.insert(QStringLiteral("stripped"), stripped);
@@ -177,6 +204,184 @@ private slots:
         const SaveResult r = m_save->saveNow();
         QVERIFY(!r.ok);
         QCOMPARE(posts(), 0);
+    }
+
+    // ── Codex review F1 (M5b): dirty follows the saved content, not the index ──
+
+    void anEditMergedDuringTheSaveIsDirty() {
+        m_http->setPost([this](const QByteArray&, const QByteArray&) {
+            m_undo->push(new Nudge(&m_value));  // merges into the command being saved
+            return ok(QStringLiteral("u1"));
+        });
+        make();
+        m_undo->push(new Nudge(&m_value));
+        const int index = m_undo->index();
+        QVERIFY(m_save->saveNow().ok);
+        QCOMPARE(m_undo->index(), index);  // the merge kept the index
+        QCOMPARE(m_value, 20);
+        QVERIFY2(m_save->dirty(), "the server holds 10, the editor 20");
+    }
+
+    void anUndoDuringTheSaveIsDirty() {
+        m_http->setPost([this](const QByteArray&, const QByteArray&) {
+            m_undo->undo();  // back to the load's index while the server takes index 1
+            return ok(QStringLiteral("u1"));
+        });
+        make();
+        m_undo->push(new Bump(&m_value));
+        QVERIFY(m_save->saveNow().ok);
+        QCOMPARE(m_value, 0);
+        QVERIFY2(m_save->dirty(), "the server holds the edit, the editor does not");
+    }
+
+    void aRedoBackToTheSavedContentIsClean() {
+        m_http->setPost([](const QByteArray&, const QByteArray&) { return ok(QStringLiteral("u1")); });
+        make();
+        m_undo->push(new Bump(&m_value));
+        QVERIFY(m_save->saveNow().ok);
+        m_undo->undo();
+        QVERIFY(m_save->dirty());
+        m_undo->redo();
+        QVERIFY(!m_save->dirty());
+    }
+
+    // ── Codex review F2 (M5b): failures retry, and unsaved edits survive ──
+
+    void aTransientFailureRetriesAndKeepsARecoveryFile() {
+        int calls = 0;
+        m_http->setPost([&calls](const QByteArray&, const QByteArray&) {
+            return ++calls == 1 ? failure(503, QStringLiteral("INTERNAL_SERVER_ERROR")) : ok(QStringLiteral("u1"));
+        });
+        make();
+        m_save->setRetryBaseMs(100);
+        m_save->setAutosave(true);
+        m_save->setDebounceMs(50);
+        m_undo->push(new Bump(&m_value));
+        QTRY_COMPARE_WITH_TIMEOUT(posts(), 1, 3000);
+        const QString recovery = QDir(m_dir.path()).filePath(QStringLiteral("seq.recovery.json"));
+        QTRY_VERIFY_WITH_TIMEOUT(QFileInfo::exists(recovery), 2000);
+        QTRY_COMPARE_WITH_TIMEOUT(posts(), 2, 5000);
+        QTRY_VERIFY_WITH_TIMEOUT(!m_save->dirty(), 2000);
+    }
+
+    void aConflictIsNeverRetried() {
+        m_http->setPost([](const QByteArray&, const QByteArray&) { return conflict(); });
+        make();
+        m_save->setRetryBaseMs(50);
+        m_save->setAutosave(true);
+        m_save->setDebounceMs(50);
+        m_undo->push(new Bump(&m_value));
+        QTRY_COMPARE_WITH_TIMEOUT(posts(), 1, 3000);
+        QTest::qWait(600);
+        QCOMPARE(posts(), 1);
+    }
+
+    void theConflictCopyHoldsTheCurrentDocument() {
+        m_http->setPost([this](const QByteArray&, const QByteArray&) {
+            m_undo->push(new Bump(&m_value));  // an edit made while the request was out
+            return conflict();
+        });
+        make();
+        m_undo->push(new Bump(&m_value));
+        const SaveResult r = m_save->saveNow();
+        QVERIFY(r.conflict);
+        QFile f(r.keptCopy);
+        QVERIFY(f.open(QIODevice::ReadOnly));
+        QCOMPARE(QJsonDocument::fromJson(f.readAll()).object(), rawDoc(2));
+    }
+
+    void aFailedRecoveryWriteIsReported() {
+        m_http->setPost([](const QByteArray&, const QByteArray&) { return failure(400, QStringLiteral("BAD_REQUEST")); });
+        SaveTarget t{m_http->base(), QString(), QStringLiteral("seq"), QStringLiteral("/dev/null/no-such-folder")};
+        m_save = std::make_unique<AutosaveController>(t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
+        m_save->setAutosave(false);
+        m_undo->push(new Bump(&m_value));
+        const SaveResult r = m_save->saveNow();
+        QVERIFY(!r.ok);
+        QVERIFY2(!r.recoveryError.isEmpty(), "a lost recovery file must be reported");
+        QVERIFY(m_save->lastError().contains(QStringLiteral("recovery")));
+    }
+
+    // ── UI review F3: the banners show the kept copy and why one is missing ──
+
+    void theConflictCopyIsAProperty() {
+        m_http->setPost([](const QByteArray&, const QByteArray&) { return conflict(); });
+        make();
+        QSignalSpy state(m_save.get(), &AutosaveController::stateChanged);
+        QCOMPARE(m_save->keptCopy(), QString());
+        m_undo->push(new Bump(&m_value));
+        const SaveResult r = m_save->saveNow();
+        QVERIFY(r.conflict);
+        QCOMPARE(m_save->keptCopy(), r.keptCopy);
+        QVERIFY(m_save->keptCopy().endsWith(QStringLiteral("seq.local.json")));
+        QCOMPARE(m_save->recoveryError(), QString());
+        QVERIFY(state.count() > 0);
+        QCOMPARE(m_save->property("keptCopy").toString(), r.keptCopy);  // the QML property
+    }
+
+    void theStripCopyIsAProperty() {
+        m_http->setPost([](const QByteArray&, const QByteArray&) {
+            return ok(QStringLiteral("u1"), QJsonArray{QStringLiteral("clips.0.invented")});
+        });
+        make();
+        m_undo->push(new Bump(&m_value));
+        const SaveResult r = m_save->saveNow();
+        QVERIFY(r.ok);
+        QVERIFY(m_save->keptCopy().endsWith(QStringLiteral("seq.stripped.json")));
+        QCOMPARE(m_save->keptCopy(), r.keptCopy);
+        QCOMPARE(m_save->recoveryError(), QString());
+    }
+
+    void aFailedCopyWriteIsAProperty() {
+        m_http->setPost([](const QByteArray&, const QByteArray&) { return failure(400, QStringLiteral("BAD_REQUEST")); });
+        SaveTarget t{m_http->base(), QString(), QStringLiteral("seq"), QStringLiteral("/dev/null/no-such-folder")};
+        m_save = std::make_unique<AutosaveController>(t, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
+        m_save->setAutosave(false);
+        m_undo->push(new Bump(&m_value));
+        const SaveResult r = m_save->saveNow();
+        QVERIFY(!r.recoveryError.isEmpty());
+        QCOMPARE(m_save->recoveryError(), r.recoveryError);
+        QCOMPARE(m_save->keptCopy(), QString());
+        QCOMPARE(m_save->property("recoveryError").toString(), r.recoveryError);
+    }
+
+    void aSuccessfulSaveClearsTheCopy() {
+        int calls = 0;
+        m_http->setPost([&calls](const QByteArray&, const QByteArray&) {
+            return ++calls == 1 ? failure(400, QStringLiteral("BAD_REQUEST")) : ok(QStringLiteral("u1"));
+        });
+        make();
+        m_undo->push(new Bump(&m_value));
+        QVERIFY(!m_save->saveNow().ok);
+        const QString recovery = m_save->keptCopy();
+        QVERIFY(recovery.endsWith(QStringLiteral("seq.recovery.json")));
+        QVERIFY(QFileInfo::exists(recovery));
+        QSignalSpy state(m_save.get(), &AutosaveController::stateChanged);
+        QVERIFY(m_save->saveNow().ok);
+        QCOMPARE(m_save->keptCopy(), QString());
+        QCOMPARE(m_save->recoveryError(), QString());
+        QVERIFY(!QFileInfo::exists(recovery));
+        QVERIFY(state.count() > 0);
+    }
+
+    void quitFlushesPendingEdits() {
+        m_http->setPost([](const QByteArray&, const QByteArray&) { return ok(QStringLiteral("u1")); });
+        make();
+        m_save->setAutosave(true);  // 750 ms debounce, not elapsed at quit
+        m_undo->push(new Bump(&m_value));
+        QVERIFY(m_save->flushBeforeQuit(5000));
+        QCOMPARE(posts(), 1);
+        QVERIFY(!m_save->dirty());
+    }
+
+    void quitWithAFailedSaveKeepsARecoveryFile() {
+        m_http->setPost([](const QByteArray&, const QByteArray&) { return failure(503, QStringLiteral("INTERNAL_SERVER_ERROR")); });
+        make();
+        m_undo->push(new Bump(&m_value));
+        QVERIFY(!m_save->flushBeforeQuit(2000));
+        QFile f(QDir(m_dir.path()).filePath(QStringLiteral("seq.recovery.json")));
+        QVERIFY(f.open(QIODevice::ReadOnly));
+        QCOMPARE(QJsonDocument::fromJson(f.readAll()).object(), rawDoc(1));
     }
 
     void autosaveDebouncesToOneSave() {

@@ -24,7 +24,7 @@
 // `containBaseScale` of the source size and the group's matrix. A caption
 // composites frame-sized. The source size is the clip's `width`/`height`,
 // else the sequence size, the same rule as native SceneEval. `sourceTimeMs`
-// is printed by native but not compared here.
+// is compared for video and image layers only.
 //
 // Clips the native loader report lists with a plan-level unsupported field
 // (`planUnsupported` in the dump: flex layout, animation links, `followPath`,
@@ -73,13 +73,13 @@ import {
 } from "@nodetool-ai/timeline/scene";
 import { compileClipAnimations } from "@nodetool-ai/timeline";
 
-const TOLERANCE = 1e-6;
+import { TOLERANCE, auditExclusions, checkFlexReasons, diffNumber, exclusionsFrom, near, newestBinary, orZero, staleSources } from "./plan-compare.mjs";
 const GRID_MS = 100;
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 function parseArgs(argv) {
-  let bin = path.join(root, "build", "nodetool-timeline");
+  let bin = null;  // default: the newest build (newestBinary)
   let json = false;
   let examples = false;
   let updateExclusions = false;
@@ -105,6 +105,18 @@ function parseArgs(argv) {
     } else {
       fixtures.push(path.resolve(argv[i]));
     }
+  }
+  bin = bin ? path.resolve(bin) : newestBinary(root);
+  if (!bin) {
+    console.error(`error: no build*/nodetool-timeline under ${root}; build one or pass --bin`);
+    process.exit(2);
+  }
+  // A binary older than the code it is meant to check compares old code.
+  const stale = staleSources(root, bin);
+  if (stale.length > 0) {
+    console.error(`error: ${path.relative(process.cwd(), bin)} is older than ${stale.length} source file(s), newest ` +
+      `${path.relative(process.cwd(), stale[0])}; rebuild it, or pass --bin with a current build`);
+    process.exit(2);
   }
   if (examples) fixtures.push(...exampleFixtures());
   if (fixtures.length === 0 && !server) {
@@ -203,7 +215,15 @@ function oraclePlan(doc, timeMs, cache) {
     mediaTracks: doc.mediaTracks ?? []
   });
   const tracking = { mediaTracks: doc.mediaTracks ?? [], clips: doc.clips, tempo: doc.tempo };
+  const docClipById = new Map(doc.clips.map((c) => [c.id, c]));
   const layers = scene.layers.map((layer, order) => {
+    // A flex group resized the drawn clip: its styles are new objects.
+    const docClip = docClipById.get(layer.clipId.split(":")[0]);
+    const shape = layer.clip.shapeStyle;
+    const flexShapeBox =
+      shape && docClip && shape !== docClip.shapeStyle ? [shape.x, shape.y, shape.width, shape.height] : undefined;
+    const textStyle = layer.clip.textStyle;
+    const flexTextMaxWidthFrac = textStyle && docClip && textStyle !== docClip.textStyle ? textStyle.maxWidthFrac : undefined;
     const anim = resolveAnimatedLayerProps(layer, timeMs, canvas, cache, tracking);
     const srcW = layer.clip.width ?? doc.width;
     const srcH = layer.clip.height ?? doc.height;
@@ -232,6 +252,8 @@ function oraclePlan(doc, timeMs, cache) {
       mask: anim.mask,
       transform: anim.transform,
       matrix: [...matrix],
+      flexShapeBox,
+      flexTextMaxWidthFrac,
       order
     };
   });
@@ -260,6 +282,14 @@ function oraclePlan(doc, timeMs, cache) {
     precomposeGroupId: g.precomposeGroupId,
     transition: g.transition
   }));
+  // What draws into each surface: its layers in frame order, then its nested
+  // surfaces in list order.
+  for (const g of precomposites) {
+    g.children = [
+      ...layers.filter((l) => l.precomposeChain === g.clipId).map((l) => l.clipId),
+      ...precomposites.filter((p) => p.precomposeGroupId === g.clipId).map((p) => p.clipId)
+    ];
+  }
   return { layers, precomposites, dropped: scene.droppedLayers };
 }
 
@@ -317,18 +347,6 @@ function exampleFixtures() {
   return files;
 }
 
-const near = (a, b) => Math.abs(a - b) <= TOLERANCE;
-const numOrNull = (v) => (typeof v === "number" ? v : null);
-
-/** Differences between two optional numbers, or null. */
-function diffNumber(name, web, native) {
-  const w = numOrNull(web);
-  const n = numOrNull(native);
-  if (w === null && n === null) return null;
-  if (w === null || n === null || !(Math.abs(w - n) <= TOLERANCE)) return `${name} web ${web} native ${native}`;
-  return null;
-}
-
 function diffTransform(web, native) {
   if (!web && !native) return [];
   // An absent transform draws as the identity; compare through it.
@@ -342,10 +360,10 @@ function diffTransform(web, native) {
     diffNumber("transform.rotation", w.rotation, n.rotation),
     diffNumber("transform.anchor.x", w.anchor.x, n.anchor.x),
     diffNumber("transform.anchor.y", w.anchor.y, n.anchor.y),
-    diffNumber("transform.rotationX", w.rotationX ?? 0, n.rotationX ?? 0),
-    diffNumber("transform.rotationY", w.rotationY ?? 0, n.rotationY ?? 0),
-    diffNumber("transform.perspective", w.perspective ?? 0, n.perspective ?? 0),
-    diffNumber("transform.depthPx", w.depthPx ?? 0, n.depthPx ?? 0)
+    diffNumber("transform.rotationX", orZero(w.rotationX), orZero(n.rotationX)),
+    diffNumber("transform.rotationY", orZero(w.rotationY), orZero(n.rotationY)),
+    diffNumber("transform.perspective", orZero(w.perspective), orZero(n.perspective)),
+    diffNumber("transform.depthPx", orZero(w.depthPx), orZero(n.depthPx))
   ];
   return out.filter(Boolean);
 }
@@ -391,6 +409,7 @@ function compareLayer(w, g) {
   if (!near(w.opacity, g.opacity)) out.push(`opacity web ${w.opacity} native ${g.opacity}`);
   if (!near(w.drawOpacity, g.drawOpacity)) out.push(`drawOpacity web ${w.drawOpacity} native ${g.drawOpacity}`);
   if ((w.assetId ?? null) !== (g.assetId ?? null)) out.push(`assetId web ${w.assetId} native ${g.assetId}`);
+  // A layer without source media (web null) has no source time to compare.
   if (w.sourceTimeMs !== null && !near(w.sourceTimeMs, g.sourceTimeMs)) out.push(`sourceTimeMs web ${w.sourceTimeMs} native ${g.sourceTimeMs}`);
   if ((w.blendMode ?? "normal") !== (g.blendMode ?? "normal")) out.push(`blendMode web ${w.blendMode} native ${g.blendMode}`);
   if ((w.stackOrder ?? null) !== (g.stackOrder ?? null)) out.push(`stackOrder web ${w.stackOrder} native ${g.stackOrder}`);
@@ -398,17 +417,25 @@ function compareLayer(w, g) {
     out.push(`precomposeGroupId web ${w.precomposeGroupId} native ${g.precomposeGroupId}`);
   }
   for (let k = 0; k < 16; k++) {
-    if (!(Math.abs(w.matrix[k] - g.matrix[k]) <= TOLERANCE)) {
+    if (!near(w.matrix?.[k], g.matrix?.[k])) {
       out.push(`matrix[${k}] web ${w.matrix[k]} native ${g.matrix[k]}`);
       break;
     }
   }
   out.push(...diffTransform(w.transform, g.transform));
+  for (let k = 0; k < 4; k++) {
+    const d = diffNumber(`flexShapeBox[${k}]`, w.flexShapeBox?.[k], g.flexShapeBox?.[k]);
+    if (d) out.push(d);
+  }
+  const flexText = diffNumber("flexTextMaxWidthFrac", w.flexTextMaxWidthFrac, g.flexTextMaxWidthFrac);
+  if (flexText) out.push(flexText);
   out.push(...diffTransition(w.transition, g.transition));
   out.push(...[diffNumber("mask.progress", w.mask?.progress, g.mask?.progress), diffNumber("mask.softness", w.mask?.softness, g.mask?.softness)].filter(Boolean));
   if ((w.mask?.direction ?? null) !== (g.mask?.direction ?? null)) out.push(`mask.direction web ${w.mask?.direction} native ${g.mask?.direction}`);
   return out;
 }
+
+let keepId = () => true;  // set per document by compareDoc
 
 function comparePrecomposite(w, g) {
   const out = [];
@@ -418,6 +445,8 @@ function comparePrecomposite(w, g) {
   if (w.blendMode !== g.blendMode) out.push(`blendMode web ${w.blendMode} native ${g.blendMode}`);
   if (w.effects !== g.effects) out.push(`effects web ${w.effects} native ${g.effects}`);
   if ((w.precomposeGroupId ?? "") !== (g.precomposeGroupId ?? "")) out.push("precomposeGroupId");
+  const kids = (list) => (list ?? []).filter((id) => keepId(id)).join(",");
+  if (kids(w.children) !== kids(g.children)) out.push(`children web [${kids(w.children)}] native [${kids(g.children)}]`);
   out.push(...diffTransition(w.transition, g.transition));
   return out;
 }
@@ -441,27 +470,6 @@ function compareBaseline(name, fields) {
   return out.slice(0, 20);
 }
 
-// An independent check of the main exclusion reason: the clips under a flex
-// container, computed here from the document, are exactly the ones native
-// excludes with `flexLayout`.
-function checkFlexReason(doc, fields) {
-  const byId = new Map(doc.clips.map((c) => [c.id, c]));
-  const inFlex = (clip) => {
-    let cursor = clip.parentId ? byId.get(clip.parentId) : undefined;
-    for (let hops = 0; cursor && hops < 64; hops++) {
-      if (cursor.layout?.display === "flex") return true;
-      cursor = cursor.parentId ? byId.get(cursor.parentId) : undefined;
-    }
-    return false;
-  };
-  const out = [];
-  for (const clip of doc.clips) {
-    const native = (fields[clip.id] ?? []).includes("flexLayout");
-    if (inFlex(clip) !== native) out.push(`flex exclusion: ${clip.id} in a flex tree ${inFlex(clip)}, native ${native}`);
-  }
-  return out.slice(0, 10);
-}
-
 function compareDoc(bin, label, doc, nativeArgs) {
   const parsed = timelineSequenceResponse.safeParse(doc);
   if (!parsed.success) {
@@ -480,15 +488,25 @@ function compareDoc(bin, label, doc, nativeArgs) {
   // The native loader report's plan-level unsupported clips, left out on
   // both sides. A layer the web derives from a clip (a repeater copy,
   // `<id>:repeat:<n>`, or an echo) goes with its clip.
-  const excluded = new Set(native.planUnsupported ?? []);
+  // F6: derived from validated reasons; both native lists must agree.
+  const { excluded, errors: exclusionErrors } = exclusionsFrom(native);
   // The exclusions must match the checked-in baseline (fixtures/plan/exclusions.json):
   // a clip that newly drops out, or a changed reason, fails the run.
   const baselineDiff = [
     ...compareBaseline(doc.name, native.planUnsupportedFields ?? {}),
-    ...checkFlexReason(doc, native.planUnsupportedFields ?? {})
+    // Flex is ported: a flex reason fails the run.
+    ...checkFlexReasons(native.planUnsupportedFields ?? {})
   ];
+  // A clip excluded only for a reason the oracle matches by construction is
+  // compared as usual (its fallback plan); only its stale check is waived,
+  // and what the oracle cannot check is reported as unverified.
+  const fields = native.planUnsupportedFields ?? {};
+  const waived = [...excluded].filter((id) => (fields[id] ?? []).every((r) => MATCHES_WITHOUT_MEASURER.has(r)));
+  for (const id of waived) excluded.delete(id);
+  const unverified = waived.map((id) => ({ clipId: id, reasons: fields[id], unverified: "line wrapping by measured text width" }));
   const keep = (id) => !excluded.has(id) && !excluded.has(id.split(":")[0]);
-  const mismatches = [...baselineDiff];
+  keepId = keep;
+  const mismatches = [...exclusionErrors, ...baselineDiff];
   let layersCompared = 0;
   let precompositesCompared = 0;
   if (!Array.isArray(native.frames) || native.frames.length !== times.length) {
@@ -496,6 +514,9 @@ function compareDoc(bin, label, doc, nativeArgs) {
     return { fixture: label, times: times.length, layersCompared, mismatches };
   }
   const cache = createAnimationCompileCache();
+  // Per excluded clip, its layers compared anyway: one that matches in every
+  // frame it draws has a stale exclusion, and fails the run.
+  const excludedTally = new Map();
   native.frames.forEach((frame, i) => {
     const t = times[i];
     // Validate before comparing: NaN or a missing value compares as "not
@@ -509,6 +530,10 @@ function compareDoc(bin, label, doc, nativeArgs) {
       return;
     }
     const web = oraclePlan(doc, t, cache);
+    tallyExcluded(web.layers.filter((l) => !keep(l.clipId)), frame.layers.filter((l) => !keep(l.clipId)), excludedTally,
+      (w, g) => invalidLayer(g) || compareLayer(w, g).length > 0);
+    tallyExcluded(web.precomposites.filter((g) => !keep(g.clipId)), frame.precomposites.filter((g) => !keep(g.clipId)),
+      excludedTally, (w, g) => comparePrecomposite(w, g).length > 0);
     const want = web.layers.filter((l) => keep(l.clipId));
     const got = frame.layers.filter((l) => keep(l.clipId));
     const wantIds = want.map((l) => l.clipId).join(",");
@@ -545,7 +570,49 @@ function compareDoc(bin, label, doc, nativeArgs) {
     const gotDropped = frame.dropped.filter((d) => keep(d.clipId)).map((d) => `${d.clipId}:${d.reason}`).join(",");
     if (wantDropped !== gotDropped) mismatches.push(`t=${t}: dropped web [${wantDropped}] native [${gotDropped}]`);
   });
-  return { fixture: label, times: times.length, layersCompared, precompositesCompared, excludedClips: excluded.size, mismatches };
+  // Every excluded id, judged by its own and its descendants' layers and
+  // surfaces; an id with nothing to compare is reported as uncovered.
+  const audit = auditExclusions(doc.clips, [...excluded], excludedTally, fields, () => true);
+  mismatches.push(...audit.stale);
+  return {
+    fixture: label,
+    times: times.length,
+    layersCompared,
+    precompositesCompared,
+    excludedClips: excluded.size,
+    exclusionAudit: { audited: audit.audited, uncovered: audit.uncovered },
+    unverified,
+    mismatches
+  };
+}
+
+// Reasons the stale check skips: the oracle has no text measurer, so a
+// `"line"` stagger counts explicit line breaks on both sides and matches by
+// construction, while the browser wraps by measured width.
+const MATCHES_WITHOUT_MEASURER = new Set(["animations.stagger.unit=line"]);
+
+/**
+ * Counts, per base clip id, the excluded layers (or surfaces) that match the
+ * web and the ones that do not; one on one side only is a mismatch.
+ */
+function tallyExcluded(want, got, tally, differs) {
+  const entry = (id) => {
+    const base = id.split(":")[0];
+    if (!tally.has(base)) tally.set(base, { compared: 0, mismatched: 0 });
+    return tally.get(base);
+  };
+  const gotById = new Map();
+  for (const g of got) {
+    if (!gotById.has(g.clipId)) gotById.set(g.clipId, []);
+    gotById.get(g.clipId).push(g);
+  }
+  for (const w of want) {
+    const g = gotById.get(w.clipId)?.shift();
+    const e = entry(w.clipId);
+    if (!g || differs(w, g)) e.mismatched++;
+    else e.compared++;
+  }
+  for (const rest of gotById.values()) for (const g of rest) entry(g.clipId).mismatched++;
 }
 
 function isFiniteNumber(v) {
@@ -598,6 +665,8 @@ if (json) {
         layersCompared: r.layersCompared,
         precompositesCompared: r.precompositesCompared ?? 0,
         excludedClips: r.excludedClips ?? 0,
+        exclusionAudit: r.exclusionAudit ?? null,
+        unverified: r.unverified ?? [],
         verdict: isEmpty(r) ? "empty" : r.mismatches.length === 0 && r.layersCompared > 0 ? "pass" : "fail",
         mismatches: r.mismatches
       }))
@@ -609,6 +678,12 @@ if (json) {
     console.log(`${r.fixture}: ${r.times} times, ${r.layersCompared} layers compared, ${r.mismatches.length} mismatches${left}`);
     for (const m of r.mismatches.slice(0, 20)) console.log(`  ${m}`);
     if (r.mismatches.length > 20) console.log(`  ... ${r.mismatches.length - 20} more`);
+    const audit = r.exclusionAudit;
+    if (audit && audit.audited > 0) {
+      const none = audit.uncovered.length ? `; no coverage (nothing drawn at the sampled times): ${audit.uncovered.join(", ")}` : "";
+      console.log(`  exclusions audited: ${audit.audited}${none}`);
+    }
+    for (const u of r.unverified ?? []) console.log(`  unverified: ${u.clipId} (${u.reasons.join(", ")}): ${u.unverified}`);
     if (isEmpty(r)) console.log("  EMPTY: no clip without a plan-level unsupported field");
     else if (r.layersCompared === 0) console.log("  FAIL: compared 0 layers");
   }

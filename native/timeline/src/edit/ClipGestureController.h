@@ -12,6 +12,13 @@
 //   Ctrl/Cmd toggles).
 // - A press on a trim handle trims that edge: plain, ripple (ripple mode or
 //   the Ripple tool) or roll (Ctrl/Cmd or the Roll tool).
+// - The tools of the toolbar (ToolToggle.tsx): Cut splits the clip at the
+//   pointer; Slip drags the source under the clip (planSlip); Slide moves the
+//   clip and trims its neighbours (slideClip); Track select selects every
+//   clip after (or before) the pointer, then drags them; Rate stretch turns
+//   an edge drag into a speed change (rateStretchClip). Hand and Zoom act on
+//   the lanes, in TracksRegion.qml. Under these body tools a press on an
+//   edge acts on the body (BODY_TOOLS).
 // - Keys resolve through the web keymap (Keymap.h): delete, ripple delete,
 //   split at the playhead, select all/none, nudge, undo/redo, the tools,
 //   snap and zoom.
@@ -102,6 +109,10 @@ public slots:
     bool pressClip(const QString& clipId, const QString& part, double sceneX, double sceneY, int modifiers);
     // A key on the tracks region. Returns whether it was an editing key.
     bool handleKey(int key, const QString& text, int modifiers, bool autoRepeat);
+    // A press on an empty lane at `atMs` (TrackLane.tsx): under a track
+    // select tool it selects the block (Shift: that track only) and returns
+    // true; otherwise false, and the lane clears and seeks.
+    bool pressLane(const QString& trackId, double atMs, int modifiers);
     void undo();
     void redo();
     bool isSelected(const QString& clipId) const { return m_selection.contains(clipId); }
@@ -112,6 +123,15 @@ public slots:
     // probed length of its media file, or until that is known the furthest
     // out-point seen on its asset; -1 for a clip with no finite source.
     double sourceCapMs(const QString& clipId);
+    // The first key of `action` under the keyboard preset ("Alt+←"), for a
+    // tooltip; empty when unbound.
+    QString shortcutFor(const QString& action) const;
+    // The shortcut sheet under the keyboard preset (Keymap.h shortcutSheet),
+    // each row with `available`: whether the native editor runs it.
+    QVariantMap shortcutSheet() const;
+    // The keymap actions handleKey runs, and the pointer gestures of the
+    // sheet's key-only rows that work here.
+    static const QSet<QString>& availableActions();
 
 signals:
     void changed();
@@ -119,6 +139,8 @@ signals:
     void optionsChanged();
     void gestureChanged();
     void snapGuideChanged();
+    // The `?` key: open or close the shortcut sheet.
+    void shortcutsToggled();
 
 protected:
     void mouseMoveEvent(QMouseEvent* event) override;
@@ -128,7 +150,7 @@ protected:
 
 private:
     struct Gesture {
-        QString kind;  // "", "move", "trim"
+        QString kind;  // "", "move", "trim", "slip", "slide"
         QString clipId;
         QString edge;  // trim: "start" or "end"
         QString mode;  // trim: "trim", "ripple" or "roll"
@@ -143,6 +165,7 @@ private:
         double dragStartMs = 0;
         double edgeMsAtStart = 0;
         double durationMsAtStart = 0;
+        double inAtStart = 0;  // slip: the source in-point at the press
         bool dragging = false;
         std::vector<double> candidates;
         QJsonArray before;
@@ -153,6 +176,9 @@ private:
     void setDoc(const nt::edit::ClipList& clips);
     void applyMove();
     void applyTrim();
+    void applySlip();
+    void applySlide();
+    double laneMsAt(double sceneX) const;
     void finishGesture(bool completed, Qt::KeyboardModifiers modifiers);
     void clickSelect(const QString& clipId, Qt::KeyboardModifiers modifiers);
     void setSnapGuide(double ms);
@@ -183,5 +209,7 @@ private:
     QHash<QString, double> m_sourceMs;
     QSet<QString> m_probing;
     QHash<QString, double> m_observedEnds;
+    // Bumped by a document replacement: older probe results are dropped.
+    quint64 m_probeGeneration = 0;
     int m_liveUpdates = 0;
 };

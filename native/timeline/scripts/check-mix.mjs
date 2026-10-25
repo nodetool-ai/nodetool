@@ -19,8 +19,9 @@
 // Each fixture runs as is and in variants: a soloed track, a muted track,
 // and a master fader change. A variant is written to fixtures/generated/.
 //
-// Usage: node native/timeline/scripts/check-mix.mjs [fixture.json] [--bin PATH] [--json]
-// Default fixture: native/timeline/fixtures/audio-mix.json. Needs
+// Usage: node native/timeline/scripts/check-mix.mjs [fixture.json ...] [--bin PATH] [--json]
+// Default fixtures: native/timeline/fixtures/audio-mix.json and audio-proxy.json
+// (a video proxy with no audio track whose sound comes from `audioPath`). Needs
 // scripts/make-fixtures.sh and `npm run build:packages`.
 // Exit 0 only when every variant matches within 1e-6, no native or
 // reference sample is NaN or infinite, and at least one non-silent sample
@@ -44,12 +45,16 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const RATE = 48000;
 const TOLERANCE = 1e-6;
 
-const args = { fixture: path.join(root, "fixtures", "audio-mix.json"), bin: path.join(root, "build-m3", "nodetool-timeline"), json: false };
+const args = { fixtures: [], bin: path.join(root, "build-m3", "nodetool-timeline"), json: false };
 for (let i = 2; i < process.argv.length; i++) {
   const a = process.argv[i];
   if (a === "--bin") args.bin = path.resolve(process.argv[++i]);
   else if (a === "--json") args.json = true;
-  else args.fixture = path.resolve(a);
+  else args.fixtures.push(path.resolve(a));
+}
+// The mix rules, and a proxy picture whose sound comes from `audioPath`.
+if (args.fixtures.length === 0) {
+  args.fixtures = ["audio-mix.json", "audio-proxy.json"].map((f) => path.join(root, "fixtures", f));
 }
 if (!fs.existsSync(args.bin)) args.bin = path.join(root, "build", "nodetool-timeline");
 
@@ -161,17 +166,21 @@ function variants(doc) {
   return list;
 }
 
-const base = JSON.parse(fs.readFileSync(args.fixture, "utf8"));
-const baseDir = path.dirname(args.fixture);
 const genDir = path.join(root, "fixtures", "generated");
 fs.mkdirSync(genDir, { recursive: true });
 const results = [];
 let compared = 0;
+for (const fixture of args.fixtures) {
+const base = JSON.parse(fs.readFileSync(fixture, "utf8"));
+const baseDir = path.dirname(fixture);
 for (const v of variants(base)) {
   // Variants keep media paths relative to the original fixture.
   const doc = structuredClone(v.doc);
-  for (const c of doc.clips) if (c.mediaPath) c.mediaPath = path.resolve(baseDir, c.mediaPath);
-  const file = path.join(genDir, `mix-${path.basename(args.fixture, ".json")}-${v.name.replace(/[^a-z0-9]+/gi, "_")}.json`);
+  for (const c of doc.clips) {
+    if (c.mediaPath) c.mediaPath = path.resolve(baseDir, c.mediaPath);
+    if (c.audioPath) c.audioPath = path.resolve(baseDir, c.audioPath);
+  }
+  const file = path.join(genDir, `mix-${path.basename(fixture, ".json")}-${v.name.replace(/[^a-z0-9]+/gi, "_")}.json`);
   fs.writeFileSync(file, JSON.stringify(doc, null, 2));
   const outFile = path.join(genDir, `${path.basename(file, ".json")}.f32`);
   const report = JSON.parse(execFileSync(args.bin, [file, "--render-audio", outFile]).toString());
@@ -204,6 +213,7 @@ for (const v of variants(base)) {
   compared += ref.length;
   const pass = nonFinite === 0 && Number.isFinite(maxError) && maxError <= TOLERANCE && energy > 0;
   results.push({
+    fixture: path.basename(fixture),
     variant: v.name,
     pass,
     voices: report.voices,
@@ -214,11 +224,12 @@ for (const v of variants(base)) {
     rms: Math.sqrt(energy / ref.length)
   });
 }
+}
 const pass = results.length > 0 && results.every((r) => r.pass) && compared > 0;
-const summary = { pass, tolerance: TOLERANCE, fixture: path.relative(root, args.fixture), compared, results };
+const summary = { pass, tolerance: TOLERANCE, fixtures: args.fixtures.map((f) => path.relative(root, f)), compared, results };
 if (args.json) console.log(JSON.stringify(summary));
 else {
-  for (const r of results) console.log(`${r.pass ? "ok  " : "FAIL"} ${r.variant}: max error ${r.maxError ?? r.reason}${r.nonFinite ? `, ${r.nonFinite} non-finite samples` : ""}, voices ${r.voices?.join(",")}`);
+  for (const r of results) console.log(`${r.pass ? "ok  " : "FAIL"} ${r.fixture ?? ""} ${r.variant}: max error ${r.maxError ?? r.reason}${r.nonFinite ? `, ${r.nonFinite} non-finite samples` : ""}, voices ${r.voices?.join(",")}`);
   console.log(pass ? "mix matches the reference" : "mix differs from the reference");
 }
 process.exit(pass ? 0 : 1);

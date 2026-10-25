@@ -15,6 +15,11 @@
 #include "edit/ClipGestureController.h"
 #include "edit/EditActions.h"
 #include "playback/PlaybackClock.h"
+#include "preview/PreviewCompositor.h"
+#include "ui/BenchMedia.h"
+#include "ui/MediaPreviews.h"
+#include "server/AutosaveController.h"
+#include "TestHttpServer.h"
 #include "ui/RulerCanvas.h"
 #include "ui/TimelineGestureArea.h"
 #include "ui/TimelineViewState.h"
@@ -25,6 +30,11 @@
 #include <QKeyEvent>
 #include <QUndoStack>
 #include <QJsonArray>
+#include <QElapsedTimer>
+#include <QProcess>
+#include <QStandardPaths>
+#include <QTemporaryDir>
+#include <QQmlComponent>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QNativeGestureEvent>
@@ -273,6 +283,29 @@ class TestTracksUi : public QObject {
 
 private slots:
     void cleanup() { unload(); }
+
+    // ── --ui-bench media check ──
+    // The 8-track bench with hardware decode started its measured range while
+    // the layers still showed the keyframe before their in-points (frame error
+    // 41, falling to 0 over ~0.2 s), and failed its own drawn check. The
+    // measured range starts only once the newest frame passes that check.
+    void uiBenchStartsOnceTheMediaIsExact() {
+        FrameStat stat;
+        stat.mediaLayers = 8;
+        stat.missingMediaLayers = 0;
+        stat.frameError = 41;
+        QVERIFY(!nt::ui::frameDrewMedia(stat, 4));
+        QVERIFY(!nt::ui::benchMediaReady({stat}, 4));
+        stat.frameError = 1;
+        QVERIFY(nt::ui::frameDrewMedia(stat, 4));
+        QVERIFY(nt::ui::benchMediaReady({stat}, 4));
+        stat.missingMediaLayers = 1;
+        QVERIFY(!nt::ui::benchMediaReady({stat}, 4));
+        stat.missingMediaLayers = 0;
+        stat.mediaLayers = 3;
+        QVERIFY(!nt::ui::benchMediaReady({stat}, 4));
+        QVERIFY(!nt::ui::benchMediaReady({}, 4));
+    }
 
     // ── Zoom ──
     // The expectations come from the web tests, not from the native formula:
@@ -1273,6 +1306,890 @@ private slots:
         drag(clipPoint("right", 3), clipPoint("right", 3) + QPoint(-30, 0), 5, Qt::ControlModifier);
         QCOMPARE(clipJson("left").value("durationMs").toDouble(), 400.0);
     }
+
+    // ── M2b: the toolbar tools ──
+    // Loads a document given as JSON (the fixture of `l` with edits).
+    void loadJson(const QJsonObject& json, const Layout& l) {
+        unload();
+        layout = l;
+        model = new TimelineModel(this);
+        clock = new PlaybackClock(this);
+        model->setTimeline(parseTimeline(json));
+        clock->setDurationMs(model->contentEndMs());
+        view = std::make_unique<QQuickView>();
+        view->setInitialProperties({{QStringLiteral("timeline"), QVariant::fromValue(model)},
+                                    {QStringLiteral("clock"), QVariant::fromValue(clock)}});
+        view->loadFromModule("NodeTool.Timeline", "TracksRegion");
+        QVERIFY(view->status() == QQuickView::Ready);
+        view->setResizeMode(QQuickView::SizeRootObjectToView);
+        view->resize(kRegionWidth, kRegionHeight);
+        view->show();
+        QVERIFY(QTest::qWaitForWindowExposed(view.get()));
+        region = view->rootObject();
+        vs = region->findChild<TimelineViewState*>(QStringLiteral("timelineViewState"));
+        rows = region->findChild<TrackWindowModel*>(QStringLiteral("trackWindowModel"));
+        QVERIFY(vs && rows);
+        frame();
+    }
+    QJsonObject withClipFields(QJsonObject json, const QString& id, const QJsonObject& fields) {
+        QJsonArray clips = json.value("clips").toArray();
+        for (int i = 0; i < clips.size(); ++i) {
+            QJsonObject c = clips.at(i).toObject();
+            if (c.value("id").toString() != id) continue;
+            for (auto it = fields.begin(); it != fields.end(); ++it) c.insert(it.key(), it.value());
+            clips.replace(i, c);
+        }
+        json.insert("clips", clips);
+        return json;
+    }
+    void click(QPoint at, Qt::KeyboardModifiers mods = {}) {
+        QTest::mouseClick(view.get(), Qt::LeftButton, mods, at);
+        frame();
+    }
+    QPoint itemCenter(const QString& name) {
+        QQuickItem* it = itemNamed(name);
+        if (!it) qFatal("no item %s", qPrintable(name));
+        return it->mapToScene(QPointF(it->width() / 2, it->height() / 2)).toPoint();
+    }
+
+    void cutToolSplitsAtThePointer() {
+        load({2, 6});
+        seed(10, 0);
+        controller()->setActiveTool(QStringLiteral("cut"));
+        const int before = model->clipCount();
+        // c-0-1 runs 1000..1800 ms: x 30 is 1300 ms.
+        QTest::mouseClick(view.get(), Qt::LeftButton, {}, clipPoint("c-0-1", 30));
+        frame();
+        QCOMPARE(model->clipCount(), before + 1);
+        // Both halves get new ids (splitClip.ts).
+        QVERIFY(clipJson("c-0-1").isEmpty());
+        QList<std::pair<double, double>> halves;
+        for (const QJsonValue& v : model->clipsJson()) {
+            const QJsonObject c = v.toObject();
+            if (c.value("trackId").toString() == "track-0" && c.value("startMs").toDouble() >= 1000 &&
+                c.value("startMs").toDouble() < 2000)
+                halves.append({c.value("startMs").toDouble(), c.value("durationMs").toDouble()});
+        }
+        std::sort(halves.begin(), halves.end());
+        QCOMPARE(halves, (QList<std::pair<double, double>>{{1000, 300}, {1300, 500}}));
+        QCOMPARE(model->undoStack()->count(), 1);
+        // On an edge grip the Cut tool still cuts (BODY_TOOLS), here at 1003 ms.
+        QTest::mouseClick(view.get(), Qt::LeftButton, {}, clipPoint("c-0-2", 0.3));
+        frame();
+        QCOMPARE(model->clipCount(), before + 1);  // at the edge: refused (no-op split)
+    }
+
+    void trackSelectToolSelectsFromThePointerOn() {
+        load({3, 6});
+        seed(10, 0);
+        auto* g = controller();
+        g->setActiveTool(QStringLiteral("trackSelect"));
+        // At 2300 ms on c-1-2: every clip that ends after it, the pressed one first.
+        QTest::mouseClick(view.get(), Qt::LeftButton, {}, clipPoint("c-1-2", 30));
+        frame();
+        QStringList expected{QStringLiteral("c-1-2")};
+        for (int t = 0; t < 3; ++t)
+            for (int k = 2; k < 6; ++k)
+                if (!(t == 1 && k == 2)) expected.append(QStringLiteral("c-%1-%2").arg(t).arg(k));
+        QStringList got = g->selection();
+        QCOMPARE(got.first(), QStringLiteral("c-1-2"));
+        std::sort(got.begin() + 1, got.end());
+        std::sort(expected.begin() + 1, expected.end());
+        QCOMPARE(got, expected);
+        // Shift keeps to the pressed clip's track; backward selects up to it.
+        g->setActiveTool(QStringLiteral("trackSelectBackward"));
+        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::ShiftModifier, clipPoint("c-1-2", 30));
+        frame();
+        QCOMPARE(g->selection(), (QStringList{"c-1-2", "c-1-0", "c-1-1"}));
+    }
+
+    void slipToolMovesTheSourceUnderTheClip() {
+        Layout l{2, 4};
+        loadJson(withClipFields(makeTimelineJson(l), "c-0-1", QJsonObject{{"inPointMs", 1000}}), l);
+        seed(10, 0);
+        auto* g = controller();
+        g->setActiveTool(QStringLiteral("slip"));
+        // Right shows earlier source: 20 px at 10 ms/px is 200 ms.
+        drag(clipPoint("c-0-1", 40), clipPoint("c-0-1", 40) + QPoint(20, 0), 4);
+        QCOMPARE(clipJson("c-0-1").value("inPointMs").toDouble(), 800.0);
+        QCOMPARE(clipJson("c-0-1").value("startMs").toDouble(), 1000.0);
+        QCOMPARE(model->undoStack()->count(), 1);
+        QCOMPARE(model->undoStack()->undoText(), QStringLiteral("Slip clip"));
+        // Past the source start the slip stops at 0.
+        drag(clipPoint("c-0-1", 40), clipPoint("c-0-1", 40) + QPoint(200, 0), 4);
+        QCOMPARE(clipJson("c-0-1").value("inPointMs").toDouble(), 0.0);
+    }
+
+    void slideToolTrimsTheNeighbours() {
+        Layout l{2, 4, 1000, 1000};  // touching clips
+        load(l);
+        seed(10, 0);
+        controller()->setActiveTool(QStringLiteral("slide"));
+        drag(clipPoint("c-0-1", 40), clipPoint("c-0-1", 40) + QPoint(20, 0), 4);
+        QCOMPARE(clipJson("c-0-1").value("startMs").toDouble(), 1200.0);
+        QCOMPARE(clipJson("c-0-1").value("durationMs").toDouble(), 1000.0);
+        QCOMPARE(clipJson("c-0-0").value("durationMs").toDouble(), 1200.0);
+        QCOMPARE(clipJson("c-0-2").value("startMs").toDouble(), 2200.0);
+        QCOMPARE(clipJson("c-0-2").value("durationMs").toDouble(), 800.0);
+        QCOMPARE(model->undoStack()->count(), 1);
+        model->undoStack()->undo();
+        QCOMPARE(clipJson("c-0-1").value("startMs").toDouble(), 1000.0);
+    }
+
+    void rateStretchToolChangesTheSpeed() {
+        load({2, 4});
+        seed(10, 0);
+        controller()->setActiveTool(QStringLiteral("rateStretch"));
+        // End edge +10 px = +100 ms (Alt: no snap): 900 ms at 800/900 speed.
+        drag(clipPoint("c-0-1", 78), clipPoint("c-0-1", 78) + QPoint(10, 0), 2, Qt::AltModifier);
+        QCOMPARE(clipJson("c-0-1").value("durationMs").toDouble(), 900.0);
+        QVERIFY(std::abs(clipJson("c-0-1").value("speedMultiplier").toDouble() - 800.0 / 900.0) < 1e-9);
+        QCOMPARE(model->undoStack()->count(), 1);
+    }
+
+    void handAndZoomToolsActOnTheLanes() {
+        load({4, 200});
+        seed(10, 0);
+        auto* g = controller();
+        g->setActiveTool(QStringLiteral("hand"));
+        drag(lanesPoint(400).toPoint(), lanesPoint(300).toPoint(), 4);
+        QCOMPARE(vs->scrollLeftPx(), 100.0);
+        QCOMPARE(model->undoStack()->count(), 0);  // a press on a clip does not edit
+        g->setActiveTool(QStringLiteral("zoom"));
+        const double timeUnder = vs->timeAtViewportX(500);
+        click(lanesPoint(500).toPoint());
+        QCOMPARE(vs->msPerPx(), 5.0);
+        QVERIFY(std::abs(vs->timeAtViewportX(500) - timeUnder) < 1e-6);
+        click(lanesPoint(500).toPoint(), Qt::AltModifier);
+        QCOMPARE(vs->msPerPx(), 10.0);
+    }
+
+    void toolKeysAndTooltipsComeFromTheKeymap() {
+        load({2, 4});
+        auto* g = controller();
+        const QList<std::tuple<int, Qt::KeyboardModifiers, QString, QString>> keys{
+            {Qt::Key_C, {}, "c", "cut"},         {Qt::Key_H, {}, "h", "hand"},
+            {Qt::Key_Y, {}, "y", "slip"},        {Qt::Key_U, {}, "u", "slide"},
+            {Qt::Key_R, {}, "r", "rateStretch"}, {Qt::Key_A, {}, "a", "trackSelect"},
+            {Qt::Key_A, Qt::ShiftModifier, "A", "trackSelectBackward"},
+            {Qt::Key_Z, {}, "z", "zoom"},         {Qt::Key_V, {}, "v", "select"}};
+        region->forceActiveFocus();
+        for (const auto& [k, mods, text, tool] : keys) {
+            key(k, mods, text);
+            QCOMPARE(g->activeTool(), tool);
+        }
+        QCOMPARE(g->shortcutFor("cutTool"), QStringLiteral("C"));
+        QCOMPARE(g->shortcutFor("stepFrameBack"), QStringLiteral("Alt+←"));
+        QCOMPARE(g->shortcutFor("trackSelectBackwardTool"), QStringLiteral("Shift+A"));
+        g->setKeyboardPreset(QStringLiteral("fcp"));
+        QCOMPARE(g->shortcutFor("cutTool"), QStringLiteral("B"));
+        QCOMPARE(itemNamed("tool_cut")->property("heading").toString(), QStringLiteral("Cut (B)"));
+    }
+
+    // nextToolbarFit: labels while the row fits, icons once it overflows, and
+    // labels again only when the bar is as wide as the labelled row was.
+    void toolbarDropsItsLabelsWhenNarrow() {
+        load({2, 4});
+        QQuickItem* select = itemNamed("tool_select");
+        QVERIFY(!select->property("compact").toBool());
+        QVERIFY(select->width() > 28);
+        QCOMPARE(itemNamed("tool_slip")->width(), 28.0);  // iconOnly in both
+        view->resize(700, kRegionHeight);
+        frame();
+        QVERIFY(select->property("compact").toBool());
+        QCOMPARE(select->width(), 28.0);
+        QVERIFY(!itemNamed("zoomSlider")->isVisible());
+        view->resize(kRegionWidth, kRegionHeight);
+        frame();
+        QVERIFY(!select->property("compact").toBool());
+    }
+
+    void dropModesAreOneChoice() {
+        load({2, 4});
+        auto* g = controller();
+        click(itemCenter("dropMode_insert"));
+        QCOMPARE(g->dropMode(), QStringLiteral("insert"));
+        QVERIFY(itemNamed("dropMode_insert")->property("active").toBool());
+        QVERIFY(!itemNamed("dropMode_overwrite")->property("active").toBool());
+        click(itemCenter("dropMode_overlap"));
+        QCOMPARE(g->dropMode(), QStringLiteral("overlap"));
+        click(itemCenter("snapToggle"));
+        QVERIFY(!g->snapEnabled());
+        click(itemCenter("linkedToggle"));
+        QVERIFY(!g->linkedSelection());
+        QVERIFY(region->property("followPlayhead").toBool());
+        click(itemCenter("followToggle"));
+        QVERIFY(!region->property("followPlayhead").toBool());
+        click(itemCenter("rippleToggle"));
+        QVERIFY(g->rippleMode());
+    }
+
+    // ── M2b: markers and the in/out range ──
+    void markersAddSeekDeleteAndUndo() {
+        load({2, 10});
+        seed(10, 0);
+        region->forceActiveFocus();
+        clock->seek(2500);
+        key(Qt::Key_M, {}, "m");
+        key(Qt::Key_M, {}, "m", true);  // a held key adds no second marker
+        QCOMPARE(model->markersJson().size(), 1);
+        const QJsonObject m = model->markersJson().at(0).toObject();
+        QCOMPARE(m.value("label").toString(), QStringLiteral("Marker 1"));
+        QCOMPARE(m.value("timeMs").toDouble(), 2500.0);
+        QCOMPARE(m.value("id").toString().size(), 32);
+        clock->seek(6000);
+        key(Qt::Key_M, {}, "m");
+        frame();
+        const QList<QQuickItem*> flags = itemsNamed("timelineMarker");
+        QCOMPARE(flags.size(), 2);
+        if (qEnvironmentVariableIsSet("NT_SHOT_DIR"))
+            view->grabWindow().copy(0, 0, 1000, 160).save(qEnvironmentVariable("NT_SHOT_DIR") + "/native-markers.png");
+        auto* ruler = region->findChild<RulerCanvas*>(QStringLiteral("rulerCanvas"));
+        QCOMPARE(ruler->markers().size(), 2);
+        // The flag sits at its time; its label seeks.
+        QQuickItem* first = flags[0]->property("label").toString() == "Marker 1" ? flags[0] : flags[1];
+        QCOMPARE(first->mapToItem(ruler, QPointF(1, 0)).x(), 250.0);
+        clock->seek(0);
+        click(first->mapToScene(QPointF(10, 7)).toPoint());
+        QCOMPARE(clock->time(), 2500.0);
+        // Next and previous marker.
+        key(Qt::Key_M, Qt::ShiftModifier, "M");
+        QCOMPARE(clock->time(), 6000.0);
+        key(Qt::Key_M, Qt::ShiftModifier | Qt::MetaModifier, "M");
+        QCOMPARE(clock->time(), 2500.0);
+        // Delete through the ruler, then undo it and the adds.
+        QMetaObject::invokeMethod(itemNamed("timeRuler"), "deleteMarkerRequested", Q_ARG(QString, m.value("id").toString()));
+        frame();
+        QCOMPARE(model->markersJson().size(), 1);
+        model->undoStack()->undo();
+        QCOMPARE(model->markersJson().size(), 2);
+        model->undoStack()->undo();
+        model->undoStack()->undo();
+        QCOMPARE(model->markersJson().size(), 0);
+        frame();
+        QCOMPARE(itemsNamed("timelineMarker").size(), 0);
+    }
+
+    void inOutRangeFollowsThePlaybackStore() {
+        load({2, 10});
+        seed(10, 0);
+        region->forceActiveFocus();
+        auto* ruler = region->findChild<RulerCanvas*>(QStringLiteral("rulerCanvas"));
+        clock->seek(1000);
+        key(Qt::Key_I, {}, "i");
+        clock->seek(4000);
+        key(Qt::Key_O, {}, "o");
+        QCOMPARE(vs->rangeInMs(), 1000.0);
+        QCOMPARE(vs->rangeOutMs(), 4000.0);
+        QCOMPARE(ruler->rangeInMs(), 1000.0);
+        QCOMPARE(ruler->rangeOutMs(), 4000.0);
+        frame();
+        if (qEnvironmentVariableIsSet("NT_SHOT_DIR"))
+            view->grabWindow().copy(0, 0, 1000, 160).save(qEnvironmentVariable("NT_SHOT_DIR") + "/native-range.png");
+        key(Qt::Key_I, Qt::ShiftModifier, "I");
+        QCOMPARE(clock->time(), 1000.0);
+        // An in point at or after the out point drops the out point.
+        clock->seek(5000);
+        key(Qt::Key_I, {}, "i");
+        QCOMPARE(vs->rangeInMs(), 5000.0);
+        QCOMPARE(vs->rangeOutMs(), -1.0);
+        clock->seek(2000);
+        key(Qt::Key_O, {}, "o");
+        QCOMPARE(vs->rangeInMs(), -1.0);
+        QCOMPARE(vs->rangeOutMs(), 2000.0);
+        key(Qt::Key_X, Qt::ShiftModifier | Qt::MetaModifier, "X");
+        QCOMPARE(vs->rangeOutMs(), -1.0);
+        QCOMPARE(model->undoStack()->count(), 0);  // the range is view state
+    }
+
+    void shortcutSheetShowsTheWebRows() {
+        load({2, 4});
+        auto* g = controller();
+        QSignalSpy toggled(region, SIGNAL(shortcutsRequested()));
+        region->forceActiveFocus();
+        key(Qt::Key_Question, Qt::ShiftModifier, "?");
+        QCOMPARE(toggled.count(), 1);
+        click(itemCenter("helpButton"));
+        QCOMPARE(toggled.count(), 2);
+        // The sheet itself: the web's groups, rows and keys under the preset.
+        QQmlComponent component(view->engine());
+        component.loadFromModule("NodeTool.Timeline", "ShortcutsSheet");
+        std::unique_ptr<QObject> sheet(component.createWithInitialProperties({{"gestures", QVariant::fromValue(g)}}));
+        QVERIFY2(sheet, qPrintable(component.errorString()));
+        sheet->setProperty("open", true);
+        const QVariantMap content = sheet->property("content").toMap();
+        QCOMPARE(content.value("title").toString(), QStringLiteral("Keyboard shortcuts"));
+        const QVariantList groups = content.value("groups").toList();
+        QCOMPARE(groups.size(), 11);
+        QCOMPARE(groups.first().toMap().value("title").toString(), QStringLiteral("Tools"));
+        const QVariantMap cut = groups.first().toMap().value("rows").toList().at(6).toMap();
+        QCOMPARE(cut.value("label").toString(), QStringLiteral("Cut (blade) tool"));
+        const auto combos = [](const QVariantMap& row) {
+            QList<QStringList> out;
+            for (const QVariant& c : row.value("combos").toList()) out.append(c.toStringList());
+            return out;
+        };
+        QCOMPARE(combos(cut), (QList<QStringList>{{"C"}}));
+        int rows = 0;
+        for (const QVariant& gv : groups) rows += gv.toMap().value("rows").toList().size();
+        QCOMPARE(rows, 107);
+        if (qEnvironmentVariableIsSet("NT_SHOT_DIR")) {
+            auto* item = qobject_cast<QQuickItem*>(sheet.get());
+            view->resize(1600, 1000);
+            item->setParentItem(region);
+            item->setSize(QSizeF(1600, 1000));
+            item->setZ(100);
+            frame();
+            view->grabWindow().save(qEnvironmentVariable("NT_SHOT_DIR") + "/native-sheet.png");
+            item->setParentItem(nullptr);
+        }
+        g->setKeyboardPreset(QStringLiteral("premiere"));
+        sheet->setProperty("open", false);
+        sheet->setProperty("open", true);
+        const QVariantMap redo = sheet->property("content").toMap().value("groups").toList().last().toMap()
+                                     .value("rows").toList().at(1).toMap();
+        QCOMPARE(combos(redo), (QList<QStringList>{{"Ctrl", "Shift", "Z"}, {"Ctrl", "Y"}}));
+    }
+
+    // ── M2b: waveforms and filmstrips ──
+    // audioPeaks.test.ts and filmstripCells.test.ts, the same expectations.
+    void picturesSampleLikeTheWeb() {
+        const std::vector<float> full{0.1f, 0.2f, 0.3f, 0.4f, 0.5f, 0.6f, 0.7f, 0.8f, 0.9f, 1.0f};
+        QCOMPARE(samplePeaksWindow(full, 1000, 0, 1000, 5).size(), size_t(5));
+        auto w = samplePeaksWindow(full, 1000, 500, 1000, 5);
+        QCOMPARE(w.front(), 0.6f);
+        QCOMPARE(w.back(), 1.0f);
+        w = samplePeaksWindow(full, 1000, -200, 2000, 4);
+        QCOMPARE(w.size(), size_t(4));
+        QCOMPARE(w.front(), 0.2f);
+        QCOMPARE(w.back(), 1.0f);
+        w = samplePeaksWindow(full, 0, 0, 1000, 5);
+        QVERIFY(std::all_of(w.begin(), w.end(), [](float v) { return v == 0; }));
+
+        std::vector<Thumbnail> thumbs;
+        for (int k = 0; k < 24; ++k) thumbs.push_back({double(k), QImage()});
+        QCOMPARE(selectFilmstripCells(thumbs, 4, 0, 23000), (std::vector<int>{0, 8, 15, 23}));
+        QCOMPARE(selectFilmstripCells(thumbs, 3, 10000, 20000), (std::vector<int>{10, 15, 20}));
+        QCOMPARE(selectFilmstripCells(thumbs, 1, 7000, 12000), (std::vector<int>{7}));
+        QCOMPARE(selectFilmstripCells(thumbs, 4, 0, 10000), (std::vector<int>{0, 3, 7, 10}));
+        QCOMPARE(selectFilmstripCells(thumbs, 2, 20000, 40000), (std::vector<int>{20, 23}));
+        QVERIFY(selectFilmstripCells({}, 4, 0, 1000).empty());
+        QVERIFY(selectFilmstripCells(thumbs, 0, 0, 1000).empty());
+        QCOMPARE(beyondSourceFraction(thumbs, 0, 24000), 0.0);
+        QCOMPARE(beyondSourceFraction(thumbs, 5000, 12000), 0.0);
+        QVERIFY(std::abs(beyondSourceFraction(thumbs, 20000, 28000) - 0.5) < 1e-9);
+        QCOMPARE(beyondSourceFraction(thumbs, 30000, 40000), 1.0);
+        QCOMPARE(beyondSourceFraction({thumbs[0]}, 0, 99000), 0.0);
+    }
+
+    // The thumbnails are the frames FFmpeg's command line shows at the same
+    // times (the web seeks a <video> to i / 23 of the length).
+    void thumbnailsAreTheFramesAtTheirTimes() {
+        const QString media = QStringLiteral(NT_FIXTURES_DIR "/media/numbered-a-1080p30.mp4");
+        const std::vector<Thumbnail> thumbs = extractThumbnails(media);
+        QCOMPARE(thumbs.size(), size_t(24));
+        QCOMPARE(thumbs[0].image.size(), QSize(160, 90));
+        for (int i = 0; i < 24; ++i) QVERIFY(std::abs(thumbs[size_t(i)].timeSec - std::min(19.999, i * 20.0 / 23)) < 1e-9);
+        // Only a missing command line skips; any failure of it fails.
+        const QString ffmpegBin = QStandardPaths::findExecutable("ffmpeg");
+        if (ffmpegBin.isEmpty()) QSKIP("no ffmpeg command line on PATH");
+        // Frame n of the clip from FFmpeg's command line, at the same size.
+        const auto cliFrame = [&](int n) -> QImage {
+            QProcess ffmpeg;
+            ffmpeg.start(ffmpegBin, {"-v", "error", "-i", media, "-vf",
+                                    QStringLiteral("select=eq(n\\,%1),scale=160:90").arg(n), "-sws_flags", "bilinear",
+                                    "-frames:v", "1", "-f", "rawvideo", "-pix_fmt", "rgb24", "-"});
+            if (!ffmpeg.waitForFinished(60000) || ffmpeg.exitStatus() != QProcess::NormalExit ||
+                ffmpeg.exitCode() != 0) {
+                qWarning("ffmpeg frame %d failed: %s", n, ffmpeg.readAllStandardError().constData());
+                return {};
+            }
+            const QByteArray rgb = ffmpeg.readAllStandardOutput();
+            if (rgb.size() != 160 * 90 * 3) {
+                qWarning("ffmpeg frame %d: %lld bytes", n, static_cast<long long>(rgb.size()));
+                return {};
+            }
+            return QImage(reinterpret_cast<const uchar*>(rgb.constData()), 160, 90, 160 * 3, QImage::Format_RGB888)
+                .convertToFormat(QImage::Format_RGB32);
+        };
+        const auto diff = [](const QImage& a, const QImage& b) {
+            double sum = 0;
+            for (int y = 0; y < 90; ++y)
+                for (int x = 0; x < 160; ++x) {
+                    const QRgb p = a.pixel(x, y), q = b.pixel(x, y);
+                    sum += std::abs(qRed(p) - qRed(q)) + std::abs(qGreen(p) - qGreen(q)) + std::abs(qBlue(p) - qBlue(q));
+                }
+            return sum / (160 * 90 * 3);
+        };
+        for (int i : {1, 5, 22}) {
+            const double t = thumbs[size_t(i)].timeSec;
+            // The frame a <video> shows at t: the one that starts at or before it.
+            const int n = static_cast<int>(std::floor(t * 30 + 1e-6));
+            const QImage same = cliFrame(n);
+            const QImage prev = cliFrame(n - 1);
+            const QImage next = cliFrame(n + 1);
+            QVERIFY(!same.isNull() && !prev.isNull() && !next.isNull());
+            // The numbered clip changes its digits every frame: the picture is
+            // nearer frame n than its neighbours.
+            const double d0 = diff(thumbs[size_t(i)].image, same);
+            const double before = diff(thumbs[size_t(i)].image, prev);
+            const double after = diff(thumbs[size_t(i)].image, next);
+            QVERIFY2(d0 < before && d0 < after,
+                     qPrintable(QStringLiteral("t %1: %2 vs %3 / %4").arg(t).arg(d0).arg(before).arg(after)));
+        }
+    }
+
+    void picturesDecodeOffTheGuiThreadOnceAndDraw() {
+        MediaPreviewCache& cache = MediaPreviewCache::instance();
+        cache.clear();
+        const int decodesBefore = cache.decodeCount();
+        const QString audio = QStringLiteral(NT_FIXTURES_DIR "/media/clicks-48k.wav");
+        const QString video = QStringLiteral(NT_FIXTURES_DIR "/media/numbered-a-1080p30.mp4");
+        Layout l{4, 3};
+        QJsonObject json = makeTimelineJson(l);
+        for (int k = 0; k < 3; ++k) {
+            json = withClipFields(json, QStringLiteral("c-3-%1").arg(k), {{"mediaPath", audio}, {"inPointMs", k * 1000}});
+            json = withClipFields(json, QStringLiteral("c-0-%1").arg(k), {{"mediaPath", video}, {"inPointMs", k * 1000},
+                                                                          {"durationMs", 4000}});
+        }
+        loadJson(json, l);
+        seed(10, 0);
+        QTRY_COMPARE_WITH_TIMEOUT(cache.pendingCount(), 0, 30000);
+        frame();
+        // One decode per file, however many clips use it, none on the GUI thread.
+        QCOMPARE(cache.decodeCount() - decodesBefore, 2);
+        QCOMPARE(cache.guiThreadDecodes(), 0);
+        auto* wave = qobject_cast<WaveformItem*>(itemNamed("clip-c-3-1")->findChild<QQuickItem*>("waveform"));
+        QQuickItem* waveItem = nullptr;
+        collect(itemNamed("clip-c-3-1"), [&](QQuickItem* it) { if (it->objectName() == "waveform") waveItem = it; });
+        wave = qobject_cast<WaveformItem*>(waveItem);
+        QVERIFY(wave && wave->loaded());
+        // 800 ms over 80 px: a bar per 2 px, over the clip's own source window.
+        QCOMPARE(wave->barCount(), 40);
+        QCOMPARE(wave->inPointMs(), 1000.0);
+        QCOMPARE(wave->outPointMs(), 1800.0);
+        QQuickItem* stripItem = nullptr;
+        collect(itemNamed("clip-c-0-1"), [&](QQuickItem* it) { if (it->objectName() == "filmstrip") stripItem = it; });
+        auto* strip = qobject_cast<FilmstripItem*>(stripItem);
+        QVERIFY(strip && strip->loaded());
+        // A 4000 ms clip at 10 ms/px is 400 px: 6 cells of 60 px, from 1 s on.
+        QCOMPARE(strip->cellCount(), 6);
+        QCOMPARE(strip->cellThumbnails(), (QVariantList{1, 2, 3, 4, 5, 6}));
+
+        // D30: playback repaints no picture; a zoom does.
+        const int wavePaints = wave->paintCount();
+        const int stripPaints = strip->paintCount();
+        clock->play();
+        for (int i = 0; i < 30; ++i) {
+            QTest::qWait(5);
+            clock->tick();
+            frame();
+        }
+        clock->pause();
+        QCOMPARE(wave->paintCount(), wavePaints);
+        QCOMPARE(strip->paintCount(), stripPaints);
+        vs->zoomTo(5, 0);
+        frame();
+        QVERIFY(wave->paintCount() > wavePaints);
+        QVERIFY(strip->paintCount() > stripPaints);
+        QCOMPARE(wave->barCount(), 80);
+        // A second document with the same files decodes nothing again.
+        const int decodes = cache.decodeCount();
+        loadJson(json, l);
+        QTRY_COMPARE_WITH_TIMEOUT(cache.pendingCount(), 0, 30000);
+        QCOMPARE(cache.decodeCount(), decodes);
+    }
+
+
+    // ── M2b: the save state of a server timeline ──
+    // A stand-in with the AutosaveController's properties (src/server/
+    // AutosaveController.h: dirty, saving, conflict, stripped, lastError).
+    void saveStateShowsAsTheWebShowsIt() {
+        load({2, 2});
+        QQmlEngine* engine = view->engine();
+        QQmlComponent fake(engine);
+        fake.setData("import QtQuick\nQtObject { property bool dirty: false; property bool saving: false;"
+                     " property bool conflict: false; property var stripped: []; property string lastError: \"\";"
+                     " property string keptCopy: \"\"; property string recoveryError: \"\" }",
+                     QUrl());
+        std::unique_ptr<QObject> saver(fake.create());
+        QVERIFY2(saver, qPrintable(fake.errorString()));
+        QQmlComponent harness(engine);
+        harness.setData("import QtQuick\nimport NodeTool.Timeline\nColumn { width: 900; property alias bar: bar;"
+                        " property alias banners: banners; property QtObject saver: null; property TimelineModel model;"
+                        " DocumentBar { id: bar; width: 900; timeline: parent.model; autosave: parent.saver }"
+                        " SaveBanners { id: banners; width: 900; autosave: parent.saver } }",
+                        QUrl());
+        std::unique_ptr<QObject> root(harness.createWithInitialProperties(
+            {{"saver", QVariant::fromValue(saver.get())}, {"model", QVariant::fromValue(model)}}));
+        QVERIFY2(root, qPrintable(harness.errorString()));
+        auto* rootItem = qobject_cast<QQuickItem*>(root.get());
+        rootItem->setParentItem(region);
+        rootItem->setZ(100);
+        const auto find = [&](const QString& name) {
+            QQuickItem* found = nullptr;
+            collect(rootItem, [&](QQuickItem* it) { if (!found && it->objectName() == name) found = it; });
+            return found;
+        };
+        const auto label = [&]() { return find("saveLabel")->property("text").toString(); };
+        const auto shot = [&](const QString& name) {
+            frame();
+            if (qEnvironmentVariableIsSet("NT_SHOT_DIR"))
+                view->grabWindow().copy(0, 0, 900, 200).save(qEnvironmentVariable("NT_SHOT_DIR") + "/save-" + name + ".png");
+        };
+        QCOMPARE(label(), QStringLiteral("Saved"));
+        QCOMPARE(find("saveDot")->property("color").value<QColor>(), QColor("#50FA7B"));
+        shot("saved");
+        saver->setProperty("dirty", true);
+        QCOMPARE(label(), QStringLiteral("Unsaved changes"));
+        QCOMPARE(find("saveDot")->property("color").value<QColor>(), QColor("#FFB86C"));
+        saver->setProperty("saving", true);
+        QCOMPARE(label(), QStringLiteral("Saving…"));
+        QVERIFY(find("saveSpinner")->isVisible());
+        saver->setProperty("saving", false);
+        saver->setProperty("lastError", "HTTP 500");
+        QCOMPARE(label(), QStringLiteral("Not saved"));
+        QVERIFY(!find("conflictBanner")->isVisible());  // a failed save is the status, not a banner
+        saver->setProperty("conflict", true);
+        saver->setProperty("lastError", "the timeline changed on the server; your copy is in 8941.local.json");
+        QVERIFY(find("conflictBanner")->isVisible());
+        QString detail;
+        collect(find("conflictBanner"), [&](QQuickItem* it) { if (it->objectName() == "alertDetail") detail = it->property("text").toString(); });
+        QCOMPARE(detail, saver->property("lastError").toString());
+        // With the copy properties the review asks of the controller.
+        saver->setProperty("keptCopy", "/cache/ui.local.json");
+        collect(find("conflictBanner"), [&](QQuickItem* it) { if (it->objectName() == "alertDetail") detail = it->property("text").toString(); });
+        QVERIFY(detail.endsWith(QStringLiteral(" A copy of your edits is in /cache/ui.local.json.")));
+        saver->setProperty("keptCopy", "");
+        saver->setProperty("recoveryError", "disk full");
+        collect(find("conflictBanner"), [&](QQuickItem* it) { if (it->objectName() == "alertDetail") detail = it->property("text").toString(); });
+        QVERIFY(detail.endsWith(QStringLiteral(" The copy of your edits could not be written: disk full.")));
+        saver->setProperty("recoveryError", "");
+        shot("conflict");
+        saver->setProperty("conflict", false);
+        saver->setProperty("lastError", "");
+        QVERIFY(!find("conflictBanner")->isVisible());
+        saver->setProperty("stripped", QStringList{"clips[3].lut", "tempo.swing"});
+        QVERIFY(find("strippedBanner")->isVisible());
+        QString title;
+        collect(find("strippedBanner"), [&](QQuickItem* it) { if (it->objectName() == "alertTitle") title = it->property("text").toString(); });
+        QCOMPARE(title, QStringLiteral("The server did not keep 2 fields of the saved timeline."));
+        shot("stripped");
+        // Dismissed until a new strip list arrives.
+        rootItem->property("banners").value<QObject*>()->setProperty("strippedDismissed", true);
+        QVERIFY(!find("strippedBanner")->isVisible());
+        saver->setProperty("stripped", QStringList{"x"});
+        QVERIFY(find("strippedBanner")->isVisible());
+        // A local file has no saver: no status.
+        rootItem->setProperty("saver", QVariant::fromValue<QObject*>(nullptr));
+        QVERIFY(!find("saveStatus")->isVisible());
+    }
+
+
+    // Review F10: a probed source length belongs to one version of a file. A
+    // new document whose file was replaced in place probes it again.
+    void aReplacedFileIsProbedAgain() {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString file = dir.filePath("clip.mp4");
+        QVERIFY(QFile::copy(QStringLiteral(NT_FIXTURES_DIR "/media/seek-360p30.mp4"), file));  // 10 s
+        QJsonObject json = makeTimelineJson({1, 0});
+        json.insert("clips", QJsonArray{QJsonObject{{"id", "v"}, {"trackId", "track-0"}, {"name", "v"},
+                                                    {"startMs", 0}, {"durationMs", 1000}, {"mediaType", "video"},
+                                                    {"mediaPath", file}, {"sourceType", "imported"},
+                                                    {"status", "generated"}}});
+        loadJson(json, {1, 0});
+        QTRY_COMPARE(controller()->sourceCapMs("v"), 10000.0);
+        QVERIFY(QFile::remove(file));
+        QVERIFY(QFile::copy(QStringLiteral(NT_FIXTURES_DIR "/media/numbered-a-1080p30.mp4"), file));  // 20 s
+        model->setTimeline(parseTimeline(json));
+        QTRY_COMPARE(controller()->sourceCapMs("v"), 20000.0);
+    }
+
+
+    // Review F6 (TrackLane.tsx): a press on the empty lane under a track
+    // select tool selects the block from there, Shift keeps to that lane, and
+    // the playhead stays.
+    void trackSelectFromAnEmptyLane() {
+        load({3, 6});
+        seed(10, 0);
+        auto* g = controller();
+        clock->seek(0);
+        g->setActiveTool(QStringLiteral("trackSelect"));
+        // Track 1, x 290 px = 2900 ms: in the gap after c-1-2 (2000..2800).
+        const QPoint gap = itemNamed("trackLane-track-1")->mapToScene(QPointF(290 - vs->scrollLeftPx(), 20)).toPoint();
+        click(gap);
+        QStringList got = g->selection();
+        std::sort(got.begin(), got.end());
+        QStringList expected;
+        for (int t = 0; t < 3; ++t)
+            for (int k = 3; k < 6; ++k) expected.append(QStringLiteral("c-%1-%2").arg(t).arg(k));
+        QCOMPARE(got, expected);
+        QCOMPARE(clock->time(), 0.0);
+        g->setActiveTool(QStringLiteral("trackSelectBackward"));
+        click(gap, Qt::ShiftModifier);
+        QCOMPARE(g->selection(), (QStringList{"c-1-0", "c-1-1", "c-1-2"}));
+        QCOMPARE(clock->time(), 0.0);
+        // With Select the press clears and seeks, as before.
+        g->setActiveTool(QStringLiteral("select"));
+        click(gap);
+        QVERIFY(g->selection().isEmpty());
+        QCOMPARE(clock->time(), 2900.0);
+    }
+
+
+    // Review F7: X marks the clip (markClipRange), and the sheet shows the
+    // actions the native editor does not run as unavailable.
+    void markClipAndUnavailableShortcuts() {
+        load({3, 6});
+        seed(10, 0);
+        region->forceActiveFocus();
+        auto* g = controller();
+        // No selection: the clip under the playhead on the topmost track.
+        clock->seek(2300);
+        key(Qt::Key_X, {}, "x");
+        QCOMPARE(vs->rangeInMs(), 2000.0);
+        QCOMPARE(vs->rangeOutMs(), 2800.0);
+        // A selection: its span.
+        g->setSelection({"c-0-1", "c-2-3"});
+        key(Qt::Key_X, {}, "x");
+        QCOMPARE(vs->rangeInMs(), 1000.0);
+        QCOMPARE(vs->rangeOutMs(), 3800.0);
+        // In a gap with nothing selected: no change.
+        g->setSelection({});
+        clock->seek(2900);
+        key(Qt::Key_X, {}, "x");
+        QCOMPARE(vs->rangeInMs(), 1000.0);
+
+        const QVariantMap sheet = g->shortcutSheet();
+        QHash<QString, bool> available;
+        for (const QVariant& gv : sheet.value("groups").toList())
+            for (const QVariant& rv : gv.toMap().value("rows").toList())
+                available.insert(rv.toMap().value("id").toString(), rv.toMap().value("available").toBool());
+        QCOMPARE(available.size(), 107);
+        for (const char* yes : {"markClip", "cutTool", "markIn", "addMarker", "splitAtPlayhead", "undo", "playPause",
+                                "rollCut", "insertOnDrop", "disableSnapping"})
+            QVERIFY2(available.value(yes), yes);
+        for (const char* no : {"toggleLoop", "playInToOut", "copy", "groupClips", "matchFrame", "selectEditPoint",
+                               "goToStart"})
+            QVERIFY2(!available.value(no, true), no);
+    }
+
+
+    // Review F3: the banners with the real AutosaveController against a test
+    // server: a conflict, a strip whose copy was written, and a strip whose
+    // copy could not be written. No banner claims a copy it was not told of.
+    void saveBannersFollowTheRealController() {
+        load({1, 1});
+        TestHttpServer http;
+        QUndoStack undo;
+        QJsonObject raw = model->timeline().raw;
+        QTemporaryDir dir;
+        const auto banners = [&](nt::server::AutosaveController* saver) {
+            QQmlComponent c(view->engine());
+            c.setData("import QtQuick\nimport NodeTool.Timeline\nSaveBanners { width: 900 }", QUrl());
+            auto* item = qobject_cast<QQuickItem*>(c.createWithInitialProperties({{"autosave", QVariant::fromValue<QObject*>(saver)}}));
+            if (!item) qFatal("%s", qPrintable(c.errorString()));
+            item->setParentItem(region);
+            return std::unique_ptr<QQuickItem>(item);
+        };
+        const auto text = [&](QQuickItem* root, const QString& banner, const QString& part) {
+            QString out;
+            collect(root, [&](QQuickItem* it) {
+                if (it->objectName() == banner)
+                    collect(it, [&](QQuickItem* t) { if (t->objectName() == part) out = t->property("text").toString(); });
+            });
+            return out;
+        };
+        const auto visible = [&](QQuickItem* root, const QString& banner) {
+            bool v = false;
+            collect(root, [&](QQuickItem* it) { if (it->objectName() == banner) v = it->isVisible(); });
+            return v;
+        };
+        struct Bump : QUndoCommand {
+            int* v;
+            explicit Bump(int* p) : v(p) {}
+            void redo() override { ++*v; }
+            void undo() override { --*v; }
+        };
+        int value = 0;
+        const auto docFn = [&]() { QJsonObject d = raw; d.insert("durationMs", 1000 + value); return d; };
+        const QByteArray stripOk = R"({"result":{"data":{"id":"ui","updatedAt":"u1","stripped":["clips.0.lut"]}}})";
+        const QByteArray conflictBody = R"({"error":{"message":"Timeline has been modified since last load","data":{"code":"CONFLICT","httpStatus":409,"apiCode":"ALREADY_EXISTS"}}})";
+
+        // A strip whose copy cannot be written: no claim of a copy.
+        {
+            http.setPost([&](const QByteArray&, const QByteArray&) { return stripOk; });
+            nt::server::SaveTarget t{http.base(), QString(), QStringLiteral("ui"), QStringLiteral("/dev/null/no-such-folder")};
+            nt::server::AutosaveController saver(t, &undo, docFn, QStringLiteral("u0"));
+            saver.setAutosave(false);
+            undo.push(new Bump(&value));
+            const nt::server::SaveResult r = saver.saveNow();
+            QVERIFY(r.ok && r.keptCopy.isEmpty() && !r.recoveryError.isEmpty());
+            auto root = banners(&saver);
+            frame();
+            QVERIFY(visible(root.get(), "strippedBanner"));
+            const QString detail = text(root.get(), "strippedBanner", "alertDetail");
+            QVERIFY2(detail.startsWith(QStringLiteral("clips.0.lut")), qPrintable(detail));
+            QVERIFY2(!detail.contains(QStringLiteral("kept")), qPrintable(detail));
+        }
+        // A conflict: the banner shows, with the controller's own error.
+        {
+            http.setPost([&](const QByteArray&, const QByteArray&) { return conflictBody; });
+            nt::server::SaveTarget t{http.base(), QString(), QStringLiteral("ui"), dir.path()};
+            nt::server::AutosaveController saver(t, &undo, docFn, QStringLiteral("u0"));
+            saver.setAutosave(false);
+            undo.push(new Bump(&value));
+            const nt::server::SaveResult r = saver.saveNow();
+            QVERIFY(r.conflict);
+            auto root = banners(&saver);
+            frame();
+            QVERIFY(visible(root.get(), "conflictBanner"));
+            QVERIFY(!visible(root.get(), "strippedBanner"));
+            QCOMPARE(text(root.get(), "conflictBanner", "alertDetail").left(saver.lastError().size()), saver.lastError());
+        }
+    }
+
+
+    // ── Review F1, F2, F4, F5: the clip picture caches ──
+    QJsonObject mediaDoc(const QList<std::tuple<QString, QString, double>>& clips) {
+        // clips: (id, file, durationMs); video on track 0, audio on track 3.
+        QJsonObject json = makeTimelineJson({4, 0});
+        QJsonArray out;
+        double start = 0;
+        for (const auto& [id, file, durationMs] : clips) {
+            const bool audio = file.endsWith(".wav");
+            out.append(QJsonObject{{"id", id}, {"trackId", audio ? "track-3" : "track-0"}, {"name", id},
+                                   {"startMs", start}, {"durationMs", durationMs}, {"inPointMs", 0},
+                                   {"mediaType", audio ? "audio" : "video"}, {"mediaPath", file},
+                                   {"sourceType", "imported"}, {"status", "generated"}});
+            if (!audio) start += durationMs;
+        }
+        json.insert("clips", out);
+        json.insert("durationMs", std::max(1000.0, start));
+        return json;
+    }
+    QQuickItem* pictureItem(const QString& clipId, const QString& name) {
+        QQuickItem* found = nullptr;
+        if (QQuickItem* c = itemNamed(QStringLiteral("clip-") + clipId))
+            collect(c, [&](QQuickItem* it) { if (it->objectName() == name) found = it; });
+        return found;
+    }
+
+    // F4: a file replaced in place gets new pictures in the next document.
+    void aReplacedFileGetsNewPictures() {
+        MediaPreviewCache& cache = MediaPreviewCache::instance();
+        cache.clear();
+        QTemporaryDir dir;
+        const QString file = dir.filePath("sound.wav");
+        QVERIFY(QFile::copy(QStringLiteral(NT_FIXTURES_DIR "/media/tone-440-48k-mono.wav"), file));  // 6 s
+        const QJsonObject json = mediaDoc({{"a", file, 1000}});
+        loadJson(json, {4, 0});
+        QTRY_VERIFY(qobject_cast<WaveformItem*>(pictureItem("a", "waveform")) && qobject_cast<WaveformItem*>(pictureItem("a", "waveform"))->loaded());
+        QCOMPARE(qobject_cast<WaveformItem*>(pictureItem("a", "waveform"))->sourceDurationMs(), 6000.0);
+        QVERIFY(QFile::remove(file));
+        QVERIFY(QFile::copy(QStringLiteral(NT_FIXTURES_DIR "/media/clicks-48k.wav"), file));  // 20 s
+        loadJson(json, {4, 0});
+        QTRY_VERIFY(qobject_cast<WaveformItem*>(pictureItem("a", "waveform")) && qobject_cast<WaveformItem*>(pictureItem("a", "waveform"))->loaded());
+        QCOMPARE(qobject_cast<WaveformItem*>(pictureItem("a", "waveform"))->sourceDurationMs(), 20000.0);
+    }
+
+    // F5: decodes nobody waits for any more are dropped or interrupted.
+    void abandonedDecodesStop() {
+        MediaPreviewCache& cache = MediaPreviewCache::instance();
+        cache.clear();
+        QTemporaryDir dir;
+        const QString big = QStringLiteral(NT_FIXTURES_DIR "/media/numbered-a-2160p30-hevc.mp4");
+        auto subscriber = std::make_unique<QObject>();
+        for (int i = 0; i < 6; ++i) {
+            const QString link = dir.filePath(QStringLiteral("big-%1.mp4").arg(i));
+            QVERIFY(QFile::link(big, link));
+            QVERIFY(!cache.thumbnails(link, QStringLiteral("video"), subscriber.get()));
+        }
+        QCOMPARE(cache.pendingCount(), 6);
+        QElapsedTimer timer;
+        timer.start();
+        subscriber.reset();  // the document closed
+        QTRY_COMPARE_WITH_TIMEOUT(cache.pendingCount(), 0, 10000);
+        cache.waitForIdle();
+        // Six 4K HEVC filmstrips take many seconds; dropped ones take none.
+        QVERIFY2(timer.elapsed() < 3000, qPrintable(QString::number(timer.elapsed())));
+        QCOMPARE(cache.cancelledCount(), 6);
+        QCOMPARE(cache.cachedThumbnailSets(), 0);
+    }
+
+    // F1: one texture per file and window, shared by its clips, and the
+    // unused ones freed under the byte budget.
+    void filmstripTexturesAreSharedAndBudgeted() {
+        MediaPreviewCache& cache = MediaPreviewCache::instance();
+        cache.clear();
+        QTemporaryDir dir;
+        const QString a = QStringLiteral(NT_FIXTURES_DIR "/media/numbered-a-1080p30.mp4");
+        const QString b = dir.filePath("b.mp4");
+        QVERIFY(QFile::link(a, b));
+        QJsonObject json = mediaDoc({{"v1", a, 2000}, {"v2", a, 2000}, {"v3", a, 2000}, {"w1", b, 2000}});
+        json.insert("durationMs", 600000);  // room to scroll the clips away
+        loadJson(json, {4, 0});
+        seed(10, 0);
+        QTRY_COMPARE_WITH_TIMEOUT(cache.pendingCount(), 0, 30000);
+        frame();
+        frame();
+        FilmstripTextureStats st = filmstripTextureStats(view.get());
+        QCOMPARE(st.textures, 2);
+        QCOMPARE(st.unused, 0);
+        QVERIFY(st.bytes > 0);
+        // Scroll every clip out of the window: the delegates go, and with no
+        // budget for unused textures the textures go too.
+        setFilmstripTextureBudget(view.get(), 0);
+        vs->setScrollLeftPx(50000);
+        frame();
+        frame();
+        st = filmstripTextureStats(view.get());
+        QCOMPARE(itemsNamed("clip-").size(), 0);
+        QCOMPARE(st.textures, 0);
+        QCOMPARE(st.bytes, qint64(0));
+        // Back in view: the texture comes back from the shared atlas.
+        setFilmstripTextureBudget(view.get(), 64 << 20);
+        vs->setScrollLeftPx(0);
+        frame();
+        frame();
+        QCOMPARE(filmstripTextureStats(view.get()).textures, 2);
+    }
+
+    // F2: a long clip at the finest zoom draws only what crosses the view.
+    void longClipsDrawOnlyTheirVisiblePart() {
+        MediaPreviewCache& cache = MediaPreviewCache::instance();
+        const QString audio = QStringLiteral(NT_FIXTURES_DIR "/media/clicks-48k.wav");
+        const QString video = QStringLiteral(NT_FIXTURES_DIR "/media/numbered-a-1080p30.mp4");
+        loadJson(mediaDoc({{"a", audio, 20000}, {"v", video, 20000}}), {4, 0});  // both from 0
+        seed(MIN_MS_PER_PX, 0);  // 20 s is 40000 px
+        QTRY_COMPARE_WITH_TIMEOUT(cache.pendingCount(), 0, 30000);
+        frame();
+        auto* wave = qobject_cast<WaveformItem*>(pictureItem("a", "waveform"));
+        auto* strip = qobject_cast<FilmstripItem*>(pictureItem("v", "filmstrip"));
+        QVERIFY(wave && strip);
+        QTRY_VERIFY(wave->loaded() && strip->loaded());
+        frame();
+        const double viewport = vs->viewportWidthPx();
+        QVERIFY2(wave->barCount() <= int(3 * viewport / 2) + 2, qPrintable(QString::number(wave->barCount())));
+        QVERIFY2(strip->drawnCells() <= int(3 * viewport / 60) + 2, qPrintable(QString::number(strip->drawnCells())));
+        QCOMPARE(strip->cellCount(), int(std::floor(40000.0 / 60)));
+        // Far along the clip the bars there exist; the start is not drawn.
+        const int paints = wave->paintCount();
+        vs->setScrollLeftPx(30000);
+        frame();
+        QVERIFY(wave->paintCount() > paints);
+        const QVariantList bars = wave->barRects();
+        QVERIFY(!bars.isEmpty());
+        QVERIFY(bars.first().toRectF().left() >= 30000 - 2 * viewport - 2);
+        QVERIFY(bars.last().toRectF().right() <= 30000 + 3 * viewport + 2);
+        // A small scroll inside the drawn span regenerates nothing.
+        const int paints2 = wave->paintCount();
+        vs->setScrollLeftPx(30010);
+        frame();
+        QCOMPARE(wave->paintCount(), paints2);
+    }
+
 };
 
 int main(int argc, char** argv) {

@@ -45,7 +45,23 @@ const ICONS = {
   navigateNext: "NavigateNext",
   skipNext: "SkipNext",
   volumeUp: "VolumeUp",
-  fullscreen: "Fullscreen"
+  fullscreen: "Fullscreen",
+  contentCut: "ContentCutOutlined",
+  swapHoriz: "SwapHorizOutlined",
+  keyboardTab: "KeyboardTabOutlined",
+  flipToFront: "FlipToFrontOutlined",
+  link: "LinkOutlined",
+  linkOff: "LinkOffOutlined",
+  gridGoldenratio: "GridGoldenratioOutlined",
+  straighten: "StraightenOutlined",
+  myLocation: "MyLocationOutlined",
+  helpOutline: "HelpOutline",
+  title: "Title",
+  reportProblem: "ReportProblemOutlined",
+  close: "Close",
+  arrowDropDown: "ArrowDropDown",
+  undo: "Undo",
+  redo: "Redo"
 };
 
 // The exports map hides package.json; an icon resolves to the package root.

@@ -92,12 +92,27 @@ else()
 endif()
 add_compile_definitions(${NT_PLATFORM_DEFINES})
 
+# Yoga 3.2.1, the flex layout of the web scene model (third_party/yoga).
+# No fused multiply-add: the web runs it as WebAssembly, which has none.
+file(GLOB_RECURSE NT_YOGA_SOURCES CONFIGURE_DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/third_party/yoga/yoga/*.cpp)
+add_library(yogacore STATIC ${NT_YOGA_SOURCES})
+target_include_directories(yogacore PUBLIC third_party/yoga)
+target_compile_features(yogacore PUBLIC cxx_std_20)
+target_compile_options(yogacore PRIVATE ${NT_NO_WARNINGS})
+if(NOT MSVC)
+    target_compile_options(yogacore PRIVATE -ffp-contract=off)
+endif()
+
 # Model and scene evaluation: no GUI, shared by the app and the tests.
 add_library(timeline_core STATIC
     src/model/TimelineTypes.h
     src/model/TimelineJson.h src/model/TimelineJson.cpp
     src/scene/Animation.h src/scene/Animation.cpp
     src/scene/ClipScene.h src/scene/ClipScene.cpp
+    src/scene/FlexLayout.h src/scene/FlexLayout.cpp
+    src/scene/SvgPath.h src/scene/SvgPath.cpp
+    src/scene/TextAnimation.h src/scene/TextAnimation.cpp
+    src/scene/TextBlock.h src/scene/TextBlock.cpp
     src/preview/SceneEval.h src/preview/SceneEval.cpp
     src/bench/BenchReport.h src/bench/BenchReport.cpp
     src/platform/CpuUsage.h src/platform/CpuUsage.cpp
@@ -108,8 +123,16 @@ add_library(timeline_core STATIC
     src/edit/EditActions.h src/edit/EditActions.cpp
     src/edit/Keymap.h src/edit/Keymap.cpp src/edit/KeymapData.h)
 target_include_directories(timeline_core PUBLIC src)
-target_link_libraries(timeline_core PUBLIC Qt6::Core)
+target_link_libraries(timeline_core PUBLIC Qt6::Core PRIVATE yogacore)
 target_compile_options(timeline_core PRIVATE ${NT_WARNINGS})
+# The scene port computes what the web computes in JavaScript, one rounding
+# per operation: no fused multiply-add (Clang contracts by default).
+if(NOT MSVC)
+    set_source_files_properties(
+        src/scene/Animation.cpp src/scene/ClipScene.cpp src/scene/FlexLayout.cpp src/scene/SvgPath.cpp
+        src/scene/TextAnimation.cpp src/scene/TextBlock.cpp src/preview/SceneEval.cpp
+        TARGET_DIRECTORY timeline_core PROPERTIES COMPILE_OPTIONS -ffp-contract=off)
+endif()
 
 # Decode and GPU sources: FFmpeg, QRhi textures, the source pool.
 add_library(timeline_decode STATIC
@@ -194,7 +217,13 @@ function(nt_add_timeline_qml target)
             qml/Tracks/CompactSlider.qml
             qml/Tracks/TrackHeightSlider.qml
             qml/Tracks/TimelineScrollbar.qml
-            qml/Tracks/ToolbarToggle.qml
+            qml/Tracks/ToolButton.qml
+            qml/Tracks/ToolbarDivider.qml
+            qml/Tracks/ToolToggle.qml
+            qml/Tracks/ShortcutsSheet.qml
+            qml/DocumentBar.qml
+            qml/SaveStatus.qml
+            qml/SaveBanners.qml
         RESOURCES
             fonts/inter-latin-400-normal.woff2
             fonts/inter-latin-500-normal.woff2
@@ -212,6 +241,9 @@ function(nt_add_timeline_qml target)
             src/ui/TimelineViewState.h src/ui/TimelineViewState.cpp
             src/ui/TimelineGestureArea.h src/ui/TimelineGestureArea.cpp
             src/ui/RulerCanvas.h src/ui/RulerCanvas.cpp
+            src/ui/MediaPreviews.h src/ui/MediaPreviews.cpp
+            src/ui/BenchMedia.h src/ui/BenchMedia.cpp
+            src/ui/MediaVersion.h
             src/ui/TimelineFormatQml.h
             src/edit/ClipGestureController.h src/edit/ClipGestureController.cpp)
     qt_add_shaders(${target} "${target}_compositor_shaders"
@@ -277,7 +309,7 @@ set_tests_properties(audio_mode_play_stills audio_mode_play_stills_equals PROPER
     PASS_REGULAR_EXPRESSION "audio mode: none" FAIL_REGULAR_EXPRESSION "audio mode: (system|null)"
     ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
 
-foreach(test_name tst_sceneeval tst_timelinejson tst_benchreport tst_framering tst_yuvformat tst_ffmpegsource tst_sourcepool tst_retirequeue tst_framecache tst_surfacepool tst_timelinewheel tst_editactions)
+foreach(test_name tst_cpuusage tst_sceneeval tst_timelinejson tst_benchreport tst_framering tst_yuvformat tst_ffmpegsource tst_sourcepool tst_retirequeue tst_framecache tst_surfacepool tst_timelinewheel tst_editactions)
     qt_add_executable(${test_name} tests/${test_name}.cpp)
     set_target_properties(${test_name} PROPERTIES MACOSX_BUNDLE FALSE)
     target_compile_options(${test_name} PRIVATE ${NT_WARNINGS})
@@ -288,7 +320,10 @@ endforeach()
 
 # The decoder tests read media from scripts/make-fixtures.sh, which keeps
 # files that exist, so the setup is quick after the first run.
-add_test(NAME make_fixtures COMMAND ${CMAKE_CURRENT_SOURCE_DIR}/scripts/make-fixtures.sh)
+# Through an explicit bash: CTest on Windows cannot execute a .sh, and the
+# bash.exe in System32 is WSL's, so Git's comes first there (M6).
+find_program(NT_BASH NAMES bash HINTS "C:/Program Files/Git/bin" "$ENV{ProgramFiles}/Git/bin" NO_CACHE REQUIRED)
+add_test(NAME make_fixtures COMMAND ${NT_BASH} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/make-fixtures.sh)
 set_tests_properties(make_fixtures PROPERTIES FIXTURES_SETUP media)
 set_tests_properties(tst_ffmpegsource PROPERTIES FIXTURES_REQUIRED media)
 if(NT_APPLE_CODE)
@@ -321,6 +356,8 @@ add_library(timeline_server STATIC
     src/server/AutosaveController.h src/server/AutosaveController.cpp)
 target_link_libraries(timeline_server PUBLIC timeline_core timeline_decode Qt6::Network)
 target_compile_options(timeline_server PRIVATE ${NT_WARNINGS})
+# The save banners are tested against the real AutosaveController (M2b).
+target_link_libraries(tst_tracksui PRIVATE timeline_server)
 target_link_libraries(nodetool-timeline PRIVATE timeline_server)
 # The save harness needs TimelineModel, which the app's QML module compiles.
 target_sources(nodetool-timeline PRIVATE src/server/SaveCli.h src/server/SaveCli.cpp)
@@ -342,7 +379,8 @@ qt_add_executable(tst_editpreview tests/tst_editpreview.cpp
     src/model/TimelineModel.h src/model/TimelineModel.cpp
     src/model/TrackListModel.h src/model/TrackListModel.cpp
     src/playback/PlaybackClock.h src/playback/PlaybackClock.cpp
-    src/preview/PreviewCompositor.h src/preview/PreviewCompositor.cpp)
+    src/preview/PreviewCompositor.h src/preview/PreviewCompositor.cpp
+    src/preview/hw/HwWindow.h src/preview/hw/HwWindow.cpp)
 set_target_properties(tst_editpreview PROPERTIES MACOSX_BUNDLE FALSE)
 target_compile_definitions(tst_editpreview PRIVATE NT_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
 target_compile_options(tst_editpreview PRIVATE ${NT_WARNINGS})
@@ -360,6 +398,17 @@ target_compile_options(tst_easing PRIVATE ${NT_WARNINGS})
 target_compile_definitions(tst_easing PRIVATE NT_FIXTURES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/fixtures")
 target_link_libraries(tst_easing PRIVATE timeline_core Qt6::Test)
 add_test(NAME tst_easing COMMAND tst_easing)
+# The flex layout port's pure parts against the TypeScript values (scene/FlexLayout.h).
+# It links TimelineModel to check that every edit makes a new revision.
+qt_add_executable(tst_flexlayout tests/tst_flexlayout.cpp
+    src/model/TimelineModel.h src/model/TimelineModel.cpp
+    src/model/TrackListModel.h src/model/TrackListModel.cpp)
+set_target_properties(tst_flexlayout PROPERTIES MACOSX_BUNDLE FALSE)
+target_compile_options(tst_flexlayout PRIVATE ${NT_WARNINGS})
+target_link_libraries(tst_flexlayout PRIVATE timeline_core Qt6::Gui Qt6::Qml Qt6::Test)
+add_test(NAME tst_flexlayout COMMAND tst_flexlayout)
+# The comparison helpers of scripts/plan-conformance.mjs (node:test).
+add_test(NAME plan_compare COMMAND node --test ${CMAKE_CURRENT_SOURCE_DIR}/scripts/plan-compare.test.mjs)
 # The scratch-server safety rules of scripts/server-check.mjs (node:test).
 add_test(NAME scratch_safety COMMAND node --test ${CMAKE_CURRENT_SOURCE_DIR}/scripts/scratch-safety.test.mjs)
 # Scene evaluation cost per frame (manual bench, not a ctest).

@@ -145,12 +145,17 @@ ParseResult parseTimelineJson(const QByteArray& json, const QString& baseDir) {
             tr.easing = t.value(u"easing").toString().toStdString();
             clip.transitionIn = tr;
         }
+        // Prototype-only fields, resolved against the fixture's folder:
+        // `mediaPath` (the picture) and `audioPath` (the sound, when the
+        // picture file is a proxy with no audio track).
+        const auto local = [&](const QString& path) {
+            return (baseDir.isEmpty() || QFileInfo(path).isAbsolute()) ? path.toStdString()
+                                                                         : QDir(baseDir).filePath(path).toStdString();
+        };
         const QString mediaPath = c.value(u"mediaPath").toString();
-        if (!mediaPath.isEmpty()) {
-            clip.mediaPath = (baseDir.isEmpty() || QFileInfo(mediaPath).isAbsolute())
-                                 ? mediaPath.toStdString()
-                                 : QDir(baseDir).filePath(mediaPath).toStdString();
-        }
+        if (!mediaPath.isEmpty()) clip.mediaPath = local(mediaPath);
+        const QString audioPath = c.value(u"audioPath").toString();
+        if (!audioPath.isEmpty()) clip.audioPath = local(audioPath);
         clip.raw = c;
         clip.scene = scene::parseClipScene(c);
         if (!tl.findTrack(clip.trackId)) {

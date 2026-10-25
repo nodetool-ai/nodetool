@@ -5,7 +5,11 @@
 // table, and `resolveTimelineAction` copies the web resolver, so a key does
 // the same thing in both editors.
 
+#include <QJsonObject>
 #include <QString>
+#include <QStringList>
+
+#include <vector>
 
 namespace nt::edit {
 
@@ -24,5 +28,14 @@ struct KeyEventLike {
 // The action id `e` triggers under `preset` ("nodetool", "premiere", "fcp"),
 // or an empty string.
 QString resolveTimelineAction(const KeyEventLike& e, const QString& preset);
+
+// bindingKeys: the key chips of each binding of `action` ("Ctrl", "Alt",
+// "Shift", then the key label), in table order.
+std::vector<QStringList> actionBindingKeys(const QString& preset, const QString& action);
+// formatActionShortcut: the first binding as "Alt+←", or empty.
+QString formatActionShortcut(const QString& preset, const QString& action);
+// The shortcut sheet (TimelineShortcutsDialog.tsx) under `preset`: its
+// strings, and `groups: [{title, rows: [{label, combos: [[key, ...], ...]}]}]`.
+QJsonObject shortcutSheet(const QString& preset);
 
 }  // namespace nt::edit

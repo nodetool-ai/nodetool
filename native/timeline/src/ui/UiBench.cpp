@@ -1,5 +1,7 @@
 #include "ui/UiBench.h"
 
+#include "ui/BenchMedia.h"
+
 #include "bench/BenchReport.h"
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
@@ -132,8 +134,12 @@ void readFrameStats(Samples& s, const PreviewCompositor* compositor, bool measur
         ++s.compositedFrames;
         // A decoded picture: every media layer drew, and the frame error is
         // known (a placeholder for media that failed to open has none).
-        if (st.mediaLayers >= kMediaLayers && st.missingMediaLayers == 0 && st.frameError >= 0 && st.frameError <= 1)
+        if (frameDrewMedia(st, kMediaLayers))
             ++s.drawnFrames;
+        else if (qEnvironmentVariableIsSet("NT_UIBENCH_MISSES"))
+            std::fprintf(stderr, "missed t=%.1f media=%d missing=%d err=%d open=%d layers=%d cutMisses=%d held=%d\n",
+                         st.timeMs, st.mediaLayers, st.missingMediaLayers, st.frameError, st.openDecoders, st.layers,
+                         st.cutMisses, int(st.held));
         if (st.timeMs != s.lastShownMs) ++s.advancedFrames;
         s.lastShownMs = st.timeMs;
     }
@@ -141,9 +147,7 @@ void readFrameStats(Samples& s, const PreviewCompositor* compositor, bool measur
 
 // True when the newest composited frame drew all 4 media layers.
 bool mediaReady(const PreviewCompositor* compositor) {
-    const std::vector<FrameStat>& stats = compositor->frameStats();
-    return !stats.empty() && stats.back().mediaLayers >= kMediaLayers && stats.back().missingMediaLayers == 0 &&
-           stats.back().frameError >= 0;
+    return benchMediaReady(compositor->frameStats(), kMediaLayers);
 }
 
 void observe(Samples& s, QQuickItem* root, TimelineViewState* view, const TimelineModel& model, double timeMs) {
@@ -271,8 +275,9 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, const UiBenchOption
     warmupTimer.start();
     for (int f = -options.warmup; f < options.frames; ++f) {
         if (f == 0) {
-            // Measure only once the 4 media layers draw (decoders open, first
-            // frames decoded); give up after 10 s.
+            // Measure only once the 4 media layers draw their exact frames
+            // (decoders open and caught up to the in-points); give up after
+            // 10 s.
             if (!mediaReady(compositor)) {
                 if (warmupTimer.elapsed() > 10000) {
                     std::fprintf(stderr, "error: the preview did not draw %d media layers within 10 s\n", kMediaLayers);

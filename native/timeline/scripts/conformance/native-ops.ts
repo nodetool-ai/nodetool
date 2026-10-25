@@ -66,3 +66,21 @@ export const resolveSnap = (t: number, c: number[], thr: number, mpp: number) =>
   call("resolveSnap", [t, c, thr, mpp]);
 export const buildSnapPoints = (source: any) =>
   call("buildSnapPoints", [{ ...source, excludeClipIds: arr(source.excludeClipIds) }]);
+
+// A source-duration callback, asked for every clip once, as the map the
+// native call takes.
+function sourceMap(clips: any[], fn?: (c: any) => number | undefined): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!fn) return out;
+  for (const c of clips) {
+    const d = fn(c);
+    if (d !== undefined) out[c.id] = d;
+  }
+  return out;
+}
+export const slideDeltaLimit = (clips: any[], ids: Set<string>, deltaMs: number, fn?: (c: any) => number | undefined) =>
+  call("slideDeltaLimit", [clips, arr(ids), deltaMs, sourceMap(clips, fn)]);
+export const slideClips = (clips: any[], ids: Set<string>, deltaMs: number, fn?: (c: any) => number | undefined) =>
+  call("slideClips", [clips, arr(ids), deltaMs, sourceMap(clips, fn)]);
+export const rateStretchClips = (clips: any[], ids: Set<string>, primaryId: string, edge: string, durationMs: number) =>
+  call("rateStretchClips", [clips, arr(ids), primaryId, edge, durationMs]);

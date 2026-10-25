@@ -51,7 +51,9 @@ const PACKAGE_TESTS = [
   "tests/timeRemap.test.ts",
   "tests/crop.test.ts",
   "tests/takes.test.ts",
-  "tests/generatedMatte.test.ts"
+  "tests/generatedMatte.test.ts",
+  "tests/rateStretch.test.ts",
+  "tests/slideEdit.test.ts"
 ];
 const DIFFERENTIAL = path.join(here, "conformance", "differential.test.ts");
 const WEB_TESTS = [
@@ -67,6 +69,8 @@ const SKIPPED = Object.fromEntries(
   [
     [["splitClip", "preserves clip metadata and source references across both halves"],
       "identity: `toBe` on nested objects; run with deep equality"],
+    [["rateStretchClips", "leaves a time-remapped clip alone"], "identity: `toBe` on the unchanged clip; run with deep equality"],
+    [["slideClips", "leaves a group clip alone"], "identity: `toBe` on the unchanged array; run with deep equality"],
     [["keyframes across split and trim", "gives each half of a split the part of the curve it covers"],
       "refused: keyframe curves on a split"],
     [["keyframes across split and trim", "stretches keyframes over an extended clip in the render and the inspector"],

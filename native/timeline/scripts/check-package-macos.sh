@@ -20,6 +20,7 @@ src_app=${1:-"build-package/NodeTool Timeline.app"}
 dev_bin=${DEV_BIN:-build-m6/nodetool-timeline}
 [[ -d "$src_app" ]] || { echo "{\"pass\":false,\"error\":\"no bundle at $src_app\"}"; exit 1; }
 tmp=$(mktemp -d "${TMPDIR:-/tmp}/nt-package-check.XXXXXX")
+tmp=$(cd "$tmp" && pwd -P)  # dyld reports /private/var, not /var
 cp -R "$src_app" "$tmp/"
 app="$tmp/$(basename "$src_app")"
 bin="$app/Contents/MacOS/nodetool-timeline"
@@ -32,24 +33,68 @@ while IFS= read -r f; do
 done < <(find "$app" -type f)
 bad_links=$(for f in "${machos[@]}"; do
     otool -L "$f" | tail -n +2 | awk '{print $1}' |
-        grep -vE '^(/System/|/usr/lib/|@rpath/|@executable_path/|@loader_path/)' | sed "s|^|$(basename "$f"): |"
+        grep -E -v '^(/System/|/usr/lib/|@rpath/|@executable_path/|@loader_path/)' | sed "s|^|$(basename "$f"): |"
+    # A relative reference that still names a build machine path.
+    otool -L "$f" | tail -n +2 | awk '{print $1}' | grep -E '/opt/homebrew|/usr/local|/Users/|/private/' |
+        sed "s|^|$(basename "$f"): |"
 done)
 bad_rpaths=$(for f in "${machos[@]}"; do
     otool -l "$f" | awk '/LC_RPATH/{getline; getline; print $2}' | grep -vE '^@(executable|loader)_path' |
         sed "s|^|$(basename "$f"): |"
 done)
 [[ -z "$bad_links" ]] || fail+=("absolute library paths")
+# Every @rpath, @loader_path and @executable_path reference resolves to a
+# file inside the bundle, and no rpath leaves it.
+deps_json=$(python3 scripts/macho-deps.py check "$app")
+deps_ok=$?
+[[ $deps_ok == 0 ]] || fail+=("unresolved or escaping library references")
+dangling=$(find "$app" -type l ! -exec test -e {} \; -print | wc -l | tr -d ' ')
+[[ $dangling == 0 ]] || fail+=("$dangling dangling links in the bundle")
+deps_problems=$(node -e 'console.log(JSON.parse(process.argv[1]).problems.length)' "$deps_json")
 [[ -z "$bad_rpaths" ]] || fail+=("rpaths outside the bundle")
-homebrew_refs=$(for f in "${machos[@]}"; do otool -L "$f"; done | grep -c "/opt/homebrew")
+homebrew_refs=$(for f in "${machos[@]}"; do otool -L "$f" | tail -n +2; done | grep -c "/opt/homebrew")
+[[ $homebrew_refs == 0 ]] || fail+=("library references into /opt/homebrew")
 
 # 2. Licences.
 avcodec=$(ls "$app/Contents/Frameworks"/libavcodec*.dylib 2>/dev/null | head -1)
-license=$( [[ -n "$avcodec" ]] && strings "$avcodec" | grep -m1 "license: " )
+license=""
+if [[ -n "$avcodec" ]] && strings "$avcodec" > "$tmp/avcodec-strings.txt"; then
+    license=$(grep -m1 "license: " "$tmp/avcodec-strings.txt")
+fi
 [[ "$license" == *"LGPL version 2.1 or later"* ]] || fail+=("FFmpeg is not the LGPL build")
-gpl_config=$(for f in "$app/Contents/Frameworks"/lib{avcodec,avformat,avutil,swscale,swresample}*.dylib; do
-    strings "$f" | grep -l -- "--enable-gpl" > /dev/null && basename "$f"
-done)
-[[ -z "$gpl_config" ]] || fail+=("a library was configured with --enable-gpl")
+# The whole strings output is read before the search, so pipefail cannot
+# turn an early grep exit into a miss; a failed strings run is a failure.
+gpl_config=""
+ffmpeg_libs=0
+for f in "$app/Contents/Frameworks"/lib{avcodec,avformat,avutil,swscale,swresample}*.dylib; do
+    [[ -f "$f" ]] || continue
+    ffmpeg_libs=$((ffmpeg_libs + 1))
+    if ! strings "$f" > "$tmp/strings.txt"; then
+        fail+=("cannot read $(basename "$f")")
+        continue
+    fi
+    if grep -q -e "--enable-gpl" -e "--enable-nonfree" "$tmp/strings.txt"; then gpl_config+="$(basename "$f") "; fi
+done
+[[ $ffmpeg_libs == 5 ]] || fail+=("expected 5 FFmpeg libraries, found $ffmpeg_libs")
+[[ -z "$gpl_config" ]] || fail+=("configured with --enable-gpl or --enable-nonfree: $gpl_config")
+
+# Full licence texts and the source information (review F8).
+lic="$app/Contents/Resources/licenses"
+for name in Qt-LGPL-3.0 Qt-GPL-3.0 FFmpeg-LGPL-2.1 miniaudio Inter-OFL-1.1 JetBrainsMono-OFL-1.1 Yoga-MIT; do
+    f="$lic/$name.txt"
+    if [[ ! -s "$f" ]] || [[ $(wc -l < "$f") -lt 10 ]]; then fail+=("licence text $name is missing or not the full text"); fi
+done
+grep -q "Permission is hereby granted" "$lic/Yoga-MIT.txt" 2> /dev/null || fail+=("Yoga licence is not the MIT text")
+grep -q "^Yoga 3.2.1 (MIT), compiled in" "$app/Contents/Resources/source/SOURCES.txt" 2> /dev/null ||
+    fail+=("SOURCES.txt does not name Yoga")
+grep -q "GNU LESSER GENERAL PUBLIC LICENSE" "$lic/Qt-LGPL-3.0.txt" 2> /dev/null || fail+=("Qt LGPL text is not the licence")
+grep -q "Version 2.1, February 1999" "$lic/FFmpeg-LGPL-2.1.txt" 2> /dev/null || fail+=("FFmpeg LGPL text is not the licence")
+srcdir="$app/Contents/Resources/source"
+tarball=$(ls "$srcdir"/ffmpeg-*.tar.xz 2> /dev/null | head -1)
+if [[ -z "$tarball" ]] || ! grep -q "$(shasum -a 256 "$tarball" | cut -d' ' -f1)" "$srcdir/SOURCES.txt" 2> /dev/null; then
+    fail+=("the FFmpeg source or its checksum in SOURCES.txt is missing")
+fi
+grep -q "qtbase-everywhere-src" "$srcdir/SOURCES.txt" 2> /dev/null || fail+=("SOURCES.txt does not name the Qt sources")
 
 # 3. Signature.
 sig=$(codesign -dv "$app" 2>&1)
@@ -72,6 +117,9 @@ dry_auto=$("$bin" fixtures/av-sync.json --stills="$out/x" --still-frames=1 --aud
 "$dev_bin" fixtures/three-tracks.json --dump-plan --times 0,8500,12000 > "$out/plan-dev.json" 2> /dev/null
 cmp -s "$out/plan.json" "$out/plan-dev.json" || fail+=("--dump-plan differs from the development build")
 "$bin" fixtures/video-rejections.json --probe-media > "$out/probe.json" 2> /dev/null || fail+=("--probe-media failed")
+# The whole QML editor, offscreen: the QML plug-ins the app needs are there.
+"$bin" fixtures/three-tracks.json --screenshot "$out/editor.png" --audio none > /dev/null 2> "$out/screenshot.log" &&
+    [[ -s "$out/editor.png" ]] || fail+=("--screenshot of the editor failed")
 DYLD_PRINT_LIBRARIES=1 "$bin" fixtures/video-cuts.json --stills "$out/stills" --still-frames 0,59,60 --audio none \
     > /dev/null 2> "$out/stills.log" || fail+=("--stills failed")
 outside=$(grep -E "^dyld\[[0-9]+\]: <" "$out/stills.log" | sed -E 's/^dyld\[[0-9]+\]: <[^>]*> //' |
@@ -95,12 +143,12 @@ awk -v p="$psnr_min" 'BEGIN{exit !(p >= 50)}' || fail+=("stills differ from the 
 pass=true
 [[ ${#fail[@]} == 0 ]] || pass=false
 node -e '
-const [pass, machos, homebrew, badLinks, badRpaths, license, signature, team, loaded, outside, stills, psnr, tmp, ...fail] = process.argv.slice(1);
+const [pass, machos, homebrew, badLinks, badRpaths, license, signature, team, loaded, outside, stills, psnr, tmp, deps, ...fail] = process.argv.slice(1);
 console.log(JSON.stringify({pass: pass === "true", machoFiles: Number(machos), homebrewReferences: Number(homebrew),
   absoluteLinks: badLinks ? badLinks.split("\n") : [], outsideRpaths: badRpaths ? badRpaths.split("\n") : [],
   ffmpegLicense: license, signature, teamIdentifier: team || null, librariesLoadedFromBundle: Number(loaded),
   librariesLoadedFromOutside: outside ? outside.split("\n") : [], stills: Number(stills), stillsMinPsnrDb: Number(psnr),
-  copy: tmp, failures: fail}));
+  copy: tmp, unresolvedReferences: Number(deps), failures: fail}));
 ' "$pass" "${#machos[@]}" "$homebrew_refs" "$bad_links" "$bad_rpaths" "$license" "$signature" "$team" \
-    "$loaded_from_bundle" "$outside" "$stills" "$psnr_min" "$tmp" "${fail[@]+"${fail[@]}"}"
+    "$loaded_from_bundle" "$outside" "$stills" "$psnr_min" "$tmp" "$deps_problems" "${fail[@]+"${fail[@]}"}"
 [[ $pass == true ]]

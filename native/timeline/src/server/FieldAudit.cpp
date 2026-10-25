@@ -51,7 +51,7 @@ const Fields kClipScene = {
 const Fields kClipPlan = {
     QStringLiteral("animationLinks"), QStringLiteral("trackBinding"),
 };
-// `layout` and `flexItem` only matter inside a flex tree (checked below).
+// `layout` and `flexItem`: the flex layout (scene/FlexLayout.h), in the plan.
 const Fields kClipFlex = {QStringLiteral("layout"), QStringLiteral("flexItem")};
 const Fields kClipPixels = {
     QStringLiteral("reframe"),
@@ -111,19 +111,7 @@ struct Collector {
     }
 };
 
-// `inFlexTree`: an ancestor lays its children out with flex.
-bool inFlexTree(const QJsonObject& c, const std::map<QString, QJsonObject>& byId) {
-    QString cursor = c.value(u"parentId").toString();
-    for (int hops = 0; !cursor.isEmpty() && hops < 64; hops++) {
-        const auto it = byId.find(cursor);
-        if (it == byId.end()) return false;
-        if (it->second.value(u"layout").toObject().value(u"display").toString() == u"flex") return true;
-        cursor = it->second.value(u"parentId").toString();
-    }
-    return false;
-}
-
-void auditClip(const QJsonObject& c, bool flexManaged, Collector& out) {
+void auditClip(const QJsonObject& c, Collector& out) {
     for (auto it = c.begin(); it != c.end(); ++it) {
         const QString key = it.key();
         const QJsonValue v = it.value();
@@ -176,9 +164,7 @@ void auditClip(const QJsonObject& c, bool flexManaged, Collector& out) {
         } else if (key == u"timeRemap") {
             out.add(key, "plan");  // moves the source time, which the plan compares
         } else if (kClipFlex.contains(key)) {
-            if (key == u"layout" && v.toObject().value(u"display").toString() == u"flex") {
-                out.add(QStringLiteral("layout.flex"), "pixels");  // moves its children, not itself
-            }
+            continue;
         } else if (kClipPlan.contains(key)) {
             out.add(key, "plan");
         } else if (kClipPixels.contains(key)) {
@@ -189,7 +175,6 @@ void auditClip(const QJsonObject& c, bool flexManaged, Collector& out) {
             out.add(key, "unknown");
         }
     }
-    if (flexManaged) out.add(QStringLiteral("flexLayout"), "plan");  // placed by Yoga, not ported
 }
 
 // A precompositing group (D35): the compositor composes its children on a
@@ -312,7 +297,7 @@ QJsonObject auditTimelineFields(const QJsonObject& sequence) {
         const QString id = c.value(u"id").toString();
         if (!own.count(id)) order.push_back(id);
         Collector col;
-        auditClip(c, inFlexTree(c, byId), col);
+        auditClip(c, col);
         if (c.value(u"mediaType").toString() == u"group") auditGroupSurface(c, sequence, byId, col);
         if (automatedTracks.count(c.value(u"trackId").toString())) col.add(QStringLiteral("track.automation"), "plan");
         own[id] = col;

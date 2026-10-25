@@ -1,6 +1,6 @@
 // Mirrors web/src/components/timeline/Tracks/TracksRegion.tsx:
 //
-//   toolbar                                   (36 px, zoom controls)
+//   toolbar                                   (36 px: ToolToggle, help, zoom)
 //   TRACKS header | TimeRuler                 (28 px)
 //   TrackHeader   | TrackLane  ...            (the rows, virtualized)
 //   TimelineScrollbar                         (14 px)
@@ -25,6 +25,10 @@ Rectangle {
     readonly property alias viewState: view
     readonly property alias rows: rowModel
     readonly property alias gestures: clipGestures
+    // Follow playhead (the toolbar's Follow toggle, on by default).
+    property bool followPlayhead: true
+    // The `?` key and the help button ask the editor for the shortcut sheet.
+    signal shortcutsRequested()
     readonly property int headerWidth: Theme.trackHeaderWidth
     readonly property double lanesHeight: Math.max(0, height - Theme.toolbarHeight - Theme.rulerHeight - Theme.scrollbarHeight)
 
@@ -73,31 +77,53 @@ Rectangle {
             height: 1
             color: Theme.divider
         }
-        // The edit toggles of the web toolbar: ripple (the gap-closing trims
-        // and deletes) and the snap magnet.
-        Row {
-            x: Theme.spacingMd
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: Theme.spacingXs
-            ToolbarToggle {
-                objectName: "rippleToggle"
-                label: "Ripple"
-                checked: clipGestures.rippleMode
-                onToggled: clipGestures.rippleMode = !clipGestures.rippleMode
-            }
-            ToolbarToggle {
-                objectName: "snapToggle"
-                label: "Snap"
-                checked: clipGestures.snapEnabled
-                onToggled: clipGestures.snapEnabled = !clipGestures.snapEnabled
+        // nextToolbarFit: the labelled row switches to icons once it overflows,
+        // and back once the bar is as wide as the labelled row needed.
+        property bool narrow: false
+        property double neededWidth: 0
+        readonly property double available: width - Theme.spacingMd - Theme.spacingLg
+        readonly property double rowWidth: toolRow.width + toolbar.rightWidth + Theme.spacingXl
+        readonly property double rightWidth: rightGroup.width
+        function refit() {
+            if (available <= 0) return
+            if (!narrow) {
+                if (rowWidth > available) { neededWidth = rowWidth; narrow = true }
+            } else if (available >= neededWidth) {
+                narrow = false
             }
         }
-        TimelineZoomControls {
+        onAvailableChanged: refit()
+        onRowWidthChanged: refit()
+        z: 5                                            // tooltips over the ruler
+        ToolToggle {
+            id: toolRow
+            x: Theme.spacingMd
+            anchors.verticalCenter: parent.verticalCenter
+            gestures: clipGestures
+            compact: toolbar.narrow
+            followPlayhead: region.followPlayhead
+            onFollowPlayheadChanged: region.followPlayhead = followPlayhead
+        }
+        Row {
+            id: rightGroup
             anchors.right: parent.right
             anchors.rightMargin: Theme.spacingLg
             anchors.verticalCenter: parent.verticalCenter
-            viewState: view
-            clock: region.clock
+            spacing: 2
+            ToolButton {
+                objectName: "helpButton"
+                anchors.verticalCenter: parent.verticalCenter
+                label: "Keyboard shortcuts"
+                iconOnly: true
+                iconPath: Icons.helpOutline
+                onClicked: region.shortcutsRequested()
+            }
+            TimelineZoomControls {
+                anchors.verticalCenter: parent.verticalCenter
+                compact: toolbar.narrow
+                viewState: view
+                clock: region.clock
+            }
         }
     }
 
@@ -173,7 +199,9 @@ Rectangle {
         width: region.width - region.headerWidth
         viewState: view
         fps: region.timeline.fps
+        markers: region.timeline.markers
         onSeekRequested: ms => region.clock.seek(ms)
+        onDeleteMarkerRequested: id => region.timeline.deleteMarker(id)
     }
 
     // ── Track rows ──
@@ -239,6 +267,38 @@ Rectangle {
             }
         }
 
+        // Hand and Zoom (TracksRegion.tsx): they take the press before any
+        // lane or clip. Hand drags the lanes like a sheet; Zoom zooms in at
+        // the click (x0.5) and out with Alt (x2).
+        MouseArea {
+            objectName: "handZoomArea"
+            anchors.fill: parent
+            z: 3
+            enabled: clipGestures.activeTool === "hand" || clipGestures.activeTool === "zoom"
+            acceptedButtons: Qt.LeftButton
+            cursorShape: clipGestures.activeTool === "hand" ? (pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor)
+                                                            : Qt.CrossCursor
+            property double startX: 0
+            property double startY: 0
+            property double startLeft: 0
+            property double startTop: 0
+            onPressed: mouse => {
+                if (clipGestures.activeTool === "zoom") {
+                    view.zoomBy((mouse.modifiers & Qt.AltModifier) ? 2 : 0.5, view.timeAtViewportX(mouse.x))
+                    return
+                }
+                startX = mouse.x
+                startY = mouse.y
+                startLeft = view.scrollLeftPx
+                startTop = view.scrollTopPx
+            }
+            onPositionChanged: mouse => {
+                if (clipGestures.activeTool !== "hand") return
+                view.scrollLeftPx = startLeft - (mouse.x - startX)
+                view.scrollTopPx = startTop - (mouse.y - startY)
+            }
+        }
+
         // SnapGuideOverlay: the candidate a moving edge locked onto.
         Rectangle {
             objectName: "snapGuide"
@@ -300,10 +360,15 @@ Rectangle {
             endMs: region.timeline.contentEndMs
             viewportWidthPx: parent.width
             grabTopPx: Theme.rulerHeight
+            follow: region.followPlayhead
         }
     }
 
     // Every editing and zoom key resolves through the web keymap.
+    Connections {
+        target: clipGestures
+        function onShortcutsToggled() { region.shortcutsRequested() }
+    }
     Keys.onPressed: event => {
         if (clipGestures.handleKey(event.key, event.text, event.modifiers, event.isAutoRepeat))
             event.accepted = true

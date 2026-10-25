@@ -61,6 +61,19 @@ std::uint64_t handleBits(T handle) {
 
 }  // namespace
 
+// Resources a submission still uses: freed when its fence signals.
+struct Owned {
+    std::array<VkImage, 2> images{};
+    std::array<VkDeviceMemory, 2> memory{};
+    AVFrame* drm = nullptr;
+};
+
+struct Pending {
+    VkFence fence = VK_NULL_HANDLE;
+    VkCommandBuffer cb = VK_NULL_HANDLE;
+    Owned owned;  // freed with the submission (a release), or empty (an acquire)
+};
+
 struct VulkanInterop::Vk {
     VkPhysicalDevice physDev = VK_NULL_HANDLE;
     VkDevice dev = VK_NULL_HANDLE;
@@ -71,8 +84,164 @@ struct VulkanInterop::Vk {
     PFN_vkGetMemoryFdPropertiesKHR getMemoryFdProperties = nullptr;
     VkPhysicalDeviceMemoryProperties memory{};
     VkCommandPool pool = VK_NULL_HANDLE;
-    VkFence fence = VK_NULL_HANDLE;
-    std::mutex submitMutex;  // the render thread only, but wrap() may be reentered by tests
+    // The render thread only. Recursive: a wrap() that fails destroys its
+    // FrameRef, whose retire() runs while wrap() holds the lock.
+    std::recursive_mutex mutex;
+    std::vector<Pending> pending;
+    std::vector<VkFence> freeFences;
+    bool lost = false;
+
+    void freeOwned(Owned& o) {
+        for (size_t i = 0; i < 2; ++i) {
+            if (o.images[i]) df->vkDestroyImage(dev, o.images[i], nullptr);
+            if (o.memory[i]) df->vkFreeMemory(dev, o.memory[i], nullptr);
+            o.images[i] = VK_NULL_HANDLE;
+            o.memory[i] = VK_NULL_HANDLE;
+        }
+        av_frame_free(&o.drm);  // releases the DMA-BUF fds and returns the VA surface
+    }
+
+    // The device is gone: every submission counts as complete, and every
+    // object may be destroyed. The interop accepts no more frames.
+    void lose() {
+        lost = true;
+        for (Pending& p : pending) {
+            df->vkFreeCommandBuffers(dev, pool, 1, &p.cb);
+            df->vkDestroyFence(dev, p.fence, nullptr);
+            freeOwned(p.owned);
+        }
+        pending.clear();
+    }
+
+    // Frees what the completed submissions held.
+    void collect() {
+        for (size_t i = 0; i < pending.size();) {
+            const VkResult st = df->vkGetFenceStatus(dev, pending[i].fence);
+            if (st == VK_ERROR_DEVICE_LOST) {
+                lose();
+                return;
+            }
+            if (st != VK_SUCCESS) {
+                ++i;
+                continue;
+            }
+            df->vkFreeCommandBuffers(dev, pool, 1, &pending[i].cb);
+            df->vkResetFences(dev, 1, &pending[i].fence);
+            freeFences.push_back(pending[i].fence);
+            freeOwned(pending[i].owned);
+            pending.erase(pending.begin() + static_cast<std::ptrdiff_t>(i));
+        }
+    }
+
+    // Records `barriers` and submits them on Qt's queue, ahead of the frame
+    // that samples the images (queue submission order makes the barriers
+    // visible to it). The command buffer, the fence and `owned` stay alive
+    // until the fence signals. Returns false when nothing was submitted;
+    // `owned` is then still the caller's.
+    bool submit(const VkImageMemoryBarrier* barriers, std::uint32_t count, VkPipelineStageFlags src,
+                VkPipelineStageFlags dst, Owned& owned, std::string* why) {
+        VkCommandBufferAllocateInfo cbInfo{};
+        cbInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+        cbInfo.commandPool = pool;
+        cbInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+        cbInfo.commandBufferCount = 1;
+        VkCommandBuffer cb = VK_NULL_HANDLE;
+        if (df->vkAllocateCommandBuffers(dev, &cbInfo, &cb) != VK_SUCCESS) {
+            *why = "no command buffer";
+            return false;
+        }
+        VkCommandBufferBeginInfo begin{};
+        begin.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+        begin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+        df->vkBeginCommandBuffer(cb, &begin);
+        df->vkCmdPipelineBarrier(cb, src, dst, 0, 0, nullptr, 0, nullptr, count, barriers);
+        df->vkEndCommandBuffer(cb);
+        VkFence fence = VK_NULL_HANDLE;
+        if (!freeFences.empty()) {
+            fence = freeFences.back();
+            freeFences.pop_back();
+        } else {
+            VkFenceCreateInfo fenceInfo{};
+            fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+            if (df->vkCreateFence(dev, &fenceInfo, nullptr, &fence) != VK_SUCCESS) {
+                df->vkFreeCommandBuffers(dev, pool, 1, &cb);  // never submitted
+                *why = "no fence";
+                return false;
+            }
+        }
+        VkSubmitInfo submitInfo{};
+        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+        submitInfo.commandBufferCount = 1;
+        submitInfo.pCommandBuffers = &cb;
+        const VkResult rc = df->vkQueueSubmit(queue, 1, &submitInfo, fence);
+        if (rc != VK_SUCCESS) {
+            // A failed submission did not run: its objects are free to go.
+            df->vkFreeCommandBuffers(dev, pool, 1, &cb);
+            freeFences.push_back(fence);
+            if (rc == VK_ERROR_DEVICE_LOST) lose();
+            *why = rc == VK_ERROR_DEVICE_LOST ? "the Vulkan device is lost" : "vkQueueSubmit failed";
+            return false;
+        }
+        pending.push_back(Pending{fence, cb, owned});
+        owned = Owned{};
+        return true;
+    }
+
+    // The memory planes `modifier` needs for `format`, after checking that a
+    // sampled image with it can be imported from a DMA-BUF of `size`. 0 with
+    // `why` set when it cannot.
+    std::uint32_t modifierPlanes(VkFormat format, std::uint64_t modifier, QSize size, std::string* why) {
+        VkDrmFormatModifierPropertiesListEXT list{};
+        list.sType = VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_LIST_EXT;
+        VkFormatProperties2 props{};
+        props.sType = VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2;
+        props.pNext = &list;
+        f->vkGetPhysicalDeviceFormatProperties2(physDev, format, &props);
+        std::vector<VkDrmFormatModifierPropertiesEXT> mods(list.drmFormatModifierCount);
+        list.pDrmFormatModifierProperties = mods.data();
+        f->vkGetPhysicalDeviceFormatProperties2(physDev, format, &props);
+        std::uint32_t planes = 0;
+        for (const auto& m : mods) {
+            if (m.drmFormatModifier == modifier && (m.drmFormatModifierTilingFeatures & VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT)) {
+                planes = m.drmFormatModifierPlaneCount;
+            }
+        }
+        if (planes == 0) {
+            *why = "the device cannot sample this DRM format modifier";
+            return 0;
+        }
+        VkPhysicalDeviceImageDrmFormatModifierInfoEXT modInfo{};
+        modInfo.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_DRM_FORMAT_MODIFIER_INFO_EXT;
+        modInfo.drmFormatModifier = modifier;
+        modInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        VkPhysicalDeviceExternalImageFormatInfo extInfo{};
+        extInfo.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_IMAGE_FORMAT_INFO;
+        extInfo.pNext = &modInfo;
+        extInfo.handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT;
+        VkPhysicalDeviceImageFormatInfo2 info{};
+        info.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_FORMAT_INFO_2;
+        info.pNext = &extInfo;
+        info.format = format;
+        info.type = VK_IMAGE_TYPE_2D;
+        info.tiling = VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT;
+        info.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
+        VkExternalImageFormatProperties extProps{};
+        extProps.sType = VK_STRUCTURE_TYPE_EXTERNAL_IMAGE_FORMAT_PROPERTIES;
+        VkImageFormatProperties2 out{};
+        out.sType = VK_STRUCTURE_TYPE_IMAGE_FORMAT_PROPERTIES_2;
+        out.pNext = &extProps;
+        if (f->vkGetPhysicalDeviceImageFormatProperties2(physDev, &info, &out) != VK_SUCCESS ||
+            !(extProps.externalMemoryProperties.externalMemoryFeatures & VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT)) {
+            *why = "a DMA-BUF image with this modifier cannot be imported";
+            return 0;
+        }
+        if (out.imageFormatProperties.maxExtent.width < static_cast<std::uint32_t>(size.width()) ||
+            out.imageFormatProperties.maxExtent.height < static_cast<std::uint32_t>(size.height())) {
+            *why = "the frame is larger than an imported image may be";
+            return 0;
+        }
+        return planes;
+    }
 };
 
 void trackCompletion(QRhiCommandBuffer*, long long frameNumber) {
@@ -98,18 +267,80 @@ FrameRef::~FrameRef() {
     if (m_lastUse >= 0 && m_lastUse > g_completedFrame.load()) ++g_releasedInFlight;
     for (auto& p : m_planes) p.reset();  // the QRhi wrappers before the images
     if (m_interop) {
-        for (size_t i = 0; i < 2; ++i) m_interop->destroyPlane(m_images[i], m_memory[i]);
+        m_interop->retire(m_images, m_memory, m_drm, m_acquired);
+    } else {
+        av_frame_free(&m_drm);
     }
-    av_frame_free(&m_drm);  // releases the DMA-BUF fds and the VAAPI surface
+    m_drm = nullptr;
     --g_liveFrameRefs;
 }
 
 VulkanInterop::VulkanInterop() : m_vk(std::make_unique<Vk>()) {}
 
 VulkanInterop::~VulkanInterop() {
-    if (m_vk->dev && m_vk->df) {
-        if (m_vk->fence) m_vk->df->vkDestroyFence(m_vk->dev, m_vk->fence, nullptr);
-        if (m_vk->pool) m_vk->df->vkDestroyCommandPool(m_vk->dev, m_vk->pool, nullptr);
+    Vk& vk = *m_vk;
+    if (!vk.dev || !vk.df) return;
+    // Teardown: wait for every submission (the device may only be idle or
+    // lost here), then free.
+    for (Pending& p : vk.pending) {
+        if (!vk.lost && vk.df->vkWaitForFences(vk.dev, 1, &p.fence, VK_TRUE, UINT64_MAX) == VK_ERROR_DEVICE_LOST) {
+            vk.lost = true;
+        }
+        vk.df->vkFreeCommandBuffers(vk.dev, vk.pool, 1, &p.cb);
+        vk.df->vkDestroyFence(vk.dev, p.fence, nullptr);
+        vk.freeOwned(p.owned);
+    }
+    vk.pending.clear();
+    for (VkFence f : vk.freeFences) vk.df->vkDestroyFence(vk.dev, f, nullptr);
+    if (vk.pool) vk.df->vkDestroyCommandPool(vk.dev, vk.pool, nullptr);
+}
+
+void VulkanInterop::flush() {
+    std::lock_guard lock(m_vk->mutex);
+    if (!m_vk->lost) m_vk->collect();
+}
+
+void VulkanInterop::retire(std::array<std::uint64_t, 2> images, std::array<std::uint64_t, 2> memory, AVFrame* drm,
+                           bool acquired) {
+    Vk& vk = *m_vk;
+    std::lock_guard lock(vk.mutex);
+    Owned owned;
+    for (size_t i = 0; i < 2; ++i) {
+        owned.images[i] = reinterpret_cast<VkImage>(images[i]);
+        owned.memory[i] = reinterpret_cast<VkDeviceMemory>(memory[i]);
+    }
+    owned.drm = drm;
+    if (vk.lost || !acquired) {
+        // Never on the GPU (no acquire), or the device is gone.
+        vk.freeOwned(owned);
+        return;
+    }
+    // Release to the foreign family in the external layout, then free with
+    // the surface once that has run (review F1). The retire queue already
+    // waited until no frame in flight samples the images.
+    VkImageMemoryBarrier barriers[2]{};
+    std::uint32_t count = 0;
+    for (size_t i = 0; i < 2; ++i) {
+        if (!owned.images[i]) continue;
+        VkImageMemoryBarrier& b = barriers[count++];
+        b.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        b.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        b.dstAccessMask = 0;
+        b.oldLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        b.newLayout = VK_IMAGE_LAYOUT_GENERAL;
+        b.srcQueueFamilyIndex = vk.queueFamily;
+        b.dstQueueFamilyIndex = VK_QUEUE_FAMILY_FOREIGN_EXT;
+        b.image = owned.images[i];
+        b.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
+    }
+    std::string why;
+    if (count == 0 || !vk.submit(barriers, count, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+                                 VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, owned, &why)) {
+        // No release could be submitted. Free once the queue has finished
+        // everything that may use the images (a rare error path; a lost
+        // device returns at once).
+        if (!vk.lost) vk.df->vkQueueWaitIdle(vk.queue);
+        vk.freeOwned(owned);
     }
 }
 
@@ -156,26 +387,20 @@ std::shared_ptr<VulkanInterop> VulkanInterop::create(QRhi* rhi) {
     poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
     poolInfo.queueFamilyIndex = vk.queueFamily;
     if (vk.df->vkCreateCommandPool(vk.dev, &poolInfo, nullptr, &vk.pool) != VK_SUCCESS) return nullptr;
-    VkFenceCreateInfo fenceInfo{};
-    fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-    if (vk.df->vkCreateFence(vk.dev, &fenceInfo, nullptr, &vk.fence) != VK_SUCCESS) return nullptr;
     interop->m_rhi = rhi;
     g_framesInFlight.store(rhi->resourceLimit(QRhi::FramesInFlight));
     return interop;
 }
 
-void VulkanInterop::destroyPlane(std::uint64_t image, std::uint64_t memory) {
-    if (image) m_vk->df->vkDestroyImage(m_vk->dev, reinterpret_cast<VkImage>(image), nullptr);
-    if (memory) m_vk->df->vkFreeMemory(m_vk->dev, reinterpret_cast<VkDeviceMemory>(memory), nullptr);
-}
-
 std::shared_ptr<FrameRef> VulkanInterop::wrap(const AVFrame* frame, std::string* error) {
     Vk& vk = *m_vk;
-    std::string why;
+    std::lock_guard lock(vk.mutex);
     const auto fail = [&](std::string reason) -> std::shared_ptr<FrameRef> {
         if (error) *error = std::move(reason);
         return nullptr;
     };
+    if (vk.lost) return fail("the Vulkan device is lost");
+    vk.collect();
     if (frame->format != AV_PIX_FMT_VAAPI) return fail("VAAPI returned a software frame");
     if (softwareFormatOf(frame) != AV_PIX_FMT_NV12) return fail("VAAPI output is not 8-bit NV12 (10-bit waits for P010)");
 
@@ -194,21 +419,44 @@ std::shared_ptr<FrameRef> VulkanInterop::wrap(const AVFrame* frame, std::string*
     const VkFormat formats[2] = {VK_FORMAT_R8_UNORM, VK_FORMAT_R8G8_UNORM};
     VkImageMemoryBarrier barriers[2]{};
     for (int p = 0; p < 2; ++p) {
-        // Separate layers (R8, GR88), or one NV12 layer with two planes.
-        const AVDRMPlaneDescriptor* plane = desc->nb_layers >= 2 ? &desc->layers[p].planes[0]
-                                            : desc->layers[0].nb_planes >= 2 ? &desc->layers[0].planes[p]
-                                                                              : nullptr;
-        if (!plane) return fail("the DRM PRIME frame has no plane " + std::to_string(p));
-        const AVDRMObjectDescriptor& object = desc->objects[plane->object_index];
+        // The memory planes of picture plane p: layer p when the export has
+        // one layer per plane (a CCS modifier adds auxiliary memory planes to
+        // the layer), or plane p of a single NV12 layer.
+        std::vector<const AVDRMPlaneDescriptor*> memPlanes;
+        if (desc->nb_layers >= 2) {
+            const AVDRMLayerDescriptor& layer = desc->layers[p];
+            for (int i = 0; i < layer.nb_planes; ++i) memPlanes.push_back(&layer.planes[i]);
+        } else if (desc->nb_layers == 1 && desc->layers[0].nb_planes == 2) {
+            memPlanes.push_back(&desc->layers[0].planes[p]);
+        } else {
+            return fail("unsupported DRM PRIME layout (" + std::to_string(desc->nb_layers) + " layers)");
+        }
+        if (memPlanes.empty()) return fail("the DRM PRIME frame has no plane " + std::to_string(p));
+        const int objectIndex = memPlanes[0]->object_index;
+        for (const auto* mp : memPlanes) {
+            // Planes in separate objects need a disjoint image, which this
+            // import does not build.
+            if (mp->object_index != objectIndex) return fail("the planes of a DRM layer live in separate objects");
+        }
+        const AVDRMObjectDescriptor& object = desc->objects[objectIndex];
 
-        VkSubresourceLayout layout{};
-        layout.offset = static_cast<VkDeviceSize>(plane->offset);
-        layout.rowPitch = static_cast<VkDeviceSize>(plane->pitch);
+        std::string why;
+        const std::uint32_t modifierPlanes = vk.modifierPlanes(formats[p], object.format_modifier, sizes[p], &why);
+        if (modifierPlanes == 0) return fail(why);
+        if (modifierPlanes != memPlanes.size()) {
+            return fail("the modifier needs " + std::to_string(modifierPlanes) + " memory planes, the export has " +
+                        std::to_string(memPlanes.size()));
+        }
+        std::vector<VkSubresourceLayout> layouts(memPlanes.size());
+        for (size_t i = 0; i < memPlanes.size(); ++i) {
+            layouts[i].offset = static_cast<VkDeviceSize>(memPlanes[i]->offset);
+            layouts[i].rowPitch = static_cast<VkDeviceSize>(memPlanes[i]->pitch);
+        }
         VkImageDrmFormatModifierExplicitCreateInfoEXT modifier{};
         modifier.sType = VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT;
         modifier.drmFormatModifier = object.format_modifier;
-        modifier.drmFormatModifierPlaneCount = 1;
-        modifier.pPlaneLayouts = &layout;
+        modifier.drmFormatModifierPlaneCount = modifierPlanes;
+        modifier.pPlaneLayouts = layouts.data();
         VkExternalMemoryImageCreateInfo external{};
         external.sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO;
         external.pNext = &modifier;
@@ -225,10 +473,10 @@ std::shared_ptr<FrameRef> VulkanInterop::wrap(const AVFrame* frame, std::string*
         info.tiling = VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT;
         info.usage = VK_IMAGE_USAGE_SAMPLED_BIT;
         info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;  // creation only; the contents come with the acquire below
         VkImage image = VK_NULL_HANDLE;
         if (vk.df->vkCreateImage(vk.dev, &info, nullptr, &image) != VK_SUCCESS) {
-            return fail("vkCreateImage for a DMA-BUF plane failed (modifier not supported?)");
+            return fail("vkCreateImage for a DMA-BUF plane failed");
         }
         ref->m_images[static_cast<size_t>(p)] = handleBits(image);
 
@@ -270,46 +518,29 @@ std::shared_ptr<FrameRef> VulkanInterop::wrap(const AVFrame* frame, std::string*
         ref->m_memory[static_cast<size_t>(p)] = handleBits(memory);
         if (vk.df->vkBindImageMemory(vk.dev, image, memory, 0) != VK_SUCCESS) return fail("vkBindImageMemory failed");
 
+        // Acquire from the foreign (VAAPI) family. The old layout is the
+        // external one, GENERAL, not UNDEFINED, so the decoded contents are
+        // kept (review F1).
         VkImageMemoryBarrier& b = barriers[p];
         b.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
         b.srcAccessMask = 0;
         b.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-        b.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        b.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
         b.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-        b.srcQueueFamilyIndex = VK_QUEUE_FAMILY_FOREIGN_EXT;  // acquire from VAAPI
+        b.srcQueueFamilyIndex = VK_QUEUE_FAMILY_FOREIGN_EXT;
         b.dstQueueFamilyIndex = vk.queueFamily;
         b.image = image;
         b.subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
     }
 
-    // One small submission on Qt's queue, from the render thread, before the
-    // frame that samples the images is submitted.
-    {
-        std::lock_guard lock(vk.submitMutex);
-        VkCommandBufferAllocateInfo cbInfo{};
-        cbInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-        cbInfo.commandPool = vk.pool;
-        cbInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-        cbInfo.commandBufferCount = 1;
-        VkCommandBuffer cb = VK_NULL_HANDLE;
-        if (vk.df->vkAllocateCommandBuffers(vk.dev, &cbInfo, &cb) != VK_SUCCESS) return fail("no command buffer");
-        VkCommandBufferBeginInfo begin{};
-        begin.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-        begin.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-        vk.df->vkBeginCommandBuffer(cb, &begin);
-        vk.df->vkCmdPipelineBarrier(cb, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0,
-                                    nullptr, 0, nullptr, 2, barriers);
-        vk.df->vkEndCommandBuffer(cb);
-        VkSubmitInfo submit{};
-        submit.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submit.commandBufferCount = 1;
-        submit.pCommandBuffers = &cb;
-        const bool ok = vk.df->vkQueueSubmit(vk.queue, 1, &submit, vk.fence) == VK_SUCCESS &&
-                        vk.df->vkWaitForFences(vk.dev, 1, &vk.fence, VK_TRUE, 100'000'000) == VK_SUCCESS;
-        vk.df->vkResetFences(vk.dev, 1, &vk.fence);
-        vk.df->vkFreeCommandBuffers(vk.dev, vk.pool, 1, &cb);
-        if (!ok) return fail("the DMA-BUF acquire barrier did not complete");
+    // Submitted on Qt's queue ahead of the frame that samples the images;
+    // the submission is collected when its fence signals (review F2).
+    Owned none;
+    std::string why;
+    if (!vk.submit(barriers, 2, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, none, &why)) {
+        return fail("the DMA-BUF acquire was not submitted: " + why);
     }
+    ref->m_acquired = true;
 
     const QRhiTexture::Format rhiFormats[2] = {QRhiTexture::R8, QRhiTexture::RG8};
     for (int p = 0; p < 2; ++p) {

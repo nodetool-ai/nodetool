@@ -84,6 +84,37 @@ QJsonObject runScrubScript(const ScrubContext& ctx, const QJsonObject& script) {
     size_t peakPinned = 0;
     const auto samplePinned = [&] { peakPinned = std::max(peakPinned, FrameCache::shared().pinnedElsewhereBytes()); };
     QJsonObject report{{QStringLiteral("fixture"), ctx.fixture}, {QStringLiteral("decode"), ctx.decode}};
+    // Frames (D35 checks): seek to each listed frame and wait until it is
+    // exact or a GPU resource failed, then record the frame's surfaces.
+    // It runs before the warm-up, which an incomplete frame would fail.
+    if (const QJsonArray list = script.value(u"frames").toArray(); !list.isEmpty()) {
+        QJsonArray frames;
+        for (const QJsonValue& v : list) {
+            const long long frame = v.toInteger();
+            const double ms = run.frameMs(frame);
+            ctx.clock->seek(ms);
+            QElapsedTimer t;
+            t.start();
+            const FrameStat* last = nullptr;
+            bool exact = false;
+            while (t.elapsed() < kSeekTimeoutMs) {
+                last = run.render();
+                if (Runner::exactAt(last, ms)) {
+                    exact = true;
+                    break;
+                }
+                if (last && last->resourceFailures > 0 && std::abs(last->timeMs - ms) < 0.001) break;
+            }
+            frames.append(QJsonObject{{QStringLiteral("frame"), static_cast<double>(frame)},
+                                      {QStringLiteral("exact"), exact},
+                                      {QStringLiteral("surfaces"), last ? last->surfaces : -1},
+                                      {QStringLiteral("resourceFailures"), last ? last->resourceFailures : -1},
+                                      {QStringLiteral("surfaceBytes"), last ? static_cast<double>(last->surfaceBytes) : -1.0},
+                                      {QStringLiteral("surfaceOverBudget"), last && last->surfaceOverBudget}});
+        }
+        report[QStringLiteral("frames")] = frames;
+    }
+
     // Warm up: open the sources and decode the start.
     if (run.seekAndWait(0.0).first < 0) {
         report[QStringLiteral("error")] = QStringLiteral("the first frame was never exact");
@@ -274,6 +305,20 @@ QJsonObject runScrubScript(const ScrubContext& ctx, const QJsonObject& script) {
                                  {QStringLiteral("reason"), m.reason}});
     }
     report[QStringLiteral("media")] = media;
+    // Intermediate surfaces (D35): the most drawn in one frame, the render
+    // targets the pool holds now, and how many it ever created. A steady
+    // scene creates no more targets than its busiest frame needs.
+    int maxSurfaces = 0;
+    int targets = 0;
+    long long created = 0;
+    for (const FrameStat& st : ctx.compositor->frameStats()) {
+        maxSurfaces = std::max(maxSurfaces, st.surfaces);
+        targets = st.surfaceTargets;
+        created = std::max(created, st.surfaceTargetsCreated);
+    }
+    report[QStringLiteral("surfaces")] = QJsonObject{{QStringLiteral("maxPerFrame"), maxSurfaces},
+                                                      {QStringLiteral("targetsLive"), targets},
+                                                      {QStringLiteral("targetsCreated"), static_cast<double>(created)}};
     // Hardware frames still wrapped for the GPU (the screen and the retire
     // queue): a stalled decoder must not leave any behind.
     report[QStringLiteral("liveFrameRefs")] = hw::FrameRef::live();

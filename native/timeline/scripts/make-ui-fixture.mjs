@@ -4,10 +4,13 @@
 // the preview plays 4 decoded 1080p tracks while the bench zooms and pans;
 // 196 audio tracks carry the other 1994 clips over 60 s.
 //
-//   node native/timeline/scripts/make-ui-fixture.mjs [--out PATH]
+//   node native/timeline/scripts/make-ui-fixture.mjs [--out PATH] [--audio-media]
 //
 // The default output is fixtures/generated/ui-200tracks.json (not checked in;
 // the plan conformance check reads only the top-level fixtures).
+// `--audio-media` gives every audio clip a real file (clicks-48k.wav), so the
+// bench draws 1994 waveforms (M2b); its default output is
+// fixtures/generated/ui-200tracks-media.json.
 
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -16,7 +19,10 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const fixtures = path.join(here, "..", "fixtures");
 const outIndex = process.argv.indexOf("--out");
-const out = outIndex > 0 ? path.resolve(process.argv[outIndex + 1]) : path.join(fixtures, "generated", "ui-200tracks.json");
+const audioMedia = process.argv.includes("--audio-media");
+const out = outIndex > 0
+  ? path.resolve(process.argv[outIndex + 1])
+  : path.join(fixtures, "generated", audioMedia ? "ui-200tracks-media.json" : "ui-200tracks.json");
 
 const TRACKS = 200;
 const CLIPS = 2000;
@@ -66,7 +72,8 @@ for (let i = 0; i < audioClips; i += 1) {
     locked: false,
     versions: [],
     fadeInMs: t % 3 === 0 ? 400 : 0,
-    fadeOutMs: t % 5 === 0 ? 600 : 0
+    fadeOutMs: t % 5 === 0 ? 600 : 0,
+    ...(audioMedia ? { mediaPath: path.relative(outDir, path.join(fixtures, "media", "clicks-48k.wav")) } : {})
   });
 }
 

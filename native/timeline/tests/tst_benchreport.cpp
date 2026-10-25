@@ -52,6 +52,16 @@ private slots:
         QCOMPARE(json.budget->at("submitIntervalMs.p95"), 17.5);
     }
 
+    // A platform budget file (bench/budgets-<platform>-*.json, PLAN M6) names
+    // its machine under keys that start with "_"; they are not budgets.
+    void ignoresMachineMetadata() {
+        const auto r = parseBudget(QStringLiteral(
+            R"({"_machine": {"name": "ref-linux", "gpu": "x", "displayHz": 60}, "_note": "text", "cpuMs.p95": 8})"));
+        QVERIFY2(r.budget.has_value(), qPrintable(r.error));
+        QCOMPARE(r.budget->size(), size_t(1));
+        QCOMPARE(r.budget->at("cpuMs.p95"), 8.0);
+    }
+
     void rejectsBadBudgets_data() {
         QTest::addColumn<QString>("text");
         QTest::newRow("unknown measurement") << QStringLiteral("fooMs.p95=2");
