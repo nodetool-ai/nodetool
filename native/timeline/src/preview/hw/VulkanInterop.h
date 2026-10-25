@@ -13,7 +13,21 @@
 // memory and the VA surface are freed only after that submission's fence
 // signals. A release that cannot be submitted is retried on each flush(), and
 // its VA surface stays out of the decoder's pool until one is submitted (a
-// queue wait would not move the images to the foreign family). Nothing waits
+// queue wait would not move the images to the foreign family). Teardown
+// retries every remaining release and waits for all submitted fences. If a
+// release still cannot be submitted on a live device, its DRM mapping is
+// deliberately retained for the process lifetime, keeping the VA surface
+// out of the decoder pool. Each retained mapping is logged and counted by
+// testing::releaseStats(), with no retention limit. An unexpected fence-wait
+// failure is retried up to three attempts. If completion or device loss is
+// still unconfirmed, that pending entry's command buffer, fence, images,
+// memory and DRM mapping, plus the command pool, are deliberately retained
+// for the process lifetime, logged and counted. On a live device, any
+// unconfirmed pending submission also retains the images and memory of
+// unreleased frames for the process lifetime, logged and counted by
+// ReleaseStats::unconfirmedUnreleased. Their DRM mappings stay pinned as
+// above. Other pending entries are still waited on. Only VK_ERROR_DEVICE_LOST
+// marks the device lost. Nothing waits
 // on a fence with a timeout: submissions on Qt's queue
 // are ordered before the frames that sample the images, and finished
 // submissions are collected on each flush(). A lost device frees everything
@@ -52,6 +66,26 @@ class QRhiCommandBuffer;
 struct AVFrame;
 
 namespace nt::hw {
+
+namespace testing {
+// Release-only injection: positive counts fail the next N attempts, negative
+// fails every attempt. Zero restores native submissions. Counters are cumulative.
+void setReleaseFailures(int count);
+// Teardown waits only: fail the next N waits with out-of-host-memory without
+// calling Vulkan. Negative fails every wait. Zero restores native waits.
+void setFenceWaitFailures(int count);
+struct ReleaseStats {
+    int submitted;
+    int completed;
+    int freedWithoutRelease;
+    int retainedMappings;
+    // Pending submissions retained after teardown could not confirm completion.
+    int unconfirmedPending;
+    // Unreleased image sets retained because a pending submission was unconfirmed.
+    int unconfirmedUnreleased;
+};
+ReleaseStats releaseStats();
+}  // namespace testing
 
 class VulkanInterop;
 
