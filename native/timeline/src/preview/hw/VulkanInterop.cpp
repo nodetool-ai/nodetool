@@ -23,6 +23,7 @@ extern "C" {
 
 #include <unistd.h>
 
+#include <algorithm>
 #include <atomic>
 #include <cstdlib>
 #include <deque>
@@ -33,6 +34,10 @@ extern "C" {
 namespace nt::hw {
 namespace {
 
+std::atomic<bool> g_dropNextReadback{false};
+std::atomic<int> g_completedReadbacks{0};
+std::atomic<int> g_destroyedImages{0};
+std::atomic<int> g_freedMemory{0};
 std::atomic<int> g_releaseFailures{0};
 std::atomic<int> g_fenceWaitFailures{0};
 std::atomic<int> g_releasesSubmitted{0};
@@ -79,6 +84,7 @@ struct FrameMark {
     long long frame = -1;
 };
 thread_local FrameMark t_frameMark;
+thread_local std::function<void(int)> t_readbackObserver;
 
 std::string avError(int rc) {
     char buf[AV_ERROR_MAX_STRING_SIZE] = {};
@@ -131,8 +137,14 @@ struct Owned {
 
     void reset() {
         for (size_t i = 0; i < images.size(); ++i) {
-            if (images[i]) df->vkDestroyImage(dev, images[i], nullptr);
-            if (memory[i]) df->vkFreeMemory(dev, memory[i], nullptr);
+            if (images[i]) {
+                df->vkDestroyImage(dev, images[i], nullptr);
+                ++g_destroyedImages;
+            }
+            if (memory[i]) {
+                df->vkFreeMemory(dev, memory[i], nullptr);
+                ++g_freedMemory;
+            }
             images[i] = VK_NULL_HANDLE;
             memory[i] = VK_NULL_HANDLE;
         }
@@ -151,20 +163,31 @@ private:
     }
 };
 
-// A 16-byte buffer readback recorded in a frame: QRhi completes it once that
-// frame's commands have run, as Metal's completed handler does on macOS.
-// The interop owns a mark until it is destroyed. A mark still recorded then
-// is orphaned: QRhi writes it until the readback completes (at a later frame,
-// QRhi::finish() or the QRhi's destruction), so its callback frees it.
+// QRhi owns a pointer to each result until its own callback runs. Callback
+// order says nothing about whether another readback was dropped by Qt.
 struct CompletionMark {
-    enum State : int { Recorded, Completed, Orphaned };
     QRhiReadbackResult result;
-    std::atomic<int> state{Recorded};
+    long long frame = -1;
+    bool completed = false;
 
-    CompletionMark() { ++g_liveCompletionMarks; }
+    explicit CompletionMark(long long frameNumber) : frame(frameNumber) { ++g_liveCompletionMarks; }
     ~CompletionMark() { --g_liveCompletionMarks; }
     CompletionMark(const CompletionMark&) = delete;
     CompletionMark& operator=(const CompletionMark&) = delete;
+};
+
+// Shared with QRhi cleanup so dropped readbacks still have an owner after
+// interop teardown. Access is serialized with completion callbacks.
+struct MarkLedger {
+    std::mutex mutex;
+    std::deque<std::unique_ptr<CompletionMark>> marks;
+    bool orphaned = false;
+
+    void prune(long long drainedFrame = -1) {
+        std::erase_if(marks, [drainedFrame](const auto& mark) {
+            return mark->completed || mark->frame <= drainedFrame;
+        });
+    }
 };
 
 struct Pending {
@@ -195,7 +218,7 @@ struct VulkanInterop::Vk {
     std::vector<Owned> unreleased;
     bool lost = false;
     std::unique_ptr<QRhiBuffer> markBuffer;
-    std::deque<std::unique_ptr<CompletionMark>> marks;  // in frame order
+    std::shared_ptr<MarkLedger> ledger = std::make_shared<MarkLedger>();
 
     VkResult waitForFence(VkFence fence) {
         int failures = g_fenceWaitFailures.load();
@@ -419,6 +442,22 @@ testing::ReleaseStats testing::releaseStats() {
             g_retainedMappings.load(), g_unconfirmedPending.load(), g_unconfirmedUnreleased.load()};
 }
 
+testing::DestructionStats testing::destructionStats() {
+    return {g_destroyedImages.load(), g_freedMemory.load()};
+}
+
+void testing::dropNextReadback() {
+    g_dropNextReadback.store(true);
+}
+
+int testing::completedReadbacks() {
+    return g_completedReadbacks.load();
+}
+
+void testing::setReadbackObserver(std::function<void(int)> observer) {
+    t_readbackObserver = std::move(observer);
+}
+
 void trackCompletion(QRhiCommandBuffer* cb, long long frameNumber) {
     // QRhi has waited for frame N - FramesInFlight when frame N begins. The
     // buffer readback that flush() records in frame N completes once frame N
@@ -520,17 +559,23 @@ VulkanInterop::~VulkanInterop() {
     if (vk.pool && !unconfirmedPending) {
         vk.df->vkDestroyCommandPool(vk.dev, vk.pool, nullptr);
     }
-    // QRhi still writes a readback that has not completed: its callback
-    // takes the mark and frees it (CompletionMark).
-    for (auto& mark : vk.marks) {
-        if (mark->state.exchange(CompletionMark::Orphaned) == CompletionMark::Recorded) (void)mark.release();
-    }
+    std::lock_guard lock(vk.ledger->mutex);
+    vk.ledger->orphaned = true;
+    vk.ledger->prune();
 }
 
 void VulkanInterop::flush() {
     Vk& vk = *m_vk;
     std::lock_guard lock(vk.mutex);
-    while (!vk.marks.empty() && vk.marks.front()->state.load() == CompletionMark::Completed) vk.marks.pop_front();
+    {
+        // Qt 6.12 QRhiVulkan::prepareNewFrame runs readback callbacks after
+        // waiting for this frame slot. Only N - FramesInFlight is drained,
+        // independently of which later callbacks have run (qrhivulkan.cpp).
+        const long long drained = t_frameMark.cb && t_frameMark.cb->rhi() == m_rhi
+            ? t_frameMark.frame - m_rhi->resourceLimit(QRhi::FramesInFlight) : -1;
+        std::lock_guard ledgerLock(vk.ledger->mutex);
+        vk.ledger->prune(drained);
+    }
     if (t_frameMark.cb && m_rhi) {
         QRhiResourceUpdateBatch* batch = m_rhi->nextResourceUpdateBatch();
         if (!vk.markBuffer) {
@@ -543,17 +588,29 @@ void VulkanInterop::flush() {
             }
         }
         if (vk.markBuffer) {
-            auto mark = std::make_unique<CompletionMark>();
-            CompletionMark* m = mark.get();
             const long long frame = t_frameMark.frame;
-            // QRhi calls a copy of this function and no longer touches the
-            // result, so an orphaned mark may delete itself here.
-            m->result.completed = [m, frame] {
+            auto mark = std::make_unique<CompletionMark>(frame);
+            CompletionMark* m = mark.get();
+            // Qt copies callbacks and stops touching their results before
+            // invoking them. An orphan may free only marks whose own callbacks
+            // ran, even when Qt invokes the newer callback first.
+            m->result.completed = [ledger = vk.ledger, m, frame] {
+                if (t_readbackObserver) {
+                    t_readbackObserver(g_liveCompletionMarks.load());
+                }
+                ++g_completedReadbacks;
                 advanceCompleted(frame);
-                if (m->state.exchange(CompletionMark::Completed) == CompletionMark::Orphaned) delete m;
+                std::lock_guard ledgerLock(ledger->mutex);
+                m->completed = true;
+                if (ledger->orphaned) {
+                    ledger->prune();
+                }
             };
-            batch->readBackBuffer(vk.markBuffer.get(), 0, 16, &m->result);
-            vk.marks.push_back(std::move(mark));
+            if (!g_dropNextReadback.exchange(false)) {
+                batch->readBackBuffer(vk.markBuffer.get(), 0, 16, &m->result);
+            }
+            std::lock_guard ledgerLock(vk.ledger->mutex);
+            vk.ledger->marks.push_back(std::move(mark));
         }
         t_frameMark.cb->resourceUpdate(batch);
         t_frameMark = {};
@@ -640,6 +697,21 @@ std::shared_ptr<VulkanInterop> VulkanInterop::create(QRhi* rhi) {
     poolInfo.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT | VK_COMMAND_POOL_CREATE_TRANSIENT_BIT;
     poolInfo.queueFamilyIndex = vk.queueFamily;
     if (vk.df->vkCreateCommandPool(vk.dev, &poolInfo, nullptr, &vk.pool) != VK_SUCCESS) return nullptr;
+    rhi->addCleanupCallback(vk.ledger.get(), [ledger = vk.ledger](QRhi* owner) {
+        {
+            std::lock_guard lock(ledger->mutex);
+            if (ledger->marks.empty()) {
+                return;
+            }
+        }
+        // ~QRhi runs cleanup before backend destruction. Qt 6.12's Vulkan
+        // finish() waits for the queue and invokes all active readbacks before
+        // returning. Only then may we reclaim results Qt dropped altogether.
+        if (owner->finish() == QRhi::FrameOpSuccess) {
+            std::lock_guard lock(ledger->mutex);
+            ledger->marks.clear();
+        }
+    });
     interop->m_rhi = rhi;
     g_framesInFlight.store(rhi->resourceLimit(QRhi::FramesInFlight));
     return interop;

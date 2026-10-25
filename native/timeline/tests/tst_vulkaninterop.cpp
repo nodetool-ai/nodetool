@@ -89,6 +89,9 @@ struct VaapiFixture {
 struct RestoreReleaseSubmissions {
     ~RestoreReleaseSubmissions() { testing::setReleaseFailures(0); }
 };
+struct RestoreReadbackObserver {
+    ~RestoreReadbackObserver() { testing::setReadbackObserver({}); }
+};
 struct RestoreFenceWaits {
     ~RestoreFenceWaits() { testing::setFenceWaitFailures(0); }
 };
@@ -144,6 +147,91 @@ private slots:
         QVERIFY(completedFrame() >= 2003);
         interop.reset();
         QCOMPARE(VulkanInterop::liveCompletionMarks(), before);
+    }
+
+    void droppedMarkDoesNotBlockCompletedMarks() {
+        const int before = VulkanInterop::liveCompletionMarks();
+        auto interop = VulkanInterop::create(m_rhi.get());
+        if (!interop) {
+            QSKIP("the device cannot import DMA-BUF frames");
+        }
+        QRhiCommandBuffer* cb = nullptr;
+        QCOMPARE(m_rhi->beginOffscreenFrame(&cb), QRhi::FrameOpSuccess);
+        testing::dropNextReadback();
+        trackCompletion(cb, 5000);
+        interop->flush();
+        trackCompletion(cb, 5000);
+        interop->flush();
+        QCOMPARE(VulkanInterop::liveCompletionMarks(), before + 2);
+        QCOMPARE(m_rhi->endOffscreenFrame(), QRhi::FrameOpSuccess);
+        interop->flush();
+        // A later callback is not a drain: only its own mark may go away.
+        QCOMPARE(VulkanInterop::liveCompletionMarks(), before + 1);
+        const int framesInFlight = m_rhi->resourceLimit(QRhi::FramesInFlight);
+        for (int i = 1; i <= framesInFlight + 2; ++i) {
+            QCOMPARE(m_rhi->beginOffscreenFrame(&cb), QRhi::FrameOpSuccess);
+            trackCompletion(cb, 5000 + i);
+            interop->flush();
+            QCOMPARE(m_rhi->endOffscreenFrame(), QRhi::FrameOpSuccess);
+            interop->flush();
+            QCOMPARE(VulkanInterop::liveCompletionMarks(), before + (i < framesInFlight ? 1 : 0));
+        }
+        interop.reset();
+        QCOMPARE(VulkanInterop::liveCompletionMarks(), before);
+    }
+
+    void droppedMarkIsFreedAtRhiTeardown() {
+        const int before = VulkanInterop::liveCompletionMarks();
+        QRhiVulkanInitParams params;
+        params.inst = &m_instance;
+        params.deviceExtensions = VulkanInterop::requiredDeviceExtensions();
+        std::unique_ptr<QRhi> rhi(QRhi::create(QRhi::Vulkan, &params));
+        QVERIFY(rhi);
+        auto interop = VulkanInterop::create(rhi.get());
+        if (!interop) {
+            QSKIP("the device cannot import DMA-BUF frames");
+        }
+        QRhiCommandBuffer* cb = nullptr;
+        QCOMPARE(rhi->beginOffscreenFrame(&cb), QRhi::FrameOpSuccess);
+        testing::dropNextReadback();
+        trackCompletion(cb, 6000);
+        interop->flush();
+        QCOMPARE(VulkanInterop::liveCompletionMarks(), before + 1);
+        interop.reset();
+        QCOMPARE(rhi->endOffscreenFrame(), QRhi::FrameOpSuccess);
+        QCOMPARE(rhi->finish(), QRhi::FrameOpSuccess);
+        rhi.reset();  // cleanup must confirm a drain before reclaiming a dropped mark
+        QCOMPARE(VulkanInterop::liveCompletionMarks(), before);
+    }
+
+    void orphanedReadbacksCompleteInReverseOrder() {
+        const int before = VulkanInterop::liveCompletionMarks();
+        const int callbacksBefore = testing::completedReadbacks();
+        RestoreReadbackObserver restore;
+        auto callbackLiveCounts = std::make_shared<std::vector<int>>();
+        testing::setReadbackObserver([callbackLiveCounts](int live) { callbackLiveCounts->push_back(live); });
+        auto interop = VulkanInterop::create(m_rhi.get());
+        if (!interop) {
+            QSKIP("the device cannot import DMA-BUF frames");
+        }
+        QRhiCommandBuffer* cb = nullptr;
+        QCOMPARE(m_rhi->beginOffscreenFrame(&cb), QRhi::FrameOpSuccess);
+        for (int i = 0; i < 2; ++i) {
+            trackCompletion(cb, 7000);
+            interop->flush();
+        }
+        QCOMPARE(VulkanInterop::liveCompletionMarks(), before + 2);
+        QCOMPARE(testing::completedReadbacks(), callbacksBefore);
+        interop.reset();
+        QCOMPARE(VulkanInterop::liveCompletionMarks(), before + 2);
+        // Qt 6.12 invokes both callbacks in reverse recording order here.
+        QCOMPARE(m_rhi->finish(), QRhi::FrameOpSuccess);
+        QCOMPARE(testing::completedReadbacks(), callbacksBefore + 2);
+        QCOMPARE(callbackLiveCounts->size(), size_t{2});
+        QCOMPARE(callbackLiveCounts->at(0), before + 2);
+        QCOMPARE(callbackLiveCounts->at(1), before + 1);
+        QCOMPARE(VulkanInterop::liveCompletionMarks(), before);
+        QCOMPARE(m_rhi->endOffscreenFrame(), QRhi::FrameOpSuccess);
     }
 
     void rendererRestartReleasesRetiredMapping_data() {
@@ -276,6 +364,7 @@ private slots:
         std::string error;
         auto frame = interop->wrap(fixture.frame.get(), &error);
         QVERIFY2(frame, error.c_str());
+        const auto destructionBefore = testing::destructionStats();
         av_frame_unref(fixture.frame.get());
         // Wrap only one frame and never flush: nothing collects its acquire.
         // It is never sampled, so retirement needs no frame completion mark.
@@ -286,6 +375,9 @@ private slots:
         frame.reset();  // failed retire and teardown release, then failed acquire waits
         QVERIFY(oldInterop.expired());
         const auto after = testing::releaseStats();
+        const auto destructionAfter = testing::destructionStats();
+        QCOMPARE(destructionAfter.images, destructionBefore.images);
+        QCOMPARE(destructionAfter.memory, destructionBefore.memory);
         QCOMPARE(after.unconfirmedUnreleased - before.unconfirmedUnreleased, 1);
         QCOMPARE(after.unconfirmedPending - before.unconfirmedPending, 1);
         QCOMPARE(after.retainedMappings - before.retainedMappings, 1);
