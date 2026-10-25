@@ -6,7 +6,6 @@ import { memo, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useShallow } from "zustand/react/shallow";
-import type { DragEvent as ReactDragEvent } from "react";
 import { ConfirmDialog, Tooltip, Text, ToolbarIconButton, thinScrollbarStyles, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, EYEBROW } from "../ui_primitives";
 import ClearIcon from "@mui/icons-material/Clear";
 import { NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
@@ -14,8 +13,7 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
-import { serializeDragData } from "../../lib/dragdrop";
-import { useDragDropStore } from "../../lib/dragdrop/store";
+import { useNodeTileDrag } from "../../hooks/nodes/useNodeTileDrag";
 import { useRecentNodesStore } from "../../stores/RecentNodesStore";
 import { QUICK_ACTION_BUTTONS } from "./QuickActionTiles.constants";
 import { colorForType } from "../../config/data_types";
@@ -165,15 +163,12 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
     }))
   );
 
-  const setDragToCreate = useNodeMenuStore((state) => state.setDragToCreate);
   const setHoveredNode = useNodeMenuStore((state) => state.setHoveredNode);
 
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
-  const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
-  const clearDrag = useDragDropStore((s) => s.clearDrag);
 
   // Route click-to-add via PendingNodeCreateStore so this component can be
   // rendered outside the workflow editor's ReactFlowProvider (e.g. from the
@@ -183,35 +178,7 @@ const RecentNodesTiles = memo(function RecentNodesTiles() {
 
   // Use data attributes to avoid creating new function references on each render
   // This is more efficient than curried handlers which create new closures
-  const handleDragStart = useCallback(
-    (event: ReactDragEvent<HTMLDivElement>) => {
-      const nodeType = event.currentTarget.dataset.nodeType;
-      if (!nodeType) {
-        event.preventDefault();
-        event.stopPropagation();
-        return;
-      }
-      const metadata = getMetadata(nodeType);
-      if (!metadata) {
-        event.preventDefault();
-        event.stopPropagation();
-        return;
-      }
-      setDragToCreate(true);
-      serializeDragData(
-        { type: "create-node", payload: metadata },
-        event.dataTransfer
-      );
-      event.dataTransfer.effectAllowed = "copyMove";
-      setActiveDrag({ type: "create-node", payload: metadata });
-    },
-    [getMetadata, setDragToCreate, setActiveDrag]
-  );
-
-  const handleDragEnd = useCallback(() => {
-    setDragToCreate(false);
-    clearDrag();
-  }, [setDragToCreate, clearDrag]);
+  const { handleDragStart, handleDragEnd } = useNodeTileDrag();
 
   const handleTileClick = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {

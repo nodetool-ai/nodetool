@@ -5,7 +5,7 @@ import type { Theme } from "@mui/material/styles";
 import { memo, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useShallow } from "zustand/react/shallow";
-import type { CSSProperties, DragEvent as ReactDragEvent, KeyboardEvent as ReactKeyboardEvent } from "react";
+import type { CSSProperties, KeyboardEvent as ReactKeyboardEvent } from "react";
 import { ConfirmDialog, EmptyState, Tooltip, Text, ToolbarIconButton, thinScrollbarStyles, Box, MOTION, BORDER_RADIUS, FONT_WEIGHT, SPACING, getSpacingPx } from "../ui_primitives";
 import CloseIcon from "@mui/icons-material/CloseOutlined";
 import ClearIcon from "@mui/icons-material/Clear";
@@ -14,8 +14,7 @@ import useNodeMenuStore from "../../stores/NodeMenuStore";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
-import { serializeDragData } from "../../lib/dragdrop";
-import { useDragDropStore } from "../../lib/dragdrop/store";
+import { useNodeTileDrag } from "../../hooks/nodes/useNodeTileDrag";
 import { useFavoriteNodesStore } from "../../stores/FavoriteNodesStore";
 
 const tooltipHintStyle: CSSProperties = {
@@ -158,15 +157,12 @@ const FavoritesTiles = memo(function FavoritesTiles({
     }))
   );
 
-  const setDragToCreate = useNodeMenuStore((state) => state.setDragToCreate);
   const setHoveredNode = useNodeMenuStore((state) => state.setHoveredNode);
 
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
-  const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
-  const clearDrag = useDragDropStore((s) => s.clearDrag);
 
   // Route click-to-add via PendingNodeCreateStore so this component is safe
   // to render outside the editor's ReactFlowProvider.
@@ -174,35 +170,7 @@ const FavoritesTiles = memo(function FavoritesTiles({
 
   // Use data attributes to avoid creating new function references on each render
   // This is more efficient than curried handlers which create new closures
-  const handleDragStart = useCallback(
-    (event: ReactDragEvent<HTMLDivElement>) => {
-      const nodeType = event.currentTarget.dataset.nodeType;
-      if (!nodeType) {
-        event.preventDefault();
-        event.stopPropagation();
-        return;
-      }
-      const metadata = getMetadata(nodeType);
-      if (!metadata) {
-        event.preventDefault();
-        event.stopPropagation();
-        return;
-      }
-      setDragToCreate(true);
-      serializeDragData(
-        { type: "create-node", payload: metadata },
-        event.dataTransfer
-      );
-      event.dataTransfer.effectAllowed = "copyMove";
-      setActiveDrag({ type: "create-node", payload: metadata });
-    },
-    [getMetadata, setDragToCreate, setActiveDrag]
-  );
-
-  const handleDragEnd = useCallback(() => {
-    setDragToCreate(false);
-    clearDrag();
-  }, [setDragToCreate, clearDrag]);
+  const { handleDragStart, handleDragEnd } = useNodeTileDrag();
 
   const handleTileClick = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
