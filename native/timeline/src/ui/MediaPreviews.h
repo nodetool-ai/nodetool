@@ -88,10 +88,10 @@ std::shared_ptr<const AudioPeaks> computeAudioPeaks(const QString& path, int cou
 std::vector<Thumbnail> extractThumbnails(const QString& path, int count = THUMBNAIL_COUNT,
                                          int width = THUMBNAIL_WIDTH_PX, const std::atomic<bool>* cancel = nullptr,
                                          int openTimeoutMs = OPEN_TIMEOUT_MS);
-// Qt's image readers cannot be interrupted: `cancel` is checked before the
-// read only.
+// On Unix the image reader uses interruptible local I/O with the same deadline.
+// Other platforms check cancellation before and after the image read.
 std::vector<Thumbnail> loadImageThumbnail(const QString& path, int width = 2 * THUMBNAIL_WIDTH_PX,
-                                          const std::atomic<bool>* cancel = nullptr);
+                                          const std::atomic<bool>* cancel = nullptr, int openTimeoutMs = OPEN_TIMEOUT_MS);
 // The thumbnails with their atlas.
 std::shared_ptr<const ThumbnailSet> makeThumbnailSet(std::vector<Thumbnail> thumbs);
 

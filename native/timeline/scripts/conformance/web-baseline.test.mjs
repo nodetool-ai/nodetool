@@ -6,16 +6,16 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { fixtureFailures, frameCorrectness, frameIndexAt } from "../web-baseline.mjs";
+import { fixtureFailures, frameCorrectness, frameIndexAt, timingByClip } from "../web-baseline.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const seed = { label: "video-4tracks", localFile: path.join(here, "..", "..", "fixtures", "video-4tracks.json") };
 const web = {
   submittedFrames: 300,
-  submitIntervalMs: { count: 299 },
-  rafIntervalMs: { count: 299 },
-  frameWorkMs: { count: 299 },
-  frameError: { count: 299 },
+  submitIntervalMs: { count: 299, p50: 1, p95: 2 },
+  rafIntervalMs: { count: 299, p50: 1, p95: 2 },
+  frameWorkMs: { count: 299, p50: 1, p95: 2 },
+  frameError: { count: 299, p50: 1, p95: 2 },
   untimedPresentedFrames: 0,
   decoders: { webcodecs: { count: 4, reasons: [] } }
 };
@@ -24,9 +24,9 @@ const goodNative = {
   uiBench: {
     exit: 0,
     frames: 600,
-    frameMs: { p50: 3 },
-    renderMs: { p50: 1 },
-    guiMs: { p50: 2 },
+    frameMs: { count: 600, p50: 3, p95: 4 },
+    renderMs: { count: 600, p50: 1, p95: 2 },
+    guiMs: { count: 600, p50: 2, p95: 3 },
     compositedFrames: 600,
     drawnMediaFraction: 1
   }
@@ -56,9 +56,53 @@ test("missing native results fail the fixture", () => {
   assert.ok(out.some((f) => /uiBench/.test(f)));
 });
 
-test("empty native metrics fail the fixture", () => {
-  const empty = { ...goodNative, uiBench: { ...goodNative.uiBench, frameMs: null, compositedFrames: 0 } };
-  assert.equal(fixtureFailures("t", "element", seed, web, empty).length, 1);
+// UI F2: each invalid field must fail independently and name that field.
+const invalidSummaries = [
+  ["empty", {}],
+  ["null", null],
+  ["no samples", { count: 0, p50: 1, p95: 2 }],
+  ["NaN p50", { count: 1, p50: NaN, p95: 2 }],
+  ["infinite p95", { count: 1, p50: 1, p95: Infinity }],
+  ["string count", { count: "1", p50: 1, p95: 2 }]
+];
+for (const field of ["frameMs", "renderMs", "guiMs"]) {
+  for (const [label, value] of invalidSummaries) {
+    test(`UI F2: native ${field} ${label}`, () => {
+      const native = { ...goodNative, uiBench: { ...goodNative.uiBench, [field]: value } };
+      const out = fixtureFailures("t", "webcodecs", seed, web, native);
+      assert.equal(out.length, 1);
+      assert.ok(out[0].includes(field), out[0]);
+    });
+  }
+}
+for (const field of ["frames", "compositedFrames"]) {
+  for (const value of [0, "600", NaN]) {
+    test(`UI F2: native ${field} = ${String(value)}`, () => {
+      const native = { ...goodNative, uiBench: { ...goodNative.uiBench, [field]: value } };
+      const out = fixtureFailures("t", "webcodecs", seed, web, native);
+      assert.equal(out.length, 1);
+      assert.ok(out[0].includes(field), out[0]);
+    });
+  }
+}
+for (const field of ["submitIntervalMs", "rafIntervalMs", "frameWorkMs", "frameError"]) {
+  for (const [label, value] of invalidSummaries) {
+    test(`UI F2: web ${field} ${label}`, () => {
+      const out = fixtureFailures("t", "webcodecs", seed, { ...web, [field]: value }, goodNative);
+      assert.equal(out.length, 1);
+      assert.ok(out[0].includes(field), out[0]);
+    });
+  }
+}
+
+test("UI F2: timingByClip matches complete clip ids before the URL", () => {
+  const a = [0, 0.04];
+  const ab = [0, 0.05];
+  const lookup = timingByClip(new Map([["a", a], ["ab", ab]]));
+  assert.strictEqual(lookup("a:https://x/a.mp4"), a);
+  assert.strictEqual(lookup("ab:https://x/ab.mp4"), ab);
+  assert.strictEqual(lookup("abc:https://x/abc.mp4"), null);
+  assert.strictEqual(lookup("a"), null);
 });
 
 test("an example has no native uiBench to require", () => {
