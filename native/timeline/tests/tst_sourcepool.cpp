@@ -211,15 +211,18 @@ private slots:
         QElapsedTimer t;
         t.start();
         bool exact = false;
-        // Spend the frames the session keeps at 0 s first. A device that
-        // opens slowly (VAAPI) would otherwise decode them after the seek to
-        // 3 s, and the last of them, followed by the end of the stream, would
-        // count as the exact pick there.
-        while (!exact && t.elapsed() < 4000) {
+        // Spend the three frames the session keeps at 0 s first. One decoded
+        // after the seek to 3 s would land on the keyframe before it and,
+        // followed by the end of the stream, count as the exact pick there.
+        // The cache proves frame 1 only once frame 2, the third, is published.
+        const std::string path = media("numbered-a-1080p30.mp4");
+        bool thirdPublished = false;
+        while (!thirdPublished && t.elapsed() < 4000) {
             frame(pool, tl, 0.0, &exact);
+            thirdPublished = FrameCache::shared().lookup(path, 1.5 / 30.0) != nullptr;
             QThread::msleep(2);
         }
-        QVERIFY(exact);
+        QVERIFY2(thirdPublished, "the session did not publish its three frames");
         exact = false;
         t.restart();
         double pts = -1.0;

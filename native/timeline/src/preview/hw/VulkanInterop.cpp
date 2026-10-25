@@ -33,6 +33,7 @@ namespace nt::hw {
 namespace {
 
 std::atomic<int> g_liveFrameRefs{0};
+std::atomic<int> g_liveCompletionMarks{0};
 std::atomic<int> g_releasedInFlight{0};
 std::atomic<long long> g_completedFrame{-1};
 std::atomic<int> g_framesInFlight{2};
@@ -85,9 +86,18 @@ struct Owned {
 
 // A 16-byte buffer readback recorded in a frame: QRhi completes it once that
 // frame's commands have run, as Metal's completed handler does on macOS.
+// The interop owns a mark until it is destroyed. A mark still recorded then
+// is orphaned: QRhi writes it until the readback completes (at a later frame,
+// QRhi::finish() or the QRhi's destruction), so its callback frees it.
 struct CompletionMark {
+    enum State : int { Recorded, Completed, Orphaned };
     QRhiReadbackResult result;
-    std::atomic<bool> done{false};
+    std::atomic<int> state{Recorded};
+
+    CompletionMark() { ++g_liveCompletionMarks; }
+    ~CompletionMark() { --g_liveCompletionMarks; }
+    CompletionMark(const CompletionMark&) = delete;
+    CompletionMark& operator=(const CompletionMark&) = delete;
 };
 
 struct Pending {
@@ -328,6 +338,10 @@ int FrameRef::live() {
     return g_liveFrameRefs.load();
 }
 
+int VulkanInterop::liveCompletionMarks() {
+    return g_liveCompletionMarks.load();
+}
+
 int FrameRef::releasedInFlight() {
     return g_releasedInFlight.load();
 }
@@ -366,23 +380,24 @@ VulkanInterop::~VulkanInterop() {
     vk.unreleased.clear();
     for (VkFence f : vk.freeFences) vk.df->vkDestroyFence(vk.dev, f, nullptr);
     if (vk.pool) vk.df->vkDestroyCommandPool(vk.dev, vk.pool, nullptr);
-    // QRhi still writes a readback that has not completed: leave it allocated.
+    // QRhi still writes a readback that has not completed: its callback
+    // takes the mark and frees it (CompletionMark).
     for (auto& mark : vk.marks) {
-        if (!mark->done.load()) (void)mark.release();
+        if (mark->state.exchange(CompletionMark::Orphaned) == CompletionMark::Recorded) (void)mark.release();
     }
 }
 
 void VulkanInterop::flush() {
     Vk& vk = *m_vk;
     std::lock_guard lock(vk.mutex);
-    while (!vk.marks.empty() && vk.marks.front()->done.load()) vk.marks.pop_front();
+    while (!vk.marks.empty() && vk.marks.front()->state.load() == CompletionMark::Completed) vk.marks.pop_front();
     if (t_frameMark.cb && m_rhi) {
         QRhiResourceUpdateBatch* batch = m_rhi->nextResourceUpdateBatch();
         if (!vk.markBuffer) {
             vk.markBuffer.reset(m_rhi->newBuffer(QRhiBuffer::Immutable, QRhiBuffer::VertexBuffer, 16));
             if (vk.markBuffer->create()) {
-                static const char zeros[16] = {};
-                batch->uploadStaticBuffer(vk.markBuffer.get(), zeros);
+                static constexpr std::array<char, 16> zeros{};
+                batch->uploadStaticBuffer(vk.markBuffer.get(), zeros.data());
             } else {
                 vk.markBuffer.reset();
             }
@@ -391,9 +406,11 @@ void VulkanInterop::flush() {
             auto mark = std::make_unique<CompletionMark>();
             CompletionMark* m = mark.get();
             const long long frame = t_frameMark.frame;
+            // QRhi calls a copy of this function and no longer touches the
+            // result, so an orphaned mark may delete itself here.
             m->result.completed = [m, frame] {
                 advanceCompleted(frame);
-                m->done = true;
+                if (m->state.exchange(CompletionMark::Completed) == CompletionMark::Orphaned) delete m;
             };
             batch->readBackBuffer(vk.markBuffer.get(), 0, 16, &m->result);
             vk.marks.push_back(std::move(mark));
@@ -704,12 +721,15 @@ int syncFrame(const AVFrame* frame) {
     return vaSyncSurface(device->display, surface) == VA_STATUS_SUCCESS ? 0 : AVERROR_EXTERNAL;
 }
 
-AVFrame* cacheCopy(const AVFrame* frame) {
-    AVFrame* copy = av_frame_alloc();
+void CacheFrameFree::operator()(AVFrame* frame) const {
+    av_frame_free(&frame);
+}
+
+CacheFrame cacheCopy(const AVFrame* frame) {
+    CacheFrame copy(av_frame_alloc());
     if (!copy) return nullptr;
     copy->format = AV_PIX_FMT_NV12;
-    if (av_hwframe_transfer_data(copy, frame, 0) < 0 || av_frame_copy_props(copy, frame) < 0) {
-        av_frame_free(&copy);
+    if (av_hwframe_transfer_data(copy.get(), frame, 0) < 0 || av_frame_copy_props(copy.get(), frame) < 0) {
         return nullptr;
     }
     return copy;

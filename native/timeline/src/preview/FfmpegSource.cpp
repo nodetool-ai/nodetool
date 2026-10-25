@@ -902,9 +902,9 @@ void FfmpegDecoder::run() {
             // The cache keeps a system-memory copy, not the VA surface
             // (hw::cacheCopy). Without one, this frame is not cached.
             cached.reset();
-            if (AVFrame* copy = hw::cacheCopy(out->frame)) {
+            if (hw::CacheFrame copy = hw::cacheCopy(out->frame)) {
                 cached = std::make_shared<DecodedFrame>();
-                cached->frame = copy;
+                cached->frame = copy.release();  // DecodedFrame frees it
                 cached->ptsSec = out->ptsSec;
                 cached->generation = out->generation;
                 cached->layout = PlaneLayout::Nv12;
