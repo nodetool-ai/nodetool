@@ -113,7 +113,9 @@ export function assetIdOf(uri: string): string | null {
  * resolved through tRPC first, because only the server knows where the object
  * lives; an absolute URL is fetched directly with the same token.
  */
-export function createAssetResolver(options: BridgeClientFactoryOptions) {
+export function createAssetResolver(
+  options: BridgeClientFactoryOptions
+): (asset: AssetAttachment, context: DeliveryContext) => Promise<ResolvedAsset | null> {
   const fetchImpl = options.fetch ?? fetch;
   return async (
     asset: AssetAttachment,
