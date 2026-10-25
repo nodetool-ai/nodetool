@@ -62,6 +62,7 @@ int registeredThreads() {
 // handle is an index into a table of native thread handles, because a
 // pthread_t or a Windows HANDLE does not fit the `unsigned` of the API.
 #include <mutex>
+#include <utility>
 #include <vector>
 
 #if defined(_WIN32)
@@ -96,6 +97,9 @@ struct Slot {
 std::mutex g_mutex;
 std::vector<Slot> g_threads;
 int g_live = 0;
+#if defined(__linux__)
+testing::NativeQuery g_nativeQuery;
+#endif
 
 void releaseSlot(unsigned index) {
     std::lock_guard lock(g_mutex);
@@ -167,6 +171,9 @@ int64_t threadNs(unsigned thread) {
     (void)native;
     return -1;
 #else
+#if defined(__linux__)
+    if (g_nativeQuery) return g_nativeQuery(static_cast<std::uintptr_t>(native));
+#endif
     clockid_t clock;
     if (pthread_getcpuclockid(native, &clock) != 0) return -1;
     timespec ts{};
@@ -174,6 +181,13 @@ int64_t threadNs(unsigned thread) {
     return int64_t(ts.tv_sec) * 1000000000 + ts.tv_nsec;
 #endif
 }
+
+#if defined(__linux__)
+void testing::setNativeQuery(NativeQuery query) {
+    std::lock_guard lock(g_mutex);
+    g_nativeQuery = std::move(query);
+}
+#endif
 
 int registeredThreads() {
     std::lock_guard lock(g_mutex);
