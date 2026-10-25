@@ -6,7 +6,8 @@ import {
   MissingPackError,
   readCatalogNodes,
   registerAvailablePacks,
-  registerCatalogPack
+  registerCatalogPack,
+  setBundledPackModules
 } from "@nodetool-ai/node-catalog";
 import { createLogger } from "@nodetool-ai/config";
 import * as agentsModule from "@nodetool-ai/agents";
@@ -27,6 +28,8 @@ export interface PackSource {
     policy: BuiltinPackPolicy
   ) => string | undefined;
   readonly registerProviders: (policy: BuiltinPackPolicy) => void | Promise<void>;
+  /** Pack modules compiled into the host, by `importPack` target specifier. */
+  readonly modules?: Readonly<Record<string, () => Promise<object>>>;
 }
 
 const log = createLogger("nodetool.websocket.pack-source");
@@ -36,6 +39,9 @@ let hostSource: PackSource | undefined;
 /** Share the host's source with headless services that create their own registry. */
 export function setDefaultPackSource(source: PackSource): void {
   hostSource = source;
+  if (source.modules) {
+    setBundledPackModules(source.modules);
+  }
 }
 
 async function optionalPack<T extends object>(id: string, specifier?: string): Promise<T | undefined> {

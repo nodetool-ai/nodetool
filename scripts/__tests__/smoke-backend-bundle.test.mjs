@@ -169,3 +169,23 @@ test("backend smoke cannot resolve an unstaged dependency from the checkout", as
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test("fails when a pack-backed route cannot load its pack from the bundle", async () => {
+  await smokeFixture(async ({ bundle }) => {
+    await expect(smokeBackendBundle(bundle, { timeoutMs: 5_000 })).rejects.toThrow(
+      /resolve-workflow returned HTTP 503: .*integration, kie is not installed/
+    );
+  }, {
+    server: `
+      import http from "node:http";
+      http.createServer((request, response) => {
+        if (request.url === "/api/comfy/resolve-workflow") {
+          response.statusCode = 503;
+          response.end(JSON.stringify({ detail: "Node pack integration, kie is not installed." }));
+          return;
+        }
+        response.end("healthy");
+      }).listen(Number(process.env.PORT), "127.0.0.1");
+    `
+  });
+});
