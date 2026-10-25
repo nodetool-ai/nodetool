@@ -5,6 +5,8 @@ import { useTranslation } from "react-i18next";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { useMediaQuery } from "@mui/material";
+import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 
 import { useAssetById } from "../../serverState/useAssetById";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -18,12 +20,16 @@ import ErrorBanner from "../support/ErrorBanner";
 import {
   FlexColumn,
   LoadingSpinner,
+  ResizableDock,
   SaveStatus,
+  ToolbarIconButton,
   UndoRedoButtons,
   EmptyState
 } from "../ui_primitives";
 import MonacoPane from "./MonacoPane";
 import SvgPreview from "./SvgPreview";
+import AssetAgentPanel from "./AssetAgentPanel";
+import { setSvgAgentHandler, type SvgSnapshot } from "./svgAgentBridge";
 import {
   DocumentSaveButton,
   WithDocumentBar,
@@ -46,6 +52,8 @@ interface SvgSurfaceProps {
 }
 
 const svgAssetKey = (id: string) => ["svgAsset", id] as const;
+
+const ASSISTANT_WIDTH = 340;
 
 const styles = (theme: Theme) =>
   css({
@@ -79,7 +87,9 @@ const styles = (theme: Theme) =>
  * its own rather than sharing the image tab: view mode paints the vector, edit
  * mode puts the markup in Monaco beside a live preview of what the unsaved text
  * renders to. Saving writes the markup back to the asset. In edit mode the
- * document bar carries the save status, Undo/Redo of the markup, and Save.
+ * document bar carries the save status, Undo/Redo of the markup, Save, and the
+ * assistant toggle. The assistant edits the same draft through the `ui_svg_*`
+ * tools, which this surface serves while it is in edit mode.
  */
 const SvgSurface = ({ refId, mode, tab }: SvgSurfaceProps) => {
   const { t } = useTranslation();
@@ -94,8 +104,15 @@ const SvgSurface = ({ refId, mode, tab }: SvgSurfaceProps) => {
   );
 
   const history = useMonacoHistory();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const [assistantOpen, setAssistantOpen] = useState(true);
   const [content, setContent] = useState<string | null>(null);
   const [savedContent, setSavedContent] = useState<string | null>(null);
+  // The agent tools read and write between renders, so they go through refs.
+  const contentRef = useRef(content);
+  contentRef.current = content;
+  const savedContentRef = useRef(savedContent);
+  savedContentRef.current = savedContent;
 
   useEffect(() => {
     if (!asset) return;
@@ -169,6 +186,40 @@ const SvgSurface = ({ refId, mode, tab }: SvgSurfaceProps) => {
     if (content === null || content === savedContent || isSaving) return;
     saveMutation.mutate(content);
   }, [content, savedContent, isSaving, saveMutation]);
+
+  const saveAsync = saveMutation.mutateAsync;
+  const assetName = asset?.name ?? "";
+  const loaded = content !== null;
+  useEffect(() => {
+    if (mode !== "edit" || !loaded) return;
+    const snapshot = (): SvgSnapshot => {
+      const markup = contentRef.current ?? "";
+      return {
+        assetId: refId,
+        name: assetName,
+        markup,
+        dirty: markup !== savedContentRef.current
+      };
+    };
+    const handler = {
+      getSnapshot: snapshot,
+      setMarkup: (markup: string) => {
+        contentRef.current = markup;
+        setContent(markup);
+        return snapshot();
+      },
+      save: async () => {
+        const markup = contentRef.current;
+        if (markup !== null && markup !== savedContentRef.current) {
+          await saveAsync(markup);
+          savedContentRef.current = markup;
+        }
+        return snapshot();
+      }
+    };
+    setSvgAgentHandler(refId, handler);
+    return () => setSvgAgentHandler(refId, null);
+  }, [mode, loaded, refId, assetName, saveAsync]);
 
   const body = () => {
     if (isLoading) {
@@ -246,6 +297,24 @@ const SvgSurface = ({ refId, mode, tab }: SvgSurfaceProps) => {
           <div className="preview-pane">
             <SvgPreview markup={content} />
           </div>
+          {assistantOpen && !isMobile && (
+            <ResizableDock
+              storageKey="svg_assistant"
+              defaultWidth={ASSISTANT_WIDTH}
+              ariaLabel={t("i18n-next51.svg.resizeAssistant")}
+            >
+              <FlexColumn
+                fullWidth
+                sx={{ flex: 1, minHeight: 0, overflow: "hidden" }}
+              >
+                <AssetAgentPanel
+                  type="svg"
+                  assetId={refId}
+                  title={asset.name}
+                />
+              </FlexColumn>
+            </ResizableDock>
+          )}
         </div>
       </div>
     );
@@ -264,6 +333,17 @@ const SvgSurface = ({ refId, mode, tab }: SvgSurfaceProps) => {
               failed: saveMutation.isError
             })}
             onRetry={handleSave}
+          />
+        ) : undefined
+      }
+      view={
+        editing && !isMobile ? (
+          <ToolbarIconButton
+            icon={<AutoAwesomeIcon />}
+            tooltip={t("i18n-next51.svg.assistant")}
+            active={assistantOpen}
+            aria-pressed={assistantOpen}
+            onClick={() => setAssistantOpen((open) => !open)}
           />
         ) : undefined
       }

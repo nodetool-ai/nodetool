@@ -1,3 +1,4 @@
+import { AUDIO_EFFECT_SPECS } from "@nodetool-ai/protocol/api-schemas/asset-editor-tool-contracts.js";
 import { makeAudioSample, type AudioSample } from "../audioSample";
 import {
   AUDIO_EFFECTS,
@@ -139,5 +140,15 @@ describe("echoTailSeconds", () => {
   it("is one delay without feedback and is capped", () => {
     expect(echoTailSeconds(0.3, 0)).toBe(0.3);
     expect(echoTailSeconds(2, 0.9)).toBe(20);
+  });
+});
+
+describe("AUDIO_EFFECTS and the shared effect catalog", () => {
+  // The agent tools validate against AUDIO_EFFECT_SPECS in both hosts, so an
+  // effect or parameter the editor renders differently would be refused or
+  // mis-ranged there.
+  it("declares exactly the shared specs", () => {
+    const declared = AUDIO_EFFECTS.map(({ process: _process, ...spec }) => spec);
+    expect(declared).toEqual(AUDIO_EFFECT_SPECS);
   });
 });

@@ -15793,7 +15793,11 @@
       "askAgent": "Agent fragen"
     },
     "audio": {
-      "asset": "Audio-Asset"
+      "asset": "Audio-Asset",
+      "assistant": "Assistent",
+      "resizeAssistant": "Audio-Assistent in der Größe ändern",
+      "assistantWelcomeTitle": "Audio-Assistent",
+      "assistantWelcomeBody": "Bitte mich, dieses Audio zu bearbeiten, zum Beispiel „schneide die Stille am Anfang weg“, „blende die letzten zwei Sekunden aus“ oder „füge etwas Hall hinzu“. Änderungen bleiben ungespeichert, bis du speicherst."
     },
     "chat": {
       "conversation": "Unterhaltung",
@@ -15893,7 +15897,11 @@
       "loadError": "Diese SVG-Datei konnte nicht geladen werden.",
       "notFound": "SVG nicht gefunden",
       "mayHaveBeenDeleted": "Sie wurde möglicherweise gelöscht.",
-      "contentLoadError": "Der SVG-Inhalt konnte nicht geladen werden."
+      "contentLoadError": "Der SVG-Inhalt konnte nicht geladen werden.",
+      "assistant": "Assistent",
+      "resizeAssistant": "SVG-Assistent in der Größe ändern",
+      "assistantWelcomeTitle": "SVG-Assistent",
+      "assistantWelcomeBody": "Bitte mich, diese Zeichnung zu ändern, zum Beispiel „mach den Kreis rot“, „füge einen Schlagschatten hinzu“ oder „vereinfache die Pfade“. Änderungen bleiben ungespeichert, bis du speicherst."
     },
     "text": {
       "loadError": "Diese Textdatei konnte nicht geladen werden.",

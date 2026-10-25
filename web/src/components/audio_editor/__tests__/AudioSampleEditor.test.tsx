@@ -1,4 +1,5 @@
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -12,6 +13,10 @@ import { DocumentBar } from "../../ui_primitives";
 import type { AudioSample } from "../audioSample";
 import type { Asset } from "../../../stores/ApiTypes";
 import { useDocumentDraftStore } from "../../../stores/DocumentDraftStore";
+import {
+  getAudioAgentHandler,
+  hasAudioAgentHandler
+} from "../audioAgentBridge";
 
 const mockSuspend = jest.fn().mockResolvedValue(undefined);
 const mockClose = jest.fn().mockResolvedValue(undefined);
@@ -235,6 +240,116 @@ it("puts the save status, history and Save in the document bar", async () => {
     fireEvent.click(within(bar).getByRole("button", { name: "Retry" }));
     await waitFor(() => expect(bar).toHaveTextContent("Saved"));
     expect(within(bar).getByRole("button", { name: /undo/i })).toBeEnabled();
+  } finally {
+    window.AudioContext = originalContext;
+    global.fetch = originalFetch;
+  }
+});
+
+it("serves the agent tools: edits are undo steps and save writes the asset", async () => {
+  const originalContext = window.AudioContext;
+  const originalFetch = global.fetch;
+  window.AudioContext = jest.fn(() => ({
+    decodeAudioData: jest.fn().mockResolvedValue({
+      sampleRate: 1,
+      numberOfChannels: 1,
+      length: 4,
+      getChannelData: () => new Float32Array([0.25, 0.5, 0.75, 1])
+    }),
+    suspend: mockSuspend,
+    close: mockClose
+  })) as unknown as typeof AudioContext;
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    arrayBuffer: async () => new ArrayBuffer(0)
+  });
+  const asset = {
+    id: "audio-agent",
+    name: "Take",
+    get_url: "https://example.test/take.wav"
+  } as Asset;
+  mockSave.mockReset();
+  mockSave.mockResolvedValue(true);
+  try {
+    const result = render(
+      <AudioSampleEditor asset={asset} active serveAgentTools />,
+      {
+        wrapper: ({ children }) => (
+          <ThemeProvider theme={mockTheme}>{children}</ThemeProvider>
+        )
+      }
+    );
+    await screen.findByTestId("sample");
+    const handler = getAudioAgentHandler("audio-agent");
+    expect(handler.getSnapshot()).toMatchObject({
+      name: "Take",
+      durationSeconds: 4,
+      channels: 1,
+      dirty: false,
+      peaks: [0.25, 0.5, 0.75, 1]
+    });
+
+    // Two calls in one turn: the second sees the first before a render.
+    act(() => {
+      handler.edit("delete", { start: 0, end: 1 });
+      expect(handler.edit("reverse").durationSeconds).toBe(3);
+    });
+    expect(screen.getByTestId("sample")).toHaveTextContent("1,0.75,0.5");
+    fireEvent.click(screen.getByText("Undo"));
+    expect(screen.getByTestId("sample")).toHaveTextContent("0.5,0.75,1");
+
+    await expect(handler.applyEffect("nope", {})).rejects.toThrow(
+      'Unknown effect "nope"'
+    );
+    await act(async () => {
+      await handler.applyEffect("invert", {});
+    });
+    expect(screen.getByTestId("sample")).toHaveTextContent("-0.5,-0.75,-1");
+
+    await act(async () => {
+      expect((await handler.save()).dirty).toBe(false);
+    });
+    expect(mockSave).toHaveBeenCalledTimes(1);
+
+    result.unmount();
+    expect(hasAudioAgentHandler("audio-agent")).toBe(false);
+  } finally {
+    window.AudioContext = originalContext;
+    global.fetch = originalFetch;
+  }
+});
+
+it("does not serve the agent tools unless asked", async () => {
+  const originalContext = window.AudioContext;
+  const originalFetch = global.fetch;
+  window.AudioContext = jest.fn(() => ({
+    decodeAudioData: jest.fn().mockResolvedValue({
+      sampleRate: 1,
+      numberOfChannels: 1,
+      length: 1,
+      getChannelData: () => new Float32Array([0])
+    }),
+    suspend: mockSuspend,
+    close: mockClose
+  })) as unknown as typeof AudioContext;
+  global.fetch = jest.fn().mockResolvedValue({
+    ok: true,
+    arrayBuffer: async () => new ArrayBuffer(0)
+  });
+  try {
+    render(
+      <AudioSampleEditor
+        asset={{ id: "audio-dialog", get_url: "https://example.test/a.wav" } as Asset}
+        active
+      />,
+      {
+        wrapper: ({ children }) => (
+          <ThemeProvider theme={mockTheme}>{children}</ThemeProvider>
+        )
+      }
+    );
+    await screen.findByTestId("sample");
+    expect(hasAudioAgentHandler("audio-dialog")).toBe(false);
   } finally {
     window.AudioContext = originalContext;
     global.fetch = originalFetch;

@@ -478,6 +478,8 @@ const UI_SURFACE_LABELS = {
   script: "script",
   jsscript: "js script",
   app: "app",
+  svg: "SVG asset",
+  audio: "audio asset",
   chat: "chat"
 } satisfies Record<UiSurfaceType, string>;
 
@@ -493,7 +495,9 @@ const CHAT_SOURCE_LABELS = {
   app_builder: "app builder assistant",
   code_assistant: "code node assistant",
   text_editor: "text editor assistant",
-  model3d_assistant: "3D editor assistant"
+  model3d_assistant: "3D editor assistant",
+  svg_assistant: "SVG editor assistant",
+  audio_assistant: "audio editor assistant"
 } satisfies Record<ChatSource, string>;
 
 /**
@@ -581,6 +585,16 @@ function formatUiContext(uiContext?: UiContext | null): string {
   if (hasGame) {
     lines.push(
       'For a native game, call `get_native_game` with `view: "outline"` first. Edit the draft with `edit_native_game` and capture the result with `capture_native_game_frame` before reporting a visual change as done. Leave publishing to the user unless they ask for it.'
+    );
+  }
+
+  const hasAssetEditor =
+    focused?.type === "svg" ||
+    focused?.type === "audio" ||
+    open.some((ref) => ref.type === "svg" || ref.type === "audio");
+  if (hasAssetEditor) {
+    lines.push(
+      "SVG and audio `ui_*` edits change the editor's unsaved draft, and the user can undo each one. Call `ui_svg_save` or `ui_audio_save` only when the user asks to keep the result, since saving overwrites the asset."
     );
   }
 

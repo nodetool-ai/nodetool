@@ -1757,13 +1757,13 @@ npm run dev:nodetool -- eval subtask --list
 npm run dev:nodetool -- eval subtask -p anthropic -m claude-sonnet-5
 ```
 
-Alongside `graph-planner` (graph authoring) there are eleven **tool-loop**
+Alongside `graph-planner` (graph authoring) there are thirteen **tool-loop**
 suites that drive a real provider through the frontend `ui_*` tool contract against a
 headless bridge — no browser — and score the multi-turn tool-calling flow
 structurally: `tool-loop` (graph editor), `workflow-escalation`, `script-tools`,
 `jsscript-tools`, `sketch-tools`, `timeline-tools`, `storyboard-tools`,
-`model3d-tools`, `app-tools`, `memory-tools`, and `creative-pipeline`.
-Same flags, metrics, and `--min-success` CI gate as `graph-planner`. Details:
+`model3d-tools`, `svg-tools`, `audio-tools`, `app-tools`, `memory-tools`, and
+`creative-pipeline`. Same flags, metrics, and `--min-success` CI gate as `graph-planner`. Details:
 [packages/agents/AGENTS.md](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/AGENTS.md).
 
 `workflow-escalation` runs the graph tools over objectives that are missing

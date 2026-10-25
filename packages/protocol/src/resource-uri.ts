@@ -11,7 +11,7 @@
  * mobile app claims it for OS deep links.
  *
  * `ResourceKind` is the `UiSurfaceType` union minus `chat` (a chat surface is
- * addressed as `thread`) plus `asset`, `collection`, `model3d`, and `thread`.
+ * addressed as `thread`) and `svg`/`audio` (both are assets) plus `asset`, `collection`, `model3d`, and `thread`.
  * `game` is a `games` row id and `jsscript` a `js_scripts` row id.
  * It is spelled out here rather than derived because the two sets differ.
  */

@@ -25,7 +25,7 @@ import { isFunction } from "../../utils/typePredicates";
 
 /**
  * Workspace tab types that have agent tools behind them. Tab types absent
- * here (image, audio, text, model3d, page) are omitted from `ui_context`:
+ * here (image, text, model3d, page) are omitted from `ui_context`:
  * listing an id the agent has no tool to act on only invites bad calls.
  *
  * An app is addressed by its application id, never by the id of a workflow it
@@ -43,6 +43,8 @@ const TAB_TYPE_TO_SURFACE: Partial<Record<WorkspaceTabType, UiSurfaceType>> = {
   storyboard: "storyboard",
   script: "script",
   jsscript: "jsscript",
+  svg: "svg",
+  audio: "audio",
   chat: "chat"
 };
 

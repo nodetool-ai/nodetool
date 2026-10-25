@@ -2954,7 +2954,8 @@ its metrics — success rate, expectation score, tool calls, duration, and cost.
 **Suites:** `graph-planner`, `graph-e2e`, `code-gen`, `task-planner`, `subtask`,
 `codeact`, `app-build`, `tool-loop`, `workflow-escalation`, `script-tools`,
 `jsscript-tools`, `sketch-tools`, `timeline-tools`, `storyboard-tools`,
-`model3d-tools`, `app-tools`, `memory-tools`, `creative-pipeline`.
+`model3d-tools`, `svg-tools`, `audio-tools`, `app-tools`, `memory-tools`,
+`creative-pipeline`.
 
 **Options** (the same on every suite):
 
