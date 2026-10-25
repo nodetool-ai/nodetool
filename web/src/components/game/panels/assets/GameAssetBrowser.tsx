@@ -10,7 +10,6 @@ import { filterGameAssetCatalog, gameAssetCatalog, gameAssetSiblingRebinds, type
 import type { AnyGameDocumentOp } from "@nodetool-ai/game-runtime";
 
 import { trpc, trpcClient } from "../../../../trpc/client";
-import ReportBugButton from "../../../support/ReportBugButton";
 import { AutoGrid, BORDER_RADIUS, Box, Caption, Chip, CONTROL, Dialog, Divider, EditorButton, FieldDensityContext, FlexColumn, FlexRow, getSpacingPx, InspectorFieldRow, InspectorSection, LoadingSpinner, ScrollArea, SearchInput, selectableRowStyles, selectableTileStyles, SelectField, SPACING, Text, TextArea, ToggleGroup, ToggleOption, ToolbarIconButton, TruncatedText, TYPOGRAPHY } from "../../../ui_primitives";
 import ErrorBanner from "../../../support/ErrorBanner";
 import GameAssetThumbnail from "./GameAssetThumbnail";
