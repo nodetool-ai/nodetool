@@ -767,7 +767,8 @@ int main(int argc, char** argv) {
     if (sources.size() != 1) {
         parser.showHelp(2);
     }
-    const auto loaded = nt::server::loadTimelineSource(sources.first());
+    const QString source = sources.first();
+    const auto loaded = nt::server::loadTimelineSource(source);
     if (!loaded.timeline) {
         std::fprintf(stderr, "error: %s\n", qPrintable(loaded.error));
         return 1;
@@ -861,7 +862,7 @@ int main(int argc, char** argv) {
 
     if (parser.isSet(uiBenchOpt)) {
         nt::ui::UiBenchOptions options;
-        options.fixture = parser.positionalArguments().first();
+        options.fixture = source;
         options.size = QSize(winW, winH);
         if (parser.isSet(framesOpt)) options.frames = benchFrames;
         options.windowed = parser.isSet(uiWindowOpt);
@@ -869,11 +870,10 @@ int main(int argc, char** argv) {
         return nt::ui::runUiBench(model, clock, options);
     }
     if (parser.isSet(scrubOpt)) {
-        const QString fixture = parser.positionalArguments().first();
         const QString out = parser.isSet(scrubOutOpt)
                                 ? parser.value(scrubOutOpt)
-                                : QStringLiteral("build/scrub/%1").arg(QFileInfo(fixture).completeBaseName());
-        return runOffscreen(model, clock, QSize(winW, winH), {}, {}, {}, {}, parser.value(scrubOpt), out, fixture,
+                                : QStringLiteral("build/scrub/%1").arg(QFileInfo(source).completeBaseName());
+        return runOffscreen(model, clock, QSize(winW, winH), {}, {}, {}, {}, parser.value(scrubOpt), out, source,
                             parser.isSet(decoderOpt) ? parser.value(decoderOpt) : parser.value(decodeOpt));
     }
     if (parser.isSet(shotOpt) || parser.isSet(stillsOpt) || parser.isSet(playStillsOpt)) {
@@ -977,7 +977,6 @@ int main(int argc, char** argv) {
             Qt::DirectConnection);
         const bool vsync = !noVsync;
         const double refreshHz = view.screen() ? view.screen()->refreshRate() : 0.0;
-        const QString fixture = parser.positionalArguments().first();
         const double startMs = clock.time();
         const QString decodeName = parser.isSet(decoderOpt) ? parser.value(decoderOpt) : parser.value(decodeOpt);
         auto scheduling = std::make_shared<QJsonObject>();
@@ -1014,7 +1013,7 @@ int main(int argc, char** argv) {
         }
         QObject::connect(
             &view, &QQuickWindow::afterAnimating, &app,
-            [&app, &clock, &model, view = &view, compositor, run, budget, vsync, refreshHz, fixture, startMs,
+            [&app, &clock, &model, view = &view, compositor, run, budget, vsync, refreshHz, source, startMs,
              decodeName, scheduling, exposeLogger]() {
                 using Phase = BenchRun::Phase;
                 const auto& stats = compositor->frameStats();
@@ -1032,7 +1031,7 @@ int main(int argc, char** argv) {
                 const auto finish = [&]() {
                     run->phase = Phase::Done;
                     nt::bench::BenchData data = benchData(stats, *run);
-                    data.fixture = fixture;
+                    data.fixture = source;
                     data.vsync = vsync;
                     data.refreshHz = refreshHz;
                     data.realtime = run->seconds > 0.0;
