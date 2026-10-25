@@ -4,11 +4,12 @@ A native desktop prototype of the NodeTool timeline editor: C++20, Qt 6
 Quick (QML), QRhi for the GPU preview, and FFmpeg. The design and the
 milestones are in [docs/DESIGN.md](docs/DESIGN.md) and [docs/PLAN.md](docs/PLAN.md).
 
-Milestones M1a and M1b are in. The app loads a timeline JSON fixture and
+Milestones M1a, M1b and M1c are in. The app loads a timeline JSON fixture and
 composites its video layers on the GPU at the playhead time. A clip with a
 `mediaPath` decodes with FFmpeg on a worker thread (software decode, YUV
 planes converted in the shader). A clip without media shows a synthetic test
-pattern.
+pattern. With `--decode hw` or `auto`, video decodes with VideoToolbox and
+the frames go to the GPU with no copy (M1c).
 
 ## Build and test
 
@@ -71,7 +72,9 @@ in the background.
 ```
 
 The bench needs a display. It renders `--warmup` frames (default 30) at t=0,
-then moves the playhead one sequence frame per rendered frame for `--frames`
+and keeps holding (at most 4 s) until every layer shows its exact frame, as
+play start waits for its sources (D22); `scheduling.warmupReady` says
+whether they were ready. Then it moves the playhead one sequence frame per rendered frame for `--frames`
 frames, so 600 frames cover 20 s of a 30 fps timeline. Warm-up frames are left
 out of every measurement. The `warmup` object reports the largest render
 interval and CPU time among them, and the frame where each happened: window
@@ -88,8 +91,8 @@ never added. Only intervals with both ends in the measured range count:
 | `gpuMs` | Information only, with no budget. `QRhiCommandBuffer::lastCompletedGpuTime()` polled once per frame: the whole window's GPU time (QML included, at the physical size in `window`) for a frame up to `QRhi::FramesInFlight` earlier. The first measured frames are left out for that reason. `null` when under 90% of the frames saw a value |
 | `submitIntervalMs` | Time between `QQuickWindow::frameSwapped` signals on the render thread. Qt emits it when a frame is queued for presentation, not when it is shown |
 | `renderIntervalMs` | Time between `render()` starts |
-| `screenRefreshHz`, `measuredCadenceHz` | The rate `QScreen` reports, and the rate the window ran at: the p50 submission interval snapped to 120, 60 or 30 Hz. They differ when ProMotion or a background window runs slower than the panel |
-| `skippedSubmits`, `skippedSubmitsFraction` | Missed vsyncs in the submission intervals: each interval over 1.5 periods of `measuredCadenceHz` counts `round(interval / period) - 1`. `null` without vsync. The fraction is over the measured frames |
+| `screenRefreshHz`, `measuredCadenceHz` | Information only: the rate `QScreen` reports, and the rate the window ran at (the p50 submission interval snapped to 120, 60 or 30 Hz) |
+| `targetHz`, `skippedSubmits`, `skippedSubmitsFraction` | Missed slots of an explicit target rate (`targetHz` in the budget, default 60): each submission interval over 1.5 target periods counts `round(interval / period) - 1`. A steady 30 Hz run therefore fails a 60 Hz target. `null` without vsync. The fraction is over the measured frames |
 | `window` | Logical size, device pixel ratio, and physical size of the window |
 
 **Not met yet:** the DESIGN presentation criterion (`presentIntervalMs` from the
@@ -97,7 +100,9 @@ drawable's presented time). The app does not read Metal drawable present
 times, so the bench reports submission timing only.
 
 `--budget` takes a JSON file (`budgets/m1a.json`) or the inline form
-`cpuMs.p95=2,submitIntervalMs.p95=17.5`. Keys are
+`targetHz=60,cpuMs.p95=2`. `submitIntervalMs` is a diagnostic: the budgets
+no longer gate on it, because a millisecond of submission jitter is not a
+missed slot. Keys are
 `<cpuMs|submitIntervalMs|renderIntervalMs>.<p50|p95|max|count>` (`count` is a
 minimum, the rest are maxima) or `skippedSubmitsFraction`. `gpuMs` takes no
 limit. The run exits 1 when an entry is over its limit or has no samples, and
@@ -156,11 +161,14 @@ node native/timeline/scripts/compare-golden.mjs native/timeline/fixtures/video-c
   fixtures (`video-rgb-gbrp.json`, `video-rgb-png.json`) check the
   conversion of RGB input: the worker converts it to BT.709 limited range
   with swscale configured explicitly, and labels the planes so.
-- `media-tracks.json` measures 24–26 dB. Its four files are BT.601 but carry
-  no colour tags. DESIGN D10 reads an untagged stream of 720 lines or more as
-  BT.709, and `timeline render` reads it as BT.601. With the same files
-  tagged BT.601, the fixture measures 43.8–46.4 dB, so the gap is the
-  untagged default and not the compositor.
+- `media-tracks.json` measures 43.8–46.4 dB on both decoders. Its files are
+  tagged BT.601 (what the conversion wrote), so no golden check depends on
+  the untagged guess.
+- Untagged media keeps the D10 guess by height (R6, resolved in DESIGN.md):
+  BT.709 at 720 lines or more, else BT.601. `timeline render` reads untagged
+  media as BT.601 (the swscale default); aligning it is a follow-up for the
+  export path. `untagged-hd-720p.mp4` and `untagged-sd-480p.mp4` and a ctest
+  hold the guess.
 - `ctest` runs the decoder tests (`tst_ffmpegsource`) on the files from
   `make-fixtures.sh`: a target between two frames, every frame in sequence
   with one seek, a seek forward past 1 s and back, a variable frame rate, a
@@ -170,6 +178,114 @@ node native/timeline/scripts/compare-golden.mjs native/timeline/fixtures/video-c
   that keeps a stale frame from reading as exact, and the four D10a
   rejections. `tst_sourcepool` checks that closing a clip never blocks the
   render thread and that the FFmpeg interrupt callback ends a blocked read.
+
+## Hardware decode
+
+```bash
+./build/nodetool-timeline fixtures/video-8tracks.json --bench --realtime 15 --size 1920x1080 --decode hw --budget budgets/m1c.json
+native/timeline/scripts/check-metal-validation.sh
+node native/timeline/scripts/check-frame-numbers.mjs --decode hw
+node native/timeline/scripts/compare-golden.mjs native/timeline/fixtures/video-colorbars-bt709-limited.json --frames 0,15 --min-psnr 40 --decode hw
+```
+
+`--decode` picks the decoder for every media clip (`--decoder sw|vt|auto` is
+the PLAN spelling):
+
+- `sw`: FFmpeg software decode, CPU planes uploaded each frame (M1b, the default).
+- `hw`: FFmpeg with VideoToolbox. A clip VideoToolbox cannot decode fails
+  and shows a placeholder, so a test knows the hardware path ran.
+- `auto`: VideoToolbox, and software when it fails before the first frame.
+  The loader report names the decoder and the reason
+  (`media X: ok (software), VideoToolbox fallback: ...`).
+
+A VideoToolbox frame keeps its IOSurface-backed NV12 `CVPixelBuffer`. On the
+render thread, `src/preview/hw/VideoToolboxInterop.mm` turns each plane into
+an `MTLTexture` through a `CVMetalTextureCache` on the QRhi's `MTLDevice`, and
+`QRhiTexture::createFrom()` wraps it. A `FrameRef` holds the pixel buffer, the
+Metal textures and the wrappers. When a newer frame replaces it, it goes to
+`RetireQueue` with the frame number of its last use, and is released once
+`QRhi::FramesInFlight` later frames have begun (D11). Only 8-bit NV12 is
+wrapped; 10-bit output falls back (P010 waits, D10).
+
+The bench adds `decode`, `cpuCopies` (planes uploaded from CPU memory; 0 on
+the hardware path), `hardwareLayerFrames`, `frameRefCloseMs` (timeline close
+to 0 live `FrameRef`s), and `cpu`: the process, GUI thread and render thread
+CPU in percent of one core over the measured window, and the rest
+(`decodeAndOtherPercent`: decode workers, FFmpeg and VideoToolbox threads, Qt).
+With the basic render loop the GUI thread renders too
+(`guiAndRenderShareThread`), and its time is subtracted once. A failed CPU
+query reports `null`, not 0.
+`budgets/m1c.json` holds the M1c limits, with `cpuCopies` 0 and
+`frameRefCloseMs` 1000.
+
+`check-metal-validation.sh` renders stills and play captures of
+`video-4tracks.json` with `MTL_DEBUG_LAYER=1` on both decoders. It fails on a
+non-zero exit, a validation failure in the log, or a log that does not show
+validation enabled.
+
+A bench run and a play-capture run hold an `NSProcessInfo` activity
+(user-initiated, latency-critical). It keeps the run out of App Nap; it is
+not what caused the stalls below.
+
+### Stalls and window exposure
+
+Qt stops rendering a window that is not exposed, and macOS takes exposure
+away when another window, a Space switch or a full-screen app covers the
+bench window. The playback clock runs on, so a covered run shows a long
+render interval (or no frames at all). The bench therefore:
+
+- logs every expose and AppKit occlusion change to stderr with a steady-clock
+  time (`diag: ... expose not exposed`, `diag: ... occlusion occluded`);
+- reports `exposureLosses` and fails the budget when the window lost
+  exposure during the measured window;
+- ends with exit 4 and `{"invalid": ...}` when no frame rendered for 3 s;
+- lists render stalls over 50 ms in `stalls` (offset, render interval and
+  `render()` time), and records `scheduling`: the process nice value and the
+  QoS of the GUI, render and decode threads.
+
+`--on-top` keeps the window above other windows without taking focus, which
+stops ordinary windows from covering it (a Space switch or a full-screen app
+still can). `NT_DIAG_FRAME_ERROR=1` logs each layer with a frame error over
+2, with its source time and the shown frame. `--test-hide-after MS` hides the
+window mid-run, to check the watchdog.
+
+A note on niceness: zsh starts background jobs (`cmd &`) at nice 5
+(`BG_NICE`), which `ps` shows as `SN`. Run a bench in the foreground to
+measure at nice 0.
+
+### Teardown and GPU errors
+
+`--teardown-test` plays in a real window, deletes the preview item while
+frames are in flight, and renders on. The renderer's destructor retires every
+source's last frame, waits for the GPU (`QRhi::finish()`), and only then
+releases the retire queue: Qt's Metal command buffers do not retain the
+textures they sample. A completed handler on each frame's Metal command
+buffer records the GPU's progress, and a `FrameRef` released before the GPU
+finished with it is counted (`releasedInFlight`, which must stay 0).
+`scripts/window-checks.sh` runs this case with the debug layer. Offscreen
+frames cannot show the hazard: an offscreen QRhi frame waits for the GPU
+before it returns.
+
+### Window checks
+
+```bash
+native/timeline/scripts/window-checks.sh   # writes build/window-checks/summary.json
+```
+
+Every check that needs a real window runs from this one script: the M1b and
+M1c budgeted benches, the teardown case, and six stall measurements (F7) with
+the process nice values, the expose and occlusion log, and the stall lists.
+The bench window never takes focus, but it is visible, so run the script when
+nobody is using the machine. Everything else (ctest, stills, play captures,
+the plan, frame-number, golden and Metal-validation checks) runs offscreen.
+
+A frame VideoToolbox decoded but the GPU cannot import is part of the
+source's state: before a hardware frame is shown, `auto` reopens in software
+with the reason; otherwise, and in `hw`, the clip fails with the reason. A
+decode error (from sending a packet or receiving a frame) before the first
+VideoToolbox frame takes the same fallback; later, it fails the clip with
+the reason instead of freezing on the last frame. The first open and every
+reopen apply the same hardware policy.
 
 ## Plan check
 
@@ -218,9 +334,12 @@ Zod check, a media file is missing, a clip was skipped, or a still is missing.
   crossfade, a dip to colour, a hard cut, a triple overlap), a corner anchor,
   a hidden clip, a hidden track, and an audio track.
 - `fixtures/media-tracks.json`: the M1a layout with local video files
-  (untagged BT.601, see Media checks).
+  (tagged BT.601).
 - `fixtures/video-4tracks.json`: four 1080p30 H.264 tracks over 15 s, with
   hard cuts on the top track (one into a seek).
+- `fixtures/video-8tracks.json`: eight 1080p30 H.264 tracks over 15 s (M1c exit 1).
+- `fixtures/video-4k-hevc.json`: two 4K30 HEVC tracks, 8-bit 4:2:0 BT.709
+  (M1c exit 2).
 - `fixtures/video-cuts.json`: one full-frame track of hard cuts between
   numbered files, for the barcode check.
 - `fixtures/video-colorbars-*.json`: SMPTE HD bars in BT.709 and BT.601,
@@ -275,9 +394,12 @@ save can write back the fields the model does not own.
 | `src/preview/FfmpegSource` | `FfmpegDecoder`: open, demux and decode on a worker thread, decode ahead, the D17 frame pick. `FfmpegSource`: the decoder's planes as textures |
 | `src/preview/FrameRing` | The decode-ahead queue and the frame-pick rules. Pure rules, unit tested |
 | `src/preview/YuvFormat` | YUV to RGB matrices for BT.709 and BT.601, limited and full range |
+| `src/preview/hw/VideoToolboxInterop` | `CVMetalTextureCache` and `QRhiTexture::createFrom` wrappers for VideoToolbox frames; `FrameRef` |
+| `src/preview/RetireQueue.h` | Releases a replaced frame's GPU resources after `FramesInFlight` frames (D11) |
+| `src/platform/` | `ProcessActivity` (no App Nap during measured runs) and `CpuUsage` (process and thread CPU time) |
 | `src/preview/SourcePool` | Opens, pre-rolls and closes decoders (D18), draws placeholders for rejected media, keeps the loader report. Decoders are stopped and joined on a retire thread, never on the render thread |
 | `shaders/` | Textured quad with a per-layer matrix and opacity, RGBA or YUV planes, premultiplied "over" |
 | `qml/` | `TimelineEditor`, `preview/PreviewArea`, `Tracks/*`, named after the React components in `web/src/components/timeline/` |
 | `src/bench/BenchReport` | Bench measurements, the budget parser, and the verdict. Pure |
-| `budgets/m1a.json`, `budgets/m1b.json` | The M1a and M1b exit budgets |
-| `tests/` | Qt Test suites for `SceneEval`, `TimelineJson`, `BenchReport`, `FrameRing`, `YuvFormat`, `FfmpegSource` and `SourcePool` |
+| `budgets/m1a.json`, `budgets/m1b.json`, `budgets/m1c.json` | The M1a, M1b and M1c exit budgets |
+| `tests/` | Qt Test suites for `SceneEval`, `TimelineJson`, `BenchReport`, `FrameRing`, `YuvFormat`, `FfmpegSource`, `SourcePool` and `RetireQueue` |

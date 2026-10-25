@@ -115,7 +115,9 @@ void SyntheticSource::paintOverlay(QPainter& p, long long frameIndex, const QRec
     }
 }
 
-LayerFrame SyntheticSource::frameAt(QRhi* rhi, QRhiResourceUpdateBatch* updates, double sourceTimeMs) {
+LayerFrame SyntheticSource::frameAt(const FrameContext& ctx, double sourceTimeMs) {
+    QRhi* rhi = ctx.rhi;
+    QRhiResourceUpdateBatch* updates = ctx.updates;
     if (!m_texture) {
         m_texture.reset(rhi->newTexture(QRhiTexture::RGBA8, m_size));
         if (!m_texture->create()) {
@@ -135,6 +137,7 @@ LayerFrame SyntheticSource::frameAt(QRhi* rhi, QRhiResourceUpdateBatch* updates,
             paintOverlay(p, frame, bar);
             p.end();
             updates->uploadTexture(m_texture.get(), full);
+            m_lastCopies = 1;
         } else {
             // Later frames repaint and upload only what changed: the old and
             // new block, and the timecode box when its text changed. The base
@@ -165,11 +168,14 @@ LayerFrame SyntheticSource::frameAt(QRhi* rhi, QRhiResourceUpdateBatch* updates,
             QRhiTextureUploadDescription upload;
             upload.setEntries(entries.cbegin(), entries.cend());
             updates->uploadTexture(m_texture.get(), upload);
+            m_lastCopies = 1;
         }
         m_bar = bar;
         m_uploadedFrame = frame;
     }
     LayerFrame out;
+    out.cpuCopies = m_lastCopies;
+    m_lastCopies = 0;
     out.format = LayerFrame::Format::Rgba8Premultiplied;
     out.planes[0] = m_texture.get();
     out.size = m_size;

@@ -5,7 +5,7 @@
 // and computes the PSNR of each pair with ffmpeg's psnr filter (RGB, average
 // over the three channels).
 //
-// Usage: node native/timeline/scripts/compare-golden.mjs <fixture.json> --frames a,b,c --min-psnr DB [--json]
+// Usage: node native/timeline/scripts/compare-golden.mjs <fixture.json> --frames a,b,c --min-psnr DB [--decode sw|hw|auto] [--json]
 // Exit 0 only when every pair exists and every PSNR is at least --min-psnr.
 
 import { execFileSync } from "node:child_process";
@@ -16,9 +16,10 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
 function parseArgs(argv) {
-  const args = { fixture: null, frames: null, minPsnr: null, json: false };
+  const args = { fixture: null, frames: null, minPsnr: null, json: false, decode: "sw" };
   for (let i = 0; i < argv.length; i++) {
     if (argv[i] === "--frames") args.frames = argv[++i];
+    else if (argv[i] === "--decode") args.decode = argv[++i];
     else if (argv[i] === "--min-psnr") args.minPsnr = Number(argv[++i]);
     else if (argv[i] === "--json") args.json = true;
     else args.fixture = path.resolve(argv[i]);
@@ -44,7 +45,7 @@ function measure(a, b) {
 const args = parseArgs(process.argv.slice(2));
 const name = path.basename(args.fixture, ".json");
 const goldenOut = path.join(root, "build", "golden", name);
-const nativeOut = path.join(root, "build", "native-stills", name);
+const nativeOut = path.join(root, "build", "native-stills", `${name}-${args.decode}`);
 
 try {
   execFileSync("node", [path.join(root, "scripts", "golden-import.mjs"), args.fixture, "--frames", args.frames, "--out", goldenOut], {
@@ -56,7 +57,7 @@ try {
 }
 fs.rmSync(nativeOut, { recursive: true, force: true });
 try {
-  execFileSync(path.join(root, "build", "nodetool-timeline"), [args.fixture, "--stills", nativeOut, "--still-frames", args.frames], {
+  execFileSync(path.join(root, "build", "nodetool-timeline"), [args.fixture, "--stills", nativeOut, "--still-frames", args.frames, "--decode", args.decode], {
     stdio: ["ignore", "ignore", "pipe"]
   });
 } catch (error) {
@@ -77,7 +78,7 @@ for (const frame of args.frames.split(",").map((f) => Number(f.trim()))) {
   results.push({ frame, psnr: Number.isFinite(value) ? Math.round(value * 100) / 100 : "inf", pass: value >= args.minPsnr });
 }
 const pass = results.length > 0 && results.every((r) => r.pass);
-const report = { fixture: path.relative(process.cwd(), args.fixture), minPsnr: args.minPsnr, verdict: pass ? "pass" : "fail", results };
+const report = { fixture: path.relative(process.cwd(), args.fixture), decode: args.decode, minPsnr: args.minPsnr, verdict: pass ? "pass" : "fail", results };
 if (args.json) console.log(JSON.stringify(report));
 else {
   for (const r of results) console.log(`frame ${r.frame}: PSNR ${r.psnr} dB ${r.pass ? "ok" : `BELOW ${args.minPsnr}`}${r.error ? ` (${r.error})` : ""}`);

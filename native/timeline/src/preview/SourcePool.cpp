@@ -17,8 +17,7 @@ namespace nt {
 SourcePool::SourcePool() : m_reaper([this] { reapLoop(); }) {}
 
 SourcePool::~SourcePool() {
-    for (auto& [id, e] : m_entries) retire(e);
-    m_entries.clear();
+    clear();
     {
         std::lock_guard lock(m_reapMutex);
         m_reapStop = true;
@@ -35,6 +34,12 @@ SourcePool::~SourcePool() {
     } else {
         m_reaper.detach();  // the process exit ends it
     }
+}
+
+void SourcePool::clear() {
+    for (auto& [id, e] : m_entries) retire(e);
+    m_entries.clear();
+    m_open = 0;
 }
 
 void SourcePool::retire(Entry& e) {
@@ -121,19 +126,28 @@ void SourcePool::checkOpened(const std::string& clipId, Entry& e, const std::str
     const auto facts = e.decoder->decoder().facts();
     if (!facts) return;  // still opening
     {
+        // Facts are republished when a decoder falls back to software, so
+        // the entry follows the newest.
+        MediaReport r;
+        r.clipId = clipId;
+        r.mediaPath = mediaPath;
+        r.ok = facts->usable();
+        r.reason = !facts->error.empty() ? facts->error : facts->rejection;
+        r.decoder = facts->decoder;
+        r.fallback = facts->fallback;
         std::lock_guard lock(m_reportMutex);
-        if (m_report.count(clipId) == 0) {
-            MediaReport r;
-            r.clipId = clipId;
-            r.mediaPath = mediaPath;
-            r.ok = facts->usable();
-            r.reason = !facts->opened ? facts->error : facts->rejection;
+        const auto it = m_report.find(clipId);
+        if (it == m_report.end() || it->second.ok != r.ok || it->second.reason != r.reason ||
+            it->second.decoder != r.decoder || it->second.fallback != r.fallback) {
             m_report[clipId] = r;
+            ++m_reportVersion;
         }
     }
     if (!facts->usable()) {
         // D10a: a placeholder instead of the picture, and no decoder kept open.
-        const QString reason = QString::fromStdString(!facts->opened ? "cannot open" : facts->rejection);
+        const QString reason = QString::fromStdString(!facts->opened          ? "cannot open"
+                                                      : !facts->rejection.empty() ? facts->rejection
+                                                                                  : "decode failed");
         e.placeholder = std::make_unique<SyntheticSource>(
             QString::fromStdString(e.label) + QStringLiteral(" — ") + reason, QColor(70, 70, 76), e.nominal, 30.0);
         retire(e);

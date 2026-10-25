@@ -1346,6 +1346,17 @@ export const HARNESSES: HarnessEntry[] = [
     docs: "native/timeline/README.md § Media checks"
   },
   {
+    id: "native-timeline-videotoolbox",
+    title: "Native timeline VideoToolbox zero copy: Metal validation, frame numbers, 8-track and 4K benches",
+    command:
+      "native/timeline/scripts/check-metal-validation.sh && " +
+      "node native/timeline/scripts/check-frame-numbers.mjs --decode hw --json && " +
+      "native/timeline/build/nodetool-timeline native/timeline/fixtures/video-8tracks.json --bench --realtime 15 --size 1920x1080 --decode hw --on-top --budget native/timeline/budgets/m1c.json",
+    kind: "execution",
+    capabilities: ["json"],
+    docs: "native/timeline/README.md § Hardware decode"
+  },
+  {
     id: "native-timeline-golden",
     title: "Native timeline golden import (media fixture through timeline render --stills)",
     command: "node native/timeline/scripts/golden-import.mjs",
@@ -2388,7 +2399,13 @@ export const SURFACES: SurfaceEntry[] = [
   {
     id: "native-timeline",
     title: "Native timeline prototype (C++/Qt/FFmpeg, native/timeline/)",
-    harnesses: ["native-timeline-plan", "native-timeline-bench", "native-timeline-media", "native-timeline-golden"],
+    harnesses: [
+      "native-timeline-plan",
+      "native-timeline-bench",
+      "native-timeline-media",
+      "native-timeline-videotoolbox",
+      "native-timeline-golden"
+    ],
     paths: ["native/timeline/"],
     gap:
       "Every check needs a Qt 6.12 and FFmpeg build of native/timeline/, " +

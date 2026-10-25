@@ -1,5 +1,5 @@
 {
-  "submitIntervalMs.p95": 17.5,
+  "targetHz": 60,
   "cpuMs.p95": 8,
   "frameError.max": 1,
   "frameErrorZeroFraction": 0.95,

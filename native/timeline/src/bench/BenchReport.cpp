@@ -19,6 +19,9 @@ const std::map<QString, bool> kScalars{{QStringLiteral("skippedSubmitsFraction")
                                        {QStringLiteral("frameErrorZeroFraction"), true},
                                        {QStringLiteral("cutMisses"), false},
                                        {QStringLiteral("missingMediaFrames"), false},
+                                       {QStringLiteral("frameRefCloseMs"), false},
+                                       {QStringLiteral("cpuCopies"), false},
+                                       {QStringLiteral("framesReleasedInFlight"), false},
                                        {QStringLiteral("decoderCloseMs"), false}};
 const QStringList kStats{QStringLiteral("p50"), QStringLiteral("p95"), QStringLiteral("max"),
                          QStringLiteral("count")};
@@ -53,8 +56,12 @@ std::optional<double> statOf(const std::optional<Summary>& s, const QString& sta
     return static_cast<double>(s->count);
 }
 
+// Budget parameters: values the report uses, not limits it checks.
+const QString kTargetHz = QStringLiteral("targetHz");
+constexpr double kDefaultTargetHz = 60.0;
+
 std::optional<QString> checkKey(const QString& key) {
-    if (kScalars.count(key) > 0) {
+    if (kScalars.count(key) > 0 || key == kTargetHz) {
         return std::nullopt;
     }
     if (key.startsWith(u"gpuMs.")) {
@@ -169,8 +176,16 @@ Report buildReport(const BenchData& data, const std::optional<Budget>& budget) {
     // GPU time is null when under 90% of the frames saw a value (DESIGN.md).
     const bool gpuEnough = static_cast<double>(data.gpuObservationsMs.size()) >= 0.9 * data.frames && data.frames > 0;
     m[QStringLiteral("gpuMs")] = gpuEnough ? std::optional<Summary>(summarize(data.gpuObservationsMs)) : std::nullopt;
+    // Skips count against an explicit target rate (the budget's targetHz,
+    // else 60 Hz), never the measured cadence: a steady 30 Hz run then misses
+    // every other slot of a 60 Hz target. The cadence is information only.
     const double cadenceHz = measuredCadenceHz(data.submitIntervalMs);
-    const std::optional<int> skipped = skippedSubmits(data.submitIntervalMs, cadenceHz, data.vsync);
+    double targetHz = kDefaultTargetHz;
+    if (budget) {
+        const auto it = budget->find(kTargetHz.toStdString());
+        if (it != budget->end() && it->second > 0.0) targetHz = it->second;
+    }
+    const std::optional<int> skipped = skippedSubmits(data.submitIntervalMs, targetHz, data.vsync);
 
     Report r;
     QJsonObject o;
@@ -186,6 +201,7 @@ Report buildReport(const BenchData& data, const std::optional<Budget>& budget) {
     o[QStringLiteral("vsync")] = data.vsync;
     o[QStringLiteral("screenRefreshHz")] = round3(data.refreshHz);
     o[QStringLiteral("measuredCadenceHz")] = cadenceHz > 0.0 ? QJsonValue(cadenceHz) : QJsonValue();
+    o[QStringLiteral("targetHz")] = targetHz;
     o[QStringLiteral("layersMax")] = data.layersMax;
     for (const auto& [name, summary] : m) {
         o[name] = summaryJson(summary);
@@ -206,7 +222,49 @@ Report buildReport(const BenchData& data, const std::optional<Budget>& budget) {
     scalars[QStringLiteral("missingMediaFrames")] =
         data.mediaFrames > 0 ? std::optional<double>(data.missingMediaFrames) : std::nullopt;
     scalars[QStringLiteral("decoderCloseMs")] = data.decoderCloseMs;
+    scalars[QStringLiteral("frameRefCloseMs")] = data.frameRefCloseMs;
+    scalars[QStringLiteral("framesReleasedInFlight")] = static_cast<double>(data.framesReleasedInFlight);
+    scalars[QStringLiteral("cpuCopies")] =
+        data.frames > 0 ? std::optional<double>(static_cast<double>(data.cpuCopies)) : std::nullopt;
     o[QStringLiteral("realtime")] = data.realtime;
+    {
+        QJsonArray stalls;
+        for (const auto& st : data.stalls) {
+            if (stalls.size() >= 20) break;
+            stalls.append(QJsonObject{{QStringLiteral("frame"), st.frame},
+                                      {QStringLiteral("atMs"), round3(st.atMs)},
+                                      {QStringLiteral("intervalMs"), round3(st.intervalMs)},
+                                      {QStringLiteral("cpuMs"), round3(st.cpuMs)}});
+        }
+        o[QStringLiteral("stallCount")] = static_cast<int>(data.stalls.size());
+        o[QStringLiteral("exposureLosses")] = data.exposureLosses;
+        o[QStringLiteral("framesReleasedInFlight")] = data.framesReleasedInFlight;
+        o[QStringLiteral("stalls")] = stalls;
+        if (!data.scheduling.isEmpty()) o[QStringLiteral("scheduling")] = data.scheduling;
+    }
+    o[QStringLiteral("decode")] = data.decode;
+    o[QStringLiteral("cpuCopies")] = static_cast<double>(data.cpuCopies);
+    o[QStringLiteral("hardwareLayerFrames")] = static_cast<double>(data.hardwareLayerFrames);
+    o[QStringLiteral("frameRefCloseMs")] = data.frameRefCloseMs ? QJsonValue(round3(*data.frameRefCloseMs)) : QJsonValue();
+    if (data.cpuWallMs > 0.0) {
+        const auto value = [](const std::optional<double>& v) { return v ? QJsonValue(round3(*v)) : QJsonValue(); };
+        const std::optional<double> render = data.guiAndRenderShareThread ? std::optional<double>(0.0) : data.renderCpuPercent;
+        std::optional<double> other;
+        if (data.processCpuPercent && data.mainCpuPercent && render) {
+            other = *data.processCpuPercent - *data.mainCpuPercent - *render;
+        }
+        o[QStringLiteral("cpu")] = QJsonObject{
+            {QStringLiteral("wallMs"), round3(data.cpuWallMs)},
+            {QStringLiteral("processPercent"), value(data.processCpuPercent)},
+            {QStringLiteral("mainThreadPercent"), value(data.mainCpuPercent)},
+            {QStringLiteral("renderThreadPercent"),
+             data.guiAndRenderShareThread ? QJsonValue() : value(data.renderCpuPercent)},
+            {QStringLiteral("guiAndRenderShareThread"), data.guiAndRenderShareThread},
+            {QStringLiteral("decodeAndOtherPercent"), value(other)},
+        };
+    } else {
+        o[QStringLiteral("cpu")] = QJsonValue();
+    }
     o[QStringLiteral("frameErrorZeroFraction")] = zeroFraction ? QJsonValue(*zeroFraction) : QJsonValue();
     o[QStringLiteral("heldFrames")] = data.heldFrames;
     o[QStringLiteral("cutMisses")] = data.cutMisses;
@@ -229,7 +287,10 @@ Report buildReport(const BenchData& data, const std::optional<Budget>& budget) {
         {QStringLiteral("submitIntervalMs"),
          QStringLiteral("QQuickWindow::frameSwapped on the render thread: frame queued, not presented")},
         {QStringLiteral("skippedSubmits"),
-         QStringLiteral("submission intervals over 1.5 periods of measuredCadenceHz (p50 interval snapped to 120/60/30 Hz)")},
+         QStringLiteral("submission intervals over 1.5 periods of targetHz (budget, default 60): round(interval / period) - 1 each")},
+        {QStringLiteral("cpu"),
+         QStringLiteral("getrusage for the process, Mach thread_info for the GUI and render threads; the rest is "
+                        "decode workers, FFmpeg/VideoToolbox threads and Qt")},
         {QStringLiteral("frameError"),
          QStringLiteral("per frame, the largest |shown - expected| source frame index over media layers")},
     };
@@ -240,6 +301,7 @@ Report buildReport(const BenchData& data, const std::optional<Budget>& budget) {
     if (budget) {
         QJsonArray results;
         for (const auto& [key, limit] : *budget) {
+            if (QString::fromStdString(key) == kTargetHz) continue;  // a parameter, not a limit
             BudgetResult br;
             br.key = key;
             br.limit = limit;
@@ -261,6 +323,16 @@ Report buildReport(const BenchData& data, const std::optional<Budget>& budget) {
                                                                                        : QStringLiteral("over limit"))
                                                                            : QStringLiteral("no samples")}});
             r.budget.push_back(br);
+        }
+        if (data.exposureLosses > 0) {
+            // The window was covered: the run measured the window manager,
+            // not the compositor. It fails whatever the numbers say.
+            r.pass = false;
+            results.append(QJsonObject{{QStringLiteral("key"), QStringLiteral("exposedThroughout")},
+                                       {QStringLiteral("limit"), 0},
+                                       {QStringLiteral("value"), data.exposureLosses},
+                                       {QStringLiteral("pass"), false},
+                                       {QStringLiteral("reason"), QStringLiteral("window lost exposure")}});
         }
         o[QStringLiteral("budget")] = QJsonObject{{QStringLiteral("pass"), r.pass}, {QStringLiteral("results"), results}};
     }

@@ -38,7 +38,9 @@ struct MediaReport {
     std::string clipId;
     std::string mediaPath;
     bool ok = false;
-    std::string reason;  // rejection or open error, empty when ok
+    std::string reason;    // rejection or open/decode error, empty when ok
+    std::string decoder;   // "videotoolbox" or "software"
+    std::string fallback;  // why VideoToolbox is not used (--decode auto)
 };
 
 class SourcePool {
@@ -54,11 +56,17 @@ public:
     // failed clip returns its placeholder.
     LayerSource* sourceFor(const std::string& clipId);
 
+    // Render thread: retires every source now (their last frames go to the
+    // retire queue). The renderer calls it before it waits for the GPU.
+    void clear();
+
     // Decoders open now, including those still being retired. Any thread.
     int openDecoders() const { return m_open.load() + m_retiring.load(); }
 
     // One entry per media clip opened so far: ok, or the reason it was not.
     std::vector<MediaReport> report() const;
+    // Bumps on every change to the report. Any thread.
+    long long reportVersion() const { return m_reportVersion.load(); }
 
 private:
     struct Entry {
@@ -84,6 +92,7 @@ private:
     std::thread m_reaper;
     mutable std::mutex m_reportMutex;
     std::map<std::string, MediaReport> m_report;
+    std::atomic<long long> m_reportVersion{0};
 };
 
 }  // namespace nt
