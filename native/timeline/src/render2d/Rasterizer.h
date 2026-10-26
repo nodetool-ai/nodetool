@@ -4,6 +4,7 @@
 #include <QImage>
 
 namespace nt::render2d {
+QString resolveFontDirectory(const QString& applicationDir);
 scene::MeasureText textMeasurer();
 QImage rasterize(const ActiveLayer& layer);
 

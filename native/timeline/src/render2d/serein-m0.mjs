@@ -29,6 +29,8 @@ export function pairSereinM0({ nativeReport, nativeMeta, webReport }) {
   if (!(nativeReport?.frames > 0)) failures.push("native bench measured no frames");
   const nativeLoad = { before: nativeMeta?.loadBefore ?? null, after: nativeMeta?.loadAfter ?? null };
   if (!validLoad(nativeLoad)) failures.push("native run missing load before/after");
+  const nativeLoadAllowed = validLoad(nativeLoad) && nativeLoad.before <= 10 && nativeLoad.after <= 10;
+  if (nativeLoad.before > 10 || nativeLoad.after > 10) failures.push("native load exceeds 10 before/after run");
   const nativeRan = nativeMeta?.exit === 0 && nativeReport?.frames > 0;
   const results = [];
   for (const decoder of ["element", "webcodecs"]) {
@@ -40,6 +42,11 @@ export function pairSereinM0({ nativeReport, nativeMeta, webReport }) {
     const webLoad = { before: web?.loadAverage?.before ?? null, after: web?.loadAverage?.after ?? null };
     if (!validLoad(webLoad)) failures.push(`${decoder}: web run missing load before/after`);
     if (!(web?.submittedFrames > 0)) failures.push(`${decoder}: web measured no frames`);
+    const webLoadAllowed = validLoad(webLoad) && webLoad.before <= 10;
+    if (webLoad.before > 10) failures.push(`${decoder}: web load exceeds 10 before run`);
+    const matchingDuration = Number.isFinite(nativeMeta?.playSeconds) && nativeMeta.playSeconds > 0 &&
+      Number.isFinite(web?.playSeconds) && web.playSeconds > 0 && nativeMeta.playSeconds === web.playSeconds;
+    if (!matchingDuration) failures.push(`${decoder}: missing or different native/web playSeconds`);
     const pairs = [];
     const uncompared = [{ counter: "lateFrames", reason: "no native counterpart" }];
     for (const [webKey, nativeKey, webMethod] of mappings) {
@@ -73,7 +80,7 @@ export function pairSereinM0({ nativeReport, nativeMeta, webReport }) {
         if (value.method.startsWith("unavailable:")) pairFailures.push(`${decoder}: ${label} ${value.counter} has no method`);
       }
       failures.push(...pairFailures);
-      const comparable = nativeRan && web?.submittedFrames > 0 && validLoad(nativeLoad) && validLoad(webLoad) && pairFailures.length === 0;
+      const comparable = matchingDuration && nativeRan && web?.submittedFrames > 0 && nativeLoadAllowed && webLoadAllowed && pairFailures.length === 0;
       const stats = scalar ? ["total"] : ["p50", "p95"];
       pairs.push({
         native, web: webSide,

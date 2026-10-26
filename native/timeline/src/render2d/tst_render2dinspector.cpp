@@ -317,6 +317,29 @@ private slots:
         e.gestures()->setSelection({"shape"}); QCoreApplication::processEvents(); QCOMPARE(e.model.documentJson(),before);
         QVERIFY(send(size,"commit","70")); QCOMPARE(e.model.documentJson(),before); QCOMPARE(e.model.undoStack()->count(),0);
     }
+    void selectionCommitsTyping() {
+        Editor e; QVERIFY2(e.object,qPrintable(e.error)); QVERIFY(QTest::qWaitForWindowExposed(&e.window));
+        e.patch("plain",{{"mediaType","text"},{"textStyle",QJsonObject{{"text","Other"},{"fontSizePx",90},{"color","#123456"}}}});
+        e.gestures()->setSelection({"text"}); QCoreApplication::processEvents();
+        auto* s = findItem(e.inspector(),"inspectorText"); QVERIFY(s); s->setProperty("open",true);
+        auto* text = findItem(s,"textContent"); QVERIFY(text);
+        const auto before = e.model.documentJson(); const auto other = e.clip("plain");
+        auto expected = e.clip("text")["textStyle"].toObject(); expected.insert("text","xy");
+        text->forceActiveFocus(); QVERIFY(text->hasActiveFocus());
+        QTest::keyClick(&e.window,Qt::Key_A,Qt::ControlModifier);
+        QTest::keyClick(&e.window,Qt::Key_X); QTest::keyClick(&e.window,Qt::Key_Y);
+        QCOMPARE(at(e.clip("text"),"textStyle.text").toString(),QString("xy"));
+        QCOMPARE(e.model.undoStack()->count(),0); QVERIFY(text->hasActiveFocus());
+        e.gestures()->setSelection({"plain"}); QCoreApplication::processEvents();
+        QCOMPARE(at(e.clip("text"),"textStyle.text").toString(),QString("xy"));
+        QCOMPARE(e.clip("text")["textStyle"].toObject(),expected);
+        QCOMPARE(e.model.undoStack()->count(),1); QCOMPARE(e.model.undoStack()->index(),1);
+        QCOMPARE(e.clip("plain"),other);
+        e.model.undoStack()->undo(); QCOMPARE(e.model.documentJson(),before);
+        e.inspector()->forceActiveFocus(); QCoreApplication::processEvents();
+        QCOMPARE(e.model.undoStack()->count(),1); QCOMPARE(e.model.undoStack()->index(),0);
+        QCOMPARE(e.model.documentJson(),before); QCOMPARE(e.clip("plain"),other);
+    }
     void keyboardScrubAndSelect() {
         Editor e; QVERIFY2(e.object,qPrintable(e.error)); QVERIFY(QTest::qWaitForWindowExposed(&e.window));
         e.gestures()->setSelection({"text"}); QCoreApplication::processEvents();

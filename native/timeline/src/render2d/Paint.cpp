@@ -11,6 +11,7 @@
 #include <array>
 #include <cmath>
 #include <numbers>
+#include <optional>
 #include <span>
 #include <vector>
 
@@ -132,29 +133,121 @@ QPainterPath flattenedPath(const QPainterPath& path) {
     }
     return result;
 }
+namespace {
+std::optional<double> cssNumber(QString text) {
+    text = text.trimmed();
+    if (text.isEmpty()) {
+        return 0;
+    }
+    // Number() in the shared parser also accepts unsigned base-prefixed integers.
+    static const QRegularExpression baseNumber(QStringLiteral("^0([xob])([0-9a-f]+)$"));
+    const auto baseMatch = baseNumber.match(text);
+    if (baseMatch.hasMatch()) {
+        const auto prefix = baseMatch.captured(1);
+        const int base = prefix == "x" ? 16 : prefix == "o" ? 8 : 2;
+        double value = 0;
+        for (const auto digit : baseMatch.captured(2)) {
+            const int n = digit <= u'9' ? digit.unicode() - u'0' : digit.unicode() - u'a' + 10;
+            if (n >= base) {
+                return std::nullopt;
+            }
+            value = value * base + n;
+        }
+        return std::isfinite(value) ? std::optional(value) : std::nullopt;
+    }
+    bool ok = false;
+    const double value = text.toDouble(&ok);
+    return ok && std::isfinite(value) ? std::optional(value) : std::nullopt;
+}
+std::optional<double> cssComponent(QString text, double full) {
+    text = text.trimmed();
+    if (text.isEmpty()) {
+        return std::nullopt;
+    }
+    const bool percent = text.endsWith(u'%');
+    const auto value = cssNumber(percent ? text.chopped(1) : text);
+    return value ? std::optional(std::clamp(*value / (percent ? 100 : full), 0.0, 1.0)) : std::nullopt;
+}
+std::optional<double> cssHue(const QString& text) {
+    static const QRegularExpression angle(
+        QStringLiteral(R"(^([+-]?(?:\d*\.)?\d+(?:e[+-]?\d+)?)(deg|grad|rad|turn)?$)"));
+    const auto match = angle.match(text.trimmed());
+    if (!match.hasMatch()) {
+        return std::nullopt;
+    }
+    const auto value = cssNumber(match.captured(1));
+    if (!value) {
+        return std::nullopt;
+    }
+    const auto unit = match.captured(2);
+    const double degrees = *value * (unit == "grad"   ? 0.9
+                                     : unit == "rad"  ? 180 / std::numbers::pi
+                                     : unit == "turn" ? 360
+                                                      : 1);
+    if (!std::isfinite(degrees)) {
+        return std::nullopt;
+    }
+    return std::fmod(std::fmod(degrees, 360) + 360, 360);
+}
+} // namespace
 QColor cssColor(const QString& value) {
-    // CSS #RRGGBBAA differs from QColor's #AARRGGBB.
-    if (value.size() == 9 && value.startsWith(u'#')) {
-        return QColor("#" + value.mid(7, 2) + value.mid(1, 6));
+    const auto text = value.trimmed().toLower();
+    if (text == "transparent") {
+        return QColor(Qt::transparent);
     }
-    if (value.size() == 5 && value.startsWith(u'#')) {
-        return QColor("#" + QString(2, value[4]) + QString(2, value[1]) + QString(2, value[2]) + QString(2, value[3]));
+    if (text == "rebeccapurple") {
+        return QColor(102, 51, 153);
     }
-    if (value.startsWith("rgb")) {
-        static const QRegularExpression numbers(QStringLiteral("[+-]?(?:\\d*\\.)?\\d+"));
-        auto matches = numbers.globalMatch(value);
-        std::vector<double> channels;
-        while (matches.hasNext()) {
-            channels.push_back(matches.next().captured().toDouble());
+    if (text.startsWith(u'#')) {
+        static const QRegularExpression hex(QStringLiteral("^#(?:[0-9a-f]{3}|[0-9a-f]{4}|[0-9a-f]{6}|[0-9a-f]{8})$"));
+        if (!hex.match(text).hasMatch()) {
+            return QColor(Qt::transparent);
         }
-        if (channels.size() >= 3) {
-            return QColor::fromRgbF(std::clamp(channels[0] / 255, 0.0, 1.0), std::clamp(channels[1] / 255, 0.0, 1.0),
-                                    std::clamp(channels[2] / 255, 0.0, 1.0),
-                                    channels.size() > 3 ? std::clamp(channels[3], 0.0, 1.0) : 1);
+        // CSS #RRGGBBAA differs from QColor's #AARRGGBB.
+        if (text.size() == 9) {
+            return QColor("#" + text.mid(7, 2) + text.mid(1, 6));
         }
+        if (text.size() == 5) {
+            return QColor("#" + QString(2, text[4]) + QString(2, text[1]) + QString(2, text[2]) + QString(2, text[3]));
+        }
+        return QColor(text);
     }
-    const QColor color(value);
-    return color.isValid() ? color : QColor(Qt::transparent);
+    static const QRegularExpression function(QStringLiteral(R"(^(rgb|hsl)a?\(([^()]*)\)$)"));
+    const auto match = function.match(text);
+    if (match.hasMatch()) {
+        const auto sections = match.captured(2).trimmed().split(u'/');
+        if (sections.size() > 2) {
+            return QColor(Qt::transparent);
+        }
+        static const QRegularExpression separator(QStringLiteral(R"([\s,]+)"));
+        auto parts = sections[0].trimmed().split(separator, Qt::SkipEmptyParts);
+        if (sections.size() == 2) {
+            parts.append(sections[1].trimmed());
+        }
+        if (parts.size() != 3 && parts.size() != 4) {
+            return QColor(Qt::transparent);
+        }
+        const bool rgb = match.captured(1) == "rgb";
+        const auto a = parts.size() == 4 ? cssComponent(parts[3], 1) : std::optional(1.0);
+        const auto first = rgb ? cssComponent(parts[0], 255) : cssHue(parts[0]);
+        const auto second = cssComponent(parts[1], rgb ? 255 : 1);
+        const auto third = cssComponent(parts[2], rgb ? 255 : 1);
+        if (!a || !first || !second || !third) {
+            return QColor(Qt::transparent);
+        }
+        if (rgb) {
+            return QColor::fromRgbF(*first, *second, *third, *a);
+        }
+        const double c = (1 - std::abs(2 * *third - 1)) * *second;
+        const double x = c * (1 - std::abs(std::fmod(*first / 60, 2) - 1));
+        const double m = *third - c / 2;
+        const std::array<std::array<double, 3>, 6> sectors{
+            {{c, x, 0}, {x, c, 0}, {0, c, x}, {0, x, c}, {x, 0, c}, {c, 0, x}}};
+        const auto& channels = sectors[static_cast<int>(*first / 60) % 6];
+        return QColor::fromRgbF(channels[0] + m, channels[1] + m, channels[2] + m, *a);
+    }
+    static const auto names = QColor::colorNames();
+    return names.contains(text) ? QColor(text) : QColor(Qt::transparent);
 }
 QBrush fillBrush(const QJsonValue& value, const QRectF& box) {
     if (value.isString()) {

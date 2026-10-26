@@ -12,6 +12,9 @@ QtObject {
     readonly property var clip: controller ? controller.clip : ({})
     readonly property var style: styleKey === "caption" ? (clip.caption?.style || {}) : (clip[styleKey] || {})
     readonly property bool locked: !controller || controller.locked
+    property var typingClip: null
+    property var typingPayload: null
+    readonly property bool typing: typingClip !== null
     property string observedId: ""
     property InspectorEdits edits: InspectorEdits {
         model: root.timelineModel
@@ -22,13 +25,17 @@ QtObject {
             const next = root.controller ? root.controller.clipId : "";
             if (next !== root.observedId) {
                 root.observedId = next;
-                root.edits.cancelGesture();
+                if (root.typing)
+                    root.finishTyping();
+                else
+                    root.edits.cancelGesture();
             }
         }
     }
     Component.onDestruction: edits.cancelGesture()
-    function payload(path, value) {
-        const next = Object.assign({}, style);
+    function payload(path, value, sourceClip = clip) {
+        const sourceStyle = styleKey === "caption" ? (sourceClip.caption?.style || {}) : (sourceClip[styleKey] || {});
+        const next = Object.assign({}, sourceStyle);
         const keys = path.split(".");
         let target = next;
         for (let i = 0; i < keys.length - 1; ++i) {
@@ -40,13 +47,34 @@ QtObject {
         else
             target[keys[keys.length - 1]] = value;
         const patch = {};
-        patch[styleKey] = styleKey === "caption" ? Object.assign({}, clip.caption, {
+        patch[styleKey] = styleKey === "caption" ? Object.assign({}, sourceClip.caption, {
             style: next
         }) : next;
         return {
-            clipId: clip.id,
+            clipId: sourceClip.id,
             patch
         };
+    }
+    function beginTyping() {
+        if (locked || !clip.id)
+            return;
+        begin();
+        typingClip = JSON.parse(JSON.stringify(clip));
+        typingPayload = payload("text", style.text, typingClip);
+    }
+    function previewTyping(value) {
+        if (!typing || controller.clipId !== typingClip.id)
+            return;
+        typingPayload = payload("text", value, typingClip);
+        edits.preview(typingPayload);
+    }
+    function finishTyping() {
+        if (!typing)
+            return;
+        const pending = typingPayload;
+        typingClip = null;
+        typingPayload = null;
+        edits.commit("patchClip", pending);
     }
     function begin() {
         if (!locked)

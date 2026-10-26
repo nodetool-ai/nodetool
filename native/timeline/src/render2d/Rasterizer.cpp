@@ -1,5 +1,6 @@
 #include "render2d/Rasterizer.h"
 #include "render2d/Paint.h"
+#include <QDir>
 #include <QFontDatabase>
 #include <QFontMetricsF>
 #include <QGlyphRun>
@@ -25,12 +26,29 @@
 #include <unordered_map>
 
 namespace nt::render2d {
+QString resolveFontDirectory(const QString& applicationDir) {
+    const QStringList candidates{
+        qEnvironmentVariable("NODETOOL_TIMELINE_FONTS_DIR"),
+        applicationDir + "/fonts",
+        applicationDir + "/../Resources/fonts",
+        QStringLiteral(NT_TIMELINE_FONTS_DIR)
+    };
+    for (const auto& directory : candidates) {
+        if (!directory.isEmpty() && QDir(directory).exists()) {
+            return QDir::cleanPath(directory);
+        }
+    }
+    return {};
+}
 namespace {
+const QString& fontDirectory() {
+    static const auto directory = resolveFontDirectory(QGuiApplication::applicationDirPath());
+    return directory;
+}
 void loadFonts() {
     static std::once_flag once;
     std::call_once(once, [] {
-        const auto directory =
-            qEnvironmentVariable("NODETOOL_TIMELINE_FONTS_DIR", QStringLiteral(NT_TIMELINE_FONTS_DIR));
+        const auto& directory = fontDirectory();
         for (const auto* file :
              {"Inter-Variable.ttf", "Inter-SemiBold.ttf", "Inter-ExtraBold.ttf", "Inter-Italic-Variable.ttf",
               "SpaceGrotesk-Variable.ttf", "BebasNeue-Regular.ttf", "PlayfairDisplay-Variable.ttf",
@@ -203,10 +221,7 @@ bool paintFreeTypeRun(QPainter& painter, const ShapedText& shaped, const scene::
                 return result;
             }
             result.library.reset(library);
-            const auto file =
-                (qEnvironmentVariable("NODETOOL_TIMELINE_FONTS_DIR", QStringLiteral(NT_TIMELINE_FONTS_DIR)) + u'/' +
-                 filename)
-                    .toUtf8();
+            const auto file = (fontDirectory() + u'/' + filename).toUtf8();
             FT_Face face = nullptr;
             if (FT_New_Face(library, file.constData(), 0, &face) == 0) {
                 result.face.reset(face);

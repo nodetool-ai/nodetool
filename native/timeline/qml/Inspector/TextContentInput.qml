@@ -10,7 +10,6 @@ TextArea {
     required property var editor
     property string value: ""
     property bool disabled: editor.locked
-    property bool typing: false
     enabled: !disabled
     text: value
     wrapMode: TextEdit.Wrap
@@ -28,14 +27,11 @@ TextArea {
         radius: Theme.radiusSm
     }
     onActiveFocusChanged: {
-        if (activeFocus) {
-            typing = true;
-            editor.begin();
-        } else if (typing) {
-            typing = false;
-            editor.set("text", text);
-        }
+        if (activeFocus)
+            editor.beginTyping();
+        else
+            editor.finishTyping();
     }
-    onTextChanged: if (activeFocus && typing)
-        editor.set("text", text, true)
+    onTextChanged: if (activeFocus && editor.typing)
+        editor.previewTyping(text)
 }

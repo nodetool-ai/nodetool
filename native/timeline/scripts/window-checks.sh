@@ -56,7 +56,7 @@
 #      measurement, not pass/fail: the run's verdict says only whether every
 #      counter has samples.
 #   8. M0 serein, native against the web: a full example document in a
-#      15 s native bench window at 1920x1080, on top, paired with both
+#      10 s native bench window at 1920x1080, on top, paired with both
 #      serein decoder runs from section 7. Each mapped counter carries its
 #      method, p50/p95 (heldFrames is a total), load before/after and lower
 #      side. Missing reports or samples fail the measurement, not `pass`.
@@ -129,37 +129,51 @@ done
 # Section 8 is also called by the dry run, before any bench can execute.
 serein_m0() {
     local sequence=(node src/render2d/example-sequence.mjs serein "$out/serein.json")
-    local cmd=("$bin" "$out/serein.json" --bench --realtime 15 --size 1920x1080 --decode hw --on-top)
+    local cmd=("$bin" "$out/serein.json" --bench --realtime 10 --size 1920x1080 --decode hw --on-top)
     local pair=(node src/render2d/serein-m0-report.mjs "$out")
     if [[ $dry_run == 1 ]]; then
         echo "8. M0 serein, native against the web"
         echo "${sequence[*]} > $out/m0-serein-sequence.log 2>&1"
         echo 'echo $? > build/window-checks/m0-serein-sequence.exit'
+        echo 'wait until load1 <= 10 in 15 s steps, up to 20 minutes; otherwise write not run and log the load limit'
         echo 'before=$(load1)'
         echo "${cmd[*]} > $out/m0-serein-native.json 2> $out/m0-serein-native.log"
         echo 'rc=$?'
         echo 'after=$(load1)'
         echo 'echo "$rc" > build/window-checks/m0-serein-native.exit'
-        echo 'echo "{\"loadBefore\":$before,\"loadAfter\":$after}" > build/window-checks/m0-serein-native.meta.json'
+        echo 'echo "{\"playSeconds\":10,\"loadBefore\":$before,\"loadAfter\":$after}" > build/window-checks/m0-serein-native.meta.json'
         echo "${pair[*]} > $out/m0-serein.json 2> $out/m0-serein.log"
         echo 'echo $? > build/window-checks/m0-serein.exit'
         return
     fi
-    local rc before after
+    local rc before after waited=0
     "${sequence[@]}" > "$out/m0-serein-sequence.log" 2>&1
     rc=$?
     echo "$rc" > "$out/m0-serein-sequence.exit"
     before=$(load1)
     if [[ $rc == 0 ]]; then
-        "${cmd[@]}" > "$out/m0-serein-native.json" 2> "$out/m0-serein-native.log"
-        rc=$?
+        while awk -v l="$before" 'BEGIN { exit !(l > 10) }'; do
+            if (( waited >= 1200 )); then
+                break
+            fi
+            sleep 15
+            waited=$((waited + 15))
+            before=$(load1)
+        done
+        if awk -v l="$before" 'BEGIN { exit !(l > 10) }'; then
+            rc="not run"
+            echo "load1 $before exceeds 10 after 20 minutes; native bench did not run" > "$out/m0-serein-native.log"
+        else
+            "${cmd[@]}" > "$out/m0-serein-native.json" 2> "$out/m0-serein-native.log"
+            rc=$?
+        fi
     else
         rc="not run"
         echo "sequence generation failed; native bench did not run" > "$out/m0-serein-native.log"
     fi
     echo "$rc" > "$out/m0-serein-native.exit"
     after=$(load1)
-    echo "{\"loadBefore\":$before,\"loadAfter\":$after}" > "$out/m0-serein-native.meta.json"
+    echo "{\"playSeconds\":10,\"loadBefore\":$before,\"loadAfter\":$after}" > "$out/m0-serein-native.meta.json"
     "${pair[@]}" > "$out/m0-serein.json" 2> "$out/m0-serein.log"
     echo $? > "$out/m0-serein.exit"
 }
