@@ -13,7 +13,6 @@ run machine. "Package P1" and "package P2" are plan packages, not severities.
 | ID | Severity | Source | Location | Finding | Owner |
 |---|---|---|---|---|---|
 | B1 | P2 | S1-r6 F1 | `qml/Tracks/TracksRegion.qml:187` | The add-track "+" button has no click handler or insertion hook. Package C owns `AddTrackButton.qml`, but nothing instantiates it, and `TracksRegion.qml` has no owner. | C (owns `TracksRegion.qml`; wires "+" and adds a header-actions slot for later packages) |
-| B2 | P2 | S1-r6 F2 | `src/audio/Mixer.cpp:168` | Audio processing has no effect hook. `VoicePlan` and `mixBlock` write samples after gain, fade and pan, so package P1's effects in `src/audio/effects/` cannot run without editing shared mixer code. | P1 (owns `Mixer.cpp` and `Mixer.h`; adds the effect hook that package P2 builds on) |
 | B6 | P2 | pkg-V-r1 F1 | `src/ui/MediaPreviews.cpp:156` | `mediaVersionKey(path)` runs synchronous `QFileInfo` metadata queries before the bounded helper starts. A stalled filesystem lookup cannot be cancelled or timed out, so two stalls exhaust the preview pool. | unassigned |
 | B7 | P2 | pkg-V-r1 F2 | `tools/sanitizers/clang-tidy-baseline.mjs:34` | The baseline drops diagnostic locations and compares file/check/message strings. A new occurrence of an already-baselined warning passes as zero additions. | V |
 | B8 | P2 | pkg-V-r1 F3 | `src/platform/ThreadSafety.h:6` | The thread-safety annotations and lock wrappers are used by no production class, so removing a required lock from a mutex-protected class produces no warning. | V |
@@ -31,6 +30,9 @@ run machine. "Package P1" and "package P2" are plan packages, not severities.
 | B20 | P2 | pkg-F-r1 F2 | `src/edit/clipboard/ClipboardOps.cpp:357` | Paste Attributes silently skips Speed because no `setClipSpeed` edit is registered. Pasting Speed from a 2× source onto a 2,000 ms video leaves it at 2,000 ms with no multiplier, where the web retimes it to 1,000 ms at 2×. | F |
 | B21 | P2 | pkg-D4-r1 F1 | `qml/Inspector/TransitionSection.qml:109` | The Wipe softness slider has zero height, so it cannot be dragged. The defect is in the shared slider primitive, and `tst_transitions.cpp:183` marks the pointer test as an expected failure. | D4 |
 | B22 | P2 | pkg-M-r1 F1 | `src/edit/targeting/TrackTargetingQml.h:30` | The targeting and sync-lock setters have no QML caller. The target chip in `TrackHeader.qml` has only a hover handler, and the sync button has no click handler or state binding, so turning off sync lock on a track does not exclude that track from a ripple delete. | M |
+| B23 | P2 | pkg-U-r1 F1 | `tests/tst_transitionresolver.cpp:24` | The differential reference imports the production `incomingRecord`, `outgoingRecord` and `knownTransitionTypes`, so a change to a record builder (for example the incoming zoom scale) changes expected and actual results alike and still passes. | U |
+| B24 | P2 | pkg-P1-r1 F1 | `src/audio/Mixer.cpp:345` | `offlineResidual` detects offline rendering by a null ring, but `AudioEngine` clears the ring once the callback no longer overlaps the clip, so live playback of a short clip with a long, high-feedback echo bypasses the web's 20-second tail cap. | P1 |
+| B25 | P2 | pkg-P1-r1 F2 | `src/audio/Mixer.cpp:311` | Plans are prepared at 48 kHz and `AudioEngine` never prepares them at the device rate, so on a 44.1 kHz device the first playing callback allocates buffers, builds the reverb impulse response and prepares FFT partitions, which can cause an underrun. | P1 |
 
 ## Closed
 
@@ -39,3 +41,4 @@ run machine. "Package P1" and "package P2" are plan packages, not severities.
 | B3 | Package V merge (fix-decode-r3 F1, confirmed fixed by pkg-V-r1) | b3246ba7cb |
 | B4 | Package V merge (fix-ui-r3 F1, confirmed fixed by pkg-V-r1) | b3246ba7cb |
 | B5 | Package V merge (dropped-readback leak, confirmed fixed by pkg-V-r1) | b3246ba7cb |
+| B2 | Package P1 merge (effect hook in `Mixer.cpp`, landed with package U) | d6a1cd18c9 |
