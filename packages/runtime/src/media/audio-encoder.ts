@@ -22,7 +22,7 @@ import {
   type Packet
 } from "node-av";
 
-import { findEncoder } from "./av.js";
+import { findEncoder, quietLibav } from "./av.js";
 
 /** The frame size `codec` opens with at these settings; 0 means any size. */
 async function probeFrameSize(
@@ -74,6 +74,7 @@ export class AudioEncoder {
       signal?: AbortSignal;
     }
   ): Promise<AudioEncoder> {
+    quietLibav();
     const codec = findEncoder(codecName);
     if (!codec) throw new Error(`This libav build has no ${codecName} encoder`);
     const { frameSize, sampleFormat } = await probeFrameSize(

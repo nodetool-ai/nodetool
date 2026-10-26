@@ -71,13 +71,19 @@ import path from "node:path";
 import { AssetFiles, assetFileName } from "./timeline/assetFiles.js";
 import {
   atempoChain,
-  execFfmpeg,
-  execFfprobe,
-  ffprobeDuration,
-  FFMPEG_MAX_BUFFER,
-  MissingBinaryError,
+  probeDurationSeconds,
+  probeHasAudioStream,
   videoRef
 } from "./ffmpeg-helpers.js";
+import {
+  concatSegments,
+  decodeAudioToPcm,
+  muxAudioWithVideoCopy,
+  openFilterComplex,
+  probeMedia,
+  type ConcatSegment,
+  type FilterComplexInput
+} from "@nodetool-ai/runtime/media";
 import {
   CompositorUnavailableError,
   renderTimelineComposited
@@ -93,7 +99,7 @@ import {
   TIMELINE_OUTPUT_FORMATS,
   type ResolvedTimelineOutput
 } from "./timeline/outputFormats.js";
-import { ffmpegHasEncoder } from "./timeline/rawFrames.js";
+import { libavHasEncoder } from "./timeline/rawFrames.js";
 import { stringValues } from "./placeholder-values.js";
 import {
   DEFAULT_SHUTTER_ANGLE,
@@ -132,26 +138,6 @@ async function loadTimelineSequence(
     throw new Error(`Timeline sequence not found: ${timelineRef.id}`);
   }
   return seq;
-}
-
-async function ffprobeHasAudio(filePath: string): Promise<boolean> {
-  try {
-    const { stdout } = await execFfprobe([
-      "-v",
-      "error",
-      "-select_streams",
-      "a",
-      "-show_entries",
-      "stream=codec_type",
-      "-of",
-      "default=noprint_wrappers=1:nokey=1",
-      filePath
-    ]);
-    return stdout.trim().length > 0;
-  } catch (error) {
-    if (error instanceof MissingBinaryError) throw error;
-    return false;
-  }
 }
 
 function trackById(
@@ -213,115 +199,11 @@ export function extractedAudioLinkIds(seq: TimelineSequence): Set<string> {
   return sharedExtractedAudioLinkIds(seq.clips, seq.tracks);
 }
 
-/** Scale + letterbox to the sequence frame, normalize fps and pixel format. */
-function segmentVideoFilter(width: number, height: number, fps: number): string {
+/** Scale + letterbox to the sequence frame. */
+function segmentVideoFilter(width: number, height: number): string {
   return (
     `scale=${width}:${height}:force_original_aspect_ratio=decrease,` +
-    `pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:color=black,` +
-    `fps=${fps},format=yuv420p`
-  );
-}
-
-/**
- * Encode one clip into a uniform segment (same codec, resolution, fps,
- * stereo AAC audio) so segments can be concatenated losslessly.
- */
-async function encodeSegment(opts: {
-  clip: TimelineClip;
-  srcPath: string;
-  segPath: string;
-  width: number;
-  height: number;
-  fps: number;
-  /**
-   * Drop the clip's own muxed audio in favor of silence, because a linked
-   * audio-track clip supplies this video's audio in the final mix. Mapping
-   * both would double the audio.
-   */
-  suppressEmbeddedAudio?: boolean;
-}): Promise<void> {
-  const { clip, srcPath, segPath, width, height, fps, suppressEmbeddedAudio } =
-    opts;
-  const durationS = clip.durationMs / 1000;
-  const filter = segmentVideoFilter(width, height, fps);
-  const silentAudio = [
-    "-f",
-    "lavfi",
-    "-t",
-    String(durationS),
-    "-i",
-    "anullsrc=channel_layout=stereo:sample_rate=48000"
-  ];
-
-  if (clip.mediaType === "image") {
-    await execFfmpeg(
-      [
-        "-y",
-        "-loop",
-        "1",
-        "-t",
-        String(durationS),
-        "-i",
-        srcPath,
-        ...silentAudio,
-        "-filter_complex",
-        `[0:v]${filter}[v]`,
-        "-map",
-        "[v]",
-        "-map",
-        "1:a",
-        "-c:v",
-        "libx264",
-        "-preset",
-        "veryfast",
-        "-c:a",
-        "aac",
-        "-shortest",
-        segPath
-      ],
-      { maxBuffer: FFMPEG_MAX_BUFFER }
-    );
-    return;
-  }
-
-  const hasAudio = suppressEmbeddedAudio
-    ? false
-    : await ffprobeHasAudio(srcPath);
-  const seek: string[] = [];
-  if (isPositiveNumber(clip.inPointMs)) {
-    seek.push("-ss", String(clip.inPointMs / 1000));
-  }
-  if (isPositiveNumber(clip.outPointMs)) {
-    seek.push("-to", String(clip.outPointMs / 1000));
-  }
-  await execFfmpeg(
-    [
-      "-y",
-      ...seek,
-      "-i",
-      srcPath,
-      ...(hasAudio ? [] : silentAudio),
-      "-filter_complex",
-      `[0:v]${filter}[v]`,
-      "-map",
-      "[v]",
-      "-map",
-      hasAudio ? "0:a" : "1:a",
-      "-t",
-      String(durationS),
-      "-c:v",
-      "libx264",
-      "-preset",
-      "veryfast",
-      "-c:a",
-      "aac",
-      "-ar",
-      "48000",
-      "-ac",
-      "2",
-      segPath
-    ],
-    { maxBuffer: FFMPEG_MAX_BUFFER }
+    `pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:color=black`
   );
 }
 
@@ -741,20 +623,21 @@ class MidiFiles {
       pending = (async () => {
         const source = await this.resolveAssetPath(id);
         if (!source) throw new Error(`Sample unavailable: ${id}`);
-        const file = path.join(this.workDir, `sample_${assetFileName(id)}.f32`);
-        const probe = await execFfprobe(["-v", "error", "-select_streams", "a:0", "-show_entries", "stream=channels", "-of", "default=noprint_wrappers=1:nokey=1", source], { signal: this.signal });
-        const channels = Number(probe.stdout.trim());
+        const probe = await probeMedia(source, { signal: this.signal });
+        const channels = probe.audio?.channels ?? 0;
         if (!Number.isInteger(channels) || channels < 1 || channels > 32) {
           throw new Error("Sampler recordings must contain between 1 and 32 audio channels");
         }
-        // Match the browser's arithmetic mean. FFmpeg's default stereo downmix adds 3 dB.
+        // Match the browser's arithmetic mean. libav's default stereo downmix adds 3 dB.
         const downmix = `pan=mono|c0=${Array.from({ length: channels }, (_, i) => `${1 / channels}*c${i}`).join("+")}`;
         // Decode one extra frame to distinguish an overlong recording from a valid one.
-        await execFfmpeg(["-y", "-i", source, "-map", "0:a:0", "-vn", "-t", "60.001", "-af", downmix, "-ar", String(MIDI_SAMPLE_RATE), "-f", "f32le", file], { signal: this.signal });
-        const bytes = await fs.readFile(file);
-        if (bytes.length > 60 * MIDI_SAMPLE_RATE * 4) throw new Error("Sampler recordings must be 60 seconds or shorter. Trim this asset first.");
-        const samples = new Float32Array(bytes.length / 4);
-        for (let i = 0; i < samples.length; i++) samples[i] = bytes.readFloatLE(i * 4);
+        const { samples } = await decodeAudioToPcm(source, {
+          sampleRate: MIDI_SAMPLE_RATE,
+          filter: downmix,
+          maxSeconds: 60.001,
+          signal: this.signal
+        });
+        if (samples.length > 60 * MIDI_SAMPLE_RATE) throw new Error("Sampler recordings must be 60 seconds or shorter. Trim this asset first.");
         return { samples, sampleRate: MIDI_SAMPLE_RATE };
       })();
       this.samples.set(id, pending);
@@ -820,8 +703,8 @@ async function renderRoughCut(opts: {
   const { seq, clips, audioClips, assets, workDir, width, height, fps } = opts;
   const suppressedLinkIds = extractedAudioLinkIds(seq);
 
-  const segments: string[] = [];
-  for (const [i, clip] of clips.entries()) {
+  const segments: ConcatSegment[] = [];
+  for (const clip of clips) {
     const srcPath = clip.currentAssetId
       ? await assets.path(clip.currentAssetId)
       : null;
@@ -831,74 +714,57 @@ async function renderRoughCut(opts: {
       );
       continue;
     }
-    const segPath = path.join(workDir, `seg_${i}.mp4`);
-    await encodeSegment({
-      clip,
-      srcPath,
-      segPath,
-      width,
-      height,
-      fps,
-      suppressEmbeddedAudio:
-        isString(clip.linkId) && suppressedLinkIds.has(clip.linkId)
+    const durationSec = clip.durationMs / 1000;
+    if (clip.mediaType === "image") {
+      segments.push({ kind: "image", filePath: srcPath, durationSec });
+      continue;
+    }
+    // A linked audio-track clip supplies this video's sound in the mix;
+    // keeping the embedded copy too would double it.
+    const suppressEmbeddedAudio =
+      isString(clip.linkId) && suppressedLinkIds.has(clip.linkId);
+    segments.push({
+      kind: "video",
+      filePath: srcPath,
+      inSec: isPositiveNumber(clip.inPointMs) ? clip.inPointMs / 1000 : undefined,
+      outSec: isPositiveNumber(clip.outPointMs) ? clip.outPointMs / 1000 : undefined,
+      durationSec,
+      withAudio: !suppressEmbeddedAudio && (await probeHasAudioStream(srcPath))
     });
-    segments.push(segPath);
+  }
+
+  if (segments.length === 0) {
+    // Audio-only cut: a black picture carries the mix.
+    //
+    // `Math.max()` with no arguments is -Infinity, and spreading an empty
+    // array is exactly that call. A timeline holding neither video nor audio
+    // once reached the encoder as `-t -Infinity`, naming neither the timeline
+    // nor the absent clips. Nothing renders from an empty timeline, so say so.
+    if (audioClips.length === 0) {
+      throw new Error(
+        "Timeline has no clips to render. Add at least one video, image or " +
+          "audio clip before rendering."
+      );
+    }
+    const totalS =
+      audioClips.reduce((end, c) => Math.max(end, c.startMs + c.durationMs), 0) /
+      1000;
+    segments.push({ kind: "blank", durationSec: totalS });
   }
 
   const basePath = path.join(workDir, "base.mp4");
-  if (segments.length > 0) {
-    const listPath = path.join(workDir, "segments.txt");
-    await fs.writeFile(listPath, segments.map((p) => `file '${p}'`).join("\n"));
-    await execFfmpeg(
-      ["-y", "-f", "concat", "-safe", "0", "-i", listPath, "-c", "copy", basePath],
-      { maxBuffer: FFMPEG_MAX_BUFFER }
-    );
-    return basePath;
-  }
-
-  // Audio-only cut: synthesize a black picture to carry the mix.
-  //
-  // `Math.max()` with no arguments is -Infinity, and spreading an empty array
-  // is exactly that call. A timeline holding neither video nor audio reached
-  // ffmpeg as `-t -Infinity` and died on "Invalid duration for option t",
-  // naming neither the timeline nor the absent clips. `totalDurationMs` above
-  // seeds a `reduce` for the same computation and is unaffected — one file,
-  // two idioms, one of them wrong. Nothing renders from an empty timeline, so
-  // say so here rather than build a command that cannot parse.
-  if (audioClips.length === 0) {
-    throw new Error(
-      "Timeline has no clips to render. Add at least one video, image or " +
-        "audio clip before rendering."
-    );
-  }
-  const totalS =
-    audioClips.reduce((end, c) => Math.max(end, c.startMs + c.durationMs), 0) /
-    1000;
-  await execFfmpeg(
-    [
-      "-y",
-      "-f",
-      "lavfi",
-      "-t",
-      String(totalS),
-      "-i",
-      `color=black:s=${width}x${height}:r=${fps}`,
-      "-f",
-      "lavfi",
-      "-t",
-      String(totalS),
-      "-i",
-      "anullsrc=channel_layout=stereo:sample_rate=48000",
-      "-c:v",
-      "libx264",
-      "-preset",
-      "veryfast",
-      "-c:a",
-      "aac",
-      basePath
-    ],
-    { maxBuffer: FFMPEG_MAX_BUFFER }
-  );
+  // Each clip scaled and letterboxed to the sequence frame and resampled to
+  // its rate, then all of them end to end.
+  await concatSegments({
+    outPath: basePath,
+    width,
+    height,
+    fps,
+    segments,
+    videoFilter: segmentVideoFilter(width, height),
+    video: { codec: "libx264", pixelFormat: "yuv420p", options: { preset: "veryfast" } },
+    audioCodec: "aac"
+  });
   return basePath;
 }
 
@@ -937,7 +803,10 @@ async function mixAudioInto(opts: {
     extension,
     audioCodec
   } = opts;
-  const inputs: string[] = ["-i", basePath];
+  // Input 0 is the base, as it was on the CLI, so the labels keep their numbers.
+  const inputs: FilterComplexInput[] = baseHasAudio
+    ? [{ filePath: basePath, kind: "audio", label: "0:a" }]
+    : [];
   const filters: string[] = [];
   const labels: string[] = [];
   // Each clip's stream(s), grouped by track so a track's effect chain runs
@@ -961,12 +830,12 @@ async function mixAudioInto(opts: {
       );
       continue;
     }
-    if (!baseHasAudio && !(await ffprobeHasAudio(audioPath))) continue;
+    if (!baseHasAudio && !(await probeHasAudioStream(audioPath))) continue;
     // Only a clip that plays at source rate can use the plain chain: a
     // speedMultiplier is a rate too, and without atempo (and the wider source
     // window it needs) a 2x clip's audio ran on past the clip.
     if (!hasTimeRemap(clip) && sourceRate(clip) === 1) {
-      inputs.push("-i", audioPath);
+      inputs.push({ filePath: audioPath, kind: "audio", label: `${inputIndex}:a` });
       const label = `a${i}`;
       filters.push(audioClipFilter(clip, inputIndex, label));
       labelsOf(clip).push(`[${label}]`);
@@ -980,7 +849,7 @@ async function mixAudioInto(opts: {
     const segmentLabels: string[] = [];
     for (const [j, segment] of timeRemapAudioSegments(clip).entries()) {
       if (segment.reverse || !Number.isFinite(segment.rate)) continue;
-      inputs.push("-i", audioPath);
+      inputs.push({ filePath: audioPath, kind: "audio", label: `${inputIndex}:a` });
       const label = `a${i}_${j}`;
       filters.push(audioRemapSegmentFilter(clip, segment, inputIndex, label));
       segmentLabels.push(`[${label}]`);
@@ -1039,31 +908,26 @@ async function mixAudioInto(opts: {
   ];
   const mix = `${sources.join("")}${mixSteps.join(",")}[aout]`;
   const outPath = path.join(workDir, `mixed.${extension}`);
-  await execFfmpeg(
-    [
-      "-y",
-      ...inputs,
-      "-filter_complex",
-      [...filters, mix].join(";"),
-      "-map",
-      "0:v",
-      "-map",
-      "[aout]",
-      "-c:v",
-      "copy",
-      "-c:a",
-      audioCodec,
-      "-ar",
-      "48000",
-      "-ac",
-      "2",
-      // `apad` runs the mix past the picture; stop at the shorter stream so the
-      // render is exactly as long as the video.
-      "-shortest",
-      outPath
-    ],
-    { maxBuffer: FFMPEG_MAX_BUFFER }
-  );
+  const mixed = await openFilterComplex({
+    inputs,
+    graph: [...filters, mix].join(";"),
+    output: "aout",
+    outputKind: "audio"
+  });
+  try {
+    // The picture is copied; the mix is encoded beside it at 48 kHz stereo.
+    // `apad` runs the mix past the picture, and the mux stops it at the
+    // picture's end, so the render is exactly as long as the video.
+    await muxAudioWithVideoCopy({
+      videoPath: basePath,
+      audio: mixed.frames(),
+      outPath,
+      codec: audioCodec,
+      sampleRate: 48000
+    });
+  } finally {
+    await mixed.close();
+  }
   return outPath;
 }
 
@@ -1482,7 +1346,7 @@ export class RenderTimelineNode extends BaseNode {
             })
           : basePath;
 
-      const duration = await ffprobeDuration(outPath);
+      const duration = await probeDurationSeconds(outPath);
       const stored = await storeRenderArtifact({
         context: ctx,
         filePath: outPath,
@@ -1514,20 +1378,18 @@ export class RenderTimelineNode extends BaseNode {
   }
 
   /**
-   * Refuse a format this ffmpeg cannot encode, by name.
+   * Refuse a format the bundled libav cannot encode, by name.
    *
-   * ProRes and VP9 are both optional at ffmpeg build time. Without this the
-   * render composites every frame first and then dies on ffmpeg's own
-   * "Unknown encoder" line, which says nothing about what to pick instead.
+   * ProRes and VP9 are optional at libav build time, and an MP4 may name any
+   * codec. Without this the render composites every frame first and then
+   * fails to open the encoder, which says nothing about what to pick instead.
    */
   private async assertEncoderAvailable(
     output: ResolvedTimelineOutput
   ): Promise<void> {
     const encoder = output.requiredEncoder;
-    // MP4/H.264 is the path every existing render already took, and probing it
-    // would turn "ffmpeg is not installed" into a message about an encoder.
-    if (!encoder || output.format === "mp4") return;
-    if (await ffmpegHasEncoder(encoder)) return;
+    if (!encoder) return;
+    if (await libavHasEncoder(encoder)) return;
     throw new MissingEncoderError(encoder, output.format);
   }
 
@@ -1919,7 +1781,7 @@ export class AddClipsToTimelineNode extends BaseNode {
           }
           const probePath = path.join(workDir, `probe_${i}`);
           await fs.writeFile(probePath, bytes);
-          const seconds = await ffprobeDuration(probePath);
+          const seconds = await probeDurationSeconds(probePath);
           if (seconds <= 0) {
             console.warn(
               `AddClipsToTimeline: skipping clip ${i} — could not determine duration`

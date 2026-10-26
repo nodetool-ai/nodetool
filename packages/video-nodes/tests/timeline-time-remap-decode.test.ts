@@ -98,14 +98,14 @@ let clipPath = "";
 beforeAll(async () => {
   dir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-time-remap-"));
   clipPath = path.join(dir, "ramp.mkv");
-  // ffv1 over planar RGB is lossless and all-intra, so every frame is its own
+  // ffv1 over RGB is lossless and all-intra, so every frame is its own
   // seek point and the gray that goes in is the gray that comes back.
   const encoder = openFrameEncoder({
     outPath: clipPath,
     width: WIDTH,
     height: HEIGHT,
     fps: FPS,
-    encoderArgs: ["-c:v", "ffv1", "-pix_fmt", "gbrp"]
+    encoderArgs: ["-c:v", "ffv1", "-pix_fmt", "bgr0"]
   });
   for (let k = 0; k < SOURCE_FRAMES; k++) {
     await encoder.write(solidFrame(grayOf(k)));

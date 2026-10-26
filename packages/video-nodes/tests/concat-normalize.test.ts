@@ -16,22 +16,32 @@ interface Meta {
 }
 
 let execFileCalls: Array<{ cmd: string; args: string[] }> = [];
-/** ffprobe show_streams responses, consumed in call order. */
-let probeQueue: Meta[] = [];
+/** Probe answers, consumed in call order. */
+const probeQueue: Meta[] = [];
 
-function metaJson(m: Meta): string {
-  const streams: unknown[] = [
-    {
-      codec_type: "video",
-      codec_name: m.codec,
-      width: m.width,
-      height: m.height,
-      r_frame_rate: m.fps
-    }
-  ];
-  if (m.hasAudio) streams.push({ codec_type: "audio" });
-  return JSON.stringify({ streams, format: { duration: "5" } });
-}
+/** Mediabunny's codec name for a libav one. */
+const MEDIABUNNY_CODEC: Record<string, string> = { h264: "avc", hevc: "hevc", vp9: "vp9" };
+
+vi.mock("@nodetool-ai/runtime/media", async (importOriginal) => ({
+  ...(await importOriginal<Record<string, unknown>>()),
+  probeMedia: async () => {
+    const meta = probeQueue.shift();
+    if (!meta) throw new Error("no probe answer queued");
+    const [num, den = "1"] = meta.fps.split("/");
+    return {
+      format: "MP4",
+      durationSec: 5,
+      video: {
+        codec: MEDIABUNNY_CODEC[meta.codec] ?? meta.codec,
+        width: meta.width,
+        height: meta.height,
+        nominalFps: Number(num) / Number(den),
+        averageFps: Number(num) / Number(den)
+      },
+      audio: meta.hasAudio ? { codec: "aac", sampleRate: 48000, channels: 2 } : null
+    };
+  }
+}));
 
 vi.mock("node:child_process", async (importOriginal) => {
   const original = (await importOriginal()) as Record<string, unknown>;
@@ -42,10 +52,6 @@ vi.mock("node:child_process", async (importOriginal) => {
     Symbol.for("nodejs.util.promisify.custom")
   ] = async (cmd: string, args: string[]) => {
     execFileCalls.push({ cmd, args: [...args] });
-    if (cmd === "ffprobe") {
-      const meta = probeQueue.shift();
-      return { stdout: meta ? metaJson(meta) : "{}", stderr: "" };
-    }
     // ffmpeg: write the requested output file so the node can read it back.
     const out = args[args.length - 1];
     await fs.writeFile(out, Buffer.from([0x99]));
@@ -73,7 +79,7 @@ function ffmpegArgString(): string {
 
 beforeEach(() => {
   execFileCalls = [];
-  probeQueue = [];
+  probeQueue.length = 0;
 });
 
 describe("ConcatVideoNode — codec-aware path selection", () => {
@@ -85,7 +91,7 @@ describe("ConcatVideoNode — codec-aware path selection", () => {
       fps: "30/1",
       hasAudio: true
     };
-    probeQueue = [uniform, uniform];
+    probeQueue.push(uniform, uniform);
 
     const node = new ConcatVideoNode();
     node.setDynamic("a", videoRef([1, 2]));
@@ -102,10 +108,10 @@ describe("ConcatVideoNode — codec-aware path selection", () => {
   });
 
   it("re-encodes to uniform segments when inputs differ", async () => {
-    probeQueue = [
+    probeQueue.push(
       { codec: "h264", width: 1920, height: 1080, fps: "30/1", hasAudio: true },
       { codec: "vp9", width: 1280, height: 720, fps: "25/1", hasAudio: false }
-    ];
+    );
 
     const node = new ConcatVideoNode();
     node.setDynamic("a", videoRef([1, 2]));

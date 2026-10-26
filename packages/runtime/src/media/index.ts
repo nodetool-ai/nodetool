@@ -45,3 +45,4 @@ export { muxAudioWithVideoCopy } from "./mux.js";
 export { convertAudioToWav, ensureMediabunnyServer, trimVideo } from "./convert.js";
 export { transcodeVideo } from "./transcode.js";
 export { AudioEncoder } from "./audio-encoder.js";
+export { concatSegments, type ConcatSegment } from "./concat.js";

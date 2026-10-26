@@ -15,11 +15,11 @@
   AddAudio (mix → replace). Pass `{ allowFallback: true }` to the non-terminal
   attempt so it returns `null`; the LAST attempt omits it and throws.
 - **A missing binary is `MissingBinaryError`**, carrying the binary name, raised
-  by `execFfmpeg`/`execFfprobe` on spawn `ENOENT` — for ffprobe as well as
-  ffmpeg. Every probe site surfaces it (Fps, GetVideoInfo, ForEachFrame, Concat,
-  Transition, ExtractFrame). Info-style nodes (Fps, GetVideoInfo) may still
-  degrade a *genuine* probe failure on corrupt input to a 0/empty result, but
-  must re-throw `MissingBinaryError`.
+  by `execFfmpeg` on spawn `ENOENT`. Probes run in process
+  (`probeVideoInfo`, `probeDurationSeconds`, `probeHasAudioStream` in
+  `ffmpeg-helpers.ts`, on `@nodetool-ai/runtime/media`), so a probe cannot be
+  missing. Info-style nodes (Fps, GetVideoInfo) degrade a probe failure on
+  corrupt input to a 0/empty result.
 - **Empty input bytes short-circuit** to an empty/passthrough ref before any
   spawn — that is not a failure and stays.
 
@@ -27,8 +27,10 @@
 
 Internal module (not re-exported from the package index) holding the exec
 helpers + `MissingBinaryError`, `videoRef`/`defaultVideoRef`, `parseFrameRate`,
-`ffprobeDuration`, `withTempFile`, `filePath`/`folderPath`, `dateName`,
-`uniqueTargetPath`, `coerceProviderBytes`, and `atempoChain`. Helpers take no node-specific
+the in-process probes (`probeDurationSeconds`, `probeHasAudioStream`,
+`probeVideoInfo`, `countVideoFrames`, `libavCodecName`), `withTempFile`,
+`filePath`/`folderPath`, `dateName`, `uniqueTargetPath`,
+`coerceProviderBytes`, and `atempoChain`. Helpers take no node-specific
 state so `timeline.ts` can import them too. `defaultVideoRef()` is called per
 `@prop` default so each prop gets its own object — never share one mutable
 default across props.
@@ -52,8 +54,9 @@ default across props.
   picture and stops a short one from cutting the picture off; its
   `output_length` property opts back into the unbounded behavior. The other
   mux sites are already bounded — `Overlay` mixes with `amix=duration=first`
-  over the main video's own audio, `Transition` uses `xfade`/`acrossfade`, and
-  both `normalizeConcatSegment` and `mixAudioInto` pass `-shortest`.
+  over the main video's own audio, `Transition` uses `xfade`/`acrossfade`,
+  `normalizeConcatSegment` passes `-shortest`, and `mixAudioInto` muxes through
+  `muxAudioWithVideoCopy`, which ends the audio where the picture ends.
 
 ## ffmpeg numbered sequences
 
@@ -87,7 +90,7 @@ logic: a rule belongs in `@nodetool-ai/timeline` or the web exporter.
   is encoded as VP9 and transcoded to H.264 by ffmpeg. VP9 alpha, ProRes and
   PNG sequences go through PNG frames.
 - **Untagged H.264 decodes differently.** Chrome reads an untagged clip as
-  BT.709 and ffmpeg (the Node compositor, the VP9 conversion) as BT.601, a
+  BT.709 and libav (the Node compositor, the VP9 conversion) as BT.601, a
   mean difference of about 0.035 on a test pattern. Tagged clips agree, so
   render fixtures tag their sources (`-colorspace bt709` and friends).
 - **Chroma is interpolated on both sides.** swscale's default yuv420p to RGBA
@@ -104,6 +107,19 @@ logic: a rule belongs in `@nodetool-ai/timeline` or the web exporter.
   Vitest config sets so the existing render tests keep exercising it.
 - **Cancel closes the browser.** The node passes `ctx.signal`, and an abort
   closes the page, the browser and the loopback server.
+
+### The Node compositor runs libav in process
+
+`rawFrames.ts` decodes clips and stills and encodes the composited frames
+through `@nodetool-ai/runtime/media` (node-av), with the filter strings, swscale
+flags and BT.709 arguments the ffmpeg CLI took. The audio mix runs the same
+`filter_complex` graph through `openFilterComplex` and `muxAudioWithVideoCopy`,
+and the rough cut normalizes and joins its clips with `concatSegments`. No path
+of the Node compositor, the mix or the rough cut spawns `ffmpeg` or `ffprobe`.
+The browser path (`browserRender.ts`, `browserSources.ts`) still runs the CLI
+for its source conversions and its transcode. Tests that fake the media module
+use `tests/_fixtures/fake-media.ts`; tests that need media make it with
+`@nodetool-ai/runtime/media/testing`.
 
 ### Variable-frame-rate sources in the Node compositor
 

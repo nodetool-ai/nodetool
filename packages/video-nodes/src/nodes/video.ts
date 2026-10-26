@@ -29,15 +29,15 @@ import {
 import {
   MissingBinaryError,
   execFfmpeg,
-  execFfprobe,
   videoRef,
   defaultVideoRef,
   filePath,
   folderPath,
   dateName,
   uniqueTargetPath,
-  parseFrameRate,
-  ffprobeDuration,
+  countVideoFrames,
+  probeDurationSeconds,
+  probeVideoInfo,
   withTempFile,
   coerceProviderBytes,
   FFMPEG_MAX_BUFFER
@@ -1125,19 +1125,10 @@ export class ForEachFrameNode extends VideoTransformNode {
     try {
       let fps = 24;
       try {
-        const { stdout } = await execFfprobe([
-          "-v", "error",
-          "-select_streams", "v:0",
-          "-show_entries", "stream=r_frame_rate",
-          "-of", "csv=p=0",
-          inputFile.path
-        ]);
-        const parsed = parseFrameRate(stdout);
+        const parsed = (await probeVideoInfo(inputFile.path)).fps;
         if (parsed > 0) fps = parsed;
-      } catch (error) {
-        // Missing ffprobe is actionable; a genuine probe failure falls back to
-        // 24 fps.
-        if (error instanceof MissingBinaryError) throw error;
+      } catch {
+        // A file the probe cannot read falls back to 24 fps.
       }
 
       const start = Math.max(0, Number(this.start ?? 0));
@@ -1224,17 +1215,9 @@ export class FpsNode extends VideoTransformNode {
 
     const inputFile = await withTempFile(".mp4", bytes);
     try {
-      const { stdout } = await execFfprobe([
-        "-v", "error",
-        "-select_streams", "v:0",
-        "-show_entries", "stream=r_frame_rate",
-        "-of", "csv=p=0",
-        inputFile.path
-      ]);
-      return { output: parseFrameRate(stdout) };
-    } catch (error) {
-      // Missing ffprobe is actionable; a genuine probe failure degrades to 0.
-      if (error instanceof MissingBinaryError) throw error;
+      return { output: (await probeVideoInfo(inputFile.path)).fps };
+    } catch {
+      // A probe failure on corrupt input degrades to 0.
       return { output: 0 };
     } finally {
       await inputFile.cleanup();
@@ -1347,32 +1330,13 @@ interface ConcatMeta {
 
 /** Probe a file's video codec/dimensions/fps and audio presence. */
 async function probeConcatMeta(file: string): Promise<ConcatMeta> {
-  const { stdout } = await execFfprobe([
-    "-v",
-    "error",
-    "-show_streams",
-    "-show_format",
-    "-of",
-    "json",
-    file
-  ]);
-  const info = JSON.parse(stdout) as {
-    streams?: Array<{
-      codec_type?: string;
-      codec_name?: string;
-      width?: number;
-      height?: number;
-      r_frame_rate?: string;
-    }>;
-  };
-  const streams = info.streams ?? [];
-  const v = streams.find((s) => s.codec_type === "video");
+  const info = await probeVideoInfo(file);
   return {
-    codec: v?.codec_name ?? "",
-    width: v?.width ?? 0,
-    height: v?.height ?? 0,
-    fps: v?.r_frame_rate ? parseFrameRate(v.r_frame_rate) : 0,
-    hasAudio: streams.some((s) => s.codec_type === "audio")
+    codec: info.codec,
+    width: info.width,
+    height: info.height,
+    fps: info.fps,
+    hasAudio: info.hasAudio
   };
 }
 
@@ -1895,7 +1859,7 @@ export class EaseCurveVideoNode extends VideoTransformNode {
     let sourceSec: number;
     let meta: ConcatMeta;
     try {
-      sourceSec = await ffprobeDuration(probe.path);
+      sourceSec = await probeDurationSeconds(probe.path);
       meta = await probeConcatMeta(probe.path);
     } finally {
       await probe.cleanup();
@@ -2708,7 +2672,7 @@ export class TransitionVideoNode extends VideoTransformNode {
     const tempA = await withTempFile(".mp4", a);
     let offsetVal: number;
     try {
-      const aDuration = await ffprobeDuration(tempA.path);
+      const aDuration = await probeDurationSeconds(tempA.path);
       offsetVal = Math.max(0, aDuration - duration);
     } finally {
       await tempA.cleanup();
@@ -3155,56 +3119,19 @@ export class GetVideoInfoNode extends VideoTransformNode {
 
     const inputFile = await withTempFile(".mp4", bytes);
     try {
-      const { stdout } = await execFfprobe([
-        "-v", "error",
-        "-show_streams",
-        "-show_format",
-        "-of", "json",
-        inputFile.path
-      ]);
-      const info = JSON.parse(stdout) as {
-        streams?: Array<{
-          codec_type?: string;
-          codec_name?: string;
-          width?: number;
-          height?: number;
-          r_frame_rate?: string;
-          nb_frames?: string;
-        }>;
-        format?: {
-          duration?: string;
-        };
-      };
-
-      const videoStream = (info.streams ?? []).find(
-        (s) => s.codec_type === "video"
-      );
-      const hasAudio = (info.streams ?? []).some(
-        (s) => s.codec_type === "audio"
-      );
-
-      const fps = videoStream?.r_frame_rate
-        ? parseFrameRate(videoStream.r_frame_rate)
-        : 0;
-
-      const duration = Number(info.format?.duration ?? 0) || 0;
-      const frameCount = videoStream?.nb_frames
-        ? Number(videoStream.nb_frames) || 0
-        : Math.round(duration * fps);
-
+      const info = await probeVideoInfo(inputFile.path);
+      const frameCount = info.width > 0 ? await countVideoFrames(inputFile.path) : 0;
       return {
-        duration,
-        width: videoStream?.width ?? 0,
-        height: videoStream?.height ?? 0,
-        fps,
+        duration: info.durationSec,
+        width: info.width,
+        height: info.height,
+        fps: info.fps,
         frame_count: frameCount,
-        codec: videoStream?.codec_name ?? "",
-        has_audio: hasAudio
+        codec: info.codec,
+        has_audio: info.hasAudio
       };
-    } catch (error) {
-      // Missing ffprobe is actionable; a genuine probe failure on corrupt
-      // input degrades to the empty info result.
-      if (error instanceof MissingBinaryError) throw error;
+    } catch {
+      // A probe failure on corrupt input degrades to the empty info result.
       return {
         duration: 0,
         width: 0,

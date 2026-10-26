@@ -953,9 +953,10 @@ half-specified override is an error, not a guess. Lines are voiced concurrently
 Synthesis delegates to `GenerateSpeechTool`, so the encoded/streaming-PCM
 provider split is handled in one place. Word timings come from a best-effort ASR
 pass (`whisper-1` by default, `transcribe: false` to skip it) and ride into the
-assembled clips as captions. Take duration is ffprobe's answer, falling back to
-the last word timing and then to the 3s placeholder — a take stays assemblable
-without an exact length.
+assembled clips as captions. Take duration is the container's own, probed in
+process through `@nodetool-ai/runtime/media`, falling back to the last word
+timing and then to the 3s placeholder. A take stays assemblable without an
+exact length.
 
 The voice rule (`effectiveVoice`), the staleness rule (`needsVoicing`) and the
 script → timeline mapping (`buildScriptTimeline`) live in

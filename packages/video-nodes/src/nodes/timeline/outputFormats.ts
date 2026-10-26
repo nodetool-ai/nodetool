@@ -51,9 +51,9 @@ export class MissingEncoderError extends Error {
 
   constructor(encoder: string, format: TimelineOutputFormat) {
     super(
-      `This ffmpeg build has no "${encoder}" encoder, which the "${format}" ` +
-        "format needs. Install an ffmpeg built with it, or render to another " +
-        "format."
+      `NodeTool's media build has no "${encoder}" encoder, which the ` +
+        `"${format}" format needs. Render to another format, or pick another ` +
+        "video codec."
     );
     this.name = "MissingEncoderError";
     this.encoder = encoder;

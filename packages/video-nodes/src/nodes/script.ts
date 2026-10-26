@@ -58,7 +58,7 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { ffprobeDuration } from "./ffmpeg-helpers.js";
+import { probeDurationSeconds } from "./ffmpeg-helpers.js";
 import { stringValues } from "./placeholder-values.js";
 import { isString } from "@nodetool-ai/node-sdk";
 
@@ -922,7 +922,7 @@ async function probeDurationMs(
   const probePath = path.join(workDir, `line_${index}`);
   try {
     await fs.writeFile(probePath, bytes);
-    const seconds = await ffprobeDuration(probePath);
+    const seconds = await probeDurationSeconds(probePath);
     return seconds > 0 ? Math.round(seconds * 1000) : PLACEHOLDER_LINE_MS;
   } catch {
     return PLACEHOLDER_LINE_MS;

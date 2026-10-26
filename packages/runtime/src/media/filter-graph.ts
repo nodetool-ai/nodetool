@@ -4,13 +4,14 @@
  */
 
 import {
+  AV_NOPTS_VALUE,
   AVERROR_EOF,
   AVMEDIA_TYPE_AUDIO,
-  FFmpegError,
   AVMEDIA_TYPE_VIDEO,
+  FFmpegError,
   FilterAPI,
   FilterComplexAPI,
-  type Frame
+  Frame
 } from "node-av";
 
 import { abortError, throwIfAborted } from "./av.js";
@@ -101,6 +102,125 @@ export async function openFilterGraph(opts: {
   );
 }
 
+interface PendingInput {
+  label: string;
+  frames: AsyncIterator<Frame>;
+  next: Frame | null;
+  done: boolean;
+}
+
+function frameSeconds(frame: Frame): number {
+  const { timeBase } = frame;
+  if (frame.pts === AV_NOPTS_VALUE || !(timeBase.den > 0)) return Number.NEGATIVE_INFINITY;
+  return (Number(frame.pts) * timeBase.num) / timeBase.den;
+}
+
+/**
+ * Feed a filter_complex graph the way the ffmpeg CLI does: always the input
+ * whose next frame is earliest, each input ended on its own when it runs out,
+ * output collected after every frame.
+ *
+ * node-av's `FilterComplexAPI.frames()` reads one frame from every input in
+ * lockstep and finalizes the whole graph as soon as any one input ends, so a
+ * mix of a short clip and a long one stops at the short one (and an `apad`
+ * after it never ends). Every input gets its first frame before any is
+ * ended, because the graph only configures once each input has a format.
+ */
+async function* driveFilterComplex(
+  graph: FilterComplexAPI,
+  output: string,
+  inputs: FilterComplexInput[],
+  decoded: DecodedStream[]
+): AsyncGenerator<Frame> {
+  const pending: PendingInput[] = inputs.map((input, index) => ({
+    label: input.label,
+    frames: decoded[index]!.frames()[Symbol.asyncIterator](),
+    next: null,
+    done: false
+  }));
+  let ended = false;
+  async function* drain(): AsyncGenerator<Frame> {
+    for (;;) {
+      const out = await graph.receive(output);
+      if (out === null) return;
+      if (!(out instanceof Frame)) {
+        ended = true;
+        return;
+      }
+      yield out;
+    }
+  }
+  /**
+   * Send `input`'s pending frame. A branch that ends itself (`atrim=end=`)
+   * refuses further frames with EOF: that input is finished, the graph is not.
+   */
+  const send = async (input: PendingInput): Promise<void> => {
+    const frame = input.next!;
+    input.next = null;
+    try {
+      await graph.process(input.label, frame);
+    } catch (error) {
+      if (!(error instanceof FFmpegError && error.code === AVERROR_EOF)) throw error;
+      input.done = true;
+    } finally {
+      frame.free();
+    }
+  };
+  const advance = async (input: PendingInput): Promise<void> => {
+    if (input.done) {
+      // Its branch ended; release what is left of the decode.
+      await input.frames.return?.(undefined);
+      return;
+    }
+    const result = await input.frames.next();
+    if (result.done) {
+      input.done = true;
+      input.next = null;
+    } else {
+      input.next = result.value;
+    }
+  };
+
+  for (const input of pending) {
+    await advance(input);
+    if (input.done) throw new Error(`[${input.label}] decoded to no frames`);
+  }
+  for (const input of pending) {
+    await send(input);
+    await advance(input);
+  }
+  yield* drain();
+
+  for (;;) {
+    let earliest: PendingInput | null = null;
+    for (const input of pending) {
+      if (input.done || !input.next) continue;
+      if (!earliest || frameSeconds(input.next) < frameSeconds(earliest.next!)) earliest = input;
+    }
+    if (!earliest) break;
+    await send(earliest);
+    yield* drain();
+    if (ended) return;
+    const wasDone = earliest.done;
+    await advance(earliest);
+    if (earliest.done && !wasDone) {
+      await graph.flush(earliest.label);
+      yield* drain();
+      if (ended) return;
+    }
+  }
+  // Every input has ended; the graph runs out (or pads forever, for the
+  // caller to stop).
+  while (!ended) {
+    let produced = false;
+    for await (const frame of drain()) {
+      produced = true;
+      yield frame;
+    }
+    if (!produced) return;
+  }
+}
+
 /** One input of a filter_complex graph: a file stream bound to a link label. */
 export interface FilterComplexInput {
   filePath: string;
@@ -146,12 +266,9 @@ export async function openFilterComplex(opts: {
       ],
       signal: opts.signal
     });
-    const sources: Record<string, AsyncIterable<Frame | null>> = {};
-    for (const [index, input] of opts.inputs.entries()) {
-      sources[input.label] = withEndOfStream(decoded[index].frames());
-    }
+    const output = opts.output;
     return filterRun(
-      () => graph.frames(opts.output, sources),
+      () => driveFilterComplex(graph, output, opts.inputs, decoded),
       async () => {
         for (const stream of decoded) await stream.close();
         graph.close();

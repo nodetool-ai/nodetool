@@ -180,6 +180,58 @@ describe("filter graphs", () => {
     expect(rmsBetween(audio, 1.1, 1.4) / single).toBeCloseTo(1, 1);
   });
 
+  it("keeps reading the longer input after a shorter one ends", async () => {
+    // av.mp4 has 2 s of sound, tone.wav 1 s. node-av's own driver stopped the
+    // whole graph when the first input ended.
+    const run = await openFilterComplex({
+      inputs: [
+        { filePath: file("tone.wav"), kind: "audio", label: "1:a" },
+        { filePath: file("av.mp4"), kind: "audio", label: "0:a" }
+      ],
+      graph: "[0:a]aformat=channel_layouts=stereo[base];[base][1:a]amix=inputs=2:duration=longest:normalize=0,aformat=sample_fmts=flt:sample_rates=48000:channel_layouts=stereo,apad[out]",
+      output: "out",
+      outputKind: "audio"
+    });
+    const chunks: Float32Array[] = [];
+    let seconds = 0;
+    for await (const frame of run.frames()) {
+      chunks.push(new Float32Array(new Uint8Array(frame.toBuffer()).buffer));
+      seconds += frame.nbSamples / 48000;
+      frame.free();
+      // `apad` never ends; stop as the mux does.
+      if (seconds >= 3) break;
+    }
+    await run.close();
+    const audio = {
+      samples: Float32Array.from(chunks.flatMap((chunk) => [...chunk])),
+      sampleRate: 48000,
+      channels: 2
+    };
+    expect(rmsBetween(audio, 1.2, 1.8)).toBeGreaterThan(0.05);
+    expect(rmsBetween(audio, 2.2, 2.8)).toBe(0);
+  });
+
+  it("goes on mixing after one branch trims itself to an end", async () => {
+    // The atrim branch refuses frames with EOF after 0.2 s; that ends the
+    // branch, not the graph.
+    const run = await openFilterComplex({
+      inputs: [
+        { filePath: file("av.mp4"), kind: "audio", label: "0:a" },
+        { filePath: file("tone.wav"), kind: "audio", label: "1:a" }
+      ],
+      graph: "[1:a]atrim=end=0.2,asetpts=PTS-STARTPTS,adelay=1000|1000[late];[0:a]aformat=channel_layouts=stereo[base];[base][late]amix=inputs=2:duration=longest:normalize=0,aformat=sample_fmts=flt:sample_rates=48000:channel_layouts=stereo[out]",
+      output: "out",
+      outputKind: "audio"
+    });
+    let seconds = 0;
+    for await (const frame of run.frames()) {
+      seconds += frame.nbSamples / 48000;
+      frame.free();
+    }
+    await run.close();
+    expect(seconds).toBeGreaterThan(1.95);
+  });
+
   it("refuses an input with no stream of its kind", async () => {
     await expect(
       openFilterComplex({

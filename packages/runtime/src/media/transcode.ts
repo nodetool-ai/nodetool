@@ -6,7 +6,7 @@
 
 import { Encoder, type Frame } from "node-av";
 
-import { abortError, findEncoder, openFileMuxer, type FileMuxer } from "./av.js";
+import { abortError, findEncoder, openFileMuxer, quietLibav, type FileMuxer } from "./av.js";
 import { openFilterGraph } from "./filter-graph.js";
 import type { VideoEncoderSpec } from "./rgba.js";
 
@@ -21,6 +21,7 @@ export async function transcodeVideo(opts: {
   signal?: AbortSignal;
 }): Promise<void> {
   const { spec, signal } = opts;
+  quietLibav();
   const codec = findEncoder(spec.codec);
   if (!codec) throw new Error(`This libav build has no ${spec.codec} encoder`);
   const run = await openFilterGraph({

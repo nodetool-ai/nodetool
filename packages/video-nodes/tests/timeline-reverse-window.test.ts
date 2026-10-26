@@ -325,7 +325,9 @@ describe("reverse source windows", () => {
       width,
       height,
       fps: FPS,
-      encoderArgs: ["-c:v", "libx264", "-preset", "ultrafast", "-g", "2", "-pix_fmt", "yuv420p"]
+      // Lossless, so the gray read back names the frame exactly: a lossy P-frame
+      // over flat 4K gray lands a few levels off, by encoder build.
+      encoderArgs: ["-c:v", "libx264", "-preset", "ultrafast", "-qp", "0", "-g", "2", "-pix_fmt", "yuv420p"]
     });
     const rgba = new Uint8Array(width * height * 4);
     for (let index = 0; index < frames; index++) {

@@ -37,6 +37,8 @@ export interface VideoStreamInfo {
   averageFps: number;
   /** True only when every lattice slot holds a frame. */
   constantFrameRate: boolean;
+  /** Whether the frames may carry alpha (a `yuva*` or RGBA stream). */
+  alpha: boolean;
   /** Ticks per second of the track's timestamps. */
   timeResolution: number;
 }
@@ -112,6 +114,7 @@ export async function probeMedia(
         nominalFps: rates.underlyingFrameRate,
         averageFps: rates.averageFrameRate,
         constantFrameRate: rates.frameRateIsConstant,
+        alpha: await videoTrack.canBeTransparent(),
         timeResolution: videoTrack.timeResolution
       };
     }

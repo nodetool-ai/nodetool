@@ -1,9 +1,10 @@
 /**
- * Raw RGBA plumbing between ffmpeg and the timeline compositor.
+ * Raw RGBA plumbing between libav and the timeline compositor.
  *
  * The compositor wants CPU-side straight-alpha RGBA for every layer of every
- * frame, and hands back the composited frame in the same form. ffmpeg does the
- * decoding and encoding on both ends:
+ * frame, and hands back the composited frame in the same form. libav, in
+ * process through `@nodetool-ai/runtime/media`, does the decoding and encoding
+ * on both ends, with the filter strings the ffmpeg CLI ran:
  *
  * - {@link decodeImageRgba} decodes a still once.
  * - {@link openVideoFrameStream} decodes a clip lazily, one frame at a time.
@@ -14,17 +15,19 @@
  *   encoder.
  */
 
-import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
 import { open, readFile } from "node:fs/promises";
-import type { Readable } from "node:stream";
 
 import { createCanvas, loadImage } from "@napi-rs/canvas";
-
 import {
-  MissingBinaryError,
-  execFfmpeg,
-  execFfprobe
-} from "../ffmpeg-helpers.js";
+  hasEncoder,
+  openRgbaFrameReader,
+  openVideoFrameEncoder,
+  packetTimes,
+  probeMedia,
+  type RgbaFrameReader,
+  type VideoEncoderSpec,
+  type VideoFrameEncoder
+} from "@nodetool-ai/runtime/media";
 
 /** Pixel dimensions of a decoded source. */
 interface RawSize {
@@ -57,55 +60,49 @@ export function fitWithin(source: RawSize, canvas: RawSize): RawSize {
 
 /** Probe a media file's video dimensions, or `null` when it has no video. */
 export async function probeVideoSize(filePath: string): Promise<RawSize | null> {
-  const { stdout } = await execFfprobe([
-    "-v",
-    "error",
-    "-select_streams",
-    "v:0",
-    "-show_entries",
-    "stream=width,height",
-    "-of",
-    "csv=p=0:s=x",
-    filePath
-  ]);
-  const match = /^(\d+)x(\d+)/.exec(stdout.trim());
-  if (!match) return null;
-  return { width: Number(match[1]), height: Number(match[2]) };
+  let video: Awaited<ReturnType<typeof probeMedia>>["video"];
+  try {
+    ({ video } = await probeMedia(filePath));
+  } catch {
+    // Not a container: a still format the image decoder may still read.
+    return probeStillSize(filePath);
+  }
+  if (!video) return null;
+  return { width: video.width, height: video.height };
 }
 
-/** Native source rate used only for verified frame-grid caching. */
+/**
+ * The size of a still Mediabunny does not read as a container (PNG, JPEG,
+ * WebP), from the image decoder's first frame.
+ */
+async function probeStillSize(filePath: string): Promise<RawSize | null> {
+  let reader: RgbaFrameReader | null = null;
+  try {
+    reader = await openRgbaFrameReader({ filePath, filter: "format=rgba", readAhead: 1 });
+    const frame = await reader?.next();
+    return frame ? { width: frame.width, height: frame.height } : null;
+  } catch {
+    // Neither a container nor an image.
+    return null;
+  } finally {
+    await reader?.close();
+  }
+}
+
+/**
+ * The rate of the source's frame lattice, for the frame-grid cache in
+ * {@link openSourceFrameStream}: the grid the timestamps sit on, even when
+ * frames are missing from it. A source on no lattice answers 1, which no real
+ * grid matches, so the cache stays off and each frame is an exact seek.
+ */
 export async function probeVideoFrameRate(filePath: string): Promise<number> {
-  const { stdout } = await execFfprobe([
-    "-v",
-    "error",
-    "-select_streams",
-    "v:0",
-    "-show_entries",
-    "stream=avg_frame_rate",
-    "-of",
-    "default=noprint_wrappers=1:nokey=1",
-    filePath
-  ]);
-  const [numerator, denominator = "1"] = stdout.trim().split("/");
-  const rate = Number(numerator) / Number(denominator);
-  // An unknown grid disables caching; exact timestamp seeks still work.
-  return Number.isFinite(rate) && rate > 0 ? rate : 1;
-}
-
-function spawnFfmpeg(args: string[]): ChildProcessWithoutNullStreams {
-  return spawn("ffmpeg", args, { stdio: ["pipe", "pipe", "pipe"] });
-}
-
-/** Collect a process's stderr so a failure can say what ffmpeg complained about. */
-function captureStderr(stream: Readable): () => string {
-  const chunks: Buffer[] = [];
-  stream.on("data", (chunk: Buffer) => {
-    // Keep the tail only: a failing decode can be verbose, and the last lines
-    // are the ones that name the cause.
-    chunks.push(chunk);
-    if (chunks.length > 32) chunks.shift();
-  });
-  return () => Buffer.concat(chunks).toString("utf8").trim();
+  try {
+    const { video } = await probeMedia(filePath);
+    const rate = video?.nominalFps;
+    return rate !== null && rate !== undefined && Number.isFinite(rate) && rate > 0 ? rate : 1;
+  } catch {
+    return 1;
+  }
 }
 
 /**
@@ -120,46 +117,24 @@ export async function decodeImageRgba(
   filePath: string,
   size: RawSize
 ): Promise<RawImage> {
-  const child = spawnFfmpeg([
-    "-v",
-    "error",
-    "-i",
+  const reader = await openRgbaFrameReader({
     filePath,
-    "-vf",
-    `scale=${size.width}:${size.height}:flags=${SCALE_FLAGS}`,
-    "-frames:v",
-    "1",
-    "-f",
-    "rawvideo",
-    "-pix_fmt",
-    "rgba",
-    "pipe:1"
-  ]);
-  const stderr = captureStderr(child.stderr);
-  const chunks: Buffer[] = [];
-  child.stdout.on("data", (chunk: Buffer) => chunks.push(chunk));
-
-  await new Promise<void>((resolve, reject) => {
-    child.on("error", (error: NodeJS.ErrnoException) =>
-      reject(
-        error.code === "ENOENT" ? new MissingBinaryError("ffmpeg") : error
-      )
-    );
-    child.on("close", (code) =>
-      code === 0
-        ? resolve()
-        : reject(new Error(`ffmpeg failed to decode image: ${stderr()}`))
-    );
+    filter: `scale=${size.width}:${size.height}:flags=${SCALE_FLAGS},format=rgba`,
+    readAhead: 1
   });
-
-  const rgba = new Uint8Array(Buffer.concat(chunks));
-  const expected = size.width * size.height * 4;
-  if (rgba.length < expected) {
-    throw new Error(
-      `ffmpeg produced ${rgba.length} bytes for a ${size.width}x${size.height} frame (expected ${expected})`
-    );
+  if (!reader) throw new Error(`No picture to decode in ${filePath}`);
+  try {
+    const frame = await reader.next();
+    const expected = size.width * size.height * 4;
+    if (!frame || frame.rgba.length < expected) {
+      throw new Error(
+        `Decoded ${frame?.rgba.length ?? 0} bytes for a ${size.width}x${size.height} frame (expected ${expected})`
+      );
+    }
+    return { rgba: frame.rgba.subarray(0, expected), ...size };
+  } finally {
+    await reader.close();
   }
-  return { rgba: rgba.subarray(0, expected), ...size };
 }
 
 /** Whether `filePath` holds SVG markup. Stored assets often have no extension. */
@@ -225,7 +200,7 @@ export interface VideoFrameStream extends RawSize {
   close(): void;
 }
 
-/** How many decoded frames ffmpeg may run ahead of the consumer. */
+/** How many decoded frames may wait ahead of the consumer. */
 const READAHEAD_FRAMES = 4;
 
 interface VideoFrameStreamOptions {
@@ -260,37 +235,16 @@ export function openVideoFrameStream(
     "format=rgba"
   ].filter((f): f is string => f !== null);
 
-  const child = spawnFfmpeg([
-    "-v",
-    "error",
-    ...(startSec > 0 ? ["-ss", String(startSec)] : []),
-    "-i",
+  // Opening starts now, so the first frame is decoding before it is asked for.
+  const opening = openRgbaFrameReader({
     filePath,
-    "-vf",
-    filters.join(","),
-    ...(opts.nativeSampling ? ["-fps_mode", "passthrough"] : []),
-    "-f",
-    "rawvideo",
-    "-pix_fmt",
-    "rgba",
-    "pipe:1"
-  ]);
-  const stderr = captureStderr(child.stderr);
-
-  const frameBytes = size.width * size.height * 4;
-  const reader = new FrameReader(child.stdout, frameBytes);
-  let spawnError: Error | null = null;
-  child.on("error", (error: NodeJS.ErrnoException) => {
-    spawnError =
-      error.code === "ENOENT" ? new MissingBinaryError("ffmpeg") : error;
-    reader.fail(spawnError);
+    filter: filters.join(","),
+    seekSec: startSec,
+    readAhead: READAHEAD_FRAMES
   });
-  child.on("close", (code) => {
-    if (code !== 0 && code !== null && !reader.done) {
-      reader.fail(new Error(`ffmpeg failed to decode clip: ${stderr()}`));
-    }
-  });
-
+  // A failed open surfaces at the first frameAt; never as an unhandled rejection.
+  opening.catch(() => {});
+  let closed = false;
   let nextIndex = 0;
   let last: Uint8Array | null = null;
 
@@ -298,18 +252,20 @@ export function openVideoFrameStream(
     width: size.width,
     height: size.height,
     async frameAt(index: number): Promise<Uint8Array | null> {
-      if (spawnError) throw spawnError;
+      const reader = await opening;
+      if (!reader) throw new Error(`No video stream to decode in ${filePath}`);
       while (nextIndex <= index) {
+        if (closed) return last;
         const frame = await reader.next();
         nextIndex += 1;
         if (!frame) return last;
-        last = frame;
+        last = frame.rgba;
       }
       return last;
     },
     close(): void {
-      reader.close();
-      child.kill("SIGKILL");
+      closed = true;
+      void opening.then((reader) => reader?.close()).catch(() => {});
     }
   };
 }
@@ -341,45 +297,29 @@ export interface SourceFrameStream extends RawSize {
  */
 const GRID_PROBE_TIMEOUT_MS = 10_000;
 
+/** Packets the grid probe reads before it gives up on a source as too long. */
+const GRID_PROBE_MAX_PACKETS = 1_000_000;
+
 /** Only a verified regular source grid can be indexed inside a decode window. */
 async function hasRegularFrameGrid(filePath: string, fps: number, signal: AbortSignal): Promise<boolean> {
   if (signal.aborted) return false;
-  const stdout = await new Promise<string | null>((resolve) => {
-    const child = spawn("ffprobe", [
-      "-v", "error", "-select_streams", "v:0",
-      "-show_entries", "packet=pts_time", "-of", "csv=p=0", filePath
-    ], { stdio: ["ignore", "pipe", "ignore"] });
-    const chunks: Buffer[] = [];
-    let bytes = 0;
-    let settled = false;
-    const finish = (value: string | null): void => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(deadline);
-      signal.removeEventListener("abort", cancel);
-      resolve(value);
-    };
-    const cancel = (): void => {
-      child.kill("SIGKILL");
-      finish(null);
-    };
-    const deadline = setTimeout(cancel, GRID_PROBE_TIMEOUT_MS);
-    signal.addEventListener("abort", cancel, { once: true });
-    child.stdout.on("data", (chunk: Buffer) => {
-      bytes += chunk.length;
-      if (bytes > 8 * 1024 * 1024) {
-        cancel();
-      } else {
-        chunks.push(chunk);
-      }
+  const probe = new AbortController();
+  const cancel = (): void => probe.abort();
+  const deadline = setTimeout(cancel, GRID_PROBE_TIMEOUT_MS);
+  signal.addEventListener("abort", cancel, { once: true });
+  let times: number[] | null;
+  try {
+    times = await packetTimes(filePath, {
+      signal: probe.signal,
+      maxPackets: GRID_PROBE_MAX_PACKETS
     });
-    child.on("error", () => finish(null));
-    child.on("close", (code) => finish(code === 0 ? Buffer.concat(chunks).toString("utf8") : null));
-    if (signal.aborted) cancel();
-  });
-  if (stdout === null) return false;
-  const times = stdout.trim().split(/\r?\n/).map(Number);
-  if (times.length < 2 || times.some((time) => !Number.isFinite(time))) return false;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(deadline);
+    signal.removeEventListener("abort", cancel);
+  }
+  if (!times || times.length < 2 || times.some((time) => !Number.isFinite(time))) return false;
   times.sort((left, right) => left - right);
   for (const [index, time] of times.entries()) {
     const expected = index / fps;
@@ -595,106 +535,6 @@ export function openForwardSourceFrameStream(opts: {
   };
 }
 
-/**
- * Pull exact-size frames out of a byte stream, with the read-ahead bounded by
- * pausing the stream — a 1080p frame is 8 MB, so an unbounded buffer would let
- * a fast decoder outrun the compositor into gigabytes of RAM.
- */
-class FrameReader {
-  private chunks: Buffer[] = [];
-  private buffered = 0;
-  private waiting: ((frame: Uint8Array | null) => void) | null = null;
-  private failure: Error | null = null;
-  private rejectWaiting: ((error: Error) => void) | null = null;
-  private ended = false;
-  private closed = false;
-
-  constructor(
-    private readonly stream: Readable,
-    private readonly frameBytes: number
-  ) {
-    stream.on("data", (chunk: Buffer) => {
-      this.chunks.push(chunk);
-      this.buffered += chunk.length;
-      this.drain();
-      if (this.buffered > this.frameBytes * READAHEAD_FRAMES) {
-        stream.pause();
-      }
-    });
-    stream.on("end", () => {
-      this.ended = true;
-      this.drain();
-    });
-    stream.on("error", (error: Error) => this.fail(error));
-  }
-
-  get done(): boolean {
-    return this.ended || this.closed;
-  }
-
-  next(): Promise<Uint8Array | null> {
-    if (this.failure) return Promise.reject(this.failure);
-    const ready = this.take();
-    if (ready) return Promise.resolve(ready);
-    if (this.ended || this.closed) return Promise.resolve(null);
-    this.stream.resume();
-    return new Promise<Uint8Array | null>((resolve, reject) => {
-      this.waiting = resolve;
-      this.rejectWaiting = reject;
-    });
-  }
-
-  fail(error: Error): void {
-    this.failure = error;
-    const reject = this.rejectWaiting;
-    this.waiting = null;
-    this.rejectWaiting = null;
-    reject?.(error);
-  }
-
-  close(): void {
-    this.closed = true;
-    this.chunks = [];
-    this.buffered = 0;
-    this.waiting?.(null);
-    this.waiting = null;
-    this.rejectWaiting = null;
-  }
-
-  private drain(): void {
-    if (!this.waiting) return;
-    const frame = this.take();
-    if (frame) {
-      const resolve = this.waiting;
-      this.waiting = null;
-      this.rejectWaiting = null;
-      resolve(frame);
-      return;
-    }
-    if (this.ended) {
-      const resolve = this.waiting;
-      this.waiting = null;
-      this.rejectWaiting = null;
-      resolve(null);
-    }
-  }
-
-  /** Splice one frame out of the buffered chunks, or `null` if short. */
-  private take(): Uint8Array | null {
-    if (this.buffered < this.frameBytes) return null;
-    const merged =
-      this.chunks.length === 1 ? this.chunks[0] : Buffer.concat(this.chunks);
-    const frame = merged.subarray(0, this.frameBytes);
-    const rest = merged.subarray(this.frameBytes);
-    this.chunks = rest.length > 0 ? [rest] : [];
-    this.buffered = rest.length;
-    if (this.buffered <= this.frameBytes * READAHEAD_FRAMES) {
-      this.stream.resume();
-    }
-    return new Uint8Array(frame);
-  }
-}
-
 /** A running encoder that turns written RGBA frames into an output file. */
 export interface FrameEncoder {
   /** One frame: RGBA8 for {@link openFrameEncoder}, a PNG for {@link openPngFrameEncoder}. */
@@ -705,36 +545,21 @@ export interface FrameEncoder {
 }
 
 /**
- * Report whether this ffmpeg build ships `encoder`.
+ * Report whether the bundled libav ships `encoder`.
  *
- * ProRes 4444 and VP9 are both optional at build time — a distro ffmpeg may
- * carry neither — and a render that discovers this after compositing every
- * frame has burned the whole render. Probed once before the frame loop starts.
- *
- * A build that cannot be asked (no ffmpeg, an unparsable listing) answers
- * `false`, so the caller refuses with a message naming the encoder rather than
- * failing on ffmpeg's own output an hour later.
+ * ProRes 4444 and VP9 are both optional at build time, and a render that
+ * discovers this after compositing every frame has burned the whole render.
+ * Probed once before the frame loop starts.
  */
-export async function ffmpegHasEncoder(encoder: string): Promise<boolean> {
-  try {
-    const { stdout } = await execFfmpeg(["-hide_banner", "-encoders"], {
-      maxBuffer: 8 * 1024 * 1024
-    });
-    // The listing is `<flags> <name> <description>`; match the name column so
-    // an encoder merely mentioned in a description does not count.
-    return stdout
-      .split("\n")
-      .some((line) => line.trim().split(/\s+/)[1] === encoder);
-  } catch {
-    return false;
-  }
+export function libavHasEncoder(encoder: string): Promise<boolean> {
+  return hasEncoder(encoder);
 }
 
 /**
  * H.264 at `yuv420p`, converted to BT.709 and tagged as such.
  *
  * The same reasoning as `outputFormats.ts`: raw RGBA in, YUV out, and without
- * the scaler and the tags ffmpeg uses BT.601 and records nothing, so the file
+ * the scaler and the tags libav uses BT.601 and records nothing, so the file
  * plays back off-hue everywhere. A caller that passes its own `encoderArgs`
  * owns its own colour handling.
  */
@@ -758,6 +583,55 @@ export function defaultEncoderArgs(): string[] {
 }
 
 /**
+ * Read the ffmpeg output arguments `outputFormats.ts` writes as an encoder
+ * spec: `-c:v`, `-pix_fmt` and `-vf` name the codec, pixel format and filter,
+ * and every other `-name value` pair (`-preset`, `-profile:v`, `-b:v`,
+ * `-colorspace`, ...) becomes an encoder option.
+ */
+export function encoderSpecFromArgs(args: readonly string[]): VideoEncoderSpec {
+  let codec = "libx264";
+  let pixelFormat = "yuv420p";
+  let filter: string | undefined;
+  const options: Record<string, string> = {};
+  for (let i = 0; i < args.length; i += 2) {
+    const flag = args[i];
+    const value = args[i + 1];
+    if (!flag?.startsWith("-") || value === undefined) {
+      throw new Error(`Unreadable encoder arguments: ${args.join(" ")}`);
+    }
+    const name = flag.slice(1).replace(/:v$/, "");
+    if (name === "c") codec = value;
+    else if (name === "pix_fmt") pixelFormat = value;
+    else if (name === "vf") filter = value;
+    else options[name] = value;
+  }
+  return { codec, pixelFormat, filter, options };
+}
+
+/**
+ * Wrap an encoder that is still opening: writes wait for it, and an abort
+ * before it opened stops it as soon as it does.
+ */
+function pendingEncoder(opening: Promise<VideoFrameEncoder>): FrameEncoder {
+  opening.catch(() => {});
+  let aborted = false;
+  return {
+    async write(frame: Uint8Array): Promise<void> {
+      if (aborted) throw new Error("Encoding aborted");
+      await (await opening).write(frame);
+    },
+    async finish(): Promise<void> {
+      if (aborted) throw new Error("Encoding aborted");
+      await (await opening).finish();
+    },
+    abort(): void {
+      aborted = true;
+      void opening.then((encoder) => encoder.abort()).catch(() => {});
+    }
+  };
+}
+
+/**
  * Start encoding RGBA frames written at `fps` into `outPath`.
  *
  * `encoderArgs` decides the codec, profile and pixel format — the alpha-capable
@@ -773,11 +647,15 @@ export function openFrameEncoder(opts: {
   /** Output codec arguments. Defaults to H.264 at `yuv420p`. */
   encoderArgs?: readonly string[];
 }): FrameEncoder {
-  const { width, height, fps } = opts;
-  return openPipeEncoder(
-    ["-f", "rawvideo", "-pix_fmt", "rgba", "-s", `${width}x${height}`, "-r", String(fps)],
-    opts.encoderArgs ?? defaultEncoderArgs(),
-    opts.outPath
+  return pendingEncoder(
+    openVideoFrameEncoder({
+      outPath: opts.outPath,
+      fps: opts.fps,
+      input: "rgba",
+      width: opts.width,
+      height: opts.height,
+      spec: encoderSpecFromArgs(opts.encoderArgs ?? defaultEncoderArgs())
+    })
   );
 }
 
@@ -791,92 +669,12 @@ export function openPngFrameEncoder(opts: {
   fps: number;
   encoderArgs: readonly string[];
 }): FrameEncoder {
-  return openPipeEncoder(
-    ["-f", "image2pipe", "-c:v", "png", "-framerate", String(opts.fps)],
-    opts.encoderArgs,
-    opts.outPath
-  );
-}
-
-/** One long-running ffmpeg reading frames on stdin, described by `inputArgs`. */
-function openPipeEncoder(
-  inputArgs: readonly string[],
-  encoderArgs: readonly string[],
-  outPath: string
-): FrameEncoder {
-  const child = spawnFfmpeg([
-    "-y",
-    "-v",
-    "error",
-    ...inputArgs,
-    "-i",
-    "pipe:0",
-    ...encoderArgs,
-    outPath
-  ]);
-  const stderr = captureStderr(child.stderr);
-  // The encoder writes nothing to stdout, but an unread pipe would eventually
-  // block the process.
-  child.stdout.resume();
-
-  let failure: Error | null = null;
-  const pendingDrains = new Set<(error: Error) => void>();
-  const fail = (error: Error): void => {
-    if (failure) return;
-    failure = error;
-    for (const reject of pendingDrains) reject(error);
-    pendingDrains.clear();
-  };
-  child.on("error", (error: NodeJS.ErrnoException) => {
-    fail(error.code === "ENOENT" ? new MissingBinaryError("ffmpeg") : error);
-  });
-  child.stdin.on("error", fail);
-  const closed = new Promise<number | null>((resolve) =>
-    child.on("close", (code) => {
-      if (code !== 0) {
-        fail(new Error(`ffmpeg failed to encode the timeline: ${stderr()}`));
-      } else if (pendingDrains.size > 0) {
-        fail(new Error("ffmpeg closed before the frame write drained"));
-      }
-      resolve(code);
+  return pendingEncoder(
+    openVideoFrameEncoder({
+      outPath: opts.outPath,
+      fps: opts.fps,
+      input: "png",
+      spec: encoderSpecFromArgs(opts.encoderArgs)
     })
   );
-
-  return {
-    async write(frame: Uint8Array): Promise<void> {
-      if (failure) throw failure;
-      const ok = child.stdin.write(Buffer.from(frame.buffer, frame.byteOffset, frame.byteLength));
-      if (!ok) {
-        await new Promise<void>((resolve, reject) => {
-          const rejectPending = (error: Error): void => {
-            child.stdin.off("drain", onDrain);
-            pendingDrains.delete(rejectPending);
-            reject(error);
-          };
-          const onDrain = (): void => {
-            pendingDrains.delete(rejectPending);
-            resolve();
-          };
-          pendingDrains.add(rejectPending);
-          child.stdin.once("drain", onDrain);
-          if (failure) rejectPending(failure);
-        });
-      }
-      if (failure) throw failure;
-    },
-    async finish(): Promise<void> {
-      if (failure) throw failure;
-      child.stdin.end();
-      const code = await closed;
-      if (failure) throw failure;
-      if (code !== 0) {
-        throw new Error(`ffmpeg failed to encode the timeline: ${stderr()}`);
-      }
-    },
-    abort(): void {
-      fail(new Error("ffmpeg encoding aborted"));
-      child.stdin.destroy();
-      child.kill("SIGKILL");
-    }
-  };
 }

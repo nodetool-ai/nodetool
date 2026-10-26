@@ -14,11 +14,7 @@ import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { capabilityCategoryFor } from "../src/capabilities/registry.js";
 import { BUILTIN_TOOL_NAMES } from "../src/tools/builtin-tools.js";
 
-/**
- * A real 500ms mono 16-bit WAV at 8kHz. Real bytes so the duration probe has
- * something to measure: with ffprobe on PATH it reads 500ms, and without it
- * the word timings below say 500ms too — the assertion holds either way.
- */
+/** A real mono 16-bit WAV at 8kHz, 500ms unless told otherwise. */
 const TAKE_MS = 500;
 function wav(durationMs = TAKE_MS): Uint8Array {
   const sampleRate = 8000;
@@ -186,6 +182,16 @@ describe("script voice tools", () => {
       { script_id: row.id }
     )) as { error: string };
     expect(result.error).toContain("not found");
+  });
+
+  it("measures a take's length from its audio, not its word timings", async () => {
+    const row = await makeScript([line({ id: "l1", speakerId: "sp1", text: "First" })]);
+    // The words end at 500ms; the audio runs to 1250ms.
+    const { context } = ctx({ tts: async () => ({ data: wav(1250), mimeType: "audio/wav" }) });
+    const result = (await toolForCapabilityName("voice_script_lines").process(context, {
+      script_id: row.id
+    })) as { results: Array<{ duration_ms?: number }> };
+    expect(result.results[0].duration_ms).toBe(1250);
   });
 
   it("voices every line that needs it, with each line's own voice", async () => {

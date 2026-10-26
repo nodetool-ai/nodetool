@@ -3,73 +3,19 @@
  * loop, what the mux is told, and the four things the node refuses.
  *
  * Every refusal is driven by an input that triggers it — an `mp4 + alpha`
- * request, an ffmpeg with no `prores_ks`, an alpha request on a host with no
+ * request, a libav build with no `prores_ks`, an alpha request on a host with no
  * compositor — so none of these checks can pass by never firing (I12).
- * `compositeRender` and `child_process` are faked the same way
+ * `compositeRender` and the media module are faked the same way
  * `timeline-composite.test.ts` fakes them: what is under test is the
  * orchestration, not the encode.
  */
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import fsSync from "node:fs";
+import { fakeEncoders, mediaCalls, resetFakeMedia } from "./_fixtures/fake-media.js";
 
-let execFileCalls: Array<{ cmd: string; args: string[] }> = [];
-/** Encoders this fake ffmpeg build reports from `-encoders`. */
-let availableEncoders = ["libx264", "libvpx-vp9", "prores_ks", "aac", "libopus"];
-
-function encoderListing(): string {
-  return [
-    "Encoders:",
-    " V..... = Video",
-    " ------",
-    ...availableEncoders.map((name) => ` V....D ${name} some description`)
-  ].join("\n");
-}
-
-function mockResponse(
-  cmd: string,
-  args: string[]
-): { stdout: string; stderr: string } {
-  if (cmd === "ffprobe") {
-    const argsStr = args.join(" ");
-    if (argsStr.includes("codec_type")) return { stdout: "audio\n", stderr: "" };
-    if (argsStr.includes("format=duration")) return { stdout: "4\n", stderr: "" };
-    return { stdout: "", stderr: "" };
-  }
-  if (args.includes("-encoders")) {
-    return { stdout: encoderListing(), stderr: "" };
-  }
-  const outputPath = args[args.length - 1];
-  fsSync.writeFileSync(outputPath, Buffer.from(`fake:${outputPath}`));
-  return { stdout: "", stderr: "" };
-}
-
-vi.mock("node:child_process", async (importOriginal) => {
-  const original = (await importOriginal()) as Record<string, unknown>;
-  const mockExecFile = (
-    cmd: string,
-    args: string[],
-    optionsOrCb: unknown,
-    maybeCb?: unknown
-  ) => {
-    execFileCalls.push({ cmd, args: [...args] });
-    const cb =
-      typeof optionsOrCb === "function"
-        ? (optionsOrCb as (e: Error | null, o: string, s: string) => void)
-        : typeof maybeCb === "function"
-          ? (maybeCb as (e: Error | null, o: string, s: string) => void)
-          : null;
-    if (!cb) return;
-    const resp = mockResponse(cmd, args);
-    cb(null, resp.stdout, resp.stderr);
-  };
-  (mockExecFile as unknown as Record<symbol, unknown>)[
-    Symbol.for("nodejs.util.promisify.custom")
-  ] = (cmd: string, args: string[]) => {
-    execFileCalls.push({ cmd, args: [...args] });
-    return Promise.resolve(mockResponse(cmd, args));
-  };
-  return { ...original, execFile: mockExecFile };
-});
+vi.mock("@nodetool-ai/runtime/media", async (importOriginal) =>
+  (await import("./_fixtures/fake-media.js")).fakeMediaModule(await importOriginal())
+);
 
 const renderComposited = vi.fn();
 
@@ -154,12 +100,6 @@ async function render(seq: unknown, props: Record<string, unknown> = {}) {
   return node.process(contextFor(seq) as never);
 }
 
-function ffmpegArgs(): string[] {
-  return execFileCalls
-    .filter((c) => c.cmd === "ffmpeg")
-    .map((c) => c.args.join(" "));
-}
-
 function logs(severity: string): string {
   return posted
     .filter((m) => m.type === "log_update" && m.severity === severity)
@@ -168,9 +108,9 @@ function logs(severity: string): string {
 }
 
 beforeEach(() => {
-  execFileCalls = [];
+  resetFakeMedia();
   posted = [];
-  availableEncoders = ["libx264", "libvpx-vp9", "prores_ks", "aac", "libopus"];
+  fakeEncoders.names = ["libx264", "libx265", "libvpx-vp9", "prores_ks", "aac", "libopus"];
   renderComposited.mockReset();
   renderComposited.mockResolvedValue({
     totalFrames: 120,
@@ -187,8 +127,8 @@ describe("RenderTimeline — refusals", () => {
     expect(renderComposited).not.toHaveBeenCalled();
   });
 
-  it("refuses a format this ffmpeg build has no encoder for", async () => {
-    availableEncoders = ["libx264", "aac"];
+  it("refuses a format the libav build has no encoder for", async () => {
+    fakeEncoders.names = ["libx264", "aac"];
     await expect(render(sequence(), { format: "mov" })).rejects.toThrow(
       /no "prores_ks" encoder/
     );
@@ -213,7 +153,7 @@ describe("RenderTimeline — refusals", () => {
     await expect(
       render(sequence(), { format: "webm", alpha: true })
     ).rejects.toThrow(/rough-cut fallback only writes opaque MP4/);
-    expect(ffmpegArgs().some((a) => a.includes("-f concat"))).toBe(false);
+    expect(mediaCalls.some((call) => call.fn === "concatSegments")).toBe(false);
   });
 });
 
@@ -270,9 +210,9 @@ describe("RenderTimeline — format pass-through", () => {
     const seq = sequence();
     seq.clips.push(audioClip as never);
     await render(seq, { format: "webm" });
-    const mix = ffmpegArgs().find((a) => a.includes("apad"));
-    expect(mix).toContain("-c:a libopus");
-    expect(mix).toMatch(/mixed\.webm/);
+    const mux = mediaCalls.find((call) => call.fn === "muxAudioWithVideoCopy");
+    expect(mux).toMatchObject({ codec: "libopus" });
+    expect(mux && "outPath" in mux ? mux.outPath : "").toMatch(/mixed\.webm/);
   });
 
   it("reports the format and alpha it actually wrote", async () => {
@@ -309,6 +249,6 @@ describe("RenderTimeline — png_sequence", () => {
     seq.clips.push(audioClip as never);
     await render(seq, { format: "png_sequence" });
     expect(logs("warning")).toMatch(/PNG sequence carries no audio/);
-    expect(ffmpegArgs().some((a) => a.includes("amix"))).toBe(false);
+    expect(mediaCalls.some((call) => call.fn === "openFilterComplex")).toBe(false);
   });
 });

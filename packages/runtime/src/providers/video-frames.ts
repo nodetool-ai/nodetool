@@ -196,15 +196,15 @@ export async function probeVideoDurationSeconds(
     "media.probe_video_duration",
     { "media.byte_length": bytes.byteLength },
     async () => {
-      const { cp, fs, os, path } = await nodeModules();
-      const dir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-vduration-"));
-      const input = path.join(dir, "input.bin");
+      // Loaded on demand: the media module is Node-only.
+      const { probeMedia } = await import("../media/probe.js");
       try {
-        await fs.writeFile(input, bytes, { signal });
-        return await probeDuration(cp, input, signal);
-      } finally {
-        // Cleanup failure must not replace the duration result or probe error.
-        await fs.rm(dir, { recursive: true, force: true }).catch(() => {});
+        const { durationSec } = await probeMedia(bytes, { signal });
+        return durationSec !== null && durationSec > 0 ? durationSec : null;
+      } catch (error) {
+        if (signal.aborted) throw error;
+        // Not a container Mediabunny reads.
+        return null;
       }
     }
   );

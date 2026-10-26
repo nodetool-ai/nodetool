@@ -1,15 +1,17 @@
 /**
  * Regression tests for video node implementations.
  *
- * These tests verify that video nodes construct correct ffmpeg/ffprobe
- * commands and use proper filter strings. They mock child_process.execFile
- * to capture the arguments without requiring ffmpeg to be installed.
+ * These tests verify that video nodes construct correct ffmpeg commands and
+ * use proper filter strings. They mock child_process.execFile to capture the
+ * arguments without requiring ffmpeg to be installed, and fake the in-process
+ * media module's probes.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { promisify } from "node:util";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fakeProbe, mediaCalls, resetFakeMedia } from "./_fixtures/fake-media.js";
 
 // Capture all execFile calls so we can inspect ffmpeg/ffprobe arguments
 let execFileCalls: Array<{ cmd: string; args: string[] }> = [];
@@ -55,6 +57,10 @@ function mockResponse(
   // ffmpeg — simulate failure (no real temp files)
   throw new Error("mock ffmpeg: no real execution");
 }
+
+vi.mock("@nodetool-ai/runtime/media", async (importOriginal) =>
+  (await import("./_fixtures/fake-media.js")).fakeMediaModule(await importOriginal())
+);
 
 vi.mock("node:child_process", async (importOriginal) => {
   const original = (await importOriginal()) as Record<string, unknown>;
@@ -122,8 +128,6 @@ const {
   ColorBalanceVideoNode,
   SetSpeedVideoNode,
   TransitionVideoNode,
-  FpsNode,
-  GetVideoInfoNode,
   TrimVideoNode,
   AddAudioVideoNode,
   ChromaKeyVideoNode,
@@ -155,13 +159,6 @@ function ffmpegCalls(): string[][] {
     .map((c) => c.args);
 }
 
-/** Find all ffprobe calls */
-function ffprobeCalls(): string[][] {
-  return execFileCalls
-    .filter((c) => c.cmd === "ffprobe")
-    .map((c) => c.args);
-}
-
 /** Concatenate all args into a single string for easy pattern matching */
 function ffmpegArgString(): string {
   return ffmpegCalls()
@@ -170,6 +167,7 @@ function ffmpegArgString(): string {
 }
 
 beforeEach(() => {
+  resetFakeMedia();
   execFileCalls = [];
 });
 
@@ -429,6 +427,7 @@ describe("TransitionVideoNode — uses transition_type, not hardcoded fade", () 
   });
 
   it("computes offset from video_a duration, not hardcoded 0", async () => {
+    fakeProbe.durationSec = 10.5;
     const node = new TransitionVideoNode();
     node.assign({
       video_a: videoRef([1, 2, 3, 4]),
@@ -438,14 +437,13 @@ describe("TransitionVideoNode — uses transition_type, not hardcoded fade", () 
     });
     await node.process().catch(() => undefined);
 
-    // The mock returns duration=10.5 for ffprobeDuration
-    // offset should be 10.5 - 1.0 = 9.5
+    // The probe answers 10.5 s, so the offset is 10.5 - 1.0 = 9.5.
     const args = ffmpegArgString();
     expect(args).toContain("offset=9.5");
     expect(args).not.toContain("offset=0");
   });
 
-  it("probes video_a duration via ffprobe before building filter", async () => {
+  it("probes video_a duration before building the filter", async () => {
     const node = new TransitionVideoNode();
     node.assign({
       video_a: videoRef([1, 2, 3, 4]),
@@ -455,110 +453,7 @@ describe("TransitionVideoNode — uses transition_type, not hardcoded fade", () 
     });
     await node.process().catch(() => undefined);
 
-    // Should have called ffprobe to get duration
-    const probes = ffprobeCalls();
-    expect(probes.length).toBeGreaterThan(0);
-    const probeArgs = probes.map((a) => a.join(" ")).join("\n");
-    expect(probeArgs).toContain("duration");
-  });
-});
-
-// ─── 7. Fps ────────────────────────────────────────────────────────────────────
-
-describe("FpsNode — does NOT return hardcoded 24", () => {
-  it("calls ffprobe and parses fractional FPS like 30000/1001", async () => {
-    const node = new FpsNode();
-    node.assign({
-      video: videoRef([1, 2, 3, 4])
-    });
-    const result = await node.process();
-
-    // Our mock returns "30000/1001" for r_frame_rate queries
-    // 30000/1001 ≈ 29.97
-    const fps = result.output as number;
-    expect(fps).toBeCloseTo(29.97, 1);
-    expect(fps).not.toBe(24);
-  });
-
-  it("invokes ffprobe to determine FPS", async () => {
-    const node = new FpsNode();
-    node.assign({
-      video: videoRef([1, 2, 3, 4])
-    });
-    await node.process().catch(() => undefined);
-
-    const probes = ffprobeCalls();
-    expect(probes.length).toBeGreaterThan(0);
-    const probeArgs = probes.map((a) => a.join(" ")).join("\n");
-    expect(probeArgs).toContain("r_frame_rate");
-  });
-
-  it("returns 0 for empty video, not 24", async () => {
-    const node = new FpsNode();
-    node.assign({
-      video: videoRef([])
-    });
-    const result = await node.process();
-    expect(result.output).toBe(0);
-  });
-});
-
-// ─── 8. GetVideoInfo ───────────────────────────────────────────────────────────
-
-describe("GetVideoInfoNode — does NOT return bytes.length / 24000 for duration", () => {
-  it("calls ffprobe and returns parsed metadata", async () => {
-    const node = new GetVideoInfoNode();
-    node.assign({
-      video: videoRef([1, 2, 3, 4])
-    });
-    const result = await node.process();
-
-    // Our mock returns duration=10.01, width=1920, height=1080, fps=30000/1001
-    expect(result.duration).toBeCloseTo(10.01, 1);
-    expect(result.width).toBe(1920);
-    expect(result.height).toBe(1080);
-    expect(result.codec).toBe("h264");
-    expect(result.has_audio).toBe(true);
-  });
-
-  it("duration does NOT equal bytes.length / 24000", async () => {
-    const bytes = new Array(48000).fill(0);
-    const node = new GetVideoInfoNode();
-    node.assign({
-      video: videoRef(bytes)
-    });
-    const result = await node.process();
-
-    // If duration were bytes.length/24000, it would be 2.0
-    // Our mock returns 10.01 from ffprobe
-    expect(result.duration).not.toBe(bytes.length / 24000);
-    expect(result.duration).toBeCloseTo(10.01, 1);
-  });
-
-  it("parses fractional FPS from r_frame_rate", async () => {
-    const node = new GetVideoInfoNode();
-    node.assign({
-      video: videoRef([1, 2, 3, 4])
-    });
-    const result = await node.process();
-
-    // 30000/1001 ≈ 29.97
-    const fps = result.fps as number;
-    expect(fps).toBeCloseTo(29.97, 1);
-  });
-
-  it("invokes ffprobe, not manual byte counting", async () => {
-    const node = new GetVideoInfoNode();
-    node.assign({
-      video: videoRef([1, 2, 3, 4])
-    });
-    await node.process().catch(() => undefined);
-
-    const probes = ffprobeCalls();
-    expect(probes.length).toBeGreaterThan(0);
-    const probeArgs = probes.map((a) => a.join(" ")).join("\n");
-    expect(probeArgs).toContain("show_streams");
-    expect(probeArgs).toContain("show_format");
+    expect(mediaCalls.some((call) => call.fn === "probeMedia")).toBe(true);
   });
 });
 

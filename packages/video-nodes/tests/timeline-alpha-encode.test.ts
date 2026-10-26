@@ -7,7 +7,7 @@
  * transparent has to read alpha 0 — which is only true if the pixel format
  * kept the channel end to end.
  *
- * Each case is skipped, with a printed reason, when this ffmpeg build has no
+ * Each case is skipped, with a printed reason, when the bundled libav build has no
  * encoder for it: ProRes 4444 and VP9 are both optional at build time, and a
  * red suite on a machine that simply cannot encode ProRes says nothing.
  */
@@ -18,7 +18,7 @@ import path from "node:path";
 
 import { execFfmpeg } from "../src/nodes/ffmpeg-helpers.js";
 import {
-  ffmpegHasEncoder,
+  libavHasEncoder,
   openFrameEncoder
 } from "../src/nodes/timeline/rawFrames.js";
 import { resolveTimelineOutput } from "../src/nodes/timeline/outputFormats.js";
@@ -41,10 +41,10 @@ function halfTransparent(): Uint8Array {
 }
 
 async function encoderAvailable(name: string): Promise<boolean> {
-  const ok = await ffmpegHasEncoder(name);
+  const ok = await libavHasEncoder(name);
   if (!ok) {
     process.stderr.write(
-      `timeline-alpha-encode: skipping ${name} — this ffmpeg build has no such encoder ` +
+      `timeline-alpha-encode: skipping ${name} — the bundled libav build has no such encoder ` +
         "(or no ffmpeg at all).\n"
     );
   }
