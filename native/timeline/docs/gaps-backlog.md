@@ -26,6 +26,7 @@ run machine. "Package P1" and "package P2" are plan packages, not severities.
 | B15 | P2 | pkg-K-r1 F2 | `src/playback/PlaybackClock.cpp:107` | The clock's `fps` property defaults to 30 and is not bound to the document frame rate, so restart detection uses a 30 fps frame. On a 25 fps, 10-second timeline, Play from 9,960 ms continues where the web restarts at zero. | K |
 | B16 | P2 | pkg-K-r1 F3 | `src/playback/PlaybackClock.cpp:432` | The `m_endMs > 0` guard treats an out-point at zero as unset, so `setRangeOut(0)` then `playInToOut()` plays past the out-point. `boundedTimeLocked()` has the same guard. | K |
 | B17 | P2 | pkg-K-r1 F4 | `src/audio/AudioEngine.cpp:457` | An unmuted or remapped track's snapshot is acknowledged before its PCM is opened, sought and primed, so the track can stay silent for several blocks. Tests check the new audio only after 400 ms, which masks the miss. | K |
+| B18 | P2 | pkg-H-r1 F1 | `src/preview/gizmo/TransformGizmoController.cpp:274` | The gizmo overlay fills the whole editor and `contains()` accepts any point in the clip's box, so a clip scaled or moved over the transport or tracks captures their clicks and paints over them. The web clips its overlay to the preview with `overflow: hidden`. | unassigned (H owns the overlay QML, not `src/preview/gizmo/`) |
 
 ## Closed
 
