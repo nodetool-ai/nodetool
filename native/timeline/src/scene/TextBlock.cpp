@@ -68,6 +68,9 @@ TextStyle parseTextStyle(const QJsonObject& o) {
     s.maxWidthFrac = number(o, "maxWidthFrac");
     s.align = o.value(u"align").toString();
     s.verticalAlign = o.value(u"verticalAlign").toString();
+    s.fontFamily = o.value(u"fontFamily").toString();
+    s.fontWeight = o.value(u"fontWeight").toDouble(400);
+    s.fontStyle = o.value(u"fontStyle").toString();
     return s;
 }
 
@@ -86,7 +89,7 @@ int graphemeCount(const QString& text) {
     return count;
 }
 
-TextBox textBlockBox(const MeasureText& measure, const TextStyle& style, double width, double height) {
+TextLayout layoutTextBlock(const MeasureText& measure, const TextStyle& style, double width, double height) {
     // `textLetterSpacingPx`, `spacedMeasure`.
     const double spacing =
         style.letterSpacingPx && std::isfinite(*style.letterSpacingPx) ? *style.letterSpacingPx : 0.0;
@@ -135,13 +138,29 @@ TextBox textBlockBox(const MeasureText& measure, const TextStyle& style, double 
 
     double left = std::numeric_limits<double>::infinity();
     double right = -std::numeric_limits<double>::infinity();
+    TextLayout result;
+    result.lineHeight = lineHeight;
+    result.spaceWidth = spaceWidth;
+    result.letterSpacingPx = spacing;
     for (const Line& line : lines) {
+        TextLine placed;
+        placed.words = line.words;
         double lineWidth = 0;
-        for (const QString& word : line.words) lineWidth += advance(word);
+        for (const QString& word : line.words) {
+            const double wordWidth = advance(word);
+            placed.wordWidths.push_back(wordWidth);
+            lineWidth += wordWidth;
+            if (!placed.text.isEmpty()) { placed.text += u' '; }
+            placed.text += word;
+        }
         lineWidth += spaceWidth * std::max<double>(0, static_cast<double>(line.words.size()) - 1);
         const double x = style.align == u"left"    ? (width - maxWidth) / 2
                          : style.align == u"right" ? (width + maxWidth) / 2 - lineWidth
                                                    : (width - lineWidth) / 2;
+        placed.x = x;
+        placed.y = firstY + static_cast<double>(result.lines.size()) * lineHeight;
+        placed.width = lineWidth;
+        result.lines.push_back(std::move(placed));
         if (lineWidth <= 0) continue;
         left = std::min(left, x);
         right = std::max(right, x + lineWidth);
@@ -151,7 +170,12 @@ TextBox textBlockBox(const MeasureText& measure, const TextStyle& style, double 
         left = width / 2;
         right = width / 2;
     }
-    return TextBox{left, firstY - lineHeight / 2, right - left, block};
+    result.box = TextBox{left, firstY - lineHeight / 2, right - left, block};
+    return result;
+}
+
+TextBox textBlockBox(const MeasureText& measure, const TextStyle& style, double width, double height) {
+    return layoutTextBlock(measure, style, width, height).box;
 }
 
 }  // namespace nt::scene
