@@ -1,4 +1,5 @@
 #include "server/ServerClient.h"
+#include "server/ServerIdentity/ServerIdentity.h"
 
 #include <QCryptographicHash>
 #include <QElapsedTimer>
@@ -190,7 +191,8 @@ QueryResult ServerClient::upload(const QJsonObject& json, const QString& filePat
     }
     QHttpPart fields;
     fields.setHeader(QNetworkRequest::ContentDispositionHeader, "form-data; name=\"json\"");
-    fields.setBody(QJsonDocument(json).toJson(QJsonDocument::Compact));
+    const auto fieldsJson = QJsonDocument(json).toJson(QJsonDocument::Compact);
+    fields.setBody(fieldsJson);
     multipart->append(fields);
     QHttpPart media;
     QString filename = QFileInfo(filePath).fileName();
@@ -203,11 +205,11 @@ QueryResult ServerClient::upload(const QJsonObject& json, const QString& filePat
     media.setHeader(QNetworkRequest::ContentTypeHeader, contentType);
     media.setBodyDevice(file);
     multipart->append(media);
-    return write("upload", QNetworkRequest(m_base.resolved(QUrl("/api/assets"))), nullptr, std::move(multipart));
+    return write("upload", QNetworkRequest(m_base.resolved(QUrl("/api/assets"))), &fieldsJson, std::move(multipart), contentType);
 }
 
 QueryResult ServerClient::write(const QString& procedure, QNetworkRequest request, const QByteArray* json,
-                                std::unique_ptr<QHttpMultiPart> multipart) {
+                                std::unique_ptr<QHttpMultiPart> multipart, const QString& contentType) {
     const bool isUpload = multipart != nullptr;
     QElapsedTimer clock;
     clock.start();
@@ -244,31 +246,44 @@ QueryResult ServerClient::write(const QString& procedure, QNetworkRequest reques
         return failed(QStringLiteral("TIMEOUT"),
                       QStringLiteral("%1: no answer within %2 ms").arg(procedure).arg(m_deadlineMs));
     };
-    const auto wrongServer = [&](const char* when, const HttpResponse& resp) {
-        const QByteArray got = resp.header(kInstanceHeader);
-        return failed(QStringLiteral("WRONG_SERVER"),
-                      QStringLiteral("%1 %2: %3 is not the expected server instance (it answered %4)")
-                          .arg(QString::fromLatin1(when), procedure, m_base.toString(),
-                               got.isEmpty() ? QStringLiteral("no instance") : QString::fromLatin1(got)),
-                      resp.status);
-    };
-
-    if (!m_expectedInstance.isEmpty()) {
-        HttpResponse check;
-        if (!send(QNetworkRequest(m_base.resolved(QUrl(QStringLiteral("/ready")))), nullptr, nullptr, check)) return timedOut();
-        if (check.status == 0) return parseTrpcResponse(check);  // no answer: a transient failure, nothing sent
-        if (check.header(kInstanceHeader) != m_expectedInstance) return wrongServer("refusing to write", check);
-    }
-
-    if (m_deadlineMs > 0 && clock.elapsed() >= m_deadlineMs) {
-        return timedOut();
-    }
     HttpResponse resp;
-    if (!send(request, json, multipart.get(), resp)) {
-        return timedOut();
-    }
-    if (!m_expectedInstance.isEmpty() && resp.status != 0 && resp.header(kInstanceHeader) != m_expectedInstance) {
-        return wrongServer("the answer to", resp);
+    if (!m_expectedInstance.isEmpty()) {
+        decorate(request);
+        QByteArray body = json ? *json : QByteArray();
+        QByteArray tail;
+        QFile* file = nullptr;
+        if (multipart) {
+            file = multipart->findChild<QFile*>();
+            if (!file) {
+                return failed("FILE", "upload file is missing");
+            }
+            QString filename = QFileInfo(file->fileName()).fileName();
+            filename.replace('\\', "\\\\");
+            filename.replace('"', "\\\"");
+            filename.remove('\r');
+            filename.remove('\n');
+            if (contentType.contains('\r') || contentType.contains('\n')) {
+                return failed("FILE", "invalid upload content type");
+            }
+            const auto boundary = multipart->boundary();
+            body = "--" + boundary + "\r\nContent-Disposition: form-data; name=\"json\"\r\n\r\n" + body +
+                "\r\n--" + boundary + "\r\nContent-Disposition: form-data; name=\"file\"; filename=\"" + filename.toUtf8() +
+                "\"\r\nContent-Type: " + contentType.toUtf8() + "\r\n\r\n";
+            tail = "\r\n--" + boundary + "--\r\n";
+            request.setRawHeader("Content-Type", "multipart/form-data; boundary=\"" + boundary + "\"");
+        }
+        const auto written = identity::write(request, m_expectedInstance, body, file, tail, m_timeoutMs, m_deadlineMs);
+        if (!written.code.isEmpty()) {
+            return failed(written.code, written.error, written.response.status);
+        }
+        resp = written.response;
+    } else {
+        if (m_deadlineMs > 0 && clock.elapsed() >= m_deadlineMs) {
+            return timedOut();
+        }
+        if (!send(request, json, multipart.get(), resp)) {
+            return timedOut();
+        }
     }
     if (resp.status >= 300 && resp.status < 400) {
         return failed(QStringLiteral("REDIRECT"), QStringLiteral("refusing a redirect from %1").arg(procedure), resp.status);
