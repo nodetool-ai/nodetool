@@ -20,6 +20,8 @@
 //     A committed edit, notice or reconnect refresh starts a new chain.
 //     Committed edits keep the local copy current until saving succeeds.
 //     Remove only this session's local copy once a save leaves it clean.
+//     The conflict property stays true throughout recovery until the merged
+//     document is saved or clean again, and while recovery is stopped.
 //   - any other failure: the current document is written to
 //     `<id>.recovery.json`; a transient one (no answer, 5xx, 429) is retried
 //     with a doubling delay, up to 30 s.
@@ -251,6 +253,7 @@ private:
     bool m_autosave = true;
     bool m_saving = false;
     bool m_conflict = false;
+    bool m_recoveryStopped = false;
     QStringList m_stripped;
     QString m_lastError;
     QString m_keptCopy;

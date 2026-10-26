@@ -9,7 +9,7 @@ import path from "node:path";
 import readline from "node:readline";
 import test from "node:test";
 
-import { hasMoves, localCopies, parseArgs, renderedMove, seedDocument } from "./sync-e2e.mjs";
+import { hasMoves, localCopies, parseArgs, renderedMove, seedDocument, settled } from "./sync-e2e.mjs";
 import { scratchPost } from "./sync-e2e-transport.mjs";
 
 // Invalid controls prove the phase predicates reject missing or stale data.
@@ -33,6 +33,19 @@ test("move and rendered predicates require both clips and a changed finite x", (
   assert.equal(renderedMove(before, before, "clip-1"), false);
   assert.equal(renderedMove(before, { rendered: [] }, "clip-1"), false);
   assert.equal(renderedMove(before, { rendered: [{ id: "clip-1", x: NaN }] }, "clip-1"), false);
+});
+
+test("settling waits through recovery and save before checking conflict", async () => {
+  const states = [
+    { dirty: true, saving: false, conflict: true, externalState: "recovering" },
+    { dirty: true, saving: true, conflict: true, externalState: "merged" },
+    { dirty: false, saving: false, conflict: false, externalState: "merged" }
+  ];
+  let reads = 0;
+  assert.equal(await settled({ state: async () => states[reads++] }, 1000), states[2]);
+  assert.equal(reads, 3);
+  await assert.rejects(settled({ state: async () => ({ ...states[2], conflict: true }) }, 1000),
+    { code: "ERR_ASSERTION" });
 });
 
 test("local-copy check finds only the current session filename recursively", (t) => {

@@ -18,6 +18,7 @@
 #include <QTcpSocket>
 
 #include <cstdio>
+#include <memory>
 #include <stdexcept>
 
 using namespace nt::server::sync;
@@ -225,7 +226,8 @@ private slots:
         QSignalSpy states(&client, &ResourceChangeClient::stateChanged);
         client.start();
         QTRY_VERIFY_WITH_TIMEOUT(server.hasPendingConnections(), 1000);
-        auto* peer = server.nextPendingConnection();
+        const std::unique_ptr<QWebSocket> peer(server.nextPendingConnection());
+        QVERIFY(peer);
         const auto request = peer->request();
         QCOMPARE(request.url().scheme(), "ws");
         QCOMPARE(request.url().path(), "/ws");
@@ -402,6 +404,7 @@ private slots:
         int requests = 0;
         connect(&server, &QTcpServer::newConnection, &server, [&server, &requests, challenge] {
             auto* socket = server.nextPendingConnection();
+            socket->setParent(&server);
             connect(socket, &QTcpSocket::readyRead, socket, [socket, &requests, challenge] {
                 socket->setProperty("request", socket->property("request").toByteArray() + socket->readAll());
                 if (!socket->property("request").toByteArray().contains("\r\n\r\n")) {

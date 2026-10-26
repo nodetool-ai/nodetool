@@ -78,9 +78,9 @@ AutosaveController::AutosaveController(SaveTarget target, QUndoStack* undo, Docu
     connect(&m_retry, &QTimer::timeout, this, [this]() {
         if (m_retryRecovery && !m_deleted && !m_fetching && !m_saving) {
             m_retryRecovery = false;
-            m_conflict = false;
+            m_recoveryStopped = false;
             fetchExternal(true);
-        } else if (dirty() && !m_conflict && !m_saving) {
+        } else if (dirty() && !m_recoveryStopped && !m_saving) {
             saveNow();
         }
     });
@@ -106,8 +106,8 @@ AutosaveController::~AutosaveController() {
 }
 
 void AutosaveController::restartStoppedChain() {
-    if (!m_conflict || m_deleted) return;
-    m_conflict = false;
+    if (!m_recoveryStopped || m_deleted) return;
+    m_recoveryStopped = false;
     m_casRecoveries = 0;
     m_retryAttempt = 0;
     m_retryRecovery = false;
@@ -189,18 +189,18 @@ void AutosaveController::processExternal() {
         m_fetched.reset();
         m_fetching = false;
         m_recovering = false;
+        if (applied) clearLocalCopyIfClean();
         if (recovery && applied) {
-            clearLocalCopyIfClean();
             if (m_casRecoveries >= 5 && dirty()) {
                 syncFailure(QStringLiteral("CAS recovery limit reached"), true);
             } else if (dirty()) {
                 scheduleSave();
             }
         }
-        if (!m_conflict && dirty()) scheduleSave();
+        if (!m_recoveryStopped && dirty()) scheduleSave();
         emit stateChanged();
     }
-    if (m_fetching || !m_pendingExternal || m_conflict) return;
+    if (m_fetching || !m_pendingExternal || m_recoveryStopped) return;
     if (currentHash() != m_committedHash) {
         m_externalRetry.start();
         return;
@@ -258,7 +258,7 @@ void AutosaveController::fetchExternal(bool recovery) {
                 guard->m_retryRecovery = true;
                 guard->m_retry.start(delay);
             }
-            if (!guard->m_conflict && guard->dirty()) guard->scheduleSave();
+            if (!guard->m_recoveryStopped && guard->dirty()) guard->scheduleSave();
             if (guard->m_pendingExternal) guard->m_externalRetry.start();
             return;
         }
@@ -340,7 +340,10 @@ bool AutosaveController::applyFetched() {
 
 void AutosaveController::syncFailure(const QString& error, bool recovery) {
     keepConflictCopy();
-    if (recovery) m_conflict = true;
+    if (recovery) {
+        m_recoveryStopped = true;
+        m_conflict = true;
+    }
     m_externalState = QStringLiteral("error");
     m_lastError = (recovery ? QStringLiteral("conflict: ") : QStringLiteral("sync: ")) + error;
     if (!m_recoveryError.isEmpty()) m_lastError += QStringLiteral("; ") + m_recoveryError;
@@ -381,7 +384,8 @@ void AutosaveController::discardExternalConflicts() {
 }
 
 void AutosaveController::clearLocalCopyIfClean() {
-    if (dirty()) return;
+    if (dirty() || m_recoveryStopped || m_deleted) return;
+    m_conflict = false;
     // A successful stripped save resolves CAS too, provided its complete
     // document has reached the strip copy. Keep the local file if that failed.
     if (!m_ackComplete && (keptCopy().isEmpty() || !m_keptCopy.endsWith(QStringLiteral(".stripped.json")))) return;
@@ -430,8 +434,9 @@ void AutosaveController::documentChanged() {
     const bool newEdit = committed != m_committedHash;
     m_committedHash = committed;
     syncClean();
-    if (m_deleted || m_casRecoveries > 0 || m_conflict) keepConflictCopy();
+    if (m_deleted || m_conflict) keepConflictCopy();
     if (newEdit) restartStoppedChain();
+    if (!m_fetching && !m_saving) clearLocalCopyIfClean();
     scheduleSave();
     if (m_fetched || m_pendingExternal) m_externalRetry.start();
     emit stateChanged();
@@ -456,7 +461,7 @@ void AutosaveController::debounceExpired() {
         return;
     }
     syncClean();
-    if (m_conflict || m_deleted) {
+    if (m_recoveryStopped || m_deleted) {
         keepConflictCopy();
     } else if (dirty()) {
         saveNow();
@@ -637,7 +642,7 @@ SaveResult AutosaveController::save(ServerClient& client) {
         scheduleSave();
         return result;
     }
-    if (m_conflict || m_deleted) return keepConflictCopy();
+    if (m_recoveryStopped || m_deleted) return keepConflictCopy();
     if (m_base.isEmpty()) {
         // Without a base the server would take the save whatever it holds.
         result.error = QStringLiteral("no baseUpdatedAt: refusing to save over the server copy");
@@ -713,6 +718,7 @@ SaveResult AutosaveController::save(ServerClient& client) {
     const QJsonObject current = m_document();
     QString why;
     if (r.error.apiCode == u"ALREADY_EXISTS" || r.error.code == u"CONFLICT") {
+        m_conflict = true;
         result = keepConflictCopy();
         m_retry.stop();
         m_lastError = QStringLiteral("conflict: %1").arg(r.error.message);
@@ -756,7 +762,7 @@ bool AutosaveController::flushBeforeQuit(int timeoutMs) {
     m_timer.stop();
     m_retry.stop();
     if (!dirty() && m_ackComplete && !m_deleted) return true;
-    if (dirty() && !m_conflict && !m_deleted) {
+    if (dirty() && !m_recoveryStopped && !m_deleted) {
         // `timeoutMs` bounds the elapsed time; the transfer timeout only
         // bounds silence, which a slow answer never reaches.
         ServerClient bounded(m_target.server, m_target.token, timeoutMs);
@@ -775,7 +781,7 @@ bool AutosaveController::flushBeforeQuit(int timeoutMs) {
             });
             deadline.start(timeoutMs - static_cast<int>(budget.elapsed()));
             wait.exec();
-            if (!m_fetching && !m_conflict && !m_deleted && dirty() && budget.elapsed() < timeoutMs) {
+            if (!m_fetching && !m_recoveryStopped && !m_deleted && dirty() && budget.elapsed() < timeoutMs) {
                 const int remaining = timeoutMs - static_cast<int>(budget.elapsed());
                 ServerClient retry(m_target.server, m_target.token, remaining);
                 retry.setExpectedInstance(m_target.expectedInstance);
@@ -787,7 +793,7 @@ bool AutosaveController::flushBeforeQuit(int timeoutMs) {
         if (!dirty() && m_ackComplete && !m_deleted) return true;
     }
     if (!dirty() && !keptCopy().isEmpty()) return false;
-    const QString suffix = m_conflict || m_deleted || m_casRecoveries > 0 ? QStringLiteral("local")
+    const QString suffix = m_recoveryStopped || m_deleted || m_casRecoveries > 0 ? QStringLiteral("local")
                                      : !dirty() && !m_ackComplete ? QStringLiteral("stripped")
                                                                   : QStringLiteral("recovery");
     const QJsonObject doc = m_document();
