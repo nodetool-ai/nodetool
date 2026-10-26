@@ -1,5 +1,8 @@
 import { execFileSync } from 'node:child_process';
+import { dirname, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { restFetch } from '../../../../web/src/lib/rest-fetch';
 import { makeClip, makeTrack, clipFitsTrack, type DropMode } from '@nodetool-ai/timeline';
 import { createTimelineStore } from '../../../../web/src/stores/timeline/TimelineStore';
 import { importVideoWithAudio } from '../../../../web/src/hooks/timeline/useVideoAudioImport';
@@ -134,5 +137,66 @@ describe('assets.dropAsset whole documents against web drop handlers', () => {
       expect(checkIds(actual.clips, document.clips)).toEqual([]);
       expect(normalizeDocument(actual, known)).toEqual(normalizeDocument(expected, known));
     });
+  }
+});
+
+
+describe('B conformance ownership', () => {
+  it('keeps comparison tests under src/assets', () => {
+    const binary = process.env.NT_ASSETS_ORACLE;
+    if (!binary) { throw new Error('NT_ASSETS_ORACLE is required'); }
+    const suiteUrl = pathToFileURL(resolve(dirname(binary), '../scripts/conformance/suites/assets.mjs')).href;
+    const tests: string[] = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e',
+      `import suite from ${JSON.stringify(suiteUrl)}; console.log(JSON.stringify(suite.tests))`], { encoding: 'utf8' }));
+    expect(tests.every(file => file.includes('/src/assets/'))).toBe(true);
+  });
+});
+
+describe('linked audio settlement against importVideoWithAudio', () => {
+  afterEach(() => { vi.restoreAllMocks(); vi.clearAllTimers(); vi.useRealTimers(); });
+  for (const audio of ['free', 'absent'] as const) {
+    for (const outcome of ['audio', 'silent', 'failed', 'exception'] as const) {
+      for (const duration of outcome === 'audio' ? [1.2345, null] : [null]) {
+        it(`${outcome}, ${audio} audio track, duration ${duration}`, async () => {
+          vi.useFakeTimers();
+          vi.mocked(restFetch).mockImplementationOnce(async () => {
+            if (outcome === 'exception') { throw new Error('download timed out'); }
+            return new Response(JSON.stringify({ has_audio: outcome === 'audio',
+              asset: outcome === 'audio' ? { id: 'extracted-audio', duration } : undefined }),
+            { status: outcome === 'failed' ? 503 : 200 });
+          });
+          const document = documentFor({ name: '', media: 'video', mode: 'overlap', audio });
+          const asset = { id: 'video-asset', name: 'take.mp4', content_type: 'video/mp4', duration: 2 } as unknown as Asset;
+          const store = createTimelineStore();
+          store.setState(structuredClone(document));
+          await importVideoWithAudio(store, asset, 'v', 2500, 'overlap');
+          const state = store.getState();
+          const expected = { ...document, clips: state.clips, tracks: state.tracks };
+          const binary = process.env.NT_ASSETS_ORACLE;
+          if (!binary) { throw new Error('NT_ASSETS_ORACLE is required'); }
+          const run = (requests: unknown[]) => JSON.parse(execFileSync(binary, [JSON.stringify(requests)], {
+            encoding: 'utf8', env: { ...process.env, QT_QPA_PLATFORM: 'offscreen' }
+          }));
+          const [dropped] = run([{ op: 'drop', document,
+            payload: { asset, trackId: 'v', startMs: 2500, mode: 'overlap' } }]);
+          const placeholder = dropped.clips.find((clip: { status: string }) => clip.status === 'generating');
+          const [actual] = run([{ op: 'settle', document: dropped, payload: {
+            audioClipId: placeholder.id, outcome: outcome === 'exception' ? 'failed' : outcome,
+            ...(outcome === 'audio' ? { asset: { id: 'extracted-audio', duration } } : {})
+          } }]);
+          const known = inputIds({ document, asset });
+          known.add('extracted-audio');
+          if (outcome === 'silent' && audio === 'absent') {
+            // replaceClips cannot remove tracks without an undo command. Native
+            // deliberately retains this import's empty audio track.
+            expect(actual.tracks).toEqual(dropped.tracks);
+            expect(actual.tracks.length).toBe(expected.tracks.length + 1);
+            expect(normalizeDocument(actual.clips, known)).toEqual(normalizeDocument(expected.clips, known));
+          } else {
+            expect(normalizeDocument(actual, known)).toEqual(normalizeDocument(expected, known));
+          }
+        });
+      }
+    }
   }
 });

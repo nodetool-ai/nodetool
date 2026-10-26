@@ -1,8 +1,11 @@
 nt_sources(core src/assets/AssetClip.h src/assets/AssetClip.cpp)
+nt_sources(core src/assets/AssetWav.h src/assets/AssetWav.cpp)
 nt_sources(core src/assets/AssetDrop.h src/assets/AssetDrop.cpp)
 nt_qml_sources(src/assets/AssetRegistration.cpp)
 nt_sources(app src/assets/AssetPanels.cpp)
 nt_qml_sources(src/assets/AssetBrowser.h src/assets/AssetBrowser.cpp)
+cmake_language(DEFER CALL target_link_libraries timeline_server PUBLIC timeline_audio)
+nt_sources(server src/assets/AssetAudio.h src/assets/AssetAudio.cpp)
 nt_sources(server src/assets/AssetImport.h src/assets/AssetImport.cpp
     src/assets/AssetDuration.h src/assets/AssetDuration.cpp)
 

@@ -28,6 +28,39 @@ QQuickItem* itemNamed(QQuickItem* root, const QString& name) {
 class TestAssetBrowser : public QObject {
     Q_OBJECT
 private slots:
+    void foldersOpenWithKeyboardAndMouse() {
+        AssetBrowser browser;
+        QVERIFY2(browser.property("folderId").isValid(), "AssetBrowser must expose current folderId");
+        QQmlEngine engine;
+        QQmlComponent component(&engine, QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/assets/AssetItem.qml"));
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        std::unique_ptr<QObject> object(component.createWithInitialProperties({
+            {"asset", QVariantMap{{"id", "footage"}, {"name", "Footage"}, {"content_type", "folder"}}},
+            {"browser", QVariant::fromValue(&browser)}, {"width", 84}, {"height", 84}}));
+        QVERIFY2(object, qPrintable(component.errorString()));
+        auto* tile = qobject_cast<QQuickItem*>(object.get());
+        QVERIFY(tile);
+        QQuickWindow window;
+        window.resize(120, 120);
+        tile->setParentItem(window.contentItem());
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        tile->forceActiveFocus();
+        QTest::keyClick(&window, Qt::Key_Return);
+        QCOMPARE(browser.property("folderId").toString(), QString("footage"));
+        QVERIFY(QMetaObject::invokeMethod(&browser, "openFolder", Q_ARG(QString, "nested")));
+        QCOMPARE(browser.property("folderId").toString(), QString("nested"));
+        QVERIFY(QMetaObject::invokeMethod(&browser, "goUp"));
+        QCOMPARE(browser.property("folderId").toString(), QString("footage"));
+        QVERIFY(QMetaObject::invokeMethod(&browser, "goUp"));
+        QCOMPARE(browser.property("folderId").toString(), QString());
+        QTest::mouseDClick(&window, Qt::LeftButton, {}, QPoint(40, 40));
+        QCOMPARE(browser.property("folderId").toString(), QString("footage"));
+        TimelineModel model;
+        browser.setTimeline(&model);
+        QVERIFY(!browser.drop({{"id", "footage"}, {"content_type", "folder"}}, "", 0, "overlap", 0));
+        QCOMPARE(model.undoStack()->count(), 0);
+    }
     void noServer() {
         AssetBrowser browser;
         QVERIFY(!browser.configured());
@@ -73,7 +106,13 @@ private slots:
         model.undoStack()->undo();
         QCOMPARE(model.clipCount(), 0);
     }
+    void tileDragCarriesSingleAsset_data() {
+        QTest::addColumn<bool>("folder");
+        QTest::newRow("media") << false;
+        QTest::newRow("folder") << true;
+    }
     void tileDragCarriesSingleAsset() {
+        QFETCH(bool, folder);
         QQmlEngine engine;
         QQmlComponent component(&engine);
         component.setData(R"(import QtQuick
@@ -82,11 +121,12 @@ Item {
     id: root
     width: 400; height: 120
     property bool dropped: false
+    property string contentType: "video/mp4"
     AssetBrowser { id: browser }
     AssetItem {
         width: 84; height: 84
         browser: browser
-        asset: ({id: "asset", name: "take.mp4", content_type: "video/mp4"})
+        asset: ({id: "asset", name: "take.mp4", content_type: root.contentType})
     }
     DropArea {
         x: 200; width: 150; height: 120
@@ -104,22 +144,45 @@ Item {
         QVERIFY2(object, qPrintable(component.errorString()));
         auto* root = qobject_cast<QQuickItem*>(object.get());
         QVERIFY(root);
+        if (folder) { root->setProperty("contentType", "folder"); }
         root->setParentItem(window.contentItem());
         window.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
         QTest::mousePress(&window, Qt::LeftButton, {}, QPoint(40, 40));
         for (int x = 50; x <= 250; x += 10) { QTest::mouseMove(&window, QPoint(x, 40)); }
         QTest::mouseRelease(&window, Qt::LeftButton, {}, QPoint(250, 40));
-        QTRY_VERIFY2(root->property("dropped").toBool(), "dragging an asset tile must deliver its asset to the lane drop key");
+        if (folder) { QVERIFY2(!root->property("dropped").toBool(), "folders must not start timeline drags"); }
+        else { QTRY_VERIFY2(root->property("dropped").toBool(), "dragging an asset tile must deliver its asset to the lane drop key"); }
     }
 };
 int main(int argc, char** argv) {
     const bool probeDrop = argc > 1 && QByteArray(argv[1]) == "--probe-drop";
-    if (probeDrop) {
+    const bool listFolder = argc > 1 && QByteArray(argv[1]) == "--list-folder";
+    if (probeDrop || listFolder) {
         const int status = nt::server::takeServerArgs(argc, argv);
         if (status != 0) { return status; }
     }
     QGuiApplication app(argc, argv);
+    if (listFolder) {
+        const auto target = nt::server::serverSaveTarget();
+        if (!target || target->server.port() == 7777) { return 2; }
+        AssetBrowser browser;
+        QEventLoop loop;
+        QObject::connect(&browser, &AssetBrowser::stateChanged, &loop, [&] {
+            if (!browser.busy()) { loop.quit(); }
+        });
+        QTimer::singleShot(60000, &loop, &QEventLoop::quit);
+        browser.openFolder(app.arguments().value(2));
+        if (browser.busy()) { loop.exec(); }
+        const auto children = QJsonArray::fromVariantList(browser.assets());
+        const auto folder = browser.folderId();
+        browser.goUp();
+        if (browser.busy()) { loop.exec(); }
+        const QJsonObject report{{"folder", folder}, {"assets", children},
+            {"home", browser.folderId()}, {"homeAssets", QJsonArray::fromVariantList(browser.assets())}};
+        std::printf("%s\n", QJsonDocument(report).toJson(QJsonDocument::Compact).constData());
+        return browser.busy() || !browser.error().isEmpty() ? 1 : 0;
+    }
     if (probeDrop) {
         const auto args = app.arguments();
         const auto asset = QJsonDocument::fromJson(args.value(2).toUtf8()).object();
@@ -134,8 +197,19 @@ int main(int argc, char** argv) {
         AssetBrowser browser;
         browser.setTimeline(&model);
         const auto before = model.documentJson();
+        const auto scenario = args.value(3);
+        if (scenario == "queued") { browser.refresh(); }
         const bool accepted = browser.drop(asset.toVariantMap(), "v", 1000, "overwrite", 0);
         const bool deferred = model.documentJson() == before && model.undoStack()->count() == 0;
+        TimelineModel replacement;
+        if (scenario == "undo") { model.undoStack()->undo(); }
+        if (scenario == "replace") {
+            auto fresh = nt::parseTimelineJson(model.documentJson());
+            model.setTimeline(std::move(*fresh.timeline));
+        }
+        if (scenario == "switch") { browser.setTimeline(&replacement); }
+        if (scenario == "delete") { model.replaceClips({}); }
+        const auto afterAction = model.documentJson();
         QEventLoop loop;
         QObject::connect(&browser, &AssetBrowser::stateChanged, &loop, [&] {
             if (!browser.busy()) { loop.quit(); }
@@ -149,7 +223,7 @@ int main(int argc, char** argv) {
         model.undoStack()->redo();
         const QJsonObject report{{"accepted", accepted}, {"deferred", deferred},
             {"finished", !browser.busy()}, {"undoCount", undoCount}, {"undone", undone},
-            {"redone", model.documentJson() == after}, {"document", QJsonDocument::fromJson(after).object()}};
+            {"redone", model.documentJson() == after}, {"unchangedAfterAction", afterAction == after}, {"document", QJsonDocument::fromJson(after).object()}};
         std::printf("%s\n", QJsonDocument(report).toJson(QJsonDocument::Compact).constData());
         return 0;
     }

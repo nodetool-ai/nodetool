@@ -1,9 +1,9 @@
 import { execFileSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
-import { assetToClip } from '../../../../../web/src/components/timeline/dnd/assetToClipAdapter';
-import { snapAssetDropMs } from '../../../../../web/src/components/timeline/Tracks/dropSnap';
+import { assetToClip } from '../../../../web/src/components/timeline/dnd/assetToClipAdapter';
+import { snapAssetDropMs } from '../../../../web/src/components/timeline/Tracks/dropSnap';
 import { makeClip } from '@nodetool-ai/timeline';
-import type { Asset } from '../../../../../web/src/stores/ApiTypes';
+import type { Asset } from '../../../../web/src/stores/ApiTypes';
 
 describe('assetToClip against the web adapter', () => {
   const cases = [

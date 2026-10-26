@@ -13,6 +13,10 @@ int main(int argc, char** argv) {
     QJsonArray results;
     for (const auto& value : cases) {
         const auto request = value.toObject();
+        if (request.value("op").toString() == "settle") {
+            results.append(nt::assets::settleLinkedAudio(request.value("document").toObject(), request.value("payload").toObject()));
+            continue;
+        }
         if (request.value("op").toString() == "drop") {
             results.append(nt::app::findEdit("assets.dropAsset")(
                 request.value("document").toObject(), request.value("payload").toObject()));
