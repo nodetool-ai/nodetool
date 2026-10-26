@@ -15,7 +15,9 @@ afterEach(() => {
 
 it.each([
   ["zh-CN", "保存"],
-  ["de", "Speichern"]
+  ["de", "Speichern"],
+  ["fi", "Tallenna"],
+  ["ru", "Сохранить"]
 ] as const)(
   "switches mounted consumers and document language and persists %s",
   (locale, saveLabel) => {
@@ -43,7 +45,14 @@ it("provides initialized English translations to tests without a provider", () =
   expect(screen.getByText("Save")).toBeTruthy();
 });
 
-it.each([{}, { locale: "invalid" }, { locale: "zh-CN" }, { locale: "de" }])(
+it.each([
+  {},
+  { locale: "invalid" },
+  { locale: "zh-CN" },
+  { locale: "de" },
+  { locale: "fi" },
+  { locale: "ru" }
+])(
   "rehydrates old and validated locale settings: %p",
   async (settings) => {
     localStorage.setItem(
@@ -52,8 +61,7 @@ it.each([{}, { locale: "invalid" }, { locale: "zh-CN" }, { locale: "de" }])(
     );
     await useSettingsStore.persist.rehydrate();
     expect(useSettingsStore.getState().settings.locale).toBe(
-      "locale" in settings &&
-        (settings.locale === "zh-CN" || settings.locale === "de")
+      "locale" in settings && settings.locale !== "invalid"
         ? settings.locale
         : "en"
     );
