@@ -7,6 +7,7 @@
 #include <QEventLoop>
 #include <QFileInfo>
 #include <QJsonDocument>
+#include <QLockFile>
 #include <QTimer>
 #include <QTemporaryDir>
 #include <QScopeGuard>
@@ -32,6 +33,82 @@ QQuickItem* itemNamed(QQuickItem* root, const QString& name) {
 class TestAssetBrowser : public QObject {
     Q_OBJECT
 private slots:
+    void documentSwitchDuringEviction() {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QStringList paths;
+        for (const auto& name : {"old.mp4", "loaded.mp4", "loaded.wav", "fetched.png"}) {
+            const auto path = dir.filePath(name);
+            QFile file(path);
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            QCOMPARE(file.write(QByteArray(700000, 'b')), 700000);
+            QVERIFY(file.setFileTime(QDateTime::fromSecsSinceEpoch(paths.size() + 1),
+                                     QFileDevice::FileModificationTime));
+            paths.append(path);
+        }
+        const auto document = [] {
+            return nt::parseTimelineJson(R"({"fps":30,"width":640,"height":360,
+                "tracks":[{"id":"v","type":"video","index":0}],
+                "clips":[{"id":"loaded","trackId":"v","mediaType":"video","durationMs":2000}]})");
+        };
+        auto first = document();
+        auto second = document();
+        QVERIFY(first.timeline);
+        QVERIFY(second.timeline);
+        first.timeline->clips.front().mediaPath = paths[0].toStdString();
+        second.timeline->clips.front().mediaPath = paths[1].toStdString();
+        second.timeline->clips.front().audioPath = QDir::current().relativeFilePath(paths[2]).toStdString();
+        TimelineModel model;
+        model.setTimeline(std::move(*first.timeline));
+        AssetBrowser browser;
+        browser.setTimeline(&model);
+        bool switched = false;
+        browser.m_mediaProtection->evict(dir.path(), 1024 * 1024, paths[3], [&] {
+            model.setTimeline(std::move(*second.timeline));
+            switched = true;
+        });
+        QVERIFY(switched);
+        QVERIFY2(QFileInfo::exists(paths[1]), "new document video was evicted after reset returned");
+        QVERIFY2(QFileInfo::exists(paths[2]), "new document audio was evicted after reset returned");
+        QVERIFY2(!QFileInfo::exists(paths[0]), "unprotected old file was not evicted");
+        QVERIFY(QFileInfo::exists(paths[3]));
+    }
+    void mediaEvictionPolicy_data() {
+        QTest::addColumn<qint64>("budget");
+        QTest::addColumn<bool>("evicted");
+        QTest::newRow("negative-unlimited") << qint64(-1) << false;
+        QTest::newRow("zero-unlimited") << qint64(0) << false;
+        QTest::newRow("within-budget") << qint64(4 * 1024 * 1024) << false;
+        QTest::newRow("over-budget") << qint64(3 * 1024 * 1024) << true;
+    }
+    void mediaEvictionPolicy() {
+        QFETCH(qint64, budget);
+        QFETCH(bool, evicted);
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QVERIFY(QDir(dir.path()).mkpath("locked"));
+        QStringList paths;
+        for (const auto& name : {"protected.png", "locked/other.png", "old.png", "recent.png",
+                                 "locked/fetched.png", ".hidden", "download.part", "download.total", "report.json"}) {
+            const auto path = dir.filePath(name);
+            QFile file(path);
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            QCOMPARE(file.write(QByteArray(700000, 'b')), 700000);
+            QVERIFY(file.setFileTime(QDateTime::fromSecsSinceEpoch(paths.size() + 1),
+                                     QFileDevice::FileModificationTime));
+            paths.append(path);
+        }
+        QLockFile held(dir.filePath("locked/.lock"));
+        held.setStaleLockTime(0);
+        QVERIFY(held.tryLock(0));
+        nt::assets::MediaProtection protection;
+        protection.protect(QDir::current().relativeFilePath(paths[0]));
+        protection.evict(dir.path(), budget, paths[4]);
+        QCOMPARE(QFileInfo::exists(paths[2]), !evicted);
+        for (const auto& path : paths) {
+            if (path != paths[2]) { QVERIFY2(QFileInfo::exists(path), qPrintable(path)); }
+        }
+    }
     void linkedAudioTrackedDeletion_data() {
         QTest::addColumn<QString>("outcome");
         QTest::newRow("audio") << QString("audio");
@@ -233,6 +310,7 @@ private slots:
             worker->wait();
             QVERIFY(result.media);
             QVERIFY(QFileInfo::exists(QString::fromStdString(result.media->mediaPath)));
+            QVERIFY2(!QFileInfo::exists(paths[0]), "running fetch did not evict unprotected old media");
         } else {
             model.setTimeline(std::move(*second.timeline));
             nt::server::ServerClient client(http.base());
