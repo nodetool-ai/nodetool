@@ -1,0 +1,334 @@
+#include "TimelineMerge.h"
+
+#include <QCoreApplication>
+#include <QFile>
+#include <QJsonDocument>
+#include <QTest>
+
+#include <cstdio>
+#include <stdexcept>
+
+using namespace nt::server::sync;
+
+namespace {
+QJsonObject track(const QString& id) { return {{"id", id}, {"name", id}, {"type", "video"}}; }
+QJsonObject clip(const QString& id, const QString& name = "original")
+{
+    return {{"id", id}, {"name", name}, {"trackId", "t"}, {"startMs", 0}, {"durationMs", 1000}};
+}
+QJsonObject document()
+{
+    return {{"tracks", QJsonArray{track("t")}}, {"trackFolders", QJsonArray{}},
+            {"clips", QJsonArray{clip("a"), clip("b")}}, {"markers", QJsonArray{}},
+            {"mediaTracks", QJsonArray{}}, {"transcript", QJsonArray{}},
+            {"fps", 30}, {"width", 1920}, {"height", 1080}, {"scriptEnabled", false},
+            {"camera2d", QJsonValue::Null}, {"setup", QJsonValue::Null}};
+}
+QJsonArray op(const QString& key = "clip_id", const QJsonValue& id = "a",
+              const QString& tool = "ui_timeline_update_clip")
+{
+    return {QJsonObject{{"tool", tool}, {"input", QJsonObject{{key, id}}}}};
+}
+QJsonObject serialized(const MergeResult& result)
+{
+    QJsonArray conflicts;
+    for (const auto& conflict : result.conflicts) {
+        QJsonObject value{{"unit", QJsonObject{{"kind", conflict.kind}, {"id", conflict.id},
+                                             {"label", conflict.label}}},
+                          {"external", conflict.external}, {"reason", conflict.reason}};
+        if (conflict.hasDraft) {
+            value.insert("draft", conflict.draft);
+        }
+        conflicts.append(value);
+    }
+    return {{"doc", result.doc}, {"nextBase", result.nextBase}, {"conflicts", conflicts}};
+}
+} // namespace
+
+class SyncTest : public QObject {
+    Q_OBJECT
+private slots:
+    void disjointEdits()
+    {
+        const auto base = document();
+        auto draft = base;
+        auto server = base;
+        draft["clips"] = QJsonArray{clip("a", "local"), clip("b")};
+        server["clips"] = QJsonArray{clip("a"), clip("b", "external")};
+        const auto result = mergeTimelineDocuments(base, draft, server, op("id", "b"));
+        QCOMPARE(result.doc["clips"].toArray(), (QJsonArray{clip("a", "local"), clip("b", "external")}));
+        QVERIFY(result.conflicts.isEmpty());
+        QCOMPARE(result.nextBase, server);
+    }
+    void sameClip()
+    {
+        const auto base = document();
+        auto draft = base;
+        auto server = base;
+        draft["clips"] = QJsonArray{clip("a", "local"), clip("b")};
+        server["clips"] = QJsonArray{clip("a", "external"), clip("b")};
+        const auto result = mergeTimelineDocuments(base, draft, server, op());
+        QCOMPARE(result.doc, draft);
+        QCOMPARE(result.conflicts.size(), 1);
+        QCOMPARE(result.conflicts[0].reason, "edited");
+        QCOMPARE(result.conflicts[0].label, "local");
+        QCOMPARE(result.conflicts[0].external, QJsonValue(clip("a", "external")));
+        QCOMPARE(result.nextBase, base);
+    }
+    void externalDelete()
+    {
+        const auto base = document();
+        auto draft = base;
+        auto server = base;
+        draft["clips"] = QJsonArray{clip("a", "local"), clip("b")};
+        server["clips"] = QJsonArray{};
+        const auto result = mergeTimelineDocuments(base, draft, server, op());
+        QCOMPARE(result.doc["clips"].toArray(), QJsonArray{clip("a", "local")});
+        QCOMPARE(result.conflicts.size(), 1);
+        QCOMPARE(result.conflicts[0].reason, "deleted");
+        QVERIFY(result.conflicts[0].external.isNull());
+        // nextBase follows server membership even for a refused deletion.
+        QCOMPARE(result.nextBase["clips"].toArray(), QJsonArray{});
+    }
+    void draftDelete()
+    {
+        const auto base = document();
+        auto draft = base;
+        auto server = base;
+        draft["clips"] = QJsonArray{clip("b")};
+        server["clips"] = QJsonArray{clip("a", "external"), clip("b")};
+        const auto result = mergeTimelineDocuments(base, draft, server, op());
+        QCOMPARE(result.doc, draft);
+        QCOMPARE(result.conflicts.size(), 1);
+        QCOMPARE(result.conflicts[0].reason, "deleted");
+        QVERIFY(!result.conflicts[0].hasDraft);
+        QCOMPARE(result.nextBase, base);
+    }
+    void additions()
+    {
+        const auto base = document();
+        auto draft = base;
+        auto server = base;
+        draft["clips"] = QJsonArray{clip("a"), clip("local"), clip("b")};
+        server["clips"] = QJsonArray{clip("external"), clip("a"), clip("b")};
+        const auto result = mergeTimelineDocuments(base, draft, server, op());
+        QCOMPARE(result.doc["clips"].toArray(),
+                 (QJsonArray{clip("external"), clip("a"), clip("local"), clip("b")}));
+        QVERIFY(result.conflicts.isEmpty());
+    }
+    void trackAdditionAndRename()
+    {
+        const auto base = document();
+        auto draft = base;
+        auto server = base;
+        draft["tracks"] = QJsonArray{QJsonObject{{"id", "t"}, {"name", "renamed"}, {"type", "video"}}};
+        server["tracks"] = QJsonArray{track("new"), track("t")};
+        const auto result = mergeTimelineDocuments(base, draft, server, op("trackId", "new", "add_track"));
+        QCOMPARE(result.doc["tracks"].toArray().size(), 2);
+        QCOMPARE(result.doc["tracks"].toArray()[1].toObject()["name"], QJsonValue("renamed"));
+    }
+    void trackDeletion()
+    {
+        const auto base = document();
+        auto removed = base;
+        removed["tracks"] = QJsonArray{};
+        removed["clips"] = QJsonArray{};
+        const auto deletion = mergeTimelineDocuments(base, base, removed, op("trackId", "t", "delete_track"));
+        QVERIFY(deletion.doc["tracks"].toArray().isEmpty());
+    }
+    void dangling()
+    {
+        const auto base = document();
+        auto draft = base;
+        auto server = base;
+        draft["tracks"] = QJsonArray{};
+        draft["clips"] = QJsonArray{};
+        server["clips"] = QJsonArray{clip("new")};
+        const auto result = mergeTimelineDocuments(base, draft, server, op());
+        QVERIFY(result.doc["clips"].toArray().isEmpty());
+        QCOMPARE(result.conflicts.size(), 1);
+        QCOMPARE(result.conflicts[0].reason, "dangling");
+        QCOMPARE(result.conflicts[0].id, "new");
+    }
+    void scalarEdits()
+    {
+        const auto base = document();
+        auto draft = base;
+        auto server = base;
+        draft["fps"] = 24;
+        server["tempo"] = QJsonObject{{"bpm", 120}};
+        const auto result = mergeTimelineDocuments(base, draft, server, std::nullopt, true);
+        QCOMPARE(result.doc["fps"], QJsonValue(24));
+        QCOMPARE(result.doc["tempo"], server["tempo"]);
+        server["fps"] = 60;
+        const auto contested = mergeTimelineDocuments(base, draft, server, std::nullopt, true);
+        QCOMPARE(contested.conflicts.size(), 1);
+        QCOMPARE(contested.conflicts[0].id, "fps");
+        QCOMPARE(contested.nextBase["fps"], QJsonValue(30));
+    }
+    void withoutOps()
+    {
+        const auto base = document();
+        auto draft = base;
+        auto server = base;
+        draft["fps"] = 24;
+        server["width"] = 1280;
+        const auto replaced = mergeTimelineDocuments(base, draft, server);
+        QCOMPARE(replaced.doc, draft);
+        QCOMPARE(replaced.nextBase, base);
+        QCOMPARE(replaced.conflicts.size(), 1);
+        QCOMPARE(replaced.conflicts[0].reason, "replaced");
+        QVERIFY(!replaced.conflicts[0].hasDraft);
+        const auto merged = mergeTimelineDocuments(base, draft, server, QJsonArray{}, true);
+        QCOMPARE(merged.doc["width"], QJsonValue(1280));
+        QVERIFY(merged.conflicts.isEmpty());
+    }
+    void opScoping_data()
+    {
+        QTest::addColumn<QString>("key");
+        QTest::newRow("clip_id") << QString("clip_id");
+        QTest::newRow("clipId") << QString("clipId");
+        QTest::newRow("id") << QString("id");
+        QTest::newRow("target") << QString("target");
+    }
+    void opScoping()
+    {
+        QFETCH(QString, key);
+        const auto base = document();
+        auto draft = base;
+        auto server = base;
+        draft["clips"] = QJsonArray{clip("a", "local"), clip("b", "local")};
+        server["clips"] = QJsonArray{clip("a", "external"), clip("b", "external")};
+        const auto result = mergeTimelineDocuments(base, draft, server, op(key));
+        QCOMPARE(result.conflicts.size(), 1);
+        QCOMPARE(result.conflicts[0].id, "a");
+        QCOMPARE(result.doc, draft);
+        // The unlisted refusal must keep its old base too.
+        QCOMPARE(result.nextBase, base);
+    }
+    void projectionAndApply()
+    {
+        auto raw = document();
+        raw["id"] = "sequence";
+        raw["unknown"] = QJsonObject{{"keep", true}};
+        raw["tempo"] = QJsonObject{{"bpm", 100}};
+        raw["master"] = QJsonObject{{"volumeDb", -3}};
+        auto projected = mergeDocumentOf(raw);
+        QVERIFY(!projected.contains("id"));
+        QVERIFY(!projected.contains("unknown"));
+        auto wire = raw;
+        wire.remove("tempo");
+        wire["master"] = QJsonValue::Null;
+        wire.remove("tracks");
+        const auto fetched = mergeDocumentOfSequence(wire, projected);
+        QCOMPARE(fetched["tempo"], raw["tempo"]);
+        QCOMPARE(fetched["master"], raw["master"]);
+        QCOMPARE(fetched["tracks"].toArray(), QJsonArray{});
+        projected.remove("tempo");
+        const auto applied = applyMergeDocument(raw, projected);
+        QVERIFY(!applied.contains("tempo"));
+        QCOMPARE(applied["id"], raw["id"]);
+        QCOMPARE(applied["unknown"], raw["unknown"]);
+        QVERIFY(!mergeDocumentOf({}).contains("fps"));
+        QVERIFY(mergeDocumentOf({})["camera2d"].isNull());
+    }
+    void cameraParse()
+    {
+        const auto base = document();
+        auto server = base;
+        const QJsonObject position{{"x", 2}, {"y", 3}};
+        const QJsonObject expected{{"position", position}, {"depthPx", 0}, {"focalLengthPx", 100}};
+        auto camera = expected;
+        camera["extra"] = true;
+        camera["position"] = QJsonObject{{"x", 2}, {"y", 3}, {"extra", 4}};
+        server["camera2d"] = camera;
+        const auto result = mergeTimelineDocuments(base, base, server, std::nullopt, true);
+        QCOMPARE(result.doc["camera2d"], QJsonValue(expected));
+        QCOMPARE(result.nextBase["camera2d"], QJsonValue(expected));
+    }
+    void cameraRejectsInvalidWrites_data()
+    {
+        QTest::addColumn<QJsonValue>("camera");
+        const QJsonObject valid{{"position", QJsonObject{{"x", 0}, {"y", 0}}},
+                                {"depthPx", 0}, {"focalLengthPx", 100}};
+        QTest::newRow("not-object") << QJsonValue(false);
+        QTest::newRow("missing-fields") << QJsonValue(QJsonObject{});
+        auto camera = valid;
+        camera["focalLengthPx"] = 0;
+        QTest::newRow("zero-focal-length") << QJsonValue(camera);
+        camera = valid;
+        camera["aperturePx"] = -1;
+        QTest::newRow("negative-aperture") << QJsonValue(camera);
+        camera = valid;
+        camera["focusDepthPx"] = QJsonValue::Null;
+        QTest::newRow("null-optional-number") << QJsonValue(camera);
+        camera = valid;
+        camera["position"] = QJsonObject{{"x", "0"}, {"y", 0}};
+        QTest::newRow("string-coordinate") << QJsonValue(camera);
+        camera = valid;
+        camera["keyframes"] = QJsonValue::Null;
+        QTest::newRow("null-keyframes") << QJsonValue(camera);
+        camera["keyframes"] = QJsonArray{QJsonValue::Null};
+        QTest::newRow("null-keyframe") << QJsonValue(camera);
+        camera["keyframes"] = QJsonArray{QJsonObject{{"position", valid["position"]}, {"depthPx", 0}}};
+        QTest::newRow("missing-keyframe-time") << QJsonValue(camera);
+    }
+    void cameraRejectsInvalidWrites()
+    {
+        QFETCH(QJsonValue, camera);
+        const auto base = document();
+        auto server = base;
+        server["camera2d"] = camera;
+        QVERIFY_THROWS_EXCEPTION(std::invalid_argument,
+            mergeTimelineDocuments(base, base, server, std::nullopt, true));
+    }
+    void largeCollection()
+    {
+        auto base = document();
+        QJsonArray clips;
+        for (int i = 0; i < 10000; ++i) {
+            clips.append(clip(QString::number(i)));
+        }
+        base["clips"] = clips;
+        auto server = base;
+        clips.replace(9999, clip("9999", "external"));
+        server["clips"] = clips;
+        const auto result = mergeTimelineDocuments(base, base, server, op("id", "9999"));
+        QCOMPARE(result.doc["clips"].toArray(), clips);
+        QVERIFY(result.conflicts.isEmpty());
+    }
+};
+
+int main(int argc, char** argv)
+{
+    QCoreApplication app(argc, argv);
+    if (app.arguments().contains("--merge")) {
+        QFile input;
+        if (!input.open(stdin, QIODevice::ReadOnly)) {
+            return 2;
+        }
+        QJsonParseError error;
+        const auto requests = QJsonDocument::fromJson(input.readAll(), &error);
+        if (error.error != QJsonParseError::NoError || !requests.isArray()) {
+            return 2;
+        }
+        QJsonArray results;
+        for (const auto& value : requests.array()) {
+            const auto request = value.toObject();
+            const auto base = mergeDocumentOf(request["base"].toObject());
+            const auto draft = mergeDocumentOf(request["draft"].toObject());
+            const auto server = mergeDocumentOfSequence(request["server"].toObject(), base);
+            const auto ops = request.contains("ops")
+                ? std::optional{request["ops"].toArray()} : std::nullopt;
+            results.append(serialized(mergeTimelineDocuments(base, draft, server, ops,
+                request["mergeWithoutOps"].toBool())));
+        }
+        const auto output = QJsonDocument(results).toJson(QJsonDocument::Compact);
+        return std::fwrite(output.constData(), 1, static_cast<size_t>(output.size()), stdout)
+                       == static_cast<size_t>(output.size()) ? 0 : 3;
+    }
+    SyncTest test;
+    return QTest::qExec(&test, argc, argv);
+}
+
+#include "tst_sync.moc"
