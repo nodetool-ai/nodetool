@@ -3,6 +3,10 @@
 #include "preview/layers/TestStill.h"
 #include "model/TimelineJson.h"
 #include <QGuiApplication>
+#include "playback/PlaybackClock.h"
+#include <QProcess>
+#include <QStandardPaths>
+#include <QTemporaryDir>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QtTest>
@@ -35,6 +39,8 @@ nt::Timeline document(const QString& mode = "normal", bool group = false, bool i
 }
 class TestComposeHooks : public QObject {
     Q_OBJECT
+    std::vector<nt::MatteStageToken> m_mattes;
+    std::vector<nt::SecondSourceToken> m_seconds;
     std::vector<nt::BlendHandlerToken> m_blends;
     std::vector<nt::EffectStageToken> m_stages;
     std::vector<nt::SceneHookToken> m_hooks;
@@ -84,11 +90,61 @@ class TestComposeHooks : public QObject {
     }
 private slots:
     void cleanup() {
+        for (auto token : m_mattes) { nt::unregisterMatteStage(token); }
+        for (auto token : m_seconds) { nt::unregisterSecondSourceProvider(token); }
+        m_mattes.clear(); m_seconds.clear();
         for (auto token : m_blends) { nt::unregisterBlendHandler(token); }
         for (auto token : m_stages) { nt::unregisterEffectStage(token); }
         for (auto token : m_hooks) { nt::unregisterSceneHook(token); }
         for (auto token : m_sources) { nt::unregisterLayerSource(token); }
         m_blends.clear(); m_stages.clear(); m_hooks.clear(); m_sources.clear();
+    }
+    void matteExposesSourceLayer() {
+        auto raw = document().raw;
+        auto clips = raw.value("clips").toArray();
+        auto a = clips[0].toObject();
+        a.insert("hidden", true);
+        a.insert("transform", QJsonObject{{"position",QJsonObject{{"x",12},{"y",4}}}});
+        a.insert("animations", QJsonArray{QJsonObject{{"id","fade"},{"role","in"},{"preset","custom"},
+            {"durationMs",1000},{"custom",QJsonObject{{"curves",QJsonArray{QJsonObject{
+                {"property","opacity"},{"keyframes",QJsonArray{QJsonObject{{"t",0},{"value",0.2}},
+                    QJsonObject{{"t",1},{"value",0.8},{"easing","linear"}}}}}}}}}}});
+        auto b = clips[1].toObject();
+        b.insert("matte", QJsonObject{{"sourceClipId","a"},{"mode","luma"},{"invert",true}});
+        const auto parse = [&] {
+            raw.insert("clips",QJsonArray{a,b});
+            return *nt::parseTimelineJson(QJsonDocument(raw).toJson()).timeline;
+        };
+        m_hooks.push_back(nt::registerLayerDecorator([](nt::ActiveLayer& layer, const nt::Clip&, double) {
+            if (layer.clipId == "a") { layer.ext.insert("decorated",true); }
+        }));
+        const auto timeline = parse();
+        const auto frame = nt::evaluateScene(timeline,500);
+        QCOMPARE(frame.layers.size(),size_t{1});
+        QCOMPARE(frame.layers[0].clipId,std::string("b"));
+        QVERIFY(frame.layers[0].matte.has_value());
+        const auto& matte = *frame.layers[0].matte;
+        QCOMPARE(matte.mode,std::string("luma"));
+        QVERIFY(matte.invert);
+        QVERIFY(matte.layer);
+        QCOMPARE(matte.layer->clipId,std::string("a"));
+        QVERIFY(matte.layer->transform.has_value());
+        QCOMPARE(matte.layer->transform->position.x,12.0);
+        QCOMPARE(matte.layer->transform->position.y,4.0);
+        QCOMPARE(matte.layer->opacity,0.5);
+        QCOMPARE(matte.layer->drawOpacity,0.5);
+        QVERIFY(matte.layer->ext.value("decorated").toBool());
+        QVERIFY(!QJsonDocument(nt::framePlanJson(nt::buildFramePlan(timeline,500))).toJson().contains("\"matte\""));
+        b.insert("generatedMatte",QJsonObject{{"assetId","mask"}});
+        const auto generated = nt::evaluateScene(parse(),500);
+        QCOMPARE(generated.layers.size(),size_t{1});
+        QVERIFY(!generated.layers[0].matte);
+        b.remove("generatedMatte");
+        a.insert("startMs",600);
+        const auto inactive = nt::evaluateScene(parse(),500);
+        QVERIFY(inactive.layers.empty());
+        QCOMPARE(inactive.dropped.size(),size_t{1});
+        QCOMPARE(inactive.dropped[0].reason,std::string("matte_source_inactive"));
     }
     void lastRegistrationWins() {
         int first = 0, second = 0;
@@ -101,6 +157,132 @@ private slots:
         QCOMPARE(first,1);
         cleanup();
         QVERIFY(nt::registeredBlendHandlers().empty());
+        m_mattes.push_back(nt::registerMatteStage([&first] { ++first; return std::make_unique<nt::test::AlphaMatteStage>(); }));
+        m_mattes.push_back(nt::registerMatteStage([&second] { ++second; return std::make_unique<nt::test::AlphaMatteStage>(); }));
+        QVERIFY(nt::registeredMatteStage());
+        QCOMPARE(second,2);
+        nt::unregisterMatteStage(m_mattes.back()); m_mattes.pop_back();
+        QVERIFY(nt::registeredMatteStage());
+        QCOMPARE(first,2);
+        m_seconds.push_back(nt::registerSecondSourceProvider([](const nt::ActiveLayer&, const nt::Clip&) {
+            return std::vector<nt::SecondSourceRequest>{{"mask","first"}};
+        }));
+        const auto snapshot = nt::registeredSecondSourceProviders();
+        QCOMPARE(snapshot.size(),size_t{1});
+        cleanup();
+        QVERIFY(!nt::registeredMatteStage());
+        QVERIFY(nt::registeredSecondSourceProviders().empty());
+        QCOMPARE(snapshot[0]({},{}).front().mediaPath,std::string("first"));
+    }
+    void matteStageUsesMatteAlpha() {
+        auto timeline = document();
+        auto raw = timeline.raw;
+        auto clips = raw.value("clips").toArray();
+        auto a = clips[0].toObject(), b = clips[1].toObject();
+        a.insert("hidden",true);
+        b.remove("transform");
+        b.insert("matte",QJsonObject{{"sourceClipId","a"},{"mode","alpha"}});
+        raw.insert("clips",QJsonArray{a,b});
+        timeline = *nt::parseTimelineJson(QJsonDocument(raw).toJson()).timeline;
+        m_sources.push_back(nt::registerLayerSource("shape", [](const nt::ActiveLayer& layer) {
+            QImage image(64,32,QImage::Format_RGBA8888_Premultiplied);
+            image.fill(layer.clipId == "b" ? top : QColor(Qt::transparent));
+            if (layer.clipId == "a") {
+                for (int y = 0; y < 32; ++y) {
+                    for (int x = 0; x < 32; ++x) { image.setPixelColor(x,y,Qt::white); }
+                }
+            }
+            return std::make_unique<nt::test::PaintSource>(std::move(image));
+        }));
+        long long targets = -1;
+        const auto plain = capture(timeline,&targets);
+        QVERIFY(!plain.isNull());
+        near(plain.pixelColor(16,16),top);
+        near(plain.pixelColor(48,16),top);
+        QCOMPARE(targets,0);
+        m_mattes.push_back(nt::registerMatteStage([] { return std::make_unique<nt::test::AlphaMatteStage>(); }));
+        const auto matted = capture(timeline);
+        QVERIFY(!matted.isNull());
+        near(matted.pixelColor(16,16),top);
+        near(matted.pixelColor(48,16),QColor(Qt::black));
+        m_hooks.push_back(nt::registerLayerDecorator([](nt::ActiveLayer& l, const nt::Clip&, double) {
+            if (l.clipId == "b") { l.opacity = 0.5; }
+        }));
+        const auto faded = capture(timeline);
+        QVERIFY(!faded.isNull());
+        near(faded.pixelColor(16,16),QColor(96,32,64));
+        near(faded.pixelColor(48,16),QColor(Qt::black));
+        m_hooks.push_back(nt::registerLayerDecorator([](nt::ActiveLayer& l, const nt::Clip&, double) {
+            if (l.clipId == "a") { l.opacity = 0.5; }
+        }));
+        const auto soft = capture(timeline);
+        QVERIFY(!soft.isNull());
+        near(soft.pixelColor(16,16),QColor(48,16,32));
+    }
+    void secondSourceReachesStage() {
+        const auto ffmpeg = QStandardPaths::findExecutable("ffmpeg");
+        QVERIFY2(!ffmpeg.isEmpty(),"ffmpeg is required for the second-source fixture");
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const auto path = dir.filePath("luma.mkv");
+        QProcess process;
+        process.start(ffmpeg,{"-v","error","-y","-f","lavfi","-i","color=white:s=64x32:r=30:d=1",
+            "-f","lavfi","-i","color=black:s=64x32:r=30:d=1","-filter_complex",
+            "[0:v][1:v]concat=n=2:v=1:a=0[out]","-map","[out]","-c:v","ffv1",path});
+        QVERIFY(process.waitForFinished(30000));
+        QCOMPARE(process.exitStatus(),QProcess::NormalExit);
+        QVERIFY2(process.exitCode() == 0,process.readAllStandardError().constData());
+        auto timeline = document();
+        timeline.durationMs = 2000;
+        timeline.clips.resize(1);
+        timeline.clips[0].durationMs = 2000;
+        sources();
+        m_hooks.push_back(nt::registerLayerDecorator([](nt::ActiveLayer& l, const nt::Clip&, double) {
+            l.ext.insert("secondSource",true);
+        }));
+        m_stages.push_back(nt::registerEffectStage([] { return std::make_unique<nt::test::SecondSourceStage>(); }));
+        const auto at = [&](double ms) {
+            TimelineModel model; model.setTimeline(timeline);
+            PlaybackClock clock; clock.setDurationMs(2000); clock.seek(ms);
+            nt::test::Still still;
+            if (!still.initialize(model)) { return QImage{}; }
+            still.setClock(&clock);
+            return still.capture(15000);
+        };
+        const auto plain = at(1500);
+        QVERIFY(!plain.isNull());
+        near(plain.pixelColor(32,16),bottom);
+        m_seconds.push_back(nt::registerSecondSourceProvider([path](const nt::ActiveLayer& l, const nt::Clip&) {
+            return l.clipId == "a" ? std::vector<nt::SecondSourceRequest>{{"luma",path.toStdString()}}
+                                   : std::vector<nt::SecondSourceRequest>{};
+        }));
+        const auto white = at(500), black = at(1500);
+        QVERIFY(!white.isNull()); QVERIFY(!black.isNull());
+        near(white.pixelColor(32,16),bottom);
+        near(black.pixelColor(32,16),QColor(Qt::black));
+        timeline.clips[0].inPointMs = 1000;
+        const auto shifted = at(500);
+        QVERIFY(!shifted.isNull());
+        near(shifted.pixelColor(32,16),QColor(Qt::black));
+        cleanup(); sources();
+        auto raw = document().raw;
+        auto clips = raw.value("clips").toArray();
+        auto a = clips[0].toObject(), b = clips[1].toObject();
+        a.insert("mediaType","video"); a.insert("mediaPath",path);
+        a.insert("hidden",true); a.insert("durationMs",2000);
+        b.remove("transform"); b.insert("durationMs",2000);
+        b.insert("matte",QJsonObject{{"sourceClipId","a"},{"mode","alpha"}});
+        raw.insert("clips",QJsonArray{a,b}); raw.insert("durationMs",2000);
+        timeline = *nt::parseTimelineJson(QJsonDocument(raw).toJson()).timeline;
+        m_mattes.push_back(nt::registerMatteStage([] { return std::make_unique<nt::test::SecondSourceMatteStage>(); }));
+        m_seconds.push_back(nt::registerSecondSourceProvider([path](const nt::ActiveLayer& l, const nt::Clip&) {
+            return l.clipId == "b" ? std::vector<nt::SecondSourceRequest>{{"luma",path.toStdString()}}
+                                   : std::vector<nt::SecondSourceRequest>{};
+        }));
+        const auto mediaMatte = at(500), secondInMatte = at(1500);
+        QVERIFY(!mediaMatte.isNull()); QVERIFY(!secondInMatte.isNull());
+        near(mediaMatte.pixelColor(32,16),top);
+        near(secondInMatte.pixelColor(32,16),QColor(Qt::black));
     }
     void blendHandlerMultipliesLayer() {
         sources();

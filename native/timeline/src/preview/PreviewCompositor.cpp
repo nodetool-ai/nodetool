@@ -34,6 +34,7 @@
 #include <memory>
 #include <string>
 #include <map>
+#include <set>
 #include <type_traits>
 
 namespace {
@@ -104,6 +105,7 @@ public:
         m_sources.clear();
         m_effectStages.clear();
         m_blendHandlers.clear();
+        m_matteStage.reset();
         m_pool.clear();
         m_surfaces.clear();
         if (m_rhi && !m_retire.empty()) m_rhi->finish();
@@ -160,7 +162,9 @@ private:
         nt::LayerFrame input;
         Surface* output;
         const QJsonObject* ext;
+        const std::map<std::string, nt::LayerFrame>* sources;
     };
+    std::unique_ptr<nt::MatteStage> m_matteStage;
     std::vector<std::unique_ptr<nt::LayerEffectStage>> m_effectStages;
     std::map<std::string, std::unique_ptr<nt::BlendHandler>> m_blendHandlers;
     std::unique_ptr<Surface> makeSurface(QSize size);
@@ -276,6 +280,7 @@ void PreviewCompositorRenderer::initialize(QRhiCommandBuffer*) {
         m_sources.clear();
         m_effectStages.clear();
         m_blendHandlers.clear();
+        m_matteStage.reset();
         m_pool.clear();  // stop old decoders before retiring their frames
         m_surfaces.clear();
         m_retire.clear();
@@ -294,6 +299,7 @@ void PreviewCompositorRenderer::initialize(QRhiCommandBuffer*) {
         m_rhi = rhi();
         m_effectStages = nt::registeredEffectStages();
         m_blendHandlers = nt::registeredBlendHandlers();
+        m_matteStage = nt::registeredMatteStage();
     }
     if (!m_interop) {
         m_interop = nt::hw::PlatformInterop::create(m_rhi);
@@ -532,9 +538,70 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
         m_vbufUploaded = true;
     }
 
-    // Open, pre-roll and close decoders for this time (D18).
+    // Matte sources are prepared independently and never enter the draw stack.
+    std::vector<std::pair<const nt::ActiveLayer*, bool>> prepare;
+    std::set<const nt::ActiveLayer*> matteSources;
+    if (m_matteStage) {
+        for (const auto& layer : m_layers) {
+            if (layer.matte && layer.matte->layer && matteSources.insert(layer.matte->layer.get()).second) {
+                prepare.emplace_back(layer.matte->layer.get(), true);
+            }
+        }
+    }
+    for (const auto& layer : m_layers) { prepare.emplace_back(&layer, false); }
+    std::map<const nt::ActiveLayer*, std::map<std::string, std::string>> requestedSources;
+    const auto providers = nt::registeredSecondSourceProviders();
     if (m_timeline) {
-        m_pool.update(*m_timeline, m_timeMs);
+        std::optional<nt::Timeline> poolTimeline;
+        const auto writableTimeline = [&]() -> nt::Timeline& {
+            if (!poolTimeline) { poolTimeline = *m_timeline; }
+            return *poolTimeline;
+        };
+        if (!providers.empty() || !matteSources.empty()) {
+            std::map<std::string, const nt::Clip*> clips;
+            std::set<std::string> usedIds;
+            for (const auto& clip : m_timeline->clips) {
+                clips.emplace(clip.id, &clip);
+                usedIds.insert(clip.id);
+            }
+            std::map<std::pair<std::string, std::string>, std::string> derivedIds;
+            for (const auto& [layer, matteSource] : prepare) {
+                const auto found = clips.find(layer->clipId);
+                if (found == clips.end()) { continue; }
+                const auto& clip = *found->second;
+                if (matteSource && clip.hidden && !layer->mediaPath.empty() && !entryFor(*layer).ownedSource) {
+                    auto& copy = writableTimeline();
+                    for (auto& candidate : copy.clips) {
+                        if (candidate.id == clip.id) { candidate.hidden = false; break; }
+                    }
+                }
+                std::map<std::string, std::string> requests;
+                for (const auto& provider : providers) {
+                    for (auto& request : provider(*layer, clip)) {
+                        requests[request.key] = std::move(request.mediaPath);
+                    }
+                }
+                for (const auto& [key, path] : requests) {
+                    const auto identity = std::pair{clip.id, key};
+                    auto [id, inserted] = derivedIds.try_emplace(identity);
+                    if (inserted) {
+                        // Check both document and derived ids, including unusual
+                        // document ids containing the separator. Never alias a clip.
+                        id->second = clip.id + '\x1f' + key;
+                        while (usedIds.contains(id->second)) { id->second += '\x1f'; }
+                        usedIds.insert(id->second);
+                        auto second = clip;
+                        second.id = id->second;
+                        second.mediaPath = path;
+                        second.hidden = false;
+                        writableTimeline().clips.push_back(std::move(second));
+                    }
+                    requestedSources[layer][key] = id->second;
+                }
+            }
+        }
+        // No handler/request: pass the original document, with no copy.
+        m_pool.update(poolTimeline ? *poolTimeline : *m_timeline, m_timeMs);
     } else {
         m_pool.update(nt::Timeline{}, 0.0);
     }
@@ -563,7 +630,8 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     };
     int hardwareLayers = 0;
     const auto planEffects = [&](nt::LayerFrame input, const QJsonObject& ext,
-                                 std::vector<EffectPass>& passes, QMargins& totalOutset) -> std::optional<nt::LayerFrame> {
+                                 std::vector<EffectPass>& passes, QMargins& totalOutset,
+                                 const std::map<std::string, nt::LayerFrame>* sources = nullptr) -> std::optional<nt::LayerFrame> {
         for (const auto& stage : m_effectStages) {
             if (!stage->applies(ext)) { continue; }
             const auto margin = stage->outset(ext, input.size);
@@ -581,7 +649,7 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
                 resourceFailed("cannot allocate an effect surface");
                 return {};
             }
-            passes.push_back({stage.get(), input, output, &ext});
+            passes.push_back({stage.get(), input, output, &ext, sources});
             input.format = nt::LayerFrame::Format::Rgba8Premultiplied;
             input.planes = {output->texture.get(), nullptr, nullptr};
             input.flipV = m_rhi->isYUpInFramebuffer();
@@ -593,12 +661,64 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     const nt::EffectContext effectContext{m_rhi, cb, m_frame, &m_retire};
     const auto renderEffects = [&](const std::vector<EffectPass>& passes) {
         for (const auto& pass : passes) {
-            if (!pass.stage->render(effectContext, pass.input, *pass.output->rt, *pass.ext)) {
+            auto context = effectContext;
+            context.sources = pass.sources;
+            if (!pass.stage->render(context, pass.input, *pass.output->rt, *pass.ext)) {
                 resourceFailed("cannot render an effect stage");
             }
         }
     };
     std::vector<EffectPass> layerEffects;
+    const auto bindFrame = [&](SourceEntry& e, const nt::LayerFrame& frame, const std::string& clipId) {
+        e.lastUsedFrame = m_frame;
+        if (!e.ubuf) {
+            e.ubuf.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, sizeof(LayerUniforms)));
+            e.ubufOk = e.ubuf->create();
+            e.srb.reset(m_rhi->newShaderResourceBindings());
+        }
+        std::array<QRhiTexture*, 3> planes = frame.planes;
+        for (auto& p : planes) {
+            if (!p) p = frame.planes[0];  // unused samplers still need a texture
+        }
+        if (!e.ubufOk) {
+            resourceFailed("cannot create the uniform buffer of clip " + clipId);
+            return false;
+        }
+        if (e.bound != planes) {
+            e.srb->setBindings({
+                QRhiShaderResourceBinding::uniformBuffer(0, QRhiShaderResourceBinding::VertexStage |
+                                                                QRhiShaderResourceBinding::FragmentStage,
+                                                         e.ubuf.get()),
+                QRhiShaderResourceBinding::sampledTexture(1, QRhiShaderResourceBinding::FragmentStage, planes[0],
+                                                          m_sampler.get()),
+                QRhiShaderResourceBinding::sampledTexture(2, QRhiShaderResourceBinding::FragmentStage, planes[1],
+                                                          m_sampler.get()),
+                QRhiShaderResourceBinding::sampledTexture(3, QRhiShaderResourceBinding::FragmentStage, planes[2],
+                                                          m_sampler.get()),
+            });
+            if (!e.srb->create()) {
+                e.bound = {};
+                resourceFailed("cannot create the bindings of clip " + clipId);
+                return false;
+            }
+            e.bound = planes;
+        }
+        return true;
+    };
+    struct TexturePass { Surface* output; QRhiShaderResourceBindings* input; };
+    std::vector<TexturePass> sourceConversions;
+    std::map<const nt::ActiveLayer*, std::map<std::string, nt::LayerFrame>> secondSources;
+    std::map<const nt::ActiveLayer*, QRhiShaderResourceBindings*> matteBindings;
+    struct MattePass {
+        const nt::ActiveLayer* layer;
+        QRhiShaderResourceBindings* layerBindings;
+        QRhiShaderResourceBindings* matteBindings;
+        Surface* placedLayer;
+        Surface* placedMatte;
+        Surface* output;
+        const std::map<std::string, nt::LayerFrame>* sources;
+    };
+    std::vector<MattePass> mattePasses;
 
     const QMatrix4x4 corr = m_rhi->clipSpaceCorrMatrix();
     // One item of a container's stack (D35): a layer or a group surface.
@@ -619,7 +739,8 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     int missingMedia = 0;
     bool allExact = true;
     const double frameMs = m_fps > 0 ? 1000.0 / m_fps : 1000.0 / 30.0;
-    for (const nt::ActiveLayer& layer : m_layers) {
+    for (const auto& [layerPointer, isMatteSource] : prepare) {
+        const nt::ActiveLayer& layer = *layerPointer;
         SourceEntry& e = entryFor(layer);
         e.lastUsedFrame = m_frame;
         nt::LayerSource* source = e.ownedSource ? e.ownedSource.get() : m_pool.sourceFor(layer.clipId);
@@ -663,40 +784,60 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
                              m_frame, layer.clipId.c_str(), sourceSec, frame.ptsSec, error, frame.exact, frame.hardware);
             }
         }
+        const std::map<std::string, nt::LayerFrame>* layerSources = nullptr;
+        if (const auto requested = requestedSources.find(&layer); requested != requestedSources.end()) {
+            auto& frames = secondSources[&layer];
+            bool ready = true;
+            for (const auto& [key, id] : requested->second) {
+                auto* second = m_pool.sourceFor(id);
+                auto sourceFrame = second ? second->frameAt(fctx, layer.sourceTimeMs) : nt::LayerFrame{};
+                cpuCopies += sourceFrame.cpuCopies;
+                if (sourceFrame.hardware) { ++hardwareLayers; }
+                ++mediaLayers;
+                if (sourceFrame.format == nt::LayerFrame::Format::None || !sourceFrame.planes[0]) {
+                    ++missing; ++missingMedia;
+                    allExact = false;
+                    ready = false;
+                    continue;
+                }
+                allExact = allExact && sourceFrame.exact;
+                if (sourceFrame.format != nt::LayerFrame::Format::Rgba8Premultiplied) {
+                    auto* converted = m_surfaces.acquire(sourceFrame.size, m_frame);
+                    auto& entry = m_sources[std::pair{id, std::string{}}];
+                    if (!converted || !bindFrame(entry, sourceFrame, id)) {
+                        if (!converted) { resourceFailed("cannot allocate a second-source conversion surface"); }
+                        ready = false;
+                        continue;
+                    }
+                    LayerUniforms u{};
+                    writeMatrix(u, corr);
+                    std::memcpy(u.colorMatrix, sourceFrame.colorMatrix.data(), sizeof(u.colorMatrix));
+                    u.opacity = 1.0f;
+                    u.flipV = sourceFrame.flipV ? 1.0f : 0.0f;
+                    u.mode = modeFor(sourceFrame.format);
+                    u.sourceTexelSize[0] = 1.0f / sourceFrame.size.width();
+                    u.sourceTexelSize[1] = 1.0f / sourceFrame.size.height();
+                    updates->updateDynamicBuffer(entry.ubuf.get(), 0, sizeof(u), &u);
+                    sourceConversions.push_back({converted, entry.srb.get()});
+                    sourceFrame.format = nt::LayerFrame::Format::Rgba8Premultiplied;
+                    sourceFrame.planes = {converted->texture.get(), nullptr, nullptr};
+                    sourceFrame.flipV = m_rhi->isYUpInFramebuffer();
+                }
+                frames.emplace(key, sourceFrame);
+            }
+            if (!ready) { continue; }
+            layerSources = &frames;
+        }
+        const bool useMatte = !isMatteSource && m_matteStage && layer.matte && layer.matte->layer;
+        if (useMatte && !matteBindings.contains(layer.matte->layer.get())) { continue; }
         const QSize originalSize = frame.size;
         QMargins outset;
         if (!m_effectStages.empty()) {
-            const auto processed = planEffects(frame, layer.ext, layerEffects, outset);
+            const auto processed = planEffects(frame, layer.ext, layerEffects, outset, layerSources);
             if (!processed) { continue; }
             frame = *processed;
         }
-        std::array<QRhiTexture*, 3> planes = frame.planes;
-        for (auto& p : planes) {
-            if (!p) p = frame.planes[0];  // unused samplers still need a texture
-        }
-        if (!e.ubufOk) {
-            resourceFailed("cannot create the uniform buffer of clip " + layer.clipId);
-            continue;
-        }
-        if (e.bound != planes) {
-            e.srb->setBindings({
-                QRhiShaderResourceBinding::uniformBuffer(0, QRhiShaderResourceBinding::VertexStage |
-                                                                QRhiShaderResourceBinding::FragmentStage,
-                                                         e.ubuf.get()),
-                QRhiShaderResourceBinding::sampledTexture(1, QRhiShaderResourceBinding::FragmentStage, planes[0],
-                                                          m_sampler.get()),
-                QRhiShaderResourceBinding::sampledTexture(2, QRhiShaderResourceBinding::FragmentStage, planes[1],
-                                                          m_sampler.get()),
-                QRhiShaderResourceBinding::sampledTexture(3, QRhiShaderResourceBinding::FragmentStage, planes[2],
-                                                          m_sampler.get()),
-            });
-            if (!e.srb->create()) {
-                e.bound = {};
-                resourceFailed("cannot create the bindings of clip " + layer.clipId);
-                continue;
-            }
-            e.bound = planes;
-        }
+        if (!bindFrame(e, frame, layer.clipId)) { continue; }
         // The cut geometry and the group's matrix included (DESIGN.md D35).
         const auto [sourceWidth, sourceHeight] = nt::croppedSourceSize(layer.sourceRect, originalSize.width(), originalSize.height());
         const auto m = nt::layerDrawMatrix(layer, sourceWidth, sourceHeight, m_canvasSize.width(),
@@ -715,7 +856,7 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
         writeMatrix(u, corr * model);
         std::memcpy(u.colorMatrix, frame.colorMatrix.data(), sizeof(u.colorMatrix));
         // Its own opacity: a group's opacity applies once, to its surface (D35).
-        u.opacity = static_cast<float>(layer.opacity);
+        u.opacity = useMatte ? 1.0f : static_cast<float>(layer.opacity);
         u.flipV = frame.flipV ? 1.0f : 0.0f;
         std::copy(layer.sourceRect.begin(), layer.sourceRect.end(), u.sourceRect.begin());
         if (!outset.isNull()) {
@@ -730,7 +871,27 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
         u.sourceTexelSize[1] = 1.0f / frame.size.height();
         u.mode = modeFor(frame.format);
         updates->updateDynamicBuffer(e.ubuf.get(), 0, sizeof(u), &u);
+        if (isMatteSource) {
+            matteBindings[&layer] = e.srb.get();
+        } else if (useMatte) {
+            auto* placedLayer = m_surfaces.acquire(m_canvasSize, m_frame);
+            auto* placedMatte = m_surfaces.acquire(m_canvasSize, m_frame);
+            auto* output = m_surfaces.acquire(m_canvasSize, m_frame);
+            if (!placedLayer || !placedMatte || !output) {
+                resourceFailed("cannot allocate matte surfaces");
+                continue;
+            }
+            mattePasses.push_back({&layer, e.srb.get(), matteBindings.at(layer.matte->layer.get()),
+                                   placedLayer, placedMatte, output, layerSources});
+            LayerUniforms result{};
+            writeMatrix(result, corr);
+            result.opacity = static_cast<float>(layer.opacity);
+            result.flipV = m_rhi->isYUpInFramebuffer() ? 1.0f : 0.0f;
+            updates->updateDynamicBuffer(output->ubuf.get(), 0, sizeof(result), &result);
+            draws.push_back({output->srb.get(), layer.z, layer.stackOrder, layer.precomposeGroupId, &layer.blendMode, &layer.ext});
+        } else {
         draws.push_back({e.srb.get(), layer.z, layer.stackOrder, layer.precomposeGroupId, &layer.blendMode, &layer.ext});
+        }
     }
     const int layerDraws = static_cast<int>(draws.size());
 
@@ -870,10 +1031,31 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
         // Surfaces first, innermost first, over transparency; the first pass
         // carries the frame's uploads. Then the canvas.
         QRhiResourceUpdateBatch* batch = updates;
-        if (!layerEffects.empty()) {
+        if (!layerEffects.empty() || !sourceConversions.empty() || !mattePasses.empty()) {
             cb->resourceUpdate(batch);
             batch = nullptr;
+            for (const auto& pass : sourceConversions) {
+                beginContainerPass(pass.output->rt.get(), Qt::transparent, nullptr);
+                cb->setViewport({0, 0, float(pass.output->texture->pixelSize().width()),
+                                       float(pass.output->texture->pixelSize().height())});
+                drawBindings(pass.input);
+                cb->endPass();
+            }
             renderEffects(layerEffects);
+            for (const auto& pass : mattePasses) {
+                beginContainerPass(pass.placedLayer->rt.get(), Qt::transparent, nullptr);
+                drawBindings(pass.layerBindings);
+                cb->endPass();
+                beginContainerPass(pass.placedMatte->rt.get(), Qt::transparent, nullptr);
+                drawBindings(pass.matteBindings);
+                cb->endPass();
+                auto context = effectContext;
+                context.sources = pass.sources;
+                if (!m_matteStage->render(context, surfaceFrame(pass.placedLayer), surfaceFrame(pass.placedMatte),
+                                          *pass.output->rt, *pass.layer->matte, pass.layer->ext)) {
+                    resourceFailed("cannot render a matte stage");
+                }
+            }
         }
         for (const SurfacePass& sp : surfacePasses) {
             drawContainer(sp.surface->rt.get(), sp.surface->texture.get(), QColor(0, 0, 0, 0), sp.groupId, batch);
@@ -883,7 +1065,7 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
         drawContainer(m_canvasRt.get(), m_canvas.get(), QColor(0, 0, 0, 255), std::string(), batch);
         m_canvasDrawn = true;
     }
-    int drawnSurfaces = held ? 0 : static_cast<int>(surfacePasses.size() + layerEffects.size()) + blendSurfaces;
+    int drawnSurfaces = held ? 0 : static_cast<int>(surfacePasses.size() + layerEffects.size() + sourceConversions.size() + 3 * mattePasses.size()) + blendSurfaces;
     if (!held) {
         for (const auto& pass : surfacePasses) { drawnSurfaces += static_cast<int>(pass.effects.size()); }
     }
