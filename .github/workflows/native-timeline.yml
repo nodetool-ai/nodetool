@@ -255,3 +255,77 @@ jobs:
           linuxdeploy --appdir "$dir" --desktop-file "$dir/nodetool-timeline.desktop" --icon-file "$dir/nodetool-timeline.png" \
             --plugin qt --output appimage
           ls -la ./*.AppImage
+
+  sanitizers:
+    name: Linux ${{ matrix.preset }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: [sanitize, tsan]
+    defaults:
+      run:
+        shell: bash
+        working-directory: native/timeline
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Node
+        uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
+        with:
+          node-version-file: ".nvmrc"
+      - name: Build the TypeScript timeline packages
+        working-directory: .
+        run: |
+          npm ci --ignore-scripts
+          npm run build --workspace=packages/protocol --workspace=packages/timeline
+      - name: Install dependencies (Linux)
+        working-directory: .
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y clang libclang-rt-dev ccache ninja-build pkg-config nasm ffmpeg libva-dev libvulkan-dev \
+            mesa-vulkan-drivers vulkan-tools libgl1-mesa-dev libxkbcommon-dev libfontconfig1-dev libegl1 \
+            libasound2-dev libpulse-dev \
+            xvfb xauth libx11-xcb1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
+            libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-shape0 libxcb-xfixes0 \
+            libxcb-xinerama0 libxcb-xkb1
+          # Vulkan on lavapipe only: the loader sees no other driver.
+          icd=$(compgen -G '/usr/share/vulkan/icd.d/lvp_icd*.json' | head -1 || true)
+          if [[ -z "$icd" ]]; then
+            echo "::error::mesa-vulkan-drivers installed no lavapipe ICD"
+            exit 1
+          fi
+          echo "VK_DRIVER_FILES=$icd" >> "$GITHUB_ENV"
+          echo "VK_ICD_FILENAMES=$icd" >> "$GITHUB_ENV"
+          VK_DRIVER_FILES=$icd vulkaninfo --summary | tee "$RUNNER_TEMP/vulkaninfo.txt"
+          grep -qi "llvmpipe" "$RUNNER_TEMP/vulkaninfo.txt"
+          pipx run aqtinstall install-qt linux desktop "$QT_VERSION" linux_gcc_64 -m qtshadertools -O "$RUNNER_TEMP/qt"
+          echo "QT_PREFIX=$RUNNER_TEMP/qt/$QT_VERSION/gcc_64" >> "$GITHUB_ENV"
+          # FFmpeg as LGPL shared libraries, as the packages ship it.
+          native/timeline/scripts/build-ffmpeg-lgpl.sh
+          echo "PKG_CONFIG_PATH=$GITHUB_WORKSPACE/native/timeline/build-ffmpeg-lgpl/install/lib/pkgconfig" >> "$GITHUB_ENV"
+          echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/native/timeline/build-ffmpeg-lgpl/install/lib" >> "$GITHUB_ENV"
+
+      - name: Configure
+        run: |
+          cmake --preset "${{ matrix.preset }}" -DCMAKE_PREFIX_PATH="$QT_PREFIX" \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
+      - name: Build
+        run: nice -n 10 cmake --build --preset "${{ matrix.preset }}" -j 3
+      - name: Verify checker fixtures
+        run: |
+          node tools/sanitizers/check-plants.mjs --self-test
+          node tools/sanitizers/check-plants.mjs "${{ matrix.preset }}"
+      - name: Test on lavapipe
+        env:
+          QT_QPA_PLATFORM: xcb
+          QSG_RHI_BACKEND: vulkan
+          QSG_INFO: "1"
+        run: xvfb-run -a ctest --preset "${{ matrix.preset }}" --output-on-failure
+      - name: Upload sanitizer logs
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: native-timeline-${{ matrix.preset }}
+          path: native/timeline/build-${{ matrix.preset }}/Testing/Temporary/

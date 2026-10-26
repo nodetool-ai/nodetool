@@ -239,6 +239,7 @@ void PreviewCompositorRenderer::initialize(QRhiCommandBuffer*) {
     if (m_rhi != rhi()) {
         // New QRhi (first run, or a device change): drop every resource.
         m_sources.clear();
+        m_pool.clear();  // stop old decoders before retiring their frames
         m_surfaces.clear();
         m_retire.clear();
         m_interop.reset();
