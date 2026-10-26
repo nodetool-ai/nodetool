@@ -87,7 +87,10 @@ RUN cd web && NODE_OPTIONS="$WEB_BUILD_NODE_OPTIONS" npm run build \
 
 FROM node:24.22.1-bookworm-slim AS runtime
 
+# server.mjs is a bundle whose external native imports run before its own
+# code, so the libuv pool size comes from here (packages/config/src/threadpool.ts).
 ENV NODE_ENV=production \
+    UV_THREADPOOL_SIZE=128 \
     NODETOOL_ENV=production \
     NODETOOL_HOST=docker \
     NODETOOL_STORAGE_AUTO_CLEANUP=1 \

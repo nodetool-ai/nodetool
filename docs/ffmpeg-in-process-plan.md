@@ -319,5 +319,5 @@ For steps 5–8, `video-nodes/tests/video-edit-nodes.test.ts` checks the output 
 - **G5.** `timeline-server-export.mjs` still runs only by hand. It needs the perf fixtures and a GPU runner.
 - **G4 and G6** are done: the `test-packages-nodes` shard installs Chromium, so the browser parity and render suites run in CI, and the RenderTimeline test checks the output duration within 100 ms.
 - **VP9 alpha in the Node compositor.** libav's built-in VP9 decoder drops WebM's alpha plane; only `libvpx-vp9` reads it. The CLI path behaved the same way.
-- **Concurrency.** Encodes run on the libuv pool. Four at once raise event-loop p99 to about 20 ms and fs latency p50 to about 8 ms on a four-core host. There is no cap on concurrent media jobs, and `UV_THREADPOOL_SIZE` is the default.
+- **Concurrency.** Encodes run on the libuv pool. With libuv's default four threads, four encodes at once raised event-loop p99 to about 20 ms and fs latency p50 to about 8 ms on a four-core host. The server and CLI entries now size the pool to 128 threads (`@nodetool-ai/config/threadpool`), so encodes no longer queue file reads behind them. There is no cap on concurrent media jobs.
 - **Open risks:** R6 (residual native leak, no process isolation), R7 (win32 prebuilds untested), R9 (report upstream), R10, R11.

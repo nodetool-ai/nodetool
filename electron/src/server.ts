@@ -1,4 +1,5 @@
 import { dialog, shell, app } from "electron";
+import { DEFAULT_THREADPOOL_SIZE } from "@nodetool-ai/config/threadpool";
 import { logMessage } from "./logger";
 import { isNodeToolBackendProcess } from "./processIdentity";
 import {
@@ -391,6 +392,9 @@ async function startServer(): Promise<void> {
     STATIC_FOLDER: webPath,
     NODETOOL_PYTHON: pythonPath,
     NODE_ENV: isDevMode() ? "development" : "production",
+    // Set before the backend starts: in dev mode the tsx loader queues pool
+    // work before server.mjs's own threadpool import can size the pool.
+    UV_THREADPOOL_SIZE: processEnv.UV_THREADPOOL_SIZE || String(DEFAULT_THREADPOOL_SIZE),
     // Electron's optional-node directory holds user-installed code in every
     // build mode; host packs need an explicit allowlist even during app
     // development. This dedicated flag asks for exactly that. The backend must
