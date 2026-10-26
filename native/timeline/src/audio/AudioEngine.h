@@ -61,8 +61,10 @@ public:
         std::uint64_t generation = 0;
         // Mix snapshots allocated for seeks and timeline edits.
         std::int64_t sessions = 0;
+        std::int64_t ringsRetained = 0;
         std::string backend;
         std::string deviceName;
+        bool selectedDevice = false;
         OutputLatency coreAudio;
         // Sources that could not be opened (no PCM for that clip), the
         // packets and frames the decoders rejected, and the decoder count.
