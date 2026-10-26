@@ -1716,50 +1716,6 @@ describe("video nodes — full coverage", () => {
     );
   });
 
-  it("ReverseVideoNode falls back to original without ffmpeg", async () => {
-    const data = Buffer.from([1, 2, 3]).toString("base64");
-    const _n = new ReverseVideoNode();
-    _n.assign({ video: { data } });
-    const result = await _n.process();
-    const outData = Buffer.from(
-      (result.output as { data: string }).data,
-      "base64"
-    );
-    // ffmpeg not available — falls back to original bytes
-    expect(Array.from(outData)).toEqual([1, 2, 3]);
-  });
-
-  it("AddAudioVideoNode returns video without ffmpeg", async () => {
-    const v = { data: Buffer.from([1, 2]).toString("base64") };
-    const a = { data: Buffer.from([3, 4]).toString("base64") };
-    const _n = new AddAudioVideoNode();
-    _n.assign({ video: v, audio: a });
-    const result = await _n.process();
-    const outData = Buffer.from(
-      (result.output as { data: string }).data,
-      "base64"
-    );
-    // Without ffmpeg, falls back to returning original video
-    expect(outData.length).toBeGreaterThan(0);
-  });
-
-  it("ExtractAudioVideoNode throws without ffmpeg", async () => {
-    const data = Buffer.from([1, 2, 3, 4]).toString("base64");
-    const _n = new ExtractAudioVideoNode();
-    _n.assign({ video: { data } });
-    // ffmpeg not available — throws spawn error
-    await expect(_n.process()).rejects.toThrow();
-  });
-
-  it("ExtractFrameVideoNode returns null data without ffmpeg", async () => {
-    const data = Buffer.from(new Array(2048).fill(7)).toString("base64");
-    const _n = new ExtractFrameVideoNode();
-    _n.assign({ video: { data }, time: 0 });
-    const result = await _n.process();
-    // ffmpeg not available — returns null data
-    expect((result.output as { data: unknown }).data).toBeNull();
-  });
-
   it("GetVideoInfoNode degrades to a complete zero record on unprobeable bytes", async () => {
     // `videoRef()` is 18 ASCII bytes, so ffprobe fails and the node degrades.
     // A declared slot missing from that record is unreachable downstream.

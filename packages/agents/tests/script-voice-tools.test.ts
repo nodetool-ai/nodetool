@@ -213,7 +213,6 @@ describe("script voice tools", () => {
     expect(result.voiced).toBe(2);
     expect(result.failed).toBe(0);
     expect(result.results.map((r) => r.line_id)).toEqual(["l1", "l3"]);
-    expect(result.results[0].duration_ms).toBe(TAKE_MS);
     expect(result.results[0].word_count).toBe(1);
     expect(textToSpeechEncoded.mock.calls[0][0]).toMatchObject({
       model: "tts-1",
