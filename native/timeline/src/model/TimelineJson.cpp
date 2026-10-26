@@ -1,6 +1,7 @@
 #include "model/TimelineJson.h"
 
 #include "scene/ClipScene.h"
+#include "edit/speed/TimeRemap.h"
 
 #include <QDir>
 #include <QFile>
@@ -121,6 +122,7 @@ ParseResult parseTimelineJson(const QByteArray& json, const QString& baseDir) {
         clip.fadeOutShape = c.value(u"fadeOutShape").toString().toStdString();
         clip.speedMultiplier = c.value(u"speedMultiplier").toDouble(1.0);
         clip.speedBaked = c.value(u"speedBaked").toBool(false);
+        clip.timeRemap = speed::parseTimeRemap(c.value(u"timeRemap"));
         clip.volumeDb = c.value(u"volumeDb").toDouble(0.0);
         clip.linkId = c.value(u"linkId").toString().toStdString();
         clip.status = c.value(u"status").toString().toStdString();

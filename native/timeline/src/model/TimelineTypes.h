@@ -74,6 +74,15 @@ struct Track {
     QJsonObject raw;
 };
 
+struct TimeRemapKeyframe {
+    double t = 0.0;
+    double sourceMs = 0.0;
+    std::string easing;
+};
+struct ClipTimeRemap {
+    std::vector<TimeRemapKeyframe> keyframes;
+};
+
 struct Clip {
     std::string id;
     std::string trackId;
@@ -96,6 +105,7 @@ struct Clip {
     // Source rate: `speedBaked` media plays at 1, else `speedMultiplier`.
     double speedMultiplier = 1.0;
     bool speedBaked = false;
+    std::optional<ClipTimeRemap> timeRemap;
     // The mix (D25): clip gain in dB, the link to an extracted-audio partner,
     // and the generation status (`effectiveAssetId` in clipAudio.ts).
     double volumeDb = 0.0;
