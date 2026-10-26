@@ -367,10 +367,10 @@ bool AutosaveController::acceptExternalConflict(const QString& id, QObject* time
         if (conflict.id != id) continue;
         const QJsonObject payload{{"kind", conflict.kind}, {"id", conflict.id},
             {"reason", conflict.reason}, {"external", conflict.external}};
-        bool applied = false;
+        quint64 token = 0;
         const bool invoked = QMetaObject::invokeMethod(timeline, "applyEdit", Qt::DirectConnection,
-            Q_RETURN_ARG(bool, applied), Q_ARG(QString, QStringLiteral("acceptExternalUnit")), Q_ARG(QJsonObject, payload));
-        if (!invoked || !applied) return false;
+            Q_RETURN_ARG(quint64, token), Q_ARG(QString, QStringLiteral("acceptExternalUnit")), Q_ARG(QJsonObject, payload));
+        if (!invoked || token == 0) return false;
         m_externalConflicts.removeAt(i);
         emit stateChanged();
         return true;
