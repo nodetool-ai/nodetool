@@ -2263,7 +2263,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     evals: [
       {
         file: "packages/agents/src/evals/codeact-api-surfaces.ts",
-        cases: ["timeline-fix-and-validate"],
+        cases: ["rename-documents", "timeline-fix-and-validate"],
       },
     ],
   },
@@ -2568,7 +2568,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     evals: [
       {
         file: "packages/agents/src/evals/codeact-api-surfaces.ts",
-        cases: ["sketch-layer-repair"],
+        cases: ["rename-documents", "sketch-layer-repair"],
       },
     ],
   },
@@ -2957,6 +2957,12 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-scripts.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["rename-documents"],
+      },
     ],
   },
   {
