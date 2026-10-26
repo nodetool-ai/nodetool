@@ -19,6 +19,9 @@ checked out at `/home/claude/nodetool-deploy` on that host.
 Set distinct `NODETOOL_INSTANCE_ID` values (`app-1` and `app-2`) and provide
 `DIRECT_URL` on each replica for the shared Supabase database. The listener URL
 must use a direct or session-mode connection, not transaction-mode port 6543.
+The Docker host has no IPv6 route to Supabase's direct endpoint, so a direct
+`DIRECT_URL` fails there and the replica listens on its session-mode
+`DATABASE_URL` instead, with a warning in its log.
 `DATABASE_URL` can continue to use transaction pooling for ordinary writes.
 Allow one additional database connection per replica and apply the
 `resource_change_outbox` migration before deploying the server. See
