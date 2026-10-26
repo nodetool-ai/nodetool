@@ -541,10 +541,10 @@ bool AutosaveController::restoreEarlierCopy(QObject* timeline) {
         return fail(QStringLiteral("The earlier copy is not a copy of this timeline."));
     }
     const QJsonObject payload{{QStringLiteral("document"), documentForSave(raw)}};
-    bool applied = false;
+    quint64 token = 0;
     const bool invoked = QMetaObject::invokeMethod(timeline, "applyEdit", Qt::DirectConnection,
-        Q_RETURN_ARG(bool, applied), Q_ARG(QString, QStringLiteral("restoreDocument")), Q_ARG(QJsonObject, payload));
-    if (!invoked || !applied) return fail(QStringLiteral("The earlier copy made no change or could not be restored."));
+        Q_RETURN_ARG(quint64, token), Q_ARG(QString, QStringLiteral("restoreDocument")), Q_ARG(QJsonObject, payload));
+    if (!invoked || token == 0) return fail(QStringLiteral("The earlier copy made no change or could not be restored."));
     m_earlierCopyError.clear();
     emit stateChanged();
     return true;

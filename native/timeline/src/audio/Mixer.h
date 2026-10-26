@@ -82,6 +82,7 @@ struct TrackPlan {
 
 struct VoicePlan {
     std::string clipId;
+    std::string segmentId;  // stable within an expanded clip, empty without expansion
     std::string mediaPath;  // the clip's `audioPath`, else its `mediaPath`
     double startMs = 0.0;
     double durationMs = 0.0;
@@ -89,8 +90,11 @@ struct VoicePlan {
     double sourceRate = 1.0;  // source ms per timeline ms
     double clipGain = 1.0;    // dbToGain(clip.volumeDb)
     ResolvedFades fades;
+    double fadeOffsetMs = 0;
+    double fadeDurationMs = 0;  // zero uses this voice's duration
     double trackGain = 1.0;   // dbToGain(track.volumeDb)
     double pan = 0.0;         // track pan in [-1, 1]
+    bool silent = false;
     bool videoOwnAudio = false;
     std::size_t trackIndex = 0;
     double tailMs = 0.0;
