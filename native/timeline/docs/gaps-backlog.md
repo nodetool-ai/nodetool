@@ -52,6 +52,9 @@ run machine. "Package P1" and "package P2" are plan packages, not severities.
 | B42 | P2 | pkg-E-r4 F1 | `src/export/ExportEngine.cpp:249` | Cancel cannot interrupt the offline audio mix: `renderOffline()` decodes and mixes the whole timeline before export checks the token again. Closing the editor meanwhile blocks shutdown in `ExportController::~ExportController()` on `waitForFinished(-1)`. | E |
 | B43 | P2 | pkg-E-r4 F2 | `src/export/check-export.mjs:139` | The golden gate prints PASS with `video-rejections.json` unmet. Any preview exit code 1 authorizes the exclusion, including missing media or failed golden generation, not only measured picture differences. | E |
 | B44 | P2 | pkg-E-r4 F3 | `qml/ExportVideoDialog.qml:16` | `alphaAvailable` is always false, so "Export with transparency" stays disabled for WebM and PNG, and `--alpha` exits 1 at `ExportEngine.cpp:191`. The web enables and renders transparency for both formats. | E |
+| B45 | P2 | pkg-S2-r4 F1 | `src/preview/PreviewCompositor.cpp:634` | Effects run before cropping and receive uncropped dimensions, so with a left-half crop and blur the discarded right half bleeds into the visible image. The web crops before effects (`frameCompositor.ts:812`). | S2 |
+| B46 | P2 | pkg-S2-r4 F2 | `scripts/plan-conformance.mjs:587` | The core oracle sizes placement from uncropped dimensions and extensions can only append errors, so a square source cropped to its left half expects x-scale 1 where correct native placement gives 0.5. Web crop sizing must apply before the core comparison. | S2 |
+| B47 | P2 | pkg-S2-r4 F3 | `src/app/startup/LocalDocumentSaver.cpp:18` | Calling `close()` or `setTimeline()` before the debounce expires clears the dirty state and stops the pending local save, and a later `flush()` reports success although the file lacks the edit. | S2 |
 
 ## Closed
 
