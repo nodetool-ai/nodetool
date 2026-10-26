@@ -197,6 +197,7 @@ namespace {
 void mixVoice(const VoicePlan& v, VoicePcm& src, double masterGain, bool dry,
               double sampleRate, double timelineMs0, double msPerFrame,
               int frames, std::span<float> out, MixStats& stats) {
+    if (v.silent) { return; }
     const double msBlockEnd = timelineMs0 + msPerFrame * frames;
         const double clipEndMs = v.startMs + v.durationMs;
         const double lo = std::min(timelineMs0, msBlockEnd);
@@ -261,7 +262,10 @@ void mixVoice(const VoicePlan& v, VoicePcm& src, double masterGain, bool dry,
                 inR = r0 + (r1 - r0) * frac;
             }
             const double clipGain = v.gainSource ? v.gainSource->valueAt(t, v.clipGain) : v.clipGain;
-            const double g = clipGain * clipFadeGain(v.fades, v.durationMs, into) * staticGain;
+            const double fade = v.fadeDurationMs > 0
+                ? clipFadeGain(v.fades, v.fadeDurationMs, into + v.fadeOffsetMs)
+                : clipFadeGain(v.fades, v.durationMs, into);
+            const double g = clipGain * fade * staticGain;
             const double outL = inL * inLtoL + inR * inRtoL;
             const double outR = inL * inLtoR + inR * inRtoR;
             out[2 * i] += static_cast<float>(outL * g);
@@ -331,6 +335,7 @@ void mixBlock(const MixPlan& plan, VoicePcm* pcm, double sampleRate, double time
         std::fill(state.trackSilent.begin(), state.trackSilent.end(), true);
         for (std::size_t i = 0; i < plan.voices.size(); ++i) {
             const auto& voice = plan.voices[i];
+            if (voice.silent) { continue; }
             auto scratch = std::span(state.voice).first(samples);
             std::ranges::fill(scratch, 0.0f);
             MixStats voiceStats;
