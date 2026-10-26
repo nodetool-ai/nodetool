@@ -66,19 +66,12 @@
       "owns": [
         "src/main.cpp",
         "src/model/TimelineModel.*",
-        "src/preview/PreviewCompositor.*",
-        "src/preview/LayerSource.h",
-        "src/preview/SceneEval.h",
-        "src/preview/SceneEval.cpp",
-        "shaders/composite.vert",
-        "shaders/composite.frag",
         "src/scene/ClipScene.*",
         "src/audio/Mixer.cpp",
         "src/audio/Mixer.h",
         "src/audio/AudioEngine.*",
         "scripts/plan-conformance.mjs",
         "scripts/conformance/plan/",
-        "src/preview/layers/",
         "src/audio/hooks/",
         "src/model/hooks/",
         "src/app/startup/"
@@ -179,6 +172,37 @@
         "Ruler: TimelineViewState has rulerMode (time or bars) and gridDivision (beat by default), and TimeRuler and RulerCanvas draw ticks from a provider registered for the mode, time by default (N)",
         "Each slot and registry has a test that registers a test item and finds it in the running editor, and each fails once against the unwired files",
         "Build, ctest, the plan check and the op check pass; tst_tracksregion, tst_tracksui, tst_transitions (with the expected failure removed) and the D1 QML tests pass"
+      ]
+    },
+    {
+      "id": "S4",
+      "wave": 1,
+      "needs": [],
+      "gaps": [],
+      "title": "Compositor seams, round 3",
+      "owns": [
+        "src/preview/PreviewCompositor.*",
+        "src/preview/LayerSource.h",
+        "src/preview/SceneEval.h",
+        "src/preview/SceneEval.cpp",
+        "shaders/composite.vert",
+        "shaders/composite.frag",
+        "src/preview/layers/",
+        "src/preview/compose/"
+      ],
+      "web": [
+        "packages/timeline/src/render/frameCompositor.ts",
+        "web/src/components/timeline/preview/gpu/compositor.ts"
+      ],
+      "server": [],
+      "exit": [
+        "Backdrop blend seam: for a layer or precomposite whose blendMode is not normal, the compositor gives a registered blend handler for that mode the backdrop (a copy of the accumulation target before the layer draws) and the layer texture, and composites the handler's result instead of over; without a handler the layer draws with over as before. Works for group surfaces (D35 group blend mode). A test handler for multiply changes the still as expected and leaves the other layers",
+        "Matte seam: SceneEval exposes, for each matted layer, its matte source layer and matte mode as the web's FrameMatte does; the compositor renders the matte source frame-sized and passes its texture to a registered matte stage for the matted layer; framePlanJson stays byte-identical when no matte stage is registered. A test stage uses the matte alpha",
+        "Second-source seam: a registered provider can request a second decoded source for a layer (clip.generatedMatte, a luma video) through the existing source pool, and a stage receives its texture for the same frame time. Tested with a small generated fixture video",
+        "Effect outset: a stage can report an outset in pixels per side from its ext parameters; the compositor allocates the larger output and expands the layer quad to match, for layers and group surfaces. A test stage that draws a border outside its input is visible in the still and is clipped without the outset",
+        "Export uses the same seams: an export still of the hook fixtures equals the preview still",
+        "Unchanged otherwise: build, ctest, the plan check (with and without --examples), the op check and check-mix.mjs give the same results; --dump-plan output is byte-identical on every fixture with no hook registered; the sanitize ctest reports nothing outside tools/sanitizers/baseline.md",
+        "No effect, blend formula or matte rule is implemented here: those belong to J"
       ]
     },
     {
@@ -648,7 +672,8 @@
       "needs": [
         "S1",
         "S2",
-        "E"
+        "E",
+        "S4"
       ],
       "gaps": [
         "F9"
@@ -1081,6 +1106,7 @@
     "D3",
     "D5",
     "I",
+    "S4",
     "J",
     "N",
     "R",

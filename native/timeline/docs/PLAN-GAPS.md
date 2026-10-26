@@ -643,6 +643,75 @@ Exit, and how each is checked:
 5. Build, ctest, the plan check and the op check pass. `tst_tracksregion`,
    `tst_tracksui` and the D1 QML tests pass unchanged.
 
+### S4: Compositor seams, round 3
+
+Goal: give J the compositor seams it stopped on in round 2, with no change
+in behaviour while no handler is registered.
+
+Problem, from J's round 2 blocker report against `2b3d403`:
+
+1. `PreviewCompositorRenderer::makePipeline` (`src/preview/PreviewCompositor.cpp`)
+   uses premultiplied over (`One`, `OneMinusSrcAlpha`) for every layer and
+   precomposite. It never reads `ActiveLayer::blendMode` or
+   `PrecompositeLayer::blendMode`, which `SceneEval` fills.
+2. `LayerEffectStage::render` (`src/preview/layers/LayerRegistry.h`) gets
+   only the layer's input and output. A stage cannot read the backdrop, and
+   blend modes other than normal need it (the web's `blendModeGpuId`).
+3. `SceneEval.cpp` moves matte source layers into a local map. Neither
+   `SceneFrame` nor `ActiveLayer` carries them, while the web passes a
+   `FrameMatte` with the source layer
+   (`packages/timeline/src/render/frameCompositor.ts`).
+4. A generated matte (`clip.generatedMatte`, a luma mask video) needs a
+   second decoded source for the layer. Stages have no access to sources.
+5. Glow and drop shadow spread past the layer bounds, and the web pads them.
+   `planEffects` allocates stage outputs at the input size and the layer is
+   drawn at its placement quad, so the spread is clipped. A stage cannot
+   report an outset.
+
+- Owns, moved from S2 (merged): `src/preview/PreviewCompositor.*`,
+  `src/preview/LayerSource.h`, `src/preview/SceneEval.h`,
+  `src/preview/SceneEval.cpp`, `shaders/composite.vert`,
+  `shaders/composite.frag`, `src/preview/layers/`, and the new folder
+  `src/preview/compose/` with its shaders, tests and `module.cmake`.
+- Web: `packages/timeline/src/render/frameCompositor.ts`,
+  `preview/gpu/compositor.ts`.
+- Needs: none. J needs S4.
+
+S4 adds seams only. Each effect, blend formula and matte rule belongs to J
+(`shaders/effects/`, `src/preview/effects/`). Tests register test handlers.
+
+Exit, and how each is checked (offscreen stills on the GPU, in the style of
+`tst_layerhooks`, each with red and green evidence):
+
+1. Backdrop blend: for a layer or precomposite whose `blendMode` is not
+   normal, the compositor gives the blend handler registered for that mode
+   the backdrop (a copy of the accumulation target before the layer draws)
+   and the layer texture, and composites the handler's result instead of
+   over. Without a handler the layer draws with over as before. Group
+   surfaces (D35 group blend mode) work the same way. A test handler for
+   `multiply` changes the still as expected and leaves the other layers.
+2. Matte: `SceneEval` exposes, for each matted layer, its matte source layer
+   and matte mode, as the web's `FrameMatte` does. The compositor renders
+   the matte source frame-sized and passes its texture to the matte stage
+   registered for the matted layer. `framePlanJson` stays byte-identical
+   when no matte stage is registered. A test stage uses the matte alpha.
+3. Second source: a registered provider can request a second decoded source
+   for a layer (`clip.generatedMatte`) through the existing source pool, and
+   a stage receives its texture for the same frame time. The test uses a
+   small generated fixture video.
+4. Effect outset: a stage reports an outset in pixels per side from its
+   `ext` parameters. The compositor allocates the larger output and expands
+   the layer quad to match, for layers and group surfaces. A test stage that
+   draws a border outside its input is visible in the still, and the border
+   is clipped without the outset.
+5. Export: an export still of the hook fixtures equals the preview still,
+   which proves the export path renders through the same compositor.
+6. Unchanged otherwise: build, ctest, the plan check (with and without
+   `--examples`), the op check and `check-mix.mjs` give the same results.
+   `--dump-plan` output is byte-identical on every fixture with no hook
+   registered. The sanitize ctest reports nothing outside
+   `tools/sanitizers/baseline.md`.
+
 ### PX: Parity P1 fixes
 
 Goal: fix the three wave 3 P1 findings: behaviour F1, layout F1 and data
