@@ -87,8 +87,8 @@ export interface FileMuxer {
  * `Muxer.open(path)` leaks one file descriptor and a few hundred kilobytes on
  * every open and close in node-av 6.1.1 (see risk R6 in
  * docs/ffmpeg-in-process-plan.md), so a server that renders all day runs out of
- * descriptors. Custom IO closes cleanly. The callbacks write at an explicit
- * position because MP4 and MOV seek back to rewrite their headers.
+ * descriptors. Custom IO closes cleanly. The callbacks read and write at an
+ * explicit position because MP4 and MOV seek back to rewrite their headers.
  */
 export async function openFileMuxer(
   filePath: string,
@@ -107,6 +107,15 @@ export async function openFileMuxer(
           size = Math.max(size, position);
           return bytesWritten;
         },
+        // `movflags=+faststart` reads the finished file back to move its index
+        // to the front.
+        read: async (size: number): Promise<Buffer | null> => {
+          const buffer = Buffer.alloc(size);
+          const { bytesRead } = await handle.read(buffer, 0, size, position);
+          if (bytesRead === 0) return null;
+          position += bytesRead;
+          return buffer.subarray(0, bytesRead);
+        },
         seek: (offset: bigint, whence: AVSeekWhence): number => {
           const delta = Number(offset);
           if (whence === AVSEEK_SIZE) return size;
@@ -120,7 +129,11 @@ export async function openFileMuxer(
       {
         format: options.format ?? muxerFormatFor(filePath),
         signal: options.signal,
-        options: options.muxerOptions
+        options: options.muxerOptions,
+        // MOV's `+faststart` re-opens the output by name to read it back.
+        configure: (context) => {
+          context.url = filePath;
+        }
       }
     );
   } catch (error) {

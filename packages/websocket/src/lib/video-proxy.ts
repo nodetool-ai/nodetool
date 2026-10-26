@@ -36,11 +36,9 @@
  * storage root, gated like external assets (D6). A cloud deployment would
  * need a worker.
  */
-import { spawn, execFile as execFileCb } from "node:child_process";
 import { createHash } from "node:crypto";
 import { promises as fsp } from "node:fs";
 import nodePath from "node:path";
-import { promisify } from "node:util";
 import { createLogger } from "@nodetool-ai/config";
 import { Asset } from "@nodetool-ai/models";
 import {
@@ -53,13 +51,17 @@ import { getSetting } from "../settings-registry.js";
 import { localAssetPath } from "./asset-paths.js";
 import { externalAssetsAvailable } from "./external-assets.js";
 import { verifiedExternalPath } from "./external-asset-lookup.js";
-import { MediaToolingMissingError } from "./media.js";
 import { getAssetAdapter } from "./storage.js";
 import { isObjectLike } from "./wire-values.js";
+import {
+  hasEncoder,
+  probeMedia,
+  transcodeVideo,
+  type VideoEncoderSpec
+} from "@nodetool-ai/runtime/media";
 import { withTaskSpan } from "@nodetool-ai/runtime/tracing";
 
 const log = createLogger("nodetool.video-proxy");
-const execFile = promisify(execFileCb);
 
 /** Setting (and env var): the source size, in pixels of its longer side, at which a proxy is made after import. */
 export const VIDEO_PROXY_MIN_SIZE_SETTING = "NODETOOL_VIDEO_PROXY_MIN_SIZE_PX";
@@ -111,10 +113,6 @@ export function videoProxyFileNames(assetId: string): string[] {
     `${assetId}_proxy.webm`,
     manifestFileName(assetId)
   ];
-}
-
-function isEnoent(err: unknown): boolean {
-  return isObjectLike(err) && (err as { code?: unknown }).code === "ENOENT";
 }
 
 /**
@@ -252,7 +250,7 @@ export async function videoProxyState(
   };
 }
 
-// ── ffmpeg ────────────────────────────────────────────────────────
+// ── Encode ────────────────────────────────────────────────────────
 
 export interface VideoProbe {
   width: number;
@@ -263,50 +261,29 @@ export interface VideoProbe {
 
 /** The first video stream's size, or null when the file has none. */
 export async function probeVideo(filePath: string): Promise<VideoProbe | null> {
-  let stdout: string;
+  let video: Awaited<ReturnType<typeof probeMedia>>["video"];
   try {
-    ({ stdout } = await execFile("ffprobe", [
-      "-v",
-      "error",
-      "-select_streams",
-      "v:0",
-      "-show_entries",
-      "stream=width,height,time_base",
-      "-of",
-      "json",
-      filePath
-    ]));
-  } catch (err) {
-    if (isEnoent(err)) throw new MediaToolingMissingError();
+    ({ video } = await probeMedia(filePath));
+  } catch {
+    // Not a video Mediabunny can read; the encode would fail the same way.
     return null;
   }
-  const stream = (
-    JSON.parse(stdout) as {
-      streams?: Array<{ width?: number; height?: number; time_base?: string }>;
-    }
-  ).streams?.[0];
-  const width = Number(stream?.width);
-  const height = Number(stream?.height);
-  if (!(width > 0) || !(height > 0)) return null;
-  const denominator = Number(stream?.time_base?.split("/")[1]);
+  if (!video || !(video.width > 0) || !(video.height > 0)) return null;
   return {
-    width,
-    height,
+    width: video.width,
+    height: video.height,
     timescale:
-      Number.isInteger(denominator) && denominator > 0 ? denominator : null
+      Number.isInteger(video.timeResolution) && video.timeResolution > 0
+        ? video.timeResolution
+        : null
   };
 }
 
 let encoderPromise: Promise<"h264" | "vp9"> | null = null;
 
-/** libx264 when this ffmpeg has it, else VP9. Asked once per process. */
+/** libx264 when the bundled libav has it, else VP9. Asked once per process. */
 function proxyCodec(): Promise<"h264" | "vp9"> {
-  encoderPromise ??= execFile("ffmpeg", ["-hide_banner", "-encoders"])
-    .then(({ stdout }) => (/\blibx264\b/.test(stdout) ? "h264" : "vp9"))
-    .catch((err: unknown) => {
-      encoderPromise = null;
-      throw isEnoent(err) ? new MediaToolingMissingError() : err;
-    }) as Promise<"h264" | "vp9">;
+  encoderPromise ??= hasEncoder("libx264").then((has) => (has ? "h264" : "vp9"));
   return encoderPromise;
 }
 
@@ -316,83 +293,41 @@ const SCALE_FILTER =
   `:h='if(gte(iw,ih),-2,trunc(min(${PROXY_LONG_SIDE_PX},ih)/2)*2)',` +
   "format=yuv420p";
 
-function encodeArgs(
-  input: string,
-  output: string,
-  codec: "h264" | "vp9",
-  probe: VideoProbe
-): string[] {
-  const common = [
-    "-v",
-    "error",
-    "-nostdin",
-    "-y",
-    "-i",
-    input,
-    "-map",
-    "0:v:0",
-    "-an",
-    "-sn",
-    "-dn",
-    "-map_metadata",
-    "-1",
-    "-vf",
-    SCALE_FILTER,
-    "-fps_mode",
-    "passthrough"
-  ];
+function encoderSpec(codec: "h264" | "vp9"): VideoEncoderSpec {
   if (codec === "h264") {
-    return [
-      ...common,
-      "-c:v",
-      "libx264",
-      "-preset",
-      "veryfast",
-      "-tune",
-      "fastdecode",
-      "-crf",
-      "26",
-      // Every frame a keyframe, no B-frames: a seek decodes one frame.
-      "-g",
-      "1",
-      "-bf",
-      "0",
-      ...(probe.timescale !== null
-        ? ["-video_track_timescale", String(probe.timescale)]
-        : []),
-      "-movflags",
-      "+faststart",
-      "-f",
-      "mp4",
-      output
-    ];
+    return {
+      codec: "libx264",
+      pixelFormat: "yuv420p",
+      filter: SCALE_FILTER,
+      options: {
+        preset: "veryfast",
+        tune: "fastdecode",
+        crf: "26",
+        // Every frame a keyframe, no B-frames: a seek decodes one frame.
+        g: "1",
+        bf: "0"
+      }
+    };
   }
-  return [
-    ...common,
-    "-c:v",
-    "libvpx-vp9",
-    "-deadline",
-    "realtime",
-    "-cpu-used",
-    "8",
-    "-row-mt",
-    "1",
-    "-crf",
-    "34",
-    "-b:v",
-    "0",
-    "-g",
-    "1",
-    "-f",
-    "webm",
-    output
-  ];
+  return {
+    codec: "libvpx-vp9",
+    pixelFormat: "yuv420p",
+    filter: SCALE_FILTER,
+    options: {
+      deadline: "realtime",
+      "cpu-used": "8",
+      "row-mt": "1",
+      crf: "34",
+      b: "0",
+      g: "1"
+    }
+  };
 }
 
 /**
- * Encode `input` into an all-intra preview proxy at `output`. Answers the
- * codec and size written. Throws {@link MediaToolingMissingError} when ffmpeg
- * is missing, and an AbortError when `signal` aborts.
+ * Encode `input`'s first video stream into an all-intra preview proxy at
+ * `output`, without audio, at the source's own frame timestamps. Answers the
+ * codec written. Rejects with an AbortError when `signal` aborts.
  */
 export async function encodeVideoProxy(
   input: string,
@@ -404,24 +339,23 @@ export async function encodeVideoProxy(
   await withTaskSpan(
     "cpu",
     "video.encode_proxy",
-    { "process.executable.name": "ffmpeg", "nodetool.video.codec": codec },
+    { "nodetool.video.codec": codec },
     () =>
-      new Promise<void>((resolve, reject) => {
-        const child = spawn("ffmpeg", encodeArgs(input, output, codec, probe), {
-          stdio: ["ignore", "ignore", "pipe"],
-          signal
-        });
-        let stderr = "";
-        child.stderr.on("data", (chunk: Buffer) => {
-          if (stderr.length < 4096) stderr += chunk.toString();
-        });
-        child.on("error", (err) => {
-          reject(isEnoent(err) ? new MediaToolingMissingError() : err);
-        });
-        child.on("close", (code) => {
-          if (code === 0) resolve();
-          else reject(new Error(`ffmpeg exited with ${code}: ${stderr.trim()}`));
-        });
+      transcodeVideo({
+        inputPath: input,
+        outPath: output,
+        spec: encoderSpec(codec),
+        format: codec === "h264" ? "mp4" : "webm",
+        muxerOptions:
+          codec === "h264"
+            ? {
+                movflags: "+faststart",
+                ...(probe.timescale !== null
+                  ? { video_track_timescale: String(probe.timescale) }
+                  : {})
+              }
+            : undefined,
+        signal
       })
   );
   return { codec };

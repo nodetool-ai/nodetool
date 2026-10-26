@@ -43,3 +43,5 @@ export {
 } from "./rgba.js";
 export { muxAudioWithVideoCopy } from "./mux.js";
 export { convertAudioToWav, ensureMediabunnyServer, trimVideo } from "./convert.js";
+export { transcodeVideo } from "./transcode.js";
+export { AudioEncoder } from "./audio-encoder.js";

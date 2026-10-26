@@ -323,6 +323,20 @@ describe("muxAudioWithVideoCopy", () => {
   });
 });
 
+describe("audio encode", () => {
+  it("keeps the last partial frame", async () => {
+    // 8000 samples is 7.8 AAC frames; node-av's own encoder drops the 0.8.
+    await generateMedia({
+      outPath: file("tail.m4a"),
+      audio: { source: "sine=frequency=440:sample_rate=8000:duration=1" }
+    });
+    const pcm = await readPcm(file("tail.m4a"), { sampleRate: 8000, channels: 1 });
+    expect(pcm.samples.length).toBeGreaterThanOrEqual(8000);
+    expect(pcm.samples.length).toBeLessThan(8000 + 1024);
+    expect(rmsBetween(pcm, 0.9, 1)).toBeGreaterThan(0.05);
+  });
+});
+
 describe("Mediabunny conversions", () => {
   it("trims to a window that starts at zero", async () => {
     const bytes = await trimVideo(await fs.readFile(file("av.mp4")), 0.5, 1.5);

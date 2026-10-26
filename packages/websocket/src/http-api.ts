@@ -80,8 +80,7 @@ import { FileStorageAdapter } from "@nodetool-ai/storage";
 import { getAssetAdapter, getTempAdapter } from "./lib/storage.js";
 import {
   probeHasAudio,
-  extractAudio,
-  MediaToolingMissingError
+  extractAudio
 } from "./lib/media.js";
 import {
   packWorkflowsBundle,
@@ -1766,21 +1765,10 @@ export async function handleExtractAudio(
     // The WAV stays on disk: it is stored from the file and thumbnailed from
     // it, never held in memory whole.
     const wavPath = nodePath.join(dir, "audio.wav");
-    let durationMs: number | null;
-    try {
-      if (!(await probeHasAudio(inputPath))) {
-        return jsonResponse({ has_audio: false });
-      }
-      ({ durationMs } = await extractAudio(inputPath, wavPath));
-    } catch (err) {
-      if (err instanceof MediaToolingMissingError) {
-        return errorResponse(
-          503,
-          "ffmpeg is required to extract audio from video. Install the ffmpeg runtime."
-        );
-      }
-      throw err;
+    if (!(await probeHasAudio(inputPath))) {
+      return jsonResponse({ has_audio: false });
     }
+    const { durationMs } = await extractAudio(inputPath, wavPath);
     const { size } = await fsp.stat(wavPath);
 
     const audioAsset = (await Asset.create({

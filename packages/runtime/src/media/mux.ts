@@ -4,18 +4,11 @@
  * -c:v copy -c:a <codec> -shortest out`.
  */
 
-import {
-  avGetSampleFmtName,
-  Demuxer,
-  Encoder,
-  FilterAPI,
-  type Frame,
-  type Packet
-} from "node-av";
+import { Demuxer, type Frame, type Packet } from "node-av";
 
+import { AudioEncoder } from "./audio-encoder.js";
 import {
   abortError,
-  findEncoder,
   openFileMuxer,
   quietLibav,
   startTimeSeconds,
@@ -70,32 +63,24 @@ export async function muxAudioWithVideoCopy(opts: {
   const { signal } = opts;
   quietLibav();
   throwIfAborted(signal);
-  const codec = findEncoder(opts.codec);
-  if (!codec) throw new Error(`This libav build has no ${opts.codec} encoder`);
-  const sampleFormat = codec.sampleFormats?.[0];
-  const formatName = sampleFormat === undefined ? null : avGetSampleFmtName(sampleFormat);
   const endSec = await videoEndSec(opts.videoPath, signal);
 
   const demuxer = await Demuxer.open(opts.videoPath, { signal });
   let output: FileMuxer | null = null;
-  let encoder: Encoder | null = null;
-  // The CLI converts at the output: `-ar` and `-ac` become an aresample and an
-  // aformat after the graph, in the encoder's sample format.
-  const convert = FilterAPI.create(
-    [
-      `aresample=${opts.sampleRate}`,
-      `aformat=${formatName ? `sample_fmts=${formatName}:` : ""}sample_rates=${opts.sampleRate}:channel_layouts=stereo`
-    ].join(","),
-    { signal }
-  );
+  let audioEncoder: AudioEncoder | null = null;
   try {
     const videoStream = demuxer.video();
     if (!videoStream) throw new Error(`${opts.videoPath} has no video stream`);
     output = await openFileMuxer(opts.outPath, { signal });
     const videoIndex = output.muxer.addStream(videoStream);
-    encoder = await Encoder.create(codec, { signal });
-    const audioIndex = output.muxer.addStream(encoder);
-    const activeEncoder = encoder;
+    // The CLI converted at the output: `-ar` and `-ac 2` after the graph.
+    audioEncoder = await AudioEncoder.create(opts.codec, {
+      sampleRate: opts.sampleRate,
+      channels: 2,
+      signal
+    });
+    const audioIndex = output.muxer.addStream(audioEncoder.encoder);
+    const activeEncoder = audioEncoder;
     const activeOutput = output;
     const formatStart = startTimeSeconds(demuxer.getFormatContext().startTime, {
       num: 1,
@@ -128,53 +113,36 @@ export async function muxAudioWithVideoCopy(opts: {
       }
     };
 
-    const writeAudio = async (frame: Frame | null): Promise<void> => {
-      for (const packet of await activeEncoder.encodeAll(frame)) {
-        const sec = seconds(packet.pts, packet.timeBase);
-        await drainVideo(sec);
+    const writePackets = async (packets: Packet[]): Promise<void> => {
+      for (const packet of packets) {
+        await drainVideo(seconds(packet.pts, packet.timeBase));
         await activeOutput.muxer.writePacket(packet, audioIndex);
         packet.free();
       }
     };
 
-    let reachedEnd = false;
     for await (const mixed of opts.audio) {
-      if (signal?.aborted) {
-        mixed.free();
-        throw abortError(signal);
-      }
-      if (reachedEnd) {
-        mixed.free();
-        break;
-      }
-      for (const frame of await convert.processAll(mixed)) {
-        try {
-          if (seconds(frame.pts, frame.timeBase) >= endSec) {
-            reachedEnd = true;
-            continue;
-          }
-          await writeAudio(frame);
-        } finally {
-          frame.free();
+      try {
+        if (signal?.aborted) throw abortError(signal);
+        const startSec = seconds(mixed.pts, mixed.timeBase);
+        if (startSec >= endSec) break;
+        const samples = mixed.nbSamples;
+        const keep = Math.min(samples, Math.ceil((endSec - startSec) * mixed.sampleRate));
+        if (keep < samples) {
+          // The frame crosses the end of the picture: keep only what lies before it.
+          mixed.nbSamples = keep;
         }
-      }
-      mixed.free();
-    }
-    if (!reachedEnd) {
-      for (const frame of await convert.processAll(null)) {
-        try {
-          if (seconds(frame.pts, frame.timeBase) < endSec) await writeAudio(frame);
-        } finally {
-          frame.free();
-        }
+        await writePackets(await activeEncoder.encode(mixed));
+        if (keep < samples) break;
+      } finally {
+        mixed.free();
       }
     }
-    await writeAudio(null);
+    await writePackets(await activeEncoder.flush());
     await drainVideo(Number.POSITIVE_INFINITY);
     await output.close();
   } finally {
-    convert.close();
-    encoder?.close();
+    audioEncoder?.close();
     await output?.close();
     await demuxer.close();
   }

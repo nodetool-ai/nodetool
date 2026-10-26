@@ -1,83 +1,31 @@
 /**
- * Thin ffmpeg/ffprobe wrappers used by the asset audio-extraction endpoint.
- * Mirrors the invocation style already used by @nodetool-ai/video-nodes
- * (bare `ffmpeg`/`ffprobe` binaries resolved from PATH).
+ * Asset media helpers for the audio-extraction endpoint and video edits, on
+ * the in-process media module.
  */
-import { execFile as execFileCb } from "node:child_process";
-import { promisify } from "node:util";
-import { trimVideoWindow as trimSharedVideoWindow } from "@nodetool-ai/runtime/trim-video-window";
-import { isObjectLike } from "./wire-values.js";
+import { convertAudioToWav, probeMedia } from "@nodetool-ai/runtime/media";
 import { withTaskSpan } from "@nodetool-ai/runtime/tracing";
 
-const execFile = promisify(execFileCb);
-
-/**
- * Thrown when the `ffmpeg`/`ffprobe` binaries are not on PATH (ENOENT), so the
- * caller can distinguish "tooling missing" (a 503 the operator must fix) from
- * "this media has no audio" (a normal 200 `{ has_audio: false }`).
- */
-export class MediaToolingMissingError extends Error {
-  constructor(message = "ffmpeg/ffprobe not found on PATH") {
-    super(message);
-    this.name = "MediaToolingMissingError";
-  }
-}
-
-function isEnoent(err: unknown): boolean {
-  return isObjectLike(err) && (err as { code?: unknown }).code === "ENOENT";
-}
-
-/**
- * True if the media file at `filePath` contains at least one audio stream.
- * Returns false only when ffprobe ran and reported no audio stream; throws
- * {@link MediaToolingMissingError} if the binary is missing.
- */
+/** True if the media file at `filePath` contains at least one audio stream. */
 export async function probeHasAudio(filePath: string): Promise<boolean> {
   try {
-    const { stdout } = await execFile("ffprobe", [
-      "-v",
-      "error",
-      "-select_streams",
-      "a",
-      "-show_entries",
-      "stream=codec_type",
-      "-of",
-      "default=noprint_wrappers=1:nokey=1",
-      filePath
-    ]);
-    return stdout.trim().length > 0;
-  } catch (err) {
-    if (isEnoent(err)) {
-      throw new MediaToolingMissingError();
-    }
+    return (await probeMedia(filePath)).audio !== null;
+  } catch {
+    // Unreadable media has no audio to extract.
     return false;
   }
 }
 
 /**
- * Duration of the media at `filePath` in milliseconds, or null if ffprobe ran
- * but produced no parseable duration. Throws {@link MediaToolingMissingError}
- * if the binary is missing.
+ * Duration of the media at `filePath` in milliseconds, or null when it is not
+ * media or names no duration.
  */
 export async function probeDurationMs(
   filePath: string
 ): Promise<number | null> {
   try {
-    const { stdout } = await execFile("ffprobe", [
-      "-v",
-      "error",
-      "-show_entries",
-      "format=duration",
-      "-of",
-      "default=noprint_wrappers=1:nokey=1",
-      filePath
-    ]);
-    const seconds = parseFloat(stdout.trim());
-    return Number.isFinite(seconds) ? Math.round(seconds * 1000) : null;
-  } catch (err) {
-    if (isEnoent(err)) {
-      throw new MediaToolingMissingError();
-    }
+    const { durationSec } = await probeMedia(filePath);
+    return durationSec === null ? null : Math.round(durationSec * 1000);
+  } catch {
     return null;
   }
 }
@@ -86,46 +34,17 @@ export async function probeDurationMs(
  * Extract the audio track of the media at `inputPath` to a 16-bit PCM WAV at
  * `outputPath` and return the WAV's duration. The WAV stays on disk so the
  * caller can store it without holding it in memory; a two-hour stereo track
- * is over a gigabyte. Throws if ffmpeg fails (e.g. the input has no audio) or
- * {@link MediaToolingMissingError} if the binary is missing.
+ * is over a gigabyte. Throws when the input has no audio.
  */
 export async function extractAudio(
   inputPath: string,
   outputPath: string
 ): Promise<{ durationMs: number | null }> {
-  try {
-    await withTaskSpan(
-      "cpu",
-      "subprocess.run",
-      { "process.executable.name": "ffmpeg" },
-      () =>
-        execFile(
-          "ffmpeg",
-          ["-y", "-i", inputPath, "-vn", "-acodec", "pcm_s16le", outputPath],
-          { maxBuffer: 50 * 1024 * 1024 }
-        )
-    );
-    return { durationMs: await probeDurationMs(outputPath) };
-  } catch (err) {
-    if (isEnoent(err)) {
-      throw new MediaToolingMissingError();
-    }
-    throw err;
-  }
+  await withTaskSpan("cpu", "media.extract_audio", {}, () =>
+    convertAudioToWav(inputPath, outputPath)
+  );
+  return { durationMs: await probeDurationMs(outputPath) };
 }
 
 /** Shared source-window materialization used by browser and headless edits. */
-export async function trimVideoWindow(
-  input: Uint8Array,
-  startMs: number,
-  endMs: number
-): Promise<Uint8Array> {
-  try {
-    return await trimSharedVideoWindow(input, startMs, endMs);
-  } catch (error) {
-    if (isEnoent(error)) {
-      throw new MediaToolingMissingError();
-    }
-    throw error;
-  }
-}
+export { trimVideoWindow } from "@nodetool-ai/runtime/trim-video-window";

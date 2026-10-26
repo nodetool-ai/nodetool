@@ -7,6 +7,7 @@
  * here needs no `ffmpeg` on PATH.
  */
 
+import { ALL_FORMATS, EncodedPacketSink, FilePathSource, Input } from "mediabunny";
 import {
   Decoder,
   Demuxer,
@@ -18,6 +19,7 @@ import {
 
 import { findEncoder, openFileMuxer, quietLibav, type FileMuxer } from "./av.js";
 import { decodeAudioToPcm, type PcmAudio } from "./audio.js";
+import { AudioEncoder } from "./audio-encoder.js";
 import { packetTimes, probeMedia, type MediaProbe } from "./probe.js";
 import { openRgbaFrameReader, openVideoFrameEncoder, type VideoEncoderSpec } from "./rgba.js";
 
@@ -44,51 +46,80 @@ interface TimedPacket {
   stream: number;
 }
 
+interface EncodedSource {
+  packets: Packet[];
+  index: number;
+  close(): void;
+}
+
 async function encodeSource(
   stream: GeneratedStream,
   kind: "audio" | "video",
   output: FileMuxer
-): Promise<{ encoder: Encoder; packets: Packet[]; index: number }> {
+): Promise<EncodedSource> {
   const codecName = stream.codec ?? (kind === "video" ? "libx264" : "aac");
-  const codec = findEncoder(codecName);
-  if (!codec) throw new Error(`This libav build has no ${codecName} encoder`);
   const demuxer = await Demuxer.open(stream.source, { format: "lavfi" });
   const source = demuxer.streams[0];
-  if (!source) throw new Error(`lavfi source produced no stream: ${stream.source}`);
+  if (!source) {
+    await demuxer.close();
+    throw new Error(`lavfi source produced no stream: ${stream.source}`);
+  }
   const decoder = await Decoder.create(source);
-  const steps =
-    kind === "video"
-      ? [stream.filter, `format=${stream.pixelFormat ?? "yuv420p"}`]
-      : [stream.filter, codecName === "aac" ? "aformat=sample_fmts=fltp" : undefined];
+  const steps = [stream.filter, kind === "video" ? `format=${stream.pixelFormat ?? "yuv420p"}` : undefined];
   const chain = steps.filter((step): step is string => Boolean(step)).join(",");
   const filter = FilterAPI.create(chain.length > 0 ? chain : kind === "video" ? "null" : "anull");
-  const encoder = await Encoder.create(codec, { options: stream.options });
-  // The muxer sets the global-header flag, which only an unopened encoder takes.
-  const index = output.muxer.addStream(encoder);
+  let encode: (frame: Frame) => Promise<Packet[]>;
+  let flush: () => Promise<Packet[]>;
+  let closeEncoder: () => void;
+  let index: number;
+  if (kind === "video") {
+    const codec = findEncoder(codecName);
+    if (!codec) throw new Error(`This libav build has no ${codecName} encoder`);
+    const encoder = await Encoder.create(codec, { options: stream.options });
+    // The muxer sets the global-header flag, which only an unopened encoder takes.
+    index = output.muxer.addStream(encoder);
+    encode = (frame) => encoder.encodeAll(frame);
+    flush = () => encoder.encodeAll(null);
+    closeEncoder = () => encoder.close();
+  } else {
+    const encoder = await AudioEncoder.create(codecName, {
+      sampleRate: source.codecpar.sampleRate,
+      channels: source.codecpar.channels,
+      options: stream.options
+    });
+    index = output.muxer.addStream(encoder.encoder);
+    encode = (frame) => encoder.encode(frame);
+    flush = () => encoder.flush();
+    closeEncoder = () => encoder.close();
+  }
   const packets: Packet[] = [];
-  const encode = async (frame: Frame | null): Promise<void> => {
-    packets.push(...(await encoder.encodeAll(frame)));
-  };
   try {
     for await (const decoded of decoder.frames(demuxer.packets(source.index))) {
       if (!decoded) continue;
       for (const frame of await filter.processAll(decoded)) {
-        await encode(frame);
+        packets.push(...(await encode(frame)));
         frame.free();
       }
       decoded.free();
     }
     for (const frame of await filter.processAll(null)) {
-      await encode(frame);
+      packets.push(...(await encode(frame)));
       frame.free();
     }
-    await encode(null);
+    packets.push(...(await flush()));
   } finally {
     filter.close();
     decoder.close();
     await demuxer.close();
   }
-  return { encoder, packets, index };
+  return {
+    packets,
+    index,
+    close(): void {
+      for (const packet of packets) packet.free();
+      closeEncoder();
+    }
+  };
 }
 
 /**
@@ -99,11 +130,13 @@ export async function generateMedia(opts: {
   outPath: string;
   video?: GeneratedStream;
   audio?: GeneratedStream;
+  /** Muxer AVOptions, e.g. `{ movflags: "+faststart" }`. */
+  muxerOptions?: Record<string, string>;
 }): Promise<void> {
   quietLibav();
   if (!opts.video && !opts.audio) throw new Error("Give a video or an audio stream");
-  const output = await openFileMuxer(opts.outPath);
-  const encoded: { encoder: Encoder; packets: Packet[]; index: number }[] = [];
+  const output = await openFileMuxer(opts.outPath, { muxerOptions: opts.muxerOptions });
+  const encoded: EncodedSource[] = [];
   try {
     if (opts.video) encoded.push(await encodeSource(opts.video, "video", output));
     if (opts.audio) encoded.push(await encodeSource(opts.audio, "audio", output));
@@ -125,10 +158,7 @@ export async function generateMedia(opts: {
     await output.close();
   } finally {
     await output.close();
-    for (const { encoder, packets } of encoded) {
-      for (const packet of packets) packet.free();
-      encoder.close();
-    }
+    for (const source of encoded) source.close();
   }
 }
 
@@ -237,6 +267,30 @@ export async function inspectMedia(filePath: string): Promise<MediaReport> {
   const probe = await probeMedia(filePath, { frameRatePackets: Number.POSITIVE_INFINITY });
   const times = probe.video ? ((await packetTimes(filePath)) ?? []) : [];
   return { ...probe, frameTimes: [...times].sort((a, b) => a - b) };
+}
+
+/**
+ * Every video packet's presentation time (seconds, rounded to the
+ * microsecond as ffprobe prints `pts_time`) and keyframe flag, in
+ * presentation order.
+ */
+export async function videoPacketInfo(
+  filePath: string
+): Promise<Array<{ pts: number; key: boolean }>> {
+  const input = new Input({ source: new FilePathSource(filePath), formats: ALL_FORMATS });
+  try {
+    const track = await input.getPrimaryVideoTrack();
+    if (!track) return [];
+    const packets: Array<{ pts: number; key: boolean }> = [];
+    for await (const packet of new EncodedPacketSink(track).packets(undefined, undefined, {
+      metadataOnly: true
+    })) {
+      packets.push({ pts: Math.round(packet.timestamp * 1e6) / 1e6, key: packet.type === "key" });
+    }
+    return packets.sort((a, b) => a.pts - b.pts);
+  } finally {
+    input.dispose();
+  }
 }
 
 /** Every video frame of `filePath` as RGBA at `width`x`height`, in order. */

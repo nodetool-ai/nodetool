@@ -1,83 +1,92 @@
-import { describe, it, expect, vi } from "vitest";
+/**
+ * The asset media helpers on real files: audio detection, duration, and the
+ * WAV the extract-audio route stores.
+ */
 
-const execFileMock = vi.fn();
-vi.mock("node:child_process", () => ({
-  execFile: (...args: unknown[]) => {
-    // node's promisify(execFile) calls execFile(file, args, opts, cb)
-    const cb = args[args.length - 1] as (
-      err: Error | null,
-      out: { stdout: string; stderr: string }
-    ) => void;
-    execFileMock(args[0], args[1]).then(
-      (out: { stdout: string; stderr: string }) => cb(null, out),
-      (err: Error) => cb(err, { stdout: "", stderr: "" })
-    );
-  }
-}));
+import { promises as fs } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 import {
-  probeHasAudio,
-  probeDurationMs,
-  MediaToolingMissingError
-} from "../src/lib/media.js";
+  generateMedia,
+  inspectMedia,
+  readPcm,
+  rmsBetween
+} from "@nodetool-ai/runtime/media/testing";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+
+import { extractAudio, probeDurationMs, probeHasAudio } from "../src/lib/media.js";
+
+let dir: string;
+let withAudio: string;
+let silent: string;
+let garbage: string;
+
+beforeAll(async () => {
+  dir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-ws-media-"));
+  withAudio = path.join(dir, "with-audio.mp4");
+  silent = path.join(dir, "silent.mp4");
+  garbage = path.join(dir, "garbage.bin");
+  await generateMedia({
+    outPath: withAudio,
+    video: { source: "testsrc=size=32x32:rate=10:duration=2" },
+    audio: { source: "sine=frequency=440:sample_rate=44100:duration=2" }
+  });
+  await generateMedia({
+    outPath: silent,
+    video: { source: "testsrc=size=32x32:rate=10:duration=1.5" }
+  });
+  await fs.writeFile(garbage, new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7]));
+});
+
+afterAll(async () => {
+  if (dir) await fs.rm(dir, { recursive: true, force: true });
+});
 
 describe("probeHasAudio", () => {
-  // Each test fully replaces the mock behavior below, so no beforeEach reset is
-  // needed. (A beforeEach `mockReset` makes vitest 4 flag the rejected-promise
-  // error case as an unhandled rejection even though the impl catches it.)
-
-  it("returns true when ffprobe lists an audio stream", async () => {
-    execFileMock.mockResolvedValue({ stdout: "audio\n", stderr: "" });
-    expect(await probeHasAudio("/tmp/x.mp4")).toBe(true);
+  it("finds an audio stream", async () => {
+    expect(await probeHasAudio(withAudio)).toBe(true);
   });
 
-  it("returns false when ffprobe lists no audio streams", async () => {
-    execFileMock.mockResolvedValue({ stdout: "", stderr: "" });
-    expect(await probeHasAudio("/tmp/x.mp4")).toBe(false);
+  it("finds none in a picture-only file", async () => {
+    expect(await probeHasAudio(silent)).toBe(false);
   });
 
-  it("returns false when ffprobe errors generically", async () => {
-    execFileMock.mockImplementation(() =>
-      Promise.reject(new Error("not found"))
-    );
-    expect(await probeHasAudio("/tmp/x.mp4")).toBe(false);
-  });
-
-  it("throws MediaToolingMissingError when ffprobe binary is missing (ENOENT)", async () => {
-    execFileMock.mockImplementation(() => {
-      const err = new Error("spawn ffprobe ENOENT") as Error & {
-        code?: string;
-      };
-      err.code = "ENOENT";
-      return Promise.reject(err);
-    });
-    await expect(probeHasAudio("/tmp/x.mp4")).rejects.toBeInstanceOf(
-      MediaToolingMissingError
-    );
+  it("answers false for bytes that are no media", async () => {
+    expect(await probeHasAudio(garbage)).toBe(false);
   });
 });
 
 describe("probeDurationMs", () => {
-  it("parses ffprobe format=duration seconds into milliseconds", async () => {
-    execFileMock.mockResolvedValue({ stdout: "12.34\n", stderr: "" });
-    expect(await probeDurationMs("/tmp/x.wav")).toBe(12340);
+  it("reads the container duration in milliseconds", async () => {
+    const ms = await probeDurationMs(silent);
+    expect(ms).not.toBeNull();
+    expect(Math.abs(ms! - 1500)).toBeLessThanOrEqual(50);
   });
 
-  it("returns null when ffprobe yields no parseable duration", async () => {
-    execFileMock.mockResolvedValue({ stdout: "N/A\n", stderr: "" });
-    expect(await probeDurationMs("/tmp/x.wav")).toBe(null);
+  it("answers null for bytes that are no media", async () => {
+    expect(await probeDurationMs(garbage)).toBeNull();
+  });
+});
+
+describe("extractAudio", () => {
+  it("writes 16-bit WAV at the source rate and returns its length", async () => {
+    const wav = path.join(dir, "audio.wav");
+    const { durationMs } = await extractAudio(withAudio, wav);
+    const bytes = await fs.readFile(wav);
+    expect(bytes.subarray(0, 4).toString("ascii")).toBe("RIFF");
+    // fmt chunk: PCM (1), 16 bits per sample.
+    expect(bytes.readUInt16LE(20)).toBe(1);
+    expect(bytes.readUInt16LE(34)).toBe(16);
+    const report = await inspectMedia(wav);
+    expect(report.audio).toMatchObject({ sampleRate: 44100, channels: 1 });
+    expect(Math.abs((durationMs ?? 0) - 2000)).toBeLessThanOrEqual(60);
+    const pcm = await readPcm(wav, { sampleRate: 44100 });
+    // lavfi's sine plays at 1/8 of full scale: RMS 0.088.
+    expect(rmsBetween(pcm, 0.2, 1.8)).toBeGreaterThan(0.05);
   });
 
-  it("throws MediaToolingMissingError when ffprobe binary is missing (ENOENT)", async () => {
-    execFileMock.mockImplementation(() => {
-      const err = new Error("spawn ffprobe ENOENT") as Error & {
-        code?: string;
-      };
-      err.code = "ENOENT";
-      return Promise.reject(err);
-    });
-    await expect(probeDurationMs("/tmp/x.wav")).rejects.toBeInstanceOf(
-      MediaToolingMissingError
-    );
+  it("fails on a file with no audio", async () => {
+    await expect(extractAudio(silent, path.join(dir, "none.wav"))).rejects.toThrow();
   });
 });
