@@ -1,17 +1,26 @@
-import { execFile } from "node:child_process";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
-import { promisify } from "node:util";
 import sharp from "sharp";
 import { afterEach, expect, it, vi } from "vitest";
 import { createJsScriptAppRunner } from "@nodetool-ai/agents";
 import { parseApplicationBundle, type ApplicationDocument } from "@nodetool-ai/app-runtime";
 import { Application, Asset, ModelObserver, Storyboard, TimelineSequence, Workflow, initTestDb, entityFromAsset, publishApplication, releasedApplicationRelease } from "@nodetool-ai/models";
 import { ProcessingContext } from "@nodetool-ai/runtime";
+import { pngFrames } from "@nodetool-ai/runtime/media";
+import { inspectMedia } from "@nodetool-ai/runtime/media/testing";
 import type { TimelineClip } from "@nodetool-ai/timeline";
 import { RenderTimelineNode } from "@nodetool-ai/video-nodes";
 import { importApplicationBundle, exportApplicationBundle } from "../src/lib/applications-service.js";
+
+/** Write the frame shown at `seconds` of `video` as a PNG. */
+async function writeFrameAt(video: string, seconds: number, pngPath: string): Promise<void> {
+  for await (const png of pngFrames({filePath: video, seekSec: seconds, limit: 1})) {
+    await writeFile(pngPath, png);
+    return;
+  }
+  throw new Error(`${video} has no frame at ${seconds}s`);
+}
 
 const USER = "price-drop-user";
 const PRODUCT = "a".repeat(32);
@@ -194,7 +203,7 @@ it("installs, plans, deterministically finishes, renders and reopens the exact e
   // The headless browser, or the Node compositor where no browser launches.
   expect(["browser", "composited"]).toContain(rendered.output.metadata?.render_mode);
   const sampledFrame = `${temporary}/sample.png`;
-  await promisify(execFile)("ffmpeg", ["-y", "-ss", "1.5", "-i", outputPath, "-frames:v", "1", sampledFrame]);
+  await writeFrameAt(outputPath, 1.5, sampledFrame);
   const pixel = await sharp(sampledFrame).extract({left: 5, top: 5, width: 1, height: 1}).removeAlpha().raw().toBuffer();
   expect([...pixel].every((value, index) => Math.abs(value - [18, 72, 171][index]) <= 4)).toBe(true);
   const framePixels = await sharp(sampledFrame).removeAlpha().raw().toBuffer();
@@ -204,17 +213,17 @@ it("installs, plans, deterministically finishes, renders and reopens the exact e
   }
   expect(foregroundPixels).toBeGreaterThan(1000);
   expect((await readFile(outputPath)).byteLength).toBeGreaterThan(1000);
-  const probe = JSON.parse((await promisify(execFile)("ffprobe", ["-v", "error", "-count_frames", "-show_entries", "stream=width,height,nb_read_frames:format=duration", "-of", "json", outputPath])).stdout);
-  expect(probe.streams[0].width).toBe(1080);
-  expect(probe.streams[0].height).toBe(1920);
-  expect(Number(probe.format.duration)).toBeCloseTo(6, 1);
-  expect(Number(probe.streams[0].nb_read_frames)).toBe(180);
+  const probe = await inspectMedia(outputPath);
+  expect(probe.video?.width).toBe(1080);
+  expect(probe.video?.height).toBe(1920);
+  expect(probe.durationSec).toBeCloseTo(6, 1);
+  expect(probe.frameTimes).toHaveLength(180);
   if (process.env.PRICE_DROP_PROOF_DIR) {
     const proof = process.env.PRICE_DROP_PROOF_DIR;
     await mkdir(proof, {recursive: true});
     await writeFile(`${proof}/price-drop.mp4`, await readFile(outputPath));
     await writeFile(`${proof}/probe.json`, JSON.stringify(probe, null, 2));
-    for (const [name, seconds] of [["hook", "1.5"], ["cta", "4.5"]]) await promisify(execFile)("ffmpeg", ["-y", "-ss", seconds, "-i", outputPath, "-frames:v", "1", `${proof}/${name}.png`]);
+    for (const [name, seconds] of [["hook", 1.5], ["cta", 4.5]] as const) await writeFrameAt(outputPath, seconds, `${proof}/${name}.png`);
   }
   expect(await Asset.find(USER, outputId)).not.toBeNull();
   expect((await TimelineSequence.findById(timeline!.id))!.toDocument().clips).toHaveLength(9);
@@ -338,10 +347,10 @@ it.runIf(process.env.RECIPE_LIVE_FINISH === "1")("finishes and renders a Price D
   } as unknown as ProcessingContext);
   expect(rendered.output.asset_id).toBe(outputId);
   expect((await readFile(outputPath)).byteLength).toBeGreaterThan(1000);
-  const probe = JSON.parse((await promisify(execFile)("ffprobe", ["-v", "error", "-count_frames", "-show_entries", "stream=width,height,nb_read_frames:format=duration", "-of", "json", outputPath])).stdout);
-  expect(probe.streams[0]).toMatchObject({width: 1080, height: 1920});
-  expect(Number(probe.format.duration)).toBeCloseTo(6, 1);
-  expect(Number(probe.streams[0].nb_read_frames)).toBe(180);
+  const probe = await inspectMedia(outputPath);
+  expect(probe.video).toMatchObject({width: 1080, height: 1920});
+  expect(probe.durationSec).toBeCloseTo(6, 1);
+  expect(probe.frameTimes).toHaveLength(180);
   expect((await TimelineSequence.findById(timeline.id))!.toDocument().clips).toEqual(timeline.toDocument().clips);
   if (process.env.PRICE_DROP_PROOF_DIR) {
     const proof = process.env.PRICE_DROP_PROOF_DIR;
@@ -350,7 +359,7 @@ it.runIf(process.env.RECIPE_LIVE_FINISH === "1")("finishes and renders a Price D
     await writeFile(`${proof}/agentic-review.json`, JSON.stringify(values.reviews, null, 2));
     await writeFile(`${proof}/agentic-timeline.json`, JSON.stringify(layered, null, 2));
     await writeFile(`${proof}/agentic-probe.json`, JSON.stringify(probe, null, 2));
-    for (const [name, seconds] of [["hook", "1.5"], ["cta", "4.5"]]) await promisify(execFile)("ffmpeg", ["-y", "-ss", seconds, "-i", outputPath, "-frames:v", "1", `${proof}/agentic-${name}.png`]);
+    for (const [name, seconds] of [["hook", 1.5], ["cta", 4.5]] as const) await writeFrameAt(outputPath, seconds, `${proof}/agentic-${name}.png`);
   }
   const semanticKey = (clip: TimelineClip) => `${clip.storyboardShotId}/${clip.storyboardElementId}`;
   const initialIdentities = new Map(layered.clips.map(clip => [semanticKey(clip), clip.id]));

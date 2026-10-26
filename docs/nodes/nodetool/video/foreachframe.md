@@ -11,7 +11,7 @@ namespace: "nodetool.video"
 
 ## Description
 
-Extract frames from a video file with ffmpeg.
+Extract frames from a video file.
     video, frames, extract, sequence
 
 ## Properties

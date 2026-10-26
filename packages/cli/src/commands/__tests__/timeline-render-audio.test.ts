@@ -1,7 +1,7 @@
-import { execFileSync } from "node:child_process";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { generateMedia, inspectMedia, readPcm } from "@nodetool-ai/runtime/media/testing";
 import { afterEach, describe, expect, it } from "vitest";
 
 const { runTimelineRender } = await import("../timeline-render.js");
@@ -28,20 +28,14 @@ describe("timeline render audio export", () => {
       }
     }));
     await runTimelineRender(input, { out: output }, async () => null, async ({ outPath, durationMs }) => {
-      execFileSync("ffmpeg", [
-        "-v", "error", "-y", "-f", "lavfi", "-i", "color=c=black:s=32x32:r=10",
-        "-t", String(durationMs / 1000), "-an", "-c:v", "libx264", outPath
-      ]);
+      await generateMedia({
+        outPath,
+        video: { source: `color=c=black:s=32x32:r=10:duration=${durationMs / 1000}` }
+      });
       return { totalFrames: 20, skippedClips: [], fontsUnavailable: [], complete: true, diagnostics: [] };
     });
-    const streams = JSON.parse(execFileSync("ffprobe", [
-      "-v", "error", "-show_streams", "-of", "json", output
-    ], { encoding: "utf8" })) as { streams: Array<{ codec_type: string }> };
-    expect(streams.streams.map((stream) => stream.codec_type)).toContain("audio");
-    const pcm = execFileSync("ffmpeg", [
-      "-v", "error", "-i", output, "-map", "0:a:0", "-f", "f32le", "-ac", "1", "-ar", "48000", "pipe:1"
-    ]);
-    const samples = new Float32Array(pcm.buffer, pcm.byteOffset, pcm.byteLength / 4);
+    expect((await inspectMedia(output)).audio).not.toBeNull();
+    const { samples } = await readPcm(output, { sampleRate: 48000, channels: 1 });
     const rms = (from: number, to: number) => {
       let power = 0;
       for (let i = from * 48000; i < to * 48000; i++) power += samples[i] * samples[i];

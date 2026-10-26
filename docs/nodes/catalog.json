@@ -13866,7 +13866,7 @@
       "type": "nodetool.video.ForEachFrame",
       "title": "For Each Frame",
       "namespace": "nodetool.video",
-      "description": "Extract frames from a video file with ffmpeg.\n    video, frames, extract, sequence",
+      "description": "Extract frames from a video file.\n    video, frames, extract, sequence",
       "inputs": [
         {
           "name": "video",

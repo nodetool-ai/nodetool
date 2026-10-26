@@ -183,7 +183,7 @@ describe("RenderTimeline — browser path", () => {
     expect(logs("info")).toContain("avc in mp4");
   });
 
-  it("names a Canvas 2D render and an ffmpeg transcode", async () => {
+  it("names a Canvas 2D render and a transcode", async () => {
     renderInBrowser.mockResolvedValue({
       ...BROWSER_RESULT,
       backend: "canvas2d",
@@ -193,7 +193,7 @@ describe("RenderTimeline — browser path", () => {
     });
     await render(sequence({ clips: [videoClip()] }));
     expect(logs("info")).toContain("Canvas 2D compositor");
-    expect(logs("info")).toContain("transcoded with ffmpeg");
+    expect(logs("info")).toContain("and transcoded");
   });
 
   it("mixes the timeline's audio onto the browser's picture", async () => {

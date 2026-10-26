@@ -387,8 +387,8 @@ describe("script voice tools", () => {
 
     expect(automaticSpeechRecognition).not.toHaveBeenCalled();
     expect(result.results[0].word_count).toBe(0);
-    // ffprobe reads the real WAV; without it on PATH the placeholder applies.
-    expect([TAKE_MS, 3000]).toContain(result.results[0].duration_ms);
+    // The probe reads the real WAV's length, in process.
+    expect(result.results[0].duration_ms).toBe(TAKE_MS);
   });
 
   it("assembles voiced takes into a timeline and links it to the script", async () => {

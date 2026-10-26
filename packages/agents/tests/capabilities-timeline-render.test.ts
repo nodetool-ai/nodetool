@@ -5,22 +5,19 @@
  * this drives that service in-process: a two-clip sequence, the render node and
  * the Output node in a registry, and the job row read back the way an agent
  * reads it. What it proves is what a mock could not — the run really produced a
- * video, the composited path ran rather than the ffmpeg rough cut, and the
+ * video, the composited path ran rather than the rough cut, and the
  * picture at a timecode is the clip the document put there.
  *
  * The frame check decodes with Mediabunny rather than asking a model
  * (`understand_video`): the answer is a pixel, and a pixel is checkable.
  *
  * Compositing needs a WebGPU adapter. On headless Linux that means a Vulkan
- * ICD — AGENTS.md § WebGPU on a headless machine; CI installs lavapipe and
- * ffmpeg on the `test-packages` leg. Missing either skips the suite loudly and
- * says which, because a silently-skipped render test is a render nobody
- * measured.
+ * ICD — AGENTS.md § WebGPU on a headless machine; CI installs lavapipe on the
+ * `test-packages` leg. Without it the suite skips loudly and says why, because
+ * a silently-skipped render test is a render nobody measured.
  */
 
 import { describe, expect, it, beforeEach, afterEach } from "vitest";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { setDefaultModelInterfaces } from "@nodetool-ai/runtime";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
@@ -46,11 +43,6 @@ const DURATION_MS = 1000;
 
 /** Probed while vitest collects: `describe.runIf` is decided before any hook. */
 const skipReason = await (async (): Promise<string | null> => {
-  try {
-    await promisify(execFile)("ffmpeg", ["-version"]);
-  } catch {
-    return "ffmpeg is not installed (apt-get install -y ffmpeg)";
-  }
   try {
     const { getNodeGPUDevice } = await import("@nodetool-ai/gpu/node");
     await getNodeGPUDevice();
@@ -218,10 +210,10 @@ describe.runIf(!skipReason)("render_timeline", () => {
     expect(result["job_error"]).toBeNull();
     expect(result["status"]).toBe("completed");
     // A compositor ran (the headless browser, or the Node fallback where no
-    // browser launches), not the ffmpeg rough cut, which ignores everything
+    // browser launches), not the rough cut, which ignores everything
     // above.
     expect(["browser", "composited"]).toContain(result["render_mode"]);
-    expect(result["duration_ms"]).toBeGreaterThan(500);
+    expect(Math.abs((result["duration_ms"] as number) - DURATION_MS)).toBeLessThan(100);
 
     const assetId = result["asset_id"] as string;
     const bytes = storedAssets.get(assetId);

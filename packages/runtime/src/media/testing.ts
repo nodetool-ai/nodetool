@@ -348,24 +348,91 @@ export function rmsBetween(audio: PcmAudio, startSec: number, endSec: number): n
   return Math.sqrt(sum / (last - first));
 }
 
-/**
- * The first video stream's libav codec and pixel format names, as ffprobe's
- * `stream=codec_name,pix_fmt` printed them (`h264`, `yuv420p`).
- */
-export async function videoStreamFormat(
-  filePath: string
-): Promise<{ codec: string; pixelFormat: string } | null> {
+/** ffprobe's names for the color tags a test checks; anything else reads as its number. */
+const COLOR_SPACES: Record<number, string> = { 0: "gbr", 1: "bt709", 2: "unknown", 5: "bt470bg", 6: "smpte170m", 9: "bt2020nc" };
+const COLOR_PRIMARIES: Record<number, string> = { 1: "bt709", 2: "unknown", 5: "bt470bg", 6: "smpte170m", 9: "bt2020" };
+const COLOR_TRANSFERS: Record<number, string> = { 1: "bt709", 2: "unknown", 6: "smpte170m", 13: "iec61966-2-1", 14: "bt2020-10" };
+const COLOR_RANGES: Record<number, string> = { 0: "unknown", 1: "tv", 2: "pc" };
+
+/** What ffprobe's `-show_streams` printed for a video stream, by its names. */
+export interface VideoStreamFormat {
+  /** `h264`, `vp9`, `prores`. */
+  codec: string;
+  /** `yuv420p`, `yuva420p`, `yuv422p10le`. */
+  pixelFormat: string;
+  colorSpace: string;
+  colorPrimaries: string;
+  colorTransfer: string;
+  colorRange: string;
+  /** Stream tags, e.g. Matroska's `alpha_mode`. */
+  tags: Record<string, string>;
+}
+
+/** The first video stream's codec, pixel format and tags, or null without one. */
+export async function videoStreamFormat(filePath: string): Promise<VideoStreamFormat | null> {
   const demuxer = await Demuxer.open(filePath);
   try {
     const stream = demuxer.video();
     if (!stream) return null;
     const { codecpar } = stream;
+    const name = (table: Record<number, string>, value: number): string => table[value] ?? String(value);
     return {
       codec: avGetCodecName(codecpar.codecId) ?? "",
       // SAFETY: a video stream's `format` is a pixel format.
-      pixelFormat: avGetPixFmtName(codecpar.format as AVPixelFormat) ?? ""
+      pixelFormat: avGetPixFmtName(codecpar.format as AVPixelFormat) ?? "",
+      colorSpace: name(COLOR_SPACES, codecpar.colorSpace),
+      colorPrimaries: name(COLOR_PRIMARIES, codecpar.colorPrimaries),
+      colorTransfer: name(COLOR_TRANSFERS, codecpar.colorTrc),
+      colorRange: name(COLOR_RANGES, codecpar.colorRange),
+      tags: stream.metadata?.getAll() ?? {}
     };
   } finally {
+    await demuxer.close();
+  }
+}
+
+/**
+ * Every video frame of `filePath` as RGBA at `width`x`height`, decoded by the
+ * named libav decoder rather than the default one. A test of VP9 alpha needs
+ * `libvpx-vp9`: libav's native vp9 decoder drops the alpha plane WebM keeps
+ * in BlockAdditions, as `ffmpeg -c:v libvpx-vp9 -i` was needed to read it.
+ */
+export async function readRgbaFramesWith(
+  filePath: string,
+  decoderName: string,
+  size: { width: number; height: number }
+): Promise<Uint8Array[]> {
+  quietLibav();
+  const demuxer = await Demuxer.open(filePath);
+  let decoder: Decoder | null = null;
+  let filter: FilterAPI | null = null;
+  try {
+    const stream = demuxer.video();
+    if (!stream) return [];
+    // SAFETY: `decoderName` is a libav decoder name; an unknown one makes
+    // `create` throw, which fails the test that named it.
+    decoder = await Decoder.create(stream, decoderName as Parameters<typeof Decoder.create>[1] & string);
+    const activeFilter = FilterAPI.create(
+      `scale=${size.width}:${size.height}:flags=accurate_rnd+full_chroma_int,format=rgba`
+    );
+    filter = activeFilter;
+    const frames: Uint8Array[] = [];
+    const take = async (frame: Frame | null): Promise<void> => {
+      for (const out of await activeFilter.processAll(frame)) {
+        frames.push(new Uint8Array(out.toBuffer()));
+        out.free();
+      }
+    };
+    for await (const frame of decoder.frames(demuxer.packets(stream.index))) {
+      if (!frame) continue;
+      await take(frame);
+      frame.free();
+    }
+    await take(null);
+    return frames;
+  } finally {
+    filter?.close();
+    decoder?.close();
     await demuxer.close();
   }
 }
