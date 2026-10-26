@@ -153,6 +153,27 @@ function stubServerTelemetryPlugin(): Plugin {
   };
 }
 
+// `@nodetool-ai/runtime/media` runs libav through node-av, a native addon no
+// browser bundle can carry. The browser runner's node packages reach it only
+// lazily, on server paths (audio-wav's libav fallback, a provider's frame
+// sampling, the runtime's media loader), so both bundles get an empty module.
+function stubRuntimeMediaPlugin(): Plugin {
+  return {
+    name: "stub-runtime-media",
+    enforce: "pre",
+    resolveId(source, importer) {
+      if (
+        source === "@nodetool-ai/runtime/media" ||
+        (source === "./media/index.js" &&
+          /[\\/]media-loader\.[jt]s$/.test(importer ?? ""))
+      ) {
+        return `${NODE_STUBS}/media-stub.js`;
+      }
+      return null;
+    }
+  };
+}
+
 // Strip remote `@import url(https://…)` statements from emitted CSS chunks.
 // Third-party CSS can smuggle one in (e.g. @measured/puck imports Inter from
 // rsms.me). Chrome treats a failed @import as a failure of the whole
@@ -355,11 +376,16 @@ export default defineConfig(async ({ mode }) => {
     // `includeBare` since a worker can't externalize builtins like the app can.
     worker: {
       format: "es",
-      plugins: () => [stubServerTelemetryPlugin(), stubNodeProtocolPlugin(true)]
+      plugins: () => [
+        stubServerTelemetryPlugin(),
+        stubRuntimeMediaPlugin(),
+        stubNodeProtocolPlugin(true)
+      ]
     },
     plugins: [
       suppressBenignDevProxyErrorsPlugin(),
       perfPageIsolationPlugin(),
+      stubRuntimeMediaPlugin(),
       stubNodeProtocolPlugin(),
       stripExternalCssImportsPlugin(),
       react({
