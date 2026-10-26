@@ -86,7 +86,7 @@ private:
         QJsonObject capturedDocument;
     };
     QHash<QString, AudioSettlement> m_settlements;
-    std::shared_ptr<nt::assets::MediaProtection> m_mediaProtection;
+    std::shared_ptr<nt::assets::MediaProtection> m_mediaProtection = std::make_shared<nt::assets::MediaProtection>();
     bool m_reconciling = false;
     std::optional<nt::server::SaveTarget> m_target;
     QPointer<TimelineModel> m_timeline;
