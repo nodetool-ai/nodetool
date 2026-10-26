@@ -55,7 +55,8 @@ export function tagAsServer<T extends readonly NodeClass[]>(classes: T): T {
 /**
  * Tag every class in `classes` as supporting **only** the node tier — the
  * (otherwise implicit) most-restrictive default. Use for nodes that spawn a
- * subprocess (ffmpeg, ffprobe, yt-dlp, …) or write os.tmpdir() temp files:
+ * subprocess (yt-dlp, pandoc, …), load a native addon (node-av) or write
+ * os.tmpdir() temp files:
  * the workers (Cloudflare V8) and edge (Vercel/Deno) tiers have no subprocess
  * and no filesystem, so offering them there is a guaranteed runtime failure.
  * Stamping it explicitly documents the intent rather than relying on the

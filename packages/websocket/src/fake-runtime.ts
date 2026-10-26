@@ -495,7 +495,7 @@ const usesLanguageModel = (meta: FakeMeta | undefined): boolean =>
 const needsSecret = (meta: FakeMeta | undefined): boolean =>
   Array.isArray(meta?.required_settings) && meta.required_settings.length > 0;
 
-/** Nodes that shell out to external runtimes (ffmpeg/ffprobe, …) cannot run on
+/** Nodes that shell out to external runtimes (yt-dlp, Python, …) cannot run on
  *  the CI box regardless of their declared IO types — e.g. `timeline.AddClips`
  *  probes media bytes but is timeline-typed on both sides. */
 const needsRuntime = (meta: FakeMeta | undefined): boolean =>

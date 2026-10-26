@@ -9,7 +9,7 @@
  * - Codec: H.264 (libx264) with a GOP of one frame, 8-bit 4:2:0, in MP4.
  *   Chromium cannot decode ProRes or DNxHR, and MJPEG plays only as an image
  *   stream, not in `<video>`. All-intra H.264 is what Chromium decodes in
- *   hardware or software everywhere. An ffmpeg built without libx264 (an
+ *   hardware or software everywhere. A libav built without libx264 (an
  *   LGPL build) falls back to all-intra VP9 in WebM, which Chromium also
  *   plays.
  * - Size: the longer side is scaled down to {@link PROXY_LONG_SIDE_PX}. A

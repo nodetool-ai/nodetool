@@ -45,7 +45,7 @@ export class AlphaFormatError extends Error {
   }
 }
 
-/** Thrown when this ffmpeg build lacks the encoder the format needs. */
+/** Thrown when this libav build lacks the encoder the format needs. */
 export class MissingEncoderError extends Error {
   readonly encoder: string;
 

@@ -174,7 +174,7 @@ async function rasterizeSvg(filePath: string, canvas: RawSize): Promise<RawImage
 }
 
 /**
- * Decode a still fitted inside `canvas`, or `null` when ffprobe finds no
+ * Decode a still fitted inside `canvas`, or `null` when the probe finds no
  * picture in it.
  */
 export async function decodeStillRgba(

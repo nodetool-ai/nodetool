@@ -5,13 +5,12 @@
  * {@link computeActiveLayersWithHorizon} scene description, the same animation
  * sampling, the same placement math, and the same GPU compositor
  * ({@link HeadlessFrameCompositor}) — so a workflow render and the preview the
- * user watched are the same picture. Only the boundaries differ: ffmpeg decodes
+ *  user watched are the same picture. Only the boundaries differ: libav decodes
  * clip media into RGBA and encodes the composited frames, in place of
  * `<video>`/WebCodecs.
  */
 
 import type { TimelineClip, TimelineSequence } from "@nodetool-ai/timeline";
-import { missingRuntimePackageOf } from "@nodetool-ai/protocol";
 import { ensureGoogleFonts } from "@nodetool-ai/timeline/fonts/google-node";
 import type {
   FrameAdjustment,
@@ -584,12 +583,7 @@ export async function renderTimelineComposited(
             source: { ...image, version: layer.assetId }
           });
         } catch (error) {
-          if (
-            signal?.aborted ||
-            missingRuntimePackageOf(error) === "ffmpeg"
-          ) {
-            throw error;
-          }
+          if (signal?.aborted) throw error;
           diagnose(
             layer.clipId,
             frameTimeMs,
@@ -730,7 +724,7 @@ export async function renderTimelineComposited(
 
       const samples: FrameSample[] = [];
       // Sequential, not concurrent: a clip's frames come off one forward-only
-      // ffmpeg stream, so two samples decoding at once would race for it.
+      // decode stream, so two samples decoding at once would race for it.
       const sampleTimes = staticAt(timeMs, motionBlur.samplesPerFrame)
         ? [timeMs]
         : motionBlurSampleTimes(timeMs, frameMs, motionBlur);

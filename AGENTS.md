@@ -282,9 +282,11 @@ Slash commands are in [.claude/README.md](.claude/README.md).
 - Run `npm run build:packages` before `test:affected` and `harness gate`.
   Selfchecks that run the CLI fail on a missing `packages/cli/dist`, which
   looks like a gate failure but is an unbuilt tree.
-- The runtime and base-nodes suites need `ffmpeg` and a Vulkan ICD, as in CI
+- The runtime and base-nodes suites need a Vulkan ICD, as in CI
   (`extra-apt` in `.github/workflows/quality-checks.yml`). Install
-  `ffmpeg mesa-vulkan-drivers` before a suite-wide run.
+  `mesa-vulkan-drivers` before a suite-wide run. Media runs in process on
+  `@nodetool-ai/runtime/media`, so no suite needs the `ffmpeg` binary; make
+  test media with `@nodetool-ai/runtime/media/testing`, never the CLI.
 - The root `postinstall` rebuilds `better-sqlite3` after npm finishes reifying
   dependencies. Keep the rebuild there, not in the Electron workspace hook.
   For `NODE_MODULE_VERSION` failures, run `npm run rebuild:native`.

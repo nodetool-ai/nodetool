@@ -15,9 +15,8 @@
  *  - Video accept response: { uploadId, urls[] }. The signed download URL on a
  *    completed video request lives at `download.url` (nested).
  *
- * Uses native fetch (Node 18+) and the system `ffprobe` (installed via the
- * package manager) to probe source video metadata, which Topaz requires at
- * job-creation time.
+ * Uses native fetch (Node 18+) and probes source video metadata in process,
+ * which Topaz requires at job-creation time.
  */
 
 import { loadMediaRefBytes, safeFetch, sniffImageMime } from "@nodetool-ai/runtime";

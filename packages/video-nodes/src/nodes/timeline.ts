@@ -11,9 +11,9 @@
  *
  * Where no Chromium can be launched, the Node compositor renders instead
  * (`timeline/compositeRender.ts`): the same scene model and compositor through
- * Dawn, with ffmpeg decoding clip media into RGBA and encoding the result. It
+ * Dawn, with libav decoding clip media into RGBA and encoding the result. It
  * needs a WebGPU device; a host with no adapter falls back further, to the
- * ffmpeg rough cut — video/image clips normalized and concatenated in start
+ * rough cut — video/image clips normalized and concatenated in start
  * order — which ignores everything above. Each fallback is a `warning` on the
  * job, and `metadata.render_mode` on the output says which path ran:
  * "browser", "composited" or "rough_cut". `NODETOOL_TIMELINE_RENDERER=node`
@@ -579,14 +579,14 @@ function totalDurationMs(seq: TimelineSequence): number {
 }
 
 /**
- * The file ffmpeg reads for each clip asset, resolved once per asset: the
+ * The file libav reads for each clip asset, resolved once per asset: the
  * asset's own local file when it has one, else a copy in the work dir.
  */
 /** Sample rate the midi renderer runs at, matching the mix's own `-ar`. */
 const MIDI_SAMPLE_RATE = 48000;
 
 /**
- * Renders each midi clip's notes to a WAV on disk once, for ffmpeg to read.
+ * Renders each midi clip's notes to a WAV on disk once, for libav to read.
  *
  * The buffer `renderMidiClip` returns is exactly the clip's window — it starts
  * at the clip's timeline start and is `durationMs` long — so the file needs no
@@ -670,7 +670,7 @@ class MidiFiles {
 }
 
 /**
- * The file ffmpeg reads one audible clip from: the materialized asset, or the
+ * The file libav reads one audible clip from: the materialized asset, or the
  * WAV rendered from a midi clip's notes.
  */
 function audioSourcePath(
@@ -1055,7 +1055,6 @@ export class RenderTimelineNode extends BaseNode {
   static readonly title = "Render Timeline";
   static readonly description =
     "Render a timeline sequence to a video, composited exactly as the timeline editor previews it (tracks, transforms, transitions, effects, captions and text), with audio mixed in at each clip's offset. Writes MP4, WebM, MOV or a zipped PNG sequence, with an optional transparent background.\n    timeline, render, video, export, cut, alpha\n\n    Use cases:\n    - Turn an edit assembled in the timeline editor into a shareable video\n    - Export a title or lower third over transparency to composite elsewhere\n    - Feed a rough cut into captioning, review, or upload nodes\n    - Automate exports of timelines built by other workflow nodes";
-  static readonly requiredRuntimes = ["ffmpeg"];
   static readonly metadataOutputTypes = {
     output: "video",
     frames: "document"
@@ -1176,7 +1175,7 @@ export class RenderTimelineNode extends BaseNode {
     }
 
     // Resolved before anything is decoded: an impossible format/alpha pair, or
-    // an ffmpeg with no encoder for it, must fail in a second rather than after
+    // a libav build with no encoder for it, must fail in a second rather than after
     // a thousand composited frames.
     const output = resolveTimelineOutput({
       format: this.format,
@@ -1421,7 +1420,7 @@ export class RenderTimelineNode extends BaseNode {
         ctx,
         `Rendered ${result.frames} frames in headless Chromium (${result.browser}) ` +
           `with ${compositor}, encoded as ${encoding}` +
-          `${result.transcoded ? " and transcoded with ffmpeg" : ""}.`,
+          `${result.transcoded ? " and transcoded" : ""}.`,
         "info"
       );
       for (const family of result.fontsUnavailable) {
@@ -1651,7 +1650,6 @@ export class AddClipsToTimelineNode extends BaseNode {
   static readonly title = "Add Clips To Timeline";
   static readonly description =
     "Append media to a timeline sequence as clips (videos and images on the video track, audio on the audio track). Creates a new timeline when none is given.\n    timeline, clips, append, assemble, storyboard\n\n    Use cases:\n    - Assemble generated shots into an editable rough cut\n    - Turn a storyboard's images into an animatic\n    - Add a generated voiceover or soundtrack under an edit";
-  static readonly requiredRuntimes = ["ffmpeg"];
   static readonly metadataOutputTypes = {
     output: "timeline"
   };
@@ -1995,7 +1993,7 @@ export const TIMELINE_NODES = tagAsNode([
   RenderTimelineNode,
   TimelineTranscriptNode,
   AddClipsToTimelineNode,
-  // Tagged first, so `tagAsNode` leaves them alone: neither derivation shells
-  // out to ffmpeg or writes a temp file, and both need the model interfaces.
+  // Tagged first, so `tagAsNode` leaves them alone: neither derivation loads
+  // libav or writes a temp file, and both need the model interfaces.
   ...tagAsServer([FillTimelineTextNode, RetargetTimelineNode])
 ]);

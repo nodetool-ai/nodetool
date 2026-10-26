@@ -250,7 +250,6 @@ export class ShotChainNode extends BaseNode {
   static readonly title = "Shot Chain";
   static readonly description =
     "Animate a list of shot specs into clips sequentially, seeding each shot's first frame from the previous clip's last frame for continuity.\n    creative, shots, video, continuity, chain\n\n    Use cases:\n    - Turning a storyboard's shots into a continuous animated sequence\n    - Keeping motion and framing consistent across generated clips\n    - Rendering a directed shot list into a cut-ready set of videos";
-  static readonly requiredRuntimes = ["ffmpeg"];
   static readonly metadataOutputTypes = {
     videos: "list[video]"
   };

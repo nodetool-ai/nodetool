@@ -14,7 +14,7 @@ const runtimeStatusesQuery = asMock(trpcClient.packs.runtimeStatuses
 
 describe("RUNTIME_LABELS", () => {
   it("maps every runtime to a human-readable label", () => {
-    expect(RUNTIME_LABELS["ffmpeg"]).toBe("FFmpeg & codecs");
+    expect(RUNTIME_LABELS["pandoc"]).toBe("Pandoc");
     expect(RUNTIME_LABELS["python"]).toBe("Python");
     expect(RUNTIME_LABELS["yt-dlp"]).toBe("yt-dlp");
     expect(RUNTIME_LABELS["pdftotext"]).toBe("PDF Tools (Poppler)");
@@ -45,11 +45,11 @@ describe("refreshRuntimeStatuses", () => {
     const origApi = window.api;
     installGlobal("api", undefined);
     runtimeStatusesQuery.mockResolvedValue({
-      statuses: [{ id: "ffmpeg", installed: true }]
+      statuses: [{ id: "pandoc", installed: true }]
     });
     await refreshRuntimeStatuses();
     expect(runtimeStatusesQuery).toHaveBeenCalled();
-    expect(getCachedRuntimeStatuses()?.["ffmpeg"]).toBe(true);
+    expect(getCachedRuntimeStatuses()?.["pandoc"]).toBe(true);
     installGlobal("api", origApi);
   });
 
@@ -57,11 +57,11 @@ describe("refreshRuntimeStatuses", () => {
     const origApi = window.api;
     installGlobal("api", { packages: {} });
     runtimeStatusesQuery.mockResolvedValue({
-      statuses: [{ id: "ffmpeg", installed: false }]
+      statuses: [{ id: "pandoc", installed: false }]
     });
     await refreshRuntimeStatuses();
     expect(runtimeStatusesQuery).toHaveBeenCalled();
-    expect(getCachedRuntimeStatuses()?.["ffmpeg"]).toBe(false);
+    expect(getCachedRuntimeStatuses()?.["pandoc"]).toBe(false);
     installGlobal("api", origApi);
   });
 
@@ -69,12 +69,12 @@ describe("refreshRuntimeStatuses", () => {
     const origApi = window.api;
     const getRuntimeStatuses = jest
       .fn()
-      .mockResolvedValue([{ id: "ffmpeg", installed: true }]);
+      .mockResolvedValue([{ id: "pandoc", installed: true }]);
     installGlobal("api", { packages: { getRuntimeStatuses } });
     await refreshRuntimeStatuses();
     expect(getRuntimeStatuses).toHaveBeenCalled();
     expect(runtimeStatusesQuery).not.toHaveBeenCalled();
-    expect(getCachedRuntimeStatuses()?.["ffmpeg"]).toBe(true);
+    expect(getCachedRuntimeStatuses()?.["pandoc"]).toBe(true);
     installGlobal("api", origApi);
   });
 });

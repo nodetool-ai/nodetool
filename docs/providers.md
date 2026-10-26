@@ -163,7 +163,7 @@ Meta AI serves the Muse family at `https://api.meta.ai/v1`. Cloud only, keyed by
 
 - **Chat.** Muse Spark runs on Meta's Responses API with tool calling. A `web_search` tool is answered by Meta's hosted search grounding, and tools marked `deferLoading` are loaded on demand by Meta's hosted tool search. Messages can carry images, video and audio, which Muse Spark reads natively. If the model list cannot be fetched, the picker falls back to four built-in Muse Spark ids.
 - **Images.** Muse Image (`muse-image-1.0`) generates and edits images, with up to 10 source images per edit.
-- **Speech to text.** Muse Voice Transcribe (`muse-voice-transcribe-1.0`) returns the transcript and timed turns. Audio that is not mono 16-bit WAV at 16 or 24 kHz is converted with ffmpeg first. It has no word-level timestamps.
+- **Speech to text.** Muse Voice Transcribe (`muse-voice-transcribe-1.0`) returns the transcript and timed turns. Audio that is not mono 16-bit WAV at 16 or 24 kHz is converted in process first. It has no word-level timestamps.
 - **Segmentation.** SAM 3.1 (`sam-3.1`) segments an image from a short noun phrase, a box, or points, and returns one full-frame mask per object.
 
 ## Codex (OpenAI OAuth)

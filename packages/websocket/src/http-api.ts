@@ -1735,7 +1735,7 @@ export async function handleExtractAudio(
     return errorResponse(400, "Asset is not a video");
   }
 
-  // ffmpeg reads a local file (managed or external) in place. Only a backend
+  // libav reads a local file (managed or external) in place. Only a backend
   // with no local file has its bytes loaded and written to a temp input.
   const adapter = getAssetAdapter();
   const dir = await fsp.mkdtemp(

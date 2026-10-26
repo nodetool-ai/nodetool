@@ -368,10 +368,6 @@ async function mediaTransform(
 }
 
 /**
- * Base for every ffmpeg-backed node. Carries only the runtime gate; each node
- * declares its own props and `process()`.
- */
-/**
  * Expand `entity://` and text-asset mentions in a prompt for a node that takes
  * no media input of its own. The Prompt composer writes mentions as tokens; a
  * node that sent them as-is handed the model the literal `entity://<id>`.
@@ -386,10 +382,6 @@ async function expandPromptMentions(
     context
   );
   return isString(overrides.prompt) ? overrides.prompt : prompt;
-}
-
-abstract class VideoTransformNode extends BaseNode {
-  static readonly requiredRuntimes = ["ffmpeg"];
 }
 
 /** Output handles TextToVideoNode.process() emits. */
@@ -1067,11 +1059,11 @@ type ForEachFrameNodeStreamOutputs = {
   fps: number;
 };
 
-export class ForEachFrameNode extends VideoTransformNode {
+export class ForEachFrameNode extends BaseNode {
   static readonly nodeType = "nodetool.video.ForEachFrame";
   static readonly title = "For Each Frame";
   static readonly description =
-    "Extract frames from a video file with ffmpeg.\n    video, frames, extract, sequence";
+    "Extract frames from a video file.\n    video, frames, extract, sequence";
   static readonly metadataOutputTypes = {
     frame: "image",
     index: "int",
@@ -1174,7 +1166,7 @@ type FpsNodeOutputs = {
   output: number;
 };
 
-export class FpsNode extends VideoTransformNode {
+export class FpsNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Fps";
   static readonly title = "Fps";
   static readonly description =
@@ -1214,7 +1206,7 @@ type FrameToVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class FrameToVideoNode extends VideoTransformNode {
+export class FrameToVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.FrameToVideo";
   static readonly title = "Frame To Video";
   static readonly description =
@@ -1329,7 +1321,7 @@ type ConcatVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class ConcatVideoNode extends VideoTransformNode {
+export class ConcatVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Concat";
   static readonly body = "content_card";
   static readonly title = "Concatenate Video";
@@ -1429,7 +1421,7 @@ type TrimVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class TrimVideoNode extends VideoTransformNode {
+export class TrimVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Trim";
   static readonly title = "Trim";
   static readonly description =
@@ -1510,7 +1502,7 @@ type ResizeVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class ResizeVideoNode extends VideoTransformNode {
+export class ResizeVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Resize";
   static readonly title = "Resize";
   static readonly description =
@@ -1558,7 +1550,7 @@ type RotateVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class RotateVideoNode extends VideoTransformNode {
+export class RotateVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Rotate";
   static readonly title = "Rotate";
   static readonly description =
@@ -1600,7 +1592,7 @@ type SetSpeedVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class SetSpeedVideoNode extends VideoTransformNode {
+export class SetSpeedVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.SetSpeed";
   static readonly title = "Set Speed";
   static readonly description =
@@ -1675,7 +1667,7 @@ const EASE_CURVE_CUSTOM_ONLY = {
   visible_when: { property: "easing", equals: "custom" }
 } as const;
 
-export class EaseCurveVideoNode extends VideoTransformNode {
+export class EaseCurveVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.EaseCurve";
   static readonly title = "Ease Curve";
   static readonly description =
@@ -1800,7 +1792,7 @@ type OverlayVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class OverlayVideoNode extends VideoTransformNode {
+export class OverlayVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Overlay";
   static readonly title = "Overlay";
   static readonly description =
@@ -1900,7 +1892,7 @@ type ColorBalanceVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class ColorBalanceVideoNode extends VideoTransformNode {
+export class ColorBalanceVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.ColorBalance";
   static readonly title = "Color Balance";
   static readonly description =
@@ -1964,7 +1956,7 @@ type DenoiseVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class DenoiseVideoNode extends VideoTransformNode {
+export class DenoiseVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Denoise";
   static readonly title = "Denoise";
   static readonly description =
@@ -2007,7 +1999,7 @@ type StabilizeVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class StabilizeVideoNode extends VideoTransformNode {
+export class StabilizeVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Stabilize";
   static readonly title = "Stabilize";
   static readonly description =
@@ -2094,7 +2086,7 @@ type SharpnessVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class SharpnessVideoNode extends VideoTransformNode {
+export class SharpnessVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Sharpness";
   static readonly title = "Sharpness";
   static readonly description =
@@ -2147,7 +2139,7 @@ type BlurVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class BlurVideoNode extends VideoTransformNode {
+export class BlurVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Blur";
   static readonly title = "Blur";
   static readonly description =
@@ -2190,7 +2182,7 @@ type SaturationVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class SaturationVideoNode extends VideoTransformNode {
+export class SaturationVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Saturation";
   static readonly title = "Saturation";
   static readonly description =
@@ -2232,7 +2224,7 @@ type AddSubtitlesVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class AddSubtitlesVideoNode extends VideoTransformNode {
+export class AddSubtitlesVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.AddSubtitles";
   static readonly title = "Add Subtitles";
   static readonly description =
@@ -2371,7 +2363,7 @@ type ReverseVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class ReverseVideoNode extends VideoTransformNode {
+export class ReverseVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Reverse";
   static readonly title = "Reverse";
   static readonly description =
@@ -2411,7 +2403,7 @@ type TransitionVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class TransitionVideoNode extends VideoTransformNode {
+export class TransitionVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Transition";
   static readonly title = "Transition";
   static readonly description =
@@ -2557,7 +2549,7 @@ type AddAudioVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class AddAudioVideoNode extends VideoTransformNode {
+export class AddAudioVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.AddAudio";
   static readonly title = "Add Audio";
   static readonly description =
@@ -2667,7 +2659,7 @@ type ChromaKeyVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class ChromaKeyVideoNode extends VideoTransformNode {
+export class ChromaKeyVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.ChromaKey";
   static readonly title = "Chroma Key";
   static readonly description =
@@ -2732,7 +2724,7 @@ type ExtractAudioVideoNodeOutputs = {
   output: { type: string; data: null; uri: string; asset_id: null; metadata: null } | { type: string; data: string; uri: string; asset_id: null; metadata: null };
 };
 
-export class ExtractAudioVideoNode extends VideoTransformNode {
+export class ExtractAudioVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.ExtractAudio";
   static readonly title = "Extract Audio";
   static readonly description =
@@ -2795,7 +2787,7 @@ type ExtractFrameVideoNodeOutputs = {
   output: { type: string; data: null } | { type: string; data: string };
 };
 
-export class ExtractFrameVideoNode extends VideoTransformNode {
+export class ExtractFrameVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.ExtractFrame";
   static readonly title = "Extract Video Frame";
   static readonly description =
@@ -2863,7 +2855,7 @@ type GetVideoInfoNodeOutputs = {
   has_audio: boolean;
 };
 
-export class GetVideoInfoNode extends VideoTransformNode {
+export class GetVideoInfoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.GetVideoInfo";
   static readonly title = "Get Video Info";
   static readonly description =

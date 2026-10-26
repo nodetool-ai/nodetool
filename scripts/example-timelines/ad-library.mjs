@@ -18,14 +18,16 @@
 // through the GPU compositor (`nodetool timeline render`), then writes the cut
 // the recipe page plays: marketing/public/ad-library/videos/<slug>.mp4 at
 // 720×1280 with no audio, and <slug>.webp, its final frame, as the poster.
-// It then runs `record`, which measures the cut with ffprobe and writes the
-// facts as the concept's `video` in adLibrary.json. Needs ffmpeg and a WebGPU
-// adapter.
+// It then runs `record`, which measures the cut and writes the
+// facts as the concept's `video` in adLibrary.json. Needs a WebGPU adapter.
 import { spawnSync } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import { pngFrames, probeMedia, transcodeVideo } from "@nodetool-ai/runtime/media";
+import sharp from "sharp";
 
 import { buildTimelines } from "./build.mjs";
 
@@ -71,18 +73,23 @@ function bundlePath(slug) {
   return path;
 }
 
-/** Width, height, duration, frame rate and codec of a video, read with ffprobe. */
-function probe(file) {
-  const result = spawnSync("ffprobe", [
-    "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=width,height,r_frame_rate,codec_name:format=duration", "-of", "json", file
-  ], { encoding: "utf8" });
-  if (result.status !== 0) {
-    console.error(result.stderr);
-    process.exit(result.status || 1);
+/** libav's names for the codecs Mediabunny names, as ffprobe printed them. */
+const LIBAV_CODECS = { avc: "h264", hevc: "hevc", vp9: "vp9", vp8: "vp8", av1: "av1" };
+
+/** Width, height, duration, frame rate and codec of a video. */
+async function probe(file) {
+  const { durationSec, video } = await probeMedia(file);
+  if (!video) {
+    console.error(`${file} has no video stream.`);
+    process.exit(1);
   }
-  const { streams: [stream], format } = JSON.parse(result.stdout);
-  const [num, den] = stream.r_frame_rate.split("/").map(Number);
-  return { width: stream.width, height: stream.height, duration_ms: Math.round(Number(format.duration) * 1000), fps: num / den, codec: stream.codec_name };
+  return {
+    width: video.width,
+    height: video.height,
+    duration_ms: Math.round((durationSec ?? 0) * 1000),
+    fps: video.nominalFps ?? video.averageFps,
+    codec: LIBAV_CODECS[video.codec] ?? video.codec
+  };
 }
 
 /**
@@ -90,7 +97,7 @@ function probe(file) {
  * adLibrary.json keeps its existing shape: two-space indent and every
  * non-ASCII character escaped, so a change shows only the fields it touched.
  */
-function record(names) {
+async function record(names) {
   for (const slug of names) {
     const file = join(VIDEOS, `${slug}.mp4`);
     if (!existsSync(file)) {
@@ -101,7 +108,7 @@ function record(names) {
     recipe.video = {
       src: `/ad-library/videos/${slug}.mp4`,
       poster: `/ad-library/videos/${slug}.webp`,
-      ...probe(file),
+      ...(await probe(file)),
       timeline: `marketing/recipe-assets/ad-library/${slug}.timeline.json`
     };
     console.log(`${slug}: ${recipe.video.width}×${recipe.video.height}, ${recipe.video.duration_ms} ms, ${recipe.video.fps} fps`);
@@ -133,24 +140,33 @@ if (command === "build") {
       const master = join(scratch, `${slug}.mp4`);
       renderTimeline([bundlePath(slug), "--out", master, "--bitrate", "16000000"]);
       const video = join(VIDEOS, `${slug}.mp4`);
-      run("ffmpeg", [
-        "-v", "error", "-y", "-i", master, "-an",
-        "-vf", "scale=720:1280:flags=lanczos", "-c:v", "libx264", "-preset", "slow", "-crf", "22",
-        "-pix_fmt", "yuv420p", "-movflags", "+faststart", video
-      ]);
+      await transcodeVideo({
+        inputPath: master,
+        outPath: video,
+        spec: {
+          codec: "libx264",
+          pixelFormat: "yuv420p",
+          filter: "scale=720:1280:flags=lanczos",
+          options: { preset: "slow", crf: "22" }
+        },
+        muxerOptions: { movflags: "+faststart" }
+      });
       const lastFrame = Math.round((bundle.durationMs / 1000) * bundle.fps) - 1;
-      run("ffmpeg", [
-        "-v", "error", "-y", "-i", master, "-vf", `select=eq(n\\,${lastFrame}),scale=720:1280:flags=lanczos`,
-        "-frames:v", "1", "-quality", "82", join(VIDEOS, `${slug}.webp`)
-      ]);
+      for await (const png of pngFrames({
+        filePath: master,
+        filter: `select=eq(n\\,${lastFrame}),scale=720:1280:flags=lanczos`,
+        limit: 1
+      })) {
+        await sharp(png).webp({ quality: 82 }).toFile(join(VIDEOS, `${slug}.webp`));
+      }
       console.log(`${slug} -> ${video}`);
     }
   } finally {
     rmSync(scratch, { recursive: true, force: true });
   }
-  record(slugs);
+  await record(slugs);
 } else if (command === "record") {
-  record(slugs);
+  await record(slugs);
 } else {
   console.error("Usage: node scripts/example-timelines/ad-library.mjs build|review|render|record [slug…]");
   process.exit(2);

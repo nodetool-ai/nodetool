@@ -85,7 +85,7 @@ Other hosts:
 
 - **F1. The CLI can install only one of the four kinds.** `nodetool runtime add`
   covers npm libraries. An npm user without the desktop app gets Python,
-  ffmpeg or manimgx only through `install.sh`, a manual conda setup, or the
+  yt-dlp or manimgx only through `install.sh`, a manual conda setup, or the
   system package manager.
 - **F2. No backend package reads `settings.yaml`.** The CLI never sees a custom
   `CONDA_ENV`.
@@ -388,7 +388,7 @@ restart.
 
 `bringYourOwn` for Python on every host except `docker`:
 `Or set NODETOOL_PYTHON to a Python 3.11+ that has nodetool-core installed.`
-For a conda binary it is `Or put ffmpeg on PATH (brew install ffmpeg, apt install ffmpeg).`
+For a conda binary it is `Or put pandoc on PATH (brew install pandoc, apt install pandoc).`
 For a uv tool it is `Or put manimgx on PATH (uv tool install manimgx).`
 
 An example message on the `cli` host:

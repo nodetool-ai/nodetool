@@ -2556,7 +2556,7 @@ export class ProcessingContext {
 
   /**
    * Resolve an asset reference to a local file holding its bytes — the path
-   * counterpart of {@link resolveAssetBytes}, for callers such as ffmpeg that
+   * counterpart of {@link resolveAssetBytes}, for callers such as libav that
    * read a file in place instead of loading it into memory.
    *
    * Looks the reference up in the same adapters and under the same keys,

@@ -962,8 +962,8 @@ export class OpenAIProvider extends BaseProvider {
     if (content.type === "video") {
       // Reached only with the fallback switched off: BaseProvider otherwise
       // samples the clip into frames before conversion whenever
-      // `supportsVideoInput` is false, and a missing ffmpeg fails there with
-      // its own message. Named for the configured provider, not the wire
+      // `supportsVideoInput` is false, and a clip it cannot decode fails there
+      // with its own message. Named for the configured provider, not the wire
       // format: every
       // OpenAI-compatible re-host lands here, and reporting "openai" sent a
       // diagnosis after the wrong provider.

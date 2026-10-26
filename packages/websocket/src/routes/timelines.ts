@@ -94,8 +94,8 @@ async function fetchOwnedAsset(
 
 /**
  * Duration and audio presence of one export source. Bytes from a store with
- * no local file are probed from a temporary copy. Without ffprobe both stay
- * unknown, and the export report says what that left out.
+ * no local file are probed from a temporary copy. A file the probe cannot
+ * read leaves both unknown, and the export report says what that left out.
  */
 async function probeExportSource(
   source: ExportSource,

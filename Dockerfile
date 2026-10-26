@@ -104,7 +104,8 @@ ENV NODE_ENV=production \
 # Beyond ca-certificates/curl (health check, downloads), this bakes in the
 # CLIs that agent skill nodes (execute_bash) and document/video nodes shell
 # out to at runtime, so containers don't fail or install tools on every run:
-#   ffmpeg            — FFmpeg agents/capabilities, video nodes
+#   ffmpeg            — yt-dlp merges formats with it (media nodes run libav
+#                       in process and need no binary)
 #   git               — Git agent
 #   poppler-utils     — PDF agents, pdf-to-image nodes (pdftoppm/pdftotext)
 #   qpdf              — PDF agents (split/merge/optimize/check)
