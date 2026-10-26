@@ -17,6 +17,9 @@ run machine. "Package P1" and "package P2" are plan packages, not severities.
 | B6 | P2 | pkg-V-r1 F1 | `src/ui/MediaPreviews.cpp:156` | `mediaVersionKey(path)` runs synchronous `QFileInfo` metadata queries before the bounded helper starts. A stalled filesystem lookup cannot be cancelled or timed out, so two stalls exhaust the preview pool. | unassigned |
 | B7 | P2 | pkg-V-r1 F2 | `tools/sanitizers/clang-tidy-baseline.mjs:34` | The baseline drops diagnostic locations and compares file/check/message strings. A new occurrence of an already-baselined warning passes as zero additions. | V |
 | B8 | P2 | pkg-V-r1 F3 | `src/platform/ThreadSafety.h:6` | The thread-safety annotations and lock wrappers are used by no production class, so removing a required lock from a mutex-protected class produces no warning. | V |
+| B9 | P2 | pkg-C-r1 F1 | `qml/Tracks/TracksRegion.qml:237` | Drag reordering is not implemented: dragging a track's grip above another does nothing. The differential test calls the native reorder command directly, so it cannot detect the missing gesture. | C |
+| B10 | P2 | pkg-C-r1 F2 | `qml/Tracks/TracksRegion.qml:242` | The visibility, lock, mute, solo and delete buttons in the track header have no action handlers and are not connected to the new track commands. | C |
+| B11 | P2 | pkg-C-r1 F3 | `qml/Tracks/TracksRegion.qml:240` | A track's authored height cannot be changed in the UI. No resize handle exists, and the height slider changes global vertical zoom, not the track's `heightPx`. | C |
 
 ## Closed
 
