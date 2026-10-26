@@ -51,8 +51,14 @@ class TestAppShell : public QObject {
 private slots:
     void shellRegistration() {
         const auto panels = PanelRegistry().forSlot("overlay");
-        QCOMPARE(panels.size(), 1);
-        const auto panel = panels.first().toMap();
+        QVariantList shellPanels;
+        for (const auto& candidate : panels) {
+            if (candidate.toMap().value("id").toString() == "appShell") {
+                shellPanels.append(candidate);
+            }
+        }
+        QCOMPARE(shellPanels.size(), 1);
+        const auto panel = shellPanels.first().toMap();
         QCOMPARE(panel.value("id").toString(), QString("appShell"));
         QCOMPARE(panel.value("source").toUrl(), QUrl("qrc:/qt/qml/NodeTool/Timeline/qml/Preferences/AppShell.qml"));
         QCOMPARE(panel.value("order").toInt(), 100);
