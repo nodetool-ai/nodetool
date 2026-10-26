@@ -6,7 +6,13 @@ import { memo, useCallback, useEffect, useMemo } from "react";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import type { ChatSource, UiContext, UiDocumentRef } from "@nodetool-ai/protocol";
 
-import { FlexColumn, Text, SPACING, getSpacingPx } from "../../ui_primitives";
+import {
+  FlexColumn,
+  LoadingSpinner,
+  Text,
+  SPACING,
+  getSpacingPx
+} from "../../ui_primitives";
 import ChatView from "../containers/ChatView";
 import ChatPanelHeader from "../containers/ChatPanelHeader";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
@@ -85,6 +91,7 @@ const AssistantChatPanel = ({
   const {
     threadId,
     messages,
+    isLoadingThread,
     runtime,
     selectThread,
     createThread,
@@ -195,7 +202,13 @@ const AssistantChatPanel = ({
           onNewChat={handleNewChat}
           requireToolSupport={requireToolSupport}
           hideModePicker
-          noMessagesPlaceholder={welcomePlaceholder}
+          noMessagesPlaceholder={
+            isLoadingThread ? (
+              <LoadingSpinner size="medium" text="Loading chat" />
+            ) : (
+              welcomePlaceholder
+            )
+          }
           threadId={threadId}
           focusMessage={threadId === focusMessage?.threadId ? focusMessage : null}
           currentPlanningUpdate={runtime.planningUpdate}

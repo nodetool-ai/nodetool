@@ -61,6 +61,59 @@ describe("useChatViewThread", () => {
     expect(stopGeneration).toHaveBeenCalledWith("thread-b");
   });
 
+  it("isolated mode loads the messages of a selected thread", () => {
+    const switchThread = jest.fn();
+    const loadMessages = jest.fn().mockResolvedValue([]);
+    useGlobalChatStore.setState({
+      currentThreadId: "canvas",
+      threads: {
+        canvas: makeThread("canvas"),
+        older: makeThread("older")
+      },
+      messageCache: {},
+      switchThread,
+      loadMessages
+    });
+
+    const isolated = renderHook(() => useChatViewThread({ isolated: true }));
+
+    act(() => isolated.result.current.selectThread("older"));
+
+    expect(isolated.result.current.threadId).toBe("older");
+    expect(loadMessages).toHaveBeenCalledWith("older");
+    expect(switchThread).not.toHaveBeenCalled();
+  });
+
+  it("isolated mode reports loading until the selected thread's history arrives", async () => {
+    let resolveLoad: (messages: Message[]) => void = () => undefined;
+    const loadMessages = jest.fn(
+      () =>
+        new Promise<Message[]>((resolve) => {
+          resolveLoad = resolve;
+        })
+    );
+    useGlobalChatStore.setState({
+      threads: { older: makeThread("older") },
+      messageCache: {},
+      loadMessages
+    });
+
+    const isolated = renderHook(() => useChatViewThread({ isolated: true }));
+    expect(isolated.result.current.isLoadingThread).toBe(false);
+
+    act(() => isolated.result.current.selectThread("older"));
+    expect(isolated.result.current.isLoadingThread).toBe(true);
+
+    await act(async () => {
+      useGlobalChatStore.setState({
+        messageCache: { older: [makeMessage("Old")] }
+      });
+      resolveLoad([makeMessage("Old")]);
+    });
+    expect(isolated.result.current.isLoadingThread).toBe(false);
+    expect(isolated.result.current.messages).toEqual([makeMessage("Old")]);
+  });
+
   it("isolated mode does not adopt or switch the current thread", async () => {
     const switchThread = jest.fn();
     const createNewThread = jest.fn().mockResolvedValue("isolated-1");
