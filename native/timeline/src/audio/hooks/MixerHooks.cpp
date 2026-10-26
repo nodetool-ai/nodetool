@@ -36,6 +36,7 @@ MixPlanStageToken registerVoiceExpander(std::string name, VoiceExpander expander
             std::size_t segmentIndex = 0;
             for (const auto& segment : *segments) {
                 auto part = voice;
+                if (segmentIndex != 0) { part.processors.clear(); }
                 part.segmentId = voice.segmentId + "/" + std::to_string(segmentIndex++);
                 part.fadeOffsetMs = voice.fadeOffsetMs + segment.startMs - voice.startMs;
                 part.fadeDurationMs = voice.fadeDurationMs > 0 ? voice.fadeDurationMs : voice.durationMs;

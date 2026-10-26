@@ -79,6 +79,16 @@ VoicePlan voiceFor(const Clip& clip) {
     return v;
 }
 
+std::size_t clipVoiceEnd(const std::vector<VoicePlan>& voices, std::size_t first) {
+    std::size_t end = first + 1;
+    if (!voices[first].segmentId.empty()) {
+        while (end < voices.size() && !voices[end].segmentId.empty() && voices[end].clipId == voices[first].clipId) {
+            ++end;
+        }
+    }
+    return end;
+}
+
 }  // namespace
 
 MixPlanStageToken registerMixPlanStage(std::string name, MixPlanStage stage, int priority) {
@@ -164,6 +174,13 @@ MixPlan buildMixPlan(const Timeline& tl) {
         return a.priority < b.priority;
     });
     for (const auto& stage : stages) { stage.function(tl, plan); }
+    // An expander with an explicitly earlier priority may precede inserts.
+    // Retain only the clip owner's chain before preparing any DSP state.
+    for (std::size_t first = 0; first < plan.voices.size();) {
+        const auto end = clipVoiceEnd(plan.voices, first);
+        for (auto i = first + 1; i < end; ++i) { plan.voices[i].processors.clear(); }
+        first = end;
+    }
     bool processing = !plan.processors.empty() || plan.gainSource;
     for (const auto& voice : plan.voices) { processing |= !voice.processors.empty() || bool(voice.gainSource); }
     for (const auto& track : plan.tracks) {
@@ -333,25 +350,41 @@ void mixBlock(const MixPlan& plan, VoicePcm* pcm, double sampleRate, double time
         auto dest = output.subspan(static_cast<std::size_t>(offset) * 2, samples);
         for (auto& track : state.tracks) { std::ranges::fill(track, 0.0f); }
         std::fill(state.trackSilent.begin(), state.trackSilent.end(), true);
-        for (std::size_t i = 0; i < plan.voices.size(); ++i) {
+        for (std::size_t i = 0; i < plan.voices.size();) {
             const auto& voice = plan.voices[i];
-            if (voice.silent) { continue; }
+            const auto end = clipVoiceEnd(plan.voices, i);
+            const auto first = i;
+            i = end;
+            if (end == first + 1 && voice.silent) { continue; }
             auto scratch = std::span(state.voice).first(samples);
             std::ranges::fill(scratch, 0.0f);
-            MixStats voiceStats;
-            mixVoice(voice, pcm[i], 1, true, sampleRate, context.timelineMs, msPerFrame, n, scratch, voiceStats);
-            state.voiceUnderrun[i] = state.voiceUnderrun[i] || voiceStats.underruns > 0;
             auto voiceContext = context;
             const double quantumStart = context.timelineMs - state.quantumCursor * msPerFrame;
             const double quantumEnd = quantumStart + kMixBlockFrames * msPerFrame;
-            voiceContext.silent = std::max(quantumStart, quantumEnd) <= voice.startMs ||
-                std::min(quantumStart, quantumEnd) >= voice.startMs + voice.durationMs;
+            voiceContext.silent = true;
+            double clipStart = voice.startMs;
+            double clipEnd = voice.startMs + voice.durationMs;
+            double tailMs = voice.tailMs;
+            bool offline = false;
+            for (auto segment = first; segment < end; ++segment) {
+                const auto& part = plan.voices[segment];
+                MixStats voiceStats;
+                mixVoice(part, pcm[segment], 1, true, sampleRate, context.timelineMs, msPerFrame, n, scratch, voiceStats);
+                state.voiceUnderrun[segment] = state.voiceUnderrun[segment] || voiceStats.underruns > 0;
+                clipStart = std::min(clipStart, part.startMs);
+                clipEnd = std::max(clipEnd, part.startMs + part.durationMs);
+                tailMs = std::max(tailMs, part.tailMs);
+                offline |= !pcm[segment].ring;
+                voiceContext.silent = voiceContext.silent && (part.silent ||
+                    std::max(quantumStart, quantumEnd) <= part.startMs ||
+                    std::min(quantumStart, quantumEnd) >= part.startMs + part.durationMs);
+            }
             const bool silent = process(voice.processors, scratch, voiceContext);
-            const bool offlineResidual = !pcm[i].ring && !voice.processors.empty();
+            const bool offlineResidual = offline && !voice.processors.empty();
             // AudioGraph's natural release keeps the chain connected for
             // DECLICK_RELEASE_MS (25ms) beyond its declared musical tail.
-            const double audibleEnd = voice.startMs + voice.durationMs + voice.tailMs + (voice.processors.empty() ? 0 : 25);
-            const bool audibleQuantum = std::max(quantumStart, quantumEnd) > voice.startMs &&
+            const double audibleEnd = clipEnd + tailMs + (voice.processors.empty() ? 0 : 25);
+            const bool audibleQuantum = std::max(quantumStart, quantumEnd) > clipStart &&
                 (offlineResidual || std::min(quantumStart, quantumEnd) < audibleEnd);
             state.trackSilent[voice.trackIndex] = state.trackSilent[voice.trackIndex] && (silent || !audibleQuantum);
             auto& track = state.tracks[voice.trackIndex];
@@ -360,7 +393,7 @@ void mixBlock(const MixPlan& plan, VoicePcm* pcm, double sampleRate, double time
                 // AudioGraph.releaseEffectChain retains offline chains so
                 // natural residuals render fully. Live ring sources use its
                 // explicit clipAudioTailSec cap, including the 20s echo cap.
-                if (t >= voice.startMs && (t < audibleEnd || offlineResidual)) {
+                if (t >= clipStart && (t < audibleEnd || offlineResidual)) {
                     track[2 * f] += scratch[2 * f];
                     track[2 * f + 1] += scratch[2 * f + 1];
                 }

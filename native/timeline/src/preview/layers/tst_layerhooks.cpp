@@ -28,6 +28,12 @@ class TestLayerHooks : public QObject {
     std::vector<nt::SceneHookToken> m_tokens;
     std::vector<nt::LayerSourceToken> m_sources;
     std::vector<nt::EffectStageToken> m_stages;
+    static nt::Timeline captionDocument() {
+        return *nt::parseTimelineJson(R"({"fps":30,"width":64,"height":32,"durationMs":1000,
+          "tracks":[{"id":"v","type":"video"}],"clips":[{"id":"a","trackId":"v","mediaType":"video",
+          "status":"generated","currentAssetId":"fixture","startMs":0,"durationMs":1000,"width":64,"height":32,
+          "caption":{"words":[{"text":"hello","startMs":0,"endMs":1000}]}}]})").timeline;
+    }
     static nt::Timeline pixels(bool pair = false, bool group = false) {
         auto raw = QJsonDocument::fromJson(R"({"fps":30,"width":64,"height":32,"durationMs":1000,
           "tracks":[{"id":"v","type":"video"}],"clips":[{"id":"a","trackId":"v","mediaType":"shape",
@@ -109,6 +115,75 @@ private slots:
         model.setTimeline(model.timeline());
         QVERIFY(!still.capture().isNull());
         QCOMPARE(created, 3);
+    }
+    void captionAndVideoShareClipId() {
+        const auto timeline = captionDocument();
+        const auto plan = nt::buildFramePlan(timeline, 0);
+        QCOMPARE(plan.layers.size(), std::size_t{2});
+        QCOMPARE(plan.layers[0].layer.clipId, plan.layers[1].layer.clipId);
+        QCOMPARE(plan.layers[0].layer.kind, std::string("video"));
+        QCOMPARE(plan.layers[1].layer.kind, std::string("caption"));
+    }
+    void captionAndVideoKeepSeparateSources() {
+        int captions = 0;
+        m_sources.push_back(nt::registerLayerSource("video", [](const nt::ActiveLayer& layer) {
+            QImage image(layer.sourceWidth, layer.sourceHeight, QImage::Format_RGBA8888_Premultiplied);
+            image.fill(Qt::red);
+            return std::make_unique<nt::test::PaintSource>(std::move(image));
+        }));
+        m_sources.push_back(nt::registerLayerSource("caption", [&captions](const nt::ActiveLayer& layer) {
+            ++captions;
+            QImage image(layer.sourceWidth, layer.sourceHeight, QImage::Format_RGBA8888_Premultiplied);
+            image.fill(Qt::transparent);
+            for (int y = 0; y < image.height(); ++y) {
+                for (int x = image.width() / 2; x < image.width(); ++x) { image.setPixelColor(x, y, Qt::blue); }
+            }
+            return std::make_unique<nt::test::PaintSource>(std::move(image));
+        }));
+        TimelineModel model; model.setTimeline(captionDocument());
+        nt::test::Still still;
+        QVERIFY2(still.initialize(model), "no QRhi for offscreen still");
+        for (int frame = 0; frame < 4; ++frame) {
+            const auto image = still.capture();
+            QVERIFY(!image.isNull());
+            QCOMPARE(image.pixelColor(16, 16), QColor(Qt::red));
+            QCOMPARE(image.pixelColor(48, 16), QColor(Qt::blue));
+        }
+        QCOMPARE(captions, 1);
+    }
+    void registeredMediaReplacesSyntheticSource() {
+        auto timeline = captionDocument();
+        auto& clip = timeline.clips.front();
+        clip.raw.remove("caption");
+        clip.scene.reset();
+        TimelineModel model; model.setTimeline(timeline);
+        nt::test::Still still;
+        QVERIFY2(still.initialize(model), "no QRhi for offscreen still");
+        const auto placeholder = still.capture();
+        QVERIFY(!placeholder.isNull());
+        auto media = clip;
+        media.mediaPath = NT_FIXTURES_DIR "/media/colorbars-bt709-limited.mp4";
+        model.registerMedia(media);
+        QCOMPARE(model.timeline().clips.front().mediaPath, media.mediaPath);
+        QImage resolved;
+        QTRY_VERIFY_WITH_TIMEOUT(!(resolved = still.capture()).isNull(), 3000);
+        QVERIFY2(resolved != placeholder, "resolved fixture must replace the synthetic picture");
+        media.mediaPath.clear();
+        model.registerMedia(media);
+        QCOMPARE(still.capture(), placeholder);
+    }
+    void factoryRegistrationReplacesCachedSource() {
+        TimelineModel model; model.setTimeline(pixels());
+        nt::test::Still still;
+        QVERIFY2(still.initialize(model), "no QRhi for offscreen still");
+        const auto placeholder = still.capture();
+        QVERIFY(!placeholder.isNull());
+        paintSources();
+        const auto painted = still.capture();
+        QVERIFY(!painted.isNull());
+        QCOMPARE(painted.pixelColor(32, 16), QColor(20, 80, 160));
+        cleanup();
+        QCOMPARE(still.capture(), placeholder);
     }
     void sourceRectCropsToReference() {
         const QColor topLeft(20, 80, 160);

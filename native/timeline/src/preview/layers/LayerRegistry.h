@@ -7,9 +7,14 @@
 namespace nt {
 using LayerSourceToken = std::uint64_t;
 using LayerSourceFactory = std::function<std::unique_ptr<LayerSource>(const ActiveLayer&)>;
-// Register before creating a renderer. The last factory for a kind wins.
+// The last factory for a kind wins. Renderers refresh entries when it changes.
 LayerSourceToken registerLayerSource(std::string kind, LayerSourceFactory factory);
 void unregisterLayerSource(LayerSourceToken token);
+struct LayerSourceRegistration {
+    LayerSourceToken token = 0;
+    LayerSourceFactory factory;
+};
+LayerSourceRegistration registeredLayerSourceFactory(const std::string& kind);
 std::unique_ptr<LayerSource> registeredLayerSource(const ActiveLayer& layer);
 
 struct EffectContext {

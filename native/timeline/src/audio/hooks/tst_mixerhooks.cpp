@@ -6,6 +6,8 @@
 #include <atomic>
 #include <thread>
 #include <chrono>
+#include <QJsonArray>
+#include <cmath>
 
 namespace {
 nt::Timeline document() {
@@ -132,6 +134,65 @@ private slots:
         mixBlock(plan, pcm.data(), 1000, 0, 1, 8, output.data(), stats);
         QCOMPARE(output[8], 0.5f);
         QCOMPARE(output[14], 0.875f);
+    }
+    void expandedClipSharesCompressorState_data() {
+        QTest::addColumn<int>("splitFrame");
+        QTest::addColumn<int>("secondOffset");
+        QTest::addColumn<bool>("silentFirst");
+        QTest::newRow("quantum boundary") << 2048 << 0 << false;
+        QTest::newRow("inside quantum") << 2037 << 0 << false;
+        QTest::newRow("gap") << 2037 << 256 << false;
+        QTest::newRow("overlap") << 2037 << -256 << false;
+        QTest::newRow("silent first segment") << 2037 << 0 << true;
+    }
+    void expandedClipSharesCompressorState() {
+        using namespace nt::audio;
+        QFETCH(int, splitFrame);
+        QFETCH(int, secondOffset);
+        QFETCH(bool, silentFirst);
+        constexpr int frames = 8192;
+        constexpr int renderFrames = frames + 2048;
+        constexpr double rate = 48000;
+        constexpr double step = 1000 / rate;
+        auto timeline = document();
+        timeline.clips[0].durationMs = frames * step;
+        timeline.clips[0].raw.insert("audioEffects", QJsonArray{QJsonObject{
+            {"id", "compress"}, {"type", "compressor"}, {"enabled", true},
+            {"thresholdDb", -30}, {"ratio", 12}, {"attackMs", 10}, {"releaseMs", 200}}});
+        const auto reference = buildMixPlan(timeline);
+        m_tokens.push_back(registerVoiceExpander("segments", [=](const nt::Clip&, const VoicePlan& voice) {
+            const double split = splitFrame * step;
+            const double second = (splitFrame + secondOffset) * step;
+            return std::vector<VoiceSegment>{{0, split, 0, 1, silentFirst},
+                {second, voice.durationMs - second, second, 1, false}};
+        }));
+        const auto expanded = buildMixPlan(timeline);
+        QCOMPARE(expanded.voices.size(), std::size_t{2});
+        std::vector<float> input(frames * 2, 0.8f), referenceInput(input);
+        std::vector<float> expected(renderFrames * 2), actual(renderFrames * 2);
+        for (int f = 0; f < frames; ++f) {
+            const float value = (f < splitFrame && !silentFirst ? 0.8f : 0) +
+                (f >= splitFrame + secondOffset ? 0.8f : 0);
+            referenceInput[2 * f] = referenceInput[2 * f + 1] = value;
+        }
+        VoicePcm source; source.linear = referenceInput.data(); source.linearCount = frames;
+        auto segmentSource = source; segmentSource.linear = input.data();
+        std::array<VoicePcm, 2> sources{segmentSource, segmentSource};
+        MixStats stats;
+        mixBlock(reference, &source, rate, 0, step, renderFrames, expected.data(), stats);
+        mixBlock(expanded, sources.data(), rate, 0, step, renderFrames, actual.data(), stats);
+        const auto matches = [&] {
+            for (std::size_t i = 0; i < actual.size(); ++i) {
+                if (!std::isfinite(actual[i]) || !std::isfinite(expected[i]) ||
+                    std::abs(actual[i] - expected[i]) > 1e-6f) { return false; }
+            }
+            return true;
+        };
+        QVERIFY2(matches(), "expanded clip must match the unsplit compressor, including its segment boundary and tail");
+        QCOMPARE(expanded.voices[0].processors.size() + expanded.voices[1].processors.size(), std::size_t{1});
+        // A discontinuous seek must reset the clip's sole chain.
+        mixBlock(expanded, sources.data(), rate, 0, step, renderFrames, actual.data(), stats);
+        QVERIFY2(matches(), "seek must reset the shared compressor state");
     }
     void manyVoicesExpandInDocumentOrder() {
         using namespace nt::audio;

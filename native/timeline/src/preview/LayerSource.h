@@ -1,7 +1,8 @@
 #pragma once
 
-// The seam between the compositor and a clip's pixels. The compositor owns one
-// LayerSource per clip and keeps it, and its textures, alive across frames.
+// The seam between the compositor and a layer's pixels. Registered and
+// synthetic sources belong to a clip and kind. Media sources live in the
+// pool. Sources and their textures stay alive through their last GPU use.
 //
 // M1a: SyntheticSource draws a test pattern on the CPU and uploads it.
 // M1b: FfmpegSource decodes on a worker thread and uploads YUV planes

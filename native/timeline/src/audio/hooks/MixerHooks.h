@@ -14,6 +14,7 @@ struct VoiceSegment {
 // segment list removes it. Render-time envelopes must not allocate or lock.
 using VoiceExpander = std::function<std::optional<std::vector<VoiceSegment>>(const Clip&, const VoicePlan&)>;
 using GainEnvelopeFactory = std::function<std::shared_ptr<const ParameterSource>(const Clip&, const VoicePlan&)>;
-MixPlanStageToken registerVoiceExpander(std::string name, VoiceExpander expander, int priority = -100);
+// Expand after clip inserts (priority 0), before their automation (100).
+MixPlanStageToken registerVoiceExpander(std::string name, VoiceExpander expander, int priority = 50);
 MixPlanStageToken registerGainEnvelope(std::string name, GainEnvelopeFactory factory, int priority = 200);
 }
