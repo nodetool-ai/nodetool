@@ -11,6 +11,7 @@
 #include "preview/SurfacePool.h"
 #include "preview/SyntheticSource.h"
 #include "preview/layers/LayerRegistry.h"
+#include "preview/compose/ComposeRegistry.h"
 
 #include <rhi/qrhi.h>
 
@@ -102,6 +103,7 @@ public:
         for (auto& [key, entry] : m_sources) { retireSource(entry); }
         m_sources.clear();
         m_effectStages.clear();
+        m_blendHandlers.clear();
         m_pool.clear();
         m_surfaces.clear();
         if (m_rhi && !m_retire.empty()) m_rhi->finish();
@@ -137,11 +139,21 @@ private:
     // One pooled intermediate surface (D35): a canvas-sized target the
     // group's children draw into, and the bindings and uniforms that draw it
     // as one layer of its container.
-    struct Surface {
+    struct SurfaceResources {
         std::unique_ptr<QRhiTexture> texture;
         std::unique_ptr<QRhiTextureRenderTarget> rt;
         std::unique_ptr<QRhiBuffer> ubuf;
         std::unique_ptr<QRhiShaderResourceBindings> srb;
+    };
+    struct Surface : SurfaceResources {
+        nt::RetireQueue* retire = nullptr;
+        long long* frame = nullptr;
+        ~Surface() {
+            if (retire && frame) {
+                retire->retire(std::make_shared<SurfaceResources>(
+                    std::move(static_cast<SurfaceResources&>(*this))), *frame);
+            }
+        }
     };
     struct EffectPass {
         nt::LayerEffectStage* stage;
@@ -150,6 +162,7 @@ private:
         const QJsonObject* ext;
     };
     std::vector<std::unique_ptr<nt::LayerEffectStage>> m_effectStages;
+    std::map<std::string, std::unique_ptr<nt::BlendHandler>> m_blendHandlers;
     std::unique_ptr<Surface> makeSurface(QSize size);
 
     void ensureCanvas();
@@ -262,6 +275,7 @@ void PreviewCompositorRenderer::initialize(QRhiCommandBuffer*) {
         // New QRhi (first run, or a device change): drop every resource.
         m_sources.clear();
         m_effectStages.clear();
+        m_blendHandlers.clear();
         m_pool.clear();  // stop old decoders before retiring their frames
         m_surfaces.clear();
         m_retire.clear();
@@ -279,6 +293,7 @@ void PreviewCompositorRenderer::initialize(QRhiCommandBuffer*) {
         m_vbufUploaded = false;
         m_rhi = rhi();
         m_effectStages = nt::registeredEffectStages();
+        m_blendHandlers = nt::registeredBlendHandlers();
     }
     if (!m_interop) {
         m_interop = nt::hw::PlatformInterop::create(m_rhi);
@@ -438,7 +453,10 @@ std::unique_ptr<PreviewCompositorRenderer::Surface> PreviewCompositorRenderer::m
     static const bool failForTest = qEnvironmentVariableIsSet("NT_TEST_FAIL_SURFACES");
     if (failForTest) return nullptr;
     auto s = std::make_unique<Surface>();
-    s->texture.reset(m_rhi->newTexture(QRhiTexture::RGBA8, size, 1, QRhiTexture::RenderTarget));
+    s->retire = &m_retire;
+    s->frame = &m_frame;
+    s->texture.reset(m_rhi->newTexture(QRhiTexture::RGBA8, size, 1,
+                                     QRhiTexture::RenderTarget | QRhiTexture::UsedAsTransferSource));
     if (!s->texture->create()) return nullptr;
     s->rt.reset(m_rhi->newTextureRenderTarget({s->texture.get()}));
     // The canvas's pass descriptor: same single RGBA8 attachment, so the
@@ -545,10 +563,20 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     };
     int hardwareLayers = 0;
     const auto planEffects = [&](nt::LayerFrame input, const QJsonObject& ext,
-                                 std::vector<EffectPass>& passes) -> std::optional<nt::LayerFrame> {
+                                 std::vector<EffectPass>& passes, QMargins& totalOutset) -> std::optional<nt::LayerFrame> {
         for (const auto& stage : m_effectStages) {
             if (!stage->applies(ext)) { continue; }
-            auto* output = m_surfaces.acquire(input.size, m_frame);
+            const auto margin = stage->outset(ext, input.size);
+            const qint64 width = qint64(input.size.width()) + margin.left() + margin.right();
+            const qint64 height = qint64(input.size.height()) + margin.top() + margin.bottom();
+            if (margin.left() < 0 || margin.top() < 0 || margin.right() < 0 || margin.bottom() < 0 ||
+                width <= 0 || height <= 0 || width > std::numeric_limits<int>::max() ||
+                height > std::numeric_limits<int>::max()) {
+                resourceFailed("invalid effect outset");
+                return {};
+            }
+            const QSize outputSize{int(width), int(height)};
+            auto* output = m_surfaces.acquire(outputSize, m_frame);
             if (!output) {
                 resourceFailed("cannot allocate an effect surface");
                 return {};
@@ -557,6 +585,8 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
             input.format = nt::LayerFrame::Format::Rgba8Premultiplied;
             input.planes = {output->texture.get(), nullptr, nullptr};
             input.flipV = m_rhi->isYUpInFramebuffer();
+            input.size = outputSize;
+            totalOutset += margin;
         }
         return input;
     };
@@ -577,6 +607,8 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
         int z = 0;
         std::optional<int> stackOrder;
         std::string container;  // precomposeGroupId; empty: the frame
+        const std::string* blendMode;
+        const QJsonObject* ext;
     };
     std::vector<Draw> draws;
     draws.reserve(m_layers.size());
@@ -631,8 +663,10 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
                              m_frame, layer.clipId.c_str(), sourceSec, frame.ptsSec, error, frame.exact, frame.hardware);
             }
         }
+        const QSize originalSize = frame.size;
+        QMargins outset;
         if (!m_effectStages.empty()) {
-            const auto processed = planEffects(frame, layer.ext, layerEffects);
+            const auto processed = planEffects(frame, layer.ext, layerEffects, outset);
             if (!processed) { continue; }
             frame = *processed;
         }
@@ -664,11 +698,19 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
             e.bound = planes;
         }
         // The cut geometry and the group's matrix included (DESIGN.md D35).
-        const auto [sourceWidth, sourceHeight] = nt::croppedSourceSize(layer.sourceRect, frame.size.width(), frame.size.height());
+        const auto [sourceWidth, sourceHeight] = nt::croppedSourceSize(layer.sourceRect, originalSize.width(), originalSize.height());
         const auto m = nt::layerDrawMatrix(layer, sourceWidth, sourceHeight, m_canvasSize.width(),
                                            m_canvasSize.height());
         QMatrix4x4 model;
         std::copy(m.begin(), m.end(), model.data());
+        if (!outset.isNull()) {
+            // Expand in the original crop's local space, after contain fit
+            // and transform. Input pixels keep their original placement.
+            model.translate(float(outset.right() - outset.left()) / sourceWidth,
+                            float(outset.top() - outset.bottom()) / sourceHeight);
+            model.scale(float(qint64(sourceWidth) + outset.left() + outset.right()) / sourceWidth,
+                        float(qint64(sourceHeight) + outset.top() + outset.bottom()) / sourceHeight);
+        }
         LayerUniforms u{};
         writeMatrix(u, corr * model);
         std::memcpy(u.colorMatrix, frame.colorMatrix.data(), sizeof(u.colorMatrix));
@@ -676,11 +718,19 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
         u.opacity = static_cast<float>(layer.opacity);
         u.flipV = frame.flipV ? 1.0f : 0.0f;
         std::copy(layer.sourceRect.begin(), layer.sourceRect.end(), u.sourceRect.begin());
+        if (!outset.isNull()) {
+            // The crop remains in original source coordinates. Include the
+            // accumulated padding on both sides when sampling the grown frame.
+            u.sourceRect = {layer.sourceRect[0] * originalSize.width() / frame.size.width(),
+                            layer.sourceRect[1] * originalSize.height() / frame.size.height(),
+                            (layer.sourceRect[2] * originalSize.width() + outset.left() + outset.right()) / frame.size.width(),
+                            (layer.sourceRect[3] * originalSize.height() + outset.top() + outset.bottom()) / frame.size.height()};
+        }
         u.sourceTexelSize[0] = 1.0f / frame.size.width();
         u.sourceTexelSize[1] = 1.0f / frame.size.height();
         u.mode = modeFor(frame.format);
         updates->updateDynamicBuffer(e.ubuf.get(), 0, sizeof(u), &u);
-        draws.push_back({e.srb.get(), layer.z, layer.stackOrder, layer.precomposeGroupId});
+        draws.push_back({e.srb.get(), layer.z, layer.stackOrder, layer.precomposeGroupId, &layer.blendMode, &layer.ext});
     }
     const int layerDraws = static_cast<int>(draws.size());
 
@@ -709,7 +759,8 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
         input.planes[0] = surface->texture.get();
         input.size = m_canvasSize;
         input.flipV = m_rhi->isYUpInFramebuffer();
-        if (!planEffects(input, pc.ext, effects)) { continue; }
+        QMargins outset;
+        if (!planEffects(input, pc.ext, effects, outset)) { continue; }
         Surface* composite = effects.empty() ? surface : effects.back().output;
         // Frame-sized, so only the group's cut moves it; its matrix already
         // rode into each child.
@@ -719,6 +770,12 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
                                            m_canvasSize.width(), m_canvasSize.height());
         QMatrix4x4 model;
         std::copy(m.begin(), m.end(), model.data());
+        if (!outset.isNull()) {
+            model.translate(float(outset.right() - outset.left()) / m_canvasSize.width(),
+                            float(outset.top() - outset.bottom()) / m_canvasSize.height());
+            model.scale(float(qint64(m_canvasSize.width()) + outset.left() + outset.right()) / m_canvasSize.width(),
+                        float(qint64(m_canvasSize.height()) + outset.top() + outset.bottom()) / m_canvasSize.height());
+        }
         LayerUniforms u{};
         writeMatrix(u, corr * model);
         u.opacity = static_cast<float>(pc.opacity);
@@ -726,7 +783,7 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
         u.mode = 0.0f;  // premultiplied RGBA
         updates->updateDynamicBuffer(composite->ubuf.get(), 0, sizeof(u), &u);
         surfacePasses.push_back({surface, pc.clipId, std::move(effects)});
-        draws.push_back({composite->srb.get(), pc.z, pc.stackOrder, pc.precomposeGroupId});
+        draws.push_back({composite->srb.get(), pc.z, pc.stackOrder, pc.precomposeGroupId, &pc.blendMode, &pc.ext});
     }
     // `sortStack`: by z, then stack order (absent last), stable.
     std::stable_sort(draws.begin(), draws.end(), [](const Draw& a, const Draw& b) {
@@ -741,17 +798,69 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     // opening). With no layers, the canvas is black: a real gap.
     const bool held = !m_layers.empty() && layerDraws == 0 && m_canvasDrawn;
     const QRhiCommandBuffer::VertexInput vin(m_vbuf.get(), 0);
-    // One pass per container: its items bottom to top.
-    const auto drawContainer = [&](QRhiRenderTarget* rt, const QColor& clear, const std::string& container,
-                                   QRhiResourceUpdateBatch* batch) {
+    int blendSurfaces = 0;
+    const auto beginContainerPass = [&](QRhiRenderTarget* rt, const QColor& clear, QRhiResourceUpdateBatch* batch) {
         cb->beginPass(rt, clear, {1.0f, 0}, batch);
         cb->setGraphicsPipeline(m_layerPipeline.get());
         cb->setViewport({0, 0, float(m_canvasSize.width()), float(m_canvasSize.height())});
+    };
+    const auto drawBindings = [&](QRhiShaderResourceBindings* srb) {
+        cb->setShaderResources(srb);
+        cb->setVertexInput(0, 1, &vin);
+        cb->draw(4);
+    };
+    const auto surfaceFrame = [&](Surface* surface) {
+        nt::LayerFrame frame;
+        frame.format = nt::LayerFrame::Format::Rgba8Premultiplied;
+        frame.planes[0] = surface->texture.get();
+        frame.size = m_canvasSize;
+        frame.flipV = m_rhi->isYUpInFramebuffer();
+        return frame;
+    };
+    // Unhandled items stay in the original pass. Only a matching handler
+    // splits the container, preserving its previous pixels as the backdrop.
+    const auto drawContainer = [&](QRhiRenderTarget* rt, QRhiTexture* texture, const QColor& clear,
+                                   const std::string& container, QRhiResourceUpdateBatch* batch) {
+        beginContainerPass(rt, clear, batch);
         for (const Draw& d : draws) {
-            if (d.container != container) continue;
-            cb->setShaderResources(d.srb);
-            cb->setVertexInput(0, 1, &vin);
-            cb->draw(4);
+            if (d.container != container) { continue; }
+            const auto handler = m_blendHandlers.find(*d.blendMode);
+            if (*d.blendMode == "normal" || handler == m_blendHandlers.end()) {
+                drawBindings(d.srb);
+                continue;
+            }
+            auto* backdrop = m_surfaces.acquire(m_canvasSize, m_frame);
+            auto* layer = m_surfaces.acquire(m_canvasSize, m_frame);
+            auto* output = m_surfaces.acquire(m_canvasSize, m_frame);
+            if (!backdrop || !layer || !output) {
+                resourceFailed("cannot allocate blend surfaces");
+                drawBindings(d.srb);
+                continue;
+            }
+            cb->endPass();
+            auto* copy = m_rhi->nextResourceUpdateBatch();
+            copy->copyTexture(backdrop->texture.get(), texture);
+            cb->resourceUpdate(copy);
+            beginContainerPass(layer->rt.get(), Qt::transparent, nullptr);
+            drawBindings(d.srb);
+            cb->endPass();
+            const bool ok = handler->second->render(effectContext, surfaceFrame(backdrop), surfaceFrame(layer),
+                                                     *output->rt, *d.blendMode, *d.ext);
+            if (!ok) { resourceFailed("cannot render a blend handler"); }
+            // A handler writes the complete container. Copy it over a clear
+            // target, then continue with later items. A failed handler falls
+            // back to the saved backdrop and the original over draw.
+            auto* result = ok ? output : backdrop;
+            LayerUniforms u{};
+            writeMatrix(u, corr);
+            u.opacity = 1.0f;
+            u.flipV = m_rhi->isYUpInFramebuffer() ? 1.0f : 0.0f;
+            auto* resume = m_rhi->nextResourceUpdateBatch();
+            resume->updateDynamicBuffer(result->ubuf.get(), 0, sizeof(u), &u);
+            beginContainerPass(rt, Qt::transparent, resume);
+            drawBindings(result->srb.get());
+            if (!ok) { drawBindings(d.srb); }
+            blendSurfaces += 3;
         }
         cb->endPass();
     };
@@ -767,14 +876,14 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
             renderEffects(layerEffects);
         }
         for (const SurfacePass& sp : surfacePasses) {
-            drawContainer(sp.surface->rt.get(), QColor(0, 0, 0, 0), sp.groupId, batch);
+            drawContainer(sp.surface->rt.get(), sp.surface->texture.get(), QColor(0, 0, 0, 0), sp.groupId, batch);
             batch = nullptr;
             renderEffects(sp.effects);
         }
-        drawContainer(m_canvasRt.get(), QColor(0, 0, 0, 255), std::string(), batch);
+        drawContainer(m_canvasRt.get(), m_canvas.get(), QColor(0, 0, 0, 255), std::string(), batch);
         m_canvasDrawn = true;
     }
-    int drawnSurfaces = held ? 0 : static_cast<int>(surfacePasses.size() + layerEffects.size());
+    int drawnSurfaces = held ? 0 : static_cast<int>(surfacePasses.size() + layerEffects.size()) + blendSurfaces;
     if (!held) {
         for (const auto& pass : surfacePasses) { drawnSurfaces += static_cast<int>(pass.effects.size()); }
     }
