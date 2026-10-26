@@ -5,7 +5,9 @@
 // - Conflict (`autosave.conflict`): the server copy changed since the load.
 //   The web merges and lists each conflicting change with Accept and
 //   Discard. The native editor does not merge (D34), so it says that
-//   autosave stopped, with `autosave.lastError`.
+//   server saving stopped, while committed edits keep updating a local copy.
+// - Earlier (`autosave.earlierCopy`): Restore is one undo entry. The file
+//   stays available after acknowledgement until explicit Discard.
 // - Stripped (`autosave.stripped`): the server dropped fields of the saved
 //   document. The web has no such warning, so the wording here is new.
 //
@@ -13,6 +15,7 @@
 // (`keptCopy`) or why it is missing (`recoveryError`). The named copy always
 // contains the current document, including fields stripped by the server.
 import QtQuick
+import QtQuick.Controls as Controls
 import NodeTool.Timeline
 
 Column {
@@ -31,6 +34,41 @@ Column {
     readonly property string copySentence: keptCopy !== "" ? " A copy of your edits is in " + keptCopy + "."
         : recoveryError !== "" ? " The copy of your edits could not be written: " + recoveryError + "." : ""
 
+    readonly property string earlierCopy: autosave !== null && autosave.earlierCopy !== undefined ? autosave.earlierCopy : ""
+    readonly property string earlierCopyError: autosave !== null && autosave.earlierCopyError !== undefined
+                                               ? autosave.earlierCopyError : ""
+
+    function editorAbove() {
+        let item = parent
+        while (item) {
+            if (item.timeline !== undefined && item.clock !== undefined) return item
+            item = item.parent
+        }
+        return null
+    }
+
+    component RecoveryAction: Controls.Button {
+        id: action
+        implicitHeight: InspectorTokens.controlSm
+        leftPadding: Theme.spacingMd
+        rightPadding: Theme.spacingMd
+        font.family: Theme.sansFamily
+        font.pixelSize: Theme.fontSizeSmall
+        background: Rectangle {
+            radius: Theme.radiusSm
+            color: action.hovered || action.activeFocus ? Theme.actionSelected : "transparent"
+            border.width: 1
+            border.color: action.activeFocus ? Theme.warning : Theme.divider
+        }
+        contentItem: Text {
+            text: action.text
+            font: action.font
+            color: action.enabled ? Theme.warningLight : Theme.textDisabled
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+        }
+    }
+
     // A new strip warning shows again after a dismissed one.
     onStrippedPathsChanged: strippedDismissed = false
 
@@ -39,6 +77,7 @@ Column {
         property string title
         property string detail
         property bool dismissible: false
+        property bool recoveryActions: false
         signal dismissed()
         width: banners.width
         height: Math.max(alertIcon.height, textColumn.implicitHeight) + 2 * Theme.spacingSm
@@ -79,6 +118,23 @@ Column {
                 font.family: Theme.sansFamily
                 font.pixelSize: Theme.fontSizeSmall
             }
+            Row {
+                visible: alert.recoveryActions
+                spacing: Theme.spacingSm
+                RecoveryAction {
+                    objectName: "restoreEarlierCopyButton"
+                    text: "Restore"
+                    onClicked: {
+                        const editor = banners.editorAbove()
+                        if (editor && banners.autosave) banners.autosave.restoreEarlierCopy(editor.timeline)
+                    }
+                }
+                RecoveryAction {
+                    objectName: "discardEarlierCopyButton"
+                    text: "Discard"
+                    onClicked: if (banners.autosave) banners.autosave.discardEarlierCopy()
+                }
+            }
         }
         ToolButton {
             visible: alert.dismissible
@@ -93,9 +149,20 @@ Column {
     }
 
     Alert {
+        objectName: "earlierCopyBanner"
+        visible: banners.earlierCopy !== ""
+        recoveryActions: true
+        title: "An earlier session left unsaved edits."
+        detail: banners.earlierCopy + ". Restore replaces the timeline content as one undo step. "
+                + "The copy stays until you discard it."
+                + (banners.earlierCopyError !== "" ? " " + banners.earlierCopyError : "")
+    }
+    Alert {
         objectName: "conflictBanner"
         visible: banners.showConflict
-        title: "The timeline changed outside the editor. Autosave stopped, so your edits are not on the server."
+        title: banners.keptCopy !== ""
+               ? "The timeline changed outside the editor. Your edits are saved locally. Later edits update this copy after a short delay."
+               : "The timeline changed outside the editor. Server saving is paused."
         detail: banners.autosave !== null ? banners.autosave.lastError + banners.copySentence : ""
     }
     Alert {

@@ -7,9 +7,8 @@
 //  - A port must be free before a launch, and every listener on it must be in
 //    the process group the script started before any write.
 //  - Requests refuse redirects, so none can reach another server (7777).
-//  - Each scratch server runs with an instance token (instancePreloadOption):
-//    every answer it sends carries it, and a native save goes out only after
-//    the server answered with it, so another listener on the port gets no write.
+//  - Each scratch server proves fresh nonces with HMAC before a write on
+//    that connection. The instance secret never goes over the wire.
 //  - Cleanup stops whole process groups: SIGTERM, then SIGKILL after a deadline.
 
 import { spawnSync } from "node:child_process";
@@ -95,22 +94,24 @@ export async function noRedirectFetch(url, init = {}) {
 
 export const INSTANCE_ENV = "NT_SCRATCH_INSTANCE";
 export const INSTANCE_HEADER = "x-nodetool-instance";
+export const NONCE_HEADER = "x-nodetool-instance-nonce";
+export const PROOF_HEADER = "x-nodetool-instance-proof";
 /** The native client's variable for the token it requires (ServerSource.h). */
 export const NATIVE_EXPECT_ENV = "NODETOOL_TIMELINE_EXPECT_INSTANCE";
 
-/**
- * A NODE_OPTIONS entry that preloads a module into every Node process of the
- * server: each HTTP answer gets `x-nodetool-instance: $NT_SCRATCH_INSTANCE`.
- * It runs inside the server process, so only that process can send the token.
- */
+/** Preloads nonce proofs into scratch HTTP servers without disclosing the secret. */
 export function instancePreloadOption() {
   const code = [
     'import http from "node:http";',
+    'import crypto from "node:crypto";',
     `const token = process.env.${INSTANCE_ENV};`,
     "if (token) {",
     "  const writeHead = http.ServerResponse.prototype.writeHead;",
     "  http.ServerResponse.prototype.writeHead = function (...args) {",
-    `    if (!this.headersSent) this.setHeader("${INSTANCE_HEADER}", token);`,
+    `    const nonce = this.req?.headers["${NONCE_HEADER}"];`,
+    "    if (!this.headersSent && typeof nonce === 'string' && /^[0-9a-f]{32,128}$/.test(nonce)) {",
+    `      this.setHeader("${PROOF_HEADER}", crypto.createHmac("sha256", token).update(nonce).digest("hex"));`,
+    "    }",
     "    return writeHead.apply(this, args);",
     "  };",
     "}"

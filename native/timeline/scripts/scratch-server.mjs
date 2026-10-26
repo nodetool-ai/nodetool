@@ -3,20 +3,21 @@
 // database, assets and SECRETS_MASTER_KEY, never on port 7777, written to
 // only after the ownership checks of scratch-safety.mjs: the child is alive
 // and every listener on the port is in its process group (lsof or ss), checked
-// right before each write. Each server also carries an instance token that
-// only its own process sends (scratch-safety.mjs instancePreloadOption): the
-// native client gets it in `nativeEnv(server)` and writes nowhere else.
+// right before each write. Nonce HMAC proofs authenticate the connection
+// carrying each write. nativeEnv supplies the secret to native clients.
 
 import { spawn } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
+import http from "node:http";
 import path from "node:path";
 
 import {
   groupAlive,
   groupOwnsPort,
   INSTANCE_ENV,
-  INSTANCE_HEADER,
+  NONCE_HEADER,
+  PROOF_HEADER,
   instancePreloadOption,
   listenerPids,
   NATIVE_EXPECT_ENV,
@@ -30,7 +31,7 @@ export const USER_PORT = 7777;
  * One session: `work` is the run's verified scratch folder, `repo` the
  * checkout root, `assertInWork` the folder guard, `log` a logger.
  */
-export function createScratchSession({ work, repo, assertInWork, log = () => {} }) {
+export function createScratchSession({ work, repo, assertInWork, log = () => {}, beforeWrite = async () => {} }) {
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // ── scratch servers ───────────────────────────────────────────────────────
   
@@ -96,13 +97,15 @@ export function createScratchSession({ work, repo, assertInWork, log = () => {} 
     servers.push(server);
     const deadline = Date.now() + 180_000;
     let healthy = false;
-    let answeredBy = null;
+    let identityValid = false;
     while (Date.now() < deadline && !healthy) {
       if (child.exitCode !== null) throw new Error(`${name} exited early, see ${logPath}`);
       try {
-        const r = await scratchFetch(`${server.base}/health`);
+        const nonce = crypto.randomBytes(32).toString("hex");
+        const r = await scratchFetch(`${server.base}/health`, { headers: { [NONCE_HEADER]: nonce } });
         healthy = r.ok;
-        answeredBy = r.headers.get(INSTANCE_HEADER);
+        identityValid = validProof(r.headers.get(PROOF_HEADER), nonce, instance);
+        await r.arrayBuffer();
       } catch (err) {
         if (/redirect/.test(String(err))) throw err;
       }
@@ -112,7 +115,7 @@ export function createScratchSession({ work, repo, assertInWork, log = () => {} 
     // Ownership: the answer must come from the process group started here,
     // never from another server that holds the port.
     if (!ownsPort(server)) throw new Error(`${name}: the listener on ${port} is not the scratch server's process group`);
-    if (answeredBy !== instance) throw new Error(`${name}: /health answered as instance ${answeredBy}, not this server's`);
+    if (!identityValid) throw new Error(`${name}: /health did not prove this server instance`);
     server.owned = true;
     const text = fs.readFileSync(logPath, "utf8");
     const db = text.match(/Initializing SQLite database at: (\S+)/)?.[1];
@@ -170,11 +173,59 @@ export function createScratchSession({ work, repo, assertInWork, log = () => {} 
     return body.result.data;
   }
   
-  /** Throws unless the answer came from `base`'s scratch server instance. */
-  function assertAnsweredBy(base, r) {
-    const server = servers.find((s) => s.base === base);
-    if (!server || r.headers.get(INSTANCE_HEADER) !== server.instance) {
-      throw new Error(`${base}: the answer came from another server instance`);
+  function validProof(proof, nonce, secret) {
+    if (typeof proof !== "string" || !/^[0-9a-f]{64}$/.test(proof)) return false;
+    const expected = crypto.createHmac("sha256", secret).update(nonce).digest();
+    return crypto.timingSafeEqual(Buffer.from(proof, "hex"), expected);
+  }
+
+  // The agent can open exactly one socket. A closed proven peer cannot be
+  // replaced by the agent opening another connection for the POST.
+  async function provenWrite(server, target, headers, body) {
+    if (server.port === USER_PORT || new URL(server.base).port === String(USER_PORT)) throw new Error("refusing port 7777");
+    const agent = new http.Agent({ keepAlive: true, maxSockets: 1 });
+    const connect = agent.createConnection;
+    let socket;
+    let opened = false;
+    agent.createConnection = function (options, callback) {
+      if (opened) {
+        queueMicrotask(() => callback(new Error("proven connection closed; refusing to reconnect")));
+        return undefined;
+      }
+      opened = true;
+      socket = connect.call(this, options, callback);
+      return socket;
+    };
+    const signal = AbortSignal.timeout(120000);
+    function exchange(method, path, requestHeaders, bytes) {
+      return new Promise((resolve, reject) => {
+        const request = http.request(new URL(path, server.base), { method, headers: requestHeaders, agent, signal }, (response) => {
+          const chunks = [];
+          response.on("data", (chunk) => chunks.push(chunk));
+          response.on("error", reject);
+          response.on("end", () => {
+            const status = response.statusCode;
+            const r = new Response([204, 304].includes(status) ? null : Buffer.concat(chunks), { status, headers: response.headers });
+            resolve(r);
+          });
+        });
+        request.setTimeout(30000, () => request.destroy(new Error("server write timed out")));
+        request.on("error", reject);
+        request.end(bytes);
+      });
+    }
+    try {
+      const nonce = crypto.randomBytes(32).toString("hex");
+      const ready = await exchange("GET", "/ready", { [NONCE_HEADER]: nonce });
+      if (ready.status >= 300 && ready.status < 400) throw new Error("refusing an identity redirect");
+      if (!validProof(ready.headers.get(PROOF_HEADER), nonce, server.instance) || !ready.ok) throw new Error("WRONG_SERVER: not the expected server instance");
+      await beforeWrite();
+      if (!socket || socket.destroyed || !socket.writable || signal.aborted) throw new Error("proven connection closed before write");
+      const r = await exchange("POST", target, { ...headers, "content-length": body.length }, body);
+      if (r.status >= 300 && r.status < 400) throw new Error("refusing a write redirect");
+      return r;
+    } finally {
+      agent.destroy();
     }
   }
 
@@ -185,12 +236,8 @@ export function createScratchSession({ work, repo, assertInWork, log = () => {} 
 
   async function mutate(base, proc, input) {
     await assertScratch(base);
-    const r = await scratchFetch(`${base}/trpc/${proc}`, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(input)
-    });
-    assertAnsweredBy(base, r);
+    const server = servers.find((s) => s.base === base);
+    const r = await provenWrite(server, `/trpc/${proc}`, { "content-type": "application/json" }, Buffer.from(JSON.stringify(input)));
     const body = await r.json();
     if (body.error) throw new Error(`${proc}: ${body.error.message}`);
     return body.result.data;
@@ -201,8 +248,8 @@ export function createScratchSession({ work, repo, assertInWork, log = () => {} 
     const form = new FormData();
     form.append("json", JSON.stringify({ name: path.basename(file), content_type: contentType }));
     form.append("file", new Blob([fs.readFileSync(file)], { type: contentType }), path.basename(file));
-    const r = await scratchFetch(`${server.base}/api/assets`, { method: "POST", body: form });
-    assertAnsweredBy(server.base, r);
+    const encoded = new Request(`${server.base}/api/assets`, { method: "POST", body: form });
+    const r = await provenWrite(server, "/api/assets", { "content-type": encoded.headers.get("content-type") }, Buffer.from(await encoded.arrayBuffer()));
     if (!r.ok) throw new Error(`upload ${file}: HTTP ${r.status} ${await r.text()}`);
     const asset = await r.json();
     const stored = path.join(server.dir, "assets", asset.user_id, `${asset.id}${path.extname(file)}`);

@@ -38,6 +38,8 @@ public:
     // Replaces the document with an empty one: every clip leaves the preview,
     // so its decoders close.
     void close();
+    // Adds runtime paths by media identity and refreshes matching snapshot clips.
+    void registerMedia(const nt::Clip& media);
     const nt::Timeline& timeline() const { return *m_timeline; }
     // An immutable snapshot the render thread keeps by pointer (D8). A new
     // document makes a new snapshot; an old one stays valid while held.
@@ -69,10 +71,16 @@ public:
     // Pushes one undo command from `before` to `after` (and applies `after`).
     // No command when the two are equal. A `continuation` with a `mergeId`
     // folds into the previous command of that id (a held key's repeats).
-    bool commitEdit(const QString& text, const QJsonArray& before, const QJsonArray& after, int mergeId = 0,
+    // Zero means no edit. A continuation supersedes the merged command's token.
+    quint64 commitEdit(const QString& text, const QJsonArray& before, const QJsonArray& after, int mergeId = 0,
                     bool continuation = false);
 
-    Q_INVOKABLE bool applyEdit(const QString& name, const QJsonObject& payload);
+    Q_INVOKABLE quint64 applyEdit(const QString& name, const QJsonObject& payload);
+
+    // Only the command at the undo cursor updates the current document. Unknown,
+    // superseded, discarded and previous-document tokens return false. A token
+    // also becomes stale when a later command exists, including in redo history.
+    bool settleCommand(quint64 token, const QJsonObject& document);
 
     // Moves one clip to a new start on its track, as one undoable edit.
     Q_INVOKABLE bool moveClip(const QString& clipId, double startMs);
@@ -87,6 +95,7 @@ public:
 
 signals:
     void timelineChanged();
+    void commandSettled();
     // The clips changed: an edit, or a new document (then the tracks reset too).
     void clipsChanged();
     // A new document replaced the old one (emitted before clipsChanged).
