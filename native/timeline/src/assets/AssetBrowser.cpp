@@ -47,8 +47,14 @@ void AssetBrowser::setTimeline(TimelineModel* model) {
 
 void AssetBrowser::resetDocumentState() {
     m_settlements.clear();
-    m_mediaProtection = std::make_shared<nt::assets::MediaProtection>();
-    protectDocumentMedia();
+    QSet<QString> paths;
+    if (m_timeline) {
+        for (const auto& clip : m_timeline->timeline().clips) {
+            if (!clip.mediaPath.empty()) { paths.insert(QString::fromStdString(clip.mediaPath)); }
+            if (!clip.audioPath.empty()) { paths.insert(QString::fromStdString(clip.audioPath)); }
+        }
+    }
+    m_mediaProtection->reset(std::move(paths));
 }
 
 void AssetBrowser::protectDocumentMedia() {
@@ -348,11 +354,12 @@ void AssetBrowser::queueMedia(const QJsonObject& asset, const QJsonObject& clip,
     // ServerSource places backups at <cacheRoot>/<serverKey>/<userKey>/timelines.
     const auto cacheRoot = QDir::cleanPath(QDir(m_target->backupDir).absoluteFilePath("../../.."));
     protectDocumentMedia();
+    const auto mediaGeneration = m_mediaProtection->generation();
     const QPointer<AssetBrowser> self(this);
-    request([asset, clip, cacheRoot, protection = m_mediaProtection](nt::server::ServerClient& client) {
+    request([asset, clip, cacheRoot, protection = m_mediaProtection, mediaGeneration](nt::server::ServerClient& client) {
         Result result;
-        if (!QThread::currentThread()->isInterruptionRequested()) {
-            result.media = nt::assets::resolveDroppedMedia(client, cacheRoot, asset, clip, *protection);
+        if (protection->generation() == mediaGeneration && !QThread::currentThread()->isInterruptionRequested()) {
+            result.media = nt::assets::resolveDroppedMedia(client, cacheRoot, asset, clip, *protection, mediaGeneration);
         }
         return result;
     }, [self, model, generation](const Result& result) {
@@ -367,13 +374,6 @@ void AssetBrowser::queueLinkedAudio(const QJsonObject& asset, const QString& aud
     const QPointer<AssetBrowser> self(this);
     const auto settle = [self, model, generation, audioClipId, token, capturedResult, createdAudioTrackId](const Result& result) {
         if (!self || !model || self->m_timeline != model || model->documentGeneration() != generation) { return; }
-        const auto clips = model->clipsJson();
-        const bool audioPresent = std::any_of(clips.begin(), clips.end(), [&audioClipId](const QJsonValue& value) {
-            return value.toObject().value("id").toString() == audioClipId;
-        });
-        // An undone drop can settle its redo record. An untracked deletion at
-        // the current cursor must stay deleted.
-        if (!audioPresent && model->undoStack()->index() == model->undoStack()->count()) { return; }
         auto payload = result.settlement;
         payload.insert("audioClipId", audioClipId);
         payload.insert("createdAudioTrackId", createdAudioTrackId);

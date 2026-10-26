@@ -32,6 +32,51 @@ QQuickItem* itemNamed(QQuickItem* root, const QString& name) {
 class TestAssetBrowser : public QObject {
     Q_OBJECT
 private slots:
+    void linkedAudioTrackedDeletion_data() {
+        QTest::addColumn<QString>("outcome");
+        QTest::newRow("audio") << QString("audio");
+        QTest::newRow("failed") << QString("failed");
+    }
+    void linkedAudioTrackedDeletion() {
+        QFETCH(QString, outcome);
+        auto parsed = nt::parseTimelineJson(R"({"fps":30,"width":640,"height":360,
+            "tracks":[{"id":"v","type":"video","index":0}],"clips":[]})");
+        QVERIFY(parsed.timeline);
+        TimelineModel model;
+        model.setTimeline(std::move(*parsed.timeline));
+        AssetBrowser browser;
+        browser.setTimeline(&model);
+        browser.m_target = nt::server::SaveTarget{};
+        QThread occupiedWorker;
+        browser.m_thread = &occupiedWorker;
+        const auto clearWorker = qScopeGuard([&browser] { browser.m_thread.clear(); });
+        QVERIFY(browser.drop({{"id", "video"}, {"name", "take.mp4"},
+            {"content_type", "video/mp4"}, {"duration", 2}}, "v", 0, "overlap", 0));
+        auto completion = std::move(browser.m_requests.back().done);
+        browser.m_requests.clear();
+        browser.m_target.reset();
+        QVERIFY(completion);
+        QVERIFY(model.commitEdit("Delete clips", model.clipsJson(), {}));
+        QCOMPARE(model.clipCount(), 0);
+        AssetBrowser::Result result;
+        result.settlement = {{"outcome", outcome},
+            {"asset", QJsonObject{{"id", "extracted-wav"}, {"duration", 1.5}}}};
+        // Retain a target only to observe queued media, without starting network work.
+        browser.m_target = nt::server::SaveTarget{};
+        completion(result);
+        QCOMPARE(model.clipCount(), 0);
+        model.undoStack()->undo();
+        QCOMPARE(model.clipCount(), 2);
+        const auto audio = model.clipsJson().last().toObject();
+        QCOMPARE(audio.value("status").toString(), outcome == "audio" ? QString("generated") : QString("failed"));
+        if (outcome == "audio") {
+            QCOMPARE(audio.value("currentAssetId").toString(), QString("extracted-wav"));
+            QCOMPARE(browser.m_requests.size(), size_t(1));
+        }
+        model.undoStack()->redo();
+        QCOMPARE(model.clipCount(), 0);
+        QCOMPARE(model.undoStack()->count(), 2);
+    }
     void linkedAudioLaterHistory_data() {
         QTest::addColumn<QString>("outcome");
         QTest::addColumn<bool>("documentMarker");
@@ -102,11 +147,119 @@ private slots:
             QCOMPARE(audio.value("status").toString(), outcome == "failed" ? QString("failed") : QString("generated"));
         }
         const auto protection = browser.m_mediaProtection;
+        const auto protectionGeneration = protection->generation();
         auto replacement = nt::parseTimelineJson(model.documentJson());
         QVERIFY(replacement.timeline);
         model.setTimeline(std::move(*replacement.timeline));
         QVERIFY(browser.m_settlements.isEmpty());
-        QVERIFY(browser.m_mediaProtection != protection);
+        QCOMPARE(browser.m_mediaProtection, protection);
+        QVERIFY(protection->generation() != protectionGeneration);
+    }
+    void documentSwitchProtectsMedia_data() {
+        QTest::addColumn<QString>("scenario");
+        for (const auto& scenario : {"queued", "running", "new-document"}) {
+            QTest::newRow(scenario) << QString(scenario);
+        }
+    }
+    void documentSwitchProtectsMedia() {
+        QFETCH(QString, scenario);
+        const auto oldBudget = qgetenv("NODETOOL_TIMELINE_CACHE_BUDGET_MB");
+        qputenv("NODETOOL_TIMELINE_CACHE_BUDGET_MB", "1");
+        const auto restoreBudget = qScopeGuard([oldBudget] {
+            if (oldBudget.isNull()) { qunsetenv("NODETOOL_TIMELINE_CACHE_BUDGET_MB"); }
+            else { qputenv("NODETOOL_TIMELINE_CACHE_BUDGET_MB", oldBudget); }
+        });
+        TestHttpServer http;
+        QVERIFY(http.base().port() > 0 && http.base().port() != 7777);
+        ServedFile download{QByteArray(700000, 'a')};
+        download.chunkDelayMs = 10;
+        http.setFile("/download.png", download);
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QStringList paths;
+        for (const auto& name : {"old.mp4", "loaded.mp4", "loaded.wav"}) {
+            const auto path = dir.filePath(name);
+            QFile file(path);
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            QCOMPARE(file.write(QByteArray(700000, 'b')), 700000);
+            QVERIFY(file.setFileTime(QDateTime::fromSecsSinceEpoch(1), QFileDevice::FileModificationTime));
+            paths.append(path);
+        }
+        const auto document = [] {
+            return nt::parseTimelineJson(R"({"fps":30,"width":640,"height":360,
+                "tracks":[{"id":"v","type":"video","index":0}],
+                "clips":[{"id":"loaded","trackId":"v","mediaType":"video","durationMs":2000}]})");
+        };
+        auto first = document();
+        auto second = document();
+        QVERIFY(first.timeline);
+        QVERIFY(second.timeline);
+        first.timeline->clips.front().mediaPath = paths[0].toStdString();
+        second.timeline->clips.front().mediaPath = paths[1].toStdString();
+        second.timeline->clips.front().audioPath = paths[2].toStdString();
+        TimelineModel model;
+        model.setTimeline(std::move(*first.timeline));
+        AssetBrowser browser;
+        browser.setTimeline(&model);
+        nt::server::SaveTarget target;
+        target.server = http.base();
+        target.backupDir = dir.filePath("server/user/timelines");
+        browser.m_target = target;
+        QThread occupiedWorker;
+        browser.m_thread = &occupiedWorker;
+        const auto clearWorker = qScopeGuard([&browser] { browser.m_thread.clear(); });
+        const auto queue = [&] {
+            browser.queueMedia({{"id", "download"}, {"get_url", "/download.png"},
+                {"size", 700000}, {"content_type", "image/png"}},
+                {{"id", "download"}, {"mediaType", "image"}, {"currentAssetId", "download"}},
+                &model, model.documentGeneration());
+        };
+        queue();
+        QCOMPARE(browser.m_requests.size(), size_t(1));
+        auto request = std::move(browser.m_requests.front());
+        browser.m_requests.clear();
+        AssetBrowser::Result result;
+        if (scenario == "running") {
+            auto worker = std::unique_ptr<QThread>(QThread::create([&request, &result, server = http.base()] {
+                nt::server::ServerClient client(server);
+                result = request.work(client);
+            }));
+            const auto finishWorker = qScopeGuard([&worker] { worker->requestInterruption(); worker->wait(); });
+            worker->start();
+            QTRY_VERIFY(http.countRequests("GET", "/download.png") > 0);
+            QVERIFY(!worker->isFinished());
+            model.setTimeline(std::move(*second.timeline));
+            QTRY_VERIFY_WITH_TIMEOUT(worker->isFinished(), 15000);
+            worker->wait();
+            QVERIFY(result.media);
+            QVERIFY(QFileInfo::exists(QString::fromStdString(result.media->mediaPath)));
+        } else {
+            model.setTimeline(std::move(*second.timeline));
+            nt::server::ServerClient client(http.base());
+            result = request.work(client);
+        }
+        if (request.done) { request.done(result); }
+        for (const auto& path : {paths[1], paths[2]}) {
+            QVERIFY2(QFileInfo::exists(path), qPrintable("new document media was evicted: " + path));
+        }
+        QCOMPARE(QString::fromStdString(model.timeline().clips.front().mediaPath), paths[1]);
+        QCOMPARE(QString::fromStdString(model.timeline().clips.front().audioPath), paths[2]);
+        if (scenario != "running") {
+            QVERIFY(!result.media);
+            QCOMPARE(http.countRequests("GET", "/download.png"), 0);
+        }
+        if (scenario == "new-document") {
+            queue();
+            auto current = std::move(browser.m_requests.front());
+            browser.m_requests.clear();
+            nt::server::ServerClient client(http.base());
+            const auto media = current.work(client);
+            QVERIFY(media.media);
+            QVERIFY(QFileInfo::exists(QString::fromStdString(media.media->mediaPath)));
+            QVERIFY(!QFileInfo::exists(paths[0]));
+            QVERIFY(QFileInfo::exists(paths[1]));
+            QVERIFY(QFileInfo::exists(paths[2]));
+        }
     }
     void dropMediaSurvivesEviction_data() {
         QTest::addColumn<QString>("scenario");
