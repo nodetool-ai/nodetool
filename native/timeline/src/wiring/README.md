@@ -14,6 +14,9 @@ is discovered automatically. Other QML needs `nt_qml_files(...)`.
 - `documentBar`: receives `timeline`, after Undo and Redo. Set implicit dimensions.
 - `preview`: receives `timeline` and `clock`, fills the preview frame, and is
   clipped to it. Coordinates start at the frame's top-left corner.
+- `trackLane`: receives the raw `track` map and `timeline`. Set `implicitHeight`
+  in screen pixels. Contributions stack below the base lane and extend the row.
+- Playhead pass-through: add `property bool playheadPassthrough: true` to a pointer target, or define `playheadPassthrough(localPoint)` on a wrapper to hit-test its targets.
 - Header actions: reuse
   `nt::tracks::registerHeaderAction({id, url, order})` from
   `edit/tracks/TrackHeaderActions.h`. Set implicit dimensions. This existing
@@ -37,18 +40,3 @@ is discovered automatically. Other QML needs `nt_qml_files(...)`.
   `viewState.rulerMode` defaults to `"time"`, `gridDivision` to `"beat"`.
   The built-in `time` provider preserves the existing ticks. `RulerCanvas.ticks`
   exposes the list used for painting.
-
-## Blocked track-lane rows
-
-`trackLane` has no host yet. It needs an unowned change in
-`src/model/TrackWindowModel.h` and `.cpp`: add a writable, notifying
-`QVariantMap extraRowHeights` property keyed by track ID and a `baseRowHeight`
-role. Keep `baseRowHeight = authoredHeight * verticalZoom`. Include the extra
-height in `rowHeight`, row tops, content height, and the virtualization window.
-Relayout and notify the affected roles when the extra-height map changes.
-
-Then `TracksRegion` can place a base-height `TrackLane` and a `SlotItems` host
-below it in a wrapper whose height is the total `rowHeight`. Each contribution
-receives `track` and `timeline`. Report the host's measured height through
-`extraRowHeights`. Headers keep the base height and the following row starts
-after the contributions. No rows overlap or share the base lane's height.

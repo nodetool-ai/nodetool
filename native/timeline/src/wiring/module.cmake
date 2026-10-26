@@ -4,6 +4,15 @@ nt_qml_sources(src/wiring/SnapProviders.h src/wiring/SnapProviders.cpp)
 nt_qml_sources(src/wiring/KeyActions.h src/wiring/KeyActions.cpp)
 
 function(nt_wiring_tests)
+    qt_add_executable(tst_wiringrows src/wiring/tst_wiringrows.cpp ${NT_app})
+    set_target_properties(tst_wiringrows PROPERTIES MACOSX_BUNDLE FALSE)
+    target_link_libraries(tst_wiringrows PRIVATE timeline_core timeline_decode timeline_audio timeline_server
+        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
+    nt_add_timeline_qml(tst_wiringrows OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_wiringrows_qml/NodeTool/Timeline)
+    qt_add_resources(tst_wiringrows wiring_row_probes PREFIX /wiring-test BASE src/wiring
+        FILES src/wiring/TestTrackLane.qml)
+    add_test(NAME tst_wiringrows COMMAND tst_wiringrows)
+    set_tests_properties(tst_wiringrows PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
     qt_add_executable(tst_wiring src/wiring/tst_wiring.cpp ${NT_app})
     set_target_properties(tst_wiring PROPERTIES MACOSX_BUNDLE FALSE)
     target_link_libraries(tst_wiring PRIVATE timeline_core timeline_decode timeline_audio timeline_server

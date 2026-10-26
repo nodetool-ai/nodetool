@@ -151,6 +151,10 @@ Item {
                 clipId: body.clipData.id ?? ""
             }
             KeyframeClipDiamonds {
+                id: keyframeDiamonds
+                function playheadPassthrough(point) {
+                    return keyframeDiamonds.childAt(point.x, point.y) !== null
+                }
                 anchors.fill: parent
                 clipId: body.clipData.id ?? ""
                 durationMs: body.durationMs
