@@ -474,6 +474,11 @@ QJsonObject applyMergeDocument(const QJsonObject& serverRaw, const QJsonObject& 
     for (const auto* field : scalars) {
         result.insert(field, merged.value(field));
     }
+    // buildTimelineDocumentPayload sends setup ?? undefined, while the merge
+    // view uses null for absence. camera2d stays null in both representations.
+    if (nullish(result.value("setup"))) {
+        result.remove("setup");
+    }
     return result;
 }
 } // namespace nt::server::sync

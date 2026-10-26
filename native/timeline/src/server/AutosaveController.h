@@ -16,8 +16,10 @@
 //     the newer server copy without ops, then retry on the
 //     debounce (D34). Stop only if recovery fails, the revision does not
 //     advance, or five recoveries in one chain do not settle the conflict.
-//     In that stopped state, later committed edits keep updating the local
-//     copy. Remove only this session's local copy once a save leaves it clean.
+//     In that stopped state, failed fetches retry with the doubling delay.
+//     A committed edit, notice or reconnect refresh starts a new chain.
+//     Committed edits keep the local copy current until saving succeeds.
+//     Remove only this session's local copy once a save leaves it clean.
 //   - any other failure: the current document is written to
 //     `<id>.recovery.json`; a transient one (no answer, 5xx, 429) is retried
 //     with a doubling delay, up to 30 s.
@@ -70,6 +72,7 @@
 #include <QElapsedTimer>
 #include <QJsonObject>
 #include <QObject>
+#include <QPointer>
 #include <QSet>
 #include <QStringList>
 #include <QTimer>
@@ -81,6 +84,7 @@
 #include <memory>
 
 class QUndoStack;
+class QThread;
 
 namespace nt::server {
 
@@ -128,6 +132,10 @@ public:
 
     AutosaveController(SaveTarget target, QUndoStack* undo, DocumentFn document, QString baseUpdatedAt,
                        QObject* parent = nullptr);
+    ~AutosaveController() override;
+
+    // Test seam: scheduled or running fetch workers, across controllers.
+    static int liveFetchWorkers();
 
     QString externalState() const { return m_externalState; }
     QVariantList externalConflicts() const;
@@ -180,6 +188,7 @@ signals:
     void strippedWarning(const QStringList& paths);
 
 private:
+    void restartStoppedChain();
     void startExternalSync();
     void queueExternal(const QJsonArray& ops, bool hasOps, bool withoutOps);
     void processExternal();
@@ -209,6 +218,8 @@ private:
     std::unique_ptr<ServerClient> m_client;
     QTimer m_timer;
     QTimer m_retry;
+    bool m_retryRecovery = false;
+    QPointer<QThread> m_fetchWorker;
     QTimer m_externalRetry;
     std::unique_ptr<sync::ResourceChangeClient> m_changes;
     QUrl m_syncUrl;

@@ -19,12 +19,15 @@
 #include <QUuid>
 
 #include <algorithm>
+#include <atomic>
 #include <cstdio>
 #include <stdexcept>
 #include <utility>
 
 namespace nt::server {
 namespace {
+
+std::atomic<int> liveWorkers{0};
 
 QByteArray contentHash(const QJsonObject& document) {
     return QCryptographicHash::hash(QJsonDocument(document).toJson(QJsonDocument::Compact), QCryptographicHash::Sha256);
@@ -73,7 +76,13 @@ AutosaveController::AutosaveController(SaveTarget target, QUndoStack* undo, Docu
     connect(&m_timer, &QTimer::timeout, this, &AutosaveController::debounceExpired);
     m_retry.setSingleShot(true);
     connect(&m_retry, &QTimer::timeout, this, [this]() {
-        if (dirty() && !m_conflict && !m_saving) saveNow();
+        if (m_retryRecovery && !m_deleted && !m_fetching && !m_saving) {
+            m_retryRecovery = false;
+            m_conflict = false;
+            fetchExternal(true);
+        } else if (dirty() && !m_conflict && !m_saving) {
+            saveNow();
+        }
     });
     connect(m_undo, &QUndoStack::indexChanged, this, &AutosaveController::documentChanged);
     connect(m_undo, &QUndoStack::cleanChanged, this, &AutosaveController::stateChanged);
@@ -82,6 +91,30 @@ AutosaveController::AutosaveController(SaveTarget target, QUndoStack* undo, Docu
     connect(&m_externalRetry, &QTimer::timeout, this, &AutosaveController::processExternal);
     QTimer::singleShot(0, this, &AutosaveController::startExternalSync);
 }
+
+AutosaveController::~AutosaveController() {
+    m_changes.reset();
+    // ServerClient defaults to 30 s of transfer inactivity. Wait twice that
+    // (60 s elapsed here), but this is based on an inactivity bound, not an
+    // elapsed fetch deadline: openServerTimeline has no deadline and can make
+    // several requests or keep receiving bytes. A worker still running after
+    // this wait is logged and left to finish on its own. It owns its inputs
+    // and result, holds no controller pointer, and deletes itself on finish.
+    if (m_fetchWorker && !m_fetchWorker->wait(2 * 30000UL)) {
+        std::fprintf(stderr, "sync: fetch worker still running after 60000 ms shutdown wait\n");
+    }
+}
+
+void AutosaveController::restartStoppedChain() {
+    if (!m_conflict || m_deleted) return;
+    m_conflict = false;
+    m_casRecoveries = 0;
+    m_retryAttempt = 0;
+    m_retryRecovery = false;
+    m_retry.stop();
+}
+
+int AutosaveController::liveFetchWorkers() { return liveWorkers.load(); }
 
 void AutosaveController::setExternalSync(bool on) {
     m_externalSync = on;
@@ -99,6 +132,9 @@ void AutosaveController::startExternalSync() {
     connect(m_changes.get(), &sync::ResourceChangeClient::changed, this, &AutosaveController::externalChanged);
     connect(m_changes.get(), &sync::ResourceChangeClient::refreshNeeded, this, &AutosaveController::refreshExternal);
     connect(m_changes.get(), &sync::ResourceChangeClient::stateChanged, this, [this] {
+        if (m_changes->state() == sync::ResourceChangeClient::State::Connected) {
+            std::fprintf(stderr, "sync: listening for %s\n", qPrintable(m_target.timelineId));
+        }
         if (m_changes->state() == sync::ResourceChangeClient::State::Failed) {
             syncFailure(m_changes->reason(), false);
         }
@@ -133,6 +169,7 @@ void AutosaveController::refreshExternal() {
 }
 
 void AutosaveController::queueExternal(const QJsonArray& ops, bool hasOps, bool withoutOps) {
+    restartStoppedChain();
     m_pendingExternal = true;
     m_pendingHasOps = m_pendingHasOps && hasOps;
     m_pendingWithoutOps = m_pendingWithoutOps || withoutOps;
@@ -195,7 +232,9 @@ void AutosaveController::fetchExternal(bool recovery) {
     const ServerOpenOptions options{m_target.server, m_target.timelineId, cacheRoot, m_target.token, true};
     auto result = std::make_shared<ServerOpenResult>();
     const QPointer<AutosaveController> guard(this);
+    ++liveWorkers;
     auto* worker = QThread::create([options, result] {
+        const auto finished = qScopeGuard([] { --liveWorkers; });
         // openServerTimeline owns its ServerClient on this worker thread.
         *result = openServerTimeline(options);
     });
@@ -210,6 +249,15 @@ void AutosaveController::fetchExternal(bool recovery) {
             guard->m_fetching = false;
             guard->m_recovering = false;
             guard->syncFailure(result->error, recovery);
+            if (recovery) {
+                // ServerOpenResult has no error classification. Every failed
+                // recovery fetch remains stopped, with its local copy, until
+                // this recovery retry or a new chain starts.
+                const int delay = std::min(30000, guard->m_retryBaseMs << std::min(guard->m_retryAttempt, 15));
+                ++guard->m_retryAttempt;
+                guard->m_retryRecovery = true;
+                guard->m_retry.start(delay);
+            }
             if (!guard->m_conflict && guard->dirty()) guard->scheduleSave();
             if (guard->m_pendingExternal) guard->m_externalRetry.start();
             return;
@@ -218,6 +266,7 @@ void AutosaveController::fetchExternal(bool recovery) {
         guard->processExternal();
     }, Qt::QueuedConnection);
     connect(worker, &QThread::finished, worker, &QObject::deleteLater);
+    m_fetchWorker = worker;
     worker->start();
     emit stateChanged();
 }
@@ -377,9 +426,12 @@ void AutosaveController::syncClean() {
 
 void AutosaveController::documentChanged() {
     if (m_syncing) return;
-    m_committedHash = currentHash();
+    const auto committed = currentHash();
+    const bool newEdit = committed != m_committedHash;
+    m_committedHash = committed;
     syncClean();
     if (m_deleted || m_casRecoveries > 0 || m_conflict) keepConflictCopy();
+    if (newEdit) restartStoppedChain();
     scheduleSave();
     if (m_fetched || m_pendingExternal) m_externalRetry.start();
     emit stateChanged();

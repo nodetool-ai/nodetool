@@ -50,7 +50,9 @@ QJsonObject applyAcceptedUnit(QJsonObject raw, const QJsonObject& conflict) {
         }
     }
     if (kind == u"field") {
-        raw.insert(id, external);
+        // Accepted setup absence follows the same payload rule as a merge.
+        raw.insert(id, id == u"setup" && external.isNull()
+            ? QJsonValue(QJsonValue::Undefined) : external);
         return raw;
     }
     static const QHash<QString, QString> fields{{"clip", "clips"}, {"track", "tracks"},
