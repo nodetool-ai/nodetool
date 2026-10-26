@@ -4,6 +4,7 @@
 #include "playback/PlaybackClock.h"
 #include "server/ServerSource.h"
 #include <QEventLoop>
+#include <QFileInfo>
 #include <QJsonDocument>
 #include <QTimer>
 #include <cstdio>
@@ -28,6 +29,67 @@ QQuickItem* itemNamed(QQuickItem* root, const QString& name) {
 class TestAssetBrowser : public QObject {
     Q_OBJECT
 private slots:
+    void linkedAudioHistory_data() {
+        QTest::addColumn<QString>("scenario");
+        for (const auto& scenario : {"audio", "undone", "silent", "later", "later-undone", "deleted"}) {
+            QTest::newRow(scenario) << QString(scenario);
+        }
+    }
+    void linkedAudioHistory() {
+        QFETCH(QString, scenario);
+        const auto parsed = nt::parseTimelineJson(R"({"fps":30,"width":640,"height":360,
+            "tracks":[{"id":"v","type":"video","index":0}],"clips":[]})");
+        QVERIFY(parsed.timeline);
+        TimelineModel model;
+        model.setTimeline(*parsed.timeline);
+        const auto before = model.timeline().raw;
+        AssetBrowser browser;
+        browser.setTimeline(&model);
+        browser.m_target = nt::server::SaveTarget{};
+        QThread occupiedWorker;
+        browser.m_thread = &occupiedWorker;
+        QVERIFY(browser.drop({{"id", "video"}, {"name", "take.mp4"},
+            {"content_type", "video/mp4"}, {"duration", 2}}, "v", 0, "overlap", 0));
+        // Run the queued completion deterministically without a server or decoder.
+        QVERIFY(!browser.m_requests.empty());
+        auto completion = std::move(browser.m_requests.back().done);
+        browser.m_requests.clear();
+        browser.m_thread.clear();
+        browser.m_target.reset();
+        QVERIFY(completion);
+        const bool later = scenario.startsWith("later");
+        if (later) { model.addMarker(500, "Later edit"); }
+        if (scenario == "undone" || scenario == "later-undone") { model.undoStack()->undo(); }
+        if (scenario == "deleted") { model.replaceClips({}); }
+        const auto atSettlement = model.timeline().raw;
+        AssetBrowser::Result result;
+        result.settlement = {{"outcome", scenario == "silent" ? "silent" : "audio"},
+            {"asset", QJsonObject{{"id", "extracted-wav"}, {"duration", 1.5}}}};
+        completion(result);
+        if (scenario == "deleted") {
+            QCOMPARE(model.clipsJson().size(), 0);
+            return;
+        }
+        if (scenario == "undone") { QCOMPARE(model.timeline().raw, atSettlement); }
+        if (!later) {
+            if (scenario != "undone") { model.undoStack()->undo(); }
+            QCOMPARE(model.timeline().raw, before);
+            model.undoStack()->redo();
+        } else {
+            QCOMPARE(model.timeline().raw.value("markers"), atSettlement.value("markers"));
+        }
+        const auto clips = model.clipsJson();
+        if (scenario == "silent") {
+            QCOMPARE(clips.size(), 1);
+            QVERIFY(!clips.first().toObject().contains("linkId"));
+            QCOMPARE(model.timeline().raw.value("tracks").toArray().size(), 1);
+        } else {
+            const auto audio = clips.last().toObject();
+            QCOMPARE(audio.value("status").toString(), QString("generated"));
+            QCOMPARE(audio.value("currentAssetId").toString(), QString("extracted-wav"));
+        }
+        QCOMPARE(model.undoStack()->count(), later ? 2 : 1);
+    }
     void queuedImportsKeepDestination_data() {
         QTest::addColumn<QString>("folder");
         QTest::addColumn<QString>("project");
@@ -265,11 +327,24 @@ int main(int argc, char** argv) {
         QTimer::singleShot(60000, &loop, &QEventLoop::quit);
         if (browser.busy()) { loop.exec(); }
         const auto after = model.documentJson();
+        const auto runtimePaths = [&model] {
+            QJsonArray runtime;
+            for (const auto& clip : model.snapshot()->clips) {
+                runtime.append(QJsonObject{{"id", QString::fromStdString(clip.id)},
+                    {"mediaPath", QString::fromStdString(clip.mediaPath)},
+                    {"audioPath", QString::fromStdString(clip.audioPath)},
+                    {"pictureExists", QFileInfo::exists(QString::fromStdString(clip.mediaPath))},
+                    {"audioExists", QFileInfo::exists(QString::fromStdString(clip.audioPath))}});
+            }
+            return runtime;
+        };
+        const auto runtime = runtimePaths();
         const auto undoCount = model.undoStack()->count();
         model.undoStack()->undo();
         const bool undone = model.documentJson() == before;
         model.undoStack()->redo();
-        const QJsonObject report{{"accepted", accepted}, {"deferred", deferred},
+        const QJsonObject report{{"runtime", runtime}, {"runtimeRedone", runtimePaths()},
+            {"redoneDocument", model.timeline().raw}, {"accepted", accepted}, {"deferred", deferred},
             {"finished", !browser.busy()}, {"undoCount", undoCount}, {"undone", undone},
             {"redone", model.documentJson() == after}, {"unchangedAfterAction", afterAction == after}, {"document", QJsonDocument::fromJson(after).object()}};
         std::printf("%s\n", QJsonDocument(report).toJson(QJsonDocument::Compact).constData());

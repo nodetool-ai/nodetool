@@ -4,11 +4,13 @@
 #include "assets/AssetDuration.h"
 #include "assets/AssetAudio.h"
 #include "assets/AssetDrop.h"
+#include "assets/AssetMedia.h"
 #include "edit/EditActions.h"
 #include "model/TimelineModel.h"
 #include "model/TrackWindowModel.h"
 #include "server/ServerSource.h"
 #include <QJsonDocument>
+#include <QDir>
 #include <QSet>
 #include <algorithm>
 #include <memory>
@@ -254,32 +256,81 @@ bool AssetBrowser::applyDrop(const QJsonObject& payload) {
     const auto generation = model->documentGeneration();
     QSet<QString> existing;
     for (const auto& value : model->clipsJson()) { existing.insert(value.toObject().value("id").toString()); }
-    if (!model->applyEdit("assets.dropAsset", payload)) { return false; }
+    QSet<QString> existingTracks;
+    for (const auto& value : model->timeline().raw.value("tracks").toArray()) {
+        existingTracks.insert(value.toObject().value("id").toString());
+    }
+    const auto token = model->applyEdit("assets.dropAsset", payload);
+    if (!token) { return false; }
+    const auto capturedResult = model->timeline().raw;
     const auto clips = model->clipsJson();
     for (const auto& value : clips) {
         const auto clip = value.toObject();
         const auto id = clip.value("id").toString();
+        if (!existing.contains(id)) { queueMedia(payload.value("asset").toObject(), clip, model, generation); }
         if (!existing.contains(id) && clip.value("mediaType").toString() == "audio" &&
             clip.value("status").toString() == "generating") {
-            queueLinkedAudio(payload.value("asset").toObject(), id, model, generation);
+            const auto trackId = clip.value("trackId").toString();
+            queueLinkedAudio(payload.value("asset").toObject(), id, model, generation, token,
+                capturedResult, existingTracks.contains(trackId) ? QString{} : trackId);
         }
     }
     return true;
 }
 
-void AssetBrowser::queueLinkedAudio(const QJsonObject& asset, const QString& audioClipId,
-                                   QPointer<TimelineModel> model, quint64 generation) {
+void AssetBrowser::queueMedia(const QJsonObject& asset, const QJsonObject& clip,
+                             QPointer<TimelineModel> model, quint64 generation) {
+    const auto type = clip.value("mediaType").toString();
+    if (!m_target || (type != "video" && type != "image" && type != "audio") ||
+        clip.value("currentAssetId").toString() != asset.value("id").toString()) { return; }
+    // ServerSource places backups at <cacheRoot>/<serverKey>/<userKey>/timelines.
+    const auto cacheRoot = QDir::cleanPath(QDir(m_target->backupDir).absoluteFilePath("../../.."));
     const QPointer<AssetBrowser> self(this);
-    const auto settle = [self, model, generation, audioClipId](const Result& result) {
+    request([asset, clip, cacheRoot](nt::server::ServerClient& client) {
+        Result result;
+        if (!QThread::currentThread()->isInterruptionRequested()) {
+            result.media = nt::assets::resolveDroppedMedia(client, cacheRoot, asset, clip);
+        }
+        return result;
+    }, [self, model, generation](const Result& result) {
+        if (!self || !model || self->m_timeline != model || model->documentGeneration() != generation) { return; }
+        if (result.media) { model->registerMedia(*result.media); }
+    });
+}
+
+void AssetBrowser::queueLinkedAudio(const QJsonObject& asset, const QString& audioClipId,
+                                   QPointer<TimelineModel> model, quint64 generation, quint64 token,
+                                   const QJsonObject& capturedResult, const QString& createdAudioTrackId) {
+    const QPointer<AssetBrowser> self(this);
+    const auto settle = [self, model, generation, audioClipId, token, capturedResult, createdAudioTrackId](const Result& result) {
         if (!self || !model || self->m_timeline != model || model->documentGeneration() != generation) { return; }
         const auto clips = model->clipsJson();
-        if (std::none_of(clips.begin(), clips.end(), [&audioClipId](const QJsonValue& value) {
+        const bool audioPresent = std::any_of(clips.begin(), clips.end(), [&audioClipId](const QJsonValue& value) {
             return value.toObject().value("id").toString() == audioClipId;
-        })) { return; }
+        });
+        // An undone drop can settle its redo record. An untracked deletion at
+        // the current cursor must stay deleted.
+        if (!audioPresent && model->undoStack()->index() == model->undoStack()->count()) { return; }
         auto payload = result.settlement;
         payload.insert("audioClipId", audioClipId);
-        const auto raw = QJsonDocument::fromJson(model->documentJson()).object();
-        model->replaceClips(nt::assets::settleLinkedAudio(raw, payload).value("clips").toArray());
+        payload.insert("createdAudioTrackId", createdAudioTrackId);
+        const auto settled = nt::assets::settleLinkedAudio(capturedResult, payload);
+        if (!model->settleCommand(token, settled)) {
+            if (!audioPresent) { return; }
+            const auto raw = model->timeline().raw;
+            // A later command makes the token stale. Keep the web's untracked
+            // clip patch, preserving subsequent edits and their history.
+            model->replaceClips(nt::assets::settleLinkedAudio(raw, payload).value("clips").toArray());
+        }
+        if (payload.value("outcome").toString() == "audio") {
+            for (const auto& value : settled.value("clips").toArray()) {
+                const auto clip = value.toObject();
+                if (clip.value("id").toString() == audioClipId) {
+                    self->queueMedia(payload.value("asset").toObject(), clip, model, generation);
+                    break;
+                }
+            }
+        }
     };
     if (!m_target) {
         Result result;
