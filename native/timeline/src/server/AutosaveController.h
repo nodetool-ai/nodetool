@@ -12,9 +12,12 @@
 //     a warning: the server dropped those fields. The sent document is kept
 //     as `<id>.stripped.json` in the backup folder or a fallback folder.
 //   - conflict (`error.data.apiCode` ALREADY_EXISTS, or `code` CONFLICT):
-//     the current local document is written to `<id>.local.json`, and
-//     server writes stop. Later committed edits keep updating the local
-//     copy on the debounce. A conflict is never retried on the server.
+//     write the current local document to `<id>.local.json`, fetch and merge
+//     the newer server copy without ops, then retry on the
+//     debounce (D34). Stop only if recovery fails, the revision does not
+//     advance, or five recoveries in one chain do not settle the conflict.
+//     In that stopped state, later committed edits keep updating the local
+//     copy. Remove only this session's local copy once a save leaves it clean.
 //   - any other failure: the current document is written to
 //     `<id>.recovery.json`; a transient one (no answer, 5xx, 429) is retried
 //     with a doubling delay, up to 30 s.
@@ -36,6 +39,22 @@
 // If every folder rejects quit recovery, compact JSON goes to stderr between
 // explicit markers. No file was kept, so the exit code still reports loss.
 //
+// External sync starts on a zero-delay timer, unless setExternalSync(false)
+// disables it first. Updated notices ignore own echoes and coalesce during
+// saves/fetches. Reconnect/resync fetches once, merging without ops. Fetches
+// resolve assets and probe media off the GUI thread. Only newer copies apply,
+// after any gesture preview ends. Clean editors adopt without a save. Dirty
+// editors merge against the last loaded/adopted/saved document, acknowledge
+// the server content, retain refused units' previous merge base, and debounce
+// a save of the merged draft. Refused values are offered as externalConflicts.
+// Accept is one undoable acceptExternalUnit edit. Discard keeps the draft.
+// Known difference from web rebaseTimelineSnapshots: setTimeline clears native
+// undo history on adopt/merge, making external work the new base. Rebasing
+// native history requires a TimelineModel API outside this controller.
+// A missing applier or invalid merge keeps the draft and a local copy, with
+// an error. A deleted sequence stops server writes and keeps committed work
+// locally. Quit allows one synchronous CAS recovery within its total budget.
+//
 // Startup archives earlier recovery/local files with a timestamp and unique
 // suffix, preserving their kind. Backup and namespaced fallback folders are
 // scanned, including archives from older launches. `earlierCopy` offers one
@@ -44,13 +63,18 @@
 // acknowledgement the archive stays offered until explicit Discard.
 
 #include "server/ServerClient.h"
+#include "server/ServerTimeline.h"
+#include "server/sync/ResourceChangeClient.h"
+#include "server/sync/TimelineMerge.h"
 
+#include <QElapsedTimer>
 #include <QJsonObject>
 #include <QObject>
 #include <QSet>
 #include <QStringList>
 #include <QTimer>
 #include <QUrl>
+#include <QVariantList>
 
 #include <cstdio>
 #include <functional>
@@ -85,6 +109,8 @@ QJsonObject documentForSave(const QJsonObject& rawSequence);
 
 class AutosaveController : public QObject {
     Q_OBJECT
+    Q_PROPERTY(QString externalState READ externalState NOTIFY stateChanged)
+    Q_PROPERTY(QVariantList externalConflicts READ externalConflicts NOTIFY stateChanged)
     Q_PROPERTY(bool dirty READ dirty NOTIFY stateChanged)
     Q_PROPERTY(bool saving READ saving NOTIFY stateChanged)
     Q_PROPERTY(bool conflict READ conflict NOTIFY stateChanged)
@@ -103,6 +129,15 @@ public:
     AutosaveController(SaveTarget target, QUndoStack* undo, DocumentFn document, QString baseUpdatedAt,
                        QObject* parent = nullptr);
 
+    QString externalState() const { return m_externalState; }
+    QVariantList externalConflicts() const;
+    Q_INVOKABLE bool acceptExternalConflict(const QString& id, QObject* timeline);
+    Q_INVOKABLE void discardExternalConflicts();
+    Q_INVOKABLE void setExternalSync(bool on);
+    // Test seam: overrides only the WebSocket origin, before deferred startup.
+    void setExternalSyncUrl(const QUrl& url) { m_syncUrl = url; }
+    Q_INVOKABLE void externalChanged(QString event, QString updatedAt, QJsonArray ops, bool hasOps);
+    Q_INVOKABLE void refreshExternal();
     bool dirty() const;
     bool saving() const { return m_saving; }
     bool conflict() const { return m_conflict; }
@@ -145,6 +180,13 @@ signals:
     void strippedWarning(const QStringList& paths);
 
 private:
+    void startExternalSync();
+    void queueExternal(const QJsonArray& ops, bool hasOps, bool withoutOps);
+    void processExternal();
+    void fetchExternal(bool recovery);
+    bool applyFetched();
+    void syncFailure(const QString& error, bool recovery);
+    void clearLocalCopyIfClean();
     void scheduleSave();
     void debounceExpired();
     void findEarlierCopies();
@@ -167,6 +209,27 @@ private:
     std::unique_ptr<ServerClient> m_client;
     QTimer m_timer;
     QTimer m_retry;
+    QTimer m_externalRetry;
+    std::unique_ptr<sync::ResourceChangeClient> m_changes;
+    QUrl m_syncUrl;
+    QJsonObject m_mergeBase;
+    QList<sync::MergeConflict> m_externalConflicts;
+    QString m_externalState = QStringLiteral("idle");
+    bool m_externalSync = true;
+    bool m_fetching = false;
+    bool m_deleted = false;
+    bool m_pendingExternal = false;
+    bool m_pendingHasOps = true;
+    bool m_pendingWithoutOps = false;
+    QJsonArray m_pendingOps;
+    bool m_activeHasOps = false;
+    bool m_activeWithoutOps = false;
+    QJsonArray m_activeOps;
+    bool m_recovering = false;
+    int m_casRecoveries = 0;
+    bool m_flushing = false;
+    std::optional<nt::Timeline> m_fetched;
+    QElapsedTimer m_fetchElapsed;
     int m_retryBaseMs = 1000;
     int m_retryAttempt = 0;
     QByteArray m_ackHash;  // the content the server acknowledged (or the load)
