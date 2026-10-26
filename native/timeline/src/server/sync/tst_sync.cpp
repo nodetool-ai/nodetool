@@ -646,6 +646,54 @@ private slots:
         QVERIFY(!mergeDocumentOf({}).contains("fps"));
         QVERIFY(mergeDocumentOf({})["camera2d"].isNull());
     }
+    void mergedSetupPayload_data()
+    {
+        QTest::addColumn<QJsonValue>("setup");
+        QTest::newRow("absent") << QJsonValue(QJsonValue::Undefined);
+        QTest::newRow("null") << QJsonValue(QJsonValue::Null);
+        QTest::newRow("object") << QJsonValue(QJsonObject{{"stage", "review"}, {"brief", "A film"}});
+    }
+    void mergedSetupPayload()
+    {
+        QFETCH(QJsonValue, setup);
+        auto raw = document();
+        raw.insert("setup", setup);
+        const auto base = mergeDocumentOf(raw);
+        auto draft = base;
+        draft["fps"] = 24;
+        auto server = raw;
+        server["width"] = 1280;
+        const auto merged = mergeTimelineDocuments(base, draft, mergeDocumentOfSequence(server, base),
+                                                    std::nullopt, true);
+        const auto applied = applyMergeDocument(server, merged.doc);
+        QCOMPARE(applied["fps"], QJsonValue(24));
+        QCOMPARE(applied["width"], QJsonValue(1280));
+        if (setup.isObject()) {
+            QCOMPARE(applied["setup"], setup);
+        } else {
+            QVERIFY(!applied.contains("setup"));
+        }
+        // camera2d is explicitly nullable in the payload, unlike setup.
+        QVERIFY(applied.contains("camera2d"));
+        QVERIFY(applied["camera2d"].isNull());
+    }
+    void acceptedSetupPayload_data()
+    {
+        mergedSetupPayload_data();
+    }
+    void acceptedSetupPayload()
+    {
+        QFETCH(QJsonValue, setup);
+        auto raw = document();
+        raw["setup"] = QJsonObject{{"stage", "review"}, {"brief", "Local film"}};
+        const auto applied = applyAcceptedUnit(raw, {{"kind", "field"}, {"id", "setup"},
+                                                     {"reason", "edited"}, {"external", setup}});
+        if (setup.isObject()) {
+            QCOMPARE(applied["setup"], setup);
+        } else {
+            QVERIFY(!applied.contains("setup"));
+        }
+    }
     void cameraParse()
     {
         const auto base = document();

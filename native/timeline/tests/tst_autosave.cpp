@@ -14,13 +14,19 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QPointer>
+#include <QProcess>
+#include <QProcessEnvironment>
+#include <QWebSocketServer>
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QTemporaryDir>
+#include <QThread>
 #include <QUndoStack>
 #include <QtTest>
 
+#include <atomic>
 #include <cstdio>
+#include <future>
 #include <memory>
 
 using namespace nt::server;
@@ -245,9 +251,16 @@ private slots:
         m_value = 0;
     }
     void cleanup() {
+        // Most fixtures serve HTTP on this thread. Let them answer before
+        // controller destruction blocks. The lifetime test uses a separate
+        // server thread and destroys the controller with its fetch in flight.
+        const bool idle = QTest::currentTestFailed() || QTest::qWaitFor([] {
+            return AutosaveController::liveFetchWorkers() == 0;
+        }, 2000);
         m_save.reset();
         sync::setDocumentApplier({});
         m_undo.reset();
+        QVERIFY2(idle, "the in-process server did not finish the pending fetch");
     }
 
     void externalSync_data() {
@@ -345,6 +358,7 @@ private slots:
                 const auto sent = QJsonDocument::fromJson(m_http->requests().back().body).object();
                 QCOMPARE(sent["baseUpdatedAt"].toString(), newer);
                 QCOMPARE(sent["document"].toObject()["clips"], raw["clips"]);
+                QVERIFY(!sent["document"].toObject().contains("setup"));
             } else if (mode == "conflict" || mode == "accept") {
                 QCOMPARE(m_save->property("externalConflicts").toList().size(), 1);
                 const auto unit = m_save->property("externalConflicts").toList().first().toMap();
@@ -377,6 +391,214 @@ private slots:
         }
         m_save.reset();
         sync::setDocumentApplier({});
+    }
+
+    void failedRecoveryStartsANewChain_data() {
+        QTest::addColumn<QString>("trigger");
+        for (const auto* trigger : {"retry", "edit", "notice", "refresh"}) {
+            QTest::newRow(trigger) << QString(trigger);
+        }
+    }
+    void failedRecoveryStartsANewChain() {
+        QFETCH(QString, trigger);
+        auto raw = sync::applyMergeDocument(syncDoc(0, 0, "u0"), sync::mergeDocumentOf(syncDoc(0, 0, "u0")));
+        sync::setDocumentApplier([&](QUndoStack* undo, const QJsonObject& next, const nt::Timeline&) {
+            raw = next;
+            undo->clear();
+            return true;
+        });
+        int gets = 0;
+        QElapsedTimer clock;
+        clock.start();
+        QList<qint64> attempts;
+        m_http->setJson([&](const QByteArray&, const QUrl&) {
+            // All recovery fetch failures retry, including a rejected request.
+            attempts.append(clock.elapsed());
+            if (++gets <= (trigger == "retry" ? 3 : 1)) return failure(400, "BAD_REQUEST");
+            const auto server = syncDoc(500, 0, "u1");
+            return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", server}}}}).toJson();
+        });
+        int writes = 0;
+        m_http->setPost([&](const QByteArray&, const QByteArray& body) {
+            ++writes;
+            return QJsonDocument::fromJson(body).object()["baseUpdatedAt"] == "u0" ? conflict() : ok("u2");
+        });
+        m_save = std::make_unique<AutosaveController>(SaveTarget{m_http->base(), {}, "seq", m_dir.path(), {}},
+            m_undo.get(), [&] { return raw; }, "u0");
+        m_save->setExternalSync(false);
+        m_save->setAutosave(false);
+        m_save->setDebounceMs(10);
+        m_save->setRetryBaseMs(trigger == "retry" ? 100 : 10000);
+        auto clips = raw["clips"].toArray();
+        auto clip = clips[1].toObject();
+        clip["startMs"] = 200;
+        clips[1] = clip;
+        raw["clips"] = clips;
+        m_save->documentChanged();
+        QVERIFY(m_save->saveNow().conflict);
+        QTRY_VERIFY(m_save->conflict());
+        QVERIFY(QFile::exists(m_save->keptCopy()));
+        m_save->setAutosave(true);
+        if (trigger == "edit") {
+            clip["startMs"] = 300;
+            clips[1] = clip;
+            raw["clips"] = clips;
+            m_save->documentChanged();
+        } else if (trigger == "notice") {
+            m_save->externalChanged("updated", "u1", QJsonArray{QJsonObject{{"tool", "ui_timeline_move_clip"},
+                {"input", QJsonObject{{"id", "a"}}}}}, true);
+        } else if (trigger == "refresh") {
+            m_save->refreshExternal();
+        }
+        QTRY_VERIFY_WITH_TIMEOUT(!m_save->dirty(), 2000);
+        QVERIFY(!m_save->conflict());
+        QVERIFY(m_save->lastError().isEmpty());
+        QCOMPARE(writes, trigger == "edit" ? 3 : 2);
+        QCOMPARE(gets, trigger == "retry" ? 4 : 2);
+        if (trigger == "retry") {
+            QVERIFY(attempts[1] - attempts[0] >= 90);
+            QVERIFY(attempts[2] - attempts[1] >= 180);
+            QVERIFY(attempts[3] - attempts[2] >= 360);
+        }
+        const auto saved = QJsonDocument::fromJson(m_http->requests().back().body).object()["document"].toObject();
+        QCOMPARE(saved["clips"].toArray()[0].toObject()["startMs"].toInt(), 500);
+        QCOMPARE(saved["clips"].toArray()[1].toObject()["startMs"].toInt(), trigger == "edit" ? 300 : 200);
+        QVERIFY(!QFile::exists(m_dir.filePath("seq.local.json")));
+    }
+
+    void stoppedChainCounterResets_data() {
+        QTest::addColumn<QString>("trigger");
+        QTest::addColumn<bool>("limit");
+        for (const auto* trigger : {"edit", "notice", "refresh"}) {
+            QTest::newRow(qPrintable(QString(trigger) + "-limit")) << QString(trigger) << true;
+            QTest::newRow(qPrintable(QString(trigger) + "-no-advance")) << QString(trigger) << false;
+        }
+    }
+    void stoppedChainCounterResets() {
+        QFETCH(QString, trigger);
+        QFETCH(bool, limit);
+        auto raw = sync::applyMergeDocument(syncDoc(0, 0, "u0"), sync::mergeDocumentOf(syncDoc(0, 0, "u0")));
+        sync::setDocumentApplier([&](QUndoStack* undo, const QJsonObject& next, const nt::Timeline&) {
+            raw = next;
+            undo->clear();
+            return true;
+        });
+        int gets = 0;
+        bool resume = false;
+        m_http->setJson([&](const QByteArray&, const QUrl&) {
+            ++gets;
+            const auto revision = !limit && !resume ? QString("u0") : "u" + QString::number(gets);
+            return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", syncDoc(500, 0, revision)}}}}).toJson();
+        });
+        m_http->setPost([&](const QByteArray&, const QByteArray& bytes) {
+            const auto base = QJsonDocument::fromJson(bytes).object()["baseUpdatedAt"].toString();
+            return resume && base == "u" + QString::number(limit ? 6 : 2) ? ok("saved") : conflict();
+        });
+        m_save = std::make_unique<AutosaveController>(SaveTarget{m_http->base(), {}, "seq", m_dir.path(), {}},
+            m_undo.get(), [&] { return raw; }, "u0");
+        m_save->setExternalSync(false);
+        m_save->setDebounceMs(10);
+        auto clips = raw["clips"].toArray();
+        auto clip = clips[1].toObject();
+        clip["startMs"] = 200;
+        clips[1] = clip;
+        raw["clips"] = clips;
+        m_save->documentChanged();
+        QTRY_VERIFY(m_save->conflict());
+        QCOMPARE(gets, limit ? 5 : 1);
+        resume = true;
+        if (trigger == "edit") {
+            clips = raw["clips"].toArray();
+            clip = clips[1].toObject();
+            clip["startMs"] = 300;
+            clips[1] = clip;
+            raw["clips"] = clips;
+            m_save->documentChanged();
+        } else if (trigger == "notice") {
+            m_save->externalChanged("updated", "new", QJsonArray{QJsonObject{{"tool", "ui_timeline_move_clip"},
+                {"input", QJsonObject{{"id", "a"}}}}}, true);
+        } else {
+            m_save->refreshExternal();
+        }
+        QTRY_VERIFY_WITH_TIMEOUT(!m_save->dirty(), 2000);
+        QCOMPARE(gets, limit ? 6 : 2);
+        QVERIFY(!m_save->conflict());
+        QVERIFY(m_save->lastError().isEmpty());
+    }
+
+    void eachWebSocketConnectIsLogged() {
+        if (!qEnvironmentVariableIsSet("NT_SYNC_LOG_CHILD")) {
+            QProcess child;
+            auto env = QProcessEnvironment::systemEnvironment();
+            env.insert("NT_SYNC_LOG_CHILD", "1");
+            child.setProcessEnvironment(env);
+            child.start(QCoreApplication::applicationFilePath(), {"eachWebSocketConnectIsLogged"});
+            QVERIFY(child.waitForFinished(10000));
+            QCOMPARE(child.exitCode(), 0);
+            const auto log = child.readAllStandardError();
+            QCOMPARE(log.count("sync: listening for seq\n"), 2);
+            return;
+        }
+        QWebSocketServer socket("sync-test", QWebSocketServer::NonSecureMode);
+        QVERIFY(socket.listen(QHostAddress::LocalHost, 0));
+        int connects = 0;
+        connect(&socket, &QWebSocketServer::newConnection, this, [&] {
+            auto* peer = socket.nextPendingConnection();
+            peer->setParent(&socket);
+            if (++connects == 1) QTimer::singleShot(20, peer, [peer] { peer->close(); });
+        });
+        make();
+        m_save->setExternalSyncUrl(QUrl(QString("http://127.0.0.1:%1").arg(socket.serverPort())));
+        m_save->setExternalSync(true);
+        QTRY_COMPARE_WITH_TIMEOUT(connects, 2, 5000);
+        QTest::qWait(20);
+        QTRY_COMPARE_WITH_TIMEOUT(AutosaveController::liveFetchWorkers(), 0, 2000);
+        m_save.reset();
+    }
+
+    void destructionWaitsForFetchWorker() {
+        int applies = 0;
+        sync::setDocumentApplier([&](QUndoStack*, const QJsonObject&, const nt::Timeline&) {
+            ++applies;
+            return true;
+        });
+        // Serve on another event loop: the GUI thread must be able to wait
+        // without preventing the delayed HTTP response from being sent.
+        class SlowServer : public QThread {
+        public:
+            std::promise<QUrl> address;
+            std::atomic<bool> received{false};
+            ~SlowServer() override { quit(); wait(); }
+            void run() override {
+                TestHttpServer http;
+                http.setJson([this](const QByteArray&, const QUrl&) {
+                    received = true;
+                    QThread::msleep(300);
+                    return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", syncDoc(500, 0, "u1")}}}}).toJson();
+                });
+                address.set_value(http.base());
+                exec();
+            }
+        } server;
+        auto address = server.address.get_future();
+        server.start();
+        m_save = std::make_unique<AutosaveController>(SaveTarget{address.get(), {}, "seq", m_dir.path(), {}},
+            m_undo.get(), [] { return syncDoc(0, 0, "u0"); }, "u0");
+        m_save->setExternalSync(false);
+        m_save->refreshExternal();
+        QTRY_VERIFY_WITH_TIMEOUT(server.received.load(), 1000);
+        QCOMPARE(AutosaveController::liveFetchWorkers(), 1);
+        QElapsedTimer elapsed;
+        elapsed.start();
+        m_save.reset();
+        const int remaining = AutosaveController::liveFetchWorkers();
+        const auto waited = elapsed.elapsed();
+        // Finish even on red, before destroying the test's other fixtures.
+        QTRY_COMPARE_WITH_TIMEOUT(AutosaveController::liveFetchWorkers(), 0, 2000);
+        QCOMPARE(remaining, 0);
+        QVERIFY(waited >= 150);
+        QTest::qWait(20);
+        QCOMPARE(applies, 0);
     }
 
     void casRecovery_data() {
@@ -452,7 +674,7 @@ private slots:
 
     void queuedNotices_data() {
         QTest::addColumn<QString>("mode");
-        for (const auto* mode : {"save", "fetch", "missing-ops", "clean-during-fetch", "preview-during-fetch", "destroy"})
+        for (const auto* mode : {"save", "fetch", "missing-ops", "clean-during-fetch", "preview-during-fetch"})
             QTest::newRow(mode) << QString(mode);
     }
     void queuedNotices() {
@@ -482,13 +704,11 @@ private slots:
                 } else if (mode == "preview-during-fetch") {
                     raw = syncDoc(0, 200, "u0");
                     QTimer::singleShot(100, m_save.get(), [&] { m_save->documentChanged(); });
-                } else if (mode == "destroy") {
-                    m_save.reset();
                 }
             }
             return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", server}}}}).toJson();
         });
-        if (mode != "destroy" && mode != "preview-during-fetch") {
+        if (mode != "preview-during-fetch") {
             raw = syncDoc(100, 200, "u0");
             m_save->documentChanged();
         }
@@ -501,31 +721,25 @@ private slots:
         } else {
             m_save->externalChanged("updated", "u1", ops, true);
         }
-        if (mode == "destroy") {
-            QTRY_VERIFY(!m_save);
-            QTest::qWait(100);
-            QCOMPARE(applies, 0);
+        QTRY_COMPARE(m_save->baseUpdatedAt(), QString("u1"));
+        if (mode == "fetch" || mode == "missing-ops") {
+            QTRY_COMPARE(m_http->countRequests("GET", "/trpc/timeline.get"), 2);
+            QTRY_COMPARE(m_save->externalState(), QString("idle"));
+            QCOMPARE(m_save->externalConflicts().size(), 1);
+            QCOMPARE(m_save->externalConflicts()[0].toMap()["kind"].toString(), mode == "missing-ops" ? QString("document") : QString("clip"));
+            QCOMPARE(raw["clips"], syncDoc(100, 200, "u1")["clips"]);
+        } else if (mode == "clean-during-fetch") {
+            QCOMPARE(raw, server);
+            QVERIFY(!m_save->dirty());
+        } else if (mode == "preview-during-fetch") {
+            QCOMPARE(raw["clips"], syncDoc(500, 200, "u1")["clips"]);
         } else {
-            QTRY_COMPARE(m_save->baseUpdatedAt(), QString("u1"));
-            if (mode == "fetch" || mode == "missing-ops") {
-                QTRY_COMPARE(m_http->countRequests("GET", "/trpc/timeline.get"), 2);
-                QTRY_COMPARE(m_save->externalState(), QString("idle"));
-                QCOMPARE(m_save->externalConflicts().size(), 1);
-                QCOMPARE(m_save->externalConflicts()[0].toMap()["kind"].toString(), mode == "missing-ops" ? QString("document") : QString("clip"));
-                QCOMPARE(raw["clips"], syncDoc(100, 200, "u1")["clips"]);
-            } else if (mode == "clean-during-fetch") {
-                QCOMPARE(raw, server);
-                QVERIFY(!m_save->dirty());
-            } else if (mode == "preview-during-fetch") {
-                QCOMPARE(raw["clips"], syncDoc(500, 200, "u1")["clips"]);
-            } else {
-                QCOMPARE(raw["clips"], server["clips"]);
-            }
-            QCOMPARE(applies, 1);
-            for (const auto& request : m_http->requests()) {
-                if (request.method == "GET") QCOMPARE(request.headers.value("authorization"), QByteArray("Bearer sync-token"));
-                QVERIFY(!request.target.startsWith("/ws"));
-            }
+            QCOMPARE(raw["clips"], server["clips"]);
+        }
+        QCOMPARE(applies, 1);
+        for (const auto& request : m_http->requests()) {
+            if (request.method == "GET") QCOMPARE(request.headers.value("authorization"), QByteArray("Bearer sync-token"));
+            QVERIFY(!request.target.startsWith("/ws"));
         }
         m_save.reset();
         sync::setDocumentApplier({});
@@ -562,6 +776,7 @@ private slots:
         make("u0", folder);
         m_undo->push(new Bump(&m_value));
         QVERIFY(m_save->saveNow().conflict);
+        QTRY_VERIFY(m_save->conflict());
         m_save.reset();
         make("u0", folder);
         m_undo->push(new Bump(&m_value));
@@ -582,6 +797,7 @@ private slots:
         make("u0", folder);
         m_undo->push(new Bump(&m_value));
         QVERIFY(m_save->saveNow().conflict);
+        QTRY_VERIFY(m_save->conflict());
         m_save.reset();
         m_undo->clear();
         m_value = 0;
@@ -618,6 +834,7 @@ private slots:
         make("u0", folder);
         m_undo->push(new Bump(&m_value));
         QVERIFY(m_save->saveNow().conflict);
+        QTRY_VERIFY(m_save->conflict());
         m_save.reset();
         make("u0", folder);
         m_undo->push(new Bump(&m_value));
@@ -822,7 +1039,8 @@ private slots:
         QFile f(r.keptCopy);
         QVERIFY(f.open(QIODevice::ReadOnly));
         QCOMPARE(QJsonDocument::fromJson(f.readAll()).object(), rawDoc(1));
-        // Recovery failed (timeline.get is unavailable), so later saves stay local.
+        // Recovery failed (timeline.get is unavailable). Explicit saves stay
+        // local until a retry succeeds or a new edit/notice starts a chain.
         const int before = posts();
         QVERIFY(m_save->saveNow().conflict);
         QCOMPARE(posts(), before);
@@ -910,7 +1128,7 @@ private slots:
         QTRY_VERIFY_WITH_TIMEOUT(!m_save->dirty(), 2000);
     }
 
-    void aConflictWithFailedRecoveryStopsRetrying() {
+    void aFailedRecoveryDoesNotRetryTheSave() {
         m_http->setPost([](const QByteArray&, const QByteArray&) { return conflict(); });
         make();
         m_save->setRetryBaseMs(50);

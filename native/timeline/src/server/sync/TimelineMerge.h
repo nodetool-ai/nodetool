@@ -39,7 +39,7 @@ MergeResult mergeTimelineDocuments(const QJsonObject& base, const QJsonObject& d
                                    bool mergeWithoutOps = false);
 
 // Preserve sequence-row and unknown fields, replacing every merge field.
-// A merge field absent from merged is removed from the raw document.
+// Absent fields are removed. Null setup is omitted, as in the web payload.
 QJsonObject applyMergeDocument(const QJsonObject& serverRaw, const QJsonObject& merged);
 
 } // namespace nt::server::sync
