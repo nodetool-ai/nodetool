@@ -198,10 +198,10 @@ class SyncEditTarget : public QObject {
 public:
     QUndoStack* undo = nullptr;
     QJsonObject* document = nullptr;
-    Q_INVOKABLE bool applyEdit(const QString& name, const QJsonObject& payload) {
-        if (name != u"acceptExternalUnit") return false;
+    Q_INVOKABLE quint64 applyEdit(const QString& name, const QJsonObject& payload) {
+        if (name != u"acceptExternalUnit") return 0;
         const auto next = sync::applyAcceptedUnit(*document, payload);
-        if (next == *document) return false;
+        if (next == *document) return 0;
         class Write : public QUndoCommand {
         public:
             Write(QJsonObject* target, QJsonObject next) : m_target(target), m_before(*target), m_after(std::move(next)) {}
@@ -212,8 +212,9 @@ public:
             QJsonObject m_before;
             QJsonObject m_after;
         };
-        undo->push(new Write(document, next));
-        return true;
+        auto command = std::make_unique<Write>(document, next);
+        undo->push(command.release());
+        return static_cast<quint64>(undo->count());
     }
 };
 
