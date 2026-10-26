@@ -9,7 +9,7 @@ Menu {
     property string current: "linear"
     property TimelineModel timeline: null
     property string clipId: ""
-    contentItem.Accessible.name: edge === "in" ? "Fade in" : "Fade out"
+    contentItem.Accessible.name: edge === "in" ? "Fade-in shape" : "Fade-out shape"
     font.family: Theme.sansFamily
     font.pixelSize: Theme.fontSizeSmall
     function choose(shape) {

@@ -67,7 +67,7 @@ Item {
                 objectName: "audioFadeIn"
                 value: (root.displayed("fadeInMs") / 1000).toFixed(2)
                 unit: "s"
-                ariaLabel: "Fade in seconds"
+                ariaLabel: "Fade in (seconds)"
                 scrub: ({step: 0.02, min: 0})
                 onGestureStarted: root.begin("fadeInMs")
                 onPreview: text => { const ms = Helpers.parseSeconds(text); if (ms !== null) root.preview("fadeInMs", ms) }
@@ -75,7 +75,7 @@ Item {
             }
             InspectorSelect {
                 objectName: "audioFadeInShape"
-                label: "Fade in shape"
+                label: "Fade-in shape"
                 value: FadeShapes.parseClipFadeShape(root.clip.fadeInShape)
                 options: FadeShapes.options
                 onChange: value => root.commit("fadeInShape", FadeShapes.parseClipFadeShape(value))
@@ -88,7 +88,7 @@ Item {
                 objectName: "audioFadeOut"
                 value: (root.displayed("fadeOutMs") / 1000).toFixed(2)
                 unit: "s"
-                ariaLabel: "Fade out seconds"
+                ariaLabel: "Fade out (seconds)"
                 scrub: ({step: 0.02, min: 0})
                 onGestureStarted: root.begin("fadeOutMs")
                 onPreview: text => { const ms = Helpers.parseSeconds(text); if (ms !== null) root.preview("fadeOutMs", ms) }
@@ -96,7 +96,7 @@ Item {
             }
             InspectorSelect {
                 objectName: "audioFadeOutShape"
-                label: "Fade out shape"
+                label: "Fade-out shape"
                 value: FadeShapes.parseClipFadeShape(root.clip.fadeOutShape)
                 options: FadeShapes.options
                 onChange: value => root.commit("fadeOutShape", FadeShapes.parseClipFadeShape(value))
