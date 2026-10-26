@@ -10,6 +10,7 @@
     { "path": "../game-runtime" },
     { "path": "../gpu" },
     { "path": "../protocol" },
-    { "path": "../config" }
+    { "path": "../config" },
+    { "path": "../runtime" }
   ]
 }

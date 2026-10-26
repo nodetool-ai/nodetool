@@ -1,90 +1,21 @@
 /**
- * Shared ffmpeg/ffprobe helpers for the video nodes.
+ * Shared media helpers for the video nodes.
  *
  * Internal to the package — deliberately NOT re-exported from `src/index.ts`.
- * Everything here is free of node-specific state so `timeline.ts` (and any other
- * ffmpeg-backed module) can import it directly.
- *
- * Policy: a spawn failure because the binary is missing (`ENOENT`) surfaces as
- * {@link MissingBinaryError} carrying the binary name. A genuine tool failure
- * (non-zero exit) rejects with the underlying error, whose `.stderr` carries
- * ffmpeg's diagnostics — callers turn that into an actionable message instead of
- * silently passing the input through.
+ * Everything here is free of node-specific state so `timeline.ts` can import
+ * it directly.
  */
-import { execFile as execFileCb } from "node:child_process";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { promisify } from "node:util";
 import type { VideoRef } from "@nodetool-ai/node-sdk";
-import { withTaskSpan } from "@nodetool-ai/runtime";
 import { packetTimes, probeMedia } from "@nodetool-ai/runtime/media";
-import { MissingRuntimePackageError, missingRuntimePackageDetails, missingRuntimeText } from "@nodetool-ai/protocol";
 import {
   isNonEmptyString,
   isObjectLike,
   isString
 } from "@nodetool-ai/node-sdk";
-
-export const execFile = promisify(execFileCb);
-
-export const FFMPEG_MAX_BUFFER = 50 * 1024 * 1024;
-
-/** A required binary (ffmpeg/ffprobe) is not installed or not on PATH. */
-export class MissingBinaryError extends MissingRuntimePackageError {
-  readonly binary: string;
-  constructor(binary: string) {
-    const details = missingRuntimePackageDetails(binary, "ffmpeg");
-    super(missingRuntimeText(details), "ffmpeg", { details });
-    this.binary = binary;
-  }
-}
-
-/**
- * Whether `err` is a spawn ENOENT (binary not on PATH) rather than the tool
- * running and reporting a non-zero exit. Scope this to the spawn itself so an
- * unrelated filesystem ENOENT is never mislabeled as a missing binary.
- */
-function isSpawnEnoent(err: unknown): boolean {
-  return isObjectLike(err) && (err as { code?: unknown }).code === "ENOENT";
-}
-
-/** Run ffmpeg, mapping a missing binary to {@link MissingBinaryError}. */
-export async function execFfmpeg(
-  args: string[],
-  options: { maxBuffer?: number; signal?: AbortSignal } = {}
-): Promise<{ stdout: string; stderr: string }> {
-  try {
-    return await withTaskSpan(
-      "cpu",
-      "subprocess.run",
-      { "process.executable.name": "ffmpeg" },
-      () => execFile("ffmpeg", args, options)
-    );
-  } catch (error) {
-    if (isSpawnEnoent(error)) throw new MissingBinaryError("ffmpeg");
-    throw error;
-  }
-}
-
-/** Run ffprobe, mapping a missing binary to {@link MissingBinaryError}. */
-export async function execFfprobe(
-  args: string[],
-  options: { maxBuffer?: number; signal?: AbortSignal } = {}
-): Promise<{ stdout: string; stderr: string }> {
-  try {
-    return await withTaskSpan(
-      "cpu",
-      "subprocess.run",
-      { "process.executable.name": "ffprobe" },
-      () => execFile("ffprobe", args, options)
-    );
-  } catch (error) {
-    if (isSpawnEnoent(error)) throw new MissingBinaryError("ffprobe");
-    throw error;
-  }
-}
 
 /** Build a VideoRef from raw bytes (raw base64 `data`, `type: "video"`). */
 export function videoRef(

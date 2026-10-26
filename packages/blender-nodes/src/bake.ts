@@ -216,6 +216,12 @@ function argOf(argv: readonly string[], flag: string): string {
   return value;
 }
 
+/** How the PNG frames of a bake are encoded and muxed. */
+export interface BakeEncoderSettings {
+  spec: VideoEncoderSpec;
+  muxerOptions?: Record<string, string>;
+}
+
 /**
  * The encoder and muxer settings that turn the PNG frames into one video.
  *
@@ -225,7 +231,7 @@ function argOf(argv: readonly string[], flag: string): string {
 export function bakeEncoderSettings(
   format: BakeVideoFormat,
   fps: number
-): { spec: VideoEncoderSpec; muxerOptions?: Record<string, string> } {
+): BakeEncoderSettings {
   const rate = String(Math.max(1, Math.round(fps)));
   return {
     spec: {
