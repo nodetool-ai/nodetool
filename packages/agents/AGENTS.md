@@ -1080,8 +1080,7 @@ checks the real scheduling and response paths with a controlled decoder.
 Three properties worth keeping when changing any of this:
 
 - **No ffmpeg.** Mediabunny decodes, so an install with no managed runtime
-  tools still answers. `nodetool.video.GetVideoInfo` returns a record of zeros
-  when `ffprobe` is missing; that is the failure mode this exists to avoid.
+  tools still answers.
 - **Every answer is bounded, and says so.** Series are decimated to a point
   budget (`decimated`), decoding stops at a duration cap (`truncated`), and
   video frames are never all held at once — `forEachVideoFrame` closes each one
@@ -1588,10 +1587,12 @@ and the research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   plus the judge loop `critique/compare/scoreAdherence` and
   `understandVideo(video, prompt, model)`, which hands a whole clip to a model
   that reads video and answers as text — each taking a pick/find result or
-  `"provider/model_id"`; plus the host binaries `ffprobe(path)`, `ffmpeg(args)`
-  and `downloadVideo(url, outputFile)`, whose argv is confined to the workspace
-  and to local-file inputs by `src/host-binary-guard.ts` and bounded on wall
-  clock, captured output, artifact size and concurrency by
+  `"provider/model_id"`; plus `probe(path)` and `edit(operation, opts)`, the
+  typed in-process media operations in `src/media-edit.ts` whose every path
+  is confined to the workspace by `confineMediaPaths`
+  (`src/host-binary-guard.ts`), and the host binary
+  `downloadVideo(url, outputFile)`, whose argv is confined the same way and
+  bounded on wall clock, captured output, artifact size and concurrency by
   `src/host-binaries.ts`), `nodetool.nodes`
   (`search/info/list` — the graph builder's discovery half),
   `nodetool.documents` (convert, PDF text/tables, markdown↔pdf),

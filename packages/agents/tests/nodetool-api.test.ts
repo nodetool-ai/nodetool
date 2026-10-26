@@ -40,7 +40,8 @@ const MEDIA_TOOLS = [
   "generate_image",
   "generate_speech",
   "transcribe_audio",
-  "ffmpeg",
+  "media_edit",
+  "media_probe",
   "yt_dlp"
 ].map(toolDef);
 const TIMELINE_TOOLS = [
@@ -148,8 +149,10 @@ function createFakeRouter() {
         });
       case "generate_speech":
         return JSON.stringify({ type: "audio", asset_uri: "asset://a1.mp3" });
-      case "ffmpeg":
-        return JSON.stringify({ success: true, args: args["args"] });
+      case "media_edit":
+        return JSON.stringify({ success: true, operation: args["operation"] });
+      case "media_probe":
+        return JSON.stringify({ path: args["path"], duration_seconds: 4 });
       case "yt_dlp":
         return JSON.stringify({
           success: true,
@@ -289,29 +292,30 @@ describe("nodetool object model", () => {
     });
   });
 
-  it("routes ffmpeg and downloadVideo to the host binaries", async () => {
+  it("routes probe, edit and downloadVideo to their tools", async () => {
     const { executeTool, calls } = createFakeRouter();
     const session = makeSession(MEDIA_TOOLS, executeTool);
     const obs = await runAction(
       session,
-      `const ff = await nodetool.media.ffmpeg(["-i", "in.mp4", "out.mp4"], {
-         timeout_seconds: 30
+      `const info = await nodetool.media.probe("in.mp4");
+       const cut = await nodetool.media.edit("trim", {
+         input: "in.mp4",
+         output_file: "out.mp4",
+         end: info.duration_seconds / 2
        });
        const dl = await nodetool.media.downloadVideo(
          "https://example.com/v",
          "clip.mp4"
        );
-       return { ff: ff.success, out: dl.output_file };`
+       return { cut: cut.success, out: dl.output_file };`
     );
     expect(obs.ok).toBe(true);
-    expect(calls[0]).toMatchObject({
-      name: "ffmpeg",
-      args: {
-        args: ["-i", "in.mp4", "out.mp4"],
-        timeout_seconds: 30
-      }
-    });
+    expect(calls[0]).toMatchObject({ name: "media_probe", args: { path: "in.mp4" } });
     expect(calls[1]).toMatchObject({
+      name: "media_edit",
+      args: { operation: "trim", input: "in.mp4", output_file: "out.mp4", end: 2 }
+    });
+    expect(calls[2]).toMatchObject({
       name: "yt_dlp",
       args: {
         url: "https://example.com/v",

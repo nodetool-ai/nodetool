@@ -31,8 +31,8 @@ Rules:
 
 - Search result pages are blocked in `browse`. Use `search` to search, and
   `browse` to read a page it found.
-- `download` is how an asset reaches the workspace, for ffmpeg or a document
-  conversion. To keep a downloaded file in the library, pass its `asset_url`
+- `download` is how an asset reaches the workspace, for a media edit or a
+  document conversion. To keep a downloaded file in the library, pass its `asset_url`
   to `nodetool.assets.save(name, {source})`.
 - When you show a downloaded image to the user, paste `display_markdown` as it
   is. Do not build a link from the workspace path.
