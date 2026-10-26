@@ -92,14 +92,14 @@ Item {
                             }
                         }
                     }
-                }
-            }
-            ConflictAction {
-                objectName: "discardExternalConflicts"
-                text: "Discard"
-                onClicked: {
-                    if (root.controller) {
-                        root.controller.discardExternalConflicts()
+                    ConflictAction {
+                        objectName: "discardExternalConflict-" + modelData.id
+                        text: "Discard"
+                        onClicked: {
+                            if (root.controller) {
+                                root.controller.discardExternalConflict(modelData.id)
+                            }
+                        }
                     }
                 }
             }

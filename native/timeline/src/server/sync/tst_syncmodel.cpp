@@ -69,7 +69,7 @@ private slots:
         auto parsed = nt::parseTimelineJson(QJsonDocument(document()).toJson());
         QVERIFY(parsed.timeline);
         model.setTimeline(std::move(*parsed.timeline));
-        const auto server = document(500, 1500, "u1");
+        const auto server = document(500, mode == "discard" ? 2500 : 1500, "u1");
         http.setJson([&](const QByteArray&, const QUrl&) {
             return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", server}}}}).toJson();
         });
@@ -103,13 +103,20 @@ private slots:
         if (mode == "accept" || mode == "discard") {
             QVERIFY(model.moveClip("a", 100));
         }
-        save.externalChanged("updated", "u1", QJsonArray{QJsonObject{{"tool", "ui_timeline_move_clip"}, {"input", QJsonObject{{"id", "a"}}}}}, true);
+        if (mode == "discard") {
+            QVERIFY(model.moveClip("b", 2000));
+        }
+        QJsonArray ops{QJsonObject{{"tool", "ui_timeline_move_clip"}, {"input", QJsonObject{{"id", "a"}}}}};
+        if (mode == "discard") {
+            ops.append(QJsonObject{{"tool", "ui_timeline_move_clip"}, {"input", QJsonObject{{"id", "b"}}}});
+        }
+        save.externalChanged("updated", "u1", ops, true);
         QTRY_COMPARE(save.baseUpdatedAt(), QString("u1"));
         QVERIFY(!model.undoStack()->canUndo());
         model.undoStack()->undo();
         if (mode == "accept" || mode == "discard") {
             QCOMPARE(model.timeline().clips[0].startMs, 100.0);
-            QCOMPARE(save.externalConflicts().size(), 1);
+            QCOMPARE(save.externalConflicts().size(), mode == "discard" ? 2 : 1);
             if (mode == "accept") {
                 QTRY_VERIFY(banner->isVisible());
                 auto* accept = findItem(banner, "acceptExternalConflict-a");
@@ -124,10 +131,21 @@ private slots:
                 QCOMPARE(model.timeline().clips[0].startMs, 500.0);
             } else {
                 QTRY_VERIFY(banner->isVisible());
-                auto* discard = findItem(banner, "discardExternalConflicts");
+                auto* discard = findItem(banner, "discardExternalConflict-a");
                 QVERIFY(discard);
                 QVERIFY(QMetaObject::invokeMethod(discard, "clicked"));
                 QCOMPARE(model.timeline().clips[0].startMs, 100.0);
+                QCOMPARE(model.timeline().clips[1].startMs, 2000.0);
+                QCOMPARE(save.externalConflicts().size(), 1);
+                QCOMPARE(save.externalConflicts()[0].toMap()["id"].toString(), QString("b"));
+                bool discarded = true;
+                QVERIFY(QMetaObject::invokeMethod(&save, "discardExternalConflict", Q_RETURN_ARG(bool, discarded),
+                    Q_ARG(QString, QStringLiteral("a"))));
+                QVERIFY(!discarded);
+                QCOMPARE(save.externalConflicts().size(), 1);
+                QTRY_VERIFY(findItem(banner, "acceptExternalConflict-b"));
+                QVERIFY(QMetaObject::invokeMethod(findItem(banner, "acceptExternalConflict-b"), "clicked"));
+                QCOMPARE(model.timeline().clips[1].startMs, 2500.0);
                 QCOMPARE(save.externalConflicts().size(), 0);
             }
             QTRY_VERIFY(!banner->isVisible());
@@ -149,6 +167,64 @@ private slots:
                 QCOMPARE(http.countRequests("POST", "/trpc/timeline.update"), 0);
             }
         }
+    }
+    void acceptedMediaReplacementKeepsPathsThroughUndoRedo() {
+        QTemporaryDir cache;
+        TestHttpServer http;
+        QFile media(QFINDTESTDATA("../../../tests/fuzz/corpus/media_probe/tiny.mp4"));
+        QVERIFY(media.open(QIODevice::ReadOnly));
+        const auto bytes = media.readAll();
+        http.setFile("/media-b.mp4", ServedFile(bytes));
+        auto base = document();
+        auto clip = base["clips"].toArray()[0].toObject();
+        clip["mediaType"] = "video";
+        clip["status"] = "generated";
+        clip["currentAssetId"] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        base["clips"] = QJsonArray{clip};
+        auto loaded = nt::parseTimelineJson(QJsonDocument(base).toJson());
+        QVERIFY(loaded.timeline);
+        loaded.timeline->clips[0].mediaPath = "/resolved/asset-a.mp4";
+        loaded.timeline->clips[0].audioPath = "/resolved/asset-a-audio.mp4";
+        TimelineModel model;
+        model.setTimeline(*loaded.timeline);
+        auto server = base;
+        clip["currentAssetId"] = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+        server["clips"] = QJsonArray{clip};
+        server["updatedAt"] = "u1";
+        http.setJson([&](const QByteArray& path, const QUrl&) {
+            const QJsonObject data = path == "/trpc/assets.get"
+                ? QJsonObject{{"get_url", "/media-b.mp4"}, {"content_type", "video/mp4"},
+                    {"size", bytes.size()}, {"updated_at", "u1"}}
+                : server;
+            return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", data}}}}).toJson();
+        });
+        const auto fetched = openServerTimeline({http.base(), "seq", cache.path(), {}, true});
+        QVERIFY2(fetched.timeline, qPrintable(fetched.error));
+        const auto& replacement = fetched.timeline->clips[0];
+        QVERIFY(!replacement.mediaPath.empty());
+        QVERIFY(!replacement.audioPath.empty());
+        QVERIFY(QFile::exists(QString::fromStdString(replacement.mediaPath)));
+        AutosaveController save({http.base(), {}, "seq", cache.path(), {}}, model.undoStack(),
+            [&] { return model.timeline().raw; }, "u0");
+        save.setExternalSync(false);
+        save.setAutosave(false);
+        save.setQuitFallbackDirs({});
+        QVERIFY(model.moveClip("a", 100));
+        save.externalChanged("updated", "u1", QJsonArray{QJsonObject{{"tool", "ui_timeline_update_clip"},
+            {"input", QJsonObject{{"id", "a"}}}}}, true);
+        QTRY_COMPARE(save.baseUpdatedAt(), QString("u1"));
+        QCOMPARE(save.externalConflicts().size(), 1);
+        QCOMPARE(model.timeline().clips[0].mediaPath, loaded.timeline->clips[0].mediaPath);
+        QVERIFY(save.acceptExternalConflict("a", &model));
+        QCOMPARE(model.timeline().clips[0].raw["currentAssetId"], clip["currentAssetId"]);
+        QCOMPARE(model.timeline().clips[0].mediaPath, replacement.mediaPath);
+        QCOMPARE(model.timeline().clips[0].audioPath, replacement.audioPath);
+        model.undoStack()->undo();
+        QCOMPARE(model.timeline().clips[0].mediaPath, loaded.timeline->clips[0].mediaPath);
+        QCOMPARE(model.timeline().clips[0].audioPath, loaded.timeline->clips[0].audioPath);
+        model.undoStack()->redo();
+        QCOMPARE(model.timeline().clips[0].mediaPath, replacement.mediaPath);
+        QCOMPARE(model.timeline().clips[0].audioPath, replacement.audioPath);
     }
     void clearedAudioResolution_data() {
         QTest::addColumn<bool>("serverHasClip");

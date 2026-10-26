@@ -12,6 +12,16 @@ DocumentApplier& applier() {
     static DocumentApplier value;
     return value;
 }
+MediaRegistrar& mediaRegistrar() {
+    static MediaRegistrar value;
+    return value;
+}
+}
+void setMediaRegistrar(MediaRegistrar value) { mediaRegistrar() = std::move(value); }
+void registerMedia(QObject* timeline, const nt::Clip& media) {
+    if (mediaRegistrar()) {
+        mediaRegistrar()(timeline, media);
+    }
 }
 void setDocumentApplier(DocumentApplier value) { applier() = std::move(value); }
 bool applyDocument(QUndoStack* undo, const QJsonObject& raw, const nt::Timeline& resolved) {

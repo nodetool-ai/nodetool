@@ -15,6 +15,11 @@ QString mediaKey(const QJsonObject& raw) {
         raw.value("audioPath"), raw.value("currentAssetId")}).toJson(QJsonDocument::Compact));
 }
 const bool registered = [] {
+    nt::server::sync::setMediaRegistrar([](QObject* timeline, const nt::Clip& media) {
+        if (auto* model = qobject_cast<TimelineModel*>(timeline)) {
+            model->registerMedia(media);
+        }
+    });
     nt::server::sync::setDocumentApplier([](QUndoStack* undo, const QJsonObject& raw, const nt::Timeline& server) {
         auto* model = undo ? qobject_cast<TimelineModel*>(undo->parent()) : nullptr;
         if (!model) {

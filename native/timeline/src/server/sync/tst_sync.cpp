@@ -29,6 +29,7 @@ public:
     QWebSocketServer server{"sync", QWebSocketServer::NonSecureMode};
     QList<QWebSocket*> peers;
     QList<QStringList> frames;
+    bool acknowledgeMode = true;
     WsFixture()
     {
         connect(&server, &QWebSocketServer::newConnection, this, [this] {
@@ -37,8 +38,11 @@ public:
             const auto index = peers.size();
             peers.append(peer);
             frames.append(QStringList{});
-            connect(peer, &QWebSocket::textMessageReceived, this, [this, index](const QString& text) {
+            connect(peer, &QWebSocket::textMessageReceived, this, [this, index, peer](const QString& text) {
                 frames[index].append(text);
+                if (acknowledgeMode && QJsonDocument::fromJson(text.toUtf8()).object()["command"] == "set_mode") {
+                    peer->sendTextMessage(R"({"message":"Mode set to text"})");
+                }
             });
         });
     }
@@ -92,6 +96,75 @@ private slots:
         save.externalChanged("deleted", {}, {}, false);
     }
 
+    void refreshWaitsForModeAcknowledgment_data() {
+        QTest::addColumn<QByteArray>("ack");
+        QTest::addColumn<bool>("binary");
+        QTest::newRow("text") << QByteArray(R"({"message":"Mode set to text"})") << false;
+        // Standard MsgPack fixmap, and msgpackr's map16 encoding with useRecords:false.
+        QTest::newRow("binary-fixmap") << QByteArray::fromHex("81a76d657373616765b04d6f64652073657420746f2074657874") << true;
+        QTest::newRow("binary-map16") << QByteArray::fromHex("de0001a76d657373616765b04d6f64652073657420746f2074657874") << true;
+    }
+    void refreshWaitsForModeAcknowledgment() {
+        QFETCH(QByteArray, ack);
+        QFETCH(bool, binary);
+        WsFixture ws;
+        ws.acknowledgeMode = false;
+        QVERIFY(ws.server.listen(QHostAddress::LocalHost, 0));
+        ResourceChangeClient client(ws.server.serverUrl(), "sequence");
+        client.setBackoffBase(20);
+        client.setReconnectRefreshDelay([] { return 150; });
+        QSignalSpy refreshes(&client, &ResourceChangeClient::refreshNeeded);
+        client.start();
+        QTRY_COMPARE(ws.frames.size(), 1);
+        QTRY_COMPARE(ws.frames[0].size(), 1);
+        QTest::qWait(100);
+        QCOMPARE(refreshes.size(), 0);
+        // Unrelated/malformed binary traffic must not count as readiness.
+        ws.peers[0]->sendBinaryMessage(QByteArray::fromHex("81a76d657373616765b04d6f64652073657420746f2074657874").chopped(1));
+        ws.peers[0]->sendTextMessage(R"({"message":"Mode set to binary"})");
+        QTest::qWait(50);
+        QCOMPARE(refreshes.size(), 0);
+        const auto acknowledge = [&] {
+            if (binary) {
+                ws.peers.back()->sendBinaryMessage(ack);
+            } else {
+                ws.peers.back()->sendTextMessage(QString::fromUtf8(ack));
+            }
+        };
+        acknowledge();
+        QTRY_COMPARE_WITH_TIMEOUT(refreshes.size(), 1, 1000);
+        acknowledge();
+        QTest::qWait(100);
+        QCOMPARE(refreshes.size(), 1);
+        ws.peers[0]->close(QWebSocketProtocol::CloseCodeGoingAway, "restart");
+        QTRY_COMPARE(ws.frames.size(), 2);
+        QTRY_COMPARE(ws.frames[1].size(), 1);
+        QTest::qWait(100);
+        QCOMPARE(refreshes.size(), 1);
+        acknowledge();
+        QTest::qWait(50);
+        QCOMPARE(refreshes.size(), 1); // reconnect jitter starts after acknowledgment
+        QTRY_COMPARE_WITH_TIMEOUT(refreshes.size(), 2, 1000);
+    }
+    void missingModeAcknowledgmentStillRefreshes() {
+        WsFixture ws;
+        ws.acknowledgeMode = false;
+        QVERIFY(ws.server.listen(QHostAddress::LocalHost, 0));
+        ResourceChangeClient client(ws.server.serverUrl(), "sequence");
+        QSignalSpy refreshes(&client, &ResourceChangeClient::refreshNeeded);
+        client.start();
+        QTRY_COMPARE(ws.frames.size(), 1);
+        QTRY_COMPARE(ws.frames[0].size(), 1);
+        QTest::qWait(100);
+        QCOMPARE(refreshes.size(), 0);
+        QTRY_COMPARE_WITH_TIMEOUT(refreshes.size(), 1, 3000);
+        // A late ack closes the remaining subscription gap with one fresh GET.
+        ws.peers[0]->sendTextMessage(R"({"message":"Mode set to text"})");
+        QTRY_COMPARE_WITH_TIMEOUT(refreshes.size(), 2, 1000);
+        ws.peers[0]->sendTextMessage(R"({"message":"Mode set to text"})");
+        QTest::qWait(100);
+        QCOMPARE(refreshes.size(), 2);
+    }
     void startupRefreshesOnce() {
         WsFixture ws;
         QVERIFY(ws.server.listen(QHostAddress::LocalHost, 0));
@@ -371,6 +444,7 @@ private slots:
         QSignalSpy refreshes(&client, &ResourceChangeClient::refreshNeeded);
         client.start();
         QTRY_COMPARE_WITH_TIMEOUT(fixture.peers.size(), 1, 1000);
+        QTRY_COMPARE_WITH_TIMEOUT(refreshes.size(), 1, 1000); // startup refresh
         auto* peer = fixture.peers[0];
         const QByteArray frame = R"({"type":"resource_change","resource_type":"timelinesequence","event":"updated","resource":{"id":"77d07f26b9a74cf6b41e76fc12e3967d","etag":"3a046c5e7bde746b75adf8fce9234711","project_id":"default","updated_at":"2026-10-26T14:35:20.276Z"},"ops":[{"tool":"ui_timeline_move_clip","input":{"target":"clip-1","startMs":500,"id":"clip-1"}}]})";
         peer->sendTextMessage(QString::fromUtf8(frame));
@@ -399,7 +473,7 @@ private slots:
         peer->sendTextMessage("[]");
         // The resync is an ordered barrier after the ignored frames.
         peer->sendTextMessage(R"({"type":"resource_resync"})");
-        QTRY_COMPARE_WITH_TIMEOUT(refreshes.size(), 1, 1000);
+        QTRY_COMPARE_WITH_TIMEOUT(refreshes.size(), 2, 1000);
         QCOMPARE(changes.size(), 0);
         message.remove("ops");
         resource = message["resource"].toObject();
