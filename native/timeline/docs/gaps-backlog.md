@@ -22,6 +22,10 @@ run machine. "Package P1" and "package P2" are plan packages, not severities.
 | B11 | P2 | pkg-C-r1 F3 | `qml/Tracks/TracksRegion.qml:240` | A track's authored height cannot be changed in the UI. No resize handle exists, and the height slider changes global vertical zoom, not the track's `heightPx`. | C |
 | B12 | P2 | pkg-D1-r1 F1 | `qml/Inspector/KeyframeClipDiamonds.qml:2` | No production QML instantiates the clip keyframe diamonds or connects their seek and retime signals, so keyframes cannot be retimed on the timeline clip. Only the tests instantiate the component. | D1 |
 | B13 | P2 | pkg-D1-r1 F2 | `src/edit/keyframes/ClipInspectorController.cpp:99` | Past the clip's end, `playheadMs()` returns `-1` and `rowState()` samples at zero, so the inspector shows the first value, disables Previous, and enables a Next that does nothing. The web shows the endpoint value and enables Previous. | D1 |
+| B14 | P2 | pkg-K-r1 F1 | `src/playback/PlaybackClock.h:72` | J/K/L and Play In to Out have no production callers, and the I/O marks update `TimelineViewState` while playback reads separate, unconnected range fields. A marked range with loop enabled loops the whole timeline, and J/L does not shuttle. | K |
+| B15 | P2 | pkg-K-r1 F2 | `src/playback/PlaybackClock.cpp:107` | The clock's `fps` property defaults to 30 and is not bound to the document frame rate, so restart detection uses a 30 fps frame. On a 25 fps, 10-second timeline, Play from 9,960 ms continues where the web restarts at zero. | K |
+| B16 | P2 | pkg-K-r1 F3 | `src/playback/PlaybackClock.cpp:432` | The `m_endMs > 0` guard treats an out-point at zero as unset, so `setRangeOut(0)` then `playInToOut()` plays past the out-point. `boundedTimeLocked()` has the same guard. | K |
+| B17 | P2 | pkg-K-r1 F4 | `src/audio/AudioEngine.cpp:457` | An unmuted or remapped track's snapshot is acknowledged before its PCM is opened, sought and primed, so the track can stay silent for several blocks. Tests check the new audio only after 400 ms, which masks the miss. | K |
 
 ## Closed
 
