@@ -4,6 +4,7 @@ function(nt_compose_hook_tests)
         src/model/TimelineModel.h src/model/TimelineModel.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp
         src/playback/PlaybackClock.h src/playback/PlaybackClock.cpp
+        src/export/OffscreenFrames.h src/export/OffscreenFrames.cpp
         src/preview/PreviewCompositor.h src/preview/PreviewCompositor.cpp
         src/preview/hw/HwWindow.h src/preview/hw/HwWindow.cpp)
     set_target_properties(tst_composehooks PROPERTIES MACOSX_BUNDLE FALSE)
@@ -19,7 +20,7 @@ function(nt_compose_hook_tests)
     add_test(NAME tst_composehooks_render COMMAND tst_composehooks blendHandlerMultipliesLayer
         blendHandlerOnGroupSurface blendHandlerInsideGroupSurface unhandledBlendDrawsOver
         effectOutsetShowsBorder effectOutsetOnGroupSurface effectOutsetChainAndCrop
-        matteStageUsesMatteAlpha secondSourceReachesStage)
+        matteStageUsesMatteAlpha secondSourceReachesStage exportMatchesPreviewWithHooks)
     set_tests_properties(tst_composehooks_render PROPERTIES LABELS render)
 endfunction()
 nt_tests(nt_compose_hook_tests)

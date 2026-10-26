@@ -2,6 +2,7 @@
 #include "preview/layers/SceneHooks.h"
 #include "preview/layers/TestStill.h"
 #include "model/TimelineJson.h"
+#include "export/OffscreenFrames.h"
 #include <QGuiApplication>
 #include "playback/PlaybackClock.h"
 #include <QProcess>
@@ -10,6 +11,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QtTest>
+#include <algorithm>
 
 namespace {
 const QColor bottom(128, 192, 64);
@@ -98,6 +100,115 @@ private slots:
         for (auto token : m_hooks) { nt::unregisterSceneHook(token); }
         for (auto token : m_sources) { nt::unregisterLayerSource(token); }
         m_blends.clear(); m_stages.clear(); m_hooks.clear(); m_sources.clear();
+    }
+    void exportMatchesPreviewWithHooks() {
+        const auto ffmpeg = QStandardPaths::findExecutable("ffmpeg");
+        QVERIFY2(!ffmpeg.isEmpty(),"ffmpeg is required for the second-source fixture");
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const auto path = dir.filePath("luma.mkv");
+        QProcess process;
+        process.start(ffmpeg,{"-v","error","-y","-f","lavfi","-i","color=white:s=64x32:r=30:d=1",
+            "-f","lavfi","-i","color=black:s=64x32:r=30:d=1","-filter_complex",
+            "[0:v][1:v]concat=n=2:v=1:a=0[out]","-map","[out]","-c:v","ffv1",path});
+        QVERIFY(process.waitForFinished(30000));
+        QCOMPARE(process.exitStatus(),QProcess::NormalExit);
+        QVERIFY2(process.exitCode() == 0,process.readAllStandardError().constData());
+
+        const auto tile = [](const char* id, int x, int y) {
+            return QJsonObject{{"id",id},{"trackId","v"},{"mediaType","shape"},
+                {"startMs",0},{"durationMs",2000},{"width",64},{"height",32},
+                {"shapeStyle",QJsonObject{{"kind","rect"}}},
+                {"transform",QJsonObject{{"position",QJsonObject{{"x",x},{"y",y}}},
+                    {"scale",QJsonObject{{"x",0.375},{"y",0.375}}}}}};
+        };
+        auto backdrop = tile("backdrop",0,0);
+        backdrop.remove("transform");
+        backdrop.insert("width",128); backdrop.insert("height",96);
+        auto blend = tile("multiply",-32,-24);
+        blend.insert("blendMode","multiply");
+        auto matte = tile("matte",-32,24);
+        matte.insert("hidden",true);
+        auto matted = tile("matted",-32,24);
+        matted.insert("matte",QJsonObject{{"sourceClipId","matte"},{"mode","alpha"}});
+        const QJsonObject raw{{"fps",30},{"width",128},{"height",96},{"durationMs",2000},
+            {"tracks",QJsonArray{QJsonObject{{"id","v"},{"type","video"}}}},
+            {"clips",QJsonArray{backdrop,blend,tile("border",32,-24),matte,matted,tile("second",32,24)}}};
+        const auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
+        QVERIFY(parsed.timeline.has_value());
+        TimelineModel model; model.setTimeline(*parsed.timeline);
+        m_sources.push_back(nt::registerLayerSource("shape", [](const nt::ActiveLayer& layer) {
+            QImage image(layer.sourceWidth,layer.sourceHeight,QImage::Format_RGBA8888_Premultiplied);
+            image.fill(layer.clipId == "backdrop" ? bottom : top);
+            if (layer.clipId == "matte") {
+                image.fill(Qt::transparent);
+                for (int y = 0; y < image.height(); ++y) {
+                    for (int x = 0; x < image.width()/2; ++x) { image.setPixelColor(x,y,Qt::white); }
+                }
+            }
+            return std::make_unique<nt::test::PaintSource>(std::move(image));
+        }));
+        constexpr qint64 index = 45;
+        constexpr double fps = 30.0;
+        constexpr double timeMs = static_cast<double>(index) * 1000.0 / fps;
+        const auto plain = [&] {
+            nt::exporting::OffscreenFrames frames(model);
+            return frames.capture(index,fps,[] { return false; });
+        }();
+        QVERIFY(!plain.isNull());
+        QCOMPARE(plain.size(),QSize(128,96));
+
+        multiply();
+        m_stages.push_back(nt::registerEffectStage([] { return std::make_unique<nt::test::BorderStage>(); }));
+        m_stages.push_back(nt::registerEffectStage([] { return std::make_unique<nt::test::SecondSourceStage>(); }));
+        m_mattes.push_back(nt::registerMatteStage([] { return std::make_unique<nt::test::AlphaMatteStage>(); }));
+        m_seconds.push_back(nt::registerSecondSourceProvider([path](const nt::ActiveLayer& layer, const nt::Clip&) {
+            return layer.clipId == "second" ? std::vector<nt::SecondSourceRequest>{{"luma",path.toStdString()}}
+                                            : std::vector<nt::SecondSourceRequest>{};
+        }));
+        m_hooks.push_back(nt::registerLayerDecorator([](nt::ActiveLayer& layer, const nt::Clip&, double) {
+            if (layer.clipId == "border") { layer.ext = {{"border",4},{"reportOutset",true}}; }
+            if (layer.clipId == "second") { layer.ext.insert("secondSource",true); }
+        }));
+        const auto preview = [&] {
+            PlaybackClock clock; clock.setDurationMs(2000); clock.seek(timeMs);
+            nt::test::Still still;
+            if (!still.initialize(model)) { return QImage{}; }
+            still.setClock(&clock);
+            return still.capture(15000).convertToFormat(QImage::Format_RGBA8888);
+        }();
+        QVERIFY(!preview.isNull());
+        QCOMPARE(preview.size(),plain.size());
+        const auto exported = [&] {
+            nt::exporting::OffscreenFrames frames(model);
+            return frames.capture(index,fps,[] { return false; }).convertToFormat(QImage::Format_RGBA8888);
+        }();
+        QVERIFY(!exported.isNull());
+        QCOMPARE(exported.size(),preview.size());
+        const auto difference = [](const QColor& a, const QColor& b) {
+            return std::max({std::abs(a.red()-b.red()),std::abs(a.green()-b.green()),
+                std::abs(a.blue()-b.blue()),std::abs(a.alpha()-b.alpha())});
+        };
+        const auto visible = [&](QPoint p, const QColor& before, const QColor& after, const char* hook) {
+            near(plain.pixelColor(p),before);
+            near(exported.pixelColor(p),after);
+            QVERIFY2(difference(exported.pixelColor(p),plain.pixelColor(p)) > 1,hook);
+        };
+        visible({32,24},top,multiplied,"multiply blend must be visible in export");
+        // The unpadded border tile starts at x72. This pixel needs its outset.
+        visible({70,24},bottom,QColor(Qt::red),"effect outset must be visible in export");
+        visible({48,72},top,bottom,"alpha matte must be visible in export");
+        visible({96,72},top,bottom,"second-source black frame at 1.5s must be visible in export");
+        near(exported.pixelColor(20,72),top);
+        for (int y = 0; y < exported.height(); ++y) {
+            for (int x = 0; x < exported.width(); ++x) {
+                const auto actual = exported.pixelColor(x,y), expected = preview.pixelColor(x,y);
+                QCOMPARE(actual.alpha(),255);
+                QCOMPARE(expected.alpha(),255);
+                QVERIFY2(difference(actual,expected) <= 1,qPrintable(QString("export/preview mismatch at (%1,%2): %3 / %4")
+                    .arg(x).arg(y).arg(actual.name(QColor::HexArgb),expected.name(QColor::HexArgb))));
+            }
+        }
     }
     void matteExposesSourceLayer() {
         auto raw = document().raw;
