@@ -245,6 +245,8 @@ describe("prompt lines", () => {
     expect(section).toContain("finish({storyboardId");
     const scriptsLine = section.split("\n").find((l) => l.includes("`nodetool.scripts`"));
     expect(scriptsLine).toBeDefined();
-    expect(section).toContain("`get(id)`, `edit(id, ops)`, `voice(id)`, `assembleTimeline(id)`.");
+    expect(section).toContain(
+      "`get(id)`, `edit(id, ops)`, `rename(id, name)`, `voice(id)`,\n  `assembleTimeline(id)`."
+    );
   });
 });

@@ -96,6 +96,7 @@ import {
 } from "../utils/type-guards.js";
 
 import { resolveProjectId } from "./project-scope.js";
+import { editWithRename, parseRename, renameOwned } from "./rename.js";
 /** Shots one call may render, so a stray `targets: "all"` cannot bankrupt a run. */
 const MAX_SHOTS_PER_CALL = 24;
 /** Attempts to land a document write: the first try plus one re-read-and-reapply (ADR 0001). */
@@ -2521,113 +2522,145 @@ async function resolveStoryboardEditSources(run: CapabilityRun, ops: readonly Pa
 const editStoryboard: CapabilityExport = {
   spec: editStoryboardSpec,
   impl: async (run, params) => {
-    const ops = parseBoardOps(params["ops"]);
-    if (isError(ops)) return ops;
-
-    const { Storyboard } = await import("@nodetool-ai/models");
-
-    for (let attempt = 0; attempt < CAS_ATTEMPTS; attempt++) {
-      const board = await loadBoard(run, params["storyboard_id"]);
-      if (isError(board)) return board;
-      const { row, doc } = board;
-      if (params["expected_revision"] !== undefined && params["expected_revision"] !== row.revision) {
-        return { error: "Storyboard revision conflict. Refresh the board before editing." };
-      }
-
-      // A failing op is recorded and the script continues: stopping at the
-      // first error hides every problem behind it.
-      const records: BoardOpRecord[] = [];
-      let sourceOps: ParsedBoardOp[];
-      try { sourceOps = await resolveStoryboardEditSources(run, ops); }
-      catch (error) { return {error: error instanceof Error ? error.message : String(error)}; }
-      const entities = await loadStyleEntities(run, doc, sourceOps);
-      const resolvedOps: { tool: string; input: Record<string, unknown> }[] =
-        [];
-      for (const parsed of sourceOps) {
-        try {
-          const result = applyBoardOp(doc, parsed, entities) as
-            | Record<string, unknown>
-            | undefined;
-          records.push({
-            op: parsed.op,
-            ok: true,
-            result
-          });
-          // Resolve non-id targets (index/slug) to the canonical shot id so
-          // the merge adapter can attribute the write to the real unit.
-          const canonicalId =
-            typeof result?.["id"] === "string"
-              ? (result["id"] as string)
-              : typeof result?.["removed"] === "string"
-                ? (result["removed"] as string)
-                : undefined;
-          if (
-            canonicalId &&
-            (parsed.op === "update_shot" ||
-              parsed.op === "remove_shot" ||
-              parsed.op === "reorder_shot" ||
-              parsed.op === "move_shot" ||
-              parsed.op === "select_version" ||
-              parsed.op === "delete_version" ||
-              parsed.op === "add_keyframe_version")
-          ) {
-            resolvedOps.push({
-              tool: parsed.op,
-              input: { ...parsed.args, target: canonicalId, id: canonicalId }
-            });
-          } else {
-            resolvedOps.push({ tool: parsed.op, input: parsed.args });
-          }
-        } catch (e) {
-          records.push({
-            op: parsed.op,
-            ok: false,
-            error: e instanceof Error ? e.message : String(e)
-          });
-          resolvedOps.push({ tool: parsed.op, input: parsed.args });
+    const name = parseRename(params["name"]);
+    if (isError(name)) return name;
+    return editWithRename({
+      ops: params["ops"],
+      name,
+      idKey: "storyboard_id",
+      applyOps: () => applyStoryboardEdit(run, params),
+      rename: async (next) => {
+        const board = await loadBoard(run, params["storyboard_id"]);
+        if (isError(board)) return board;
+        if (
+          params["expected_revision"] !== undefined &&
+          params["expected_revision"] !== board.row.revision
+        ) {
+          return { error: "Storyboard revision conflict. Refresh the board before editing." };
         }
+        const { Storyboard } = await import("@nodetool-ai/models");
+        return renameOwned(Storyboard, {
+          id: board.row.id,
+          userId: run.context.userId,
+          name: next,
+          label: "Storyboard"
+        });
       }
-
-      if (doc.screenplay) {
-        doc.screenplay.shots = doc.shots;
-      }
-      const saved = await Storyboard.updateFieldsIfUnchanged(
-        row.id,
-        row.updated_at,
-        {
-          document: JSON.stringify(doc)
-        },
-        // The ops ride on the write so an open editor can merge this change
-        // per shot instead of treating the board as replaced.
-        { ops: resolvedOps }
-      );
-      if (!saved) continue;
-
-      const failed = records.filter((record) => !record.ok);
-      return {
-        storyboard_id: row.id,
-        updated_at: saved.updated_at,
-        revision: saved.revision,
-        applied: records.length - failed.length,
-        failed: failed.length,
-        ops: records,
-        shots: [...doc.shots]
-          .sort((a, b) => a.index - b.index)
-          .map((shot) => ({
-            id: shot.id,
-            index: shot.index,
-            slug: shot.slug,
-            action: shot.action,
-            status: shot.status
-          }))
-      };
-    }
-
-    return {
-      error: `Storyboard ${String(params["storyboard_id"])} is being modified concurrently; nothing was saved. Retry the call.`
-    };
+    });
   }
 };
+
+/** The op script of one edit_storyboard call, run and saved. */
+async function applyStoryboardEdit(
+  run: CapabilityRun,
+  params: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const ops = parseBoardOps(params["ops"]);
+  if (isError(ops)) return ops;
+
+  const { Storyboard } = await import("@nodetool-ai/models");
+
+  for (let attempt = 0; attempt < CAS_ATTEMPTS; attempt++) {
+    const board = await loadBoard(run, params["storyboard_id"]);
+    if (isError(board)) return board;
+    const { row, doc } = board;
+    if (params["expected_revision"] !== undefined && params["expected_revision"] !== row.revision) {
+      return { error: "Storyboard revision conflict. Refresh the board before editing." };
+    }
+
+    // A failing op is recorded and the script continues: stopping at the
+    // first error hides every problem behind it.
+    const records: BoardOpRecord[] = [];
+    let sourceOps: ParsedBoardOp[];
+    try { sourceOps = await resolveStoryboardEditSources(run, ops); }
+    catch (error) { return {error: error instanceof Error ? error.message : String(error)}; }
+    const entities = await loadStyleEntities(run, doc, sourceOps);
+    const resolvedOps: { tool: string; input: Record<string, unknown> }[] =
+      [];
+    for (const parsed of sourceOps) {
+      try {
+        const result = applyBoardOp(doc, parsed, entities) as
+          | Record<string, unknown>
+          | undefined;
+        records.push({
+          op: parsed.op,
+          ok: true,
+          result
+        });
+        // Resolve non-id targets (index/slug) to the canonical shot id so
+        // the merge adapter can attribute the write to the real unit.
+        const canonicalId =
+          typeof result?.["id"] === "string"
+            ? (result["id"] as string)
+            : typeof result?.["removed"] === "string"
+              ? (result["removed"] as string)
+              : undefined;
+        if (
+          canonicalId &&
+          (parsed.op === "update_shot" ||
+            parsed.op === "remove_shot" ||
+            parsed.op === "reorder_shot" ||
+            parsed.op === "move_shot" ||
+            parsed.op === "select_version" ||
+            parsed.op === "delete_version" ||
+            parsed.op === "add_keyframe_version")
+        ) {
+          resolvedOps.push({
+            tool: parsed.op,
+            input: { ...parsed.args, target: canonicalId, id: canonicalId }
+          });
+        } else {
+          resolvedOps.push({ tool: parsed.op, input: parsed.args });
+        }
+      } catch (e) {
+        records.push({
+          op: parsed.op,
+          ok: false,
+          error: e instanceof Error ? e.message : String(e)
+        });
+        resolvedOps.push({ tool: parsed.op, input: parsed.args });
+      }
+    }
+
+    if (doc.screenplay) {
+      doc.screenplay.shots = doc.shots;
+    }
+    const saved = await Storyboard.updateFieldsIfUnchanged(
+      row.id,
+      row.updated_at,
+      {
+        document: JSON.stringify(doc)
+      },
+      // The ops ride on the write so an open editor can merge this change
+      // per shot instead of treating the board as replaced.
+      { ops: resolvedOps }
+    );
+    if (!saved) continue;
+
+    const failed = records.filter((record) => !record.ok);
+    return {
+      storyboard_id: row.id,
+      updated_at: saved.updated_at,
+      revision: saved.revision,
+      applied: records.length - failed.length,
+      failed: failed.length,
+      ops: records,
+      shots: [...doc.shots]
+        .sort((a, b) => a.index - b.index)
+        .map((shot) => ({
+          id: shot.id,
+          index: shot.index,
+          slug: shot.slug,
+          action: shot.action,
+          status: shot.status
+        }))
+    };
+  }
+
+  return {
+    error: `Storyboard ${String(params["storyboard_id"])} is being modified concurrently; nothing was saved. Retry the call.`
+  };
+}
 
 // ---------------------------------------------------------------------------
 // derive_shot_from_clip

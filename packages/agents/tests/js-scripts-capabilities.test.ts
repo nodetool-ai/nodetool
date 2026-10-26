@@ -984,3 +984,60 @@ describe("js script version history", () => {
     expect(result.error).toContain("was not found");
   });
 });
+
+describe("edit_js_script rename", () => {
+  it("renames without ops, by id rather than by the new name", async () => {
+    const script = await makeScript({ code: 'await output("v", 1);' });
+    // A second script already called the new name must not be the target.
+    await makeScript({ code: "" }, { name: "Summarize" });
+
+    const result = (await toolForCapabilityName("edit_js_script").execute(
+      context(),
+      { js_script_id: script.id, name: "Summarize" }
+    )) as { id: string; name: string; error?: string };
+
+    expect(result.error).toBeUndefined();
+    expect(result).toMatchObject({ id: script.id, name: "Summarize" });
+    const updated = await JsScript.findById(script.id);
+    expect(updated?.name).toBe("Summarize");
+    expect(updated?.toDocument().code).toBe('await output("v", 1);');
+  });
+
+  it("renames after a code edit in the same call", async () => {
+    const script = await makeScript({
+      code: 'await output("v", 1);',
+      outputs: [{ name: "v", type: "int" }]
+    });
+    const result = (await toolForCapabilityName("edit_js_script").execute(
+      context(),
+      {
+        js_script_id: script.id,
+        name: "Two",
+        ops: [{ old: '"v", 1', new: '"v", 2' }],
+        base_updated_at: script.updated_at
+      }
+    )) as { saved: boolean; name: string; updated_at: string };
+
+    expect(result.saved).toBe(true);
+    expect(result.name).toBe("Two");
+    const updated = await JsScript.findById(script.id);
+    expect(updated?.name).toBe("Two");
+    expect(updated?.updated_at).toBe(result.updated_at);
+    expect(updated?.toDocument().code).toBe('await output("v", 2);');
+  });
+
+  it("refuses a rename against a stale base_updated_at", async () => {
+    const script = await makeScript({ code: "" });
+    const result = (await toolForCapabilityName("edit_js_script").execute(
+      context(),
+      {
+        js_script_id: script.id,
+        name: "Late",
+        base_updated_at: "1999-01-01T00:00:00.000Z"
+      }
+    )) as { error: string };
+
+    expect(result.error).toContain("changed since it was read");
+    expect((await JsScript.findById(script.id))?.name).toBe("Script");
+  });
+});

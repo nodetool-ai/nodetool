@@ -10,6 +10,7 @@
 
 import type { CapabilitySpec } from "./types.js";
 import type { JsonSchema } from "@nodetool-ai/runtime";
+import { renameProperty } from "./rename.js";
 import { isString } from "../utils/type-guards.js";
 
 export const DEFAULT_VERSION_LIMIT = 20;
@@ -116,6 +117,7 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
   type: "object",
   properties: {
     timeline_id: { type: "string", description: "Timeline sequence id." },
+    name: renameProperty("timeline"),
     ops: {
       type: "array",
       description:
@@ -293,7 +295,7 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
       items: { type: "object" }
     }
   },
-  required: ["timeline_id", "ops"]
+  required: ["timeline_id"]
 };
 
 export const VALIDATE_TIMELINE_SCHEMA: JsonSchema = {
@@ -499,13 +501,17 @@ export const editTimelineSpec: CapabilitySpec = {
     "read get_timeline and verify clip count, source ranges, start times and total duration " +
     "against the intended cut. Validation alone does not prove the edits landed. " +
     "Use render_storyboard_clips or a workflow run to generate media — this " +
-    "tool authors the cut, it does not render.",
+    "tool authors the cut, it does not render. Pass `name` to rename the " +
+    "timeline, with or without ops.",
   inputSchema: EDIT_TIMELINE_SCHEMA,
   category: "write",
   userMessage: (params) => {
     const count = Array.isArray(params["ops"]) ? params["ops"].length : 0;
     const id = params["timeline_id"];
     const target = typeof id === "string" && id ? ` ${id}` : "";
+    if (count === 0 && typeof params["name"] === "string") {
+      return `Renaming timeline${target}`;
+    }
     return `Editing timeline${target} (${count} ${count === 1 ? "op" : "ops"})`;
   }
 };

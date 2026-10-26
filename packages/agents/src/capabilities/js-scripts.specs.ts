@@ -10,6 +10,7 @@
 
 import type { CapabilitySpec } from "./types.js";
 import type { JsonSchema } from "@nodetool-ai/runtime";
+import { renameProperty } from "./rename.js";
 
 /** Snapshots one `list_js_script_versions` call returns unless asked otherwise. */
 export const DEFAULT_VERSION_LIMIT = 20;
@@ -254,6 +255,7 @@ export const EDIT_JS_SCRIPT_SCHEMA: JsonSchema = {
       type: "string",
       description: "The script to edit (from list_js_scripts)."
     },
+    name: renameProperty("script"),
     ops: {
       type: "array",
       description:
@@ -283,7 +285,7 @@ export const EDIT_JS_SCRIPT_SCHEMA: JsonSchema = {
         "write. Omit to compare-and-swap against the row as just read."
     }
   },
-  required: ["js_script_id", "ops"]
+  required: ["js_script_id"]
 };
 
 export const editJsScriptSpec: CapabilitySpec = {
@@ -295,7 +297,7 @@ export const editJsScriptSpec: CapabilitySpec = {
     "absent or ambiguous match is refused and nothing is written. The " +
     "resulting document is validated the same way save_js_script's is — a " +
     "revision that fails validation is refused and the code stays as it " +
-    "was.",
+    "was. Pass `name` to rename the script, with or without ops.",
   inputSchema: EDIT_JS_SCRIPT_SCHEMA,
   category: "write",
   userMessage: (params) =>
