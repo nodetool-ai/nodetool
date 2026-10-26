@@ -1,126 +1,22 @@
 /**
  * Regression tests for video node implementations.
  *
- * These tests verify that video nodes construct correct ffmpeg commands and
- * use proper filter strings. They mock child_process.execFile to capture the
- * arguments without requiring ffmpeg to be installed, and fake the in-process
- * media module's probes.
+ * These tests verify that video nodes build the right filter strings and
+ * stream plans. They fake the in-process media module, which records each
+ * edit in the CLI's terms (`-vf`, `-filter_complex`, `-c copy`) without
+ * running it.
  */
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { promisify } from "node:util";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { fakeProbe, mediaCalls, resetFakeMedia } from "./_fixtures/fake-media.js";
-
-// Capture all execFile calls so we can inspect ffmpeg/ffprobe arguments
-let execFileCalls: Array<{ cmd: string; args: string[] }> = [];
-
-/**
- * Determine mock response for a given command + args.
- * Returns {stdout, stderr} for ffprobe, throws for ffmpeg.
- */
-function mockResponse(
-  cmd: string,
-  args: string[]
-): { stdout: string; stderr: string } {
-  if (cmd === "ffprobe") {
-    const argsStr = args.join(" ");
-    if (
-      argsStr.includes("-show_streams") &&
-      argsStr.includes("-show_format")
-    ) {
-      return {
-        stdout: JSON.stringify({
-          streams: [
-            {
-              codec_type: "video",
-              codec_name: "h264",
-              width: 1920,
-              height: 1080,
-              r_frame_rate: "30000/1001",
-              nb_frames: "300"
-            },
-            { codec_type: "audio" }
-          ],
-          format: { duration: "10.01" }
-        }),
-        stderr: ""
-      };
-    } else if (argsStr.includes("r_frame_rate")) {
-      return { stdout: "30000/1001\n", stderr: "" };
-    } else if (argsStr.includes("format=duration")) {
-      return { stdout: "10.5\n", stderr: "" };
-    }
-    return { stdout: "", stderr: "" };
-  }
-  // ffmpeg — simulate failure (no real temp files)
-  throw new Error("mock ffmpeg: no real execution");
-}
+import { fakeProbe, mediaArgString, mediaCalls, resetFakeMedia } from "./_fixtures/fake-media.js";
 
 vi.mock("@nodetool-ai/runtime/media", async (importOriginal) =>
-  (await import("./_fixtures/fake-media.js")).fakeMediaModule(await importOriginal())
+  (await import("./_fixtures/fake-media.js")).fakeMediaModule(await importOriginal(), { edits: true })
 );
 
-vi.mock("node:child_process", async (importOriginal) => {
-  const original = (await importOriginal()) as Record<string, unknown>;
-
-  // Build a callback-style execFile that also has a custom promisify symbol.
-  // This matches real Node.js child_process.execFile behavior where
-  // promisify(execFile) returns {stdout, stderr} (not just stdout).
-  const mockExecFile = (
-    cmd: string,
-    args: string[],
-    optionsOrCb: unknown,
-    maybeCb?: unknown
-  ) => {
-    execFileCalls.push({ cmd, args: [...args] });
-    const cb =
-      typeof optionsOrCb === "function"
-        ? (optionsOrCb as (
-            err: Error | null,
-            stdout: string,
-            stderr: string
-          ) => void)
-        : typeof maybeCb === "function"
-          ? (maybeCb as (
-              err: Error | null,
-              stdout: string,
-              stderr: string
-            ) => void)
-          : null;
-    if (cb) {
-      try {
-        const resp = mockResponse(cmd, args);
-        cb(null, resp.stdout, resp.stderr);
-      } catch (err) {
-        cb(err as Error, "", "");
-      }
-    }
-  };
-
-  // Add custom promisify so that promisify(execFile) returns {stdout, stderr}
-  // just like the real Node.js implementation does.
-  (mockExecFile as any)[Symbol.for("nodejs.util.promisify.custom")] = (
-    cmd: string,
-    args: string[],
-    options?: unknown
-  ): Promise<{ stdout: string; stderr: string }> => {
-    execFileCalls.push({ cmd, args: [...args] });
-    try {
-      return Promise.resolve(mockResponse(cmd, args));
-    } catch (err) {
-      return Promise.reject(err);
-    }
-  };
-
-  return {
-    ...original,
-    execFile: mockExecFile
-  };
-});
-
-// We need to import the nodes AFTER mocking child_process
+// Import the nodes after mocking the media module
 const {
   DenoiseVideoNode,
   StabilizeVideoNode,
@@ -152,23 +48,18 @@ function audioRef(bytes: number[]) {
   };
 }
 
-/** Find all ffmpeg calls and return their full argument strings */
-function ffmpegCalls(): string[][] {
-  return execFileCalls
-    .filter((c) => c.cmd === "ffmpeg")
-    .map((c) => c.args);
+/** Every edit the nodes asked for, one argument string each. */
+function editCalls(): string[] {
+  return mediaCalls.flatMap((call) => (call.fn === "transformMedia" ? [call.args] : []));
 }
 
-/** Concatenate all args into a single string for easy pattern matching */
+/** Everything the nodes asked of the media module, joined. */
 function ffmpegArgString(): string {
-  return ffmpegCalls()
-    .map((a) => a.join(" "))
-    .join("\n");
+  return mediaArgString();
 }
 
 beforeEach(() => {
   resetFakeMedia();
-  execFileCalls = [];
 });
 
 // ─── 1. Denoise ────────────────────────────────────────────────────────────────
@@ -485,8 +376,8 @@ describe("TrimVideoNode — uses start/end as time values (seconds)", () => {
     });
     await node.process().catch(() => undefined);
 
-    const calls = ffmpegCalls();
-    // Should have called ffmpeg (not just sliced bytes)
+    const calls = editCalls();
+    // Should have run an edit (not just sliced bytes)
     expect(calls.length).toBeGreaterThan(0);
 
     // The command should use -ss (seek) and -to (end time)
@@ -504,9 +395,8 @@ describe("TrimVideoNode — uses start/end as time values (seconds)", () => {
     });
     await node.process().catch(() => undefined);
 
-    const args = ffmpegCalls().flat();
-    expect(args).toContain("-ss");
-    expect(args).toContain("3");
+    const args = ffmpegArgString();
+    expect(args).toContain("-ss 3");
     expect(args).not.toContain("-to");
   });
 
@@ -621,8 +511,8 @@ describe("AddAudioVideoNode — uses volume and mix inputs", () => {
       });
       await node.process().catch(() => undefined);
 
-      // ffmpeg must have been invoked, proving the URI-backed audio loaded.
-      expect(ffmpegCalls().length).toBeGreaterThan(0);
+      // The edit must have run, proving the URI-backed audio loaded.
+      expect(editCalls().length).toBeGreaterThan(0);
     } finally {
       await fs.rm(dir, { recursive: true, force: true });
     }
@@ -672,11 +562,11 @@ describe("AddAudioVideoNode — bounds the output to the picture", () => {
     });
     await node.process().catch(() => undefined);
 
-    // The mocked ffmpeg always fails, so the mix attempt falls back to plain
-    // replacement. That second command must carry the guard as well.
-    const calls = ffmpegCalls();
+    // The faked edit always fails, so the mix attempt falls back to plain
+    // replacement. That second edit must carry the guard as well.
+    const calls = editCalls();
     expect(calls.length).toBe(2);
-    const fallback = calls[1].join(" ");
+    const fallback = calls[1]!;
     expect(fallback).not.toContain("amix");
     expect(fallback).toContain("apad");
     expect(fallback).toContain("-shortest");
@@ -696,7 +586,7 @@ describe("AddAudioVideoNode — bounds the output to the picture", () => {
     const args = ffmpegArgString();
     expect(args).not.toContain("apad");
     expect(args).not.toContain("-shortest");
-    expect(args).toContain("1:a:0");
+    expect(args).toContain("-map 1:a");
   });
 });
 
@@ -766,64 +656,43 @@ describe("SaveVideoNode — resolves a folder ref object to a path", () => {
 // ─── 13. FrameToVideo (contiguous numbering) ─────────────────────────────────
 
 describe("FrameToVideoNode — numbers frames contiguously despite gaps", () => {
-  it("skips empty frames without leaving holes in the PNG sequence", async () => {
-    const writeSpy = vi.spyOn(fs, "writeFile").mockResolvedValue(undefined);
-    try {
-      const img = (bytes: number[]) => ({
-        type: "image",
-        data: Buffer.from(new Uint8Array(bytes)).toString("base64")
-      });
-      const node = new FrameToVideoNode();
-      // Middle frame is empty (no data) and must be skipped, but the two valid
-      // frames should still be written as frame_000001 and frame_000002.
-      node.assign({
-        frame: [img([1, 2, 3]), { type: "image", data: "" }, img([4, 5, 6])],
-        fps: 24
-      });
-      // The mocked ffmpeg always fails, so the node throws — the assertions
-      // below only inspect the frame files written beforehand.
-      await expect(node.process()).rejects.toThrow(
-        "Combining frames into a video failed"
-      );
-
-      const frameWrites = writeSpy.mock.calls
-        .map((c) => String(c[0]))
-        .filter((p) => p.includes("frame_"))
-        .map((p) => path.basename(p))
-        .sort();
-      expect(frameWrites).toEqual(["frame_000001.png", "frame_000002.png"]);
-    } finally {
-      writeSpy.mockRestore();
-    }
+  it("skips empty frames instead of sending them to the encoder", async () => {
+    const img = (bytes: number[]) => ({
+      type: "image",
+      data: Buffer.from(new Uint8Array(bytes)).toString("base64")
+    });
+    const node = new FrameToVideoNode();
+    // The middle frame is empty (no data) and must be skipped; the two valid
+    // frames still reach the encoder.
+    node.assign({
+      frame: [img([1, 2, 3]), { type: "image", data: "" }, img([4, 5, 6])],
+      fps: 24
+    });
+    // The faked encoder fails at the end, so the node throws.
+    await expect(node.process()).rejects.toThrow("Combining frames into a video failed");
+    const encoder = mediaCalls.find((call) => call.fn === "openVideoFrameEncoder");
+    expect(encoder).toMatchObject({ input: "png", frames: 2 });
   });
 
-  it("feeds in-flight raw-RGBA frames through the rawvideo demuxer, not image2", async () => {
-    const writeSpy = vi.spyOn(fs, "writeFile").mockResolvedValue(undefined);
-    try {
-      // A raw-RGBA ref carries uncompressed pixels — writing them as PNG makes
-      // ffmpeg fail with "Invalid PNG signature". They must go through rawvideo.
-      const rawFrame = (w: number, h: number) => ({
-        type: "image",
-        mimeType: "image/x-raw-rgba",
-        width: w,
-        height: h,
-        data: new Uint8Array(w * h * 4).fill(0x0a)
-      });
-      const node = new FrameToVideoNode();
-      node.assign({ frame: [rawFrame(2, 2), rawFrame(2, 2)], fps: 30 });
-      await expect(node.process()).rejects.toThrow(
-        "Combining frames into a video failed"
-      );
+  it("feeds in-flight raw-RGBA frames to the encoder as raw pixels, not images", async () => {
+    // A raw-RGBA ref carries uncompressed pixels — decoding them as PNG fails
+    // with "Invalid PNG signature". They must go in as raw RGBA.
+    const rawFrame = (w: number, h: number) => ({
+      type: "image",
+      mimeType: "image/x-raw-rgba",
+      width: w,
+      height: h,
+      data: new Uint8Array(w * h * 4).fill(0x0a)
+    });
+    const node = new FrameToVideoNode();
+    node.assign({ frame: [rawFrame(2, 2), rawFrame(2, 2)], fps: 30 });
+    await expect(node.process()).rejects.toThrow("Combining frames into a video failed");
 
-      const args = ffmpegArgString();
-      expect(args).toContain("rawvideo");
-      expect(args).toContain("rgba");
-      expect(args).toContain("2x2");
-      // Must NOT route raw pixels through the PNG image2 demuxer.
-      expect(args).not.toContain("frame_%06d.png");
-    } finally {
-      writeSpy.mockRestore();
-    }
+    const args = ffmpegArgString();
+    expect(args).toContain("rawvideo");
+    expect(args).toContain("rgba");
+    expect(args).toContain("2x2");
+    expect(args).not.toContain("image2pipe");
   });
 });
 
@@ -844,15 +713,15 @@ describe("ConcatVideoNode — flattens list inputs", () => {
     const result = await node.process();
 
     expect(Array.from(outputBytes(result))).toEqual([1, 2, 3, 4]);
-    // Single resolved part → fast path, no ffmpeg invocation.
-    expect(ffmpegCalls()).toHaveLength(0);
+    // Single resolved part → fast path, no edit at all.
+    expect(mediaCalls).toHaveLength(0);
   });
 
   it("concatenates a list of multiple videos from one input", async () => {
     const node = new ConcatVideoNode();
     node.setDynamic("videos", [videoRef([1, 2]), videoRef([3, 4])]);
 
-    // ffmpeg is mocked to throw, but the concat demuxer must be invoked,
+    // The faked join throws, but the join must be invoked,
     // proving the list was flattened into multiple parts.
     await expect(node.process()).rejects.toThrow(/Concatenating videos failed/);
     expect(ffmpegArgString()).toContain("concat");

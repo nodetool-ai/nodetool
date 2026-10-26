@@ -11,7 +11,9 @@ import {
   FFmpegError,
   FilterAPI,
   FilterComplexAPI,
-  Frame
+  Frame,
+  type IRational,
+  type Stream
 } from "node-av";
 
 import { abortError, throwIfAborted } from "./av.js";
@@ -20,8 +22,21 @@ import { openDecodedStream, type DecodedStream, type MediaKind } from "./decode.
 /** Filtered frames from an open graph. Each frame is the caller's to free. */
 export interface FilterRun {
   frames(): AsyncGenerator<Frame>;
+  /** The output's frame rate once a frame has come out, or null when it has none. */
+  frameRate(): IRational | null;
   /** Stop the run and free the graph and every decoder. */
   close(): Promise<void>;
+}
+
+/**
+ * A video stream's frame rate, the hint the CLI gave its buffer source so
+ * the encoder learns the output rate. Null for audio or an unknown rate.
+ */
+export function streamFrameRate(stream: Stream): IRational | null {
+  for (const rate of [stream.avgFrameRate, stream.rFrameRate]) {
+    if (rate.num > 0 && rate.den > 0) return { num: rate.num, den: rate.den };
+  }
+  return null;
 }
 
 /** Decoded frames followed by the end-of-stream marker a filter needs to flush. */
@@ -33,6 +48,7 @@ async function* withEndOfStream(frames: AsyncIterable<Frame>): AsyncGenerator<Fr
 function filterRun(
   produce: () => AsyncGenerator<Frame | null>,
   release: () => Promise<void>,
+  frameRate: () => IRational | null,
   signal: AbortSignal | undefined
 ): FilterRun {
   let active: AsyncGenerator<Frame> | null = null;
@@ -59,6 +75,10 @@ function filterRun(
       if (active) throw new Error("A filter run can be iterated once");
       active = frames();
       return active;
+    },
+    frameRate(): IRational | null {
+      const rate = frameRate();
+      return rate && rate.num > 0 && rate.den > 0 ? rate : null;
     },
     async close(): Promise<void> {
       if (closed) return;
@@ -87,7 +107,10 @@ export async function openFilterGraph(opts: {
   if (!decoded) return null;
   let graph: FilterAPI;
   try {
-    graph = FilterAPI.create(opts.filter, { signal: opts.signal });
+    graph = FilterAPI.create(opts.filter, {
+      framerate: opts.kind === "video" ? (streamFrameRate(decoded.stream) ?? undefined) : undefined,
+      signal: opts.signal
+    });
   } catch (error) {
     await decoded.close();
     throw error;
@@ -98,6 +121,7 @@ export async function openFilterGraph(opts: {
       await decoded.close();
       graph.close();
     },
+    () => graph.frameRate,
     opts.signal
   );
 }
@@ -256,7 +280,9 @@ export async function openFilterComplex(opts: {
       }
       decoded.push(stream);
     }
+    const firstVideo = opts.inputs.findIndex((input) => input.kind === "video");
     const graph = FilterComplexAPI.create(opts.graph, {
+      framerate: firstVideo >= 0 ? (streamFrameRate(decoded[firstVideo]!.stream) ?? undefined) : undefined,
       inputs: opts.inputs.map((input) => ({ label: input.label })),
       outputs: [
         {
@@ -273,6 +299,7 @@ export async function openFilterComplex(opts: {
         for (const stream of decoded) await stream.close();
         graph.close();
       },
+      () => graph.frameRate,
       opts.signal
     );
   } catch (error) {

@@ -8,6 +8,11 @@
  *
  *   vi.mock("@nodetool-ai/runtime/media", async (importOriginal) =>
  *     (await import("./_fixtures/fake-media.js")).fakeMediaModule(await importOriginal()));
+ *
+ * Tests of the video.ts editing nodes pass `{ edits: true }`: transformMedia,
+ * concatCopy, openFilterGraph and openVideoFrameEncoder are then recorded too,
+ * described in the CLI's terms (`-vf`, `-filter_complex`, `-c copy`), and the
+ * edits fail unless `fakeEdits.fail` is false.
  */
 
 import fs from "node:fs";
@@ -15,7 +20,9 @@ import path from "node:path";
 
 import type {
   ConcatSegment,
-  FilterComplexInput
+  FilterComplexInput,
+  StreamPlan,
+  TransformInput
 } from "@nodetool-ai/runtime/media";
 
 export type MediaCall =
@@ -30,7 +37,17 @@ export type MediaCall =
   | { fn: "openFilterComplex"; inputs: FilterComplexInput[]; graph: string }
   | { fn: "muxAudioWithVideoCopy"; videoPath: string; outPath: string; codec: string }
   | { fn: "decodeAudioToPcm"; filePath: string; filter?: string; sampleRate: number }
-  | { fn: "probeMedia"; filePath: string };
+  | { fn: "probeMedia"; filePath: string }
+  | { fn: "transformMedia"; args: string }
+  | { fn: "concatCopy"; inputPaths: string[] }
+  | { fn: "openFilterGraph"; filter: string }
+  | {
+      fn: "openVideoFrameEncoder";
+      input: string;
+      width?: number;
+      height?: number;
+      frames: number;
+    };
 
 export const mediaCalls: MediaCall[] = [];
 
@@ -46,7 +63,15 @@ export const fakeEncoders: { names: string[] | null } = { names: null };
 /** PCM `decodeAudioToPcm` returns, mono at the requested rate. */
 export const fakePcm = { samples: new Float32Array(0) };
 
+/**
+ * With `fakeMediaModule(original, { edits: true })`: whether the faked edit
+ * calls (transformMedia, concatCopy) fail, as the CLI mock that never ran
+ * ffmpeg did, or write a placeholder output.
+ */
+export const fakeEdits = { fail: true };
+
 export function resetFakeMedia(): void {
+  fakeEdits.fail = true;
   mediaCalls.length = 0;
   fakeProbe.durationSec = 4;
   fakeProbe.hasAudio = true;
@@ -74,6 +99,14 @@ export function mediaArgString(): string {
           return call.filter ?? "";
         case "probeMedia":
           return "";
+        case "transformMedia":
+          return call.args;
+        case "concatCopy":
+          return `-f concat ${call.inputPaths.join(" ")} -c copy`;
+        case "openFilterGraph":
+          return `-vf ${call.filter}`;
+        case "openVideoFrameEncoder":
+          return `-f ${call.input === "rgba" ? `rawvideo -pix_fmt rgba -s ${call.width}x${call.height}` : "image2pipe"}`;
       }
     })
     .join("\n");
@@ -93,8 +126,88 @@ export function concatCall(): Extract<MediaCall, { fn: "concatSegments" }> | und
   );
 }
 
-export function fakeMediaModule(original: Record<string, unknown>): Record<string, unknown> {
+/** One stream plan in the CLI's terms, for `toContain` checks. */
+function describePlan(kind: "v" | "a", plan: StreamPlan | null): string {
+  if (!plan) return kind === "v" ? "-vn" : "-an";
+  if ("copy" in plan) return `-map ${plan.copy}:${kind} -c:${kind} copy`;
+  if ("graph" in plan) return `-filter_complex ${plan.graph} -map [${plan.output}]`;
+  return `-map ${plan.input ?? 0}:${kind} -${kind}f ${plan.filter}`;
+}
+
+function describeInput(input: TransformInput): string {
+  const seek = input.seekSec ? `-ss ${input.seekSec} ` : "";
+  const to = input.toSec !== undefined ? `-to ${input.toSec} ` : "";
+  return `${seek}${to}-i ${input.filePath}`;
+}
+
+/** The edit fakes `fakeMediaModule` adds with `{ edits: true }`. */
+function editFakes(): Record<string, unknown> {
   return {
+    transformMedia: async (opts: {
+      inputs: TransformInput[];
+      outPath: string;
+      video: StreamPlan | null;
+      audio: StreamPlan | null;
+      shortest?: boolean;
+    }) => {
+      mediaCalls.push({
+        fn: "transformMedia",
+        args: [
+          ...opts.inputs.map(describeInput),
+          describePlan("v", opts.video),
+          describePlan("a", opts.audio),
+          opts.shortest ? "-shortest" : ""
+        ]
+          .filter(Boolean)
+          .join(" ")
+      });
+      if (fakeEdits.fail) throw new Error("fake media: no real execution");
+      fs.writeFileSync(opts.outPath, `fake:${opts.outPath}`);
+    },
+    concatCopy: async (opts: { inputPaths: string[]; outPath: string }) => {
+      mediaCalls.push({ fn: "concatCopy", inputPaths: opts.inputPaths });
+      if (fakeEdits.fail) throw new Error("fake media: no real execution");
+      fs.writeFileSync(opts.outPath, `fake:${opts.outPath}`);
+    },
+    openFilterGraph: async (opts: { filter: string }) => {
+      mediaCalls.push({ fn: "openFilterGraph", filter: opts.filter });
+      return {
+        // eslint-disable-next-line require-yield -- a graph that passes no frame
+        async *frames() {
+          return;
+        },
+        frameRate: () => null,
+        close: async () => {}
+      };
+    },
+    openVideoFrameEncoder: async (opts: { input: string; width?: number; height?: number; outPath: string }) => {
+      const call: Extract<MediaCall, { fn: "openVideoFrameEncoder" }> = {
+        fn: "openVideoFrameEncoder",
+        input: opts.input,
+        width: opts.width,
+        height: opts.height,
+        frames: 0
+      };
+      mediaCalls.push(call);
+      return {
+        write: async () => {
+          call.frames += 1;
+        },
+        finish: async () => {
+          if (fakeEdits.fail) throw new Error("fake media: no real execution");
+          fs.writeFileSync(opts.outPath, `fake:${opts.outPath}`);
+        },
+        abort: async () => {}
+      };
+    }
+  };
+}
+
+export function fakeMediaModule(
+  original: Record<string, unknown>,
+  options: { edits?: boolean } = {}
+): Record<string, unknown> {
+  const faked: Record<string, unknown> = {
     ...original,
     hasEncoder: async (name: string) =>
       fakeEncoders.names
@@ -155,9 +268,9 @@ export function fakeMediaModule(original: Record<string, unknown>): Record<strin
         outPath: opts.outPath,
         codec: opts.codec
       });
-      for await (const _ of opts.audio) {
-        // Drain the fake mix.
-      }
+      // Drain the fake mix.
+      const mix = opts.audio[Symbol.asyncIterator]();
+      while (!(await mix.next()).done);
       fs.writeFileSync(opts.outPath, `fake:${opts.outPath}`);
     },
     decodeAudioToPcm: async (
@@ -173,4 +286,5 @@ export function fakeMediaModule(original: Record<string, unknown>): Record<strin
       return { samples: fakePcm.samples, sampleRate: options.sampleRate, channels: 1 };
     }
   };
+  return options.edits ? { ...faked, ...editFakes() } : faked;
 }

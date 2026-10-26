@@ -6,9 +6,11 @@
  */
 
 import {
+  AV_NOPTS_VALUE,
   AV_PIX_FMT_RGBA,
   AV_SAMPLE_FMT_FLT,
   avChannelLayoutDefault,
+  Demuxer,
   Encoder,
   FilterAPI,
   Frame,
@@ -23,6 +25,7 @@ import {
   openFileMuxer,
   quietLibav,
   rationalFor,
+  startTimeSeconds,
   throwIfAborted
 } from "./av.js";
 import { openFilterGraph } from "./filter-graph.js";
@@ -279,6 +282,77 @@ export async function concatSegments(opts: {
   } finally {
     videoEncoder?.close();
     audioEncoder?.close();
+    await output.close();
+  }
+}
+
+/**
+ * Join files whose streams share codec, size and rate without re-encoding:
+ * the in-process form of the concat demuxer with `-c copy`. Each file's
+ * packets follow the previous file's, offset by where that file ended. The
+ * output takes its stream parameters from the first file.
+ */
+export async function concatCopy(opts: {
+  inputPaths: string[];
+  outPath: string;
+  signal?: AbortSignal;
+}): Promise<void> {
+  const { signal } = opts;
+  throwIfAborted(signal);
+  quietLibav();
+  if (opts.inputPaths.length === 0) throw new Error("Nothing to join");
+  const output = await openFileMuxer(opts.outPath, { signal });
+  try {
+    let outVideo = -1;
+    let outAudio = -1;
+    let offsetSec = 0;
+    for (const [fileIndex, inputPath] of opts.inputPaths.entries()) {
+      const demuxer = await Demuxer.open(inputPath, { signal });
+      try {
+        const video = demuxer.video();
+        const audio = demuxer.audio();
+        if (fileIndex === 0) {
+          if (video) outVideo = output.muxer.addStream(video);
+          if (audio) outAudio = output.muxer.addStream(audio);
+        }
+        const formatStart = startTimeSeconds(demuxer.getFormatContext().startTime, {
+          num: 1,
+          den: 1_000_000
+        });
+        let fileEnd = 0;
+        for await (const packet of demuxer.packets()) {
+          if (!packet) continue;
+          try {
+            if (signal?.aborted) throw abortError(signal);
+            const target =
+              video && packet.streamIndex === video.index
+                ? outVideo
+                : audio && packet.streamIndex === audio.index
+                  ? outAudio
+                  : -1;
+            if (target < 0) continue;
+            const timeBase = packet.timeBase;
+            const shift = BigInt(Math.round(((offsetSec - formatStart) * timeBase.den) / timeBase.num));
+            if (packet.pts !== AV_NOPTS_VALUE) {
+              fileEnd = Math.max(
+                fileEnd,
+                (Number(packet.pts + packet.duration) * timeBase.num) / timeBase.den - formatStart
+              );
+              packet.pts += shift;
+            }
+            if (packet.dts !== AV_NOPTS_VALUE) packet.dts += shift;
+            await output.muxer.writePacket(packet, target);
+          } finally {
+            packet.free();
+          }
+        }
+        offsetSec += fileEnd;
+      } finally {
+        await demuxer.close();
+      }
+    }
+    await output.close();
+  } finally {
     await output.close();
   }
 }

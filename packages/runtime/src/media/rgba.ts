@@ -4,7 +4,9 @@
  */
 
 import {
+  AV_CODEC_ID_MJPEG,
   AV_CODEC_ID_PNG,
+  AV_CODEC_ID_WEBP,
   AV_PIX_FMT_RGBA,
   Codec,
   CodecContext,
@@ -12,7 +14,8 @@ import {
   FilterAPI,
   Frame,
   Packet,
-  Rational
+  Rational,
+  type AVCodecID
 } from "node-av";
 
 import {
@@ -159,7 +162,7 @@ export interface VideoEncoderSpec {
 
 /** A running encode that turns written frames into a finished file. */
 export interface VideoFrameEncoder {
-  /** One frame: packed RGBA8 at the encoder's size, or one PNG file. */
+  /** One frame: packed RGBA8 at the encoder's size, or one PNG, JPEG or WebP file. */
   write(frame: Uint8Array): Promise<void>;
   /** Flush the encoder and finalize the file. */
   finish(): Promise<void>;
@@ -167,48 +170,69 @@ export interface VideoFrameEncoder {
   abort(): Promise<void>;
 }
 
-/** Decodes standalone PNG files, one packet per file. */
-class PngDecoder {
-  private readonly context = new CodecContext();
+/** The decoder for an image file's bytes: PNG, JPEG or WebP. */
+function imageCodecId(bytes: Uint8Array): AVCodecID {
+  if (bytes[0] === 0xff && bytes[1] === 0xd8) return AV_CODEC_ID_MJPEG;
+  if (
+    Buffer.from(bytes.subarray(0, 4)).toString("latin1") === "RIFF" &&
+    Buffer.from(bytes.subarray(8, 12)).toString("latin1") === "WEBP"
+  ) {
+    return AV_CODEC_ID_WEBP;
+  }
+  return AV_CODEC_ID_PNG;
+}
+
+/**
+ * Decodes standalone image files, one packet per file, as the image2 demuxer
+ * read them. Each file gets a fresh decoder: libav's PNG decoder keeps the
+ * last row of the previous image and applies it to the first row of the next
+ * when the size is unchanged, so one context adds each frame onto the last.
+ */
+class ImageDecoder {
   private readonly packet = new Packet();
-  private opened = false;
+  private allocated = false;
 
   async decode(bytes: Uint8Array): Promise<Frame> {
-    if (!this.opened) {
-      const codec = Codec.findDecoder(AV_CODEC_ID_PNG);
-      if (!codec) throw new Error("This libav build has no PNG decoder");
-      this.context.allocContext3(codec);
-      const opened = await this.context.open2(codec, null);
-      if (opened < 0) throw new Error(`Could not open the PNG decoder (${opened})`);
-      this.packet.alloc();
-      this.opened = true;
+    const id = imageCodecId(bytes);
+    const codec = Codec.findDecoder(id);
+    if (!codec) throw new Error(`This libav build has no ${id} image decoder`);
+    const context = new CodecContext();
+    context.allocContext3(codec);
+    try {
+      const opened = await context.open2(codec, null);
+      if (opened < 0) throw new Error(`Could not open the ${codec.name} decoder (${opened})`);
+      if (!this.allocated) {
+        this.packet.alloc();
+        this.allocated = true;
+      }
+      this.packet.data = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+      const sent = await context.sendPacket(this.packet);
+      this.packet.unref();
+      if (sent < 0) throw new Error(`The image decoder refused a frame (${sent})`);
+      const frame = new Frame();
+      frame.alloc();
+      const received = await context.receiveFrame(frame);
+      if (received < 0) {
+        frame.free();
+        throw new Error(`The image decoder returned no picture (${received})`);
+      }
+      return frame;
+    } finally {
+      context.freeContext();
     }
-    this.packet.data = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-    const sent = await this.context.sendPacket(this.packet);
-    this.packet.unref();
-    if (sent < 0) throw new Error(`The PNG decoder refused a frame (${sent})`);
-    const frame = new Frame();
-    frame.alloc();
-    const received = await this.context.receiveFrame(frame);
-    if (received < 0) {
-      frame.free();
-      throw new Error(`The PNG decoder returned no picture (${received})`);
-    }
-    return frame;
   }
 
   free(): void {
-    if (!this.opened) return;
-    this.packet.free();
-    this.context.freeContext();
-    this.opened = false;
+    if (this.allocated) this.packet.free();
+    this.allocated = false;
   }
 }
 
 /**
  * Encode frames written at `fps` into `outPath`, the in-process form of
  * `ffmpeg -f rawvideo -pix_fmt rgba -s WxH -r FPS -i pipe:0 <args> out` (and of
- * `-f image2pipe -c:v png` for `input: "png"`). Frames are converted by the
+ * `-f image2pipe` for `input: "png"`, which also takes JPEG and WebP files).
+ * Frames are converted by the
  * spec's filter and then to its pixel format, as the CLI's `-vf` and
  * `-pix_fmt` did.
  */
@@ -239,7 +263,7 @@ export async function openVideoFrameEncoder(opts: {
   let encoder: Encoder | null = null;
   let output: FileMuxer | null = null;
   let streamIndex = -1;
-  const png = opts.input === "png" ? new PngDecoder() : null;
+  const png = opts.input === "png" ? new ImageDecoder() : null;
   let index = 0;
   let failure: unknown = null;
   let done = false;
