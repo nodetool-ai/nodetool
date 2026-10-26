@@ -1,6 +1,7 @@
 #pragma once
 #include "preview/LayerSource.h"
 #include "preview/SceneEval.h"
+#include <QMargins>
 #include <functional>
 #include <cstdint>
 
@@ -27,6 +28,9 @@ class LayerEffectStage {
 public:
     virtual ~LayerEffectStage() = default;
     virtual bool applies(const QJsonObject& ext) const = 0;
+    // Nonnegative source pixels added on each side of this stage output.
+    // Input size includes any preceding stages' outsets.
+    virtual QMargins outset(const QJsonObject&, QSize) const { return {}; }
     // Record a complete pass into output, reading input without modifying it.
     // Handle the input format and flipV. Output is premultiplied RGBA8 with
     // framebuffer orientation. Retain resources through their last GPU use.
