@@ -1,4 +1,3 @@
-// nt-panel: slot=right id=inspectorTransition order=60 title="Transition"
 import QtQuick
 import NodeTool.Timeline
 import "primitives"
@@ -7,8 +6,9 @@ import "primitives/InspectorPrimitivesHelpers.js" as Helpers
 Item {
     id: root
     objectName: "inspectorTransition"
-    property var timelineModel: typeof timeline !== "undefined" ? timeline : null
-    property var gestures: typeof tracksRegion !== "undefined" ? tracksRegion.gestures : null
+    property var timelineModel: null
+    property var gestures: null
+    property var controller: null
     readonly property var selectedIds: gestures ? gestures.selection : []
     readonly property var document: edits.document
     readonly property var clip: {

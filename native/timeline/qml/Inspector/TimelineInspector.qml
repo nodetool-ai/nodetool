@@ -6,6 +6,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import NodeTool.Timeline
+import "../../src/edit/inspectorsections" as Sections
 Rectangle {
     id: root
     objectName: "timelineInspector"
@@ -46,7 +47,10 @@ Rectangle {
         clock: root.editor ? root.editor.clock : null
         clipId: root.selection.length === 1 ? root.selection[0] : ""
     }
+    readonly property var timelineModel: inspector.timeline
+    readonly property bool groupSelected: inspector.clip.mediaType === "group"
     Flickable {
+        objectName: "inspectorViewport"
         anchors.fill: parent
         anchors.leftMargin: Theme.spacingLg
         anchors.rightMargin: Theme.spacingLg
@@ -57,10 +61,10 @@ Rectangle {
         Column {
             id: content
             width: parent.width
-            InspectorHeader { width: parent.width; visible: !inspector.clip.id; eyebrow: "Inspector" }
+            InspectorHeader { width: parent.width; visible: root.selection.length === 0; eyebrow: "Inspector" }
             Column {
                 width: parent.width
-                visible: !inspector.clip.id
+                visible: root.selection.length === 0
                 topPadding: Theme.spacingXl
                 spacing: Theme.spacingMd
                 Text { width: parent.width; text: "No selection"; horizontalAlignment: Text.AlignHCenter; color: Theme.textPrimary; font.family: Theme.sansFamily; font.pixelSize: Theme.fontSizeSmall }
@@ -68,23 +72,81 @@ Rectangle {
             }
             Column {
                 width: parent.width
-                visible: !!inspector.clip.id
-                spacing: Theme.spacingXs
-                ClipIdentityCard {
+                visible: root.selection.length > 1
+                spacing: Theme.spacingMd
+                InspectorHeader {
+                    objectName: "multiSelectionHeader"
                     width: parent.width
-                    name: inspector.clip.name || ""
-                    metadata: {
-                        const clip = inspector.clip
-                        if (!clip.id) return []
-                        const type = clip.mediaType || ""
-                        const parts = [type.charAt(0).toUpperCase()+type.slice(1),(clip.durationMs/1000).toFixed(clip.durationMs < 10000 ? 2 : 1)+"s"]
-                        if (clip.width && clip.height) parts.push(clip.width+"×"+clip.height)
-                        return parts
+                    eyebrow: root.selection.length + " clips"
+                    actions: [{icon:"⌫", label:"Delete selection", variant:"danger"}]
+                    onActionTriggered: label => {
+                        if (label === "Delete selection" && root.timelineModel) root.timelineModel.applyEdit("deleteSelected", {selectedIds:root.selection})
                     }
-                    accentColor: Theme.clipAccent(inspector.clip.mediaType || "video")
+                }
+                Column {
+                    x: Theme.spacingMicro
+                    width: parent.width - x * 2
+                    spacing: Theme.spacingMd
+                    Sections.InspectorActionButton {
+                        objectName: "groupSelectedClips"
+                        text: "Group selected clips"
+                        onClicked: { if (root.timelineModel) root.timelineModel.applyEdit("groupClips", {selectedIds:root.selection, linked:!root.gestures || root.gestures.linkedSelection !== false}) }
+                    }
+                    Text {
+                        objectName: "groupSelectionHelp"
+                        width: parent.width
+                        text: "Grouping parents these clips to one group clip: it moves, trims and fades them together. Per-field editing of several clips at once is not yet supported."
+                        color: Theme.textSecondary
+                        font.family: Theme.sansFamily
+                        font.pixelSize: Theme.fontSizeSmall
+                        wrapMode: Text.WordWrap
+                    }
+                }
+            }
+            ClipIdentityCard {
+                objectName: "clipIdentityCard"
+                width: parent.width
+                visible: !!inspector.clip.id
+                name: inspector.clip.name || ""
+                metadata: {
+                    const clip = inspector.clip
+                    if (!clip.id) return []
+                    const type = clip.mediaType || ""
+                    const parts = [type.charAt(0).toUpperCase()+type.slice(1),(clip.durationMs/1000).toFixed(clip.durationMs < 10000 ? 2 : 1)+"s"]
+                    if (clip.width && clip.height) parts.push(clip.width+"×"+clip.height)
+                    return parts
+                }
+                accentColor: Theme.clipAccent(inspector.clip.mediaType || "video")
+            }
+            // Keep section instances alive without a selection. Extension
+            // sections own their selection logic, including a zero height.
+            Column {
+                width: parent.width
+                visible: !!inspector.clip.id && !root.groupSelected
+                spacing: Theme.spacingXs
+                Sections.RegisteredInspectorSections {
+                    width: parent.width
+                    beforeRender: true
+                    timelineModel: root.timelineModel
+                    gestures: root.gestures
+                    controller: inspector
                 }
                 MotionFields { width: parent.width; controller: inspector }
+                Sections.RegisteredInspectorSections {
+                    width: parent.width
+                    beforeRender: false
+                    timelineModel: root.timelineModel
+                    gestures: root.gestures
+                    controller: inspector
+                }
                 KeyframeAnimations { width: parent.width; controller: inspector }
+            }
+            Sections.ClipGroupPanel {
+                width: parent.width
+                visible: !!inspector.clip.id && root.groupSelected
+                timelineModel: root.timelineModel
+                gestures: root.gestures
+                controller: inspector
             }
         }
     }

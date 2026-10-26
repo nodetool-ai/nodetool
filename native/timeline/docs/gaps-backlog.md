@@ -47,6 +47,8 @@ run machine. "Package P1" and "package P2" are plan packages, not severities.
 | B37 | P2 | wave3-data-safety F4 | `src/server/AutosaveController.cpp:61` | The 750 ms autosave can fire during a drag and send the gesture's uncommitted preview. A cancelled gesture restores the press state with `replaceClips`, which schedules no save, so the server keeps the cancelled transform while the status shows Saved. | PX |
 | B38 | P2 | wave3-data-safety F5 | `src/audio/AudioEngine.cpp:116` | The baselined race V-TSAN-1 on `deviceStopped` is still open after K merged: a plain `bool` written on the main thread and read on the miniaudio worker, hidden by the `onNotification` suppression in `tools/sanitizers/tsan.supp`. | S2 (owns `AudioEngine.*`) |
 | B39 | P2 | wave3-data-safety F6 | `src/main.cpp:909` | A timeline opened from a local `.json` file accepts every edit but is never saved, and closing the window discards the edits without a prompt. The web asks before a dirty document closes. | S2 (owns `main.cpp`) |
+| B40 | P2 | pkg-PX-r1 F1 | `qml/Inspector/TimelineInspector.qml:125` | Selecting a group hides `MotionFields` and `KeyframeAnimations`, and `ClipGroupPanel` supplies only Group and Timing, so group transforms, opacity and animations cannot be edited. The web group panel keeps `ClipAdjustments` and `ClipAnimations`. | PX |
+| B41 | P2 | pkg-PX-r1 F2 | `src/server/AutosaveController.cpp:206` | Restore only applies the recovered JSON, so an asset absent from the current load (its last clip deleted in another session) returns with empty media and audio paths until a reload. Recovered media must be resolved and registered before the document is applied. | PX |
 
 ## Closed
 

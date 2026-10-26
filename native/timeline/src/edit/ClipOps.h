@@ -9,9 +9,9 @@
 // and a randomized differential against these functions.
 //
 // An operation that cannot go ahead throws `OpError`, as the TypeScript one
-// throws `Error`. Two kinds of input are refused natively although the web
-// accepts them, and the message says so: keyframe and source-anchored custom
-// animations on a split or trim (their curve slicing is not ported).
+// throws `Error`. Splits slice keyframe and source-anchored custom curves
+// onto each half. Trims re-slice source-anchored curves and leave clip-based
+// curves to stretch with the clip.
 
 #include <QJsonObject>
 #include <QString>
