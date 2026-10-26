@@ -31,11 +31,14 @@ const QJsonObject* find(const ClipList& clips, const QString& id) {
 }
 
 QJsonArray sourceAnchoredAnimation() {
+    const QJsonArray keyframes{QJsonObject{{"t", 0}, {"value", 0}, {"sourceMs", 0}},
+                              QJsonObject{{"t", 1}, {"value", 1}, {"sourceMs", 4000}}};
     return {QJsonObject{{"id", "anim"},
                         {"role", "emphasis"},
                         {"preset", "custom"},
                         {"custom", QJsonObject{{"timeBase", "source"},
-                                               {"curves", QJsonArray{QJsonObject{{"property", "opacity"}}}}}}}};
+                                               {"curves", QJsonArray{QJsonObject{{"property", "opacity"},
+                                                                                {"keyframes", keyframes}}}}}}}};
 }
 
 }  // namespace
@@ -50,15 +53,64 @@ private slots:
         video.insert("linkId", "L");
         QJsonObject audio = clip("a", "a1", 0, 2000, "audio");
         audio.insert("linkId", "L");
-        audio.insert("animations", sourceAnchoredAnimation());  // the native split refuses it
+        // The web and native split both refuse a time-remapped member.
+        audio.insert("timeRemap", QJsonObject{{"keyframes", QJsonArray{QJsonObject{{"t", 0}, {"sourceMs", 0}}}}});
         const EditDoc doc = docOf({video, audio});
         QCOMPARE(splitClipAtTime(doc, "v", 1000), doc.clips);
         QCOMPARE(splitSelectedAtPlayhead(doc, 1000, {"v"}).clips, doc.clips);
         QCOMPARE(splitSelectedAtPlayhead(doc, 1000, {}).clips, doc.clips);
-        // Without the refusal both halves of the unit split, with fresh links.
-        audio.remove("animations");
+        // Without the time remap both halves of the unit split, with fresh links.
+        audio.remove("timeRemap");
         const ClipList split = splitClipAtTime(docOf({video, audio}), "v", 1000);
         QCOMPARE(split.size(), size_t(4));
+    }
+
+    void aLinkedUnitSplitsSourceAnchoredAudioCurves() {
+        QJsonObject video = clip("v", "v1", 0, 2000);
+        video.insert("linkId", "L");
+        QJsonObject audio = clip("a", "a1", 0, 2000, "audio");
+        audio.insert("linkId", "L");
+        audio.insert("inPointMs", 500);
+        audio.insert("outPointMs", 2500);
+        audio.insert("animations", sourceAnchoredAnimation());
+        const ClipList split = splitClipAtTime(docOf({video, audio}), "v", 1000);
+        QCOMPARE(split.size(), size_t(4));
+
+        for (const QString& track : {QStringLiteral("v1"), QStringLiteral("a1")}) {
+            for (const double startMs : {0.0, 1000.0}) {
+                const QJsonObject* half = nullptr;
+                for (const auto& c : split) {
+                    if (clipTrackId(c) == track && clipStartMs(c) == startMs) {
+                        half = &c;
+                    }
+                }
+                QVERIFY(half);
+                QCOMPARE(clipDurationMs(*half), 1000.0);
+                if (track == u"v1") {
+                    continue;
+                }
+
+                const double fromMs = 500 + startMs;
+                const double toMs = 1500 + startMs;
+                QCOMPARE(half->value(u"inPointMs").toDouble(), fromMs);
+                QCOMPARE(half->value(u"outPointMs").toDouble(), toMs);
+                const QJsonArray animations = half->value(u"animations").toArray();
+                QCOMPARE(animations.size(), 1);
+                const QJsonObject animation = animations.first().toObject();
+                QCOMPARE(animation.value(u"custom").toObject().value(u"timeBase").toString(), QStringLiteral("source"));
+                const QJsonArray curves = animation.value(u"custom").toObject().value(u"curves").toArray();
+                QCOMPARE(curves.size(), 1);
+                const QJsonObject curve = curves.first().toObject();
+                QCOMPARE(curve.value(u"property").toString(), QStringLiteral("opacity"));
+                const QJsonArray keyframes = curve.value(u"keyframes").toArray();
+                // sourceCurves.ts interpolates linearly and normalizes t to each source window.
+                const QJsonArray expected{QJsonObject{{"t", 0}, {"value", fromMs / 4000}, {"sourceMs", fromMs}},
+                                          QJsonObject{{"t", 1}, {"value", toMs / 4000}, {"sourceMs", toMs}}};
+                QCOMPARE(keyframes, expected);
+                QCOMPARE(keyframes.first().toObject().value(u"sourceMs"), half->value(u"inPointMs"));
+                QCOMPARE(keyframes.last().toObject().value(u"sourceMs"), half->value(u"outPointMs"));
+            }
+        }
     }
 
     // F4: a drop never splits or removes a clip that owns a media track (its
