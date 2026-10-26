@@ -15,6 +15,13 @@ function(nt_wiring_tests)
         -DNT_DISCOVERY=${CMAKE_CURRENT_SOURCE_DIR}/src/app/QmlDiscovery.cmake
         -DNT_TEST_DIR=${CMAKE_CURRENT_BINARY_DIR}/wiring-marker-test
         -P ${CMAKE_CURRENT_SOURCE_DIR}/src/wiring/MarkerDiscoveryTest.cmake)
+    qt_add_executable(tst_wiringedit src/wiring/tst_wiringedit.cpp ${NT_app})
+    set_target_properties(tst_wiringedit PROPERTIES MACOSX_BUNDLE FALSE)
+    target_link_libraries(tst_wiringedit PRIVATE timeline_core timeline_decode timeline_audio timeline_server
+        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
+    nt_add_timeline_qml(tst_wiringedit OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_wiringedit_qml/NodeTool/Timeline)
+    add_test(NAME tst_wiringedit COMMAND tst_wiringedit)
+    set_tests_properties(tst_wiringedit PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
     add_test(NAME tst_wiring COMMAND tst_wiring)
     set_tests_properties(tst_wiring PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endfunction()
