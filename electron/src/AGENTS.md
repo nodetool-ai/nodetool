@@ -2,7 +2,7 @@
 
 **Navigation**: [Root AGENTS.md](../../AGENTS.md) → **Electron**
 
-> **Read [docs/DEVELOPMENT_STANDARDS.md §12 Electron Security](../../docs/DEVELOPMENT_STANDARDS.md#12-electron-39-security) first.** It is the canonical source for Electron security, IPC, sandboxing, and platform standards. The rules below are the area-specific overlay.
+> **Read [docs/DEVELOPMENT_STANDARDS.md §12 Electron Security](../../docs/DEVELOPMENT_STANDARDS.md#12-electron-security) first.** It is the canonical source for Electron security, IPC, sandboxing, and platform standards. The rules below are the area-specific overlay.
 
 Desktop application wrapping the NodeTool web UI with native capabilities (local file system, SQLite, Python/Conda integration).
 
@@ -125,7 +125,7 @@ Desktop UI in `electron/src/components/` follows [UX Guidelines](../../docs/UX_G
 
 ### Security (Critical — non-negotiable)
 
-> See [DEVELOPMENT_STANDARDS §12](../../docs/DEVELOPMENT_STANDARDS.md#12-electron-39-security) for the full checklist (CSP, auto-update signing, `setWindowOpenHandler`, sandbox flag, `webSecurity`).
+> See [DEVELOPMENT_STANDARDS §12](../../docs/DEVELOPMENT_STANDARDS.md#12-electron-security) for the full checklist (CSP, auto-update signing, `setWindowOpenHandler`, sandbox flag, `webSecurity`).
 
 - **`contextIsolation: true`** on every `BrowserWindow`. No exceptions.
 - **`nodeIntegration: false`** on every `BrowserWindow`. No exceptions.
