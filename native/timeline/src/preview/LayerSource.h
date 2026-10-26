@@ -1,7 +1,8 @@
 #pragma once
 
-// The seam between the compositor and a clip's pixels. The compositor owns one
-// LayerSource per clip and keeps it, and its textures, alive across frames.
+// The seam between the compositor and a layer's pixels. Registered and
+// synthetic sources belong to a clip and kind. Media sources live in the
+// pool. Sources and their textures stay alive through their last GPU use.
 //
 // M1a: SyntheticSource draws a test pattern on the CPU and uploads it.
 // M1b: FfmpegSource decodes on a worker thread and uploads YUV planes
@@ -18,6 +19,8 @@
 #include "preview/hw/HwInterop.h"
 
 namespace nt {
+
+struct ActiveLayer;
 
 struct LayerFrame {
     enum class Format {
@@ -45,6 +48,7 @@ struct LayerFrame {
     // Planes copied from CPU memory to the GPU for this frame (0 for a held
     // frame and for an imported hardware frame).
     int cpuCopies = 0;
+    bool flipV = false;  // sampled from a framebuffer with Y-up orientation
     bool hardware = false;  // planes are imported decoder surfaces (zero copy)
 };
 
@@ -66,6 +70,7 @@ public:
 
     // Pixel size of the source's frames. Drives the contain-fit base scale.
     virtual QSize frameSize() const = 0;
+    virtual void updateLayer(const ActiveLayer&) {}
 
     // Called on the render thread once per composited frame. Makes the
     // returned textures show the frame at `sourceTimeMs` (clip in-point plus

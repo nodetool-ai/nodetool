@@ -56,6 +56,10 @@ struct LayerTransition {
 };
 
 struct ActiveLayer {
+    QJsonObject ext;
+    // Source UV origin and extent. The rectangle also sets the layer size,
+    // as the web crop does, before contain fit and the layer transform.
+    std::array<float, 4> sourceRect{0, 0, 1, 1};
     std::string clipId;
     std::string trackId;
     std::string label;      // clip name, drawn by the synthetic source
@@ -93,6 +97,7 @@ struct ActiveLayer {
 
 // A group that composites its children before they blend (`PrecompositeLayer`).
 struct PrecompositeLayer {
+    QJsonObject ext;
     std::string clipId;
     int trackIndex = 0;
     int z = 0;
@@ -169,6 +174,10 @@ Mat4 buildTransformMatrix(const ClipTransform& transform, Vec2 base, double widt
 // moved by its cut (`transitionTransform`), contain fit, its group's matrix.
 // A caption composites frame-sized and untransformed.
 Mat4 layerDrawMatrix(const ActiveLayer& layer, int sourceWidth, int sourceHeight, int canvasWidth, int canvasHeight);
+
+// Crop size in pixels, rounded and clamped as packages/timeline/src/crop.ts.
+// The full rectangle preserves the source size unchanged.
+std::pair<int, int> croppedSourceSize(const std::array<float, 4>& sourceRect, int sourceWidth, int sourceHeight);
 
 // The contain-fit matrix of a transform with no parent (the M1a form).
 std::array<float, 16> layerMatrix(const ClipTransform& transform, int sourceWidth, int sourceHeight,

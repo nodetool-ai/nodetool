@@ -3,13 +3,16 @@
 #include "server/AssetCache.h"
 
 #include <QCryptographicHash>
+#include <QDateTime>
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QSaveFile>
 #include <QStandardPaths>
 #include <QUndoStack>
+#include <QUuid>
 
 #include <algorithm>
 #include <cstdio>
@@ -53,14 +56,14 @@ AutosaveController::AutosaveController(SaveTarget target, QUndoStack* undo, Docu
       m_client(std::make_unique<ServerClient>(m_target.server, m_target.token)) {
     m_client->setExpectedInstance(m_target.expectedInstance);
     m_ackHash = currentHash();  // the loaded content is what the server holds
+    m_committedHash = m_ackHash;
     const QString appData = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
     if (!appData.isEmpty()) m_fallbackDirs << QDir(appData).filePath(QStringLiteral("recovery"));
     m_fallbackDirs << QDir(QDir::tempPath()).filePath(QStringLiteral("nodetool-timeline-recovery"));
+    findEarlierCopies();
     m_timer.setSingleShot(true);
     m_timer.setInterval(750);  // D34
-    connect(&m_timer, &QTimer::timeout, this, [this]() {
-        if (m_autosave && dirty() && !m_conflict && !m_saving) saveNow();
-    });
+    connect(&m_timer, &QTimer::timeout, this, &AutosaveController::debounceExpired);
     m_retry.setSingleShot(true);
     connect(&m_retry, &QTimer::timeout, this, [this]() {
         if (dirty() && !m_conflict && !m_saving) saveNow();
@@ -97,6 +100,7 @@ void AutosaveController::syncClean() {
 
 void AutosaveController::documentChanged() {
     if (m_syncing) return;
+    m_committedHash = currentHash();
     syncClean();
     scheduleSave();
     emit stateChanged();
@@ -108,7 +112,118 @@ void AutosaveController::setAutosave(bool on) {
 }
 
 void AutosaveController::scheduleSave() {
-    if (m_autosave && !m_conflict) m_timer.start();  // restarts: 750 ms after the last command
+    if (m_autosave) m_timer.start();  // restarts: 750 ms after the last command
+}
+
+void AutosaveController::debounceExpired() {
+    if (!m_autosave || m_saving) return;
+    if (currentHash() != m_committedHash) {
+        // replaceClips previews emit no undo notification. Cancellation also
+        // emits none, so keep checking until the committed content returns.
+        m_timer.start();
+        return;
+    }
+    syncClean();
+    if (m_conflict) {
+        keepConflictCopy();
+    } else if (dirty()) {
+        saveNow();
+    }
+    emit stateChanged();
+}
+
+QStringList AutosaveController::copyDirs() const {
+    QStringList dirs;
+    if (!m_target.backupDir.isEmpty()) dirs << m_target.backupDir;
+    for (const auto& root : m_fallbackDirs) {
+        dirs << QDir(root).filePath(safePathPart(m_client->serverKey()) + u'/' + safePathPart(m_client->userKey()));
+    }
+    dirs.removeDuplicates();
+    return dirs;
+}
+
+void AutosaveController::findEarlierCopies() {
+    const QString stem = safePathPart(m_target.timelineId);
+    QSet<QString> found(m_earlierCopies.cbegin(), m_earlierCopies.cend());
+    for (const auto& dir : copyDirs()) {
+        for (const auto& kind : {QStringLiteral("recovery"), QStringLiteral("local")}) {
+            const QString prefix = stem + u'.' + kind;
+            const QString path = QDir(dir).filePath(prefix + QStringLiteral(".json"));
+            if (QFileInfo(path).isFile() && !m_sessionCopies.contains(path) && !found.contains(path)) {
+                const QString archived = QDir(dir).filePath(prefix + u'.' +
+                    QDateTime::currentDateTimeUtc().toString(QStringLiteral("yyyyMMddTHHmmsszzz")) + u'.' +
+                    QUuid::createUuid().toString(QUuid::Id128) + QStringLiteral(".json"));
+                if (QFile::rename(path, archived)) {
+                    m_earlierCopies << archived;
+                    found.insert(archived);
+                } else {
+                    // Refuse to overwrite or remove the original if moving
+                    // it failed. It can still be restored or discarded.
+                    m_earlierCopies << path;
+                    found.insert(path);
+                    m_earlierCopyError = QStringLiteral("Could not move the earlier copy: %1").arg(path);
+                }
+            }
+            const auto archives = QDir(dir).entryList({prefix + QStringLiteral(".*.json")}, QDir::Files, QDir::Name);
+            for (const auto& file : archives) {
+                const QString archived = QDir(dir).filePath(file);
+                if (!found.contains(archived)) {
+                    m_earlierCopies << archived;
+                    found.insert(archived);
+                }
+            }
+        }
+    }
+}
+
+void AutosaveController::setQuitFallbackDirs(const QStringList& dirs) {
+    m_fallbackDirs = dirs;
+    findEarlierCopies();
+    emit stateChanged();
+}
+
+bool AutosaveController::restoreEarlierCopy(QObject* timeline) {
+    const auto fail = [this](const QString& error) {
+        m_earlierCopyError = error;
+        emit stateChanged();
+        return false;
+    };
+    if (!timeline || earlierCopy().isEmpty() || m_saving || currentHash() != m_committedHash) {
+        return fail(QStringLiteral("The earlier copy cannot be restored during an edit or save."));
+    }
+    QFile file(earlierCopy());
+    if (!file.open(QIODevice::ReadOnly)) return fail(file.errorString());
+    QJsonParseError error{};
+    const auto json = QJsonDocument::fromJson(file.readAll(), &error);
+    if (error.error != QJsonParseError::NoError || !json.isObject()) {
+        return fail(QStringLiteral("The earlier copy is not a timeline document."));
+    }
+    const auto raw = json.object();
+    if (!raw.value("clips").isArray() || !raw.value("tracks").isArray() ||
+        (!raw.value("id").toString().isEmpty() && raw.value("id").toString() != m_target.timelineId)) {
+        return fail(QStringLiteral("The earlier copy is not a copy of this timeline."));
+    }
+    const QJsonObject payload{{QStringLiteral("document"), documentForSave(raw)}};
+    quint64 token = 0;
+    const bool invoked = QMetaObject::invokeMethod(timeline, "applyEdit", Qt::DirectConnection,
+        Q_RETURN_ARG(quint64, token), Q_ARG(QString, QStringLiteral("restoreDocument")), Q_ARG(QJsonObject, payload));
+    if (!invoked || token == 0) return fail(QStringLiteral("The earlier copy made no change or could not be restored."));
+    m_earlierCopyError.clear();
+    emit stateChanged();
+    return true;
+}
+
+bool AutosaveController::discardEarlierCopy() {
+    if (earlierCopy().isEmpty()) return false;
+    if (!QFile::remove(earlierCopy())) {
+        m_earlierCopyError = QStringLiteral("Could not delete the earlier copy: %1").arg(earlierCopy());
+        emit stateChanged();
+        return false;
+    }
+    m_earlierCopies.removeFirst();
+    m_earlierCopyError.clear();
+    emit stateChanged();
+    return true;
 }
 
 QString AutosaveController::copyPath(const QString& suffix) const {
@@ -116,12 +231,12 @@ QString AutosaveController::copyPath(const QString& suffix) const {
     return QDir(m_target.backupDir).filePath(safePathPart(m_target.timelineId) + u'.' + suffix + QStringLiteral(".json"));
 }
 
-QString AutosaveController::writeCopy(const QString& suffix, const QJsonObject& doc, QString* error) const {
+QString AutosaveController::writeCopy(const QString& suffix, const QJsonObject& doc, QString* error) {
     return writeCopyIn(m_target.backupDir, suffix, doc, error);
 }
 
 QString AutosaveController::writeCopyIn(const QString& dir, const QString& suffix, const QJsonObject& doc,
-                                        QString* error) const {
+                                        QString* error) {
     const auto fail = [&](const QString& why) {
         if (error) *error = why;
         return QString();
@@ -129,6 +244,7 @@ QString AutosaveController::writeCopyIn(const QString& dir, const QString& suffi
     if (dir.isEmpty()) return fail(QStringLiteral("no folder for the %1 copy").arg(suffix));
     if (!QDir().mkpath(dir)) return fail(QStringLiteral("cannot create %1").arg(dir));
     const QString path = QDir(dir).filePath(safePathPart(m_target.timelineId) + u'.' + suffix + QStringLiteral(".json"));
+    if (m_earlierCopies.contains(path)) return fail(QStringLiteral("an earlier session still owns %1").arg(path));
     QSaveFile f(path);
     if (!f.open(QIODevice::WriteOnly)) return fail(QStringLiteral("cannot open %1: %2").arg(path, f.errorString()));
     const QByteArray bytes = QJsonDocument(doc).toJson(QJsonDocument::Indented);
@@ -137,11 +253,12 @@ QString AutosaveController::writeCopyIn(const QString& dir, const QString& suffi
         return fail(QStringLiteral("cannot write %1").arg(path));
     }
     if (!f.commit()) return fail(QStringLiteral("cannot save %1: %2").arg(path, f.errorString()));
+    m_sessionCopies.insert(path);
     return path;
 }
 
 QString AutosaveController::writeCopyWithFallbacks(const QString& suffix, const QJsonObject& doc,
-                                                   QString* error) const {
+                                                   QString* error) {
     QString why;
     QString path = writeCopy(suffix, doc, &why);
     QStringList failures;
@@ -159,10 +276,23 @@ QString AutosaveController::writeCopyWithFallbacks(const QString& suffix, const 
 
 void AutosaveController::removeCopy(const QString& suffix) const {
     const QString path = copyPath(suffix);
-    if (!path.isEmpty()) QFile::remove(path);
+    if (m_sessionCopies.contains(path) && !m_earlierCopies.contains(path)) QFile::remove(path);
 }
 
 SaveResult AutosaveController::saveNow() { return save(*m_client); }
+
+SaveResult AutosaveController::keepConflictCopy() {
+    SaveResult result;
+    result.conflict = true;
+    result.error = QStringLiteral("a conflict is open; edits are kept locally, not on the server");
+    const auto current = m_document();
+    result.keptCopy = writeCopyWithFallbacks(QStringLiteral("local"), current, &result.recoveryError);
+    m_keptCopy = result.keptCopy;
+    m_copyHash = contentHash(current);
+    m_recoveryError = result.recoveryError;
+    emit stateChanged();
+    return result;
+}
 
 SaveResult AutosaveController::save(ServerClient& client) {
     SaveResult result;
@@ -170,11 +300,12 @@ SaveResult AutosaveController::save(ServerClient& client) {
         result.error = QStringLiteral("a save is in flight");
         return result;
     }
-    if (m_conflict) {
-        result.conflict = true;
-        result.error = QStringLiteral("a conflict is open; the local document is kept");
+    if (currentHash() != m_committedHash) {
+        result.error = QStringLiteral("an uncommitted preview is active; save waits for commit or cancellation");
+        scheduleSave();
         return result;
     }
+    if (m_conflict) return keepConflictCopy();
     if (m_base.isEmpty()) {
         // Without a base the server would take the save whatever it holds.
         result.error = QStringLiteral("no baseUpdatedAt: refusing to save over the server copy");
@@ -246,11 +377,10 @@ SaveResult AutosaveController::save(ServerClient& client) {
     QString why;
     if (r.error.apiCode == u"ALREADY_EXISTS" || r.error.code == u"CONFLICT") {
         m_conflict = true;
-        m_timer.stop();
         m_retry.stop();
         result.conflict = true;
         result.error = r.error.message;
-        result.keptCopy = writeCopy(QStringLiteral("local"), current, &why);
+        result.keptCopy = writeCopyWithFallbacks(QStringLiteral("local"), current, &why);
         result.recoveryError = why;
         m_keptCopy = result.keptCopy;
         m_copyHash = contentHash(current);

@@ -16,6 +16,7 @@
 #include <QJsonDocument>
 #include <QHttpMultiPart>
 #include <QNetworkReply>
+#include <QMessageAuthenticationCode>
 #include <QPointer>
 #include <QProcess>
 #include <QProcessEnvironment>
@@ -110,8 +111,7 @@ const QString kNone = QStringLiteral("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa4");
 const QString kMissing = QStringLiteral("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa5");
 const QString kAudio = QStringLiteral("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa6");
 
-// Answers a GET with `getInstance` and a POST with `postInstance` in
-// `X-Nodetool-Instance` (none when empty), and records the methods.
+// Proves the nonce with the selected secret and records the methods.
 class InstanceServer : public QObject {
 public:
     InstanceServer() {
@@ -123,8 +123,12 @@ public:
                     const int end = buffer->indexOf("\r\n\r\n");
                     if (end < 0) return;
                     qint64 length = 0;
+                    QByteArray nonce;
                     for (const QByteArray& line : buffer->left(end).split('\n')) {
                         if (line.toLower().startsWith("content-length:")) length = line.mid(15).trimmed().toLongLong();
+                        if (line.toLower().startsWith("x-nodetool-instance-nonce:")) {
+                            nonce = line.mid(line.indexOf(':') + 1).trimmed();
+                        }
                     }
                     if (buffer->size() < end + 4 + length) return;
                     const QByteArray method = buffer->left(buffer->indexOf(' '));
@@ -134,7 +138,10 @@ public:
                     const QByteArray body = envelope(QJsonObject{{QStringLiteral("updatedAt"), QStringLiteral("u1")}});
                     QByteArray out = "HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: " +
                                      QByteArray::number(body.size()) + "\r\n";
-                    if (!instance.isEmpty()) out += "X-Nodetool-Instance: " + instance + "\r\n";
+                    if (!instance.isEmpty() && !nonce.isEmpty()) {
+                        out += "x-nodetool-instance-proof: " +
+                            QMessageAuthenticationCode::hash(nonce, instance, QCryptographicHash::Sha256).toHex() + "\r\n";
+                    }
                     s->write(out + "\r\n" + body);
                 });
                 connect(s, &QTcpSocket::disconnected, s, &QObject::deleteLater);
@@ -186,7 +193,7 @@ private slots:
         ServerClient client(http.base(), "secret");
         if (expected) {
             http.setFile("/ready", ServedFile("{}"));
-            http.setResponseHeaders({{"X-Nodetool-Instance", "mine"}});
+            http.setInstanceSecret("mine");
             client.setExpectedInstance("mine");
         }
         const auto result = client.upload(asset, path, "audio/wav");
@@ -313,7 +320,7 @@ private slots:
     void uploadCliUsesRegistryAndReadsTheAsset() {
         TestHttpServer http;
         http.setFile("/ready", ServedFile("{}"));
-        http.setResponseHeaders({{"X-Nodetool-Instance", "mine"}});
+        http.setInstanceSecret("mine");
         const QJsonObject asset{{"id", kReady}, {"name", "sample.wav"}, {"content_type", "audio/wav"}};
         http.setPost([&](const QByteArray&, const QByteArray&) { return QJsonDocument(asset).toJson(QJsonDocument::Compact); });
         QJsonObject seen;
@@ -444,15 +451,15 @@ private slots:
         QCOMPARE(http.methods, (QList<QByteArray>{"GET", "POST"}));
     }
 
-    void mutateFlagsAnAnswerFromAnotherInstance() {
+    void mutateTrustsTheProvenConnection() {
         InstanceServer http;
         http.getInstance = "mine";
         http.postInstance = "someone-else";
         ServerClient client(http.base());
         client.setExpectedInstance(QStringLiteral("mine"));
         const QueryResult r = client.mutate(QStringLiteral("timeline.update"), saveInput());
-        QVERIFY(!r.ok());
-        QCOMPARE(r.error.code, QStringLiteral("WRONG_SERVER"));
+        QVERIFY2(r.ok(), qPrintable(r.describe()));
+        QCOMPARE(http.methods, (QList<QByteArray>{"GET", "POST"}));
     }
 
     // Codex review F5: the cache folder must tell apart servers whose

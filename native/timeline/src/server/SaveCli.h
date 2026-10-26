@@ -4,7 +4,7 @@
 //
 //   nodetool-timeline --server URL --timeline ID --save
 //       [--move-clip CLIP:MS] [--set-clip-field CLIP:KEY=JSON]
-//       [--wait-before-save FILE] [--autosave] [--save-report FILE]
+//       [--wait-before-save FILE] [--wait-before-write FILE] [--autosave] [--save-report FILE]
 //
 // Loads the timeline, applies each edit as one undo command on a
 // TimelineModel, and saves through AutosaveController. --wait-before-save

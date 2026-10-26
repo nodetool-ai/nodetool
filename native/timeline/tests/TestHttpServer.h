@@ -8,6 +8,7 @@
 
 #include <QByteArray>
 #include <QHash>
+#include <QMessageAuthenticationCode>
 #include <QMutex>
 #include <QMutexLocker>
 #include <QPointer>
@@ -61,6 +62,7 @@ public:
     ServedFile& file(const QByteArray& path) { return m_files[path]; }
     void setJson(JsonHandler h) { m_json = std::move(h); }
     void setPost(PostHandler h) { m_post = std::move(h); }
+    void setInstanceSecret(QByteArray secret) { m_instanceSecret = std::move(secret); }
     void setResponseHeaders(QHash<QByteArray, QByteArray> headers) { m_headers = std::move(headers); }
 
     std::vector<RecordedRequest> requests() const {
@@ -104,6 +106,9 @@ private:
     void writeHead(QTcpSocket* s, int status, const char* reason, const QHash<QByteArray, QByteArray>& headers) {
         QByteArray out = "HTTP/1.1 " + QByteArray::number(status) + ' ' + reason + "\r\n";
         auto combined = m_headers;
+        if (!m_instanceProof.isEmpty()) {
+            combined.insert("x-nodetool-instance-proof", m_instanceProof);
+        }
         for (auto it = headers.begin(); it != headers.end(); ++it) combined.insert(it.key(), it.value());
         for (auto it = combined.begin(); it != combined.end(); ++it) out += it.key() + ": " + it.value() + "\r\n";
         out += "\r\n";
@@ -125,6 +130,9 @@ private:
             QMutexLocker l(&m_mutex);
             m_requests.push_back(req);
         }
+        const auto nonce = req.headers.value("x-nodetool-instance-nonce");
+        m_instanceProof = nonce.isEmpty() || m_instanceSecret.isEmpty() ? QByteArray()
+            : QMessageAuthenticationCode::hash(nonce, m_instanceSecret, QCryptographicHash::Sha256).toHex();
         const QUrl url(QString::fromLatin1(req.target));
         const QByteArray path = url.path(QUrl::FullyEncoded).toLatin1();
 
@@ -223,4 +231,5 @@ private:
     JsonHandler m_json;
     PostHandler m_post;
     QHash<QByteArray, QByteArray> m_headers;
+    QByteArray m_instanceSecret, m_instanceProof;
 };

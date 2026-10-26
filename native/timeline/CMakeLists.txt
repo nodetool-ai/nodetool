@@ -9,6 +9,9 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 enable_testing()
 
+include(cmake/Hardening.cmake)
+include(cmake/Sanitizers.cmake)
+
 # GuiPrivate carries the include path of the semi-public QRhi API (<rhi/qrhi.h>).
 set(QT_NO_PRIVATE_MODULE_WARNING ON)
 find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui GuiPrivate Qml Quick QuickControls2 ShaderTools Test)
@@ -255,3 +258,11 @@ get_property(NT_TEST_CALLBACKS GLOBAL PROPERTY NT_test_callbacks)
 foreach(callback IN LISTS NT_TEST_CALLBACKS)
     cmake_language(CALL ${callback})
 endforeach()
+
+if(NT_FUZZ)
+    add_subdirectory(tests/fuzz)
+endif()
+if(NT_SANITIZER_PLANTS)
+    add_subdirectory(tools/sanitizers/plants)
+endif()
+nt_sanitizer_test_checks()

@@ -57,7 +57,7 @@
 import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import { timelineSequenceResponse } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import {
@@ -77,6 +77,40 @@ import { TOLERANCE, auditExclusions, checkFlexReasons, diffNumber, exclusionsFro
 const GRID_MS = 100;
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+
+const comparators = [];
+const comparatorProblems = [];
+const comparatorDirectory = path.join(root, "scripts/conformance/plan");
+if (fs.existsSync(comparatorDirectory)) {
+  for (const name of fs.readdirSync(comparatorDirectory).filter((n) => n.endsWith(".mjs")).sort()) {
+    try {
+      const { default: comparator } = await import(pathToFileURL(path.join(comparatorDirectory, name)).href);
+      if (!comparator || !["layer", "precomposite", "frame"].some((key) => typeof comparator[key] === "function")) {
+        throw new Error("expected a layer, precomposite or frame comparator");
+      }
+      comparators.push({ name, comparator });
+    } catch (error) {
+      comparatorProblems.push(`${name}: comparator failed to load: ${error.message}`);
+    }
+  }
+}
+
+function extraComparisons(kind, context) {
+  const out = [];
+  for (const { name, comparator } of comparators) {
+    if (!comparator[kind]) continue;
+    try {
+      const diffs = comparator[kind](context);
+      if (!Array.isArray(diffs) || diffs.some((diff) => typeof diff !== "string")) {
+        throw new Error("expected an array of mismatch strings");
+      }
+      out.push(...diffs.map((diff) => `${name}: ${diff}`));
+    } catch (error) {
+      out.push(`${name}: ${kind} comparator failed: ${error.message}`);
+    }
+  }
+  return out;
+}
 
 function parseArgs(argv) {
   let bin = null;  // default: the newest build (newestBinary)
@@ -479,6 +513,7 @@ function compareDoc(bin, label, doc, nativeArgs) {
     return { fixture: label, times: 0, layersCompared: 0, mismatches: issues };
   }
   const times = sampleTimes(doc);
+  const clipsById = new Map(doc.clips.map((clip) => [clip.id, clip]));
   const out = execFileSync(bin, [...nativeArgs, "--dump-plan", "--times", times.join(",")], {
     encoding: "utf8",
     maxBuffer: 1024 * 1024 * 1024,
@@ -549,7 +584,10 @@ function compareDoc(bin, label, doc, nativeArgs) {
         mismatches.push(`t=${t} ${w.clipId}: native ${invalid}`);
         return;
       }
-      const diffs = compareLayer(w, g);
+      const diffs = [...compareLayer(w, g), ...extraComparisons("layer", {
+        web: w, native: g, document: doc, timeMs: t,
+        clip: clipsById.get(w.clipId) ?? clipsById.get(w.clipId.split(":")[0])
+      })];
       if (diffs.length > 0) mismatches.push(`t=${t} ${w.clipId}: ${diffs.slice(0, 3).join("; ")}`);
       else layersCompared++;
     });
@@ -561,7 +599,10 @@ function compareDoc(bin, label, doc, nativeArgs) {
       mismatches.push(`t=${t}: precomposites web [${wantGroupIds}] native [${gotGroupIds}]`);
     } else {
       wantGroups.forEach((w, j) => {
-        const diffs = comparePrecomposite(w, gotGroups[j]);
+        const diffs = [...comparePrecomposite(w, gotGroups[j]), ...extraComparisons("precomposite", {
+          web: w, native: gotGroups[j], document: doc, timeMs: t,
+          clip: clipsById.get(w.clipId)
+        })];
         if (diffs.length > 0) mismatches.push(`t=${t} precomposite ${w.clipId}: ${diffs.slice(0, 3).join("; ")}`);
         else precompositesCompared++;
       });
@@ -569,6 +610,8 @@ function compareDoc(bin, label, doc, nativeArgs) {
     const wantDropped = web.dropped.filter((d) => keep(d.clipId)).map((d) => `${d.clipId}:${d.reason}`).join(",");
     const gotDropped = frame.dropped.filter((d) => keep(d.clipId)).map((d) => `${d.clipId}:${d.reason}`).join(",");
     if (wantDropped !== gotDropped) mismatches.push(`t=${t}: dropped web [${wantDropped}] native [${gotDropped}]`);
+    mismatches.push(...extraComparisons("frame", { web, native: frame, document: doc, timeMs: t })
+      .map((diff) => `t=${t}: ${diff}`));
   });
   // Every excluded id, judged by its own and its descendants' layers and
   // surfaces; an id with nothing to compare is reported as uncovered.
@@ -652,6 +695,7 @@ const failures = results.flatMap((r) => [
   ...r.mismatches.map((m) => `${r.fixture}: ${m}`),
   ...(r.layersCompared === 0 && !isEmpty(r) ? [`${r.fixture}: compared 0 layers`] : [])
 ]);
+failures.push(...comparatorProblems);
 const pass = failures.length === 0 && layersCompared > 0;
 if (json) {
   console.log(
