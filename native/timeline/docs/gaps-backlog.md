@@ -20,6 +20,8 @@ run machine. "Package P1" and "package P2" are plan packages, not severities.
 | B9 | P2 | pkg-C-r1 F1 | `qml/Tracks/TracksRegion.qml:237` | Drag reordering is not implemented: dragging a track's grip above another does nothing. The differential test calls the native reorder command directly, so it cannot detect the missing gesture. | C |
 | B10 | P2 | pkg-C-r1 F2 | `qml/Tracks/TracksRegion.qml:242` | The visibility, lock, mute, solo and delete buttons in the track header have no action handlers and are not connected to the new track commands. | C |
 | B11 | P2 | pkg-C-r1 F3 | `qml/Tracks/TracksRegion.qml:240` | A track's authored height cannot be changed in the UI. No resize handle exists, and the height slider changes global vertical zoom, not the track's `heightPx`. | C |
+| B12 | P2 | pkg-D1-r1 F1 | `qml/Inspector/KeyframeClipDiamonds.qml:2` | No production QML instantiates the clip keyframe diamonds or connects their seek and retime signals, so keyframes cannot be retimed on the timeline clip. Only the tests instantiate the component. | D1 |
+| B13 | P2 | pkg-D1-r1 F2 | `src/edit/keyframes/ClipInspectorController.cpp:99` | Past the clip's end, `playheadMs()` returns `-1` and `rowState()` samples at zero, so the inspector shows the first value, disables Previous, and enables a Next that does nothing. The web shows the endpoint value and enables Previous. | D1 |
 
 ## Closed
 
