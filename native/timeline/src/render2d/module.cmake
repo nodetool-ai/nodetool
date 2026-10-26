@@ -23,6 +23,8 @@ function(nt_render2d_tests)
     add_test(NAME tst_render2d COMMAND tst_render2d)
     set_tests_properties(tst_render2d PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" FIXTURES_REQUIRED render2d_reference)
     add_test(NAME render2d_stills_script COMMAND node --test ${CMAKE_CURRENT_SOURCE_DIR}/src/render2d/check-example-stills.test.mjs)
+    add_test(NAME render2d_serein_m0 COMMAND node --test ${CMAKE_CURRENT_SOURCE_DIR}/src/render2d/serein-m0.test.mjs)
+    add_test(NAME render2d_window_dry_run COMMAND node --test ${CMAKE_CURRENT_SOURCE_DIR}/src/render2d/window-checks.test.mjs)
 endfunction()
 nt_tests(nt_render2d_tests)
 
