@@ -101,6 +101,8 @@ Rectangle {
             x: Theme.spacingMd
             anchors.verticalCenter: parent.verticalCenter
             gestures: clipGestures
+            timeline: region.timeline
+            viewState: view
             compact: toolbar.narrow
             followPlayhead: region.followPlayhead
             onFollowPlayheadChanged: region.followPlayhead = followPlayhead
@@ -212,6 +214,8 @@ Rectangle {
         y: Theme.toolbarHeight
         width: region.width - region.headerWidth
         viewState: view
+        gestures: clipGestures
+        timeline: region.timeline
         fps: region.timeline.fps
         markers: region.timeline.markers
         onSeekRequested: ms => region.clock.seek(ms)
@@ -300,6 +304,13 @@ Rectangle {
         id: headerMenu
         timeline: region.timeline
         onRenameRequested: id => region.renamingTrackId = id
+        RegistryMenuItems {
+            menu: headerMenu
+            kind: "track"
+            gestures: clipGestures
+            context: ({ trackId: headerMenu.trackId, name: headerMenu.trackName,
+                        type: headerMenu.trackType, editable: true })
+        }
     }
 
     // Lanes viewport.

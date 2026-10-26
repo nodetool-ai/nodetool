@@ -12,6 +12,9 @@ import NodeTool.Timeline
 
 Item {
     id: body
+    property var clipData: ({})
+    property TimelineModel timeline: null
+    property ClipGestureController gestures: null
     property string name
     property string mediaType: "video"
     property double durationMs: 0
@@ -268,6 +271,14 @@ Item {
             color: Theme.textPrimary
             opacity: 0.85
         }
+    }
+
+    SlotItems {
+        anchors.fill: parent
+        slot: "clipBody"
+        overlay: true
+        slotProperties: ({ clip: body.clipData, timeline: body.timeline,
+                           gestures: body.gestures, viewState: body.viewState })
     }
 
     // The border on top: 1 px tint, or 1.5 px secondary when selected.
