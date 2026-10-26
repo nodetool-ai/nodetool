@@ -13,6 +13,7 @@
 #include <QQmlPropertyMap>
 #include <QQuickItem>
 #include <QQuickWindow>
+#include <QtQuickTest/quicktest.h>
 #include <QtTest>
 #include <cstdio>
 #include <memory>
@@ -226,6 +227,8 @@ private slots:
         auto parsed = nt::parseTimelineJson(QJsonDocument(fixture).toJson()); QVERIFY(parsed.timeline);
         model.setTimeline(std::move(*parsed.timeline)); QCoreApplication::processEvents();
         click("clip-c"); QCoreApplication::processEvents();
+        // Selection reveals nested Inspector positioners whose geometry needs polish.
+        QVERIFY(QQuickTest::qWaitForPolish(view.get()));
         auto* softness = item("transitionSoftness"); QVERIFY(softness);
         QVERIFY2(softness->isVisible() && softness->mapToScene({0, 0}).y() < view->height(),
             "Transition softness must be visible inside the production Inspector");
