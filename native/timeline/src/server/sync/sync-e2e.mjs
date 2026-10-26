@@ -76,6 +76,15 @@ async function until(check, timeoutMs, label) {
   throw new Error(`timed out after ${timeoutMs} ms: ${label}`);
 }
 
+export async function settled(host, timeout = 5000) {
+  return until(async () => {
+    const state = await host.state();
+    if (state.dirty || state.saving) return false;
+    assert.equal(state.conflict, false, JSON.stringify(state));
+    return state;
+  }, timeout, "clean native state");
+}
+
 class NativeProcess {
   constructor(binary, args, env, children, logPath) {
     this.child = spawn(binary, args, { env, detached: true, stdio: ["pipe", "pipe", "pipe"] });
@@ -233,11 +242,6 @@ async function run(args) {
       await mcp.edit(id, "clip-1", startMs);
       return performance.now();
     };
-    const settled = async (host, timeout = 5000) => until(async () => {
-      const state = await host.state();
-      assert.equal(state.conflict, false, JSON.stringify(state));
-      return !state.dirty && !state.saving && state;
-    }, timeout, "clean native state");
     const verifySaved = async (host, id, a, b) => {
       const state = await settled(host);
       const saved = await get(id);

@@ -16,6 +16,7 @@
 #include <QPointer>
 #include <QProcess>
 #include <QProcessEnvironment>
+#include <QScopeGuard>
 #include <QWebSocketServer>
 #include <QTcpServer>
 #include <QTcpSocket>
@@ -93,6 +94,7 @@ public:
     TrickleServer(QByteArray body, int delayMs) : m_body(std::move(body)), m_delayMs(delayMs) {
         connect(&m_server, &QTcpServer::newConnection, this, [this]() {
             while (QTcpSocket* s = m_server.nextPendingConnection()) {
+                s->setParent(&m_server);
                 connect(s, &QTcpSocket::readyRead, s, [this, s]() {
                     if (s->property("answered").toBool()) return;
                     s->setProperty("answered", true);
@@ -326,6 +328,8 @@ private slots:
                     QVERIFY(m_save->lastError().contains("could not"));
                 } else {
                     QVERIFY(QFile::exists(m_save->keptCopy()));
+                    m_save->documentChanged();
+                    QVERIFY(QFile::exists(m_save->keptCopy()));
                 }
                 QVERIFY(!m_save->saveNow().ok);
                 QCOMPARE(posts(), 0);
@@ -436,7 +440,8 @@ private slots:
         raw["clips"] = clips;
         m_save->documentChanged();
         QVERIFY(m_save->saveNow().conflict);
-        QTRY_VERIFY(m_save->conflict());
+        QTRY_COMPARE(m_save->externalState(), QString("error"));
+        QVERIFY(m_save->conflict());
         QVERIFY(QFile::exists(m_save->keptCopy()));
         m_save->setAutosave(true);
         if (trigger == "edit") {
@@ -504,7 +509,8 @@ private slots:
         clips[1] = clip;
         raw["clips"] = clips;
         m_save->documentChanged();
-        QTRY_VERIFY(m_save->conflict());
+        QTRY_COMPARE(m_save->externalState(), QString("error"));
+        QVERIFY(m_save->conflict());
         QCOMPARE(gets, limit ? 5 : 1);
         resume = true;
         if (trigger == "edit") {
@@ -601,6 +607,67 @@ private slots:
         QCOMPARE(applies, 0);
     }
 
+    void conflictStaysVisibleThroughRecovery_data() {
+        QTest::addColumn<bool>("alreadySaved");
+        QTest::newRow("merged-draft-needs-save") << false;
+        QTest::newRow("server-already-holds-draft") << true;
+    }
+    void conflictStaysVisibleThroughRecovery() {
+        QFETCH(bool, alreadySaved);
+        const auto canonical = [](const QJsonObject& value) {
+            return sync::applyMergeDocument(value, sync::mergeDocumentOfSequence(value, sync::mergeDocumentOf(value)));
+        };
+        auto raw = canonical(syncDoc(0, 0, "u0"));
+        sync::setDocumentApplier([&](QUndoStack* undo, const QJsonObject& next, const nt::Timeline&) {
+            raw = next;
+            undo->clear();
+            return true;
+        });
+        const auto server = canonical(syncDoc(alreadySaved ? 0 : 500, alreadySaved ? 200 : 0, "u1"));
+        ServedFile delayed(QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", server}}}}).toJson());
+        delayed.chunkDelayMs = 300;
+        m_http->setFile("/trpc/timeline.get", delayed);
+        int writes = 0;
+        m_http->setPost([&](const QByteArray&, const QByteArray&) {
+            return ++writes == 1 ? conflict() : ok("saved");
+        });
+        m_save = std::make_unique<AutosaveController>(SaveTarget{m_http->base(), {}, "seq", m_dir.path(), {}},
+            m_undo.get(), [&] { return raw; }, "u0");
+        const auto finishRecovery = qScopeGuard([&] {
+            static_cast<void>(QTest::qWaitFor([] { return AutosaveController::liveFetchWorkers() == 0; }, 2000));
+            m_save.reset();
+            sync::setDocumentApplier({});
+        });
+        m_save->setExternalSync(false);
+        m_save->setAutosave(false);
+        raw = canonical(syncDoc(0, 200, "u0"));
+        m_save->documentChanged();
+        const auto states = recordStates();
+        const auto result = m_save->saveNow();
+        QVERIFY(result.conflict);
+        QVERIFY(!result.ok);
+        QCOMPARE(result.error, QString("a conflict is open; edits are kept locally, not on the server"));
+        QCOMPARE(m_save->lastError(), QString("conflict: Timeline has been modified since last load"));
+        QCOMPARE(m_save->externalState(), QString("recovering"));
+        QVERIFY(m_save->conflict());
+        QVERIFY(m_save->property("conflict").toBool());
+        QVERIFY(!states->empty());
+        QVERIFY(states->back().conflict);
+        QTRY_COMPARE(m_http->countRequests("GET", "/trpc/timeline.get"), 1);
+        QVERIFY(m_save->conflict());
+        QTRY_COMPARE(m_save->baseUpdatedAt(), QString("u1"));
+        QCOMPARE(m_save->dirty(), !alreadySaved);
+        QCOMPARE(m_save->conflict(), !alreadySaved);
+        if (!alreadySaved) {
+            QVERIFY(m_save->saveNow().ok);
+        }
+        QVERIFY(!m_save->dirty());
+        QVERIFY(!m_save->conflict());
+        QVERIFY(!states->back().conflict);
+        QCOMPARE(writes, alreadySaved ? 1 : 2);
+        QVERIFY(!QFile::exists(m_dir.filePath("seq.local.json")));
+    }
+
     void casRecovery_data() {
         QTest::addColumn<QString>("mode");
         for (const auto* mode : {"success", "stripped", "get-fails", "no-advance", "limit", "quit", "quit-clean", "quit-limited"}) QTest::newRow(mode) << QString(mode);
@@ -660,7 +727,8 @@ private slots:
                 QCOMPARE(sent["document"].toObject()["clips"], syncDoc(500, 200, "u1")["clips"]);
             }
         } else {
-            QTRY_VERIFY(m_save->conflict());
+            QTRY_COMPARE(m_save->externalState(), QString("error"));
+            QVERIFY(m_save->conflict());
             QVERIFY(copyDuringRecovery);
             QVERIFY(QFile::exists(m_save->keptCopy()));
             QCOMPARE(gets, mode == "limit" ? 5 : 1);
@@ -776,7 +844,8 @@ private slots:
         make("u0", folder);
         m_undo->push(new Bump(&m_value));
         QVERIFY(m_save->saveNow().conflict);
-        QTRY_VERIFY(m_save->conflict());
+        QTRY_COMPARE(m_save->externalState(), QString("error"));
+        QVERIFY(m_save->conflict());
         m_save.reset();
         make("u0", folder);
         m_undo->push(new Bump(&m_value));
@@ -797,7 +866,8 @@ private slots:
         make("u0", folder);
         m_undo->push(new Bump(&m_value));
         QVERIFY(m_save->saveNow().conflict);
-        QTRY_VERIFY(m_save->conflict());
+        QTRY_COMPARE(m_save->externalState(), QString("error"));
+        QVERIFY(m_save->conflict());
         m_save.reset();
         m_undo->clear();
         m_value = 0;
@@ -834,7 +904,8 @@ private slots:
         make("u0", folder);
         m_undo->push(new Bump(&m_value));
         QVERIFY(m_save->saveNow().conflict);
-        QTRY_VERIFY(m_save->conflict());
+        QTRY_COMPARE(m_save->externalState(), QString("error"));
+        QVERIFY(m_save->conflict());
         m_save.reset();
         make("u0", folder);
         m_undo->push(new Bump(&m_value));
@@ -1033,7 +1104,8 @@ private slots:
         const SaveResult r = m_save->saveNow();
         QVERIFY(!r.ok);
         QVERIFY(r.conflict);
-        QTRY_VERIFY(m_save->conflict());
+        QTRY_COMPARE(m_save->externalState(), QString("error"));
+        QVERIFY(m_save->conflict());
         QVERIFY(m_save->dirty());
         QVERIFY(QFileInfo::exists(r.keptCopy));
         QFile f(r.keptCopy);
@@ -1182,7 +1254,7 @@ private slots:
         QVERIFY(m_save->keptCopy().endsWith(QStringLiteral("seq.local.json")));
         QCOMPARE(m_save->recoveryError(), QString());
         QCOMPARE(m_save->property("keptCopy").toString(), r.keptCopy);  // the QML property
-        QTRY_VERIFY(m_save->conflict()); // only stop after timeline.get fails
+        QVERIFY(m_save->conflict());
         // The last notification carries the finished save: QML must not keep
         // "Saving..." or miss the conflict copy.
         QVERIFY(!states->empty());
