@@ -13,7 +13,7 @@ test("window checks dry run prints section 8 and executes no checks or idle wait
   // Run an isolated copy. Even a broken dry run cannot reach a real bench,
   // browser, server, audio device, or the developer's existing output.
   const guard = '#!/bin/sh\nprintf "%s\\n" "$0 $*" >> "$CALLS"\nexit 97\n';
-  for (const command of ["node", "sysctl", "sleep", "rm", "mkdir", "cp", "ps"]) {
+  for (const command of ["node", "sysctl", "sleep", "rm", "mkdir", "cp", "ps", "awk", "cat"]) {
     fs.writeFileSync(path.join(root, "guards", command), guard, { mode: 0o755 });
   }
   fs.writeFileSync(path.join(root, "build/nodetool-timeline"), guard, { mode: 0o755 });
@@ -61,5 +61,103 @@ serein_m0
     const meta = JSON.parse(fs.readFileSync(path.join(root, "m0-serein-native.meta.json"), "utf8"));
     assert.equal(meta.playSeconds, 10);
     assert.equal(meta.loadBefore, settles ? 10 : 11);
+  });
+}
+
+for (const phase of ["before", "waiting", "after"]) {
+  test(`section 8 records unreadable load ${phase} without an invalid measurement`, (t) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "serein-unreadable-"));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const source = fs.readFileSync(new URL("../../scripts/window-checks.sh", import.meta.url), "utf8");
+    const body = source.slice(source.indexOf("serein_m0() {"), source.indexOf("\nif [[ $dry_run == 1 ]]; then\n    serein_m0"));
+    const script = `set -uo pipefail
+out="$1"
+bin=bench
+dry_run=0
+load1() {
+    if [[ -f "$out/load-read" ]]; then return 1; fi
+    touch "$out/load-read"
+    ${phase === "before" ? "return 1" : `echo ${phase === "waiting" ? 11 : 1}`}
+}
+
+sleep() { :; }
+node() { :; }
+bench() { echo ran > "$out/bench-called"; }
+${body}
+serein_m0
+`;
+    const run = spawnSync("/bin/bash", ["-c", script, "test", root], { encoding: "utf8", timeout: 3000 });
+    assert.equal(run.status, 0, run.stderr);
+    assert.equal(fs.existsSync(path.join(root, "bench-called")), phase === "after", "native bench must not run with unreadable starting load");
+    assert.equal(fs.readFileSync(path.join(root, "m0-serein-native.exit"), "utf8").trim(), phase === "after" ? "0" : "not run");
+    if (phase !== "after") assert.match(fs.readFileSync(path.join(root, "m0-serein-native.log"), "utf8"), /load.*could not be read/i);
+    const meta = JSON.parse(fs.readFileSync(path.join(root, "m0-serein-native.meta.json"), "utf8"));
+    assert.equal(meta.loadBefore, phase === "after" ? 1 : null);
+    assert.equal(meta.loadAfter, null);
+    assert.equal(meta.playSeconds, 10);
+  });
+}
+
+for (const [name, proc, sysctl, expected] of [
+  ["Linux first field", "0.52 0.58 0.59 1/1234 5678\n", "{ 9.99 8.88 7.77 }", "0.52\n"],
+  ["sysctl fallback", null, "{ 1.25 2.50 3.75 }", "1.25\n"],
+  ["unreadable sources", null, null, null],
+  ["invalid proc load", "invalid 0.58 0.59\n", null, null],
+  ["invalid sysctl load", null, "{ invalid 2.50 3.75 }", null]
+]) {
+  test(`load1 handles ${name}`, (t) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "window-load1-"));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const procPath = path.join(root, "loadavg");
+    if (proc !== null) fs.writeFileSync(procPath, proc);
+    fs.writeFileSync(path.join(root, "sysctl"), '#!/bin/bash\n[[ -n "$TEST_SYSCTL_LOAD" ]] || exit 1\nprintf "%s\\n" "$TEST_SYSCTL_LOAD"\n', { mode: 0o755 });
+    const source = fs.readFileSync(new URL("../../scripts/window-checks.sh", import.meta.url), "utf8");
+    const body = source.slice(source.indexOf("load1() {"), source.indexOf("\nidle="));
+    const run = spawnSync("/bin/bash", ["-c", `set -uo pipefail\n${body}\nload1`], {
+      encoding: "utf8", timeout: 3000,
+      env: { ...process.env, PATH: `${root}:${process.env.PATH}`, NT_LOADAVG_PATH: procPath, TEST_SYSCTL_LOAD: sysctl ?? "" }
+    });
+    assert.equal(run.error, undefined);
+    if (expected === null) {
+      assert.notEqual(run.status, 0, "unreadable or nonnumeric load must fail");
+      assert.equal(run.stdout, "", "failed load lookup must print nothing");
+    } else {
+      assert.equal(run.status, 0, run.stderr);
+      assert.equal(run.stdout, expected);
+    }
+  });
+}
+
+for (const phase of ["before", "waiting"]) {
+  test(`section 0 marks unreadable load ${phase} as not idle and writes valid JSON`, (t) => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), "seek-unreadable-"));
+    t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+    const source = fs.readFileSync(new URL("../../scripts/window-checks.sh", import.meta.url), "utf8");
+    const body = source.slice(source.indexOf("\nidle="), source.indexOf("\n# Section 8"));
+    const script = `set -uo pipefail
+out="$1"
+dry_run=0
+status=0
+load1() {
+    ${phase === "waiting" ? 'if [[ ! -f "$out/load-read" ]]; then touch "$out/load-read"; echo 5; return; fi' : ":"}
+    return 1
+}
+sleep() { echo "$1" >> "$out/sleeps"; }
+node() { echo '{}'; }
+${body}
+`;
+    const run = spawnSync("/bin/bash", ["-c", script, "test", root], { encoding: "utf8", timeout: 3000 });
+    assert.equal(run.status, 0, run.stderr);
+    const files = fs.readdirSync(root).filter(name => name.endsWith(".json"));
+    assert.equal(files.length, 33, "inspect idle metadata and every seek report and metadata file");
+    const reports = Object.fromEntries(files.map(name => [name, JSON.parse(fs.readFileSync(path.join(root, name), "utf8"))]));
+    assert.equal(reports["seek-idle.json"].idle, 0);
+    assert.equal(reports["seek-idle.json"].load, null);
+    assert.equal(reports["seek-idle.json"].waitedS, phase === "waiting" ? 10 : 0);
+    for (const [name, report] of Object.entries(reports)) {
+      if (!name.endsWith(".meta.json")) continue;
+      assert.equal(report.loadBefore, null, name);
+      assert.equal(report.loadAfter, null, name);
+    }
   });
 }

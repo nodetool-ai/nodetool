@@ -335,9 +335,20 @@ private slots:
         QCOMPARE(e.clip("text")["textStyle"].toObject(),expected);
         QCOMPARE(e.model.undoStack()->count(),1); QCOMPARE(e.model.undoStack()->index(),1);
         QCOMPARE(e.clip("plain"),other);
-        e.model.undoStack()->undo(); QCOMPARE(e.model.documentJson(),before);
+        QVERIFY(text->hasActiveFocus());
+        QCOMPARE(text->property("text").toString(),QString("Other"));
+        QTest::keyClick(&e.window,Qt::Key_A,Qt::ControlModifier);
+        QTest::keyClick(&e.window,Qt::Key_B); QTest::keyClick(&e.window,Qt::Key_C);
+        QCOMPARE(at(e.clip("plain"),"textStyle.text").toString(),QString("bc"));
+        QCOMPARE(e.clip("text")["textStyle"].toObject(),expected);
+        QCOMPARE(e.model.undoStack()->count(),1);
         e.inspector()->forceActiveFocus(); QCoreApplication::processEvents();
-        QCOMPARE(e.model.undoStack()->count(),1); QCOMPARE(e.model.undoStack()->index(),0);
+        QCOMPARE(e.model.undoStack()->count(),2); QCOMPARE(e.model.undoStack()->index(),2);
+        QCOMPARE(at(e.clip("plain"),"textStyle.text").toString(),QString("bc"));
+        e.model.undoStack()->undo();
+        QCOMPARE(e.clip("plain"),other);
+        QCOMPARE(e.clip("text")["textStyle"].toObject(),expected);
+        e.model.undoStack()->undo();
         QCOMPARE(e.model.documentJson(),before); QCOMPARE(e.clip("plain"),other);
     }
     void keyboardScrubAndSelect() {

@@ -78,11 +78,28 @@ fi
 status=0
 
 # --- 0. Paused-seek latency gate (offscreen) ---------------------------------
-load1() { sysctl -n vm.loadavg | awk '{print $2}'; }
+load1() {
+    local proc=${NT_LOADAVG_PATH:-/proc/loadavg} value
+    if [[ -e $proc ]]; then
+        value=$(awk 'NR == 1 { print $1; exit }' "$proc" 2>/dev/null) || return 1
+    else
+        value=$(sysctl -n vm.loadavg 2>/dev/null | awk 'NR == 1 { print $2; exit }') || return 1
+    fi
+    [[ $value =~ ^(0|[1-9][0-9]*)(\.[0-9]+)?$ ]] || return 1
+    printf '%s\n' "$value"
+}
 idle=1
 waited=0
 if [[ $dry_run == 0 ]]; then
-    while awk -v l="$(load1)" 'BEGIN { exit !(l >= 4) }'; do
+    while :; do
+        if ! current_load=$(load1); then
+            idle=0
+            current_load=null
+            break
+        fi
+        if awk -v l="$current_load" 'BEGIN { exit !(l < 4) }'; then
+            break
+        fi
         if (( waited >= 600 )); then
             idle=0
             break
@@ -90,7 +107,7 @@ if [[ $dry_run == 0 ]]; then
         sleep 10
         waited=$((waited + 10))
     done
-    echo "{\"idle\":$idle,\"waitedS\":$waited,\"load\":$(load1)}" > "$out/seek-idle.json"
+    echo "{\"idle\":$idle,\"waitedS\":$waited,\"load\":$current_load}" > "$out/seek-idle.json"
 fi
 
 # seek NAME FIXTURE DECODE LIMIT_MS SCRIPT SKIP(on|off)
@@ -103,10 +120,10 @@ seek() {
         return
     fi
     local before after rc
-    before=$(load1)
+    before=$(load1) || before=null
     NT_DECODE_SKIP=$skip "${cmd[@]}" > "$out/seek-$name.json" 2> "$out/seek-$name.log"
     rc=$?
-    after=$(load1)
+    after=$(load1) || after=null
     echo "{\"exit\":$rc,\"loadBefore\":$before,\"loadAfter\":$after,\"skip\":\"$skip\",\"decode\":\"$decode\",\"fixture\":\"$fixture\",\"limitMs\":$limit}" \
         > "$out/seek-$name.meta.json"
     # The gate runs are pass/fail; the A/B runs are measurements.
@@ -150,17 +167,20 @@ serein_m0() {
     "${sequence[@]}" > "$out/m0-serein-sequence.log" 2>&1
     rc=$?
     echo "$rc" > "$out/m0-serein-sequence.exit"
-    before=$(load1)
+    before=$(load1) || before=null
     if [[ $rc == 0 ]]; then
-        while awk -v l="$before" 'BEGIN { exit !(l > 10) }'; do
+        while [[ $before != null ]] && awk -v l="$before" 'BEGIN { exit !(l > 10) }'; do
             if (( waited >= 1200 )); then
                 break
             fi
             sleep 15
             waited=$((waited + 15))
-            before=$(load1)
+            before=$(load1) || before=null
         done
-        if awk -v l="$before" 'BEGIN { exit !(l > 10) }'; then
+        if [[ $before == null ]]; then
+            rc="not run"
+            echo "load could not be read; native bench did not run" > "$out/m0-serein-native.log"
+        elif awk -v l="$before" 'BEGIN { exit !(l > 10) }'; then
             rc="not run"
             echo "load1 $before exceeds 10 after 20 minutes; native bench did not run" > "$out/m0-serein-native.log"
         else
@@ -172,7 +192,7 @@ serein_m0() {
         echo "sequence generation failed; native bench did not run" > "$out/m0-serein-native.log"
     fi
     echo "$rc" > "$out/m0-serein-native.exit"
-    after=$(load1)
+    after=$(load1) || after=null
     echo "{\"playSeconds\":10,\"loadBefore\":$before,\"loadAfter\":$after}" > "$out/m0-serein-native.meta.json"
     "${pair[@]}" > "$out/m0-serein.json" 2> "$out/m0-serein.log"
     echo $? > "$out/m0-serein.exit"
