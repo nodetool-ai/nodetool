@@ -154,7 +154,9 @@ for (const [i, run] of runs.entries()) {
     NT_TIMELINE_OPS: bin,
     NT_OPS_COUNT_FILE: countFile,
     NT_DIFF_CASES: opt("--cases", "300"),
-    NT_CONFORMANCE_TESTS: run.tests.join(",")
+    NT_CONFORMANCE_TESTS: run.tests.join(","),
+    // vitest leaves a module dump directory in the temp dir per run; keep it inside work.
+    TMPDIR: work
   };
   const args = ["run", "--config", path.join(here, "conformance", run.config), "--reporter=json", `--outputFile=${reportFile}`];
   if (run.skip) args.push("--testNamePattern", run.skip);
@@ -166,6 +168,7 @@ for (const [i, run] of runs.entries()) {
   }
   if (!existsSync(reportFile)) {
     console.error(`FAIL: vitest wrote no report for ${run.config} (exit ${exitCode})`);
+    rmSync(work, { recursive: true, force: true });
     process.exit(1);
   }
   reports.push({ ...JSON.parse(readFileSync(reportFile, "utf8")), exitCode, tests: run.tests });
