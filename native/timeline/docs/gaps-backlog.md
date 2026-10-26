@@ -27,6 +27,8 @@ run machine. "Package P1" and "package P2" are plan packages, not severities.
 | B16 | P2 | pkg-K-r1 F3 | `src/playback/PlaybackClock.cpp:432` | The `m_endMs > 0` guard treats an out-point at zero as unset, so `setRangeOut(0)` then `playInToOut()` plays past the out-point. `boundedTimeLocked()` has the same guard. | K |
 | B17 | P2 | pkg-K-r1 F4 | `src/audio/AudioEngine.cpp:457` | An unmuted or remapped track's snapshot is acknowledged before its PCM is opened, sought and primed, so the track can stay silent for several blocks. Tests check the new audio only after 400 ms, which masks the miss. | K |
 | B18 | P2 | pkg-H-r1 F1 | `src/preview/gizmo/TransformGizmoController.cpp:274` | The gizmo overlay fills the whole editor and `contains()` accepts any point in the clip's box, so a clip scaled or moved over the transport or tracks captures their clicks and paints over them. The web clips its overlay to the preview with `overflow: hidden`. | unassigned (H owns the overlay QML, not `src/preview/gizmo/`) |
+| B19 | P2 | pkg-F-r1 F1 | `src/edit/clipboard/README.md:50` | The clipboard and group features are not connected to the editor. `ClipGestureController` does not dispatch the clipboard and group shortcuts, Alt-drag only disables snapping, `TrackLane.qml` has no marquee or gap-selection gesture, and none of the three new QML components has a production caller. | F |
+| B20 | P2 | pkg-F-r1 F2 | `src/edit/clipboard/ClipboardOps.cpp:357` | Paste Attributes silently skips Speed because no `setClipSpeed` edit is registered. Pasting Speed from a 2× source onto a 2,000 ms video leaves it at 2,000 ms with no multiplier, where the web retimes it to 1,000 ms at 2×. | F |
 
 ## Closed
 
