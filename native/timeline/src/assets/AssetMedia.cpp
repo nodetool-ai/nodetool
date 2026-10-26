@@ -3,8 +3,19 @@
 #include <QDir>
 
 namespace nt::assets {
+void MediaProtection::protect(const QString& path) {
+    if (path.isEmpty()) { return; }
+    const std::lock_guard lock(m_mutex);
+    m_paths.insert(path);
+}
+
+void MediaProtection::applyTo(nt::server::AssetCache& cache) const {
+    const std::lock_guard lock(m_mutex);
+    for (const auto& path : m_paths) { cache.protect(path); }
+}
+
 nt::Clip resolveDroppedMedia(nt::server::ServerClient& client, const QString& cacheRoot,
-                             const QJsonObject& asset, const QJsonObject& raw) {
+                             const QJsonObject& asset, const QJsonObject& raw, MediaProtection& protection) {
     nt::Clip media;
     media.raw = raw;
     const auto type = raw.value("mediaType").toString();
@@ -16,6 +27,7 @@ nt::Clip resolveDroppedMedia(nt::server::ServerClient& client, const QString& ca
     nt::server::AssetCache cache(cacheRoot, client.serverKey(), client.userKey(),
         [&client](QNetworkRequest& request) { client.decorate(request); });
     const auto fetch = [&](const QString& variant, const nt::server::RemoteFile& file) {
+        protection.applyTo(cache);
         const auto result = cache.fetch(id, variant, file, [&]() -> std::optional<nt::server::RemoteFile> {
             const auto fresh = client.getAsset(id);
             if (!fresh.ok()) { return std::nullopt; }
@@ -23,7 +35,7 @@ nt::Clip resolveDroppedMedia(nt::server::ServerClient& client, const QString& ca
             return variant == "proxy" ? nt::server::proxyFile(client, fresh.data.toObject(), &why)
                                       : nt::server::originalFile(client, fresh.data.toObject(), &why);
         });
-        if (result.ok()) { cache.protect(result.path); }
+        if (result.ok()) { protection.protect(result.path); }
         return result;
     };
     QString why;

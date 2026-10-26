@@ -2,6 +2,7 @@
 #include "server/AutosaveController.h"
 #include "model/TimelineModel.h"
 #include "model/TrackWindowModel.h"
+#include "assets/AssetMedia.h"
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QPointer>
@@ -11,6 +12,7 @@
 #include <QtQmlIntegration/qqmlintegration.h>
 #include <functional>
 #include <deque>
+#include <memory>
 #include <optional>
 
 class AssetBrowser : public QObject {
@@ -75,6 +77,17 @@ private:
     void queueLinkedAudio(const QJsonObject& asset, const QString& audioClipId,
                           QPointer<TimelineModel> model, quint64 generation, quint64 token,
                           const QJsonObject& capturedResult, const QString& createdAudioTrackId);
+    void resetDocumentState();
+    void protectDocumentMedia();
+    void reconcileLinkedAudio();
+    struct AudioSettlement {
+        quint64 token;
+        QJsonObject payload;
+        QJsonObject capturedDocument;
+    };
+    QHash<QString, AudioSettlement> m_settlements;
+    std::shared_ptr<nt::assets::MediaProtection> m_mediaProtection;
+    bool m_reconciling = false;
     std::optional<nt::server::SaveTarget> m_target;
     QPointer<TimelineModel> m_timeline;
     QPointer<QThread> m_thread;

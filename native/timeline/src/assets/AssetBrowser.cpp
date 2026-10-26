@@ -12,6 +12,7 @@
 #include <QJsonDocument>
 #include <QDir>
 #include <QSet>
+#include <QScopedValueRollback>
 #include <algorithm>
 #include <memory>
 
@@ -27,8 +28,69 @@ AssetBrowser::~AssetBrowser() {
 TimelineModel* AssetBrowser::timeline() const { return m_timeline; }
 void AssetBrowser::setTimeline(TimelineModel* model) {
     if (model == m_timeline) { return; }
+    if (m_timeline) {
+        disconnect(m_timeline, nullptr, this, nullptr);
+        disconnect(m_timeline->undoStack(), nullptr, this, nullptr);
+    }
     m_timeline = model;
+    resetDocumentState();
+    if (model) {
+        connect(model, &TimelineModel::documentReplaced, this, &AssetBrowser::resetDocumentState);
+        connect(model, &TimelineModel::clipsChanged, this, [this] {
+            protectDocumentMedia();
+            reconcileLinkedAudio();
+        });
+        connect(model->undoStack(), &QUndoStack::indexChanged, this, &AssetBrowser::reconcileLinkedAudio);
+    }
     emit timelineChanged();
+}
+
+void AssetBrowser::resetDocumentState() {
+    m_settlements.clear();
+    m_mediaProtection = std::make_shared<nt::assets::MediaProtection>();
+    protectDocumentMedia();
+}
+
+void AssetBrowser::protectDocumentMedia() {
+    if (!m_timeline) { return; }
+    for (const auto& clip : m_timeline->timeline().clips) {
+        m_mediaProtection->protect(QString::fromStdString(clip.mediaPath));
+        m_mediaProtection->protect(QString::fromStdString(clip.audioPath));
+    }
+}
+
+void AssetBrowser::reconcileLinkedAudio() {
+    if (!m_timeline || m_reconciling || m_settlements.isEmpty()) { return; }
+    const QScopedValueRollback guard(m_reconciling, true);
+    for (auto it = m_settlements.begin(); it != m_settlements.end();) {
+        const auto clips = m_timeline->clipsJson();
+        const auto audio = std::find_if(clips.begin(), clips.end(), [&it](const QJsonValue& value) {
+            return value.toObject().value("id").toString() == it.key();
+        });
+        // Keep an untracked deletion at the current history cursor deleted.
+        if (audio == clips.end() && m_timeline->undoStack()->index() == m_timeline->undoStack()->count()) {
+            ++it;
+            continue;
+        }
+        const auto settled = nt::assets::settleLinkedAudio(it->capturedDocument, it->payload);
+        if (m_timeline->settleCommand(it->token, settled)) {
+            it = m_settlements.erase(it);
+            continue;
+        }
+        ++it;
+    }
+    // A later drop's captured document can still contain earlier placeholders.
+    // Patch them after every command settlement has finished replacing it.
+    auto current = m_timeline->timeline().raw;
+    for (auto it = m_settlements.cbegin(); it != m_settlements.cend(); ++it) {
+        const auto clips = current.value("clips").toArray();
+        const bool generating = std::any_of(clips.begin(), clips.end(), [&it](const QJsonValue& value) {
+            const auto clip = value.toObject();
+            return clip.value("id").toString() == it.key() && clip.value("status").toString() == "generating";
+        });
+        if (generating) { current = nt::assets::settleLinkedAudio(current, it->payload); }
+    }
+    m_timeline->replaceClips(current.value("clips").toArray());
 }
 
 void AssetBrowser::request(std::function<Result(nt::server::ServerClient&)> work,
@@ -285,11 +347,12 @@ void AssetBrowser::queueMedia(const QJsonObject& asset, const QJsonObject& clip,
         clip.value("currentAssetId").toString() != asset.value("id").toString()) { return; }
     // ServerSource places backups at <cacheRoot>/<serverKey>/<userKey>/timelines.
     const auto cacheRoot = QDir::cleanPath(QDir(m_target->backupDir).absoluteFilePath("../../.."));
+    protectDocumentMedia();
     const QPointer<AssetBrowser> self(this);
-    request([asset, clip, cacheRoot](nt::server::ServerClient& client) {
+    request([asset, clip, cacheRoot, protection = m_mediaProtection](nt::server::ServerClient& client) {
         Result result;
         if (!QThread::currentThread()->isInterruptionRequested()) {
-            result.media = nt::assets::resolveDroppedMedia(client, cacheRoot, asset, clip);
+            result.media = nt::assets::resolveDroppedMedia(client, cacheRoot, asset, clip, *protection);
         }
         return result;
     }, [self, model, generation](const Result& result) {
@@ -315,13 +378,8 @@ void AssetBrowser::queueLinkedAudio(const QJsonObject& asset, const QString& aud
         payload.insert("audioClipId", audioClipId);
         payload.insert("createdAudioTrackId", createdAudioTrackId);
         const auto settled = nt::assets::settleLinkedAudio(capturedResult, payload);
-        if (!model->settleCommand(token, settled)) {
-            if (!audioPresent) { return; }
-            const auto raw = model->timeline().raw;
-            // A later command makes the token stale. Keep the web's untracked
-            // clip patch, preserving subsequent edits and their history.
-            model->replaceClips(nt::assets::settleLinkedAudio(raw, payload).value("clips").toArray());
-        }
+        self->m_settlements.insert(audioClipId, {token, payload, capturedResult});
+        self->reconcileLinkedAudio();
         if (payload.value("outcome").toString() == "audio") {
             for (const auto& value : settled.value("clips").toArray()) {
                 const auto clip = value.toObject();

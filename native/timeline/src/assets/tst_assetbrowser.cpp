@@ -3,10 +3,13 @@
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
 #include "server/ServerSource.h"
+#include "../../tests/TestHttpServer.h"
 #include <QEventLoop>
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QTimer>
+#include <QTemporaryDir>
+#include <QScopeGuard>
 #include <cstdio>
 #include <QGuiApplication>
 #include <QQmlComponent>
@@ -29,6 +32,152 @@ QQuickItem* itemNamed(QQuickItem* root, const QString& name) {
 class TestAssetBrowser : public QObject {
     Q_OBJECT
 private slots:
+    void linkedAudioLaterHistory_data() {
+        QTest::addColumn<QString>("outcome");
+        QTest::addColumn<bool>("documentMarker");
+        QTest::addColumn<bool>("checkAfterMarkerUndo");
+        for (const auto& outcome : {QString("audio"), QString("failed"), QString("silent")}) {
+            for (const bool documentMarker : {false, true}) {
+                for (const bool checkAfterMarkerUndo : {false, true}) {
+                    const auto name = outcome + (documentMarker ? "-document" : "-markers") +
+                        (checkAfterMarkerUndo ? "-undo-marker" : "-redo-drop");
+                    QTest::newRow(qPrintable(name)) << outcome << documentMarker << checkAfterMarkerUndo;
+                }
+            }
+        }
+    }
+    void linkedAudioLaterHistory() {
+        QFETCH(QString, outcome);
+        QFETCH(bool, documentMarker);
+        QFETCH(bool, checkAfterMarkerUndo);
+        auto parsed = nt::parseTimelineJson(R"({"fps":30,"width":640,"height":360,
+            "tracks":[{"id":"v","type":"video","index":0}],"clips":[]})");
+        QVERIFY(parsed.timeline);
+        TimelineModel model;
+        model.setTimeline(std::move(*parsed.timeline));
+        AssetBrowser browser;
+        browser.setTimeline(&model);
+        browser.m_target = nt::server::SaveTarget{};
+        QThread occupiedWorker;
+        browser.m_thread = &occupiedWorker;
+        QVERIFY(browser.drop({{"id", "video"}, {"name", "take.mp4"},
+            {"content_type", "video/mp4"}, {"duration", 2}}, "v", 0, "overlap", 0));
+        auto completion = std::move(browser.m_requests.back().done);
+        browser.m_requests.clear();
+        browser.m_thread.clear();
+        browser.m_target.reset();
+        QVERIFY(completion);
+        if (documentMarker) {
+            QVERIFY(model.applyEdit("addMarker", {{"timeMs", 500}, {"label", "Later edit"}}));
+        } else { model.addMarker(500, "Later edit"); }
+        const auto markers = model.markersJson();
+        AssetBrowser::Result result;
+        result.settlement = {{"outcome", outcome},
+            {"asset", QJsonObject{{"id", "extracted-wav"}, {"duration", 1.5}}}};
+        completion(result);
+        QCOMPARE(model.markersJson(), markers);
+        model.undoStack()->undo();
+        if (!checkAfterMarkerUndo) {
+            model.undoStack()->undo();
+            QCOMPARE(model.clipCount(), 0);
+            model.undoStack()->redo();
+        }
+        QCOMPARE(model.markersJson().size(), 0);
+        if (outcome == "silent") {
+            QCOMPARE(model.clipCount(), 1);
+            QVERIFY(!model.clipsJson().first().toObject().contains("linkId"));
+            QEXPECT_FAIL("", "F3: public TimelineModel API cannot remove tracks untracked while later history exists", Continue);
+            QCOMPARE(model.timeline().raw.value("tracks").toArray().size(), 1);
+        } else {
+            const auto audio = model.clipsJson().last().toObject();
+            QCOMPARE(audio.value("status").toString(), outcome == "failed" ? QString("failed") : QString("generated"));
+            if (outcome == "audio") { QCOMPARE(audio.value("currentAssetId").toString(), QString("extracted-wav")); }
+        }
+        QCOMPARE(model.undoStack()->count(), 2);
+        QVERIFY(!browser.m_settlements.isEmpty());
+        model.undoStack()->redo();
+        QCOMPARE(model.markersJson(), markers);
+        if (outcome != "silent") {
+            const auto audio = model.clipsJson().last().toObject();
+            QCOMPARE(audio.value("status").toString(), outcome == "failed" ? QString("failed") : QString("generated"));
+        }
+        const auto protection = browser.m_mediaProtection;
+        auto replacement = nt::parseTimelineJson(model.documentJson());
+        QVERIFY(replacement.timeline);
+        model.setTimeline(std::move(*replacement.timeline));
+        QVERIFY(browser.m_settlements.isEmpty());
+        QVERIFY(browser.m_mediaProtection != protection);
+    }
+    void dropMediaSurvivesEviction_data() {
+        QTest::addColumn<QString>("scenario");
+        for (const auto& scenario : {"sequential", "extracted-audio", "open-document"}) {
+            QTest::newRow(scenario) << QString(scenario);
+        }
+    }
+    void dropMediaSurvivesEviction() {
+        QFETCH(QString, scenario);
+        const auto oldBudget = qgetenv("NODETOOL_TIMELINE_CACHE_BUDGET_MB");
+        qputenv("NODETOOL_TIMELINE_CACHE_BUDGET_MB", "1");
+        const auto restoreBudget = qScopeGuard([oldBudget] {
+            if (oldBudget.isNull()) { qunsetenv("NODETOOL_TIMELINE_CACHE_BUDGET_MB"); }
+            else { qputenv("NODETOOL_TIMELINE_CACHE_BUDGET_MB", oldBudget); }
+        });
+        TestHttpServer http;
+        QVERIFY(http.base().port() > 0 && http.base().port() != 7777);
+        http.setFile("/first.mp4", ServedFile{QByteArray(700000, 'a')});
+        http.setFile("/second.wav", ServedFile{QByteArray(700000, 'b')});
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        auto parsed = nt::parseTimelineJson(R"({"fps":30,"width":640,"height":360,
+            "tracks":[{"id":"v","type":"video","index":0}],
+            "clips":[{"id":"loaded","trackId":"v","mediaType":"video","durationMs":2000}]})");
+        QVERIFY(parsed.timeline);
+        QStringList paths;
+        if (scenario == "open-document") {
+            for (const auto& name : {"loaded.mp4", "loaded.wav"}) {
+                const auto path = dir.filePath(name);
+                QFile file(path);
+                QVERIFY(file.open(QIODevice::WriteOnly));
+                QCOMPARE(file.write(QByteArray(700000, 'c')), 700000);
+                paths.append(path);
+            }
+            parsed.timeline->clips.front().mediaPath = paths[0].toStdString();
+            parsed.timeline->clips.front().audioPath = paths[1].toStdString();
+        }
+        TimelineModel model;
+        model.setTimeline(std::move(*parsed.timeline));
+        AssetBrowser browser;
+        browser.setTimeline(&model);
+        nt::server::SaveTarget target;
+        target.server = http.base();
+        target.backupDir = dir.filePath("server/user/timelines");
+        browser.m_target = target;
+        QThread occupiedWorker;
+        browser.m_thread = &occupiedWorker;
+        const auto queue = [&](const QString& id, const QString& type, const QString& url) {
+            const QJsonObject asset{{"id", id}, {"get_url", url}, {"size", 700000},
+                {"content_type", type == "audio" ? "audio/wav" : "video/mp4"}};
+            browser.queueMedia(asset, {{"id", id}, {"mediaType", type}, {"currentAssetId", id}},
+                &model, model.documentGeneration());
+        };
+        if (scenario != "open-document") { queue("first", scenario == "extracted-audio" ? "video" : "image", "/first.mp4"); }
+        queue("second", scenario == "extracted-audio" ? "audio" : "image", "/second.wav");
+        auto requests = std::move(browser.m_requests);
+        browser.m_thread.clear();
+        nt::server::ServerClient client(http.base());
+        for (auto& request : requests) {
+            const auto result = request.work(client);
+            QVERIFY(result.media);
+            const auto path = QString::fromStdString(result.media->mediaType == nt::MediaType::Audio
+                ? result.media->audioPath : result.media->mediaPath);
+            QVERIFY2(QFileInfo::exists(path), qPrintable(path));
+            paths.append(path);
+            if (request.done) { request.done(result); }
+        }
+        for (const auto& path : paths) {
+            QVERIFY2(QFileInfo::exists(path), qPrintable("open document media was evicted: " + path));
+        }
+    }
     void linkedAudioHistory_data() {
         QTest::addColumn<QString>("scenario");
         for (const auto& scenario : {"audio", "undone", "silent", "later", "later-undone", "deleted"}) {
