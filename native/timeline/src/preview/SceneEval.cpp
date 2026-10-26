@@ -1,4 +1,5 @@
 #include "preview/SceneEval.h"
+#include "preview/layers/SceneHooks.h"
 #include "preview/transitions/TransitionResolver.h"
 
 #include "scene/ClipScene.h"
@@ -255,8 +256,8 @@ std::unordered_map<std::string, scene::TextStyle> flexTextStylesAt(const std::ve
 // The layout cache (`layoutCache` in layout.ts): one layout per document
 // revision, canvas size and set of animated text styles. A ticker's layout
 // changes only when its text does, so playback hits the cache between
-// changes. The measurer is the fallback rule everywhere, so it is not part
-// of the key. Shared by the GUI and render threads.
+// changes. Registered measurers bypass this fallback cache because font
+// metrics can change independently of the document. Shared by GUI/render threads.
 struct FlexCacheEntry {
     std::uint64_t revision = 0;
     double w = 0, h = 0;
@@ -292,11 +293,11 @@ std::string textStylesKey(const std::unordered_map<std::string, scene::TextStyle
 }
 
 std::shared_ptr<const scene::FlexResult> flexLayoutFor(const Timeline& timeline, const std::vector<const Clip*>& clips,
-                                                       double t, double w, double h) {
+                                                       double t, double w, double h, const scene::MeasureText& measure) {
     const auto styles = flexTextStylesAt(clips, t, w, h);
-    if (timeline.revision == 0) {
+    if (timeline.revision == 0 || measure) {
         gFlexMisses.fetch_add(1, std::memory_order_relaxed);
-        return std::make_shared<const scene::FlexResult>(scene::resolveClipLayouts(clips, w, h, styles));
+        return std::make_shared<const scene::FlexResult>(scene::resolveClipLayouts(clips, w, h, styles, measure));
     }
     const std::string key = textStylesKey(styles);
     {
@@ -560,6 +561,7 @@ double clipFadeGain(const Clip& clip, double msIntoClip) {
 }
 
 double clipSourceMsAt(const Clip& clip, double timeMs) {
+    if (auto mapped = mappedSourceTime(clip, timeMs)) { return *mapped; }
     const double rate = clip.speedBaked ? 1.0 : std::max(0.0001, clip.speedMultiplier);
     return std::max(0.0, (timeMs - clip.startMs) * rate + clip.inPointMs);
 }
@@ -660,6 +662,19 @@ Mat4 buildTransformMatrix(const ClipTransform& t, Vec2 base, double width, doubl
     return m;
 }
 
+std::pair<int, int> croppedSourceSize(const std::array<float, 4>& sourceRect, int sourceWidth, int sourceHeight) {
+    if (sourceRect == std::array<float, 4>{0, 0, 1, 1} || sourceWidth <= 0 || sourceHeight <= 0) {
+        return {sourceWidth, sourceHeight};
+    }
+    const auto extentPx = [](int sourceSize, float origin, float extent) {
+        const int start = static_cast<int>(std::floor(static_cast<double>(origin) * sourceSize));
+        const int size = static_cast<int>(std::round(static_cast<double>(extent) * sourceSize));
+        return std::max(1, std::min(size, sourceSize - start));
+    };
+    return {extentPx(sourceWidth, sourceRect[0], sourceRect[2]),
+            extentPx(sourceHeight, sourceRect[1], sourceRect[3])};
+}
+
 Mat4 layerDrawMatrix(const ActiveLayer& layer, int sourceWidth, int sourceHeight, int canvasWidth, int canvasHeight) {
     if (layer.kind == "caption") {
         return buildTransformMatrix(identityTransform(), Vec2{1, 1}, canvasWidth, canvasHeight);
@@ -678,6 +693,7 @@ std::array<float, 16> layerMatrix(const ClipTransform& transform, int sourceWidt
 }
 
 SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
+    const auto hooks = sceneHooks();
     const double W = timeline.width;
     const double H = timeline.height;
     const scene::Camera2D* camera =
@@ -691,7 +707,7 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
     // container with its position zeroed, since its children's boxes already
     // hold its translation (`groupPatchedFor`).
     std::shared_ptr<const scene::FlexResult> flex;
-    if (scene::hasFlexLayout(clips)) flex = flexLayoutFor(timeline, clips, timeMs, W, H);
+    if (scene::hasFlexLayout(clips)) flex = flexLayoutFor(timeline, clips, timeMs, W, H, hooks.measureText);
     std::vector<const Clip*> groupClips = clips;
     if (flex && !flex->transforms.empty()) {
         for (const Clip*& c : groupClips) {
@@ -950,6 +966,11 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
         }
     }
 
+    for (auto& group : frame.precomposites) {
+        const auto found = clipById.find(group.clipId);
+        if (found == clipById.end()) { continue; }
+        for (const auto& decorate : hooks.groups) { decorate(group, *found->second, timeMs); }
+    }
     std::unordered_map<std::string, const PrecompositeLayer*> surfaceById;
     for (const PrecompositeLayer& g : frame.precomposites) surfaceById[g.clipId] = &g;
     const auto finish = [&](Pending& p) {
@@ -967,6 +988,7 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
             surface = it->second->precomposeGroupId;
         }
         p.layer.drawOpacity = draw;
+        for (const auto& decorate : hooks.layers) { decorate(p.layer, *p.clip, timeMs); }
         frame.layers.push_back(std::move(p.layer));
     };
     for (Pending& p : drawn) finish(p);
@@ -994,7 +1016,8 @@ FramePlan buildFramePlan(const Timeline& timeline, double timeMs) {
     plan.timeMs = timeMs;
     for (ActiveLayer& layer : frame.layers) {
         PlanLayer pl;
-        pl.matrix = layerDrawMatrix(layer, layer.sourceWidth, layer.sourceHeight, timeline.width, timeline.height);
+        const auto [sourceWidth, sourceHeight] = croppedSourceSize(layer.sourceRect, layer.sourceWidth, layer.sourceHeight);
+        pl.matrix = layerDrawMatrix(layer, sourceWidth, sourceHeight, timeline.width, timeline.height);
         pl.layer = std::move(layer);
         plan.layers.push_back(std::move(pl));
     }
@@ -1016,6 +1039,10 @@ QJsonObject framePlanJson(const FramePlan& plan) {
                       {QStringLiteral("sourceTimeMs"), l.sourceTimeMs},
                       {QStringLiteral("drawOpacity"), l.drawOpacity},
                       {QStringLiteral("matrix"), matrixJson(pl.matrix)}};
+        if (!l.ext.isEmpty()) { o.insert(QStringLiteral("ext"), l.ext); }
+        if (l.sourceRect != std::array<float, 4>{0, 0, 1, 1}) {
+            o.insert(QStringLiteral("sourceRect"), QJsonArray{l.sourceRect[0], l.sourceRect[1], l.sourceRect[2], l.sourceRect[3]});
+        }
         if (l.stackOrder) o.insert(QStringLiteral("stackOrder"), *l.stackOrder);
         if (l.assetId) o.insert(QStringLiteral("assetId"), QString::fromStdString(*l.assetId));
         if (!l.precomposeGroupId.empty()) o.insert(QStringLiteral("precomposeGroupId"), QString::fromStdString(l.precomposeGroupId));
@@ -1052,6 +1079,7 @@ QJsonObject framePlanJson(const FramePlan& plan) {
                       {QStringLiteral("opacity"), g.opacity},
                       {QStringLiteral("blendMode"), QString::fromStdString(g.blendMode)},
                       {QStringLiteral("effects"), g.effects}};
+        if (!g.ext.isEmpty()) { o.insert(QStringLiteral("ext"), g.ext); }
         if (g.stackOrder) o.insert(QStringLiteral("stackOrder"), *g.stackOrder);
         if (!g.precomposeGroupId.empty()) o.insert(QStringLiteral("precomposeGroupId"), QString::fromStdString(g.precomposeGroupId));
         if (g.transition) o.insert(QStringLiteral("transition"), transitionJson(*g.transition));

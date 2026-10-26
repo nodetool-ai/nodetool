@@ -14,6 +14,8 @@ layout(std140, binding = 0) uniform buf {
     float opacity;
     float flipV;
     float mode;  // 0 RGBA, 1 I420 (Y, U, V), 2 NV12 (Y, CbCr)
+    vec4 sourceRect;
+    vec4 sourceTexelSize;
 };
 
 layout(binding = 1) uniform sampler2D plane0;
@@ -22,13 +24,20 @@ layout(binding = 3) uniform sampler2D plane2;
 
 void main()
 {
+    vec2 uv = v_texcoord;
+    if (any(notEqual(sourceRect, vec4(0.0, 0.0, 1.0, 1.0)))) {
+        vec2 halfTexel = 0.5 * sourceTexelSize.xy;
+        vec2 origin = sourceRect.xy;
+        if (flipV > 0.5) origin.y = 1.0 - origin.y - sourceRect.w;
+        uv = clamp(uv, origin + halfTexel, origin + sourceRect.zw - halfTexel);
+    }
     vec4 color;
     if (mode < 0.5) {
-        color = texture(plane0, v_texcoord);
+        color = texture(plane0, uv);
     } else {
-        float y = texture(plane0, v_texcoord).r;
-        vec2 cbcr = mode < 1.5 ? vec2(texture(plane1, v_texcoord).r, texture(plane2, v_texcoord).r)
-                               : texture(plane1, v_texcoord).rg;
+        float y = texture(plane0, uv).r;
+        vec2 cbcr = mode < 1.5 ? vec2(texture(plane1, uv).r, texture(plane2, uv).r)
+                               : texture(plane1, uv).rg;
         vec3 rgb = (colorMatrix * vec4(y, cbcr, 1.0)).rgb;
         color = vec4(clamp(rgb, 0.0, 1.0), 1.0);
     }
