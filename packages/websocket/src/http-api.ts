@@ -1550,163 +1550,163 @@ export async function handleAssetsRoot(
 ): Promise<Response> {
   const userId = getUserId(request, options.userIdHeader ?? "x-user-id");
 
-  if (request.method === "POST") {
-    const contentType = request.headers.get("content-type") ?? "";
-    let body: ParsedAssetCreateBody | null = null;
-    let fileBuffer: Buffer | null = null;
-    let fileSize: number | null = null;
-
-    if (staged) {
-      body = parseBodyValue(staged.metadata, assetCreateBodySchema);
-      if (staged.file) {
-        body = {
-          ...body,
-          name: body?.name || staged.file.name,
-          content_type: body?.content_type || staged.file.contentType,
-          parent_id: body?.parent_id || userId
-        };
-        fileSize = staged.file.size;
-      }
-    } else if (contentType.toLowerCase().includes("multipart/form-data")) {
-      try {
-        const fd = await request.formData();
-        const file = fd.get("file") as File | null;
-        // Frontend sends metadata as "json" field
-        const assetJson = fd.get("json") ?? fd.get("asset");
-        if (isNonEmptyString(assetJson)) {
-          body = parseBodyValue(JSON.parse(assetJson), assetCreateBodySchema);
-        }
-        if (file) {
-          const arrayBuffer = await file.arrayBuffer();
-          fileBuffer = Buffer.from(arrayBuffer);
-          fileSize = fileBuffer.byteLength;
-          // Use file metadata if not supplied in the asset JSON field
-          if (!body) {
-            body = {
-              name: file.name,
-              content_type: file.type || "application/octet-stream",
-              parent_id: userId
-            };
-          } else {
-            body.name = body.name || file.name;
-            body.content_type =
-              body.content_type || file.type || "application/octet-stream";
-            body.parent_id = body.parent_id || userId;
-          }
-        }
-      } catch {
-        return errorResponse(400, "Invalid multipart form data");
-      }
-    } else {
-      body = await parseBody(request, assetCreateBodySchema);
-    }
-
-    if (
-      !body ||
-      body.name === undefined ||
-      body.content_type === undefined ||
-      body.parent_id === undefined
-    ) {
-      return errorResponse(
-        400,
-        "Invalid JSON body: name, content_type, and parent_id are required"
-      );
-    }
-
-    const metadata: Record<string, unknown> = body.metadata ?? {};
-
-    if (body.project_id && body.project_id !== "default") {
-      try {
-        await Project.requireOwned(userId, body.project_id);
-      } catch {
-        return errorResponse(400, "Project not found");
-      }
-    }
-
-    const assetContentType = normalizeAssetContentType(
-      body.content_type,
-      body.name
-    );
-    const duration = staged?.file
-      ? await probeAssetDurationSeconds(assetContentType, {
-          path: staged.file.path
-        })
-      : fileBuffer
-        ? await probeAssetDurationSeconds(assetContentType, {
-            bytes: fileBuffer
-          })
-        : null;
-
-    const asset = (await Asset.create({
-      user_id: userId,
-      name: body.name,
-      content_type: assetContentType,
-      parent_id: body.parent_id,
-      workflow_id: body.workflow_id ?? null,
-      node_id: body.node_id ?? null,
-      job_id: body.job_id ?? null,
-      metadata:
-        Object.keys(metadata).length > 0 ? metadata : (body.metadata ?? null),
-      project_id: body.project_id ?? "default",
-      size: fileSize ?? body.size ?? null,
-      duration
-    })) as Asset;
-
-    if (fileBuffer || staged?.file) {
-      const fileName = getAssetFileName(asset.id, asset.content_type);
-      log.info("asset upload (multipart)", {
-        assetId: asset.id,
-        fileName,
-        contentType: asset.content_type,
-        bytes: fileSize
-      });
-      try {
-        if (staged?.file) {
-          const adapter = getAssetAdapter();
-          if (!(adapter instanceof FileStorageAdapter)) {
-            throw new Error("Staged uploads require local storage");
-          }
-          await adapter.storeFile(
-            getAssetStorageKey(asset.user_id, asset.id, asset.content_type),
-            staged.file.path
-          );
-          // The stored file is local, so the thumbnail reads it in place at
-          // any size.
-          await generateThumbnailForStoredAsset(
-            asset.user_id,
-            asset.id,
-            asset.content_type
-          );
-        } else if (fileBuffer) {
-          await storeAssetWithThumbnail(
-            asset.user_id,
-            asset.id,
-            fileName,
-            new Uint8Array(fileBuffer),
-            asset.content_type
-          );
-        }
-      } catch (error) {
-        // The row was created before the bytes were written. If the store
-        // rejects (over the upload cap, or any S3/Supabase failure) drop the
-        // row rather than leave it pointing at bytes that never landed.
-        try {
-          await asset.delete();
-        } catch (deleteError) {
-          log.warn("failed to delete asset row after upload failure", {
-            assetId: asset.id,
-            error: String(deleteError)
-          });
-        }
-        throw error instanceof Error ? error : new Error(String(error));
-      }
-      scheduleVideoProxy(asset);
-    }
-
-    return jsonResponse(await toAssetResponse(asset));
+  if (request.method !== "POST") {
+    return errorResponse(405, "Method not allowed");
   }
 
-  return errorResponse(405, "Method not allowed");
+  const contentType = request.headers.get("content-type") ?? "";
+  let body: ParsedAssetCreateBody | null = null;
+  let fileBuffer: Buffer | null = null;
+  let fileSize: number | null = null;
+
+  if (staged) {
+    body = parseBodyValue(staged.metadata, assetCreateBodySchema);
+    if (staged.file) {
+      body = {
+        ...body,
+        name: body?.name || staged.file.name,
+        content_type: body?.content_type || staged.file.contentType,
+        parent_id: body?.parent_id || userId
+      };
+      fileSize = staged.file.size;
+    }
+  } else if (contentType.toLowerCase().includes("multipart/form-data")) {
+    try {
+      const fd = await request.formData();
+      const file = fd.get("file") as File | null;
+      // Frontend sends metadata as "json" field
+      const assetJson = fd.get("json") ?? fd.get("asset");
+      if (isNonEmptyString(assetJson)) {
+        body = parseBodyValue(JSON.parse(assetJson), assetCreateBodySchema);
+      }
+      if (file) {
+        const arrayBuffer = await file.arrayBuffer();
+        fileBuffer = Buffer.from(arrayBuffer);
+        fileSize = fileBuffer.byteLength;
+        // Use file metadata if not supplied in the asset JSON field
+        if (!body) {
+          body = {
+            name: file.name,
+            content_type: file.type || "application/octet-stream",
+            parent_id: userId
+          };
+        } else {
+          body.name = body.name || file.name;
+          body.content_type =
+            body.content_type || file.type || "application/octet-stream";
+          body.parent_id = body.parent_id || userId;
+        }
+      }
+    } catch {
+      return errorResponse(400, "Invalid multipart form data");
+    }
+  } else {
+    body = await parseBody(request, assetCreateBodySchema);
+  }
+
+  if (
+    !body ||
+    body.name === undefined ||
+    body.content_type === undefined ||
+    body.parent_id === undefined
+  ) {
+    return errorResponse(
+      400,
+      "Invalid JSON body: name, content_type, and parent_id are required"
+    );
+  }
+
+  const metadata: Record<string, unknown> = body.metadata ?? {};
+
+  if (body.project_id && body.project_id !== "default") {
+    try {
+      await Project.requireOwned(userId, body.project_id);
+    } catch {
+      return errorResponse(400, "Project not found");
+    }
+  }
+
+  const assetContentType = normalizeAssetContentType(
+    body.content_type,
+    body.name
+  );
+  const duration = staged?.file
+    ? await probeAssetDurationSeconds(assetContentType, {
+        path: staged.file.path
+      })
+    : fileBuffer
+      ? await probeAssetDurationSeconds(assetContentType, {
+          bytes: fileBuffer
+        })
+      : null;
+
+  const asset = (await Asset.create({
+    user_id: userId,
+    name: body.name,
+    content_type: assetContentType,
+    parent_id: body.parent_id,
+    workflow_id: body.workflow_id ?? null,
+    node_id: body.node_id ?? null,
+    job_id: body.job_id ?? null,
+    metadata:
+      Object.keys(metadata).length > 0 ? metadata : (body.metadata ?? null),
+    project_id: body.project_id ?? "default",
+    size: fileSize ?? body.size ?? null,
+    duration
+  })) as Asset;
+
+  if (fileBuffer || staged?.file) {
+    const fileName = getAssetFileName(asset.id, asset.content_type);
+    log.info("asset upload (multipart)", {
+      assetId: asset.id,
+      fileName,
+      contentType: asset.content_type,
+      bytes: fileSize
+    });
+    try {
+      if (staged?.file) {
+        const adapter = getAssetAdapter();
+        if (!(adapter instanceof FileStorageAdapter)) {
+          throw new Error("Staged uploads require local storage");
+        }
+        await adapter.storeFile(
+          getAssetStorageKey(asset.user_id, asset.id, asset.content_type),
+          staged.file.path
+        );
+        // The stored file is local, so the thumbnail reads it in place at
+        // any size.
+        await generateThumbnailForStoredAsset(
+          asset.user_id,
+          asset.id,
+          asset.content_type
+        );
+      } else if (fileBuffer) {
+        await storeAssetWithThumbnail(
+          asset.user_id,
+          asset.id,
+          fileName,
+          new Uint8Array(fileBuffer),
+          asset.content_type
+        );
+      }
+    } catch (error) {
+      // The row was created before the bytes were written. If the store
+      // rejects (over the upload cap, or any S3/Supabase failure) drop the
+      // row rather than leave it pointing at bytes that never landed.
+      try {
+        await asset.delete();
+      } catch (deleteError) {
+        log.warn("failed to delete asset row after upload failure", {
+          assetId: asset.id,
+          error: String(deleteError)
+        });
+      }
+      throw error instanceof Error ? error : new Error(String(error));
+    }
+    scheduleVideoProxy(asset);
+  }
+
+  return jsonResponse(await toAssetResponse(asset));
 }
 
 /**
