@@ -1,19 +1,24 @@
 #include "assets/AssetMedia.h"
+#include "server/AssetCache.h"
 #include "server/ServerTimeline.h"
 #include <QDir>
+#include <QDateTime>
+#include <QDirIterator>
+#include <QFile>
+#include <QFileInfo>
+#include <QLockFile>
 #include <algorithm>
+#include <vector>
 
 namespace nt::assets {
 void MediaProtection::reset(QSet<QString> paths) {
+    QSet<QString> absolutePaths;
+    for (const auto& path : paths) {
+        if (!path.isEmpty()) { absolutePaths.insert(QFileInfo(path).absoluteFilePath()); }
+    }
     const std::lock_guard lock(m_mutex);
     ++m_generation;
-    m_paths = std::move(paths);
-    // Downloads already in flight must also protect the newly opened document.
-    for (const auto& weak : m_caches) {
-        if (const auto cache = weak.lock()) {
-            for (const auto& path : m_paths) { cache->protect(path); }
-        }
-    }
+    m_paths = std::move(absolutePaths);
 }
 
 quint64 MediaProtection::generation() const {
@@ -25,17 +30,43 @@ void MediaProtection::protect(const QString& path, std::optional<quint64> genera
     if (path.isEmpty()) { return; }
     const std::lock_guard lock(m_mutex);
     if (generation && *generation != m_generation) { return; }
-    m_paths.insert(path);
-    for (const auto& weak : m_caches) {
-        if (const auto cache = weak.lock()) { cache->protect(path); }
-    }
+    m_paths.insert(QFileInfo(path).absoluteFilePath());
 }
 
-void MediaProtection::applyTo(const std::shared_ptr<nt::server::AssetCache>& cache) {
+void MediaProtection::evict(const QString& root, qint64 budget, const QString& justFetched,
+                           const std::function<void()>& afterScan) {
+    if (budget <= 0) { return; }
+    struct Entry {
+        QString path;
+        QDateTime used;
+        qint64 size;
+    };
+    std::vector<Entry> files;
+    qint64 total = 0;
+    QDirIterator it(root, QDir::Files, QDirIterator::Subdirectories);
+    while (it.hasNext()) {
+        const QFileInfo info(it.next());
+        const auto name = info.fileName();
+        if (name.startsWith(u'.') || name.endsWith(u".part") || name.endsWith(u".total") || name.endsWith(u".json")) {
+            continue;
+        }
+        files.push_back({info.absoluteFilePath(), info.lastModified(), info.size()});
+        total += info.size();
+    }
+    if (total <= budget) { return; }
+    std::sort(files.begin(), files.end(), [](const Entry& a, const Entry& b) { return a.used < b.used; });
+    const auto fetchedPath = QFileInfo(justFetched).absoluteFilePath();
+    if (afterScan) { afterScan(); }
+    // A completed reset/protect must cover every subsequent deletion decision.
     const std::lock_guard lock(m_mutex);
-    std::erase_if(m_caches, [](const auto& weak) { return weak.expired(); });
-    m_caches.push_back(cache);
-    for (const auto& path : m_paths) { cache->protect(path); }
+    for (const auto& file : files) {
+        if (total <= budget) { break; }
+        if (file.path == fetchedPath || m_paths.contains(file.path)) { continue; }
+        QLockFile folderLock(QFileInfo(file.path).absolutePath() + QStringLiteral("/.lock"));
+        folderLock.setStaleLockTime(0);
+        if (!folderLock.tryLock(0)) { continue; }
+        if (QFile::remove(file.path)) { total -= file.size; }
+    }
 }
 
 nt::Clip resolveDroppedMedia(nt::server::ServerClient& client, const QString& cacheRoot,
@@ -49,11 +80,12 @@ nt::Clip resolveDroppedMedia(nt::server::ServerClient& client, const QString& ca
     const bool picture = media.mediaType == nt::MediaType::Video || media.mediaType == nt::MediaType::Image;
     const bool audio = media.mediaType == nt::MediaType::Video || media.mediaType == nt::MediaType::Audio;
     const auto id = asset.value("id").toString();
-    const auto cache = std::make_shared<nt::server::AssetCache>(cacheRoot, client.serverKey(), client.userKey(),
+    nt::server::AssetCache cache(cacheRoot, client.serverKey(), client.userKey(),
         [&client](QNetworkRequest& request) { client.decorate(request); });
-    protection.applyTo(cache);
+    const auto budget = cache.budgetBytes();
+    cache.setBudgetBytes(0);
     const auto fetch = [&](const QString& variant, const nt::server::RemoteFile& file) {
-        const auto result = cache->fetch(id, variant, file, [&]() -> std::optional<nt::server::RemoteFile> {
+        const auto result = cache.fetch(id, variant, file, [&]() -> std::optional<nt::server::RemoteFile> {
             const auto fresh = client.getAsset(id);
             if (!fresh.ok()) { return std::nullopt; }
             QString why;
@@ -61,6 +93,7 @@ nt::Clip resolveDroppedMedia(nt::server::ServerClient& client, const QString& ca
                                       : nt::server::originalFile(client, fresh.data.toObject(), &why);
         });
         if (result.ok()) { protection.protect(result.path, generation); }
+        if (result.ok() && !result.hit) { protection.evict(cacheRoot, budget, result.path); }
         return result;
     };
     QString why;

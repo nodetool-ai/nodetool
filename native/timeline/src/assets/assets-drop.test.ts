@@ -148,6 +148,7 @@ describe('B conformance ownership', () => {
     const suiteUrl = pathToFileURL(resolve(dirname(binary), '../scripts/conformance/suites/assets.mjs')).href;
     const tests: string[] = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e',
       `import suite from ${JSON.stringify(suiteUrl)}; console.log(JSON.stringify(suite.tests))`], { encoding: 'utf8' }));
+    expect(tests.length).toBeGreaterThan(0);
     expect(tests.every(file => file.includes('/src/assets/'))).toBe(true);
   });
 });
