@@ -7,7 +7,7 @@
  * The tool settings stay in the tool top bar over the canvas (D7).
  */
 
-import React, { memo } from "react";
+import { memo } from "react";
 
 import {
   SaveStatus,

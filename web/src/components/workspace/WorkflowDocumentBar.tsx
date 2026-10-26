@@ -6,7 +6,7 @@
  * the composer that starts a run.
  */
 
-import React, { memo, useCallback } from "react";
+import { memo, useCallback } from "react";
 import { useTranslation } from "react-i18next";
 import { useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
