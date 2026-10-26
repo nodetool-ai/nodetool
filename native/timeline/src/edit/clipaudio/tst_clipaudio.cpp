@@ -8,6 +8,8 @@
 #include <QJsonDocument>
 #include <QQmlComponent>
 #include <QQmlEngine>
+#include <QQmlProperty>
+#include <QQmlListReference>
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QJSValue>
@@ -35,7 +37,137 @@ QQuickItem* findItem(QQuickItem* root, const QString& name) {
 }
 class TestClipAudio : public QObject {
     Q_OBJECT
+    QJsonObject english;
 private slots:
+    void initTestCase() {
+        QFile file(QStringLiteral(NT_TIMELINE_DIR "/../../web/src/i18n/locales/en.json"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        QJsonParseError error;
+        const auto parsed = QJsonDocument::fromJson(file.readAll(), &error);
+        QCOMPARE(error.error, QJsonParseError::NoError);
+        QVERIFY(parsed.isObject());
+        english = parsed.object();
+    }
+    void inspectorWording_data() {
+        QTest::addColumn<QString>("control");
+        QTest::addColumn<QString>("key");
+        QTest::addColumn<bool>("pill");
+        QTest::newRow("fade-in-seconds") << QString("audioFadeIn") << QString("fadeInSeconds") << true;
+        QTest::newRow("fade-out-seconds") << QString("audioFadeOut") << QString("fadeOutSeconds") << true;
+        QTest::newRow("fade-in-shape") << QString("audioFadeInShape") << QString("fadeInShape") << false;
+        QTest::newRow("fade-out-shape") << QString("audioFadeOutShape") << QString("fadeOutShape") << false;
+    }
+    void inspectorWording() {
+        QFETCH(QString, control);
+        QFETCH(QString, key);
+        QFETCH(bool, pill);
+        const auto wording = english["pass3_22"].toObject()["timeline"].toObject()
+            ["inspector"].toObject()["clipAdjustments"].toObject();
+        const auto expected = wording[key].toString();
+        QVERIFY(!expected.isEmpty());
+        TimelineModel model;
+        load(model);
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData(R"(import QtQuick
+import NodeTool.Timeline
+AudioSection { selection: ["c"] })", QUrl());
+        std::unique_ptr<QObject> section(component.createWithInitialProperties({{"timeline", QVariant::fromValue(&model)}}));
+        QVERIFY2(section, qPrintable(component.errorString()));
+        auto* item = section->findChild<QObject*>(control);
+        QVERIFY(item);
+        if (pill) {
+            QObject* input = nullptr;
+            for (auto* child : item->findChildren<QObject*>()) {
+                if (child->property("selectByMouse").isValid()) {
+                    input = child;
+                    break;
+                }
+            }
+            QVERIFY(input);
+            QCOMPARE(QQmlProperty::read(input, "Accessible.name", qmlContext(input)).toString(), expected);
+        } else {
+            QCOMPARE(item->property("label").toString(), expected);
+            QCOMPARE(QQmlProperty::read(item, "Accessible.name", qmlContext(item)).toString(), expected);
+        }
+    }
+    void shapeMenuWording_data() {
+        QTest::addColumn<QString>("edge");
+        QTest::addColumn<QString>("key");
+        QTest::newRow("in") << QString("in") << QString("fadeIn");
+        QTest::newRow("out") << QString("out") << QString("fadeOut");
+    }
+    void shapeMenuWording() {
+        QFETCH(QString, edge);
+        QFETCH(QString, key);
+        const auto expected = english["i18n-next59"].toObject()["fadeShapes"].toObject()[key].toString();
+        QVERIFY(!expected.isEmpty());
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData(R"(import QtQuick
+import NodeTool.Timeline
+ClipFadeShapeMenu {})", QUrl());
+        std::unique_ptr<QObject> menu(component.createWithInitialProperties({{"edge", edge}}));
+        QVERIFY2(menu, qPrintable(component.errorString()));
+        auto* content = menu->property("contentItem").value<QQuickItem*>();
+        QVERIFY(content);
+        QCOMPARE(QQmlProperty::read(content, "Accessible.name", qmlContext(content)).toString(), expected);
+    }
+    void gainDialogWording() {
+        const auto wording = english["batch2_25"].toObject()["audioGain"].toObject();
+        QVERIFY(!wording.isEmpty());
+        TimelineModel model;
+        load(model);
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData(R"(import QtQuick
+import NodeTool.Timeline
+AudioGainDialog { clipIds: ["c", "silent"] })", QUrl());
+        std::unique_ptr<QObject> dialog(component.createWithInitialProperties({{"timeline", QVariant::fromValue(&model)}}));
+        QVERIFY2(dialog, qPrintable(component.errorString()));
+        QCOMPARE(dialog->property("title").toString(), wording["title"].toString());
+        auto* content = dialog->property("contentItem").value<QQuickItem*>();
+        QVERIFY(content);
+        const auto items = content->childItems();
+        QCOMPARE(items.size(), 7);
+        QCOMPARE(items[0]->property("text").toString(), wording["change"].toString());
+        QCOMPARE(items[1]->property("text").toString(), wording["setGainTo"].toString());
+        QCOMPARE(items[2]->property("text").toString(), wording["adjustGainBy"].toString());
+        auto* input = dialog->findChild<QObject*>("gainInput");
+        QVERIFY(input);
+        for (const auto& mode : {QString("set"), QString("adjust")}) {
+            QVERIFY(dialog->setProperty("mode", mode));
+            const auto expected = wording[mode == "set" ? "gain" : "change"].toString();
+            QCOMPARE(items[3]->property("text").toString(), expected);
+            QCOMPARE(QQmlProperty::read(input, "Accessible.name", qmlContext(input)).toString(), expected);
+        }
+        QVERIFY(dialog->setProperty("mode", "set"));
+        QVERIFY(dialog->setProperty("dbText", "25"));
+        QVERIFY(!dialog->property("valid").toBool());
+        QCOMPARE(items[5]->property("text").toString(), wording["rangeError"].toString()
+            .replace("{{min}}", "-120").replace("{{max}}", "24"));
+        QCOMPARE(items[6]->property("text").toString(), wording["appliesToOne"].toString());
+        QVERIFY(dialog->setProperty("clipIds", QStringList{"silent"}));
+        QCOMPARE(items[6]->property("text").toString(), wording["noAudio"].toString());
+        const auto parsed = QJsonDocument::fromJson(model.documentJson()).object();
+        auto multiple = parsed;
+        auto clips = multiple["clips"].toArray();
+        auto second = clips[0].toObject();
+        second.insert("id", "second");
+        clips.append(second);
+        multiple.insert("clips", clips);
+        auto timeline = nt::parseTimelineJson(QJsonDocument(multiple).toJson());
+        QVERIFY(timeline.timeline);
+        model.setTimeline(std::move(*timeline.timeline));
+        QVERIFY(dialog->setProperty("clipIds", QStringList{"c", "second", "silent"}));
+        QCOMPARE(items[6]->property("text").toString(), wording["appliesToMany_other"].toString().replace("{{count}}", "2"));
+        auto* footer = dialog->property("footer").value<QObject*>();
+        QVERIFY(footer);
+        QQmlListReference buttons(footer, "contentChildren");
+        QVERIFY(buttons.isReadable());
+        QCOMPARE(buttons.count(), 2);
+        QCOMPARE(buttons.at(1)->property("text").toString(), english["batch2_25"].toObject()["common"].toObject()["apply"].toString());
+    }
     void registeredEdits() {
         TimelineModel model;
         load(model);
