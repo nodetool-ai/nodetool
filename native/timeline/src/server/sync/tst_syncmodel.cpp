@@ -1,3 +1,4 @@
+#include "app/PanelRegistry.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
@@ -25,9 +26,13 @@ QJsonObject document(int a = 0, int b = 1500, const QString& revision = "u0") {
                               QJsonObject{{"id", "b"}, {"currentAssetId", "asset-b"}, {"name", "B"}, {"trackId", "v"}, {"mediaType", "shape"}, {"startMs", b}, {"durationMs", 1000}}}}};
 }
 QQuickItem* findItem(QQuickItem* root, const QString& name) {
-    if (root->objectName() == name) return root;
+    if (root->objectName() == name) {
+        return root;
+    }
     for (auto* child : root->childItems()) {
-        if (auto* found = findItem(child, name)) return found;
+        if (auto* found = findItem(child, name)) {
+            return found;
+        }
     }
     return nullptr;
 }
@@ -36,6 +41,19 @@ QQuickItem* findItem(QQuickItem* root, const QString& name) {
 class TestSyncModel : public QObject {
     Q_OBJECT
 private slots:
+    void bannerResource() {
+        const auto panels = PanelRegistry().forSlot("overlay");
+        for (const auto& entry : panels) {
+            const auto panel = entry.toMap();
+            if (panel["id"].toString() == "externalConflicts") {
+                const auto url = panel["source"].toUrl();
+                QCOMPARE(url, QUrl("qrc:/nodetool/sync/ExternalConflictsBanner.qml"));
+                QVERIFY(QFile::exists(":" + url.path()));
+                return;
+            }
+        }
+        QFAIL("external conflicts overlay must be registered");
+    }
     void realModel_data() {
         QTest::addColumn<QString>("mode");
         QTest::newRow("clean") << QString("clean");
@@ -69,12 +87,22 @@ private slots:
         QVERIFY2(object, qPrintable(component.errorString()));
         auto* root = qobject_cast<QQuickItem*>(object.get());
         QVERIFY(root);
+        auto* banner = findItem(root, "externalConflictsBanner");
+        QVERIFY2(banner, "external conflicts banner must be registered in the editor overlay");
+        QVERIFY(!banner->isVisible());
+        QCOMPARE(banner->width(), root->width());
+        QCOMPARE(banner->height(), root->height());
+        QCOMPARE(banner->acceptedMouseButtons(), Qt::MouseButtons(Qt::NoButton));
         // No window is shown and no playback starts. These are the actual QML
         // clip delegates that the scene graph renders in the visible editor.
         QTRY_VERIFY(findItem(root, "clip-a"));
         const qreal beforeX = findItem(root, "clip-a")->x();
-        if (mode == "dirty") QVERIFY(model.moveClip("b", 2000));
-        if (mode == "accept" || mode == "discard") QVERIFY(model.moveClip("a", 100));
+        if (mode == "dirty") {
+            QVERIFY(model.moveClip("b", 2000));
+        }
+        if (mode == "accept" || mode == "discard") {
+            QVERIFY(model.moveClip("a", 100));
+        }
         save.externalChanged("updated", "u1", QJsonArray{QJsonObject{{"tool", "ui_timeline_move_clip"}, {"input", QJsonObject{{"id", "a"}}}}}, true);
         QTRY_COMPARE(save.baseUpdatedAt(), QString("u1"));
         QVERIFY(!model.undoStack()->canUndo());
@@ -83,7 +111,10 @@ private slots:
             QCOMPARE(model.timeline().clips[0].startMs, 100.0);
             QCOMPARE(save.externalConflicts().size(), 1);
             if (mode == "accept") {
-                QVERIFY(save.acceptExternalConflict("a", &model));
+                QTRY_VERIFY(banner->isVisible());
+                auto* accept = findItem(banner, "acceptExternalConflict-a");
+                QVERIFY(accept);
+                QVERIFY(QMetaObject::invokeMethod(accept, "clicked"));
                 QCOMPARE(model.timeline().clips[0].startMs, 500.0);
                 QCOMPARE(model.undoStack()->count(), 1);
                 QCOMPARE(save.externalConflicts().size(), 0);
@@ -92,11 +123,16 @@ private slots:
                 model.undoStack()->redo();
                 QCOMPARE(model.timeline().clips[0].startMs, 500.0);
             } else {
-                save.discardExternalConflicts();
+                QTRY_VERIFY(banner->isVisible());
+                auto* discard = findItem(banner, "discardExternalConflicts");
+                QVERIFY(discard);
+                QVERIFY(QMetaObject::invokeMethod(discard, "clicked"));
                 QCOMPARE(model.timeline().clips[0].startMs, 100.0);
                 QCOMPARE(save.externalConflicts().size(), 0);
             }
+            QTRY_VERIFY(!banner->isVisible());
         } else {
+            QVERIFY(!banner->isVisible());
             QCOMPARE(model.timeline().clips[0].startMs, 500.0);
             QTRY_VERIFY(findItem(root, "clip-a"));
             QTRY_VERIFY(findItem(root, "clip-a")->x() > beforeX);
@@ -113,6 +149,35 @@ private slots:
                 QCOMPARE(http.countRequests("POST", "/trpc/timeline.update"), 0);
             }
         }
+    }
+    void clearedAudioResolution_data() {
+        QTest::addColumn<bool>("serverHasClip");
+        QTest::newRow("explicit-empty-resolution") << true;
+        QTest::newRow("changed-draft-media-identity") << false;
+    }
+    void clearedAudioResolution() {
+        QFETCH(bool, serverHasClip);
+        auto raw = document();
+        auto clips = raw["clips"].toArray();
+        auto audio = clips[0].toObject();
+        audio["mediaType"] = "audio";
+        clips[0] = audio;
+        raw["clips"] = clips;
+        auto loaded = nt::parseTimelineJson(QJsonDocument(raw).toJson());
+        QVERIFY(loaded.timeline);
+        loaded.timeline->clips[0].audioPath = "/resolved/old.wav";
+        TimelineModel model;
+        model.setTimeline(*loaded.timeline);
+        audio.remove("currentAssetId");
+        clips[0] = audio;
+        raw["clips"] = clips;
+        auto server = nt::parseTimelineJson(QJsonDocument(raw).toJson());
+        QVERIFY(server.timeline);
+        if (!serverHasClip) {
+            server.timeline->clips.clear();
+        }
+        QVERIFY(sync::applyDocument(model.undoStack(), raw, *server.timeline));
+        QVERIFY2(model.timeline().clips[0].audioPath.empty(), "cleared asset must clear playback path");
     }
     void resolvedMediaSurvives() {
         TimelineModel model;

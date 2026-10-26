@@ -199,9 +199,13 @@ public:
     QUndoStack* undo = nullptr;
     QJsonObject* document = nullptr;
     Q_INVOKABLE quint64 applyEdit(const QString& name, const QJsonObject& payload) {
-        if (name != u"acceptExternalUnit") return 0;
+        if (name != u"acceptExternalUnit") {
+            return 0;
+        }
         const auto next = sync::applyAcceptedUnit(*document, payload);
-        if (next == *document) return 0;
+        if (next == *document) {
+            return 0;
+        }
         class Write : public QUndoCommand {
         public:
             Write(QJsonObject* target, QJsonObject next) : m_target(target), m_before(*target), m_after(std::move(next)) {}
@@ -282,17 +286,25 @@ private slots:
             : mode == "older" ? "2026-10-26T13:59:59.000Z" : newer);
         int applied = 0;
         sync::setDocumentApplier([&](QUndoStack* undo, const QJsonObject& next, const nt::Timeline&) {
-            if (QThread::currentThread() != QCoreApplication::instance()->thread()) return false;
+            if (QThread::currentThread() != QCoreApplication::instance()->thread()) {
+                return false;
+            }
             raw = next;
             undo->clear();
             ++applied;
             return true;
         });
-        if (mode == "no-applier") sync::setDocumentApplier({});
+        if (mode == "no-applier") {
+            sync::setDocumentApplier({});
+        }
         m_http->setJson([&](const QByteArray& path, const QUrl&) {
-            if (path != "/trpc/timeline.get") return failure(404, "NOT_FOUND");
+            if (path != "/trpc/timeline.get") {
+                return failure(404, "NOT_FOUND");
+            }
             auto fetched = server;
-            if (mode == "invalid-camera") fetched["camera2d"] = false;
+            if (mode == "invalid-camera") {
+                fetched["camera2d"] = false;
+            }
             return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", fetched}}}}).toJson();
         });
         m_http->setPost([&](const QByteArray&, const QByteArray&) { return ok("2026-10-26T14:00:02.000Z"); });
@@ -308,7 +320,9 @@ private slots:
             raw = syncDoc(mode == "conflict" || mode == "accept" ? 100 : 0, 200, loaded["updatedAt"].toString());
             m_save->documentChanged();
         }
-        if (mode == "preview" || mode == "preview-cancel") raw = syncDoc(0, 200, loaded["updatedAt"].toString());
+        if (mode == "preview" || mode == "preview-cancel") {
+            raw = syncDoc(0, 200, loaded["updatedAt"].toString());
+        }
         const QJsonArray ops{QJsonObject{{"tool", "ui_timeline_move_clip"}, {"input", QJsonObject{{"id", "a"}}}}};
         if (mode == "refresh") {
             QVERIFY(QMetaObject::invokeMethod(m_save.get(), "refreshExternal"));
@@ -338,8 +352,11 @@ private slots:
         } else if (mode == "preview" || mode == "preview-cancel") {
             QTest::qWait(100);
             QCOMPARE(applied, 0);
-            if (mode == "preview-cancel") raw = loaded;
-            else m_save->documentChanged();
+            if (mode == "preview-cancel") {
+                raw = loaded;
+            } else {
+                m_save->documentChanged();
+            }
             QTRY_COMPARE(applied, 1);
             QCOMPARE(raw["clips"], syncDoc(500, mode == "preview-cancel" ? 0 : 200, newer)["clips"]);
         } else if (mode == "equal" || mode == "older") {
@@ -419,7 +436,9 @@ private slots:
         m_http->setJson([&](const QByteArray&, const QUrl&) {
             // All recovery fetch failures retry, including a rejected request.
             attempts.append(clock.elapsed());
-            if (++gets <= (trigger == "retry" ? 3 : 1)) return failure(400, "BAD_REQUEST");
+            if (++gets <= (trigger == "retry" ? 3 : 1)) {
+                return failure(400, "BAD_REQUEST");
+            }
             const auto server = syncDoc(500, 0, "u1");
             return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", server}}}}).toJson();
         });
@@ -542,7 +561,9 @@ private slots:
             child.start(QCoreApplication::applicationFilePath(), {"eachWebSocketConnectIsLogged"});
             QVERIFY(child.waitForFinished(10000));
             QCOMPARE(child.exitCode(), 0);
-            const auto log = child.readAllStandardError();
+            // QtTest captures Qt messages on stdout instead of the application's
+            // default stderr handler.
+            const auto log = child.readAllStandardError() + child.readAllStandardOutput();
             QCOMPARE(log.count("sync: listening for seq\n"), 2);
             return;
         }
@@ -552,7 +573,9 @@ private slots:
         connect(&socket, &QWebSocketServer::newConnection, this, [&] {
             auto* peer = socket.nextPendingConnection();
             peer->setParent(&socket);
-            if (++connects == 1) QTimer::singleShot(20, peer, [peer] { peer->close(); });
+            if (++connects == 1) {
+                QTimer::singleShot(20, peer, [peer] { peer->close(); });
+            }
         });
         make();
         m_save->setExternalSyncUrl(QUrl(QString("http://127.0.0.1:%1").arg(socket.serverPort())));
@@ -671,7 +694,9 @@ private slots:
 
     void casRecovery_data() {
         QTest::addColumn<QString>("mode");
-        for (const auto* mode : {"success", "stripped", "get-fails", "no-advance", "limit", "quit", "quit-clean", "quit-limited"}) QTest::newRow(mode) << QString(mode);
+        for (const auto* mode : {"success", "stripped", "get-fails", "no-advance", "limit", "quit", "quit-clean", "quit-limited"}) {
+            QTest::newRow(mode) << QString(mode);
+        }
     }
     void casRecovery() {
         QFETCH(QString, mode);
@@ -691,7 +716,9 @@ private slots:
         m_http->setJson([&](const QByteArray&, const QUrl&) {
             ++gets;
             copyDuringRecovery = QFile::exists(QDir(folder).filePath("seq.local.json"));
-            if (mode == "get-fails") return failure(503, "INTERNAL_SERVER_ERROR");
+            if (mode == "get-fails") {
+                return failure(503, "INTERNAL_SERVER_ERROR");
+            }
             const auto server = canonical(syncDoc(mode == "quit-clean" ? 0 : 500, mode == "quit-clean" ? 200 : 0, mode == "no-advance" ? "u0" : "u" + QString::number(gets)));
             return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", server}}}}).toJson();
         });
@@ -743,8 +770,9 @@ private slots:
 
     void queuedNotices_data() {
         QTest::addColumn<QString>("mode");
-        for (const auto* mode : {"save", "fetch", "missing-ops", "clean-during-fetch", "preview-during-fetch"})
+        for (const auto* mode : {"save", "fetch", "missing-ops", "clean-during-fetch", "preview-during-fetch"}) {
             QTest::newRow(mode) << QString(mode);
+        }
     }
     void queuedNotices() {
         QFETCH(QString, mode);
@@ -807,7 +835,9 @@ private slots:
         }
         QCOMPARE(applies, 1);
         for (const auto& request : m_http->requests()) {
-            if (request.method == "GET") QCOMPARE(request.headers.value("authorization"), QByteArray("Bearer sync-token"));
+            if (request.method == "GET") {
+                QCOMPARE(request.headers.value("authorization"), QByteArray("Bearer sync-token"));
+            }
             QVERIFY(!request.target.startsWith("/ws"));
         }
         m_save.reset();

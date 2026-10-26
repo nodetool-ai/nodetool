@@ -2,7 +2,7 @@
 #include "server/ServerClient.h"
 
 #include <QAuthenticator>
-#include <QDebug>
+#include <QLoggingCategory>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QNetworkProxy>
@@ -13,6 +13,8 @@
 #include <utility>
 
 namespace nt::server::sync {
+Q_LOGGING_CATEGORY(resourceChangeLog, "nodetool.timeline.sync.transport", QtInfoMsg)
+
 ResourceChangeClient::ResourceChangeClient(const QUrl& base, const QString& id,
                                          const QString& token, const QString& resourceType,
                                          QObject* parent)
@@ -40,9 +42,10 @@ ResourceChangeClient::ResourceChangeClient(const QUrl& base, const QString& id,
     connect(&m_socket, &QWebSocket::connected, this, [this] {
         m_backoff = m_backoffBase;
         m_socket.sendTextMessage(R"({"command":"set_mode","data":{"mode":"text"}})");
-        if (m_everConnected) {
-            m_refreshTimer.start(m_refreshDelay ? m_refreshDelay() : static_cast<int>(m_random() * 3000));
-        }
+        // Close the initial GET-to-subscription gap too. Reconnects retain
+        // the web's jitter, while the first subscription refreshes immediately.
+        m_refreshTimer.start(m_everConnected
+            ? (m_refreshDelay ? m_refreshDelay() : static_cast<int>(m_random() * 3000)) : 0);
         m_everConnected = true;
         receivedInbound();
         setState(State::Connected);
@@ -171,7 +174,7 @@ void ResourceChangeClient::disconnected(int code, const QString& reason)
         setState(State::Failed, reason.isEmpty() ? QStringLiteral("WebSocket closed (%1)").arg(code) : reason);
         m_socket.abort();
         if (code == 401) {
-            qWarning("ResourceChangeClient: WebSocket authentication failed (HTTP 401)");
+            qCWarning(resourceChangeLog, "ResourceChangeClient: WebSocket authentication failed (HTTP 401)");
         }
         return;
     }

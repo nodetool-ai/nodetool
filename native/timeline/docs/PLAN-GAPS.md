@@ -762,7 +762,6 @@ package gets the files that only it needs.
 | `qml/Inspector/TransitionSection.qml` | D4 | PX | layout F1 |
 | `tests/tst_autosave.cpp` | T | PX | data safety F1 |
 | `src/server/AutosaveController.*`, `qml/SaveBanners.qml` | none | PX | data safety F1 |
-| `src/server/AutosaveController.*`, `src/server/recovery/`, `tests/tst_autosave.cpp` | PX | SY | external sync (B35, B36) |
 | `src/server/ServerSource.*` | none | A | the startup label (only A) |
 | `src/model/TimelineTypes.h`, `TimelineJson.*`, `LaneClipModel.*` | none | D3 | the time-remap parse (only D3) |
 | `scripts/window-checks.sh` | none | I | the `serein` check (only I) |
@@ -800,7 +799,7 @@ D2, D3 and D5 register their sections with `slot=right` on their branches,
 which has the same off-screen fault as layout F1. Each moves its section to
 `registerInspectorSection` when it reruns.
 
-Merge order: the merged packages, then S2, S3, PX, SY, L, E, A, B, D2, D3, D5,
+Merge order: the merged packages, then S2, S3, PX, L, E, A, B, D2, D3, D5,
 I, J, N, R, and wave 2 (G, O, D6, P2, Q).
 
 ### SY: External sync

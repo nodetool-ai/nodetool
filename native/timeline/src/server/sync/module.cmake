@@ -17,9 +17,15 @@ function(nt_sync_tests)
 endfunction()
 nt_tests(nt_sync_tests)
 
-nt_sources(app src/server/sync/SyncRegistration.cpp)
+nt_sources(app src/server/sync/SyncRegistration.cpp src/server/sync/ExternalConflictsPanel.cpp)
 function(nt_syncmodel_tests)
-    qt_add_executable(tst_syncmodel src/server/sync/tst_syncmodel.cpp src/server/sync/SyncRegistration.cpp)
+    qt_add_executable(tst_syncmodel src/server/sync/tst_syncmodel.cpp src/server/sync/SyncRegistration.cpp
+        src/server/sync/ExternalConflictsPanel.cpp)
+    foreach(target IN ITEMS nodetool-timeline tst_syncmodel)
+        qt_add_resources(${target} nt_sync_banner
+            PREFIX /nodetool/sync BASE src/server/sync
+            FILES src/server/sync/ExternalConflictsBanner.qml)
+    endforeach()
     target_link_libraries(tst_syncmodel PRIVATE timeline_core timeline_decode timeline_audio timeline_server
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
     nt_add_timeline_qml(tst_syncmodel OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_syncmodel_qml/NodeTool/Timeline)

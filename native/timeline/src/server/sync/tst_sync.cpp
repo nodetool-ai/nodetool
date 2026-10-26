@@ -80,6 +80,98 @@ QJsonObject serialized(const MergeResult& result)
 class SyncTest : public QObject {
     Q_OBJECT
 private slots:
+    void syncDiagnosticsUseQtLogging() {
+        QTemporaryDir cache;
+        QUndoStack undo;
+        const auto raw = document();
+        nt::server::AutosaveController save({QUrl("http://127.0.0.1:1"), {}, "seq", cache.path(), {}},
+            &undo, [&] { return raw; }, "u0");
+        save.setExternalSync(false);
+        save.setQuitFallbackDirs({});
+        QTest::ignoreMessage(QtWarningMsg, "sync: failed: The server timeline was deleted. Edits are kept locally.");
+        save.externalChanged("deleted", {}, {}, false);
+    }
+
+    void startupRefreshesOnce() {
+        WsFixture ws;
+        QVERIFY(ws.server.listen(QHostAddress::LocalHost, 0));
+        TestHttpServer http;
+        QTemporaryDir cache;
+        auto raw = document();
+        raw["id"] = "seq";
+        raw["updatedAt"] = "u0";
+        raw["clips"] = QJsonArray{};
+        auto server = raw;
+        server["updatedAt"] = "u1";
+        server["fps"] = 60;
+        http.setJson([&](const QByteArray&, const QUrl&) {
+            return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", server}}}}).toJson();
+        });
+        QUndoStack undo;
+        setDocumentApplier([&](QUndoStack*, const QJsonObject& next, const nt::Timeline&) { raw = next; return true; });
+        const auto reset = qScopeGuard([] { setDocumentApplier({}); });
+        nt::server::AutosaveController save({http.base(), {}, "seq", cache.path(), {}}, &undo, [&] { return raw; }, "u0");
+        save.setAutosave(false);
+        save.setExternalSyncUrl(ws.server.serverUrl());
+        // The write already happened before subscription. No notice is sent.
+        QTRY_COMPARE_WITH_TIMEOUT(raw, server, 4000);
+        QCOMPARE(http.countRequests("GET", "/trpc/timeline.get"), 1);
+        QTest::qWait(100);
+        QCOMPARE(http.countRequests("GET", "/trpc/timeline.get"), 1);
+    }
+
+    void destructionSharesQuitBudget() {
+        QTcpServer server;
+        QVERIFY(server.listen(QHostAddress::LocalHost, 0));
+        QList<QTcpSocket*> sockets;
+        bool received = false;
+        bool stalled = true;
+        const auto release = [](QTcpSocket* socket) {
+            socket->write("HTTP/1.1 503 Service Unavailable\r\nContent-Length: 0\r\nConnection: close\r\n\r\n");
+            socket->disconnectFromHost();
+        };
+        connect(&server, &QTcpServer::newConnection, this, [&] {
+            auto* socket = server.nextPendingConnection();
+            socket->setParent(&server);
+            sockets.append(socket);
+            connect(socket, &QTcpSocket::readyRead, &server, [&, socket] {
+                socket->readAll();
+                received = true; // deliberately withhold the HTTP response
+                if (!stalled) {
+                    release(socket);
+                }
+            });
+        });
+        QTemporaryDir cache;
+        QUndoStack undo;
+        auto raw = document();
+        const auto base = QUrl(QString("http://127.0.0.1:%1").arg(server.serverPort()));
+        auto save = std::make_unique<nt::server::AutosaveController>(
+            nt::server::SaveTarget{base, {}, "seq", cache.path(), {}}, &undo, [&] { return raw; }, "u0");
+        save->setExternalSync(false);
+        save->setAutosave(false);
+        save->setQuitFallbackDirs({});
+        raw["markers"] = QJsonArray{QJsonObject{{"id", "local"}, {"timeMs", 100}}};
+        save->documentChanged();
+        save->refreshExternal();
+        QTRY_VERIFY(received);
+        QElapsedTimer elapsed;
+        elapsed.start();
+        constexpr int budgetMs = 80;
+        const bool keptLocally = !save->flushBeforeQuit(budgetMs);
+        save.reset();
+        const auto shutdownMs = elapsed.elapsed();
+        qInfo("quit flush and destruction: %lld ms for %d ms budget", static_cast<long long>(shutdownMs), budgetMs);
+        // Unblock detached workers and drain them even when the timing fails.
+        stalled = false;
+        for (auto* socket : sockets) {
+            release(socket);
+        }
+        QTRY_COMPARE_WITH_TIMEOUT(nt::server::AutosaveController::liveFetchWorkers(), 0, 35000);
+        QVERIFY(keptLocally);
+        QVERIFY2(shutdownMs < budgetMs + 350, qPrintable(QString("shutdown took %1 ms for %2 ms budget").arg(shutdownMs).arg(budgetMs)));
+    }
+
     void controllerWebsocketAdopts() {
         WsFixture ws;
         QVERIFY(ws.server.listen(QHostAddress::LocalHost, 0));
@@ -102,8 +194,9 @@ private slots:
         clips[0] = first;
         server["clips"] = clips;
         server["updatedAt"] = "u1";
+        bool externalWrite = false;
         http.setJson([&](const QByteArray&, const QUrl&) {
-            return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", server}}}}).toJson();
+            return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", externalWrite ? server : raw}}}}).toJson();
         });
         QUndoStack undo;
         setDocumentApplier([&](QUndoStack*, const QJsonObject& next, const nt::Timeline&) { raw = next; return true; });
@@ -112,25 +205,29 @@ private slots:
         save.setAutosave(false);
         save.setExternalSyncUrl(QUrl(QString("http://127.0.0.1:%1").arg(ws.server.serverPort())));
         QTRY_COMPARE(ws.peers.size(), 1);
+        QTRY_COMPARE(http.countRequests("GET", "/trpc/timeline.get"), 1);
+        QTRY_COMPARE(save.externalState(), QString("idle"));
+        externalWrite = true;
         const QJsonObject frame{{"type", "resource_change"}, {"resource_type", "timelinesequence"},
             {"event", "updated"}, {"resource", QJsonObject{{"id", "seq"}, {"etag", "fixture-etag"}, {"project_id", "default"}, {"updated_at", "u1"}}},
             {"ops", QJsonArray{QJsonObject{{"tool", "ui_timeline_move_clip"},
                 {"input", QJsonObject{{"target", "a"}, {"startMs", 500}, {"id", "a"}}}}}}};
         ws.peers[0]->sendTextMessage(QString::fromUtf8(QJsonDocument(frame).toJson()));
         QTRY_COMPARE(raw, server);
-        QCOMPARE(http.countRequests("GET", "/trpc/timeline.get"), 1);
+        QCOMPARE(http.countRequests("GET", "/trpc/timeline.get"), 2);
         QCOMPARE(save.baseUpdatedAt(), QString("u1"));
         ws.peers[0]->sendTextMessage(R"({"type":"resource_resync"})");
-        QTRY_COMPARE(http.countRequests("GET", "/trpc/timeline.get"), 2);
+        QTRY_COMPARE(http.countRequests("GET", "/trpc/timeline.get"), 3);
         QTRY_COMPARE(save.externalState(), QString("idle"));
         QTest::qWait(100);
-        QCOMPARE(http.countRequests("GET", "/trpc/timeline.get"), 2);
+        QCOMPARE(http.countRequests("GET", "/trpc/timeline.get"), 3);
     }
 
     void acceptedUnits_data() {
         QTest::addColumn<QString>("kind");
-        for (const auto* kind : {"clip", "track", "trackFolder", "marker", "mediaTrack", "transcript", "field", "document"})
+        for (const auto* kind : {"clip", "track", "trackFolder", "marker", "mediaTrack", "transcript", "field", "document"}) {
             QTest::newRow(kind) << QString(kind);
+        }
     }
     void acceptedUnits() {
         QFETCH(QString, kind);
@@ -148,13 +245,17 @@ private slots:
         } else {
             bool found = false;
             for (const auto& item : applied[field].toArray()) {
-                if (item.toObject()["id"] == "a" && item.toObject()["name"] == "external") found = true;
+                if (item.toObject()["id"] == "a" && item.toObject()["name"] == "external") {
+                    found = true;
+                }
             }
             QVERIFY(found);
             conflict["external"] = QJsonValue::Null;
             conflict["reason"] = "deleted";
             const auto removed = applyAcceptedUnit(applied, conflict)[field].toArray();
-            for (const auto& item : removed) QVERIFY(item.toObject()["id"] != "a");
+            for (const auto& item : removed) {
+                QVERIFY(item.toObject()["id"] != "a");
+            }
         }
         conflict["reason"] = "dangling";
         QCOMPARE(applyAcceptedUnit(raw, conflict), raw);
@@ -162,8 +263,9 @@ private slots:
 
     void acceptedDeletion_data() {
         QTest::addColumn<QString>("kind");
-        for (const auto* kind : {"track", "trackFolder", "linked-clip", "group-clip", "locked-clip"})
+        for (const auto* kind : {"track", "trackFolder", "linked-clip", "group-clip", "locked-clip"}) {
             QTest::newRow(kind) << QString(kind);
+        }
     }
     void acceptedDeletion() {
         QFETCH(QString, kind);
@@ -182,9 +284,13 @@ private slots:
             QJsonArray clips;
             for (const auto& value : raw["clips"].toArray()) {
                 auto item = value.toObject();
-                if (kind == "linked-clip") item["linkId"] = "link";
-                else if (item["id"] == "a") item["mediaType"] = "group";
-                else item["parentId"] = "a";
+                if (kind == "linked-clip") {
+                    item["linkId"] = "link";
+                } else if (item["id"] == "a") {
+                    item["mediaType"] = "group";
+                } else {
+                    item["parentId"] = "a";
+                }
                 clips.append(item);
             }
             raw["clips"] = clips;
@@ -336,7 +442,7 @@ private slots:
         QTRY_COMPARE_WITH_TIMEOUT(fixture.peers.size(), 1, 1000);
         QTRY_VERIFY_WITH_TIMEOUT(client.connected(), 1000);
         QTest::qWait(60);
-        QCOMPARE(refreshes.size(), 0);
+        QCOMPARE(refreshes.size(), 1);
         fixture.peers[0]->close(QWebSocketProtocol::CloseCodeGoingAway, "restart");
         fixture.server.close();
         QTRY_COMPARE_WITH_TIMEOUT(delays.size(), 1, 1000);
@@ -347,16 +453,16 @@ private slots:
         QCOMPARE(delays[1][0].toInt(), second);
         QVERIFY(fixture.server.listen(QHostAddress::LocalHost, port));
         QTRY_COMPARE_WITH_TIMEOUT(fixture.peers.size(), 2, 1000);
-        QTRY_COMPARE_WITH_TIMEOUT(refreshes.size(), 1, 1000);
+        QTRY_COMPARE_WITH_TIMEOUT(refreshes.size(), 2, 1000);
         QTest::qWait(60);
-        QCOMPARE(refreshes.size(), 1);
+        QCOMPARE(refreshes.size(), 2);
         fixture.peers[1]->close(static_cast<QWebSocketProtocol::CloseCode>(1012), "service restart");
         QTRY_COMPARE_WITH_TIMEOUT(delays.size(), 3, 1000);
         QCOMPARE(delays[2][0].toInt(), first);
         QTRY_COMPARE_WITH_TIMEOUT(fixture.peers.size(), 3, 1000);
-        QTRY_COMPARE_WITH_TIMEOUT(refreshes.size(), 2, 1000);
+        QTRY_COMPARE_WITH_TIMEOUT(refreshes.size(), 3, 1000);
         QTest::qWait(60);
-        QCOMPARE(refreshes.size(), 2);
+        QCOMPARE(refreshes.size(), 3);
         client.stop();
         QTest::qWait(first + 60);
         QCOMPARE(fixture.peers.size(), 3);
@@ -381,13 +487,14 @@ private slots:
         QSignalSpy refreshes(&client, &ResourceChangeClient::refreshNeeded);
         client.start();
         QTRY_COMPARE_WITH_TIMEOUT(fixture.peers.size(), 1, 1000);
+        QTRY_COMPARE_WITH_TIMEOUT(refreshes.size(), 1, 1000);
         fixture.peers[0]->close(static_cast<QWebSocketProtocol::CloseCode>(code), "access refused");
         QTRY_COMPARE_WITH_TIMEOUT(client.state(), ResourceChangeClient::State::Failed, 1000);
         QVERIFY(!client.connected());
         QCOMPARE(client.reason(), "access refused");
         QTest::qWait(100);
         QCOMPARE(delays.size(), 0);
-        QCOMPARE(refreshes.size(), 0);
+        QCOMPARE(refreshes.size(), 1);
         QCOMPARE(fixture.peers.size(), 1);
     }
     void unauthorizedHandshake_data()
@@ -447,7 +554,7 @@ private slots:
         QCOMPARE(QJsonDocument::fromJson(fixture.frames[0][1].toUtf8()).object()["type"].toString(), "ping");
         QTRY_COMPARE_WITH_TIMEOUT(fixture.peers.size(), 2, 1000);
         QCOMPARE(delays.size(), 1);
-        QTRY_COMPARE_WITH_TIMEOUT(refreshes.size(), 1, 1000);
+        QTRY_COMPARE_WITH_TIMEOUT(refreshes.size(), 2, 1000);
         client.stop();
     }
     void stopWhileConnecting()

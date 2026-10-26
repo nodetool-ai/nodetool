@@ -72,6 +72,7 @@
 #include "server/sync/TimelineMerge.h"
 
 #include <QElapsedTimer>
+#include <QDeadlineTimer>
 #include <QJsonObject>
 #include <QObject>
 #include <QPointer>
@@ -241,6 +242,7 @@ private:
     bool m_recovering = false;
     int m_casRecoveries = 0;
     bool m_flushing = false;
+    std::optional<QDeadlineTimer> m_quitDeadline;
     std::optional<nt::Timeline> m_fetched;
     QElapsedTimer m_fetchElapsed;
     int m_retryBaseMs = 1000;
