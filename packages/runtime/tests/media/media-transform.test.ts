@@ -172,6 +172,28 @@ describe("transformMedia", () => {
   });
 });
 
+describe("concurrent encodes", () => {
+  it("finish when there are more of them than libuv pool threads", async () => {
+    // Each muxer's native write holds a pool thread while its JS callback
+    // runs. With async fs calls in the callback, as many muxers as the pool
+    // has threads (4 by default) waited on each other forever.
+    const outputs = Array.from({ length: 6 }, (_, i) => file(`concurrent-${i}.mp4`));
+    await Promise.all(
+      outputs.map((outPath) =>
+        transformMedia({
+          inputs: [{ filePath: file("av.mp4") }],
+          outPath,
+          video: { filter: "scale=48:32" },
+          audio: { filter: "volume=0.5" }
+        })
+      )
+    );
+    for (const outPath of outputs) {
+      expect((await inspectMedia(outPath)).frameTimes).toHaveLength(48);
+    }
+  }, 60_000);
+});
+
 describe("concatCopy", () => {
   it("joins matching files end to end without re-encoding", async () => {
     await concatCopy({

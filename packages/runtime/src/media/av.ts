@@ -3,7 +3,7 @@
  * container names and a file muxer that does not leak descriptors.
  */
 
-import { open, type FileHandle } from "node:fs/promises";
+import { closeSync, openSync, readSync, writeSync } from "node:fs";
 import path from "node:path";
 
 import {
@@ -72,39 +72,44 @@ export interface FileMuxer {
 }
 
 /**
- * Open a muxer over a file handle this module owns.
+ * Open a muxer over a file descriptor this module owns.
  *
  * `Muxer.open(path)` leaks one file descriptor and a few hundred kilobytes on
  * every open and close in node-av 6.1.1 (see risk R6 in
  * docs/ffmpeg-in-process-plan.md), so a server that renders all day runs out of
  * descriptors. Custom IO closes cleanly. The callbacks read and write at an
  * explicit position because MP4 and MOV seek back to rewrite their headers.
+ *
+ * The callbacks are synchronous on purpose. libav calls them from a libuv
+ * pool thread that blocks until the JS callback returns; an async `fs` call
+ * inside it needs a pool thread of its own, so as many concurrent muxers as
+ * the pool has threads (4 by default) deadlocked the process.
  */
 export async function openFileMuxer(
   filePath: string,
   options: { format?: string; signal?: AbortSignal; muxerOptions?: Record<string, string> } = {}
 ): Promise<FileMuxer> {
-  const handle: FileHandle = await open(filePath, "w+");
+  const fd = openSync(filePath, "w+");
   let position = 0;
   let size = 0;
   let muxer: Muxer;
   try {
     muxer = await Muxer.open(
       {
-        write: async (buffer: Buffer): Promise<number> => {
-          const { bytesWritten } = await handle.write(buffer, 0, buffer.length, position);
-          position += bytesWritten;
+        write: (buffer: Buffer): number => {
+          const written = writeSync(fd, buffer, 0, buffer.length, position);
+          position += written;
           size = Math.max(size, position);
-          return bytesWritten;
+          return written;
         },
         // `movflags=+faststart` reads the finished file back to move its index
         // to the front.
-        read: async (size: number): Promise<Buffer | null> => {
-          const buffer = Buffer.alloc(size);
-          const { bytesRead } = await handle.read(buffer, 0, size, position);
-          if (bytesRead === 0) return null;
-          position += bytesRead;
-          return buffer.subarray(0, bytesRead);
+        read: (length: number): Buffer | null => {
+          const buffer = Buffer.alloc(length);
+          const read = readSync(fd, buffer, 0, length, position);
+          if (read === 0) return null;
+          position += read;
+          return buffer.subarray(0, read);
         },
         seek: (offset: bigint, whence: AVSeekWhence): number => {
           const delta = Number(offset);
@@ -127,7 +132,7 @@ export async function openFileMuxer(
       }
     );
   } catch (error) {
-    await handle.close();
+    closeSync(fd);
     throw error;
   }
   let closing: Promise<void> | null = null;
@@ -138,7 +143,7 @@ export async function openFileMuxer(
         try {
           await muxer.close();
         } finally {
-          await handle.close();
+          closeSync(fd);
         }
       })();
       return closing;
