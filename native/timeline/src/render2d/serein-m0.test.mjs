@@ -101,7 +101,9 @@ for (const [name, corrupt, expected] of [
   ["held frames without samples", (r) => { r.webReport.results[2].web.frameError.count = 0; }, /web heldFrames.*no samples/],
   ["missing frame-clock method", (r) => { delete r.nativeReport.method.submitIntervalMs; }, /native submitIntervalMs.*method/],
   ["missing method", (r) => { delete r.nativeReport.method.cpuMs; }, /native cpuMs.*method/],
-  ["missing load", (r) => { delete r.nativeMeta.loadBefore; }, /native.*load/]
+  ["missing load", (r) => { delete r.nativeMeta.loadBefore; }, /native.*load/],
+  ["null native load before", (r) => { r.nativeMeta.loadBefore = null; }, /native.*load/],
+  ["null native load after", (r) => { r.nativeMeta.loadAfter = null; }, /native.*load/]
 ]) {
   test(`fails closed: ${name}`, async () => {
     const { pairSereinM0 } = await import("./serein-m0.mjs");
@@ -115,7 +117,7 @@ for (const [name, corrupt, expected] of [
       assert.deepEqual(pair.lower, { p50: null, p95: null });
       assert.equal(pair.native.p50, null);
     }
-    if (name === "native nonzero exit") {
+    if (name === "native nonzero exit" || name.startsWith("null native load")) {
       assert.ok(result.results.every((r) => r.pairs.every((p) => Object.values(p.lower).every((v) => v === null))));
     }
   });

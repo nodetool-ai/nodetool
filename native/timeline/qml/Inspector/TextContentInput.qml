@@ -32,6 +32,11 @@ TextArea {
         else
             editor.finishTyping();
     }
-    onTextChanged: if (activeFocus && editor.typing)
-        editor.previewTyping(text)
+    onTextEdited: {
+        if (activeFocus) {
+            if (!editor.typing)
+                editor.beginTyping();
+            editor.previewTyping(text);
+        }
+    }
 }
