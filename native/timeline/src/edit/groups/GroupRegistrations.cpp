@@ -8,8 +8,8 @@ const bool registered = [] {
         });
     }
     for (const auto &name :
-         QStringList{"moveClip", "moveSelectedClips", "nudge", "trimClipStart", "trimClipEnd", "rippleTrimClipStart",
-                     "rippleTrimClipEnd", "rollClipEdge", "deleteSelected", "rippleDeleteSelected"}) {
+         QStringList{"moveClip", "moveSelectedClips", "nudge", "trimClipStart", "trimClipEnd",
+                     "rollClipEdge", "deleteSelected"}) {
         nt::app::overrideEdit(name, [name](QJsonObject raw, const QJsonObject &payload) {
             return nt::edit::groups::applyGroupEdit(name, std::move(raw), payload);
         });
