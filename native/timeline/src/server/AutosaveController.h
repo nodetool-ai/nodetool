@@ -13,8 +13,8 @@
 //     as `<id>.stripped.json` in the backup folder or a fallback folder.
 //   - conflict (`error.data.apiCode` ALREADY_EXISTS, or `code` CONFLICT):
 //     the current local document is written to `<id>.local.json`, and
-//     autosave stops. Nothing overwrites the server copy, and a conflict is
-//     never retried.
+//     server writes stop. Later committed edits keep updating the local
+//     copy on the debounce. A conflict is never retried on the server.
 //   - any other failure: the current document is written to
 //     `<id>.recovery.json`; a transient one (no answer, 5xx, 429) is retried
 //     with a doubling delay, up to 30 s.
@@ -25,7 +25,9 @@
 // of the saved JSON), so a merged command, an undo during a save, or a branch
 // cannot pass for saved. The undo stack's clean state follows it, for the UI.
 // Autosave runs 750 ms after the last command (D34) while the document is
-// dirty and no conflict is open. `flushBeforeQuit` saves what is pending
+// dirty. A document differing from the last undo-stack notification is a
+// gesture preview: timers wait and recheck until it is committed or cancelled.
+// Explicit saves also refuse previews. `flushBeforeQuit` saves what is pending
 // within a bounded elapsed time, or leaves a recovery file (in a fallback
 // folder when the backup folder takes none). Fallbacks are namespaced by
 // serverKey/userKey. Acknowledged content is preserved only if the server
@@ -33,11 +35,19 @@
 // current raw document. Recovery stays until a replacement is written.
 // If every folder rejects quit recovery, compact JSON goes to stderr between
 // explicit markers. No file was kept, so the exit code still reports loss.
+//
+// Startup archives earlier recovery/local files with a timestamp and unique
+// suffix, preserving their kind. Backup and namespaced fallback folders are
+// scanned, including archives from older launches. `earlierCopy` offers one
+// at a time. Restore applies document content through one restoreDocument
+// edit, preserving the loaded sequence row and save base. Even after server
+// acknowledgement the archive stays offered until explicit Discard.
 
 #include "server/ServerClient.h"
 
 #include <QJsonObject>
 #include <QObject>
+#include <QSet>
 #include <QStringList>
 #include <QTimer>
 #include <QUrl>
@@ -84,6 +94,8 @@ class AutosaveController : public QObject {
     Q_PROPERTY(QString keptCopy READ keptCopy NOTIFY stateChanged)
     // Why that copy could not be written; empty when it was.
     Q_PROPERTY(QString recoveryError READ recoveryError NOTIFY stateChanged)
+    Q_PROPERTY(QString earlierCopy READ earlierCopy NOTIFY stateChanged)
+    Q_PROPERTY(QString earlierCopyError READ earlierCopyError NOTIFY stateChanged)
 
 public:
     using DocumentFn = std::function<QJsonObject()>;
@@ -99,13 +111,17 @@ public:
     QString keptCopy() const;
     QString recoveryError() const;
     QString baseUpdatedAt() const { return m_base; }
+    QString earlierCopy() const { return m_earlierCopies.value(0); }
+    QString earlierCopyError() const { return m_earlierCopyError; }
+    Q_INVOKABLE bool restoreEarlierCopy(QObject* timeline);
+    Q_INVOKABLE bool discardEarlierCopy();
 
     void setDebounceMs(int ms) { m_timer.setInterval(ms); }
     void setAutosave(bool on);
     void setRetryBaseMs(int ms) { m_retryBaseMs = ms; }
     // Fallback roots for quit recovery and strip copies, each with server/user
     // subfolders. Default: the app's local data folder, then the temp folder.
-    void setQuitFallbackDirs(const QStringList& dirs) { m_fallbackDirs = dirs; }
+    void setQuitFallbackDirs(const QStringList& dirs);
     // Borrowed stream for the final quit recovery log.
     void setLastResortStream(FILE* stream) { m_lastResortStream = stream; }
 
@@ -130,13 +146,17 @@ signals:
 
 private:
     void scheduleSave();
+    void debounceExpired();
+    void findEarlierCopies();
+    QStringList copyDirs() const;
+    SaveResult keepConflictCopy();
     SaveResult save(ServerClient& client);
     QByteArray currentHash() const;
     void syncClean();
     // Writes `doc` to `<id>.<suffix>.json`; returns the path, or sets `error`.
-    QString writeCopy(const QString& suffix, const QJsonObject& doc, QString* error = nullptr) const;
-    QString writeCopyWithFallbacks(const QString& suffix, const QJsonObject& doc, QString* error) const;
-    QString writeCopyIn(const QString& dir, const QString& suffix, const QJsonObject& doc, QString* error) const;
+    QString writeCopy(const QString& suffix, const QJsonObject& doc, QString* error = nullptr);
+    QString writeCopyWithFallbacks(const QString& suffix, const QJsonObject& doc, QString* error);
+    QString writeCopyIn(const QString& dir, const QString& suffix, const QJsonObject& doc, QString* error);
     QString copyPath(const QString& suffix) const;  // in the backup folder; empty without one
     void removeCopy(const QString& suffix) const;
 
@@ -150,6 +170,7 @@ private:
     int m_retryBaseMs = 1000;
     int m_retryAttempt = 0;
     QByteArray m_ackHash;  // the content the server acknowledged (or the load)
+    QByteArray m_committedHash;  // updated only by committed-change notifications
     bool m_ackComplete = true;  // false when the server stripped fields
     QByteArray m_copyHash;  // the raw document in m_keptCopy
     bool m_syncing = false;
@@ -161,6 +182,9 @@ private:
     QString m_keptCopy;
     QString m_recoveryError;
     QStringList m_fallbackDirs;
+    QStringList m_earlierCopies;
+    QString m_earlierCopyError;
+    QSet<QString> m_sessionCopies;
     FILE* m_lastResortStream = stderr;
 };
 
