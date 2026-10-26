@@ -196,10 +196,7 @@
         "qml/Inspector/TimelineInspector.qml",
         "qml/Inspector/TransitionSection.qml",
         "src/edit/inspectorsections/",
-        "src/server/AutosaveController.*",
-        "qml/SaveBanners.qml",
-        "tests/tst_autosave.cpp",
-        "src/server/recovery/"
+        "qml/SaveBanners.qml"
       ],
       "web": [
         "web/src/stores/timeline/TimelineStore.ts",
@@ -220,6 +217,50 @@
         "Data-safety F1: on start the controller moves a recovery or conflict copy from an earlier session aside, a save of this session never deletes it, and SaveBanners offers it with Restore and Discard; Restore applies it as one undo entry through the restoreDocument edit and autosave saves it, Discard deletes it",
         "tst_autosave: a recovery copy from an earlier controller survives a clean save of a new one (red on the old controller), a second conflict does not overwrite the first session's copy, Restore and Discard behave as stated, and every existing case passes"
       ]
+    },
+    {
+      "id": "SY",
+      "wave": 1,
+      "needs": [
+        "PX"
+      ],
+      "gaps": [],
+      "title": "External sync",
+      "owns": [
+        "src/server/AutosaveController.*",
+        "src/server/recovery/",
+        "tests/tst_autosave.cpp",
+        "src/server/sync/",
+        "src/server/module.cmake",
+        "CMakeLists.txt",
+        "../../.github/workflows/native-timeline.yml",
+        "scripts/conformance/suites/merge.*"
+      ],
+      "web": [
+        "web/src/hooks/timeline/useTimelineExternalSync.ts",
+        "web/src/hooks/timeline/timelineExternalMerge.ts",
+        "web/src/stores/timeline/merge.ts",
+        "web/src/stores/documentMerge.ts",
+        "web/src/stores/documentSync.ts",
+        "web/src/hooks/timeline/useTimelineAutosave.ts",
+        "web/src/lib/websocket/WebSocketManager.ts",
+        "web/src/lib/websocket/GlobalWebSocketManager.ts"
+      ],
+      "server": [
+        "packages/websocket/src/lib/resource-change-fanout.ts",
+        "packages/websocket/src/websocket-client-session.ts",
+        "packages/websocket/src/server.ts"
+      ],
+      "exit": [
+        "resource_change reaches the editor: a script proves on a scratch server that an MCP timeline edit emits resource_change for that sequence (red: report a server-side blocker and use a CLI or tRPC write as the trigger)",
+        "Clean editor adopts: with no unsaved edits an external write appears in the open editor (model and rendered state), only when the server copy is newer than the held updatedAt, and undo does not revert the external edit",
+        "Dirty editor merges: with unsaved local edits an external write is merged as timelineExternalMerge does; the merge conformance suite gives the web merge result on fixtures covering disjoint edits, same-clip edits, deletes, adds, track changes and conflicts",
+        "Autosave survives a conflict (B35): a save conflict merges the server copy and continues saving; no edit is left only in memory; the conflict copy rule matches the web",
+        "Reconnect: after the WebSocket drops and reconnects with the web backoff, the editor fetches once to catch missed changes; auth matches ServerClient (Bearer for remote servers)",
+        "End to end, headless: the native editor opens a timeline from a scratch server; an MCP edit appears within 2 s; the next native save succeeds without conflict; with a pending local edit both changes survive",
+        "Unchanged otherwise: the full 6e checks pass; the sanitize ctest has no report outside tools/sanitizers/baseline.md"
+      ],
+      "ownsLimits": "src/server/module.cmake: registration of the new files only. CMakeLists.txt: the Qt WebSockets find_package and link line only. native-timeline.yml: the qtwebsockets module of the aqt install step only."
     },
     {
       "id": "A",
@@ -1032,6 +1073,7 @@
     "S2",
     "S3",
     "PX",
+    "SY",
     "L",
     "E",
     "A",
