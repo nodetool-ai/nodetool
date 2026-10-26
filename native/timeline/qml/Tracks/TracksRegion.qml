@@ -25,6 +25,7 @@ Rectangle {
     readonly property alias viewState: view
     readonly property alias rows: rowModel
     readonly property alias gestures: clipGestures
+    property string renamingTrackId: ""
     // Follow playhead (the toolbar's Follow toggle, on by default).
     property bool followPlayhead: true
     // The `?` key and the help button ask the editor for the shortcut sheet.
@@ -155,6 +156,19 @@ Rectangle {
                 font.pixelSize: Theme.fontSizeSmaller
                 font.letterSpacing: 0.06 * Theme.fontSizeSmaller
             }
+            Row {
+                id: headerActions
+                objectName: "trackHeaderActions"
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: Theme.spacingSm
+                Repeater {
+                    model: TrackHeaderActions.items()
+                    delegate: Loader {
+                        required property var modelData
+                        source: modelData.source
+                    }
+                }
+            }
         }
         // marginLeft: auto pushes the slider, the count and the add button right.
         Row {
@@ -164,7 +178,7 @@ Rectangle {
             spacing: Theme.spacingSm
             TrackHeightSlider {
                 anchors.verticalCenter: parent.verticalCenter
-                width: Math.max(0, Math.min(96, tracksHeader.width - eyebrow.width - 3 * Theme.spacingLg - countChip.width - addTrack.width - 3 * Theme.spacingSm))
+                width: Math.max(0, Math.min(96, tracksHeader.width - headerContent.width - 3 * Theme.spacingLg - countChip.width - addTrack.width - 3 * Theme.spacingSm))
                 viewState: view
             }
             Rectangle {
@@ -184,10 +198,10 @@ Rectangle {
                     font.weight: Font.DemiBold
                 }
             }
-            TrackIconButton {
+            AddTrackButton {
                 id: addTrack
                 anchors.verticalCenter: parent.verticalCenter
-                icon: Icons.add
+                timeline: region.timeline
             }
         }
     }
@@ -221,9 +235,55 @@ Rectangle {
             Repeater {
                 model: rowModel
                 delegate: TrackHeader {
+                    id: header
                     required property double rowTop
                     y: rowTop
                     width: region.headerWidth - 1
+                    MouseArea {
+                        anchors.fill: parent
+                        acceptedButtons: Qt.RightButton
+                        enabled: region.renamingTrackId !== header.trackId
+                        onClicked: mouse => {
+                            const point = header.mapToItem(region, mouse.x, mouse.y)
+                            headerMenu.openFor(header.trackId, header.name, header.trackType, point.x, point.y)
+                        }
+                    }
+                    Loader {
+                        active: region.renamingTrackId === header.trackId
+                        x: Theme.spacingMd + Theme.iconSm + Theme.controlXs + Theme.spacingMd + Theme.spacingMicro
+                        y: Theme.spacingXs
+                        width: Math.min(151, header.width - x - Theme.controlXs - Theme.spacingMd)
+                        height: Theme.controlXs + Theme.spacingMicro
+                        sourceComponent: TextInput {
+                            id: nameInput
+                            objectName: "trackRename-" + header.trackId
+                            text: header.name
+                            color: Theme.textPrimary
+                            font.family: Theme.sansFamily
+                            font.pixelSize: Theme.fontSizeSmall
+                            font.weight: Font.Medium
+                            verticalAlignment: TextInput.AlignVCenter
+                            selectByMouse: true
+                            clip: true
+                            Accessible.name: "Track name: " + header.name
+                            property bool finished: false
+                            function finish(cancel) {
+                                if (finished) return
+                                finished = true
+                                const id = header.trackId
+                                const original = header.name
+                                const next = text.trim()
+                                region.renamingTrackId = ""
+                                if (!cancel && next !== "" && next !== original)
+                                    region.timeline.applyEdit("setTrackName", { trackId: id, name: next })
+                            }
+                            Component.onCompleted: Qt.callLater(() => { forceActiveFocus(); selectAll() })
+                            onAccepted: finish(false)
+                            onActiveFocusChanged: if (!activeFocus) finish(false)
+                            Keys.onEscapePressed: finish(true)
+                            Rectangle { anchors.fill: parent; z: -1; color: Theme.backgroundDefault }
+                        }
+                    }
                 }
             }
         }
@@ -234,6 +294,12 @@ Rectangle {
             height: parent.height
             color: Theme.divider
         }
+    }
+
+    TrackHeaderMenu {
+        id: headerMenu
+        timeline: region.timeline
+        onRenameRequested: id => region.renamingTrackId = id
     }
 
     // Lanes viewport.
