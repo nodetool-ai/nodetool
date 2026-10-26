@@ -61,6 +61,7 @@ private:
         QStringList failedWatchIds = {};
         QJsonObject settlement = {};
         std::optional<QString> folder = {};
+        std::optional<nt::Clip> media = {};
     };
     void request(std::function<Result(nt::server::ServerClient&)> work,
                  std::function<void(const Result&)> done = {});
@@ -69,8 +70,11 @@ private:
     void pollProxies();
     void receive(const Result& result);
     bool applyDrop(const QJsonObject& payload);
+    void queueMedia(const QJsonObject& asset, const QJsonObject& clip,
+                    QPointer<TimelineModel> model, quint64 generation);
     void queueLinkedAudio(const QJsonObject& asset, const QString& audioClipId,
-                          QPointer<TimelineModel> model, quint64 generation);
+                          QPointer<TimelineModel> model, quint64 generation, quint64 token,
+                          const QJsonObject& capturedResult, const QString& createdAudioTrackId);
     std::optional<nt::server::SaveTarget> m_target;
     QPointer<TimelineModel> m_timeline;
     QPointer<QThread> m_thread;

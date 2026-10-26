@@ -8,11 +8,18 @@
 
 int main(int argc, char** argv) {
     QCoreApplication app(argc, argv);
-    if (argc != 3) { return 2; }
+    if (argc != 3 && argc != 4) { return 2; }
     const QUrl url(QString::fromLocal8Bit(argv[1]));
     if (!url.isValid() || url.port() == 7777 || url.host().isEmpty()) { return 2; }
     nt::server::ServerClient client(url);
     client.setExpectedInstance(qEnvironmentVariable("NODETOOL_TIMELINE_EXPECT_INSTANCE"));
+    if (argc == 4) {
+        const auto fields = QJsonDocument::fromJson(QByteArray(argv[3])).object();
+        const auto uploaded = client.upload(fields, QString::fromLocal8Bit(argv[2]), fields.value("content_type").toString());
+        if (!uploaded.ok()) { std::fprintf(stderr, "%s\n", qPrintable(uploaded.describe())); return 1; }
+        std::printf("%s\n", QJsonDocument(uploaded.data.toObject()).toJson(QJsonDocument::Compact).constData());
+        return 0;
+    }
     const auto result = nt::assets::importFile(client, QString::fromLocal8Bit(argv[2]));
     auto unknownDuration = result.asset;
     unknownDuration.remove("duration");

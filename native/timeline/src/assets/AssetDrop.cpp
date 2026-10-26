@@ -27,6 +27,20 @@ QJsonObject settleLinkedAudio(QJsonObject raw, const QJsonObject& payload) {
                 unlinked.remove("linkId");
                 clips[survivor] = unlinked;
             }
+            const auto createdTrack = payload.value("createdAudioTrackId").toString();
+            if (!createdTrack.isEmpty() && clip.value("trackId").toString() == createdTrack &&
+                std::none_of(clips.begin(), clips.end(), [&createdTrack](const QJsonValue& value) {
+                    return value.toObject().value("trackId").toString() == createdTrack;
+                })) {
+                QJsonArray tracks;
+                for (const auto& value : raw.value("tracks").toArray()) {
+                    auto track = value.toObject();
+                    if (track.value("id").toString() == createdTrack) { continue; }
+                    track.insert("index", static_cast<int>(tracks.size()));
+                    tracks.append(track);
+                }
+                raw.insert("tracks", tracks);
+            }
         } else if (outcome == "audio") {
             const auto asset = payload.value("asset").toObject();
             clip.insert("currentAssetId", asset.value("id"));

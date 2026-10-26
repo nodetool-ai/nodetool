@@ -181,20 +181,12 @@ describe('linked audio settlement against importVideoWithAudio', () => {
             payload: { asset, trackId: 'v', startMs: 2500, mode: 'overlap' } }]);
           const placeholder = dropped.clips.find((clip: { status: string }) => clip.status === 'generating');
           const [actual] = run([{ op: 'settle', document: dropped, payload: {
-            audioClipId: placeholder.id, outcome: outcome === 'exception' ? 'failed' : outcome,
+            audioClipId: placeholder.id, createdAudioTrackId: audio === 'absent' ? placeholder.trackId : '', outcome: outcome === 'exception' ? 'failed' : outcome,
             ...(outcome === 'audio' ? { asset: { id: 'extracted-audio', duration } } : {})
           } }]);
           const known = inputIds({ document, asset });
           known.add('extracted-audio');
-          if (outcome === 'silent' && audio === 'absent') {
-            // replaceClips cannot remove tracks without an undo command. Native
-            // deliberately retains this import's empty audio track.
-            expect(actual.tracks).toEqual(dropped.tracks);
-            expect(actual.tracks.length).toBe(expected.tracks.length + 1);
-            expect(normalizeDocument(actual.clips, known)).toEqual(normalizeDocument(expected.clips, known));
-          } else {
-            expect(normalizeDocument(actual, known)).toEqual(normalizeDocument(expected, known));
-          }
+          expect(normalizeDocument(actual, known)).toEqual(normalizeDocument(expected, known));
         });
       }
     }
