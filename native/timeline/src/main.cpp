@@ -18,6 +18,8 @@
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
 #include "preview/PreviewCompositor.h"
+#include "app/startup/DecodeDefault.h"
+#include "app/startup/LocalDocumentSaver.h"
 #include "preview/FfmpegSource.h"
 #include "preview/SceneEval.h"
 #include "preview/hw/HwInterop.h"
@@ -700,8 +702,8 @@ int main(int argc, char** argv) {
         QStringLiteral("Play, then delete the preview item while frames are in flight, render on, and exit"));
     const QCommandLineOption decodeOpt(QStringLiteral("decode"),
                                        QStringLiteral("Video decoder: sw (FFmpeg software), hw (VideoToolbox, a "
-                                                      "failure fails the clip) or auto (hw, else sw). Default sw"),
-                                       QStringLiteral("sw|hw|auto"), QStringLiteral("sw"));
+                                                      "failure fails the clip) or auto (hw, else sw). ") + nt::app::decodeModeHelp(),
+                                       QStringLiteral("sw|hw|auto"));
     const QCommandLineOption decoderOpt(QStringLiteral("decoder"), QStringLiteral("PLAN spelling of --decode: sw|vt|auto"),
                                         QStringLiteral("sw|vt|auto"));
     const QCommandLineOption backgroundOpt(QStringLiteral("background"),
@@ -795,8 +797,11 @@ int main(int argc, char** argv) {
         std::fprintf(stderr, "error: --warmup must be 1 or more\n");
         return 2;
     }
+    const QString selectedDecodeMode = nt::app::resolveDecodeMode(
+        parser.isSet(decodeOpt) ? std::optional<QString>(parser.value(decodeOpt)) : std::nullopt,
+        parser.isSet(decoderOpt) ? std::optional<QString>(parser.value(decoderOpt)) : std::nullopt);
     {
-        QString mode = parser.isSet(decoderOpt) ? parser.value(decoderOpt) : parser.value(decodeOpt);
+        QString mode = selectedDecodeMode;
         if (mode == u"vt") mode = QStringLiteral("hw");
         if (mode == u"sw") {
             nt::setDecodeMode(nt::DecodeMode::Software);
@@ -874,7 +879,7 @@ int main(int argc, char** argv) {
                                 ? parser.value(scrubOutOpt)
                                 : QStringLiteral("build/scrub/%1").arg(QFileInfo(source).completeBaseName());
         return runOffscreen(model, clock, QSize(winW, winH), {}, {}, {}, {}, parser.value(scrubOpt), out, source,
-                            parser.isSet(decoderOpt) ? parser.value(decoderOpt) : parser.value(decodeOpt));
+                            selectedDecodeMode);
     }
     if (parser.isSet(shotOpt) || parser.isSet(stillsOpt) || parser.isSet(playStillsOpt)) {
         // Screenshots and stills render with no window at all (offscreen).
@@ -907,10 +912,19 @@ int main(int argc, char** argv) {
                                {QStringLiteral("clock"), QVariant::fromValue(&clock)}});
     // A server timeline saves itself (D34); QML reads `autosave` for its state.
     std::unique_ptr<nt::server::AutosaveController> autosave;
+    std::unique_ptr<nt::app::LocalDocumentSaver> localSaver;
     if (const auto target = nt::server::serverSaveTarget()) {
         autosave = std::make_unique<nt::server::AutosaveController>(
             *target, model.undoStack(), [&model]() { return model.timeline().raw; },
             loaded.timeline->raw.value(u"updatedAt").toString());
+        QObject::connect(&model, &TimelineModel::commandSettled, autosave.get(),
+                         &nt::server::AutosaveController::documentChanged);
+    }
+    if (!autosave && !bench && !parser.isSet(realtimeOpt) && !parser.isSet(teardownOpt) &&
+        QFileInfo(source).isFile()) {
+        localSaver = std::make_unique<nt::app::LocalDocumentSaver>(model, source);
+        QObject::connect(localSaver.get(), &nt::app::LocalDocumentSaver::saveFailed, &app,
+                         [](const QString& error) { qWarning().noquote() << error; });
     }
     view.rootContext()->setContextProperty(QStringLiteral("autosave"), autosave.get());
     view.loadFromModule("NodeTool.Timeline", "TimelineEditor");
@@ -978,7 +992,7 @@ int main(int argc, char** argv) {
         const bool vsync = !noVsync;
         const double refreshHz = view.screen() ? view.screen()->refreshRate() : 0.0;
         const double startMs = clock.time();
-        const QString decodeName = parser.isSet(decoderOpt) ? parser.value(decoderOpt) : parser.value(decodeOpt);
+        const QString decodeName = selectedDecodeMode;
         auto scheduling = std::make_shared<QJsonObject>();
         // F7 diagnostics: exposure changes of the bench window, with a
         // steady-clock time, next to the occlusion log.
@@ -1165,7 +1179,8 @@ int main(int argc, char** argv) {
 
     // Unsaved server edits: save them (at most 5 s) or leave a recovery file;
     // exit code 4 when no folder took them.
-    const int rc = nt::server::exitCodeAfterQuit(autosave.get(), app.exec(), 5000);
+    const int rc = nt::app::exitCodeAfterLocalSave(localSaver.get(),
+        nt::server::exitCodeAfterQuit(autosave.get(), app.exec(), 5000));
     if ((bench || parser.isSet(teardownOpt)) && !*completed) {
         std::fprintf(stderr, "error: the window closed before the %s finished; no report\n",
                      "bench");

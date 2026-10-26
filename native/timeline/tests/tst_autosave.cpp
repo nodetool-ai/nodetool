@@ -148,6 +148,33 @@ QJsonObject rawDoc(int value) {
 
 }  // namespace
 
+class RestoreTarget : public QObject {
+    Q_OBJECT
+public:
+    QUndoStack* undo = nullptr;
+    int* value = nullptr;
+    QString editName;
+    QJsonObject payload;
+    Q_INVOKABLE quint64 applyEdit(const QString& name, const QJsonObject& input) {
+        editName = name;
+        payload = input;
+        class Restore : public QUndoCommand {
+        public:
+            Restore(int* value, int next) : m_value(value), m_before(*value), m_after(next) {}
+            void redo() override { *m_value = m_after; }
+            void undo() override { *m_value = m_before; }
+        private:
+            int* m_value;
+            int m_before;
+            int m_after;
+        };
+        const int next = input.value("document").toObject().value("clips").toArray().at(0).toObject().value("startMs").toInt();
+        auto command = std::make_unique<Restore>(value, next);
+        undo->push(command.release());
+        return static_cast<quint64>(undo->count());
+    }
+};
+
 class TestAutosave : public QObject {
     Q_OBJECT
 
@@ -157,8 +184,8 @@ class TestAutosave : public QObject {
     int m_value = 0;
     std::unique_ptr<AutosaveController> m_save;
 
-    void make(const QString& base = QStringLiteral("u0")) {
-        SaveTarget t{m_http->base(), QString(), QStringLiteral("seq"), m_dir.path(), QString()};
+    void make(const QString& base = QStringLiteral("u0"), const QString& folder = {}) {
+        SaveTarget t{m_http->base(), QString(), QStringLiteral("seq"), folder.isEmpty() ? m_dir.path() : folder, QString()};
         m_save = std::make_unique<AutosaveController>(t, m_undo.get(), [this]() { return rawDoc(m_value); }, base);
         m_save->setQuitFallbackDirs({m_dir.filePath(QStringLiteral("fallback"))});
         m_save->setAutosave(false);
@@ -185,6 +212,235 @@ private slots:
     void cleanup() {
         m_save.reset();
         m_undo.reset();
+    }
+
+    void earlierRecoverySurvivesANewSessionSave() {
+        const QString folder = m_dir.filePath("earlier-recovery");
+        m_http->setPost([](const QByteArray&, const QByteArray&) { return failure(400, "BAD_REQUEST"); });
+        make("u0", folder);
+        m_undo->push(new Bump(&m_value));
+        const QString oldPath = m_save->saveNow().keptCopy;
+        QVERIFY(QFileInfo::exists(oldPath));
+        m_save.reset();
+        make("u0", folder);
+        m_http->setPost([](const QByteArray&, const QByteArray&) { return ok("u1"); });
+        m_undo->push(new Bump(&m_value));
+        QVERIFY(m_save->saveNow().ok);
+        // Enumerate the files, so this fails on the old deletion before
+        // requiring the new earlierCopy property.
+        const QStringList copies = QDir(folder).entryList({"seq.recovery*.json"}, QDir::Files);
+        QCOMPARE(copies.size(), 1);
+        const QString earlier = m_save->property("earlierCopy").toString();
+        QVERIFY(!earlier.isEmpty());
+        QVERIFY(earlier != oldPath);
+        QVERIFY(!QFileInfo::exists(oldPath));
+        QFile copy(earlier);
+        QVERIFY(copy.open(QIODevice::ReadOnly));
+        QCOMPARE(QJsonDocument::fromJson(copy.readAll()).object(), rawDoc(1));
+    }
+
+    void secondConflictPreservesTheFirstSessionsCopy() {
+        const QString folder = m_dir.filePath("second-conflict");
+        m_http->setPost([](const QByteArray&, const QByteArray&) { return conflict(); });
+        make("u0", folder);
+        m_undo->push(new Bump(&m_value));
+        QVERIFY(m_save->saveNow().conflict);
+        m_save.reset();
+        make("u0", folder);
+        m_undo->push(new Bump(&m_value));
+        QVERIFY(m_save->saveNow().conflict);
+        const QStringList copies = QDir(folder).entryList({"seq.local*.json"}, QDir::Files);
+        QCOMPARE(copies.size(), 2);
+        QFile earlier(m_save->property("earlierCopy").toString());
+        QVERIFY(earlier.open(QIODevice::ReadOnly));
+        QCOMPARE(QJsonDocument::fromJson(earlier.readAll()).object(), rawDoc(1));
+        QFile current(m_save->keptCopy());
+        QVERIFY(current.open(QIODevice::ReadOnly));
+        QCOMPARE(QJsonDocument::fromJson(current.readAll()).object(), rawDoc(2));
+    }
+
+    void restoreEarlierCopyIsOneEditAndAutosaves() {
+        const QString folder = m_dir.filePath("restore-earlier");
+        m_http->setPost([](const QByteArray&, const QByteArray&) { return conflict(); });
+        make("u0", folder);
+        m_undo->push(new Bump(&m_value));
+        QVERIFY(m_save->saveNow().conflict);
+        m_save.reset();
+        m_undo->clear();
+        m_value = 0;
+        make("u0", folder);
+        m_http->setPost([](const QByteArray&, const QByteArray&) { return ok("u1"); });
+        m_save->setAutosave(true);
+        m_save->setDebounceMs(25);
+        RestoreTarget model;
+        model.undo = m_undo.get();
+        model.value = &m_value;
+        bool restored = false;
+        QVERIFY(QMetaObject::invokeMethod(m_save.get(), "restoreEarlierCopy", Q_RETURN_ARG(bool, restored),
+                                         Q_ARG(QObject*, &model)));
+        QVERIFY(restored);
+        QCOMPARE(model.editName, QString("restoreDocument"));
+        QCOMPARE(model.payload.value("document").toObject(), documentForSave(rawDoc(1)));
+        QCOMPARE(m_undo->count(), 1);
+        QCOMPARE(m_value, 1);
+        QTRY_VERIFY_WITH_TIMEOUT(!m_save->dirty(), 2000);
+        QCOMPARE(posts(), 2);
+        const auto sent = QJsonDocument::fromJson(m_http->requests().back().body).object();
+        QCOMPARE(sent.value("document").toObject(), documentForSave(rawDoc(1)));
+        QVERIFY(QFileInfo::exists(m_save->property("earlierCopy").toString()));
+        m_undo->undo();
+        QCOMPARE(m_value, 0);
+        QVERIFY(m_save->dirty());
+        m_save->setAutosave(false);
+    }
+
+    void discardEarlierCopyDeletesOnlyThatCopy() {
+        const QString folder = m_dir.filePath("discard-earlier");
+        m_http->setPost([](const QByteArray&, const QByteArray&) { return conflict(); });
+        make("u0", folder);
+        m_undo->push(new Bump(&m_value));
+        QVERIFY(m_save->saveNow().conflict);
+        m_save.reset();
+        make("u0", folder);
+        m_undo->push(new Bump(&m_value));
+        QVERIFY(m_save->saveNow().conflict);
+        const QString earlier = m_save->property("earlierCopy").toString();
+        bool discarded = false;
+        QVERIFY(QMetaObject::invokeMethod(m_save.get(), "discardEarlierCopy", Q_RETURN_ARG(bool, discarded)));
+        QVERIFY(discarded);
+        QVERIFY(!QFileInfo::exists(earlier));
+        QCOMPARE(m_save->property("earlierCopy").toString(), QString());
+        QVERIFY(QFileInfo::exists(m_save->keptCopy()));
+        QCOMPARE(m_undo->count(), 2);
+    }
+
+    void fallbackAndArchivedCopiesAreOfferedAcrossLaunches() {
+        QTemporaryDir folder;
+        QVERIFY(folder.isValid());
+        SaveTarget target{m_http->base(), {}, "seq", folder.filePath("backup"), {}};
+        ServerClient client(target.server);
+        const QString fallback = folder.filePath("fallback");
+        const QString namespaceDir = QDir(fallback).filePath(safePathPart(client.serverKey()) + u'/' +
+                                                           safePathPart(client.userKey()));
+        QVERIFY(QDir().mkpath(namespaceDir));
+        const QString fixed = QDir(namespaceDir).filePath("seq.recovery.json");
+        QFile copy(fixed);
+        QVERIFY(copy.open(QIODevice::WriteOnly));
+        copy.write(QJsonDocument(rawDoc(7)).toJson());
+        copy.close();
+        QString earlier;
+        {
+            AutosaveController first(target, m_undo.get(), [this] { return rawDoc(m_value); }, "u0");
+            first.setQuitFallbackDirs({fallback});
+            earlier = first.property("earlierCopy").toString();
+            QVERIFY(!earlier.isEmpty());
+            QVERIFY(earlier != fixed);
+            QVERIFY(QFileInfo::exists(earlier));
+        }
+        AutosaveController next(target, m_undo.get(), [this] { return rawDoc(m_value); }, "u0");
+        next.setQuitFallbackDirs({fallback});
+        QCOMPARE(next.property("earlierCopy").toString(), earlier);
+        QVERIFY(QMetaObject::invokeMethod(&next, "discardEarlierCopy"));
+        QVERIFY(!QFileInfo::exists(earlier));
+    }
+
+    void multipleEarlierCopiesAreOfferedOneAtATime() {
+        QTemporaryDir folder;
+        QVERIFY(folder.isValid());
+        for (const auto& name : {"seq.recovery.json", "seq.local.json", "seq.local.older.json"}) {
+            QFile copy(folder.filePath(name));
+            QVERIFY(copy.open(QIODevice::WriteOnly));
+            copy.write(QJsonDocument(rawDoc(3)).toJson());
+        }
+        make("u0", folder.path());
+        QSet<QString> offered;
+        while (!m_save->property("earlierCopy").toString().isEmpty()) {
+            const auto path = m_save->property("earlierCopy").toString();
+            QVERIFY(!offered.contains(path));
+            offered.insert(path);
+            QVERIFY(QMetaObject::invokeMethod(m_save.get(), "discardEarlierCopy"));
+            QVERIFY(!QFileInfo::exists(path));
+        }
+        QCOMPARE(offered.size(), 3);
+    }
+
+    void invalidEarlierCopyIsKeptAndReported() {
+        QTemporaryDir folder;
+        QVERIFY(folder.isValid());
+        QFile copy(folder.filePath("seq.recovery.json"));
+        QVERIFY(copy.open(QIODevice::WriteOnly));
+        copy.write("not json");
+        copy.close();
+        make("u0", folder.path());
+        RestoreTarget model;
+        model.undo = m_undo.get();
+        model.value = &m_value;
+        bool restored = true;
+        QVERIFY(QMetaObject::invokeMethod(m_save.get(), "restoreEarlierCopy", Q_RETURN_ARG(bool, restored),
+                                         Q_ARG(QObject*, &model)));
+        QVERIFY(!restored);
+        QVERIFY(!m_save->property("earlierCopyError").toString().isEmpty());
+        QVERIFY(QFileInfo::exists(m_save->property("earlierCopy").toString()));
+        QCOMPARE(m_undo->count(), 0);
+    }
+
+    void laterConflictEditsUpdateTheLocalCopy() {
+        const QString folder = m_dir.filePath("later-conflict");
+        m_http->setPost([](const QByteArray&, const QByteArray&) { return conflict(); });
+        make("u0", folder);
+        m_save->setAutosave(true);
+        m_save->setDebounceMs(25);
+        m_undo->push(new Bump(&m_value));
+        QVERIFY(m_save->saveNow().conflict);
+        const QString path = m_save->keptCopy();
+        m_undo->push(new Bump(&m_value));
+        QTRY_VERIFY_WITH_TIMEOUT(!m_save->keptCopy().isEmpty(), 2000);
+        QFile copy(path);
+        QVERIFY(copy.open(QIODevice::ReadOnly));
+        QCOMPARE(QJsonDocument::fromJson(copy.readAll()).object(), rawDoc(2));
+        QCOMPARE(posts(), 1);
+        copy.close();
+        m_undo->undo();
+        m_undo->undo();
+        QTRY_VERIFY_WITH_TIMEOUT(!m_save->keptCopy().isEmpty(), 2000);
+        QVERIFY(copy.open(QIODevice::ReadOnly));
+        QCOMPARE(QJsonDocument::fromJson(copy.readAll()).object(), rawDoc(0));
+        QCOMPARE(posts(), 1);
+    }
+
+    void autosaveWaitsForPreviewCancellation_data() {
+        QTest::addColumn<bool>("acknowledged");
+        QTest::newRow("cancel-to-dirty-commit") << false;
+        QTest::newRow("cancel-to-acknowledged-commit") << true;
+    }
+
+    void autosaveWaitsForPreviewCancellation() {
+        QFETCH(bool, acknowledged);
+        m_http->setPost([](const QByteArray&, const QByteArray&) { return ok("u1"); });
+        make("u0", m_dir.filePath(QString::fromLatin1(QTest::currentDataTag())));
+        m_save->setAutosave(true);
+        m_save->setDebounceMs(25);
+        m_undo->push(new Bump(&m_value));
+        if (acknowledged) {
+            QVERIFY(m_save->saveNow().ok);
+            // A pending debounce can also follow a no-op committed change.
+            m_save->documentChanged();
+        }
+        const int before = posts();
+        m_value = 99;  // replaceClips preview, no undo-stack signal
+        QTest::qWait(150);
+        QCOMPARE(posts(), before);
+        m_value = 1;  // Escape returns to the committed document, no signal
+        if (acknowledged) {
+            QTest::qWait(150);
+            QCOMPARE(posts(), before);
+            QVERIFY(!m_save->dirty());
+        } else {
+            QTRY_COMPARE_WITH_TIMEOUT(posts(), before + 1, 2000);
+            QTRY_VERIFY_WITH_TIMEOUT(!m_save->dirty(), 2000);
+            const auto sent = QJsonDocument::fromJson(m_http->requests().back().body).object();
+            QCOMPARE(sent.value("document").toObject(), documentForSave(rawDoc(1)));
+        }
     }
 
     void documentDropsTheSequenceRow() {

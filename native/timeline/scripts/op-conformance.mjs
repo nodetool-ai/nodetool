@@ -128,16 +128,6 @@ const SKIPPED = Object.fromEntries(
       "identity: `toBe` on nested objects; run with deep equality"],
     [["rateStretchClips", "leaves a time-remapped clip alone"], "identity: `toBe` on the unchanged clip; run with deep equality"],
     [["slideClips", "leaves a group clip alone"], "identity: `toBe` on the unchanged array; run with deep equality"],
-    [["keyframes across split and trim", "gives each half of a split the part of the curve it covers"],
-      "refused: keyframe curves on a split"],
-    [["keyframes across split and trim", "stretches keyframes over an extended clip in the render and the inspector"],
-      "refused: keyframe curves on a trim"],
-    [["trimClip — source curves", "re-slices on a head trim and keeps the retained motion"], "refused: source-anchored curves"],
-    [["trimClip — source curves", "re-slices on a tail trim and keeps the retained motion"], "refused: source-anchored curves"],
-    [["splitClip — source curves", "gives each half the part of the curve it shows"], "refused: source-anchored curves"],
-    [["splitClip — source curves", "round-trips through a merge of the two halves"], "refused: source-anchored curves"],
-    [["resolveAnimatedLayerProps — source time base", "keeps the same opacity at the same timeline time after a head trim"],
-      "refused: source-anchored curves"]
   ].map(([parts, reason]) => [parts.join(" "), { parts, reason }])
 );
 const escape = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
