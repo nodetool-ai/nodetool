@@ -155,7 +155,7 @@ public:
     int* value = nullptr;
     QString editName;
     QJsonObject payload;
-    Q_INVOKABLE bool applyEdit(const QString& name, const QJsonObject& input) {
+    Q_INVOKABLE quint64 applyEdit(const QString& name, const QJsonObject& input) {
         editName = name;
         payload = input;
         class Restore : public QUndoCommand {
@@ -171,7 +171,7 @@ public:
         const int next = input.value("document").toObject().value("clips").toArray().at(0).toObject().value("startMs").toInt();
         auto command = std::make_unique<Restore>(value, next);
         undo->push(command.release());
-        return true;
+        return static_cast<quint64>(undo->count());
     }
 };
 
