@@ -27,6 +27,7 @@
 #include <QJsonObject>
 
 #include <array>
+#include <memory>
 #include <optional>
 #include <string>
 #include <unordered_map>
@@ -55,7 +56,16 @@ struct LayerTransition {
     std::optional<QJsonObject> effect;
 };
 
+struct ActiveLayer;
+struct LayerMatte {
+    std::string mode;
+    bool invert = false;
+    std::shared_ptr<const ActiveLayer> layer;
+    std::optional<double> strength, featherPx;
+};
+
 struct ActiveLayer {
+    std::optional<LayerMatte> matte;
     QJsonObject ext;
     // Source UV origin and extent. The rectangle also sets the layer size,
     // as the web crop does, before contain fit and the layer transform.

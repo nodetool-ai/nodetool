@@ -88,4 +88,39 @@ public:
         return renderHook(ctx, input, input, output, ":/s4/border.frag.qsb", float(ext.value("border").toInt()));
     }
 };
+class AlphaMatteStage final : public MatteStage {
+public:
+    bool render(const EffectContext& ctx, const LayerFrame& layer, const LayerFrame& matte,
+                QRhiTextureRenderTarget& output, const LayerMatte&, const QJsonObject&) override {
+        return renderHook(ctx, layer, matte, output, ":/s4/alpha.frag.qsb");
+    }
+};
+class SecondSourceStage final : public LayerEffectStage {
+public:
+    bool applies(const QJsonObject& ext) const override { return ext.value("secondSource").toBool(); }
+    bool render(const EffectContext& ctx, const LayerFrame& input, QRhiTextureRenderTarget& output,
+                const QJsonObject&) override {
+        if (ctx.sources) {
+            const auto found = ctx.sources->find("luma");
+            if (found != ctx.sources->end()) {
+                if (found->second.format != LayerFrame::Format::Rgba8Premultiplied || found->second.size != QSize(64,32)) {
+                    return false;
+                }
+                return renderHook(ctx, input, found->second, output, ":/s4/luma.frag.qsb");
+            }
+        }
+        return renderHook(ctx, input, input, output, ":/s4/alpha.frag.qsb", 1);
+    }
+};
+
+class SecondSourceMatteStage final : public MatteStage {
+public:
+    bool render(const EffectContext& ctx, const LayerFrame& layer, const LayerFrame& matte,
+                QRhiTextureRenderTarget& output, const LayerMatte&, const QJsonObject&) override {
+        if (!ctx.sources || !ctx.sources->contains("luma") || matte.size != layer.size ||
+            matte.format != LayerFrame::Format::Rgba8Premultiplied) { return false; }
+        return renderHook(ctx, layer, ctx.sources->at("luma"), output, ":/s4/luma.frag.qsb");
+    }
+};
+
 }

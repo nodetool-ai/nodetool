@@ -3,6 +3,7 @@
 #include "preview/SceneEval.h"
 #include <QMargins>
 #include <functional>
+#include <map>
 #include <cstdint>
 
 namespace nt {
@@ -23,6 +24,9 @@ struct EffectContext {
     QRhiCommandBuffer* commands;
     long long frameNumber;
     RetireQueue* retire;
+    // Requested sources are premultiplied RGBA8 at their decoded size.
+    // Valid only during render(), keyed by the requesting provider.
+    const std::map<std::string, LayerFrame>* sources = nullptr;
 };
 class LayerEffectStage {
 public:

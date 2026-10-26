@@ -12,12 +12,14 @@ function(nt_compose_hook_tests)
     qt_add_shaders(tst_composehooks "s4_composite_shaders" PREFIX "/shaders" BASE shaders
         FILES shaders/composite.vert shaders/composite.frag)
     qt_add_shaders(tst_composehooks "s4_hook_shaders" PREFIX "/s4" BASE src/preview/compose
-        FILES src/preview/compose/testhook.vert src/preview/compose/multiply.frag src/preview/compose/border.frag)
-    add_test(NAME tst_composehooks_registry COMMAND tst_composehooks lastRegistrationWins)
+        FILES src/preview/compose/testhook.vert src/preview/compose/multiply.frag src/preview/compose/border.frag
+            src/preview/compose/alpha.frag src/preview/compose/luma.frag)
+    add_test(NAME tst_composehooks_registry COMMAND tst_composehooks lastRegistrationWins matteExposesSourceLayer)
     set_tests_properties(tst_composehooks_registry PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
     add_test(NAME tst_composehooks_render COMMAND tst_composehooks blendHandlerMultipliesLayer
         blendHandlerOnGroupSurface blendHandlerInsideGroupSurface unhandledBlendDrawsOver
-        effectOutsetShowsBorder effectOutsetOnGroupSurface effectOutsetChainAndCrop)
+        effectOutsetShowsBorder effectOutsetOnGroupSurface effectOutsetChainAndCrop
+        matteStageUsesMatteAlpha secondSourceReachesStage)
     set_tests_properties(tst_composehooks_render PROPERTIES LABELS render)
 endfunction()
 nt_tests(nt_compose_hook_tests)
