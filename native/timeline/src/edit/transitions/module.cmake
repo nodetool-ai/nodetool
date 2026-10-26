@@ -3,10 +3,11 @@ nt_sources(core src/edit/transitions/TransitionEdits.h src/edit/transitions/Tran
 nt_sources(app src/edit/transitions/TransitionRegistrations.cpp)
 nt_qml_sources(src/edit/transitions/TransitionController.h src/edit/transitions/TransitionController.cpp)
 function(nt_transition_tests)
+    find_package(Qt6 6.12 REQUIRED COMPONENTS QuickTest)
     qt_add_executable(tst_transitions src/edit/transitions/tst_transitions.cpp ${NT_app})
     set_target_properties(tst_transitions PROPERTIES MACOSX_BUNDLE FALSE)
     target_link_libraries(tst_transitions PRIVATE timeline_core timeline_decode timeline_audio timeline_server
-        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
+        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::QuickTest Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
     nt_add_timeline_qml(tst_transitions OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_transitions_qml/NodeTool/Timeline)
     target_compile_definitions(tst_transitions PRIVATE NT_TRANSITION_SOURCE="${CMAKE_CURRENT_SOURCE_DIR}" NT_TRANSITION_BUILD="${CMAKE_CURRENT_BINARY_DIR}")
     add_test(NAME tst_transitions COMMAND tst_transitions uiUndo locksAndGestures pointerAndKeyboard softnessKeyboard easingCaptions largeLinkGroup panelSelection productionGrip productionSoftnessPointer)
