@@ -2,6 +2,7 @@
  * @jest-environment node
  */
 import {
+  commitNumber,
   formatCurvePoints,
   formatGradientStops,
   formatNumberList,
@@ -221,5 +222,28 @@ describe("parseCurvePoints", () => {
       { x: 1, y: 1 }
     ];
     expect(parseCurvePoints(formatCurvePoints(points))).toEqual(points);
+  });
+});
+
+describe("commitNumber", () => {
+  const commit = (raw: string, min?: number, exclusiveMin?: boolean) => {
+    const apply = jest.fn();
+    commitNumber(raw, apply, min, exclusiveMin);
+    return apply;
+  };
+
+  it("applies a finite number", () => {
+    expect(commit("2.5")).toHaveBeenCalledWith(2.5);
+  });
+
+  it("ignores blank and non-numeric input", () => {
+    expect(commit("  ")).not.toHaveBeenCalled();
+    expect(commit("abc")).not.toHaveBeenCalled();
+  });
+
+  it("allows the minimum unless it is exclusive", () => {
+    expect(commit("0", 0)).toHaveBeenCalledWith(0);
+    expect(commit("-1", 0)).not.toHaveBeenCalled();
+    expect(commit("0", 0, true)).not.toHaveBeenCalled();
   });
 });

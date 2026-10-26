@@ -153,3 +153,16 @@ export function parseFiniteNumber(raw: string): number | null {
   const value = Number(raw);
   return Number.isFinite(value) ? value : null;
 }
+
+/** Commit a numeric field, ignoring blank, non-numeric or out-of-range input. */
+export function commitNumber(
+  raw: string,
+  apply: (value: number) => void,
+  min?: number,
+  exclusiveMin = false
+): void {
+  const value = parseFiniteNumber(raw);
+  if (value === null) return;
+  if (min !== undefined && (exclusiveMin ? value <= min : value < min)) return;
+  apply(value);
+}
