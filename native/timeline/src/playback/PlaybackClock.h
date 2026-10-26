@@ -30,6 +30,10 @@ class PlaybackClock : public QObject {
     Q_PROPERTY(double durationMs READ durationMs WRITE setDurationMs NOTIFY durationMsChanged)
     Q_PROPERTY(bool loop READ loop WRITE setLoop NOTIFY loopChanged)
     Q_PROPERTY(double rate READ rate WRITE setRate NOTIFY rateChanged)
+    Q_PROPERTY(double rangeInMs READ rangeInMs WRITE setRangeIn NOTIFY rangeChanged)
+    Q_PROPERTY(double rangeOutMs READ rangeOutMs WRITE setRangeOut NOTIFY rangeChanged)
+    Q_PROPERTY(double fps READ fps WRITE setFps NOTIFY fpsChanged)
+    Q_PROPERTY(bool playingInToOut READ playingInToOut NOTIFY playingInToOutChanged)
     Q_PROPERTY(bool audioMaster READ audioMaster NOTIFY audioMasterChanged)
 
 public:
@@ -43,6 +47,11 @@ public:
     void setLoop(bool loop);
     double rate() const { return m_rate; }
     void setRate(double rate);
+    double rangeInMs() const { return m_rangeInMs; }
+    double rangeOutMs() const { return m_rangeOutMs; }
+    double fps() const { return m_fps; }
+    void setFps(double fps);
+    bool playingInToOut() const { return m_playingInToOut; }
     // True while the audio device is the master clock.
     bool audioMaster() const;
 
@@ -59,6 +68,13 @@ public slots:
     void play();
     void pause();
     void toggle();
+    void stop();
+    void playInToOut();
+    void shuttle(int direction);
+    void shuttleStop();
+    void setRangeIn(double ms);
+    void setRangeOut(double ms);
+    void clearRange();
     void seek(double ms);
     // Samples the clock into `time` and applies clock switches. Call once
     // per frame.
@@ -71,11 +87,18 @@ signals:
     void loopChanged();
     void rateChanged();
     void audioMasterChanged();
+    void rangeChanged();
+    void fpsChanged();
+    void playingInToOutChanged();
 
 private:
     enum class Source { Monotonic, Audio };
 
     double clampTime(double ms) const;
+    // Bounds are captured on a play/restart, as in PreviewArea.handlePlay.
+    void updateBoundsLocked();
+    double resolveStartLocked(double ms) const;
+    double boundedTimeLocked(double ms) const;
     // Raw timeline time at `nowNs` from the active source, not clamped.
     // Caller holds m_mutex.
     double rawTimeLocked(std::int64_t nowNs) const;
@@ -97,5 +120,11 @@ private:
     double m_durationMs = 0.0;
     double m_rate = 1.0;
     bool m_playing = false;
-    bool m_loop = true;
+    bool m_loop = false;
+    double m_rangeInMs = -1.0;
+    double m_rangeOutMs = -1.0;
+    double m_fps = 30.0;
+    bool m_playingInToOut = false;
+    double m_floorMs = 0.0;
+    double m_endMs = 0.0;
 };

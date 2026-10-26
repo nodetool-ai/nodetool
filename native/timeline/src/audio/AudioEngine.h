@@ -4,9 +4,9 @@
 //   - the device callback (real time) mixes the PCM rings with `mixBlock`
 //     and runs the callback half of the audio-master clock
 //     (`CallbackClockDriver`). It never locks, allocates or decodes.
-//   - the audio decode worker turns each seek command into a session: one
-//     PCM ring per clip near the play position, filled from an
-//     `AudioSource`, and keeps the rings full while the clips play.
+//   - the audio decode worker publishes mix snapshots for seeks and edits.
+//     It owns the PCM rings, retaining unchanged mappings across edits,
+//     and fills them from AudioSource while the clips play.
 //   - the caller (GUI thread) starts and stops the device and hands in
 //     timeline snapshots.
 // PlaybackClock talks to the engine only through `feed()`.
@@ -59,6 +59,7 @@ public:
         double sampleRate = 0.0;
         double outputLatencySec = 0.0;
         std::uint64_t generation = 0;
+        // Mix snapshots allocated for seeks and timeline edits.
         std::int64_t sessions = 0;
         std::string backend;
         std::string deviceName;
@@ -82,7 +83,9 @@ public:
     void stop();
     bool running() const;
 
-    // A new snapshot applies from the next play or seek.
+    // Publishes the mix before returning, so the next device block uses it.
+    // Unchanged PCM mappings retain their rings. New/remapped voices become
+    // audible as the worker primes them, without a transport seek.
     void setTimeline(std::shared_ptr<const Timeline> timeline);
 
     playback::AudioClockFeed& feed();
