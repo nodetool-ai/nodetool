@@ -1,6 +1,7 @@
 #include "ui/RulerCanvas.h"
 
-#include "ui/TimelineFormat.h"
+#include "wiring/RulerProviders.h"
+#include <QJsonDocument>
 
 #include <QFontMetricsF>
 #include <QPainter>
@@ -10,8 +11,8 @@
 RulerCanvas::RulerCanvas(QQuickItem* parent) : QQuickPaintedItem(parent) {
     setAntialiasing(true);
     setOpaquePainting(true);
-    connect(this, &QQuickItem::widthChanged, this, [this]() { update(); });
-    connect(this, &QQuickItem::heightChanged, this, [this]() { update(); });
+    connect(this, &QQuickItem::widthChanged, this, &RulerCanvas::changedValue);
+    connect(this, &QQuickItem::heightChanged, this, &RulerCanvas::changedValue);
 }
 
 void RulerCanvas::changedValue() {
@@ -113,11 +114,6 @@ void RulerCanvas::paint(QPainter* painter) {
             painter->drawLine(QPointF(px, 0), QPointF(px, h));
         }
     }
-    const nt::ui::TickIntervals ticks = nt::ui::computeTickIntervals(m_msPerPx);
-    const double visibleStartMs = m_scrollLeftPx * m_msPerPx;
-    const double visibleEndMs = visibleStartMs + w * m_msPerPx;
-    const double firstTickMs = std::floor(visibleStartMs / ticks.minorMs) * ticks.minorMs;
-
     painter->setFont(m_font);
     const QFontMetricsF metrics(m_font);
     QPen tickPen(m_tick);
@@ -125,18 +121,16 @@ void RulerCanvas::paint(QPainter* painter) {
     int labels = 0;
     // The canvas strokes a 1 px line centred on the x, so it covers half a
     // pixel on each side; the same line here.
-    const long long majorRounded = std::llround(ticks.majorMs);
-    for (double tMs = firstTickMs; tMs <= visibleEndMs + ticks.minorMs; tMs += ticks.minorMs) {
-        const bool isMajor = std::llround(tMs) % majorRounded == 0;
-        const double px = tMs / m_msPerPx - m_scrollLeftPx;
-        if (px < 0 || px > w) continue;
+    for (const auto& value : ticks()) {
+        const auto tick = value.toMap();
+        const bool isMajor = tick.value("major").toBool();
+        const double px = tick.value("timeMs").toDouble() / m_msPerPx - m_scrollLeftPx;
         painter->setPen(tickPen);
         painter->drawLine(QPointF(px, h), QPointF(px, isMajor ? h / 2.0 : h * 0.75));
-        if (!isMajor) continue;
+        const auto label = tick.value("label").toString();
+        if (label.isEmpty()) { continue; }
         painter->setPen(m_text);
-        // textBaseline "top" at y = 3: the glyph box starts there.
-        painter->drawText(QPointF(px + 3.0, 3.0 + metrics.ascent()),
-                          nt::ui::formatRulerTimecode(tMs, ticks.majorMs, m_fps));
+        painter->drawText(QPointF(px + 3.0, 3.0 + metrics.ascent()), label);
         ++labels;
     }
     // Markers: a full-height guide line; the flag is a QML item on top.
@@ -152,4 +146,44 @@ void RulerCanvas::paint(QPainter* painter) {
     }
     m_labelCount = labels;
     emit painted();
+}
+
+void RulerCanvas::setTimeline(TimelineModel* timeline) {
+    if (timeline == m_timeline) { return; }
+    if (m_timeline) { disconnect(m_timeline, nullptr, this, nullptr); }
+    m_timeline = timeline;
+    if (m_timeline) {
+        connect(m_timeline, &TimelineModel::timelineChanged, this, &RulerCanvas::changedValue);
+        connect(m_timeline, &QObject::destroyed, this, &RulerCanvas::changedValue);
+    }
+    changedValue();
+}
+
+void RulerCanvas::setRulerMode(const QString& mode) {
+    if (mode == m_rulerMode) { return; }
+    m_rulerMode = mode;
+    changedValue();
+}
+
+void RulerCanvas::setGridDivision(const QString& division) {
+    if (division == m_gridDivision) { return; }
+    m_gridDivision = division;
+    changedValue();
+}
+
+QVariantList RulerCanvas::ticks() const {
+    QVariantList result;
+    if (width() <= 0 || m_msPerPx <= 0) { return result; }
+    nt::wiring::RulerRequest request;
+    request.msPerPx = m_msPerPx;
+    request.fromMs = m_scrollLeftPx * m_msPerPx;
+    request.toMs = request.fromMs + width() * m_msPerPx;
+    request.fps = m_fps;
+    request.gridDivision = m_gridDivision;
+    if (m_timeline) { request.document = QJsonDocument::fromJson(m_timeline->documentJson()).object(); }
+    for (const auto& tick : nt::wiring::rulerTicks(m_rulerMode, request)) {
+        if (!std::isfinite(tick.timeMs) || tick.timeMs < request.fromMs || tick.timeMs > request.toMs) { continue; }
+        result.append(QVariantMap{{"timeMs", tick.timeMs}, {"major", tick.major}, {"label", tick.label}});
+    }
+    return result;
 }

@@ -106,6 +106,9 @@ public:
     // The document the actions read: the model's clips and tracks.
     nt::edit::EditDoc editDoc() const;
 
+    Q_INVOKABLE bool runAction(const QString& action, const QVariantMap& context = {});
+    Q_INVOKABLE QVariantMap clipData(const QString& clipId) const;
+
 public slots:
     // A press on a clip: `part` is "body", "start" or "end". Grabs the mouse.
     bool pressClip(const QString& clipId, const QString& part, double sceneX, double sceneY, int modifiers);
@@ -133,7 +136,7 @@ public slots:
     QVariantMap shortcutSheet() const;
     // The keymap actions handleKey runs, and the pointer gestures of the
     // sheet's key-only rows that work here.
-    static const QSet<QString>& availableActions();
+    static QSet<QString> availableActions();
 
 signals:
     void changed();
@@ -151,6 +154,8 @@ protected:
     void updatePolish() override;
 
 private:
+    bool runBuiltinAction(const QString& action, bool autoRepeat);
+
     struct Gesture {
         QString kind;  // "", "move", "trim", "slip", "slide"
         QString clipId;
@@ -195,6 +200,8 @@ private:
     std::optional<double> sourceCap(const QJsonObject& clip);
     void probeSources();
 
+    mutable QHash<QString, QJsonObject> m_clipData;
+    mutable std::uint64_t m_clipDataRevision = 0;
     QPointer<TimelineModel> m_timeline;
     QPointer<TimelineViewState> m_view;
     QPointer<TrackWindowModel> m_rows;

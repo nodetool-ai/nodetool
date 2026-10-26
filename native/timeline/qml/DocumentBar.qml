@@ -61,5 +61,10 @@ Rectangle {
                 onClicked: bar.timeline.undoStack.redo()
             }
         }
+        SlotItems {
+            anchors.verticalCenter: parent.verticalCenter
+            slot: "documentBar"
+            slotProperties: ({ timeline: bar.timeline })
+        }
     }
 }

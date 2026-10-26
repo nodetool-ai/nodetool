@@ -1,4 +1,6 @@
 #include "app/PanelRegistry.h"
+#include <QRegularExpression>
+#include <QDebug>
 #include <algorithm>
 #include <vector>
 
@@ -9,9 +11,10 @@ std::vector<nt::app::Panel>& panels() {
 }
 }
 bool nt::app::registerPanel(Panel panel) {
-    const QStringList slotNames{"left", "right", "bottom", "overlay"};
-    if (!slotNames.contains(panel.slot) || panel.id.isEmpty() || !panel.source.isValid() ||
+    static const QRegularExpression slotName(QRegularExpression::anchoredPattern(QStringLiteral("[a-z][A-Za-z0-9]*")));
+    if (!slotName.match(panel.slot).hasMatch() || panel.id.isEmpty() || panel.source.isEmpty() || !panel.source.isValid() ||
         std::any_of(panels().begin(), panels().end(), [&](const auto& p) { return p.id == panel.id; })) {
+        qWarning().noquote() << "Refused panel" << panel.id + ": invalid slot, id, source or duplicate id";
         return false;
     }
     panels().push_back(std::move(panel));

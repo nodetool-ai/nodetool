@@ -6,6 +6,8 @@
 // scroll, the size or a colour changes, never on a playhead move (D30);
 // `paintCount` lets a test check that.
 
+#include "model/TimelineModel.h"
+#include <QPointer>
 #include <QColor>
 #include <QFont>
 #include <QQuickPaintedItem>
@@ -15,6 +17,10 @@
 class RulerCanvas : public QQuickPaintedItem {
     Q_OBJECT
     QML_ELEMENT
+    Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY changed)
+    Q_PROPERTY(QString rulerMode READ rulerMode WRITE setRulerMode NOTIFY changed)
+    Q_PROPERTY(QString gridDivision READ gridDivision WRITE setGridDivision NOTIFY changed)
+    Q_PROPERTY(QVariantList ticks READ ticks NOTIFY changed)
     Q_PROPERTY(double msPerPx READ msPerPx WRITE setMsPerPx NOTIFY changed)
     Q_PROPERTY(double scrollLeftPx READ scrollLeftPx WRITE setScrollLeftPx NOTIFY changed)
     Q_PROPERTY(double fps READ fps WRITE setFps NOTIFY changed)
@@ -34,6 +40,13 @@ class RulerCanvas : public QQuickPaintedItem {
 public:
     explicit RulerCanvas(QQuickItem* parent = nullptr);
 
+    TimelineModel* timeline() const { return m_timeline; }
+    void setTimeline(TimelineModel* timeline);
+    QString rulerMode() const { return m_rulerMode; }
+    void setRulerMode(const QString& mode);
+    QString gridDivision() const { return m_gridDivision; }
+    void setGridDivision(const QString& division);
+    QVariantList ticks() const;
     double msPerPx() const { return m_msPerPx; }
     void setMsPerPx(double v);
     double scrollLeftPx() const { return m_scrollLeftPx; }
@@ -68,6 +81,9 @@ signals:
 private:
     void changedValue();
 
+    QPointer<TimelineModel> m_timeline;
+    QString m_rulerMode = QStringLiteral("time");
+    QString m_gridDivision = QStringLiteral("beat");
     double m_msPerPx = 10.0;
     double m_scrollLeftPx = 0.0;
     double m_fps = 0.0;

@@ -50,7 +50,17 @@ Item {
     z: underGesture ? 1 : 0
     opacity: mutedTrack ? 0.5 : 1
 
+    property var clipData: gestures ? gestures.clipData(clipId) : ({})
+    Connections {
+        target: clipItem.gestures ? clipItem.gestures.timeline : null
+        function onClipsChanged() { clipItem.clipData = clipItem.gestures.clipData(clipItem.clipId) }
+    }
+
     ClipBody {
+        z: 1
+        clipData: clipItem.clipData
+        timeline: clipItem.gestures ? clipItem.gestures.timeline : null
+        gestures: clipItem.gestures
         anchors.fill: parent
         name: clipItem.name
         mediaType: clipItem.mediaType
@@ -77,6 +87,11 @@ Item {
                      ? clipItem.viewState.scrollLeftPx + clipItem.viewState.viewportWidthPx - clipItem.x : width
     }
 
+    RegistryContextMenu {
+        id: clipMenu
+        kind: "clip"
+        gestures: clipItem.gestures
+    }
     HoverHandler { id: hover }
 
     function press(part, mouse, area) {
@@ -88,13 +103,22 @@ Item {
     MouseArea {
         objectName: "clipBodyArea"
         anchors.fill: parent
-        acceptedButtons: Qt.LeftButton
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
         cursorShape: clipItem.interactionLocked ? Qt.ForbiddenCursor : pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor
-        onPressed: mouse => clipItem.press("body", mouse, this)
+        onPressed: mouse => {
+            if (mouse.button === Qt.RightButton) {
+                if (clipItem.gestures && !clipItem.selected) clipItem.gestures.selection = [clipItem.clipId]
+                clipMenu.context = { clipId: clipItem.clipId, clip: clipItem.clipData,
+                                     selectedIds: clipItem.gestures ? clipItem.gestures.selection : [],
+                                     editable: !clipItem.interactionLocked }
+                clipMenu.popup(mouse.x, mouse.y)
+            } else clipItem.press("body", mouse, this)
+        }
     }
     // The trim grips (TRIM_HANDLE_WIDTH_PX), over the body.
     MouseArea {
         objectName: "clipTrimStart"
+        z: 2
         visible: clipItem.trimHandles
         width: 8
         height: parent.height
@@ -104,6 +128,7 @@ Item {
     }
     MouseArea {
         objectName: "clipTrimEnd"
+        z: 2
         visible: clipItem.trimHandles
         x: parent.width - width
         width: 8
