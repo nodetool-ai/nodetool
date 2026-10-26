@@ -97,14 +97,15 @@ export async function trimVideo(
 }
 
 /**
- * Write `source`'s first audio track to `outPath` as 16-bit PCM WAV at its own
- * rate and channel count, as `ffmpeg -i in -vn -acodec pcm_s16le out.wav` did.
- * Throws when the source has no audio track.
+ * Write `source`'s first audio track to `outPath` as 16-bit PCM WAV, at its own
+ * rate and channel count unless `sampleRate` or `channels` say otherwise, as
+ * `ffmpeg -i in -vn [-ar R] [-ac C] -acodec pcm_s16le out.wav` did. Throws when
+ * the source has no audio track.
  */
 export async function convertAudioToWav(
   source: MediaSource,
   outPath: string,
-  options: { signal?: AbortSignal } = {}
+  options: { sampleRate?: number; channels?: number; signal?: AbortSignal } = {}
 ): Promise<void> {
   throwIfAborted(options.signal);
   ensureMediabunnyServer();
@@ -121,7 +122,11 @@ export async function convertAudioToWav(
       input,
       output,
       video: { discard: true },
-      audio: { codec: "pcm-s16" },
+      audio: {
+        codec: "pcm-s16",
+        sampleRate: options.sampleRate,
+        numberOfChannels: options.channels
+      },
       showWarnings: false
     });
     await runConversion(conversion, options.signal);

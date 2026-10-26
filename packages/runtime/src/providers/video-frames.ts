@@ -1,18 +1,15 @@
 /**
- * Sample a video into still frames with ffmpeg.
+ * Sample a video into still frames, decoded in process.
  *
  * This is what lets a vision model that cannot read a clip still answer
  * questions about one: the bytes are decoded here, a bounded number of frames
  * come back as JPEGs, and the caller sends them as ordinary image content.
- *
- * The argv is ours, not a model's — the only input path is a temp file this
- * module wrote — so the containment `packages/agents/src/host-binary-guard.ts`
- * applies to a model-supplied argv is not needed. `-protocol_whitelist file`
- * and `-nostdin` still go in: an mp4 can name an external opener, and a child
- * that inherits the server's stdin outlives the call.
+ * The only input is a temp file this module wrote.
  */
 
 import { importNodeBuiltin } from "@nodetool-ai/config";
+import { loadSharpOrThrow } from "../image-codec.js";
+import { loadMediaModule } from "../media-loader.js";
 import { withSpan } from "../tracing-helpers.js";
 import { mp4DurationSeconds } from "./video-duration.js";
 
@@ -26,13 +23,13 @@ export type SampledFrame = {
 
 export type VideoFrameSample = {
   frames: SampledFrame[];
-  /** Clip length from ffprobe, or null when the probe did not answer. */
+  /** Clip length from the probe, or null when the probe did not answer. */
   durationSec: number | null;
-  /** Frames per second actually requested of ffmpeg. */
+  /** Frames per second the clip was sampled at. */
   fps: number;
   /**
    * True when the frame cap stopped the sample before the end of the clip.
-   * Only reachable with an unknown duration: once ffprobe answers, the rate is
+   * Only reachable with an unknown duration: once the probe answers, the rate is
    * chosen to fit the budget across the whole clip and the cap never bites.
    */
   truncated: boolean;
@@ -48,27 +45,11 @@ export type SampleVideoFramesOptions = {
   signal?: AbortSignal;
 };
 
-/** ffmpeg or ffprobe is not installed. Names the binary and the way out. */
-export class FrameSamplingUnavailableError extends Error {
-  readonly binary: string;
-  constructor(binary: string) {
-    super(
-      `${binary} is not installed or not on PATH. Reading a video with a ` +
-        `provider that has no video content part samples frames with ffmpeg ` +
-        `first — install ffmpeg (the Package Manager UI can do this), or use ` +
-        `a provider whose chat models read video natively (gemini).`
-    );
-    this.name = "FrameSamplingUnavailableError";
-    this.binary = binary;
-  }
-}
-
 const DEFAULT_MAX_FRAMES = 16;
 const DEFAULT_MAX_FPS = 1;
 const DEFAULT_MAX_DIMENSION = 768;
-/** ffmpeg `-q:v` for the JPEG encoder (2 = best, 31 = worst). */
-const JPEG_QUALITY = 4;
-const FFMPEG_MAX_BUFFER = 8 * 1024 * 1024;
+/** sharp JPEG quality, about what ffmpeg's `-q:v 4` gave. */
+const JPEG_QUALITY = 85;
 
 /** Read a positive number from the environment, or fall back. */
 function envNumber(name: string, fallback: number): number {
@@ -91,94 +72,20 @@ function frameSamplingLimits(): Required<
   };
 }
 
-type ExecResult = { stdout: string; stderr: string };
-
 async function nodeModules(): Promise<{
-  cp: typeof import("node:child_process");
   fs: typeof import("node:fs/promises");
   os: typeof import("node:os");
   path: typeof import("node:path");
 }> {
-  const [cp, fs, os, path] = await Promise.all([
-    importNodeBuiltin<typeof import("node:child_process")>(
-      "node:child_process"
-    ),
+  const [fs, os, path] = await Promise.all([
     importNodeBuiltin<typeof import("node:fs/promises")>("node:fs/promises"),
     importNodeBuiltin<typeof import("node:os")>("node:os"),
     importNodeBuiltin<typeof import("node:path")>("node:path")
   ]);
-  if (!cp || !fs || !os || !path) {
+  if (!fs || !os || !path) {
     throw new Error("Video frame sampling requires Node built-in modules");
   }
-  return { cp, fs, os, path };
-}
-
-/** Whether a spawn failed because the binary is not on PATH. */
-function isSpawnEnoent(err: unknown): boolean {
-  return (
-    typeof err === "object" &&
-    err !== null &&
-    (err as { code?: unknown }).code === "ENOENT"
-  );
-}
-
-async function run(
-  cp: typeof import("node:child_process"),
-  binary: "ffmpeg" | "ffprobe",
-  args: string[],
-  signal?: AbortSignal
-): Promise<ExecResult> {
-  return await new Promise<ExecResult>((resolve, reject) => {
-    cp.execFile(
-      binary,
-      args,
-      { maxBuffer: FFMPEG_MAX_BUFFER, signal, windowsHide: true },
-      (error, stdout, stderr) => {
-        if (error) {
-          if (isSpawnEnoent(error)) {
-            reject(new FrameSamplingUnavailableError(binary));
-            return;
-          }
-          reject(error);
-          return;
-        }
-        resolve({ stdout: String(stdout), stderr: String(stderr) });
-      }
-    );
-  });
-}
-
-/** Clip length in seconds, or null when ffprobe cannot say. */
-async function probeDuration(
-  cp: typeof import("node:child_process"),
-  file: string,
-  signal?: AbortSignal
-): Promise<number | null> {
-  try {
-    const { stdout } = await run(
-      cp,
-      "ffprobe",
-      [
-        "-v",
-        "error",
-        "-show_entries",
-        "format=duration",
-        "-of",
-        "csv=p=0",
-        file
-      ],
-      signal
-    );
-    const seconds = Number(stdout.trim().split("\n")[0]);
-    return Number.isFinite(seconds) && seconds > 0 ? seconds : null;
-  } catch (error) {
-    if (signal?.aborted) throw error;
-    // A missing binary is actionable and must reach the caller. A probe that
-    // ran and failed (an odd container, no format header) is not: the sample
-    // falls back to the ceiling rate below.
-    if (error instanceof FrameSamplingUnavailableError) throw error;
-    return null;
-  }
+  return { fs, os, path };
 }
 
 /** Read a video duration from its bytes without decoding frames. */
@@ -228,7 +135,7 @@ export function frameRateFor(
 }
 
 /**
- * Fit inside a square of `maxDimension` without upscaling. ffmpeg's
+ * Fit inside a square of `maxDimension` without upscaling. libav's
  * `force_original_aspect_ratio=decrease` would enlarge a smaller frame, which
  * costs tokens and adds no detail.
  */
@@ -239,7 +146,7 @@ function scaleFilter(maxDimension: number): string {
 
 /**
  * Decode `bytes` and return up to `maxFrames` JPEG stills spread across the
- * clip. Throws {@link FrameSamplingUnavailableError} when ffmpeg is absent.
+ * clip.
  */
 export async function sampleVideoFrames(
   bytes: Uint8Array,
@@ -249,51 +156,45 @@ export async function sampleVideoFrames(
   const maxFrames = Math.max(1, options.maxFrames ?? limits.maxFrames);
   const maxFps = options.maxFps ?? limits.maxFps;
   const maxDimension = options.maxDimension ?? limits.maxDimension;
+  const signal = options.signal ?? new AbortController().signal;
 
-  const { cp, fs, os, path } = await nodeModules();
+  const { fs, os, path } = await nodeModules();
+  const [{ openRgbaFrameReader }, sharp] = await Promise.all([
+    loadMediaModule(),
+    loadSharpOrThrow()
+  ]);
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-vframes-"));
   const input = path.join(dir, "input.bin");
-  const outDir = path.join(dir, "frames");
   try {
     await fs.writeFile(input, bytes);
-    await fs.mkdir(outDir);
 
-    const durationSec = await probeDuration(cp, input, options.signal);
+    const durationSec = await probeVideoDurationSeconds(bytes, signal);
     const fps = frameRateFor(durationSec, maxFrames, maxFps);
 
-    await run(
-      cp,
-      "ffmpeg",
-      [
-        "-nostdin",
-        "-y",
-        "-v",
-        "error",
-        "-protocol_whitelist",
-        "file",
-        "-i",
-        input,
-        "-vf",
-        `fps=${fps.toFixed(6)},${scaleFilter(maxDimension)}`,
-        "-frames:v",
-        String(maxFrames),
-        "-q:v",
-        String(JPEG_QUALITY),
-        path.join(outDir, "frame_%04d.jpg")
-      ],
-      options.signal
-    );
-
-    const names = (await fs.readdir(outDir))
-      .filter((n) => n.startsWith("frame_") && n.endsWith(".jpg"))
-      .sort();
+    const reader = await openRgbaFrameReader({
+      filePath: input,
+      filter: `fps=${fps.toFixed(6)},${scaleFilter(maxDimension)},format=rgba`,
+      signal
+    });
+    if (!reader) throw new Error("The video has no picture to sample");
     const frames: SampledFrame[] = [];
-    for (const [index, name] of names.entries()) {
-      frames.push({
-        data: new Uint8Array(await fs.readFile(path.join(outDir, name))),
-        mimeType: "image/jpeg",
-        timeSec: index / fps
-      });
+    try {
+      while (frames.length < maxFrames) {
+        const frame = await reader.next();
+        if (!frame) break;
+        const jpeg = await sharp(Buffer.from(frame.rgba.buffer, frame.rgba.byteOffset, frame.rgba.byteLength), {
+          raw: { width: frame.width, height: frame.height, channels: 4 }
+        })
+          .jpeg({ quality: JPEG_QUALITY })
+          .toBuffer();
+        frames.push({
+          data: new Uint8Array(jpeg),
+          mimeType: "image/jpeg",
+          timeSec: frames.length / fps
+        });
+      }
+    } finally {
+      await reader.close();
     }
     return {
       frames,

@@ -46,7 +46,8 @@ export { convertAudioToWav, ensureMediabunnyServer, trimVideo } from "./convert.
 export { transcodeVideo } from "./transcode.js";
 export { AudioEncoder } from "./audio-encoder.js";
 export { concatCopy, concatSegments, type ConcatSegment } from "./concat.js";
-export { pngFrames } from "./frames.js";
+export { lastFramePng, pngFrames } from "./frames.js";
+export { verifyDecodes } from "./verify.js";
 export {
   DEFAULT_VIDEO_ENCODER,
   transformMedia,

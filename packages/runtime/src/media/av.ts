@@ -51,7 +51,8 @@ const FORMAT_BY_EXTENSION: Record<string, string> = {
   ".mp3": "mp3",
   ".ogg": "ogg",
   ".opus": "opus",
-  ".flac": "flac"
+  ".flac": "flac",
+  ".h264": "h264"
 };
 
 /** The libav muxer name for `filePath`, from its extension. */

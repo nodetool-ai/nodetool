@@ -72,7 +72,7 @@ export type {
 export {
   bakeFrameOutputs,
   bakeModel3DClipToVideo,
-  bakeMuxArgs,
+  bakeEncoderSettings,
   bakeRenderAnimationParams,
   bakeVideoFormat,
   muxPngSequenceToVideo,

@@ -9,10 +9,13 @@
 
 import { ALL_FORMATS, EncodedPacketSink, FilePathSource, Input } from "mediabunny";
 import {
+  avGetCodecName,
+  avGetPixFmtName,
   Decoder,
   Demuxer,
   Encoder,
   FilterAPI,
+  type AVPixelFormat,
   type Frame,
   type Packet
 } from "node-av";
@@ -343,4 +346,26 @@ export function rmsBetween(audio: PcmAudio, startSec: number, endSec: number): n
   let sum = 0;
   for (let i = first; i < last; i++) sum += (audio.samples[i] ?? 0) ** 2;
   return Math.sqrt(sum / (last - first));
+}
+
+/**
+ * The first video stream's libav codec and pixel format names, as ffprobe's
+ * `stream=codec_name,pix_fmt` printed them (`h264`, `yuv420p`).
+ */
+export async function videoStreamFormat(
+  filePath: string
+): Promise<{ codec: string; pixelFormat: string } | null> {
+  const demuxer = await Demuxer.open(filePath);
+  try {
+    const stream = demuxer.video();
+    if (!stream) return null;
+    const { codecpar } = stream;
+    return {
+      codec: avGetCodecName(codecpar.codecId) ?? "",
+      // SAFETY: a video stream's `format` is a pixel format.
+      pixelFormat: avGetPixFmtName(codecpar.format as AVPixelFormat) ?? ""
+    };
+  } finally {
+    await demuxer.close();
+  }
 }

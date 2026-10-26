@@ -6,15 +6,16 @@
  * and an H.264 clip there fails the render with
  * `DEMUXER_ERROR_NO_SUPPORTED_STREAMS`. The driver asks the page which
  * decoders it has ({@link DECODER_PROBES}) and converts a clip it lacks one
- * for to VP9 before serving it: one fast ffmpeg pass per clip, timestamps
- * kept, so a variable-frame-rate source still decodes by its own clock.
+ * for to VP9 before serving it: one fast in-process encode per clip,
+ * timestamps kept, so a variable-frame-rate source still decodes by its own
+ * clock.
  */
 
 import path from "node:path";
 
-import { probeMedia } from "@nodetool-ai/runtime/media";
+import { probeMedia, transcodeVideo } from "@nodetool-ai/runtime/media";
 
-import { execFfmpeg, FFMPEG_MAX_BUFFER, libavCodecName } from "../ffmpeg-helpers.js";
+import { libavCodecName } from "../ffmpeg-helpers.js";
 
 /** WebCodecs codec strings the page checks, keyed by libav's codec name. */
 export const DECODER_PROBES: ReadonlyArray<readonly [string, string]> = [
@@ -65,19 +66,16 @@ export function openSourceConverter(opts: {
     const media = await probeVideo(file, opts.signal);
     if (!media || opts.decodable.has(media.codec)) return file;
     const out = path.join(opts.workDir, `browser-source-${next++}.webm`);
-    await execFfmpeg(
-      [
-        "-y", "-v", "error", "-i", file,
-        "-map", "0:v:0", "-an",
-        "-c:v", "libvpx-vp9", "-deadline", "realtime", "-cpu-used", "8", "-row-mt", "1",
-        "-crf", "18", "-b:v", "0",
-        "-pix_fmt", media.alpha ? "yuva420p" : "yuv420p",
-        // Keep every frame at its own timestamp, as the source has it.
-        "-fps_mode", "passthrough",
-        out
-      ],
-      { maxBuffer: FFMPEG_MAX_BUFFER, signal: opts.signal }
-    );
+    await transcodeVideo({
+      inputPath: file,
+      outPath: out,
+      spec: {
+        codec: "libvpx-vp9",
+        pixelFormat: media.alpha ? "yuva420p" : "yuv420p",
+        options: { deadline: "realtime", "cpu-used": "8", "row-mt": "1", crf: "18", b: "0" }
+      },
+      signal: opts.signal
+    });
     converted++;
     return out;
   };

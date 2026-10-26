@@ -244,6 +244,8 @@ export async function openVideoFrameEncoder(opts: {
   width?: number;
   height?: number;
   spec: VideoEncoderSpec;
+  /** Muxer AVOptions, e.g. `{ movflags: "+faststart" }`. */
+  muxerOptions?: Record<string, string>;
   signal?: AbortSignal;
 }): Promise<VideoFrameEncoder> {
   quietLibav();
@@ -294,7 +296,7 @@ export async function openVideoFrameEncoder(opts: {
             context: { framerate: new Rational(rate.num, rate.den) },
             signal
           });
-          output = await openFileMuxer(opts.outPath, { signal });
+          output = await openFileMuxer(opts.outPath, { muxerOptions: opts.muxerOptions, signal });
           streamIndex = output.muxer.addStream(encoder);
         }
         await writePackets(filtered);
