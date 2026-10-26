@@ -94,8 +94,12 @@ instance id, PostgreSQL remains local. SQLite always uses synchronous in-memory
 delivery and opens no listener connection.
 
 Set `DIRECT_URL` to a direct or session-mode connection to the **same database**
-as `DATABASE_URL`. When absent, the listener uses `DATABASE_URL`. Startup rejects
-port 6543 because transaction pooling cannot maintain LISTEN subscriptions.
+as `DATABASE_URL`. When absent, the listener uses `DATABASE_URL`. When the
+listener cannot connect through `DIRECT_URL`, the server logs a warning and
+listens on `DATABASE_URL` unless that uses port 6543. A host without an IPv6
+route cannot reach Supabase's direct endpoint, so point `DIRECT_URL` at the
+session-mode pooler there. Startup rejects port 6543 because transaction
+pooling cannot maintain LISTEN subscriptions.
 Other transaction poolers must also use a direct or session-mode endpoint.
 Budget one dedicated listener connection per replica in addition to
 `DATABASE_POOL_MAX`. Writes and NOTIFY use the normal application pool.

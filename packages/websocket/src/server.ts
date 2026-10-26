@@ -95,8 +95,7 @@ import {
   getWorkerProfile,
   initDb,
   initPostgresDb,
-  openResourceChangeChannel,
-  resolveResourceChangeListenerUrl,
+  openResourceChangeChannelWithFallback,
   isAccessToken,
   McpOauthClient,
   MCP_OAUTH_ACCESS_TOKEN_PREFIX,
@@ -328,11 +327,9 @@ try {
   if (postgresDatabaseUrl) {
     await initPostgresDb(postgresDatabaseUrl);
     if (getInstanceId()) {
-      const channel = await openResourceChangeChannel(
-        resolveResourceChangeListenerUrl(
-          postgresDatabaseUrl,
-          process.env["DIRECT_URL"]
-        ),
+      const channel = await openResourceChangeChannelWithFallback(
+        postgresDatabaseUrl,
+        process.env["DIRECT_URL"],
         (message) => resourceChangeBus.receive(message),
         () => resourceChangeBus.resync()
       );

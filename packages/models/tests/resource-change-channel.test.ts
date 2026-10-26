@@ -3,17 +3,22 @@ import { afterEach, expect, it, vi } from "vitest";
 const driver = vi.hoisted(() => ({
   pool: vi.fn().mockResolvedValue([]),
   listen: vi.fn().mockResolvedValue(undefined),
-  end: vi.fn().mockResolvedValue(undefined)
+  end: vi.fn().mockResolvedValue(undefined),
+  connect: vi.fn()
 }));
 vi.mock("../src/db.js", () => ({
   getPostgresClient: () => driver.pool,
   resolvePostgresClientOptions: () => ({ max: 10 })
 }));
 vi.mock("postgres", () => ({
-  default: () => ({ listen: driver.listen, end: driver.end })
+  default: (url: string) => {
+    driver.connect(url);
+    return { listen: driver.listen, end: driver.end };
+  }
 }));
 import {
   openResourceChangeChannel,
+  openResourceChangeChannelWithFallback,
   packResourceChangeMessages,
   encodeResourceChangeGroup,
   MAX_PENDING_NOTIFICATIONS,
@@ -181,4 +186,52 @@ it("passes a batch notification through to receive unchanged", async () => {
   } finally {
     await channel.close();
   }
+});
+
+const DIRECT = "postgres://u:p@db.example.supabase.co:5432/postgres";
+const SESSION_POOLER = "postgres://u:p@pooler.example.supabase.com:5432/postgres";
+
+it("listens on DATABASE_URL when DIRECT_URL cannot be reached", async () => {
+  driver.listen.mockRejectedValueOnce(new Error("connect ENETUNREACH"));
+  const channel = await openResourceChangeChannelWithFallback(
+    SESSION_POOLER,
+    DIRECT,
+    vi.fn(),
+    vi.fn()
+  );
+  try {
+    expect(driver.connect.mock.calls.map(([url]) => url)).toEqual([
+      DIRECT,
+      SESSION_POOLER
+    ]);
+    expect(driver.end).toHaveBeenCalledTimes(1);
+  } finally {
+    await channel.close();
+  }
+});
+
+it("keeps the DIRECT_URL failure when DATABASE_URL is the transaction pooler", async () => {
+  driver.listen.mockRejectedValueOnce(new Error("connect ENETUNREACH"));
+  await expect(
+    openResourceChangeChannelWithFallback(
+      "postgres://u:p@pooler.example.supabase.com:6543/postgres",
+      DIRECT,
+      vi.fn(),
+      vi.fn()
+    )
+  ).rejects.toThrow(/ENETUNREACH/);
+  expect(driver.connect).toHaveBeenCalledTimes(1);
+});
+
+it("does not retry when DATABASE_URL was the listener", async () => {
+  driver.listen.mockRejectedValueOnce(new Error("connect ECONNREFUSED"));
+  await expect(
+    openResourceChangeChannelWithFallback(
+      SESSION_POOLER,
+      undefined,
+      vi.fn(),
+      vi.fn()
+    )
+  ).rejects.toThrow(/ECONNREFUSED/);
+  expect(driver.connect).toHaveBeenCalledTimes(1);
 });
