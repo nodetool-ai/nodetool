@@ -208,12 +208,13 @@ describe("single-filter nodes", () => {
     expect(await detail(bytesOf(sharpened.output), "sharp.mp4")).toBeGreaterThan(source);
   });
 
+  // nlmeans is the slowest filter here; on a loaded CI runner it passed 5 s.
   it("Denoise keeps every frame", async () => {
     const { output } = await run(nodes.DenoiseVideoNode, { video: videoRef(pattern), strength: 3 });
     const report = await inspect(bytesOf(output), "denoise.mp4");
     expect(report.frameTimes).toHaveLength(10);
     expect(report.audio).not.toBeNull();
-  });
+  }, 30_000);
 
   it("ChromaKey writes every frame; MP4 drops the key's alpha", async () => {
     const { output } = await run(nodes.ChromaKeyVideoNode, { video: videoRef(green), key_color: { value: "#00FF00" } });
