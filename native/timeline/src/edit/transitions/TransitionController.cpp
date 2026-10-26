@@ -1,6 +1,7 @@
 #include "TransitionController.h"
 #include "app/EditRegistry.h"
 #include "scene/Animation.h"
+#include "wiring/SourceDurations.h"
 #include <QJsonDocument>
 
 void TransitionController::setModel(TimelineModel* model) {
@@ -18,13 +19,28 @@ void TransitionController::setModel(TimelineModel* model) {
 QVariantMap TransitionController::document() const {
     return m_model ? QJsonDocument::fromJson(m_model->documentJson()).object().toVariantMap() : QVariantMap{};
 }
+QJsonObject TransitionController::withSourceCaps(QJsonObject payload) const {
+    QJsonObject caps;
+    if (m_model) {
+        for (const auto& clip : m_model->timeline().clips) {
+            if (clip.mediaType != nt::MediaType::Video && clip.mediaType != nt::MediaType::Audio) { continue; }
+            const auto& path = clip.mediaType == nt::MediaType::Audio && !clip.audioPath.empty() ? clip.audioPath : clip.mediaPath;
+            if (path.empty()) { continue; }
+            if (const auto duration = nt::wiring::knownSourceDuration(QString::fromStdString(path))) {
+                caps.insert(QString::fromStdString(clip.id), *duration);
+            }
+        }
+    }
+    payload.insert("sourceCaps", caps);
+    return payload;
+}
 bool TransitionController::apply(const QString& action, const QJsonObject& payload) {
-    return m_model && m_model->applyEdit(action, payload);
+    return m_model && m_model->applyEdit(action, withSourceCaps(payload));
 }
 void TransitionController::beginGesture(const QString& action, const QJsonObject& payload) {
     if (!m_model) { return; }
     m_before = QJsonDocument::fromJson(m_model->documentJson()).object();
-    m_generation = m_model->documentGeneration(); m_action = action; m_payload = payload; m_gesture = true;
+    m_generation = m_model->documentGeneration(); m_action = action; m_payload = withSourceCaps(payload); m_gesture = true;
 }
 void TransitionController::preview(const QJsonObject& payload) {
     if (!m_gesture || !m_model || m_before.isEmpty() || m_generation != m_model->documentGeneration()) { return; }

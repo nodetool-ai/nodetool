@@ -3,6 +3,7 @@
 #include "app/EditRegistry.h"
 #include "wiring/KeyActions.h"
 #include "wiring/SnapProviders.h"
+#include "wiring/SourceDurations.h"
 #include <QJsonDocument>
 #include "edit/Keymap.h"
 #include "edit/targeting/TargetingEdits.h"
@@ -144,7 +145,13 @@ void ClipGestureController::setTimeline(TimelineModel* m) {
     emit changed();
 }
 void ClipGestureController::setViewState(TimelineViewState* v) {
+    if (m_view == v) { return; }
+    if (m_view) { disconnect(m_view, nullptr, this, nullptr); }
     m_view = v;
+    if (m_view) {
+        connect(m_view, &TimelineViewState::rangeChanged, this, &ClipGestureController::syncPlaybackRange);
+    }
+    syncPlaybackRange();
     emit changed();
 }
 void ClipGestureController::setRows(TrackWindowModel* r) {
@@ -153,7 +160,14 @@ void ClipGestureController::setRows(TrackWindowModel* r) {
 }
 void ClipGestureController::setClock(PlaybackClock* c) {
     m_clock = c;
+    syncPlaybackRange();
     emit changed();
+}
+void ClipGestureController::syncPlaybackRange() {
+    if (!m_clock || !m_view) { return; }
+    m_clock->clearRange();
+    m_clock->setRangeIn(m_view->rangeInMs());
+    m_clock->setRangeOut(m_view->rangeOutMs());
 }
 void ClipGestureController::setLanesViewport(QQuickItem* v) {
     m_viewport = v;
@@ -925,6 +939,37 @@ bool ClipGestureController::runBuiltinAction(const QString& action, bool autoRep
         cancelGesture();
         if (action == u"escape") return true;
     }
+    if (m_clock) {
+        if (action == u"shuttleBack" || action == u"shuttleForward") {
+            m_clock->shuttle(action == u"shuttleBack" ? -1 : 1);
+            return true;
+        }
+        if (action == u"shuttleStop") {
+            m_clock->shuttleStop();
+            return true;
+        }
+        if (action == u"toggleLoop") {
+            if (!autoRepeat) { m_clock->setLoop(!m_clock->loop()); }
+            return true;
+        }
+        if (action == u"playInToOut") {
+            if (!autoRepeat) { m_clock->playInToOut(); }
+            return true;
+        }
+        if (action == u"stepFrameBack" || action == u"stepFrameForward" ||
+            action == u"stepFramesBack" || action == u"stepFramesForward") {
+            if (!m_clock->playing()) {
+                const double frameMs = 1000.0 / std::max(1.0, m_timeline->fps());
+                const int direction = (action.endsWith(u"Back") ? -1 : 1) *
+                                      (action.startsWith(u"stepFrames") ? 5 : 1);
+                const double target = (std::round(playheadMs() / frameMs) + direction) * frameMs;
+                double endMs = 0;
+                for (const auto& clip : m_timeline->timeline().clips) { endMs = std::max(endMs, clip.endMs()); }
+                m_clock->seek(std::clamp(target, 0.0, endMs));
+            }
+            return true;
+        }
+    }
     const QJsonArray before = m_timeline->clipsJson();
     const IdSet selected(m_selection.begin(), m_selection.end());
     static const QSet<QString> clipboardActions{"copy", "cut", "paste", "pasteInsert", "duplicate", "duplicateWithGap",
@@ -1273,7 +1318,10 @@ void ClipGestureController::probeSources() {
             QMetaObject::invokeMethod(qApp, [self, file, version, generation, ms]() {
                 if (!self || generation != self->m_probeGeneration) return;
                 self->m_probing.remove(file);
-                if (ms > 0 && nt::ui::mediaVersionKey(file) == version) self->m_sourceMs.insert(file, ms);
+                if (ms > 0 && nt::ui::mediaVersionKey(file) == version) {
+                    self->m_sourceMs.insert(file, ms);
+                    nt::wiring::rememberSourceDuration(file, version, ms);
+                }
             });
         });
     }
@@ -1322,6 +1370,10 @@ QSet<QString> ClipGestureController::availableActions() {
         "nextMarker", "prevMarker", "zoomIn", "zoomOut", "zoomFit", "selectTool", "trackSelectTool",
         "trackSelectBackwardTool", "rippleTool", "rollTool", "rateStretchTool", "cutTool", "slipTool", "slideTool",
         "handTool", "zoomTool",
+        "copy", "cut", "paste", "pasteInsert", "pasteAttributes", "duplicate", "duplicateWithGap",
+        "groupClips", "ungroupClips", "cutAllTracks", "liftRange", "extractRange",
+        "rippleTrimPrevToPlayhead", "rippleTrimNextToPlayhead", "shuttleBack", "shuttleStop", "shuttleForward",
+        "toggleLoop", "playInToOut", "stepFrameBack", "stepFrameForward", "stepFramesBack", "stepFramesForward",
         // key-only rows: Space in TimelineEditor, and the drag modifiers
         "playPause", "rollCut", "disableSnapping", "insertOnDrop"};
     auto result = actions;

@@ -24,6 +24,7 @@ Item {
         Slider {
             id: slider
             Layout.fillWidth: true
+            implicitHeight: Theme.controlXs
             from: root.min
             to: root.max
             stepSize: root.step

@@ -74,14 +74,18 @@ std::optional<double> sourceDuration(const QJsonObject& clip) {
     return {};
 }
 }
-std::optional<QJsonObject> extendHandle(const QJsonObject& clip, double missingMs) {
+std::optional<QJsonObject> extendHandle(const QJsonObject& clip, double missingMs, std::optional<double> sourceCapMs) {
     if (!clip.value("timeRemap").toObject().value("keyframes").toArray().isEmpty()) { return {}; }
     const double rate = sourceRate(clip);
     const double in = clip.value("inPointMs").toDouble(0);
     const double out = clip.value("outPointMs").toDouble(in + clipDurationMs(clip) * rate);
     const double duration = clipDurationMs(clip) + missingMs;
     double nextOut = out + missingMs * rate;
-    const auto limit = sourceDuration(clip);
+    auto limit = sourceDuration(clip);
+    const auto type = clip.value("mediaType").toString();
+    if (!limit && (type == "video" || type == "audio") && sourceCapMs && std::isfinite(*sourceCapMs) && *sourceCapMs > 0) {
+        limit = sourceCapMs;
+    }
     if (limit && nextOut > *limit && nextOut - *limit <= epsilonMs) { nextOut = *limit; }
     if (duration <= 0 || in < 0 || clipStartMs(clip) < 0 || (limit && nextOut > *limit)) { return {}; }
     auto next = clip;

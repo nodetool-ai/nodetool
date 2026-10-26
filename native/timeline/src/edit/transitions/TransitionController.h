@@ -22,6 +22,7 @@ signals:
     void modelChanged();
     void documentChanged();
 private:
+    QJsonObject withSourceCaps(QJsonObject payload) const;
     QPointer<TimelineModel> m_model;
     QJsonObject m_before;
     QJsonObject m_payload;

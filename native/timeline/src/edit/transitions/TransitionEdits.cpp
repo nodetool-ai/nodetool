@@ -39,7 +39,7 @@ struct Cut {
         return clip.value("locked").toBool() || lockedTracks.contains(clipTrackId(clip));
     }
     bool editable() const { return incoming >= 0 && !locked(clips[incoming].toObject()); }
-    void grow(double wanted) {
+    void grow(double wanted, const QJsonObject& sourceCaps) {
         if (previous < 0 || wanted <= 0) { return; }
         const auto prev = clips[previous].toObject();
         const auto target = clips[incoming].toObject();
@@ -54,7 +54,8 @@ struct Cut {
                 && std::abs(clipEndMs(c) - clipEndMs(prev)) <= 1;
             if (i != previous && !linked) { continue; }
             if (locked(c)) { return; }
-            auto next = extendHandle(c, missing);
+            const auto cap = sourceCaps.value(clipId(c));
+            auto next = extendHandle(c, missing, cap.isDouble() ? std::optional<double>(cap.toDouble()) : std::nullopt);
             if (!next) { return; }
             grown[i] = *next;
         }
@@ -81,7 +82,7 @@ QJsonObject setTransitionDuration(QJsonObject document, const QJsonObject& paylo
     const double maximum = cut.previous < 0 ? clipDurationMs(target)
         : std::min(clipDurationMs(target), clipDurationMs(cut.clips[cut.previous].toObject()));
     const double wanted = std::max(0.0, std::min(value.toDouble(), maximum));
-    cut.grow(wanted);
+    cut.grow(wanted, payload.value("sourceCaps").toObject());
     auto transition = target.value("transitionIn").toObject();
     if (transition.value("durationMs").toDouble() <= 0) { transition = {{"type", "crossfade"}}; }
     transition.insert("durationMs", wanted);
@@ -110,7 +111,8 @@ QJsonObject setClipTransition(QJsonObject document, const QJsonObject& payload) 
         const auto next = buildTransition(mode, target.value("transitionIn").toObject());
         target.insert("transitionIn", next); cut.clips[cut.incoming] = target;
         document.insert("clips", cut.clips);
-        return setTransitionDuration(document, {{"clipId", payload.value("clipId")}, {"durationMs", next.value("durationMs")}});
+        return setTransitionDuration(document, {{"clipId", payload.value("clipId")}, {"durationMs", next.value("durationMs")},
+                                                {"sourceCaps", payload.value("sourceCaps")}});
     }
     if (!target.value("transitionIn").isObject()) { return document; }
     auto next = target.value("transitionIn").toObject();
