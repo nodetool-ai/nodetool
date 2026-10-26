@@ -13,7 +13,7 @@ import { fileURLToPath } from "node:url";
 import { createScratchSession, USER_PORT } from "../../../scripts/scratch-server.mjs";
 import { assertInWork, makeScratch, verifiedBuildDir } from "../../../scripts/scratch-safety.mjs";
 import { initializeMcp } from "./resource-change-probe.mjs";
-import { scratchPost } from "./sync-e2e-transport.mjs";
+import { countingTimelineProxy, scratchPost } from "./sync-e2e-transport.mjs";
 
 const root = fileURLToPath(new URL("../../../", import.meta.url));
 const repo = path.resolve(root, "../..");
@@ -26,13 +26,17 @@ export function parseArgs(argv) {
     if (!["--bin", "--port"].includes(key) || !value || value.startsWith("--")) {
       throw new Error(`expected --bin DIR or --port N, got ${key}`);
     }
-    if (key === "--bin") args.bin = path.resolve(value);
-    else args.port = Number(value);
+    if (key === "--bin") { args.bin = path.resolve(value); }
+    else { args.port = Number(value); }
   }
   if (!Number.isInteger(args.port) || args.port < 1 || args.port > 65535 || args.port === USER_PORT) {
     throw new Error("--port must be 1..65535 and must never be 7777");
   }
   return args;
+}
+
+export function assertReconnectFetches(fetches, log) {
+  assert.equal(fetches, 1, `expected exactly one native timeline.get request, got ${fetches}\n${log}`);
 }
 
 export function seedDocument() {
@@ -61,7 +65,7 @@ export function renderedMove(before, after, id) {
 export function localCopies(directory, id) {
   return fs.readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
     const file = path.join(directory, entry.name);
-    if (entry.isDirectory()) return localCopies(file, id);
+    if (entry.isDirectory()) { return localCopies(file, id); }
     return entry.name === `${id}.local.json` ? [file] : [];
   });
 }
@@ -70,7 +74,7 @@ async function until(check, timeoutMs, label) {
   const deadline = performance.now() + timeoutMs;
   do {
     const value = await check();
-    if (value && performance.now() <= deadline) return value;
+    if (value && performance.now() <= deadline) { return value; }
     await sleep(20);
   } while (performance.now() < deadline);
   throw new Error(`timed out after ${timeoutMs} ms: ${label}`);
@@ -79,7 +83,7 @@ async function until(check, timeoutMs, label) {
 export async function settled(host, timeout = 5000) {
   return until(async () => {
     const state = await host.state();
-    if (state.dirty || state.saving) return false;
+    if (state.dirty || state.saving) { return false; }
     assert.equal(state.conflict, false, JSON.stringify(state));
     return state;
   }, timeout, "clean native state");
@@ -100,7 +104,7 @@ class NativeProcess {
     this.child.stdin.on("error", (error) => this.fail(error));
     readline.createInterface({ input: this.child.stdout }).on("line", (line) => {
       const waiter = this.waiters.shift();
-      if (!waiter) return;
+      if (!waiter) { return; }
       try { waiter.resolve(JSON.parse(line)); }
       catch { waiter.reject(new Error(`non-JSON host output: ${line}`)); }
     });
@@ -115,10 +119,10 @@ class NativeProcess {
   }
   fail(error) {
     this.failure = error;
-    for (const waiter of this.waiters.splice(0)) waiter.reject(error);
+    for (const waiter of this.waiters.splice(0)) { waiter.reject(error); }
   }
   check() {
-    if (this.failure) throw this.failure;
+    if (this.failure) { throw this.failure; }
   }
   async command(command) {
     this.check();
@@ -139,7 +143,7 @@ class NativeProcess {
   }
   async state() { return this.command({ cmd: "state" }); }
   async stop() {
-    if (this.child.exitCode !== null || this.child.signalCode !== null || !this.child.pid) return;
+    if (this.child.exitCode !== null || this.child.signalCode !== null || !this.child.pid) { return; }
     try { process.kill(-this.child.pid, "SIGTERM"); } catch { /* already gone */ }
     let timer;
     await Promise.race([this.exited, new Promise((resolve) => {
@@ -184,11 +188,11 @@ async function tcpProxy(targetPort) {
   });
   return {
     url: `http://127.0.0.1:${proxy.address().port}`,
-    pause() { accepting = false; for (const socket of sockets) socket.destroy(); },
+    pause() { accepting = false; for (const socket of sockets) { socket.destroy(); } },
     resume() { accepting = true; },
     async close() {
       accepting = false;
-      for (const socket of sockets) socket.destroy();
+      for (const socket of sockets) { socket.destroy(); }
       await new Promise((resolve) => proxy.close(resolve));
     }
   };
@@ -229,11 +233,11 @@ async function run(args) {
     delete nativeEnv.NODETOOL_API_TOKEN;
     const mcp = await initializeMcp((target, headers, input) => scratchPost(session, server, target, headers, input), auth);
     const get = (id) => session.query(server.base, "timeline.get", { id });
-    const start = async (phase, binary = "sync-e2e-host", extra = []) => {
+    const start = async (phase, binary = "sync-e2e-host", extra = [], origin = server.base) => {
       const id = await session.createTimeline(server.base, `Native sync e2e ${phase}`, seedDocument());
       const cache = assertInWork(work, path.join(work, phase));
       fs.mkdirSync(cache);
-      const host = new NativeProcess(path.join(args.bin, binary), ["--server", server.base, "--timeline", id,
+      const host = new NativeProcess(path.join(args.bin, binary), ["--server", origin, "--timeline", id,
         "--cache-dir", cache, ...extra], nativeEnv, children, path.join(work, `${phase}.stderr.log`));
       await host.listening();
       return { host, id, cache };
@@ -334,7 +338,13 @@ async function run(args) {
       async reconnect() {
         const proxy = await tcpProxy(args.port);
         proxies.add(proxy);
-        const { host, id } = await start("reconnect", "sync-e2e-host", ["--sync-url", proxy.url]);
+        const httpProxy = await countingTimelineProxy(server.base);
+        proxies.add(httpProxy);
+        const { host, id } = await start("reconnect", "sync-e2e-host", ["--sync-url", proxy.url], httpProxy.url);
+        // Settle the initial subscription refresh before measuring reconnect.
+        await until(async () => httpProxy.timelineGets() === 2
+          && (await host.state()).externalState === "idle", 5000, "initial subscription refresh");
+        const initialGets = httpProxy.timelineGets();
         const offset = host.stderr.length;
         proxy.pause();
         await edit(id, 500);
@@ -350,10 +360,11 @@ async function run(args) {
         // Leave time for a duplicate reconnect refresh to become visible.
         await sleep(3200);
         const log = host.stderr.slice(offset);
-        assert.equal((log.match(/^sync: (?:adopted|merged) /gm) ?? []).length, 1, log);
+        const fetches = httpProxy.timelineGets() - initialGets;
+        assertReconnectFetches(fetches, log);
         assert.ok(hasMoves(await get(id), 500, 2000));
         await host.quit();
-        return { elapsedMs, fetches: 1 };
+        return { elapsedMs, fetches };
       }
     };
     for (const [phase, execute] of Object.entries(phases)) {

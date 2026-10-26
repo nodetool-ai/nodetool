@@ -23,10 +23,16 @@
 
 namespace {
 QQuickItem* findItem(QQuickItem* root, const QString& name) {
-    if (!root) return nullptr;
-    if (root->objectName() == name) return root;
+    if (!root) {
+        return nullptr;
+    }
+    if (root->objectName() == name) {
+        return root;
+    }
     for (auto* child : root->childItems()) {
-        if (auto* found = findItem(child, name)) return found;
+        if (auto* found = findItem(child, name)) {
+            return found;
+        }
     }
     return nullptr;
 }
@@ -56,7 +62,9 @@ int main(int argc, char** argv) {
         parser.showHelp(2);
     }
     const QUrl server(parser.value("server"));
-    if ((server.scheme() != u"http" && server.scheme() != u"https") || server.host().isEmpty()) return 2;
+    if ((server.scheme() != u"http" && server.scheme() != u"https") || server.host().isEmpty()) {
+        return 2;
+    }
     const auto id = parser.value("timeline");
     const auto cache = parser.value("cache-dir");
     const auto token = parser.isSet("token") ? parser.value("token") : qEnvironmentVariable("NODETOOL_API_TOKEN");
@@ -75,19 +83,25 @@ int main(int argc, char** argv) {
     nt::server::AutosaveController save({server, token, id, backup,
         qEnvironmentVariable("NODETOOL_TIMELINE_EXPECT_INSTANCE")}, model.undoStack(),
         [&model] { return model.timeline().raw; }, base);
-    if (parser.isSet("sync-url")) save.setExternalSyncUrl(QUrl(parser.value("sync-url")));
+    if (parser.isSet("sync-url")) {
+        save.setExternalSyncUrl(QUrl(parser.value("sync-url")));
+    }
     QQuickView view;
     nt::hw::prepareWindow(&view);
     view.setResizeMode(QQuickView::SizeRootObjectToView);
     view.setInitialProperties({{"timeline", QVariant::fromValue(&model)}, {"clock", QVariant::fromValue(&clock)}});
     view.rootContext()->setContextProperty("autosave", &save);
     view.loadFromModule("NodeTool.Timeline", "TimelineEditor");
-    if (view.status() != QQuickView::Ready) return 1;
+    if (view.status() != QQuickView::Ready) {
+        return 1;
+    }
     view.resize(1280, 800);
     view.show();
 
     QFile input;
-    if (!input.open(stdin, QIODevice::ReadOnly | QIODevice::Unbuffered)) return 1;
+    if (!input.open(stdin, QIODevice::ReadOnly | QIODevice::Unbuffered)) {
+        return 1;
+    }
     QSocketNotifier readable(input.handle(), QSocketNotifier::Read, &app);
     QByteArray pending;
     bool quitting = false;
@@ -150,7 +164,9 @@ int main(int argc, char** argv) {
                 reply({{"error", "unknown command"}});
             }
         }
-        if (!quitting) readable.setEnabled(true);
+        if (!quitting) {
+            readable.setEnabled(true);
+        }
     });
     return app.exec();
 }

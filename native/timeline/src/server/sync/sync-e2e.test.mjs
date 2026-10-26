@@ -9,8 +9,8 @@ import path from "node:path";
 import readline from "node:readline";
 import test from "node:test";
 
-import { hasMoves, localCopies, parseArgs, renderedMove, seedDocument, settled } from "./sync-e2e.mjs";
-import { scratchPost } from "./sync-e2e-transport.mjs";
+import { assertReconnectFetches, hasMoves, localCopies, parseArgs, renderedMove, seedDocument, settled } from "./sync-e2e.mjs";
+import { countingTimelineProxy, scratchPost } from "./sync-e2e-transport.mjs";
 
 // Invalid controls prove the phase predicates reject missing or stale data.
 test("arguments reject the user server, malformed ports and incomplete options", () => {
@@ -84,7 +84,7 @@ for (const validProof of [true, false]) {
       socket.on("close", () => sockets.delete(socket));
     });
     t.after(async () => {
-      for (const socket of sockets) socket.destroy();
+      for (const socket of sockets) { socket.destroy(); }
       await new Promise((resolve) => server.close(resolve));
     });
     server.listen(0, "127.0.0.1");
@@ -116,7 +116,7 @@ test("host opens the real QML and answers state, move, save and quit", {
     response.setHeader("content-type", "application/json");
     if (request.method === "POST") {
       const chunks = [];
-      for await (const chunk of request) chunks.push(chunk);
+      for await (const chunk of request) { chunks.push(chunk); }
       const input = JSON.parse(Buffer.concat(chunks));
       assert.equal(input.baseUpdatedAt, "u0");
       raw = { ...raw, ...input.document, updatedAt: "u1" };
@@ -133,7 +133,7 @@ test("host opens the real QML and answers state, move, save and quit", {
   delete env.NODETOOL_API_TOKEN;
   const child = spawn(process.env.SYNC_E2E_HOST, ["--server", `http://127.0.0.1:${server.address().port}`,
     "--timeline", "seq", "--cache-dir", cache], { env });
-  t.after(() => { if (child.exitCode === null) child.kill("SIGKILL"); });
+  t.after(() => { if (child.exitCode === null) { child.kill("SIGKILL"); } });
   const exited = once(child, "exit");
   let log = "";
   child.stderr.on("data", (bytes) => { log += bytes; });
@@ -150,7 +150,7 @@ test("host opens the real QML and answers state, move, save and quit", {
   let state;
   for (let attempt = 0; attempt < 100; ++attempt) {
     state = await command({ cmd: "state" });
-    if (state.rendered.length === 2) break;
+    if (state.rendered.length === 2) { break; }
     await new Promise((resolve) => setTimeout(resolve, 10));
   }
   assert.ok(hasMoves(state, 0, 2000), JSON.stringify(state));
@@ -164,4 +164,37 @@ test("host opens the real QML and answers state, move, save and quit", {
   assert.equal(state.dirty, false);
   assert.equal((await command({ cmd: "quit" })).exitCodeAfterQuit, 0);
   assert.equal((await exited)[0], 0, log);
+});
+
+test("reconnect rejects two actual timeline GETs even with only one adoption log", () => {
+  const log = "sync: adopted u1 in 10 ms\n";
+  assert.doesNotThrow(() => assertReconnectFetches(1, log));
+  assert.throws(() => assertReconnectFetches(2, log), { code: "ERR_ASSERTION" });
+  assert.throws(() => assertReconnectFetches(0, log), { code: "ERR_ASSERTION" });
+});
+
+test("native HTTP proxy counts actual timeline GETs and forwards proof headers", async (t) => {
+  const server = http.createServer((request, response) => {
+    response.setHeader("x-nodetool-instance-proof", request.headers["x-nodetool-instance-nonce"] ?? "none");
+    response.end("{}");
+  });
+  server.listen(0, "127.0.0.1");
+  await once(server, "listening");
+  t.after(() => new Promise((resolve) => { server.closeAllConnections(); server.close(resolve); }));
+  const proxy = await countingTimelineProxy(`http://127.0.0.1:${server.address().port}`);
+  t.after(() => proxy.close());
+  const read = async (route, method = "GET") => {
+    const response = await fetch(`${proxy.url}${route}`, { method, headers: { "x-nodetool-instance-nonce": "proof" } });
+    assert.equal(response.headers.get("x-nodetool-instance-proof"), "proof");
+    await response.text();
+  };
+  await read("/ready");
+  await read("/trpc/timeline.get?input=%7B%7D");
+  await read("/trpc/timeline.update", "POST");
+  assert.equal(proxy.timelineGets(), 1);
+  assertReconnectFetches(proxy.timelineGets(), "sync: adopted u1 in 1 ms\n");
+  await read("/trpc/timeline.get?input=%7B%7D");
+  assert.equal(proxy.timelineGets(), 2);
+  assert.throws(() => assertReconnectFetches(proxy.timelineGets(), "sync: adopted u1 in 1 ms\n"),
+    { code: "ERR_ASSERTION" });
 });

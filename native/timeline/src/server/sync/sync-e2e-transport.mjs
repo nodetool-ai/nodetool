@@ -58,3 +58,52 @@ export async function scratchPost(session, server, target, headers, input) {
   }
 }
 
+
+// Only the native host uses this origin. MCP writes and runner queries keep
+// their scratch-proven direct connection, so they cannot inflate this count.
+export async function countingTimelineProxy(origin) {
+  const target = new URL(origin);
+  if (target.protocol !== "http:" || target.hostname !== "127.0.0.1" || target.port === "7777") {
+    throw new Error("counting proxy requires a loopback scratch HTTP origin outside port 7777");
+  }
+  let gets = 0;
+  const sockets = new Set();
+  const requests = new Set();
+  const proxy = http.createServer((request, response) => {
+    const pathname = new URL(request.url, target).pathname;
+    if (request.method === "GET" && pathname === "/trpc/timeline.get") {
+      ++gets;
+    }
+    const upstream = http.request(new URL(request.url, target), {
+      method: request.method,
+      headers: { ...request.headers, host: target.host },
+      agent: false
+    }, (reply) => {
+      response.writeHead(reply.statusCode, reply.headers);
+      reply.on("error", () => response.destroy());
+      reply.pipe(response);
+    });
+    requests.add(upstream);
+    upstream.on("close", () => requests.delete(upstream));
+    upstream.on("error", () => { response.destroy(); });
+    response.on("close", () => upstream.destroy());
+    request.pipe(upstream);
+  });
+  proxy.on("connection", (socket) => {
+    sockets.add(socket);
+    socket.on("close", () => sockets.delete(socket));
+  });
+  await new Promise((resolve, reject) => {
+    proxy.once("error", reject);
+    proxy.listen(0, "127.0.0.1", resolve);
+  });
+  return {
+    url: `http://127.0.0.1:${proxy.address().port}`,
+    timelineGets: () => gets,
+    async close() {
+      for (const request of requests) { request.destroy(); }
+      for (const socket of sockets) { socket.destroy(); }
+      await new Promise((resolve) => proxy.close(resolve));
+    }
+  };
+}

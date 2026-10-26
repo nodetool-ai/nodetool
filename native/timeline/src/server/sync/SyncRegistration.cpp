@@ -17,18 +17,29 @@ QString mediaKey(const QJsonObject& raw) {
 const bool registered = [] {
     nt::server::sync::setDocumentApplier([](QUndoStack* undo, const QJsonObject& raw, const nt::Timeline& server) {
         auto* model = undo ? qobject_cast<TimelineModel*>(undo->parent()) : nullptr;
-        if (!model) return false;
+        if (!model) {
+            return false;
+        }
         auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson(QJsonDocument::Compact));
-        if (!parsed.timeline) return false;
+        if (!parsed.timeline) {
+            return false;
+        }
         QHash<QString, const nt::Clip*> resolved;
         QHash<QString, const nt::Clip*> current;
         for (const auto& clip : server.clips) {
-            if (!clip.mediaPath.empty() || !clip.audioPath.empty()) resolved.insert(mediaKey(clip.raw), &clip);
+            resolved.insert(mediaKey(clip.raw), &clip);
         }
-        for (const auto& clip : model->timeline().clips) current.insert(QString::fromStdString(clip.id), &clip);
+        for (const auto& clip : model->timeline().clips) {
+            current.insert(QString::fromStdString(clip.id), &clip);
+        }
         for (auto& clip : parsed.timeline->clips) {
             const auto* source = resolved.value(mediaKey(clip.raw), nullptr);
-            if (!source) source = current.value(QString::fromStdString(clip.id), nullptr);
+            if (!source) {
+                const auto* previous = current.value(QString::fromStdString(clip.id), nullptr);
+                if (previous && mediaKey(previous->raw) == mediaKey(clip.raw)) {
+                    source = previous;
+                }
+            }
             if (source) {
                 // ServerTimeline sets these two fields beyond parsed JSON.
                 clip.mediaPath = source->mediaPath;
