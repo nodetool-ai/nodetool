@@ -1,4 +1,6 @@
 nt_sources(server
+    src/server/sync/ResourceChangeClient.h
+    src/server/sync/ResourceChangeClient.cpp
     src/server/sync/TimelineMerge.h
     src/server/sync/TimelineMerge.cpp
 )

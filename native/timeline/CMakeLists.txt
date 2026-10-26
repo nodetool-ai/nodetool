@@ -240,9 +240,9 @@ endif()
 target_link_libraries(nodetool-timeline PRIVATE timeline_audio)
 
 
-find_package(Qt6 6.12 REQUIRED COMPONENTS Network)
+find_package(Qt6 6.12 REQUIRED COMPONENTS Network WebSockets)
 add_library(timeline_server STATIC ${NT_server})
-target_link_libraries(timeline_server PUBLIC timeline_core timeline_decode Qt6::Network)
+target_link_libraries(timeline_server PUBLIC timeline_core timeline_decode Qt6::Network Qt6::WebSockets)
 target_compile_options(timeline_server PRIVATE ${NT_WARNINGS})
 # The save banners are tested against the real AutosaveController (M2b).
 target_link_libraries(nodetool-timeline PRIVATE timeline_server)

@@ -1,9 +1,15 @@
 #include "TimelineMerge.h"
+#include "ResourceChangeClient.h"
+#include "server/ServerClient.h"
 
 #include <QCoreApplication>
 #include <QFile>
 #include <QJsonDocument>
 #include <QTest>
+#include <QSignalSpy>
+#include <QWebSocketServer>
+#include <QTcpServer>
+#include <QTcpSocket>
 
 #include <cstdio>
 #include <stdexcept>
@@ -11,6 +17,25 @@
 using namespace nt::server::sync;
 
 namespace {
+class WsFixture : public QObject {
+public:
+    QWebSocketServer server{"sync", QWebSocketServer::NonSecureMode};
+    QList<QWebSocket*> peers;
+    QList<QStringList> frames;
+    WsFixture()
+    {
+        connect(&server, &QWebSocketServer::newConnection, this, [this] {
+            auto* peer = server.nextPendingConnection();
+            peer->setParent(this);
+            const auto index = peers.size();
+            peers.append(peer);
+            frames.append(QStringList{});
+            connect(peer, &QWebSocket::textMessageReceived, this, [this, index](const QString& text) {
+                frames[index].append(text);
+            });
+        });
+    }
+};
 QJsonObject track(const QString& id) { return {{"id", id}, {"name", id}, {"type", "video"}}; }
 QJsonObject clip(const QString& id, const QString& name = "original")
 {
@@ -48,6 +73,262 @@ QJsonObject serialized(const MergeResult& result)
 class SyncTest : public QObject {
     Q_OBJECT
 private slots:
+    void handshake_data()
+    {
+        QTest::addColumn<QString>("token");
+        QTest::newRow("bearer") << QString("test-token");
+        QTest::newRow("loopback") << QString();
+    }
+    void handshake()
+    {
+        QFETCH(QString, token);
+        QWebSocketServer server("sync", QWebSocketServer::NonSecureMode);
+        QVERIFY(server.listen(QHostAddress::LocalHost, 0));
+        auto base = server.serverUrl();
+        base.setScheme("http");
+        base.setPath("/ignored/base");
+        base.setQuery("discard=1");
+        ResourceChangeClient client(base, "sequence", token);
+        QSignalSpy states(&client, &ResourceChangeClient::stateChanged);
+        client.start();
+        QTRY_VERIFY_WITH_TIMEOUT(server.hasPendingConnections(), 1000);
+        auto* peer = server.nextPendingConnection();
+        const auto request = peer->request();
+        QCOMPARE(request.url().scheme(), "ws");
+        QCOMPARE(request.url().path(), "/ws");
+        QVERIFY(request.url().query().isEmpty());
+        QCOMPARE(request.rawHeader("Authorization"),
+                 token.isEmpty() ? QByteArray{} : QByteArray("Bearer test-token"));
+        QCOMPARE(request.rawHeader("X-Nodetool-Client"), QByteArray(nt::server::kClientHeader));
+        QVERIFY(!request.hasRawHeader("Origin"));
+        QTRY_VERIFY_WITH_TIMEOUT(client.connected(), 1000);
+        QVERIFY(!states.isEmpty());
+        client.stop();
+        QVERIFY(!client.connected());
+    }
+    void textModeAndPing()
+    {
+        WsFixture fixture;
+        QVERIFY(fixture.server.listen(QHostAddress::LocalHost, 0));
+        ResourceChangeClient client(fixture.server.serverUrl(), "sequence");
+        client.start();
+        QTRY_COMPARE_WITH_TIMEOUT(fixture.frames.size(), 1, 1000);
+        QTRY_COMPARE_WITH_TIMEOUT(fixture.frames[0].size(), 1, 1000);
+        QCOMPARE(QJsonDocument::fromJson(fixture.frames[0][0].toUtf8()).object(),
+                 (QJsonObject{{"command", "set_mode"}, {"data", QJsonObject{{"mode", "text"}}}}));
+        fixture.peers[0]->sendTextMessage(R"({"type":"ping"})");
+        QTRY_COMPARE_WITH_TIMEOUT(fixture.frames[0].size(), 2, 1000);
+        QCOMPARE(QJsonDocument::fromJson(fixture.frames[0][1].toUtf8()).object(),
+                 (QJsonObject{{"type", "pong"}}));
+    }
+    void resourceFrames()
+    {
+        WsFixture fixture;
+        QVERIFY(fixture.server.listen(QHostAddress::LocalHost, 0));
+        ResourceChangeClient client(fixture.server.serverUrl(), "77d07f26b9a74cf6b41e76fc12e3967d");
+        QSignalSpy changes(&client, &ResourceChangeClient::changed);
+        QSignalSpy refreshes(&client, &ResourceChangeClient::refreshNeeded);
+        client.start();
+        QTRY_COMPARE_WITH_TIMEOUT(fixture.peers.size(), 1, 1000);
+        auto* peer = fixture.peers[0];
+        const QByteArray frame = R"({"type":"resource_change","resource_type":"timelinesequence","event":"updated","resource":{"id":"77d07f26b9a74cf6b41e76fc12e3967d","etag":"3a046c5e7bde746b75adf8fce9234711","project_id":"default","updated_at":"2026-10-26T14:35:20.276Z"},"ops":[{"tool":"ui_timeline_move_clip","input":{"target":"clip-1","startMs":500,"id":"clip-1"}}]})";
+        peer->sendTextMessage(QString::fromUtf8(frame));
+        QTRY_COMPARE_WITH_TIMEOUT(changes.size(), 1, 1000);
+        const auto notice = changes.takeFirst();
+        QCOMPARE(notice[0].toString(), "updated");
+        QCOMPARE(notice[1].toString(), "2026-10-26T14:35:20.276Z");
+        QCOMPARE(qvariant_cast<QJsonArray>(notice[2]),
+                 (QJsonArray{QJsonObject{{"tool", "ui_timeline_move_clip"},
+                     {"input", QJsonObject{{"target", "clip-1"}, {"startMs", 500}, {"id", "clip-1"}}}}}));
+        QVERIFY(notice[3].toBool());
+        auto message = QJsonDocument::fromJson(frame).object();
+        const auto send = [peer](const QJsonObject& value) {
+            peer->sendTextMessage(QString::fromUtf8(QJsonDocument(value).toJson(QJsonDocument::Compact)));
+        };
+        auto other = message;
+        auto resource = other["resource"].toObject();
+        resource["id"] = "another-id";
+        other["resource"] = resource;
+        send(other);
+        other = message;
+        other["resource_type"] = "storyboard";
+        send(other);
+        peer->sendBinaryMessage(frame);
+        peer->sendTextMessage("{malformed");
+        peer->sendTextMessage("[]");
+        // The resync is an ordered barrier after the ignored frames.
+        peer->sendTextMessage(R"({"type":"resource_resync"})");
+        QTRY_COMPARE_WITH_TIMEOUT(refreshes.size(), 1, 1000);
+        QCOMPARE(changes.size(), 0);
+        message.remove("ops");
+        resource = message["resource"].toObject();
+        resource.remove("updated_at");
+        message["resource"] = resource;
+        send(message);
+        QTRY_COMPARE_WITH_TIMEOUT(changes.size(), 1, 1000);
+        QVERIFY(changes.last()[1].toString().isEmpty());
+        QVERIFY(qvariant_cast<QJsonArray>(changes.last()[2]).isEmpty());
+        QVERIFY(!changes.last()[3].toBool());
+        message["ops"] = QJsonArray{};
+        send(message);
+        QTRY_COMPARE_WITH_TIMEOUT(changes.size(), 2, 1000);
+        QVERIFY(changes.last()[3].toBool());
+    }
+    void reconnectBackoffAndRefresh_data()
+    {
+        QTest::addColumn<double>("random");
+        QTest::addColumn<int>("first");
+        QTest::addColumn<int>("second");
+        QTest::newRow("half-jitter") << 0.0 << 100 << 150;
+        QTest::newRow("middle-jitter") << 0.5 << 150 << 225;
+        QTest::newRow("full-jitter") << 1.0 << 200 << 300;
+    }
+    void reconnectBackoffAndRefresh()
+    {
+        QFETCH(double, random);
+        QFETCH(int, first);
+        QFETCH(int, second);
+        WsFixture fixture;
+        QVERIFY(fixture.server.listen(QHostAddress::LocalHost, 0));
+        const auto port = fixture.server.serverPort();
+        ResourceChangeClient client(fixture.server.serverUrl(), "sequence");
+        client.setRandomSource([random] { return random; });
+        client.setBackoffBase(200);
+        client.setReconnectRefreshDelay([] { return 30; });
+        QSignalSpy delays(&client, &ResourceChangeClient::reconnectScheduled);
+        QSignalSpy refreshes(&client, &ResourceChangeClient::refreshNeeded);
+        client.start();
+        QTRY_COMPARE_WITH_TIMEOUT(fixture.peers.size(), 1, 1000);
+        QTRY_VERIFY_WITH_TIMEOUT(client.connected(), 1000);
+        QTest::qWait(60);
+        QCOMPARE(refreshes.size(), 0);
+        fixture.peers[0]->close(QWebSocketProtocol::CloseCodeGoingAway, "restart");
+        fixture.server.close();
+        QTRY_COMPARE_WITH_TIMEOUT(delays.size(), 1, 1000);
+        QCOMPARE(delays[0][0].toInt(), first);
+        QVERIFY(!client.connected());
+        QCOMPARE(client.state(), ResourceChangeClient::State::Reconnecting);
+        QTRY_COMPARE_WITH_TIMEOUT(delays.size(), 2, 1000);
+        QCOMPARE(delays[1][0].toInt(), second);
+        QVERIFY(fixture.server.listen(QHostAddress::LocalHost, port));
+        QTRY_COMPARE_WITH_TIMEOUT(fixture.peers.size(), 2, 1000);
+        QTRY_COMPARE_WITH_TIMEOUT(refreshes.size(), 1, 1000);
+        QTest::qWait(60);
+        QCOMPARE(refreshes.size(), 1);
+        fixture.peers[1]->close(static_cast<QWebSocketProtocol::CloseCode>(1012), "service restart");
+        QTRY_COMPARE_WITH_TIMEOUT(delays.size(), 3, 1000);
+        QCOMPARE(delays[2][0].toInt(), first);
+        QTRY_COMPARE_WITH_TIMEOUT(fixture.peers.size(), 3, 1000);
+        QTRY_COMPARE_WITH_TIMEOUT(refreshes.size(), 2, 1000);
+        QTest::qWait(60);
+        QCOMPARE(refreshes.size(), 2);
+        client.stop();
+        QTest::qWait(first + 60);
+        QCOMPARE(fixture.peers.size(), 3);
+        QCOMPARE(client.state(), ResourceChangeClient::State::Stopped);
+    }
+    void terminalClose_data()
+    {
+        QTest::addColumn<int>("code");
+        for (const auto code : {1008, 1009, 1010, 4000, 4001, 4003}) {
+            QTest::newRow(qPrintable(QString::number(code))) << code;
+        }
+    }
+    void terminalClose()
+    {
+        QFETCH(int, code);
+        WsFixture fixture;
+        QVERIFY(fixture.server.listen(QHostAddress::LocalHost, 0));
+        ResourceChangeClient client(fixture.server.serverUrl(), "sequence");
+        client.setBackoffBase(20);
+        client.setReconnectRefreshDelay([] { return 0; });
+        QSignalSpy delays(&client, &ResourceChangeClient::reconnectScheduled);
+        QSignalSpy refreshes(&client, &ResourceChangeClient::refreshNeeded);
+        client.start();
+        QTRY_COMPARE_WITH_TIMEOUT(fixture.peers.size(), 1, 1000);
+        fixture.peers[0]->close(static_cast<QWebSocketProtocol::CloseCode>(code), "access refused");
+        QTRY_COMPARE_WITH_TIMEOUT(client.state(), ResourceChangeClient::State::Failed, 1000);
+        QVERIFY(!client.connected());
+        QCOMPARE(client.reason(), "access refused");
+        QTest::qWait(100);
+        QCOMPARE(delays.size(), 0);
+        QCOMPARE(refreshes.size(), 0);
+        QCOMPARE(fixture.peers.size(), 1);
+    }
+    void unauthorizedHandshake_data()
+    {
+        QTest::addColumn<QByteArray>("challenge");
+        QTest::newRow("server-auth-rejection") << QByteArray();
+        QTest::newRow("basic-challenge") << QByteArray("WWW-Authenticate: Basic realm=sync\r\n");
+    }
+    void unauthorizedHandshake()
+    {
+        QFETCH(QByteArray, challenge);
+        QTcpServer server;
+        QVERIFY(server.listen(QHostAddress::LocalHost, 0));
+        int requests = 0;
+        connect(&server, &QTcpServer::newConnection, &server, [&server, &requests, challenge] {
+            auto* socket = server.nextPendingConnection();
+            connect(socket, &QTcpSocket::readyRead, socket, [socket, &requests, challenge] {
+                socket->setProperty("request", socket->property("request").toByteArray() + socket->readAll());
+                if (!socket->property("request").toByteArray().contains("\r\n\r\n")) {
+                    return;
+                }
+                ++requests;
+                socket->write("HTTP/1.1 401 Unauthorized\r\nConnection: close\r\nContent-Length: 0\r\n"
+                              + challenge + "\r\n");
+                socket->disconnectFromHost();
+            });
+        });
+        ResourceChangeClient client(QUrl(QString("http://127.0.0.1:%1").arg(server.serverPort())),
+                                    "sequence", "expired-token");
+        client.setBackoffBase(20);
+        QSignalSpy delays(&client, &ResourceChangeClient::reconnectScheduled);
+        QTest::failOnWarning();
+        QTest::ignoreMessage(QtWarningMsg, "ResourceChangeClient: WebSocket authentication failed (HTTP 401)");
+        client.start();
+        QTRY_COMPARE_WITH_TIMEOUT(requests, 1, 1000);
+        QTRY_COMPARE_WITH_TIMEOUT(client.state(), ResourceChangeClient::State::Failed, 1000);
+        QVERIFY(client.reason().contains("401"));
+        QVERIFY(!client.connected());
+        QTest::qWait(100);
+        QCOMPARE(requests, 1);
+        QCOMPARE(delays.size(), 0);
+    }
+    void missedHeartbeat()
+    {
+        WsFixture fixture;
+        QVERIFY(fixture.server.listen(QHostAddress::LocalHost, 0));
+        ResourceChangeClient client(fixture.server.serverUrl(), "sequence");
+        client.setHeartbeatTimings(80, 60);
+        client.setBackoffBase(20);
+        client.setReconnectRefreshDelay([] { return 0; });
+        QSignalSpy delays(&client, &ResourceChangeClient::reconnectScheduled);
+        QSignalSpy refreshes(&client, &ResourceChangeClient::refreshNeeded);
+        client.start();
+        QTRY_COMPARE_WITH_TIMEOUT(fixture.frames.size(), 1, 1000);
+        QTRY_COMPARE_WITH_TIMEOUT(fixture.frames[0].size(), 2, 1000);
+        QCOMPARE(QJsonDocument::fromJson(fixture.frames[0][1].toUtf8()).object()["type"].toString(), "ping");
+        QTRY_COMPARE_WITH_TIMEOUT(fixture.peers.size(), 2, 1000);
+        QCOMPARE(delays.size(), 1);
+        QTRY_COMPARE_WITH_TIMEOUT(refreshes.size(), 1, 1000);
+        client.stop();
+    }
+    void stopWhileConnecting()
+    {
+        WsFixture fixture;
+        QVERIFY(fixture.server.listen(QHostAddress::LocalHost, 0));
+        ResourceChangeClient client(fixture.server.serverUrl(), "sequence");
+        connect(&client, &ResourceChangeClient::stateChanged, &client, [&client] {
+            if (client.state() == ResourceChangeClient::State::Connecting) {
+                client.stop();
+            }
+        });
+        client.start();
+        QTest::qWait(100);
+        QCOMPARE(client.state(), ResourceChangeClient::State::Stopped);
+        QCOMPARE(fixture.peers.size(), 0);
+    }
     void disjointEdits()
     {
         const auto base = document();
