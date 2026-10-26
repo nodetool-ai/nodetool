@@ -1,0 +1,41 @@
+nt_sources(decode src/export/ExportCapabilities.h src/export/ExportCapabilities.cpp)
+nt_sources(app src/export/ExportEngine.h src/export/ExportEngine.cpp
+    src/export/OffscreenFrames.h src/export/OffscreenFrames.cpp src/export/ExportCli.cpp
+    src/export/ExportPanel.cpp)
+nt_qml_sources(src/export/ExportController.h src/export/ExportController.cpp)
+function(nt_export_tests)
+    add_test(NAME export_check_guards COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/src/export/check-checks.mjs)
+    foreach(check golden audio timing cancel)
+        if(check STREQUAL "golden")
+            set(script check-export.mjs)
+        else()
+            set(script check-${check}.mjs)
+        endif()
+        add_test(NAME export_${check} COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/src/export/${script}
+            --bin $<TARGET_FILE:nodetool-timeline>)
+        set_tests_properties(export_${check} PROPERTIES LABELS render FIXTURES_REQUIRED media
+            RUN_SERIAL TRUE)
+    endforeach()
+    add_test(NAME export_wav_audio COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/src/export/check-audio.mjs
+        --bin $<TARGET_FILE:nodetool-timeline> --wav-only)
+    add_test(NAME export_cleanup COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/src/export/check-cancel.mjs
+        --bin $<TARGET_FILE:nodetool-timeline> --no-render)
+    set_tests_properties(export_wav_audio export_cleanup PROPERTIES FIXTURES_REQUIRED media
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    qt_add_executable(tst_exportdialog src/export/tst_exportdialog.cpp src/export/ExportPanel.cpp)
+    set_target_properties(tst_exportdialog PROPERTIES MACOSX_BUNDLE FALSE)
+    target_compile_definitions(tst_exportdialog PRIVATE
+        NT_EXPORT_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/fixtures"
+        NT_EXPORT_BINARY="$<TARGET_FILE:nodetool-timeline>")
+    target_link_libraries(tst_exportdialog PRIVATE timeline_core timeline_decode timeline_server
+        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
+    nt_add_timeline_qml(tst_exportdialog OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_exportdialog_qml/NodeTool/Timeline)
+    if(UNIX AND NOT APPLE)
+        target_sources(tst_exportdialog PRIVATE src/preview/hw/HwWindow.cpp)
+    endif()
+    add_test(NAME tst_exportdialog COMMAND tst_exportdialog dialog panelContext controllerCancelBeforeFrames)
+    set_tests_properties(tst_exportdialog PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    add_test(NAME export_controller_cancel COMMAND tst_exportdialog controllerCancel)
+    set_tests_properties(export_controller_cancel PROPERTIES LABELS render FIXTURES_REQUIRED media)
+endfunction()
+nt_tests(nt_export_tests)
