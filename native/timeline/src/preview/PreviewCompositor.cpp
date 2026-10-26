@@ -21,6 +21,7 @@
 #include <QQuickWindow>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <limits>
 #include <optional>
@@ -31,7 +32,8 @@
 #include <cstring>
 #include <memory>
 #include <string>
-#include <unordered_map>
+#include <map>
+#include <type_traits>
 
 namespace {
 
@@ -52,12 +54,14 @@ struct LayerUniforms {
     float flipV;
     float mode;  // 0 RGBA, 1 I420, 2 NV12
     float pad;
-    float sourceRect[4]{0, 0, 1, 1};
-    float sourceTexelSize[4]{};
+    std::array<float, 4> sourceRect{0, 0, 1, 1};
+    std::array<float, 4> sourceTexelSize{};
 };
 static_assert(offsetof(LayerUniforms, sourceRect) == 144);
 static_assert(offsetof(LayerUniforms, sourceTexelSize) == 160);
 static_assert(sizeof(LayerUniforms) == 176);
+static_assert(std::is_same_v<decltype(LayerUniforms::sourceRect), std::array<float, 4>>);
+static_assert(std::is_same_v<decltype(LayerUniforms::sourceTexelSize), std::array<float, 4>>);
 
 float modeFor(nt::LayerFrame::Format f) {
     switch (f) {
@@ -93,11 +97,9 @@ void writeMatrix(LayerUniforms& u, const QMatrix4x4& m) {
 class PreviewCompositorRenderer final : public QQuickRhiItemRenderer {
 public:
     ~PreviewCompositorRenderer() override {
-        // D11: the renderer has no release hook, so its destructor drains
-        // the retire queue. The sources go first (their displayed hardware
-        // frames retire into the queue), then the GPU finishes every command
-        // buffer that may sample them: Qt's Metal command buffers do not
-        // retain the textures they use. Only then is the queue released.
+        // D11: keep owned textures alive until every sampling command buffer
+        // completes. Closing pooled decoders also retires hardware frames.
+        for (auto& [key, entry] : m_sources) { retireSource(entry); }
         m_sources.clear();
         m_effectStages.clear();
         m_pool.clear();
@@ -128,7 +130,7 @@ private:
         std::array<QRhiTexture*, 3> bound{};
         bool ubufOk = false;
         bool registered = false;
-        std::string kind;
+        nt::LayerSourceToken factoryToken = 0;
         long long lastUsedFrame = 0;
     };
 
@@ -153,6 +155,7 @@ private:
     void ensureCanvas();
     void ensureBlitPipeline();
     SourceEntry& entryFor(const nt::ActiveLayer& layer);
+    void retireSource(SourceEntry& entry);
     std::unique_ptr<QRhiGraphicsPipeline> makePipeline(QRhiRenderPassDescriptor* rp, bool blend);
 
     QRhi* m_rhi = nullptr;
@@ -178,7 +181,7 @@ private:
     // them: their last hardware frames retire into it.
     nt::RetireQueue m_retire;
     std::shared_ptr<nt::hw::PlatformInterop> m_interop;
-    std::unordered_map<std::string, SourceEntry> m_sources;
+    std::map<std::pair<std::string, std::string>, SourceEntry> m_sources;
     nt::SourcePool m_pool;
     // Budget: NT_SURFACE_BUDGET_MIB, else 512 MiB (D35).
     nt::SurfacePool<Surface> m_surfaces{[this](QSize size) { return makeSurface(size); }, surfaceBudgetBytes()};
@@ -345,7 +348,14 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
         return;
     }
     if (m_sourceModel != item->m_timeline || m_sourceGeneration != item->m_timeline->documentGeneration()) {
-        std::erase_if(m_sources, [](const auto& entry) { return entry.second.registered; });
+        for (auto it = m_sources.begin(); it != m_sources.end();) {
+            if (it->second.registered) {
+                retireSource(it->second);
+                it = m_sources.erase(it);
+            } else {
+                ++it;
+            }
+        }
         m_sourceModel = item->m_timeline;
         m_sourceGeneration = item->m_timeline->documentGeneration();
     }
@@ -458,23 +468,27 @@ void PreviewCompositorRenderer::ensureBlitPipeline() {
     }
 }
 
+void PreviewCompositorRenderer::retireSource(SourceEntry& entry) {
+    // Entries include bindings, uniforms and owned textures queued by this
+    // frame, so keep the entire entry until that command buffer completes.
+    m_retire.retire(std::make_shared<SourceEntry>(std::move(entry)), m_frame);
+}
+
 PreviewCompositorRenderer::SourceEntry& PreviewCompositorRenderer::entryFor(const nt::ActiveLayer& layer) {
-    auto it = m_sources.find(layer.clipId);
-    std::unique_ptr<nt::LayerSource> owned;
-    bool checked = false;
+    const auto key = std::pair{layer.clipId, layer.kind};
+    auto it = m_sources.find(key);
+    const auto registration = nt::registeredLayerSourceFactory(layer.kind);
     if (it != m_sources.end()) {
-        if (it->second.kind == layer.kind) { return it->second; }
-        owned = nt::registeredLayerSource(layer);
-        checked = true;
-        if (!it->second.registered && !owned) {
-            it->second.kind = layer.kind;
+        if (it->second.factoryToken == registration.token &&
+            (it->second.registered || bool(it->second.ownedSource) == layer.mediaPath.empty())) {
             return it->second;
         }
+        retireSource(it->second);
         m_sources.erase(it);
     }
     SourceEntry e;
-    e.kind = layer.kind;
-    e.ownedSource = checked ? std::move(owned) : nt::registeredLayerSource(layer);
+    e.factoryToken = registration.token;
+    e.ownedSource = registration.factory ? registration.factory(layer) : nullptr;
     e.registered = bool(e.ownedSource);
     if (!e.ownedSource && layer.mediaPath.empty()) {
         e.ownedSource = std::make_unique<nt::SyntheticSource>(
@@ -484,7 +498,7 @@ PreviewCompositorRenderer::SourceEntry& PreviewCompositorRenderer::entryFor(cons
     e.ubuf.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, sizeof(LayerUniforms)));
     e.ubufOk = e.ubuf->create();
     e.srb.reset(m_rhi->newShaderResourceBindings());
-    return m_sources.emplace(layer.clipId, std::move(e)).first->second;
+    return m_sources.emplace(key, std::move(e)).first->second;
 }
 
 void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
@@ -661,7 +675,7 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
         // Its own opacity: a group's opacity applies once, to its surface (D35).
         u.opacity = static_cast<float>(layer.opacity);
         u.flipV = frame.flipV ? 1.0f : 0.0f;
-        std::copy(layer.sourceRect.begin(), layer.sourceRect.end(), u.sourceRect);
+        std::copy(layer.sourceRect.begin(), layer.sourceRect.end(), u.sourceRect.begin());
         u.sourceTexelSize[0] = 1.0f / frame.size.width();
         u.sourceTexelSize[1] = 1.0f / frame.size.height();
         u.mode = modeFor(frame.format);
@@ -818,6 +832,7 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     // Evict sources whose clips have not drawn for a while.
     for (auto it = m_sources.begin(); it != m_sources.end();) {
         if (m_frame - it->second.lastUsedFrame > kEvictAfterFrames) {
+            retireSource(it->second);
             it = m_sources.erase(it);
         } else {
             ++it;

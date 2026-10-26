@@ -26,15 +26,15 @@ void unregisterLayerSource(LayerSourceToken token) {
     const std::scoped_lock lock(r.mutex);
     std::erase_if(r.sources, [token](const auto& source) { return source.token == token; });
 }
+LayerSourceRegistration registeredLayerSourceFactory(const std::string& kind) {
+    auto& r = registry();
+    const std::scoped_lock lock(r.mutex);
+    const auto it = std::find_if(r.sources.rbegin(), r.sources.rend(), [&](const auto& source) { return source.kind == kind; });
+    return it != r.sources.rend() ? LayerSourceRegistration{it->token, it->factory} : LayerSourceRegistration{};
+}
 std::unique_ptr<LayerSource> registeredLayerSource(const ActiveLayer& layer) {
-    LayerSourceFactory factory;
-    {
-        auto& r = registry();
-        const std::scoped_lock lock(r.mutex);
-        const auto it = std::find_if(r.sources.rbegin(), r.sources.rend(), [&](const auto& source) { return source.kind == layer.kind; });
-        if (it != r.sources.rend()) { factory = it->factory; }
-    }
-    return factory ? factory(layer) : nullptr;
+    const auto registration = registeredLayerSourceFactory(layer.kind);
+    return registration.factory ? registration.factory(layer) : nullptr;
 }
 EffectStageToken registerEffectStage(EffectStageFactory factory) {
     auto& r = registry();

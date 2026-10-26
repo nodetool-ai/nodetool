@@ -3,11 +3,36 @@
 GPU evidence is in `/home/mg/Projects/nodetool-gaps/briefs/V-evidence/`.
 Entries also identify reports from earlier local offscreen runs. Project ownership comes
 from the `owns` patterns in [gaps-manifest.json](../../docs/gaps-manifest.json).
-V-TSAN-2 is a test report across
+V-TSAN-1 is an identified project defect. V-TSAN-2 is a test report across
 standard-library synchronization that needs an instrumented-library check.
 The deep-unwind logs attribute the remaining leak groups to Qt Quick
 pixmap-reader teardown (V-EXT-4) and expected Vulkan failure-path retention
 (V-LEAK-2). Both are suppressed with the scope limits documented below.
+
+## V-TSAN-1: AudioEngine notification state
+
+File: `src/audio/AudioEngine.cpp:221` and `:230`. Kind: data race.
+Owner: **K**, whose manifest pattern is `src/audio/AudioEngine.*`.
+Top project frame: `nt::audio::AudioEngine::Impl::onNotification`.
+Reproduction: `ctest --preset tsan -R '^tst_audioengine$'` without this entry's
+suppression. Source: `ctest-tsan-1.log`.
+
+```text
+Write of size 1 by main thread:
+#0 nt::audio::AudioEngine::Impl::onNotification(...) AudioEngine.cpp:221:35
+#1 nt::audio::AudioEngine::simulateDeviceNotification(bool) AudioEngine.cpp:526:7
+#2 TstAudioEngine::startedAfterStoppedRunsAgain() tests/tst_audioengine.cpp:92:16
+Previous read of size 1 by miniaudio worker T3:
+#0 nt::audio::AudioEngine::Impl::onNotification(...) AudioEngine.cpp:230:39
+#1 nt::audio::AudioEngine::Impl::notificationCallback(...) AudioEngine.cpp:205:52
+#2 ma_device__on_notification(...) third_party/miniaudio.h:18756:9
+#4 ma_worker_thread(void*) third_party/miniaudio.h:41301:9
+```
+
+`tsan.supp` uses `race:nt::audio::AudioEngine::Impl::onNotification`.
+K must synchronize the notification state and remove this suppression. V does
+not edit the implementation. Other races in that function can also match this
+function-level suppression, so it must not remain after the fix.
 
 ## V-TSAN-2: CPU usage test latch synchronization
 

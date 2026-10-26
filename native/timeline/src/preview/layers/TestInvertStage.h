@@ -3,6 +3,8 @@
 #include "preview/RetireQueue.h"
 #include <QFile>
 #include <QMatrix4x4>
+#include <array>
+#include <type_traits>
 
 namespace nt::test {
 class InvertStage final : public LayerEffectStage {
@@ -46,13 +48,17 @@ public:
         resources->pipeline->setShaderResourceBindings(resources->bindings.get());
         resources->pipeline->setRenderPassDescriptor(output.renderPassDescriptor());
         if (!resources->pipeline->create()) { return false; }
-        constexpr float quad[]{-1,-1,0,1, 1,-1,1,1, -1,1,0,0, 1,1,1,0};
-        struct Uniforms { float matrix[16]; float flip; float pad[3]{}; } uniforms{};
+        constexpr std::array<float, 16> quad{-1,-1,0,1, 1,-1,1,1, -1,1,0,0, 1,1,1,0};
+        struct Uniforms { std::array<float, 16> matrix; float flip; std::array<float, 3> pad{}; } uniforms{};
+        static_assert(sizeof(Uniforms) == 80);
+        static_assert(std::is_same_v<decltype(Uniforms::matrix), std::array<float, 16>>);
+        static_assert(std::is_same_v<decltype(Uniforms::pad), std::array<float, 3>>);
+        static_assert(std::is_same_v<decltype(quad), const std::array<float, 16>>);
         const auto matrix = rhi->clipSpaceCorrMatrix();
-        std::copy(matrix.constData(), matrix.constData() + 16, uniforms.matrix);
+        std::copy(matrix.constData(), matrix.constData() + 16, uniforms.matrix.begin());
         uniforms.flip = input.flipV ? 1 : 0;
         auto* updates = rhi->nextResourceUpdateBatch();
-        updates->uploadStaticBuffer(resources->vertices.get(), quad);
+        updates->uploadStaticBuffer(resources->vertices.get(), quad.data());
         updates->updateDynamicBuffer(resources->uniforms.get(), 0, sizeof(uniforms), &uniforms);
         auto* cb = ctx.commands;
         cb->beginPass(&output, Qt::transparent, {1,0}, updates);
