@@ -7,6 +7,7 @@ import { SpeedDurationDialog } from '../../../../../web/src/components/timeline/
 import { ClipTimeRemapSection } from '../../../../../web/src/components/timeline/Inspector/ClipTimeRemap';
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string, args?: { number?: number }) => args?.number ? key + ':' + args.number : key }) }));
 import { retimeClipSpeed } from '../../../../../packages/timeline/src/clipSpeed';
+import { clipSourceMsAt, timeRemapAudioSegments } from '../../../../../packages/timeline/src/timeRemap';
 import type { TimelineClip, TimelineTrack } from '../../../../../packages/timeline/src/types';
 import { createTimelineStore } from '../../../../../web/src/stores/timeline/TimelineStore';
 
@@ -202,4 +203,74 @@ it('the real speed/duration dialog applies duration edits and later-first multi-
     cleanup();
   }
   native(requests).forEach((doc, i) => expect(doc.clips).toEqual(expected[i]));
+});
+
+type TimingResult = {
+  sourceTimes: number[];
+  sceneTimes: Array<number | null>;
+  segments: ReturnType<typeof timeRemapAudioSegments>;
+};
+
+it('preview source times and audio segments match the web remap sampler', () => {
+  const easings = ['linear', 'easeIn', 'easeOut', 'easeInOut', 'easeOutBack', 'easeOutElastic',
+    'easeOutBounce', 'easeInExpo', 'easeOutExpo', 'easeInOutExpo', 'easeInQuint', 'easeOutQuint',
+    'easeInOutQuint', 'easeInCirc', 'easeOutCirc', 'easeInOutCirc', 'hold',
+    'cubic-bezier(.2,-.5,.8,1.4)', 'cubic-bezier(-1,2,3,-2)', 'spring(100,10,1)',
+    'spring(100,20,1)', 'spring(100,30,1)', 'unknown', 'spring(0,10,1)',
+    'cubic-bezier(1,,2,3)', '  easeIn  ', ''];
+  type Frames = NonNullable<TimelineClip['timeRemap']>['keyframes'];
+  const curves: Frames[] = [[], [{ t: 0.5, sourceMs: 777 }], [{ t: 0.5, sourceMs: -20 }],
+    [{ t: 0.25, sourceMs: 0 }, { t: 0.75, sourceMs: 1000 }],
+    [{ t: 0.25, sourceMs: 1000 }, { t: 0.75, sourceMs: 0 }],
+    [{ t: 0.75, sourceMs: 300 }, { t: 0.25, sourceMs: 200 }, { t: 1, sourceMs: 1000 }],
+    [{ t: -0.2, sourceMs: 100 }, { t: 0.4, sourceMs: 500 }, { t: 1.3, sourceMs: 200 }]];
+  for (const easing of easings) curves.push([{ t: 0.1, sourceMs: 0 }, { t: 0.9, sourceMs: 2000, easing }]);
+  let seed = 7319;
+  const random = () => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 2 ** 32; };
+  for (let n = 0; n < Number(process.env.NT_DIFF_CASES ?? 300); ++n) {
+    curves.push(Array.from({ length: 1 + Math.floor(random() * 8) }, () => ({
+      t: Math.round((random() * 1.4 - 0.2) * 1000) / 1000,
+      sourceMs: random() * 5000 - 100, easing: easings[Math.floor(random() * easings.length)]
+    })).sort((a, b) => a.t - b.t));
+  }
+  const clips = curves.map((keyframes, i) => clip('c', 'v', 100 + i * 0.1, {
+    durationMs: 1000 + i * 1.7, inPointMs: 123, speedMultiplier: 3.5, speedBaked: i % 2 === 0,
+    mediaPath: 'unused.wav', timeRemap: { keyframes }
+  }));
+  clips.push(clip('c', 'v', 100, { mediaPath: 'unused.wav', inPointMs: 123, speedMultiplier: 2 }));
+  const requests = clips.map(c => ({ doc: { tracks, clips: [c] }, times: [
+    c.startMs - 200, c.startMs, ...Array.from({ length: 21 }, (_, i) => c.startMs + c.durationMs * i / 21),
+    ...c.timeRemap?.keyframes.flatMap(k => [c.startMs + k.t * c.durationMs - 1e-7, c.startMs + k.t * c.durationMs, c.startMs + k.t * c.durationMs + 1e-7]) ?? [],
+    c.startMs + c.durationMs, c.startMs + c.durationMs + 200
+  ] }));
+  const binary = process.env.NT_SPEED_BINARY;
+  if (!binary) throw new Error('NT_SPEED_BINARY is required');
+  const actual: TimingResult[] = JSON.parse(execFileSync(binary, ['--timing'], {
+    input: JSON.stringify(requests), encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, timeout: 20000,
+    env: { ...process.env, QT_QPA_PLATFORM: 'offscreen', QT_QUICK_BACKEND: 'software' }
+  }));
+  expect(actual).toHaveLength(requests.length);
+  requests.forEach((request, index) => {
+    const c = request.doc.clips[0];
+    const result = actual[index];
+    const context = JSON.stringify(c);
+    expect(result.sourceTimes, context).toHaveLength(request.times.length);
+    request.times.forEach((time, i) => {
+      const expected = clipSourceMsAt(c, time);
+      expect(Math.abs(result.sourceTimes[i] - expected), context + ' at ' + time).toBeLessThanOrEqual(1e-6);
+      if (time >= c.startMs && time < c.startMs + c.durationMs) {
+        expect(result.sceneTimes[i], context).not.toBeNull();
+        expect(Math.abs((result.sceneTimes[i] ?? NaN) - expected), context).toBeLessThanOrEqual(1e-6);
+      }
+    });
+    const segments = timeRemapAudioSegments(c);
+    expect(result.segments, context).toHaveLength(segments.length);
+    segments.forEach((segment, i) => {
+      const part = result.segments[i];
+      for (const key of ['timelineStartMs', 'timelineEndMs', 'sourceStartMs', 'sourceEndMs', 'rate'] as const) {
+        expect(Math.abs(part[key] - segment[key]), context + ' segment ' + i + ' ' + key).toBeLessThanOrEqual(1e-6);
+      }
+      expect(part.reverse, context).toBe(segment.reverse);
+    });
+  });
 });

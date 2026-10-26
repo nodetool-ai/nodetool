@@ -1,3 +1,4 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import NodeTool.Timeline
@@ -5,32 +6,54 @@ import "primitives"
 
 InspectorSection {
     id: root
-    property var clip: null
-    property bool locked: false
-    required property SpeedController controller
+    objectName: "inspectorTimeRemap"
+    property var timelineModel: null
+    property var gestures: null
+    property var controller: null
+    property bool groupMode: false
+    readonly property var clip: controller ? controller.clip : ({})
+    readonly property bool locked: !controller || controller.locked
+    visible: !!clip.id && clip.mediaType !== "midi" && !groupMode
+    SpeedController { id: edits; model: root.timelineModel }
+    property string observedClipId: ""
+    function observeSelection() {
+        const next = controller ? controller.clipId : ""
+        if (next === observedClipId) return
+        observedClipId = next
+        edits.cancelGesture()
+        gestureFrames = null
+        duplicate = false
+    }
+    onControllerChanged: observeSelection()
+    onGroupModeChanged: if (groupMode) { edits.cancelGesture(); gestureFrames = null }
+    Component.onCompleted: observeSelection()
+    Component.onDestruction: edits.cancelGesture()
+    Connections {
+        target: root.controller
+        function onChanged() { root.observeSelection() }
+    }
     readonly property var frames: clip && clip.timeRemap ? clip.timeRemap.keyframes : undefined
     property bool duplicate: false
     property var gestureFrames: null
     function beginGesture(index) {
+        if (locked || !clip.id || !frames) return
         gestureFrames = frames.slice()
         const p = payload("patch"); p.index = index
-        controller.beginGesture("setClipTimeRemap", p)
+        edits.beginGesture("setClipTimeRemap", p)
     }
     title: "Time remap"
     checkable: true
     checked: frames !== undefined
     checkboxDisabled: locked
     defaultOpen: false
-    onClipChanged: if (!clip || clip.id !== lastClipId) { duplicate = false; lastClipId = clip ? clip.id : "" }
-    property string lastClipId: ""
     function payload(operation) { return {clipId: clip.id, operation: operation} }
     function run(operation) {
-        if (locked || !clip) return
+        if (locked || !clip.id) return
         duplicate = false
-        controller.apply("setClipTimeRemap", payload(operation))
+        edits.apply("setClipTimeRemap", payload(operation))
     }
     function patch(index, field, raw, gesture) {
-        if (locked || !clip) return
+        if (locked || !clip.id) return
         let value = raw
         if (field !== "easing") {
             value = Number(raw)
@@ -42,8 +65,8 @@ InspectorSection {
         next.patch = {}; next.patch[field] = value
         duplicate = field === "t" && (gestureFrames || frames).some((f, i) => i !== index && f.t === value)
         // The C++ gesture keeps its original index while the preview is sorted.
-        if (gesture === "preview") controller.preview(next)
-        else { controller.commit("setClipTimeRemap", next); gestureFrames = null }
+        if (gesture === "preview") edits.preview(next)
+        else { edits.commit("setClipTimeRemap", next); gestureFrames = null }
     }
     onCheckedChangedByUser: next => run(next ? "enable" : "disable")
     Text {
@@ -60,7 +83,7 @@ InspectorSection {
         delegate: Column {
             id: row
             required property int index
-            readonly property var frame: root.frames[index]
+            readonly property var frame: root.frames && root.frames[index] ? root.frames[index] : ({t:0, sourceMs:0})
             spacing: Theme.spacingMicro
             width: parent.width
             Row {
@@ -70,7 +93,7 @@ InspectorSection {
                     property bool scrubbing: false
                     property string previewValue: ""
                     value: scrubbing ? previewValue : Number(row.frame.t).toFixed(2)
-                    minWidth: 52
+                    minWidth: Theme.controlXs * 2 + Theme.spacingXs
                     ariaLabel: "Time remap keyframe " + (row.index + 1) + " time"
                     scrub: ({step: 0.01, min: 0, max: 1})
                     disabled: root.locked
@@ -86,7 +109,7 @@ InspectorSection {
                     property string previewValue: ""
                     value: scrubbing ? previewValue : String(row.frame.sourceMs)
                     unit: "ms"
-                    minWidth: 72
+                    minWidth: Theme.toolbarHeight * 2
                     ariaLabel: "Time remap keyframe " + (row.index + 1) + " source time"
                     scrub: ({step: 10, min: 0})
                     disabled: root.locked
@@ -101,7 +124,7 @@ InspectorSection {
                     value: row.frame.easing ?? ""
                     placeholder: "linear"
                     allowEmpty: true
-                    minWidth: 96
+                    minWidth: Theme.controlXs * 4
                     ariaLabel: "Time remap keyframe " + (row.index + 1) + " easing"
                     disabled: root.locked
                     onCommit: raw => root.patch(row.index, "easing", raw, "commit")
@@ -117,13 +140,13 @@ InspectorSection {
                     onClicked: {
                         root.duplicate = false
                         const p = root.payload("remove"); p.index = row.index
-                        root.controller.apply("setClipTimeRemap", p)
+                        edits.apply("setClipTimeRemap", p)
                     }
                 }
             }
             Text {
                 width: parent.width
-                visible: !!row.frame.easing && !root.controller.easingReadable(row.frame.easing)
+                visible: !!row.frame.easing && !edits.easingReadable(row.frame.easing)
                 text: "Not an easing this build reads; plays linear"
                 wrapMode: Text.WordWrap
                 font.family: Theme.sansFamily
