@@ -98,6 +98,10 @@ private slots:
         clips[0] = c; fixture.insert("clips", clips); replace(fixture);
         const auto before = doc(); QSignalSpy changes(&model, &TimelineModel::clipsChanged);
         auto* mark = item("clip-keyframe-c-500"); QVERIFY2(mark, "B12: clip keyframe diamonds must mount in production ClipBody");
+        clock.seek(1500);
+        const auto aboveDiamond = mark->mapToScene({mark->width() / 2, -20}).toPoint();
+        drag(aboveDiamond, aboveDiamond + QPoint(10, 0));
+        QCOMPARE(clock.time(), 1600.0); QCOMPARE(doc(), before); QCOMPARE(changes.count(), 0);
         clock.seek(2200);
         click("clip-keyframe-c-500"); QCOMPARE(clock.time(), 1500.0); QCOMPARE(changes.count(), 0);
         if (!underPlayhead) { clock.seek(2200); }
@@ -116,12 +120,23 @@ private slots:
         QTest::mouseMove(view.get(), to, 20);
         QCOMPARE(doc(), before); QCOMPARE(model.undoStack()->count(), 0);
         QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, to);
-        QEXPECT_FAIL("B12-drag-after-seek",
-            "S3 blocker F1: Playhead.qml grab zone covers a diamond under the line (needs Playhead.tsx pass-through)", Abort);
         QCOMPARE(model.undoStack()->count(), 1);
         QCOMPARE(doc(), expected); QCOMPARE(model.undoStack()->count(), 1);
         QVERIFY(qAbs(clock.time() - (52 * (1000.0 / 30))) < 1e-9);
         click("undoButton"); QCOMPARE(doc(), before);
+    }
+    void playheadGrabWithoutDiamond() {
+        const auto before = doc();
+        clock.seek(1500);
+        QSignalSpy changes(&model, &TimelineModel::clipsChanged);
+        QSignalSpy tracks(model.tracks(), &QAbstractItemModel::dataChanged);
+        auto* lane = item("trackLane-v"); QVERIFY(lane);
+        auto* playhead = item("playhead"); QVERIFY(playhead);
+        const auto from = QPointF(playhead->mapToScene({8, 0}).x(), center(lane).y()).toPoint();
+        drag(from, from + QPoint(30, 0));
+        QCOMPARE(clock.time(), 1800.0);
+        QCOMPARE(doc(), before); QCOMPARE(model.undoStack()->count(), 0);
+        QCOMPARE(changes.count(), 0); QCOMPARE(tracks.count(), 0);
     }
     void shortcutRows() {
         click("helpButton");

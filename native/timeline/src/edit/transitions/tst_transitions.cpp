@@ -227,9 +227,8 @@ private slots:
         model.setTimeline(std::move(*parsed.timeline)); QCoreApplication::processEvents();
         click("clip-c"); QCoreApplication::processEvents();
         auto* softness = item("transitionSoftness"); QVERIFY(softness);
-        QEXPECT_FAIL("", "S3 blocker F2: Transition section placement is PX layout F1", Abort);
         QVERIFY2(softness->isVisible() && softness->mapToScene({0, 0}).y() < view->height(),
-            "Blocked: unowned TransitionSection.qml needs timeline/gestures injection and placement inside TimelineInspector.qml (PX)");
+            "Transition softness must be visible inside the production Inspector");
         QQuickItem* slider = nullptr;
         for (auto* child : softness->findChildren<QQuickItem*>()) {
             if (child->property("from").isValid()) { slider = child; break; }

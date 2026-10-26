@@ -249,6 +249,8 @@ Rectangle {
                 delegate: TrackHeader {
                     id: header
                     required property double rowTop
+                    required property double baseRowHeight
+                    rowHeight: baseRowHeight
                     timeline: region.timeline
                     gestures: clipGestures
                     viewState: view
@@ -366,14 +368,49 @@ Rectangle {
             height: rowModel.contentHeight
             Repeater {
                 model: rowModel
-                delegate: TrackLane {
+                delegate: Item {
+                    id: trackRow
                     required property double rowTop
+                    required property double rowHeight
+                    required property double baseRowHeight
+                    required property string trackId
+                    required property string trackType
+                    required property bool trackVisible
+                    required property bool locked
+                    required property bool muted
+                    required property var track
                     y: rowTop
                     width: lanesContent.width
-                    timeline: region.timeline
-                    clock: region.clock
-                    viewState: view
-                    gestures: clipGestures
+                    height: rowHeight
+                    TrackLane {
+                        width: parent.width
+                        rowHeight: trackRow.baseRowHeight
+                        trackId: trackRow.trackId
+                        trackType: trackRow.trackType
+                        trackVisible: trackRow.trackVisible
+                        locked: trackRow.locked
+                        muted: trackRow.muted
+                        timeline: region.timeline
+                        clock: region.clock
+                        viewState: view
+                        gestures: clipGestures
+                    }
+                    SlotItems {
+                        id: laneRows
+                        y: trackRow.baseRowHeight
+                        width: parent.width
+                        slot: "trackLane"
+                        vertical: true
+                        slotProperties: ({ track: trackRow.track, timeline: region.timeline })
+                        function reportHeight() {
+                            if ((rowModel.extraRowHeights[trackRow.trackId] || 0) === implicitHeight) return
+                            const heights = Object.assign({}, rowModel.extraRowHeights)
+                            heights[trackRow.trackId] = implicitHeight
+                            rowModel.extraRowHeights = heights
+                        }
+                        onImplicitHeightChanged: Qt.callLater(reportHeight)
+                        Component.onCompleted: Qt.callLater(reportHeight)
+                    }
                 }
             }
             RubberBandOverlay {
@@ -475,6 +512,7 @@ Rectangle {
             endMs: region.timeline.contentEndMs
             viewportWidthPx: parent.width
             grabTopPx: Theme.rulerHeight
+            passthroughRoot: lanesArea
             follow: region.followPlayhead
         }
     }
