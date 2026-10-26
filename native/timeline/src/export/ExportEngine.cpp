@@ -1,6 +1,8 @@
 #include "export/ExportEngine.h"
 #include "export/OffscreenFrames.h"
 #include "export/ExportCapabilities.h"
+#include "export/PngZip.h"
+#include <QBuffer>
 #include <array>
 #include "audio/AudioEngine.h"
 #include "model/TimelineModel.h"
@@ -200,6 +202,9 @@ Result exportTimeline(const Timeline& timeline, const Options& options, std::sto
         const bool audioOnly = options.format == u"wav" || options.format == u"mp3";
         const bool png = options.format == u"png_sequence";
         result.samples = std::max<qint64>(1, std::llround((audioOnly ? duration / 1000 : result.frames / timeline.fps) * 48000));
+        if (png && static_cast<quint64>(result.frames) >= PngZip::MaxEntries) {
+            throw std::runtime_error("PNG sequence exceeds classic ZIP limit of 65535 entries including the manifest");
+        }
         report(QStringLiteral("preparing"));
         if (cancelled()) { result.cancelled = true; return result; }
         const QFileInfo destination(options.output);
@@ -207,9 +212,12 @@ Result exportTimeline(const Timeline& timeline, const Options& options, std::sto
         if (destination.exists()) throw std::runtime_error("Export destination already exists");
         QTemporaryDir staging(destination.dir().filePath(QStringLiteral(".nt-export-XXXXXX")));
         if (!staging.isValid()) throw std::runtime_error("Cannot create temporary export output");
-        const QString temporary = staging.filePath(png ? QStringLiteral("frames") : QStringLiteral("output"));
+        const QString temporary = staging.filePath(QStringLiteral("output"));
+        QFile pngOutput(temporary);
+        std::unique_ptr<PngZip> pngZip;
         if (png) {
-            if (!QDir().mkdir(temporary)) throw std::runtime_error("Cannot create PNG sequence folder");
+            if (!pngOutput.open(QIODevice::WriteOnly)) throw std::runtime_error("Cannot open PNG ZIP output");
+            pngZip = std::make_unique<PngZip>(pngOutput);
         }
         std::unique_ptr<Muxer> muxer;
         Codec video;
@@ -281,9 +289,13 @@ Result exportTimeline(const Timeline& timeline, const Options& options, std::sto
                 if (cancelled()) break;
                 if (image.isNull()) throw std::runtime_error("Empty export frame");
                 if (png) {
-                    if (!image.save(temporary + QStringLiteral("/frame_%1.png").arg(i, 6, 10, QLatin1Char('0')))) {
-                        throw std::runtime_error("Cannot write export PNG");
+                    QByteArray bytes;
+                    QBuffer buffer(&bytes);
+                    if (!buffer.open(QIODevice::WriteOnly) || !image.save(&buffer, "PNG")) {
+                        throw std::runtime_error("Cannot encode export PNG");
                     }
+                    const auto name = QStringLiteral("frame_%1.png").arg(i + 1, 6, 10, QLatin1Char('0')).toUtf8();
+                    pngZip->add(name, bytes);
                 } else {
                     check(av_frame_make_writable(output.get()), "Make export frame writable");
                     const std::array<const uint8_t*, 4> data{image.constBits(), nullptr, nullptr, nullptr};
@@ -307,16 +319,16 @@ Result exportTimeline(const Timeline& timeline, const Options& options, std::sto
         if (cancelled()) { result.cancelled = true; return result; }
         report(QStringLiteral("finalizing"), result.frames);
         if (png) {
-            QFile manifest(temporary + QStringLiteral("/manifest.json"));
             const auto bytes = QJsonDocument(QJsonObject{
                 {QStringLiteral("format"), QStringLiteral("png_sequence")},
                 {QStringLiteral("pattern"), QStringLiteral("frame_%06d.png")},
                 {QStringLiteral("fps"), timeline.fps}, {QStringLiteral("width"), timeline.width},
                 {QStringLiteral("height"), timeline.height}, {QStringLiteral("count"), result.frames}
             }).toJson();
-            if (!manifest.open(QIODevice::WriteOnly) || manifest.write(bytes) != bytes.size()) {
-                throw std::runtime_error("Cannot write PNG manifest");
-            }
+            pngZip->add("manifest.json", bytes);
+            pngZip->finish();
+            if (!pngOutput.flush()) throw std::runtime_error("Cannot flush PNG ZIP output");
+            pngOutput.close();
         } else {
             soundUntil(result.samples);
             if (video) muxer->encode(*video, *videoStream, nullptr);

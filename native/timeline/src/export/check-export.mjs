@@ -64,6 +64,21 @@ export function requireFrames(rows) {
     assert.ok(row.psnr >= 40, `${row.fixture} frame ${row.frame}: PSNR ${row.psnr} < 40 dB`);
   }
 }
+const knownUnsupported = {
+  'video-rejections.json': 'D10a placeholders, preview stills also below 40 dB'
+};
+export function requireFixtureCoverage(expected, rows, unmet = []) {
+  assert.ok(expected.length > 0, 'Expected no media fixtures');
+  const compared = new Set(rows.map(row => row.fixture));
+  const unsupported = new Set(unmet);
+  for (const name of unsupported) {
+    assert.ok(Object.hasOwn(knownUnsupported, name), `Unknown unsupported fixture ${name}`);
+    assert.ok(expected.includes(name), `Unexpected unmet fixture ${name}`);
+  }
+  for (const name of expected) {
+    assert.ok(compared.has(name) || unsupported.has(name), `Missing fixture ${name}`);
+  }
+}
 export function duration(doc) {
   return doc.clips.length ? Math.max(...doc.clips.map(c => c.startMs + c.durationMs)) : doc.durationMs;
 }
@@ -81,16 +96,21 @@ export function checkedFrames(doc) {
   return [...frames].sort((a, b) => a - b);
 }
 function golden() {
+  const expected = fs.readdirSync(path.join(root, 'fixtures')).sort().filter(name => {
+    if (!name.endsWith('.json') || ['audio-mix.json', 'audio-proxy.json'].includes(name)) return false;
+    const doc = JSON.parse(fs.readFileSync(path.join(root, 'fixtures', name)));
+    return doc.clips.some(c => c.mediaPath && ['video', 'image'].includes(c.mediaType));
+  });
+  assert.ok(expected.length > 0, 'Expected no media fixtures');
   // Each 1080p or 4K export is tens of megabytes, so each fixture's files are
   // removed once it is compared.
   const out = fs.mkdtempSync(path.join(scratchBase, "nt-export-golden-"));
   const rows = [];
+  const unmet = [];
   try {
-    for (const name of fs.readdirSync(path.join(root, "fixtures")).sort()) {
-      if (!name.endsWith(".json") || ["audio-mix.json", "audio-proxy.json"].includes(name)) continue;
+    for (const name of expected) {
       const fixture = path.join(root, "fixtures", name);
       const doc = JSON.parse(fs.readFileSync(fixture));
-      if (!doc.clips.some(c => c.mediaPath && ["video", "image"].includes(c.mediaType))) continue;
       const frames = checkedFrames(doc);
       if (name === "video-rejections.json") {
         // DESIGN.md D10a step 1: the compositor draws a placeholder for
@@ -100,7 +120,8 @@ function golden() {
         const preview = spawnSync("node", [path.join(root, "scripts/compare-golden.mjs"), fixture,
           "--frames", frames.join(","), "--min-psnr", "40", "--bin", bin], { encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
         assert.equal(preview.status, 1, `${name}: the preview now matches the golden; remove the D10a skip\n${preview.stdout}${preview.stderr}`);
-        console.log(`SKIP ${name}: D10a placeholders, preview stills also below 40 dB: ${preview.stdout.trim().split("\n").join("; ")}`);
+        unmet.push(name);
+        console.log(`UNMET ${name}: ${knownUnsupported[name]}: ${preview.stdout.trim().split("\n").join("; ")}`);
         continue;
       }
       const movie = path.join(out, `${name}.mp4`);
@@ -108,15 +129,8 @@ function golden() {
       const gold = path.join(out, `${name}-gold`);
       const goldenResult = spawnSync("node", [path.join(root, "scripts/golden-import.mjs"), fixture,
         "--frames", frames.join(","), "--out", gold], { encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
-      if (goldenResult.status !== 0) {
-        const comparison = spawnSync("node", [path.join(root, "scripts/compare-golden.mjs"), fixture,
-          "--frames", frames.join(","), "--bin", bin], {
-          encoding: "utf8", maxBuffer: 16 * 1024 * 1024
-        });
-        assert.notEqual(comparison.status, 0, `compare-golden accepted ${name} rejected by golden-import`);
-        console.log(`SKIP ${name}: golden-import: ${goldenResult.stderr.trim()}\ncompare-golden: ${comparison.stderr.trim()}`);
-        continue;
-      }
+      assert.equal(goldenResult.status, 0,
+        `${name}: golden-import failed\n${goldenResult.stderr}${goldenResult.error ?? ''}`);
       const probe = JSON.parse(run("ffprobe", ["-v", "error", "-select_streams", "v:0", "-show_streams",
         "-of", "json", movie]).stdout).streams[0];
       for (const frame of frames) {
@@ -130,8 +144,9 @@ function golden() {
       fs.rmSync(movie, { force: true });
       fs.rmSync(gold, { recursive: true, force: true });
     }
+    requireFixtureCoverage(expected, rows, unmet);
     requireFrames(rows);
-    console.log(`export_golden: PASS (${rows.length} frames)`);
+    console.log(`export_golden: PASS (${rows.length} frames; unmet fixtures: ${unmet.join(', ') || 'none'})`);
   } finally {
     fs.rmSync(out, { recursive: true, force: true });
   }

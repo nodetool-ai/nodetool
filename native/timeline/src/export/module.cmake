@@ -1,11 +1,16 @@
 nt_sources(decode src/export/ExportCapabilities.h src/export/ExportCapabilities.cpp)
 nt_sources(app src/export/ExportEngine.h src/export/ExportEngine.cpp
     src/export/OffscreenFrames.h src/export/OffscreenFrames.cpp src/export/ExportCli.cpp
-    src/export/ExportPanel.cpp)
+    src/export/ExportPanel.cpp src/export/PngZip.h src/export/PngZip.cpp)
 nt_qml_sources(src/export/ExportController.h src/export/ExportController.cpp)
 function(nt_export_tests)
+    qt_add_executable(tst_pngzip src/export/tst_pngzip.cpp src/export/PngZip.cpp)
+    set_target_properties(tst_pngzip PROPERTIES MACOSX_BUNDLE FALSE)
+    target_include_directories(tst_pngzip PRIVATE src)
+    target_link_libraries(tst_pngzip PRIVATE Qt6::Gui Qt6::Test)
+    add_test(NAME tst_pngzip COMMAND tst_pngzip)
     add_test(NAME export_check_guards COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/src/export/check-checks.mjs)
-    foreach(check golden audio timing cancel)
+    foreach(check golden audio timing cancel png)
         if(check STREQUAL "golden")
             set(script check-export.mjs)
         else()

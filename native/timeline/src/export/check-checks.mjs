@@ -2,9 +2,17 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { psnr, psnrYuv, requireFrames, run, scratchBase } from './check-export.mjs';
+import { psnr, psnrYuv, requireFrames, requireFixtureCoverage, run, scratchBase } from './check-export.mjs';
 const dir = fs.mkdtempSync(path.join(scratchBase, 'nt-export-checks-'));
 try {
+  const covered = [{ fixture: 'compared.json', frame: 0, psnr: Infinity }];
+  assert.throws(() => requireFixtureCoverage(['compared.json', 'missing.json'], covered), /Missing fixture missing.json/);
+  assert.throws(() => requireFixtureCoverage([], covered), /Expected no media fixtures/);
+  assert.throws(() => requireFixtureCoverage(['missing.json'], [], ['missing.json']), /Unknown unsupported fixture missing.json/);
+  assert.throws(() => requireFixtureCoverage(['compared.json'], covered, ['video-rejections.json']), /Unexpected unmet fixture/);
+  requireFixtureCoverage(['compared.json'], covered);
+  requireFixtureCoverage(['compared.json', 'video-rejections.json'], covered, ['video-rejections.json']);
+  console.log('Planted missing fixture rejected; empty fixture set and unlisted exclusions rejected');
   const keys = ['QT_QPA_PLATFORM', 'QSG_RHI_BACKEND', 'QT_QUICK_BACKEND'];
   const inherited = JSON.parse(run(process.execPath, ['-e',
     `process.stdout.write(JSON.stringify(${JSON.stringify(keys)}.map(key => process.env[key] ?? null)))`]).stdout);
