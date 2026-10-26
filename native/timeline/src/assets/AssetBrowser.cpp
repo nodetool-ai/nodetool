@@ -130,26 +130,32 @@ void AssetBrowser::goUp() {
 
 void AssetBrowser::importFiles(const QList<QUrl>& urls) {
     if (!configured()) { return; }
-    for (const auto& url : urls) {
-        if (url.isLocalFile()) { m_files.append(url.toLocalFile()); }
-    }
-    importNext();
-}
-
-void AssetBrowser::importNext() {
-    if (busy() || m_files.isEmpty()) { return; }
-    const auto file = m_files.takeFirst();
     QJsonObject fields;
     if (!m_folderId.isEmpty()) { fields.insert("parent_id", m_folderId); }
     if (m_timeline) {
         const auto raw = QJsonDocument::fromJson(m_timeline->documentJson()).object();
         if (!raw.value("projectId").toString().isEmpty()) { fields.insert("project_id", raw.value("projectId")); }
     }
-    request([file, fields, folder = m_folderId](nt::server::ServerClient& client) {
-        const auto imported = nt::assets::importFile(client, file, fields);
+    for (const auto& url : urls) {
+        if (url.isLocalFile()) { m_files.push_back({url.toLocalFile(), fields, m_folderId}); }
+    }
+    importNext();
+}
+
+AssetBrowser::QueuedImport AssetBrowser::takeNextImport() {
+    auto queued = std::move(m_files.front());
+    m_files.pop_front();
+    return queued;
+}
+
+void AssetBrowser::importNext() {
+    if (busy() || m_files.empty()) { return; }
+    const auto queued = takeNextImport();
+    request([queued](nt::server::ServerClient& client) {
+        const auto imported = nt::assets::importFile(client, queued.file, queued.fields);
         Result result = imported.ok() ? Result{QJsonArray{imported.asset}, imported.proxyError, false}
                                       : Result{{}, imported.error, false};
-        result.folder = folder;
+        result.folder = queued.folder;
         return result;
     });
 }

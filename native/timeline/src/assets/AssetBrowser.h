@@ -48,6 +48,12 @@ signals:
     void timelineChanged();
     void folderChanged();
 private:
+    friend class TestAssetBrowser;
+    struct QueuedImport {
+        QString file;
+        QJsonObject fields;
+        QString folder;
+    };
     struct Result {
         QJsonArray assets;
         QString error;
@@ -59,6 +65,7 @@ private:
     void request(std::function<Result(nt::server::ServerClient&)> work,
                  std::function<void(const Result&)> done = {});
     void importNext();
+    QueuedImport takeNextImport();
     void pollProxies();
     void receive(const Result& result);
     bool applyDrop(const QJsonObject& payload);
@@ -69,7 +76,7 @@ private:
     QPointer<QThread> m_thread;
     QJsonArray m_assets;
     QHash<QString, int> m_pending;
-    QStringList m_files;
+    std::deque<QueuedImport> m_files;
     QString m_error;
     QString m_folderId;
     QStringList m_folderPath;

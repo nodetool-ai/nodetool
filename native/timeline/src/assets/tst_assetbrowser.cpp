@@ -28,6 +28,54 @@ QQuickItem* itemNamed(QQuickItem* root, const QString& name) {
 class TestAssetBrowser : public QObject {
     Q_OBJECT
 private slots:
+    void queuedImportsKeepDestination_data() {
+        QTest::addColumn<QString>("folder");
+        QTest::addColumn<QString>("project");
+        QTest::addColumn<QString>("nextFolder");
+        QTest::addColumn<QString>("nextProject");
+        QTest::newRow("folder-navigation") << QString("A") << QString("project-A") << QString("B") << QString("project-A");
+        QTest::newRow("project-switch") << QString("A") << QString("project-A") << QString("A") << QString("project-B");
+        QTest::newRow("home-to-folder-and-project") << QString() << QString() << QString("B") << QString("project-B");
+    }
+    void queuedImportsKeepDestination() {
+        QFETCH(QString, folder);
+        QFETCH(QString, project);
+        QFETCH(QString, nextFolder);
+        QFETCH(QString, nextProject);
+        TimelineModel original;
+        TimelineModel replacement;
+        const auto document = [](const QString& projectId) {
+            return QJsonDocument(QJsonObject{{"fps", 30}, {"width", 640}, {"height", 360},
+                {"durationMs", 1000}, {"projectId", projectId}, {"tracks", QJsonArray{}}, {"clips", QJsonArray{}}}).toJson();
+        };
+        auto first = nt::parseTimelineJson(document(project));
+        auto second = nt::parseTimelineJson(document(nextProject));
+        QVERIFY(first.timeline);
+        QVERIFY(second.timeline);
+        original.setTimeline(std::move(*first.timeline));
+        replacement.setTimeline(std::move(*second.timeline));
+        QThread occupiedWorker; // Hold uploads in the queue without starting a server or thread.
+        AssetBrowser browser;
+        browser.m_target = nt::server::SaveTarget{};
+        browser.m_thread = &occupiedWorker;
+        browser.setTimeline(&original);
+        browser.setFolderId(folder);
+        browser.importFiles({QUrl::fromLocalFile("/first.wav"), QUrl::fromLocalFile("/second.wav")});
+        const auto firstUpload = browser.takeNextImport();
+        QCOMPARE(firstUpload.file, QString("/first.wav"));
+        QCOMPARE(firstUpload.folder, folder);
+        QCOMPARE(firstUpload.fields.value("parent_id").toString(), folder);
+        QCOMPARE(firstUpload.fields.value("project_id").toString(), project);
+        browser.setFolderId(nextFolder);
+        browser.setTimeline(&replacement);
+        const auto secondUpload = browser.takeNextImport();
+        QCOMPARE(secondUpload.file, QString("/second.wav"));
+        QCOMPARE(secondUpload.folder, folder);
+        QCOMPARE(secondUpload.fields, firstUpload.fields);
+        QCOMPARE(secondUpload.fields.contains("parent_id"), !folder.isEmpty());
+        QCOMPARE(secondUpload.fields.contains("project_id"), !project.isEmpty());
+        browser.m_thread.clear();
+    }
     void foldersOpenWithKeyboardAndMouse() {
         AssetBrowser browser;
         QVERIFY2(browser.property("folderId").isValid(), "AssetBrowser must expose current folderId");
