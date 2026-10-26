@@ -1,4 +1,5 @@
 #include "server/SaveCli.h"
+#include "server/ServerIdentity/ServerIdentity.h"
 
 #include "model/TimelineModel.h"
 #include "server/AutosaveController.h"
@@ -73,7 +74,8 @@ int saveCli(int argc, char** argv) {
     const QCommandLineOption autoOpt(QStringLiteral("autosave"), QStringLiteral("Wait for the debounced autosave"));
     const QCommandLineOption reportOpt(QStringLiteral("save-report"), QStringLiteral("Also write the JSON to FILE"),
                                        QStringLiteral("FILE"));
-    parser.addOptions({saveOpt, moveOpt, fieldOpt, waitOpt, autoOpt, reportOpt});
+    const QCommandLineOption writeWaitOpt("wait-before-write", "After identity proof, wait until FILE exists", "FILE");
+    parser.addOptions({saveOpt, moveOpt, fieldOpt, waitOpt, autoOpt, reportOpt, writeWaitOpt});
     parser.process(app);
     const auto target = serverSaveTarget();
     if (parser.positionalArguments().size() != 1 || !target) {
@@ -137,6 +139,22 @@ int saveCli(int argc, char** argv) {
         }
     }
 
+    if (parser.isSet(writeWaitOpt)) {
+        identity::setBeforeWriteHook([file = parser.value(writeWaitOpt)]() -> QString {
+            printLine(QJsonObject{{QStringLiteral("beforeWrite"), file}});
+            QElapsedTimer waited;
+            waited.start();
+            while (!QFileInfo::exists(file)) {
+                if (waited.elapsed() >= 120000) {
+                    return QStringLiteral("timed out waiting for %1").arg(file);
+                }
+                QEventLoop loop;
+                QTimer::singleShot(20, &loop, &QEventLoop::quit);
+                loop.exec();
+            }
+            return {};
+        });
+    }
     SaveResult r;
     if (parser.isSet(autoOpt)) {
         // The debounced save: the edits above started the 750 ms timer.
@@ -160,6 +178,7 @@ int saveCli(int argc, char** argv) {
     } else {
         r = save.saveNow();
     }
+    identity::setBeforeWriteHook({});
     out.insert(QStringLiteral("ok"), r.ok);
     out.insert(QStringLiteral("conflict"), r.conflict);
     out.insert(QStringLiteral("updatedAt"), r.updatedAt);

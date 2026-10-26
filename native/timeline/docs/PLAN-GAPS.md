@@ -468,6 +468,340 @@ as long. With n log n the ratio is about 19, and with the old resolver
 about 256. Run against the old resolver, the timing test fails. Do not run
 it while the load average is above 10.
 
+## Round 2
+
+Wave 1 merged S1, V, C, D1, D4, F, H, K, M, T, P1 and U. Packages A, B, D2,
+D3, D5, I, J, N and R stopped on files they do not own, L waits for an
+approved commit, and E failed only on the `/tmp` quota. The wave 3 reviews
+found three P1 differences and named the files no package owns
+(`reviews/wave3-completeness.md` F7 to F10).
+
+Round 2 follows the S1 model. S2, S3 and PX run first, in parallel, and own
+disjoint files. Each shared file they take gets an extension point, so the
+blocked packages and wave 2 add their own files instead of editing it. Then
+the blocked packages run again with the needs listed under
+[Owns changes](#owns-changes).
+
+A folder that S2 or S3 creates for registries (`src/preview/layers/`,
+`src/wiring/` and the others in their owns lists) holds the registry and
+its tests. A package that plugs into a registry adds its own file in its own
+folder. `scripts/conformance/plan/` works like `scripts/conformance/suites/`:
+S2 owns the loader, each package owns its comparator file.
+
+### S2: Core seams, round 2
+
+Goal: give the compositor, the scene model, the mixer, the audio engine,
+`TimelineModel` and `main.cpp` the hooks that B, D3, D5, I, J and R need,
+with no change in behaviour.
+
+- Owns: `src/main.cpp`, `src/model/TimelineModel.*`,
+  `src/preview/PreviewCompositor.*`, `src/preview/LayerSource.h`,
+  `src/preview/SceneEval.h`, `src/preview/SceneEval.cpp`,
+  `shaders/composite.vert`, `shaders/composite.frag`,
+  `src/scene/ClipScene.*`, `src/audio/Mixer.cpp`, `src/audio/Mixer.h`,
+  `src/audio/AudioEngine.*`, `scripts/plan-conformance.mjs`,
+  `scripts/conformance/plan/`, and the new folders `src/preview/layers/`,
+  `src/audio/hooks/`, `src/model/hooks/` and `src/app/startup/`.
+- Layer sources (I): a registry of factories by layer kind. `entryFor` in
+  `PreviewCompositorRenderer` asks it before it falls back to
+  `SyntheticSource`.
+- Layer decorators (D3, D5, I, J): a registered function gets each
+  `ActiveLayer` with its `Clip` and the frame time. It may set two new
+  fields: `ext`, a JSON object the package fills with its own parameters,
+  and `sourceRect`, the source UV rectangle. `framePlanJson` writes `ext`
+  only when it is not empty. Precomposites get the same hook for group
+  effects.
+- Source rectangle (D5): `composite.vert` and `composite.frag` sample
+  through `sourceRect`, which defaults to the full source.
+- Effect stages (J): a registered stage runs on a layer texture or a group
+  surface before compositing and reads the layer's `ext` parameters.
+- Text measurer (I): `evaluateScene` passes a registered `MeasureText` to
+  the flex layout. Without one it keeps the fallback width rule.
+- Source time (D3): `clipSourceMsAt` asks a registered mapper first. The
+  time-remap parse itself stays with D3, which now owns
+  `TimelineTypes.h` and `TimelineJson.*`.
+- Mixer (D3, P2): a voice expander splits one voice into segments (time
+  remap, silent reverse segments), and a gain envelope scales a voice
+  (automation).
+- Audio device (R): `AudioEngine` asks a registered provider for a device
+  name before `ma_device_init` and uses the default device when none
+  matches.
+- Decode mode (R): `main.cpp` takes the default of `--decode` from a
+  provider in `src/app/startup/` when neither `--decode` nor `--decoder` is
+  set. The help text says so instead of "Default sw".
+- `TimelineModel` (B, review pkg-B-r3 F1 and F2): `registerMedia` adds the
+  runtime paths of new media without a history reset and without a new
+  document generation. `applyEdit` and `commitEdit` return a command token,
+  and `settleCommand(token, document)` replaces the result of that command
+  when asynchronous work (audio extraction, silence detection) finishes.
+- Plan comparators (D5, I, J): `scripts/plan-conformance.mjs` loads extra
+  comparators from `scripts/conformance/plan/*.mjs`.
+
+Exit, and how each is checked:
+
+1. Build, ctest, the plan check with and without `--examples`, the op check
+   and `check-mix.mjs` give the same results as before. `--dump-plan` is
+   byte-identical on every fixture while no hook is registered (a script
+   diffs the dumps of the base and the branch).
+2. The `sanitize` and `tsan` ctest runs report nothing outside
+   `tools/sanitizers/baseline.md`. `Mixer` and `AudioEngine` are threaded
+   units, and the merge gate runs only `sanitize`, so S2 runs `tsan` itself.
+3. `tst_layerhooks` (offscreen stills through `QQuickRenderControl`):
+   - Red: with the old `entryFor`, a layer whose kind has a registered
+     solid-colour factory draws the synthetic pattern. Green: it draws the
+     colour.
+   - A decorator's `ext` appears in the plan JSON.
+   - A `sourceRect` of the left half gives a still equal to the cropped
+     reference.
+   - An invert stage inverts the pixels of its layer and no other.
+   - A fixed-width measurer changes the flex box. Without it the box is the
+     fallback one.
+   - A registered source-time mapper changes `clipSourceMsAt`.
+4. `tst_mixerhooks`: an expander splits a voice into two segments, and the
+   silent one writes zeros. An envelope scales the gain. The device pick on
+   miniaudio's null backend takes a matching name and falls back to the
+   default. Without hooks, `tst_mixer` is unchanged.
+5. `tst_startuphooks`: the flag wins over the provider, the provider wins
+   over `sw`, and the help text names the provider.
+6. `tst_modelhooks`:
+   - Red: a dropped clip with new media has no runtime path, and the only
+     way to add one is `setTimeline`, which clears the undo stack. Green:
+     after `registerMedia` the preview resolves the path and the undo count
+     is unchanged.
+   - Red: undo then redo after an asynchronous settlement gives the
+     placeholder. Green: it gives the settled document. A settlement after
+     the user undid the command changes the command and not the current
+     document.
+7. A planted comparator in `scripts/conformance/plan/` that rejects every
+   layer fails the plan check once, and the plant is removed.
+
+### S3: UI wiring, round 2
+
+Goal: make the merged features of C, D1, D4, F, K and M reachable by keys,
+gestures and buttons as in the web, and give the blocked and wave 2
+packages slots and registries for their UI.
+
+- Owns: `src/edit/ClipGestureController.*`, `src/edit/Keymap.*`,
+  `src/ui/RulerCanvas.*`, `src/ui/TimelineViewState.*`,
+  `qml/Tracks/Clip.qml`, `qml/Tracks/ClipBody.qml`,
+  `qml/Tracks/TrackHeader.qml`, `qml/Tracks/TrackLane.qml`,
+  `qml/Tracks/TimeRuler.qml`, `qml/Tracks/ToolToggle.qml`,
+  `qml/Tracks/TracksRegion.qml`, `qml/DocumentBar.qml`,
+  `qml/preview/PreviewArea.qml`,
+  `qml/Inspector/primitives/InspectorSliderRow.qml`,
+  `src/app/PanelRegistry.*`, `src/app/QmlDiscovery.cmake`,
+  `src/edit/transitions/`, `src/preview/gizmo/`, and the new folders
+  `src/wiring/` and `qml/wiring/`.
+- Web: `Tracks/TracksRegion.tsx` (key handling), `Tracks/TrackHeader.tsx`,
+  `Tracks/TrackLane.tsx`, `Tracks/Clip.tsx`, `Tracks/ClipBody.tsx`,
+  `Tracks/TimeRuler.tsx`, `ToolToggle.tsx`, `timelineKeymap.ts`,
+  `TimelineDocumentBar.tsx`, `preview/PreviewCompositor.tsx`,
+  `TimelineStore.ts`, `TimelinePlaybackStore.ts`.
+
+Wiring of merged features:
+
+| Package | Keys, gestures and buttons | Closes |
+|---|---|---|
+| C | Visible, lock, mute and solo header buttons toggle their field. Delete asks to confirm, as the header menu does. A grip drag reorders tracks of the same type with the 2 px drop line. A 6 px separator resizes a track (48 to 300 px, divided by vertical zoom, ArrowUp and ArrowDown step 8 px or 32 px with Shift). Each is one undo entry. | B9, B10, B11 |
+| M | The target chip toggles targeting and dims when off. The sync button toggles sync lock and shows `SyncDisabled` in the warning tone. `liftRange`, `extractRange`, `rippleTrimPrevToPlayhead`, `rippleTrimNextToPlayhead` and `cutAllTracks`. `splitAtPlayhead` with no selection cuts only the targeted tracks. | B22, B27, B28 |
+| F | `copy`, `cut`, `paste`, `pasteInsert`, `pasteAttributes` (opens `PasteAttributesDialog`), `duplicate`, `duplicateWithGap`, `groupClips`, `ungroupClips`. Alt-drag copies. A drag on empty lane space draws `RubberBandOverlay` and selects. A click between clips selects the gap, and Delete closes it. `GroupBracket` draws on group clips. Paste sends the targeted tracks and the drop mode. | B19, B26 |
+| K | `shuttleBack`, `shuttleStop`, `shuttleForward`, `toggleLoop`, `playInToOut`, `stepFrameBack`, `stepFrameForward`. The in and out marks set the `PlaybackClock` range. | B14, B34 |
+| D1 | The clip keyframe diamonds mount in `ClipBody`. A drag retimes, a click seeks. | B12 |
+| D4 | The transition wedge gets the "Transition length" grip, one undo entry per drag. `TransitionHandle` caps the growth at the probed source length. | B29, B33 |
+
+The shortcut sheet marks each wired action as available.
+`InspectorSliderRow` gets a non-zero slider height (B21, and D2's slider).
+
+Slots and registries for other packages:
+
+| Slot or registry | Where | For |
+|---|---|---|
+| Panel slot names | `registerPanel` and the `nt-panel` marker accept any `[a-z][A-Za-z0-9]*`. A refused registration logs a warning. | all slots below |
+| `clipBody` | An item created on each clip body with `clip`, `timeline`, `gestures` and `viewState`. | D2 fade grips |
+| `toolbar` | Items after Snap in `ToolToggle`. | N Bars toggle, grid select |
+| `documentBar` | Actions after Undo and Redo. | A project settings, E export |
+| `preview` | Items inside the preview frame, clipped to it. The transform gizmo moves here (B18). | H, D5 focus overlay |
+| `trackLane` | Rows under each track lane. | P2 automation lanes |
+| Context menus | A right-click on a clip, a track header, an empty lane or the ruler opens the `MenuRegistry` items of that kind. An item calls `ClipGestureController::runAction`, the handler its shortcut uses. | G |
+| Key actions | A handler registered in `src/wiring/` runs when `handleKey` does not take the key, and `availableActions` lists it. | O source keys, D2 `audioGain`, D3 `speedDuration`, Q workspaces |
+| Snap candidates | Providers add candidates in `collectSnapCandidates` while snapping applies. | N beat lines |
+| Ruler | `TimelineViewState` gets `rulerMode` (`time` or `bars`) and `gridDivision` (`beat` by default). `TimeRuler` and `RulerCanvas` draw ticks from a provider registered for the mode. | N |
+
+Exit, and how each is checked:
+
+1. Each row of the wiring table has a test that loads `TimelineEditor.qml`
+   offscreen with a fixture document and drives it by pointer or keyboard,
+   then compares the document and the undo count with the web store action.
+   A test that calls a command directly does not count. Red: each test fails
+   on the unwired files.
+2. Each slot and registry has a test that registers a test item or handler
+   and finds it in the running editor. Red: it fails on the unwired files.
+3. The gizmo test clicks outside the preview frame over a scaled clip, and
+   the click reaches the tracks.
+4. A pointer drag on `InspectorSliderRow` changes its value. The
+   `QEXPECT_FAIL` in `tst_transitions.cpp` is removed and the test passes.
+5. Build, ctest, the plan check and the op check pass. `tst_tracksregion`,
+   `tst_tracksui` and the D1 QML tests pass unchanged.
+
+### PX: Parity P1 fixes
+
+Goal: fix the three wave 3 P1 findings: behaviour F1, layout F1 and data
+safety F1.
+
+- Owns: `src/app/EditRegistry.h`,
+  `src/edit/groups/GroupRegistrations.cpp`,
+  `src/edit/targeting/TargetingEditRegistrations.cpp`,
+  `src/edit/clipboard/ClipboardRegistrations.cpp`, `src/edit/registry/`,
+  `qml/Inspector/TimelineInspector.qml`,
+  `qml/Inspector/TransitionSection.qml`, `src/edit/inspectorsections/`,
+  `src/server/AutosaveController.*`, `qml/SaveBanners.qml`,
+  `tests/tst_autosave.cpp`, `src/server/recovery/`.
+- Web: `TimelineStore.ts` (ripple trims, ripple delete, `closeGapAt`,
+  `rippleFrozenTrackIds`), `Inspector/TimelineInspector.tsx`,
+  `Inspector/ClipAdjustments.tsx`, `Inspector/ClipTransitionSection.tsx`,
+  `web/src/hooks/useWorkspaceDocumentClose.ts`,
+  `web/src/hooks/timeline/useTimelineAutosave.ts`.
+
+Behaviour F1: F and M register the same names
+(`rippleTrimClipStart`, `rippleTrimClipEnd`, `rippleDeleteSelected` and
+`closeGapAt`), and `EditRegistry` refuses the second one without a word.
+
+- One registration per name, in `src/edit/registry/`: a wrapper that sends a
+  target containing a group to F's `applyGroupEdit` and every other target
+  to M's sync-lock functions. When the payload has no targeting lists, the
+  wrapper reads them from `TrackTargeting`. F's and M's registrars drop the
+  four names. The new module adds the wrapper to the `app`,
+  `structure-ops`, `tst_fclipboard` and `tst_targeting` targets with
+  `nt_sources`, so F's and M's `module.cmake` files stay as they are.
+- `registerEdit` and `overrideEdit` keep their signatures. A refusal is
+  recorded with the name and logged as a warning.
+  `nodetool-timeline --check-edit-registry` lists each name with its
+  registrar and exits 1 when any refusal was recorded.
+
+Layout F1: the Transition section is a second panel in the `right` slot.
+`PanelSlot` stacks it under the Inspector, which is as tall as the slot, so
+it lands below the window and outside the Inspector's `Flickable`. It also
+reads `timeline` and `tracksRegion` from a context that does not have them.
+
+- `src/edit/inspectorsections/` adds `registerInspectorSection` (id, QML
+  source, order, title) and a QML singleton that lists them. This is the
+  extension point for D2, D3, D5, I and D6, which register their sections
+  here from their own `.cpp` file instead of an `nt-panel` marker. It does
+  not use `PanelRegistry`, which S3 owns.
+- `TimelineInspector` creates the registered sections inside its
+  `Flickable`, between Transform and Animate, sorted by order in the web
+  sequence (Media, Timing, Render, Transform, Color, Effects, Mask,
+  Transition, then Animate). It sets `timelineModel`, `gestures` and
+  `controller` on each section. `TransitionSection` keeps those property
+  names and its object names, drops its `nt-panel` marker and registers
+  through the new call.
+
+Data safety F1: `save()` deletes `<id>.recovery.json` after any clean save,
+also when an earlier session wrote it, and nothing reads a recovery or
+conflict copy back. The web keeps unsaved work in the open tab and asks
+before a dirty document closes (`useWorkspaceDocumentClose.ts`), so it
+never drops unsaved work without telling the user. The native copy of that
+rule:
+
+- On start, the controller moves a recovery or conflict copy left by an
+  earlier session to `<id>.recovery.<timestamp>.json` and exposes it as
+  `earlierCopy`. A save in this session never deletes it, and a conflict in
+  this session cannot overwrite it.
+- `SaveBanners` shows a warning banner for it with Restore and Discard. The
+  web has no such banner, so the wording is new. Restore applies the copy as
+  one undo entry through a `restoreDocument` edit registered in
+  `src/server/recovery/`, and autosave then saves it. Discard deletes the
+  file.
+
+Exit, and how each is checked:
+
+1. `--check-edit-registry` runs in ctest on the app binary. Red: on the old
+   registrars it reports the four duplicates and exits 1. Green: no
+   refusal.
+2. `tst_editregistry` links every registrar the app links. With sync lock
+   off on A2, ripple delete, both ripple trims and close gap on V1 leave A2
+   unchanged, as in `TimelineStore.ts`. A group target ripples as F's code
+   did. Red: the same cases against the old registrars shift A2.
+   `tst_fclipboard`, `tst_targeting`, `tst_seamexample` and the op check
+   pass unchanged.
+3. `tst_inspectorsections` loads `TimelineEditor.qml` offscreen at 1280×800
+   with a clip that follows another selected. After a scroll the Transition
+   section lies inside the Inspector viewport, its `timelineModel` is set,
+   and choosing Crossfade adds one undo entry. Red: on the old files the
+   section lies outside the window. `tst_transitions` and the D1 Inspector
+   tests pass unchanged.
+4. `tst_autosave`:
+   - Red: a recovery copy written by one controller is gone after a clean
+     save of a second controller for the same timeline. Green: it is kept
+     as `earlierCopy`.
+   - A second conflict leaves the first session's copy as it was.
+   - Restore adds one undo entry and the next save sends the restored
+     document. Discard deletes the file.
+   - Every existing case passes.
+
+### Owns changes
+
+Files move only from packages that have merged or from no owner. Each blocked
+package gets the files that only it needs.
+
+| File | From | To | Reason |
+|---|---|---|---|
+| `src/main.cpp`, `src/model/TimelineModel.*` | S1 | S2 | R's decode default and B's model APIs |
+| `src/preview/SceneEval.cpp` | U | S2 | D3, D5, I and J all need it |
+| `src/audio/Mixer.cpp`, `src/audio/Mixer.h` | P1 | S2 | D3 and P2 need it |
+| `src/audio/AudioEngine.*` | K | S2 | R's device hook |
+| `src/preview/PreviewCompositor.*`, `LayerSource.h`, `SceneEval.h`, `shaders/composite.*`, `src/scene/ClipScene.*`, `scripts/plan-conformance.mjs` | none | S2 | D5, I and J need them |
+| `qml/Tracks/TracksRegion.qml` | C | S3 | marquee, dialog mount, header wiring |
+| `qml/Inspector/primitives/InspectorSliderRow.qml` | S1 | S3 | D2 and D4 slider |
+| `src/app/PanelRegistry.*`, `src/app/QmlDiscovery.cmake` | S1 | S3 | new slot names |
+| `ClipGestureController.*`, `Keymap.*`, `RulerCanvas.*`, `TimelineViewState.*`, `Clip.qml`, `ClipBody.qml`, `TrackHeader.qml`, `TrackLane.qml`, `TimeRuler.qml`, `ToolToggle.qml`, `DocumentBar.qml`, `PreviewArea.qml`, `src/edit/transitions/`, `src/preview/gizmo/` | none | S3 | wiring (critic F6, F7) and B18 |
+| `src/app/EditRegistry.h` | S1 | PX | behaviour F1 |
+| `GroupRegistrations.cpp`, `ClipboardRegistrations.cpp` | F | PX | behaviour F1 |
+| `TargetingEditRegistrations.cpp` | M | PX | behaviour F1 |
+| `qml/Inspector/TimelineInspector.qml` | D1 | PX | layout F1 |
+| `qml/Inspector/TransitionSection.qml` | D4 | PX | layout F1 |
+| `tests/tst_autosave.cpp` | T | PX | data safety F1 |
+| `src/server/AutosaveController.*`, `qml/SaveBanners.qml` | none | PX | data safety F1 |
+| `src/server/ServerSource.*` | none | A | the startup label (only A) |
+| `src/model/TimelineTypes.h`, `TimelineJson.*`, `LaneClipModel.*` | none | D3 | the time-remap parse (only D3) |
+| `scripts/window-checks.sh` | none | I | the `serein` check (only I) |
+| `scripts/op-conformance.mjs` | S1 | L | approved commit `500f6a7` |
+| `scripts/conformance/known-differences.test.ts`, `tests/tst_editactions.cpp` | none | L | approved commit `500f6a7` |
+| `qml/TimelineEditor.qml`, `src/app/PanelSlot.qml` | S1 | Q | the dock replaces the fixed layout (only Q) |
+
+New files the blocked packages already made or must make, added to their
+own lists: B `suites/assets.mjs`; D2 `src/edit/clipaudio/`,
+`qml/Tracks/ClipFadeGrips.qml`, `suites/clip-audio.*`; D3 `suites/speed.*`;
+D5 `suites/reframe.*`, `plan/crop.mjs`; I `plan/text.mjs`; J
+`plan/effects.mjs`; N `suites/tempo.*`. D4 keeps
+`TransitionEasingField.qml`. F and M keep their other files, now listed one
+by one.
+
+Needs added:
+
+| Package | Needs | Why |
+|---|---|---|
+| A | S3 | `documentBar` slot for project settings |
+| B | S2 | `registerMedia`, `settleCommand` |
+| D2 | S3, PX | `clipBody` slot, slider fix, Inspector sections |
+| D3 | S2, PX | source-time mapper, mixer expander, Inspector sections |
+| D5 | S2, S3, PX | decorators, `sourceRect`, plan comparators, `preview` slot, Inspector sections |
+| I | S2, PX | layer sources, decorators, text measurer, Inspector sections |
+| J | S2, E | effect stages and decorators. Exit 1 compares against E's export. |
+| N | S3 | `toolbar` slot, ruler provider, snap candidates, view state |
+| R | S2 | decode default, audio device |
+| G | S3 | context menus, `runAction` |
+| O | S3 | key actions for the source keys |
+| D6 | PX | Inspector sections |
+| P2 | S2, S3 | gain envelope, `trackLane` slot |
+
+D2, D3 and D5 register their sections with `slot=right` on their branches,
+which has the same off-screen fault as layout F1. Each moves its section to
+`registerInspectorSection` when it reruns.
+
+Merge order: the merged packages, then S2, S3, PX, L, E, A, B, D2, D3, D5,
+I, J, N, R, and wave 2 (G, O, D6, P2, Q).
+
 ## Wave 2: packages that need wave 1
 
 | Package | Needs | Scope |
