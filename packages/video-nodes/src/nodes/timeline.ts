@@ -68,7 +68,7 @@ import { tagAsNode, tagAsServer } from "@nodetool-ai/nodes-utils";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { AssetFiles, assetFileName } from "./timeline/assetFiles.js";
+import { AssetFiles } from "./timeline/assetFiles.js";
 import {
   atempoChain,
   probeDurationSeconds,

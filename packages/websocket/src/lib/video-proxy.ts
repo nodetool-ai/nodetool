@@ -336,6 +336,13 @@ export async function encodeVideoProxy(
   signal?: AbortSignal
 ): Promise<{ codec: "h264" | "vp9" }> {
   const codec = await proxyCodec();
+  let muxerOptions: Record<string, string> | undefined;
+  if (codec === "h264") {
+    muxerOptions = { movflags: "+faststart" };
+    if (probe.timescale !== null) {
+      muxerOptions.video_track_timescale = String(probe.timescale);
+    }
+  }
   await withTaskSpan(
     "cpu",
     "video.encode_proxy",
@@ -346,15 +353,7 @@ export async function encodeVideoProxy(
         outPath: output,
         spec: encoderSpec(codec),
         format: codec === "h264" ? "mp4" : "webm",
-        muxerOptions:
-          codec === "h264"
-            ? {
-                movflags: "+faststart",
-                ...(probe.timescale !== null
-                  ? { video_track_timescale: String(probe.timescale) }
-                  : {})
-              }
-            : undefined,
+        muxerOptions,
         signal
       })
   );
