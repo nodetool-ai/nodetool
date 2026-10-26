@@ -55,6 +55,7 @@ run machine. "Package P1" and "package P2" are plan packages, not severities.
 | B45 | P2 | pkg-S2-r4 F1 | `src/preview/PreviewCompositor.cpp:634` | Effects run before cropping and receive uncropped dimensions, so with a left-half crop and blur the discarded right half bleeds into the visible image. The web crops before effects (`frameCompositor.ts:812`). | S2 |
 | B46 | P2 | pkg-S2-r4 F2 | `scripts/plan-conformance.mjs:587` | The core oracle sizes placement from uncropped dimensions and extensions can only append errors, so a square source cropped to its left half expects x-scale 1 where correct native placement gives 0.5. Web crop sizing must apply before the core comparison. | S2 |
 | B47 | P2 | pkg-S2-r4 F3 | `src/app/startup/LocalDocumentSaver.cpp:18` | Calling `close()` or `setTimeline()` before the debounce expires clears the dirty state and stops the pending local save, and a later `flush()` reports success although the file lacks the edit. | S2 |
+| B48 | P2 | pkg-D3-r1 F1 | `src/edit/speed/SpeedRegistrations.cpp:6` | Speed / Duration is unreachable from the editor: Ctrl+R registers menu metadata, but no action handler or production QML caller opens `SpeedDurationDialog` or calls `openForSelection()`. The test creates the dialog directly and bypasses the missing connection. | D3 |
 
 ## Closed
 
