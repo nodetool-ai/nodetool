@@ -49,6 +49,9 @@ run machine. "Package P1" and "package P2" are plan packages, not severities.
 | B39 | P2 | wave3-data-safety F6 | `src/main.cpp:909` | A timeline opened from a local `.json` file accepts every edit but is never saved, and closing the window discards the edits without a prompt. The web asks before a dirty document closes. | S2 (owns `main.cpp`) |
 | B40 | P2 | pkg-PX-r1 F1 | `qml/Inspector/TimelineInspector.qml:125` | Selecting a group hides `MotionFields` and `KeyframeAnimations`, and `ClipGroupPanel` supplies only Group and Timing, so group transforms, opacity and animations cannot be edited. The web group panel keeps `ClipAdjustments` and `ClipAnimations`. | PX |
 | B41 | P2 | pkg-PX-r1 F2 | `src/server/AutosaveController.cpp:206` | Restore only applies the recovered JSON, so an asset absent from the current load (its last clip deleted in another session) returns with empty media and audio paths until a reload. Recovered media must be resolved and registered before the document is applied. | PX |
+| B42 | P2 | pkg-E-r4 F1 | `src/export/ExportEngine.cpp:249` | Cancel cannot interrupt the offline audio mix: `renderOffline()` decodes and mixes the whole timeline before export checks the token again. Closing the editor meanwhile blocks shutdown in `ExportController::~ExportController()` on `waitForFinished(-1)`. | E |
+| B43 | P2 | pkg-E-r4 F2 | `src/export/check-export.mjs:139` | The golden gate prints PASS with `video-rejections.json` unmet. Any preview exit code 1 authorizes the exclusion, including missing media or failed golden generation, not only measured picture differences. | E |
+| B44 | P2 | pkg-E-r4 F3 | `qml/ExportVideoDialog.qml:16` | `alphaAvailable` is always false, so "Export with transparency" stays disabled for WebM and PNG, and `--alpha` exits 1 at `ExportEngine.cpp:191`. The web enables and renders transparency for both formats. | E |
 
 ## Closed
 
