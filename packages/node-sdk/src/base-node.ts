@@ -94,6 +94,15 @@ export function coerceToSlotType<TValue>(
 }
 
 /**
+ * Slot declarations are graph data that the registry writes in
+ * `DynamicSlotMeta` shape. A record missing a declared member is read as an
+ * untyped legacy slot, so only the record check runs here.
+ */
+function isSlotDeclaration<T>(meta: T): meta is T & DynamicSlotMeta {
+  return isRecord(meta);
+}
+
+/**
  * Read the `_dynamic_inputs` framework property injected by the registry into
  * a slot-declaration map. Malformed entries are dropped rather than thrown on:
  * the map is user/graph data and a bad slot must never break node construction.
@@ -105,11 +114,11 @@ function parseDynamicSlots(
     return undefined;
   }
   const slots = new Map<string, DynamicSlotMeta>();
-  for (const [name, meta] of Object.entries(raw as Record<string, unknown>)) {
-    if (!isRecord(meta)) {
+  for (const [name, meta] of Object.entries(raw)) {
+    if (!isSlotDeclaration(meta)) {
       continue;
     }
-    slots.set(name, meta as unknown as DynamicSlotMeta);
+    slots.set(name, meta);
   }
   return slots;
 }
