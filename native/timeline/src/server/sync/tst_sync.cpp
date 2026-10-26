@@ -1,4 +1,10 @@
 #include "TimelineMerge.h"
+#include "DocumentApplier.h"
+#include "server/AutosaveController.h"
+#include "TestHttpServer.h"
+#include <QTemporaryDir>
+#include <QScopeGuard>
+#include <QUndoStack>
 #include "ResourceChangeClient.h"
 #include "server/ServerClient.h"
 
@@ -73,6 +79,133 @@ QJsonObject serialized(const MergeResult& result)
 class SyncTest : public QObject {
     Q_OBJECT
 private slots:
+    void controllerWebsocketAdopts() {
+        WsFixture ws;
+        QVERIFY(ws.server.listen(QHostAddress::LocalHost, 0));
+        TestHttpServer http;
+        QTemporaryDir cache;
+        auto raw = document();
+        raw["id"] = "seq";
+        raw["updatedAt"] = "u0";
+        QJsonArray mediaClips;
+        for (const auto& value : raw["clips"].toArray()) {
+            auto item = value.toObject();
+            item["mediaType"] = "shape";
+            mediaClips.append(item);
+        }
+        raw["clips"] = mediaClips;
+        auto server = raw;
+        auto clips = server["clips"].toArray();
+        auto first = clips[0].toObject();
+        first["startMs"] = 500;
+        clips[0] = first;
+        server["clips"] = clips;
+        server["updatedAt"] = "u1";
+        http.setJson([&](const QByteArray&, const QUrl&) {
+            return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", server}}}}).toJson();
+        });
+        QUndoStack undo;
+        setDocumentApplier([&](QUndoStack*, const QJsonObject& next, const nt::Timeline&) { raw = next; return true; });
+        const auto reset = qScopeGuard([] { setDocumentApplier({}); });
+        nt::server::AutosaveController save({http.base(), {}, "seq", cache.path(), {}}, &undo, [&] { return raw; }, "u0");
+        save.setAutosave(false);
+        save.setExternalSyncUrl(QUrl(QString("http://127.0.0.1:%1").arg(ws.server.serverPort())));
+        QTRY_COMPARE(ws.peers.size(), 1);
+        const QJsonObject frame{{"type", "resource_change"}, {"resource_type", "timelinesequence"},
+            {"event", "updated"}, {"resource", QJsonObject{{"id", "seq"}, {"etag", "fixture-etag"}, {"project_id", "default"}, {"updated_at", "u1"}}},
+            {"ops", QJsonArray{QJsonObject{{"tool", "ui_timeline_move_clip"},
+                {"input", QJsonObject{{"target", "a"}, {"startMs", 500}, {"id", "a"}}}}}}};
+        ws.peers[0]->sendTextMessage(QString::fromUtf8(QJsonDocument(frame).toJson()));
+        QTRY_COMPARE(raw, server);
+        QCOMPARE(http.countRequests("GET", "/trpc/timeline.get"), 1);
+        QCOMPARE(save.baseUpdatedAt(), QString("u1"));
+        ws.peers[0]->sendTextMessage(R"({"type":"resource_resync"})");
+        QTRY_COMPARE(http.countRequests("GET", "/trpc/timeline.get"), 2);
+        QTRY_COMPARE(save.externalState(), QString("idle"));
+        QTest::qWait(100);
+        QCOMPARE(http.countRequests("GET", "/trpc/timeline.get"), 2);
+    }
+
+    void acceptedUnits_data() {
+        QTest::addColumn<QString>("kind");
+        for (const auto* kind : {"clip", "track", "trackFolder", "marker", "mediaTrack", "transcript", "field", "document"})
+            QTest::newRow(kind) << QString(kind);
+    }
+    void acceptedUnits() {
+        QFETCH(QString, kind);
+        const QHash<QString, QString> fields{{"clip", "clips"}, {"track", "tracks"}, {"trackFolder", "trackFolders"},
+            {"marker", "markers"}, {"mediaTrack", "mediaTracks"}, {"transcript", "transcript"}};
+        auto raw = document();
+        const QString field = fields.value(kind);
+        const QJsonObject incoming{{"id", "a"}, {"name", "external"}};
+        QJsonObject conflict{{"kind", kind}, {"id", kind == "field" ? "fps" : "a"}, {"reason", "edited"},
+            {"external", kind == "field" ? QJsonValue(60) : kind == "document" ? QJsonValue(document()) : QJsonValue(incoming)}};
+        if (kind == "document") { auto value = document(); value["fps"] = 60; conflict["external"] = value; conflict["reason"] = "replaced"; }
+        const auto applied = applyAcceptedUnit(raw, conflict);
+        if (kind == "field" || kind == "document") {
+            QCOMPARE(applied["fps"], QJsonValue(60));
+        } else {
+            bool found = false;
+            for (const auto& item : applied[field].toArray()) {
+                if (item.toObject()["id"] == "a" && item.toObject()["name"] == "external") found = true;
+            }
+            QVERIFY(found);
+            conflict["external"] = QJsonValue::Null;
+            conflict["reason"] = "deleted";
+            const auto removed = applyAcceptedUnit(applied, conflict)[field].toArray();
+            for (const auto& item : removed) QVERIFY(item.toObject()["id"] != "a");
+        }
+        conflict["reason"] = "dangling";
+        QCOMPARE(applyAcceptedUnit(raw, conflict), raw);
+    }
+
+    void acceptedDeletion_data() {
+        QTest::addColumn<QString>("kind");
+        for (const auto* kind : {"track", "trackFolder", "linked-clip", "group-clip", "locked-clip"})
+            QTest::newRow(kind) << QString(kind);
+    }
+    void acceptedDeletion() {
+        QFETCH(QString, kind);
+        auto raw = document();
+        QString unitKind = "clip";
+        QString id = "a";
+        if (kind == "track") { unitKind = "track"; id = "t"; }
+        if (kind == "trackFolder") {
+            unitKind = "trackFolder"; id = "folder";
+            raw["trackFolders"] = QJsonArray{QJsonObject{{"id", id}}};
+            auto tracks = raw["tracks"].toArray();
+            auto first = tracks[0].toObject(); first["folderId"] = id; tracks[0] = first;
+            raw["tracks"] = tracks;
+        }
+        if (kind == "linked-clip" || kind == "group-clip") {
+            QJsonArray clips;
+            for (const auto& value : raw["clips"].toArray()) {
+                auto item = value.toObject();
+                if (kind == "linked-clip") item["linkId"] = "link";
+                else if (item["id"] == "a") item["mediaType"] = "group";
+                else item["parentId"] = "a";
+                clips.append(item);
+            }
+            raw["clips"] = clips;
+        }
+        if (kind == "locked-clip") {
+            raw["tracks"] = QJsonArray{QJsonObject{{"id", "t"}, {"type", "video"}, {"locked", true}}};
+        }
+        const auto applied = applyAcceptedUnit(raw, {{"kind", unitKind}, {"id", id}, {"reason", "deleted"}, {"external", QJsonValue::Null}});
+        if (kind == "track") {
+            QVERIFY(applied["tracks"].toArray().isEmpty());
+            QVERIFY(applied["clips"].toArray().isEmpty());
+        } else if (kind == "trackFolder") {
+            QVERIFY(applied["trackFolders"].toArray().isEmpty());
+            QVERIFY(!applied["tracks"].toArray()[0].toObject().contains("folderId"));
+        } else if (kind == "locked-clip") {
+            QCOMPARE(applied, raw);
+        } else {
+            QCOMPARE(applied["clips"].toArray().size(), 1);
+            QVERIFY(!applied["clips"].toArray()[0].toObject().contains(kind == "linked-clip" ? "linkId" : "parentId"));
+        }
+    }
+
     void handshake_data()
     {
         QTest::addColumn<QString>("token");

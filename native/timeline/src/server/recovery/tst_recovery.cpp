@@ -78,6 +78,7 @@ private slots:
         QVERIFY(load(model, document(0)));
         AutosaveController save({http.base(), {}, "seq", dir.path(), {}}, model.undoStack(),
                                 [&model] { return model.timeline().raw; }, "u0");
+        save.setExternalSync(false);
         save.setQuitFallbackDirs({});
         save.setDebounceMs(25);
         QQmlEngine engine;
