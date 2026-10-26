@@ -8,6 +8,7 @@ Rectangle {
     property bool selected: false
     signal selectedByUser()
     readonly property string mediaType: browser.mediaType(asset)
+    readonly property bool isFolder: asset.content_type === "folder"
     readonly property string poster: asset.thumb_url || (mediaType === "image" ? asset.get_url || "" : "")
     readonly property bool showCaption: hover.hovered || activeFocus || selected
     color: Theme.backgroundPaper
@@ -19,7 +20,14 @@ Rectangle {
     Accessible.role: Accessible.Button
     Accessible.name: asset.name || "Asset"
     Keys.onSpacePressed: selectedByUser()
-    Keys.onReturnPressed: selectedByUser()
+    Keys.onReturnPressed: {
+        if (isFolder) browser.openFolder(asset.id)
+        else selectedByUser()
+    }
+    Keys.onEnterPressed: {
+        if (isFolder) browser.openFolder(asset.id)
+        else selectedByUser()
+    }
 
     Image {
         id: posterImage
@@ -80,7 +88,7 @@ Rectangle {
         id: dragPoint
         width: 1
         height: 1
-        Drag.active: mouse.drag.active
+        Drag.active: !tile.isFolder && mouse.drag.active
         Drag.keys: ["application/x-nodetool-asset"]
         Drag.source: tile
         Drag.supportedActions: Qt.CopyAction
@@ -88,7 +96,8 @@ Rectangle {
     MouseArea {
         id: mouse
         anchors.fill: parent
-        drag.target: dragPoint
+        drag.target: tile.isFolder ? null : dragPoint
+        onDoubleClicked: { if (tile.isFolder) tile.browser.openFolder(tile.asset.id) }
         onPressed: event => {
             tile.forceActiveFocus()
             tile.selectedByUser()

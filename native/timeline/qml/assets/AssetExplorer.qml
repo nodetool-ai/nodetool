@@ -55,6 +55,12 @@ Rectangle {
         y: header.height + Theme.spacingMd
         width: parent.width - 2 * Theme.spacingLg
         spacing: Theme.spacingMd
+        ToolButton {
+            objectName: "assetFolderUp"
+            visible: browserModel.folderId !== ""
+            label: "Up"
+            onClicked: browserModel.goUp()
+        }
         Text {
             width: parent.width
             visible: !browserModel.configured

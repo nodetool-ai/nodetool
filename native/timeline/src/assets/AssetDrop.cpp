@@ -7,6 +7,43 @@
 #include <cmath>
 
 namespace nt::assets {
+QJsonObject settleLinkedAudio(QJsonObject raw, const QJsonObject& payload) {
+    auto clips = raw.value("clips").toArray();
+    const auto id = payload.value("audioClipId").toString();
+    for (qsizetype i = 0; i < clips.size(); ++i) {
+        auto clip = clips[i].toObject();
+        if (clip.value("id").toString() != id) { continue; }
+        const auto outcome = payload.value("outcome").toString();
+        if (outcome == "silent") {
+            const auto link = clip.value("linkId");
+            clips.removeAt(i);
+            qsizetype survivor = -1;
+            int count = 0;
+            for (qsizetype j = 0; j < clips.size(); ++j) {
+                if (!link.isUndefined() && clips[j].toObject().value("linkId") == link) { survivor = j; ++count; }
+            }
+            if (count == 1) {
+                auto unlinked = clips[survivor].toObject();
+                unlinked.remove("linkId");
+                clips[survivor] = unlinked;
+            }
+        } else if (outcome == "audio") {
+            const auto asset = payload.value("asset").toObject();
+            clip.insert("currentAssetId", asset.value("id"));
+            const auto duration = asset.value("duration");
+            if (duration.isDouble()) { clip.insert("durationMs", std::floor(duration.toDouble() * 1000 + 0.5)); }
+            clip.insert("status", "generated");
+            clips[i] = clip;
+        } else if (outcome == "failed") {
+            clip.insert("status", "failed");
+            clips[i] = clip;
+        } else { return raw; }
+        raw.insert("clips", clips);
+        return raw;
+    }
+    return raw;
+}
+
 double snapAssetDropMs(const QJsonArray& clips, const QString& trackId, double atMs, double snapMs) {
     std::optional<double> nearestEnd;
     for (const auto& value : clips) {

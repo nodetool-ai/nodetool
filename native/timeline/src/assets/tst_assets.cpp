@@ -1,5 +1,9 @@
 #include "assets/AssetClip.h"
 #include "assets/AssetDrop.h"
+#include "assets/AssetWav.h"
+#include <QTemporaryDir>
+#include <QtEndian>
+#include <array>
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
 #include <QJsonArray>
@@ -9,6 +13,55 @@
 class TestAssets : public QObject {
     Q_OBJECT
 private slots:
+    void wavHeaderAndSamples() {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const auto path = dir.filePath("audio.wav");
+        const std::array<float, 4> samples{-1.0f, 1.0f, 0.0f, 0.5f};
+        QVERIFY(nt::assets::writeStereoWav(path, samples));
+        QFile file(path);
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        const auto bytes = file.readAll();
+        QCOMPARE(bytes.size(), 52);
+        QCOMPARE(bytes.first(4), QByteArray("RIFF"));
+        QCOMPARE(qFromLittleEndian<quint32>(bytes.constData() + 4), 44U);
+        QCOMPARE(bytes.mid(8, 8), QByteArray("WAVEfmt "));
+        QCOMPARE(qFromLittleEndian<quint32>(bytes.constData() + 16), 16U);
+        QCOMPARE(qFromLittleEndian<quint16>(bytes.constData() + 20), 1U);
+        QCOMPARE(qFromLittleEndian<quint16>(bytes.constData() + 22), 2U);
+        QCOMPARE(qFromLittleEndian<quint32>(bytes.constData() + 24), 48000U);
+        QCOMPARE(qFromLittleEndian<quint32>(bytes.constData() + 28), 192000U);
+        QCOMPARE(qFromLittleEndian<quint16>(bytes.constData() + 32), 4U);
+        QCOMPARE(qFromLittleEndian<quint16>(bytes.constData() + 34), 16U);
+        QCOMPARE(bytes.mid(36, 4), QByteArray("data"));
+        QCOMPARE(qFromLittleEndian<quint32>(bytes.constData() + 40), 8U);
+        QCOMPARE(qFromLittleEndian<qint16>(bytes.constData() + 44), -32768);
+        QCOMPARE(qFromLittleEndian<qint16>(bytes.constData() + 46), 32767);
+        QCOMPARE(qFromLittleEndian<qint16>(bytes.constData() + 48), 0);
+        QCOMPARE(qFromLittleEndian<qint16>(bytes.constData() + 50), 16384);
+        QVERIFY(!nt::assets::writeStereoWav(path, std::span(samples).first(3)));
+    }
+    void settleOutcomes() {
+        const auto dropped = nt::assets::dropAsset({{"tracks", QJsonArray{}}, {"clips", QJsonArray{}}},
+            {{"asset", QJsonObject{{"id", "v"}, {"name", "take.mp4"}, {"content_type", "video/mp4"}, {"duration", 2}}}});
+        const auto id = dropped.value("clips").toArray()[1].toObject().value("id");
+        const auto settled = nt::assets::settleLinkedAudio(dropped, {{"audioClipId", id}, {"outcome", "audio"},
+            {"asset", QJsonObject{{"id", "wav"}, {"duration", 1.2345}}}});
+        const auto audio = settled.value("clips").toArray()[1].toObject();
+        QCOMPARE(audio.value("status").toString(), QString("generated"));
+        QCOMPARE(audio.value("currentAssetId").toString(), QString("wav"));
+        QCOMPARE(audio.value("durationMs").toInt(), 1235);
+        const auto fallback = nt::assets::settleLinkedAudio(dropped, {{"audioClipId", id}, {"outcome", "audio"},
+            {"asset", QJsonObject{{"id", "wav"}}}});
+        QCOMPARE(fallback.value("clips").toArray()[1].toObject().value("durationMs").toInt(), 2000);
+        const auto failed = nt::assets::settleLinkedAudio(dropped, {{"audioClipId", id}, {"outcome", "failed"}});
+        QCOMPARE(failed.value("clips").toArray()[1].toObject().value("status").toString(), QString("failed"));
+        const auto silent = nt::assets::settleLinkedAudio(dropped, {{"audioClipId", id}, {"outcome", "silent"}});
+        QCOMPARE(silent.value("clips").toArray().size(), 1);
+        QVERIFY(!silent.value("clips").toArray()[0].toObject().contains("linkId"));
+        QCOMPARE(silent.value("tracks"), dropped.value("tracks"));
+        QCOMPARE(nt::assets::settleLinkedAudio(dropped, {{"audioClipId", "missing"}, {"outcome", "silent"}}), dropped);
+    }
     void importedClip() {
         const auto clip = nt::assets::assetToClip({{"id", "asset"}, {"name", "take.mp4"},
             {"content_type", "video/mp4"}, {"duration", 1.2345}}, "video", 200);

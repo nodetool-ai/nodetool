@@ -2,11 +2,14 @@
 #include "assets/AssetClip.h"
 #include "assets/AssetImport.h"
 #include "assets/AssetDuration.h"
+#include "assets/AssetAudio.h"
+#include "assets/AssetDrop.h"
 #include "edit/EditActions.h"
 #include "model/TimelineModel.h"
 #include "model/TrackWindowModel.h"
 #include "server/ServerSource.h"
 #include <QJsonDocument>
+#include <QSet>
 #include <algorithm>
 #include <memory>
 
@@ -28,7 +31,8 @@ void AssetBrowser::setTimeline(TimelineModel* model) {
 
 void AssetBrowser::request(std::function<Result(nt::server::ServerClient&)> work,
                            std::function<void(const Result&)> done) {
-    if (!m_target || busy()) { return; }
+    if (!m_target) { return; }
+    if (busy()) { m_requests.push_back({std::move(work), std::move(done)}); return; }
     auto result = std::make_shared<Result>();
     const auto target = *m_target;
     auto* thread = QThread::create([work = std::move(work), target, result] {
@@ -43,17 +47,23 @@ void AssetBrowser::request(std::function<Result(nt::server::ServerClient&)> work
     const QPointer<QThread> worker(thread);
     connect(thread, &QThread::finished, this, [self, worker, result, done = std::move(done)] {
         if (!self) { return; }
-        self->m_thread.clear();
         self->receive(*result);
         if (done) { done(*result); }
+        self->m_thread.clear();
         if (worker) { worker->deleteLater(); }
-        self->importNext();
+        if (!self->m_requests.empty()) {
+            auto next = std::move(self->m_requests.front());
+            self->m_requests.pop_front();
+            self->request(std::move(next.work), std::move(next.done));
+        } else { self->importNext(); }
+        emit self->stateChanged();
     });
     emit stateChanged();
     thread->start();
 }
 
 void AssetBrowser::receive(const Result& result) {
+    if (result.folder && *result.folder != m_folderId) { return; }
     m_error = result.error;
     if (result.replace) { m_assets = result.assets; }
     else {
@@ -87,11 +97,35 @@ void AssetBrowser::receive(const Result& result) {
 }
 
 void AssetBrowser::refresh() {
-    request([](nt::server::ServerClient& client) {
-        const auto response = client.query("assets.list", {{"page_size", 10000}});
-        return response.ok() ? Result{response.data.toObject().value("assets").toArray(), {}, true}
-                             : Result{{}, response.describe(), false};
+    request([folder = m_folderId](nt::server::ServerClient& client) {
+        QJsonObject input{{"page_size", 10000}};
+        if (!folder.isEmpty()) { input.insert("parent_id", folder); }
+        const auto response = client.query("assets.list", input);
+        Result result = response.ok() ? Result{response.data.toObject().value("assets").toArray(), {}, true}
+                                     : Result{{}, response.describe(), false};
+        result.folder = folder;
+        return result;
     });
+}
+
+void AssetBrowser::setFolderId(const QString& id) {
+    if (id == m_folderId) { return; }
+    m_folderId = id;
+    m_assets = {};
+    m_pending.clear();
+    emit folderChanged();
+    emit assetsChanged();
+    refresh();
+}
+
+void AssetBrowser::openFolder(const QString& id) {
+    if (id.isEmpty() || id == m_folderId) { return; }
+    m_folderPath.append(m_folderId);
+    setFolderId(id);
+}
+
+void AssetBrowser::goUp() {
+    setFolderId(m_folderPath.isEmpty() ? QString{} : m_folderPath.takeLast());
 }
 
 void AssetBrowser::importFiles(const QList<QUrl>& urls) {
@@ -106,14 +140,17 @@ void AssetBrowser::importNext() {
     if (busy() || m_files.isEmpty()) { return; }
     const auto file = m_files.takeFirst();
     QJsonObject fields;
+    if (!m_folderId.isEmpty()) { fields.insert("parent_id", m_folderId); }
     if (m_timeline) {
         const auto raw = QJsonDocument::fromJson(m_timeline->documentJson()).object();
         if (!raw.value("projectId").toString().isEmpty()) { fields.insert("project_id", raw.value("projectId")); }
     }
-    request([file, fields](nt::server::ServerClient& client) {
+    request([file, fields, folder = m_folderId](nt::server::ServerClient& client) {
         const auto imported = nt::assets::importFile(client, file, fields);
-        return imported.ok() ? Result{QJsonArray{imported.asset}, imported.proxyError, false}
-                             : Result{{}, imported.error, false};
+        Result result = imported.ok() ? Result{QJsonArray{imported.asset}, imported.proxyError, false}
+                                      : Result{{}, imported.error, false};
+        result.folder = folder;
+        return result;
     });
 }
 
@@ -124,8 +161,9 @@ void AssetBrowser::pollProxies() {
         if (it.value() >= 360) { it = m_pending.erase(it); }
         else { ++it.value(); ids.append(it.key()); ++it; }
     }
-    request([ids](nt::server::ServerClient& client) {
+    request([ids, folder = m_folderId](nt::server::ServerClient& client) {
         Result result;
+        result.folder = folder;
         for (const auto& id : ids) {
             if (QThread::currentThread()->isInterruptionRequested()) { break; }
             const auto fresh = client.getAsset(id);
@@ -184,20 +222,68 @@ bool AssetBrowser::drop(const QVariantMap& asset, const QString& trackId, double
                 const QPointer<AssetBrowser> self(this);
                 const auto model = m_timeline;
                 const auto generation = model->documentGeneration();
-                request([rawAsset](nt::server::ServerClient& client) {
-                    return Result{QJsonArray{nt::assets::withProbedVideoDuration(client, rawAsset)}, {}, false};
+                request([rawAsset, folder = m_folderId](nt::server::ServerClient& client) {
+                    Result result{QJsonArray{nt::assets::withProbedVideoDuration(client, rawAsset)}, {}, false};
+                    result.folder = folder;
+                    return result;
                 }, [self, model, generation, payload](const Result& result) {
                     if (!self || !model || self->m_timeline != model || model->documentGeneration() != generation) { return; }
                     auto resolved = payload;
                     resolved.insert("asset", result.assets.first());
-                    model->applyEdit("assets.dropAsset", resolved);
+                    self->applyDrop(resolved);
                 });
                 applied = true;
             }
         } else {
-            applied = m_timeline->applyEdit("assets.dropAsset", payload);
+            applied = applyDrop(payload);
         }
     }
     emit stateChanged();
     return applied;
+}
+
+bool AssetBrowser::applyDrop(const QJsonObject& payload) {
+    const auto model = m_timeline;
+    if (!model) { return false; }
+    const auto generation = model->documentGeneration();
+    QSet<QString> existing;
+    for (const auto& value : model->clipsJson()) { existing.insert(value.toObject().value("id").toString()); }
+    if (!model->applyEdit("assets.dropAsset", payload)) { return false; }
+    const auto clips = model->clipsJson();
+    for (const auto& value : clips) {
+        const auto clip = value.toObject();
+        const auto id = clip.value("id").toString();
+        if (!existing.contains(id) && clip.value("mediaType").toString() == "audio" &&
+            clip.value("status").toString() == "generating") {
+            queueLinkedAudio(payload.value("asset").toObject(), id, model, generation);
+        }
+    }
+    return true;
+}
+
+void AssetBrowser::queueLinkedAudio(const QJsonObject& asset, const QString& audioClipId,
+                                   QPointer<TimelineModel> model, quint64 generation) {
+    const QPointer<AssetBrowser> self(this);
+    const auto settle = [self, model, generation, audioClipId](const Result& result) {
+        if (!self || !model || self->m_timeline != model || model->documentGeneration() != generation) { return; }
+        const auto clips = model->clipsJson();
+        if (std::none_of(clips.begin(), clips.end(), [&audioClipId](const QJsonValue& value) {
+            return value.toObject().value("id").toString() == audioClipId;
+        })) { return; }
+        auto payload = result.settlement;
+        payload.insert("audioClipId", audioClipId);
+        const auto raw = QJsonDocument::fromJson(model->documentJson()).object();
+        model->replaceClips(nt::assets::settleLinkedAudio(raw, payload).value("clips").toArray());
+    };
+    if (!m_target) {
+        Result result;
+        result.settlement = {{"outcome", "failed"}};
+        settle(result);
+        return;
+    }
+    request([asset](nt::server::ServerClient& client) {
+        Result result;
+        result.settlement = nt::assets::extractLinkedAudio(client, asset);
+        return result;
+    }, settle);
 }
