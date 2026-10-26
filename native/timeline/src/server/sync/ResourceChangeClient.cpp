@@ -15,16 +15,33 @@
 namespace nt::server::sync {
 Q_LOGGING_CATEGORY(resourceChangeLog, "nodetool.timeline.sync.transport", QtInfoMsg)
 
+namespace {
+bool isBinaryModeAcknowledgment(const QByteArray& bytes)
+{
+    // set_mode returns exactly {message:"Mode set to text"}. msgpackr with
+    // useRecords:false writes map16; compact MsgPack encoders use fixmap.
+    static const auto fixmap = QByteArray::fromHex("81a76d657373616765b04d6f64652073657420746f2074657874");
+    static const auto map16 = QByteArray::fromHex("de0001a76d657373616765b04d6f64652073657420746f2074657874");
+    return bytes == fixmap || bytes == map16;
+}
+}
+
 ResourceChangeClient::ResourceChangeClient(const QUrl& base, const QString& id,
                                          const QString& token, const QString& resourceType,
                                          QObject* parent)
     : QObject(parent), m_base(base), m_id(id), m_token(token), m_resourceType(resourceType),
       m_socket(QString(), QWebSocketProtocol::VersionLatest, this),
-      m_reconnectTimer(this), m_refreshTimer(this), m_heartbeatTimer(this), m_heartbeatDeadline(this),
+      m_reconnectTimer(this), m_refreshTimer(this), m_modeAckTimer(this),
+      m_heartbeatTimer(this), m_heartbeatDeadline(this),
       m_random([] { return QRandomGenerator::global()->generateDouble(); })
 {
     m_reconnectTimer.setSingleShot(true);
     m_refreshTimer.setSingleShot(true);
+    m_modeAckTimer.setSingleShot(true);
+    m_modeAckTimer.setInterval(2000);
+    // Older servers may never reply. Refresh once after the bounded wait,
+    // and again if a late acknowledgment closes the subscription gap.
+    connect(&m_modeAckTimer, &QTimer::timeout, this, &ResourceChangeClient::scheduleRefresh);
     m_heartbeatTimer.setSingleShot(true);
     m_heartbeatDeadline.setSingleShot(true);
     connect(&m_heartbeatTimer, &QTimer::timeout, this, [this] {
@@ -34,19 +51,21 @@ ResourceChangeClient::ResourceChangeClient(const QUrl& base, const QString& id,
     connect(&m_heartbeatDeadline, &QTimer::timeout, this, [this] {
         disconnected(1006, QStringLiteral("Heartbeat timeout"));
     });
-    connect(&m_socket, &QWebSocket::binaryMessageReceived, this, [this](const QByteArray&) {
+    connect(&m_socket, &QWebSocket::binaryMessageReceived, this, [this](const QByteArray& bytes) {
         receivedInbound();
+        if (isBinaryModeAcknowledgment(bytes)) {
+            modeAcknowledged();
+        }
     });
     connect(&m_reconnectTimer, &QTimer::timeout, this, &ResourceChangeClient::open);
     connect(&m_refreshTimer, &QTimer::timeout, this, &ResourceChangeClient::refreshNeeded);
     connect(&m_socket, &QWebSocket::connected, this, [this] {
         m_backoff = m_backoffBase;
         m_socket.sendTextMessage(R"({"command":"set_mode","data":{"mode":"text"}})");
-        // Close the initial GET-to-subscription gap too. Reconnects retain
-        // the web's jitter, while the first subscription refreshes immediately.
-        m_refreshTimer.start(m_everConnected
-            ? (m_refreshDelay ? m_refreshDelay() : static_cast<int>(m_random() * 3000)) : 0);
+        m_modeAcknowledged = false;
+        m_reconnectRefresh = m_everConnected;
         m_everConnected = true;
+        m_modeAckTimer.start();
         receivedInbound();
         setState(State::Connected);
     });
@@ -69,6 +88,10 @@ ResourceChangeClient::ResourceChangeClient(const QUrl& base, const QString& id,
     connect(&m_socket, &QWebSocket::textMessageReceived, this, [this](const QString& text) {
         receivedInbound();
         const auto message = QJsonDocument::fromJson(text.toUtf8()).object();
+        if (message["message"] == "Mode set to text") {
+            modeAcknowledged();
+            return;
+        }
         if (message["type"] == "ping") {
             m_socket.sendTextMessage(R"({"type":"pong"})");
             return;
@@ -109,6 +132,23 @@ void ResourceChangeClient::receivedInbound()
     if (m_heartbeatInterval > 0) {
         m_heartbeatTimer.start(m_heartbeatInterval);
     }
+}
+
+void ResourceChangeClient::modeAcknowledged()
+{
+    if (!m_running || !connected() || m_modeAcknowledged) {
+        return;
+    }
+    m_modeAcknowledged = true;
+    m_modeAckTimer.stop();
+    scheduleRefresh();
+}
+
+void ResourceChangeClient::scheduleRefresh()
+{
+    // Reconnects retain the web's jitter, starting at subscription readiness.
+    m_refreshTimer.start(m_reconnectRefresh
+        ? (m_refreshDelay ? m_refreshDelay() : static_cast<int>(m_random() * 3000)) : 0);
 }
 
 void ResourceChangeClient::setRandomSource(std::function<double()> source) { m_random = std::move(source); }
@@ -167,6 +207,7 @@ void ResourceChangeClient::disconnected(int code, const QString& reason)
         return;
     }
     m_refreshTimer.stop();
+    m_modeAckTimer.stop();
     m_heartbeatTimer.stop();
     m_heartbeatDeadline.stop();
     if (code == 401 || code == 1008 || code == 1009 || code == 1010
@@ -194,6 +235,7 @@ void ResourceChangeClient::stop()
     m_running = false;
     m_reconnectTimer.stop();
     m_refreshTimer.stop();
+    m_modeAckTimer.stop();
     m_heartbeatTimer.stop();
     m_heartbeatDeadline.stop();
     m_socket.abort();

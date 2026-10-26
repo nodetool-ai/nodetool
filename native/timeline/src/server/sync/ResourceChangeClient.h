@@ -40,6 +40,8 @@ signals:
 private:
     void open();
     void receivedInbound();
+    void modeAcknowledged();
+    void scheduleRefresh();
     void disconnected(int code, const QString& reason);
     void setState(State state, const QString& reason = {});
 
@@ -50,12 +52,15 @@ private:
     QWebSocket m_socket;
     QTimer m_reconnectTimer;
     QTimer m_refreshTimer;
+    QTimer m_modeAckTimer;
     QTimer m_heartbeatTimer;
     QTimer m_heartbeatDeadline;
     State m_state = State::Stopped;
     QString m_reason;
     bool m_running = false;
     bool m_everConnected = false;
+    bool m_modeAcknowledged = false;
+    bool m_reconnectRefresh = false;
     bool m_handshakeUnauthorized = false;
     int m_heartbeatInterval = 45000;
     int m_heartbeatTimeout = 10000;

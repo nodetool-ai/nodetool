@@ -396,7 +396,10 @@ private slots:
                     m_undo->undo();
                     QCOMPARE(raw["clips"], syncDoc(100, 200, newer)["clips"]);
                 } else {
-                    QVERIFY(QMetaObject::invokeMethod(m_save.get(), "discardExternalConflicts"));
+                    bool discarded = false;
+                    QVERIFY(QMetaObject::invokeMethod(m_save.get(), "discardExternalConflict",
+                        Q_RETURN_ARG(bool, discarded), Q_ARG(QString, QStringLiteral("a"))));
+                    QVERIFY(discarded);
                     QCOMPARE(raw["clips"], syncDoc(100, 200, newer)["clips"]);
                 }
                 QCOMPARE(m_save->property("externalConflicts").toList().size(), 0);

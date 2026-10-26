@@ -85,6 +85,7 @@
 #include <cstdio>
 #include <functional>
 #include <memory>
+#include <vector>
 
 class QUndoStack;
 class QThread;
@@ -143,7 +144,7 @@ public:
     QString externalState() const { return m_externalState; }
     QVariantList externalConflicts() const;
     Q_INVOKABLE bool acceptExternalConflict(const QString& id, QObject* timeline);
-    Q_INVOKABLE void discardExternalConflicts();
+    Q_INVOKABLE bool discardExternalConflict(const QString& id);
     Q_INVOKABLE void setExternalSync(bool on);
     // Test seam: overrides only the WebSocket origin, before deferred startup.
     void setExternalSyncUrl(const QUrl& url) { m_syncUrl = url; }
@@ -227,7 +228,11 @@ private:
     std::unique_ptr<sync::ResourceChangeClient> m_changes;
     QUrl m_syncUrl;
     QJsonObject m_mergeBase;
-    QList<sync::MergeConflict> m_externalConflicts;
+    struct ExternalConflict {
+        sync::MergeConflict unit;
+        std::vector<nt::Clip> media;
+    };
+    QList<ExternalConflict> m_externalConflicts;
     QString m_externalState = QStringLiteral("idle");
     bool m_externalSync = true;
     bool m_fetching = false;

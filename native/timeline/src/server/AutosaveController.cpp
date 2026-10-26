@@ -6,6 +6,7 @@
 #include <QDateTime>
 #include <QDir>
 #include <QEventLoop>
+#include <QHash>
 #include <QPointer>
 #include <QLoggingCategory>
 #include <QScopeGuard>
@@ -356,12 +357,28 @@ bool AutosaveController::applyFetched() {
     m_ackComplete = true;
     m_mergeBase = nextBase;
     m_committedHash = currentHash();
+    QHash<QString, const nt::Clip*> resolvedClips;
+    if (!conflicts.isEmpty()) {
+        for (const auto& clip : resolved.clips) {
+            resolvedClips.insert(QString::fromStdString(clip.id), &clip);
+        }
+    }
     for (auto conflict : conflicts) {
         if (conflict.id.isEmpty()) {
             conflict.id = conflict.kind;
         }
-        m_externalConflicts.removeIf([&](const sync::MergeConflict& old) { return old.id == conflict.id && old.kind == conflict.kind; });
-        m_externalConflicts.append(conflict);
+        ExternalConflict candidate{conflict, {}};
+        if (conflict.kind == u"document") {
+            candidate.media = resolved.clips;
+        } else if (conflict.kind == u"clip") {
+            if (const auto* clip = resolvedClips.value(conflict.id, nullptr)) {
+                candidate.media.push_back(*clip);
+            }
+        }
+        m_externalConflicts.removeIf([&](const ExternalConflict& old) {
+            return old.unit.id == conflict.id && old.unit.kind == conflict.kind;
+        });
+        m_externalConflicts.append(std::move(candidate));
     }
     m_externalState = wasDirty ? QStringLiteral("merged") : QStringLiteral("adopted");
     m_lastError.clear();
@@ -395,7 +412,8 @@ void AutosaveController::syncFailure(const QString& error, bool recovery) {
 
 QVariantList AutosaveController::externalConflicts() const {
     QVariantList list;
-    for (const auto& conflict : m_externalConflicts) {
+    for (const auto& candidate : m_externalConflicts) {
+        const auto& conflict = candidate.unit;
         list.append(QVariantMap{{"kind", conflict.kind}, {"id", conflict.id},
             {"label", conflict.label}, {"reason", conflict.reason}});
     }
@@ -407,12 +425,16 @@ bool AutosaveController::acceptExternalConflict(const QString& id, QObject* time
         return false;
     }
     for (qsizetype i = 0; i < m_externalConflicts.size(); ++i) {
-        const auto& conflict = m_externalConflicts[i];
+        const auto& candidate = m_externalConflicts[i];
+        const auto& conflict = candidate.unit;
         if (conflict.id != id) {
             continue;
         }
         const QJsonObject payload{{"kind", conflict.kind}, {"id", conflict.id},
             {"reason", conflict.reason}, {"external", conflict.external}};
+        for (const auto& media : candidate.media) {
+            sync::registerMedia(timeline, media);
+        }
         quint64 token = 0;
         const bool invoked = QMetaObject::invokeMethod(timeline, "applyEdit", Qt::DirectConnection,
             Q_RETURN_ARG(quint64, token), Q_ARG(QString, QStringLiteral("acceptExternalUnit")), Q_ARG(QJsonObject, payload));
@@ -426,9 +448,15 @@ bool AutosaveController::acceptExternalConflict(const QString& id, QObject* time
     return false;
 }
 
-void AutosaveController::discardExternalConflicts() {
-    m_externalConflicts.clear();
-    emit stateChanged();
+bool AutosaveController::discardExternalConflict(const QString& id) {
+    for (qsizetype i = 0; i < m_externalConflicts.size(); ++i) {
+        if (m_externalConflicts[i].unit.id == id) {
+            m_externalConflicts.removeAt(i);
+            emit stateChanged();
+            return true;
+        }
+    }
+    return false;
 }
 
 void AutosaveController::clearLocalCopyIfClean() {
