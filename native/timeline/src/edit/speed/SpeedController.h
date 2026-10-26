@@ -17,6 +17,7 @@ class SpeedController : public QObject {
     Q_INVOKABLE void beginGesture(const QString& action, const QJsonObject& payload);
     Q_INVOKABLE void preview(const QJsonObject& payload);
     Q_INVOKABLE void commit(const QString& action, const QJsonObject& payload);
+    Q_INVOKABLE void cancelGesture();
     Q_INVOKABLE bool easingReadable(const QString& easing) const;
     Q_INVOKABLE QVariant parseDuration(const QString& text, double fps, double currentMs) const;
   signals:
@@ -26,8 +27,10 @@ class SpeedController : public QObject {
   private:
     QPointer<TimelineModel> m_model;
     QJsonObject m_before;
+    QJsonArray m_preview;
     QJsonObject m_payload;
     QString m_action;
     quint64 m_generation = 0;
     bool m_gesture = false;
+    bool m_cancelled = false;
 };

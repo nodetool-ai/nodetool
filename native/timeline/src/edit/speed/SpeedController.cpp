@@ -10,6 +10,7 @@ void SpeedController::setModel(TimelineModel* model) {
     if (m_model == model) {
         return;
     }
+    cancelGesture();
     if (m_model) {
         disconnect(m_model, nullptr, this, nullptr);
     }
@@ -19,7 +20,11 @@ void SpeedController::setModel(TimelineModel* model) {
     if (model) {
         connect(model, &TimelineModel::clipsChanged, this, &SpeedController::documentChanged);
         connect(model, &TimelineModel::timelineChanged, this, &SpeedController::documentChanged);
-        connect(model, &TimelineModel::documentReplaced, this, [this] { m_before = {}; });
+        connect(model, &TimelineModel::documentReplaced, this, [this] {
+            m_cancelled = m_gesture;
+            m_gesture = false;
+            m_before = {};
+        });
     }
     emit modelChanged();
     emit documentChanged();
@@ -31,17 +36,24 @@ bool SpeedController::apply(const QString& action, const QJsonObject& payload) {
     return m_model && m_model->applyEdit(action, payload);
 }
 void SpeedController::beginGesture(const QString& action, const QJsonObject& payload) {
+    cancelGesture();
+    m_cancelled = false;
     if (!m_model) {
         return;
     }
     m_before = QJsonDocument::fromJson(m_model->documentJson()).object();
+    m_preview = m_model->clipsJson();
     m_generation = m_model->documentGeneration();
     m_gesture = true;
     m_action = action;
     m_payload = payload;
 }
 void SpeedController::preview(const QJsonObject& payload) {
-    if (!m_model || m_before.isEmpty() || m_generation != m_model->documentGeneration()) {
+    if (!m_gesture || !m_model) { return; }
+    if (m_generation != m_model->documentGeneration() || m_preview != m_model->clipsJson()) {
+        m_cancelled = true;
+        m_gesture = false;
+        m_before = {};
         return;
     }
     auto merged = m_payload;
@@ -52,26 +64,33 @@ void SpeedController::preview(const QJsonObject& payload) {
     }
     const auto edit = nt::app::findEdit(m_action);
     if (edit) {
-        m_model->replaceClips(edit(m_before, merged).value("clips").toArray());
+        m_preview = edit(m_before, merged).value("clips").toArray();
+        m_model->replaceClips(m_preview);
     }
 }
 void SpeedController::commit(const QString& action, const QJsonObject& payload) {
-    if (!m_model) {
-        return;
-    }
+    if (m_cancelled) { m_cancelled = false; return; }
+    if (!m_model) { return; }
     if (!m_gesture) {
         apply(action, payload);
         return;
     }
-    m_gesture = false;
-    if (m_before.isEmpty() || m_generation != m_model->documentGeneration()) {
-        m_before = {};
-        return;
-    }
     preview(payload);
-    const auto before = m_before.value("clips").toArray();
+    if (m_gesture) {
+        m_gesture = false;
+        const auto before = m_before.value("clips").toArray();
+        m_before = {};
+        m_model->commitEdit(m_action, before, m_preview);
+    }
+}
+void SpeedController::cancelGesture() {
+    if (!m_gesture) { return; }
+    m_gesture = false;
+    m_cancelled = true;
+    if (m_model && m_generation == m_model->documentGeneration() && m_preview == m_model->clipsJson()) {
+        m_model->replaceClips(m_before.value("clips").toArray());
+    }
     m_before = {};
-    m_model->commitEdit(m_action, before, m_model->clipsJson());
 }
 bool SpeedController::easingReadable(const QString& easing) const {
     return nt::scene::isKnownEasing(easing.toStdString());
