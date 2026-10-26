@@ -1,0 +1,25 @@
+nt_sources(core src/edit/clipboard/RawDocument.h src/edit/clipboard/ClipboardOps.h src/edit/clipboard/ClipboardOps.cpp)
+nt_sources(app src/edit/clipboard/ClipboardRegistrations.cpp)
+nt_sources(app src/edit/clipboard/AppEditCheck.cpp)
+nt_sources(structure-ops src/edit/clipboard/ClipboardRegistrations.cpp)
+nt_sources(tst_fclipboard src/edit/clipboard/ClipboardRegistrations.cpp)
+function(nt_clipboard_tests)
+    qt_add_executable(structure-ops src/edit/clipboard/StructureOpsCli.cpp src/app/BuiltinEdits.cpp)
+    nt_target_sources(structure-ops)
+    target_link_libraries(structure-ops PRIVATE timeline_core)
+    set_target_properties(structure-ops PROPERTIES MACOSX_BUNDLE FALSE)
+
+    qt_add_executable(tst_fclipboard src/edit/clipboard/tst_fclipboard.cpp
+        src/model/TimelineModel.cpp src/model/TimelineModel.h
+        src/model/TrackListModel.cpp src/model/TrackListModel.h src/app/BuiltinEdits.cpp)
+    nt_target_sources(tst_fclipboard)
+    target_link_libraries(tst_fclipboard PRIVATE timeline_core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test)
+    target_compile_definitions(tst_fclipboard PRIVATE NT_QML_DIR="${CMAKE_CURRENT_SOURCE_DIR}/qml")
+    set_target_properties(tst_fclipboard PROPERTIES MACOSX_BUNDLE FALSE
+        RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_BINARY_DIR}/F-tests")
+    add_test(NAME tst_fclipboard COMMAND tst_fclipboard)
+    set_tests_properties(tst_fclipboard PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    add_test(NAME tst_fapp_edits COMMAND $<TARGET_FILE:nodetool-timeline> --check-structure-edits)
+    set_tests_properties(tst_fapp_edits PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen" TIMEOUT 30)
+endfunction()
+nt_tests(nt_clipboard_tests)
