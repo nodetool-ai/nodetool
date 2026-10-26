@@ -211,7 +211,10 @@ async function* driveFilterComplex(
   }
   for (const input of pending) {
     await send(input);
+    const ended = input.done;
     await advance(input);
+    // A one-frame input runs out here; the graph only learns that from a flush.
+    if (input.done && !ended) await graph.flush(input.label);
   }
   yield* drain();
 

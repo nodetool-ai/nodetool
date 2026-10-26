@@ -89,6 +89,25 @@ describe("transformMedia", () => {
     expect(rmsBetween(audio, 0.5, 1.5) / rmsBetween(source, 0.5, 1.5)).toBeCloseTo(0.5, 1);
   });
 
+  it("ends a one-frame input in a graph without ending the graph", async () => {
+    await writeRgbaVideo({
+      outPath: file("one-frame.mkv"),
+      width: 24,
+      height: 16,
+      fps: 24,
+      frames: 1,
+      frameAt: () => solidRgba(24, 16, [255, 0, 0, 255])
+    });
+    await transformMedia({
+      inputs: [{ filePath: file("av.mp4") }, { filePath: file("one-frame.mkv") }],
+      outPath: file("overlay-still.mp4"),
+      video: { graph: "[0:v][1:v]overlay=0:0[outv]", output: "outv" },
+      audio: null
+    });
+    // overlay repeats the last frame of an ended input: every main frame survives.
+    expect((await inspectMedia(file("overlay-still.mp4"))).frameTimes).toHaveLength(48);
+  });
+
   it("throws when a graph names a stream an input lacks", async () => {
     await expect(
       transformMedia({
