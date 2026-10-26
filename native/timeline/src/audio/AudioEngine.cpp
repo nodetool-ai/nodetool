@@ -13,6 +13,7 @@
 #include <set>
 #include <mutex>
 #include <thread>
+#include <unordered_map>
 
 namespace nt::audio {
 namespace {
@@ -34,14 +35,16 @@ constexpr double kRingSeconds = 2.0;
 constexpr double kPrimeMs = 250.0;
 constexpr std::int64_t kChunkFrames = 4096;
 
-// One seek's PCM: a ring per voice, created when the voice comes within the
-// lookahead and freed once the callback has played past it.
+// One mix snapshot's PCM: rings are retained across unchanged mappings and
+// released by the worker after the callback no longer reads their snapshots.
 struct Session {
     std::atomic<std::uint64_t> seekSeq{0};
     double startMs = 0.0;
     std::uint64_t planVersion = 0;
     std::shared_ptr<const MixPlan> plan;
-    std::vector<std::unique_ptr<PcmRing>> rings;          // worker owned
+    // Shared only between worker-owned snapshots. The callback never copies
+    // or destroys an owner. Old snapshots retain rings until their hazard clears.
+    std::vector<std::shared_ptr<PcmRing>> rings;
     std::unique_ptr<std::atomic<PcmRing*>[]> live;         // published to the callback
     std::vector<std::int64_t> endFrame;                     // source frame past the clip end
     std::unique_ptr<std::atomic<bool>[]> failed;            // no PCM for this voice
@@ -78,12 +81,13 @@ struct AudioEngine::Impl {
     std::atomic<std::int64_t> recordedFrames{0};
 
     // ---- worker ----
-    std::thread worker;
+    std::jthread worker;
     std::mutex mutex;  // guards plan, planVersion, stopWorker
     std::condition_variable wake;
     bool stopWorker = false;
     std::shared_ptr<const MixPlan> plan = std::make_shared<MixPlan>();
     std::uint64_t planVersion = 1;
+    std::uint64_t publishedPlanVersion = 0;  // guarded by mutex, caller publication acknowledgement
     std::map<std::string, std::unique_ptr<AudioSource>> sources;  // by clip id and path
     std::vector<std::unique_ptr<Session>> sessions;               // current is last
     std::atomic<std::int64_t> sessionCount{0};
@@ -287,7 +291,7 @@ struct AudioEngine::Impl {
         decodeErrors.store(evictedDecodeErrors + live);
     }
 
-    std::unique_ptr<Session> buildSession(std::uint64_t seekSeq, double startMs) {
+    std::unique_ptr<Session> buildSession(std::uint64_t seekSeq, double startMs, const Session* previous = nullptr) {
         auto s = std::make_unique<Session>();
         {
             std::lock_guard lock(mutex);
@@ -305,6 +309,34 @@ struct AudioEngine::Impl {
         for (std::size_t i = 0; i < n; ++i) s->failed[i].store(false);
         s->pcm.assign(n, VoicePcm{});
         s->doneMs.store(startMs);
+        if (previous) {
+            // Identity plus the affine source mapping, not gain, fades, pan or
+            // timeline extent, decides whether buffered PCM can continue.
+            std::unordered_map<std::string, std::size_t> byId;
+            byId.reserve(previous->plan->voices.size());
+            for (std::size_t i = 0; i < previous->plan->voices.size(); ++i) {
+                byId.emplace(previous->plan->voices[i].clipId, i);
+            }
+            for (std::size_t i = 0; i < n; ++i) {
+                const VoicePlan& v = s->plan->voices[i];
+                const auto found = byId.find(v.clipId);
+                if (found == byId.end()) {
+                    continue;
+                }
+                const auto j = found->second;
+                const VoicePlan& old = previous->plan->voices[j];
+                if (v.mediaPath != old.mediaPath || v.sourceRate != old.sourceRate ||
+                    v.inPointMs - v.startMs * v.sourceRate != old.inPointMs - old.startMs * old.sourceRate) {
+                    continue;
+                }
+                s->rings[i] = previous->rings[j];
+                s->live[i].store(previous->live[j].load(std::memory_order_acquire));
+                s->failed[i].store(previous->failed[j].load(std::memory_order_relaxed));
+                s->endFrame[i] = static_cast<std::int64_t>(
+                    std::ceil(v.sourceFrameAt(v.startMs + v.durationMs, sampleRate))) + 2;
+            }
+            s->consumed.store(previous->consumed.load(std::memory_order_acquire));
+        }
         sessionCount.fetch_add(1);
         return s;
     }
@@ -341,13 +373,14 @@ struct AudioEngine::Impl {
                 const auto first = std::max<std::int64_t>(
                     0, static_cast<std::int64_t>(std::floor(v.sourceFrameAt(fromMs, sampleRate))) - 1);
                 const auto cap = static_cast<std::int64_t>(kRingSeconds * sampleRate * std::max(1.0, v.sourceRate)) + 1024;
-                s.rings[i] = std::make_unique<PcmRing>(cap, first);
+                s.rings[i] = std::make_shared<PcmRing>(cap, first);
                 s.endFrame[i] = static_cast<std::int64_t>(std::ceil(v.sourceFrameAt(endMs, sampleRate))) + 2;
-                s.live[i].store(s.rings[i].get(), std::memory_order_release);
             }
             PcmRing& ring = *s.rings[i];
             const auto primeFrames = static_cast<std::int64_t>(kPrimeMs * sampleRate / 1000.0 * v.sourceRate) + 1024;
             const std::int64_t limit = playing ? s.endFrame[i] : std::min(s.endFrame[i], ring.firstFrame() + primeFrames);
+            const double needFrames = std::min(kPrimeMs * sampleRate / 1000.0 * v.sourceRate,
+                                              static_cast<double>(s.endFrame[i] - ring.firstFrame()));
             if (ring.writeEnd() < limit && src->position() != ring.writeEnd()) src->seek(ring.writeEnd());
             while (ring.writeEnd() < limit && ring.endFrame() == INT64_MAX) {
                 const std::int64_t want = std::min({ring.freeFrames(), kChunkFrames, limit - ring.writeEnd()});
@@ -358,12 +391,15 @@ struct AudioEngine::Impl {
                     break;
                 }
                 ring.write(chunk.data(), got);
+                if (static_cast<double>(ring.writeEnd() - ring.firstFrame()) >= needFrames - 2.0) {
+                    s.live[i].store(s.rings[i].get(), std::memory_order_release);
+                }
             }
+            // EOF also primes a short source. The callback never sees an
+            // empty new ring while its decoder is opening.
+            s.live[i].store(s.rings[i].get(), std::memory_order_release);
             // Primed: the voices within kPrimeMs of the start.
             if (v.startMs < s.startMs + kPrimeMs) {
-                const double needFrames =
-                    std::min(kPrimeMs * sampleRate / 1000.0 * v.sourceRate,
-                             static_cast<double>(s.endFrame[i] - ring.firstFrame()));
                 const bool full = static_cast<double>(ring.writeEnd() - ring.firstFrame()) >= needFrames - 2.0;
                 if (!full && ring.endFrame() == INT64_MAX) primed = false;
             }
@@ -406,6 +442,25 @@ struct AudioEngine::Impl {
                     published.store(current, std::memory_order_seq_cst);
                 }
             }
+            std::uint64_t version = 0;
+            {
+                std::lock_guard lock(mutex);
+                version = planVersion;
+            }
+            if (current && current->planVersion != version) {
+                const double liveMs = std::max(current->startMs, current->doneMs.load(std::memory_order_acquire));
+                auto replacement = buildSession(current->seekSeq.load(), liveMs, current);
+                current = replacement.get();
+                sessions.push_back(std::move(replacement));
+                // Gain/removal edits are visible immediately. Filling a new
+                // voice cannot hold up publication or the continuing voices.
+                published.store(current, std::memory_order_seq_cst);
+            }
+            {
+                std::lock_guard lock(mutex);
+                publishedPlanVersion = current ? current->planVersion : version;
+            }
+            wake.notify_all();
             if (current) {
                 const bool primed = fill(*current, cmd.playing);
                 if (primed) current->primed.store(true, std::memory_order_release);
@@ -432,9 +487,16 @@ bool AudioEngine::running() const {
 
 void AudioEngine::setTimeline(std::shared_ptr<const Timeline> timeline) {
     auto plan = std::make_shared<MixPlan>(timeline ? buildMixPlan(*timeline) : MixPlan{});
-    std::lock_guard lock(m_impl->mutex);
-    m_impl->plan = std::move(plan);
-    m_impl->planVersion += 1;
+    Impl& d = *m_impl;
+    std::unique_lock lock(d.mutex);
+    d.plan = std::move(plan);
+    const auto version = ++d.planVersion;
+    d.wake.notify_all();
+    // The caller may wait for the worker, never the real-time callback.
+    // On return, any callback that starts observes this plan or a newer one.
+    d.wake.wait(lock, [&d, version] {
+        return !d.running.load() || d.stopWorker || d.publishedPlanVersion >= version;
+    });
 }
 
 bool AudioEngine::start(const Options& options, std::string* error) {
@@ -477,7 +539,7 @@ bool AudioEngine::start(const Options& options, std::string* error) {
         std::lock_guard lock(d.mutex);
         d.stopWorker = false;
     }
-    d.worker = std::thread([&d]() { d.workerLoop(); });
+    d.worker = std::jthread([&d]() { d.workerLoop(); });
     d.running.store(true);
     d.generation.fetch_add(1);
     d.publishDevice(true);
@@ -488,6 +550,7 @@ bool AudioEngine::start(const Options& options, std::string* error) {
 void AudioEngine::stop() {
     Impl& d = *m_impl;
     const bool wasRunning = d.running.exchange(false);
+    d.wake.notify_all();
     if (d.deviceReady) {
         ma_device_uninit(&d.device);
         d.deviceReady = false;
