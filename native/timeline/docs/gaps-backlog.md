@@ -14,11 +14,14 @@ run machine. "Package P1" and "package P2" are plan packages, not severities.
 |---|---|---|---|---|---|
 | B1 | P2 | S1-r6 F1 | `qml/Tracks/TracksRegion.qml:187` | The add-track "+" button has no click handler or insertion hook. Package C owns `AddTrackButton.qml`, but nothing instantiates it, and `TracksRegion.qml` has no owner. | C (owns `TracksRegion.qml`; wires "+" and adds a header-actions slot for later packages) |
 | B2 | P2 | S1-r6 F2 | `src/audio/Mixer.cpp:168` | Audio processing has no effect hook. `VoicePlan` and `mixBlock` write samples after gain, fade and pan, so package P1's effects in `src/audio/effects/` cannot run without editing shared mixer code. | P1 (owns `Mixer.cpp` and `Mixer.h`; adds the effect hook that package P2 builds on) |
-| B3 | P2 | fix-decode-r3 F1 | `tests/tst_vulkaninterop.cpp:289` | The teardown test checks a retention counter, not image lifetime. Removing only `o.images = {}` and `o.memory = {}` from the destructor still passes. | V |
-| B4 | P2 | fix-ui-r3 F1 | `src/ui/MediaPreviews.cpp:162` | An abandoned local-preview helper blocks a healthy replacement file at the same path. The replacement gets a cached failure for 30 seconds. | V |
-| B5 | P2 | L-r2 F1 | `src/preview/hw/VulkanInterop.cpp:393` | A readback that Qt drops (staging buffer allocation failure) never runs its callback. Its completion mark stays recorded, blocks removal of later marks and leaks at teardown. The attempt in `gaps/L` 1dd43e7620 was rejected (L-r3 F1, use-after-free). | V |
+| B6 | P2 | pkg-V-r1 F1 | `src/ui/MediaPreviews.cpp:156` | `mediaVersionKey(path)` runs synchronous `QFileInfo` metadata queries before the bounded helper starts. A stalled filesystem lookup cannot be cancelled or timed out, so two stalls exhaust the preview pool. | unassigned |
+| B7 | P2 | pkg-V-r1 F2 | `tools/sanitizers/clang-tidy-baseline.mjs:34` | The baseline drops diagnostic locations and compares file/check/message strings. A new occurrence of an already-baselined warning passes as zero additions. | V |
+| B8 | P2 | pkg-V-r1 F3 | `src/platform/ThreadSafety.h:6` | The thread-safety annotations and lock wrappers are used by no production class, so removing a required lock from a mutex-protected class produces no warning. | V |
 
 ## Closed
 
 | ID | Closed by | Commit |
 |---|---|---|
+| B3 | Package V merge (fix-decode-r3 F1, confirmed fixed by pkg-V-r1) | b3246ba7cb |
+| B4 | Package V merge (fix-ui-r3 F1, confirmed fixed by pkg-V-r1) | b3246ba7cb |
+| B5 | Package V merge (dropped-readback leak, confirmed fixed by pkg-V-r1) | b3246ba7cb |
