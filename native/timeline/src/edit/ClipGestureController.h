@@ -223,6 +223,7 @@ private:
     void dropGesture();
     std::optional<double> sourceCap(const QJsonObject& clip);
     void probeSources();
+    void syncPlaybackRange();
 
     mutable QHash<QString, QJsonObject> m_clipData;
     mutable std::uint64_t m_clipDataRevision = 0;

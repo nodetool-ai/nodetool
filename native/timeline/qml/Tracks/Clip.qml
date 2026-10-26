@@ -69,7 +69,7 @@ Item {
         hovered: hover.hovered
         selected: clipItem.selected
         disabled: clipItem.hidden
-        locked: clipItem.locked
+        locked: clipItem.interactionLocked
         fadeInMs: clipItem.fadeInMs
         fadeOutMs: clipItem.fadeOutMs
         fadeInShape: clipItem.fadeInShape
