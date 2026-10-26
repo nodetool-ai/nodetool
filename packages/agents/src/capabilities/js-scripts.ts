@@ -63,6 +63,7 @@ import {
   deleteJsScriptSpec
 } from "./js-scripts.specs.js";
 import { isNonBlankString, isRecord } from "../utils/type-guards.js";
+import { editWithRename, parseRename, renameOwned } from "./rename.js";
 
 export { MAX_JS_SCRIPT_DEPTH } from "./js-scripts.specs.js";
 
@@ -609,54 +610,90 @@ export function applyJsScriptEditOps(
 const editJsScript: CapabilityExport = {
   spec: editJsScriptSpec,
   impl: async (run, params) => {
-    const script = await loadScript(run, params);
-    if (isError(script)) return script;
+    const name = parseRename(params["name"]);
+    if (isError(name)) return name;
+    // `name` here is the new name, never a lookup key: the script is the one
+    // js_script_id names.
+    const target = { js_script_id: params["js_script_id"] };
+    return editWithRename({
+      ops: params["ops"],
+      name,
+      idKey: "id",
+      applyOps: () => applyJsScriptEdit(run, params, target),
+      rename: async (next) => {
+        const script = await loadScript(run, target);
+        if (isError(script)) return script;
+        const { JsScript } = await import("@nodetool-ai/models");
+        return renameOwned(JsScript, {
+          id: script.id,
+          userId: run.context.userId,
+          name: next,
+          label: "JS script",
+          // With ops the edit has already moved updated_at on; the check
+          // belongs to the ops write then, not to the rename after it.
+          expectedUpdatedAt:
+            params["ops"] === undefined || params["ops"] === null
+              ? stringParam(params["base_updated_at"])
+              : undefined
+        });
+      }
+    });
+  }
+};
 
-    const ops = parseJsScriptEditOps(params["ops"]);
-    if (isError(ops)) return ops;
+/** The code edits of one edit_js_script call, validated and saved. */
+async function applyJsScriptEdit(
+  run: CapabilityRun,
+  params: Record<string, unknown>,
+  target: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const script = await loadScript(run, target);
+  if (isError(script)) return script;
 
-    const document = script.toDocument();
-    const applied = applyJsScriptEditOps(document.code, ops);
-    if (isError(applied)) return applied;
+  const ops = parseJsScriptEditOps(params["ops"]);
+  if (isError(ops)) return ops;
 
-    const nextDocument = { ...document, code: applied.code };
-    const validation = await validateDocument(run, nextDocument);
-    if (!validation.ok) {
-      return {
-        ok: false,
-        saved: false,
-        error:
-          "The revised code has validation errors, so nothing was saved: " +
-          validation.errors.map((issue) => issue.message).join("; "),
-        validation
-      };
-    }
+  const document = script.toDocument();
+  const applied = applyJsScriptEditOps(document.code, ops);
+  if (isError(applied)) return applied;
 
-    const expected = stringParam(params["base_updated_at"]);
-    const { JsScript } = await import("@nodetool-ai/models");
-    const updated = await JsScript.updateFieldsIfUnchanged(
-      script.id,
-      expected ?? script.updated_at,
-      { document: JSON.stringify(nextDocument) }
-    );
-    if (!updated) {
-      return {
-        error:
-          `JS script ${script.id} was modified since it was read ` +
-          "(optimistic concurrency conflict); nothing was saved. Re-read it " +
-          "with get_js_script and retry."
-      };
-    }
+  const nextDocument = { ...document, code: applied.code };
+  const validation = await validateDocument(run, nextDocument);
+  if (!validation.ok) {
     return {
-      ok: true,
-      saved: true,
-      id: updated.id,
-      applied: ops.length,
-      updated_at: updated.updated_at,
+      ok: false,
+      saved: false,
+      error:
+        "The revised code has validation errors, so nothing was saved: " +
+        validation.errors.map((issue) => issue.message).join("; "),
       validation
     };
   }
-};
+
+  const expected = stringParam(params["base_updated_at"]);
+  const { JsScript } = await import("@nodetool-ai/models");
+  const updated = await JsScript.updateFieldsIfUnchanged(
+    script.id,
+    expected ?? script.updated_at,
+    { document: JSON.stringify(nextDocument) }
+  );
+  if (!updated) {
+    return {
+      error:
+        `JS script ${script.id} was modified since it was read ` +
+        "(optimistic concurrency conflict); nothing was saved. Re-read it " +
+        "with get_js_script and retry."
+    };
+  }
+  return {
+    ok: true,
+    saved: true,
+    id: updated.id,
+    applied: ops.length,
+    updated_at: updated.updated_at,
+    validation
+  };
+}
 
 const validateJsScript: CapabilityExport = {
   spec: validateJsScriptSpec,

@@ -980,6 +980,16 @@ function resolveShots(doc: StoryboardDoc, targets: unknown): Shot[] {
  * its configured backends host-side, so the belt carries no per-provider
  * search duplicates.
  */
+/** Apply an edit tool's `name`: true when it renamed, refused when blank. */
+function renameDoc(doc: { name: string }, raw: unknown): boolean {
+  if (raw === undefined) return false;
+  if (typeof raw !== "string" || raw.trim() === "") {
+    throw new Error("name must be a non-empty string.");
+  }
+  doc.name = raw.trim();
+  return true;
+}
+
 export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
   const world = createWorld();
   const games = new Map<string, { name: string; document: GameDocument; draft_updated_at: string }>();
@@ -1729,11 +1739,14 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
     ),
     tool(
       "edit_timeline",
-      "Apply document edits to a saved sequence.",
-      obj({ timeline_id: S, ops: ANY_ARRAY }, ["timeline_id", "ops"]),
+      "Apply document edits to a saved sequence, and/or rename it.",
+      obj({ timeline_id: S, name: S, ops: ANY_ARRAY }, ["timeline_id"]),
       (params) => {
         const doc = needTimeline(world, str(params["timeline_id"]));
         const ops = recList(params["ops"]);
+        if (renameDoc(doc, params["name"]) && params["ops"] === undefined) {
+          return { ok: true, timeline_id: doc.id, name: doc.name };
+        }
         if (ops.length === 0)
           throw new Error("edit_timeline needs at least one op");
         ops.forEach((op, index) => {
@@ -1919,14 +1932,16 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
     ),
     tool(
       "edit_sketch",
-      "Apply layer-structure edits to a saved sketch.",
-      obj({ image_document_id: S, ops: ANY_ARRAY }, [
-        "image_document_id",
-        "ops"
+      "Apply layer-structure edits to a saved sketch, and/or rename it.",
+      obj({ image_document_id: S, name: S, ops: ANY_ARRAY }, [
+        "image_document_id"
       ]),
       (params) => {
         const doc = needSketch(world, str(params["image_document_id"]));
         const ops = recList(params["ops"]);
+        if (renameDoc(doc, params["name"]) && params["ops"] === undefined) {
+          return { ok: true, image_document_id: doc.id, name: doc.name };
+        }
         if (ops.length === 0)
           throw new Error("edit_sketch needs at least one op");
         ops.forEach((op, index) => {
@@ -2160,13 +2175,16 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
     ),
     tool(
       "edit_script",
-      "Apply cast/line edits to a saved script.",
-      obj({ script_id: S, ops: ANY_ARRAY }, ["script_id", "ops"]),
+      "Apply cast/line edits to a saved script, and/or rename it.",
+      obj({ script_id: S, name: S, ops: ANY_ARRAY }, ["script_id"]),
       (params) => {
         const id = str(params["script_id"]);
         const doc = world.scripts.get(id);
         if (!doc) throw new Error(`no script with id "${id}"`);
         const ops = recList(params["ops"]);
+        if (renameDoc(doc, params["name"]) && params["ops"] === undefined) {
+          return { ok: true, script_id: id, name: doc.name };
+        }
         if (ops.length === 0)
           throw new Error("edit_script needs at least one op");
         ops.forEach((op, index) => {
@@ -2636,6 +2654,29 @@ export const CODEACT_API_SURFACE_CASES: readonly CodeActEvalCase[] = [
         asNumber(field(r, "trackCount")) === 2 &&
         asNumber(field(r, "snapshotVersion")) === 1,
       resultCheckLabel: "1 issue → 0, 2 tracks, snapshot v1"
+    }
+  },
+  {
+    id: "rename-documents",
+    description: "Rename a timeline, a sketch and a script without editing them",
+    namespaces: ["timelines", "sketches", "scripts"],
+    objective:
+      'Rename three saved documents: the timeline tl_promo to "Promo final", ' +
+      'the image document img_cover to "Cover v2", and the script scr_intro ' +
+      'to "Intro VO". Leave their contents alone. Finish with ' +
+      "{timelineName, sketchName, scriptName} read back from the saved lists.",
+    outputSchema: obj(
+      { timelineName: S, sketchName: S, scriptName: S },
+      ["timelineName", "sketchName", "scriptName"]
+    ),
+    expect: {
+      requiredTools: ["edit_timeline", "edit_sketch", "edit_script"],
+      maxActions: 3,
+      resultCheck: (r: unknown) =>
+        field(r, "timelineName") === "Promo final" &&
+        field(r, "sketchName") === "Cover v2" &&
+        field(r, "scriptName") === "Intro VO",
+      resultCheckLabel: "all three renamed and read back"
     }
   },
   {

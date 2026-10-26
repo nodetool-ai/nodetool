@@ -707,6 +707,40 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
       }
     ),
     tool(
+      "update_workflow",
+      "Change a saved workflow's graph, name, description or tags.",
+      {
+        workflow_id: s,
+        name: s,
+        graph: o,
+        tags: { type: "array" },
+        description: s
+      },
+      (params) => {
+        const workflow = world.workflow(params["workflow_id"]);
+        if (params["graph"] !== undefined) {
+          const graph = toGraph(params["graph"]);
+          const check = validateGraph(graph);
+          if (!check.ok) {
+            throw new Error(
+              `Refusing to save an invalid graph: ${check.issues
+                .map((i) => i.message)
+                .join("; ")}`
+            );
+          }
+          workflow.graph = graph;
+        }
+        if (typeof params["name"] === "string") workflow.name = params["name"];
+        if (typeof params["description"] === "string") {
+          workflow.description = params["description"];
+        }
+        if (Array.isArray(params["tags"])) {
+          workflow.tags = params["tags"] as string[];
+        }
+        return summarize(workflow);
+      }
+    ),
+    tool(
       "list_workflow_versions",
       "List a workflow's snapshots, newest first.",
       { workflow_id: s, limit: { type: "number" } },

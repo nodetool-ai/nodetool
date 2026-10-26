@@ -53,6 +53,7 @@ import {
 } from "../utils/type-guards.js";
 
 import { resolveProjectId } from "./project-scope.js";
+import { editWithRename, parseRename, renameOwned } from "./rename.js";
 import {
   encodeSketchLayerData,
   findImageUseCase,
@@ -1047,125 +1048,150 @@ const editSketch: CapabilityExport = {
         error: "image_document_id is required (use list_sketches to find one)."
       };
     }
-    const ops = parseOps(params["ops"]);
-    if (isError(ops)) return ops;
-
-    const { ImageDocument, ImageDocumentConflictError } =
-      await import("@nodetool-ai/models");
-    const { SKETCH_BLEND_MODES } = await import("../evals/surfaces/sketch.js");
-
-    const existing = await ImageDocument.findById(sketchId);
-    // A sketch owned by someone else reads as missing — the rule the tRPC
-    // router's ownership check applies.
-    if (!existing || existing.user_id !== run.context.userId) {
-      return { error: `Sketch ${sketchId} was not found.` };
-    }
-
-    // Verify every referenced asset before writing. An id that resolves to
-    // nothing would otherwise be stored happily and show up as an empty layer
-    // in the editor — the failure this reports instead.
-    let missing: string[];
-    try {
-      missing = await resolveSketchAssetReferences(run, ops);
-    } catch (e) {
-      return { error: e instanceof Error ? e.message : String(e) };
-    }
-    if (missing.length > 0) {
-      return {
-        error:
-          `No asset matches ${missing.map((id) => `"${id}"`).join(", ")}. ` +
-          "Use list_assets to find one, and pass its id as `image`."
-      };
-    }
-
-    try {
-      // Write by the resolved id: `sketchId` may be a 12-character prefix,
-      // and the CAS write matches the full id exactly.
-      const mutated = await ImageDocument.mutateDocumentData(
-        existing.id,
-        (data: ImageDocumentData): EditSketchMutationResult => {
-          const sketch = data.sketch;
-          const state: SketchState = {
-            layers: [...sketch.layers],
-            activeLayerId: sketch.activeLayerId,
-            canvas: { ...sketch.canvas },
-            bindings: [...data.layerBindings],
-            setup: sketch.setup
-          };
-          // A failing op is recorded and the script continues: stopping at the
-          // first error hides every problem behind it.
-          const applied: OpRecord[] = [];
-          const resolvedOps: { tool: string; input: Record<string, unknown> }[] = [];
-          for (const parsed of ops) {
-            try {
-              const resolved = resolveSketchOp(state, parsed);
-              const result = applyOp(state, parsed, SKETCH_BLEND_MODES);
-              applied.push({
-                op: parsed.op,
-                ok: true,
-                result
-              });
-              // Only successful operations touched the document. Resolve each
-              // target from the state immediately before that operation, so a
-              // prior select_layer or add/rename changes what "active" means.
-              resolvedOps.push(resolved);
-            } catch (e) {
-              applied.push({
-                op: parsed.op,
-                ok: false,
-                error: e instanceof Error ? e.message : String(e)
-              });
-            }
-          }
-          data.sketch = {
-            ...sketch,
-            canvas: state.canvas,
-            layers: state.layers,
-            activeLayerId: state.activeLayerId,
-            setup: state.setup
-          };
-          data.layerBindings = state.bindings;
-          const layerSummary = state.layers.map((layer, index) => ({
-            id: layer.id,
-            name: layer.name,
-            index
-          }));
-          return {
-            records: applied,
-            layerSummary,
-            activeLayerId: state.activeLayerId,
-            ops: resolvedOps
-          };
-        },
-        // The ops ride on the write so an open editor merges this change per
-        // layer instead of treating the sketch as replaced.
-        undefined,
-        (mutation) => ({ ops: mutation.ops })
-      );
-      if (!mutated) return { error: `Sketch ${sketchId} was not found.` };
-
-      const { records, layerSummary, activeLayerId } = mutated.result;
-
-      const failed = records.filter((record) => !record.ok);
-      return {
-        image_document_id: existing.id,
-        updated_at: mutated.document.updated_at,
-        applied: records.length - failed.length,
-        failed: failed.length,
-        ops: records,
-        active_layer_id: activeLayerId,
-        layers: layerSummary
-      };
-    } catch (e) {
-      if (e instanceof ImageDocumentConflictError) {
-        return {
-          error: `Sketch ${sketchId} is being modified concurrently; nothing was saved. Retry the call.`
-        };
+    const name = parseRename(params["name"]);
+    if (isError(name)) return name;
+    return editWithRename({
+      ops: params["ops"],
+      name,
+      idKey: "image_document_id",
+      applyOps: () => applySketchEdit(run, sketchId, params),
+      rename: async (next) => {
+        const { ImageDocument } = await import("@nodetool-ai/models");
+        return renameOwned(ImageDocument, {
+          id: sketchId,
+          userId: run.context.userId,
+          name: next,
+          label: "Sketch"
+        });
       }
-      throw e;
-    }
+    });
   }
 };
+
+/** The op script of one edit_sketch call, run and saved. */
+async function applySketchEdit(
+  run: CapabilityRun,
+  sketchId: string,
+  params: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const ops = parseOps(params["ops"]);
+  if (isError(ops)) return ops;
+
+  const { ImageDocument, ImageDocumentConflictError } =
+    await import("@nodetool-ai/models");
+  const { SKETCH_BLEND_MODES } = await import("../evals/surfaces/sketch.js");
+
+  const existing = await ImageDocument.findById(sketchId);
+  // A sketch owned by someone else reads as missing — the rule the tRPC
+  // router's ownership check applies.
+  if (!existing || existing.user_id !== run.context.userId) {
+    return { error: `Sketch ${sketchId} was not found.` };
+  }
+
+  // Verify every referenced asset before writing. An id that resolves to
+  // nothing would otherwise be stored happily and show up as an empty layer
+  // in the editor — the failure this reports instead.
+  let missing: string[];
+  try {
+    missing = await resolveSketchAssetReferences(run, ops);
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : String(e) };
+  }
+  if (missing.length > 0) {
+    return {
+      error:
+        `No asset matches ${missing.map((id) => `"${id}"`).join(", ")}. ` +
+        "Use list_assets to find one, and pass its id as `image`."
+    };
+  }
+
+  try {
+    // Write by the resolved id: `sketchId` may be a 12-character prefix,
+    // and the CAS write matches the full id exactly.
+    const mutated = await ImageDocument.mutateDocumentData(
+      existing.id,
+      (data: ImageDocumentData): EditSketchMutationResult => {
+        const sketch = data.sketch;
+        const state: SketchState = {
+          layers: [...sketch.layers],
+          activeLayerId: sketch.activeLayerId,
+          canvas: { ...sketch.canvas },
+          bindings: [...data.layerBindings],
+          setup: sketch.setup
+        };
+        // A failing op is recorded and the script continues: stopping at the
+        // first error hides every problem behind it.
+        const applied: OpRecord[] = [];
+        const resolvedOps: { tool: string; input: Record<string, unknown> }[] = [];
+        for (const parsed of ops) {
+          try {
+            const resolved = resolveSketchOp(state, parsed);
+            const result = applyOp(state, parsed, SKETCH_BLEND_MODES);
+            applied.push({
+              op: parsed.op,
+              ok: true,
+              result
+            });
+            // Only successful operations touched the document. Resolve each
+            // target from the state immediately before that operation, so a
+            // prior select_layer or add/rename changes what "active" means.
+            resolvedOps.push(resolved);
+          } catch (e) {
+            applied.push({
+              op: parsed.op,
+              ok: false,
+              error: e instanceof Error ? e.message : String(e)
+            });
+          }
+        }
+        data.sketch = {
+          ...sketch,
+          canvas: state.canvas,
+          layers: state.layers,
+          activeLayerId: state.activeLayerId,
+          setup: state.setup
+        };
+        data.layerBindings = state.bindings;
+        const layerSummary = state.layers.map((layer, index) => ({
+          id: layer.id,
+          name: layer.name,
+          index
+        }));
+        return {
+          records: applied,
+          layerSummary,
+          activeLayerId: state.activeLayerId,
+          ops: resolvedOps
+        };
+      },
+      // The ops ride on the write so an open editor merges this change per
+      // layer instead of treating the sketch as replaced.
+      undefined,
+      (mutation) => ({ ops: mutation.ops })
+    );
+    if (!mutated) return { error: `Sketch ${sketchId} was not found.` };
+
+    const { records, layerSummary, activeLayerId } = mutated.result;
+
+    const failed = records.filter((record) => !record.ok);
+    return {
+      image_document_id: existing.id,
+      updated_at: mutated.document.updated_at,
+      applied: records.length - failed.length,
+      failed: failed.length,
+      ops: records,
+      active_layer_id: activeLayerId,
+      layers: layerSummary
+    };
+  } catch (e) {
+    if (e instanceof ImageDocumentConflictError) {
+      return {
+        error: `Sketch ${sketchId} is being modified concurrently; nothing was saved. Retry the call.`
+      };
+    }
+    throw e;
+  }
+}
 
 // ---------------------------------------------------------------------------
 // refine_image_brief

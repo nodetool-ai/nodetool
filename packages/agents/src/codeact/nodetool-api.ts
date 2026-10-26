@@ -27,6 +27,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "list_workflows",
     "get_workflow",
     "create_workflow",
+    "update_workflow",
     "list_workflow_versions",
     "get_workflow_version",
     "create_workflow_version",
@@ -743,6 +744,21 @@ const nodetool = (() => {
             )
           })
         ),
+      /**
+       * Change a saved workflow: {graph, name, description, tags,
+       * expected_updated_at}. A graph is checked the way create() checks one.
+       */
+      update: (id, fields) =>
+        __need("update_workflow")(
+          __merge(
+            fields && fields.graph !== undefined
+              ? __merge(fields, { graph: __graphJson(fields.graph) })
+              : fields,
+            { workflow_id: id }
+          )
+        ),
+      rename: (id, name) =>
+        __need("update_workflow")({ workflow_id: id, name: name }),
       versions: (id, opts) =>
         __need("list_workflow_versions")(__merge(opts, { workflow_id: id })),
       getVersion: (id, version) =>
@@ -1391,6 +1407,8 @@ const nodetool = (() => {
         __need("compare_timeline_frames")(__merge(opts, { a: a, b: b })),
       /** Apply document edits to a saved sequence, server-side. */
       edit: (id, ops) => __need("edit_timeline")({ timeline_id: id, ops: ops }),
+      rename: (id, name) =>
+        __need("edit_timeline")({ timeline_id: id, name: name }),
       /**
        * Write a whole document at once. The document replaces the stored one,
        * so send back what get() returned, changed. Validated before anything
@@ -1537,6 +1555,8 @@ const nodetool = (() => {
       /** Apply layer-structure edits to a saved sketch, server-side. */
       edit: (id, ops) =>
         __need("edit_sketch")({ image_document_id: id, ops: ops }),
+      rename: (id, name) =>
+        __need("edit_sketch")({ image_document_id: id, name: name }),
       /** {format, width, height, background, layer_id, mask} render to a saved PNG or PSD. */
       render: (target, opts) =>
         __need("render_sketch")(
@@ -1560,7 +1580,9 @@ const nodetool = (() => {
       assembleTimeline: (id, opts) =>
         __need("assemble_script_timeline")(__merge(opts, { script_id: id })),
       /** Apply cast/line edits to a saved script, server-side. */
-      edit: (id, ops) => __need("edit_script")({ script_id: id, ops: ops })
+      edit: (id, ops) => __need("edit_script")({ script_id: id, ops: ops }),
+      rename: (id, name) =>
+        __need("edit_script")({ script_id: id, name: name })
     },
 
     storyboards: {
@@ -1593,7 +1615,9 @@ const nodetool = (() => {
       edit: (id, ops, opts) =>
         __need("edit_storyboard")(
           __merge(opts, { storyboard_id: id, ops: ops })
-        )
+        ),
+      rename: (id, name) =>
+        __need("edit_storyboard")({ storyboard_id: id, name: name })
     }
   };
 
@@ -1761,6 +1785,7 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     skill: "api-workflows",
     doc: `- \`nodetool.workflows\` — saved graphs and their runs: \`list()\` (→
   \`{workflows}\`, an envelope), \`get(id)\`, \`create(name, graph)\`,
+  \`update(id, {graph, name, description, tags})\`, \`rename(id, name)\`,
   \`validate(idOrGraph)\` (throws on errors), \`run(id, params)\`,
   \`start(id, params)\` (→ job receipt), \`debug(id, params)\`,
   \`resolve(sessionId, escalationId, action)\`, \`example("<package>/<name>")\`,
@@ -1936,8 +1961,8 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     namespace: "timelines",
     skill: "api-timelines",
     doc: `- \`nodetool.timelines\` — \`list()\` (→ \`{timelines}\`), \`create(name, {fps,
-  width, height})\`, \`get(id)\`, \`edit(id, ops)\`, \`setDocument(id, document)\`,
-  \`validate(idOrDocument, {tier: "showcase"})\`, \`preview(idOrDocument,
+  width, height})\`, \`get(id)\`, \`edit(id, ops)\`, \`rename(id, name)\`,
+  \`setDocument(id, document)\`, \`validate(idOrDocument, {tier: "showcase"})\`, \`preview(idOrDocument,
   {times_ms, range, sheet})\`, \`compare(a, b)\`, \`render(id)\` (a job: poll
   \`nodetool.jobs.get\` rather than blocking; \`nodetool.jobs.cancel\` stops it),
   \`bakeAudioAnimation(id, audioClipId, targetClipId, opts)\` (drive a
@@ -1951,7 +1976,7 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     skill: "api-sketches",
     doc: `- \`nodetool.sketches\` — layered image documents: \`list()\`,
   \`create(name, {width, height})\`, \`get(id)\`, \`edit(id, ops)\`,
-  \`validate(idOrDocument)\`, \`render(idOrDocument, {width, format})\` (a
+  \`rename(id, name)\`, \`validate(idOrDocument)\`, \`render(idOrDocument, {width, format})\` (a
   saved PNG or layered PSD, composited as the editor does), versions. Editing
   is layer structure; painting stays with an editor or a workflow run.`
   },
@@ -1959,13 +1984,15 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     namespace: "scripts",
     skill: "api-scripts",
     doc: `- \`nodetool.scripts\` — voice scripts: \`list()\`, \`create(name)\`,
-  \`get(id)\`, \`edit(id, ops)\`, \`voice(id)\`, \`assembleTimeline(id)\`.`
+  \`get(id)\`, \`edit(id, ops)\`, \`rename(id, name)\`, \`voice(id)\`,
+  \`assembleTimeline(id)\`.`
   },
   {
     namespace: "storyboards",
     skill: "api-storyboards",
     doc: `- \`nodetool.storyboards\` — shot lists: \`list()\`, \`create(name, {brief,
-  style, aspect_ratio})\`, \`get(id)\`, \`edit(id, ops)\`, \`renderStills(id)\`
+  style, aspect_ratio})\`, \`get(id)\`, \`edit(id, ops)\`, \`rename(id, name)\`,
+  \`renderStills(id)\`
   (cheap), \`renderClips(id)\` (expensive), \`reviseClip(id, target,
   instruction)\`, \`assembleTimeline(id)\`,
   \`previewDesign({storyboardId, expectedStoryboardRevision})\` (free),

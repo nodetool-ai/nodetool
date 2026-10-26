@@ -62,6 +62,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     contract: "136f6a0d501f",
     selfcheck: "capability-suites",
     suites: [
+      "packages/agents/tests/capabilities-document-rename.test.ts",
       "packages/agents/tests/capabilities-lifecycle.test.ts",
     ],
   },
@@ -2253,7 +2254,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_timeline",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "72f40d89d821",
+    contract: "b276aab5160e",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timelines.test.ts",
@@ -2262,7 +2263,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     evals: [
       {
         file: "packages/agents/src/evals/codeact-api-surfaces.ts",
-        cases: ["timeline-fix-and-validate"],
+        cases: ["rename-documents", "timeline-fix-and-validate"],
       },
     ],
   },
@@ -2558,7 +2559,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_sketch",
     module: "sketches",
     impl: "packages/agents/src/capabilities/sketches.ts",
-    contract: "7191db0810e1",
+    contract: "857c392ef084",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-sketches.test.ts",
@@ -2567,7 +2568,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     evals: [
       {
         file: "packages/agents/src/evals/codeact-api-surfaces.ts",
-        cases: ["sketch-layer-repair"],
+        cases: ["rename-documents", "sketch-layer-repair"],
       },
     ],
   },
@@ -2952,10 +2953,16 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_script",
     module: "scripts",
     impl: "packages/agents/src/capabilities/scripts.ts",
-    contract: "dbe437f49389",
+    contract: "f033430f011d",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-scripts.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["rename-documents"],
+      },
     ],
   },
   {
@@ -3131,11 +3138,11 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_storyboard",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "a2f214d7936b",
+    contract: "2388528aeec0",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",
-      "packages/agents/tests/capabilities-storyboard-board-ops.test.ts",
+      "packages/agents/tests/capabilities-document-rename.test.ts",
     ],
     evals: [
       {
@@ -3400,7 +3407,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_js_script",
     module: "js-scripts",
     impl: "packages/agents/src/capabilities/js-scripts.ts",
-    contract: "64e1071655a2",
+    contract: "06a14f9d2c2d",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/js-scripts-capabilities.test.ts",

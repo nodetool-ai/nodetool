@@ -71,6 +71,7 @@ import {
 import { clampConcurrency, mapWithConcurrency } from "./concurrency.js";
 
 import { resolveProjectId } from "./project-scope.js";
+import { editWithRename, parseRename, renameOwned } from "./rename.js";
 /** Lines one call may voice, so a whole-script call cannot run away. */
 const MAX_LINES_PER_CALL = 60;
 /** Tokens the writer may spend on one script. */
@@ -1471,91 +1472,117 @@ function applyScriptOp(
 const editScript: CapabilityExport = {
   spec: editScriptSpec,
   impl: async (run, params) => {
-    const ops = parseScriptOps(params["ops"]);
-    if (isError(ops)) return ops;
-
-    const { Script } = await import("@nodetool-ai/models");
-    const { scriptLines } = await import("@nodetool-ai/timeline");
-
-    for (let attempt = 0; attempt < CAS_ATTEMPTS; attempt++) {
-      const script = await loadScript(run, params["script_id"]);
-      if (isError(script)) return script;
-      const { row, doc } = script;
-
-      // A failing op is recorded and the script continues: stopping at the
-      // first error hides every problem behind it.
-      const records: ScriptOpRecord[] = [];
-      const resolvedOps: { tool: string; input: Record<string, unknown> }[] = [];
-      for (const parsed of ops) {
-        try {
-          const result = applyScriptOp(doc, parsed, scriptLines) as
-            | Record<string, unknown>
-            | undefined;
-          records.push({
-            op: parsed.op,
-            ok: true,
-            result
-          });
-          const canonicalId =
-            typeof result?.["id"] === "string"
-              ? (result["id"] as string)
-              : typeof result?.["removed"] === "string"
-                ? (result["removed"] as string)
-                : undefined;
-          const key = UNIT_KEY_BY_OP[parsed.op];
-          resolvedOps.push({
-            tool: parsed.op,
-            input:
-              canonicalId && key
-                ? { ...parsed.args, [key]: canonicalId, id: canonicalId }
-                : parsed.args
-          });
-        } catch (e) {
-          records.push({ op: parsed.op, ok: false, error: errorMessage(e) });
-          resolvedOps.push({ tool: parsed.op, input: parsed.args });
-        }
+    const name = parseRename(params["name"]);
+    if (isError(name)) return name;
+    return editWithRename({
+      ops: params["ops"],
+      name,
+      idKey: "script_id",
+      applyOps: () => applyScriptEdit(run, params),
+      rename: async (next) => {
+        const script = await loadScript(run, params["script_id"]);
+        if (isError(script)) return script;
+        const { Script } = await import("@nodetool-ai/models");
+        return renameOwned(Script, {
+          id: script.row.id,
+          userId: run.context.userId,
+          name: next,
+          label: "Script"
+        });
       }
-
-      const saved = await Script.updateFieldsIfUnchanged(
-        row.id,
-        row.updated_at,
-        {
-          document: JSON.stringify(doc)
-        },
-        // The ops ride on the write so an open editor merges this change per
-        // merge unit instead of treating the script as replaced.
-        { ops: resolvedOps }
-      );
-      if (!saved) continue;
-
-      const failed = records.filter((record) => !record.ok);
-      return {
-        script_id: row.id,
-        updated_at: saved.updated_at,
-        applied: records.length - failed.length,
-        failed: failed.length,
-        ops: records,
-        cast: doc.cast.map((speaker) => ({
-          id: speaker.id,
-          name: speaker.name,
-          has_voice: !!speaker.voice,
-          entityId: (speaker as { entityId?: string | null }).entityId ?? null
-        })),
-        lines: scriptLines(doc.sections).map((line, index) => ({
-          id: line.id,
-          index,
-          speaker_id: line.speakerId ?? null,
-          text: line.text,
-          takes: line.takes.length
-        }))
-      };
-    }
-
-    return {
-      error: `Script ${String(params["script_id"])} is being modified concurrently; nothing was saved. Retry the call.`
-    };
+    });
   }
 };
+
+/** The op script of one edit_script call, run and saved. */
+async function applyScriptEdit(
+  run: CapabilityRun,
+  params: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const ops = parseScriptOps(params["ops"]);
+  if (isError(ops)) return ops;
+
+  const { Script } = await import("@nodetool-ai/models");
+  const { scriptLines } = await import("@nodetool-ai/timeline");
+
+  for (let attempt = 0; attempt < CAS_ATTEMPTS; attempt++) {
+    const script = await loadScript(run, params["script_id"]);
+    if (isError(script)) return script;
+    const { row, doc } = script;
+
+    // A failing op is recorded and the script continues: stopping at the
+    // first error hides every problem behind it.
+    const records: ScriptOpRecord[] = [];
+    const resolvedOps: { tool: string; input: Record<string, unknown> }[] = [];
+    for (const parsed of ops) {
+      try {
+        const result = applyScriptOp(doc, parsed, scriptLines) as
+          | Record<string, unknown>
+          | undefined;
+        records.push({
+          op: parsed.op,
+          ok: true,
+          result
+        });
+        const canonicalId =
+          typeof result?.["id"] === "string"
+            ? (result["id"] as string)
+            : typeof result?.["removed"] === "string"
+              ? (result["removed"] as string)
+              : undefined;
+        const key = UNIT_KEY_BY_OP[parsed.op];
+        resolvedOps.push({
+          tool: parsed.op,
+          input:
+            canonicalId && key
+              ? { ...parsed.args, [key]: canonicalId, id: canonicalId }
+              : parsed.args
+        });
+      } catch (e) {
+        records.push({ op: parsed.op, ok: false, error: errorMessage(e) });
+        resolvedOps.push({ tool: parsed.op, input: parsed.args });
+      }
+    }
+
+    const saved = await Script.updateFieldsIfUnchanged(
+      row.id,
+      row.updated_at,
+      {
+        document: JSON.stringify(doc)
+      },
+      // The ops ride on the write so an open editor merges this change per
+      // merge unit instead of treating the script as replaced.
+      { ops: resolvedOps }
+    );
+    if (!saved) continue;
+
+    const failed = records.filter((record) => !record.ok);
+    return {
+      script_id: row.id,
+      updated_at: saved.updated_at,
+      applied: records.length - failed.length,
+      failed: failed.length,
+      ops: records,
+      cast: doc.cast.map((speaker) => ({
+        id: speaker.id,
+        name: speaker.name,
+        has_voice: !!speaker.voice,
+        entityId: (speaker as { entityId?: string | null }).entityId ?? null
+      })),
+      lines: scriptLines(doc.sections).map((line, index) => ({
+        id: line.id,
+        index,
+        speaker_id: line.speakerId ?? null,
+        text: line.text,
+        takes: line.takes.length
+      }))
+    };
+  }
+
+  return {
+    error: `Script ${String(params["script_id"])} is being modified concurrently; nothing was saved. Retry the call.`
+  };
+}
 
 // ---------------------------------------------------------------------------
 // derive_storyboard_from_script

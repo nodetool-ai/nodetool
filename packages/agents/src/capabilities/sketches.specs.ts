@@ -10,6 +10,7 @@
 
 import type { CapabilitySpec } from "./types.js";
 import type { JsonSchema } from "@nodetool-ai/runtime";
+import { renameProperty } from "./rename.js";
 
 export const DEFAULT_VERSION_LIMIT = 20;
 
@@ -118,6 +119,7 @@ export const EDIT_SKETCH_SCHEMA: JsonSchema = {
       type: "string",
       description: "Sketch (image document) id."
     },
+    name: renameProperty("sketch"),
     ops: {
       type: "array",
       description:
@@ -145,7 +147,7 @@ export const EDIT_SKETCH_SCHEMA: JsonSchema = {
       items: { type: "object" }
     }
   },
-  required: ["image_document_id", "ops"]
+  required: ["image_document_id"]
 };
 
 export const VALIDATE_SKETCH_SCHEMA: JsonSchema = {
@@ -349,11 +351,15 @@ export const editSketchSpec: CapabilitySpec = {
     "up live. An image is placed by reference — the layer points at an asset " +
     "or URL and the editor draws it. Pixels themselves are never read or " +
     "written: painting and generation happen in an open editor or a workflow " +
-    "run. Call list_sketches to find one and validate_sketch afterwards.",
+    "run. Call list_sketches to find one and validate_sketch afterwards. " +
+    "Pass `name` to rename the sketch, with or without ops.",
   inputSchema: EDIT_SKETCH_SCHEMA,
   category: "write",
   userMessage: (params) => {
     const count = Array.isArray(params["ops"]) ? params["ops"].length : 0;
+    if (count === 0 && typeof params["name"] === "string") {
+      return `Renaming sketch ${String(params["image_document_id"])}`;
+    }
     return `Editing sketch ${String(params["image_document_id"])} (${count} ops)`;
   }
 };
