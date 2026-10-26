@@ -11,7 +11,7 @@ import {
   Input
 } from "mediabunny";
 
-import { throwIfAborted } from "./av.js";
+import { throwIfAborted } from "./abort.js";
 
 /** A file path or the file's bytes. */
 export type MediaSource = string | Uint8Array;

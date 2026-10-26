@@ -1,6 +1,6 @@
 /**
- * node-av plumbing shared by the media module: logging, abort handling,
- * encoder lookup and a file muxer that does not leak descriptors.
+ * node-av plumbing shared by the media module: logging, encoder lookup,
+ * container names and a file muxer that does not leak descriptors.
  */
 
 import { open, type FileHandle } from "node:fs/promises";
@@ -31,18 +31,7 @@ export function quietLibav(): void {
   Log.setLevel(AV_LOG_ERROR);
 }
 
-/** The error an aborted media operation rejects with. */
-export function abortError(signal: AbortSignal): Error {
-  const reason: unknown = signal.reason;
-  if (reason instanceof Error) return reason;
-  const error = new Error("The media operation was aborted");
-  error.name = "AbortError";
-  return error;
-}
-
-export function throwIfAborted(signal: AbortSignal | undefined): void {
-  if (signal?.aborted) throw abortError(signal);
-}
+export { abortError, throwIfAborted } from "./abort.js";
 
 /** The encoder named `name`, or `null` when this build has none. */
 export function findEncoder(name: string): Codec | null {

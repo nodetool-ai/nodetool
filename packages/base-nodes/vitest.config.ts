@@ -86,6 +86,11 @@ export default defineConfig({
         __dirname,
         "../runtime/src/providers/together-operations.ts"
       ),
+      "@nodetool-ai/runtime/media/testing": resolve(
+        __dirname,
+        "../runtime/src/media/testing.ts"
+      ),
+      "@nodetool-ai/runtime/media": resolve(__dirname, "../runtime/src/media/index.ts"),
       "@nodetool-ai/runtime": resolve(__dirname, "../runtime/src/index.ts"),
       // Tests import this package by name. Resolve it to src/ so coverage
       // lands on the source, not dist/.
