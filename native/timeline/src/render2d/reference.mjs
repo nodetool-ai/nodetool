@@ -35,6 +35,8 @@ add("text-path", "text", { ...title, path: "M0.1 0.5 Q0.5 0.1 0.9 0.5" });
 for (const kind of ["rect", "ellipse", "line", "polygon", "star", "path"]) {
   add(`shape-${kind}`, "shape", { kind, x: 0.15, y: 0.2, width: 0.7, height: 0.6, x2: 0.85, y2: 0.8, fill: "#417ad9", stroke: "#efb040", strokeWidthPx: 3, sides: 5, cornerRadius: 0.025, d: "M0.15 0.8 C0.15 0.2 0.85 0.2 0.85 0.8 Z" });
 }
+add("shape-css-percent", "shape", { kind: "rect", fill: "rgb(100% 0% 0% / 50%)" });
+add("shape-css-hsl", "shape", { kind: "rect", fill: "hsl(120, 100%, 50%)" });
 add("shape-gradient", "shape", { kind: "rect", fillStyle: gradient, cornerRadius: 0.03 });
 add("shape-radial", "shape", { kind: "ellipse", fillStyle: { ...gradient, type: "radial" } });
 add("shape-trim-dash", "shape", { kind: "ellipse", stroke: "#d4ff3a", strokeWidthPx: 6, dash: [0.02, 0.01], lineCap: "round", trimStart: 0.12, trimEnd: 0.7 });

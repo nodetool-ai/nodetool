@@ -8,7 +8,7 @@ import { test } from "node:test";
 const stats = (p50, p95) => ({ count: 100, p50, p95, max: p95 });
 function reports() {
   const web = {
-    submittedFrames: 100, loadAverage: { before: 2, after: 3 },
+    submittedFrames: 100, playSeconds: 10, loadAverage: { before: 2, after: 3 },
     submitIntervalMs: stats(16, 21), rafIntervalMs: stats(16, 19),
     frameWorkMs: stats(4, 8), frameError: stats(0, 1), heldFrames: 5
   };
@@ -19,7 +19,7 @@ function reports() {
       method: { renderIntervalMs: "native render intervals", submitIntervalMs: "QQuickWindow::frameSwapped on the render thread: frame queued, not presented",
         cpuMs: "render() body, steady clock", frameError: "native source-frame error", heldFrames: "native held-frame total" }
     },
-    nativeMeta: { exit: 0, loadBefore: 1, loadAfter: 2 },
+    nativeMeta: { exit: 0, playSeconds: 10, loadBefore: 1, loadAfter: 2 },
     webReport: { results: [
       { fixture: "video-4tracks", decoder: "element", web: {} },
       { fixture: "example:serein", decoder: "element", web: { ...web, frameError: null, heldFrames: null } },
@@ -120,6 +120,46 @@ for (const [name, corrupt, expected] of [
     }
   });
 }
+
+for (const [name, corrupt, affected] of [
+  ["missing native duration", r => { delete r.nativeMeta.playSeconds; }, ["element", "webcodecs"]],
+  ["missing web duration", r => { delete r.webReport.results[2].web.playSeconds; }, ["webcodecs"]],
+  ["different duration", r => { r.webReport.results[2].web.playSeconds = 15; }, ["webcodecs"]]
+]) {
+  test(`rejects playback intervals: ${name}`, async () => {
+    const { pairSereinM0 } = await import("./serein-m0.mjs");
+    const input = reports(); corrupt(input);
+    const result = pairSereinM0(input);
+    assert.equal(result.verdict, "fail");
+    assert.ok(result.failures.some(f => /playSeconds/.test(f)), result.failures.join("\n"));
+    for (const { decoder, pairs } of result.results) {
+      assert.ok(pairs.every(p => Object.values(p.lower).every(v => affected.includes(decoder) ? v === null : v !== null)));
+    }
+  });
+}
+
+for (const [name, corrupt, affected] of [
+  ["native before", r => { r.nativeMeta.loadBefore = 10.1; }, ["element", "webcodecs"]],
+  ["native after", r => { r.nativeMeta.loadAfter = 11; }, ["element", "webcodecs"]],
+  ["web before", r => { r.webReport.results[2].web.loadAverage = { before: 12, after: 3 }; }, ["webcodecs"]]
+]) {
+  test(`rejects excessive load: ${name}`, async () => {
+    const { pairSereinM0 } = await import("./serein-m0.mjs");
+    const input = reports(); corrupt(input);
+    const result = pairSereinM0(input);
+    assert.equal(result.verdict, "fail");
+    assert.ok(result.failures.some(f => /load.*10/.test(f)), result.failures.join("\n"));
+    for (const { decoder, pairs } of result.results) {
+      assert.ok(pairs.every(p => Object.values(p.lower).every(v => affected.includes(decoder) ? v === null : v !== null)));
+    }
+  });
+}
+test("accepts load at the limit and web load rising after the run", async () => {
+  const { pairSereinM0 } = await import("./serein-m0.mjs");
+  const input = reports(); input.nativeMeta.loadBefore = 10; input.nativeMeta.loadAfter = 10;
+  for (const r of input.webReport.results.slice(1)) r.web.loadAverage = { before: 10, after: 11 };
+  assert.equal(pairSereinM0(input).verdict, "pass");
+});
 
 test("native heldFrames counts rendered frames that reused the canvas, independently of media timing", async () => {
   const { pairSereinM0 } = await import("./serein-m0.mjs");

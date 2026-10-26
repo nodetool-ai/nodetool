@@ -2,7 +2,11 @@
 #include "preview/layers/LayerRegistry.h"
 #include "preview/layers/SceneHooks.h"
 #include "render2d/Rasterizer.h"
+#include "render2d/Paint.h"
 #include <QFile>
+#include <QDir>
+#include <QScopeGuard>
+#include <QTemporaryDir>
 #include <QGuiApplication>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -59,6 +63,66 @@ nt::ActiveLayer layerFor(const QJsonObject& fixture) {
 class TestRender2d : public QObject {
     Q_OBJECT
   private slots:
+    void cssColors_data() {
+        QTest::addColumn<QString>("css");
+        QTest::addColumn<QColor>("expected");
+        // Channel values from the shared TypeScript parseCssColor parser.
+        QTest::newRow("rgb-percent") << QString("rgb(100% 0% 0% / 50%)") << QColor::fromRgbF(1,0,0,0.5);
+        QTest::newRow("rgba-percent-alpha") << QString("rgba(255, 0, 0, 50%)") << QColor::fromRgbF(1,0,0,0.5);
+        QTest::newRow("rgb-space") << QString("rgb(255 128 0)") << QColor::fromRgbF(1,128.0/255,0,1);
+        QTest::newRow("hsl-comma") << QString("hsl(120, 100%, 50%)") << QColor::fromRgbF(0,1,0,1);
+        QTest::newRow("hsl-deg") << QString("hsl(240deg 100% 50% / 0.25)") << QColor::fromRgbF(0,0,1,0.25);
+        QTest::newRow("hsla") << QString("hsla(0, 100%, 50%, 0.5)") << QColor::fromRgbF(1,0,0,0.5);
+        QTest::newRow("hsl-grad") << QString("hsl(400grad 1 0.5)") << QColor::fromRgbF(1,0,0,1);
+        QTest::newRow("hsl-rad") << QString("hsl(3.141592653589793rad 100% 50%)") << QColor::fromRgbF(0,1,1,1);
+        QTest::newRow("hsl-turn") << QString(" HSL(-.5turn 100% 50%) ") << QColor::fromRgbF(0,1,1,1);
+        QTest::newRow("clamp-exponent") << QString("RGB(3e2 -1 0 / 150%)") << QColor::fromRgbF(1,0,0,1);
+        QTest::newRow("numeric-bases") << QString("rgb(0xff 0b10000000 0o0 / .5)") << QColor::fromRgbF(1,128.0/255,0,0.5);
+        QTest::newRow("mixed-separators") << QString("rgba(255, 0 0)") << QColor::fromRgbF(1,0,0,1);
+        QTest::newRow("hsl-exponent") << QString("hsl(1.2e2 100% 50%)") << QColor::fromRgbF(0,1,0,1);
+        QTest::newRow("empty-percentage") << QString("rgb(% 0 0)") << QColor::fromRgbF(0,0,0,1);
+        QTest::newRow("hex-alpha") << QString("#ff000080") << QColor(255,0,0,128);
+        QTest::newRow("short-hex-alpha") << QString("#f008") << QColor(255,0,0,136);
+        QTest::newRow("named") << QString(" ReBeccAPurple ") << QColor(102,51,153);
+        for (const auto* invalid : {"invalid", "rgb(1 2 3 / )", "rgb(0b2 0 0)", "rgb(inf 0 0)", "rgb(nan 0 0)", "hsl(120. 1 1)", "rgb(1 2 3 4 5)", "rgb(1x 2 3)", "hsl(1foo 1 1)", "rgb(1 2 3 / / 1)", "#123456789", "#zzzz", "#12345", "#123456789abc", "darkyellow"}) {
+            QTest::newRow(invalid) << QString::fromLatin1(invalid) << QColor(Qt::transparent);
+        }
+    }
+    void cssColors() {
+        QFETCH(QString,css); QFETCH(QColor,expected);
+        const auto actual = nt::render2d::cssColor(css);
+        QVERIFY2(std::abs(actual.redF()-expected.redF()) < 0.0001, qPrintable(QString("red: %1 expected %2").arg(actual.redF()).arg(expected.redF())));
+        QVERIFY2(std::abs(actual.greenF()-expected.greenF()) < 0.0001, qPrintable(QString("green: %1 expected %2").arg(actual.greenF()).arg(expected.greenF())));
+        QVERIFY2(std::abs(actual.blueF()-expected.blueF()) < 0.0001, qPrintable(QString("blue: %1 expected %2").arg(actual.blueF()).arg(expected.blueF())));
+        QVERIFY2(std::abs(actual.alphaF()-expected.alphaF()) < 0.0001, qPrintable(QString("alpha: %1 expected %2").arg(actual.alphaF()).arg(expected.alphaF())));
+    }
+    void fontDirectoryOrder() {
+        QTemporaryDir layout; QVERIFY(layout.isValid());
+        const auto saved = qgetenv("NODETOOL_TIMELINE_FONTS_DIR");
+        const bool wasSet = qEnvironmentVariableIsSet("NODETOOL_TIMELINE_FONTS_DIR");
+        const auto restore = qScopeGuard([&] {
+            if (wasSet) { qputenv("NODETOOL_TIMELINE_FONTS_DIR",saved); }
+            else { qunsetenv("NODETOOL_TIMELINE_FONTS_DIR"); }
+        });
+        qunsetenv("NODETOOL_TIMELINE_FONTS_DIR");
+        const auto app = layout.path()+"/MacOS";
+        QVERIFY(QDir().mkpath(app));
+        const auto source = nt::render2d::resolveFontDirectory(app);
+        QVERIFY(QDir(source).exists()); QVERIFY(QFile::exists(source+"/Inter-Variable.ttf"));
+        const auto bundle = layout.path()+"/Resources/fonts";
+        QVERIFY(QDir().mkpath(bundle));
+        QCOMPARE(QDir::cleanPath(nt::render2d::resolveFontDirectory(app)),bundle);
+        const auto adjacent = app+"/fonts"; QVERIFY(QDir().mkpath(adjacent));
+        QCOMPARE(nt::render2d::resolveFontDirectory(app),adjacent);
+        const auto overrideDir = layout.path()+"/override"; QVERIFY(QDir().mkpath(overrideDir));
+        qputenv("NODETOOL_TIMELINE_FONTS_DIR",overrideDir.toUtf8());
+        QCOMPARE(nt::render2d::resolveFontDirectory(app),overrideDir);
+        qputenv("NODETOOL_TIMELINE_FONTS_DIR",(layout.path()+"/missing").toUtf8());
+        QCOMPARE(nt::render2d::resolveFontDirectory(app),adjacent);
+        qunsetenv("NODETOOL_TIMELINE_FONTS_DIR");
+        QVERIFY(QDir(adjacent).removeRecursively()); QVERIFY(QDir(bundle).removeRecursively());
+        QCOMPARE(nt::render2d::resolveFontDirectory(app),source);
+    }
     void sourcesAndMeasurerRegistered() {
         QVERIFY(nt::sceneHooks().measureText);
         for (const auto* kind : {"text", "shape", "caption"}) {

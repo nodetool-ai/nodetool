@@ -13,6 +13,19 @@ nt_qml_sources(src/render2d/Render2dSections.cpp)
 set_source_files_properties(src/render2d/Rasterizer.cpp PROPERTIES
     COMPILE_DEFINITIONS NT_TIMELINE_FONTS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/../../packages/timeline/fonts")
 
+function(nt_render2d_copy_fonts)
+    file(GLOB fonts CONFIGURE_DEPENDS
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../packages/timeline/fonts/*.ttf"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../packages/timeline/fonts/*.txt")
+    add_custom_target(timeline_fonts
+        COMMAND ${CMAKE_COMMAND} -E make_directory "$<TARGET_FILE_DIR:nodetool-timeline>/fonts"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${fonts} "$<TARGET_FILE_DIR:nodetool-timeline>/fonts"
+        DEPENDS ${fonts}
+        VERBATIM)
+    add_dependencies(nodetool-timeline timeline_fonts)
+endfunction()
+cmake_language(DEFER CALL nt_render2d_copy_fonts)
+
 function(nt_render2d_tests)
     qt_add_executable(tst_render2d src/render2d/tst_render2d.cpp src/render2d/Render2dRegistrations.cpp)
     set_target_properties(tst_render2d PROPERTIES MACOSX_BUNDLE FALSE)
