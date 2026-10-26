@@ -76,7 +76,7 @@ jest.mock('../packageManager', () => ({
   searchNodes: jest.fn(),
   checkForPackageUpdates: jest.fn(),
   installRuntimePackage: jest.fn().mockResolvedValue({ success: true, message: 'ok' }),
-  RUNTIME_PACKAGE_IDS: ['ffmpeg'],
+  RUNTIME_PACKAGE_IDS: ['pandoc'],
 }));
 
 jest.mock('electron', () => {
@@ -597,7 +597,7 @@ describe('initializeIpcHandlers', () => {
       installRuntimePackage.mockClear();
       const install = invokeHandlerFor<{ success: boolean }>('runtime-package-install');
 
-      const result = await install({}, { packageId: 'ffmpeg', installLocation: '/tmp/x' });
+      const result = await install({}, { packageId: 'pandoc', installLocation: '/tmp/x' });
 
       expect(result.success).toBe(false);
       expect(installRuntimePackage).not.toHaveBeenCalled();
@@ -611,11 +611,11 @@ describe('initializeIpcHandlers', () => {
       const install = invokeHandlerFor<{ success: boolean }>('runtime-package-install');
 
       const location = await select({});
-      const result = await install({}, { packageId: 'ffmpeg', installLocation: location });
+      const result = await install({}, { packageId: 'pandoc', installLocation: location });
 
       expect(location).toBe(path.join('/picked', 'nodetool-env'));
       expect(result.success).toBe(true);
-      expect(installRuntimePackage).toHaveBeenCalledWith('ffmpeg', location);
+      expect(installRuntimePackage).toHaveBeenCalledWith('pandoc', location);
     });
   });
 

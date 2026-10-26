@@ -272,7 +272,7 @@ export interface NodeMetadata extends BaseNodeMetadata {
     [key: string]: unknown;
   };
   /**
-   * Runtime packages this node depends on (e.g. "ffmpeg", "python", "ollama").
+   * Runtime packages this node depends on (e.g. "python", "yt-dlp", "ollama").
    * Populated by the backend from node metadata; used to show install prompts.
    */
   required_runtimes?: string[];

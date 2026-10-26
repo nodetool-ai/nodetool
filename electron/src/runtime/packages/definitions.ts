@@ -79,33 +79,6 @@ export const RUNTIME_PACKAGES = {
     },
   }),
 
-  ffmpeg: new CondaRuntimePackage({
-    id: "ffmpeg",
-    name: "FFmpeg & Codecs",
-    description:
-      "Audio/video processing toolkit. Required for video nodes and the FFmpeg Agent.",
-    category: "tool",
-    versionRange: ">=6 <7",
-    condaPackages: [
-      "ffmpeg>=6,<7",
-      "x264",
-      "x265",
-      "aom",
-      "libopus",
-      "libvorbis",
-      "libpng",
-      "libjpeg-turbo",
-      "libtiff",
-      "openjpeg",
-      "libwebp",
-      "giflib",
-      "lame",
-    ],
-    verifyBinary: "ffmpeg",
-    extraBinaries: { ffprobe: "ffprobe" },
-    windowsBinSubdir: "Library\\bin",
-  }),
-
   pandoc: new CondaRuntimePackage({
     id: "pandoc",
     name: "Pandoc",
@@ -134,7 +107,9 @@ export const RUNTIME_PACKAGES = {
     description: "Video/audio downloader from YouTube and other sites.",
     category: "tool",
     versionRange: "*",
-    condaPackages: ["yt-dlp"],
+    // yt-dlp merges separate video and audio formats with the ffmpeg binary.
+    // Nothing else needs it: the media nodes run libav in process.
+    condaPackages: ["yt-dlp", "ffmpeg"],
     verifyBinary: "yt-dlp",
   }),
 

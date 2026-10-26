@@ -1,89 +1,21 @@
 /**
- * Shared ffmpeg/ffprobe helpers for the video nodes.
+ * Shared media helpers for the video nodes.
  *
  * Internal to the package — deliberately NOT re-exported from `src/index.ts`.
- * Everything here is free of node-specific state so `timeline.ts` (and any other
- * ffmpeg-backed module) can import it directly.
- *
- * Policy: a spawn failure because the binary is missing (`ENOENT`) surfaces as
- * {@link MissingBinaryError} carrying the binary name. A genuine tool failure
- * (non-zero exit) rejects with the underlying error, whose `.stderr` carries
- * ffmpeg's diagnostics — callers turn that into an actionable message instead of
- * silently passing the input through.
+ * Everything here is free of node-specific state so `timeline.ts` can import
+ * it directly.
  */
-import { execFile as execFileCb } from "node:child_process";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { promisify } from "node:util";
 import type { VideoRef } from "@nodetool-ai/node-sdk";
-import { withTaskSpan } from "@nodetool-ai/runtime";
-import { MissingRuntimePackageError, missingRuntimePackageDetails, missingRuntimeText } from "@nodetool-ai/protocol";
+import { packetTimes, probeMedia } from "@nodetool-ai/runtime/media";
 import {
   isNonEmptyString,
   isObjectLike,
   isString
 } from "@nodetool-ai/node-sdk";
-
-export const execFile = promisify(execFileCb);
-
-export const FFMPEG_MAX_BUFFER = 50 * 1024 * 1024;
-
-/** A required binary (ffmpeg/ffprobe) is not installed or not on PATH. */
-export class MissingBinaryError extends MissingRuntimePackageError {
-  readonly binary: string;
-  constructor(binary: string) {
-    const details = missingRuntimePackageDetails(binary, "ffmpeg");
-    super(missingRuntimeText(details), "ffmpeg", { details });
-    this.binary = binary;
-  }
-}
-
-/**
- * Whether `err` is a spawn ENOENT (binary not on PATH) rather than the tool
- * running and reporting a non-zero exit. Scope this to the spawn itself so an
- * unrelated filesystem ENOENT is never mislabeled as a missing binary.
- */
-function isSpawnEnoent(err: unknown): boolean {
-  return isObjectLike(err) && (err as { code?: unknown }).code === "ENOENT";
-}
-
-/** Run ffmpeg, mapping a missing binary to {@link MissingBinaryError}. */
-export async function execFfmpeg(
-  args: string[],
-  options: { maxBuffer?: number; signal?: AbortSignal } = {}
-): Promise<{ stdout: string; stderr: string }> {
-  try {
-    return await withTaskSpan(
-      "cpu",
-      "subprocess.run",
-      { "process.executable.name": "ffmpeg" },
-      () => execFile("ffmpeg", args, options)
-    );
-  } catch (error) {
-    if (isSpawnEnoent(error)) throw new MissingBinaryError("ffmpeg");
-    throw error;
-  }
-}
-
-/** Run ffprobe, mapping a missing binary to {@link MissingBinaryError}. */
-export async function execFfprobe(
-  args: string[],
-  options: { maxBuffer?: number; signal?: AbortSignal } = {}
-): Promise<{ stdout: string; stderr: string }> {
-  try {
-    return await withTaskSpan(
-      "cpu",
-      "subprocess.run",
-      { "process.executable.name": "ffprobe" },
-      () => execFile("ffprobe", args, options)
-    );
-  } catch (error) {
-    if (isSpawnEnoent(error)) throw new MissingBinaryError("ffprobe");
-    throw error;
-  }
-}
 
 /** Build a VideoRef from raw bytes (raw base64 `data`, `type: "video"`). */
 export function videoRef(
@@ -191,25 +123,93 @@ export function parseFrameRate(raw: string): number {
 }
 
 /**
- * Probe a file's duration in seconds. A missing ffprobe binary surfaces as
- * {@link MissingBinaryError}; a genuine probe failure (corrupt input) returns 0.
+ * A file's duration in seconds, read in process. A file that is not media, or
+ * names no duration, answers 0.
  */
-export async function ffprobeDuration(file: string): Promise<number> {
+export async function probeDurationSeconds(file: string): Promise<number> {
   try {
-    const { stdout } = await execFfprobe([
-      "-v",
-      "error",
-      "-show_entries",
-      "format=duration",
-      "-of",
-      "default=noprint_wrappers=1:nokey=1",
-      file
-    ]);
-    const val = parseFloat(stdout.trim());
-    return isNaN(val) ? 0 : val;
-  } catch (error) {
-    if (error instanceof MissingBinaryError) throw error;
+    return (await probeMedia(file)).durationSec ?? 0;
+  } catch {
     return 0;
+  }
+}
+
+/** Mediabunny codec names, as libav (and so ffprobe) names them. */
+const LIBAV_CODEC_NAMES: Record<string, string> = {
+  avc: "h264",
+  hevc: "hevc",
+  vp8: "vp8",
+  vp9: "vp9",
+  av1: "av1",
+  prores: "prores",
+  aac: "aac",
+  opus: "opus",
+  mp3: "mp3",
+  vorbis: "vorbis",
+  flac: "flac",
+  ac3: "ac3",
+  eac3: "eac3",
+  alac: "alac",
+  "pcm-u8": "pcm_u8",
+  "pcm-s16": "pcm_s16le",
+  "pcm-s16be": "pcm_s16be",
+  "pcm-s24": "pcm_s24le",
+  "pcm-s24be": "pcm_s24be",
+  "pcm-s32": "pcm_s32le",
+  "pcm-s32be": "pcm_s32be",
+  "pcm-f32": "pcm_f32le",
+  "pcm-f32be": "pcm_f32be",
+  "pcm-f64": "pcm_f64le",
+  "pcm-f64be": "pcm_f64be",
+  ulaw: "pcm_mulaw",
+  alaw: "pcm_alaw"
+};
+
+/** libav's name for a codec Mediabunny names `codec`; empty when unknown. */
+export function libavCodecName(codec: string | null): string {
+  return codec ? (LIBAV_CODEC_NAMES[codec] ?? codec) : "";
+}
+
+/** What the video nodes read off a file, in ffprobe's terms. */
+export interface VideoInfo {
+  durationSec: number;
+  width: number;
+  height: number;
+  /** The frame lattice rate (ffprobe's `r_frame_rate`), else the average. */
+  fps: number;
+  /** libav's name for the video codec, e.g. `h264`; empty when unknown. */
+  codec: string;
+  hasAudio: boolean;
+}
+
+/**
+ * Probe a file's picture and sound in process. Throws when the file is not
+ * media Mediabunny reads; the nodes that degrade to an empty answer catch it.
+ */
+export async function probeVideoInfo(file: string): Promise<VideoInfo> {
+  const probe = await probeMedia(file);
+  const video = probe.video;
+  return {
+    durationSec: probe.durationSec ?? 0,
+    width: video?.width ?? 0,
+    height: video?.height ?? 0,
+    fps: video ? (video.nominalFps ?? video.averageFps) : 0,
+    codec: libavCodecName(video?.codec ?? null),
+    hasAudio: probe.audio !== null
+  };
+}
+
+/** How many video frames `file` holds, counted from its packets. */
+export async function countVideoFrames(file: string): Promise<number> {
+  return (await packetTimes(file))?.length ?? 0;
+}
+
+/** Whether `file` has an audio stream. Unreadable media has none. */
+export async function probeHasAudioStream(file: string): Promise<boolean> {
+  try {
+    return (await probeMedia(file)).audio !== null;
+  } catch {
+    return false;
   }
 }
 

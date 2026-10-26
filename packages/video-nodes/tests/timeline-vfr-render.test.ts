@@ -12,6 +12,7 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
+import { generateMedia } from "@nodetool-ai/runtime/media/testing";
 import type { TimelineClip, TimelineSequence } from "@nodetool-ai/timeline";
 
 const opened = { forward: 0, sourceTime: 0 };
@@ -31,7 +32,6 @@ vi.mock("../src/nodes/timeline/rawFrames.js", async (importOriginal) => {
   };
 });
 
-const { execFfmpeg } = await import("../src/nodes/ffmpeg-helpers.js");
 const { renderTimelineComposited } = await import("../src/nodes/timeline/compositeRender.js");
 
 const noAdapterReason = await (async (): Promise<string | null> => {
@@ -55,15 +55,14 @@ beforeAll(async () => {
   directory = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-vfr-render-"));
   vfrPath = path.join(directory, "vfr.mp4");
   // 60/1 nominal, about 24 fps on average: the generated-clip profile.
-  await execFfmpeg([
-    "-v", "error", "-y",
-    "-f", "lavfi", "-i", "testsrc2=size=320x180:rate=60",
-    "-t", String(DURATION_MS / 1000 + 1),
-    "-vf", "select='lt(mod(n\\,5)\\,2)'",
-    "-fps_mode", "vfr",
-    "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p",
-    vfrPath
-  ]);
+  await generateMedia({
+    outPath: vfrPath,
+    video: {
+      source: `testsrc2=size=320x180:rate=60:duration=${DURATION_MS / 1000 + 1}`,
+      filter: "select='lt(mod(n\\,5)\\,2)'",
+      options: { preset: "ultrafast" }
+    }
+  });
 });
 
 afterAll(async () => {

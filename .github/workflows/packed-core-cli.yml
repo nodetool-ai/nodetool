@@ -91,7 +91,7 @@ jobs:
       - uses: ./.github/actions/setup-build
         with:
           cache: read-only
-          extra-apt: ffmpeg mesa-vulkan-drivers
+          extra-apt: mesa-vulkan-drivers
       - name: Install Chromium for native 3D tests
         run: npx playwright install --with-deps chromium
 

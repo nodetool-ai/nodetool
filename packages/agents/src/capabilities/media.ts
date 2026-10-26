@@ -47,14 +47,13 @@ import {
   HostBinaryMissingError,
   clampTimeoutSeconds,
   mimeFromFilename,
-  runHostBinary,
-  type RunHostBinaryOptions
+  runHostBinary
 } from "../host-binaries.js";
 import {
   MAX_DOWNLOAD_BYTES,
   buildYtDlpArgv,
   confineArgvToWorkspace,
-  hardenFfmpegArgv,
+  confineMediaPaths,
   refuseFlagLikeValue
 } from "../host-binary-guard.js";
 import {
@@ -112,8 +111,8 @@ import {
   compareImagesSpec,
   scoreImageAdherenceSpec,
   understandVideoSpec,
-  ffmpegSpec,
-  ffprobeSpec,
+  mediaEditSpec,
+  mediaProbeSpec,
   ytDlpSpec,
   DEFAULT_UNDERSTAND_VIDEO_TOKENS,
   DEFAULT_VIDEO_PROMPT,
@@ -2126,13 +2125,10 @@ async function hostBinaryRoot(
 }
 
 /**
- * Copy every argv path that names an existing workspace file into the scratch
- * directory, so the binary finds its inputs where it expects them.
+ * Copy every named path that is an existing workspace file into the scratch
+ * directory, so a reader that opens real paths finds it there.
  *
  * A no-op on a local workspace, where the scratch directory is the workspace.
- * Only whole arguments are staged: an input reaches ffmpeg as its own argv
- * entry (`-i clip.mp4`), and a path buried inside a filter token names an
- * output far more often than an input.
  */
 async function stageHostBinaryInputs(
   workspace: Workspace,
@@ -2147,20 +2143,6 @@ async function stageHostBinaryInputs(
       // Not a workspace path, or not readable — the binary reports it.
     }
   }
-}
-
-function stringArgs(raw: unknown): string[] | { error: string } {
-  if (!Array.isArray(raw) || raw.length === 0) {
-    return { error: "args must be a non-empty array of strings" };
-  }
-  const args: string[] = [];
-  for (const item of raw) {
-    if (!isString(item)) {
-      return { error: "args must be a non-empty array of strings" };
-    }
-    args.push(item);
-  }
-  return args;
 }
 
 /**
@@ -2196,19 +2178,6 @@ async function persistWorkspaceFile(
   }
 }
 
-/**
- * What a refused `://` in ffmpeg argv should do instead. The guard's default
- * says "stage it first" without saying how; here there is a parameter for it.
- */
-const FFMPEG_REMEDY =
-  'Pass the ref in `inputs` instead — {"clip.mp4": "asset://<id>.mp4"} ' +
-  "copies it into the workspace, then name `clip.mp4` in args.";
-
-/** The same remedy for `ffprobe`, whose one path argument replaces argv. */
-const FFPROBE_REMEDY =
-  'Pass the ref in `inputs` instead — {"clip.mp4": "asset://<id>.mp4"} ' +
-  'copies it into the workspace, then set path to "clip.mp4".';
-
 /** Per-file limit for inline, temporary, and non-local staged inputs. */
 const MAX_STAGED_INPUT_BYTES = 100 * 1024 * 1024;
 /** Files one `inputs` bag may stage. */
@@ -2218,14 +2187,11 @@ const MAX_STAGED_TOTAL_BYTES = 256 * 1024 * 1024;
 
 /**
  * Copy the refs in `inputs` into the workspace under the names the caller
- * gave them, so argv can name plain local files.
+ * gave them, so an edit can name plain local files.
  *
- * ffmpeg opens local files only — a URL or an `asset://` URI in argv is
- * refused, and rightly so. But chat code has no workspace API of its own, so
- * before this there was no way to put an asset where ffmpeg could see it: the
- * capability was on the belt and unusable, and the refusal told the caller to
- * "download first" with nothing to download with. Staging is that missing
- * half, and it changes no boundary — the bytes are resolved host-side by the
+ * The media readers open local files only. Chat code has no workspace API of
+ * its own, so without this there is no way to put an asset where they can see
+ * it. Staging changes no boundary: the bytes are resolved host-side by the
  * same resolver `save_asset` uses, and every name still goes through
  * {@link confineArgvToWorkspace}.
  */
@@ -2249,7 +2215,7 @@ async function stageInputs(
     };
   }
   const names = entries.map(([name]) => name);
-  const refusal = await confineArgvToWorkspace(names, cwd);
+  const refusal = await confineMediaPaths(names, cwd, MEDIA_PATH_REMEDY);
   if (refusal) return refusal;
 
   const staged: Record<string, number> = {};
@@ -2294,7 +2260,7 @@ async function stageInputs(
       readError = e instanceof Error ? e.message : String(e);
     }
     // Zero bytes is a failed read wearing a buffer, the same way it is in
-    // `save_asset` — staging it would hand ffmpeg an empty file and the
+    // `save_asset` — staging it would hand the decoder an empty file and the
     // failure would surface as an unhelpable decode error.
     if (!bytes || bytes.byteLength === 0) {
       return {
@@ -2341,125 +2307,15 @@ async function stageInputs(
   return { staged };
 }
 
-const ffmpeg: CapabilityExport = {
-  spec: ffmpegSpec,
-  impl: async (run, params) => {
-    const root = await hostBinaryRoot(run.context);
-    if ("error" in root) return root;
-    const { workspace, cwd } = root;
-    const args = stringArgs(params["args"]);
-    if ("error" in args) return args;
-
-    const stagedResult = await stageInputs(
-      run.context,
-      workspace,
-      cwd,
-      params["inputs"]
-    );
-    if ("error" in stagedResult) return stagedResult;
-
-    const outputFile = isNonBlankString(params["output_file"])
-      ? params["output_file"].trim()
-      : "";
-    const argv = [...args];
-    if (outputFile && !argv.includes(outputFile)) {
-      argv.push(outputFile);
-    }
-
-    const refusal = await confineArgvToWorkspace(argv, cwd, FFMPEG_REMEDY);
-    if (refusal) return refusal;
-    const hardened = hardenFfmpegArgv(argv);
-    if ("error" in hardened) return hardened;
-
-    const persistTarget =
-      outputFile ||
-      [...argv].reverse().find((item) => item && !item.startsWith("-")) ||
-      "";
-    const timeoutMs =
-      clampTimeoutSeconds(params["timeout_seconds"], 180, 600) * 1000;
-    const runOptions: RunHostBinaryOptions = { cwd, timeoutMs };
-    // Only a known output path can be watched for size; without one the
-    // wall clock and the capture cap are the run's bounds.
-    if (persistTarget) {
-      runOptions.artifactPath = persistTarget;
-    }
-    try {
-      await stageHostBinaryInputs(workspace, hardened.argv);
-      const result = await runHostBinary("ffmpeg", hardened.argv, runOptions);
-      const persisted =
-        result.exitCode === 0 && persistTarget
-          ? await persistWorkspaceFile(run.context, workspace, persistTarget)
-          : undefined;
-      const report: Record<string, unknown> = {
-        success: result.exitCode === 0,
-        stdout: result.stdout,
-        stderr: result.stderr,
-        exit_code: result.exitCode,
-        ...(persisted ?? {})
-      };
-      if (Object.keys(stagedResult.staged).length > 0) {
-        report["staged"] = stagedResult.staged;
-      }
-      return report;
-    } catch (e) {
-      const missingRuntime = missingRuntimeDetailsOf(e);
-      if (missingRuntime) { return { error: "missing_runtime_package", ...missingRuntime }; }
-      if (e instanceof HostBinaryMissingError) {
-        return { error: e.message };
-      }
-      return {
-        error: `ffmpeg failed: ${e instanceof Error ? e.message : String(e)}`
-      };
-    }
-  }
-};
-
 /**
- * What ffprobe reports as numbers, as numbers.
+ * Refs the media capabilities stage for themselves, rather than refusing.
  *
- * ffprobe's JSON is all strings — `"duration": "8.000000"` — so arithmetic on
- * it silently produces `"8.000000".toFixed is not a function`, or worse, a
- * concatenation. The raw payload stays exactly as ffprobe wrote it; this is a
- * second, typed view of the four fields a caller actually plans a cut with.
- */
-export function ffprobeSummary(
-  parsed: Record<string, unknown>
-): Record<string, unknown> {
-  const format = isObjectLike(parsed["format"]) ? parsed["format"] : {};
-  const streams = Array.isArray(parsed["streams"]) ? parsed["streams"] : [];
-  const numeric = (value: unknown): number | null => {
-    const n = typeof value === "number" ? value : Number(value);
-    return Number.isFinite(n) ? n : null;
-  };
-  const ofKind = (kind: string): Record<string, unknown> | undefined =>
-    streams.find(
-      (s): s is Record<string, unknown> =>
-        isObjectLike(s) && s["codec_type"] === kind
-    );
-  const video = ofKind("video");
-  const audio = ofKind("audio");
-  const summary: Record<string, unknown> = {
-    duration_seconds:
-      numeric(format["duration"]) ?? numeric(video?.["duration"]),
-    has_video: video !== undefined,
-    has_audio: audio !== undefined
-  };
-  if (video) {
-    summary["width"] = numeric(video["width"]);
-    summary["height"] = numeric(video["height"]);
-  }
-  return summary;
-}
-
-/**
- * Refs `ffprobe` stages for itself, rather than refusing.
- *
- * These are the forms NodeTool's own tools hand back, so a caller probing a
- * clip it just generated is passing the string it was given. An http(s) URL is
+ * These are the forms NodeTool's own tools hand back, so a caller editing a
+ * clip it just generated passes the string it was given. An http(s) URL is
  * not here: fetching one is egress, and egress belongs to the surfaces that
  * declare it.
  */
-function isStageableProbeRef(value: string): boolean {
+function isStageableMediaRef(value: string): boolean {
   return (
     value.startsWith("asset://") ||
     value.startsWith("/api/storage/") ||
@@ -2467,26 +2323,161 @@ function isStageableProbeRef(value: string): boolean {
   );
 }
 
-/** A workspace file name for a staged probe target, from the ref itself. */
-function probeStagingName(ref: string): string {
-  if (ref.startsWith("data:")) return "ffprobe-input/input";
+/** A workspace file name for a staged ref, from the ref itself. */
+function mediaStagingName(ref: string, index: number): string {
+  if (ref.startsWith("data:")) return `media-input/input-${index}`;
   const tail = ref.split("/").pop() ?? "input";
   const safe = tail.replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 64);
-  return `ffprobe-input/${safe || "input"}`;
+  return `media-input/${safe || `input-${index}`}`;
 }
 
 /**
- * ffprobe with an argv NodeTool writes, not the caller.
+ * Turn every path a media capability reads into a confined workspace file.
  *
- * Everything a caller can say is one workspace path, so the whole boundary is
- * the confinement check — there is no flag surface to guard, and no way to ask
- * ffprobe to open a socket. `inputs` stages assets under workspace names the
- * same way `ffmpeg`'s does: without it the two halves of one loop disagreed,
- * and a caller who had just staged a clip for ffmpeg could not ask ffprobe how
- * long it was without staging it a second time through a no-op ffmpeg copy.
+ * A ref is staged under a generated name, the `inputs` bag under the names
+ * the caller gave, and every resulting path — staged or not — is checked
+ * against the workspace root before anything opens it (R8 in
+ * docs/ffmpeg-in-process-plan.md: libav opens any path it is handed).
  */
-const ffprobe: CapabilityExport = {
-  spec: ffprobeSpec,
+async function prepareMediaPaths(
+  context: ProcessingContext,
+  workspace: Workspace,
+  cwd: string,
+  paths: readonly string[],
+  extraInputs: unknown
+): Promise<
+  { resolved: Map<string, string>; staged: Record<string, number> } | { error: string }
+> {
+  const resolved = new Map<string, string>();
+  const toStage: Record<string, string> = isRecord(extraInputs)
+    ? Object.fromEntries(
+        Object.entries(extraInputs).filter(
+          (entry): entry is [string, string] => typeof entry[1] === "string"
+        )
+      )
+    : {};
+  if (extraInputs !== undefined && extraInputs !== null && !isRecord(extraInputs)) {
+    return {
+      error:
+        'inputs must be an object of {"<workspace-relative name>": "<asset:// URI, /api/storage/ key, or data: URI>"}'
+    };
+  }
+  paths.forEach((item, index) => {
+    if (isStageableMediaRef(item)) {
+      const name = mediaStagingName(item, index);
+      toStage[name] = item;
+      resolved.set(item, name);
+    } else {
+      resolved.set(item, item);
+    }
+  });
+  const stagedResult = await stageInputs(context, workspace, cwd, toStage);
+  if ("error" in stagedResult) return stagedResult;
+  const local = [...new Set(resolved.values())];
+  const refusal = await confineMediaPaths(local, cwd, MEDIA_PATH_REMEDY);
+  if (refusal) return refusal;
+  await stageHostBinaryInputs(workspace, local);
+  return { resolved, staged: stagedResult.staged };
+}
+
+/** What to do with a refused path: name an asset directly, never a URL. */
+const MEDIA_PATH_REMEDY =
+  "Name a workspace file, or pass the asset:// URI itself; it is copied " +
+  "into the workspace for you.";
+
+/**
+ * One typed media operation, run in process on node-av and Mediabunny.
+ *
+ * This replaced the raw-argv `ffmpeg` capability. There is no argv and no
+ * filter string to guard: every input and the output are single paths, each
+ * confined to the workspace, and each operation builds its own graph from
+ * checked numbers (`src/media-edit.ts`).
+ */
+const mediaEdit: CapabilityExport = {
+  spec: mediaEditSpec,
+  impl: async (run, params) => {
+    const root = await hostBinaryRoot(run.context);
+    if ("error" in root) return root;
+    const { workspace, cwd } = root;
+    const { parseMediaEditRequest, mediaEditInputs, probeFile, runMediaEdit } =
+      await import("../media-edit.js");
+    const request = parseMediaEditRequest(params);
+    if ("error" in request) return request;
+
+    const prepared = await prepareMediaPaths(
+      run.context,
+      workspace,
+      cwd,
+      mediaEditInputs(request),
+      params["inputs"]
+    );
+    if ("error" in prepared) return prepared;
+    const local = (file: string | undefined): string | undefined =>
+      file === undefined ? undefined : (prepared.resolved.get(file) ?? file);
+    const confined: typeof request = {
+      ...request,
+      input: local(request.input),
+      audio: local(request.audio),
+      overlay: local(request.overlay),
+      sources: request.sources?.map((file) => local(file) ?? file)
+    };
+    const outputRefusal = await confineMediaPaths(
+      [request.output],
+      cwd,
+      MEDIA_PATH_REMEDY
+    );
+    if (outputRefusal) return outputRefusal;
+
+    const absolute = (file: string): string => path.join(cwd, workspace.key(file));
+    try {
+      const outputDir =
+        request.operation === "extract_frames"
+          ? absolute(request.output)
+          : path.dirname(absolute(request.output));
+      await mkdir(outputDir, { recursive: true });
+      const { outputs } = await runMediaEdit(confined, absolute, run.context.signal);
+      const report: Record<string, unknown> = {
+        success: true,
+        operation: request.operation
+      };
+      if (request.operation === "extract_frames") {
+        const frames: Array<Record<string, unknown>> = [];
+        for (const output of outputs) {
+          frames.push(
+            (await persistWorkspaceFile(run.context, workspace, output)) ?? {
+              output_file: output
+            }
+          );
+        }
+        report["frames"] = frames;
+      } else {
+        Object.assign(
+          report,
+          (await persistWorkspaceFile(run.context, workspace, request.output)) ?? {}
+        );
+        report["probe"] = await probeFile(absolute(request.output), run.context.signal);
+      }
+      if (Object.keys(prepared.staged).length > 0) {
+        report["staged"] = prepared.staged;
+      }
+      return report;
+    } catch (e) {
+      return {
+        error: `media_edit ${request.operation} failed: ${
+          e instanceof Error ? e.message : String(e)
+        }`
+      };
+    }
+  }
+};
+
+/**
+ * Read a media file's container and streams in process. It replaced the
+ * `ffprobe` capability and answers in numbers, where ffprobe's JSON was all
+ * strings.
+ */
+const mediaProbe: CapabilityExport = {
+  spec: mediaProbeSpec,
   impl: async (run, params) => {
     const root = await hostBinaryRoot(run.context);
     if ("error" in root) return root;
@@ -2496,75 +2487,30 @@ const ffprobe: CapabilityExport = {
       return { error: "path is required" };
     }
     const requested = target.trim();
-    // ffprobe's whole argv is this one path, so an `asset://` here can only
-    // mean "probe that": there is no flag to smuggle and nothing else to
-    // confine. Refusing it made the two halves of one loop disagree — the
-    // guest's own `video.info(asset://…)` reads a ref happily — and a caller
-    // who just wanted a duration had to stage the file by hand first.
-    const autoStaged = isStageableProbeRef(requested);
-    const probePath = autoStaged ? probeStagingName(requested) : requested;
-    let toStage = params["inputs"];
-    if (autoStaged) {
-      const extra = isRecord(toStage) ? toStage : {};
-      toStage = { ...extra, [probePath]: requested };
-    }
-    const stagedResult = await stageInputs(
+    const prepared = await prepareMediaPaths(
       run.context,
       workspace,
       cwd,
-      toStage
+      [requested],
+      params["inputs"]
     );
-    if ("error" in stagedResult) return stagedResult;
-    const refusal = await confineArgvToWorkspace(
-      [probePath],
-      cwd,
-      FFPROBE_REMEDY
-    );
-    if (refusal) return refusal;
-    await stageHostBinaryInputs(workspace, [probePath]);
-
-    const timeoutMs =
-      clampTimeoutSeconds(params["timeout_seconds"], 30, 120) * 1000;
+    if ("error" in prepared) return prepared;
+    const probePath = prepared.resolved.get(requested) ?? requested;
+    const { probeFile } = await import("../media-edit.js");
     try {
-      const result = await runHostBinary(
-        "ffprobe",
-        [
-          "-v",
-          "error",
-          "-print_format",
-          "json",
-          "-show_format",
-          "-show_streams",
-          probePath
-        ],
-        { cwd, timeoutMs }
-      );
-      if (result.exitCode !== 0) {
-        return {
-          error: `ffprobe failed: ${result.stderr.trim() || `exit ${result.exitCode}`}`
-        };
-      }
-      const parsed: unknown = JSON.parse(result.stdout);
-      if (!isObjectLike(parsed)) {
-        return { error: "ffprobe returned no readable JSON" };
-      }
       const report: Record<string, unknown> = {
         path: requested,
-        ...parsed,
-        summary: ffprobeSummary(parsed)
+        ...(await probeFile(path.join(cwd, workspace.key(probePath)), run.context.signal))
       };
-      if (Object.keys(stagedResult.staged).length > 0) {
-        report["staged"] = stagedResult.staged;
+      if (Object.keys(prepared.staged).length > 0) {
+        report["staged"] = prepared.staged;
       }
       return report;
     } catch (e) {
-      const missingRuntime = missingRuntimeDetailsOf(e);
-      if (missingRuntime) { return { error: "missing_runtime_package", ...missingRuntime }; }
-      if (e instanceof HostBinaryMissingError) {
-        return { error: e.message };
-      }
       return {
-        error: `ffprobe failed: ${e instanceof Error ? e.message : String(e)}`
+        error: `media_probe could not read ${requested}: ${
+          e instanceof Error ? e.message : String(e)
+        }`
       };
     }
   }
@@ -2609,7 +2555,7 @@ const ytDlp: CapabilityExport = {
       clampTimeoutSeconds(params["timeout_seconds"], 300, 900) * 1000;
 
     // The template is the caller's, so it escapes the workspace as easily as
-    // an ffmpeg path does. `format` reaches yt-dlp as a selector, never a path.
+    // an edit path would. `format` reaches yt-dlp as a selector, never a path.
     const refusal = await confineArgvToWorkspace([outputFile], cwd);
     if (refusal) return refusal;
     const flagLike =
@@ -2710,8 +2656,8 @@ export const MEDIA_CAPABILITIES: readonly CapabilityExport[] = [
   compareImages,
   scoreImageAdherence,
   understandVideo,
-  ffmpeg,
-  ffprobe,
+  mediaEdit,
+  mediaProbe,
   ytDlp
 ];
 
@@ -2737,7 +2683,7 @@ export {
   compareImages,
   scoreImageAdherence,
   understandVideo,
-  ffmpeg,
-  ffprobe,
+  mediaEdit,
+  mediaProbe,
   ytDlp
 };

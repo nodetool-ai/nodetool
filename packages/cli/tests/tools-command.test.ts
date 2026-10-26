@@ -171,8 +171,8 @@ it("preserves install-required exits for a failed debug workflow's run envelope"
   const { missingRuntimePackageDetails } =
     await import("@nodetool-ai/protocol");
   const missingRuntime = missingRuntimePackageDetails(
-    "ffprobe",
-    "ffmpeg",
+    "yt-dlp",
+    "yt-dlp",
     {},
     { NODETOOL_HOST: "cli" }
   );

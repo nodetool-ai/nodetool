@@ -14,12 +14,12 @@ import {
 } from "../src/host-binaries.js";
 
 describe("runHostBinary", () => {
-  it("maps a missing managed ffprobe binary to runtime details", async () => {
+  it("maps a missing managed yt-dlp binary to runtime details", async () => {
     const cwd = await mkdtemp(path.join(tmpdir(), "nt-managed-host-bin-"));
     try {
-      const missing = path.join(cwd, "ffprobe");
+      const missing = path.join(cwd, "yt-dlp");
       const error = await runHostBinary(missing, [], { cwd, timeoutMs: 2000 }).catch((cause: unknown) => cause);
-      expect(missingRuntimeDetailsOf(error)).toMatchObject({ runtimePackage: "ffmpeg", missing, reason: "missing" });
+      expect(missingRuntimeDetailsOf(error)).toMatchObject({ runtimePackage: "yt-dlp", missing, reason: "missing" });
     } finally {
       await rm(cwd, { recursive: true, force: true });
     }

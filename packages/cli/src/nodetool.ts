@@ -14,6 +14,8 @@
  * put on NODETOOL_OPTIONAL_NODE_MODULES, so every optional import and every
  * child process can find what was installed there.
  */
+// First: libuv sizes its thread pool on the first job it queues.
+import "@nodetool-ai/config/threadpool";
 import { initializeCliRuntime } from "./runtime-env.js";
 
 initializeCliRuntime(import.meta.url);

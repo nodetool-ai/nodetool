@@ -58,11 +58,6 @@ registerHooks({ resolve(specifier, context, next) {
     expect(result.status, result.stderr).toBe(1);
     expect(JSON.parse(result.stdout)).toMatchObject({ ok: false, passed: 0, failed: 1, results: [{ mismatches: [{ output: "value", expected: 2, actual: 1 }] }] });
   }, 40000);
-  it("reports a missing ffprobe as structured ffmpeg details and exits3", () => {
-    const result = runMissing(["node", "run", "nodetool.video.Fps", "--props", JSON.stringify({ video: { type: "video", data: "AQIDBA==" } }), "--no-secrets", "--json"]);
-    expect(result.status, result.stderr).toBe(3);
-    expect(JSON.parse(result.stdout)).toMatchObject({ error: "missing_runtime_package", runtimePackage: "ffmpeg", missing: "ffprobe", reason: "missing", managed: null });
-  }, 40000);
 
   it("reports a Python-pack workflow with an unavailable interpreter instead of an unknown node", () => {
     const dir = mkdtempSync(join(tmpdir(), "nodetool-python-graph-"));

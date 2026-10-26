@@ -474,7 +474,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "generate_music",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "b9917297fc35",
+    contract: "2f0cd7a403c9",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-generations.test.ts",
@@ -560,25 +560,25 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
-    name: "ffmpeg",
+    name: "media_edit",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "5b56c11cbef0",
+    contract: "95325a7a77de",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
-      "packages/agents/tests/capabilities-media-ffprobe.test.ts",
+      "packages/agents/tests/capabilities-media-edit.test.ts",
     ],
   },
   {
-    name: "ffprobe",
+    name: "media_probe",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "7d62f96db6d3",
+    contract: "901df55c7ad6",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
-      "packages/agents/tests/capabilities-media-ffprobe.test.ts",
+      "packages/agents/tests/capabilities-media-edit.test.ts",
     ],
   },
   {

@@ -45,7 +45,7 @@ The storyboard, entity and render call shapes live in `storyboard-core` § Tool 
 
 **The board holds the default models.** `image_model` / `video_model` on `set_board` take the `.ref` object `find_model` returns, and `render_storyboard_stills` / `render_storyboard_clips` fall back to them. With no board model and no `provider` + `model` on the call, the render fails and says so — it never picks one. Set them on the board once in phase 3 and pass `provider` + `model` only for a shot that needs a different line.
 
-**Measure with `ffprobe`.** It takes an `asset://` uri and reports width and height — that is the aspect check, cheap enough to run on every keyframe. Grade the picture itself with `view_image` and `score_image_adherence`.
+**Measure with `media_probe`.** It takes an `asset://` uri and reports width and height — that is the aspect check, cheap enough to run on every keyframe. Grade the picture itself with `view_image` and `score_image_adherence`.
 
 **`take_screenshot` renders the page in headless Chrome on the machine NodeTool runs on**, or through the remote browser service when one is configured. If it fails, report the error once and fall back to the page's own downloaded images.
 
@@ -157,7 +157,7 @@ The discipline:
 2. **Score adherence** with `score_image_adherence({image, prompt})` where the shot prompt is specific enough to score against.
 3. **Compare frames to each other**, not just to their prompts. The defect that killed two frames in the real run was only visible next to a third that got it right.
 4. **Report per frame: keep, or the specific defect.** Banned words in a grade: stunning, astonishing, gorgeous, perfect, night-and-day. If you cannot name a defect, write "checked: card fidelity, baked text, palette, framing — none found".
-5. **Never claim a property you did not verify.** Measure the aspect ratio with `ffprobe` on each keyframe's `asset://` uri rather than eyeballing it; a plate that came back in the wrong ratio is a defect to name at G2, and it is still standardized at assembly.
+5. **Never claim a property you did not verify.** Measure the aspect ratio with `media_probe` on each keyframe's `asset://` uri rather than eyeballing it; a plate that came back in the wrong ratio is a defect to name at G2, and it is still standardized at assembly.
 
 Two failure classes, two different fixes — never confuse them:
 

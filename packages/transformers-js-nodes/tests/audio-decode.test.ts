@@ -1,3 +1,8 @@
+import { promises as fs } from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
+import { generateMedia } from "@nodetool-ai/runtime/media/testing";
 import { describe, expect, it } from "vitest";
 import { loadAudioSamples } from "../src/transformers-base.js";
 
@@ -80,14 +85,23 @@ describe("loadAudioSamples (Node-friendly WAV decode)", () => {
     expect(out[2]).toBeCloseTo(0, 3);
   });
 
-  it("falls back to ffmpeg for non-WAV input and throws an actionable error if ffmpeg fails or is missing", async () => {
-    // 5 bytes of garbage: definitely not WAV, definitely not decodable by ffmpeg.
-    // Either ffmpeg surfaces a decode error or — if ffmpeg isn't on PATH at
-    // all — we throw the install-hint error instead. Both paths are correct.
-    const garbage = new Uint8Array([0x00, 0x01, 0x02, 0x03, 0x04]);
-    await expect(loadAudioSamples(refFromBytes(garbage), 16000)).rejects.toThrow(
-      /ffmpeg/i
-    );
+  it("decodes a compressed file to mono samples at the requested rate", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-tjs-decode-"));
+    try {
+      const file = path.join(dir, "tone.m4a");
+      await generateMedia({
+        outPath: file,
+        audio: { source: "sine=frequency=440:sample_rate=44100:duration=1" }
+      });
+      const samples = await loadAudioSamples(refFromBytes(new Uint8Array(await fs.readFile(file))), 16000);
+      expect(Math.abs(samples.length - 16000)).toBeLessThan(400);
+      let sum = 0;
+      for (let i = 2000; i < 14000; i++) sum += samples[i]! ** 2;
+      // lavfi's sine is 1/8 full scale: RMS 0.088.
+      expect(Math.sqrt(sum / 12000)).toBeGreaterThan(0.07);
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true });
+    }
   });
 
   it("throws on empty input", async () => {

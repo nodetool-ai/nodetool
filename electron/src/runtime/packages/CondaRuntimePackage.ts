@@ -15,7 +15,7 @@ interface CondaRuntimePackageOptions {
   description: string;
   category: RuntimeCategory;
   versionRange: string;
-  /** conda package specs (e.g. ["ffmpeg>=6,<7", "x264"]) */
+  /** conda package specs (e.g. ["rust>=1.77"]) */
   condaPackages: string[];
   /** Binary name (without .exe) used to verify the install */
   verifyBinary: string;

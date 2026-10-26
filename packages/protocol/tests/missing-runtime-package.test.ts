@@ -60,12 +60,14 @@ describe("host-aware missing runtime details", () => {
   });
 
   it("names only bring-your-own commands for unmanaged CLI install kinds", () => {
-    const details = missingRuntimePackageDetails("ffprobe", "ffmpeg", {}, { NODETOOL_HOST: "cli" });
+    const details = missingRuntimePackageDetails("pandoc", "pandoc", {}, { NODETOOL_HOST: "cli" });
     expect(details.managed).toBeNull();
-    expect(details.bringYourOwn).toBe("Or put ffmpeg on PATH (brew install ffmpeg, apt install ffmpeg).");
+    expect(details.bringYourOwn).toBe("Or put pandoc on PATH (brew install pandoc, apt install pandoc).");
     expect(missingRuntimePackageDetails("manimgx", "manimgx", {}, { NODETOOL_HOST: "cli" }).bringYourOwn)
       .toBe("Or put manimgx on PATH (uv tool install manimgx).");
-    expect(runtimePackageForBinary("ffprobe")).toBe("ffmpeg");
+    expect(runtimePackageForBinary("yt-dlp")).toBe("yt-dlp");
+    // libav runs in process: no runtime package installs ffmpeg any more.
+    expect(runtimePackageForBinary("ffprobe")).toBeNull();
     expect(runtimePackageForBinary("blender")).toBeNull();
   });
 

@@ -41,7 +41,6 @@ const RUNTIME_GROUP: Record<string, RuntimeGroup> = {
   python: "language",
   nodejs: "language",
   rust: "language",
-  ffmpeg: "media",
   pandoc: "media",
   pdftotext: "media",
   "yt-dlp": "media",
@@ -90,7 +89,7 @@ const SUBTITLES: Record<PMCategory, string> = {
   thirdparty:
     "Third-party packs run in-process as the server user. Only trust packs you know.",
   runtimes:
-    "Programs that run on this computer: local AI engines such as llama.cpp and stable-diffusion.cpp, media tools such as FFmpeg, and languages. Local models and some nodes need them."
+    "Programs that run on this computer: local AI engines such as llama.cpp and stable-diffusion.cpp, media tools such as yt-dlp, and languages. Local models and some nodes need them."
 };
 
 /** Filter labels per list. Included packs are switched, not installed. */
@@ -533,7 +532,7 @@ export function usePackageManager(params: {
 
     const notice =
       isSoftware && !rtAvailable
-        ? "Software installation runs in the NodeTool desktop app. Open the desktop app to install Python, FFmpeg, and other runtimes."
+        ? "Software installation runs in the NodeTool desktop app. Open the desktop app to install Python, yt-dlp, and other runtimes."
         : cat === "python" && !pyAvailable
           ? "Installing node packs runs in the NodeTool desktop app. Open the desktop app to install, update, and remove Python node packs."
           : null;

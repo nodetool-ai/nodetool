@@ -3,56 +3,16 @@
  * first; the Node compositor runs only when no browser can be launched, and
  * says so on the node's log. Both renderers are mocked, so what is under test
  * is the choice between them and what the node records — the render itself is
- * `timeline-browser-render.test.ts`. child_process is mocked as in
+ * `timeline-browser-render.test.ts`. The media module is faked as in
  * `timeline-composite.test.ts`, so the audio mix writes a stand-in file.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import fsSync from "node:fs";
+import { mediaCalls, resetFakeMedia } from "./_fixtures/fake-media.js";
 
-let execFileCalls: Array<{ cmd: string; args: string[] }> = [];
-
-function mockResponse(
-  cmd: string,
-  args: string[]
-): { stdout: string; stderr: string } {
-  if (cmd === "ffprobe") {
-    const argsStr = args.join(" ");
-    if (argsStr.includes("codec_type")) return { stdout: "audio\n", stderr: "" };
-    if (argsStr.includes("format=duration")) return { stdout: "4\n", stderr: "" };
-    return { stdout: "", stderr: "" };
-  }
-  const outputPath = args[args.length - 1];
-  fsSync.writeFileSync(outputPath, Buffer.from(`fake:${outputPath}`));
-  return { stdout: "", stderr: "" };
-}
-
-vi.mock("node:child_process", async (importOriginal) => {
-  const original = (await importOriginal()) as Record<string, unknown>;
-  const mockExecFile = (
-    cmd: string,
-    args: string[],
-    optionsOrCb: unknown,
-    maybeCb?: unknown
-  ) => {
-    execFileCalls.push({ cmd, args: [...args] });
-    const cb =
-      typeof optionsOrCb === "function"
-        ? (optionsOrCb as (e: Error | null, o: string, s: string) => void)
-        : typeof maybeCb === "function"
-          ? (maybeCb as (e: Error | null, o: string, s: string) => void)
-          : null;
-    if (!cb) return;
-    const resp = mockResponse(cmd, args);
-    cb(null, resp.stdout, resp.stderr);
-  };
-  (mockExecFile as unknown as Record<symbol, unknown>)[
-    Symbol.for("nodejs.util.promisify.custom")
-  ] = (cmd: string, args: string[]) => {
-    execFileCalls.push({ cmd, args: [...args] });
-    return Promise.resolve(mockResponse(cmd, args));
-  };
-  return { ...original, execFile: mockExecFile };
-});
+vi.mock("@nodetool-ai/runtime/media", async (importOriginal) =>
+  (await import("./_fixtures/fake-media.js")).fakeMediaModule(await importOriginal())
+);
 
 const renderComposited = vi.fn();
 const renderInBrowser = vi.fn();
@@ -180,7 +140,7 @@ let rendererSetting: string | undefined;
 beforeEach(() => {
   rendererSetting = process.env["NODETOOL_TIMELINE_RENDERER"];
   delete process.env["NODETOOL_TIMELINE_RENDERER"];
-  execFileCalls = [];
+  resetFakeMedia();
   posted = [];
   renderComposited.mockReset();
   renderComposited.mockResolvedValue({
@@ -223,7 +183,7 @@ describe("RenderTimeline — browser path", () => {
     expect(logs("info")).toContain("avc in mp4");
   });
 
-  it("names a Canvas 2D render and an ffmpeg transcode", async () => {
+  it("names a Canvas 2D render and a transcode", async () => {
     renderInBrowser.mockResolvedValue({
       ...BROWSER_RESULT,
       backend: "canvas2d",
@@ -233,13 +193,13 @@ describe("RenderTimeline — browser path", () => {
     });
     await render(sequence({ clips: [videoClip()] }));
     expect(logs("info")).toContain("Canvas 2D compositor");
-    expect(logs("info")).toContain("transcoded with ffmpeg");
+    expect(logs("info")).toContain("and transcoded");
   });
 
   it("mixes the timeline's audio onto the browser's picture", async () => {
     await render(sequence({ clips: [videoClip(), audioClip()] }));
-    const mixes = execFileCalls.filter(
-      (c) => c.cmd === "ffmpeg" && c.args.some((a) => a.includes("rendered.mp4"))
+    const mixes = mediaCalls.filter(
+      (call) => call.fn === "muxAudioWithVideoCopy" && call.videoPath.endsWith("rendered.mp4")
     );
     expect(mixes.length).toBeGreaterThan(0);
   });

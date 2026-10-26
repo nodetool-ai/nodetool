@@ -84,7 +84,7 @@ jobs:
           # The baseline runs every test related to a mutated file, including
           # real-Chromium 3D captures, which need Chromium and the CPU Vulkan
           # driver the package test legs install.
-          extra-apt: mesa-vulkan-drivers ffmpeg
+          extra-apt: mesa-vulkan-drivers
       - name: Install Chromium for native 3D tests
         run: npx playwright install --with-deps chromium
       # Ubuntu restricts user namespaces for downloaded Chromium binaries.

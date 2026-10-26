@@ -58,7 +58,7 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { ffprobeDuration } from "./ffmpeg-helpers.js";
+import { probeDurationSeconds } from "./ffmpeg-helpers.js";
 import { stringValues } from "./placeholder-values.js";
 import { isString } from "@nodetool-ai/node-sdk";
 
@@ -169,7 +169,6 @@ export class VoiceScriptNode extends BaseNode {
   static readonly title = "Voice Script";
   static readonly description =
     "Synthesize speech for every draft or stale line of a script, using each line's cast voice, and save the takes back onto the script. Lines already up to date, or with no text or no voice, are skipped.\n    script, voiceover, tts, narration, batch\n\n    Use cases:\n    - Voice an LLM-written script in one step\n    - Re-voice lines whose text or voice changed\n    - Produce narration assets for timeline assembly";
-  static readonly requiredRuntimes = ["ffmpeg"];
   static readonly metadataOutputTypes = {
     output: "script",
     voiced_count: "int"
@@ -922,7 +921,7 @@ async function probeDurationMs(
   const probePath = path.join(workDir, `line_${index}`);
   try {
     await fs.writeFile(probePath, bytes);
-    const seconds = await ffprobeDuration(probePath);
+    const seconds = await probeDurationSeconds(probePath);
     return seconds > 0 ? Math.round(seconds * 1000) : PLACEHOLDER_LINE_MS;
   } catch {
     return PLACEHOLDER_LINE_MS;
@@ -934,7 +933,7 @@ export const SCRIPT_NODES = tagAsNode([
   VoiceScriptNode,
   ScriptToTimelineNode,
   ScriptToSubtitlesNode,
-  // Tagged first, so `tagAsNode` leaves them alone: neither node shells out to
-  // ffmpeg or writes a temp file, and both need the model interfaces.
+  // Tagged first, so `tagAsNode` leaves them alone: neither node loads libav
+  // or writes a temp file, and both need the model interfaces.
   ...tagAsServer([WriteScriptNode, FillScriptNode])
 ]);

@@ -1017,7 +1017,7 @@ nodetool timeline render sequence.json --frames coverage:build-sequence.ts --she
 nodetool timeline render sequence.json --only title,logo --frames 60,120 --sheet 2
 ```
 
-The command needs ffmpeg for video output and a WebGPU adapter. On a headless
+The command needs a WebGPU adapter. On a headless
 machine, install a Vulkan ICD such as lavapipe
 ([headless WebGPU setup](dev-environment.md#webgpu-on-a-headless-machine)).
 The first frame compiles the GPU pipelines, so progress starts after a delay.
@@ -2834,7 +2834,7 @@ for that installation root.
 `NODETOOL_AUTO_INSTALL=1` also authorizes those commands. They install missing
 npm requirements and re-execute once, forwarding the child exit code. Serve,
 MCP and agent tools do not install packages automatically. External runtimes
-such as ffmpeg and Python require their own setup.
+such as yt-dlp and Python require their own setup.
 
 See the [pack-system design](cli-pack-system-design.md#15-command-surface)
 for installation boundaries and the platform matrix.

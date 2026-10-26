@@ -2,7 +2,7 @@
  * RuntimePackagesStore
  *
  * Web-side wrapper around the Electron `window.api.packages` runtime IPC — the
- * "Engines & tools" list of the unified Package Manager (Python, FFmpeg, Node, pandoc,
+ * "Engines & tools" list of the unified Package Manager (Python, Node, pandoc, yt-dlp,
  * yt-dlp, …, installed via conda/micromamba or npm in the desktop app).
  *
  * Runtime installation only exists in the Electron main process, so every
@@ -25,8 +25,6 @@ import {
 const SERVER_RUNTIME_LABELS: Record<string, string> = {
   python: "Python",
   nodejs: "Node.js",
-  ffmpeg: "FFmpeg",
-  ffprobe: "ffprobe",
   pandoc: "Pandoc",
   pdftotext: "PDF Tools (pdftotext)",
   pdftoppm: "PDF Tools (pdftoppm)",

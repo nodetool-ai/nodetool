@@ -116,6 +116,18 @@ async function settled(): Promise<void> {
   await new Promise((r) => setTimeout(r, 60));
 }
 
+describe("generate_music schema", () => {
+  it("points the length check at a probe the belt has", () => {
+    const schema = capability(media, "generate_music").spec.inputSchema as {
+      properties: Record<string, { description?: string }>;
+    };
+    const hint = schema.properties["duration_seconds"]!.description!;
+    // The belt has no ffprobe: a model told to use one has nothing to call.
+    expect(hint).toContain("media_probe");
+    expect(media.exports.some((c) => c.spec.name === "media_probe")).toBe(true);
+  });
+});
+
 describe("generations capabilities", () => {
   beforeEach(() => {
     initTestDb();

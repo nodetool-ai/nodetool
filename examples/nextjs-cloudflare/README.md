@@ -45,7 +45,7 @@ edge), keyed by `name ?? id` — so even a single constant node yields a result.
 
 > **Bundle note:** this example ships only pure-JS nodes, which bundle cleanly
 > for workerd. Node groups that need native modules or `child_process` (image
-> via `sharp`, video/audio via `ffmpeg`, vector via `sqlite-vec`, code runners
+> via `sharp`, video/audio via `node-av`, vector via `sqlite-vec`, code runners
 > via Docker) are **not** Workers-compatible and are intentionally excluded.
 
 ## Run locally

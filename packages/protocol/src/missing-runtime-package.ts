@@ -12,7 +12,6 @@ import { RUNTIME_NPM_PACKAGES, isRuntimeNpmPackageId } from "./runtime-npm-packa
 export type RuntimePackageId =
   | "python"
   | "nodejs"
-  | "ffmpeg"
   | "pandoc"
   | "pdftotext"
   | "yt-dlp"
@@ -40,7 +39,6 @@ export type RuntimePackageId =
 export const RUNTIME_PACKAGE_NAMES: Readonly<Record<RuntimePackageId, string>> = {
   python: "Python",
   nodejs: "Node.js",
-  ffmpeg: "FFmpeg & Codecs",
   pandoc: "Pandoc",
   pdftotext: "PDF Tools (Poppler)",
   "yt-dlp": "yt-dlp",
@@ -143,7 +141,7 @@ export function missingRuntimePackageDetails(
   } else if (runtimePackage === "rust") {
     bringYourOwn = "Or put cargo and rustc on PATH (install Rust from https://rustup.rs).";
   } else {
-    const binary = runtimePackage === "ffmpeg" ? "ffmpeg" : runtimePackage === "nodejs" ? "node" : runtimePackage;
+    const binary = runtimePackage === "nodejs" ? "node" : runtimePackage;
     const packages = runtimePackage === "pdftotext" ? "poppler" : binary;
     bringYourOwn = `Or put ${binary} on PATH (brew install ${packages}, apt install ${runtimePackage === "pdftotext" ? "poppler-utils" : packages}).`;
   }
@@ -238,7 +236,6 @@ export function missingRuntimeDetailsOf(error: unknown): MissingRuntimeDetails |
 export function runtimePackageForBinary(binary: string): RuntimePackageId | null {
   const filename = binary.replaceAll("\\", "/").split("/").pop()?.replace(/\.exe$/i, "") ?? binary;
   switch (filename) {
-    case "ffmpeg": case "ffprobe": return "ffmpeg";
     case "python": case "python3": return "python";
     case "node": return "nodejs";
     case "rustc": case "cargo": return "rust";

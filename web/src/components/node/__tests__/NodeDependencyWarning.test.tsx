@@ -14,15 +14,15 @@ jest.mock("../../../utils/browser", () => ({
 }));
 
 it("clears the warning on every node after installing from one", async () => {
-  let ffmpegInstalled = false;
+  let pandocInstalled = false;
   const origApi = window.api;
   installGlobal("api", {
     packages: {
       getRuntimeStatuses: jest.fn(async () => [
-        { id: "ffmpeg", installed: ffmpegInstalled }
+        { id: "pandoc", installed: pandocInstalled }
       ]),
       installRuntime: jest.fn(async () => {
-        ffmpegInstalled = true;
+        pandocInstalled = true;
       })
     }
   });
@@ -30,8 +30,8 @@ it("clears the warning on every node after installing from one", async () => {
 
   render(
     <ThemeProvider theme={mockTheme}>
-      <NodeDependencyWarning requiredRuntimes={["ffmpeg"]} />
-      <NodeDependencyWarning requiredRuntimes={["ffmpeg"]} />
+      <NodeDependencyWarning requiredRuntimes={["pandoc"]} />
+      <NodeDependencyWarning requiredRuntimes={["pandoc"]} />
     </ThemeProvider>
   );
 

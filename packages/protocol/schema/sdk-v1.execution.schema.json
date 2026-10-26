@@ -1431,7 +1431,6 @@
                               "enum": [
                                 "python",
                                 "nodejs",
-                                "ffmpeg",
                                 "pandoc",
                                 "pdftotext",
                                 "yt-dlp",
@@ -2559,7 +2558,6 @@
                           "enum": [
                             "python",
                             "nodejs",
-                            "ffmpeg",
                             "pandoc",
                             "pdftotext",
                             "yt-dlp",

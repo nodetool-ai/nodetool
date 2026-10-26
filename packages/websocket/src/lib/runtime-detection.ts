@@ -1,12 +1,11 @@
 /**
- * Detects which external runtimes (ffmpeg, pandoc, yt-dlp, …) are present on
+ * Detects which external runtimes (pandoc, yt-dlp, manimgx, …) are present on
  * the machine running the server.
  *
  * The desktop app answers this over Electron IPC, because it also installs the
  * runtimes. A browser client — the web build, and every Docker/Fly deployment —
  * has no such channel, so without this it assumed nothing was installed and
- * showed "Requires FFmpeg" on nodes that run fine, since the container ships
- * ffmpeg.
+ * showed a "Requires" warning on nodes that run fine in the container.
  *
  * Detection is a PATH scan for an executable file, not a spawn: it costs a few
  * `access()` calls, cannot hang, and cannot run client-supplied strings.
@@ -17,7 +16,7 @@ import path from "node:path";
 
 /**
  * Runtime ids whose executable is named differently from the id. Ids not
- * listed here are probed under their own name (`ffmpeg`, `pandoc`, `yt-dlp`, …).
+ * listed here are probed under their own name (`pandoc`, `yt-dlp`, …).
  */
 const RUNTIME_COMMANDS: Record<string, string> = {
   nodejs: "node",
@@ -29,8 +28,6 @@ const RUNTIME_COMMANDS: Record<string, string> = {
 export const KNOWN_RUNTIMES = [
   "python",
   "nodejs",
-  "ffmpeg",
-  "ffprobe",
   "pandoc",
   "pdftotext",
   "pdftoppm",

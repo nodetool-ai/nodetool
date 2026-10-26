@@ -27,20 +27,28 @@ import {
   toBytes
 } from "@nodetool-ai/audio-nodes";
 import {
-  MissingBinaryError,
-  execFfmpeg,
-  execFfprobe,
+  concatCopy,
+  concatSegments,
+  convertAudioToWav,
+  openFilterGraph,
+  openVideoFrameEncoder,
+  pngFrames,
+  probeMedia,
+  transformMedia,
+  type StreamPlan
+} from "@nodetool-ai/runtime/media";
+import {
   videoRef,
   defaultVideoRef,
   filePath,
   folderPath,
   dateName,
   uniqueTargetPath,
-  parseFrameRate,
-  ffprobeDuration,
+  countVideoFrames,
+  probeDurationSeconds,
+  probeVideoInfo,
   withTempFile,
-  coerceProviderBytes,
-  FFMPEG_MAX_BUFFER
+  coerceProviderBytes
 } from "./ffmpeg-helpers.js";
 import {
   EASE_CURVE_PRESETS,
@@ -148,27 +156,38 @@ function normalizeVideoList(value: unknown): VideoRefLike[] {
 }
 
 /**
- * Parse cropdetect's suggested crop from ffmpeg stderr. cropdetect logs one
- * `crop=w:h:x:y` per analyzed frame; the last suggestion reflects the full
- * analysis, so return that. Null when no suggestion is present.
+ * The crop cropdetect settles on over the whole clip after `filter`, as
+ * `w:h:x:y`, or null when it suggests none. cropdetect tags every frame with
+ * its running suggestion; the last frame's reflects the full analysis.
  */
-export function parseCropDetectCrop(stderr: string): string | null {
-  const matches = stderr.match(/crop=(\d+:\d+:\d+:\d+)/g);
-  if (!matches || matches.length === 0) return null;
-  const last = matches[matches.length - 1];
-  return last.slice("crop=".length);
+async function detectCrop(filePath: string, filter: string): Promise<string | null> {
+  const run = await openFilterGraph({ filePath, kind: "video", filter: `${filter},cropdetect=24:16:0` });
+  if (!run) return null;
+  let crop: string | null = null;
+  try {
+    for await (const frame of run.frames()) {
+      try {
+        const tags = frame.getMetadata().getAll();
+        const [w, h, x, y] = ["w", "h", "x", "y"].map((key) => tags[`lavfi.cropdetect.${key}`]);
+        if (w && h && x && y) crop = `${w}:${h}:${x}:${y}`;
+      } finally {
+        frame.free();
+      }
+    }
+  } finally {
+    await run.close();
+  }
+  return crop;
 }
 
 /**
  * Encode a sequence of frame refs into an H.264 MP4.
  *
- * Frames arrive in one of two shapes and the demuxer differs for each:
+ * Frames arrive in one of two shapes:
  *   - In-flight **raw-RGBA** refs ({@link isRawRgbaImage}) carry uncompressed
- *     pixels in `data` plus `width`/`height`. These are NOT a decodable image —
- *     writing them to `frame_*.png` makes ffmpeg fail with "Invalid PNG
- *     signature". They must be fed through the `rawvideo` demuxer instead.
- *   - **Encoded** refs carry PNG/JPEG bytes (Uint8Array or base64 string),
- *     which the `image2` demuxer reads from numbered files.
+ *     pixels in `data` plus `width`/`height`. These are NOT a decodable image.
+ *   - **Encoded** refs carry PNG, JPEG or WebP bytes (Uint8Array or base64
+ *     string).
  *
  * A frame sequence from a single generator is homogeneous, so the encoding of
  * the first usable frame selects the path; stray frames of the other kind (or
@@ -186,82 +205,46 @@ async function combineFramesToVideo(
   const first = frames.find(isUsable);
   if (!first) return new Uint8Array();
 
-  const inputDir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-ftv-in-"));
   const outputDir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-ftv-out-"));
   const outputPath = path.join(outputDir, "output.mp4");
   try {
-    if (isRawRgbaImage(first)) {
-      const { width, height } = first;
-      // Append each frame to the raw file as it is visited. 300 frames of 1080p
-      // RGBA is ~2.5 GB — Buffer.concat'ing them all would blow up memory.
-      const rawPath = path.join(inputDir, "frames.raw");
-      const handle = await fs.open(rawPath, "w");
-      let framesWritten = 0;
-      try {
-        for (const f of frames) {
-          if (
-            isRawRgbaImage(f) &&
-            f.data.length > 0 &&
-            f.width === width &&
-            f.height === height
-          ) {
-            await handle.write(
-              Buffer.from(f.data.buffer, f.data.byteOffset, f.data.byteLength)
-            );
-            framesWritten += 1;
-          }
-        }
-      } finally {
-        await handle.close();
-      }
-      if (framesWritten === 0) return new Uint8Array();
-      await execFfmpeg(
-        [
-          "-y",
-          "-f", "rawvideo",
-          "-pixel_format", "rgba",
-          "-video_size", `${width}x${height}`,
-          "-framerate", String(fps),
-          "-i", rawPath,
-          "-c:v", "libx264",
-          "-pix_fmt", "yuv420p",
-          outputPath
-        ],
-        { maxBuffer: 50 * 1024 * 1024 }
-      );
-    } else {
-      // Contiguous counter so skipped frames don't leave gaps in the numbered
-      // sequence (ffmpeg's image2 demuxer stops at the first missing number).
-      let written = 0;
+    const size = isRawRgbaImage(first) ? { width: first.width, height: first.height } : null;
+    const encoder = await openVideoFrameEncoder({
+      outPath: outputPath,
+      fps,
+      input: size ? "rgba" : "png",
+      width: size?.width,
+      height: size?.height,
+      spec: { codec: "libx264", pixelFormat: "yuv420p" }
+    });
+    let written = 0;
+    try {
       for (const f of frames) {
-        if (!isObjectLike(f) || isRawRgbaImage(f)) continue;
-        const frameBytes = toBytes((f as { data?: Uint8Array | string }).data);
-        if (frameBytes.length === 0) continue;
-        written += 1;
-        await fs.writeFile(
-          path.join(inputDir, `frame_${String(written).padStart(6, "0")}.png`),
-          frameBytes
-        );
+        if (size) {
+          // 300 frames of 1080p RGBA is ~2.5 GB, so each frame goes to the
+          // encoder as it is visited rather than into one buffer.
+          if (isRawRgbaImage(f) && f.data.length > 0 && f.width === size.width && f.height === size.height) {
+            await encoder.write(f.data);
+            written += 1;
+          }
+        } else if (isObjectLike(f) && !isRawRgbaImage(f)) {
+          const frameBytes = toBytes((f as { data?: Uint8Array | string }).data);
+          if (frameBytes.length === 0) continue;
+          await encoder.write(frameBytes);
+          written += 1;
+        }
       }
-      if (written === 0) return new Uint8Array();
-      await execFfmpeg(
-        [
-          "-y",
-          "-framerate", String(fps),
-          "-i", path.join(inputDir, "frame_%06d.png"),
-          "-c:v", "libx264",
-          "-pix_fmt", "yuv420p",
-          outputPath
-        ],
-        { maxBuffer: 50 * 1024 * 1024 }
-      );
+      if (written === 0) {
+        await encoder.abort();
+        return new Uint8Array();
+      }
+      await encoder.finish();
+    } catch (error) {
+      await encoder.abort();
+      throw error;
     }
     return new Uint8Array(await fs.readFile(outputPath));
   } finally {
-    // execFfmpeg already maps a missing binary to a clear error; a genuine
-    // fs error (writing frames / reading output) propagates as itself rather
-    // than being mislabeled.
-    await fs.rm(inputDir, { recursive: true, force: true });
     await fs.rm(outputDir, { recursive: true, force: true });
   }
 }
@@ -298,35 +281,56 @@ const VIDEO_ASPECT_RATIO_VALUES = [
 const VIDEO_RESOLUTION_VALUES = ["720p", "1080p", "1440p", "4K"];
 const VIDEO_DURATION_VALUES = [2, 3, 4, 5, 6, 8, 10, 12, 15];
 
-interface FfmpegTransformOptions {
-  /** Extra `-i` inputs appended after the main input, in order. */
+/** The output streams of one edit, as `-vf`/`-af`/`-filter_complex` with `-map` named them. */
+interface MediaEdit {
+  video: StreamPlan | null;
+  audio: StreamPlan | null;
+  /** End the file with its first stream to end (`-shortest`). */
+  shortest?: boolean;
+}
+
+interface MediaTransformOptions {
+  /** Inputs after the main one, in order: `[1:v]`, `[2:a]` and so on. */
   extraInputs?: Array<{ suffix: string; bytes: Uint8Array }>;
-  /** Args placed BEFORE `-i` (e.g. input-side `-ss`/`-to` seeking). */
-  preInputArgs?: string[];
+  /** Source seconds the main input starts at (`-ss` before `-i`). */
+  seekSec?: number;
+  /** Source seconds the main input stops at (`-to` before `-i`). */
+  toSec?: number;
   /**
-   * When true, a genuine ffmpeg failure returns null so the caller can try the
-   * next attempt in a chain. A missing binary still throws. When false/omitted
-   * a failure throws with ffmpeg's stderr — never a silent input pass-through.
+   * When true, a failure returns null so the caller can try the next attempt
+   * in a chain. When false/omitted it throws — never a silent input
+   * pass-through.
    */
   allowFallback?: boolean;
 }
 
-async function ffmpegTransform(
+/** Keep the main input's sound as it is, when it has any (`-c:a copy`). */
+const COPY_AUDIO: StreamPlan = { copy: 0, optional: true };
+
+/** Re-encode the main input's sound when it has any: the CLI's default stream selection. */
+const KEEP_AUDIO: StreamPlan = { filter: "anull", optional: true };
+
+/** A `-vf` edit that copies the sound. */
+function videoFilter(filter: string): MediaEdit {
+  return { video: { filter }, audio: COPY_AUDIO };
+}
+
+async function mediaTransform(
   video: Uint8Array,
-  args: string[],
-  options?: Omit<FfmpegTransformOptions, "allowFallback"> & {
+  edit: MediaEdit,
+  options?: Omit<MediaTransformOptions, "allowFallback"> & {
     allowFallback?: false;
   }
 ): Promise<Uint8Array>;
-async function ffmpegTransform(
+async function mediaTransform(
   video: Uint8Array,
-  args: string[],
-  options: FfmpegTransformOptions & { allowFallback: true }
+  edit: MediaEdit,
+  options: MediaTransformOptions & { allowFallback: true }
 ): Promise<Uint8Array | null>;
-async function ffmpegTransform(
+async function mediaTransform(
   video: Uint8Array,
-  args: string[],
-  options: FfmpegTransformOptions = {}
+  edit: MediaEdit,
+  options: MediaTransformOptions = {}
 ): Promise<Uint8Array | null> {
   if (video.length === 0) return new Uint8Array();
   const mainInput = await withTempFile(".mp4", video);
@@ -340,21 +344,22 @@ async function ffmpegTransform(
   );
   const outputPath = path.join(outputDir, "output.mp4");
   try {
-    const inputArgs = ["-y", ...(options.preInputArgs ?? []), "-i", mainInput.path];
-    for (const other of others) inputArgs.push("-i", other.path);
-    await execFfmpeg([...inputArgs, ...args, outputPath], {
-      maxBuffer: 10 * 1024 * 1024
+    await transformMedia({
+      inputs: [
+        { filePath: mainInput.path, seekSec: options.seekSec, toSec: options.toSec },
+        ...others.map((other) => ({ filePath: other.path }))
+      ],
+      outPath: outputPath,
+      video: edit.video,
+      audio: edit.audio,
+      shortest: edit.shortest
     });
     return new Uint8Array(await fs.readFile(outputPath));
   } catch (error) {
-    // A missing binary is unrecoverable — surface it. A genuine ffmpeg failure
-    // returns null only when the caller allows a chained fallback; otherwise it
-    // throws with stderr rather than silently passing the input through.
-    if (error instanceof MissingBinaryError) throw error;
+    // A failure returns null only when the caller allows a chained fallback;
+    // otherwise it throws rather than silently passing the input through.
     if (options.allowFallback) return null;
-    const stderr = (error as { stderr?: string }).stderr;
-    const detail = (isString(stderr) && stderr.trim()) || (error as Error).message;
-    throw new Error(`ffmpeg failed: ${detail}`);
+    throw new Error(`Video processing failed: ${error instanceof Error ? error.message : String(error)}`);
   } finally {
     await mainInput.cleanup();
     for (const other of others) await other.cleanup();
@@ -362,10 +367,6 @@ async function ffmpegTransform(
   }
 }
 
-/**
- * Base for every ffmpeg-backed node. Carries only the runtime gate; each node
- * declares its own props and `process()`.
- */
 /**
  * Expand `entity://` and text-asset mentions in a prompt for a node that takes
  * no media input of its own. The Prompt composer writes mentions as tokens; a
@@ -381,10 +382,6 @@ async function expandPromptMentions(
     context
   );
   return isString(overrides.prompt) ? overrides.prompt : prompt;
-}
-
-abstract class VideoTransformNode extends BaseNode {
-  static readonly requiredRuntimes = ["ffmpeg"];
 }
 
 /** Output handles TextToVideoNode.process() emits. */
@@ -1062,11 +1059,11 @@ type ForEachFrameNodeStreamOutputs = {
   fps: number;
 };
 
-export class ForEachFrameNode extends VideoTransformNode {
+export class ForEachFrameNode extends BaseNode {
   static readonly nodeType = "nodetool.video.ForEachFrame";
   static readonly title = "For Each Frame";
   static readonly description =
-    "Extract frames from a video file with ffmpeg.\n    video, frames, extract, sequence";
+    "Extract frames from a video file.\n    video, frames, extract, sequence";
   static readonly metadataOutputTypes = {
     frame: "image",
     index: "int",
@@ -1119,77 +1116,47 @@ export class ForEachFrameNode extends VideoTransformNode {
     if (bytes.length === 0) return;
 
     const inputFile = await withTempFile(".mp4", bytes);
-    const outputDir = await fs.mkdtemp(
-      path.join(os.tmpdir(), "nodetool-frames-out-")
-    );
     try {
       let fps = 24;
+      let alpha = false;
       try {
-        const { stdout } = await execFfprobe([
-          "-v", "error",
-          "-select_streams", "v:0",
-          "-show_entries", "stream=r_frame_rate",
-          "-of", "csv=p=0",
-          inputFile.path
-        ]);
-        const parsed = parseFrameRate(stdout);
+        const video = (await probeMedia(inputFile.path)).video;
+        const parsed = video ? (video.nominalFps ?? video.averageFps) : 0;
         if (parsed > 0) fps = parsed;
-      } catch (error) {
-        // Missing ffprobe is actionable; a genuine probe failure falls back to
-        // 24 fps.
-        if (error instanceof MissingBinaryError) throw error;
+        alpha = video?.alpha ?? false;
+      } catch {
+        // A file the probe cannot read falls back to 24 fps.
       }
 
       const start = Math.max(0, Number(this.start ?? 0));
       const end = Number(this.end ?? -1);
 
-      const vfFilter =
+      const select =
         end >= 0
           ? `select='between(n,${start},${end})'`
           : `select='gte(n,${start})'`;
 
-      // With a bounded range, cap decoding at the number of selected frames so
-      // ffmpeg stops early instead of scanning to the end of the video.
-      const frameLimit =
-        end >= 0 ? ["-frames:v", String(end - start + 1)] : [];
-
-      await execFfmpeg(
-        [
-          "-y",
-          "-i", inputFile.path,
-          "-vf", vfFilter,
-          "-fps_mode", "vfr",
-          ...frameLimit,
-          path.join(outputDir, "frame_%d.png")
-        ],
-        { maxBuffer: FFMPEG_MAX_BUFFER }
-      );
-
-      const entries = await fs.readdir(outputDir);
-      const frameFiles = entries
-        .filter((f) => f.startsWith("frame_") && f.endsWith(".png"))
-        .sort((a, b) => {
-          const numA = parseInt(a.replace("frame_", "").replace(".png", ""), 10);
-          const numB = parseInt(b.replace("frame_", "").replace(".png", ""), 10);
-          return numA - numB;
-        });
-
-      for (let i = 0; i < frameFiles.length; i++) {
-        const frameData = new Uint8Array(
-          await fs.readFile(path.join(outputDir, frameFiles[i]))
-        );
+      // With a bounded range, stop after the selected frames instead of
+      // scanning to the end of the video.
+      let index = start;
+      for await (const png of pngFrames({
+        filePath: inputFile.path,
+        filter: select,
+        limit: end >= 0 ? end - start + 1 : undefined,
+        alpha
+      })) {
         yield {
           frame: {
             type: "image",
-            data: Buffer.from(frameData).toString("base64")
+            data: Buffer.from(png).toString("base64")
           },
-          index: start + i,
+          index,
           fps
         };
+        index += 1;
       }
     } finally {
       await inputFile.cleanup();
-      await fs.rm(outputDir, { recursive: true, force: true });
     }
   }
 }
@@ -1199,7 +1166,7 @@ type FpsNodeOutputs = {
   output: number;
 };
 
-export class FpsNode extends VideoTransformNode {
+export class FpsNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Fps";
   static readonly title = "Fps";
   static readonly description =
@@ -1224,17 +1191,9 @@ export class FpsNode extends VideoTransformNode {
 
     const inputFile = await withTempFile(".mp4", bytes);
     try {
-      const { stdout } = await execFfprobe([
-        "-v", "error",
-        "-select_streams", "v:0",
-        "-show_entries", "stream=r_frame_rate",
-        "-of", "csv=p=0",
-        inputFile.path
-      ]);
-      return { output: parseFrameRate(stdout) };
-    } catch (error) {
-      // Missing ffprobe is actionable; a genuine probe failure degrades to 0.
-      if (error instanceof MissingBinaryError) throw error;
+      return { output: (await probeVideoInfo(inputFile.path)).fps };
+    } catch {
+      // A probe failure on corrupt input degrades to 0.
       return { output: 0 };
     } finally {
       await inputFile.cleanup();
@@ -1247,7 +1206,7 @@ type FrameToVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class FrameToVideoNode extends VideoTransformNode {
+export class FrameToVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.FrameToVideo";
   static readonly title = "Frame To Video";
   static readonly description =
@@ -1347,85 +1306,14 @@ interface ConcatMeta {
 
 /** Probe a file's video codec/dimensions/fps and audio presence. */
 async function probeConcatMeta(file: string): Promise<ConcatMeta> {
-  const { stdout } = await execFfprobe([
-    "-v",
-    "error",
-    "-show_streams",
-    "-show_format",
-    "-of",
-    "json",
-    file
-  ]);
-  const info = JSON.parse(stdout) as {
-    streams?: Array<{
-      codec_type?: string;
-      codec_name?: string;
-      width?: number;
-      height?: number;
-      r_frame_rate?: string;
-    }>;
-  };
-  const streams = info.streams ?? [];
-  const v = streams.find((s) => s.codec_type === "video");
+  const info = await probeVideoInfo(file);
   return {
-    codec: v?.codec_name ?? "",
-    width: v?.width ?? 0,
-    height: v?.height ?? 0,
-    fps: v?.r_frame_rate ? parseFrameRate(v.r_frame_rate) : 0,
-    hasAudio: streams.some((s) => s.codec_type === "audio")
+    codec: info.codec,
+    width: info.width,
+    height: info.height,
+    fps: info.fps,
+    hasAudio: info.hasAudio
   };
-}
-
-/**
- * Scale + pad to a uniform frame, normalize fps/pixel format, re-encode to
- * libx264 + AAC (adding silent audio when the source has none) so mismatched
- * segments can be concatenated losslessly with `-c copy`.
- */
-async function normalizeConcatSegment(
-  srcPath: string,
-  segPath: string,
-  width: number,
-  height: number,
-  fps: number,
-  hasAudio: boolean
-): Promise<void> {
-  const filter =
-    `scale=${width}:${height}:force_original_aspect_ratio=decrease,` +
-    `pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:color=black,` +
-    `fps=${fps},format=yuv420p`;
-  const silent = [
-    "-f",
-    "lavfi",
-    "-i",
-    "anullsrc=channel_layout=stereo:sample_rate=48000"
-  ];
-  await execFfmpeg(
-    [
-      "-y",
-      "-i",
-      srcPath,
-      ...(hasAudio ? [] : silent),
-      "-filter_complex",
-      `[0:v]${filter}[v]`,
-      "-map",
-      "[v]",
-      "-map",
-      hasAudio ? "0:a" : "1:a",
-      "-c:v",
-      "libx264",
-      "-preset",
-      "veryfast",
-      "-c:a",
-      "aac",
-      "-ar",
-      "48000",
-      "-ac",
-      "2",
-      "-shortest",
-      segPath
-    ],
-    { maxBuffer: FFMPEG_MAX_BUFFER }
-  );
 }
 
 /** Output handles ConcatVideoNode.process() emits. */
@@ -1433,7 +1321,7 @@ type ConcatVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class ConcatVideoNode extends VideoTransformNode {
+export class ConcatVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Concat";
   static readonly body = "content_card";
   static readonly title = "Concatenate Video";
@@ -1465,13 +1353,12 @@ export class ConcatVideoNode extends VideoTransformNode {
     const concatDir = await fs.mkdtemp(
       path.join(os.tmpdir(), "nodetool-concat-")
     );
-    const listPath = path.join(concatDir, "list.txt");
     const outputPath = path.join(concatDir, "output.mp4");
     try {
-      // Stream-copying heterogeneous inputs (different codec/size/fps) with the
-      // concat demuxer produces corrupt output. Probe every input; only take
-      // the fast `-c copy` path when they all match, else normalize each to a
-      // uniform segment (first input's resolution/fps) before concatenating.
+      // Stream-copying heterogeneous inputs (different codec/size/fps) produces
+      // corrupt output. Probe every input; only take the fast copy path when
+      // they all match, else normalize each to a uniform segment (first
+      // input's resolution/fps) while joining.
       const metas = await Promise.all(
         inputs.map((input) => probeConcatMeta(input.path))
       );
@@ -1485,38 +1372,36 @@ export class ConcatVideoNode extends VideoTransformNode {
           m.hasAudio === first.hasAudio
       );
 
-      let concatPaths: string[];
       if (uniform) {
-        concatPaths = inputs.map((input) => input.path);
+        await concatCopy({ inputPaths: inputs.map((input) => input.path), outPath: outputPath });
       } else {
         const width = first.width > 0 ? first.width : 1920;
         const height = first.height > 0 ? first.height : 1080;
         const fps = first.fps > 0 ? first.fps : 30;
-        concatPaths = [];
-        for (const [i, input] of inputs.entries()) {
-          const segPath = path.join(concatDir, `seg_${i}.mp4`);
-          await normalizeConcatSegment(
-            input.path,
-            segPath,
-            width,
-            height,
-            fps,
-            metas[i].hasAudio
-          );
-          concatPaths.push(segPath);
-        }
+        const durations = await Promise.all(inputs.map((input) => probeDurationSeconds(input.path)));
+        // Scale + pad to a uniform frame at the first input's rate, H.264 and
+        // 48 kHz stereo AAC, silence where an input has no sound.
+        await concatSegments({
+          outPath: outputPath,
+          width,
+          height,
+          fps,
+          segments: inputs.map((input, i) => ({
+            kind: "video",
+            filePath: input.path,
+            durationSec: durations[i] ?? 0,
+            withAudio: metas[i]!.hasAudio
+          })),
+          videoFilter:
+            `scale=${width}:${height}:force_original_aspect_ratio=decrease,` +
+            `pad=${width}:${height}:(ow-iw)/2:(oh-ih)/2:color=black`,
+          video: { codec: "libx264", pixelFormat: "yuv420p", options: { preset: "veryfast" } },
+          audioCodec: "aac"
+        });
       }
-
-      const listEntries = concatPaths.map((p) => `file '${p}'`).join("\n");
-      await fs.writeFile(listPath, `${listEntries}\n`);
-      await execFfmpeg(
-        ["-y", "-f", "concat", "-safe", "0", "-i", listPath, "-c", "copy", outputPath],
-        { maxBuffer: FFMPEG_MAX_BUFFER }
-      );
       const result = new Uint8Array(await fs.readFile(outputPath));
       return { output: videoRef(result) };
     } catch (error) {
-      if (error instanceof MissingBinaryError) throw error;
       throw new Error(
         `Concatenating videos failed: ${
           error instanceof Error ? error.message : String(error)
@@ -1536,7 +1421,7 @@ type TrimVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class TrimVideoNode extends VideoTransformNode {
+export class TrimVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Trim";
   static readonly title = "Trim";
   static readonly description =
@@ -1588,28 +1473,26 @@ export class TrimVideoNode extends VideoTransformNode {
     const start = Math.max(0, Number(this.start_time ?? 0));
     const end = Number(this.end_time ?? -1);
 
+    const toSec = end >= 0 ? end : undefined;
     if (this.accurate) {
-      // Output-side seek (after -i): ffmpeg decodes every frame up to `start`
-      // and re-encodes, so the cut lands on the exact requested time instead of
-      // the nearest keyframe. Slower, but frame-accurate.
-      const seekArgs: string[] = ["-ss", String(start)];
-      if (end >= 0) {
-        seekArgs.push("-to", String(end));
-      }
-      const transformed = await ffmpegTransform(bytes, seekArgs);
+      // Decode from the keyframe before `start`, drop the frames before it and
+      // re-encode, so the cut lands on the exact requested time instead of the
+      // nearest keyframe. Slower, but frame-accurate.
+      const transformed = await mediaTransform(
+        bytes,
+        { video: { filter: "null" }, audio: KEEP_AUDIO },
+        { seekSec: start, toSec }
+      );
       return { output: videoRef(transformed) };
     }
 
-    // Input-side seek (before -i): ffmpeg jumps to the nearest keyframe instead
-    // of decoding from the start, so trimming a long clip is near-instant.
-    const preInputArgs: string[] = ["-ss", String(start)];
-    if (end >= 0) {
-      preInputArgs.push("-to", String(end));
-    }
-
-    const transformed = await ffmpegTransform(bytes, ["-c", "copy"], {
-      preInputArgs
-    });
+    // A stream copy jumps to the nearest keyframe instead of decoding from the
+    // start, so trimming a long clip is near-instant.
+    const transformed = await mediaTransform(
+      bytes,
+      { video: { copy: 0 }, audio: COPY_AUDIO },
+      { seekSec: start, toSec }
+    );
     return { output: videoRef(transformed) };
   }
 }
@@ -1619,7 +1502,7 @@ type ResizeVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class ResizeVideoNode extends VideoTransformNode {
+export class ResizeVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Resize";
   static readonly title = "Resize";
   static readonly description =
@@ -1657,12 +1540,7 @@ export class ResizeVideoNode extends VideoTransformNode {
     const width = Number(this.width ?? -1);
     const height = Number(this.height ?? -1);
     const transformed =
-      (await ffmpegTransform(bytes, [
-        "-vf",
-        `scale=${width}:${height}`,
-        "-c:a",
-        "copy"
-      ]));
+      (await mediaTransform(bytes, videoFilter(`scale=${width}:${height}`)));
     return { output: videoRef(transformed) };
   }
 }
@@ -1672,7 +1550,7 @@ type RotateVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class RotateVideoNode extends VideoTransformNode {
+export class RotateVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Rotate";
   static readonly title = "Rotate";
   static readonly description =
@@ -1704,12 +1582,7 @@ export class RotateVideoNode extends VideoTransformNode {
     const angle = Number(this.angle ?? 0);
     const radians = (angle * Math.PI) / 180;
     const transformed =
-      (await ffmpegTransform(bytes, [
-        "-vf",
-        `rotate=${radians}:ow=rotw(${radians}):oh=roth(${radians})`,
-        "-c:a",
-        "copy"
-      ]));
+      (await mediaTransform(bytes, videoFilter(`rotate=${radians}:ow=rotw(${radians}):oh=roth(${radians})`)));
     return { output: videoRef(transformed) };
   }
 }
@@ -1719,7 +1592,7 @@ type SetSpeedVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class SetSpeedVideoNode extends VideoTransformNode {
+export class SetSpeedVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.SetSpeed";
   static readonly title = "Set Speed";
   static readonly description =
@@ -1773,20 +1646,14 @@ export class SetSpeedVideoNode extends VideoTransformNode {
     const atempoChain = buildAtempo(speed);
     // First attempt retimes audio too (fails on videos with no audio stream);
     // the video-only fallback is the terminal attempt and throws on failure.
+    const setpts = `setpts=${1 / speed}*PTS`;
     const transformed =
-      (await ffmpegTransform(
+      (await mediaTransform(
         bytes,
-        [
-          "-filter_complex",
-          `[0:v]setpts=${1 / speed}*PTS[v];[0:a]${atempoChain}[a]`,
-          "-map",
-          "[v]",
-          "-map",
-          "[a]"
-        ],
+        { video: { filter: setpts }, audio: { filter: atempoChain } },
         { allowFallback: true }
       )) ??
-      (await ffmpegTransform(bytes, ["-vf", `setpts=${1 / speed}*PTS`]));
+      (await mediaTransform(bytes, { video: { filter: setpts }, audio: null }));
     return { output: videoRef(transformed) };
   }
 }
@@ -1800,7 +1667,7 @@ const EASE_CURVE_CUSTOM_ONLY = {
   visible_when: { property: "easing", equals: "custom" }
 } as const;
 
-export class EaseCurveVideoNode extends VideoTransformNode {
+export class EaseCurveVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.EaseCurve";
   static readonly title = "Ease Curve";
   static readonly description =
@@ -1895,7 +1762,7 @@ export class EaseCurveVideoNode extends VideoTransformNode {
     let sourceSec: number;
     let meta: ConcatMeta;
     try {
-      sourceSec = await ffprobeDuration(probe.path);
+      sourceSec = await probeDurationSeconds(probe.path);
       meta = await probeConcatMeta(probe.path);
     } finally {
       await probe.cleanup();
@@ -1906,14 +1773,16 @@ export class EaseCurveVideoNode extends VideoTransformNode {
     const requested = Number(this.duration ?? 0);
     const outputSec = requested > 0 ? requested : sourceSec;
     const segments = easeCurveSegments(sourceSec * 1000, outputSec * 1000, easing);
-    const transformed = await ffmpegTransform(bytes, [
-      ...easeCurveFilterGraph({
-        segments,
-        outputDurationMs: outputSec * 1000,
-        fps: meta.fps > 0 ? meta.fps : 30,
-        withAudio: meta.hasAudio
-      })
-    ]);
+    const graphs = easeCurveFilterGraph({
+      segments,
+      outputDurationMs: outputSec * 1000,
+      fps: meta.fps > 0 ? meta.fps : 30,
+      withAudio: meta.hasAudio
+    });
+    const transformed = await mediaTransform(bytes, {
+      video: { graph: graphs.video, output: "v" },
+      audio: graphs.audio ? { graph: graphs.audio, output: "a" } : null
+    });
     return { output: videoRef(transformed) };
   }
 }
@@ -1923,7 +1792,7 @@ type OverlayVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class OverlayVideoNode extends VideoTransformNode {
+export class OverlayVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Overlay";
   static readonly title = "Overlay";
   static readonly description =
@@ -1993,35 +1862,27 @@ export class OverlayVideoNode extends VideoTransformNode {
     const vol = Math.max(0, Math.min(1, Number(this.overlay_audio_volume ?? 0.5)));
 
     // Try with audio mixing first, fall back to video-only overlay
-    const filterWithAudio =
-      `[1:v]scale=iw*${scale}:ih*${scale}[ov];[0:v][ov]overlay=${x}:${y}[outv];` +
-      `[0:a]volume=1.0[a0];[1:a]volume=${vol}[a1];[a0][a1]amix=inputs=2:duration=first[outa]`;
+    const picture: StreamPlan = {
+      graph: `[1:v]scale=iw*${scale}:ih*${scale}[ov];[0:v][ov]overlay=${x}:${y}[outv]`,
+      output: "outv"
+    };
+    const extraInputs = [{ suffix: ".mp4", bytes: overlayVideo }];
     const transformed =
-      (await ffmpegTransform(
+      (await mediaTransform(
         mainVideo,
-        [
-          "-filter_complex",
-          filterWithAudio,
-          "-map",
-          "[outv]",
-          "-map",
-          "[outa]"
-        ],
         {
-          extraInputs: [{ suffix: ".mp4", bytes: overlayVideo }],
-          allowFallback: true
-        }
+          video: picture,
+          audio: {
+            graph: `[0:a]volume=1.0[a0];[1:a]volume=${vol}[a1];[a0][a1]amix=inputs=2:duration=first[outa]`,
+            output: "outa"
+          }
+        },
+        { extraInputs, allowFallback: true }
       )) ??
-      // Fallback: video-only overlay (one or both inputs may lack audio).
-      // Terminal attempt — throws with stderr if it also fails.
-      (await ffmpegTransform(
-        mainVideo,
-        [
-          "-filter_complex",
-          `[1:v]scale=iw*${scale}:ih*${scale}[ov];[0:v][ov]overlay=${x}:${y}`
-        ],
-        { extraInputs: [{ suffix: ".mp4", bytes: overlayVideo }] }
-      ));
+      // Fallback: video-only overlay (one or both inputs may lack audio), with
+      // the main video's sound when it has any. Terminal attempt — throws if
+      // it also fails.
+      (await mediaTransform(mainVideo, { video: picture, audio: KEEP_AUDIO }, { extraInputs }));
     return { output: videoRef(transformed) };
   }
 }
@@ -2031,7 +1892,7 @@ type ColorBalanceVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class ColorBalanceVideoNode extends VideoTransformNode {
+export class ColorBalanceVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.ColorBalance";
   static readonly title = "Color Balance";
   static readonly description =
@@ -2085,12 +1946,7 @@ export class ColorBalanceVideoNode extends VideoTransformNode {
     const gs = Number(this.green_adjust ?? 1) - 1;
     const bs = Number(this.blue_adjust ?? 1) - 1;
     const transformed =
-      (await ffmpegTransform(bytes, [
-        "-vf",
-        `colorbalance=rs=${rs}:gs=${gs}:bs=${bs}`,
-        "-c:a",
-        "copy"
-      ]));
+      (await mediaTransform(bytes, videoFilter(`colorbalance=rs=${rs}:gs=${gs}:bs=${bs}`)));
     return { output: videoRef(transformed) };
   }
 }
@@ -2100,7 +1956,7 @@ type DenoiseVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class DenoiseVideoNode extends VideoTransformNode {
+export class DenoiseVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Denoise";
   static readonly title = "Denoise";
   static readonly description =
@@ -2133,12 +1989,7 @@ export class DenoiseVideoNode extends VideoTransformNode {
     const bytes = await videoBytesAsync(this.video, context);
     const strength = Number(this.strength ?? 5);
     const transformed =
-      (await ffmpegTransform(bytes, [
-        "-vf",
-        `nlmeans=s=${strength}`,
-        "-c:a",
-        "copy"
-      ]));
+      (await mediaTransform(bytes, videoFilter(`nlmeans=s=${strength}`)));
     return { output: videoRef(transformed) };
   }
 }
@@ -2148,7 +1999,7 @@ type StabilizeVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class StabilizeVideoNode extends VideoTransformNode {
+export class StabilizeVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Stabilize";
   static readonly title = "Stabilize";
   static readonly description =
@@ -2208,47 +2059,24 @@ export class StabilizeVideoNode extends VideoTransformNode {
     const deshake = `deshake=rx=${searchRange}:ry=${searchRange}`;
 
     if (!cropBlack) {
-      const transformed = await ffmpegTransform(bytes, [
-        "-vf",
-        deshake,
-        "-c:a",
-        "copy"
-      ]);
+      const transformed = await mediaTransform(bytes, videoFilter(deshake));
       return { output: videoRef(transformed) };
     }
 
-    // Pass 1: run deshake + cropdetect to the null muxer and read cropdetect's
-    // suggested crop from stderr (a bare `crop` filter defaults to the full
-    // frame and removes nothing — cropdetect only logs, it never crops).
+    // Pass 1: run deshake + cropdetect and read cropdetect's suggested crop
+    // (a bare `crop` filter defaults to the full frame and removes nothing —
+    // cropdetect only measures, it never crops).
     const probe = await withTempFile(".mp4", bytes);
-    let crop: string | null = null;
+    let crop: string | null;
     try {
-      const { stderr } = await execFfmpeg(
-        [
-          "-y",
-          "-i",
-          probe.path,
-          "-vf",
-          `${deshake},cropdetect=24:16:0`,
-          "-f",
-          "null",
-          "-"
-        ],
-        { maxBuffer: FFMPEG_MAX_BUFFER }
-      );
-      crop = parseCropDetectCrop(stderr);
+      crop = await detectCrop(probe.path, deshake);
     } finally {
       await probe.cleanup();
     }
 
     // Pass 2: apply the detected crop, or deshake alone when none was found.
     const vf = crop ? `${deshake},crop=${crop}` : deshake;
-    const transformed = await ffmpegTransform(bytes, [
-      "-vf",
-      vf,
-      "-c:a",
-      "copy"
-    ]);
+    const transformed = await mediaTransform(bytes, videoFilter(vf));
     return { output: videoRef(transformed) };
   }
 }
@@ -2258,7 +2086,7 @@ type SharpnessVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class SharpnessVideoNode extends VideoTransformNode {
+export class SharpnessVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Sharpness";
   static readonly title = "Sharpness";
   static readonly description =
@@ -2301,12 +2129,7 @@ export class SharpnessVideoNode extends VideoTransformNode {
     const lumaAmount = Number(this.luma_amount ?? 1);
     const chromaAmount = Number(this.chroma_amount ?? 0.5);
     const transformed =
-      (await ffmpegTransform(bytes, [
-        "-vf",
-        `unsharp=5:5:${lumaAmount}:5:5:${chromaAmount}`,
-        "-c:a",
-        "copy"
-      ]));
+      (await mediaTransform(bytes, videoFilter(`unsharp=5:5:${lumaAmount}:5:5:${chromaAmount}`)));
     return { output: videoRef(transformed) };
   }
 }
@@ -2316,7 +2139,7 @@ type BlurVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class BlurVideoNode extends VideoTransformNode {
+export class BlurVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Blur";
   static readonly title = "Blur";
   static readonly description =
@@ -2349,12 +2172,7 @@ export class BlurVideoNode extends VideoTransformNode {
     const radius = Number(this.strength ?? 5);
     if (radius <= 0) return { output: videoRef(bytes) };
     const transformed =
-      (await ffmpegTransform(bytes, [
-        "-vf",
-        `boxblur=${radius}:${radius}`,
-        "-c:a",
-        "copy"
-      ]));
+      (await mediaTransform(bytes, videoFilter(`boxblur=${radius}:${radius}`)));
     return { output: videoRef(transformed) };
   }
 }
@@ -2364,7 +2182,7 @@ type SaturationVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class SaturationVideoNode extends VideoTransformNode {
+export class SaturationVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Saturation";
   static readonly title = "Saturation";
   static readonly description =
@@ -2396,12 +2214,7 @@ export class SaturationVideoNode extends VideoTransformNode {
     const bytes = await videoBytesAsync(this.video, context);
     const saturation = Number(this.saturation ?? 1);
     const transformed =
-      (await ffmpegTransform(bytes, [
-        "-vf",
-        `eq=saturation=${saturation}`,
-        "-c:a",
-        "copy"
-      ]));
+      (await mediaTransform(bytes, videoFilter(`eq=saturation=${saturation}`)));
     return { output: videoRef(transformed) };
   }
 }
@@ -2411,7 +2224,7 @@ type AddSubtitlesVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class AddSubtitlesVideoNode extends VideoTransformNode {
+export class AddSubtitlesVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.AddSubtitles";
   static readonly title = "Add Subtitles";
   static readonly description =
@@ -2537,12 +2350,7 @@ export class AddSubtitlesVideoNode extends VideoTransformNode {
       if (drawFilters.length === 0) return { output: videoRef(bytes) };
 
       const vf = drawFilters.join(",");
-      const transformed = await ffmpegTransform(bytes, [
-        "-vf",
-        vf,
-        "-c:a",
-        "copy"
-      ]);
+      const transformed = await mediaTransform(bytes, videoFilter(vf));
       return { output: videoRef(transformed) };
     } finally {
       await fs.rm(dir, { recursive: true, force: true });
@@ -2555,7 +2363,7 @@ type ReverseVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class ReverseVideoNode extends VideoTransformNode {
+export class ReverseVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Reverse";
   static readonly title = "Reverse";
   static readonly description =
@@ -2581,9 +2389,11 @@ export class ReverseVideoNode extends VideoTransformNode {
     // Reverse audio+video first (fails without an audio stream); the video-only
     // fallback is terminal and throws on failure.
     const transformed =
-      (await ffmpegTransform(bytes, ["-vf", "reverse", "-af", "areverse"], {
-        allowFallback: true
-      })) ?? (await ffmpegTransform(bytes, ["-vf", "reverse"]));
+      (await mediaTransform(
+        bytes,
+        { video: { filter: "reverse" }, audio: { filter: "areverse" } },
+        { allowFallback: true }
+      )) ?? (await mediaTransform(bytes, { video: { filter: "reverse" }, audio: null }));
     return { output: videoRef(transformed) };
   }
 }
@@ -2593,7 +2403,7 @@ type TransitionVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class TransitionVideoNode extends VideoTransformNode {
+export class TransitionVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.Transition";
   static readonly title = "Transition";
   static readonly description =
@@ -2708,39 +2518,28 @@ export class TransitionVideoNode extends VideoTransformNode {
     const tempA = await withTempFile(".mp4", a);
     let offsetVal: number;
     try {
-      const aDuration = await ffprobeDuration(tempA.path);
+      const aDuration = await probeDurationSeconds(tempA.path);
       offsetVal = Math.max(0, aDuration - duration);
     } finally {
       await tempA.cleanup();
     }
 
     // Try with audio crossfade first, then fall back to video-only
-    const filterWithAudio =
-      `[0:v][1:v]xfade=transition=${transitionType}:duration=${duration}:offset=${offsetVal}[outv];` +
-      `[0:a][1:a]acrossfade=d=${duration}[outa]`;
+    const picture: StreamPlan = {
+      graph: `[0:v][1:v]xfade=transition=${transitionType}:duration=${duration}:offset=${offsetVal}[outv]`,
+      output: "outv"
+    };
+    const extraInputs = [{ suffix: ".mp4", bytes: b }];
     const transformed =
-      (await ffmpegTransform(
+      (await mediaTransform(
         a,
-        [
-          "-filter_complex",
-          filterWithAudio,
-          "-map",
-          "[outv]",
-          "-map",
-          "[outa]"
-        ],
-        { extraInputs: [{ suffix: ".mp4", bytes: b }], allowFallback: true }
+        { video: picture, audio: { graph: `[0:a][1:a]acrossfade=d=${duration}[outa]`, output: "outa" } },
+        { extraInputs, allowFallback: true }
       )) ??
-      // Fallback: video-only xfade (inputs may lack audio). Terminal attempt —
-      // throws with stderr if it also fails.
-      (await ffmpegTransform(
-        a,
-        [
-          "-filter_complex",
-          `[0:v][1:v]xfade=transition=${transitionType}:duration=${duration}:offset=${offsetVal}`
-        ],
-        { extraInputs: [{ suffix: ".mp4", bytes: b }] }
-      ));
+      // Fallback: video-only xfade (inputs may lack audio), with the first
+      // video's sound when it has any. Terminal attempt — throws if it also
+      // fails.
+      (await mediaTransform(a, { video: picture, audio: KEEP_AUDIO }, { extraInputs }));
     return { output: videoRef(transformed) };
   }
 }
@@ -2750,7 +2549,7 @@ type AddAudioVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class AddAudioVideoNode extends VideoTransformNode {
+export class AddAudioVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.AddAudio";
   static readonly title = "Add Audio";
   static readonly description =
@@ -2819,75 +2618,39 @@ export class AddAudioVideoNode extends VideoTransformNode {
     if (v.length === 0) return { output: videoRef(v) };
     if (a.length === 0) return { output: videoRef(v) };
 
-    const videoInput = await withTempFile(".mp4", v);
-    const audioInput = await withTempFile(".wav", a);
-    const outputDir = await fs.mkdtemp(
-      path.join(os.tmpdir(), "nodetool-addaudio-out-")
-    );
-    const outputPath = path.join(outputDir, "output.mp4");
-    try {
-      const volume = Math.max(0, Number(this.volume ?? 1));
-      const mix = Boolean(this.mix);
-      // Left to the muxer the file is as long as the *longer* stream, so a
-      // music model that ignores the requested duration turns a 25-second clip
-      // into a four-minute one. `apad` makes the audio endless and `-shortest`
-      // then ends the file with the picture, which also stops a short audio
-      // track from cutting the picture off.
-      const trimToVideo = String(this.output_length ?? "video") !== "longest";
-      const pad = trimToVideo ? ",apad" : "";
+    const volume = Math.max(0, Number(this.volume ?? 1));
+    const mix = Boolean(this.mix);
+    // Left to the muxer the file is as long as the *longer* stream, so a
+    // music model that ignores the requested duration turns a 25-second clip
+    // into a four-minute one. `apad` makes the audio endless and `shortest`
+    // then ends the file with the picture, which also stops a short audio
+    // track from cutting the picture off.
+    const trimToVideo = String(this.output_length ?? "video") !== "longest";
+    const pad = trimToVideo ? ",apad" : "";
 
-      const buildArgs = (useMix: boolean): string[] => {
-        const args: string[] = [
-          "-y",
-          "-i", videoInput.path,
-          "-i", audioInput.path
-        ];
-        if (useMix) {
-          args.push(
-            "-filter_complex",
-            `[1:a]volume=${volume}[newaud];[0:a][newaud]amix=inputs=2:duration=longest${pad}[aout]`,
-            "-map", "0:v:0",
-            "-map", "[aout]",
-            "-c:v", "copy"
-          );
-        } else if (volume !== 1 || trimToVideo) {
-          args.push(
-            "-filter_complex", `[1:a]volume=${volume}${pad}[aout]`,
-            "-map", "0:v:0",
-            "-map", "[aout]",
-            "-c:v", "copy",
-            "-c:a", "aac"
-          );
-        } else {
-          args.push(
-            "-map", "0:v:0",
-            "-map", "1:a:0",
-            "-c:v", "copy",
-            "-c:a", "aac"
-          );
-        }
-        if (trimToVideo) args.push("-shortest");
-        args.push(outputPath);
-        return args;
-      };
-
-      try {
-        await execFfmpeg(buildArgs(mix), { maxBuffer: FFMPEG_MAX_BUFFER });
-      } catch (error) {
-        if (error instanceof MissingBinaryError) throw error;
-        // Mixing requires an existing audio stream ([0:a]); videos without one
-        // make ffmpeg fail. Fall back to plain replacement — the terminal
-        // attempt, which throws (with stderr) if it also fails.
-        if (!mix) throw error;
-        await execFfmpeg(buildArgs(false), { maxBuffer: FFMPEG_MAX_BUFFER });
+    const editFor = (useMix: boolean): MediaEdit => {
+      let audio: StreamPlan;
+      if (useMix) {
+        audio = {
+          graph: `[1:a]volume=${volume}[newaud];[0:a][newaud]amix=inputs=2:duration=longest${pad}[aout]`,
+          output: "aout"
+        };
+      } else if (volume !== 1 || trimToVideo) {
+        audio = { graph: `[1:a]volume=${volume}${pad}[aout]`, output: "aout" };
+      } else {
+        audio = { filter: "anull", input: 1 };
       }
-      const result = new Uint8Array(await fs.readFile(outputPath));
-      return { output: videoRef(result) };
-    } finally {
-      await videoInput.cleanup();
-      await audioInput.cleanup();
-      await fs.rm(outputDir, { recursive: true, force: true });
-    }
+      return { video: { copy: 0 }, audio, shortest: trimToVideo };
+    };
+
+    const extraInputs = [{ suffix: ".wav", bytes: a }];
+    // Mixing requires an existing audio stream ([0:a]); a video without one
+    // fails. Fall back to plain replacement — the terminal attempt, which
+    // throws if it also fails.
+    const result =
+      (mix ? await mediaTransform(v, editFor(true), { extraInputs, allowFallback: true }) : null) ??
+      (await mediaTransform(v, editFor(false), { extraInputs }));
+    return { output: videoRef(result) };
   }
 }
 
@@ -2896,7 +2659,7 @@ type ChromaKeyVideoNodeOutputs = {
   output: VideoRef;
 };
 
-export class ChromaKeyVideoNode extends VideoTransformNode {
+export class ChromaKeyVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.ChromaKey";
   static readonly title = "Chroma Key";
   static readonly description =
@@ -2951,12 +2714,7 @@ export class ChromaKeyVideoNode extends VideoTransformNode {
     const similarity = Number(this.similarity ?? 0.3);
     const blend = Number(this.blend ?? 0.1);
     const transformed =
-      (await ffmpegTransform(bytes, [
-        "-vf",
-        `colorkey=${color}:${similarity}:${blend}`,
-        "-c:a",
-        "copy"
-      ]));
+      (await mediaTransform(bytes, videoFilter(`colorkey=${color}:${similarity}:${blend}`)));
     return { output: videoRef(transformed) };
   }
 }
@@ -2966,7 +2724,7 @@ type ExtractAudioVideoNodeOutputs = {
   output: { type: string; data: null; uri: string; asset_id: null; metadata: null } | { type: string; data: string; uri: string; asset_id: null; metadata: null };
 };
 
-export class ExtractAudioVideoNode extends VideoTransformNode {
+export class ExtractAudioVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.ExtractAudio";
   static readonly title = "Extract Audio";
   static readonly description =
@@ -3005,10 +2763,7 @@ export class ExtractAudioVideoNode extends VideoTransformNode {
     );
     const outputPath = path.join(outputDir, "output.wav");
     try {
-      await execFfmpeg(
-        ["-y", "-i", input.path, "-vn", "-acodec", "pcm_s16le", outputPath],
-        { maxBuffer: FFMPEG_MAX_BUFFER }
-      );
+      await convertAudioToWav(input.path, outputPath);
       const audioBytes = new Uint8Array(await fs.readFile(outputPath));
       const b64 = Buffer.from(audioBytes).toString("base64");
       return {
@@ -3032,7 +2787,7 @@ type ExtractFrameVideoNodeOutputs = {
   output: { type: string; data: null } | { type: string; data: string };
 };
 
-export class ExtractFrameVideoNode extends VideoTransformNode {
+export class ExtractFrameVideoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.ExtractFrame";
   static readonly title = "Extract Video Frame";
   static readonly description =
@@ -3067,38 +2822,24 @@ export class ExtractFrameVideoNode extends VideoTransformNode {
     }
 
     const inputFile = await withTempFile(".mp4", bytes);
-    const outputDir = await fs.mkdtemp(
-      path.join(os.tmpdir(), "nodetool-extract-frame-")
-    );
-    const outputPath = path.join(outputDir, "frame.png");
     try {
       const time = Math.max(0, Number(this.time ?? 0));
-      await execFfmpeg(
-        [
-          "-y",
-          "-ss", String(time),
-          "-i", inputFile.path,
-          "-frames:v", "1",
-          "-f", "image2",
-          outputPath
-        ],
-        { maxBuffer: 10 * 1024 * 1024 }
-      );
-      const frameData = new Uint8Array(await fs.readFile(outputPath));
-      return {
-        output: {
-          type: "image",
-          data: Buffer.from(frameData).toString("base64")
-        }
-      };
-    } catch (error) {
-      // A missing binary is unrecoverable — surface it. A genuine decode
-      // failure (e.g. seeking past the end) yields an empty frame.
-      if (error instanceof MissingBinaryError) throw error;
+      const alpha = (await probeMedia(inputFile.path)).video?.alpha ?? false;
+      for await (const png of pngFrames({ filePath: inputFile.path, seekSec: time, limit: 1, alpha })) {
+        return {
+          output: {
+            type: "image",
+            data: Buffer.from(png).toString("base64")
+          }
+        };
+      }
+      // Seeking past the end leaves no frame.
+      return { output: { type: "image", data: null } };
+    } catch {
+      // A genuine decode failure yields an empty frame.
       return { output: { type: "image", data: null } };
     } finally {
       await inputFile.cleanup();
-      await fs.rm(outputDir, { recursive: true, force: true });
     }
   }
 }
@@ -3114,7 +2855,7 @@ type GetVideoInfoNodeOutputs = {
   has_audio: boolean;
 };
 
-export class GetVideoInfoNode extends VideoTransformNode {
+export class GetVideoInfoNode extends BaseNode {
   static readonly nodeType = "nodetool.video.GetVideoInfo";
   static readonly title = "Get Video Info";
   static readonly description =
@@ -3155,56 +2896,19 @@ export class GetVideoInfoNode extends VideoTransformNode {
 
     const inputFile = await withTempFile(".mp4", bytes);
     try {
-      const { stdout } = await execFfprobe([
-        "-v", "error",
-        "-show_streams",
-        "-show_format",
-        "-of", "json",
-        inputFile.path
-      ]);
-      const info = JSON.parse(stdout) as {
-        streams?: Array<{
-          codec_type?: string;
-          codec_name?: string;
-          width?: number;
-          height?: number;
-          r_frame_rate?: string;
-          nb_frames?: string;
-        }>;
-        format?: {
-          duration?: string;
-        };
-      };
-
-      const videoStream = (info.streams ?? []).find(
-        (s) => s.codec_type === "video"
-      );
-      const hasAudio = (info.streams ?? []).some(
-        (s) => s.codec_type === "audio"
-      );
-
-      const fps = videoStream?.r_frame_rate
-        ? parseFrameRate(videoStream.r_frame_rate)
-        : 0;
-
-      const duration = Number(info.format?.duration ?? 0) || 0;
-      const frameCount = videoStream?.nb_frames
-        ? Number(videoStream.nb_frames) || 0
-        : Math.round(duration * fps);
-
+      const info = await probeVideoInfo(inputFile.path);
+      const frameCount = info.width > 0 ? await countVideoFrames(inputFile.path) : 0;
       return {
-        duration,
-        width: videoStream?.width ?? 0,
-        height: videoStream?.height ?? 0,
-        fps,
+        duration: info.durationSec,
+        width: info.width,
+        height: info.height,
+        fps: info.fps,
         frame_count: frameCount,
-        codec: videoStream?.codec_name ?? "",
-        has_audio: hasAudio
+        codec: info.codec,
+        has_audio: info.hasAudio
       };
-    } catch (error) {
-      // Missing ffprobe is actionable; a genuine probe failure on corrupt
-      // input degrades to the empty info result.
-      if (error instanceof MissingBinaryError) throw error;
+    } catch {
+      // A probe failure on corrupt input degrades to the empty info result.
       return {
         duration: 0,
         width: 0,

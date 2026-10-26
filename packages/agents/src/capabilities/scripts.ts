@@ -192,45 +192,25 @@ async function appendTake(
 /**
  * Duration of the synthesized audio.
  *
- * ffprobe is the accurate answer and is what the editor's browser probe and the
- * VoiceScript node both effectively measure. When it is unavailable (no ffmpeg
- * on PATH), the last word timing is a close second, and the placeholder is the
- * floor — a take is still playable and still assemblable without an exact
- * length.
+ * The container's own duration is the accurate answer and is what the
+ * editor's browser probe and the VoiceScript node both measure. For audio the
+ * probe cannot read, the last word timing is a close second, and the
+ * placeholder is the floor — a take is still playable and still assemblable
+ * without an exact length.
  */
 async function measureDurationMs(
   bytes: Uint8Array,
   words: CaptionWord[]
 ): Promise<number> {
-  const { execFile: execFileCb } = await import("node:child_process");
-  const { promisify } = await import("node:util");
-  const { promises: fs } = await import("node:fs");
-  const os = await import("node:os");
-  const path = await import("node:path");
   const { PLACEHOLDER_LINE_MS } = await import("@nodetool-ai/timeline");
-  const execFile = promisify(execFileCb);
-
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-voice-"));
-  const file = path.join(dir, "take");
   try {
-    await fs.writeFile(file, bytes);
-    const { stdout } = await execFile("ffprobe", [
-      "-v",
-      "error",
-      "-show_entries",
-      "format=duration",
-      "-of",
-      "default=noprint_wrappers=1:nokey=1",
-      file
-    ]);
-    const seconds = parseFloat(stdout.trim());
-    if (Number.isFinite(seconds) && seconds > 0) {
-      return Math.round(seconds * 1000);
+    const { probeMedia } = await import("@nodetool-ai/runtime/media");
+    const { durationSec } = await probeMedia(bytes);
+    if (durationSec !== null && durationSec > 0) {
+      return Math.round(durationSec * 1000);
     }
   } catch {
-    // ffprobe missing or unreadable output — fall through to the estimates.
-  } finally {
-    await fs.rm(dir, { recursive: true, force: true });
+    // Audio the probe cannot read: fall through to the estimates.
   }
   const lastWordEnd = words.length > 0 ? words[words.length - 1].endMs : 0;
   return lastWordEnd > 0 ? lastWordEnd : PLACEHOLDER_LINE_MS;

@@ -8,7 +8,8 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { execFfmpeg, execFfprobe } from "../src/nodes/ffmpeg-helpers.js";
+import { pngFrames } from "@nodetool-ai/runtime/media";
+import { generateMedia, videoPacketInfo, videoStreamFormat } from "@nodetool-ai/runtime/media/testing";
 import { openSourceConverter } from "../src/nodes/timeline/browserSources.js";
 
 let directory = "";
@@ -19,29 +20,32 @@ beforeAll(async () => {
   directory = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-browser-sources-"));
   h264 = path.join(directory, "vfr.mp4");
   // Variable frame rate: two of every five frames of a 60 fps pattern.
-  await execFfmpeg([
-    "-v", "error", "-y",
-    "-f", "lavfi", "-i", "testsrc2=size=160x90:rate=60",
-    "-t", "1",
-    "-vf", "select='lt(mod(n\\,5)\\,2)'",
-    "-fps_mode", "vfr",
-    "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p",
-    h264
-  ]);
+  await generateMedia({
+    outPath: h264,
+    video: {
+      source: "testsrc2=size=160x90:rate=60:duration=1",
+      filter: "select='lt(mod(n\\,5)\\,2)'",
+      options: { preset: "ultrafast" }
+    }
+  });
   png = path.join(directory, "still.png");
-  await execFfmpeg(["-v", "error", "-y", "-f", "lavfi", "-i", "color=red:size=16x16", "-frames:v", "1", png]);
+  await fs.writeFile(png, await firstPng("color=red:size=16x16:duration=0.1"));
 });
 
 afterAll(async () => {
   if (directory) await fs.rm(directory, { recursive: true, force: true });
 });
 
+/** A PNG of a lavfi source's first frame. */
+async function firstPng(source: string): Promise<Uint8Array> {
+  const clip = path.join(directory, "still-source.mkv");
+  await generateMedia({ outPath: clip, video: { source, codec: "ffv1", pixelFormat: "bgr0" } });
+  for await (const frame of pngFrames({ filePath: clip, limit: 1 })) return frame;
+  throw new Error(`${source} produced no frame`);
+}
+
 async function frameTimes(file: string): Promise<number[]> {
-  const { stdout } = await execFfprobe([
-    "-v", "error", "-select_streams", "v:0",
-    "-show_entries", "frame=pts_time", "-of", "csv=p=0", file
-  ]);
-  return String(stdout).trim().split("\n").map((line) => Number(line.replace(/,$/, "")));
+  return (await videoPacketInfo(file)).map((packet) => packet.pts);
 }
 
 describe("openSourceConverter", () => {
@@ -52,10 +56,7 @@ describe("openSourceConverter", () => {
     expect(first).not.toBe(h264);
     expect(converter.converted).toBe(1);
 
-    const { stdout } = await execFfprobe([
-      "-v", "error", "-select_streams", "v:0", "-show_entries", "stream=codec_name", "-of", "csv=p=0", first
-    ]);
-    expect(String(stdout).trim()).toBe("vp9");
+    expect((await videoStreamFormat(first))?.codec).toBe("vp9");
     // The same frames at the same times, to the millisecond a webm keeps.
     const [source, converted] = await Promise.all([frameTimes(h264), frameTimes(first)]);
     expect(converted).toHaveLength(source.length);

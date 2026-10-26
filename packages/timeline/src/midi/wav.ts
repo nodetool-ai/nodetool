@@ -1,7 +1,7 @@
 /**
  * A minimal RIFF/WAVE writer: 16-bit PCM, one channel.
  *
- * The server renderer hands ffmpeg a file rather than a Float32Array, and a
+ * The server renderer hands libav a file rather than a Float32Array, and a
  * whole audio library for a 44-byte header would be the only runtime
  * dependency in the package root.
  */

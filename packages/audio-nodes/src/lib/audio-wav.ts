@@ -17,7 +17,7 @@ import {
   loadNodeOs,
   loadNodePath
 } from "@nodetool-ai/nodes-utils";
-import { IS_NODE, importNodeBuiltin } from "@nodetool-ai/config";
+import { IS_NODE } from "@nodetool-ai/config";
 import type { AudioRef } from "@nodetool-ai/node-sdk";
 import {
   loadMediaRefBytes,
@@ -305,12 +305,12 @@ export function readWavHeader(bytes: Uint8Array): WavHeader | null {
  * Parse already-loaded WAV bytes into Float32 samples (channel-interleaved).
  * Returns null when the input is not a valid RIFF/WAVE file or carries a
  * format this decoder doesn't handle (caller then falls back to WebAudio /
- * ffmpeg).
+ * libav).
  *
  * Supported: integer PCM at 8/16/24/32-bit and IEEE float at 32-bit — the
- * formats `encodeWav`, ffmpeg, and common recorders emit. This is the only
- * decode path with no native-addon or subprocess dependency, so keeping it
- * broad lets edge/workers/browser runtimes decode without ffmpeg. Subchunks
+ * formats `encodeWav`, libav, and common recorders emit. This is the only
+ * decode path with no native addon, so keeping it broad lets
+ * edge/workers/browser runtimes decode without one. Subchunks
  * are traversed, so layouts with `LIST`/`JUNK`/etc. before `data` work.
  */
 export function parseWavBytes(bytes: Uint8Array): WavData | null {
@@ -435,9 +435,8 @@ export function tryDecodeWav(audio: unknown): WavData | null {
  *      the global in Chromium Web Workers). Handles mp3/flac/ogg-vorbis, but
  *      its Symphonia backend has no Opus/AAC/ALAC decoder.
  *   3. On Node, when WebAudio can't decode the input — notably the WebM/Opus a
- *      browser `MediaRecorder` produces — fall back to ffmpeg, one of
- *      Nodetool's managed runtime tools (the same universal decoder the ASR
- *      nodes use).
+ *      browser `MediaRecorder` produces — fall back to libav, in process (the
+ *      same decoder the ASR nodes use).
  *
  * When nothing can decode the bytes we throw an actionable error rather than
  * the opaque "Invalid WAV file" from `decodeWav`. Effect/DSP nodes use this
@@ -460,10 +459,10 @@ export async function decodeAudioToWav(bytes: Uint8Array): Promise<WavData> {
     }
   }
 
-  // ffmpeg fallback (Node only): decodes what WebAudio's Symphonia backend
+  // libav fallback (Node only): decodes what WebAudio's Symphonia backend
   // can't — notably the WebM/Opus a browser MediaRecorder emits.
-  const viaFfmpeg = await tryFfmpegDecodeToWav(bytes);
-  if (viaFfmpeg) return viaFfmpeg;
+  const viaLibav = await tryLibavDecode(bytes);
+  if (viaLibav) return viaLibav;
 
   // Nothing decoded it. Throw a reason that fits the runtime — every branch
   // keeps the "Could not decode audio" prefix that callers/tests match on.
@@ -474,12 +473,12 @@ export async function decodeAudioToWav(bytes: Uint8Array): Promise<WavData> {
           webAudioError instanceof Error
             ? webAudioError.message
             : String(webAudioError)
-        }) and ffmpeg is unavailable`
-      : "WebAudio (node-web-audio-api) could not be loaded and ffmpeg is unavailable";
+        }) and libav could not decode it either`
+      : "WebAudio (node-web-audio-api) could not be loaded and libav could not decode it";
     throw new Error(
       `Could not decode audio: input is not ${WAV_FORMATS} — ${reason}. ` +
-        `Install ffmpeg (the Package Manager UI can do this) to decode formats ` +
-        `like WebM/Opus, mp3, or m4a, or convert the audio to WAV upstream.`
+        `The file may be damaged or in a format this build does not read; ` +
+        `convert the audio to WAV upstream.`
     );
   }
 
@@ -499,8 +498,8 @@ export async function decodeAudioToWav(bytes: Uint8Array): Promise<WavData> {
   // is available here.
   throw new Error(
     `Could not decode audio: this runtime can only decode ${WAV_FORMATS} directly. ` +
-      `Convert the audio to WAV upstream, or run this node on a Node server where ` +
-      `ffmpeg can decode compressed formats.`
+      `Convert the audio to WAV upstream, or run this node on a Node server, ` +
+      `which decodes compressed formats.`
   );
 }
 
@@ -534,52 +533,28 @@ async function decodeViaWebAudio(
 }
 
 /**
- * Decode arbitrary audio to WAV via ffmpeg, preserving the source channel
- * count and sample rate (no `-ac`/`-ar` — an audio effect must not silently
- * downmix or resample). Returns null off-Node, when ffmpeg isn't installed,
- * or when the conversion fails — callers surface their own error. Output is
- * 16-bit PCM, which the effect nodes re-encode to anyway, so no precision is
- * lost relative to the node's result.
+ * Decode arbitrary audio with libav, in process, keeping the source channel
+ * count and sample rate (an audio effect must not silently downmix or
+ * resample). Returns null off-Node or when nothing decodes — callers surface
+ * their own error.
  */
-async function tryFfmpegDecodeToWav(
-  bytes: Uint8Array
-): Promise<WavData | null> {
+async function tryLibavDecode(bytes: Uint8Array): Promise<WavData | null> {
   if (!IS_NODE || bytes.length === 0) return null;
-  const childProcess = await importNodeBuiltin<
-    typeof import("node:child_process")
-  >("node:child_process");
-  if (!childProcess) return null;
   const fs = await loadNodeFsPromises();
   const os = await loadNodeOs();
   const path = await loadNodePath();
-
-  const dir = await fs.mkdtemp(
-    path.join(os.tmpdir(), "nodetool-audio-decode-")
-  );
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-audio-decode-"));
   const inPath = path.join(dir, "input.bin");
-  const outPath = path.join(dir, "output.wav");
   try {
     await fs.writeFile(inPath, bytes);
-    await new Promise<void>((resolve, reject) => {
-      childProcess.execFile(
-        "ffmpeg",
-        [
-          "-y",
-          "-loglevel",
-          "error",
-          "-i",
-          inPath,
-          "-c:a",
-          "pcm_s16le",
-          "-f",
-          "wav",
-          outPath
-        ],
-        { maxBuffer: 64 * 1024 * 1024 },
-        (error) => (error ? reject(error) : resolve())
-      );
+    const { decodeAudioToPcm, probeMedia } = await import("@nodetool-ai/runtime/media");
+    const audio = (await probeMedia(inPath)).audio;
+    if (!audio) return null;
+    const pcm = await decodeAudioToPcm(inPath, {
+      sampleRate: audio.sampleRate,
+      channels: audio.channels
     });
-    return parseWavBytes(new Uint8Array(await fs.readFile(outPath)));
+    return { samples: pcm.samples, sampleRate: pcm.sampleRate, numChannels: pcm.channels };
   } catch {
     return null;
   } finally {

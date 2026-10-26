@@ -1,29 +1,26 @@
 /**
- * SVG stills are rasterized without ffmpeg: many ffmpeg builds (Homebrew's
- * default among them) have no SVG decoder, and a logo is the usual SVG on a
- * timeline. ffmpeg and ffprobe are made unavailable so a regression to the
- * ffmpeg path fails here on every machine.
+ * SVG stills are rasterized with Skia, not libav: many libav builds
+ * (Homebrew's default among them) have no SVG decoder, and a logo is the
+ * usual SVG on a timeline. The media module's decoders and probes refuse here,
+ * so a regression to the libav path fails on every machine.
  */
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-vi.mock("node:child_process", async (importOriginal) => {
+vi.mock("@nodetool-ai/runtime/media", async (importOriginal) => {
   const original = (await importOriginal()) as Record<string, unknown>;
-  return {
-    ...original,
-    spawn: () => {
-      throw new Error("ffmpeg must not decode an SVG still");
-    }
+  const refuse = (): never => {
+    throw new Error("libav must not decode or probe an SVG still");
   };
-});
-
-vi.mock("../src/nodes/ffmpeg-helpers.js", async (importOriginal) => {
-  const original = (await importOriginal()) as Record<string, unknown>;
   return {
     ...original,
-    execFfprobe: () => Promise.reject(new Error("ffprobe must not probe an SVG still"))
+    probeMedia: refuse,
+    packetTimes: refuse,
+    openFilterGraph: refuse,
+    openRgbaFrameReader: refuse,
+    pngFrames: refuse
   };
 });
 

@@ -1,15 +1,14 @@
 /**
- * Thumbnails from a local file: ffmpeg reads the file in place, so a source
+ * Thumbnails from a local file: the decoder reads the file in place, so a source
  * above THUMBNAIL_SOURCE_MAX_BYTES still gets a thumbnail. Byte sources pulled
- * back out of a store with no local file keep the cap. Runs the real ffmpeg.
+ * back out of a store with no local file keep the cap. Runs on real media.
  */
-import { execFile } from "node:child_process";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { promisify } from "node:util";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import sharp from "sharp";
+import { generateMedia } from "@nodetool-ai/runtime/media/testing";
 import {
   FileStorageAdapter,
   InMemoryStorageAdapter,
@@ -26,7 +25,6 @@ import {
   THUMBNAIL_SOURCE_MAX_BYTES
 } from "../src/lib/thumbnail.js";
 
-const execFileAsync = promisify(execFile);
 const USER = "user-1";
 const ASSET = "0192a7f3c4e5b6d7a8f9e0c1b2d3e4f5";
 const JPEG_MAGIC = [0xff, 0xd8, 0xff];
@@ -39,14 +37,11 @@ beforeAll(async () => {
     await fs.mkdtemp(path.join(os.tmpdir(), "thumb-local-path-"))
   );
   largeVideo = path.join(tmp, "long take.mp4");
-  await execFileAsync("ffmpeg", [
-    "-y",
-    "-f", "lavfi",
-    "-i", "testsrc=size=64x64:rate=10:duration=2",
-    "-pix_fmt", "yuv420p",
-    "-movflags", "+faststart",
-    largeVideo
-  ]);
+  await generateMedia({
+    outPath: largeVideo,
+    video: { source: "testsrc=size=64x64:rate=10:duration=2" },
+    muxerOptions: { movflags: "+faststart" }
+  });
   // Pad past the byte cap. The padding is sparse, so the test writes almost
   // nothing, and it sits after the moov atom, so the file still decodes.
   await fs.truncate(largeVideo, THUMBNAIL_SOURCE_MAX_BYTES + 1024 * 1024);

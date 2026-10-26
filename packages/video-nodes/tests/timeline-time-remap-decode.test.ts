@@ -1,10 +1,10 @@
 /**
- * The server decoder under a time remap (T29, F9, D13), against a real ffmpeg.
+ * The server decoder under a time remap (T29, F9, D13), against real libav.
  *
  * `openVideoFrameStream` is forward-only: it decodes a clip once, in source
  * order, because a rate-retimed clip never asks for a source instant it has
  * already passed. A remap curve can. `openSourceFrameStream` retains bounded
- * reverse windows, and this asks ffmpeg whether the frames that come back are
+ * reverse windows, and this asks libav whether the frames that come back are
  * the ones the curve names.
  *
  * The second half runs the same curves through `renderTimelineComposited`, so
@@ -12,19 +12,30 @@
  * source-addressed stream at all, and that the frames the render writes are the
  * ones the curve names.
  *
- * Nothing is mocked and the decoder half cannot skip: ffmpeg is installed on
- * the `test-packages` CI leg (`quality-checks.yml`) and `ffv1` is a native
- * encoder every build carries, so with no ffmpeg on PATH the encoder throws
- * `MissingBinaryError` and the suite goes red. Only the whole-render half is
- * conditional, on a WebGPU device, and it says so when it steps aside.
+ * The decoder half cannot skip: `ffv1` is a native encoder every libav build
+ * carries. Only the grid probe's speed is faked, for the one case that needs
+ * a slow probe. The whole-render half is conditional, on a WebGPU device, and
+ * it says so when it steps aside.
  */
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
-import { execFileSync } from "node:child_process";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import type { TimelineSequence } from "@nodetool-ai/timeline";
+
+/** Milliseconds the grid probe's packet scan waits, for the slow-probe case. */
+const probeDelay = vi.hoisted(() => ({ ms: 0 }));
+vi.mock("@nodetool-ai/runtime/media", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@nodetool-ai/runtime/media")>();
+  return {
+    ...original,
+    packetTimes: async (...args: Parameters<typeof original.packetTimes>) => {
+      if (probeDelay.ms > 0) await new Promise((resolve) => setTimeout(resolve, probeDelay.ms));
+      return original.packetTimes(...args);
+    }
+  };
+});
 
 import { renderTimelineComposited } from "../src/nodes/timeline/compositeRender.js";
 import { resolveTimelineOutput } from "../src/nodes/timeline/outputFormats.js";
@@ -98,14 +109,14 @@ let clipPath = "";
 beforeAll(async () => {
   dir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-time-remap-"));
   clipPath = path.join(dir, "ramp.mkv");
-  // ffv1 over planar RGB is lossless and all-intra, so every frame is its own
+  // ffv1 over RGB is lossless and all-intra, so every frame is its own
   // seek point and the gray that goes in is the gray that comes back.
   const encoder = openFrameEncoder({
     outPath: clipPath,
     width: WIDTH,
     height: HEIGHT,
     fps: FPS,
-    encoderArgs: ["-c:v", "ffv1", "-pix_fmt", "gbrp"]
+    encoderArgs: ["-c:v", "ffv1", "-pix_fmt", "bgr0"]
   });
   for (let k = 0; k < SOURCE_FRAMES; k++) {
     await encoder.write(solidFrame(grayOf(k)));
@@ -139,36 +150,26 @@ describe("openSourceFrameStream", () => {
     }
   }, 60_000);
 
-  it.skipIf(process.platform === "win32")(
-    "keeps the decode window when the grid probe answers slowly",
-    async () => {
-      // A loaded CI runner can take over a second to start ffprobe. A shim
-      // that delays the real binary must not push the stream into seek mode.
-      const realFfprobe = execFileSync("which", ["ffprobe"], { encoding: "utf8" }).trim();
-      const shimDir = await fs.mkdtemp(path.join(os.tmpdir(), "slow-ffprobe-"));
-      const shim = path.join(shimDir, "ffprobe");
-      await fs.writeFile(shim, `#!/bin/sh\nsleep 2\nexec "${realFfprobe}" "$@"\n`, { mode: 0o755 });
-      const originalPath = process.env.PATH;
-      process.env.PATH = `${shimDir}${path.delimiter}${originalPath ?? ""}`;
-      const stream = openSourceFrameStream({
-        filePath: clipPath,
-        size: { width: WIDTH, height: HEIGHT },
-        fps: FPS,
-        startSec: 0
-      });
-      try {
-        for (let k = 0; k < SOURCE_FRAMES; k++) {
-          expect(await stream.frameAtSourceSec(k / FPS)).not.toBeNull();
-        }
-        expect(stream.reopens).toBe(0);
-      } finally {
-        stream.close();
-        process.env.PATH = originalPath;
-        await fs.rm(shimDir, { recursive: true, force: true });
+  it("keeps the decode window when the grid probe answers slowly", async () => {
+    // A loaded CI runner can take over a second to scan packets. A probe that
+    // answers late must not push the stream into seek mode.
+    probeDelay.ms = 2000;
+    const stream = openSourceFrameStream({
+      filePath: clipPath,
+      size: { width: WIDTH, height: HEIGHT },
+      fps: FPS,
+      startSec: 0
+    });
+    try {
+      for (let k = 0; k < SOURCE_FRAMES; k++) {
+        expect(await stream.frameAtSourceSec(k / FPS)).not.toBeNull();
       }
-    },
-    60_000
-  );
+      expect(stream.reopens).toBe(0);
+    } finally {
+      stream.close();
+      probeDelay.ms = 0;
+    }
+  }, 60_000);
 
   it("serves a reverse curve from a bounded window, and the frames descend", async () => {
     // The curve a reverse writes: t ascends over the clip, sourceMs descends.
