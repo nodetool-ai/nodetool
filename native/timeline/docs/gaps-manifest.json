@@ -133,12 +133,14 @@
         "qml/wiring/",
         "tests/tst_tracksui.cpp",
         "src/model/TrackWindowModel.*",
-        "qml/Tracks/Playhead.qml"
+        "qml/Tracks/Playhead.qml",
+        "src/app/Menus/tst_appshell.cpp"
       ],
       "ownsNotes": {
         "tests/tst_tracksui.cpp": "approved by the user (D8)",
         "src/model/TrackWindowModel.*": "approved by the user (D8)",
-        "qml/Tracks/Playhead.qml": "approved by the user (D8)"
+        "qml/Tracks/Playhead.qml": "approved by the user (D8)",
+        "src/app/Menus/tst_appshell.cpp": "approved by the user (D8)"
       },
       "web": [
         "web/src/components/timeline/Tracks/TracksRegion.tsx",

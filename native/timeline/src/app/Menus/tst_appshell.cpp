@@ -395,7 +395,8 @@ private slots:
         auto* sheet = view.contentItem()->findChild<QObject*>("shortcutsSheet");
         QVERIFY(sheet);
         QVERIFY(sheet->property("open").toBool());
-        QVERIFY(!menus.trigger("pasteAttributes"));
+        QVERIFY(menus.trigger("pasteAttributes"));
+        QVERIFY(!menus.trigger("linkClips"));
     }
 };
 int main(int argc, char** argv) {
