@@ -37,6 +37,13 @@ Rectangle {
     color: Theme.backgroundDefault
     clip: true
 
+    function focusTrackResize(id) {
+        for (let i = 0; i < headerRepeater.count; ++i) {
+            const header = headerRepeater.itemAt(i)
+            if (header && header.trackId === id) { header.resizeHandle.forceActiveFocus() }
+        }
+    }
+
     TimelineViewState {
         id: view
         objectName: "timelineViewState"
@@ -237,10 +244,28 @@ Rectangle {
             width: parent.width
             height: rowModel.contentHeight
             Repeater {
+                id: headerRepeater
                 model: rowModel
                 delegate: TrackHeader {
                     id: header
                     required property double rowTop
+                    timeline: region.timeline
+                    gestures: clipGestures
+                    viewState: view
+                    onResizeStepRequested: heightPx => {
+                        const id = header.trackId
+                        Qt.callLater(region.focusTrackResize, id)
+                        region.timeline.applyEdit("setTrackHeight", {trackId: id, heightPx: heightPx})
+                    }
+                    onDeleteRequested: {
+                        headerMenu.trackId = header.trackId
+                        headerMenu.trackName = header.name
+                        headerMenu.trackType = header.trackType
+                        for (let i = 0; i < headerMenu.count; ++i) {
+                            const entry = headerMenu.itemAt(i)
+                            if (entry && entry.objectName === "trackMenu-remove") { entry.triggered() }
+                        }
+                    }
                     y: rowTop
                     width: region.headerWidth - 1
                     MouseArea {
@@ -290,6 +315,15 @@ Rectangle {
                     }
                 }
             }
+        }
+        Rectangle {
+            objectName: "trackDropLine"
+            visible: clipGestures.trackDropY >= 0
+            y: clipGestures.trackDropY - view.scrollTopPx
+            width: parent.width
+            height: 2
+            color: Theme.primary
+            z: 3
         }
         // borderRight: 1px divider.
         Rectangle {
@@ -341,6 +375,10 @@ Rectangle {
                     viewState: view
                     gestures: clipGestures
                 }
+            }
+            RubberBandOverlay {
+                objectName: "rubberBand"
+                bandRect: clipGestures.rubberBand.left !== undefined ? clipGestures.rubberBand : null
             }
         }
 
@@ -445,6 +483,16 @@ Rectangle {
     Connections {
         target: clipGestures
         function onShortcutsToggled() { region.shortcutsRequested() }
+        function onPasteAttributesRequested(source, targets) {
+            attributes.source = source
+            attributes.targets = targets
+            attributes.open()
+        }
+    }
+    PasteAttributesDialog {
+        id: attributes
+        parent: region
+        onGroupsChosen: groups => clipGestures.pasteAttributes(attributes.source, attributes.targets.map(clip => clip.id), groups)
     }
     Keys.onPressed: event => {
         if (clipGestures.handleKey(event.key, event.text, event.modifiers, event.isAutoRepeat))

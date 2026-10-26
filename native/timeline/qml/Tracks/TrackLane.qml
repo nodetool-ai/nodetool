@@ -51,13 +51,21 @@ Rectangle {
             const atMs = Math.max(0, mouse.x * lane.viewState.msPerPx)
             // Under a track select tool the press selects the block.
             if (lane.gestures && lane.gestures.pressLane(lane.trackId, atMs, mouse.modifiers)) return
-            // A press on the empty lane starts a marquee in the web, which
-            // replaces the selection with what it covers: nothing yet.
-            if (lane.gestures) lane.gestures.selection = []
-            const endMs = lane.timeline.durationMs
-            const t = Math.max(0, mouse.x * lane.viewState.msPerPx)
-            lane.clock.seek(endMs > 0 ? Math.min(endMs, t) : t)
+            const p = mapToItem(null, mouse.x, mouse.y)
+            if (lane.gestures) { lane.gestures.pressEmptyLane(lane.trackId, p.x, p.y, mouse.modifiers) }
         }
+    }
+
+    Rectangle {
+        objectName: "selectedGap-" + lane.trackId
+        readonly property var gap: lane.gestures ? lane.gestures.selectedGap : ({})
+        visible: gap.trackId === lane.trackId
+        x: (gap.startMs ?? 0) / lane.viewState.msPerPx
+        width: ((gap.endMs ?? 0) - (gap.startMs ?? 0)) / lane.viewState.msPerPx
+        height: parent.height
+        color: Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.18)
+        border.width: 1
+        border.color: Theme.primary
     }
 
     RegistryContextMenu {

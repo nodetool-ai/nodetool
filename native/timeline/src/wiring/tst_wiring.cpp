@@ -171,7 +171,8 @@ private slots:
         if (!enabled) { click(item("snapToggle")); }
         auto* clip = item("clip-c");
         QVERIFY(clip);
-        const auto start = clip->mapToScene({clip->width() / 2, clip->height() / 2}).toPoint();
+        // Alt on a body copies with snapping. A trim still uses Alt to bypass it.
+        const auto start = clip->mapToScene({bypass ? 4 : clip->width() / 2, clip->height() / 2}).toPoint();
         const auto end = start + QPoint(160, 0);
         QTest::mousePress(view.get(), Qt::LeftButton, modifiers, start);
         QTest::mouseMove(view.get(), end, 20);

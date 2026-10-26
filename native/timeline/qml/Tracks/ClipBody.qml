@@ -116,6 +116,28 @@ Item {
         }
     }
 
+    Loader {
+        active: body.mediaType === "group"
+        anchors.fill: parent
+        sourceComponent: Item {
+            GroupBracket {
+                id: groupBracket
+                objectName: "groupBracket-" + clipId
+                clipId: body.clipData.id ?? ""
+                startMs: body.clipData.startMs ?? 0
+                durationMs: body.durationMs
+                widthPx: body.width
+                property var span: body.gestures ? body.gestures.groupSpan(clipId) : ({})
+                spanStartMs: span.startMs ?? null
+                spanEndMs: span.endMs ?? null
+                Connections {
+                    target: body.timeline
+                    function onClipsChanged() { groupBracket.span = body.gestures.groupSpan(groupBracket.clipId) }
+                }
+            }
+        }
+    }
+
     // Fade ramps: the shaded part is the signal the fade removes.
     // Loaders: most clips have no fade, transition or lock, and the delegate
     // is created on every scroll that brings a clip into the window.
