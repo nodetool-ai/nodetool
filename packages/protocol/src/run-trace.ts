@@ -128,8 +128,8 @@ const SAFE_SPAN_NAMES = new RegExp("^(?:" + [
   String.raw`python\.(?:execute|execute_stream)|ws\.command`,
   String.raw`storage\.(?:store|retrieve|delete|list)`,
   String.raw`workspace\.(?:read|write|list|materialize|absorb)|subprocess\.run`,
-  String.raw`image\.(?:encode_png|rasterize_svg|extract_region|thumbnail)|audio\.peaks|video\.encode_proxy`,
-  String.raw`ffmpeg\.trim_video_window|media\.probe_video_duration|sdcpp\.http|blender\.(?:run|worker\.status)`,
+  String.raw`image\.(?:encode_png|rasterize_svg|extract_region|thumbnail)|audio\.(?:peaks|thumbnail)|video\.(?:encode_proxy|thumbnail)`,
+  String.raw`ffmpeg\.trim_video_window|media\.(?:probe_video_duration|trim_video_window|extract_audio)|sdcpp\.http|blender\.(?:run|worker\.status)`,
   String.raw`app\.build(?:\.(?:spec|plan|author|check|run|judge))?`,
   String.raw`HTTP (?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)`,
   String.raw`(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)(?: \/[a-zA-Z0-9_/:.-]*)?`
