@@ -4,15 +4,176 @@
 #include <QTemporaryDir>
 #include <QtEndian>
 #include <array>
+#include <algorithm>
+#include <functional>
+#include <limits>
+#include <optional>
+#include <vector>
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QtTest>
 
+namespace {
+constexpr auto chunkFrames = nt::assets::stereoWavChunkFrames;
+
+std::optional<quint64> writeFromReader(const QString& path, const nt::assets::StereoWavReader& read,
+                                      const std::function<bool()>& interrupted,
+                                      std::size_t& peakSamples,
+                                      quint32 maxDataBytes = std::numeric_limits<quint32>::max() - 36) {
+    return nt::assets::writeStereoWavStream(path, [&](std::span<float> buffer) {
+        peakSamples = std::max(peakSamples, buffer.size());
+        return read(buffer);
+    }, interrupted, maxDataBytes);
+}
+}
+
 class TestAssets : public QObject {
     Q_OBJECT
 private slots:
+    void wavStreamingMatchesWholeWriter() {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        std::vector<float> samples((chunkFrames * 2 + 17) * 2);
+        const std::array<float, 8> values{-2, -1, -0.5f, 0, 0.5f, 1, 2,
+            std::numeric_limits<float>::quiet_NaN()};
+        for (std::size_t i = 0; i < samples.size(); ++i) { samples[i] = values[i % values.size()]; }
+        QVERIFY(nt::assets::writeStereoWav(dir.filePath("whole.wav"), samples));
+        std::size_t offset = 0;
+        std::size_t peakSamples = 0;
+        int reads = 0;
+        const auto frames = writeFromReader(dir.filePath("stream.wav"), [&](std::span<float> buffer) {
+            ++reads;
+            const auto count = std::min(buffer.size(), samples.size() - offset);
+            std::copy_n(samples.begin() + offset, count, buffer.begin());
+            offset += count;
+            return static_cast<qint64>(count / 2);
+        }, [] { return false; }, peakSamples);
+        QVERIFY(frames);
+        QCOMPARE(*frames, samples.size() / 2);
+        QVERIFY(reads >= 4); // Includes a partial final chunk and EOF.
+        QFile whole(dir.filePath("whole.wav"));
+        QFile stream(dir.filePath("stream.wav"));
+        QVERIFY(whole.open(QIODevice::ReadOnly));
+        QVERIFY(stream.open(QIODevice::ReadOnly));
+        QCOMPARE(stream.readAll(), whole.readAll());
+    }
+    void wavStreamingKeepsOneChunk() {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        std::size_t peakSamples = 0;
+        int reads = 0;
+        const auto frames = writeFromReader(dir.filePath("bounded.wav"), [&](std::span<float> buffer) {
+            if (++reads > 16) { return qint64(0); }
+            std::fill(buffer.begin(), buffer.end(), 0.25f);
+            return static_cast<qint64>(buffer.size() / 2);
+        }, [] { return false; }, peakSamples);
+        QVERIFY(frames);
+        QVERIFY2(peakSamples <= chunkFrames * 2, qPrintable(QString("peak buffered samples %1 exceed one chunk (%2)")
+            .arg(peakSamples).arg(chunkFrames * 2)));
+    }
+    void wavStreamingInterruptsEndlessReader() {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const auto path = dir.filePath("cancelled.wav");
+        std::size_t peakSamples = 0;
+        int reads = 0;
+        constexpr int cancelAfter = 3;
+        const auto frames = writeFromReader(path, [&](std::span<float> buffer) {
+            if (++reads > 16) { return qint64(0); } // Hang guard for the old readAll path.
+            std::fill(buffer.begin(), buffer.end(), 0.25f);
+            return static_cast<qint64>(buffer.size() / 2);
+        }, [&] { return reads >= cancelAfter; }, peakSamples);
+        QVERIFY(!frames);
+        QVERIFY(!QFile::exists(path));
+        QVERIFY2(reads <= cancelAfter + 1, qPrintable(QString("interruption read %1 chunks, expected at most %2")
+            .arg(reads).arg(cancelAfter + 1)));
+    }
+    void wavStreamingRejectsOverLimit() {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const auto path = dir.filePath("too-large.wav");
+        std::size_t peakSamples = 0;
+        int reads = 0;
+        const auto frames = writeFromReader(path, [&](std::span<float> buffer) {
+            if (++reads > 2) { return qint64(0); }
+            std::fill_n(buffer.begin(), 8, 0.25f);
+            return qint64(4);
+        }, [] { return false; }, peakSamples, 16);
+        QVERIFY2(!frames, "WAV exceeding the data byte limit must fail");
+        QVERIFY(!QFile::exists(path));
+        QCOMPARE(reads, 2);
+    }
+    void wavStreamingRejectsBadReads_data() {
+        QTest::addColumn<qint64>("lastRead");
+        QTest::addColumn<bool>("dataFirst");
+        QTest::newRow("empty") << qint64(0) << false;
+        QTest::newRow("decode-error") << qint64(-1) << false;
+        QTest::newRow("decode-error-after-data") << qint64(-1) << true;
+        QTest::newRow("oversized-read") << qint64(chunkFrames + 1) << false;
+    }
+    void wavStreamingRejectsBadReads() {
+        QFETCH(qint64, lastRead);
+        QFETCH(bool, dataFirst);
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const auto path = dir.filePath("preserved.wav");
+        QFile previous(path);
+        QVERIFY(previous.open(QIODevice::WriteOnly));
+        QCOMPARE(previous.write("original"), 8);
+        previous.close();
+        int reads = 0;
+        const auto frames = nt::assets::writeStereoWavStream(path, [&](std::span<float> buffer) {
+            if (++reads == 1 && dataFirst) {
+                std::fill(buffer.begin(), buffer.end(), 0.25f);
+                return static_cast<qint64>(buffer.size() / 2);
+            }
+            return lastRead;
+        }, [] { return false; });
+        QVERIFY(!frames);
+        QVERIFY(previous.open(QIODevice::ReadOnly));
+        QCOMPARE(previous.readAll(), QByteArray("original"));
+    }
+    void wavStreamingCancelsAtReadBoundaries_data() {
+        QTest::addColumn<int>("cancelAtRead");
+        QTest::newRow("before-first-read") << 0;
+        QTest::newRow("after-data-read") << 1;
+        QTest::newRow("at-eof") << 2;
+    }
+    void wavStreamingCancelsAtReadBoundaries() {
+        QFETCH(int, cancelAtRead);
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const auto path = dir.filePath("cancelled.wav");
+        int reads = 0;
+        const auto frames = nt::assets::writeStereoWavStream(path, [&](std::span<float> buffer) {
+            std::fill(buffer.begin(), buffer.end(), 0.25f);
+            return ++reads == 1 ? qint64(1) : qint64(0);
+        }, [&] { return reads >= cancelAtRead; });
+        QVERIFY(!frames);
+        QVERIFY(!QFile::exists(path));
+        QCOMPARE(reads, cancelAtRead);
+    }
+    void wavStreamingAcceptsExactLimit() {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const auto path = dir.filePath("exact.wav");
+        int reads = 0;
+        const auto frames = nt::assets::writeStereoWavStream(path, [&](std::span<float> buffer) {
+            if (++reads > 2) { return qint64(0); }
+            std::fill_n(buffer.begin(), 8, 0.25f);
+            return qint64(4);
+        }, [] { return false; }, 32);
+        QVERIFY(frames);
+        QCOMPARE(*frames, 8U);
+        QFile wav(path);
+        QVERIFY(wav.open(QIODevice::ReadOnly));
+        const auto bytes = wav.readAll();
+        QCOMPARE(bytes.size(), 76);
+        QCOMPARE(qFromLittleEndian<quint32>(bytes.constData() + 4), 68U);
+        QCOMPARE(qFromLittleEndian<quint32>(bytes.constData() + 40), 32U);
+    }
     void wavHeaderAndSamples() {
         QTemporaryDir dir;
         QVERIFY(dir.isValid());

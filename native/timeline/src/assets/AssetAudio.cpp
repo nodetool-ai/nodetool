@@ -22,10 +22,12 @@ QJsonObject extractLinkedAudio(nt::server::ServerClient& client, const QJsonObje
     auto source = nt::audio::AudioSource::open(fetched.path.toStdString(), 48000, &error);
     if (interrupted()) { return failed; }
     if (!source) { return error == "no audio stream" ? QJsonObject{{"outcome", "silent"}} : failed; }
-    const auto samples = source->readAll();
-    if (interrupted() || source->decodeErrors() != 0 || samples.empty()) { return failed; }
     const auto wav = staging.filePath("audio.wav");
-    if (!writeStereoWav(wav, samples) || interrupted()) { return failed; }
+    const auto frames = writeStereoWavStream(wav, [&source](std::span<float> buffer) -> qint64 {
+        const auto count = source->read(buffer.data(), static_cast<std::int64_t>(buffer.size() / 2));
+        return source->decodeErrors() == 0 ? count : -1;
+    }, interrupted);
+    if (!frames || interrupted()) { return failed; }
     QJsonObject fields{{"name", video.value("name").toString() + " (audio)"},
         {"content_type", "audio/wav"}, {"parent_id", video.value("id")}};
     for (const auto& key : {QStringLiteral("project_id"), QStringLiteral("workflow_id")}) {
@@ -35,7 +37,7 @@ QJsonObject extractLinkedAudio(nt::server::ServerClient& client, const QJsonObje
     if (!uploaded.ok() || interrupted()) { return failed; }
     auto asset = uploaded.data.toObject();
     if (asset.value("id").toString().isEmpty()) { return failed; }
-    if (!asset.value("duration").isDouble()) { asset.insert("duration", static_cast<double>(samples.size() / 2) / 48000); }
+    if (!asset.value("duration").isDouble()) { asset.insert("duration", static_cast<double>(*frames) / 48000); }
     return {{"outcome", "audio"}, {"asset", asset}};
 }
 }
