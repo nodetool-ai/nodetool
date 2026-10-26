@@ -21,6 +21,8 @@ function(nt_export_tests)
         set_tests_properties(export_${check} PROPERTIES LABELS render FIXTURES_REQUIRED media
             RUN_SERIAL TRUE)
     endforeach()
+    # Full fixture export under ASan takes about 18 minutes.
+    set_tests_properties(export_golden PROPERTIES TIMEOUT 2400)
     add_test(NAME export_wav_audio COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/src/export/check-audio.mjs
         --bin $<TARGET_FILE:nodetool-timeline> --wav-only)
     add_test(NAME export_cleanup COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/src/export/check-cancel.mjs

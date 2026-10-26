@@ -2,9 +2,31 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { psnr, psnrYuv, requireFrames, requireFixtureCoverage, run, scratchBase } from './check-export.mjs';
+import { goldenOutputBase, psnr, psnrYuv, requireFrames, requireFixtureCoverage, root, run, scratchBase } from './check-export.mjs';
 const dir = fs.mkdtempSync(path.join(scratchBase, 'nt-export-checks-'));
 try {
+  const build = path.join(root, 'build');
+  const repo = path.resolve(root, '../..');
+  // Mirror golden-import's repository/build guard without clearing its shared scratch store.
+  const inside = (child, parent) => {
+    const rel = path.relative(parent, child);
+    return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
+  };
+  const acceptsGoldenOutput = output => inside(output, build)
+    || (!inside(output, repo) && !inside(repo, output));
+  assert.equal(acceptsGoldenOutput(path.join(root, 'build-sanitize', 'fixture-gold')), false);
+  assert.equal(goldenOutputBase(path.join(build, 'nodetool-timeline')), build,
+    'Release golden output stays beside the binary');
+  for (const folder of ['build-sanitize', 'build-debug']) {
+    const base = goldenOutputBase(path.join(root, folder, 'nodetool-timeline'));
+    const output = path.join(base, 'nt-export-golden-guard', 'fixture-gold');
+    assert.ok(acceptsGoldenOutput(output), `${folder} golden output must pass golden-import's path guard: ${output}`);
+    assert.ok(inside(output, build), `${folder} golden output must be inside build/`);
+  }
+  const external = path.join(path.parse(repo).root, 'nt-export-external-build');
+  assert.equal(goldenOutputBase(path.join(external, 'nodetool-timeline')), external,
+    'External golden output stays beside the binary');
+  console.log('Golden output paths accepted: build-sanitize and build-debug use build/; build and external paths unchanged');
   const covered = [{ fixture: 'compared.json', frame: 0, psnr: Infinity }];
   assert.throws(() => requireFixtureCoverage(['compared.json', 'missing.json'], covered), /Missing fixture missing.json/);
   assert.throws(() => requireFixtureCoverage([], covered), /Expected no media fixtures/);

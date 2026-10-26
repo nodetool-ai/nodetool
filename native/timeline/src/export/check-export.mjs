@@ -11,6 +11,17 @@ export const bin = path.resolve(args.includes("--bin") ? args[args.indexOf("--bi
 // Work folders go next to the binary, in the build folder: /tmp is a tmpfs
 // with a per-user quota that other jobs on the machine share.
 export const scratchBase = path.dirname(bin);
+export function goldenOutputBase(binary) {
+  const base = path.dirname(path.resolve(binary));
+  const build = path.join(root, "build");
+  const inside = folder => {
+    const relative = path.relative(folder, base);
+    return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+  };
+  // golden-import permits only build/ within the repository.
+  return inside(build) || !inside(path.resolve(root, "../.."))
+    ? base : path.join(build, "golden");
+}
 export function run(program, argv, options = {}) {
   const result = spawnSync(program, argv, {
     encoding: "utf8", maxBuffer: 128 * 1024 * 1024, ...options
@@ -105,9 +116,15 @@ function golden() {
   // Each 1080p or 4K export is tens of megabytes, so each fixture's files are
   // removed once it is compared.
   const out = fs.mkdtempSync(path.join(scratchBase, "nt-export-golden-"));
+  let goldOut = out;
   const rows = [];
   const unmet = [];
   try {
+    const goldenBase = goldenOutputBase(bin);
+    if (goldenBase !== scratchBase) {
+      fs.mkdirSync(goldenBase, { recursive: true });
+      goldOut = fs.mkdtempSync(path.join(goldenBase, "nt-export-golden-"));
+    }
     for (const name of expected) {
       const fixture = path.join(root, "fixtures", name);
       const doc = JSON.parse(fs.readFileSync(fixture));
@@ -126,7 +143,7 @@ function golden() {
       }
       const movie = path.join(out, `${name}.mp4`);
       exportFile(fixture, movie);
-      const gold = path.join(out, `${name}-gold`);
+      const gold = path.join(goldOut, `${name}-gold`);
       const goldenResult = spawnSync("node", [path.join(root, "scripts/golden-import.mjs"), fixture,
         "--frames", frames.join(","), "--out", gold], { encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
       assert.equal(goldenResult.status, 0,
@@ -149,6 +166,9 @@ function golden() {
     console.log(`export_golden: PASS (${rows.length} frames; unmet fixtures: ${unmet.join(', ') || 'none'})`);
   } finally {
     fs.rmSync(out, { recursive: true, force: true });
+    if (goldOut !== out) {
+      fs.rmSync(goldOut, { recursive: true, force: true });
+    }
   }
 }
 if (process.argv[1] === fileURLToPath(import.meta.url)) golden();
