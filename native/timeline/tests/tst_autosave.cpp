@@ -733,10 +733,26 @@ private slots:
 
     // ── m5b F4: a save goes only to the expected server instance ──
 
+    void theExpectedServerInstanceSaves() {
+        m_http->setFile("/ready", ServedFile("{}"));
+        m_http->setInstanceSecret("mine");
+        m_http->setPost([](const QByteArray&, const QByteArray&) { return ok(QStringLiteral("u1")); });
+        SaveTarget target{m_http->base(), QString(), QStringLiteral("seq"), m_dir.path(), QString()};
+        target.expectedInstance = QStringLiteral("mine");
+        m_save = std::make_unique<AutosaveController>(target, m_undo.get(), [this]() { return rawDoc(m_value); }, QStringLiteral("u0"));
+        m_save->setAutosave(false);
+        m_undo->push(new Bump(&m_value));
+        const auto result = m_save->saveNow();
+        QVERIFY2(result.ok, qPrintable(result.error));
+        QCOMPARE(posts(), 1);
+        QCOMPARE(m_http->countRequests("GET", "/ready"), 1);
+        QVERIFY(!m_save->dirty());
+    }
+
     void aWrongServerInstanceIsNeverWritten() {
         ServedFile ready(QByteArray("{\"status\":\"ok\"}"));
         ready.status = 503;
-        ready.extraHeaders.insert("X-Nodetool-Instance", "someone-else");
+        m_http->setInstanceSecret("someone-else");
         m_http->setFile("/ready", ready);
         m_http->setPost([](const QByteArray&, const QByteArray&) { return ok(QStringLiteral("u1")); });
         SaveTarget t{m_http->base(), QString(), QStringLiteral("seq"), m_dir.path(), QString()};

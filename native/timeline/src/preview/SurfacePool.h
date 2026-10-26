@@ -6,7 +6,7 @@
 // frame. A target idle for kIdleFrames frames is freed, and so is a free
 // target whose size the last frame did not use (a canvas size change).
 //
-// Memory: the pool holds at most `budgetBytes` of targets (RGBA8, 4 bytes a
+// Memory: the pool aims for `budgetBytes` of targets (RGBA8, 4 bytes a
 // pixel; a 4K surface is about 31.6 MiB). A new target first evicts free
 // targets, the least recently used first. When the targets one frame uses
 // already exceed the budget, the pool still creates them (the picture stays
@@ -57,6 +57,7 @@ public:
             if (!s.inUse && s.size == size) {
                 s.inUse = true;
                 s.lastUsed = frame;
+                m_frameBytes += bytesFor(size);
                 return s.target.get();
             }
         }
@@ -66,7 +67,7 @@ public:
         if (!t) return nullptr;
         ++m_created;
         m_bytes += need;
-        if (m_bytes > m_budget) m_overBudget = true;  // this frame alone needs more
+        m_frameBytes += need;
         m_slots.push_back({std::move(t), size, frame, true});
         return m_slots.back().target.get();
     }
@@ -76,8 +77,8 @@ public:
     // use, and the least recently used ones over the budget, all only among
     // targets this frame did not use.
     void endFrame(long long frame, QSize frameSize) {
-        m_lastFrameOverBudget = m_overBudget;
-        m_overBudget = false;
+        m_lastFrameOverBudget = m_frameBytes > m_budget;
+        m_frameBytes = 0;
         for (auto it = m_slots.begin(); it != m_slots.end();) {
             it->inUse = false;
             const bool usedThisFrame = it->lastUsed >= frame;
@@ -97,6 +98,7 @@ public:
         m_freed += static_cast<long long>(m_slots.size());
         m_slots.clear();
         m_bytes = 0;
+        m_frameBytes = 0;
     }
 
     int size() const { return static_cast<int>(m_slots.size()); }
@@ -135,7 +137,7 @@ private:
     long long m_freed = 0;
     size_t m_budget;
     size_t m_bytes = 0;
-    bool m_overBudget = false;
+    size_t m_frameBytes = 0;
     bool m_lastFrameOverBudget = false;
 };
 
