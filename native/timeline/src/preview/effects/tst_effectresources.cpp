@@ -38,6 +38,36 @@ QByteArray key(int index) { return QCryptographicHash::hash(cube(index).toUtf8()
 class TestEffectResources : public QObject {
     Q_OBJECT
   private slots:
+    void adjustmentResources() {
+        QRhiNullInitParams init;
+        auto rhi = std::unique_ptr<QRhi>(QRhi::create(QRhi::Null, &init)); QVERIFY(rhi);
+        Target input, output; QVERIFY(input.create(rhi.get(), {64, 32})); QVERIFY(output.create(rhi.get(), {64, 32}));
+        RetireQueue retire;
+        QRhiCommandBuffer *commands = nullptr;
+        QCOMPARE(rhi->beginOffscreenFrame(&commands), QRhi::FrameOpSuccess);
+        const EffectContext context{rhi.get(), commands, 7, &retire};
+        LayerFrame frame; frame.format = LayerFrame::Format::Rgba8Premultiplied;
+        frame.size = {64, 32}; frame.planes[0] = input.texture.get(); frame.flipV = true;
+        auto treatment = std::make_unique<AdjustmentTreatment>();
+        SceneAdjustment adjustment;
+        adjustment.opacity = 0.5;
+        adjustment.wipe = scene::WipeMask{"up", 0.1, 0.4};
+        adjustment.ext = {{"adjustmentTreatment", true},
+            {"clipEffects", QJsonArray{QJsonObject{{"type", "color"}, {"enabled", true}, {"brightness", 0.3}},
+                QJsonObject{{"type", "blur"}, {"enabled", true}, {"radius", 10}}}},
+            {"shapeMask", QJsonObject{{"kind", "rect"}, {"width", 0.5}, {"height", 1}, {"invert", true}}}};
+        QVERIFY(!treatment->applies({})); QVERIFY(treatment->applies(adjustment.ext));
+        QVERIFY(treatment->render(context, frame, *output.target, adjustment));
+        const auto queued = retire.size(); QVERIFY(queued > 0);
+        adjustment.ext.insert("clipEffects", QJsonArray{QJsonObject{{"type", "lut"}, {"enabled", true}, {"cube", "invalid"}}});
+        QTest::ignoreMessage(QtWarningMsg, "Invalid .cube in clip effect");
+        QVERIFY(!treatment->render(context, frame, *output.target, adjustment));
+        QVERIFY(retire.size() > queued);
+        QCOMPARE(rhi->endOffscreenFrame(), QRhi::FrameOpSuccess);
+        treatment.reset();
+        retire.collect(8, 2); QVERIFY(!retire.empty());
+        retire.collect(9, 2); QVERIFY(retire.empty());
+    }
     void maskStageResources() {
         QRhiNullInitParams init;
         auto rhi=std::unique_ptr<QRhi>(QRhi::create(QRhi::Null,&init)); QVERIFY(rhi);

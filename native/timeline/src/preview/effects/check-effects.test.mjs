@@ -254,3 +254,28 @@ test("track video fixtures cover conversion, aggregation and group scope", () =>
     }
   }
 });
+
+
+test("adjustment fixtures cover masked accumulation and group isolation", () => {
+  const directory = fileURLToPath(new URL("./fixtures/", import.meta.url));
+  for (const name of ["adjustment-two-layers", "adjustment-group"]) {
+    const fixture = loadFixtures(directory, [name])[0];
+    assert.deepEqual(fixture.frames.map(item => item.frame), [6, 18]);
+    assert.ok(fixture.frames.every(item => item.criterion.includes("PSNR >= 40 dB")));
+    const doc = JSON.parse(fs.readFileSync(fixture.fixture, "utf8"));
+    const adjustment = doc.clips.find(clip => clip.mediaType === "adjustment");
+    assert.deepEqual(adjustment.effects.map(effect => effect.type), ["color", "blur"]);
+    assert.ok(adjustment.effects.every(effect => effect.enabled));
+    assert.ok(adjustment.opacity > 0 && adjustment.opacity < 1);
+    assert.ok(adjustment.mask.width < 1);
+    const pictures = doc.clips.filter(clip => clip.mediaType === "image");
+    assert.equal(pictures.length, 2);
+    assert.ok(pictures.every(clip => doc.tracks.find(t => t.id === clip.trackId).index >
+      doc.tracks.find(t => t.id === adjustment.trackId).index));
+    if (name === "adjustment-group") {
+      assert.ok(adjustment.parentId);
+      assert.equal(pictures.filter(clip => clip.parentId === adjustment.parentId).length, 1);
+      assert.equal(pictures.filter(clip => !clip.parentId).length, 1);
+    }
+  }
+});

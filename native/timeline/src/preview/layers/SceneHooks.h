@@ -18,11 +18,14 @@ struct SceneDecorationContext {
 };
 using ContextLayerDecorator = std::function<void(ActiveLayer&, const Clip&, const SceneDecorationContext&)>;
 using ContextGroupDecorator = std::function<void(PrecompositeLayer&, const Clip&, const SceneDecorationContext&)>;
+// Return true when the record has a treatment. No accepting hook means no record.
+using ContextAdjustmentDecorator = std::function<bool(SceneAdjustment&, const Clip&, const SceneDecorationContext&)>;
 using SourceTimeMapper = std::function<std::optional<double>(const Clip&, double)>;
 SceneHookToken registerLayerDecorator(LayerDecorator decorator);
 SceneHookToken registerGroupDecorator(GroupDecorator decorator);
 SceneHookToken registerContextLayerDecorator(ContextLayerDecorator decorator);
 SceneHookToken registerContextGroupDecorator(ContextGroupDecorator decorator);
+SceneHookToken registerContextAdjustmentDecorator(ContextAdjustmentDecorator decorator);
 SceneHookToken registerSceneTextMeasurer(scene::MeasureText measure);
 SceneHookToken registerSourceTimeMapper(SourceTimeMapper mapper);
 void unregisterSceneHook(SceneHookToken token);

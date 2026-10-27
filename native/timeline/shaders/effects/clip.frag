@@ -206,6 +206,20 @@ void main() {
         fragColor=vec4(0,0,0,clamp(coverage,0,1)); return;
     }
     if (op==24) { fragColor=src*p[0].x; return; }
+    if (op==25) {
+        vec2 treatedUv=vec2(uv.x,p[1].y>0.5 ? 1-uv.y : uv.y);
+        vec4 treated=texture(second,treatedUv);
+        float coverage=p[0].x;
+        if (p[0].y>0.5) { coverage*=texture(third,uv).a; }
+        int edge=int(p[0].z+0.5);
+        if (edge!=0) {
+            float d=edge==2 ? 1-uv.x : edge==3 ? uv.y : edge==4 ? 1-uv.y : uv.x;
+            float softness=max(p[1].x,0.0001);
+            float e=p[0].w*(1+softness);
+            coverage*=1-smoothstep(e-softness,e,d);
+        }
+        fragColor=mix(src,treated,clamp(coverage,0,1)); return;
+    }
     if (op==0) {
         // Extract a crop and pad it, or copy its processed window back into
         // the input-sized output. sourceRect is in destination pixels for back-copy.

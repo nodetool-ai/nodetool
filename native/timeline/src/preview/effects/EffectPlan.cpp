@@ -1,6 +1,7 @@
 #include "preview/effects/ClipEffects.h"
 #include "preview/layers/SceneHooks.h"
 #include "render2d/Paint.h"
+#include "scene/ClipScene.h"
 #include <QRegularExpression>
 #include <algorithm>
 #include <bit>
@@ -8,6 +9,7 @@
 #include <limits>
 #include <numbers>
 #include <span>
+#include <unordered_map>
 
 namespace nt::effects {
 namespace {
@@ -422,6 +424,126 @@ void decorateEffects(QJsonObject &ext, const Clip &clip, const SceneDecorationCo
     }
     ext.insert("clipEffects", enabled);
 }
+namespace {
+QJsonValue interpolateStyle(const QJsonValue &from, const QJsonValue &to, double t, bool path) {
+    if (from.isDouble() && to.isDouble()) { return from.toDouble() + (to.toDouble() - from.toDouble()) * t; }
+    if (from.isString() && to.isString()) {
+        if (path) {
+            static const QRegularExpression token("[a-zA-Z]|[-+]?(?:\\d+(?:\\.\\d*)?|\\.\\d+)(?:[eE][-+]?\\d+)?");
+            const auto tokens = [&](const QString &value) {
+                QStringList result;
+                auto matches = token.globalMatch(value);
+                while (matches.hasNext()) { result.push_back(matches.next().captured()); }
+                return result;
+            };
+            const auto left = tokens(from.toString()), right = tokens(to.toString());
+            if (!left.isEmpty() && left.size() == right.size()) {
+                QStringList result;
+                for (qsizetype i = 0; i < left.size(); ++i) {
+                    if (left[i].size() == 1 && left[i][0].isLetter()) {
+                        if (left[i] != right[i] || left[i].toLower() == "a") { return t < 1 ? from : to; }
+                        result.push_back(left[i]);
+                    } else {
+                        bool validFrom = false, validTo = false;
+                        const double a = left[i].toDouble(&validFrom), b = right[i].toDouble(&validTo);
+                        if (!validFrom || !validTo || !std::isfinite(a + b)) { return t < 1 ? from : to; }
+                        result.push_back(QString::number(a + (b - a) * t, 'g', 17));
+                    }
+                }
+                return result.join(' ');
+            }
+        } else {
+            const auto a = render2d::cssColor(from.toString()), b = render2d::cssColor(to.toString());
+            if (a.isValid() && b.isValid()) {
+                QString result = "#";
+                for (const auto &[start, end] : {std::pair{a.redF(), b.redF()}, {a.greenF(), b.greenF()},
+                                                {a.blueF(), b.blueF()}, {a.alphaF(), b.alphaF()}}) {
+                    const int channel = std::clamp(int(std::floor((start + (end - start) * t) * 255 + 0.5)), 0, 255);
+                    result += QString::number(channel, 16).rightJustified(2, '0');
+                }
+                return result;
+            }
+        }
+    }
+    return t < 1 ? from : to;
+}
+}
+
+bool decorateAdjustment(SceneAdjustment &adjustment, const Clip &clip, const SceneDecorationContext &context) {
+    Clip animated = clip;
+    auto effects = clip.raw.value("effects").toArray();
+    auto mask = clip.raw.value("mask").toObject();
+    const auto definitions = scene::parseAnimations(clip.raw.value("animations").toArray());
+    const auto compiled = scene::compileAnimations(definitions, clip.durationMs,
+        {double(context.timeline.width), double(context.timeline.height)});
+    const double localMs = context.timeMs - clip.startMs;
+    std::unordered_map<std::string, const scene::CompiledAnimation *> byId;
+    for (const auto &animation : compiled) { byId[animation.id] = &animation; }
+    std::unordered_map<std::string, qsizetype> effectById;
+    for (qsizetype i = 0; i < effects.size(); ++i) {
+        effectById.emplace(effects[i].toObject().value("id").toString().toStdString(), i);
+    }
+    // Style tracks replace authored knobs before the additive animation channels.
+    for (const auto &value : clip.raw.value("animations").toArray()) {
+        const auto animation = value.toObject();
+        if (!animation.value("enabled").toBool(true)) { continue; }
+        const auto id = animation.value("id").toString().toStdString();
+        const auto found = byId.find(id);
+        if (found == byId.end()) { continue; }
+        const auto &window = *found->second;
+        auto progress = scene::animationProgressAt(window, localMs);
+        if (!progress && !window.loop && localMs > window.windowEndMs) { progress = 1; }
+        if (!progress) { continue; }
+        for (const auto &trackValue : animation.value("styleTracks").toArray()) {
+            const auto track = trackValue.toObject();
+            const auto parts = track.value("target").toString().split('.');
+            const auto frames = track.value("keyframes").toArray();
+            if (frames.isEmpty()) { continue; }
+            QJsonValue sampled = frames.last().toObject().value("value");
+            if (*progress <= frames.first().toObject().value("t").toDouble()) {
+                sampled = frames.first().toObject().value("value");
+            } else {
+                for (qsizetype i = 1; i < frames.size(); ++i) {
+                    const auto end = frames[i].toObject(), start = frames[i - 1].toObject();
+                    const double b = end.value("t").toDouble(), a = start.value("t").toDouble();
+                    if (*progress > b) { continue; }
+                    const double t = scene::ease(end.value("easing").toString("linear").toStdString(),
+                        b == a ? 1 : std::clamp((*progress - a) / (b - a), 0., 1.));
+                    const auto from = start.value("value"), to = end.value("value");
+                    sampled = interpolateStyle(from, to, t, track.value("target").toString().endsWith(".d"));
+                    break;
+                }
+            }
+            if (parts.size() == 2 && parts[0] == "mask" && !mask.isEmpty()) {
+                mask.insert(parts[1], sampled);
+            } else if (parts.size() == 3 && parts[0] == "effect") {
+                const auto foundEffect = effectById.find(parts[1].toStdString());
+                if (foundEffect == effectById.end()) { continue; }
+                auto effect = effects[foundEffect->second].toObject();
+                if (!effect.contains(parts[2])) { continue; }
+                effect.insert(parts[2], sampled);
+                effects[foundEffect->second] = effect;
+            }
+        }
+    }
+    const auto sample = scene::sampleAnimations(compiled, localMs, clipSourceMsAt(clip, context.timeMs));
+    if (sample.brightness != 0 || sample.saturation != 1 || sample.contrast != 1 || sample.hue != 0 ||
+        sample.temperature != 0 || sample.tint != 0) {
+        effects.append(QJsonObject{{"id", "anim-color"}, {"type", "color"}, {"enabled", true},
+            {"brightness", sample.brightness}, {"saturation", sample.saturation}, {"contrast", sample.contrast},
+            {"hue", sample.hue}, {"temperature", sample.temperature}, {"tint", sample.tint}});
+    }
+    if (sample.blur > 0) {
+        effects.append(QJsonObject{{"id", "anim-blur"}, {"type", "blur"}, {"enabled", true}, {"radius", sample.blur}});
+    }
+    animated.raw.insert("effects", effects);
+    decorateEffects(adjustment.ext, animated, context);
+    if (adjustment.ext.value("clipEffects").toArray().isEmpty()) { return false; }
+    adjustment.ext.insert("adjustmentTreatment", true);
+    if (!mask.isEmpty()) { adjustment.ext.insert("shapeMask", mask); }
+    return true;
+}
+
 void decorateTrackEffects(QJsonObject &ext, const Track *track) {
     QJsonArray converted;
     if (track) {

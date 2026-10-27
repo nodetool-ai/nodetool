@@ -77,7 +77,7 @@ class Encoder {
     }
     void retain(const std::shared_ptr<void> &lut) { m_resources->luts.push_back(lut); }
     bool draw(const LayerFrame &input, QRhiTextureRenderTarget &output, const Pass &pass, QSize logical,
-              QPoint logicalOrigin, QRhiTexture *other = nullptr, const QRect *copy = nullptr, QPoint readOrigin = {}) {
+              QPoint logicalOrigin, QRhiTexture *other = nullptr, const QRect *copy = nullptr, QPoint readOrigin = {}, QRhiTexture *third = nullptr) {
         auto draw = std::make_unique<Draw>();
         auto *rhi = m_ctx.rhi;
         draw->uniforms.reset(rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, sizeof(Uniforms)));
@@ -94,7 +94,7 @@ class Encoder {
                                                        m_resources->cache->sampler()),
              QRhiShaderResourceBinding::sampledTexture(2, QRhiShaderResourceBinding::FragmentStage,
                                                        other ? other : plane(1), m_resources->cache->sampler()),
-             QRhiShaderResourceBinding::sampledTexture(3, QRhiShaderResourceBinding::FragmentStage, plane(2),
+             QRhiShaderResourceBinding::sampledTexture(3, QRhiShaderResourceBinding::FragmentStage, third ? third : plane(2),
                                                        m_resources->cache->sampler())});
         if (!draw->bindings->create()) {
             return false;
@@ -416,5 +416,60 @@ bool ImageMatteStage::render(const EffectContext &ctx, const LayerFrame &layer, 
     strength.op = Op::ScaleOpacity;
     strength.params[0] = float(std::clamp(info.strength.value_or(1.), 0., 1.));
     return encoder.draw(current, output, strength, layer.size, {});
+}
+bool AdjustmentTreatment::applies(const QJsonObject &ext) const {
+    return ext.value("adjustmentTreatment").toBool();
+}
+bool AdjustmentTreatment::render(const EffectContext &ctx, const LayerFrame &input, QRhiTextureRenderTarget &output,
+                                  const SceneAdjustment &adjustment) {
+    if (!ctx.rhi || !ctx.commands || !ctx.retire || !input.planes[0] || input.size.isEmpty() ||
+        input.format != LayerFrame::Format::Rgba8Premultiplied || output.pixelSize() != input.size ||
+        !initializeMaskCache(ctx, m_cache)) {
+        return false;
+    }
+    Encoder encoder(ctx, m_cache);
+    auto ext = adjustment.ext;
+    // The accumulation already uses the chain's premultiplied convention.
+    ext.insert("effectGroupSurface", true);
+    ext.remove("effectSourceRect");
+    ext.remove("trackEffects");
+    const auto margin = m_chain.outset(ext, input.size);
+    auto *treatedTarget = encoder.surface(input.size + QSize(margin.left() + margin.right(), margin.top() + margin.bottom()));
+    if (!treatedTarget || !m_chain.render(ctx, input, *treatedTarget, ext)) { return false; }
+    auto treated = encoder.result(treatedTarget);
+    if (!margin.isNull()) {
+        auto *cropped = encoder.surface(input.size, treated.planes[0]);
+        const QRect destination(QPoint{}, input.size);
+        if (!cropped || !encoder.draw(treated, *cropped, {}, input.size, {}, nullptr, &destination,
+                                     {margin.left(), margin.top()})) {
+            return false;
+        }
+        treated = encoder.result(cropped);
+    }
+    std::shared_ptr<QRhiTexture> coverage;
+    const auto mask = ext.value("shapeMask").toObject();
+    if (!mask.isEmpty()) {
+        const auto image = m_rasterizer.rasterize(mask, input.size);
+        if (!image.isNull()) {
+            coverage.reset(ctx.rhi->newTexture(QRhiTexture::RGBA8, image.size()));
+            if (!coverage->create()) { return false; }
+            auto *updates = ctx.rhi->nextResourceUpdateBatch();
+            updates->uploadTexture(coverage.get(), image);
+            ctx.commands->resourceUpdate(updates);
+            encoder.retain(coverage);
+        }
+    }
+    Pass mix;
+    mix.op = Op::MixTreatment;
+    mix.params[0] = float(adjustment.opacity);
+    mix.params[1] = coverage ? 1.f : 0.f;
+    if (adjustment.wipe) {
+        const auto &wipe = *adjustment.wipe;
+        mix.params[2] = wipe.direction == "right" ? 2 : wipe.direction == "up" ? 3 : wipe.direction == "down" ? 4 : 1;
+        mix.params[3] = float(wipe.progress);
+        mix.params[4] = float(wipe.softness);
+    }
+    mix.params[5] = treated.flipV ? 1.f : 0.f;
+    return encoder.draw(input, output, mix, input.size, {}, treated.planes[0], nullptr, {}, coverage.get());
 }
 } // namespace nt::effects
