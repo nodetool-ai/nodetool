@@ -195,6 +195,7 @@ private slots:
             QCOMPARE(snapCalls, calls + 1);
             QCOMPARE(lastSnapRequest.excludedClipIds, QStringList{"c"});
             QCOMPARE(lastSnapRequest.gridDivision, QString("beat"));
+            QCOMPARE(lastSnapRequest.rulerMode, QString("time"));
             QCOMPARE(lastSnapRequest.document.value("name").toString(), QString("Fixture"));
         }
         else { QCOMPARE(snapCalls, calls); }

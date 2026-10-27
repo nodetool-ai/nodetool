@@ -299,6 +299,7 @@ std::vector<double> ClipGestureController::collectSnapCandidates(const IdSet& ex
     request.toMs = m_view ? m_view->clipWindowEndMs() : source.maxTimeMs;
     request.msPerPx = m_view ? m_view->msPerPx() : 10;
     request.gridDivision = m_view ? m_view->gridDivision() : QStringLiteral("beat");
+    request.rulerMode = m_view ? m_view->rulerMode() : QStringLiteral("time");
     request.excludedClipIds = QStringList(exclude.begin(), exclude.end());
     const auto extra = nt::wiring::extraSnapCandidates(request);
     candidates.insert(candidates.end(), extra.begin(), extra.end());

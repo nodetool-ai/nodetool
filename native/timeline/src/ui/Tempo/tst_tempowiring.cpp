@@ -155,7 +155,7 @@ private slots:
         QTest::newRow("midi-bar") << true << true << QString("bar") << true << false << true;
         QTest::newRow("bar-excludes-beat") << true << true << QString("bar") << false << false << false;
         QTest::newRow("video-time") << false << true << QString("beat") << false << false << false;
-        QTest::newRow("video-bars-blocked") << false << true << QString("beat") << false << true << true;
+        QTest::newRow("video-bars") << false << true << QString("beat") << false << true << true;
     }
     void snapDrag() {
         QFETCH(bool, midi);
@@ -187,10 +187,6 @@ private slots:
         QCOMPARE(model.undoStack()->count(), 1);
         QCOMPARE(clip("c").value("durationMs").toDouble(), 501.0);
         const double actual = clip("c").value("startMs").toDouble();
-        if (barsMode) {
-            QCOMPARE(actual, rawStart);
-            QEXPECT_FAIL("", "blocked: nt::wiring::SnapRequest carries no rulerMode (S3 seam)", Continue);
-        }
         QCOMPARE(actual, snapped ? line : rawStart);
         click("undoButton");
         QCOMPARE(doc(), before);

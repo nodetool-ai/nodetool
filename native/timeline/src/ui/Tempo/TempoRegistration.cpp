@@ -20,8 +20,7 @@ const bool snapRegistered = nt::wiring::registerSnapProvider(QStringLiteral("tem
         const bool hasMidiTrack = std::ranges::any_of(tracks, [](const QJsonValue& track) {
             return track.toObject().value("type") == "midi";
         });
-        // SnapRequest has no rulerMode, so bars-only snapping remains blocked at this seam.
-        if (!hasMidiTrack) { return {}; }
+        if (!hasMidiTrack && request.rulerMode != QStringLiteral("bars")) { return {}; }
         return nt::tempo::visibleTempoGrid({nt::tempo::json::tempo(request.document),
             request.gridDivision.toStdString(), request.fromMs, request.toMs});
     });
