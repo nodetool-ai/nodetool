@@ -80,7 +80,7 @@ class TestGizmo : public QObject {
     Q_OBJECT
 private slots:
     void qmlPanelDiscoversEditorAndFollowsMonitor() {
-        const auto panels = PanelRegistry().forSlot("overlay");
+        const auto panels = PanelRegistry().forSlot("preview");
         QVERIFY(std::any_of(panels.begin(), panels.end(), [](const auto& panel) {
             return panel.toMap().value("id") == "transformGizmo";
         }));

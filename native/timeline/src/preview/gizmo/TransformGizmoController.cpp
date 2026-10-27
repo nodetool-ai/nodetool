@@ -88,9 +88,11 @@ void TransformGizmoController::setSelection(const QStringList& value) {
     refresh();
 }
 void TransformGizmoController::discover() {
-    QQuickItem* root = parentItem();
-    while (root && (!root->property("timeline").value<TimelineModel*>() || !root->property("clock").value<PlaybackClock*>())) {
-        root = root->parentItem();
+    QQuickItem* root = nullptr;
+    for (auto* item = parentItem(); item; item = item->parentItem()) {
+        if (item->property("timeline").value<TimelineModel*>() && item->property("clock").value<PlaybackClock*>()) {
+            root = item;
+        }
     }
     if (!root) { return; }
     setTimeline(root->property("timeline").value<TimelineModel*>());
@@ -271,7 +273,11 @@ QString TransformGizmoController::targetAt(QPointF point) const {
     if (QLineF(point, m_box.handle("rotate")).length() <= rotationRadius) { return "rotate"; }
     return polygon(m_box).containsPoint(point, Qt::OddEvenFill) ? QStringLiteral("body") : QString();
 }
-bool TransformGizmoController::contains(const QPointF& point) const { return !targetAt(point - m_origin).isEmpty(); }
+bool TransformGizmoController::contains(const QPointF& point) const {
+    const auto local = point - m_origin;
+    if (m_monitor && !QRectF(QPointF(), m_frame).contains(local)) { return false; }
+    return !targetAt(local).isEmpty();
+}
 void TransformGizmoController::paint(QPainter* painter) {
     if (!m_available) { return; }
     painter->setRenderHint(QPainter::Antialiasing);

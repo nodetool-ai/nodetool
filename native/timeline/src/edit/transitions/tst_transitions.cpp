@@ -1,4 +1,5 @@
 #include "app/EditRegistry.h"
+#include "wiring/WiringFixture.h"
 #include "model/TimelineJson.h"
 #include "edit/ClipGestureController.h"
 #include "playback/PlaybackClock.h"
@@ -12,6 +13,7 @@
 #include <QQmlPropertyMap>
 #include <QQuickItem>
 #include <QQuickWindow>
+#include <QtQuickTest/quicktest.h>
 #include <QtTest>
 #include <cstdio>
 #include <memory>
@@ -48,9 +50,10 @@ bool textSignal(QObject* item, const char* signal, const QString& value) {
     return item && QMetaObject::invokeMethod(item, signal, Q_ARG(QString, value));
 }
 }
-class TestTransitions : public QObject {
+class TestTransitions : public WiringFixture {
     Q_OBJECT
 private slots:
+    void cleanup() { view.reset(); }
     void init() { QTest::failOnWarning(QRegularExpression(".*Binding loop.*")); }
     void panelSelection() {
         TimelineModel model; load(model, fixture()); PlaybackClock clock;
@@ -163,6 +166,84 @@ private slots:
             QVERIFY(hint->property("visible").toBool());
         }
     }
+    void productionGrip_data() {
+        QTest::addColumn<bool>("finite");
+        QTest::newRow("B33-grip") << false;
+        QTest::newRow("B29-probed-last-frame") << true;
+    }
+    void productionGrip() {
+        QFETCH(bool, finite);
+        open();
+        QVERIFY(gestures());
+        QTemporaryDir media;
+        QVERIFY(media.isValid());
+        auto fixture = doc();
+        auto outgoing = clip("c");
+        outgoing.insert("startMs", 0); outgoing.insert("durationMs", 4000);
+        outgoing.insert("inPointMs", 0); outgoing.insert("outPointMs", 4000);
+        if (finite) {
+            const auto path = media.filePath("four-seconds.mp4");
+            QProcess ffmpeg;
+            ffmpeg.start("ffmpeg", {"-v", "error", "-f", "lavfi", "-i", "color=s=16x16:r=30:d=4", "-an", "-c:v", "mpeg4", path});
+            QVERIFY(ffmpeg.waitForFinished(30000)); QCOMPARE(ffmpeg.exitCode(), 0);
+            outgoing.insert("mediaType", "video"); outgoing.insert("mediaPath", path);
+            outgoing.insert("versions", QJsonArray{});
+        }
+        auto incoming = clip("d"); incoming.insert("startMs", 4000); incoming.insert("durationMs", 2000);
+        incoming.insert("transitionIn", QJsonObject{{"type", "crossfade"}, {"durationMs", 500}});
+        fixture.insert("clips", QJsonArray{outgoing, incoming});
+        auto parsed = nt::parseTimelineJson(QJsonDocument(fixture).toJson()); QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        if (finite) { QTRY_COMPARE(gestures()->sourceCapMs("c"), 4000.0); }
+        QCoreApplication::processEvents();
+        auto* grip = item("clip-transition-handle-d");
+        QVERIFY2(grip, "B33: production transition wedge needs its Transition length grip");
+        QCOMPARE(grip->property("label").toString(), QString("Transition length"));
+        const auto before = doc(); const auto from = center(grip); const auto to = from + QPoint(50, 0);
+        QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, from);
+        QTest::mouseMove(view.get(), from + QPoint(25, 0), 20);
+        QTest::mouseMove(view.get(), to, 20);
+        QCOMPARE(model.undoStack()->count(), 0);
+        QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, to);
+        QCOMPARE(clip("d")["transitionIn"].toObject()["durationMs"].toDouble(), 1000.0);
+        QCOMPARE(clip("c")["outPointMs"].toDouble(), finite ? 4000.0 : 5000.0);
+        QCOMPARE(clip("c")["durationMs"].toDouble(), finite ? 4000.0 : 5000.0);
+        auto expected = before;
+        auto nextIn = incoming; nextIn.insert("transitionIn", QJsonObject{{"type", "crossfade"}, {"durationMs", 1000}});
+        auto nextOut = outgoing;
+        if (!finite) { nextOut.insert("durationMs", 5000); nextOut.insert("outPointMs", 5000); }
+        expected.insert("clips", QJsonArray{nextOut, nextIn});
+        QCOMPARE(doc(), expected); QCOMPARE(model.undoStack()->count(), 1);
+        click("undoButton"); QCOMPARE(doc(), before);
+        view.reset();
+    }
+    void productionSoftnessPointer() {
+        open();
+        QVERIFY(gestures());
+        auto fixture = doc(); auto clips = fixture["clips"].toArray();
+        auto incoming = clips[0].toObject();
+        incoming.insert("transitionIn", QJsonObject{{"type", "wipe"}, {"durationMs", 500}, {"softness", 0.1}});
+        clips[0] = incoming; fixture.insert("clips", clips);
+        auto parsed = nt::parseTimelineJson(QJsonDocument(fixture).toJson()); QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline)); QCoreApplication::processEvents();
+        click("clip-c"); QCoreApplication::processEvents();
+        // Selection reveals nested Inspector positioners whose geometry needs polish.
+        QVERIFY(QQuickTest::qWaitForPolish(view.get()));
+        auto* softness = item("transitionSoftness"); QVERIFY(softness);
+        QVERIFY2(softness->isVisible() && softness->mapToScene({0, 0}).y() < view->height(),
+            "Transition softness must be visible inside the production Inspector");
+        QQuickItem* slider = nullptr;
+        for (auto* child : softness->findChildren<QQuickItem*>()) {
+            if (child->property("from").isValid()) { slider = child; break; }
+        }
+        QVERIFY(slider); QVERIFY(slider->height() > 0);
+        const auto before = doc(); const auto count = model.undoStack()->count();
+        const auto from = center(slider);
+        drag(from, from + QPoint(30, 0));
+        QVERIFY(doc() != before); QCOMPARE(model.undoStack()->count(), count + 1);
+        click("undoButton"); QCOMPARE(doc(), before);
+        view.reset();
+    }
     void softnessPointer() {
         TimelineModel model; load(model, fixture());
         QVERIFY(model.applyEdit("setClipTransition", {{"clipId", "cut-b"}, {"mode", "wipe"}}));
@@ -179,7 +260,6 @@ private slots:
         }
         QVERIFY(slider);
         QCoreApplication::processEvents();
-        QEXPECT_FAIL("", "InspectorSliderRow.qml gives its Slider zero height (shared primitive, not owned by D4)", Abort);
         QVERIFY2(slider->height() > 0, "InspectorSliderRow.qml gives its Slider height 0, so it cannot receive a pointer drag");
         const auto start = slider->mapToScene(QPointF(slider->width() * 0.2, slider->height() / 2)).toPoint();
         QTest::mousePress(&window, Qt::LeftButton, Qt::NoModifier, start);
@@ -240,7 +320,7 @@ private slots:
         for (const auto& mode : {"push", "slide", "zoom", "crossfade", "none", "auto"}) {
             action([&] { return textSignal(control(root.get(), "transitionType"), "change", QString::fromLatin1(mode)); });
         }
-        QVERIFY(!clip(model).contains("transitionIn"));
+        QVERIFY(!::clip(model).contains("transitionIn"));
         gestures->insert("selection", QVariantList{}); QCoreApplication::processEvents();
         QCOMPARE(root->property("implicitHeight").toDouble(), 0.0);
         auto audio = fixture(); auto clips = audio.value("clips").toArray(); auto c = clips[1].toObject();

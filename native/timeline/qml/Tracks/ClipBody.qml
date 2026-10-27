@@ -3,15 +3,19 @@
 // (type dot, name, duration), the fade ramps, the incoming transition wedge,
 // the trim grips and the lock badge, and the clip pictures (M2b): the
 // filmstrip of a video, the picture of an image, the waveform of an audio
-// clip. Pure presentation: Clip passes every value in. The keyframe and
-// status layers are not drawn yet.
+// clip. Clip passes the values and edit context into its child controls. The
+// status layer is not drawn yet.
 pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Shapes
+import QtQuick.Controls
 import NodeTool.Timeline
 
 Item {
     id: body
+    property var clipData: ({})
+    property TimelineModel timeline: null
+    property ClipGestureController gestures: null
     property string name
     property string mediaType: "video"
     property double durationMs: 0
@@ -113,6 +117,64 @@ Item {
         }
     }
 
+    Loader {
+        active: body.mediaType === "group"
+        anchors.fill: parent
+        sourceComponent: Item {
+            GroupBracket {
+                id: groupBracket
+                objectName: "groupBracket-" + clipId
+                clipId: body.clipData.id ?? ""
+                startMs: body.clipData.startMs ?? 0
+                durationMs: body.durationMs
+                widthPx: body.width
+                property var span: body.gestures ? body.gestures.groupSpan(clipId) : ({})
+                spanStartMs: span.startMs ?? null
+                spanEndMs: span.endMs ?? null
+                Connections {
+                    target: body.timeline
+                    function onClipsChanged() { groupBracket.span = body.gestures.groupSpan(groupBracket.clipId) }
+                }
+            }
+        }
+    }
+
+    Loader {
+        active: (body.clipData.animations || []).length > 0
+        anchors.fill: parent
+        z: 3
+        sourceComponent: Item {
+            ClipInspectorController {
+                id: keyframeEdits
+                timeline: body.timeline
+                clock: body.gestures ? body.gestures.clock : null
+                clipId: body.clipData.id ?? ""
+            }
+            KeyframeClipDiamonds {
+                id: keyframeDiamonds
+                function playheadPassthrough(point) {
+                    return keyframeDiamonds.childAt(point.x, point.y) !== null
+                }
+                anchors.fill: parent
+                clipId: body.clipData.id ?? ""
+                durationMs: body.durationMs
+                msPerPx: body.msPerPx
+                timesMs: keyframeEdits.clip.animations ? keyframeEdits.rowState("").times : []
+                locked: body.locked
+                formatTime: ms => TimelineFormat.clipDuration(ms)
+                onSeek: relativeMs => keyframeEdits.seek(relativeMs)
+                onMove: (fromMs, toMs) => {
+                    const frameMs = 1000 / Math.max(1, body.timeline.fps)
+                    const startMs = body.clipData.startMs ?? 0
+                    const absoluteMs = Math.round((startMs + toMs) / frameMs) * frameMs
+                    const relativeMs = Math.max(0, Math.min(body.durationMs, absoluteMs - startMs))
+                    keyframeEdits.write({action: "move", fromMs, toMs: relativeMs})
+                    keyframeEdits.seek(relativeMs)
+                }
+            }
+        }
+    }
+
     // Fade ramps: the shaded part is the signal the fade removes.
     // Loaders: most clips have no fade, transition or lock, and the delegate
     // is created on every scroll that brings a clip into the window.
@@ -187,6 +249,41 @@ Item {
                 width: 1
                 height: parent.height
                 color: body.accent
+            }
+            TransitionController { id: transitionEdits; model: body.timeline }
+            MouseArea {
+                id: transitionGrip
+                objectName: "clip-transition-handle-" + (body.clipData.id ?? "")
+                readonly property string label: "Transition length"
+                property real startX: 0
+                property real startMs: 0
+                property real wantedMs: 0
+                x: parent.width - width + 3
+                width: 8
+                height: parent.height
+                z: 3
+                enabled: !body.locked
+                preventStealing: true
+                hoverEnabled: true
+                cursorShape: Qt.SizeHorCursor
+                Accessible.role: Accessible.Slider
+                Accessible.name: label
+                ToolTip.visible: containsMouse
+                ToolTip.text: label
+                onPressed: mouse => {
+                    startX = mapToItem(body, mouse.x, mouse.y).x
+                    startMs = body.transitionMs
+                    wantedMs = startMs
+                    transitionEdits.beginGesture("setTransitionDuration", {clipId: body.clipData.id, durationMs: startMs})
+                }
+                onPositionChanged: mouse => {
+                    if (!pressed) return
+                    const dx = mapToItem(body, mouse.x, mouse.y).x - startX
+                    wantedMs = Math.max(Math.round(1000 / Math.max(1, body.timeline.fps)), Math.round(startMs + dx * body.msPerPx))
+                    transitionEdits.preview({durationMs: wantedMs})
+                }
+                onReleased: transitionEdits.commit("setTransitionDuration", {durationMs: wantedMs})
+                onCanceled: transitionEdits.commit("setTransitionDuration", {durationMs: wantedMs})
             }
             Text {
                 visible: body.transitionPx >= 48       // TRANSITION_LABEL_MIN_PX
@@ -268,6 +365,14 @@ Item {
             color: Theme.textPrimary
             opacity: 0.85
         }
+    }
+
+    SlotItems {
+        anchors.fill: parent
+        slot: "clipBody"
+        overlay: true
+        slotProperties: ({ clip: body.clipData, timeline: body.timeline,
+                           gestures: body.gestures, viewState: body.viewState })
     }
 
     // The border on top: 1 px tint, or 1.5 px secondary when selected.

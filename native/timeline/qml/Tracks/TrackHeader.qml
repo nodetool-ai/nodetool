@@ -1,8 +1,7 @@
 // Mirrors web/src/components/timeline/Tracks/TrackHeader.tsx: the left strip
 // of a track row. Top row: reorder grip, type glyph, name, index chip (V1,
 // A1). Bottom row: the visibility, lock, sync-lock, mute, solo, effects,
-// automation and delete buttons. The buttons draw their states; the edits
-// behind them arrive with M4.
+// automation and delete buttons.
 import QtQuick
 import NodeTool.Timeline
 
@@ -17,6 +16,14 @@ Rectangle {
     required property bool solo
     required property int typedIndex
     required property double rowHeight
+    property TimelineModel timeline: null
+    property ClipGestureController gestures: null
+    property TimelineViewState viewState: null
+    signal deleteRequested()
+    signal resizeStepRequested(real heightPx)
+    readonly property alias resizeHandle: resizeHandle
+    readonly property bool targeted: !TrackTargeting.untargetedTrackIds.includes(trackId)
+    readonly property bool syncLocked: !TrackTargeting.syncLockOffTrackIds.includes(trackId)
 
     readonly property bool isSoundTrack: trackType === "audio" || trackType === "midi"
     readonly property color accent: Theme.trackAccent(trackType)
@@ -37,12 +44,20 @@ Rectangle {
         // The reorder grip: 16 px wide, pulled 6 px left and 2 px right.
         Icon {
             id: grip
+            objectName: "trackGrip-" + header.trackId
             x: -Theme.spacingSm
             anchors.verticalCenter: parent.verticalCenter
             path: Icons.dragIndicator
             size: 16
             color: gripHover.hovered ? Theme.textSecondary : Theme.textDisabled
             HoverHandler { id: gripHover; cursorShape: Qt.OpenHandCursor }
+            MouseArea {
+                anchors.fill: parent
+                onPressed: mouse => {
+                    const p = mapToItem(null, mouse.x, mouse.y)
+                    if (header.gestures) { header.gestures.pressTrack(header.trackId, "reorder", p.x, p.y) }
+                }
+            }
         }
         Rectangle {
             id: glyph
@@ -78,25 +93,28 @@ Rectangle {
         // targeted unless the person turned it off.
         Rectangle {
             id: chip
+            objectName: "trackTarget-" + header.trackId
+            opacity: header.targeted ? 1 : 0.55
             x: nameText.x + nameText.width + Theme.spacingSm
             anchors.verticalCenter: parent.verticalCenter
             height: 18
             width: chipText.implicitWidth + 2 * Theme.spacingSm + 2
             radius: Theme.radiusSm
-            color: chipHover.hovered ? Theme.actionHover : Theme.actionSelected
+            color: chipHover.hovered ? Theme.actionHover : header.targeted ? Theme.actionSelected : "transparent"
             border.width: 1
-            border.color: Theme.primary
+            border.color: header.targeted ? Theme.primary : Theme.divider
             Text {
                 id: chipText
                 anchors.centerIn: parent
                 text: Theme.trackPrefix(header.trackType) + header.typedIndex
-                color: Theme.primary
+                color: header.targeted ? Theme.primary : Theme.textDisabled
                 font.family: Theme.monoFamily
                 font.pixelSize: Theme.fontSizeSmaller
                 font.weight: Font.DemiBold
                 font.letterSpacing: 0.04 * Theme.fontSizeSmaller
             }
             HoverHandler { id: chipHover; cursorShape: Qt.PointingHandCursor }
+            TapHandler { onTapped: TrackTargeting.setTrackTargeted(header.trackId, !header.targeted) }
         }
     }
 
@@ -109,28 +127,38 @@ Rectangle {
         spacing: Theme.spacingMicro
 
         TrackIconButton {
+            objectName: "track-visible-" + header.trackId
             visible: header.trackType !== "midi"
             icon: header.trackVisible ? Icons.visibility : Icons.visibilityOff
             tone: header.trackVisible ? "idle" : "warning"
+            onClicked: if (header.timeline) { header.timeline.applyEdit("setTrackVisible", {trackId: header.trackId, visible: !header.trackVisible}) }
         }
         TrackIconButton {
+            objectName: "track-locked-" + header.trackId
             icon: header.locked ? Icons.lock : Icons.lockOpen
             tone: header.locked ? "warning" : "idle"
+            onClicked: if (header.timeline) { header.timeline.applyEdit("setTrackLocked", {trackId: header.trackId, locked: !header.locked}) }
         }
         TrackIconButton {
+            objectName: "trackSync-" + header.trackId
             visible: header.trackType !== "chord"
-            icon: Icons.sync
-            tone: "idle"
+            icon: header.syncLocked ? Icons.sync : Icons.syncDisabled
+            tone: header.syncLocked ? "idle" : "warning"
+            onClicked: TrackTargeting.setTrackSyncLocked(header.trackId, !header.syncLocked)
         }
         TrackIconButton {
+            objectName: "track-muted-" + header.trackId
             visible: header.isSoundTrack
             icon: header.muted ? Icons.volumeOffOutlined : Icons.volumeUpOutlined
             tone: header.muted ? "warning" : "idle"
+            onClicked: if (header.timeline) { header.timeline.applyEdit("setTrackMuted", {trackId: header.trackId, muted: !header.muted}) }
         }
         TrackIconButton {
+            objectName: "track-solo-" + header.trackId
             visible: header.isSoundTrack
             label: "S"
             tone: header.solo ? "success" : "idle"
+            onClicked: if (header.timeline) { header.timeline.applyEdit("setTrackSolo", {trackId: header.trackId, solo: !header.solo}) }
         }
         TrackIconButton {
             visible: header.isSoundTrack || header.trackType === "video"
@@ -143,8 +171,10 @@ Rectangle {
             tone: "dim"
         }
         TrackIconButton {
+            objectName: "track-delete-" + header.trackId
             icon: Icons.deleteOutline
             tone: "idle"
+            onClicked: header.deleteRequested()
         }
     }
 
@@ -154,5 +184,26 @@ Rectangle {
         width: parent.width
         height: 1
         color: Theme.divider
+    }
+    MouseArea {
+        id: resizeHandle
+        objectName: "trackResize-" + header.trackId
+        anchors.bottom: parent.bottom
+        width: parent.width
+        height: 6
+        cursorShape: Qt.SizeVerCursor
+        onPressed: mouse => {
+            forceActiveFocus()
+            const p = mapToItem(null, mouse.x, mouse.y)
+            if (header.gestures) { header.gestures.pressTrack(header.trackId, "resize", p.x, p.y) }
+        }
+        Keys.onPressed: event => {
+            if (event.key !== Qt.Key_Up && event.key !== Qt.Key_Down) { return }
+            const step = event.modifiers & Qt.ShiftModifier ? 32 : 8
+            const authored = header.rowHeight / (header.viewState ? header.viewState.verticalZoom : 1)
+            const next = Math.max(48, Math.min(300, authored + (event.key === Qt.Key_Down ? step : -step)))
+            event.accepted = true
+            header.resizeStepRequested(next)
+        }
     }
 }
