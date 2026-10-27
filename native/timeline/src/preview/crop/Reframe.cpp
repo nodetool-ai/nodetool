@@ -186,8 +186,14 @@ Affine affineForReframe(const QJsonObject& g) {
         parent = matrix;
     }
     const double rw = number(g, "sequenceWidth"), rh = number(g, "sequenceHeight");
-    const auto m =
-        buildTransformMatrix(transform, containBaseScale(sw, sh, fw, fh), rw != 0 ? rw : fw, rh != 0 ? rh : fh, parent);
+    auto m = buildTransformMatrix(transform, containBaseScale(sw, sh, fw, fh),
+                                  rw != 0 ? rw : fw, rh != 0 ? rh : fh, parent);
+    const auto evaluated = g.value("drawMatrix").toArray();
+    if (evaluated.size() == 16) {
+        for (qsizetype i = 0; i < 16; ++i) {
+            m[static_cast<size_t>(i)] = static_cast<float>(evaluated[i].toDouble());
+        }
+    }
     return {fw * m[0] / (sw != 0 ? sw : 1),
             -fh * m[1] / (sw != 0 ? sw : 1),
             -fw * m[4] / (sh != 0 ? sh : 1),

@@ -5,6 +5,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <utility>
+#include <algorithm>
 
 void ReframeController::setModel(TimelineModel* model) {
     if (m_model == model) {
@@ -85,3 +86,61 @@ double ReframeController::sourceMsAt(const QString& clipId, double timeMs) const
     return 0;
 }
 QJsonValue ReframeController::evaluate(const QJsonObject& request) const { return nt::reframe::evaluate(request); }
+
+QVariantMap ReframeController::previewState(const QStringList& selection, double timeMs) const {
+    if (!m_model || selection.size() != 1) {
+        return {};
+    }
+    const auto& timeline = m_model->timeline();
+    const auto id = selection.first().toStdString();
+    const auto clip = std::ranges::find(timeline.clips, id, &nt::Clip::id);
+    if (clip == timeline.clips.end() || !clip->raw.contains("reframe") ||
+        (clip->mediaType != nt::MediaType::Video && clip->mediaType != nt::MediaType::Image &&
+         clip->raw.value("mediaType") != "overlay")) {
+        return {};
+    }
+    const auto plan = nt::buildFramePlan(timeline, timeMs);
+    const auto found = std::ranges::find_if(plan.layers, [&](const auto& layer) { return layer.layer.clipId == id; });
+    if (found == plan.layers.end()) {
+        return {};
+    }
+    const auto doc = QJsonDocument::fromJson(m_model->documentJson()).object();
+    QJsonObject track;
+    for (const auto& value : doc.value("mediaTracks").toArray()) {
+        if (value.toObject().value("id") == clip->raw.value("reframe").toObject().value("trackId")) {
+            track = value.toObject();
+            break;
+        }
+    }
+    const auto reframe = nt::reframe::renderableReframe(clip->raw, track).toObject();
+    const auto sampled = nt::reframe::sampleReframeAt(reframe, found->layer.sourceTimeMs, track);
+    auto layer = found->layer;
+    layer.sourceWidth = reframe.value("sourceWidth").toInt(layer.sourceWidth);
+    layer.sourceHeight = reframe.value("sourceHeight").toInt(layer.sourceHeight);
+    if (layer.sourceWidth <= 0 || layer.sourceHeight <= 0) {
+        return {};
+    }
+    const auto resolved = nt::reframe::resolveReframeCrop(reframe, layer.sourceTimeMs,
+        {{"width", layer.sourceWidth}, {"height", layer.sourceHeight}},
+        {{"width", timeline.width}, {"height", timeline.height}}, track);
+    const auto crop = resolved.isObject() ? resolved.toObject() : clip->raw.value("crop").toObject();
+    const auto rect = nt::reframe::cropRectPx(crop, layer.sourceWidth, layer.sourceHeight);
+    layer.sourceRect = {static_cast<float>(rect["x"].toDouble() / layer.sourceWidth),
+                        static_cast<float>(rect["y"].toDouble() / layer.sourceHeight),
+                        static_cast<float>(rect["width"].toDouble() / layer.sourceWidth),
+                        static_cast<float>(rect["height"].toDouble() / layer.sourceHeight)};
+    const auto [width, height] = nt::croppedSourceSize(layer.sourceRect, layer.sourceWidth, layer.sourceHeight);
+    const auto matrix = nt::layerDrawMatrix(layer, width, height, timeline.width, timeline.height);
+    QJsonArray values;
+    for (const auto value : matrix) {
+        values.append(value);
+    }
+    return QJsonObject{{"clipId", selection.first()}, {"sourceMs", layer.sourceTimeMs},
+        {"x", sampled["x"]}, {"y", sampled["y"]}, {"zoom", sampled["zoom"]},
+        {"crop", QJsonObject{{"left", rect["x"].toDouble() / layer.sourceWidth},
+                             {"top", rect["y"].toDouble() / layer.sourceHeight},
+                             {"right", 1 - (rect["x"].toDouble() + width) / layer.sourceWidth},
+                             {"bottom", 1 - (rect["y"].toDouble() + height) / layer.sourceHeight}}},
+        {"drawMatrix", values}, {"sourceWidth", layer.sourceWidth}, {"sourceHeight", layer.sourceHeight},
+        {"sequenceWidth", timeline.width}, {"sequenceHeight", timeline.height}}.toVariantMap();
+}
