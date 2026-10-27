@@ -221,6 +221,45 @@ private slots:
         QCOMPARE(dialog->property("timeline").value<TimelineModel*>(), &model);
         QCOMPARE(dialog->property("widthText").toString(), QString("640"));
     }
+    void settingsOpenFromKeyboard() {
+        TimelineModel model;
+        load(model);
+        PlaybackClock clock;
+        clock.setDurationMs(6000);
+        QSignalSpy playingChanged(&clock, &PlaybackClock::playingChanged);
+        QVERIFY(playingChanged.isValid());
+        QQmlEngine engine;
+        auto editor = make(engine, "TimelineEditor", {{"timeline", QVariant::fromValue(&model)},
+            {"clock", QVariant::fromValue(&clock)}});
+        QVERIFY2(editor, "TimelineEditor must load");
+        QQuickWindow window;
+        show(window, editor.get(), 1280, 800);
+        auto* bar = item(editor.get(), "documentBar");
+        QVERIFY(bar);
+        QTRY_VERIFY(item(bar, "projectSettingsButton"));
+        auto* button = item(bar, "projectSettingsButton");
+        auto* dialog = item(bar, "ProjectSettingsDialog");
+        QVERIFY(dialog);
+        QVERIFY(!dialog->property("opened").toBool());
+        QQmlExpression accessible(QQmlEngine::contextForObject(button), button,
+            "Accessible.role === Accessible.Button && Accessible.name === 'Project settings'");
+        QVERIFY(accessible.evaluate().toBool());
+        QVERIFY(button->activeFocusOnTab());
+        qobject_cast<QQuickItem*>(editor.get())->forceActiveFocus();
+        for (int attempt = 0; attempt < 64 && !button->hasActiveFocus(); ++attempt) {
+            QTest::keyClick(&window, Qt::Key_Tab);
+        }
+        QVERIFY2(button->hasActiveFocus(), "Tab navigation must reach Project settings");
+        for (const auto key : {Qt::Key_Return, Qt::Key_Space, Qt::Key_Enter}) {
+            QTest::keyClick(&window, key);
+            QTRY_VERIFY(dialog->property("opened").toBool());
+            QVERIFY(!clock.playing());
+            QCOMPARE(playingChanged.count(), 0);
+            QTest::keyClick(&window, Qt::Key_Escape);
+            QTRY_VERIFY(!dialog->property("opened").toBool());
+            QTRY_VERIFY(button->hasActiveFocus());
+        }
+    }
     void settingsKeepsEditorShortcuts() {
         TimelineModel model;
         auto parsed = nt::parseTimelineJson(R"({"name":"Fixture","fps":30,"width":640,"height":360,"durationMs":6000,
