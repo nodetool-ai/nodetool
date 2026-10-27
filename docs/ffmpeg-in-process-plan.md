@@ -289,7 +289,7 @@ Steps 5–8:
 | 7 | browser render path (`browserRender.ts` transcode, `browserSources.ts` VP9 conversion) | `transcodeVideo` |
 | 8 | the `ffmpeg` runtime package, `requiredRuntimes`, `runtime-detection.ts`, the SDK probe, the web labels, the CI `extra-apt` lines | removed; the SDK probe reports ffmpeg and ffprobe as built in |
 
-No source file spawns `ffmpeg` or `ffprobe`, and no test does either. yt-dlp still runs FFmpeg to merge formats, so the yt-dlp conda package now installs `ffmpeg` and the Docker image keeps its apt line.
+No source file spawns `ffmpeg` or `ffprobe`, and no test does either. yt-dlp never merges formats: the YouTube Downloader node and the `yt_dlp` capability split a selector on its top-level `+` with `splitYtDlpFormat`, download each side with its own yt-dlp call, and join the two files with `muxStreamCopy`. Neither the yt-dlp conda package nor the Docker image installs ffmpeg.
 
 Bugs found while porting:
 

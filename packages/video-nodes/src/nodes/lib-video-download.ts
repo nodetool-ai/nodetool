@@ -4,6 +4,8 @@ import path from "node:path";
 import os from "node:os";
 import { spawn } from "node:child_process";
 import { isString } from "@nodetool-ai/node-sdk";
+import { DEFAULT_YT_DLP_FORMAT, splitYtDlpFormat } from "@nodetool-ai/runtime";
+import { muxStreamCopy, transformMedia } from "@nodetool-ai/runtime/media";
 
 type ExecResult = {
   stdout: string;
@@ -145,6 +147,26 @@ async function findFileByExt(
   return any ? path.join(dir, any) : null;
 }
 
+/**
+ * The file `--print after_move:filepath` named, which must lie in `dir`.
+ * Nothing printed on a clean exit means yt-dlp wrote no file.
+ */
+function printedFile(stdout: string, dir: string, selector: string): string {
+  const printed = stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .at(-1);
+  if (!printed) {
+    throw new Error(`yt-dlp wrote no file for format "${selector}"`);
+  }
+  const resolved = path.resolve(dir, printed);
+  if (path.dirname(resolved) !== path.resolve(dir)) {
+    throw new Error(`yt-dlp wrote ${printed}, outside its download directory`);
+  }
+  return resolved;
+}
+
 export class YtDlpDownloadLibNode extends BaseNode {
   static readonly nodeType = "lib.video.download.YtDlpDownload";
   static readonly title = "YouTube Downloader";
@@ -182,7 +204,8 @@ export class YtDlpDownloadLibNode extends BaseNode {
     type: "str",
     default: "best",
     title: "Format Selector",
-    description: "yt-dlp format selector (e.g., 'best', 'bestvideo+bestaudio')"
+    description:
+      "yt-dlp format selector (e.g., 'best', 'bestvideo+bestaudio'). Each side of a top-level '+' downloads on its own and the two are muxed without re-encoding. 'best' means 'bv*+ba/b'."
   })
   declare format_selector: string;
 
@@ -190,7 +213,8 @@ export class YtDlpDownloadLibNode extends BaseNode {
     type: "str",
     default: "auto",
     title: "Container",
-    description: "Output container format (e.g., 'mp4', 'webm', 'auto')"
+    description:
+      "Container for a muxed video and audio download: auto, mp4, mov, webm or mkv. Auto picks webm or mp4 when it holds both codecs, else mkv. A selector with no '+' keeps the downloaded file's own container."
   })
   declare container: string;
 
@@ -265,6 +289,15 @@ export class YtDlpDownloadLibNode extends BaseNode {
     const overwrite = Boolean(this.overwrite ?? false);
     const rateLimitKbps = Number(this.rate_limit_kbps ?? 0);
 
+    // Split before any network call, so a selector NodeTool cannot mux fails
+    // fast. Audio and metadata modes ignore it.
+    const components =
+      mode !== "audio" && mode !== "metadata"
+        ? splitYtDlpFormat(
+            formatSelector.trim() === "best" ? DEFAULT_YT_DLP_FORMAT : formatSelector
+          )
+        : [];
+
     // One deadline for the whole node run: the metadata probe and the
     // download share the budget instead of each getting the full timeout.
     const deadline = Date.now() + timeoutMs;
@@ -324,75 +357,98 @@ export class YtDlpDownloadLibNode extends BaseNode {
       };
 
       if (mode !== "metadata") {
-        const dlArgs = [
+        const baseArgs = [
           "--no-playlist",
           "--no-warnings",
           "--no-color",
           "--restrict-filenames",
+          // One file per format: a format selected twice is downloaded once.
           "-o",
-          path.join(tempDir, "%(id)s.%(ext)s")
+          path.join(tempDir, "%(id)s.f%(format_id)s.%(ext)s"),
+          "--print",
+          "after_move:filepath"
         ];
-
-        if (!overwrite) dlArgs.push("--no-overwrites");
+        if (!overwrite) baseArgs.push("--no-overwrites");
         if (rateLimitKbps > 0)
-          dlArgs.push("--limit-rate", `${Math.trunc(rateLimitKbps)}K`);
-        if (subtitles)
-          dlArgs.push(
-            "--write-subs",
-            "--write-auto-subs",
-            "--sub-langs",
-            subLangs,
-            "--sub-format",
-            "srt/vtt/ass/best"
-          );
-        if (thumbnail) dlArgs.push("--write-thumbnail");
+          baseArgs.push("--limit-rate", `${Math.trunc(rateLimitKbps)}K`);
+
+        // yt-dlp never merges or converts here: those run ffmpeg, which
+        // NodeTool does not ship. Each format is its own call, and the mux
+        // and the mp3 encode run in process.
+        let calls = 0;
+        const download = async (selector: string): Promise<string> => {
+          const args = [...baseArgs];
+          if (calls === 0 && subtitles)
+            args.push(
+              "--write-subs",
+              "--write-auto-subs",
+              "--sub-langs",
+              subLangs,
+              "--sub-format",
+              "srt/vtt/ass/best"
+            );
+          if (calls === 0 && thumbnail) args.push("--write-thumbnail");
+          calls += 1;
+          args.push("-f", selector, url);
+          const remainingMs = deadline - Date.now();
+          if (remainingMs <= 0) {
+            throw new Error(
+              `yt-dlp timed out after ${Math.round(timeoutMs / 1000)}s before downloading format "${selector}"`
+            );
+          }
+          const res = await runCommand("yt-dlp", args, remainingMs);
+          if (res.exitCode !== 0) {
+            throw new Error(`yt-dlp download failed: ${res.stderr || res.stdout}`);
+          }
+          return printedFile(res.stdout, tempDir, selector);
+        };
 
         if (mode === "audio") {
-          dlArgs.push("-f", "bestaudio/best", "-x", "--audio-format", "mp3");
+          const source = await download("bestaudio/best");
+          const mp3 = path.join(tempDir, "nodetool-audio.mp3");
+          try {
+            await transformMedia({
+              inputs: [{ filePath: source }],
+              outPath: mp3,
+              video: null,
+              audio: { filter: "aformat=channel_layouts=mono|stereo" },
+              audioCodec: "libmp3lame"
+            });
+          } catch (error) {
+            throw new Error(
+              `Could not convert the downloaded audio to mp3: ${
+                error instanceof Error ? error.message : String(error)
+              }`
+            );
+          }
+          output.audio = base64Ref(await fs.readFile(mp3), "audio");
         } else {
-          dlArgs.push(
-            "-f",
-            formatSelector === "best"
-              ? "bestvideo+bestaudio/best"
-              : formatSelector
-          );
-          if (container !== "auto")
-            dlArgs.push("--merge-output-format", container);
-        }
-        dlArgs.push(url);
-
-        const remainingMs = deadline - Date.now();
-        if (remainingMs <= 0) {
-          throw new Error(
-            `yt-dlp timed out after ${Math.round(timeoutMs / 1000)}s before the download started`
-          );
-        }
-        const dlRes = await runCommand("yt-dlp", dlArgs, remainingMs);
-        if (dlRes.exitCode !== 0) {
-          throw new Error(
-            `yt-dlp download failed: ${dlRes.stderr || dlRes.stdout}`
-          );
+          const files: string[] = [];
+          for (const component of components) files.push(await download(component));
+          let videoFile = files[0];
+          if (files.length === 2) {
+            try {
+              videoFile = (
+                await muxStreamCopy({
+                  videoPath: files[0],
+                  audioPath: files[1],
+                  outStem: path.join(tempDir, "nodetool-muxed"),
+                  container
+                })
+              ).outPath;
+            } catch (error) {
+              throw new Error(
+                `Format "${components[0]}" (${path.basename(files[0])}) and format ` +
+                  `"${components[1]}" (${path.basename(files[1])}) could not be muxed: ${
+                    error instanceof Error ? error.message : String(error)
+                  }`
+              );
+            }
+          }
+          output.video = base64Ref(await fs.readFile(videoFile), "video");
         }
 
         const mediaId = isString(parsedInfo.id) ? parsedInfo.id : "";
-        if (mode === "audio") {
-          const audioFile = await findFileByExt(
-            tempDir,
-            ["mp3", "m4a", "opus", "ogg", "wav", "webm"],
-            mediaId
-          );
-          if (audioFile)
-            output.audio = base64Ref(await fs.readFile(audioFile), "audio");
-        } else {
-          const videoFile = await findFileByExt(
-            tempDir,
-            ["mp4", "webm", "mkv", "avi", "mov", "flv"],
-            mediaId
-          );
-          if (videoFile)
-            output.video = base64Ref(await fs.readFile(videoFile), "video");
-        }
-
         if (subtitles) {
           const subFile = await findFileByExt(
             tempDir,

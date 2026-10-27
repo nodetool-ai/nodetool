@@ -924,7 +924,10 @@ export const YT_DLP_SCHEMA: JsonSchema = {
     },
     format: {
       type: "string" as const,
-      description: "Optional yt-dlp format selector (the -f value)."
+      description:
+        "Optional yt-dlp format selector (the -f value). Default bv*+ba/b. " +
+        "Each side of a top-level + downloads on its own and the two are " +
+        "muxed without re-encoding; a + inside parentheses is refused."
     },
     timeout_seconds: {
       type: "number" as const,
@@ -939,8 +942,8 @@ export const ytDlpSpec: CapabilitySpec = {
   description:
     "Download a video with yt-dlp into the workspace. Requires a public " +
     "http(s) URL — internal and loopback addresses are refused — and writes " +
-    "only inside the workspace, up to 2 GiB. Install yt-dlp (and ffmpeg for " +
-    "merge/transcode) if the binary is missing. Returns the output path and " +
+    "only inside the workspace, up to 2 GiB per format. Install yt-dlp if " +
+    "the binary is missing; no ffmpeg is needed. Returns the output path and " +
     "an asset handle when possible.",
   inputSchema: YT_DLP_SCHEMA,
   category: "external",

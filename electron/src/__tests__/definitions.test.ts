@@ -6,7 +6,7 @@ describe("RUNTIME_PACKAGES", () => {
     const ids = Object.keys(RUNTIME_PACKAGES);
     expect(ids).toContain("python");
     expect(ids).toContain("nodejs");
-    // libav runs in process; ffmpeg ships only as yt-dlp's merger.
+    // libav runs in process, and yt-dlp's formats are muxed there too.
     expect(ids).not.toContain("ffmpeg");
     expect(ids).toContain("transformers-js");
   });
@@ -66,8 +66,8 @@ describe("RUNTIME_PACKAGES", () => {
       expect(RUNTIME_PACKAGES.python.versionRange).toBe(">=3.11 <3.12");
     });
 
-    it("yt-dlp brings the ffmpeg it merges formats with", () => {
-      expect(RUNTIME_PACKAGES["yt-dlp"].condaPackages).toEqual(["yt-dlp", "ffmpeg"]);
+    it("yt-dlp installs without ffmpeg, since formats are muxed in process", () => {
+      expect(RUNTIME_PACKAGES["yt-dlp"].condaPackages).toEqual(["yt-dlp"]);
     });
 
     it("nodejs accepts any version (bundled with Electron)", () => {

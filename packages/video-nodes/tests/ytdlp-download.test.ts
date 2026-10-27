@@ -9,11 +9,22 @@
  *
  * A single `spawnResponder` decides the response per invocation from (cmd,
  * args); each test overrides it. Every spawn call is recorded in `spawnCalls`
- * so we can assert argument construction (metadata probe args, -x audio args,
- * --sub-langs pass-through, …).
+ * so we can assert argument construction (metadata probe args, one call per
+ * format, --sub-langs pass-through, …).
+ *
+ * The default download response plays yt-dlp: it copies a real fixture into
+ * the `-o` template's directory, video-only for a selector starting with `bv`
+ * and audio-only for any other, and prints the path as
+ * `--print after_move:filepath` does. The mux and mp3 encode then run for
+ * real, in process.
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from "vitest";
 import { EventEmitter } from "node:events";
+import { copyFileSync, promises as fs } from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { streamCodecs } from "@nodetool-ai/runtime/media";
+import { generateMedia } from "@nodetool-ai/runtime/media/testing";
 
 type SpawnResult = { stdout?: string; stderr?: string; code?: number };
 type SpawnCall = { cmd: string; args: string[] };
@@ -24,12 +35,47 @@ let spawnResponder: (cmd: string, args: string[]) => SpawnResult;
 /** A valid yt-dlp `--print-json` info line. */
 const VALID_INFO = JSON.stringify({ id: "abc123", title: "Test", ext: "mp4" });
 
+let fixtureDir: string;
+const fixtures = { video: "", audio: "" };
+
+beforeAll(async () => {
+  fixtureDir = await fs.mkdtemp(path.join(os.tmpdir(), "ytdlp-fixtures-"));
+  fixtures.video = path.join(fixtureDir, "video.mp4");
+  fixtures.audio = path.join(fixtureDir, "audio.m4a");
+  await generateMedia({
+    outPath: fixtures.video,
+    video: { source: "testsrc2=size=64x48:rate=24:duration=1" }
+  });
+  await generateMedia({
+    outPath: fixtures.audio,
+    audio: { source: "sine=frequency=440:duration=1" }
+  });
+});
+
+afterAll(async () => {
+  await fs.rm(fixtureDir, { recursive: true, force: true });
+});
+
+/** Write the fixture a download of `-f` would produce; return its path. */
+function fakeDownload(args: string[]): string {
+  const template = args[args.indexOf("-o") + 1];
+  const selector = args[args.indexOf("-f") + 1];
+  const kind = selector.startsWith("bv") ? "video" : "audio";
+  const ext = kind === "video" ? "mp4" : "m4a";
+  const out = template
+    .replace("%(id)s", "abc123")
+    .replace("%(format_id)s", kind === "video" ? "137" : "140")
+    .replace("%(ext)s", ext);
+  copyFileSync(fixtures[kind], out);
+  return out;
+}
+
 function defaultResponder(_cmd: string, args: string[]): SpawnResult {
-  // The metadata probe carries --print-json; anything else is the download.
+  // The metadata probe carries --print-json; anything else is a download.
   if (args.includes("--print-json")) {
     return { stdout: `${VALID_INFO}\n`, stderr: "", code: 0 };
   }
-  return { stdout: "", stderr: "", code: 0 };
+  return { stdout: `${fakeDownload(args)}\n`, stderr: "", code: 0 };
 }
 
 class FakeChild extends EventEmitter {
@@ -69,10 +115,45 @@ function metadataArgs(): string[] {
   return call?.args ?? [];
 }
 
-/** The recorded args for the download call (no --print-json). */
+/** The recorded args for the first download call (no --print-json). */
 function downloadArgs(): string[] {
-  const call = spawnCalls.find((c) => !c.args.includes("--print-json"));
-  return call?.args ?? [];
+  return downloadCalls()[0] ?? [];
+}
+
+/** The recorded args of every download call, in order. */
+function downloadCalls(): string[][] {
+  return spawnCalls.filter((c) => !c.args.includes("--print-json")).map((c) => c.args);
+}
+
+/** The -f value of every download call, in order. */
+function downloadSelectors(): string[] {
+  return downloadCalls().map((args) => args[args.indexOf("-f") + 1]);
+}
+
+/** Flags that make yt-dlp run ffmpeg to merge, remux or convert. */
+const FFMPEG_FLAGS = [
+  "--merge-output-format",
+  "--remux-video",
+  "--recode-video",
+  "-x",
+  "--extract-audio",
+  "--audio-format",
+  "--embed-subs",
+  "--embed-thumbnail",
+  "--embed-metadata",
+  "--embed-chapters",
+  "--convert-subs",
+  "--convert-thumbnails",
+  "--ffmpeg-location"
+];
+
+/** The bytes of a node output ref, written to a file to read its streams. */
+async function refCodecs(ref: unknown): Promise<{ video: string | null; audio: string | null }> {
+  const data = (ref as { data?: string }).data;
+  if (!data) throw new Error("The output ref has no data");
+  const file = path.join(fixtureDir, `out-${Date.now()}-${Math.random()}`);
+  await fs.writeFile(file, Buffer.from(data, "base64"));
+  return streamCodecs(file);
 }
 
 beforeEach(() => {
@@ -128,36 +209,84 @@ describe("YtDlpDownloadLibNode — metadata mode", () => {
 });
 
 describe("YtDlpDownloadLibNode — audio mode", () => {
-  it("adds -x --audio-format mp3 to the download args", async () => {
-    const node = makeNode({ mode: "audio" });
-    await node.process();
-
-    const args = downloadArgs();
-    expect(args).toContain("-x");
-    expect(args).toContain("--audio-format");
-    expect(args[args.indexOf("--audio-format") + 1]).toBe("mp3");
-    expect(args).toContain("bestaudio/best");
-  });
-
-  it("leaves audio/video/thumbnail as typed empty refs when no file is produced", async () => {
+  it("downloads bestaudio/best with no ffmpeg post-processor and encodes mp3 in process", async () => {
     const node = makeNode({ mode: "audio" });
     const result = await node.process();
 
-    // Download exits 0 but writes no file to the temp dir → empty ref stays.
-    expect(result.audio).toEqual({
-      type: "audio",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
+    expect(downloadSelectors()).toEqual(["bestaudio/best"]);
+    for (const flag of FFMPEG_FLAGS) expect(downloadArgs()).not.toContain(flag);
+    expect(await refCodecs(result.audio)).toEqual({ video: null, audio: "mp3" });
+    expect(spawnCalls.every((c) => c.cmd === "yt-dlp")).toBe(true);
+  });
+
+  it("throws when yt-dlp exits cleanly but names no file", async () => {
+    spawnResponder = (_cmd, args) =>
+      args.includes("--print-json")
+        ? { stdout: `${VALID_INFO}\n`, code: 0 }
+        : { stdout: "", code: 0 };
+    const node = makeNode({ mode: "audio" });
+    await expect(node.process()).rejects.toThrow(
+      /yt-dlp wrote no file for format "bestaudio\/best"/
+    );
+  });
+});
+
+describe("YtDlpDownloadLibNode — video mode", () => {
+  it("downloads each side of the default selector and muxes them in process", async () => {
+    const node = makeNode({ mode: "video" });
+    const result = await node.process();
+
+    expect(downloadSelectors()).toEqual(["bv*", "ba/b"]);
+    for (const args of downloadCalls()) {
+      for (const flag of FFMPEG_FLAGS) expect(args).not.toContain(flag);
+    }
+    expect(await refCodecs(result.video)).toEqual({ video: "h264", audio: "aac" });
+    expect(spawnCalls.every((c) => c.cmd === "yt-dlp")).toBe(true);
+  });
+
+  it("splits a user selector on its top-level + and keeps / fallbacks", async () => {
+    const node = makeNode({
+      mode: "video",
+      format_selector: "bv[ext=mp4]/bv+ba[ext=m4a]/ba",
+      container: "mkv"
     });
-    expect(result.video).toEqual({
-      type: "video",
-      uri: "",
-      asset_id: null,
-      data: null,
-      metadata: null
-    });
+    const result = await node.process();
+
+    expect(downloadSelectors()).toEqual(["bv[ext=mp4]/bv", "ba[ext=m4a]/ba"]);
+    expect(await refCodecs(result.video)).toEqual({ video: "h264", audio: "aac" });
+  });
+
+  it("downloads a selector with no + as one file, unmuxed", async () => {
+    const node = makeNode({ mode: "video", format_selector: "bv*[height<=720]" });
+    const result = await node.process();
+
+    expect(downloadSelectors()).toEqual(["bv*[height<=720]"]);
+    const bytes = Buffer.from((result.video as { data: string }).data, "base64");
+    expect(bytes.equals(await fs.readFile(fixtures.video))).toBe(true);
+  });
+
+  it("names both formats and the codecs when the container cannot hold them", async () => {
+    const node = makeNode({ mode: "video", container: "webm" });
+    await expect(node.process()).rejects.toThrow(
+      /Format "bv\*" \(abc123\.f137\.mp4\) and format "ba\/b" \(abc123\.f140\.m4a\) could not be muxed: Cannot stream-copy h264 video with aac audio into webm/
+    );
+  });
+
+  it("refuses a merge inside parentheses before running yt-dlp", async () => {
+    const node = makeNode({ mode: "video", format_selector: "(bv+ba)/b" });
+    await expect(node.process()).rejects.toThrow(/merges inside parentheses/);
+    expect(spawnCalls).toEqual([]);
+  });
+
+  it("asks for subtitles and the thumbnail on the first download only", async () => {
+    const node = makeNode({ mode: "video", subtitles: true, thumbnail: true });
+    await node.process();
+
+    const [first, second] = downloadCalls();
+    expect(first).toContain("--write-subs");
+    expect(first).toContain("--write-thumbnail");
+    expect(second).not.toContain("--write-subs");
+    expect(second).not.toContain("--write-thumbnail");
   });
 });
 

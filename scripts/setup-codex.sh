@@ -61,7 +61,6 @@ if [[ "${SKIP_APT:-0}" != "1" ]]; then
       libxtst6
       libdrm2
       libxkbcommon0
-      ffmpeg
       pandoc
     )
 

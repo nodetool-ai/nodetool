@@ -96,9 +96,9 @@ export const RUNTIME_PACKAGES = {
     description: "Video/audio downloader from YouTube and other sites.",
     category: "tool",
     versionRange: "*",
-    // yt-dlp merges separate video and audio formats with the ffmpeg binary.
-    // Nothing else needs it: the media nodes run libav in process.
-    condaPackages: ["yt-dlp", "ffmpeg"],
+    // No ffmpeg: NodeTool downloads each format separately and muxes them
+    // in process, so yt-dlp never merges.
+    condaPackages: ["yt-dlp"],
     verifyBinary: "yt-dlp",
   }),
 

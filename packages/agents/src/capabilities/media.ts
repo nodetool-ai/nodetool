@@ -21,7 +21,7 @@
 
 import { Buffer } from "node:buffer";
 import { randomInt, randomUUID } from "node:crypto";
-import { mkdir, readFile } from "node:fs/promises";
+import { mkdir, readFile, rm } from "node:fs/promises";
 import path from "node:path";
 import type { Message, MessageContent } from "@nodetool-ai/protocol";
 import { missingRuntimeDetailsOf } from "@nodetool-ai/protocol";
@@ -36,8 +36,11 @@ import type {
 } from "@nodetool-ai/runtime";
 import {
   currentGenerationReceipt,
-  loadMediaRefBytes
+  DEFAULT_YT_DLP_FORMAT,
+  loadMediaRefBytes,
+  splitYtDlpFormat
 } from "@nodetool-ai/runtime";
+import { muxStreamCopy } from "@nodetool-ai/runtime/media";
 import { getMaxLocalUploadBytes } from "@nodetool-ai/storage";
 import {
   backgroundGenerationLimitError,
@@ -2518,6 +2521,36 @@ const mediaProbe: CapabilityExport = {
 
 const DEFAULT_YT_DLP_OUTPUT = "downloads/yt-dlp/%(id)s.%(ext)s";
 
+/**
+ * The template each format of a two-format download is written to, and the
+ * container the mux writes: `<stem>.f<format_id>.<ext>` beside the caller's
+ * output, and its literal extension or `auto` for `%(ext)s`.
+ */
+function ytDlpPartTemplate(outputFile: string): { parts: string; container: string } {
+  let stem = outputFile;
+  let container = "auto";
+  if (outputFile.endsWith(".%(ext)s")) {
+    stem = outputFile.slice(0, -".%(ext)s".length);
+  } else {
+    const ext = path.extname(outputFile);
+    if (ext && !ext.includes("%(")) {
+      stem = outputFile.slice(0, -ext.length);
+      container = ext.slice(1);
+    }
+  }
+  return { parts: `${stem}.f%(format_id)s.%(ext)s`, container };
+}
+
+/** The last non-empty stdout line, which `--print after_move:filepath` wrote. */
+function lastPrintedLine(stdout: string): string | undefined {
+  return stdout.trim().split("\n").filter(Boolean).at(-1);
+}
+
+/** A yt-dlp-printed path, relative to the workspace cwd. */
+function workspaceRelative(cwd: string, printed: string): string {
+  return path.isAbsolute(printed) ? path.relative(cwd, printed) : printed;
+}
+
 const ytDlp: CapabilityExport = {
   spec: ytDlpSpec,
   impl: async (run, params) => {
@@ -2550,7 +2583,7 @@ const ytDlp: CapabilityExport = {
       : DEFAULT_YT_DLP_OUTPUT;
     const format = isNonBlankString(params["format"])
       ? params["format"].trim()
-      : "";
+      : DEFAULT_YT_DLP_FORMAT;
     const timeoutMs =
       clampTimeoutSeconds(params["timeout_seconds"], 300, 900) * 1000;
 
@@ -2560,8 +2593,21 @@ const ytDlp: CapabilityExport = {
     if (refusal) return refusal;
     const flagLike =
       refuseFlagLikeValue(outputFile, "output_file") ??
-      (format ? refuseFlagLikeValue(format, "format") : undefined);
+      refuseFlagLikeValue(format, "format");
     if (flagLike) return flagLike;
+
+    // yt-dlp merges a `+` selector with ffmpeg, which NodeTool does not
+    // ship. Each side downloads on its own and the two are muxed in process.
+    let formats: string[];
+    try {
+      formats = splitYtDlpFormat(format);
+    } catch (e) {
+      return { error: `yt_dlp: ${e instanceof Error ? e.message : String(e)}` };
+    }
+    for (const part of formats) {
+      const partFlag = refuseFlagLikeValue(part, "format");
+      if (partFlag) return partFlag;
+    }
 
     const outDir = path.dirname(outputFile);
     if (outDir && outDir !== ".") {
@@ -2576,53 +2622,123 @@ const ytDlp: CapabilityExport = {
       }
     }
 
-    const download: Parameters<typeof buildYtDlpArgv>[0] = { url, outputFile };
-    if (format) {
-      download.format = format;
-    }
-    const argv = buildYtDlpArgv(download);
+    const deadline = Date.now() + timeoutMs;
+    const download = (template: string, selector: string, printFormatId = false) =>
+      runHostBinary(
+        "yt-dlp",
+        buildYtDlpArgv({ url, outputFile: template, format: selector, printFormatId }),
+        { cwd, timeoutMs: Math.max(1000, deadline - Date.now()) }
+      );
+    const noFile = (stdout: string, stderr: string, exitCode: number) => ({
+      success: false,
+      url,
+      // `--print` silences the reason, so nothing printed on a clean exit is
+      // what an aborted over-cap download looks like.
+      error:
+        `yt-dlp wrote no file. The download may have passed the ` +
+        `${MAX_DOWNLOAD_BYTES}-byte limit, or the URL carried nothing to ` +
+        `download.`,
+      stdout,
+      stderr,
+      exit_code: exitCode
+    });
 
     try {
-      const result = await runHostBinary("yt-dlp", argv, {
-        cwd,
-        timeoutMs
-      });
-      const printed = result.stdout.trim().split("\n").filter(Boolean).at(-1);
-      // `--print after_move:filepath` names the finished file. Nothing printed
-      // on a clean exit means nothing was written — which is what an aborted
-      // over-cap download looks like, since `--print` silences the reason.
-      if (result.exitCode === 0 && !printed) {
+      if (formats.length === 1) {
+        const result = await download(outputFile, formats[0]);
+        const printed = lastPrintedLine(result.stdout);
+        if (result.exitCode === 0 && !printed) {
+          return noFile(result.stdout, result.stderr, result.exitCode);
+        }
+        const produced =
+          printed && !printed.startsWith("http")
+            ? workspaceRelative(cwd, printed)
+            : outputFile.includes("%(")
+              ? ""
+              : outputFile;
+        const persisted =
+          result.exitCode === 0 && produced
+            ? await persistWorkspaceFile(run.context, workspace, produced)
+            : undefined;
+        return {
+          success: result.exitCode === 0,
+          url,
+          output_file: produced || outputFile,
+          stdout: result.stdout,
+          stderr: result.stderr,
+          exit_code: result.exitCode,
+          ...(persisted ?? {})
+        };
+      }
+
+      const { parts, container } = ytDlpPartTemplate(outputFile);
+      const files: Array<{ path: string; formatId: string }> = [];
+      let stdout = "";
+      let stderr = "";
+      for (const selector of formats) {
+        const result = await download(parts, selector, true);
+        stdout += result.stdout;
+        stderr += result.stderr;
+        if (result.exitCode !== 0) {
+          return {
+            success: false,
+            url,
+            error: `yt-dlp could not download format "${selector}"`,
+            stdout,
+            stderr,
+            exit_code: result.exitCode
+          };
+        }
+        // `--print after_move:format_id` then `--print after_move:filepath`.
+        const lines = result.stdout.trim().split("\n").filter(Boolean);
+        const printed = lines.at(-1);
+        if (!printed) return noFile(stdout, stderr, result.exitCode);
+        files.push({
+          path: path.resolve(cwd, workspaceRelative(cwd, printed)),
+          formatId: lines.at(-2) ?? ""
+        });
+      }
+      const [video, audio] = files;
+      const ext = path.extname(video.path);
+      const suffix = `.f${video.formatId}${ext}`;
+      const outStem = video.path.endsWith(suffix)
+        ? video.path.slice(0, -suffix.length)
+        : `${video.path.slice(0, -ext.length)}.muxed`;
+      let muxed: string;
+      try {
+        muxed = (
+          await muxStreamCopy({
+            videoPath: video.path,
+            audioPath: audio.path,
+            outStem,
+            container
+          })
+        ).outPath;
+      } catch (e) {
         return {
           success: false,
           url,
           error:
-            `yt-dlp wrote no file. The download may have passed the ` +
-            `${MAX_DOWNLOAD_BYTES}-byte limit, or the URL carried nothing to ` +
-            `download.`,
-          stdout: result.stdout,
-          stderr: result.stderr,
-          exit_code: result.exitCode
+            `yt_dlp: format "${formats[0]}" (${path.basename(video.path)}) and ` +
+            `format "${formats[1]}" (${path.basename(audio.path)}) could not be ` +
+            `muxed: ${e instanceof Error ? e.message : String(e)}`,
+          stdout,
+          stderr,
+          exit_code: 0
         };
       }
-      const produced =
-        printed && !printed.startsWith("http")
-          ? path.isAbsolute(printed)
-            ? path.relative(cwd, printed)
-            : printed
-          : outputFile.includes("%(")
-            ? ""
-            : outputFile;
-      const persisted =
-        result.exitCode === 0 && produced
-          ? await persistWorkspaceFile(run.context, workspace, produced)
-          : undefined;
+      for (const file of new Set(files.map((f) => f.path))) {
+        await rm(file, { force: true });
+      }
+      const produced = path.relative(cwd, muxed);
+      const persisted = await persistWorkspaceFile(run.context, workspace, produced);
       return {
-        success: result.exitCode === 0,
+        success: true,
         url,
-        output_file: produced || outputFile,
-        stdout: result.stdout,
-        stderr: result.stderr,
-        exit_code: result.exitCode,
+        output_file: produced,
+        stdout,
+        stderr,
+        exit_code: 0,
         ...(persisted ?? {})
       };
     } catch (e) {

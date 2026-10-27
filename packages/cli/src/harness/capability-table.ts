@@ -585,7 +585,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "yt_dlp",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "9c06b831c290",
+    contract: "30d6bb107aeb",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
