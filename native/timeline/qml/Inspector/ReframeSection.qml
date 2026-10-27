@@ -1,4 +1,3 @@
-// nt-panel: slot=right id=inspectorReframe order=60 title="Smart Reframe"
 import QtQuick
 import NodeTool.Timeline
 import "primitives"
@@ -6,9 +5,10 @@ import "primitives"
 Item {
     id: root
     objectName: "inspectorReframe"
+    property var controller: null
     property var timelineModel: typeof timeline !== "undefined" ? timeline : null
     property var gestures: typeof tracksRegion !== "undefined" ? tracksRegion.gestures : null
-    property var playbackClock: typeof clock !== "undefined" ? clock : null
+    property var playbackClock: controller ? controller.clock : typeof clock !== "undefined" ? clock : null
     property var selectedIds: gestures ? gestures.selection : []
     readonly property var document: edits.document
     readonly property var clip: selectedIds.length === 1 ? (document.clips || []).find(c => c.id === selectedIds[0] && ["video", "image", "overlay"].includes(c.mediaType)) || null : null

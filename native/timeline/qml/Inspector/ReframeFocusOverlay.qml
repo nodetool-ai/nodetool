@@ -15,13 +15,15 @@ Item {
     property var crop: ({left: 0, right: 0, top: 0, bottom: 0})
     property var layerTransform: undefined
     property var parentMatrix: undefined
+    property var drawMatrix: undefined
+    property bool controlled: false
     property real sourceWidth: 0
     property real sourceHeight: 0
     property real sequenceWidth: 0
     property real sequenceHeight: 0
     property real frameWidth: 0
     property real frameHeight: 0
-    readonly property var geometry: ({crop: crop, transform: layerTransform, parentMatrix: parentMatrix, sourceWidth: sourceWidth, sourceHeight: sourceHeight, sequenceWidth: sequenceWidth, sequenceHeight: sequenceHeight, frameWidth: frameWidth, frameHeight: frameHeight})
+    readonly property var geometry: ({crop: crop, transform: layerTransform, parentMatrix: parentMatrix, drawMatrix: drawMatrix, sourceWidth: sourceWidth, sourceHeight: sourceHeight, sequenceWidth: sequenceWidth, sequenceHeight: sequenceHeight, frameWidth: frameWidth, frameHeight: frameHeight})
     readonly property var displayed: math.evaluate({op: "sourcePointToReframeViewport", x: focusX, y: focusY, geometry: geometry})
     readonly property real handleRadius: Math.max(Theme.spacingMd, 0.025 * Math.min(frameWidth, frameHeight))
     property bool dragging: false
@@ -40,11 +42,15 @@ Item {
     Accessible.description: value
     ReframeController { id: math }
     function update(x, y) {
-        focusX = Math.min(1, Math.max(0, x))
-        focusY = Math.min(1, Math.max(0, y))
-        change(focusX, focusY)
+        const nextX = Math.min(1, Math.max(0, x))
+        const nextY = Math.min(1, Math.max(0, y))
+        if (!controlled) {
+            focusX = nextX
+            focusY = nextY
+        }
+        change(nextX, nextY)
         if (controller && clipId !== "") {
-            const payload = {clipId: dragging ? gestureClipId : clipId, sourceMs: dragging ? gestureSourceMs : sourceMs, x: focusX, y: focusY, zoom: dragging ? gestureZoom : zoom}
+            const payload = {clipId: dragging ? gestureClipId : clipId, sourceMs: dragging ? gestureSourceMs : sourceMs, x: nextX, y: nextY, zoom: dragging ? gestureZoom : zoom}
             if (dragging) controller.preview(payload)
             else controller.apply("addClipReframeKeyframe", payload)
         }

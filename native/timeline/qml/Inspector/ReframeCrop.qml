@@ -1,10 +1,10 @@
-// nt-panel: slot=right id=inspectorCrop order=59 title="Crop"
 import QtQuick
 import NodeTool.Timeline
 import "primitives"
 Item {
     id: root
     objectName: "inspectorCrop"
+    property var controller: null
     property var timelineModel: typeof timeline !== "undefined" ? timeline : null
     property var gestures: typeof tracksRegion !== "undefined" ? tracksRegion.gestures : null
     property var selectedIds: gestures ? gestures.selection : []

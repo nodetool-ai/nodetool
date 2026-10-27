@@ -17,6 +17,7 @@ class ReframeController : public QObject {
     Q_INVOKABLE void preview(const QJsonObject& payload);
     Q_INVOKABLE void commit(const QString& action, const QJsonObject& payload);
     Q_INVOKABLE void finishGesture();
+    Q_INVOKABLE QVariantMap previewState(const QStringList& selection, double timeMs) const;
     Q_INVOKABLE double sourceMsAt(const QString& clipId, double timeMs) const;
     Q_INVOKABLE QJsonValue evaluate(const QJsonObject& request) const;
   signals:

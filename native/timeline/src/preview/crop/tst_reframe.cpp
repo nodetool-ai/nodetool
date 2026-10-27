@@ -1,5 +1,8 @@
 #include "Reframe.h"
 #include "ReframeController.h"
+#include "preview/SceneEval.h"
+#include "app/PanelRegistry.h"
+#include "edit/inspectorsections/InspectorSectionRegistry.h"
 #include "edit/ClipGestureController.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
@@ -26,6 +29,9 @@ QQuickItem* findItem(QQuickItem* root, const QString& name) {
     }
     return nullptr;
 }
+QVariantMap qmlMap(const QVariant& value) {
+    return value.metaType() == QMetaType::fromType<QJSValue>() ? value.value<QJSValue>().toVariant().toMap() : value.toMap();
+}
 QJsonObject document() {
     return QJsonDocument::fromJson(
                R"({"name":"Reframe","width":640,"height":360,"fps":30,"durationMs":10000,"tracks":[{"id":"v","type":"video","index":0}],"clips":[{"id":"c","trackId":"v","mediaType":"video","startMs":100,"durationMs":1000,"inPointMs":200,"custom":"kept"}]})")
@@ -38,6 +44,113 @@ class TestReframe : public QObject {
     void init() {
         QTest::failOnWarning(QRegularExpression(".*(TypeError|ReferenceError|Binding loop|Unable to "
                                                 "assign|Cannot override).*"));
+    }
+    void staticCropPlan() {
+        auto doc = document();
+        auto clips = doc["clips"].toArray();
+        auto clip = clips[0].toObject();
+        clip.insert("width", 101);
+        clip.insert("height", 99);
+        clip.insert("crop", QJsonObject{{"left", .1}, {"right", .2}, {"top", .05}, {"bottom", .15}});
+        const auto planFor = [&](const QJsonObject& raw) {
+            clips[0] = raw;
+            doc.insert("clips", clips);
+            const auto parsed = nt::parseTimelineJson(QJsonDocument(doc).toJson());
+            return nt::buildFramePlan(*parsed.timeline, 300);
+        };
+        const auto plan = planFor(clip);
+        QCOMPARE(plan.layers.size(), size_t(1));
+        const auto& layer = plan.layers.front();
+        const std::array<float, 4> expected{10.f / 101, 4.f / 99, 71.f / 101, 79.f / 99};
+        QCOMPARE(layer.layer.sourceRect, expected);
+        QCOMPARE(layer.matrix, nt::layerMatrix({}, 71, 79, 640, 360));
+        auto degenerate = clip;
+        degenerate.insert("crop", QJsonObject{{"left", .8}, {"right", .2}, {"top", 0}, {"bottom", 0}});
+        const std::array<float, 4> full{0, 0, 1, 1};
+        QCOMPARE(planFor(degenerate).layers.front().layer.sourceRect, full);
+        for (const auto& reframe : {QJsonObject{{"mode", "center"}},
+                                    QJsonObject{{"mode", "auto"}, {"sourceAssetId", "stale"}}}) {
+            auto reframed = clip;
+            reframed.insert("reframe", reframe);
+            QCOMPARE(planFor(reframed).layers.front().layer.sourceRect, full);
+            QCOMPARE(planFor(nt::reframe::clearReframe(reframed)).layers.front().layer.sourceRect, expected);
+        }
+    }
+    void sectionRegistration() {
+        InspectorSectionRegistry registry;
+        const auto sections = registry.sections();
+        int cropOrder = -1, reframeOrder = -1;
+        for (const auto& value : sections) {
+            const auto section = value.toMap();
+            if (section["id"] == "crop") { cropOrder = section["order"].toInt(); }
+            if (section["id"] == "reframe") { reframeOrder = section["order"].toInt(); }
+        }
+        QCOMPARE(cropOrder, 45);
+        QCOMPARE(reframeOrder, 84);
+        PanelRegistry panels;
+        for (const auto& value : panels.forSlot("right")) {
+            QVERIFY(!value.toMap()["id"].toString().startsWith("inspectorCrop"));
+            QVERIFY(!value.toMap()["id"].toString().startsWith("inspectorReframe"));
+        }
+    }
+    void previewOverlayMount() {
+        auto doc = document();
+        auto clips = doc["clips"].toArray();
+        auto clip = clips[0].toObject();
+        clip.insert("width", 1024);
+        clip.insert("height", 576);
+        clip.insert("reframe", QJsonObject{{"mode", "center"}, {"keyframes", QJsonArray{
+            QJsonObject{{"sourceMs", 0}, {"x", .375}, {"y", .625}, {"zoom", 2}}}}});
+        clip.insert("transform", QJsonObject{{"position", QJsonObject{{"x", 30}, {"y", -20}}},
+                                             {"rotation", .3}, {"scale", QJsonObject{{"x", 1.2}, {"y", .8}}},
+                                             {"anchor", QJsonObject{{"x", .3}, {"y", .7}}}});
+        clips[0] = clip;
+        doc.insert("clips", clips);
+        TimelineModel model;
+        const auto parsed = nt::parseTimelineJson(QJsonDocument(doc).toJson());
+        QVERIFY(parsed.timeline);
+        model.setTimeline(*parsed.timeline);
+        PlaybackClock clock;
+        clock.seek(300);
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.loadFromModule("NodeTool.Timeline", "TimelineEditor");
+        std::unique_ptr<QObject> object(component.createWithInitialProperties(
+            {{"timeline", QVariant::fromValue(&model)}, {"clock", QVariant::fromValue(&clock)}}));
+        QVERIFY2(object, qPrintable(component.errorString()));
+        auto* root = qobject_cast<QQuickItem*>(object.get());
+        root->setSize({1280, 800});
+        auto* gestures = object->findChild<ClipGestureController*>();
+        QVERIFY(gestures);
+        gestures->setSelection({"c"});
+        QQuickItem* overlay = nullptr;
+        QTRY_VERIFY((overlay = findItem(root, "reframeFocusOverlay")) != nullptr);
+        QTRY_VERIFY(overlay->isVisible());
+        auto* frame = findItem(root, "previewFrame");
+        QVERIFY(frame);
+        QCOMPARE(overlay->size(), frame->size());
+        const auto geometry = QJsonObject::fromVariantMap(qmlMap(overlay->property("geometry")));
+        const auto crop = nt::reframe::resolveReframeCrop(clip["reframe"].toObject(), 400,
+            {{"width", 1024}, {"height", 576}}, {{"width", 640}, {"height", 360}}).toObject();
+        QCOMPARE(geometry["crop"].toObject(), crop);
+        auto expectedGeometry = geometry;
+        expectedGeometry.remove("drawMatrix");
+        expectedGeometry.insert("transform", clip["transform"]);
+        const auto expected = nt::reframe::sourcePointToReframeViewport(.375, .625, expectedGeometry);
+        const auto displayed = qmlMap(overlay->property("displayed"));
+        QVERIFY(std::abs(displayed["x"].toDouble() - expected["x"].toDouble()) < .01);
+        QVERIFY(std::abs(displayed["y"].toDouble() - expected["y"].toDouble()) < .01);
+        QSignalSpy changes(&model, &TimelineModel::clipsChanged);
+        clock.seek(400);
+        QCOMPARE(changes.count(), 0);
+        gestures->setSelection({});
+        QTRY_VERIFY(!overlay->isVisible());
+        gestures->setSelection({"c", "other"});
+        QTRY_VERIFY(!overlay->isVisible());
+        gestures->setSelection({"c"});
+        QTRY_VERIFY(overlay->isVisible());
+        QVERIFY(model.applyEdit("clearClipReframe", {{"clipId", "c"}}));
+        QTRY_VERIFY(!overlay->isVisible());
     }
     void panelSlotsFollowSelection() {
         TimelineModel model;
@@ -61,6 +174,12 @@ class TestReframe : public QObject {
         auto* crop = findItem(root, "inspectorCrop");
         QVERIFY(section);
         QVERIFY(crop);
+        const auto inInspector = [](QQuickItem* item) {
+            while (item && item->objectName() != "timelineInspector") { item = item->parentItem(); }
+            return item != nullptr;
+        };
+        QVERIFY(inInspector(section));
+        QVERIFY(inInspector(crop));
         auto* gestures = object->findChild<ClipGestureController*>();
         QVERIFY(gestures);
         gestures->setSelection({"c"});
