@@ -40,18 +40,38 @@ Rectangle {
 
     MouseArea {
         anchors.fill: parent
-        acceptedButtons: Qt.LeftButton
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
         onPressed: mouse => {
+            if (mouse.button === Qt.RightButton) {
+                if (lane.locked) return
+                laneMenu.context = { trackId: lane.trackId, timeMs: Math.max(0, mouse.x * lane.viewState.msPerPx), editable: true }
+                laneMenu.popup(mouse.x, mouse.y)
+                return
+            }
             const atMs = Math.max(0, mouse.x * lane.viewState.msPerPx)
             // Under a track select tool the press selects the block.
             if (lane.gestures && lane.gestures.pressLane(lane.trackId, atMs, mouse.modifiers)) return
-            // A press on the empty lane starts a marquee in the web, which
-            // replaces the selection with what it covers: nothing yet.
-            if (lane.gestures) lane.gestures.selection = []
-            const endMs = lane.timeline.durationMs
-            const t = Math.max(0, mouse.x * lane.viewState.msPerPx)
-            lane.clock.seek(endMs > 0 ? Math.min(endMs, t) : t)
+            const p = mapToItem(null, mouse.x, mouse.y)
+            if (lane.gestures) { lane.gestures.pressEmptyLane(lane.trackId, p.x, p.y, mouse.modifiers) }
         }
+    }
+
+    Rectangle {
+        objectName: "selectedGap-" + lane.trackId
+        readonly property var gap: lane.gestures ? lane.gestures.selectedGap : ({})
+        visible: gap.trackId === lane.trackId
+        x: (gap.startMs ?? 0) / lane.viewState.msPerPx
+        width: ((gap.endMs ?? 0) - (gap.startMs ?? 0)) / lane.viewState.msPerPx
+        height: parent.height
+        color: Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.18)
+        border.width: 1
+        border.color: Theme.primary
+    }
+
+    RegistryContextMenu {
+        id: laneMenu
+        kind: "lane"
+        gestures: lane.gestures
     }
 
     Repeater {

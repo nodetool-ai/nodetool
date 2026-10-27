@@ -6,25 +6,9 @@
  *   boundary is a copy, so the same case runs with deep equality. The same
  *   applies to "rateStretchClips leaves a time-remapped clip alone" and
  *   "slideClips leaves a group clip alone".
- * - The keyframe and source-anchored curve cases: the native split and trim
- *   refuse those clips. The refusal must be exactly this error, for each of
- *   the four entry points, so a different failure cannot pass as known.
  */
 import { describe, expect, it } from "vitest";
 import * as native from "./native-ops.ts";
-
-export const REFUSAL =
-  "the native editor does not slice keyframe or source-anchored animation curves yet";
-
-/** The message of the error `fn` throws; a call that throws nothing fails. */
-function thrownMessage(fn: () => unknown): string {
-  try {
-    fn();
-  } catch (error) {
-    return error instanceof Error ? error.message : String(error);
-  }
-  throw new Error("expected the call to throw");
-}
 
 function makeBaseClip(): any {
   return {
@@ -81,27 +65,6 @@ describe("known differences", () => {
     expect(right.outPointMs).toBe(450);
   });
 
-  const keyframed = {
-    ...makeBaseClip(),
-    animations: [{ id: "k", role: "emphasis", preset: "custom", delayMs: 0, durationMs: 400, params: { keyframed: true } }]
-  };
-  const sourceAnchored = {
-    ...makeBaseClip(),
-    animations: [
-      { id: "s", role: "emphasis", preset: "custom", custom: { timeBase: "source", curves: [{ property: "opacity" }] } }
-    ]
-  };
-  for (const [label, clip] of [
-    ["keyframe", keyframed],
-    ["source-anchored", sourceAnchored]
-  ] as const) {
-    it(`refuses to split a ${label} animation with the exact error`, () => {
-      expect(thrownMessage(() => native.splitClip(clip, 250))).toBe(`splitClip: ${REFUSAL}`);
-    });
-    it(`refuses to trim a ${label} animation with the exact error`, () => {
-      expect(thrownMessage(() => native.trimClip(clip, "end", 100))).toBe(`trimClip: ${REFUSAL}`);
-    });
-  }
 });
 
 describe("unchanged results, with deep equality", () => {

@@ -9,6 +9,7 @@
 #include <QUuid>
 
 #include <algorithm>
+#include <atomic>
 #include <cmath>
 #include <memory>
 
@@ -21,34 +22,10 @@ QString mediaKey(const QJsonObject& raw) {
            raw.value(u"audioPath").toString() + QChar(0x1f) + raw.value(u"currentAssetId").toString();
 }
 
-// One edit of the clips array: undo restores the array that was there.
-class ClipsCommand : public QUndoCommand {
-public:
-    ClipsCommand(TimelineModel* model, QJsonArray before, QJsonArray after, const QString& text, int mergeId,
-                 bool continuation)
-        : QUndoCommand(text),
-          m_model(model),
-          m_before(std::move(before)),
-          m_after(std::move(after)),
-          m_id(mergeId > 0 ? mergeId : -1),
-          m_continuation(continuation) {}
-    void redo() override { m_model->replaceClips(m_after); }
-    void undo() override { m_model->replaceClips(m_before); }
-    int id() const override { return m_id; }
-    bool mergeWith(const QUndoCommand* other) override {
-        const auto* next = static_cast<const ClipsCommand*>(other);
-        if (!next->m_continuation) return false;
-        m_after = next->m_after;
-        return true;
-    }
-
-private:
-    TimelineModel* m_model;
-    QJsonArray m_before;
-    QJsonArray m_after;
-    int m_id;
-    bool m_continuation;
-};
+quint64 nextCommandToken() {
+    static std::atomic<quint64> next{1};
+    return next.fetch_add(1, std::memory_order_relaxed);
+}
 
 // One edit of the `markers` array.
 class MarkersCommand : public QUndoCommand {
@@ -67,14 +44,30 @@ private:
 class DocumentCommand : public QUndoCommand {
 public:
     DocumentCommand(QString name, QJsonObject before, QJsonObject after,
-                    std::function<void(const QJsonObject&)> replace)
-        : QUndoCommand(name), m_before(std::move(before)), m_after(std::move(after)), m_replace(std::move(replace)) {}
+                    std::function<void(const QJsonObject&)> replace, quint64 token,
+                    int mergeId = 0, bool continuation = false)
+        : QUndoCommand(name), m_before(std::move(before)), m_after(std::move(after)),
+          m_replace(std::move(replace)), m_token(token), m_id(mergeId > 0 ? mergeId : -1),
+          m_continuation(continuation) {}
     void redo() override { m_replace(m_after); }
     void undo() override { m_replace(m_before); }
+    int id() const override { return m_id; }
+    bool mergeWith(const QUndoCommand* other) override {
+        const auto* next = dynamic_cast<const DocumentCommand*>(other);
+        if (!next || !next->m_continuation) { return false; }
+        m_after = next->m_after;
+        m_token = next->m_token;
+        return true;
+    }
+    quint64 token() const { return m_token; }
+    void settle(const QJsonObject& document) { m_after = document; }
 private:
     QJsonObject m_before;
     QJsonObject m_after;
     std::function<void(const QJsonObject&)> m_replace;
+    quint64 m_token;
+    int m_id;
+    bool m_continuation;
 };
 
 }  // namespace
@@ -183,11 +176,18 @@ bool TimelineModel::replaceClips(const QJsonArray& clips) {
     return true;
 }
 
-bool TimelineModel::commitEdit(const QString& text, const QJsonArray& before, const QJsonArray& after, int mergeId,
+quint64 TimelineModel::commitEdit(const QString& text, const QJsonArray& before, const QJsonArray& after, int mergeId,
                                bool continuation) {
     if (before == after) return false;
-    m_undo->push(new ClipsCommand(this, before, after, text, mergeId, continuation));
-    return true;
+    auto beforeDocument = m_timeline->raw;
+    beforeDocument.insert("clips", before);
+    auto afterDocument = m_timeline->raw;
+    afterDocument.insert("clips", after);
+    const auto token = nextCommandToken();
+    auto command = std::make_unique<DocumentCommand>(text, std::move(beforeDocument), std::move(afterDocument),
+        [this](const QJsonObject& raw) { replaceDocument(raw); }, token, mergeId, continuation);
+    m_undo->push(command.release());
+    return token;
 }
 
 bool TimelineModel::moveClip(const QString& clipId, double startMs) {
@@ -252,7 +252,7 @@ void TimelineModel::close() {
     setTimeline(std::move(empty));
 }
 
-bool TimelineModel::applyEdit(const QString& name, const QJsonObject& payload) {
+quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload) {
     const auto edit = nt::app::findEdit(name);
     if (!edit) {
         return false;
@@ -306,9 +306,11 @@ bool TimelineModel::applyEdit(const QString& name, const QJsonObject& payload) {
             return false;
         }
     }
-    auto command = std::make_unique<DocumentCommand>(name, before, after, [this](const QJsonObject& raw) { replaceDocument(raw); });
+    const auto token = nextCommandToken();
+    auto command = std::make_unique<DocumentCommand>(name, before, after,
+        [this](const QJsonObject& raw) { replaceDocument(raw); }, token);
     m_undo->push(command.release());
-    return true;
+    return token;
 }
 
 bool TimelineModel::replaceDocument(const QJsonObject& raw) {
@@ -356,4 +358,42 @@ bool TimelineModel::replaceDocument(const QJsonObject& raw) {
         emit markersChanged();
     }
     return true;
+}
+
+void TimelineModel::registerMedia(const nt::Clip& media) {
+    const auto key = mediaKey(media.raw);
+    m_media.insert(key, {media.mediaPath, media.audioPath});
+    auto next = *m_timeline;
+    bool changed = false;
+    for (auto& clip : next.clips) {
+        if (mediaKey(clip.raw) == key &&
+            (clip.mediaPath != media.mediaPath || clip.audioPath != media.audioPath)) {
+            clip.mediaPath = media.mediaPath;
+            clip.audioPath = media.audioPath;
+            changed = true;
+        }
+    }
+    if (!changed) { return; }
+    next.revision = nt::nextTimelineRevision();
+    m_timeline = std::make_shared<const nt::Timeline>(std::move(next));
+    m_tracks->rebind(m_timeline.get());
+    emit clipsChanged();
+    emit timelineChanged();
+}
+
+bool TimelineModel::settleCommand(quint64 token, const QJsonObject& document) {
+    if (token == 0) { return false; }
+    for (int i = 0; i < m_undo->count(); ++i) {
+        const auto* command = dynamic_cast<const DocumentCommand*>(m_undo->command(i));
+        if (!command || command->token() != token) { continue; }
+        if (i + 1 != m_undo->count()) { return false; }
+        if (!nt::parseTimelineJson(QJsonDocument(document).toJson(QJsonDocument::Compact)).timeline) {
+            return false;
+        }
+        // QUndoStack exposes commands as const, but owns the mutable command.
+        const_cast<DocumentCommand*>(command)->settle(document);
+        if (m_undo->index() == i + 1 && replaceDocument(document)) { emit commandSettled(); }
+        return true;
+    }
+    return false;
 }

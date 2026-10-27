@@ -5,6 +5,9 @@
 // and render threads.
 
 #include <cstdint>
+#if defined(__linux__)
+#include <functional>
+#endif
 
 namespace nt::cpu {
 
@@ -19,6 +22,16 @@ int64_t threadNs(unsigned thread);
 // Threads registered by currentThread() and still alive (tests). A thread
 // registers once; its entry and any owned handle go when it ends.
 int registeredThreads();
+
+#if defined(__linux__)
+namespace testing {
+// Replaces the native query under the registration lock. Empty restores it.
+// Install only while no samples are running. The argument identifies the
+// native pthread, so tests can detect attribution to the wrong registration.
+using NativeQuery = std::function<int64_t(std::uintptr_t)>;
+void setNativeQuery(NativeQuery query);
+}  // namespace testing
+#endif
 
 // The calling thread's QoS class ("user-interactive", "user-initiated",
 // "default", "utility", "background" or "unspecified").

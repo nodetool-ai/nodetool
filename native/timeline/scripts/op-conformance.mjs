@@ -128,16 +128,6 @@ const SKIPPED = Object.fromEntries(
       "identity: `toBe` on nested objects; run with deep equality"],
     [["rateStretchClips", "leaves a time-remapped clip alone"], "identity: `toBe` on the unchanged clip; run with deep equality"],
     [["slideClips", "leaves a group clip alone"], "identity: `toBe` on the unchanged array; run with deep equality"],
-    [["keyframes across split and trim", "gives each half of a split the part of the curve it covers"],
-      "refused: keyframe curves on a split"],
-    [["keyframes across split and trim", "stretches keyframes over an extended clip in the render and the inspector"],
-      "refused: keyframe curves on a trim"],
-    [["trimClip — source curves", "re-slices on a head trim and keeps the retained motion"], "refused: source-anchored curves"],
-    [["trimClip — source curves", "re-slices on a tail trim and keeps the retained motion"], "refused: source-anchored curves"],
-    [["splitClip — source curves", "gives each half the part of the curve it shows"], "refused: source-anchored curves"],
-    [["splitClip — source curves", "round-trips through a merge of the two halves"], "refused: source-anchored curves"],
-    [["resolveAnimatedLayerProps — source time base", "keeps the same opacity at the same timeline time after a head trim"],
-      "refused: source-anchored curves"]
   ].map(([parts, reason]) => [parts.join(" "), { parts, reason }])
 );
 const escape = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -164,7 +154,9 @@ for (const [i, run] of runs.entries()) {
     NT_TIMELINE_OPS: bin,
     NT_OPS_COUNT_FILE: countFile,
     NT_DIFF_CASES: opt("--cases", "300"),
-    NT_CONFORMANCE_TESTS: run.tests.join(",")
+    NT_CONFORMANCE_TESTS: run.tests.join(","),
+    // vitest leaves a module dump directory in the temp dir per run; keep it inside work.
+    TMPDIR: work
   };
   const args = ["run", "--config", path.join(here, "conformance", run.config), "--reporter=json", `--outputFile=${reportFile}`];
   if (run.skip) args.push("--testNamePattern", run.skip);
@@ -176,6 +168,7 @@ for (const [i, run] of runs.entries()) {
   }
   if (!existsSync(reportFile)) {
     console.error(`FAIL: vitest wrote no report for ${run.config} (exit ${exitCode})`);
+    rmSync(work, { recursive: true, force: true });
     process.exit(1);
   }
   reports.push({ ...JSON.parse(readFileSync(reportFile, "utf8")), exitCode, tests: run.tests });

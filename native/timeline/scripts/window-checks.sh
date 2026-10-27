@@ -13,7 +13,7 @@
 #      (NT_DECODE_SKIP=off), 3 rounds of 40 cold seeks on the GOP fixture, sw
 #      and hw. Every number in the summary carries the load before and after
 #      its run.
-#      --dry-run prints the commands of section 0 and runs nothing.
+#      --dry-run prints the commands of sections 0 and 8 and runs nothing.
 #
 #   1. The M1b budgeted bench (software decode, 4 tracks).
 #   2. The M1c budgeted benches: 4 tracks sw and hw, 8 tracks hw, 4K HEVC hw.
@@ -55,6 +55,11 @@
 #      counterparts with vsync are the benches of sections 1 and 2. A
 #      measurement, not pass/fail: the run's verdict says only whether every
 #      counter has samples.
+#   8. M0 serein, native against the web: a full example document in a
+#      10 s native bench window at 1920x1080, on top, paired with both
+#      serein decoder runs from section 7. Each mapped counter carries its
+#      method, p50/p95 (heldFrames is a total), load before/after and lower
+#      side. Missing reports or samples fail the measurement, not `pass`.
 #
 # Exit 0 only when the paused-seek gate, every budgeted bench, the teardown
 # case and the M3 checks pass, and the summary says pass. The F7 runs are
@@ -73,11 +78,28 @@ fi
 status=0
 
 # --- 0. Paused-seek latency gate (offscreen) ---------------------------------
-load1() { sysctl -n vm.loadavg | awk '{print $2}'; }
+load1() {
+    local proc=${NT_LOADAVG_PATH:-/proc/loadavg} value
+    if [[ -e $proc ]]; then
+        value=$(awk 'NR == 1 { print $1; exit }' "$proc" 2>/dev/null) || return 1
+    else
+        value=$(sysctl -n vm.loadavg 2>/dev/null | awk 'NR == 1 { print $2; exit }') || return 1
+    fi
+    [[ $value =~ ^(0|[1-9][0-9]*)(\.[0-9]+)?$ ]] || return 1
+    printf '%s\n' "$value"
+}
 idle=1
 waited=0
 if [[ $dry_run == 0 ]]; then
-    while awk -v l="$(load1)" 'BEGIN { exit !(l >= 4) }'; do
+    while :; do
+        if ! current_load=$(load1); then
+            idle=0
+            current_load=null
+            break
+        fi
+        if awk -v l="$current_load" 'BEGIN { exit !(l < 4) }'; then
+            break
+        fi
         if (( waited >= 600 )); then
             idle=0
             break
@@ -85,7 +107,7 @@ if [[ $dry_run == 0 ]]; then
         sleep 10
         waited=$((waited + 10))
     done
-    echo "{\"idle\":$idle,\"waitedS\":$waited,\"load\":$(load1)}" > "$out/seek-idle.json"
+    echo "{\"idle\":$idle,\"waitedS\":$waited,\"load\":$current_load}" > "$out/seek-idle.json"
 fi
 
 # seek NAME FIXTURE DECODE LIMIT_MS SCRIPT SKIP(on|off)
@@ -98,10 +120,10 @@ seek() {
         return
     fi
     local before after rc
-    before=$(load1)
+    before=$(load1) || before=null
     NT_DECODE_SKIP=$skip "${cmd[@]}" > "$out/seek-$name.json" 2> "$out/seek-$name.log"
     rc=$?
-    after=$(load1)
+    after=$(load1) || after=null
     echo "{\"exit\":$rc,\"loadBefore\":$before,\"loadAfter\":$after,\"skip\":\"$skip\",\"decode\":\"$decode\",\"fixture\":\"$fixture\",\"limitMs\":$limit}" \
         > "$out/seek-$name.meta.json"
     # The gate runs are pass/fail; the A/B runs are measurements.
@@ -120,8 +142,64 @@ for round in 1 2 3; do
         seek "ab-$round-noskip-$decode" video-scrub-gop "$decode" 100 scrub/seek-only.json off
     done
 done
+
+# Section 8 is also called by the dry run, before any bench can execute.
+serein_m0() {
+    local sequence=(node src/render2d/example-sequence.mjs serein "$out/serein.json")
+    local cmd=("$bin" "$out/serein.json" --bench --realtime 10 --size 1920x1080 --decode hw --on-top)
+    local pair=(node src/render2d/serein-m0-report.mjs "$out")
+    if [[ $dry_run == 1 ]]; then
+        echo "8. M0 serein, native against the web"
+        echo "${sequence[*]} > $out/m0-serein-sequence.log 2>&1"
+        echo 'echo $? > build/window-checks/m0-serein-sequence.exit'
+        echo 'wait until load1 <= 10 in 15 s steps, up to 20 minutes; otherwise write not run and log the load limit'
+        echo 'before=$(load1)'
+        echo "${cmd[*]} > $out/m0-serein-native.json 2> $out/m0-serein-native.log"
+        echo 'rc=$?'
+        echo 'after=$(load1)'
+        echo 'echo "$rc" > build/window-checks/m0-serein-native.exit'
+        echo 'echo "{\"playSeconds\":10,\"loadBefore\":$before,\"loadAfter\":$after}" > build/window-checks/m0-serein-native.meta.json'
+        echo "${pair[*]} > $out/m0-serein.json 2> $out/m0-serein.log"
+        echo 'echo $? > build/window-checks/m0-serein.exit'
+        return
+    fi
+    local rc before after waited=0
+    "${sequence[@]}" > "$out/m0-serein-sequence.log" 2>&1
+    rc=$?
+    echo "$rc" > "$out/m0-serein-sequence.exit"
+    before=$(load1) || before=null
+    if [[ $rc == 0 ]]; then
+        while [[ $before != null ]] && awk -v l="$before" 'BEGIN { exit !(l > 10) }'; do
+            if (( waited >= 1200 )); then
+                break
+            fi
+            sleep 15
+            waited=$((waited + 15))
+            before=$(load1) || before=null
+        done
+        if [[ $before == null ]]; then
+            rc="not run"
+            echo "load could not be read; native bench did not run" > "$out/m0-serein-native.log"
+        elif awk -v l="$before" 'BEGIN { exit !(l > 10) }'; then
+            rc="not run"
+            echo "load1 $before exceeds 10 after 20 minutes; native bench did not run" > "$out/m0-serein-native.log"
+        else
+            "${cmd[@]}" > "$out/m0-serein-native.json" 2> "$out/m0-serein-native.log"
+            rc=$?
+        fi
+    else
+        rc="not run"
+        echo "sequence generation failed; native bench did not run" > "$out/m0-serein-native.log"
+    fi
+    echo "$rc" > "$out/m0-serein-native.exit"
+    after=$(load1) || after=null
+    echo "{\"playSeconds\":10,\"loadBefore\":$before,\"loadAfter\":$after}" > "$out/m0-serein-native.meta.json"
+    "${pair[@]}" > "$out/m0-serein.json" 2> "$out/m0-serein.log"
+    echo $? > "$out/m0-serein.exit"
+}
 if [[ $dry_run == 1 ]]; then
-    echo "dry run: section 0 only; the window checks did not run"
+    serein_m0
+    echo "dry run: sections 0 and 8 only; the window checks did not run"
     exit 0
 fi
 
@@ -193,6 +271,9 @@ process.exit(r.backend !== "Null" && r.playedSeconds >= 594 && r.underruns === 0
 node scripts/web-baseline.mjs --headed > "$out/m0-web-headed.log" 2>&1
 echo $? > "$out/m0-web-headed.exit"
 cp build-m5/web-baseline-headed.json "$out/m0-web-headed.json" 2> /dev/null
+
+# --- 8. M0 serein, native against the web -----------------------------------
+serein_m0
 
 # The summary's verdict also sets the exit status.
 node - "$out" <<'EOF' || status=1
@@ -346,7 +427,9 @@ const m0 = {
   environment: m0Web?.environment ?? null,
   results: m0Web?.results ?? []
 };
-const summary = { pass, seekGate, benches, teardown, f7, m2, m3, m0 };
+// Section 8: a measurement, like section 7; it does not change `pass`.
+const m0Serein = json("m0-serein.json") ?? { verdict: "fail", failures: ["no serein pairing report"] };
+const summary = { pass, seekGate, benches, teardown, f7, m2, m3, m0, m0Serein };
 fs.writeFileSync(path.join(dir, "summary.json"), JSON.stringify(summary, null, 2));
 console.log(JSON.stringify(summary));
 process.exit(pass ? 0 : 1);
