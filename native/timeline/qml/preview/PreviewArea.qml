@@ -22,13 +22,25 @@ Rectangle {
         width: parent.width
         height: parent.height - controlBar.height
 
-        PreviewCompositor {
-            objectName: "previewCompositor"
+        Item {
+            id: frame
+            objectName: "previewFrame"
+            clip: true
             anchors.centerIn: parent
             width: Math.min(viewport.width - 16, (viewport.height - 16) * area.canvasAspect)
             height: width / area.canvasAspect
-            timeline: area.timeline
-            clock: area.clock
+            PreviewCompositor {
+                objectName: "previewCompositor"
+                anchors.fill: parent
+                timeline: area.timeline
+                clock: area.clock
+            }
+            SlotItems {
+                anchors.fill: parent
+                slot: "preview"
+                overlay: true
+                slotProperties: ({ timeline: area.timeline, clock: area.clock })
+            }
         }
     }
 

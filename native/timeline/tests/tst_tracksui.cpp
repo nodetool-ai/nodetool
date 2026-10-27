@@ -65,6 +65,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <csignal>
+#include <cstdio>
 #include <condition_variable>
 #include <mutex>
 #include <string>
@@ -159,10 +160,13 @@ class StalledLocalIo {
     std::shared_ptr<State> m_state = std::make_shared<State>();
 
 public:
-    StalledLocalIo(const QStringList& paths, const QByteArray& operation) {
-        setLocalIoStallForTesting([state = m_state, paths, operation](const char* op, const QString& path) {
+    StalledLocalIo(const QStringList& paths, const QByteArray& operation, bool firstOnly = false) {
+        setLocalIoStallForTesting([state = m_state, paths, operation, firstOnly](const char* op, const QString& path) {
             if (operation != op || !paths.contains(path)) return;
             std::unique_lock lock(state->mutex);
+            if (firstOnly && state->entered.load() > 0) {
+                return;
+            }
             ++state->entered;
             // A final bound also protects the red run from a broken watchdog.
             state->changed.wait_for(lock, std::chrono::seconds(15), [&state]() { return state->released; });
@@ -2398,10 +2402,9 @@ private slots:
                 available.insert(rv.toMap().value("id").toString(), rv.toMap().value("available").toBool());
         QCOMPARE(available.size(), 107);
         for (const char* yes : {"markClip", "cutTool", "markIn", "addMarker", "splitAtPlayhead", "undo", "playPause",
-                                "rollCut", "insertOnDrop", "disableSnapping"})
+                                "rollCut", "insertOnDrop", "disableSnapping", "toggleLoop", "playInToOut", "copy", "groupClips"})
             QVERIFY2(available.value(yes), yes);
-        for (const char* no : {"toggleLoop", "playInToOut", "copy", "groupClips", "matchFrame", "selectEditPoint",
-                               "goToStart"})
+        for (const char* no : {"matchFrame", "selectEditPoint", "goToStart"})
             QVERIFY2(!available.value(no, true), no);
     }
 
@@ -2835,6 +2838,57 @@ private slots:
     }
 
 #ifdef Q_OS_UNIX
+    void replacementDecodesWhileOldFileReadIsAbandoned() {
+        auto& cache = MediaPreviewCache::instance();
+        cache.clear();
+        cache.setOpenTimeoutMs(0);
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QVERIFY(QTest::qWaitFor([]() { return outstandingLocalIoForTesting() == 0; }, 3000));
+        const QString path = dir.filePath("sound.wav");
+        const QString replacement = dir.filePath("replacement.wav");
+        QVERIFY(QFile::copy(QStringLiteral(NT_FIXTURES_DIR "/media/tone-440-48k-mono.wav"), path));
+        QVERIFY(QFile::copy(QStringLiteral(NT_FIXTURES_DIR "/media/clicks-48k.wav"), replacement));
+        // Stall only the read of the original, already opened inode.
+        StalledLocalIo stall({path}, "read", true);
+        const auto cleanup = qScopeGuard([&]() {
+            stall.release();
+            cache.setOpenTimeoutMs(-1);
+            cache.clear();
+            QVERIFY(QTest::qWaitFor([]() { return outstandingLocalIoForTesting() == 0; }, 3000));
+        });
+        auto subscriber = std::make_unique<QObject>();
+        QVERIFY(!cache.peaks(path, subscriber.get()));
+        QVERIFY(QTest::qWaitFor([&]() { return stall.entered() == 1; }, 2000));
+        {
+            std::jthread releaseOnTimeout([&stall](std::stop_token stop) {
+                const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(1500);
+                while (!stop.stop_requested() && std::chrono::steady_clock::now() < deadline) {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(5));
+                }
+                if (!stop.stop_requested()) {
+                    stall.release();
+                }
+            });
+            subscriber.reset();
+            cache.waitForIdle();
+            releaseOnTimeout.request_stop();
+        }
+        QCoreApplication::processEvents();
+        QCOMPARE(cache.pendingCount(), 0);
+        QCOMPARE(outstandingLocalIoForTesting(), 1);
+        // Rename over the path while the old helper still owns the old inode.
+        QCOMPARE(std::rename(QFile::encodeName(replacement).constData(), QFile::encodeName(path).constData()), 0);
+        QObject replacementSubscriber;
+        QVERIFY(!cache.peaks(path, &replacementSubscriber));
+        QVERIFY2(QTest::qWaitFor([&]() { return cache.peaks(path, &replacementSubscriber) != nullptr; }, 2000),
+                 "replacement media was blocked by an abandoned read of the old file version");
+        QCOMPARE(cache.peaks(path, &replacementSubscriber)->durationMs, 20000.0);
+        cache.waitForIdle();
+        QCOMPARE(outstandingLocalIoForTesting(), 1);
+        QCOMPARE(stall.entered(), 1);
+    }
+
     void m2bF5AbandonedHelpersBounded_data() {
         QTest::addColumn<QByteArray>("operation");
         QTest::newRow("open") << QByteArray("open");

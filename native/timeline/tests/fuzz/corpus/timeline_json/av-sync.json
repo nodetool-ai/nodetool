@@ -1,0 +1,42 @@
+{
+  "id": "seq-av-sync",
+  "projectId": "native-prototype",
+  "name": "Flash and beep (M3 A/V sync)",
+  "fps": 30,
+  "width": 1280,
+  "height": 720,
+  "durationMs": 13000,
+  "tracks": [
+    {
+      "id": "v",
+      "name": "Picture",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "fb",
+      "trackId": "v",
+      "name": "flash at 30n, click at 1000n ms",
+      "startMs": 500,
+      "durationMs": 12000,
+      "inPointMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "mediaPath": "media/flash-beep-720p30.mov",
+      "width": 1280,
+      "height": 720,
+      "opacity": 1.0
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z"
+}

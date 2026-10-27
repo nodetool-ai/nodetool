@@ -3,8 +3,7 @@
 // Ripple edit, Rolling edit, Rate stretch, Cut, Slip, Slide, Hand, Zoom), the
 // Ripple toggle, the three drop modes as one exclusive group, Snap, Linked
 // selection and Follow playhead. Labelled ghost buttons; `compact` shows
-// icons only. The Bars ruler toggle and the grid-division select of the web
-// are not here: the native ruler has no tempo grid yet.
+// icons only. Tempo controls plug into the toolbar slot after Snap.
 import QtQuick
 import NodeTool.Timeline
 
@@ -12,6 +11,8 @@ Row {
     id: tools
     objectName: "toolToggle"
     required property ClipGestureController gestures
+    property TimelineModel timeline: null
+    property TimelineViewState viewState: null
     property bool followPlayhead: true
     property bool compact: false
     spacing: 2                                          // gap 0.5 (theme spacing 4)
@@ -157,6 +158,12 @@ Row {
         compact: tools.compact
         iconPath: Icons.gridGoldenratio
         onClicked: tools.gestures.snapEnabled = !tools.gestures.snapEnabled
+    }
+    SlotItems {
+        anchors.verticalCenter: parent.verticalCenter
+        slot: "toolbar"
+        slotProperties: ({ timeline: tools.timeline, gestures: tools.gestures,
+                           viewState: tools.viewState })
     }
     ToolbarDivider { anchors.verticalCenter: parent.verticalCenter }
     ToolButton {

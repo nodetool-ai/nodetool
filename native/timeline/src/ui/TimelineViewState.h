@@ -22,6 +22,8 @@
 class TimelineViewState : public QObject {
     Q_OBJECT
     QML_ELEMENT
+    Q_PROPERTY(QString rulerMode READ rulerMode WRITE setRulerMode NOTIFY rulerModeChanged)
+    Q_PROPERTY(QString gridDivision READ gridDivision WRITE setGridDivision NOTIFY gridDivisionChanged)
     Q_PROPERTY(double msPerPx READ msPerPx NOTIFY msPerPxChanged)
     Q_PROPERTY(double verticalZoom READ verticalZoom WRITE setVerticalZoom NOTIFY verticalZoomChanged)
     Q_PROPERTY(double scrollLeftPx READ scrollLeftPx WRITE setScrollLeftPx NOTIFY scrollLeftPxChanged)
@@ -57,6 +59,10 @@ public:
 
     explicit TimelineViewState(QObject* parent = nullptr);
 
+    QString rulerMode() const { return m_rulerMode; }
+    void setRulerMode(const QString& mode);
+    QString gridDivision() const { return m_gridDivision; }
+    void setGridDivision(const QString& division);
     double msPerPx() const { return m_msPerPx; }
     double verticalZoom() const { return m_verticalZoom; }
     void setVerticalZoom(double zoom);
@@ -128,6 +134,8 @@ public slots:
     }
 
 signals:
+    void rulerModeChanged();
+    void gridDivisionChanged();
     void msPerPxChanged();
     void verticalZoomChanged();
     void scrollLeftPxChanged();
@@ -144,6 +152,8 @@ signals:
     void flushed();
 
 private:
+    QString m_rulerMode = QStringLiteral("time");
+    QString m_gridDivision = QStringLiteral("beat");
     void requestFlush();
     void markWindowDirty();
     void setMsPerPxAndScroll(double msPerPx, double scrollLeftPx);
