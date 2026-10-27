@@ -1,7 +1,7 @@
 /**
  * The cloud profile closes the escape hatches that reach the server machine
  * past a run's workspace: the sandbox's host filesystem and private network
- * switches, pandoc's `extra_args`, and a local-Chrome `take_screenshot`.
+ * switches and a local-Chrome `take_screenshot`.
  *
  * Same profile switch as blender-gate.test.ts and browser-gate.test.ts.
  */
@@ -10,11 +10,9 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   LOCAL_SCREENSHOT_DISABLED_ERROR,
-  PANDOC_EXTRA_ARGS_DISABLED_ERROR,
   isHostAccessEnabled
 } from "../src/host-access-gate.js";
 import { resolveSandboxLimits } from "../src/js-sandbox.js";
-import { convertDocument } from "../src/capabilities/documents.js";
 import { takeScreenshot } from "../src/capabilities/web.js";
 import { availableBuiltinToolNames } from "../src/tools/builtin-tools.js";
 import { UNGATED, createCapabilityRun } from "../src/capabilities/invoke.js";
@@ -79,26 +77,6 @@ describe("capabilities", () => {
   const run = createCapabilityRun({
     context: {} as unknown as ProcessingContext,
     gate: UNGATED
-  });
-
-  it("convert_document refuses extra_args under the cloud profile", async () => {
-    process.env["NODETOOL_NODE_PROFILE"] = "cloud";
-    await expect(
-      convertDocument.impl(run, {
-        input_file: "a.md",
-        output_file: "a.pdf",
-        extra_args: ["--lua-filter=/tmp/x.lua"]
-      })
-    ).resolves.toEqual({ error: PANDOC_EXTRA_ARGS_DISABLED_ERROR });
-  });
-
-  it("convert_document passes extra_args through outside the cloud", async () => {
-    const result = (await convertDocument.impl(run, {
-      input_file: "a.md",
-      output_file: "a.pdf",
-      extra_args: ["--toc"]
-    })) as { error?: string };
-    expect(result.error).not.toBe(PANDOC_EXTRA_ARGS_DISABLED_ERROR);
   });
 
   it("take_screenshot refuses to launch a local browser under the cloud profile", async () => {

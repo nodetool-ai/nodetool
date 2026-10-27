@@ -1,5 +1,5 @@
 /**
- * Detects which external runtimes (pandoc, yt-dlp, manimgx, …) are present on
+ * Detects which external runtimes (yt-dlp, manimgx, …) are present on
  * the machine running the server.
  *
  * The desktop app answers this over Electron IPC, because it also installs the
@@ -16,7 +16,7 @@ import path from "node:path";
 
 /**
  * Runtime ids whose executable is named differently from the id. Ids not
- * listed here are probed under their own name (`pandoc`, `yt-dlp`, …).
+ * listed here are probed under their own name (`yt-dlp`, `manimgx`, …).
  */
 const RUNTIME_COMMANDS: Record<string, string> = {
   nodejs: "node"
@@ -26,7 +26,6 @@ const RUNTIME_COMMANDS: Record<string, string> = {
 export const KNOWN_RUNTIMES = [
   "python",
   "nodejs",
-  "pandoc",
   "yt-dlp",
   "manimgx"
 ] as const;

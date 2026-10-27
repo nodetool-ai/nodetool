@@ -110,7 +110,6 @@ ENV NODE_ENV=production \
 #   ffmpeg            — yt-dlp merges formats with it (media nodes run libav
 #                       in process and need no binary)
 #   git               — Git agent
-#   pandoc            — document conversion nodes
 #   postgresql-client-17 — psql/pg_dump for DATABASE_URL deployments, from
 #                     PGDG: pg_dump refuses servers newer than itself, and
 #                     bookworm ships 15 while docker-compose
@@ -131,8 +130,9 @@ ENV NODE_ENV=production \
 #                     shaderUniform*ArrayDynamicIndexing required" and still
 #                     hands back a null adapter. 25.0 satisfies it.
 #
-# chromium (+ fonts/libs) backs the browser_* agent tools, which drive it
-# over CDP from the host process. wget is a shell tool convenience.
+# chromium (+ fonts/libs) backs the browser_* agent tools and the PDF output
+# of the document conversion tools, which drive it over CDP from the host
+# process. wget is a shell tool convenience.
 RUN echo 'deb http://deb.debian.org/debian bookworm-backports main' \
       > /etc/apt/sources.list.d/backports.list \
     && apt-get update && apt-get install -y --no-install-recommends \
@@ -146,7 +146,6 @@ RUN echo 'deb http://deb.debian.org/debian bookworm-backports main' \
     && apt-get update && apt-get install -y --no-install-recommends \
     wget \
     ffmpeg git jq zip unzip \
-    pandoc \
     postgresql-client-17 \
     python3 python3-venv \
     chromium fonts-liberation fonts-noto-color-emoji \

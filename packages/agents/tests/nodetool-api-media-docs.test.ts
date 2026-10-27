@@ -1,7 +1,7 @@
 /**
  * `nodetool.media` judging + `nodetool.documents` conversion — code actions run
  * in the real QuickJS sandbox against a fake chat tool router. No network, no
- * model, no pandoc.
+ * model, no converter.
  */
 import { Buffer } from "node:buffer";
 import { describe, it, expect } from "vitest";
@@ -310,7 +310,7 @@ describe("generate → image.adjust → nodetool.media.toImage", () => {
 });
 
 describe("nodetool.documents", () => {
-  it("converts between formats through pandoc's arg names", async () => {
+  it("converts between formats through convert_document's arg names", async () => {
     const { executeTool, calls } = createFakeRouter();
     const session = makeSession(DOCUMENT_TOOLS, executeTool);
     const obs = await runAction(

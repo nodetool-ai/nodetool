@@ -208,8 +208,8 @@ describe("usePackageManager", () => {
           updateAvailable: true
         },
         {
-          id: "pandoc",
-          name: "Pandoc",
+          id: "yt-dlp",
+          name: "yt-dlp",
           description: "Media",
           installed: true,
           installing: false
@@ -227,9 +227,9 @@ describe("usePackageManager", () => {
     tfjs?.buttons?.onUpdate();
     expect(update).toHaveBeenCalledWith("tensorflow-js");
 
-    const pandoc = result.current.rows.find((r) => r.key === "pandoc");
-    expect(pandoc?.badge).toBe("installed");
-    expect(pandoc?.buttons?.update).toBe(false);
+    const ytDlp = result.current.rows.find((r) => r.key === "yt-dlp");
+    expect(ytDlp?.badge).toBe("installed");
+    expect(ytDlp?.buttons?.update).toBe(false);
   });
 
   it("shows a desktop-only notice for software without the runtime IPC", () => {
@@ -283,7 +283,7 @@ describe("usePackageManager", () => {
       available: true,
       statuses: [
         status("whisper-cpp", "whisper.cpp"),
-        status("pandoc", "Pandoc"),
+        status("yt-dlp", "yt-dlp"),
         status("python", "Python")
       ]
     });
@@ -294,7 +294,7 @@ describe("usePackageManager", () => {
       result.current.rows.map((r) => [r.group, r.name])
     ).toEqual([
       ["Languages", "Python"],
-      ["Media & documents", "Pandoc"],
+      ["Media & documents", "yt-dlp"],
       ["AI runtimes", "whisper.cpp"]
     ]);
   });
@@ -328,8 +328,8 @@ describe("usePackageManager", () => {
           updateAvailable: true
         },
         {
-          id: "pandoc",
-          name: "Pandoc",
+          id: "yt-dlp",
+          name: "yt-dlp",
           description: "Media",
           installed: true,
           installing: false

@@ -1447,8 +1447,7 @@ export function createSurfaceApiTools(recorder: CodeActToolRecorder): Tool[] {
           input_file: S,
           output_file: S,
           from_format: S,
-          to_format: S,
-          extra_args: ANY_ARRAY
+          to_format: S
         },
         ["input_file", "output_file"]
       ),
