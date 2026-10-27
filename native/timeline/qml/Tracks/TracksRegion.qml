@@ -250,6 +250,7 @@ Rectangle {
                     id: header
                     required property double rowTop
                     required property double baseRowHeight
+                    required property var track
                     rowHeight: baseRowHeight
                     timeline: region.timeline
                     gestures: clipGestures
@@ -270,6 +271,16 @@ Rectangle {
                     }
                     y: rowTop
                     width: region.headerWidth - 1
+                    SlotItems {
+                        // Keep the rows outside the base header's clipping rectangle.
+                        parent: header.parent
+                        y: header.rowTop + header.baseRowHeight
+                        width: header.width
+                        height: rowModel.extraRowHeights[header.trackId] || 0
+                        slot: "trackHeaderLane"
+                        vertical: true
+                        slotProperties: ({ track: header.track, timeline: region.timeline })
+                    }
                     MouseArea {
                         anchors.fill: parent
                         acceptedButtons: Qt.RightButton

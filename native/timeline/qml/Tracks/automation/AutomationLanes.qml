@@ -27,16 +27,12 @@ Item {
                     timeline: root.timeline; track: root.currentTrack; lane: parent.laneData
                     msPerPx: AutomationUIState.viewState ? AutomationUIState.viewState.msPerPx : 10
                 }
-                AutomationLaneHeader {
-                    x: (AutomationUIState.viewState ? AutomationUIState.viewState.scrollLeftPx : 0)
-                       + Math.max(0, Math.min(root.width, AutomationUIState.viewState ? AutomationUIState.viewState.viewportWidthPx : root.width) - width)
-                    width: Math.min(200, root.width); timeline: root.timeline; track: root.currentTrack; lane: parent.laneData
-                }
             }
         }
-        AutomationAddLaneHeader {
-            x: AutomationUIState.viewState ? AutomationUIState.viewState.scrollLeftPx : 0
-            width: Math.min(320,root.width); timeline: root.timeline; track: root.currentTrack
+        Item {
+            objectName: "automation-add-row-" + root.track.id
+            width: root.width
+            height: Layout.AUTOMATION_FOOTER_HEIGHT_PX
         }
     }
 }

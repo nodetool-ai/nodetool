@@ -1,6 +1,8 @@
 #include "audio/automation/Automation.h"
 #include "model/TimelineModel.h"
 #include "model/TimelineJson.h"
+#include "playback/PlaybackClock.h"
+#include <QAccessible>
 #include <QGuiApplication>
 #include <QQmlEngine>
 #include <QQmlComponent>
@@ -14,6 +16,7 @@
 class TestAutomationUi : public QObject {
     Q_OBJECT
     TimelineModel model;
+    PlaybackClock clock;
     std::unique_ptr<QQmlEngine> engine;
     std::unique_ptr<QObject> root;
     std::unique_ptr<QQuickWindow> window;
@@ -27,11 +30,12 @@ class TestAutomationUi : public QObject {
         };
         return find(find,window->contentItem());
     }
-    bool open(const QByteArray& body) {
+    bool open(const QByteArray& body, QVariantMap properties = {}) {
         engine=std::make_unique<QQmlEngine>();
         QQmlComponent component(engine.get());
         component.setData("import QtQuick\nimport NodeTool.Timeline\n"+body,QUrl());
-        root.reset(component.createWithInitialProperties({{"timeline",QVariant::fromValue(&model)}}));
+        properties.insert("timeline",QVariant::fromValue(&model));
+        root.reset(component.createWithInitialProperties(properties));
         if (!root) { qWarning().noquote()<<component.errorString(); return false; }
         window=std::make_unique<QQuickWindow>(); window->resize(800,std::max(400,root->property("height").toInt()));
         qobject_cast<QQuickItem*>(root.get())->setParentItem(window->contentItem());
@@ -40,9 +44,15 @@ class TestAutomationUi : public QObject {
         window->requestActivate();
         return QTest::qWaitForWindowActive(window.get());
     }
+    bool openTracks(bool shown = false) {
+        return open(R"(TracksRegion { width:800; height:600; required timeline; required clock
+Component.onCompleted: AutomationUIState.shownAutomationTrackIds = )" + QByteArray(shown ? "[\"a\"]" : "[]") + R"( })",
+                    {{"clock",QVariant::fromValue(&clock)}});
+    }
     QPoint point(QQuickItem* target,double x,double y) const { return target->mapToScene({x,y}).toPoint(); }
     void click(const QString& name) {
-        const QPointer<QQuickItem> target=item(name); QVERIFY2(target,qPrintable(name));
+        QTRY_VERIFY2(item(name),qPrintable(name));
+        const QPointer<QQuickItem> target=item(name);
         const bool menuItem=target->inherits("QQuickMenuItem");
         const QPointer<QObject> menu=target->property("menu").value<QObject*>();
         QTest::mouseClick(window.get(),Qt::LeftButton,Qt::NoModifier,point(target,target->width()/2,target->height()/2));
@@ -72,7 +82,96 @@ track: ({id:"a",type:"audio",automation:[{id:"lane",target:{kind:"mixer",param:"
 Component.onCompleted: AutomationUIState.shownAutomationTrackIds=["a"] })"));
         QTRY_COMPARE(root->property("implicitHeight").toDouble(),96.);
         auto* lane=item("automation-lane-lane"); QVERIFY(lane); QCOMPARE(lane->height(),56.);
-        QVERIFY(item("automation-add-a")); QCOMPARE(item("automation-add-a")->height(),40.);
+        QVERIFY(item("automation-add-row-a")); QCOMPARE(item("automation-add-row-a")->height(),40.);
+        QVERIFY(!item("automation-add-a"));
+    }
+    void headerAutomationToggle() {
+        QVERIFY(openTracks());
+        auto* button=item("track-automation-a"); QVERIFY(button);
+        QVERIFY(button->isVisible());
+        QCOMPARE(button->property("tone").toString(),"idle");
+        auto* accessible=QAccessible::queryAccessibleInterface(button); QVERIFY(accessible);
+        QCOMPARE(accessible->text(QAccessible::Name),"Show automation lanes");
+        click("track-automation-a");
+        QTRY_VERIFY(item("automation-lane-lane") && item("automation-lane-lane")->isVisible());
+        QCOMPARE(button->property("tone").toString(),"idle");
+        QCOMPARE(accessible->text(QAccessible::Name),"Hide automation lanes");
+        click("track-automation-a");
+        QTRY_VERIFY(!item("automation-lane-lane") || !item("automation-lane-lane")->isVisible());
+        QCOMPARE(button->property("tone").toString(),"idle");
+        QCOMPARE(accessible->text(QAccessible::Name),"Show automation lanes");
+
+        auto* emptyButton=item("track-automation-v"); QVERIFY(emptyButton);
+        QCOMPARE(emptyButton->property("tone").toString(),"dim");
+        click("track-automation-v");
+        QTRY_VERIFY(item("automation-add-v") && item("automation-add-v")->isVisible());
+        QCOMPARE(emptyButton->property("tone").toString(),"idle");
+        click("track-automation-v");
+        QCOMPARE(emptyButton->property("tone").toString(),"dim");
+
+        model.applyEdit("setTrackAutomation",{{"trackId","a"},{"automation",QJsonArray{}}});
+        QTRY_VERIFY(item("track-automation-a") && item("track-automation-a")->property("tone").toString()=="dim");
+        model.undoStack()->undo();
+        QTRY_VERIFY(item("track-automation-a") && item("track-automation-a")->property("tone").toString()=="idle");
+    }
+    void automationTrackTypes_data() {
+        QTest::addColumn<QString>("type"); QTest::addColumn<bool>("supported");
+        QTest::newRow("audio") << "audio" << true;
+        QTest::newRow("midi") << "midi" << true;
+        QTest::newRow("video") << "video" << true;
+        QTest::newRow("overlay") << "overlay" << true;
+        QTest::newRow("subtitle") << "subtitle" << false;
+        QTest::newRow("chord") << "chord" << false;
+    }
+    void automationTrackTypes() {
+        QFETCH(QString,type); QFETCH(bool,supported);
+        auto raw=doc(); auto tracks=raw["tracks"].toArray();
+        auto first=tracks[0].toObject(); first["type"]=type; tracks[0]=first; raw["tracks"]=tracks;
+        const auto parsed=nt::parseTimelineJson(QJsonDocument(raw).toJson());
+        QVERIFY(parsed.timeline); model.setTimeline(*parsed.timeline);
+        QVERIFY(openTracks());
+        auto* button=item("track-automation-a");
+        if (supported) { QVERIFY(button); QVERIFY(button->isVisible()); }
+        else { QVERIFY(!button); }
+    }
+    void headerColumnAlignment() {
+        auto raw=doc(); auto tracks=raw["tracks"].toArray(); auto first=tracks[0].toObject();
+        auto lanes=first["automation"].toArray();
+        lanes.append(QJsonObject{{"id","pan"},{"target",QJsonObject{{"kind","mixer"},{"param","pan"}}},{"points",QJsonArray{}}});
+        first["automation"]=lanes; tracks[0]=first; raw["tracks"]=tracks;
+        const auto parsed=nt::parseTimelineJson(QJsonDocument(raw).toJson());
+        QVERIFY(parsed.timeline); model.setTimeline(*parsed.timeline);
+        QVERIFY(openTracks(true));
+        QTRY_VERIFY(item("automation-lane-pan"));
+        auto* column=item("headerColumn"); QVERIFY(column);
+        auto* viewport=item("lanesViewport"); QVERIFY(viewport);
+        for (const auto& id : {QStringLiteral("lane"),QStringLiteral("pan")}) {
+            auto* header=item("automation-header-"+id); QVERIFY(header);
+            auto* lane=item("automation-lane-"+id); QVERIFY(lane);
+            QVERIFY(column->isAncestorOf(header));
+            QVERIFY(viewport->isAncestorOf(lane));
+            QCOMPARE(header->height(),56.);
+            QCOMPARE(header->height(),lane->height());
+            QTRY_COMPARE(header->mapToScene({0,0}).y(),lane->mapToScene({0,0}).y());
+        }
+        auto* add=item("automation-add-a"); QVERIFY(add);
+        auto* space=item("automation-add-row-a"); QVERIFY(space);
+        QVERIFY(column->isAncestorOf(add)); QVERIFY(viewport->isAncestorOf(space));
+        QCOMPARE(add->height(),40.); QCOMPARE(space->height(),40.);
+        QTRY_COMPARE(add->mapToScene({0,0}).y(),space->mapToScene({0,0}).y());
+        auto* below=item("trackHeader-v"); QVERIFY(below);
+        auto* belowLane=item("trackLane-v"); QVERIFY(belowLane);
+        QTRY_COMPARE(below->mapToScene({0,0}).y(),belowLane->mapToScene({0,0}).y());
+        QCOMPARE(below->height(),belowLane->height());
+        QCOMPARE(below->mapToScene({0,0}).y(),add->mapToScene({0,add->height()}).y());
+        click("track-automation-a");
+        QTRY_COMPARE(below->mapToScene({0,0}).y(),item("trackHeader-a")->mapToScene({0,item("trackHeader-a")->height()}).y());
+        QTRY_COMPARE(below->mapToScene({0,0}).y(),belowLane->mapToScene({0,0}).y());
+    }
+    void toolbarHasNoAutomationMenu() {
+        QVERIFY(open(R"(MixerToolbar { required timeline })"));
+        QVERIFY(item("mixer-toggle"));
+        QVERIFY(!item("automation-toggle"));
     }
     void clickAndDragOneUndo() {
         QVERIFY(open(R"(AutomationLaneView { width:800; required timeline
@@ -147,16 +246,17 @@ ChannelStrip { x:130; width:120; height:360; timeline:parent.timeline; master:tr
         QCOMPARE(model.undoStack()->index(),0);
     }
     void mountedSlots() {
-        QVERIFY(open(R"(Item { width:800; height:600; required property TimelineModel timeline
+        QVERIFY(open(R"(Item { width:800; height:900; required property TimelineModel timeline
+ required property PlaybackClock clock
  MixerToolbar { timeline:parent.timeline }
  PanelSlot { slot:"bottom"; y:100; width:parent.width }
- SlotItems { y:460; width:800; slot:"trackLane"; vertical:true
-  slotProperties: ({timeline:parent.timeline,track:{id:"a",type:"audio"}}) }
- Component.onCompleted: { AutomationUIState.mixerOpen=false; AutomationUIState.shownAutomationTrackIds=["a"] }
-})"));
+ TracksRegion { y:460; width:800; height:400; timeline:parent.timeline; clock:parent.clock }
+ Component.onCompleted: { AutomationUIState.mixerOpen=false; AutomationUIState.shownAutomationTrackIds=[] }
+})",{{"clock",QVariant::fromValue(&clock)}}));
         click("mixer-toggle");
         QTRY_VERIFY(item("mixer-strip-a"));
         QVERIFY(item("mixer-strip-a")->isVisible());
+        click("track-automation-a");
         QTRY_VERIFY(item("automation-lane-lane"));
         QCOMPARE(item("automation-lane-lane")->height(),56.);
         QCOMPARE(item("automation-add-a")->height(),40.);
@@ -167,15 +267,18 @@ ChannelStrip { x:130; width:120; height:360; timeline:parent.timeline; master:tr
         click("automation-remove-lane");
         QVERIFY(track()["automation"].toArray().empty());
         QCOMPARE(model.undoStack()->count(),1);
-        auto* picker=item("automation-picker-a"); QVERIFY(picker);
-        QTest::mouseClick(window.get(),Qt::LeftButton,Qt::NoModifier,point(picker,picker->width()-8,picker->height()/2));
+        {
+            auto* picker=item("automation-picker-a"); QVERIFY(picker);
+            QTest::mouseClick(window.get(),Qt::LeftButton,Qt::NoModifier,point(picker,picker->width()-8,picker->height()/2));
+        }
         click("automation-option-mixer:volumeDb");
         QCOMPARE(track()["automation"].toArray().size(),1);
         QCOMPARE(model.undoStack()->count(),2);
         const auto lane=track()["automation"].toArray()[0].toObject();
         QVERIFY(QRegularExpression("^[0-9a-f]{32}$").match(lane["id"].toString()).hasMatch());
         QCOMPARE(lane["target"].toObject()["param"].toString(),"volumeDb");
-        QCOMPARE(picker->property("count").toInt(),1);
+        QTRY_VERIFY(item("automation-picker-a"));
+        QCOMPARE(item("automation-picker-a")->property("count").toInt(),1);
     }
     void effectCurveEditors_data() {
         QTest::addColumn<QString>("type"); QTest::addColumn<QString>("handle"); QTest::addColumn<QString>("parameter");

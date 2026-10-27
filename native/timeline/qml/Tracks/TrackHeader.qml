@@ -3,6 +3,7 @@
 // A1). Bottom row: the visibility, lock, sync-lock, mute, solo, effects,
 // automation and delete buttons.
 import QtQuick
+import QtQuick.Controls as Controls
 import NodeTool.Timeline
 
 Rectangle {
@@ -26,12 +27,15 @@ Rectangle {
     readonly property bool syncLocked: !TrackTargeting.syncLockOffTrackIds.includes(trackId)
 
     readonly property bool isSoundTrack: trackType === "audio" || trackType === "midi"
+    readonly property bool automationShown: AutomationUIState.shownAutomationTrackIds.includes(trackId)
     readonly property color accent: Theme.trackAccent(trackType)
 
     objectName: "trackHeader-" + trackId
     height: rowHeight
     color: Theme.backgroundDefault
     clip: true
+
+    AutomationController { id: automation; timeline: header.timeline; trackId: header.trackId }
 
     // padding: SPACING.xs SPACING.md; flex column, space-between.
     Item {
@@ -165,10 +169,28 @@ Rectangle {
             icon: Icons.graphicEq
             tone: "dim"
         }
-        TrackIconButton {
-            visible: header.isSoundTrack || header.trackType === "video" || header.trackType === "overlay"
-            icon: Icons.showChart
-            tone: "dim"
+        Loader {
+            active: header.isSoundTrack || header.trackType === "video" || header.trackType === "overlay"
+            visible: active
+            sourceComponent: TrackIconButton {
+                objectName: "track-automation-" + header.trackId
+                icon: Icons.showChart
+                tone: (automation.channel.automation || []).length > 0 || header.automationShown ? "idle" : "dim"
+                readonly property string automationLabel: header.automationShown ? "Hide automation lanes" : "Show automation lanes"
+                Accessible.role: Accessible.Button
+                Accessible.name: automationLabel
+                Accessible.checkable: true
+                Accessible.checked: header.automationShown
+                Accessible.onPressAction: clicked()
+                activeFocusOnTab: true
+                Keys.onSpacePressed: clicked()
+                Keys.onReturnPressed: clicked()
+                onClicked: AutomationUIState.toggleTrackAutomation(header.trackId)
+                Controls.ToolTip.text: automationLabel
+                Controls.ToolTip.visible: automationHover.hovered
+                Controls.ToolTip.delay: 500
+                HoverHandler { id: automationHover }
+            }
         }
         TrackIconButton {
             objectName: "track-delete-" + header.trackId
