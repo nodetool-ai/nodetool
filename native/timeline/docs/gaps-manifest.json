@@ -432,8 +432,12 @@
         "qml/Tracks/ClipFadeShapeMenu.qml",
         "src/edit/clipaudio/",
         "qml/Tracks/ClipFadeGrips.qml",
+        "qml/Tracks/Clip.qml",
         "scripts/conformance/suites/clip-audio.*"
       ],
+      "notes": {
+        "qml/Tracks/Clip.qml": "shared with its merged owner, approved by the user (D15)"
+      },
       "web": [
         "web/src/components/timeline/Inspector/ClipAudioEffects.tsx",
         "web/src/components/timeline/Inspector/ClipAudioDrive.tsx",
@@ -800,8 +804,24 @@
       "owns": [
         "src/ui/Tempo*",
         "qml/Tracks/GridDivisionSelect.qml",
-        "scripts/conformance/suites/tempo.*"
+        "scripts/conformance/suites/tempo.*",
+        "src/wiring/tst_wiring.cpp",
+        "src/wiring/SnapProviders.h",
+        "src/wiring/TestSlotProbe.qml",
+        "src/wiring/README.md",
+        "src/edit/ClipGestureController.*",
+        "qml/Tracks/ToolToggle.qml",
+        "qml/Tracks/TimeRuler.qml"
       ],
+      "ownsNotes": {
+        "src/wiring/tst_wiring.cpp": "shared with S3 (merged), approved by the user (D12)",
+        "src/wiring/SnapProviders.h": "shared with S3 (merged), approved by the user (D12)",
+        "src/wiring/TestSlotProbe.qml": "shared with S3 (merged), approved by the user (D12)",
+        "src/wiring/README.md": "shared with S3 (merged), approved by the user (D12)",
+        "src/edit/ClipGestureController.*": "shared with S3 (merged), approved by the user (D12)",
+        "qml/Tracks/ToolToggle.qml": "shared with S3 (merged), approved by the user (D12)",
+        "qml/Tracks/TimeRuler.qml": "shared with S3 (merged), approved by the user (D12)"
+      },
       "web": [
         "web/src/components/timeline/Tracks/TimeRuler.tsx",
         "packages/timeline/src/beats.ts"
@@ -995,8 +1015,15 @@
       "title": "Source viewer",
       "owns": [
         "qml/SourceViewerPanel.qml",
-        "src/edit/sourceEdit/"
+        "src/edit/sourceEdit/",
+        "CMakeLists.txt",
+        "cmake/TestPreferences.cmake",
+        "src/app/Preferences/module.cmake"
       ],
+      "ownsNotes": {
+        "CMakeLists.txt": "shared with its merged owner, approved by the user (D15)",
+        "src/app/Preferences/module.cmake": "shared with its merged owner, approved by the user (D15)"
+      },
       "web": [
         "web/src/components/timeline/SourceViewerPanel.tsx",
         "web/src/components/timeline/sourceEdit.ts"
