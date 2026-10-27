@@ -1,4 +1,5 @@
 #include "preview/effects/ClipEffects.h"
+#include "preview/effects/Masks.h"
 #include "preview/effects/DrawCache.h"
 #include "preview/RetireQueue.h"
 #include <QCryptographicHash>
@@ -37,6 +38,35 @@ QByteArray key(int index) { return QCryptographicHash::hash(cube(index).toUtf8()
 class TestEffectResources : public QObject {
     Q_OBJECT
   private slots:
+    void maskStageResources() {
+        QRhiNullInitParams init;
+        auto rhi=std::unique_ptr<QRhi>(QRhi::create(QRhi::Null,&init)); QVERIFY(rhi);
+        Target a,b,out; QVERIFY(a.create(rhi.get(),{64,32})); QVERIFY(b.create(rhi.get(),{64,32})); QVERIFY(out.create(rhi.get(),{64,32}));
+        RetireQueue retire; QRhiCommandBuffer *commands=nullptr;
+        QCOMPARE(rhi->beginOffscreenFrame(&commands),QRhi::FrameOpSuccess);
+        EffectContext ctx{rhi.get(),commands,1,&retire};
+        LayerFrame layer; layer.format=LayerFrame::Format::Rgba8Premultiplied; layer.size={64,32}; layer.planes[0]=a.texture.get();
+        auto matte=layer; matte.planes[0]=b.texture.get(); matte.flipV=true;
+        {
+            ShapeMaskStage shape;
+            QVERIFY(!shape.applies({}));
+            QVERIFY(!shape.applies({{"shapeMask",QJsonObject{{"kind","rect"}}},{"effectGroupSurface",true}}));
+            QVERIFY(shape.render(ctx,layer,*out.target,{{"shapeMask",QJsonObject{{"kind","ellipse"},{"featherPx",4}}}}));
+            QVERIFY(shape.render(ctx,layer,*out.target,{{"shapeMask",QJsonObject{{"kind","unknown"}}}}));
+            ImageMatteStage stage;
+            for (const auto mode : {"alpha","luma"}) { for (const bool invert : {false,true}) {
+                const LayerMatte info{mode,invert,{},0.5,9};
+                QVERIFY(stage.render(ctx,layer,matte,*out.target,info,{}));
+            } }
+            GeneratedMatteSourceStage secondary;
+            QVERIFY(!secondary.render(ctx,layer,*out.target,{}));
+            std::map<std::string,LayerFrame> sources{{"j-generated-matte",matte}}; ctx.sources=&sources;
+            QVERIFY(secondary.render(ctx,layer,*out.target,{}));
+        }
+        QVERIFY(retire.size()>0);
+        QCOMPARE(rhi->endOffscreenFrame(),QRhi::FrameOpSuccess);
+        retire.collect(3,2); QCOMPARE(retire.size(),size_t{0});
+    }
     void compatiblePipelinesAndRetirement() {
         QRhiNullInitParams init;
         auto rhi = std::unique_ptr<QRhi>(QRhi::create(QRhi::Null, &init));

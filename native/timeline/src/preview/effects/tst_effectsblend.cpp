@@ -1,4 +1,5 @@
 #include "preview/compose/ComposeRegistry.h"
+#include "preview/layers/SceneHooks.h"
 #include "preview/layers/TestStill.h"
 #include "model/TimelineJson.h"
 #include <QGuiApplication>
@@ -109,6 +110,37 @@ QJsonObject effect(const char* type, QJsonObject values={}) {
     return values;
 }
 
+QImage matteStill(const QString &mode, bool invert, double strength=1, double feather=0) {
+    const auto sourceToken=nt::registerLayerSource("shape",[](const nt::ActiveLayer &layer) {
+        QImage image(64,32,QImage::Format_RGBA8888_Premultiplied);
+        image.fill(layer.clipId=="background" ? QColor(32,64,96) : QColor(192,128,64));
+        if (layer.clipId=="keyhole") {
+            image.fill(Qt::transparent);
+            for (int y=0;y<32;++y) { for (int x=0;x<32;++x) { image.setPixelColor(x,y,QColor(128,128,128,128)); } }
+        }
+        return std::make_unique<nt::test::PaintSource>(std::move(image));
+    });
+    const auto sourceGuard=qScopeGuard([sourceToken] { nt::unregisterLayerSource(sourceToken); });
+    // Track documents do not carry these options on the web. Exercise the S4
+    // contract directly, including feathering the keyhole rather than picture.
+    const auto hook=nt::registerLayerDecorator([strength,feather](nt::ActiveLayer &layer,const nt::Clip &,double) {
+        if (layer.matte) { layer.matte->strength=strength; layer.matte->featherPx=feather; }
+    });
+    const auto hookGuard=qScopeGuard([hook] { nt::unregisterSceneHook(hook); });
+    const auto leaf=[](const char *id,const char *track) { return QJsonObject{{"id",id},{"trackId",track},{"mediaType","shape"},
+        {"startMs",0},{"durationMs",1000},{"width",64},{"height",32},{"shapeStyle",QJsonObject{{"kind","rect"}}}}; };
+    auto keyhole=leaf("keyhole","top"); keyhole.insert("hidden",true); keyhole.insert("opacity",0.5);
+    auto picture=leaf("picture","top"); picture.insert("opacity",0.5); picture.insert("blendMode","screen");
+    picture.insert("matte",QJsonObject{{"sourceClipId","keyhole"},{"mode",mode},{"invert",invert}});
+    const QJsonObject raw{{"fps",30},{"width",64},{"height",32},{"durationMs",1000},
+        {"tracks",QJsonArray{QJsonObject{{"id","top"},{"type","video"},{"index",0}},QJsonObject{{"id","bottom"},{"type","video"},{"index",1}}}},
+        {"clips",QJsonArray{leaf("background","bottom"),keyhole,picture}}};
+    const auto parsed=nt::parseTimelineJson(QJsonDocument(raw).toJson());
+    if (!parsed.timeline) { return {}; }
+    TimelineModel model; model.setTimeline(*parsed.timeline); nt::test::Still still;
+    return still.initialize(model) ? still.capture() : QImage{};
+}
+
 }
 
 class TestEffectsBlend : public QObject {
@@ -182,8 +214,46 @@ private slots:
         QCOMPARE(group.ext.value("clipEffects").toArray().size(),2);
         QCOMPARE(group.ext.value("clipEffects").toArray()[1].toObject().value("time").toDouble(),0.5);
         auto stages=nt::registeredEffectStages(); QVERIFY(!stages.empty());
-        QVERIFY(stages[0]->applies(layer.ext)); QVERIFY(stages[0]->applies(group.ext));
+        QVERIFY(stages[1]->applies(layer.ext)); QVERIFY(stages[1]->applies(group.ext));
         QVERIFY(!stages[0]->applies({}));
+    }
+    void mattePixels_data() {
+        QTest::addColumn<QString>("mode"); QTest::addColumn<bool>("invert");
+        for (const auto mode : {"alpha","luma"}) { for (const bool invert : {false,true}) {
+            QTest::newRow(qPrintable(QString("%1-%2").arg(mode).arg(invert))) << QString(mode) << invert;
+        } }
+    }
+    void mattePixels() {
+        QFETCH(QString,mode); QFETCH(bool,invert);
+        const auto image=matteStill(mode,invert); QVERIFY(!image.isNull());
+        const double coverage=mode=="alpha" ? 0.25 : 0.125;
+        const auto expected=[](double coverage) {
+            const double alpha=0.5*coverage;
+            return QColor(qRound(32+alpha*192*(1-32./255)),qRound(64+alpha*128*(1-64./255)),qRound(96+alpha*64*(1-96./255)));
+        };
+        const auto near=[](QColor a,QColor b) { return std::abs(a.red()-b.red())<=2 && std::abs(a.green()-b.green())<=2 && std::abs(a.blue()-b.blue())<=2; };
+        QVERIFY2(near(image.pixelColor(16,16),expected(invert ? 1-coverage : coverage)),qPrintable(image.pixelColor(16,16).name()));
+        QVERIFY2(near(image.pixelColor(48,16),expected(invert ? 1 : 0)),qPrintable(image.pixelColor(48,16).name()));
+    }
+    void matteStrengthAndFeather() {
+        const auto sharp=matteStill("alpha",false), weak=matteStill("alpha",false,0.5), soft=matteStill("alpha",false,1,9);
+        QVERIFY(!sharp.isNull()); QVERIFY(!weak.isNull()); QVERIFY(!soft.isNull());
+        QVERIFY(weak.pixelColor(16,16).red()<sharp.pixelColor(16,16).red());
+        QVERIFY(std::abs(weak.pixelColor(16,16).red()-43)<=2);
+        QCOMPARE(weak.pixelColor(48,16),QColor(32,64,96));
+        QVERIFY(soft.pixelColor(32,16).red()>sharp.pixelColor(32,16).red());
+        QVERIFY(soft.pixelColor(30,16).red()<sharp.pixelColor(30,16).red());
+        QCOMPARE(soft.pixelColor(16,16),sharp.pixelColor(16,16));
+    }
+    void maskPixels() {
+        QImage source(64,32,QImage::Format_RGBA8888_Premultiplied); source.fill(Qt::white);
+        const auto token=nt::registerLayerDecorator([](nt::ActiveLayer &layer,const nt::Clip &,double) {
+            layer.ext.insert("shapeMask",QJsonObject{{"kind","rect"},{"width",0.5}});
+        });
+        const auto guard=qScopeGuard([token] { nt::unregisterSceneHook(token); });
+        const auto image=effectStill({effect("color",{{"brightness",-0.5}})},source);
+        QVERIFY(!image.isNull()); QVERIFY(std::abs(image.pixelColor(16,16).red()-128)<=1);
+        QCOMPARE(image.pixelColor(48,16),QColor(Qt::black));
     }
     void clipPixels() {
         QImage source(64,32,QImage::Format_RGBA8888_Premultiplied); source.fill(QColor(64,128,192));
@@ -196,7 +266,8 @@ private slots:
         const auto key=effectStill({effect("chromaKey",{{"color","#4080c0"},{"tolerance",0.1},{"softness",0.1}})},source);
         QVERIFY(!key.isNull()); QCOMPARE(key.pixelColor(32,16),QColor(Qt::black));
         const auto poster=effectStill({effect("posterize",{{"levels",3}})},source);
-        QVERIFY(!poster.isNull()); QCOMPARE(poster.pixelColor(32,16),QColor(0,128,255));
+        // clip-posterize-midpoint golden is identical to step 2 at byte 127.
+        QVERIFY(!poster.isNull()); QCOMPARE(poster.pixelColor(32,16),QColor(0,127,255));
     }
     void cropPixelsOnClip() {
         QImage source(64,32,QImage::Format_RGBA8888_Premultiplied); source.fill(Qt::green);

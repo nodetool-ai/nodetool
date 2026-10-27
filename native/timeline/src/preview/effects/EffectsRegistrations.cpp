@@ -1,5 +1,6 @@
 #include "preview/effects/BlendModes.h"
 #include "preview/effects/ClipEffects.h"
+#include "preview/effects/Masks.h"
 #include "preview/layers/SceneHooks.h"
 #include <QCoreApplication>
 #include <QGuiApplication>
@@ -28,12 +29,17 @@ void registerEffects() {
             rect.append(component);
         }
         layer.ext.insert("effectSourceRect", rect);
+        nt::effects::decorateMasks(layer,clip);
     });
     nt::registerGroupDecorator([](nt::PrecompositeLayer &layer, const nt::Clip &clip, double timeMs) {
         nt::effects::decorateEffects(layer.ext, clip, timeMs);
         layer.ext.insert("effectGroupSurface", true);
     });
+    nt::registerSecondSourceProvider(nt::effects::generatedMatteSources);
+    nt::registerEffectStage([] { return std::make_unique<nt::effects::GeneratedMatteSourceStage>(); });
     nt::registerEffectStage([] { return std::make_unique<nt::effects::ClipEffectStage>(); });
+    nt::registerEffectStage([] { return std::make_unique<nt::effects::ShapeMaskStage>(); });
+    nt::registerMatteStage([] { return std::make_unique<nt::effects::ImageMatteStage>(); });
     for (const auto mode : nt::effects::blendModes) {
         nt::registerBlendHandler(std::string(mode), [] { return std::make_unique<nt::effects::BlendModeHandler>(); });
     }

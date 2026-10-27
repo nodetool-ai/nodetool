@@ -34,7 +34,10 @@ enum class Op {
     Shadow,
     ToStraight,
     ToPremul,
-    VisualFx
+    VisualFx,
+    MaskApply,
+    MaskDerive,
+    ScaleOpacity
 };
 struct Pass {
     Op op = Op::Copy;

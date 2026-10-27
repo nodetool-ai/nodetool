@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { matteImports, prepareMatteFixture } from "./import-matte.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../../..");
@@ -55,8 +56,8 @@ export function parseArgs(argv) {
   return args;
 }
 
-export function comparisonPasses(psnr, minimum) {
-  return typeof psnr === "number" && !Number.isNaN(psnr) && psnr >= minimum;
+export function comparisonPasses(psnr, minimum, identical = false) {
+  return typeof psnr === "number" && !Number.isNaN(psnr) && (identical ? psnr === Infinity : psnr >= minimum);
 }
 
 export function allComparisonsPass(results) {
@@ -84,7 +85,8 @@ export function loadFixtures(directory, only) {
       const fixture = path.join(directory, file);
       const frames = JSON.parse(fs.readFileSync(fixture, "utf8")).goldenFrames;
       if (!Array.isArray(frames) || frames.length === 0 || frames.some(item =>
-        !Number.isSafeInteger(item.frame) || item.frame < 0 || typeof item.criterion !== "string" || !item.criterion.trim()) ||
+        !Number.isSafeInteger(item.frame) || item.frame < 0 || typeof item.criterion !== "string" || !item.criterion.trim() ||
+        (item.identical !== undefined && typeof item.identical !== "boolean")) ||
         new Set(frames.map(item => item.frame)).size !== frames.length) {
         throw new Error(`${file}: expected distinct nonnegative goldenFrames with an exit criterion`);
       }
@@ -105,8 +107,24 @@ export function main(argv) {
     let renderError;
     let operation = "golden-import";
     try {
-      execFileSync(process.execPath, [path.join(root, "scripts", "golden-import.mjs"), fixture,
+      const doc = JSON.parse(fs.readFileSync(fixture, "utf8"));
+      const hasMattes = matteImports(doc, path.dirname(fixture)).length > 0;
+      let importFixture = fixture;
+      if (hasMattes) {
+        const preparedDir = path.join(root, "build", "effects-import");
+        fs.mkdirSync(preparedDir, { recursive: true });
+        importFixture = path.join(preparedDir, `${name}.json`);
+        fs.writeFileSync(importFixture, JSON.stringify(prepareMatteFixture(doc, path.dirname(fixture))));
+      }
+      execFileSync(process.execPath, [path.join(root, "scripts", "golden-import.mjs"), importFixture,
         "--frames", frameList, "--out", goldenOut], { stdio: ["ignore", "pipe", "pipe"] });
+      if (hasMattes) {
+        operation = "generated matte import/render";
+        fs.rmSync(path.join(goldenOut, "stills"), { recursive: true, force: true });
+        execFileSync(process.execPath, [path.join(here, "import-matte.mjs"), fixture,
+          path.join(goldenOut, `${name}.imported.json`), frameList, path.join(goldenOut, "stills"),
+          path.resolve(root, "../.."), path.join(root, "build", "golden", "store")], { stdio: ["ignore", "pipe", "pipe"] });
+      }
       // This path is constructed only from bundled fixture basenames.
       fs.rmSync(nativeOut, { recursive: true, force: true });
       operation = "native stills";
@@ -115,7 +133,7 @@ export function main(argv) {
     } catch (error) {
       renderError = `${operation} exited ${error.status ?? error.code ?? "unknown"}: ${String(error.stderr ?? error.message).trim().split(/\r?\n/).slice(-5).join(" | ")}`;
     }
-    for (const { frame, criterion } of frames) {
+    for (const { frame, criterion, identical = false } of frames) {
       const row = { fixture: name, frame, criterion, psnr: null, pass: false };
       try {
         if (renderError) { throw new Error(renderError); }
@@ -124,10 +142,10 @@ export function main(argv) {
         if (!fs.existsSync(golden) || !fs.existsSync(native)) { throw new Error("Missing golden or native still"); }
         const value = psnr(golden, native);
         row.psnr = Number.isFinite(value) ? value : "inf";
-        row.pass = comparisonPasses(value, args.minPsnr);
+        row.pass = comparisonPasses(value, args.minPsnr, identical);
       } catch (error) { row.error = error.message.replace(/\r?\n/g, " | "); }
       results.push(row);
-      console.log(args.json ? JSON.stringify(row) : `${name} frame ${frame}: PSNR ${row.psnr ?? "missing"} dB ${row.pass ? "PASS" : "FAIL"} (minimum ${args.minPsnr})${row.error ? ` ${row.error}` : ""}`);
+      console.log(args.json ? JSON.stringify(row) : `${name} frame ${frame}: PSNR ${row.psnr ?? "missing"} dB ${row.pass ? "PASS" : "FAIL"} (${identical ? "identical required" : `minimum ${args.minPsnr}`})${row.error ? ` ${row.error}` : ""}`);
     }
   }
   return allComparisonsPass(results) ? 0 : 1;

@@ -196,6 +196,16 @@ void main() {
     vec4 src=readSource(uv);
     vec3 rgb=straight(src);
     if (op==21) { fragColor=visualFx(uv); return; }
+    if (op==22) {
+        vec2 maskUv=vec2(uv.x,p[0].x>0.5 ? 1-uv.y : uv.y);
+        fragColor=src*texture(second,maskUv).a; return;
+    }
+    if (op==23) {
+        float coverage=p[0].x>0.5 ? dot(straight(src),vec3(0.2126,0.7152,0.0722)) : src.a;
+        if (p[0].y>0.5) coverage=1-coverage;
+        fragColor=vec4(0,0,0,clamp(coverage,0,1)); return;
+    }
+    if (op==24) { fragColor=src*p[0].x; return; }
     if (op==0) {
         // Extract a crop and pad it, or copy its processed window back into
         // the input-sized output. sourceRect is in destination pixels for back-copy.
@@ -244,9 +254,6 @@ void main() {
         fragColor=readSource((snapped+origin.xy)/dimensions.xy); return;
     } else if (op==4) {
         float n=clamp(p[0].x,2,256); rgb=clamp(floor(clamp(rgb,0,1)*n)/(n-1),0,1);
-        // The export stores 0.5 as byte 128. Resolve UNORM midpoint ties
-        // before the render target conversion, which differs between drivers.
-        fragColor=floor(vec4(rgb*src.a,src.a)*255+0.5)/255; return;
     } else if (op==5) {
         vec2 centered=(logical-0.5)*2; float r2=dot(centered,centered);
         vec2 warped=centered*(1-p[0].x*(1-r2))*0.5+0.5;

@@ -1,4 +1,5 @@
 #include "preview/effects/ClipEffects.h"
+#include "preview/effects/Masks.h"
 #include "preview/RetireQueue.h"
 #include "preview/effects/DrawCache.h"
 #include <QCryptographicHash>
@@ -271,5 +272,149 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
     }
     const QRect back{crop.topLeft(), workingSize};
     return encoder.draw(current, output, {}, crop.size(), pad, nullptr, &back);
+}
+namespace {
+bool initializeMaskCache(const EffectContext &ctx, std::shared_ptr<DrawCache> &cache) {
+    if (!cache) {
+        cache = std::make_shared<DrawCache>();
+    }
+    return cache->initialize(ctx, ":/effects/clip.vert.qsb", ":/effects/clip.frag.qsb", QRhiSampler::Linear);
+}
+bool alphaBridge(Encoder &encoder, LayerFrame &current, QSize size, Op op, QRhiTexture *keep = nullptr) {
+    auto *target = encoder.surface(size, current.planes[0], keep);
+    Pass pass;
+    pass.op = op;
+    if (!target || !encoder.draw(current, *target, pass, size, {})) {
+        return false;
+    }
+    current = encoder.result(target);
+    return true;
+}
+} // namespace
+bool GeneratedMatteSourceStage::applies(const QJsonObject &ext) const {
+    return ext.value("generatedMatteSource").toBool();
+}
+bool GeneratedMatteSourceStage::render(const EffectContext &ctx, const LayerFrame &, QRhiTextureRenderTarget &output,
+                                       const QJsonObject &) {
+    if (!ctx.sources || !ctx.sources->contains("j-generated-matte") || !initializeMaskCache(ctx, m_cache)) {
+        return false;
+    }
+    Encoder encoder(ctx, m_cache);
+    const auto &source = ctx.sources->at("j-generated-matte");
+    const QRect destination(QPoint{}, output.pixelSize());
+    // Generated videos have the picture's dimensions and source clock.
+    return encoder.draw(source, output, {}, source.size, {}, nullptr, &destination);
+}
+bool ShapeMaskStage::applies(const QJsonObject &ext) const {
+    return ext.value("shapeMask").isObject() && !ext.value("effectGroupSurface").toBool();
+}
+bool ShapeMaskStage::render(const EffectContext &ctx, const LayerFrame &input, QRhiTextureRenderTarget &output,
+                            const QJsonObject &ext) {
+    if (!initializeMaskCache(ctx, m_cache)) {
+        return false;
+    }
+    Encoder encoder(ctx, m_cache);
+    const auto margin = chainOutset(ext.value("clipEffects").toArray());
+    const auto original = input.size - QSize(margin.left() + margin.right(), margin.top() + margin.bottom());
+    const auto crop = cropPixels(ext, original);
+    const auto image = m_rasterizer.rasterize(ext.value("shapeMask").toObject(), original);
+    if (image.isNull()) {
+        const QRect destination(QPoint{}, input.size);
+        return encoder.draw(input, output, {}, input.size, {}, nullptr, &destination);
+    }
+    auto hit = std::ranges::find(m_textures, image.cacheKey(), &decltype(m_textures)::value_type::first);
+    if (hit == m_textures.end()) {
+        auto texture = std::shared_ptr<QRhiTexture>(ctx.rhi->newTexture(QRhiTexture::RGBA8, image.size()));
+        if (!texture->create()) {
+            return false;
+        }
+        auto *updates = ctx.rhi->nextResourceUpdateBatch();
+        updates->uploadTexture(texture.get(), image);
+        ctx.commands->resourceUpdate(updates);
+        if (m_textures.size() == 32) {
+            ctx.retire->retire(std::move(m_textures.front().second), ctx.frameNumber);
+            m_textures.pop_front();
+        }
+        m_textures.emplace_back(image.cacheKey(), std::move(texture));
+        hit = std::prev(m_textures.end());
+    }
+    encoder.retain(hit->second);
+    const QSize work = crop.size() + QSize(margin.left() + margin.right(), margin.top() + margin.bottom());
+    const QRect window(crop.topLeft(), work);
+    auto *extracted = encoder.surface(work);
+    const QRect destination(QPoint{}, work);
+    if (!extracted || !encoder.draw(input, *extracted, {}, work, {}, nullptr, &destination, crop.topLeft())) {
+        return false;
+    }
+    auto current = encoder.result(extracted);
+    auto *masked = encoder.surface(work, current.planes[0]);
+    Pass pass;
+    pass.op = Op::MaskApply;
+    if (!masked || !encoder.draw(current, *masked, pass, work, {}, hit->second.get())) {
+        return false;
+    }
+    current = encoder.result(masked);
+    if (!alphaBridge(encoder, current, work, Op::ToStraight) || !alphaBridge(encoder, current, work, Op::ToPremul)) {
+        return false;
+    }
+    return encoder.draw(current, output, {}, work, {}, nullptr, &window);
+}
+bool ImageMatteStage::render(const EffectContext &ctx, const LayerFrame &layer, const LayerFrame &matte,
+                             QRhiTextureRenderTarget &output, const LayerMatte &info, const QJsonObject &) {
+    if (!initializeMaskCache(ctx, m_cache) || !layer.planes[0] || !matte.planes[0] || layer.size != matte.size) {
+        return false;
+    }
+    Encoder encoder(ctx, m_cache);
+    auto current = matte;
+    // composeToTexture resolves its accumulation to straight, then deriveMask
+    // bridges back. Luma adds a second premultiply to weight by coverage.
+    if (!alphaBridge(encoder, current, matte.size, Op::ToStraight) ||
+        !alphaBridge(encoder, current, matte.size, Op::ToPremul)) {
+        return false;
+    }
+    if (info.mode == "luma" && !alphaBridge(encoder, current, matte.size, Op::ToPremul)) {
+        return false;
+    }
+    Pass derived;
+    derived.op = Op::MaskDerive;
+    derived.params = {info.mode == "luma" ? 1.f : 0.f, info.invert ? 1.f : 0.f};
+    auto *coverage = encoder.surface(matte.size, current.planes[0]);
+    if (!coverage || !encoder.draw(current, *coverage, derived, matte.size, {})) {
+        return false;
+    }
+    current = encoder.result(coverage);
+    const auto feather = info.featherPx.value_or(0);
+    if (feather > 0) {
+        const auto chain = planChain(QJsonArray{QJsonObject{{"type", "blur"}, {"enabled", true}, {"radius", feather}}});
+        for (const auto &pass : chain) {
+            auto *target = encoder.surface(matte.size, current.planes[0]);
+            if (!target || !encoder.draw(current, *target, pass, matte.size, {})) {
+                return false;
+            }
+            current = encoder.result(target);
+        }
+    }
+    const auto mask = current;
+    current = layer;
+    if (!alphaBridge(encoder, current, layer.size, Op::ToStraight, mask.planes[0]) ||
+        !alphaBridge(encoder, current, layer.size, Op::ToPremul, mask.planes[0])) {
+        return false;
+    }
+    auto *masked = encoder.surface(layer.size, current.planes[0], mask.planes[0]);
+    Pass apply;
+    apply.op = Op::MaskApply;
+    apply.params[0] = mask.flipV ? 1.f : 0.f;
+    if (!masked || !encoder.draw(current, *masked, apply, layer.size, {}, mask.planes[0])) {
+        return false;
+    }
+    current = encoder.result(masked);
+    if (!alphaBridge(encoder, current, layer.size, Op::ToStraight, mask.planes[0]) ||
+        !alphaBridge(encoder, current, layer.size, Op::ToPremul, mask.planes[0])) {
+        return false;
+    }
+    Pass strength;
+    strength.op = Op::ScaleOpacity;
+    strength.params[0] = float(std::clamp(info.strength.value_or(1.), 0., 1.));
+    return encoder.draw(current, output, strength, layer.size, {});
 }
 } // namespace nt::effects
