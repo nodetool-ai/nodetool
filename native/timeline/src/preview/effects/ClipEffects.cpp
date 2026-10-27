@@ -1,18 +1,13 @@
 #include "preview/effects/ClipEffects.h"
 #include "preview/RetireQueue.h"
-#include <QFile>
+#include "preview/effects/DrawCache.h"
+#include <QCryptographicHash>
 #include <algorithm>
+#include <cstring>
 #include <span>
 
 namespace nt::effects {
 namespace {
-QShader shader(const char *name) {
-    QFile file(QString::fromLatin1(name));
-    if (!file.open(QIODevice::ReadOnly)) {
-        return {};
-    }
-    return QShader::fromSerialized(file.readAll());
-}
 struct Uniforms {
     std::array<float, 16> matrix{}, colorMatrix{};
     std::array<float, 4> geometry{}, sourceRect{}, dimensions{}, origin{};
@@ -27,14 +22,12 @@ struct Surface {
 struct Draw {
     std::unique_ptr<QRhiBuffer> uniforms;
     std::unique_ptr<QRhiShaderResourceBindings> bindings;
-    std::unique_ptr<QRhiGraphicsPipeline> pipeline;
 };
 struct Resources {
-    std::unique_ptr<QRhiBuffer> vertices;
-    std::unique_ptr<QRhiSampler> sampler;
+    std::shared_ptr<DrawCache> cache;
+    std::vector<std::shared_ptr<void>> luts;
     std::vector<std::unique_ptr<Surface>> surfaces;
     std::vector<std::unique_ptr<Draw>> draws;
-    std::vector<std::shared_ptr<void>> luts;
 };
 LayerFrame frameFor(QRhiTexture *texture, bool flip) {
     LayerFrame frame;
@@ -49,26 +42,19 @@ class Encoder {
     std::shared_ptr<Resources> m_resources = std::make_shared<Resources>();
 
   public:
-    explicit Encoder(const EffectContext &ctx) : m_ctx(ctx) {}
+    Encoder(const EffectContext &ctx, std::shared_ptr<DrawCache> cache) : m_ctx(ctx) {
+        m_resources->cache = std::move(cache);
+    }
     // Even a failed chain can already have recorded passes. Retire that prefix too.
     ~Encoder() { m_ctx.retire->retire(std::move(m_resources), m_ctx.frameNumber); }
-    bool initialize() {
-        constexpr std::array<float, 16> quad{-1, -1, 0, 1, 1, -1, 1, 1, -1, 1, 0, 0, 1, 1, 1, 0};
-        const auto bytes = std::as_bytes(std::span{quad});
-        auto *rhi = m_ctx.rhi;
-        m_resources->vertices.reset(
-            rhi->newBuffer(QRhiBuffer::Immutable, QRhiBuffer::VertexBuffer, quint32(bytes.size())));
-        m_resources->sampler.reset(rhi->newSampler(QRhiSampler::Linear, QRhiSampler::Linear, QRhiSampler::None,
-                                                   QRhiSampler::ClampToEdge, QRhiSampler::ClampToEdge));
-        if (!m_resources->vertices->create() || !m_resources->sampler->create()) {
-            return false;
+    QRhiTextureRenderTarget *surface(QSize size, QRhiTexture *source = nullptr, QRhiTexture *other = nullptr,
+                                     QRhiTexture *saved = nullptr) {
+        for (const auto &surface : m_resources->surfaces) {
+            auto *texture = surface->texture.get();
+            if (texture->pixelSize() == size && texture != source && texture != other && texture != saved) {
+                return surface->target.get();
+            }
         }
-        auto *updates = rhi->nextResourceUpdateBatch();
-        updates->uploadStaticBuffer(m_resources->vertices.get(), bytes.data());
-        m_ctx.commands->resourceUpdate(updates);
-        return true;
-    }
-    QRhiTextureRenderTarget *surface(QSize size) {
         auto surface = std::make_unique<Surface>();
         auto *rhi = m_ctx.rhi;
         surface->texture.reset(rhi->newTexture(QRhiTexture::RGBA8, size, 1, QRhiTexture::RenderTarget));
@@ -104,26 +90,16 @@ class Encoder {
                  0, QRhiShaderResourceBinding::VertexStage | QRhiShaderResourceBinding::FragmentStage,
                  draw->uniforms.get()),
              QRhiShaderResourceBinding::sampledTexture(1, QRhiShaderResourceBinding::FragmentStage, plane(0),
-                                                       m_resources->sampler.get()),
+                                                       m_resources->cache->sampler()),
              QRhiShaderResourceBinding::sampledTexture(2, QRhiShaderResourceBinding::FragmentStage,
-                                                       other ? other : plane(1), m_resources->sampler.get()),
+                                                       other ? other : plane(1), m_resources->cache->sampler()),
              QRhiShaderResourceBinding::sampledTexture(3, QRhiShaderResourceBinding::FragmentStage, plane(2),
-                                                       m_resources->sampler.get())});
+                                                       m_resources->cache->sampler())});
         if (!draw->bindings->create()) {
             return false;
         }
-        draw->pipeline.reset(rhi->newGraphicsPipeline());
-        draw->pipeline->setTopology(QRhiGraphicsPipeline::TriangleStrip);
-        draw->pipeline->setShaderStages({{QRhiShaderStage::Vertex, shader(":/effects/clip.vert.qsb")},
-                                         {QRhiShaderStage::Fragment, shader(":/effects/clip.frag.qsb")}});
-        QRhiVertexInputLayout layout;
-        layout.setBindings({{4 * sizeof(float)}});
-        layout.setAttributes(
-            {{0, 0, QRhiVertexInputAttribute::Float2, 0}, {0, 1, QRhiVertexInputAttribute::Float2, 2 * sizeof(float)}});
-        draw->pipeline->setVertexInputLayout(layout);
-        draw->pipeline->setShaderResourceBindings(draw->bindings.get());
-        draw->pipeline->setRenderPassDescriptor(output.renderPassDescriptor());
-        if (!draw->pipeline->create()) {
+        auto *pipeline = m_resources->cache->pipeline(rhi, output, draw->bindings.get());
+        if (!pipeline) {
             return false;
         }
         Uniforms u;
@@ -147,12 +123,12 @@ class Encoder {
         updates->updateDynamicBuffer(draw->uniforms.get(), 0, sizeof(u), &u);
         auto *cb = m_ctx.commands;
         cb->beginPass(&output, Qt::transparent, {1, 0}, updates);
-        cb->setGraphicsPipeline(draw->pipeline.get());
+        cb->setGraphicsPipeline(pipeline);
         cb->setViewport({0, 0, float(output.pixelSize().width()), float(output.pixelSize().height())});
         cb->setShaderResources(draw->bindings.get());
-        const QRhiCommandBuffer::VertexInput vertices(m_resources->vertices.get(), 0);
+        const QRhiCommandBuffer::VertexInput vertices(m_resources->cache->vertices(), 0);
         cb->setVertexInput(0, 1, &vertices);
-        cb->draw(4);
+        cb->draw(3);
         cb->endPass();
         m_resources->draws.push_back(std::move(draw));
         return true;
@@ -180,8 +156,11 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
     const auto margins = outset(ext, input.size);
     const QSize workingSize = crop.size() + QSize(margins.left() + margins.right(), margins.top() + margins.bottom());
     const QPoint pad{margins.left(), margins.top()};
-    Encoder encoder(ctx);
-    if (!encoder.initialize()) {
+    if (!m_drawCache) {
+        m_drawCache = std::make_shared<DrawCache>();
+    }
+    Encoder encoder(ctx, m_drawCache);
+    if (!m_drawCache->initialize(ctx, ":/effects/clip.vert.qsb", ":/effects/clip.frag.qsb", QRhiSampler::Linear)) {
         return false;
     }
     auto *extracted = encoder.surface(workingSize);
@@ -195,7 +174,8 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
     auto current = encoder.result(extracted);
     std::optional<LayerFrame> recipeSource;
     const auto step = [&](const Pass &pass, QRhiTexture *other = nullptr) {
-        auto *target = encoder.surface(workingSize);
+        auto *target = encoder.surface(workingSize, current.planes[0], other,
+                                       recipeSource ? recipeSource->planes[0] : nullptr);
         if (!target || !encoder.draw(current, *target, pass, crop.size(), pad, other)) {
             return false;
         }
@@ -215,7 +195,8 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
         }
         QRhiTexture *other = nullptr;
         if (pass.op == Op::Lut) {
-            auto found = m_luts.find(pass.cube);
+            const auto key = QCryptographicHash::hash(pass.cube.toUtf8(), QCryptographicHash::Sha256);
+            auto found = std::ranges::find(m_luts, key, &decltype(m_luts)::value_type::first);
             if (found == m_luts.end()) {
                 auto parsed = parseCube(pass.cube);
                 if (!parsed) {
@@ -242,14 +223,22 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
                     }
                 }
                 const auto bytes = std::as_bytes(std::span{pixels});
-                QRhiTextureSubresourceUploadDescription upload(
-                    QByteArray(reinterpret_cast<const char *>(bytes.data()), qsizetype(bytes.size())));
+                QByteArray data(qsizetype(bytes.size()), Qt::Uninitialized);
+                std::memcpy(data.data(), bytes.data(), bytes.size());
+                QRhiTextureSubresourceUploadDescription upload(data);
                 auto *updates = ctx.rhi->nextResourceUpdateBatch();
                 updates->uploadTexture(lut->texture.get(), {{0, 0, upload}});
                 ctx.commands->resourceUpdate(updates);
-                found = m_luts.emplace(pass.cube, std::move(lut)).first;
+                constexpr size_t capacity = 8;
+                if (m_luts.size() == capacity) {
+                    ctx.retire->retire(std::move(m_luts.back().second), ctx.frameNumber);
+                    m_luts.pop_back();
+                }
+                m_luts.emplace_front(key, std::move(lut));
+                found = m_luts.begin();
             }
-            const auto &lut = found->second;
+            m_luts.splice(m_luts.begin(), m_luts, found);
+            const auto &lut = m_luts.front().second;
             pass.params[1] = float(lut->cube.size);
             std::copy(lut->cube.minimum.begin(), lut->cube.minimum.end(), pass.params.begin() + 4);
             std::copy(lut->cube.maximum.begin(), lut->cube.maximum.end(), pass.params.begin() + 8);

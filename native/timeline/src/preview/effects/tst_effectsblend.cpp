@@ -161,10 +161,12 @@ private slots:
             {"tracks",QJsonArray{QJsonObject{{"id","v"},{"type","video"}}}},
             {"clips",QJsonArray{
                 QJsonObject{{"id","g"},{"trackId","v"},{"mediaType","group"},{"startMs",0},{"durationMs",1000},
-                    {"effects",QJsonArray{effect("blur",{{"radius",8}})}}},
+                    {"effects",QJsonArray{effect("blur",{{"radius",8}}),
+                        effect("generator",{{"mode","fractal"},{"animate",true},{"time",17}})}}},
                 QJsonObject{{"id","a"},{"trackId","v"},{"mediaType","shape"},{"parentId","g"},{"startMs",0},{"durationMs",1000},
                     {"width",64},{"height",32},{"shapeStyle",QJsonObject{{"kind","rect"}}},{"crop",QJsonObject{{"left",0.25},{"right",0.25},{"top",0},{"bottom",0}}},
                     {"effects",QJsonArray{effect("grain",{{"seed",27},{"animate",true}}),
+                        effect("stylize",{{"mode","glitch"},{"animate",true},{"time",17}}),
                         QJsonObject{{"id","disabled"},{"type","vignette"},{"enabled",false}}}}}}}};
         const auto parsed=nt::parseTimelineJson(QJsonDocument(raw).toJson()); QVERIFY(parsed.timeline);
         const auto frame=nt::evaluateScene(*parsed.timeline,500);
@@ -172,11 +174,13 @@ private slots:
         const auto& layer=frame.layers[0];
         QCOMPARE(layer.sourceRect,(std::array<float,4>{0.25f,0,0.5f,1}));
         QCOMPARE(layer.ext.value("effectSourceRect").toArray(),(QJsonArray{0.25,0,0.5,1}));
-        const auto copied=layer.ext.value("clipEffects").toArray(); QCOMPARE(copied.size(),1);
+        const auto copied=layer.ext.value("clipEffects").toArray(); QCOMPARE(copied.size(),2);
         QCOMPARE(copied[0].toObject().value("seed").toInt(),27);
+        QCOMPARE(copied[1].toObject().value("time").toDouble(),0.5);
         const auto& group=frame.precomposites[0];
         QVERIFY(group.ext.value("effectGroupSurface").toBool());
-        QCOMPARE(group.ext.value("clipEffects").toArray().size(),1);
+        QCOMPARE(group.ext.value("clipEffects").toArray().size(),2);
+        QCOMPARE(group.ext.value("clipEffects").toArray()[1].toObject().value("time").toDouble(),0.5);
         auto stages=nt::registeredEffectStages(); QVERIFY(!stages.empty());
         QVERIFY(stages[0]->applies(layer.ext)); QVERIFY(stages[0]->applies(group.ext));
         QVERIFY(!stages[0]->applies({}));

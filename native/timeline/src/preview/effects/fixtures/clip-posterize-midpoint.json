@@ -1,0 +1,54 @@
+{
+  "id": "seq-clip-posterize-midpoint",
+  "projectId": "native-prototype",
+  "name": "clip-posterize-midpoint",
+  "fps": 30,
+  "width": 64,
+  "height": 32,
+  "durationMs": 2000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "t0",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "treated",
+      "trackId": "t0",
+      "name": "treated",
+      "startMs": 0,
+      "durationMs": 2000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 64,
+      "height": 32,
+      "mediaPath": "posterize-midpoint.png",
+      "effects": [
+        {
+          "id": "posterize-None",
+          "type": "posterize",
+          "enabled": true,
+          "levels": 3
+        }
+      ]
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z",
+  "goldenFrames": [
+    {
+      "frame": 0,
+      "criterion": "J1 posterize midpoint, PSNR >= 40 dB"
+    }
+  ]
+}

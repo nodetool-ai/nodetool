@@ -12,8 +12,8 @@ void registerEffects() {
     if (!qobject_cast<QGuiApplication *>(QCoreApplication::instance())) {
         return;
     }
-    nt::registerLayerDecorator([](nt::ActiveLayer &layer, const nt::Clip &clip, double) {
-        nt::effects::decorateEffects(layer.ext, clip);
+    nt::registerLayerDecorator([](nt::ActiveLayer &layer, const nt::Clip &clip, double timeMs) {
+        nt::effects::decorateEffects(layer.ext, clip, timeMs);
         const auto crop = clip.raw.value("crop").toObject();
         if (!crop.isEmpty() && layer.sourceRect == std::array<float, 4>{0, 0, 1, 1}) {
             const double left = crop.value("left").toDouble(), right = crop.value("right").toDouble();
@@ -29,8 +29,8 @@ void registerEffects() {
         }
         layer.ext.insert("effectSourceRect", rect);
     });
-    nt::registerGroupDecorator([](nt::PrecompositeLayer &layer, const nt::Clip &clip, double) {
-        nt::effects::decorateEffects(layer.ext, clip);
+    nt::registerGroupDecorator([](nt::PrecompositeLayer &layer, const nt::Clip &clip, double timeMs) {
+        nt::effects::decorateEffects(layer.ext, clip, timeMs);
         layer.ext.insert("effectGroupSurface", true);
     });
     nt::registerEffectStage([] { return std::make_unique<nt::effects::ClipEffectStage>(); });

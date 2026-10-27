@@ -5,7 +5,7 @@
 #include <QString>
 #include <array>
 #include <cstdint>
-#include <map>
+#include <list>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -33,7 +33,8 @@ enum class Op {
     Add,
     Shadow,
     ToStraight,
-    ToPremul
+    ToPremul,
+    VisualFx
 };
 struct Pass {
     Op op = Op::Copy;
@@ -55,7 +56,8 @@ double channelMidtones(const QJsonArray &points);
 std::vector<Pass> planChain(const QJsonArray &effects);
 QMargins chainOutset(const QJsonArray &effects);
 QRect cropPixels(const QJsonObject &ext, QSize inputSize);
-void decorateEffects(QJsonObject &ext, const Clip &clip);
+void decorateEffects(QJsonObject &ext, const Clip &clip, double timeMs = 0);
+class DrawCache;
 class ClipEffectStage final : public LayerEffectStage {
   public:
     bool applies(const QJsonObject &ext) const override;
@@ -63,7 +65,9 @@ class ClipEffectStage final : public LayerEffectStage {
     bool render(const EffectContext &, const LayerFrame &, QRhiTextureRenderTarget &, const QJsonObject &) override;
 
   private:
+    friend class TestEffectResources;
     struct Lut;
-    std::map<QString, std::shared_ptr<Lut>> m_luts;
+    std::shared_ptr<DrawCache> m_drawCache;
+    std::list<std::pair<QByteArray, std::shared_ptr<Lut>>> m_luts;
 };
 } // namespace nt::effects
