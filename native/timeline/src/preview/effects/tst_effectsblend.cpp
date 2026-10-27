@@ -6,6 +6,7 @@
 #include <QJsonDocument>
 #include <QtTest>
 #include <array>
+#include <QScopeGuard>
 
 namespace {
 struct Sample {
@@ -78,6 +79,36 @@ nt::Timeline document(const QString& mode, int placement, double opacity) {
         {"tracks",QJsonArray{QJsonObject{{"id","v"},{"type","video"}}}},{"clips",clips}};
     return *nt::parseTimelineJson(QJsonDocument(raw).toJson()).timeline;
 }
+QImage effectStill(const QJsonArray& effects, const QImage& source, bool group=false,
+                   const QJsonObject& crop={}, double scale=1) {
+    const auto token=nt::registerLayerSource("shape",[source](const nt::ActiveLayer&) {
+        return std::make_unique<nt::test::PaintSource>(source);
+    });
+    const auto registration=qScopeGuard([token] { nt::unregisterLayerSource(token); });
+    QJsonObject leaf{{"id","source"},{"trackId","v"},{"mediaType","shape"},{"startMs",0},{"durationMs",1000},
+        {"width",source.width()},{"height",source.height()},{"shapeStyle",QJsonObject{{"kind","rect"}}}};
+    if (!crop.isEmpty()) { leaf.insert("crop",crop); }
+    if (scale!=1) { leaf.insert("transform",QJsonObject{{"scale",QJsonObject{{"x",scale},{"y",scale}}}}); }
+    QJsonArray clips;
+    if (group) {
+        clips.append(QJsonObject{{"id","group"},{"trackId","v"},{"mediaType","group"},{"startMs",0},
+            {"durationMs",1000},{"effects",effects},{"opacity",0.8}});
+        leaf.insert("parentId","group"); leaf.insert("opacity",0.5);
+    } else { leaf.insert("effects",effects); }
+    clips.append(leaf);
+    const QJsonObject raw{{"fps",30},{"width",source.width()},{"height",source.height()},{"durationMs",1000},
+        {"tracks",QJsonArray{QJsonObject{{"id","v"},{"type","video"}}}},{"clips",clips}};
+    const auto parsed=nt::parseTimelineJson(QJsonDocument(raw).toJson());
+    if (!parsed.timeline) { return {}; }
+    TimelineModel model; model.setTimeline(*parsed.timeline);
+    nt::test::Still still;
+    return still.initialize(model) ? still.capture() : QImage{};
+}
+QJsonObject effect(const char* type, QJsonObject values={}) {
+    values.insert("id",QString::fromLatin1(type)); values.insert("type",QString::fromLatin1(type)); values.insert("enabled",true);
+    return values;
+}
+
 }
 
 class TestEffectsBlend : public QObject {
@@ -124,6 +155,68 @@ private slots:
                 QVERIFY(*group.stackOrder > *a.stackOrder);
             }
         }
+    }
+    void clipDocuments() {
+        auto raw=QJsonObject{{"fps",30},{"width",64},{"height",32},{"durationMs",1000},
+            {"tracks",QJsonArray{QJsonObject{{"id","v"},{"type","video"}}}},
+            {"clips",QJsonArray{
+                QJsonObject{{"id","g"},{"trackId","v"},{"mediaType","group"},{"startMs",0},{"durationMs",1000},
+                    {"effects",QJsonArray{effect("blur",{{"radius",8}})}}},
+                QJsonObject{{"id","a"},{"trackId","v"},{"mediaType","shape"},{"parentId","g"},{"startMs",0},{"durationMs",1000},
+                    {"width",64},{"height",32},{"shapeStyle",QJsonObject{{"kind","rect"}}},{"crop",QJsonObject{{"left",0.25},{"right",0.25},{"top",0},{"bottom",0}}},
+                    {"effects",QJsonArray{effect("grain",{{"seed",27},{"animate",true}}),
+                        QJsonObject{{"id","disabled"},{"type","vignette"},{"enabled",false}}}}}}}};
+        const auto parsed=nt::parseTimelineJson(QJsonDocument(raw).toJson()); QVERIFY(parsed.timeline);
+        const auto frame=nt::evaluateScene(*parsed.timeline,500);
+        QCOMPARE(frame.layers.size(),size_t{1}); QCOMPARE(frame.precomposites.size(),size_t{1});
+        const auto& layer=frame.layers[0];
+        QCOMPARE(layer.sourceRect,(std::array<float,4>{0.25f,0,0.5f,1}));
+        QCOMPARE(layer.ext.value("effectSourceRect").toArray(),(QJsonArray{0.25,0,0.5,1}));
+        const auto copied=layer.ext.value("clipEffects").toArray(); QCOMPARE(copied.size(),1);
+        QCOMPARE(copied[0].toObject().value("seed").toInt(),27);
+        const auto& group=frame.precomposites[0];
+        QVERIFY(group.ext.value("effectGroupSurface").toBool());
+        QCOMPARE(group.ext.value("clipEffects").toArray().size(),1);
+        auto stages=nt::registeredEffectStages(); QVERIFY(!stages.empty());
+        QVERIFY(stages[0]->applies(layer.ext)); QVERIFY(stages[0]->applies(group.ext));
+        QVERIFY(!stages[0]->applies({}));
+    }
+    void clipPixels() {
+        QImage source(64,32,QImage::Format_RGBA8888_Premultiplied); source.fill(QColor(64,128,192));
+        const auto grade=effectStill({effect("color",{{"brightness",0.2}})},source);
+        QVERIFY(!grade.isNull());
+        const auto c=grade.pixelColor(32,16);
+        QVERIFY2(std::abs(c.red()-115)<=1,qPrintable(c.name(QColor::HexArgb))); QVERIFY(std::abs(c.green()-179)<=1); QVERIFY(std::abs(c.blue()-243)<=1);
+        const auto levels=effectStill({effect("levels",{{"inBlack",0},{"inWhite",1},{"gamma",1},{"outBlack",0.2},{"outWhite",0.8}})},source);
+        QVERIFY(!levels.isNull()); QVERIFY(std::abs(levels.pixelColor(32,16).red()-89)<=1);
+        const auto key=effectStill({effect("chromaKey",{{"color","#4080c0"},{"tolerance",0.1},{"softness",0.1}})},source);
+        QVERIFY(!key.isNull()); QCOMPARE(key.pixelColor(32,16),QColor(Qt::black));
+        const auto poster=effectStill({effect("posterize",{{"levels",3}})},source);
+        QVERIFY(!poster.isNull()); QCOMPARE(poster.pixelColor(32,16),QColor(0,128,255));
+    }
+    void cropPixelsOnClip() {
+        QImage source(64,32,QImage::Format_RGBA8888_Premultiplied); source.fill(Qt::green);
+        for (int y=0;y<32;++y) { for (int x=16;x<48;++x) { source.setPixelColor(x,y,Qt::red); } }
+        const auto image=effectStill({effect("blur",{{"radius",12}}),effect("vignette",{{"amount",0.8},{"radius",1},{"softness",0.7}})},
+            source,false,{{"left",0.25},{"right",0.25},{"top",0},{"bottom",0}});
+        QVERIFY(!image.isNull()); const auto center=image.pixelColor(32,16);
+        QVERIFY2(std::abs(center.red()-240)<=1,qPrintable(center.name(QColor::HexArgb))); QCOMPARE(center.green(),0);
+        const auto edge=image.pixelColor(17,1); QVERIFY(edge.red()<80); QCOMPARE(edge.green(),0);
+        QCOMPARE(image.pixelColor(1,16),QColor(Qt::black));
+    }
+    void spreadPixels() {
+        QImage source(64,32,QImage::Format_RGBA8888_Premultiplied); source.fill(QColor(220,220,220));
+        const auto glow=effectStill({effect("glow",{{"radius",10},{"intensity",1.5}})},source,false,{},0.5);
+        QVERIFY(!glow.isNull()); QVERIFY2(glow.pixelColor(14,16).red()>10,qPrintable(glow.pixelColor(14,16).name(QColor::HexArgb)));
+        const auto shadow=effectStill({effect("dropShadow",{{"offsetX",12},{"offsetY",0},{"blur",0},{"color","#ff0000"},{"opacity",1}})},source,false,{},0.5);
+        QVERIFY(!shadow.isNull()); QVERIFY(shadow.pixelColor(51,16).red()>245); QCOMPARE(shadow.pixelColor(51,16).green(),0);
+        QCOMPARE(shadow.pixelColor(10,16),QColor(Qt::black));
+    }
+    void groupEffectAlpha() {
+        QImage source(64,32,QImage::Format_RGBA8888_Premultiplied); source.fill(QColor(64,128,192));
+        const auto image=effectStill({effect("color",{{"brightness",0.2}})},source,true);
+        QVERIFY(!image.isNull()); const auto c=image.pixelColor(32,16);
+        QVERIFY2(std::abs(c.red()-46)<=2,qPrintable(c.name(QColor::HexArgb))); QVERIFY(std::abs(c.green()-72)<=2); QVERIFY(std::abs(c.blue()-97)<=2);
     }
     void blendPixels_data() {
         QTest::addColumn<QString>("mode");

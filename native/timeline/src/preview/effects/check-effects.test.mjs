@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { test } from "node:test";
 import { parseArgs, comparisonPasses, allComparisonsPass, loadFixtures } from "./check-effects.mjs";
 
@@ -54,4 +55,23 @@ test("rejects empty selection, unknown names and invalid frame metadata", () => 
     assert.deepEqual(loadFixtures(directory, ["sample"]), [{ name: "sample", fixture,
       frames: [{ frame: 15, criterion: "J1" }] }]);
   } finally { fs.rmSync(directory, { recursive: true, force: true }); }
+});
+
+test("step 2 covers every effect, crop, document order and group surfaces", () => {
+  const directory = fileURLToPath(new URL("./fixtures/", import.meta.url));
+  const fixtures = loadFixtures(directory, []);
+  const types = ["color", "blur", "pixelate", "posterize", "directionalBlur", "lensDistortion", "lut", "glow", "dropShadow", "vignette", "sharpen", "chromaKey", "curves", "levels", "liftGammaGain", "grain"];
+  for (const type of types) {
+    const fixture = fixtures.find(item => item.name === `clip-${type}`);
+    assert.ok(fixture, `missing fixture for ${type}`);
+    assert.deepEqual(fixture.frames.map(item => item.frame), [0, 30]);
+    const doc = JSON.parse(fs.readFileSync(fixture.fixture, "utf8"));
+    const effects = doc.clips.flatMap(clip => clip.effects ?? []).filter(effect => effect.type === type);
+    assert.equal(effects.length, 2, `${type} needs two settings`);
+    assert.notDeepEqual(effects[0], effects[1]);
+    if (type === "grain") assert.ok(effects.every(effect => effect.animate === false));
+  }
+  for (const name of ["clip-crop-chain", "clip-ordered-chain", "effects-group", "effects-nested-group"]) {
+    assert.ok(fixtures.some(item => item.name === name), name);
+  }
 });
