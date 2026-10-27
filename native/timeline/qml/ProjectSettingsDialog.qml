@@ -5,6 +5,8 @@ import NodeTool.Timeline
 Item {
     id: root
     objectName: "ProjectSettingsDialog"
+    implicitWidth: settingsButton.implicitWidth
+    implicitHeight: settingsButton.implicitHeight
     property TimelineModel timeline: {
         for (let p = parent; p; p = p.parent) {
             if (p.timeline !== undefined) return p.timeline
@@ -25,7 +27,14 @@ Item {
         || Number(beatsField.text) !== initialTempo.timeSignature.beatsPerBar
         || Number(beatUnit.currentText.replace("/ ", "")) !== initialTempo.timeSignature.beatUnit
         || Number(offsetField.text) !== initialTempo.offsetMs
-    visible: dialog.opened
+    readonly property alias opened: settingsPopup.opened
+    ToolButton {
+        id: settingsButton
+        objectName: "projectSettingsButton"
+        label: "Project settings"
+        iconPath: Icons.straighten
+        onClicked: root.open()
+    }
     function validNumber(text, min, max) {
         const n = Number(text)
         return text.trim() !== "" && Number.isFinite(n) && n >= min && n <= max
@@ -44,9 +53,9 @@ Item {
         beatsField.text = String(initialTempo.timeSignature.beatsPerBar)
         beatUnit.currentIndex = [2, 4, 8, 16].indexOf(initialTempo.timeSignature.beatUnit)
         offsetField.text = String(initialTempo.offsetMs)
-        dialog.opened = true
+        settingsPopup.open()
     }
-    function close() { dialog.opened = false }
+    function close() { settingsPopup.close() }
     function commit() {
         if (!timeline || !allValid || (!canvasDirty && !tempoDirty)) return
         let patch = {width: Number(widthText), height: Number(heightText), fps: Number(fpsText)}
@@ -281,102 +290,113 @@ Item {
             border.color: select.activeFocus ? Theme.primary : Theme.divider
         }
     }
-    TimelineListDialog {
-        id: dialog
-        anchors.fill: parent
-        title: "Project settings"
-        confirmEnabled: root.allValid && (root.canvasDirty || root.tempoDirty)
-        onConfirmed: root.commit()
-        onCancelled: root.close()
-        content: Column {
-            width: parent.width
-            spacing: Theme.spacingXl
-            Column {
+    Controls.Popup {
+        id: settingsPopup
+        parent: Controls.Overlay.overlay
+        width: parent ? parent.width : 0
+        height: parent ? parent.height : 0
+        padding: 0
+        modal: true
+        dim: false
+        focus: true
+        closePolicy: Controls.Popup.CloseOnEscape
+        background: null
+        contentItem: TimelineListDialog {
+            opened: settingsPopup.visible
+            title: "Project settings"
+            confirmEnabled: root.allValid && (root.canvasDirty || root.tempoDirty)
+            onConfirmed: root.commit()
+            onCancelled: root.close()
+            content: Column {
                 width: parent.width
-                spacing: Theme.spacingMd
-                SectionLabel { objectName: "canvasSizeLabel"; text: "CANVAS SIZE" }
+                spacing: Theme.spacingXl
                 Column {
                     width: parent.width
-                    spacing: Theme.spacingLg
-                    SelectField {
-                        id: resolution
-                        objectName: "resolutionPreset"
+                    spacing: Theme.spacingMd
+                    SectionLabel { objectName: "canvasSizeLabel"; text: "CANVAS SIZE" }
+                    Column {
                         width: parent.width
-                        readonly property var sizes: [[1920,1080], [1280,720], [3840,2160], [1080,1920], [1080,1080], [1080,1350]]
-                        model: ["1080p — 1920 × 1080 (16:9)", "720p — 1280 × 720 (16:9)", "4K UHD — 3840 × 2160 (16:9)",
-                            "Vertical — 1080 × 1920 (9:16)", "Square — 1080 × 1080 (1:1)", "Portrait — 1080 × 1350 (4:5)", "Custom…"]
-                        currentIndex: {
-                            for (let i = 0; i < sizes.length; ++i) {
-                                if (Number(root.widthText) === sizes[i][0] && Number(root.heightText) === sizes[i][1]) return i
+                        spacing: Theme.spacingLg
+                        SelectField {
+                            id: resolution
+                            objectName: "resolutionPreset"
+                            width: parent.width
+                            readonly property var sizes: [[1920,1080], [1280,720], [3840,2160], [1080,1920], [1080,1080], [1080,1350]]
+                            model: ["1080p — 1920 × 1080 (16:9)", "720p — 1280 × 720 (16:9)", "4K UHD — 3840 × 2160 (16:9)",
+                                "Vertical — 1080 × 1920 (9:16)", "Square — 1080 × 1080 (1:1)", "Portrait — 1080 × 1350 (4:5)", "Custom…"]
+                            currentIndex: {
+                                for (let i = 0; i < sizes.length; ++i) {
+                                    if (Number(root.widthText) === sizes[i][0] && Number(root.heightText) === sizes[i][1]) return i
+                                }
+                                return 6
                             }
-                            return 6
+                            onActivated: {
+                                if (currentIndex < sizes.length) {
+                                    root.widthText = String(sizes[currentIndex][0])
+                                    root.heightText = String(sizes[currentIndex][1])
+                                }
+                            }
                         }
-                        onActivated: {
-                            if (currentIndex < sizes.length) {
-                                root.widthText = String(sizes[currentIndex][0])
-                                root.heightText = String(sizes[currentIndex][1])
-                            }
+                        Row {
+                            width: parent.width
+                            spacing: Theme.spacingLg
+                            NumberField { id: widthField; objectName: "widthField"; label: "Width"; minimum: 16; maximum: 7680; step: 2; width: (parent.width - parent.spacing) / 2 }
+                            NumberField { id: heightField; objectName: "heightField"; label: "Height"; minimum: 16; maximum: 7680; step: 2; width: (parent.width - parent.spacing) / 2 }
                         }
                     }
+                }
+                Column {
+                    width: parent.width
+                    spacing: Theme.spacingMd
+                    SectionLabel { objectName: "frameRateLabel"; text: "FRAME RATE" }
                     Row {
                         width: parent.width
                         spacing: Theme.spacingLg
-                        NumberField { id: widthField; objectName: "widthField"; label: "Width"; minimum: 16; maximum: 7680; step: 2; width: (parent.width - parent.spacing) / 2 }
-                        NumberField { id: heightField; objectName: "heightField"; label: "Height"; minimum: 16; maximum: 7680; step: 2; width: (parent.width - parent.spacing) / 2 }
-                    }
-                }
-            }
-            Column {
-                width: parent.width
-                spacing: Theme.spacingMd
-                SectionLabel { objectName: "frameRateLabel"; text: "FRAME RATE" }
-                Row {
-                    width: parent.width
-                    spacing: Theme.spacingLg
-                    SelectField {
-                        objectName: "frameRatePreset"
-                        width: (parent.width - parent.spacing) * 2 / 3
-                        model: ["24 fps", "25 fps", "30 fps", "50 fps", "60 fps", "Custom…"]
-                        currentIndex: {
-                            const i = [24, 25, 30, 50, 60].indexOf(Number(root.fpsText))
-                            return i < 0 ? 5 : i
+                        SelectField {
+                            objectName: "frameRatePreset"
+                            width: (parent.width - parent.spacing) * 2 / 3
+                            model: ["24 fps", "25 fps", "30 fps", "50 fps", "60 fps", "Custom…"]
+                            currentIndex: {
+                                const i = [24, 25, 30, 50, 60].indexOf(Number(root.fpsText))
+                                return i < 0 ? 5 : i
+                            }
+                            onActivated: { if (currentIndex < 5) root.fpsText = String([24,25,30,50,60][currentIndex]) }
                         }
-                        onActivated: { if (currentIndex < 5) root.fpsText = String([24,25,30,50,60][currentIndex]) }
+                        NumberField { id: fpsField; objectName: "fpsField"; label: "FPS"; minimum: 1; maximum: 240; width: (parent.width - parent.spacing) / 3 }
                     }
-                    NumberField { id: fpsField; objectName: "fpsField"; label: "FPS"; minimum: 1; maximum: 240; width: (parent.width - parent.spacing) / 3 }
                 }
-            }
-            Column {
-                width: parent.width
-                spacing: Theme.spacingMd
-                SectionLabel { objectName: "tempoLabel"; text: "TEMPO" }
                 Column {
                     width: parent.width
-                    spacing: Theme.spacingLg
-                    Row {
+                    spacing: Theme.spacingMd
+                    SectionLabel { objectName: "tempoLabel"; text: "TEMPO" }
+                    Column {
                         width: parent.width
                         spacing: Theme.spacingLg
-                        NumberField { id: bpmField; objectName: "bpmField"; label: "BPM"; integer: false; minimum: 20; maximum: 300; width: (parent.width - 2 * parent.spacing) / 3 }
-                        NumberField { id: beatsField; objectName: "beatsField"; label: "Beats per bar"; minimum: 1; maximum: 16; width: (parent.width - 2 * parent.spacing) / 3 }
-                        Column {
-                            objectName: "beatUnitField"
-                            width: (parent.width - 2 * parent.spacing) / 3
-                            spacing: Theme.spacingXs
-                            Text { text: "Beat unit"; color: Theme.textPrimary; font.family: Theme.sansFamily; font.pixelSize: Theme.fontSizeSmall; font.weight: Font.Medium; height: 18 }
-                            SelectField { id: beatUnit; width: parent.width; model: ["/ 2", "/ 4", "/ 8", "/ 16"]; Accessible.name: "Beat unit" }
+                        Row {
+                            width: parent.width
+                            spacing: Theme.spacingLg
+                            NumberField { id: bpmField; objectName: "bpmField"; label: "BPM"; integer: false; minimum: 20; maximum: 300; width: (parent.width - 2 * parent.spacing) / 3 }
+                            NumberField { id: beatsField; objectName: "beatsField"; label: "Beats per bar"; minimum: 1; maximum: 16; width: (parent.width - 2 * parent.spacing) / 3 }
+                            Column {
+                                objectName: "beatUnitField"
+                                width: (parent.width - 2 * parent.spacing) / 3
+                                spacing: Theme.spacingXs
+                                Text { text: "Beat unit"; color: Theme.textPrimary; font.family: Theme.sansFamily; font.pixelSize: Theme.fontSizeSmall; font.weight: Font.Medium; height: 18 }
+                                SelectField { id: beatUnit; width: parent.width; model: ["/ 2", "/ 4", "/ 8", "/ 16"]; Accessible.name: "Beat unit" }
+                            }
                         }
+                        NumberField { id: offsetField; objectName: "offsetField"; label: "Beat one at"; errorMessage: "0 or more"; integer: false; minimum: 0; maximum: Infinity; width: Math.min(220, parent.width) }
                     }
-                    NumberField { id: offsetField; objectName: "offsetField"; label: "Beat one at"; errorMessage: "0 or more"; integer: false; minimum: 0; maximum: Infinity; width: Math.min(220, parent.width) }
                 }
-            }
-            Text {
-                width: parent.width
-                text: "Applies to the preview and the exported video. Existing clips keep their own source resolution and are scaled to fit the canvas."
-                wrapMode: Text.WordWrap
-                color: Theme.textSecondary
-                font.family: Theme.sansFamily
-                font.pixelSize: Theme.fontSizeSmaller
-                lineHeight: 1.4
+                Text {
+                    width: parent.width
+                    text: "Applies to the preview and the exported video. Existing clips keep their own source resolution and are scaled to fit the canvas."
+                    wrapMode: Text.WordWrap
+                    color: Theme.textSecondary
+                    font.family: Theme.sansFamily
+                    font.pixelSize: Theme.fontSizeSmaller
+                    lineHeight: 1.4
+                }
             }
         }
     }

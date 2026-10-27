@@ -3,7 +3,7 @@
 #include <cmath>
 
 namespace {
-const bool panel = nt::app::registerPanel({QStringLiteral("overlay"), QStringLiteral("projectSettings"),
+const bool panel = nt::app::registerPanel({QStringLiteral("documentBar"), QStringLiteral("projectSettings"),
     QUrl(QStringLiteral("qrc:/qt/qml/NodeTool/Timeline/qml/ProjectSettingsDialog.qml")),
     20, QStringLiteral("Project settings")});
 bool inRange(const QJsonValue& value, int min, int max, bool integer = true) {
