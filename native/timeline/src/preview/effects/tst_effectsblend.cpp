@@ -188,6 +188,32 @@ private slots:
             }
         }
     }
+    void trackDocuments() {
+        for (const auto type : {"colorCorrection", "videoBlur", "sharpen", "vignette", "chromaKey"}) {
+            auto timeline = document("normal", 2, 1);
+            auto active = effect(type, {{"brightness", 0.3}, {"radius", 18}, {"amount", 1.5},
+                {"intensity", 0.8}, {"keyColor", "#c02040"}, {"tolerance", 0.15}});
+            auto disabled = active;
+            disabled.insert("enabled", false);
+            timeline.tracks[0].raw.insert("effects", QJsonArray{disabled, effect("gain"), active});
+            const auto frame = nt::evaluateScene(timeline, 500);
+            QCOMPARE(frame.layers.size(), size_t{2});
+            QCOMPARE(frame.precomposites.size(), size_t{1});
+            auto stages = nt::registeredEffectStages();
+            for (const auto &layer : frame.layers) {
+                const auto converted = layer.ext.value("trackEffects").toArray();
+                QCOMPARE(converted.size(), 1);
+                const auto e = converted[0].toObject();
+                const QString expected = QString(type) == "colorCorrection" ? "color" :
+                    QString(type) == "videoBlur" ? "blur" : type;
+                QCOMPARE(e.value("type").toString(), expected);
+                if (QString(type) == "vignette") { QCOMPARE(e.value("amount").toDouble(), 0.8); }
+                if (QString(type) == "chromaKey") { QCOMPARE(e.value("color").toString(), QString("#c02040")); }
+                QVERIFY(stages[1]->applies(layer.ext));
+            }
+            QVERIFY(frame.precomposites[0].ext.value("trackEffects").toArray().isEmpty());
+        }
+    }
     void clipDocuments() {
         auto raw=QJsonObject{{"fps",30},{"width",64},{"height",32},{"durationMs",1000},
             {"tracks",QJsonArray{QJsonObject{{"id","v"},{"type","video"}}}},

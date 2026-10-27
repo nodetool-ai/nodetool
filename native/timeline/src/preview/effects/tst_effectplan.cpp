@@ -1,4 +1,8 @@
 #include "preview/effects/ClipEffects.h"
+#include "preview/layers/SceneHooks.h"
+#include "model/TimelineJson.h"
+#include <QJsonDocument>
+#include <QScopeGuard>
 #include <QtTest>
 #include <cmath>
 #include <numbers>
@@ -16,6 +20,115 @@ QJsonArray points(std::initializer_list<std::pair<double, double>> values) {
 class TestEffectPlan : public QObject {
     Q_OBJECT
   private slots:
+    void contextDecorators() {
+        const QJsonObject raw{{"fps", 23.976}, {"width", 64}, {"height", 32}, {"durationMs", 3000},
+            {"tracks", QJsonArray{QJsonObject{{"id", "v"}, {"type", "video"}}}},
+            {"clips", QJsonArray{
+                QJsonObject{{"id", "group"}, {"trackId", "v"}, {"mediaType", "group"},
+                    {"startMs", 100}, {"durationMs", 2000}, {"blendMode", "screen"}},
+                QJsonObject{{"id", "leaf"}, {"trackId", "v"}, {"mediaType", "shape"},
+                    {"startMs", 200}, {"durationMs", 1500}, {"inPointMs", 900}, {"speedMultiplier", 2},
+                    {"parentId", "group"}, {"steppedTime", QJsonObject{{"fps", 4}}},
+                    {"temporalEcho", QJsonObject{{"copies", 1}, {"intervalMs", 100}, {"opacityDecay", 0.5}}},
+                    {"shapeStyle", QJsonObject{{"kind", "rect"}}}}}}};
+        const auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
+        QVERIFY(parsed.timeline);
+        auto timeline = *parsed.timeline;
+        int layers = 0, groups = 0;
+        const auto layerToken = nt::registerContextLayerDecorator(
+            [&](nt::ActiveLayer &layer, const nt::Clip &clip, const nt::SceneDecorationContext &context) {
+                ++layers;
+                QCOMPARE(&context.timeline, &timeline);
+                QCOMPARE(context.track, &timeline.tracks[0]);
+                QCOMPARE(context.track->id, clip.trackId);
+                QCOMPARE(context.fps, 23.976);
+                QCOMPARE(context.sequenceTimeMs, 735.9);
+                QCOMPARE(context.timeMs, clip.id == "leaf" ? 700.0 : 550.0);
+                QCOMPARE(context.frameIndex, 17LL);
+                QVERIFY(layer.ext.value("legacy").toBool());
+            });
+        const auto groupToken = nt::registerContextGroupDecorator(
+            [&](nt::PrecompositeLayer &layer, const nt::Clip &, const nt::SceneDecorationContext &context) {
+                ++groups;
+                QCOMPARE(&context.timeline, &timeline);
+                QCOMPARE(context.track, &timeline.tracks[0]);
+                QCOMPARE(context.fps, 23.976);
+                QCOMPARE(context.sequenceTimeMs, 735.9);
+                QCOMPARE(context.timeMs, 735.9);
+                QCOMPARE(context.frameIndex, 17LL);
+                QVERIFY(layer.ext.value("legacy").toBool());
+            });
+        // Register legacy hooks later: contextual hooks must still follow them.
+        const auto legacyLayer = nt::registerLayerDecorator([](nt::ActiveLayer &layer, const nt::Clip &, double) {
+            layer.ext.insert("legacy", true);
+        });
+        const auto legacyGroup = nt::registerGroupDecorator([](nt::PrecompositeLayer &layer, const nt::Clip &, double) {
+            layer.ext.insert("legacy", true);
+        });
+        const auto cleanup = qScopeGuard([&] {
+            for (auto token : {layerToken, groupToken, legacyLayer, legacyGroup}) { nt::unregisterSceneHook(token); }
+        });
+        const auto frame = nt::evaluateScene(timeline, 735.9);
+        QCOMPARE(layers, 2);
+        QCOMPARE(groups, 1);
+        nt::unregisterSceneHook(layerToken);
+        nt::unregisterSceneHook(groupToken);
+        nt::evaluateScene(timeline, 735.9);
+        QCOMPARE(layers, 2);
+        QCOMPARE(groups, 1);
+
+        timeline.clips[0].trackId = "missing";
+        int missing = 0;
+        const auto nullTrack = nt::registerContextGroupDecorator(
+            [&](nt::PrecompositeLayer &, const nt::Clip &, const nt::SceneDecorationContext &context) {
+                QVERIFY(!context.track);
+                ++missing;
+            });
+        const auto nullCleanup = qScopeGuard([&] { nt::unregisterSceneHook(nullTrack); });
+        nt::evaluateScene(timeline, 735.9);
+        QCOMPARE(missing, 1);
+    }
+    void trackChain() {
+        auto color = effect("color"); color.insert("brightness", 0.25); color.insert("contrast", 2);
+        auto trackColor = color; trackColor.insert("brightness", 0.5); trackColor.insert("contrast", 3);
+        auto blur = effect("blur"); blur.insert("radius", 180);
+        auto sharpen = effect("sharpen"); sharpen.insert("amount", 0.8);
+        auto vignette = effect("vignette"); vignette.insert("amount", 0.6);
+        auto key = effect("chromaKey"); key.insert("tolerance", 0.2);
+        auto disabled = sharpen; disabled.insert("enabled", false);
+        auto ignored = sharpen; ignored.insert("amount", 4);
+        const auto chain = planChain({effect("posterize"), color, blur, effect("sharpen")},
+            {disabled, sharpen, ignored, vignette, key, trackColor, blur});
+        QCOMPARE(chain.size(), size_t{8});
+        QCOMPARE(chain[0].op, Op::ChromaKey);
+        QCOMPARE(chain[1].op, Op::Posterize);
+        QCOMPARE(chain[2].op, Op::Sharpen);
+        QCOMPARE(chain[3].op, Op::Grade);
+        QCOMPARE(chain[3].params[0], 0.75f);
+        QCOMPARE(chain[3].params[1], 4.f);
+        QCOMPARE(chain[4].op, Op::Gaussian);
+        QCOMPARE(chain[4].params[0], 256.f);
+        QCOMPARE(chain[5].op, Op::Gaussian);
+        QCOMPARE(chain[6].op, Op::Sharpen);
+        QCOMPARE(chain[6].params[0], 0.8f);
+        QCOMPARE(chain[7].op, Op::Vignette);
+        QCOMPARE(chain[7].params[0], 0.6f);
+        auto zero = sharpen; zero.insert("amount", 0);
+        QVERIFY(planChain({}, {zero, ignored}).empty());
+        auto cancelled = color; cancelled.insert("brightness", -0.25); cancelled.insert("contrast", 0.5);
+        QVERIFY(planChain({color}, {cancelled}).empty());
+        QJsonArray many;
+        for (int i = 0; i < 10000; ++i) {
+            many.append(color);
+            many.append(sharpen);
+        }
+        const auto large = planChain({}, many);
+        QCOMPARE(large.size(), size_t{2});
+        QCOMPARE(large[0].op, Op::Grade);
+        QCOMPARE(large[0].params[0], 1.f);
+        QCOMPARE(large[1].op, Op::Sharpen);
+        QCOMPARE(large[1].params[0], 0.8f);
+    }
     void cube() {
         QCOMPARE(cubeHalfBits(0.f), std::uint16_t{0});
         QCOMPARE(cubeHalfBits(1.f), std::uint16_t{0x3c00});

@@ -8,9 +8,21 @@ namespace nt {
 using SceneHookToken = std::uint64_t;
 using LayerDecorator = std::function<void(ActiveLayer&, const Clip&, double)>;
 using GroupDecorator = std::function<void(PrecompositeLayer&, const Clip&, double)>;
+struct SceneDecorationContext {
+    const Timeline& timeline;
+    const Track* track;
+    double timeMs;  // clip evaluation time, stepped for leaf layers
+    double sequenceTimeMs;
+    double fps;
+    long long frameIndex;
+};
+using ContextLayerDecorator = std::function<void(ActiveLayer&, const Clip&, const SceneDecorationContext&)>;
+using ContextGroupDecorator = std::function<void(PrecompositeLayer&, const Clip&, const SceneDecorationContext&)>;
 using SourceTimeMapper = std::function<std::optional<double>(const Clip&, double)>;
 SceneHookToken registerLayerDecorator(LayerDecorator decorator);
 SceneHookToken registerGroupDecorator(GroupDecorator decorator);
+SceneHookToken registerContextLayerDecorator(ContextLayerDecorator decorator);
+SceneHookToken registerContextGroupDecorator(ContextGroupDecorator decorator);
 SceneHookToken registerSceneTextMeasurer(scene::MeasureText measure);
 SceneHookToken registerSourceTimeMapper(SourceTimeMapper mapper);
 void unregisterSceneHook(SceneHookToken token);

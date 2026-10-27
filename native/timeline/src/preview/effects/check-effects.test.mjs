@@ -162,3 +162,31 @@ test("posterize midpoint requires identical pixels, not merely 40 dB", () => {
   const fixture=loadFixtures(fileURLToPath(new URL("./fixtures/",import.meta.url)),["clip-posterize-midpoint"])[0];
   assert.equal(fixture.frames[0].identical,true);
 });
+
+test("track video fixtures cover conversion, aggregation and group scope", () => {
+  const fixtures = loadFixtures(fileURLToPath(new URL("./fixtures/", import.meta.url)), []);
+  for (const type of ["colorCorrection", "videoBlur", "sharpen", "vignette", "chromaKey", "clip-aggregate", "group"]) {
+    const fixture = fixtures.find(item => item.name === `track-${type}`);
+    assert.ok(fixture, type);
+    assert.deepEqual(fixture.frames.map(item => item.frame), [0]);
+    assert.ok(fixture.frames[0].criterion.includes("PSNR >= 40 dB"));
+    const doc = JSON.parse(fs.readFileSync(fixture.fixture, "utf8"));
+    const picture = doc.clips.find(clip => clip.id === "picture");
+    assert.equal(picture.width, doc.width);
+    assert.equal(picture.height, doc.height);
+    const track = doc.tracks.find(track => track.id === picture.trackId);
+    if (type === "clip-aggregate") {
+      assert.deepEqual(track.effects.map(effect => effect.type), ["colorCorrection", "videoBlur"]);
+      assert.deepEqual(picture.effects.map(effect => effect.type), ["color", "blur", "posterize"]);
+    } else if (type === "group") {
+      assert.equal(picture.parentId, "group");
+    } else {
+      assert.equal(track.effects.filter(effect => effect.type === type && effect.enabled).length, 1);
+      assert.equal(track.effects.filter(effect => effect.type === type && !effect.enabled).length, 1);
+    }
+    if (type === "chromaKey") {
+      assert.ok(picture.mediaPath.endsWith("rgb-solid-720p.mp4"));
+      assert.equal(track.effects[0].keyColor, "#c02040");
+    }
+  }
+});
