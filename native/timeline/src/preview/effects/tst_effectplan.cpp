@@ -1,6 +1,7 @@
 #include "preview/effects/ClipEffects.h"
 #include <QtTest>
 #include <cmath>
+#include <numbers>
 using namespace nt::effects;
 namespace {
 QJsonObject effect(const char *type) { return {{"type", type}, {"enabled", true}}; }
@@ -177,6 +178,52 @@ class TestEffectPlan : public QObject {
             QCOMPARE(chain.size(), size_t{4});
         }
     }
+    void visualFxModes() {
+        const std::array stylize{"rgbSplit", "radialBlur", "zoomBlur", "turbulence", "glitch", "halftone",
+                                 "dither", "lightRays", "lensFlare", "innerShadow", "innerGlow", "edgeHighlight",
+                                 "displacement", "gradientWipe", "lightLeakOverlay"};
+        const std::array generator{"noise", "fractal", "conicGradient", "meshGradient", "gradientField",
+                                   "particles", "lightLeak", "gridPattern"};
+        for (int mode = 0; mode < 23; ++mode) {
+            const bool generated = mode >= 15;
+            auto e = effect(generated ? "generator" : "stylize");
+            e.insert("mode", generated ? generator[mode - 15] : stylize[mode]);
+            const auto chain = planChain({effect("posterize"), e, effect("pixelate")});
+            QCOMPARE(chain.size(), size_t{3});
+            QCOMPARE(int(chain[1].op), 21);
+            const auto &p = chain[1].params;
+            QCOMPARE(p[0], float(mode));
+            QCOMPARE(p[1], generated ? 1.f : 0.5f);
+            QCOMPARE(p[2], 8.f);
+            QCOMPARE(p[3], 0.f);
+            QCOMPARE(p[4], 0.f);
+            QCOMPARE(p[5], 0.f);
+            QCOMPARE(p[6], 0.1f);
+            QCOMPARE(p[8], generated ? 16.f / 255 : 0.f);
+            QCOMPARE(p[12], 1.f);
+            QCOMPARE(p[13], generated ? 180.f / 255 : 1.f);
+            QCOMPARE(p[15], 1.f);
+            QCOMPARE(chainOutset({e}), QMargins());
+            e.insert("amount", 27);
+            e.insert("angle", 90);
+            e.insert("time", 1.25);
+            e.insert("seed", -4);
+            e.insert("scale", 13);
+            e.insert("color", "#204080");
+            e.insert("colorA", "#204080");
+            e.insert("colorB", "invalid");
+            const auto configured = planChain({e});
+            QCOMPARE(configured[0].params[1], 27.f);
+            QVERIFY(std::abs(configured[0].params[3] - (std::numbers::pi_v<float> / 2)) < 1e-6);
+            QCOMPARE(configured[0].params[4], 1.25f);
+            QCOMPARE(configured[0].params[5], -4.f);
+            QCOMPARE(configured[0].params[2], 13.f);
+            QCOMPARE(configured[0].params[generated ? 8 : 12], 32.f / 255);
+            if (generated) { QCOMPARE(configured[0].params[12], 0.f); }
+            e.insert("mode", "unknown");
+            QVERIFY(planChain({e}).empty());
+        }
+    }
     void marginAndCrop() {
         auto glow = effect("glow");
         glow.insert("radius", 10.2);
@@ -190,6 +237,28 @@ class TestEffectPlan : public QObject {
         const QJsonObject ext{{"effectSourceRect", QJsonArray{0.251, 0.2, 0.5, 0.5}}};
         QCOMPARE(cropPixels(ext, {100, 80}), QRect(25, 16, 50, 40));
         QCOMPARE(cropPixels({}, {100, 80}), QRect(0, 0, 100, 80));
+    }
+    void animatedVisualTime() {
+        nt::Clip clip;
+        auto animated = effect("stylize");
+        animated.insert("mode", "turbulence");
+        animated.insert("animate", true);
+        animated.insert("time", 17);
+        auto generator = animated;
+        generator.insert("type", "generator");
+        generator.insert("mode", "fractal");
+        auto fixed = animated;
+        fixed.insert("animate", false);
+        clip.raw.insert("effects", QJsonArray{animated, generator, fixed});
+        for (double time : {0.0, 735.0, 4200.0}) {
+            QJsonObject ext;
+            decorateEffects(ext, clip, time);
+            const auto copied = ext.value("clipEffects").toArray();
+            QCOMPARE(copied[0].toObject().value("time").toDouble(), time / 1000);
+            QCOMPARE(copied[1].toObject().value("time").toDouble(), time / 1000);
+            QCOMPARE(copied[2].toObject().value("time").toDouble(), 17.0);
+        }
+        QCOMPARE(clip.raw.value("effects").toArray()[0].toObject().value("time").toInt(), 17);
     }
     void decorator() {
         nt::Clip clip;

@@ -6,6 +6,7 @@
 #include <cmath>
 #include <limits>
 #include <numbers>
+#include <span>
 
 namespace nt::effects {
 namespace {
@@ -15,8 +16,8 @@ double number(const QJsonObject &e, const char *key, double fallback = 0) {
 float f(const QJsonObject &e, const char *key, double fallback = 0) {
     return static_cast<float>(number(e, key, fallback));
 }
-std::array<float, 3> color(const QJsonObject &e) {
-    auto c = render2d::cssColor(e.value("color").toString());
+std::array<float, 3> color(const QJsonObject &e, const char *key = "color", const char *fallback = "") {
+    auto c = render2d::cssColor(e.value(QLatin1String(key)).toString(QLatin1String(fallback)));
     if (!c.isValid()) {
         c = Qt::black;
     }
@@ -196,7 +197,29 @@ std::vector<Pass> planChain(const QJsonArray &effects) {
             radius += number(e, "radius");
             continue;
         }
-        if (type == "pixelate") {
+        if (type == "stylize" || type == "generator") {
+            constexpr std::array stylize{"rgbSplit", "radialBlur", "zoomBlur", "turbulence", "glitch", "halftone",
+                                         "dither", "lightRays", "lensFlare", "innerShadow", "innerGlow", "edgeHighlight",
+                                         "displacement", "gradientWipe", "lightLeakOverlay"};
+            constexpr std::array generator{"noise", "fractal", "conicGradient", "meshGradient", "gradientField",
+                                           "particles", "lightLeak", "gridPattern"};
+            const bool generated = type == "generator";
+            const auto modes = generated ? std::span<const char *const>(generator) : std::span<const char *const>(stylize);
+            const auto found = std::ranges::find_if(modes, [&](const char *mode) { return e.value("mode") == mode; });
+            if (found == modes.end()) {
+                continue;
+            }
+            p.op = Op::VisualFx;
+            v = {float(std::distance(modes.begin(), found) + (generated ? 15 : 0)),
+                 f(e, "amount", generated ? 1 : 0.5), f(e, "scale", 8),
+                 float(number(e, "angle") * std::numbers::pi / 180), f(e, "time"), f(e, "seed"),
+                 generated ? 0.1f : f(e, "softness", 0.1)};
+            const auto a = generated ? color(e, "colorA", "#101a33") : std::array<float, 3>{};
+            const auto b = generated ? color(e, "colorB", "#ffb45e") : color(e, "color", "#ffffff");
+            std::ranges::copy(a, v.begin() + 8);
+            std::ranges::copy(b, v.begin() + 12);
+            v[11] = v[15] = 1;
+        } else if (type == "pixelate") {
             p.op = Op::Pixelate;
             v[0] = f(e, "cellSize", 8);
         } else if (type == "posterize") {
@@ -295,7 +318,7 @@ std::vector<Pass> planChain(const QJsonArray &effects) {
             continue;
         } else {
             continue;
-        } // Step 3 keeps stylize/generator at these document positions.
+        }
         result.push_back(p);
     }
     bool active = false;
@@ -355,11 +378,15 @@ QRect cropPixels(const QJsonObject &ext, QSize size) {
     const auto [w, h] = croppedSourceSize(uv, size.width(), size.height());
     return {int(std::floor(double(uv[0]) * size.width())), int(std::floor(double(uv[1]) * size.height())), w, h};
 }
-void decorateEffects(QJsonObject &ext, const Clip &clip) {
+void decorateEffects(QJsonObject &ext, const Clip &clip, double timeMs) {
     QJsonArray enabled;
     for (const auto &effect : clip.raw.value("effects").toArray()) {
-        if (effect.toObject().value("enabled").toBool()) {
-            enabled.append(effect);
+        auto e = effect.toObject();
+        if (e.value("enabled").toBool()) {
+            if ((e.value("type") == "stylize" || e.value("type") == "generator") && e.value("animate").toBool()) {
+                e.insert("time", timeMs / 1000);
+            }
+            enabled.append(e);
         }
     }
     ext.insert("clipEffects", enabled);

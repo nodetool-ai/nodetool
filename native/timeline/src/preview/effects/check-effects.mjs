@@ -8,6 +8,33 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../../..");
 
+// Mode coverage and exact sequence frames, shared with the coverage test.
+export const visualFxFixtures = [
+  ["stylize", "rgbSplit", [0]],
+  ["stylize", "radialBlur", [30]],
+  ["stylize", "zoomBlur", [60]],
+  ["stylize", "turbulence", [90]],
+  ["stylize", "glitch", [120]],
+  ["stylize", "halftone", [150]],
+  ["stylize", "dither", [180]],
+  ["stylize", "lightRays", [210]],
+  ["stylize", "lensFlare", [240]],
+  ["stylize", "innerShadow", [270]],
+  ["stylize", "innerGlow", [300]],
+  ["stylize", "edgeHighlight", [330]],
+  ["stylize", "displacement", [360]],
+  ["stylize", "gradientWipe", [390]],
+  ["stylize", "lightLeakOverlay", [420]],
+  ["generator", "noise", [0]],
+  ["generator", "fractal", [30, 51]],
+  ["generator", "conicGradient", [60]],
+  ["generator", "meshGradient", [90]],
+  ["generator", "gradientField", [120]],
+  ["generator", "particles", [150]],
+  ["generator", "lightLeak", [180]],
+  ["generator", "gridPattern", [210]]
+];
+
 export function parseArgs(argv) {
   const args = { bin: null, only: [], minPsnr: 40, json: false };
   for (let i = 0; i < argv.length; ++i) {

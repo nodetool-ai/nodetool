@@ -4,7 +4,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
-import { parseArgs, comparisonPasses, allComparisonsPass, loadFixtures } from "./check-effects.mjs";
+import { parseArgs, comparisonPasses, allComparisonsPass, loadFixtures, visualFxFixtures } from "./check-effects.mjs";
 
 test("parses defaults and explicit fixture selection", () => {
   const defaults = parseArgs(["--bin", "build/nodetool-timeline"]);
@@ -73,5 +73,41 @@ test("step 2 covers every effect, crop, document order and group surfaces", () =
   }
   for (const name of ["clip-crop-chain", "clip-ordered-chain", "effects-group", "effects-nested-group"]) {
     assert.ok(fixtures.some(item => item.name === name), name);
+  }
+});
+
+test("step 3 covers each shader mode and animated sequence time", () => {
+  const fixtures = loadFixtures(fileURLToPath(new URL("./fixtures/", import.meta.url)), []);
+  assert.equal(visualFxFixtures.filter(([type]) => type === "stylize").length, 15);
+  assert.equal(visualFxFixtures.filter(([type]) => type === "generator").length, 8);
+  for (const [type, mode, frames] of visualFxFixtures) {
+    const name = `${type}-modes`;
+    const fixture = fixtures.find(item => item.name === name);
+    assert.ok(fixture, name);
+    assert.deepEqual(fixture.frames.filter(item => item.criterion.includes(` ${mode},`)).map(item => item.frame), frames, mode);
+    const doc = JSON.parse(fs.readFileSync(fixture.fixture, "utf8"));
+    const clip = doc.clips.find(clip => clip.effects.some(effect => effect.type === type && effect.mode === mode));
+    assert.ok(clip, mode);
+    assert.equal(clip.width, doc.width);
+    assert.equal(clip.height, doc.height);
+    assert.ok(frames.every(frame => frame * 1000 / doc.fps >= clip.startMs && frame * 1000 / doc.fps < clip.startMs + clip.durationMs));
+    const effect = clip.effects.find(effect => effect.type === type);
+    assert.equal(effect.type, type);
+    assert.equal(effect.mode, mode);
+    assert.equal(effect.enabled, true);
+    if (mode === "fractal") {
+      assert.equal(effect.animate, true);
+      assert.equal(frames.length, 2);
+      assert.notEqual(effect.time, frames[0] / doc.fps);
+    }
+  }
+});
+
+test("new PNG fixtures declare supported RGB ingress", () => {
+  for (const name of ["visual-source.png", "posterize-midpoint.png"]) {
+    const bytes = fs.readFileSync(new URL(`./fixtures/${name}`, import.meta.url));
+    assert.equal(bytes.subarray(1, 4).toString(), "PNG");
+    assert.equal(bytes[24], 8, name);
+    assert.equal(bytes[25], 2, `${name} must not declare an alpha channel`);
   }
 });

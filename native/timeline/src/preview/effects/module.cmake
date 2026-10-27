@@ -1,4 +1,5 @@
 nt_sources(decode src/preview/effects/BlendModes.h src/preview/effects/BlendModes.cpp
+    src/preview/effects/DrawCache.h src/preview/effects/DrawCache.cpp
     src/preview/effects/ClipEffects.h src/preview/effects/EffectPlan.cpp src/preview/effects/ClipEffects.cpp)
 nt_sources(app src/preview/effects/EffectsRegistrations.cpp)
 
@@ -13,6 +14,10 @@ function(nt_effects_tests)
     qt_add_executable(tst_effectplan src/preview/effects/tst_effectplan.cpp)
     target_link_libraries(tst_effectplan PRIVATE timeline_decode Qt6::Test)
     add_test(NAME tst_effectplan COMMAND tst_effectplan)
+    qt_add_executable(tst_effectresources src/preview/effects/tst_effectresources.cpp)
+    target_link_libraries(tst_effectresources PRIVATE timeline_decode Qt6::GuiPrivate Qt6::Test)
+    nt_effects_shaders(tst_effectresources)
+    add_test(NAME tst_effectresources COMMAND tst_effectresources)
     qt_add_executable(tst_effectsblend src/preview/effects/tst_effectsblend.cpp
         src/preview/effects/EffectsRegistrations.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
