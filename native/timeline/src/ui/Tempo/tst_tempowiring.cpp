@@ -1,9 +1,13 @@
 #include "TempoGrid.h"
 #include "TempoProviders.h"
+#include "ui/RulerCanvas.h"
+#include "wiring/SnapProviders.h"
 #include "wiring/WiringFixture.h"
 
 #include <QFile>
+#include <QImage>
 #include <QJSValue>
+#include <QPainter>
 #include <QQmlProperty>
 #include <QTemporaryDir>
 
@@ -26,6 +30,20 @@ class TempoWiringTests : public WiringFixture {
         } else {
             document.remove("tempo");
         }
+        auto parsed = nt::parseTimelineJson(QJsonDocument(document).toJson());
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        QCoreApplication::processEvents();
+    }
+
+    void loadInvalidTempoDocument() {
+        loadDocument(true, true);
+        auto document = doc();
+        auto tempo = document.value("tempo").toObject();
+        tempo.insert("bpm", 0);
+        document.insert("tempo", tempo);
+        document.insert("clips", QJsonArray{QJsonObject{{"id", "c"}, {"trackId", "m"}, {"name", "MIDI"},
+            {"mediaType", "midi"}, {"startMs", 1000}, {"durationMs", 501}}});
         auto parsed = nt::parseTimelineJson(QJsonDocument(document).toJson());
         QVERIFY(parsed.timeline);
         model.setTimeline(std::move(*parsed.timeline));
@@ -134,6 +152,90 @@ private slots:
         state->setRulerMode("time");
         QCOMPARE(canvas->property("ticks").toList(), timeTicks);
         QCOMPARE(model.undoStack()->count(), 0);
+    }
+
+    void invalidRulerTempo_data() {
+        QTest::addColumn<QJsonObject>("tempo");
+        QTest::addColumn<QString>("error");
+        QTest::newRow("zero-bpm")
+            << QJsonObject{{"bpm", 0}, {"offsetMs", 0},
+                {"timeSignature", QJsonObject{{"beatsPerBar", 4}, {"beatUnit", 4}}}}
+            << QString("bpm must be a positive number; got 0.");
+        QTest::newRow("zero-beats-per-bar")
+            << QJsonObject{{"bpm", 120}, {"offsetMs", 0},
+                {"timeSignature", QJsonObject{{"beatsPerBar", 0}, {"beatUnit", 4}}}}
+            << QString("beatsPerBar must be a positive number; got 0.");
+        QTest::newRow("zero-beat-unit")
+            << QJsonObject{{"bpm", 120}, {"offsetMs", 0},
+                {"timeSignature", QJsonObject{{"beatsPerBar", 4}, {"beatUnit", 0}}}}
+            << QString("beatUnit must be a positive number; got 0.");
+    }
+    void invalidRulerTempo() {
+        QFETCH(QJsonObject, tempo);
+        QFETCH(QString, error);
+        nt::wiring::RulerRequest request;
+        request.document = doc();
+        request.document.insert("tempo", tempo);
+        request.toMs = 10000;
+        QTest::ignoreMessage(QtWarningMsg, qPrintable("Bars ruler provider failed: " + error));
+        QVERIFY(nt::wiring::rulerTicks("bars", request).empty());
+    }
+
+    void invalidSnapGrid_data() {
+        QTest::addColumn<double>("bpm");
+        QTest::addColumn<QString>("division");
+        QTest::addColumn<QString>("error");
+        QTest::newRow("zero-bpm") << 0.0 << QString("beat")
+            << QString("bpm must be a positive number; got 0.");
+        QTest::newRow("unknown-division") << 120.0 << QString("unknown")
+            << QString("Unknown quantize division \"unknown\"; expected one of 1/4, 1/8, 1/16, 1/32, 1/8T, 1/16T.");
+    }
+    void invalidSnapGrid() {
+        QFETCH(double, bpm);
+        QFETCH(QString, division);
+        QFETCH(QString, error);
+        loadDocument(true, true);
+        nt::wiring::SnapRequest request;
+        request.document = doc();
+        auto tempo = request.document.value("tempo").toObject();
+        tempo.insert("bpm", bpm);
+        request.document.insert("tempo", tempo);
+        request.toMs = 10000;
+        request.gridDivision = division;
+        QTest::ignoreMessage(QtWarningMsg, qPrintable("Tempo beat snap provider failed: " + error));
+        QVERIFY(nt::wiring::extraSnapCandidates(request).empty());
+    }
+
+    void invalidTempoRulerPaint() {
+        loadInvalidTempoDocument();
+        gestures()->viewState()->setRulerMode("bars");
+        auto* canvas = qobject_cast<RulerCanvas*>(item("rulerCanvas"));
+        QVERIFY(canvas);
+        QVERIFY(canvas->width() > 0 && canvas->height() > 0);
+        QImage image(canvas->size().toSize(), QImage::Format_ARGB32_Premultiplied);
+        QPainter painter(&image);
+        const auto before = canvas->paintCount();
+        QTest::ignoreMessage(QtWarningMsg, "Bars ruler provider failed: bpm must be a positive number; got 0.");
+        canvas->paint(&painter);
+        QCOMPARE(canvas->paintCount(), before + 1);
+        QCOMPARE(canvas->labelCount(), 0);
+    }
+
+    void invalidTempoMidiDrag() {
+        loadInvalidTempoDocument();
+        QVERIFY(gestures()->snapEnabled());
+        clock.seek(8000);
+        QTRY_VERIFY(item("clip-c"));
+        const auto before = doc();
+        const auto from = center(item("clip-c"));
+        const auto to = from + QPoint(53, 0);
+        QTest::ignoreMessage(QtWarningMsg, "Tempo beat snap provider failed: bpm must be a positive number; got 0.");
+        drag(from, to);
+        QCOMPARE(model.undoStack()->count(), 1);
+        QCOMPARE(clip("c").value("trackId").toString(), QString("m"));
+        QVERIFY(clip("c").value("startMs").toDouble() > 1000);
+        click("undoButton");
+        QCOMPARE(doc(), before);
     }
 
     void gridSelection() {

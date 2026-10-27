@@ -1,7 +1,9 @@
 #include "TempoGrid.h"
 #include "TempoGridQml.h"
 #include "TempoJson.h"
+#include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QGuiApplication>
 #include <QJSValue>
 #include <QJsonDocument>
@@ -9,6 +11,7 @@
 #include <QQmlEngine>
 #include <QQuickItem>
 #include <QSignalSpy>
+#include <QTemporaryDir>
 #include <QtTest>
 #include <iostream>
 #include <cmath>
@@ -170,6 +173,15 @@ QJsonValue oracleRequest(const QString& fn, const QJsonArray& args) {
 class TempoTests : public QObject {
     Q_OBJECT
   private slots:
+    void preferencesAreIsolated() {
+        const auto path = qEnvironmentVariable("NODETOOL_TIMELINE_PREFERENCES");
+        QVERIFY(!path.isEmpty());
+        const QFileInfo settings(path);
+        QCOMPARE(settings.fileName(), QString("settings.ini"));
+        QVERIFY(settings.dir().exists());
+        QVERIFY(settings.absoluteFilePath().startsWith(QDir::tempPath() + '/'));
+    }
+
     void beatGridRoundsBeforeDeduplication() {
         nt::tempo::BeatGridSpec spec;
         spec.onsetsMs = {{500.5, 0.5, 500.49, 500.5}};
@@ -299,6 +311,11 @@ QtObject {
     }
 };
 int main(int argc, char** argv) {
+    QTemporaryDir settings;
+    if (!settings.isValid()) {
+        return 1;
+    }
+    qputenv("NODETOOL_TIMELINE_PREFERENCES", QFile::encodeName(settings.filePath("settings.ini")));
     QGuiApplication app(argc, argv);
     if (app.arguments().contains("--oracle")) {
         QFile input;

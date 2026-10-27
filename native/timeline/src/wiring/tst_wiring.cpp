@@ -298,9 +298,14 @@ private slots:
         QTRY_VERIFY_WITH_TIMEOUT(item("probe-toolbar"), 1000);
         auto* probe = item("probe-toolbar");
         QVERIFY(probe->property("compact").isValid());
-        const auto* toolbar = item("toolToggle");
+        auto* toolbar = item("toolToggle");
         QVERIFY(toolbar);
+        QVERIFY(toolbar->setProperty("compact", false));
         QCOMPARE(probe->property("compact"), toolbar->property("compact"));
+        for (const bool compact : {true, false}) {
+            QVERIFY(toolbar->setProperty("compact", compact));
+            QCOMPARE(probe->property("compact").toBool(), compact);
+        }
         const auto snapEnd = item("snapToggle")->mapToScene({item("snapToggle")->width(), 0});
         QVERIFY(probe->mapToScene({0, 0}).x() >= snapEnd.x());
         QCOMPARE(probe->property("gestures").value<QObject*>(), item("clipGestures"));
