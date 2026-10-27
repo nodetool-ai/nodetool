@@ -303,11 +303,14 @@
         "qml/ProjectSettingsDialog.qml",
         "src/server/ServerSource.*",
         "src/server/AutosaveController.*",
-        "tests/tst_autosave.cpp"
+        "tests/tst_autosave.cpp",
+        "qml/TimelineDocumentActions.qml",
+        "src/app/Menus/ShellMenus.*"
       ],
       "ownsNotes": {
         "src/server/AutosaveController.*": "shared with PX and SY (merged), approved by the user (D14)",
-        "tests/tst_autosave.cpp": "shared with PX and SY (merged), approved by the user (D14)"
+        "tests/tst_autosave.cpp": "shared with PX and SY (merged), approved by the user (D14)",
+        "src/app/Menus/ShellMenus.*": "shared with R (merged), two File items only, approved by the user (D13)"
       },
       "web": [
         "web/src/components/timeline/TimelineListPanel.tsx",

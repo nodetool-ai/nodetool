@@ -7,6 +7,8 @@ Rectangle {
     objectName: "TimelineListPanel"
     property var controller: null
     property bool autoRefresh: true
+    property bool dismissOnEscape: false
+    signal dismissRequested()
     // Used by the offscreen layout fixture, never populated by the application.
     property var previewDocuments: null
     property string activeTimelineId: ""
@@ -149,7 +151,15 @@ Rectangle {
                     accessibleLabel: "Clear search"
                     onClicked: { search.clear(); search.forceActiveFocus() }
                 }
-                Keys.onEscapePressed: event => { if (text) { clear(); event.accepted = true } }
+                Keys.onEscapePressed: event => {
+                    if (root.dismissOnEscape) {
+                        root.dismissRequested()
+                        event.accepted = true
+                    } else if (text) {
+                        clear()
+                        event.accepted = true
+                    }
+                }
             }
         }
         Controls.ScrollView {

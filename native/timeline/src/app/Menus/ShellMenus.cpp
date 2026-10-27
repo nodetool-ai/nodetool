@@ -53,6 +53,8 @@ std::vector<Menu> shellMenuDescription(const QString& preset, const QVariantList
     }
     std::vector<Menu> menus{
         {"File", {{"Open Recent", "recent", {}, {}, true, {}},
+                  {"Open Timeline…", "openTimeline", "Ctrl+O", QKeySequence(Qt::CTRL | Qt::Key_O), true, {}},
+                  {"New Timeline", "newTimeline", {}, {}, true, {}},
                   {"Export…", "exportVideo", {}, {}, true, {}},
                   {"Settings…", "settings", "Ctrl+,", QKeySequence(Qt::CTRL | Qt::Key_Comma), true, {}},
                   {"Quit", "quit", {}, QKeySequence(QKeySequence::Quit), true, {}}}},
@@ -154,6 +156,14 @@ bool ShellMenus::trigger(const QString& action) {
             return false;
         }
         return QProcess::startDetached(QCoreApplication::applicationFilePath(), arguments);
+    }
+    if (action == "openTimeline") {
+        emit openTimelineRequested();
+        return true;
+    }
+    if (action == "newTimeline") {
+        emit newTimelineRequested();
+        return true;
     }
     if (action == "settings") {
         emit settingsRequested();
