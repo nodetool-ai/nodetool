@@ -12,6 +12,7 @@ is discovered automatically. Other QML needs `nt_qml_files(...)`.
 - `toolbar`: receives `timeline`, `gestures`, and `viewState`, after Snap.
   Set the item's implicit width and height for the horizontal layout.
 - `documentBar`: receives `timeline`, after Undo and Redo. Set implicit dimensions.
+- `documentBarActions`: receives `timeline`, at the right end with 8 px padding. Set implicit dimensions.
 - `preview`: receives `timeline` and `clock`, fills the preview frame, and is
   clipped to it. Coordinates start at the frame's top-left corner.
 - `trackLane`: receives the raw `track` map and `timeline`. Set `implicitHeight`
