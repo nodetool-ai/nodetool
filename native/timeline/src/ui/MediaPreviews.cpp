@@ -89,10 +89,17 @@ struct ReadGuard {
 
 #ifdef Q_OS_UNIX
 constexpr size_t MAX_LOCAL_IO_HELPERS = 8;
-std::atomic<std::shared_ptr<const LocalIoHook>> localIoHook;
+// Apple libc++ has no std::atomic<std::shared_ptr>, so a mutex guards the hook.
+std::mutex localIoHookMutex;
+std::shared_ptr<const LocalIoHook> localIoHook;
 
 void beforeLocalIo(const char* operation, const QString& path) {
-    if (const auto hook = localIoHook.load()) (*hook)(operation, path);
+    std::shared_ptr<const LocalIoHook> hook;
+    {
+        const std::lock_guard lock(localIoHookMutex);
+        hook = localIoHook;
+    }
+    if (hook) (*hook)(operation, path);
 }
 
 class FileDescriptor {
@@ -415,7 +422,9 @@ bool openStream(const QString& path, AVMediaType type, FormatPtr& format, CodecP
 
 #ifdef Q_OS_UNIX
 void setLocalIoStallForTesting(LocalIoHook hook) {
-    localIoHook.store(hook ? std::make_shared<const LocalIoHook>(std::move(hook)) : nullptr);
+    auto next = hook ? std::make_shared<const LocalIoHook>(std::move(hook)) : nullptr;
+    const std::lock_guard lock(localIoHookMutex);
+    localIoHook = std::move(next);
 }
 int outstandingLocalIoForTesting() {
     return InterruptibleFile::outstanding();
