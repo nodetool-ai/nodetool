@@ -1,5 +1,5 @@
 // Real web offline render. No alignment, rescaling, or skipped samples.
-// Absolute tolerance: gain/pan/hold/disabled 2e-6, filter 2e-5.
+// Absolute tolerance: 1e-6 for every case.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -83,7 +83,6 @@ for(const test of cases) {
  const ref=await renderTimelineAudio({...doc,sampleRate:rate,resolveUrl:async()=>'p2:source'});
  if(!ref)throw Error('Empty web render');
  const actualWeb=interleaved(ref);
- let proof=null;
  if(['pan','combined','filter-insert'].includes(test.name)) {
   const controlDoc=structuredClone(doc);
   // This control follows the entire real clip/fade/gain path up to the panner or filter.
@@ -102,13 +101,10 @@ for(const test of cases) {
   let paramError=0;
   for(let i=0;i<values.length;i++)paramError=Math.max(paramError,Math.abs(values[i]-(nativeValues?nativeValues[i]:rampAt(bps,i*1000/rate))));
   const alternative=test.name==='filter-insert'?biquad(input,values):pan(input,values,true);
-  const nativeForm=test.name==='filter-insert'?biquad(input,values,true):pan(input,values);
   if(process.argv.includes('--bad-reference'))alternative[500]+=0.01;
-  const referenceError=error(alternative,actualWeb),formError=error(nativeForm,actualWeb);
-  const proofTolerance=test.name==='filter-insert'?2e-5:2e-6;
-  const proved=paramError<=(test.name==='filter-insert'?2.5e-4:1.2e-7) && referenceError.max<=proofTolerance && formError.max>proofTolerance;
-  proof={proved,paramError,referenceError,formError,nativeForm};
-  console.log(`${proved?'PASS':'FAIL'} ${test.name} independent proof: param=${paramError} reference=${referenceError.max} native-form=${formError.max}`);
+  const referenceError=error(alternative,actualWeb);
+  const proved=paramError<=(test.name==='filter-insert'?2.5e-4:0) && referenceError.max<=1e-6;
+  console.log(`${proved?'PASS':'FAIL'} ${test.name} independent proof: param=${paramError} reference=${referenceError.max}`);
   passed&&=proved;
  }
  if(process.argv.includes('--disable-native'))doc.tracks[0].automation=[];
@@ -124,16 +120,9 @@ for(const test of cases) {
   if(Math.abs(a-b)>max){max=Math.abs(a-b);frame=i;}
   energy+=b*b;
  }
- const tolerance=test.name==='filter-insert'?2e-5:2e-6;
- let pass=max<=tolerance&&energy>0;
- if(proof && proof.proved && energy>0 && !process.argv.includes('--disable-native')) {
-  const nativeSamples=new Float32Array(ref.length*2);
-  for(let i=0;i<nativeSamples.length;i++)nativeSamples[i]=bytes.readFloatLE(i*4);
-  const agreement=error(nativeSamples,proof.nativeForm).max;
-  pass=agreement<=tolerance;
-  const reason=test.name==='filter-insert'?'needs a state conversion in src/audio/effects/Effects.cpp, owned by P1':'needs the reference sine-table panner in src/audio/Mixer.cpp, owned by S2';
-  console.log(`${pass?'KNOWN DIFFERENCE':'FAIL'} ${test.name}: max=${max} frame=${frame} tolerance=${tolerance}; native-form agreement=${agreement}; ${reason}`);
- } else console.log(`${pass?'PASS':'FAIL'} ${test.name}: max=${max} frame=${frame} tolerance=${tolerance}`);
+ const tolerance=1e-6;
+ const pass=max<=tolerance&&energy>0;
+ console.log(`${pass?'PASS':'FAIL'} ${test.name}: max=${max} frame=${frame} tolerance=${tolerance}`);
  passed&&=pass; compared+=energy;
 }
 if(!(compared>0))throw Error('Empty comparison');

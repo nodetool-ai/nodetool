@@ -7,6 +7,7 @@
 #include <QJsonDocument>
 #include <QtTest>
 #include <array>
+#include <utility>
 using namespace nt::automation;
 namespace {
 QJsonObject document() {
@@ -87,7 +88,29 @@ private slots:
         const auto parsed = nt::parseTimelineJson(QJsonDocument(doc).toJson()); QVERIFY(parsed.timeline);
         const auto plan = nt::audio::buildMixPlan(*parsed.timeline); QCOMPARE(plan.tracks.size(), std::size_t(1));
         QVERIFY(plan.tracks[0].gainSource);
-        QVERIFY(std::abs(plan.tracks[0].gainSource->valueAt(5,1) - (0.1 + std::pow(10.,-18./20))/2) < 1e-12);
+        // ConstantSourceNode gain sample from dsp-reference.mjs sampleParam.
+        QCOMPARE(plan.tracks[0].gainSource->valueAt(5,1),0.1129462718963623);
+    }
+    void panMatchesAudioParam() {
+        auto doc = document(); auto tracks = doc["tracks"].toArray(); auto track = tracks[0].toObject();
+        track["automation"] = QJsonArray{lane("mixer","pan",{
+            QJsonObject{{"timeMs",0},{"value",-.7}},
+            QJsonObject{{"timeMs",500},{"value",.8}},
+            QJsonObject{{"timeMs",850},{"value",-.7}}})};
+        tracks[0] = track; doc["tracks"] = tracks;
+        const auto parsed = nt::parseTimelineJson(QJsonDocument(doc).toJson()); QVERIFY(parsed.timeline);
+        const auto plan = nt::audio::buildMixPlan(*parsed.timeline);
+        QVERIFY(plan.tracks[0].panSource);
+        // ConstantSourceNode samples from dsp-reference.mjs sampleParam.
+        const std::array<std::pair<int,double>,8> samples{{
+            {0,-0.699999988079071}, {1,-0.6999374628067017},
+            {296,-0.6814999580383301}, {19075,0.4921874701976776},
+            {24000,0.800000011920929}, {30000,0.26428571343421936},
+            {40800,-0.699999988079071}, {52799,-0.699999988079071}
+        }};
+        for (const auto& [frame,value] : samples) {
+            QCOMPARE(plan.tracks[0].panSource->valueAt(frame*1000./48000,0),value);
+        }
     }
 };
 int main(int argc, char** argv) {
