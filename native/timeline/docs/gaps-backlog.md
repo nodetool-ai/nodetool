@@ -59,6 +59,8 @@ run machine. "Package P1" and "package P2" are plan packages, not severities.
 | B49 | P2 | pkg-R-r1 F1 | `src/app/Menus/ShellMenus.cpp:175` | Edit-menu actions force focus onto the timeline, so Select All while editing an Inspector field selects clips instead of text, and Undo commits the field before undoing the document. The web excludes text-editing targets (`TracksRegion.tsx:1119`). | R |
 | B50 | P2 | pkg-R-r1 F2 | `src/app/Preferences/PreferencesSettings.cpp:20` | Open Recent launches the child with the preference-derived cache folder and budget in its environment, and the child treats them as explicit overrides, so cache preferences changed during the session do not apply on the next launch. | R |
 | B51 | P2 | pkg-R-r1 F3 | `src/app/Preferences/Preferences.cpp:169` | Open Recent relaunches a protected server timeline with only its server URL and timeline ID. When it was opened with `--token` and `NODETOOL_API_TOKEN` is unset, the child has no credentials or sign-in flow and fails authentication. | R |
+| B52 | P2 | pkg-I-r3 F1 | `src/render2d/Rasterizer.cpp:107` | Text is shaped and rendered with one font face and no fallback, so Inter text containing Chinese or emoji renders missing glyphs where the web uses fallback fonts. | I |
+| B53 | P2 | pkg-I-r3 F2 | `src/render2d/check-example-stills.mjs:127` | Imported plan exclusions remove line-stagger candidates, so broken line-stagger rendering escapes the stills gate. Comparisons also use stripped documents rather than the seven complete shipped examples. | I |
 
 ## Closed
 
