@@ -36,6 +36,7 @@ import type {
   ToolCall
 } from "./types.js";
 import { WEB_SEARCH_TOOL_NAME } from "./types.js";
+import { parseDataUri } from "./data-uri.js";
 
 interface AnthropicProviderOptions {
   client?: Anthropic;
@@ -463,27 +464,6 @@ function normalizeAnthropicImageMime(mime: string): string {
     throw new Error(`Anthropic does not support image media type ${base}`);
   }
   return base;
-}
-
-function parseDataUri(uri: string) {
-  const idx = uri.indexOf(",");
-  if (idx < 0) {
-    throw new Error("Invalid data URI");
-  }
-
-  const header = uri.slice(5, idx);
-  const payload = uri.slice(idx + 1);
-  const isBase64 = header.includes(";base64");
-  const mime = header.split(";")[0] || "application/octet-stream";
-
-  if (isBase64) {
-    return { mime, base64: payload };
-  }
-
-  return {
-    mime,
-    base64: Buffer.from(decodeURIComponent(payload), "utf8").toString("base64")
-  };
 }
 
 export class AnthropicProvider extends BaseProvider {
