@@ -365,7 +365,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "pull-a-still-from-a-clip",
         "name": "Pull a Still from a Clip",
-        "description": "Grab a single frame at a given timestamp - the quick way to get a thumbnail or a reference still out of footage you already have. Runs locally through ffmpeg.",
+        "description": "Grab a single frame at a given timestamp - the quick way to get a thumbnail or a reference still out of footage you already have. Runs on your machine with the built-in media engine.",
         "tags": [
           "video",
           "image",
@@ -567,7 +567,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "boost-saturation",
         "name": "Boost Saturation",
-        "description": "Push colour intensity. Values above 1 saturate, below 1 move toward greyscale. Unlike the Color Boost template this runs in ffmpeg, so it needs no GPU. Runs locally through ffmpeg - no API key and no per-run cost.",
+        "description": "Push colour intensity. Values above 1 saturate, below 1 move toward greyscale. Unlike the Color Boost template this runs on the CPU media engine, so it needs no GPU. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
         "tags": [
           "video",
           "utility"
@@ -612,7 +612,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "denoise-footage",
         "name": "Denoise Footage",
-        "description": "Reduce sensor grain in footage shot at high ISO. Higher strength smooths more and softens fine detail with it. Runs locally through ffmpeg - no API key and no per-run cost.",
+        "description": "Reduce sensor grain in footage shot at high ISO. Higher strength smooths more and softens fine detail with it. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
         "tags": [
           "video",
           "utility"
@@ -651,7 +651,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "fade-audio-in-and-out",
         "name": "Fade Audio In and Out",
-        "description": "Ease a track in from silence so it does not start on a hard edit. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
+        "description": "Ease a track in from silence so it does not start on a hard edit. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Built-in media engine - no API cost.",
         "tags": [
           "audio",
           "video",
@@ -734,7 +734,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "normalize-a-clips-audio",
         "name": "Normalize a Clip's Audio",
-        "description": "Even out loudness on a track that was recorded too quiet or too hot. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
+        "description": "Even out loudness on a track that was recorded too quiet or too hot. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Built-in media engine - no API cost.",
         "tags": [
           "audio",
           "video",
@@ -781,7 +781,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "reverse-audio",
         "name": "Reverse Audio",
-        "description": "Play a track backwards - the basis of reverse-cymbal risers and pre-echo effects. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
+        "description": "Play a track backwards - the basis of reverse-cymbal risers and pre-echo effects. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Built-in media engine - no API cost.",
         "tags": [
           "audio",
           "video",
@@ -791,7 +791,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "reverse-a-clip",
         "name": "Reverse a Clip",
-        "description": "Play a clip backwards. Useful for loop-and-return transitions where the return leg is the same footage reversed. Runs locally through ffmpeg - no API key and no per-run cost.",
+        "description": "Play a clip backwards. Useful for loop-and-return transitions where the return leg is the same footage reversed. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
         "tags": [
           "video",
           "utility"
@@ -800,7 +800,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "rotate-footage",
         "name": "Rotate Footage",
-        "description": "Rotate a clip by a fixed angle - the fix for phone footage that arrives on its side. Runs locally through ffmpeg - no API key and no per-run cost.",
+        "description": "Rotate a clip by a fixed angle - the fix for phone footage that arrives on its side. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
         "tags": [
           "video",
           "utility"
@@ -851,7 +851,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "sharpen-footage",
         "name": "Sharpen Footage",
-        "description": "Add apparent detail back after a denoise or a downscale. Luma carries most of the perceived sharpness; chroma is kept low to avoid colour fringing. Runs locally through ffmpeg - no API key and no per-run cost.",
+        "description": "Add apparent detail back after a denoise or a downscale. Luma carries most of the perceived sharpness; chroma is kept low to avoid colour fringing. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
         "tags": [
           "video",
           "utility"
@@ -877,7 +877,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "soften-a-plate",
         "name": "Soften a Plate",
-        "description": "Blur a clip so it can sit behind titles or a picture-in-picture inset without competing for attention. Runs locally through ffmpeg - no API key and no per-run cost.",
+        "description": "Blur a clip so it can sit behind titles or a picture-in-picture inset without competing for attention. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
         "tags": [
           "video",
           "utility"
@@ -894,7 +894,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "stabilize-handheld",
         "name": "Stabilize Handheld",
-        "description": "Smooth out handheld camera shake. Stabilising moves the frame, so `crop_black` trims the empty edges it exposes. Runs locally through ffmpeg - no API key and no per-run cost.",
+        "description": "Smooth out handheld camera shake. Stabilising moves the frame, so `crop_black` trims the empty edges it exposes. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
         "tags": [
           "video",
           "utility"
@@ -921,7 +921,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "trim-a-clip",
         "name": "Trim a Clip",
-        "description": "Cut a clip down to an in and out point. `accurate` re-encodes so the cut lands on the exact frame instead of the nearest keyframe. Runs locally through ffmpeg - no API key and no per-run cost.",
+        "description": "Cut a clip down to an in and out point. `accurate` re-encodes so the cut lands on the exact frame instead of the nearest keyframe. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
         "tags": [
           "video",
           "utility"
@@ -930,7 +930,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "warm-up-a-cold-clip",
         "name": "Warm Up a Cold Clip",
-        "description": "Per-channel colour balance — lift red, drop blue. A grade you can apply without a GPU, since it runs through ffmpeg rather than a shader.",
+        "description": "Per-channel colour balance — lift red, drop blue. A grade you can apply without a GPU, since it runs on the CPU media engine rather than a shader.",
         "tags": [
           "video"
         ]

@@ -8,6 +8,7 @@
 
 import { basename } from "node:path";
 import { Workspace } from "@nodetool-ai/models";
+import { mimeTypeForPath } from "@nodetool-ai/protocol";
 import { workspaceFromRow } from "./lib/workflow-workspace.js";
 import type { HttpApiOptions } from "./http-api.js";
 
@@ -33,35 +34,6 @@ function normalizePath(pathname: string): string {
     return pathname.slice(0, -1);
   }
   return pathname;
-}
-
-// Lookup helper for content-type guessing
-function guessContentType(filename: string): string {
-  const ext = filename.split(".").pop()?.toLowerCase() ?? "";
-  const map: Record<string, string> = {
-    txt: "text/plain",
-    html: "text/html",
-    htm: "text/html",
-    css: "text/css",
-    js: "application/javascript",
-    json: "application/json",
-    png: "image/png",
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    gif: "image/gif",
-    svg: "image/svg+xml",
-    pdf: "application/pdf",
-    zip: "application/zip",
-    mp3: "audio/mpeg",
-    mp4: "video/mp4",
-    wav: "audio/wav",
-    csv: "text/csv",
-    xml: "application/xml",
-    md: "text/markdown",
-    py: "text/x-python",
-    ts: "text/typescript"
-  };
-  return map[ext] ?? "application/octet-stream";
 }
 
 /**
@@ -125,7 +97,7 @@ export async function handleWorkspaceRequest(
   return new Response(data.slice().buffer as ArrayBuffer, {
     status: 200,
     headers: {
-      "content-type": guessContentType(basename(filePath)),
+      "content-type": mimeTypeForPath(filePath),
       "content-disposition": `attachment; filename="${basename(filePath)}"`
     }
   });

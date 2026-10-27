@@ -11,7 +11,10 @@
  */
 import { createReadStream } from "node:fs";
 import * as fs from "node:fs/promises";
-import * as path from "node:path";
+import {
+  INLINE_USER_FILE_MIME_OVERRIDES,
+  mimeTypeForPath
+} from "@nodetool-ai/protocol";
 import { corsHeaders, parseRangeHeader } from "./storage-api.js";
 import { streamedResponse } from "./lib/bridge.js";
 import {
@@ -28,30 +31,6 @@ function errorResponse(status: number, detail: string): Response {
 
 // ── Local-file streaming (/api/files/local) ─────────────────────────
 
-const LOCAL_MIME_TYPES: Record<string, string> = {
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".gif": "image/gif",
-  ".webp": "image/webp",
-  ".bmp": "image/bmp",
-  ".svg": "image/svg+xml",
-  ".mp3": "audio/mpeg",
-  ".wav": "audio/wav",
-  ".ogg": "audio/ogg",
-  ".m4a": "audio/mp4",
-  ".flac": "audio/flac",
-  ".aac": "audio/aac",
-  ".mp4": "video/mp4",
-  ".webm": "video/webm",
-  ".mov": "video/quicktime",
-  ".avi": "video/x-msvideo",
-  ".mkv": "video/x-matroska",
-  ".pdf": "application/pdf",
-  ".txt": "text/plain",
-  ".json": "application/json"
-};
-
 /**
  * Script restrictions for SVG. This route answers on the API's own origin, and
  * the local trust check takes a same-origin page for the user's own UI, so a
@@ -61,13 +40,6 @@ const SVG_SAFE_HEADERS: Record<string, string> = {
   "Content-Security-Policy":
     "default-src 'none'; style-src 'unsafe-inline'; sandbox; frame-ancestors 'self'"
 };
-
-function localMimeType(filePath: string): string {
-  return (
-    LOCAL_MIME_TYPES[path.extname(filePath).toLowerCase()] ??
-    "application/octet-stream"
-  );
-}
 
 async function handleLocalFileStream(
   request: Request,
@@ -97,7 +69,7 @@ async function handleLocalFileStream(
   }
 
   const cors = corsHeaders(request);
-  const contentType = localMimeType(resolved);
+  const contentType = mimeTypeForPath(resolved, INLINE_USER_FILE_MIME_OVERRIDES);
   const safety = contentType === "image/svg+xml" ? SVG_SAFE_HEADERS : {};
   const fileSize = stat.size;
   const lastModified = stat.mtime.toUTCString();
