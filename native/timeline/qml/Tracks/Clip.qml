@@ -57,6 +57,7 @@ Item {
     }
 
     ClipBody {
+        id: clipBody
         z: 1
         clipData: clipItem.clipData
         timeline: clipItem.gestures ? clipItem.gestures.timeline : null
@@ -96,6 +97,20 @@ Item {
 
     function press(part, mouse, area) {
         if (!clipItem.gestures) return
+        if (part !== "body") {
+            const takesPress = item => {
+                if (!item.visible || !item.enabled) return false
+                if (item instanceof MouseArea && item.takesTrimPress === true
+                    && (item.acceptedButtons & mouse.button)
+                    && item.contains(item.mapFromItem(area, mouse.x, mouse.y))) return true
+                return item.children.some(takesPress)
+            }
+            // takesTrimPress lets slot controls precede trim without raising the transition grip.
+            if (clipBody.children.some(item => item.slot === "clipBody" && takesPress(item))) {
+                mouse.accepted = false
+                return
+            }
+        }
         const p = area.mapToItem(null, mouse.x, mouse.y)
         clipItem.gestures.pressClip(clipItem.clipId, part, p.x, p.y, mouse.modifiers)
     }
