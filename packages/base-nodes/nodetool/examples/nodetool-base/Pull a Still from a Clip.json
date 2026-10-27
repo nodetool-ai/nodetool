@@ -5,7 +5,7 @@
   "updated_at": "2026-06-21T16:55:51.256Z",
   "name": "Pull a Still from a Clip",
   "tool_name": null,
-  "description": "Grab a single frame at a given timestamp - the quick way to get a thumbnail or a reference still out of footage you already have. Runs locally through ffmpeg.",
+  "description": "Grab a single frame at a given timestamp - the quick way to get a thumbnail or a reference still out of footage you already have. Runs on your machine with the built-in media engine.",
   "tags": [
     "video",
     "image",
@@ -20,7 +20,7 @@
         "id": "intro-comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Pull a Still from a Clip\n\nGrabs one frame from a video at a chosen time. Use it to get a thumbnail or a reference still from existing footage.\n\n**How it works:** The \"Clip\" input goes to \"Grab a frame\", which extracts the frame at 2 seconds. \"Still\" shows the image. It runs locally through ffmpeg with no model or key.\n\n**Try this:** Set time on \"Grab a frame\" to the moment you want, such as 12.5 for a frame twelve and a half seconds in."
+          "comment": "# Pull a Still from a Clip\n\nGrabs one frame from a video at a chosen time. Use it to get a thumbnail or a reference still from existing footage.\n\n**How it works:** The \"Clip\" input goes to \"Grab a frame\", which extracts the frame at 2 seconds. \"Still\" shows the image. It runs in the built-in media engine on your machine, with no model or key.\n\n**Try this:** Set time on \"Grab a frame\" to the moment you want, such as 12.5 for a frame twelve and a half seconds in."
         },
         "ui_properties": {
           "position": {

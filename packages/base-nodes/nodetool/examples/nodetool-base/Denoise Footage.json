@@ -5,7 +5,7 @@
   "updated_at": "2026-06-21T16:55:51.256Z",
   "name": "Denoise Footage",
   "tool_name": null,
-  "description": "Reduce sensor grain in footage shot at high ISO. Higher strength smooths more and softens fine detail with it. Runs locally through ffmpeg - no API key and no per-run cost.",
+  "description": "Reduce sensor grain in footage shot at high ISO. Higher strength smooths more and softens fine detail with it. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
   "tags": [
     "video",
     "utility",
@@ -19,7 +19,7 @@
         "id": "intro-comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Denoise Footage\n\nReduces sensor grain in footage shot at high ISO. It runs locally through ffmpeg, with no API key and no per-run cost.\n\n**How it works:** \"Clip\" passes the video to \"Denoise\", which smooths grain at the set strength. \"Result\" shows the cleaned clip. Higher strength removes more grain but also softens fine detail such as hair and texture.\n\n**Try this:** Lower the \"Denoise\" strength from 4 to 2 on a clip with fine detail, and compare it with the default to find the point where grain drops but edges stay crisp."
+          "comment": "# Denoise Footage\n\nReduces sensor grain in footage shot at high ISO. It runs on your machine with the built-in media engine, with no API key and no per-run cost.\n\n**How it works:** \"Clip\" passes the video to \"Denoise\", which smooths grain at the set strength. \"Result\" shows the cleaned clip. Higher strength removes more grain but also softens fine detail such as hair and texture.\n\n**Try this:** Lower the \"Denoise\" strength from 4 to 2 on a clip with fine detail, and compare it with the default to find the point where grain drops but edges stay crisp."
         },
         "ui_properties": {
           "position": {
