@@ -1,6 +1,6 @@
 ---
 layout: page
-title: "PDF Rasterize (pdftoppm)"
+title: "PDF Rasterize"
 node_type: "lib.pdf.Pdftoppm"
 namespace: "lib.pdf"
 ---
@@ -11,8 +11,8 @@ namespace: "lib.pdf"
 
 ## Description
 
-Rasterize PDF pages with poppler's pdftoppm. Higher fidelity than the PDFium-based Screenshot node for some PDFs and supports anti-aliasing controls.
-    pdf, pdftoppm, poppler, rasterize, render, image, pages
+Rasterize PDF pages to PNG, JPEG or TIFF images at a DPI or a target size.
+    pdf, pdftoppm, rasterize, render, image, pages, jpeg, tiff
 
 ## Properties
 

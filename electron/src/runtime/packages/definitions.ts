@@ -90,17 +90,6 @@ export const RUNTIME_PACKAGES = {
     verifyBinary: "pandoc",
   }),
 
-  pdftotext: new CondaRuntimePackage({
-    id: "pdftotext",
-    name: "PDF Tools (Poppler)",
-    description:
-      "PDF text extraction using pdftotext from poppler. Required for PDF-to-text conversion.",
-    category: "tool",
-    versionRange: "*",
-    condaPackages: ["poppler"],
-    verifyBinary: "pdftotext",
-  }),
-
   "yt-dlp": new CondaRuntimePackage({
     id: "yt-dlp",
     name: "yt-dlp",

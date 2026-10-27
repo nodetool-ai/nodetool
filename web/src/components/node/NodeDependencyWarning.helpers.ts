@@ -7,7 +7,6 @@ export const RUNTIME_LABELS: Record<string, string> = {
   "yt-dlp": "yt-dlp",
   manimgx: "ManimGX",
   pandoc: "Pandoc",
-  pdftotext: "PDF Tools (Poppler)",
 };
 
 /** Maps required_runtimes values to RuntimePackageId values used by the Electron API. */
@@ -15,7 +14,6 @@ export const RUNTIME_TO_PACKAGE_ID: Record<string, string> = {
   python: "python",
   nodejs: "nodejs",
   pandoc: "pandoc",
-  pdftotext: "pdftotext",
   "yt-dlp": "yt-dlp",
   manimgx: "manimgx",
 };

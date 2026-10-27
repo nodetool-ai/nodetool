@@ -5,7 +5,7 @@ import { ChartRendererLibNode } from "../src/index.js";
 
 let hasCanvas = false;
 try {
-  require("canvas");
+  require("@napi-rs/canvas");
   hasCanvas = true;
 } catch {
   /* not installed */

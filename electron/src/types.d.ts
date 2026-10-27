@@ -1015,7 +1015,6 @@ export type RuntimePackageId =
   | "python"
   | "nodejs"
   | "pandoc"
-  | "pdftotext"
   | "yt-dlp"
   | "rust"
   | "manimgx"
