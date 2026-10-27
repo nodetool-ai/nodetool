@@ -3,6 +3,7 @@
 #include "preview/layers/SceneHooks.h"
 #include <QJsonDocument>
 #include <cmath>
+#include <limits>
 #include <QtTest>
 
 class TestMasks : public QObject {
@@ -193,7 +194,7 @@ class TestMasks : public QObject {
         QTest::addColumn<QString>("kind");
         QTest::addColumn<QByteArray>("feather");
         for (const auto *kind : {"path", "rect", "ellipse"}) {
-            for (const auto *value : {"1e9", "1e300", "1e308"}) {
+            for (const auto *value : {"1e6", "1e9", "1e300", "1e308"}) {
                 QTest::newRow(qPrintable(QString("%1-%2").arg(kind, value))) << QString(kind) << QByteArray(value);
             }
         }
@@ -228,6 +229,52 @@ class TestMasks : public QObject {
         for (const auto &pass : chain) {
             QVERIFY(std::isfinite(pass.params[0]));
             QVERIFY(pass.params[0] <= 256);
+        }
+    }
+    void nonFiniteFeather_data() {
+        QTest::addColumn<QString>("kind");
+        QTest::addColumn<double>("feather");
+        for (const auto *kind : {"path", "rect", "ellipse"}) {
+            QTest::newRow(qPrintable(QString("%1-nan").arg(kind)))
+                << QString(kind) << std::numeric_limits<double>::quiet_NaN();
+            QTest::newRow(qPrintable(QString("%1-inf").arg(kind)))
+                << QString(kind) << std::numeric_limits<double>::infinity();
+            QTest::newRow(qPrintable(QString("%1-negative-inf").arg(kind)))
+                << QString(kind) << -std::numeric_limits<double>::infinity();
+        }
+    }
+    void nonFiniteFeather() {
+        QFETCH(QString, kind);
+        QFETCH(double, feather);
+        QJsonObject mask{{"kind", kind},
+                         {"d", "M .2 .2 L .8 .2 L .5 .8 Z"},
+                         {"radiusPx", 4},
+                         {"x", 0.2}, {"y", 0.2},
+                         {"width", 0.6}, {"height", 0.6}};
+        mask.insert("featherPx", QJsonValue(feather));
+        QVERIFY(!std::isfinite(mask.value("featherPx").toDouble()));
+        nt::effects::MaskRasterizer raster;
+        const auto image = raster.rasterize(mask, {32, 16});
+        QVERIFY(!image.isNull());
+        QCOMPARE(image.size(), QSize(32, 16));
+    }
+    void generatedMatteFeatherBounds_data() {
+        QTest::addColumn<double>("feather");
+        QTest::newRow("1e6") << 1e6;
+        QTest::newRow("nan") << std::numeric_limits<double>::quiet_NaN();
+        QTest::newRow("inf") << std::numeric_limits<double>::infinity();
+    }
+    void generatedMatteFeatherBounds() {
+        QFETCH(double, feather);
+        nt::Clip clip;
+        clip.raw.insert("generatedMatte", QJsonObject{{"mediaPath", "/tmp/matte.mp4"},
+                                                    {"featherPx", QJsonValue(feather)}});
+        nt::ActiveLayer layer;
+        nt::effects::decorateMasks(layer, clip);
+        QVERIFY(layer.matte);
+        if (layer.matte->featherPx) {
+            QVERIFY(std::isfinite(*layer.matte->featherPx));
+            QVERIFY(*layer.matte->featherPx <= 256);
         }
     }
     void secondSourceRequests() {
