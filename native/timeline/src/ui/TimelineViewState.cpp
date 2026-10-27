@@ -291,3 +291,15 @@ double TimelineViewState::troughClickScrollLeft(double pointerInTroughPx, double
     const ScrollThumb t = computeScrollThumb(totalWidthPx(), m_viewportWidthPx, m_scrollLeftPx, trackWidth);
     return nt::ui::troughClickScrollLeft(t, pointerInTroughPx);
 }
+
+void TimelineViewState::setRulerMode(const QString& mode) {
+    if ((mode != u"time" && mode != u"bars") || mode == m_rulerMode) { return; }
+    m_rulerMode = mode;
+    emit rulerModeChanged();
+}
+
+void TimelineViewState::setGridDivision(const QString& division) {
+    if (division == m_gridDivision) { return; }
+    m_gridDivision = division;
+    emit gridDivisionChanged();
+}

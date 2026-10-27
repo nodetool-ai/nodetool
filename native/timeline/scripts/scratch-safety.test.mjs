@@ -4,6 +4,8 @@
 
 import { spawn } from "node:child_process";
 import fs from "node:fs";
+import crypto from "node:crypto";
+import { createScratchSession } from "./scratch-server.mjs";
 import http from "node:http";
 import path from "node:path";
 import test from "node:test";
@@ -143,7 +145,7 @@ async function startWithPreload(code, instance) {
 
 const listen = `.listen(0,"127.0.0.1",function(){console.log("port "+this.address().port)})`;
 
-test("the instance preload marks every answer of the server it runs in", async () => {
+test("the instance preload proves fresh nonces without disclosing its secret", async () => {
   // writeHead with headers (Fastify), an implicit head, and an error status.
   const code = `require("http").createServer((q,s)=>{
     if (q.url==="/a") { s.writeHead(200,{"content-type":"application/json"}); s.end("{}"); }
@@ -153,11 +155,14 @@ test("the instance preload marks every answer of the server it runs in", async (
   const { child, port } = await startWithPreload(code, "token-1");
   try {
     for (const p of ["/a", "/b", "/missing"]) {
-      const r = await fetch(`http://127.0.0.1:${port}${p}`);
-      assert.equal(r.headers.get(INSTANCE_HEADER), "token-1", p);
+      const nonce = crypto.randomBytes(16).toString("hex");
+      const r = await fetch(`http://127.0.0.1:${port}${p}`, { headers: { "x-nodetool-instance-nonce": nonce } });
+      assert.equal(r.headers.get(INSTANCE_HEADER), null, "secret must not be sent");
+      assert.equal(r.headers.get("x-nodetool-instance-proof"), crypto.createHmac("sha256", "token-1").update(nonce).digest("hex"), p);
     }
     const post = await fetch(`http://127.0.0.1:${port}/a`, { method: "POST", body: "x" });
-    assert.equal(post.headers.get(INSTANCE_HEADER), "token-1");
+    assert.equal(post.headers.get(INSTANCE_HEADER), null);
+    assert.equal(post.headers.get("x-nodetool-instance-proof"), null);
   } finally {
     await stopGroups([child.pid], { termMs: 2000 });
   }
@@ -169,7 +174,9 @@ test("the instance preload reaches a server started by a launcher (tsx)", async 
   const code = `require("child_process").spawn(process.execPath,["-e",${JSON.stringify(server)}],{stdio:"inherit"})`;
   const { child, port } = await startWithPreload(code, "token-2");
   try {
-    assert.equal((await fetch(`http://127.0.0.1:${port}/`)).headers.get(INSTANCE_HEADER), "token-2");
+    const r = await fetch(`http://127.0.0.1:${port}/`, { headers: { "x-nodetool-instance-nonce": "0123456789abcdef0123456789abcdef" } });
+    assert.equal(r.headers.get("x-nodetool-instance-proof"), crypto.createHmac("sha256", "token-2").update("0123456789abcdef0123456789abcdef").digest("hex"));
+    assert.equal(r.headers.get(INSTANCE_HEADER), null);
   } finally {
     await stopGroups([child.pid], { termMs: 2000 });
   }
@@ -182,4 +189,100 @@ test("without a token the preload adds no instance header", async () => {
   } finally {
     await stopGroups([child.pid], { termMs: 2000 });
   }
+});
+
+async function identityListener(replay = "") {
+  const code = `
+    const net = require("node:net"), crypto = require("node:crypto");
+    const sockets = new Set();
+    let replacement = false;
+    const replay = ${JSON.stringify(replay)};
+    const server = net.createServer(socket => {
+      sockets.add(socket);
+      socket.on("error", () => {});
+      socket.on("close", () => sockets.delete(socket));
+      socket.on("data", bytes => {
+        process.send({ bytes: bytes.toString(), replacement });
+        if (bytes.toString().startsWith("GET /ready ")) {
+          const nonce = bytes.toString().match(/x-nodetool-instance-nonce: ([^\\r]+)/i)?.[1] ?? "";
+          const proof = crypto.createHmac("sha256", "mine").update(nonce).digest("hex");
+          const headers = replay || "x-nodetool-instance: mine\\r\\nx-nodetool-instance-proof: " + proof + "\\r\\n";
+          socket.write("HTTP/1.1 200 OK\\r\\n" + headers + "Content-Length: 2\\r\\n\\r\\n{}");
+        } else socket.end('HTTP/1.1 200 OK\\r\\nx-nodetool-instance: mine\\r\\nContent-Length: 22\\r\\n\\r\\n{"result":{"data":{}}}');
+      });
+    });
+    server.listen(0, "127.0.0.1", () => process.send({ port: server.address().port }));
+    process.on("message", m => {
+      if (m !== "swap") return;
+      const port = server.address().port;
+      for (const s of sockets) s.destroy();
+      server.close(() => { replacement = true; server.listen(port, "127.0.0.1", () => process.send({ swapped: true })); });
+    });
+  `;
+  const child = spawn(process.execPath, ["-e", code], { detached: true, stdio: ["ignore", "ignore", "inherit", "ipc"] });
+  const messages = [];
+  child.on("message", (m) => messages.push(m));
+  async function until(predicate) {
+    for (let i = 0; i < 500; ++i) {
+      if (predicate()) return;
+      if (child.exitCode !== null) throw new Error("identity listener exited");
+      await sleep(10);
+    }
+    throw new Error("identity listener timed out");
+  }
+  await until(() => messages.some((m) => m.port));
+  const port = messages.find((m) => m.port).port;
+  assert.notEqual(port, 7777);
+  return { child, port, messages, until };
+}
+
+for (const operation of ["mutate", "upload"]) {
+  for (const attack of ["replacement", "copied headers"]) {
+    test(`${operation}: ${attack} receives no write bytes`, async () => {
+      let copied = "";
+      if (attack === "copied headers") {
+        const real = await identityListener();
+        try {
+          const r = await fetch(`http://127.0.0.1:${real.port}/ready`, { headers: { "x-nodetool-instance-nonce": crypto.randomBytes(16).toString("hex") } });
+          copied = `x-nodetool-instance: mine\r\nx-nodetool-instance-proof: ${r.headers.get("x-nodetool-instance-proof")}\r\n`;
+          await r.text();
+        } finally { await stopGroups([real.child.pid], { termMs: 2000 }); }
+      }
+      const fake = await identityListener(copied);
+      const server = { child: fake.child, port: fake.port, base: `http://127.0.0.1:${fake.port}`, owned: true, instance: "mine", dir: area };
+      let paused = false;
+      const session = createScratchSession({ work: area, repo: path.resolve(root, "../.."), assertInWork: (p) => assertInWork(area, p),
+        beforeWrite: async () => {
+          paused = true;
+          if (attack === "replacement") {
+            fake.child.send("swap");
+            await fake.until(() => fake.messages.some((m) => m.swapped));
+          }
+        } });
+      session.servers.push(server);
+      const file = path.join(area, `private-${operation}.wav`);
+      fs.writeFileSync(file, "PRIVATE-MULTIPART-BODY");
+      let error;
+      try {
+        try {
+          if (operation === "mutate") await session.mutate(server.base, "timeline.update", { private: "PRIVATE-JSON-BODY" });
+          else await session.upload(server, file, "audio/wav");
+        } catch (e) { error = e; }
+        await sleep(50);
+        const received = fake.messages.filter((m) => m.bytes && (attack !== "replacement" || m.replacement)).map((m) => m.bytes).join("");
+        assert.doesNotMatch(received, /POST|PRIVATE|multipart/, received);
+        assert.ok(error, "identity failure must reject");
+        if (attack === "replacement") assert.equal(paused, true);
+        else assert.match(String(error), /WRONG_SERVER/);
+      } finally { await session.stopServers(); }
+    });
+  }
+}
+
+test("port 7777 is refused before preparing or contacting a server", async () => {
+  const session = createScratchSession({ work: area, repo: path.resolve(root, "../.."),
+    assertInWork: () => { throw new Error("port guard bypassed"); } });
+  await assert.rejects(session.startServer("forbidden", 7777), /refusing to start on 7777/);
+  await assert.rejects(session.mutate("http://127.0.0.1:7777", "timeline.delete", {}), /refusing a write/);
+  await assert.rejects(session.upload({ base: "http://127.0.0.1:7777" }, "unused"), /refusing a write/);
 });

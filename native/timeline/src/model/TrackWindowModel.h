@@ -1,9 +1,8 @@
 #pragma once
 
 // Vertical virtualization of the tracks region (DESIGN.md D27). The rows of a
-// `TrackListModel` get exact tops and heights (`layoutTrackRows`, without the
-// script lane, folders, FX panels and automation lanes, which the prototype
-// leaves out), and this model exposes only the rows that `visibleTrackWindow`
+// `TrackListModel` get exact tops and heights (`layoutTrackRows`, with extra
+// row contributions below each base lane), and this model exposes only the rows that `visibleTrackWindow`
 // keeps for the current vertical scroll, plus 3 rows of overscan. Both are
 // copied from web/src/components/timeline/Tracks/trackWindow.ts.
 //
@@ -15,6 +14,7 @@
 
 #include <QAbstractListModel>
 #include <QPointer>
+#include <QVariantMap>
 #include <QtQmlIntegration/qqmlintegration.h>
 
 #include <vector>
@@ -40,6 +40,7 @@ class TrackWindowModel : public QAbstractListModel {
     Q_PROPERTY(TrackListModel* tracks READ tracks WRITE setTracks NOTIFY tracksChanged)
     Q_PROPERTY(TimelineViewState* viewState READ viewState WRITE setViewState NOTIFY viewStateChanged)
     Q_PROPERTY(double contentHeight READ contentHeight NOTIFY contentHeightChanged)
+    Q_PROPERTY(QVariantMap extraRowHeights READ extraRowHeights WRITE setExtraRowHeights NOTIFY extraRowHeightsChanged)
     Q_PROPERTY(int windowStart READ windowStart NOTIFY windowChanged)
     Q_PROPERTY(int windowEnd READ windowEnd NOTIFY windowChanged)
     Q_PROPERTY(int trackCount READ trackCount NOTIFY trackLayoutChanged)
@@ -50,6 +51,8 @@ public:
         RowTopRole = Qt::UserRole + 100,
         RowHeightRole,
         SourceRowRole,
+        BaseRowHeightRole,
+        TrackRole,
     };
 
     explicit TrackWindowModel(QObject* parent = nullptr);
@@ -59,6 +62,8 @@ public:
     TimelineViewState* viewState() const { return m_view; }
     void setViewState(TimelineViewState* view);
     double contentHeight() const { return m_contentHeight; }
+    const QVariantMap& extraRowHeights() const { return m_extraRowHeights; }
+    void setExtraRowHeights(const QVariantMap& heights);
     int windowStart() const { return m_window.start; }
     int windowEnd() const { return m_window.end; }
     int trackCount() const { return static_cast<int>(m_tops.size()); }
@@ -74,6 +79,7 @@ signals:
     void tracksChanged();
     void viewStateChanged();
     void contentHeightChanged();
+    void extraRowHeightsChanged();
     void windowChanged();
     void trackLayoutChanged();
 
@@ -87,6 +93,7 @@ private:
     QPointer<TimelineViewState> m_view;
     std::vector<double> m_tops;
     std::vector<double> m_heights;
+    QVariantMap m_extraRowHeights;
     double m_contentHeight = 0.0;
     double m_layoutZoom = 1.0;
     nt::TrackWindow m_window;

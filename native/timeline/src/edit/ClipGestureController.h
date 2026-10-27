@@ -5,13 +5,14 @@
 // key handler of TracksRegion.tsx:
 //
 // - A press on a clip body starts a move: the pointer's travel plus the
-//   scroll's, snapped (both edges, 8 px) unless Alt is held, onto the lane
-//   under the pointer when its type fits. A multi-selection moves together.
+//   scroll's, snapped (both edges, 8 px), onto the lane under the pointer
+//   when its type fits. With F registered, Alt at the press copies in place
+//   and moves the originals, retaining snapping. A multi-selection moves together.
 //   The release settles the drop with the drop mode (Ctrl forces insert). A
 //   press that does not travel 3 px is a click: it selects (Shift adds,
 //   Ctrl/Cmd toggles).
 // - A press on a trim handle trims that edge: plain, ripple (ripple mode or
-//   the Ripple tool) or roll (Ctrl/Cmd or the Roll tool).
+//   the Ripple tool) or roll (Ctrl/Cmd or the Roll tool). Alt bypasses snapping.
 // - The tools of the toolbar (ToolToggle.tsx): Cut splits the clip at the
 //   pointer; Slip drags the source under the clip (planSlip); Slide moves the
 //   clip and trims its neighbours (slideClip); Track select selects every
@@ -34,6 +35,7 @@
 #include "model/TrackWindowModel.h"
 #include "playback/PlaybackClock.h"
 #include "ui/TimelineViewState.h"
+#include "edit/clipboard/ClipboardOps.h"
 
 #include <functional>
 
@@ -67,6 +69,9 @@ class ClipGestureController : public QQuickItem {
     // The candidate a moving edge locked onto, or -1.
     Q_PROPERTY(double snapGuideMs READ snapGuideMs NOTIFY snapGuideChanged)
     Q_PROPERTY(int liveUpdates READ liveUpdates NOTIFY gestureChanged)
+    Q_PROPERTY(double trackDropY READ trackDropY NOTIFY gestureChanged)
+    Q_PROPERTY(QVariantMap rubberBand READ rubberBand NOTIFY gestureChanged)
+    Q_PROPERTY(QVariantMap selectedGap READ selectedGap NOTIFY selectionChanged)
 
 public:
     explicit ClipGestureController(QQuickItem* parent = nullptr);
@@ -99,12 +104,22 @@ public:
     QString gestureKind() const { return m_gesture.kind; }
     double snapGuideMs() const { return m_snapGuideMs; }
     int liveUpdates() const { return m_liveUpdates; }
+    double trackDropY() const { return m_trackDropY; }
+    QVariantMap rubberBand() const { return m_rubberBand; }
+    QVariantMap selectedGap() const { return m_selectedGap; }
+    Q_INVOKABLE bool pressTrack(const QString& trackId, const QString& kind, double sceneX, double sceneY);
+    Q_INVOKABLE void pressEmptyLane(const QString& trackId, double sceneX, double sceneY, int modifiers);
+    Q_INVOKABLE QVariantMap groupSpan(const QString& clipId) const;
+    Q_INVOKABLE void pasteAttributes(const QVariantMap& source, const QStringList& ids, const QStringList& groups);
 
     // trimModeFor(tool, rollModifier, rippleMode)
     static QString trimModeFor(const QString& tool, bool rollModifier, bool rippleMode);
 
     // The document the actions read: the model's clips and tracks.
     nt::edit::EditDoc editDoc() const;
+
+    Q_INVOKABLE bool runAction(const QString& action, const QVariantMap& context = {});
+    Q_INVOKABLE QVariantMap clipData(const QString& clipId) const;
 
 public slots:
     // A press on a clip: `part` is "body", "start" or "end". Grabs the mouse.
@@ -133,7 +148,7 @@ public slots:
     QVariantMap shortcutSheet() const;
     // The keymap actions handleKey runs, and the pointer gestures of the
     // sheet's key-only rows that work here.
-    static const QSet<QString>& availableActions();
+    static QSet<QString> availableActions();
 
 signals:
     void changed();
@@ -143,6 +158,7 @@ signals:
     void snapGuideChanged();
     // The `?` key: open or close the shortcut sheet.
     void shortcutsToggled();
+    void pasteAttributesRequested(QVariantMap source, QVariantList targets);
 
 protected:
     void mouseMoveEvent(QMouseEvent* event) override;
@@ -151,8 +167,10 @@ protected:
     void updatePolish() override;
 
 private:
+    bool runBuiltinAction(const QString& action, bool autoRepeat);
+
     struct Gesture {
-        QString kind;  // "", "move", "trim", "slip", "slide"
+        QString kind;  // clip move/trim/slip/slide, track resize/reorder, or marquee
         QString clipId;
         QString edge;  // trim: "start" or "end"
         QString mode;  // trim: "trim", "ripple" or "roll"
@@ -161,6 +179,14 @@ private:
         double lastX = 0;
         double lastY = 0;
         bool alt = false;
+        bool copyOnDrag = false;
+        bool copiesCreated = false;
+        bool additiveSelection = false;
+        QPointF laneStart;
+        double trackHeightAtStart = 64;
+        QString trackType;
+        QStringList selectionAtStart;
+        std::vector<nt::edit::clipboard::TrackBounds> bandRows;
         double scrollLeftAtStart = 0;
         double travelledMs = 0;
         double gestureMsPerPx = 10;
@@ -183,6 +209,9 @@ private:
     void applyTrim();
     void applySlip();
     void applySlide();
+    void updateTrackDrag();
+    void updateMarquee();
+    QJsonObject targetingPayload() const;
     double laneMsAt(double sceneX) const;
     void finishGesture(bool completed, Qt::KeyboardModifiers modifiers);
     void clickSelect(const QString& clipId, Qt::KeyboardModifiers modifiers);
@@ -194,7 +223,10 @@ private:
     void dropGesture();
     std::optional<double> sourceCap(const QJsonObject& clip);
     void probeSources();
+    void syncPlaybackRange();
 
+    mutable QHash<QString, QJsonObject> m_clipData;
+    mutable std::uint64_t m_clipDataRevision = 0;
     QPointer<TimelineModel> m_timeline;
     QPointer<TimelineViewState> m_view;
     QPointer<TrackWindowModel> m_rows;
@@ -217,4 +249,8 @@ private:
     // Bumped by a document replacement: older probe results are dropped.
     quint64 m_probeGeneration = 0;
     int m_liveUpdates = 0;
+    double m_trackDropY = -1;
+    QStringList m_trackOrder;
+    QVariantMap m_rubberBand;
+    QVariantMap m_selectedGap;
 };

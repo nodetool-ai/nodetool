@@ -9,6 +9,8 @@ import NodeTool.Timeline
 Rectangle {
     id: ruler
     required property TimelineViewState viewState
+    property TimelineModel timeline: null
+    property ClipGestureController gestures: null
     property double fps: 30
     // The document's markers ({id, timeMs, label, color?}).
     property var markers: []
@@ -25,6 +27,9 @@ Rectangle {
         objectName: "rulerCanvas"
         width: parent.width
         height: parent.height - 1
+        timeline: ruler.timeline
+        rulerMode: ruler.viewState.rulerMode
+        gridDivision: ruler.viewState.gridDivision
         msPerPx: ruler.viewState.msPerPx
         scrollLeftPx: ruler.viewState.scrollLeftPx
         fps: ruler.fps
@@ -50,15 +55,26 @@ Rectangle {
     MouseArea {
         objectName: "rulerSeekArea"
         anchors.fill: parent
-        acceptedButtons: Qt.LeftButton
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
         preventStealing: true
         function seekTo(mx) {
             ruler.seekRequested(Math.max(0, mx * ruler.viewState.msPerPx + ruler.viewState.scrollLeftPx * ruler.viewState.msPerPx))
         }
-        onPressed: mouse => seekTo(mouse.x)
-        onPositionChanged: mouse => {
-            if (pressed) seekTo(mouse.x)
+        onPressed: mouse => {
+            if (mouse.button === Qt.RightButton) {
+                rulerMenu.context = { timeMs: ruler.viewState.timeAtViewportX(mouse.x), editable: true }
+                rulerMenu.popup(mouse.x, mouse.y)
+            } else seekTo(mouse.x)
         }
+        onPositionChanged: mouse => {
+            if (pressed && (pressedButtons & Qt.LeftButton)) seekTo(mouse.x)
+        }
+    }
+
+    RegistryContextMenu {
+        id: rulerMenu
+        kind: "ruler"
+        gestures: ruler.gestures
     }
 
     // Marker flags, in content space, culled to the view with 200 px of

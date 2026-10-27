@@ -112,16 +112,24 @@ private slots:
         QCOMPARE(pool.size(), 3);
         QCOMPARE(pool.bytes(), size_t(1200));
         QCOMPARE(pool.freed(), 0LL);
-        // Frame 2 uses one target. Frame 1 is submitted, so the frame-1-only
-        // targets may go; the one frame 2 draws with stays to its end.
-        FakeTarget* again = pool.acquire(size, 2);
-        QVERIFY(again == used[0] || again == used[1] || again == used[2]);
+        // Frame 2 reuses all targets and still exceeds the budget.
+        for (int i = 0; i < 3; ++i) QCOMPARE(pool.acquire(size, 2), used[i]);
         pool.endFrame(2, size);
-        QVERIFY(!pool.lastFrameOverBudget());
-        QCOMPARE(pool.bytes(), size_t(800));  // trimmed to the budget
-        QCOMPARE(live, 2);
-        QCOMPARE(pool.acquire(size, 3), again);  // the target frame 2 used survived the trim
+        QVERIFY(pool.lastFrameOverBudget());
+        QCOMPARE(pool.created(), 3LL);
+        QCOMPARE(pool.freed(), 0LL);
+        QCOMPARE(live, 3);
+        // Frame 3 uses one target. Earlier frames have been submitted, so
+        // idle targets may go, but the target this frame uses must survive.
+        FakeTarget* again = pool.acquire(size, 3);
+        QVERIFY(again == used[0] || again == used[1] || again == used[2]);
         pool.endFrame(3, size);
+        QVERIFY(!pool.lastFrameOverBudget());
+        QCOMPARE(pool.bytes(), size_t(800));
+        QCOMPARE(live, 2);
+        QCOMPARE(pool.acquire(size, 4), again);
+        pool.endFrame(4, size);
+        QVERIFY(!pool.lastFrameOverBudget());
         QCOMPARE(SurfacePool<FakeTarget>::bytesFor(QSize(3840, 2160)), size_t(33177600));  // 31.6 MiB
     }
 

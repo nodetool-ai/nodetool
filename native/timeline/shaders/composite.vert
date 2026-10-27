@@ -13,10 +13,13 @@ layout(std140, binding = 0) uniform buf {
     float opacity;
     float flipV;
     float mode;
+    vec4 sourceRect;
+    vec4 sourceTexelSize;
 };
 
 void main()
 {
-    v_texcoord = vec2(texcoord.x, flipV > 0.5 ? 1.0 - texcoord.y : texcoord.y);
+    vec2 uv = sourceRect.xy + texcoord * sourceRect.zw;
+    v_texcoord = vec2(uv.x, flipV > 0.5 ? 1.0 - uv.y : uv.y);
     gl_Position = mvp * vec4(position, 0.0, 1.0);
 }

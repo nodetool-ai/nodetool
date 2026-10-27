@@ -9,6 +9,9 @@ set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 enable_testing()
 
+include(cmake/Hardening.cmake)
+include(cmake/Sanitizers.cmake)
+
 # GuiPrivate carries the include path of the semi-public QRhi API (<rhi/qrhi.h>).
 set(QT_NO_PRIVATE_MODULE_WARNING ON)
 find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui GuiPrivate Qml Quick QuickControls2 ShaderTools Test)
@@ -237,9 +240,9 @@ endif()
 target_link_libraries(nodetool-timeline PRIVATE timeline_audio)
 
 
-find_package(Qt6 6.12 REQUIRED COMPONENTS Network)
+find_package(Qt6 6.12 REQUIRED COMPONENTS Network WebSockets)
 add_library(timeline_server STATIC ${NT_server})
-target_link_libraries(timeline_server PUBLIC timeline_core timeline_decode Qt6::Network)
+target_link_libraries(timeline_server PUBLIC timeline_core timeline_decode Qt6::Network Qt6::WebSockets)
 target_compile_options(timeline_server PRIVATE ${NT_WARNINGS})
 # The save banners are tested against the real AutosaveController (M2b).
 target_link_libraries(nodetool-timeline PRIVATE timeline_server)
@@ -255,3 +258,11 @@ get_property(NT_TEST_CALLBACKS GLOBAL PROPERTY NT_test_callbacks)
 foreach(callback IN LISTS NT_TEST_CALLBACKS)
     cmake_language(CALL ${callback})
 endforeach()
+
+if(NT_FUZZ)
+    add_subdirectory(tests/fuzz)
+endif()
+if(NT_SANITIZER_PLANTS)
+    add_subdirectory(tools/sanitizers/plants)
+endif()
+nt_sanitizer_test_checks()

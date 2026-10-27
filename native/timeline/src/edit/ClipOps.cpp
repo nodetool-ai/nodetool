@@ -1,4 +1,5 @@
 #include "edit/ClipOps.h"
+#include "scene/Animation.h"
 
 #include <QJsonArray>
 #include <QUuid>
@@ -42,7 +43,7 @@ void assertNotTimeRemapped(const QJsonObject& c, const char* op) {
 }
 
 // animation/sourceCurves.ts, keyframes.ts
-bool isSourceAnchored(const QJsonObject& a) {
+bool isSourceAnchoredAnimation(const QJsonObject& a) {
     const QJsonObject custom = a.value(u"custom").toObject();
     return a.value(u"preset").toString() == u"custom" && custom.value(u"timeBase").toString() == u"source" &&
            custom.value(u"curves").toArray().size() > 0;
@@ -53,14 +54,214 @@ bool isKeyframeAnimation(const QJsonObject& a) {
            numberOr(a, "delayMs", 0.0) == 0.0 && a.value(u"params").toObject().value(u"keyframed").toBool(false);
 }
 
-void refuseUnportedAnimations(const QJsonObject& clip, const char* op) {
-    for (const QJsonValue& v : clip.value(u"animations").toArray()) {
-        const QJsonObject a = v.toObject();
-        if (isSourceAnchored(a) || isKeyframeAnimation(a)) {
-            throw OpError(std::string(op) +
-                          ": the native editor does not slice keyframe or source-anchored animation curves yet");
+constexpr double EPSILON_MS = 1e-6;
+constexpr double T_EPSILON = 1e-4;
+
+double valueAtSourceMs(const std::vector<QJsonObject>& keyframes, const std::vector<double>& times, double atMs) {
+    if (atMs <= times.front()) {
+        return keyframes.front().value(u"value").toDouble();
+    }
+    const size_t lastIndex = keyframes.size() - 1;
+    if (atMs >= times[lastIndex]) {
+        return keyframes[lastIndex].value(u"value").toDouble();
+    }
+    for (size_t i = 1; i <= lastIndex; ++i) {
+        if (atMs > times[i]) {
+            continue;
+        }
+        const double span = times[i] - times[i - 1];
+        const double segT = span > 0 ? (atMs - times[i - 1]) / span : 0;
+        const double eased =
+            nt::scene::ease(keyframes[i].value(u"easing").toString(QStringLiteral("linear")).toStdString(), segT);
+        const double previous = keyframes[i - 1].value(u"value").toDouble();
+        return previous + (keyframes[i].value(u"value").toDouble() - previous) * eased;
+    }
+    return keyframes[lastIndex].value(u"value").toDouble();
+}
+
+QJsonValue easingCrossing(const std::vector<QJsonObject>& keyframes, const std::vector<double>& times, double atMs) {
+    for (size_t i = 0; i < keyframes.size(); ++i) {
+        if (times[i] >= atMs) {
+            return keyframes[i].value(u"easing");
         }
     }
+    return QJsonValue::Undefined;
+}
+
+QJsonArray withNormalizedT(const std::vector<QJsonObject>& keyframes) {
+    const double firstMs = keyframes.front().value(u"sourceMs").toDouble();
+    const double span = keyframes.back().value(u"sourceMs").toDouble() - firstMs;
+    QJsonArray normalized;
+    for (auto keyframe : keyframes) {
+        keyframe.insert(QStringLiteral("t"), span > 0 ? (keyframe.value(u"sourceMs").toDouble() - firstMs) / span : 0);
+        normalized.append(keyframe);
+    }
+    return normalized;
+}
+
+QJsonObject sliceCurve(const QJsonObject& curve, double fromMs, double toMs) {
+    const QJsonArray rawKeyframes = curve.value(u"keyframes").toArray();
+    if (rawKeyframes.isEmpty()) {
+        return curve;
+    }
+    std::vector<QJsonObject> keyframes;
+    std::vector<double> times;
+    keyframes.reserve(rawKeyframes.size());
+    times.reserve(rawKeyframes.size());
+    for (const QJsonValue& value : rawKeyframes) {
+        const QJsonObject keyframe = value.toObject();
+        const QJsonValue ms = keyframe.value(u"sourceMs");
+        if (!ms.isDouble() || !std::isfinite(ms.toDouble())) {
+            return curve;
+        }
+        keyframes.push_back(keyframe);
+        times.push_back(ms.toDouble());
+    }
+
+    std::vector<QJsonObject> kept;
+    for (size_t i = 0; i < keyframes.size(); ++i) {
+        if (times[i] >= fromMs - EPSILON_MS && times[i] <= toMs + EPSILON_MS) {
+            QJsonObject keyframe = keyframes[i];
+            keyframe.insert(QStringLiteral("sourceMs"), times[i]);
+            kept.push_back(keyframe);
+        }
+    }
+
+    std::vector<QJsonObject> sliced;
+    if (kept.empty() || kept.front().value(u"sourceMs").toDouble() > fromMs + EPSILON_MS) {
+        sliced.push_back({{QStringLiteral("t"), 0},
+                          {QStringLiteral("value"), valueAtSourceMs(keyframes, times, fromMs)},
+                          {QStringLiteral("sourceMs"), fromMs}});
+    }
+    sliced.insert(sliced.end(), kept.begin(), kept.end());
+    if (kept.empty() || kept.back().value(u"sourceMs").toDouble() < toMs - EPSILON_MS) {
+        QJsonObject boundary{{QStringLiteral("t"), 1},
+                             {QStringLiteral("value"), valueAtSourceMs(keyframes, times, toMs)},
+                             {QStringLiteral("sourceMs"), toMs}};
+        const QJsonValue easing = easingCrossing(keyframes, times, toMs);
+        if (!easing.isUndefined()) {
+            boundary.insert(QStringLiteral("easing"), easing);
+        }
+        sliced.push_back(boundary);
+    }
+
+    QJsonObject next = curve;
+    next.insert(QStringLiteral("keyframes"), withNormalizedT(sliced));
+    return next;
+}
+
+QJsonObject sliceSourceAnimation(const QJsonObject& animation, double fromMs, double toMs, double clipDurationMs) {
+    if (!present(animation, "custom")) {
+        return animation;
+    }
+    QJsonObject custom = animation.value(u"custom").toObject();
+    QJsonArray curves;
+    for (const QJsonValue& curve : custom.value(u"curves").toArray()) {
+        curves.append(sliceCurve(curve.toObject(), fromMs, toMs));
+    }
+    custom.insert(QStringLiteral("curves"), curves);
+    QJsonObject next = animation;
+    next.insert(QStringLiteral("delayMs"), 0);
+    next.insert(QStringLiteral("custom"), custom);
+    if (animation.value(u"role").toString() != u"loop") {
+        next.insert(QStringLiteral("durationMs"), std::max(1.0, clipDurationMs));
+    }
+    return next;
+}
+
+QJsonArray resliceSourceAnimations(const QJsonArray& animations, double fromMs, double toMs, double clipDurationMs) {
+    if (std::none_of(animations.begin(), animations.end(), [](const QJsonValue& animation) {
+            return isSourceAnchoredAnimation(animation.toObject());
+        })) {
+        return animations;
+    }
+    QJsonArray next;
+    for (const QJsonValue& value : animations) {
+        const QJsonObject animation = value.toObject();
+        next.append(isSourceAnchoredAnimation(animation)
+                        ? sliceSourceAnimation(animation, fromMs, toMs, clipDurationMs)
+                        : animation);
+    }
+    return next;
+}
+
+double curveValueAtT(const std::vector<QJsonObject>& keyframes, double t) {
+    if (t <= keyframes.front().value(u"t").toDouble()) {
+        return keyframes.front().value(u"value").toDouble();
+    }
+    const QJsonObject& last = keyframes.back();
+    if (t >= last.value(u"t").toDouble()) {
+        return last.value(u"value").toDouble();
+    }
+    for (size_t i = 1; i < keyframes.size(); ++i) {
+        if (t > keyframes[i].value(u"t").toDouble()) {
+            continue;
+        }
+        const QJsonObject& a = keyframes[i - 1];
+        const QJsonObject& b = keyframes[i];
+        const double span = b.value(u"t").toDouble() - a.value(u"t").toDouble();
+        const double f =
+            span > 0 ? nt::scene::ease(b.value(u"easing").toString(QStringLiteral("linear")).toStdString(),
+                                      (t - a.value(u"t").toDouble()) / span)
+                     : 1;
+        const double aValue = a.value(u"value").toDouble();
+        return aValue + (b.value(u"value").toDouble() - aValue) * f;
+    }
+    return last.value(u"value").toDouble();
+}
+
+QJsonObject sliceKeyframeAnimation(const QJsonObject& animation, double fromT, double toT, double durationMs) {
+    const double span = toT - fromT;
+    QJsonObject next = animation;
+    next.insert(QStringLiteral("durationMs"), durationMs);
+    if (!present(animation, "custom") || span <= 0) {
+        return next;
+    }
+    QJsonObject custom = animation.value(u"custom").toObject();
+    QJsonArray curves;
+    for (const QJsonValue& value : custom.value(u"curves").toArray()) {
+        QJsonObject curve = value.toObject();
+        const QJsonArray keyframes = curve.value(u"keyframes").toArray();
+        if (keyframes.isEmpty()) {
+            curves.append(curve);
+            continue;
+        }
+        std::vector<QJsonObject> sorted;
+        sorted.reserve(keyframes.size());
+        for (const QJsonValue& keyframe : keyframes) {
+            sorted.push_back(keyframe.toObject());
+        }
+        std::stable_sort(sorted.begin(), sorted.end(), [](const QJsonObject& a, const QJsonObject& b) {
+            return a.value(u"t").toDouble() < b.value(u"t").toDouble();
+        });
+        std::vector<QJsonObject> sliced{
+            {{QStringLiteral("t"), fromT}, {QStringLiteral("value"), curveValueAtT(sorted, fromT)}}};
+        for (const auto& keyframe : sorted) {
+            const double t = keyframe.value(u"t").toDouble();
+            if (t > fromT + T_EPSILON && t < toT - T_EPSILON) {
+                sliced.push_back(keyframe);
+            }
+        }
+        const auto tailSource = std::find_if(sorted.begin(), sorted.end(), [toT](const QJsonObject& keyframe) {
+            return keyframe.value(u"t").toDouble() >= toT - T_EPSILON;
+        });
+        QJsonObject tail{{QStringLiteral("t"), toT}, {QStringLiteral("value"), curveValueAtT(sorted, toT)}};
+        if (tailSource != sorted.end() && !tailSource->value(u"easing").isUndefined()) {
+            tail.insert(QStringLiteral("easing"), tailSource->value(u"easing"));
+        }
+        sliced.push_back(tail);
+        QJsonArray normalized;
+        for (auto keyframe : sliced) {
+            keyframe.insert(QStringLiteral("t"),
+                            std::max(0.0, std::min(1.0, (keyframe.value(u"t").toDouble() - fromT) / span)));
+            normalized.append(keyframe);
+        }
+        curve.insert(QStringLiteral("keyframes"), normalized);
+        curves.append(curve);
+    }
+    custom.insert(QStringLiteral("curves"), curves);
+    next.insert(QStringLiteral("custom"), custom);
+    return next;
 }
 
 // The mediaTypes with no source clock (trimClip.ts NO_SOURCE_CLOCK).
@@ -105,13 +306,34 @@ double rebaseLoopDelayMs(const QJsonObject& anim, double splitMs) {
     return delayMs - splitMs;
 }
 
-std::pair<QJsonArray, QJsonArray> splitAnimations(const QJsonArray& animations, double splitMs) {
+struct SplitAnimationSource {
+    double inPointMs;
+    double cutPointMs;
+    double outPointMs;
+    double leftDurationMs;
+    double rightDurationMs;
+};
+
+std::pair<QJsonArray, QJsonArray> splitAnimations(const QJsonArray& animations, double splitMs,
+                                                 const SplitAnimationSource& source) {
     QJsonArray left;
     QJsonArray right;
     for (const QJsonValue& v : animations) {
         QJsonObject anim = v.toObject();
         const QString role = anim.value(u"role").toString();
-        if (role == u"in") {
+        if (isSourceAnchoredAnimation(anim)) {
+            left.append(sliceSourceAnimation(anim, source.inPointMs, source.cutPointMs, source.leftDurationMs));
+            QJsonObject r = sliceSourceAnimation(anim, source.cutPointMs, source.outPointMs, source.rightDurationMs);
+            r.insert(QStringLiteral("id"), newId());
+            right.append(r);
+        } else if (isKeyframeAnimation(anim)) {
+            const double totalMs = source.leftDurationMs + source.rightDurationMs;
+            const double cutT = totalMs > 0 ? splitMs / totalMs : 0;
+            left.append(sliceKeyframeAnimation(anim, 0, cutT, source.leftDurationMs));
+            QJsonObject r = sliceKeyframeAnimation(anim, cutT, 1, source.rightDurationMs);
+            r.insert(QStringLiteral("id"), newId());
+            right.append(r);
+        } else if (role == u"in") {
             left.append(anim);
         } else if (role == u"out") {
             anim.insert(QStringLiteral("id"), newId());
@@ -271,7 +493,6 @@ QJsonObject retimeCaption(const QJsonObject& caption, double offsetMs, double sc
 
 QJsonObject trimClip(const QJsonObject& clip, const QString& edge, double deltaMs, std::optional<double> maxDurationMs) {
     assertNotTimeRemapped(clip, "trimClip");
-    refuseUnportedAnimations(clip, "trimClip");
 
     const double rate = sourceRate(clip);
     const double inPointMs = numberOr(clip, "inPointMs", 0.0);
@@ -306,8 +527,11 @@ QJsonObject trimClip(const QJsonObject& clip, const QString& edge, double deltaM
         next.insert(QStringLiteral("caption"),
                     retimeCaption(clip.value(u"caption").toObject(), clipStartMs(clip) - nextStartMs));
     }
-    // `resliceSourceAnimations` returns the animations unchanged when none is
-    // source-anchored, the only kind it rewrites (refused above).
+    if (present(clip, "animations")) {
+        next.insert(QStringLiteral("animations"),
+                    resliceSourceAnimations(clip.value(u"animations").toArray(), nextInPointMs, nextOutPointMs,
+                                            nextDurationMs));
+    }
     return next;
 }
 
@@ -316,7 +540,6 @@ std::pair<QJsonObject, QJsonObject> splitClip(const QJsonObject& clip, double at
         throw OpError("splitClip cannot split a group — split the clips inside it instead");
     }
     assertNotTimeRemapped(clip, "splitClip");
-    refuseUnportedAnimations(clip, "splitClip");
 
     const double startMs = clipStartMs(clip);
     const double endMs = clipEndMs(clip);
@@ -337,7 +560,8 @@ std::pair<QJsonObject, QJsonObject> splitClip(const QJsonObject& clip, double at
     }
     std::optional<std::pair<QJsonArray, QJsonArray>> animations;
     if (present(clip, "animations")) {
-        animations = splitAnimations(clip.value(u"animations").toArray(), leftDurationMs);
+        animations = splitAnimations(clip.value(u"animations").toArray(), leftDurationMs,
+                                     {inPointMs, cutPointMs, outPointMs, leftDurationMs, rightDurationMs});
     }
 
     QJsonObject left = clip;

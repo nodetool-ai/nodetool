@@ -4,6 +4,7 @@
 #include "ui/TimelineViewState.h"
 
 #include <algorithm>
+#include <cmath>
 
 namespace nt {
 
@@ -81,6 +82,17 @@ void TrackWindowModel::setViewState(TimelineViewState* view) {
     emit viewStateChanged();
 }
 
+void TrackWindowModel::setExtraRowHeights(const QVariantMap& heights) {
+    if (heights == m_extraRowHeights) { return; }
+    m_extraRowHeights = heights;
+    relayout();
+    updateWindow();
+    if (rowCount() > 0) {
+        emit dataChanged(index(0), index(rowCount() - 1), {RowTopRole, RowHeightRole});
+    }
+    emit extraRowHeightsChanged();
+}
+
 void TrackWindowModel::relayout() {
     const double zoom = m_view ? m_view->verticalZoom() : 1.0;
     m_layoutZoom = zoom;
@@ -89,7 +101,11 @@ void TrackWindowModel::relayout() {
     m_heights.assign(static_cast<size_t>(n), 0.0);
     double top = 0.0;
     for (int i = 0; i < n; ++i) {
-        const double h = m_tracks->data(m_tracks->index(i), TrackListModel::HeightPxRole).toDouble() * zoom;
+        const auto source = m_tracks->index(i);
+        const auto id = m_tracks->data(source, TrackListModel::TrackIdRole).toString();
+        const double extra = m_extraRowHeights.value(id).toDouble();
+        const double h = m_tracks->data(source, TrackListModel::HeightPxRole).toDouble() * zoom
+            + (std::isfinite(extra) ? std::max(0.0, extra) : 0.0);
         m_tops[static_cast<size_t>(i)] = top;
         m_heights[static_cast<size_t>(i)] = h;
         top += h;
@@ -109,7 +125,9 @@ void TrackWindowModel::onVerticalZoomChanged() {
     const std::vector<double> oldHeights = m_heights;
     const double oldTop = m_view ? m_view->scrollTopPx() : 0.0;
     relayout();
-    if (rowCount() > 0) emit dataChanged(index(0), index(rowCount() - 1), {RowTopRole, RowHeightRole});
+    if (rowCount() > 0) {
+        emit dataChanged(index(0), index(rowCount() - 1), {RowTopRole, RowHeightRole, BaseRowHeightRole});
+    }
     if (m_view && !oldTops.empty()) {
         const int row = nt::visibleTrackWindow(oldTops, oldHeights, oldTop, 0.0, 0).start;
         if (row < static_cast<int>(oldTops.size()) && oldHeights[static_cast<size_t>(row)] > 0.0) {
@@ -194,6 +212,11 @@ QVariant TrackWindowModel::data(const QModelIndex& index, int role) const {
     case RowTopRole: return m_tops[static_cast<size_t>(source)];
     case RowHeightRole: return m_heights[static_cast<size_t>(source)];
     case SourceRowRole: return source;
+    case BaseRowHeightRole: return m_tracks->data(m_tracks->index(source), TrackListModel::HeightPxRole).toDouble() * m_layoutZoom;
+    case TrackRole: {
+        const auto* track = m_tracks->trackAt(source);
+        return track ? track->raw.toVariantMap() : QVariantMap{};
+    }
     default: return m_tracks->data(m_tracks->index(source), role);
     }
 }
@@ -205,5 +228,7 @@ QHash<int, QByteArray> TrackWindowModel::roleNames() const {
     roles.insert(RowTopRole, "rowTop");
     roles.insert(RowHeightRole, "rowHeight");
     roles.insert(SourceRowRole, "sourceRow");
+    roles.insert(BaseRowHeightRole, "baseRowHeight");
+    roles.insert(TrackRole, "track");
     return roles;
 }

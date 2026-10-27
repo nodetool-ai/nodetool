@@ -1,4 +1,6 @@
 #include "preview/SceneEval.h"
+#include "preview/layers/SceneHooks.h"
+#include "preview/transitions/TransitionResolver.h"
 
 #include "scene/ClipScene.h"
 #include "scene/FlexLayout.h"
@@ -51,211 +53,6 @@ bool isActiveAt(const Clip& clip, double timeMs) { return timeMs >= clip.startMs
 double clamp01(double v) { return v < 0.0 ? 0.0 : (v > 1.0 ? 1.0 : v); }
 
 ClipTransform identityTransform() { return ClipTransform{}; }
-
-// ── transitions (transition.ts) ──────────────────────────────────────────
-
-const std::set<std::string>& knownTransitionTypes() {
-    static const std::set<std::string> t = {"crossfade", "dipToColor", "wipe",   "push",        "slide", "zoom",
-                                            "whip",      "zoomBlur",   "glitch", "gradientWipe", "iris",  "lightLeak"};
-    return t;
-}
-
-std::string directionOf(const Clip& clip) {
-    const auto& d = sceneOf(clip).transitionDirection;
-    if (d && (*d == "left" || *d == "right" || *d == "up" || *d == "down")) return *d;
-    return "left";
-}
-
-Vec2 directionVector(const std::string& d, double amount) {
-    if (d == "right") return {amount, 0};
-    if (d == "up") return {0, -amount};
-    if (d == "down") return {0, amount};
-    return {-amount, 0};
-}
-
-// `cutEffect` in transition.ts.
-std::optional<QJsonObject> cutEffect(const std::string& type, double progress, const Clip& clip) {
-    const QJsonObject t = clip.raw.value(u"transitionIn").toObject();
-    const auto numeric = [&t](const char* key, double fallback) {
-        const QJsonValue v = t.value(QLatin1String(key));
-        return v.isDouble() && std::isfinite(v.toDouble()) ? v.toDouble() : fallback;
-    };
-    const auto angle = [&clip]() {
-        const std::string d = directionOf(clip);
-        return d == "left" ? 180.0 : d == "right" ? 0.0 : d == "up" ? 270.0 : 90.0;
-    };
-    const double envelope = std::sin(kPi * clamp01(progress));
-    const QString color = t.value(u"color").isString() ? t.value(u"color").toString() : QStringLiteral("#000000");
-    if (type == "whip") {
-        return QJsonObject{{QStringLiteral("id"), QStringLiteral("transition-whip")}, {QStringLiteral("type"), QStringLiteral("directionalBlur")},
-                           {QStringLiteral("enabled"), true}, {QStringLiteral("radius"), numeric("blur", 24) * envelope},
-                           {QStringLiteral("angle"), angle()}};
-    }
-    if (type == "zoomBlur") {
-        return QJsonObject{{QStringLiteral("id"), QStringLiteral("transition-zoom-blur")}, {QStringLiteral("type"), QStringLiteral("stylize")},
-                           {QStringLiteral("enabled"), true}, {QStringLiteral("mode"), QStringLiteral("zoomBlur")},
-                           {QStringLiteral("amount"), numeric("blur", 24) * envelope}, {QStringLiteral("scale"), 8}};
-    }
-    if (type == "glitch") {
-        return QJsonObject{{QStringLiteral("id"), QStringLiteral("transition-glitch")}, {QStringLiteral("type"), QStringLiteral("stylize")},
-                           {QStringLiteral("enabled"), true}, {QStringLiteral("mode"), QStringLiteral("glitch")},
-                           {QStringLiteral("amount"), numeric("amount", 1) * envelope}, {QStringLiteral("time"), progress},
-                           {QStringLiteral("seed"), 7}};
-    }
-    if (type == "gradientWipe") {
-        const QString map = t.value(u"map").toString();
-        const double softness = t.value(u"softness").isDouble() ? t.value(u"softness").toDouble() : 0;
-        return QJsonObject{{QStringLiteral("id"), QStringLiteral("transition-gradient-wipe")}, {QStringLiteral("type"), QStringLiteral("stylize")},
-                           {QStringLiteral("enabled"), true}, {QStringLiteral("mode"), QStringLiteral("gradientWipe")},
-                           {QStringLiteral("amount"), clamp01(progress)}, {QStringLiteral("angle"), angle()},
-                           {QStringLiteral("time"), map == u"radial" ? 1 : map == u"noise" ? 2 : 0},
-                           {QStringLiteral("scale"), numeric("scale", 6)}, {QStringLiteral("seed"), numeric("seed", 0)},
-                           {QStringLiteral("softness"), softness != 0 ? softness : 0.1}};
-    }
-    if (type == "lightLeak") {
-        return QJsonObject{{QStringLiteral("id"), QStringLiteral("transition-light-leak")}, {QStringLiteral("type"), QStringLiteral("stylize")},
-                           {QStringLiteral("enabled"), true}, {QStringLiteral("mode"), QStringLiteral("lightLeakOverlay")},
-                           {QStringLiteral("amount"), envelope * 0.9}, {QStringLiteral("scale"), numeric("scale", 4)},
-                           {QStringLiteral("seed"), numeric("seed", 0)}, {QStringLiteral("time"), progress},
-                           {QStringLiteral("color"), color == u"#000000" ? QStringLiteral("#ff9f43") : color}};
-    }
-    return std::nullopt;
-}
-
-LayerTransition incomingRecord(const std::string& type, double p, const Clip& clip) {
-    LayerTransition r;
-    r.type = type;
-    r.role = "in";
-    r.progress = p;
-    const auto& s = sceneOf(clip);
-    if (type == "dipToColor") {
-        r.opacity = clamp01(2 * p - 1);
-        r.solidColor = s.transitionColor.value_or("#000000");
-        r.solidOpacity = clamp01(1 - std::abs(2 * p - 1));
-    } else if (type == "wipe") {
-        r.opacity = 1;
-        r.mask = scene::WipeMask{directionOf(clip), s.transitionSoftness.value_or(0), clamp01(p)};
-    } else if (type == "gradientWipe") {
-        r.opacity = 1;
-        r.effect = cutEffect(type, p, clip);
-    } else if (type == "push" || type == "slide" || type == "whip") {
-        r.opacity = 1;
-        r.offset = directionVector(directionOf(clip), 1 - p);
-        r.effect = cutEffect(type, p, clip);
-    } else if (type == "zoom" || type == "zoomBlur") {
-        r.opacity = clamp01(p);
-        r.scale = 0.8 + (1 - 0.8) * p;
-        r.effect = cutEffect(type, p, clip);
-    } else if (type == "iris") {
-        r.opacity = 1;
-        r.iris = std::make_pair(clamp01(p), s.transitionSoftness.value_or(0));
-    } else {  // crossfade, glitch, lightLeak
-        r.opacity = clamp01(p);
-        r.effect = cutEffect(type, p, clip);
-    }
-    return r;
-}
-
-LayerTransition outgoingRecord(const std::string& type, double p, const Clip& clip) {
-    LayerTransition r;
-    r.type = type;
-    r.role = "out";
-    r.progress = p;
-    r.opacity = 1;
-    if (type == "dipToColor") {
-        r.opacity = clamp01(1 - 2 * p);
-    } else if (type == "push" || type == "whip") {
-        r.offset = directionVector(directionOf(clip), -p);
-        r.effect = cutEffect(type, p, clip);
-    } else if (type == "zoom" || type == "zoomBlur") {
-        r.scale = 1 + (1.25 - 1) * p;
-        r.effect = cutEffect(type, p, clip);
-    } else if (type == "glitch" || type == "lightLeak") {
-        r.effect = cutEffect(type, p, clip);
-    }
-    return r;
-}
-
-struct TransitionPair {
-    LayerTransition incoming;
-    std::optional<LayerTransition> outgoing;
-    const Clip* outgoingClip = nullptr;
-};
-
-std::optional<TransitionPair> resolveTransition(const Clip& clip, const std::vector<const Clip*>& siblings, double t) {
-    const Clip* partner = nullptr;
-    double furthestEnd = clip.startMs;
-    for (const Clip* prev : siblings) {
-        if (prev == &clip || prev->startMs >= clip.startMs) continue;
-        const double prevEnd = prev->startMs + prev->durationMs;
-        if (prevEnd <= clip.startMs) continue;
-        if (!partner || prevEnd > furthestEnd) {
-            partner = prev;
-            furthestEnd = prevEnd;
-        }
-    }
-    const double overlapMs = partner ? std::min(furthestEnd - clip.startMs, clip.durationMs) : 0;
-    double durationMs;
-    if (clip.transitionIn) {
-        if (clip.transitionIn->durationMs <= 0) return std::nullopt;
-        durationMs = clip.transitionIn->durationMs;
-    } else {
-        durationMs = overlapMs;
-        if (durationMs <= 0) return std::nullopt;
-    }
-    const double into = t - clip.startMs;
-    if (into >= durationMs) return std::nullopt;
-    const double raw = clamp01(into / durationMs);
-    const double progress =
-        clip.transitionIn && !clip.transitionIn->easing.empty() ? scene::ease(clip.transitionIn->easing, raw) : raw;
-    std::string type = "crossfade";
-    if (clip.transitionIn && knownTransitionTypes().count(clip.transitionIn->type)) type = clip.transitionIn->type;
-    TransitionPair pair{incomingRecord(type, progress, clip), std::nullopt, nullptr};
-    if (partner) {
-        pair.outgoing = outgoingRecord(type, progress, clip);
-        pair.outgoingClip = partner;
-    }
-    return pair;
-}
-
-// `resolveDocumentTransitions`: per track and per group parent.
-std::unordered_map<std::string, LayerTransition> resolveDocumentTransitions(const std::vector<const Clip*>& clips,
-                                                                             double t) {
-    std::unordered_set<std::string> groupIds;
-    for (const Clip* c : clips) {
-        if (c->mediaType == MediaType::Group) groupIds.insert(c->id);
-    }
-    std::map<std::pair<std::string, std::string>, std::vector<const Clip*>> buckets;
-    for (const Clip* c : clips) {
-        if (c->mediaType == MediaType::Adjustment || c->hidden || !isActiveAt(*c, t)) continue;
-        const std::string& parent = sceneOf(*c).parentId;
-        const std::string key = !parent.empty() && groupIds.count(parent) ? parent : std::string("\x01none");
-        buckets[{c->trackId, key}].push_back(c);
-    }
-    std::unordered_map<std::string, LayerTransition> out;
-    for (auto& [key, siblings] : buckets) {
-        std::stable_sort(siblings.begin(), siblings.end(), [](const Clip* a, const Clip* b) { return a->startMs < b->startMs; });
-        for (const Clip* clip : siblings) {
-            const auto pair = resolveTransition(*clip, siblings, t);
-            if (!pair) continue;
-            if (pair->outgoing && pair->outgoingClip) {
-                const std::string& id = pair->outgoingClip->id;
-                auto it = out.find(id);
-                if (it != out.end()) it->second.opacity *= pair->outgoing->opacity;
-                else out.emplace(id, *pair->outgoing);
-            }
-            auto it = out.find(clip->id);
-            if (it != out.end()) {
-                LayerTransition merged = pair->incoming;
-                merged.opacity = pair->incoming.opacity * it->second.opacity;
-                it->second = merged;
-            } else {
-                out.emplace(clip->id, pair->incoming);
-            }
-        }
-    }
-    return out;
-}
 
 std::optional<ClipTransform> transitionTransform(const std::optional<ClipTransform>& transform,
                                                  const std::optional<LayerTransition>& tr, double w, double h) {
@@ -459,8 +256,8 @@ std::unordered_map<std::string, scene::TextStyle> flexTextStylesAt(const std::ve
 // The layout cache (`layoutCache` in layout.ts): one layout per document
 // revision, canvas size and set of animated text styles. A ticker's layout
 // changes only when its text does, so playback hits the cache between
-// changes. The measurer is the fallback rule everywhere, so it is not part
-// of the key. Shared by the GUI and render threads.
+// changes. Registered measurers bypass this fallback cache because font
+// metrics can change independently of the document. Shared by GUI/render threads.
 struct FlexCacheEntry {
     std::uint64_t revision = 0;
     double w = 0, h = 0;
@@ -496,11 +293,11 @@ std::string textStylesKey(const std::unordered_map<std::string, scene::TextStyle
 }
 
 std::shared_ptr<const scene::FlexResult> flexLayoutFor(const Timeline& timeline, const std::vector<const Clip*>& clips,
-                                                       double t, double w, double h) {
+                                                       double t, double w, double h, const scene::MeasureText& measure) {
     const auto styles = flexTextStylesAt(clips, t, w, h);
-    if (timeline.revision == 0) {
+    if (timeline.revision == 0 || measure) {
         gFlexMisses.fetch_add(1, std::memory_order_relaxed);
-        return std::make_shared<const scene::FlexResult>(scene::resolveClipLayouts(clips, w, h, styles));
+        return std::make_shared<const scene::FlexResult>(scene::resolveClipLayouts(clips, w, h, styles, measure));
     }
     const std::string key = textStylesKey(styles);
     {
@@ -764,6 +561,7 @@ double clipFadeGain(const Clip& clip, double msIntoClip) {
 }
 
 double clipSourceMsAt(const Clip& clip, double timeMs) {
+    if (auto mapped = mappedSourceTime(clip, timeMs)) { return *mapped; }
     const double rate = clip.speedBaked ? 1.0 : std::max(0.0001, clip.speedMultiplier);
     return std::max(0.0, (timeMs - clip.startMs) * rate + clip.inPointMs);
 }
@@ -864,6 +662,19 @@ Mat4 buildTransformMatrix(const ClipTransform& t, Vec2 base, double width, doubl
     return m;
 }
 
+std::pair<int, int> croppedSourceSize(const std::array<float, 4>& sourceRect, int sourceWidth, int sourceHeight) {
+    if (sourceRect == std::array<float, 4>{0, 0, 1, 1} || sourceWidth <= 0 || sourceHeight <= 0) {
+        return {sourceWidth, sourceHeight};
+    }
+    const auto extentPx = [](int sourceSize, float origin, float extent) {
+        const int start = static_cast<int>(std::floor(static_cast<double>(origin) * sourceSize));
+        const int size = static_cast<int>(std::round(static_cast<double>(extent) * sourceSize));
+        return std::max(1, std::min(size, sourceSize - start));
+    };
+    return {extentPx(sourceWidth, sourceRect[0], sourceRect[2]),
+            extentPx(sourceHeight, sourceRect[1], sourceRect[3])};
+}
+
 Mat4 layerDrawMatrix(const ActiveLayer& layer, int sourceWidth, int sourceHeight, int canvasWidth, int canvasHeight) {
     if (layer.kind == "caption") {
         return buildTransformMatrix(identityTransform(), Vec2{1, 1}, canvasWidth, canvasHeight);
@@ -882,6 +693,7 @@ std::array<float, 16> layerMatrix(const ClipTransform& transform, int sourceWidt
 }
 
 SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
+    const auto hooks = sceneHooks();
     const double W = timeline.width;
     const double H = timeline.height;
     const scene::Camera2D* camera =
@@ -895,7 +707,7 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
     // container with its position zeroed, since its children's boxes already
     // hold its translation (`groupPatchedFor`).
     std::shared_ptr<const scene::FlexResult> flex;
-    if (scene::hasFlexLayout(clips)) flex = flexLayoutFor(timeline, clips, timeMs, W, H);
+    if (scene::hasFlexLayout(clips)) flex = flexLayoutFor(timeline, clips, timeMs, W, H, hooks.measureText);
     std::vector<const Clip*> groupClips = clips;
     if (flex && !flex->transforms.empty()) {
         for (const Clip*& c : groupClips) {
@@ -1154,6 +966,11 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
         }
     }
 
+    for (auto& group : frame.precomposites) {
+        const auto found = clipById.find(group.clipId);
+        if (found == clipById.end()) { continue; }
+        for (const auto& decorate : hooks.groups) { decorate(group, *found->second, timeMs); }
+    }
     std::unordered_map<std::string, const PrecompositeLayer*> surfaceById;
     for (const PrecompositeLayer& g : frame.precomposites) surfaceById[g.clipId] = &g;
     const auto finish = [&](Pending& p) {
@@ -1171,10 +988,31 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
             surface = it->second->precomposeGroupId;
         }
         p.layer.drawOpacity = draw;
-        frame.layers.push_back(std::move(p.layer));
+        for (const auto& decorate : hooks.layers) { decorate(p.layer, *p.clip, timeMs); }
     };
-    for (Pending& p : drawn) finish(p);
-    for (Pending& p : captions) finish(p);
+    std::unordered_map<std::string, std::shared_ptr<const ActiveLayer>> resolvedMattes;
+    for (Pending& p : drawn) {
+        const auto& cs = sceneOf(*p.clip);
+        if (!cs.generatedMatte && cs.matteSource) {
+            const auto source = matteLayers.find(*cs.matteSource);
+            if (source != matteLayers.end()) {
+                auto [resolved, inserted] = resolvedMattes.try_emplace(*cs.matteSource);
+                if (inserted) {
+                    finish(source->second);
+                    resolved->second = std::make_shared<const ActiveLayer>(std::move(source->second.layer));
+                }
+                const auto raw = p.clip->raw.value(QStringLiteral("matte")).toObject();
+                p.layer.matte = LayerMatte{raw.value(QStringLiteral("mode")).toString().toStdString(),
+                    raw.value(QStringLiteral("invert")).toBool(), resolved->second, {}, {}};
+            }
+        }
+        finish(p);
+        frame.layers.push_back(std::move(p.layer));
+    }
+    for (Pending& p : captions) {
+        finish(p);
+        frame.layers.push_back(std::move(p.layer));
+    }
     std::stable_sort(frame.layers.begin(), frame.layers.end(),
                      [](const ActiveLayer& a, const ActiveLayer& b) { return a.z < b.z; });
     for (PrecompositeLayer& g : frame.precomposites) {
@@ -1198,7 +1036,8 @@ FramePlan buildFramePlan(const Timeline& timeline, double timeMs) {
     plan.timeMs = timeMs;
     for (ActiveLayer& layer : frame.layers) {
         PlanLayer pl;
-        pl.matrix = layerDrawMatrix(layer, layer.sourceWidth, layer.sourceHeight, timeline.width, timeline.height);
+        const auto [sourceWidth, sourceHeight] = croppedSourceSize(layer.sourceRect, layer.sourceWidth, layer.sourceHeight);
+        pl.matrix = layerDrawMatrix(layer, sourceWidth, sourceHeight, timeline.width, timeline.height);
         pl.layer = std::move(layer);
         plan.layers.push_back(std::move(pl));
     }
@@ -1220,6 +1059,10 @@ QJsonObject framePlanJson(const FramePlan& plan) {
                       {QStringLiteral("sourceTimeMs"), l.sourceTimeMs},
                       {QStringLiteral("drawOpacity"), l.drawOpacity},
                       {QStringLiteral("matrix"), matrixJson(pl.matrix)}};
+        if (!l.ext.isEmpty()) { o.insert(QStringLiteral("ext"), l.ext); }
+        if (l.sourceRect != std::array<float, 4>{0, 0, 1, 1}) {
+            o.insert(QStringLiteral("sourceRect"), QJsonArray{l.sourceRect[0], l.sourceRect[1], l.sourceRect[2], l.sourceRect[3]});
+        }
         if (l.stackOrder) o.insert(QStringLiteral("stackOrder"), *l.stackOrder);
         if (l.assetId) o.insert(QStringLiteral("assetId"), QString::fromStdString(*l.assetId));
         if (!l.precomposeGroupId.empty()) o.insert(QStringLiteral("precomposeGroupId"), QString::fromStdString(l.precomposeGroupId));
@@ -1256,6 +1099,7 @@ QJsonObject framePlanJson(const FramePlan& plan) {
                       {QStringLiteral("opacity"), g.opacity},
                       {QStringLiteral("blendMode"), QString::fromStdString(g.blendMode)},
                       {QStringLiteral("effects"), g.effects}};
+        if (!g.ext.isEmpty()) { o.insert(QStringLiteral("ext"), g.ext); }
         if (g.stackOrder) o.insert(QStringLiteral("stackOrder"), *g.stackOrder);
         if (!g.precomposeGroupId.empty()) o.insert(QStringLiteral("precomposeGroupId"), QString::fromStdString(g.precomposeGroupId));
         if (g.transition) o.insert(QStringLiteral("transition"), transitionJson(*g.transition));
