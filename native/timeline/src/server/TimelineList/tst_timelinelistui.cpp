@@ -1,13 +1,18 @@
+#include "TestHttpServer.h"
+#include "server/AutosaveController.h"
+#include "server/ServerClient.h"
 #include "app/CliModes.h"
 #include "app/PanelRegistry.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
+#include "playback/PlaybackClock.h"
 #include "server/TimelineList/TimelineListController.h"
 #include <QGuiApplication>
 #include <QCommandLineParser>
 #include <QQuickView>
 #include <QScopeGuard>
 #include <QTimer>
+#include <QTemporaryDir>
 #include <QImage>
 #include <QJsonDocument>
 #include <QQmlComponent>
@@ -125,8 +130,56 @@ private slots:
         QVERIFY(sawList);
         QVERIFY(sawError);
     }
+    void projectSettingsPersistence_data() {
+        QTest::addColumn<bool>("saveRequest");
+        QTest::newRow("dirty") << false;
+        QTest::newRow("save-request") << true;
+    }
+
+    void projectSettingsPersistence() {
+        QFETCH(bool, saveRequest);
+        TestHttpServer server;
+        QVERIFY(server.base().port() > 0);
+        QVERIFY(server.base().port() != 7777);
+        server.setJson([](const QByteArray&, const QUrl&) {
+            return QByteArray(R"({"result":{"data":{"id":"settings-test","name":"Before","width":640,"height":360,"fps":30,"tracks":[],"clips":[]}}})");
+        });
+        server.setPost([](const QByteArray&, const QByteArray&) {
+            return QByteArray(R"({"result":{"data":{"updatedAt":"u1"}}})");
+        });
+        QTemporaryDir cache;
+        QVERIFY(cache.isValid());
+        const auto loaded = nt::server::openServerTimeline({server.base(), "settings-test", cache.path(), {}, true});
+        QVERIFY2(loaded.timeline, qPrintable(loaded.error));
+        TimelineModel model;
+        model.setTimeline(*loaded.timeline);
+        nt::server::AutosaveController save({server.base(), {}, "settings-test", cache.path(), {}},
+            model.undoStack(), [&model] { return model.timeline().raw; }, "u0");
+        save.setExternalSync(false);
+        save.setAutosave(false);
+        save.setQuitFallbackDirs({});
+        QVERIFY(!save.dirty());
+        QVERIFY(model.applyEdit("setProjectSettings", {{"width", 1280}, {"height", 720}, {"fps", 24}}));
+        QCOMPARE(model.undoStack()->count(), 1);
+        QCOMPARE(model.canvasWidth(), 1280);
+        QCOMPARE(model.canvasHeight(), 720);
+        QCOMPARE(model.fps(), 24.0);
+        if (!saveRequest) {
+            QEXPECT_FAIL("", "F1: AutosaveController drops width/height/fps; owned by package SY", Continue);
+            QVERIFY(save.dirty());
+        } else {
+            const auto result = save.saveNow();
+            QVERIFY2(result.ok, qPrintable(result.error));
+            QCOMPARE(server.countRequests("POST", "/trpc/timeline.update"), 1);
+            const auto requests = server.requests();
+            const auto input = QJsonDocument::fromJson(requests.back().body).object();
+            QEXPECT_FAIL("", "F1: AutosaveController drops width/height/fps; owned by package SY", Continue);
+            QVERIFY(input.value("width") == 1280 && input.value("height") == 720 && input.value("fps") == 24);
+        }
+    }
+
     void settingsPanelRegistered() {
-        const auto panels = PanelRegistry().forSlot("overlay");
+        const auto panels = PanelRegistry().forSlot("documentBar");
         int matches = 0;
         for (const auto& entry : panels) {
             const auto panel = entry.toMap();
@@ -138,6 +191,72 @@ private slots:
             }
         }
         QCOMPARE(matches, 1);
+    }
+    void settingsOpenFromDocumentBar() {
+        TimelineModel model;
+        load(model);
+        PlaybackClock clock;
+        QQmlEngine engine;
+        auto editor = make(engine, "TimelineEditor", {{"timeline", QVariant::fromValue(&model)},
+            {"clock", QVariant::fromValue(&clock)}});
+        QVERIFY2(editor, "TimelineEditor must load");
+        QQuickWindow window;
+        show(window, editor.get(), 1280, 800);
+        auto* bar = item(editor.get(), "documentBar");
+        QVERIFY(bar);
+        QTRY_VERIFY2(item(bar, "projectSettingsButton"), "Project settings button must be mounted in the document bar");
+        auto* button = item(bar, "projectSettingsButton");
+        QVERIFY(button->width() > 0 && button->height() > 0);
+        QVERIFY(button->isVisible() && button->isEnabled());
+        auto* dialog = item(bar, "ProjectSettingsDialog");
+        QVERIFY(dialog);
+        QVERIFY(!dialog->property("opened").toBool());
+        QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier,
+            button->mapToScene(QPointF(button->width() / 2, button->height() / 2)).toPoint());
+        QTRY_VERIFY(dialog->property("opened").toBool());
+        auto* paper = item(window.contentItem(), "dialogPaper");
+        QVERIFY(paper && paper->isVisible());
+        QCOMPARE(paper->width(), 444.0);
+        QVERIFY(paper->height() > bar->height());
+        QCOMPARE(dialog->property("timeline").value<TimelineModel*>(), &model);
+        QCOMPARE(dialog->property("widthText").toString(), QString("640"));
+    }
+    void settingsKeepsEditorShortcuts() {
+        TimelineModel model;
+        auto parsed = nt::parseTimelineJson(R"({"name":"Fixture","fps":30,"width":640,"height":360,"durationMs":6000,
+            "tracks":[{"id":"v","name":"Video","type":"video","index":0}],
+            "clips":[{"id":"c","trackId":"v","mediaType":"image","startMs":1000,"durationMs":5000}]})");
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        PlaybackClock clock;
+        clock.setDurationMs(6000);
+        QQmlEngine engine;
+        auto editor = make(engine, "TimelineEditor", {{"timeline", QVariant::fromValue(&model)},
+            {"clock", QVariant::fromValue(&clock)}});
+        QVERIFY(editor);
+        QQuickWindow window;
+        show(window, editor.get(), 1800, 900);
+        auto* ruler = item(editor.get(), "timeRuler");
+        QVERIFY(ruler);
+        const auto click = [&](QQuickItem* target) {
+            QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier,
+                target->mapToScene({target->width() / 2, target->height() / 2}).toPoint());
+        };
+        click(ruler);
+        clock.seek(1500);
+        QTest::keyClick(&window, Qt::Key_L, Qt::ShiftModifier);
+        QVERIFY(clock.loop());
+        QTest::keyClick(&window, Qt::Key_Right, Qt::AltModifier);
+        QVERIFY(qAbs(clock.time() - 46 * 1000.0 / 30) < 1e-9);
+        auto* bar = item(editor.get(), "documentBar");
+        QVERIFY(bar);
+        QTRY_VERIFY(item(bar, "projectSettingsButton"));
+        click(item(bar, "projectSettingsButton"));
+        QTRY_VERIFY(item(window.contentItem(), "cancelSettings"));
+        click(item(window.contentItem(), "cancelSettings"));
+        click(ruler);
+        QTest::keyClick(&window, Qt::Key_L, Qt::ShiftModifier);
+        QVERIFY(!clock.loop());
     }
     void panelKeepsCppOwnership() {
         TimelineModel model;
@@ -171,7 +290,7 @@ Item {
         QVERIFY(dialog->setProperty("widthText", "1280"));
         QVERIFY(dialog->setProperty("heightText", "720"));
         QVERIFY(dialog->setProperty("fpsText", "24"));
-        auto* apply = item(dialog.get(), "applySettings");
+        auto* apply = item(window.contentItem(), "applySettings");
         QVERIFY(apply);
         QVERIFY(apply->isEnabled());
         const auto center = apply->mapToScene(QPointF(apply->width()/2, apply->height()/2)).toPoint();
@@ -225,8 +344,10 @@ Item {
         QQmlEngine engine;
         auto dialog = make(engine, "ProjectSettingsDialog", {{"timeline", QVariant::fromValue(&model)}});
         QVERIFY(dialog);
+        QQuickWindow window;
+        show(window, dialog.get(), 800, 800);
         QVERIFY(QMetaObject::invokeMethod(dialog.get(), "open"));
-        auto* offset = item(dialog.get(), "offsetField");
+        auto* offset = item(window.contentItem(), "offsetField");
         QVERIFY(offset);
         QVERIFY(offset->setProperty("text", "-1"));
         QVERIFY(hasText(offset, "0 or more"));
@@ -269,24 +390,24 @@ Item {
         QQuickWindow settingsWindow;
         show(settingsWindow, dialog.get(), 800, 800);
         QVERIFY(QMetaObject::invokeMethod(dialog.get(), "open"));
-        auto* paper = item(dialog.get(), "dialogPaper");
+        auto* paper = item(settingsWindow.contentItem(), "dialogPaper");
         QVERIFY(paper);
         QCOMPARE(paper->width(), 444.0);
-        auto* content = item(dialog.get(), "dialogContent");
+        auto* content = item(settingsWindow.contentItem(), "dialogContent");
         QVERIFY(content);
         QCOMPARE(content->x(), 24.0);
         const QStringList fields{"canvasSizeLabel", "resolutionPreset", "widthField", "heightField",
                                  "frameRateLabel", "frameRatePreset", "fpsField", "tempoLabel",
                                  "bpmField", "beatsField", "beatUnitField", "offsetField"};
         for (const auto& field : fields) {
-            QVERIFY2(item(dialog.get(), field.toLatin1().constData()), qPrintable(field));
+            QVERIFY2(item(settingsWindow.contentItem(), field.toLatin1().constData()), qPrintable(field));
         }
-        QCOMPARE(item(dialog.get(), "canvasSizeLabel")->property("text").toString(), QString("CANVAS SIZE"));
-        QCOMPARE(item(dialog.get(), "widthField")->property("label").toString(), QString("Width"));
-        QCOMPARE(item(dialog.get(), "heightField")->property("label").toString(), QString("Height"));
-        QCOMPARE(item(dialog.get(), "frameRateLabel")->property("text").toString(), QString("FRAME RATE"));
-        QCOMPARE(item(dialog.get(), "fpsField")->property("label").toString(), QString("FPS"));
-        const auto y = [&](const char* name) { return item(dialog.get(), name)->mapToScene(QPointF()).y(); };
+        QCOMPARE(item(settingsWindow.contentItem(), "canvasSizeLabel")->property("text").toString(), QString("CANVAS SIZE"));
+        QCOMPARE(item(settingsWindow.contentItem(), "widthField")->property("label").toString(), QString("Width"));
+        QCOMPARE(item(settingsWindow.contentItem(), "heightField")->property("label").toString(), QString("Height"));
+        QCOMPARE(item(settingsWindow.contentItem(), "frameRateLabel")->property("text").toString(), QString("FRAME RATE"));
+        QCOMPARE(item(settingsWindow.contentItem(), "fpsField")->property("label").toString(), QString("FPS"));
+        const auto y = [&](const char* name) { return item(settingsWindow.contentItem(), name)->mapToScene(QPointF()).y(); };
         QVERIFY(y("canvasSizeLabel") < y("resolutionPreset"));
         QVERIFY(y("resolutionPreset") < y("widthField"));
         QCOMPARE(y("widthField"), y("heightField"));
@@ -295,8 +416,8 @@ Item {
         QVERIFY(y("tempoLabel") < y("offsetField"));
         still(settingsWindow, "ProjectSettingsDialog.png");
         // The xs dialog shrinks to fit narrow windows, retaining a 16 px margin.
-        dialog->setProperty("width", 360);
-        QCOMPARE(paper->width(), 328.0);
+        settingsWindow.resize(360, 800);
+        QTRY_COMPARE(paper->width(), 328.0);
     }
 };
 QTEST_MAIN(TestTimelineListUi)

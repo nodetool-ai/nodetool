@@ -7,6 +7,7 @@
 #include <QTemporaryDir>
 #include <QUrlQuery>
 #include <QtTest>
+#include <array>
 
 namespace {
 constexpr auto DOCUMENT = R"({"id":"label-cut","name":"Label cut","fps":30,"width":1920,"height":1080,"tracks":[],"clips":[]})";
@@ -119,11 +120,11 @@ private slots:
         QByteArray timelineFlag("--timeline"), id("original"), tokenFlag("--token"), token("explicit-token");
         QByteArray cacheFlag("--cache-dir"), cache(m_cache.filePath("explicit").toUtf8());
         QByteArray reportFlag("--loader-report"), reportPath(m_cache.filePath("explicit-report.json").toUtf8());
-        char* argv[] = {program.data(), serverFlag.data(), serverUrl.data(), timelineFlag.data(), id.data(),
+        std::array<char*, 12> argv = {program.data(), serverFlag.data(), serverUrl.data(), timelineFlag.data(), id.data(),
                         tokenFlag.data(), token.data(), cacheFlag.data(), cache.data(),
                         reportFlag.data(), reportPath.data(), nullptr};
-        int argc = 11;
-        QCOMPARE(nt::server::takeServerArgs(argc, argv), 0);
+        int argc = static_cast<int>(argv.size() - 1);
+        QCOMPARE(nt::server::takeServerArgs(argc, argv.data()), 0);
         QCOMPARE(argc, 2);
         const auto commandLineLabel = QString::fromUtf8(argv[1]);
         const auto explicitOpen = nt::server::loadTimelineSource(QString::fromUtf8(argv[1]));
