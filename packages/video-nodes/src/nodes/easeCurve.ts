@@ -22,7 +22,7 @@ import {
   type ClipTimeRemap,
   type TimeRemapAudioSegment
 } from "@nodetool-ai/timeline";
-import { atempoChain } from "./ffmpeg-helpers.js";
+import { atempoChain } from "./video-helpers.js";
 
 /** Easing presets the node offers, in the timeline's easing ids. */
 export const EASE_CURVE_PRESETS = [

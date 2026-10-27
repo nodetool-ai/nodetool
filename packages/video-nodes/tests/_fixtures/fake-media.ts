@@ -51,7 +51,7 @@ export type MediaCall =
 
 export const mediaCalls: MediaCall[] = [];
 
-/** What `probeMedia` reports for every file. */
+/** What `probeMedia` and the probe helpers built on it report for every file. */
 export const fakeProbe = { durationSec: 4 as number | null, hasAudio: true, channels: 2 };
 
 /** Bytes of every `.wav` the mix read, by file name, kept as the call is made. */
@@ -207,23 +207,27 @@ export function fakeMediaModule(
   original: Record<string, unknown>,
   options: { edits?: boolean } = {}
 ): Record<string, unknown> {
-  const faked: Record<string, unknown> = {
-    ...original,
-    hasEncoder: async (name: string) =>
-      fakeEncoders.names
-        ? fakeEncoders.names.includes(name)
-        : (original.hasEncoder as (name: string) => Promise<boolean>)(name),
-    probeMedia: async (filePath: string) => {
-      mediaCalls.push({ fn: "probeMedia", filePath });
-      return {
+  const probeMedia = async (filePath: string) => {
+    mediaCalls.push({ fn: "probeMedia", filePath });
+    return {
       format: "MP4",
       durationSec: fakeProbe.durationSec,
       video: null,
       audio: fakeProbe.hasAudio
         ? { codec: "aac", sampleRate: 48000, channels: fakeProbe.channels }
         : null
-      };
-    },
+    };
+  };
+  const faked: Record<string, unknown> = {
+    ...original,
+    hasEncoder: async (name: string) =>
+      fakeEncoders.names
+        ? fakeEncoders.names.includes(name)
+        : (original.hasEncoder as (name: string) => Promise<boolean>)(name),
+    probeMedia,
+    probeDurationSec: async (filePath: string) => (await probeMedia(filePath)).durationSec,
+    probeHasAudio: async (filePath: string) => (await probeMedia(filePath)).audio !== null,
+    probeVideoStream: async (filePath: string) => (await probeMedia(filePath)).video,
     concatSegments: async (opts: {
       outPath: string;
       fps: number;

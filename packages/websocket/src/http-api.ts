@@ -78,10 +78,8 @@ import {
 } from "./lib/thumbnail.js";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
 import { getAssetAdapter, getTempAdapter } from "./lib/storage.js";
-import {
-  probeHasAudio,
-  extractAudio
-} from "./lib/media.js";
+import { probeHasAudio } from "@nodetool-ai/runtime/media";
+import { extractAudio } from "./lib/media.js";
 import {
   packWorkflowsBundle,
   importWorkflowBundle,

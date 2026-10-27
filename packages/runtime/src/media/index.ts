@@ -13,7 +13,10 @@
 export { hasEncoder, hasFilter } from "./codecs.js";
 export {
   packetTimes,
+  probeDurationSec,
+  probeHasAudio,
   probeMedia,
+  probeVideoStream,
   type AudioStreamInfo,
   type MediaProbe,
   type MediaSource,

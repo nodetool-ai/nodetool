@@ -1,6 +1,5 @@
 /**
- * The asset media helpers on real files: audio detection, duration, and the
- * WAV the extract-audio route stores.
+ * The WAV the extract-audio route stores, on real files.
  */
 
 import { promises as fs } from "node:fs";
@@ -15,18 +14,16 @@ import {
 } from "@nodetool-ai/runtime/media/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { extractAudio, probeDurationMs, probeHasAudio } from "../src/lib/media.js";
+import { extractAudio } from "../src/lib/media.js";
 
 let dir: string;
 let withAudio: string;
 let silent: string;
-let garbage: string;
 
 beforeAll(async () => {
   dir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-ws-media-"));
   withAudio = path.join(dir, "with-audio.mp4");
   silent = path.join(dir, "silent.mp4");
-  garbage = path.join(dir, "garbage.bin");
   await generateMedia({
     outPath: withAudio,
     video: { source: "testsrc=size=32x32:rate=10:duration=2" },
@@ -36,37 +33,10 @@ beforeAll(async () => {
     outPath: silent,
     video: { source: "testsrc=size=32x32:rate=10:duration=1.5" }
   });
-  await fs.writeFile(garbage, new Uint8Array([0, 1, 2, 3, 4, 5, 6, 7]));
 });
 
 afterAll(async () => {
   if (dir) await fs.rm(dir, { recursive: true, force: true });
-});
-
-describe("probeHasAudio", () => {
-  it("finds an audio stream", async () => {
-    expect(await probeHasAudio(withAudio)).toBe(true);
-  });
-
-  it("finds none in a picture-only file", async () => {
-    expect(await probeHasAudio(silent)).toBe(false);
-  });
-
-  it("answers false for bytes that are no media", async () => {
-    expect(await probeHasAudio(garbage)).toBe(false);
-  });
-});
-
-describe("probeDurationMs", () => {
-  it("reads the container duration in milliseconds", async () => {
-    const ms = await probeDurationMs(silent);
-    expect(ms).not.toBeNull();
-    expect(Math.abs(ms! - 1500)).toBeLessThanOrEqual(50);
-  });
-
-  it("answers null for bytes that are no media", async () => {
-    expect(await probeDurationMs(garbage)).toBeNull();
-  });
 });
 
 describe("extractAudio", () => {

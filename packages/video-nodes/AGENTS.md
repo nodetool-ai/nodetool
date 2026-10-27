@@ -25,13 +25,15 @@
 - **Empty input bytes short-circuit** to an empty/passthrough ref before any
   decode — that is not a failure and stays.
 
-## Shared helpers: `src/nodes/ffmpeg-helpers.ts`
+## Shared helpers: `src/nodes/video-helpers.ts`
 
 Internal module (not re-exported from the package index) holding
-`videoRef`/`defaultVideoRef`, `parseFrameRate`, the in-process probes
-(`probeDurationSeconds`, `probeHasAudioStream`, `probeVideoInfo`,
-`countVideoFrames`, `libavCodecName`), `withTempFile`, `filePath`/`folderPath`,
-`dateName`, `uniqueTargetPath`, `coerceProviderBytes`, and `atempoChain`.
+`videoRef`/`defaultVideoRef`, `probeVideoInfo` and `libavCodecName` (a probe in
+ffprobe's terms), `withTempFile`, `filePath`/`folderPath`, `dateName`,
+`uniqueTargetPath`, `coerceProviderBytes`, and `atempoChain`. For a duration,
+an audio check or the video stream, call `probeDurationSec`, `probeHasAudio`
+or `probeVideoStream` from `@nodetool-ai/runtime/media`. They answer null or
+false for media Mediabunny cannot read.
 Helpers take no node-specific state so `timeline.ts` can import them too.
 `defaultVideoRef()` is called per `@prop` default so each prop gets its own
 object — never share one mutable default across props.

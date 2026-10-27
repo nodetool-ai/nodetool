@@ -10,7 +10,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { VideoRef } from "@nodetool-ai/node-sdk";
-import { packetTimes, probeMedia } from "@nodetool-ai/runtime/media";
+import { probeMedia } from "@nodetool-ai/runtime/media";
 import {
   isNonEmptyString,
   isObjectLike,
@@ -107,33 +107,6 @@ export async function uniqueTargetPath(target: string): Promise<string> {
   }
 }
 
-/**
- * Parse an ffprobe `r_frame_rate` value ("30000/1001" or "25") into a number.
- * Returns 0 for malformed values or zero denominators instead of NaN/Infinity.
- */
-export function parseFrameRate(raw: string): number {
-  const parts = raw.trim().split("/");
-  if (parts.length === 2) {
-    const num = Number(parts[0]);
-    const den = Number(parts[1]);
-    return Number.isFinite(num) && den > 0 ? num / den : 0;
-  }
-  const val = Number(parts[0]);
-  return Number.isFinite(val) && val > 0 ? val : 0;
-}
-
-/**
- * A file's duration in seconds, read in process. A file that is not media, or
- * names no duration, answers 0.
- */
-export async function probeDurationSeconds(file: string): Promise<number> {
-  try {
-    return (await probeMedia(file)).durationSec ?? 0;
-  } catch {
-    return 0;
-  }
-}
-
 /** Mediabunny codec names, as libav (and so ffprobe) names them. */
 const LIBAV_CODEC_NAMES: Record<string, string> = {
   avc: "h264",
@@ -197,20 +170,6 @@ export async function probeVideoInfo(file: string): Promise<VideoInfo> {
     codec: libavCodecName(video?.codec ?? null),
     hasAudio: probe.audio !== null
   };
-}
-
-/** How many video frames `file` holds, counted from its packets. */
-export async function countVideoFrames(file: string): Promise<number> {
-  return (await packetTimes(file))?.length ?? 0;
-}
-
-/** Whether `file` has an audio stream. Unreadable media has none. */
-export async function probeHasAudioStream(file: string): Promise<boolean> {
-  try {
-    return (await probeMedia(file)).audio !== null;
-  } catch {
-    return false;
-  }
 }
 
 /** Write `bytes` to a temp file with `suffix`, returning its path + cleanup. */

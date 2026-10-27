@@ -32,8 +32,11 @@ import {
   convertAudioToWav,
   openFilterGraph,
   openVideoFrameEncoder,
+  packetTimes,
   pngFrames,
+  probeDurationSec,
   probeMedia,
+  probeVideoStream,
   transformMedia,
   type StreamPlan
 } from "@nodetool-ai/runtime/media";
@@ -44,12 +47,10 @@ import {
   folderPath,
   dateName,
   uniqueTargetPath,
-  countVideoFrames,
-  probeDurationSeconds,
   probeVideoInfo,
   withTempFile,
   coerceProviderBytes
-} from "./ffmpeg-helpers.js";
+} from "./video-helpers.js";
 import {
   EASE_CURVE_PRESETS,
   easeCurveEasing,
@@ -1117,16 +1118,11 @@ export class ForEachFrameNode extends BaseNode {
 
     const inputFile = await withTempFile(".mp4", bytes);
     try {
-      let fps = 24;
-      let alpha = false;
-      try {
-        const video = (await probeMedia(inputFile.path)).video;
-        const parsed = video ? (video.nominalFps ?? video.averageFps) : 0;
-        if (parsed > 0) fps = parsed;
-        alpha = video?.alpha ?? false;
-      } catch {
-        // A file the probe cannot read falls back to 24 fps.
-      }
+      // A file the probe cannot read falls back to 24 fps.
+      const video = await probeVideoStream(inputFile.path);
+      const parsed = video ? (video.nominalFps ?? video.averageFps) : 0;
+      const fps = parsed > 0 ? parsed : 24;
+      const alpha = video?.alpha ?? false;
 
       const start = Math.max(0, Number(this.start ?? 0));
       const end = Number(this.end ?? -1);
@@ -1378,7 +1374,7 @@ export class ConcatVideoNode extends BaseNode {
         const width = first.width > 0 ? first.width : 1920;
         const height = first.height > 0 ? first.height : 1080;
         const fps = first.fps > 0 ? first.fps : 30;
-        const durations = await Promise.all(inputs.map((input) => probeDurationSeconds(input.path)));
+        const durations = await Promise.all(inputs.map(async (input) => (await probeDurationSec(input.path)) ?? 0));
         // Scale + pad to a uniform frame at the first input's rate, H.264 and
         // 48 kHz stereo AAC, silence where an input has no sound.
         await concatSegments({
@@ -1762,7 +1758,7 @@ export class EaseCurveVideoNode extends BaseNode {
     let sourceSec: number;
     let meta: ConcatMeta;
     try {
-      sourceSec = await probeDurationSeconds(probe.path);
+      sourceSec = (await probeDurationSec(probe.path)) ?? 0;
       meta = await probeConcatMeta(probe.path);
     } finally {
       await probe.cleanup();
@@ -2518,7 +2514,7 @@ export class TransitionVideoNode extends BaseNode {
     const tempA = await withTempFile(".mp4", a);
     let offsetVal: number;
     try {
-      const aDuration = await probeDurationSeconds(tempA.path);
+      const aDuration = (await probeDurationSec(tempA.path)) ?? 0;
       offsetVal = Math.max(0, aDuration - duration);
     } finally {
       await tempA.cleanup();
@@ -2897,7 +2893,7 @@ export class GetVideoInfoNode extends BaseNode {
     const inputFile = await withTempFile(".mp4", bytes);
     try {
       const info = await probeVideoInfo(inputFile.path);
-      const frameCount = info.width > 0 ? await countVideoFrames(inputFile.path) : 0;
+      const frameCount = info.width > 0 ? ((await packetTimes(inputFile.path))?.length ?? 0) : 0;
       return {
         duration: info.durationSec,
         width: info.width,

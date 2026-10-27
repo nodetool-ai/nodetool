@@ -17,6 +17,9 @@ vi.mock("@nodetool-ai/runtime/media", async (importOriginal) => {
   return {
     ...original,
     probeMedia: refuse,
+    probeDurationSec: refuse,
+    probeHasAudio: refuse,
+    probeVideoStream: refuse,
     packetTimes: refuse,
     openFilterGraph: refuse,
     openRgbaFrameReader: refuse,

@@ -55,7 +55,7 @@ import { getAssetAdapter } from "./storage.js";
 import { isObjectLike } from "./wire-values.js";
 import {
   hasEncoder,
-  probeMedia,
+  probeVideoStream,
   transcodeVideo,
   type VideoEncoderSpec
 } from "@nodetool-ai/runtime/media";
@@ -261,13 +261,8 @@ export interface VideoProbe {
 
 /** The first video stream's size, or null when the file has none. */
 export async function probeVideo(filePath: string): Promise<VideoProbe | null> {
-  let video: Awaited<ReturnType<typeof probeMedia>>["video"];
-  try {
-    ({ video } = await probeMedia(filePath));
-  } catch {
-    // Not a video Mediabunny can read; the encode would fail the same way.
-    return null;
-  }
+  // A file Mediabunny cannot read answers null; the encode would fail the same way.
+  const video = await probeVideoStream(filePath);
   if (!video || !(video.width > 0) || !(video.height > 0)) return null;
   return {
     width: video.width,
