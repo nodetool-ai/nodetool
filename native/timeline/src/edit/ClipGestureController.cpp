@@ -1,7 +1,13 @@
 #include "edit/ClipGestureController.h"
 
 #include "app/EditRegistry.h"
+#include "wiring/KeyActions.h"
+#include "wiring/SnapProviders.h"
+#include "wiring/SourceDurations.h"
+#include <QJsonDocument>
 #include "edit/Keymap.h"
+#include "edit/targeting/TargetingEdits.h"
+#include "edit/groups/GroupOps.h"
 #include "ui/MediaVersion.h"
 #include "preview/FfmpegSource.h"
 #include "ui/TimelineWheel.h"
@@ -109,6 +115,8 @@ void ClipGestureController::setTimeline(TimelineModel* m) {
     if (m == m_timeline) return;
     if (m_timeline) disconnect(m_timeline, nullptr, this, nullptr);
     m_timeline = m;
+    m_clipData.clear();
+    m_clipDataRevision = 0;
     if (m_timeline) {
         // A new document ends a gesture on the old one, with no write.
         connect(m_timeline, &TimelineModel::documentReplaced, this, [this]() {
@@ -137,7 +145,13 @@ void ClipGestureController::setTimeline(TimelineModel* m) {
     emit changed();
 }
 void ClipGestureController::setViewState(TimelineViewState* v) {
+    if (m_view == v) { return; }
+    if (m_view) { disconnect(m_view, nullptr, this, nullptr); }
     m_view = v;
+    if (m_view) {
+        connect(m_view, &TimelineViewState::rangeChanged, this, &ClipGestureController::syncPlaybackRange);
+    }
+    syncPlaybackRange();
     emit changed();
 }
 void ClipGestureController::setRows(TrackWindowModel* r) {
@@ -146,14 +160,22 @@ void ClipGestureController::setRows(TrackWindowModel* r) {
 }
 void ClipGestureController::setClock(PlaybackClock* c) {
     m_clock = c;
+    syncPlaybackRange();
     emit changed();
+}
+void ClipGestureController::syncPlaybackRange() {
+    if (!m_clock || !m_view) { return; }
+    m_clock->clearRange();
+    m_clock->setRangeIn(m_view->rangeInMs());
+    m_clock->setRangeOut(m_view->rangeOutMs());
 }
 void ClipGestureController::setLanesViewport(QQuickItem* v) {
     m_viewport = v;
     emit changed();
 }
 void ClipGestureController::setSelection(const QStringList& ids) {
-    if (ids == m_selection) return;
+    if (ids == m_selection && m_selectedGap.isEmpty()) return;
+    m_selectedGap.clear();
     m_selection = ids;
     emit selectionChanged();
 }
@@ -222,6 +244,8 @@ ClipList ClipGestureController::resolveEdit(const QString& name, QJsonObject pay
     QJsonObject raw = m_timeline->timeline().raw;
     raw.insert("clips", m_timeline->clipsJson());
     payload.insert("linked", m_linked);
+    const auto targeting = targetingPayload();
+    for (auto it = targeting.begin(); it != targeting.end(); ++it) { payload.insert(it.key(), it.value()); }
     if (maxSourceDurationMs) {
         payload.insert("maxSourceDurationMs", *maxSourceDurationMs);
     }
@@ -252,6 +276,7 @@ void ClipGestureController::setSnapGuide(double ms) {
 std::vector<double> ClipGestureController::collectSnapCandidates(const IdSet& excludeClipIds) const {
     // clipSnap.ts collectSnapCandidates: the excluded clips with their link
     // groups (groups are not modelled natively), the playhead, the 1 s ticks.
+    if (!m_snapEnabled) { return {}; }
     const EditDoc doc = editDoc();
     IdSet exclude = excludeClipIds;
     IdSet links;
@@ -267,7 +292,19 @@ std::vector<double> ClipGestureController::collectSnapCandidates(const IdSet& ex
     source.playheadMs = playheadMs();
     source.tickIntervalMs = TICK_INTERVAL_MS;
     source.maxTimeMs = (m_timeline ? m_timeline->durationMs() : 0.0) + TICK_INTERVAL_MS;
-    return buildSnapPoints(source);
+    auto candidates = buildSnapPoints(source);
+    nt::wiring::SnapRequest request;
+    if (m_timeline) { request.document = QJsonDocument::fromJson(m_timeline->documentJson()).object(); }
+    request.fromMs = m_view ? m_view->clipWindowStartMs() : 0;
+    request.toMs = m_view ? m_view->clipWindowEndMs() : source.maxTimeMs;
+    request.msPerPx = m_view ? m_view->msPerPx() : 10;
+    request.gridDivision = m_view ? m_view->gridDivision() : QStringLiteral("beat");
+    request.excludedClipIds = QStringList(exclude.begin(), exclude.end());
+    const auto extra = nt::wiring::extraSnapCandidates(request);
+    candidates.insert(candidates.end(), extra.begin(), extra.end());
+    std::ranges::sort(candidates);
+    candidates.erase(std::unique(candidates.begin(), candidates.end()), candidates.end());
+    return candidates;
 }
 
 QString ClipGestureController::trackUnderPointer(double sceneX, double sceneY) const {
@@ -325,6 +362,9 @@ bool ClipGestureController::pressClip(const QString& id, const QString& pressedP
     g.startX = g.lastX = sceneX;
     g.startY = g.lastY = sceneY;
     g.alt = mods & Qt::AltModifier;
+    g.copyOnDrag = g.alt && part == u"body" && m_tool != u"slip" && m_tool != u"slide" &&
+                   static_cast<bool>(nt::app::findEdit("altDragCopy"));
+    g.selectionAtStart = m_selection;
     g.scrollLeftAtStart = m_view->scrollLeftPx();
     g.gestureMsPerPx = m_view->msPerPx();
     g.before = m_timeline->clipsJson();
@@ -354,7 +394,7 @@ bool ClipGestureController::pressClip(const QString& id, const QString& pressedP
         // candidates (useClipDrag snapshots this once at pointerdown).
         IdSet exclude{id};
         if (m_selection.contains(id) && m_selection.size() > 1) exclude.insert(m_selection.begin(), m_selection.end());
-        g.candidates = collectSnapCandidates(exclude);
+        if (!g.alt || g.copyOnDrag) { g.candidates = collectSnapCandidates(exclude); }
     } else {
         // A locked clip or track refuses the trim (`interactionLocked`).
         if (!editableUserTargets(doc, IdSet{id}, false, false).count(id)) return false;
@@ -363,7 +403,7 @@ bool ClipGestureController::pressClip(const QString& id, const QString& pressedP
         g.mode = trimModeFor(m_tool, mods & (Qt::ControlModifier | Qt::MetaModifier), m_rippleMode);
         g.edgeMsAtStart = part == u"start" ? clipStartMs(*clip) : clipEndMs(*clip);
         g.durationMsAtStart = clipDurationMs(*clip);
-        g.candidates = collectSnapCandidates(IdSet{id});
+        if (!g.alt) { g.candidates = collectSnapCandidates(IdSet{id}); }
     }
     m_gesture = g;
     emit gestureChanged();
@@ -375,7 +415,7 @@ bool ClipGestureController::pressClip(const QString& id, const QString& pressedP
 
 void ClipGestureController::applyMove() {
     Gesture& g = m_gesture;
-    const EditDoc doc = editDoc();
+    EditDoc doc = editDoc();
     const QJsonObject* fresh = findClip(doc.clips, g.clipId);
     if (!fresh) return;
     if (!editableUserTargets(doc, IdSet{g.clipId}, false, false).count(g.clipId)) return;
@@ -393,9 +433,18 @@ void ClipGestureController::applyMove() {
     const double deltaPx = g.lastX - g.startX + (scroll - g.scrollLeftAtStart);
     if (!g.dragging && std::hypot(deltaPx, g.lastY - g.startY) < nt::ui::DRAG_THRESHOLD_PX) return;
     g.dragging = true;
+    if (g.copyOnDrag && !g.copiesCreated) {
+        setDoc(resolveEdit("altDragCopy", {{"clipId", g.clipId},
+                           {"selectedIds", QJsonArray::fromStringList(g.selectionAtStart)},
+                           {"deltaMs", 0}, {"mode", "overlap"}}, [&] { return doc.clips; }));
+        g.copiesCreated = true;
+        doc = editDoc();
+        fresh = findClip(doc.clips, g.clipId);
+        if (!fresh) { return; }
+    }
 
     const double rawStartMs = std::max(0.0, g.dragStartMs + g.travelledMs + deltaPx * msPerPx);
-    const WindowSnap snapped = g.alt || !m_snapEnabled
+    const WindowSnap snapped = (g.alt && !g.copyOnDrag) || !m_snapEnabled
                                    ? WindowSnap{rawStartMs, -1}
                                    : snapClipWindow(rawStartMs, clipDurationMs(*fresh), g.candidates, msPerPx);
     const double adjustedDeltaMs = std::max(0.0, snapped.startMs) - clipStartMs(*fresh);
@@ -513,6 +562,130 @@ bool ClipGestureController::pressLane(const QString& trackId, double atMs, int m
     return true;
 }
 
+QJsonObject ClipGestureController::targetingPayload() const {
+    const auto& state = nt::targeting::TrackTargeting::current().state();
+    return {{"untargetedTrackIds", QJsonArray::fromStringList({state.untargetedTrackIds.begin(), state.untargetedTrackIds.end()})},
+            {"syncLockOffTrackIds", QJsonArray::fromStringList({state.syncLockOffTrackIds.begin(), state.syncLockOffTrackIds.end()})}};
+}
+
+void ClipGestureController::pressEmptyLane(const QString& trackId, double sceneX, double sceneY, int modifiers) {
+    if (!m_timeline || !m_rows || !m_view || !m_viewport) { return; }
+    cancelGesture();
+    Gesture g;
+    g.kind = "marquee";
+    g.clipId = trackId;
+    g.startX = g.lastX = sceneX;
+    g.startY = g.lastY = sceneY;
+    g.before = m_timeline->clipsJson();
+    g.generation = m_timeline->documentGeneration();
+    const auto mods = Qt::KeyboardModifiers(modifiers);
+    g.additiveSelection = mods & (Qt::ShiftModifier | Qt::ControlModifier | Qt::MetaModifier);
+    if (g.additiveSelection) { g.selectionAtStart = m_selection; }
+    const auto p = m_viewport->mapFromScene({sceneX, sceneY});
+    g.laneStart = {p.x() + m_view->scrollLeftPx(), p.y() + m_view->scrollTopPx()};
+    const auto& tops = m_rows->rowTops();
+    const auto& heights = m_rows->rowHeights();
+    for (size_t i = 0; i < tops.size(); ++i) {
+        const auto id = m_rows->tracks()->data(m_rows->tracks()->index(static_cast<int>(i)), TrackListModel::TrackIdRole).toString();
+        g.bandRows.push_back({id, tops[i], tops[i] + heights[i]});
+    }
+    setSelection(g.selectionAtStart);
+    m_gesture = std::move(g);
+    if (m_clock) {
+        const double time = std::round(std::max(0.0, laneMsAt(sceneX)));
+        m_clock->seek(m_timeline->durationMs() > 0 ? std::min(time, m_timeline->durationMs()) : time);
+    }
+    grabMouse();
+    emit gestureChanged();
+}
+
+void ClipGestureController::updateMarquee() {
+    auto& g = m_gesture;
+    const auto p = m_viewport->mapFromScene({g.lastX, g.lastY});
+    const double x = p.x() + m_view->scrollLeftPx();
+    const double y = p.y() + m_view->scrollTopPx();
+    const double left = std::min(g.laneStart.x(), x);
+    const double top = std::min(g.laneStart.y(), y);
+    const double width = std::abs(g.laneStart.x() - x);
+    const double height = std::abs(g.laneStart.y() - y);
+    const QVariantMap band{{"left", left}, {"top", top}, {"width", width}, {"height", height}};
+    if (m_rubberBand == band) { return; }
+    m_rubberBand = band;
+    g.dragging = true;
+    ClipList clips;
+    clips.reserve(static_cast<size_t>(g.before.size()));
+    for (const auto& c : g.before) { clips.push_back(c.toObject()); }
+    setSelection(nt::edit::clipboard::marqueeSelection(clips, g.bandRows, left * m_view->msPerPx(),
+                    (left + width) * m_view->msPerPx(), top, top + height, g.selectionAtStart));
+    emit gestureChanged();
+}
+
+QVariantMap ClipGestureController::groupSpan(const QString& id) const {
+    const auto span = nt::edit::groups::childSpanMs(editDoc().clips, id);
+    return span ? QVariantMap{{"startMs", span->startMs}, {"endMs", span->endMs}} : QVariantMap{};
+}
+
+void ClipGestureController::pasteAttributes(const QVariantMap& source, const QStringList& ids, const QStringList& groups) {
+    if (!m_timeline) { return; }
+    m_timeline->applyEdit("pasteAttributes", {{"source", QJsonObject::fromVariantMap(source)},
+                         {"selectedIds", QJsonArray::fromStringList(ids)}, {"groups", QJsonArray::fromStringList(groups)}});
+}
+
+bool ClipGestureController::pressTrack(const QString& id, const QString& kind, double sceneX, double sceneY) {
+    if (!m_timeline || !m_rows || !m_view || (kind != u"resize" && kind != u"reorder")) { return false; }
+    cancelGesture();
+    for (const auto& value : m_timeline->timeline().raw.value("tracks").toArray()) {
+        const auto track = value.toObject();
+        if (track.value("id") != id) { continue; }
+        Gesture g;
+        g.kind = kind;
+        g.clipId = id;
+        g.startX = g.lastX = sceneX;
+        g.startY = g.lastY = sceneY;
+        g.trackHeightAtStart = track.value("heightPx").toDouble(64);
+        g.trackType = track.value("type").toString();
+        g.generation = m_timeline->documentGeneration();
+        m_gesture = std::move(g);
+        m_trackDropY = -1;
+        m_trackOrder.clear();
+        grabMouse();
+        emit gestureChanged();
+        return true;
+    }
+    return false;
+}
+
+void ClipGestureController::updateTrackDrag() {
+    m_trackDropY = -1;
+    m_trackOrder.clear();
+    if (!m_viewport || !m_rows || !m_view) { return; }
+    const auto& g = m_gesture;
+    const auto local = m_viewport->mapFromScene({g.lastX, g.lastY});
+    if (local.x() >= 0 || local.y() < 0 || local.y() >= m_viewport->height()) { emit gestureChanged(); return; }
+    const double y = local.y() + m_view->scrollTopPx();
+    const auto& tops = m_rows->rowTops();
+    const auto& heights = m_rows->rowHeights();
+    for (size_t i = 0; i < tops.size(); ++i) {
+        if (y < tops[i] || y >= tops[i] + heights[i]) { continue; }
+        const auto index = m_rows->tracks()->index(static_cast<int>(i));
+        const auto id = m_rows->tracks()->data(index, TrackListModel::TrackIdRole).toString();
+        const auto type = m_rows->tracks()->data(index, TrackListModel::TypeRole).toString();
+        if (type != g.trackType || id == g.clipId) { break; }
+        const bool after = y >= tops[i] + heights[i] / 2;
+        QStringList original;
+        for (const auto& t : m_timeline->timeline().raw.value("tracks").toArray()) {
+            const auto trackId = t.toObject().value("id").toString();
+            original.append(trackId);
+            if (trackId != g.clipId) { m_trackOrder.append(trackId); }
+        }
+        m_trackOrder.insert(m_trackOrder.indexOf(id) + (after ? 1 : 0), g.clipId);
+        if (m_trackOrder == original) { m_trackOrder.clear(); break; }
+        m_trackDropY = tops[i] + (after ? heights[i] - 2 : 0);
+        break;
+    }
+    emit gestureChanged();
+}
+
 void ClipGestureController::applySlip() {
     // useClipDrag beginSlipDrag: moving right shows earlier source.
     Gesture& g = m_gesture;
@@ -549,7 +722,12 @@ void ClipGestureController::mouseMoveEvent(QMouseEvent* event) {
     }
     m_gesture.lastX = event->scenePosition().x();
     m_gesture.lastY = event->scenePosition().y();
-    if (m_gesture.kind == u"move") {
+    if (m_gesture.kind == u"marquee") {
+        updateMarquee();
+    } else if (m_gesture.kind == u"resize" || m_gesture.kind == u"reorder") {
+        m_gesture.dragging = true;
+        if (m_gesture.kind == u"reorder") { updateTrackDrag(); }
+    } else if (m_gesture.kind == u"move") {
         applyMove();
         if (m_gesture.dragging) polish();  // the edge auto-scroll
     } else if (m_gesture.kind == u"slip") {
@@ -594,6 +772,9 @@ void ClipGestureController::updatePolish() {
 void ClipGestureController::dropGesture() {
     if (m_gesture.kind.isEmpty()) return;
     m_gesture = Gesture{};
+    m_trackDropY = -1;
+    m_trackOrder.clear();
+    m_rubberBand.clear();
     setSnapGuide(-1);
     if (window() && window()->mouseGrabberItem() == this) ungrabMouse();
     emit gestureChanged();
@@ -603,7 +784,7 @@ void ClipGestureController::cancelGesture() {
     if (m_gesture.kind.isEmpty()) return;
     const Gesture g = m_gesture;
     dropGesture();
-    if (m_timeline && g.dragging && g.generation == m_timeline->documentGeneration()) {
+    if (m_timeline && g.dragging && g.kind != u"resize" && g.kind != u"reorder" && g.kind != u"marquee" && g.generation == m_timeline->documentGeneration()) {
         m_timeline->replaceClips(g.before);
     }
 }
@@ -615,6 +796,38 @@ void ClipGestureController::finishGesture(bool completed, Qt::KeyboardModifiers 
     }
     Gesture g = m_gesture;
     m_gesture = Gesture{};
+    if (g.kind == u"marquee") {
+        const bool click = !g.dragging || m_rubberBand.value("width").toDouble() <= nt::ui::DRAG_THRESHOLD_PX;
+        m_rubberBand.clear();
+        if (completed && click && !g.additiveSelection && !lockedTrackIds(editDoc()).contains(g.clipId)) {
+            const auto gap = findGap(editDoc().clips, g.clipId, g.laneStart.x() * m_view->msPerPx());
+            if (gap) {
+                m_selectedGap = {{"trackId", g.clipId}, {"startMs", gap->startMs}, {"endMs", gap->endMs}};
+                emit selectionChanged();
+            }
+        }
+        if (window() && window()->mouseGrabberItem() == this) { ungrabMouse(); }
+        emit gestureChanged();
+        return;
+    }
+    if (g.kind == u"resize" || g.kind == u"reorder") {
+        const auto order = m_trackOrder;
+        m_trackOrder.clear();
+        m_trackDropY = -1;
+        if (window() && window()->mouseGrabberItem() == this) { ungrabMouse(); }
+        emit gestureChanged();
+        if (completed && g.dragging && m_timeline && m_view) {
+            if (g.kind == u"resize") {
+                const double height = std::clamp(g.trackHeightAtStart + (g.lastY - g.startY) / m_view->verticalZoom(), 48.0, 300.0);
+                if (height != g.trackHeightAtStart) {
+                    m_timeline->applyEdit("setTrackHeight", {{"trackId", g.clipId}, {"heightPx", height}});
+                }
+            } else if (!order.isEmpty()) {
+                m_timeline->applyEdit("reorderTracks", {{"orderedIds", QJsonArray::fromStringList(order)}});
+            }
+        }
+        return;
+    }
     if (g.kind == u"move" && g.dragging && completed) {
         // The last position, then the drop (Ctrl/Cmd on release forces insert).
         m_gesture = g;
@@ -625,8 +838,26 @@ void ClipGestureController::finishGesture(bool completed, Qt::KeyboardModifiers 
         const bool insert = modifiers & (Qt::ControlModifier | Qt::MetaModifier);
         const QString mode = insert ? QStringLiteral("insert") : m_dropMode;
         const QStringList movedIds = multi ? m_selection : QStringList{g.clipId};
-        setDoc(resolveEdit("resolveDropAction", {{"selectedIds", QJsonArray::fromStringList(movedIds)}, {"mode", mode}},
-                           [&] { return resolveDropAction(editDoc(), moved, mode); }));
+        if (g.copyOnDrag) {
+            const auto current = editDoc();
+            const auto* primary = findClip(current.clips, g.clipId);
+            const auto edit = nt::app::findEdit("altDragCopy");
+            if (primary && edit) {
+                auto raw = m_timeline->timeline().raw;
+                raw.insert("clips", g.before);
+                auto payload = targetingPayload();
+                payload.insert("clipId", g.clipId);
+                payload.insert("selectedIds", QJsonArray::fromStringList(g.selectionAtStart));
+                payload.insert("deltaMs", clipStartMs(*primary) - g.dragStartMs);
+                payload.insert("toTrackId", clipTrackId(*primary));
+                payload.insert("linked", m_linked);
+                payload.insert("mode", mode);
+                m_timeline->replaceClips(edit(std::move(raw), payload).value("clips").toArray());
+            }
+        } else {
+            setDoc(resolveEdit("resolveDropAction", {{"selectedIds", QJsonArray::fromStringList(movedIds)}, {"mode", mode}},
+                               [&] { return resolveDropAction(editDoc(), moved, mode); }));
+        }
     }
     setSnapGuide(-1);
     if (!m_timeline) return;
@@ -675,9 +906,32 @@ void ClipGestureController::nudge(double deltaMs, bool merge) {
 }
 
 bool ClipGestureController::handleKey(int key, const QString& text, int modifiers, bool autoRepeat) {
-    if (!m_timeline) return false;
+    if (!m_timeline) { return false; }
+    const QVariantMap context{{"autoRepeat", autoRepeat}};
     const QString action = resolveTimelineAction(domKey(key, text, modifiers), m_preset);
-    if (action.isEmpty()) return false;
+    if (!action.isEmpty() && runAction(action, context)) { return true; }
+    auto mods = Qt::KeyboardModifiers(modifiers) & (Qt::ControlModifier | Qt::MetaModifier | Qt::ShiftModifier | Qt::AltModifier);
+    if (mods.testFlag(Qt::MetaModifier)) {
+        mods &= ~Qt::MetaModifier;
+        mods |= Qt::ControlModifier;
+    }
+    const QKeySequence sequence(QKeyCombination(mods, static_cast<Qt::Key>(key)));
+    for (const auto& extension : nt::wiring::keyActions()) {
+        if (extension.defaultKeys.contains(sequence) && runAction(extension.name, context)) { return true; }
+    }
+    return false;
+}
+
+bool ClipGestureController::runAction(const QString& action, const QVariantMap& context) {
+    if (!m_timeline || action.isEmpty()) { return false; }
+    if (runBuiltinAction(action, context.value("autoRepeat").toBool())) { return true; }
+    for (const auto& extension : nt::wiring::keyActions()) {
+        if (extension.name == action) { return extension.handler(*this, context); }
+    }
+    return false;
+}
+
+bool ClipGestureController::runBuiltinAction(const QString& action, bool autoRepeat) {
     // A key ends the gesture first: Escape cancels it and stops there; any
     // other command cancels it and runs on the press state, so the history
     // never interleaves with an open gesture.
@@ -685,9 +939,117 @@ bool ClipGestureController::handleKey(int key, const QString& text, int modifier
         cancelGesture();
         if (action == u"escape") return true;
     }
+    if (m_clock) {
+        if (action == u"shuttleBack" || action == u"shuttleForward") {
+            m_clock->shuttle(action == u"shuttleBack" ? -1 : 1);
+            return true;
+        }
+        if (action == u"shuttleStop") {
+            m_clock->shuttleStop();
+            return true;
+        }
+        if (action == u"toggleLoop") {
+            if (!autoRepeat) { m_clock->setLoop(!m_clock->loop()); }
+            return true;
+        }
+        if (action == u"playInToOut") {
+            if (!autoRepeat) { m_clock->playInToOut(); }
+            return true;
+        }
+        if (action == u"stepFrameBack" || action == u"stepFrameForward" ||
+            action == u"stepFramesBack" || action == u"stepFramesForward") {
+            if (!m_clock->playing()) {
+                const double frameMs = 1000.0 / std::max(1.0, m_timeline->fps());
+                const int direction = (action.endsWith(u"Back") ? -1 : 1) *
+                                      (action.startsWith(u"stepFrames") ? 5 : 1);
+                const double target = (std::round(playheadMs() / frameMs) + direction) * frameMs;
+                double endMs = 0;
+                for (const auto& clip : m_timeline->timeline().clips) { endMs = std::max(endMs, clip.endMs()); }
+                m_clock->seek(std::clamp(target, 0.0, endMs));
+            }
+            return true;
+        }
+    }
     const QJsonArray before = m_timeline->clipsJson();
     const IdSet selected(m_selection.begin(), m_selection.end());
+    static const QSet<QString> clipboardActions{"copy", "cut", "paste", "pasteInsert", "duplicate", "duplicateWithGap",
+                                                "groupClips", "ungroupClips"};
+    if (clipboardActions.contains(action)) {
+        if (action == u"paste" || action == u"pasteInsert") {
+            if (!nt::edit::clipboard::hasClipboardClips()) { return false; }
+        } else if (m_selection.isEmpty() || (action == u"groupClips" && m_selection.size() < 2)) { return false; }
+        auto payload = targetingPayload();
+        payload.insert("selectedIds", QJsonArray::fromStringList(m_selection));
+        payload.insert("atMs", playheadMs());
+        payload.insert("mode", m_dropMode);
+        payload.insert("linked", m_linked);
+        const bool changed = m_timeline->applyEdit(action, payload);
+        if (changed && (action == u"paste" || action == u"pasteInsert" || action == u"duplicate" ||
+                        action == u"duplicateWithGap" || action == u"groupClips")) {
+            IdSet old;
+            for (const auto& c : before) { old.insert(c.toObject().value("id").toString()); }
+            QStringList added;
+            for (const auto& c : m_timeline->clipsJson()) {
+                const auto id = c.toObject().value("id").toString();
+                if (!old.contains(id)) { added.append(id); }
+            }
+            if (!added.isEmpty()) { setSelection(added); }
+        } else if (changed && action == u"ungroupClips") { setSelection({}); }
+        return true;
+    }
+    if (action == u"pasteAttributes") {
+        const auto source = nt::edit::clipboard::firstClipboardClip();
+        if (!source || m_selection.isEmpty()) { return false; }
+        QVariantList targets;
+        for (const auto& c : before) {
+            if (selected.contains(c.toObject().value("id").toString())) { targets.append(c.toObject().toVariantMap()); }
+        }
+        emit pasteAttributesRequested(source->toVariantMap(), targets);
+        return true;
+    }
+    if (m_view && (action == u"liftRange" || action == u"extractRange" ||
+                   action == u"rippleTrimPrevToPlayhead" || action == u"rippleTrimNextToPlayhead")) {
+        const bool range = action == u"liftRange" || action == u"extractRange";
+        double start = m_view->rangeInMs();
+        double end = m_view->rangeOutMs();
+        if (range) {
+            if (start < 0 || end < 0) { return false; }
+        } else {
+            const auto doc = editDoc();
+            const auto targets = nt::targeting::targetedTrackIds(doc, nt::targeting::TrackTargeting::current().state());
+            const bool forward = action == u"rippleTrimNextToPlayhead";
+            const double now = playheadMs();
+            std::optional<double> neighbour;
+            for (const auto& c : doc.clips) {
+                if (isGroupClip(c) || !targets.contains(clipTrackId(c))) { continue; }
+                for (const double edge : {clipStartMs(c), clipEndMs(c)}) {
+                    if ((forward ? edge - now : now - edge) <= 1) { continue; }
+                    if (!neighbour || std::abs(edge - now) < std::abs(*neighbour - now)) { neighbour = edge; }
+                }
+            }
+            if (!neighbour) { return false; }
+            start = forward ? now : *neighbour;
+            end = forward ? *neighbour : now;
+        }
+        auto payload = targetingPayload();
+        payload.insert("startMs", start);
+        payload.insert("endMs", end);
+        payload.insert("ripple", action != u"liftRange");
+        m_timeline->applyEdit("removeRange", payload);
+        if (range) { m_view->clearRange(); }
+        if (m_clock && (range || action == u"rippleTrimPrevToPlayhead")) { m_clock->seek(start); }
+        return true;
+    }
     if (action == u"deleteSelected" || action == u"rippleDeleteSelected") {
+        if (m_selection.isEmpty() && !m_selectedGap.isEmpty()) {
+            auto payload = targetingPayload();
+            payload.insert("trackId", m_selectedGap.value("trackId").toString());
+            payload.insert("timeMs", m_selectedGap.value("startMs").toDouble());
+            m_timeline->applyEdit("closeGapAt", payload);
+            m_selectedGap.clear();
+            emit selectionChanged();
+            return true;
+        }
         if (m_selection.isEmpty()) return false;
         const EditDoc doc = editDoc();
         const bool ripple = action == u"rippleDeleteSelected" || m_rippleMode;
@@ -699,15 +1061,23 @@ bool ClipGestureController::handleKey(int key, const QString& text, int modifier
                                toArray(next));
         return true;
     }
-    if (action == u"splitAtPlayhead") {
+    if (action == u"splitAtPlayhead" || action == u"cutAllTracks") {
         // Read before the commit: the commit prunes the split clips' ids.
         const QStringList selection = m_selection;
         const EditDoc doc = editDoc();
         const double timeMs = playheadMs();
+        QStringList requested = action == u"cutAllTracks" ? QStringList{} : selection;
+        if (action == u"splitAtPlayhead" && requested.isEmpty()) {
+            const auto tracks = nt::targeting::targetedTrackIds(doc, nt::targeting::TrackTargeting::current().state());
+            for (const auto& c : doc.clips) {
+                if (tracks.contains(clipTrackId(c))) { requested.append(clipId(c)); }
+            }
+            if (requested.isEmpty()) { return true; }
+        }
         SplitResult r;
         r.clips = resolveEdit("splitSelectedAtPlayhead", {{"timeMs", timeMs},
-                              {"selectedIds", QJsonArray::fromStringList(selection)}}, [&] {
-            return splitSelectedAtPlayhead(doc, timeMs, selection).clips;
+                              {"selectedIds", QJsonArray::fromStringList(requested)}}, [&] {
+            return splitSelectedAtPlayhead(doc, timeMs, requested).clips;
         });
         // The registry returns clips rather than SplitResult. Recover the
         // right halves on tracks whose originals were replaced by the split.
@@ -730,7 +1100,7 @@ bool ClipGestureController::handleKey(int key, const QString& text, int modifier
         }
         m_timeline->commitEdit(QStringLiteral("Split"), before, toArray(r.clips));
         // The halves have new ids: keep the next split on the same clips.
-        if (!selection.isEmpty() && !r.rightHalfIds.isEmpty()) {
+        if (action == u"splitAtPlayhead" && !selection.isEmpty() && !r.rightHalfIds.isEmpty()) {
             QStringList next;
             for (const QString& id : selection) {
                 if (findClip(r.clips, id)) next.append(id);
@@ -948,7 +1318,10 @@ void ClipGestureController::probeSources() {
             QMetaObject::invokeMethod(qApp, [self, file, version, generation, ms]() {
                 if (!self || generation != self->m_probeGeneration) return;
                 self->m_probing.remove(file);
-                if (ms > 0 && nt::ui::mediaVersionKey(file) == version) self->m_sourceMs.insert(file, ms);
+                if (ms > 0 && nt::ui::mediaVersionKey(file) == version) {
+                    self->m_sourceMs.insert(file, ms);
+                    nt::wiring::rememberSourceDuration(file, version, ms);
+                }
             });
         });
     }
@@ -977,10 +1350,18 @@ std::optional<double> ClipGestureController::sourceCap(const QJsonObject& clip) 
 }
 
 QString ClipGestureController::shortcutFor(const QString& action) const {
-    return formatActionShortcut(m_preset, action);
+    const auto shortcut = formatActionShortcut(m_preset, action);
+    if (!shortcut.isEmpty()) { return shortcut; }
+    for (const auto& extension : nt::wiring::keyActions()) {
+        if (extension.name == action && !extension.defaultKeys.isEmpty()) {
+            return extension.defaultKeys.first().toString(QKeySequence::NativeText);
+        }
+    }
+    return {};
+
 }
 
-const QSet<QString>& ClipGestureController::availableActions() {
+QSet<QString> ClipGestureController::availableActions() {
     static const QSet<QString> actions{
         // handleKey
         "escape", "deleteSelected", "rippleDeleteSelected", "splitAtPlayhead", "selectAll", "deselectAll",
@@ -989,25 +1370,46 @@ const QSet<QString>& ClipGestureController::availableActions() {
         "nextMarker", "prevMarker", "zoomIn", "zoomOut", "zoomFit", "selectTool", "trackSelectTool",
         "trackSelectBackwardTool", "rippleTool", "rollTool", "rateStretchTool", "cutTool", "slipTool", "slideTool",
         "handTool", "zoomTool",
+        "copy", "cut", "paste", "pasteInsert", "pasteAttributes", "duplicate", "duplicateWithGap",
+        "groupClips", "ungroupClips", "cutAllTracks", "liftRange", "extractRange",
+        "rippleTrimPrevToPlayhead", "rippleTrimNextToPlayhead", "shuttleBack", "shuttleStop", "shuttleForward",
+        "toggleLoop", "playInToOut", "stepFrameBack", "stepFrameForward", "stepFramesBack", "stepFramesForward",
         // key-only rows: Space in TimelineEditor, and the drag modifiers
         "playPause", "rollCut", "disableSnapping", "insertOnDrop"};
-    return actions;
+    auto result = actions;
+    for (const auto& action : nt::wiring::keyActions()) { result.insert(action.name); }
+    return result;
 }
 
 QVariantMap ClipGestureController::shortcutSheet() const {
     QJsonObject sheet = nt::edit::shortcutSheet(m_preset);
     QJsonArray groups;
+    QSet<QString> listed;
+    const auto available = availableActions();
     for (const QJsonValue& g : sheet.value(u"groups").toArray()) {
         QJsonObject group = g.toObject();
         QJsonArray rows;
         for (const QJsonValue& r : group.value(u"rows").toArray()) {
             QJsonObject row = r.toObject();
-            row.insert(QStringLiteral("available"), availableActions().contains(row.value(u"id").toString()));
+            const auto id = row.value(u"id").toString();
+            listed.insert(id);
+            row.insert(QStringLiteral("available"), available.contains(id));
             rows.append(row);
         }
         group.insert(QStringLiteral("rows"), rows);
         groups.append(group);
     }
+    QJsonArray extensions;
+    for (const auto& action : nt::wiring::keyActions()) {
+        if (listed.contains(action.name)) { continue; }
+        QJsonArray combos;
+        for (const auto& key : action.defaultKeys) {
+            combos.append(QJsonArray::fromStringList(key.toString(QKeySequence::NativeText).split('+')));
+        }
+        extensions.append(QJsonObject{{"id", action.name}, {"label", action.label},
+                                      {"combos", combos}, {"available", true}});
+    }
+    if (!extensions.isEmpty()) { groups.append(QJsonObject{{"title", "Extensions"}, {"rows", extensions}}); }
     sheet.insert(QStringLiteral("groups"), groups);
     return sheet.toVariantMap();
 }
@@ -1026,4 +1428,18 @@ void ClipGestureController::undo() {
 
 void ClipGestureController::redo() {
     if (m_timeline) m_timeline->undoStack()->redo();
+}
+
+QVariantMap ClipGestureController::clipData(const QString& id) const {
+    if (!m_timeline) { return {}; }
+    if (m_clipDataRevision != m_timeline->timeline().revision) {
+        m_clipData.clear();
+        m_clipData.reserve(m_timeline->clipCount());
+        for (const auto& value : m_timeline->clipsJson()) {
+            const auto clip = value.toObject();
+            m_clipData.insert(clip.value("id").toString(), clip);
+        }
+        m_clipDataRevision = m_timeline->timeline().revision;
+    }
+    return m_clipData.value(id).toVariantMap();
 }

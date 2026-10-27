@@ -1,6 +1,7 @@
 #include "audio/AudioEngine.h"
 
 #include "audio/AudioSource.h"
+#include "audio/hooks/OutputDevice.h"
 
 #include "miniaudio.h"
 
@@ -13,6 +14,7 @@
 #include <set>
 #include <mutex>
 #include <thread>
+#include <unordered_map>
 
 namespace nt::audio {
 namespace {
@@ -34,14 +36,20 @@ constexpr double kRingSeconds = 2.0;
 constexpr double kPrimeMs = 250.0;
 constexpr std::int64_t kChunkFrames = 4096;
 
-// One seek's PCM: a ring per voice, created when the voice comes within the
-// lookahead and freed once the callback has played past it.
+std::string voiceKey(const VoicePlan& voice) {
+    return voice.segmentId.empty() ? voice.clipId : voice.clipId + '\x1f' + voice.segmentId;
+}
+
+// One mix snapshot's PCM: rings are retained across unchanged mappings and
+// released by the worker after the callback no longer reads their snapshots.
 struct Session {
     std::atomic<std::uint64_t> seekSeq{0};
     double startMs = 0.0;
     std::uint64_t planVersion = 0;
     std::shared_ptr<const MixPlan> plan;
-    std::vector<std::unique_ptr<PcmRing>> rings;          // worker owned
+    // Shared only between worker-owned snapshots. The callback never copies
+    // or destroys an owner. Old snapshots retain rings until their hazard clears.
+    std::vector<std::shared_ptr<PcmRing>> rings;
     std::unique_ptr<std::atomic<PcmRing*>[]> live;         // published to the callback
     std::vector<std::int64_t> endFrame;                     // source frame past the clip end
     std::unique_ptr<std::atomic<bool>[]> failed;            // no PCM for this voice
@@ -78,15 +86,17 @@ struct AudioEngine::Impl {
     std::atomic<std::int64_t> recordedFrames{0};
 
     // ---- worker ----
-    std::thread worker;
+    std::jthread worker;
     std::mutex mutex;  // guards plan, planVersion, stopWorker
     std::condition_variable wake;
     bool stopWorker = false;
     std::shared_ptr<const MixPlan> plan = std::make_shared<MixPlan>();
     std::uint64_t planVersion = 1;
+    std::uint64_t publishedPlanVersion = 0;  // guarded by mutex, caller publication acknowledgement
     std::map<std::string, std::unique_ptr<AudioSource>> sources;  // by clip id and path
     std::vector<std::unique_ptr<Session>> sessions;               // current is last
     std::atomic<std::int64_t> sessionCount{0};
+    std::atomic<std::int64_t> ringsRetained{0};
     std::vector<float> chunk = std::vector<float>(static_cast<std::size_t>(kChunkFrames) * 2);
 
     // ---- device ----
@@ -96,6 +106,7 @@ struct AudioEngine::Impl {
     bool deviceReady = false;
     std::string backendName;
     std::string deviceName;
+    bool selectedDevice = false;
     // The CoreAudio latency facts, written on device start and on a reroute
     // (a CoreAudio thread) and read by stats().
     mutable std::mutex factsMutex;
@@ -109,7 +120,7 @@ struct AudioEngine::Impl {
     std::atomic<std::int64_t> openSources{0};
     std::atomic<std::int64_t> sourcesOpened{0};
     std::atomic<std::int64_t> sourcesEvicted{0};
-    bool deviceStopped = false;  // a `stopped` notification came while running
+    std::atomic<bool> deviceStopped{false};  // a `stopped` notification came while running
 
     void publishDevice(bool isRunning) {
         DeviceInfo info;
@@ -174,7 +185,7 @@ struct AudioEngine::Impl {
             bool missing = false;
             for (std::size_t i = 0; i < plan.voices.size(); ++i) {
                 const VoicePlan& v = plan.voices[i];
-                const bool overlaps = tEnd > v.startMs && t0 < v.startMs + v.durationMs;
+                const bool overlaps = !v.silent && tEnd > v.startMs && t0 < v.startMs + v.durationMs;
                 s->pcm[i].ring = overlaps ? s->live[i].load(std::memory_order_acquire) : nullptr;
                 if (overlaps && !s->pcm[i].ring && !s->failed[i].load(std::memory_order_relaxed)) missing = true;
             }
@@ -218,7 +229,7 @@ struct AudioEngine::Impl {
                 // The device stopped on its own (a suspend, a lost device):
                 // the clock falls back to the monotonic clock.
                 if (running.load()) {
-                    deviceStopped = true;
+                    deviceStopped.store(true, std::memory_order_release);
                     publishDevice(false);
                 }
                 break;
@@ -227,8 +238,7 @@ struct AudioEngine::Impl {
                 // send the pair without a reroute). The device facts may have
                 // changed: query them again under a new generation, so the
                 // clock re-anchors on the device.
-                if (running.load() && deviceStopped) {
-                    deviceStopped = false;
+                if (running.load() && deviceStopped.exchange(false, std::memory_order_acq_rel)) {
                     latencySec.store(queryLatency());
                     generation.fetch_add(1);
                     publishDevice(true);
@@ -287,7 +297,7 @@ struct AudioEngine::Impl {
         decodeErrors.store(evictedDecodeErrors + live);
     }
 
-    std::unique_ptr<Session> buildSession(std::uint64_t seekSeq, double startMs) {
+    std::unique_ptr<Session> buildSession(std::uint64_t seekSeq, double startMs, const Session* previous = nullptr) {
         auto s = std::make_unique<Session>();
         {
             std::lock_guard lock(mutex);
@@ -305,6 +315,36 @@ struct AudioEngine::Impl {
         for (std::size_t i = 0; i < n; ++i) s->failed[i].store(false);
         s->pcm.assign(n, VoicePcm{});
         s->doneMs.store(startMs);
+        if (previous) {
+            // Identity plus the affine source mapping, not gain, fades, pan or
+            // timeline extent, decides whether buffered PCM can continue.
+            std::unordered_map<std::string, std::size_t> byId;
+            byId.reserve(previous->plan->voices.size());
+            for (std::size_t i = 0; i < previous->plan->voices.size(); ++i) {
+                byId.emplace(voiceKey(previous->plan->voices[i]), i);
+            }
+            for (std::size_t i = 0; i < n; ++i) {
+                const VoicePlan& v = s->plan->voices[i];
+                if (v.silent) { continue; }
+                const auto found = byId.find(voiceKey(v));
+                if (found == byId.end()) {
+                    continue;
+                }
+                const auto j = found->second;
+                const VoicePlan& old = previous->plan->voices[j];
+                if (v.mediaPath != old.mediaPath || v.sourceRate != old.sourceRate ||
+                    v.inPointMs - v.startMs * v.sourceRate != old.inPointMs - old.startMs * old.sourceRate) {
+                    continue;
+                }
+                s->rings[i] = previous->rings[j];
+                if (s->rings[i]) { ringsRetained.fetch_add(1, std::memory_order_relaxed); }
+                s->live[i].store(previous->live[j].load(std::memory_order_acquire));
+                s->failed[i].store(previous->failed[j].load(std::memory_order_relaxed));
+                s->endFrame[i] = static_cast<std::int64_t>(
+                    std::ceil(v.sourceFrameAt(v.startMs + v.durationMs, sampleRate))) + 2;
+            }
+            s->consumed.store(previous->consumed.load(std::memory_order_acquire));
+        }
         sessionCount.fetch_add(1);
         return s;
     }
@@ -320,7 +360,7 @@ struct AudioEngine::Impl {
         for (std::size_t i = 0; i < plan.voices.size(); ++i) {
             const VoicePlan& v = plan.voices[i];
             const double endMs = v.startMs + v.durationMs;
-            if (s.failed[i].load(std::memory_order_relaxed)) continue;
+            if (v.silent || s.failed[i].load(std::memory_order_relaxed)) { continue; }
             if (endMs <= nowMs) {
                 // The callback has mixed past this clip and never reads its
                 // ring again (a block loads a ring only when it overlaps).
@@ -341,13 +381,14 @@ struct AudioEngine::Impl {
                 const auto first = std::max<std::int64_t>(
                     0, static_cast<std::int64_t>(std::floor(v.sourceFrameAt(fromMs, sampleRate))) - 1);
                 const auto cap = static_cast<std::int64_t>(kRingSeconds * sampleRate * std::max(1.0, v.sourceRate)) + 1024;
-                s.rings[i] = std::make_unique<PcmRing>(cap, first);
+                s.rings[i] = std::make_shared<PcmRing>(cap, first);
                 s.endFrame[i] = static_cast<std::int64_t>(std::ceil(v.sourceFrameAt(endMs, sampleRate))) + 2;
-                s.live[i].store(s.rings[i].get(), std::memory_order_release);
             }
             PcmRing& ring = *s.rings[i];
             const auto primeFrames = static_cast<std::int64_t>(kPrimeMs * sampleRate / 1000.0 * v.sourceRate) + 1024;
             const std::int64_t limit = playing ? s.endFrame[i] : std::min(s.endFrame[i], ring.firstFrame() + primeFrames);
+            const double needFrames = std::min(kPrimeMs * sampleRate / 1000.0 * v.sourceRate,
+                                              static_cast<double>(s.endFrame[i] - ring.firstFrame()));
             if (ring.writeEnd() < limit && src->position() != ring.writeEnd()) src->seek(ring.writeEnd());
             while (ring.writeEnd() < limit && ring.endFrame() == INT64_MAX) {
                 const std::int64_t want = std::min({ring.freeFrames(), kChunkFrames, limit - ring.writeEnd()});
@@ -358,12 +399,15 @@ struct AudioEngine::Impl {
                     break;
                 }
                 ring.write(chunk.data(), got);
+                if (static_cast<double>(ring.writeEnd() - ring.firstFrame()) >= needFrames - 2.0) {
+                    s.live[i].store(s.rings[i].get(), std::memory_order_release);
+                }
             }
+            // EOF also primes a short source. The callback never sees an
+            // empty new ring while its decoder is opening.
+            s.live[i].store(s.rings[i].get(), std::memory_order_release);
             // Primed: the voices within kPrimeMs of the start.
             if (v.startMs < s.startMs + kPrimeMs) {
-                const double needFrames =
-                    std::min(kPrimeMs * sampleRate / 1000.0 * v.sourceRate,
-                             static_cast<double>(s.endFrame[i] - ring.firstFrame()));
                 const bool full = static_cast<double>(ring.writeEnd() - ring.firstFrame()) >= needFrames - 2.0;
                 if (!full && ring.endFrame() == INT64_MAX) primed = false;
             }
@@ -406,6 +450,25 @@ struct AudioEngine::Impl {
                     published.store(current, std::memory_order_seq_cst);
                 }
             }
+            std::uint64_t version = 0;
+            {
+                std::lock_guard lock(mutex);
+                version = planVersion;
+            }
+            if (current && current->planVersion != version) {
+                const double liveMs = std::max(current->startMs, current->doneMs.load(std::memory_order_acquire));
+                auto replacement = buildSession(current->seekSeq.load(), liveMs, current);
+                current = replacement.get();
+                sessions.push_back(std::move(replacement));
+                // Gain/removal edits are visible immediately. Filling a new
+                // voice cannot hold up publication or the continuing voices.
+                published.store(current, std::memory_order_seq_cst);
+            }
+            {
+                std::lock_guard lock(mutex);
+                publishedPlanVersion = current ? current->planVersion : version;
+            }
+            wake.notify_all();
             if (current) {
                 const bool primed = fill(*current, cmd.playing);
                 if (primed) current->primed.store(true, std::memory_order_release);
@@ -432,16 +495,24 @@ bool AudioEngine::running() const {
 
 void AudioEngine::setTimeline(std::shared_ptr<const Timeline> timeline) {
     auto plan = std::make_shared<MixPlan>(timeline ? buildMixPlan(*timeline) : MixPlan{});
-    std::lock_guard lock(m_impl->mutex);
-    m_impl->plan = std::move(plan);
-    m_impl->planVersion += 1;
+    Impl& d = *m_impl;
+    prepareMixPlan(*plan, d.sampleRate);
+    std::unique_lock lock(d.mutex);
+    d.plan = std::move(plan);
+    const auto version = ++d.planVersion;
+    d.wake.notify_all();
+    // The caller may wait for the worker, never the real-time callback.
+    // On return, any callback that starts observes this plan or a newer one.
+    d.wake.wait(lock, [&d, version] {
+        return !d.running.load() || d.stopWorker || d.publishedPlanVersion >= version;
+    });
 }
 
 bool AudioEngine::start(const Options& options, std::string* error) {
     Impl& d = *m_impl;
     if (d.running.load()) return true;
     d.options = options;
-    d.deviceStopped = false;
+    d.deviceStopped.store(false, std::memory_order_release);
     const auto fail = [&](const std::string& why) {
         if (error) *error = why;
         stop();
@@ -463,9 +534,23 @@ bool AudioEngine::start(const Options& options, std::string* error) {
     config.pUserData = &d;
     config.noPreSilencedOutputBuffer = MA_TRUE;
     config.noClip = MA_TRUE;
+    ma_device_info* playbackDevices = nullptr;
+    ma_uint32 playbackCount = 0;
+    d.selectedDevice = false;
+    if (hasOutputDeviceProvider() &&
+        ma_context_get_devices(&d.context, &playbackDevices, &playbackCount, nullptr, nullptr) == MA_SUCCESS) {
+        std::vector<std::string> names;
+        names.reserve(playbackCount);
+        for (ma_uint32 i = 0; i < playbackCount; ++i) { names.emplace_back(playbackDevices[i].name); }
+        if (const auto selected = selectedOutputDevice(names)) {
+            config.playback.pDeviceID = &playbackDevices[*selected].id;
+            d.selectedDevice = true;
+        }
+    }
     if (ma_device_init(&d.context, &config, &d.device) != MA_SUCCESS) return fail("cannot open the audio device");
     d.deviceReady = true;
     d.sampleRate = static_cast<double>(d.device.sampleRate);
+    prepareMixPlan(*d.plan, d.sampleRate);
     d.backendName = ma_get_backend_name(d.context.backend);
     d.deviceName = d.device.playback.name;
     d.latencySec.store(d.queryLatency());
@@ -477,7 +562,7 @@ bool AudioEngine::start(const Options& options, std::string* error) {
         std::lock_guard lock(d.mutex);
         d.stopWorker = false;
     }
-    d.worker = std::thread([&d]() { d.workerLoop(); });
+    d.worker = std::jthread([&d]() { d.workerLoop(); });
     d.running.store(true);
     d.generation.fetch_add(1);
     d.publishDevice(true);
@@ -488,6 +573,7 @@ bool AudioEngine::start(const Options& options, std::string* error) {
 void AudioEngine::stop() {
     Impl& d = *m_impl;
     const bool wasRunning = d.running.exchange(false);
+    d.wake.notify_all();
     if (d.deviceReady) {
         ma_device_uninit(&d.device);
         d.deviceReady = false;
@@ -540,8 +626,10 @@ AudioEngine::Stats AudioEngine::stats() const {
     s.outputLatencySec = d.latencySec.load();
     s.generation = d.generation.load();
     s.sessions = d.sessionCount.load();
+    s.ringsRetained = d.ringsRetained.load();
     s.backend = d.backendName;
     s.deviceName = d.deviceName;
+    s.selectedDevice = d.selectedDevice;
     {
         std::lock_guard lock(d.factsMutex);
         s.coreAudio = d.coreAudio;
@@ -567,6 +655,7 @@ std::vector<float> AudioEngine::recording() const {
 std::vector<float> renderOffline(const Timeline& timeline, int sampleRate, double startMs, double durationMs,
                                  std::vector<std::string>* report) {
     const MixPlan plan = buildMixPlan(timeline);
+    prepareMixPlan(plan, sampleRate);
     const double sr = sampleRate;
     const auto total = static_cast<std::int64_t>(std::llround(durationMs * sr / 1000.0));
     std::vector<std::vector<float>> spans(plan.voices.size());
@@ -575,7 +664,7 @@ std::vector<float> renderOffline(const Timeline& timeline, int sampleRate, doubl
         const VoicePlan& v = plan.voices[i];
         const double from = std::max(v.startMs, startMs);
         const double to = std::min(v.startMs + v.durationMs, startMs + durationMs);
-        if (to <= from) continue;
+        if (v.silent || to <= from) { continue; }
         std::string error;
         auto src = AudioSource::open(v.mediaPath, sampleRate, &error);
         if (!src) {

@@ -13,11 +13,11 @@
 // Redirects are never followed.
 // Calls block on a local event loop. Use one client per thread.
 //
-// With an expected instance, a write goes out only after `GET /ready` on the
-// same server answers `X-Nodetool-Instance: <that token>`, and the write's
-// own answer must carry it too (code WRONG_SERVER otherwise). The scratch
-// servers of scripts/scratch-server.mjs send the header. These are separate
-// requests. Package T adds proof on the connection that carries the write.
+// With an expected instance, a fresh nonce HMAC-SHA256 proves /ready before
+// JSON or multipart bytes leave on that same HTTP/1.1 connection. The secret
+// never goes over the wire. A closed connection fails without reconnecting.
+// This works with scratch HTTP servers without provisioning pinned TLS or a
+// private Unix socket, and QTcpSocket guarantees the write uses the proven peer.
 
 #include <QByteArray>
 #include <QHash>
@@ -97,7 +97,7 @@ public:
 
     // POST /trpc/<procedure> with `input` as the JSON body.
     // Refused (code WRONG_SERVER) when an expected instance is set and the
-    // server does not answer with it.
+    // server does not prove knowledge of its secret.
     QueryResult mutate(const QString& procedure, const QJsonObject& input);
     QueryResult upload(const QJsonObject& json, const QString& filePath, const QString& contentType);
     // Empty: no instance check.
@@ -113,7 +113,7 @@ public:
 
 private:
     QueryResult write(const QString& operation, QNetworkRequest request, const QByteArray* json,
-                      std::unique_ptr<QHttpMultiPart> multipart = nullptr);
+                      std::unique_ptr<QHttpMultiPart> multipart = nullptr, const QString& contentType = {});
     QUrl m_base;
     QString m_token;
     int m_timeoutMs;

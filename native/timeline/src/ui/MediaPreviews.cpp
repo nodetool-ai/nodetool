@@ -89,10 +89,17 @@ struct ReadGuard {
 
 #ifdef Q_OS_UNIX
 constexpr size_t MAX_LOCAL_IO_HELPERS = 8;
-std::atomic<std::shared_ptr<const LocalIoHook>> localIoHook;
+// Apple libc++ has no std::atomic<std::shared_ptr>, so a mutex guards the hook.
+std::mutex localIoHookMutex;
+std::shared_ptr<const LocalIoHook> localIoHook;
 
 void beforeLocalIo(const char* operation, const QString& path) {
-    if (const auto hook = localIoHook.load()) (*hook)(operation, path);
+    std::shared_ptr<const LocalIoHook> hook;
+    {
+        const std::lock_guard lock(localIoHookMutex);
+        hook = localIoHook;
+    }
+    if (hook) (*hook)(operation, path);
 }
 
 class FileDescriptor {
@@ -138,41 +145,44 @@ class InterruptibleFile : public QIODevice {
         std::vector<std::pair<QString, std::shared_ptr<State>>> running;
     };
 
-    static Registry& registry() {
-        // Detached helpers may finish during process teardown.
-        static auto* value = new Registry;
-        return *value;
+    static std::shared_ptr<Registry> registry() {
+        // Each helper keeps its registry alive through detached work and removal,
+        // even if the static owner has already been destroyed at process exit.
+        static const auto value = std::make_shared<Registry>();
+        return value;
     }
-    static void unregisterHelper(const std::shared_ptr<State>& state) {
-        auto& helpers = registry();
-        std::scoped_lock lock(helpers.mutex);
-        std::erase_if(helpers.running, [&state](const auto& entry) { return entry.second == state; });
+    static void unregisterHelper(const std::shared_ptr<Registry>& helpers, const std::shared_ptr<State>& state) {
+        std::scoped_lock lock(helpers->mutex);
+        std::erase_if(helpers->running, [&state](const auto& entry) { return entry.second == state; });
     }
 
 public:
     InterruptibleFile(const QString& path, ReadGuard& guard)
         : m_guard(guard) {
+        const auto helpers = registry();
+        const QString version = mediaVersionKey(path);
         {
-            auto& helpers = registry();
-            std::scoped_lock lock(helpers.mutex);
+            std::scoped_lock lock(helpers->mutex);
             // Reserve active slots too, so simultaneous abandonments stay bounded.
-            if (helpers.running.size() >= MAX_LOCAL_IO_HELPERS) {
+            if (helpers->running.size() >= MAX_LOCAL_IO_HELPERS) {
                 return;
             }
-            if (std::any_of(helpers.running.begin(), helpers.running.end(), [&path](const auto& entry) {
-                    return entry.first == path && entry.second->abandoned.load();
+            // Match the cache's file version, so an abandoned old file does not
+            // reject a healthy replacement at the same path.
+            if (std::any_of(helpers->running.begin(), helpers->running.end(), [&version](const auto& entry) {
+                    return entry.first == version && entry.second->abandoned.load();
                 })) {
                 return;
             }
-            helpers.running.emplace_back(path, m_state);
+            helpers->running.emplace_back(version, m_state);
         }
         try {
-            m_thread = std::jthread([state = m_state, path]() {
+            m_thread = std::jthread([helpers, state = m_state, path]() {
                 serve(state, path);
-                unregisterHelper(state);
+                unregisterHelper(helpers, state);
             });
         } catch (...) {
-            unregisterHelper(m_state);
+            unregisterHelper(helpers, m_state);
             throw;
         }
         std::unique_lock lock(m_state->mutex);
@@ -183,9 +193,9 @@ public:
         }
     }
     static int outstanding() {
-        auto& helpers = registry();
-        std::scoped_lock lock(helpers.mutex);
-        return static_cast<int>(helpers.running.size());
+        const auto helpers = registry();
+        std::scoped_lock lock(helpers->mutex);
+        return static_cast<int>(helpers->running.size());
     }
     ~InterruptibleFile() override {
         if (!m_thread.joinable()) {
@@ -412,7 +422,9 @@ bool openStream(const QString& path, AVMediaType type, FormatPtr& format, CodecP
 
 #ifdef Q_OS_UNIX
 void setLocalIoStallForTesting(LocalIoHook hook) {
-    localIoHook.store(hook ? std::make_shared<const LocalIoHook>(std::move(hook)) : nullptr);
+    auto next = hook ? std::make_shared<const LocalIoHook>(std::move(hook)) : nullptr;
+    const std::lock_guard lock(localIoHookMutex);
+    localIoHook = std::move(next);
 }
 int outstandingLocalIoForTesting() {
     return InterruptibleFile::outstanding();
