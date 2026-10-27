@@ -31,17 +31,13 @@ function arcPath(cx: number, cy: number, r: number, from: number, to: number): s
 
 const clamp01 = (n: number): number => Math.min(1, Math.max(0, n));
 
-/** Value writes plus the gesture they belong to. */
-export interface FxControlBinding {
+interface FxKnobProps {
   value: number;
   /** A continuous change (drag, wheel, key repeat). */
   onChange: (value: number) => void;
   /** A one-shot change (click, double-click reset). */
   onSet: (value: number) => void;
   onGestureEnd: () => void;
-}
-
-interface FxKnobProps extends FxControlBinding {
   def: ParamDef;
   size?: "lg" | "md" | "sm" | "xs";
   accent?: string;
