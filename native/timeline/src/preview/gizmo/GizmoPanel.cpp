@@ -2,7 +2,7 @@
 
 namespace {
 const bool transformGizmoPanel = nt::app::registerPanel({
-    QStringLiteral("overlay"), QStringLiteral("transformGizmo"),
-    QUrl(QStringLiteral("qrc:/qt/qml/NodeTool/Timeline/qml/preview/TransformGizmoOverlay.qml")),
+    QStringLiteral("preview"), QStringLiteral("transformGizmo"),
+    QUrl(QStringLiteral("qrc:/qt/qml/NodeTool/Timeline/qml/wiring/FrameGizmoOverlay.qml")),
     10, QStringLiteral("Transform")});
 }

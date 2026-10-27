@@ -2402,10 +2402,9 @@ private slots:
                 available.insert(rv.toMap().value("id").toString(), rv.toMap().value("available").toBool());
         QCOMPARE(available.size(), 107);
         for (const char* yes : {"markClip", "cutTool", "markIn", "addMarker", "splitAtPlayhead", "undo", "playPause",
-                                "rollCut", "insertOnDrop", "disableSnapping"})
+                                "rollCut", "insertOnDrop", "disableSnapping", "toggleLoop", "playInToOut", "copy", "groupClips"})
             QVERIFY2(available.value(yes), yes);
-        for (const char* no : {"toggleLoop", "playInToOut", "copy", "groupClips", "matchFrame", "selectEditPoint",
-                               "goToStart"})
+        for (const char* no : {"matchFrame", "selectEditPoint", "goToStart"})
             QVERIFY2(!available.value(no, true), no);
     }
 

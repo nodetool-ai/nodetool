@@ -37,6 +37,13 @@ Rectangle {
     color: Theme.backgroundDefault
     clip: true
 
+    function focusTrackResize(id) {
+        for (let i = 0; i < headerRepeater.count; ++i) {
+            const header = headerRepeater.itemAt(i)
+            if (header && header.trackId === id) { header.resizeHandle.forceActiveFocus() }
+        }
+    }
+
     TimelineViewState {
         id: view
         objectName: "timelineViewState"
@@ -101,6 +108,8 @@ Rectangle {
             x: Theme.spacingMd
             anchors.verticalCenter: parent.verticalCenter
             gestures: clipGestures
+            timeline: region.timeline
+            viewState: view
             compact: toolbar.narrow
             followPlayhead: region.followPlayhead
             onFollowPlayheadChanged: region.followPlayhead = followPlayhead
@@ -212,6 +221,8 @@ Rectangle {
         y: Theme.toolbarHeight
         width: region.width - region.headerWidth
         viewState: view
+        gestures: clipGestures
+        timeline: region.timeline
         fps: region.timeline.fps
         markers: region.timeline.markers
         onSeekRequested: ms => region.clock.seek(ms)
@@ -233,10 +244,30 @@ Rectangle {
             width: parent.width
             height: rowModel.contentHeight
             Repeater {
+                id: headerRepeater
                 model: rowModel
                 delegate: TrackHeader {
                     id: header
                     required property double rowTop
+                    required property double baseRowHeight
+                    rowHeight: baseRowHeight
+                    timeline: region.timeline
+                    gestures: clipGestures
+                    viewState: view
+                    onResizeStepRequested: heightPx => {
+                        const id = header.trackId
+                        Qt.callLater(region.focusTrackResize, id)
+                        region.timeline.applyEdit("setTrackHeight", {trackId: id, heightPx: heightPx})
+                    }
+                    onDeleteRequested: {
+                        headerMenu.trackId = header.trackId
+                        headerMenu.trackName = header.name
+                        headerMenu.trackType = header.trackType
+                        for (let i = 0; i < headerMenu.count; ++i) {
+                            const entry = headerMenu.itemAt(i)
+                            if (entry && entry.objectName === "trackMenu-remove") { entry.triggered() }
+                        }
+                    }
                     y: rowTop
                     width: region.headerWidth - 1
                     MouseArea {
@@ -287,6 +318,15 @@ Rectangle {
                 }
             }
         }
+        Rectangle {
+            objectName: "trackDropLine"
+            visible: clipGestures.trackDropY >= 0
+            y: clipGestures.trackDropY - view.scrollTopPx
+            width: parent.width
+            height: 2
+            color: Theme.primary
+            z: 3
+        }
         // borderRight: 1px divider.
         Rectangle {
             anchors.right: parent.right
@@ -300,6 +340,13 @@ Rectangle {
         id: headerMenu
         timeline: region.timeline
         onRenameRequested: id => region.renamingTrackId = id
+        RegistryMenuItems {
+            menu: headerMenu
+            kind: "track"
+            gestures: clipGestures
+            context: ({ trackId: headerMenu.trackId, name: headerMenu.trackName,
+                        type: headerMenu.trackType, editable: true })
+        }
     }
 
     // Lanes viewport.
@@ -321,15 +368,54 @@ Rectangle {
             height: rowModel.contentHeight
             Repeater {
                 model: rowModel
-                delegate: TrackLane {
+                delegate: Item {
+                    id: trackRow
                     required property double rowTop
+                    required property double rowHeight
+                    required property double baseRowHeight
+                    required property string trackId
+                    required property string trackType
+                    required property bool trackVisible
+                    required property bool locked
+                    required property bool muted
+                    required property var track
                     y: rowTop
                     width: lanesContent.width
-                    timeline: region.timeline
-                    clock: region.clock
-                    viewState: view
-                    gestures: clipGestures
+                    height: rowHeight
+                    TrackLane {
+                        width: parent.width
+                        rowHeight: trackRow.baseRowHeight
+                        trackId: trackRow.trackId
+                        trackType: trackRow.trackType
+                        trackVisible: trackRow.trackVisible
+                        locked: trackRow.locked
+                        muted: trackRow.muted
+                        timeline: region.timeline
+                        clock: region.clock
+                        viewState: view
+                        gestures: clipGestures
+                    }
+                    SlotItems {
+                        id: laneRows
+                        y: trackRow.baseRowHeight
+                        width: parent.width
+                        slot: "trackLane"
+                        vertical: true
+                        slotProperties: ({ track: trackRow.track, timeline: region.timeline })
+                        function reportHeight() {
+                            if ((rowModel.extraRowHeights[trackRow.trackId] || 0) === implicitHeight) return
+                            const heights = Object.assign({}, rowModel.extraRowHeights)
+                            heights[trackRow.trackId] = implicitHeight
+                            rowModel.extraRowHeights = heights
+                        }
+                        onImplicitHeightChanged: Qt.callLater(reportHeight)
+                        Component.onCompleted: Qt.callLater(reportHeight)
+                    }
                 }
+            }
+            RubberBandOverlay {
+                objectName: "rubberBand"
+                bandRect: clipGestures.rubberBand.left !== undefined ? clipGestures.rubberBand : null
             }
         }
 
@@ -426,6 +512,7 @@ Rectangle {
             endMs: region.timeline.contentEndMs
             viewportWidthPx: parent.width
             grabTopPx: Theme.rulerHeight
+            passthroughRoot: lanesArea
             follow: region.followPlayhead
         }
     }
@@ -434,6 +521,16 @@ Rectangle {
     Connections {
         target: clipGestures
         function onShortcutsToggled() { region.shortcutsRequested() }
+        function onPasteAttributesRequested(source, targets) {
+            attributes.source = source
+            attributes.targets = targets
+            attributes.open()
+        }
+    }
+    PasteAttributesDialog {
+        id: attributes
+        parent: region
+        onGroupsChosen: groups => clipGestures.pasteAttributes(attributes.source, attributes.targets.map(clip => clip.id), groups)
     }
     Keys.onPressed: event => {
         if (clipGestures.handleKey(event.key, event.text, event.modifiers, event.isAutoRepeat))
