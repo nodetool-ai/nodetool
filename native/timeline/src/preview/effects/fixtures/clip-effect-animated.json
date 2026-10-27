@@ -1,0 +1,142 @@
+{
+  "id": "seq-clip-effect-animated",
+  "projectId": "native-prototype",
+  "name": "clip-effect-animated",
+  "fps": 30,
+  "width": 1280,
+  "height": 720,
+  "durationMs": 2000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "t0",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t1",
+      "name": "t1",
+      "type": "video",
+      "index": 1,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t2",
+      "name": "t2",
+      "type": "video",
+      "index": 2,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t3",
+      "name": "t3",
+      "type": "video",
+      "index": 3,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t4",
+      "name": "t4",
+      "type": "video",
+      "index": 4,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "color-0",
+      "trackId": "t0",
+      "name": "color-0",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "source-pattern.png",
+      "effects": [
+        {
+          "id": "grade",
+          "type": "color",
+          "enabled": true,
+          "brightness": 0
+        }
+      ],
+      "mask": {
+        "kind": "rect",
+        "x": 0,
+        "y": 0.1,
+        "width": 0.5,
+        "height": 0.8
+      },
+      "animations": [
+        {
+          "id": "style",
+          "role": "in",
+          "preset": "custom",
+          "durationMs": 1000,
+          "custom": {
+            "curves": []
+          },
+          "styleTracks": [
+            {
+              "target": "effect.grade.brightness",
+              "keyframes": [
+                {
+                  "t": 0,
+                  "value": 0
+                },
+                {
+                  "t": 1,
+                  "value": 0.6
+                }
+              ]
+            },
+            {
+              "target": "mask.x",
+              "keyframes": [
+                {
+                  "t": 0,
+                  "value": 0
+                },
+                {
+                  "t": 1,
+                  "value": 0.4
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z",
+  "goldenFrames": [
+    {
+      "frame": 6,
+      "criterion": "J1 sampled clip effect and mask style tracks, PSNR >= 40 dB"
+    },
+    {
+      "frame": 24,
+      "criterion": "J1 sampled clip effect and mask style tracks, PSNR >= 40 dB"
+    }
+  ],
+  "distinctFrames": [
+    [
+      6,
+      24
+    ]
+  ]
+}

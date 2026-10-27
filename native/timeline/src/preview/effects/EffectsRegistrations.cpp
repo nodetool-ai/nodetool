@@ -27,7 +27,7 @@ void registerEffects() {
         nt::effects::decorateEffects(layer.ext, clip, context);
         nt::effects::decorateTrackEffects(layer.ext, context.track);
         const auto crop = clip.raw.value("crop").toObject();
-        if (!crop.isEmpty() && layer.sourceRect == std::array<float, 4>{0, 0, 1, 1}) {
+        if (!layer.ext.value("generatedMatteSource").toBool() && !crop.isEmpty() && layer.sourceRect == std::array<float, 4>{0, 0, 1, 1}) {
             const double left = crop.value("left").toDouble(), right = crop.value("right").toDouble();
             const double top = crop.value("top").toDouble(), bottom = crop.value("bottom").toDouble();
             if (std::isfinite(left + right + top + bottom) && left >= 0 && right >= 0 && top >= 0 && bottom >= 0 &&
@@ -40,11 +40,11 @@ void registerEffects() {
             rect.append(component);
         }
         layer.ext.insert("effectSourceRect", rect);
-        nt::effects::decorateMasks(layer,clip);
+        nt::effects::decorateMasks(layer, clip, &context);
     });
     nt::registerContextGroupDecorator([](nt::PrecompositeLayer &layer, const nt::Clip &clip, const nt::SceneDecorationContext &context) {
-        nt::effects::decorateEffects(layer.ext, clip, context);
         layer.ext.insert("effectGroupSurface", true);
+        nt::effects::decorateEffects(layer.ext, clip, context);
     });
     nt::registerContextAdjustmentDecorator(nt::effects::decorateAdjustment);
     nt::registerBackdropStage([] { return std::make_unique<AdjustmentStage>(); });

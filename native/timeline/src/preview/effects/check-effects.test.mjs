@@ -201,7 +201,7 @@ test("step 4 covers shape kinds, order, moving matte times and generated options
   const fixtures = loadFixtures(fileURLToPath(new URL("./fixtures/", import.meta.url)), []);
   const names = ["mask-rect", "mask-ellipse", "mask-rounded", "mask-path", "mask-feather", "mask-ellipse-feather",
     "mask-invert", "mask-path-feather", "mask-rounded-feather", "mask-path-invert", "mask-rounded-invert", "mask-effects", "matte-alpha", "matte-alpha-invert",
-    "matte-luma", "matte-luma-invert", "matte-moving", "generated-matte", "generated-matte-strength"];
+    "matte-luma", "matte-luma-invert", "matte-moving", "generated-matte", "generated-matte-strength", "generated-matte-effects"];
   for (const name of names) {
     const fixture = fixtures.find(item => item.name === name);
     assert.ok(fixture, name);
@@ -278,4 +278,28 @@ test("adjustment fixtures cover masked accumulation and group isolation", () => 
       assert.equal(pictures.filter(clip => !clip.parentId).length, 1);
     }
   }
+});
+
+test("clip effect animation fixture samples grade and mask at distinct times", () => {
+  const fixture = loadFixtures(fileURLToPath(new URL("./fixtures/", import.meta.url)), ["clip-effect-animated"])[0];
+  assert.deepEqual(fixture.frames.map(item => item.frame), [6, 24]);
+  assert.deepEqual(fixture.distinctFrames, [[6, 24]]);
+  const doc = JSON.parse(fs.readFileSync(fixture.fixture, "utf8"));
+  assert.deepEqual(doc.clips[0].animations[0].styleTracks.map(track => track.target),
+    ["effect.grade.brightness", "mask.x"]);
+});
+
+test("generated matte treatment fixture separates clip treatments from track effects", () => {
+  const fixture = loadFixtures(fileURLToPath(new URL("./fixtures/", import.meta.url)), ["generated-matte-effects"])[0];
+  assert.deepEqual(fixture.frames.map(item => item.frame), [0, 21]);
+  const doc = JSON.parse(fs.readFileSync(fixture.fixture, "utf8"));
+  const picture = doc.clips.find(clip => clip.id === "picture");
+  const track = doc.tracks.find(track => track.id === picture.trackId);
+  assert.ok(picture.effects.some(effect => effect.type === "color" && effect.enabled && effect.brightness === 0.8));
+  assert.ok(picture.mask.featherPx > 0);
+  assert.equal(picture.generatedMatte.invert, true);
+  assert.equal(picture.opacity, 0.8);
+  assert.ok(track.effects.some(effect => effect.type === "colorCorrection" && effect.enabled && effect.brightness === -0.4));
+  assert.ok(fixture.frames.every(item => item.criterion.includes("keeps clip brightness") &&
+    item.criterion.includes("excludes track brightness")));
 });

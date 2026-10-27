@@ -1,4 +1,6 @@
 #include "preview/effects/Masks.h"
+#include "preview/effects/BlurBounds.h"
+#include "preview/effects/ClipEffects.h"
 #include "scene/SvgPath.h"
 #include <QDir>
 #include <QFileInfo>
@@ -73,7 +75,12 @@ std::optional<QPainterPath> outline(const QJsonObject &mask, QSize size) {
     return path;
 }
 QImage blurCoverage(const QImage &source, double sigma) {
-    const int radius = int(std::ceil(3 * sigma));
+    if (!std::isfinite(sigma) || sigma <= 0 || source.isNull()) {
+        return source;
+    }
+    const int extent = std::max(source.width(), source.height());
+    sigma = boundedBlurRadius(sigma, extent / 3.);
+    const int radius = static_cast<int>(std::min(std::ceil(3 * sigma), double(extent)));
     if (radius <= 0) {
         return source;
     }
@@ -146,7 +153,7 @@ QImage MaskRasterizer::rasterize(const QJsonObject &mask, QSize sourceSize) {
     QImage image(size, QImage::Format_RGBA8888);
     image.fill(Qt::transparent);
     const auto kind = mask.value("kind").toString();
-    const double feather = std::max(0., number(mask, "featherPx"));
+    const double feather = boundedBlurRadius(number(mask, "featherPx"), 2. * std::max(size.width(), size.height()) / 3);
     const bool filtered = feather > 0 && (kind == "path" || (kind == "rect" && number(mask, "radiusPx") > 0));
     {
         QPainter painter(&image);
@@ -222,8 +229,9 @@ QImage MaskRasterizer::rasterize(const QJsonObject &mask, QSize sourceSize) {
     m_cache.emplace_back(key, image);
     return image;
 }
-void decorateMasks(ActiveLayer &layer, const Clip &clip) {
-    if (clip.raw.value("mask").isObject()) {
+void decorateMasks(ActiveLayer &layer, const Clip &clip, const SceneDecorationContext *context) {
+    if (layer.ext.value("generatedMatteSource").toBool()) { return; }
+    if (clip.mediaType != MediaType::Group && !layer.ext.contains("shapeMask") && clip.raw.value("mask").isObject()) {
         layer.ext.insert("shapeMask", clip.raw.value("mask"));
     }
     const auto generated = clip.raw.value("generatedMatte").toObject();
@@ -236,8 +244,26 @@ void decorateMasks(ActiveLayer &layer, const Clip &clip) {
     }
     auto source = std::make_shared<ActiveLayer>(layer);
     source->matte.reset();
+    // Exporter output keeps resolved clip treatments and the animated layer mask,
+    // but excludes track effects and transition reveals, despite its doc comment.
+    source->ext = {};
+    if (context) {
+        decorateEffects(source->ext, clip, *context);
+    } else {
+        decorateEffects(source->ext, clip);
+        if (clip.mediaType != MediaType::Group && clip.raw.value("mask").isObject()) {
+            source->ext.insert("shapeMask", clip.raw.value("mask"));
+        }
+    }
+    if (source->transition) {
+        source->transition->mask.reset();
+        source->transition->iris.reset();
+        source->transition->solidColor.reset();
+        source->transition->solidOpacity = 0;
+    }
     source->kind = "j-generated-matte";
     source->opacity = 1;
+    source->drawOpacity = 1;
     source->blendMode = "normal";
     source->sourceRect = {0, 0, 1, 1};
     source->ext.insert("effectSourceRect", QJsonArray{0, 0, 1, 1});
@@ -245,9 +271,8 @@ void decorateMasks(ActiveLayer &layer, const Clip &clip) {
     // The secondary frame has its own source identity but keeps the clip id so
     // S4 can find its timing and request a decoder through the source pool.
     LayerMatte info{"luma", generated.value("invert").toBool(), std::move(source), {}, {}};
-    if (number(generated, "featherPx") > 0) {
-        info.featherPx = number(generated, "featherPx");
-    }
+    const double feather = boundedBlurRadius(number(generated, "featherPx"));
+    if (feather > 0) { info.featherPx = feather; }
     // S4 applies layer opacity once after the matte. Fold strength there as the
     // web does, avoiding an extra RGBA8 quantization in the keyhole.
     layer.opacity *= std::clamp(number(generated, "strength", 1), 0., 1.);

@@ -3,6 +3,8 @@
 #include <QImage>
 #include <list>
 
+namespace nt { struct SceneDecorationContext; }
+
 namespace nt::effects {
 class DrawCache;
 class MaskRasterizer {
@@ -13,7 +15,7 @@ class MaskRasterizer {
   private:
     std::list<std::pair<QByteArray, QImage>> m_cache;
 };
-void decorateMasks(ActiveLayer &layer, const Clip &clip);
+void decorateMasks(ActiveLayer &layer, const Clip &clip, const SceneDecorationContext *context = nullptr);
 std::vector<SecondSourceRequest> generatedMatteSources(const ActiveLayer &, const Clip &);
 class GeneratedMatteSourceStage final : public LayerEffectStage {
   public:
