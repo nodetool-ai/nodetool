@@ -4,7 +4,9 @@
 #include "wiring/RulerProviders.h"
 #include "wiring/SnapProviders.h"
 
+#include <QDebug>
 #include <algorithm>
+#include <exception>
 
 namespace {
 const bool toolbarRegistered = nt::app::registerPanel({
@@ -21,7 +23,12 @@ const bool snapRegistered = nt::wiring::registerSnapProvider(QStringLiteral("tem
             return track.toObject().value("type") == "midi";
         });
         if (!hasMidiTrack && request.rulerMode != QStringLiteral("bars")) { return {}; }
-        return nt::tempo::visibleTempoGrid({nt::tempo::json::tempo(request.document),
-            request.gridDivision.toStdString(), request.fromMs, request.toMs});
+        try {
+            return nt::tempo::visibleTempoGrid({nt::tempo::json::tempo(request.document),
+                request.gridDivision.toStdString(), request.fromMs, request.toMs});
+        } catch (const std::exception& error) {
+            qWarning().noquote() << "Tempo beat snap provider failed:" << error.what();
+            return {};
+        }
     });
 }
