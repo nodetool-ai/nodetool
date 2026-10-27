@@ -4,6 +4,7 @@
 
 #include <QFile>
 #include <QJSValue>
+#include <QQmlProperty>
 #include <QTemporaryDir>
 
 class TempoWiringTests : public WiringFixture {
@@ -57,6 +58,29 @@ private slots:
         gestures()->viewState()->setRulerMode("bars");
         QVERIFY(bars->property("active").toBool());
         QCOMPARE(model.undoStack()->count(), 0);
+    }
+
+    void toolbarCompact() {
+        QTRY_VERIFY_WITH_TIMEOUT(item("barsToggle"), 1000);
+        auto* bars = item("barsToggle");
+        auto* toolbar = item("toolToggle");
+        QVERIFY(toolbar);
+        for (const bool compact : {false, true, false}) {
+            QVERIFY(toolbar->setProperty("compact", compact));
+            QCOMPARE(bars->property("compact").toBool(), compact);
+            QCOMPARE(bars->property("showLabel").toBool(), !compact);
+        }
+    }
+
+    void rulerAccessibleName() {
+        auto* ruler = item("timeRuler");
+        QVERIFY(ruler);
+        for (const auto& mode : {QStringLiteral("time"), QStringLiteral("bars"), QStringLiteral("time")}) {
+            gestures()->viewState()->setRulerMode(mode);
+            QCOMPARE(QQmlProperty::read(ruler, "Accessible.name", qmlContext(ruler)).toString(),
+                mode == "bars" ? QStringLiteral("Bars ruler — click or drag to set playhead")
+                               : QStringLiteral("Time ruler — click or drag to set playhead"));
+        }
     }
 
     void rulerTicks_data() {

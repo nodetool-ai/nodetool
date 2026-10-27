@@ -30,6 +30,7 @@ namespace {
 // clipSnap.ts
 constexpr double SNAP_THRESHOLD_PX = 8;
 constexpr double TICK_INTERVAL_MS = 1000;
+constexpr double FALLBACK_VIEWPORT_PX = 1200;
 // Merge key of a held nudge key's commands.
 constexpr int NUDGE_MERGE_ID = 1;
 
@@ -295,9 +296,11 @@ std::vector<double> ClipGestureController::collectSnapCandidates(const IdSet& ex
     auto candidates = buildSnapPoints(source);
     nt::wiring::SnapRequest request;
     if (m_timeline) { request.document = QJsonDocument::fromJson(m_timeline->documentJson()).object(); }
-    request.fromMs = m_view ? m_view->clipWindowStartMs() : 0;
-    request.toMs = m_view ? m_view->clipWindowEndMs() : source.maxTimeMs;
     request.msPerPx = m_view ? m_view->msPerPx() : 10;
+    request.fromMs = m_view ? m_view->scrollLeftPx() * request.msPerPx : 0;
+    const double widthPx = m_view && m_view->viewportWidthPx() > 0
+        ? m_view->viewportWidthPx() : FALLBACK_VIEWPORT_PX;
+    request.toMs = request.fromMs + widthPx * request.msPerPx;
     request.gridDivision = m_view ? m_view->gridDivision() : QStringLiteral("beat");
     request.rulerMode = m_view ? m_view->rulerMode() : QStringLiteral("time");
     request.excludedClipIds = QStringList(exclude.begin(), exclude.end());
