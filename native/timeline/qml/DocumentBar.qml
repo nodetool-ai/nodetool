@@ -1,7 +1,7 @@
 // Mirrors ui_primitives/DocumentBar.tsx as TimelineDocumentBar.tsx fills it:
 // the document name and its save status, then Undo and Redo. 40 px high.
-// The web's layout menu, panel toggles, Export and the overflow menu have no
-// native counterpart yet.
+// The web's layout menu, panel toggles and overflow menu have no native
+// counterpart yet. The right actions slot holds Export.
 import QtQuick
 import NodeTool.Timeline
 
@@ -66,5 +66,12 @@ Rectangle {
             slot: "documentBar"
             slotProperties: ({ timeline: bar.timeline })
         }
+    }
+    SlotItems {
+        anchors.right: parent.right
+        anchors.rightMargin: Theme.spacingMd
+        anchors.verticalCenter: parent.verticalCenter
+        slot: "documentBarActions"
+        slotProperties: ({ timeline: bar.timeline })
     }
 }
