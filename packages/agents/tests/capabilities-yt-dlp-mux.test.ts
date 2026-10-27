@@ -92,7 +92,7 @@ function runYtDlp(params: Record<string, unknown>): Promise<Record<string, unkno
 }
 
 describe("yt_dlp without ffmpeg", () => {
-  it("downloads both sides of the default selector and muxes one file", async () => {
+  it("yt_dlp downloads both sides of the default selector and muxes one file", async () => {
     const result = await runYtDlp({ url: "https://example.com/v" });
 
     expect(result).toMatchObject({ success: true, output_file: "downloads/yt-dlp/clip1.mp4" });

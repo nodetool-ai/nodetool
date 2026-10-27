@@ -589,6 +589,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
+      "packages/agents/tests/capabilities-yt-dlp-mux.test.ts",
     ],
   },
   {
