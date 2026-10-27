@@ -1121,6 +1121,14 @@
         {
           "path": "src/audio/effects/Effects.cpp",
           "note": "shared with its merged owner, approved by the user (D15)"
+        },
+        {
+          "path": "qml/Tracks/TrackHeader.qml",
+          "note": "shared with its merged owner, approved by the user (D15)"
+        },
+        {
+          "path": "qml/Tracks/TracksRegion.qml",
+          "note": "shared with its merged owner, approved by the user (D15)"
         }
       ],
       "web": [

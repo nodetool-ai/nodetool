@@ -8,6 +8,7 @@ Rectangle {
     property var track: ({})
     property var lane: ({target:{}, points:[]})
     readonly property var spec: Targets.automationTargetSpec(track,lane.target)
+    objectName: "automation-header-" + lane.id
     height: 56; color: Theme.backgroundPaper
     AutomationController { id: controller; timeline: root.timeline; trackId: root.track.id || "" }
     Column {
