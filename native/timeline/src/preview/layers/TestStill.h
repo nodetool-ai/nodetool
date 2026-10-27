@@ -4,6 +4,8 @@
 #include "preview/layers/LayerRegistry.h"
 #include "preview/hw/HwWindow.h"
 #include <QCoreApplication>
+#include <QElapsedTimer>
+#include <QThread>
 #include <QQuickRenderControl>
 #include <QQuickRenderTarget>
 #include <QQuickWindow>
@@ -60,13 +62,17 @@ public:
         m_window.setRenderTarget(QQuickRenderTarget::fromRhiRenderTarget(m_target.get()));
         return true;
     }
-    QImage capture() {
+    void setClock(PlaybackClock* clock) { m_compositor->setClock(clock); }
+    QImage capture(int timeoutMs = 0) {
+        QElapsedTimer timeout;
+        timeout.start();
         m_compositor->requestCapture();
-        for (int i = 0; i < 12; ++i) {
+        for (int i = 0; i < 12 || timeout.elapsed() < timeoutMs; ++i) {
             m_compositor->update();
             QCoreApplication::processEvents();
             m_control.polishItems(); m_control.beginFrame(); m_control.sync(); m_control.render(); m_control.endFrame();
             if (m_compositor->captureReady()) { return m_compositor->takeCapture(); }
+            if (timeoutMs > 0) { QThread::msleep(1); }
         }
         return {};
     }
