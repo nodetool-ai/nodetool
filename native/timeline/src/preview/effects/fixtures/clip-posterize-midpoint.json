@@ -48,7 +48,8 @@
   "goldenFrames": [
     {
       "frame": 0,
-      "criterion": "J1 posterize midpoint, PSNR >= 40 dB"
+      "criterion": "J1 posterize midpoint, identical to export",
+      "identical": true
     }
   ]
 }

@@ -15,7 +15,7 @@ premultiplied color and alpha with saturation.
 Run from `native/timeline/` on a machine with a working Qt RHI backend:
 
 ```sh
-xvfb-run -a env QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=vulkan ctest --test-dir build -R '^tst_effects(blend|clip)_render$' --output-on-failure
+xvfb-run -a env QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=vulkan ctest --test-dir build -R '^tst_effects(blend|clip|matte)_render$' --output-on-failure
 xvfb-run -a env QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=vulkan node src/preview/effects/check-effects.mjs --bin build/nodetool-timeline
 ```
 
@@ -29,14 +29,13 @@ The fixtures use media from `fixtures/media/` and checked-in RGB PNG patterns.
 `blend-modes` covers every non-normal mode at full and half opacity across
 most of the frame. The other fixtures cover group opacity and blends both
 outside and inside nested surfaces. Clip and group effect chains include the
-step 2 effects, all stylize modes and all generator modes. Masks and mattes
-remain for the next Package J step.
+step 2 effects, all stylize modes, all generator modes, shape masks and mattes.
 
 `stylize-modes` and `generator-modes` place each mode in its own one-second
 clip. `visualFxFixtures` in `check-effects.mjs` lists every mode and frame.
 Animated stylize and generator effects receive sequence time in seconds from
 both scene decorators. The grain seed still needs an fps/frame-index seam.
-See the [step 3 report](REPORT-step3.md) for coverage, evidence and limits.
+The driver compares every listed frame with the export.
 
 The GLSL port follows the exporter's fullscreen triangle so hash cells and
 glitch rows use the same UV interpolation. Spatial samples clamp to the layer
@@ -55,6 +54,37 @@ The pixel test distinguishes real group surfaces from opacity-only groups.
 Its document checks run without a GPU. See the [pixel oracle](pixel-oracle.md)
 for the export math and the diagnosis of the driver's failing rows.
 
+For generated mattes, the script first imports a pending-matte copy with
+absolute picture paths through golden-import. `import-matte.mjs` then imports
+the matte videos into that same scratch store, binds their asset ids and
+re-renders the ready-matte document. The native fixture keeps its relative
+`generatedMatte.mediaPath`. Asset-id-only documents need an asset resolver
+that the native layer decorator does not expose.
+
+Shape masks rasterize at source size, capped at 2048, with a bounded coverage
+and texture cache. The shape stage follows the clip chain, before placement.
+Rounded rects use `kind: rect` with `radiusPx`. Unknown kinds and invalid paths
+leave the layer unmasked. The web group precomposite has no shape-mask pass,
+so native group masks are ignored too. Path and rounded-rect feathers use a
+CPU Gaussian approximation to Canvas filter blur. Inverted feathered ellipses
+reproduce the export rasterizer's destination-out clipping at the ellipse
+centre, covered by `mask-invert`. That raster differs from a full complement
+in browser Canvas. Inverted path and rounded-rect feathers also reproduce
+the export's second filter application under destination-out.
+
+Track mattes read frame-sized premultiplied surfaces through S4. Luma retains
+the source coverage, inversion precedes keyhole blur, and the layer opacity
+and blend meet the stack once. The stage supports strength and feather in
+`LayerMatte`. Web track documents expose neither field, so their coverage
+runs through direct stage tests. Generated matte documents expose both.
+Generated matte videos use the picture source clock and dimensions, keeping
+the same placement through a separate matte-source entry.
+
+The `clip-posterize-midpoint` golden establishes byte 127 on the driver GPU.
+The pixel test uses that value and the shader keeps the step 2 UNORM write.
+Its frame metadata requires identical pixels, so a finite PSNR fails regardless
+of `--min-psnr`.
+
 The script calls golden-import without changing it, forces native software
 decode and defaults to an offscreen Qt platform. Set `QT_QPA_PLATFORM=xcb`
 under Xvfb when Qt's offscreen plugin cannot create a Vulkan instance.
@@ -67,7 +97,7 @@ The script, registration and document tests need no GPU:
 
 ```sh
 node --test src/preview/effects/check-effects.test.mjs
-ctest --test-dir build -R '^(tst_effectplan|tst_effectresources|effects_golden_script|tst_effectsblend_registry|tst_effectsblend_documents)$' --output-on-failure
+ctest --test-dir build -R '^(tst_masks|tst_effectplan|tst_effectresources|effects_golden_script|tst_effectsblend_registry|tst_effectsblend_documents)$' --output-on-failure
 ```
 
 `tst_effectresources` uses QRhi’s Null backend to check cache reuse, bounded

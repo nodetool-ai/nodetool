@@ -111,3 +111,54 @@ test("new PNG fixtures declare supported RGB ingress", () => {
     assert.equal(bytes[25], 2, `${name} must not declare an alpha channel`);
   }
 });
+
+test("matte imports resolve separately and bind without mutating the fixture", async () => {
+  const { matteImports, bindMatteAssets } = await import("./import-matte.mjs");
+  const doc = { clips: [{ id: "a", mediaPath: "picture.mp4", generatedMatte: { mediaPath: "mask.mp4", assetId: "old", invert: true } }, { id: "b" }] };
+  assert.deepEqual(matteImports(doc, "/tmp/j4"), [{ clipId: "a", file: "/tmp/j4/mask.mp4" }]);
+  assert.throws(() => bindMatteAssets(doc, []), /Missing matte asset/);
+  const bound = bindMatteAssets(doc, [{ clipId: "a", assetId: "new" }]);
+  assert.deepEqual(bound.clips[0].generatedMatte, { assetId: "new", invert: true });
+  assert.equal(doc.clips[0].generatedMatte.assetId, "old");
+  assert.equal(bound.clips[0].mediaPath, "picture.mp4");
+  assert.deepEqual(matteImports({ clips: [{ id: "a", generatedMatte: { assetId: "real" } }] }, "/tmp"), []);
+});
+
+test("prepares generated matte fixtures with absolute picture paths and a pending matte", async () => {
+  const { prepareMatteFixture } = await import("./import-matte.mjs");
+  const doc = { clips: [{ id: "a", mediaPath: "picture.mp4", generatedMatte: { mediaPath: "mask.mp4", assetId: "old", status: "ready" } }] };
+  const prepared = prepareMatteFixture(doc, "/tmp/j4");
+  assert.equal(prepared.clips[0].mediaPath, "/tmp/j4/picture.mp4");
+  assert.equal(prepared.clips[0].generatedMatte.status, "generating");
+  assert.equal(doc.clips[0].generatedMatte.status, "ready");
+});
+
+test("step 4 covers shape kinds, order, moving matte times and generated options", () => {
+  const fixtures = loadFixtures(fileURLToPath(new URL("./fixtures/", import.meta.url)), []);
+  const names = ["mask-rect", "mask-ellipse", "mask-rounded", "mask-path", "mask-feather", "mask-ellipse-feather",
+    "mask-invert", "mask-path-feather", "mask-rounded-feather", "mask-path-invert", "mask-rounded-invert", "mask-effects", "matte-alpha", "matte-alpha-invert",
+    "matte-luma", "matte-luma-invert", "matte-moving", "generated-matte", "generated-matte-strength"];
+  for (const name of names) {
+    const fixture = fixtures.find(item => item.name === name);
+    assert.ok(fixture, name);
+    const moving = name === "matte-moving" || name.startsWith("generated-matte");
+    assert.deepEqual(fixture.frames.map(item => item.frame), moving ? [0, 21] : [0]);
+    assert.ok(fixture.frames.every(item => item.criterion.startsWith("J4 ")));
+    const doc = JSON.parse(fs.readFileSync(fixture.fixture, "utf8"));
+    const picture = doc.clips.find(clip => clip.id === "picture");
+    assert.equal(picture.width, doc.width);
+    assert.equal(picture.height, doc.height);
+    if (name.startsWith("generated-matte")) {
+      assert.equal(picture.generatedMatte.status, "ready");
+      assert.ok(fs.existsSync(path.resolve(path.dirname(fixture.fixture), picture.generatedMatte.mediaPath)));
+    }
+  }
+});
+
+
+test("posterize midpoint requires identical pixels, not merely 40 dB", () => {
+  assert.equal(comparisonPasses(52.9,40,true),false);
+  assert.equal(comparisonPasses(Infinity,40,true),true);
+  const fixture=loadFixtures(fileURLToPath(new URL("./fixtures/",import.meta.url)),["clip-posterize-midpoint"])[0];
+  assert.equal(fixture.frames[0].identical,true);
+});
