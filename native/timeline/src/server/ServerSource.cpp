@@ -10,10 +10,12 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QStandardPaths>
+#include <QUrlQuery>
 
 #include <cstdio>
 #include <cstring>
 #include <string>
+#include <utility>
 
 namespace nt::server {
 namespace {
@@ -34,11 +36,21 @@ Args& args() {
     return a;
 }
 
+// argv keeps a pointer into args().label, so loaded sources need separate storage.
+std::optional<Args>& loadedSource() {
+    static std::optional<Args> source;
+    return source;
+}
+
 QString defaultCacheDir() {
     const QString env = qEnvironmentVariable("NODETOOL_TIMELINE_CACHE_DIR");
     if (!env.isEmpty()) return env;
     const QString base = QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation);
     return QDir(base).filePath(QStringLiteral("nodetool-timeline/assets"));
+}
+
+bool isServerUrl(const QUrl& url) {
+    return url.isValid() && (url.scheme() == u"http" || url.scheme() == u"https") && !url.host().isEmpty();
 }
 
 }  // namespace
@@ -92,7 +104,7 @@ int takeServerArgs(int& argc, char** argv) {
         return 2;
     }
     const QUrl url(a.server);
-    if (!url.isValid() || (url.scheme() != u"http" && url.scheme() != u"https") || url.host().isEmpty()) {
+    if (!isServerUrl(url)) {
         std::fprintf(stderr, "error: --server must be an http(s) URL, got '%s'\n", qPrintable(a.server));
         return 2;
     }
@@ -124,7 +136,7 @@ int listTimelinesMain() {
 }
 
 std::optional<SaveTarget> serverSaveTarget() {
-    const Args& a = args();
+    const Args& a = loadedSource() ? *loadedSource() : args();
     if (!a.active || a.list) return std::nullopt;
     SaveTarget t;
     t.server = QUrl(a.server);
@@ -139,8 +151,24 @@ std::optional<SaveTarget> serverSaveTarget() {
 }
 
 ParseResult loadTimelineSource(const QString& source) {
-    const Args& a = args();
-    if (!a.active || source.toStdString() != a.label) return loadTimelineFile(source);
+    Args selected = args();
+    if (!selected.active || source.toStdString() != selected.label) {
+        QUrl url(source);
+        const auto fragment = QUrlQuery(url.fragment()).queryItems(QUrl::FullyDecoded);
+        if (!isServerUrl(url) || fragment.size() != 1 || fragment.front().first != u"timeline" ||
+            fragment.front().second.isEmpty()) {
+            return loadTimelineFile(source);
+        }
+        url.setFragment(QString());
+        selected = Args{};
+        selected.active = true;
+        selected.server = url.toString();
+        selected.timeline = fragment.front().second;
+        selected.cacheDir = defaultCacheDir();
+        selected.token = qEnvironmentVariable("NODETOOL_API_TOKEN");
+    }
+    loadedSource() = std::move(selected);
+    const Args& a = *loadedSource();
 
     ServerOpenOptions options;
     options.server = QUrl(a.server);

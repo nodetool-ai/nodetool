@@ -6,13 +6,18 @@ nt_sources(server
 
 function(nt_timeline_list_tests)
     add_test(NAME timelinelist_scratch COMMAND node
-        ${CMAKE_CURRENT_SOURCE_DIR}/src/server/TimelineList/scratch-list.mjs $<TARGET_FILE:nodetool-timeline>)
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/server/TimelineList/scratch-list.mjs $<TARGET_FILE:nodetool-timeline> --startup-label)
     set_tests_properties(timelinelist_scratch PROPERTIES TIMEOUT 240 ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
     qt_add_executable(tst_timelinelistclient src/server/TimelineList/tst_timelinelistclient.cpp)
     target_include_directories(tst_timelinelistclient PRIVATE tests)
     target_link_libraries(tst_timelinelistclient PRIVATE timeline_server Qt6::Test)
     add_test(NAME tst_timelinelistclient COMMAND tst_timelinelistclient)
     set_tests_properties(tst_timelinelistclient PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    qt_add_executable(tst_timelinelistsource src/server/TimelineList/tst_timelinelistsource.cpp)
+    target_include_directories(tst_timelinelistsource PRIVATE tests)
+    target_link_libraries(tst_timelinelistsource PRIVATE timeline_server Qt6::Test)
+    add_test(NAME tst_timelinelistsource COMMAND tst_timelinelistsource)
+    set_tests_properties(tst_timelinelistsource PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
     qt_add_executable(tst_timelinelistui src/server/TimelineList/tst_timelinelistui.cpp src/app/CliModes.cpp src/server/TimelineList/TimelineListStartup.cpp)
     target_link_libraries(tst_timelinelistui PRIVATE timeline_server
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
