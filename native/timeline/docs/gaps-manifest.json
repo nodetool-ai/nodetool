@@ -1080,6 +1080,43 @@
       "exit": [
         "Movable panels and the built-in workspaces match TimelineDockLayout.ts"
       ]
+    },
+    {
+      "id": "W",
+      "wave": 3,
+      "needs": [
+        "E",
+        "P1",
+        "D3",
+        "S3"
+      ],
+      "gaps": [
+        "F4",
+        "F16",
+        "F3"
+      ],
+      "title": "UI wiring for merged features",
+      "owns": [
+        "src/wiring/w/",
+        "qml/wiring/w/"
+      ],
+      "web": [
+        "web/src/components/timeline/TimelineDocumentBar.tsx",
+        "web/src/components/timeline/TimelineEditor.tsx",
+        "web/src/components/timeline/Tracks/TrackEffectsPanel.tsx",
+        "web/src/components/timeline/Tracks/trackEffectsConstants.ts",
+        "web/src/components/timeline/Tracks/TrackHeader.tsx",
+        "web/src/components/timeline/Tracks/TracksRegion.tsx",
+        "web/src/components/timeline/timelineKeymap.ts",
+        "web/src/stores/timeline/TimelineStore.ts"
+      ],
+      "server": [],
+      "exit": [
+        "The document bar Export button and the File menu Export item open the export dialog in the running editor",
+        "The track header effects button shows the track effects panel, where effects are added, toggled, edited, reordered and removed, one undo entry each",
+        "Ctrl+R opens Speed / Duration for the selected clips",
+        "No layout or wording difference from the web in these three places"
+      ]
     }
   ],
   "mergeOrder": [
@@ -1114,7 +1151,8 @@
     "O",
     "D6",
     "P2",
-    "Q"
+    "Q",
+    "W"
   ],
   "outOfPlan": [
     "F19 signing and notarization",
