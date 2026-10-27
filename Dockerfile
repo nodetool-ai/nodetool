@@ -110,8 +110,6 @@ ENV NODE_ENV=production \
 #   ffmpeg            — yt-dlp merges formats with it (media nodes run libav
 #                       in process and need no binary)
 #   git               — Git agent
-#   poppler-utils     — PDF agents, pdf-to-image nodes (pdftoppm/pdftotext)
-#   qpdf              — PDF agents (split/merge/optimize/check)
 #   pandoc            — document conversion nodes
 #   postgresql-client-17 — psql/pg_dump for DATABASE_URL deployments, from
 #                     PGDG: pg_dump refuses servers newer than itself, and
@@ -148,7 +146,7 @@ RUN echo 'deb http://deb.debian.org/debian bookworm-backports main' \
     && apt-get update && apt-get install -y --no-install-recommends \
     wget \
     ffmpeg git jq zip unzip \
-    poppler-utils qpdf pandoc \
+    pandoc \
     postgresql-client-17 \
     python3 python3-venv \
     chromium fonts-liberation fonts-noto-color-emoji \

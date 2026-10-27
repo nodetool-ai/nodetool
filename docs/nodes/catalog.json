@@ -3360,9 +3360,9 @@
     },
     {
       "type": "lib.pdf.Pdftoppm",
-      "title": "PDF Rasterize (pdftoppm)",
+      "title": "PDF Rasterize",
       "namespace": "lib.pdf",
-      "description": "Rasterize PDF pages with poppler's pdftoppm. Higher fidelity than the PDFium-based Screenshot node for some PDFs and supports anti-aliasing controls.\n    pdf, pdftoppm, poppler, rasterize, render, image, pages",
+      "description": "Rasterize PDF pages to PNG, JPEG or TIFF images at a DPI or a target size.\n    pdf, pdftoppm, rasterize, render, image, pages, jpeg, tiff",
       "inputs": [
         {
           "name": "start_page",
@@ -3406,8 +3406,8 @@
           "type": "list[image]"
         }
       ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfrasterizepdftoppm",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfrasterizepdftoppm.md"
+      "documentation_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfrasterize",
+      "markdown_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfrasterize.md"
     },
     {
       "type": "lib.pdf.Screenshot",

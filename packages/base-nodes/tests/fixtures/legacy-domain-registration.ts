@@ -45756,9 +45756,9 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     replaced_by: undefined
   },
   {
-    title: 'PDF Rasterize (pdftoppm)',
-    description: "Rasterize PDF pages with poppler's pdftoppm. Higher fidelity than the PDFium-based Screenshot node for some PDFs and supports anti-aliasing controls.\n" +
-      '    pdf, pdftoppm, poppler, rasterize, render, image, pages',
+    title: 'PDF Rasterize',
+    description: 'Rasterize PDF pages to PNG, JPEG or TIFF images at a DPI or a target size.\n' +
+      '    pdf, pdftoppm, rasterize, render, image, pages, jpeg, tiff',
     namespace: 'lib.pdf',
     node_type: 'lib.pdf.Pdftoppm',
     layout: 'default',
@@ -45890,9 +45890,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'pdf'
     ],
     required_settings: [],
-    required_runtimes: [
-      'pdftoppm'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
     input_mode: undefined,

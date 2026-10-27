@@ -13,7 +13,6 @@ export type RuntimePackageId =
   | "python"
   | "nodejs"
   | "pandoc"
-  | "pdftotext"
   | "yt-dlp"
   | "rust"
   | "manimgx"
@@ -40,7 +39,6 @@ export const RUNTIME_PACKAGE_NAMES: Readonly<Record<RuntimePackageId, string>> =
   python: "Python",
   nodejs: "Node.js",
   pandoc: "Pandoc",
-  pdftotext: "PDF Tools (Poppler)",
   "yt-dlp": "yt-dlp",
   rust: "Rust",
   manimgx: "ManimGX",
@@ -142,8 +140,7 @@ export function missingRuntimePackageDetails(
     bringYourOwn = "Or put cargo and rustc on PATH (install Rust from https://rustup.rs).";
   } else {
     const binary = runtimePackage === "nodejs" ? "node" : runtimePackage;
-    const packages = runtimePackage === "pdftotext" ? "poppler" : binary;
-    bringYourOwn = `Or put ${binary} on PATH (brew install ${packages}, apt install ${runtimePackage === "pdftotext" ? "poppler-utils" : packages}).`;
+    bringYourOwn = `Or put ${binary} on PATH (brew install ${binary}, apt install ${binary}).`;
   }
   return { runtimePackage, missing, reason: options.reason ?? "missing", managed, bringYourOwn, restart };
 }
@@ -240,7 +237,6 @@ export function runtimePackageForBinary(binary: string): RuntimePackageId | null
     case "node": return "nodejs";
     case "rustc": case "cargo": return "rust";
     case "pandoc": return "pandoc";
-    case "pdftotext": return "pdftotext";
     case "yt-dlp": return "yt-dlp";
     case "manimgx": return "manimgx";
     case "sd-server": return "sd-cpp";

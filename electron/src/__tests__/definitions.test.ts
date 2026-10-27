@@ -48,8 +48,8 @@ describe("RUNTIME_PACKAGES", () => {
       }
     });
 
-    it("classifies pandoc, pdftotext, yt-dlp as tools", () => {
-      for (const id of ["pandoc", "pdftotext", "yt-dlp"]) {
+    it("classifies pandoc, yt-dlp as tools", () => {
+      for (const id of ["pandoc", "yt-dlp"]) {
         expect(RUNTIME_PACKAGES[id as keyof typeof RUNTIME_PACKAGES].category).toBe("tool");
       }
     });

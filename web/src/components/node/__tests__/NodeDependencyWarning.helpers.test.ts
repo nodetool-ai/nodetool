@@ -17,7 +17,6 @@ describe("RUNTIME_LABELS", () => {
     expect(RUNTIME_LABELS["pandoc"]).toBe("Pandoc");
     expect(RUNTIME_LABELS["python"]).toBe("Python");
     expect(RUNTIME_LABELS["yt-dlp"]).toBe("yt-dlp");
-    expect(RUNTIME_LABELS["pdftotext"]).toBe("PDF Tools (Poppler)");
   });
 });
 

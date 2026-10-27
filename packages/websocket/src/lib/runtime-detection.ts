@@ -19,9 +19,7 @@ import path from "node:path";
  * listed here are probed under their own name (`pandoc`, `yt-dlp`, …).
  */
 const RUNTIME_COMMANDS: Record<string, string> = {
-  nodejs: "node",
-  pdftotext: "pdftotext",
-  pdftoppm: "pdftoppm"
+  nodejs: "node"
 };
 
 /** The runtimes a client gets when it asks for no particular ones. */
@@ -29,8 +27,6 @@ export const KNOWN_RUNTIMES = [
   "python",
   "nodejs",
   "pandoc",
-  "pdftotext",
-  "pdftoppm",
   "yt-dlp",
   "manimgx"
 ] as const;
