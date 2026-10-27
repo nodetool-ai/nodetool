@@ -1,6 +1,6 @@
 /**
- * Deploy / manage a NodeTool worker as a RunPod Pod via the REST integration in
- * the deploy module. The RunPod API key is read from the per-user secret store
+ * Deploy / manage a NodeTool worker as a RunPod Pod via the REST client in
+ * @nodetool-ai/compute. The RunPod API key is read from the per-user secret store
  * (nodetool_secrets), NOT process.env or runpodctl.
  *
  * Usage (via tsx):
@@ -18,7 +18,7 @@ import {
   listPods,
   deletePod,
   getPod
-} from "../src/runpod-rest.js";
+} from "@nodetool-ai/compute/runpod-rest";
 
 const LOCAL_USER_ID = "1";
 
