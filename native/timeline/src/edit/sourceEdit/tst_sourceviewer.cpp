@@ -1,6 +1,7 @@
 #include "SourceEdit.h"
 #include "SourceViewerState.h"
 #include "wiring/WiringFixture.h"
+#include <QFile>
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <QSignalSpy>
@@ -47,6 +48,12 @@ class TestSourceViewer : public WiringFixture {
         QTest::keyClick(view.get(), Qt::Key_Return);
     }
 private slots:
+    void initTestCase() {
+        const auto path = qEnvironmentVariable("NODETOOL_TIMELINE_PREFERENCES");
+        QVERIFY2(!path.isEmpty(),
+                 "NODETOOL_TIMELINE_PREFERENCES must be set and non-empty: the test must not write the user's real Timeline.conf");
+        QVERIFY2(!QFile::exists(path) || QFile::remove(path), "Could not remove the test preferences file");
+    }
     void init() {
         open();
         view->resize(1800, 1200);
