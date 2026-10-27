@@ -1,5 +1,5 @@
 /**
- * The `documents` capability module: PDF extraction and Pandoc conversion.
+ * The `documents` capability module: PDF extraction and document conversion.
  *
  * Same three questions as every ported namespace — clean module walk, category
  * parity with the map the gate reads, and a Tool built from the spec that renders
@@ -36,8 +36,6 @@ vi.mock("@llamaindex/liteparse", () => ({
     }
   }
 }));
-
-vi.mock("node:child_process", () => ({ execFile: vi.fn() }));
 
 vi.mock("node:fs/promises", () => ({
   readFile: vi.fn(),

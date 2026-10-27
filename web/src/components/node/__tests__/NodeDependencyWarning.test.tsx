@@ -14,15 +14,15 @@ jest.mock("../../../utils/browser", () => ({
 }));
 
 it("clears the warning on every node after installing from one", async () => {
-  let pandocInstalled = false;
+  let ytDlpInstalled = false;
   const origApi = window.api;
   installGlobal("api", {
     packages: {
       getRuntimeStatuses: jest.fn(async () => [
-        { id: "pandoc", installed: pandocInstalled }
+        { id: "yt-dlp", installed: ytDlpInstalled }
       ]),
       installRuntime: jest.fn(async () => {
-        pandocInstalled = true;
+        ytDlpInstalled = true;
       })
     }
   });
@@ -30,8 +30,8 @@ it("clears the warning on every node after installing from one", async () => {
 
   render(
     <ThemeProvider theme={mockTheme}>
-      <NodeDependencyWarning requiredRuntimes={["pandoc"]} />
-      <NodeDependencyWarning requiredRuntimes={["pandoc"]} />
+      <NodeDependencyWarning requiredRuntimes={["yt-dlp"]} />
+      <NodeDependencyWarning requiredRuntimes={["yt-dlp"]} />
     </ThemeProvider>
   );
 

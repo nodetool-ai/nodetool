@@ -1014,7 +1014,6 @@ export interface BuiltinPackStatus {
 export type RuntimePackageId =
   | "python"
   | "nodejs"
-  | "pandoc"
   | "yt-dlp"
   | "rust"
   | "manimgx"

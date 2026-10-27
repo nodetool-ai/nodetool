@@ -36,7 +36,7 @@ The table gives defaults. The precedence rules follow it.
 
 | Kind | Default location | Installer | How the backend finds it |
 |---|---|---|---|
-| Conda env | macOS `~/nodetool_env`. Linux `~/.local/share/nodetool/conda_env`, or `/opt/nodetool/conda_env` when `SUDO_USER` is set. Windows `%ALLUSERSPROFILE%\nodetool\conda_env`, or `%APPDATA%\nodetool\conda_env` when `ALLUSERSPROFILE` is unset (`electron/src/config.ts:34`) | `micromamba create` with `ca-certificates` only (`electron/src/installer.ts:584`). Python, uv, ffmpeg, pandoc, yt-dlp and rust install later as separate runtime packages | the `PATH` that `getProcessEnv` builds (`electron/src/config.ts`) |
+| Conda env | macOS `~/nodetool_env`. Linux `~/.local/share/nodetool/conda_env`, or `/opt/nodetool/conda_env` when `SUDO_USER` is set. Windows `%ALLUSERSPROFILE%\nodetool\conda_env`, or `%APPDATA%\nodetool\conda_env` when `ALLUSERSPROFILE` is unset (`electron/src/config.ts:34`) | `micromamba create` with `ca-certificates` only (`electron/src/installer.ts:584`). Python, uv, ffmpeg, yt-dlp and rust install later as separate runtime packages | the `PATH` that `getProcessEnv` builds (`electron/src/config.ts`) |
 | Python packages | the env's interpreter | `installRequiredPythonPackages` (`electron/src/python.ts:293`) installs `nodetool-core` and caller additions. `packageManager.ts` installs Python node packs, with torch backend selection, CPU fallback and the requirements of packs already installed (`:359`, `:970`, `:1113`) | `PythonStdioBridge`, see below |
 | uv tools | `userData/uv-tools/{tools,bin,python}` (`uvToolDirs.ts`) | `uv tool install` with the env's uv (`UvToolRuntimePackage.ts`) | the desktop `PATH` |
 | npm root | `userData/optional-node` (`NpmRuntimePackage.ts`, `nodePackManager.ts`) | the npm bundled with the app, system npm in an unpackaged build (`config.ts:457`). Cache in `userData/npm-cache` | `NODETOOL_OPTIONAL_NODE_MODULES`, set at backend spawn (`config.ts:352`) |
@@ -388,7 +388,7 @@ restart.
 
 `bringYourOwn` for Python on every host except `docker`:
 `Or set NODETOOL_PYTHON to a Python 3.11+ that has nodetool-core installed.`
-For a conda binary it is `Or put pandoc on PATH (brew install pandoc, apt install pandoc).`
+For a conda binary it is `Or put yt-dlp on PATH (brew install yt-dlp, apt install yt-dlp).`
 For a uv tool it is `Or put manimgx on PATH (uv tool install manimgx).`
 
 An example message on the `cli` host:

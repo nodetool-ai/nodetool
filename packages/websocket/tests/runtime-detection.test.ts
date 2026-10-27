@@ -43,10 +43,10 @@ describe("hasExecutable", () => {
 
 describe("detectRuntimes", () => {
   it("reports yt-dlp installed when it is on PATH", async () => {
-    const statuses = await detectRuntimes(["yt-dlp", "pandoc"]);
+    const statuses = await detectRuntimes(["yt-dlp", "manimgx"]);
     expect(statuses).toEqual([
       { id: "yt-dlp", installed: true },
-      { id: "pandoc", installed: false }
+      { id: "manimgx", installed: false }
     ]);
   });
 

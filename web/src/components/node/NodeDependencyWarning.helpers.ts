@@ -6,14 +6,12 @@ export const RUNTIME_LABELS: Record<string, string> = {
   nodejs: "Node.js",
   "yt-dlp": "yt-dlp",
   manimgx: "ManimGX",
-  pandoc: "Pandoc",
 };
 
 /** Maps required_runtimes values to RuntimePackageId values used by the Electron API. */
 export const RUNTIME_TO_PACKAGE_ID: Record<string, string> = {
   python: "python",
   nodejs: "nodejs",
-  pandoc: "pandoc",
   "yt-dlp": "yt-dlp",
   manimgx: "manimgx",
 };

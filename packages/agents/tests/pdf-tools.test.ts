@@ -28,11 +28,6 @@ vi.mock("@llamaindex/liteparse", () => ({
   }
 }));
 
-// Mock child_process
-vi.mock("node:child_process", () => ({
-  execFile: vi.fn()
-}));
-
 // Mock fs/promises
 vi.mock("node:fs/promises", () => ({
   readFile: vi.fn(),
@@ -266,54 +261,6 @@ describe("ConvertMarkdownToPDFTool", () => {
     expect((tool.inputSchema as Record<string, unknown>).required).toContain("output_file");
   });
 
-  it("calls pandoc to convert markdown to PDF", async () => {
-    const { mkdir } = await import("node:fs/promises");
-    const { execFile } = await import("node:child_process");
-    vi.mocked(mkdir).mockResolvedValue(undefined);
-    vi.mocked(execFile).mockImplementation((_cmd: unknown, _args: unknown, cb: unknown) => {
-      if (typeof cb === "function") cb(null, "", "");
-      return {} as ReturnType<typeof execFile>;
-    });
-
-    const result = (await tool.process(ctx, {
-      input_file: "doc.md",
-      output_file: "doc.pdf"
-    })) as Record<string, unknown>;
-
-    expect(result.status).toBe("success");
-    expect(result.output_file).toBe(resolve(join(workspaceDir, "doc.pdf")));
-    expect(execFile).toHaveBeenCalledWith(
-      "pandoc",
-      expect.arrayContaining([
-        resolve(join(workspaceDir, "doc.md")),
-        "-f",
-        "markdown",
-        "-t",
-        "pdf",
-        "-o",
-        resolve(join(workspaceDir, "doc.pdf"))
-      ]),
-      expect.any(Function)
-    );
-  });
-
-  it("returns error when pandoc fails", async () => {
-    const { mkdir } = await import("node:fs/promises");
-    const { execFile } = await import("node:child_process");
-    vi.mocked(mkdir).mockResolvedValue(undefined);
-    vi.mocked(execFile).mockImplementation((_cmd: unknown, _args: unknown, cb: unknown) => {
-      if (typeof cb === "function") cb(new Error("pandoc not found"));
-      return {} as ReturnType<typeof execFile>;
-    });
-
-    const result = (await tool.process(ctx, {
-      input_file: "doc.md",
-      output_file: "doc.pdf"
-    })) as Record<string, unknown>;
-
-    expect(result.error).toContain("pandoc not found");
-  });
-
   it("userMessage works", () => {
     expect(
       tool.userMessage({ input_file: "doc.md", output_file: "doc.pdf" })
@@ -332,67 +279,6 @@ describe("ConvertDocumentTool", () => {
     expect(tool.name).toBe("convert_document");
     expect((tool.inputSchema as Record<string, unknown>).required).toContain("input_file");
     expect((tool.inputSchema as Record<string, unknown>).required).toContain("output_file");
-  });
-
-  it("calls pandoc with correct format arguments", async () => {
-    const { mkdir } = await import("node:fs/promises");
-    const { execFile } = await import("node:child_process");
-    vi.mocked(mkdir).mockResolvedValue(undefined);
-    vi.mocked(execFile).mockImplementation((_cmd: unknown, _args: unknown, cb: unknown) => {
-      if (typeof cb === "function") cb(null, "", "");
-      return {} as ReturnType<typeof execFile>;
-    });
-
-    const result = (await tool.process(ctx, {
-      input_file: "doc.rst",
-      output_file: "doc.html",
-      from_format: "rst",
-      to_format: "html"
-    })) as Record<string, unknown>;
-
-    expect(result.status).toBe("success");
-    expect(execFile).toHaveBeenCalledWith(
-      "pandoc",
-      expect.arrayContaining(["-f", "rst", "-t", "html"]),
-      expect.any(Function)
-    );
-  });
-
-  it("passes extra_args to pandoc", async () => {
-    const { mkdir } = await import("node:fs/promises");
-    const { execFile } = await import("node:child_process");
-    vi.mocked(mkdir).mockResolvedValue(undefined);
-    vi.mocked(execFile).mockImplementation((_cmd: unknown, _args: unknown, cb: unknown) => {
-      if (typeof cb === "function") cb(null, "", "");
-      return {} as ReturnType<typeof execFile>;
-    });
-
-    await tool.process(ctx, {
-      input_file: "doc.md",
-      output_file: "doc.pdf",
-      extra_args: ["--toc", "--standalone"]
-    });
-
-    const callArgs = vi.mocked(execFile).mock.calls[0][1] as string[];
-    expect(callArgs).toContain("--toc");
-    expect(callArgs).toContain("--standalone");
-  });
-
-  it("returns error when pandoc fails", async () => {
-    const { mkdir } = await import("node:fs/promises");
-    const { execFile } = await import("node:child_process");
-    vi.mocked(mkdir).mockResolvedValue(undefined);
-    vi.mocked(execFile).mockImplementation((_cmd: unknown, _args: unknown, cb: unknown) => {
-      if (typeof cb === "function") cb(new Error("conversion failed"));
-      return {} as ReturnType<typeof execFile>;
-    });
-
-    const result = (await tool.process(ctx, {
-      input_file: "doc.md",
-      output_file: "doc.pdf"
-    })) as Record<string, unknown>;
-
-    expect(result.error).toContain("conversion failed");
   });
 
   it("userMessage includes format info", () => {
