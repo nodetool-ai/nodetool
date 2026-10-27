@@ -165,7 +165,6 @@ private slots:
         QCOMPARE(model.canvasHeight(), 720);
         QCOMPARE(model.fps(), 24.0);
         if (!saveRequest) {
-            QEXPECT_FAIL("", "F1: AutosaveController drops width/height/fps; owned by package SY", Continue);
             QVERIFY(save.dirty());
         } else {
             const auto result = save.saveNow();
@@ -173,7 +172,6 @@ private slots:
             QCOMPARE(server.countRequests("POST", "/trpc/timeline.update"), 1);
             const auto requests = server.requests();
             const auto input = QJsonDocument::fromJson(requests.back().body).object();
-            QEXPECT_FAIL("", "F1: AutosaveController drops width/height/fps; owned by package SY", Continue);
             QVERIFY(input.value("width") == 1280 && input.value("height") == 720 && input.value("fps") == 24);
         }
     }

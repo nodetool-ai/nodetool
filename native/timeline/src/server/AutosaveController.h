@@ -2,7 +2,7 @@
 
 // Saving a server timeline (PLAN.md M5b; DESIGN.md D4, D31, D34).
 //
-// A save is `POST /trpc/timeline.update` with `{id, baseUpdatedAt, document}`.
+// A save is `POST /trpc/timeline.update` with `{id, baseUpdatedAt, document, fps, width, height}`.
 // `document` is the raw sequence the editor holds (every field the server
 // sent, edited clips included) without the sequence-row fields (id, name,
 // fps, size, duration, timestamps). The server compares `baseUpdatedAt` and
@@ -28,8 +28,8 @@
 // A recovery or conflict file that cannot be written is reported
 // (`recoveryError`, `lastError`). The client never saves without a base.
 //
-// Dirty compares the current document with the acknowledged content (a hash
-// of the saved JSON), so a merged command, an undo during a save, or a branch
+// Dirty compares the document and editable row settings (fps, width, height)
+// with acknowledged content, so a merged command, an undo during a save, or a branch
 // cannot pass for saved. The undo stack's clean state follows it, for the UI.
 // Autosave runs 750 ms after the last command (D34) while the document is
 // dirty. A document differing from the last undo-stack notification is a
