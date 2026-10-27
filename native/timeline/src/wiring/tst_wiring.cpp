@@ -90,7 +90,8 @@ private slots:
         view->loadFromModule("NodeTool.Timeline", "TimelineEditor");
         QVERIFY2(view->status() == QQuickView::Ready, qPrintable(view->errors().isEmpty() ? QString() : view->errors().first().toString()));
         view->setResizeMode(QQuickView::SizeRootObjectToView);
-        view->resize(1500, 900);
+        // Keep the fixture's lane targets visible beside the Library and Inspector.
+        view->resize(1800, 900);
         view->show();
         QVERIFY(QTest::qWaitForWindowExposed(view.get()));
     }
