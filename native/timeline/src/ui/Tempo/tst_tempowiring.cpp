@@ -2,7 +2,9 @@
 #include "TempoProviders.h"
 #include "wiring/WiringFixture.h"
 
+#include <QFile>
 #include <QJSValue>
+#include <QTemporaryDir>
 
 class TempoWiringTests : public WiringFixture {
     Q_OBJECT
@@ -31,7 +33,8 @@ class TempoWiringTests : public WiringFixture {
 
 private slots:
     void initTestCase() {
-        QVERIFY(nt::wiring::registerRulerProvider("bars", nt::tempo::barRulerTicks));
+        QTest::ignoreMessage(QtWarningMsg, "Refused ruler provider bars");
+        QVERIFY(!nt::wiring::registerRulerProvider("bars", nt::tempo::barRulerTicks));
     }
     void init() { open(); }
     void cleanup() { view.reset(); }
@@ -194,5 +197,14 @@ private slots:
     }
 };
 
-QTEST_MAIN(TempoWiringTests)
+int main(int argc, char** argv) {
+    QTemporaryDir settings;
+    if (!settings.isValid()) {
+        return 1;
+    }
+    qputenv("NODETOOL_TIMELINE_PREFERENCES", QFile::encodeName(settings.filePath("settings.ini")));
+    QGuiApplication app(argc, argv);
+    TempoWiringTests test;
+    return QTest::qExec(&test, argc, argv);
+}
 #include "tst_tempowiring.moc"

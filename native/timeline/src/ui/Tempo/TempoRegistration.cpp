@@ -1,5 +1,7 @@
 #include "TempoJson.h"
+#include "TempoProviders.h"
 #include "app/PanelRegistry.h"
+#include "wiring/RulerProviders.h"
 #include "wiring/SnapProviders.h"
 
 #include <algorithm>
@@ -10,7 +12,7 @@ const bool toolbarRegistered = nt::app::registerPanel({
     QUrl(QStringLiteral("qrc:/qt/qml/NodeTool/Timeline/src/ui/Tempo/TempoToolbar.qml")),
     10, QStringLiteral("Tempo")});
 
-// registration blocked: src/wiring/tst_wiring.cpp registers a mock "bars" provider
+const bool rulerRegistered = nt::wiring::registerRulerProvider(QStringLiteral("bars"), nt::tempo::barRulerTicks);
 
 const bool snapRegistered = nt::wiring::registerSnapProvider(QStringLiteral("tempo.beats"),
     [](const nt::wiring::SnapRequest& request) -> std::vector<double> {
