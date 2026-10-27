@@ -33,6 +33,15 @@ Item {
         objectName: "projectSettingsButton"
         label: "Project settings"
         iconPath: Icons.straighten
+        activeFocusOnTab: true
+        border.width: activeFocus ? Theme.spacingMicro : 0
+        border.color: Theme.primary
+        Keys.onPressed: event => {
+            if (activeFocus && (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space)) {
+                event.accepted = true
+                root.open()
+            }
+        }
         onClicked: root.open()
     }
     function validNumber(text, min, max) {

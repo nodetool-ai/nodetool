@@ -26,7 +26,7 @@ function(nt_timeline_list_tests)
     if(UNIX AND NOT APPLE)
         target_sources(tst_timelinelistui PRIVATE src/preview/hw/HwWindow.h src/preview/hw/HwWindow.cpp)
     endif()
-    add_test(NAME tst_timelinelistsettings COMMAND tst_timelinelistui settingsPanelRegistered settingsOpenFromDocumentBar settingsKeepsEditorShortcuts projectSettingsPersistence panelKeepsCppOwnership settingsCommitAndUndo)
+    add_test(NAME tst_timelinelistsettings COMMAND tst_timelinelistui settingsPanelRegistered settingsOpenFromDocumentBar settingsOpenFromKeyboard settingsKeepsEditorShortcuts projectSettingsPersistence panelKeepsCppOwnership settingsCommitAndUndo)
     add_test(NAME tst_timelineliststartup COMMAND tst_timelinelistui startupListWithoutServer)
     add_test(NAME tst_timelinelistlayout COMMAND tst_timelinelistui layoutAndStills unnamedRowLabel emptySearchDescription offsetError)
     set_tests_properties(tst_timelinelistsettings tst_timelinelistlayout tst_timelineliststartup PROPERTIES
