@@ -24,6 +24,7 @@ import {
   openVideoFrameEncoder,
   packetTimes,
   probeMedia,
+  probeVideoStream,
   type RgbaFrameReader,
   type VideoEncoderSpec,
   type VideoFrameEncoder
@@ -96,13 +97,8 @@ async function probeStillSize(filePath: string): Promise<RawSize | null> {
  * grid matches, so the cache stays off and each frame is an exact seek.
  */
 export async function probeVideoFrameRate(filePath: string): Promise<number> {
-  try {
-    const { video } = await probeMedia(filePath);
-    const rate = video?.nominalFps;
-    return rate !== null && rate !== undefined && Number.isFinite(rate) && rate > 0 ? rate : 1;
-  } catch {
-    return 1;
-  }
+  const rate = (await probeVideoStream(filePath))?.nominalFps;
+  return rate !== null && rate !== undefined && Number.isFinite(rate) && rate > 0 ? rate : 1;
 }
 
 /**

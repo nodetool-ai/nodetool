@@ -104,15 +104,9 @@ export async function probeVideoDurationSeconds(
     { "media.byte_length": bytes.byteLength },
     async () => {
       // Loaded on demand: the media module is Node-only.
-      const { probeMedia } = await import("../media/probe.js");
-      try {
-        const { durationSec } = await probeMedia(bytes, { signal });
-        return durationSec !== null && durationSec > 0 ? durationSec : null;
-      } catch (error) {
-        if (signal.aborted) throw error;
-        // Not a container Mediabunny reads.
-        return null;
-      }
+      const { probeDurationSec } = await import("../media/probe.js");
+      const durationSec = await probeDurationSec(bytes, { signal });
+      return durationSec !== null && durationSec > 0 ? durationSec : null;
     }
   );
 }

@@ -18,7 +18,10 @@ import {
   openRgbaFrameReader,
   openVideoFrameEncoder,
   packetTimes,
+  probeDurationSec,
+  probeHasAudio,
   probeMedia,
+  probeVideoStream,
   trimVideo
 } from "../../src/media/index.js";
 import {
@@ -92,6 +95,40 @@ describe("probeMedia", () => {
 
   it("throws on bytes that are no container", async () => {
     await expect(probeMedia(new Uint8Array([1, 2, 3, 4, 5]))).rejects.toThrow();
+  });
+});
+
+describe("probe answers that degrade on unreadable media", () => {
+  const garbage = new Uint8Array([1, 2, 3, 4, 5]);
+
+  it("reads the duration from a path or bytes, null for no media", async () => {
+    const fromPath = await probeDurationSec(file("av.mp4"));
+    expect(fromPath).toBeGreaterThan(1.9);
+    expect(fromPath).toBeLessThan(2.1);
+    expect(await probeDurationSec(await fs.readFile(file("tone.wav")))).toBeCloseTo(1, 2);
+    expect(await probeDurationSec(garbage)).toBeNull();
+  });
+
+  it("finds the audio stream, false for picture-only and no media", async () => {
+    expect(await probeHasAudio(file("av.mp4"))).toBe(true);
+    expect(await probeHasAudio(file("vfr.mkv"))).toBe(false);
+    expect(await probeHasAudio(garbage)).toBe(false);
+  });
+
+  it("returns the video stream, null for audio-only and no media", async () => {
+    const video = await probeVideoStream(file("vfr.mkv"), { frameRatePackets: Infinity });
+    expect(video).toMatchObject({ width: 32, height: 24, nominalFps: 60 });
+    expect(await probeVideoStream(file("tone.wav"))).toBeNull();
+    expect(await probeVideoStream(garbage)).toBeNull();
+  });
+
+  it("still throws on an abort", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    const { signal } = controller;
+    await expect(probeDurationSec(file("av.mp4"), { signal })).rejects.toThrow();
+    await expect(probeHasAudio(file("av.mp4"), { signal })).rejects.toThrow();
+    await expect(probeVideoStream(file("av.mp4"), { signal })).rejects.toThrow();
   });
 });
 

@@ -69,17 +69,14 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { AssetFiles } from "./timeline/assetFiles.js";
-import {
-  atempoChain,
-  probeDurationSeconds,
-  probeHasAudioStream,
-  videoRef
-} from "./ffmpeg-helpers.js";
+import { atempoChain, videoRef } from "./video-helpers.js";
 import {
   concatSegments,
   decodeAudioToPcm,
   muxAudioWithVideoCopy,
   openFilterComplex,
+  probeDurationSec,
+  probeHasAudio,
   probeMedia,
   type ConcatSegment,
   type FilterComplexInput
@@ -729,7 +726,7 @@ async function renderRoughCut(opts: {
       inSec: isPositiveNumber(clip.inPointMs) ? clip.inPointMs / 1000 : undefined,
       outSec: isPositiveNumber(clip.outPointMs) ? clip.outPointMs / 1000 : undefined,
       durationSec,
-      withAudio: !suppressEmbeddedAudio && (await probeHasAudioStream(srcPath))
+      withAudio: !suppressEmbeddedAudio && (await probeHasAudio(srcPath))
     });
   }
 
@@ -830,7 +827,7 @@ async function mixAudioInto(opts: {
       );
       continue;
     }
-    if (!baseHasAudio && !(await probeHasAudioStream(audioPath))) continue;
+    if (!baseHasAudio && !(await probeHasAudio(audioPath))) continue;
     // Only a clip that plays at source rate can use the plain chain: a
     // speedMultiplier is a rate too, and without atempo (and the wider source
     // window it needs) a 2x clip's audio ran on past the clip.
@@ -1345,7 +1342,7 @@ export class RenderTimelineNode extends BaseNode {
             })
           : basePath;
 
-      const duration = await probeDurationSeconds(outPath);
+      const duration = (await probeDurationSec(outPath)) ?? 0;
       const stored = await storeRenderArtifact({
         context: ctx,
         filePath: outPath,
@@ -1779,7 +1776,7 @@ export class AddClipsToTimelineNode extends BaseNode {
           }
           const probePath = path.join(workDir, `probe_${i}`);
           await fs.writeFile(probePath, bytes);
-          const seconds = await probeDurationSeconds(probePath);
+          const seconds = (await probeDurationSec(probePath)) ?? 0;
           if (seconds <= 0) {
             console.warn(
               `AddClipsToTimeline: skipping clip ${i} — could not determine duration`

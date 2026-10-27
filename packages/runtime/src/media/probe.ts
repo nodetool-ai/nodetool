@@ -137,6 +137,56 @@ export async function probeMedia(
 }
 
 /**
+ * {@link probeMedia}, or `null` when `source` is not media Mediabunny reads.
+ * An abort still throws.
+ */
+async function probeOrNull(
+  source: MediaSource,
+  options: ProbeOptions
+): Promise<MediaProbe | null> {
+  try {
+    return await probeMedia(source, options);
+  } catch (error) {
+    if (options.signal?.aborted) throw error;
+    return null;
+  }
+}
+
+/**
+ * `source`'s duration in seconds, or `null` when it is not media Mediabunny
+ * reads or names no duration. An abort still throws.
+ */
+export async function probeDurationSec(
+  source: MediaSource,
+  options: ProbeOptions = {}
+): Promise<number | null> {
+  return (await probeOrNull(source, options))?.durationSec ?? null;
+}
+
+/**
+ * Whether `source` has an audio stream. Media Mediabunny cannot read has
+ * none. An abort still throws.
+ */
+export async function probeHasAudio(
+  source: MediaSource,
+  options: ProbeOptions = {}
+): Promise<boolean> {
+  const probe = await probeOrNull(source, options);
+  return probe !== null && probe.audio !== null;
+}
+
+/**
+ * `source`'s primary video stream, or `null` when it has none or is not media
+ * Mediabunny reads. An abort still throws.
+ */
+export async function probeVideoStream(
+  source: MediaSource,
+  options: ProbeOptions = {}
+): Promise<VideoStreamInfo | null> {
+  return (await probeOrNull(source, options))?.video ?? null;
+}
+
+/**
  * Presentation timestamps of the primary video track's packets in seconds, in
  * file (decode) order, as ffprobe's `packet=pts_time` lists them. `null` when
  * there is no video track or the track has more than `maxPackets` packets.

@@ -13,9 +13,9 @@
 
 import path from "node:path";
 
-import { probeMedia, transcodeVideo } from "@nodetool-ai/runtime/media";
+import { probeVideoStream, transcodeVideo } from "@nodetool-ai/runtime/media";
 
-import { libavCodecName } from "../ffmpeg-helpers.js";
+import { libavCodecName } from "../video-helpers.js";
 
 /** WebCodecs codec strings the page checks, keyed by libav's codec name. */
 export const DECODER_PROBES: ReadonlyArray<readonly [string, string]> = [
@@ -33,14 +33,9 @@ interface ProbedMedia {
 
 /** The first video stream's codec, or null for a still or unreadable file. */
 async function probeVideo(file: string, signal?: AbortSignal): Promise<ProbedMedia | null> {
-  let video: Awaited<ReturnType<typeof probeMedia>>["video"];
-  try {
-    ({ video } = await probeMedia(file, { signal }));
-  } catch {
-    // Not a container: a still an `<img>` decodes, or an SVG or a font,
-    // served as it is.
-    return null;
-  }
+  // Null for a file that is not a container: a still an `<img>` decodes, or
+  // an SVG or a font, served as it is.
+  const video = await probeVideoStream(file, { signal });
   if (!video) return null;
   // A codec Mediabunny cannot name (FFV1, say) is one the page cannot decode.
   return { codec: libavCodecName(video.codec) || "unknown", alpha: video.alpha };
