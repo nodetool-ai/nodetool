@@ -1009,8 +1009,15 @@
       "title": "Source viewer",
       "owns": [
         "qml/SourceViewerPanel.qml",
-        "src/edit/sourceEdit/"
+        "src/edit/sourceEdit/",
+        "CMakeLists.txt",
+        "cmake/TestPreferences.cmake",
+        "src/app/Preferences/module.cmake"
       ],
+      "ownsNotes": {
+        "CMakeLists.txt": "shared with its merged owner, approved by the user (D15)",
+        "src/app/Preferences/module.cmake": "shared with its merged owner, approved by the user (D15)"
+      },
       "web": [
         "web/src/components/timeline/SourceViewerPanel.tsx",
         "web/src/components/timeline/sourceEdit.ts"

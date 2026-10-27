@@ -5,6 +5,9 @@ nt_qml_sources(src/edit/sourceEdit/SourceViewerState.h src/edit/sourceEdit/Sourc
 cmake_language(DEFER CALL target_sources nodetool-timeline PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/edit/sourceEdit/SourceKeyActions.cpp)
 
 function(nt_sourceedit_tests)
+    add_test(NAME preferences_isolation COMMAND node
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/edit/sourceEdit/preferences-isolation.mjs
+        ${CMAKE_CTEST_COMMAND} ${CMAKE_BINARY_DIR} $<CONFIG>)
     qt_add_executable(sourceedit-ops src/edit/sourceEdit/SourceEditCli.cpp)
     target_link_libraries(sourceedit-ops PRIVATE timeline_core)
     set_target_properties(sourceedit-ops PROPERTIES MACOSX_BUNDLE FALSE)
@@ -21,6 +24,6 @@ function(nt_sourceedit_tests)
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
     nt_add_timeline_qml(tst_sourceviewer OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_sourceviewer_qml/NodeTool/Timeline)
     add_test(NAME tst_sourceviewer COMMAND tst_sourceviewer)
-    set_tests_properties(tst_sourceviewer PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;NODETOOL_TIMELINE_PREFERENCES=${CMAKE_CURRENT_BINARY_DIR}/sourceviewer-preferences.ini")
+    set_tests_properties(tst_sourceviewer PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endfunction()
 nt_tests(nt_sourceedit_tests)
