@@ -4,8 +4,12 @@
  */
 import { createReadStream } from "node:fs";
 import { stat } from "node:fs/promises";
-import path, { extname } from "node:path";
+import path from "node:path";
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
+import {
+  INLINE_USER_FILE_MIME_OVERRIDES,
+  mimeTypeForPath
+} from "@nodetool-ai/protocol";
 import { assetKeyOwner } from "@nodetool-ai/storage";
 import { resolveAllowedOrigin } from "./cors.js";
 import {
@@ -15,35 +19,7 @@ import {
 import { streamedResponse } from "./lib/bridge.js";
 import { lookupExternalAssetPath } from "./lib/external-asset-lookup.js";
 
-// ── MIME types ────────────────────────────────────────────────────
-
-const MIME_TYPES: Record<string, string> = {
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".png": "image/png",
-  ".gif": "image/gif",
-  ".webp": "image/webp",
-  ".bmp": "image/bmp",
-  ".mp4": "video/mp4",
-  ".webm": "video/webm",
-  ".mp3": "audio/mpeg",
-  ".wav": "audio/wav",
-  ".ogg": "audio/ogg",
-  ".aac": "audio/aac",
-  ".flac": "audio/flac",
-  ".glb": "model/gltf-binary",
-  ".gltf": "model/gltf+json",
-  ".json": "application/json",
-  ".txt": "text/plain",
-  ".pdf": "application/pdf",
-  // SVG must be image/svg+xml so the asset grid and fullscreen <img> can
-  // paint it. A sandbox CSP on the response (see svgSafeHeaders) stops a
-  // script inside the file from running if the URL is opened as a document.
-  ".svg": "image/svg+xml",
-  // User-authored HTML stays text/plain so it cannot execute in this origin.
-  ".html": "text/plain",
-  ".htm": "text/plain"
-};
+// ── SVG headers ───────────────────────────────────────────────────
 
 const SVG_MIME = "image/svg+xml";
 
@@ -59,12 +35,6 @@ const SVG_SAFE_HEADERS = {
 
 function extraHeadersFor(contentType: string): Record<string, string> {
   return contentType === SVG_MIME ? SVG_SAFE_HEADERS : {};
-}
-
-function getMimeType(filePath: string): string {
-  return (
-    MIME_TYPES[extname(filePath).toLowerCase()] ?? "application/octet-stream"
-  );
 }
 
 // ── Cross-origin headers ──────────────────────────────────────────
@@ -314,7 +284,7 @@ async function handleStorageRequest(
     } catch {
       return new Response(null, { status: 404, headers: cors });
     }
-    const headType = getMimeType(mimeSource);
+    const headType = mimeTypeForPath(mimeSource, INLINE_USER_FILE_MIME_OVERRIDES);
     return new Response(null, {
       status: 200,
       headers: {
@@ -342,7 +312,7 @@ async function handleStorageRequest(
   const mtime = fileStat.mtime;
   const lastModified = mtime.toUTCString();
   const fileSize = fileStat.size;
-  const contentType = getMimeType(mimeSource);
+  const contentType = mimeTypeForPath(mimeSource, INLINE_USER_FILE_MIME_OVERRIDES);
 
   // If-Modified-Since check
   // Skipped for an external file: a relink keeps the URL but can point it at

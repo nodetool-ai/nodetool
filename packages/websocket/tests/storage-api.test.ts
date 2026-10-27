@@ -149,6 +149,17 @@ describe("MIME type detection", () => {
     }
   );
 
+  it.each(["page.xml", "script.js"])(
+    "serves %s as text/plain so it cannot run in this origin",
+    async (name) => {
+      const handler = makeHandler();
+      await fs.writeFile(path.join(tmpDir, name), "<x/>");
+      const res = await handler(makeRequest(`/api/storage/${name}`, "HEAD"));
+      expect(res.status).toBe(200);
+      expect(res.headers.get("Content-Type")).toBe("text/plain");
+    }
+  );
+
   it("serves user HTML as text/plain, not text/html (no XSS)", async () => {
     const handler = makeHandler();
     await fs.writeFile(path.join(tmpDir, "page.html"), "<script>alert(1)</script>");

@@ -23,6 +23,7 @@
  */
 import { createHash } from "node:crypto";
 import { strFromU8, strToU8, unzipSync, zipSync } from "fflate";
+import { mimeTypeForPath } from "@nodetool-ai/protocol";
 import {
   collectWorkflowAssets,
   mediaExtension,
@@ -352,31 +353,6 @@ export interface ImportBundleResult {
   checksumMismatches: string[];
 }
 
-const MIME_BY_EXT: Record<string, string> = {
-  ".png": "image/png",
-  ".jpg": "image/jpeg",
-  ".jpeg": "image/jpeg",
-  ".gif": "image/gif",
-  ".webp": "image/webp",
-  ".svg": "image/svg+xml",
-  ".mp3": "audio/mpeg",
-  ".wav": "audio/wav",
-  ".ogg": "audio/ogg",
-  ".flac": "audio/flac",
-  ".mp4": "video/mp4",
-  ".webm": "video/webm",
-  ".glb": "model/gltf-binary",
-  ".pdf": "application/pdf",
-  ".json": "application/json",
-  ".txt": "text/plain"
-};
-
-function mimeForFile(fileName: string): string {
-  const dot = fileName.lastIndexOf(".");
-  const ext = dot >= 0 ? fileName.slice(dot).toLowerCase() : "";
-  return MIME_BY_EXT[ext] ?? "application/octet-stream";
-}
-
 /**
  * Resolve a bundle's `bundle://` refs into concrete stored assets and return
  * workflows ready to create. `storeAsset` decides where the bytes land; assets
@@ -414,7 +390,7 @@ export async function importWorkflowBundle(
       const result = await options.storeAsset({
         bytes,
         fileName,
-        contentType: mimeForFile(fileName),
+        contentType: mimeTypeForPath(fileName),
         refType: ref.type
       });
       stored = { uri: result.uri };
