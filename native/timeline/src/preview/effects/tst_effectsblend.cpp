@@ -144,6 +144,21 @@ QImage matteStill(const QString &mode, bool invert, double strength=1, double fe
 
 }
 
+namespace {
+void verifyAdjustmentFrame(const nt::SceneFrame &frame) {
+    QCOMPARE(frame.adjustments.size(), size_t{1});
+    const auto &adjustment = frame.adjustments[0];
+    QCOMPARE(adjustment.clipId, std::string("adjust"));
+    QCOMPARE(adjustment.trackIndex, 1);
+    QCOMPARE(adjustment.z, nt::trackZ(1));
+    QCOMPARE(adjustment.opacity, 0.325);
+    QCOMPARE(adjustment.precomposeGroupId, std::string("group"));
+    QCOMPARE(adjustment.ext.value("clipEffects").toArray().size(), 2);
+    QVERIFY(adjustment.ext.value("trackEffects").toArray().isEmpty());
+    QVERIFY(adjustment.ext.value("shapeMask").toObject().value("invert").toBool());
+}
+}
+
 class TestEffectsBlend : public QObject {
     Q_OBJECT
 private slots:
@@ -152,6 +167,26 @@ private slots:
         QCOMPARE(handlers.size(),samples.size());
         for (const auto& sample : samples) { QVERIFY2(handlers.contains(sample.mode),sample.mode); }
         QVERIFY(!handlers.contains("normal"));
+        class Probe final : public nt::BackdropStage {
+        public:
+            bool applies(const QJsonObject &ext) const override { return ext.value("probe").toBool(); }
+            bool render(const nt::EffectContext &, const nt::LayerFrame &, QRhiTextureRenderTarget &,
+                        const nt::SceneAdjustment &) override { return false; }
+        };
+        const auto initial = nt::registeredBackdropStages();
+        QCOMPARE(initial.size(), size_t{1});
+        nt::BackdropStageToken token = 0;
+        token = nt::registerBackdropStage([&token] {
+            // Factory callbacks run outside the lock and may unregister themselves.
+            nt::unregisterBackdropStage(token);
+            return std::make_unique<Probe>();
+        });
+        const auto cleanup = qScopeGuard([&] { nt::unregisterBackdropStage(token); });
+        const auto snapshot = nt::registeredBackdropStages();
+        QCOMPARE(snapshot.size(), initial.size() + 1);
+        QVERIFY(snapshot.back()->applies({{"probe", true}}));
+        QCOMPARE(nt::registeredBackdropStages().size(), initial.size());
+        QVERIFY(initial.front().get() != snapshot.front().get());
     }
     void documents_data() {
         QTest::addColumn<int>("placement");
@@ -186,6 +221,79 @@ private slots:
                 QVERIFY(group.stackOrder.has_value());
                 QVERIFY(a.stackOrder.has_value());
                 QVERIFY(*group.stackOrder > *a.stackOrder);
+            }
+        }
+    }
+    void adjustmentDocuments() {
+        QFile file(QString::fromUtf8(__FILE__).replace("tst_effectsblend.cpp", "fixtures/adjustment-group.json"));
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        auto raw = QJsonDocument::fromJson(file.readAll()).object();
+        auto clips = raw.value("clips").toArray();
+        auto disabled = clips[2].toObject();
+        disabled.insert("id", "disabled");
+        auto chain = disabled.value("effects").toArray();
+        for (auto item = chain.begin(); item != chain.end(); ++item) {
+            auto e = item->toObject(); e.insert("enabled", false); *item = e;
+        }
+        disabled.insert("effects", chain);
+        clips.append(disabled);
+        auto hidden = clips[2].toObject(); hidden.insert("id", "hidden"); hidden.insert("hidden", true);
+        clips.append(hidden);
+        raw.insert("clips", clips);
+        const auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
+        QVERIFY(parsed.timeline);
+        verifyAdjustmentFrame(nt::evaluateScene(*parsed.timeline, 200));
+        const auto plan = nt::framePlanJson(nt::buildFramePlan(*parsed.timeline, 200));
+        QVERIFY(!plan.contains("adjustments"));
+        QVERIFY(nt::evaluateScene(*parsed.timeline, -1).adjustments.empty());
+        QVERIFY(nt::evaluateScene(*parsed.timeline, 1000).adjustments.empty());
+        auto inactive = *parsed.timeline;
+        inactive.tracks[1].visible = false;
+        QVERIFY(nt::evaluateScene(inactive, 200).adjustments.empty());
+        inactive.tracks[1].visible = true;
+        inactive.tracks[1].type = nt::TrackType::Audio;
+        QVERIFY(nt::evaluateScene(inactive, 200).adjustments.empty());
+        inactive = *parsed.timeline;
+        std::erase_if(inactive.clips, [](const nt::Clip &clip) { return clip.mediaType == nt::MediaType::Image; });
+        QVERIFY(nt::evaluateScene(inactive, 200).adjustments.empty());
+    }
+    void adjustmentPixels() {
+        const auto near = [](QColor a, QColor b, int tolerance) {
+            return std::abs(a.red() - b.red()) <= tolerance && std::abs(a.green() - b.green()) <= tolerance &&
+                std::abs(a.blue() - b.blue()) <= tolerance && a.alpha() == b.alpha();
+        };
+        const auto token = nt::registerLayerSource("shape", [](const nt::ActiveLayer &) {
+            QImage image(64, 32, QImage::Format_RGBA8888_Premultiplied);
+            image.fill(QColor(64, 96, 128, 128));
+            return std::make_unique<nt::test::PaintSource>(std::move(image));
+        });
+        const auto cleanup = qScopeGuard([&] { nt::unregisterLayerSource(token); });
+        for (const bool grouped : {false, true}) {
+            for (const double brightness : {0., 0.4}) {
+                QJsonArray clips{
+                    QJsonObject{{"id", "picture"}, {"trackId", "v"}, {"mediaType", "shape"},
+                        {"startMs", 0}, {"durationMs", 1000}, {"shapeStyle", QJsonObject{{"kind", "rect"}}}},
+                    QJsonObject{{"id", "adjust"}, {"trackId", "v"}, {"mediaType", "adjustment"},
+                        {"startMs", 0}, {"durationMs", 1000}, {"opacity", 0.5},
+                        {"mask", QJsonObject{{"kind", "rect"}, {"width", 0.5}, {"height", 1}}},
+                        {"effects", QJsonArray{effect("color", {{"brightness", brightness}})}}}};
+                if (grouped) {
+                    for (auto item = clips.begin(); item != clips.end(); ++item) {
+                        auto c = item->toObject(); c.insert("parentId", "group"); *item = c;
+                    }
+                    clips.append(QJsonObject{{"id", "group"}, {"trackId", "v"}, {"mediaType", "group"},
+                        {"startMs", 0}, {"durationMs", 1000}});
+                }
+                const QJsonObject raw{{"fps", 30}, {"width", 64}, {"height", 32}, {"durationMs", 1000},
+                    {"tracks", QJsonArray{QJsonObject{{"id", "v"}, {"type", "video"}}}}, {"clips", clips}};
+                const auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson()); QVERIFY(parsed.timeline);
+                TimelineModel model; model.setTimeline(*parsed.timeline);
+                nt::test::Still still; QVERIFY(still.initialize(model));
+                const auto image = still.capture(); QVERIFY(!image.isNull());
+                // The group has half-alpha pixels. A treatment must not add its alpha to itself.
+                const int delta = brightness == 0 ? 0 : (grouped ? 26 : 51);
+                QVERIFY(near(image.pixelColor(16, 16), QColor(32 + delta, 48 + delta, 64 + delta), 2));
+                QVERIFY(near(image.pixelColor(48, 16), QColor(32, 48, 64), 2));
             }
         }
     }

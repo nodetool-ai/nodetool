@@ -16,6 +16,22 @@ QJsonArray points(std::initializer_list<std::pair<double, double>> values) {
     }
     return result;
 }
+QJsonArray keyframes(std::initializer_list<std::pair<double, double>> values) {
+    QJsonArray result;
+    for (const auto &[t, value] : values) { result.append(QJsonObject{{"t", t}, {"value", value}}); }
+    return result;
+}
+QJsonObject adjustmentStyleDocument() {
+    return QJsonDocument::fromJson(R"({
+            "effects":[{"id":"fill","type":"generator","enabled":true,"mode":"noise","colorA":"#000000"}],
+            "mask":{"kind":"path","d":"M 0 0 L 1 0 L 1 1 Z"},
+            "animations":[{"id":"style","role":"in","preset":"custom","durationMs":1000,
+                "custom":{"curves":[]},"styleTracks":[
+                    {"target":"effect.fill.colorA","keyframes":[{"t":0,"value":"#000000"},{"t":1,"value":"#ffffff"}]},
+                    {"target":"mask.d","keyframes":[{"t":0,"value":"M 0 0 L 1 0 L 1 1 Z"},
+                        {"t":1,"value":"M 0.4 0 L 0.6 0 L 0.6 1 Z"}]}]}]
+        })").object();
+}
 } // namespace
 class TestEffectPlan : public QObject {
     Q_OBJECT
@@ -87,6 +103,94 @@ class TestEffectPlan : public QObject {
         const auto nullCleanup = qScopeGuard([&] { nt::unregisterSceneHook(nullTrack); });
         nt::evaluateScene(timeline, 735.9);
         QCOMPARE(missing, 1);
+    }
+    void adjustmentHooks() {
+        QFile fixture(QString::fromUtf8(__FILE__).replace("tst_effectplan.cpp", "fixtures/adjustment-group.json"));
+        QVERIFY(fixture.open(QIODevice::ReadOnly));
+        const auto parsed = nt::parseTimelineJson(fixture.readAll()); QVERIFY(parsed.timeline);
+        const auto &timeline = *parsed.timeline;
+        const auto before = QJsonDocument(nt::framePlanJson(nt::buildFramePlan(timeline, 200))).toJson(QJsonDocument::Compact);
+        QVERIFY(nt::evaluateScene(timeline, 200).adjustments.empty());
+        int calls = 0;
+        const auto token = nt::registerContextAdjustmentDecorator(
+            [&](nt::SceneAdjustment &adjustment, const nt::Clip &clip, const nt::SceneDecorationContext &context) {
+                ++calls;
+                if (&context.timeline != &timeline || context.track != &timeline.tracks[1] ||
+                    context.timeMs != 200 || context.sequenceTimeMs != 200 || context.frameIndex != 6) {
+                    return false;
+                }
+                return decorateAdjustment(adjustment, clip, context);
+            });
+        const auto cleanup = qScopeGuard([&] { nt::unregisterSceneHook(token); });
+        const auto frame = nt::evaluateScene(timeline, 200);
+        QCOMPARE(calls, 1);
+        QCOMPARE(frame.adjustments.size(), size_t{1});
+        const auto &adjustment = frame.adjustments[0];
+        QCOMPARE(adjustment.z, nt::trackZ(1));
+        QCOMPARE(adjustment.opacity, 0.325);
+        QCOMPARE(adjustment.precomposeGroupId, std::string("group"));
+        const auto after = QJsonDocument(nt::framePlanJson(nt::buildFramePlan(timeline, 200))).toJson(QJsonDocument::Compact);
+        QCOMPARE(after, before);
+        nt::unregisterSceneHook(token);
+        const int previous = calls;
+        QVERIFY(nt::evaluateScene(timeline, 200).adjustments.empty());
+        QCOMPARE(calls, previous);
+    }
+    void adjustmentAnimation() {
+        QJsonArray curves;
+        for (const auto &[name, values] : std::initializer_list<std::pair<const char *, QJsonArray>>{
+            {"brightness", keyframes({{0, 0}, {1, 0.4}})}, {"blur", keyframes({{0, 0}, {1, 10}})},
+            {"opacity", keyframes({{0, 0.5}, {1, 1}})}, {"wipeProgress", keyframes({{0, 0}, {1, 1}})}}) {
+            curves.append(QJsonObject{{"property", name}, {"keyframes", values}});
+        }
+        const QJsonArray styles{
+            QJsonObject{{"target", "mask.x"}, {"keyframes", keyframes({{0, 0}, {1, 0.4}})}},
+            QJsonObject{{"target", "effect.grade.contrast"}, {"keyframes", keyframes({{0, 1}, {1, 3}})}}};
+        const QJsonObject custom{{"mask", QJsonObject{{"direction", "right"}, {"softness", 0.1}}}, {"curves", curves}};
+        const QJsonObject animation{{"id", "knobs"}, {"role", "in"}, {"preset", "custom"}, {"durationMs", 1000},
+            {"custom", custom}, {"styleTracks", styles}};
+        auto grade = effect("color"); grade.insert("id", "grade"); grade.insert("contrast", 1);
+        const QJsonObject raw{{"fps", 24}, {"width", 64}, {"height", 32}, {"durationMs", 2000},
+            {"tracks", QJsonArray{QJsonObject{{"id", "v"}, {"type", "video"}}}},
+            {"clips", QJsonArray{QJsonObject{{"id", "a"}, {"trackId", "v"}, {"mediaType", "adjustment"},
+                {"startMs", 0}, {"durationMs", 2000}, {"opacity", 0.6}, {"effects", QJsonArray{grade}},
+                {"mask", QJsonObject{{"kind", "rect"}, {"x", 0}, {"width", 0.5}}},
+                {"animations", QJsonArray{animation}}}}}};
+        const auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson()); QVERIFY(parsed.timeline);
+        const auto token = nt::registerContextAdjustmentDecorator(decorateAdjustment);
+        const auto cleanup = qScopeGuard([&] { nt::unregisterSceneHook(token); });
+        const auto frame = nt::evaluateScene(*parsed.timeline, 500);
+        QCOMPARE(frame.adjustments.size(), size_t{1});
+        const auto &adjustment = frame.adjustments[0];
+        QVERIFY(std::abs(adjustment.opacity - 0.45) < 1e-9);
+        QVERIFY(adjustment.wipe);
+        QCOMPARE(adjustment.wipe->direction, std::string("right"));
+        QCOMPARE(adjustment.wipe->progress, 0.5);
+        QCOMPARE(adjustment.ext.value("shapeMask").toObject().value("x").toDouble(), 0.2);
+        const auto effects = adjustment.ext.value("clipEffects").toArray();
+        QCOMPARE(effects.size(), 3);
+        QCOMPARE(effects[0].toObject().value("contrast").toDouble(), 2.);
+        QCOMPARE(effects[1].toObject().value("brightness").toDouble(), 0.2);
+        QCOMPARE(effects[2].toObject().value("radius").toDouble(), 5.);
+        auto animationOnly = *parsed.timeline;
+        animationOnly.clips[0].raw.insert("effects", QJsonArray{});
+        QVERIFY(nt::evaluateScene(animationOnly, 0).adjustments.empty());
+        const auto animatedFrame = nt::evaluateScene(animationOnly, 500);
+        QCOMPARE(animatedFrame.adjustments.size(), size_t{1});
+        QCOMPARE(animatedFrame.adjustments[0].ext.value("clipEffects").toArray().size(), 2);
+    }
+    void adjustmentStyles() {
+        nt::Timeline timeline; timeline.width = 64; timeline.height = 32; timeline.fps = 24;
+        nt::Clip clip; clip.durationMs = 1000;
+        clip.raw = adjustmentStyleDocument();
+        nt::SceneAdjustment adjustment;
+        const nt::SceneDecorationContext context{timeline, nullptr, 500, 500, 24, 12};
+        QVERIFY(decorateAdjustment(adjustment, clip, context));
+        QCOMPARE(adjustment.ext.value("clipEffects").toArray()[0].toObject().value("colorA").toString(), QString("#808080ff"));
+        const auto path = adjustment.ext.value("shapeMask").toObject().value("d").toString().split(' ');
+        QCOMPARE(path.size(), 10);
+        QCOMPARE(path[1].toDouble(), 0.2);
+        QCOMPARE(path[4].toDouble(), 0.8);
     }
     void trackChain() {
         auto color = effect("color"); color.insert("brightness", 0.25); color.insert("contrast", 2);

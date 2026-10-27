@@ -1,5 +1,6 @@
 #pragma once
 #include "preview/layers/LayerRegistry.h"
+#include "preview/effects/Masks.h"
 #include <QJsonArray>
 #include <QRect>
 #include <QString>
@@ -39,7 +40,8 @@ enum class Op {
     VisualFx,
     MaskApply,
     MaskDerive,
-    ScaleOpacity
+    ScaleOpacity,
+    MixTreatment
 };
 struct Pass {
     Op op = Op::Copy;
@@ -64,6 +66,7 @@ QRect cropPixels(const QJsonObject &ext, QSize inputSize);
 void decorateEffects(QJsonObject &ext, const Clip &clip, double timeMs = 0);
 void decorateEffects(QJsonObject &ext, const Clip &clip, const SceneDecorationContext &context);
 void decorateTrackEffects(QJsonObject &ext, const Track *track);
+bool decorateAdjustment(SceneAdjustment &, const Clip &, const SceneDecorationContext &);
 class DrawCache;
 class ClipEffectStage final : public LayerEffectStage {
   public:
@@ -76,5 +79,15 @@ class ClipEffectStage final : public LayerEffectStage {
     struct Lut;
     std::shared_ptr<DrawCache> m_drawCache;
     std::list<std::pair<QByteArray, std::shared_ptr<Lut>>> m_luts;
+};
+class AdjustmentTreatment {
+  public:
+    bool applies(const QJsonObject &) const;
+    bool render(const EffectContext &, const LayerFrame &, QRhiTextureRenderTarget &, const SceneAdjustment &);
+
+  private:
+    ClipEffectStage m_chain;
+    MaskRasterizer m_rasterizer;
+    std::shared_ptr<DrawCache> m_cache;
 };
 } // namespace nt::effects

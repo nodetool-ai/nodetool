@@ -28,6 +28,10 @@ struct ContextLayerHook {
     ContextLayerDecorator decorate;
     void operator()(ActiveLayer&, const Clip&, double) const {}
 };
+struct ContextAdjustmentHook {
+    ContextAdjustmentDecorator decorate;
+    void operator()(ActiveLayer&, const Clip&, double) const {}
+};
 struct ContextGroupHook {
     ContextGroupDecorator decorate;
     void operator()(PrecompositeLayer&, const Clip&, double) const {}
@@ -39,6 +43,10 @@ SceneHookToken registerContextLayerDecorator(ContextLayerDecorator decorator) {
 }
 SceneHookToken registerContextGroupDecorator(ContextGroupDecorator decorator) {
     return registerGroupDecorator(ContextGroupHook{std::move(decorator)});
+}
+
+SceneHookToken registerContextAdjustmentDecorator(ContextAdjustmentDecorator decorator) {
+    return registerLayerDecorator(ContextAdjustmentHook{std::move(decorator)});
 }
 
 bool isVisualMediaType(MediaType type) {
@@ -716,7 +724,11 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
     const auto hooks = sceneHooks();
     std::vector<ContextLayerDecorator> contextLayers;
     std::vector<ContextGroupDecorator> contextGroups;
+    std::vector<ContextAdjustmentDecorator> contextAdjustments;
     for (const auto& hook : hooks.layers) {
+        if (const auto* context = hook.target<ContextAdjustmentHook>(); context && context->decorate) {
+            contextAdjustments.push_back(context->decorate);
+        }
         if (const auto* context = hook.target<ContextLayerHook>(); context && context->decorate) {
             contextLayers.push_back(context->decorate);
         }
@@ -803,6 +815,28 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
     for (const Track* track : tracks) {
         if (!track->visible) continue;
         const bool isVisual = track->type == TrackType::Video || track->type == TrackType::Overlay;
+        if (isVisual && !contextAdjustments.empty()) {
+            for (const Clip* clip : clipsByTrack[track->id]) {
+                if (clip->mediaType != MediaType::Adjustment || clip->hidden || !isActiveAt(*clip, timeMs)) { continue; }
+                const auto parentIt = groups.find(sceneOf(*clip).parentId);
+                const auto* parent = parentIt == groups.end() ? nullptr : &parentIt->second;
+                if (parent && (timeMs < parent->windowStart || timeMs >= parent->windowEnd)) { continue; }
+                const double base = clip->opacity * (parent ? parent->opacity : 1) *
+                    clipFadeGain(*clip, timeMs - clip->startMs);
+                const auto animated = resolveAnimated(*clip, {}, base, nullptr, timeMs, W, H);
+                SceneAdjustment adjustment;
+                adjustment.clipId = clip->id;
+                adjustment.trackIndex = track->index;
+                adjustment.z = trackZ(track->index);
+                adjustment.opacity = clamp01(animated.opacity);
+                adjustment.wipe = animated.mask;
+                if (parent) { adjustment.precomposeGroupId = parent->surfaceId; }
+                const auto context = decorationContext(*clip, steppedTime(*clip, timeMs));
+                bool accepted = false;
+                for (const auto& decorate : contextAdjustments) { accepted = decorate(adjustment, *clip, context) || accepted; }
+                if (accepted) { frame.adjustments.push_back(std::move(adjustment)); }
+            }
+        }
         std::vector<const Clip*> active;
         for (const Clip* c : clipsByTrack[track->id]) {
             if (c->mediaType == MediaType::Group || c->mediaType == MediaType::Adjustment) continue;
@@ -1014,6 +1048,9 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
     }
     std::unordered_map<std::string, const PrecompositeLayer*> surfaceById;
     for (const PrecompositeLayer& g : frame.precomposites) surfaceById[g.clipId] = &g;
+    std::erase_if(frame.adjustments, [&](const SceneAdjustment& adjustment) {
+        return !adjustment.precomposeGroupId.empty() && !surfaceById.contains(adjustment.precomposeGroupId);
+    });
     const auto finish = [&](Pending& p) {
         const AnimatedProps a = resolveAnimated(*p.clip, p.transform, p.layer.opacity, p.camera ? camera : nullptr, timeMs, W, H);
         p.layer.transform = a.transform;

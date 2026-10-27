@@ -1,4 +1,5 @@
 #include "preview/effects/BlendModes.h"
+#include "preview/PreviewCompositor.h"
 #include "preview/effects/ClipEffects.h"
 #include "preview/effects/Masks.h"
 #include "preview/layers/SceneHooks.h"
@@ -9,6 +10,15 @@
 #include <cmath>
 
 namespace {
+class AdjustmentStage final : public nt::BackdropStage {
+    nt::effects::AdjustmentTreatment m_treatment;
+public:
+    bool applies(const QJsonObject &ext) const override { return m_treatment.applies(ext); }
+    bool render(const nt::EffectContext &context, const nt::LayerFrame &input, QRhiTextureRenderTarget &output,
+                const nt::SceneAdjustment &adjustment) override {
+        return m_treatment.render(context, input, output, adjustment);
+    }
+};
 void registerEffects() {
     if (!qobject_cast<QGuiApplication *>(QCoreApplication::instance())) {
         return;
@@ -36,6 +46,8 @@ void registerEffects() {
         nt::effects::decorateEffects(layer.ext, clip, context);
         layer.ext.insert("effectGroupSurface", true);
     });
+    nt::registerContextAdjustmentDecorator(nt::effects::decorateAdjustment);
+    nt::registerBackdropStage([] { return std::make_unique<AdjustmentStage>(); });
     nt::registerSecondSourceProvider(nt::effects::generatedMatteSources);
     nt::registerEffectStage([] { return std::make_unique<nt::effects::GeneratedMatteSourceStage>(); });
     nt::registerEffectStage([] { return std::make_unique<nt::effects::ClipEffectStage>(); });

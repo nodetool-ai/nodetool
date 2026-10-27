@@ -15,7 +15,7 @@ premultiplied color and alpha with saturation.
 Run from `native/timeline/` on a machine with a working Qt RHI backend:
 
 ```sh
-xvfb-run -a env QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=vulkan ctest --test-dir build -R '^tst_effects(blend|clip|matte)_render$' --output-on-failure
+xvfb-run -a env QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=vulkan ctest --test-dir build -R '^tst_effects(blend|clip|matte|adjustment)_render$' --output-on-failure
 xvfb-run -a env QT_QPA_PLATFORM=xcb QSG_RHI_BACKEND=vulkan node src/preview/effects/check-effects.mjs --bin build/nodetool-timeline
 ```
 
@@ -56,6 +56,28 @@ and disabled effects drop out. Track chroma key runs before the clip shader
 steps, color and blur aggregate across both scopes, then the first enabled
 track sharpen and vignette run. Group surfaces carry only group effects,
 matching the export.
+
+Adjustment decorators fill `SceneFrame::adjustments` through
+`registerContextAdjustmentDecorator`, using the same token and snapshot lifetime
+as the layer and group hooks. They accept records with enabled clip effects,
+including animation channels, and omit track effects. The scene resolves fade,
+animated opacity, wipe and the containing surface. No adjustment fields enter
+the plan JSON.
+
+`registerBackdropStage` snapshots factories when a renderer initializes its QRhi.
+At an adjustment's z, after pictures at equal z, the compositor copies the
+container's premultiplied accumulation into a distinct pooled texture. The
+stage treats that copy and writes a complete replacement. Frame and group
+surfaces use the same container loop for preview and stills. J keeps the clip
+chain output premultiplied, then mixes every premultiplied channel by
+opacity times mask coverage times wipe. Shape-mask inversion is baked into the
+coverage raster. Both the chain and mix retire resources through their last use.
+
+`adjustment-two-layers` covers overlapping pictures with color and blur, a
+partial mask and faded opacity. `adjustment-group` treats a translucent group
+child while leaving an outside picture untreated, with an inverted mask.
+Both fixtures use frames 6 and 18. `tst_effectsadjustment_render` also checks
+neutral treatment on half-alpha group pixels and equal-z ordering.
 
 The GLSL port follows the exporter's fullscreen triangle so hash cells and
 glitch rows use the same UV interpolation. Spatial samples clamp to the layer
