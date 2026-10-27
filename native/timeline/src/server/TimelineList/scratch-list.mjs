@@ -1,5 +1,5 @@
 // Exercises package A's actual list controller and the app loader on an isolated
-// scratch server. --startup-label also enforces the blocked ServerSource seam.
+// scratch server, including the source label returned by the startup list.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import fs from "node:fs";
@@ -64,17 +64,17 @@ try {
   assert.equal(renamed.documents[0].name, "Renamed cut");
   const opened = await command("open", projectArgs);
   assert.equal(opened.source, `${server.base}#timeline=${created.id}`);
+  const listed = run(["--server", server.base, "--list-timelines"]);
+  assert.equal(listed.status, 0, listed.stderr);
+  assert.ok(JSON.parse(listed.stdout).some((timeline) => timeline.id === created.id));
   const loaded = run(["--server", server.base, "--timeline", created.id, "--dump-plan", "--times", "0"]);
   assert.equal(loaded.status, 0, loaded.stderr);
   assert.ok(loaded.stdout.trim().length > 0, "app loader must produce a plan");
   console.log("PASS scratch: list, create defaults, project scope, rename, open through app loader");
   const direct = run([opened.source, "--dump-plan", "--times", "0"]);
-  if (process.argv.includes("--startup-label")) {
-    assert.equal(direct.status, 0, `startup label must load through app: ${direct.stderr}`);
-  } else {
-    // Keep the failing integration observable, without pretending --server proves startup open.
-    console.log(direct.status === 0 ? "PASS startup source label" : `BLOCKED startup source label: exit ${direct.status}`);
-  }
+  assert.equal(direct.status, 0, `startup label must load through app: ${direct.stderr}`);
+  assert.ok(direct.stdout.trim().length > 0, "startup label must produce a plan");
+  console.log("PASS startup source label");
   const unconfirmed = run(["--timeline-list-command", "delete", ...projectArgs]);
   assert.notEqual(unconfirmed.status, 0, "delete must require confirmation");
   assert.equal((await session.query(server.base, "timeline.get", { id: created.id })).id, created.id);
