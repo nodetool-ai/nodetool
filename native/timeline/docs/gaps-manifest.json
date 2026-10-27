@@ -301,8 +301,14 @@
         "src/server/TimelineList*",
         "qml/TimelineListPanel.qml",
         "qml/ProjectSettingsDialog.qml",
-        "src/server/ServerSource.*"
+        "src/server/ServerSource.*",
+        "src/server/AutosaveController.*",
+        "tests/tst_autosave.cpp"
       ],
+      "ownsNotes": {
+        "src/server/AutosaveController.*": "shared with PX and SY (merged), approved by the user (D14)",
+        "tests/tst_autosave.cpp": "shared with PX and SY (merged), approved by the user (D14)"
+      },
       "web": [
         "web/src/components/timeline/TimelineListPanel.tsx",
         "web/src/components/timeline/TimelineDocumentBar.tsx",
