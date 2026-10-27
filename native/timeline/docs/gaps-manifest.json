@@ -1113,6 +1113,16 @@
         "qml/mixer/",
         "qml/Tracks/automation/"
       ],
+      "ownsShared": [
+        {
+          "path": "src/audio/Mixer.cpp",
+          "note": "shared with its merged owner, approved by the user (D15)"
+        },
+        {
+          "path": "src/audio/effects/Effects.cpp",
+          "note": "shared with its merged owner, approved by the user (D15)"
+        }
+      ],
       "web": [
         "web/src/components/timeline/Tracks/automation/",
         "web/src/components/timeline/daw/mixer/",

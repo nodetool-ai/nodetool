@@ -7,7 +7,7 @@
 
 namespace nt::automation {
 namespace {
-struct Breakpoint { double time; double value; };
+struct Breakpoint { double time; float value; };
 class Ramp final : public audio::ParameterSource {
 public:
     Ramp(const QJsonArray& points,bool gain,bool subdivide,bool pan=false) {
@@ -17,7 +17,7 @@ public:
             const auto bp=value.toObject(); double v=bp["value"].toDouble();
             if (gain) { v=std::pow(10.,v/20); }
             if (pan) { v=std::clamp(v,-1.,1.); }
-            points_.push_back({bp["timeMs"].toDouble(),v});
+            points_.push_back({bp["timeMs"].toDouble(),static_cast<float>(v)});
         }
     }
     double valueAt(double time,double base) const noexcept override {
@@ -26,7 +26,10 @@ public:
         if (next==points_.begin()) { return next->value; }
         const auto& a=*(next-1);
         if (next==points_.end()) { return a.value; }
-        return a.value+(next->value-a.value)*(time-a.time)/(next->time-a.time);
+        // AudioParam rounds endpoints and the ramp fraction to f32, then
+        // interpolates with one rounding via f32 fused multiply-add.
+        const float fraction=static_cast<float>((time-a.time)/(next->time-a.time));
+        return std::fma(fraction,next->value-a.value,a.value);
     }
 private:
     std::vector<Breakpoint> points_;
