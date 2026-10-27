@@ -1,0 +1,17 @@
+include_guard(GLOBAL)
+nt_sources(app src/wiring/w/WPanels.cpp)
+nt_qml_sources(src/wiring/w/TrackEffectsModel.h src/wiring/w/TrackEffectsModel.cpp
+    src/wiring/w/TrackEffectEdits.cpp)
+nt_sources(qml_resources src/wiring/w/TrackEffectsReference.json)
+function(nt_wiring_w_tests)
+    qt_add_executable(tst_wiringw src/wiring/w/tst_wiringw.cpp ${NT_app})
+    set_target_properties(tst_wiringw PROPERTIES MACOSX_BUNDLE FALSE)
+    target_link_libraries(tst_wiringw PRIVATE timeline_core timeline_decode timeline_audio timeline_server
+        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
+    nt_add_timeline_qml(tst_wiringw OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_wiringw_qml/NodeTool/Timeline)
+    add_test(NAME tst_wiringw COMMAND tst_wiringw)
+    add_test(NAME wiring_w_curves COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/src/wiring/w/curves.mjs)
+    add_test(NAME wiring_w_reference COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/src/wiring/w/reference.mjs ${CMAKE_CURRENT_BINARY_DIR}/tmp)
+    add_test(NAME wiring_w_effects_oracle COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/src/wiring/w/effects-oracle.mjs $<TARGET_FILE:tst_wiringw>)
+endfunction()
+nt_tests(nt_wiring_w_tests)
