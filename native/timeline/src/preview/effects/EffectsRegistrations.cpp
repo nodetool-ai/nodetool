@@ -13,8 +13,9 @@ void registerEffects() {
     if (!qobject_cast<QGuiApplication *>(QCoreApplication::instance())) {
         return;
     }
-    nt::registerLayerDecorator([](nt::ActiveLayer &layer, const nt::Clip &clip, double timeMs) {
-        nt::effects::decorateEffects(layer.ext, clip, timeMs);
+    nt::registerContextLayerDecorator([](nt::ActiveLayer &layer, const nt::Clip &clip, const nt::SceneDecorationContext &context) {
+        nt::effects::decorateEffects(layer.ext, clip, context.sequenceTimeMs);
+        nt::effects::decorateTrackEffects(layer.ext, context.track);
         const auto crop = clip.raw.value("crop").toObject();
         if (!crop.isEmpty() && layer.sourceRect == std::array<float, 4>{0, 0, 1, 1}) {
             const double left = crop.value("left").toDouble(), right = crop.value("right").toDouble();

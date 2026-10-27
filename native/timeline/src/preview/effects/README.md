@@ -34,8 +34,18 @@ step 2 effects, all stylize modes, all generator modes, shape masks and mattes.
 `stylize-modes` and `generator-modes` place each mode in its own one-second
 clip. `visualFxFixtures` in `check-effects.mjs` lists every mode and frame.
 Animated stylize and generator effects receive sequence time in seconds from
-both scene decorators. The grain seed still needs an fps/frame-index seam.
+both scene decorators. The context hooks in
+[`SceneHooks.h`](../layers/SceneHooks.h) also carry the document, the clip's
+track, clip evaluation time, sequence time, fps and sequence frame index.
+Fixed grain keeps its authored seed.
 The driver compares every listed frame with the export.
+
+The `track-*` fixtures cover color correction, video blur, sharpen, vignette,
+chroma key, clip-plus-track aggregation and a grouped leaf. Track audio kinds
+and disabled effects drop out. Track chroma key runs before the clip shader
+steps, color and blur aggregate across both scopes, then the first enabled
+track sharpen and vignette run. Group surfaces carry only group effects,
+matching the export.
 
 The GLSL port follows the exporter's fullscreen triangle so hash cells and
 glitch rows use the same UV interpolation. Spatial samples clamp to the layer

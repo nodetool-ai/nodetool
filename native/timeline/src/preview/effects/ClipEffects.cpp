@@ -141,7 +141,7 @@ struct ClipEffectStage::Lut {
     std::unique_ptr<QRhiTexture> texture;
 };
 bool ClipEffectStage::applies(const QJsonObject &ext) const {
-    return !planChain(ext.value("clipEffects").toArray()).empty();
+    return !planChain(ext.value("clipEffects").toArray(), ext.value("trackEffects").toArray()).empty();
 }
 QMargins ClipEffectStage::outset(const QJsonObject &ext, QSize) const {
     return chainOutset(ext.value("clipEffects").toArray());
@@ -152,7 +152,7 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
         return false;
     }
     const auto effects = ext.value("clipEffects").toArray();
-    const auto chain = planChain(effects);
+    const auto chain = planChain(effects, ext.value("trackEffects").toArray());
     const auto crop = cropPixels(ext, input.size);
     const auto margins = outset(ext, input.size);
     const QSize workingSize = crop.size() + QSize(margins.left() + margins.right(), margins.top() + margins.bottom());

@@ -21,6 +21,26 @@
 
 namespace nt {
 
+namespace {
+// These callables keep context hooks in the existing registry, including its
+// token allocation, snapshots and unregister lifetime. Dispatch follows legacy hooks.
+struct ContextLayerHook {
+    ContextLayerDecorator decorate;
+    void operator()(ActiveLayer&, const Clip&, double) const {}
+};
+struct ContextGroupHook {
+    ContextGroupDecorator decorate;
+    void operator()(PrecompositeLayer&, const Clip&, double) const {}
+};
+}
+
+SceneHookToken registerContextLayerDecorator(ContextLayerDecorator decorator) {
+    return registerLayerDecorator(ContextLayerHook{std::move(decorator)});
+}
+SceneHookToken registerContextGroupDecorator(ContextGroupDecorator decorator) {
+    return registerGroupDecorator(ContextGroupHook{std::move(decorator)});
+}
+
 bool isVisualMediaType(MediaType type) {
     switch (type) {
     case MediaType::Image:
@@ -694,6 +714,25 @@ std::array<float, 16> layerMatrix(const ClipTransform& transform, int sourceWidt
 
 SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
     const auto hooks = sceneHooks();
+    std::vector<ContextLayerDecorator> contextLayers;
+    std::vector<ContextGroupDecorator> contextGroups;
+    for (const auto& hook : hooks.layers) {
+        if (const auto* context = hook.target<ContextLayerHook>(); context && context->decorate) {
+            contextLayers.push_back(context->decorate);
+        }
+    }
+    for (const auto& hook : hooks.groups) {
+        if (const auto* context = hook.target<ContextGroupHook>(); context && context->decorate) {
+            contextGroups.push_back(context->decorate);
+        }
+    }
+    std::unordered_map<std::string, const Track*> trackById;
+    for (const auto& track : timeline.tracks) { trackById.emplace(track.id, &track); }
+    const auto decorationContext = [&](const Clip& clip, double evaluationTimeMs) {
+        const auto track = trackById.find(clip.trackId);
+        return SceneDecorationContext{timeline, track == trackById.end() ? nullptr : track->second,
+            evaluationTimeMs, timeMs, timeline.fps, static_cast<long long>(std::floor(timeMs * timeline.fps / 1000))};
+    };
     const double W = timeline.width;
     const double H = timeline.height;
     const scene::Camera2D* camera =
@@ -970,6 +1009,8 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
         const auto found = clipById.find(group.clipId);
         if (found == clipById.end()) { continue; }
         for (const auto& decorate : hooks.groups) { decorate(group, *found->second, timeMs); }
+        const auto context = decorationContext(*found->second, timeMs);
+        for (const auto& decorate : contextGroups) { decorate(group, *found->second, context); }
     }
     std::unordered_map<std::string, const PrecompositeLayer*> surfaceById;
     for (const PrecompositeLayer& g : frame.precomposites) surfaceById[g.clipId] = &g;
@@ -989,6 +1030,8 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
         }
         p.layer.drawOpacity = draw;
         for (const auto& decorate : hooks.layers) { decorate(p.layer, *p.clip, timeMs); }
+        const auto context = decorationContext(*p.clip, steppedTime(*p.clip, timeMs));
+        for (const auto& decorate : contextLayers) { decorate(p.layer, *p.clip, context); }
     };
     std::unordered_map<std::string, std::shared_ptr<const ActiveLayer>> resolvedMattes;
     for (Pending& p : drawn) {

@@ -169,11 +169,23 @@ double channelMidtones(const QJsonArray &values) {
     const auto points = readPoints(values);
     return points.size() < 2 ? 0 : midtone(std::clamp(sample(points, 0.5), 0.0, 1.0));
 }
-std::vector<Pass> planChain(const QJsonArray &effects) {
+std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEffects) {
     std::vector<Pass> result;
+    QJsonArray combined = effects;
+    QJsonObject sharpen, vignette, chromaKey;
+    for (const auto &value : trackEffects) {
+        const auto e = value.toObject();
+        if (!e.value("enabled").toBool()) { continue; }
+        const auto type = e.value("type").toString();
+        if (type == "color" || type == "blur") { combined.append(e); }
+        else if (type == "sharpen" && sharpen.isEmpty()) { sharpen = e; }
+        else if (type == "vignette" && vignette.isEmpty()) { vignette = e; }
+        else if (type == "chromaKey" && chromaKey.isEmpty()) { chromaKey = e; }
+    }
+    if (number(chromaKey, "tolerance") > 0.001) { result = planChain({chromaKey}); }
     std::array<double, 8> grade{0, 1, 1, 0, 0, 0, 0, 0};
     double radius = 0;
-    for (const auto &value : effects) {
+    for (const auto &value : combined) {
         const auto e = value.toObject();
         if (!e.value("enabled").toBool()) {
             continue;
@@ -346,6 +358,12 @@ std::vector<Pass> planChain(const QJsonArray &effects) {
         p.params[3] = 1;
         result.push_back(p);
     }
+    for (const auto &e : {sharpen, vignette}) {
+        if (number(e, "amount") > 0.001) {
+            const auto passes = planChain({e});
+            result.insert(result.end(), passes.begin(), passes.end());
+        }
+    }
     return result;
 }
 QMargins chainOutset(const QJsonArray &effects) {
@@ -390,5 +408,43 @@ void decorateEffects(QJsonObject &ext, const Clip &clip, double timeMs) {
         }
     }
     ext.insert("clipEffects", enabled);
+}
+void decorateTrackEffects(QJsonObject &ext, const Track *track) {
+    QJsonArray converted;
+    if (track) {
+        for (const auto &value : track->raw.value("effects").toArray()) {
+            const auto raw = value.toObject();
+            if (!raw.value("enabled").toBool()) { continue; }
+            const auto type = raw.value("type").toString();
+            QJsonObject e{{"id", raw.value("id")}, {"enabled", true}};
+            const auto copy = [&](std::initializer_list<const char *> keys) {
+                for (const auto *key : keys) {
+                    if (raw.contains(QLatin1String(key))) { e.insert(QLatin1String(key), raw.value(QLatin1String(key))); }
+                }
+            };
+            if (type == "colorCorrection") {
+                e.insert("type", "color");
+                copy({"brightness", "contrast", "saturation", "hue", "temperature", "tint", "shadows", "highlights"});
+            } else if (type == "videoBlur") {
+                e.insert("type", "blur");
+                copy({"radius"});
+            } else if (type == "sharpen") {
+                e.insert("type", type);
+                copy({"amount", "threshold"});
+            } else if (type == "vignette") {
+                e.insert("type", type);
+                e.insert("amount", raw.value("intensity"));
+                copy({"radius", "softness"});
+            } else if (type == "chromaKey") {
+                e.insert("type", type);
+                e.insert("color", raw.value("keyColor"));
+                copy({"tolerance", "softness", "spill"});
+            } else {
+                continue;
+            }
+            converted.append(e);
+        }
+    }
+    ext.insert("trackEffects", converted);
 }
 } // namespace nt::effects

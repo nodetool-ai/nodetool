@@ -682,8 +682,14 @@
       "owns": [
         "shaders/effects/",
         "src/preview/effects/",
-        "scripts/conformance/plan/effects.mjs"
+        "scripts/conformance/plan/effects.mjs",
+        "src/preview/SceneEval.h",
+        "src/preview/SceneEval.cpp",
+        "src/preview/layers/SceneHooks.h",
+        "src/preview/PreviewCompositor.h",
+        "src/preview/PreviewCompositor.cpp"
       ],
+      "ownsNote": "src/preview/SceneEval.h, src/preview/SceneEval.cpp, src/preview/layers/SceneHooks.h and src/preview/PreviewCompositor.*: shared with S4 (merged), approved by the user (D11)",
       "web": [
         "web/src/components/timeline/preview/gpu/compositor.ts",
         "web/src/components/timeline/preview/maskRender.ts",

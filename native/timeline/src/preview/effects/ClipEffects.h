@@ -56,10 +56,11 @@ std::uint16_t cubeHalfBits(float value);
 std::optional<Cube> parseCube(const QString &text);
 CurveKnobs fitCurve(const QJsonArray &points);
 double channelMidtones(const QJsonArray &points);
-std::vector<Pass> planChain(const QJsonArray &effects);
+std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEffects = {});
 QMargins chainOutset(const QJsonArray &effects);
 QRect cropPixels(const QJsonObject &ext, QSize inputSize);
 void decorateEffects(QJsonObject &ext, const Clip &clip, double timeMs = 0);
+void decorateTrackEffects(QJsonObject &ext, const Track *track);
 class DrawCache;
 class ClipEffectStage final : public LayerEffectStage {
   public:
