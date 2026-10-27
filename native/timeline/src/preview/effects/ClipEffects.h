@@ -10,6 +10,8 @@
 #include <optional>
 #include <vector>
 
+namespace nt { struct SceneDecorationContext; }
+
 namespace nt::effects {
 // Values match the branches in clip.frag. Recipes expand into these primitives.
 enum class Op {
@@ -60,6 +62,7 @@ std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEf
 QMargins chainOutset(const QJsonArray &effects);
 QRect cropPixels(const QJsonObject &ext, QSize inputSize);
 void decorateEffects(QJsonObject &ext, const Clip &clip, double timeMs = 0);
+void decorateEffects(QJsonObject &ext, const Clip &clip, const SceneDecorationContext &context);
 void decorateTrackEffects(QJsonObject &ext, const Track *track);
 class DrawCache;
 class ClipEffectStage final : public LayerEffectStage {

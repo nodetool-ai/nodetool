@@ -1,4 +1,5 @@
 #include "preview/effects/ClipEffects.h"
+#include "preview/layers/SceneHooks.h"
 #include "render2d/Paint.h"
 #include <QRegularExpression>
 #include <algorithm>
@@ -405,6 +406,18 @@ void decorateEffects(QJsonObject &ext, const Clip &clip, double timeMs) {
                 e.insert("time", timeMs / 1000);
             }
             enabled.append(e);
+        }
+    }
+    ext.insert("clipEffects", enabled);
+}
+void decorateEffects(QJsonObject &ext, const Clip &clip, const SceneDecorationContext &context) {
+    decorateEffects(ext, clip, context.sequenceTimeMs);
+    auto enabled = ext.value("clipEffects").toArray();
+    for (auto value = enabled.begin(); value != enabled.end(); ++value) {
+        auto e = value->toObject();
+        if (e.value("type") == "grain" && e.value("animate").toBool()) {
+            e.insert("seed", static_cast<double>(context.frameIndex));
+            *value = e;
         }
     }
     ext.insert("clipEffects", enabled);

@@ -14,7 +14,7 @@ void registerEffects() {
         return;
     }
     nt::registerContextLayerDecorator([](nt::ActiveLayer &layer, const nt::Clip &clip, const nt::SceneDecorationContext &context) {
-        nt::effects::decorateEffects(layer.ext, clip, context.sequenceTimeMs);
+        nt::effects::decorateEffects(layer.ext, clip, context);
         nt::effects::decorateTrackEffects(layer.ext, context.track);
         const auto crop = clip.raw.value("crop").toObject();
         if (!crop.isEmpty() && layer.sourceRect == std::array<float, 4>{0, 0, 1, 1}) {
@@ -32,8 +32,8 @@ void registerEffects() {
         layer.ext.insert("effectSourceRect", rect);
         nt::effects::decorateMasks(layer,clip);
     });
-    nt::registerGroupDecorator([](nt::PrecompositeLayer &layer, const nt::Clip &clip, double timeMs) {
-        nt::effects::decorateEffects(layer.ext, clip, timeMs);
+    nt::registerContextGroupDecorator([](nt::PrecompositeLayer &layer, const nt::Clip &clip, const nt::SceneDecorationContext &context) {
+        nt::effects::decorateEffects(layer.ext, clip, context);
         layer.ext.insert("effectGroupSurface", true);
     });
     nt::registerSecondSourceProvider(nt::effects::generatedMatteSources);
