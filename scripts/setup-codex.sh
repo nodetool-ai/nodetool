@@ -62,7 +62,6 @@ if [[ "${SKIP_APT:-0}" != "1" ]]; then
       libdrm2
       libxkbcommon0
       ffmpeg
-      pandoc
     )
 
     # Ubuntu 24.04 renamed libasound2 to libasound2t64. Older images still use

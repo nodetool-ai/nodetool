@@ -171,7 +171,7 @@ export const packsRouter = router({
   })),
 
   /**
-   * Which external runtimes (pandoc, yt-dlp, manimgx, …) are on the *server's*
+   * Which external runtimes (yt-dlp, manimgx, …) are on the *server's*
    * PATH. The desktop app answers this over Electron IPC; browser clients —
    * including every Docker deployment — have no IPC and ask the server that
    * would actually spawn the binary.

@@ -55,7 +55,6 @@ CONDA_DEPENDENCIES=(
     "libwebp"
     "giflib"
     "lame"
-    "pandoc"
     "uv"
     "lua"
 )

@@ -37,9 +37,9 @@ beforeAll(() => {
         install,
         getRuntimeStatuses: async () => [
           {
-            id: "pandoc",
-            name: "Pandoc",
-            description: "Converter.",
+            id: "yt-dlp",
+            name: "yt-dlp",
+            description: "Downloader.",
             installed: false,
             installing: false
           }

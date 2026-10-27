@@ -12,7 +12,6 @@ import { RUNTIME_NPM_PACKAGES, isRuntimeNpmPackageId } from "./runtime-npm-packa
 export type RuntimePackageId =
   | "python"
   | "nodejs"
-  | "pandoc"
   | "yt-dlp"
   | "rust"
   | "manimgx"
@@ -38,7 +37,6 @@ export type RuntimePackageId =
 export const RUNTIME_PACKAGE_NAMES: Readonly<Record<RuntimePackageId, string>> = {
   python: "Python",
   nodejs: "Node.js",
-  pandoc: "Pandoc",
   "yt-dlp": "yt-dlp",
   rust: "Rust",
   manimgx: "ManimGX",
@@ -236,7 +234,6 @@ export function runtimePackageForBinary(binary: string): RuntimePackageId | null
     case "python": case "python3": return "python";
     case "node": return "nodejs";
     case "rustc": case "cargo": return "rust";
-    case "pandoc": return "pandoc";
     case "yt-dlp": return "yt-dlp";
     case "manimgx": return "manimgx";
     case "sd-server": return "sd-cpp";

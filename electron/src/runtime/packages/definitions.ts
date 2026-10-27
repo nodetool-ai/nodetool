@@ -79,17 +79,6 @@ export const RUNTIME_PACKAGES = {
     },
   }),
 
-  pandoc: new CondaRuntimePackage({
-    id: "pandoc",
-    name: "Pandoc",
-    description:
-      "Universal document converter for text and file format conversion.",
-    category: "tool",
-    versionRange: "*",
-    condaPackages: ["pandoc"],
-    verifyBinary: "pandoc",
-  }),
-
   "yt-dlp": new CondaRuntimePackage({
     id: "yt-dlp",
     name: "yt-dlp",

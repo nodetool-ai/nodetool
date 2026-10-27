@@ -1431,7 +1431,6 @@
                               "enum": [
                                 "python",
                                 "nodejs",
-                                "pandoc",
                                 "yt-dlp",
                                 "rust",
                                 "manimgx",
@@ -2557,7 +2556,6 @@
                           "enum": [
                             "python",
                             "nodejs",
-                            "pandoc",
                             "yt-dlp",
                             "rust",
                             "manimgx",

@@ -41,7 +41,6 @@ const RUNTIME_GROUP: Record<string, RuntimeGroup> = {
   python: "language",
   nodejs: "language",
   rust: "language",
-  pandoc: "media",
   "yt-dlp": "media",
   manimgx: "media",
   "transformers-js": "ai",

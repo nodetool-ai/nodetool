@@ -21,7 +21,7 @@ jest.mock("../../../utils/errorHandling", () => ({
 }));
 
 jest.mock("../../node/NodeDependencyWarning.helpers", () => ({
-  RUNTIME_LABELS: { pandoc: "Pandoc", python: "Python" },
+  RUNTIME_LABELS: { "yt-dlp": "yt-dlp", python: "Python" },
   ensureRuntimeStatuses: jest.fn().mockResolvedValue(undefined),
   getCachedRuntimeStatuses: jest.fn(() => ({})),
 }));
@@ -39,7 +39,7 @@ afterEach(() => {
 });
 
 const missing: MissingRuntime[] = [
-  { id: "pandoc", packageId: "pandoc" },
+  { id: "yt-dlp", packageId: "yt-dlp" },
   { id: "python", packageId: "python" },
 ];
 
@@ -59,7 +59,7 @@ function renderDialog(overrides?: Partial<React.ComponentProps<typeof RuntimeIns
 describe("RuntimeInstallDialog", () => {
   it("lists every missing runtime by its friendly label", () => {
     renderDialog();
-    expect(screen.getByText("Pandoc")).toBeInTheDocument();
+    expect(screen.getByText("yt-dlp")).toBeInTheDocument();
     expect(screen.getByText("Python")).toBeInTheDocument();
     expect(screen.getByText("Install all")).toBeInTheDocument();
   });
@@ -72,7 +72,7 @@ describe("RuntimeInstallDialog", () => {
     renderDialog({ onClose });
     await user.click(screen.getByText("Install all"));
 
-    expect(installRuntime).toHaveBeenCalledWith("pandoc");
+    expect(installRuntime).toHaveBeenCalledWith("yt-dlp");
     expect(installRuntime).toHaveBeenCalledWith("python");
     await waitFor(() => expect(onClose).toHaveBeenCalled());
   });
