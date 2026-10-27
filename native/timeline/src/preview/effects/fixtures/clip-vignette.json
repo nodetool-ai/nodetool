@@ -1,0 +1,118 @@
+{
+  "id": "seq-clip-vignette",
+  "projectId": "native-prototype",
+  "name": "clip-vignette",
+  "fps": 30,
+  "width": 1280,
+  "height": 720,
+  "durationMs": 2000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "t0",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t1",
+      "name": "t1",
+      "type": "video",
+      "index": 1,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t2",
+      "name": "t2",
+      "type": "video",
+      "index": 2,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t3",
+      "name": "t3",
+      "type": "video",
+      "index": 3,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t4",
+      "name": "t4",
+      "type": "video",
+      "index": 4,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "vignette-0",
+      "trackId": "t0",
+      "name": "vignette-0",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "effects": [
+        {
+          "id": "vignette-0",
+          "type": "vignette",
+          "enabled": true,
+          "amount": 0.85,
+          "radius": 0.95,
+          "softness": 0.65
+        }
+      ]
+    },
+    {
+      "id": "vignette-1",
+      "trackId": "t0",
+      "name": "vignette-1",
+      "startMs": 1000,
+      "durationMs": 1000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "../../../../fixtures/media/rgb-solid-720p.mp4",
+      "effects": [
+        {
+          "id": "vignette-1",
+          "type": "vignette",
+          "enabled": true,
+          "amount": 0.7,
+          "radius": 1.2,
+          "softness": 0.9
+        }
+      ]
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z",
+  "goldenFrames": [
+    {
+      "frame": 0,
+      "criterion": "J1 vignette two parameter settings, PSNR >= 40 dB"
+    },
+    {
+      "frame": 30,
+      "criterion": "J1 vignette two parameter settings, PSNR >= 40 dB"
+    }
+  ]
+}

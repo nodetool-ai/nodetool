@@ -1,13 +1,18 @@
-nt_sources(decode src/preview/effects/BlendModes.h src/preview/effects/BlendModes.cpp)
+nt_sources(decode src/preview/effects/BlendModes.h src/preview/effects/BlendModes.cpp
+    src/preview/effects/ClipEffects.h src/preview/effects/EffectPlan.cpp src/preview/effects/ClipEffects.cpp)
 nt_sources(app src/preview/effects/EffectsRegistrations.cpp)
 
 function(nt_effects_shaders target)
-    qt_add_shaders(${target} "${target}_effects_shaders" PREFIX "/effects" BASE shaders/effects
-        FILES shaders/effects/blend.vert shaders/effects/blend.frag)
+    qt_add_shaders(${target} "${target}_effects_shaders" PREFIX "/effects" BASE shaders/effects GLSL "330,440"
+        FILES shaders/effects/blend.vert shaders/effects/blend.frag
+            shaders/effects/clip.vert shaders/effects/clip.frag)
 endfunction()
 cmake_language(DEFER CALL nt_effects_shaders nodetool-timeline)
 
 function(nt_effects_tests)
+    qt_add_executable(tst_effectplan src/preview/effects/tst_effectplan.cpp)
+    target_link_libraries(tst_effectplan PRIVATE timeline_decode Qt6::Test)
+    add_test(NAME tst_effectplan COMMAND tst_effectplan)
     qt_add_executable(tst_effectsblend src/preview/effects/tst_effectsblend.cpp
         src/preview/effects/EffectsRegistrations.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
@@ -23,10 +28,12 @@ function(nt_effects_tests)
     nt_effects_shaders(tst_effectsblend)
     add_test(NAME tst_effectsblend_registry COMMAND tst_effectsblend registeredModes)
     set_tests_properties(tst_effectsblend_registry PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
-    add_test(NAME tst_effectsblend_documents COMMAND tst_effectsblend documents)
+    add_test(NAME tst_effectsblend_documents COMMAND tst_effectsblend documents clipDocuments)
     set_tests_properties(tst_effectsblend_documents PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
     add_test(NAME tst_effectsblend_render COMMAND tst_effectsblend blendPixels)
     set_tests_properties(tst_effectsblend_render PROPERTIES LABELS render)
-    add_test(NAME effects_golden_script COMMAND node --test ${CMAKE_CURRENT_SOURCE_DIR}/src/preview/effects/check-effects.test.mjs)
+    add_test(NAME tst_effectsclip_render COMMAND tst_effectsblend clipPixels cropPixelsOnClip spreadPixels groupEffectAlpha)
+    set_tests_properties(tst_effectsclip_render PROPERTIES LABELS render)
+    add_test(NAME effects_golden_script COMMAND node --test --test-isolation=none ${CMAKE_CURRENT_SOURCE_DIR}/src/preview/effects/check-effects.test.mjs)
 endfunction()
 nt_tests(nt_effects_tests)
