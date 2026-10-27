@@ -27,9 +27,11 @@ try {
   const server = await session.startServer("list", port);
   const env = {
     ...session.nativeEnv(server),
+    SECRETS_MASTER_KEY: server.env.SECRETS_MASTER_KEY,
     NODETOOL_SERVER_URL: server.base,
     NODETOOL_API_TOKEN: "",
     NODETOOL_TIMELINE_CACHE_DIR: path.join(work, "cache"),
+    NODETOOL_TIMELINE_PREFERENCES: path.join(work, "preferences.ini"),
     QT_QPA_PLATFORM: "offscreen",
     QT_QUICK_BACKEND: "software"
   };
@@ -75,6 +77,18 @@ try {
   assert.equal(direct.status, 0, `startup label must load through app: ${direct.stderr}`);
   assert.ok(direct.stdout.trim().length > 0, "startup label must produce a plan");
   console.log("PASS startup source label");
+  if (process.argv.includes("--settings-reopen")) {
+    const settings = { width: 1280, height: 720, fps: 24 };
+    const edited = await command("settings", [...projectArgs, "--settings", JSON.stringify(settings)]);
+    const reopened = await command("inspect", projectArgs);
+    const row = await session.query(server.base, "timeline.get", { id: created.id });
+    for (const [key, value] of Object.entries(settings)) {
+      assert.equal(edited[key], value, `edited model ${key}`);
+      assert.equal(reopened[key], value, `reopened model ${key}`);
+      assert.equal(row[key], value, `server row ${key}`);
+    }
+    console.log("PASS scratch: project settings survive app restart and timeline.get");
+  }
   const unconfirmed = run(["--timeline-list-command", "delete", ...projectArgs]);
   assert.notEqual(unconfirmed.status, 0, "delete must require confirmation");
   assert.equal((await session.query(server.base, "timeline.get", { id: created.id })).id, created.id);

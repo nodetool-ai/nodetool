@@ -8,6 +8,10 @@ function(nt_timeline_list_tests)
     add_test(NAME timelinelist_scratch COMMAND node
         ${CMAKE_CURRENT_SOURCE_DIR}/src/server/TimelineList/scratch-list.mjs $<TARGET_FILE:nodetool-timeline> --startup-label)
     set_tests_properties(timelinelist_scratch PROPERTIES TIMEOUT 240 ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    add_test(NAME timelinelist_settings_scratch COMMAND node
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/server/TimelineList/scratch-list.mjs $<TARGET_FILE:nodetool-timeline> --settings-reopen)
+    set_tests_properties(timelinelist_settings_scratch PROPERTIES TIMEOUT 240
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software;NT_TIMELINE_LIST_TEST_PORT=17862")
     qt_add_executable(tst_timelinelistclient src/server/TimelineList/tst_timelinelistclient.cpp)
     target_include_directories(tst_timelinelistclient PRIVATE tests)
     target_link_libraries(tst_timelinelistclient PRIVATE timeline_server Qt6::Test)
