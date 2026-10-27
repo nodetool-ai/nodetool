@@ -21,9 +21,17 @@ public:
     QVariantMap clip() const;
     QVariantList audible() const;
     quint64 generation() const { return m_timeline ? m_timeline->documentGeneration() : 0; }
+    Q_INVOKABLE void beginFade(const QString& clipId, const QString& edge);
+    Q_INVOKABLE void previewFade(double value);
+    Q_INVOKABLE void finishFade();
 signals:
     void changed();
 private:
     QPointer<TimelineModel> m_timeline;
     QStringList m_selection;
+    QJsonObject m_beforeClip;
+    QString m_fadeField;
+    quint64 m_generation = 0;
+    double m_fadeValue = 0;
+    bool m_previewed = false;
 };

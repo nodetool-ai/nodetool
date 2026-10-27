@@ -1,4 +1,5 @@
-nt_qml_sources(src/edit/clipaudio/ClipAudio.h src/edit/clipaudio/ClipAudio.cpp)
+nt_qml_sources(src/edit/clipaudio/ClipAudio.h src/edit/clipaudio/ClipAudio.cpp
+    src/edit/clipaudio/AudioInspectorRegistration.cpp src/edit/clipaudio/AudioEffects.cpp)
 function(nt_clipaudio_tests)
     qt_add_executable(tst_clipaudio src/edit/clipaudio/tst_clipaudio.cpp)
     set_target_properties(tst_clipaudio PROPERTIES MACOSX_BUNDLE FALSE)

@@ -10,6 +10,7 @@ Menu {
     property TimelineModel timeline: null
     property string clipId: ""
     contentItem.Accessible.name: edge === "in" ? "Fade-in shape" : "Fade-out shape"
+    implicitWidth: 180 // ContextMenu MENU_MIN_WIDTH
     font.family: Theme.sansFamily
     font.pixelSize: Theme.fontSizeSmall
     function choose(shape) {

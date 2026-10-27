@@ -1,4 +1,3 @@
-// nt-panel: slot=right id=inspector.audio order=20 title="Audio"
 import QtQuick
 import NodeTool.Timeline
 import "AudioFadeShapes.js" as FadeShapes
@@ -7,12 +6,14 @@ import "primitives/InspectorPrimitivesHelpers.js" as Helpers
 Item {
     id: root
     objectName: "audioSection"
-    property var gestures: typeof tracksRegion !== "undefined" ? tracksRegion.gestures : null
-    property TimelineModel timeline: gestures ? gestures.timeline : null
+    property var timelineModel: null
+    property var controller: null
+    property var gestures: null
+    property TimelineModel timeline: timelineModel
     property var selection: gestures ? gestures.selection : []
-    readonly property var clip: reader.clip
+    readonly property var clip: controller ? controller.clip : reader.clip
     property var gesture: null
-    visible: !!clip.id
+    visible: !!clip.id && (clip.mediaType === "audio" || clip.mediaType === "midi")
     implicitWidth: visible ? Theme.trackHeaderWidth : 0
     implicitHeight: visible ? section.implicitHeight : 0
     width: implicitWidth

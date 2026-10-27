@@ -1,9 +1,11 @@
 #include "ClipAudio.h"
 #include "app/EditRegistry.h"
 #include <QJsonArray>
+#include <QJsonDocument>
 #include <QSet>
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 namespace {
 bool sounding(const QString& type) {
@@ -13,7 +15,7 @@ QString parseShape(const QJsonValue& value) {
     const auto shape = value.toString();
     return shape == "sCurve" || shape == "plus3dB" || shape == "minus3dB" ? shape : QStringLiteral("linear");
 }
-QJsonObject setClipAudio(QJsonObject raw, const QJsonObject& payload) {
+QJsonObject editClipAudio(QJsonObject raw, const QJsonObject& payload, bool grip) {
     const auto field = payload.value("field").toString();
     const auto input = payload.value("value");
     const bool shape = field == "fadeInShape" || field == "fadeOutShape";
@@ -36,7 +38,11 @@ QJsonObject setClipAudio(QJsonObject raw, const QJsonObject& payload) {
         } else if (field == "volumeDb") {
             value = input;
         } else {
-            value = std::clamp(input.toDouble(), 0.0, std::max(0.0, std::floor(clip.value("durationMs").toDouble() / 2)));
+            const auto other = field == "fadeInMs" ? "fadeOutMs" : "fadeInMs";
+            const auto maximum = grip
+                ? clip.value("durationMs").toDouble() - std::max(0.0, clip.value(other).toDouble())
+                : std::floor(clip.value("durationMs").toDouble() / 2);
+            value = std::clamp(input.toDouble(), 0.0, std::max(0.0, maximum));
         }
         clip.insert(field, value);
         clips[i] = clip;
@@ -83,7 +89,13 @@ QJsonObject setClipsGain(QJsonObject raw, const QJsonObject& payload) {
     return raw;
 }
 [[maybe_unused]] const bool registeredGain = nt::app::registerEdit("setClipsGain", setClipsGain);
-[[maybe_unused]] const bool registered = nt::app::registerEdit("setClipAudio", setClipAudio);
+[[maybe_unused]] const bool registered = nt::app::registerEdit("setClipAudio",
+    [](QJsonObject raw, const QJsonObject& payload) { return editClipAudio(std::move(raw), payload, false); });
+[[maybe_unused]] const bool registeredGrip = nt::app::registerEdit("setClipFadeGrip",
+    [](QJsonObject raw, const QJsonObject& payload) {
+        const auto field = payload.value("field").toString();
+        return field == "fadeInMs" || field == "fadeOutMs" ? editClipAudio(std::move(raw), payload, true) : raw;
+    });
 }
 void ClipAudio::setTimeline(TimelineModel* timeline) {
     if (m_timeline == timeline) {
@@ -93,11 +105,51 @@ void ClipAudio::setTimeline(TimelineModel* timeline) {
         disconnect(m_timeline, nullptr, this, nullptr);
     }
     m_timeline = timeline;
+    m_beforeClip = {};
     if (timeline) {
         connect(timeline, &TimelineModel::clipsChanged, this, &ClipAudio::changed);
         connect(timeline, &QObject::destroyed, this, &ClipAudio::changed);
+        connect(timeline, &TimelineModel::documentReplaced, this, [this] { m_beforeClip = {}; emit changed(); });
     }
     emit changed();
+}
+void ClipAudio::beginFade(const QString& clipId, const QString& edge) {
+    finishFade();
+    if (!m_timeline || (edge != "in" && edge != "out")) { return; }
+    for (const auto& value : m_timeline->clipsJson()) {
+        const auto clip = value.toObject();
+        if (clip.value("id").toString() == clipId && sounding(clip.value("mediaType").toString())) {
+            m_beforeClip = clip;
+            m_fadeField = edge == "in" ? "fadeInMs" : "fadeOutMs";
+            m_generation = generation();
+            m_previewed = false;
+            return;
+        }
+    }
+}
+void ClipAudio::previewFade(double value) {
+    if (!m_timeline || m_beforeClip.isEmpty() || m_generation != generation() || !std::isfinite(value)) { return; }
+    const auto raw = QJsonDocument::fromJson(m_timeline->documentJson()).object();
+    m_fadeValue = value;
+    m_previewed = true;
+    m_timeline->replaceClips(editClipAudio(raw, {{"clipId", m_beforeClip.value("id")},
+        {"field", m_fadeField}, {"value", value}}, true).value("clips").toArray());
+}
+void ClipAudio::finishFade() {
+    const auto before = std::exchange(m_beforeClip, {});
+    if (!m_timeline || before.isEmpty() || !m_previewed || m_generation != generation()) { return; }
+    auto clips = m_timeline->clipsJson();
+    for (qsizetype index = 0; index < clips.size(); ++index) {
+        auto clip = clips[index].toObject();
+        if (clip.value("id") != before.value("id")) { continue; }
+        if (before.contains(m_fadeField)) { clip.insert(m_fadeField, before.value(m_fadeField)); }
+        else { clip.remove(m_fadeField); }
+        clips[index] = clip;
+        m_timeline->replaceClips(clips);
+        m_timeline->applyEdit("setClipFadeGrip", {{"clipId", before.value("id")},
+            {"field", m_fadeField}, {"value", m_fadeValue}});
+        return;
+    }
 }
 void ClipAudio::setSelection(const QStringList& selection) {
     if (selection != m_selection) {
