@@ -192,6 +192,103 @@ class TestEffectPlan : public QObject {
         QCOMPARE(path[1].toDouble(), 0.2);
         QCOMPARE(path[4].toDouble(), 0.8);
     }
+    void clipAndGroupStyles_data() {
+        QTest::addColumn<bool>("group");
+        QTest::addColumn<double>("time");
+        for (bool group : {false, true}) {
+            for (double time : {250., 750.}) {
+                QTest::newRow(qPrintable(QString("%1-%2").arg(group ? "group" : "leaf").arg(time))) << group << time;
+            }
+        }
+    }
+    void clipAndGroupStyles() {
+        QFETCH(bool, group);
+        QFETCH(double, time);
+        nt::Timeline timeline; timeline.width = 64; timeline.height = 32;
+        nt::Clip clip; clip.durationMs = 1000;
+        clip.raw = QJsonDocument::fromJson(R"({
+            "effects":[{"id":"grade","type":"color","enabled":true,"brightness":0}],
+            "mask":{"kind":"rect","x":0,"width":0.5},
+            "animations":[{"id":"style","role":"in","preset":"custom","durationMs":1000,
+                "custom":{"curves":[]},"styleTracks":[
+                    {"target":"effect.grade.brightness","keyframes":[{"t":0,"value":0},{"t":1,"value":1}]},
+                    {"target":"mask.x","keyframes":[{"t":0,"value":0},{"t":1,"value":0.4}]}]}]
+        })").object();
+        const auto authored = clip.raw;
+        clip.mediaType = group ? nt::MediaType::Group : nt::MediaType::Video;
+        for (bool masksFirst : {false, true}) {
+            nt::ActiveLayer layer;
+            if (masksFirst) { decorateMasks(layer, clip); }
+            decorateEffects(layer.ext, clip, {timeline, nullptr, time, time, 30, 0});
+            if (!masksFirst) { decorateMasks(layer, clip); }
+            QCOMPARE(layer.ext.value("clipEffects").toArray()[0].toObject().value("brightness").toDouble(), group ? 0. : time / 1000);
+            if (group) {
+                QVERIFY(!layer.ext.contains("shapeMask"));
+            } else {
+                QCOMPARE(layer.ext.value("shapeMask").toObject().value("x").toDouble(), time / 1000 * 0.4);
+            }
+        }
+        QCOMPARE(clip.raw, authored);
+    }
+    void leafAdditiveTreatments() {
+        nt::Timeline timeline; timeline.width = 64; timeline.height = 32;
+        nt::Clip clip; clip.durationMs = 1000;
+        clip.raw = QJsonDocument::fromJson(R"({
+            "effects":[{"id":"grade","type":"color","enabled":true,"brightness":0}],
+            "animations":[{"id":"color","role":"in","preset":"custom","durationMs":1000,
+                "custom":{"curves":[
+                    {"property":"brightness","keyframes":[{"t":0,"value":0},{"t":1,"value":0.4}]},
+                    {"property":"blur","keyframes":[{"t":0,"value":0},{"t":1,"value":10}]}]},
+                "styleTracks":[{"target":"effect.grade.brightness","keyframes":[{"t":0,"value":0},{"t":1,"value":0.6}]}]}]
+        })").object();
+        QJsonObject ext;
+        decorateEffects(ext, clip, {timeline, nullptr, 500, 500, 30, 15});
+        const auto effects = ext.value("clipEffects").toArray();
+        QCOMPARE(effects.size(), 3);
+        QCOMPARE(effects[0].toObject().value("brightness").toDouble(), 0.3);
+        QCOMPARE(effects[1].toObject().value("brightness").toDouble(), 0.2);
+        QCOMPARE(effects[2].toObject().value("radius").toDouble(), 5.);
+        clip.mediaType = nt::MediaType::Group;
+        decorateEffects(ext, clip, {timeline, nullptr, 500, 500, 30, 15});
+        QCOMPARE(ext.value("clipEffects").toArray().size(), 1);
+        QCOMPARE(ext.value("clipEffects").toArray()[0].toObject().value("brightness").toDouble(), 0.);
+    }
+    void steppedVisualTime() {
+        nt::Timeline timeline;
+        nt::Clip clip; clip.startMs = 200; clip.durationMs = 1500;
+        clip.raw.insert("steppedTime", QJsonObject{{"fps", 4}});
+        clip.raw.insert("effects", QJsonArray{
+            QJsonObject{{"type", "stylize"}, {"mode", "turbulence"}, {"enabled", true}, {"animate", true}},
+            QJsonObject{{"type", "generator"}, {"mode", "fractal"}, {"enabled", true}, {"animate", true}},
+            QJsonObject{{"type", "grain"}, {"enabled", true}, {"animate", true}}});
+        QJsonObject ext;
+        decorateEffects(ext, clip, {timeline, nullptr, 700, 735.9, 24, 17});
+        const auto effects = ext.value("clipEffects").toArray();
+        QCOMPARE(effects[0].toObject().value("time").toDouble(), 0.7);
+        QCOMPARE(effects[1].toObject().value("time").toDouble(), 0.7);
+        QCOMPARE(effects[2].toObject().value("seed").toDouble(), 17.);
+        clip.mediaType = nt::MediaType::Group;
+        decorateEffects(ext, clip, {timeline, nullptr, 735.9, 735.9, 24, 17});
+        QCOMPARE(ext.value("clipEffects").toArray()[0].toObject().value("time").toDouble(), 0.7359);
+    }
+    void hugeBlurRadii() {
+        for (const auto *value : {"1e9", "1e300", "1e308"}) {
+            const auto raw = QJsonDocument::fromJson(QByteArray("{\"radius\":") + value + ",\"blur\":" + value + "}").object();
+            for (const auto *type : {"blur", "glow", "dropShadow", "directionalBlur"}) {
+                auto e = raw; e.insert("type", type); e.insert("enabled", true);
+                const auto chain = planChain({e});
+                QVERIFY(!chain.empty());
+                for (const auto &pass : chain) {
+                    if (pass.op == Op::Gaussian) {
+                        QVERIFY(std::isfinite(pass.params[0]));
+                        QVERIFY(pass.params[0] >= 0 && pass.params[0] <= 256);
+                    }
+                }
+                const auto outset = chainOutset({e});
+                QVERIFY(outset.left() >= 0);
+            }
+        }
+    }
     void trackChain() {
         auto color = effect("color"); color.insert("brightness", 0.25); color.insert("contrast", 2);
         auto trackColor = color; trackColor.insert("brightness", 0.5); trackColor.insert("contrast", 3);

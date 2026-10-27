@@ -33,8 +33,8 @@ step 2 effects, all stylize modes, all generator modes, shape masks and mattes.
 
 `stylize-modes` and `generator-modes` place each mode in its own one-second
 clip. `visualFxFixtures` in `check-effects.mjs` lists every mode and frame.
-Animated stylize and generator effects receive sequence time in seconds from
-both scene decorators. The context hooks in
+Animated stylize and generator effects receive clip evaluation time in seconds,
+stepped for leaves and unstepped for groups. The context hooks in
 [`SceneHooks.h`](../layers/SceneHooks.h) also carry the document, the clip's
 track, clip evaluation time, sequence time, fps and sequence frame index.
 Fixed grain keeps its authored seed.
@@ -62,7 +62,11 @@ Adjustment decorators fill `SceneFrame::adjustments` through
 as the layer and group hooks. They accept records with enabled clip effects,
 including animation channels, and omit track effects. The scene resolves fade,
 animated opacity, wipe and the containing surface. No adjustment fields enter
-the plan JSON.
+the plan JSON. Leaves and adjustments share effect and mask style-track
+sampling and append additive color and blur channels once, covered at distinct
+frames 6 and 24 by `clip-effect-animated`. Groups retain authored effects
+without style-track or additive sampling and omit shape masks, matching the
+web precomposite.
 
 `registerBackdropStage` snapshots factories when a renderer initializes its QRhi.
 At an adjustment's z, after pictures at equal z, the compositor copies the
@@ -108,7 +112,10 @@ and texture cache. The shape stage follows the clip chain, before placement.
 Rounded rects use `kind: rect` with `radiusPx`. Unknown kinds and invalid paths
 leave the layer unmasked. The web group precomposite has no shape-mask pass,
 so native group masks are ignored too. Path and rounded-rect feathers use a
-CPU Gaussian approximation to Canvas filter blur. Inverted feathered ellipses
+CPU Gaussian approximation to Canvas filter blur. Feather is finite and
+bounded before radius conversion, with the Gaussian support capped at the
+raster extent. GPU blur radii, including generated and track matte feather,
+are capped at 256 pixels before narrowing or shader offset conversion. Inverted feathered ellipses
 reproduce the export rasterizer's destination-out clipping at the ellipse
 centre, covered by `mask-invert`. That raster differs from a full complement
 in browser Canvas. Inverted path and rounded-rect feathers also reproduce
@@ -120,7 +127,13 @@ and blend meet the stack once. The stage supports strength and feather in
 `LayerMatte`. Web track documents expose neither field, so their coverage
 runs through direct stage tests. Generated matte documents expose both.
 Generated matte videos use the picture source clock and dimensions, keeping
-the same placement through a separate matte-source entry.
+the same placement through a separate matte-source entry. That entry keeps
+geometry, timing and resolved clip effects, shape masks and animated layer
+masks regardless of decorator order. It drops track effects, transition reveals
+and dip solids, uses opacity 1 and normal blending, following exporter output
+rather than the comment above `resolveGeneratedMatte`.
+`generated-matte-effects` checks clip brightness and a feathered shape mask on
+both sources, with track brightness only on the picture, at frames 0 and 21.
 
 The `clip-posterize-midpoint` golden establishes byte 127 on the driver GPU.
 The pixel test uses that value and the shader keeps the step 2 UNORM write.

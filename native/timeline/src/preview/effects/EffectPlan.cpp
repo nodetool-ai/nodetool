@@ -1,4 +1,5 @@
 #include "preview/effects/ClipEffects.h"
+#include "preview/effects/BlurBounds.h"
 #include "preview/layers/SceneHooks.h"
 #include "render2d/Paint.h"
 #include "scene/ClipScene.h"
@@ -242,7 +243,7 @@ std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEf
             v[0] = f(e, "levels", 4);
         } else if (type == "directionalBlur") {
             p.op = Op::Gaussian;
-            v[0] = f(e, "radius");
+            v[0] = static_cast<float>(boundedBlurRadius(number(e, "radius")));
             v[1] = std::max(0.001f, v[0] / 3);
             const double angle = number(e, "angle") * std::numbers::pi / 180;
             v[2] = float(std::cos(angle));
@@ -313,7 +314,7 @@ std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEf
             v = {0.7f, 0.1f};
             result.push_back(p);
             p.op = Op::Gaussian;
-            p.params = {f(e, glow ? "radius" : "blur"), 0, 1, 0};
+            p.params = {static_cast<float>(boundedBlurRadius(number(e, glow ? "radius" : "blur"))), 0, 1, 0};
             result.push_back(p);
             p.params[2] = 0;
             p.params[3] = 1;
@@ -351,7 +352,7 @@ std::vector<Pass> planChain(const QJsonArray &effects, const QJsonArray &trackEf
         std::transform(grade.begin(), grade.end(), p.params.begin(), [](double x) { return float(x); });
         result.push_back(p);
     }
-    radius = std::min(256.0, radius);
+    radius = std::isinf(radius) && radius > 0 ? 256 : boundedBlurRadius(radius);
     if (radius >= 0.5) {
         Pass p;
         p.op = Op::Gaussian;
@@ -377,10 +378,10 @@ QMargins chainOutset(const QJsonArray &effects) {
             continue;
         }
         if (e.value("type") == "glow") {
-            margin += std::max(0.0, number(e, "radius")) * 3;
+            margin += boundedBlurRadius(number(e, "radius")) * 3;
         } else if (e.value("type") == "dropShadow") {
             margin += std::max(std::abs(number(e, "offsetX")), std::abs(number(e, "offsetY"))) +
-                      std::max(0.0, number(e, "blur")) * 3;
+                      boundedBlurRadius(number(e, "blur")) * 3;
         }
     }
     // Keep malformed documents from overflowing QSize before the compositor validates it.
@@ -408,18 +409,6 @@ void decorateEffects(QJsonObject &ext, const Clip &clip, double timeMs) {
                 e.insert("time", timeMs / 1000);
             }
             enabled.append(e);
-        }
-    }
-    ext.insert("clipEffects", enabled);
-}
-void decorateEffects(QJsonObject &ext, const Clip &clip, const SceneDecorationContext &context) {
-    decorateEffects(ext, clip, context.sequenceTimeMs);
-    auto enabled = ext.value("clipEffects").toArray();
-    for (auto value = enabled.begin(); value != enabled.end(); ++value) {
-        auto e = value->toObject();
-        if (e.value("type") == "grain" && e.value("animate").toBool()) {
-            e.insert("seed", static_cast<double>(context.frameIndex));
-            *value = e;
         }
     }
     ext.insert("clipEffects", enabled);
@@ -467,9 +456,8 @@ QJsonValue interpolateStyle(const QJsonValue &from, const QJsonValue &to, double
     }
     return t < 1 ? from : to;
 }
-}
 
-bool decorateAdjustment(SceneAdjustment &adjustment, const Clip &clip, const SceneDecorationContext &context) {
+Clip resolveAnimatedTreatments(const Clip &clip, const SceneDecorationContext &context) {
     Clip animated = clip;
     auto effects = clip.raw.value("effects").toArray();
     auto mask = clip.raw.value("mask").toObject();
@@ -537,14 +525,39 @@ bool decorateAdjustment(SceneAdjustment &adjustment, const Clip &clip, const Sce
         effects.append(QJsonObject{{"id", "anim-blur"}, {"type", "blur"}, {"enabled", true}, {"radius", sample.blur}});
     }
     animated.raw.insert("effects", effects);
-    decorateEffects(adjustment.ext, animated, context);
+    if (!mask.isEmpty()) { animated.raw.insert("mask", mask); }
+    return animated;
+}
+} // namespace
+
+void decorateEffects(QJsonObject &ext, const Clip &clip, const SceneDecorationContext &context) {
+    const bool group = clip.mediaType == MediaType::Group || ext.value("effectGroupSurface").toBool();
+    const auto animated = group ? clip : resolveAnimatedTreatments(clip, context);
+    decorateEffects(ext, animated, context.timeMs);
+    if (group) {
+        ext.remove("shapeMask");
+    } else if (animated.raw.value("mask").isObject()) {
+        ext.insert("shapeMask", animated.raw.value("mask"));
+    }
+    auto enabled = ext.value("clipEffects").toArray();
+    for (auto value = enabled.begin(); value != enabled.end(); ++value) {
+        auto e = value->toObject();
+        if (e.value("type") == "grain" && e.value("animate").toBool()) {
+            e.insert("seed", static_cast<double>(context.frameIndex));
+            *value = e;
+        }
+    }
+    ext.insert("clipEffects", enabled);
+}
+bool decorateAdjustment(SceneAdjustment &adjustment, const Clip &clip, const SceneDecorationContext &context) {
+    decorateEffects(adjustment.ext, clip, context);
     if (adjustment.ext.value("clipEffects").toArray().isEmpty()) { return false; }
     adjustment.ext.insert("adjustmentTreatment", true);
-    if (!mask.isEmpty()) { adjustment.ext.insert("shapeMask", mask); }
     return true;
 }
 
 void decorateTrackEffects(QJsonObject &ext, const Track *track) {
+    if (ext.value("generatedMatteSource").toBool()) { return; }
     QJsonArray converted;
     if (track) {
         for (const auto &value : track->raw.value("effects").toArray()) {
