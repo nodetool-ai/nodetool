@@ -61,7 +61,6 @@ if [[ "${SKIP_APT:-0}" != "1" ]]; then
       libxtst6
       libdrm2
       libxkbcommon0
-      ffmpeg
     )
 
     # Ubuntu 24.04 renamed libasound2 to libasound2t64. Older images still use

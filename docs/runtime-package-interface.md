@@ -129,7 +129,7 @@ from scratch rather than trusting a stale `brokenReason` from a previous
 ### Resolution is literal
 
 `RuntimeResolution.binaries` is a flat map of logical name → absolute path
-(`{ ffmpeg: "/abs/path/to/ffmpeg" }`). No semantic capability layer
+(`{ "yt-dlp": "/abs/path/to/yt-dlp" }`). No semantic capability layer
 (`{ canRunPython: true, ... }`). Simpler, and good enough — multi-source
 capabilities (e.g. system Python vs conda Python) can be layered on later if
 ever needed.
@@ -138,10 +138,10 @@ ever needed.
 
 ```ts
 // In a node:
-const ffmpeg = await registry.resolve("ffmpeg");
-if (!ffmpeg) throw new Error("FFmpeg runtime not installed");
-spawn(ffmpeg.binaries!.ffmpeg, ["-i", input, output], {
-  env: { ...process.env, ...ffmpeg.env },
+const ytDlp = await registry.resolve("yt-dlp");
+if (!ytDlp) throw new Error("yt-dlp runtime not installed");
+spawn(ytDlp.binaries!["yt-dlp"], ["-o", output, url], {
+  env: { ...process.env, ...ytDlp.env },
 });
 
 // In the UI:

@@ -17,7 +17,6 @@ print_json=0
 skip_download=0
 write_subs=0
 write_thumb=0
-audio=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --print-json) print_json=1; shift ;;
@@ -25,8 +24,7 @@ while [ $# -gt 0 ]; do
     -o) outtmpl="$2"; shift 2 ;;
     --write-subs|--write-auto-subs) write_subs=1; shift ;;
     --write-thumbnail) write_thumb=1; shift ;;
-    -x) audio=1; shift ;;
-    --audio-format|--sub-langs|--sub-format|--merge-output-format|--limit-rate|-f) shift 2 ;;
+    --sub-langs|--sub-format|--limit-rate|--print|-f) shift 2 ;;
     --no-playlist|--no-warnings|--no-color|--restrict-filenames|--no-overwrites) shift ;;
     *) shift ;;
   esac
@@ -36,10 +34,10 @@ if [ "$print_json" -eq 1 ] && [ "$skip_download" -eq 1 ]; then
   exit 0
 fi
 if [ -z "$outtmpl" ]; then outtmpl="./%(id)s.%(ext)s"; fi
-if [ "$audio" -eq 1 ]; then ext="mp3"; else ext="mp4"; fi
-out="$(printf "%s" "$outtmpl" | sed "s/%(id)s/$id/g; s/%(ext)s/$ext/g")"
+out="$(printf "%s" "$outtmpl" | sed "s/%(id)s/$id/g; s/%(format_id)s/18/g; s/%(ext)s/mp4/g")"
 mkdir -p "$(dirname "$out")"
 printf "media-data" > "$out"
+echo "$out"
 if [ "$write_subs" -eq 1 ]; then
   printf "sub text" > "$(dirname "$out")/$id.en.srt"
 fi
@@ -79,21 +77,21 @@ describe("native lib.video.download", () => {
         title: "Mock Title"
       });
 
+      // One format, so no mux: the stub's bytes come back as they are. The
+      // two-format mux and the mp3 encode are tested in video-nodes with
+      // real media.
       const video = await new YtDlpDownloadLibNode({
         url: "https://example.com/video",
         mode: "video",
+        format_selector: "b",
         subtitles: true,
         thumbnail: true
       }).process();
-      expect(typeof (video.video as { data?: string }).data).toBe("string");
+      expect((video.video as { data?: string }).data).toBe(
+        Buffer.from("media-data").toString("base64")
+      );
       expect(video.subtitles).toBe("sub text");
       expect(video.thumbnail).not.toBeNull();
-
-      const audio = await new YtDlpDownloadLibNode({
-        url: "https://example.com/video",
-        mode: "audio"
-      }).process();
-      expect(typeof (audio.audio as { data?: string }).data).toBe("string");
     });
   });
 });

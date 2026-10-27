@@ -3726,14 +3726,14 @@
         {
           "name": "format_selector",
           "type": "str",
-          "description": "yt-dlp format selector (e.g., 'best', 'bestvideo+bestaudio')",
+          "description": "yt-dlp format selector (e.g., 'best', 'bestvideo+bestaudio'). Each side of a top-level '+' downloads on its own and the two are muxed without re-encoding. 'best' means 'bv*+ba/b'.",
           "required": false,
           "default": "best"
         },
         {
           "name": "container",
           "type": "str",
-          "description": "Output container format (e.g., 'mp4', 'webm', 'auto')",
+          "description": "Container for a muxed video and audio download: auto, mp4, mov, webm or mkv. Auto picks webm or mp4 when it holds both codecs, else mkv. A selector with no '+' keeps the downloaded file's own container.",
           "required": false,
           "default": "auto"
         },

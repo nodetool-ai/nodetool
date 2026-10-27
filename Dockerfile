@@ -105,10 +105,10 @@ ENV NODE_ENV=production \
 # SECRETS_MASTER_KEY, not a system keychain inside the container.
 #
 # Beyond ca-certificates/curl (health check, downloads), this bakes in the
-# CLIs that agent skill nodes (execute_bash) and document/video nodes shell
-# out to at runtime, so containers don't fail or install tools on every run:
-#   ffmpeg            — yt-dlp merges formats with it (media nodes run libav
-#                       in process and need no binary)
+# CLIs that agent skill nodes (execute_bash) shell out to at runtime, so
+# containers don't fail or install tools on every run. There is no ffmpeg:
+# media runs on libav in process, and yt-dlp downloads each format separately
+# for an in-process mux.
 #   git               — Git agent
 #   postgresql-client-17 — psql/pg_dump for DATABASE_URL deployments, from
 #                     PGDG: pg_dump refuses servers newer than itself, and
@@ -145,7 +145,7 @@ RUN echo 'deb http://deb.debian.org/debian bookworm-backports main' \
       > /etc/apt/sources.list.d/pgdg.list \
     && apt-get update && apt-get install -y --no-install-recommends \
     wget \
-    ffmpeg git jq zip unzip \
+    git jq zip unzip \
     postgresql-client-17 \
     python3 python3-venv \
     chromium fonts-liberation fonts-noto-color-emoji \

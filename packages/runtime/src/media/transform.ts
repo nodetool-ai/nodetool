@@ -167,6 +167,13 @@ async function openCopySource(
     const seekSec = input.seekSec && input.seekSec > 0 ? input.seekSec : 0;
     if (seekSec > 0) await demuxer.seek(formatStart + seekSec, -1, AVSEEK_FLAG_BACKWARD);
     const index = output.muxer.addStream(stream);
+    // Matroska and WebM name a codec by its id. A tag copied from MP4
+    // (`mp4a`) fails their header, so drop it, as the CLI drops a tag the
+    // output format does not take.
+    if (/^(matroska|webm)/.test(output.muxer.getFormatContext().oformat?.name ?? "")) {
+      const copied = output.muxer.getStream(index);
+      if (copied) copied.codecpar.codecTag = 0;
+    }
     const timeBase = stream.timeBase;
     const packets = demuxer.packets(stream.index);
     const endSec = input.toSec;

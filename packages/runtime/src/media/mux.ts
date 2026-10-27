@@ -4,7 +4,7 @@
  * -c:v copy -c:a <codec> -shortest out`.
  */
 
-import { Demuxer, type Frame, type Packet } from "node-av";
+import { avGetCodecName, Demuxer, type Frame, type Packet } from "node-av";
 
 import { AudioEncoder } from "./audio-encoder.js";
 import {
@@ -15,6 +15,7 @@ import {
   throwIfAborted,
   type FileMuxer
 } from "./av.js";
+import { transformMedia } from "./transform.js";
 
 function seconds(ts: bigint, timeBase: { num: number; den: number }): number {
   return (Number(ts) * timeBase.num) / timeBase.den;
@@ -146,4 +147,121 @@ export async function muxAudioWithVideoCopy(opts: {
     await output?.close();
     await demuxer.close();
   }
+}
+
+/** The video and audio codec of a file, in libav's names; `null` for none. */
+export async function streamCodecs(
+  filePath: string,
+  signal?: AbortSignal
+): Promise<{ video: string | null; audio: string | null }> {
+  quietLibav();
+  const demuxer = await Demuxer.open(filePath, { signal });
+  try {
+    const name = (stream: ReturnType<Demuxer["video"]>): string | null =>
+      stream ? (avGetCodecName(stream.codecpar.codecId) ?? "unknown") : null;
+    return { video: name(demuxer.video()), audio: name(demuxer.audio()) };
+  } finally {
+    await demuxer.close();
+  }
+}
+
+/** A container `muxStreamCopy` writes. */
+export type CopyContainer = "mp4" | "mov" | "webm" | "mkv";
+
+/** The codecs each container takes without re-encoding; `null` takes any. */
+const COPY_CODECS: Record<CopyContainer, { video: Set<string>; audio: Set<string> } | null> = {
+  mp4: {
+    video: new Set(["h264", "hevc", "av1", "vp9", "mpeg4"]),
+    audio: new Set(["aac", "mp3", "opus", "flac", "alac", "ac3", "eac3"])
+  },
+  mov: {
+    video: new Set(["h264", "hevc", "av1", "vp9", "mpeg4", "prores"]),
+    audio: new Set(["aac", "mp3", "opus", "flac", "alac", "ac3", "eac3", "pcm_s16le"])
+  },
+  webm: {
+    video: new Set(["vp8", "vp9", "av1"]),
+    audio: new Set(["opus", "vorbis"])
+  },
+  mkv: null
+};
+
+function isCopyContainer(name: string): name is CopyContainer {
+  return Object.hasOwn(COPY_CODECS, name);
+}
+
+/** Whether `container` holds `video` and `audio` (either may be absent) as they are. */
+function holds(container: CopyContainer, video: string | null, audio: string | null): boolean {
+  const codecs = COPY_CODECS[container];
+  if (!codecs) return true;
+  return (!video || codecs.video.has(video)) && (!audio || codecs.audio.has(audio));
+}
+
+/**
+ * The container a stream copy of `video` and `audio` goes into, as yt-dlp
+ * picked one when it merged: WebM when both are WebM codecs, else MP4 when
+ * MP4 holds both, else Matroska, which holds anything.
+ */
+export function copyContainerFor(video: string | null, audio: string | null): CopyContainer {
+  if (holds("webm", video, audio)) return "webm";
+  if (holds("mp4", video, audio)) return "mp4";
+  return "mkv";
+}
+
+/**
+ * Copy the video stream of `videoPath` and the audio stream of `audioPath`
+ * into one file, packets unchanged: the in-process form of
+ * `ffmpeg -i v -i a -map 0:v -map 1:a -c copy out`, which is what yt-dlp ran
+ * to merge formats.
+ *
+ * `container` is `auto` (see {@link copyContainerFor}) or a
+ * {@link CopyContainer}; the output is `<outStem>.<container>`. A container
+ * that cannot hold the codecs without re-encoding throws an error naming
+ * both codecs and the container, before any file is written. When the two
+ * paths are the same file, its audio stream is optional.
+ */
+export async function muxStreamCopy(opts: {
+  videoPath: string;
+  audioPath: string;
+  outStem: string;
+  container: string;
+  signal?: AbortSignal;
+}): Promise<{ outPath: string; container: CopyContainer; video: string; audio: string | null }> {
+  const { signal } = opts;
+  const sameFile = opts.videoPath === opts.audioPath;
+  const video = (await streamCodecs(opts.videoPath, signal)).video;
+  if (!video) throw new Error(`${opts.videoPath} has no video stream`);
+  const audio = (await streamCodecs(opts.audioPath, signal)).audio;
+  if (!audio && !sameFile) throw new Error(`${opts.audioPath} has no audio stream`);
+  const requested = opts.container.trim().toLowerCase().replace(/^\./, "");
+  const container =
+    requested === "" || requested === "auto" ? copyContainerFor(video, audio) : requested;
+  if (!isCopyContainer(container)) {
+    throw new Error(
+      `Cannot write container "${opts.container}": use auto, mp4, mov, webm or mkv`
+    );
+  }
+  const pair = audio ? `${video} video with ${audio} audio` : `${video} video`;
+  if (!holds(container, video, audio)) {
+    throw new Error(
+      `Cannot stream-copy ${pair} into ${container} without re-encoding. ` +
+        `Use container auto or mkv.`
+    );
+  }
+  const outPath = `${opts.outStem}.${container}`;
+  try {
+    await transformMedia({
+      inputs: [{ filePath: opts.videoPath }, { filePath: opts.audioPath }],
+      outPath,
+      video: { copy: 0 },
+      audio: { copy: 1, optional: sameFile },
+      signal
+    });
+  } catch (error) {
+    if (signal?.aborted) throw error;
+    throw new Error(
+      `Could not stream-copy ${pair} into ${container}: ` +
+        `${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+  return { outPath, container, video, audio };
 }
