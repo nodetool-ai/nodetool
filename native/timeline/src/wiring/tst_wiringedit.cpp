@@ -232,7 +232,10 @@ private slots:
             QVERIFY(parsed.timeline);
             model.setTimeline(std::move(*parsed.timeline));
             QCoreApplication::processEvents();
-        } else { click("clip-d"); }
+        } else {
+            click("clip-d");
+            QCOMPARE(gestures()->selection(), QStringList{"d"});
+        }
         const auto before = doc();
         auto* lane = item("trackLane-v"); auto* other = item("trackLane-w"); QVERIFY(lane); QVERIFY(other);
         const auto from = lane->mapToScene({50, 10}).toPoint(); const auto to = other->mapToScene({250, 40}).toPoint();
