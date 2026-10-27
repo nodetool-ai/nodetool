@@ -12,6 +12,7 @@ struct SnapRequest {
     double toMs = 0;
     double msPerPx = 10;
     QString gridDivision;
+    QString rulerMode = QStringLiteral("time");
     QStringList excludedClipIds;
 };
 using SnapProvider = std::function<std::vector<double>(const SnapRequest&)>;
