@@ -973,26 +973,6 @@ async function coerceEntityList(
   return out.length > 0 ? out : undefined;
 }
 
-export function normalizeStorageKey(key: string): string {
-  const segments: string[] = [];
-  for (const segment of key.replaceAll("\\", "/").split("/")) {
-    if (!segment || segment === ".") continue;
-    if (segment === "..") {
-      if (segments.length === 0) {
-        throw new Error(`Invalid storage key: ${key}`);
-      }
-      segments.pop();
-      continue;
-    }
-    segments.push(segment);
-  }
-  const cleaned = segments.join("/");
-  if (!cleaned) {
-    throw new Error(`Invalid storage key: ${key}`);
-  }
-  return cleaned;
-}
-
 /**
  * Resolve paths relative to a configured workspace root.
  *
