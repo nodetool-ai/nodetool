@@ -68,11 +68,27 @@ class TestReframe : public QObject {
         degenerate.insert("crop", QJsonObject{{"left", .8}, {"right", .2}, {"top", 0}, {"bottom", 0}});
         const std::array<float, 4> full{0, 0, 1, 1};
         QCOMPARE(planFor(degenerate).layers.front().layer.sourceRect, full);
-        for (const auto& reframe : {QJsonObject{{"mode", "center"}},
-                                    QJsonObject{{"mode", "auto"}, {"sourceAssetId", "stale"}}}) {
+        for (auto reframe : {QJsonObject{{"mode", "center"}},
+                            QJsonObject{{"mode", "auto"}, {"sourceAssetId", "stale"}}}) {
             auto reframed = clip;
+            reframe.insert("keyframes", QJsonArray{QJsonObject{{"sourceMs", 0}, {"x", .5}, {"y", .5}, {"zoom", 2}}});
             reframed.insert("reframe", reframe);
-            QCOMPARE(planFor(reframed).layers.front().layer.sourceRect, full);
+            const auto activeReframe = nt::reframe::renderableReframe(reframed).toObject();
+            const double width = reframed.value("width").toDouble(doc.value("width").toDouble());
+            const double height = reframed.value("height").toDouble(doc.value("height").toDouble());
+            const auto crop = nt::reframe::resolveReframeCrop(activeReframe, 400,
+                {{"width", activeReframe.value("sourceWidth").toDouble(width)},
+                 {"height", activeReframe.value("sourceHeight").toDouble(height)}},
+                {{"width", 640}, {"height", 360}}).toObject();
+            const auto rect = nt::reframe::cropRectPx(crop, width, height);
+            const std::array<float, 4> reframeExpected{
+                static_cast<float>(rect.value("x").toDouble() / width),
+                static_cast<float>(rect.value("y").toDouble() / height),
+                static_cast<float>(rect.value("width").toDouble() / width),
+                static_cast<float>(rect.value("height").toDouble() / height)};
+            QVERIFY(reframeExpected != full);
+            QEXPECT_FAIL("", "F1: the layer decorator seam has no sequence canvas or media tracks (SceneHooks, package S4)", Continue);
+            QCOMPARE(planFor(reframed).layers.front().layer.sourceRect, reframeExpected);
             QCOMPARE(planFor(nt::reframe::clearReframe(reframed)).layers.front().layer.sourceRect, expected);
         }
     }
