@@ -6,6 +6,7 @@ Row {
     required property TimelineModel timeline
     required property ClipGestureController gestures
     required property TimelineViewState viewState
+    property bool compact: false
     spacing: Theme.spacingMicro
 
     ToolButton {
@@ -15,6 +16,7 @@ Row {
         description: qsTr("The ruler counts bars and beats, not seconds")
         iconPath: Icons.straighten
         active: tools.viewState.rulerMode === "bars"
+        compact: tools.compact
         onClicked: tools.viewState.rulerMode = active ? "time" : "bars"
     }
     GridDivisionSelect {

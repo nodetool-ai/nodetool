@@ -177,7 +177,7 @@ private slots:
         auto* gestures = qobject_cast<ClipGestureController*>(item("clipGestures"));
         QVERIFY(gestures);
         gestures->viewState()->zoomTo(10, 0);
-        gestures->viewState()->setScrollLeftPx(0);
+        gestures->viewState()->setScrollLeftPx(37);
         gestures->viewState()->flush();
         QCoreApplication::processEvents();
         if (!enabled) { click(item("snapToggle")); }
@@ -196,6 +196,11 @@ private slots:
             QCOMPARE(lastSnapRequest.excludedClipIds, QStringList{"c"});
             QCOMPARE(lastSnapRequest.gridDivision, QString("beat"));
             QCOMPARE(lastSnapRequest.rulerMode, QString("time"));
+            const auto* state = gestures->viewState();
+            QCOMPARE(state->scrollLeftPx(), 37.0);
+            QCOMPARE(lastSnapRequest.fromMs, 370.0);
+            QCOMPARE(lastSnapRequest.toMs, 370.0
+                + (state->viewportWidthPx() > 0 ? state->viewportWidthPx() : 1200.0) * 10.0);
             QCOMPARE(lastSnapRequest.document.value("name").toString(), QString("Fixture"));
         }
         else { QCOMPARE(snapCalls, calls); }
@@ -292,6 +297,10 @@ private slots:
     void toolbarSlot() {
         QTRY_VERIFY_WITH_TIMEOUT(item("probe-toolbar"), 1000);
         auto* probe = item("probe-toolbar");
+        QVERIFY(probe->property("compact").isValid());
+        const auto* toolbar = item("toolToggle");
+        QVERIFY(toolbar);
+        QCOMPARE(probe->property("compact"), toolbar->property("compact"));
         const auto snapEnd = item("snapToggle")->mapToScene({item("snapToggle")->width(), 0});
         QVERIFY(probe->mapToScene({0, 0}).x() >= snapEnd.x());
         QCOMPARE(probe->property("gestures").value<QObject*>(), item("clipGestures"));

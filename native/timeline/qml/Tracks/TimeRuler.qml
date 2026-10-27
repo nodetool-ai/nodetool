@@ -21,6 +21,10 @@ Rectangle {
     height: Theme.rulerHeight
     color: Theme.backgroundPaper
     clip: true
+    Accessible.role: Accessible.Canvas
+    Accessible.name: ruler.viewState.rulerMode === "bars"
+        ? qsTr("Bars ruler — click or drag to set playhead")
+        : qsTr("Time ruler — click or drag to set playhead")
 
     RulerCanvas {
         id: canvas

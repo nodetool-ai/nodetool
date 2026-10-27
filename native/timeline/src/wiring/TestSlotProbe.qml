@@ -5,6 +5,7 @@ Item {
     property var gestures: null
     property var viewState: null
     property var clock: null
+    property bool compact: false
     property int clicks: 0
     signal activated()
     implicitWidth: 28
