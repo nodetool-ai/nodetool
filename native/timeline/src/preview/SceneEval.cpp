@@ -989,10 +989,30 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
         }
         p.layer.drawOpacity = draw;
         for (const auto& decorate : hooks.layers) { decorate(p.layer, *p.clip, timeMs); }
-        frame.layers.push_back(std::move(p.layer));
     };
-    for (Pending& p : drawn) finish(p);
-    for (Pending& p : captions) finish(p);
+    std::unordered_map<std::string, std::shared_ptr<const ActiveLayer>> resolvedMattes;
+    for (Pending& p : drawn) {
+        const auto& cs = sceneOf(*p.clip);
+        if (!cs.generatedMatte && cs.matteSource) {
+            const auto source = matteLayers.find(*cs.matteSource);
+            if (source != matteLayers.end()) {
+                auto [resolved, inserted] = resolvedMattes.try_emplace(*cs.matteSource);
+                if (inserted) {
+                    finish(source->second);
+                    resolved->second = std::make_shared<const ActiveLayer>(std::move(source->second.layer));
+                }
+                const auto raw = p.clip->raw.value(QStringLiteral("matte")).toObject();
+                p.layer.matte = LayerMatte{raw.value(QStringLiteral("mode")).toString().toStdString(),
+                    raw.value(QStringLiteral("invert")).toBool(), resolved->second, {}, {}};
+            }
+        }
+        finish(p);
+        frame.layers.push_back(std::move(p.layer));
+    }
+    for (Pending& p : captions) {
+        finish(p);
+        frame.layers.push_back(std::move(p.layer));
+    }
     std::stable_sort(frame.layers.begin(), frame.layers.end(),
                      [](const ActiveLayer& a, const ActiveLayer& b) { return a.z < b.z; });
     for (PrecompositeLayer& g : frame.precomposites) {
