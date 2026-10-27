@@ -871,6 +871,68 @@ which has the same off-screen fault as layout F1. Each moves its section to
 Merge order: the merged packages, then S2, S3, PX, L, E, A, B, D2, D3, D5,
 I, J, N, R, and wave 2 (G, O, D6, P2, Q).
 
+### SY: External sync
+
+Goal: the native editor follows writes to the open timeline that come from
+elsewhere: an agent through the server's MCP tools, the CLI, or a web tab.
+This raises backlog B35 and B36 to P1.
+
+- Owns: `src/server/AutosaveController.*`, `src/server/recovery/` and
+  `tests/tst_autosave.cpp` (from
+  PX, which has merged), the new `src/server/sync/` (WebSocket client,
+  subscription, adopt, merge) with its tests,
+  `scripts/conformance/suites/merge.*`, and three lines elsewhere:
+  the registration of the new files in `src/server/module.cmake`, the Qt
+  WebSockets `find_package` and link line in `CMakeLists.txt`, and the
+  `qtwebsockets` module in the aqt install step of
+  `.github/workflows/native-timeline.yml`. Everything else is read-only. A
+  needed change to `TimelineModel` (S2), `ServerClient` (T) or another file
+  is reported as a blocker.
+- Web: `web/src/hooks/timeline/useTimelineExternalSync.ts`,
+  `web/src/hooks/timeline/timelineExternalMerge.ts`,
+  `web/src/stores/timeline/merge.ts`, `web/src/stores/documentMerge.ts`,
+  `web/src/stores/documentSync.ts`,
+  `web/src/hooks/timeline/useTimelineAutosave.ts` (conflict recovery), and
+  the WebSocket managers in `web/src/lib/websocket/` (backoff, auth).
+- Server: `packages/websocket/src/lib/resource-change-fanout.ts` and
+  `websocket-client-session.ts` (who receives `resource_change`), and
+  `packages/websocket/src/server.ts` (WebSocket auth).
+
+Problem (wave 3 data safety F2 and F3): the editor reads the timeline once
+at load, and `AutosaveController` listens only to the undo stack. A write
+from elsewhere moves `updatedAt`, so the next native save conflicts, autosave
+stops for the session, later edits live only in memory, and the external
+edit never appears.
+
+Exit, and how each is checked (red and green evidence for each):
+
+1. `resource_change` reaches the editor. A script proves on a scratch server
+   that an MCP timeline edit, made with the server's MCP tools as an agent
+   calls them, emits `resource_change` for that sequence. If it does not,
+   that is a server-side blocker, and a CLI or tRPC write is the trigger
+   for the other checks.
+2. A clean editor adopts. With no unsaved edits, an external write appears
+   in the open editor (model and rendered state), only when the server copy
+   is newer than the held `updatedAt`. Undo does not revert the external
+   edit, which becomes the new base, as on the web.
+3. A dirty editor merges. With unsaved local edits, an external write is
+   merged as `timelineExternalMerge` does. The merge conformance suite runs
+   the web merge and the native merge on the same fixtures (disjoint edits,
+   same-clip edits, deletes, adds, track changes, conflicts) and the results
+   are identical.
+4. Autosave survives a conflict (B35). A save conflict merges the server
+   copy and saving continues. No edit is left only in memory, and the
+   conflict copy rule matches the web.
+5. Reconnect. After the WebSocket drops and reconnects with the web's
+   backoff, the editor fetches once to catch missed changes. Auth matches
+   `ServerClient` (Bearer for remote servers).
+6. End to end, headless. The native editor (offscreen or Xvfb) opens a
+   timeline from a scratch server. An MCP edit appears in it within 2 s, the
+   next native save succeeds without a conflict, and with a pending local
+   edit both changes survive.
+7. Nothing else changes. The full 6e checks pass, and the sanitize ctest has
+   no report outside `tools/sanitizers/baseline.md`.
+
 ## Wave 2: packages that need wave 1
 
 | Package | Needs | Scope |

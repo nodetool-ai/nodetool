@@ -42,8 +42,6 @@ run machine. "Package P1" and "package P2" are plan packages, not severities.
 | B32 | P2 | wave3-layout F4 | `qml/Inspector/TimelineInspector.qml:86` | The Inspector has no Media section (type, asset, parent group, Ungroup) and no Timing section (start, duration, speed, Hidden, lock hints). It goes from the identity card straight to Render. | PX (sections plug into its `registerInspectorSection`) |
 | B33 | P2 | wave3-layout F5 | `qml/Tracks/ClipBody.qml:139` | The transition wedge on the clip has no length grip. The web draws a "Transition length" grip on the wedge edge. `TransitionHandle.*` has no QML item. | S3 |
 | B34 | P2 | wave3-layout F10 | `src/edit/ClipGestureController.cpp:983` | The shortcuts of F and K and frame step are not bound, and the shortcut sheet dims them with "not in the native editor yet": copy, cut, paste, paste attributes, paste insert, duplicate, duplicate with gap, group, ungroup, toggle loop, play in to out, J/K/L and frame step. | S3 |
-| B35 | P2 | wave3-data-safety F2 | `src/server/AutosaveController.cpp:247` | A save conflict stops autosave for the rest of the session. The conflict copy is not rewritten after later edits, so every later edit exists only in memory and a crash loses it. The web merges, rebases the history and keeps saving. | PX |
-| B36 | P2 | wave3-data-safety F3 | `src/server/AutosaveController.cpp:68` | No external sync: the editor reads the server once at load and does not listen to `resource_change`. Any agent, CLI or web write to the open timeline makes the next native save conflict, which then stops autosave (B35). | PX |
 | B37 | P2 | wave3-data-safety F4 | `src/server/AutosaveController.cpp:61` | The 750 ms autosave can fire during a drag and send the gesture's uncommitted preview. A cancelled gesture restores the press state with `replaceClips`, which schedules no save, so the server keeps the cancelled transform while the status shows Saved. | PX |
 | B38 | P2 | wave3-data-safety F5 | `src/audio/AudioEngine.cpp:116` | The baselined race V-TSAN-1 on `deviceStopped` is still open after K merged: a plain `bool` written on the main thread and read on the miniaudio worker, hidden by the `onNotification` suppression in `tools/sanitizers/tsan.supp`. | S2 (owns `AudioEngine.*`) |
 | B39 | P2 | wave3-data-safety F6 | `src/main.cpp:909` | A timeline opened from a local `.json` file accepts every edit but is never saved, and closing the window discards the edits without a prompt. The web asks before a dirty document closes. | S2 (owns `main.cpp`) |
@@ -61,6 +59,7 @@ run machine. "Package P1" and "package P2" are plan packages, not severities.
 | B51 | P2 | pkg-R-r1 F3 | `src/app/Preferences/Preferences.cpp:169` | Open Recent relaunches a protected server timeline with only its server URL and timeline ID. When it was opened with `--token` and `NODETOOL_API_TOKEN` is unset, the child has no credentials or sign-in flow and fails authentication. | R |
 | B52 | P2 | pkg-I-r3 F1 | `src/render2d/Rasterizer.cpp:107` | Text is shaped and rendered with one font face and no fallback, so Inter text containing Chinese or emoji renders missing glyphs where the web uses fallback fonts. | I |
 | B53 | P2 | pkg-I-r3 F2 | `src/render2d/check-example-stills.mjs:127` | Imported plan exclusions remove line-stagger candidates, so broken line-stagger rendering escapes the stills gate. Comparisons also use stripped documents rather than the seven complete shipped examples. | I |
+| B54 | P2 | pkg-SY-r3 F1 | `src/server/sync/SyncRegistration.cpp:54` | An external change erases the local undo history. After a local move of clip B and an unrelated external edit to clip A, both changes survive the merge, but `setTimeline()` clears the undo stack, so the move of B cannot be undone. The web rebases the history. `tst_syncmodel.cpp:115` expects the empty stack even for dirty merges. | S2 (owns `TimelineModel.*`; adds a history rebase API that SY then calls) |
 
 ## Closed
 
@@ -70,3 +69,5 @@ run machine. "Package P1" and "package P2" are plan packages, not severities.
 | B4 | Package V merge (fix-ui-r3 F1, confirmed fixed by pkg-V-r1) | b3246ba7cb |
 | B5 | Package V merge (dropped-readback leak, confirmed fixed by pkg-V-r1) | b3246ba7cb |
 | B2 | Package P1 merge (effect hook in `Mixer.cpp`, landed with package U) | d6a1cd18c9 |
+| B35 | Package SY merge (autosave continues after a conflict through the external merge) | fc6cc3e7f1 |
+| B36 | Package SY merge (external sync on `resource_change`) | fc6cc3e7f1 |

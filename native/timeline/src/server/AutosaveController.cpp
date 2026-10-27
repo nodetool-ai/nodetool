@@ -1,10 +1,16 @@
 #include "server/AutosaveController.h"
-
 #include "server/AssetCache.h"
+#include "server/sync/DocumentApplier.h"
 
 #include <QCryptographicHash>
 #include <QDateTime>
 #include <QDir>
+#include <QEventLoop>
+#include <QHash>
+#include <QPointer>
+#include <QLoggingCategory>
+#include <QScopeGuard>
+#include <QThread>
 #include <QFile>
 #include <QFileInfo>
 #include <QJsonArray>
@@ -15,10 +21,17 @@
 #include <QUuid>
 
 #include <algorithm>
+#include <atomic>
 #include <cstdio>
+#include <stdexcept>
+#include <utility>
 
 namespace nt::server {
+Q_LOGGING_CATEGORY(syncLog, "nodetool.timeline.sync", QtInfoMsg)
+
 namespace {
+
+std::atomic<int> liveWorkers{0};
 
 QByteArray contentHash(const QJsonObject& document) {
     return QCryptographicHash::hash(QJsonDocument(document).toJson(QJsonDocument::Compact), QCryptographicHash::Sha256);
@@ -57,6 +70,7 @@ AutosaveController::AutosaveController(SaveTarget target, QUndoStack* undo, Docu
     m_client->setExpectedInstance(m_target.expectedInstance);
     m_ackHash = currentHash();  // the loaded content is what the server holds
     m_committedHash = m_ackHash;
+    m_mergeBase = sync::mergeDocumentOf(m_document());
     const QString appData = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation);
     if (!appData.isEmpty()) m_fallbackDirs << QDir(appData).filePath(QStringLiteral("recovery"));
     m_fallbackDirs << QDir(QDir::tempPath()).filePath(QStringLiteral("nodetool-timeline-recovery"));
@@ -66,10 +80,408 @@ AutosaveController::AutosaveController(SaveTarget target, QUndoStack* undo, Docu
     connect(&m_timer, &QTimer::timeout, this, &AutosaveController::debounceExpired);
     m_retry.setSingleShot(true);
     connect(&m_retry, &QTimer::timeout, this, [this]() {
-        if (dirty() && !m_conflict && !m_saving) saveNow();
+        if (m_retryRecovery && !m_deleted && !m_fetching && !m_saving) {
+            m_retryRecovery = false;
+            m_recoveryStopped = false;
+            fetchExternal(true);
+        } else if (dirty() && !m_recoveryStopped && !m_saving) {
+            saveNow();
+        }
     });
     connect(m_undo, &QUndoStack::indexChanged, this, &AutosaveController::documentChanged);
     connect(m_undo, &QUndoStack::cleanChanged, this, &AutosaveController::stateChanged);
+    m_externalRetry.setSingleShot(true);
+    m_externalRetry.setInterval(25);
+    connect(&m_externalRetry, &QTimer::timeout, this, &AutosaveController::processExternal);
+    QTimer::singleShot(0, this, &AutosaveController::startExternalSync);
+}
+
+AutosaveController::~AutosaveController() {
+    m_changes.reset();
+    // Fetch workers own their inputs and result and delete themselves after
+    // finishing. Never spend a second quit budget waiting on stalled I/O.
+    const auto waitMs = m_quitDeadline
+        ? static_cast<unsigned long>(m_quitDeadline->remainingTime()) : 2000UL;
+    if (m_fetchWorker && !m_fetchWorker->wait(waitMs)) {
+        qCWarning(syncLog, "sync: fetch worker still running after %lu ms shutdown wait", waitMs);
+    }
+}
+
+void AutosaveController::restartStoppedChain() {
+    if (!m_recoveryStopped || m_deleted) {
+        return;
+    }
+    m_recoveryStopped = false;
+    m_casRecoveries = 0;
+    m_retryAttempt = 0;
+    m_retryRecovery = false;
+    m_retry.stop();
+}
+
+int AutosaveController::liveFetchWorkers() { return liveWorkers.load(); }
+
+void AutosaveController::setExternalSync(bool on) {
+    m_externalSync = on;
+    if (!on) {
+        m_changes.reset();
+    } else {
+        startExternalSync();
+    }
+}
+
+void AutosaveController::startExternalSync() {
+    if (!m_externalSync || m_changes || m_deleted) {
+        return;
+    }
+    m_changes = std::make_unique<sync::ResourceChangeClient>(m_syncUrl.isEmpty() ? m_target.server : m_syncUrl,
+        m_target.timelineId, m_target.token);
+    connect(m_changes.get(), &sync::ResourceChangeClient::changed, this, &AutosaveController::externalChanged);
+    connect(m_changes.get(), &sync::ResourceChangeClient::refreshNeeded, this, &AutosaveController::refreshExternal);
+    connect(m_changes.get(), &sync::ResourceChangeClient::stateChanged, this, [this] {
+        if (m_changes->state() == sync::ResourceChangeClient::State::Connected) {
+            qCInfo(syncLog, "sync: listening for %s", qPrintable(m_target.timelineId));
+        }
+        if (m_changes->state() == sync::ResourceChangeClient::State::Failed) {
+            syncFailure(m_changes->reason(), false);
+        }
+        emit stateChanged();
+    });
+    m_changes->start();
+}
+
+void AutosaveController::externalChanged(QString event, QString updatedAt, QJsonArray ops, bool hasOps) {
+    if (event == u"deleted") {
+        m_deleted = true;
+        m_pendingExternal = false;
+        m_fetched.reset();
+        m_timer.stop();
+        m_retry.stop();
+        keepConflictCopy();
+        m_externalState = QStringLiteral("deleted");
+        m_lastError = m_keptCopy.isEmpty()
+            ? QStringLiteral("The server timeline was deleted and could not be kept locally: %1").arg(m_recoveryError)
+            : QStringLiteral("The server timeline was deleted. Edits are kept locally.");
+        qCWarning(syncLog, "sync: failed: %s", qPrintable(m_lastError));
+        emit stateChanged();
+        return;
+    }
+    // web/src/stores/documentSync.ts:317-337: only updates, ignore own echo.
+    if (event != u"updated" || (!updatedAt.isEmpty() && updatedAt == m_base) || m_deleted) {
+        return;
+    }
+    queueExternal(ops, hasOps, false);
+}
+
+void AutosaveController::refreshExternal() {
+    if (!m_deleted) {
+        queueExternal({}, false, true);
+    }
+}
+
+void AutosaveController::queueExternal(const QJsonArray& ops, bool hasOps, bool withoutOps) {
+    restartStoppedChain();
+    m_pendingExternal = true;
+    m_pendingHasOps = m_pendingHasOps && hasOps;
+    m_pendingWithoutOps = m_pendingWithoutOps || withoutOps;
+    for (const auto& op : ops) {
+        m_pendingOps.append(op);
+    }
+    processExternal();
+}
+
+void AutosaveController::processExternal() {
+    if (m_deleted || m_saving) {
+        return;
+    }
+    if (m_fetched) {
+        if (currentHash() != m_committedHash) {
+            m_externalRetry.start();
+            return;
+        }
+        const bool recovery = m_recovering;
+        const bool applied = applyFetched();
+        m_fetched.reset();
+        m_fetching = false;
+        m_recovering = false;
+        if (applied) {
+            clearLocalCopyIfClean();
+        }
+        if (recovery && applied) {
+            if (m_casRecoveries >= 5 && dirty()) {
+                syncFailure(QStringLiteral("CAS recovery limit reached"), true);
+            } else if (dirty()) {
+                scheduleSave();
+            }
+        }
+        if (!m_recoveryStopped && dirty()) {
+            scheduleSave();
+        }
+        emit stateChanged();
+    }
+    if (m_fetching || !m_pendingExternal || m_recoveryStopped) {
+        return;
+    }
+    if (currentHash() != m_committedHash) {
+        m_externalRetry.start();
+        return;
+    }
+    m_activeOps = std::exchange(m_pendingOps, {});
+    m_activeHasOps = std::exchange(m_pendingHasOps, true);
+    m_activeWithoutOps = std::exchange(m_pendingWithoutOps, false);
+    m_pendingExternal = false;
+    fetchExternal(false);
+}
+
+void AutosaveController::fetchExternal(bool recovery) {
+    if (m_fetching || m_deleted) {
+        return;
+    }
+    m_fetching = true;
+    m_recovering = recovery;
+    if (recovery) {
+        m_activeOps = {};
+        m_activeHasOps = false;
+        m_activeWithoutOps = true;
+    }
+    m_timer.stop();
+    m_retry.stop();
+    m_externalState = recovery ? QStringLiteral("recovering") : QStringLiteral("fetching");
+    m_fetchElapsed.start();
+    // serverSaveTarget: backupDir is cacheRoot/serverKey/userKey/timelines.
+    const QString cacheRoot = QFileInfo(m_target.backupDir).fileName() == u"timelines"
+        ? QDir::cleanPath(m_target.backupDir + QStringLiteral("/../../.."))
+        : m_target.backupDir; // standalone library callers can supply a plain backup folder
+    const ServerOpenOptions options{m_target.server, m_target.timelineId, cacheRoot, m_target.token, true};
+    auto result = std::make_shared<ServerOpenResult>();
+    const QPointer<AutosaveController> guard(this);
+    ++liveWorkers;
+    auto* worker = QThread::create([options, result] {
+        const auto finished = qScopeGuard([] { --liveWorkers; });
+        // openServerTimeline owns its ServerClient on this worker thread.
+        *result = openServerTimeline(options);
+    });
+    connect(worker, &QThread::finished, this, [guard, result, recovery] {
+        if (!guard) {
+            return;
+        }
+        if (guard->m_deleted) {
+            guard->m_fetching = false;
+            emit guard->stateChanged();
+            return;
+        }
+        if (!result->timeline) {
+            guard->m_fetching = false;
+            guard->m_recovering = false;
+            guard->syncFailure(result->error, recovery);
+            if (recovery) {
+                // ServerOpenResult has no error classification. Every failed
+                // recovery fetch remains stopped, with its local copy, until
+                // this recovery retry or a new chain starts.
+                const int delay = std::min(30000, guard->m_retryBaseMs << std::min(guard->m_retryAttempt, 15));
+                ++guard->m_retryAttempt;
+                guard->m_retryRecovery = true;
+                guard->m_retry.start(delay);
+            }
+            if (!guard->m_recoveryStopped && guard->dirty()) {
+                guard->scheduleSave();
+            }
+            if (guard->m_pendingExternal) {
+                guard->m_externalRetry.start();
+            }
+            return;
+        }
+        guard->m_fetched = std::move(result->timeline);
+        guard->processExternal();
+    }, Qt::QueuedConnection);
+    connect(worker, &QThread::finished, worker, &QObject::deleteLater);
+    m_fetchWorker = worker;
+    worker->start();
+    emit stateChanged();
+}
+
+bool AutosaveController::applyFetched() {
+    const auto& resolved = *m_fetched;
+    const auto& serverRaw = resolved.raw;
+    const QString revision = serverRaw.value("updatedAt").toString();
+    // web/src/stores/timeline/TimelineStore.ts:1998-2006, and
+    // useTimelineExternalSync.ts:107-131: recheck revision AND dirty after fetch.
+    const auto candidate = QDateTime::fromString(revision, Qt::ISODateWithMs);
+    const auto current = QDateTime::fromString(m_base, Qt::ISODateWithMs);
+    if (revision.isEmpty() || revision == m_base || (candidate.isValid() && current.isValid() && candidate < current)) {
+        if (m_recovering) {
+            syncFailure(QStringLiteral("server revision did not advance"), true);
+        } else {
+            m_externalState = QStringLiteral("idle");
+        }
+        if (dirty()) {
+            scheduleSave();
+        }
+        return false;
+    }
+    const bool wasDirty = dirty();
+    auto raw = serverRaw;
+    auto nextBase = sync::mergeDocumentOf(serverRaw);
+    QList<sync::MergeConflict> conflicts;
+    if (wasDirty) {
+        // web/src/hooks/timeline/useTimelineExternalSync.ts:132-184 and
+        // web/src/hooks/timeline/useTimelineAutosave.ts:234-281.
+        // Refused units retain their prior base, so a later write offers them again.
+        auto ops = m_activeOps;
+        for (const auto& op : m_pendingOps) {
+            ops.append(op);
+        }
+        const bool hasOps = m_activeHasOps && (!m_pendingExternal || m_pendingHasOps);
+        try {
+            const auto merged = sync::mergeTimelineDocuments(m_mergeBase, sync::mergeDocumentOf(m_document()),
+                sync::mergeDocumentOfSequence(serverRaw, m_mergeBase),
+                hasOps ? std::optional{ops} : std::nullopt, m_activeWithoutOps);
+            raw = sync::applyMergeDocument(serverRaw, merged.doc);
+            nextBase = sync::mergeDocumentOf(merged.nextBase);
+            conflicts = merged.conflicts;
+        } catch (const std::invalid_argument& error) {
+            syncFailure(QString::fromUtf8(error.what()), m_recovering);
+            return false;
+        }
+    }
+    // Block indexChanged from setTimeline clearing history. A failed applier
+    // must leave both the model and this controller's base untouched.
+    m_syncing = true;
+    const bool applied = sync::applyDocument(m_undo, raw, resolved);
+    m_syncing = false;
+    if (!applied) {
+        syncFailure(QStringLiteral("cannot apply external timeline: no document applier or invalid document"), m_recovering);
+        return false;
+    }
+    m_base = revision;
+    m_ackHash = contentHash(documentForSave(serverRaw));
+    m_ackComplete = true;
+    m_mergeBase = nextBase;
+    m_committedHash = currentHash();
+    QHash<QString, const nt::Clip*> resolvedClips;
+    if (!conflicts.isEmpty()) {
+        for (const auto& clip : resolved.clips) {
+            resolvedClips.insert(QString::fromStdString(clip.id), &clip);
+        }
+    }
+    for (auto conflict : conflicts) {
+        if (conflict.id.isEmpty()) {
+            conflict.id = conflict.kind;
+        }
+        ExternalConflict candidate{conflict, {}};
+        if (conflict.kind == u"document") {
+            candidate.media = resolved.clips;
+        } else if (conflict.kind == u"clip") {
+            if (const auto* clip = resolvedClips.value(conflict.id, nullptr)) {
+                candidate.media.push_back(*clip);
+            }
+        }
+        m_externalConflicts.removeIf([&](const ExternalConflict& old) {
+            return old.unit.id == conflict.id && old.unit.kind == conflict.kind;
+        });
+        m_externalConflicts.append(std::move(candidate));
+    }
+    m_externalState = wasDirty ? QStringLiteral("merged") : QStringLiteral("adopted");
+    m_lastError.clear();
+    syncClean();
+    if (m_casRecoveries > 0) {
+        keepConflictCopy();
+    }
+    if (dirty()) {
+        scheduleSave();
+    }
+    qCInfo(syncLog, "sync: %s %s in %lld ms", m_recovering ? "recovered" : wasDirty ? "merged" : "adopted",
+        qPrintable(revision), static_cast<long long>(m_fetchElapsed.elapsed()));
+    emit stateChanged();
+    return true;
+}
+
+void AutosaveController::syncFailure(const QString& error, bool recovery) {
+    keepConflictCopy();
+    if (recovery) {
+        m_recoveryStopped = true;
+        m_conflict = true;
+    }
+    m_externalState = QStringLiteral("error");
+    m_lastError = (recovery ? QStringLiteral("conflict: ") : QStringLiteral("sync: ")) + error;
+    if (!m_recoveryError.isEmpty()) {
+        m_lastError += QStringLiteral("; ") + m_recoveryError;
+    }
+    qCWarning(syncLog, "sync: failed: %s", qPrintable(m_lastError));
+    emit stateChanged();
+}
+
+QVariantList AutosaveController::externalConflicts() const {
+    QVariantList list;
+    for (const auto& candidate : m_externalConflicts) {
+        const auto& conflict = candidate.unit;
+        list.append(QVariantMap{{"kind", conflict.kind}, {"id", conflict.id},
+            {"label", conflict.label}, {"reason", conflict.reason}});
+    }
+    return list;
+}
+
+bool AutosaveController::acceptExternalConflict(const QString& id, QObject* timeline) {
+    if (!timeline || m_saving || m_fetching || currentHash() != m_committedHash) {
+        return false;
+    }
+    for (qsizetype i = 0; i < m_externalConflicts.size(); ++i) {
+        const auto& candidate = m_externalConflicts[i];
+        const auto& conflict = candidate.unit;
+        if (conflict.id != id) {
+            continue;
+        }
+        const QJsonObject payload{{"kind", conflict.kind}, {"id", conflict.id},
+            {"reason", conflict.reason}, {"external", conflict.external}};
+        for (const auto& media : candidate.media) {
+            sync::registerMedia(timeline, media);
+        }
+        quint64 token = 0;
+        const bool invoked = QMetaObject::invokeMethod(timeline, "applyEdit", Qt::DirectConnection,
+            Q_RETURN_ARG(quint64, token), Q_ARG(QString, QStringLiteral("acceptExternalUnit")), Q_ARG(QJsonObject, payload));
+        if (!invoked || token == 0) {
+            return false;
+        }
+        m_externalConflicts.removeAt(i);
+        emit stateChanged();
+        return true;
+    }
+    return false;
+}
+
+bool AutosaveController::discardExternalConflict(const QString& id) {
+    for (qsizetype i = 0; i < m_externalConflicts.size(); ++i) {
+        if (m_externalConflicts[i].unit.id == id) {
+            m_externalConflicts.removeAt(i);
+            emit stateChanged();
+            return true;
+        }
+    }
+    return false;
+}
+
+void AutosaveController::clearLocalCopyIfClean() {
+    if (dirty() || m_recoveryStopped || m_deleted) {
+        return;
+    }
+    m_conflict = false;
+    // A successful stripped save resolves CAS too, provided its complete
+    // document has reached the strip copy. Keep the local file if that failed.
+    if (!m_ackComplete && (keptCopy().isEmpty() || !m_keptCopy.endsWith(QStringLiteral(".stripped.json")))) {
+        return;
+    }
+    m_casRecoveries = 0;
+    // Only this session's files. Never touch earlierCopy archives.
+    for (const auto& path : m_sessionCopies) {
+        if (QFileInfo(path).fileName() == safePathPart(m_target.timelineId) + QStringLiteral(".local.json") &&
+            !m_earlierCopies.contains(path)) {
+                QFile::remove(path);
+            }
+    }
+    if (!m_keptCopy.isEmpty() && !QFile::exists(m_keptCopy)) {
+        m_keptCopy.clear();
+        m_copyHash.clear();
+        m_recoveryError.clear();
+    }
 }
 
 QByteArray AutosaveController::currentHash() const { return contentHash(documentForSave(m_document())); }
@@ -100,15 +512,32 @@ void AutosaveController::syncClean() {
 
 void AutosaveController::documentChanged() {
     if (m_syncing) return;
-    m_committedHash = currentHash();
+    const auto committed = currentHash();
+    const bool newEdit = committed != m_committedHash;
+    m_committedHash = committed;
     syncClean();
+    if (m_deleted || m_conflict) {
+        keepConflictCopy();
+    }
+    if (newEdit) {
+        restartStoppedChain();
+    }
+    if (!m_fetching && !m_saving) {
+        clearLocalCopyIfClean();
+    }
     scheduleSave();
+    if (m_fetched || m_pendingExternal) {
+        m_externalRetry.start();
+    }
     emit stateChanged();
 }
 
 void AutosaveController::setAutosave(bool on) {
     m_autosave = on;
     if (!on) m_timer.stop();
+    else if (dirty()) {
+        scheduleSave();
+    }
 }
 
 void AutosaveController::scheduleSave() {
@@ -116,7 +545,9 @@ void AutosaveController::scheduleSave() {
 }
 
 void AutosaveController::debounceExpired() {
-    if (!m_autosave || m_saving) return;
+    if (!m_autosave || m_saving || m_fetching || m_flushing) {
+        return;
+    }
     if (currentHash() != m_committedHash) {
         // replaceClips previews emit no undo notification. Cancellation also
         // emits none, so keep checking until the committed content returns.
@@ -124,7 +555,7 @@ void AutosaveController::debounceExpired() {
         return;
     }
     syncClean();
-    if (m_conflict) {
+    if (m_recoveryStopped || m_deleted) {
         keepConflictCopy();
     } else if (dirty()) {
         saveNow();
@@ -296,7 +727,7 @@ SaveResult AutosaveController::keepConflictCopy() {
 
 SaveResult AutosaveController::save(ServerClient& client) {
     SaveResult result;
-    if (m_saving) {
+    if (m_saving || m_fetching) {
         result.error = QStringLiteral("a save is in flight");
         return result;
     }
@@ -305,7 +736,9 @@ SaveResult AutosaveController::save(ServerClient& client) {
         scheduleSave();
         return result;
     }
-    if (m_conflict) return keepConflictCopy();
+    if (m_recoveryStopped || m_deleted) {
+        return keepConflictCopy();
+    }
     if (m_base.isEmpty()) {
         // Without a base the server would take the save whatever it holds.
         result.error = QStringLiteral("no baseUpdatedAt: refusing to save over the server copy");
@@ -324,12 +757,20 @@ SaveResult AutosaveController::save(ServerClient& client) {
                             {QStringLiteral("document"), sent}};
     const QueryResult r = client.mutate(QStringLiteral("timeline.update"), input);
     m_saving = false;
+    if (m_pendingExternal) {
+        m_externalRetry.start();
+    }
+    if (m_deleted) {
+        return keepConflictCopy();
+    }
     if (r.ok()) {
         const QJsonObject data = r.data.toObject();
         result.ok = true;
         result.updatedAt = data.value(u"updatedAt").toString();
         for (const QJsonValue& p : data.value(u"stripped").toArray()) result.stripped << p.toString();
         m_base = result.updatedAt;
+        m_mergeBase = sync::mergeDocumentOf(raw);
+        m_casRecoveries = 0;
         m_ackHash = sentHash;  // acknowledged even when fields were dropped
         m_ackComplete = result.stripped.isEmpty();
         m_retryAttempt = 0;
@@ -368,6 +809,7 @@ SaveResult AutosaveController::save(ServerClient& client) {
             m_copyHash.clear();
             m_recoveryError.clear();
         }
+        clearLocalCopyIfClean();
         emit saved(result.updatedAt);
         emit stateChanged();
         return result;
@@ -377,20 +819,18 @@ SaveResult AutosaveController::save(ServerClient& client) {
     QString why;
     if (r.error.apiCode == u"ALREADY_EXISTS" || r.error.code == u"CONFLICT") {
         m_conflict = true;
+        result = keepConflictCopy();
         m_retry.stop();
-        result.conflict = true;
-        result.error = r.error.message;
-        result.keptCopy = writeCopyWithFallbacks(QStringLiteral("local"), current, &why);
-        result.recoveryError = why;
-        m_keptCopy = result.keptCopy;
-        m_copyHash = contentHash(current);
-        m_recoveryError = why;
         m_lastError = QStringLiteral("conflict: %1").arg(r.error.message);
-        if (!why.isEmpty()) m_lastError += QStringLiteral("; the local recovery copy failed: %1").arg(why);
-        std::fprintf(stderr, "save: conflict: the server copy changed since the load; local document %s\n",
-                     result.keptCopy.isEmpty() ? qPrintable(QStringLiteral("NOT kept: ") + why)
-                                               : qPrintable(QStringLiteral("kept in ") + result.keptCopy));
         emit conflictDetected();
+        // web/src/stores/documentSync.ts:76,138-166 bounds a CAS chain.
+        if (m_casRecoveries >= 5 || (m_flushing && m_casRecoveries > 0)) {
+            syncFailure(m_flushing ? QStringLiteral("closing flush already used its recovery")
+                                  : QStringLiteral("CAS recovery limit reached"), true);
+        } else {
+            ++m_casRecoveries;
+            fetchExternal(true);
+        }
         emit stateChanged();
         return result;
     }
@@ -415,21 +855,52 @@ SaveResult AutosaveController::save(ServerClient& client) {
 }
 
 bool AutosaveController::flushBeforeQuit(int timeoutMs) {
+    m_quitDeadline.emplace(std::max(0, timeoutMs));
+    QElapsedTimer budget;
+    budget.start();
+    m_flushing = true;
+    const auto finishFlush = qScopeGuard([this] { m_flushing = false; });
     m_timer.stop();
     m_retry.stop();
-    if (!dirty() && m_ackComplete) return true;
-    if (dirty() && !m_conflict) {
+    if (!dirty() && m_ackComplete && !m_deleted) {
+        return true;
+    }
+    if (dirty() && !m_recoveryStopped && !m_deleted) {
         // `timeoutMs` bounds the elapsed time; the transfer timeout only
         // bounds silence, which a slow answer never reaches.
         ServerClient bounded(m_target.server, m_target.token, timeoutMs);
         bounded.setExpectedInstance(m_target.expectedInstance);
         bounded.setDeadlineMs(timeoutMs);
-        const SaveResult r = save(bounded);
+        save(bounded);
+        // The explicit closing flush may wait for one worker recovery. Normal
+        // external fetches never spin a nested event loop on the GUI thread.
+        if (m_fetching && budget.elapsed() < timeoutMs) {
+            QEventLoop wait;
+            QTimer deadline;
+            deadline.setSingleShot(true);
+            connect(&deadline, &QTimer::timeout, &wait, &QEventLoop::quit);
+            connect(this, &AutosaveController::stateChanged, &wait, [this, &wait] {
+                if (!m_fetching) {
+                    wait.quit();
+                }
+            });
+            deadline.start(timeoutMs - static_cast<int>(budget.elapsed()));
+            wait.exec();
+            if (!m_fetching && !m_recoveryStopped && !m_deleted && dirty() && budget.elapsed() < timeoutMs) {
+                const int remaining = timeoutMs - static_cast<int>(budget.elapsed());
+                ServerClient retry(m_target.server, m_target.token, remaining);
+                retry.setExpectedInstance(m_target.expectedInstance);
+                retry.setDeadlineMs(remaining);
+                save(retry);
+            }
+        }
         m_retry.stop();
-        if (r.ok && !dirty() && m_ackComplete) return true;
+        if (!dirty() && m_ackComplete && !m_deleted) {
+            return true;
+        }
     }
     if (!dirty() && !keptCopy().isEmpty()) return false;
-    const QString suffix = m_conflict ? QStringLiteral("local")
+    const QString suffix = m_recoveryStopped || m_deleted || m_casRecoveries > 0 ? QStringLiteral("local")
                                      : !dirty() && !m_ackComplete ? QStringLiteral("stripped")
                                                                   : QStringLiteral("recovery");
     const QJsonObject doc = m_document();
