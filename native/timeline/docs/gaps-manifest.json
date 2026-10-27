@@ -432,8 +432,12 @@
         "qml/Tracks/ClipFadeShapeMenu.qml",
         "src/edit/clipaudio/",
         "qml/Tracks/ClipFadeGrips.qml",
+        "qml/Tracks/Clip.qml",
         "scripts/conformance/suites/clip-audio.*"
       ],
+      "notes": {
+        "qml/Tracks/Clip.qml": "shared with its merged owner, approved by the user (D15)"
+      },
       "web": [
         "web/src/components/timeline/Inspector/ClipAudioEffects.tsx",
         "web/src/components/timeline/Inspector/ClipAudioDrive.tsx",
