@@ -72,6 +72,7 @@ Item {
                 id: pointer
                 objectName: "fadePointer-" + grip.edge + "-" + root.clip.id
                 property bool playheadPassthrough: true
+                property bool takesTrimPress: true
                 property real startX: 0
                 property real startMs: 0
                 anchors.fill: parent
