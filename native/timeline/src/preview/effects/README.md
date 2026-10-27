@@ -38,7 +38,17 @@ both scene decorators. The context hooks in
 [`SceneHooks.h`](../layers/SceneHooks.h) also carry the document, the clip's
 track, clip evaluation time, sequence time, fps and sequence frame index.
 Fixed grain keeps its authored seed.
+Animated grain uses the context's sequence frame index,
+`floor(sequenceTimeMs * fps / 1000)`, on both leaf and group chains. The
+sequence clock stays unstepped for grouped clips and temporal echoes.
+Missing document fps defaults to 30 in the timeline parser.
 The driver compares every listed frame with the export.
+
+`clip-grain-animated` and `group-grain-animated` use a static image at 24 fps,
+with golden frames 17 and 18. An optional `distinctFrames` array lists pairs
+of golden frame indices whose native stills must differ. The script rejects
+pairs with PSNR above 40 dB, including identical images, independently of
+the export comparison threshold.
 
 The `track-*` fixtures cover color correction, video blur, sharpen, vignette,
 chroma key, clip-plus-track aggregation and a grouped leaf. Track audio kinds

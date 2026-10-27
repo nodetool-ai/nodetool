@@ -4,7 +4,8 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "node:test";
-import { parseArgs, comparisonPasses, allComparisonsPass, loadFixtures, visualFxFixtures } from "./check-effects.mjs";
+import { parseArgs, comparisonPasses, allComparisonsPass, loadFixtures, visualFxFixtures,
+  distinctComparisonPasses, compareDistinctFrames } from "./check-effects.mjs";
 
 test("parses defaults and explicit fixture selection", () => {
   const defaults = parseArgs(["--bin", "build/nodetool-timeline"]);
@@ -73,6 +74,69 @@ test("step 2 covers every effect, crop, document order and group surfaces", () =
   }
   for (const name of ["clip-crop-chain", "clip-ordered-chain", "effects-group", "effects-nested-group"]) {
     assert.ok(fixtures.some(item => item.name === name), name);
+  }
+});
+
+test("validates optional distinct frame pairs against the golden frames", () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "effects-distinct-"));
+  try {
+    const fixture = path.join(directory, "sample.json");
+    const goldenFrames = [0, 1].map(frame => ({ frame, criterion: "J5" }));
+    for (const distinctFrames of [null, {}, [null], [0], [[0]], [[0, 1, 2]], [[0, 0]],
+      [[0, 2]], [[-1, 1]], [[0.5, 1]], [["0", 1]], [[0, 1], [1, 0]], [[0, 1], [0, 1]]]) {
+      fs.writeFileSync(fixture, JSON.stringify({ goldenFrames, distinctFrames }));
+      assert.throws(() => loadFixtures(directory, []), /distinctFrames/, JSON.stringify(distinctFrames));
+    }
+    for (const distinctFrames of [[], [[0, 1]], [[1, 0]]]) {
+      fs.writeFileSync(fixture, JSON.stringify({ goldenFrames, distinctFrames }));
+      assert.deepEqual(loadFixtures(directory, ["sample"])[0].distinctFrames, distinctFrames);
+    }
+  } finally { fs.rmSync(directory, { recursive: true, force: true }); }
+});
+
+test("native frame distinctness fails on identical, near-identical or missing stills", () => {
+  assert.equal(distinctComparisonPasses(40), true);
+  assert.equal(distinctComparisonPasses(39.999), true);
+  for (const psnr of [40.001, Infinity, NaN, -Infinity, -1, null, undefined, "inf"]) {
+    assert.equal(distinctComparisonPasses(psnr), false, String(psnr));
+  }
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "effects-native-pair-"));
+  try {
+    for (const frame of [0, 1]) {
+      fs.copyFileSync(new URL("./fixtures/posterize-midpoint.png", import.meta.url),
+        path.join(directory, `frame_${String(frame).padStart(6, "0")}.png`));
+    }
+    const rows = compareDistinctFrames(directory, [[0, 1], [0, 2]]);
+    assert.equal(rows.length, 2);
+    assert.deepEqual(rows[0].distinctFrames, [0, 1]);
+    assert.equal(rows[0].psnr, "inf");
+    assert.equal(rows[0].pass, false);
+    assert.equal(rows[1].pass, false);
+    assert.match(rows[1].error, /Missing native still/);
+    assert.equal(allComparisonsPass([{ pass: true }, ...rows]), false);
+  } finally { fs.rmSync(directory, { recursive: true, force: true }); }
+});
+
+test("animated grain fixtures cover clip and group seeds with distinct native frames", () => {
+  const directory = fileURLToPath(new URL("./fixtures/", import.meta.url));
+  for (const name of ["clip-grain-animated", "group-grain-animated"]) {
+    const fixture = loadFixtures(directory, [name])[0];
+    assert.deepEqual(fixture.frames.map(item => item.frame), [17, 18]);
+    assert.deepEqual(fixture.distinctFrames, [[17, 18]]);
+    assert.ok(fixture.frames.every(item => item.criterion.includes("PSNR >= 40 dB")));
+    const doc = JSON.parse(fs.readFileSync(fixture.fixture, "utf8"));
+    assert.equal(doc.fps, 24);
+    const picture = doc.clips.find(clip => clip.mediaType === "image");
+    assert.equal(picture.width, doc.width);
+    assert.equal(picture.height, doc.height);
+    assert.ok(fs.existsSync(path.resolve(directory, picture.mediaPath)));
+    const treated = name === "clip-grain-animated" ? picture : doc.clips.find(clip => clip.id === picture.parentId);
+    const grain = treated.effects.find(effect => effect.type === "grain");
+    assert.equal(grain.animate, true);
+    assert.equal(grain.enabled, true);
+    assert.equal(grain.amount, 1);
+    assert.ok(fixture.frames.every(({ frame }) => frame !== grain.seed &&
+      frame * 1000 / doc.fps >= picture.startMs && frame * 1000 / doc.fps < picture.startMs + picture.durationMs));
   }
 });
 

@@ -64,6 +64,24 @@ export function allComparisonsPass(results) {
   return results.length > 0 && results.every(result => result.pass === true);
 }
 
+export function distinctComparisonPasses(psnr) {
+  return Number.isFinite(psnr) && psnr >= 0 && psnr <= 40;
+}
+
+export function compareDistinctFrames(directory, pairs) {
+  return pairs.map(pair => {
+    const row = { distinctFrames: pair, psnr: null, pass: false };
+    try {
+      const files = pair.map(frame => path.join(directory, `frame_${String(frame).padStart(6, "0")}.png`));
+      if (files.some(file => !fs.existsSync(file))) { throw new Error("Missing native still for distinctFrames"); }
+      const value = psnr(...files);
+      row.psnr = Number.isFinite(value) ? value : "inf";
+      row.pass = distinctComparisonPasses(value);
+    } catch (error) { row.error = error.message.replace(/\r?\n/g, " | "); }
+    return row;
+  });
+}
+
 function psnr(golden, native) {
   // Same RGB24 three-channel average as compare-golden.mjs. ffmpeg prints
   // filter statistics on stderr, even on a successful run.
@@ -83,14 +101,31 @@ export function loadFixtures(directory, only) {
   const fixtures = files.filter(file => only.length === 0 || only.includes(path.basename(file, ".json")))
     .map(file => {
       const fixture = path.join(directory, file);
-      const frames = JSON.parse(fs.readFileSync(fixture, "utf8")).goldenFrames;
+      const doc = JSON.parse(fs.readFileSync(fixture, "utf8"));
+      const frames = doc.goldenFrames;
       if (!Array.isArray(frames) || frames.length === 0 || frames.some(item =>
         !Number.isSafeInteger(item.frame) || item.frame < 0 || typeof item.criterion !== "string" || !item.criterion.trim() ||
         (item.identical !== undefined && typeof item.identical !== "boolean")) ||
         new Set(frames.map(item => item.frame)).size !== frames.length) {
         throw new Error(`${file}: expected distinct nonnegative goldenFrames with an exit criterion`);
       }
-      return { name: path.basename(file, ".json"), fixture, frames };
+      const distinctFrames = doc.distinctFrames;
+      if (distinctFrames !== undefined) {
+        const goldenIndices = new Set(frames.map(item => item.frame));
+        const seen = new Set();
+        if (!Array.isArray(distinctFrames) || distinctFrames.some(pair => {
+          if (!Array.isArray(pair) || pair.length !== 2 || pair[0] === pair[1] ||
+            pair.some(frame => !Number.isSafeInteger(frame) || !goldenIndices.has(frame))) { return true; }
+          const key = [...pair].sort((a, b) => a - b).join(",");
+          if (seen.has(key)) { return true; }
+          seen.add(key);
+          return false;
+        })) {
+          throw new Error(`${file}: expected unique distinctFrames pairs of different golden frame indices`);
+        }
+      }
+      return { name: path.basename(file, ".json"), fixture, frames,
+        ...(distinctFrames === undefined ? {} : { distinctFrames }) };
     });
   if (fixtures.length === 0) { throw new Error("No fixtures to compare"); }
   return fixtures;
@@ -100,7 +135,7 @@ export function main(argv) {
   const args = parseArgs(argv);
   const fixtures = loadFixtures(path.join(here, "fixtures"), args.only);
   const results = [];
-  for (const { name, fixture, frames } of fixtures) {
+  for (const { name, fixture, frames, distinctFrames = [] } of fixtures) {
     const frameList = frames.map(item => item.frame).join(",");
     const goldenOut = path.join(root, "build", "golden", `effects-${name}`);
     const nativeOut = path.join(root, "build", "native-stills", `effects-${name}`);
@@ -146,6 +181,14 @@ export function main(argv) {
       } catch (error) { row.error = error.message.replace(/\r?\n/g, " | "); }
       results.push(row);
       console.log(args.json ? JSON.stringify(row) : `${name} frame ${frame}: PSNR ${row.psnr ?? "missing"} dB ${row.pass ? "PASS" : "FAIL"} (${identical ? "identical required" : `minimum ${args.minPsnr}`})${row.error ? ` ${row.error}` : ""}`);
+    }
+    const pairs = renderError
+      ? distinctFrames.map(pair => ({ distinctFrames: pair, psnr: null, pass: false, error: renderError }))
+      : compareDistinctFrames(nativeOut, distinctFrames);
+    for (const pair of pairs) {
+      const row = { fixture: name, criterion: "Native frames differ, PSNR <= 40 dB", ...pair };
+      results.push(row);
+      console.log(args.json ? JSON.stringify(row) : `${name} native frames ${row.distinctFrames.join(",")}: PSNR ${row.psnr ?? "missing"} dB ${row.pass ? "PASS" : "FAIL"} (distinct requires at most 40)${row.error ? ` ${row.error}` : ""}`);
     }
   }
   return allComparisonsPass(results) ? 0 : 1;

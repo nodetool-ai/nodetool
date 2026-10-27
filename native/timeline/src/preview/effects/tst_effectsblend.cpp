@@ -1,4 +1,5 @@
 #include "preview/compose/ComposeRegistry.h"
+#include "preview/effects/ClipEffects.h"
 #include "preview/layers/SceneHooks.h"
 #include "preview/layers/TestStill.h"
 #include "model/TimelineJson.h"
@@ -233,7 +234,7 @@ private slots:
         QCOMPARE(layer.sourceRect,(std::array<float,4>{0.25f,0,0.5f,1}));
         QCOMPARE(layer.ext.value("effectSourceRect").toArray(),(QJsonArray{0.25,0,0.5,1}));
         const auto copied=layer.ext.value("clipEffects").toArray(); QCOMPARE(copied.size(),2);
-        QCOMPARE(copied[0].toObject().value("seed").toInt(),27);
+        QCOMPARE(copied[0].toObject().value("seed").toInt(),15);
         QCOMPARE(copied[1].toObject().value("time").toDouble(),0.5);
         const auto& group=frame.precomposites[0];
         QVERIFY(group.ext.value("effectGroupSurface").toBool());
@@ -242,6 +243,58 @@ private slots:
         auto stages=nt::registeredEffectStages(); QVERIFY(!stages.empty());
         QVERIFY(stages[1]->applies(layer.ext)); QVERIFY(stages[1]->applies(group.ext));
         QVERIFY(!stages[0]->applies({}));
+    }
+    void animatedGrain_data() {
+        QTest::addColumn<double>("fps");
+        QTest::addColumn<double>("timeMs");
+        QTest::addColumn<int>("seed");
+        QTest::newRow("24-first") << 24.0 << 735.9 << 17;
+        QTest::newRow("24-next") << 24.0 << 775.9 << 18;
+        QTest::newRow("24-same-frame") << 24.0 << 740.0 << 17;
+        QTest::newRow("fractional-fps") << 23.976 << 1000.0 << 23;
+        QTest::newRow("missing-fps-first") << 0.0 << 735.9 << 22;
+        QTest::newRow("missing-fps-next") << 0.0 << 775.9 << 23;
+    }
+    void animatedGrain() {
+        QFETCH(double, fps);
+        QFETCH(double, timeMs);
+        QFETCH(int, seed);
+        const QJsonArray effects{effect("grain", {{"amount", 1}, {"seed", 101}, {"animate", true}}),
+            effect("grain", {{"amount", 1}, {"seed", -7}, {"animate", false}}),
+            effect("grain", {{"amount", 1}, {"seed", 81}}),
+            QJsonObject{{"type", "grain"}, {"enabled", false}, {"seed", 19}, {"animate", true}}};
+        const QJsonObject group{{"id", "g"}, {"trackId", "v"}, {"mediaType", "group"},
+            {"startMs", 100}, {"durationMs", 2000}, {"effects", effects}};
+        const QJsonObject leaf{{"id", "a"}, {"trackId", "v"}, {"mediaType", "shape"},
+            {"parentId", "g"}, {"startMs", 200}, {"durationMs", 1500},
+            {"width", 64}, {"height", 32}, {"shapeStyle", QJsonObject{{"kind", "rect"}}},
+            {"inPointMs", 900}, {"speedMultiplier", 2}, {"steppedTime", QJsonObject{{"fps", 4}}},
+            {"temporalEcho", QJsonObject{{"copies", 1}, {"intervalMs", 100}, {"opacityDecay", 0.5}}},
+            {"effects", effects}};
+        QJsonObject raw{{"width", 64}, {"height", 32}, {"durationMs", 3000},
+            {"tracks", QJsonArray{QJsonObject{{"id", "v"}, {"type", "video"}}}},
+            {"clips", QJsonArray{group, leaf}}};
+        if (fps > 0) { raw.insert("fps", fps); }
+        const auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
+        QVERIFY(parsed.timeline);
+        QCOMPARE(parsed.timeline->fps, fps > 0 ? fps : 30.0);
+        const auto frame = nt::evaluateScene(*parsed.timeline, timeMs);
+        QCOMPARE(frame.layers.size(), size_t{2});
+        QCOMPARE(frame.precomposites.size(), size_t{1});
+        const auto checkSeeds = [&](const QJsonObject &ext) {
+            const auto copied = ext.value("clipEffects").toArray();
+            QCOMPARE(copied.size(), 3);
+            QCOMPARE(copied[0].toObject().value("seed").toInt(), seed);
+            QCOMPARE(copied[1].toObject().value("seed").toInt(), -7);
+            QCOMPARE(copied[2].toObject().value("seed").toInt(), 81);
+            const auto passes = nt::effects::planChain(copied);
+            QCOMPARE(passes.size(), size_t{3});
+            QCOMPARE(passes[0].op, nt::effects::Op::Grain);
+            QCOMPARE(passes[0].params[3], static_cast<float>(seed));
+        };
+        for (const auto &layer : frame.layers) { checkSeeds(layer.ext); }
+        for (const auto &surface : frame.precomposites) { checkSeeds(surface.ext); }
+        for (const auto &clip : parsed.timeline->clips) { QCOMPARE(clip.raw.value("effects").toArray(), effects); }
     }
     void mattePixels_data() {
         QTest::addColumn<QString>("mode"); QTest::addColumn<bool>("invert");
