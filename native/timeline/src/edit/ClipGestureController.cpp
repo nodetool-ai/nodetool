@@ -1059,7 +1059,7 @@ bool ClipGestureController::runBuiltinAction(const QString& action, bool autoRep
         }
         if (actionSelection.isEmpty()) return false;
         const EditDoc doc = editDoc();
-        const bool ripple = action == u"rippleDeleteSelected" || m_rippleMode;
+        const bool ripple = action == u"rippleDeleteSelected" || (!scoped && m_rippleMode);
         const ClipList next = resolveEdit(ripple ? "rippleDeleteSelected" : "deleteSelected",
                                          {{"selectedIds", QJsonArray::fromStringList(actionSelection)}}, [&] {
             return ripple ? rippleDeleteSelected(doc, selected) : deleteSelected(doc, selected);
