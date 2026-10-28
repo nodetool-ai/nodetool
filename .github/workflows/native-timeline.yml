@@ -38,7 +38,7 @@ jobs:
       matrix:
         include:
           - name: macOS
-            os: macos-14
+            os: macos-15
           - name: Linux
             os: ubuntu-24.04
           - name: Windows
@@ -149,7 +149,8 @@ jobs:
             -DCMAKE_PREFIX_PATH="$QT_PREFIX"
 
       - name: Build
-        run: cmake --build native/timeline/build-ci
+        # -k 0 reports every failing file in one run, not only the first.
+        run: cmake --build native/timeline/build-ci -- -k 0
 
       # The offscreen QPA platform has no QRhi: Qt Quick falls back to the
       # software scene graph there, and tst_editpreview cannot initialize its
