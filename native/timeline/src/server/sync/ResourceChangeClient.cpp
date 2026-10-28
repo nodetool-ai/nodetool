@@ -188,7 +188,7 @@ void ResourceChangeClient::open()
     auto url = m_base;
     url.setScheme(url.scheme() == u"https" ? "wss" : "ws");
     url.setPath("/ws");
-    url.setQuery({});
+    url.setQuery(QString());
     url.setFragment({});
     QNetworkRequest request(url);
     request.setRawHeader("X-Nodetool-Client", kClientHeader);
