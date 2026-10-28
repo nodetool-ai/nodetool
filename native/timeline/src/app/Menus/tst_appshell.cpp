@@ -396,7 +396,7 @@ private slots:
         QVERIFY(sheet);
         QVERIFY(sheet->property("open").toBool());
         QVERIFY(menus.trigger("pasteAttributes"));
-        QVERIFY(!menus.trigger("linkClips"));
+        QVERIFY(menus.trigger("linkClips"));
     }
 };
 int main(int argc, char** argv) {
