@@ -305,12 +305,16 @@
         "src/server/AutosaveController.*",
         "tests/tst_autosave.cpp",
         "qml/TimelineDocumentActions.qml",
-        "src/app/Menus/ShellMenus.*"
+        "src/app/Menus/ShellMenus.*",
+        "src/wiring/w/tst_wiringw.cpp",
+        "src/edit/sourceEdit/tst_sourceviewer.cpp"
       ],
       "ownsNotes": {
         "src/server/AutosaveController.*": "shared with PX and SY (merged), approved by the user (D14)",
         "tests/tst_autosave.cpp": "shared with PX and SY (merged), approved by the user (D14)",
-        "src/app/Menus/ShellMenus.*": "shared with R (merged), two File items only, approved by the user (D13)"
+        "src/app/Menus/ShellMenus.*": "shared with R (merged), two File items only, approved by the user (D13)",
+        "src/wiring/w/tst_wiringw.cpp": "shared with W (merged), exportMenu finds Export by action after the A File items, shared, approved by the user",
+        "src/edit/sourceEdit/tst_sourceviewer.cpp": "shared with O (merged), marking closes the Ctrl+O timeline list before typing, shared, approved by the user"
       },
       "web": [
         "web/src/components/timeline/TimelineListPanel.tsx",
