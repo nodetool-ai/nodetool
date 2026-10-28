@@ -1,7 +1,14 @@
 # QTextLayout/QRawFont alone differ from Canvas in GPOS advances, variable
 # weights and transformed glyph coverage. HarfBuzz shapes the selected face,
 # and FreeType rasterizes it to keep the example comparisons above 35 dB.
-find_package(harfbuzz CONFIG REQUIRED)
+# Debian and Ubuntu ship HarfBuzz without its CMake package, so fall back to
+# pkg-config there.
+find_package(harfbuzz CONFIG QUIET)
+if(NOT TARGET harfbuzz::harfbuzz)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(harfbuzz REQUIRED IMPORTED_TARGET GLOBAL harfbuzz)
+    add_library(harfbuzz::harfbuzz ALIAS PkgConfig::harfbuzz)
+endif()
 find_package(Freetype REQUIRED)
 cmake_language(DEFER CALL target_link_libraries timeline_decode PRIVATE harfbuzz::harfbuzz Freetype::Freetype)
 nt_sources(decode src/render2d/Rasterizer.h src/render2d/Rasterizer.cpp
