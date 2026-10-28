@@ -87,10 +87,52 @@ class TestReframe : public QObject {
                 static_cast<float>(rect.value("width").toDouble() / width),
                 static_cast<float>(rect.value("height").toDouble() / height)};
             QVERIFY(reframeExpected != full);
-            QEXPECT_FAIL("", "F1: the layer decorator seam has no sequence canvas or media tracks (SceneHooks, package S4)", Continue);
             QCOMPARE(planFor(reframed).layers.front().layer.sourceRect, reframeExpected);
             QCOMPARE(planFor(nt::reframe::clearReframe(reframed)).layers.front().layer.sourceRect, expected);
         }
+        clip.insert("reframe", QJsonObject{{"mode", "center"}, {"sourceWidth", 0}});
+        QCOMPARE(planFor(clip).layers.front().layer.sourceRect, expected);
+    }
+    void trackReframePlan_data() {
+        QTest::addColumn<QJsonObject>("timing");
+        QTest::addColumn<double>("sourceMs");
+        QTest::addColumn<float>("left");
+        QTest::newRow("speed") << QJsonObject{{"speedMultiplier", 2}} << 600. << .375f;
+        QTest::newRow("baked-speed") << QJsonObject{{"speedMultiplier", 2}, {"speedBaked", true}}
+            << 400. << .25f;
+        QTest::newRow("stepped-source") << QJsonObject{{"speedMultiplier", 2},
+            {"steppedTime", QJsonObject{{"fps", 3}}}} << 200. << .375f;
+        QTest::newRow("remapped") << QJsonObject{{"timeRemap", QJsonObject{{"keyframes", QJsonArray{
+            QJsonObject{{"t", 0}, {"sourceMs", 600}}, QJsonObject{{"t", 1}, {"sourceMs", 1100}}}}}}}
+            << 700. << .4375f;
+    }
+    void trackReframePlan() {
+        QFETCH(QJsonObject, timing);
+        QFETCH(double, sourceMs);
+        QFETCH(float, left);
+        auto doc = document();
+        auto clip = doc["clips"].toArray()[0].toObject();
+        clip.insert("width", 640);
+        clip.insert("height", 360);
+        clip.insert("currentAssetId", "current");
+        clip.insert("reframe", QJsonObject{{"mode", "track"}, {"trackId", "subject"},
+            {"sourceWidth", 1280}, {"sourceHeight", 360}});
+        for (auto it = timing.constBegin(); it != timing.constEnd(); ++it) {
+            clip.insert(it.key(), it.value());
+        }
+        const QJsonObject track{{"id", "subject"}, {"clipId", "c"}, {"sourceAssetId", "current"},
+            {"kind", "point"}, {"status", "ready"}, {"sourceStartMs", 0}, {"sourceEndMs", 800},
+            {"samples", QJsonArray{QJsonObject{{"sourceMs", 0}, {"x", .25}, {"y", .5}},
+                                   QJsonObject{{"sourceMs", 800}, {"x", .75}, {"y", .5}}}}};
+        doc.insert("clips", QJsonArray{clip});
+        doc.insert("mediaTracks", QJsonArray{QJsonObject{{"id", "other"}, {"status", "ready"}}, track});
+        const auto parsed = nt::parseTimelineJson(QJsonDocument(doc).toJson());
+        QVERIFY(parsed.timeline);
+        const auto plan = nt::buildFramePlan(*parsed.timeline, 300);
+        QCOMPARE(plan.layers.size(), size_t(1));
+        QCOMPARE(plan.layers.front().layer.sourceTimeMs, sourceMs);
+        const std::array<float, 4> expected{left, 0, .5f, 1};
+        QCOMPARE(plan.layers.front().layer.sourceRect, expected);
     }
     void sectionRegistration() {
         InspectorSectionRegistry registry;
