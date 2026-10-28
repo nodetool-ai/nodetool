@@ -91,6 +91,14 @@ private slots:
             QTest::keyClick(view.get(), Qt::Key_O, modifier);
             QCOMPARE(state->sourceRange(), marks);
         }
+        // Ctrl+O opens the modal timeline list and takes focus from the source viewer.
+        auto* actions = item("TimelineDocumentActions");
+        QVERIFY(actions);
+        auto* popup = actions->findChild<QObject*>("timelineListPopup");
+        QVERIFY(popup);
+        QTRY_VERIFY(popup->property("visible").toBool());
+        QTest::keyClick(view.get(), Qt::Key_Escape);
+        QTRY_VERIFY(!popup->property("visible").toBool());
         type("sourceIn", "1.25"); type("sourceOut", "4.50");
         QCOMPARE(state->inMs(), 1250.0); QCOMPARE(state->outMs(), 4500.0);
         type("sourceIn", "9.00"); QCOMPARE(state->inMs(), 4500.0);

@@ -8,6 +8,7 @@
 #include <QJSValue>
 #include <QFile>
 #include <QTemporaryDir>
+#include <algorithm>
 
 class TestWiringW : public WiringFixture {
     Q_OBJECT
@@ -135,11 +136,18 @@ private slots:
         const auto menus = nt::app::shellMenuDescription("nodetool");
         const auto& items = menus.front().items;
         QVERIFY(items.size() >= 3);
-        QCOMPARE(items[0].label, QString("Open Recent"));
-        QCOMPARE(items[1].label, QString("Export…"));
-        QCOMPARE(items[1].action, QString("exportVideo"));
-        QVERIFY(items[1].sequence.isEmpty());
-        QCOMPARE(items[2].label, QString("Settings…"));
+        const auto recentItem = items.begin();
+        const auto exportItem = std::ranges::find(items, QString("exportVideo"), &nt::app::ShellMenuItem::action);
+        const auto settingsItem = std::ranges::find(items, QString("settings"), &nt::app::ShellMenuItem::action);
+        QVERIFY(exportItem != items.end());
+        QVERIFY(settingsItem != items.end());
+        QCOMPARE(recentItem->label, QString("Open Recent"));
+        QCOMPARE(exportItem->label, QString("Export…"));
+        QCOMPARE(exportItem->action, QString("exportVideo"));
+        QVERIFY(exportItem->sequence.isEmpty());
+        QCOMPARE(settingsItem->label, QString("Settings…"));
+        QVERIFY(recentItem < exportItem);
+        QVERIFY(exportItem < settingsItem);
         auto* shell = item("appShell"); QVERIFY(shell);
         auto* menu = shell->findChild<nt::app::ShellMenus*>(); QVERIFY(menu);
         auto* controller = qobject_cast<ExportController*>(object("exportController")); QVERIFY(controller);
