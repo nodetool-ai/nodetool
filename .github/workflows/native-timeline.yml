@@ -65,8 +65,10 @@ jobs:
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
-          brew install qt ninja pkgconf ffmpeg
-          echo "QT_PREFIX=$(brew --prefix qt)" >> "$GITHUB_ENV"
+          brew install ninja pkgconf ffmpeg
+          # Homebrew's Qt lags behind the Qt version the build requires.
+          pipx run aqtinstall install-qt mac desktop "$QT_VERSION" clang_64 -m qtshadertools qtwebsockets -O "$RUNNER_TEMP/qt"
+          echo "QT_PREFIX=$RUNNER_TEMP/qt/$QT_VERSION/macos" >> "$GITHUB_ENV"
 
       - name: Install dependencies (Linux)
         if: runner.os == 'Linux'
@@ -99,7 +101,14 @@ jobs:
         if: runner.os == 'Windows'
         run: |
           choco install -y ninja pkgconfiglite
-          pipx run aqtinstall install-qt windows desktop "$QT_VERSION" win64_msvc2022_64 -m qtshadertools qtwebsockets -O "$RUNNER_TEMP/qt"
+          # aqtinstall cannot read the per-toolchain repository layout of Qt 6.12.
+          qtv=$(echo "$QT_VERSION" | tr -d .)
+          python native/timeline/scripts/fetch-qt.py \
+            "https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt6_$qtv/qt6_${qtv}_msvc2022_64" \
+            "$RUNNER_TEMP/qt/$QT_VERSION/msvc2022_64" \
+            "qt.qt6.$qtv.win64_msvc2022_64" \
+            "qt.qt6.$qtv.addons.qtshadertools.win64_msvc2022_64" \
+            "qt.qt6.$qtv.addons.qtwebsockets.win64_msvc2022_64"
           qt="$RUNNER_TEMP/qt/$QT_VERSION/msvc2022_64"
           echo "QT_PREFIX=$qt" >> "$GITHUB_ENV"
           # Qt's DLLs, for the tests and windeployqt.
