@@ -1133,8 +1133,14 @@
       "owns": [
         "qml/dock/",
         "qml/TimelineEditor.qml",
-        "src/app/PanelSlot.qml"
+        "src/app/PanelSlot.qml",
+        "src/wiring/WiringFixture.h",
+        "src/edit/sourceEdit/tst_sourceviewer.cpp"
       ],
+      "ownsNotes": {
+        "src/wiring/WiringFixture.h": "shared with its merged owner (S3), approved by the user: the fixture sizes the dock's bottom region so the tracks show every row",
+        "src/edit/sourceEdit/tst_sourceviewer.cpp": "shared with its merged owner (A), approved by the user: the fixture keeps the 300 px tracks region and settles layout before clicking"
+      },
       "web": [
         "web/src/components/dock/",
         "web/src/stores/timeline/TimelineDockLayout.ts",
