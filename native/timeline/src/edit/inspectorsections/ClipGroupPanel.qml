@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
+import "../clipeffects" as Effects
 Column {
     id: root
     objectName: "clipGroupPanel"
@@ -38,4 +39,6 @@ Column {
         }
     }
     TimingSection { width: parent.width; timelineModel: root.timelineModel; gestures: root.gestures; controller: root.controller; groupMode: true }
+    Effects.ClipAdjustments { width: parent.width; timelineModel: root.timelineModel; gestures: root.gestures; controller: root.controller }
+    Effects.ClipEffectsList { width: parent.width; timelineModel: root.timelineModel; gestures: root.gestures; controller: root.controller }
 }
