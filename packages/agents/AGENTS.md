@@ -1147,7 +1147,7 @@ virtual secret key `GOOGLE_ACCESS_TOKEN`, which `getSecret` routes to
 `resolveGoogleAccessToken` (refreshing a stale token when `GOOGLE_CLIENT_ID` and
 `GOOGLE_CLIENT_SECRET` are set).
 
-They are not in `BUILTIN_TOOL_CLASSES`. A server without a login can never
+A server without a login can never
 produce a token, so the chat toolbelt adds them only when
 `isGoogleWorkspaceEnabled()` (`@nodetool-ai/config`) is true — Supabase auth
 mode, or `NODETOOL_GOOGLE_WORKSPACE=1`.
