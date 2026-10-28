@@ -928,14 +928,14 @@ bool ClipGestureController::handleKey(int key, const QString& text, int modifier
 
 bool ClipGestureController::runAction(const QString& action, const QVariantMap& context) {
     if (!m_timeline || action.isEmpty()) { return false; }
-    if (runBuiltinAction(action, context.value("autoRepeat").toBool())) { return true; }
+    if (runBuiltinAction(action, context.value("autoRepeat").toBool(), context)) { return true; }
     for (const auto& extension : nt::wiring::keyActions()) {
         if (extension.name == action) { return extension.handler(*this, context); }
     }
     return false;
 }
 
-bool ClipGestureController::runBuiltinAction(const QString& action, bool autoRepeat) {
+bool ClipGestureController::runBuiltinAction(const QString& action, bool autoRepeat, const QVariantMap& context) {
     // A key ends the gesture first: Escape cancels it and stops there; any
     // other command cancels it and runs on the press state, so the history
     // never interleaves with an open gesture.
@@ -975,15 +975,18 @@ bool ClipGestureController::runBuiltinAction(const QString& action, bool autoRep
         }
     }
     const QJsonArray before = m_timeline->clipsJson();
-    const IdSet selected(m_selection.begin(), m_selection.end());
+    const bool scoped = context.contains("clipIds") &&
+        (action == u"splitAtPlayhead" || action == u"duplicate" || action == u"deleteSelected");
+    const QStringList actionSelection = scoped ? context.value("clipIds").toStringList() : m_selection;
+    const IdSet selected(actionSelection.begin(), actionSelection.end());
     static const QSet<QString> clipboardActions{"copy", "cut", "paste", "pasteInsert", "duplicate", "duplicateWithGap",
                                                 "groupClips", "ungroupClips"};
     if (clipboardActions.contains(action)) {
         if (action == u"paste" || action == u"pasteInsert") {
             if (!nt::edit::clipboard::hasClipboardClips()) { return false; }
-        } else if (m_selection.isEmpty() || (action == u"groupClips" && m_selection.size() < 2)) { return false; }
+        } else if (actionSelection.isEmpty() || (action == u"groupClips" && actionSelection.size() < 2)) { return false; }
         auto payload = targetingPayload();
-        payload.insert("selectedIds", QJsonArray::fromStringList(m_selection));
+        payload.insert("selectedIds", QJsonArray::fromStringList(actionSelection));
         payload.insert("atMs", playheadMs());
         payload.insert("mode", m_dropMode);
         payload.insert("linked", m_linked);
@@ -1045,7 +1048,7 @@ bool ClipGestureController::runBuiltinAction(const QString& action, bool autoRep
         return true;
     }
     if (action == u"deleteSelected" || action == u"rippleDeleteSelected") {
-        if (m_selection.isEmpty() && !m_selectedGap.isEmpty()) {
+        if (!scoped && actionSelection.isEmpty() && !m_selectedGap.isEmpty()) {
             auto payload = targetingPayload();
             payload.insert("trackId", m_selectedGap.value("trackId").toString());
             payload.insert("timeMs", m_selectedGap.value("startMs").toDouble());
@@ -1054,11 +1057,11 @@ bool ClipGestureController::runBuiltinAction(const QString& action, bool autoRep
             emit selectionChanged();
             return true;
         }
-        if (m_selection.isEmpty()) return false;
+        if (actionSelection.isEmpty()) return false;
         const EditDoc doc = editDoc();
         const bool ripple = action == u"rippleDeleteSelected" || m_rippleMode;
         const ClipList next = resolveEdit(ripple ? "rippleDeleteSelected" : "deleteSelected",
-                                         {{"selectedIds", QJsonArray::fromStringList(m_selection)}}, [&] {
+                                         {{"selectedIds", QJsonArray::fromStringList(actionSelection)}}, [&] {
             return ripple ? rippleDeleteSelected(doc, selected) : deleteSelected(doc, selected);
         });
         m_timeline->commitEdit(ripple ? QStringLiteral("Ripple delete") : QStringLiteral("Delete clips"), before,
@@ -1067,11 +1070,18 @@ bool ClipGestureController::runBuiltinAction(const QString& action, bool autoRep
     }
     if (action == u"splitAtPlayhead" || action == u"cutAllTracks") {
         // Read before the commit: the commit prunes the split clips' ids.
-        const QStringList selection = m_selection;
+        const QStringList selection = actionSelection;
         const EditDoc doc = editDoc();
         const double timeMs = playheadMs();
         QStringList requested = action == u"cutAllTracks" ? QStringList{} : selection;
-        if (action == u"splitAtPlayhead" && requested.isEmpty()) {
+        if (scoped) {
+            requested.removeIf([&](const QString& id) {
+                const auto* clip = findClip(doc.clips, id);
+                return !clip || timeMs <= clipStartMs(*clip) || timeMs >= clipEndMs(*clip);
+            });
+            if (requested.isEmpty()) { return true; }
+        }
+        if (!scoped && action == u"splitAtPlayhead" && requested.isEmpty()) {
             const auto tracks = nt::targeting::targetedTrackIds(doc, nt::targeting::TrackTargeting::current().state());
             for (const auto& c : doc.clips) {
                 if (tracks.contains(clipTrackId(c))) { requested.append(clipId(c)); }
@@ -1405,7 +1415,7 @@ QVariantMap ClipGestureController::shortcutSheet() const {
     }
     QJsonArray extensions;
     for (const auto& action : nt::wiring::keyActions()) {
-        if (listed.contains(action.name)) { continue; }
+        if (listed.contains(action.name) || action.defaultKeys.isEmpty()) { continue; }
         QJsonArray combos;
         for (const auto& key : action.defaultKeys) {
             combos.append(QJsonArray::fromStringList(key.toString(QKeySequence::NativeText).split('+')));

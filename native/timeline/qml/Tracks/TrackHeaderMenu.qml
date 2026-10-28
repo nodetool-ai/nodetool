@@ -76,7 +76,10 @@ Menu {
         onTriggered: menu.timeline.applyEdit("insertTrack", {
             type: menu.trackType, atIndex: TrackHeaderActions.position(menu.timeline, menu.trackId) + 1 })
     }
-    MenuSeparator { contentItem: Rectangle { implicitHeight: 1; color: Theme.divider } }
+    MenuSeparator {
+        objectName: "trackMenu-deleteDivider"
+        contentItem: Rectangle { implicitHeight: 1; color: Theme.divider }
+    }
     HeaderMenuItem {
         objectName: "trackMenu-remove"
         text: "Delete track"

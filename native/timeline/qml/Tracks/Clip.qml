@@ -88,9 +88,8 @@ Item {
                      ? clipItem.viewState.scrollLeftPx + clipItem.viewState.viewportWidthPx - clipItem.x : width
     }
 
-    RegistryContextMenu {
+    ClipContextMenu {
         id: clipMenu
-        kind: "clip"
         gestures: clipItem.gestures
     }
     HoverHandler { id: hover }
@@ -124,6 +123,7 @@ Item {
             if (mouse.button === Qt.RightButton) {
                 if (clipItem.gestures && !clipItem.selected) clipItem.gestures.selection = [clipItem.clipId]
                 clipMenu.context = { clipId: clipItem.clipId, clip: clipItem.clipData,
+                                     clipIds: [clipItem.clipId], mediaType: clipItem.mediaType,
                                      selectedIds: clipItem.gestures ? clipItem.gestures.selection : [],
                                      editable: !clipItem.interactionLocked }
                 clipMenu.popup(mouse.x, mouse.y)
