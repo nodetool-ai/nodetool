@@ -15,6 +15,8 @@ const platform = override !== undefined ? override || "offscreen" :
   (process.env.DISPLAY && !userSession ? "xcb" : "offscreen");
 console.log(`platform: ${platform}`);
 const bin = path.resolve(process.argv[2]);
+// The sanitize build runs the app several times slower than a release build.
+const slowdown = bin.includes("build-sanitize") ? 6 : 1;
 const work = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "nt-document-actions-")));
 const session = createScratchSession({work, repo: path.resolve(timelineDir, "../.."), assertInWork(candidate) {
   assert.ok(path.resolve(candidate).startsWith(work + path.sep));
@@ -40,10 +42,10 @@ try {
     const preferences = path.join(dir, "preferences.ini");
     const result = path.join(dir, "result.json");
     const runEnv = {...env, NODETOOL_TIMELINE_PREFERENCES: preferences, NODETOOL_TIMELINE_CACHE_DIR: path.join(dir, "cache"), XDG_CACHE_HOME: path.join(dir, "qt-cache"),
-      NT_TIMELINE_DOCUMENT_CHECK: mode, NT_TIMELINE_DOCUMENT_RESULT: result, NT_TIMELINE_SWITCH_CAPTURE: capture,
+      NT_TIMELINE_DOCUMENT_CHECK: mode, NT_TIMELINE_DOCUMENT_TIMEOUT_MS: String(20000 * slowdown), NT_TIMELINE_DOCUMENT_RESULT: result, NT_TIMELINE_SWITCH_CAPTURE: capture,
       NT_TIMELINE_DOCUMENT_CHOOSE: chosen.id};
     await session.assertScratch(server.base);
-    const run = (args, childEnv) => spawnSync(bin, [...args, "--audio", "none"], {env: childEnv, cwd: work, encoding: "utf8", timeout: 30000});
+    const run = (args, childEnv) => spawnSync(bin, [...args, "--audio", "none"], {env: childEnv, cwd: work, encoding: "utf8", timeout: 30000 * slowdown});
     const processResult = run(["--server", server.base, "--timeline", current.id], runEnv);
     try {
       assert.equal(processResult.status, 0, `${mode}: ${processResult.stderr}`);
