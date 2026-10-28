@@ -17,4 +17,5 @@ QJsonValue call(const QString& name, const QJsonArray& args);
 QJsonObject edit(QJsonObject doc, const QString& name, const QJsonObject& payload);
 void registerEdits();
 void ensureRegistered();
+void registerPictureAutomation();
 }

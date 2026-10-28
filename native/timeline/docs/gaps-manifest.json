@@ -1093,6 +1093,30 @@
         {
           "path": "qml/Tracks/TracksRegion.qml",
           "note": "shared with its merged owner, approved by the user (D15)"
+        },
+        {
+          "path": "src/preview/SceneEval.h",
+          "note": "shared with its merged owner, approved by the user (D15)"
+        },
+        {
+          "path": "src/preview/SceneEval.cpp",
+          "note": "shared with its merged owner, approved by the user (D15)"
+        },
+        {
+          "path": "src/preview/layers/SceneHooks.h",
+          "note": "shared with its merged owner, approved by the user (D15)"
+        },
+        {
+          "path": "src/preview/layers/SceneHooks.cpp",
+          "note": "shared with its merged owner, approved by the user (D15)"
+        },
+        {
+          "path": "src/server/FieldAudit.cpp",
+          "note": "shared with its merged owner, approved by the user (D15)"
+        },
+        {
+          "path": "docs/gaps-manifest.json",
+          "note": "shared with its merged owner, approved by the user (D15)"
         }
       ],
       "web": [

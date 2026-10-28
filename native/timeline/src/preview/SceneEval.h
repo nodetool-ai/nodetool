@@ -17,7 +17,7 @@
 //   - flex layout (scene/FlexLayout.h, on Yoga): the transforms and the
 //     rect, ellipse and text sizes of the clips in a flex group, laid out
 //     again each frame with animated text (scene/TextAnimation.h).
-// Animation links, track bindings and track automation are not ported; the
+// Animation links and track bindings are not ported; the
 // loader report lists the clips they touch (effect "plan").
 // Pure functions, no Qt GUI or GPU types.
 

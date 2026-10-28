@@ -286,7 +286,12 @@ QJsonObject auditTimelineFields(const QJsonObject& sequence) {
     for (const QJsonValue& cv : sequence.value(u"clips").toArray()) byId[cv.toObject().value(u"id").toString()] = cv.toObject();
     std::set<QString> automatedTracks;
     for (const QJsonValue& tv : sequence.value(u"tracks").toArray()) {
-        if (!tv.toObject().value(u"automation").toArray().isEmpty()) automatedTracks.insert(tv.toObject().value(u"id").toString());
+        const auto track = tv.toObject();
+        for (const auto& value : track.value(u"automation").toArray()) {
+            const bool picture = track.value(u"type").toString() == u"video" || track.value(u"type").toString() == u"overlay";
+            if (picture && value.toObject().value(u"target").toObject().value(u"kind").toString() == u"clip") { continue; }
+            automatedTracks.insert(track.value(u"id").toString());
+        }
     }
     // Own entries first, then what a clip inherits: a group with a plan-level
     // field moves every child, and track automation animates every clip on it.

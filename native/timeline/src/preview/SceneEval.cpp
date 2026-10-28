@@ -751,7 +751,27 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
         timeline.scene && timeline.scene->camera2d ? &*timeline.scene->camera2d : nullptr;
 
     std::deque<Clip> store;
-    const std::vector<const Clip*> clips = expandTemporal(timeline.clips, store);
+    std::vector<const Clip*> clips = expandTemporal(timeline.clips, store);
+    for (const Clip*& clip : clips) {
+        const auto track = trackById.find(clip->trackId);
+        if (track == trackById.end()) { continue; }
+        for (const auto& provider : hooks.clipAnimations) {
+            if (auto animation = provider(*track->second, *clip)) {
+                Clip patched = *clip;
+                auto animations = patched.raw.value(u"animations").toArray();
+                animations.append(*animation);
+                patched.raw.insert(QStringLiteral("animations"), animations);
+                auto clipScene = std::make_shared<scene::ClipScene>(sceneOf(patched));
+                auto definitions = std::make_shared<std::vector<scene::AnimationDef>>(*clipScene->animations);
+                const auto added = scene::parseAnimations(QJsonArray{*animation});
+                definitions->insert(definitions->end(), added.begin(), added.end());
+                clipScene->animations = std::move(definitions);
+                patched.scene = std::move(clipScene);
+                store.push_back(std::move(patched));
+                clip = &store.back();
+            }
+        }
+    }
     const auto transitions = resolveDocumentTransitions(clips, timeMs);
     // Flex layout (layout.ts) over every clip, active or not. A laid-out
     // group places its children from its resolved transform; a nested flex

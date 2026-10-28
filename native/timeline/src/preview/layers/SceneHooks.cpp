@@ -10,6 +10,7 @@ struct Hook {
     GroupDecorator group;
     scene::MeasureText measure;
     SourceTimeMapper mapper;
+    ClipAnimationProvider clipAnimation;
 };
 struct Registry {
     std::mutex mutex;
@@ -37,6 +38,11 @@ SceneHookToken registerSceneTextMeasurer(scene::MeasureText measure) {
 SceneHookToken registerSourceTimeMapper(SourceTimeMapper mapper) {
     Hook hook; hook.mapper = std::move(mapper); return add(std::move(hook));
 }
+SceneHookToken registerClipAnimationProvider(ClipAnimationProvider provider) {
+    Hook hook;
+    hook.clipAnimation = std::move(provider);
+    return add(std::move(hook));
+}
 void unregisterSceneHook(SceneHookToken token) {
     auto& r = registry();
     const std::scoped_lock lock(r.mutex);
@@ -50,6 +56,7 @@ SceneHooks sceneHooks() {
         if (hook.layer) { result.layers.push_back(hook.layer); }
         if (hook.group) { result.groups.push_back(hook.group); }
         if (hook.measure) { result.measureText = hook.measure; }
+        if (hook.clipAnimation) { result.clipAnimations.push_back(hook.clipAnimation); }
     }
     return result;
 }
