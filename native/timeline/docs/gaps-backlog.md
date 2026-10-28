@@ -75,12 +75,21 @@ run machine. "Package P1" and "package P2" are plan packages, not severities.
 | B68 | P2 | D2-r1 F2 | `qml/Inspector/AudioGainDialog.qml:7` | The audio gain dialog is unreachable: the mapped `G` shortcut does not open it. | D2 |
 | B69 | P2 | O-r1 F1 | `qml/SourceViewerPanel.qml:123` | The source monitor cannot preview or play the selected media: scrubbing changes `playerTimeMs` without decoding frames, no audio, no duration discovery. | O |
 | B70 | P3 | O-r1 F2 | `qml/SourceViewerPanel.qml:13` | The empty-state instruction is never visible because the panel hides when no asset is selected. | O |
-| B71 | P1 | P2-r1 F1 | `qml/Tracks/automation/automationTargets.js:32` | Picture (clip) automation lanes are editable but never applied: scene evaluation ignores `track.automation` (`--dump-plan` keeps opacity 1). Needs a SceneEval hook (D15 allows a minimal one). Uncommitted fix work is in the P2 worktree. | P2 |
-| B72 | P2 | P2-r1 F2 | `qml/mixer/EffectDevicePopover.qml:40` | A pending wheel edit can commit to a different effect when another effect's popover opens within 250 ms (EQ mid-Q, compressor knee). | P2 |
 | B73 | P2 | P2-r1 F3 | `src/audio/automation/AutomationStage.cpp:14` | Automation ramps start at 0 ms; the web recomputes them from the play position, so playback started mid-timeline can differ inside eased segments. | P2 |
 | B78 | P2 | W (no review) | `src/wiring/w/` | Package W was merged without an Astra review, by the user's decision to finish close workstreams; it changes `qml/DocumentBar.qml`, `qml/Tracks/TrackHeader.qml` and `src/app/Menus/ShellMenus.cpp` beyond one registration line (commit `db8a497f68`). Review it. | W |
 | B79 | P2 | sanitize runs | `tests/tst_assetcache.cpp` | tst_assetcache fails QCompare assertions in every package's sanitize run, with a different failing case each run; it also fails on the main checkout. | B |
 | B80 | P2 | A p1fix sanitize run | `src/server/TimelineList/TimelineListController.cpp` | `dateGroup` groups by UTC calendar day while the web and `tst_timelinelistclient dateGroupsFollowWeb` use local days, so the test fails just after local midnight (seen 3 days after the 25 Oct DST change). | A |
+| B81 | P2 | G-r1 F2 | `qml/Tracks/ClipContextMenu.qml` | Duplicate semantics differ from the web clip context menu. | G |
+| B82 | P2 | Q-r1 F1 | `qml/dock/` | Workspace keyboard shortcuts do nothing while the Timeline panel is hidden. | Q |
+| B83 | P2 | Q-r1 F2 | `qml/dock/` | Resetting a built-in workspace preset does not restore its stored layout. | Q |
+| B84 | P2 | Q-r1 F3 | `qml/dock/` | The backtick (maximize panel) and Alt+Shift+0 handlers are missing. | Q |
+| B85 | P2 | Q-r1 F4 | `qml/dock/` | Dock tab overflow has no overflow menu when tabs exceed the panel width. | Q |
+| B86 | P2 | Q-r1 F5 | `qml/dock/` | Dock splitters resize only on release, with no live resize. | Q |
+| B87 | P2 | D6-r1 | `qml/Inspector/` | Adjustment and effect colour fields have no colour picker. | D6 |
+| B88 | P2 | D6-r1 | `scripts/check-inspector.mjs` | check-inspector fails with ENOENT on a fresh build directory. | D6 |
+| B89 | P2 | D6-r1 | `qml/Inspector/` | The effect Remove test does not assert that the effect left the clip. | D6 |
+| B90 | P2 | P2-r1 | `qml/mixer/` | The Mixer toggle has no keyboard access. | P2 |
+| B91 | P2 | merge runs | `src/server/TimelineList/module.cmake` | timelinelist_document_actions uses fixed port 17863, which collides when two check runs overlap. | A |
 
 ## Closed
 
@@ -97,3 +106,5 @@ run machine. "Package P1" and "package P2" are plan packages, not severities.
 | B75 | Package J merge (J-r1 F2, fixed in cfb9710f41) | 7f06e568d8 |
 | B76 | Package J merge (J-r1 F3, fixed in cfb9710f41 and 9724a25891) | 7f06e568d8 |
 | B77 | Package J merge (J-r1 F4, fixed in cfb9710f41) | 7f06e568d8 |
+| B71 | Package P2 merge (P2-r1 F1, fixed in fe2c5a3b72) | 801bedce3c |
+| B72 | Package P2 merge (P2-r1 F2, fixed in 98e040c10b) | 801bedce3c |
