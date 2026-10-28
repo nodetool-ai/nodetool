@@ -1,0 +1,243 @@
+{
+  "id": "train-a-character-00000000000001",
+  "access": "public",
+  "created_at": "2026-10-26T12:00:00.000000",
+  "updated_at": "2026-10-26T12:00:00.000000",
+  "name": "Train a Character",
+  "description": "Build a reusable character identity from a reference portrait, a trigger token, and a wardrobe descriptor, then generate a multi-angle character turnaround sheet ready for downstream storyboards or Flux LoRA fine-tuning. Estimated cost is about $0.05 to $0.15 for the turnaround sheet on fal (or ~$2 for a full Flux LoRA run), or $0 locally.",
+  "tags": [
+    "image",
+    "storyboard",
+    "higgsfield-pack",
+    "characters",
+    "example"
+  ],
+  "required_providers": [
+    "fal"
+  ],
+  "thumbnail": "AI Spokesperson.jpg",
+  "graph": {
+    "edges": [
+      {
+        "id": "e1",
+        "source": "character_name",
+        "sourceHandle": "output",
+        "target": "character_entity",
+        "targetHandle": "name"
+      },
+      {
+        "id": "e2",
+        "source": "descriptor",
+        "sourceHandle": "output",
+        "target": "character_entity",
+        "targetHandle": "descriptor"
+      },
+      {
+        "id": "e3",
+        "source": "reference_photo",
+        "sourceHandle": "output",
+        "target": "character_entity",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e4",
+        "source": "character_entity",
+        "sourceHandle": "entity",
+        "target": "entity_out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e5",
+        "source": "character_name",
+        "sourceHandle": "output",
+        "target": "sheet_prompt",
+        "targetHandle": "name"
+      },
+      {
+        "id": "e6",
+        "source": "trigger_word",
+        "sourceHandle": "output",
+        "target": "sheet_prompt",
+        "targetHandle": "trigger"
+      },
+      {
+        "id": "e7",
+        "source": "descriptor",
+        "sourceHandle": "output",
+        "target": "sheet_prompt",
+        "targetHandle": "descriptor"
+      },
+      {
+        "id": "e8",
+        "source": "reference_photo",
+        "sourceHandle": "output",
+        "target": "turnaround_sheet",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e9",
+        "source": "sheet_prompt",
+        "sourceHandle": "output",
+        "target": "turnaround_sheet",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e10",
+        "source": "turnaround_sheet",
+        "sourceHandle": "output",
+        "target": "turnaround_out",
+        "targetHandle": "value"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Train a Character\n\n**Train a Character** locks in a character's visual identity as both a reusable Storyboard Entity and a 3-angle reference sheet.\n\n1. **Reference Photo**, **Character Name**, and **Visual Descriptor** create a **StoryboardEntity** that keeps wardrobe and features consistent across shots.\n2. **ImageToImage** renders a front, three-quarter, and profile turnaround sheet keyed to your **Trigger Word**."
+        },
+        "position": {
+          "x": 80,
+          "y": -220
+        },
+        "width": 680,
+        "height": 170
+      },
+      {
+        "id": "reference_photo",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "reference_photo",
+          "value": {
+            "type": "image",
+            "uri": "package://nodetool-base/recipe-inputs/ugc-creator-reference.png",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "description": "Clear portrait photo of the character."
+        },
+        "position": {
+          "x": 80,
+          "y": 40
+        }
+      },
+      {
+        "id": "character_name",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "character_name",
+          "value": "Maya",
+          "description": "Character name used in scripts and storyboards.",
+          "line_mode": "single_line"
+        },
+        "position": {
+          "x": 80,
+          "y": 280
+        }
+      },
+      {
+        "id": "trigger_word",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "trigger_word",
+          "value": "MAYA_CHAR",
+          "description": "Token used to invoke this character in prompts or LoRA weights.",
+          "line_mode": "single_line"
+        },
+        "position": {
+          "x": 80,
+          "y": 420
+        }
+      },
+      {
+        "id": "descriptor",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "visual_descriptor",
+          "value": "woman in her late 20s, dark wavy bob, olive linen overshirt, silver hoop earrings, warm natural skin texture",
+          "description": "Permanent facial features, hair, and signature wardrobe.",
+          "line_mode": "multi_line"
+        },
+        "position": {
+          "x": 80,
+          "y": 560
+        }
+      },
+      {
+        "id": "character_entity",
+        "type": "nodetool.entity.CreateEntity",
+        "data": {
+          "name": "Maya",
+          "kind": "character",
+          "description": ""
+        },
+        "position": {
+          "x": 420,
+          "y": 120
+        }
+      },
+      {
+        "id": "sheet_prompt",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "Character turnaround reference sheet for {{ name }} ({{ trigger }}): front view, three-quarter view, and side profile of the exact same person — {{ descriptor }}. Neutral studio grey backdrop, even key light, consistent proportions across all three angles.",
+          "values": {}
+        },
+        "position": {
+          "x": 420,
+          "y": 420
+        }
+      },
+      {
+        "id": "turnaround_sheet",
+        "type": "nodetool.image.ImageToImage",
+        "data": {
+          "model": {
+            "type": "image_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          },
+          "strength": 0.65,
+          "aspect_ratio": "16:9"
+        },
+        "position": {
+          "x": 720,
+          "y": 380
+        }
+      },
+      {
+        "id": "entity_out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "character_entity",
+          "description": "Reusable StoryboardEntity with locked reference photo and descriptor."
+        },
+        "position": {
+          "x": 720,
+          "y": 120
+        }
+      },
+      {
+        "id": "turnaround_out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "turnaround_sheet",
+          "description": "Multi-angle character reference sheet."
+        },
+        "position": {
+          "x": 1020,
+          "y": 380
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

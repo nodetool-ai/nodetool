@@ -277,6 +277,92 @@ export default async function AlternativesPage({
           )}
         </section>
 
+        {c.costComparison && (
+          <section aria-labelledby="cost-title" className="mx-auto mt-20 max-w-5xl px-6">
+            <h2
+              id="cost-title"
+              className="mb-2 text-center text-2xl font-semibold tracking-tight text-white md:text-3xl"
+            >
+              What it costs
+            </h2>
+            <p className="mx-auto mb-6 max-w-2xl text-center text-sm text-slate-400">
+              Rates checked {c.costComparison.checkedDate}.
+            </p>
+            <div className="overflow-x-auto rounded-2xl border border-slate-800/70 ring-1 ring-white/5">
+              <table className="w-full border-collapse text-left">
+                <thead>
+                  <tr className="bg-slate-900/60 text-sm">
+                    <th className="px-5 py-4 font-medium text-slate-400">Output</th>
+                    <th className="px-5 py-4 font-semibold text-white">{c.costComparison.competitorLabel}</th>
+                    <th className="px-5 py-4 font-semibold text-emerald-300">{c.costComparison.byokLabel}</th>
+                    <th className="px-5 py-4 font-semibold text-emerald-300">{c.costComparison.localLabel}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {c.costComparison.rows.map((row, i) => (
+                    <tr
+                      key={row.output}
+                      className={i % 2 ? "bg-slate-950/40" : "bg-slate-900/20"}
+                    >
+                      <td className="px-5 py-4 text-sm font-medium text-slate-200">{row.output}</td>
+                      <td className="px-5 py-4 text-sm text-slate-300">{row.competitor}</td>
+                      <td className="px-5 py-4 text-sm text-slate-300">{row.byok}</td>
+                      <td className="px-5 py-4 text-sm text-slate-300">{row.local}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {c.costComparison.footnote && (
+              <p className="mt-4 text-center text-sm leading-relaxed text-slate-400">
+                {c.costComparison.footnote}
+              </p>
+            )}
+          </section>
+        )}
+
+        {c.presetMap && c.presetMap.length > 0 && (
+          <section aria-labelledby="preset-map-title" className="mx-auto mt-20 max-w-5xl px-6">
+            <h2
+              id="preset-map-title"
+              className="mb-2 text-center text-2xl font-semibold tracking-tight text-white md:text-3xl"
+            >
+              {c.name} presets to NodeTool templates
+            </h2>
+            <p className="mx-auto mb-6 max-w-2xl text-center text-sm text-slate-400">
+              Each preset maps to an open workflow template you can run as-is or edit on the canvas.
+            </p>
+            <div className="overflow-x-auto rounded-2xl border border-slate-800/70 ring-1 ring-white/5">
+              <table className="w-full border-collapse text-left">
+                <thead>
+                  <tr className="bg-slate-900/60 text-sm">
+                    <th className="px-5 py-4 font-medium text-slate-400">{c.name} studio / preset</th>
+                    <th className="px-5 py-4 font-semibold text-emerald-300">NodeTool template</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {c.presetMap.map((item, i) => (
+                    <tr
+                      key={item.href}
+                      className={i % 2 ? "bg-slate-950/40" : "bg-slate-900/20"}
+                    >
+                      <td className="px-5 py-4 text-sm font-medium text-slate-200">{item.preset}</td>
+                      <td className="px-5 py-4 text-sm">
+                        <a
+                          href={item.href}
+                          className="font-medium text-emerald-300 underline underline-offset-2 hover:text-emerald-200 focus-ring"
+                        >
+                          {item.template}
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        )}
+
         {c.starter && (
           <div className="mt-10">
             <SearchStarter

@@ -1,0 +1,189 @@
+{
+  "id": "effects-gallery-0000000000000001",
+  "access": "public",
+  "created_at": "2026-10-26T12:00:00.000000",
+  "updated_at": "2026-10-26T12:00:00.000000",
+  "name": "Effects Gallery",
+  "description": "Apply one of 12 visual effects presets — levitation, glass shatter, liquid chrome melt, slow-motion embers, frost freeze, balloon inflate, or floral explosion — to any product or subject photo. Estimated cost is about $0.30 to $0.85 per clip on fal at provider list price, or $0 locally with Wan 2.2.",
+  "tags": [
+    "video",
+    "image",
+    "higgsfield-pack",
+    "effects",
+    "example"
+  ],
+  "required_providers": [
+    "fal"
+  ],
+  "thumbnail": "Edit a Still with Words.jpg",
+  "graph": {
+    "edges": [
+      {
+        "id": "e1",
+        "source": "subject_image",
+        "sourceHandle": "output",
+        "target": "vfx_clip",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e2",
+        "source": "effect",
+        "sourceHandle": "output",
+        "target": "effect_brief",
+        "targetHandle": "effect"
+      },
+      {
+        "id": "e3",
+        "source": "intensity",
+        "sourceHandle": "output",
+        "target": "effect_brief",
+        "targetHandle": "intensity"
+      },
+      {
+        "id": "e4",
+        "source": "effect_brief",
+        "sourceHandle": "output",
+        "target": "vfx_clip",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e5",
+        "source": "vfx_clip",
+        "sourceHandle": "output",
+        "target": "effect_video",
+        "targetHandle": "value"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Effects Gallery\n\n**Effects Gallery** turns a single product or subject photo into a stylized visual-effects shot.\n\n1. Pick a preset from **Effect Preset** (levitation, liquid chrome, glass shatter, frost crystals, embers, and more) and set **Effect Intensity**.\n2. **Template** formats the physical simulation prompt and feeds **ImageToVideo** to render the VFX clip."
+        },
+        "position": {
+          "x": 80,
+          "y": -200
+        },
+        "width": 660,
+        "height": 170
+      },
+      {
+        "id": "subject_image",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "subject_image",
+          "value": {
+            "type": "image",
+            "uri": "package://nodetool-base/recipe-inputs/coffee.jpg",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "description": "The product or portrait photo to transform."
+        },
+        "position": {
+          "x": 80,
+          "y": 40
+        }
+      },
+      {
+        "id": "effect",
+        "type": "nodetool.input.SelectInput",
+        "data": {
+          "name": "effect_preset",
+          "value": "levitate and float upward in zero gravity",
+          "options": [
+            "levitate and float upward in zero gravity",
+            "shatter into slow-motion crystalline glass fragments",
+            "melt into mirror-polished liquid chrome",
+            "ignite in rising golden embers and heat shimmer",
+            "dissolve into swirling bioluminescent particles",
+            "freeze rapidly in branching frost and ice crystals",
+            "inflate like a glossy metallic balloon and lift off",
+            "compress under a studio hydraulic press",
+            "burst into a cloud of velvet botanical petals",
+            "petrify into veined Carrara marble sculpture",
+            "crackle with high-voltage blue electric arcs",
+            "drift underwater with slow caustic light ripples"
+          ],
+          "enum_type_name": "vfx_preset",
+          "description": "Named visual effect to apply to the subject."
+        },
+        "position": {
+          "x": 80,
+          "y": 280
+        }
+      },
+      {
+        "id": "intensity",
+        "type": "nodetool.input.SelectInput",
+        "data": {
+          "name": "effect_intensity",
+          "value": "dramatic studio slow-motion",
+          "options": [
+            "subtle atmospheric accent",
+            "dramatic studio slow-motion",
+            "full-frame kinetic transformation"
+          ],
+          "enum_type_name": "vfx_intensity",
+          "description": "Scale and speed of the simulation."
+        },
+        "position": {
+          "x": 80,
+          "y": 460
+        }
+      },
+      {
+        "id": "effect_brief",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "The subject begins still, then proceeds to {{ effect }} ({{ intensity }}). High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+          "values": {}
+        },
+        "position": {
+          "x": 380,
+          "y": 280
+        }
+      },
+      {
+        "id": "vfx_clip",
+        "type": "nodetool.video.ImageToVideo",
+        "data": {
+          "model": {
+            "type": "video_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          },
+          "aspect_ratio": "16:9",
+          "resolution": "1080p",
+          "duration": 5
+        },
+        "position": {
+          "x": 680,
+          "y": 220
+        }
+      },
+      {
+        "id": "effect_video",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "effect_video",
+          "description": "The rendered visual-effects video clip."
+        },
+        "position": {
+          "x": 980,
+          "y": 220
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

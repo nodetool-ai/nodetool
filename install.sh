@@ -24,7 +24,7 @@
 #   --help          Show this help message
 #
 # Repository: https://github.com/nodetool-ai/nodetool
-# License: Apache-2.0
+# License: AGPL-3.0
 #
 
 set -euo pipefail

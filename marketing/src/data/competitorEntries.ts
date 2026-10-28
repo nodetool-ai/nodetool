@@ -85,6 +85,26 @@ export type FeatureRow = {
 
 export type FaqItem = { question: string; answer: string };
 
+export type PresetMappingRow = {
+  preset: string;
+  template: string;
+  href: string;
+};
+
+export type CostComparisonTable = {
+  checkedDate: string;
+  competitorLabel: string;
+  byokLabel: string;
+  localLabel: string;
+  rows: {
+    output: string;
+    competitor: string;
+    byok: string;
+    local: string;
+  }[];
+  footnote?: string;
+};
+
 export type Competitor = {
   slug: string;
   /** Display name, e.g. "ComfyUI". */
@@ -146,6 +166,8 @@ export type Competitor = {
   seo?: { title: string; description: string };
   starter?: { id: SearchStarter; source: LandingPage; heading: string };
   sources?: { title: string; href: string }[];
+  presetMap?: PresetMappingRow[];
+  costComparison?: CostComparisonTable;
 };
 
 /** The /alternatives hub's lead, shared with its Markdown mirror. */
@@ -175,33 +197,121 @@ export const competitors: Competitor[] = [
       title: "Higgsfield Alternative for Editable AI Video Workflows | NodeTool",
       description: "Compare Higgsfield with NodeTool for AI video production. Cinema Studio and hosted credits, or editable workflows with your own provider accounts.",
     },
-    og: { image: "screen_storyboard.png", accent: "violet", subtitle: "Hosted shot direction or a workflow you can run yourself." },
-    starter: { id: "movie-trailer-generator", source: "higgsfield", heading: "Try a trailer workflow you can inspect" },
+    og: { image: "screen_storyboard.png", accent: "violet", subtitle: "Every camera move, character, lipsync, and ad workflow on your own keys." },
+    hero: {
+      headline: "An open-source Higgsfield alternative you run on your own keys",
+      subline: "Every camera move, character workflow, lipsync pass, and ad template — with a full timeline, local models, and provider-rate billing that never expires.",
+    },
+    starter: { id: "camera-move", source: "higgsfield", heading: "Try the Camera Move workflow in Studio" },
     sources: [
       { title: "Higgsfield production and integrations", href: "https://higgsfield.ai/blog/how-studios-scale-ai-video-production" },
       { title: "Higgsfield plans", href: "https://higgsfield.ai/pricing" },
+      { title: "Higgsfield subscription and credit terms", href: "https://higgsfield.ai/terms-of-use-agreement" },
     ],
-    heroParagraph: "Higgsfield combines Cinema Studio camera controls with character tools and hosted generation. It also offers API, MCP, CLI, and editor integrations. NodeTool puts shot planning, generation graphs, and timeline editing in a workspace you can run on your own machine. Choose between a managed creative suite and control over the workflow and provider accounts.",
-    competitorTagline: "Hosted creative suite for AI video and image production",
-    competitorBullets: ["Cinema Studio shot and camera controls", "Soul ID character tools", "Editor integrations, API, MCP, and CLI", "Hosted plans and generation credits"],
-    nodetoolTagline: "Editable workflows on your own infrastructure",
-    nodetoolBullets: ["Storyboard and timeline beside the workflow canvas", "Agents edit the same project surfaces you use", "Connect your own provider accounts", "Open-source Studio or self-hosting"],
+    heroParagraph: "Higgsfield wraps third-party video and image models — Veo 3.1, Kling 3.0, Seedance 2.0, Wan 2.6, Nano Banana Pro, Flux.2 — in one-click camera, character, lipsync, and ad presets billed in monthly credits. NodeTool gives you the same models plus Sora 2, Runway Gen-4, Luma Ray, and local Wan/Flux inside an AGPL-3.0 desktop and self-hosted studio where every preset is an editable workflow and a multi-track timeline.",
+    competitorTagline: "Hosted preset studio for AI video, characters, and ads",
+    competitorBullets: [
+      "Cinema Studio (70+ camera presets), Soul ID characters, Lipsync, and Marketing Studio",
+      "Monthly subscription credits that expire at the end of each billing cycle",
+      "Unlimited promos apply only on the web UI; API, MCP, and CLI runs burn credits and ban automated scraping",
+      "Fixed preset forms with a basic timeline and peak-hour generation queues",
+    ],
+    nodetoolTagline: "Open-source studio where every preset is an editable workflow",
+    nodetoolBullets: [
+      "Camera Move, Effects, Character, Ad, and Lipsync template packs you can open and rewire",
+      "Pay fal, Replicate, Google, or OpenAI at list price — or bring your Higgsfield API key through the provider pack",
+      "Full multi-track timeline editor with J/K/L shuttle, captions, keyframe animation, and ducking",
+      "Batch 50 ad variants overnight via ForEach, CLI, or Claude Code MCP with no automation ban and local models at $0",
+    ],
     rows: [
-      { label: "Shot direction", competitor: "Cinema Studio camera and lens controls", nodetool: "Storyboard direction and model-specific settings" },
-      { label: "Automation", competitor: "API, MCP, CLI, and editor integrations", nodetool: "API, MCP, CLI, and workflow execution" },
-      { label: "Model billing", competitor: "Plan credits, with model-specific offers", nodetool: "Providers bill your connected accounts" },
-      { label: "Workspace deployment", competitor: "Higgsfield hosted workspace", nodetool: "Free Studio, self-hosting, or Cloud alpha" },
+      { label: "License & source", competitor: "Proprietary SaaS", nodetool: "AGPL-3.0 open source on GitHub" },
+      { label: "Where it runs", competitor: "Browser only (Higgsfield cloud)", nodetool: "macOS, Windows, Linux desktop, Docker self-host, or Cloud alpha" },
+      { label: "Pricing & rollover", competitor: "$9–$79/mo; unused credits expire each cycle", nodetool: "$0 app; pay providers per call at list price with no expiry" },
+      { label: "Video models", competitor: "Veo 3.1, Kling 3.0, Seedance 2.0, Wan 2.6", nodetool: "Same models + Sora 2, Runway Gen-4, Luma Ray, Hailuo, Pika, LTX-2 + Higgsfield API" },
+      { label: "Local / offline models", competitor: false, nodetool: "Ollama, llama.cpp, MLX, Flux, SD.cpp, whisper.cpp, Wan 2.2, ComfyUI" },
+      { label: "Camera-move presets", competitor: "Cinema Studio (70+ presets)", nodetool: "Camera Move template + 30-move shared storyboard vocabulary" },
+      { label: "Consistent character", competitor: "Soul ID (3–5 reference photos)", nodetool: "Train a Character + Character in Any Scene + Storyboard Entities" },
+      { label: "Lipsync & dubbing", competitor: "Lipsync Studio", nodetool: "Talking Avatar, Lip-sync a Clip, and 5-language dubbing templates" },
+      { label: "Product URL to ad", competitor: "Marketing Studio & UGC Builder", nodetool: "Product URL to UGC Ad, CGI Commercial, and 50 Ad Variants Overnight" },
+      { label: "Timeline editor", competitor: "Single-clip trims", nodetool: "Multi-track video, audio, text, and SFX timeline with keyframe curves" },
+      { label: "Batch & automation", competitor: "Automated usage prohibited in terms; MCP/CLI burn credits", nodetool: "ForEach batch nodes, CLI runner, REST/WebSocket API, and one-command MCP" },
     ],
-    explainerHeading: "Choose how the production pipeline runs",
-    explainerParagraph: "Higgsfield is a practical choice when its camera controls and managed team workspace fit the job. NodeTool fits when you want to inspect each step, change provider accounts, or run the workspace yourself. Provider availability and model capabilities still determine what a NodeTool workflow can produce.",
-    ctaHeading: "Inspect the workflow before you run it.",
-    ctaParagraph: "Open a trailer starter in Studio and review its models and shot count before generating.",
+    presetMap: [
+      { preset: "Cinema Studio camera move", template: "Camera Move", href: "/templates/camera-move" },
+      { preset: "Cinema Studio multi-angle test", template: "Camera Move Contact Sheet", href: "/templates/camera-move-contact-sheet" },
+      { preset: "Cinema Studio lens & stock controls", template: "Lens and Look", href: "/templates/lens-and-look" },
+      { preset: "VFX & motion effects", template: "Effects Gallery", href: "/templates/effects-gallery" },
+      { preset: "Soul ID character creation", template: "Train a Character", href: "/templates/train-a-character" },
+      { preset: "Soul ID character shot", template: "Character in Any Scene", href: "/templates/character-in-any-scene" },
+      { preset: "Multi-shot character sequence", template: "Consistent Cast Storyboard", href: "/templates/consistent-cast-storyboard" },
+      { preset: "Marketing Studio URL to UGC", template: "Product URL to UGC Ad", href: "/templates/product-url-to-ugc-ad" },
+      { preset: "Marketing Studio CGI packshot", template: "Product URL to CGI Commercial", href: "/templates/product-url-to-cgi-commercial" },
+      { preset: "Campaign ad batching", template: "50 Ad Variants Overnight", href: "/templates/50-ad-variants-overnight" },
+      { preset: "Lipsync Studio talking portrait", template: "Talking Avatar from a Photo and a Script", href: "/templates/talking-avatar-from-a-photo-and-a-script" },
+      { preset: "Lipsync Studio multilingual dub", template: "Dub a Video into 5 Languages", href: "/templates/dub-a-video-into-5-languages" },
+    ],
+    costComparison: {
+      checkedDate: "October 20, 2026",
+      competitorLabel: "Higgsfield Pro annual ($23/mo, 600 credits ≈ 3.8¢/credit)",
+      byokLabel: "NodeTool + your fal key (list price)",
+      localLabel: "NodeTool local (your GPU)",
+      rows: [
+        {
+          output: "1 Nano Banana Pro image (2K)",
+          competitor: "2 credits ≈ $0.08 (or promo tier on web)",
+          byok: "$0.15 on fal",
+          local: "$0 (Flux / SD.cpp)",
+        },
+        {
+          output: "5 s Kling 3.0 video (720p)",
+          competitor: "~8 credits ≈ $0.30",
+          byok: "~$0.84 on fal",
+          local: "$0 (Wan 2.2)",
+        },
+        {
+          output: "4 s Veo 3.1 video (1080p, audio)",
+          competitor: "40 credits ≈ $1.52",
+          byok: "$0.60 on fal (Veo 3.1 Fast)",
+          local: "–",
+        },
+        {
+          output: "5 s Wan video (720p)",
+          competitor: "~10 credits ≈ $0.38",
+          byok: "~$0.25 on fal",
+          local: "$0 (Wan 2.2)",
+        },
+        {
+          output: "Unused monthly allowance",
+          competitor: "Expires at end of billing cycle",
+          byok: "None — pay per API call",
+          local: "None",
+        },
+      ],
+      footnote: "Higgsfield subsidizes some models (such as Nano Banana Pro and Kling 3.0) inside its subscription tiers, while direct provider keys cost less on Veo 3.1 Fast and Wan, never expire between shoots, and run local models at $0.",
+    },
+    explainerHeading: "Where Higgsfield wins, where NodeTool wins, and how to use both",
+    explainerParagraph: "Higgsfield is built for speed on a single clip: pick a Cinema Studio preset, spend subscription credits, and download an MP4. It even subsidizes Nano Banana Pro and Kling 3.0 inside its Pro plan. NodeTool is built for creators and production teams who want to own the pipeline: every camera move, character sheet, lipsync pass, and URL-to-ad template opens as a graph you can edit, batch across 50 SKUs, cut on a multi-track timeline, or run locally at $0. And you do not have to choose between their models and your workflow — NodeTool ships a Higgsfield provider pack covering 80 Higgsfield API endpoints (including Soul 2 and Cinema Studio), so you can call Higgsfield inside a NodeTool graph alongside fal, Replicate, OpenAI, and local models.",
+    ctaHeading: "Open the Camera Move template and inspect every node.",
+    ctaParagraph: "Download Studio for macOS, Windows, or Linux, connect your provider key or local model, and run your first shot.",
     faq: [
-      { question: "Is NodeTool a Higgsfield alternative?", answer: "Yes, for assembling AI media workflows and editing the resulting project. Higgsfield's Cinema Studio has dedicated shot controls. NodeTool adds open-source deployment and your own provider accounts." },
-      { question: "Does Higgsfield support automation?", answer: "Yes. Higgsfield documents API, MCP, CLI, and editor integrations. Compare their model coverage and billing terms with the workflow you need." },
-      { question: "Is NodeTool cheaper than Higgsfield?", answer: "Studio is free. Hosted model calls are billed by your providers. Total cost depends on the models, clip lengths, and takes, so compare the actual workflow with the current Higgsfield plan." },
+      {
+        question: "Is NodeTool cheaper than Higgsfield?",
+        answer: "It depends on the model and how steadily you produce. On Higgsfield Pro annual ($23/mo for 600 credits, checked October 20, 2026), Higgsfield subsidizes Nano Banana Pro (~$0.08 vs $0.15 on fal) and 5-second Kling 3.0 clips (~$0.30 vs ~$0.84 on fal). NodeTool with your own fal key costs less on 4-second Veo 3.1 clips with audio ($0.60 on fal Veo 3.1 Fast vs 40 credits / ~$1.52 on Higgsfield) and 5-second Wan clips (~$0.25 vs ~$0.38), never expires unused balance at month-end, and runs local Flux and Wan 2.2 models at $0.",
+      },
+      {
+        question: "Can I still use Higgsfield's Soul and Cinema Studio models inside NodeTool?",
+        answer: "Yes. NodeTool includes a first-party Higgsfield provider pack (@nodetool-ai/higgsfield-nodes) that wraps 80 Higgsfield API endpoints, including Soul 2, Cinema Studio, motion transfer, and Marketing Studio Image. Connect your Higgsfield API key in Studio and wire those nodes directly into a larger storyboard, batch loop, or timeline.",
+      },
+      {
+        question: "How does automation compare between Higgsfield and NodeTool?",
+        answer: "Higgsfield offers a REST API, MCP, and CLI, which always bill per-generation credits (website \"Unlimited\" promos do not apply to API, MCP, or CLI calls), and its Terms of Use prohibit automated bots or scraping on the web app. NodeTool is licensed under AGPL-3.0 and designed for automation: run batches with ForEach nodes, execute workflows headlessly via the nodetool CLI, or connect Claude Code and Codex with nodetool mcp install.",
+      },
+      {
+        question: "Is NodeTool affiliated with Higgsfield?",
+        answer: "No. Higgsfield, Cinema Studio, and Soul are trademarks of Higgsfield AI Inc. NodeTool is an independent open-source project and is not affiliated with or endorsed by Higgsfield AI Inc.",
+      },
     ],
-    limitation: "Higgsfield manages the hosted creative workspace and its plan allowances. NodeTool is an alternative when you want to run the workspace yourself and connect your own providers.",
+    limitation: "Higgsfield bills in monthly credits that expire each cycle and locks presets to its hosted studio. NodeTool is an open-source alternative when you want editable camera, character, lipsync, and ad workflows on your own provider keys or local GPU.",
   },
   {
     slug: "openart",

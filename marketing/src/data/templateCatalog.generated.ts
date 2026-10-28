@@ -113,6 +113,17 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "character-in-any-scene",
+        "name": "Character in Any Scene",
+        "description": "Place a reference character into a new environment while preserving facial identity and wardrobe, then animate the shot with a named camera move. Estimated cost is about $0.08 for the reference-guided still plus $0.35 to $0.85 for the video clip on fal, or $0 locally with Flux and Wan 2.2.",
+        "tags": [
+          "image",
+          "video",
+          "higgsfield-pack",
+          "characters"
+        ]
+      },
+      {
         "slug": "circles-and-lines",
         "name": "Circles and Lines",
         "description": "An orbital poster drawn from circles, ellipses and lines in one Code node. The array order is the paint order, so the planets pass in front of the sun.",
@@ -207,6 +218,17 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "effects-gallery",
+        "name": "Effects Gallery",
+        "description": "Apply one of 12 visual effects presets — levitation, glass shatter, liquid chrome melt, slow-motion embers, frost freeze, balloon inflate, or floral explosion — to any product or subject photo. Estimated cost is about $0.30 to $0.85 per clip on fal at provider list price, or $0 locally with Wan 2.2.",
+        "tags": [
+          "video",
+          "image",
+          "higgsfield-pack",
+          "effects"
+        ]
+      },
+      {
         "slug": "emboss-a-still",
         "name": "Emboss a Still",
         "description": "Turn the image into a relief. Emboss reads gradients rather than colour, so a flat region goes grey and only the edges survive.",
@@ -273,6 +295,17 @@ export const templateCatalog: CatalogCategory[] = [
         "description": "A straight negative — every channel flipped. The cheapest way to see whether a filter chain is operating on the pixels you think it is.",
         "tags": [
           "image"
+        ]
+      },
+      {
+        "slug": "lens-and-look",
+        "name": "Lens and Look",
+        "description": "Dial focal length (14mm to 135mm, macro, or anamorphic), aperture depth of field, film stock grain, and camera motion before generating a keyframe still and its animated shot. Estimated cost is about $0.05 for the keyframe plus $0.35 to $0.85 for the clip on fal, or $0 locally with Flux and Wan 2.2.",
+        "tags": [
+          "image",
+          "video",
+          "higgsfield-pack",
+          "camera-moves"
         ]
       },
       {
@@ -470,6 +503,17 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "train-a-character",
+        "name": "Train a Character",
+        "description": "Build a reusable character identity from a reference portrait, a trigger token, and a wardrobe descriptor, then generate a multi-angle character turnaround sheet ready for downstream storyboards or Flux LoRA fine-tuning. Estimated cost is about $0.05 to $0.15 for the turnaround sheet on fal (or ~$2 for a full Flux LoRA run), or $0 locally.",
+        "tags": [
+          "image",
+          "storyboard",
+          "higgsfield-pack",
+          "characters"
+        ]
+      },
+      {
         "slug": "turn-a-logo-into-print-ready-vector",
         "name": "Turn a Logo into Print-Ready Vector",
         "description": "A raster logo cannot be set on a billboard or embroidered. Tracing to SVG paths gives a mark that scales to any size a supplier asks for.",
@@ -536,6 +580,19 @@ export const templateCatalog: CatalogCategory[] = [
     "description": "Turn prompts, images, and briefs into video — trailers, product spots, animations, and music visuals.",
     "templates": [
       {
+        "slug": "50-ad-variants-overnight",
+        "name": "50 Ad Variants Overnight",
+        "description": "Scrape a product URL once, generate a batch of distinct ad angles and camera directions (up to 50 variants), and loop through every variant with no rate-limit queue or automation ban. Estimated cost is about $0.30 per variant on fal at provider list price, or $0 locally with Ollama and Wan 2.2.",
+        "tags": [
+          "video",
+          "marketing",
+          "advertising",
+          "batch",
+          "higgsfield-pack",
+          "ads"
+        ]
+      },
+      {
         "slug": "ai-spokesperson",
         "name": "AI Spokesperson",
         "description": "Turn a script into speech, normalise the volume, and soften the audio edges before syncing it to your presenter clip.",
@@ -586,6 +643,27 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "camera-move-contact-sheet",
+        "name": "Camera Move Contact Sheet",
+        "description": "Batch-render one still image across six camera movements — dolly in, crane up, orbit left, crash zoom in, pull back reveal, and low-angle hero rise — so you can compare coverage side by side before committing to a hero take. Estimated cost is about $1.80 for six 5-second clips on fal at provider list price, or $0 locally with Wan 2.2.",
+        "tags": [
+          "video",
+          "higgsfield-pack",
+          "camera-moves",
+          "batch"
+        ]
+      },
+      {
+        "slug": "camera-move",
+        "name": "Camera Move",
+        "description": "Animate a still photo with one of 30 named camera movements — dolly in, crane up, orbit, crash zoom, FPV fly-through, or bullet time — at your chosen speed and duration. Estimated cost is about $0.30 to $0.85 per clip on fal at provider list price, or $0 locally with Wan 2.2 through ComfyUI or Wan2GP.",
+        "tags": [
+          "video",
+          "higgsfield-pack",
+          "camera-moves"
+        ]
+      },
+      {
         "slug": "clip-on-kie",
         "name": "Clip on Kie",
         "description": "Generate a short clip on a Kie video model. The Kie counterpart to Single Shot from a Line - useful for comparing what the same direction yields across providers before committing a template to one.",
@@ -599,6 +677,17 @@ export const templateCatalog: CatalogCategory[] = [
         "description": "Grade a video by splitting it into frames, applying exposure/contrast and saturation/vibrance adjustments per frame, then reassembling the result — differentiator: bring your own clip and a single Grading Intensity slider drives the saturation pass live, no per-node tweaking.",
         "tags": [
           "video"
+        ]
+      },
+      {
+        "slug": "consistent-cast-storyboard",
+        "name": "Consistent Cast Storyboard",
+        "description": "Direct a 6-shot narrative storyboard around a locked character entity, render every shot still and motion clip with identity preservation, and assemble the cut onto a multi-track timeline. Estimated cost is about $2.50 to $5.00 for a 6-shot board on fal at provider list price, or $0 locally with Ollama, Flux, and Wan 2.2.",
+        "tags": [
+          "video",
+          "storyboard",
+          "higgsfield-pack",
+          "characters"
         ]
       },
       {
@@ -638,6 +727,18 @@ export const templateCatalog: CatalogCategory[] = [
           "creative",
           "director",
           "storyboard"
+        ]
+      },
+      {
+        "slug": "dub-a-video-into-5-languages",
+        "name": "Dub a Video into 5 Languages",
+        "description": "Extract speech from a source video, transcribe it, translate the spoken phrasing into five target languages in parallel, synthesize each localized voice track, and re-sync the speaker's lips for every language. Estimated cost is about $0.45 per language on fal at provider list price.",
+        "tags": [
+          "video",
+          "audio",
+          "higgsfield-pack",
+          "lipsync",
+          "batch"
         ]
       },
       {
@@ -758,6 +859,31 @@ export const templateCatalog: CatalogCategory[] = [
         "tags": [
           "video",
           "utility"
+        ]
+      },
+      {
+        "slug": "product-url-to-cgi-commercial",
+        "name": "Product URL to CGI Commercial",
+        "description": "Scrape a live product page URL to extract its form factor, materials, and brand palette, generate a studio packshot keyframe, and animate a directed CGI-style tabletop commercial shot. Estimated cost is about $0.08 for the studio packshot plus $0.35 to $0.85 for the motion clip on fal, or $0 locally with Ollama, Flux, and Wan 2.2.",
+        "tags": [
+          "video",
+          "marketing",
+          "advertising",
+          "higgsfield-pack",
+          "ads"
+        ]
+      },
+      {
+        "slug": "product-url-to-ugc-ad",
+        "name": "Product URL to UGC Ad",
+        "description": "Paste a product page URL to extract its headline, value props, and proof points, write a 15-second spoken creator script, synthesize the voiceover, and lip-sync a creator portrait into a vertical UGC ad. Estimated cost is about $0.45 to $1.10 per ad on fal at provider list price.",
+        "tags": [
+          "video",
+          "marketing",
+          "advertising",
+          "ugc",
+          "higgsfield-pack",
+          "ads"
         ]
       },
       {
@@ -898,6 +1024,17 @@ export const templateCatalog: CatalogCategory[] = [
         "tags": [
           "video",
           "utility"
+        ]
+      },
+      {
+        "slug": "talking-avatar-from-a-photo-and-a-script",
+        "name": "Talking Avatar from a Photo and a Script",
+        "description": "Turn a single portrait photo and a written script into a lip-synced talking avatar video: synthesize and level the voice track, animate natural head movement from the portrait, and lock mouth shapes to the audio. Estimated cost is about $0.40 to $0.95 per clip on fal at provider list price.",
+        "tags": [
+          "video",
+          "audio",
+          "higgsfield-pack",
+          "lipsync"
         ]
       },
       {
