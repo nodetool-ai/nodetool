@@ -1,6 +1,5 @@
-// Mirrors web/src/components/timeline/TimelineEditor.tsx: the document bar
-// and the save warnings, the preview with its transport, the tracks region
-// under it, and the shortcut sheet over everything.
+// Mirrors the web TimelineEditor: document controls above DockCanvas, stable
+// Program and Timeline panels, registered side panels, and editor overlays.
 import QtQuick
 import QtQuick.Layouts
 import NodeTool.Timeline
@@ -9,70 +8,84 @@ Rectangle {
     id: root
     required property TimelineModel timeline
     required property PlaybackClock clock
-    // The AutosaveController of a server timeline (the `autosave` context
-    // property main sets), or null.
     property QtObject saver: typeof autosave !== "undefined" ? autosave : null
-
+    readonly property alias dockStore: layoutStore
+    readonly property var dockPanels: {
+        const panels = [{id: "program", title: "Program", defaultRegion: "viewport"},
+                        {id: "tracks", title: "Timeline", defaultRegion: "bottom"}]
+        for (const slot of ["left", "right", "bottom"]) {
+            for (const panel of PanelRegistry.forSlot(slot)) {
+                panels.push({id: panel.id, title: panel.title || panel.id,
+                    defaultRegion: panel.id === "source" ? "viewport" : slot})
+            }
+        }
+        return panels
+    }
+    readonly property var availablePanels: dockPanels.filter(panel => panel.id !== "source" || !!SourceViewerState.asset.id).map(panel => panel.id)
     color: Theme.backgroundDefault
     focus: true
     Keys.onSpacePressed: root.clock.toggle()
-    Keys.forwardTo: [tracksRegion]
-
-    // Samples the monotonic clock into clock.time once per frame while playing.
+    Keys.forwardTo: tracksHost.item ? [tracksHost.item] : []
+    DockLayoutStore { id: layoutStore; objectName: "dockLayoutStore" }
+    Component.onCompleted: layoutStore.registerPanels(dockPanels)
     FrameAnimation {
         running: root.clock.playing
         onTriggered: root.clock.tick()
     }
-
-    RowLayout {
+    ColumnLayout {
         anchors.fill: parent
         spacing: 0
-        PanelSlot { slot: "left"; Layout.fillHeight: true }
-        ColumnLayout {
+        RowLayout {
             Layout.fillWidth: true
-            Layout.fillHeight: true
-            spacing: 0
-
+            spacing: Theme.spacingMd
             DocumentBar {
                 Layout.fillWidth: true
                 timeline: root.timeline
                 autosave: root.saver
             }
-
-            SaveBanners {
-                Layout.fillWidth: true
-                autosave: root.saver
+            DockLayoutMenu {
+                store: layoutStore
+                panels: root.dockPanels
+                Layout.rightMargin: Theme.spacingMd
             }
-
-            PreviewArea {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                Layout.preferredHeight: root.height * 0.55
-                timeline: root.timeline
-                clock: root.clock
-            }
-
-            TracksRegion {
-                id: tracksRegion
-                Layout.fillWidth: true
-                Layout.preferredHeight: root.height * 0.45
-                timeline: root.timeline
-                clock: root.clock
-                onShortcutsRequested: shortcuts.open = !shortcuts.open
-            }
-
-            PanelSlot { slot: "bottom"; Layout.fillWidth: true }
         }
-        PanelSlot { slot: "right"; Layout.fillHeight: true }
+        SaveBanners { Layout.fillWidth: true; autosave: root.saver }
+        DockCanvas {
+            id: dockCanvas
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            store: layoutStore
+            registry: root.dockPanels
+            availableIds: root.availablePanels
+            StablePanelHost {
+                dock: dockCanvas
+                panelId: "program"
+                sourceComponent: Component {
+                    PreviewArea { timeline: root.timeline; clock: root.clock }
+                }
+            }
+            StablePanelHost {
+                id: tracksHost
+                dock: dockCanvas
+                panelId: "tracks"
+                sourceComponent: Component {
+                    TimelineTracksPanel {
+                        timeline: root.timeline
+                        clock: root.clock
+                        onShortcutsRequested: shortcuts.open = !shortcuts.open
+                    }
+                }
+            }
+            PanelSlot { slot: "left"; dock: dockCanvas; anchors.fill: parent }
+            PanelSlot { slot: "right"; dock: dockCanvas; anchors.fill: parent }
+            PanelSlot { slot: "bottom"; dock: dockCanvas; anchors.fill: parent }
+        }
     }
-
     PanelSlot { slot: "overlay"; anchors.fill: parent }
-
     ShortcutsSheet {
         id: shortcuts
         anchors.fill: parent
-        gestures: tracksRegion.gestures
-        // Closing gives the keys back to the editor.
+        gestures: tracksHost.item ? tracksHost.item.gestures : null
         onOpenChanged: if (!open) root.forceActiveFocus()
     }
 }

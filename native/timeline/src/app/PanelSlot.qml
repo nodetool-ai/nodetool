@@ -2,15 +2,18 @@ import QtQuick
 import NodeTool.Timeline
 Item {
     id: root
+    property var dock: null
     required property string slot
     objectName: "panelSlot_" + slot
     readonly property bool vertical: slot === "left" || slot === "right"
-    implicitWidth: vertical ? childrenRect.width : 0
-    implicitHeight: slot === "bottom" ? childrenRect.height : 0
+    implicitWidth: !dock && vertical ? childrenRect.width : 0
+    implicitHeight: !dock && slot === "bottom" ? childrenRect.height : 0
     Repeater {
         id: panels
         model: PanelRegistry.forSlot(root.slot)
-        delegate: Loader {
+        delegate: StablePanelHost {
+            dock: root.dock
+            panelId: modelData.id
             required property var modelData
             required property int index
             source: modelData.source

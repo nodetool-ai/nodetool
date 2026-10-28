@@ -55,12 +55,13 @@ private slots:
         QVERIFY2(!QFile::exists(path) || QFile::remove(path), "Could not remove the test preferences file");
     }
     void init() {
-        open();
+        open(300);
         view->resize(1800, 1200);
         state = view->engine()->singletonInstance<SourceViewerState*>("NodeTool.Timeline", "SourceViewerState");
         QVERIFY(state);
         QCoreApplication::processEvents();
         state->setAsset(asset.toVariantMap());
+        QCoreApplication::processEvents();
         auto* panel = item("sourceViewer"); QVERIFY(panel);
         QTRY_VERIFY(panel->isVisible() && panel->height() > 0 &&
                     panel->mapToScene({panel->width(), panel->height()}).y() <= view->height());

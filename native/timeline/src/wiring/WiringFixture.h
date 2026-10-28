@@ -1,5 +1,6 @@
 #pragma once
 #include "edit/ClipGestureController.h"
+#include "DockLayoutStore.h"
 #include "edit/targeting/TrackTargeting.h"
 #include "edit/clipboard/ClipboardOps.h"
 #include "model/TimelineJson.h"
@@ -51,7 +52,7 @@ protected:
         QTest::mouseRelease(view.get(), Qt::LeftButton, mods, to);
         QCoreApplication::processEvents();
     }
-    void open() {
+    void open(double bottomSize = 700) {
         nt::edit::clipboard::clearClipClipboard();
         auto& targets = nt::targeting::TrackTargeting::current();
         const auto state = targets.state();
@@ -80,6 +81,10 @@ protected:
         view->show();
         QVERIFY(QTest::qWaitForWindowExposed(view.get()));
         QVERIFY(gestures());
+        // These wiring tests exercise every row and its expanded effects panel.
+        auto* dock = qobject_cast<DockLayoutStore*>(view->rootObject()->property("dockStore").value<QObject*>());
+        QVERIFY(dock);
+        dock->resizeRegion("bottom", bottomSize, view->width(), view->height());
         gestures()->viewState()->zoomTo(10, 0);
         gestures()->viewState()->setScrollLeftPx(0);
         gestures()->viewState()->flush();
