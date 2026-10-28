@@ -1128,6 +1128,14 @@
           "note": "shared with its merged owner, approved by the user (D15)"
         },
         {
+          "path": "tools/sanitizers/lsan.supp",
+          "note": "shared, approved by the user"
+        },
+        {
+          "path": "tools/sanitizers/baseline.md",
+          "note": "shared, approved by the user"
+        },
+        {
           "path": "docs/gaps-manifest.json",
           "note": "shared with its merged owner, approved by the user (D15)"
         }
