@@ -7,16 +7,18 @@
 
 #include <rhi/qrhi.h>
 
+// Before the FFmpeg headers: hwcontext_d3d11va.h includes d3d11.h, whose C++
+// operators cannot be declared inside extern "C".
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include <d3d11_4.h>
+
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavutil/error.h>
 #include <libavutil/hwcontext.h>
 #include <libavutil/hwcontext_d3d11va.h>
 }
-
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include <d3d11_4.h>
 
 #include <atomic>
 
