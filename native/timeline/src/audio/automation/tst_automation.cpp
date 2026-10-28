@@ -116,7 +116,7 @@ private slots:
 int main(int argc, char** argv) {
     QCoreApplication app(argc, argv); ensureRegistered();
     if (app.arguments().contains("--json")) {
-        QFile in; if (!in.open(stdin,QIODevice::ReadOnly)) return 2;
+        QFile in; if (!in.open(stdin,QIODevice::ReadOnly)) { return 2; }
         QJsonArray out;
         for (const auto& v : QJsonDocument::fromJson(in.readAll()).array()) {
             const auto a = v.toArray();
@@ -132,7 +132,7 @@ int main(int argc, char** argv) {
                 out.append(values);
             } else { out.append(call(a[0].toString(),a[1].toArray())); }
         }
-        QFile output; if (!output.open(stdout,QIODevice::WriteOnly)) return 2;
+        QFile output; if (!output.open(stdout,QIODevice::WriteOnly)) { return 2; }
         output.write(QJsonDocument(out).toJson(QJsonDocument::Compact)); return 0;
     }
     TestAutomation test; return QTest::qExec(&test,argc,argv);

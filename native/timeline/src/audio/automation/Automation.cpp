@@ -105,15 +105,15 @@ bool trackAcceptsAutomationTarget(const QJsonObject& track,const QJsonObject& ta
     return false;
 }
 QJsonValue call(const QString& name, const QJsonArray& a) {
-    if (name == "automationTargetKey") return automationTargetKey(a[0].toObject());
-    if (name == "automationValueAt") return automationValueAt(a[0].toArray(), a[1].toDouble(), a.size()>2?a[2].toDouble():0);
-    if (name == "addAutomationPoint") return addAutomationPoint(a[0].toArray(), a[1].toObject());
-    if (name == "moveAutomationPoint") return moveAutomationPoint(a[0].toArray(), a[1].toInt(), a[2].toDouble(), a[3].toDouble());
-    if (name == "removeAutomationPoints") return removeAutomationPoints(a[0].toArray(), a[1].toArray());
-    if (name == "setAutomationPointEasing") return setAutomationPointEasing(a[0].toArray(), a[1].toInt(), a[2].toString());
-    if (name == "automationPointsInRange") return automationPointsInRange(a[0].toArray(), a[1].toDouble(), a[2].toDouble());
-    if (name == "automationBreakpoints") return automationBreakpoints(a[0].toArray(), a[1].toDouble(), a.size()>2?a[2].toObject():QJsonObject{});
-    if (name == "trackAcceptsAutomationTarget") return trackAcceptsAutomationTarget(a[0].toObject(), a[1].toObject());
+    if (name == "automationTargetKey") { return automationTargetKey(a[0].toObject()); }
+    if (name == "automationValueAt") { return automationValueAt(a[0].toArray(), a[1].toDouble(), a.size()>2?a[2].toDouble():0); }
+    if (name == "addAutomationPoint") { return addAutomationPoint(a[0].toArray(), a[1].toObject()); }
+    if (name == "moveAutomationPoint") { return moveAutomationPoint(a[0].toArray(), a[1].toInt(), a[2].toDouble(), a[3].toDouble()); }
+    if (name == "removeAutomationPoints") { return removeAutomationPoints(a[0].toArray(), a[1].toArray()); }
+    if (name == "setAutomationPointEasing") { return setAutomationPointEasing(a[0].toArray(), a[1].toInt(), a[2].toString()); }
+    if (name == "automationPointsInRange") { return automationPointsInRange(a[0].toArray(), a[1].toDouble(), a[2].toDouble()); }
+    if (name == "automationBreakpoints") { return automationBreakpoints(a[0].toArray(), a[1].toDouble(), a.size()>2?a[2].toObject():QJsonObject{}); }
+    if (name == "trackAcceptsAutomationTarget") { return trackAcceptsAutomationTarget(a[0].toObject(), a[1].toObject()); }
     return QJsonValue::Undefined;
 }
 }
