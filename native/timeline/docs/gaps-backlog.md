@@ -70,6 +70,17 @@ run machine. "Package P1" and "package P2" are plan packages, not severities.
 | B62 | P2 | pkg-S3-r1 F1 | `src/edit/ClipGestureController.cpp:582` | A Ctrl/Cmd marquee keeps clips outside the band. Select `d`, then Ctrl-drag around `c` and `e`: native keeps `d` selected, so a following Delete removes it too. The web keeps the previous selection only with Shift (`TrackLane.tsx:614`). The `B26-command` case in `tst_wiringedit.cpp` asserts the divergent selection. Match the web modifier rule and correct that expectation. | S3 |
 | B63 | P2 | pkg-S3-r1 F2 | `src/edit/transitions/TransitionController.cpp:43` | Transition gestures ignore source probes that finish after pointer-down. Press a transition grip while probing is pending, let it finish, then drag past the outgoing source's end: `sourceCaps` captured at press stays empty through preview and commit, so the transition extends past the now-known limit. The web reads current source durations on each edit. Refresh the caps during preview and commit while keeping the gesture's original target and baseline. | S3 |
 | B64 | P2 | pkg-S3-r1 F3 | `src/edit/ClipGestureController.cpp:727` | Track resizing shows no live feedback. Moving a pressed separator only marks the gesture as dragging, and header and lane heights change only when release applies the edit (line 823). The web updates the height during movement and batches undo (`TrackHeader.tsx:501`). Preview the height during movement, assert the visible geometry before release, and keep one undo entry. | S3 |
+| B66 | P2 | A-r3 F3 | `src/server/TimelineList/tst_timelinelistui.cpp:81` | The screenshot check only looks for non-background pixels; it does not compare against a web-rendered image. | A |
+| B67 | P2 | D2-r1 F1 | `src/edit/clipaudio/ClipAudio.cpp:22` | Pan editing for audio clips is missing from the Inspector. | D2 |
+| B68 | P2 | D2-r1 F2 | `qml/Inspector/AudioGainDialog.qml:7` | The audio gain dialog is unreachable: the mapped `G` shortcut does not open it. | D2 |
+| B69 | P2 | O-r1 F1 | `qml/SourceViewerPanel.qml:123` | The source monitor cannot preview or play the selected media: scrubbing changes `playerTimeMs` without decoding frames, no audio, no duration discovery. | O |
+| B70 | P3 | O-r1 F2 | `qml/SourceViewerPanel.qml:13` | The empty-state instruction is never visible because the panel hides when no asset is selected. | O |
+| B71 | P1 | P2-r1 F1 | `qml/Tracks/automation/automationTargets.js:32` | Picture (clip) automation lanes are editable but never applied: scene evaluation ignores `track.automation` (`--dump-plan` keeps opacity 1). Needs a SceneEval hook (D15 allows a minimal one). Uncommitted fix work is in the P2 worktree. | P2 |
+| B72 | P2 | P2-r1 F2 | `qml/mixer/EffectDevicePopover.qml:40` | A pending wheel edit can commit to a different effect when another effect's popover opens within 250 ms (EQ mid-Q, compressor knee). | P2 |
+| B73 | P2 | P2-r1 F3 | `src/audio/automation/AutomationStage.cpp:14` | Automation ramps start at 0 ms; the web recomputes them from the play position, so playback started mid-timeline can differ inside eased segments. | P2 |
+| B78 | P2 | W (no review) | `src/wiring/w/` | Package W was merged without an Astra review, by the user's decision to finish close workstreams; it changes `qml/DocumentBar.qml`, `qml/Tracks/TrackHeader.qml` and `src/app/Menus/ShellMenus.cpp` beyond one registration line (commit `db8a497f68`). Review it. | W |
+| B79 | P2 | sanitize runs | `tests/tst_assetcache.cpp` | tst_assetcache fails QCompare assertions in every package's sanitize run, with a different failing case each run; it also fails on the main checkout. | B |
+| B80 | P2 | A p1fix sanitize run | `src/server/TimelineList/TimelineListController.cpp` | `dateGroup` groups by UTC calendar day while the web and `tst_timelinelistclient dateGroupsFollowWeb` use local days, so the test fails just after local midnight (seen 3 days after the 25 Oct DST change). | A |
 
 ## Closed
 
@@ -81,3 +92,8 @@ run machine. "Package P1" and "package P2" are plan packages, not severities.
 | B2 | Package P1 merge (effect hook in `Mixer.cpp`, landed with package U) | d6a1cd18c9 |
 | B35 | Package SY merge (autosave continues after a conflict through the external merge) | fc6cc3e7f1 |
 | B36 | Package SY merge (external sync on `resource_change`) | fc6cc3e7f1 |
+| B65 | Package A merge (A-r3 F1; fixed in 9b27f90113, verified by the A p1fix Astra check) | 061bc5e6ff |
+| B74 | Package J merge (J-r1 F1, fixed in cfb9710f41; matte keeps the clip's own effects as the exporter does) | 7f06e568d8 |
+| B75 | Package J merge (J-r1 F2, fixed in cfb9710f41) | 7f06e568d8 |
+| B76 | Package J merge (J-r1 F3, fixed in cfb9710f41 and 9724a25891) | 7f06e568d8 |
+| B77 | Package J merge (J-r1 F4, fixed in cfb9710f41) | 7f06e568d8 |
