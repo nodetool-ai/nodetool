@@ -37,6 +37,14 @@ QByteArray contentHash(const QJsonObject& document) {
     return QCryptographicHash::hash(QJsonDocument(document).toJson(QJsonDocument::Compact), QCryptographicHash::Sha256);
 }
 
+QJsonObject saveContent(const QJsonObject& raw) {
+    QJsonObject content{{QStringLiteral("document"), documentForSave(raw)}};
+    for (const auto* key : {"fps", "width", "height"}) {
+        content.insert(QLatin1String(key), raw.value(QLatin1String(key)));
+    }
+    return content;
+}
+
 // No answer, a server error or throttling: worth another try. A conflict or
 // a rejected document is not.
 bool transient(const QueryResult& r) {
@@ -51,7 +59,7 @@ bool transient(const QueryResult& r) {
 QJsonObject documentForSave(const QJsonObject& raw) {
     QJsonObject doc = raw;
     // The sequence row, not the document (`timelineSequenceResponse` minus
-    // `timelineDocument`). The size, rate and name are not edited here.
+    // `timelineDocument`). Editable size and rate are sent beside the document.
     for (const char* key : {"id", "projectId", "workflowId", "name", "fps", "width", "height", "durationMs",
                             "createdAt", "updatedAt"}) {
         doc.remove(QLatin1String(key));
@@ -104,6 +112,10 @@ AutosaveController::~AutosaveController() {
         ? static_cast<unsigned long>(m_quitDeadline->remainingTime()) : 2000UL;
     if (m_fetchWorker && !m_fetchWorker->wait(waitMs)) {
         qCWarning(syncLog, "sync: fetch worker still running after %lu ms shutdown wait", waitMs);
+    } else if (m_fetchWorker) {
+        // A finished worker's deleteLater never runs once the event loop has
+        // stopped at quit, so delete it here.
+        delete m_fetchWorker.data();
     }
 }
 
@@ -353,7 +365,7 @@ bool AutosaveController::applyFetched() {
         return false;
     }
     m_base = revision;
-    m_ackHash = contentHash(documentForSave(serverRaw));
+    m_ackHash = contentHash(saveContent(serverRaw));
     m_ackComplete = true;
     m_mergeBase = nextBase;
     m_committedHash = currentHash();
@@ -484,7 +496,7 @@ void AutosaveController::clearLocalCopyIfClean() {
     }
 }
 
-QByteArray AutosaveController::currentHash() const { return contentHash(documentForSave(m_document())); }
+QByteArray AutosaveController::currentHash() const { return contentHash(saveContent(m_document())); }
 
 bool AutosaveController::dirty() const { return currentHash() != m_ackHash; }
 
@@ -750,11 +762,10 @@ SaveResult AutosaveController::save(ServerClient& client) {
     m_timer.stop();
     emit stateChanged();
     const QJsonObject raw = m_document();
-    const QJsonObject sent = documentForSave(raw);
-    const QByteArray sentHash = contentHash(sent);
-    const QJsonObject input{{QStringLiteral("id"), m_target.timelineId},
-                            {QStringLiteral("baseUpdatedAt"), m_base},
-                            {QStringLiteral("document"), sent}};
+    QJsonObject input = saveContent(raw);
+    const QByteArray sentHash = contentHash(input);
+    input.insert(QStringLiteral("id"), m_target.timelineId);
+    input.insert(QStringLiteral("baseUpdatedAt"), m_base);
     const QueryResult r = client.mutate(QStringLiteral("timeline.update"), input);
     m_saving = false;
     if (m_pendingExternal) {

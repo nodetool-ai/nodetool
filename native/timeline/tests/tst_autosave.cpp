@@ -1085,6 +1085,180 @@ private slots:
         }
     }
 
+    void projectSettingsOnly_data() {
+        QTest::addColumn<QString>("field");
+        QTest::addColumn<int>("value");
+        QTest::newRow("fps") << QString("fps") << 24;
+        QTest::newRow("width") << QString("width") << 1280;
+        QTest::newRow("height") << QString("height") << 720;
+    }
+
+    void projectSettingsOnly() {
+        QFETCH(QString, field);
+        QFETCH(int, value);
+        auto raw = rawDoc(0);
+        const auto before = raw;
+        m_http->setPost([](const QByteArray&, const QByteArray&) { return ok("u1"); });
+        m_save = std::make_unique<AutosaveController>(SaveTarget{m_http->base(), {}, "seq", m_dir.path(), {}},
+            m_undo.get(), [&raw] { return raw; }, "u0");
+        m_save->setExternalSync(false);
+        m_save->setDebounceMs(25);
+        m_save->setQuitFallbackDirs({m_dir.filePath("settings-fallback")});
+        m_save->documentChanged();
+        QTest::qWait(100);
+        QCOMPARE(posts(), 0);
+        QVERIFY(!m_save->dirty());
+
+        raw[field] = value;
+        QVERIFY(m_save->dirty());
+        // A settings preview must wait for the committed-change notification.
+        QVERIFY(!m_save->saveNow().ok);
+        QCOMPARE(posts(), 0);
+        m_save->documentChanged();
+        QTRY_COMPARE(posts(), 1);
+        QTRY_VERIFY(!m_save->dirty());
+        const auto sent = QJsonDocument::fromJson(m_http->requests().back().body).object();
+        for (const auto* key : {"fps", "width", "height"}) {
+            QCOMPARE(sent.value(key), raw.value(key));
+        }
+        QCOMPARE(sent["document"].toObject(), documentForSave(before));
+        m_save->documentChanged();
+        QTest::qWait(100);
+        QCOMPARE(posts(), 1);
+        // Undoing only the settings must also be dirty and flush on quit.
+        raw = before;
+        m_save->documentChanged();
+        QVERIFY(m_save->dirty());
+        QVERIFY(m_save->flushBeforeQuit(1000));
+        QCOMPARE(posts(), 2);
+        QVERIFY(!m_save->dirty());
+        m_save.reset();
+    }
+
+    void projectSettingsExternalSync_data() {
+        QTest::addColumn<QString>("mode");
+        for (const auto* mode : {"clean", "local-settings", "local-clips", "cas"}) {
+            QTest::newRow(mode) << QString(mode);
+        }
+    }
+
+    void projectSettingsExternalSync() {
+        QFETCH(QString, mode);
+        auto raw = syncDoc(0, 0, "2026-10-26T14:00:00.000Z");
+        const auto loaded = raw;
+        const QString newer = "2026-10-26T14:00:01.000Z";
+        auto server = syncDoc(500, 0, newer);
+        server["width"] = 1280;
+        server["height"] = 720;
+        server["fps"] = 60;
+        int applied = 0;
+        sync::setDocumentApplier([&](QUndoStack* undo, const QJsonObject& next, const nt::Timeline&) {
+            raw = next;
+            undo->clear();
+            ++applied;
+            return true;
+        });
+        const auto cleanup = qScopeGuard([this] {
+            m_save.reset();
+            sync::setDocumentApplier({});
+        });
+        m_http->setJson([&](const QByteArray&, const QUrl&) {
+            return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", server}}}}).toJson();
+        });
+        m_http->setPost([&](const QByteArray&, const QByteArray&) {
+            return mode == "cas" && posts() == 1 ? conflict() : ok("2026-10-26T14:00:02.000Z");
+        });
+        m_save = std::make_unique<AutosaveController>(SaveTarget{m_http->base(), {}, "seq", m_dir.filePath(mode), {}},
+            m_undo.get(), [&raw] { return raw; }, loaded["updatedAt"].toString());
+        m_save->setExternalSync(false);
+        m_save->setAutosave(false);
+        m_save->setQuitFallbackDirs({});
+        if (mode == "local-settings" || mode == "cas") {
+            raw["fps"] = 24;
+        } else if (mode == "local-clips") {
+            raw = syncDoc(0, 200, loaded["updatedAt"].toString());
+        }
+        m_save->documentChanged();
+        if (mode == "cas") {
+            QVERIFY(m_save->saveNow().conflict);
+        } else {
+            m_save->refreshExternal();
+        }
+        QTRY_COMPARE(applied, 1);
+        QCOMPARE(m_save->baseUpdatedAt(), newer);
+        QCOMPARE(raw["width"], server["width"]);
+        QCOMPARE(raw["height"], server["height"]);
+        QCOMPARE(raw["fps"].toInt(), mode == "local-settings" || mode == "cas" ? 24 : 60);
+        QCOMPARE(raw["clips"], syncDoc(500, mode == "local-clips" ? 200 : 0, newer)["clips"]);
+        if (mode == "clean") {
+            QVERIFY(!m_save->dirty());
+            m_save->setAutosave(true);
+            m_save->setDebounceMs(25);
+            m_save->documentChanged();
+            QTest::qWait(100);
+            QCOMPARE(posts(), 0);
+        } else {
+            QVERIFY(m_save->dirty());
+            if (mode != "local-clips") {
+                QCOMPARE(m_save->externalConflicts().size(), 1);
+                QCOMPARE(m_save->externalConflicts().first().toMap()["id"].toString(), QString("fps"));
+            }
+            QVERIFY(m_save->saveNow().ok);
+            QVERIFY(!m_save->dirty());
+            const auto sent = QJsonDocument::fromJson(m_http->requests().back().body).object();
+            QCOMPARE(sent["baseUpdatedAt"].toString(), newer);
+            for (const auto* key : {"fps", "width", "height"}) {
+                QCOMPARE(sent.value(key), raw.value(key));
+            }
+            // A later fetch must compare against the settings in the saved base.
+            server = raw;
+            server["updatedAt"] = "2026-10-26T14:00:03.000Z";
+            server["fps"] = 48;
+            raw["clips"] = syncDoc(500, 300, "")["clips"];
+            m_save->documentChanged();
+            m_save->refreshExternal();
+            QTRY_COMPARE(applied, 2);
+            QCOMPARE(raw["fps"].toInt(), 48);
+            QVERIFY(m_save->dirty());
+        }
+    }
+
+    void projectSettingsSaveSnapshotAndRecovery() {
+        auto raw = rawDoc(0);
+        m_save = std::make_unique<AutosaveController>(SaveTarget{m_http->base(), {}, "seq", m_dir.path(), {}},
+            m_undo.get(), [&raw] { return raw; }, "u0");
+        const auto cleanup = qScopeGuard([this] { m_save.reset(); });
+        m_save->setExternalSync(false);
+        m_save->setAutosave(false);
+        m_save->setQuitFallbackDirs({m_dir.filePath("settings-recovery-fallback")});
+        m_http->setPost([&](const QByteArray&, const QByteArray&) {
+            raw["fps"] = 48;
+            m_save->documentChanged();
+            return ok("u1");
+        });
+        raw["fps"] = 24;
+        m_save->documentChanged();
+        QVERIFY(m_save->saveNow().ok);
+        QVERIFY(m_save->dirty());
+        QCOMPARE(QJsonDocument::fromJson(m_http->requests().back().body).object()["fps"].toInt(), 24);
+
+        m_http->setPost([](const QByteArray&, const QByteArray&) { return failure(400, "BAD_REQUEST"); });
+        QVERIFY(!m_save->flushBeforeQuit(1000));
+        const auto copy = m_save->keptCopy();
+        QVERIFY(!copy.isEmpty());
+        QFile file(copy);
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        QCOMPARE(QJsonDocument::fromJson(file.readAll()).object(), raw);
+        file.close();
+        raw["width"] = 1280;
+        m_save->documentChanged();
+        QVERIFY(m_save->keptCopy().isEmpty());
+        QVERIFY(!m_save->flushBeforeQuit(1000));
+        QVERIFY(!m_save->keptCopy().isEmpty());
+        QVERIFY(file.open(QIODevice::ReadOnly));
+        QCOMPARE(QJsonDocument::fromJson(file.readAll()).object(), raw);
+    }
+
     void documentDropsTheSequenceRow() {
         const QJsonObject doc = documentForSave(rawDoc(3));
         for (const char* key : {"id", "projectId", "name", "fps", "width", "height", "durationMs", "createdAt", "updatedAt"}) {
