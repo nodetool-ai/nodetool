@@ -26,3 +26,5 @@ leak:QThread::exec
 leak:libnvidia-glcore.so
 # libxcb connection storage allocated with no project frame survives process teardown (A document tests under the sanitize preset).
 leak:libxcb.so
+# V-EXT-6: Qt/fontconfig retains MixerFader's U+221E fallback pattern through tst_wiringw process teardown.
+leak:QFontEngineMultiFontConfig::getMatchPatternForFallback

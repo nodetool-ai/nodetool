@@ -24,12 +24,13 @@ float lin(double db) { return static_cast<float>(std::pow(10., db / 20.)); }
 
 struct Biquad {
     double b0 = 1, b1 = 0, b2 = 0, a1 = 0, a2 = 0;
-    std::array<double, 2> z1{}, z2{};
-    void reset() { z1.fill(0); z2.fill(0); }
+    std::array<double, 2> x1{}, x2{}, y1{}, y2{};
+    void reset() { x1.fill(0); x2.fill(0); y1.fill(0); y2.fill(0); }
     float tick(float input, int c) {
-        const double y = b0 * input + z1[c];
-        z1[c] = b1 * input - a1 * y + z2[c];
-        z2[c] = b2 * input - a2 * y;
+        // Input/output history remains valid when automation changes coefficients.
+        const double y = b0 * input + b1 * x1[c] + b2 * x2[c] - a1 * y1[c] - a2 * y2[c];
+        x2[c] = x1[c]; x1[c] = input;
+        y2[c] = y1[c]; y1[c] = y;
         return static_cast<float>(y);
     }
     // Web Audio BiquadFilterNode: low/highpass Q is in dB, unlike bandpass.
@@ -289,7 +290,9 @@ public:
         if (type_ == "reverb") { return reverbRemaining_ > 0; }
         if (type_ == "filter" || type_ == "eq3") {
             for (const auto& f : filters_) {
-                for (int c = 0; c < 2; ++c) { if (f.z1[c] != 0 || f.z2[c] != 0) { return true; } }
+                for (int c = 0; c < 2; ++c) {
+                    if (f.x1[c] != 0 || f.x2[c] != 0 || f.y1[c] != 0 || f.y2[c] != 0) { return true; }
+                }
             }
         }
         if (type_ == "echo" || type_ == "compressor") {

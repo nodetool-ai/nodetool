@@ -205,6 +205,26 @@ Every reported stack ends in the driver or libxcb directly above the allocator.
 `leak:libnvidia-glcore.so` and `leak:libxcb.so` remove these reports. No project
 allocation or missing project release is identified by these stacks.
 
+## V-EXT-6: Qt fontconfig fallback pattern in tst_wiringw
+
+Kind: one direct and several indirect leaks with no project frame. Test:
+`tst_wiringw` (offscreen, software Quick backend). Top project frame: none.
+Owner: Qt 6.12 `QFontEngineMultiFontConfig` and fontconfig.
+
+```text
+realloc -> FcPatternObjectInsertElt -> FcFontRenderPrepare -> FcFontMatch
+  -> QFontEngineMultiFontConfig::getMatchPatternForFallback (libQt6Gui)
+calloc -> FcValueListCreate -> FcValueListDuplicate -> FcFontRenderPrepare
+```
+
+The hidden mixer's `MixerFader` draws an infinity tick (U+221E), which the
+bundled JetBrains Mono Latin subset lacks. Qt builds a fallback font engine
+and caches its fontconfig pattern until the engine is destroyed, which does
+not happen before process exit. The red run reported 1822 bytes in 49
+allocations. Replacing only that tick with `inf` removed the report.
+`leak:QFontEngineMultiFontConfig::getMatchPatternForFallback` removes exactly
+those 49 allocations.
+
 ## V-LEAK-2: expected Vulkan failure-path retention
 
 File: `src/preview/hw/VulkanInterop.cpp`. Kind: deliberate process-lifetime

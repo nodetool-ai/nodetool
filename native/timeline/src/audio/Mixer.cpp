@@ -300,18 +300,26 @@ bool process(const Processors& processors, std::span<float> stereo, BlockContext
     }
     return context.silent;
 }
-void panAndAdd(std::span<const float> in, std::span<float> out, double gain, double pan) {
-    double ll = 1, rl = 0, lr = 0, rr = 1;
-    if (pan < 0) {
-        const double x = (pan + 1) * std::numbers::pi / 2;
-        rl = std::cos(x); rr = std::sin(x);
-    } else if (pan > 0) {
-        const double x = pan * std::numbers::pi / 2;
-        ll = std::cos(x); lr = std::sin(x);
+// Match web-audio-api's 2048-step quarter-cycle table and f32 arithmetic.
+// Namespace initialization keeps table construction out of the render callback.
+const std::array<float, 2049> panSines = [] {
+    std::array<float, 2049> table{};
+    for (std::size_t i = 0; i < table.size(); ++i) {
+        table[i] = static_cast<float>(std::sin(static_cast<double>(i) * std::numbers::pi / 4096));
     }
+    return table;
+}();
+
+void panAndAdd(std::span<const float> in, std::span<float> out, double gain, double pan) {
+    const float p = static_cast<float>(pan);
+    const float x = p <= 0 ? p + 1.f : p;
+    const auto index = static_cast<std::size_t>(x * 2048.f);
+    const float sine = panSines[index], cosine = panSines[2048 - index];
     for (std::size_t i = 0; i < in.size(); i += 2) {
-        out[i] += static_cast<float>((in[i] * ll + in[i + 1] * rl) * gain);
-        out[i + 1] += static_cast<float>((in[i] * lr + in[i + 1] * rr) * gain);
+        const float left = p <= 0 ? in[i] + in[i + 1] * cosine : in[i] * cosine;
+        const float right = p <= 0 ? in[i + 1] * sine : in[i + 1] + in[i] * sine;
+        out[i] += static_cast<float>(left * gain);
+        out[i + 1] += static_cast<float>(right * gain);
     }
 }
 } // namespace
