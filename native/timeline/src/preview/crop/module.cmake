@@ -16,7 +16,10 @@ function(nt_reframe_tests)
     add_test(NAME crop_golden COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/scripts/compare-golden.mjs
         ${CMAKE_CURRENT_SOURCE_DIR}/src/preview/crop/fixtures/static-crops.json
         --frames 15,45,75 --min-psnr 40 --bin $<TARGET_FILE:nodetool-timeline>)
-    set_tests_properties(crop_golden PROPERTIES LABELS render FIXTURES_REQUIRED media RUN_SERIAL TRUE)
+    add_test(NAME crop_reframe_golden COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/scripts/compare-golden.mjs
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/preview/crop/fixtures/reframe-crops.json
+        --frames 15,45,75 --min-psnr 40 --bin $<TARGET_FILE:nodetool-timeline>)
+    set_tests_properties(crop_golden crop_reframe_golden PROPERTIES LABELS render FIXTURES_REQUIRED media RUN_SERIAL TRUE)
     add_test(NAME tst_reframe COMMAND tst_reframe)
     set_tests_properties(tst_reframe PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endfunction()
