@@ -1060,7 +1060,9 @@
       "owns": [
         "qml/Inspector/Adjust*",
         "qml/Inspector/Effects*",
-        "qml/Inspector/ToneCurve*"
+        "qml/Inspector/ToneCurve*",
+        "src/edit/clipeffects/",
+        "src/edit/inspectorsections/ClipGroupPanel.qml"
       ],
       "web": [
         "web/src/components/timeline/Inspector/ClipAdjustments.tsx",
@@ -1070,7 +1072,10 @@
       "server": [],
       "exit": [
         "Colour, tone curve and effect list edit with undo, and the preview shows them (golden)"
-      ]
+      ],
+      "ownsNotes": {
+        "src/edit/inspectorsections/ClipGroupPanel.qml": "shared with its merged owner, approved by the user"
+      }
     },
     {
       "id": "P2",
