@@ -127,7 +127,18 @@ struct DroppedLayer {
     std::string reason;  // video_layer_cap, model3d_layer_cap, matte_source_inactive
 };
 
+struct SceneAdjustment {
+    std::string clipId;
+    int trackIndex = 0;
+    int z = 0;
+    double opacity = 1;
+    std::string precomposeGroupId;
+    std::optional<scene::WipeMask> wipe;
+    QJsonObject ext;
+};
+
 struct SceneFrame {
+    std::vector<SceneAdjustment> adjustments;  // track order, then document order
     std::vector<ActiveLayer> layers;  // bottom to top (stable by z)
     std::vector<PrecompositeLayer> precomposites;  // innermost first
     std::vector<DroppedLayer> dropped;

@@ -933,6 +933,41 @@ Exit, and how each is checked (red and green evidence for each):
 7. Nothing else changes. The full 6e checks pass, and the sanitize ctest has
    no report outside `tools/sanitizers/baseline.md`.
 
+### W: UI wiring for merged features
+
+Goal: give three merged features a way in from the app. The wave 3 parity
+reviews found them reachable only from tests (layout F29, F30, F32,
+completeness U1, U2).
+
+- Needs: E, P1, D3 and S3, all merged.
+- Owns: the new folders `src/wiring/w/` and `qml/wiring/w/` with their
+  tests. A change to another package's file is a blocker unless that
+  package has merged and the change is one registration line. W lists each
+  such line in its result.
+- Web: `TimelineDocumentBar.tsx` (the Export button),
+  `TimelineEditor.tsx` (export entry), `Tracks/TrackHeader.tsx` (the
+  effects button), `Tracks/TracksRegion.tsx` (the panel under the track and
+  the `speedDuration` key), `Tracks/TrackEffectsPanel.tsx`,
+  `Tracks/trackEffectsConstants.ts`, `timelineKeymap.ts`, and the track
+  effect actions of `TimelineStore.ts`.
+
+| Feature | Entry point | Closes |
+|---|---|---|
+| E | A contained "Export" button with the download icon at the right end of the document bar, "Exporting…" while an export runs, and an "Export…" item in the File menu. Both call `ExportController::open()`. The web has no export key. | F29, U1 |
+| P1 | The effects button in each audio, MIDI and video track header shows `TrackEffectsPanel` under that track (280 px, one track at a time). The panel adds, toggles, edits, reorders and removes effects with P1's `FxKnob`, `FxPower` and `FxStepper`. Each change is one undo entry. | F32, U2, F11 |
+| D3 | Ctrl+R (`speedDuration`) opens Speed / Duration for the selected clips. The shortcut sheet marks it available. | F30, B48, U2 |
+
+Exit, and how each is checked:
+
+1. A test loads the editor the app loads, under Xvfb, and drives each entry
+   point through the QML scene: it clicks the Export button, triggers the
+   File menu item, clicks the header effects button and edits an effect in
+   the panel, and presses Ctrl+R with a clip selected. Each step reaches its
+   feature. Red: the test fails before W's files exist.
+2. Wording, sizes and placement match the web files above.
+3. The full 6e checks pass, and the sanitize ctest has no report outside
+   `tools/sanitizers/baseline.md`.
+
 ## Wave 2: packages that need wave 1
 
 | Package | Needs | Scope |

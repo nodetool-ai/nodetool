@@ -43,6 +43,8 @@ signals:
     void anchorChanged();
     void keyboardPresetChanged();
     void settingsRequested();
+    void openTimelineRequested();
+    void newTimelineRequested();
     void preferencesChanged();
 private:
     void rebuild();

@@ -163,7 +163,7 @@ Row {
         anchors.verticalCenter: parent.verticalCenter
         slot: "toolbar"
         slotProperties: ({ timeline: tools.timeline, gestures: tools.gestures,
-                           viewState: tools.viewState })
+                           viewState: tools.viewState, compact: tools.compact })
     }
     ToolbarDivider { anchors.verticalCenter: parent.verticalCenter }
     ToolButton {

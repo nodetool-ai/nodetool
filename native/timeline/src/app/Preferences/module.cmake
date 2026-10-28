@@ -14,6 +14,8 @@ function(nt_preferences_link_audio)
 endfunction()
 cmake_language(DEFER CALL nt_preferences_link_audio)
 function(nt_preferences_tests)
+    # Shared startup template, copied separately for each shell test by the fixture.
+    file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/shell-test-startup.ini" "")
     qt_add_executable(tst_appshell_startup src/app/Preferences/tst_appshell_startup.cpp
         src/app/Preferences/AppShellRegistration.cpp
         src/app/PanelRegistry.cpp)

@@ -37,6 +37,44 @@
 #include <set>
 #include <type_traits>
 
+namespace nt {
+namespace {
+struct BackdropRegistry {
+    std::mutex mutex;
+    BackdropStageToken next = 1;
+    std::vector<std::pair<BackdropStageToken, BackdropStageFactory>> factories;
+};
+BackdropRegistry& backdropRegistry() { static BackdropRegistry value; return value; }
+}
+BackdropStageToken registerBackdropStage(BackdropStageFactory factory) {
+    auto& registry = backdropRegistry();
+    const std::scoped_lock lock(registry.mutex);
+    const auto token = registry.next++;
+    registry.factories.emplace_back(token, std::move(factory));
+    return token;
+}
+void unregisterBackdropStage(BackdropStageToken token) {
+    auto& registry = backdropRegistry();
+    const std::scoped_lock lock(registry.mutex);
+    std::erase_if(registry.factories, [token](const auto& entry) { return entry.first == token; });
+}
+std::vector<std::unique_ptr<BackdropStage>> registeredBackdropStages() {
+    std::vector<BackdropStageFactory> factories;
+    {
+        auto& registry = backdropRegistry();
+        const std::scoped_lock lock(registry.mutex);
+        for (const auto& [token, factory] : registry.factories) { factories.push_back(factory); }
+    }
+    std::vector<std::unique_ptr<BackdropStage>> stages;
+    for (const auto& factory : factories) {
+        if (factory) {
+            if (auto stage = factory()) { stages.push_back(std::move(stage)); }
+        }
+    }
+    return stages;
+}
+}
+
 namespace {
 
 // Triangle strip over [-1,1]^2. UV v = 0 is the top row of a source image.
@@ -103,6 +141,7 @@ public:
         // completes. Closing pooled decoders also retires hardware frames.
         for (auto& [key, entry] : m_sources) { retireSource(entry); }
         m_sources.clear();
+        m_backdropStages.clear();
         m_effectStages.clear();
         m_blendHandlers.clear();
         m_matteStage.reset();
@@ -208,6 +247,8 @@ private:
     QPointer<TimelineModel> m_sourceModel;
     quint64 m_sourceGeneration = 0;
     double m_timeMs = 0.0;
+    std::vector<nt::SceneAdjustment> m_adjustments;
+    std::vector<std::unique_ptr<nt::BackdropStage>> m_backdropStages;
     std::vector<nt::ActiveLayer> m_layers;
     std::vector<nt::PrecompositeLayer> m_precomposites;  // innermost first
     std::string m_resourceError;  // the first GPU resource failure, for the GUI side
@@ -278,6 +319,7 @@ void PreviewCompositorRenderer::initialize(QRhiCommandBuffer*) {
     if (m_rhi != rhi()) {
         // New QRhi (first run, or a device change): drop every resource.
         m_sources.clear();
+        m_backdropStages.clear();
         m_effectStages.clear();
         m_blendHandlers.clear();
         m_matteStage.reset();
@@ -297,6 +339,7 @@ void PreviewCompositorRenderer::initialize(QRhiCommandBuffer*) {
         m_sampler.reset();
         m_vbufUploaded = false;
         m_rhi = rhi();
+        m_backdropStages = nt::registeredBackdropStages();
         m_effectStages = nt::registeredEffectStages();
         m_blendHandlers = nt::registeredBlendHandlers();
         m_matteStage = nt::registeredMatteStage();
@@ -361,6 +404,7 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
         }
     }
 
+    m_adjustments.clear();
     m_layers.clear();
     m_precomposites.clear();
     m_playing = false;
@@ -386,6 +430,7 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
     m_timeMs = item->m_clock ? item->m_clock->currentTimeMs() : 0.0;
     m_playing = item->m_clock && item->m_clock->playing();
     nt::SceneFrame scene = nt::evaluateScene(*m_timeline, m_timeMs);
+    m_adjustments = std::move(scene.adjustments);
     m_layers = std::move(scene.layers);
     m_precomposites = std::move(scene.precomposites);
 }
@@ -729,6 +774,7 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
         std::string container;  // precomposeGroupId; empty: the frame
         const std::string* blendMode;
         const QJsonObject* ext;
+        const nt::SceneAdjustment* adjustment = nullptr;
     };
     std::vector<Draw> draws;
     draws.reserve(m_layers.size());
@@ -946,6 +992,10 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
         surfacePasses.push_back({surface, pc.clipId, std::move(effects)});
         draws.push_back({composite->srb.get(), pc.z, pc.stackOrder, pc.precomposeGroupId, &pc.blendMode, &pc.ext});
     }
+    // Treatments follow pictures at equal z, including pictures without stackOrder.
+    for (const auto& adjustment : m_adjustments) {
+        draws.push_back({nullptr, adjustment.z, {}, adjustment.precomposeGroupId, nullptr, &adjustment.ext, &adjustment});
+    }
     // `sortStack`: by z, then stack order (absent last), stable.
     std::stable_sort(draws.begin(), draws.end(), [](const Draw& a, const Draw& b) {
         if (a.z != b.z) return a.z < b.z;
@@ -985,6 +1035,34 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
         beginContainerPass(rt, clear, batch);
         for (const Draw& d : draws) {
             if (d.container != container) { continue; }
+            if (d.adjustment) {
+                for (const auto& stage : m_backdropStages) {
+                    if (!stage->applies(*d.ext)) { continue; }
+                    auto* backdrop = m_surfaces.acquire(m_canvasSize, m_frame);
+                    auto* output = m_surfaces.acquire(m_canvasSize, m_frame);
+                    if (!backdrop || !output) {
+                        resourceFailed("cannot allocate backdrop stage surfaces");
+                        continue;
+                    }
+                    cb->endPass();
+                    auto* copy = m_rhi->nextResourceUpdateBatch();
+                    copy->copyTexture(backdrop->texture.get(), texture);
+                    cb->resourceUpdate(copy);
+                    const bool ok = stage->render(effectContext, surfaceFrame(backdrop), *output->rt, *d.adjustment);
+                    if (!ok) { resourceFailed("cannot render a backdrop stage"); }
+                    auto* result = ok ? output : backdrop;
+                    LayerUniforms u{};
+                    writeMatrix(u, corr);
+                    u.opacity = 1;
+                    u.flipV = m_rhi->isYUpInFramebuffer() ? 1.f : 0.f;
+                    auto* resume = m_rhi->nextResourceUpdateBatch();
+                    resume->updateDynamicBuffer(result->ubuf.get(), 0, sizeof(u), &u);
+                    beginContainerPass(rt, Qt::transparent, resume);
+                    drawBindings(result->srb.get());
+                    blendSurfaces += 2;
+                }
+                continue;
+            }
             const auto handler = m_blendHandlers.find(*d.blendMode);
             if (*d.blendMode == "normal" || handler == m_blendHandlers.end()) {
                 drawBindings(d.srb);

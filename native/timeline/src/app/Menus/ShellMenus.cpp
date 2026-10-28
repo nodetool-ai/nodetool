@@ -1,4 +1,5 @@
 #include "ShellMenus.h"
+#include "wiring/w/SceneItems.h"
 #include "edit/ClipGestureController.h"
 #include "edit/Keymap.h"
 #include <QCoreApplication>
@@ -52,6 +53,9 @@ std::vector<Menu> shellMenuDescription(const QString& preset, const QVariantList
     }
     std::vector<Menu> menus{
         {"File", {{"Open Recent", "recent", {}, {}, true, {}},
+                  {"Open Timeline…", "openTimeline", "Ctrl+O", QKeySequence(Qt::CTRL | Qt::Key_O), true, {}},
+                  {"New Timeline", "newTimeline", {}, {}, true, {}},
+                  {"Export…", "exportVideo", {}, {}, true, {}},
                   {"Settings…", "settings", "Ctrl+,", QKeySequence(Qt::CTRL | Qt::Key_Comma), true, {}},
                   {"Quit", "quit", {}, QKeySequence(QKeySequence::Quit), true, {}}}},
         {"Edit", {}}, {"View", {}}, {"Playback", {}}, {"Help", {}}};
@@ -153,6 +157,14 @@ bool ShellMenus::trigger(const QString& action) {
         }
         return QProcess::startDetached(QCoreApplication::applicationFilePath(), arguments);
     }
+    if (action == "openTimeline") {
+        emit openTimelineRequested();
+        return true;
+    }
+    if (action == "newTimeline") {
+        emit newTimelineRequested();
+        return true;
+    }
     if (action == "settings") {
         emit settingsRequested();
         return true;
@@ -163,6 +175,10 @@ bool ShellMenus::trigger(const QString& action) {
     }
     if (!m_anchor || !m_anchor->window()) {
         return false;
+    }
+    if (action == "exportVideo") {
+        auto* panel = nt::wiring::w::windowItem(m_anchor, "exportPanel");
+        return panel && QMetaObject::invokeMethod(panel, "open");
     }
     for (const auto& menu : shellMenuDescription(m_preset)) {
         for (const auto& item : menu.items) {
