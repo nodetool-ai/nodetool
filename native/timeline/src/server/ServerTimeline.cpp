@@ -96,7 +96,7 @@ bool needsAudio(MediaType t) { return t == MediaType::Video || t == MediaType::A
 QString originalVersion(const QJsonObject& asset) {
     const QJsonValue size = asset.value(u"size");
     const QByteArray key = asset.value(u"updated_at").toString().toUtf8() + '\n' +
-                           (size.isDouble() ? QByteArray::number(static_cast<qint64>(size.toDouble())) : "null") +
+                           (size.isDouble() ? QByteArray::number(static_cast<qint64>(size.toDouble())) : QByteArray("null")) +
                            '\n' + asset.value(u"content_type").toString().toUtf8();
     return shortHash(key);
 }

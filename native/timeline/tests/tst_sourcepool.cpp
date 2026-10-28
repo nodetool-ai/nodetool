@@ -16,8 +16,6 @@
 #include <algorithm>
 #include <cmath>
 
-#include <unistd.h>
-
 using namespace nt;
 
 namespace {
