@@ -15,6 +15,7 @@ Controls.Popup {
     property var anchor: null
     property var previews: ({})
     property var openGeneration: 0
+    signal finishGestures()
     readonly property var effect: (controller.channel.effects || []).find(e => e.id === effectId) || null
     readonly property var displayed: Object.assign({},effect || {},previews)
     readonly property var fields: effect ? ({
@@ -33,10 +34,12 @@ Controls.Popup {
     font.family:Theme.sansFamily; font.pixelSize:Theme.fontSizeSmall
     padding:Theme.spacingMd
     closePolicy:Controls.Popup.CloseOnEscape | Controls.Popup.CloseOnPressOutside
+    onAboutToHide:root.finishGestures()
     background:Rectangle { color:Theme.backgroundPaper; border.color:Theme.divider; radius:Theme.radiusMd }
     AutomationController { id:controller; timeline:root.timeline; trackId:root.trackId; master:root.trackId==="" }
     Connections { target:root.timeline; function onDocumentReplaced() { root.close() } }
     function show(trackId,effectId,anchor) {
+        root.finishGestures()
         root.trackId=trackId; root.effectId=effectId; root.anchor=anchor; root.previews={}; root.openGeneration=controller.generation()
         var p=anchor.mapToItem(root.parent,0,0)
         root.x=Math.max(0,Math.min(parent.width-width,trackId===""?p.x+anchor.width-width:p.x))
@@ -65,7 +68,11 @@ Controls.Popup {
                 width:parent.width; active:root.effect!==null && root.effect.type==="eq3"
                 sourceComponent:Column {
                     spacing:Theme.spacingMd
-                    Eq3Curve { width:parent.width;effect:root.displayed;disabled:root.effect===null || root.effect.enabled===false;onPreview:p=>root.preview(p);onCommit:p=>root.patch(p) }
+                    MixerEq3Curve {
+                        id:eqCurve
+                        width:parent.width;effect:root.displayed;disabled:root.effect===null || root.effect.enabled===false;onPreview:p=>root.preview(p);onCommit:p=>root.patch(p)
+                        Connections { target:root; function onFinishGestures() { eqCurve.finish() } }
+                    }
                     Row {
                         width:parent.width;spacing:Theme.spacingMicro
                         Repeater {
@@ -91,7 +98,11 @@ Controls.Popup {
                 width:parent.width;active:root.effect!==null && root.effect.type==="compressor"
                 sourceComponent:Row {
                     spacing:Theme.spacingMd
-                    CompressorCurve { effect:root.displayed;disabled:root.effect===null || root.effect.enabled===false;onPreview:p=>root.preview(p);onCommit:p=>root.patch(p) }
+                    MixerCompressorCurve {
+                        id:compressorCurve
+                        effect:root.displayed;disabled:root.effect===null || root.effect.enabled===false;onPreview:p=>root.preview(p);onCommit:p=>root.patch(p)
+                        Connections { target:root; function onFinishGestures() { compressorCurve.finish() } }
+                    }
                     Grid {
                         width:parent.width-188;columns:2;spacing:Theme.spacingMicro
                         Repeater {
