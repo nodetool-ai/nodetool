@@ -7,11 +7,11 @@ nt_sources(server
 function(nt_timeline_list_tests)
     add_test(NAME timelinelist_document_controls COMMAND node
         ${CMAKE_CURRENT_SOURCE_DIR}/src/server/TimelineList/document-controls.mjs $<TARGET_FILE:nodetool-timeline>)
-    set_tests_properties(timelinelist_document_controls PROPERTIES TIMEOUT 120
+    set_tests_properties(timelinelist_document_controls PROPERTIES TIMEOUT 1800
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
     add_test(NAME timelinelist_document_actions COMMAND node
         ${CMAKE_CURRENT_SOURCE_DIR}/src/server/TimelineList/scratch-document.mjs $<TARGET_FILE:nodetool-timeline>)
-    set_tests_properties(timelinelist_document_actions PROPERTIES TIMEOUT 240
+    set_tests_properties(timelinelist_document_actions PROPERTIES TIMEOUT 1800
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
     add_test(NAME timelinelist_scratch COMMAND node
         ${CMAKE_CURRENT_SOURCE_DIR}/src/server/TimelineList/scratch-list.mjs $<TARGET_FILE:nodetool-timeline> --startup-label)

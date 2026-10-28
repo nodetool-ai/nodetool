@@ -112,6 +112,10 @@ AutosaveController::~AutosaveController() {
         ? static_cast<unsigned long>(m_quitDeadline->remainingTime()) : 2000UL;
     if (m_fetchWorker && !m_fetchWorker->wait(waitMs)) {
         qCWarning(syncLog, "sync: fetch worker still running after %lu ms shutdown wait", waitMs);
+    } else if (m_fetchWorker) {
+        // A finished worker's deleteLater never runs once the event loop has
+        // stopped at quit, so delete it here.
+        delete m_fetchWorker.data();
     }
 }
 

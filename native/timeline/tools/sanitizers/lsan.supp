@@ -22,3 +22,7 @@ leak:QEventDispatcherGlib::QEventDispatcherGlib
 leak:QObject::deleteLater
 # V-EXT-4: Qt reader's 32-byte-per-loop QArrayData allocation under QEventLoop::exec survives teardown. Also hides leaks in project Qt worker event loops.
 leak:QThread::exec
+# NVIDIA GL driver 610.57 internal allocations with no project frame survive process teardown (A document tests under the sanitize preset).
+leak:libnvidia-glcore.so
+# libxcb connection storage allocated with no project frame survives process teardown (A document tests under the sanitize preset).
+leak:libxcb.so

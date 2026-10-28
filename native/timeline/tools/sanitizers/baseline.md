@@ -189,6 +189,22 @@ Qt threads, deferred-deletion event leaks, and allocations made in project Qt
 worker event loops. Each suppression comment states its scope. No generic
 Qt-library, QImage, QObject-constructor or QThread-constructor exemption is added.
 
+## V-EXT-5: NVIDIA GL driver and libxcb teardown in app process tests
+
+Kind: direct leaks with no project frame. Tests: `timelinelist_document_controls`,
+`timelinelist_document_actions` (the app binary driven by a node script).
+Top project frame: none. Owner: third-party NVIDIA GL driver 610.57 and libxcb.
+
+```text
+malloc -> libnvidia-glcore.so.610.57.04+0x9e74a1
+calloc -> libnvidia-glcore.so.610.57.04+0x9e775d
+malloc -> libxcb.so.1+0xcbc3
+```
+
+Every reported stack ends in the driver or libxcb directly above the allocator.
+`leak:libnvidia-glcore.so` and `leak:libxcb.so` remove these reports. No project
+allocation or missing project release is identified by these stacks.
+
 ## V-LEAK-2: expected Vulkan failure-path retention
 
 File: `src/preview/hw/VulkanInterop.cpp`. Kind: deliberate process-lifetime

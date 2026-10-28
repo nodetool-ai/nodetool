@@ -289,7 +289,9 @@ void installCheck() {
         }
     });
     timer->start();
-    QTimer::singleShot(20000, timer, [] { require(false, "application driver timed out"); });
+    // The sanitize build runs the app several times slower, so its checks pass a longer bound.
+    const int timeoutMs = qEnvironmentVariableIntValue("NT_TIMELINE_DOCUMENT_TIMEOUT_MS");
+    QTimer::singleShot(timeoutMs > 0 ? timeoutMs : 20000, timer, [] { require(false, "application driver timed out"); });
 }
 Q_COREAPP_STARTUP_FUNCTION(installCheck)
 } // namespace
