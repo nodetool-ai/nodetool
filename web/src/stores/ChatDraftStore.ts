@@ -11,19 +11,25 @@
 
 import { create } from "zustand";
 import type { UiRunReference } from "@nodetool-ai/protocol";
+import type { DroppedFile } from "../components/chat/types/chat.types";
 
 interface ChatDraftStore {
   drafts: Record<string, string>;
+  attachments: Record<string, DroppedFile[]>;
   runReferences: Record<string, UiRunReference>;
   setRunReference: (threadId: string, reference: UiRunReference) => void;
   clearRunReference: (threadId: string) => void;
   setDraft: (threadId: string, text: string) => void;
   /** Read a thread's seed and clear it. Returns undefined when there is none. */
   takeDraft: (threadId: string) => string | undefined;
+  setAttachments: (threadId: string, files: DroppedFile[]) => void;
+  /** Read a thread's seeded attachments and clear them. */
+  takeAttachments: (threadId: string) => DroppedFile[] | undefined;
 }
 
 export const useChatDraftStore = create<ChatDraftStore>((set, get) => ({
   drafts: {},
+  attachments: {},
   runReferences: {},
   setRunReference: (threadId, reference) => {
     set((state) => ({ runReferences: { ...state.runReferences, [threadId]: reference } }));
@@ -49,6 +55,22 @@ export const useChatDraftStore = create<ChatDraftStore>((set, get) => ({
       return { drafts: rest };
     });
     return draft;
+  },
+
+  setAttachments: (threadId, files) => {
+    set((state) => ({ attachments: { ...state.attachments, [threadId]: files } }));
+  },
+
+  takeAttachments: (threadId) => {
+    const files = get().attachments[threadId];
+    if (files === undefined) {
+      return undefined;
+    }
+    set((state) => {
+      const { [threadId]: _taken, ...rest } = state.attachments;
+      return { attachments: rest };
+    });
+    return files;
   }
 }));
 

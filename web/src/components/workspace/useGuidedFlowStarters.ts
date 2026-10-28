@@ -15,11 +15,6 @@ import {
 
 import { useCreateStoryboard } from "../../hooks/storyboard/useStoryboards";
 import { useCreateScript } from "../../hooks/script/useScripts";
-import {
-  useCreateTimeline,
-  useDeleteTimeline,
-  useSeedTimelineDetail
-} from "../../hooks/useTimelineSequence";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useEntityLibraryStore } from "../../stores/EntityLibraryStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -27,15 +22,16 @@ import {
   creationProjectId,
   useWorkspaceTabsStore
 } from "../../stores/WorkspaceTabsStore";
-import { trpcClient } from "../../trpc/client";
 import { ENTRY_CARDS, type EntryFlowId } from "../setup/entryCards";
 import { GUIDED_FLOW_ICONS } from "./menuIcons";
 import { newStoryboardSetupDocument } from "../setup/storyboard/useStoryboardSetupFlow";
 import { newScriptSetupDocument } from "../setup/script/useScriptSetupFlow";
-import { newVideoSetupDocument } from "../setup/video/useVideoSetupFlow";
-import { startImageFlow } from "../setup/image/startImageFlow";
 import { openPageTab } from "./openPageTab";
-import { openSpeechChat } from "../chat/openSpeechChat";
+import {
+  openImageChat,
+  openSpeechChat,
+  openVideoChat
+} from "../chat/openSpeechChat";
 
 export interface GuidedFlowStarter {
   id: EntryFlowId;
@@ -50,16 +46,12 @@ export interface GuidedFlowStarter {
 }
 
 /**
- * What the menu names one of the cards. The app's document lists read
- * "Timelines" (the left panel, quick access, the panel's own create button),
- * so the menu does too — the entry cards keep their own copy for the New
- * Project surface and Studio. The picture flow stays "Image" everywhere (home
- * card, menu, flow header, new tab). "Sketch" names only the editor document
- * the flow ends in, which has its own entry in the menu's document section.
+ * What the menu names one of the cards. Both "Image" and "Video" keep their
+ * entry-card titles across the Home card, `+ New` menu, and generation tab;
+ * "New sketch" and "New timeline" in the blank-document column open those
+ * editors directly.
  */
-const MENU_TITLES: Partial<Record<EntryFlowId, string>> = {
-  video: "Timeline"
-};
+const MENU_TITLES: Partial<Record<EntryFlowId, string>> = {};
 
 export interface GuidedFlowStarters {
   starters: readonly GuidedFlowStarter[];
@@ -84,9 +76,6 @@ export const useGuidedFlowStarters = (
   const openTab = useWorkspaceTabsStore((state) => state.openForegroundTab);
   const createStoryboard = useCreateStoryboard();
   const createScript = useCreateScript();
-  const createTimeline = useCreateTimeline();
-  const deleteTimeline = useDeleteTimeline();
-  const seedTimelineDetail = useSeedTimelineDetail();
   const createWorkflow = useWorkflowManager((state) => state.create);
 
   const runStart = useCallback(
@@ -136,38 +125,9 @@ export const useGuidedFlowStarters = (
     (projectIdOverride?: string) =>
       runStart("video", async () => {
         const projectId = projectIdOverride ?? creationProjectId();
-        const sequence = await createTimeline.mutateAsync({
-          name: "Untitled timeline",
-          projectId
-        });
-        // `timeline.create` takes no document, so the setup lands as one
-        // PATCH straight after — before the tab opens, so the flow never
-        // flashes the editor. The create seeded the detail cache with a
-        // setup-less copy; the tab must not load that one.
-        let withSetup;
-        try {
-          withSetup = await trpcClient.timeline.update.mutate({
-            id: sequence.id,
-            document: newVideoSetupDocument("")
-          });
-        } catch (error) {
-          // A failed PATCH would leave an empty "Untitled timeline" behind
-          // that no tab opened (F15).
-          await deleteTimeline
-            .mutateAsync({ id: sequence.id })
-            .catch(() => undefined);
-          throw error;
-        }
-        seedTimelineDetail(withSetup);
-        openTab({
-          type: "timeline",
-          ref: sequence.id,
-          mode: "edit",
-          title: sequence.name || "Untitled timeline",
-          projectId: sequence.projectId
-        });
+        await openVideoChat(projectId);
       }),
-    [runStart, createTimeline, deleteTimeline, seedTimelineDetail, openTab]
+    [runStart]
   );
 
   const startScript = useCallback(
@@ -202,20 +162,9 @@ export const useGuidedFlowStarters = (
     (projectIdOverride?: string) =>
       runStart("image", async () => {
         const projectId = projectIdOverride ?? creationProjectId();
-        const started = await startImageFlow({
-          name: "New image",
-          projectId,
-          brief: ""
-        });
-        openTab({
-          type: "sketch",
-          ref: started.documentId,
-          mode: "edit",
-          title: started.name,
-          projectId
-        });
+        await openImageChat(projectId);
       }),
-    [runStart, openTab]
+    [runStart]
   );
 
   const startWorkflow = useCallback(

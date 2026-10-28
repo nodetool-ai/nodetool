@@ -18,6 +18,16 @@ import { isString } from "../../utils/typePredicates";
 import type { ResolvedMediaUrl } from "../../utils/resolveMediaUri";
 
 const hoverStyles = css({
+  position: "relative",
+  display: "flex",
+  justifyContent: "center",
+  alignItems: "center",
+  width: "100%",
+  height: "100%",
+  minHeight: "80px",
+  borderRadius: BORDER_RADIUS.sm,
+  overflow: "hidden",
+  ...alphaSurfaceBg,
   ".image-dimensions": {
     opacity: 0,
     transition: `opacity ${MOTION.normal}`
@@ -26,6 +36,12 @@ const hoverStyles = css({
     opacity: 1
   },
   ".image-view-actions": {
+    position: "absolute",
+    top: 4,
+    right: 40, // Leave space for history button in parent ResultOverlay
+    zIndex: Z_INDEX.dropdown,
+    display: "flex",
+    gap: getSpacingPx(SPACING.xs),
     opacity: 0,
     transition: `opacity ${MOTION.normal}`
   },
@@ -35,6 +51,13 @@ const hoverStyles = css({
   // Touch devices have no hover; keep the copy/download/viewer buttons reachable.
   "@media (pointer: coarse)": {
     ".image-view-actions": { opacity: 1 }
+  },
+  "& > img, & > canvas": {
+    width: "100%",
+    height: "100%",
+    objectFit: "contain",
+    borderRadius: BORDER_RADIUS.sm,
+    cursor: "pointer"
   }
 });
 
@@ -52,9 +75,15 @@ interface ImageViewProps {
    * viewer) is derived lazily off the display path.
    */
   bitmap?: ImageBitmap;
+  /** Called once the decoded image or bitmap dimensions are known. */
+  onNaturalDimensions?: (dimensions: { width: number; height: number }) => void;
 }
 
-const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
+const ImageView: React.FC<ImageViewProps> = ({
+  source,
+  bitmap,
+  onNaturalDimensions
+}) => {
   const { t } = useTranslation();
   const [openViewer, setOpenViewer] = React.useState(false);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -201,48 +230,41 @@ const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
 
   const handleImageLoad = useCallback(() => {
     if (imageRef.current) {
-      setImgNaturalDimensions({
+      const dims = {
         width: imageRef.current.naturalWidth,
         height: imageRef.current.naturalHeight
-      });
+      };
+      setImgNaturalDimensions(dims);
+      onNaturalDimensions?.(dims);
     }
-  }, []);
+  }, [onNaturalDimensions]);
 
   useEffect(() => {
-    if (!bitmap) {
-      setImgNaturalDimensions(null);
+    if (bitmap) {
+      onNaturalDimensions?.({ width: bitmap.width, height: bitmap.height });
+      return;
     }
-  }, [bitmap, imageUrl]);
+    if (
+      imageRef.current?.complete &&
+      imageRef.current.naturalWidth > 0 &&
+      imageRef.current.naturalHeight > 0
+    ) {
+      const dims = {
+        width: imageRef.current.naturalWidth,
+        height: imageRef.current.naturalHeight
+      };
+      setImgNaturalDimensions(dims);
+      onNaturalDimensions?.(dims);
+      return;
+    }
+    setImgNaturalDimensions(null);
+  }, [bitmap, imageUrl, onNaturalDimensions]);
 
   // Bitmap dimensions are known synchronously — skip the extra render
   // cycle that useEffect+setState would cause on every bitmap update.
   const imageDimensions = bitmap
     ? { width: bitmap.width, height: bitmap.height }
     : imgNaturalDimensions;
-
-  const containerStyle = useMemo(() => ({
-    position: "relative" as const,
-    display: "flex",
-    justifyContent: "center",
-    alignItems: "center",
-    width: "100%",
-    height: "100%",
-    minHeight: "80px",
-    borderRadius: BORDER_RADIUS.sm,
-    overflow: "hidden" as const,
-    ...alphaSurfaceBg
-  }), []);
-
-  const actionsStyle = useMemo(() => ({
-    position: "absolute" as const,
-    top: 4,
-    right: 40, // Leave space for history button in parent ResultOverlay
-    zIndex: Z_INDEX.dropdown,
-    display: "flex",
-    gap: getSpacingPx(SPACING.xs),
-    opacity: 0,
-    transition: `opacity ${MOTION.normal}`
-  }), []);
 
   const iconButtonStyle = useMemo(() => ({
     width: 24,
@@ -257,14 +279,6 @@ const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
     "& svg": {
       fontSize: 14
     }
-  }), []);
-
-  const imageStyle = useMemo(() => ({
-    width: "100%",
-    height: "100%",
-    objectFit: "contain" as const,
-    borderRadius: BORDER_RADIUS.sm,
-    cursor: "pointer"
   }), []);
 
   const handleCloseViewer = useCallback(() => {
@@ -341,7 +355,6 @@ const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
     <div
       css={hoverStyles}
       className="image-output"
-      style={containerStyle}
     >
       {!onRequestOpenViewer && imageUrl && (
         <AssetViewer
@@ -352,10 +365,7 @@ const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
         />
       )}
       {!overlaySuppressed && imageUrl && (
-        <div
-          className="image-view-actions"
-          style={actionsStyle}
-        >
+        <div className="image-view-actions">
           <CopyAssetButton
             contentType="image/png"
             url={imageUrl}
@@ -382,7 +392,6 @@ const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
         <BitmapCanvas
           bitmap={bitmap}
           aria-label={t("i18n-next66.node.imageView.generatedImageOutput")}
-          style={imageStyle}
           onDoubleClick={handleDoubleClick}
         />
       ) : (
@@ -391,7 +400,6 @@ const ImageView: React.FC<ImageViewProps> = ({ source, bitmap }) => {
           src={imageUrl}
           alt={t("i18n-next66.node.imageView.generatedImageOutput")}
           onLoad={handleImageLoad}
-          style={imageStyle}
           onDoubleClick={handleDoubleClick}
           draggable={false}
         />
