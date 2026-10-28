@@ -1,0 +1,35 @@
+function(nt_dock_tests)
+    qt_add_executable(tst_dockmodel qml/dock/tst_dockmodel.cpp)
+    set_target_properties(tst_dockmodel PROPERTIES MACOSX_BUNDLE FALSE)
+    target_compile_definitions(tst_dockmodel PRIVATE NT_DOCK_SCRIPT="${CMAKE_CURRENT_SOURCE_DIR}/qml/dock/DockLayout.js")
+    target_link_libraries(tst_dockmodel PRIVATE Qt6::Qml)
+    add_test(NAME dock_conformance COMMAND node ${CMAKE_CURRENT_SOURCE_DIR}/qml/dock/dock-conformance.mjs $<TARGET_FILE:tst_dockmodel>)
+endfunction()
+nt_tests(nt_dock_tests)
+
+nt_qml_sources(qml/dock/DockLayoutStore.h qml/dock/DockLayoutStore.cpp)
+function(nt_dock_store_tests)
+    qt_add_executable(tst_dockstore qml/dock/tst_dockstore.cpp
+        qml/dock/DockLayoutStore.h qml/dock/DockLayoutStore.cpp)
+    set_target_properties(tst_dockstore PROPERTIES MACOSX_BUNDLE FALSE)
+    target_include_directories(tst_dockstore PRIVATE src)
+    target_link_libraries(tst_dockstore PRIVATE timeline_core Qt6::Qml Qt6::Test)
+    qt_add_resources(tst_dockstore dock_script PREFIX /qt/qml/NodeTool/Timeline
+        FILES qml/dock/DockLayout.js)
+    add_test(NAME tst_dockstore COMMAND tst_dockstore)
+endfunction()
+nt_tests(nt_dock_store_tests)
+
+function(nt_dock_ui_tests)
+    qt_add_executable(tst_dockui qml/dock/tst_dockui.cpp ${NT_app})
+    set_target_properties(tst_dockui PROPERTIES MACOSX_BUNDLE FALSE)
+    target_link_libraries(tst_dockui PRIVATE timeline_core timeline_decode timeline_audio timeline_server
+        Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
+    nt_add_timeline_qml(tst_dockui OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_dockui_qml/NodeTool/Timeline)
+    qt_add_resources(tst_dockui dock_sync_banner PREFIX /nodetool/sync BASE src/server/sync
+        FILES src/server/sync/ExternalConflictsBanner.qml)
+    add_test(NAME tst_dockui COMMAND tst_dockui)
+    set_tests_properties(tst_dockui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endfunction()
+nt_tests(nt_dock_ui_tests)
+nt_qml_sources(qml/dock/DockKeyActions.cpp)
