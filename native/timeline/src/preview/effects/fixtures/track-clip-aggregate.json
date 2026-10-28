@@ -1,0 +1,121 @@
+{
+  "id": "seq-track-clip-aggregate",
+  "projectId": "native-prototype",
+  "name": "track-clip-aggregate",
+  "fps": 30,
+  "width": 1280,
+  "height": 720,
+  "durationMs": 1000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "t0",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false,
+      "effects": [
+        {
+          "id": "colorCorrection",
+          "type": "colorCorrection",
+          "enabled": true,
+          "brightness": 0.25,
+          "contrast": 1.6,
+          "saturation": 1.4,
+          "hue": 32,
+          "temperature": 0.3,
+          "tint": -0.2,
+          "shadows": 0.2,
+          "highlights": -0.25
+        },
+        {
+          "id": "videoBlur",
+          "type": "videoBlur",
+          "enabled": true,
+          "radius": 10
+        }
+      ]
+    },
+    {
+      "id": "t1",
+      "name": "t1",
+      "type": "video",
+      "index": 1,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t2",
+      "name": "t2",
+      "type": "video",
+      "index": 2,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t3",
+      "name": "t3",
+      "type": "video",
+      "index": 3,
+      "visible": true,
+      "locked": false
+    },
+    {
+      "id": "t4",
+      "name": "t4",
+      "type": "video",
+      "index": 4,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "picture",
+      "trackId": "t0",
+      "name": "sharpen-0",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 1280,
+      "height": 720,
+      "mediaPath": "source-pattern.png",
+      "effects": [
+        {
+          "id": "color",
+          "type": "color",
+          "enabled": true,
+          "brightness": -0.15,
+          "contrast": 0.8,
+          "saturation": 0.5
+        },
+        {
+          "id": "blur",
+          "type": "blur",
+          "enabled": true,
+          "radius": 8
+        },
+        {
+          "id": "posterize",
+          "type": "posterize",
+          "enabled": true,
+          "levels": 5
+        }
+      ]
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z",
+  "goldenFrames": [
+    {
+      "frame": 0,
+      "criterion": "J track video track-clip-aggregate, PSNR >= 40 dB"
+    }
+  ]
+}

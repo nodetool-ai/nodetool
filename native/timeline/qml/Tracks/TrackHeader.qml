@@ -164,10 +164,10 @@ Rectangle {
             tone: header.solo ? "success" : "idle"
             onClicked: if (header.timeline) { header.timeline.applyEdit("setTrackSolo", {trackId: header.trackId, solo: !header.solo}) }
         }
-        TrackIconButton {
+        TrackEffectsButton {
             visible: header.isSoundTrack || header.trackType === "video"
-            icon: Icons.graphicEq
-            tone: "dim"
+            trackId: header.trackId
+            timeline: header.timeline
         }
         Loader {
             active: header.isSoundTrack || header.trackType === "video" || header.trackType === "overlay"

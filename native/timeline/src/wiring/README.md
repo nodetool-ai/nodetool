@@ -9,9 +9,10 @@ is discovered automatically. Other QML needs `nt_qml_files(...)`.
   Slots accept `[a-z][A-Za-z0-9]*`. Refused registrations warn with the panel ID.
 - `clipBody`: receives the raw `clip` map, `timeline`, `gestures`, and `viewState`.
   The item fills each clip body. Put pointer targets on the grips you draw.
-- `toolbar`: receives `timeline`, `gestures`, and `viewState`, after Snap.
+- `toolbar`: receives `timeline`, `gestures`, `viewState`, and `compact`, after Snap.
   Set the item's implicit width and height for the horizontal layout.
 - `documentBar`: receives `timeline`, after Undo and Redo. Set implicit dimensions.
+- `documentBarActions`: receives `timeline`, at the right end with 8 px padding. Set implicit dimensions.
 - `preview`: receives `timeline` and `clock`, fills the preview frame, and is
   clipped to it. Coordinates start at the frame's top-left corner.
 - `trackLane`: receives the raw `track` map and `timeline`. Set `implicitHeight`
@@ -32,10 +33,12 @@ is discovered automatically. Other QML needs `nt_qml_files(...)`.
   `gestures.runAction(name, context)` dispatcher. Actions appear in the shortcut sheet.
 - Snap: `nt::wiring::registerSnapProvider(id, provider)` from `SnapProviders.h`.
   Return millisecond candidates from a `SnapRequest` containing the document,
-  visible range, scale, grid division, and excluded clip IDs. Providers run once
+  visible range (scroll position plus viewport width), scale, grid division,
+  ruler mode, and excluded clip IDs. Providers run once
   at gesture start. They are skipped while Snap is off or Alt bypasses it.
-- Ruler: `nt::wiring::registerRulerProvider("bars", provider)` from
-  `RulerProviders.h`. Return `{timeMs, major, label}` ticks from a `RulerRequest`
+- Ruler: `nt::wiring::registerRulerProvider(mode, provider)` from
+  `RulerProviders.h`. `src/ui/Tempo` registers `"bars"`, and the view state
+  accepts only `"time"` and `"bars"`. Return `{timeMs, major, label}` ticks from a `RulerRequest`
   containing the document, visible range, scale, rate, and grid division.
   `viewState.rulerMode` defaults to `"time"`, `gridDivision` to `"beat"`.
   The built-in `time` provider preserves the existing ticks. `RulerCanvas.ticks`

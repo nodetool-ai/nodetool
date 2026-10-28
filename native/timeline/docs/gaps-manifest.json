@@ -432,8 +432,12 @@
         "qml/Tracks/ClipFadeShapeMenu.qml",
         "src/edit/clipaudio/",
         "qml/Tracks/ClipFadeGrips.qml",
+        "qml/Tracks/Clip.qml",
         "scripts/conformance/suites/clip-audio.*"
       ],
+      "notes": {
+        "qml/Tracks/Clip.qml": "shared with its merged owner, approved by the user (D15)"
+      },
       "web": [
         "web/src/components/timeline/Inspector/ClipAudioEffects.tsx",
         "web/src/components/timeline/Inspector/ClipAudioDrive.tsx",
@@ -682,8 +686,14 @@
       "owns": [
         "shaders/effects/",
         "src/preview/effects/",
-        "scripts/conformance/plan/effects.mjs"
+        "scripts/conformance/plan/effects.mjs",
+        "src/preview/SceneEval.h",
+        "src/preview/SceneEval.cpp",
+        "src/preview/layers/SceneHooks.h",
+        "src/preview/PreviewCompositor.h",
+        "src/preview/PreviewCompositor.cpp"
       ],
+      "ownsNote": "src/preview/SceneEval.h, src/preview/SceneEval.cpp, src/preview/layers/SceneHooks.h and src/preview/PreviewCompositor.*: shared with S4 (merged), approved by the user (D11)",
       "web": [
         "web/src/components/timeline/preview/gpu/compositor.ts",
         "web/src/components/timeline/preview/maskRender.ts",
@@ -794,8 +804,24 @@
       "owns": [
         "src/ui/Tempo*",
         "qml/Tracks/GridDivisionSelect.qml",
-        "scripts/conformance/suites/tempo.*"
+        "scripts/conformance/suites/tempo.*",
+        "src/wiring/tst_wiring.cpp",
+        "src/wiring/SnapProviders.h",
+        "src/wiring/TestSlotProbe.qml",
+        "src/wiring/README.md",
+        "src/edit/ClipGestureController.*",
+        "qml/Tracks/ToolToggle.qml",
+        "qml/Tracks/TimeRuler.qml"
       ],
+      "ownsNotes": {
+        "src/wiring/tst_wiring.cpp": "shared with S3 (merged), approved by the user (D12)",
+        "src/wiring/SnapProviders.h": "shared with S3 (merged), approved by the user (D12)",
+        "src/wiring/TestSlotProbe.qml": "shared with S3 (merged), approved by the user (D12)",
+        "src/wiring/README.md": "shared with S3 (merged), approved by the user (D12)",
+        "src/edit/ClipGestureController.*": "shared with S3 (merged), approved by the user (D12)",
+        "qml/Tracks/ToolToggle.qml": "shared with S3 (merged), approved by the user (D12)",
+        "qml/Tracks/TimeRuler.qml": "shared with S3 (merged), approved by the user (D12)"
+      },
       "web": [
         "web/src/components/timeline/Tracks/TimeRuler.tsx",
         "packages/timeline/src/beats.ts"
@@ -989,8 +1015,15 @@
       "title": "Source viewer",
       "owns": [
         "qml/SourceViewerPanel.qml",
-        "src/edit/sourceEdit/"
+        "src/edit/sourceEdit/",
+        "CMakeLists.txt",
+        "cmake/TestPreferences.cmake",
+        "src/app/Preferences/module.cmake"
       ],
+      "ownsNotes": {
+        "CMakeLists.txt": "shared with its merged owner, approved by the user (D15)",
+        "src/app/Preferences/module.cmake": "shared with its merged owner, approved by the user (D15)"
+      },
       "web": [
         "web/src/components/timeline/SourceViewerPanel.tsx",
         "web/src/components/timeline/sourceEdit.ts"
@@ -1098,6 +1131,43 @@
       "exit": [
         "Movable panels and the built-in workspaces match TimelineDockLayout.ts"
       ]
+    },
+    {
+      "id": "W",
+      "wave": 3,
+      "needs": [
+        "E",
+        "P1",
+        "D3",
+        "S3"
+      ],
+      "gaps": [
+        "F4",
+        "F16",
+        "F3"
+      ],
+      "title": "UI wiring for merged features",
+      "owns": [
+        "src/wiring/w/",
+        "qml/wiring/w/"
+      ],
+      "web": [
+        "web/src/components/timeline/TimelineDocumentBar.tsx",
+        "web/src/components/timeline/TimelineEditor.tsx",
+        "web/src/components/timeline/Tracks/TrackEffectsPanel.tsx",
+        "web/src/components/timeline/Tracks/trackEffectsConstants.ts",
+        "web/src/components/timeline/Tracks/TrackHeader.tsx",
+        "web/src/components/timeline/Tracks/TracksRegion.tsx",
+        "web/src/components/timeline/timelineKeymap.ts",
+        "web/src/stores/timeline/TimelineStore.ts"
+      ],
+      "server": [],
+      "exit": [
+        "The document bar Export button and the File menu Export item open the export dialog in the running editor",
+        "The track header effects button shows the track effects panel, where effects are added, toggled, edited, reordered and removed, one undo entry each",
+        "Ctrl+R opens Speed / Duration for the selected clips",
+        "No layout or wording difference from the web in these three places"
+      ]
     }
   ],
   "mergeOrder": [
@@ -1132,7 +1202,8 @@
     "O",
     "D6",
     "P2",
-    "Q"
+    "Q",
+    "W"
   ],
   "outOfPlan": [
     "F19 signing and notarization",

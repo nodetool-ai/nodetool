@@ -8,9 +8,13 @@
 #include "model/TimelineJson.h"
 #include "playback/PlaybackClock.h"
 #include "preview/gizmo/TransformGizmoController.h"
+#include "ui/Tempo/TempoProviders.h"
+#include <QFile>
 #include <QJsonDocument>
 #include <QQuickView>
+#include <QTemporaryDir>
 #include <QtTest>
+#include <cmath>
 #include <memory>
 
 namespace {
@@ -24,7 +28,6 @@ QQuickItem* named(QQuickItem* root, const QString& name) {
 }
 class TestWiring : public QObject {
     Q_OBJECT
-    nt::wiring::RulerRequest lastRulerRequest;
     nt::wiring::SnapRequest lastSnapRequest;
     int snapCalls = 0;
     int keyRuns = 0;
@@ -41,10 +44,6 @@ class TestWiring : public QObject {
 private slots:
     void initTestCase() {
         const QPointer<TestWiring> self(this);
-        QVERIFY(nt::wiring::registerRulerProvider("bars", [self](const nt::wiring::RulerRequest& request) {
-            if (self) { self->lastRulerRequest = request; }
-            return std::vector<nt::wiring::RulerTick>{{0, true, "Bar 1"}, {500, false, "Beat 2"}};
-        }));
         QVERIFY(nt::wiring::registerSnapProvider("test.snap", [self](const nt::wiring::SnapRequest& request) {
             if (self) { ++self->snapCalls; self->lastSnapRequest = request; }
             return std::vector<double>{2640};
@@ -141,11 +140,23 @@ private slots:
         QVERIFY(barTicks != timeTicks);
         QVERIFY(!timeTicks.isEmpty());
         QCOMPARE(timeTicks[0].toMap(), QVariantMap({{"timeMs", 0.0}, {"major", true}, {"label", "0:00"}}));
-        QCOMPARE(barTicks.size(), 2);
-        QCOMPARE(barTicks[0].toMap().value("label").toString(), QString("Bar 1"));
-        QCOMPARE(barTicks[1].toMap().value("timeMs").toDouble(), 500.0);
-        QCOMPARE(lastRulerRequest.gridDivision, QString("eighth"));
-        QCOMPARE(lastRulerRequest.document.value("name").toString(), QString("Fixture"));
+        nt::wiring::RulerRequest request;
+        request.msPerPx = canvas->property("msPerPx").toDouble();
+        request.fromMs = canvas->property("scrollLeftPx").toDouble() * request.msPerPx;
+        request.toMs = request.fromMs + canvas->width() * request.msPerPx;
+        request.fps = canvas->property("fps").toDouble();
+        request.gridDivision = "eighth";
+        request.document = QJsonDocument::fromJson(model.documentJson()).object();
+        QVariantList expectedTicks;
+        for (const auto& tick : nt::tempo::barRulerTicks(request)) {
+            if (!std::isfinite(tick.timeMs) || tick.timeMs < request.fromMs || tick.timeMs > request.toMs) {
+                continue;
+            }
+            expectedTicks.append(QVariantMap{{"timeMs", tick.timeMs}, {"major", tick.major}, {"label", tick.label}});
+        }
+        QCOMPARE(barTicks, expectedTicks);
+        QVERIFY(!barTicks.isEmpty());
+        QCOMPARE(barTicks[0].toMap(), QVariantMap({{"timeMs", 0.0}, {"major", true}, {"label", "1"}}));
         QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, toggle->mapToScene({14, 14}).toPoint());
         QCOMPARE(canvas->property("ticks").toList(), timeTicks);
         QCOMPARE(modeChanges.count(), 2);
@@ -166,7 +177,7 @@ private slots:
         auto* gestures = qobject_cast<ClipGestureController*>(item("clipGestures"));
         QVERIFY(gestures);
         gestures->viewState()->zoomTo(10, 0);
-        gestures->viewState()->setScrollLeftPx(0);
+        gestures->viewState()->setScrollLeftPx(37);
         gestures->viewState()->flush();
         QCoreApplication::processEvents();
         if (!enabled) { click(item("snapToggle")); }
@@ -184,6 +195,12 @@ private slots:
             QCOMPARE(snapCalls, calls + 1);
             QCOMPARE(lastSnapRequest.excludedClipIds, QStringList{"c"});
             QCOMPARE(lastSnapRequest.gridDivision, QString("beat"));
+            QCOMPARE(lastSnapRequest.rulerMode, QString("time"));
+            const auto* state = gestures->viewState();
+            QCOMPARE(state->scrollLeftPx(), 37.0);
+            QCOMPARE(lastSnapRequest.fromMs, 370.0);
+            QCOMPARE(lastSnapRequest.toMs, 370.0
+                + (state->viewportWidthPx() > 0 ? state->viewportWidthPx() : 1200.0) * 10.0);
             QCOMPARE(lastSnapRequest.document.value("name").toString(), QString("Fixture"));
         }
         else { QCOMPARE(snapCalls, calls); }
@@ -280,6 +297,15 @@ private slots:
     void toolbarSlot() {
         QTRY_VERIFY_WITH_TIMEOUT(item("probe-toolbar"), 1000);
         auto* probe = item("probe-toolbar");
+        QVERIFY(probe->property("compact").isValid());
+        auto* toolbar = item("toolToggle");
+        QVERIFY(toolbar);
+        QVERIFY(toolbar->setProperty("compact", false));
+        QCOMPARE(probe->property("compact"), toolbar->property("compact"));
+        for (const bool compact : {true, false}) {
+            QVERIFY(toolbar->setProperty("compact", compact));
+            QCOMPARE(probe->property("compact").toBool(), compact);
+        }
         const auto snapEnd = item("snapToggle")->mapToScene({item("snapToggle")->width(), 0});
         QVERIFY(probe->mapToScene({0, 0}).x() >= snapEnd.x());
         QCOMPARE(probe->property("gestures").value<QObject*>(), item("clipGestures"));
@@ -353,5 +379,14 @@ private slots:
         QVERIFY(!nt::app::registerPanel({"clipBody", "camelCasePanel", QUrl("qrc:/test.qml")}));
     }
 };
-QTEST_MAIN(TestWiring)
+int main(int argc, char** argv) {
+    QTemporaryDir settings;
+    if (!settings.isValid()) {
+        return 1;
+    }
+    qputenv("NODETOOL_TIMELINE_PREFERENCES", QFile::encodeName(settings.filePath("settings.ini")));
+    QGuiApplication app(argc, argv);
+    TestWiring test;
+    return QTest::qExec(&test, argc, argv);
+}
 #include "tst_wiring.moc"
