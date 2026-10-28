@@ -173,6 +173,19 @@ Component.onCompleted: AutomationUIState.shownAutomationTrackIds=["a"] })"));
         QVERIFY(item("mixer-toggle"));
         QVERIFY(!item("automation-toggle"));
     }
+    void compactMixerToolbar() {
+        QVERIFY(open(R"(MixerToolbar { required timeline; compact:true })"));
+        auto* toggle=item("mixer-toggle");
+        QVERIFY(toggle);
+        QVERIFY(!toggle->property("showLabel").toBool());
+        const auto compactWidth=toggle->width();
+        root->setProperty("compact",false);
+        QTRY_VERIFY(toggle->property("showLabel").toBool());
+        QVERIFY(toggle->width()>compactWidth);
+        const bool wasOpen=toggle->property("active").toBool();
+        click("mixer-toggle");
+        QCOMPARE(toggle->property("active").toBool(),!wasOpen);
+    }
     void clickAndDragOneUndo() {
         QVERIFY(open(R"(AutomationLaneView { width:800; required timeline
 track: ({id:"a",type:"audio"}); lane: ({id:"lane",target:{kind:"mixer",param:"volumeDb"},points:[]}); msPerPx:10 })"));
@@ -311,6 +324,47 @@ ChannelStrip { x:130; width:120; height:360; timeline:parent.timeline; master:tr
         QImage image;
         QTRY_VERIFY_WITH_TIMEOUT(([&] { window->requestUpdate(); image=window->grabWindow(); return !image.isNull(); })(),2000);
         QVERIFY(image.save(QCoreApplication::applicationDirPath()+"/p2-"+type+".png"));
+    }
+    void pendingWheelEditStaysWithEffect_data() {
+        QTest::addColumn<QString>("type");
+        QTest::addColumn<QString>("handle");
+        QTest::addColumn<QString>("parameter");
+        QTest::addColumn<double>("expected");
+        QTest::newRow("eq3-mid-q") << "eq3" << "mid" << "midQ" << 1.1;
+        QTest::newRow("compressor-knee") << "compressor" << "threshold" << "kneeDb" << 31.;
+    }
+    void pendingWheelEditStaysWithEffect() {
+        QFETCH(QString,type);
+        QFETCH(QString,handle);
+        QFETCH(QString,parameter);
+        QFETCH(double,expected);
+        QVERIFY(open(R"(MixerView { width:800; height:360; required timeline })"));
+        click("add-effect-a"); click("add-"+type+"-a");
+        click("add-effect-a"); click("add-"+type+"-a");
+        const auto effects=track()["effects"].toArray();
+        QCOMPARE(effects.size(),2);
+        const auto first=effects[0].toObject(),second=effects[1].toObject();
+        click("open-effect-"+first["id"].toString());
+        QTRY_VERIFY(item("effect-handle-"+type+"-"+handle));
+        auto* grip=item("effect-handle-"+type+"-"+handle);
+        const auto position=point(grip,grip->width()/2,grip->height()/2);
+        QWheelEvent wheel(position,window->mapToGlobal(position),{},{0,120},Qt::NoButton,Qt::NoModifier,Qt::NoScrollPhase,false);
+        QElapsedTimer elapsed;
+        elapsed.start();
+        QCoreApplication::sendEvent(window.get(),&wheel);
+        QVERIFY(wheel.isAccepted());
+        QCOMPARE(item("effect-curve-"+type)->property("draft").toMap()[parameter].toDouble(),expected);
+        QCOMPARE(model.undoStack()->count(),2);
+        click("close-effect-popover");
+        click("open-effect-"+second["id"].toString());
+        QVERIFY2(elapsed.elapsed()<250,"Effect B must open before the wheel timer fires");
+        QTest::qWait(500);
+        const auto after=track()["effects"].toArray();
+        QCOMPARE(after[1].toObject()[parameter],second[parameter]);
+        QCOMPARE(after[0].toObject()[parameter].toDouble(),expected);
+        QCOMPARE(model.undoStack()->count(),3);
+        model.undoStack()->undo();
+        QCOMPARE(track()["effects"].toArray(),effects);
     }
     void mixerOrderAndInserts() {
         QVERIFY(open(R"(MixerView { width:800; height:360; required timeline })"));

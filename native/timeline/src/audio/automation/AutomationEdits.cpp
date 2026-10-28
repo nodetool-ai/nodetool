@@ -77,7 +77,7 @@ QJsonObject edit(QJsonObject doc,const QString& name,const QJsonObject& payload)
 }
 void registerEdits() {
     static const bool registered = [] {
-        for (const auto* action : {"setTrackVolume", "setTrackPan", "setMasterVolume", "addTrackEffect", "updateTrackEffect", "removeTrackEffect", "addMasterEffect", "updateMasterEffect", "removeMasterEffect", "setTrackAutomation"}) {
+        for (const auto* action : {"setTrackVolume", "setTrackPan", "setMasterVolume", "addMasterEffect", "updateMasterEffect", "removeMasterEffect", "setTrackAutomation"}) {
             const auto name = QString::fromLatin1(action);
             nt::app::registerEdit(name, [name](QJsonObject doc, const QJsonObject& payload) { return edit(std::move(doc), name, payload); });
         }
