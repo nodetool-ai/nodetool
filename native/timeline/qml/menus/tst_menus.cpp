@@ -148,6 +148,33 @@ private slots:
         popup("clip", "clip-c"); trigger("clipMenu-" + action);
         QCOMPARE(clip("e"), other); QCOMPARE(model.undoStack()->count(), 1);
     }
+    void deleteWithRippleMode_data() {
+        QTest::addColumn<bool>("contextMenu");
+        QTest::addColumn<double>("laterStartMs");
+        QTest::newRow("context-menu") << true << 5000.0;
+        QTest::newRow("keyboard") << false << 3000.0;
+    }
+    void deleteWithRippleMode() {
+        QFETCH(bool, contextMenu);
+        QFETCH(double, laterStartMs);
+        const auto before = doc();
+        gestures()->setRippleMode(true);
+        gestures()->setSelection({"c"});
+        QCOMPARE(model.undoStack()->count(), 0);
+        if (contextMenu) {
+            QVERIFY(popup("clip", "clip-c"));
+            trigger("clipMenu-deleteSelected");
+        } else {
+            view->rootObject()->forceActiveFocus();
+            QVERIFY(view->rootObject()->hasActiveFocus());
+            QTest::keyClick(view.get(), Qt::Key_Delete);
+        }
+        QVERIFY(clip("c").isEmpty());
+        QCOMPARE(clip("d").value("startMs").toDouble(), laterStartMs);
+        QCOMPARE(model.undoStack()->count(), 1);
+        model.undoStack()->undo();
+        QCOMPARE(doc(), before);
+    }
     void splitOutside() {
         clock.seek(4500); const auto before = doc();
         popup("clip", "clip-c"); trigger("clipMenu-splitAtPlayhead");
