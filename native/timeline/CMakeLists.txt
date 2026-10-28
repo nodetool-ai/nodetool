@@ -35,6 +35,12 @@ else()
     set(NT_NO_WARNINGS -w)
 endif()
 
+# Apple's libc++ keeps std::jthread and std::stop_token behind this flag.
+if(CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+    add_compile_options($<$<COMPILE_LANGUAGE:CXX>:-fexperimental-library>)
+    add_link_options(-fexperimental-library)
+endif()
+
 # Platforms (M6). The hardware decode path is chosen at compile time
 # (src/preview/hw/HwInterop.h): VideoToolbox on macOS, D3D11VA on Windows,
 # VAAPI with DMA-BUF import into Vulkan on Linux when libva and Vulkan are
