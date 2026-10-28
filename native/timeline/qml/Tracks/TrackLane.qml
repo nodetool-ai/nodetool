@@ -44,8 +44,9 @@ Rectangle {
         onPressed: mouse => {
             if (mouse.button === Qt.RightButton) {
                 if (lane.locked) return
-                laneMenu.context = { trackId: lane.trackId, timeMs: Math.max(0, mouse.x * lane.viewState.msPerPx), editable: true }
-                laneMenu.popup(mouse.x, mouse.y)
+                laneMenu.context = { trackId: lane.trackId, trackType: lane.trackType,
+                                     timeMs: Math.max(0, mouse.x * lane.viewState.msPerPx), editable: true }
+                laneMenu.openAt(mouse.x, mouse.y)
                 return
             }
             const atMs = Math.max(0, mouse.x * lane.viewState.msPerPx)
@@ -68,9 +69,8 @@ Rectangle {
         border.color: Theme.primary
     }
 
-    RegistryContextMenu {
+    TrackLaneContextMenu {
         id: laneMenu
-        kind: "lane"
         gestures: lane.gestures
     }
 

@@ -1002,7 +1002,15 @@
       ],
       "title": "Context menus",
       "owns": [
-        "qml/menus/"
+        "qml/menus/",
+        "qml/Tracks/Clip.qml",
+        "qml/Tracks/TrackLane.qml",
+        "qml/Tracks/TimeRuler.qml",
+        "qml/Tracks/TrackHeaderMenu.qml",
+        "src/edit/ClipGestureController.cpp",
+        "src/edit/ClipGestureController.h",
+        "src/app/Menus/tst_appshell.cpp",
+        "docs/gaps-manifest.json"
       ],
       "web": [
         "web/src/components/timeline/Tracks/ClipContextMenu.tsx",
@@ -1013,7 +1021,17 @@
       "server": [],
       "exit": [
         "Clip, track, lane and ruler menus match the web, and each item runs the same action as its shortcut"
-      ]
+      ],
+      "ownsNotes": {
+        "qml/Tracks/Clip.qml": "shared with its merged owner, approved by the user",
+        "qml/Tracks/TrackLane.qml": "shared with its merged owner, approved by the user",
+        "qml/Tracks/TimeRuler.qml": "shared with its merged owner, approved by the user",
+        "qml/Tracks/TrackHeaderMenu.qml": "shared with its merged owner, approved by the user",
+        "src/edit/ClipGestureController.cpp": "shared with its merged owner, approved by the user",
+        "src/edit/ClipGestureController.h": "shared with its merged owner, approved by the user",
+        "src/app/Menus/tst_appshell.cpp": "shared with its merged owner, approved by the user",
+        "docs/gaps-manifest.json": "shared with its merged owner, approved by the user"
+      }
     },
     {
       "id": "O",

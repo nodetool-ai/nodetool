@@ -167,7 +167,7 @@ protected:
     void updatePolish() override;
 
 private:
-    bool runBuiltinAction(const QString& action, bool autoRepeat);
+    bool runBuiltinAction(const QString& action, bool autoRepeat, const QVariantMap& context);
 
     struct Gesture {
         QString kind;  // clip move/trim/slip/slide, track resize/reorder, or marquee
