@@ -104,6 +104,26 @@ Column {
         sourceAnchored: !!(root.animation.custom && root.animation.custom.timeBase === "source")
         onChange: next => root.patch({custom:next},"")
     }
+    FollowPathControls { id: followPathControls; timeline: root.controller.timeline }
+    InspectorRow {
+        id: shapeRow
+        width: root.width
+        visible: root.animation.preset === "followPath" && shapeOptions.length > 0
+        label: "Use shape clip"
+        readonly property var shapeOptions: followPathControls.shapeOptions
+        InspectorSelect {
+            objectName: "followPathShapePicker"
+            label: "Use shape clip"
+            value: ""
+            options: [{value:"",label:"Choose shape clip"}].concat(shapeRow.shapeOptions)
+            disabled: root.controller.locked
+            onChange: next => {
+                const geometry = followPathControls.params(next)
+                if (Object.keys(geometry).length > 0)
+                    root.patch({params:Object.assign({},root.animation.params || {},geometry)},"")
+            }
+        }
+    }
     Repeater {
         model: root.preset ? root.preset.params : []
         MotionAnimationParam {

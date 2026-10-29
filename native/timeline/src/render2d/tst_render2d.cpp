@@ -11,6 +11,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QPainter>
+#include <QTextLayout>
 #include <QtTest>
 #include <cmath>
 
@@ -63,6 +64,45 @@ nt::ActiveLayer layerFor(const QJsonObject& fixture) {
 class TestRender2d : public QObject {
     Q_OBJECT
   private slots:
+    void fallbackEmojiKeepsColor() {
+        nt::ActiveLayer layer;
+        layer.kind = "text";
+        layer.sourceWidth = 256;
+        layer.sourceHeight = 128;
+        layer.ext.insert("textStyle", QJsonObject{{"text", QString::fromUtf8("😀")},
+                         {"fontFamily", "Inter"}, {"fontSizePx", 64}, {"color", "#ffffff"}});
+        const auto image = nt::render2d::rasterize(layer);
+        int colored = 0;
+        for (int y = 0; y < image.height(); ++y) {
+            for (int x = 0; x < image.width(); ++x) {
+                const auto color = image.pixelColor(x, y);
+                if (color.alpha() > 128 && std::abs(color.red() - color.blue()) > 32) {
+                    ++colored;
+                }
+            }
+        }
+        QVERIFY2(colored > 100, "Emoji lost its intrinsic color or was replaced by a missing glyph");
+    }
+    void fallbackTextMeasurement() {
+        nt::scene::TextStyle style;
+        style.fontFamily = "Inter";
+        style.fontSizePx = 48;
+        const auto measure = nt::render2d::textMeasurer();
+        // Load the bundled primary face before asking Qt for fallback runs.
+        measure(QStringLiteral("A"), style);
+        QFont font;
+        font.setFamilies({QStringLiteral("Inter")});
+        font.setPointSizeF(36);
+        font.setHintingPreference(QFont::PreferVerticalHinting);
+        const auto text = QString::fromUtf8("Hello مرحبا");
+        QTextLayout layout(text, font);
+        layout.beginLayout();
+        auto line = layout.createLine();
+        layout.endLayout();
+        const double expected = line.naturalTextWidth();
+        QVERIFY2(std::abs(measure(text, style) - expected) < 0.02,
+                 qPrintable(QString("fallback advance %1 expected %2").arg(measure(text, style)).arg(expected)));
+    }
     void cssColors_data() {
         QTest::addColumn<QString>("css");
         QTest::addColumn<QColor>("expected");

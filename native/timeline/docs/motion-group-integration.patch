@@ -1,0 +1,18 @@
+--- a/src/edit/inspectorsections/ClipGroupPanel.qml
++++ b/src/edit/inspectorsections/ClipGroupPanel.qml
+@@ -2,6 +2,7 @@
+ import QtQuick
+ import NodeTool.Timeline
+ import "../clipeffects" as Effects
++import "../../motion/controls" as Motion
+ Column {
+     id: root
+     objectName: "clipGroupPanel"
+@@ -39,6 +40,7 @@
+         }
+     }
+     TimingSection { width: parent.width; timelineModel: root.timelineModel; gestures: root.gestures; controller: root.controller; groupMode: true }
++    Motion.GroupMotion { width: parent.width; timelineModel: root.timelineModel; gestures: root.gestures; controller: root.controller }
+     Effects.ClipAdjustments { width: parent.width; timelineModel: root.timelineModel; gestures: root.gestures; controller: root.controller }
+     Effects.ClipEffectsList { width: parent.width; timelineModel: root.timelineModel; gestures: root.gestures; controller: root.controller }
+ }

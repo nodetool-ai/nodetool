@@ -551,6 +551,21 @@ class TestEffectPlan : public QObject {
         const QJsonObject ext{{"effectSourceRect", QJsonArray{0.251, 0.2, 0.5, 0.5}}};
         QCOMPARE(cropPixels(ext, {100, 80}), QRect(25, 16, 50, 40));
         QCOMPARE(cropPixels({}, {100, 80}), QRect(0, 0, 100, 80));
+        QCOMPARE(cropPixels({{"effectSourceRect", QJsonArray{0.259, 0.209, 0.5, 0.5}}}, {100, 80}),
+                 QRect(25, 16, 50, 40));
+    }
+    void cropPixelOriginsSurviveFloatStorage() {
+        // cropRectPx resolves integral pixels before sourceRect stores normalized floats.
+        for (const auto size : {QSize(101, 99), QSize(1921, 1081)}) {
+            for (int origin = 1; origin < size.width() / 2; ++origin) {
+                const int y = std::min(origin, size.height() / 3);
+                const QJsonObject ext{{"effectSourceRect", QJsonArray{
+                    double(float(origin) / size.width()), double(float(y) / size.height()),
+                    double(float(size.width() - origin) / size.width()),
+                    double(float(size.height() - y) / size.height())}}};
+                QCOMPARE(cropPixels(ext, size), QRect(origin, y, size.width() - origin, size.height() - y));
+            }
+        }
     }
     void animatedVisualTime() {
         nt::Clip clip;

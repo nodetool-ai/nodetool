@@ -9,6 +9,7 @@
 #include <QPainter>
 #include <QRawFont>
 #include <QTextBoundaryFinder>
+#include <QTextLayout>
 #include <ft2build.h>
 #include <hb-ot.h>
 #include <hb.h>
@@ -24,6 +25,8 @@
 #include <span>
 #include <type_traits>
 #include <unordered_map>
+#include <utility>
+#include <vector>
 
 namespace nt::render2d {
 QString resolveFontDirectory(const QString& applicationDir) {
@@ -103,10 +106,58 @@ struct ShapedText {
     QList<quint32> glyphs;
     QList<QPointF> positions;
     double width = 0;
+    QList<QGlyphRun> fallbackRuns;
 };
+bool colorFont(const QRawFont& font) {
+    // Reading a bitmap table can copy megabytes. Cache the font identity,
+    // and inspect its small palette/location tables before bitmap data.
+    thread_local std::vector<std::pair<QRawFont, bool>> cache;
+    const auto found = std::find_if(cache.begin(), cache.end(),
+                                   [&](const auto& entry) { return entry.first == font; });
+    if (found != cache.end()) {
+        return found->second;
+    }
+    const bool color = !font.fontTable("CPAL").isEmpty() || !font.fontTable("CBLC").isEmpty() ||
+                       !font.fontTable("sbix").isEmpty() || !font.fontTable("SVG ").isEmpty();
+    if (cache.size() >= 256) {
+        cache.clear();
+    }
+    cache.emplace_back(font, color);
+    return color;
+}
 ShapedText shapeText(const QString& text, const scene::TextStyle& style, double spacing = 0) {
     const auto font = fontFor(style);
     auto raw = QRawFont::fromFont(font);
+    const auto codepoints = text.toUcs4();
+    const bool needsFallback = colorFont(raw) || std::any_of(codepoints.begin(), codepoints.end(),
+        [&](char32_t ch) {
+            const auto script = QChar::script(ch);
+            return !raw.supportsCharacter(ch) ||
+                   (script != QChar::Script_Latin && script != QChar::Script_Common &&
+                    script != QChar::Script_Inherited);
+        });
+    if (needsFallback) {
+        // QTextLayout itemizes scripts and resolves fallback per run. A single
+        // HarfBuzz face substitutes glyph zero for every unsupported character.
+        QTextLayout layout(text, fontFor(style, spacing));
+        layout.beginLayout();
+        const auto line = layout.createLine();
+        layout.endLayout();
+        ShapedText result;
+        result.font = raw;
+        if (line.isValid()) {
+            result.width = line.naturalTextWidth();
+            result.fallbackRuns = layout.glyphRuns();
+            for (auto& run : result.fallbackRuns) {
+                auto positions = run.positions();
+                for (auto& position : positions) {
+                    position.ry() -= line.ascent();
+                }
+                run.setPositions(positions);
+            }
+        }
+        return result;
+    }
     using Face = std::unique_ptr<hb_face_t, decltype(&hb_face_destroy)>;
     using Font = std::unique_ptr<hb_font_t, decltype(&hb_font_destroy)>;
     using Buffer = std::unique_ptr<hb_buffer_t, decltype(&hb_buffer_destroy)>;
@@ -179,6 +230,9 @@ QImage surface(QSize size) {
 }
 bool paintFreeTypeRun(QPainter& painter, const ShapedText& shaped, const scene::TextStyle& style, QPointF origin) {
 
+    if (!shaped.fallbackRuns.isEmpty()) {
+        return false;
+    }
     const auto transform = painter.worldTransform();
     const bool rotated = std::abs(transform.m12()) > 1e-9 || std::abs(transform.m21()) > 1e-9;
     FT_Matrix matrix{static_cast<FT_Fixed>(std::round(transform.m11() * 65536)),
@@ -330,6 +384,21 @@ void paintRun(QPainter& p, const QJsonObject& style, const scene::TextStyle& par
         at.translate(x + shaped.positions[i].x(), baseline + shaped.positions[i].y());
         path.addPath(at.map(shaped.font.pathForGlyph(shaped.glyphs[i])));
     }
+    for (const auto& run : shaped.fallbackRuns) {
+        const auto raw = run.rawFont();
+        // Loading a bitmap-only glyph as an outline can poison Qt's glyph
+        // cache, leaving later color draws empty on the FreeType backend.
+        if (colorFont(raw)) {
+            continue;
+        }
+        const auto glyphs = run.glyphIndexes();
+        const auto positions = run.positions();
+        for (qsizetype i = 0; i < glyphs.size(); ++i) {
+            QTransform at;
+            at.translate(x + positions[i].x(), baseline + positions[i].y());
+            path.addPath(at.map(raw.pathForGlyph(glyphs[i])));
+        }
+    }
     const auto outline = style.value(u"stroke").toObject(), shadow = style.value(u"shadow").toObject();
     const double strokeWidth = outline.value(u"widthPx").toDouble();
     const QPen pen(cssColor(outline.value(u"color").toString()), strokeWidth, Qt::SolidLine, Qt::FlatCap,
@@ -343,6 +412,11 @@ void paintRun(QPainter& p, const QJsonObject& style, const scene::TextStyle& par
             painter.fillPath(path, Qt::white);
             if (strokeWidth > 0) {
                 painter.strokePath(path, QPen(Qt::white, strokeWidth, Qt::SolidLine, Qt::FlatCap, Qt::RoundJoin));
+            }
+            for (const auto& run : shaped.fallbackRuns) {
+                if (colorFont(run.rawFont())) {
+                    painter.drawGlyphRun(QPointF(x, baseline), run);
+                }
             }
         }
         mask = blurred(mask, std::max(0.0, shadow.value(u"blurPx").toDouble()) / 2);
@@ -380,7 +454,15 @@ void paintRun(QPainter& p, const QJsonObject& style, const scene::TextStyle& par
             run.setGlyphIndexes(shaped.glyphs);
             run.setPositions(shaped.positions);
             if (!paintFreeTypeRun(painter, shaped, parsed, {x, baseline})) {
-                painter.drawGlyphRun(QPointF(x, baseline), run);
+                if (shaped.fallbackRuns.isEmpty()) {
+                    painter.drawGlyphRun(QPointF(x, baseline), run);
+                } else {
+                    for (const auto& fallback : shaped.fallbackRuns) {
+                        if (!colorFont(fallback.rawFont())) {
+                            painter.drawGlyphRun(QPointF(x, baseline), fallback);
+                        }
+                    }
+                }
             }
         }
         // Skia corrects glyph coverage for the paint luminance against a
@@ -418,6 +500,16 @@ void paintRun(QPainter& p, const QJsonObject& style, const scene::TextStyle& par
         p.resetTransform();
         p.drawImage(bounds.topLeft(), ink);
         p.restore();
+    }
+    // Color glyphs may be bitmap-only, with no outline bounds. Draw them
+    // directly so the coverage mask cannot discard or recolor their pixels.
+    for (const auto& run : shaped.fallbackRuns) {
+        if (colorFont(run.rawFont())) {
+            p.save();
+            p.setPen(QPen(fillBrush(fill, box), 0));
+            p.drawGlyphRun(QPointF(x, baseline), run);
+            p.restore();
+        }
     }
     if (style.value(u"strikethrough").toBool()) {
         const double thickness = std::max(1.0, parsed.fontSizePx * 0.07);
