@@ -23,21 +23,29 @@ F11 does not edit `main.cpp`, top-level CMake, `TimelineModel`, `TimelineEditor.
 New files:
 
 ```text
+docs/motion-border-integration.patch
+docs/motion-export-duration-integration.patch
 docs/motion-group-integration.patch
 docs/motion-parity-integration.patch
 docs/motion-parity.md
+docs/motion-radius-controls-integration.patch
 docs/motion-secondary-integration.patch
 src/motion/beat/Beat.h
 src/motion/beat/module.cmake
 src/motion/beat/oracle.mjs
 src/motion/beat/tst_beat.cpp
+src/motion/border/module.cmake
+src/motion/border/oracle.mjs
+src/motion/border/oracle.test.mjs
 src/motion/controls/AdvancedMotion.qml
 src/motion/controls/AdvancedMotionSections.cpp
+src/motion/controls/BorderRadius.qml
 src/motion/controls/FollowPathControls.cpp
 src/motion/controls/FollowPathControls.h
 src/motion/controls/GroupMotion.qml
 src/motion/controls/module.cmake
 src/motion/controls/qmltests/tst_advancedmotion.qml
+src/motion/controls/qmltests/tst_borderradius.qml
 src/motion/controls/qmltests/tst_followpath.qml
 src/motion/controls/qmltests/tst_groupmotion.qml
 src/motion/controls/tst_followpathcontrols.cpp
@@ -48,12 +56,20 @@ src/motion/pixels/README.md
 src/motion/pixels/module.cmake
 src/motion/pixels/oracle.mjs
 src/motion/pixels/oracle.test.mjs
+src/motion/shipped/README.md
+src/motion/shipped/module.cmake
+src/motion/shipped/oracle.mjs
+src/motion/shipped/oracle.test.mjs
 src/motion/tst_motion.cpp
 ```
 
 ## Continuation boundary
 
 3D is deferred at the user’s request. The continuation owns new beat-timing code and tests under `src/motion/beat/`, pixel comparisons under `src/motion/pixels/`, and dedicated `src/motion/controls/GroupMotion.qml` with its mounted test. The existing owned controls module and UI harness may register and exercise that component. Beat evaluation may change the already owned `Animation.cpp` and `SceneEval.cpp`. Shared hosts and compositor files remain excluded. Group-host integration is delivered as the separate, unapplied `docs/motion-group-integration.patch`. Repeated-media source-pool integration is delivered as the separate, unapplied `docs/motion-secondary-integration.patch`. Neither artifact changes the shared files in this checkout.
+
+## Next continuation boundary
+
+The next pass owns new border-radius helpers, fixtures and tests under `src/motion/border/`, complete shipped-example comparisons under `src/motion/shipped/`, the dedicated `src/motion/controls/BorderRadius.qml` component with its mounted test and resource registration, and separate unapplied `docs/motion-border-integration.patch` and `docs/motion-radius-controls-integration.patch` artifacts. Radius controls are mounted in production only by the integration patch after rendering support is present. The separate unapplied `docs/motion-export-duration-integration.patch` covers the reproduced authored-duration export mismatch. Shared compositor, shader and scene-interface changes are tested only in temporary snapshots and delivered as integration artifacts. Prism diagnostic variants do not authorize effect/evaluation changes without a failing reproduction. The checkout ownership restrictions and 3D deferral remain in force.
 
 ## Behavior audit
 
@@ -106,7 +122,7 @@ On this host, GPU tests require Xvfb with Vulkan. Qt's offscreen plugin cannot c
 
 The final mounted-control checks passed, including numeric preview, selection cancellation, typed edits after cancellation, schema-invalid input rejection, unknown-field preservation and undo. A temporary source snapshot was made from `HEAD` plus only the owned F11 files. Its application, controls and motion targets built successfully. The snapshot's owned source bytes matched the delivered checkout. Its motion/control/oracle CTest selection passed, as did the existing scene, easing, masks, effect-plan, effect-resource, keyframe and composition registry checks. The headless composition hooks also passed preview/export equality, effect outsets and secondary-source checks under Xvfb/Vulkan.
 
-The earlier repository typecheck, lint and harness gate passed. That earlier `test:affected` run did not pass: the CLI registry test found unclaimed `packages/godot` and `packages/godot-templates` directories. They contain existing local build artifacts and are outside this change. The Turbo log reports the CLI test exiting 1, and the enclosing tool process ended with status 143. The aggregate check is not green. These checks used Node from `.nvmrc`; the missing `lsof` executable was provided temporarily on PATH for the port tests. No registry or artifact cleanup is included.
+The earlier repository typecheck, lint and harness gate passed. That earlier `test:affected` run did not pass: the CLI registry test found unclaimed `packages/godot` and `packages/godot-templates` directories. They contain existing local build artifacts and are outside this change. The Turbo log reports the CLI test exiting 1, and the enclosing tool process ended with status 143. That run was not green. These checks used Node from `.nvmrc`; the missing `lsof` executable was provided temporarily on PATH for the port tests. No registry or artifact cleanup is included.
 
 ## Remaining gaps and integration work
 
@@ -118,16 +134,22 @@ The earlier repository typecheck, lint and harness gate passed. That earlier `te
   ```
 
   Follow-path and line-stagger reports call the now-supported animation evaluator. No exclusion removal is proposed before complete original-case comparison. Northstar's time-remap report belongs to the separate speed implementation.
-- R2: Authored and animated `borderRadius` are absent from native final blending. A shape mask's `radiusPx` is a different field. Existing blend hooks receive already placed canvas surfaces, and normal blend bypasses the handler registry. Exact final-layer SDF clipping needs compositor/shader uniform plumbing, followed by crop, mask, rotation and effect-outset pixel comparisons. No approximation is added through an earlier effect stage.
+- R2: `motion-border-integration.patch` implements authored and animated `borderRadius` at final source blending. It retains original post-crop coordinates through expanded effect quads, and samples style tracks on the stepped animation clock. The patch changes scene evaluation/interfaces, text-animation helpers and the composite shaders in a temporary snapshot only. It is not applied to the checkout. The matching unpatched baseline fails all five border fixtures. The combined border and secondary-source application passes all 15 reference pairs, fresh-seek checks and temporal checks. Group surfaces retain the web behavior of ignoring the group radius field.
 - R3: 3D is deferred at the user’s request. Model3d rendering needs a registered layer source, a glTF loader, asset resolution and sampled camera/animation channels. The layer registry is available, but the necessary renderer and asset integration are not present. This remains an implementation gap, not a completed feature.
 - R4: An existing generated matte with only `assetId` has no native source resolution in `Masks.cpp`. Fixing this crosses the user's explicit asset-resolution boundary. Media-path matte rendering remains covered.
-- R5: Whole-document web/native pixel and export agreement, including repeated secondary sources and all missing fields above, remains incomplete. Existing stripped example-still checks are not used as evidence of complete-document parity.
+- R5: Whole-document pixel and encoded-video-export agreement remains incomplete. Complete Cadence passes eight sampled frames with all 163 clips and treatments retained, at a minimum 41.34 dB. Complete Prism fails: the original owned binary times out at frame 381, and measured earlier media frames fall below threshold. A secondary-only binary also times out at frame 34. These failures remain in the complete-document audit. No unsupported fields or clips are removed to obtain passing output.
 
 - R6: Beat-anchored animation evaluation is implemented. Native regressions and the shared TypeScript oracle cover clip and sequence scope, repeated and echoed copies, linked sources and inherited group transforms. Resolved definitions are cached by source revision, clip start and tempo so repeated seeks reuse compiled animation inputs.
 
 - R7: The shared inspector host hides registered sections and transform/animation controls for groups. The owned `GroupMotion.qml` component now composes the existing transform, advanced motion and animation controls. Mounted tests cover cancellation, one undo command, undo/redo, unknown fields and seeks without model changes. The unchanged shared host was mounted separately to reproduce the missing entry point. `motion-group-integration.patch` is an exact, unapplied host import and component insertion. The component is runtime-tested, but group access in the delivered application still requires the integration owner to apply the patch.
 
 - R8: Repeated media layers keep distinct identities, but the shared compositor originally looked up decoder and secondary-source inputs only among authored clips. Complete moving-matte fixtures with three image copies and 32 video copies reproduce an exact-frame timeout. `motion-secondary-integration.patch` retains evaluated copy records and adds only prepared copy IDs to the pool input. It does not parse ID suffixes or collapse clocks. Review rejected an earlier variant that could let dropped copies exhaust the decoder cap. The revised patch excludes those copies. This patch is unapplied in the checkout and requires integration-owner review.
+
+- R9: `motion-export-duration-integration.patch` makes a positive authored sequence duration take priority over clip content, matching the web renderer. The fallback for absent/nonpositive metadata remains the last clip end. A two-second sequence with one second of content reproduces the original 30-frame export instead of the expected 60 frames. The fixed temporary application exports all 60 ordered frames, including the trailing empty interval. The patch is unapplied in the checkout.
+
+- R10: Native motion blur is missing. On complete Prism frame 173, changing only `shoe.motionBlur.samplesPerFrame` from eight to one changes web pixels at 30.459 dB, while the native captures remain byte-identical. The web/native comparison improves from 28.448 to 29.839 dB and still fails, so another difference remains. The complete Prism oracle retains the failing document. The diagnostic artifact is `build/f11-motionblur-2uYDoF`.
+
+  The existing hooks were inspected: the compositor evaluates one frame at one clock, and second-source requests do not provide the per-tap scene and source scheduling needed by the web shutter sampler. Correct integration must resolve visible expanded clips and shutter times through `packages/timeline/src/render/motionBlur.ts`, evaluate the complete scene at every tap, prepare source frames and effects/masks/groups/adjustments for each tap, average premultiplied samples before final resolve, and retain exact identity at one sample. That requires shared compositor and readiness scheduling work. No approximate spatial blur or unverified implementation patch is included.
 
 ## Continuation verification
 
@@ -152,6 +174,32 @@ git apply --check native/timeline/docs/motion-parity-integration.patch
 git -C native/timeline apply --check docs/motion-group-integration.patch
 git apply --check native/timeline/docs/motion-secondary-integration.patch
 ```
+
+## Border and complete-document continuation
+
+The owned checkpoint is committed separately from F10. The next pass adds border and shipped-document oracles, an isolated radius component and separate integration patches. Radius controls use the web slider label, range, step and default. The native section header is new. They remain resource-only until the renderer and control integration patches are applied. Mounted controls pass cancellation, selection changes, stale old releases, one undo command, unknown-field preservation, group field storage and seeks without document-model notifications. Group storage is authoring parity only, because the shared renderer ignores group radius too.
+
+The final packaged-resource controls suite passes all 17 cases including initialization and cleanup. The border oracle fails closed if authored radius, animated radius, rotation, non-normal blending, effect outsets or any required fixture is missing. A static crop/shadow fixture proves radius animation through changing pictures without moving footage. The unpatched baseline fails all five fixtures, with minimum PSNRs of 24.46, 36.40, 31.85, 32.08 and 26.51 dB. The combined border and secondary application passes all 15 pairs, with minima of 49.38, 99.76, 42.31, 62.86 and 64.43 dB. Every seek capture matches its fresh-process frame. Reports are `build/motion-pixels-vw8Fu4/report.json` and `build/motion-pixels-NpRgQO/report.json` under `native/timeline/`.
+
+The final duration-fixed combined application passes all 16 web/native pairs and all 16 exact preview/PNG-export comparisons. The five complete archives contain 60, 30, 30, 60 and 60 ordered one-based frames. The oracle derives expected duration from authored metadata using the web policy, and checks both the summary and complete filename sequence. Contract tests reject truncated, reordered, duplicate and empty frame sets. The latest report is `build/motion-pixels-Y47yw9/report.json`. This is native PNG-sequence export agreement, not encoded-video export proof.
+
+The border patch is derived from the pristine owned checkpoint and passes apply-check independently. Runtime verification used the combined border, secondary-source and export-duration snapshot. All six integration artifacts apply together to a fresh copy of the owned tree. Shared checkout files remain unchanged by F11. The radius registration artifact must follow renderer integration:
+
+```sh
+git apply --check native/timeline/docs/motion-border-integration.patch
+git apply --check native/timeline/docs/motion-export-duration-integration.patch
+git apply --check native/timeline/docs/motion-radius-controls-integration.patch
+```
+
+The shipped oracle loads complete package documents and adds only exact local media paths before scratch import. Final imported documents retain every treatment, with only media locator conversion allowed. It records the executable hash, rejects a binary changed during rendering, and uses an isolated scratch store for each run. A guarded temporary copy of the production importer changes only root/store constants and is deleted afterward. Media-free examples use the production CLI with isolated database, asset and home directories. Contract tests reject deleted effects, missing clips, wrong source substitutions and empty documents.
+
+Complete Cadence results are in `build/motion-shipped-xVqaPd/report.json`. Prism failures are in `build/motion-shipped-GyZTlJ/report.json` and `build/motion-shipped-L98zzV/report.json`. The latter measured an immutable secondary-only executable. These are sampled whole-document comparisons, not proof of every frame or encoded export.
+
+The suspected Prism flare omission was ruled out. Twenty reduced fixed/animated and root/grouped comparisons pass, with visible temporal changes in both renderers. On complete Prism frame 173, disabling the flare changes both pictures and does not resolve the discrepancy. No effect source change was justified by that hypothesis. Diagnosis then established R10 through a one-field motion-blur toggle.
+
+The current native selection passed all ten registered tests, including the border and shipped-document contracts and mounted controls. The combined renderer’s recompiled composition hooks also pass under headless Vulkan. The backend build and all four mandatory repository checks pass for this continuation. `test:affected` initially encountered a script timeout and temporary-filesystem copy failure. The two targeted scripts pass using a disk-backed temporary directory. A retry inside the ignored repository build tree caused oxlint to skip its fixtures, so the final complete retry used the nonignored `/home/mg/f11-test-tmp` directory and exited 0. Its log is `/tmp/f11-next-test-affected-final.log`. No test expectations were changed for these environment failures.
+
+Astra reviewed the frozen source and patches with no concrete blockers. Whitespace in the earlier secondary patch’s blank context lines was normalized without changing the integration diff, and apply-check still passes.
 
 ## Complete-example comparison result
 

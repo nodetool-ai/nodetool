@@ -7,7 +7,7 @@
 +    // Retain expanded copies for decoder identities and secondary-source providers.
 +    std::vector<Clip> evaluatedClips;
  };
- 
+
  // Base for `trackZ`: track index 0 (the top UI row) gets the highest z.
 --- a/native/timeline/src/preview/SceneEval.cpp
 +++ b/native/timeline/src/preview/SceneEval.cpp
@@ -19,7 +19,7 @@
 +    for (Clip& clip : store) { frame.evaluatedClips.push_back(std::move(clip)); }
      return frame;
  }
- 
+
 --- a/native/timeline/src/preview/PreviewCompositor.cpp
 +++ b/native/timeline/src/preview/PreviewCompositor.cpp
 @@ -250,6 +250,7 @@
@@ -31,7 +31,7 @@
      std::string m_resourceError;  // the first GPU resource failure, for the GUI side
      bool m_warnedOverBudget = false;
 @@ -406,6 +407,7 @@
- 
+
      m_adjustments.clear();
      m_layers.clear();
 +    m_evaluatedClips.clear();
@@ -45,7 +45,7 @@
 +    m_evaluatedClips = std::move(scene.evaluatedClips);
      m_precomposites = std::move(scene.precomposites);
  }
- 
+
 @@ -602,13 +605,22 @@
              if (!poolTimeline) { poolTimeline = *m_timeline; }
              return *poolTimeline;

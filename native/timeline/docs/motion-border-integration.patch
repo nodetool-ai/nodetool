@@ -1,0 +1,173 @@
+--- a/native/timeline/src/scene/TextAnimation.h
++++ b/native/timeline/src/scene/TextAnimation.h
+@@ -22,6 +22,9 @@
+ TextStyle animatedTextStyle(const TextStyle& base, const QJsonArray& animations,
+                             const std::vector<CompiledAnimation>& compiled, double localMs);
+
++double animatedBorderRadius(double base, const QJsonArray& animations,
++                            const std::vector<CompiledAnimation>& compiled, double localMs);
++
+ // The ticker animator's text at an eased progress.
+ QString tickerText(const QJsonObject& animator, double eased);
+
+--- a/native/timeline/src/scene/TextAnimation.cpp
++++ b/native/timeline/src/scene/TextAnimation.cpp
+@@ -132,6 +132,24 @@
+     return animator.value(u"prefix").toString() + grouped + animator.value(u"suffix").toString();
+ }
+
++double animatedBorderRadius(double base, const QJsonArray& animations,
++                            const std::vector<CompiledAnimation>& compiled, double localMs) {
++    for (const QJsonValue& av : animations) {
++        const QJsonObject a = av.toObject();
++        if (a.value(u"enabled") == QJsonValue(false)) continue;
++        const auto* c = compiledById(compiled, a.value(u"id").toString());
++        if (!c) continue;
++        const auto progress = progressOf(*c, localMs);
++        if (!progress) continue;
++        for (const QJsonValue& tv : a.value(u"styleTracks").toArray()) {
++            const auto track = tv.toObject();
++            if (track.value(u"target").toString() != u"clip.borderRadius") continue;
++            if (const auto value = numericTrackValue(track, *progress)) base = std::max(0.0, *value);
++        }
++    }
++    return base;
++}
++
+ TextStyle animatedTextStyle(const TextStyle& base, const QJsonArray& animations,
+                             const std::vector<CompiledAnimation>& compiled, double localMs) {
+     TextStyle style = base;
+--- a/native/timeline/src/preview/SceneEval.h
++++ b/native/timeline/src/preview/SceneEval.h
+@@ -87,6 +87,7 @@
+     // compositor draws a child into its group surface with its own `opacity`
+     // and applies the group's once, to the surface (DESIGN.md D35).
+     double drawOpacity = 1.0;
++    double borderRadius = 0.0;
+     std::string blendMode = "normal";
+     // The animated transform, the camera applied. Absent: the clip has none.
+     std::optional<ClipTransform> transform;
+--- a/native/timeline/src/preview/SceneEval.cpp
++++ b/native/timeline/src/preview/SceneEval.cpp
+@@ -216,6 +216,7 @@
+     double opacity = 1;
+     std::optional<scene::WipeMask> mask;
+     bool cameraBlur = false;
++    double borderRadius = 0.0;
+ };
+
+ AnimatedProps resolveAnimated(const Clip& clip, const std::optional<ClipTransform>& layerTransform, double opacity,
+@@ -226,10 +227,12 @@
+     AnimatedProps props;
+     props.transform = layerTransform;
+     props.opacity = opacity;
++    props.borderRadius = clip.raw.value(u"borderRadius").toDouble();
+     const auto& anims = sceneOf(clip).animations;
+     if (!anims->empty()) {
+         const auto compiledPtr = compiledFor(anims, clip, w, h, flexWidth);
+         const auto& compiled = *compiledPtr;
++        props.borderRadius = scene::animatedBorderRadius(props.borderRadius, clip.raw.value(u"animations").toArray(), compiled, t - clip.startMs);
+         if (!compiled.empty()) {
+             const auto s = scene::sampleAnimations(compiled, t - clip.startMs, clipSourceMsAt(clip, steppedTime(clip, t)));
+             if (!s.isIdentity()) {
+@@ -1207,6 +1210,7 @@
+         const AnimatedProps a = resolveAnimated(*p.clip, p.transform, p.layer.opacity, p.camera ? camera : nullptr, timeMs, W, H, sources, p.opacityCoverage, p.layer.flexTextMaxWidthFrac);
+         p.layer.transform = a.transform;
+         p.layer.opacity = a.opacity;
++        p.layer.borderRadius = a.borderRadius;
+         p.layer.mask = a.mask;
+         p.layer.z = trackZ(p.layer.trackIndex);
+         double draw = a.opacity;
+--- a/native/timeline/src/preview/PreviewCompositor.cpp
++++ b/native/timeline/src/preview/PreviewCompositor.cpp
+@@ -96,10 +96,12 @@
+     float pad;
+     std::array<float, 4> sourceRect{0, 0, 1, 1};
+     std::array<float, 4> sourceTexelSize{};
++    std::array<float, 4> border{};
++    std::array<float, 4> borderBounds{};
+ };
+ static_assert(offsetof(LayerUniforms, sourceRect) == 144);
+ static_assert(offsetof(LayerUniforms, sourceTexelSize) == 160);
+-static_assert(sizeof(LayerUniforms) == 176);
++static_assert(sizeof(LayerUniforms) == 208);
+ static_assert(std::is_same_v<decltype(LayerUniforms::sourceRect), std::array<float, 4>>);
+ static_assert(std::is_same_v<decltype(LayerUniforms::sourceTexelSize), std::array<float, 4>>);
+
+@@ -913,6 +915,14 @@
+                             (layer.sourceRect[2] * originalSize.width() + outset.left() + outset.right()) / frame.size.width(),
+                             (layer.sourceRect[3] * originalSize.height() + outset.top() + outset.bottom()) / frame.size.height()};
+         }
++        if (layer.borderRadius > 0 && sourceWidth > 0 && sourceHeight > 0) {
++            const float width = float(sourceWidth), height = float(sourceHeight);
++            const float expandedWidth = width + outset.left() + outset.right();
++            const float expandedHeight = height + outset.top() + outset.bottom();
++            u.border = {std::min(0.5f, float(layer.borderRadius) / std::min(width, height)), width / height, 0.01f, 0};
++            u.borderBounds = {float(outset.left()) / expandedWidth, float(outset.top()) / expandedHeight,
++                              width / expandedWidth, height / expandedHeight};
++        }
+         u.sourceTexelSize[0] = 1.0f / frame.size.width();
+         u.sourceTexelSize[1] = 1.0f / frame.size.height();
+         u.mode = modeFor(frame.format);
+--- a/native/timeline/shaders/composite.vert
++++ b/native/timeline/shaders/composite.vert
+@@ -6,6 +6,7 @@
+ layout(location = 1) in vec2 texcoord;
+
+ layout(location = 0) out vec2 v_texcoord;
++layout(location = 1) out vec2 localCoord;
+
+ layout(std140, binding = 0) uniform buf {
+     mat4 mvp;
+@@ -15,10 +16,13 @@
+     float mode;
+     vec4 sourceRect;
+     vec4 sourceTexelSize;
++    vec4 border;
++    vec4 borderBounds;
+ };
+
+ void main()
+ {
++    localCoord = texcoord;
+     vec2 uv = sourceRect.xy + texcoord * sourceRect.zw;
+     v_texcoord = vec2(uv.x, flipV > 0.5 ? 1.0 - uv.y : uv.y);
+     gl_Position = mvp * vec4(position, 0.0, 1.0);
+--- a/native/timeline/shaders/composite.frag
++++ b/native/timeline/shaders/composite.frag
+@@ -5,6 +5,7 @@
+ // scaled by the layer opacity; the pipeline blends One / OneMinusSrcAlpha,
+ // which is premultiplied "over".
+ layout(location = 0) in vec2 v_texcoord;
++layout(location = 1) in vec2 localCoord;
+
+ layout(location = 0) out vec4 fragColor;
+
+@@ -16,6 +17,8 @@
+     float mode;  // 0 RGBA, 1 I420 (Y, U, V), 2 NV12 (Y, CbCr)
+     vec4 sourceRect;
+     vec4 sourceTexelSize;
++    vec4 border;
++    vec4 borderBounds;
+ };
+
+ layout(binding = 1) uniform sampler2D plane0;
+@@ -41,5 +44,17 @@
+         vec3 rgb = (colorMatrix * vec4(y, cbcr, 1.0)).rgb;
+         color = vec4(clamp(rgb, 0.0, 1.0), 1.0);
+     }
+-    fragColor = color * opacity;
++    float coverage = 1.0;
++    if (border.x > 0.0) {
++        vec2 local = ((localCoord - borderBounds.xy) / borderBounds.zw) * 2.0 - 1.0;
++        float aspect = border.y;
++        vec2 p = local;
++        if (aspect > 1.0) p.y /= aspect; else p.x *= aspect;
++        vec2 halfSize = vec2(min(1.0, aspect), min(1.0, 1.0 / aspect));
++        float radius = border.x * 2.0 * min(halfSize.x, halfSize.y);
++        vec2 d = abs(p) - halfSize + radius;
++        float dist = min(max(d.x, d.y), 0.0) + length(max(d, 0.0)) - radius;
++        coverage = 1.0 - smoothstep(-border.z, border.z, dist);
++    }
++    fragColor = color * opacity * coverage;
+ }
