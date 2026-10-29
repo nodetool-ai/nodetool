@@ -12,14 +12,13 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ImageRef, VideoRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
+import { lastFramePng, probeMedia } from "@nodetool-ai/runtime/media";
 import type { Screenplay, Shot } from "@nodetool-ai/protocol";
 import { isScreenplay } from "@nodetool-ai/protocol";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
-import { execFile as execFileCb } from "node:child_process";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { promisify } from "node:util";
 
 import { composeShotPrompt } from "./director.js";
 import {
@@ -29,8 +28,6 @@ import {
   isRecord,
   isString
 } from "@nodetool-ai/node-sdk";
-
-const execFile = promisify(execFileCb);
 
 /** Structural type for the `video_model` prop (provider + model id). */
 interface VideoModelRef {
@@ -253,7 +250,6 @@ export class ShotChainNode extends BaseNode {
   static readonly title = "Shot Chain";
   static readonly description =
     "Animate a list of shot specs into clips sequentially, seeding each shot's first frame from the previous clip's last frame for continuity.\n    creative, shots, video, continuity, chain\n\n    Use cases:\n    - Turning a storyboard's shots into a continuous animated sequence\n    - Keeping motion and framing consistent across generated clips\n    - Rendering a directed shot list into a cut-ready set of videos";
-  static readonly requiredRuntimes = ["ffmpeg"];
   static readonly metadataOutputTypes = {
     videos: "list[video]"
   };
@@ -397,10 +393,9 @@ export class ShotChainNode extends BaseNode {
   }
 
   /**
-   * Extract the clip's last frame (the seed for the next shot). Mirrors the
-   * ExtractFrame node's ffmpeg approach, seeking near the end and letting
-   * `-update 1` leave the final decoded frame. Returns null when the frame
-   * cannot be produced, so the chain simply drops continuity for that step.
+   * Extract the clip's last frame (the seed for the next shot). Returns null
+   * when the frame cannot be produced, so the chain simply drops continuity
+   * for that step.
    */
   private async extractLastFrame(
     clip: VideoRef,
@@ -413,26 +408,16 @@ export class ShotChainNode extends BaseNode {
       path.join(os.tmpdir(), "nodetool-shotchain-")
     );
     const inputPath = path.join(workDir, "clip.mp4");
-    const outputPath = path.join(workDir, "last.png");
     try {
       await fs.writeFile(inputPath, bytes);
-      await execFile(
-        "ffmpeg",
-        [
-          "-y",
-          "-sseof",
-          "-1",
-          "-i",
-          inputPath,
-          "-update",
-          "1",
-          "-frames:v",
-          "1",
-          outputPath
-        ],
-        { maxBuffer: 10 * 1024 * 1024 }
-      );
-      const frame = new Uint8Array(await fs.readFile(outputPath));
+      const probe = await probeMedia(inputPath);
+      if (!probe.video) return null;
+      const frame = await lastFramePng({
+        filePath: inputPath,
+        durationSec: probe.durationSec,
+        alpha: probe.video.alpha
+      });
+      if (!frame) return null;
       return {
         type: "image",
         data: Buffer.from(frame).toString("base64")

@@ -1,13 +1,13 @@
 /**
- * The alpha-carrying encoders, against a real ffmpeg (F13, T27).
+ * The alpha-carrying encoders, against real libav (F13, T27).
  *
- * `timeline-output-formats.test.ts` pins the arguments; this asks ffmpeg
+ * `timeline-output-formats.test.ts` pins the arguments; this asks libav
  * whether they mean what they are supposed to. Frames go in as straight-alpha
  * RGBA, come back out through a decode to RGBA, and a region that was written
  * transparent has to read alpha 0 — which is only true if the pixel format
  * kept the channel end to end.
  *
- * Each case is skipped, with a printed reason, when this ffmpeg build has no
+ * Each case is skipped, with a printed reason, when the bundled libav build has no
  * encoder for it: ProRes 4444 and VP9 are both optional at build time, and a
  * red suite on a machine that simply cannot encode ProRes says nothing.
  */
@@ -16,9 +16,9 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 
-import { execFfmpeg } from "../src/nodes/ffmpeg-helpers.js";
+import { readRgbaFrames, readRgbaFramesWith } from "@nodetool-ai/runtime/media/testing";
 import {
-  ffmpegHasEncoder,
+  libavHasEncoder,
   openFrameEncoder
 } from "../src/nodes/timeline/rawFrames.js";
 import { resolveTimelineOutput } from "../src/nodes/timeline/outputFormats.js";
@@ -41,11 +41,10 @@ function halfTransparent(): Uint8Array {
 }
 
 async function encoderAvailable(name: string): Promise<boolean> {
-  const ok = await ffmpegHasEncoder(name);
+  const ok = await libavHasEncoder(name);
   if (!ok) {
     process.stderr.write(
-      `timeline-alpha-encode: skipping ${name} — this ffmpeg build has no such encoder ` +
-        "(or no ffmpeg at all).\n"
+      `timeline-alpha-encode: skipping ${name} — the bundled libav build has no such encoder.\n`
     );
   }
   return ok;
@@ -72,29 +71,18 @@ async function roundTrip(
     for (let i = 0; i < FRAMES; i++) await encoder.write(halfTransparent());
     await encoder.finish();
 
-    const rawPath = path.join(dir, "frame.raw");
-    // WebM keeps VP9's alpha plane in BlockAdditions, and ffmpeg's native vp9
+    // WebM keeps VP9's alpha plane in BlockAdditions, and libav's native vp9
     // decoder discards it — decoding with the default decoder reads every
     // pixel opaque however much alpha the file holds. Only the libvpx wrapper
     // reads it back, so name that decoder rather than measuring the encode
     // with an instrument that cannot see what it is asserting.
-    const decoderArgs = format === "webm" ? ["-c:v", "libvpx-vp9"] : [];
-    await execFfmpeg([
-      "-y",
-      "-v",
-      "error",
-      ...decoderArgs,
-      "-i",
-      outPath,
-      "-frames:v",
-      "1",
-      "-f",
-      "rawvideo",
-      "-pix_fmt",
-      "rgba",
-      rawPath
-    ]);
-    return new Uint8Array(await fs.readFile(rawPath));
+    const size = { width: WIDTH, height: HEIGHT };
+    const [frame] =
+      format === "webm"
+        ? await readRgbaFramesWith(outPath, "libvpx-vp9", size)
+        : await readRgbaFrames(outPath, size);
+    if (!frame) throw new Error("The encode decoded to no frame");
+    return frame;
   } finally {
     await fs.rm(dir, { recursive: true, force: true });
   }

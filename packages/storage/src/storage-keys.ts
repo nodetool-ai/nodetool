@@ -1,9 +1,5 @@
-import { isAbsolute, relative } from "node:path";
-
-export function isWithinRoot(root: string, target: string): boolean {
-  const rel = relative(root, target);
-  return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
-}
+// No Node imports: `@nodetool-ai/runtime/context`, the browser/Edge entry
+// point, imports this module through the `./storage-keys` subpath export.
 
 export function normalizeStorageKey(key: string): string {
   const segments: string[] = [];

@@ -123,7 +123,7 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 
 The provider row is eleven files, each downloading a URL a provider's response
 named — plus one reading a URL the caller's own message named
-(`video-frame-fallback.ts`, which fetches a video content part so ffmpeg can
+(`video-frame-fallback.ts`, which fetches a video content part so libav can
 sample stills from it for a model that cannot read video):
 
 - `packages/runtime/src/providers/fal-provider.ts`

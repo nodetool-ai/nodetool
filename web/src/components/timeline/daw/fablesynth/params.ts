@@ -123,10 +123,6 @@ export function routeLabel(src: number, amt: number, bipolar: boolean): string {
   const pct = Math.round(amt * 100);
   return `${MOD_SOURCES[src] ?? 'MOD'} ${bipolar ? `±${Math.abs(pct)}` : pct < 0 ? pct : `+${pct}`}%`;
 }
-/** Aux-source scale for a route: the aux's unipolar value, or 1 with no aux. */
-export function auxScale(x: number, aux: number): number {
-  return aux ? (SOURCE_BIPOLAR[aux] ? (x + 1) * 0.5 : x) : 1;
-}
 export function polarize(x: number, src: number, pol: number): number {
   const native = SOURCE_BIPOLAR[src] ?? false;
   const bi = routeBipolar(src, pol);

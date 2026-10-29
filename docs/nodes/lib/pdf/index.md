@@ -12,5 +12,5 @@ This namespace contains 7 node(s).
 - **[PDF Extract Text](pdfextracttext.md)** - Extract plain text from a PDF, preserving line breaks based on layout position.
 - **[PDF Extract Text (OCR)](pdfextracttextocr.md)** - Extract text from a PDF using OCR, suitable for scanned documents and image-b...
 - **[PDF Page Screenshot](pdfpagescreenshot.md)** - Render PDF pages as PNG images.
-- **[PDF Rasterize (pdftoppm)](pdfrasterizepdftoppm.md)** - Rasterize PDF pages with poppler's pdftoppm. Higher fidelity than the PDFium-...
+- **[PDF Rasterize](pdfrasterize.md)** - Rasterize PDF pages to PNG, JPEG or TIFF images at a DPI or a target size.
 - **[PDF to Markdown](pdftomarkdown.md)** - Convert PDF to Markdown, inferring headings from font size.

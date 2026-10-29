@@ -1,4 +1,10 @@
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+
 import { describe, expect, it } from "vitest";
+
+import { generateMedia } from "../src/media/testing.js";
 import { mp4DurationSeconds } from "../src/providers/video-duration.js";
 import { probeVideoDurationSeconds } from "../src/providers/video-frames.js";
 
@@ -80,6 +86,34 @@ describe("mp4DurationSeconds", () => {
 });
 
 describe("probeVideoDurationSeconds", () => {
+  it("reads a container the MP4 parser does not", async () => {
+    const dir = await mkdtemp(path.join(os.tmpdir(), "nodetool-vduration-test-"));
+    try {
+      const file = path.join(dir, "clip.webm");
+      await generateMedia({
+        outPath: file,
+        video: {
+          source: "testsrc2=size=32x24:rate=10:duration=1.5",
+          codec: "libvpx-vp9",
+          options: { deadline: "realtime", "cpu-used": "8" }
+        }
+      });
+      const bytes = new Uint8Array(await readFile(file));
+      expect(mp4DurationSeconds(bytes)).toBeNull();
+      const seconds = await probeVideoDurationSeconds(bytes, new AbortController().signal);
+      expect(seconds).not.toBeNull();
+      expect(Math.abs(seconds! - 1.5)).toBeLessThan(0.05);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("answers null for bytes that are no video", async () => {
+    expect(
+      await probeVideoDurationSeconds(new Uint8Array(64).fill(3), new AbortController().signal)
+    ).toBeNull();
+  });
+
   it("does not return an MP4 header duration after cancellation", async () => {
     const file = concat(ftyp, box("moov", mvhdV0(1000, 5184)));
     const controller = new AbortController();

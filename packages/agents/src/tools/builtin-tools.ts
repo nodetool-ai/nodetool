@@ -263,10 +263,12 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "browser_capture_media",
   "browser_upload_asset",
 
-  // Host media binaries
-  "ffmpeg",
-  "ffprobe",
-  // Dropped under the cloud profile — see `availableBuiltinToolNames`.
+  // Workspace media editing, in process. Mediabunny and node-av decode, so
+  // neither needs ffmpeg on the host.
+  "media_edit",
+  "media_probe",
+  // The host binary. Dropped under the cloud profile — see
+  // `availableBuiltinToolNames`.
   "yt_dlp",
 
   // Headless 3D render. Runs Blender through `runBlenderJob` and stores the

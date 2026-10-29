@@ -121,7 +121,8 @@ export const convertPdfToMarkdownSpec: CapabilitySpec = {
 
 export const convertMarkdownToPdfSpec: CapabilitySpec = {
   name: "convert_markdown_to_pdf",
-  description: "Convert Markdown to PDF using Pandoc.",
+  description:
+    "Convert a Markdown file to PDF. The Markdown is rendered to HTML and printed by headless Chromium with network access blocked, so remote images are not loaded.",
   inputSchema: {
     type: "object",
     properties: {
@@ -150,7 +151,12 @@ export const convertMarkdownToPdfSpec: CapabilitySpec = {
 export const convertDocumentSpec: CapabilitySpec = {
   name: "convert_document",
   description:
-    "Convert between document formats using Pandoc, supports markdown, docx, rst, pdf, html, etc.",
+    "Convert a document file in process. Supported conversions (from → to): " +
+    "markdown → html, markdown → docx, markdown → pdf, markdown → text, " +
+    "html → markdown, html → docx, html → pdf, docx → markdown, docx → html, " +
+    "docx → text, text → markdown, text → text. Any other pair returns an " +
+    "error listing these. PDF output is printed by headless Chromium with " +
+    "network access blocked.",
   inputSchema: {
     type: "object",
     properties: {
@@ -164,19 +170,15 @@ export const convertDocumentSpec: CapabilitySpec = {
       },
       from_format: {
         type: "string",
-        description: "Input format (e.g., markdown, docx, rst)",
+        description:
+          "Input format: markdown (md, gfm, commonmark), html (htm), docx or text (txt, plain)",
         default: "markdown"
       },
       to_format: {
         type: "string",
-        description: "Output format (e.g., pdf, docx, html)",
+        description:
+          "Output format: markdown, html, docx, pdf or text",
         default: "pdf"
-      },
-      extra_args: {
-        type: "array",
-        description: "Additional Pandoc arguments",
-        items: { type: "string" },
-        default: []
       }
     },
     required: ["input_file", "output_file"]

@@ -66,8 +66,8 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "compare_images",
     "score_image_adherence",
     "understand_video",
-    "ffmpeg",
-    "ffprobe",
+    "media_edit",
+    "media_probe",
     "yt_dlp"
   ],
   documents: [
@@ -244,10 +244,10 @@ export function nodetoolApiCoveredToolNames(
 export const CODEACT_GUEST_WAIT_MAX_MS = 5 * 60_000;
 
 /**
- * Longest \`timeout_seconds\` a guest \`ffmpeg\` or \`downloadVideo\` call passes
- * on. Their tools accept up to 600 and 900 s, which is at or past the action
- * budget, so the binary's own timeout error could never arrive. One minute
- * under the budget leaves the binary's error and its cleanup room to land.
+ * Longest \`timeout_seconds\` a guest \`downloadVideo\` call passes on. Its
+ * tool accepts up to 900 s, which is past the action budget, so the binary's
+ * own timeout error could never arrive. One minute under the budget leaves the
+ * binary's error and its cleanup room to land.
  */
 export const CODEACT_GUEST_BINARY_TIMEOUT_MAX_S = 540;
 
@@ -1040,11 +1040,15 @@ const nodetool = (() => {
             __merge(__model(model), { video: video, prompt: prompt })
           )
         ),
-      /** Run ffmpeg on workspace files. \`args\` is argv after the binary name. */
-      ffmpeg: (args, opts) =>
-        __need("ffmpeg")(__binaryArgs(__merge(opts, { args: args }))),
-      /** Read a media file's format and streams with ffprobe. */
-      ffprobe: (path, opts) => __need("ffprobe")(__merge(opts, { path: path })),
+      /**
+       * Edit an audio or video file with one typed operation (trim, concat,
+       * extract_audio, extract_frames, scale, crop, rotate, convert,
+       * add_audio, mix_audio, fade, normalize, overlay) into \`output_file\`.
+       */
+      edit: (operation, opts) =>
+        __need("media_edit")(__merge(opts, { operation: operation })),
+      /** Read a media file's duration, size, frame rate and streams. */
+      probe: (path, opts) => __need("media_probe")(__merge(opts, { path: path })),
       /** Download a video with yt-dlp. */
       downloadVideo: (url, outputFile, opts) =>
         __need("yt_dlp")(
@@ -1629,7 +1633,7 @@ const nodetool = (() => {
   const __GUEST_GLOBALS = {
     image: "Probing and editing pixels is \`image.*\`; generating a picture is \`nodetool.media.generateImage\`.",
     audio: "Sample-level work is \`audio.*\`; generating speech or music is \`nodetool.media.speak\`/\`generateMusic\`.",
-    video: "Frame and container work is \`video.*\`; generating a clip is \`nodetool.media.generateVideo\`, and probing or encoding a file with a host binary is \`nodetool.media.ffprobe\`/\`ffmpeg\`.",
+    video: "Frame and container work is \`video.*\`; generating a clip is \`nodetool.media.generateVideo\`, and probing or editing a workspace file is \`nodetool.media.probe\`/\`edit\`.",
     canvas: "Drawing is \`canvas.*\`.",
     media: "The bare \`media.*\` global holds byte helpers; the tools are \`nodetool.media.*\`.",
     format: "Text and table formatting is \`format.*\`.",
@@ -1845,7 +1849,8 @@ const NAMESPACE_DOCS: PromptEntry[] = [
   \`videoFromReferences(files, model)\`, \`speak(text, model)\`,
   \`generateMusic(prompt, model)\`, \`transcribe(inputFile, model)\`,
   \`embed(text, model)\`; judges \`critique(\`, \`compare(\`, \`scoreAdherence(\`,
-  \`understandVideo(\`; \`ffmpeg(args)\`, \`ffprobe(path)\`, \`downloadVideo(url)\`;
+  \`understandVideo(\`; \`probe(path)\`, \`edit(operation, {input, output_file, …})\`,
+  \`downloadVideo(url)\`;
   \`toImage/toAudio/toVideo(handle)\` saves a handle.
   Hold each result in a local variable and feed it straight into the next
   call; record the uris a later action or turn will need with

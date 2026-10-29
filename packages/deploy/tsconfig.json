@@ -9,6 +9,9 @@
   ],
   "references": [
     {
+      "path": "../compute"
+    },
+    {
       "path": "../config"
     },
     {

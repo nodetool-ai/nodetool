@@ -3,7 +3,7 @@
  *
  * Generated clips (Seedance, Dreamina) report `r_frame_rate=60/1` with an
  * average near 24 fps. Their packets sit on no regular grid, so the
- * source-time stream seeks afresh for every frame: one ffmpeg spawn per frame,
+ * source-time stream seeks afresh for every frame: one decoder open per frame,
  * which made a five-minute timeline take hours. A clip without a time remap
  * plays forward at a constant rate, and one decode resampled to the timeline's
  * frame rate serves it. These cases build such a file and hold the forward
@@ -15,7 +15,8 @@ import os from "node:os";
 import path from "node:path";
 import { performance } from "node:perf_hooks";
 
-import { execFfmpeg, execFfprobe } from "../src/nodes/ffmpeg-helpers.js";
+import { probeMedia, transcodeVideo } from "@nodetool-ai/runtime/media";
+import { inspectMedia } from "@nodetool-ai/runtime/media/testing";
 import {
   openForwardSourceFrameStream,
   openFrameEncoder,
@@ -92,18 +93,17 @@ beforeAll(async () => {
   // Keep two frames of every five, at their own timestamps: the 60/1 nominal
   // rate stays, the average drops to 24 — the profile generated clips have.
   vfrPath = path.join(directory, "vfr.mkv");
-  await execFfmpeg([
-    "-v", "error", "-y", "-i", cfrPath,
-    "-vf", "select='lt(mod(n\\,5)\\,2)'",
-    "-fps_mode", "vfr",
-    "-c:v", "ffv1", "-level", "3", "-pix_fmt", "bgra",
-    vfrPath
-  ]);
-  const { stdout } = await execFfprobe([
-    "-v", "error", "-select_streams", "v:0",
-    "-show_entries", "packet=pts_time", "-of", "csv=p=0", vfrPath
-  ]);
-  frameTimes = String(stdout).trim().split(/\r?\n/).map(Number).sort((a, b) => a - b);
+  await transcodeVideo({
+    inputPath: cfrPath,
+    outPath: vfrPath,
+    spec: {
+      codec: "ffv1",
+      pixelFormat: "bgra",
+      filter: "select='lt(mod(n\\,5)\\,2)'",
+      options: { level: "3" }
+    }
+  });
+  frameTimes = (await inspectMedia(vfrPath)).frameTimes;
 });
 
 afterAll(async () => {
@@ -111,13 +111,18 @@ afterAll(async () => {
 });
 
 describe("variable-frame-rate decode", () => {
-  it("builds a source with a 60/1 nominal rate and a lower average", async () => {
-    const { stdout } = await execFfprobe([
-      "-v", "error", "-select_streams", "v:0",
-      "-show_entries", "stream=r_frame_rate,avg_frame_rate",
-      "-of", "default=noprint_wrappers=1", vfrPath
-    ]);
-    expect(String(stdout)).toContain("r_frame_rate=60/1");
+  it("builds a source on a 60 fps lattice with a lower average", async () => {
+    const probe = await probeMedia(vfrPath, { frameRatePackets: Infinity });
+    expect(probe.video?.nominalFps).toBe(SOURCE_FPS);
+    expect(probe.video?.averageFps).toBeGreaterThan(23);
+    expect(probe.video?.averageFps).toBeLessThan(25);
+  });
+
+  it("reports the lattice rate, not the average, to the frame-grid cache", async () => {
+    // The cache indexes frame k of a decode window at k / fps, so it needs the
+    // rate of the timestamp lattice. The grid check then refuses this file,
+    // because two slots in five hold no frame, and every frame is an exact
+    // seek. The average (24) is no rate any frame of this file sits on.
     expect(await probeVideoFrameRate(vfrPath)).toBe(SOURCE_FPS);
   });
 

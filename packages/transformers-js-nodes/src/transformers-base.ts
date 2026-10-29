@@ -1,11 +1,10 @@
 import { promises as fs } from "node:fs";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import { tmpdir } from "node:os";
 import { join as joinPath } from "node:path";
 import { createLogger, importOptionalModule } from "@nodetool-ai/config";
 import { parseWavBytes } from "@nodetool-ai/audio-nodes";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
+import { decodeAudioToPcm } from "@nodetool-ai/runtime/media";
 import { missingRuntimePackageError } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { ModelCache, type DisposableModel } from "./model-cache.js";
@@ -15,7 +14,6 @@ import { recommendedDtypeFor, textGenerationTaskFor } from "./recommended-models
 import type { MusicgenModel, MusicgenTokenizer } from "./music-shared.js";
 import type { JanusModel, JanusProcessor } from "./janus-shared.js";
 
-const execFileP = promisify(execFile);
 const log = createLogger("transformers-js");
 
 /**
@@ -417,58 +415,26 @@ function resampleLinear(
 }
 
 /**
- * Convert arbitrary audio bytes (mp3 / m4a / flac / ogg / etc.) to a mono
- * 16-bit PCM WAV at the requested sample rate by shelling out to ffmpeg.
- *
- * `ffmpeg` is one of the runtime tools managed by Nodetool's Package
- * Manager (alongside yt-dlp, pandoc) and is also a hard requirement for
- * the existing video / TTS nodes in `@nodetool-ai/base-nodes`, so it is
- * effectively guaranteed to be on PATH in any environment that runs media
- * workflows. When it is not available we throw a clear error pointing the
- * user at the WAV-only fallback so they know how to recover.
+ * Decode arbitrary audio bytes (mp3 / m4a / flac / ogg / etc.) to mono float
+ * samples at the requested rate, in process.
  */
-async function ffmpegToWav(
+async function decodeToMonoSamples(
   bytes: Uint8Array,
   targetSampleRate: number
-): Promise<Uint8Array> {
+): Promise<Float32Array> {
   const dir = await fs.mkdtemp(joinPath(tmpdir(), "nodetool-tjs-audio-"));
   const inPath = joinPath(dir, "input.bin");
-  const outPath = joinPath(dir, "output.wav");
   try {
     await fs.writeFile(inPath, bytes);
-    await execFileP(
-      "ffmpeg",
-      [
-        "-y",
-        "-loglevel",
-        "error",
-        "-i",
-        inPath,
-        "-ac",
-        "1", // mono
-        "-ar",
-        String(targetSampleRate),
-        "-c:a",
-        "pcm_s16le", // 16-bit PCM
-        "-f",
-        "wav",
-        outPath
-      ],
-      { maxBuffer: 64 * 1024 * 1024 }
-    );
-    return new Uint8Array(await fs.readFile(outPath));
+    const { samples } = await decodeAudioToPcm(inPath, {
+      sampleRate: targetSampleRate,
+      channels: 1
+    });
+    return samples;
   } catch (err) {
-    const e = err as NodeJS.ErrnoException & { stderr?: string };
-    if (e?.code === "ENOENT") {
-      throw new Error(
-        "Audio decode failed: input is not WAV and `ffmpeg` is not on PATH. " +
-          "Install ffmpeg (the Package Manager UI can do this for you) or " +
-          "convert the audio to WAV (PCM 8/16-bit) before feeding it to a " +
-          "Transformers.js audio node."
-      );
-    }
-    const stderr = e?.stderr ? `: ${e.stderr.trim()}` : "";
-    throw new Error(`ffmpeg failed to decode audio${stderr}`);
+    throw new Error(
+      `Audio decode failed: ${err instanceof Error ? err.message : String(err)}`
+    );
   } finally {
     await fs.rm(dir, { recursive: true, force: true });
   }
@@ -489,10 +455,9 @@ async function ffmpegToWav(
  *   1. Fast path — if the bytes are already a WAV (PCM 8/16-bit), parse
  *      them in-process. No subprocess overhead.
  *   2. Fallback — for any other format (mp3 / m4a / flac / ogg / etc.)
- *      shell out to ffmpeg to convert to mono 16-bit WAV at the target
- *      rate, then parse the result. Letting ffmpeg do the resampling
- *      avoids a second pass and gives much better quality than the linear
- *      resampler used for the in-process WAV path.
+ *      decode with libav to mono at the target rate. Letting libav do the
+ *      resampling gives much better quality than the linear resampler used
+ *      for the WAV path.
  */
 export async function decodeAudioBytesToSamples(
   bytes: Uint8Array,
@@ -502,16 +467,8 @@ export async function decodeAudioBytesToSamples(
     throw new Error("Audio input is empty");
   }
 
-  let wav = parseWavBytes(bytes);
-  if (!wav) {
-    const converted = await ffmpegToWav(bytes, samplingRate);
-    wav = parseWavBytes(converted);
-    if (!wav) {
-      // ffmpeg succeeded but produced something we can't parse — should
-      // not happen with the explicit `-f wav -c:a pcm_s16le` flags above.
-      throw new Error("ffmpeg produced unparseable WAV output");
-    }
-  }
+  const wav = parseWavBytes(bytes);
+  if (!wav) return decodeToMonoSamples(bytes, samplingRate);
 
   const mono = mixToMono(wav.samples, wav.numChannels);
   return resampleLinear(mono, wav.sampleRate, samplingRate);

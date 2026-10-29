@@ -48,7 +48,7 @@ function isTimedChunk(chunk: AsrPipelineChunk | null): chunk is TimedAsrChunk {
 export async function automaticSpeechRecognition(
   args: AsrArgs
 ): Promise<ASRResult> {
-  // Decode arbitrary audio (WAV in-process, everything else via ffmpeg) to
+  // Decode arbitrary audio (WAV parsed directly, everything else via libav) to
   // mono Float32 at the model's expected 16 kHz — same path as the node side,
   // so mp3/m4a/flac/etc. work instead of failing with "not a WAV file".
   const samples = await decodeAudioBytesToSamples(args.audio, TARGET_SAMPLE_RATE);

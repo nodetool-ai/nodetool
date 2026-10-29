@@ -973,26 +973,6 @@ async function coerceEntityList(
   return out.length > 0 ? out : undefined;
 }
 
-export function normalizeStorageKey(key: string): string {
-  const segments: string[] = [];
-  for (const segment of key.replaceAll("\\", "/").split("/")) {
-    if (!segment || segment === ".") continue;
-    if (segment === "..") {
-      if (segments.length === 0) {
-        throw new Error(`Invalid storage key: ${key}`);
-      }
-      segments.pop();
-      continue;
-    }
-    segments.push(segment);
-  }
-  const cleaned = segments.join("/");
-  if (!cleaned) {
-    throw new Error(`Invalid storage key: ${key}`);
-  }
-  return cleaned;
-}
-
 /**
  * Resolve paths relative to a configured workspace root.
  *
@@ -2556,7 +2536,7 @@ export class ProcessingContext {
 
   /**
    * Resolve an asset reference to a local file holding its bytes — the path
-   * counterpart of {@link resolveAssetBytes}, for callers such as ffmpeg that
+   * counterpart of {@link resolveAssetBytes}, for callers such as libav that
    * read a file in place instead of loading it into memory.
    *
    * Looks the reference up in the same adapters and under the same keys,

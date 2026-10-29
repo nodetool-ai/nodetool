@@ -5,7 +5,7 @@
   "updated_at": "2026-06-21T16:55:51.256Z",
   "name": "Stabilize Handheld",
   "tool_name": null,
-  "description": "Smooth out handheld camera shake. Stabilising moves the frame, so `crop_black` trims the empty edges it exposes. Runs locally through ffmpeg - no API key and no per-run cost.",
+  "description": "Smooth out handheld camera shake. Stabilising moves the frame, so `crop_black` trims the empty edges it exposes. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
   "tags": [
     "video",
     "utility",
@@ -19,7 +19,7 @@
         "id": "intro-comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Stabilize Handheld\n\nSmooths out handheld camera shake in a clip. It runs locally through ffmpeg with no API key or per-run cost.\n\n**How it works:** \"Clip\" takes your video. \"Stabilize\" smooths the motion with a smoothing value of 10, and crop_black trims the empty edges that moving the frame exposes. \"Result\" returns the steadied clip.\n\n**Try this:** Raise smoothing on \"Stabilize\" to 30 for a locked-off look, and expect a tighter crop as a result."
+          "comment": "# Stabilize Handheld\n\nSmooths out handheld camera shake in a clip. It runs in the built-in media engine on your machine, with no API key or per-run cost.\n\n**How it works:** \"Clip\" takes your video. \"Stabilize\" smooths the motion with a smoothing value of 10, and crop_black trims the empty edges that moving the frame exposes. \"Result\" returns the steadied clip.\n\n**Try this:** Raise smoothing on \"Stabilize\" to 30 for a locked-off look, and expect a tighter crop as a result."
         },
         "ui_properties": {
           "position": {

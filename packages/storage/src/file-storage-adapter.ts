@@ -7,7 +7,7 @@ import {
   stat as fsStat,
   unlink
 } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { isAbsolute, join, relative, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { openSafeRoot, type SafeRoot } from "./safe-root.js";
 import type {
@@ -16,8 +16,13 @@ import type {
   StorageListResult,
   StorageStat
 } from "./storage-adapter.js";
-import { isWithinRoot, normalizeStorageKey } from "./storage-keys.js";
+import { normalizeStorageKey } from "./storage-keys.js";
 import { getMaxLocalUploadBytes } from "./storage-limits.js";
+
+export function isWithinRoot(root: string, target: string): boolean {
+  const rel = relative(root, target);
+  return rel === "" || (!rel.startsWith("..") && !isAbsolute(rel));
+}
 
 /**
  * Percent-decode a storage key extracted from an `/api/storage/<key>` URL so it

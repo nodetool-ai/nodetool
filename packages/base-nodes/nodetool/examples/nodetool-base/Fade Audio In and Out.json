@@ -5,7 +5,7 @@
   "updated_at": "2026-06-21T16:55:51.256Z",
   "name": "Fade Audio In and Out",
   "tool_name": null,
-  "description": "Ease a track in from silence so it does not start on a hard edit. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
+  "description": "Ease a track in from silence so it does not start on a hard edit. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Built-in media engine - no API cost.",
   "tags": [
     "audio",
     "video",
@@ -20,7 +20,7 @@
         "id": "intro-comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Fade Audio In and Out\n\nEases a track in from silence so it does not start on a hard edit. It pulls the audio out of a video first, so it works on footage. It runs locally through ffmpeg with no API cost.\n\n**How it works:** \"Clip\" passes the video to \"Extract audio\", which separates the soundtrack. \"Process\" applies a 1.5-second fade-in to it, and \"Audio\" shows the faded track. This graph applies only the fade-in.\n\n**Try this:** Raise the duration on \"Process\" from 1.5 to 4 seconds for a slower entrance under a title card."
+          "comment": "# Fade Audio In and Out\n\nEases a track in from silence so it does not start on a hard edit. It pulls the audio out of a video first, so it works on footage. It runs in the built-in media engine on your machine, with no API cost.\n\n**How it works:** \"Clip\" passes the video to \"Extract audio\", which separates the soundtrack. \"Process\" applies a 1.5-second fade-in to it, and \"Audio\" shows the faded track. This graph applies only the fade-in.\n\n**Try this:** Raise the duration on \"Process\" from 1.5 to 4 seconds for a slower entrance under a title card."
         },
         "ui_properties": {
           "position": {

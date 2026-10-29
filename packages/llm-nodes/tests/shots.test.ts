@@ -1,3 +1,13 @@
+import { promises as fs } from "node:fs";
+import os from "node:os";
+import path from "node:path";
+
+import {
+  meanRgba,
+  readRgbaFrames,
+  solidRgba,
+  writeRgbaVideo
+} from "@nodetool-ai/runtime/media/testing";
 import { describe, it, expect } from "vitest";
 import type { Screenplay } from "@nodetool-ai/protocol";
 import {
@@ -198,7 +208,7 @@ describe("ShotChain capability routing", () => {
 
   it("asks for text_to_video on an unseeded first shot", async () => {
     const { node, context, calls } = chainWith([spec(0)]);
-    // extractLastFrame shells out to ffmpeg; one shot never reaches it.
+    // One shot never reaches extractLastFrame.
     await (node as unknown as { process: (c: unknown) => Promise<unknown> }).process(
       context
     );
@@ -209,8 +219,8 @@ describe("ShotChain capability routing", () => {
   });
   it("uses the continuation model for a seeded shot, and Model when it is unset", async () => {
     // Seeded via an explicit keyframe rather than a previous clip:
-    // extractLastFrame shells out to ffmpeg and returns null on failure, so a
-    // fake clip can never seed shot 2. A keyframe reaches the same branch.
+    // extractLastFrame returns null for bytes that are no video, so a fake
+    // clip can never seed shot 2. A keyframe reaches the same branch.
     const seededSpec = {
       index: 0,
       prompt: "shot 0",
@@ -256,5 +266,56 @@ describe("ShotChain capability routing", () => {
       noCont.node as unknown as { process: (c: unknown) => Promise<unknown> }
     ).process(noCont.context);
     expect(noCont.calls[0].modelId).toBe("kling-2.6/image-to-video");
+  });
+});
+
+describe("ShotChain continuity", () => {
+  it("seeds the next shot with the previous clip's last frame", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-shotchain-test-"));
+    try {
+      // Gray frames, then a red last frame: the seed must be the red one.
+      const clipPath = path.join(dir, "clip.mp4");
+      await writeRgbaVideo({
+        outPath: clipPath,
+        width: 32,
+        height: 24,
+        fps: 10,
+        frames: 10,
+        frameAt: (k) => solidRgba(32, 24, k === 9 ? [255, 0, 0, 255] : [100, 100, 100, 255]),
+        spec: { codec: "libx264", pixelFormat: "yuv420p", options: { qp: "0" } }
+      });
+      const clip = new Uint8Array(await fs.readFile(clipPath));
+      const seeds: Uint8Array[][] = [];
+      const node = new ShotChainNode();
+      Object.assign(node, {
+        model: { type: "video_model", provider: "kie", id: "kling-2.6/image-to-video" },
+        shots: [0, 1].map((index) => ({
+          index,
+          prompt: `shot ${index}`,
+          duration_seconds: 1,
+          aspect_ratio: "16:9",
+          keyframe: null
+        })),
+        aspect_ratio: "16:9",
+        resolution: "720p"
+      });
+      await (node as unknown as { process: (c: unknown) => Promise<unknown> }).process({
+        runProviderPrediction: async (req: { params: { images?: Uint8Array[] } }) => {
+          seeds.push(req.params.images ?? []);
+          return clip;
+        }
+      });
+      expect(seeds).toHaveLength(2);
+      expect(seeds[0]).toHaveLength(0);
+      expect(seeds[1]).toHaveLength(1);
+      const seedPath = path.join(dir, "seed.png");
+      await fs.writeFile(seedPath, seeds[1]![0]!);
+      const [rgba] = await readRgbaFrames(seedPath, { width: 32, height: 24 });
+      const [r, g] = meanRgba(rgba!);
+      expect(r).toBeGreaterThan(200);
+      expect(g).toBeLessThan(60);
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true });
+    }
   });
 });

@@ -88,7 +88,7 @@ export interface NodeMetadata {
   input_fields?: string[];
   required_settings?: string[];
   /**
-   * Runtime packages this node depends on (e.g. "ffmpeg", "python", "ollama").
+   * Runtime packages this node depends on (e.g. "python", "yt-dlp", "ollama").
    * The frontend uses this to show install prompts before execution.
    */
   required_runtimes?: string[];

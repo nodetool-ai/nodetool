@@ -29,7 +29,7 @@ or a handle name. Verified types:
 | `nodetool.creative.Director` | brief → `Screenplay`. Props: `model` (language_model), `brief`, `style`, `shot_count` (1–20), `aspect_ratio`, `max_tokens`. Outputs: `screenplay`, `narration`, `music_prompt`, `title`. |
 | `nodetool.creative.ScreenplayShots` | fans a screenplay out one shot at a time. Outputs `shot`, `shot_prompt`, `index` per iteration plus `output` as the whole list. |
 | `nodetool.creative.ShotBatch` | flattens a screenplay into generation-ready specs in one go. Output: `shots` (list[dict]) with prompt, timing and keyframe. |
-| `nodetool.creative.ShotChain` | animates a spec list sequentially, seeding each shot's first frame from the previous clip's last frame. Output: `videos`. Needs the `ffmpeg` runtime. |
+| `nodetool.creative.ShotChain` | animates a spec list sequentially, seeding each shot's first frame from the previous clip's last frame. Output: `videos`. |
 | `nodetool.creative.ApplyEntities` | seasons a prompt with entity descriptors, the same rule the storyboard render path uses. |
 | `nodetool.image.TextToImage` | prompt → image. |
 | `nodetool.video.ImageToVideo` / `nodetool.video.TextToVideo` | still → clip, or prompt → clip. |

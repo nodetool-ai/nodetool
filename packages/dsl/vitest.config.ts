@@ -36,6 +36,11 @@ export default defineConfig({
         __dirname,
         "../runtime/src/providers/provider-transport.ts"
       ),
+      "@nodetool-ai/runtime/media/testing": resolve(
+        __dirname,
+        "../runtime/src/media/testing.ts"
+      ),
+      "@nodetool-ai/runtime/media": resolve(__dirname, "../runtime/src/media/index.ts"),
       "@nodetool-ai/runtime": resolve(__dirname, "../runtime/src/index.ts"),
       "@nodetool-ai/node-sdk/cost-estimate": resolve(
         __dirname,

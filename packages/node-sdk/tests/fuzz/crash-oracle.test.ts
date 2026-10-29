@@ -20,7 +20,13 @@
 import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
 import {
+  collectJsScriptLinks,
+  collectMissingSecretIssues,
+  collectModelProviders,
+  collectModelSelectionIssues,
+  collectSecretRequirementSites,
   validateGraph,
+  validationHeadline,
   type GraphValidationReport
 } from "../../src/graph-validation.js";
 import {
@@ -54,6 +60,11 @@ import {
   seedCatalog,
   seedRegistry
 } from "./corpus.js";
+import {
+  FEATURE_GRAPHS,
+  SCRIPT_LOOKUP,
+  featureRegistry
+} from "./feature-cases.js";
 import {
   SEED_ANALYZER_BODIES,
   SEED_CODE_BODIES,
@@ -412,4 +423,99 @@ it(`${GRAPH} formats validation issues with and without node context`, async () 
     formatValidationIssues([{ ...issue, nodeId: "n1", nodeType: "t.T" }, issue])
   ];
   await expectPinned(JSON.stringify(lines, null, 1), "format-issues.json");
+});
+
+const featureRegistries = {
+  full: featureRegistry(),
+  bare: featureRegistry({ bare: true }),
+  noProviders: featureRegistry({ providers: [] }),
+  noRequiredInputs: featureRegistry({ noRequiredInputs: true })
+};
+const featureMutants = graphCorpus(SEED, COUNT, FEATURE_GRAPHS);
+
+it.each(featureMutants.map((m) => [m.id, m.mutation, m] as const))(
+  `${GRAPH} feature graph %s (%s) is rejected, not thrown on`,
+  (_id, _mutation, mutant) => {
+    const started = performance.now();
+    const report = validateGraph(mutant.graph, featureRegistries.full, {
+      sandboxModuleCatalog: null,
+      availableSecrets: new Set(["OTHER_KEY"]),
+      jsScriptLookup: SCRIPT_LOOKUP
+    });
+    expect(performance.now() - started).toBeLessThan(BUDGET_MS);
+    assertWellFormed(report);
+  }
+);
+
+it(`${GRAPH} reports the same issues for every feature graph and registry`, async () => {
+  const secretSets = [
+    undefined,
+    null,
+    new Set<string>(),
+    new Set(["FEAT_KEY"])
+  ];
+  const lines: string[] = [];
+  for (const seed of FEATURE_GRAPHS) {
+    for (const [name, registry] of Object.entries(featureRegistries)) {
+      for (const jsScriptLookup of [undefined, null, SCRIPT_LOOKUP]) {
+        const report = validateGraph(seed.graph, registry, {
+          sandboxModuleCatalog: null,
+          availableSecrets: secretSets[lines.length % secretSets.length],
+          jsScriptLookup
+        });
+        lines.push(
+          `# ${seed.id} ${name} lookup=${jsScriptLookup === undefined ? "none" : jsScriptLookup === null ? "null" : "set"} ${validationHeadline(report)}`
+        );
+        for (const issue of report.issues) {
+          lines.push(
+            `${issue.severity} ${issue.code} node=${issue.nodeId ?? "-"} type=${issue.nodeType ?? "-"} edge=${issue.edgeId ?? "-"} pack=${issue.packId ?? "-"} bytes=${issue.installBytes ?? "-"} cmd=${issue.installCommand ?? "-"} ${issue.message}`
+          );
+        }
+      }
+    }
+  }
+  await expectPinned(lines.join("\n"), "feature-graph-issues.txt");
+});
+
+it(`${GRAPH} lists the same model, provider, secret and script facts`, async () => {
+  const registry = featureRegistries.full;
+  const facts = FEATURE_GRAPHS.map((seed) => ({
+    id: seed.id,
+    models: collectModelSelectionIssues(seed.graph, registry).map(
+      (issue) => `${issue.code} ${issue.nodeId} ${issue.message}`
+    ),
+    providers: collectModelProviders(seed.graph),
+    sites: collectSecretRequirementSites(seed.graph, registry),
+    missing: collectMissingSecretIssues(
+      seed.graph,
+      registry,
+      new Set(["OTHER_KEY"])
+    ).map((issue) => issue.message),
+    silent: collectMissingSecretIssues(seed.graph, registry, null),
+    links: collectJsScriptLinks(seed.graph)
+  }));
+  await expectPinned(
+    JSON.stringify(facts, null, 1),
+    "feature-graph-facts.json"
+  );
+});
+
+it(`${GRAPH} writes the headline for every report shape`, () => {
+  const report = (errors: number, warnings: number): GraphValidationReport => ({
+    ok: errors === 0,
+    nodeCount: 3,
+    edgeCount: 2,
+    counts: { errors, warnings, info: 0 },
+    issues: []
+  });
+  expect(validationHeadline(report(0, 0))).toBe(
+    "Workflow is valid — 3 node(s), 2 edge(s)."
+  );
+  expect(validationHeadline(report(0, 2))).toBe(
+    "Workflow is valid with 2 warning(s)."
+  );
+  expect(validationHeadline(report(1, 0))).toBe("Workflow has 1 error(s).");
+  expect(validationHeadline(report(1, 2))).toBe(
+    "Workflow has 1 error(s) and 2 warning(s)."
+  );
 });

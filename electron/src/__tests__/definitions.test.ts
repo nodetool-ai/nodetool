@@ -6,7 +6,8 @@ describe("RUNTIME_PACKAGES", () => {
     const ids = Object.keys(RUNTIME_PACKAGES);
     expect(ids).toContain("python");
     expect(ids).toContain("nodejs");
-    expect(ids).toContain("ffmpeg");
+    // libav runs in process, and yt-dlp's formats are muxed there too.
+    expect(ids).not.toContain("ffmpeg");
     expect(ids).toContain("transformers-js");
   });
 
@@ -47,8 +48,8 @@ describe("RUNTIME_PACKAGES", () => {
       }
     });
 
-    it("classifies ffmpeg, pandoc, pdftotext, yt-dlp as tools", () => {
-      for (const id of ["ffmpeg", "pandoc", "pdftotext", "yt-dlp"]) {
+    it("classifies yt-dlp as a tool", () => {
+      for (const id of ["yt-dlp"]) {
         expect(RUNTIME_PACKAGES[id as keyof typeof RUNTIME_PACKAGES].category).toBe("tool");
       }
     });
@@ -65,8 +66,8 @@ describe("RUNTIME_PACKAGES", () => {
       expect(RUNTIME_PACKAGES.python.versionRange).toBe(">=3.11 <3.12");
     });
 
-    it("ffmpeg targets version >=6 <7", () => {
-      expect(RUNTIME_PACKAGES.ffmpeg.versionRange).toBe(">=6 <7");
+    it("yt-dlp installs without ffmpeg, since formats are muxed in process", () => {
+      expect(RUNTIME_PACKAGES["yt-dlp"].condaPackages).toEqual(["yt-dlp"]);
     });
 
     it("nodejs accepts any version (bundled with Electron)", () => {

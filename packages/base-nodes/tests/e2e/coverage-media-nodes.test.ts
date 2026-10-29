@@ -1,7 +1,6 @@
+import { generateMedia } from "@nodetool-ai/runtime/media/testing";
 import { describe, it, expect } from "vitest";
 import { promises as fs } from "node:fs";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import os from "node:os";
 import path from "node:path";
 import {
@@ -1550,22 +1549,22 @@ describe("video nodes — full coverage", () => {
     expect(result).toEqual({});
   });
 
-  it("FpsNode returns 0 without ffprobe", async () => {
+  it("FpsNode returns 0 for bytes that are no video", async () => {
     const ref = videoRef();
     const _n = new FpsNode();
     _n.assign({ video: ref });
     const result = await _n.process();
-    // ffprobe not available in test — returns 0
+    // The probe cannot read the bytes, so the node degrades to 0.
     expect(result.output).toBe(0);
   });
 
-  it("FrameToVideoNode throws when ffmpeg cannot encode the frames", async () => {
+  it("FrameToVideoNode throws when the frames cannot be encoded", async () => {
     const frameA = { data: Buffer.from([1, 2]).toString("base64") };
     const frameB = { data: Buffer.from([3, 4]).toString("base64") };
     const _n = new FrameToVideoNode();
     _n.assign({ frame: [frameA, frameB] });
-    // The frames are not decodable PNGs (and ffmpeg may not even be
-    // installed) — the node must fail instead of emitting corrupt bytes.
+    // The frames are not decodable images — the node must fail instead of
+    // emitting corrupt bytes.
     await expect(_n.process()).rejects.toThrow(
       "Combining frames into a video failed"
     );
@@ -1582,27 +1581,21 @@ describe("video nodes — full coverage", () => {
     expect(outData.length).toBe(0);
   });
 
-  it("ConcatVideoNode throws when ffmpeg cannot concatenate", async () => {
+  it("ConcatVideoNode throws when the inputs cannot be joined", async () => {
     const a = { data: Buffer.from([1, 2]).toString("base64") };
     const b = { data: Buffer.from([3, 4]).toString("base64") };
     const _n = new ConcatVideoNode();
     _n.assign({ video_1: a, video_2: b });
-    // The inputs are not real videos (and ffmpeg may not even be
-    // installed) — the node must fail instead of emitting corrupt bytes.
+    // The inputs are not real videos — the node must fail instead of
+    // emitting corrupt bytes.
     await expect(_n.process()).rejects.toThrow("Concatenating videos failed");
   });
 
-  it("TrimVideoNode falls back to original without ffmpeg", async () => {
+  it("TrimVideoNode throws on bytes that are no video, not a pass-through", async () => {
     const data = Buffer.from([1, 2, 3, 4, 5]).toString("base64");
     const _n = new TrimVideoNode();
     _n.assign({ video: { data }, start_time: 1, end_time: 1 });
-    const result = await _n.process();
-    const outData = Buffer.from(
-      (result.output as { data: string }).data,
-      "base64"
-    );
-    // ffmpeg not available — falls back to original bytes
-    expect(Array.from(outData)).toEqual([1, 2, 3, 4, 5]);
+    await expect(_n.process()).rejects.toThrow("Video processing failed");
   });
 
   it.each([
@@ -1645,10 +1638,10 @@ describe("video nodes — full coverage", () => {
     const dir = await fs.mkdtemp(path.join(os.tmpdir(), "video-transform-test-"));
     try {
       const inputPath = path.join(dir, "input.mp4");
-      await promisify(execFile)("ffmpeg", [
-        "-y", "-f", "lavfi", "-i", "color=c=red:s=32x24:r=4:d=1",
-        "-c:v", "mpeg4", inputPath
-      ]);
+      await generateMedia({
+        outPath: inputPath,
+        video: { source: "color=c=red:s=32x24:r=4:d=1", codec: "mpeg4" }
+      });
       const resize = new ResizeVideoNode();
       resize.assign({
         video: videoRef((await fs.readFile(inputPath)).toString("base64")),
@@ -1696,72 +1689,25 @@ describe("video nodes — full coverage", () => {
 
   it("OverlayVideoNode and TransitionVideoNode use canonical input names", async () => {
     const ref = videoRef();
+    // Both nodes read both canonical inputs; with both non-empty they
+    // proceed to the edit, which fails on the fake bytes. Misread inputs
+    // would short-circuit to a pass-through instead.
     const _n = new OverlayVideoNode();
     _n.assign({
       main_video: ref,
       overlay_video: ref
     });
-    const overlay = await _n.process();
-    expect((overlay.output as { data: string }).data).toBeDefined();
-    // Transition reads both canonical inputs; with both non-empty it
-    // proceeds to ffmpeg, which fails on the fake bytes. Misread inputs
-    // would short-circuit to a pass-through instead.
+    await expect(_n.process()).rejects.toThrow("Video processing failed");
     const _n2 = new TransitionVideoNode();
     _n2.assign({
       video_a: ref,
       video_b: ref
     });
-    await expect(_n2.process()).rejects.toThrow(
-      "Creating the transition failed"
-    );
-  });
-
-  it("ReverseVideoNode falls back to original without ffmpeg", async () => {
-    const data = Buffer.from([1, 2, 3]).toString("base64");
-    const _n = new ReverseVideoNode();
-    _n.assign({ video: { data } });
-    const result = await _n.process();
-    const outData = Buffer.from(
-      (result.output as { data: string }).data,
-      "base64"
-    );
-    // ffmpeg not available — falls back to original bytes
-    expect(Array.from(outData)).toEqual([1, 2, 3]);
-  });
-
-  it("AddAudioVideoNode returns video without ffmpeg", async () => {
-    const v = { data: Buffer.from([1, 2]).toString("base64") };
-    const a = { data: Buffer.from([3, 4]).toString("base64") };
-    const _n = new AddAudioVideoNode();
-    _n.assign({ video: v, audio: a });
-    const result = await _n.process();
-    const outData = Buffer.from(
-      (result.output as { data: string }).data,
-      "base64"
-    );
-    // Without ffmpeg, falls back to returning original video
-    expect(outData.length).toBeGreaterThan(0);
-  });
-
-  it("ExtractAudioVideoNode throws without ffmpeg", async () => {
-    const data = Buffer.from([1, 2, 3, 4]).toString("base64");
-    const _n = new ExtractAudioVideoNode();
-    _n.assign({ video: { data } });
-    // ffmpeg not available — throws spawn error
-    await expect(_n.process()).rejects.toThrow();
-  });
-
-  it("ExtractFrameVideoNode returns null data without ffmpeg", async () => {
-    const data = Buffer.from(new Array(2048).fill(7)).toString("base64");
-    const _n = new ExtractFrameVideoNode();
-    _n.assign({ video: { data }, time: 0 });
-    const result = await _n.process();
-    // ffmpeg not available — returns null data
-    expect((result.output as { data: unknown }).data).toBeNull();
+    await expect(_n2.process()).rejects.toThrow("Video processing failed");
   });
 
   it("GetVideoInfoNode degrades to a complete zero record on unprobeable bytes", async () => {
-    // `videoRef()` is 18 ASCII bytes, so ffprobe fails and the node degrades.
+    // `videoRef()` is 18 ASCII bytes, so the probe fails and the node degrades.
     // A declared slot missing from that record is unreachable downstream.
     const _n = new GetVideoInfoNode();
     _n.assign({ video: videoRef() });

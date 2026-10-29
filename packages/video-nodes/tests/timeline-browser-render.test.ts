@@ -1,7 +1,7 @@
 /**
  * The headless-Chromium render (`renderTimelineInBrowser`), for real.
  *
- * The first half needs only ffmpeg: which encodings the driver asks the page
+ * The first half needs no browser: which encodings the driver asks the page
  * for, and the VP9 → H.264 transcode that serves an mp4 when the browser has
  * no H.264 encoder (Chromium builds without proprietary codecs). The second
  * half launches a browser and renders: the containers come out as asked, a
@@ -18,7 +18,12 @@ import os from "node:os";
 import path from "node:path";
 import type { TimelineSequence } from "@nodetool-ai/timeline";
 
-import { execFfmpeg, execFfprobe } from "../src/nodes/ffmpeg-helpers.js";
+import {
+  generateMedia,
+  inspectMedia,
+  readRgbaFrames,
+  videoStreamFormat
+} from "@nodetool-ai/runtime/media/testing";
 import {
   BrowserRenderUnavailableError,
   encodingsFor,
@@ -38,32 +43,23 @@ beforeAll(async () => {
   directory = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-browser-render-"));
   // A variable-frame-rate source, like the generated clips that made the
   // Node path slow: 60/1 nominal, about 24 fps on average. Tagged BT.709 as
-  // those clips are. Untagged, Chrome reads H.264 as BT.709 and ffmpeg as
+  // those clips are. Untagged, Chrome reads H.264 as BT.709 and libav as
   // BT.601, and the two renders differ by the matrix, not the compositor.
   clipPath = path.join(directory, "vfr.mp4");
-  await execFfmpeg([
-    "-v", "error", "-y",
-    "-f", "lavfi", "-i", `testsrc2=size=${WIDTH}x${HEIGHT}:rate=60`,
-    "-t", "4",
-    "-vf", "select='lt(mod(n\\,5)\\,2)'",
-    "-fps_mode", "vfr",
-    "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p",
-    "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709",
-    clipPath
-  ]);
+  await generateMedia({
+    outPath: clipPath,
+    video: {
+      source: `testsrc2=size=${WIDTH}x${HEIGHT}:rate=60:duration=4`,
+      filter: "select='lt(mod(n\\,5)\\,2)'",
+      options: { preset: "ultrafast", colorspace: "bt709", color_primaries: "bt709", color_trc: "bt709" }
+    }
+  });
 });
 
 afterAll(async () => {
   if (directory) await fs.rm(directory, { recursive: true, force: true });
 });
 
-async function probe(file: string, entries: string): Promise<string> {
-  const { stdout } = await execFfprobe([
-    "-v", "error", "-select_streams", "v:0", "-count_frames",
-    "-show_entries", entries, "-of", "default=noprint_wrappers=1", file
-  ]);
-  return String(stdout);
-}
 
 describe("encodingsFor", () => {
   it("asks for H.264 first for a default mp4, then VP9 and AV1 to transcode", () => {
@@ -96,19 +92,23 @@ describe("encodingsFor", () => {
 describe("transcodeIntermediate", () => {
   it("turns a VP9 intermediate into the H.264 mp4 that was asked for", async () => {
     const webm = path.join(directory, "intermediate.webm");
-    await execFfmpeg([
-      "-v", "error", "-y",
-      "-f", "lavfi", "-i", `testsrc2=size=${WIDTH}x${HEIGHT}:rate=${FPS}`,
-      "-t", "2", "-c:v", "libvpx-vp9", "-deadline", "realtime", webm
-    ]);
+    await generateMedia({
+      outPath: webm,
+      video: {
+        source: `testsrc2=size=${WIDTH}x${HEIGHT}:rate=${FPS}:duration=2`,
+        codec: "libvpx-vp9",
+        options: { deadline: "realtime" }
+      }
+    });
     const mp4 = path.join(directory, "transcoded.mp4");
     await transcodeIntermediate(webm, mp4, resolveTimelineOutput({ format: "mp4" }));
 
-    const info = await probe(mp4, "stream=codec_name,pix_fmt,color_space,nb_read_frames");
-    expect(info).toContain("codec_name=h264");
-    expect(info).toContain("pix_fmt=yuv420p");
-    expect(info).toContain("color_space=bt709");
-    expect(info).toContain(`nb_read_frames=${2 * FPS}`);
+    expect(await videoStreamFormat(mp4)).toMatchObject({
+      codec: "h264",
+      pixelFormat: "yuv420p",
+      colorSpace: "bt709"
+    });
+    expect((await inspectMedia(mp4)).frameTimes).toHaveLength(2 * FPS);
   }, 60_000);
 });
 
@@ -226,10 +226,11 @@ const noAdapterReason = await (async (): Promise<string | null> => {
 describe.runIf(!noBrowserReason)("renderTimelineInBrowser", () => {
   it("renders an H.264 mp4 with every frame", async () => {
     const result = await browserRender("mp4", 2000);
-    const info = await probe(path.join(directory, "browser-mp4-2000.mp4"), "stream=codec_name,width,height,nb_read_frames");
-    expect(info).toContain("codec_name=h264");
-    expect(info).toContain(`width=${WIDTH}`);
-    expect(info).toContain(`nb_read_frames=${2 * FPS}`);
+    const file = path.join(directory, "browser-mp4-2000.mp4");
+    expect((await videoStreamFormat(file))?.codec).toBe("h264");
+    const report = await inspectMedia(file);
+    expect(report.video?.width).toBe(WIDTH);
+    expect(report.frameTimes).toHaveLength(2 * FPS);
     expect(result.frames).toBe(2 * FPS);
     process.stderr.write(
       `browser render: ${result.browser}, ${result.backend} (${result.adapter ?? result.webgpuUnusable ?? "no adapter"}), ` +
@@ -252,12 +253,12 @@ describe.runIf(!noBrowserReason)("renderTimelineInBrowser", () => {
       outPath,
       workDir: directory
     });
-    const { stdout } = await execFfprobe([
-      "-v", "error", "-show_entries", "stream=codec_name:stream_tags=alpha_mode",
-      "-of", "default=noprint_wrappers=1", outPath
-    ]);
-    expect(String(stdout)).toContain("codec_name=vp9");
-    expect(String(stdout).toLowerCase()).toContain("alpha_mode=1");
+    const format = await videoStreamFormat(outPath);
+    expect(format?.codec).toBe("vp9");
+    const tags = Object.fromEntries(
+      Object.entries(format?.tags ?? {}).map(([key, value]) => [key.toLowerCase(), value])
+    );
+    expect(tags["alpha_mode"]).toBe("1");
   }, 120_000);
 
   it("renders a PNG sequence", async () => {
@@ -321,7 +322,7 @@ describe.runIf(!noBrowserReason)("renderTimelineInBrowser", () => {
     }
     process.stderr.write(`parity, mean diff per frame: ${diffs.map((d) => d.toFixed(4)).join(" ")}\n`);
     // The bar: a mean difference of at most 0.02 over the ten frames. What is
-    // left is not the compositor's: the browser and ffmpeg decoders round
+    // left is not the compositor's: the browser and libav decoders round
     // differently at the hard edges of the test pattern, and Chromium and
     // Skia set the title's glyphs about a pixel apart. No single frame may
     // stray far from that.
@@ -341,9 +342,22 @@ describe.runIf(!noBrowserReason)("renderTimelineInBrowser", () => {
 async function frameRgb(zip: string, index: number): Promise<Buffer> {
   const png = path.join(directory, `frame-${path.basename(zip)}-${index}.png`);
   await fs.writeFile(png, storedZipEntry(await fs.readFile(zip), `frame_${String(index + 1).padStart(6, "0")}.png`));
-  const out = `${png}.rgb`;
-  await execFfmpeg(["-v", "error", "-y", "-i", png, "-f", "rawvideo", "-pix_fmt", "rgb24", out]);
-  return fs.readFile(out);
+  const size = await pngSize(png);
+  const [rgba] = await readRgbaFrames(png, size);
+  if (!rgba) throw new Error(`${png} decoded to no picture`);
+  const rgb = Buffer.alloc((rgba.length / 4) * 3);
+  for (let i = 0, o = 0; i < rgba.length; i += 4, o += 3) {
+    rgb[o] = rgba[i]!;
+    rgb[o + 1] = rgba[i + 1]!;
+    rgb[o + 2] = rgba[i + 2]!;
+  }
+  return rgb;
+}
+
+/** A PNG file's size, from its IHDR chunk. */
+async function pngSize(file: string): Promise<{ width: number; height: number }> {
+  const header = await fs.readFile(file);
+  return { width: header.readUInt32BE(16), height: header.readUInt32BE(20) };
 }
 
 /** One entry of a store-only zip, the kind `pngSequence.ts` writes. */

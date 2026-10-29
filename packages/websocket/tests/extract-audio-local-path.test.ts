@@ -1,15 +1,14 @@
 /**
  * `POST /api/assets/:id/extract-audio` hands ffmpeg the video's local file in
  * place (an external asset here) and stores the WAV from disk. A backend with
- * no local file still works by loading the bytes. Runs the real ffmpeg.
+ * no local file still works by loading the bytes. Runs on real media.
  */
-import { execFile } from "node:child_process";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { promisify } from "node:util";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { Asset, initTestDb } from "@nodetool-ai/models";
+import { generateMedia, readPcm, rmsBetween } from "@nodetool-ai/runtime/media/testing";
 import {
   FileStorageAdapter,
   InMemoryStorageAdapter,
@@ -25,7 +24,6 @@ vi.mock("../src/lib/storage.js", async (orig) => ({
 import { handleExtractAudio } from "../src/http-api.js";
 import { lookupExternalAssetPath } from "../src/lib/external-asset-lookup.js";
 
-const execFileAsync = promisify(execFile);
 const USER = "user-1";
 
 let tmp: string;
@@ -51,19 +49,15 @@ beforeAll(async () => {
   withAudio = path.join(tmp, "media", "interview take.mp4");
   silent = path.join(tmp, "media", "silent.mp4");
   await fs.mkdir(path.dirname(withAudio), { recursive: true });
-  await execFileAsync("ffmpeg", [
-    "-y",
-    "-f", "lavfi", "-i", "testsrc=size=32x32:rate=10:duration=1",
-    "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=8000:duration=1",
-    "-pix_fmt", "yuv420p", "-shortest",
-    withAudio
-  ]);
-  await execFileAsync("ffmpeg", [
-    "-y",
-    "-f", "lavfi", "-i", "testsrc=size=32x32:rate=10:duration=1",
-    "-pix_fmt", "yuv420p",
-    silent
-  ]);
+  await generateMedia({
+    outPath: withAudio,
+    video: { source: "testsrc=size=32x32:rate=10:duration=1" },
+    audio: { source: "sine=frequency=440:sample_rate=8000:duration=1" }
+  });
+  await generateMedia({
+    outPath: silent,
+    video: { source: "testsrc=size=32x32:rate=10:duration=1" }
+  });
 }, 60_000);
 
 afterAll(async () => {
@@ -101,8 +95,11 @@ describe("handleExtractAudio with a local file", () => {
     expect(body.asset?.content_type).toBe("audio/wav");
     expect(body.asset?.duration).toBeCloseTo(1, 1);
 
-    const wav = await fs.readFile(path.join(root, USER, `${body.asset!.id}.wav`));
+    const wavPath = path.join(root, USER, `${body.asset!.id}.wav`);
+    const wav = await fs.readFile(wavPath);
     expect(wav.subarray(0, 4).toString("ascii")).toBe("RIFF");
+    const pcm = await readPcm(wavPath, { sampleRate: 8000 });
+    expect(rmsBetween(pcm, 0.1, 0.9)).toBeGreaterThan(0.05);
     expect(body.asset?.size).toBe(wav.byteLength);
     // The WAV was thumbnailed from its file.
     await fs.access(path.join(root, USER, `${body.asset!.id}_thumb.jpg`));

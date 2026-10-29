@@ -12,6 +12,7 @@ import {
   type ChatStatus
 } from "../types/chat.types";
 import type { MediaGenerationRequest } from "../types/media.types";
+import type { MediaGenerationCategory } from "../../../stores/MediaGenerationStore";
 
 const styles = (_theme: Theme) =>
   css({
@@ -59,6 +60,8 @@ type ChatInputSectionProps = {
   hideModelPicker?: boolean;
   /** Thread this composer writes to; used to pick up a seeded prompt. */
   threadId?: string | null;
+  /** When set, scopes the composer to a single media generation category. */
+  mediaCategory?: MediaGenerationCategory | null;
 };
 
 const ChatInputSection = ({
@@ -73,7 +76,8 @@ const ChatInputSection = ({
   placeholder,
   hideModePicker,
   hideModelPicker,
-  threadId
+  threadId,
+  mediaCategory
 }: ChatInputSectionProps) => {
   const isLoading = status === "loading";
   const isStreaming = status === "streaming";
@@ -96,6 +100,7 @@ const ChatInputSection = ({
           hideModePicker={hideModePicker}
           hideModelPicker={hideModelPicker}
           threadId={threadId}
+          mediaCategory={mediaCategory}
         />
       </div>
     </div>

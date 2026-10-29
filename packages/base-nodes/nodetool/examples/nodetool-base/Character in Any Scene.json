@@ -1,0 +1,276 @@
+{
+  "id": "character-in-any-scene-000000001",
+  "access": "public",
+  "created_at": "2026-10-26T12:00:00.000000",
+  "updated_at": "2026-10-26T12:00:00.000000",
+  "name": "Character in Any Scene",
+  "description": "Place a reference character into a new environment while preserving facial identity and wardrobe, then animate the shot with a named camera move. Estimated cost is about $0.08 for the reference-guided still plus $0.35 to $0.85 for the video clip on fal, or $0 locally with Flux and Wan 2.2.",
+  "tags": [
+    "image",
+    "video",
+    "higgsfield-pack",
+    "characters",
+    "example"
+  ],
+  "required_providers": [
+    "fal"
+  ],
+  "thumbnail": "AI Spokesperson.jpg",
+  "graph": {
+    "edges": [
+      {
+        "id": "e1",
+        "source": "character_descriptor",
+        "sourceHandle": "output",
+        "target": "scene_still_prompt",
+        "targetHandle": "character"
+      },
+      {
+        "id": "e2",
+        "source": "scene_prompt",
+        "sourceHandle": "output",
+        "target": "scene_still_prompt",
+        "targetHandle": "scene"
+      },
+      {
+        "id": "e3",
+        "source": "character_photo",
+        "sourceHandle": "output",
+        "target": "scene_still",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e4",
+        "source": "scene_still_prompt",
+        "sourceHandle": "output",
+        "target": "scene_still",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e5",
+        "source": "scene_still",
+        "sourceHandle": "output",
+        "target": "still_out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e6",
+        "source": "scene_still",
+        "sourceHandle": "output",
+        "target": "scene_clip",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e7",
+        "source": "camera_move",
+        "sourceHandle": "output",
+        "target": "scene_motion_prompt",
+        "targetHandle": "move"
+      },
+      {
+        "id": "e8",
+        "source": "scene_prompt",
+        "sourceHandle": "output",
+        "target": "scene_motion_prompt",
+        "targetHandle": "scene"
+      },
+      {
+        "id": "e9",
+        "source": "scene_motion_prompt",
+        "sourceHandle": "output",
+        "target": "scene_clip",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e10",
+        "source": "scene_clip",
+        "sourceHandle": "output",
+        "target": "clip_out",
+        "targetHandle": "value"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Character in Any Scene\n\n**Character in Any Scene** places a reference portrait into a new setting and animates the resulting frame.\n\n1. **Character Photo**, **Character Descriptor**, and **Scene Prompt** drive **ImageToImage** so the character's identity carries into the new environment.\n2. **ImageToVideo** animates that scene keyframe using your chosen **Camera Move**."
+        },
+        "position": {
+          "x": 80,
+          "y": -220
+        },
+        "width": 680,
+        "height": 170
+      },
+      {
+        "id": "character_photo",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "character_photo",
+          "value": {
+            "type": "image",
+            "uri": "package://nodetool-base/recipe-inputs/ugc-creator-reference.png",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "description": "Reference photo of the character to keep consistent."
+        },
+        "position": {
+          "x": 80,
+          "y": 40
+        }
+      },
+      {
+        "id": "character_descriptor",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "character_descriptor",
+          "value": "woman in her late 20s, dark wavy bob, olive linen jacket, silver hoop earrings",
+          "description": "Identity and wardrobe cues to preserve.",
+          "line_mode": "multi_line"
+        },
+        "position": {
+          "x": 80,
+          "y": 280
+        }
+      },
+      {
+        "id": "scene_prompt",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "scene_prompt",
+          "value": "Standing on a rain-slicked Tokyo rooftop at dusk with neon reflections in puddles behind her",
+          "description": "New setting, lighting, and action for the shot.",
+          "line_mode": "multi_line"
+        },
+        "position": {
+          "x": 80,
+          "y": 460
+        }
+      },
+      {
+        "id": "camera_move",
+        "type": "nodetool.input.SelectInput",
+        "data": {
+          "name": "camera_move",
+          "value": "dolly in",
+          "options": [
+            "static",
+            "slow push in",
+            "dolly in",
+            "dolly out",
+            "dolly zoom (vertigo)",
+            "orbit left",
+            "orbit right",
+            "crane up",
+            "tracking",
+            "handheld follow",
+            "pull back reveal",
+            "low-angle hero rise"
+          ],
+          "enum_type_name": "camera_move",
+          "description": "Camera movement for the animated clip."
+        },
+        "position": {
+          "x": 80,
+          "y": 640
+        }
+      },
+      {
+        "id": "scene_still_prompt",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "Keep the exact facial identity and features of the reference person ({{ character }}). Place her in this scene: {{ scene }}. Natural 35mm cinema lighting, shallow depth of field.",
+          "values": {}
+        },
+        "position": {
+          "x": 380,
+          "y": 240
+        }
+      },
+      {
+        "id": "scene_still",
+        "type": "nodetool.image.ImageToImage",
+        "data": {
+          "model": {
+            "type": "image_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          },
+          "strength": 0.65,
+          "aspect_ratio": "16:9"
+        },
+        "position": {
+          "x": 660,
+          "y": 200
+        }
+      },
+      {
+        "id": "scene_motion_prompt",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "Camera movement: {{ move }}. {{ scene }}. Keep the character's face and wardrobe consistent throughout the camera move.",
+          "values": {}
+        },
+        "position": {
+          "x": 660,
+          "y": 540
+        }
+      },
+      {
+        "id": "scene_clip",
+        "type": "nodetool.video.ImageToVideo",
+        "data": {
+          "model": {
+            "type": "video_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          },
+          "aspect_ratio": "16:9",
+          "resolution": "1080p",
+          "duration": 5
+        },
+        "position": {
+          "x": 960,
+          "y": 380
+        }
+      },
+      {
+        "id": "still_out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "scene_still",
+          "description": "The reference-guided character still in the new scene."
+        },
+        "position": {
+          "x": 960,
+          "y": 140
+        }
+      },
+      {
+        "id": "clip_out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "scene_video",
+          "description": "The animated character shot."
+        },
+        "position": {
+          "x": 1240,
+          "y": 380
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

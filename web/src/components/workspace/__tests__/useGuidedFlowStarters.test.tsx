@@ -4,7 +4,16 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { useEntityLibraryStore } from "../../../stores/EntityLibraryStore";
 
-jest.mock("../../../stores/GlobalChatStore", () => ({ __esModule: true, default: { getState: () => ({ threads: {} }) } }));
+const createNewThread = jest.fn(async () => "thread-gen-1");
+jest.mock("../../../stores/GlobalChatStore", () => ({
+  __esModule: true,
+  default: {
+    getState: () => ({
+      threads: {},
+      createNewThread
+    })
+  }
+}));
 
 const createStoryboard = jest.fn(async () => ({
   id: "b1",
@@ -43,22 +52,19 @@ jest.mock("../../../stores/NotificationStore", () => ({
 }));
 
 const openTab = jest.fn();
+const workspaceStoreState = {
+  openTab,
+  openForegroundTab: openTab,
+  activeProjectId: "p-current" as string | null,
+  personalProjectId: null as string | null
+};
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   creationProjectId: () => "p-current",
-  useWorkspaceTabsStore: <T,>(
-    selector: (s: {
-      openTab: jest.Mock;
-      openForegroundTab: jest.Mock;
-      activeProjectId: string | null;
-      personalProjectId: string | null;
-    }) => T
-  ): T =>
-    selector({
-      openTab,
-      openForegroundTab: openTab,
-      activeProjectId: "p-current",
-      personalProjectId: null
-    }),
+  useWorkspaceTabsStore: Object.assign(
+    <T,>(selector: (s: typeof workspaceStoreState) => T): T =>
+      selector(workspaceStoreState),
+    { getState: () => workspaceStoreState }
+  ),
   LOOSE_PROJECT_ID: "default"
 }));
 
@@ -173,34 +179,37 @@ it("starts the Game flow on a workflow that carries the game setup", async () =>
   expect(openTab).toHaveBeenCalledWith(expect.objectContaining({ type: "workflow", projectId: "p-game" }));
 });
 
-it("names the picture flow Image in the menu and its new tab New image", async () => {
-  (startImageFlow as jest.Mock).mockImplementation(async (o: { name: string }) => ({
-    documentId: "sk-1",
-    name: o.name
-  }));
+it("names the picture flow Image in the menu and opens an Image generation tab", async () => {
   const { hook } = renderStarters();
   const image = hook.result.current.starters.find((entry) => entry.id === "image")!;
   expect(image.title).toBe("Image");
   await act(async () => { await image.start("p1"); });
-  expect(startImageFlow).toHaveBeenCalledWith(expect.objectContaining({ name: "New image" }));
-  expect(openTab).toHaveBeenCalledWith(expect.objectContaining({ type: "sketch", title: "New image" }));
+  expect(createNewThread).toHaveBeenCalledWith("New image", null, {
+    projectId: "p1",
+    mediaMode: "image"
+  });
+  expect(openTab).toHaveBeenCalledWith(expect.objectContaining({ type: "chat", title: "New image", projectId: "p1" }));
 });
 
-// The setup PATCH follows the create. When it fails, the empty timeline it
-// was for is deleted rather than left in the project (F15).
-it("deletes the new timeline when its setup cannot be written", async () => {
-  timelineUpdate.mockRejectedValueOnce(new Error("PATCH refused"));
+it("names the video flow Video in the menu and opens a Video generation tab", async () => {
   const { hook } = renderStarters();
   const video = hook.result.current.starters.find(
     (entry) => entry.id === "video"
   )!;
+  expect(video.title).toBe("Video");
   await act(async () => {
-    await video.start();
+    await video.start("p1");
   });
 
-  expect(deleteTimeline).toHaveBeenCalledWith({ id: "seq-1" });
-  expect(openTab).not.toHaveBeenCalled();
-  expect(addNotification).toHaveBeenCalledWith(
-    expect.objectContaining({ type: "error" })
+  expect(createNewThread).toHaveBeenCalledWith("New video", null, {
+    projectId: "p1",
+    mediaMode: "video"
+  });
+  expect(openTab).toHaveBeenCalledWith(
+    expect.objectContaining({
+      type: "chat",
+      title: "New video",
+      projectId: "p1"
+    })
   );
 });

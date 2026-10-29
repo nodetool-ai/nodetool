@@ -416,9 +416,10 @@ describe("Meta transcription audio", () => {
     expect(isTranscribeReadyWav(bytes)).toBe(ready);
   });
 
-  it("transcodes other audio to mono 16-bit WAV with ffmpeg", async () => {
+  it("transcodes other audio to mono 16-bit WAV at 24 kHz", async () => {
     const converted = await toTranscribeWav(wav({ channels: 2, sampleRate: 44100 }));
     expect(isTranscribeReadyWav(converted)).toBe(true);
+    expect(new DataView(converted.buffer, converted.byteOffset).getUint32(24, true)).toBe(24000);
   });
 
   it("names languages the way languageBias expects", () => {

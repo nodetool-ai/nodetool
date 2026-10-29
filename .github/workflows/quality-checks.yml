@@ -191,11 +191,9 @@ jobs:
   #   mesa-vulkan-drivers ships lavapipe (CPU Vulkan ICD) so Dawn can
   #   acquire a WebGPU adapter on GPU-less runners — without it the
   #   shader-backed base-nodes tests fail with "No WebGPU adapter
-  #   available (Node/Dawn)". ffmpeg decodes the clip the runtime's
-  #   video-frame fallback samples for providers with no video content
-  #   part; without it those tests have nothing to decode. Every shard
-  #   installs both: the apt step costs seconds, and a package that
-  #   moves between shards must not lose its driver on the way.
+  #   available (Node/Dawn)". Every shard installs it: the apt step costs
+  #   seconds, and a package that moves between shards must not lose its
+  #   driver on the way. Media tests need no ffmpeg: libav runs in process.
   #
   # `test-packages-nodes`:
   #   CI installs no Blender, so the Blender integration suites
@@ -291,7 +289,7 @@ jobs:
               "check": "typecheck",
               "command": "npm run typecheck && npm test --workspace=@nodetool-ai/base-nodes -- parity example-workflows && npm run validate:examples && npm run build:example-apps:check && npm run codegen:dsl:check && npm run build:sandbox-dsl:check && npm run build:sandbox-flow:check && npm run typecheck:examples && npm run capabilities:check && npm run check:node-catalog && npm run backend:smoke",
               "mobile-deps": "true",
-              "extra-apt": "mesa-vulkan-drivers ffmpeg",
+              "extra-apt": "mesa-vulkan-drivers",
               "is-test": "false",
               "fetch-depth": "1",
               "when": "always",
@@ -301,7 +299,7 @@ jobs:
               "check": "test-packages-websocket",
               "command": "npx turbo run test --filter=@nodetool-ai/websocket $TURBO_AFFECTED",
               "mobile-deps": "false",
-              "extra-apt": "mesa-vulkan-drivers ffmpeg",
+              "extra-apt": "mesa-vulkan-drivers",
               "is-test": "true",
               "fetch-depth": "0",
               "when": "packages_websocket",
@@ -311,7 +309,7 @@ jobs:
               "check": "test-packages-agents",
               "command": "npx turbo run test --filter=@nodetool-ai/agents $TURBO_AFFECTED",
               "mobile-deps": "false",
-              "extra-apt": "mesa-vulkan-drivers ffmpeg",
+              "extra-apt": "mesa-vulkan-drivers",
               "is-test": "true",
               "fetch-depth": "0",
               "when": "packages_agents",
@@ -321,7 +319,7 @@ jobs:
               "check": "test-packages-nodes",
               "command": "npx turbo run test --filter='./packages/*-nodes' --filter=@nodetool-ai/gpu --filter=@nodetool-ai/workflow-runner --filter=@nodetool-ai/nodes-utils $TURBO_AFFECTED",
               "mobile-deps": "false",
-              "extra-apt": "mesa-vulkan-drivers ffmpeg libgl1 libegl1 libsm6 libxi6 libxrender1 libxfixes3 libxkbcommon0 libxxf86vm1",
+              "extra-apt": "mesa-vulkan-drivers libgl1 libegl1 libsm6 libxi6 libxrender1 libxfixes3 libxkbcommon0 libxxf86vm1",
               "is-test": "true",
               "fetch-depth": "0",
               "when": "packages_nodes",
@@ -331,7 +329,7 @@ jobs:
               "check": "test-packages-core",
               "command": "npm run test:oxlint-rules && npm run test:scripts && npx turbo run test --filter='./packages/*' --filter='./reliability/*' --filter='!./packages/*-nodes' --filter='!@nodetool-ai/gpu' --filter='!@nodetool-ai/workflow-runner' --filter='!@nodetool-ai/nodes-utils' --filter='!@nodetool-ai/websocket' --filter='!@nodetool-ai/agents' --filter='!@nodetool-ai/game-runtime' --filter='!@nodetool-ai/game-renderer' --filter='!@nodetool-ai/cli' --concurrency=2 $TURBO_AFFECTED",
               "mobile-deps": "false",
-              "extra-apt": "mesa-vulkan-drivers ffmpeg",
+              "extra-apt": "mesa-vulkan-drivers",
               "is-test": "true",
               "fetch-depth": "0",
               "when": "packages_core",
@@ -341,7 +339,7 @@ jobs:
               "check": "test-packages-game",
               "command": "npx turbo run test --filter=@nodetool-ai/game-runtime --filter=@nodetool-ai/game-renderer --filter=@nodetool-ai/cli --concurrency=1 $TURBO_AFFECTED",
               "mobile-deps": "false",
-              "extra-apt": "mesa-vulkan-drivers ffmpeg",
+              "extra-apt": "mesa-vulkan-drivers",
               "is-test": "true",
               "fetch-depth": "0",
               "when": "packages_game",
@@ -391,7 +389,7 @@ jobs:
               "check": "harness-gate",
               "command": "if [ -n \"$CI_BASE_SHA\" ]; then npm run dev:nodetool -- harness gate --base \"$CI_BASE_SHA\" --json --jobs 1 --timeout 1500 $NODETOOL_HARNESS_INCLUDE_SUITES; else npm run dev:nodetool -- harness gate --all --json --jobs 1 --timeout 1500 $NODETOOL_HARNESS_INCLUDE_SUITES; fi",
               "mobile-deps": "false",
-              "extra-apt": "mesa-vulkan-drivers ffmpeg",
+              "extra-apt": "mesa-vulkan-drivers",
               "is-test": "false",
               "fetch-depth": "0",
               "when": "always",
@@ -599,15 +597,15 @@ jobs:
           # The dist comes from the artifact below; don't rebuild it per leg.
           build-packages: "false"
 
-      - name: Install Chromium for native 3D tests
-        if: matrix.check == 'test-packages-core' || matrix.check == 'test-packages-game' || matrix.check == 'test-packages-agents' || matrix.check == 'harness-gate'
+      - name: Install Chromium for native 3D and timeline browser tests
+        if: matrix.check == 'test-packages-core' || matrix.check == 'test-packages-game' || matrix.check == 'test-packages-agents' || matrix.check == 'test-packages-nodes' || matrix.check == 'harness-gate'
         run: npx playwright install --with-deps chromium
 
       # Ubuntu restricts user namespaces for downloaded Chromium binaries.
       # Allow only Playwright's browser paths so capture keeps its sandbox.
       # https://chromium.googlesource.com/chromium/src/+/main/docs/security/apparmor-userns-restrictions.md
       - name: Enable and verify the Chromium sandbox
-        if: matrix.check == 'test-packages-core' || matrix.check == 'test-packages-game' || matrix.check == 'test-packages-agents' || matrix.check == 'harness-gate'
+        if: matrix.check == 'test-packages-core' || matrix.check == 'test-packages-game' || matrix.check == 'test-packages-agents' || matrix.check == 'test-packages-nodes' || matrix.check == 'harness-gate'
         run: |
           sudo tee /etc/apparmor.d/nodetool-playwright > /dev/null <<'PROFILE'
           abi <abi/4.0>,
@@ -935,7 +933,7 @@ jobs:
         # the server uses on Node/Dawn.
         uses: ./.github/actions/setup-build
         with:
-          extra-apt: mesa-vulkan-drivers ffmpeg
+          extra-apt: mesa-vulkan-drivers
 
       - name: Run shipped-workflow execution tests
         if: ${{ !cancelled() && needs.changes.outputs.integration == 'true' }}

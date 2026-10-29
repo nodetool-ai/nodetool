@@ -65,6 +65,17 @@ describe("FirstWorkflowGuide", () => {
     expect(props.onChooseOwn).toHaveBeenCalledTimes(1);
   });
 
+  it("surfaces a direct button to browse shipped templates when provided", async () => {
+    const user = userEvent.setup();
+    const onBrowseTemplates = jest.fn();
+    renderGuide({ onBrowseTemplates });
+
+    await user.click(
+      screen.getByRole("button", { name: "Start from a template" })
+    );
+    expect(onBrowseTemplates).toHaveBeenCalledTimes(1);
+  });
+
   it("shows task readiness through the first completed run", () => {
     renderGuide({
       started: true,
