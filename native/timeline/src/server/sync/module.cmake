@@ -44,9 +44,8 @@ function(nt_sync_e2e_host)
     target_link_libraries(sync-e2e-host PRIVATE timeline_core timeline_decode timeline_audio timeline_server
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
     nt_add_timeline_qml(sync-e2e-host OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/sync_e2e_qml/NodeTool/Timeline)
-    if(UNIX AND NOT APPLE)
-        target_sources(sync-e2e-host PRIVATE src/preview/hw/HwWindow.h src/preview/hw/HwWindow.cpp)
-    endif()
+    # SyncE2eHost.cpp calls hw::prepareWindow on every platform.
+    target_sources(sync-e2e-host PRIVATE src/preview/hw/HwWindow.h src/preview/hw/HwWindow.cpp)
     set_target_properties(sync-e2e-host PROPERTIES MACOSX_BUNDLE FALSE)
 endfunction()
 nt_tests(nt_sync_e2e_host)
