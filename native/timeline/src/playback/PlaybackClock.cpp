@@ -200,6 +200,11 @@ double PlaybackClock::currentTimeMs() const {
     return boundedTimeLocked(rawTimeLocked(m_nowNs()));
 }
 
+std::uint64_t PlaybackClock::seekSerial() const {
+    std::lock_guard lock(m_mutex);
+    return m_seekSerial;
+}
+
 double PlaybackClock::boundedTimeLocked(double ms) const {
     if (m_rate < 0.0 && ms <= m_floorMs) {
         return m_floorMs;
@@ -283,6 +288,7 @@ void PlaybackClock::playInToOut() {
         m_rate = 1.0;
         updateBoundsLocked();
         m_timeMs = resolveStartLocked(m_rangeInMs >= 0.0 ? m_rangeInMs : 0.0);
+        ++m_seekSerial;
         anchorLocked(m_timeMs, m_nowNs());
         sourceChanged = wasAudio != (m_source == Source::Audio);
     }
@@ -348,6 +354,7 @@ void PlaybackClock::seek(double ms) {
         std::lock_guard lock(m_mutex);
         const bool wasAudio = m_source == Source::Audio;
         m_timeMs = clampTime(ms);
+        ++m_seekSerial;
         const std::int64_t now = m_nowNs();
         if (m_playing) {
             updateBoundsLocked();
@@ -435,6 +442,7 @@ void PlaybackClock::tick() {
         if (m_rate > 0.0 && m_endMs > 0.0 && t >= m_endMs) {
             if (m_loop && m_endMs > m_floorMs) {
                 m_timeMs = m_floorMs;
+                ++m_seekSerial;
                 anchorLocked(m_timeMs, now);
             } else {
                 m_timeMs = m_endMs;

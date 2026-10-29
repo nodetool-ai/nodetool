@@ -8,7 +8,8 @@ const dir = fs.mkdtempSync(path.join(scratchBase, 'nt-export-cancel-'));
 try {
   const fixture = path.join(root, 'fixtures/av-sync.json');
   const oversized = JSON.parse(fs.readFileSync(fixture));
-  Object.assign(oversized.clips[0], { startMs: 0, durationMs: 2184500,
+  oversized.durationMs = 2184600;
+  Object.assign(oversized.clips[0], { startMs: 0, durationMs: 2184600,
     mediaPath: path.join(root, 'fixtures', oversized.clips[0].mediaPath) });
   const oversizedFixture = path.join(dir, 'oversized.json');
   fs.writeFileSync(oversizedFixture, JSON.stringify(oversized));

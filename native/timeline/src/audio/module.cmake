@@ -12,13 +12,14 @@ nt_sources(audio
     src/audio/AudioEngine.cpp
     src/audio/LoopbackCapture.h
     src/audio/LoopbackCapture.cpp
+    src/audio/AppAudio.h
+    src/audio/AppAudio.cpp
     src/audio/AudioMode.h
     src/audio/AudioMode.cpp
     src/audio/miniaudio.cpp
 )
+cmake_language(DEFER CALL target_link_libraries timeline_audio PRIVATE Qt6::Gui)
 nt_sources(app
-    src/audio/AppAudio.h
-    src/audio/AppAudio.cpp
     src/audio/AudioCli.h
     src/audio/AudioCli.cpp
 )

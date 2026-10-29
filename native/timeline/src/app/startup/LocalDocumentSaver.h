@@ -15,6 +15,7 @@ signals:
 private:
     QPointer<TimelineModel> m_model;
     QString m_path;
+    QByteArray m_committedBytes;
     QTimer m_timer;
     bool m_dirty = false;
     bool m_active = true;

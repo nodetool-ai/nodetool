@@ -1,4 +1,8 @@
 function(nt_motion_prism_tests)
+    qt_add_executable(tst_motion_prism src/motion/prism/tst_prism.cpp)
+    target_link_libraries(tst_motion_prism PRIVATE timeline_decode Qt6::Test PkgConfig::FFMPEG)
+    target_compile_definitions(tst_motion_prism PRIVATE NT_PRISM_FIXTURES="${CMAKE_CURRENT_SOURCE_DIR}/src/motion/prism/fixtures")
+    add_test(NAME tst_motion_prism COMMAND tst_motion_prism)
     add_test(NAME motion_prism_contract COMMAND node --test "${CMAKE_CURRENT_SOURCE_DIR}/src/motion/prism/oracle.test.mjs")
 endfunction()
 nt_tests(nt_motion_prism_tests)

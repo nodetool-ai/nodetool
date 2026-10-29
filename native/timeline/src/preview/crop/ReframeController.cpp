@@ -17,6 +17,7 @@ void ReframeController::setModel(TimelineModel* model) {
     }
     m_model = model;
     if (model) {
+        connect(model, &TimelineModel::beforeCommand, this, &ReframeController::cancelGesture);
         connect(model, &TimelineModel::clipsChanged, this, &ReframeController::documentChanged);
         connect(model, &TimelineModel::timelineChanged, this, &ReframeController::documentChanged);
         connect(model, &TimelineModel::documentReplaced, this, [this] { m_before = {}; });
@@ -36,7 +37,9 @@ void ReframeController::beginGesture(const QString& action, const QJsonObject& p
     if (!m_model) {
         return;
     }
+    m_cancelled = false;
     m_before = QJsonDocument::fromJson(m_model->documentJson()).object();
+    m_lastPreview = m_model->clipsJson();
     m_payload = payload;
     m_generation = m_model->documentGeneration();
     m_action = action;
@@ -46,6 +49,7 @@ void ReframeController::preview(const QJsonObject& payload) {
     if (!m_model || !m_gesture || m_before.isEmpty() || m_generation != m_model->documentGeneration()) {
         return;
     }
+    if (m_lastPreview != m_model->clipsJson()) { m_gesture = false; m_cancelled = true; return; }
     // The clip, crop edge and source time belong to the gesture's start.
     for (const auto& key : {"value", "x", "y", "zoom"}) {
         if (payload.contains(key)) {
@@ -54,10 +58,12 @@ void ReframeController::preview(const QJsonObject& payload) {
     }
     const auto edit = nt::app::findEdit(m_action);
     if (edit) {
-        m_model->replaceClips(edit(m_before, m_payload).value("clips").toArray());
+        m_lastPreview = edit(m_before, m_payload).value("clips").toArray();
+        m_model->replaceClips(m_lastPreview);
     }
 }
 void ReframeController::commit(const QString& action, const QJsonObject& payload) {
+    if (m_cancelled) { m_cancelled = false; return; }
     if (!m_gesture) {
         apply(action, payload);
         return;
@@ -74,6 +80,16 @@ void ReframeController::finishGesture() {
     if (m_model && !before.isEmpty() && m_generation == m_model->documentGeneration()) {
         m_model->commitEdit(m_action, before.value("clips").toArray(), m_model->clipsJson());
     }
+}
+void ReframeController::cancelGesture() {
+    if (!m_gesture) { return; }
+    m_gesture = false;
+    m_cancelled = true;
+    if (m_model && m_generation == m_model->documentGeneration() && m_lastPreview == m_model->clipsJson()) {
+        m_model->replaceClips(m_before.value("clips").toArray());
+    }
+    m_before = {};
+    m_lastPreview = {};
 }
 double ReframeController::sourceMsAt(const QString& clipId, double timeMs) const {
     if (m_model) {

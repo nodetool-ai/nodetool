@@ -1,5 +1,9 @@
 # Gap plan backlog
 
+AI workflow parity is tracked separately in
+[AI-WORKFLOWS.md](AI-WORKFLOWS.md). The original editing milestones and review
+backlog do not establish AI completion.
+
 Only P0 and P1 review findings block a merge in the gap run. Every P2 finding
 still open in a package's last Codex review is listed here when the package
 merges. A package or a later fix round closes an entry and moves it to

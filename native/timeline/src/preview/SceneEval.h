@@ -17,11 +17,10 @@
 //   - flex layout (scene/FlexLayout.h, on Yoga): the transforms and the
 //     rect, ellipse and text sizes of the clips in a flex group, laid out
 //     again each frame with animated text (scene/TextAnimation.h).
-// Animation links and track bindings are not ported; the
-// loader report lists the clips they touch (effect "plan").
 // Pure functions, no Qt GUI or GPU types.
 
 #include "model/TimelineTypes.h"
+#include "motion/blur/Shutter.h"
 #include "scene/Animation.h"
 
 #include <QJsonObject>
@@ -87,6 +86,7 @@ struct ActiveLayer {
     // compositor draws a child into its group surface with its own `opacity`
     // and applies the group's once, to the surface (DESIGN.md D35).
     double drawOpacity = 1.0;
+    double borderRadius = 0.0;
     std::string blendMode = "normal";
     // The animated transform, the camera applied. Absent: the clip has none.
     std::optional<ClipTransform> transform;
@@ -142,6 +142,8 @@ struct SceneFrame {
     std::vector<ActiveLayer> layers;  // bottom to top (stable by z)
     std::vector<PrecompositeLayer> precomposites;  // innermost first
     std::vector<DroppedLayer> dropped;
+    // Retain expanded copies for decoder identities and secondary-source providers.
+    std::vector<Clip> evaluatedClips;
 };
 
 // Base for `trackZ`: track index 0 (the top UI row) gets the highest z.
@@ -179,6 +181,8 @@ FlexCacheStats flexLayoutCacheStats();
 
 // The whole scene at `timeMs`.
 SceneFrame evaluateScene(const Timeline& timeline, double timeMs);
+motion::Shutter resolveFrameShutter(const Timeline& timeline, double frameTimeMs, double frameMs);
+SceneFrame evaluateSceneTap(const Timeline& timeline, double sceneTimeMs, double frameTimeMs, int sampleIndex, int sampleCount);
 
 // The layers of `evaluateScene`, bottom to top.
 std::vector<ActiveLayer> activeLayersAt(const Timeline& timeline, double timeMs);

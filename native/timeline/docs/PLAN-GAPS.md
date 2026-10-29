@@ -2,7 +2,8 @@
 
 This plan covers the features that the native editor still lacks compared
 with the web editor, inside the agreed scope: video and audio clip editing,
-no AI features. [PLAN.md](PLAN.md) covers milestones M0 to M6, which are done
+with the original AI scope tracked separately in [AI-WORKFLOWS.md](AI-WORKFLOWS.md).
+[PLAN.md](PLAN.md) covers milestones M0 to M6, which are done
 apart from the reference-machine checks. The gap list comes from a code check
 against `web/src/components/timeline/` on the `feat/native-timeline` branch.
 
@@ -992,8 +993,9 @@ Exit, and how each is checked:
 - F19, the signed and notarized macOS app: it needs the user's Apple
   developer identity. Windows and Linux reference-machine benches: they need
   those machines or a CI push, which is the user's decision.
-- AI features: generation, AI edit, line delivery, image to video, extend,
-  the assistant, the transcript and storyboard panels.
+- AI workflows now have a separate capability checklist in
+  [AI-WORKFLOWS.md](AI-WORKFLOWS.md). They are outside these editing packages,
+  and their completion must be checked there.
 - MIDI clips and instruments.
 
 ## Risks

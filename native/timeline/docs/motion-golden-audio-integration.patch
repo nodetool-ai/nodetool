@@ -1,9 +1,0 @@
---- a/native/timeline/scripts/golden-import.mjs
-+++ b/native/timeline/scripts/golden-import.mjs
-@@ -29,5 +29,5 @@
- const repoRoot = path.resolve(root, "..", "..");
-
--const CONTENT_TYPES = { ".mp4": "video/mp4", ".mov": "video/quicktime", ".png": "image/png", ".jpg": "image/jpeg" };
-+const CONTENT_TYPES = { ".mp4": "video/mp4", ".mov": "video/quicktime", ".png": "image/png", ".jpg": "image/jpeg", ".wav": "audio/wav" };
-
- function parseArgs(argv) {

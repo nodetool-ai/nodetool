@@ -1,3 +1,8 @@
+nt_sources(app src/motion/mattes/MatteResolver.h src/motion/mattes/MatteResolver.cpp)
+function(nt_matte_service_tests)
+    target_sources(tst_assetbrowser PRIVATE src/motion/mattes/MatteResolver.cpp src/motion/mattes/MatteResolver.h)
+endfunction()
+nt_tests(nt_matte_service_tests)
 function(nt_matte_carrier_tests)
     qt_add_executable(tst_mattecarrier src/motion/mattes/tst_mattecarrier.cpp
         src/preview/effects/EffectsRegistrations.cpp src/export/OffscreenFrames.cpp
@@ -14,3 +19,4 @@ function(nt_matte_carrier_tests)
     add_test(NAME tst_mattecarrier COMMAND tst_mattecarrier)
     set_tests_properties(tst_mattecarrier PROPERTIES LABELS render)
 endfunction()
+nt_tests(nt_matte_carrier_tests)

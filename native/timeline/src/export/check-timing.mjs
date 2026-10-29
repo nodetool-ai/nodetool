@@ -5,14 +5,15 @@ import path from 'node:path';
 import { root, run, exportFile, duration, scratchBase } from './check-export.mjs';
 const dir = fs.mkdtempSync(path.join(scratchBase, 'nt-export-timing-'));
 try {
-  for (const name of ['odd-size', 'av-sync', 'av-sync-fractional', 'fractional-grid']) {
+  for (const name of ['odd-size', 'av-sync', 'av-sync-fractional', 'fractional-grid', 'sequence-trim']) {
     let fixture = path.join(root, 'fixtures', `${name}.json`);
     let doc;
-    if (name === 'fractional-grid' || name === 'odd-size') {
+    if (name === 'fractional-grid' || name === 'odd-size' || name === 'sequence-trim') {
       doc = JSON.parse(fs.readFileSync(path.join(root, 'fixtures/av-sync-fractional.json')));
       doc.fps = 30000 / 1001;
       doc.clips[0].startMs = 0;
       doc.clips[0].durationMs = 1073;
+      doc.durationMs = name === 'sequence-trim' ? 573 : 1073;
       if (name === 'odd-size') {
         doc.width = 321;
         doc.height = 181;

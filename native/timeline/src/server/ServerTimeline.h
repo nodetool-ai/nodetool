@@ -49,6 +49,9 @@ struct ServerOpenResult {
 
 ServerOpenResult openServerTimeline(const ServerOpenOptions& options);
 
+// Normalize a supported asset reference for assets.get.
+QString assetIdForReference(const QString& reference);
+
 // The D33 version of an original: a hash of `updated_at`, `size` and
 // `content_type` from `assets.get`.
 QString originalVersion(const QJsonObject& asset);

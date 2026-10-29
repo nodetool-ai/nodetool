@@ -15,9 +15,16 @@ layout(binding=2) uniform sampler2D second;
 layout(binding=3) uniform sampler2D third;
 
 vec2 oriented(vec2 v) { return vec2(v.x,geometry.x>0.5 ? 1-v.y : v.y); }
-vec4 readSource(vec2 v) { return texture(source,oriented(v)); }
+vec4 readSource(vec2 v) {
+    if (geometry.w>0.5) {
+        v=clamp(v,(origin.xy+0.5)/dimensions.xy,(origin.xy+dimensions.zw-0.5)/dimensions.xy);
+    }
+    return texture(source,oriented(v));
+}
 vec4 loadSource(ivec2 c) {
-    c=clamp(c,ivec2(0),ivec2(dimensions.xy)-1);
+    ivec2 first=geometry.w>0.5 ? ivec2(origin.xy) : ivec2(0);
+    ivec2 last=geometry.w>0.5 ? ivec2(origin.xy+dimensions.zw)-1 : ivec2(dimensions.xy)-1;
+    c=clamp(c,first,last);
     if (geometry.x>0.5) { c.y=int(dimensions.y)-1-c.y; }
     return texelFetch(source,c,0);
 }
@@ -97,14 +104,18 @@ float visualFbm(vec2 v) {
     }
     return n;
 }
-vec4 visualSample(vec2 v) { return readSource(clamp(v,vec2(0),vec2(1))); }
+vec4 visualSample(vec2 v) {
+    v=clamp(v,vec2(0),vec2(1));
+    if (geometry.w>0.5) { v=(origin.xy+v*dimensions.zw)/dimensions.xy; }
+    return readSource(v);
+}
 vec4 visualFx(vec2 v) {
     int mode=int(round(p[0].x));
     float strength=max(0,p[0].y), scale=max(1,p[0].z), angle=p[0].w;
     float time=p[1].x, seed=p[1].y, softness=p[1].z;
     vec4 colorA=p[2], colorB=p[3];
     vec4 src=visualSample(v), result=src;
-    vec2 dims=dimensions.xy, q=v-vec2(0.5);
+    vec2 dims=geometry.w>0.5 ? dimensions.zw : dimensions.xy, q=v-vec2(0.5);
     if (mode==0) {
         vec2 delta=vec2(cos(angle),sin(angle))*strength/dims;
         vec4 red=visualSample(v+delta), blue=visualSample(v-delta);
@@ -195,9 +206,18 @@ void main() {
     vec2 logical=(uv*dimensions.xy-origin.xy)/dimensions.zw;
     vec4 src=readSource(uv);
     vec3 rgb=straight(src);
-    if (op==21) { fragColor=visualFx(uv); return; }
+    if (geometry.w>0.5 && (any(lessThan(pixel,origin.xy)) || any(greaterThanEqual(pixel,origin.xy+dimensions.zw)))) {
+        fragColor=vec4(0); return;
+    }
+    if (op==21) { fragColor=visualFx(geometry.w>0.5 ? logical : uv); return; }
     if (op==22) {
         vec2 maskUv=vec2(uv.x,p[0].x>0.5 ? 1-uv.y : uv.y);
+        if (p[1].x != 0.0) {
+            maskUv = maskUv * p[1].xy + p[1].zw;
+            if (any(lessThan(maskUv, vec2(0.0))) || any(greaterThan(maskUv, vec2(1.0)))) {
+                fragColor=vec4(0.0); return;
+            }
+        }
         fragColor=src*texture(second,maskUv).a; return;
     }
     if (op==23) {
@@ -343,8 +363,11 @@ void main() {
     else if (op==17) { fragColor=clamp(src+texture(second,oriented(uv))*p[0].x,0,1); return; }
     else if (op==18) {
         vec2 shadowUv=uv-p[1].xy/dimensions.xy;
-        float a=texture(second,oriented(shadowUv)).a;
-        if (any(lessThan(shadowUv,vec2(0))) || any(greaterThan(shadowUv,vec2(1)))) a=0;
+        vec2 first=geometry.w>0.5 ? origin.xy/dimensions.xy : vec2(0);
+        vec2 last=geometry.w>0.5 ? (origin.xy+dimensions.zw)/dimensions.xy : vec2(1);
+        vec2 shadowSampleUv=geometry.w>0.5 ? clamp(shadowUv,first+0.5/dimensions.xy,last-0.5/dimensions.xy) : shadowUv;
+        float a=texture(second,oriented(shadowSampleUv)).a;
+        if (any(lessThan(shadowUv,first)) || any(greaterThan(shadowUv,last))) a=0;
         float cov=clamp(a*p[0].w,0,1);
         fragColor=src+vec4(p[0].xyz*cov,cov)*(1-src.a); return;
     } else if (op==19) { fragColor=src.a<=0 ? vec4(0) : vec4(src.rgb/src.a,src.a); return; }

@@ -290,9 +290,38 @@ class TestMasks : public QObject {
             QVERIFY(*layer.matte->featherPx <= 256);
         }
     }
+    void assetOnlyMatte() {
+        nt::Clip clip;
+        clip.raw = {{"generatedMatte", QJsonObject{{"assetId", "cccccccccccccccccccccccccccccccc"},
+            {"strength", 0.4}, {"invert", true}, {"featherPx", 12}, {"unknown", 42}}}};
+        clip.generatedMattePath = "/cache/matte.mp4";
+        nt::ActiveLayer layer;
+        layer.sourceTimeMs = 725;
+        nt::effects::decorateMasks(layer, clip);
+        QVERIFY(layer.matte);
+        QCOMPARE(layer.matte->layer->sourceTimeMs, 725.);
+        const auto requests = nt::effects::generatedMatteSources(*layer.matte->layer, clip);
+        QCOMPARE(requests.size(), size_t{1});
+        QCOMPARE(requests.front().mediaPath, std::string("/cache/matte.mp4"));
+        auto reference = clip;
+        reference.generatedMattePath.clear();
+        auto matte = reference.raw.value("generatedMatte").toObject();
+        matte.insert("mediaPath", "/cache/matte.mp4");
+        reference.raw.insert("generatedMatte", matte);
+        nt::ActiveLayer comparison;
+        comparison.sourceTimeMs = 725;
+        nt::effects::decorateMasks(comparison, reference);
+        QVERIFY(comparison.matte);
+        QCOMPARE(layer.opacity, comparison.opacity);
+        QCOMPARE(layer.matte->invert, comparison.matte->invert);
+        QCOMPARE(layer.matte->featherPx, comparison.matte->featherPx);
+        QCOMPARE(layer.matte->layer->sourceTimeMs, comparison.matte->layer->sourceTimeMs);
+        QCOMPARE(nt::effects::generatedMatteSources(*comparison.matte->layer, reference).front().mediaPath, requests.front().mediaPath);
+    }
     void secondSourceRequests() {
         nt::Clip clip;
         clip.mediaPath = "/tmp/fixtures/picture.mp4";
+        clip.generatedMattePath = "/cache/other.mp4";
         clip.raw = {{"mediaPath", "picture.mp4"},
                     {"generatedMatte", QJsonObject{{"assetId", "id"},
                                                    {"mediaPath", "matte.mp4"},

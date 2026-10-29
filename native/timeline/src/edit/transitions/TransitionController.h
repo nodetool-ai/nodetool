@@ -24,9 +24,12 @@ signals:
 private:
     QJsonObject withSourceCaps(QJsonObject payload) const;
     QPointer<TimelineModel> m_model;
+    void cancelGesture();
+    QJsonArray m_lastPreview;
     QJsonObject m_before;
     QJsonObject m_payload;
     QString m_action;
     quint64 m_generation = 0;
     bool m_gesture = false;
+    bool m_cancelled = false;
 };

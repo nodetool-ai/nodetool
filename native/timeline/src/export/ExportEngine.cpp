@@ -194,8 +194,12 @@ Result exportTimeline(const Timeline& timeline, const Options& options, std::sto
         if (!std::isfinite(timeline.fps) || timeline.fps <= 0 || timeline.width <= 0 || timeline.height <= 0) {
             throw std::runtime_error("Invalid export frame rate or canvas size");
         }
-        double duration = timeline.clips.empty() ? timeline.durationMs : 0;
-        for (const auto& clip : timeline.clips) duration = std::max(duration, clip.endMs());
+        double duration = timeline.durationMs;
+        if (duration <= 0) {
+            for (const auto& clip : timeline.clips) {
+                duration = std::max(duration, clip.endMs());
+            }
+        }
         if (!std::isfinite(duration) || duration <= 0) throw std::runtime_error("Add a clip before exporting.");
         result.frames = std::max<qint64>(1, std::llround(duration * timeline.fps / 1000));
         result.fps = timeline.fps;

@@ -55,6 +55,7 @@ void TransformGizmoController::setTimeline(TimelineModel* value) {
     m_dimensions.clear();
     m_probing.clear();
     if (value) {
+        connect(value, &TimelineModel::beforeCommand, this, &TransformGizmoController::cancel);
         connect(value, &TimelineModel::clipsChanged, this, [this]() {
             // Another edit owns the document now. Never restore a stale gesture over it.
             if (m_drag && !m_writing && m_timeline->clipsJson() != m_lastPreview) { m_drag.reset(); }

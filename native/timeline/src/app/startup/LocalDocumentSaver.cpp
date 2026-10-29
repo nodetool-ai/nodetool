@@ -10,6 +10,8 @@ LocalDocumentSaver::LocalDocumentSaver(TimelineModel& model, QString path, int d
     m_timer.setInterval(debounceMs);
     const auto schedule = [this] {
         if (!m_active) { return; }
+        if (!m_model) { return; }
+        m_committedBytes = m_model->documentJson();
         m_dirty = true;
         m_timer.start();
     };
@@ -35,7 +37,7 @@ bool LocalDocumentSaver::flush() {
     m_timer.stop();
     if (!m_active || !m_dirty || !m_model) { return true; }
     QSaveFile file(m_path);
-    const auto bytes = m_model->documentJson();
+    const auto& bytes = m_committedBytes;
     if (!file.open(QIODevice::WriteOnly) || file.write(bytes) != bytes.size() || !file.commit()) {
         emit saveFailed(QStringLiteral("Cannot save %1: %2").arg(m_path, file.errorString()));
         return false;

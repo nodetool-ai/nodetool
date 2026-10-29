@@ -117,6 +117,7 @@ QImage blurCoverage(const QImage &source, double sigma) {
 QString generatedPath(const Clip &clip) {
     const auto raw = clip.raw.value("generatedMatte").toObject();
     const auto path = raw.value("mediaPath").toString();
+    if (path.isEmpty() && !clip.generatedMattePath.empty()) { return QString::fromStdString(clip.generatedMattePath); }
     if (path.isEmpty() || QFileInfo(path).isAbsolute()) {
         return path;
     }

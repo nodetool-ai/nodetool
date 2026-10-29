@@ -8,6 +8,7 @@ void InspectorEdits::setModel(TimelineModel* model) {
     if (m_model) { disconnect(m_model, nullptr, this, nullptr); }
     m_model = model;
     if (model) {
+        connect(model, &TimelineModel::beforeCommand, this, &InspectorEdits::cancelGesture);
         connect(model, &TimelineModel::clipsChanged, this, &InspectorEdits::documentChanged);
         connect(model, &TimelineModel::timelineChanged, this, &InspectorEdits::documentChanged);
         connect(model, &TimelineModel::documentReplaced, this, [this] {

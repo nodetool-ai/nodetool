@@ -1,5 +1,6 @@
 #include "model/TimelineModel.h"
 #include "model/TimelineJson.h"
+#include "model/TimelineJson.h"
 #include "app/EditRegistry.h"
 #include <QJsonDocument>
 #include <QJSEngine>
@@ -111,6 +112,43 @@ private slots:
         QVERIFY(!noChange.isError());
         QVERIFY(!noChange.toBool());
         QVERIFY(!model.applyEdit("missing", {}));
+    }
+    void mattePathSurvivesReparseWithoutChangingDocument() {
+        auto timeline = document();
+        auto clip = droppedClip();
+        clip.insert("generatedMatte", QJsonObject{{"assetId", "cccccccccccccccccccccccccccccccc"}, {"unknown", 42}});
+        timeline.raw.insert("clips", QJsonArray{clip});
+        auto parsed = nt::parseTimelineJson(QJsonDocument(timeline.raw).toJson());
+        QVERIFY(parsed.timeline);
+        parsed.timeline->clips.front().generatedMattePath = "/cache/matte.mp4";
+        TimelineModel model;
+        model.setTimeline(*parsed.timeline);
+        const auto before = model.documentJson();
+        auto edited = model.clipsJson();
+        auto changed = edited[0].toObject();
+        changed.insert("name", "edited");
+        edited[0] = changed;
+        QVERIFY(model.commitEdit("Rename", model.clipsJson(), edited));
+        QCOMPARE(model.timeline().clips.front().generatedMattePath, std::string("/cache/matte.mp4"));
+        model.undoStack()->undo();
+        QCOMPARE(model.documentJson(), before);
+        QCOMPARE(model.timeline().clips.front().generatedMattePath, std::string("/cache/matte.mp4"));
+        auto replacement = model.clipsJson();
+        auto replacementClip = replacement[0].toObject();
+        auto matte = replacementClip.value("generatedMatte").toObject();
+        matte.insert("assetId", "dddddddddddddddddddddddddddddddd");
+        replacementClip.insert("generatedMatte", matte);
+        replacement[0] = replacementClip;
+        QVERIFY(model.commitEdit("Replace matte", model.clipsJson(), replacement));
+        QVERIFY(model.timeline().clips.front().generatedMattePath.empty());
+        const auto replacementDocument = model.documentJson();
+        model.registerMatteMedia("dddddddddddddddddddddddddddddddd", "/cache/second.mp4");
+        QCOMPARE(model.documentJson(), replacementDocument);
+        QCOMPARE(model.timeline().clips.front().generatedMattePath, std::string("/cache/second.mp4"));
+        model.undoStack()->undo();
+        QCOMPARE(model.timeline().clips.front().generatedMattePath, std::string("/cache/matte.mp4"));
+        model.undoStack()->redo();
+        QCOMPARE(model.timeline().clips.front().generatedMattePath, std::string("/cache/second.mp4"));
     }
     void registerMediaKeepsHistory() {
         TimelineModel model;

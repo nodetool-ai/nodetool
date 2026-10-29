@@ -139,6 +139,22 @@ private slots:
         QVERIFY(probes > 5);
     }
 
+    void snapshotKeepsResolvedAssetMatte() {
+        auto parsed = nt::parseTimelineJson(R"({"width":64,"height":64,"fps":30,"tracks":[{"id":"v","type":"video"}],
+            "clips":[{"id":"c","trackId":"v","mediaType":"video","durationMs":1000,
+                "generatedMatte":{"assetId":"cccccccccccccccccccccccccccccccc","unknown":42}}]})");
+        QVERIFY(parsed.timeline);
+        parsed.timeline->clips.front().generatedMattePath = "/cache/matte.mp4";
+        TimelineModel model;
+        model.setTimeline(*parsed.timeline);
+        const auto before = model.documentJson();
+        const auto snapshot = nt::exporting::exportSnapshot(model);
+        const auto matte = snapshot["clips"].toArray().first().toObject()["generatedMatte"].toObject();
+        QCOMPARE(matte["mediaPath"].toString(), QString("/cache/matte.mp4"));
+        QCOMPARE(matte["unknown"].toInt(), 42);
+        QCOMPARE(model.documentJson(), before);
+    }
+
     void snapshotKeepsRelativeMatte() {
         const auto parsed = nt::parseTimelineJson(R"({"width":64,"height":64,"fps":30,"tracks":[{"id":"v","type":"video"}],
             "clips":[{"id":"c","trackId":"v","mediaType":"video","durationMs":1000,"mediaPath":"picture.mp4",

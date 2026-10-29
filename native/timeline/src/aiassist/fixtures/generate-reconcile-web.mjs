@@ -1,0 +1,12 @@
+import {reconcileScriptClips} from '../../../../../packages/timeline/dist/script.js';
+import {writeFileSync} from 'node:fs';
+const old = {id:'clip-one',trackId:'voice',scriptId:'script',scriptLineId:'one',currentAssetId:'asset-one',name:'Old',prompt:'Old',speaker:'Old speaker',provider:'old',model:'old',voice:'old',startMs:7000,durationMs:2000,inPointMs:25,caption:{words:[{word:'Original',startMs:0,endMs:2000}]}};
+const second = {...old,id:'clip-two',scriptLineId:'two',currentAssetId:'asset-two',startMs:10000};
+const removed={...old,id:'clip-removed',scriptLineId:'removed',currentAssetId:'asset-removed',startMs:14000};
+const music={id:'music',trackId:'music',mediaType:'audio',startMs:0,durationMs:15000};
+const timeline={id:'timeline',tracks:[{id:'voice',type:'audio'},{id:'music',type:'audio'}],clips:[old,second,removed,music],markers:[{id:'marker',timeMs:25}],custom:'preserved'};
+const line=id=>({id,text:'Revised '+id,currentTakeId:'take-'+id,takes:[{id:'take-'+id,assetId:'asset-'+id,durationMs:3000,words:[]}],pauseAfterMs:500});
+const script={id:'script',document:{cast:[],sections:[{id:'section',lines:[line('two'),line('one')]}]}};
+const projected=reconcileScriptClips(timeline,{scriptId:script.id,...script.document});
+const expected={...timeline,tracks:projected.tracks,clips:projected.clips};
+writeFileSync(new URL('./reconcile-web.json', import.meta.url),JSON.stringify({timeline,script,expected},null,2)+'\n');

@@ -14,6 +14,9 @@ void ClipInspectorController::setTimeline(TimelineModel* model) {
     }
     m_timeline = model;
     if (model) {
+        connect(model, &TimelineModel::beforeCommand, this, [this] {
+            if (m_gesturing) { cancelGesture(); m_ignoreCommit = true; }
+        });
         connect(model, &TimelineModel::clipsChanged, this, &ClipInspectorController::changed);
         connect(model, &TimelineModel::timelineChanged, this, &ClipInspectorController::changed);
         connect(model, &TimelineModel::documentReplaced, this, [this] {

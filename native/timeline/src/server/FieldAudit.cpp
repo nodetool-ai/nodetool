@@ -46,10 +46,9 @@ const Fields kClipInert = {
 // checked one by one below.
 const Fields kClipScene = {
     QStringLiteral("parentId"), QStringLiteral("repeater"), QStringLiteral("temporalEcho"),
-    QStringLiteral("steppedTime"),
+    QStringLiteral("steppedTime"), QStringLiteral("animationLinks"), QStringLiteral("trackBinding"),
 };
 const Fields kClipPlan = {
-    QStringLiteral("animationLinks"), QStringLiteral("trackBinding"),
 };
 // `layout` and `flexItem`: the flex layout (scene/FlexLayout.h), in the plan.
 const Fields kClipFlex = {QStringLiteral("layout"), QStringLiteral("flexItem")};
@@ -162,7 +161,7 @@ void auditClip(const QJsonObject& c, Collector& out) {
                 if (effects && seen.insert("effectChannels").second) out.add(QStringLiteral("animations.effectChannels"), "pixels");
             }
         } else if (key == u"timeRemap") {
-            out.add(key, "plan");  // moves the source time, which the plan compares
+            continue;
         } else if (kClipFlex.contains(key)) {
             continue;
         } else if (kClipPlan.contains(key)) {

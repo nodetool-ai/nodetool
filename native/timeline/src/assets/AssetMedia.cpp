@@ -11,24 +11,36 @@
 #include <vector>
 
 namespace nt::assets {
+namespace {
+std::mutex& protectionMutex() { static std::mutex mutex; return mutex; }
+QSet<MediaProtection*>& protections() { static QSet<MediaProtection*> instances; return instances; }
+}
+MediaProtection::MediaProtection() {
+    const std::lock_guard lock(protectionMutex());
+    protections().insert(this);
+}
+MediaProtection::~MediaProtection() {
+    const std::lock_guard lock(protectionMutex());
+    protections().remove(this);
+}
 void MediaProtection::reset(QSet<QString> paths) {
     QSet<QString> absolutePaths;
     for (const auto& path : paths) {
         if (!path.isEmpty()) { absolutePaths.insert(QFileInfo(path).absoluteFilePath()); }
     }
-    const std::lock_guard lock(m_mutex);
+    const std::lock_guard lock(protectionMutex());
     ++m_generation;
     m_paths = std::move(absolutePaths);
 }
 
 quint64 MediaProtection::generation() const {
-    const std::lock_guard lock(m_mutex);
+    const std::lock_guard lock(protectionMutex());
     return m_generation;
 }
 
 void MediaProtection::protect(const QString& path, std::optional<quint64> generation) {
     if (path.isEmpty()) { return; }
-    const std::lock_guard lock(m_mutex);
+    const std::lock_guard lock(protectionMutex());
     if (generation && *generation != m_generation) { return; }
     m_paths.insert(QFileInfo(path).absoluteFilePath());
 }
@@ -58,10 +70,12 @@ void MediaProtection::evict(const QString& root, qint64 budget, const QString& j
     const auto fetchedPath = QFileInfo(justFetched).absoluteFilePath();
     if (afterScan) { afterScan(); }
     // A completed reset/protect must cover every subsequent deletion decision.
-    const std::lock_guard lock(m_mutex);
+    const std::lock_guard lock(protectionMutex());
+    QSet<QString> protectedPaths;
+    for (const auto* protection : protections()) protectedPaths.unite(protection->m_paths);
     for (const auto& file : files) {
         if (total <= budget) { break; }
-        if (file.path == fetchedPath || m_paths.contains(file.path)) { continue; }
+        if (file.path == fetchedPath || protectedPaths.contains(file.path)) { continue; }
         QLockFile folderLock(QFileInfo(file.path).absolutePath() + QStringLiteral("/.lock"));
         folderLock.setStaleLockTime(0);
         if (!folderLock.tryLock(0)) { continue; }

@@ -453,8 +453,8 @@ private slots:
         const auto key=effectStill({effect("chromaKey",{{"color","#4080c0"},{"tolerance",0.1},{"softness",0.1}})},source);
         QVERIFY(!key.isNull()); QCOMPARE(key.pixelColor(32,16),QColor(Qt::black));
         const auto poster=effectStill({effect("posterize",{{"levels",3}})},source);
-        // clip-posterize-midpoint golden is identical to step 2 at byte 127.
-        QVERIFY(!poster.isNull()); QCOMPARE(poster.pixelColor(32,16),QColor(0,127,255));
+        // The current clip-posterize-midpoint golden writes midpoint byte 128.
+        QVERIFY(!poster.isNull()); QCOMPARE(poster.pixelColor(32,16),QColor(0,128,255));
     }
     void cropPixelsOnClip() {
         QImage source(64,32,QImage::Format_RGBA8888_Premultiplied); source.fill(Qt::green);

@@ -26,6 +26,7 @@ Rectangle {
     focus: true
     Keys.onSpacePressed: root.clock.toggle()
     Keys.forwardTo: tracksHost.item ? [tracksHost.item] : []
+    Binding { target: root.clock; property: "durationMs"; value: root.timeline.contentEndMs }
     DockLayoutStore { id: layoutStore; objectName: "dockLayoutStore" }
     Component.onCompleted: layoutStore.registerPanels(dockPanels)
     FrameAnimation {

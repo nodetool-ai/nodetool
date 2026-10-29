@@ -183,6 +183,16 @@ QueryResult ServerClient::mutate(const QString& procedure, const QJsonObject& in
     return write(procedure, request, &body);
 }
 
+QueryResult ServerClient::preflightWorkflow(const QString& workflowId, const QJsonObject& inputs) {
+    if (workflowId.isEmpty()) return failed("INVALID_INPUT", "Workflow ID is required.");
+    QNetworkRequest request(m_base.resolved(QUrl(QStringLiteral("/api/sdk/v1/preflight"))));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
+    const QJsonObject input{{"workflow_id", workflowId}, {"workspace_id", QJsonValue::Null},
+        {"workflow_etag", QJsonValue::Null}, {"interface_version", 1}, {"level", "static"}, {"inputs", inputs}};
+    const QByteArray body = QJsonDocument(input).toJson(QJsonDocument::Compact);
+    return write(QStringLiteral("preflight"), request, &body, nullptr, {}, true);
+}
+
 QueryResult ServerClient::upload(const QJsonObject& json, const QString& filePath, const QString& contentType) {
     auto multipart = std::make_unique<QHttpMultiPart>(QHttpMultiPart::FormDataType);
     auto* file = new QFile(filePath, multipart.get());
@@ -209,7 +219,7 @@ QueryResult ServerClient::upload(const QJsonObject& json, const QString& filePat
 }
 
 QueryResult ServerClient::write(const QString& procedure, QNetworkRequest request, const QByteArray* json,
-                                std::unique_ptr<QHttpMultiPart> multipart, const QString& contentType) {
+                                std::unique_ptr<QHttpMultiPart> multipart, const QString& contentType, bool plainJson) {
     const bool isUpload = multipart != nullptr;
     QElapsedTimer clock;
     clock.start();
@@ -288,14 +298,16 @@ QueryResult ServerClient::write(const QString& procedure, QNetworkRequest reques
     if (resp.status >= 300 && resp.status < 400) {
         return failed(QStringLiteral("REDIRECT"), QStringLiteral("refusing a redirect from %1").arg(procedure), resp.status);
     }
-    if (isUpload && resp.status != 0) {
+    if ((isUpload || plainJson) && resp.status != 0) {
         QJsonParseError error;
         const auto doc = QJsonDocument::fromJson(resp.body, &error);
         if (resp.status < 200 || resp.status >= 300) {
-            return failed("HTTP", QStringLiteral("upload: HTTP %1: %2").arg(resp.status).arg(QString::fromUtf8(resp.body)), resp.status);
+            return failed("HTTP", isUpload ? QStringLiteral("upload: HTTP %1: %2").arg(resp.status).arg(QString::fromUtf8(resp.body))
+                                             : QStringLiteral("%1: HTTP %2").arg(procedure).arg(resp.status), resp.status);
         }
         if (error.error != QJsonParseError::NoError || !doc.isObject()) {
-            return failed("BAD_RESPONSE", "upload: response is not an asset JSON object", resp.status);
+            return failed("BAD_RESPONSE", isUpload ? QStringLiteral("upload: response is not an asset JSON object")
+                                                     : QStringLiteral("%1: response is not a JSON object").arg(procedure), resp.status);
         }
         QueryResult result;
         result.data = doc.object();

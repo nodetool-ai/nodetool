@@ -854,12 +854,18 @@ void FfmpegDecoder::run() {
             out->range = full ? YuvRange::Full : YuvRange::Limited;
             out->frame = av_frame_clone(frm.get());
         } else if (const AVPixFmtDescriptor* desc = av_pix_fmt_desc_get(fmt);
-                   desc && (desc->flags & AV_PIX_FMT_FLAG_RGB)) {
-            // RGB input (RGB24, GBRP, ...): convert to opaque RGBA on this
-            // worker. RGB to RGB involves no matrix and no chroma
-            // subsampling, so the colour is the source's (F5).
+                   desc && ((desc->flags & AV_PIX_FMT_FLAG_RGB) ||
+                            (s.o.stream->codecpar->codec_id == AV_CODEC_ID_MJPEG &&
+                             (desc->log2_chroma_w == 0 && desc->log2_chroma_h == 0)))) {
+            // Full-chroma JPEG stills must not lose colour detail through
+            // the video fallback's I420 subsampling before keying and scaling.
             sws.reset(sws_getCachedContext(sws.release(), frm->width, frm->height, fmt, frm->width, frm->height,
                                            AV_PIX_FMT_RGB0, SWS_POINT, nullptr, nullptr, nullptr));
+            if (!(desc->flags & AV_PIX_FMT_FLAG_RGB)) {
+                const int sourceSpace = matrixFor(cs, frm->height) == YuvMatrix::Bt709 ? SWS_CS_ITU709 : SWS_CS_ITU601;
+                sws_setColorspaceDetails(sws.get(), sws_getCoefficients(sourceSpace), full ? 1 : 0,
+                                         sws_getCoefficients(sourceSpace), 1, 0, 1 << 16, 1 << 16);
+            }
             AVFrame* conv = av_frame_alloc();
             conv->format = AV_PIX_FMT_RGB0;
             conv->width = frm->width;

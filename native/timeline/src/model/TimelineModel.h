@@ -40,6 +40,7 @@ public:
     void close();
     // Adds runtime paths by media identity and refreshes matching snapshot clips.
     void registerMedia(const nt::Clip& media);
+    void registerMatteMedia(const QString& assetId, const std::string& path);
     const nt::Timeline& timeline() const { return *m_timeline; }
     // An immutable snapshot the render thread keeps by pointer (D8). A new
     // document makes a new snapshot; an old one stays valid while held.
@@ -96,6 +97,7 @@ public:
     Q_INVOKABLE bool deleteMarker(const QString& markerId);
 
 signals:
+    void beforeCommand();
     void timelineChanged();
     void commandSettled();
     // The clips changed: an edit, or a new document (then the tracks reset too).
@@ -117,4 +119,5 @@ private:
     // delete) gives a clip back the media it had. Filled by setTimeline and
     // kept for the document's life.
     QHash<QString, std::pair<std::string, std::string>> m_media;
+    QHash<QString, std::string> m_mattes;
 };

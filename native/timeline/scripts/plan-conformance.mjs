@@ -21,7 +21,7 @@
 // `computeActiveLayersWithHorizon` with the sequence canvas, camera, tempo and
 // media tracks, then `resolveAnimatedLayerProps`, then `buildTransformMatrix`
 // of `transitionTransform(anim.transform, layer.transition)` with
-// `containBaseScale` of the source size and the group's matrix. A caption
+// `containBaseScale` of the cropped source size and the group's matrix. A caption
 // composites frame-sized. The source size is the clip's `width`/`height`,
 // else the sequence size, the same rule as native SceneEval. `sourceTimeMs`
 // is compared for video and image layers only.
@@ -71,7 +71,7 @@ import {
   transitionTransform,
   trackZ
 } from "@nodetool-ai/timeline/scene";
-import { compileClipAnimations } from "@nodetool-ai/timeline";
+import { compileClipAnimations, cropRectPx } from "@nodetool-ai/timeline";
 
 import { TOLERANCE, auditExclusions, checkFlexReasons, diffNumber, exclusionsFrom, near, newestBinary, orZero, staleSources } from "./plan-compare.mjs";
 const GRID_MS = 100;
@@ -238,7 +238,8 @@ function sampleTimes(doc) {
 // `resolveAnimatedLayerProps` and the placement the frame compositor draws
 // with: `transitionTransform` (the cut's offset and scale) and
 // `buildTransformMatrix` with `containBaseScale` and the group's matrix. A
-// caption composites frame-sized and untransformed.
+// caption composites frame-sized and untransformed. Cropping uses the shared
+// pixel-snapped rectangle, just as the web compositors crop before fitting.
 function oraclePlan(doc, timeMs, cache) {
   const canvas = { width: doc.width, height: doc.height, fps: doc.fps };
   const scene = computeActiveLayersWithHorizon(doc.tracks, doc.clips, timeMs, {
@@ -259,8 +260,9 @@ function oraclePlan(doc, timeMs, cache) {
     const textStyle = layer.clip.textStyle;
     const flexTextMaxWidthFrac = textStyle && docClip && textStyle !== docClip.textStyle ? textStyle.maxWidthFrac : undefined;
     const anim = resolveAnimatedLayerProps(layer, timeMs, canvas, cache, tracking);
-    const srcW = layer.clip.width ?? doc.width;
-    const srcH = layer.clip.height ?? doc.height;
+    const source = cropRectPx(layer.crop, layer.clip.width ?? doc.width, layer.clip.height ?? doc.height);
+    const srcW = source.width;
+    const srcH = source.height;
     const matrix =
       layer.kind === "caption"
         ? buildTransformMatrix(IDENTITY_TRANSFORM, { x: 1, y: 1 }, doc.width, doc.height)

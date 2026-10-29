@@ -132,6 +132,24 @@ QString tickerText(const QJsonObject& animator, double eased) {
     return animator.value(u"prefix").toString() + grouped + animator.value(u"suffix").toString();
 }
 
+double animatedBorderRadius(double base, const QJsonArray& animations,
+                            const std::vector<CompiledAnimation>& compiled, double localMs) {
+    for (const QJsonValue& av : animations) {
+        const QJsonObject a = av.toObject();
+        if (a.value(u"enabled") == QJsonValue(false)) continue;
+        const auto* c = compiledById(compiled, a.value(u"id").toString());
+        if (!c) continue;
+        const auto progress = progressOf(*c, localMs);
+        if (!progress) continue;
+        for (const QJsonValue& tv : a.value(u"styleTracks").toArray()) {
+            const auto track = tv.toObject();
+            if (track.value(u"target").toString() != u"clip.borderRadius") continue;
+            if (const auto value = numericTrackValue(track, *progress)) base = std::max(0.0, *value);
+        }
+    }
+    return base;
+}
+
 TextStyle animatedTextStyle(const TextStyle& base, const QJsonArray& animations,
                             const std::vector<CompiledAnimation>& compiled, double localMs) {
     TextStyle style = base;

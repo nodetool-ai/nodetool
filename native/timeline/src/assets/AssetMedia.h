@@ -9,13 +9,16 @@
 namespace nt::assets {
 class MediaProtection {
 public:
+    MediaProtection();
+    ~MediaProtection();
+    MediaProtection(const MediaProtection&) = delete;
+    MediaProtection& operator=(const MediaProtection&) = delete;
     void reset(QSet<QString> paths);
     quint64 generation() const;
     void protect(const QString& path, std::optional<quint64> generation = std::nullopt);
     void evict(const QString& root, qint64 budget, const QString& justFetched,
                const std::function<void()>& afterScan = {});
 private:
-    mutable std::mutex m_mutex;
     QSet<QString> m_paths;
     quint64 m_generation = 0;
 };

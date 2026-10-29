@@ -1,4 +1,5 @@
 #include "export/OffscreenFrames.h"
+#include "motion/capturedeadline/CaptureDeadline.h"
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
 #include "preview/PreviewCompositor.h"
@@ -78,11 +79,15 @@ QImage OffscreenFrames::capture(qint64 index, double fps, const std::function<bo
         s.control.render();
         s.control.endFrame();
         QCoreApplication::processEvents();
-        if (!s.compositor->renderError().isEmpty()) {
+        const auto decision = nt::capture::decideAfterRender(cancelled, !s.compositor->renderError().isEmpty(),
+                                                   s.compositor->captureReady(), timeout.elapsed());
+        if (decision == nt::capture::Decision::Cancelled) return {};
+        if (decision == nt::capture::Decision::Error) {
             throw std::runtime_error(s.compositor->renderError().toStdString());
         }
-        if (timeout.elapsed() > 15000) {
-            throw std::runtime_error("No exact compositor frame within 15 seconds");
+        if (decision == nt::capture::Decision::Ready) break;
+        if (decision == nt::capture::Decision::TimedOut) {
+            throw std::runtime_error("No exact compositor frame within 60 seconds");
         }
     }
     return s.compositor->takeCapture().convertToFormat(QImage::Format_RGBA8888);

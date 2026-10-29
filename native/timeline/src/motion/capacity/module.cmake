@@ -12,3 +12,5 @@ function(nt_effectscratch_tests)
     nt_effects_shaders(tst_effectscratch)
     add_test(NAME tst_effectscratch COMMAND tst_effectscratch)
 endfunction()
+
+nt_tests(nt_effectscratch_tests)
