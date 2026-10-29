@@ -152,7 +152,7 @@ leftClip.fadeOutMs`, `delete rightClip.fadeInMs`/`transitionIn`. A full spread
   supplied by the host through `SamplerSamples`. Store asset ids and key
   mappings on the instrument, never decoded PCM. Browser playback, audition
   and export resolve the same audio assets; server exports decode them with
-  ffmpeg. Missing samples fail explicitly. Bundle export/import must collect
+  libav in process. Missing samples fail explicitly. Bundle export/import must collect
   and rewrite sampler zone asset ids as well as clip asset ids.
 - **The offline core ports the sound-shaping, not the plugin.** The
   band-limited wavetables and their mip ladder, the Cytomic SVF, the ADAA tanh

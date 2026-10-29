@@ -91,7 +91,7 @@ it("prepares sandboxed Chromium before packed verification runs browser suites",
   const mobileIndex = steps.findIndex(step => step.run === "npm --prefix mobile ci");
   expect(mobileIndex).toBeGreaterThanOrEqual(0);
   expect(mobileIndex).toBeLessThan(affectedIndex);
-  expect(steps.find(step => step.uses === "./.github/actions/setup-build").with["extra-apt"]).toBe("ffmpeg mesa-vulkan-drivers");
+  expect(steps.find(step => step.uses === "./.github/actions/setup-build").with["extra-apt"]).toBe("mesa-vulkan-drivers");
 });
 
 it("bounds verification test concurrency without changing build scheduling", () => {

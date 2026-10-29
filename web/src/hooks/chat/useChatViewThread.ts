@@ -20,6 +20,8 @@ interface UseChatViewThreadOptions {
 interface UseChatViewThreadResult {
   threadId: string | null;
   messages: Message[];
+  /** The selected thread's history is loading and nothing is cached yet. */
+  isLoadingThread: boolean;
   runtime: ReturnType<typeof useThreadRuntime>;
   selectThread: (threadId: string) => void;
   createThread: () => Promise<string>;
@@ -41,6 +43,7 @@ export const useChatViewThread = (
   const isolated = options.isolated === true;
   const currentThreadId = useGlobalChatStore((state) => state.currentThreadId);
   const switchThread = useGlobalChatStore((state) => state.switchThread);
+  const loadMessages = useGlobalChatStore((state) => state.loadMessages);
   const createNewThread = useGlobalChatStore((state) => state.createNewThread);
   const sendToThread = useGlobalChatStore((state) => state.sendMessage);
   const stopThread = useGlobalChatStore((state) => state.stopGeneration);
@@ -55,6 +58,7 @@ export const useChatViewThread = (
     threadId ? (state.messageCache[threadId] ?? NO_MESSAGES) : NO_MESSAGES
   );
   const runtime = useThreadRuntime(threadId);
+  const [loadingThreadId, setLoadingThreadId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isolated) {
@@ -67,12 +71,22 @@ export const useChatViewThread = (
 
   const selectThread = useCallback(
     (nextThreadId: string) => {
-      if (!isolated) {
+      if (isolated) {
+        // switchThread loads messages; an isolated view must load its own.
+        setLoadingThreadId(nextThreadId);
+        void loadMessages(nextThreadId)
+          .catch(() => undefined)
+          .finally(() => {
+            setLoadingThreadId((current) =>
+              current === nextThreadId ? null : current
+            );
+          });
+      } else {
         switchThread(nextThreadId);
       }
       setThreadId(nextThreadId);
     },
-    [isolated, switchThread]
+    [isolated, switchThread, loadMessages]
   );
 
   const createThread = useCallback(async () => {
@@ -106,6 +120,8 @@ export const useChatViewThread = (
   return {
     threadId,
     messages,
+    isLoadingThread:
+      threadId !== null && loadingThreadId === threadId && messages.length === 0,
     runtime,
     selectThread,
     createThread,

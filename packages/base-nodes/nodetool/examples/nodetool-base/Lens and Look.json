@@ -1,0 +1,327 @@
+{
+  "id": "lens-and-look-000000000000000001",
+  "access": "public",
+  "created_at": "2026-10-26T12:00:00.000000",
+  "updated_at": "2026-10-26T12:00:00.000000",
+  "name": "Lens and Look",
+  "description": "Dial focal length (14mm to 135mm, macro, or anamorphic), aperture depth of field, film stock grain, and camera motion before generating a keyframe still and its animated shot. Estimated cost is about $0.05 for the keyframe plus $0.35 to $0.85 for the clip on fal, or $0 locally with Flux and Wan 2.2.",
+  "tags": [
+    "image",
+    "video",
+    "higgsfield-pack",
+    "camera-moves",
+    "example"
+  ],
+  "required_providers": [
+    "fal"
+  ],
+  "thumbnail": "Bring a Still to Life.jpg",
+  "graph": {
+    "edges": [
+      {
+        "id": "e1",
+        "source": "subject",
+        "sourceHandle": "output",
+        "target": "still_brief",
+        "targetHandle": "subject"
+      },
+      {
+        "id": "e2",
+        "source": "lens",
+        "sourceHandle": "output",
+        "target": "still_brief",
+        "targetHandle": "lens"
+      },
+      {
+        "id": "e3",
+        "source": "aperture",
+        "sourceHandle": "output",
+        "target": "still_brief",
+        "targetHandle": "aperture"
+      },
+      {
+        "id": "e4",
+        "source": "film_look",
+        "sourceHandle": "output",
+        "target": "still_brief",
+        "targetHandle": "look"
+      },
+      {
+        "id": "e5",
+        "source": "still_brief",
+        "sourceHandle": "output",
+        "target": "keyframe",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e6",
+        "source": "keyframe",
+        "sourceHandle": "output",
+        "target": "keyframe_out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e7",
+        "source": "keyframe",
+        "sourceHandle": "output",
+        "target": "clip",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e8",
+        "source": "subject",
+        "sourceHandle": "output",
+        "target": "motion_brief",
+        "targetHandle": "subject"
+      },
+      {
+        "id": "e9",
+        "source": "lens",
+        "sourceHandle": "output",
+        "target": "motion_brief",
+        "targetHandle": "lens"
+      },
+      {
+        "id": "e10",
+        "source": "camera_move",
+        "sourceHandle": "output",
+        "target": "motion_brief",
+        "targetHandle": "move"
+      },
+      {
+        "id": "e11",
+        "source": "motion_brief",
+        "sourceHandle": "output",
+        "target": "clip",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e12",
+        "source": "clip",
+        "sourceHandle": "output",
+        "target": "clip_out",
+        "targetHandle": "value"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Lens and Look\n\n**Lens and Look** pairs optical controls (focal length, aperture, film stock) with a directed camera move.\n\n1. **Subject**, **Focal Length**, **Aperture**, and **Film Look** compose the optical brief for **TextToImage**.\n2. The rendered keyframe passes directly into **ImageToVideo** along with your chosen **Camera Move**."
+        },
+        "position": {
+          "x": 80,
+          "y": -220
+        },
+        "width": 680,
+        "height": 170
+      },
+      {
+        "id": "subject",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "subject",
+          "value": "A watchmaker inspecting a brass chronograph movement at a rain-lit workshop bench",
+          "description": "The scene and subject to photograph and animate.",
+          "line_mode": "multi_line"
+        },
+        "position": {
+          "x": 80,
+          "y": 40
+        }
+      },
+      {
+        "id": "lens",
+        "type": "nodetool.input.SelectInput",
+        "data": {
+          "name": "focal_length",
+          "value": "35mm",
+          "options": [
+            "14mm",
+            "18mm",
+            "24mm",
+            "28mm",
+            "35mm",
+            "50mm",
+            "85mm",
+            "135mm",
+            "macro",
+            "anamorphic"
+          ],
+          "enum_type_name": "focal_length",
+          "description": "Lens focal length or optical format."
+        },
+        "position": {
+          "x": 80,
+          "y": 220
+        }
+      },
+      {
+        "id": "aperture",
+        "type": "nodetool.input.SelectInput",
+        "data": {
+          "name": "aperture",
+          "value": "f/1.8 shallow depth of field",
+          "options": [
+            "f/1.4 razor-thin bokeh",
+            "f/1.8 shallow depth of field",
+            "f/2.8 natural subject separation",
+            "f/5.6 balanced environmental focus",
+            "f/11 deep focus front to back"
+          ],
+          "enum_type_name": "aperture_stop",
+          "description": "Aperture stop and depth-of-field character."
+        },
+        "position": {
+          "x": 80,
+          "y": 380
+        }
+      },
+      {
+        "id": "film_look",
+        "type": "nodetool.input.SelectInput",
+        "data": {
+          "name": "film_look",
+          "value": "35mm Kodak Vision3 500T tungsten grain",
+          "options": [
+            "35mm Kodak Vision3 500T tungsten grain",
+            "16mm Bolex halation and organic grain",
+            "65mm large-format crisp cinema neutral",
+            "Bleach-bypass high-contrast silver retention",
+            "Anamorphic teal-and-amber horizontal flare"
+          ],
+          "enum_type_name": "film_stock_look",
+          "description": "Color pipeline and film-stock texture."
+        },
+        "position": {
+          "x": 80,
+          "y": 540
+        }
+      },
+      {
+        "id": "camera_move",
+        "type": "nodetool.input.SelectInput",
+        "data": {
+          "name": "camera_move",
+          "value": "slow push in",
+          "options": [
+            "static",
+            "slow push in",
+            "slow pull out",
+            "dolly in",
+            "dolly out",
+            "dolly zoom (vertigo)",
+            "truck left",
+            "truck right",
+            "crane up",
+            "crane down",
+            "orbit left",
+            "orbit right",
+            "rack focus",
+            "handheld follow",
+            "low-angle hero rise"
+          ],
+          "enum_type_name": "camera_move",
+          "description": "Camera trajectory for the video pass."
+        },
+        "position": {
+          "x": 80,
+          "y": 700
+        }
+      },
+      {
+        "id": "still_brief",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "{{ subject }}. Shot on a {{ lens }} lens at {{ aperture }}, {{ look }}. Natural optical falloff, physically accurate highlights.",
+          "values": {}
+        },
+        "position": {
+          "x": 380,
+          "y": 240
+        }
+      },
+      {
+        "id": "keyframe",
+        "type": "nodetool.image.TextToImage",
+        "data": {
+          "model": {
+            "type": "image_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          },
+          "aspect_ratio": "16:9"
+        },
+        "position": {
+          "x": 660,
+          "y": 220
+        }
+      },
+      {
+        "id": "motion_brief",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "Camera movement: {{ move }} on a {{ lens }} lens. {{ subject }}. Preserve optical depth of field and film grain throughout the move.",
+          "values": {}
+        },
+        "position": {
+          "x": 660,
+          "y": 540
+        }
+      },
+      {
+        "id": "clip",
+        "type": "nodetool.video.ImageToVideo",
+        "data": {
+          "model": {
+            "type": "video_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          },
+          "aspect_ratio": "16:9",
+          "resolution": "1080p",
+          "duration": 5
+        },
+        "position": {
+          "x": 960,
+          "y": 380
+        }
+      },
+      {
+        "id": "keyframe_out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "keyframe_still",
+          "description": "The optically styled keyframe image."
+        },
+        "position": {
+          "x": 960,
+          "y": 160
+        }
+      },
+      {
+        "id": "clip_out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "directed_clip",
+          "description": "The animated shot rendered from the keyframe."
+        },
+        "position": {
+          "x": 1240,
+          "y": 380
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

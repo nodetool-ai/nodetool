@@ -1,0 +1,285 @@
+{
+  "id": "dub-a-video-into-5-languages-001",
+  "access": "public",
+  "created_at": "2026-10-26T12:00:00.000000",
+  "updated_at": "2026-10-26T12:00:00.000000",
+  "name": "Dub a Video into 5 Languages",
+  "description": "Extract speech from a source video, transcribe it, translate the spoken phrasing into five target languages in parallel, synthesize each localized voice track, and re-sync the speaker's lips for every language. Estimated cost is about $0.45 per language on fal at provider list price.",
+  "tags": [
+    "video",
+    "audio",
+    "higgsfield-pack",
+    "lipsync",
+    "batch",
+    "example"
+  ],
+  "required_providers": [
+    "fal"
+  ],
+  "thumbnail": "Localise a Script and Revoice It.jpg",
+  "graph": {
+    "edges": [
+      {
+        "id": "e1",
+        "source": "source_video",
+        "sourceHandle": "output",
+        "target": "extract_audio",
+        "targetHandle": "video"
+      },
+      {
+        "id": "e2",
+        "source": "extract_audio",
+        "sourceHandle": "output",
+        "target": "transcribe",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e3",
+        "source": "languages",
+        "sourceHandle": "output",
+        "target": "each_language",
+        "targetHandle": "input_list"
+      },
+      {
+        "id": "e4",
+        "source": "each_language",
+        "sourceHandle": "output",
+        "target": "translate_prompt",
+        "targetHandle": "language"
+      },
+      {
+        "id": "e5",
+        "source": "transcribe",
+        "sourceHandle": "text",
+        "target": "translate_prompt",
+        "targetHandle": "transcript"
+      },
+      {
+        "id": "e6",
+        "source": "translate_prompt",
+        "sourceHandle": "output",
+        "target": "translator",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e7",
+        "source": "translator",
+        "sourceHandle": "text",
+        "target": "dub_voice",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e8",
+        "source": "source_video",
+        "sourceHandle": "output",
+        "target": "dub_sync",
+        "targetHandle": "video"
+      },
+      {
+        "id": "e9",
+        "source": "dub_voice",
+        "sourceHandle": "audio",
+        "target": "dub_sync",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e10",
+        "source": "dub_sync",
+        "sourceHandle": "output",
+        "target": "collect_dubs",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "e11",
+        "source": "collect_dubs",
+        "sourceHandle": "output",
+        "target": "dubbed_videos",
+        "targetHandle": "value"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Dub a Video into 5 Languages\n\n**Dub a Video into 5 Languages** localizes a talking-head clip into multiple languages with lip-synced audio.\n\n1. **ExtractAudio** and **AutomaticSpeechRecognition** transcribe the spoken track from **Source Video**.\n2. **ForEach** iterates through **Target Languages**; **Agent** adapts the transcript to match the original spoken syllable cadence.\n3. **TextToSpeech** and **LipSync** render a lip-matched video for each language and **Collect** returns the complete localized set."
+        },
+        "position": {
+          "x": 80,
+          "y": -220
+        },
+        "width": 740,
+        "height": 180
+      },
+      {
+        "id": "source_video",
+        "type": "nodetool.input.VideoInput",
+        "data": {
+          "name": "source_video",
+          "value": {
+            "type": "video",
+            "uri": "package://nodetool-base/recipe-inputs/presenter.mp4",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "description": "Source presenter video clip to dub."
+        },
+        "position": {
+          "x": 80,
+          "y": 40
+        }
+      },
+      {
+        "id": "languages",
+        "type": "nodetool.input.StringListInput",
+        "data": {
+          "name": "target_languages",
+          "value": [
+            "Spanish",
+            "French",
+            "German",
+            "Japanese",
+            "Portuguese"
+          ],
+          "description": "Languages to translate, revoice, and lip-sync."
+        },
+        "position": {
+          "x": 80,
+          "y": 280
+        }
+      },
+      {
+        "id": "extract_audio",
+        "type": "nodetool.video.ExtractAudio",
+        "data": {},
+        "position": {
+          "x": 360,
+          "y": 40
+        }
+      },
+      {
+        "id": "transcribe",
+        "type": "nodetool.text.AutomaticSpeechRecognition",
+        "data": {
+          "model": {
+            "type": "asr_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          }
+        },
+        "position": {
+          "x": 620,
+          "y": 40
+        }
+      },
+      {
+        "id": "each_language",
+        "type": "nodetool.control.ForEach",
+        "data": {
+          "input_list": []
+        },
+        "position": {
+          "x": 620,
+          "y": 280
+        }
+      },
+      {
+        "id": "translate_prompt",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "Translate the following spoken script into natural {{ language }} timed for dubbing so it takes the same speaking duration as the original:\n\n{{ transcript }}\n\nReturn ONLY the translated spoken lines.",
+          "values": {}
+        },
+        "position": {
+          "x": 880,
+          "y": 220
+        }
+      },
+      {
+        "id": "translator",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          },
+          "system": "You are a dubbing localization adapter. Translate the script so its spoken duration and phrasing cadence match the source.",
+          "tools": [],
+          "max_tokens": 1024
+        },
+        "position": {
+          "x": 1140,
+          "y": 220
+        }
+      },
+      {
+        "id": "dub_voice",
+        "type": "nodetool.audio.TextToSpeech",
+        "data": {
+          "model": {
+            "type": "tts_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          },
+          "speed": 1
+        },
+        "position": {
+          "x": 1420,
+          "y": 220
+        }
+      },
+      {
+        "id": "dub_sync",
+        "type": "nodetool.video.LipSync",
+        "data": {
+          "model": {
+            "type": "video_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          }
+        },
+        "position": {
+          "x": 1680,
+          "y": 140
+        }
+      },
+      {
+        "id": "collect_dubs",
+        "type": "nodetool.control.Collect",
+        "data": {},
+        "position": {
+          "x": 1940,
+          "y": 140
+        }
+      },
+      {
+        "id": "dubbed_videos",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "dubbed_videos",
+          "description": "Lip-synced localized video clips for all five languages."
+        },
+        "position": {
+          "x": 2200,
+          "y": 140
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

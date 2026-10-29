@@ -108,38 +108,6 @@ describe("storeAssetWithThumbnail", () => {
     );
   });
 
-  it("selects the video generator and swallows ffmpeg failures", async () => {
-    await storeAssetWithThumbnail(
-      "u1",
-      "vid",
-      "clip.mp4",
-      new Uint8Array([0, 1, 2, 3]),
-      "video/mp4"
-    );
-    expect(store).toHaveBeenCalledTimes(1);
-    expect(store).toHaveBeenCalledWith(
-      "u1/clip.mp4",
-      expect.any(Uint8Array),
-      "video/mp4"
-    );
-  });
-
-  it("selects the audio generator and swallows ffmpeg failures", async () => {
-    await storeAssetWithThumbnail(
-      "u1",
-      "aud",
-      "sound.mp3",
-      new Uint8Array([0, 1, 2, 3]),
-      "audio/mpeg"
-    );
-    expect(store).toHaveBeenCalledTimes(1);
-    expect(store).toHaveBeenCalledWith(
-      "u1/sound.mp3",
-      expect.any(Uint8Array),
-      "audio/mpeg"
-    );
-  });
-
   it("selects the pdf generator and swallows parse failures", async () => {
     await storeAssetWithThumbnail(
       "u1",

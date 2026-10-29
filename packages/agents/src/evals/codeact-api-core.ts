@@ -1436,48 +1436,46 @@ export function createCoreApiTools(recorder: CodeActToolRecorder): Tool[] {
       }
     ),
     tool(
-      "ffmpeg",
-      "Run ffmpeg on workspace files.",
+      "media_edit",
+      "Edit an audio or video file with one typed operation.",
       {
-        args: { type: "array" },
-        output_file: s,
-        timeout_seconds: { type: "number" }
+        operation: s,
+        input: s,
+        sources: { type: "array" },
+        output_file: s
       },
       (params) => {
         const output =
           isString(params["output_file"]) && params["output_file"]
             ? params["output_file"]
             : "out.mp4";
-        const asset = world.saveAsset(output, "ffmpeg", "video/mp4");
-        return { success: true, output_file: output, asset_uri: asset.uri };
+        const asset = world.saveAsset(output, str(params["operation"]), "video/mp4");
+        return {
+          success: true,
+          operation: str(params["operation"]),
+          output_file: output,
+          asset_uri: asset.uri
+        };
       }
     ),
     tool(
-      "ffprobe",
-      "Read a media file's format and streams with ffprobe.",
-      { path: s, timeout_seconds: { type: "number" } },
-      (params) => {
-        const target = str(params["path"]);
-        return {
-          path: target,
-          format: {
-            filename: target,
-            format_name: "mov,mp4,m4a",
-            duration: "12.500000",
-            size: "1048576"
-          },
-          streams: [
-            {
-              codec_type: "video",
-              codec_name: "h264",
-              width: 1920,
-              height: 1080,
-              r_frame_rate: "30/1"
-            },
-            { codec_type: "audio", codec_name: "aac", channels: 2 }
-          ]
-        };
-      }
+      "media_probe",
+      "Read a media file's duration, size, frame rate and streams.",
+      { path: s },
+      (params) => ({
+        path: str(params["path"]),
+        format: "MP4",
+        duration_seconds: 12.5,
+        has_video: true,
+        has_audio: true,
+        width: 1920,
+        height: 1080,
+        fps: 30,
+        video_codec: "avc",
+        audio_codec: "aac",
+        sample_rate: 48000,
+        channels: 2
+      })
     ),
     tool(
       "yt_dlp",

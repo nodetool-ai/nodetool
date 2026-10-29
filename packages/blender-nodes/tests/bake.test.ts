@@ -22,7 +22,7 @@ import {
 
 import {
   bakeFrameOutputs,
-  bakeMuxArgs,
+  bakeEncoderSettings,
   bakeRenderAnimationParams,
   bakeVideoFormat,
   renderModel3DBakeFrames,
@@ -261,25 +261,14 @@ describe("bakeVideoFormat", () => {
   });
 });
 
-describe("bakeMuxArgs", () => {
-  it("reads the same numbered sequence into either encoder", () => {
-    const alpha = bakeMuxArgs(bakeVideoFormat(true), 24, "bake.webm");
-    const opaque = bakeMuxArgs(bakeVideoFormat(false), 24, "bake.mp4");
-    const input = ["-framerate", "24", "-start_number", "1", "-i", "frame_%06d.png"];
-    for (const argv of [alpha, opaque]) {
-      expect(argv.join(" ")).toContain(input.join(" "));
-      // A seek lands on the preceding keyframe, so both get one a second.
-      expect(argv.slice(argv.indexOf("-g"), argv.indexOf("-g") + 2)).toEqual([
-        "-g",
-        "24"
-      ]);
-    }
-    expect(alpha).toContain("libvpx-vp9");
-    expect(alpha).toContain("yuva420p");
-    expect(alpha.at(-1)).toBe("bake.webm");
+describe("bakeEncoderSettings", () => {
+  it("encodes either format with a keyframe every second", () => {
+    const alpha = bakeEncoderSettings(bakeVideoFormat(true), 24);
+    const opaque = bakeEncoderSettings(bakeVideoFormat(false), 24);
+    expect(alpha.spec).toEqual({ codec: "libvpx-vp9", pixelFormat: "yuva420p", options: { g: "24" } });
+    expect(opaque.spec).toEqual({ codec: "libx264", pixelFormat: "yuv420p", options: { g: "24" } });
     // `+faststart` is an MP4 atom; passing it to a Matroska mux is an error.
-    expect(alpha).not.toContain("-movflags");
-    expect(opaque).toContain("-movflags");
-    expect(opaque.at(-1)).toBe("bake.mp4");
+    expect(alpha.muxerOptions).toBeUndefined();
+    expect(opaque.muxerOptions).toEqual({ movflags: "+faststart" });
   });
 });

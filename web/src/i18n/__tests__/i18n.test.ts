@@ -2,13 +2,15 @@ import { createAppI18n } from "../i18n";
 import { resolveLocale } from "../locales";
 
 describe("translation resources", () => {
-  it("initializes bundled English, German, and Chinese synchronously", () => {
+  it("initializes bundled English, German, Finnish, Russian, and Chinese synchronously", () => {
     expect(createAppI18n().t("common.save")).toBe("Save");
     expect(createAppI18n("de").t("common.save")).toBe("Speichern");
+    expect(createAppI18n("fi").t("common.save")).toBe("Tallenna");
+    expect(createAppI18n("ru").t("common.save")).toBe("Сохранить");
     expect(createAppI18n("zh-CN").t("common.save")).toBe("保存");
   });
 
-  it.each(["de", "zh-CN"] as const)(
+  it.each(["de", "fi", "ru", "zh-CN"] as const)(
     "falls back to English when a %s message is missing",
     (locale) => {
       const instance = createAppI18n(locale);
@@ -38,6 +40,17 @@ describe("translation resources", () => {
     expect(instance.t("i18n-next30.collections.count", { count: 2 })).toBe(
       "2 Sammlungen"
     );
+  });
+
+  it.each([
+    [1, "1 коллекция"],
+    [3, "3 коллекции"],
+    [5, "5 коллекций"],
+    [21, "21 коллекция"]
+  ])("uses the Russian plural form for %i collections", (count, label) => {
+    expect(
+      createAppI18n("ru").t("i18n-next30.collections.count", { count })
+    ).toBe(label);
   });
 
   it("supports interpolation and language-specific plural forms", () => {

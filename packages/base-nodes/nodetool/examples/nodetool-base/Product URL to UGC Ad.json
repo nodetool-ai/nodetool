@@ -1,0 +1,298 @@
+{
+  "id": "product-url-to-ugc-ad-0000000001",
+  "access": "public",
+  "created_at": "2026-10-26T12:00:00.000000",
+  "updated_at": "2026-10-26T12:00:00.000000",
+  "name": "Product URL to UGC Ad",
+  "description": "Paste a product page URL to extract its headline, value props, and proof points, write a 15-second spoken creator script, synthesize the voiceover, and lip-sync a creator portrait into a vertical UGC ad. Estimated cost is about $0.45 to $1.10 per ad on fal at provider list price.",
+  "tags": [
+    "video",
+    "marketing",
+    "advertising",
+    "ugc",
+    "higgsfield-pack",
+    "ads",
+    "example"
+  ],
+  "required_providers": [
+    "fal"
+  ],
+  "thumbnail": "Assemble a UGC Product Video.jpg",
+  "graph": {
+    "edges": [
+      {
+        "id": "e1",
+        "source": "product_url",
+        "sourceHandle": "output",
+        "target": "scrape_brief",
+        "targetHandle": "url"
+      },
+      {
+        "id": "e2",
+        "source": "persona",
+        "sourceHandle": "output",
+        "target": "scrape_brief",
+        "targetHandle": "persona"
+      },
+      {
+        "id": "e3",
+        "source": "scrape_brief",
+        "sourceHandle": "output",
+        "target": "product_researcher",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e4",
+        "source": "product_researcher",
+        "sourceHandle": "text",
+        "target": "script_out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e5",
+        "source": "product_researcher",
+        "sourceHandle": "text",
+        "target": "voice",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e6",
+        "source": "voice",
+        "sourceHandle": "audio",
+        "target": "norm_voice",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e7",
+        "source": "creator_photo",
+        "sourceHandle": "output",
+        "target": "avatar_base",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e8",
+        "source": "persona",
+        "sourceHandle": "output",
+        "target": "avatar_base",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e9",
+        "source": "avatar_base",
+        "sourceHandle": "output",
+        "target": "synced_ugc",
+        "targetHandle": "video"
+      },
+      {
+        "id": "e10",
+        "source": "norm_voice",
+        "sourceHandle": "output",
+        "target": "synced_ugc",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e11",
+        "source": "synced_ugc",
+        "sourceHandle": "output",
+        "target": "ugc_ad",
+        "targetHandle": "value"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Product URL to UGC Ad\n\n**Product URL to UGC Ad** visits a live product page, writes a spoken creator hook, and renders a lip-synced vertical ad.\n\n1. **Product URL** and **Creator Persona** feed into **Agent** (with browser access) to extract product claims and draft a 15-second spoken script.\n2. **TextToSpeech** and **Normalize** produce the voice track while **ImageToVideo** animates the **Creator Photo**.\n3. **LipSync** locks the creator's mouth movements to the spoken script."
+        },
+        "position": {
+          "x": 80,
+          "y": -220
+        },
+        "width": 720,
+        "height": 180
+      },
+      {
+        "id": "product_url",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "product_url",
+          "value": "https://nodetool.ai",
+          "description": "Landing page or store URL for the product being advertised.",
+          "line_mode": "single_line"
+        },
+        "position": {
+          "x": 80,
+          "y": 40
+        }
+      },
+      {
+        "id": "persona",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "creator_persona",
+          "value": "Handheld vertical phone video of a warm, direct creator speaking naturally to camera in a sunlit apartment",
+          "description": "Delivery style and camera framing for the creator.",
+          "line_mode": "multi_line"
+        },
+        "position": {
+          "x": 80,
+          "y": 200
+        }
+      },
+      {
+        "id": "creator_photo",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "creator_photo",
+          "value": {
+            "type": "image",
+            "uri": "package://nodetool-base/recipe-inputs/ugc-creator-reference.png",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "description": "Portrait photo of the spokesperson or creator."
+        },
+        "position": {
+          "x": 80,
+          "y": 380
+        }
+      },
+      {
+        "id": "scrape_brief",
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "template": "Open {{ url }} and read the product headline, core benefits, and pricing or proof points.\n\nWrite a 15-second spoken UGC ad script (35 to 42 words) matching this persona: {{ persona }}.\n\nReturn ONLY the spoken lines — no stage directions, no quotation marks, no headings."
+        },
+        "position": {
+          "x": 380,
+          "y": 80
+        }
+      },
+      {
+        "id": "product_researcher",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          },
+          "system": "You are a direct-response UGC scriptwriter. Visit the URL using the browser tool, verify every claim against the page, and output only the spoken script.",
+          "tools": [
+            {
+              "type": "tool_name",
+              "name": "browser"
+            },
+            {
+              "type": "tool_name",
+              "name": "web_search"
+            }
+          ],
+          "max_tokens": 1024
+        },
+        "position": {
+          "x": 660,
+          "y": 80
+        }
+      },
+      {
+        "id": "voice",
+        "type": "nodetool.audio.TextToSpeech",
+        "data": {
+          "model": {
+            "type": "tts_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          },
+          "speed": 1
+        },
+        "position": {
+          "x": 960,
+          "y": 140
+        }
+      },
+      {
+        "id": "norm_voice",
+        "type": "nodetool.audio.Normalize",
+        "data": {},
+        "position": {
+          "x": 1220,
+          "y": 140
+        }
+      },
+      {
+        "id": "avatar_base",
+        "type": "nodetool.video.ImageToVideo",
+        "data": {
+          "model": {
+            "type": "video_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          },
+          "aspect_ratio": "9:16",
+          "resolution": "720p",
+          "duration": 5
+        },
+        "position": {
+          "x": 960,
+          "y": 380
+        }
+      },
+      {
+        "id": "synced_ugc",
+        "type": "nodetool.video.LipSync",
+        "data": {
+          "model": {
+            "type": "video_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          }
+        },
+        "position": {
+          "x": 1460,
+          "y": 280
+        }
+      },
+      {
+        "id": "script_out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "spoken_script",
+          "description": "The 15-second spoken script grounded in the product page."
+        },
+        "position": {
+          "x": 960,
+          "y": -20
+        }
+      },
+      {
+        "id": "ugc_ad",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "ugc_ad_video",
+          "description": "The lip-synced vertical UGC ad clip."
+        },
+        "position": {
+          "x": 1720,
+          "y": 280
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

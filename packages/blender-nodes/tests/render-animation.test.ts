@@ -1,10 +1,8 @@
 /**
- * T4: `render_animation` through the real Blender, plus ffprobe/ffmpeg.
+ * T4: `render_animation` through the real Blender, decoded in process.
  *
  * Skipped when Blender is absent (like `model3d-render.test.ts` without
- * Chrome) or when ffprobe/ffmpeg are absent: frame counts and per-frame
- * pixels need a decoder, and the package itself needs neither (D5). The
- * orbit case asserts the MP4 decodes with the expected frame count for the
+ * Chrome). The orbit case asserts the MP4 decodes with the expected frame count for the
  * range and fps, and that the sweep differs frame to frame. The glTF case
  * pins the D4 timestamp mapping: a translation of +2 in x over t in
  * [0, 1] at fps 2 puts the end pose exactly on frame 2, so the bright
@@ -22,14 +20,11 @@ import { RenderAnimationNode } from "../src/nodes/render-animation.js";
 import { blenderAvailable, failWhenBlenderRequired } from "./blender-available.js";
 
 failWhenBlenderRequired();
-failWhenFfmpegRequired();
 import { blenderTestContext, type BlenderTestContext } from "./context.js";
 import { createAnimatedGlb, triangleModelProp } from "./fixtures.js";
 import {
   brightCentroidX,
   extractFrame,
-  failWhenFfmpegRequired,
-  ffmpegAvailable,
   meanAbsDiff,
   probeVideo
 } from "./video.js";
@@ -62,7 +57,7 @@ function animationOp(overrides: Record<string, unknown> = {}): BlenderOp {
   };
 }
 
-const shouldRun = blenderAvailable() && ffmpegAvailable();
+const shouldRun = blenderAvailable();
 
 describe.skipIf(!shouldRun)("render_animation integration", () => {
   let helper: BlenderTestContext | null = null;
@@ -109,15 +104,15 @@ describe.skipIf(!shouldRun)("render_animation integration", () => {
     try {
       const file = join(dir, "anim.mp4");
       writeFileSync(file, mp4);
-      const probe = probeVideo(file);
+      const probe = await probeVideo(file);
       expect(probe.frames).toBe(5);
       expect(probe.fps).toBeCloseTo(24, 0);
       expect(probe.codec).toBe("h264");
       expect(probe.pixFmt).toBe("yuv420p");
       expect(probe.width).toBe(160);
       expect(probe.height).toBe(120);
-      const first = extractFrame(file, 0);
-      const last = extractFrame(file, 4);
+      const first = await extractFrame(file, 0);
+      const last = await extractFrame(file, 4);
       expect(meanAbsDiff(first, last)).toBeGreaterThan(1);
     } finally {
       rmSync(dir, { recursive: true, force: true });
@@ -137,11 +132,11 @@ describe.skipIf(!shouldRun)("render_animation integration", () => {
     try {
       const file = join(dir, "anim.mp4");
       writeFileSync(file, result.outputs["video"]!);
-      const probe = probeVideo(file);
+      const probe = await probeVideo(file);
       expect(probe.frames).toBe(3);
       expect(probe.fps).toBeCloseTo(2, 0);
-      const first = extractFrame(file, 0);
-      const last = extractFrame(file, 2);
+      const first = await extractFrame(file, 0);
+      const last = await extractFrame(file, 2);
       // The end pose (+2 in x) substantially differs from the start pose.
       expect(meanAbsDiff(first, last)).toBeGreaterThan(5);
       // The centroid travels tens of pixels: at fps 2 the end pose lands

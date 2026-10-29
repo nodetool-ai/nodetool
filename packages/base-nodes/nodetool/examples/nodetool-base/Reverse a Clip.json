@@ -5,7 +5,7 @@
   "updated_at": "2026-06-21T16:55:51.256Z",
   "name": "Reverse a Clip",
   "tool_name": null,
-  "description": "Play a clip backwards. Useful for loop-and-return transitions where the return leg is the same footage reversed. Runs locally through ffmpeg - no API key and no per-run cost.",
+  "description": "Play a clip backwards. Useful for loop-and-return transitions where the return leg is the same footage reversed. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
   "tags": [
     "video",
     "utility",
@@ -19,7 +19,7 @@
         "id": "intro-comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Reverse a Clip\n\nPlays a video backwards. Use it for loop-and-return transitions where the return leg is the same footage reversed. It runs locally through ffmpeg with no API key or per-run cost.\n\n**How it works:** \"Clip\" takes your video. \"Reverse\" flips the frame order, and \"Result\" returns the reversed clip.\n\n**Try this:** Run a short camera push-in through it and cut the reversed copy after the original to get a push-in and pull-out loop."
+          "comment": "# Reverse a Clip\n\nPlays a video backwards. Use it for loop-and-return transitions where the return leg is the same footage reversed. It runs in the built-in media engine on your machine, with no API key or per-run cost.\n\n**How it works:** \"Clip\" takes your video. \"Reverse\" flips the frame order, and \"Result\" returns the reversed clip.\n\n**Try this:** Run a short camera push-in through it and cut the reversed copy after the original to get a push-in and pull-out loop."
         },
         "ui_properties": {
           "position": {

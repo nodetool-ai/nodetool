@@ -1014,9 +1014,6 @@ export interface BuiltinPackStatus {
 export type RuntimePackageId =
   | "python"
   | "nodejs"
-  | "ffmpeg"
-  | "pandoc"
-  | "pdftotext"
   | "yt-dlp"
   | "rust"
   | "manimgx"

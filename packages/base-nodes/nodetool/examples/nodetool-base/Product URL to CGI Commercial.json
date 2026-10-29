@@ -1,0 +1,289 @@
+{
+  "id": "product-url-to-cgi-commercial-01",
+  "access": "public",
+  "created_at": "2026-10-26T12:00:00.000000",
+  "updated_at": "2026-10-26T12:00:00.000000",
+  "name": "Product URL to CGI Commercial",
+  "description": "Scrape a live product page URL to extract its form factor, materials, and brand palette, generate a studio packshot keyframe, and animate a directed CGI-style tabletop commercial shot. Estimated cost is about $0.08 for the studio packshot plus $0.35 to $0.85 for the motion clip on fal, or $0 locally with Ollama, Flux, and Wan 2.2.",
+  "tags": [
+    "video",
+    "marketing",
+    "advertising",
+    "higgsfield-pack",
+    "ads",
+    "example"
+  ],
+  "required_providers": [
+    "fal"
+  ],
+  "thumbnail": "Spin a Packshot into a Turntable Clip.jpg",
+  "graph": {
+    "edges": [
+      {
+        "id": "e1",
+        "source": "product_url",
+        "sourceHandle": "output",
+        "target": "brief",
+        "targetHandle": "url"
+      },
+      {
+        "id": "e2",
+        "source": "visual_style",
+        "sourceHandle": "output",
+        "target": "brief",
+        "targetHandle": "style"
+      },
+      {
+        "id": "e3",
+        "source": "camera_move",
+        "sourceHandle": "output",
+        "target": "brief",
+        "targetHandle": "move"
+      },
+      {
+        "id": "e4",
+        "source": "brief",
+        "sourceHandle": "output",
+        "target": "commercial_director",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e5",
+        "source": "commercial_director",
+        "sourceHandle": "text",
+        "target": "packshot",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e6",
+        "source": "packshot",
+        "sourceHandle": "output",
+        "target": "packshot_out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e7",
+        "source": "packshot",
+        "sourceHandle": "output",
+        "target": "commercial_clip",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e8",
+        "source": "commercial_director",
+        "sourceHandle": "text",
+        "target": "motion_prompt",
+        "targetHandle": "shot_brief"
+      },
+      {
+        "id": "e9",
+        "source": "camera_move",
+        "sourceHandle": "output",
+        "target": "motion_prompt",
+        "targetHandle": "move"
+      },
+      {
+        "id": "e10",
+        "source": "motion_prompt",
+        "sourceHandle": "output",
+        "target": "commercial_clip",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e11",
+        "source": "commercial_clip",
+        "sourceHandle": "output",
+        "target": "commercial_out",
+        "targetHandle": "value"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Product URL to CGI Commercial\n\n**Product URL to CGI Commercial** inspects a product page and produces a studio tabletop packshot and an animated commercial take.\n\n1. **Product URL**, **Visual Style**, and **Camera Move** feed into **Agent** (with browser access) to write a material-accurate packshot prompt.\n2. **TextToImage** renders the hero product keyframe and **ImageToVideo** executes the camera move."
+        },
+        "position": {
+          "x": 80,
+          "y": -220
+        },
+        "width": 720,
+        "height": 170
+      },
+      {
+        "id": "product_url",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "product_url",
+          "value": "https://nodetool.ai",
+          "description": "Product landing page URL to inspect.",
+          "line_mode": "single_line"
+        },
+        "position": {
+          "x": 80,
+          "y": 40
+        }
+      },
+      {
+        "id": "visual_style",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "visual_style",
+          "value": "Macro tabletop commercial on dark brushed slate, warm amber rim lighting, crisp specular highlights, 85mm cinema lens",
+          "description": "Lighting, surface materials, and optical treatment.",
+          "line_mode": "multi_line"
+        },
+        "position": {
+          "x": 80,
+          "y": 200
+        }
+      },
+      {
+        "id": "camera_move",
+        "type": "nodetool.input.SelectInput",
+        "data": {
+          "name": "camera_move",
+          "value": "360 orbit",
+          "options": [
+            "360 orbit",
+            "orbit left",
+            "orbit right",
+            "slow push in",
+            "dolly in",
+            "crane up",
+            "low-angle hero rise",
+            "pull back reveal",
+            "through-object pass"
+          ],
+          "enum_type_name": "camera_move",
+          "description": "Camera trajectory for the commercial shot."
+        },
+        "position": {
+          "x": 80,
+          "y": 380
+        }
+      },
+      {
+        "id": "brief",
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "template": "Open {{ url }} and inspect the product's visual form, materials, colours, and hero positioning.\n\nWrite a single detailed studio photography and CGI commercial prompt for this product in the following visual style: {{ style }}, framed for a {{ move }} camera move.\n\nReturn ONLY the visual prompt paragraph."
+        },
+        "position": {
+          "x": 380,
+          "y": 140
+        }
+      },
+      {
+        "id": "commercial_director",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          },
+          "system": "You are a commercial tabletop director. Inspect the product URL with the browser tool and return a single visual prompt describing the product, materials, and lighting.",
+          "tools": [
+            {
+              "type": "tool_name",
+              "name": "browser"
+            },
+            {
+              "type": "tool_name",
+              "name": "web_search"
+            }
+          ],
+          "max_tokens": 1024
+        },
+        "position": {
+          "x": 660,
+          "y": 140
+        }
+      },
+      {
+        "id": "packshot",
+        "type": "nodetool.image.TextToImage",
+        "data": {
+          "model": {
+            "type": "image_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          },
+          "aspect_ratio": "16:9"
+        },
+        "position": {
+          "x": 960,
+          "y": 140
+        }
+      },
+      {
+        "id": "motion_prompt",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "Camera movement: {{ move }}. {{ shot_brief }} Keep product geometry rigid and reflections physically accurate throughout the move.",
+          "values": {}
+        },
+        "position": {
+          "x": 960,
+          "y": 420
+        }
+      },
+      {
+        "id": "commercial_clip",
+        "type": "nodetool.video.ImageToVideo",
+        "data": {
+          "model": {
+            "type": "video_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          },
+          "aspect_ratio": "16:9",
+          "resolution": "1080p",
+          "duration": 5
+        },
+        "position": {
+          "x": 1260,
+          "y": 320
+        }
+      },
+      {
+        "id": "packshot_out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "packshot_still",
+          "description": "The hero studio packshot keyframe."
+        },
+        "position": {
+          "x": 1260,
+          "y": 100
+        }
+      },
+      {
+        "id": "commercial_out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "commercial_video",
+          "description": "The animated CGI-style product commercial clip."
+        },
+        "position": {
+          "x": 1540,
+          "y": 320
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

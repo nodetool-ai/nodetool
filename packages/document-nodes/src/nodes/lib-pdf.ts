@@ -609,57 +609,85 @@ export class PdfScreenshotNode extends BaseNode {
   declare dpi: number;
 
   async process(context?: ProcessingContext): Promise<PdfScreenshotNodeOutputs> {
-    // Bypass liteparse's parser.screenshot(): it loads the same buffer into
-    // pdf.js *and* PDFium, but pdf.js detaches the underlying ArrayBuffer
-    // during its load, leaving PDFium with a detached buffer (→ "File not in
-    // PDF format or corrupted"). Render directly via PDFium + sharp.
-    const [{ PDFiumLibrary }, sharpModule] = await Promise.all([
-      import("@hyzyla/pdfium"),
-      import("sharp")
-    ]);
-    const sharp = sharpModule.default;
     const pdfBuffer = await resolvePdfBuffer(this.pdf ?? {}, context);
-    const dpi = this.dpi;
-    const scale = dpi / 72;
-
-    const lib = await PDFiumLibrary.init();
-    const images: { type: string; data: string }[] = [];
-    let doc: Awaited<ReturnType<typeof lib.loadDocument>> | null = null;
-    try {
-      doc = await lib.loadDocument(Buffer.from(pdfBuffer));
-      const totalPages = doc.getPageCount();
-      const [start, end] = resolvePageRange(
-        this.start_page,
-        this.end_page,
-        totalPages
-      );
-      for (let i = start; i <= end; i++) {
-        const page = doc.getPage(i);
-        const image = await page.render({
-          scale,
-          render: async (options) =>
-            sharp(options.data, {
-              raw: {
-                width: options.width,
-                height: options.height,
-                channels: 4
-              }
-            })
-              .png({ compressionLevel: 6 })
-              .withMetadata({ density: dpi })
-              .toBuffer()
-        });
-        images.push({
-          type: "image",
-          data: Buffer.from(image.data).toString("base64")
-        });
-      }
-    } finally {
-      if (doc) doc.destroy();
-      lib.destroy();
-    }
-    return { output: images };
+    return {
+      output: await renderPdfPages(pdfBuffer, {
+        startPage: this.start_page,
+        endPage: this.end_page,
+        dpi: this.dpi,
+        format: "png",
+        scaleTo: 0
+      })
+    };
   }
+}
+
+interface RenderPdfPagesOptions {
+  startPage: number;
+  endPage: number;
+  dpi: number;
+  format: "png" | "jpeg" | "tiff";
+  /** Longest side in pixels; 0 renders at `dpi`. */
+  scaleTo: number;
+}
+
+// Renders directly via PDFium + sharp instead of liteparse's
+// parser.screenshot(): that loads the same buffer into pdf.js *and* PDFium,
+// but pdf.js detaches the underlying ArrayBuffer during its load, leaving
+// PDFium with a detached buffer (→ "File not in PDF format or corrupted").
+async function renderPdfPages(
+  pdfBuffer: Buffer,
+  options: RenderPdfPagesOptions
+): Promise<{ type: string; data: string }[]> {
+  const [{ PDFiumLibrary }, sharpModule] = await Promise.all([
+    import("@hyzyla/pdfium"),
+    import("sharp")
+  ]);
+  const sharp = sharpModule.default;
+  const { dpi, format, scaleTo } = options;
+
+  const lib = await PDFiumLibrary.init();
+  const images: { type: string; data: string }[] = [];
+  let doc: Awaited<ReturnType<typeof lib.loadDocument>> | null = null;
+  try {
+    doc = await lib.loadDocument(Buffer.from(pdfBuffer));
+    const totalPages = doc.getPageCount();
+    const [start, end] = resolvePageRange(
+      options.startPage,
+      options.endPage,
+      totalPages
+    );
+    for (let i = start; i <= end; i++) {
+      const page = doc.getPage(i);
+      // PDF user space is 72 units per inch.
+      const { originalWidth, originalHeight } = page.getOriginalSize();
+      const scale =
+        scaleTo > 0 ? scaleTo / Math.max(originalWidth, originalHeight) : dpi / 72;
+      const image = await page.render({
+        scale,
+        render: async (raw) => {
+          const pipeline = sharp(raw.data, {
+            raw: { width: raw.width, height: raw.height, channels: 4 }
+          });
+          const encoded =
+            format === "jpeg"
+              ? pipeline.flatten({ background: "#ffffff" }).jpeg()
+              : format === "tiff"
+                ? pipeline.tiff()
+                : pipeline.png({ compressionLevel: 6 });
+          return encoded.withMetadata({ density: 72 * scale }).toBuffer();
+        }
+      });
+      images.push({
+        type: "image",
+        data: Buffer.from(image.data).toString("base64")
+      });
+    }
+  } finally {
+    if (doc) doc.destroy();
+    lib.destroy();
+  }
+  return images;
 }
 
 /** Output handles PdfToppmNode.process() emits. */
@@ -669,13 +697,12 @@ type PdfToppmNodeOutputs = {
 
 export class PdfToppmNode extends BaseNode {
   static readonly nodeType = "lib.pdf.Pdftoppm";
-  static readonly title = "PDF Rasterize (pdftoppm)";
+  static readonly title = "PDF Rasterize";
   static readonly description =
-    "Rasterize PDF pages with poppler's pdftoppm. Higher fidelity than the PDFium-based Screenshot node for some PDFs and supports anti-aliasing controls.\n    pdf, pdftoppm, poppler, rasterize, render, image, pages";
+    "Rasterize PDF pages to PNG, JPEG or TIFF images at a DPI or a target size.\n    pdf, pdftoppm, rasterize, render, image, pages, jpeg, tiff";
   static readonly inlineFields = [];
   static readonly inputFields = ["pdf"];
   static readonly metadataOutputTypes = { output: "list[image]" };
-  static readonly requiredRuntimes = ["pdftoppm"];
 
   @prop(PDF_INPUT)
   declare pdf: DocumentRefLike;
@@ -727,79 +754,16 @@ export class PdfToppmNode extends BaseNode {
   declare scale_to: number;
 
   async process(context?: ProcessingContext): Promise<PdfToppmNodeOutputs> {
-    const { execFile } = await import("node:child_process");
-    const { promisify } = await import("node:util");
-    const { promises: fs } = await import("node:fs");
-    const os = await import("node:os");
-    const path = await import("node:path");
-    const execFileAsync = promisify(execFile);
-
     const pdfBuffer = await resolvePdfBuffer(this.pdf ?? {}, context);
-    const dpi = this.dpi;
-    const scaleTo = this.scale_to;
-    const format = this.format.toLowerCase();
-    const formatFlag =
-      format === "jpeg" ? "-jpeg" : format === "tiff" ? "-tiff" : "-png";
-    const ext = format === "jpeg" ? "jpg" : format;
-
-    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-pdftoppm-"));
-    const inputPath = path.join(dir, "input.pdf");
-    const outputPrefix = path.join(dir, "page");
-    try {
-      await fs.writeFile(inputPath, pdfBuffer);
-
-      // pdftoppm uses 1-based page numbers.
-      const totalPages = await countPdfPages(pdfBuffer);
-      const [start, end] = resolvePageRange(
-        this.start_page,
-        this.end_page,
-        totalPages
-      );
-
-      const args: string[] = [formatFlag];
-      if (scaleTo > 0) {
-        args.push("-scale-to", String(scaleTo));
-      } else {
-        args.push("-r", String(dpi));
-      }
-      args.push(
-        "-f", String(start + 1),
-        "-l", String(end + 1),
-        inputPath,
-        outputPrefix
-      );
-
-      await execFileAsync("pdftoppm", args, { maxBuffer: 64 * 1024 * 1024 });
-
-      const entries = await fs.readdir(dir);
-      const images: { type: string; data: string }[] = [];
-      const pageFiles = entries
-        .filter((n) => n.startsWith("page-") && n.endsWith(`.${ext}`))
-        .sort();
-      for (const name of pageFiles) {
-        const buf = await fs.readFile(path.join(dir, name));
-        images.push({
-          type: "image",
-          data: Buffer.from(buf).toString("base64")
-        });
-      }
-      return { output: images };
-    } finally {
-      await fs.rm(dir, { recursive: true, force: true });
-    }
-  }
-}
-
-async function countPdfPages(pdf: Buffer): Promise<number> {
-  const { PDFiumLibrary } = await import("@hyzyla/pdfium");
-  const lib = await PDFiumLibrary.init();
-  let doc: Awaited<ReturnType<typeof lib.loadDocument>> | null = null;
-  try {
-    doc = await lib.loadDocument(pdf);
-    return doc.getPageCount();
-  } finally {
-    if (doc) doc.destroy();
-    lib.destroy();
+    return {
+      output: await renderPdfPages(pdfBuffer, {
+        startPage: this.start_page,
+        endPage: this.end_page,
+        dpi: this.dpi,
+        format: this.format,
+        scaleTo: this.scale_to
+      })
+    };
   }
 }
 
@@ -877,9 +841,8 @@ export class PdfExtractOcrNode extends BaseNode {
 }
 
 // Node-only: every node depends on native pdfium (via @llamaindex/liteparse →
-// @hyzyla/pdfium) and sharp, and PdfToppmNode spawns `pdftoppm` via
-// node:child_process + os.tmpdir(). Workers/edge have no native addons and no
-// subprocess, so these can never run there. Untagged → registry default
+// @hyzyla/pdfium) and sharp. Workers/edge have no native addons, so these can
+// never run there. Untagged → registry default
 // ["node"].
 export const LIB_PDF_NODES = [
   PdfExtractTextNode,

@@ -1431,9 +1431,6 @@
                               "enum": [
                                 "python",
                                 "nodejs",
-                                "ffmpeg",
-                                "pandoc",
-                                "pdftotext",
                                 "yt-dlp",
                                 "rust",
                                 "manimgx",
@@ -2559,9 +2556,6 @@
                           "enum": [
                             "python",
                             "nodejs",
-                            "ffmpeg",
-                            "pandoc",
-                            "pdftotext",
                             "yt-dlp",
                             "rust",
                             "manimgx",

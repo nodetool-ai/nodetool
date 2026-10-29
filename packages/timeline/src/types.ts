@@ -680,7 +680,7 @@ export const FABLE_EFFECT_KINDS: readonly FableEffectKind[] = [
  * (`fx.reverb.size`, `fx.delay.fb`, `fx.crush.bits`, ...). `enabled` drives the
  * stage's own `.on` switch; the LAB stages keep their per-stage `.on` params.
  * Browser-only: the preview and the browser export run it as the `fable-fx`
- * AudioWorklet, the server ffmpeg render skips it.
+ * AudioWorklet, the server libav render skips it.
  */
 export interface TrackFableEffect {
   id: string;
@@ -698,7 +698,7 @@ export interface TrackFableEffect {
  * apply as they do on a track. Echo and reverb ring past the clip's end, so
  * they only make sense where a clip's sound has its own tail. Every host
  * mixes them: the preview and the browser export through `AudioGraph`, the
- * server render through ffmpeg. Must also exist on the protocol zod schema or
+ * server render through libav. Must also exist on the protocol zod schema or
  * PATCH strips it.
  */
 export type ClipAudioEffect =

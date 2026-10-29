@@ -242,6 +242,18 @@ describe("download success and content types", () => {
     expect(res!.headers.get("content-type")).toBe("image/png");
   });
 
+  it("serves .html as text/html, since the download is an attachment", async () => {
+    await fs.writeFile(path.join(tmpDir, "page.html"), "<p>hi</p>");
+    const res = await handleWorkspaceRequest(
+      makeRequest("/api/workspaces/ws1/download/page.html"),
+      options
+    );
+    expect(res!.headers.get("content-type")).toBe("text/html");
+    expect(res!.headers.get("content-disposition")).toBe(
+      'attachment; filename="page.html"'
+    );
+  });
+
   it("falls back to application/octet-stream for unknown extensions", async () => {
     await fs.writeFile(path.join(tmpDir, "blob.xyz"), "raw");
     const res = await handleWorkspaceRequest(

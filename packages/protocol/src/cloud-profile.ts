@@ -194,7 +194,7 @@ export const CLOUD_HOST_FILE_NODES: readonly string[] = [
  *   an unsandboxed host path) are dropped, for the same reason.
  * - `nodetool.agents.*` — kept as a namespace for Agent, Classifier,
  *   Extractor, Summarizer, CreateThread, and EnhancePrompt. Specialist
- *   tool-agent nodes were removed; ffmpeg, yt-dlp, and browser are
+ *   tool-agent nodes were removed; media editing, yt-dlp, and browser are
  *   CodeAct capabilities instead.
  */
 export const CLOUD_NODE_DENYLIST: readonly string[] = [

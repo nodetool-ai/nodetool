@@ -5,7 +5,7 @@
  * Settings → API Keys.
  *
  * Video enhancement is handled by the `@nodetool-ai/topaz-nodes`
- * `topaz.video.EnhanceVideo` node (it needs local ffprobe metadata probing and
+ * `topaz.video.EnhanceVideo` node (it needs local metadata probing and
  * a multi-step upload pipeline), so it is intentionally not duplicated here.
  *
  * Topaz authenticates with the `X-API-Key` header. Image model definitions are

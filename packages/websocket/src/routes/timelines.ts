@@ -47,7 +47,7 @@ import {
   type PremiereFetchedAsset,
   type PremiereMediaInfo
 } from "../lib/timeline-premiere.js";
-import { MediaToolingMissingError, probeDurationMs, probeHasAudio } from "../lib/media.js";
+import { probeDurationSec, probeHasAudio } from "@nodetool-ai/runtime/media";
 import { isLocalFileSource, streamZip, type ExportSource } from "../lib/zip-stream.js";
 
 interface RouteOptions {
@@ -94,8 +94,8 @@ async function fetchOwnedAsset(
 
 /**
  * Duration and audio presence of one export source. Bytes from a store with
- * no local file are probed from a temporary copy. Without ffprobe both stay
- * unknown, and the export report says what that left out.
+ * no local file are probed from a temporary copy. A file the probe cannot
+ * read leaves both unknown, and the export report says what that left out.
  */
 async function probeExportSource(
   source: ExportSource,
@@ -114,13 +114,10 @@ async function probeExportSource(
       await writeFile(path, source);
     }
     const info: PremiereMediaInfo = {};
-    const durationMs = await probeDurationMs(path);
-    if (durationMs !== null) info.durationMs = durationMs;
+    const durationSec = await probeDurationSec(path);
+    if (durationSec !== null) info.durationMs = Math.round(durationSec * 1000);
     if (isVideo) info.hasAudio = await probeHasAudio(path);
     return info;
-  } catch (error) {
-    if (error instanceof MediaToolingMissingError) return {};
-    throw error;
   } finally {
     if (dir) await rm(dir, { recursive: true, force: true });
   }

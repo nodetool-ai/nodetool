@@ -64,7 +64,7 @@ describe("the belt", () => {
     process.env["NODETOOL_NODE_PROFILE"] = "cloud";
     const names = availableBuiltinToolNames();
     expect(names).not.toContain("yt_dlp");
-    expect(names).toContain("ffmpeg");
+    expect(names).toContain("media_edit");
     expect(getBuiltinTools().map((tool) => tool.name)).not.toContain("yt_dlp");
     // The profile drops the `browser_*` capabilities too (browser-gate.test.ts),
     // `render_model3d` (blender-gate.test.ts) and `take_screenshot`

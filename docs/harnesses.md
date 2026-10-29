@@ -2647,9 +2647,9 @@ IO- and CPU-bound work gets its own spans, tagged `nodetool.task.kind` =
 | `<METHOD> <route>` (server) | — | Every API request except `/health` and `/ready`. Continues an incoming `traceparent` |
 | `GET`, `POST`, … (client) | — | Every outbound `fetch`: provider APIs, S3, Supabase Storage, `safeFetch` |
 | `workspace.read` / `write` / `list` / `materialize` / `absorb` | io | `StorageWorkspace` |
-| `subprocess.run` | cpu | `runHostBinary`, the video nodes' ffmpeg/ffprobe, server-side thumbnails and audio extraction |
+| `subprocess.run` | cpu | `runHostBinary`: yt-dlp, Blender, ManimGX |
 | `image.encode_png` / `rasterize_svg` / `extract_region` / `thumbnail` | cpu | Image codec helpers and asset thumbnails |
-| `audio.peaks`, `video.encode_proxy`, `ffmpeg.trim_video_window` | cpu | Waveform peaks, preview proxies, video-edit source windows |
+| `audio.peaks`, `video.encode_proxy`, `media.trim_video_window`, `media.extract_audio`, `video.thumbnail`, `audio.thumbnail` | cpu | Waveform peaks, preview proxies, video-edit source windows, audio extraction, asset thumbnails |
 | `storage.store` / `retrieve` / `delete` / `list` | io | A run's asset storage (`ProcessingContext.storage` and `assetStorage`), tagged with the backend class |
 
 Other activity spans:

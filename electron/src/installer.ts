@@ -659,7 +659,7 @@ createIpcMainHandler(IpcChannels.SELECT_CUSTOM_LOCATION, async (_event) => {
 
 /**
  * Install arbitrary conda packages into the existing conda environment.
- * Used by the package manager to install packages like ffmpeg on demand.
+ * Used by the package manager to install packages like yt-dlp on demand.
  */
 async function installCondaPackageBySpec(
   envPrefix: string,
@@ -698,7 +698,7 @@ async function installCondaPackageBySpec(
 
 /**
  * Remove conda packages from the existing conda environment.
- * Used by the package manager to uninstall runtimes like ffmpeg.
+ * Used by the package manager to uninstall runtimes like yt-dlp.
  */
 async function removeCondaPackageBySpec(
   envPrefix: string,
@@ -711,7 +711,7 @@ async function removeCondaPackageBySpec(
 
   const micromambaExecutable = await ensureMicromambaAvailable();
 
-  // Strip version constraints for removal (e.g. "ffmpeg>=6,<7" → "ffmpeg")
+  // Strip version constraints for removal (e.g. "rust>=1.77" → "rust")
   const names = packageNames.map((s) => s.split(/[><=!]/)[0]);
 
   const args = [

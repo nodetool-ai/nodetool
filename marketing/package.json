@@ -85,6 +85,6 @@
     "tailwindcss": "^4.3.3",
     "tsx": "^4.0.0",
     "typescript": "npm:@typescript/typescript6@6.0.2",
-    "wrangler": "^4.151.0"
+    "wrangler": "^4.153.0"
   }
 }

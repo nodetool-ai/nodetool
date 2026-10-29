@@ -17,7 +17,7 @@ This namespace contains 32 node(s).
 - **[Ease Curve](easecurve.md)** - Retime a video along an easing curve so playback speeds up or slows down smo...
 - **[Extract Audio](extractaudio.md)** - Separate and extract audio track from a video file.
 - **[Extract Video Frame](extractvideoframe.md)** - Extract a single frame from a video at a specific time position.
-- **[For Each Frame](foreachframe.md)** - Extract frames from a video file with ffmpeg.
+- **[For Each Frame](foreachframe.md)** - Extract frames from a video file.
 - **[Fps](fps.md)** - Get the frames per second (FPS) of a video file.
 - **[Frame To Video](frametovideo.md)** - Combine a sequence of frames into a single video file.
 - **[Get Video Info](getvideoinfo.md)** - Get metadata about a video file including duration, resolution, frame rate, a...

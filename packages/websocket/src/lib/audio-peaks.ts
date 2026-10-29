@@ -4,7 +4,7 @@
  * The timeline draws a clip's waveform from a fixed number of abs-max peaks of
  * channel 0. The browser used to fetch the whole file and decode it with
  * `decodeAudioData`, which turned a two-hour WAV into gigabytes of float32 in
- * the renderer. Here ffmpeg decodes the file as a stream, reading a local file
+ * the renderer. Here the file is decoded as a stream, reading a local file
  * (managed or external) in place, and only a small per-block maximum array is
  * held while it runs.
  *
@@ -13,21 +13,16 @@
  * the backend keeps no local file), and the peak count. A file changed in
  * place gets a new key, so a stale waveform is never served.
  */
-import { spawn, execFile as execFileCb } from "node:child_process";
 import { createHash } from "node:crypto";
 import { promises as fsp } from "node:fs";
 import os from "node:os";
 import nodePath from "node:path";
-import { promisify } from "node:util";
 import { getNodetoolCacheDir } from "@nodetool-ai/config";
 import { Asset } from "@nodetool-ai/models";
 import { getAssetAdapter } from "./storage.js";
 import { localAssetPath, retrieveAssetBytes } from "./asset-paths.js";
-import { MediaToolingMissingError } from "./media.js";
-import { isObjectLike } from "./wire-values.js";
+import { decodeAudioChunks, probeMedia } from "@nodetool-ai/runtime/media";
 import { withTaskSpan } from "@nodetool-ai/runtime/tracing";
-
-const execFile = promisify(execFileCb);
 
 /** The count the timeline asks for; also the default. */
 export const DEFAULT_PEAK_COUNT = 2000;
@@ -38,7 +33,7 @@ const CACHE_FORMAT_VERSION = 1;
 
 /** Blocks per output peak kept while decoding, when the length is known. */
 const BLOCKS_PER_PEAK = 8;
-/** Block size when ffprobe reports no duration. */
+/** Block size when the container names no duration. */
 const FALLBACK_BLOCK_SAMPLES = 256;
 
 export interface AudioPeaks {
@@ -53,40 +48,20 @@ interface AudioProbe {
   durationSec: number | null;
 }
 
-function isEnoent(err: unknown): boolean {
-  return isObjectLike(err) && (err as { code?: unknown }).code === "ENOENT";
-}
-
 /** The first audio stream's sample rate, or null when the file has none. */
 async function probeAudio(filePath: string): Promise<AudioProbe | null> {
-  let stdout: string;
+  let probe: Awaited<ReturnType<typeof probeMedia>>;
   try {
-    ({ stdout } = await execFile("ffprobe", [
-      "-v",
-      "error",
-      "-select_streams",
-      "a:0",
-      "-show_entries",
-      "stream=sample_rate:format=duration",
-      "-of",
-      "json",
-      filePath
-    ]));
-  } catch (err) {
-    if (isEnoent(err)) throw new MediaToolingMissingError();
+    probe = await probeMedia(filePath);
+  } catch {
+    // Not media: there is no waveform to draw.
     return null;
   }
-  const parsed = JSON.parse(stdout) as {
-    streams?: Array<{ sample_rate?: string }>;
-    format?: { duration?: string };
-  };
-  const sampleRate = Number(parsed.streams?.[0]?.sample_rate);
-  if (!Number.isFinite(sampleRate) || sampleRate <= 0) return null;
-  const durationSec = Number(parsed.format?.duration);
+  if (!probe.audio || !(probe.audio.sampleRate > 0)) return null;
+  const durationSec = probe.durationSec;
   return {
-    sampleRate,
-    durationSec:
-      Number.isFinite(durationSec) && durationSec > 0 ? durationSec : null
+    sampleRate: probe.audio.sampleRate,
+    durationSec: durationSec !== null && durationSec > 0 ? durationSec : null
   };
 }
 
@@ -141,9 +116,8 @@ function reduceToPeaks(
 }
 
 /**
- * Decode channel 0 of the first audio stream of `filePath` with ffmpeg and
- * reduce it to `count` abs-max peaks. Returns null when the file has no audio
- * stream. Throws {@link MediaToolingMissingError} when ffmpeg is missing.
+ * Decode channel 0 of the first audio stream of `filePath` and reduce it to
+ * `count` abs-max peaks. Returns null when the file has no audio stream.
  */
 export function computeAudioPeaks(
   filePath: string,
@@ -174,16 +148,11 @@ async function computePeaks(
   let totalSamples = 0;
   let blockMax = 0;
   let inBlock = 0;
-  // A float can straddle two stdout chunks; its first bytes wait here.
-  let carry = Buffer.alloc(0);
-
-  const consume = (chunk: Buffer): void => {
-    const data = carry.length > 0 ? Buffer.concat([carry, chunk]) : chunk;
-    const whole = data.length - (data.length % 4);
-    // Copy into an aligned buffer so the samples read as one typed array.
-    // f32le matches every host NodeTool runs on.
-    const samples = new Float32Array(whole / 4);
-    new Uint8Array(samples.buffer).set(data.subarray(0, whole));
+  // Channel 0 only, at the source rate, streamed so a long file is never whole.
+  for await (const { samples } of decodeAudioChunks(filePath, {
+    sampleRate: probe.sampleRate,
+    filter: "pan=mono|c0=c0"
+  })) {
     for (let i = 0; i < samples.length; i += 1) {
       const v = Math.abs(samples[i]);
       if (v > blockMax) blockMax = v;
@@ -195,43 +164,7 @@ async function computePeaks(
       }
     }
     totalSamples += samples.length;
-    carry = Buffer.from(data.subarray(whole));
-  };
-
-  await new Promise<void>((resolve, reject) => {
-    const child = spawn(
-      "ffmpeg",
-      [
-        "-v",
-        "error",
-        "-nostdin",
-        "-i",
-        filePath,
-        "-map",
-        "0:a:0",
-        "-af",
-        "pan=mono|c0=c0",
-        "-f",
-        "f32le",
-        "-acodec",
-        "pcm_f32le",
-        "-"
-      ],
-      { stdio: ["ignore", "pipe", "pipe"] }
-    );
-    let stderr = "";
-    child.stdout.on("data", consume);
-    child.stderr.on("data", (chunk: Buffer) => {
-      if (stderr.length < 4096) stderr += chunk.toString();
-    });
-    child.on("error", (err) => {
-      reject(isEnoent(err) ? new MediaToolingMissingError() : err);
-    });
-    child.on("close", (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`ffmpeg exited with ${code}: ${stderr.trim()}`));
-    });
-  });
+  }
   if (inBlock > 0) blocks.push(blockMax);
 
   return {
@@ -363,12 +296,6 @@ export async function handleAssetPeaks(
   try {
     result = await pending;
   } catch (err) {
-    if (err instanceof MediaToolingMissingError) {
-      return jsonResponse(503, {
-        detail:
-          "ffmpeg is required to compute waveform peaks. Install the ffmpeg runtime."
-      });
-    }
     if (err instanceof AssetBytesMissingError) {
       return jsonResponse(404, { detail: "Asset bytes not found" });
     }

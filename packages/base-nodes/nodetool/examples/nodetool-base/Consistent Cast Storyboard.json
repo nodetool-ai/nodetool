@@ -1,0 +1,330 @@
+{
+  "id": "consistent-cast-storyboard-00001",
+  "access": "public",
+  "created_at": "2026-10-26T12:00:00.000000",
+  "updated_at": "2026-10-26T12:00:00.000000",
+  "name": "Consistent Cast Storyboard",
+  "description": "Direct a 6-shot narrative storyboard around a locked character entity, render every shot still and motion clip with identity preservation, and assemble the cut onto a multi-track timeline. Estimated cost is about $2.50 to $5.00 for a 6-shot board on fal at provider list price, or $0 locally with Ollama, Flux, and Wan 2.2.",
+  "tags": [
+    "video",
+    "storyboard",
+    "higgsfield-pack",
+    "characters",
+    "example"
+  ],
+  "required_providers": [
+    "fal"
+  ],
+  "thumbnail": "Direct a Short Film.jpg",
+  "graph": {
+    "edges": [
+      {
+        "id": "e1",
+        "source": "lead_name",
+        "sourceHandle": "output",
+        "target": "lead_entity",
+        "targetHandle": "name"
+      },
+      {
+        "id": "e2",
+        "source": "lead_descriptor",
+        "sourceHandle": "output",
+        "target": "lead_entity",
+        "targetHandle": "descriptor"
+      },
+      {
+        "id": "e3",
+        "source": "lead_photo",
+        "sourceHandle": "output",
+        "target": "lead_entity",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e4",
+        "source": "lead_entity",
+        "sourceHandle": "entity",
+        "target": "pack_cast",
+        "targetHandle": "lead"
+      },
+      {
+        "id": "e5",
+        "source": "script_brief",
+        "sourceHandle": "output",
+        "target": "director",
+        "targetHandle": "brief"
+      },
+      {
+        "id": "e7",
+        "source": "director",
+        "sourceHandle": "screenplay",
+        "target": "board",
+        "targetHandle": "screenplay"
+      },
+      {
+        "id": "e8",
+        "source": "pack_cast",
+        "sourceHandle": "output",
+        "target": "board",
+        "targetHandle": "cast"
+      },
+      {
+        "id": "e10",
+        "source": "board",
+        "sourceHandle": "storyboard",
+        "target": "stills",
+        "targetHandle": "storyboard"
+      },
+      {
+        "id": "e11",
+        "source": "stills",
+        "sourceHandle": "storyboard",
+        "target": "clips",
+        "targetHandle": "storyboard"
+      },
+      {
+        "id": "e12",
+        "source": "clips",
+        "sourceHandle": "storyboard",
+        "target": "storyboard_out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "e13",
+        "source": "clips",
+        "sourceHandle": "storyboard",
+        "target": "timeline",
+        "targetHandle": "storyboard"
+      },
+      {
+        "id": "e14",
+        "source": "timeline",
+        "sourceHandle": "timeline",
+        "target": "timeline_out",
+        "targetHandle": "value"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Consistent Cast Storyboard\n\n**Consistent Cast Storyboard** keeps your lead character identical across a 6-shot sequence.\n\n1. **CreateEntity** binds the lead's portrait and wardrobe descriptor into a cast list.\n2. **Director** plans six shots with framing and camera moves, then **RenderStills**, **RenderClips**, and **AssembleTimeline** produce the finished sequence."
+        },
+        "position": {
+          "x": 80,
+          "y": -220
+        },
+        "width": 720,
+        "height": 170
+      },
+      {
+        "id": "lead_photo",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "lead_photo",
+          "value": {
+            "type": "image",
+            "uri": "package://nodetool-base/recipe-inputs/ugc-creator-reference.png",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "description": "Reference portrait for the lead character."
+        },
+        "position": {
+          "x": 80,
+          "y": 40
+        }
+      },
+      {
+        "id": "lead_name",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "lead_name",
+          "value": "Maya",
+          "description": "Character name referenced across all six shots.",
+          "line_mode": "single_line"
+        },
+        "position": {
+          "x": 80,
+          "y": 260
+        }
+      },
+      {
+        "id": "lead_descriptor",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "lead_descriptor",
+          "value": "woman in her late 20s, dark wavy bob, olive linen jacket, silver hoop earrings",
+          "description": "Facial features and wardrobe kept constant in every shot.",
+          "line_mode": "multi_line"
+        },
+        "position": {
+          "x": 80,
+          "y": 400
+        }
+      },
+      {
+        "id": "script_brief",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "story_brief",
+          "value": "At dawn, Maya opens her neighbourhood espresso bar, dials in the first pull, and hands a steaming cortado to the first regular at the window.",
+          "description": "Narrative brief for the 6-shot sequence.",
+          "line_mode": "multi_line"
+        },
+        "position": {
+          "x": 80,
+          "y": 580
+        }
+      },
+      {
+        "id": "lead_entity",
+        "type": "nodetool.entity.CreateEntity",
+        "data": {
+          "name": "Maya",
+          "kind": "character",
+          "description": ""
+        },
+        "position": {
+          "x": 380,
+          "y": 160
+        }
+      },
+      {
+        "id": "pack_cast",
+        "type": "nodetool.code.Code",
+        "data": {
+          "code": "const lead = inputs.lead;\nreturn { output: [lead] };\n"
+        },
+        "position": {
+          "x": 640,
+          "y": 160
+        }
+      },
+      {
+        "id": "director",
+        "type": "nodetool.creative.Director",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          },
+          "shot_count": 6,
+          "style": "35mm natural morning window light, warm amber highlights, shallow depth of field"
+        },
+        "position": {
+          "x": 640,
+          "y": 420
+        }
+      },
+      {
+        "id": "board",
+        "type": "nodetool.storyboard.CreateStoryboard",
+        "data": {
+          "image_model": {
+            "type": "image_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          },
+          "video_model": {
+            "type": "video_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          },
+          "name": "Consistent Cast Sequence"
+        },
+        "position": {
+          "x": 940,
+          "y": 320
+        }
+      },
+      {
+        "id": "stills",
+        "type": "nodetool.storyboard.RenderStills",
+        "data": {
+          "concurrency": 2,
+          "image_model": {
+            "type": "image_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          },
+          "only_stale": true
+        },
+        "position": {
+          "x": 1220,
+          "y": 320
+        }
+      },
+      {
+        "id": "clips",
+        "type": "nodetool.storyboard.RenderClips",
+        "data": {
+          "concurrency": 2,
+          "video_model": {
+            "type": "video_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          },
+          "only_stale": true
+        },
+        "position": {
+          "x": 1500,
+          "y": 320
+        }
+      },
+      {
+        "id": "timeline",
+        "type": "nodetool.storyboard.AssembleTimeline",
+        "data": {
+          "fps": 24
+        },
+        "position": {
+          "x": 1780,
+          "y": 440
+        }
+      },
+      {
+        "id": "storyboard_out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "storyboard",
+          "description": "The rendered 6-shot storyboard with consistent character stills and clips."
+        },
+        "position": {
+          "x": 1780,
+          "y": 200
+        }
+      },
+      {
+        "id": "timeline_out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "timeline",
+          "description": "Multi-track timeline assembled from the rendered shots."
+        },
+        "position": {
+          "x": 2060,
+          "y": 440
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

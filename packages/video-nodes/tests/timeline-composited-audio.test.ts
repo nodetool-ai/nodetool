@@ -1,7 +1,7 @@
-import { execFileSync } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { generateMedia, inspectMedia, readPcm } from "@nodetool-ai/runtime/media/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { mixCompositedTimelineAudio } from "../src/nodes/timeline.js";
 import { resolveTimelineOutput } from "../src/nodes/timeline/outputFormats.js";
@@ -11,14 +11,36 @@ afterEach(async () => {
   await Promise.all(dirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })));
 });
 
+/** A black, silent H.264 picture `seconds` long: the render the mix lands on. */
+async function writeBase(file: string, seconds: number): Promise<void> {
+  await generateMedia({ outPath: file, video: { source: `color=c=black:s=32x32:r=10:duration=${seconds}` } });
+}
+
+/** A one-second 16-bit WAV tone, lavfi's sine at 1/8 full scale. */
+async function writeTone(file: string, opts: { frequency?: number; volume?: number } = {}): Promise<void> {
+  await generateMedia({
+    outPath: file,
+    audio: {
+      source: `sine=frequency=${opts.frequency ?? 440}:sample_rate=48000:duration=1`,
+      codec: "pcm_s16le",
+      filter: opts.volume === undefined ? undefined : `volume=${opts.volume}`
+    }
+  });
+}
+
+/** The mix's sound, mono at 48 kHz. */
+async function monoPcm(file: string): Promise<Float32Array> {
+  return (await readPcm(file, { sampleRate: 48000, channels: 1 })).samples;
+}
+
 describe("composited timeline audio", () => {
   it("mixes an audio asset at its offset with gain and fades", async () => {
     const workDir = await mkdtemp(path.join(os.tmpdir(), "timeline-audio-"));
     dirs.push(workDir);
     const basePath = path.join(workDir, "base.mp4");
     const audioPath = path.join(workDir, "tone.wav");
-    execFileSync("ffmpeg", ["-v", "error", "-y", "-f", "lavfi", "-i", "color=c=black:s=32x32:r=10", "-t", "2", "-an", "-c:v", "libx264", basePath]);
-    execFileSync("ffmpeg", ["-v", "error", "-y", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=1", audioPath]);
+    await writeBase(basePath, 2);
+    await writeTone(audioPath);
     const sequence = {
       id: "seq", projectId: "test", name: "Audio", width: 32, height: 32,
       fps: 10, durationMs: 2000, createdAt: "", updatedAt: "", transcript: [],
@@ -34,10 +56,8 @@ describe("composited timeline audio", () => {
       basePath, workDir, output: resolveTimelineOutput({ format: "mp4" }),
       resolveAssetPath: async (id) => id === "tone" ? audioPath : null
     });
-    const streams = JSON.parse(execFileSync("ffprobe", ["-v", "error", "-show_streams", "-of", "json", mixed], { encoding: "utf8" })) as { streams: Array<{ codec_type: string }> };
-    expect(streams.streams.map((stream) => stream.codec_type)).toContain("audio");
-    const pcm = execFileSync("ffmpeg", ["-v", "error", "-i", mixed, "-map", "0:a:0", "-f", "f32le", "-ac", "1", "-ar", "48000", "pipe:1"]);
-    const samples = new Float32Array(pcm.buffer, pcm.byteOffset, pcm.byteLength / 4);
+    expect((await inspectMedia(mixed)).audio).not.toBeNull();
+    const samples = await monoPcm(mixed);
     const rms = (from: number, to: number) => {
       let power = 0;
       for (let i = from * 48000; i < to * 48000; i++) power += samples[i] * samples[i];
@@ -60,8 +80,8 @@ async function toneRms(opts: {
   dirs.push(workDir);
   const basePath = path.join(workDir, "base.mp4");
   const audioPath = path.join(workDir, "tone.wav");
-  execFileSync("ffmpeg", ["-v", "error", "-y", "-f", "lavfi", "-i", "color=c=black:s=32x32:r=10", "-t", "1", "-an", "-c:v", "libx264", basePath]);
-  execFileSync("ffmpeg", ["-v", "error", "-y", "-f", "lavfi", "-i", `sine=frequency=${opts.frequency ?? 440}:sample_rate=48000:duration=1`, audioPath]);
+  await writeBase(basePath, 1);
+  await writeTone(audioPath, { frequency: opts.frequency });
   const sequence = {
     id: "seq", projectId: "test", name: "Audio", width: 32, height: 32,
     fps: 10, durationMs: 1000, createdAt: "", updatedAt: "", transcript: [],
@@ -78,8 +98,7 @@ async function toneRms(opts: {
     resolveAssetPath: async (id) => id === "tone" ? audioPath : null
   });
   if (mixed === basePath) return null;
-  const pcm = execFileSync("ffmpeg", ["-v", "error", "-i", mixed, "-map", "0:a:0", "-f", "f32le", "-ac", "1", "-ar", "48000", "pipe:1"]);
-  const samples = new Float32Array(pcm.buffer, pcm.byteOffset, pcm.byteLength / 4);
+  const samples = await monoPcm(mixed);
   // Skip the edges: encoder priming and filter settling.
   let power = 0;
   const from = 0.2 * 48000;
@@ -147,8 +166,8 @@ async function clipEffectPcm(opts: {
   dirs.push(workDir);
   const basePath = path.join(workDir, "base.mp4");
   const audioPath = path.join(workDir, "tone.wav");
-  execFileSync("ffmpeg", ["-v", "error", "-y", "-f", "lavfi", "-i", "color=c=black:s=32x32:r=10", "-t", "3", "-an", "-c:v", "libx264", basePath]);
-  execFileSync("ffmpeg", ["-v", "error", "-y", "-f", "lavfi", "-i", `sine=frequency=440:sample_rate=48000:duration=1`, "-af", `volume=${opts.volume ?? 1}`, audioPath]);
+  await writeBase(basePath, 3);
+  await writeTone(audioPath, { volume: opts.volume });
   const sequence = {
     id: "seq", projectId: "test", name: "Audio", width: 32, height: 32,
     fps: 10, durationMs: 3000, createdAt: "", updatedAt: "", transcript: [],
@@ -164,8 +183,7 @@ async function clipEffectPcm(opts: {
     basePath, workDir, output: resolveTimelineOutput({ format: "mp4" }),
     resolveAssetPath: async (id) => id === "tone" ? audioPath : null
   });
-  const pcm = execFileSync("ffmpeg", ["-v", "error", "-i", mixed, "-map", "0:a:0", "-f", "f32le", "-ac", "1", "-ar", "48000", "pipe:1"]);
-  return new Float32Array(pcm.buffer, pcm.byteOffset, pcm.byteLength / 4);
+  return monoPcm(mixed);
 }
 
 function rmsOf(samples: Float32Array, fromSec: number, toSec: number): number {

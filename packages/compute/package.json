@@ -25,6 +25,12 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./runpod-rest": {
+      "nodetool-dev": "./src/providers/runpod-rest.ts",
+      "types": "./dist/providers/runpod-rest.d.ts",
+      "import": "./dist/providers/runpod-rest.js",
+      "default": "./dist/providers/runpod-rest.js"
     }
   },
   "license": "MIT",

@@ -1,0 +1,270 @@
+{
+  "id": "50-ad-variants-overnight-0000001",
+  "access": "public",
+  "created_at": "2026-10-26T12:00:00.000000",
+  "updated_at": "2026-10-26T12:00:00.000000",
+  "name": "50 Ad Variants Overnight",
+  "description": "Scrape a product URL once, generate a batch of distinct ad angles and camera directions (up to 50 variants), and loop through every variant with no rate-limit queue or automation ban. Estimated cost is about $0.30 per variant on fal at provider list price, or $0 locally with Ollama and Wan 2.2.",
+  "tags": [
+    "video",
+    "marketing",
+    "advertising",
+    "batch",
+    "higgsfield-pack",
+    "ads",
+    "example"
+  ],
+  "required_providers": [
+    "fal"
+  ],
+  "thumbnail": "Per-SKU Ad Factory.jpg",
+  "graph": {
+    "edges": [
+      {
+        "id": "e1",
+        "source": "product_url",
+        "sourceHandle": "output",
+        "target": "research_prompt",
+        "targetHandle": "url"
+      },
+      {
+        "id": "e2",
+        "source": "research_prompt",
+        "sourceHandle": "output",
+        "target": "brand_scraper",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e3",
+        "source": "brand_scraper",
+        "sourceHandle": "text",
+        "target": "hook_generator",
+        "targetHandle": "input_text"
+      },
+      {
+        "id": "e4",
+        "source": "variant_count",
+        "sourceHandle": "output",
+        "target": "hook_generator",
+        "targetHandle": "max_tokens"
+      },
+      {
+        "id": "e5",
+        "source": "hook_generator",
+        "sourceHandle": "item",
+        "target": "variant_prompt",
+        "targetHandle": "angle"
+      },
+      {
+        "id": "e6",
+        "source": "product_photo",
+        "sourceHandle": "output",
+        "target": "variant_clip",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e7",
+        "source": "variant_prompt",
+        "sourceHandle": "output",
+        "target": "variant_clip",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e8",
+        "source": "variant_clip",
+        "sourceHandle": "output",
+        "target": "collect_variants",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "e9",
+        "source": "collect_variants",
+        "sourceHandle": "output",
+        "target": "ad_variants",
+        "targetHandle": "value"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# 50 Ad Variants Overnight\n\n**50 Ad Variants Overnight** turns one product URL and reference photo into a batch of animated ad variants.\n\n1. **Agent** reads the **Product URL** and extracts verified product claims and visual hooks.\n2. **ListGenerator** expands the brief into distinct shot directions and streams each item to **ImageToVideo**.\n3. **Collect** gathers all rendered video variants so you can run 10 to 50 cuts unattended from the UI or CLI."
+        },
+        "position": {
+          "x": 80,
+          "y": -220
+        },
+        "width": 740,
+        "height": 180
+      },
+      {
+        "id": "product_url",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "product_url",
+          "value": "https://nodetool.ai",
+          "description": "Product page URL to extract positioning and proof points from.",
+          "line_mode": "single_line"
+        },
+        "position": {
+          "x": 80,
+          "y": 40
+        }
+      },
+      {
+        "id": "product_photo",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "product_photo",
+          "value": {
+            "type": "image",
+            "uri": "package://nodetool-base/recipe-inputs/coffee.jpg",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "description": "Hero product image used as the starting frame for each variant."
+        },
+        "position": {
+          "x": 80,
+          "y": 220
+        }
+      },
+      {
+        "id": "variant_count",
+        "type": "nodetool.input.IntegerInput",
+        "data": {
+          "name": "max_generation_tokens",
+          "value": 2048,
+          "min": 512,
+          "max": 4096,
+          "description": "Token budget for generating the batch of ad angle descriptions."
+        },
+        "position": {
+          "x": 80,
+          "y": 460
+        }
+      },
+      {
+        "id": "research_prompt",
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "template": "Open {{ url }} and summarize the product's core benefits, target audience, and visual aesthetic in a structured creative brief."
+        },
+        "position": {
+          "x": 380,
+          "y": 40
+        }
+      },
+      {
+        "id": "brand_scraper",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          },
+          "system": "You are a performance creative strategist. Visit the product URL with the browser tool and summarize verified benefits and visual hooks.",
+          "tools": [
+            {
+              "type": "tool_name",
+              "name": "browser"
+            },
+            {
+              "type": "tool_name",
+              "name": "web_search"
+            }
+          ],
+          "max_tokens": 1024
+        },
+        "position": {
+          "x": 660,
+          "y": 40
+        }
+      },
+      {
+        "id": "hook_generator",
+        "type": "nodetool.generators.ListGenerator",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          },
+          "prompt": "Generate distinct 1-sentence commercial camera and lighting directions (varying camera move, pace, and mood) based on the creative brief. Make each item self-contained so it can drive a 5-second product videovariant.",
+          "input_text": "",
+          "max_tokens": 2048
+        },
+        "position": {
+          "x": 960,
+          "y": 120
+        }
+      },
+      {
+        "id": "variant_prompt",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "Commercial product shot: {{ angle }} Keep the product geometry crisp and natural.",
+          "values": {}
+        },
+        "position": {
+          "x": 1240,
+          "y": 240
+        }
+      },
+      {
+        "id": "variant_clip",
+        "type": "nodetool.video.ImageToVideo",
+        "data": {
+          "model": {
+            "type": "video_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          },
+          "aspect_ratio": "9:16",
+          "resolution": "720p",
+          "duration": 5
+        },
+        "position": {
+          "x": 1520,
+          "y": 220
+        }
+      },
+      {
+        "id": "collect_variants",
+        "type": "nodetool.control.Collect",
+        "data": {},
+        "position": {
+          "x": 1800,
+          "y": 220
+        }
+      },
+      {
+        "id": "ad_variants",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "ad_variants",
+          "description": "Batch of rendered vertical video ad variants."
+        },
+        "position": {
+          "x": 2060,
+          "y": 220
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

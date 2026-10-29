@@ -60,7 +60,7 @@ const TINY_PNG = new Uint8Array([
 /**
  * Two seconds of 16×16 grey H.264 video at 4 fps with a silent AAC track,
  * made with `ffmpeg -f lavfi -i color=c=gray:s=16x16:d=2:r=4 -f lavfi -i
- * anullsrc`. It decodes, so a fake clip flows through ffmpeg-backed nodes
+ * anullsrc`. It decodes, so a fake clip flows through the media nodes
  * (concat, add audio, extract frame, timeline render) the way a provider's
  * clip would.
  */

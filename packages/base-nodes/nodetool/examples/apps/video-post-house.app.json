@@ -1521,7 +1521,7 @@
     {
       "key": "teaser",
       "name": "Trim a Clip",
-      "description": "Cut a clip down to an in and out point. `accurate` re-encodes so the cut lands on the exact frame instead of the nearest keyframe. Runs locally through ffmpeg - no API key and no per-run cost.",
+      "description": "Cut a clip down to an in and out point. `accurate` re-encodes so the cut lands on the exact frame instead of the nearest keyframe. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
       "sourceId": "nodetool-base/Trim a Clip",
       "graph": {
         "nodes": [
@@ -1529,7 +1529,7 @@
             "id": "intro-comment",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# Trim a Clip\n\nCuts a video down to an in point and an out point. It runs locally through ffmpeg, so there is no API key and no per-run cost.\n\n**How it works:** \"1 Clip\" takes the video. \"2 Trim\" keeps the part from 1.0 to 5.0 seconds, with accurate turned on so the cut lands on the exact frame instead of the nearest keyframe. \"3 Result\" returns the shorter clip.\n\n**Try this:** Turn off accurate on \"2 Trim\" for a faster cut that snaps to keyframes."
+              "comment": "# Trim a Clip\n\nCuts a video down to an in point and an out point. It runs on your machine with the built-in media engine, so there is no API key and no per-run cost.\n\n**How it works:** \"1 Clip\" takes the video. \"2 Trim\" keeps the part from 1.0 to 5.0 seconds, with accurate turned on so the cut lands on the exact frame instead of the nearest keyframe. \"3 Result\" returns the shorter clip.\n\n**Try this:** Turn off accurate on \"2 Trim\" for a faster cut that snaps to keyframes."
             },
             "ui_properties": {
               "position": {
@@ -1632,7 +1632,7 @@
     {
       "key": "cover",
       "name": "Pull a Still from a Clip",
-      "description": "Grab a single frame at a given timestamp - the quick way to get a thumbnail or a reference still out of footage you already have. Runs locally through ffmpeg.",
+      "description": "Grab a single frame at a given timestamp - the quick way to get a thumbnail or a reference still out of footage you already have. Runs on your machine with the built-in media engine.",
       "sourceId": "nodetool-base/Pull a Still from a Clip",
       "graph": {
         "nodes": [
@@ -1640,7 +1640,7 @@
             "id": "intro-comment",
             "type": "nodetool.workflows.base_node.Comment",
             "data": {
-              "comment": "# Pull a Still from a Clip\n\nGrabs one frame from a video at a chosen time. Use it to get a thumbnail or a reference still from existing footage.\n\n**How it works:** The \"Clip\" input goes to \"Grab a frame\", which extracts the frame at 2 seconds. \"Still\" shows the image. It runs locally through ffmpeg with no model or key.\n\n**Try this:** Set time on \"Grab a frame\" to the moment you want, such as 12.5 for a frame twelve and a half seconds in."
+              "comment": "# Pull a Still from a Clip\n\nGrabs one frame from a video at a chosen time. Use it to get a thumbnail or a reference still from existing footage.\n\n**How it works:** The \"Clip\" input goes to \"Grab a frame\", which extracts the frame at 2 seconds. \"Still\" shows the image. It runs in the built-in media engine on your machine, with no model or key.\n\n**Try this:** Set time on \"Grab a frame\" to the moment you want, such as 12.5 for a frame twelve and a half seconds in."
             },
             "ui_properties": {
               "position": {

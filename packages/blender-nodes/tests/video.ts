@@ -1,17 +1,11 @@
 /**
- * MP4 assertions for the `render_animation` suite (T4).
- *
- * Decoding and frame counting run through the system `ffprobe`/`ffmpeg`
- * (test-only: the package itself needs neither, per D5). Skipped when the
- * binaries are absent, the way the Blender suites skip without Blender.
+ * MP4 assertions for the `render_animation` suite (T4), decoded in process
+ * with the runtime's media helper.
  */
 
-import { execFileSync } from "node:child_process";
-import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
-import os from "node:os";
-import path from "node:path";
+import { readRgbaFrames, inspectMedia, videoStreamFormat } from "@nodetool-ai/runtime/media/testing";
 
-import { decodePng, type DecodedPng } from "./png.js";
+import type { DecodedPng } from "./png.js";
 
 export interface VideoProbe {
   frames: number;
@@ -22,114 +16,34 @@ export interface VideoProbe {
   height: number;
 }
 
-function onPath(name: string): boolean {
-  const pathEnv = process.env["PATH"] ?? "";
-  return pathEnv.split(path.delimiter).some((dir) => {
-    try {
-      return dir !== "" && existsSync(path.join(dir, name));
-    } catch {
-      return false;
-    }
-  });
-}
-
-/** ffprobe and ffmpeg both resolve. */
-export function ffmpegAvailable(): boolean {
-  const exe = process.platform === "win32" ? ".exe" : "";
-  return onPath(`ffprobe${exe}`) && onPath(`ffmpeg${exe}`);
-}
-
-/**
- * Fail the suite when Blender runs are required but ffmpeg is missing. Call
- * at module scope of every suite that decodes video, next to
- * `failWhenBlenderRequired`: CI sets `NODETOOL_REQUIRE_BLENDER=1` and
- * installs ffmpeg, so a skipped animation suite there is a broken install
- * rather than a pass.
- */
-export function failWhenFfmpegRequired(): void {
-  if (
-    process.env["NODETOOL_REQUIRE_BLENDER"] === "1" &&
-    !ffmpegAvailable()
-  ) {
-    throw new Error(
-      "NODETOOL_REQUIRE_BLENDER=1 is set but ffprobe/ffmpeg were not found " +
-        "on PATH. Install ffmpeg, or unset the variable to allow skips."
-    );
-  }
-}
-
-function ffprobeName(): string {
-  return process.platform === "win32" ? "ffprobe.exe" : "ffprobe";
-}
-
-function ffmpegName(): string {
-  return process.platform === "win32" ? "ffmpeg.exe" : "ffmpeg";
-}
-
-/** Frame count (decoded, exact), fps, pixel format, codec, and size. */
-export function probeVideo(file: string): VideoProbe {
-  const raw = execFileSync(
-    ffprobeName(),
-    [
-      "-v",
-      "error",
-      "-count_frames",
-      "-select_streams",
-      "v:0",
-      "-show_entries",
-      "stream=nb_read_frames,avg_frame_rate,pix_fmt,codec_name,width,height",
-      "-of",
-      "default=noprint_wrappers=1",
-      file
-    ],
-    { encoding: "utf8", timeout: 120_000 }
-  );
-  const fields = Object.fromEntries(
-    raw
-      .split("\n")
-      .map((line) => line.trim())
-      .filter((line) => line.includes("="))
-      .map((line) => {
-        const at = line.indexOf("=");
-        return [line.slice(0, at), line.slice(at + 1)];
-      })
-  );
-  const [num, den] = String(fields["avg_frame_rate"] ?? "0/1").split("/").map(Number);
+/** Frame count, fps, pixel format, codec, and size. */
+export async function probeVideo(file: string): Promise<VideoProbe> {
+  const report = await inspectMedia(file);
+  const format = await videoStreamFormat(file);
   return {
-    frames: Number(fields["nb_read_frames"]),
-    fps: den ? num! / den! : 0,
-    pixFmt: String(fields["pix_fmt"] ?? ""),
-    codec: String(fields["codec_name"] ?? ""),
-    width: Number(fields["width"]),
-    height: Number(fields["height"])
+    frames: report.frameTimes.length,
+    fps: report.video?.averageFps ?? 0,
+    pixFmt: format?.pixelFormat ?? "",
+    codec: format?.codec ?? "",
+    width: report.video?.width ?? 0,
+    height: report.video?.height ?? 0
   };
 }
 
-/** Decode one frame (0-based) to RGB pixels via ffmpeg PNG extraction. */
-export function extractFrame(video: string, index: number): DecodedPng {
-  const dir = mkdtempSync(path.join(os.tmpdir(), "blender-frame-"));
-  try {
-    const out = path.join(dir, "frame.png");
-    execFileSync(
-      ffmpegName(),
-      [
-        "-y",
-        "-v",
-        "error",
-        "-i",
-        video,
-        "-vf",
-        `select=eq(n\\,${index})`,
-        "-vsync",
-        "0",
-        out
-      ],
-      { timeout: 120_000 }
-    );
-    return decodePng(new Uint8Array(readFileSync(out)));
-  } finally {
-    rmSync(dir, { recursive: true, force: true });
+/** Decode one frame (0-based) to RGB pixels. */
+export async function extractFrame(video: string, index: number): Promise<DecodedPng> {
+  const { video: stream } = await inspectMedia(video);
+  if (!stream) throw new Error(`${video} has no video stream`);
+  const frames = await readRgbaFrames(video, { width: stream.width, height: stream.height });
+  const rgba = frames[index];
+  if (!rgba) throw new Error(`${video} has no frame ${index}`);
+  const pixels = new Uint8Array((rgba.length / 4) * 3);
+  for (let i = 0, o = 0; i < rgba.length; i += 4, o += 3) {
+    pixels[o] = rgba[i]!;
+    pixels[o + 1] = rgba[i + 1]!;
+    pixels[o + 2] = rgba[i + 2]!;
   }
+  return { width: stream.width, height: stream.height, channels: 3, pixels };
 }
 
 /** Mean absolute per-channel difference in [0, 255]. */

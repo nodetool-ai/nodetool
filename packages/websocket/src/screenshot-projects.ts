@@ -1040,9 +1040,7 @@ async function saveLedger(
 /**
  * Copy a shipped frame into the asset store through the same call an upload
  * makes, so the row, the object key and the thumbnail match what the API
- * expects to find. A clip's thumbnail needs ffmpeg and warns without it, the
- * same way it does on an install that has none; nothing in the project views
- * reads one.
+ * expects to find. Nothing in the project views reads a clip's thumbnail.
  */
 async function seedMedia(asset: RepoAsset, userId: string): Promise<void> {
   const bytes = readFileSync(join(REPO_ROOT, asset.source));

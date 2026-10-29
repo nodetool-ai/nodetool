@@ -62,7 +62,7 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Workspaces | `/api/workspaces/{id}/download/{path}` | `GET`        | Session auth                     | streaming                   | One file out of a workspace as an attachment; `403` in production unless the workspace is the server-managed one |
 | Assets    | `/api/assets`                     | `POST`            | Session auth                                   | no                          | Create an asset. Multipart with a `file` part and an optional `json` part for `name`, `content_type`, `parent_id`, `workflow_id`, `node_id`, `job_id`, `project_id`, `metadata`. Cloud backends upload through `assets.createUpload` instead, see [Uploading an Asset](#uploading-an-asset) |
 | Assets    | `/api/assets/{id}/extract-audio`  | `POST`            | Session auth                     | no                          | Extract a video asset's audio track into a new WAV asset |
-| Assets    | `/api/assets/{id}/peaks`          | `GET`             | Session auth                     | no                          | Waveform peaks of an audio or video asset, computed with ffmpeg and cached on disk |
+| Assets    | `/api/assets/{id}/peaks`          | `GET`             | Session auth                     | no                          | Waveform peaks of an audio or video asset, computed in process and cached on disk |
 | Assets    | `/api/assets/packages/{package}/{file}` | `GET`       | none                                           | streaming                   | Bytes behind a `package://` ref, from a node pack's assets directory |
 | Assets    | `/api/assets/packages`            | `GET`             | none                                           | no                          | Stub — always `{"assets": [], "next": null}`; there is no package listing |
 | Assets    | `/api/assets/packages/{package}`  | `GET`             | none                                           | no                          | Stub — same empty page. Fetch a package's files by name, not by listing |
@@ -1076,8 +1076,7 @@ curl -X POST "http://localhost:7777/api/assets/<video_asset_id>/extract-audio" \
 
 A video with no audio track returns `{"has_audio": false}` and creates nothing.
 Posting a non-video asset is a `400` (`{"detail": "Asset is not a video"}`), an
-asset you do not own is a `404`, and a server with no ffmpeg runtime available
-answers `503`.
+asset you do not own is a `404`.
 
 ### Waveform Peaks
 
@@ -1089,13 +1088,12 @@ on an audio clip: `count` abs-max values of channel 0 (1 to 20000, default
 { "peaks": [0, 0.0132, 0.4821, …], "duration_ms": 184032.5 }
 ```
 
-ffmpeg decodes the asset as a stream, reading a local file in place. The result
+libav decodes the asset as a stream, in process, reading a local file in place. The result
 is cached under the NodeTool cache directory, keyed by the asset, the file's
 size and mtime (or the row's `updated_at` on a store with no local file), and
 `count`, so a file changed in place gets new peaks. The `x-peaks-cache` header
 is `hit` or `miss`. A non-media asset or a bad `count` is a `400`, an asset you
-do not own is a `404`, a file with no audio stream is a `422`, and a server with
-no ffmpeg runtime answers `503`.
+do not own is a `404`, and a file with no audio stream is a `422`.
 
 ### Package Assets
 
@@ -3035,7 +3033,7 @@ route family:
 | 429 | Too Many Requests | Rate limit, or too many live debug sessions |
 | 500 | Internal Error | Server-side error |
 | 501 | Not Implemented | Stub routes such as bulk asset download |
-| 503 | Service Unavailable | A feature flag is off, ffmpeg is missing, or the server is draining |
+| 503 | Service Unavailable | A feature flag is off or the server is draining |
 
 ---
 

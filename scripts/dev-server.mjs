@@ -13,6 +13,9 @@
  *   node scripts/dev-server.mjs test-ui      # test-ui mode
  */
 
+// Sets UV_THREADPOOL_SIZE here, for the child to inherit: tsx queues pool
+// work before the server entry's own threadpool import runs.
+import "../packages/config/src/threadpool.ts";
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";

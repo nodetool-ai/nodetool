@@ -9,17 +9,15 @@
  * frame range, because a trimmed, sped-up, reversed or looped clip is not a
  * run of consecutive scene frames.
  *
- * The mux is ffmpeg and not Blender's own writer, which is what
+ * The mux runs libav in process, not Blender's own writer, which is what
  * `render_animation`'s video mode uses. Two reasons: one sequence feeds both
- * bake formats, and Blender cannot write VP9 with an alpha channel. ffmpeg is
- * therefore a host binary this path needs and the video mode does not; a
- * machine without it fails here with the binary named.
+ * bake formats, and Blender cannot write VP9 with an alpha channel.
  */
 
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import path from "node:path";
 
-import { runHostBinary } from "@nodetool-ai/runtime";
+import { openVideoFrameEncoder, type VideoEncoderSpec } from "@nodetool-ai/runtime/media";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 import type {
@@ -63,7 +61,7 @@ export interface BakeVideoFormat {
   /** File extension of the muxed bytes, without the dot. */
   extension: "mp4" | "webm";
   mimeType: string;
-  /** ffmpeg output arguments: the encoder and its pixel format. */
+  /** Output arguments in the CLI's terms: the encoder and its pixel format. */
   encoderArgs: readonly string[];
 }
 
@@ -210,46 +208,51 @@ export async function renderModel3DBakeFrames(
   return { frames, stats: result.stats };
 }
 
-/**
- * The ffmpeg call that turns the numbered PNGs into one video.
- *
- * Pure, because the arguments are the whole difference between the two bakes
- * and a test should not need ffmpeg to read them.
- */
-export function bakeMuxArgs(
-  format: BakeVideoFormat,
-  fps: number,
-  output: string
-): string[] {
-  const rate = String(Math.max(1, Math.round(fps)));
-  return [
-    "-y",
-    "-framerate",
-    rate,
-    "-start_number",
-    "1",
-    "-i",
-    "frame_%06d.png",
-    ...format.encoderArgs,
-    // Every timeline decoder seeks this video, and a seek lands on the
-    // preceding keyframe: one per second keeps a scrub inside a frame or two
-    // of where it was asked for.
-    "-g",
-    rate,
-    // MP4 keeps its index at the front so a decoder can seek before the whole
-    // file has arrived; WebM has no such flag and needs none.
-    ...(format.extension === "mp4" ? ["-movflags", "+faststart"] : []),
-    output
-  ];
+/** The `-flag value` pair's value for `flag` in `argv`. */
+function argOf(argv: readonly string[], flag: string): string {
+  const at = argv.indexOf(flag);
+  const value = at === -1 ? undefined : argv[at + 1];
+  if (!value) throw new Error(`The bake format names no ${flag}`);
+  return value;
+}
+
+/** How the PNG frames of a bake are encoded and muxed. */
+export interface BakeEncoderSettings {
+  spec: VideoEncoderSpec;
+  muxerOptions?: Record<string, string>;
 }
 
 /**
- * Mux a PNG sequence into one video through ffmpeg's image2 demuxer.
+ * The encoder and muxer settings that turn the PNG frames into one video.
  *
- * The frames are written under the workspace's scratch directory rather than
- * piped: image2 reads a numbered pattern, and the same files reach either
- * encoder unchanged — an alpha bake differs only in the arguments
- * {@link bakeVideoFormat} names, because the PNGs already carry the channel.
+ * Pure, because the settings are the whole difference between the two bakes
+ * and a test should not need to encode anything to read them.
+ */
+export function bakeEncoderSettings(
+  format: BakeVideoFormat,
+  fps: number
+): BakeEncoderSettings {
+  const rate = String(Math.max(1, Math.round(fps)));
+  return {
+    spec: {
+      codec: argOf(format.encoderArgs, "-c:v"),
+      pixelFormat: argOf(format.encoderArgs, "-pix_fmt"),
+      // Every timeline decoder seeks this video, and a seek lands on the
+      // preceding keyframe: one per second keeps a scrub inside a frame or
+      // two of where it was asked for.
+      options: { g: rate }
+    },
+    // MP4 keeps its index at the front so a decoder can seek before the whole
+    // file has arrived; WebM has no such flag and needs none.
+    muxerOptions: format.extension === "mp4" ? { movflags: "+faststart" } : undefined
+  };
+}
+
+/**
+ * Encode a PNG sequence into one video, in process. An alpha bake differs
+ * only in the settings {@link bakeVideoFormat} names, because the PNGs
+ * already carry the channel. The file is written under the workspace's
+ * scratch directory.
  */
 export async function muxPngSequenceToVideo(
   context: ProcessingContext,
@@ -269,24 +272,27 @@ export async function muxPngSequenceToVideo(
     path.join(await workspace.scratchDir(), "nodetool-bake-")
   );
   try {
-    for (const [index, bytes] of frames.entries()) {
-      await writeFile(path.join(cwd, `${frameName(index)}.png`), bytes);
-    }
-    const output = `bake.${format.extension}`;
-    const argv = bakeMuxArgs(format, fps, output);
-    const result = await runHostBinary("ffmpeg", argv, {
-      cwd,
-      timeoutMs: options.timeoutMs,
-      signal: options.signal,
-      artifactPath: output
+    const output = path.join(cwd, `bake.${format.extension}`);
+    const { spec, muxerOptions } = bakeEncoderSettings(format, fps);
+    const encoder = await openVideoFrameEncoder({
+      outPath: output,
+      fps: Math.max(1, Math.round(fps)),
+      input: "png",
+      spec,
+      muxerOptions,
+      signal: options.signal
     });
-    if (result.exitCode !== 0) {
+    try {
+      for (const bytes of frames) await encoder.write(bytes);
+      await encoder.finish();
+    } catch (error) {
+      await encoder.abort();
       throw new BlenderJobError(
         "render_failed",
-        `ffmpeg could not mux the bake (exit ${result.exitCode}): ${result.stderr.slice(-2000)}`
+        `Could not mux the bake: ${error instanceof Error ? error.message : String(error)}`
       );
     }
-    return new Uint8Array(await readFile(path.join(cwd, output)));
+    return new Uint8Array(await readFile(output));
   } finally {
     await rm(cwd, { recursive: true, force: true });
   }

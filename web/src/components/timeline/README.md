@@ -28,7 +28,7 @@ a keyboard layout the user picks in the shortcut sheet (`?`):
   or -3 dB, the same four Final Cut offers. Alt+T fades the selection in and
   out by half a second, the clip menu does the same for one clip, and the
   inspector's Audio section edits both lengths and both curves. The preview
-  and the ffmpeg export ramp along the same curve.
+  and the server export ramp along the same curve.
 - **Keyframes**: Opacity, Position, Scale, Rotation and the 3D camera rows
   work like Premiere's Effect Controls. The stopwatch turns animation on,
   then every edit keys the value at the playhead. An animated row shows a
@@ -491,13 +491,13 @@ live preview, so an exported frame is identical to what playback showed:
   chain) driven by an `OfflineAudioContext`. A clip's `audioEffects` run
   between its gain and its track (`preview/audioEffectNodes.ts`), and their
   echo and reverb tails ring past the clip's end. The server mix in
-  `packages/video-nodes` builds the same chain from ffmpeg filters.
+  `packages/video-nodes` builds the same chain from libav filters.
 - `useTimelineExport` (`hooks/timeline/`) — wires the store + asset URLs to the
   renderer, reports progress, and downloads the resulting file.
 
 The same sequence renders server-side through `RenderTimeline`
 (`packages/video-nodes`), which drives the shared scene model and the headless
-`HeadlessFrameCompositor` with ffmpeg on both ends (decode to RGBA, encode the
+`HeadlessFrameCompositor` with libav on both ends (decode to RGBA, encode the
 composited frames) — see that node for what it needs (a WebGPU device) and what
 it falls back to without one.
 

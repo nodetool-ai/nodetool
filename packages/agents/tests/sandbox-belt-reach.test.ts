@@ -410,7 +410,7 @@ describe("the nodetool object model's own errors", () => {
     );
     expect(result.result).toContain("nodetool.video does not exist");
     expect(result.result).toContain("`video` is a global in this sandbox");
-    expect(result.result).toContain("nodetool.media.ffprobe");
+    expect(result.result).toContain("nodetool.media.probe");
     expect(result.result).not.toContain("not a function");
   }, 60_000);
 

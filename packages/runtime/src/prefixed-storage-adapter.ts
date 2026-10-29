@@ -1,5 +1,5 @@
+import { normalizeStorageKey } from "@nodetool-ai/storage/storage-keys";
 import {
-  normalizeStorageKey,
   type StorageAdapter,
   type StorageListResult,
   type StorageStat

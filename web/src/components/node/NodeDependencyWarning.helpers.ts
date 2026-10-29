@@ -2,22 +2,16 @@ import { trpcClient } from "../../trpc/client";
 import useRuntimeStatusStore from "../../stores/RuntimeStatusStore";
 
 export const RUNTIME_LABELS: Record<string, string> = {
-  ffmpeg: "FFmpeg & codecs",
   python: "Python",
   nodejs: "Node.js",
   "yt-dlp": "yt-dlp",
   manimgx: "ManimGX",
-  pandoc: "Pandoc",
-  pdftotext: "PDF Tools (Poppler)",
 };
 
 /** Maps required_runtimes values to RuntimePackageId values used by the Electron API. */
 export const RUNTIME_TO_PACKAGE_ID: Record<string, string> = {
   python: "python",
   nodejs: "nodejs",
-  ffmpeg: "ffmpeg",
-  pandoc: "pandoc",
-  pdftotext: "pdftotext",
   "yt-dlp": "yt-dlp",
   manimgx: "manimgx",
 };
@@ -42,8 +36,8 @@ function toStatusMap(
 
 /**
  * Load runtime statuses from the desktop app when it's there, otherwise from
- * the server — which is the machine that would spawn ffmpeg anyway, so its
- * PATH is the one that decides whether a node can run.
+ * the server — which is the machine that would spawn the runtime anyway, so
+ * its PATH is the one that decides whether a node can run.
  */
 export async function refreshRuntimeStatuses(): Promise<void> {
   const store = useRuntimeStatusStore.getState();

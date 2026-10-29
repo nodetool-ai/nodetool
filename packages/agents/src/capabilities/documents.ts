@@ -1,9 +1,10 @@
 /**
- * The `documents` capability module — PDF extraction and Pandoc conversion.
+ * The `documents` capability module — PDF extraction and in-process document
+ * conversion (`document-conversion.ts`).
  *
  * Five capabilities that used to be five `Tool` subclasses in
- * `pdf-tools.ts`. Wire names, descriptions and schemas are unchanged; a belt
- * builds all five from `documents.specs.ts` by name.
+ * `pdf-tools.ts`. Their wire names are unchanged; a belt builds all five from
+ * `documents.specs.ts` by name.
  *
  * The PDF parser (`@llamaindex/liteparse`) is imported inside the extraction
  * helper, as it always was — loading this module costs a handful of node
@@ -14,10 +15,15 @@
  * namespaces".
  */
 
-import { readFile, writeFile, mkdir, lstat, realpath } from "node:fs/promises";
+import {
+  readFile,
+  writeFile,
+  mkdir,
+  lstat,
+  realpath,
+  stat
+} from "node:fs/promises";
 import { dirname, isAbsolute, relative } from "node:path";
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { CapabilityExport, CapabilityModule } from "./types.js";
 import {
@@ -29,12 +35,10 @@ import {
 } from "./documents.specs.js";
 import { isString } from "../utils/type-guards.js";
 import {
-  PANDOC_EXTRA_ARGS_DISABLED_ERROR,
-  isHostAccessEnabled
-} from "../host-access-gate.js";
-import { importOptionalLibrary } from "../host-modules/limits.js";
-
-const execFileAsync = promisify(execFile);
+  MAX_HOST_INPUT_BYTES,
+  importOptionalLibrary
+} from "../host-modules/limits.js";
+import { convertDocumentBytes } from "./document-conversion.js";
 
 /**
  * True when `candidate`'s real (symlink-resolved) path stays within the real
@@ -260,85 +264,79 @@ const convertPdfToMarkdown: CapabilityExport = {
 };
 
 // ---------------------------------------------------------------------------
-// convert_markdown_to_pdf
+// convert_markdown_to_pdf / convert_document
 // ---------------------------------------------------------------------------
+
+/** `path`, or its closest ancestor that exists. */
+async function nearestExisting(path: string): Promise<string> {
+  let current = path;
+  for (;;) {
+    try {
+      await lstat(current);
+      return current;
+    } catch {
+      const parent = dirname(current);
+      if (parent === current) return current;
+      current = parent;
+    }
+  }
+}
+
+/**
+ * Read `input_file`, convert it in process, and write `output_file`. Both
+ * paths are checked against the workspace after resolving symlinks, and the
+ * output's closest existing ancestor is checked before any directory is made.
+ */
+async function convertWorkspaceFile(
+  context: ProcessingContext,
+  params: Record<string, unknown>,
+  fromFormat: string,
+  toFormat: string
+): Promise<Record<string, unknown>> {
+  try {
+    const inputFile = context.resolveWorkspacePath(
+      params["input_file"] as string
+    );
+    const outputFile = context.resolveWorkspacePath(
+      params["output_file"] as string
+    );
+    await assertWithinWorkspace(context, inputFile);
+    await assertWithinWorkspace(context, await nearestExisting(dirname(outputFile)));
+    const { size } = await stat(inputFile);
+    if (size > MAX_HOST_INPUT_BYTES) {
+      throw new Error(
+        `${params["input_file"]} is ${size} bytes; conversion accepts at most ${MAX_HOST_INPUT_BYTES}`
+      );
+    }
+    const output = await convertDocumentBytes(
+      await readFile(inputFile),
+      fromFormat,
+      toFormat
+    );
+    await mkdir(dirname(outputFile), { recursive: true });
+    await assertWithinWorkspace(context, outputFile);
+    await writeFile(outputFile, output);
+    return { output_file: outputFile, status: "success" };
+  } catch (e) {
+    return { error: String(e instanceof Error ? e.message : e) };
+  }
+}
 
 const convertMarkdownToPdf: CapabilityExport = {
   spec: convertMarkdownToPdfSpec,
-  impl: async (run, params) => {
-    const context = run.context;
-    try {
-      const inputFile = context.resolveWorkspacePath(
-        params["input_file"] as string
-      );
-      const outputFile = context.resolveWorkspacePath(
-        params["output_file"] as string
-      );
-
-      const parentDir = dirname(outputFile);
-      await mkdir(parentDir, { recursive: true });
-
-      await execFileAsync("pandoc", [
-        inputFile,
-        "-f",
-        "markdown",
-        "-t",
-        "pdf",
-        "-o",
-        outputFile
-      ]);
-
-      return { output_file: outputFile, status: "success" };
-    } catch (e) {
-      return { error: String(e instanceof Error ? e.message : e) };
-    }
-  }
+  impl: async (run, params) =>
+    convertWorkspaceFile(run.context, params, "markdown", "pdf")
 };
-
-// ---------------------------------------------------------------------------
-// convert_document
-// ---------------------------------------------------------------------------
 
 const convertDocument: CapabilityExport = {
   spec: convertDocumentSpec,
-  impl: async (run, params) => {
-    const context = run.context;
-    let extraArgs = (params["extra_args"] as string[]) ?? [];
-    if (isString(extraArgs)) {
-      extraArgs = [extraArgs];
-    }
-    if (extraArgs.length > 0 && !isHostAccessEnabled()) {
-      return { error: PANDOC_EXTRA_ARGS_DISABLED_ERROR };
-    }
-    try {
-      const inputFile = context.resolveWorkspacePath(
-        params["input_file"] as string
-      );
-      const outputFile = context.resolveWorkspacePath(
-        params["output_file"] as string
-      );
-      const fromFormat = (params["from_format"] as string) ?? "markdown";
-      const toFormat = (params["to_format"] as string) ?? "pdf";
-
-      const parentDir = dirname(outputFile);
-      await mkdir(parentDir, { recursive: true });
-
-      await execFileAsync("pandoc", [
-        inputFile,
-        "-f",
-        fromFormat,
-        "-t",
-        toFormat,
-        "-o",
-        outputFile,
-        ...extraArgs
-      ]);
-
-      return { output_file: outputFile, status: "success" };
-    } catch (e) {
-      return { error: String(e instanceof Error ? e.message : e) };
-    }
-  }
+  impl: async (run, params) =>
+    convertWorkspaceFile(
+      run.context,
+      params,
+      isString(params["from_format"]) ? params["from_format"] : "markdown",
+      isString(params["to_format"]) ? params["to_format"] : "pdf"
+    )
 };
 
 /** Every document capability, in the order pdf-tools.ts declared them. */
