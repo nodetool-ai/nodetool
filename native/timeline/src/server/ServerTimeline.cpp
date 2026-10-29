@@ -93,6 +93,11 @@ bool needsAudio(MediaType t) { return t == MediaType::Video || t == MediaType::A
 
 }  // namespace
 
+QString assetIdForReference(const QString& reference) {
+    const auto ref = parseRef(reference);
+    return ref.kind == AssetRef::Asset ? ref.id : QString{};
+}
+
 QString originalVersion(const QJsonObject& asset) {
     const QJsonValue size = asset.value(u"size");
     const QByteArray key = asset.value(u"updated_at").toString().toUtf8() + '\n' +
@@ -217,12 +222,25 @@ ServerOpenResult openServerTimeline(const ServerOpenOptions& options) {
         bool picture = false;
         bool audio = false;
         std::vector<size_t> clips;
+        std::vector<size_t> mattes;
     };
     std::map<QString, Need> needs;  // by ref id
     QJsonArray missing;
     int mediaClips = 0;
     for (size_t i = 0; i < tl.clips.size(); ++i) {
         const Clip& clip = tl.clips[i];
+        const auto matte = clip.raw.value("generatedMatte").toObject();
+        const auto matteId = matte.value("assetId").toString();
+        if (matte.value("status").toString("ready") == "ready" && !matteId.isEmpty() &&
+            matte.value("mediaPath").toString().isEmpty()) {
+            const auto ref = parseRef(matteId);
+            if (ref.kind != AssetRef::Invalid) {
+                Need& n = needs[ref.id];
+                n.ref = ref;
+                n.picture = true;
+                n.mattes.push_back(i);
+            }
+        }
         const bool pic = needsPicture(clip.mediaType);
         const bool aud = needsAudio(clip.mediaType);
         if (!pic && !aud) continue;
@@ -422,6 +440,9 @@ ServerOpenResult openServerTimeline(const ServerOpenOptions& options) {
             }
             picturePath = missingPath(p.need->ref.id);
             audioPath.clear();
+        }
+        if (p.error.isEmpty()) {
+            for (size_t i : p.need->mattes) tl.clips[i].generatedMattePath = picturePath;
         }
         for (size_t i : p.need->clips) {
             Clip& clip = tl.clips[i];

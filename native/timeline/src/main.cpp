@@ -14,8 +14,10 @@
 // --dump-plan prints the FramePlan JSON at the given times (ms), no window.
 
 #include "app/CliModes.h"
+#include "motion/capturedeadline/CaptureDeadline.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
+#include "motion/mattes/MatteResolver.h"
 #include "playback/PlaybackClock.h"
 #include "preview/PreviewCompositor.h"
 #include "app/startup/DecodeDefault.h"
@@ -452,13 +454,15 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, QSize size, const Q
         timer.start();
         while (!compositor->captureReady()) {
             renderFrame(false);
+            QCoreApplication::processEvents();
             logReport();
-            if (renderFailed()) return 1;
-            if (timer.elapsed() > 15000) {
-                std::fprintf(stderr, "error: no exact frame within 15 s\n");
+            const auto decision = nt::capture::decide(false, renderFailed(), compositor->captureReady(), timer.elapsed());
+            if (decision == nt::capture::Decision::Error) return 1;
+            if (decision == nt::capture::Decision::Ready) break;
+            if (decision == nt::capture::Decision::TimedOut) {
+                std::fprintf(stderr, "error: no exact frame within 60 s\n");
                 return 1;
             }
-            QCoreApplication::processEvents();
         }
         // The clip pictures decode off the GUI thread: wait for them too.
         while (nt::ui::MediaPreviewCache::instance().pendingCount() > 0 && timer.elapsed() < 30000) {
@@ -575,13 +579,15 @@ int runOffscreen(TimelineModel& model, PlaybackClock& clock, QSize size, const Q
         timer.start();
         while (!compositor->captureReady()) {
             renderFrame(false);
+            QCoreApplication::processEvents();
             logReport();
-            if (renderFailed()) return 1;
-            if (timer.elapsed() > 15000) {
-                std::fprintf(stderr, "error: frame %lld: no exact frame within 15 s\n", frame);
+            const auto decision = nt::capture::decide(false, renderFailed(), compositor->captureReady(), timer.elapsed());
+            if (decision == nt::capture::Decision::Error) return 1;
+            if (decision == nt::capture::Decision::Ready) break;
+            if (decision == nt::capture::Decision::TimedOut) {
+                std::fprintf(stderr, "error: frame %lld: no exact frame within 60 s\n", frame);
                 return 1;
             }
-            QCoreApplication::processEvents();
         }
         const QImage img = compositor->takeCapture().convertToFormat(QImage::Format_RGB888);
         const QString path = QStringLiteral("%1/frame_%2.png").arg(stillsDir).arg(frame, 6, 10, QLatin1Char('0'));
@@ -853,6 +859,7 @@ int main(int argc, char** argv) {
     {
         // From the parsed options, so `--opt=value` and `--opt value` agree.
         const QString mode = nt::audio::resolveAudioMode(parser);
+        QCoreApplication::instance()->setProperty("timelineAudioMode", mode);
         if (parser.isSet(audioDryRunOpt)) {
             std::printf("audio mode: %s\n", qPrintable(mode));
             return 0;
@@ -912,8 +919,10 @@ int main(int argc, char** argv) {
                                {QStringLiteral("clock"), QVariant::fromValue(&clock)}});
     // A server timeline saves itself (D34); QML reads `autosave` for its state.
     std::unique_ptr<nt::server::AutosaveController> autosave;
+    std::unique_ptr<nt::motion::MatteResolver> matteResolver;
     std::unique_ptr<nt::app::LocalDocumentSaver> localSaver;
     if (const auto target = nt::server::serverSaveTarget()) {
+        matteResolver = std::make_unique<nt::motion::MatteResolver>(model, *target);
         autosave = std::make_unique<nt::server::AutosaveController>(
             *target, model.undoStack(), [&model]() { return model.timeline().raw; },
             loaded.timeline->raw.value(u"updatedAt").toString());

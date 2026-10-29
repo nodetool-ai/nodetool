@@ -99,6 +99,8 @@ public:
     // Refused (code WRONG_SERVER) when an expected instance is set and the
     // server does not prove knowledge of its secret.
     QueryResult mutate(const QString& procedure, const QJsonObject& input);
+    // Side-effect-free SDK static preflight; pins the same server as writes.
+    QueryResult preflightWorkflow(const QString& workflowId, const QJsonObject& inputs = {});
     QueryResult upload(const QJsonObject& json, const QString& filePath, const QString& contentType);
     // Empty: no instance check.
     void setExpectedInstance(const QString& instance) { m_expectedInstance = instance.toUtf8(); }
@@ -113,7 +115,8 @@ public:
 
 private:
     QueryResult write(const QString& operation, QNetworkRequest request, const QByteArray* json,
-                      std::unique_ptr<QHttpMultiPart> multipart = nullptr, const QString& contentType = {});
+                      std::unique_ptr<QHttpMultiPart> multipart = nullptr, const QString& contentType = {},
+                      bool plainJson = false);
     QUrl m_base;
     QString m_token;
     int m_timeoutMs;

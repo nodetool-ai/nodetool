@@ -70,34 +70,48 @@ void SourcePool::reapLoop() {
     }
 }
 
-void SourcePool::update(const Timeline& timeline, double timeMs) {
+void SourcePool::update(const Timeline& timeline, double timeMs, const std::set<std::string>& required) {
     struct Want {
         const Clip* clip;
         double distanceMs;  // 0 when on screen
+        bool required;
     };
     std::vector<Want> wants;
     for (const Clip& clip : timeline.clips) {
         if (clip.mediaPath.empty() || clip.hidden || !isVisualMediaType(clip.mediaType)) continue;
         const Track* track = timeline.findTrack(clip.trackId);
         if (!track || !track->visible) continue;
-        if (timeMs >= clip.endMs()) continue;
-        const double distance = std::max(0.0, clip.startMs - timeMs);
-        if (distance > kPrerollMs) continue;
-        wants.push_back({&clip, distance});
+        const bool needed = required.contains(clip.id);
+        if (!needed && timeMs >= clip.endMs()) continue;
+        const double distance = needed ? 0.0 : std::max(0.0, clip.startMs - timeMs);
+        if (!needed && distance > kPrerollMs) continue;
+        wants.push_back({&clip, distance, needed});
     }
     // At the cap, the clips furthest from the playhead lose their decoder.
     std::stable_sort(wants.begin(), wants.end(),
-                     [](const Want& a, const Want& b) { return a.distanceMs < b.distanceMs; });
-    if (wants.size() > static_cast<size_t>(kMaxOpenDecoders)) wants.resize(kMaxOpenDecoders);
+                     [](const Want& a, const Want& b) {
+                         if (a.required != b.required) return a.required;
+                         return a.distanceMs < b.distanceMs;
+                     });
+    const auto requiredCount = static_cast<size_t>(std::count_if(wants.begin(), wants.end(),
+        [](const Want& want) { return want.required; }));
+    const auto limit = std::max(static_cast<size_t>(kMaxOpenDecoders), requiredCount);
+    if (wants.size() > limit) wants.resize(limit);
 
     std::set<std::string> keep;
     for (const Want& w : wants) {
         const Clip& clip = *w.clip;
         keep.insert(clip.id);
         auto it = m_entries.find(clip.id);
+        if (it != m_entries.end() && it->second.mediaPath != clip.mediaPath) {
+            retire(it->second);
+            m_entries.erase(it);
+            it = m_entries.end();
+        }
         if (it == m_entries.end()) {
             Entry e;
             e.label = clip.name;
+            e.mediaPath = clip.mediaPath;
             e.nominal = QSize(clip.width.value_or(timeline.width), clip.height.value_or(timeline.height));
             // Pre-roll: decode from where the clip will start showing.
             const double startSourceMs = clip.inPointMs + std::max(0.0, timeMs - clip.startMs);
@@ -148,7 +162,7 @@ void SourcePool::checkOpened(const std::string& clipId, Entry& e, const std::str
         r.fallback = m_softwareOnly.count(mediaPath) != 0 ? std::string(kStallFallback) : facts->fallback;
         std::lock_guard lock(m_reportMutex);
         const auto it = m_report.find(clipId);
-        if (it == m_report.end() || it->second.ok != r.ok || it->second.reason != r.reason ||
+        if (it == m_report.end() || it->second.mediaPath != r.mediaPath || it->second.ok != r.ok || it->second.reason != r.reason ||
             it->second.decoder != r.decoder || it->second.fallback != r.fallback) {
             m_report[clipId] = r;
             ++m_reportVersion;

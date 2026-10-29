@@ -1,4 +1,6 @@
 #include "assets/AssetBrowser.h"
+#include "export/ExportController.h"
+#include "motion/mattes/MatteResolver.h"
 #include "app/EditRegistry.h"
 #include "edit/tracks/TrackEdits.h"
 #include "edit/sourceEdit/SourceViewerState.h"
@@ -14,6 +16,7 @@
 #include <QLockFile>
 #include <QTimer>
 #include <QTemporaryDir>
+#include <QUrlQuery>
 #include <QScopeGuard>
 #include <cstdio>
 #include <QGuiApplication>
@@ -37,6 +40,83 @@ QQuickItem* itemNamed(QQuickItem* root, const QString& name) {
 class TestAssetBrowser : public QObject {
     Q_OBJECT
 private slots:
+    void resolvesExistingMatteAfterEdit_data() {
+        QTest::addColumn<QString>("reference");
+        QTest::addColumn<bool>("resolves");
+        QTest::addColumn<int>("browserCount");
+        const QString full = "cccccccccccccccccccccccccccccccc";
+        QTest::newRow("full-no-browser") << full << true << 0;
+        QTest::newRow("full-two-browsers") << full << true << 2;
+        QTest::newRow("asset-uri") << "asset://" + full << true << 0;
+        QTest::newRow("prefix") << full.left(12) << false << 0;
+        QTest::newRow("asset-uri-prefix") << "asset://" + full.left(12) << false << 0;
+        QTest::newRow("missing") << QString("dddddddddddddddddddddddddddddddd") << false << 0;
+        QTest::newRow("ambiguous") << QString("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee") << false << 0;
+    }
+    void resolvesExistingMatteAfterEdit() {
+        QFETCH(QString, reference);
+        QFETCH(bool, resolves);
+        QFETCH(int, browserCount);
+        const QString id = "cccccccccccccccccccccccccccccccc";
+        TestHttpServer http;
+        QVERIFY(http.base().port() != 7777);
+        const QByteArray bytes(1000, 'm');
+        http.setFile("/matte.mp4", ServedFile{bytes});
+        http.setJson([&](const QByteArray& path, const QUrl& url) {
+            if (path != "/trpc/assets.get") { return QByteArray(); }
+            const auto input = QJsonDocument::fromJson(QUrlQuery(url).queryItemValue("input", QUrl::FullyDecoded).toUtf8()).object();
+            if (input.value("id").toString() != id) {
+                const bool ambiguous = input.value("id").toString().startsWith("eeee");
+                const QJsonObject details{{"code", ambiguous ? "CONFLICT" : "NOT_FOUND"},
+                                          {"httpStatus", ambiguous ? 403 : 404}};
+                return QJsonDocument(QJsonObject{{"error", QJsonObject{{"message", "unavailable"},
+                    {"code", -32004}, {"data", details}}}}).toJson(QJsonDocument::Compact);
+            }
+            const QJsonObject asset{{"id", id}, {"get_url", "/matte.mp4"},
+                {"size", bytes.size()}, {"content_type", "video/mp4"}};
+            return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", asset}}}}).toJson(QJsonDocument::Compact);
+        });
+        QTemporaryDir dir;
+        auto parsed = nt::parseTimelineJson(R"({"fps":30,"width":64,"height":64,
+            "tracks":[{"id":"v","type":"video"}],"clips":[{"id":"c","trackId":"v",
+            "mediaType":"video","durationMs":1000}]})");
+        QVERIFY(parsed.timeline);
+        TimelineModel model;
+        model.setTimeline(*parsed.timeline);
+        nt::server::SaveTarget target;
+        target.server = http.base();
+        target.backupDir = dir.filePath("server/user/timelines");
+        nt::motion::MatteResolver resolver(model, target);
+        std::vector<std::unique_ptr<AssetBrowser>> browsers;
+        for (int i = 0; i < browserCount; ++i) {
+            auto browser = std::make_unique<AssetBrowser>();
+            browser->m_target = target;
+            browser->setTimeline(&model);
+            browsers.push_back(std::move(browser));
+        }
+        auto clips = model.clipsJson();
+        auto clip = clips[0].toObject();
+        clip.insert("generatedMatte", QJsonObject{{"assetId", reference}, {"unknown", 42}});
+        clips[0] = clip;
+        QVERIFY(model.commitEdit("Matte", model.clipsJson(), clips));
+        const auto before = model.documentJson();
+        if (resolves) {
+            QTRY_VERIFY_WITH_TIMEOUT(!model.timeline().clips.front().generatedMattePath.empty(), 10000);
+            QVERIFY(QFileInfo::exists(QString::fromStdString(model.timeline().clips.front().generatedMattePath)));
+            const auto snapshot = nt::exporting::exportSnapshot(model);
+            const auto exportedMatte = snapshot.value("clips").toArray()[0].toObject().value("generatedMatte").toObject();
+            QCOMPARE(exportedMatte.value("mediaPath").toString(), QString::fromStdString(model.timeline().clips.front().generatedMattePath));
+            QCOMPARE(exportedMatte.value("assetId").toString(), reference);
+            QCOMPARE(exportedMatte.value("unknown").toInt(), 42);
+        } else {
+            QTRY_VERIFY_WITH_TIMEOUT(http.countRequests("GET", "/trpc/assets.get") > 0 ||
+                reference.endsWith("cccccccccccc"), 10000);
+            QTest::qWait(100);
+            QVERIFY(model.timeline().clips.front().generatedMattePath.empty());
+        }
+        QCOMPARE(model.documentJson(), before);
+        if (resolves) QCOMPARE(http.countRequests("GET", "/trpc/assets.get"), 1);
+    }
     void sourceViewerResolvesFreshAsset_data() {
         QTest::addColumn<QString>("kind");
         QTest::addColumn<QString>("media");

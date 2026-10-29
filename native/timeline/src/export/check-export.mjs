@@ -91,7 +91,8 @@ export function requireFixtureCoverage(expected, rows, unmet = []) {
   }
 }
 export function duration(doc) {
-  return doc.clips.length ? Math.max(...doc.clips.map(c => c.startMs + c.durationMs)) : doc.durationMs;
+  return doc.durationMs > 0 ? doc.durationMs
+    : doc.clips.reduce((end, clip) => Math.max(end, clip.startMs + clip.durationMs), 0);
 }
 export function checkedFrames(doc) {
   const count = Math.max(1, Math.round(duration(doc) * doc.fps / 1000));

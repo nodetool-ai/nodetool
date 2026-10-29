@@ -55,6 +55,12 @@
 #      counterparts with vsync are the benches of sections 1 and 2. A
 #      measurement, not pass/fail: the run's verdict says only whether every
 #      counter has samples.
+#   Candidate preview device check (opt-in): --candidate-preview runs the
+#      device test's candidatePreviewDevice fixture. It opens a preview window,
+#      plays a scratch 440 Hz candidate on system output, and requires a
+#      loopback capture to detect the tone. Route system output to the capture
+#      device, setting NT_LOOPBACK_DEVICE when auto-discovery cannot find it.
+#      It measures candidate preview only, not A/V presentation timing.
 #   8. M0 serein, native against the web: a full example document in a
 #      10 s native bench window at 1920x1080, on top, paired with both
 #      serein decoder runs from section 7. Each mapped counter carries its
@@ -67,6 +73,18 @@
 set -uo pipefail
 
 cd "$(dirname "$0")/.."
+if [[ "${1:-}" == "--candidate-preview" ]]; then
+    if [[ "${QT_QPA_PLATFORM:-}" == offscreen || "${QT_QPA_PLATFORM:-}" == minimal ]]; then
+        echo "Candidate preview needs a real windowing platform." >&2
+        exit 1
+    fi
+    if [[ ! -x build/tst_ai_device ]]; then
+        echo "Build the tst_ai_device target first." >&2
+        exit 1
+    fi
+    NT_CANDIDATE_PREVIEW_DEVICE=1 build/tst_ai_device candidatePreviewDevice
+    exit $?
+fi
 bin=build/nodetool-timeline
 out=build/window-checks
 dry_run=0

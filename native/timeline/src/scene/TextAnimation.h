@@ -22,6 +22,9 @@ namespace nt::scene {
 TextStyle animatedTextStyle(const TextStyle& base, const QJsonArray& animations,
                             const std::vector<CompiledAnimation>& compiled, double localMs);
 
+double animatedBorderRadius(double base, const QJsonArray& animations,
+                            const std::vector<CompiledAnimation>& compiled, double localMs);
+
 // The ticker animator's text at an eased progress.
 QString tickerText(const QJsonObject& animator, double eased);
 

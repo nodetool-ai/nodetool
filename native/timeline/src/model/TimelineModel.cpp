@@ -1,3 +1,4 @@
+#include "motion/gesture/ClipDelta.h"
 #include "model/TimelineModel.h"
 
 #include "model/TimelineJson.h"
@@ -80,7 +81,9 @@ TimelineModel::TimelineModel(QObject* parent)
 
 void TimelineModel::setTimeline(nt::Timeline timeline) {
     m_media.clear();
+    m_mattes.clear();
     for (const auto& c : timeline.clips) {
+        if (!c.generatedMattePath.empty()) m_mattes.insert(c.raw.value("generatedMatte").toObject().value("assetId").toString(), c.generatedMattePath);
         if (!c.mediaPath.empty() || !c.audioPath.empty()) m_media.insert(mediaKey(c.raw), {c.mediaPath, c.audioPath});
     }
     timeline.revision = nt::nextTimelineRevision();
@@ -151,6 +154,7 @@ bool TimelineModel::replaceClips(const QJsonArray& clips) {
         // The parse knows neither the load's base folder nor the server's
         // asset cache: take the media the document's load resolved.
         for (auto& c : parsedClips) {
+            c.generatedMattePath = m_mattes.value(c.raw.value("generatedMatte").toObject().value("assetId").toString());
             const auto it = m_media.constFind(mediaKey(c.raw));
             if (it != m_media.constEnd()) {
                 c.mediaPath = it->first;
@@ -178,11 +182,21 @@ bool TimelineModel::replaceClips(const QJsonArray& clips) {
 
 quint64 TimelineModel::commitEdit(const QString& text, const QJsonArray& before, const QJsonArray& after, int mergeId,
                                bool continuation) {
-    if (before == after) return false;
+    const QJsonArray savedBefore = before;
+    const QJsonArray savedAfter = after;
+    if (savedBefore == savedAfter) return false;
+    const auto liveBefore = clipsJson();
+    emit beforeCommand();
+    const auto restored = clipsJson();
+    // An external command may have been computed against a transient preview.
+    // Apply only its observable changes to the restored committed clips.
+    const auto commandBefore = liveBefore == restored ? savedBefore : restored;
+    const auto commandAfter = liveBefore == restored ? savedAfter : nt::motion::rebaseClipDelta(restored, savedBefore, savedAfter);
+    if (commandBefore == commandAfter) return false;
     auto beforeDocument = m_timeline->raw;
-    beforeDocument.insert("clips", before);
+    beforeDocument.insert("clips", commandBefore);
     auto afterDocument = m_timeline->raw;
-    afterDocument.insert("clips", after);
+    afterDocument.insert("clips", commandAfter);
     const auto token = nextCommandToken();
     auto command = std::make_unique<DocumentCommand>(text, std::move(beforeDocument), std::move(afterDocument),
         [this](const QJsonObject& raw) { replaceDocument(raw); }, token, mergeId, continuation);
@@ -210,7 +224,9 @@ QVariantList TimelineModel::markers() const {
     return markersJson().toVariantList();
 }
 
-bool TimelineModel::replaceMarkers(const QJsonArray& markers) {
+bool TimelineModel::replaceMarkers(const QJsonArray& incoming) {
+    const QJsonArray markers = incoming;
+    emit beforeCommand();
     if (markers == markersJson()) return false;
     nt::Timeline next = *m_timeline;
     next.raw.insert(QStringLiteral("markers"), markers);
@@ -257,54 +273,62 @@ quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload
     if (!edit) {
         return false;
     }
-    const auto before = m_timeline->raw;
-    const auto after = edit(before, payload);
-    if (before == after) {
-        return false;
-    }
-    auto beforeFields = before;
-    auto afterFields = after;
-    beforeFields.remove("clips");
-    afterFields.remove("clips");
-    if (beforeFields == afterFields) {
-        if (!after.value("clips").isArray()) {
-            return false;
-        }
-        QHash<QString, QJsonObject> existing;
-        existing.reserve(static_cast<int>(m_timeline->clips.size()));
-        for (const auto& clip : m_timeline->clips) {
-            existing.insert(QString::fromStdString(clip.id), clip.raw);
-        }
-        QJsonArray changed;
-        for (const auto& value : after.value("clips").toArray()) {
-            if (!value.isObject()) {
-                return false;
-            }
-            const auto clip = value.toObject();
-            if (existing.value(clip.value("id").toString()) != clip) {
-                changed.append(clip);
-            }
-        }
-        if (!changed.isEmpty()) {
-            auto part = after;
-            part.insert("clips", changed);
-            const auto parsed = nt::parseTimelineJson(QJsonDocument(part).toJson(QJsonDocument::Compact));
-            if (!parsed.timeline || parsed.timeline->clips.size() != static_cast<size_t>(changed.size())) {
-                return false;
-            }
-        }
-    } else {
-        beforeFields = before;
-        afterFields = after;
-        beforeFields.remove("markers");
-        afterFields.remove("markers");
+    const auto valid = [this](const QJsonObject& before, const QJsonObject& after) {
+        auto beforeFields = before;
+        auto afterFields = after;
+        beforeFields.remove("clips");
+        afterFields.remove("clips");
         if (beforeFields == afterFields) {
-            if (!after.value("markers").isArray()) {
+            if (!after.value("clips").isArray()) {
                 return false;
             }
-        } else if (!nt::parseTimelineJson(QJsonDocument(after).toJson(QJsonDocument::Compact)).timeline) {
-            return false;
+            QHash<QString, QJsonObject> existing;
+            existing.reserve(static_cast<int>(m_timeline->clips.size()));
+            for (const auto& clip : m_timeline->clips) {
+                existing.insert(QString::fromStdString(clip.id), clip.raw);
+            }
+            QJsonArray changed;
+            for (const auto& value : after.value("clips").toArray()) {
+                if (!value.isObject()) {
+                    return false;
+                }
+                const auto clip = value.toObject();
+                if (existing.value(clip.value("id").toString()) != clip) {
+                    changed.append(clip);
+                }
+            }
+            if (!changed.isEmpty()) {
+                auto part = after;
+                part.insert("clips", changed);
+                const auto parsed = nt::parseTimelineJson(QJsonDocument(part).toJson(QJsonDocument::Compact));
+                if (!parsed.timeline || parsed.timeline->clips.size() != static_cast<size_t>(changed.size())) {
+                    return false;
+                }
+            }
+        } else {
+            beforeFields = before;
+            afterFields = after;
+            beforeFields.remove("markers");
+            afterFields.remove("markers");
+            if (beforeFields == afterFields) {
+                if (!after.value("markers").isArray()) {
+                    return false;
+                }
+            } else if (!nt::parseTimelineJson(QJsonDocument(after).toJson(QJsonDocument::Compact)).timeline) {
+                return false;
+            }
         }
+        return true;
+    };
+    auto before = m_timeline->raw;
+    auto after = edit(before, payload);
+    if (before == after || !valid(before, after)) { return false; }
+    emit beforeCommand();
+    const auto restored = m_timeline->raw;
+    if (restored != before) {
+        before = restored;
+        after = edit(before, payload);
+        if (before == after || !valid(before, after)) { return false; }
     }
     const auto token = nextCommandToken();
     auto command = std::make_unique<DocumentCommand>(name, before, after,
@@ -313,7 +337,9 @@ quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload
     return token;
 }
 
-bool TimelineModel::replaceDocument(const QJsonObject& raw) {
+bool TimelineModel::replaceDocument(const QJsonObject& incoming) {
+    const QJsonObject raw = incoming;
+    emit beforeCommand();
     if (raw == m_timeline->raw) {
         return false;
     }
@@ -339,6 +365,7 @@ bool TimelineModel::replaceDocument(const QJsonObject& raw) {
     const bool markersChangedValue = raw.value("markers") != m_timeline->raw.value("markers");
     auto next = std::move(*parsed.timeline);
     for (auto& clip : next.clips) {
+        clip.generatedMattePath = m_mattes.value(clip.raw.value("generatedMatte").toObject().value("assetId").toString());
         const auto media = m_media.constFind(mediaKey(clip.raw));
         if (media != m_media.constEnd()) {
             clip.mediaPath = media->first;
@@ -381,8 +408,34 @@ void TimelineModel::registerMedia(const nt::Clip& media) {
     emit timelineChanged();
 }
 
+void TimelineModel::registerMatteMedia(const QString& assetId, const std::string& path) {
+    if (assetId.isEmpty()) { return; }
+    m_mattes.insert(assetId, path);
+    auto next = *m_timeline;
+    bool changed = false;
+    for (auto& clip : next.clips) {
+        if (clip.raw.value("generatedMatte").toObject().value("assetId").toString() == assetId &&
+            clip.generatedMattePath != path) {
+            clip.generatedMattePath = path;
+            changed = true;
+        }
+    }
+    if (!changed) { return; }
+    next.revision = nt::nextTimelineRevision();
+    m_timeline = std::make_shared<const nt::Timeline>(std::move(next));
+    m_tracks->rebind(m_timeline.get());
+    emit clipsChanged();
+    emit timelineChanged();
+}
+
 bool TimelineModel::settleDocument(const QJsonObject& document) {
-    if (!replaceDocument(document)) { return false; }
+    if (!nt::parseTimelineJson(QJsonDocument(document).toJson(QJsonDocument::Compact)).timeline) { return false; }
+    const auto before = m_timeline->raw;
+    const QJsonObject incoming = document;
+    emit beforeCommand();
+    const auto restored = m_timeline->raw;
+    const auto after = before == restored ? incoming : nt::motion::rebaseDocumentDelta(restored, before, incoming);
+    if (!replaceDocument(after)) { return false; }
     emit commandSettled();
     return true;
 }
@@ -396,9 +449,20 @@ bool TimelineModel::settleCommand(quint64 token, const QJsonObject& document) {
         if (!nt::parseTimelineJson(QJsonDocument(document).toJson(QJsonDocument::Compact)).timeline) {
             return false;
         }
+        QJsonObject settled = document;
+        const bool current = m_undo->index() == i + 1;
+        if (current) {
+            const auto before = m_timeline->raw;
+            emit beforeCommand();
+            const auto restored = m_timeline->raw;
+            if (before != restored) { settled = nt::motion::rebaseDocumentDelta(restored, before, settled); }
+        }
+        if (!nt::parseTimelineJson(QJsonDocument(settled).toJson(QJsonDocument::Compact)).timeline) {
+            return false;
+        }
         // QUndoStack exposes commands as const, but owns the mutable command.
-        const_cast<DocumentCommand*>(command)->settle(document);
-        if (m_undo->index() == i + 1 && replaceDocument(document)) { emit commandSettled(); }
+        const_cast<DocumentCommand*>(command)->settle(settled);
+        if (current && replaceDocument(settled)) { emit commandSettled(); }
         return true;
     }
     return false;

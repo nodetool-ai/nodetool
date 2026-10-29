@@ -135,7 +135,7 @@ rather than the comment above `resolveGeneratedMatte`.
 `generated-matte-effects` checks clip brightness and a feathered shape mask on
 both sources, with track brightness only on the picture, at frames 0 and 21.
 
-The `clip-posterize-midpoint` golden establishes byte 127 on the driver GPU.
+The `clip-posterize-midpoint` golden establishes byte 128 on the tested driver.
 The pixel test uses that value and the shader keeps the step 2 UNORM write.
 Its frame metadata requires identical pixels, so a finite PSNR fails regardless
 of `--min-psnr`.

@@ -1,8 +1,10 @@
 #include "preview/PreviewCompositor.h"
+#include "motion/wipe/Wipe.h"
 
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
 #include "preview/SceneEval.h"
+#include "motion/blur/Shutter.h"
 #include "preview/FrameRing.h"
 #include "platform/CpuUsage.h"
 #include "preview/RetireQueue.h"
@@ -96,10 +98,16 @@ struct LayerUniforms {
     float pad;
     std::array<float, 4> sourceRect{0, 0, 1, 1};
     std::array<float, 4> sourceTexelSize{};
+    std::array<float, 4> border{};
+    std::array<float, 4> borderBounds{};
+    std::array<float, 4> wipe{};
+    std::array<float, 4> wipeCoordinates{1, 1, 0, 0};
 };
 static_assert(offsetof(LayerUniforms, sourceRect) == 144);
 static_assert(offsetof(LayerUniforms, sourceTexelSize) == 160);
-static_assert(sizeof(LayerUniforms) == 176);
+static_assert(offsetof(LayerUniforms, wipe) == 208);
+static_assert(offsetof(LayerUniforms, wipeCoordinates) == 224);
+static_assert(sizeof(LayerUniforms) == 240);
 static_assert(std::is_same_v<decltype(LayerUniforms::sourceRect), std::array<float, 4>>);
 static_assert(std::is_same_v<decltype(LayerUniforms::sourceTexelSize), std::array<float, 4>>);
 
@@ -210,9 +218,19 @@ private:
 
     void ensureCanvas();
     void ensureBlitPipeline();
+    bool ensureBlur();
+    void foldBlur(QRhiCommandBuffer* cb, float weight, bool first);
+    void resolveBlur(QRhiCommandBuffer* cb);
     SourceEntry& entryFor(const nt::ActiveLayer& layer);
     void retireSource(SourceEntry& entry);
-    std::unique_ptr<QRhiGraphicsPipeline> makePipeline(QRhiRenderPassDescriptor* rp, bool blend);
+    std::unique_ptr<QRhiGraphicsPipeline> makePipeline(QRhiRenderPassDescriptor* rp, bool blend, bool fallible = false);
+    struct TapResult {
+        int layerDraws, drawnSurfaces, frameError, missing, cutMisses, mediaLayers;
+        int cpuCopies, hardwareLayers, resourceFailures, missingMedia;
+        bool held, allExact;
+    };
+    TapResult renderSceneTap(QRhiCommandBuffer* cb);
+
 
     QRhi* m_rhi = nullptr;
     QShader m_vs;
@@ -227,6 +245,18 @@ private:
     std::unique_ptr<QRhiTextureRenderTarget> m_canvasRt;
     std::unique_ptr<QRhiRenderPassDescriptor> m_canvasRp;
     std::unique_ptr<QRhiGraphicsPipeline> m_layerPipeline;
+
+    std::unique_ptr<QRhiTexture> m_previousCanvas;
+    std::unique_ptr<QRhiTextureRenderTarget> m_previousRt;
+    std::unique_ptr<QRhiShaderResourceBindings> m_previousSrb;
+    bool m_previousValid = false;
+    bool m_blurFailed = false;
+    std::unique_ptr<QRhiTexture> m_blurTexture;
+    std::unique_ptr<QRhiTextureRenderTarget> m_blurClearRt, m_blurLoadRt;
+    std::unique_ptr<QRhiRenderPassDescriptor> m_blurRp, m_blurLoadRp;
+    std::unique_ptr<QRhiShaderResourceBindings> m_blurSrb, m_foldSrb;
+    std::unique_ptr<QRhiGraphicsPipeline> m_blurPipeline, m_blurResolvePipeline;
+    std::unique_ptr<QRhiBuffer> m_blurUbuf, m_foldUbuf;
 
     // Canvas -> item.
     std::unique_ptr<QRhiBuffer> m_blitUbuf;
@@ -247,9 +277,20 @@ private:
     QPointer<TimelineModel> m_sourceModel;
     quint64 m_sourceGeneration = 0;
     double m_timeMs = 0.0;
+    double m_tapTimeMs = 0.0;
+    double m_blurFrameTime = -1;
+    std::uint64_t m_blurRevision = 0;
+    std::uint64_t m_blurSeekSerial = 0;
+    bool m_blurPlaying = false;
+    double m_blurRate = 1;
+    int m_blurIndex = 0;
+    bool m_blurComplete = false;
+    nt::motion::Shutter m_shutter;
+    std::vector<double> m_tapTimes;
     std::vector<nt::SceneAdjustment> m_adjustments;
     std::vector<std::unique_ptr<nt::BackdropStage>> m_backdropStages;
     std::vector<nt::ActiveLayer> m_layers;
+    std::vector<nt::Clip> m_evaluatedClips;
     std::vector<nt::PrecompositeLayer> m_precomposites;  // innermost first
     std::string m_resourceError;  // the first GPU resource failure, for the GUI side
     bool m_warnedOverBudget = false;
@@ -257,6 +298,7 @@ private:
     double m_fps = 30.0;
     bool m_playing = false;
     bool m_canvasDrawn = false;  // the canvas holds a composited picture
+    bool m_hasCompletedCanvas = false;
 
     // Stills: a read-back of the canvas, requested in synchronize().
     bool m_captureWanted = false;
@@ -406,10 +448,17 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
 
     m_adjustments.clear();
     m_layers.clear();
+    m_evaluatedClips.clear();
     m_precomposites.clear();
     m_playing = false;
     if (!item->m_timeline) {
         m_timeline.reset();
+        m_tapTimes.clear();
+        m_blurFrameTime = -1;
+        m_blurRevision = 0;
+        m_blurIndex = 0;
+        m_blurComplete = false;
+        m_previousValid = false;
         return;
     }
     if (m_sourceModel != item->m_timeline || m_sourceGeneration != item->m_timeline->documentGeneration()) {
@@ -427,16 +476,35 @@ void PreviewCompositorRenderer::synchronize(QQuickRhiItem* rhiItem) {
     m_timeline = item->m_timeline->snapshot();
     m_wantedCanvas = QSize(m_timeline->width, m_timeline->height);
     m_fps = m_timeline->fps;
-    m_timeMs = item->m_clock ? item->m_clock->currentTimeMs() : 0.0;
+    const double clockTime = item->m_clock ? item->m_clock->currentTimeMs() : 0.0;
     m_playing = item->m_clock && item->m_clock->playing();
-    nt::SceneFrame scene = nt::evaluateScene(*m_timeline, m_timeMs);
+    const auto seekSerial = item->m_clock ? item->m_clock->seekSerial() : 0;
+    const double rate = item->m_clock ? item->m_clock->rate() : 1;
+    const double frameMs = m_fps > 0 ? 1000.0 / m_fps : 1000.0 / 30.0;
+    const bool transportChanged = seekSerial != m_blurSeekSerial || m_playing != m_blurPlaying || rate != m_blurRate;
+    const bool nextTime = clockTime != m_blurFrameTime && (!m_playing || m_blurComplete || m_tapTimes.size() <= 1);
+    if (transportChanged || nextTime || m_blurRevision != m_timeline->revision || m_canvasSize != m_wantedCanvas) {
+        m_blurFrameTime = clockTime;
+        m_blurRevision = m_timeline->revision;
+        m_blurSeekSerial = seekSerial;
+        m_blurPlaying = m_playing;
+        m_blurRate = rate;
+        m_blurIndex = 0;
+        m_blurComplete = false;
+        m_shutter = nt::resolveFrameShutter(*m_timeline, m_blurFrameTime, frameMs);
+        m_tapTimes = nt::motion::shutterTimes(m_blurFrameTime, frameMs, m_shutter);
+    }
+    m_timeMs = m_blurFrameTime;
+    m_tapTimeMs = m_tapTimes[static_cast<size_t>(m_blurIndex)];
+    nt::SceneFrame scene = nt::evaluateSceneTap(*m_timeline, m_tapTimeMs, m_timeMs, m_blurIndex, m_shutter.samples);
     m_adjustments = std::move(scene.adjustments);
     m_layers = std::move(scene.layers);
+    m_evaluatedClips = std::move(scene.evaluatedClips);
     m_precomposites = std::move(scene.precomposites);
 }
 
 std::unique_ptr<QRhiGraphicsPipeline> PreviewCompositorRenderer::makePipeline(QRhiRenderPassDescriptor* rp,
-                                                                              bool blend) {
+                                                                              bool blend, bool fallible) {
     std::unique_ptr<QRhiGraphicsPipeline> ps(m_rhi->newGraphicsPipeline());
     if (blend) {
         // Premultiplied alpha "over".
@@ -458,6 +526,7 @@ std::unique_ptr<QRhiGraphicsPipeline> PreviewCompositorRenderer::makePipeline(QR
     ps->setShaderResourceBindings(m_blitSrb.get());  // layout only; same bindings for every layer
     ps->setRenderPassDescriptor(rp);
     if (!ps->create()) {
+        if (fallible) return {};
         qFatal("pipeline create failed");
     }
     return ps;
@@ -467,6 +536,10 @@ void PreviewCompositorRenderer::ensureCanvas() {
     if (m_canvas && m_canvasSize == m_wantedCanvas) {
         return;
     }
+    m_previousSrb.reset(); m_previousRt.reset(); m_previousCanvas.reset(); m_previousValid = false; m_blurFailed = false;
+    m_blurPipeline.reset(); m_blurResolvePipeline.reset(); m_blurSrb.reset(); m_foldSrb.reset();
+    m_blurClearRt.reset(); m_blurLoadRt.reset(); m_blurRp.reset(); m_blurLoadRp.reset();
+    m_blurTexture.reset(); m_blurUbuf.reset(); m_foldUbuf.reset();
     m_surfaces.clear();  // their targets use the canvas's pass descriptor
     m_layerPipeline.reset();
     m_canvasRt.reset();
@@ -496,6 +569,7 @@ void PreviewCompositorRenderer::ensureCanvas() {
     });
     if (!m_blitSrb->create()) qFatal("canvas bindings create failed");
     m_canvasDrawn = false;
+    m_hasCompletedCanvas = false;
     m_layerPipeline = makePipeline(m_canvasRp.get(), true);
 }
 
@@ -537,6 +611,116 @@ void PreviewCompositorRenderer::ensureBlitPipeline() {
     }
 }
 
+bool PreviewCompositorRenderer::ensureBlur() {
+    if (m_blurFailed) return false;
+    if (m_blurTexture) return true;
+    const auto fail = [&](const char* reason) {
+        m_blurFailed = true;
+        if (m_resourceError.empty()) {
+            m_resourceError = reason;
+            std::fprintf(stderr, "error: %s\n", reason);
+        }
+        return false;
+    };
+    if (qEnvironmentVariableIsSet("NT_TEST_FAIL_BLUR")) return fail("cannot allocate motion blur resources");
+    m_blurTexture.reset(m_rhi->newTexture(QRhiTexture::RGBA16F, m_canvasSize, 1, QRhiTexture::RenderTarget));
+    if (!m_blurTexture->create()) return fail("cannot create motion blur texture");
+    m_blurClearRt.reset(m_rhi->newTextureRenderTarget({m_blurTexture.get()}));
+    m_blurRp.reset(m_blurClearRt->newCompatibleRenderPassDescriptor());
+    m_blurClearRt->setRenderPassDescriptor(m_blurRp.get());
+    if (!m_blurClearRt->create()) return fail("cannot create motion blur target");
+    m_blurLoadRt.reset(m_rhi->newTextureRenderTarget({m_blurTexture.get()}, QRhiTextureRenderTarget::PreserveColorContents));
+    m_blurLoadRp.reset(m_blurLoadRt->newCompatibleRenderPassDescriptor());
+    m_blurLoadRt->setRenderPassDescriptor(m_blurLoadRp.get());
+    if (!m_blurLoadRt->create()) return fail("cannot create motion blur preserve target");
+    m_blurUbuf.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, sizeof(LayerUniforms)));
+    if (!m_blurUbuf->create()) return fail("cannot create motion blur uniforms");
+    m_blurSrb.reset(m_rhi->newShaderResourceBindings());
+    const auto stages = QRhiShaderResourceBinding::VertexStage | QRhiShaderResourceBinding::FragmentStage;
+    m_blurSrb->setBindings({
+        QRhiShaderResourceBinding::uniformBuffer(0, stages, m_blurUbuf.get()),
+        QRhiShaderResourceBinding::sampledTexture(1, QRhiShaderResourceBinding::FragmentStage, m_blurTexture.get(), m_sampler.get()),
+        QRhiShaderResourceBinding::sampledTexture(2, QRhiShaderResourceBinding::FragmentStage, m_blurTexture.get(), m_sampler.get()),
+        QRhiShaderResourceBinding::sampledTexture(3, QRhiShaderResourceBinding::FragmentStage, m_blurTexture.get(), m_sampler.get()),
+    });
+    if (!m_blurSrb->create()) return fail("cannot create motion blur bindings");
+    m_foldUbuf.reset(m_rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, sizeof(LayerUniforms)));
+    if (!m_foldUbuf->create()) return fail("cannot create motion blur fold uniforms");
+    m_foldSrb.reset(m_rhi->newShaderResourceBindings());
+    m_foldSrb->setBindings({
+        QRhiShaderResourceBinding::uniformBuffer(0, stages, m_foldUbuf.get()),
+        QRhiShaderResourceBinding::sampledTexture(1, QRhiShaderResourceBinding::FragmentStage, m_canvas.get(), m_sampler.get()),
+        QRhiShaderResourceBinding::sampledTexture(2, QRhiShaderResourceBinding::FragmentStage, m_canvas.get(), m_sampler.get()),
+        QRhiShaderResourceBinding::sampledTexture(3, QRhiShaderResourceBinding::FragmentStage, m_canvas.get(), m_sampler.get()),
+    });
+    if (!m_foldSrb->create()) return fail("cannot create motion blur fold bindings");
+    m_previousCanvas.reset(m_rhi->newTexture(QRhiTexture::RGBA8, m_canvasSize, 1, QRhiTexture::RenderTarget));
+    if (!m_previousCanvas->create()) return fail("cannot create previous canvas texture");
+    m_previousRt.reset(m_rhi->newTextureRenderTarget({m_previousCanvas.get()}));
+    m_previousRt->setRenderPassDescriptor(m_canvasRp.get());
+    if (!m_previousRt->create()) return fail("cannot create previous canvas target");
+    m_previousSrb.reset(m_rhi->newShaderResourceBindings());
+    m_previousSrb->setBindings({
+        QRhiShaderResourceBinding::uniformBuffer(0, stages, m_blitUbuf.get()),
+        QRhiShaderResourceBinding::sampledTexture(1, QRhiShaderResourceBinding::FragmentStage, m_previousCanvas.get(), m_sampler.get()),
+        QRhiShaderResourceBinding::sampledTexture(2, QRhiShaderResourceBinding::FragmentStage, m_previousCanvas.get(), m_sampler.get()),
+        QRhiShaderResourceBinding::sampledTexture(3, QRhiShaderResourceBinding::FragmentStage, m_previousCanvas.get(), m_sampler.get()),
+    });
+    if (!m_previousSrb->create()) return fail("cannot create previous canvas bindings");
+    m_blurPipeline.reset(m_rhi->newGraphicsPipeline());
+    QRhiGraphicsPipeline::TargetBlend blend;
+    blend.enable = true;
+    blend.srcColor = QRhiGraphicsPipeline::One; blend.dstColor = QRhiGraphicsPipeline::One;
+    blend.srcAlpha = QRhiGraphicsPipeline::One; blend.dstAlpha = QRhiGraphicsPipeline::One;
+    m_blurPipeline->setTargetBlends({blend});
+    m_blurPipeline->setTopology(QRhiGraphicsPipeline::TriangleStrip);
+    m_blurPipeline->setShaderStages({{QRhiShaderStage::Vertex, m_vs}, {QRhiShaderStage::Fragment, m_fs}});
+    QRhiVertexInputLayout layout;
+    layout.setBindings({{4 * sizeof(float)}});
+    layout.setAttributes({{0, 0, QRhiVertexInputAttribute::Float2, 0}, {0, 1, QRhiVertexInputAttribute::Float2, 2 * sizeof(float)}});
+    m_blurPipeline->setVertexInputLayout(layout);
+    m_blurPipeline->setShaderResourceBindings(m_blitSrb.get());
+    m_blurPipeline->setRenderPassDescriptor(m_blurRp.get());
+    if (!m_blurPipeline->create()) return fail("cannot create motion blur pipeline");
+    m_blurResolvePipeline = makePipeline(m_canvasRp.get(), false, true);
+    if (!m_blurResolvePipeline) return fail("cannot create motion blur resolve pipeline");
+    return true;
+}
+
+void PreviewCompositorRenderer::foldBlur(QRhiCommandBuffer* cb, float weight, bool first) {
+    LayerUniforms u{};
+    writeMatrix(u, m_rhi->clipSpaceCorrMatrix());
+    u.opacity = weight;
+    u.flipV = m_rhi->isYUpInFramebuffer() ? 1.0f : 0.0f;
+    auto* updates = m_rhi->nextResourceUpdateBatch();
+    updates->updateDynamicBuffer(m_foldUbuf.get(), 0, sizeof(u), &u);
+    cb->beginPass(first ? m_blurClearRt.get() : m_blurLoadRt.get(), Qt::transparent, {1.0f, 0}, updates);
+    cb->setGraphicsPipeline(m_blurPipeline.get());
+    cb->setViewport({0, 0, float(m_canvasSize.width()), float(m_canvasSize.height())});
+    cb->setShaderResources(m_foldSrb.get());
+    const QRhiCommandBuffer::VertexInput vin(m_vbuf.get(), 0);
+    cb->setVertexInput(0, 1, &vin);
+    cb->draw(4);
+    cb->endPass();
+}
+
+void PreviewCompositorRenderer::resolveBlur(QRhiCommandBuffer* cb) {
+    LayerUniforms u{};
+    writeMatrix(u, m_rhi->clipSpaceCorrMatrix());
+    u.opacity = 1;
+    u.flipV = m_rhi->isYUpInFramebuffer() ? 1.0f : 0.0f;
+    auto* updates = m_rhi->nextResourceUpdateBatch();
+    updates->updateDynamicBuffer(m_blurUbuf.get(), 0, sizeof(u), &u);
+    cb->beginPass(m_canvasRt.get(), Qt::transparent, {1.0f, 0}, updates);
+    cb->setGraphicsPipeline(m_blurResolvePipeline.get());
+    cb->setViewport({0, 0, float(m_canvasSize.width()), float(m_canvasSize.height())});
+    cb->setShaderResources(m_blurSrb.get());
+    const QRhiCommandBuffer::VertexInput vin(m_vbuf.get(), 0);
+    cb->setVertexInput(0, 1, &vin);
+    cb->draw(4);
+    cb->endPass();
+}
+
 void PreviewCompositorRenderer::retireSource(SourceEntry& entry) {
     // Entries include bindings, uniforms and owned textures queued by this
     // frame, so keep the entire entry until that command buffer completes.
@@ -570,13 +754,7 @@ PreviewCompositorRenderer::SourceEntry& PreviewCompositorRenderer::entryFor(cons
     return m_sources.emplace(key, std::move(e)).first->second;
 }
 
-void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
-    const qint64 startNs = m_clock.nsecsElapsed();
-    ++m_frame;
-
-    ensureCanvas();
-    ensureBlitPipeline();
-
+PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(QRhiCommandBuffer* cb) {
     QRhiResourceUpdateBatch* updates = m_rhi->nextResourceUpdateBatch();
     if (!m_vbufUploaded) {
         updates->uploadStaticBuffer(m_vbuf.get(), kQuad);
@@ -602,13 +780,24 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
             if (!poolTimeline) { poolTimeline = *m_timeline; }
             return *poolTimeline;
         };
-        if (!providers.empty() || !matteSources.empty()) {
-            std::map<std::string, const nt::Clip*> clips;
-            std::set<std::string> usedIds;
-            for (const auto& clip : m_timeline->clips) {
-                clips.emplace(clip.id, &clip);
-                usedIds.insert(clip.id);
+        std::map<std::string, const nt::Clip*> clips;
+        std::set<std::string> usedIds;
+        std::set<std::string> requiredIds;
+        for (const auto& clip : m_timeline->clips) {
+            clips.emplace(clip.id, &clip);
+            usedIds.insert(clip.id);
+        }
+        for (const auto& clip : m_evaluatedClips) {
+            clips.insert_or_assign(clip.id, &clip);
+        }
+        for (const auto& prepared : prepare) {
+            if (m_tapTimes.size() > 1) requiredIds.insert(prepared.first->clipId);
+            const auto clip = clips.find(prepared.first->clipId);
+            if (clip != clips.end() && usedIds.insert(clip->first).second) {
+                writableTimeline().clips.push_back(*clip->second);
             }
+        }
+        if (!providers.empty() || !matteSources.empty()) {
             std::map<std::pair<std::string, std::string>, std::string> derivedIds;
             for (const auto& [layer, matteSource] : prepare) {
                 const auto found = clips.find(layer->clipId);
@@ -642,11 +831,12 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
                         writableTimeline().clips.push_back(std::move(second));
                     }
                     requestedSources[layer][key] = id->second;
+                    if (m_tapTimes.size() > 1) requiredIds.insert(id->second);
                 }
             }
         }
         // No handler/request: pass the original document, with no copy.
-        m_pool.update(poolTimeline ? *poolTimeline : *m_timeline, m_timeMs);
+        m_pool.update(poolTimeline ? *poolTimeline : *m_timeline, m_tapTimeMs, requiredIds);
     } else {
         m_pool.update(nt::Timeline{}, 0.0);
     }
@@ -913,9 +1103,25 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
                             (layer.sourceRect[2] * originalSize.width() + outset.left() + outset.right()) / frame.size.width(),
                             (layer.sourceRect[3] * originalSize.height() + outset.top() + outset.bottom()) / frame.size.height()};
         }
+        const bool boundedCrop = !outset.isNull() && layer.sourceRect != std::array<float, 4>{0, 0, 1, 1};
+        if ((layer.borderRadius > 0 || boundedCrop) && sourceWidth > 0 && sourceHeight > 0) {
+            const float width = float(sourceWidth), height = float(sourceHeight);
+            const float expandedWidth = width + outset.left() + outset.right();
+            const float expandedHeight = height + outset.top() + outset.bottom();
+            u.border = {std::min(0.5f, float(layer.borderRadius) / std::min(width, height)), width / height, 0.01f, boundedCrop ? 1.0f : 0.0f};
+            u.borderBounds = {float(outset.left()) / expandedWidth, float(outset.top()) / expandedHeight,
+                              width / expandedWidth, height / expandedHeight};
+        }
         u.sourceTexelSize[0] = 1.0f / frame.size.width();
         u.sourceTexelSize[1] = 1.0f / frame.size.height();
         u.mode = modeFor(frame.format);
+        if (frame.format == nt::LayerFrame::Format::Rgba8Premultiplied) {
+            u.mode = 3.0f;  // leaf placement filters the web's straight RGBA8 boundary
+        }
+        const auto reveal = layer.mask ? layer.mask : layer.transition ? layer.transition->mask : std::nullopt;
+        const auto wipe = nt::motion::wipeUniforms(reveal, {sourceWidth, sourceHeight}, outset);
+        u.wipe = wipe.mask;
+        u.wipeCoordinates = wipe.coordinates;
         updates->updateDynamicBuffer(e.ubuf.get(), 0, sizeof(u), &u);
         if (isMatteSource) {
             matteBindings[&layer] = e.srb.get();
@@ -967,7 +1173,8 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
         input.size = m_canvasSize;
         input.flipV = m_rhi->isYUpInFramebuffer();
         QMargins outset;
-        if (!planEffects(input, pc.ext, effects, outset)) { continue; }
+        const auto processed = planEffects(input, pc.ext, effects, outset);
+        if (!processed) { continue; }
         Surface* composite = effects.empty() ? surface : effects.back().output;
         // Frame-sized, so only the group's cut moves it; its matrix already
         // rode into each child.
@@ -986,8 +1193,12 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
         LayerUniforms u{};
         writeMatrix(u, corr * model);
         u.opacity = static_cast<float>(pc.opacity);
-        u.flipV = !effects.empty() && m_rhi->isYUpInFramebuffer() ? 1.0f : 0.0f;
+        u.flipV = processed->flipV ? 1.0f : 0.0f;
         u.mode = 0.0f;  // premultiplied RGBA
+        const auto wipe = nt::motion::wipeUniforms(pc.transition ? pc.transition->mask : std::nullopt,
+                                                   m_canvasSize, outset);
+        u.wipe = wipe.mask;
+        u.wipeCoordinates = wipe.coordinates;
         updates->updateDynamicBuffer(composite->ubuf.get(), 0, sizeof(u), &u);
         surfacePasses.push_back({surface, pc.clipId, std::move(effects)});
         draws.push_back({composite->srb.get(), pc.z, pc.stackOrder, pc.precomposeGroupId, &pc.blendMode, &pc.ext});
@@ -1149,12 +1360,66 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     }
     m_surfaces.endFrame(m_frame, m_canvasSize);
 
+    return {layerDraws, drawnSurfaces, frameError, missing, cutMisses, mediaLayers,
+            cpuCopies, hardwareLayers, resourceFailures, missingMedia, held, allExact};
+}
+
+void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
+    const qint64 startNs = m_clock.nsecsElapsed();
+    ++m_frame;
+
+    ensureCanvas();
+    ensureBlitPipeline();
+
+    const bool blurred = m_tapTimes.size() > 1;
+    const bool blurReady = !blurred || ensureBlur();
+    if (blurred && blurReady && m_blurIndex == 0 && !m_blurComplete && !m_previousValid) {
+        if (m_hasCompletedCanvas) {
+            auto* copy = m_rhi->nextResourceUpdateBatch();
+            copy->copyTexture(m_previousCanvas.get(), m_canvas.get());
+            cb->resourceUpdate(copy);
+        } else {
+            cb->beginPass(m_previousRt.get(), QColor(0, 0, 0, 255), {1.0f, 0});
+            cb->endPass();
+        }
+        m_previousValid = true;
+    }
+    if (blurred && blurReady && !m_blurComplete) m_hasCompletedCanvas = false;
+    TapResult tap{};
+    tap.frameError = -1;
+    tap.allExact = true;
+    if (!blurReady) {
+        tap.allExact = false; tap.resourceFailures = 1;
+        if (!m_vbufUploaded) {
+            auto* updates = m_rhi->nextResourceUpdateBatch();
+            updates->uploadStaticBuffer(m_vbuf.get(), kQuad);
+            cb->resourceUpdate(updates);
+            m_vbufUploaded = true;
+        }
+    } else if (!blurred || !m_blurComplete) tap = renderSceneTap(cb);
+    const auto [layerDraws, drawnSurfaces, frameError, missing, cutMisses, mediaLayers,
+                cpuCopies, hardwareLayers, resourceFailures, missingMedia, held, allExact] = tap;
+    const bool tapReady = allExact && missing == 0 && !held && resourceFailures == 0;
+    if (!blurred && tapReady) { m_previousValid = false; m_hasCompletedCanvas = true; }
+    if (blurred && blurReady && !m_blurComplete && tapReady) {
+        foldBlur(cb, 1.0f / m_shutter.samples, m_blurIndex == 0);
+        if (++m_blurIndex == m_shutter.samples) {
+            resolveBlur(cb);
+            m_blurComplete = true;
+            m_hasCompletedCanvas = true;
+            m_previousValid = false;
+            m_blurIndex = m_shutter.samples - 1;
+        }
+    }
+    const QMatrix4x4 corr = m_rhi->clipSpaceCorrMatrix();
+    const QRhiCommandBuffer::VertexInput vin(m_vbuf.get(), 0);
+
     // Stills: read the canvas back once every layer shows its exact frame.
     // An immediate capture takes this frame as it is (the first picture at a
     // cut during playback); a settled one waits for every exact frame.
-    const bool settled = allExact && missing == 0 && !held && resourceFailures == 0;
+    const bool settled = blurred ? m_blurComplete : tapReady;
     m_waitingForFrames = m_captureWanted && !m_captureImmediate && !settled;
-    if (m_captureWanted && !m_captureInFlight && (m_captureImmediate || settled)) {
+    if (m_captureWanted && !m_captureInFlight && ((m_captureImmediate && !blurred) || settled)) {
         m_captureWanted = false;
         const double captureTime = m_timeMs;
         m_captureInFlight = true;
@@ -1193,7 +1458,7 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     cb->beginPass(renderTarget(), QColor(10, 10, 12, 255), {1.0f, 0}, blitUpdates);
     cb->setGraphicsPipeline(m_blitPipeline.get());
     cb->setViewport({0, 0, float(target.width()), float(target.height())});
-    cb->setShaderResources(m_blitSrb.get());
+    cb->setShaderResources(blurred && blurReady && !m_blurComplete && m_previousValid ? m_previousSrb.get() : m_blitSrb.get());
     cb->setVertexInput(0, 1, &vin);
     cb->draw(4);
     cb->endPass();
@@ -1244,7 +1509,7 @@ void PreviewCompositorRenderer::render(QRhiCommandBuffer* cb) {
     }
     m_lastRenderNs = startNs;
 
-    if (m_playing || m_waitingForFrames || m_captureInFlight || missing > 0 || !allExact || !m_retire.empty()) {
+    if (m_playing || (blurred && !m_blurComplete) || m_waitingForFrames || m_captureInFlight || missing > 0 || (!blurred && !allExact) || !m_retire.empty()) {
         update();  // next frame at vsync; also while decoders catch up
     }
 }

@@ -16,8 +16,8 @@ node native/timeline/src/motion/prism/oracle.mjs /path/to/immutable/nodetool-tim
 node native/timeline/src/motion/prism/oracle.mjs /path/to/immutable/nodetool-timeline original
 ```
 
-The shared decoder change is in
-[`motion-prism-integration.patch`](../../../docs/motion-prism-integration.patch).
+The shared decoder change is integrated in
+[FfmpegSource.cpp](../../preview/FfmpegSource.cpp).
 
 The placement regression uses the same full-chroma fixture with keying and edge
 highlighting over purple. It covers fractional transforms, a grouped keyed
@@ -29,8 +29,8 @@ resampling kernel.
 node native/timeline/src/motion/prism/placement-oracle.mjs /path/to/immutable/nodetool-timeline
 ```
 
-The private leaf-placement bridge is in
-[`motion-placement-integration.patch`](../../../docs/motion-placement-integration.patch).
+The private leaf-placement bridge is integrated in
+[PreviewCompositor.cpp](../../preview/PreviewCompositor.cpp).
 Leaf pixels reach the web placement shader as straight RGBA8. Native stages
 retain their premultiplied contract and convert each sampled texel before
 placement interpolation. Container surfaces keep premultiplied placement.
@@ -40,10 +40,9 @@ at final placement. Physical output padding remains available to the native
 pipeline. The regression includes radius-free crops and quarter-pixel shadow
 offsets with partial shadow opacity.
 
-Apply the crop artifacts after the placement bridge:
+Crop domain and placement corrections are integrated in the
+[effect shader](../../../shaders/effects/clip.frag) and
+[composite shader](../../../shaders/composite.frag).
 
-- [`motion-crop-domain-integration.patch`](../../../docs/motion-crop-domain-integration.patch)
-- [`motion-crop-placement-integration.patch`](../../../docs/motion-crop-placement-integration.patch)
-
-The decoder-dependent native test is registered by the decoder integration
-artifact. The owned module registers the pure reference contracts by itself.
+The decoder-dependent native test and pure reference contracts are registered
+by the owned module.

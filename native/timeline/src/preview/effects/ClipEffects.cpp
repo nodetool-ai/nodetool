@@ -2,6 +2,7 @@
 #include "preview/effects/Masks.h"
 #include "preview/RetireQueue.h"
 #include "preview/effects/DrawCache.h"
+#include "motion/capacity/ScratchPool.h"
 #include <QCryptographicHash>
 #include <algorithm>
 #include <cstring>
@@ -15,11 +16,6 @@ struct Uniforms {
     std::array<float, 16> params{};
 };
 static_assert(sizeof(Uniforms) == 256);
-struct Surface {
-    std::unique_ptr<QRhiTexture> texture;
-    std::unique_ptr<QRhiRenderPassDescriptor> descriptor;
-    std::unique_ptr<QRhiTextureRenderTarget> target;
-};
 struct Draw {
     std::unique_ptr<QRhiBuffer> uniforms;
     std::unique_ptr<QRhiShaderResourceBindings> bindings;
@@ -27,7 +23,7 @@ struct Draw {
 struct Resources {
     std::shared_ptr<DrawCache> cache;
     std::vector<std::shared_ptr<void>> luts;
-    std::vector<std::unique_ptr<Surface>> surfaces;
+    std::vector<std::shared_ptr<nt::motion::ScratchPool::Surface>> surfaces;
     std::vector<std::unique_ptr<Draw>> draws;
 };
 LayerFrame frameFor(QRhiTexture *texture, bool flip) {
@@ -41,34 +37,25 @@ LayerFrame frameFor(QRhiTexture *texture, bool flip) {
 class Encoder {
     const EffectContext &m_ctx;
     std::shared_ptr<Resources> m_resources = std::make_shared<Resources>();
+    std::shared_ptr<nt::motion::ScratchPool> m_scratch;
+    nt::motion::ScratchPool::Lease m_lease;
 
   public:
     Encoder(const EffectContext &ctx, std::shared_ptr<DrawCache> cache) : m_ctx(ctx) {
         m_resources->cache = std::move(cache);
+        m_scratch = m_resources->cache->scratchPool();
+        m_lease = m_scratch->beginLease(m_ctx.frameNumber);
     }
     // Even a failed chain can already have recorded passes. Retire that prefix too.
-    ~Encoder() { m_ctx.retire->retire(std::move(m_resources), m_ctx.frameNumber); }
+    ~Encoder() {
+        m_scratch->endLease(m_lease);
+        m_ctx.retire->retire(std::move(m_resources), m_ctx.frameNumber);
+    }
     QRhiTextureRenderTarget *surface(QSize size, QRhiTexture *source = nullptr, QRhiTexture *other = nullptr,
                                      QRhiTexture *saved = nullptr) {
-        for (const auto &surface : m_resources->surfaces) {
-            auto *texture = surface->texture.get();
-            if (texture->pixelSize() == size && texture != source && texture != other && texture != saved) {
-                return surface->target.get();
-            }
-        }
-        auto surface = std::make_unique<Surface>();
-        auto *rhi = m_ctx.rhi;
-        surface->texture.reset(rhi->newTexture(QRhiTexture::RGBA8, size, 1, QRhiTexture::RenderTarget));
-        if (!surface->texture->create()) {
-            return nullptr;
-        }
-        surface->target.reset(rhi->newTextureRenderTarget({QRhiColorAttachment(surface->texture.get())}));
-        surface->descriptor.reset(surface->target->newCompatibleRenderPassDescriptor());
-        surface->target->setRenderPassDescriptor(surface->descriptor.get());
-        if (!surface->target->create()) {
-            return nullptr;
-        }
-        auto *result = surface->target.get();
+        auto surface = m_scratch->acquire(m_lease, m_ctx.rhi, size, m_ctx.frameNumber, source, other, saved);
+        if (!surface) return nullptr;
+        auto* result = surface->target.get();
         m_resources->surfaces.push_back(std::move(surface));
         return result;
     }
@@ -77,7 +64,7 @@ class Encoder {
     }
     void retain(const std::shared_ptr<void> &lut) { m_resources->luts.push_back(lut); }
     bool draw(const LayerFrame &input, QRhiTextureRenderTarget &output, const Pass &pass, QSize logical,
-              QPoint logicalOrigin, QRhiTexture *other = nullptr, const QRect *copy = nullptr, QPoint readOrigin = {}, QRhiTexture *third = nullptr) {
+              QPoint logicalOrigin, QRhiTexture *other = nullptr, const QRect *copy = nullptr, QPoint readOrigin = {}, QRhiTexture *third = nullptr, bool boundedCrop = false) {
         auto draw = std::make_unique<Draw>();
         auto *rhi = m_ctx.rhi;
         draw->uniforms.reset(rhi->newBuffer(QRhiBuffer::Dynamic, QRhiBuffer::UniformBuffer, sizeof(Uniforms)));
@@ -110,7 +97,7 @@ class Encoder {
         const int format = input.format == LayerFrame::Format::I420   ? 1
                            : input.format == LayerFrame::Format::Nv12 ? 2
                                                                       : 0;
-        u.geometry = {input.flipV ? 1.f : 0.f, float(format), float(pass.op), 0};
+        u.geometry = {input.flipV ? 1.f : 0.f, float(format), float(pass.op), boundedCrop ? 1.f : 0.f};
         u.dimensions = {float(input.size.width()), float(input.size.height()), float(logical.width()),
                         float(logical.height())};
         u.origin = {float(logicalOrigin.x()), float(logicalOrigin.y()), 0, 0};
@@ -154,6 +141,7 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
     const auto effects = ext.value("clipEffects").toArray();
     const auto chain = planChain(effects, ext.value("trackEffects").toArray());
     const auto crop = cropPixels(ext, input.size);
+    const bool boundedCrop = crop != QRect(QPoint{}, input.size);
     const auto margins = outset(ext, input.size);
     const QSize workingSize = crop.size() + QSize(margins.left() + margins.right(), margins.top() + margins.bottom());
     const QPoint pad{margins.left(), margins.top()};
@@ -177,7 +165,7 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
     const auto step = [&](const Pass &pass, QRhiTexture *other = nullptr) {
         auto *target = encoder.surface(workingSize, current.planes[0], other,
                                        recipeSource ? recipeSource->planes[0] : nullptr);
-        if (!target || !encoder.draw(current, *target, pass, crop.size(), pad, other)) {
+        if (!target || !encoder.draw(current, *target, pass, crop.size(), pad, other, nullptr, {}, nullptr, boundedCrop)) {
             return false;
         }
         current = encoder.result(target);
@@ -350,6 +338,10 @@ bool ShapeMaskStage::render(const EffectContext &ctx, const LayerFrame &input, Q
     auto *masked = encoder.surface(work, current.planes[0]);
     Pass pass;
     pass.op = Op::MaskApply;
+    pass.params[4] = static_cast<float>(work.width()) / crop.width();
+    pass.params[5] = static_cast<float>(work.height()) / crop.height();
+    pass.params[6] = -static_cast<float>(margin.left()) / crop.width();
+    pass.params[7] = -static_cast<float>(margin.top()) / crop.height();
     if (!masked || !encoder.draw(current, *masked, pass, work, {}, hit->second.get())) {
         return false;
     }

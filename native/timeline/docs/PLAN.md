@@ -1,5 +1,9 @@
 # Native Timeline Prototype: Plan
 
+AI workflow parity is tracked separately in
+[AI-WORKFLOWS.md](AI-WORKFLOWS.md). The original editing milestones and review
+backlog do not establish AI completion.
+
 The milestone order for the design in [DESIGN.md](DESIGN.md). Each milestone
 names its files, its exit criteria as numbers, the headless check that proves
 them, and its main risk. Decision, risk, and question codes (D, R, Q) refer to

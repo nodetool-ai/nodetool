@@ -46,3 +46,12 @@ function(nt_export_tests)
     set_tests_properties(export_controller_cancel PROPERTIES LABELS render FIXTURES_REQUIRED media)
 endfunction()
 nt_tests(nt_export_tests)
+
+function(nt_export_snapshot_tests)
+    qt_add_executable(tst_exportsnapshot src/export/tst_exportsnapshot.cpp
+        src/export/ExportController.cpp src/model/TimelineModel.cpp src/model/TrackListModel.cpp)
+    target_link_libraries(tst_exportsnapshot PRIVATE timeline_core timeline_decode timeline_server
+        Qt6::Gui Qt6::Qml Qt6::Test)
+    add_test(NAME tst_exportsnapshot COMMAND tst_exportsnapshot)
+endfunction()
+nt_tests(nt_export_snapshot_tests)

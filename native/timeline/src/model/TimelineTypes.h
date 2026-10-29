@@ -122,6 +122,8 @@ struct Clip {
     // the original even when `mediaPath` is the video proxy, which has no
     // audio track (DESIGN.md F4). Empty: audio reads `mediaPath`.
     std::string audioPath;
+    // Resolved for this session only; never serialized into the document.
+    std::string generatedMattePath;
     // Groups, animations, repeaters, mattes and the other scene fields,
     // parsed once from `raw` (src/scene/ClipScene.h). Null: none of them.
     std::shared_ptr<const scene::ClipScene> scene;

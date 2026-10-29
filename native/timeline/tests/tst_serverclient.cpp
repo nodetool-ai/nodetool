@@ -507,7 +507,7 @@ private slots:
         clip.insert(QStringLiteral("transform"), xf);
         clip.insert(QStringLiteral("parentId"), QStringLiteral("g"));
         seq.insert(QStringLiteral("camera2d"), QJsonObject{{QStringLiteral("depthPx"), 1}});
-        // Not covered.
+        // Follow-path animation is supported in the plan.
         clip.insert(QStringLiteral("animations"),
                     QJsonArray{QJsonObject{{QStringLiteral("id"), QStringLiteral("a")}, {QStringLiteral("role"), QStringLiteral("loop")},
                                            {QStringLiteral("preset"), QStringLiteral("followPath")}, {QStringLiteral("durationMs"), 500}}});
@@ -526,19 +526,19 @@ private slots:
         audit = auditTimelineFields(seq);
         const QJsonObject fields = audit.value(u"fields").toObject();
         auto effect = [&](const char* name) { return fields.value(QLatin1String(name)).toObject().value(u"effect").toString(); };
-        QCOMPARE(effect("clip.animations.preset=followPath"), QStringLiteral("plan"));
+        QVERIFY(!fields.contains(QStringLiteral("clip.animations.preset=followPath")));
         // Flex layout is in the plan (scene/FlexLayout.h): no entry.
         QVERIFY(!fields.contains(QStringLiteral("clip.flexLayout")));
         QVERIFY(!fields.contains(QStringLiteral("clip.layout.flex")));
-        QCOMPARE(effect("clip.parent"), QStringLiteral("plan"));  // h inherits from c1
+        QVERIFY(!fields.contains(QStringLiteral("clip.parent")));  // h inherits from c1
         QCOMPARE(effect("clip.mask"), QStringLiteral("pixels"));
         QCOMPARE(effect("clip.blendMode=multiply"), QStringLiteral("pixels"));
         QCOMPARE(effect("clip.audioEffects"), QStringLiteral("audio"));
         QCOMPARE(effect("clip.inventedField"), QStringLiteral("unknown"));
         QVERIFY(!fields.contains(QStringLiteral("clip.transform.rotationX")));
         QVERIFY(!fields.contains(QStringLiteral("sequence.camera2d")));
-        QCOMPARE(fields.size(), 6);
-        QCOMPARE(audit.value(u"planUnsupported").toArray(), (QJsonArray{QStringLiteral("c1"), QStringLiteral("h")}));
+        QCOMPARE(fields.size(), 4);
+        QVERIFY(audit.value(u"planUnsupported").toArray().isEmpty());
         QCOMPARE(audit.value(u"tracks").toArray().size(), 0);
     }
 
@@ -671,13 +671,35 @@ private slots:
         QCOMPARE(originalVersion(a), v);
     }
 
+    void matteReferenceMatchesServerParser() {
+        const QString full = "cccccccccccccccccccccccccccccccc";
+        QCOMPARE(assetIdForReference(full), full);
+        QCOMPARE(assetIdForReference("asset://" + full), full);
+        QVERIFY(assetIdForReference(full.left(12)).isEmpty());
+        QVERIFY(assetIdForReference("asset://" + full.left(12)).isEmpty());
+    }
+    void opensATimelineFromTheServer_data() {
+        QTest::addColumn<QString>("matteReference");
+        QTest::addColumn<bool>("resolves");
+        const QString full = "cccccccccccccccccccccccccccccccc";
+        QTest::newRow("full") << full << true;
+        QTest::newRow("asset-uri") << "asset://" + full << true;
+        QTest::newRow("prefix") << full.left(12) << false;
+        QTest::newRow("asset-uri-prefix") << "asset://" + full.left(12) << false;
+        QTest::newRow("missing") << QString("dddddddddddddddddddddddddddddddd") << false;
+        QTest::newRow("ambiguous") << QString("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee") << false;
+    }
     void opensATimelineFromTheServer() {
+        QFETCH(QString, matteReference);
+        QFETCH(bool, resolves);
+        const QString kMatte = QStringLiteral("cccccccccccccccccccccccccccccccc");
         TestHttpServer http;
         const QByteArray original(3000, 'o');
         const QByteArray proxy(1000, 'p');
         for (const QString& id : {kReady, kPending, kFailed, kNone}) {
             http.setFile(QStringLiteral("/api/storage/1/%1.mp4").arg(id).toLatin1(), ServedFile{original});
         }
+        http.setFile(QStringLiteral("/api/storage/1/%1.mp4").arg(kMatte).toLatin1(), ServedFile{original});
         http.setFile(QStringLiteral("/api/storage/1/%1.wav").arg(kAudio).toLatin1(), ServedFile{original});
         http.setFile(QStringLiteral("/api/storage/1/%1_proxy.mp4").arg(kReady).toLatin1(), ServedFile{proxy});
         ServedFile pkg{QByteArray(500, 'k')};
@@ -693,6 +715,11 @@ private slots:
                                   QStringLiteral("package://nodetool-base/timelines/demo/still one.jpg")),
                          clipJson(QStringLiteral("music"), QStringLiteral("audio"), 0, kAudio),
                          clipJson(QStringLiteral("again"), QStringLiteral("video"), 6000, kReady)};
+        auto readyClip = clips[0].toObject();
+        const QJsonObject matte{{"assetId", matteReference}, {"status", "ready"}, {"strength", 0.4},
+                                {"invert", true}, {"featherPx", 12}, {"unknown", "preserve"}};
+        readyClip.insert("generatedMatte", matte);
+        clips[0] = readyClip;
         QJsonObject text = clipJson(QStringLiteral("title"), QStringLiteral("text"), 0, QString());
         text.remove(QStringLiteral("currentAssetId"));
         clips.append(text);
@@ -723,10 +750,12 @@ private slots:
                     return envelope(assetJson(id, QStringLiteral("video/mp4"), original.size(), QStringLiteral("ready"),
                                               QStringLiteral("/api/storage/1/%1_proxy.mp4?v=p1").arg(id)));
                 }
+                if (id == kMatte) return envelope(assetJson(id, QStringLiteral("video/mp4"), original.size(), {}, {}));
                 if (id == kPending) return envelope(assetJson(id, QStringLiteral("video/mp4"), original.size(), QStringLiteral("queued"), {}));
                 if (id == kFailed) return envelope(assetJson(id, QStringLiteral("video/mp4"), original.size(), QStringLiteral("failed"), {}));
                 if (id == kNone) return envelope(assetJson(id, QStringLiteral("video/mp4"), original.size(), QStringLiteral("none"), {}));
                 if (id == kAudio) return envelope(assetJson(id, QStringLiteral("audio/wav"), original.size(), {}, {}));
+                if (id == QString(32, QLatin1Char('e'))) return trpcError(QStringLiteral("FORBIDDEN"), QStringLiteral("FORBIDDEN"), 403);
             }
             return trpcError(QStringLiteral("NOT_FOUND"), QStringLiteral("NOT_FOUND"), 404);
         });
@@ -748,6 +777,13 @@ private slots:
         auto variantOf = [](const std::string& path) { return QFileInfo(QFileInfo(QString::fromStdString(path)).absolutePath()).fileName(); };
         QCOMPARE(variantOf(clip("ready").mediaPath), QStringLiteral("proxy"));
         QCOMPARE(variantOf(clip("ready").audioPath), QStringLiteral("original"));  // a proxy has no audio
+        if (resolves) {
+            QVERIFY(QFileInfo::exists(QString::fromStdString(clip("ready").generatedMattePath)));
+            QCOMPARE(variantOf(clip("ready").generatedMattePath), QStringLiteral("original"));
+        } else {
+            QVERIFY(clip("ready").generatedMattePath.empty());
+        }
+        QCOMPARE(clip("ready").raw.value("generatedMatte").toObject(), matte);
         QCOMPARE(variantOf(clip("pending").mediaPath), QStringLiteral("original"));
         QCOMPARE(variantOf(clip("failed").mediaPath), QStringLiteral("original"));
         QCOMPARE(variantOf(clip("none").mediaPath), QStringLiteral("original"));
@@ -778,7 +814,7 @@ private slots:
         QCOMPARE(report.value(u"fields").toObject().value(u"fields").toObject().value(u"clip.mediaType=text").toObject().value(u"count").toInt(), 1);
         QVERIFY(QFileInfo::exists(report.value(u"rawDocument").toString()));
         // Two files for the ready asset, one for each other: the proxy is fetched once for two clips.
-        QCOMPARE(report.value(u"summary").toObject().value(u"downloads").toInt(), 7);
+        QCOMPARE(report.value(u"summary").toObject().value(u"downloads").toInt(), resolves ? 8 : 7);
         QCOMPARE(http.countRequests("GET", QStringLiteral("/api/storage/1/%1_proxy.mp4").arg(kReady).toLatin1()), 1);
 
         // Warm cache: no byte is downloaded again.

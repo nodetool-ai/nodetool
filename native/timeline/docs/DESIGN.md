@@ -51,7 +51,8 @@ Goals:
 
 Non-goals:
 
-- AI features: generation, takes, agent, storyboard, script, shot panels.
+- AI workflows were outside the prototype scope. Their extension is tracked
+  in [AI-WORKFLOWS.md](AI-WORKFLOWS.md).
 - Text, shape, caption, 3D, group, adjustment, matte, and mask layers. Clip
   and track effects. Keyframe animation. Transitions other than the cross-fade.
 - MIDI, instruments, automation, track audio effects, the DAW view.

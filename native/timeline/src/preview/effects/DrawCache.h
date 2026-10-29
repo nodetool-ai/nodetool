@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 
+namespace nt::motion { class ScratchPool; }
 namespace nt::effects {
 // A frame retains this owner through RetireQueue, including on a failed chain.
 class DrawCache {
@@ -11,6 +12,7 @@ class DrawCache {
     QRhiGraphicsPipeline *pipeline(QRhi *rhi, QRhiTextureRenderTarget &output, QRhiShaderResourceBindings *bindings);
     QRhiBuffer *vertices() const { return m_vertices.get(); }
     QRhiSampler *sampler() const { return m_sampler.get(); }
+    std::shared_ptr<nt::motion::ScratchPool> scratchPool();
 
   private:
     struct Pipeline {
@@ -22,5 +24,6 @@ class DrawCache {
     std::unique_ptr<QRhiSampler> m_sampler;
     std::unique_ptr<QRhiShaderResourceBindings> m_layout;
     std::vector<Pipeline> m_pipelines;
+    std::shared_ptr<nt::motion::ScratchPool> m_scratch;
 };
 } // namespace nt::effects

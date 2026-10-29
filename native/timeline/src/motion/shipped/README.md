@@ -34,8 +34,8 @@ examples. The shared CLI source is hash-checked and remains unchanged.
 
 The scratch importer also accepts the original WAV score files. Its guarded
 content-type adjustment is idempotent and rejects declaration drift. The shared
-importer change is isolated in
-[`motion-golden-audio-integration.patch`](../../../docs/motion-golden-audio-integration.patch).
+importer change is integrated in
+[golden-import.mjs](../../../scripts/golden-import.mjs).
 Audio clips and their fields remain in every complete document.
 
 The raw oracle always reports every sampled picture at the original 40 dB

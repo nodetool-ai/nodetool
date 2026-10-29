@@ -1,4 +1,5 @@
 #include "preview/effects/DrawCache.h"
+#include "motion/capacity/ScratchPool.h"
 #include <QFile>
 #include <array>
 #include <span>
@@ -10,6 +11,10 @@ QShader shader(const char *name) {
     return file.open(QIODevice::ReadOnly) ? QShader::fromSerialized(file.readAll()) : QShader{};
 }
 } // namespace
+std::shared_ptr<nt::motion::ScratchPool> DrawCache::scratchPool() {
+    if (!m_scratch) m_scratch = std::make_shared<nt::motion::ScratchPool>();
+    return m_scratch;
+}
 bool DrawCache::initialize(const EffectContext &ctx, const char *vertex, const char *fragment,
                            QRhiSampler::Filter filter) {
     if (m_vertices) {

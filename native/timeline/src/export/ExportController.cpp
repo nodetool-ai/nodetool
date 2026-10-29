@@ -9,11 +9,14 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QUrl>
+#include <algorithm>
 
 QJsonObject nt::exporting::exportSnapshot(const TimelineModel& model) {
     auto raw = QJsonDocument::fromJson(model.documentJson()).object();
     QJsonArray clips;
+    double duration = model.timeline().clips.empty() ? model.timeline().durationMs : 0;
     for (const auto& clip : model.timeline().clips) {
+        duration = std::max(duration, clip.endMs());
         auto json = clip.raw;
         if (!clip.mediaPath.empty()) json.insert("mediaPath", QString::fromStdString(clip.mediaPath));
         if (!clip.audioPath.empty()) json.insert("audioPath", QString::fromStdString(clip.audioPath));
@@ -26,6 +29,7 @@ QJsonObject nt::exporting::exportSnapshot(const TimelineModel& model) {
         clips.append(json);
     }
     raw.insert("clips", clips);
+    raw.insert("durationMs", duration);
     return raw;
 }
 

@@ -12,9 +12,9 @@ struct SceneDecorationContext {
     const Timeline& timeline;
     const Track* track;
     double timeMs;  // clip evaluation time, stepped for leaf layers
-    double sequenceTimeMs;
+    double sequenceTimeMs;  // global scene tap
     double fps;
-    long long frameIndex;
+    long long frameIndex;  // unstepped leaf tap, or global tap for groups and adjustments
 };
 using ContextLayerDecorator = std::function<void(ActiveLayer&, const Clip&, const SceneDecorationContext&)>;
 using ContextGroupDecorator = std::function<void(PrecompositeLayer&, const Clip&, const SceneDecorationContext&)>;

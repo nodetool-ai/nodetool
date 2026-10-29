@@ -1,4 +1,5 @@
 #include "motion/beat/Beat.h"
+#include "motion/tracking/TrackBinding.h"
 #include "preview/SceneEval.h"
 #include "preview/layers/SceneHooks.h"
 #include "preview/transitions/TransitionResolver.h"
@@ -216,20 +217,23 @@ struct AnimatedProps {
     double opacity = 1;
     std::optional<scene::WipeMask> mask;
     bool cameraBlur = false;
+    double borderRadius = 0.0;
 };
 
 AnimatedProps resolveAnimated(const Clip& clip, const std::optional<ClipTransform>& layerTransform, double opacity,
                               const scene::Camera2D* camera, double timeMs, double w, double h,
                               const std::unordered_map<std::string, const Clip*>& sources, double opacityCoverage,
-                              std::optional<double> flexWidth = {}) {
+                              std::optional<double> flexWidth = {}, const QJsonArray& mediaTracks = {}) {
     const double t = steppedTime(clip, timeMs);
     AnimatedProps props;
     props.transform = layerTransform;
     props.opacity = opacity;
+    props.borderRadius = clip.raw.value(u"borderRadius").toDouble();
     const auto& anims = sceneOf(clip).animations;
     if (!anims->empty()) {
         const auto compiledPtr = compiledFor(anims, clip, w, h, flexWidth);
         const auto& compiled = *compiledPtr;
+        props.borderRadius = scene::animatedBorderRadius(props.borderRadius, clip.raw.value(u"animations").toArray(), compiled, t - clip.startMs);
         if (!compiled.empty()) {
             const auto s = scene::sampleAnimations(compiled, t - clip.startMs, clipSourceMsAt(clip, steppedTime(clip, t)));
             if (!s.isIdentity()) {
@@ -251,6 +255,15 @@ AnimatedProps resolveAnimated(const Clip& clip, const std::optional<ClipTransfor
                 props.mask = s.mask;
             }
         }
+    }
+    if (const auto offset = motion::resolveTrackBinding(clip, mediaTracks, sources, t, w, h)) {
+        auto transform = props.transform.value_or(identityTransform());
+        transform.position.x += offset->x;
+        transform.position.y += offset->y;
+        transform.scale.x *= offset->scale;
+        transform.scale.y *= offset->scale;
+        transform.rotation += offset->rotation;
+        props.transform = transform;
     }
     const auto links = clip.raw.value(u"animationLinks").toArray();
     for (const auto& value : links) {
@@ -534,7 +547,7 @@ struct ResolvedGroup {
 std::unordered_map<std::string, ResolvedGroup> resolveGroups(
     const std::vector<const Clip*>& clips, double t, double w, double h,
     const std::unordered_map<std::string, LayerTransition>& transitions, const scene::Camera2D* camera,
-    const std::unordered_map<std::string, const Clip*>& sources) {
+    const std::unordered_map<std::string, const Clip*>& sources, const QJsonArray& mediaTracks) {
     std::unordered_map<std::string, const Clip*> groupById;
     std::vector<std::string> order;
     for (const Clip* c : clips) {
@@ -580,7 +593,7 @@ std::unordered_map<std::string, ResolvedGroup> resolveGroups(
                 inherited = entry;
                 continue;
             }
-            const AnimatedProps own = resolveAnimated(current, current.transform, current.opacity, nullptr, t, w, h, sources, 1.0);
+            const AnimatedProps own = resolveAnimated(current, current.transform, current.opacity, nullptr, t, w, h, sources, 1.0, {}, mediaTracks);
             const bool spatial = camera && !(parent && parent->cameraApplied) && own.transform && own.transform->depthPx;
             std::optional<ClipTransform> placed = own.transform;
             bool dofBlur = false;
@@ -830,7 +843,22 @@ std::array<float, 16> layerMatrix(const ClipTransform& transform, int sourceWidt
                                 canvasWidth, canvasHeight);
 }
 
+motion::Shutter resolveFrameShutter(const Timeline& timeline, double frameTimeMs, double frameMs) {
+    std::deque<Clip> store;
+    const auto expanded = expandTemporal(timeline.clips, store);
+    return motion::frameShutter(timeline, expanded, frameTimeMs, frameMs);
+}
+
 SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
+    return evaluateSceneTap(timeline, timeMs, timeMs, 0, 1);
+}
+
+SceneFrame evaluateSceneTap(const Timeline& timeline, double timeMs, double frameTimeMs,
+                            int sampleIndex, int sampleCount) {
+    const auto layerTime = [&](const Clip& clip) {
+        return motion::layerShutterTime(clip.raw, frameTimeMs, sampleIndex, sampleCount,
+                                        (timeline.fps > 0 ? 1000.0 / timeline.fps : 1000.0 / 30.0));
+    };
     const auto hooks = sceneHooks();
     std::vector<ContextLayerDecorator> contextLayers;
     std::vector<ContextGroupDecorator> contextGroups;
@@ -850,10 +878,10 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
     }
     std::unordered_map<std::string, const Track*> trackById;
     for (const auto& track : timeline.tracks) { trackById.emplace(track.id, &track); }
-    const auto decorationContext = [&](const Clip& clip, double evaluationTimeMs) {
+    const auto decorationContext = [&](const Clip& clip, double evaluationTimeMs, double sampleTimeMs) {
         const auto track = trackById.find(clip.trackId);
         return SceneDecorationContext{timeline, track == trackById.end() ? nullptr : track->second,
-            evaluationTimeMs, timeMs, timeline.fps, static_cast<long long>(std::floor(timeMs * timeline.fps / 1000))};
+            evaluationTimeMs, timeMs, timeline.fps, static_cast<long long>(std::floor(sampleTimeMs * timeline.fps / 1000))};
     };
     const double W = timeline.width;
     const double H = timeline.height;
@@ -925,7 +953,7 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
             c = &store.back();
         }
     }
-    const auto groups = resolveGroups(groupClips, timeMs, W, H, transitions, camera, sources);
+    const auto groups = resolveGroups(groupClips, timeMs, W, H, transitions, camera, sources, timeline.raw.value(u"mediaTracks").toArray());
 
     std::unordered_map<std::string, const Clip*> clipById;
     std::unordered_map<std::string, std::vector<const Clip*>> clipsByTrack;
@@ -975,7 +1003,7 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
                 if (parent && (timeMs < parent->windowStart || timeMs >= parent->windowEnd)) { continue; }
                 const double base = clip->opacity * (parent ? parent->opacity : 1) *
                     clipFadeGain(*clip, timeMs - clip->startMs);
-                const auto animated = resolveAnimated(*clip, {}, base, nullptr, timeMs, W, H, sources, (parent ? parent->opacity : 1) * clipFadeGain(*clip, timeMs - clip->startMs));
+                const auto animated = resolveAnimated(*clip, {}, base, nullptr, timeMs, W, H, sources, (parent ? parent->opacity : 1) * clipFadeGain(*clip, timeMs - clip->startMs), {}, timeline.raw.value(u"mediaTracks").toArray());
                 SceneAdjustment adjustment;
                 adjustment.clipId = clip->id;
                 adjustment.trackIndex = track->index;
@@ -983,7 +1011,7 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
                 adjustment.opacity = clamp01(animated.opacity);
                 adjustment.wipe = animated.mask;
                 if (parent) { adjustment.precomposeGroupId = parent->surfaceId; }
-                const auto context = decorationContext(*clip, steppedTime(*clip, timeMs));
+                const auto context = decorationContext(*clip, steppedTime(*clip, timeMs), timeMs);
                 bool accepted = false;
                 for (const auto& decorate : contextAdjustments) { accepted = decorate(adjustment, *clip, context) || accepted; }
                 if (accepted) { frame.adjustments.push_back(std::move(adjustment)); }
@@ -993,7 +1021,7 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
         for (const Clip* c : clipsByTrack[track->id]) {
             if (c->mediaType == MediaType::Group || c->mediaType == MediaType::Adjustment) continue;
             if (c->hidden && !matteSources.count(c->id)) continue;
-            if (!isActiveAt(*c, timeMs)) continue;
+            if (!isActiveAt(*c, layerTime(*c))) continue;
             active.push_back(c);
         }
         std::stable_sort(active.begin(), active.end(), [](const Clip* a, const Clip* b) { return a->startMs < b->startMs; });
@@ -1026,7 +1054,7 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
             base.mediaType = clip.mediaType;
             base.trackIndex = track->index;
             base.clipTimeMs = timeMs - clip.startMs;
-            base.sourceTimeMs = clipSourceMsAt(clip, steppedTime(clip, timeMs));
+            base.sourceTimeMs = clipSourceMsAt(clip, steppedTime(clip, layerTime(clip)));
             base.opacity = opacity;
             base.blendMode = cs.blendMode;
             if (parent) base.parentMatrix = parent->matrix;
@@ -1195,7 +1223,7 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
         const auto found = clipById.find(group.clipId);
         if (found == clipById.end()) { continue; }
         for (const auto& decorate : hooks.groups) { decorate(group, *found->second, timeMs); }
-        const auto context = decorationContext(*found->second, timeMs);
+        const auto context = decorationContext(*found->second, timeMs, timeMs);
         for (const auto& decorate : contextGroups) { decorate(group, *found->second, context); }
     }
     std::unordered_map<std::string, const PrecompositeLayer*> surfaceById;
@@ -1204,9 +1232,10 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
         return !adjustment.precomposeGroupId.empty() && !surfaceById.contains(adjustment.precomposeGroupId);
     });
     const auto finish = [&](Pending& p) {
-        const AnimatedProps a = resolveAnimated(*p.clip, p.transform, p.layer.opacity, p.camera ? camera : nullptr, timeMs, W, H, sources, p.opacityCoverage, p.layer.flexTextMaxWidthFrac);
+        const AnimatedProps a = resolveAnimated(*p.clip, p.transform, p.layer.opacity, p.camera ? camera : nullptr, layerTime(*p.clip), W, H, sources, p.opacityCoverage, p.layer.flexTextMaxWidthFrac, timeline.raw.value(u"mediaTracks").toArray());
         p.layer.transform = a.transform;
         p.layer.opacity = a.opacity;
+        p.layer.borderRadius = a.borderRadius;
         p.layer.mask = a.mask;
         p.layer.z = trackZ(p.layer.trackIndex);
         double draw = a.opacity;
@@ -1218,8 +1247,9 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
             surface = it->second->precomposeGroupId;
         }
         p.layer.drawOpacity = draw;
-        for (const auto& decorate : hooks.layers) { decorate(p.layer, *p.clip, timeMs); }
-        const auto context = decorationContext(*p.clip, steppedTime(*p.clip, timeMs));
+        const double contentTime = p.layer.kind == "caption" ? timeMs : layerTime(*p.clip);
+        for (const auto& decorate : hooks.layers) { decorate(p.layer, *p.clip, contentTime); }
+        const auto context = decorationContext(*p.clip, steppedTime(*p.clip, layerTime(*p.clip)), layerTime(*p.clip));
         for (const auto& decorate : contextLayers) { decorate(p.layer, *p.clip, context); }
     };
     std::unordered_map<std::string, std::shared_ptr<const ActiveLayer>> resolvedMattes;
@@ -1255,6 +1285,8 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
             if (inner.precomposeGroupId == g.clipId) g.children.push_back(inner.clipId);
         }
     }
+    frame.evaluatedClips.reserve(store.size());
+    for (Clip& clip : store) { frame.evaluatedClips.push_back(std::move(clip)); }
     return frame;
 }
 

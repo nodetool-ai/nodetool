@@ -60,7 +60,7 @@ public:
 
     // Render thread, once per frame, before any sourceFor(): opens, keeps and
     // closes decoders for the media clips of `timeline` at `timeMs`.
-    void update(const Timeline& timeline, double timeMs);
+    void update(const Timeline& timeline, double timeMs, const std::set<std::string>& required = {});
 
     // The source for a media clip, or null when none is open. A rejected or
     // failed clip returns its placeholder.
@@ -81,6 +81,7 @@ public:
 private:
     struct Entry {
         std::unique_ptr<FfmpegSource> decoder;
+        std::string mediaPath;
         std::unique_ptr<LayerSource> placeholder;
         std::string label;
         QSize nominal;

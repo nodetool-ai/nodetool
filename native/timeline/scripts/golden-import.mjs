@@ -28,7 +28,7 @@ import { fileURLToPath } from "node:url";
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const repoRoot = path.resolve(root, "..", "..");
 
-const CONTENT_TYPES = { ".mp4": "video/mp4", ".mov": "video/quicktime", ".png": "image/png", ".jpg": "image/jpeg" };
+const CONTENT_TYPES = { ".mp4": "video/mp4", ".mov": "video/quicktime", ".png": "image/png", ".jpg": "image/jpeg", ".wav": "audio/wav" };
 
 function parseArgs(argv) {
   const args = { fixture: path.join(root, "fixtures", "media-tracks.json"), frames: "0,255,390", out: null };

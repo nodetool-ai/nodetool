@@ -2,7 +2,7 @@
 
 ## Scope and ownership
 
-F11 owns native motion evaluation, raster text, motion controls and their tests. F10 owns generation, providers, prompts, jobs, takes, agents, transcripts, scripts and storyboards. Caption and existing matte rendering belong to F11; caption or matte generation does not. The user deferred 3D. Shared application hosts, model, server, assets, compositor and shader changes are integration artifacts, not changes applied to the shared checkout. Concurrent F10 files are outside this work.
+F11 owns native motion evaluation, raster text, motion controls and their tests. F10 owns generation, providers, prompts, jobs, takes, agents, transcripts, scripts and storyboards. Caption and existing matte rendering belong to F11; caption or matte generation does not. The user deferred 3D. Shared application hosts, model, server, assets, compositor and shader changes are now integrated in the source checkout. Existing concurrent F10 changes are preserved.
 
 Dedicated existing files changed by F11 are `src/scene/Animation.cpp`, `src/preview/SceneEval.cpp`, `src/render2d/Rasterizer.cpp`, `src/render2d/tst_render2d.cpp`, `src/render2d/reference.mjs`, `src/preview/effects/EffectPlan.cpp`, `src/preview/effects/tst_effectplan.cpp` and `qml/Inspector/KeyframeClipAnimationEditor.qml`. Recursive `src/*/module.cmake` discovery registers dedicated sources and tests without a top-level CMake edit.
 
@@ -36,47 +36,34 @@ The reference is `packages/timeline/src/animation/`, `render/sceneModel.ts`, `re
 | --- | --- | --- |
 | Text and stagger | Native rasterization retains the Latin HarfBuzz path and uses itemized fallback runs for missing glyphs, non-Latin scripts and color faces. Measured line stagger includes flex-resolved width. Raster references and mixed-script and color-emoji regressions passed. The large Latin outline path also passes the retained counter, overlapping-glyph, gradient and shadow cases. | Fallback fonts are host-provided. Cross-platform glyph pixel equality and bitmap emoji outline strokes are not established. |
 | Animation, paths and links | Follow-path uses normalized boxes and arc-length sampling. Links sample authored source state without recursive links. Stepped follower time drives link clocks. Linked opacity keeps fade, transition and parent coverage. Beat timing resolves clip or sequence scope. | Scene tests and pure shared-function comparisons cover these behaviors. They do not establish full encoded-export pixel parity. |
-| Repeaters and echoes | Copies have distinct identities and names, shifted clocks and repeater color inputs. Copies clear layout. | Expanded copies requiring secondary media need the unapplied source-pool integration patch. |
-| Controls | Native controls cover path selection, repeaters, echoes, links and wiggle. The path picker copies shape geometry while retaining unrelated parameters. Mounted tests cover cancellation, invalid values, unknown fields and undo. | Group-host and radius-control wiring are unapplied integration patches. The inspected web inspector does not expose equivalent repeater, echo or link controls. |
-| Crop, effects, masks and blends | Crop pixel origins preserve near-integral values after float storage. Existing effect, mask, blend, group-surface and outsets fixtures exercise the renderer. | Asset-ID-only generated mattes need the shared carrier and resolution integration. The candidate session resolver passes the zero- and two-surface single-fetch checks; the integration remains unapplied. |
-| Motion blur and grain | The temporary integration stack implements per-tap scene and source scheduling and grain-clock fixes, with dedicated shutter and pool tests. | The blur patch is unapplied. Selected PNG and MP4 export frames pass; not every encoded frame was compared. |
-| Tracking | Dedicated track-binding evaluator, controls and oracles exist; integration into scene evaluation and group controls is an unapplied patch. | The candidate passes mounted controls and live pixel comparisons for both follow modes, including source clocks, smoothing and backward fresh seeks. The production reference preserves the full fields. Integration remains unapplied. |
+| Repeaters and echoes | Copies have distinct identities and names, shifted clocks and repeater color inputs. Copies clear layout. | Expanded copies retain their originating records for secondary-media decoder and provider lookup. |
+| Controls | Native controls cover path selection, repeaters, echoes, links and wiggle. The path picker copies shape geometry while retaining unrelated parameters. Mounted tests cover cancellation, invalid values, unknown fields and undo. | Group-host and radius-control wiring is integrated. The inspected web inspector does not expose equivalent repeater, echo or link controls. |
+| Crop, effects, masks and blends | Crop pixel origins preserve near-integral values after float storage. Existing effect, mask, blend, group-surface and outsets fixtures exercise the renderer. | Asset-ID-only generated mattes use the integrated carrier and session resolver. Prior candidate checks covered zero- and two-surface single-fetch behavior. |
+| Motion blur and grain | The integrated source implements per-tap scene and source scheduling and grain-clock fixes, with dedicated shutter and pool tests. | The blur implementation is integrated. Selected PNG and MP4 export frames pass; not every encoded frame was compared. |
+| Tracking | Dedicated track-binding evaluator, controls and oracles exist; integration into scene evaluation and group controls is applied. | The candidate passes mounted controls and live pixel comparisons for both follow modes, including source clocks, smoothing and backward fresh seeks. The production reference preserves the full fields. Integration is applied. |
 | 3D | Native evaluates model3d layers and 2.5D transforms. | The user deferred the glTF/model3d renderer. Plan geometry is not evidence of model pixels or export parity. |
 
 Historical regressions failed before their fixes for follow-path sampling, source links, repeat/echo names and effects, wrapped and flex-wrapped stagger, mixed-script measurement, color emoji, crop origins, stepped wiggle and linked opacity. The original crop-origin reproduction floored an integral origin one pixel early. The original motion-blur reproduction changed the web image when reducing Prism's shutter samples but left native captures identical. These failures are retained in the focused tests and diagnostic harnesses.
 
-## Shared integration artifacts
+## Integration
 
-The following patches are integration artifacts. They have **not** been applied to the shared checkout. Their targets are listed so an integration owner can review conflicts with F10 and other work before applying them.
+All 23 motion integration patches have been applied to the source checkout in
+their documented dependency order. The patch artifacts have been removed.
+The integrated changes cover field auditing, secondary sources, border radius,
+export duration, group controls, motion blur, tracking, reference projection,
+golden audio import, matte resolution, crop conformance, JPEG decoding,
+placement, crop domains, wipes, masked outsets, effect scratch capacity,
+OpenGL orientation, capture deadlines and gesture preview isolation.
 
-| Artifact in `docs/` | Shared targets |
-| --- | --- |
-| `motion-parity-integration.patch` | `src/server/FieldAudit.cpp`, `fixtures/plan/exclusions.json` |
-| `motion-secondary-integration.patch` | `src/preview/SceneEval.{h,cpp}`, `src/preview/PreviewCompositor.cpp` |
-| `motion-border-integration.patch` | `src/scene/TextAnimation.{h,cpp}`, `src/preview/SceneEval.{h,cpp}`, `src/preview/PreviewCompositor.cpp`, `shaders/composite.{vert,frag}` |
-| `motion-export-duration-integration.patch` | `src/export/ExportEngine.cpp` |
-| `motion-group-integration.patch` | `src/edit/inspectorsections/ClipGroupPanel.qml` |
-| `motion-radius-controls-integration.patch` | `src/motion/controls/module.cmake`, `src/motion/controls/GroupMotion.qml` |
-| `motion-blur-integration.patch` | `src/preview/SceneEval.{h,cpp}`, `src/preview/PreviewCompositor.cpp`, `src/preview/SourcePool.{h,cpp}`, `src/playback/PlaybackClock.{h,cpp}` |
-| `motion-preview-integration.patch` | `src/model/TimelineModel.{h,cpp}`, `src/edit/inspectorsections/InspectorEdits.cpp`, `src/edit/keyframes/ClipInspectorController.cpp`, `src/preview/gizmo/TransformGizmoController.cpp`, `src/preview/crop/ReframeController.{h,cpp}`, `src/edit/transitions/TransitionController.{h,cpp}`, `src/app/startup/LocalDocumentSaver.{h,cpp}`, `src/motion/gesture/module.cmake` |
-| `motion-capture-deadline-integration.patch` | `src/main.cpp`, `src/export/OffscreenFrames.cpp`, `src/motion/capturedeadline/module.cmake` |
-| `motion-capacity-integration.patch` | `src/preview/effects/ClipEffects.cpp`, `DrawCache.{h,cpp}`, `src/motion/capacity/module.cmake` |
-| `motion-crop-placement-integration.patch` | `src/preview/PreviewCompositor.cpp`, `shaders/composite.frag`, `shaders/effects/clip.frag` |
-| `motion-gl-orientation-integration.patch` | `src/preview/PreviewCompositor.cpp` |
-| `motion-golden-audio-integration.patch` | `scripts/golden-import.mjs` |
-| `motion-wipe-integration.patch` | `src/preview/PreviewCompositor.cpp`, `shaders/composite.{vert,frag}` |
-| `motion-crop-domain-integration.patch` | `src/preview/effects/ClipEffects.cpp`, `shaders/effects/clip.frag` |
-| `motion-mask-outsets-integration.patch` | `src/preview/effects/ClipEffects.cpp`, `shaders/effects/clip.frag` |
-| `motion-blur-controls-integration.patch` | `src/motion/blurcontrols/module.cmake`, `src/motion/controls/GroupMotion.qml` |
-| `motion-reference-integration.patch` | `packages/cli/src/timeline-debug/target.ts` |
-| `motion-tracking-integration.patch` | `src/preview/SceneEval.cpp`, `src/server/FieldAudit.cpp`, `src/motion/tracking/module.cmake`, `src/motion/controls/GroupMotion.qml` |
-| `motion-matte-integration.patch` | `src/model/TimelineTypes.h`, `TimelineModel.{h,cpp}`, `src/server/ServerTimeline.{h,cpp}`, `src/preview/effects/Masks.cpp`, `src/main.cpp`, `src/motion/mattes/module.cmake` and associated mask, server, model-hook, export and asset-browser tests. Its document/session lifecycle candidate has passed zero- and two-surface single-fetch checks; the patch remains unapplied. |
-| `motion-conformance-integration.patch` | `scripts/plan-conformance.mjs`, `src/preview/effects/tst_effectsblend.cpp`, `src/preview/effects/README.md` |
-| `motion-prism-integration.patch` | `src/preview/FfmpegSource.cpp` |
-| `motion-placement-integration.patch` | `src/preview/PreviewCompositor.cpp`, `shaders/composite.frag` |
+CLI exports honor an authored sequence duration, matching the renderer CLI.
+Editor export snapshots use the last clip end, with the stored duration kept
+for an empty sequence, matching the web editor. Snapshot creation preserves the
+original document. Dedicated snapshot and encoded timing regressions cover
+shortened and extended content, trailing sequence time and sequence truncation.
 
-A fresh isolated stack was checked in this order: parity, secondary, border, export-duration, group, radius-controls, blur, tracking, reference, golden-audio, blur-controls, matte, conformance, prism, placement, crop-domain, wipe, crop-placement, mask-outsets, capacity, gl-orientation, capture-deadline, preview. Each name denotes `docs/motion-<name>-integration.patch`. Apply the group patch from `native/timeline/`; apply the others from the repository root. The independent fresh stack's source files match the integrated candidate. These artifacts remain unapplied to the shared checkout.
-
+The conformance regression now executes the shared oracle directly. It no
+longer patches a temporary copy. Verification below describes the prior
+candidate evidence unless explicitly identified as an integrated-checkout run.
 
 ## Verification and remaining boundaries
 
@@ -98,41 +85,47 @@ The four required repository checks passed on the owned source including the pre
 
 The preview-isolation candidate passes the retained concurrent-edit tests and focused boundary tests, including direct and precomputed edits, invalid settlement rejection, marker undo and local autosave of the committed snapshot. It covers motion inspector, keyframe inspector, transform gizmo, reframe and transition preview controllers. Speed, audio, basic clip gestures and F10 workflows are outside this patch. The ordinary gizmo, reframe, transition, edit-preview, transition-resolver, model-hook and autosave regression selections passed.
 
-Remaining work is the shared integration handoff and the explicitly deferred 3D scope. The 23 patches above are not applied to this checkout. Model3d needs a registered glTF layer source, asset resolution and sampled camera channels. Camera depth-of-field is also deferred: an isolated original Serein card changes in the web renderer when aperture changes, while the native baseline stays byte-identical. Native evaluates the radius but does not add the camera blur to the effect chain. The full frame's independent large-text discrepancy was fixed; its sampled pass does not establish depth-of-field parity.
+Shared integration is applied. The explicitly deferred 3D scope remains. Model3d needs a registered glTF layer source, asset resolution and sampled camera channels. Camera depth-of-field is also deferred: an isolated original Serein card changes in the web renderer when aperture changes, while the native baseline stays byte-identical. Native evaluates the radius but does not add the camera blur to the effect chain. The full frame's independent large-text discrepancy was fixed; its sampled pass does not establish depth-of-field parity.
 
 The native motion controls do not add editors for wiggle amplitude keyframes or beat anchoring. Those editors are also absent from the inspected web animation inspector; the native evaluator handles the authored data. Host font availability remains a separate rendering dependency.
 
 ## F11 file manifest
 
-Paths below are relative to `native/timeline/`. This enumerates the F11 changes since `fa68d18b6b` and its current untracked owned files. Shared checkout changes owned by F10 are excluded. Integration patches are artifacts, not applied files.
+Paths below are relative to `native/timeline/`. This enumerates the F11 changes since `fa68d18b6b` and its current untracked owned files. Files belonging only to concurrent F10 work are excluded. Shared integration files contain the motion changes as well as any preserved F10 changes.
 
 ```text
-docs/motion-blur-controls-integration.patch
-docs/motion-blur-integration.patch
-docs/motion-border-integration.patch
-docs/motion-capacity-integration.patch
-docs/motion-capture-deadline-integration.patch
-docs/motion-conformance-integration.patch
-docs/motion-crop-domain-integration.patch
-docs/motion-crop-placement-integration.patch
-docs/motion-export-duration-integration.patch
-docs/motion-gl-orientation-integration.patch
-docs/motion-golden-audio-integration.patch
-docs/motion-group-integration.patch
-docs/motion-mask-outsets-integration.patch
-docs/motion-matte-integration.patch
-docs/motion-parity-integration.patch
+../../packages/cli/src/timeline-debug/target.ts
 docs/motion-parity.md
-docs/motion-placement-integration.patch
-docs/motion-preview-integration.patch
-docs/motion-prism-integration.patch
-docs/motion-radius-controls-integration.patch
-docs/motion-reference-integration.patch
-docs/motion-secondary-integration.patch
-docs/motion-tracking-integration.patch
-docs/motion-wipe-integration.patch
+fixtures/plan/exclusions.json
 qml/Inspector/KeyframeClipAnimationEditor.qml
 qml/Inspector/KeyframeClipCustomCurves.qml
+scripts/golden-import.mjs
+scripts/plan-conformance.mjs
+shaders/composite.frag
+shaders/composite.vert
+shaders/effects/clip.frag
+src/app/startup/LocalDocumentSaver.cpp
+src/app/startup/LocalDocumentSaver.h
+src/assets/tst_assetbrowser.cpp
+src/edit/inspectorsections/ClipGroupPanel.qml
+src/edit/inspectorsections/InspectorEdits.cpp
+src/edit/keyframes/ClipInspectorController.cpp
+src/edit/transitions/TransitionController.cpp
+src/edit/transitions/TransitionController.h
+src/export/ExportController.cpp
+src/export/ExportEngine.cpp
+src/export/OffscreenFrames.cpp
+src/export/check-cancel.mjs
+src/export/check-export.mjs
+src/export/check-timing.mjs
+src/export/module.cmake
+src/export/tst_exportdialog.cpp
+src/export/tst_exportsnapshot.cpp
+src/main.cpp
+src/model/TimelineModel.cpp
+src/model/TimelineModel.h
+src/model/TimelineTypes.h
+src/model/hooks/tst_modelhooks.cpp
 src/motion/beat/Beat.h
 src/motion/beat/module.cmake
 src/motion/beat/oracle.mjs
@@ -171,6 +164,7 @@ src/motion/conformance/oracle.test.mjs
 src/motion/controls/AdvancedMotion.qml
 src/motion/controls/AdvancedMotionSections.cpp
 src/motion/controls/BorderRadius.qml
+src/motion/controls/BorderRadiusSection.cpp
 src/motion/controls/FollowPathControls.cpp
 src/motion/controls/FollowPathControls.h
 src/motion/controls/GroupMotion.qml
@@ -239,11 +233,35 @@ src/motion/wipe/module.cmake
 src/motion/wipe/oracle.mjs
 src/motion/wipe/oracle.test.mjs
 src/motion/wipe/tst_wipe.cpp
+src/playback/PlaybackClock.cpp
+src/playback/PlaybackClock.h
+src/preview/FfmpegSource.cpp
+src/preview/PreviewCompositor.cpp
 src/preview/SceneEval.cpp
+src/preview/SceneEval.h
+src/preview/SourcePool.cpp
+src/preview/SourcePool.h
+src/preview/crop/ReframeController.cpp
+src/preview/crop/ReframeController.h
+src/preview/effects/ClipEffects.cpp
+src/preview/effects/DrawCache.cpp
+src/preview/effects/DrawCache.h
 src/preview/effects/EffectPlan.cpp
+src/preview/effects/Masks.cpp
+src/preview/effects/README.md
 src/preview/effects/tst_effectplan.cpp
+src/preview/effects/tst_effectsblend.cpp
+src/preview/effects/tst_masks.cpp
+src/preview/gizmo/TransformGizmoController.cpp
+src/preview/layers/SceneHooks.h
 src/render2d/Rasterizer.cpp
 src/render2d/reference.mjs
 src/render2d/tst_render2d.cpp
 src/scene/Animation.cpp
+src/scene/TextAnimation.cpp
+src/scene/TextAnimation.h
+src/server/FieldAudit.cpp
+src/server/ServerTimeline.cpp
+src/server/ServerTimeline.h
+tests/tst_serverclient.cpp
 ```

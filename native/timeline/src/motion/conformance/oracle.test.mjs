@@ -1,9 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
-import { execFileSync } from 'node:child_process';
 import * as scene from '@nodetool-ai/timeline/scene';
 import { cropRectPx } from '@nodetool-ai/timeline';
 import { loadExample } from '../shipped/oracle.mjs';
@@ -11,18 +9,7 @@ import { loadExample } from '../shipped/oracle.mjs';
 const root = path.resolve(import.meta.dirname, '../../../../..');
 const relative = 'native/timeline/scripts/plan-conformance.mjs';
 const original = fs.readFileSync(path.join(root, relative), 'utf8');
-let source = original;
-if (process.env.NT_CONFORMANCE_BASELINE !== '1' && !source.includes('const source = cropRectPx(layer.crop,')) {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'motion-conformance-'));
-  try {
-    fs.mkdirSync(path.dirname(path.join(directory, relative)), { recursive: true });
-    fs.writeFileSync(path.join(directory, relative), original);
-    execFileSync('git', ['apply', path.join(root, 'native/timeline/docs/motion-conformance-integration.patch')], { cwd: directory });
-    source = fs.readFileSync(path.join(directory, relative), 'utf8');
-  } finally {
-    fs.rmSync(directory, { recursive: true, force: true });
-  }
-}
+const source = original;
 const start = source.indexOf('function oraclePlan(doc, timeMs, cache) {');
 const end = source.indexOf('\nfunction compareFixture(', start);
 assert(start >= 0 && end > start, 'must inspect the actual plan oracle function');

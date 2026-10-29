@@ -58,6 +58,7 @@ public:
     // The time now. Safe to call from the render thread while the GUI thread
     // is blocked in synchronize().
     double currentTimeMs() const;
+    std::uint64_t seekSerial() const;
 
     // Attach the audio device's clock state, or detach it with nullptr.
     void setAudioFeed(nt::playback::AudioClockFeed* feed);
@@ -116,6 +117,7 @@ private:
     Source m_source = Source::Monotonic;
     double m_monoAnchorMs = 0.0;
     std::int64_t m_monoAnchorNs = 0;
+    std::uint64_t m_seekSerial = 0;
     double m_timeMs = 0.0;
     double m_durationMs = 0.0;
     double m_rate = 1.0;
