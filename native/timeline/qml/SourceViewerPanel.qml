@@ -30,6 +30,12 @@ Rectangle {
         }
         return null
     }
+    Binding {
+        target: SourceViewerState
+        property: "mediaBrowser"
+        value: root.sourceGrid && root.sourceGrid.browser &&
+               typeof root.sourceGrid.browser.resolveClipMedia === "function" ? root.sourceGrid.browser : null
+    }
     onSelectedAssetChanged: SourceViewerState.asset = selectedAsset || ({})
     property string playerAssetId: ""
     onAssetChanged: {

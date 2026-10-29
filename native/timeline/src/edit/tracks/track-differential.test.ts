@@ -83,8 +83,21 @@ function compare(doc: Doc, action: string, payload: Payload): boolean {
   const expected = web(doc, action, payload);
   const actual = native(doc, action, payload);
   expect(checkIds(actual.clips, doc.clips)).toEqual([]);
+  let comparable = actual;
+  if (action === "duplicateTrack") {
+    // Native duplicates own their tracking data. The web still shares it.
+    // Keep web parity for the existing document and test new ownership here.
+    const originalMediaIds = new Set(doc.mediaTracks.map(track => track.id));
+    const originalClipIds = new Set(doc.clips.map(clip => clip.id));
+    const sourceClipIds = new Set(doc.clips.filter(clip => clip.trackId === payload.trackId).map(clip => clip.id));
+    const copiedClipIds = new Set(actual.clips.filter(clip => !originalClipIds.has(clip.id)).map(clip => clip.id));
+    const copiedMedia = actual.mediaTracks.filter(track => !originalMediaIds.has(track.id));
+    expect(copiedMedia).toHaveLength(doc.mediaTracks.filter(track => sourceClipIds.has(track.clipId)).length);
+    expect(copiedMedia.every(track => copiedClipIds.has(track.clipId))).toBe(true);
+    comparable = { ...actual, mediaTracks: actual.mediaTracks.filter(track => originalMediaIds.has(track.id)) };
+  }
   const known = inputIds(doc);
-  expect(normalize(references(actual), known), JSON.stringify({ action, payload, doc })).toEqual(normalize(references(expected), known));
+  expect(normalize(references(comparable), known), JSON.stringify({ action, payload, doc })).toEqual(normalize(references(expected), known));
   return JSON.stringify(expected) !== JSON.stringify(doc);
 }
 describe("native track actions against the web store", () => {

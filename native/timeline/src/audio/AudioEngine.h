@@ -22,6 +22,7 @@
 #include "playback/AudioClockFeed.h"
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -113,6 +114,7 @@ private:
 // `sampleRate`, with the same plan and `mixBlock` as the device, reading
 // each source in full. `report` gets one line per voice that has no PCM.
 std::vector<float> renderOffline(const Timeline& timeline, int sampleRate, double startMs, double durationMs,
-                                 std::vector<std::string>* report = nullptr);
+                                 std::vector<std::string>* report = nullptr,
+                                 std::function<bool()> cancelled = {});
 
 }  // namespace nt::audio

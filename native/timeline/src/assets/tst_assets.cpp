@@ -32,6 +32,36 @@ std::optional<quint64> writeFromReader(const QString& path, const nt::assets::St
 class TestAssets : public QObject {
     Q_OBJECT
 private slots:
+    void linkedAudioSkipsLockedTrack_data() {
+        QTest::addColumn<bool>("freeTrack");
+        QTest::newRow("reuse-unlocked") << true;
+        QTest::newRow("create-unlocked") << false;
+    }
+    void linkedAudioSkipsLockedTrack() {
+        QFETCH(bool, freeTrack);
+        QJsonArray tracks{QJsonObject{{"id", "v"}, {"type", "video"}},
+            QJsonObject{{"id", "locked"}, {"type", "audio"}, {"locked", true}}};
+        if (freeTrack) {
+            tracks.append(QJsonObject{{"id", "free"}, {"type", "audio"}});
+        }
+        const QJsonObject raw{{"tracks", tracks}, {"clips", QJsonArray{}}};
+        const auto dropped = nt::assets::dropAsset(raw, {{"trackId", "v"}, {"startMs", 0},
+            {"asset", QJsonObject{{"id", "video"}, {"name", "take.mp4"},
+                {"content_type", "video/mp4"}, {"duration", 2}}}});
+        const auto clips = dropped["clips"].toArray();
+        QCOMPARE(clips.size(), 2);
+        const auto audioTrack = clips[1].toObject()["trackId"].toString();
+        QVERIFY(audioTrack != "locked");
+        if (freeTrack) {
+            QCOMPARE(audioTrack, QString("free"));
+            QCOMPARE(dropped["tracks"], raw["tracks"]);
+        } else {
+            QCOMPARE(dropped["tracks"].toArray().size(), 3);
+            QCOMPARE(dropped["tracks"].toArray().last().toObject()["id"].toString(), audioTrack);
+            QVERIFY(!dropped["tracks"].toArray().last().toObject()["locked"].toBool());
+        }
+    }
+
     void wavStreamingMatchesWholeWriter() {
         QTemporaryDir dir;
         QVERIFY(dir.isValid());

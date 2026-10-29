@@ -130,7 +130,7 @@ QJsonObject dropAsset(QJsonObject raw, const QJsonObject& payload) {
         QString audioTrack;
         for (const auto& value : tracks) {
             const auto track = value.toObject();
-            if (track.value("type").toString() != "audio") { continue; }
+            if (track.value("type").toString() != "audio" || track.value("locked").toBool()) { continue; }
             const auto id = track.value("id").toString();
             if (!occupiedTracks.contains(id)) { audioTrack = id; break; }
         }

@@ -19,6 +19,10 @@ int exportCli(int argc, char** argv) {
     QGuiApplication app(argc, argv);
     QCommandLineParser parser;
     parser.addPositionalArgument(QStringLiteral("timeline"), QStringLiteral("Timeline source"));
+    QCommandLineOption stagingDirectory(QStringLiteral("staging-directory"),
+        "Editor-owned temporary output directory", "PATH");
+    stagingDirectory.setFlags(QCommandLineOption::HiddenFromHelp);
+    parser.addOption(stagingDirectory);
     parser.addOptions({
         {QStringLiteral("export"), "Export output path", "OUT"},
         {QStringLiteral("format"), "mp4, webm, png_sequence, wav, mp3", "FORMAT", "mp4"},
@@ -48,7 +52,7 @@ int exportCli(int argc, char** argv) {
         return 1;
     }
     const Options options{parser.value("export"), parser.value("format"), parser.isSet("alpha"),
-        parser.value("video-encoder"), parser.value("audio-encoder")};
+        parser.value("video-encoder"), parser.value("audio-encoder"), parser.value("staging-directory")};
     std::stop_source stop;
     const auto progress = [&](const Progress& p) {
         const QJsonObject json{{"phase", p.phase}, {"frame", p.frame}, {"totalFrames", p.totalFrames}, {"ratio", p.ratio}};

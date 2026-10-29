@@ -69,6 +69,7 @@ void PlaybackClock::setRangeIn(double ms) {
         if (m_rangeInMs >= 0.0 && m_rangeOutMs >= 0.0 && m_rangeOutMs <= m_rangeInMs) {
             m_rangeOutMs = -1.0;
         }
+        updateBoundsLocked();
     }
     emit rangeChanged();
 }
@@ -80,6 +81,7 @@ void PlaybackClock::setRangeOut(double ms) {
         if (m_rangeOutMs >= 0.0 && m_rangeInMs >= m_rangeOutMs) {
             m_rangeInMs = -1.0;
         }
+        updateBoundsLocked();
     }
     emit rangeChanged();
 }
@@ -89,6 +91,7 @@ void PlaybackClock::clearRange() {
         std::lock_guard lock(m_mutex);
         m_rangeInMs = -1.0;
         m_rangeOutMs = -1.0;
+        updateBoundsLocked();
     }
     emit rangeChanged();
 }

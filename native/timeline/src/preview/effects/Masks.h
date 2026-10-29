@@ -7,6 +7,7 @@ namespace nt { struct SceneDecorationContext; }
 
 namespace nt::effects {
 class DrawCache;
+QString resolvedGeneratedMattePath(const Clip &clip);
 class MaskRasterizer {
   public:
     QImage rasterize(const QJsonObject &mask, QSize sourceSize);

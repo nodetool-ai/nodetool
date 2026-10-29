@@ -162,6 +162,9 @@ QJsonObject applyGroupEdit(const QString &name, QJsonObject raw, const QJsonObje
         return structure::withClips(std::move(raw), doc.clips);
     }
     if (name == u"moveClip") {
+        for (const auto& track : doc.tracks) {
+            if (!toTrack.isEmpty() && track.id == toTrack && track.locked) { return raw; }
+        }
         if (!primaryGroup) {
             return structure::withClips(std::move(raw), nt::edit::moveClip(doc, id, delta, toTrack, linked));
         }

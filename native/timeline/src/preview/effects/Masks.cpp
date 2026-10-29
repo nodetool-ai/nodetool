@@ -134,26 +134,31 @@ QString generatedPath(const Clip &clip) {
     return QDir::cleanPath(QDir(base).filePath(path));
 }
 } // namespace
+QString resolvedGeneratedMattePath(const Clip &clip) { return generatedPath(clip); }
 QImage MaskRasterizer::rasterize(const QJsonObject &mask, QSize sourceSize) {
     if (sourceSize.isEmpty()) {
         return {};
     }
     const double scale = std::min(1., 2048. / std::max(sourceSize.width(), sourceSize.height()));
     const QSize size(std::max(1, qRound(sourceSize.width() * scale)), std::max(1, qRound(sourceSize.height() * scale)));
-    const QByteArray key = QByteArray::number(size.width()) + 'x' + QByteArray::number(size.height()) + '|' +
+    const QByteArray key = QByteArray::number(sourceSize.width()) + 'x' + QByteArray::number(sourceSize.height()) + '|' + QByteArray::number(size.width()) + 'x' + QByteArray::number(size.height()) + '|' +
                            QJsonDocument(mask).toJson(QJsonDocument::Compact);
     const auto hit = std::ranges::find(m_cache, key, &decltype(m_cache)::value_type::first);
     if (hit != m_cache.end()) {
         return hit->second;
     }
-    const auto path = outline(mask, size);
+    auto scaledMask = mask;
+    for (const auto *key : {"featherPx", "radiusPx"}) {
+        if (scaledMask.contains(key)) { scaledMask.insert(key, number(mask, key) * scale); }
+    }
+    const auto path = outline(scaledMask, size);
     if (!path) {
         return {};
     }
     QImage image(size, QImage::Format_RGBA8888);
     image.fill(Qt::transparent);
     const auto kind = mask.value("kind").toString();
-    const double feather = boundedBlurRadius(number(mask, "featherPx"), 2. * std::max(size.width(), size.height()) / 3);
+    const double feather = boundedBlurRadius(number(scaledMask, "featherPx"), 2. * std::max(size.width(), size.height()) / 3);
     const bool filtered = feather > 0 && (kind == "path" || (kind == "rect" && number(mask, "radiusPx") > 0));
     {
         QPainter painter(&image);

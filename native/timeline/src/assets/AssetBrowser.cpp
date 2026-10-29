@@ -96,7 +96,7 @@ void AssetBrowser::reconcileLinkedAudio() {
         });
         if (generating) { current = nt::assets::settleLinkedAudio(current, it->payload); }
     }
-    m_timeline->replaceClips(current.value("clips").toArray());
+    m_timeline->settleDocument(current);
 }
 
 void AssetBrowser::request(std::function<Result(nt::server::ServerClient&)> work,
@@ -344,6 +344,17 @@ bool AssetBrowser::applyDrop(const QJsonObject& payload) {
         }
     }
     return true;
+}
+
+void AssetBrowser::resolveClipMedia(const QVariantMap& asset, const QString& clipId) {
+    if (!m_timeline) { return; }
+    for (const auto& value : m_timeline->clipsJson()) {
+        const auto clip = value.toObject();
+        if (clip.value("id").toString() == clipId) {
+            queueMedia(QJsonObject::fromVariantMap(asset), clip, m_timeline, m_timeline->documentGeneration());
+            return;
+        }
+    }
 }
 
 void AssetBrowser::queueMedia(const QJsonObject& asset, const QJsonObject& clip,

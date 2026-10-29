@@ -9,6 +9,19 @@
 class TestMasks : public QObject {
     Q_OBJECT
   private slots:
+    void largeMaskKeepsPixelUnits() {
+        nt::effects::MaskRasterizer raster;
+        const QJsonObject mask{{"kind", "rect"}, {"featherPx", 100}};
+        const auto large = raster.rasterize(mask, {4096, 2048});
+        QCOMPARE(large.pixelColor(75, 512).alpha(), 255);
+        const auto smaller = raster.rasterize(mask, {2048, 1024});
+        QVERIFY(smaller.pixelColor(75, 512).alpha() < 220);
+        QVERIFY(large.cacheKey() != smaller.cacheKey());
+        const QJsonObject rounded{{"kind", "rect"}, {"radiusPx", 100}};
+        const auto corners = raster.rasterize(rounded, {4096, 2048});
+        QCOMPARE(corners.pixelColor(30, 5).alpha(), 255);
+    }
+
     void coverage() {
         const QJsonObject rect{{"kind", "rect"}, {"x", 0.25}, {"y", 0.25}, {"width", 0.5}, {"height", 0.5}};
         nt::effects::MaskRasterizer raster;

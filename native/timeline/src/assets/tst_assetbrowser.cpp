@@ -1,4 +1,8 @@
 #include "assets/AssetBrowser.h"
+#include "app/EditRegistry.h"
+#include "edit/tracks/TrackEdits.h"
+#include "edit/sourceEdit/SourceViewerState.h"
+#include "edit/targeting/TrackTargeting.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
@@ -33,6 +37,62 @@ QQuickItem* itemNamed(QQuickItem* root, const QString& name) {
 class TestAssetBrowser : public QObject {
     Q_OBJECT
 private slots:
+    void sourceViewerResolvesFreshAsset_data() {
+        QTest::addColumn<QString>("kind");
+        QTest::addColumn<QString>("media");
+        for (const auto* kind : {"append", "insert", "overwrite"}) {
+            for (const auto* media : {"image", "audio", "video"}) {
+                QTest::newRow(qPrintable(QString::fromLatin1(kind) + '-' + media)) << QString(kind) << QString(media);
+            }
+        }
+    }
+    void sourceViewerResolvesFreshAsset() {
+        QFETCH(QString, kind);
+        QFETCH(QString, media);
+        QTemporaryDir cache;
+        TestHttpServer http;
+        http.setFile("/fresh.bin", ServedFile{QByteArray("source-media")});
+        auto parsed = nt::parseTimelineJson(R"({"fps":30,"width":640,"height":360,
+            "tracks":[{"id":"v","type":"video","index":0},
+                      {"id":"a","type":"audio","index":1}],"clips":[]})");
+        QVERIFY(parsed.timeline);
+        TimelineModel model;
+        model.setTimeline(std::move(*parsed.timeline));
+        PlaybackClock clock;
+        ClipGestureController gestures;
+        gestures.setTimeline(&model);
+        gestures.setClock(&clock);
+        nt::targeting::TrackTargeting::current().setTrackTargeted("v", true);
+        nt::targeting::TrackTargeting::current().setTrackTargeted("a", true);
+        AssetBrowser browser;
+        browser.setTimeline(&model);
+        browser.m_target = nt::server::SaveTarget{http.base(), {}, "seq",
+            cache.filePath("server/user/timelines"), {}};
+        SourceViewerState source;
+        source.setMediaBrowser(&browser);
+        source.setAsset({{"id", "0123456789abcdef0123456789abcdef"}, {"name", "Fresh"},
+            {"content_type", media + (media == "image" ? "/png" : media == "audio" ? "/wav" : "/mp4")},
+            {"get_url", "/fresh.bin"}, {"size", 12}, {"duration", 2}});
+        QVERIFY(source.perform(kind, &gestures));
+        QCOMPARE(model.clipCount(), 1);
+        QTRY_VERIFY_WITH_TIMEOUT(!browser.busy(), 2000);
+        const auto clip = model.timeline().clips.front();
+        if (media != "audio") {
+            QVERIFY2(!clip.mediaPath.empty(), "source edits must resolve uncached picture media");
+            QVERIFY(QFileInfo::exists(QString::fromStdString(clip.mediaPath)));
+        }
+        if (media != "image") {
+            QVERIFY2(!clip.audioPath.empty(), "source edits must resolve uncached audio media");
+            QVERIFY(QFileInfo::exists(QString::fromStdString(clip.audioPath)));
+        }
+        QCOMPARE(model.undoStack()->count(), 1);
+        model.undoStack()->undo();
+        QCOMPARE(model.clipCount(), 0);
+        model.undoStack()->redo();
+        QCOMPARE(model.timeline().clips.front().mediaPath, clip.mediaPath);
+        QCOMPARE(model.timeline().clips.front().audioPath, clip.audioPath);
+    }
+
     void documentSwitchDuringEviction() {
         QTemporaryDir dir;
         QVERIFY(dir.isValid());
@@ -208,7 +268,6 @@ private slots:
         if (outcome == "silent") {
             QCOMPARE(model.clipCount(), 1);
             QVERIFY(!model.clipsJson().first().toObject().contains("linkId"));
-            QEXPECT_FAIL("", "F3: public TimelineModel API cannot remove tracks untracked while later history exists", Continue);
             QCOMPARE(model.timeline().raw.value("tracks").toArray().size(), 1);
         } else {
             const auto audio = model.clipsJson().last().toObject();
@@ -232,6 +291,39 @@ private slots:
         QCOMPARE(browser.m_mediaProtection, protection);
         QVERIFY(protection->generation() != protectionGeneration);
     }
+    void linkedSilentSettlementPreservesLaterTrack() {
+        auto parsed = nt::parseTimelineJson(R"({"fps":30,"width":640,"height":360,
+            "tracks":[{"id":"v","type":"video","index":0}],"clips":[]})");
+        QVERIFY(parsed.timeline);
+        TimelineModel model;
+        model.setTimeline(std::move(*parsed.timeline));
+        AssetBrowser browser;
+        browser.setTimeline(&model);
+        browser.m_target = nt::server::SaveTarget{};
+        QThread occupied;
+        browser.m_thread = &occupied;
+        QVERIFY(browser.drop({{"id", "video"}, {"name", "Silent"}, {"content_type", "video/mp4"},
+            {"duration", 2}}, "v", 0, "overlap", 0));
+        auto complete = std::move(browser.m_requests.back().done);
+        browser.m_requests.clear();
+        browser.m_thread.clear();
+        browser.m_target.reset();
+        nt::app::registerEdit("testAddTrack", nt::tracks::addTrack);
+        QVERIFY(model.applyEdit("testAddTrack", {{"type", "audio"}}));
+        const auto added = model.timeline().raw["tracks"].toArray().last().toObject();
+        AssetBrowser::Result result;
+        result.settlement = {{"outcome", "silent"}};
+        complete(result);
+        QCOMPARE(model.timeline().raw["tracks"].toArray().size(), 2);
+        QCOMPARE(model.timeline().raw["tracks"].toArray().last().toObject()["id"], added["id"]);
+        QCOMPARE(model.undoStack()->count(), 2);
+        model.undoStack()->undo();
+        QCOMPARE(model.timeline().raw["tracks"].toArray().size(), 1);
+        model.undoStack()->redo();
+        QCOMPARE(model.timeline().raw["tracks"].toArray().size(), 2);
+        QCOMPARE(model.timeline().raw["tracks"].toArray().last().toObject()["id"], added["id"]);
+    }
+
     void documentSwitchProtectsMedia_data() {
         QTest::addColumn<QString>("scenario");
         for (const auto& scenario : {"queued", "running", "new-document"}) {

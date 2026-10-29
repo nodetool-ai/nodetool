@@ -7,6 +7,10 @@
 #include <QtQmlIntegration/qqmlintegration.h>
 #include <memory>
 
+namespace nt::exporting {
+QJsonObject exportSnapshot(const TimelineModel& model);
+}
+
 class ExportController : public QObject {
     Q_OBJECT
     QML_ELEMENT
@@ -47,6 +51,7 @@ private:
     QPointer<TimelineModel> m_timeline;
     QProcess m_process;
     std::unique_ptr<QTemporaryDir> m_job;
+    std::unique_ptr<QTemporaryDir> m_staging;
     QString m_executable;
     QString m_phase;
     QString m_error;

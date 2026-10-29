@@ -1,3 +1,4 @@
+#include "edit/clipboard/ClipboardOps.h"
 #include "SpeedController.h"
 #include "SpeedOperations.h"
 #include "app/EditRegistry.h"
@@ -61,6 +62,19 @@ QJsonObject keyframe(double t, double source, const QString& easing = {}) {
 class TestSpeed : public QObject {
     Q_OBJECT
   private slots:
+    void pasteSpeedAttributesRetimesTheTarget() {
+        const QJsonObject source{{"id", "source"}, {"mediaType", "video"}, {"speedMultiplier", 2}};
+        const QJsonObject target{{"id", "target"}, {"trackId", "v"}, {"mediaType", "video"},
+                                 {"startMs", 0}, {"durationMs", 1000}, {"speedMultiplier", 1}};
+        const QJsonObject raw{{"tracks", QJsonArray{QJsonObject{{"id", "v"}, {"type", "video"}}}},
+                              {"clips", QJsonArray{target}}};
+        const auto result = nt::edit::clipboard::applyClipboardEdit("pasteClipAttributes", raw,
+            {{"source", source}, {"selectedIds", QJsonArray{"target"}}, {"groups", QJsonArray{"speed"}}});
+        const auto retimed = result.value("clips").toArray().first().toObject();
+        QCOMPARE(retimed.value("speedMultiplier").toDouble(), 2.0);
+        QCOMPARE(retimed.value("durationMs").toDouble(), 500.0);
+    }
+
     void init() {
         QTest::failOnWarning(QRegularExpression(".*(TypeError|ReferenceError|Binding loop|Unable to assign).*"));
     }

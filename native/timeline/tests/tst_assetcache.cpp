@@ -10,6 +10,7 @@
 #include <QFileInfo>
 #include <QTemporaryDir>
 #include <QThread>
+#include <QNetworkRequest>
 #include <QtTest>
 
 #include <atomic>
@@ -62,6 +63,30 @@ private slots:
         QDir(m_dir.path()).removeRecursively();
         QDir().mkpath(m_dir.path());
         m_http = std::make_unique<TestHttpServer>();
+    }
+
+    void interruptionCancelsTricklingDownload() {
+        auto slow = ServedFile{pattern(5 * 1024 * 1024, 1)};
+        slow.chunkDelayMs = 10;
+        m_http->setFile("/slow.mp4", slow);
+        FetchResult result;
+        const auto root = m_dir.path();
+        const auto file = remote("/slow.mp4", "v1", 5 * 1024 * 1024);
+        auto worker = std::unique_ptr<QThread>(QThread::create([&result, root, file] {
+            AssetCache cache(root, "server", "user", [](QNetworkRequest& request) {
+                request.setTransferTimeout(500);
+            });
+            result = cache.fetch("asset", "original", file);
+        }));
+        worker->start();
+        QVERIFY(QTest::qWaitFor([&] { return m_http->countRequests("GET", "/slow.mp4") > 0; }, 2000));
+        worker->requestInterruption();
+        const bool cancelled = QTest::qWaitFor([&] { return worker->isFinished(); }, 500);
+        QVERIFY(QTest::qWaitFor([&] { return worker->isFinished(); }, 10000));
+        worker->wait();
+        QVERIFY2(cancelled, "interruption must cancel an active trickling download");
+        QVERIFY(!result.ok());
+        QVERIFY(!result.error.isEmpty());
     }
 
     void downloadsOnceThenHits() {

@@ -1,4 +1,7 @@
 #include "server/ServerSource.h"
+#include "server/TimelineList/TimelineLaunch.h"
+#include <QProcess>
+#include <QScopeGuard>
 #include "TestHttpServer.h"
 
 #include <QDir>
@@ -30,6 +33,26 @@ private slots:
         qputenv("NODETOOL_TIMELINE_CACHE_DIR", m_cache.path().toUtf8());
         qputenv("NODETOOL_API_TOKEN", "label-token");
         qputenv("NODETOOL_TIMELINE_EXPECT_INSTANCE", "label-instance");
+    }
+
+    void switchLaunchPreservesExplicitToken_data() {
+        QTest::addColumn<bool>("unset");
+        QTest::newRow("inherited-token") << false;
+        QTest::newRow("unset-token") << true;
+    }
+    void switchLaunchPreservesExplicitToken() {
+        QFETCH(bool, unset);
+        const auto originalToken = qgetenv("NODETOOL_API_TOKEN");
+        const auto restore = qScopeGuard([&] { qputenv("NODETOOL_API_TOKEN", originalToken); });
+        if (unset) {
+            qunsetenv("NODETOOL_API_TOKEN");
+        }
+        const auto parentToken = qgetenv("NODETOOL_API_TOKEN");
+        const nt::server::SaveTarget target{QUrl("http://localhost:17863"), "explicit-token", "next", {}, {}};
+        QProcess child;
+        child.setProcessEnvironment(nt::server::timelineLaunchEnvironment(target));
+        QCOMPARE(child.processEnvironment().value("NODETOOL_API_TOKEN"), QString("explicit-token"));
+        QCOMPARE(qgetenv("NODETOOL_API_TOKEN"), parentToken);
     }
 
     void localFileWithHash() {

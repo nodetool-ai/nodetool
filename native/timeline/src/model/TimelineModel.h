@@ -81,6 +81,8 @@ public:
     // superseded, discarded and previous-document tokens return false. A token
     // also becomes stale when a later command exists, including in redo history.
     bool settleCommand(quint64 token, const QJsonObject& document);
+    // Reconcile asynchronous resources without adding a user undo command.
+    bool settleDocument(const QJsonObject& document);
 
     // Moves one clip to a new start on its track, as one undoable edit.
     Q_INVOKABLE bool moveClip(const QString& clipId, double startMs);

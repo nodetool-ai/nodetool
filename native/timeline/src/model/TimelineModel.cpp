@@ -381,6 +381,12 @@ void TimelineModel::registerMedia(const nt::Clip& media) {
     emit timelineChanged();
 }
 
+bool TimelineModel::settleDocument(const QJsonObject& document) {
+    if (!replaceDocument(document)) { return false; }
+    emit commandSettled();
+    return true;
+}
+
 bool TimelineModel::settleCommand(quint64 token, const QJsonObject& document) {
     if (token == 0) { return false; }
     for (int i = 0; i < m_undo->count(); ++i) {

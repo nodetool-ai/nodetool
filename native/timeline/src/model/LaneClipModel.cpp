@@ -138,13 +138,16 @@ void LaneClipModel::recompute() {
     m_snapshot = m_snapshotNext;
 
     // 2. Walk the new order: keep, move, or insert each clip. A kept clip
-    // whose JSON changed (an edit) is one row of dataChanged; a clip no edit
-    // touched sends nothing, so its delegate does no work.
+    // whose JSON or resolved media changed sends dataChanged; an unchanged
+    // clip sends nothing, so its delegate does no work.
     std::vector<int> changedRows;
     for (size_t pos = 0; pos < next.size(); ++pos) {
         const nt::Clip* c = next[pos];
         if (pos < m_rows.size() && m_rows[pos]->id == c->id) {
-            if (newSnapshot && m_rows[pos]->raw != c->raw) changedRows.push_back(static_cast<int>(pos));
+            if (newSnapshot && (m_rows[pos]->raw != c->raw || m_rows[pos]->mediaPath != c->mediaPath ||
+                                m_rows[pos]->audioPath != c->audioPath)) {
+                changedRows.push_back(static_cast<int>(pos));
+            }
             m_rows[pos] = c;
             continue;
         }
@@ -152,7 +155,10 @@ void LaneClipModel::recompute() {
                                [&](const nt::Clip* r) { return r->id == c->id; });
         if (it != m_rows.end()) {
             const int from = static_cast<int>(it - m_rows.begin());
-            if (newSnapshot && (*it)->raw != c->raw) changedRows.push_back(static_cast<int>(pos));
+            if (newSnapshot && ((*it)->raw != c->raw || (*it)->mediaPath != c->mediaPath ||
+                                (*it)->audioPath != c->audioPath)) {
+                changedRows.push_back(static_cast<int>(pos));
+            }
             beginMoveRows({}, from, from, {}, static_cast<int>(pos));
             m_rows.erase(it);
             m_rows.insert(m_rows.begin() + static_cast<long>(pos), c);

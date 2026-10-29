@@ -24,17 +24,10 @@ SourcePool::~SourcePool() {
         m_reapStop = true;
     }
     m_reapCv.notify_all();
-    // Wait a bounded time: a worker stuck in a system call that the interrupt
-    // callback cannot end must not hang the renderer's teardown.
-    const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
-    while (m_retiring.load() > 0 && std::chrono::steady_clock::now() < deadline) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(5));
-    }
-    if (m_retiring.load() == 0) {
-        m_reaper.join();
-    } else {
-        m_reaper.detach();  // the process exit ends it
-    }
+    // The reaper gives queued workers no grace during shutdown. Only a
+    // worker already being retired can spend its remaining grace period,
+    // so joining stays bounded and every access to the queue ends here.
+    m_reaper.join();
 }
 
 void SourcePool::clear() {
@@ -59,18 +52,20 @@ void SourcePool::retire(Entry& e, bool stalled) {
 void SourcePool::reapLoop() {
     for (;;) {
         Retiring r;
+        bool stopping = false;
         {
             std::unique_lock lock(m_reapMutex);
             m_reapCv.wait(lock, [this] { return m_reapStop || !m_reapQueue.empty(); });
             if (m_reapQueue.empty()) return;
             r = std::move(m_reapQueue.front());
             m_reapQueue.pop_front();
+            stopping = m_reapStop;
         }
         // Stops and joins the worker; one that does not end in time is
         // abandoned. A healthy worker ends in milliseconds once its I/O is
         // interrupted. A stalled one may be blocked in a call that never
         // returns, so it gets only a short grace.
-        FfmpegDecoder::stopWithin(std::move(r.decoder), std::chrono::milliseconds(r.stalled ? 100 : 1000));
+        FfmpegDecoder::stopWithin(std::move(r.decoder), std::chrono::milliseconds(stopping ? 0 : (r.stalled ? 100 : 1000)));
         --m_retiring;
     }
 }

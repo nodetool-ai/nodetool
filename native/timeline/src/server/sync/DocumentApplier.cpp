@@ -89,16 +89,9 @@ QJsonObject applyAcceptedUnit(QJsonObject raw, const QJsonObject& conflict) {
         } else {
             found = true;
             if (!external.isNull() && !external.isUndefined()) {
-                if (kind == u"clip") {
-                    auto patched = unit.toObject();
-                    const auto incoming = external.toObject();
-                    for (auto it = incoming.begin(); it != incoming.end(); ++it) {
-                        patched.insert(it.key(), it.value());
-                    }
-                    units.append(patched);
-                } else {
-                    units.append(external);
-                }
+                // Persisted units are complete snapshots. Resolved media paths
+                // are restored separately by SyncRegistration's media registrar.
+                units.append(external);
             } else if (reason != u"deleted") {
                 units.append(unit);
             }
