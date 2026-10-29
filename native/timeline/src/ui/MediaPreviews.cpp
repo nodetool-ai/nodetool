@@ -1,6 +1,7 @@
 #include "ui/MediaPreviews.h"
 
 #include "ui/MediaVersion.h"
+#include "ui/ThumbnailDiskCache.h"
 #include "ui/TimelineViewState.h"
 
 #include <QDateTime>
@@ -574,56 +575,65 @@ std::vector<Thumbnail> extractThumbnails(const QString& path, int count, int wid
 
     PacketPtr packet(av_packet_alloc());
     FramePtr frame(av_frame_alloc());
+    FramePtr best(av_frame_alloc());
     SwsContext* sws = nullptr;
     const double startSec = st->start_time != AV_NOPTS_VALUE ? st->start_time * av_q2d(st->time_base) : 0.0;
+    bool started = false;
+    bool draining = false;
 
-    // The frame shown at `t`: the last frame whose time is at or before it.
-    const auto frameAt = [&](double t) -> QImage {
-        const int64_t target = static_cast<int64_t>((t + startSec) / av_q2d(st->time_base));
-        if (av_seek_frame(format.get(), stream, target, AVSEEK_FLAG_BACKWARD) < 0) return {};
-        avcodec_flush_buffers(codec.get());
-        QImage best;
-        bool done = false;
-        const auto take = [&](AVFrame* f) {
-            const int64_t pts = f->best_effort_timestamp;
-            if (!best.isNull() && pts != AV_NOPTS_VALUE && pts > target) {
-                done = true;
-                return;
-            }
-            sws = sws_getCachedContext(sws, f->width, f->height, static_cast<AVPixelFormat>(f->format), width, height,
-                                       AV_PIX_FMT_RGB32, SWS_BILINEAR, nullptr, nullptr, nullptr);
-            if (!sws) {
-                done = true;
-                return;
-            }
-            QImage image(width, height, QImage::Format_RGB32);
-            uint8_t* dst[4] = {image.bits(), nullptr, nullptr, nullptr};
-            int dstStride[4] = {static_cast<int>(image.bytesPerLine()), 0, 0, 0};
-            sws_scale(sws, f->data, f->linesize, 0, f->height, dst, dstStride);
-            best = image;
-            if (pts != AV_NOPTS_VALUE && pts >= target) done = true;
-        };
-        while (!done && av_read_frame(format.get(), packet.get()) >= 0) {
-            if (cancel && cancel->load()) {
+    const auto readFrame = [&]() {
+        for (;;) {
+            if (cancel && cancel->load()) return false;
+            const int result = avcodec_receive_frame(codec.get(), frame.get());
+            if (result >= 0) return true;
+            if (result != AVERROR(EAGAIN) || draining) return false;
+            int readResult;
+            do {
                 av_packet_unref(packet.get());
-                return {};
-            }
-            if (packet->stream_index == stream && avcodec_send_packet(codec.get(), packet.get()) >= 0) {
-                while (!done && avcodec_receive_frame(codec.get(), frame.get()) >= 0) {
-                    take(frame.get());
-                    av_frame_unref(frame.get());
-                }
+                if (cancel && cancel->load()) return false;
+                readResult = av_read_frame(format.get(), packet.get());
+            } while (readResult >= 0 && packet->stream_index != stream);
+            if (readResult < 0) {
+                avcodec_send_packet(codec.get(), nullptr);
+                draining = true;
+            } else {
+                avcodec_send_packet(codec.get(), packet.get());
             }
             av_packet_unref(packet.get());
         }
-        if (!done) {
-            avcodec_send_packet(codec.get(), nullptr);
-            while (!done && avcodec_receive_frame(codec.get(), frame.get()) >= 0) {
-                take(frame.get());
-                av_frame_unref(frame.get());
-            }
+    };
+
+    // Keep the decoder and its lookahead frame between ascending samples.
+    // Seek only when a later keyframe skips work we have not decoded yet.
+    const auto frameAt = [&](double t) -> QImage {
+        const int64_t target = static_cast<int64_t>((t + startSec) / av_q2d(st->time_base));
+        const AVIndexEntry* keyframe = avformat_index_get_entry_from_timestamp(
+            format->streams[stream], target, AVSEEK_FLAG_BACKWARD);
+        const int64_t cursor = frame->buf[0] ? frame->best_effort_timestamp : best->best_effort_timestamp;
+        if (!started || !keyframe || cursor == AV_NOPTS_VALUE || keyframe->timestamp > cursor) {
+            if (av_seek_frame(format.get(), stream, target, AVSEEK_FLAG_BACKWARD) < 0) return {};
+            avcodec_flush_buffers(codec.get());
+            av_frame_unref(frame.get());
+            av_frame_unref(best.get());
+            started = true;
+            draining = false;
         }
-        return best;
+        while (!best->buf[0] || best->best_effort_timestamp == AV_NOPTS_VALUE || best->best_effort_timestamp < target) {
+            if (!frame->buf[0] && !readFrame()) break;
+            const int64_t pts = frame->best_effort_timestamp;
+            if (best->buf[0] && pts != AV_NOPTS_VALUE && pts > target) break;
+            av_frame_unref(best.get());
+            av_frame_move_ref(best.get(), frame.get());
+        }
+        if (!best->buf[0] || (cancel && cancel->load())) return {};
+        sws = sws_getCachedContext(sws, best->width, best->height, static_cast<AVPixelFormat>(best->format), width, height,
+                                  AV_PIX_FMT_RGB32, SWS_BILINEAR, nullptr, nullptr, nullptr);
+        if (!sws) return {};
+        QImage image(width, height, QImage::Format_RGB32);
+        uint8_t* dst[4] = {image.bits(), nullptr, nullptr, nullptr};
+        int dstStride[4] = {static_cast<int>(image.bytesPerLine()), 0, 0, 0};
+        sws_scale(sws, best->data, best->linesize, 0, best->height, dst, dstStride);
+        return image;
     };
 
     for (int i = 0; i < count; ++i) {
@@ -770,7 +780,12 @@ qint64 nowMs() {
 
 }  // namespace
 
-MediaPreviewCache::MediaPreviewCache() = default;
+MediaPreviewCache::MediaPreviewCache() : m_thumbnailCacheDirectory(ThumbnailDiskCache::defaultDirectory()) {}
+
+void MediaPreviewCache::setThumbnailCacheDirectoryForTesting(const QString& directory) {
+    clear();
+    m_thumbnailCacheDirectory = directory;
+}
 
 MediaPreviewCache& MediaPreviewCache::instance() {
     static MediaPreviewCache* cache = new MediaPreviewCache;
@@ -817,6 +832,10 @@ void MediaPreviewCache::start(const QString& key, const QString& path, const QSt
     job->path = path;
     job->kind = kind;
     job->version = version;
+    job->diskDirectory = m_thumbnailCacheDirectory;
+    if (kind != u"peaks" && !job->diskDirectory.isEmpty()) {
+        job->diskKey = ThumbnailDiskCache::keyForMedia(path, kind);
+    }
     job->openTimeoutMs = m_openTimeoutMs;
     subscribe(job, subscriber);
     m_jobs.insert(key, job);
@@ -830,11 +849,19 @@ void MediaPreviewCache::start(const QString& key, const QString& path, const QSt
             if (job->kind == u"peaks") {
                 peaks = computeAudioPeaks(job->path, FULL_ASSET_PEAK_COUNT, &job->cancel, job->openTimeoutMs);
             } else {
-                // The atlas is built here too, once per file version.
-                thumbs = makeThumbnailSet(job->kind == u"image"
-                                              ? loadImageThumbnail(job->path, 2 * THUMBNAIL_WIDTH_PX, &job->cancel, job->openTimeoutMs)
-                                              : extractThumbnails(job->path, THUMBNAIL_COUNT, THUMBNAIL_WIDTH_PX,
-                                                                  &job->cancel, job->openTimeoutMs));
+                const ThumbnailDiskCache disk(job->diskDirectory);
+                thumbs = disk.load(job->diskKey);
+                job->diskHit = thumbs != nullptr;
+                if (!thumbs && !job->cancel) {
+                    thumbs = makeThumbnailSet(job->kind == u"image"
+                                                  ? loadImageThumbnail(job->path, 2 * THUMBNAIL_WIDTH_PX, &job->cancel, job->openTimeoutMs)
+                                                  : extractThumbnails(job->path, THUMBNAIL_COUNT, THUMBNAIL_WIDTH_PX,
+                                                                      &job->cancel, job->openTimeoutMs));
+                    if (!job->cancel && !job->diskKey.isEmpty() &&
+                        job->diskKey == ThumbnailDiskCache::keyForMedia(job->path, job->kind)) {
+                        disk.store(job->diskKey, *thumbs);
+                    }
+                }
             }
         }
         QMetaObject::invokeMethod(qApp, [self, job, peaks, thumbs]() {
@@ -858,6 +885,7 @@ void MediaPreviewCache::finish(const std::shared_ptr<Job>& job, std::shared_ptr<
         } else if (isPeaks) {
             m_peaks.insert(job->key, peaks);
         } else {
+            if (job->diskHit) ++m_thumbnailDiskHits;
             m_thumbs.insert(job->key, thumbs);
             m_thumbLru.remove(job->key);
             m_thumbLru.push_front(job->key);

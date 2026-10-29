@@ -2182,6 +2182,28 @@ private slots:
         }
     }
 
+    void thumbnailsReuseTheSameKeyframe() {
+#ifdef Q_OS_UNIX
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString media = dir.filePath("long-gop.mp4");
+        QProcess ffmpeg;
+        ffmpeg.start("ffmpeg", {"-v", "error", "-f", "lavfi", "-i", "testsrc2=size=320x180:rate=24",
+                               "-t", "3", "-c:v", "libx264", "-g", "72", "-keyint_min", "72",
+                               "-sc_threshold", "0", "-bf", "2", media});
+        QVERIFY(ffmpeg.waitForFinished(30000));
+        QCOMPARE(ffmpeg.exitCode(), 0);
+        std::atomic<int> seeks{0};
+        setLocalIoStallForTesting([&](const char* operation, const QString& path) {
+            if (path == media && QByteArray(operation) == "lseek") ++seeks;
+        });
+        const auto resetHook = qScopeGuard([] { setLocalIoStallForTesting({}); });
+        const auto thumbs = extractThumbnails(media);
+        QCOMPARE(thumbs.size(), size_t(24));
+        QVERIFY2(seeks.load() < 12, qPrintable(QStringLiteral("Repeated seeks into one GOP: %1").arg(seeks.load())));
+#endif
+    }
+
     void picturesDecodeOffTheGuiThreadOnceAndDraw() {
         MediaPreviewCache& cache = MediaPreviewCache::instance();
         cache.clear();
@@ -3080,7 +3102,10 @@ private slots:
             image.fill(Qt::blue);
             QVERIFY(image.save(path));
         } else {
-            const QString fixture = kind == u"peaks" ? "tone-440-48k-mono.wav" : "seek-360p30.mp4";
+            // The small video can now decode without leaving AVIO's buffer.
+            // Use a larger file to exercise cancellation of a real lseek.
+            const QString fixture = kind == u"peaks" ? "tone-440-48k-mono.wav"
+                                    : operation == "lseek" ? "numbered-a-1080p30.mp4" : "seek-360p30.mp4";
             QVERIFY(QFile::copy(QStringLiteral(NT_FIXTURES_DIR "/media/") + fixture, path));
         }
         StalledLocalIo stall({path}, operation);
@@ -3373,6 +3398,7 @@ int main(int argc, char** argv) {
         qputenv("QT_QUICK_BACKEND", "software");
     }
     QGuiApplication app(argc, argv);
+    MediaPreviewCache::instance().setThumbnailCacheDirectoryForTesting({});
     TestTracksUi test;
     return QTest::qExec(&test, argc, argv);
 }

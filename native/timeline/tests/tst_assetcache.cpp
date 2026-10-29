@@ -2,6 +2,7 @@
 // resume, the restart rules, and concurrent fetches of one asset.
 
 #include "server/AssetCache.h"
+#include "ui/MediaVersion.h"
 #include "TestHttpServer.h"
 
 #include <QCoreApplication>
@@ -98,9 +99,15 @@ private slots:
         QVERIFY(!first.hit);
         QCOMPARE(readAll(first.path), data);
         QVERIFY(first.path.endsWith(QStringLiteral("/http_127.0.0.1_1/1/a1/original/v1.mp4")));
+        QFile cachedFile(first.path);
+        QVERIFY(cachedFile.open(QIODevice::ReadWrite));
+        QVERIFY(cachedFile.setFileTime(QDateTime::currentDateTimeUtc().addDays(-1), QFileDevice::FileModificationTime));
+        cachedFile.close();
+        const QString mediaVersion = nt::ui::mediaVersionKey(first.path);
         const FetchResult second = cache().fetch(QStringLiteral("a1"), QStringLiteral("original"),
                                                  remote("/api/storage/1/a1.mp4", QStringLiteral("v1"), data.size()));
         QVERIFY(second.hit);
+        QCOMPARE(nt::ui::mediaVersionKey(second.path), mediaVersion);
         QCOMPARE(m_http->countRequests("GET", "/api/storage/1/a1.mp4"), 1);
     }
 

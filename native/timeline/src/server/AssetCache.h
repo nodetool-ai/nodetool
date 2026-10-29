@@ -23,7 +23,8 @@
 //
 // Size budget (D33): after a download, the least recently used files under
 // the cache root go until the total fits the budget. A cache hit counts as a
-// use. A file the current open uses (`protect`) and the file just fetched are
+// use, recorded in access time so the media's modification time stays stable.
+// A file the current open uses (`protect`) and the file just fetched are
 // never evicted, nor a file whose folder another fetch holds locked.
 
 #include <QString>

@@ -22,7 +22,9 @@
 //   goes (its clip left the view, its document closed), a queued job is
 //   dropped and a running one is interrupted.
 // - Peaks are kept without a limit (as the web), thumbnails for the 32 most
-//   recently used files. A failed file is tried again after 30 s.
+//   recently used files. Thumbnail atlases also persist in a versioned disk
+//   cache, capped at 256 MiB and evicted by last use. A failed file is tried
+//   again after 30 s.
 //
 // The items draw with scene-graph nodes, only over the part of the clip that
 // crosses the lanes viewport plus one viewport on each side (review F2), and
@@ -135,10 +137,14 @@ public:
     // `subscriber` no longer waits for anything (it also stops when destroyed).
     void unsubscribe(const QObject* subscriber);
 
-    // Tests: drop every result and wait for running work.
+    // Tests: drop in-memory results and wait for running work; keep disk entries.
     void clear();
     void waitForIdle();
+    // Preview jobs started, including those served from disk.
     int decodeCount() const { return m_decodes; }
+    int thumbnailDiskHits() const { return m_thumbnailDiskHits; }
+    // Tests use a temporary directory; changing it drops in-memory results.
+    void setThumbnailCacheDirectoryForTesting(const QString& directory);
     // Jobs started and not yet finished or dropped.
     int pendingCount() const { return static_cast<int>(m_jobs.size()); }
     // Jobs dropped or interrupted because nobody waited for them.
@@ -162,6 +168,9 @@ private:
         QString path;
         QString kind;  // "peaks", "video" or "image"
         QString version;
+        QString diskKey;
+        QString diskDirectory;
+        bool diskHit = false;
         int openTimeoutMs = OPEN_TIMEOUT_MS;
         std::atomic<bool> cancel{false};
         QSet<const QObject*> subscribers;
@@ -180,6 +189,8 @@ private:
     QHash<QString, std::shared_ptr<Job>> m_jobs;
     QHash<const QObject*, QMetaObject::Connection> m_watched;
     int m_decodes = 0;
+    int m_thumbnailDiskHits = 0;
+    QString m_thumbnailCacheDirectory;
     std::atomic<int> m_cancelled{0};
     std::atomic<int> m_guiThreadDecodes{0};
     int m_openTimeoutMs = OPEN_TIMEOUT_MS;

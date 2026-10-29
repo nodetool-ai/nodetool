@@ -16,7 +16,6 @@
 #include <QTimer>
 
 #include <algorithm>
-#include <filesystem>
 #include <map>
 #include <memory>
 #include <mutex>
@@ -66,11 +65,12 @@ void writeTotal(const QString& path, qint64 total) {
     if (f.open(QIODevice::WriteOnly | QIODevice::Truncate)) f.write(QByteArray::number(total));
 }
 
-// A cache hit is a use: the file's time moves to now (LRU order).
+// Recency must not change the modification time used by decoded-media caches.
 void touch(const QString& path) {
-    std::error_code ec;
-    std::filesystem::last_write_time(std::filesystem::path(path.toStdString()),
-                                     std::filesystem::file_time_type::clock::now(), ec);
+    QFile file(path);
+    if (file.open(QIODevice::ReadWrite | QIODevice::ExistingOnly)) {
+        file.setFileTime(QDateTime::currentDateTimeUtc(), QFileDevice::FileAccessTime);
+    }
 }
 
 void removePartial(const QString& part) {
@@ -280,7 +280,7 @@ void AssetCache::evict(const QString& justFetched) const {
         const QString name = info.fileName();
         // Payload files only: not locks, partials, raw documents or reports.
         if (name.startsWith(u'.') || name.endsWith(u".part") || name.endsWith(u".total") || name.endsWith(u".json")) continue;
-        files.push_back({info.absoluteFilePath(), info.lastModified(), info.size()});
+        files.push_back({info.absoluteFilePath(), std::max(info.lastRead(), info.lastModified()), info.size()});
         total += info.size();
     }
     if (total <= m_budgetBytes) return;
