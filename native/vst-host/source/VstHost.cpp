@@ -100,6 +100,8 @@ bool Instance::render(double sampleRate, juce::int64 frames, const std::vector<N
     if (frames < 0 || frames > (juce::int64)(sampleRate * 60 * 30)) { error = "Render is longer than 30 minutes"; return false; }
     prepare(sampleRate);
     plugin_->reset();
+    const int latency = std::max(0, plugin_->getLatencySamples());
+    const juce::int64 processFrames = frames + latency;
 
     // Note-ons and note-offs in frame order; at one frame, offs go first so a
     // repeated note retriggers instead of being cut by its predecessor's end.
@@ -121,8 +123,8 @@ bool Instance::render(double sampleRate, juce::int64 frames, const std::vector<N
     out.clear();
     juce::MidiBuffer midi;
     size_t next = 0;
-    for (juce::int64 pos = 0; pos < frames; pos += block_) {
-        const int n = (int)std::min<juce::int64>(block_, frames - pos);
+    for (juce::int64 pos = 0; pos < processFrames; pos += block_) {
+        const int n = (int)std::min<juce::int64>(block_, processFrames - pos);
         block.setSize(channels, n, false, false, true);
         block.clear();
         midi.clear();
@@ -133,8 +135,13 @@ bool Instance::render(double sampleRate, juce::int64 frames, const std::vector<N
                                : juce::MidiMessage::noteOff(1, e.pitch), at);
         }
         plugin_->processBlock(block, midi);
-        out.copyFrom(0, (int)pos, block, 0, 0, n);
-        out.copyFrom(1, (int)pos, block, outChannels > 1 ? 1 : 0, 0, n);
+        const int from = static_cast<int>(std::max<juce::int64>(0, latency - pos));
+        const auto destination = std::max<juce::int64>(0, pos - latency);
+        const int count = static_cast<int>(std::min<juce::int64>(n - from, frames - destination));
+        if (count > 0) {
+            out.copyFrom(0, static_cast<int>(destination), block, 0, from, count);
+            out.copyFrom(1, static_cast<int>(destination), block, outChannels > 1 ? 1 : 0, from, count);
+        }
     }
     // Leave nothing ringing into the next render.
     midi.clear();
