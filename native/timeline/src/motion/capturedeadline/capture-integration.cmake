@@ -1,0 +1,7 @@
+qt_add_executable(tst_captureintegration src/motion/capturedeadline/CaptureIntegration.cpp ${NT_app})
+target_link_libraries(tst_captureintegration PRIVATE ${NT_APP_PLATFORM_LIBS} timeline_core timeline_decode timeline_audio timeline_server Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 PkgConfig::FFMPEG)
+nt_add_timeline_qml(tst_captureintegration OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_captureintegration_qml/NodeTool/Timeline)
+qt_add_shaders(tst_captureintegration "capture_compositor_shaders" PREFIX "/shaders" BASE shaders FILES shaders/composite.vert shaders/composite.frag)
+nt_effects_shaders(tst_captureintegration)
+add_test(NAME capture_deadline_render COMMAND node "${CMAKE_CURRENT_SOURCE_DIR}/src/motion/capturedeadline/render.mjs" $<TARGET_FILE:tst_captureintegration> $<TARGET_FILE:nodetool-timeline>)
+set_tests_properties(capture_deadline_render PROPERTIES LABELS render RUN_SERIAL TRUE TIMEOUT 300)

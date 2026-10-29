@@ -190,7 +190,8 @@ class TestRender2d : public QObject {
                                       psnr(image.copy(crop), reference.copy(crop), Qt::white));
         image.save(QStringLiteral(NT_RENDER2D_REFERENCE_DIR "/") + fixture["name"].toString() + "-native.png");
         qInfo().noquote() << fixture["name"].toString() << "PSNR" << score;
-        QVERIFY2(score >= 35, qPrintable(QString::number(score) + " dB < 35"));
+        const double threshold = fixture["minPsnr"].toDouble(35);
+        QVERIFY2(score >= threshold, qPrintable(QString("%1 dB < %2").arg(score).arg(threshold)));
     }
     void measuredLayoutMatchesServer_data() {
         QTest::addColumn<QJsonObject>("fixture");

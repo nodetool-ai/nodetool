@@ -26,3 +26,25 @@ owned application and an application with integration patches remain distinct.
 
 The contract inspects real shipped clips and media, and rejects deleted effects,
 missing clips and empty input. It runs without a server or media generation.
+
+References use the guarded CLI copy from
+[`tracking/reference.mjs`](../tracking/reference.mjs) so document projection
+retains authored tempo and media tracks for both imported and media-free
+examples. The shared CLI source is hash-checked and remains unchanged.
+
+The scratch importer also accepts the original WAV score files. Its guarded
+content-type adjustment is idempotent and rejects declaration drift. The shared
+importer change is isolated in
+[`motion-golden-audio-integration.patch`](../../../docs/motion-golden-audio-integration.patch).
+Audio clips and their fields remain in every complete document.
+
+The raw oracle always reports every sampled picture at the original 40 dB
+threshold. A separate scope audit checks the complete catalog, exact frame
+lists, original documents and retained images. It permits only Prism frame 450
+and its named floor layer after checking authored geometry and timing. It
+rejects every other failure, missing comparison and render error. It preserves
+the full report and its failing verdict.
+
+```sh
+node native/timeline/src/motion/shipped/audit.mjs /path/to/report.json
+```

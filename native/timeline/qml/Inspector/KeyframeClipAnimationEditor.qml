@@ -13,6 +13,19 @@ Column {
     readonly property bool handKeyed: isCustom && animation.role === "emphasis" && (animation.delayMs || 0) === 0 && animation.params && animation.params.keyframed === true
     readonly property bool timed: !(preset && preset.fullClip) && !handKeyed
     readonly property string roleLabel: animation.role === "in" ? "In" : animation.role === "out" ? "Out" : animation.role === "loop" ? "Loop" : "Emphasis"
+    readonly property int staggerCount: {
+        const text = controller.clip.textStyle?.text || ""
+        const unit = animation.stagger?.unit
+        if (unit === "character") return Math.max(1, Array.from(text).length)
+        if (unit === "line") return Math.max(1, text.split("\n").length)
+        return Math.max(1, text.trim().split(/\s+/).filter(word => word !== "").length)
+    }
+    readonly property real staggerSpan: {
+        const stagger = animation.stagger
+        if (!stagger) return 0
+        const spread = stagger.offsetMs * Math.max(0, staggerCount - 1)
+        return animation.durationMs + (stagger.from === "center" ? spread / 2 : spread)
+    }
     signal patch(var values, string phase)
     signal presetChange(string value)
     signal remove()
@@ -95,6 +108,18 @@ Column {
             label: "Offset"
             InspectorPillInput { value: String(root.animation.stagger ? root.animation.stagger.offsetMs : 120); unit: "ms"; ariaLabel: root.roleLabel + " animation stagger offset"; disabled: root.controller.locked; onCommit: raw => { const n = Number(raw); if (Number.isFinite(n) && n > 0) root.patch({stagger:Object.assign({},root.animation.stagger,{offsetMs:n})},"") } }
         }
+    }
+    Text {
+        objectName: "staggerOverrunWarning"
+        width: root.width
+        visible: root.controller.clip.mediaType === "text" && !(root.preset && root.preset.fullClip) &&
+                 !!root.animation.stagger && root.staggerSpan > (root.controller.clip.durationMs || 0)
+        text: "Staggered over " + root.staggerCount + " " + ((root.animation.stagger?.unit || "word").charAt(0).toUpperCase() + (root.animation.stagger?.unit || "word").slice(1)) + (root.staggerCount === 1 ? "" : "s") +
+              " this runs " + Math.round(root.staggerSpan) + "ms, past the clip's " +
+              (root.controller.clip.durationMs || 0) + "ms. The last units are cut off."
+        color: Theme.textSecondary
+        font.pixelSize: Theme.fontSizeSmall
+        wrapMode: Text.WordWrap
     }
     KeyframeClipCustomCurves {
         width: root.width

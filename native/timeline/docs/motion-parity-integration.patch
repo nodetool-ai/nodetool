@@ -1,7 +1,11 @@
 --- a/native/timeline/src/server/FieldAudit.cpp
 +++ b/native/timeline/src/server/FieldAudit.cpp
-@@ -49,7 +49,7 @@
-     QStringLiteral("steppedTime"),
+@@ -46,10 +46,10 @@
+ // checked one by one below.
+ const Fields kClipScene = {
+     QStringLiteral("parentId"), QStringLiteral("repeater"), QStringLiteral("temporalEcho"),
+-    QStringLiteral("steppedTime"),
++    QStringLiteral("steppedTime"), QStringLiteral("animationLinks"),
  };
  const Fields kClipPlan = {
 -    QStringLiteral("animationLinks"), QStringLiteral("trackBinding"),
@@ -154,3 +158,37 @@
 -  }
 -}
 +{}
+--- a/native/timeline/tests/tst_serverclient.cpp
++++ b/native/timeline/tests/tst_serverclient.cpp
+@@ -507,7 +507,7 @@
+         clip.insert(QStringLiteral("transform"), xf);
+         clip.insert(QStringLiteral("parentId"), QStringLiteral("g"));
+         seq.insert(QStringLiteral("camera2d"), QJsonObject{{QStringLiteral("depthPx"), 1}});
+-        // Not covered.
++        // Follow-path animation is supported in the plan.
+         clip.insert(QStringLiteral("animations"),
+                     QJsonArray{QJsonObject{{QStringLiteral("id"), QStringLiteral("a")}, {QStringLiteral("role"), QStringLiteral("loop")},
+                                            {QStringLiteral("preset"), QStringLiteral("followPath")}, {QStringLiteral("durationMs"), 500}}});
+@@ -526,18 +526,18 @@
+         audit = auditTimelineFields(seq);
+         const QJsonObject fields = audit.value(u"fields").toObject();
+         auto effect = [&](const char* name) { return fields.value(QLatin1String(name)).toObject().value(u"effect").toString(); };
+-        QCOMPARE(effect("clip.animations.preset=followPath"), QStringLiteral("plan"));
++        QVERIFY(!fields.contains(QStringLiteral("clip.animations.preset=followPath")));
+         // Flex layout is in the plan (scene/FlexLayout.h): no entry.
+         QVERIFY(!fields.contains(QStringLiteral("clip.flexLayout")));
+         QVERIFY(!fields.contains(QStringLiteral("clip.layout.flex")));
+-        QCOMPARE(effect("clip.parent"), QStringLiteral("plan"));  // h inherits from c1
++        QVERIFY(!fields.contains(QStringLiteral("clip.parent")));  // h inherits from c1
+         QCOMPARE(effect("clip.mask"), QStringLiteral("pixels"));
+         QCOMPARE(effect("clip.blendMode=multiply"), QStringLiteral("pixels"));
+         QCOMPARE(effect("clip.audioEffects"), QStringLiteral("audio"));
+         QCOMPARE(effect("clip.inventedField"), QStringLiteral("unknown"));
+         QVERIFY(!fields.contains(QStringLiteral("clip.transform.rotationX")));
+         QVERIFY(!fields.contains(QStringLiteral("sequence.camera2d")));
+-        QCOMPARE(fields.size(), 6);
+-        QCOMPARE(audit.value(u"planUnsupported").toArray(), (QJsonArray{QStringLiteral("c1"), QStringLiteral("h")}));
++        QCOMPARE(fields.size(), 4);
++        QVERIFY(audit.value(u"planUnsupported").toArray().isEmpty());
+         QCOMPARE(audit.value(u"tracks").toArray().size(), 0);
+     }

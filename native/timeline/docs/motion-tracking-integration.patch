@@ -1,0 +1,126 @@
+--- a/native/timeline/src/preview/SceneEval.cpp
++++ b/native/timeline/src/preview/SceneEval.cpp
+@@ -1,4 +1,5 @@
+ #include "motion/beat/Beat.h"
++#include "motion/tracking/TrackBinding.h"
+ #include "preview/SceneEval.h"
+ #include "preview/layers/SceneHooks.h"
+ #include "preview/transitions/TransitionResolver.h"
+@@ -222,7 +223,7 @@
+ AnimatedProps resolveAnimated(const Clip& clip, const std::optional<ClipTransform>& layerTransform, double opacity,
+                               const scene::Camera2D* camera, double timeMs, double w, double h,
+                               const std::unordered_map<std::string, const Clip*>& sources, double opacityCoverage,
+-                              std::optional<double> flexWidth = {}) {
++                              std::optional<double> flexWidth = {}, const QJsonArray& mediaTracks = {}) {
+     const double t = steppedTime(clip, timeMs);
+     AnimatedProps props;
+     props.transform = layerTransform;
+@@ -254,6 +255,15 @@
+                 props.mask = s.mask;
+             }
+         }
++    }
++    if (const auto offset = motion::resolveTrackBinding(clip, mediaTracks, sources, t, w, h)) {
++        auto transform = props.transform.value_or(identityTransform());
++        transform.position.x += offset->x;
++        transform.position.y += offset->y;
++        transform.scale.x *= offset->scale;
++        transform.scale.y *= offset->scale;
++        transform.rotation += offset->rotation;
++        props.transform = transform;
+     }
+     const auto links = clip.raw.value(u"animationLinks").toArray();
+     for (const auto& value : links) {
+@@ -537,7 +547,7 @@
+ std::unordered_map<std::string, ResolvedGroup> resolveGroups(
+     const std::vector<const Clip*>& clips, double t, double w, double h,
+     const std::unordered_map<std::string, LayerTransition>& transitions, const scene::Camera2D* camera,
+-    const std::unordered_map<std::string, const Clip*>& sources) {
++    const std::unordered_map<std::string, const Clip*>& sources, const QJsonArray& mediaTracks) {
+     std::unordered_map<std::string, const Clip*> groupById;
+     std::vector<std::string> order;
+     for (const Clip* c : clips) {
+@@ -583,7 +593,7 @@
+                 inherited = entry;
+                 continue;
+             }
+-            const AnimatedProps own = resolveAnimated(current, current.transform, current.opacity, nullptr, t, w, h, sources, 1.0);
++            const AnimatedProps own = resolveAnimated(current, current.transform, current.opacity, nullptr, t, w, h, sources, 1.0, {}, mediaTracks);
+             const bool spatial = camera && !(parent && parent->cameraApplied) && own.transform && own.transform->depthPx;
+             std::optional<ClipTransform> placed = own.transform;
+             bool dofBlur = false;
+@@ -943,7 +953,7 @@
+             c = &store.back();
+         }
+     }
+-    const auto groups = resolveGroups(groupClips, timeMs, W, H, transitions, camera, sources);
++    const auto groups = resolveGroups(groupClips, timeMs, W, H, transitions, camera, sources, timeline.raw.value(u"mediaTracks").toArray());
+
+     std::unordered_map<std::string, const Clip*> clipById;
+     std::unordered_map<std::string, std::vector<const Clip*>> clipsByTrack;
+@@ -993,7 +1003,7 @@
+                 if (parent && (timeMs < parent->windowStart || timeMs >= parent->windowEnd)) { continue; }
+                 const double base = clip->opacity * (parent ? parent->opacity : 1) *
+                     clipFadeGain(*clip, timeMs - clip->startMs);
+-                const auto animated = resolveAnimated(*clip, {}, base, nullptr, timeMs, W, H, sources, (parent ? parent->opacity : 1) * clipFadeGain(*clip, timeMs - clip->startMs));
++                const auto animated = resolveAnimated(*clip, {}, base, nullptr, timeMs, W, H, sources, (parent ? parent->opacity : 1) * clipFadeGain(*clip, timeMs - clip->startMs), {}, timeline.raw.value(u"mediaTracks").toArray());
+                 SceneAdjustment adjustment;
+                 adjustment.clipId = clip->id;
+                 adjustment.trackIndex = track->index;
+@@ -1222,7 +1232,7 @@
+         return !adjustment.precomposeGroupId.empty() && !surfaceById.contains(adjustment.precomposeGroupId);
+     });
+     const auto finish = [&](Pending& p) {
+-        const AnimatedProps a = resolveAnimated(*p.clip, p.transform, p.layer.opacity, p.camera ? camera : nullptr, layerTime(*p.clip), W, H, sources, p.opacityCoverage, p.layer.flexTextMaxWidthFrac);
++        const AnimatedProps a = resolveAnimated(*p.clip, p.transform, p.layer.opacity, p.camera ? camera : nullptr, layerTime(*p.clip), W, H, sources, p.opacityCoverage, p.layer.flexTextMaxWidthFrac, timeline.raw.value(u"mediaTracks").toArray());
+         p.layer.transform = a.transform;
+         p.layer.opacity = a.opacity;
+         p.layer.borderRadius = a.borderRadius;
+--- a/native/timeline/src/motion/tracking/module.cmake
++++ b/native/timeline/src/motion/tracking/module.cmake
+@@ -4,11 +4,14 @@
+     add_test(NAME tst_tracking COMMAND tst_tracking)
+     add_test(NAME tracking_oracle COMMAND node "${CMAKE_CURRENT_SOURCE_DIR}/src/motion/tracking/oracle.mjs" $<TARGET_FILE:tst_tracking>)
+ endfunction()
++nt_tests(nt_tracking_tests)
++nt_qml_sources(src/motion/tracking/TrackBindingSection.cpp)
+ nt_sources(qml_resources src/motion/tracking/TrackBinding.qml)
+ function(nt_tracking_ui_tests)
+     add_test(NAME tracking_ui COMMAND tst_followpathui -input ${CMAKE_CURRENT_SOURCE_DIR}/src/motion/tracking/qmltests)
+     set_tests_properties(tracking_ui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+ endfunction()
++nt_tests(nt_tracking_ui_tests)
+ function(nt_tracking_reference_tests)
+     add_test(NAME tracking_reference_contract COMMAND node --import "${CMAKE_CURRENT_SOURCE_DIR}/../../node_modules/tsx/dist/loader.mjs"
+         "${CMAKE_CURRENT_SOURCE_DIR}/src/motion/tracking/reference-contract.mjs"
+--- a/native/timeline/src/server/FieldAudit.cpp
++++ b/native/timeline/src/server/FieldAudit.cpp
+@@ -46,10 +46,9 @@
+ // checked one by one below.
+ const Fields kClipScene = {
+     QStringLiteral("parentId"), QStringLiteral("repeater"), QStringLiteral("temporalEcho"),
+-    QStringLiteral("steppedTime"), QStringLiteral("animationLinks"),
++    QStringLiteral("steppedTime"), QStringLiteral("animationLinks"), QStringLiteral("trackBinding"),
+ };
+ const Fields kClipPlan = {
+-    QStringLiteral("trackBinding"),
+ };
+ // `layout` and `flexItem`: the flex layout (scene/FlexLayout.h), in the plan.
+ const Fields kClipFlex = {QStringLiteral("layout"), QStringLiteral("flexItem")};
+--- a/native/timeline/src/motion/controls/GroupMotion.qml
++++ b/native/timeline/src/motion/controls/GroupMotion.qml
+@@ -1,6 +1,7 @@
+ pragma ComponentBehavior: Bound
+ import QtQuick
+ import NodeTool.Timeline
++import "../tracking" as Tracking
+ Column {
+     id: root
+     objectName: "groupMotion"
+@@ -11,5 +12,6 @@
+     MotionFields { objectName: "groupMotionFields"; width: parent.width; controller: root.controller }
+     BorderRadius { objectName: "groupBorderRadius"; width: parent.width; timelineModel: root.timelineModel; gestures: root.gestures; controller: root.controller }
+     AdvancedMotion { objectName: "groupAdvancedMotion"; width: parent.width; timelineModel: root.timelineModel; gestures: root.gestures; controller: root.controller }
++    Tracking.TrackBinding { width: parent.width; timelineModel: root.timelineModel; gestures: root.gestures; controller: root.controller }
+     KeyframeAnimations { objectName: "groupAnimations"; width: parent.width; controller: root.controller }
+ }

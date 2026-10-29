@@ -1,0 +1,67 @@
+--- a/native/timeline/src/preview/effects/ClipEffects.cpp
++++ b/native/timeline/src/preview/effects/ClipEffects.cpp
+@@ -79,3 +79,3 @@
+     bool draw(const LayerFrame &input, QRhiTextureRenderTarget &output, const Pass &pass, QSize logical,
+-              QPoint logicalOrigin, QRhiTexture *other = nullptr, const QRect *copy = nullptr, QPoint readOrigin = {}, QRhiTexture *third = nullptr) {
++              QPoint logicalOrigin, QRhiTexture *other = nullptr, const QRect *copy = nullptr, QPoint readOrigin = {}, QRhiTexture *third = nullptr, bool boundedCrop = false) {
+         auto draw = std::make_unique<Draw>();
+@@ -112,3 +112,3 @@
+                                                                       : 0;
+-        u.geometry = {input.flipV ? 1.f : 0.f, float(format), float(pass.op), 0};
++        u.geometry = {input.flipV ? 1.f : 0.f, float(format), float(pass.op), boundedCrop ? 1.f : 0.f};
+         u.dimensions = {float(input.size.width()), float(input.size.height()), float(logical.width()),
+@@ -156,2 +156,3 @@
+     const auto crop = cropPixels(ext, input.size);
++    const bool boundedCrop = crop != QRect(QPoint{}, input.size);
+     const auto margins = outset(ext, input.size);
+@@ -179,3 +180,3 @@
+                                        recipeSource ? recipeSource->planes[0] : nullptr);
+-        if (!target || !encoder.draw(current, *target, pass, crop.size(), pad, other)) {
++        if (!target || !encoder.draw(current, *target, pass, crop.size(), pad, other, nullptr, {}, nullptr, boundedCrop)) {
+             return false;
+--- a/native/timeline/shaders/effects/clip.frag
++++ b/native/timeline/shaders/effects/clip.frag
+@@ -17,5 +17,12 @@
+ vec2 oriented(vec2 v) { return vec2(v.x,geometry.x>0.5 ? 1-v.y : v.y); }
+-vec4 readSource(vec2 v) { return texture(source,oriented(v)); }
++vec4 readSource(vec2 v) {
++    if (geometry.w>0.5) {
++        v=clamp(v,(origin.xy+0.5)/dimensions.xy,(origin.xy+dimensions.zw-0.5)/dimensions.xy);
++    }
++    return texture(source,oriented(v));
++}
+ vec4 loadSource(ivec2 c) {
+-    c=clamp(c,ivec2(0),ivec2(dimensions.xy)-1);
++    ivec2 first=geometry.w>0.5 ? ivec2(origin.xy) : ivec2(0);
++    ivec2 last=geometry.w>0.5 ? ivec2(origin.xy+dimensions.zw)-1 : ivec2(dimensions.xy)-1;
++    c=clamp(c,first,last);
+     if (geometry.x>0.5) { c.y=int(dimensions.y)-1-c.y; }
+@@ -99,3 +106,7 @@
+ }
+-vec4 visualSample(vec2 v) { return readSource(clamp(v,vec2(0),vec2(1))); }
++vec4 visualSample(vec2 v) {
++    v=clamp(v,vec2(0),vec2(1));
++    if (geometry.w>0.5) { v=(origin.xy+v*dimensions.zw)/dimensions.xy; }
++    return readSource(v);
++}
+ vec4 visualFx(vec2 v) {
+@@ -106,3 +117,3 @@
+     vec4 src=visualSample(v), result=src;
+-    vec2 dims=dimensions.xy, q=v-vec2(0.5);
++    vec2 dims=geometry.w>0.5 ? dimensions.zw : dimensions.xy, q=v-vec2(0.5);
+     if (mode==0) {
+@@ -197,3 +208,6 @@
+     vec3 rgb=straight(src);
+-    if (op==21) { fragColor=visualFx(uv); return; }
++    if (geometry.w>0.5 && (any(lessThan(pixel,origin.xy)) || any(greaterThanEqual(pixel,origin.xy+dimensions.zw)))) {
++        fragColor=vec4(0); return;
++    }
++    if (op==21) { fragColor=visualFx(geometry.w>0.5 ? logical : uv); return; }
+     if (op==22) {
+@@ -346,3 +360,5 @@
+         float a=texture(second,oriented(shadowUv)).a;
+-        if (any(lessThan(shadowUv,vec2(0))) || any(greaterThan(shadowUv,vec2(1)))) a=0;
++        vec2 first=geometry.w>0.5 ? origin.xy/dimensions.xy : vec2(0);
++        vec2 last=geometry.w>0.5 ? (origin.xy+dimensions.zw)/dimensions.xy : vec2(1);
++        if (any(lessThan(shadowUv,first)) || any(greaterThan(shadowUv,last))) a=0;
+         float cov=clamp(a*p[0].w,0,1);

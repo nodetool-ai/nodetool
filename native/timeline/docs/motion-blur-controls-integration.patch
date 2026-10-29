@@ -1,0 +1,32 @@
+diff --git a/native/timeline/src/motion/blurcontrols/module.cmake b/native/timeline/src/motion/blurcontrols/module.cmake
+--- a/native/timeline/src/motion/blurcontrols/module.cmake
++++ b/native/timeline/src/motion/blurcontrols/module.cmake
+@@ -1,4 +1,5 @@
+ nt_sources(qml_resources src/motion/blurcontrols/MotionBlur.qml)
++nt_qml_sources(src/motion/blurcontrols/MotionBlurSections.cpp)
+ function(nt_motion_blur_control_tests)
+     add_test(NAME tst_motionblurcontrols COMMAND $<TARGET_FILE:tst_followpathui>
+         -input ${CMAKE_CURRENT_SOURCE_DIR}/src/motion/blurcontrols/qmltests)
+@@ -10,3 +11,4 @@
+         -input ${CMAKE_CURRENT_SOURCE_DIR}/src/motion/blurcontrols/groupqmltests)
+     set_tests_properties(tst_groupmotionblur PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+ endfunction()
++nt_tests(nt_group_motion_blur_tests)
+diff --git a/native/timeline/src/motion/controls/GroupMotion.qml b/native/timeline/src/motion/controls/GroupMotion.qml
+--- a/native/timeline/src/motion/controls/GroupMotion.qml
++++ b/native/timeline/src/motion/controls/GroupMotion.qml
+@@ -2,6 +2,7 @@
+ import QtQuick
+ import NodeTool.Timeline
+ import "../tracking" as Tracking
++import "../blurcontrols" as Blur
+ Column {
+     id: root
+     objectName: "groupMotion"
+@@ -13,5 +14,6 @@
+     BorderRadius { objectName: "groupBorderRadius"; width: parent.width; timelineModel: root.timelineModel; gestures: root.gestures; controller: root.controller }
+     AdvancedMotion { objectName: "groupAdvancedMotion"; width: parent.width; timelineModel: root.timelineModel; gestures: root.gestures; controller: root.controller }
+     Tracking.TrackBinding { width: parent.width; timelineModel: root.timelineModel; gestures: root.gestures; controller: root.controller }
++    Blur.MotionBlur { width: parent.width; timelineModel: root.timelineModel; gestures: root.gestures; controller: root.controller }
+     KeyframeAnimations { objectName: "groupAnimations"; width: parent.width; controller: root.controller }
+ }

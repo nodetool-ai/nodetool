@@ -372,17 +372,40 @@ void paintRun(QPainter& p, const QJsonObject& style, const scene::TextStyle& par
     const auto shaped = shapeText(text, parsed, spacing);
     const auto transform = p.worldTransform();
     const bool rotated = std::abs(transform.m12()) > 1e-9 || std::abs(transform.m21()) > 1e-9;
+    // Skia's CPU text path switches above 256 device pixels to unhinted
+    // 64px outlines: SkStrikeSpec::ShouldDrawAsPath and SkFont::setupForAsPaths.
+    const double glyphScale = std::max(std::hypot(transform.m11(), transform.m12()),
+                                       std::hypot(transform.m21(), transform.m22()));
+    const bool pathText = shaped.fallbackRuns.isEmpty() && parsed.fontSizePx * glyphScale > 256;
+    auto pathFont = shaped.font;
+    if (pathText) {
+        pathFont.setPixelSize(64);
+    }
     // Skia places a middle-aligned paragraph from its rounded line height,
     // then snaps the top and the ascent separately when rasterizing glyphs.
     const double baseline = !middle   ? std::floor(y + 0.5)
+                            : pathText ? y - std::round(metrics.ascent() + metrics.descent()) / 2 +
+                                             std::floor(metrics.ascent() + 0.5)
                             : rotated ? y + metrics.ascent() - std::round(metrics.ascent() + metrics.descent()) / 2
                                       : std::floor(y - std::round(metrics.ascent() + metrics.descent()) / 2 + 0.5) +
                                             std::floor(metrics.ascent() + 0.5);
     QPainterPath path;
+    std::vector<QPainterPath> glyphPaths;
+    if (pathText) {
+        path.setFillRule(Qt::WindingFill);
+    }
     for (qsizetype i = 0; i < shaped.glyphs.size(); ++i) {
         QTransform at;
         at.translate(x + shaped.positions[i].x(), baseline + shaped.positions[i].y());
-        path.addPath(at.map(shaped.font.pathForGlyph(shaped.glyphs[i])));
+        if (pathText) {
+            at.scale(parsed.fontSizePx / 64, parsed.fontSizePx / 64);
+        }
+        auto glyphPath = at.map(pathFont.pathForGlyph(shaped.glyphs[i]));
+        if (pathText) {
+            glyphPath.setFillRule(Qt::WindingFill);
+            glyphPaths.push_back(glyphPath);
+        }
+        path.addPath(glyphPath);
     }
     for (const auto& run : shaped.fallbackRuns) {
         const auto raw = run.rawFont();
@@ -403,15 +426,49 @@ void paintRun(QPainter& p, const QJsonObject& style, const scene::TextStyle& par
     const double strokeWidth = outline.value(u"widthPx").toDouble();
     const QPen pen(cssColor(outline.value(u"color").toString()), strokeWidth, Qt::SolidLine, Qt::FlatCap,
                    Qt::RoundJoin);
+    const auto fill = style.contains(u"fill") ? style.value(u"fill") : style.value(u"color");
     if (!shadow.isEmpty()) {
+        const double shadowBlur = std::max(0.0, shadow.value(u"blurPx").toDouble());
+        auto shadowColor = cssColor(shadow.value(u"color").toString());
         auto mask = surface(size);
         {
             QPainter painter(&mask);
             setup(painter);
             painter.setWorldTransform(p.worldTransform());
-            painter.fillPath(path, Qt::white);
-            if (strokeWidth > 0) {
-                painter.strokePath(path, QPen(Qt::white, strokeWidth, Qt::SolidLine, Qt::FlatCap, Qt::RoundJoin));
+            if (pathText) {
+                // napi Canvas 0.1.100 overrides the solid source alpha with
+                // shadow alpha, blurs each glyph mask, then filters the run.
+                const double padding = 3 * shadowBlur / 2 + strokeWidth * glyphScale / 2 + 2;
+                for (const auto& glyphPath : glyphPaths) {
+                    const auto bounds = p.worldTransform().map(glyphPath).boundingRect()
+                                            .adjusted(-padding, -padding, padding, padding).toAlignedRect()
+                                            .intersected(QRect(QPoint{}, size));
+                    if (bounds.isEmpty()) { continue; }
+                    auto glyphMask = surface(bounds.size());
+                    {
+                        QPainter glyphPainter(&glyphMask);
+                        setup(glyphPainter);
+                        glyphPainter.translate(-bounds.left(), -bounds.top());
+                        glyphPainter.setWorldTransform(p.worldTransform(), true);
+                        glyphPainter.setOpacity(shadowColor.alphaF());
+                        if (strokeWidth > 0) {
+                            glyphPainter.strokePath(glyphPath, QPen(Qt::white, strokeWidth, Qt::SolidLine,
+                                                                   Qt::FlatCap, Qt::RoundJoin));
+                        } else {
+                            const auto brush = fillBrush(fill, box);
+                            glyphPainter.fillPath(glyphPath, brush.style() == Qt::SolidPattern ? QBrush(Qt::white) : brush);
+                        }
+                    }
+                    painter.save();
+                    painter.resetTransform();
+                    painter.drawImage(bounds.topLeft(), blurred(glyphMask, shadowBlur / 2));
+                    painter.restore();
+                }
+            } else {
+                painter.fillPath(path, Qt::white);
+                if (strokeWidth > 0) {
+                    painter.strokePath(path, QPen(Qt::white, strokeWidth, Qt::SolidLine, Qt::FlatCap, Qt::RoundJoin));
+                }
             }
             for (const auto& run : shaped.fallbackRuns) {
                 if (colorFont(run.rawFont())) {
@@ -419,11 +476,14 @@ void paintRun(QPainter& p, const QJsonObject& style, const scene::TextStyle& par
                 }
             }
         }
-        mask = blurred(mask, std::max(0.0, shadow.value(u"blurPx").toDouble()) / 2);
+        mask = blurred(mask, shadowBlur / 2);
+        if (pathText && shadowBlur == 0) {
+            shadowColor.setAlpha(255);
+        }
         {
             QPainter painter(&mask);
             painter.setCompositionMode(QPainter::CompositionMode_SourceIn);
-            painter.fillRect(mask.rect(), cssColor(shadow.value(u"color").toString()));
+            painter.fillRect(mask.rect(), shadowColor);
         }
         p.save();
         p.resetTransform();
@@ -431,16 +491,27 @@ void paintRun(QPainter& p, const QJsonObject& style, const scene::TextStyle& par
         p.restore();
     }
     if (strokeWidth > 0) {
-        p.strokePath(path, pen);
+        if (pathText) {
+            for (const auto& glyphPath : glyphPaths) {
+                p.strokePath(glyphPath, pen);
+            }
+        } else {
+            p.strokePath(path, pen);
+        }
     }
-    const auto fill = style.contains(u"fill") ? style.value(u"fill") : style.value(u"color");
     const auto bounds = p.worldTransform()
                             .map(path)
                             .boundingRect()
                             .adjusted(-2, -2, 2, 2)
                             .toAlignedRect()
                             .intersected(QRect(0, 0, p.device()->width(), p.device()->height()));
-    if (!bounds.isEmpty()) {
+    if (pathText) {
+        // Each shaped glyph composites its paint separately, including alpha
+        // where negative tracking makes neighboring glyphs overlap.
+        for (const auto& glyphPath : glyphPaths) {
+            p.fillPath(glyphPath, fillBrush(fill, box));
+        }
+    } else if (!bounds.isEmpty()) {
         auto ink = surface(bounds.size());
         {
             QPainter painter(&ink);
