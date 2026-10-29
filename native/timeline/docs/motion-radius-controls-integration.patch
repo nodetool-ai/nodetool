@@ -1,0 +1,28 @@
+diff --git a/native/timeline/src/motion/controls/module.cmake b/native/timeline/src/motion/controls/module.cmake
+--- a/native/timeline/src/motion/controls/module.cmake
++++ b/native/timeline/src/motion/controls/module.cmake
+@@ -23,3 +23,4 @@
+ nt_tests(nt_motion_control_ui_tests)
+ nt_qml_sources(src/motion/controls/AdvancedMotionSections.cpp)
+ nt_sources(qml_resources src/motion/controls/AdvancedMotion.qml src/motion/controls/GroupMotion.qml src/motion/controls/BorderRadius.qml)
++nt_qml_sources(src/motion/controls/BorderRadiusSection.cpp)
+diff --git a/native/timeline/src/motion/controls/GroupMotion.qml b/native/timeline/src/motion/controls/GroupMotion.qml
+--- a/native/timeline/src/motion/controls/GroupMotion.qml
++++ b/native/timeline/src/motion/controls/GroupMotion.qml
+@@ -9,6 +9,7 @@
+     required property ClipInspectorController controller
+     spacing: Theme.spacingXs
+     MotionFields { objectName: "groupMotionFields"; width: parent.width; controller: root.controller }
++    BorderRadius { objectName: "groupBorderRadius"; width: parent.width; timelineModel: root.timelineModel; gestures: root.gestures; controller: root.controller }
+     AdvancedMotion { objectName: "groupAdvancedMotion"; width: parent.width; timelineModel: root.timelineModel; gestures: root.gestures; controller: root.controller }
+     KeyframeAnimations { objectName: "groupAnimations"; width: parent.width; controller: root.controller }
+ }
+diff --git a/native/timeline/src/motion/controls/BorderRadiusSection.cpp b/native/timeline/src/motion/controls/BorderRadiusSection.cpp
+new file mode 100644
+--- /dev/null
++++ b/native/timeline/src/motion/controls/BorderRadiusSection.cpp
+@@ -0,0 +1,4 @@
++#include "edit/inspectorsections/InspectorSectionRegistry.h"
++namespace {
++const bool registered = nt::inspector::registerInspectorSection("borderRadius", QUrl("qrc:/qt/qml/NodeTool/Timeline/src/motion/controls/BorderRadius.qml"), 45, "Corners");
++}
