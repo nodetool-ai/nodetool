@@ -8,6 +8,7 @@
 // offline render owns each instance.
 
 #include <cstdint>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -18,7 +19,8 @@ class AudioSource {
 public:
     // Opens the first audio stream of `path`. Returns null with `error` set
     // when the file cannot be read or has no audio stream.
-    static std::unique_ptr<AudioSource> open(const std::string& path, int sampleRate, std::string* error);
+    static std::unique_ptr<AudioSource> open(const std::string& path, int sampleRate, std::string* error,
+        std::function<bool()> cancelled = {});
     ~AudioSource();
     AudioSource(const AudioSource&) = delete;
     AudioSource& operator=(const AudioSource&) = delete;
@@ -29,8 +31,8 @@ public:
     // Source frames at the device rate, from the container (an estimate).
     std::int64_t durationFrames() const { return m_durationFrames; }
 
-    // The next read starts at output frame `frame` (frame 0 is the first
-    // decoded sample). Exact for any frame.
+    // The next read starts at output frame `frame`. Frame 0 is the picture
+    // stream start, or the container start for audio-only media.
     bool seek(std::int64_t frame);
     // Output frame of the next read.
     std::int64_t position() const { return m_position; }

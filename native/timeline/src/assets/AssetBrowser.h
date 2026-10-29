@@ -43,6 +43,7 @@ public:
     Q_INVOKABLE QString trackAt(TrackWindowModel* rows, double contentY) const;
     Q_INVOKABLE bool drop(const QVariantMap& asset, const QString& trackId, double startMs,
                           const QString& mode, double snapMs);
+    Q_INVOKABLE void resolveClipMedia(const QVariantMap& asset, const QString& clipId);
     Q_INVOKABLE QUrl mediaUrl(const QString& path) const;
 signals:
     void stateChanged();

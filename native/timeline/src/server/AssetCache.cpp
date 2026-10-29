@@ -12,6 +12,8 @@
 #include <QNetworkReply>
 #include <QNetworkRequest>
 #include <QRegularExpression>
+#include <QThread>
+#include <QTimer>
 
 #include <algorithm>
 #include <filesystem>
@@ -95,6 +97,11 @@ Attempt downloadOnce(QNetworkAccessManager& nam, const AssetCache::Decorate& dec
     bool writing = false;
     QNetworkReply* reply = nam.get(req);
     QEventLoop loop;
+    QTimer cancellation;
+    QObject::connect(&cancellation, &QTimer::timeout, &loop, [reply] {
+        if (QThread::currentThread()->isInterruptionRequested()) { reply->abort(); }
+    });
+    cancellation.start(25);
 
     auto checkHeaders = [&]() {
         checked = true;
@@ -184,7 +191,7 @@ Attempt downloadOnce(QNetworkAccessManager& nam, const AssetCache::Decorate& dec
         checkHeaders();
     }
     if (writing) {
-        const QByteArray rest = reply->readAll();
+        const QByteArray rest = reply->isOpen() ? reply->readAll() : QByteArray{};
         if (!rest.isEmpty()) {
             file.write(rest);
             a.bytes += rest.size();
@@ -310,6 +317,10 @@ QString AssetCache::pathFor(const QString& assetId, const QString& variant, cons
 FetchResult AssetCache::fetch(const QString& assetId, const QString& variant, const RemoteFile& file,
                               const Recheck& recheck) const {
     FetchResult result;
+    if (QThread::currentThread()->isInterruptionRequested()) {
+        result.error = QStringLiteral("asset download cancelled");
+        return result;
+    }
     const QString dir = variantDir(assetId, variant);
     if (!QDir().mkpath(dir)) {
         result.error = QStringLiteral("cannot create %1").arg(dir);

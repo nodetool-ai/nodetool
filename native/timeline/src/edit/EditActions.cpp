@@ -285,6 +285,9 @@ bool clipFitsTrack(const QString& mediaType, const QString& trackType) {
 ClipList moveClip(const EditDoc& doc, const QString& id, double deltaMs, const QString& toTrackId, bool linked) {
     const int i = indexOfId(doc.clips, id);
     if (i < 0 || isGroupId(doc, id) || !isEditable(doc, id, linked, true)) return doc.clips;
+    for (const auto& track : doc.tracks) {
+        if (!toTrackId.isEmpty() && track.id == toTrackId && track.locked) { return doc.clips; }
+    }
     const QJsonObject clip = doc.clips[static_cast<size_t>(i)];
     double newStartMs = std::max(0.0, clipStartMs(clip) + deltaMs);
     double appliedDelta = newStartMs - clipStartMs(clip);

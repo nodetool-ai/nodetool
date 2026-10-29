@@ -968,7 +968,7 @@ ClipList rateStretchClips(const ClipList& clips, const IdSet& memberIds, const Q
     double maxRatio = std::numeric_limits<double>::infinity();
     for (const auto& m : members) {
         const double mEnd = clipEndMs(m);
-        double roomMs = std::numeric_limits<double>::infinity();
+        double roomMs = end ? std::numeric_limits<double>::infinity() : mEnd;
         for (const auto& c : clips) {
             if (clipTrackId(c) != clipTrackId(m) || memberIds.count(clipId(c))) continue;
             if (end && clipStartMs(c) >= mEnd) {

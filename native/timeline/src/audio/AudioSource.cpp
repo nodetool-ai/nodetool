@@ -8,6 +8,7 @@ extern "C" {
 #include <libswresample/swresample.h>
 }
 
+#include <QFileInfo>
 #include <algorithm>
 #include <cmath>
 #include <cstring>
@@ -23,6 +24,9 @@ struct AudioSource::Impl {
     int stream = -1;
     AVRational timeBase{1, 1};
     std::int64_t startPts = 0;
+    std::int64_t streamStartPts = 0;
+    std::function<bool()> cancelled;
+    bool interrupted() const { return cancelled && cancelled(); }
     int outChannels = 2;
     bool draining = false;     // the demuxer is at its end, the decoder drains
     bool swrFlushed = false;
@@ -51,7 +55,7 @@ struct AudioSource::Impl {
 
 AudioSource::~AudioSource() = default;
 
-std::unique_ptr<AudioSource> AudioSource::open(const std::string& path, int sampleRate, std::string* error) {
+std::unique_ptr<AudioSource> AudioSource::open(const std::string& path, int sampleRate, std::string* error, std::function<bool()> cancelled) {
     const auto fail = [&](const char* why) -> std::unique_ptr<AudioSource> {
         if (error) *error = why;
         return nullptr;
@@ -60,6 +64,14 @@ std::unique_ptr<AudioSource> AudioSource::open(const std::string& path, int samp
     src->m_impl = std::make_unique<Impl>();
     Impl& d = *src->m_impl;
     src->m_sampleRate = sampleRate;
+    d.cancelled = std::move(cancelled);
+    if (d.interrupted()) return fail("cancelled");
+    const QFileInfo file(QString::fromStdString(path));
+    if (file.exists() && !file.isFile()) return fail("audio source must be a regular file");
+    d.fmt = avformat_alloc_context();
+    if (!d.fmt) return fail("cannot allocate the audio demuxer");
+    d.fmt->interrupt_callback.callback = [](void* opaque) { return static_cast<Impl*>(opaque)->interrupted() ? 1 : 0; };
+    d.fmt->interrupt_callback.opaque = &d;
     if (avformat_open_input(&d.fmt, path.c_str(), nullptr, nullptr) < 0) return fail("cannot open the file");
     if (avformat_find_stream_info(d.fmt, nullptr) < 0) return fail("cannot read the stream info");
     const AVCodec* codec = nullptr;
@@ -70,7 +82,15 @@ std::unique_ptr<AudioSource> AudioSource::open(const std::string& path, int samp
     if (!d.dec || avcodec_parameters_to_context(d.dec, st->codecpar) < 0) return fail("cannot set up the decoder");
     if (avcodec_open2(d.dec, codec, nullptr) < 0) return fail("cannot open the decoder");
     d.timeBase = st->time_base;
-    d.startPts = st->start_time != AV_NOPTS_VALUE ? st->start_time : 0;
+    d.streamStartPts = st->start_time != AV_NOPTS_VALUE ? st->start_time : 0;
+    // The preview normalizes picture timestamps to the video stream start.
+    // Keep audio on that same clock, including leading silence or preroll.
+    const int video = av_find_best_stream(d.fmt, AVMEDIA_TYPE_VIDEO, -1, -1, nullptr, 0);
+    const auto* picture = video >= 0 ? d.fmt->streams[video] : nullptr;
+    d.startPts = picture && picture->start_time != AV_NOPTS_VALUE
+        ? av_rescale_q(picture->start_time, picture->time_base, d.timeBase)
+        : d.fmt->start_time != AV_NOPTS_VALUE
+            ? av_rescale_q(d.fmt->start_time, AV_TIME_BASE_Q, d.timeBase) : d.streamStartPts;
     src->m_sourceChannels = d.dec->ch_layout.nb_channels;
     src->m_sourceRate = d.dec->sample_rate;
     d.outChannels = src->m_sourceChannels == 1 ? 1 : 2;
@@ -78,8 +98,8 @@ std::unique_ptr<AudioSource> AudioSource::open(const std::string& path, int samp
     d.packet = av_packet_alloc();
     d.frame = av_frame_alloc();
     if (st->duration != AV_NOPTS_VALUE) {
-        src->m_durationFrames = static_cast<std::int64_t>(std::llround(
-            static_cast<double>(st->duration) * av_q2d(d.timeBase) * sampleRate));
+        src->m_durationFrames = std::max<std::int64_t>(0, std::llround(
+            static_cast<double>(st->duration + d.streamStartPts - d.startPts) * av_q2d(d.timeBase) * sampleRate));
     } else if (d.fmt->duration != AV_NOPTS_VALUE) {
         src->m_durationFrames = static_cast<std::int64_t>(
             std::llround(static_cast<double>(d.fmt->duration) / AV_TIME_BASE * sampleRate));
@@ -112,6 +132,7 @@ bool AudioSource::decodeMore() {
     };
 
     for (;;) {
+        if (d.interrupted()) return false;
         const int rc = avcodec_receive_frame(d.dec, d.frame);
         if (rc == 0) {
             if (d.needPosition) {
@@ -172,8 +193,8 @@ bool AudioSource::seek(std::int64_t frame) {
     if (frame == m_position && m_skip == 0) return true;
     const double sec = static_cast<double>(frame) / m_sampleRate;
     const auto ts = d.startPts + static_cast<std::int64_t>(std::floor(sec / av_q2d(d.timeBase)));
-    if (av_seek_frame(d.fmt, d.stream, ts, AVSEEK_FLAG_BACKWARD) < 0 &&
-        av_seek_frame(d.fmt, d.stream, d.startPts, AVSEEK_FLAG_BACKWARD) < 0) {
+    if (av_seek_frame(d.fmt, d.stream, std::max(ts, d.streamStartPts), AVSEEK_FLAG_BACKWARD) < 0 &&
+        av_seek_frame(d.fmt, d.stream, d.streamStartPts, AVSEEK_FLAG_BACKWARD) < 0) {
         return false;
     }
     avcodec_flush_buffers(d.dec);
@@ -191,8 +212,9 @@ bool AudioSource::seek(std::int64_t frame) {
 }
 
 std::int64_t AudioSource::read(float* stereo, std::int64_t frames) {
+    Impl& d = *m_impl;
     std::int64_t done = 0;
-    while (done < frames) {
+    while (done < frames && !d.interrupted()) {
         std::int64_t avail = static_cast<std::int64_t>(m_pending.size() / 2) - static_cast<std::int64_t>(m_pendingRead);
         if (m_skip > 0 && avail > 0) {
             const std::int64_t drop = std::min(m_skip, avail);

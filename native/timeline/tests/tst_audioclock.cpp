@@ -168,6 +168,40 @@ class TstAudioClock : public QObject {
     Q_OBJECT
 
 private slots:
+    void rangeEditsUpdatePlayingBounds() {
+        std::int64_t now = 0;
+        PlaybackClock clock;
+        clock.setNowSource([&now] { return now; });
+        clock.setDurationMs(10000.0);
+        clock.setRangeIn(1000.0);
+        clock.setRangeOut(3000.0);
+        clock.setLoop(true);
+        clock.seek(1000.0);
+        clock.play();
+        clock.setRangeOut(2000.0);
+        now += 1500 * kMs;
+        QCOMPARE(clock.currentTimeMs(), 1000.0);
+        clock.tick();
+        QCOMPARE(clock.time(), 1000.0);
+        clock.clearRange();
+        now += 1500 * kMs;
+        clock.tick();
+        QCOMPARE(clock.time(), 2500.0);
+
+        clock.pause();
+        clock.setRangeIn(1000.0);
+        clock.setRangeOut(3000.0);
+        clock.seek(2500.0);
+        clock.setRate(-1.0);
+        clock.play();
+        clock.setRangeIn(2000.0);
+        now += 1000 * kMs;
+        QCOMPARE(clock.currentTimeMs(), 2000.0);
+        clock.tick();
+        QCOMPARE(clock.time(), 2000.0);
+        QVERIFY(!clock.playing());
+    }
+
     void audibleTimelineMath() {
         CallbackState cb;
         cb.framesAtStart = 48000;

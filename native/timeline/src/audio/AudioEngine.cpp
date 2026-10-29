@@ -653,7 +653,9 @@ std::vector<float> AudioEngine::recording() const {
 }
 
 std::vector<float> renderOffline(const Timeline& timeline, int sampleRate, double startMs, double durationMs,
-                                 std::vector<std::string>* report) {
+                                 std::vector<std::string>* report, std::function<bool()> cancelled) {
+    const auto interrupted = [&] { return cancelled && cancelled(); };
+    if (interrupted()) return {};
     const MixPlan plan = buildMixPlan(timeline);
     prepareMixPlan(plan, sampleRate);
     const double sr = sampleRate;
@@ -661,12 +663,13 @@ std::vector<float> renderOffline(const Timeline& timeline, int sampleRate, doubl
     std::vector<std::vector<float>> spans(plan.voices.size());
     std::vector<VoicePcm> pcm(plan.voices.size());
     for (std::size_t i = 0; i < plan.voices.size(); ++i) {
+        if (interrupted()) return {};
         const VoicePlan& v = plan.voices[i];
         const double from = std::max(v.startMs, startMs);
         const double to = std::min(v.startMs + v.durationMs, startMs + durationMs);
         if (v.silent || to <= from) { continue; }
         std::string error;
-        auto src = AudioSource::open(v.mediaPath, sampleRate, &error);
+        auto src = AudioSource::open(v.mediaPath, sampleRate, &error, cancelled);
         if (!src) {
             if (report) report->push_back(v.clipId + ": " + error);
             continue;
@@ -680,10 +683,12 @@ std::vector<float> renderOffline(const Timeline& timeline, int sampleRate, doubl
         pcm[i].linearFirst = first;
         pcm[i].linearCount = got;
     }
+    if (interrupted()) return {};
     std::vector<float> out(static_cast<std::size_t>(total) * 2, 0.0f);
     MixStats stats;
     const std::int64_t block = 4096;
     for (std::int64_t at = 0; at < total; at += block) {
+        if (interrupted()) return {};
         const int n = static_cast<int>(std::min(block, total - at));
         mixBlock(plan, pcm.data(), sr, startMs + static_cast<double>(at) * 1000.0 / sr, 1000.0 / sr, n,
                  out.data() + at * 2, stats);

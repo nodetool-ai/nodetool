@@ -95,7 +95,7 @@ private:
     enum class Source { Monotonic, Audio };
 
     double clampTime(double ms) const;
-    // Bounds are captured on a play/restart, as in PreviewArea.handlePlay.
+    // Refresh the active playback bounds after transport or range changes.
     void updateBoundsLocked();
     double resolveStartLocked(double ms) const;
     double boundedTimeLocked(double ms) const;

@@ -7,6 +7,36 @@
 class TestTrackEdits : public QObject {
     Q_OBJECT
 private slots:
+    void duplicateTrackKeepsItsOwnReframeTracks() {
+        const QJsonObject tracked{{"id", "mt"}, {"clipId", "c"}, {"status", "ready"},
+                                  {"sourceAssetId", "asset"},
+                                  {"samples", QJsonArray{QJsonObject{{"sourceMs", 0}, {"x", 0.8}}}}};
+        const QJsonObject clip{{"id", "c"}, {"trackId", "v"}, {"mediaType", "video"},
+                               {"startMs", 0}, {"durationMs", 1000}, {"currentAssetId", "asset"},
+                               {"reframe", QJsonObject{{"mode", "track"}, {"trackId", "mt"}}},
+                               {"trackBinding", QJsonObject{{"trackId", "mt"}}}};
+        const QJsonObject raw{{"tracks", QJsonArray{QJsonObject{{"id", "v"}, {"type", "video"}}}},
+                              {"clips", QJsonArray{clip}}, {"mediaTracks", QJsonArray{tracked}}};
+        const auto duplicate = nt::app::findEdit("duplicateTrack");
+        const auto remove = nt::app::findEdit("removeTrack");
+        QVERIFY(duplicate);
+        QVERIFY(remove);
+        const auto copied = duplicate(raw, {{"trackId", "v"}});
+        QCOMPARE(copied.value("mediaTracks").toArray().size(), 2);
+        const auto surviving = remove(copied, {{"trackId", "v"}});
+        const auto clips = surviving.value("clips").toArray();
+        const auto media = surviving.value("mediaTracks").toArray();
+        QCOMPARE(clips.size(), 1);
+        QCOMPARE(media.size(), 1);
+        const auto child = clips.first().toObject();
+        const auto track = media.first().toObject();
+        QVERIFY(track.value("id").toString() != "mt");
+        QCOMPARE(track.value("clipId"), child.value("id"));
+        QCOMPARE(child.value("reframe").toObject().value("trackId"), track.value("id"));
+        QCOMPARE(child.value("trackBinding").toObject().value("trackId"), track.value("id"));
+        QCOMPARE(track.value("samples"), tracked.value("samples"));
+    }
+
     void undo_data() {
         QTest::addColumn<QString>("action");
         QTest::addColumn<QJsonObject>("payload");

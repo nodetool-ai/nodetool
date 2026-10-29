@@ -1,4 +1,5 @@
 #include "app/PanelRegistry.h"
+#include "app/EditRegistry.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
@@ -41,6 +42,126 @@ QQuickItem* findItem(QQuickItem* root, const QString& name) {
 class TestSyncModel : public QObject {
     Q_OBJECT
 private slots:
+    void cleanAdoptionRetiresOldConflictCandidates_data() {
+        QTest::addColumn<QString>("mode");
+        QTest::newRow("clean-edited") << QString("edited");
+        QTest::newRow("clean-deleted") << QString("deleted");
+        QTest::newRow("dirty-unrelated-keeps-offer") << QString("dirty");
+        QTest::newRow("dirty-absent-setup-keeps-offer") << QString("dirty-setup");
+    }
+    void cleanAdoptionRetiresOldConflictCandidates() {
+        QFETCH(QString, mode);
+        QTemporaryDir cache;
+        TestHttpServer http;
+        auto server = document(200, 1500, "u1");
+        http.setJson([&](const QByteArray&, const QUrl&) {
+            return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", server}}}}).toJson();
+        });
+        http.setPost([&](const QByteArray&, const QByteArray&) {
+            return QByteArray(R"({"result":{"data":{"updatedAt":"u2"}}})");
+        });
+        TimelineModel model;
+        auto initial = document();
+        if (mode == "dirty-setup") { initial["setup"] = QJsonObject{{"base", true}}; }
+        auto parsed = nt::parseTimelineJson(QJsonDocument(initial).toJson());
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        AutosaveController save({http.base(), {}, "seq", cache.path(), {}}, model.undoStack(),
+            [&] { return model.timeline().raw; }, "u0");
+        save.setExternalSync(false);
+        save.setAutosave(false);
+        save.setQuitFallbackDirs({});
+        QVERIFY(model.moveClip("a", 100));
+        if (mode == "dirty-setup") {
+            nt::app::registerEdit("testSetSetup", [](QJsonObject raw, const QJsonObject& setup) {
+                raw["setup"] = setup;
+                return raw;
+            });
+            QVERIFY(model.applyEdit("testSetSetup", {{"draft", true}}));
+        }
+        const QJsonArray ops{QJsonObject{{"tool", "ui_timeline_update_clip"},
+            {"input", QJsonObject{{"id", "a"}}}}};
+        if (mode == "dirty-setup") { save.refreshExternal(); }
+        else { save.externalChanged("updated", "u1", ops, true); }
+        QTRY_COMPARE(save.baseUpdatedAt(), QString("u1"));
+        QCOMPARE(save.externalConflicts().size(), mode == "dirty-setup" ? 2 : 1);
+        if (mode.startsWith("dirty")) {
+            QVERIFY(model.moveClip("b", 1700));
+            server = document(200, 1500, "u2");
+            const QJsonArray unrelated{QJsonObject{{"tool", "ui_timeline_update_clip"},
+                {"input", QJsonObject{{"id", "b"}}}}};
+            save.externalChanged("updated", "u2", unrelated, true);
+            QTRY_COMPARE(save.baseUpdatedAt(), QString("u2"));
+            QCOMPARE(save.externalConflicts().size(), mode == "dirty-setup" ? 2 : 1);
+            QCOMPARE(model.timeline().clips[0].startMs, 100.0);
+            QCOMPARE(model.timeline().clips[1].startMs, 1700.0);
+            return;
+        }
+        QVERIFY(save.saveNow().ok);
+        QVERIFY(!save.dirty());
+        server = document(300, 1500, "u3");
+        if (mode == "deleted") {
+            auto clips = server["clips"].toArray();
+            clips.removeFirst();
+            server["clips"] = clips;
+        }
+        save.externalChanged("updated", "u3", ops, true);
+        QTRY_COMPARE(save.baseUpdatedAt(), QString("u3"));
+        if (mode != "deleted") { QCOMPARE(model.timeline().clips[0].startMs, 300.0); }
+        QCOMPARE(model.timeline().clips.size(), mode == "deleted" ? size_t(1) : size_t(2));
+        const auto adopted = model.timeline().raw;
+        const bool accepted = save.acceptExternalConflict("a", &model);
+        QCOMPARE(model.timeline().raw, adopted);
+        QVERIFY(!accepted);
+        QVERIFY(save.externalConflicts().isEmpty());
+        QVERIFY(!save.dirty());
+    }
+
+    void manyUnchangedConflictCandidatesSurviveDirtyRefresh() {
+        constexpr int count = 2000;
+        auto initial = document();
+        QJsonArray baseClips, localClips, serverClips;
+        for (int i = 0; i < count; ++i) {
+            auto clip = initial["clips"].toArray().first().toObject();
+            clip["id"] = QString::number(i);
+            clip["startMs"] = i * 2000;
+            baseClips.append(clip);
+            clip["startMs"] = i * 2000 + 100;
+            localClips.append(clip);
+            clip["startMs"] = i * 2000 + 200;
+            serverClips.append(clip);
+        }
+        initial["clips"] = baseClips;
+        auto server = initial;
+        server["clips"] = serverClips;
+        server["updatedAt"] = "u1";
+        QTemporaryDir cache;
+        TestHttpServer http;
+        http.setJson([&](const QByteArray&, const QUrl&) {
+            return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", server}}}}).toJson();
+        });
+        auto parsed = nt::parseTimelineJson(QJsonDocument(initial).toJson());
+        QVERIFY(parsed.timeline);
+        TimelineModel model;
+        model.setTimeline(std::move(*parsed.timeline));
+        AutosaveController save({http.base(), {}, "seq", cache.path(), {}}, model.undoStack(),
+            [&] { return model.timeline().raw; }, "u0");
+        save.setExternalSync(false);
+        save.setAutosave(false);
+        save.setQuitFallbackDirs({});
+        QVERIFY(model.commitEdit("Move clips", baseClips, localClips));
+        save.externalChanged("updated", "u1", QJsonArray{QJsonObject{{"tool", "ui_timeline_update_clip"}}}, true);
+        QTRY_COMPARE(save.baseUpdatedAt(), QString("u1"));
+        QCOMPARE(save.externalConflicts().size(), count);
+        server["updatedAt"] = "u2";
+        server["markers"] = QJsonArray{QJsonObject{{"id", "0"}, {"timeMs", 0}}};
+        save.externalChanged("updated", "u2", QJsonArray{QJsonObject{{"tool", "ui_timeline_add_marker"}}}, true);
+        QTRY_COMPARE(save.baseUpdatedAt(), QString("u2"));
+        QCOMPARE(save.externalConflicts().size(), count);
+        QCOMPARE(model.clipsJson(), localClips);
+        QCOMPARE(model.markersJson(), server["markers"].toArray());
+    }
+
     void bannerResource() {
         const auto panels = PanelRegistry().forSlot("overlay");
         for (const auto& entry : panels) {
@@ -180,6 +301,7 @@ private slots:
         clip["mediaType"] = "video";
         clip["status"] = "generated";
         clip["currentAssetId"] = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        clip["transitionIn"] = QJsonObject{{"type", "fade"}, {"durationMs", 250}};
         base["clips"] = QJsonArray{clip};
         auto loaded = nt::parseTimelineJson(QJsonDocument(base).toJson());
         QVERIFY(loaded.timeline);
@@ -189,6 +311,7 @@ private slots:
         model.setTimeline(*loaded.timeline);
         auto server = base;
         clip["currentAssetId"] = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
+        clip.remove("transitionIn");
         server["clips"] = QJsonArray{clip};
         server["updatedAt"] = "u1";
         http.setJson([&](const QByteArray& path, const QUrl&) {
@@ -219,10 +342,13 @@ private slots:
         QCOMPARE(model.timeline().clips[0].raw["currentAssetId"], clip["currentAssetId"]);
         QCOMPARE(model.timeline().clips[0].mediaPath, replacement.mediaPath);
         QCOMPARE(model.timeline().clips[0].audioPath, replacement.audioPath);
+        QVERIFY(!model.timeline().clips[0].raw.contains("transitionIn"));
         model.undoStack()->undo();
+        QVERIFY(model.timeline().clips[0].raw.contains("transitionIn"));
         QCOMPARE(model.timeline().clips[0].mediaPath, loaded.timeline->clips[0].mediaPath);
         QCOMPARE(model.timeline().clips[0].audioPath, loaded.timeline->clips[0].audioPath);
         model.undoStack()->redo();
+        QVERIFY(!model.timeline().clips[0].raw.contains("transitionIn"));
         QCOMPARE(model.timeline().clips[0].mediaPath, replacement.mediaPath);
         QCOMPARE(model.timeline().clips[0].audioPath, replacement.audioPath);
     }

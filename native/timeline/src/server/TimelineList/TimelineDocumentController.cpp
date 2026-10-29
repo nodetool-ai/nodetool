@@ -1,4 +1,5 @@
 #include "TimelineDocumentController.h"
+#include "TimelineLaunch.h"
 #include "app/Menus/ShellMenus.h"
 #include "app/Preferences/Preferences.h"
 #include "server/ServerSource.h"
@@ -133,7 +134,11 @@ void TimelineDocumentController::switchTo(const QString& source) {
         const auto bytes = QJsonDocument(QJsonArray::fromStringList(arguments)).toJson(QJsonDocument::Compact);
         started = file.open(QIODevice::WriteOnly) && file.write(bytes) == bytes.size() && file.commit();
     } else {
-        started = QProcess::startDetached(QCoreApplication::applicationFilePath(), arguments);
+        QProcess child;
+        child.setProgram(QCoreApplication::applicationFilePath());
+        child.setArguments(arguments);
+        child.setProcessEnvironment(timelineLaunchEnvironment(listTarget()));
+        started = child.startDetached();
     }
     if (!started) {
         fail(QStringLiteral("Could not open the timeline in a new window. Try again."));

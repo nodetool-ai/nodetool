@@ -937,6 +937,43 @@ private slots:
         QCOMPARE(lane.count(), 0);
     }
 
+    void laneModelNotifiesWhenRegisteredMediaResolves_data() {
+        QTest::addColumn<bool>("audio");
+        QTest::newRow("video") << false;
+        QTest::newRow("audio") << true;
+    }
+
+    void laneModelNotifiesWhenRegisteredMediaResolves() {
+        QFETCH(bool, audio);
+        const auto type = audio ? nt::MediaType::Audio : nt::MediaType::Video;
+        nt::Timeline timeline = makeTimeline({1, 1});
+        timeline.clips.front().mediaType = type;
+        timeline.clips.front().mediaPath.clear();
+        timeline.clips.front().audioPath.clear();
+        TimelineModel doc;
+        doc.setTimeline(std::move(timeline));
+        LaneClipModel lane;
+        lane.setTimeline(&doc);
+        lane.setTrackId(QStringLiteral("track-0"));
+        QCOMPARE(lane.count(), 1);
+        QCOMPARE(lane.data(lane.index(0), LaneClipModel::MediaSourceRole).toString(), QString());
+        QSignalSpy changed(&lane, &QAbstractItemModel::dataChanged);
+        nt::Clip media = doc.snapshot()->clips.front();
+        media.mediaPath = "/resolved/video.mp4";
+        media.audioPath = "/resolved/audio.wav";
+        const QJsonObject raw = media.raw;
+        doc.registerMedia(media);
+        QCOMPARE(doc.snapshot()->clips.front().raw, raw);
+        QCOMPARE(changed.count(), 1);
+        const auto roles = changed.front().at(2).value<QList<int>>();
+        QVERIFY(roles.isEmpty() || roles.contains(LaneClipModel::MediaSourceRole));
+        QCOMPARE(lane.data(lane.index(0), LaneClipModel::MediaSourceRole).toString(),
+                 type == nt::MediaType::Audio ? QStringLiteral("/resolved/audio.wav")
+                                              : QStringLiteral("/resolved/video.mp4"));
+        doc.registerMedia(media);
+        QCOMPARE(changed.count(), 1);
+    }
+
     // F6: the first content decides the fit; an edit that moves the content
     // end does not rezoom, a resize still refits.
     void contentEditsDoNotRefit() {

@@ -334,6 +334,18 @@ private slots:
         QCOMPARE(applyAcceptedUnit(raw, conflict), raw);
     }
 
+    void acceptedClipRemovesAbsentFields() {
+        auto raw = document();
+        const QJsonObject local{{"id", "a"}, {"trackId", "v"}, {"name", "Local"},
+            {"transitionIn", QJsonObject{{"type", "fade"}, {"durationMs", 250}}},
+            {"linkId", "old-link"}, {"effects", QJsonArray{QJsonObject{{"type", "blur"}}}}};
+        raw["clips"] = QJsonArray{local};
+        const QJsonObject incoming{{"id", "a"}, {"trackId", "v"}, {"name", "Server"}};
+        const auto applied = applyAcceptedUnit(raw, {{"kind", "clip"}, {"id", "a"},
+            {"reason", "edited"}, {"external", incoming}});
+        QCOMPARE(applied["clips"].toArray()[0].toObject(), incoming);
+    }
+
     void acceptedDeletion_data() {
         QTest::addColumn<QString>("kind");
         for (const auto* kind : {"track", "trackFolder", "linked-clip", "group-clip", "locked-clip"}) {

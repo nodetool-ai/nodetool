@@ -67,6 +67,17 @@ private slots:
                     panel->mapToScene({panel->width(), panel->height()}).y() <= view->height());
     }
     void cleanup() { state = nullptr; view.reset(); }
+    void mediaResolutionBrowserSurvivesHiddenLibrary() {
+        QTRY_VERIFY(state->mediaBrowser());
+        auto* browser = state->mediaBrowser();
+        QCOMPARE(browser->timeline(), &model);
+        auto* library = item("assetExplorer");
+        QVERIFY(library);
+        library->setVisible(false);
+        QVERIFY(QMetaObject::invokeMethod(item("sourceViewer"), "attach"));
+        QCoreApplication::processEvents();
+        QCOMPARE(state->mediaBrowser(), browser);
+    }
     void marking() {
         const auto before = doc();
         QSignalSpy modelChanges(&model, &TimelineModel::clipsChanged);

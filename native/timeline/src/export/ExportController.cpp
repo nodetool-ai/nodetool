@@ -1,11 +1,33 @@
 #include "export/ExportController.h"
 #include "export/ExportCapabilities.h"
+#include "preview/effects/Masks.h"
 #include <QCoreApplication>
 #include <QFile>
+#include <QFileInfo>
+#include <QDir>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QUrl>
+
+QJsonObject nt::exporting::exportSnapshot(const TimelineModel& model) {
+    auto raw = QJsonDocument::fromJson(model.documentJson()).object();
+    QJsonArray clips;
+    for (const auto& clip : model.timeline().clips) {
+        auto json = clip.raw;
+        if (!clip.mediaPath.empty()) json.insert("mediaPath", QString::fromStdString(clip.mediaPath));
+        if (!clip.audioPath.empty()) json.insert("audioPath", QString::fromStdString(clip.audioPath));
+        const auto mattePath = nt::effects::resolvedGeneratedMattePath(clip);
+        if (!mattePath.isEmpty()) {
+            auto matte = json.value("generatedMatte").toObject();
+            matte.insert("mediaPath", mattePath);
+            json.insert("generatedMatte", matte);
+        }
+        clips.append(json);
+    }
+    raw.insert("clips", clips);
+    return raw;
+}
 
 ExportController::ExportController(QObject* parent) : QObject(parent) {
     connect(&m_process, &QProcess::stateChanged, this, &ExportController::runningChanged);
@@ -20,11 +42,13 @@ ExportController::ExportController(QObject* parent) : QObject(parent) {
             emit self->errorChanged();
         }
         self->m_job.reset();
+        self->m_staging.reset();
         emit self->finished(success);
     });
     connect(&m_process, &QProcess::errorOccurred, this, [self = QPointer<ExportController>(this)](QProcess::ProcessError error) {
         if (self && error == QProcess::FailedToStart) {
             self->m_job.reset();
+            self->m_staging.reset();
             self->fail(self->m_process.errorString());
         }
     });
@@ -32,9 +56,12 @@ ExportController::ExportController(QObject* parent) : QObject(parent) {
 ExportController::~ExportController() {
     if (running()) {
         cancel();
-        // The child owns the transactional output. Let its cancellation path
-        // remove that output before removing the snapshot and cancel token.
-        m_process.waitForFinished(-1);
+        // Keep the parent-owned staging directory until the child stops,
+        // including a decoder or encoder that cannot cooperate with cancel.
+        if (!m_process.waitForFinished(5000)) {
+            m_process.kill();
+            m_process.waitForFinished(1000);
+        }
     }
 }
 bool ExportController::mp4Supported() const { return nt::exporting::mp4Available(); }
@@ -54,15 +81,7 @@ void ExportController::start(const QString& output, const QString& format, bool 
     if (!m_timeline) { fail(QStringLiteral("Open a timeline before exporting.")); return; }
     m_job = std::make_unique<QTemporaryDir>();
     if (!m_job->isValid()) { fail(QStringLiteral("Cannot create export snapshot")); return; }
-    auto raw = QJsonDocument::fromJson(m_timeline->documentJson()).object();
-    QJsonArray clips;
-    for (const auto& clip : m_timeline->timeline().clips) {
-        auto json = clip.raw;
-        if (!clip.mediaPath.empty()) json.insert("mediaPath", QString::fromStdString(clip.mediaPath));
-        if (!clip.audioPath.empty()) json.insert("audioPath", QString::fromStdString(clip.audioPath));
-        clips.append(json);
-    }
-    raw.insert("clips", clips);
+    const auto raw = nt::exporting::exportSnapshot(*m_timeline);
     QFile snapshot(m_job->filePath("timeline.json"));
     const auto bytes = QJsonDocument(raw).toJson(QJsonDocument::Compact);
     if (!snapshot.open(QIODevice::WriteOnly) || snapshot.write(bytes) != bytes.size()) {
@@ -80,7 +99,11 @@ void ExportController::start(const QString& output, const QString& format, bool 
     emit progressChanged();
     QString path = output;
     if (QUrl(output).isLocalFile()) path = QUrl(output).toLocalFile();
-    QStringList args{snapshot.fileName(), "--export", path, "--format", format, "--cancel-file", m_job->filePath("cancel"), "--json"};
+    m_staging = std::make_unique<QTemporaryDir>(QFileInfo(path).dir().filePath(".nt-export-XXXXXX"));
+    if (!m_staging->isValid()) {
+        m_job.reset(); m_staging.reset(); fail(QStringLiteral("Cannot create temporary export output")); return;
+    }
+    QStringList args{snapshot.fileName(), "--export", path, "--format", format, "--cancel-file", m_job->filePath("cancel"), "--staging-directory", m_staging->path(), "--json"};
     if (alpha) args.append("--alpha");
     m_process.start(m_executable.isEmpty() ? QCoreApplication::applicationFilePath() : m_executable, args);
 }

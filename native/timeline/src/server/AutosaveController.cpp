@@ -364,6 +364,28 @@ bool AutosaveController::applyFetched() {
         syncFailure(QStringLiteral("cannot apply external timeline: no document applier or invalid document"), m_recovering);
         return false;
     }
+    if (!wasDirty) {
+        m_externalConflicts.clear();
+    } else if (!m_externalConflicts.isEmpty()) {
+        const auto latestServer = sync::mergeDocumentOfSequence(serverRaw, m_mergeBase);
+        static const QHash<QString, QString> collections{{"clip", "clips"}, {"track", "tracks"},
+            {"trackFolder", "trackFolders"}, {"marker", "markers"}, {"mediaTrack", "mediaTracks"},
+            {"transcript", "transcript"}};
+        QHash<QString, QHash<QString, QJsonValue>> latestUnits;
+        for (auto field = collections.cbegin(); field != collections.cend(); ++field) {
+            auto& units = latestUnits[field.key()];
+            const auto values = latestServer.value(field.value()).toArray();
+            units.reserve(values.size());
+            for (const auto& value : values) { units.insert(value.toObject().value("id").toString(), value); }
+        }
+        m_externalConflicts.removeIf([&](const ExternalConflict& candidate) {
+            const auto& unit = candidate.unit;
+            if (unit.kind == u"document") { return unit.external != latestServer; }
+            if (unit.kind == u"field") { return unit.external != latestServer.value(unit.id); }
+            const auto units = latestUnits.constFind(unit.kind);
+            return units == latestUnits.cend() || unit.external != units->value(unit.id, QJsonValue::Null);
+        });
+    }
     m_base = revision;
     m_ackHash = contentHash(saveContent(serverRaw));
     m_ackComplete = true;

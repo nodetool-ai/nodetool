@@ -210,9 +210,17 @@ Result exportTimeline(const Timeline& timeline, const Options& options, std::sto
         const QFileInfo destination(options.output);
         if (options.output.isEmpty() || !destination.dir().exists()) throw std::runtime_error("Export destination folder does not exist");
         if (destination.exists()) throw std::runtime_error("Export destination already exists");
-        QTemporaryDir staging(destination.dir().filePath(QStringLiteral(".nt-export-XXXXXX")));
-        if (!staging.isValid()) throw std::runtime_error("Cannot create temporary export output");
-        const QString temporary = staging.filePath(QStringLiteral("output"));
+        std::unique_ptr<QTemporaryDir> staging;
+        QString stagingPath = options.stagingDirectory;
+        if (stagingPath.isEmpty()) {
+            staging = std::make_unique<QTemporaryDir>(destination.dir().filePath(QStringLiteral(".nt-export-XXXXXX")));
+            if (!staging->isValid()) throw std::runtime_error("Cannot create temporary export output");
+            stagingPath = staging->path();
+        }
+        const QString temporary = QDir(stagingPath).filePath(QStringLiteral("output"));
+        if (!QFileInfo(stagingPath).isDir() || QFileInfo::exists(temporary)) {
+            throw std::runtime_error("Export staging directory is unavailable");
+        }
         QFile pngOutput(temporary);
         std::unique_ptr<PngZip> pngZip;
         if (png) {
@@ -246,7 +254,8 @@ Result exportTimeline(const Timeline& timeline, const Options& options, std::sto
         if (!png) {
             report(QStringLiteral("audio"));
             std::vector<std::string> problems;
-            pcm = audio::renderOffline(timeline, 48000, 0, static_cast<double>(result.samples) / 48, &problems);
+            pcm = audio::renderOffline(timeline, 48000, 0, static_cast<double>(result.samples) / 48, &problems, cancelled);
+            if (cancelled()) { result.cancelled = true; return result; }
             for (const auto& problem : problems) {
                 // A silent video source is valid. Missing or corrupt media is
                 // still an export error, rather than an unnoticed omission.

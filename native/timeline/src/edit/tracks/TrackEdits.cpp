@@ -47,8 +47,7 @@ QJsonObject defaultInstrument() {
         "ampEnv":{"attackMs":4,"decayMs":180,"sustain":0.75,"releaseMs":220},
         "modEnv":{"attackMs":2,"decayMs":320,"sustain":0,"releaseMs":200},"gainDb":-8})").object();
 }
-QJsonArray cloneClips(const QJsonArray& clips, const QString& trackId) {
-    QHash<QString, QString> ids;
+QJsonArray cloneClips(const QJsonArray& clips, const QString& trackId, QHash<QString, QString>& ids) {
     QHash<QString, int> linkCounts;
     QJsonArray copies;
     for (const auto& value : clips) {
@@ -189,9 +188,34 @@ QJsonObject duplicateTrack(QJsonObject doc, const QJsonObject& payload) {
                 source.append(value);
             }
         }
-        for (const auto& value : cloneClips(source, copy.value("id").toString())) {
-            clips.append(value);
+        QHash<QString, QString> clipIds;
+        const auto duplicated = cloneClips(source, copy.value("id").toString(), clipIds);
+        auto mediaTracks = doc.value("mediaTracks").toArray();
+        const auto originalMediaTracks = mediaTracks;
+        QHash<QString, QString> mediaIds;
+        for (const auto& value : originalMediaTracks) {
+            auto media = value.toObject();
+            const auto owner = clipIds.constFind(media.value("clipId").toString());
+            if (owner == clipIds.cend()) { continue; }
+            const auto id = freshId();
+            mediaIds.insert(media.value("id").toString(), id);
+            media.insert("id", id);
+            media.insert("clipId", *owner);
+            mediaTracks.append(media);
         }
+        for (const auto& value : duplicated) {
+            auto clip = value.toObject();
+            for (const auto* field : {"reframe", "trackBinding"}) {
+                auto binding = clip.value(field).toObject();
+                const auto mediaId = mediaIds.constFind(binding.value("trackId").toString());
+                if (mediaId != mediaIds.cend()) {
+                    binding.insert("trackId", *mediaId);
+                    clip.insert(field, binding);
+                }
+            }
+            clips.append(clip);
+        }
+        if (!mediaIds.empty()) { doc.insert("mediaTracks", mediaTracks); }
         doc.insert("tracks", insertAt(tracks, copy, static_cast<double>(i + 1)));
         doc.insert("clips", clips);
         return doc;

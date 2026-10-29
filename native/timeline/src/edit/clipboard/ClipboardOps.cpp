@@ -361,7 +361,7 @@ QJsonObject applyClipboardEdit(const QString &name, QJsonObject raw, const QJson
                     const auto target = std::find_if(current.clips.begin(), current.clips.end(),
                                                      [&](const auto &c) { return clipId(c) == id; });
                     if (target != current.clips.end() && attributeGroupApplies("speed", *target)) {
-                        raw = speedEdit(std::move(raw), {{"clipId", id}, {"speed", sourceRate(source)}});
+                        raw = speedEdit(std::move(raw), {{"clipId", id}, {"speedMultiplier", sourceRate(source)}});
                     }
                 }
             }

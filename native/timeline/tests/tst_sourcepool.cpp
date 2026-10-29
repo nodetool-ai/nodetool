@@ -143,6 +143,34 @@ private slots:
     // no progress for 1 s is retired without a join on the render thread,
     // and the clip reopens in software with the reason in the report. The
     // injected stall never returns, as a blocked VTDecompressionSession.
+    void queuedHardwareStallsHaveBoundedJoinedTeardown() {
+        ModeScope scope(DecodeMode::Hardware);
+        FrameCache::shared().clear();
+        Timeline tl = oneClip(media("numbered-a-1080p30.mp4"));
+        for (int i = 1; i < 4; ++i) {
+            Clip clip = tl.clips.front();
+            clip.id = "c" + std::to_string(i);
+            tl.clips.push_back(std::move(clip));
+        }
+        QElapsedTimer teardown;
+        {
+            SourcePool pool;
+            setTestHardwareStallAfterPackets(0);
+            pool.update(tl, 0.0);
+            setTestHardwareStallAfterPackets(-1);
+            // Wait for every worker to enter the injected uninterruptible call.
+            for (const Clip& clip : tl.clips) {
+                auto* source = dynamic_cast<FfmpegSource*>(pool.sourceFor(clip.id));
+                QVERIFY(source);
+                QTRY_VERIFY_WITH_TIMEOUT(source->decoder().stalled(), 3000);
+            }
+            teardown.start();
+        }
+        const qint64 elapsed = teardown.elapsed();
+        releaseTestStalls();
+        QVERIFY2(elapsed < 1500, qPrintable(QStringLiteral("teardown took %1 ms").arg(elapsed)));
+    }
+
     void stalledHardwareDecoderFallsBackToSoftware() {
         ModeScope scope(DecodeMode::Hardware);
         FrameCache::shared().clear();

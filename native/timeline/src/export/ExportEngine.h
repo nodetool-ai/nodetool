@@ -12,6 +12,7 @@ struct Options {
     bool alpha = false;
     QString videoEncoder;
     QString audioEncoder;
+    QString stagingDirectory;  // editor-owned, retained until the child exits
 };
 struct Progress {
     QString phase;

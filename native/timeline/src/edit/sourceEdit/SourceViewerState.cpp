@@ -26,6 +26,11 @@ QString actionName(const QString& kind) {
     return "source" + kind.first(1).toUpper() + kind.sliced(1);
 }
 }
+void SourceViewerState::setMediaBrowser(AssetBrowser* browser) {
+    if (m_mediaBrowser == browser) { return; }
+    m_mediaBrowser = browser;
+    emit changed();
+}
 void SourceViewerState::setAsset(const QVariantMap& value) {
     if (m_asset == value) { return; }
     m_asset = value;
@@ -85,6 +90,9 @@ bool SourceViewerState::perform(const QString& kind, ClipGestureController* gest
     if (!result) { return false; }
     const auto label = kind.first(1).toUpper() + kind.sliced(1) + " source";
     if (!timeline->commitEdit(label, before, result->doc.value("clips").toArray())) { return false; }
+    if (m_mediaBrowser && m_mediaBrowser->timeline() == timeline) {
+        m_mediaBrowser->resolveClipMedia(m_asset, result->id);
+    }
     gestures->setSelection({result->id});
     return true;
 }

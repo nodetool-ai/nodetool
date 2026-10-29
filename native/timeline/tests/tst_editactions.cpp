@@ -2,6 +2,7 @@
 // differential cannot reach: native refusals that must be atomic (a linked
 // unit, a group tree) and the media-track ownership guard on drops.
 #include "edit/EditActions.h"
+#include "edit/groups/GroupOps.h"
 
 #include <QJsonArray>
 #include <QTest>
@@ -47,6 +48,50 @@ class TestEditActions : public QObject {
     Q_OBJECT
 
 private slots:
+    void moveClipRefusesALockedDestination_data() {
+        QTest::addColumn<bool>("group");
+        QTest::newRow("ordinary") << false;
+        QTest::newRow("group") << true;
+    }
+    void moveClipRefusesALockedDestination() {
+        QFETCH(bool, group);
+        const QJsonObject target = clip("c", "v1", 500, 1000, group ? "group" : "video");
+        QJsonObject raw{{"tracks", QJsonArray{QJsonObject{{"id", "v1"}, {"type", "video"}},
+                                             QJsonObject{{"id", "v2"}, {"type", "video"}, {"locked", true}}}},
+                        {"clips", QJsonArray{target}}};
+        const auto result = nt::edit::groups::applyGroupEdit("moveClip", raw,
+            {{"clipId", "c"}, {"deltaMs", 100}, {"toTrackId", "v2"}});
+        QCOMPARE(result, raw);
+    }
+
+    void startRateStretchStopsEveryLinkedMemberAtTheOrigin_data() {
+        QTest::addColumn<bool>("linked");
+        QTest::newRow("single") << false;
+        QTest::newRow("linked") << true;
+    }
+
+    void startRateStretchStopsEveryLinkedMemberAtTheOrigin() {
+        QFETCH(bool, linked);
+        QJsonObject video = clip("v", "v1", 1000, 1000);
+        video.insert("linkId", "L");
+        QJsonObject audio = clip("a", "a1", 500, 1000, "audio");
+        audio.insert("linkId", "L");
+        const ClipList result = rateStretchClip(docOf(linked ? ClipList{video, audio} : ClipList{video}),
+                                               "v", "start", 3000, true);
+        QCOMPARE(result.size(), linked ? size_t(2) : size_t(1));
+        const double expectedDuration = linked ? 1500.0 : 2000.0;
+        for (const auto& member : result) {
+            QCOMPARE(clipDurationMs(member), expectedDuration);
+            QCOMPARE(member.value("speedMultiplier").toDouble(), 1000.0 / expectedDuration);
+        }
+        QCOMPARE(clipStartMs(result[0]), linked ? 500.0 : 0.0);
+        QCOMPARE(clipEndMs(result[0]), 2000.0);
+        if (linked) {
+            QCOMPARE(clipStartMs(result[1]), 0.0);
+            QCOMPARE(clipEndMs(result[1]), 1500.0);
+        }
+    }
+
     // F3: a linked unit splits whole or not at all.
     void aLinkedUnitSplitsWholeOrNotAtAll() {
         QJsonObject video = clip("v", "v1", 0, 2000);
