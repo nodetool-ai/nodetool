@@ -398,7 +398,14 @@ QRect cropPixels(const QJsonObject &ext, QSize size) {
         uv[i] = float(rect[i].toDouble());
     }
     const auto [w, h] = croppedSourceSize(uv, size.width(), size.height());
-    return {int(std::floor(double(uv[0]) * size.width())), int(std::floor(double(uv[1]) * size.height())), w, h};
+    const auto originPixel = [](float origin, int extent) {
+        const double pixel = double(origin) * extent;
+        const double nearest = std::round(pixel);
+        // Integral crop pixels were normalized into floats by the layer decorator.
+        const double tolerance = std::numeric_limits<float>::epsilon() * std::max(1., std::abs(pixel));
+        return int(std::abs(pixel - nearest) <= tolerance ? nearest : std::floor(pixel));
+    };
+    return {originPixel(uv[0], size.width()), originPixel(uv[1], size.height()), w, h};
 }
 void decorateEffects(QJsonObject &ext, const Clip &clip, double timeMs) {
     QJsonArray enabled;

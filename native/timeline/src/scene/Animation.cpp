@@ -1,4 +1,5 @@
 #include "scene/Animation.h"
+#include "scene/SvgPath.h"
 
 #include <QJsonValue>
 #include <QRegularExpression>
@@ -463,6 +464,108 @@ struct Preset {
 const std::map<std::string, Preset>& presets() {
     static const std::map<std::string, Preset> m = [] {
         std::map<std::string, Preset> p;
+        p["followPath"] = {
+            {"emphasis", "loop"},
+            "linear",
+            false,
+            [](const QJsonObject& params, const CompileContext& ctx, double duration) {
+                const auto parsed = parseSvgPath(str(params, "d", {}));
+                if (!parsed) {
+                    return std::vector<PropertyCurve>{};
+                }
+                struct Point {
+                    double x, y;
+                };
+                std::vector<std::pair<Point, Point>> edges;
+                Point current{}, first{};
+                bool open = false;
+                const double bx = num(params, "pathX", 0), by = num(params, "pathY", 0);
+                const double bw = num(params, "pathWidth", 1), bh = num(params, "pathHeight", 1);
+                const auto point = [&](double x, double y) {
+                    return Point{(bx + x * bw) * ctx.canvasWidth, (by + y * bh) * ctx.canvasHeight};
+                };
+                const auto add = [&](Point p) {
+                    if (open) {
+                        edges.emplace_back(current, p);
+                    } else {
+                        first = p;
+                        open = true;
+                    }
+                    current = p;
+                };
+                for (const auto& seg : *parsed) {
+                    if (seg.kind == PathSegment::Move) {
+                        current = first = point(seg.x, seg.y);
+                        open = true;
+                        continue;
+                    }
+                    if (seg.kind == PathSegment::Close) {
+                        if (open) {
+                            add(first);
+                        }
+                        continue;
+                    }
+                    const Point end = point(seg.x, seg.y);
+                    if (seg.kind == PathSegment::Line) {
+                        add(end);
+                        continue;
+                    }
+                    const Point start = current, a = point(seg.x1, seg.y1), b = point(seg.x2, seg.y2);
+                    const double length = std::hypot(a.x - start.x, a.y - start.y) +
+                                          (seg.kind == PathSegment::Cubic
+                                               ? std::hypot(b.x - a.x, b.y - a.y) + std::hypot(end.x - b.x, end.y - b.y)
+                                               : std::hypot(end.x - a.x, end.y - a.y));
+                    const int steps = static_cast<int>(std::clamp(std::ceil(length / 3), 8.0, 96.0));
+                    for (int i = 1; i <= steps; ++i) {
+                        const double t = static_cast<double>(i) / steps, u = 1 - t;
+                        if (seg.kind == PathSegment::Cubic) {
+                            add({u * u * u * start.x + 3 * u * u * t * a.x + 3 * u * t * t * b.x + t * t * t * end.x,
+                                 u * u * u * start.y + 3 * u * u * t * a.y + 3 * u * t * t * b.y + t * t * t * end.y});
+                        } else {
+                            add({u * u * start.x + 2 * u * t * a.x + t * t * end.x,
+                                 u * u * start.y + 2 * u * t * a.y + t * t * end.y});
+                        }
+                    }
+                }
+                double length = 0;
+                for (const auto& e : edges) {
+                    length += std::hypot(e.second.x - e.first.x, e.second.y - e.first.y);
+                }
+                if (length <= 0) {
+                    return std::vector<PropertyCurve>{};
+                }
+                PropertyCurve x{Channel::PositionX, {}}, y{Channel::PositionY, {}}, rotation{Channel::Rotation, {}};
+                const int count = sampleCountFor(duration, 1, 5, kMaxCustomKeyframes);
+                const double start = std::clamp(num(params, "startT", 0), 0.0, 1.0),
+                             end = std::clamp(num(params, "endT", 1), 0.0, 1.0);
+                for (int i = 0; i < count; ++i) {
+                    const double t = static_cast<double>(i) / (count - 1),
+                                 target = (start + t * (end - start)) * length;
+                    double walked = 0;
+                    for (const auto& e : edges) {
+                        const double dx = e.second.x - e.first.x, dy = e.second.y - e.first.y, n = std::hypot(dx, dy);
+                        if (n <= 0) {
+                            continue;
+                        }
+                        if (target <= walked + n + 1e-9) {
+                            const double f = std::clamp((target - walked) / n, 0.0, 1.0);
+                            x.keyframes.push_back({t, e.first.x + f * dx, {}, {}});
+                            y.keyframes.push_back({t, e.first.y + f * dy, {}, {}});
+                            if (params.value(u"orient").toBool()) {
+                                rotation.keyframes.push_back({t, std::atan2(dy, dx), {}, {}});
+                            }
+                            break;
+                        }
+                        walked += n;
+                    }
+                }
+                std::vector<PropertyCurve> curves{std::move(x), std::move(y)};
+                if (!rotation.keyframes.empty()) {
+                    curves.push_back(std::move(rotation));
+                }
+                return curves;
+            },
+            {}};
         p["fade"] = {{"in", "out"}, "", false,
                      [](const QJsonObject&, const CompileContext&, double) {
                          return std::vector<PropertyCurve>{line(Channel::Opacity, 0, 1)};
@@ -777,14 +880,8 @@ std::vector<AnimationDef> parseAnimations(const QJsonArray& raw) {
     return out;
 }
 
-std::string unsupportedReason(const AnimationDef& def, const QJsonObject& clipRaw) {
+std::string unsupportedReason(const AnimationDef& def, const QJsonObject&) {
     if (!def.enabled) return {};
-    if (def.hasBeat) return "beat";
-    if (def.preset == "followPath") return "preset=followPath";
-    if (def.staggerUnit && *def.staggerUnit == "line" && clipRaw.value(u"mediaType").toString() == u"text" &&
-        clipRaw.value(u"textStyle").isObject()) {
-        return "stagger.unit=line";
-    }
     return {};
 }
 

@@ -1,3 +1,4 @@
+#include "motion/beat/Beat.h"
 #include "preview/SceneEval.h"
 #include "preview/layers/SceneHooks.h"
 #include "preview/transitions/TransitionResolver.h"
@@ -153,7 +154,7 @@ double steppedTime(const Clip& clip, double t) {
     return clip.startMs + std::floor((t - clip.startMs) / frameMs) * frameMs;
 }
 
-scene::CompileContext compileContext(const Clip& clip, double w, double h) {
+scene::CompileContext compileContext(const Clip& clip, double w, double h, std::optional<double> flexWidth = {}) {
     scene::CompileContext ctx;
     ctx.canvasWidth = w;
     ctx.canvasHeight = h;
@@ -166,7 +167,13 @@ scene::CompileContext compileContext(const Clip& clip, double w, double h) {
         ctx.staggerUnit = unit;
         if (unit == "word") ctx.staggerCount = scene::countWords(s.text);
         else if (unit == "character") ctx.staggerCount = scene::countCharacters(s.text);
-        else ctx.staggerCount = static_cast<int>(s.text.split(u'\n').size());  // not ported: measured wrap
+        else {
+            auto style = scene::parseTextStyle(clip.raw.value(u"textStyle").toObject());
+            if (flexWidth) {
+                style.maxWidthFrac = *flexWidth;
+            }
+            ctx.staggerCount = static_cast<int>(scene::layoutTextBlock(sceneHooks().measureText, style, w, h).lines.size());
+        }
         break;
     }
     return ctx;
@@ -177,7 +184,8 @@ scene::CompileContext compileContext(const Clip& clip, double w, double h) {
 // canvas size and the stagger context, as in the web's compile cache. Shared
 // by the GUI and render threads.
 std::shared_ptr<const std::vector<scene::CompiledAnimation>> compiledFor(
-    const std::shared_ptr<const std::vector<scene::AnimationDef>>& anims, const Clip& clip, double w, double h) {
+    const std::shared_ptr<const std::vector<scene::AnimationDef>>& anims, const Clip& clip, double w, double h,
+    std::optional<double> flexWidth = {}) {
     struct Entry {
         std::weak_ptr<const std::vector<scene::AnimationDef>> source;
         double durationMs;
@@ -188,7 +196,7 @@ std::shared_ptr<const std::vector<scene::CompiledAnimation>> compiledFor(
     };
     static std::mutex mutex;
     static std::unordered_map<const void*, Entry> cache;
-    const scene::CompileContext ctx = compileContext(clip, w, h);
+    const scene::CompileContext ctx = compileContext(clip, w, h, flexWidth);
     std::lock_guard lock(mutex);
     const auto it = cache.find(anims.get());
     if (it != cache.end() && it->second.source.lock() == anims && it->second.durationMs == clip.durationMs &&
@@ -211,14 +219,16 @@ struct AnimatedProps {
 };
 
 AnimatedProps resolveAnimated(const Clip& clip, const std::optional<ClipTransform>& layerTransform, double opacity,
-                              const scene::Camera2D* camera, double timeMs, double w, double h) {
+                              const scene::Camera2D* camera, double timeMs, double w, double h,
+                              const std::unordered_map<std::string, const Clip*>& sources, double opacityCoverage,
+                              std::optional<double> flexWidth = {}) {
     const double t = steppedTime(clip, timeMs);
     AnimatedProps props;
     props.transform = layerTransform;
     props.opacity = opacity;
     const auto& anims = sceneOf(clip).animations;
     if (!anims->empty()) {
-        const auto compiledPtr = compiledFor(anims, clip, w, h);
+        const auto compiledPtr = compiledFor(anims, clip, w, h, flexWidth);
         const auto& compiled = *compiledPtr;
         if (!compiled.empty()) {
             const auto s = scene::sampleAnimations(compiled, t - clip.startMs, clipSourceMsAt(clip, steppedTime(clip, t)));
@@ -241,6 +251,94 @@ AnimatedProps resolveAnimated(const Clip& clip, const std::optional<ClipTransfor
                 props.mask = s.mask;
             }
         }
+    }
+    const auto links = clip.raw.value(u"animationLinks").toArray();
+    for (const auto& value : links) {
+        const auto link = value.toObject();
+        const QString target = link.value(u"target").toString();
+        std::optional<double> result;
+        if (link.value(u"kind").toString() == u"wiggle") {
+            double amplitude = link.value(u"amplitude").toDouble();
+            const auto frames = link.value(u"amplitudeKeyframes").toArray();
+            const double local = t - clip.startMs;
+            std::optional<std::pair<double, double>> before, after;
+            for (const auto& frame : frames) {
+                const auto f = frame.toObject();
+                const double t = f.value(u"timeMs").toDouble(), v = f.value(u"value").toDouble();
+                if (t <= local && (!before || t > before->first)) {
+                    before = {t, v};
+                }
+                if (t >= local && (!after || t < after->first)) {
+                    after = {t, v};
+                }
+            }
+            if (before && after && before->first != after->first) {
+                amplitude = before->second +
+                            (after->second - before->second) * (local - before->first) / (after->first - before->first);
+            } else if (before) {
+                amplitude = before->second;
+            } else if (after) {
+                amplitude = after->second;
+            }
+            const double position = t * std::max(0.0, link.value(u"frequencyHz").toDouble()) / 1000;
+            const double index = std::floor(position), t = position - index, smooth = t * t * (3 - 2 * t),
+                         seed = link.value(u"seed").toDouble();
+            const auto hash = [seed](double i) {
+                const double n = std::sin(seed * 127.1 + i * 311.7) * 43758.5453123;
+                return (n - std::floor(n)) * 2 - 1;
+            };
+            result = (target == u"scale" || target == u"opacity" ? 1.0 : 0.0) +
+                     amplitude * (hash(index) * (1 - smooth) + hash(index + 1) * smooth);
+        } else {
+            const auto it = sources.find(link.value(u"sourceClipId").toString().toStdString());
+            if (it == sources.end() || it->second->durationMs <= 0) {
+                continue;
+            }
+            const Clip& source = *it->second;
+            double at = t + link.value(u"timeOffsetMs").toDouble();
+            if (link.value(u"loop").toBool()) {
+                at = source.startMs + std::fmod(std::fmod(at - source.startMs, source.durationMs) + source.durationMs,
+                                                source.durationMs);
+            }
+            const double stepped = steppedTime(source, at);
+            const auto compiled = compiledFor(sceneOf(source).animations, source, w, h);
+            const auto sample =
+                scene::sampleAnimations(*compiled, stepped - source.startMs, clipSourceMsAt(source, stepped));
+            const auto base = source.transform.value_or(identityTransform());
+            const QString channel = link.value(u"source").toString();
+            if (channel == u"positionX") {
+                result = sample.positionX.value_or(base.position.x) + sample.offsetX;
+            } else if (channel == u"positionY") {
+                result = sample.positionY.value_or(base.position.y) + sample.offsetY;
+            } else if (channel == u"rotation") {
+                result = base.rotation + sample.rotation;
+            } else if (channel == u"scale") {
+                result = (base.scale.x + base.scale.y) / 2 * sample.scale;
+            } else if (channel == u"opacity") {
+                result = source.opacity * sample.opacity;
+            }
+            if (result) {
+                result = *result * link.value(u"scale").toDouble(1) + link.value(u"offset").toDouble();
+            }
+        }
+        if (!result) {
+            continue;
+        }
+        auto transform = props.transform.value_or(identityTransform());
+        if (target == u"positionX") {
+            transform.position.x = *result;
+        } else if (target == u"positionY") {
+            transform.position.y = *result;
+        } else if (target == u"rotation") {
+            transform.rotation = *result;
+        } else if (target == u"scale") {
+            transform.scale = {*result, *result};
+        } else if (target == u"opacity") {
+            props.opacity = std::clamp(*result * opacityCoverage, 0.0, 1.0);
+        } else {
+            continue;
+        }
+        props.transform = transform;
     }
     if (camera && props.transform) {
         const auto [placed, blur] = resolveCamera(*props.transform, sampleCamera(*camera, t));
@@ -374,7 +472,16 @@ std::vector<const Clip*> expandTemporal(const std::vector<Clip>& clips, std::deq
                 copy.startMs = clip.startMs + index * r.timeStepMs;
                 auto cs = std::make_shared<scene::ClipScene>(s);
                 cs->repeater.reset();
-                if (index * r.hueDegrees != 0 || index * r.brightness != 0) cs->anyEnabledEffect = true;
+                copy.raw.remove("layout");
+                const double hue = index * r.hueDegrees, brightness = index * r.brightness;
+                if (hue != 0 || brightness != 0) {
+                    cs->anyEnabledEffect = true;
+                    auto effects = copy.raw.value(u"effects").toArray();
+                    const double wrapped = std::fmod(std::fmod(hue + 180, 360) + 360, 360) - 180;
+                    effects.append(QJsonObject{{"id", "repeater-color"}, {"type", "color"}, {"enabled", true},
+                        {"hue", wrapped}, {"brightness", std::clamp(brightness, -1.0, 1.0)}});
+                    copy.raw.insert("effects", effects);
+                }
                 copy.scene = cs;
                 store.push_back(std::move(copy));
                 instances.push_back(&store.back());
@@ -388,6 +495,8 @@ std::vector<const Clip*> expandTemporal(const std::vector<Clip>& clips, std::deq
             for (int index = echo.copies; index >= 1; index--) {
                 Clip copy = *instance;
                 copy.id = instance->id + ":echo:" + std::to_string(index);
+                copy.name = instance->name + " echo " + std::to_string(index);
+                copy.raw.remove("layout");
                 copy.startMs = instance->startMs + index * echo.intervalMs;
                 copy.opacity = instance->opacity * std::pow(echo.opacityDecay, index);
                 auto cs = std::make_shared<scene::ClipScene>(is);
@@ -424,7 +533,8 @@ struct ResolvedGroup {
 
 std::unordered_map<std::string, ResolvedGroup> resolveGroups(
     const std::vector<const Clip*>& clips, double t, double w, double h,
-    const std::unordered_map<std::string, LayerTransition>& transitions, const scene::Camera2D* camera) {
+    const std::unordered_map<std::string, LayerTransition>& transitions, const scene::Camera2D* camera,
+    const std::unordered_map<std::string, const Clip*>& sources) {
     std::unordered_map<std::string, const Clip*> groupById;
     std::vector<std::string> order;
     for (const Clip* c : clips) {
@@ -470,7 +580,7 @@ std::unordered_map<std::string, ResolvedGroup> resolveGroups(
                 inherited = entry;
                 continue;
             }
-            const AnimatedProps own = resolveAnimated(current, current.transform, current.opacity, nullptr, t, w, h);
+            const AnimatedProps own = resolveAnimated(current, current.transform, current.opacity, nullptr, t, w, h, sources, 1.0);
             const bool spatial = camera && !(parent && parent->cameraApplied) && own.transform && own.transform->depthPx;
             std::optional<ClipTransform> placed = own.transform;
             bool dofBlur = false;
@@ -772,6 +882,27 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
             }
         }
     }
+    const auto resolveBeat = [&](const Clip* clip) -> const Clip* {
+        const auto& definitions = sceneOf(*clip).animations;
+        const auto resolved = motion::resolvedBeatDefinitions(definitions, clip->raw.value(u"animations").toArray(),
+                                                             clip->startMs, timeline.raw.value(u"tempo").toObject());
+        if (resolved == definitions) {
+            return clip;
+        }
+        Clip patched = *clip;
+        auto clipScene = std::make_shared<scene::ClipScene>(sceneOf(patched));
+        clipScene->animations = resolved;
+        patched.scene = std::move(clipScene);
+        store.push_back(std::move(patched));
+        return &store.back();
+    };
+    for (const Clip*& clip : clips) {
+        clip = resolveBeat(clip);
+    }
+    std::unordered_map<std::string, const Clip*> sources;
+    for (const auto& clip : timeline.clips) {
+        sources[clip.id] = resolveBeat(&clip);
+    }
     const auto transitions = resolveDocumentTransitions(clips, timeMs);
     // Flex layout (layout.ts) over every clip, active or not. A laid-out
     // group places its children from its resolved transform; a nested flex
@@ -794,7 +925,7 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
             c = &store.back();
         }
     }
-    const auto groups = resolveGroups(groupClips, timeMs, W, H, transitions, camera);
+    const auto groups = resolveGroups(groupClips, timeMs, W, H, transitions, camera, sources);
 
     std::unordered_map<std::string, const Clip*> clipById;
     std::unordered_map<std::string, std::vector<const Clip*>> clipsByTrack;
@@ -816,6 +947,7 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
         const Clip* clip;
         std::optional<ClipTransform> transform;  // before animation
         bool camera = false;
+        double opacityCoverage = 1;
     };
     std::vector<Pending> media;
     std::vector<Pending> captions;
@@ -843,7 +975,7 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
                 if (parent && (timeMs < parent->windowStart || timeMs >= parent->windowEnd)) { continue; }
                 const double base = clip->opacity * (parent ? parent->opacity : 1) *
                     clipFadeGain(*clip, timeMs - clip->startMs);
-                const auto animated = resolveAnimated(*clip, {}, base, nullptr, timeMs, W, H);
+                const auto animated = resolveAnimated(*clip, {}, base, nullptr, timeMs, W, H, sources, (parent ? parent->opacity : 1) * clipFadeGain(*clip, timeMs - clip->startMs));
                 SceneAdjustment adjustment;
                 adjustment.clipId = clip->id;
                 adjustment.trackIndex = track->index;
@@ -908,7 +1040,7 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
 
             if (cs.hasCaption && !matteSources.count(clip.id)) {
                 // A caption layer is pushed straight, so it carries no camera.
-                Pending p{base, &clip, clip.transform, false};
+                Pending p{base, &clip, clip.transform, false, parentOpacity * (transition ? transition->opacity : 1.0) * fade};
                 p.layer.kind = "caption";
                 p.layer.trackIndex = kCaptionTrackIndex;
                 p.layer.mediaPath.clear();
@@ -918,7 +1050,7 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
             if (clip.mediaType == MediaType::Audio || clip.mediaType == MediaType::Midi) continue;
 
             const auto emitLayer = [&](const std::string& kind) {
-                Pending p{base, &clip, clip.transform, cameraHere};
+                Pending p{base, &clip, clip.transform, cameraHere, parentOpacity * (transition ? transition->opacity : 1.0) * fade};
                 p.layer.kind = kind;
                 if (flex) {
                     const auto t = flex->transforms.find(clip.id);
@@ -1072,7 +1204,7 @@ SceneFrame evaluateScene(const Timeline& timeline, double timeMs) {
         return !adjustment.precomposeGroupId.empty() && !surfaceById.contains(adjustment.precomposeGroupId);
     });
     const auto finish = [&](Pending& p) {
-        const AnimatedProps a = resolveAnimated(*p.clip, p.transform, p.layer.opacity, p.camera ? camera : nullptr, timeMs, W, H);
+        const AnimatedProps a = resolveAnimated(*p.clip, p.transform, p.layer.opacity, p.camera ? camera : nullptr, timeMs, W, H, sources, p.opacityCoverage, p.layer.flexTextMaxWidthFrac);
         p.layer.transform = a.transform;
         p.layer.opacity = a.opacity;
         p.layer.mask = a.mask;
