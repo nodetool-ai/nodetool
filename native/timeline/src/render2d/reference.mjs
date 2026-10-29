@@ -23,6 +23,21 @@ for (const family of ["Inter", "JetBrains Mono", "Lora", "Playfair Display", "Sp
   add(`font-${family.replaceAll(" ", "-")}`, "text", { ...title, fontFamily: family });
 }
 add("text-weight", "text", { ...title, fontWeight: 800 });
+add("regression-serein-counter-493", "text", { text: "493", fontFamily: "Inter", fontSizePx: 300, fontWeight: 800, color: "#f8fafc", align: "center", maxWidthFrac: 0.9, letterSpacingPx: -13.5 }, [], 1600, 1920, 1080);
+cases.at(-1).minPsnr = 40;
+for (const size of [256, 257]) {
+  add(`text-path-boundary-${size}`, "text", { ...title, text: "493", fontSizePx: size, fontWeight: 800, letterSpacingPx: -13.5 }, [], 500, 1920, 1080);
+  cases.at(-1).minPsnr = size > 256 ? 40 : 35;
+}
+add("text-large-overlap-alpha", "text", { ...title, text: "OO", fontSizePx: 300, fontWeight: 800, color: "rgba(248,250,252,0.5)", letterSpacingPx: -150 }, [], 500, 1920, 1080);
+cases.at(-1).minPsnr = 40;
+for (const [name, fill] of [["quarter", "rgba(248,250,252,0.25)"], ["opaque", "#f8fafc"], ["gradient", { type: "linear", angle: 0, stops: [{ offset: 0, color: "rgba(248,250,252,0)" }, { offset: 1, color: "#f8fafc" }] }]]) {
+  add(`text-large-shadow-alpha-${name}`, "text", { ...title, text: "OO", fontSizePx: 300, fontWeight: 800, color: typeof fill === "string" ? fill : "#f8fafc", ...(typeof fill === "string" ? {} : { fill }), letterSpacingPx: -150, shadow: { color: "rgba(96,48,255,0.5)", blurPx: 4, offsetX: 400, offsetY: 0 } }, [], 500, 1920, 1080);
+  cases.at(-1).minPsnr = 40;
+}
+add("text-large-outline-alpha", "text", { ...title, text: "493", fontSizePx: 300, fontWeight: 800, color: "rgba(248,250,252,0.6)", letterSpacingPx: -13.5, stroke: { color: "rgba(100,70,220,0.7)", widthPx: 3 }, shadow: { color: "rgba(20,80,240,0.5)", blurPx: 4, offsetX: 6, offsetY: -4 } }, [], 500, 1920, 1080);
+cases.at(-1).minPsnr = 40;
+
 add("text-italic", "text", { ...title, fontFamily: "Lora", fontStyle: "italic" });
 add("text-wrap", "text", { ...title, text: "Measured words wrap to the same lines\nSecond paragraph", maxWidthFrac: 0.5, fontSizePx: 32, align: "left", verticalAlign: "top", lineHeight: 1.4, letterSpacingPx: 1.2 });
 add("text-right-bottom", "text", { ...title, text: "Right\nAligned", align: "right", verticalAlign: "bottom" });

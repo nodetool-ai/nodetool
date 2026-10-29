@@ -1,0 +1,5 @@
+function(nt_capture_deadline_tests)
+    add_executable(tst_capturedeadline src/motion/capturedeadline/tst_capturedeadline.cpp)
+    add_test(NAME tst_capturedeadline COMMAND tst_capturedeadline)
+endfunction()
+nt_tests(nt_capture_deadline_tests)

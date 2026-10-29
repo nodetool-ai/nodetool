@@ -1,0 +1,496 @@
+--- a/native/timeline/src/model/TimelineTypes.h
++++ b/native/timeline/src/model/TimelineTypes.h
+@@ -122,6 +122,8 @@
+     // the original even when `mediaPath` is the video proxy, which has no
+     // audio track (DESIGN.md F4). Empty: audio reads `mediaPath`.
+     std::string audioPath;
++    // Resolved for this session only; never serialized into the document.
++    std::string generatedMattePath;
+     // Groups, animations, repeaters, mattes and the other scene fields,
+     // parsed once from `raw` (src/scene/ClipScene.h). Null: none of them.
+     std::shared_ptr<const scene::ClipScene> scene;
+--- a/native/timeline/src/model/TimelineModel.h
++++ b/native/timeline/src/model/TimelineModel.h
+@@ -40,6 +40,7 @@
+     void close();
+     // Adds runtime paths by media identity and refreshes matching snapshot clips.
+     void registerMedia(const nt::Clip& media);
++    void registerMatteMedia(const QString& assetId, const std::string& path);
+     const nt::Timeline& timeline() const { return *m_timeline; }
+     // An immutable snapshot the render thread keeps by pointer (D8). A new
+     // document makes a new snapshot; an old one stays valid while held.
+@@ -117,4 +118,5 @@
+     // delete) gives a clip back the media it had. Filled by setTimeline and
+     // kept for the document's life.
+     QHash<QString, std::pair<std::string, std::string>> m_media;
++    QHash<QString, std::string> m_mattes;
+ };
+--- a/native/timeline/src/model/TimelineModel.cpp
++++ b/native/timeline/src/model/TimelineModel.cpp
+@@ -80,7 +80,9 @@
+
+ void TimelineModel::setTimeline(nt::Timeline timeline) {
+     m_media.clear();
++    m_mattes.clear();
+     for (const auto& c : timeline.clips) {
++        if (!c.generatedMattePath.empty()) m_mattes.insert(c.raw.value("generatedMatte").toObject().value("assetId").toString(), c.generatedMattePath);
+         if (!c.mediaPath.empty() || !c.audioPath.empty()) m_media.insert(mediaKey(c.raw), {c.mediaPath, c.audioPath});
+     }
+     timeline.revision = nt::nextTimelineRevision();
+@@ -151,6 +153,7 @@
+         // The parse knows neither the load's base folder nor the server's
+         // asset cache: take the media the document's load resolved.
+         for (auto& c : parsedClips) {
++            c.generatedMattePath = m_mattes.value(c.raw.value("generatedMatte").toObject().value("assetId").toString());
+             const auto it = m_media.constFind(mediaKey(c.raw));
+             if (it != m_media.constEnd()) {
+                 c.mediaPath = it->first;
+@@ -339,6 +342,7 @@
+     const bool markersChangedValue = raw.value("markers") != m_timeline->raw.value("markers");
+     auto next = std::move(*parsed.timeline);
+     for (auto& clip : next.clips) {
++        clip.generatedMattePath = m_mattes.value(clip.raw.value("generatedMatte").toObject().value("assetId").toString());
+         const auto media = m_media.constFind(mediaKey(clip.raw));
+         if (media != m_media.constEnd()) {
+             clip.mediaPath = media->first;
+@@ -381,6 +385,26 @@
+     emit timelineChanged();
+ }
+
++void TimelineModel::registerMatteMedia(const QString& assetId, const std::string& path) {
++    if (assetId.isEmpty()) { return; }
++    m_mattes.insert(assetId, path);
++    auto next = *m_timeline;
++    bool changed = false;
++    for (auto& clip : next.clips) {
++        if (clip.raw.value("generatedMatte").toObject().value("assetId").toString() == assetId &&
++            clip.generatedMattePath != path) {
++            clip.generatedMattePath = path;
++            changed = true;
++        }
++    }
++    if (!changed) { return; }
++    next.revision = nt::nextTimelineRevision();
++    m_timeline = std::make_shared<const nt::Timeline>(std::move(next));
++    m_tracks->rebind(m_timeline.get());
++    emit clipsChanged();
++    emit timelineChanged();
++}
++
+ bool TimelineModel::settleDocument(const QJsonObject& document) {
+     if (!replaceDocument(document)) { return false; }
+     emit commandSettled();
+--- a/native/timeline/src/server/ServerTimeline.h
++++ b/native/timeline/src/server/ServerTimeline.h
+@@ -49,6 +49,9 @@
+
+ ServerOpenResult openServerTimeline(const ServerOpenOptions& options);
+
++// Normalize a supported asset reference for assets.get.
++QString assetIdForReference(const QString& reference);
++
+ // The D33 version of an original: a hash of `updated_at`, `size` and
+ // `content_type` from `assets.get`.
+ QString originalVersion(const QJsonObject& asset);
+--- a/native/timeline/src/server/ServerTimeline.cpp
++++ b/native/timeline/src/server/ServerTimeline.cpp
+@@ -92,6 +92,11 @@
+ bool needsAudio(MediaType t) { return t == MediaType::Video || t == MediaType::Audio; }
+
+ }  // namespace
++
++QString assetIdForReference(const QString& reference) {
++    const auto ref = parseRef(reference);
++    return ref.kind == AssetRef::Asset ? ref.id : QString{};
++}
+
+ QString originalVersion(const QJsonObject& asset) {
+     const QJsonValue size = asset.value(u"size");
+@@ -217,12 +222,25 @@
+         bool picture = false;
+         bool audio = false;
+         std::vector<size_t> clips;
++        std::vector<size_t> mattes;
+     };
+     std::map<QString, Need> needs;  // by ref id
+     QJsonArray missing;
+     int mediaClips = 0;
+     for (size_t i = 0; i < tl.clips.size(); ++i) {
+         const Clip& clip = tl.clips[i];
++        const auto matte = clip.raw.value("generatedMatte").toObject();
++        const auto matteId = matte.value("assetId").toString();
++        if (matte.value("status").toString("ready") == "ready" && !matteId.isEmpty() &&
++            matte.value("mediaPath").toString().isEmpty()) {
++            const auto ref = parseRef(matteId);
++            if (ref.kind != AssetRef::Invalid) {
++                Need& n = needs[ref.id];
++                n.ref = ref;
++                n.picture = true;
++                n.mattes.push_back(i);
++            }
++        }
+         const bool pic = needsPicture(clip.mediaType);
+         const bool aud = needsAudio(clip.mediaType);
+         if (!pic && !aud) continue;
+@@ -423,6 +441,9 @@
+             picturePath = missingPath(p.need->ref.id);
+             audioPath.clear();
+         }
++        if (p.error.isEmpty()) {
++            for (size_t i : p.need->mattes) tl.clips[i].generatedMattePath = picturePath;
++        }
+         for (size_t i : p.need->clips) {
+             Clip& clip = tl.clips[i];
+             if (needsPicture(clip.mediaType)) clip.mediaPath = picturePath;
+--- a/native/timeline/src/preview/effects/Masks.cpp
++++ b/native/timeline/src/preview/effects/Masks.cpp
+@@ -117,6 +117,7 @@
+ QString generatedPath(const Clip &clip) {
+     const auto raw = clip.raw.value("generatedMatte").toObject();
+     const auto path = raw.value("mediaPath").toString();
++    if (path.isEmpty() && !clip.generatedMattePath.empty()) { return QString::fromStdString(clip.generatedMattePath); }
+     if (path.isEmpty() || QFileInfo(path).isAbsolute()) {
+         return path;
+     }
+--- a/native/timeline/src/main.cpp
++++ b/native/timeline/src/main.cpp
+@@ -16,6 +16,7 @@
+ #include "app/CliModes.h"
+ #include "model/TimelineJson.h"
+ #include "model/TimelineModel.h"
++#include "motion/mattes/MatteResolver.h"
+ #include "playback/PlaybackClock.h"
+ #include "preview/PreviewCompositor.h"
+ #include "app/startup/DecodeDefault.h"
+@@ -913,8 +914,10 @@
+                                {QStringLiteral("clock"), QVariant::fromValue(&clock)}});
+     // A server timeline saves itself (D34); QML reads `autosave` for its state.
+     std::unique_ptr<nt::server::AutosaveController> autosave;
++    std::unique_ptr<nt::motion::MatteResolver> matteResolver;
+     std::unique_ptr<nt::app::LocalDocumentSaver> localSaver;
+     if (const auto target = nt::server::serverSaveTarget()) {
++        matteResolver = std::make_unique<nt::motion::MatteResolver>(model, *target);
+         autosave = std::make_unique<nt::server::AutosaveController>(
+             *target, model.undoStack(), [&model]() { return model.timeline().raw; },
+             loaded.timeline->raw.value(u"updatedAt").toString());
+--- a/native/timeline/src/motion/mattes/module.cmake
++++ b/native/timeline/src/motion/mattes/module.cmake
+@@ -1,3 +1,8 @@
++nt_sources(app src/motion/mattes/MatteResolver.h src/motion/mattes/MatteResolver.cpp)
++function(nt_matte_service_tests)
++    target_sources(tst_assetbrowser PRIVATE src/motion/mattes/MatteResolver.cpp src/motion/mattes/MatteResolver.h)
++endfunction()
++nt_tests(nt_matte_service_tests)
+ function(nt_matte_carrier_tests)
+     qt_add_executable(tst_mattecarrier src/motion/mattes/tst_mattecarrier.cpp
+         src/preview/effects/EffectsRegistrations.cpp src/export/OffscreenFrames.cpp
+@@ -14,3 +19,4 @@
+     add_test(NAME tst_mattecarrier COMMAND tst_mattecarrier)
+     set_tests_properties(tst_mattecarrier PROPERTIES LABELS render)
+ endfunction()
++nt_tests(nt_matte_carrier_tests)
+--- a/native/timeline/src/preview/effects/tst_masks.cpp
++++ b/native/timeline/src/preview/effects/tst_masks.cpp
+@@ -290,9 +290,38 @@
+             QVERIFY(*layer.matte->featherPx <= 256);
+         }
+     }
++    void assetOnlyMatte() {
++        nt::Clip clip;
++        clip.raw = {{"generatedMatte", QJsonObject{{"assetId", "cccccccccccccccccccccccccccccccc"},
++            {"strength", 0.4}, {"invert", true}, {"featherPx", 12}, {"unknown", 42}}}};
++        clip.generatedMattePath = "/cache/matte.mp4";
++        nt::ActiveLayer layer;
++        layer.sourceTimeMs = 725;
++        nt::effects::decorateMasks(layer, clip);
++        QVERIFY(layer.matte);
++        QCOMPARE(layer.matte->layer->sourceTimeMs, 725.);
++        const auto requests = nt::effects::generatedMatteSources(*layer.matte->layer, clip);
++        QCOMPARE(requests.size(), size_t{1});
++        QCOMPARE(requests.front().mediaPath, std::string("/cache/matte.mp4"));
++        auto reference = clip;
++        reference.generatedMattePath.clear();
++        auto matte = reference.raw.value("generatedMatte").toObject();
++        matte.insert("mediaPath", "/cache/matte.mp4");
++        reference.raw.insert("generatedMatte", matte);
++        nt::ActiveLayer comparison;
++        comparison.sourceTimeMs = 725;
++        nt::effects::decorateMasks(comparison, reference);
++        QVERIFY(comparison.matte);
++        QCOMPARE(layer.opacity, comparison.opacity);
++        QCOMPARE(layer.matte->invert, comparison.matte->invert);
++        QCOMPARE(layer.matte->featherPx, comparison.matte->featherPx);
++        QCOMPARE(layer.matte->layer->sourceTimeMs, comparison.matte->layer->sourceTimeMs);
++        QCOMPARE(nt::effects::generatedMatteSources(*comparison.matte->layer, reference).front().mediaPath, requests.front().mediaPath);
++    }
+     void secondSourceRequests() {
+         nt::Clip clip;
+         clip.mediaPath = "/tmp/fixtures/picture.mp4";
++        clip.generatedMattePath = "/cache/other.mp4";
+         clip.raw = {{"mediaPath", "picture.mp4"},
+                     {"generatedMatte", QJsonObject{{"assetId", "id"},
+                                                    {"mediaPath", "matte.mp4"},
+--- a/native/timeline/tests/tst_serverclient.cpp
++++ b/native/timeline/tests/tst_serverclient.cpp
+@@ -671,13 +671,35 @@
+         QCOMPARE(originalVersion(a), v);
+     }
+
++    void matteReferenceMatchesServerParser() {
++        const QString full = "cccccccccccccccccccccccccccccccc";
++        QCOMPARE(assetIdForReference(full), full);
++        QCOMPARE(assetIdForReference("asset://" + full), full);
++        QVERIFY(assetIdForReference(full.left(12)).isEmpty());
++        QVERIFY(assetIdForReference("asset://" + full.left(12)).isEmpty());
++    }
++    void opensATimelineFromTheServer_data() {
++        QTest::addColumn<QString>("matteReference");
++        QTest::addColumn<bool>("resolves");
++        const QString full = "cccccccccccccccccccccccccccccccc";
++        QTest::newRow("full") << full << true;
++        QTest::newRow("asset-uri") << "asset://" + full << true;
++        QTest::newRow("prefix") << full.left(12) << false;
++        QTest::newRow("asset-uri-prefix") << "asset://" + full.left(12) << false;
++        QTest::newRow("missing") << QString("dddddddddddddddddddddddddddddddd") << false;
++        QTest::newRow("ambiguous") << QString("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee") << false;
++    }
+     void opensATimelineFromTheServer() {
++        QFETCH(QString, matteReference);
++        QFETCH(bool, resolves);
++        const QString kMatte = QStringLiteral("cccccccccccccccccccccccccccccccc");
+         TestHttpServer http;
+         const QByteArray original(3000, 'o');
+         const QByteArray proxy(1000, 'p');
+         for (const QString& id : {kReady, kPending, kFailed, kNone}) {
+             http.setFile(QStringLiteral("/api/storage/1/%1.mp4").arg(id).toLatin1(), ServedFile{original});
+         }
++        http.setFile(QStringLiteral("/api/storage/1/%1.mp4").arg(kMatte).toLatin1(), ServedFile{original});
+         http.setFile(QStringLiteral("/api/storage/1/%1.wav").arg(kAudio).toLatin1(), ServedFile{original});
+         http.setFile(QStringLiteral("/api/storage/1/%1_proxy.mp4").arg(kReady).toLatin1(), ServedFile{proxy});
+         ServedFile pkg{QByteArray(500, 'k')};
+@@ -693,6 +715,11 @@
+                                   QStringLiteral("package://nodetool-base/timelines/demo/still one.jpg")),
+                          clipJson(QStringLiteral("music"), QStringLiteral("audio"), 0, kAudio),
+                          clipJson(QStringLiteral("again"), QStringLiteral("video"), 6000, kReady)};
++        auto readyClip = clips[0].toObject();
++        const QJsonObject matte{{"assetId", matteReference}, {"status", "ready"}, {"strength", 0.4},
++                                {"invert", true}, {"featherPx", 12}, {"unknown", "preserve"}};
++        readyClip.insert("generatedMatte", matte);
++        clips[0] = readyClip;
+         QJsonObject text = clipJson(QStringLiteral("title"), QStringLiteral("text"), 0, QString());
+         text.remove(QStringLiteral("currentAssetId"));
+         clips.append(text);
+@@ -723,10 +750,12 @@
+                     return envelope(assetJson(id, QStringLiteral("video/mp4"), original.size(), QStringLiteral("ready"),
+                                               QStringLiteral("/api/storage/1/%1_proxy.mp4?v=p1").arg(id)));
+                 }
++                if (id == kMatte) return envelope(assetJson(id, QStringLiteral("video/mp4"), original.size(), {}, {}));
+                 if (id == kPending) return envelope(assetJson(id, QStringLiteral("video/mp4"), original.size(), QStringLiteral("queued"), {}));
+                 if (id == kFailed) return envelope(assetJson(id, QStringLiteral("video/mp4"), original.size(), QStringLiteral("failed"), {}));
+                 if (id == kNone) return envelope(assetJson(id, QStringLiteral("video/mp4"), original.size(), QStringLiteral("none"), {}));
+                 if (id == kAudio) return envelope(assetJson(id, QStringLiteral("audio/wav"), original.size(), {}, {}));
++                if (id == QString(32, QLatin1Char('e'))) return trpcError(QStringLiteral("FORBIDDEN"), QStringLiteral("FORBIDDEN"), 403);
+             }
+             return trpcError(QStringLiteral("NOT_FOUND"), QStringLiteral("NOT_FOUND"), 404);
+         });
+@@ -748,6 +777,13 @@
+         auto variantOf = [](const std::string& path) { return QFileInfo(QFileInfo(QString::fromStdString(path)).absolutePath()).fileName(); };
+         QCOMPARE(variantOf(clip("ready").mediaPath), QStringLiteral("proxy"));
+         QCOMPARE(variantOf(clip("ready").audioPath), QStringLiteral("original"));  // a proxy has no audio
++        if (resolves) {
++            QVERIFY(QFileInfo::exists(QString::fromStdString(clip("ready").generatedMattePath)));
++            QCOMPARE(variantOf(clip("ready").generatedMattePath), QStringLiteral("original"));
++        } else {
++            QVERIFY(clip("ready").generatedMattePath.empty());
++        }
++        QCOMPARE(clip("ready").raw.value("generatedMatte").toObject(), matte);
+         QCOMPARE(variantOf(clip("pending").mediaPath), QStringLiteral("original"));
+         QCOMPARE(variantOf(clip("failed").mediaPath), QStringLiteral("original"));
+         QCOMPARE(variantOf(clip("none").mediaPath), QStringLiteral("original"));
+@@ -778,7 +814,7 @@
+         QCOMPARE(report.value(u"fields").toObject().value(u"fields").toObject().value(u"clip.mediaType=text").toObject().value(u"count").toInt(), 1);
+         QVERIFY(QFileInfo::exists(report.value(u"rawDocument").toString()));
+         // Two files for the ready asset, one for each other: the proxy is fetched once for two clips.
+-        QCOMPARE(report.value(u"summary").toObject().value(u"downloads").toInt(), 7);
++        QCOMPARE(report.value(u"summary").toObject().value(u"downloads").toInt(), resolves ? 8 : 7);
+         QCOMPARE(http.countRequests("GET", QStringLiteral("/api/storage/1/%1_proxy.mp4").arg(kReady).toLatin1()), 1);
+
+         // Warm cache: no byte is downloaded again.
+--- a/native/timeline/src/model/hooks/tst_modelhooks.cpp
++++ b/native/timeline/src/model/hooks/tst_modelhooks.cpp
+@@ -1,4 +1,5 @@
+ #include "model/TimelineModel.h"
++#include "model/TimelineJson.h"
+ #include "model/TimelineJson.h"
+ #include "app/EditRegistry.h"
+ #include <QJsonDocument>
+@@ -112,6 +113,43 @@
+         QVERIFY(!noChange.toBool());
+         QVERIFY(!model.applyEdit("missing", {}));
+     }
++    void mattePathSurvivesReparseWithoutChangingDocument() {
++        auto timeline = document();
++        auto clip = droppedClip();
++        clip.insert("generatedMatte", QJsonObject{{"assetId", "cccccccccccccccccccccccccccccccc"}, {"unknown", 42}});
++        timeline.raw.insert("clips", QJsonArray{clip});
++        auto parsed = nt::parseTimelineJson(QJsonDocument(timeline.raw).toJson());
++        QVERIFY(parsed.timeline);
++        parsed.timeline->clips.front().generatedMattePath = "/cache/matte.mp4";
++        TimelineModel model;
++        model.setTimeline(*parsed.timeline);
++        const auto before = model.documentJson();
++        auto edited = model.clipsJson();
++        auto changed = edited[0].toObject();
++        changed.insert("name", "edited");
++        edited[0] = changed;
++        QVERIFY(model.commitEdit("Rename", model.clipsJson(), edited));
++        QCOMPARE(model.timeline().clips.front().generatedMattePath, std::string("/cache/matte.mp4"));
++        model.undoStack()->undo();
++        QCOMPARE(model.documentJson(), before);
++        QCOMPARE(model.timeline().clips.front().generatedMattePath, std::string("/cache/matte.mp4"));
++        auto replacement = model.clipsJson();
++        auto replacementClip = replacement[0].toObject();
++        auto matte = replacementClip.value("generatedMatte").toObject();
++        matte.insert("assetId", "dddddddddddddddddddddddddddddddd");
++        replacementClip.insert("generatedMatte", matte);
++        replacement[0] = replacementClip;
++        QVERIFY(model.commitEdit("Replace matte", model.clipsJson(), replacement));
++        QVERIFY(model.timeline().clips.front().generatedMattePath.empty());
++        const auto replacementDocument = model.documentJson();
++        model.registerMatteMedia("dddddddddddddddddddddddddddddddd", "/cache/second.mp4");
++        QCOMPARE(model.documentJson(), replacementDocument);
++        QCOMPARE(model.timeline().clips.front().generatedMattePath, std::string("/cache/second.mp4"));
++        model.undoStack()->undo();
++        QCOMPARE(model.timeline().clips.front().generatedMattePath, std::string("/cache/matte.mp4"));
++        model.undoStack()->redo();
++        QCOMPARE(model.timeline().clips.front().generatedMattePath, std::string("/cache/second.mp4"));
++    }
+     void registerMediaKeepsHistory() {
+         TimelineModel model;
+         model.setTimeline(document());
+--- a/native/timeline/src/export/tst_exportdialog.cpp
++++ b/native/timeline/src/export/tst_exportdialog.cpp
+@@ -139,6 +139,22 @@
+         QVERIFY(probes > 5);
+     }
+
++    void snapshotKeepsResolvedAssetMatte() {
++        auto parsed = nt::parseTimelineJson(R"({"width":64,"height":64,"fps":30,"tracks":[{"id":"v","type":"video"}],
++            "clips":[{"id":"c","trackId":"v","mediaType":"video","durationMs":1000,
++                "generatedMatte":{"assetId":"cccccccccccccccccccccccccccccccc","unknown":42}}]})");
++        QVERIFY(parsed.timeline);
++        parsed.timeline->clips.front().generatedMattePath = "/cache/matte.mp4";
++        TimelineModel model;
++        model.setTimeline(*parsed.timeline);
++        const auto before = model.documentJson();
++        const auto snapshot = nt::exporting::exportSnapshot(model);
++        const auto matte = snapshot["clips"].toArray().first().toObject()["generatedMatte"].toObject();
++        QCOMPARE(matte["mediaPath"].toString(), QString("/cache/matte.mp4"));
++        QCOMPARE(matte["unknown"].toInt(), 42);
++        QCOMPARE(model.documentJson(), before);
++    }
++
+     void snapshotKeepsRelativeMatte() {
+         const auto parsed = nt::parseTimelineJson(R"({"width":64,"height":64,"fps":30,"tracks":[{"id":"v","type":"video"}],
+             "clips":[{"id":"c","trackId":"v","mediaType":"video","durationMs":1000,"mediaPath":"picture.mp4",
+--- a/native/timeline/src/assets/tst_assetbrowser.cpp
++++ b/native/timeline/src/assets/tst_assetbrowser.cpp
+@@ -1,4 +1,6 @@
+ #include "assets/AssetBrowser.h"
++#include "export/ExportController.h"
++#include "motion/mattes/MatteResolver.h"
+ #include "app/EditRegistry.h"
+ #include "edit/tracks/TrackEdits.h"
+ #include "edit/sourceEdit/SourceViewerState.h"
+@@ -14,6 +16,7 @@
+ #include <QLockFile>
+ #include <QTimer>
+ #include <QTemporaryDir>
++#include <QUrlQuery>
+ #include <QScopeGuard>
+ #include <cstdio>
+ #include <QGuiApplication>
+@@ -37,6 +40,83 @@
+ class TestAssetBrowser : public QObject {
+     Q_OBJECT
+ private slots:
++    void resolvesExistingMatteAfterEdit_data() {
++        QTest::addColumn<QString>("reference");
++        QTest::addColumn<bool>("resolves");
++        QTest::addColumn<int>("browserCount");
++        const QString full = "cccccccccccccccccccccccccccccccc";
++        QTest::newRow("full-no-browser") << full << true << 0;
++        QTest::newRow("full-two-browsers") << full << true << 2;
++        QTest::newRow("asset-uri") << "asset://" + full << true << 0;
++        QTest::newRow("prefix") << full.left(12) << false << 0;
++        QTest::newRow("asset-uri-prefix") << "asset://" + full.left(12) << false << 0;
++        QTest::newRow("missing") << QString("dddddddddddddddddddddddddddddddd") << false << 0;
++        QTest::newRow("ambiguous") << QString("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee") << false << 0;
++    }
++    void resolvesExistingMatteAfterEdit() {
++        QFETCH(QString, reference);
++        QFETCH(bool, resolves);
++        QFETCH(int, browserCount);
++        const QString id = "cccccccccccccccccccccccccccccccc";
++        TestHttpServer http;
++        QVERIFY(http.base().port() != 7777);
++        const QByteArray bytes(1000, 'm');
++        http.setFile("/matte.mp4", ServedFile{bytes});
++        http.setJson([&](const QByteArray& path, const QUrl& url) {
++            if (path != "/trpc/assets.get") { return QByteArray(); }
++            const auto input = QJsonDocument::fromJson(QUrlQuery(url).queryItemValue("input", QUrl::FullyDecoded).toUtf8()).object();
++            if (input.value("id").toString() != id) {
++                const bool ambiguous = input.value("id").toString().startsWith("eeee");
++                const QJsonObject details{{"code", ambiguous ? "CONFLICT" : "NOT_FOUND"},
++                                          {"httpStatus", ambiguous ? 403 : 404}};
++                return QJsonDocument(QJsonObject{{"error", QJsonObject{{"message", "unavailable"},
++                    {"code", -32004}, {"data", details}}}}).toJson(QJsonDocument::Compact);
++            }
++            const QJsonObject asset{{"id", id}, {"get_url", "/matte.mp4"},
++                {"size", bytes.size()}, {"content_type", "video/mp4"}};
++            return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", asset}}}}).toJson(QJsonDocument::Compact);
++        });
++        QTemporaryDir dir;
++        auto parsed = nt::parseTimelineJson(R"({"fps":30,"width":64,"height":64,
++            "tracks":[{"id":"v","type":"video"}],"clips":[{"id":"c","trackId":"v",
++            "mediaType":"video","durationMs":1000}]})");
++        QVERIFY(parsed.timeline);
++        TimelineModel model;
++        model.setTimeline(*parsed.timeline);
++        nt::server::SaveTarget target;
++        target.server = http.base();
++        target.backupDir = dir.filePath("server/user/timelines");
++        nt::motion::MatteResolver resolver(model, target);
++        std::vector<std::unique_ptr<AssetBrowser>> browsers;
++        for (int i = 0; i < browserCount; ++i) {
++            auto browser = std::make_unique<AssetBrowser>();
++            browser->m_target = target;
++            browser->setTimeline(&model);
++            browsers.push_back(std::move(browser));
++        }
++        auto clips = model.clipsJson();
++        auto clip = clips[0].toObject();
++        clip.insert("generatedMatte", QJsonObject{{"assetId", reference}, {"unknown", 42}});
++        clips[0] = clip;
++        QVERIFY(model.commitEdit("Matte", model.clipsJson(), clips));
++        const auto before = model.documentJson();
++        if (resolves) {
++            QTRY_VERIFY_WITH_TIMEOUT(!model.timeline().clips.front().generatedMattePath.empty(), 10000);
++            QVERIFY(QFileInfo::exists(QString::fromStdString(model.timeline().clips.front().generatedMattePath)));
++            const auto snapshot = nt::exporting::exportSnapshot(model);
++            const auto exportedMatte = snapshot.value("clips").toArray()[0].toObject().value("generatedMatte").toObject();
++            QCOMPARE(exportedMatte.value("mediaPath").toString(), QString::fromStdString(model.timeline().clips.front().generatedMattePath));
++            QCOMPARE(exportedMatte.value("assetId").toString(), reference);
++            QCOMPARE(exportedMatte.value("unknown").toInt(), 42);
++        } else {
++            QTRY_VERIFY_WITH_TIMEOUT(http.countRequests("GET", "/trpc/assets.get") > 0 ||
++                reference.endsWith("cccccccccccc"), 10000);
++            QTest::qWait(100);
++            QVERIFY(model.timeline().clips.front().generatedMattePath.empty());
++        }
++        QCOMPARE(model.documentJson(), before);
++        if (resolves) QCOMPARE(http.countRequests("GET", "/trpc/assets.get"), 1);
++    }
+     void sourceViewerResolvesFreshAsset_data() {
+         QTest::addColumn<QString>("kind");
+         QTest::addColumn<QString>("media");

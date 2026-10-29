@@ -1,0 +1,7 @@
+function(nt_motion_wipe_tests)
+    qt_add_executable(tst_motionwipe src/motion/wipe/tst_wipe.cpp)
+    target_link_libraries(tst_motionwipe PRIVATE timeline_core Qt6::Test)
+    add_test(NAME tst_motionwipe COMMAND tst_motionwipe)
+    add_test(NAME motion_wipe_contract COMMAND node --test "${CMAKE_CURRENT_SOURCE_DIR}/src/motion/wipe/oracle.test.mjs")
+endfunction()
+nt_tests(nt_motion_wipe_tests)

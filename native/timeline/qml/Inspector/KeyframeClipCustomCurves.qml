@@ -9,6 +9,48 @@ Column {
     property bool sourceAnchored: false
     readonly property bool baked: custom.code !== undefined
     readonly property var properties: ["offsetX","offsetY","scale","scaleX","scaleY","rotation","rotationX","rotationY","opacity","wipeProgress","blur","brightness","saturation","contrast","hue","temperature","tint","positionX","positionY","anchorX","anchorY","trimStart","trimEnd","cameraAzimuth","cameraElevation","cameraZoom","cameraFov"]
+    function curveError(input) {
+        const data = JSON.parse(JSON.stringify(input === undefined ? custom : input))
+        const curves = data.curves ?? []
+        if (curves.length === 0) return ""
+        const base = data.timeBase
+        if (base !== undefined && base !== null && base !== "clip" && base !== "source")
+            return "timeBase is " + JSON.stringify(base) + "; expected clip or source"
+        if (!Array.isArray(curves)) return "curves must be an array"
+        if (curves.length > 16) return curves.length + " curves; the limit is 16"
+        const seen = new Set()
+        for (let i = 0; i < curves.length; ++i) {
+            const curve = curves[i]
+            if (!curve || typeof curve !== "object" || Array.isArray(curve)) return "curves[" + i + "] is not an object"
+            const property = curve.property
+            if (typeof property !== "string" || !properties.includes(property))
+                return "curves[" + i + "].property is " + JSON.stringify(property) + "; expected one of " + properties.join(", ")
+            const keys = curve.keyframes
+            const prefix = "curves[" + i + "] (" + property + ")"
+            if (!Array.isArray(keys) || keys.length === 0) return prefix + " has no keyframes"
+            if (keys.length > 4096) return prefix + " has " + keys.length + " keyframes; the limit is 4096"
+            for (let k = 0; k < keys.length; ++k) {
+                const key = keys[k]
+                if (!key || typeof key !== "object" || Array.isArray(key) ||
+                    (base !== "source" && (typeof key.t !== "number" || !Number.isFinite(key.t))) ||
+                    typeof key.value !== "number" || !Number.isFinite(key.value))
+                    return prefix + " keyframe " + k + " needs finite numeric " + (base === "source" ? "`sourceMs`" : "`t`") + " and `value`"
+            }
+            if (base === "source") {
+                for (let k = 0; k < keys.length; ++k) {
+                    const ms = keys[k].sourceMs
+                    if (typeof ms !== "number" || !Number.isFinite(ms) || ms < 0)
+                        return prefix + " keyframe " + k + " needs a finite non-negative `sourceMs` — a source-anchored curve is placed by it"
+                    if (k > 0 && ms < keys[k-1].sourceMs)
+                        return prefix + " keyframe " + k + " goes back in the source (" + ms + "ms after " + keys[k-1].sourceMs + "ms) — keyframes must ascend"
+                }
+            }
+            if (seen.has(property)) return "two curves drive \"" + property + "\" — one curve per property"
+            seen.add(property)
+        }
+        return ""
+    }
+    readonly property string validationError: curveError()
     signal change(var custom)
     spacing: Theme.spacingMd
     function setCurves(curves) { change(Object.assign({},custom,{curves:curves})) }
@@ -80,6 +122,15 @@ Column {
                 }
             }
         }
+    }
+    Text {
+        objectName: "customCurveWarning"
+        width: parent.width
+        visible: !root.baked && root.validationError !== ""
+        text: "These curves will not play: " + root.validationError + "."
+        color: Theme.textSecondary
+        font.pixelSize: Theme.fontSizeSmall
+        wrapMode: Text.WordWrap
     }
     Text { width: parent.width; visible: !root.baked; text: "Time (0–1), value, easing. linear, easeIn, easeOut, easeInOut, hold, cubic-bezier(x1,y1,x2,y2), spring(stiffness,damping,mass)"; color: Theme.textSecondary; font.pixelSize: Theme.fontSizeSmall; wrapMode: Text.WordWrap }
     Button {

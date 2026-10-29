@@ -1,0 +1,21 @@
+--- a/native/timeline/src/preview/PreviewCompositor.cpp
++++ b/native/timeline/src/preview/PreviewCompositor.cpp
+@@ -1173,7 +1173,8 @@
+         input.size = m_canvasSize;
+         input.flipV = m_rhi->isYUpInFramebuffer();
+         QMargins outset;
+-        if (!planEffects(input, pc.ext, effects, outset)) { continue; }
++        const auto processed = planEffects(input, pc.ext, effects, outset);
++        if (!processed) { continue; }
+         Surface* composite = effects.empty() ? surface : effects.back().output;
+         // Frame-sized, so only the group's cut moves it; its matrix already
+         // rode into each child.
+@@ -1192,7 +1193,7 @@
+         LayerUniforms u{};
+         writeMatrix(u, corr * model);
+         u.opacity = static_cast<float>(pc.opacity);
+-        u.flipV = !effects.empty() && m_rhi->isYUpInFramebuffer() ? 1.0f : 0.0f;
++        u.flipV = processed->flipV ? 1.0f : 0.0f;
+         u.mode = 0.0f;  // premultiplied RGBA
+         const auto wipe = nt::motion::wipeUniforms(pc.transition ? pc.transition->mask : std::nullopt,
+                                                    m_canvasSize, outset);

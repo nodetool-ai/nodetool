@@ -1,0 +1,452 @@
+diff --git a/native/timeline/src/app/startup/LocalDocumentSaver.cpp b/native/timeline/src/app/startup/LocalDocumentSaver.cpp
+index f22201b..d62e8b7 100644
+--- a/native/timeline/src/app/startup/LocalDocumentSaver.cpp
++++ b/native/timeline/src/app/startup/LocalDocumentSaver.cpp
+@@ -10,6 +10,8 @@ LocalDocumentSaver::LocalDocumentSaver(TimelineModel& model, QString path, int d
+     m_timer.setInterval(debounceMs);
+     const auto schedule = [this] {
+         if (!m_active) { return; }
++        if (!m_model) { return; }
++        m_committedBytes = m_model->documentJson();
+         m_dirty = true;
+         m_timer.start();
+     };
+@@ -35,7 +37,7 @@ bool LocalDocumentSaver::flush() {
+     m_timer.stop();
+     if (!m_active || !m_dirty || !m_model) { return true; }
+     QSaveFile file(m_path);
+-    const auto bytes = m_model->documentJson();
++    const auto& bytes = m_committedBytes;
+     if (!file.open(QIODevice::WriteOnly) || file.write(bytes) != bytes.size() || !file.commit()) {
+         emit saveFailed(QStringLiteral("Cannot save %1: %2").arg(m_path, file.errorString()));
+         return false;
+diff --git a/native/timeline/src/app/startup/LocalDocumentSaver.h b/native/timeline/src/app/startup/LocalDocumentSaver.h
+index bc03029..72c88df 100644
+--- a/native/timeline/src/app/startup/LocalDocumentSaver.h
++++ b/native/timeline/src/app/startup/LocalDocumentSaver.h
+@@ -15,6 +15,7 @@ signals:
+ private:
+     QPointer<TimelineModel> m_model;
+     QString m_path;
++    QByteArray m_committedBytes;
+     QTimer m_timer;
+     bool m_dirty = false;
+     bool m_active = true;
+diff --git a/native/timeline/src/edit/inspectorsections/InspectorEdits.cpp b/native/timeline/src/edit/inspectorsections/InspectorEdits.cpp
+index 944b4f5..d4c7de5 100644
+--- a/native/timeline/src/edit/inspectorsections/InspectorEdits.cpp
++++ b/native/timeline/src/edit/inspectorsections/InspectorEdits.cpp
+@@ -8,6 +8,7 @@ void InspectorEdits::setModel(TimelineModel* model) {
+     if (m_model) { disconnect(m_model, nullptr, this, nullptr); }
+     m_model = model;
+     if (model) {
++        connect(model, &TimelineModel::beforeCommand, this, &InspectorEdits::cancelGesture);
+         connect(model, &TimelineModel::clipsChanged, this, &InspectorEdits::documentChanged);
+         connect(model, &TimelineModel::timelineChanged, this, &InspectorEdits::documentChanged);
+         connect(model, &TimelineModel::documentReplaced, this, [this] {
+diff --git a/native/timeline/src/edit/keyframes/ClipInspectorController.cpp b/native/timeline/src/edit/keyframes/ClipInspectorController.cpp
+index 639471e..e658a62 100644
+--- a/native/timeline/src/edit/keyframes/ClipInspectorController.cpp
++++ b/native/timeline/src/edit/keyframes/ClipInspectorController.cpp
+@@ -14,6 +14,9 @@ void ClipInspectorController::setTimeline(TimelineModel* model) {
+     }
+     m_timeline = model;
+     if (model) {
++        connect(model, &TimelineModel::beforeCommand, this, [this] {
++            if (m_gesturing) { cancelGesture(); m_ignoreCommit = true; }
++        });
+         connect(model, &TimelineModel::clipsChanged, this, &ClipInspectorController::changed);
+         connect(model, &TimelineModel::timelineChanged, this, &ClipInspectorController::changed);
+         connect(model, &TimelineModel::documentReplaced, this, [this] {
+diff --git a/native/timeline/src/edit/transitions/TransitionController.cpp b/native/timeline/src/edit/transitions/TransitionController.cpp
+index 8b06511..19b4ca1 100644
+--- a/native/timeline/src/edit/transitions/TransitionController.cpp
++++ b/native/timeline/src/edit/transitions/TransitionController.cpp
+@@ -10,6 +10,7 @@ void TransitionController::setModel(TimelineModel* model) {
+     m_before = {};
+     m_model = model;
+     if (model) {
++        connect(model, &TimelineModel::beforeCommand, this, &TransitionController::cancelGesture);
+         connect(model, &TimelineModel::clipsChanged, this, &TransitionController::documentChanged);
+         connect(model, &TimelineModel::timelineChanged, this, &TransitionController::documentChanged);
+         connect(model, &TimelineModel::documentReplaced, this, [this] { m_before = {}; });
+@@ -39,27 +40,43 @@ bool TransitionController::apply(const QString& action, const QJsonObject& paylo
+ }
+ void TransitionController::beginGesture(const QString& action, const QJsonObject& payload) {
+     if (!m_model) { return; }
++    m_cancelled = false;
+     m_before = QJsonDocument::fromJson(m_model->documentJson()).object();
++    m_lastPreview = m_model->clipsJson();
+     m_generation = m_model->documentGeneration(); m_action = action; m_payload = withSourceCaps(payload); m_gesture = true;
+ }
+ void TransitionController::preview(const QJsonObject& payload) {
+     if (!m_gesture || !m_model || m_before.isEmpty() || m_generation != m_model->documentGeneration()) { return; }
++    if (m_lastPreview != m_model->clipsJson()) { m_gesture = false; m_cancelled = true; return; }
+     auto merged = m_payload;
+     // Keep the gesture attached to the clip selected on press.
+     for (const auto& key : {QString("durationMs"), QString("patch")}) {
+         if (payload.contains(key)) { merged.insert(key, payload.value(key)); }
+     }
+     const auto edit = nt::app::findEdit(m_action);
+-    if (edit) { m_model->replaceClips(edit(m_before, merged).value("clips").toArray()); }
++    if (edit) { m_lastPreview = edit(m_before, merged).value("clips").toArray(); m_model->replaceClips(m_lastPreview); }
+ }
+ void TransitionController::commit(const QString& action, const QJsonObject& payload) {
++    if (m_cancelled) { m_cancelled = false; return; }
+     if (!m_gesture) { apply(action, payload); return; }
+     if (m_model && !m_before.isEmpty() && m_generation == m_model->documentGeneration()) {
+         preview(payload);
++        if (!m_gesture) { return; }
++        m_gesture = false;
+         m_model->commitEdit(m_action, m_before.value("clips").toArray(), m_model->clipsJson());
+     }
+     m_gesture = false; m_before = {};
+ }
++void TransitionController::cancelGesture() {
++    if (!m_gesture) { return; }
++    m_gesture = false;
++    m_cancelled = true;
++    if (m_model && m_generation == m_model->documentGeneration() && m_lastPreview == m_model->clipsJson()) {
++        m_model->replaceClips(m_before.value("clips").toArray());
++    }
++    m_before = {};
++    m_lastPreview = {};
++}
+ bool TransitionController::easingReadable(const QString& value) const {
+     return nt::scene::isKnownEasing(value.toStdString());
+ }
+diff --git a/native/timeline/src/edit/transitions/TransitionController.h b/native/timeline/src/edit/transitions/TransitionController.h
+index 4191ad8..6c9fe7e 100644
+--- a/native/timeline/src/edit/transitions/TransitionController.h
++++ b/native/timeline/src/edit/transitions/TransitionController.h
+@@ -24,9 +24,12 @@ signals:
+ private:
+     QJsonObject withSourceCaps(QJsonObject payload) const;
+     QPointer<TimelineModel> m_model;
++    void cancelGesture();
++    QJsonArray m_lastPreview;
+     QJsonObject m_before;
+     QJsonObject m_payload;
+     QString m_action;
+     quint64 m_generation = 0;
+     bool m_gesture = false;
++    bool m_cancelled = false;
+ };
+diff --git a/native/timeline/src/model/TimelineModel.cpp b/native/timeline/src/model/TimelineModel.cpp
+index 991a572..32be4e6 100644
+--- a/native/timeline/src/model/TimelineModel.cpp
++++ b/native/timeline/src/model/TimelineModel.cpp
+@@ -1,3 +1,4 @@
++#include "motion/gesture/ClipDelta.h"
+ #include "model/TimelineModel.h"
+
+ #include "model/TimelineJson.h"
+@@ -178,11 +179,21 @@ bool TimelineModel::replaceClips(const QJsonArray& clips) {
+
+ quint64 TimelineModel::commitEdit(const QString& text, const QJsonArray& before, const QJsonArray& after, int mergeId,
+                                bool continuation) {
+-    if (before == after) return false;
++    const QJsonArray savedBefore = before;
++    const QJsonArray savedAfter = after;
++    if (savedBefore == savedAfter) return false;
++    const auto liveBefore = clipsJson();
++    emit beforeCommand();
++    const auto restored = clipsJson();
++    // An external command may have been computed against a transient preview.
++    // Apply only its observable changes to the restored committed clips.
++    const auto commandBefore = liveBefore == restored ? savedBefore : restored;
++    const auto commandAfter = liveBefore == restored ? savedAfter : nt::motion::rebaseClipDelta(restored, savedBefore, savedAfter);
++    if (commandBefore == commandAfter) return false;
+     auto beforeDocument = m_timeline->raw;
+-    beforeDocument.insert("clips", before);
++    beforeDocument.insert("clips", commandBefore);
+     auto afterDocument = m_timeline->raw;
+-    afterDocument.insert("clips", after);
++    afterDocument.insert("clips", commandAfter);
+     const auto token = nextCommandToken();
+     auto command = std::make_unique<DocumentCommand>(text, std::move(beforeDocument), std::move(afterDocument),
+         [this](const QJsonObject& raw) { replaceDocument(raw); }, token, mergeId, continuation);
+@@ -210,7 +221,9 @@ QVariantList TimelineModel::markers() const {
+     return markersJson().toVariantList();
+ }
+
+-bool TimelineModel::replaceMarkers(const QJsonArray& markers) {
++bool TimelineModel::replaceMarkers(const QJsonArray& incoming) {
++    const QJsonArray markers = incoming;
++    emit beforeCommand();
+     if (markers == markersJson()) return false;
+     nt::Timeline next = *m_timeline;
+     next.raw.insert(QStringLiteral("markers"), markers);
+@@ -257,54 +270,62 @@ quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload
+     if (!edit) {
+         return false;
+     }
+-    const auto before = m_timeline->raw;
+-    const auto after = edit(before, payload);
+-    if (before == after) {
+-        return false;
+-    }
+-    auto beforeFields = before;
+-    auto afterFields = after;
+-    beforeFields.remove("clips");
+-    afterFields.remove("clips");
+-    if (beforeFields == afterFields) {
+-        if (!after.value("clips").isArray()) {
+-            return false;
+-        }
+-        QHash<QString, QJsonObject> existing;
+-        existing.reserve(static_cast<int>(m_timeline->clips.size()));
+-        for (const auto& clip : m_timeline->clips) {
+-            existing.insert(QString::fromStdString(clip.id), clip.raw);
+-        }
+-        QJsonArray changed;
+-        for (const auto& value : after.value("clips").toArray()) {
+-            if (!value.isObject()) {
+-                return false;
+-            }
+-            const auto clip = value.toObject();
+-            if (existing.value(clip.value("id").toString()) != clip) {
+-                changed.append(clip);
+-            }
+-        }
+-        if (!changed.isEmpty()) {
+-            auto part = after;
+-            part.insert("clips", changed);
+-            const auto parsed = nt::parseTimelineJson(QJsonDocument(part).toJson(QJsonDocument::Compact));
+-            if (!parsed.timeline || parsed.timeline->clips.size() != static_cast<size_t>(changed.size())) {
+-                return false;
+-            }
+-        }
+-    } else {
+-        beforeFields = before;
+-        afterFields = after;
+-        beforeFields.remove("markers");
+-        afterFields.remove("markers");
++    const auto valid = [this](const QJsonObject& before, const QJsonObject& after) {
++        auto beforeFields = before;
++        auto afterFields = after;
++        beforeFields.remove("clips");
++        afterFields.remove("clips");
+         if (beforeFields == afterFields) {
+-            if (!after.value("markers").isArray()) {
++            if (!after.value("clips").isArray()) {
++                return false;
++            }
++            QHash<QString, QJsonObject> existing;
++            existing.reserve(static_cast<int>(m_timeline->clips.size()));
++            for (const auto& clip : m_timeline->clips) {
++                existing.insert(QString::fromStdString(clip.id), clip.raw);
++            }
++            QJsonArray changed;
++            for (const auto& value : after.value("clips").toArray()) {
++                if (!value.isObject()) {
++                    return false;
++                }
++                const auto clip = value.toObject();
++                if (existing.value(clip.value("id").toString()) != clip) {
++                    changed.append(clip);
++                }
++            }
++            if (!changed.isEmpty()) {
++                auto part = after;
++                part.insert("clips", changed);
++                const auto parsed = nt::parseTimelineJson(QJsonDocument(part).toJson(QJsonDocument::Compact));
++                if (!parsed.timeline || parsed.timeline->clips.size() != static_cast<size_t>(changed.size())) {
++                    return false;
++                }
++            }
++        } else {
++            beforeFields = before;
++            afterFields = after;
++            beforeFields.remove("markers");
++            afterFields.remove("markers");
++            if (beforeFields == afterFields) {
++                if (!after.value("markers").isArray()) {
++                    return false;
++                }
++            } else if (!nt::parseTimelineJson(QJsonDocument(after).toJson(QJsonDocument::Compact)).timeline) {
+                 return false;
+             }
+-        } else if (!nt::parseTimelineJson(QJsonDocument(after).toJson(QJsonDocument::Compact)).timeline) {
+-            return false;
+         }
++        return true;
++    };
++    auto before = m_timeline->raw;
++    auto after = edit(before, payload);
++    if (before == after || !valid(before, after)) { return false; }
++    emit beforeCommand();
++    const auto restored = m_timeline->raw;
++    if (restored != before) {
++        before = restored;
++        after = edit(before, payload);
++        if (before == after || !valid(before, after)) { return false; }
+     }
+     const auto token = nextCommandToken();
+     auto command = std::make_unique<DocumentCommand>(name, before, after,
+@@ -313,7 +334,9 @@ quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload
+     return token;
+ }
+
+-bool TimelineModel::replaceDocument(const QJsonObject& raw) {
++bool TimelineModel::replaceDocument(const QJsonObject& incoming) {
++    const QJsonObject raw = incoming;
++    emit beforeCommand();
+     if (raw == m_timeline->raw) {
+         return false;
+     }
+@@ -382,7 +405,13 @@ void TimelineModel::registerMedia(const nt::Clip& media) {
+ }
+
+ bool TimelineModel::settleDocument(const QJsonObject& document) {
+-    if (!replaceDocument(document)) { return false; }
++    if (!nt::parseTimelineJson(QJsonDocument(document).toJson(QJsonDocument::Compact)).timeline) { return false; }
++    const auto before = m_timeline->raw;
++    const QJsonObject incoming = document;
++    emit beforeCommand();
++    const auto restored = m_timeline->raw;
++    const auto after = before == restored ? incoming : nt::motion::rebaseDocumentDelta(restored, before, incoming);
++    if (!replaceDocument(after)) { return false; }
+     emit commandSettled();
+     return true;
+ }
+@@ -396,9 +425,20 @@ bool TimelineModel::settleCommand(quint64 token, const QJsonObject& document) {
+         if (!nt::parseTimelineJson(QJsonDocument(document).toJson(QJsonDocument::Compact)).timeline) {
+             return false;
+         }
++        QJsonObject settled = document;
++        const bool current = m_undo->index() == i + 1;
++        if (current) {
++            const auto before = m_timeline->raw;
++            emit beforeCommand();
++            const auto restored = m_timeline->raw;
++            if (before != restored) { settled = nt::motion::rebaseDocumentDelta(restored, before, settled); }
++        }
++        if (!nt::parseTimelineJson(QJsonDocument(settled).toJson(QJsonDocument::Compact)).timeline) {
++            return false;
++        }
+         // QUndoStack exposes commands as const, but owns the mutable command.
+-        const_cast<DocumentCommand*>(command)->settle(document);
+-        if (m_undo->index() == i + 1 && replaceDocument(document)) { emit commandSettled(); }
++        const_cast<DocumentCommand*>(command)->settle(settled);
++        if (current && replaceDocument(settled)) { emit commandSettled(); }
+         return true;
+     }
+     return false;
+diff --git a/native/timeline/src/model/TimelineModel.h b/native/timeline/src/model/TimelineModel.h
+index 0104c0e..355e735 100644
+--- a/native/timeline/src/model/TimelineModel.h
++++ b/native/timeline/src/model/TimelineModel.h
+@@ -96,6 +96,7 @@ public:
+     Q_INVOKABLE bool deleteMarker(const QString& markerId);
+
+ signals:
++    void beforeCommand();
+     void timelineChanged();
+     void commandSettled();
+     // The clips changed: an edit, or a new document (then the tracks reset too).
+diff --git a/native/timeline/src/preview/crop/ReframeController.cpp b/native/timeline/src/preview/crop/ReframeController.cpp
+index 81b1d75..f4fb851 100644
+--- a/native/timeline/src/preview/crop/ReframeController.cpp
++++ b/native/timeline/src/preview/crop/ReframeController.cpp
+@@ -17,6 +17,7 @@ void ReframeController::setModel(TimelineModel* model) {
+     }
+     m_model = model;
+     if (model) {
++        connect(model, &TimelineModel::beforeCommand, this, &ReframeController::cancelGesture);
+         connect(model, &TimelineModel::clipsChanged, this, &ReframeController::documentChanged);
+         connect(model, &TimelineModel::timelineChanged, this, &ReframeController::documentChanged);
+         connect(model, &TimelineModel::documentReplaced, this, [this] { m_before = {}; });
+@@ -36,7 +37,9 @@ void ReframeController::beginGesture(const QString& action, const QJsonObject& p
+     if (!m_model) {
+         return;
+     }
++    m_cancelled = false;
+     m_before = QJsonDocument::fromJson(m_model->documentJson()).object();
++    m_lastPreview = m_model->clipsJson();
+     m_payload = payload;
+     m_generation = m_model->documentGeneration();
+     m_action = action;
+@@ -46,6 +49,7 @@ void ReframeController::preview(const QJsonObject& payload) {
+     if (!m_model || !m_gesture || m_before.isEmpty() || m_generation != m_model->documentGeneration()) {
+         return;
+     }
++    if (m_lastPreview != m_model->clipsJson()) { m_gesture = false; m_cancelled = true; return; }
+     // The clip, crop edge and source time belong to the gesture's start.
+     for (const auto& key : {"value", "x", "y", "zoom"}) {
+         if (payload.contains(key)) {
+@@ -54,10 +58,12 @@ void ReframeController::preview(const QJsonObject& payload) {
+     }
+     const auto edit = nt::app::findEdit(m_action);
+     if (edit) {
+-        m_model->replaceClips(edit(m_before, m_payload).value("clips").toArray());
++        m_lastPreview = edit(m_before, m_payload).value("clips").toArray();
++        m_model->replaceClips(m_lastPreview);
+     }
+ }
+ void ReframeController::commit(const QString& action, const QJsonObject& payload) {
++    if (m_cancelled) { m_cancelled = false; return; }
+     if (!m_gesture) {
+         apply(action, payload);
+         return;
+@@ -75,6 +81,16 @@ void ReframeController::finishGesture() {
+         m_model->commitEdit(m_action, before.value("clips").toArray(), m_model->clipsJson());
+     }
+ }
++void ReframeController::cancelGesture() {
++    if (!m_gesture) { return; }
++    m_gesture = false;
++    m_cancelled = true;
++    if (m_model && m_generation == m_model->documentGeneration() && m_lastPreview == m_model->clipsJson()) {
++        m_model->replaceClips(m_before.value("clips").toArray());
++    }
++    m_before = {};
++    m_lastPreview = {};
++}
+ double ReframeController::sourceMsAt(const QString& clipId, double timeMs) const {
+     if (m_model) {
+         for (const auto& clip : m_model->timeline().clips) {
+diff --git a/native/timeline/src/preview/crop/ReframeController.h b/native/timeline/src/preview/crop/ReframeController.h
+index e10f42f..e3af0ee 100644
+--- a/native/timeline/src/preview/crop/ReframeController.h
++++ b/native/timeline/src/preview/crop/ReframeController.h
+@@ -26,9 +26,12 @@ class ReframeController : public QObject {
+
+   private:
+     QPointer<TimelineModel> m_model;
++    void cancelGesture();
++    QJsonArray m_lastPreview;
+     QJsonObject m_before;
+     QJsonObject m_payload;
+     QString m_action;
+     quint64 m_generation = 0;
+     bool m_gesture = false;
++    bool m_cancelled = false;
+ };
+diff --git a/native/timeline/src/preview/gizmo/TransformGizmoController.cpp b/native/timeline/src/preview/gizmo/TransformGizmoController.cpp
+index d99a879..23baa51 100644
+--- a/native/timeline/src/preview/gizmo/TransformGizmoController.cpp
++++ b/native/timeline/src/preview/gizmo/TransformGizmoController.cpp
+@@ -55,6 +55,7 @@ void TransformGizmoController::setTimeline(TimelineModel* value) {
+     m_dimensions.clear();
+     m_probing.clear();
+     if (value) {
++        connect(value, &TimelineModel::beforeCommand, this, &TransformGizmoController::cancel);
+         connect(value, &TimelineModel::clipsChanged, this, [this]() {
+             // Another edit owns the document now. Never restore a stale gesture over it.
+             if (m_drag && !m_writing && m_timeline->clipsJson() != m_lastPreview) { m_drag.reset(); }
+diff --git a/native/timeline/src/motion/gesture/module.cmake b/native/timeline/src/motion/gesture/module.cmake
+--- a/native/timeline/src/motion/gesture/module.cmake
++++ b/native/timeline/src/motion/gesture/module.cmake
+@@ -12,9 +12,11 @@
+     target_link_libraries(tst_previewmodel PRIVATE timeline_core Qt6::Gui Qt6::Qml Qt6::Test)
+     add_test(NAME tst_previewmodel COMMAND tst_previewmodel)
+ endfunction()
++nt_tests(nt_preview_model_tests)
+ function(nt_preview_concurrent_ui_tests)
+     target_sources(tst_followpathui PRIVATE src/preview/crop/ReframeRegistrations.cpp src/edit/transitions/TransitionRegistrations.cpp)
+     add_test(NAME tst_previewconcurrent COMMAND $<TARGET_FILE:tst_followpathui>
+         -input ${CMAKE_CURRENT_SOURCE_DIR}/src/motion/blurcontrols/concurrentqmltests)
+     set_tests_properties(tst_previewconcurrent PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+ endfunction()
++nt_tests(nt_preview_concurrent_ui_tests)

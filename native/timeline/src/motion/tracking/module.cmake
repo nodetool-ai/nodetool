@@ -1,0 +1,16 @@
+function(nt_tracking_tests)
+    qt_add_executable(tst_tracking src/motion/tracking/tst_tracking.cpp)
+    target_link_libraries(tst_tracking PRIVATE timeline_core Qt6::Test)
+    add_test(NAME tst_tracking COMMAND tst_tracking)
+    add_test(NAME tracking_oracle COMMAND node "${CMAKE_CURRENT_SOURCE_DIR}/src/motion/tracking/oracle.mjs" $<TARGET_FILE:tst_tracking>)
+endfunction()
+nt_sources(qml_resources src/motion/tracking/TrackBinding.qml)
+function(nt_tracking_ui_tests)
+    add_test(NAME tracking_ui COMMAND tst_followpathui -input ${CMAKE_CURRENT_SOURCE_DIR}/src/motion/tracking/qmltests)
+    set_tests_properties(tracking_ui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endfunction()
+function(nt_tracking_reference_tests)
+    add_test(NAME tracking_reference_contract COMMAND node --import "${CMAKE_CURRENT_SOURCE_DIR}/../../node_modules/tsx/dist/loader.mjs"
+        "${CMAKE_CURRENT_SOURCE_DIR}/src/motion/tracking/reference-contract.mjs"
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../packages/cli/src/timeline-debug/target.ts")
+endfunction()

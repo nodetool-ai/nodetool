@@ -7,6 +7,7 @@ import { execFileSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { assertImportedTreatments } from '../pixels/oracle.mjs';
 import { comparePairs } from '../../render2d/check-example-stills.mjs';
+import { prepareReferenceCli, importReference, cleanupReferenceCli } from '../tracking/reference.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const repo = path.resolve(root, '../..');
@@ -46,22 +47,22 @@ export function assertPreserved(original, resolved) {
   assert(inspected > 0, 'must inspect shipped clips');
   assert.deepEqual(resolved, expected, 'only local mediaPath additions are allowed');
 }
+function referenceCli(directory) {
+  const modules = path.join(directory, 'node_modules');
+  if (!fs.existsSync(modules)) {
+    fs.symlinkSync(path.join(repo, 'node_modules'), modules, 'dir');
+  }
+  return prepareReferenceCli(directory);
+}
 export function importGolden(file, frames, output, directory) {
-  const importer = path.join(directory, 'golden-import.mjs');
-  const source = fs.readFileSync(path.join(root, 'scripts/golden-import.mjs'), 'utf8');
-  const rootLine = 'const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");';
-  const storeLine = 'const store = path.join(root, "build", "golden", "store");';
-  assert.equal(source.split(rootLine).length, 2, 'golden importer root hook must match once');
-  assert.equal(source.split(storeLine).length, 2, 'golden importer store hook must match once');
-  fs.writeFileSync(importer, source.replace(rootLine, `const root = ${JSON.stringify(root)};`)
-    .replace(storeLine, `const store = ${JSON.stringify(path.join(directory, 'store'))};`));
+  const cli = referenceCli(directory);
   try {
-    return execFileSync(process.execPath, [importer, file, '--frames', frames.join(','), '--out', output],
-      { stdio: 'pipe', timeout: 240000 });
+    return importReference(file, frames, output, directory, cli);
   } finally {
-    fs.rmSync(importer, { force: true });
+    cleanupReferenceCli(cli);
   }
 }
+
 export function main(argv) {
   const bin = path.resolve(argv[0] ?? path.join(root, 'build-f11/nodetool-timeline'));
   const binarySha256 = createHash('sha256').update(fs.readFileSync(bin)).digest('hex');
@@ -89,10 +90,16 @@ export function main(argv) {
         fs.mkdirSync(web);
         const home = path.join(directory, 'home');
         fs.mkdirSync(home);
-        const stdout = execFileSync(process.execPath, [path.join(repo, 'node_modules/tsx/dist/cli.mjs'),
-          path.join(repo, 'packages/cli/src/nodetool.ts'), 'timeline', 'render', file, '--stills', '--frames', frames.join(','),
-          '--out', path.join(web, 'stills'), '--json'], { encoding: 'utf8', timeout: 240000, stdio: ['ignore', 'pipe', 'pipe'],
-          env: { ...process.env, HOME: home, DB_PATH: path.join(home, 'nodetool.sqlite3'), ASSET_FOLDER: path.join(home, 'assets') } });
+        const cli = referenceCli(directory);
+        let stdout;
+        try {
+          stdout = execFileSync(process.execPath, ['--conditions=nodetool-dev', '--import', path.join(repo, 'node_modules/tsx/dist/loader.mjs'),
+            cli, 'timeline', 'render', file, '--stills', '--frames', frames.join(','),
+            '--out', path.join(web, 'stills'), '--json'], { encoding: 'utf8', timeout: 240000, stdio: ['ignore', 'pipe', 'pipe'],
+            env: { ...process.env, HOME: home, DB_PATH: path.join(home, 'nodetool.sqlite3'), ASSET_FOLDER: path.join(home, 'assets') } });
+        } finally {
+          cleanupReferenceCli(cli);
+        }
         const summary = JSON.parse(stdout.slice(stdout.indexOf('{')));
         assert.deepEqual(summary.skippedClips, []);
         assert.deepEqual(summary.fontsUnavailable, []);
