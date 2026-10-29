@@ -16,6 +16,10 @@
 #include <algorithm>
 #include <cmath>
 
+extern "C" {
+#include <libavformat/avio.h>
+}
+
 using namespace nt;
 
 namespace {
@@ -103,6 +107,8 @@ private slots:
     }
 
     void decoderDestructorInterruptsBlockedIo() {
+        // The LGPL FFmpeg that CI builds has --disable-network: no tcp:// to block on.
+        if (!avio_find_protocol_name("tcp://127.0.0.1:1")) QSKIP("FFmpeg has no tcp protocol");
         StalledServer server;
         auto decoder = std::make_unique<FfmpegDecoder>(server.url(), 0.0);
         QThread::msleep(300);  // the worker is now blocked reading the socket
