@@ -17,16 +17,22 @@ Item {
         preferences: settingsStore
         anchor: shell
         keyboardPreset: settingsStore.keyboardLayout
-        onSettingsRequested: preferencesDialog.open()
+        onSettingsRequested: { if (!providerDialog.visible) preferencesDialog.open() }
     }
     Shortcut {
         sequence: "Ctrl+,"
         context: Qt.WindowShortcut
+        enabled: !providerDialog.visible
         onActivated: preferencesDialog.open()
     }
     PreferencesDialog {
         id: preferencesDialog
         preferences: settingsStore
+        onProvidersRequested: { preferencesDialog.close(); providerDialog.open() }
+        onClosed: { if (!providerDialog.visible) bridge.restoreEditorFocus() }
+    }
+    ProviderSettingsDialog {
+        id: providerDialog
         onClosed: bridge.restoreEditorFocus()
     }
     Component.onCompleted: bridge.bind()

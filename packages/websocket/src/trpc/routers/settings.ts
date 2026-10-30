@@ -17,13 +17,17 @@ import {
   getStorageStatus,
   clearSecretCache,
   isOnePasswordReference,
-  resolveUserSecretValue
+  resolveUserSecretValue,
+  getSecret
 } from "@nodetool-ai/models";
 import type { Secret as SecretModel } from "@nodetool-ai/models";
 import {
   clearProviderCache,
   checkCredential,
-  readCredentialEnv
+  readCredentialEnv,
+  getRegisteredProvider,
+  listRegisteredProviderIds,
+  isProviderConfigured
 } from "@nodetool-ai/runtime";
 import { ApiErrorCode } from "../../error-codes.js";
 import { onePasswordRouter } from "./onepassword.js";
@@ -31,7 +35,7 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { settingCatalog } from "@nodetool-ai/config";
-import { isCloudSettingGroup } from "@nodetool-ai/protocol";
+import { isCloudProvider, isCloudSettingGroup, isCustomProviderId } from "@nodetool-ai/protocol";
 import { isCloudProfile } from "../../lib/cloud-profile.js";
 import type { SettingWithValue } from "../../settings-registry.js";
 import {
@@ -278,6 +282,44 @@ const historyRouter = router({
 // ── Root settings router ───────────────────────────────────────────
 
 export const settingsRouter = router({
+  /** Configuration keys accepted by each registered provider, never their values. */
+  providerCatalog: protectedProcedure
+    .output(z.array(
+      z.object({
+        provider: z.string(),
+        name: z.string(),
+        configured: z.boolean(),
+        keys: z.array(z.string())
+      })
+    ))
+    .query(async ({ ctx }) => {
+      const cloud = isCloudProfile();
+      const visibleKeys = new Set(
+        settingCatalog()
+          .filter((definition) => !cloud || isCloudSettingGroup(definition.group))
+          .map((definition) => definition.envVar)
+      );
+      const providers = [];
+      for (const provider of listRegisteredProviderIds()) {
+        const registration = getRegisteredProvider(provider);
+        if (!registration || isCustomProviderId(provider) || (cloud && !isCloudProvider(provider))) {
+          continue;
+        }
+        const keys = [...new Set([
+          ...Object.keys(registration.kwargs),
+          ...Object.keys(registration.optionalKwargs)
+        ])].filter((key) => visibleKeys.has(key));
+        providers.push({
+          provider,
+          name: registration.metadata.displayName,
+          configured: await isProviderConfigured(provider, (key) =>
+            getSecret(key, ctx.userId)),
+          keys
+        });
+      }
+      return providers;
+    }),
+
   list: protectedProcedure.output(listOutput).query(async ({ ctx }) => {
     const userSettings = await Setting.listForUser(ctx.userId);
     const settingsMap = new Map(userSettings.map((s) => [s.key, s.value]));
