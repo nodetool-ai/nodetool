@@ -56,14 +56,25 @@ the deployed xcb platform plugin. The installation includes the OpenSSL TLS
 backend and font licenses. This smoke used the installed executable rather
 than the build-tree executable.
 
-Repository typecheck, lint, agent-document checks, the harness registry tests,
-and the harness gate passed. The broad `test:affected` run failed in the
-existing game-runtime benchmark fixture with a 20 ms script-call budget
-overrun. A focused rerun of that fixture passed. Repeating the broad run
-reported another script-call budget overrun, so the aggregate check remains
-blocked. No game-runtime code was changed.
+The visual layout follows the web
+[thread styles](../../../web/src/components/chat/thread/ChatThreadView.styles.ts)
+and [composer styles](../../../web/src/components/chat/composer/MediaChatComposer.styles.ts).
+QML regressions cover the centered conversation/composer column, wrapping copy
+actions, keyboard focus through the model popup, narrow navigation, and selected
+text contrast. Synthetic multi-turn Markdown and code captures were inspected
+in the standalone app and timeline dock, including narrow layouts.
+
+Repository typecheck, lint, and the harness gate passed for the visual changes.
+The aggregate `test:affected` run failed on the 60-second timeouts in
+`packages/agents/tests/js-sandbox-engine.test.ts` and
+`packages/agents/tests/js-sandbox-worker-engine.test.ts`. The earlier
+game-runtime script-call budget failure did not recur. No agent or game-runtime
+code was changed. A focused rerun passed the worker-engine file but still timed
+out in the shared engine file. The aggregate check has not passed.
 Repository checks used the Node version in [`.nvmrc`](../../../.nvmrc), with
-`lsof` on `PATH` and temporary files outside the ignored build directory.
+`lsof` on `PATH` and temporary files on the home filesystem. The `/tmp` quota
+caused copy and migration failures before that rerun. One native transport mock
+run timed out waiting for a message. The complete native check passed on rerun.
 
 ## Timeline integration
 
@@ -90,6 +101,8 @@ failed as expected.
 The Linux timeline capture used Vulkan on llvmpipe. OpenGL under Xvfb failed
 context initialization on this host. These are functional checks and do not
 establish GPU performance.
+The visual-parity capture used explicit Xvfb display allocation after automatic
+display selection failed before Qt could connect.
 
 The original unbounded long-message rendering blocked the GUI during this
 benchmark. Message rendering now pages long text into bounded sections with
