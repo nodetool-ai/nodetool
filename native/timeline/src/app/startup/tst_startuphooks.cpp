@@ -23,7 +23,7 @@ private slots:
         QVERIFY(saver.flush());
         { QFile file(path); QVERIFY(file.open(QIODevice::ReadOnly)); QCOMPARE(file.readAll(), initial); }
         model.addMarker(12, "edit");
-        QTest::qWait(20);
+        QTRY_VERIFY_WITH_TIMEOUT(nt::loadTimelineFile(path).timeline->raw == model.timeline().raw, 2000);
         auto saved = nt::loadTimelineFile(path);
         QVERIFY(saved.timeline);
         QVERIFY2(saved.timeline->raw == model.timeline().raw, "local file must contain the edited document");
