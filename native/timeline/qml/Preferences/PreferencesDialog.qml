@@ -6,6 +6,7 @@ Dialog {
     id: sheet
     objectName: "preferencesDialog"
     required property Preferences preferences
+    signal providersRequested()
     title: "Settings"
     anchors.centerIn: parent
     width: Math.min(parent.width - Theme.spacingXl * 2, Theme.trackHeaderWidth * 2)
@@ -25,6 +26,15 @@ Dialog {
     }
     contentItem: Column {
         spacing: Theme.spacingMd
+        Button {
+            objectName: "openProviderSettings"
+            text: "Providers…"
+            font.family: Theme.sansFamily
+            font.pixelSize: Theme.fontSizeSmall
+            palette.button: Theme.backgroundDefault
+            palette.buttonText: Theme.textPrimary
+            onClicked: sheet.providersRequested()
+        }
         InspectorSection {
             title: "Preferences"
             width: parent.width
