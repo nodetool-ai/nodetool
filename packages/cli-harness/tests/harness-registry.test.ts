@@ -382,6 +382,16 @@ describe("docs pointers resolve", () => {
 });
 
 describe("harness gate", () => {
+  it("reports native chat verification as manual work requiring Qt", () => {
+    const plan = planGate(["native/chat/src/runtime/ChatSession.cpp"]);
+    expect(plan.surfaces.map((surface) => surface.id)).toEqual(["native-chat"]);
+    expect(plan.manual.map((entry) => entry.harnessId)).toEqual(["native-chat"]);
+    expect(plan.unmappedFiles).toEqual([]);
+    expect(plan.checks).toEqual([]);
+    expect(HARNESSES.find((entry) => entry.id === "native-chat")?.command)
+      .toBe("node native/chat/scripts/check.mjs");
+  });
+
   it("maps a kernel change to workflow-execution selfchecks", () => {
     const plan = planGate(["packages/kernel/src/runner.ts"]);
     expect(plan.surfaces.map((s) => s.id)).toEqual(["workflow-execution"]);

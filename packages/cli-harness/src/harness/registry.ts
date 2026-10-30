@@ -1313,6 +1313,14 @@ export const HARNESSES: HarnessEntry[] = [
       cost: "cheap"
     }
   },
+  {
+    id: "native-chat",
+    title: "Native chat model, wire conformance and Qt Quick interactions",
+    command: "node native/chat/scripts/check.mjs",
+    kind: "execution",
+    capabilities: ["no-db", "interact"],
+    docs: "native/chat/README.md"
+  },
   // The native timeline prototype (native/timeline/) needs Qt 6.12 and FFmpeg,
   // which CI does not install, so none of these has a selfcheck: the gate
   // lists them as manual work for a change under native/timeline/.
@@ -2437,6 +2445,16 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/cli-harness/tests/capability-coverage.test.ts",
       "scripts/sync-capability-coverage.mjs"
     ]
+  },
+  {
+    id: "native-chat",
+    title: "Native chat component (C++/Qt Quick)",
+    harnesses: ["native-chat"],
+    paths: ["native/chat/"],
+    gap:
+      "The native check requires Qt development libraries and CMake, which CI does not install. " +
+      "Run the registered check on a Qt-equipped machine. Installed-artifact, accessibility " +
+      "and IME checks remain platform-specific."
   },
   {
     id: "native-timeline",
