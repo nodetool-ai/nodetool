@@ -52,6 +52,9 @@ describe("minimal dependency guard", () => {
     writeFileSync(join(external, "index.js"), 'import "webgpu"; export const ready = true;');
     expect(() => inspectMinimalTree([root, external])).toThrow("Forbidden minimal dependency webgpu");
   });
+  it.each(["@hyzyla/pdfium", "@nodetool-ai/asset-services", "@nodetool-ai/document-services"])("rejects actual optional document processing edge %s", name => {
+    expect(() => inspectMinimalTree([fixture({ "index.d.ts": `export type Document = import("${name}").Document;` })])).toThrow(name);
+  });
   it("checks declaration type reference directives", () => {
     expect(() => inspectMinimalTree([fixture({ "index.d.ts": '/// <reference types="@nodetool-ai/browser" />\nexport {};' })])).toThrow("Forbidden");
   });

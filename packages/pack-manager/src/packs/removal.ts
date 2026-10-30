@@ -55,9 +55,13 @@ export async function removePacks(request: InstallPacksRequest, authorization: I
       runtimeLibraries: selection.runtimeLibraries.filter((id) => !removedIds.has(id)), before: before.filter((entry) => !removal.removePaths.has(entry.path)) };
     const verification = await prepareTreeVerification(surviving, mode.cliRoot);
     const desired: DesiredPackState = { root, coreVersion: mode.coreVersion,
-      packs: previous.packs.filter((id) => !removedIds.has(id)), runtimeLibraries: previous.runtimeLibraries.filter((id) => !removedIds.has(id)),
-      ...(previous.requestedPacks ? { requestedPacks: previous.requestedPacks.filter(id => !removedIds.has(id)) } : {}),
-      ...(previous.managedPacks ? { managedPacks: previous.managedPacks.filter(id => !removedIds.has(id)) } : {}) };
+      packs: previous.packs.filter((id) => !removedIds.has(id)), runtimeLibraries: previous.runtimeLibraries.filter((id) => !removedIds.has(id)) };
+    if (previous.requestedPacks !== undefined) {
+      desired.requestedPacks = previous.requestedPacks.filter(id => !removedIds.has(id));
+    }
+    if (previous.managedPacks !== undefined) {
+      desired.managedPacks = previous.managedPacks.filter(id => !removedIds.has(id));
+    }
     if (!removal.npmNames.length) {
       await writeDesiredState(request.stateFile, desired);
       return { desired, removed: removal.remove, kept: removal.kept, restartRequired: true };

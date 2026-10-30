@@ -49,8 +49,9 @@ describe("node catalog generator", () => {
       "cli-workflow", "cli-harness", "cli-chat", "cli-models", "cli-admin", "cli-mcp",
       "cli-server", "cli-apps", "cli-game", "cli-timeline", "cli-sketch", "cli-script"
     ]);
-    expect(CLI_FEATURE_PACKS.find(pack => pack.id === "cli-workflow").requires).toEqual(["core", "text"]);
-    expect(CLI_FEATURE_PACKS.filter(pack => pack.id !== "cli-workflow").every(pack => pack.requires.length === 0)).toBe(true);
+    const executionFamilies = ["cli-workflow", "cli-mcp", "cli-server"];
+    for (const id of executionFamilies) { expect(CLI_FEATURE_PACKS.find(pack => pack.id === id).requires).toEqual(["core", "text"]); }
+    expect(CLI_FEATURE_PACKS.filter(pack => !executionFamilies.includes(pack.id)).every(pack => pack.requires.length === 0)).toBe(true);
     expect(CATALOG_PACKS.some(pack => pack.id === "cli-full" || pack.npmName === "@nodetool-ai/cli-full")).toBe(false);
   });
   it("catalogs an explicit CLI feature without loading its command tree", async () => {

@@ -37,4 +37,4 @@ export async function run(argv: readonly string[] = process.argv.slice(2)): Prom
   initializeCliRuntime(import.meta.url);
   await createProgram().parseAsync([...argv], { from: "user" });
 }
-export const feature = { descriptor: { id: "cli-mcp", apiVersion: 1, requires: [], capabilities: ["cli:mcp"] }, run };
+export const feature = { descriptor: { id: "cli-mcp", apiVersion: 1, requires: ["core", "text"], capabilities: ["cli:mcp"] }, run };

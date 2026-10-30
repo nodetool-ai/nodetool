@@ -1,7 +1,7 @@
 # CLI Pack System: On-Demand Node Packs for the npm CLI
 
 The dependency tiers in this historical plan are superseded by the
-[lean package rules](../packages/AGENTS.md#package-dependency-order) and
+[lean package rules](https://github.com/nodetool-ai/nodetool/blob/main/packages/AGENTS.md#package-dependency-order) and
 [independently installed command features](cli.md#install-command-features).
 Use those documents for the current installation contract.
 

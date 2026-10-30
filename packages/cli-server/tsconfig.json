@@ -24,6 +24,12 @@
     },
     {
       "path": "../cli"
+    },
+    {
+      "path": "../core-nodes"
+    },
+    {
+      "path": "../text-nodes"
     }
   ]
 }

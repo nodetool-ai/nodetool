@@ -57,7 +57,7 @@ export const CLI_FEATURE_PACKS = [
   "cli-server", "cli-apps", "cli-game", "cli-timeline", "cli-sketch", "cli-script"
 ].map(id => ({
   id, npmName: `@nodetool-ai/${id}`, registrar: "feature", kind: "cli-feature",
-  requires: id === "cli-workflow" ? ["core", "text"] : [], provides: [], runtimeLibraries: [], secrets: []
+  requires: ["cli-workflow", "cli-mcp", "cli-server"].includes(id) ? ["core", "text"] : [], provides: [], runtimeLibraries: [], secrets: []
 }));
 
 export const CATALOG_PACKS = [

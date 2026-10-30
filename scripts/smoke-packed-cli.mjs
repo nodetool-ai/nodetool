@@ -20,7 +20,7 @@ import { basename, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parseArgs } from "node:util";
 import { NODE_PACKS, RUNTIME_LIBRARIES } from "./node-catalog/tiers.mjs";
-import { CLI_FEATURE_PACKS } from "./node-catalog/packs.mjs";
+import { CLI_FEATURE_PACKS, CATALOG_PACKS } from "./node-catalog/packs.mjs";
 
 import { startPackedRegistry, artifactIntegrity } from "./packed-registry.mjs";
 import { runFalFixture } from "./packed-fal-fixture.mjs";
@@ -39,6 +39,11 @@ export const FEATURE_REQUIRED_COMMANDS = {
   "cli-mcp": ["mcp"], "cli-server": ["serve"], "cli-apps": ["app", "apps"],
   "cli-game": ["game"], "cli-timeline": ["timeline"], "cli-sketch": ["sketch"], "cli-script": ["jsscript"]
 };
+export const COMPOSED_SMOKE_PACK_IDS = [
+  ...CLI_FEATURE_PACKS.map(pack => pack.id),
+  ...CATALOG_PACKS.filter(pack => pack.kind === "core").map(pack => pack.id),
+  ...NODE_PACKS.map(pack => pack.id)
+];
 const NO_MODEL_WORKFLOW = "examples/workflows/hello_input_output_cli.json";
 
 /** Every public package under PACKAGE_ROOTS, as { name, version, dir }. */
@@ -479,7 +484,7 @@ project and global consumers, each with an empty HOME.
     await probeServe(bin, env, appDir);
     console.log("ok  lean CLI validates, executes and serves without optional features");
 
-    const selectedPacks = values["core-only"] ? [] : [...CLI_FEATURE_PACKS.map(pack => pack.id), ...NODE_PACKS.map(pack => pack.id)];
+    const selectedPacks = values["core-only"] ? [] : COMPOSED_SMOKE_PACK_IDS;
     if (!values["core-only"]) {
       for (const feature of CLI_FEATURE_PACKS) {
         run(bin, ["packs", "add", feature.id, "--yes"], { ...cliOptions, timeout: 900_000 });

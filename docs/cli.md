@@ -26,7 +26,7 @@ npx --package=@nodetool-ai/cli nodetool --help
 
 ## Install command features
 
-The default CLI provides the [lean execution commands](../packages/cli/README.md):
+The default CLI provides the [lean execution commands](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli/README.md):
 JSON workflow execution, validation, authenticated server access, binary assets,
 encrypted secrets, and remote text calls. Optional commands are installed through
 the existing pack manager. A missing feature reports its ID and does not install
@@ -122,7 +122,7 @@ inspect the creation tool's schema before saving it.
 These options belong to the installed execution and authoring command features.
 Use `nodetool --help` for the default CLI connection options. The lean command
 path does not initialize optional tracing exporters. These feature options
-control [OpenTelemetry tracing](AGENTS.md):
+control [OpenTelemetry tracing](https://github.com/nodetool-ai/nodetool/blob/main/docs/AGENTS.md):
 
 - `--trace-file <path>` — append every LLM/agent/workflow span to `<path>` as JSONL (analyzer-friendly).
 - `--trace-stdout [format]` — stream spans to stdout: `pretty` (default) or `json`.
@@ -156,7 +156,7 @@ nodetool info --json
 Starts the authenticated lean execution server. It persists workflows, jobs,
 assets and encrypted secrets in the configured data directory and streams runs
 over MsgPack WebSockets. Configure its tokens and master key as described in the
-[default CLI guide](../packages/cli/README.md#start-an-authenticated-server).
+[default CLI guide](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli/README.md#start-an-authenticated-server).
 
 ```bash
 nodetool serve --host 127.0.0.1 --port 7777

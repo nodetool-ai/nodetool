@@ -23,4 +23,4 @@ export function createProgram(): Command {
   return program;
 }
 export async function run(argv: readonly string[] = process.argv.slice(2)): Promise<void> { await createProgram().parseAsync([...argv], { from: "user" }); }
-export const feature = { descriptor: { id: "cli-server", apiVersion: 1, requires: [], capabilities: ["cli:server"] }, run };
+export const feature = { descriptor: { id: "cli-server", apiVersion: 1, requires: ["core", "text"], capabilities: ["cli:server"] }, run };

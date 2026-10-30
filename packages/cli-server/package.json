@@ -34,7 +34,9 @@
     "@nodetool-ai/pack-manager": "*",
     "@nodetool-ai/websocket": "*",
     "commander": "^12.1.0",
-    "zod": "^4.1.13"
+    "zod": "^4.1.13",
+    "@nodetool-ai/core-nodes": "*",
+    "@nodetool-ai/text-nodes": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

@@ -30,7 +30,7 @@ missing-node diagnostics and media capabilities with their selected node packs.
 No aggregate command package supplies these capabilities.
 
 For independent CLI and server size reports, use the
-[packed-consumer commands](../packages/AGENTS.md#package-dependency-order).
+[packed-consumer commands](https://github.com/nodetool-ai/nodetool/blob/main/packages/AGENTS.md#package-dependency-order).
 
 ## Release catalog pins
 

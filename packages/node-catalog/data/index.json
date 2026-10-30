@@ -3489,7 +3489,10 @@
       },
       "provides": [],
       "registrar": "feature",
-      "requires": [],
+      "requires": [
+        "core",
+        "text"
+      ],
       "runtimeLibraries": [],
       "scriptAllowlist": [],
       "secrets": []
@@ -3540,7 +3543,10 @@
       },
       "provides": [],
       "registrar": "feature",
-      "requires": [],
+      "requires": [
+        "core",
+        "text"
+      ],
       "runtimeLibraries": [],
       "scriptAllowlist": [],
       "secrets": []

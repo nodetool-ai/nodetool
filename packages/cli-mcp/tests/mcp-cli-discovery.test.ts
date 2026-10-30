@@ -4,9 +4,11 @@ import { join, resolve } from "node:path";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { describe, expect, it } from "vitest";
+import { feature } from "../src/index.js";
 
 describe("stdio MCP authoring discovery", () => {
   it("loads guides, pack docs, game tools and shipped examples from an empty workspace", async () => {
+    expect(feature.descriptor.requires).toEqual(["core", "text"]);
     const directory = mkdtempSync(join(tmpdir(), "nodetool-mcp-discovery-"));
     const transport = new StdioClientTransport({
       command: process.execPath,
@@ -46,6 +48,26 @@ describe("stdio MCP authoring discovery", () => {
       const observation = JSON.parse(String(text));
       expect(observation.ok, observation.error ?? diagnostics).toBe(true);
       expect(observation.result.guide).toBe(true);
+      const execution = await client.callTool({ name: "execute_code", arguments: { code: `
+        import { create_workflow, run_workflow } from "@nodetool-ai/sandbox-nodetool/workflows";
+        const created = await create_workflow({ name: "MCP baseline prerequisites", graph: {
+          nodes: [
+            { id: "input", type: "nodetool.input.StringInput", properties: { name: "text", value: "MCP baseline text" } },
+            { id: "text", type: "nodetool.text.Concat" },
+            { id: "out", type: "nodetool.control.Reroute" }
+          ],
+          edges: [
+            { source: "input", target: "text", sourceHandle: "output", targetHandle: "value" },
+            { source: "text", target: "out", sourceHandle: "output", targetHandle: "input_value" }
+          ]
+        } });
+        return await run_workflow({ workflow_id: created.id, params: { text: "MCP baseline text" } });
+      ` } });
+      const executionText = Array.isArray(execution.content) ? execution.content.find(part => part.type === "text")?.text : undefined;
+      const executed = JSON.parse(String(executionText));
+      expect(executed.ok, String(executionText)).toBe(true);
+      expect(executed.result.status, String(executionText)).toBe("completed");
+      expect(JSON.stringify(executed.result.outputs)).toContain("MCP baseline text");
       for (const key of ["skills", "docs", "games", "timelines", "workflows"]) {
         expect(observation.result[key], key).toBeGreaterThan(0);
       }

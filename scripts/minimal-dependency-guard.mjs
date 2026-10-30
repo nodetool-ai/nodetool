@@ -9,6 +9,7 @@ const SANDBOX_PACKAGES = new Set([
   "@sebastianwessel/quickjs", "quickjs-emscripten-core"
 ]);
 const FORBIDDEN_PACKAGES = new Set([
+  "@hyzyla/pdfium", "@nodetool-ai/asset-services", "@nodetool-ai/document-services",
   "@llamaindex/liteparse", "pdfjs-dist", "pdf-lib", "mammoth", "office-text-extractor", "epub2",
   "@nodetool-ai/document-processing", "@nodetool-ai/feature-documents", "@nodetool-ai/antigravity-cli",
   "ink", "@inkjs/ui", "react", "react-dom", "react-reconciler",
