@@ -36,7 +36,7 @@ QString modeFor(const QStringList& args) {
                                "scrub-script", "realtime", "frames", "audio-latency-ms", "audio-report", "decode"}) {
         parser.addOption(QCommandLineOption(QString::fromLatin1(valued), QString(), QStringLiteral("V")));
     }
-    for (const char* flag : {"bench", "play", "background", "ui-bench", "teardown-test", "on-top", "audio-dry-run"}) {
+    for (const char* flag : {"bench", "play", "background", "ui-bench", "teardown-test", "on-top", "audio-dry-run", "chat"}) {
         parser.addOption(QCommandLineOption(QString::fromLatin1(flag), QString()));
     }
     QStringList argv{QStringLiteral("nodetool-timeline"), QStringLiteral("f.json")};
@@ -133,6 +133,7 @@ private slots:
     void audioModeFromParsedOptions() {
         QCOMPARE(modeFor({}), QStringLiteral("system"));
         QCOMPARE(modeFor({"--play"}), QStringLiteral("system"));
+        QCOMPARE(modeFor({"--chat", "--play"}), QStringLiteral("system"));
         QCOMPARE(modeFor({"--size", "800x600", "--seek=500", "--play"}), QStringLiteral("system"));
         // Both spellings of every automated mode select no audio.
         QCOMPARE(modeFor({"--play-stills", "/tmp/x", "--still-frames", "1"}), QStringLiteral("none"));

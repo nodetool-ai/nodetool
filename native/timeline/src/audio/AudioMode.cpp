@@ -8,7 +8,7 @@ QString resolveAudioMode(const QCommandLineParser& parser) {
     if (parser.isSet(QStringLiteral("audio"))) return parser.value(QStringLiteral("audio"));
     static const QSet<QString> interactive{
         QStringLiteral("size"),   QStringLiteral("seek"),    QStringLiteral("play"),
-        QStringLiteral("decode"), QStringLiteral("decoder"), QStringLiteral("on-top"),
+        QStringLiteral("decode"), QStringLiteral("decoder"), QStringLiteral("on-top"), QStringLiteral("chat"),
         QStringLiteral("audio-latency-ms"), QStringLiteral("audio-report"), QStringLiteral("audio-dry-run")};
     for (const QString& name : parser.optionNames()) {
         if (!interactive.contains(name)) return QStringLiteral("none");

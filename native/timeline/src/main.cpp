@@ -40,6 +40,13 @@
 #include "server/SaveCli.h"
 #include "server/ServerSource.h"
 
+#ifdef NT_ENABLE_CHAT
+#include "chat/TimelineChatHost.h"
+#include "runtime/ChatSession.h"
+#include <QtQml/QQmlExtensionPlugin>
+Q_IMPORT_QML_PLUGIN(NodeTool_ChatPlugin)
+#endif
+
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
@@ -746,7 +753,15 @@ int main(int argc, char** argv) {
                                       QStringLiteral("FILE"));
     parser.addOption(peaksOpt);
     parser.addOptions({benchOpt, framesOpt, sizeOpt, seekOpt, playOpt, shotOpt, warmupOpt, budgetOpt, noVsyncOpt, realtimeOpt, stillsOpt, stillFramesOpt, backgroundOpt, playStillsOpt, decodeOpt, decoderOpt, teardownOpt, hideTestOpt, onTopOpt, scrubOpt, scrubOutOpt, jsonOpt});
+#ifdef NT_ENABLE_CHAT
+    const QCommandLineOption chatOpt(QStringLiteral("chat"), QStringLiteral("Open the native chat panel"));
+    parser.addOption(chatOpt);
+#endif
     parser.process(app);
+    bool captureChat = false;
+#ifdef NT_ENABLE_CHAT
+    captureChat = parser.isSet(chatOpt) && parser.isSet(shotOpt);
+#endif
 
     std::fprintf(stderr, "nodetool-timeline: Qt %s, libavformat %s, libavcodec %s, libavutil %s, libswscale %s\n",
                  qVersion(), qPrintable(avVersion(avformat_version())), qPrintable(avVersion(avcodec_version())),
@@ -888,7 +903,7 @@ int main(int argc, char** argv) {
         return runOffscreen(model, clock, QSize(winW, winH), {}, {}, {}, {}, parser.value(scrubOpt), out, source,
                             selectedDecodeMode);
     }
-    if (parser.isSet(shotOpt) || parser.isSet(stillsOpt) || parser.isSet(playStillsOpt)) {
+    if (!captureChat && (parser.isSet(shotOpt) || parser.isSet(stillsOpt) || parser.isSet(playStillsOpt))) {
         // Screenshots and stills render with no window at all (offscreen).
         std::vector<long long> frames;
         if (parser.isSet(stillsOpt) || parser.isSet(playStillsOpt)) {
@@ -935,6 +950,26 @@ int main(int argc, char** argv) {
         QObject::connect(localSaver.get(), &nt::app::LocalDocumentSaver::saveFailed, &app,
                          [](const QString& error) { qWarning().noquote() << error; });
     }
+#ifdef NT_ENABLE_CHAT
+    nt::chat::ChatSession chatSession;
+    nt::chat::TimelineChatHost chatHost(model, clock);
+    chatSession.setHostTools(nt::chat::TimelineChatHost::tools());
+    chatSession.setProperty("hostContext", chatHost.context());
+    QObject::connect(&chatHost, &nt::chat::TimelineChatHost::contextChanged, &chatSession,
+                     [&chatSession, &chatHost] { chatSession.setProperty("hostContext", chatHost.context()); });
+    QObject::connect(&chatSession, &nt::chat::ChatSession::hostToolRequested, &chatHost,
+                     [&chatSession, &chatHost](const QString& id, const QString& name, const QVariantMap& args) {
+        const auto result = chatHost.execute(name, args);
+        chatSession.completeHostTool(id, result, result.value("error").toString());
+    });
+    const auto chatServer = qEnvironmentVariable("NODETOOL_CHAT_SERVER");
+    if (parser.isSet(chatOpt) && !chatServer.isEmpty()) {
+        chatSession.connectToServer(QUrl(chatServer), qEnvironmentVariable("NODETOOL_TOKEN"));
+    }
+    view.rootContext()->setContextProperty(QStringLiteral("nativeChatSession"), &chatSession);
+    view.rootContext()->setContextProperty(QStringLiteral("nativeChatHost"), &chatHost);
+    view.rootContext()->setContextProperty(QStringLiteral("nativeChatInitiallyOpen"), parser.isSet(chatOpt));
+#endif
     view.rootContext()->setContextProperty(QStringLiteral("autosave"), autosave.get());
     view.loadFromModule("NodeTool.Timeline", "TimelineEditor");
     if (view.status() != QQuickView::Ready) {
@@ -948,6 +983,35 @@ int main(int argc, char** argv) {
         view.setFlags(view.flags() | Qt::WindowStaysOnTopHint);
     }
     view.show();  // never raise() or requestActivate()
+    if (captureChat) {
+        auto* captureTimer = new QTimer(&view);
+        const auto captureStarted = std::chrono::steady_clock::now();
+        QObject::connect(captureTimer, &QTimer::timeout, &view,
+                         [&view, &app, captureTimer, captureStarted, path = parser.value(shotOpt)] {
+            const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - captureStarted).count();
+            if (elapsed < 500) { return; }
+            const auto* session = view.rootContext()->contextProperty(QStringLiteral("nativeChatSession"))
+                                      .value<QObject*>();
+            if (session && session->property("connectionStatus").toString() == QStringLiteral("connecting")) {
+                if (elapsed < 5000) { return; }
+                captureTimer->stop();
+                qWarning("The native chat connection did not settle for capture");
+                app.exit(1);
+                return;
+            }
+            captureTimer->stop();
+            const auto* loader = view.rootObject()->findChild<QObject*>(QStringLiteral("nativeChatPanel"));
+            if (!loader || loader->property("status").toInt() != 1) {
+                qWarning("The native chat panel did not load for capture");
+                app.exit(1);
+                return;
+            }
+            const auto image = view.grabWindow();
+            app.exit(!image.isNull() && image.save(path) ? 0 : 1);
+        });
+        captureTimer->start(100);
+    }
 
     auto* compositor = view.rootObject()->findChild<PreviewCompositor*>(QStringLiteral("previewCompositor"));
     if ((bench || parser.isSet(teardownOpt)) && !compositor) {

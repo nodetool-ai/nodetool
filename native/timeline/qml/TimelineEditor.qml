@@ -9,6 +9,10 @@ Rectangle {
     required property TimelineModel timeline
     required property PlaybackClock clock
     property QtObject saver: typeof autosave !== "undefined" ? autosave : null
+    property var chatSession: typeof nativeChatSession !== "undefined" ? nativeChatSession : null
+    property var chatHost: typeof nativeChatHost !== "undefined" ? nativeChatHost : null
+    readonly property bool chatInitiallyOpen: typeof nativeChatInitiallyOpen !== "undefined" && nativeChatInitiallyOpen
+    readonly property bool chatOpen: chatSession !== null && layoutStore.layout.hidden.indexOf("chat") < 0
     readonly property alias dockStore: layoutStore
     readonly property var dockPanels: {
         const panels = [{id: "program", title: "Program", defaultRegion: "viewport"},
@@ -19,6 +23,9 @@ Rectangle {
                     defaultRegion: panel.id === "source" ? "viewport" : slot})
             }
         }
+        if (chatSession !== null) {
+            panels.push({id: "chat", title: qsTr("Chat"), defaultRegion: "right"})
+        }
         return panels
     }
     readonly property var availablePanels: dockPanels.filter(panel => panel.id !== "source" || !!SourceViewerState.asset.id).map(panel => panel.id)
@@ -28,7 +35,15 @@ Rectangle {
     Keys.forwardTo: tracksHost.item ? [tracksHost.item] : []
     Binding { target: root.clock; property: "durationMs"; value: root.timeline.contentEndMs }
     DockLayoutStore { id: layoutStore; objectName: "dockLayoutStore" }
-    Component.onCompleted: layoutStore.registerPanels(dockPanels)
+    function toggleChat() {
+        layoutStore.dispatch({type: chatOpen ? "hide" : "reveal", panelId: "chat"})
+    }
+    Component.onCompleted: {
+        layoutStore.registerPanels(dockPanels)
+        if (chatSession !== null) {
+            layoutStore.dispatch({type: chatInitiallyOpen ? "reveal" : "hide", panelId: "chat"})
+        }
+    }
     FrameAnimation {
         running: root.clock.playing
         onTriggered: root.clock.tick()
@@ -43,6 +58,16 @@ Rectangle {
                 Layout.fillWidth: true
                 timeline: root.timeline
                 autosave: root.saver
+            }
+            ToolButton {
+                visible: root.chatSession !== null
+                label: root.chatOpen ? qsTr("Close chat") : qsTr("Chat")
+                activeFocusOnTab: true
+                Keys.onReturnPressed: root.toggleChat()
+                Keys.onEnterPressed: root.toggleChat()
+                Keys.onSpacePressed: event => { root.toggleChat(); event.accepted = true }
+                Accessible.onPressAction: root.toggleChat()
+                onClicked: root.toggleChat()
             }
             DockLayoutMenu {
                 store: layoutStore
@@ -77,9 +102,35 @@ Rectangle {
                     }
                 }
             }
+            StablePanelHost {
+                id: chatLoader
+                objectName: "nativeChatPanel"
+                dock: dockCanvas
+                panelId: "chat"
+                active: root.chatOpen
+                source: active ? "qrc:/qt/qml/NodeTool/Chat/ChatPanel.qml" : ""
+                onLoaded: item.session = root.chatSession
+            }
             PanelSlot { slot: "left"; dock: dockCanvas; anchors.fill: parent }
             PanelSlot { slot: "right"; dock: dockCanvas; anchors.fill: parent }
             PanelSlot { slot: "bottom"; dock: dockCanvas; anchors.fill: parent }
+        }
+    }
+    Binding {
+        target: root.chatHost
+        property: "selection"
+        value: tracksHost.item && tracksHost.item.gestures ? tracksHost.item.gestures.selection : []
+        when: root.chatHost !== null
+    }
+    onChatOpenChanged: {
+        if (chatSession) {
+            if (chatOpen) {
+                if (chatSession.connectionStatus === "disconnected") {
+                    chatSession.resumeConnection()
+                }
+            } else {
+                chatSession.suspendConnection()
+            }
         }
     }
     PanelSlot { slot: "overlay"; anchors.fill: parent }
