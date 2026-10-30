@@ -192,8 +192,12 @@ InspectorPillInput { width: 140; value: "10"; scrub: ({step:1,min:0,max:100}); o
         QVERIFY(!model.applyEdit("example.rename", {{"name", "Must not register here"}}));
         PanelRegistry panels;
         MenuRegistry menus;
-        QVERIFY(panels.forSlot("left").isEmpty());
-        QVERIFY(menus.query("clip", {}).isEmpty());
+        for (const auto& panel : panels.forSlot("left")) {
+            QVERIFY(panel.toMap().value("id").toString() != "example");
+        }
+        for (const auto& entry : menus.query("clip", {})) {
+            QVERIFY(entry.toMap().value("action").toString() != "example.rename");
+        }
     }
     void pillDragCommitsOnceAndBlankDraftIsRejected() {
         QQmlEngine engine;

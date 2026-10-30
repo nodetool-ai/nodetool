@@ -114,17 +114,19 @@ private slots:
             const auto visible = dock->property("visiblePanels").toStringList();
             QVERIFY(visible.contains("program"));
             QVERIFY(visible.contains("tracks"));
-            QCOMPARE(visible.contains("inspector"), i != 3);
-            for (const auto& unavailable : {"transcript", "storyboard", "shot", "instruments", "assistant", "history", "code"}) {
+            const bool inspectorVisible = i == 0 || i == 1;
+            QCOMPARE(visible.contains("inspector"), inspectorVisible);
+            QCOMPARE(visible.contains("assistant"), i == 2);
+            for (const auto& unavailable : {"transcript", "storyboard", "shot", "instruments", "history", "code"}) {
                 QVERIFY(!visible.contains(QString::fromLatin1(unavailable)));
             }
             QCOMPARE(dock->property("bottomExtent").toInt(), bottomSizes[i]);
-            QCOMPARE(inspector->isVisible(), i != 3);
+            QCOMPARE(inspector->isVisible(), inspectorVisible);
             QVERIFY(program->isVisible());
             QVERIFY(program->width() > 0);
             QCOMPARE(tracks->height(), double(bottomSizes[i] - 28));
             QCOMPARE(dock->property("rightExtent").toInt(), rightSizes[i]);
-            if (i != 3) { QCOMPARE(inspector->width(), double(rightSizes[i])); }
+            if (inspectorVisible) { QCOMPARE(inspector->width(), double(rightSizes[i])); }
             QCOMPARE(named(root, "tracksRegion"), tracks);
             QCOMPARE(named(root, "timelineInspector"), inspector);
         }
