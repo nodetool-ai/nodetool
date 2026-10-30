@@ -70,7 +70,9 @@ test('suite report fails closed on missing, empty, failed and uncollected suites
 });
 
 test('QML-only packages discover resources, singletons, panels and nested modules', { timeout: 180000 }, () => {
-  const directory = mkdtempSync(path.join(tmpdir(), 's1-qml-'));
+  const scratch = mkdtempSync(path.join(tmpdir(), 's1-qml-'));
+  const directory = path.join(scratch, 'native', 'timeline');
+  mkdirSync(directory, { recursive: true });
   const source = path.resolve(import.meta.dirname, '../..');
   const build = path.join(directory, 'build');
   const run = (command, args) => {
@@ -79,6 +81,12 @@ test('QML-only packages discover resources, singletons, panels and nested module
     return result.stdout + result.stderr;
   };
   try {
+    for (const entry of ['packages', 'web']) {
+      symlinkSync(path.resolve(source, '../..', entry), path.join(scratch, entry), 'dir');
+    }
+    for (const sibling of ['chat', 'model-picker']) {
+      symlinkSync(path.resolve(source, '..', sibling), path.join(scratch, 'native', sibling), 'dir');
+    }
     for (const entry of readdirSync(source)) {
       if (/^build/.test(entry)) continue;
       const from = path.join(source, entry);
@@ -93,7 +101,7 @@ test('QML-only packages discover resources, singletons, panels and nested module
     writeFileSync(path.join(qml, 'helper.js'), '.pragma library\nfunction answer() { return 42 }\n');
     writeFileSync(path.join(qml, 'module.cmake'), `
 function(nt_qml_probe)
-    if(NOT EXISTS "\$\{CMAKE_CURRENT_BINARY_DIR\}/nt_qml_panels.cpp")
+    if(NOT EXISTS "\${CMAKE_CURRENT_BINARY_DIR}/nt_qml_panels.cpp")
         message(FATAL_ERROR "QML panel registration was not generated")
     endif()
     get_source_file_property(singleton qml/seamProbe/UnlistedSingleton.qml QT_QML_SINGLETON_TYPE)
@@ -102,11 +110,11 @@ function(nt_qml_probe)
     endif()
     foreach(resource qml/seamProbe/UnlistedPanel.qml qml/seamProbe/UnlistedSingleton.qml qml/seamProbe/helper.js)
         if(NOT resource IN_LIST NT_qml_files)
-            message(FATAL_ERROR "unlisted resource missing: \$\{resource\}")
+            message(FATAL_ERROR "unlisted resource missing: \${resource}")
         endif()
     endforeach()
     qt_add_executable(qml_probe src/app/qml_probe.cpp src/app/PanelRegistry.cpp
-        "\$\{CMAKE_CURRENT_BINARY_DIR\}/nt_qml_panels.cpp")
+        "\${CMAKE_CURRENT_BINARY_DIR}/nt_qml_panels.cpp")
     target_include_directories(qml_probe PRIVATE src)
     target_link_libraries(qml_probe PRIVATE Qt6::Core Qt6::Qml)
     qt_add_resources(qml_probe probe PREFIX /qt/qml/NodeTool/Timeline
@@ -152,5 +160,5 @@ int main(int argc, char** argv) {
     assert.notEqual(malformed.status, 0);
     assert.match(malformed.stdout + malformed.stderr, /UnlistedPanel.qml/);
     assert.match(malformed.stdout + malformed.stderr, /[Mm]alformed.*nt-panel/);
-  } finally { rmSync(directory, { recursive: true, force: true }); }
+  } finally { rmSync(scratch, { recursive: true, force: true }); }
 });

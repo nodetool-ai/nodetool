@@ -80,7 +80,7 @@ private slots:
         QCOMPARE(controller.result().metaType().id(), QMetaType::QVariantList);
         if (empty) {
             auto* message = findItem(item, "workspaceListMessage", findItem); QVERIFY(message);
-            QVERIFY(message->property("text").toString().startsWith("No documents in this context."));
+            QVERIFY(message->property("text").toString().startsWith("No " + kind + " in this context."));
         } else {
             QQuickItem* row = nullptr;
             QTRY_VERIFY_WITH_TIMEOUT((row = findItem(item, "workspaceResource_" + resourceId, findItem)), 2000);
