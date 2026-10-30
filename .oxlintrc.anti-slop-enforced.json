@@ -58,6 +58,7 @@
         "packages/models/src/**",
         "packages/mutator/src/**",
         "packages/node-catalog/src/**",
+        "packages/node-sdk/src/**",
         "packages/nodes-utils/src/**",
         "packages/replicate-codegen/src/**",
         "packages/replicate-nodes/src/**",
