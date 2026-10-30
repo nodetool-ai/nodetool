@@ -26,16 +26,16 @@ contract, local and worker runner implementations, `runBlenderJob`, and the
 - **No flag-injection check here**: Blender's argv is fixed in
   `LocalBlenderRunner` and every param travels inside `job.json`, so no
   value can become a flag. `host-binary-guard.ts` stays in agents, where
-  it confines model-authored argv for ffmpeg and yt-dlp.
+  it confines model-authored argv for yt-dlp and media paths.
 - **Fake blender mode travels in the filename** (`fake-<mode>.mjs`), not env:
   the runner scrubs the child environment by design.
-- **Only the timeline bake needs ffmpeg.** `render_animation`'s video mode
-  writes MP4 with Blender's own FFMPEG writer, so the op path needs no
-  binary on PATH. The sampled mode `src/bake.ts` drives (design §D6) renders
-  a PNG per output frame and muxes them with ffmpeg through the same bounded
-  `runHostBinary` the Blender run uses — because the sequence is also the
-  producer for the alpha bake, and Blender cannot write VP9 with alpha. A
-  machine without ffmpeg fails there, with the binary named.
+- **No path needs an ffmpeg binary.** `render_animation`'s video mode
+  writes MP4 with Blender's own FFMPEG writer. The sampled mode `src/bake.ts`
+  drives (design §D6) renders a PNG per output frame and encodes them in
+  process with `openVideoFrameEncoder` from `@nodetool-ai/runtime/media`,
+  because the sequence is also the producer for the alpha bake, and Blender
+  cannot write VP9 with alpha. `bakeEncoderSettings` names the encoder,
+  pixel format and keyframe interval.
 - **The runner stages through the workspace seam**: `runBlenderJob` passes
   `context.workspace.scratchDir()` as the scratch parent; the runner owns a
   per-run subdir under it and deletes only that. No `os.tmpdir()` fallback

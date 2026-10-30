@@ -1,0 +1,210 @@
+{
+  "id": "camera-move-contact-sheet-000001",
+  "access": "public",
+  "created_at": "2026-10-26T12:00:00.000000",
+  "updated_at": "2026-10-26T12:00:00.000000",
+  "name": "Camera Move Contact Sheet",
+  "description": "Batch-render one still image across six camera movements — dolly in, crane up, orbit left, crash zoom in, pull back reveal, and low-angle hero rise — so you can compare coverage side by side before committing to a hero take. Estimated cost is about $1.80 for six 5-second clips on fal at provider list price, or $0 locally with Wan 2.2.",
+  "tags": [
+    "video",
+    "higgsfield-pack",
+    "camera-moves",
+    "batch",
+    "example"
+  ],
+  "required_providers": [
+    "fal"
+  ],
+  "thumbnail": "Camera Move.jpg",
+  "graph": {
+    "edges": [
+      {
+        "id": "e1",
+        "source": "moves",
+        "sourceHandle": "output",
+        "target": "each_move",
+        "targetHandle": "input_list"
+      },
+      {
+        "id": "e2",
+        "source": "each_move",
+        "sourceHandle": "output",
+        "target": "tpl",
+        "targetHandle": "move"
+      },
+      {
+        "id": "e3",
+        "source": "scene_notes",
+        "sourceHandle": "output",
+        "target": "tpl",
+        "targetHandle": "notes"
+      },
+      {
+        "id": "e4",
+        "source": "still",
+        "sourceHandle": "output",
+        "target": "vid",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e5",
+        "source": "tpl",
+        "sourceHandle": "output",
+        "target": "vid",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e6",
+        "source": "vid",
+        "sourceHandle": "output",
+        "target": "collect_clips",
+        "targetHandle": "input_item"
+      },
+      {
+        "id": "e7",
+        "source": "collect_clips",
+        "sourceHandle": "output",
+        "target": "contact_sheet_clips",
+        "targetHandle": "value"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Camera Move Contact Sheet\n\n**Camera Move Contact Sheet** renders the same starting frame across a list of camera movements in one batch.\n\n1. **Camera Moves** lists the six presets to audition; **ForEach** steps through each move.\n2. **Template** combines the move name with your **Scene Notes** and sends each prompt to **ImageToVideo**.\n3. **Collect** gathers all rendered takes into a list for side-by-side comparison."
+        },
+        "position": {
+          "x": 80,
+          "y": -220
+        },
+        "width": 720,
+        "height": 180
+      },
+      {
+        "id": "still",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "still_image",
+          "value": {
+            "type": "image",
+            "uri": "package://nodetool-base/recipe-inputs/coffee.jpg",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "description": "The reference frame to test across multiple camera moves."
+        },
+        "position": {
+          "x": 80,
+          "y": 40
+        }
+      },
+      {
+        "id": "moves",
+        "type": "nodetool.input.StringListInput",
+        "data": {
+          "name": "camera_moves",
+          "value": [
+            "dolly in",
+            "crane up",
+            "orbit left",
+            "crash zoom in",
+            "pull back reveal",
+            "low-angle hero rise"
+          ],
+          "description": "Camera movements to render in parallel."
+        },
+        "position": {
+          "x": 80,
+          "y": 280
+        }
+      },
+      {
+        "id": "scene_notes",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "scene_notes",
+          "value": "Subtle steam rises from the cup on a dark timber table in morning window light.",
+          "description": "Ambient motion and lighting details shared by every take.",
+          "line_mode": "multi_line"
+        },
+        "position": {
+          "x": 80,
+          "y": 500
+        }
+      },
+      {
+        "id": "each_move",
+        "type": "nodetool.control.ForEach",
+        "data": {
+          "input_list": []
+        },
+        "position": {
+          "x": 360,
+          "y": 280
+        }
+      },
+      {
+        "id": "tpl",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "Camera movement: {{ move }}. {{ notes }} Keep the subject geometry locked while the camera executes a clean {{ move }}.",
+          "values": {}
+        },
+        "position": {
+          "x": 620,
+          "y": 320
+        }
+      },
+      {
+        "id": "vid",
+        "type": "nodetool.video.ImageToVideo",
+        "data": {
+          "model": {
+            "type": "video_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          },
+          "aspect_ratio": "16:9",
+          "resolution": "720p",
+          "duration": 5
+        },
+        "position": {
+          "x": 900,
+          "y": 220
+        }
+      },
+      {
+        "id": "collect_clips",
+        "type": "nodetool.control.Collect",
+        "data": {},
+        "position": {
+          "x": 1180,
+          "y": 220
+        }
+      },
+      {
+        "id": "contact_sheet_clips",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "contact_sheet_clips",
+          "description": "Rendered clips for every camera move in the list."
+        },
+        "position": {
+          "x": 1440,
+          "y": 220
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

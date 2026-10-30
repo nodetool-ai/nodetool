@@ -3,21 +3,17 @@
  * model (`POST /v1/asr/transcribe`).
  *
  * The endpoint takes only RIFF/WAVE, mono, 16-bit integer PCM at 16 or 24 kHz.
- * Audio already in that shape is sent as is; anything else is transcoded with
- * ffmpeg first, the conversion Meta's docs give
+ * Audio already in that shape is sent as is; anything else is converted in
+ * process first, the conversion Meta's docs give
  * (`-ac 1 -ar 24000 -c:a pcm_s16le -map_metadata -1`).
  * See https://dev.meta.ai/docs/speech-to-text.
- *
- * The ffmpeg argv is ours and its only input is a temp file this module
- * wrote, as in `video-frames.ts`. `-protocol_whitelist file` and `-nostdin`
- * still go in.
  */
 import { importNodeBuiltin } from "@nodetool-ai/config";
 import { isNumber, isRecord, isString } from "@nodetool-ai/protocol";
 import type { ASRResult, AudioChunk } from "./types.js";
+import { loadMediaModule } from "../media-loader.js";
 
 const TRANSCRIBE_SAMPLE_RATES = new Set([16000, 24000]);
-const FFMPEG_MAX_BUFFER = 8 * 1024 * 1024;
 
 function ascii(bytes: Uint8Array, offset: number, length: number): string {
   return String.fromCharCode(...bytes.subarray(offset, offset + length));
@@ -27,7 +23,7 @@ function ascii(bytes: Uint8Array, offset: number, length: number): string {
  * Whether `bytes` is a WAV file the transcribe endpoint accepts unchanged.
  * Walks the RIFF chunks by their declared sizes (word-aligned) to find `fmt `,
  * and answers false for anything it cannot read, which sends the audio
- * through ffmpeg rather than to a 400.
+ * through the conversion rather than to a 400.
  */
 export function isTranscribeReadyWav(bytes: Uint8Array): boolean {
   if (bytes.length < 12) return false;
@@ -58,76 +54,24 @@ export function isTranscribeReadyWav(bytes: Uint8Array): boolean {
   return false;
 }
 
-/** ffmpeg is not installed. Names what needed it and the way out. */
-export class TranscribeAudioConversionUnavailableError extends Error {
-  constructor() {
-    super(
-      "ffmpeg is not installed or not on PATH. Meta's transcription endpoint " +
-        "only reads mono 16-bit WAV at 16 or 24 kHz, and other audio is " +
-        "converted with ffmpeg first. Install ffmpeg (the Package Manager UI " +
-        "can do this), or pass audio that is already in that format."
-    );
-    this.name = "TranscribeAudioConversionUnavailableError";
-  }
-}
-
-/** Convert any audio ffmpeg can read to mono 16-bit PCM WAV at 24 kHz. */
+/** Convert any audio libav can read to mono 16-bit PCM WAV at 24 kHz. */
 async function transcodeToTranscribeWav(
   bytes: Uint8Array,
   signal?: AbortSignal
 ): Promise<Uint8Array> {
-  const [cp, fs, os, path] = await Promise.all([
-    importNodeBuiltin<typeof import("node:child_process")>(
-      "node:child_process"
-    ),
+  const [fs, os, path] = await Promise.all([
     importNodeBuiltin<typeof import("node:fs/promises")>("node:fs/promises"),
     importNodeBuiltin<typeof import("node:os")>("node:os"),
     importNodeBuiltin<typeof import("node:path")>("node:path")
   ]);
-  if (!cp || !fs || !os || !path) {
+  if (!fs || !os || !path) {
     throw new Error("Audio conversion requires Node built-in modules");
   }
+  const { convertAudioToWav } = await loadMediaModule();
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-meta-asr-"));
-  const input = path.join(dir, "input.bin");
   const output = path.join(dir, "output.wav");
   try {
-    await fs.writeFile(input, bytes);
-    await new Promise<void>((resolve, reject) => {
-      cp.execFile(
-        "ffmpeg",
-        [
-          "-nostdin",
-          "-y",
-          "-v",
-          "error",
-          "-protocol_whitelist",
-          "file",
-          "-i",
-          input,
-          "-ac",
-          "1",
-          "-ar",
-          "24000",
-          "-c:a",
-          "pcm_s16le",
-          "-map_metadata",
-          "-1",
-          output
-        ],
-        { maxBuffer: FFMPEG_MAX_BUFFER, signal, windowsHide: true },
-        (error) => {
-          if ((error as { code?: unknown } | null)?.code === "ENOENT") {
-            reject(new TranscribeAudioConversionUnavailableError());
-            return;
-          }
-          if (error) {
-            reject(error);
-            return;
-          }
-          resolve();
-        }
-      );
-    });
+    await convertAudioToWav(bytes, output, { sampleRate: 24000, channels: 1, signal });
     return new Uint8Array(await fs.readFile(output));
   } finally {
     // Cleanup failure must not replace the conversion result or its error.

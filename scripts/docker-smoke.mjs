@@ -67,7 +67,7 @@ const trpc = async (procedure, input) =>
  * This is the check that proves the image renders the picture the editor
  * previews. The node renders in the image's Chromium (`render_mode`
  * "browser"), falls back to the Node compositor when no browser launches
- * ("composited"), and falls back again to an ffmpeg concatenation when it
+ * ("composited"), and falls back again to the rough cut ("rough_cut") when it
  * cannot acquire a WebGPU device either. That last fallback is silent apart
  * from a job log: the run still succeeds and still returns an mp4.
  * `render_mode` is what separates them, so an image that shipped without
@@ -200,8 +200,8 @@ async function checkTimelineRender() {
       failures.push(
         `RenderTimeline rendered in "${mode ?? "unknown"}" mode, expected ` +
           `"browser" or "composited" — the container launched no browser and ` +
-          `has no WebGPU device, so the node fell back to an ffmpeg ` +
-          `concatenation. Check that CHROME_PATH names the image's Chromium, ` +
+          `has no WebGPU device, so the node fell back to the rough ` +
+          `cut. Check that CHROME_PATH names the image's Chromium, ` +
           `that bundle-backend.mjs staged webgpu, and that mesa-vulkan-drivers ` +
           `is installed.`
       );

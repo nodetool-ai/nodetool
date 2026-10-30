@@ -1,5 +1,5 @@
 import { probeVideoDurationSeconds } from "@nodetool-ai/runtime";
-import { probeDurationMs } from "./media.js";
+import { probeDurationSec } from "@nodetool-ai/runtime/media";
 
 export function isTimedMedia(contentType: string): boolean {
   return contentType.startsWith("audio/") || contentType.startsWith("video/");
@@ -11,13 +11,9 @@ export async function probeAssetDurationSeconds(
 ): Promise<number | null> {
   if (!isTimedMedia(contentType)) return null;
   try {
-    const durationMs =
-      "path" in source ? await probeDurationMs(source.path) : null;
     const seconds =
       "path" in source
-        ? durationMs === null
-          ? null
-          : durationMs / 1000
+        ? await probeDurationSec(source.path)
         : await probeVideoDurationSeconds(
             source.bytes,
             new AbortController().signal

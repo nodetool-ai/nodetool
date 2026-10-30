@@ -11,7 +11,7 @@ import type { NodeMetadata } from "../../src/metadata.js";
 import type { GraphValidationRegistry } from "../../src/graph-validation.js";
 import { validateNodeProperties } from "../../src/validation.js";
 import type { DeclaredPropertyMetadata } from "../../src/decorators.js";
-import { SEED_CODE_BODIES, SEED_GRAPHS } from "./seeds.js";
+import { SEED_CODE_BODIES, SEED_GRAPHS, type SeedGraph } from "./seeds.js";
 
 /** Mulberry32. */
 export function makeRand(seed: number): () => number {
@@ -174,10 +174,14 @@ export interface GraphMutant {
   graph: { nodes?: unknown; edges?: unknown };
 }
 
-export function graphCorpus(seed: number, perSeed: number): GraphMutant[] {
+export function graphCorpus(
+  seed: number,
+  perSeed: number,
+  sources: readonly SeedGraph[] = SEED_GRAPHS
+): GraphMutant[] {
   const rand = makeRand(seed);
   const mutants: GraphMutant[] = [];
-  for (const source of SEED_GRAPHS) {
+  for (const source of sources) {
     for (let i = 0; i < perSeed; i += 1) {
       const doc = JSON.parse(JSON.stringify(source.graph)) as JsonObject;
       const mutation =

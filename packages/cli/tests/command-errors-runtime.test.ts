@@ -15,8 +15,8 @@ describe("CLI missing-runtime boundary", () => {
     expect(JSON.parse(String(output.mock.calls[0]?.[0]))).toEqual(details);
     expect(commandFailureExitCode({ missingPack: details })).toBe(3);
   });
-  it.each(["ffmpeg", "python"] as const)("round trips %s details from a node error to CLI JSON with exit3", (runtimePackage) => {
-    const details = missingRuntimePackageDetails(runtimePackage === "ffmpeg" ? "ffprobe" : "Python worker", runtimePackage, {}, { NODETOOL_HOST: "cli" });
+  it.each(["yt-dlp", "python"] as const)("round trips %s details from a node error to CLI JSON with exit3", (runtimePackage) => {
+    const details = missingRuntimePackageDetails(runtimePackage === "yt-dlp" ? "yt-dlp" : "Python worker", runtimePackage, {}, { NODETOOL_HOST: "cli" });
     const error = new MissingRuntimePackageError(missingRuntimeText(details), runtimePackage, { details });
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
     vi.spyOn(console, "error").mockImplementation(() => {});

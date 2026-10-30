@@ -1,7 +1,7 @@
 import { create } from "zustand";
 
 /**
- * Installed state of the host runtimes (FFmpeg, Python, ...) that nodes
+ * Installed state of the host runtimes (Python, yt-dlp, ...) that nodes
  * require, shared by every NodeDependencyWarning so one refresh updates all.
  */
 interface RuntimeStatusState {

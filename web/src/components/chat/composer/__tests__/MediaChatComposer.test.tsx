@@ -722,4 +722,27 @@ describe("MediaChatComposer", () => {
     expect(onSendMessage).not.toHaveBeenCalled();
     expect(screen.getByTestId("video-model-dialog")).toBeInTheDocument();
   });
+
+  it("renders translated sub-mode toggle labels when mediaCategory is set", () => {
+    const onSendMessage = jest.fn();
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <ThemeProvider theme={mockTheme}>
+          <MediaChatComposer
+            isLoading={false}
+            isStreaming={false}
+            onSendMessage={onSendMessage}
+            mediaCategory="image"
+          />
+        </ThemeProvider>
+      </QueryClientProvider>
+    );
+
+    expect(
+      screen.getByRole("button", { name: "Generate images" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Edit images" })
+    ).toBeInTheDocument();
+  });
 });

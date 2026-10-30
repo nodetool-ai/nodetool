@@ -413,7 +413,7 @@ generated clip registers a job and stores a version).
 
 **Read first:** design §D6 output format. `render_animation.py`,
 `packages/video-nodes/src/nodes/timeline/outputFormats.ts` (the `webm`
-VP9 `yuva420p` entry), `packages/video-nodes/src/nodes/ffmpeg-helpers.ts`,
+VP9 `yuva420p` entry), `packages/video-nodes/src/nodes/video-helpers.ts`,
 `packages/blender-nodes/blender_ops/ops/render_passes.py` (RGBA PNG output).
 
 **Steps:**

@@ -185,7 +185,7 @@ interface RenderTimelineOptions {
   webgpu?: boolean;
   /**
    * Mix the audio tracks into the file. Default true. The server's headless
-   * render turns it off and mixes with ffmpeg, as its other render paths do.
+   * render turns it off and mixes with libav, as its other render paths do.
    */
   includeAudio?: boolean;
   /** Stream the output here instead of returning it in {@link RenderResult}. */

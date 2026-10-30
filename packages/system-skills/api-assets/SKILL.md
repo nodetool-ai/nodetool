@@ -50,13 +50,13 @@ return saved.asset_uri;
 
 ## nodetool.documents
 
-File-to-file conversion with Pandoc and PDF tools. Every path is
+File-to-file conversion and PDF tools. Every path is
 workspace-relative. Stage an asset into the workspace first with
 `nodetool.web.download("asset://<id>", "in.pdf")`.
 
 | Call | Does |
 | :--- | :--- |
-| `convert(inputFile, outputFile, {from_format, to_format, extra_args})` | Pandoc conversion. `from_format` defaults to `markdown`, `to_format` to `pdf`. It reads markdown, docx, rst, html and more. |
+| `convert(inputFile, outputFile, {from_format, to_format})` | Converts markdown → html, docx, pdf or text; html → markdown, docx or pdf; docx → markdown, html or text; text → markdown or text. `from_format` defaults to `markdown`, `to_format` to `pdf`. Any other pair returns an error that lists these. |
 | `extractText(pdfPath, {start_page, end_page})` | Plain text from a PDF, as `{text}`. Pages are 0-based, and `end_page: -1` is the last page. |
 | `extractTables(pdfPath, outputJsonFile, {start_page, end_page})` | Tables from a PDF into a JSON file |
 | `markdownToPdf(inputFile, outputFile)` | Markdown to PDF |

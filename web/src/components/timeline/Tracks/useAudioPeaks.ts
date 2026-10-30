@@ -5,7 +5,7 @@
  * `Float32Array` of channel-0 abs-max values for drawing waveform thumbnails
  * on timeline clips, plus the decoded length of the audio.
  *
- * The server computes the peaks with ffmpeg and caches them on disk
+ * The server computes the peaks with libav and caches them on disk
  * (`GET /api/assets/:id/peaks`), so the browser never fetches or decodes the
  * audio file itself. Results are also cached here at module level, keyed by
  * the asset's media URL: every clip on the same asset shares one array, and a

@@ -596,14 +596,15 @@ What an action gets on top of the standard surface:
   is absent throws naming it. `nodetool.media.understandVideo(video, prompt,
   model)` is the video half of the judging methods: it hands a whole clip to a
   model that reads video (Gemini) and answers `prompt` as `{text}`.
-- **`nodetool.media.ffmpeg` / `ffprobe` / `downloadVideo`** — the host binaries.
-  `ffprobe(path)` reads a file's format and streams; `ffmpeg(args)` takes argv,
-  and that argv is bounded on the way out: every path is resolved against the
-  workspace and refused when it lands outside (symlinks resolved), inputs may
-  open local files only (`-protocol_whitelist file,crypto,data` before every
-  `-i`, plus a token scan for `://`, `concat:`, `pipe:`, `/dev/…`), and the run
-  is bounded on wall clock, captured output, artifact size, and how many host
-  binaries may run at once. Fetch what you need with `downloadVideo` or
+- **`nodetool.media.probe` / `edit` / `downloadVideo`** — workspace media
+  files. `probe(path)` reads a file's duration, size, frame rate and streams;
+  `edit(operation, opts)` runs one typed operation (trim, concat,
+  extract_audio, extract_frames, scale, crop, rotate, convert, add_audio,
+  mix_audio, fade, normalize, overlay) in process, with no ffmpeg binary and
+  no command line. Every path is resolved against the workspace and refused
+  when it lands outside (symlinks resolved) or names an opener other than a
+  file (`://`, `concat:`, `pipe:`, `/dev/…`); an `asset://` URI is copied into
+  the workspace first. Fetch what you need with `downloadVideo` or
   `fetch`, then pass the local path. `downloadVideo` carries its own boundary:
   the URL must be public (loopback, link-local and the private ranges are
   refused, by literal and by DNS answer), the download is capped at 2 GiB, and

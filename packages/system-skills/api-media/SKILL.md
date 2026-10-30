@@ -1,6 +1,6 @@
 ---
 name: api-media
-description: "Call nodetool.media or nodetool.generations from a code action: generate or edit images, video, speech and music with a picked model, transcribe and embed, judge images with a vision model, read a video, run ffmpeg or ffprobe, download a video, and read the status and cost of a generation. Load before the first call into these namespaces."
+description: "Call nodetool.media or nodetool.generations from a code action: generate or edit images, video, speech and music with a picked model, transcribe and embed, judge images with a vision model, read a video, probe or edit a media file, download a video, and read the status and cost of a generation. Load before the first call into these namespaces."
 ---
 
 # nodetool.media and nodetool.generations
@@ -40,7 +40,7 @@ A generation answers with `asset_id`, `asset_uri` (`asset://…`),
   character plus a garment, a product plus a location. The prompt then says
   the action and the camera, not the subjects.
 - Models honour `duration_seconds` loosely. Measure the result with
-  `ffprobe` before you cut to it.
+  `probe` before you cut to it.
 - To put words on a picture, draw them yourself with `createCanvas` and
   `fillText`, or with `renderText` from
   `@nodetool-ai/sandbox-flow/lib.image.draw`.
@@ -92,22 +92,45 @@ vision model), not the model that made the picture.
 | `scoreAdherence(image, brief, visionModel, {questions})` | Yes/no answers to up to 12 checks made from the brief, and the fraction that passed |
 | `understandVideo(video, prompt, videoModel, {max_tokens})` | `{text, truncated}`. Gemini reads the whole clip with audio. Other models get still frames with no audio. A `truncated` answer is half an answer: raise `max_tokens` or use a model that does not reason. |
 
-## Host binaries
+## Probe, edit and download files
+
+`probe` and `edit` run in process: no ffmpeg install is needed, and there is
+no command line. Every path is workspace-relative, and an `asset://` URI may
+stand in for any input. URLs are refused. `output_file` is saved as an asset,
+and its extension picks the container: `.mp4 .m4v .mov .mkv .webm` for video,
+`.wav .mp3 .m4a .aac .ogg .flac` for audio.
 
 | Call | Does |
 | :--- | :--- |
-| `ffmpeg(args, {inputs, output_file, timeout_seconds})` | Runs ffmpeg in the workspace with no shell. `args` is the argv after the binary. Paths are workspace-relative, and URLs are refused. `inputs` stages assets first as `{"a.mp4": "asset://…"}` (8 files at most). `output_file` is saved as an asset. The default timeout is 180 s, the maximum 600 s. |
-| `ffprobe(path, {inputs, timeout_seconds})` | Reads the format and streams. `path` may be an `asset://` URI. The answer has a `summary` with `duration_seconds`, `width`, `height` and `has_audio` as real numbers and booleans. The default timeout is 30 s, the maximum 120 s. |
+| `probe(path, {inputs})` | `duration_seconds`, `has_video`, `has_audio`, `width`, `height`, `fps`, `rotation`, `alpha`, the codecs, `sample_rate` and `channels`, as numbers and booleans |
+| `edit(operation, {input, output_file, …})` | One operation, listed below. The answer carries `probe` of the output, or `frames` for `extract_frames`. |
 | `downloadVideo(url, outputFile, {format, timeout_seconds})` | Downloads a public video with yt-dlp, up to 2 GiB. The default timeout is 300 s. |
 
+| Operation | Takes |
+| :--- | :--- |
+| `trim` | `input`, `start`, `end` seconds |
+| `concat` | `sources` (two or more videos). Joined at the first one's size and frame rate, letterboxed. |
+| `extract_audio` | `input`, an audio `output_file` |
+| `extract_frames` | `input`, `times` in seconds or `fps` + `max_frames` (100 at most), `image_format`. `output_file` is the folder. |
+| `scale` | `input`, `width` and/or `height`, `fit` (`fill`, `contain`, `cover`) when both |
+| `crop` | `input`, `x`, `y`, `width`, `height` |
+| `rotate` | `input`, `degrees` 90, 180 or 270 |
+| `convert` | `input`; the `output_file` extension picks container and codecs |
+| `add_audio` | `input` video, `audio`; `mode` `replace` (default) or `mix`, `volume`. The result is as long as the picture. |
+| `mix_audio` | `sources` (two or more audio files), `volumes` |
+| `fade` | `input`, `fade_in` and/or `fade_out` seconds, picture and sound |
+| `normalize` | `input`, loudness to -16 LUFS |
+| `overlay` | `input` video, `overlay` image or video, `x`, `y`, optional `width`/`height` and `start`/`end` |
+
+Speed changes and burned-in subtitles are not offered yet.
+
 ```js
-// Concatenate two assets in one call.
-await nodetool.media.ffmpeg(
-  ["-i", "a.mp4", "-i", "b.mp4", "-filter_complex",
-   "[0:v][0:a][1:v][1:a]concat=n=2:v=1:a=1[v][a]", "-map", "[v]", "-map", "[a]",
-   "out.mp4"],
-  { inputs: { "a.mp4": uriA, "b.mp4": uriB }, output_file: "out.mp4" }
-);
+// Concatenate two assets, then check the length.
+const cut = await nodetool.media.edit("concat", {
+  sources: [uriA, uriB],
+  output_file: "out.mp4"
+});
+return cut.probe.duration_seconds;
 ```
 
 ## nodetool.generations

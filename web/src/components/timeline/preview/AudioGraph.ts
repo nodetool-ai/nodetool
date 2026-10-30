@@ -1530,7 +1530,7 @@ export class AudioGraph {
 
       // Fades run along the clip's authored curve, clamped so two that would
       // cross meet in the middle instead — the same resolution the overlay in
-      // the tracks region draws and the ffmpeg export renders.
+      // the tracks region draws and the server export renders.
       const fades = resolveClipFades(clip, clip.durationMs);
 
       // Where the fade-in's automation ends, computed once as `start +

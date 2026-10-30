@@ -5,7 +5,7 @@
   "updated_at": "2026-06-21T16:55:51.256Z",
   "name": "Boost Saturation",
   "tool_name": null,
-  "description": "Push colour intensity. Values above 1 saturate, below 1 move toward greyscale. Unlike the Color Boost template this runs in ffmpeg, so it needs no GPU. Runs locally through ffmpeg - no API key and no per-run cost.",
+  "description": "Push colour intensity. Values above 1 saturate, below 1 move toward greyscale. Unlike the Color Boost template this runs on the CPU media engine, so it needs no GPU. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
   "tags": [
     "video",
     "utility",
@@ -19,7 +19,7 @@
         "id": "intro-comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Boost Saturation\n\nIncreases the colour intensity of a video clip. It runs locally through ffmpeg, so it needs no GPU, API key or per-run cost.\n\n**How it works:** \"1 Clip\" takes the video. \"2 Boost\" sets saturation to 1.6, where values above 1 add colour and values below 1 move toward grayscale. \"3 Result\" shows the processed clip.\n\n**Try this:** Set saturation on \"2 Boost\" to 0.5 for a washed-out look, or to 0 for a black and white clip."
+          "comment": "# Boost Saturation\n\nIncreases the colour intensity of a video clip. It runs on your machine with the built-in media engine, so it needs no GPU, API key or per-run cost.\n\n**How it works:** \"1 Clip\" takes the video. \"2 Boost\" sets saturation to 1.6, where values above 1 add colour and values below 1 move toward grayscale. \"3 Result\" shows the processed clip.\n\n**Try this:** Set saturation on \"2 Boost\" to 0.5 for a washed-out look, or to 0 for a black and white clip."
         },
         "ui_properties": {
           "position": {

@@ -1,13 +1,11 @@
 /**
- * `GET /api/assets/:id/peaks` decodes the audio with the real ffmpeg, reading
+ * `GET /api/assets/:id/peaks` decodes the audio in process, reading
  * a local file in place, and caches the peaks on disk by asset, file size and
  * mtime, and count. A backend with no local file still works from the bytes.
  */
-import { execFile } from "node:child_process";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { promisify } from "node:util";
 import {
   afterAll,
   beforeAll,
@@ -18,6 +16,7 @@ import {
   vi
 } from "vitest";
 import { Asset, initTestDb } from "@nodetool-ai/models";
+import { encodeWav, generateMedia, sineSamples } from "@nodetool-ai/runtime/media/testing";
 import {
   FileStorageAdapter,
   InMemoryStorageAdapter,
@@ -33,7 +32,6 @@ vi.mock("../src/lib/storage.js", async (orig) => ({
 import { handleAssetPeaks, computeAudioPeaks } from "../src/lib/audio-peaks.js";
 import { lookupExternalAssetPath } from "../src/lib/external-asset-lookup.js";
 
-const execFileAsync = promisify(execFile);
 const USER = "user-1";
 
 let tmp: string;
@@ -53,20 +51,20 @@ beforeAll(async () => {
   );
   process.env["NODETOOL_CACHE_DIR"] = path.join(tmp, "cache");
   halfLoud = path.join(tmp, "half-loud.wav");
-  await execFileAsync("ffmpeg", [
-    "-y",
-    "-f", "lavfi", "-i", "anullsrc=r=8000:cl=mono:d=1",
-    "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=8000:duration=1",
-    "-filter_complex", "[1]volume=8[s];[0][s]concat=n=2:v=0:a=1",
-    halfLoud
-  ]);
+  const samples = sineSamples({
+    sampleRate: 8000,
+    channels: 1,
+    durationSec: 2,
+    frequency: 440,
+    amplitude: 1
+  });
+  samples.fill(0, 0, 8000);
+  await fs.writeFile(halfLoud, encodeWav(samples, 8000, 1));
   silentVideo = path.join(tmp, "silent.mp4");
-  await execFileAsync("ffmpeg", [
-    "-y",
-    "-f", "lavfi", "-i", "testsrc=size=32x32:rate=10:duration=1",
-    "-pix_fmt", "yuv420p",
-    silentVideo
-  ]);
+  await generateMedia({
+    outPath: silentVideo,
+    video: { source: "testsrc=size=32x32:rate=10:duration=1" }
+  });
 }, 60_000);
 
 afterAll(async () => {

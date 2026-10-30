@@ -22851,7 +22851,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
   },
   {
     title: 'For Each Frame',
-    description: 'Extract frames from a video file with ffmpeg.\n    video, frames, extract, sequence',
+    description: 'Extract frames from a video file.\n    video, frames, extract, sequence',
     namespace: 'nodetool.video',
     node_type: 'nodetool.video.ForEachFrame',
     layout: 'default',
@@ -22940,9 +22940,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'video'
     ],
     required_settings: [],
-    required_runtimes: [
-      'ffmpeg'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: true,
     input_mode: 'buffered',
@@ -23030,9 +23028,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'video'
     ],
     required_settings: [],
-    required_runtimes: [
-      'ffmpeg'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
     input_mode: undefined,
@@ -23119,9 +23115,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'fps'
     ],
     required_settings: [],
-    required_runtimes: [
-      'ffmpeg'
-    ],
+    required_runtimes: [],
     is_streaming_input: true,
     is_streaming_output: false,
     input_mode: 'stream',
@@ -23175,9 +23169,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     inline_fields: [],
     input_fields: [],
     required_settings: [],
-    required_runtimes: [
-      'ffmpeg'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
     input_mode: undefined,
@@ -23295,9 +23287,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'video'
     ],
     required_settings: [],
-    required_runtimes: [
-      'ffmpeg'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
     input_mode: undefined,
@@ -23400,9 +23390,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'video'
     ],
     required_settings: [],
-    required_runtimes: [
-      'ffmpeg'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
     input_mode: undefined,
@@ -23490,9 +23478,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'video'
     ],
     required_settings: [],
-    required_runtimes: [
-      'ffmpeg'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
     input_mode: undefined,
@@ -23580,9 +23566,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'video'
     ],
     required_settings: [],
-    required_runtimes: [
-      'ffmpeg'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
     input_mode: undefined,
@@ -23797,9 +23781,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'video'
     ],
     required_settings: [],
-    required_runtimes: [
-      'ffmpeg'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
     input_mode: undefined,
@@ -23957,9 +23939,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'overlay_video'
     ],
     required_settings: [],
-    required_runtimes: [
-      'ffmpeg'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
     input_mode: undefined,
@@ -24077,9 +24057,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'video'
     ],
     required_settings: [],
-    required_runtimes: [
-      'ffmpeg'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
     input_mode: undefined,
@@ -24167,9 +24145,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'video'
     ],
     required_settings: [],
-    required_runtimes: [
-      'ffmpeg'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
     input_mode: undefined,
@@ -24273,9 +24249,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'video'
     ],
     required_settings: [],
-    required_runtimes: [
-      'ffmpeg'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
     input_mode: undefined,
@@ -24378,9 +24352,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'video'
     ],
     required_settings: [],
-    required_runtimes: [
-      'ffmpeg'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
     input_mode: undefined,
@@ -24468,9 +24440,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'video'
     ],
     required_settings: [],
-    required_runtimes: [
-      'ffmpeg'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
     input_mode: undefined,
@@ -24558,9 +24528,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'video'
     ],
     required_settings: [],
-    required_runtimes: [
-      'ffmpeg'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
     input_mode: undefined,
@@ -24732,9 +24700,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'chunks'
     ],
     required_settings: [],
-    required_runtimes: [
-      'ffmpeg'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
     input_mode: undefined,
@@ -24807,9 +24773,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'video'
     ],
     required_settings: [],
-    required_runtimes: [
-      'ffmpeg'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
     input_mode: undefined,
@@ -25056,9 +25020,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'video_b'
     ],
     required_settings: [],
-    required_runtimes: [
-      'ffmpeg'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
     input_mode: undefined,
@@ -25206,9 +25168,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'audio'
     ],
     required_settings: [],
-    required_runtimes: [
-      'ffmpeg'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
     input_mode: undefined,
@@ -25330,9 +25290,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'video'
     ],
     required_settings: [],
-    required_runtimes: [
-      'ffmpeg'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
     input_mode: undefined,
@@ -25406,9 +25364,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'video'
     ],
     required_settings: [],
-    required_runtimes: [
-      'ffmpeg'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
     input_mode: undefined,
@@ -25497,9 +25453,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'video'
     ],
     required_settings: [],
-    required_runtimes: [
-      'ffmpeg'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
     input_mode: undefined,
@@ -25615,9 +25569,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'video'
     ],
     required_settings: [],
-    required_runtimes: [
-      'ffmpeg'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
     input_mode: undefined,
@@ -26111,9 +26063,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     ],
     input_fields: [],
     required_settings: [],
-    required_runtimes: [
-      'ffmpeg'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
     input_mode: undefined,
@@ -26323,9 +26273,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'clips'
     ],
     required_settings: [],
-    required_runtimes: [
-      'ffmpeg'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
     input_mode: undefined,
@@ -26801,9 +26749,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     ],
     input_fields: [],
     required_settings: [],
-    required_runtimes: [
-      'ffmpeg'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
     input_mode: undefined,
@@ -32433,9 +32379,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'shots'
     ],
     required_settings: [],
-    required_runtimes: [
-      'ffmpeg'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
     input_mode: undefined,
@@ -37222,7 +37166,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         },
         required: false,
         title: 'Format Selector',
-        description: "yt-dlp format selector (e.g., 'best', 'bestvideo+bestaudio')",
+        description: "yt-dlp format selector (e.g., 'best', 'bestvideo+bestaudio'). Each side of a top-level '+' downloads on its own and the two are muxed without re-encoding. 'best' means 'bv*+ba/b'.",
         min: undefined,
         max: undefined,
         values: undefined,
@@ -37237,7 +37181,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         },
         required: false,
         title: 'Container',
-        description: "Output container format (e.g., 'mp4', 'webm', 'auto')",
+        description: "Container for a muxed video and audio download: auto, mp4, mov, webm or mkv. Auto picks webm or mp4 when it holds both codecs, else mkv. A selector with no '+' keeps the downloaded file's own container.",
         min: undefined,
         max: undefined,
         values: undefined,
@@ -45812,9 +45756,9 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     replaced_by: undefined
   },
   {
-    title: 'PDF Rasterize (pdftoppm)',
-    description: "Rasterize PDF pages with poppler's pdftoppm. Higher fidelity than the PDFium-based Screenshot node for some PDFs and supports anti-aliasing controls.\n" +
-      '    pdf, pdftoppm, poppler, rasterize, render, image, pages',
+    title: 'PDF Rasterize',
+    description: 'Rasterize PDF pages to PNG, JPEG or TIFF images at a DPI or a target size.\n' +
+      '    pdf, pdftoppm, rasterize, render, image, pages, jpeg, tiff',
     namespace: 'lib.pdf',
     node_type: 'lib.pdf.Pdftoppm',
     layout: 'default',
@@ -45946,9 +45890,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       'pdf'
     ],
     required_settings: [],
-    required_runtimes: [
-      'pdftoppm'
-    ],
+    required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
     input_mode: undefined,

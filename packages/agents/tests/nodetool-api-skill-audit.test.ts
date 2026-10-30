@@ -195,15 +195,13 @@ describe("waits fit inside one code action", () => {
     ]);
   });
 
-  it("ffmpeg and downloadVideo clamp timeout_seconds", async () => {
-    const { calls, run } = session(["ffmpeg", "yt_dlp"]);
+  it("downloadVideo clamps timeout_seconds", async () => {
+    const { calls, run } = session(["yt_dlp"]);
     const obs = await run(
-      `await nodetool.media.ffmpeg(["-i", "a.mp4", "b.mp4"], {timeout_seconds: 600});
-       return await nodetool.media.downloadVideo("https://v.test", "v.mp4", {timeout_seconds: 900});`
+      `return await nodetool.media.downloadVideo("https://v.test", "v.mp4", {timeout_seconds: 900});`
     );
     expect(obs.ok).toBe(true);
     expect(calls[0]?.args).toMatchObject({ timeout_seconds: CODEACT_GUEST_BINARY_TIMEOUT_MAX_S });
-    expect(calls[1]?.args).toMatchObject({ timeout_seconds: CODEACT_GUEST_BINARY_TIMEOUT_MAX_S });
   });
 });
 

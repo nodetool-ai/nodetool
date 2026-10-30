@@ -1,19 +1,16 @@
 /**
  * Video understanding for vision models that cannot read video.
  *
- * These tests decode a real clip: ffmpeg is the feature, and a stubbed
- * ffmpeg would only prove the argv is spelled the way the test spells it. CI
- * installs it on the `test-packages` leg (`.github/workflows/quality-checks.yml`);
- * locally, `apt-get install -y ffmpeg`.
+ * These tests decode a real clip, made with the runtime's media helper: the
+ * decode is the feature, and a stub would only prove the stub.
  */
 
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { execFile as execFileCb } from "node:child_process";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { promisify } from "node:util";
 
+import { generateMedia } from "../../src/media/testing.js";
 import { BaseProvider } from "../../src/providers/base-provider.js";
 import {
   frameRateFor,
@@ -30,8 +27,6 @@ import type {
   ProviderStreamItem
 } from "../../src/providers/types.js";
 
-const execFile = promisify(execFileCb);
-
 /** A 4-second 64×64 test pattern — small enough to decode in milliseconds. */
 const CLIP_SECONDS = 4;
 let clip: Uint8Array;
@@ -42,39 +37,17 @@ let tmpDir: string;
 beforeAll(async () => {
   tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-vframe-test-"));
   const out = path.join(tmpDir, "clip.mp4");
-  await execFile("ffmpeg", [
-    "-v",
-    "error",
-    "-f",
-    "lavfi",
-    "-i",
-    `testsrc=size=64x64:rate=10:duration=${CLIP_SECONDS}`,
-    "-c:v",
-    "libx264",
-    "-pix_fmt",
-    "yuv420p",
-    "-y",
-    out
-  ]);
+  await generateMedia({
+    outPath: out,
+    video: { source: `testsrc=size=64x64:rate=10:duration=${CLIP_SECONDS}` }
+  });
   clip = new Uint8Array(await fs.readFile(out));
 
   const raw = path.join(tmpDir, "clip.h264");
-  await execFile("ffmpeg", [
-    "-v",
-    "error",
-    "-f",
-    "lavfi",
-    "-i",
-    "testsrc=size=64x64:rate=10:duration=10",
-    "-c:v",
-    "libx264",
-    "-bsf:v",
-    "h264_mp4toannexb",
-    "-f",
-    "h264",
-    "-y",
-    raw
-  ]);
+  await generateMedia({
+    outPath: raw,
+    video: { source: "testsrc=size=64x64:rate=10:duration=10" }
+  });
   rawStream = new Uint8Array(await fs.readFile(raw));
 }, 60_000);
 
@@ -122,7 +95,7 @@ describe("sampleVideoFrames", () => {
     expect(sample.frames.length).toBeLessThanOrEqual(5);
     for (const frame of sample.frames) {
       expect(frame.mimeType).toBe("image/jpeg");
-      // JPEG SOI marker — proves ffmpeg wrote an image, not an empty file.
+      // JPEG SOI marker — proves an image was written, not an empty file.
       expect([frame.data[0], frame.data[1]]).toEqual([0xff, 0xd8]);
     }
     const stamps = sample.frames.map((f) => f.timeSec);

@@ -1,8 +1,8 @@
 /**
  * Behavior tests for timeline nodes (RenderTimelineNode,
- * TimelineTranscriptNode, AddClipsToTimelineNode). child_process is mocked:
- * ffprobe answers duration/stream queries and the ffmpeg mock writes its
- * output file, so the full render pipeline runs without ffmpeg installed.
+ * TimelineTranscriptNode, AddClipsToTimelineNode). The media module is faked:
+ * probes answer a 4 s file with audio and the writers leave a placeholder, so
+ * what is under test is what the render asks for.
  *
  * RenderTimeline's compositor is forced unavailable here, pinning these cases
  * to the rough-cut fallback they assert on — otherwise what they exercise
@@ -10,67 +10,17 @@
  * is covered by `timeline-composite.test.ts`.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import fsSync from "node:fs";
+import {
+  concatCall,
+  fakeProbe,
+  mediaArgString,
+  mixInputPaths,
+  resetFakeMedia
+} from "./_fixtures/fake-media.js";
 
-let execFileCalls: Array<{ cmd: string; args: string[] }> = [];
-
-function mockResponse(
-  cmd: string,
-  args: string[]
-): { stdout: string; stderr: string } {
-  if (cmd === "ffprobe") {
-    const argsStr = args.join(" ");
-    if (argsStr.includes("codec_type")) {
-      return { stdout: "audio\n", stderr: "" };
-    }
-    if (argsStr.includes("format=duration")) {
-      return { stdout: "10.5\n", stderr: "" };
-    }
-    return { stdout: "", stderr: "" };
-  }
-  // ffmpeg — write the output file (last argument) so downstream reads work.
-  const outputPath = args[args.length - 1];
-  fsSync.writeFileSync(outputPath, Buffer.from(`fake:${outputPath}`));
-  return { stdout: "", stderr: "" };
-}
-
-vi.mock("node:child_process", async (importOriginal) => {
-  const original = (await importOriginal()) as Record<string, unknown>;
-  const mockExecFile = (
-    cmd: string,
-    args: string[],
-    optionsOrCb: unknown,
-    maybeCb?: unknown
-  ) => {
-    execFileCalls.push({ cmd, args: [...args] });
-    const cb =
-      typeof optionsOrCb === "function"
-        ? (optionsOrCb as (e: Error | null, o: string, s: string) => void)
-        : typeof maybeCb === "function"
-          ? (maybeCb as (e: Error | null, o: string, s: string) => void)
-          : null;
-    if (cb) {
-      try {
-        const resp = mockResponse(cmd, args);
-        cb(null, resp.stdout, resp.stderr);
-      } catch (err) {
-        cb(err as Error, "", "");
-      }
-    }
-  };
-  (mockExecFile as any)[Symbol.for("nodejs.util.promisify.custom")] = (
-    cmd: string,
-    args: string[]
-  ): Promise<{ stdout: string; stderr: string }> => {
-    execFileCalls.push({ cmd, args: [...args] });
-    try {
-      return Promise.resolve(mockResponse(cmd, args));
-    } catch (err) {
-      return Promise.reject(err);
-    }
-  };
-  return { ...original, execFile: mockExecFile };
-});
+vi.mock("@nodetool-ai/runtime/media", async (importOriginal) =>
+  (await import("./_fixtures/fake-media.js")).fakeMediaModule(await importOriginal())
+);
 
 vi.mock("../src/nodes/timeline/compositeRender.js", async (importOriginal) => {
   const original = (await importOriginal()) as Record<string, unknown>;
@@ -91,13 +41,6 @@ const {
   AddClipsToTimelineNode,
   extractedAudioLinkIds
 } = await import("../src/nodes/timeline.js");
-
-function ffmpegArgString(): string {
-  return execFileCalls
-    .filter((c) => c.cmd === "ffmpeg")
-    .map((c) => c.args.join(" "))
-    .join("\n");
-}
 
 function baseSequence() {
   return {
@@ -179,7 +122,9 @@ function stubContext(seq: ReturnType<typeof baseSequence> | null) {
 }
 
 beforeEach(() => {
-  execFileCalls = [];
+  resetFakeMedia();
+  // Every probed file is 10.5 s long.
+  fakeProbe.durationSec = 10.5;
   // The fallback logs what the rough cut drops; not the subject of these tests.
   vi.spyOn(console, "warn").mockImplementation(() => {});
 });
@@ -201,21 +146,23 @@ describe("RenderTimelineNode", () => {
     expect(result.output.asset_id).toBe("created-asset");
     expect(result.output.data).toBeNull();
 
-    const args = ffmpegArgString();
-    // Both clips normalized to the sequence frame and fps.
+    const args = mediaArgString();
+    // Both clips normalized to the sequence frame and fps, then concatenated.
     expect(args).toContain("scale=1280:720");
     expect(args).toContain("fps=30");
-    // The image clip is looped for its clip duration.
-    expect(args).toContain("-loop");
-    // Segments are concatenated, then the audio clip is delayed and mixed.
-    expect(args).toContain("concat");
+    // The image clip is held for its clip duration.
+    expect(concatCall()?.segments).toMatchObject([
+      { kind: "video", durationSec: 2 },
+      { kind: "image", durationSec: 3 }
+    ]);
+    // The audio clip is delayed and mixed over the cut's own soundtrack.
     expect(args).toContain("adelay=500|500");
     expect(args).toContain("volume=-3dB");
     expect(args).toContain("amix=inputs=2");
     expect(context.resolveAssetBytes).toHaveBeenCalledTimes(3);
   });
 
-  it("hands ffmpeg an asset's local file in place instead of copying its bytes", async () => {
+  it("reads an asset's local file in place instead of copying its bytes", async () => {
     const context = stubContext(baseSequence());
     const inPlace = "/media/library/shot one.mp4";
     context.localPath.mockImplementation(async (assetId: string) =>
@@ -225,10 +172,10 @@ describe("RenderTimelineNode", () => {
     node.assign({ timeline: { type: "timeline", id: "seq-1" } });
     await node.process(context as never);
 
-    const inputs = execFileCalls
-      .filter((c) => c.cmd === "ffmpeg")
-      .flatMap((c) => c.args.filter((_, i) => c.args[i - 1] === "-i"));
-    expect(inputs).toContain(inPlace);
+    const segmentPaths = (concatCall()?.segments ?? []).map((segment) =>
+      "filePath" in segment ? segment.filePath : null
+    );
+    expect(segmentPaths).toContain(inPlace);
     // Only the two assets with no local file are read into memory.
     const materialized = context.resolveAssetBytes.mock.calls.map(
       ([id]) => id
@@ -249,7 +196,7 @@ describe("RenderTimelineNode", () => {
     node.assign({ timeline: { type: "timeline", id: "seq-1" } });
     await node.process(context as never);
 
-    const args = ffmpegArgString();
+    const args = mediaArgString();
     // Times are measured from the clip's own start — the fades run before the
     // delay that puts the clip on the timeline.
     expect(args).toContain("afade=t=in:st=0.000:d=0.500:curve=qsin");
@@ -262,7 +209,7 @@ describe("RenderTimelineNode", () => {
     const node = new RenderTimelineNode();
     node.assign({ timeline: { type: "timeline", id: "seq-1" } });
     await node.process(context as never);
-    expect(ffmpegArgString()).not.toContain("afade");
+    expect(mediaArgString()).not.toContain("afade");
   });
 
   it("fades a remapped clip over its whole span, not one stretch of it", async () => {
@@ -283,7 +230,7 @@ describe("RenderTimelineNode", () => {
     node.assign({ timeline: { type: "timeline", id: "seq-1" } });
     await node.process(context as never);
 
-    const args = ffmpegArgString();
+    const args = mediaArgString();
     // The stretches are summed back into one stream first, so the ramp spans
     // the clip; its start is the clip's own timeline position.
     expect(args).toContain("amix=inputs=2:duration=longest:normalize=0,afade=");
@@ -310,7 +257,7 @@ describe("RenderTimelineNode", () => {
     node.assign({ timeline: { type: "timeline", id: "seq-1" } });
     await node.process(context as never);
 
-    const args = ffmpegArgString();
+    const args = mediaArgString();
     // The curve names the source span, and atempo carries it into the
     // stretch's own timeline length.
     expect(args).toContain("atrim=start=0:end=2,asetpts=PTS-STARTPTS,atempo=2");
@@ -337,7 +284,7 @@ describe("RenderTimelineNode", () => {
     node.assign({ timeline: { type: "timeline", id: "seq-1" } });
     await node.process(context as never);
 
-    const args = ffmpegArgString();
+    const args = mediaArgString();
     expect(args).toContain("atrim=start=0:end=2,asetpts=PTS-STARTPTS,atempo=2");
     expect(args).toContain("adelay=0|0");
   });
@@ -382,23 +329,11 @@ describe("RenderTimelineNode", () => {
     node.assign({ timeline: { type: "timeline", id: "seq-1" } });
     await node.process(context as never);
 
-    const segmentCalls = execFileCalls.filter(
-      (c) => c.cmd === "ffmpeg" && c.args.join(" ").includes("anullsrc")
-    );
-    // The video segment must use the silent-audio branch (anullsrc + map 1:a),
-    // not its own 0:a, even though ffprobe reports the source has audio.
-    const videoSegment = execFileCalls.find(
-      (c) =>
-        c.cmd === "ffmpeg" &&
-        c.args.includes("seg_0.mp4") === false &&
-        c.args.some((a) => a.endsWith("seg_0.mp4"))
-    );
-    expect(videoSegment).toBeTruthy();
-    const vArgs = videoSegment!.args.join(" ");
-    expect(vArgs).toContain("anullsrc");
-    expect(vArgs).toContain("-map 1:a");
-    expect(vArgs).not.toContain("-map 0:a");
-    expect(segmentCalls.length).toBeGreaterThan(0);
+    // The video segment carries silence, not its own sound, even though the
+    // probe reports the source has audio.
+    expect(concatCall()?.segments).toMatchObject([{ kind: "video", withAudio: false }]);
+    // The extracted clip is mixed in.
+    expect(mixInputPaths()).toHaveLength(2);
   });
 
   it("keeps a standalone video clip's embedded audio when it has no linked audio", async () => {
@@ -423,15 +358,8 @@ describe("RenderTimelineNode", () => {
     node.assign({ timeline: { type: "timeline", id: "seq-1" } });
     await node.process(context as never);
 
-    const videoSegment = execFileCalls.find(
-      (c) =>
-        c.cmd === "ffmpeg" && c.args.some((a) => a.endsWith("seg_0.mp4"))
-    );
-    expect(videoSegment).toBeTruthy();
-    const vArgs = videoSegment!.args.join(" ");
-    // ffprobe reports audio, so its own 0:a is mapped (no silent-audio branch).
-    expect(vArgs).toContain("-map 0:a");
-    expect(vArgs).not.toContain("anullsrc");
+    // The probe reports audio, so the segment keeps the clip's own sound.
+    expect(concatCall()?.segments).toMatchObject([{ kind: "video", withAudio: true }]);
   });
 
   it("can skip the audio mix", async () => {
@@ -442,7 +370,7 @@ describe("RenderTimelineNode", () => {
       include_audio: false
     });
     await node.process(context as never);
-    expect(ffmpegArgString()).not.toContain("amix");
+    expect(mediaArgString()).not.toContain("amix");
   });
 
   it("fails clearly when the timeline has no renderable clips", async () => {

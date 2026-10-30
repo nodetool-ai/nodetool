@@ -4,11 +4,13 @@
 // Each still runs through NodeTool's single-node harness and lands as a
 // 1920×1080 JPEG in the example's package asset folder. A still with a `ref`
 // passes that earlier still as a reference image, so one subject stays the
-// same across shots. Needs a Replicate token and ffmpeg.
+// same across shots. Needs a Replicate token.
 import { execFileSync } from "node:child_process";
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+
+import sharp from "sharp";
 
 export const ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
 
@@ -44,8 +46,8 @@ export async function generateStills(dir, stills, names = []) {
     if (!res.ok) throw new Error(`download ${uri}: ${res.status}`);
     const tmp = join(dir, `${still.name}.src.png`);
     writeFileSync(tmp, Buffer.from(await res.arrayBuffer()));
-    // Centre-crop 1920×1088 to the frame; q 4 keeps the folder small.
-    execFileSync("ffmpeg", ["-v", "error", "-y", "-i", tmp, "-vf", "scale=1920:-2,crop=1920:1080", "-q:v", "4", join(dir, `${still.name}.jpg`)]);
+    // Centre-crop 1920×1088 to the frame; quality 85 keeps the folder small.
+    await sharp(tmp).resize(1920, 1080, { fit: "cover", position: "centre" }).jpeg({ quality: 85 }).toFile(join(dir, `${still.name}.jpg`));
     rmSync(tmp);
     console.log(`${still.name}.jpg`);
   }

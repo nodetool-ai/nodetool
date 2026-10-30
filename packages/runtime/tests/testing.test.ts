@@ -1,28 +1,10 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
-import { execFile as execFileCallback } from "node:child_process";
-import { promisify } from "node:util";
 import os from "node:os";
 import path from "node:path";
 import { createFakeContext, stubGlobalFetch } from "../src/testing.js";
 import { FakeProvider } from "../src/providers/fake-provider.js";
-
-const execFile = promisify(execFileCallback);
-
-async function decodeMedia(bytes: Uint8Array, filename: string): Promise<void> {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "nodetool-fake-decode-"));
-  try {
-    const file = path.join(directory, filename);
-    fs.writeFileSync(file, bytes);
-    const result = await execFile("ffmpeg", [
-      "-v", "error", "-xerror", "-err_detect", "explode", "-i", file,
-      "-map", "0", "-f", "null", "-"
-    ]);
-    expect(result.stderr).toBe("");
-  } finally {
-    fs.rmSync(directory, { recursive: true, force: true });
-  }
-}
+import { verifyDecodes } from "../src/media/index.js";
 
 describe("createFakeContext", () => {
   it("returns a ProcessingContext with in-memory storage and a temp workspace", () => {
@@ -171,7 +153,7 @@ describe("FakeProvider media capabilities", () => {
     });
     expect(bytes[0]).toBe(0x89);
     expect(String.fromCharCode(bytes[1], bytes[2], bytes[3])).toBe("PNG");
-    await decodeMedia(bytes, "still.png");
+    await verifyDecodes(bytes, { kind: "video", format: "png_pipe" });
   });
 
   it("textToVideo returns a fully decodable MP4", async () => {
@@ -183,7 +165,9 @@ describe("FakeProvider media capabilities", () => {
     expect(String.fromCharCode(bytes[4], bytes[5], bytes[6], bytes[7])).toBe(
       "ftyp"
     );
-    await decodeMedia(bytes, "clip.mp4");
+    // Every stream of the clip decodes, with strict error detection.
+    await verifyDecodes(bytes, { kind: "video" });
+    await verifyDecodes(bytes, { kind: "audio" });
   });
 
   it("textToSpeechEncoded returns a parseable WAV", async () => {

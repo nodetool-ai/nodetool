@@ -1,83 +1,33 @@
 /**
  * RenderTimeline against midi tracks: the clip has no asset, its sound is
- * rendered from the notes it carries, and the WAV that reaches ffmpeg is
+ * rendered from the notes it carries, and the WAV that reaches the mix is
  * already the clip's window.
  *
- * The compositor and child_process are faked the same way
+ * The compositor and the media module are faked the same way
  * `timeline-composite.test.ts` fakes them, so what is under test is which
- * files the mix reads and with what filters. The fake ffmpeg keeps a copy of
- * every WAV handed to it, which is how the rendered audio itself is checked
- * without a binary — an installed ffmpeg additionally decodes the same bytes.
+ * files the mix reads and with what filters. The fake keeps a copy of every
+ * WAV the mix opens, which is how the rendered audio itself is checked, and
+ * the real decoder reads the same bytes back.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import fsSync from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { MIDI_PPQ } from "@nodetool-ai/timeline";
+import { readPcm } from "@nodetool-ai/runtime/media/testing";
+import {
+  capturedWavs,
+  fakePcm,
+  fakeProbe,
+  mediaArgString,
+  mediaCalls,
+  mixInputPaths,
+  resetFakeMedia
+} from "./_fixtures/fake-media.js";
 
-let execFileCalls: Array<{ cmd: string; args: string[] }> = [];
-/** Bytes of every `*.wav` an ffmpeg call read, by file name. */
-let capturedWavs = new Map<string, Buffer>();
-let sampleChannels = 1;
-
-function captureWavInputs(args: string[]): void {
-  for (const arg of args) {
-    if (!arg.endsWith(".wav") || !fsSync.existsSync(arg)) continue;
-    capturedWavs.set(path.basename(arg), fsSync.readFileSync(arg));
-  }
-}
-
-function mockResponse(
-  cmd: string,
-  args: string[]
-): { stdout: string; stderr: string } {
-  if (cmd === "ffprobe") {
-    const argsStr = args.join(" ");
-    if (argsStr.includes("stream=channels")) return { stdout: String(sampleChannels), stderr: "" };
-    if (argsStr.includes("codec_type")) return { stdout: "audio\n", stderr: "" };
-    if (argsStr.includes("format=duration")) {
-      return { stdout: "4\n", stderr: "" };
-    }
-    return { stdout: "", stderr: "" };
-  }
-  captureWavInputs(args);
-  const outputPath = args[args.length - 1];
-  if (outputPath.endsWith(".f32")) {
-    const samples = Float32Array.from({ length: 48000 }, (_, i) => .25 * Math.sin(i * 2 * Math.PI * 220 / 48000));
-    fsSync.writeFileSync(outputPath, Buffer.from(samples.buffer));
-  } else {
-    fsSync.writeFileSync(outputPath, Buffer.from(`fake:${outputPath}`));
-  }
-  return { stdout: "", stderr: "" };
-}
-
-vi.mock("node:child_process", async (importOriginal) => {
-  const original = (await importOriginal()) as Record<string, unknown>;
-  const mockExecFile = (
-    cmd: string,
-    args: string[],
-    optionsOrCb: unknown,
-    maybeCb?: unknown
-  ) => {
-    execFileCalls.push({ cmd, args: [...args] });
-    const cb =
-      typeof optionsOrCb === "function"
-        ? (optionsOrCb as (e: Error | null, o: string, s: string) => void)
-        : typeof maybeCb === "function"
-          ? (maybeCb as (e: Error | null, o: string, s: string) => void)
-          : null;
-    if (!cb) return;
-    const resp = mockResponse(cmd, args);
-    cb(null, resp.stdout, resp.stderr);
-  };
-  (mockExecFile as unknown as Record<symbol, unknown>)[
-    Symbol.for("nodejs.util.promisify.custom")
-  ] = (cmd: string, args: string[]) => {
-    execFileCalls.push({ cmd, args: [...args] });
-    return Promise.resolve(mockResponse(cmd, args));
-  };
-  return { ...original, execFile: mockExecFile };
-});
+vi.mock("@nodetool-ai/runtime/media", async (importOriginal) =>
+  (await import("./_fixtures/fake-media.js")).fakeMediaModule(await importOriginal())
+);
 
 vi.mock("../src/nodes/timeline/compositeRender.js", async (importOriginal) => {
   const original = (await importOriginal()) as Record<string, unknown>;
@@ -91,22 +41,6 @@ vi.mock("../src/nodes/timeline/compositeRender.js", async (importOriginal) => {
 });
 
 const { RenderTimelineNode } = await import("../src/nodes/timeline.js");
-
-/** Real ffmpeg, reached past the module mock, when the host has one. */
-const realExecFileSync = (
-  await vi.importActual<typeof import("node:child_process")>(
-    "node:child_process"
-  )
-).execFileSync;
-
-const ffmpegAvailable = ((): boolean => {
-  try {
-    realExecFileSync("ffmpeg", ["-version"], { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
-})();
 
 const SAMPLE_RATE = 48000;
 const BPM = 120;
@@ -200,17 +134,14 @@ async function render(seq: unknown, props: Record<string, unknown> = {}) {
   return node.process(contextFor(seq) as never);
 }
 
-function ffmpegArgs(): string[] {
-  return execFileCalls
-    .filter((c) => c.cmd === "ffmpeg")
-    .map((c) => c.args.join(" "));
-}
-
-/** The mix command — the one carrying a per-clip audio filter chain. */
+/** The mix graph — the one carrying a per-clip audio filter chain — and its inputs. */
 function mixArgs(): string {
-  const mix = ffmpegArgs().find((a) => a.includes("adelay"));
+  const mix = mediaCalls.find(
+    (call) => call.fn === "openFilterComplex" && call.graph.includes("adelay")
+  );
   expect(mix).toBeDefined();
-  return mix as string;
+  if (mix?.fn !== "openFilterComplex") return "";
+  return `${mix.inputs.map((input) => input.filePath).join(" ")} ${mix.graph}`;
 }
 
 /** 16-bit PCM mono, as `encodeWavPcm16` writes it: 44-byte header, no chunks. */
@@ -245,14 +176,18 @@ function rms(samples: Float32Array, fromMs: number, toMs: number): number {
 }
 
 beforeEach(() => {
-  execFileCalls = [];
-  capturedWavs = new Map();
-  sampleChannels = 1;
+  resetFakeMedia();
+  fakeProbe.channels = 1;
+  // What the sampler recording decodes to: a second of a quiet 220 Hz sine.
+  fakePcm.samples = Float32Array.from(
+    { length: 48000 },
+    (_, i) => 0.25 * Math.sin((i * 2 * Math.PI * 220) / 48000)
+  );
 });
 
 describe("RenderTimeline — midi tracks", () => {
   it("resolves sampler assets, decodes once and renders one-shot tails into the exported WAV", async () => {
-    sampleChannels = 2;
+    fakeProbe.channels = 2;
     const assetId = "a".repeat(32);
     await render(sequence({ tracks: [{ ...MIDI_TRACK, instrument: {
       type: "sampler", zones: [{ id: "z", name: "Drum", assetId, rootNote: 60, lowNote: 60, highNote: 60, gainDb: 0 }],
@@ -263,8 +198,8 @@ describe("RenderTimeline — midi tracks", () => {
     const { samples } = decodeWavPcm16(wav!);
     expect(rms(samples, 300, 800)).toBeGreaterThan(.02);
     expect(rms(samples, 1100, 1800)).toBe(0);
-    expect(execFileCalls.filter(call => call.args.includes("f32le"))).toHaveLength(1);
-    expect(ffmpegArgs().some(args => args.includes("pan=mono|c0=0.5*c0+0.5*c1"))).toBe(true);
+    expect(mediaCalls.filter((call) => call.fn === "decodeAudioToPcm")).toHaveLength(1);
+    expect(mediaArgString()).toContain("pan=mono|c0=0.5*c0+0.5*c1");
   });
   it("renders a noteless arp clip from the chord track under it", async () => {
     const chordTrack = {
@@ -316,40 +251,23 @@ describe("RenderTimeline — midi tracks", () => {
     }
   });
 
-  it.runIf(ffmpegAvailable)(
-    "decodes through ffmpeg to the same onset",
-    async () => {
-      await render(sequence({ tracks: [MIDI_TRACK] }));
-      const wav = capturedWavs.get("midi_clip-m.wav");
-      expect(wav).toBeDefined();
+  it("decodes back to the same onset", async () => {
+    await render(sequence({ tracks: [MIDI_TRACK] }));
+    const wav = capturedWavs.get("midi_clip-m.wav");
+    expect(wav).toBeDefined();
 
-      const file = path.join(
-        fsSync.mkdtempSync(path.join(os.tmpdir(), "midi-decode-")),
-        "clip.wav"
-      );
-      fsSync.writeFileSync(file, wav as Buffer);
-      const raw = realExecFileSync(
-        "ffmpeg",
-        [
-          "-v", "error",
-          "-i", file,
-          "-f", "f32le",
-          "-ac", "1",
-          "-ar", String(SAMPLE_RATE),
-          "-"
-        ],
-        { maxBuffer: 256 * 1024 * 1024 }
-      ) as Buffer;
-      const decoded = new Float32Array(
-        raw.buffer.slice(raw.byteOffset, raw.byteOffset + raw.byteLength)
-      );
+    const file = path.join(
+      fsSync.mkdtempSync(path.join(os.tmpdir(), "midi-decode-")),
+      "clip.wav"
+    );
+    fsSync.writeFileSync(file, wav as Buffer);
+    const { samples: decoded } = await readPcm(file, { sampleRate: SAMPLE_RATE, channels: 1 });
 
-      expect(decoded.length).toBe(Math.round((CLIP_MS / 1000) * SAMPLE_RATE));
-      expect(firstOnsetMs(decoded)).toBeGreaterThanOrEqual(0);
-      expect(firstOnsetMs(decoded)).toBeLessThan(10);
-      expect(rms(decoded, 0, 4 * QUARTER_MS)).toBeGreaterThan(0.01);
-    }
-  );
+    expect(decoded.length).toBe(Math.round((CLIP_MS / 1000) * SAMPLE_RATE));
+    expect(firstOnsetMs(decoded)).toBeGreaterThanOrEqual(0);
+    expect(firstOnsetMs(decoded)).toBeLessThan(10);
+    expect(rms(decoded, 0, 4 * QUARTER_MS)).toBeGreaterThan(0.01);
+  });
 
   it("refuses a VST track instead of exporting it as silence", async () => {
     const vst = {
@@ -374,7 +292,7 @@ describe("RenderTimeline — midi tracks", () => {
     });
     await render(seq);
 
-    expect(ffmpegArgs().some((a) => a.includes("midi_"))).toBe(false);
+    expect(mixInputPaths().some((file) => file.includes("midi_"))).toBe(false);
   });
 
   it("refuses a timeline whose only midi track is muted", async () => {

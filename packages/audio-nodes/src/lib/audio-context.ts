@@ -32,7 +32,7 @@ export async function loadOfflineAudioContext(): Promise<OfflineAudioContextCtor
           // The native addon can be missing or fail to load on some Node
           // targets (musl, unbundled serverless like Vercel functions). Treat
           // that as "WebAudio unavailable" — resolving null, never rejecting —
-          // so callers fall back to ffmpeg / pure-JS WAV instead of crashing
+          // so callers fall back to libav / pure-JS WAV instead of crashing
           // with an opaque module-load error. null is cached: the addon won't
           // appear later in the same process.
           return null;
