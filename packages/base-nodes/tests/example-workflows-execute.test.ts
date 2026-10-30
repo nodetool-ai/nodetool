@@ -34,6 +34,7 @@ import {
 } from "@nodetool-ai/node-sdk";
 import {
   createFakeContext,
+  loadMediaRefBytes,
   setProcessSandboxModuleCatalog,
   stubGlobalFetch
 } from "@nodetool-ai/runtime";
@@ -306,11 +307,33 @@ interface ExecutionResult {
   nodesExecuted: number;
 }
 
-async function executeWorkflow(workflow: WorkflowFile): Promise<ExecutionResult> {
+async function executeWorkflow(
+  workflow: WorkflowFile
+): Promise<ExecutionResult> {
   const fake = createFakeContext({
     jobId: `fake-${workflow.fileName}`
   });
-  const graph = await Graph.loadFromDict(prepareForFakeRun(workflow.data.graph), {
+  const prepared = prepareForFakeRun(workflow.data.graph);
+  // Resolve shipped image refs to bytes so entity nodes can save their
+  // reference asset through the fake host, as they do for generated media.
+  for (const node of prepared.nodes) {
+    if (node.type !== "nodetool.input.ImageInput") {
+      continue;
+    }
+    const data = node.data as Record<string, unknown>;
+    const value = data.value as {
+      type?: string;
+      uri?: string;
+      asset_id?: string | null;
+      data?: unknown;
+    };
+    const bytes = await loadMediaRefBytes(value, fake.context);
+    if (!bytes) {
+      throw new Error(`Cannot load sample image for ${String(node.id)}`);
+    }
+    data.value = { ...value, data: bytes };
+  }
+  const graph = await Graph.loadFromDict(prepared, {
     resolver,
     skipErrors: true,
     allowUndefinedProperties: true
