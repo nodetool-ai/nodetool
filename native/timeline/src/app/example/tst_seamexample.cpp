@@ -90,7 +90,13 @@ private slots:
     }
     void panelHost() {
         PanelRegistry panels;
-        QCOMPARE(panels.forSlot("left").size(), 1);
+        const auto left = panels.forSlot("left");
+        QVariantList examples;
+        for (const auto& panel : left) {
+            if (panel.toMap().value("id").toString() == "example") { examples.append(panel); }
+        }
+        QCOMPARE(examples.size(), 1);
+        QCOMPARE(examples.first().toMap().value("source").toUrl(), QUrl("qrc:/example/ExamplePanel.qml"));
         TimelineModel model;
         PlaybackClock clock;
         QQmlEngine engine;
