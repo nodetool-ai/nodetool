@@ -16,6 +16,7 @@ Popup {
     signal selected(var model)
     objectName: "sharedModelPicker"
     parent: Overlay.overlay
+    enabled: !!catalog
     modal: true
     focus: true
     padding: 0
@@ -28,6 +29,7 @@ Popup {
     readonly property color divider: ModelPickerTheme.divider
     readonly property color accent: ModelPickerTheme.accent
     function openAt(item) {
+        if (!catalog) return
         trigger = item
         highlightedId = currentId
         highlightedProvider = currentProvider
@@ -51,6 +53,7 @@ Popup {
         modelList.currentIndex = fallback
     }
     function moveHighlight(delta) {
+        if (!catalog) return
         let index = modelList.currentIndex
         if (index < 0) index = delta > 0 ? -1 : modelList.count
         while (index + delta >= 0 && index + delta < modelList.count) {
@@ -106,8 +109,8 @@ Popup {
         id: navAction
         required property string providerId
         property bool compact: false
-        text: providerId === "All" && !compact ? qsTr("All models") : picker.catalog.providerLabel(providerId)
-        highlighted: picker.catalog.group === providerId
+        text: providerId === "All" && !compact ? qsTr("All models") : picker.catalog ? picker.catalog.providerLabel(providerId) : ""
+        highlighted: !!picker.catalog && picker.catalog.group === providerId
         flat: true
         hoverEnabled: true
         padding: ModelPickerTheme.navInset
@@ -177,13 +180,13 @@ Popup {
             Layout.fillWidth: true
             Layout.leftMargin: 12
             Layout.rightMargin: 12
-            visible: picker.catalog && (picker.catalog.loading || picker.catalog.error !== "")
-            text: picker.catalog.loading ? qsTr("Loading models…") : picker.catalog.error
-            color: picker.catalog.error !== "" ? ModelPickerTheme.warning : picker.muted
+            visible: !!picker.catalog && (picker.catalog.loading || picker.catalog.error !== "")
+            text: picker.catalog ? (picker.catalog.loading ? qsTr("Loading models…") : picker.catalog.error) : ""
+            color: picker.catalog && picker.catalog.error !== "" ? ModelPickerTheme.warning : picker.muted
             wrapMode: Text.Wrap
         }
         RowLayout {
-            visible: picker.catalog.needsProviderSetup && !picker.catalog.loading
+            visible: !!picker.catalog && picker.catalog.needsProviderSetup && !picker.catalog.loading
             Layout.fillWidth: true
             Layout.leftMargin: 12
             Layout.rightMargin: 12
@@ -216,7 +219,7 @@ Popup {
                             }
                         }
                         Label {
-                            visible: picker.catalog.cloudProviders.length > 0
+                            visible: !!picker.catalog && picker.catalog.cloudProviders.length > 0
                             width: parent.width
                             text: qsTr("CLOUD")
                             color: picker.muted
@@ -228,11 +231,11 @@ Popup {
                             font.letterSpacing: ModelPickerTheme.eyebrowFontSize * 0.06
                         }
                         Repeater {
-                            model: picker.catalog.cloudProviders
+                            model: picker.catalog ? picker.catalog.cloudProviders : null
                             delegate: ProviderAction { required property string modelData; providerId: modelData; width: parent.width }
                         }
                         Label {
-                            visible: picker.catalog.localProviders.length > 0
+                            visible: !!picker.catalog && picker.catalog.localProviders.length > 0
                             width: parent.width
                             text: qsTr("LOCAL")
                             color: picker.muted
@@ -244,7 +247,7 @@ Popup {
                             font.letterSpacing: ModelPickerTheme.eyebrowFontSize * 0.06
                         }
                         Repeater {
-                            model: picker.catalog.localProviders
+                            model: picker.catalog ? picker.catalog.localProviders : null
                             delegate: ProviderAction { required property string modelData; providerId: modelData; width: parent.width }
                         }
                     }
@@ -274,14 +277,14 @@ Popup {
                         }
                     }
                     Label {
-                        visible: !picker.catalog.loading && modelList.count === 0
+                        visible: !!picker.catalog && !picker.catalog.loading && modelList.count === 0
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                         wrapMode: Text.Wrap
                         color: picker.muted
-                        text: picker.catalog.error !== "" ? qsTr("Unable to load models. Refresh to try again.") :
+                        text: !picker.catalog ? "" : picker.catalog.error !== "" ? qsTr("Unable to load models. Refresh to try again.") :
                               picker.catalog.search !== "" ? qsTr("No matching models") : qsTr("No models available")
                     }
                     ListView {
@@ -290,7 +293,7 @@ Popup {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         clip: true
-                        model: picker.catalog.results
+                        model: picker.catalog ? picker.catalog.results : null
                         onCountChanged: Qt.callLater(picker.restoreHighlight)
                         highlightMoveDuration: 0
                         Keys.onDownPressed: picker.moveHighlight(1)
@@ -321,7 +324,7 @@ Popup {
                                 spacing: 6
                                 Label { text: row.modelId === picker.currentId && row.provider === picker.currentProvider ? "✓" : ""; color: picker.accent; Layout.preferredWidth: 16 }
                                 Label { text: row.name; color: picker.textColor; elide: Text.ElideRight; Layout.fillWidth: true }
-                                Label { text: picker.catalog.providerLabel(row.provider) + (row.executionLabel ? " · " + row.executionLabel : ""); color: picker.muted; elide: Text.ElideRight; Layout.maximumWidth: 128; font.pixelSize: 11 }
+                                Label { text: (picker.catalog ? picker.catalog.providerLabel(row.provider) : row.provider) + (row.executionLabel ? " · " + row.executionLabel : ""); color: picker.muted; elide: Text.ElideRight; Layout.maximumWidth: 128; font.pixelSize: 11 }
                                 ActionButton {
                                     objectName: "favorite_" + row.provider + "_" + row.modelId
                                     text: row.favorite ? "★" : "☆"
@@ -384,6 +387,7 @@ Popup {
         }
     }
     function choose(id, provider) {
+        if (!catalog) return
         catalog.selectModel(id, provider)
         if (catalog.selectedModelId === id && catalog.selectedProvider === provider) {
             highlightedId = id
@@ -393,6 +397,7 @@ Popup {
         }
     }
     function commitCurrent() {
+        if (!catalog) return
         const row = catalog.resultAt(modelList.currentIndex)
         if (row && row.available) choose(row.id, row.provider)
     }

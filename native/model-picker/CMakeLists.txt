@@ -43,4 +43,6 @@ if(BUILD_TESTING)
     target_compile_definitions(model-picker-visual-tests PRIVATE MODEL_PICKER_TEST_QML="${CMAKE_CURRENT_SOURCE_DIR}/tests/PickerVisual.qml")
     target_link_libraries(model-picker-visual-tests PRIVATE nodetool_model_picker nodetool_model_pickerplugin Qt6::Test Qt6::Quick)
     add_test(NAME model-picker-visual-tests COMMAND model-picker-visual-tests)
+    set_tests_properties(model-picker-tests model-picker-visual-tests PROPERTIES
+        ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endif()

@@ -7,7 +7,7 @@ endif()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-enable_testing()
+include(CTest)
 
 include(cmake/Hardening.cmake)
 include(cmake/Sanitizers.cmake)
