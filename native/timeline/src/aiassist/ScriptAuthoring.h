@@ -3,7 +3,7 @@
 #include <QJsonArray>
 #include <QUrl>
 namespace nt::aiassist {
-// TimelineScriptPanel's controls. Updates retain the full script response for CAS saving.
+// Document editing retains the full script response for CAS saving.
 QJsonObject addScriptLine(QJsonObject script, const QJsonObject& payload = {});
 QJsonObject patchScriptLineText(QJsonObject script, const QJsonObject& payload);
 QJsonObject removeEmptyScriptLine(QJsonObject script, const QJsonObject& payload);

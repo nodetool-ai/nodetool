@@ -51,12 +51,12 @@ void AssetBrowser::setTimeline(TimelineModel* model) {
 
 void AssetBrowser::resetDocumentState() {
     ++m_documentEpoch;
+    m_thumbnails.clear();
+    emit thumbnailsChanged();
     m_settlements.clear();
     const auto project = projectId();
     if (m_libraryProject != project) {
         m_libraryProject = project;
-        m_collectionActive = false;
-        m_collectionAssetIds.clear();
         m_folderId.clear();
         m_folderPath.clear();
         m_pending.clear();
@@ -244,14 +244,6 @@ void AssetBrowser::setFavoritesOnly(bool value) {
     if (m_favoritesOnly == value) { return; }
     m_favoritesOnly = value; emit filtersChanged(); refresh();
 }
-void AssetBrowser::setCollectionActive(bool value) {
-    if (m_collectionActive == value) { return; }
-    m_collectionActive = value; emit filtersChanged(); refresh();
-}
-void AssetBrowser::setCollectionAssetIds(const QStringList& value) {
-    if (m_collectionAssetIds == value) { return; }
-    m_collectionAssetIds = value; emit filtersChanged(); refresh();
-}
 
 void AssetBrowser::refresh() {
     m_hasQueried = true;
@@ -262,43 +254,30 @@ void AssetBrowser::refresh() {
     emit assetsChanged();
     const auto cancelled = std::make_shared<std::atomic_bool>(false);
     request([cancelled, folder = m_folderId, search = m_searchText.trimmed(), type = m_typeFilter,
-             tag = m_tagFilter.trimmed(), favorites = m_favoritesOnly, collection = m_collectionActive,
-             members = m_collectionAssetIds, project = projectId(), generation](nt::server::ServerClient& client) {
+             tag = m_tagFilter.trimmed(), favorites = m_favoritesOnly, project = projectId(), generation](nt::server::ServerClient& client) {
         Result result;
         result.replace = true;
         result.queryGeneration = generation;
         QJsonArray candidates;
-        if (collection) {
-            QSet<QString> seen;
-            for (const auto& id : members) {
-                if (cancelled->load()) { return result; }
-                if (seen.contains(id)) { continue; }
-                seen.insert(id);
-                const auto response = client.getAsset(id);
-                if (response.ok()) { candidates.append(response.data); }
-                else if (response.error.code != "NOT_FOUND") { result.error = response.describe(); }
+        QString cursor;
+        QSet<QString> cursors;
+        do {
+            if (cancelled->load()) { return result; }
+            QJsonObject input{{"query", search}, {"page_size", 1000}};
+            if (!project.isEmpty()) { input.insert("project_id", project); }
+            if (!cursor.isEmpty()) { input.insert("cursor", cursor); }
+            const auto response = client.query("assets.search", input);
+            if (!response.ok()) { result.error = response.describe(); return result; }
+            const auto page = response.data.toObject();
+            for (const auto& asset : page.value("assets").toArray()) { candidates.append(asset); }
+            cursor = page.value("next_cursor").toString();
+            if (!cursor.isEmpty() && cursors.contains(cursor)) {
+                result.error = "The server repeated an asset page. Refresh the library to try again.";
+                return result;
             }
-        } else {
-            QString cursor;
-            QSet<QString> cursors;
-            do {
-                if (cancelled->load()) { return result; }
-                QJsonObject input{{"query", search}, {"page_size", 1000}};
-                if (!project.isEmpty()) { input.insert("project_id", project); }
-                if (!cursor.isEmpty()) { input.insert("cursor", cursor); }
-                const auto response = client.query("assets.search", input);
-                if (!response.ok()) { result.error = response.describe(); return result; }
-                const auto page = response.data.toObject();
-                for (const auto& asset : page.value("assets").toArray()) { candidates.append(asset); }
-                cursor = page.value("next_cursor").toString();
-                if (!cursor.isEmpty() && cursors.contains(cursor)) {
-                    result.error = "The server repeated an asset page. Refresh the library to try again.";
-                    return result;
-                }
-                cursors.insert(cursor);
-            } while (!cursor.isEmpty() && !cancelled->load() && !QThread::currentThread()->isInterruptionRequested());
-        }
-        const bool global = collection || !search.isEmpty() || favorites || !tag.isEmpty() || !type.isEmpty();
+            cursors.insert(cursor);
+        } while (!cursor.isEmpty() && !cancelled->load() && !QThread::currentThread()->isInterruptionRequested());
+        const bool global = !search.isEmpty() || favorites || !tag.isEmpty() || !type.isEmpty();
         QSet<QString> seen;
         for (const auto& value : candidates) {
             const auto asset = value.toObject();
@@ -424,6 +403,27 @@ void AssetBrowser::pollProxies() {
 }
 
 QString AssetBrowser::mediaType(const QVariantMap& asset) const { return nt::assets::assetMediaType(QJsonObject::fromVariantMap(asset)); }
+void AssetBrowser::requestThumbnail(const QString& assetId) {
+    if (!m_target || assetId.isEmpty() || m_thumbnails.contains(assetId)) { return; }
+    m_thumbnails.insert(assetId, QString{});
+    request([assetId](nt::server::ServerClient& client) {
+        Result result;
+        result.display = false;
+        const auto asset = client.getAsset(assetId);
+        if (asset.ok()) { result.assets.append(asset.data); }
+        return result;
+    }, [this, assetId](const Result& result) {
+        const auto asset = result.assets.isEmpty() ? QJsonObject{} : result.assets.first().toObject();
+        auto path = asset.value("thumb_url").toString();
+        if (path.isEmpty() && asset.value("content_type").toString().startsWith("image/")) {
+            path = asset.value("get_url").toString();
+        }
+        if (path.isEmpty()) { m_thumbnails.remove(assetId); }
+        else { m_thumbnails.insert(assetId, mediaUrl(path).toString()); }
+        emit thumbnailsChanged();
+    }, m_documentEpoch);
+}
+
 QUrl AssetBrowser::mediaUrl(const QString& path) const {
     if (path.isEmpty() || !m_target) { return {}; }
     return m_target->server.resolved(QUrl(path));
@@ -439,6 +439,19 @@ QString AssetBrowser::trackAt(TrackWindowModel* rows, double contentY) const {
     if (contentY >= tops[index] + heights[index]) { return {}; }
     const auto* track = rows->tracks()->trackAt(static_cast<int>(index));
     return track ? QString::fromStdString(track->id) : QString{};
+}
+
+bool AssetBrowser::canDrop(const QVariantMap& asset, const QString& trackId) const {
+    const auto type = mediaType(asset);
+    if (!m_timeline || type.isEmpty() || asset.value("id").toString().isEmpty()) { return false; }
+    if (trackId.isEmpty()) { return true; }
+    for (int i = 0; i < m_timeline->tracks()->rowCount(); ++i) {
+        const auto* track = m_timeline->tracks()->trackAt(i);
+        if (track && QString::fromStdString(track->id) == trackId) {
+            return !track->locked && nt::edit::clipFitsTrack(type, track->raw.value("type").toString());
+        }
+    }
+    return false;
 }
 
 bool AssetBrowser::drop(const QVariantMap& asset, const QString& trackId, double startMs, const QString& mode, double snapMs) {

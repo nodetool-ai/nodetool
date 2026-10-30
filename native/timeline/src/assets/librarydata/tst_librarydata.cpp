@@ -46,23 +46,40 @@ private slots:
         QTRY_VERIFY(!browser.busy());
         QCOMPARE(browser.assets().size(), 2);
     }
-    void emptyCollectionAndCrossFolderMembers() {
+    void assetTypeFilters_data() {
+        QTest::addColumn<QString>("type");
+        QTest::addColumn<QString>("expectedContentType");
+        QTest::newRow("all") << QString() << QString();
+        QTest::newRow("image") << QString("image") << QString("image/png");
+        QTest::newRow("video") << QString("video") << QString("video/mp4");
+        QTest::newRow("audio") << QString("audio") << QString("audio/wav");
+        QTest::newRow("folder") << QString("folder") << QString("folder");
+        QTest::newRow("other") << QString("other") << QString("application/pdf");
+    }
+    void assetTypeFilters() {
+        QFETCH(QString, type);
+        QFETCH(QString, expectedContentType);
         TestHttpServer http;
-        http.setJson([](const QByteArray& path, const QUrl&) {
-            if (path != "/trpc/assets.get") { return QByteArray(); }
-            return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", asset("member", "elsewhere")}}}}).toJson();
+        QJsonArray rows;
+        for (const auto& contentType : {"image/png", "video/mp4", "audio/wav", "folder", "application/pdf"}) {
+            auto row = asset(contentType, "legacy-user");
+            row.insert("content_type", contentType);
+            rows.append(row);
+        }
+        http.setJson([&](const QByteArray&, const QUrl&) {
+            return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", QJsonObject{
+                {"assets", rows}, {"next_cursor", QJsonValue::Null}}}}}}).toJson();
         });
         AssetBrowser browser;
         attach(browser, http);
-        browser.setCollectionActive(true);
+        if (type.isEmpty()) { browser.refresh(); }
+        else { browser.setTypeFilter(type); }
         QTRY_VERIFY(!browser.busy());
-        QVERIFY(browser.assets().isEmpty());
-        browser.setCollectionAssetIds({"member"});
-        QTRY_VERIFY(!browser.busy());
-        QCOMPARE(browser.assets().size(), 1);
-        browser.setCollectionAssetIds({});
-        QTRY_VERIFY(!browser.busy());
-        QVERIFY(browser.assets().isEmpty());
+        QCOMPARE(browser.assets().size(), type.isEmpty() ? 5 : 1);
+        if (!type.isEmpty()) {
+            const auto contentType = browser.assets().first().toMap().value("content_type").toString();
+            QCOMPARE(contentType, expectedContentType);
+        }
     }
     void tagsRetryFromLatestMetadata() {
         TestHttpServer http;
@@ -256,7 +273,7 @@ private slots:
         browser.m_target->server = QUrl("http://localhost:1234/two");
         QVERIFY(scope != browser.libraryScope());
     }
-    void projectReplacementInvalidatesCollectionsAndQueries() {
+    void projectReplacementInvalidatesFoldersAndQueries() {
         AssetBrowser browser;
         browser.m_target = nt::server::SaveTarget{QUrl("http://localhost:1234"), "token", {}, {}, {}};
         TimelineModel timeline;
@@ -265,8 +282,6 @@ private slots:
         timeline.setTimeline(first);
         browser.setTimeline(&timeline);
         const auto firstScope = browser.libraryScope();
-        browser.m_collectionActive = true;
-        browser.m_collectionAssetIds = {"old-project-member"};
         browser.m_folderId = "old-project-folder";
         const auto generation = browser.m_queryGeneration;
         QSignalSpy scopeChanged(&browser, &AssetBrowser::libraryScopeChanged);
@@ -276,8 +291,6 @@ private slots:
         QVERIFY(browser.libraryScope() != firstScope);
         QVERIFY(!scopeChanged.isEmpty());
         QVERIFY(browser.m_queryGeneration > generation);
-        QVERIFY(!browser.collectionActive());
-        QVERIFY(browser.collectionAssetIds().isEmpty());
         QVERIFY(browser.folderId().isEmpty());
     }
     void missingFileTransferFailsAndRetries() {

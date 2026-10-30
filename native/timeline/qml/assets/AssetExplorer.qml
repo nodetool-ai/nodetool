@@ -17,18 +17,13 @@ Rectangle {
     property string tagDraft: ""
     readonly property string libraryIdentity: browserModel.libraryScope
     onLibraryIdentityChanged: Qt.callLater(() => {
-        action.close(); moveDialog.close(); addCollectionDialog.close()
+        action.close(); moveDialog.close()
         actionCallback = null
         grid.selectedId = ""
         tagAssetId = ""; tagBaseText = ""; tagDraft = ""
         preview.closePreview()
     })
     readonly property var selectedAsset: grid.selectedAsset
-    readonly property var activeCollection: {
-        const rows = collections.collections
-        for (let i = 0; i < rows.length; ++i) if (rows[i].id === collections.selectedId) return rows[i]
-        return null
-    }
     implicitWidth: Theme.trackHeaderWidth
     width: implicitWidth
     height: parent && parent.parent ? parent.parent.height : Theme.trackHeight * 9
@@ -38,10 +33,7 @@ Rectangle {
     AssetBrowser {
         id: browserModel
         timeline: explorer.timeline
-        collectionActive: collections.selectedId !== ""
-        collectionAssetIds: collections.assetIds
     }
-    LibraryCollections { id: collections; objectName: "libraryCollections"; scope: browserModel.libraryScope }
     Component.onCompleted: Qt.callLater(() => {
         const editor = Context.editorFor(explorer)
         if (editor) explorer.timeline = editor.timeline
@@ -52,8 +44,6 @@ Rectangle {
         search.text = ""; tagSearch.text = ""
         browserModel.searchText = ""; browserModel.tagFilter = ""
         browserModel.typeFilter = ""; browserModel.favoritesOnly = false
-        collections.selectedId = ""
-        types.currentIndex = 0
     }
     function navigateFolder(id) {
         clearFilters()
@@ -123,24 +113,7 @@ Rectangle {
             RowLayout {
                 visible: explorer.filtersExpanded
                 Layout.fillWidth: true
-                ComboBox {
-                    palette.button: Theme.backgroundPaper
-                    palette.buttonText: Theme.textPrimary
-                    palette.base: Theme.backgroundPaper
-                    palette.text: Theme.textPrimary
-                    palette.window: Theme.backgroundPaper
-                    palette.windowText: Theme.textPrimary
-                    palette.highlight: Theme.primary
-                    palette.highlightedText: Theme.textPrimary
-                    id: types
-                    objectName: "libraryTypeFilter"
-                    Layout.fillWidth: true
-                    model: ["All types", "Images", "Video", "Audio", "Folders", "Other"]
-                    Accessible.name: "Asset type"
-                    font.family: Theme.sansFamily
-                    font.pixelSize: Theme.fontSizeSmall
-                    onActivated: browserModel.typeFilter = ["", "image", "video", "audio", "folder", "other"][currentIndex]
-                }
+
                 LibraryButton {
                     objectName: "libraryFavoritesButton"
                     text: "Favorites"
@@ -159,33 +132,24 @@ Rectangle {
                 onAccepted: { tagDelay.stop(); browserModel.tagFilter = text.trim() }
                 Timer { id: tagDelay; interval: 250; onTriggered: browserModel.tagFilter = tagSearch.text.trim() }
             }
-            RowLayout {
+            ComboBox {
+                palette.button: Theme.backgroundPaper
+                palette.buttonText: Theme.textPrimary
+                palette.base: Theme.backgroundPaper
+                palette.text: Theme.textPrimary
+                palette.window: Theme.backgroundPaper
+                palette.windowText: Theme.textPrimary
+                palette.highlight: Theme.primary
+                palette.highlightedText: Theme.textPrimary
+                id: types
+                objectName: "libraryTypeFilter"
                 Layout.fillWidth: true
-                ComboBox {
-                    palette.button: Theme.backgroundPaper
-                    palette.buttonText: Theme.textPrimary
-                    palette.base: Theme.backgroundPaper
-                    palette.text: Theme.textPrimary
-                    palette.window: Theme.backgroundPaper
-                    palette.windowText: Theme.textPrimary
-                    palette.highlight: Theme.primary
-                    palette.highlightedText: Theme.textPrimary
-                    id: collectionPicker
-                    objectName: "libraryCollectionPicker"
-                    Layout.fillWidth: true
-                    model: [{id: "", name: "All assets"}].concat(collections.collections)
-                    textRole: "name"
-                    Accessible.name: "Library collection"
-                    currentIndex: {
-                        for (let i = 0; i < model.length; ++i) if (model[i].id === collections.selectedId) return i
-                        return 0
-                    }
-                    onActivated: collections.selectedId = model[currentIndex].id
-                }
-                LibraryButton {
-                    text: "Collections"
-                    onClicked: collectionMenu.popup()
-                }
+                model: ["All types", "Images", "Video", "Audio", "Folders", "Other"]
+                Accessible.name: "Asset type"
+                font.family: Theme.sansFamily
+                font.pixelSize: Theme.fontSizeSmall
+                currentIndex: ["", "image", "video", "audio", "folder", "other"].indexOf(browserModel.typeFilter)
+                onActivated: browserModel.typeFilter = ["", "image", "video", "audio", "folder", "other"][currentIndex]
             }
             RowLayout {
                 Layout.fillWidth: true
@@ -219,10 +183,9 @@ Rectangle {
             }
             LibraryLabel { Layout.fillWidth: true; visible: !browserModel.configured; text: "Open a server timeline to browse and import assets." }
             LibraryLabel { Layout.fillWidth: true; visible: browserModel.error !== ""; text: browserModel.error; color: Theme.error }
-            LibraryLabel { Layout.fillWidth: true; visible: collections.error !== ""; text: collections.error; color: Theme.error }
             LibraryButton { visible: browserModel.error !== ""; text: "Retry loading"; enabled: !browserModel.busy; onClicked: browserModel.refresh() }
             LibraryLabel { visible: browserModel.busy; text: "Loading Library…" }
-            LibraryLabel { Layout.fillWidth: true; visible: grid.filtered && !browserModel.collectionActive; text: "Filters search across all folders." }
+            LibraryLabel { Layout.fillWidth: true; visible: grid.filtered; text: "Filters search across all folders." }
             RowLayout {
                 Layout.fillWidth: true
                 LibraryLabel { Layout.fillWidth: true; text: browserModel.assets.length + " assets" }
@@ -392,36 +355,12 @@ Rectangle {
         id: assetMenu
         MenuItem { text: "Rename"; enabled: !!explorer.selectedAsset && !browserModel.busy; onTriggered: explorer.renameSelected() }
         MenuItem { text: "Move to folder…"; enabled: !!explorer.selectedAsset && !browserModel.busy; onTriggered: moveDialog.open() }
-        MenuItem {
-            text: "Add to collection…"
-            enabled: !!explorer.selectedAsset && collections.collections.length > 0
-            onTriggered: addCollectionDialog.open()
-        }
-        MenuItem {
-            text: "Remove from this collection"
-            enabled: !!explorer.selectedAsset && !!explorer.activeCollection
-            onTriggered: collections.removeAssets(collections.selectedId, [grid.selectedId])
-        }
+
+
         MenuSeparator {}
         MenuItem { text: "Delete from server…"; enabled: !!explorer.selectedAsset && !browserModel.busy; onTriggered: explorer.deleteSelected() }
     }
-    Menu {
-        id: collectionMenu
-        MenuItem {
-            text: "Create collection…"
-            onTriggered: explorer.ask("Create collection", "Save a collection on this device. Assets stay in their folders.", "", value => { const id = collections.create(value); if (id) collections.selectedId = id })
-        }
-        MenuItem {
-            text: "Rename collection…"
-            enabled: !!explorer.activeCollection
-            onTriggered: { const row = explorer.activeCollection; explorer.ask("Rename collection", "Rename the selected Library collection.", row.name, value => collections.rename(row.id, value)) }
-        }
-        MenuItem {
-            text: "Remove collection…"
-            enabled: !!explorer.activeCollection
-            onTriggered: { const row = explorer.activeCollection; explorer.ask("Remove collection", "Remove “" + row.name + "”? Its assets remain in the Library.", "", () => collections.remove(row.id), true, false) }
-        }
-    }
+
     AssetBrowser {
         id: destinationBrowser
         timeline: explorer.timeline
@@ -463,35 +402,7 @@ Rectangle {
             LibraryButton { text: "Move"; enabled: !destinationBrowser.busy && !browserModel.busy; onClicked: { browserModel.moveAsset(moveDialog.movingId, moveTarget.model[moveTarget.currentIndex].id); moveDialog.close() } }
         }
     }
-    Dialog {
-        id: addCollectionDialog
-        property string assetId: ""
-        title: "Add to collection"
-        parent: Overlay.overlay
-        anchors.centerIn: parent
-        width: Math.min(Theme.trackHeaderWidth, parent ? parent.width - Theme.spacingXl * 2 : Theme.trackHeaderWidth)
-        modal: true
-        onOpened: assetId = grid.selectedId
-        background: Rectangle { color: Theme.backgroundPaper; border.color: Theme.divider; radius: Theme.radiusMd }
-        contentItem: ComboBox {
-            palette.button: Theme.backgroundPaper
-            palette.buttonText: Theme.textPrimary
-            palette.base: Theme.backgroundPaper
-            palette.text: Theme.textPrimary
-            palette.window: Theme.backgroundPaper
-            palette.windowText: Theme.textPrimary
-            palette.highlight: Theme.primary
-            palette.highlightedText: Theme.textPrimary
-            id: addTarget
-            model: collections.collections
-            textRole: "name"
-            Accessible.name: "Destination collection"
-        }
-        footer: DialogButtonBox {
-            LibraryButton { text: "Cancel"; onClicked: addCollectionDialog.close() }
-            LibraryButton { text: "Add"; enabled: addTarget.currentIndex >= 0; onClicked: { collections.addAssets(collections.collections[addTarget.currentIndex].id, [addCollectionDialog.assetId]); addCollectionDialog.close() } }
-        }
-    }
+
     LibraryActionDialog { id: action; objectName: "libraryActionDialog"; onConfirmed: value => { if (explorer.actionCallback) explorer.actionCallback(value) } }
     FileDialog { id: files; title: "Import assets"; fileMode: FileDialog.OpenFiles; onAccepted: browserModel.importFiles(selectedFiles) }
     DropArea {

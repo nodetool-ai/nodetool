@@ -40,10 +40,17 @@ tests do not submit paid provider requests.
 | Real provider execution | Implemented but unverified | Requests stay on the server. No paid provider run is claimed by the fixture tests. |
 | Workflow inputs and saved-graph cost presentation | Implemented and verified | [Workflow inputs](../src/ai/WorkflowInputs.cpp), [inspector controls](../qml/ai/WorkflowClip.qml) and [cost estimates](../src/ai/WorkflowCost.cpp) cover editable values, model and media selection, lists and saved-graph pricing. Remote file and folder paths use text entry. Media-list thumbnails and direct uploads, Hugging Face downloads and recommendations, and grouped image-size presets remain absent. The public [preflight response](../../../packages/protocol/src/api-schemas/sdk-lifecycle-v1.ts) exposes a total and unknown nodes, not per-node prices. The [server calculation](../../../packages/websocket/src/sdk/sdk-static-preflight-service.ts) uses the saved graph, so overrides can change the final cost. |
 | Automatic shot style/entity reference enrichment | Implemented and verified | [ShotWorkflow](../src/aiassist/ShotWorkflow.cpp) reads project-scoped entity assets before submission. [ShotPlan](../src/aiassist/ShotPlan.cpp) applies the web's cast selection, style identity, descriptor/edit-model routing, reference ordering and conditioning hashes. The [shot oracle](../src/aiassist/shot-plan.test.mjs) passes 23 request and snapshot comparisons and two asset-marker boundary comparisons against the actual web helpers in the assembled build. |
-| Timeline script authoring controls | Implemented and verified | [ScriptAuthoring](../src/aiassist/ScriptAuthoring.cpp), [controller](../src/aiassist/AssistController.cpp) and [Script panel](../qml/aiassist/TimelineScriptPanel.qml) provide linked script creation, line addition, multiline text, empty-line removal, section/speaker headings and linked-clip focus. `tst_scriptauthoring` compares web fixtures and controller tests exercise CAS. |
+| Timeline script authoring controls | Implemented and verified | [ScriptAuthoring](../src/aiassist/ScriptAuthoring.cpp), [controller](../src/aiassist/AssistController.cpp) and [Story workspace](../qml/storyworkspace/StoryWorkspaceEditor.qml) provide linked script creation, line addition, multiline text and section/speaker headings. `tst_scriptauthoring` compares web fixtures and controller tests exercise CAS. |
 | Assistant planning and production review | Implemented and verified | [AssistantSession](../src/aiassist/AssistantSession.cpp) stages Director plans and prepared batches for approval. [ProductionReview](../src/aiassist/ProductionReview.cpp) reviews exact shot requests before rendering and resolves individual shot placement before one timeline edit. Assembled suites cover approval snapshots, durable batches, cancellation, recovery, terminal RPC errors and stale document guards. The assistant differential suite compares production validation and compilation with the actual protocol and web helpers. |
 
 ## Scope distinctions and remaining UI differences
+
+Story workspace follows the web's searchable document lists,
+[speaker-labelled script rows](../../../web/src/components/script/ScriptLineRow.tsx)
+and [storyboard shot cards](../../../web/src/components/storyboard/ShotCard.tsx).
+Shot fields open inside their card to fit a narrow dock. Thumbnail requests
+use authorized asset metadata and leave the document unchanged. Generation
+and production services are separate from this panel.
 
 The web timeline's [Script panel](../../../web/src/components/timeline/TimelineScriptPanel.tsx)
 adds lines, removes empty lines and edits their text. Cast editing and line
