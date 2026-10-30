@@ -15,6 +15,6 @@ nt_tests(nt_tracking_ui_tests)
 function(nt_tracking_reference_tests)
     add_test(NAME tracking_reference_contract COMMAND node --import "${CMAKE_CURRENT_SOURCE_DIR}/../../node_modules/tsx/dist/loader.mjs"
         "${CMAKE_CURRENT_SOURCE_DIR}/src/motion/tracking/reference-contract.mjs"
-        "${CMAKE_CURRENT_SOURCE_DIR}/../../packages/cli/src/timeline-debug/target.ts")
+        "${CMAKE_CURRENT_SOURCE_DIR}/../../packages/cli-timeline/src/timeline-debug/target.ts")
 endfunction()
 nt_tests(nt_tracking_reference_tests)
