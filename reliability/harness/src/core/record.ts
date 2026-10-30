@@ -5,7 +5,7 @@
  * electron — produces the same shape: every frame, both directions,
  * timestamped, surface-tagged. It is a superset of two existing shapes:
  *
- * - the debug harness's bundle (`packages/cli/src/debug/`: `report.json` +
+ * - the debug harness's bundle (`packages/cli-workflow/src/debug/`: `report.json` +
  *   `server/messages.jsonl`) — one direction (server → client), no per-frame
  *   timestamps, one `ProcessingMessage` per JSONL line;
  * - the e2e_runner's `record.json` (`web/src/e2e_runner/types.ts`'s

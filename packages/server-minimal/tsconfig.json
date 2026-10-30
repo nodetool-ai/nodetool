@@ -1,0 +1,39 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "dist"
+  ],
+  "references": [
+    {
+      "path": "../auth"
+    },
+    {
+      "path": "../database-sqlite"
+    },
+    {
+      "path": "../models-core"
+    },
+    {
+      "path": "../runtime-core"
+    },
+    {
+      "path": "../security-core"
+    },
+    {
+      "path": "../server-core"
+    },
+    {
+      "path": "../server-features"
+    },
+    {
+      "path": "../nodes-core"
+    }
+  ]
+}

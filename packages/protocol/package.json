@@ -132,6 +132,12 @@
       "types": "./dist/api-schemas/*.d.ts",
       "import": "./dist/api-schemas/*.js",
       "default": "./dist/api-schemas/*.js"
+    },
+    "./code-body": {
+      "nodetool-dev": "./src/code-body.ts",
+      "types": "./dist/code-body.d.ts",
+      "import": "./dist/code-body.js",
+      "default": "./dist/code-body.js"
     }
   },
   "license": "MIT",

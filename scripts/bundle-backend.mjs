@@ -59,7 +59,7 @@ const MIGRATE_ENTRY_POINT = path.join(__dirname, "db-migrate.mjs");
 const SANDBOX_WORKER_ENTRY_POINT = path.join(
   ROOT_DIR,
   "packages",
-  "agents",
+  "sandbox-runtime",
   "dist",
   "js-sandbox-worker",
   "worker-entry.js"

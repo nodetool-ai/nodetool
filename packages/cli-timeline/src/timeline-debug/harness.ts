@@ -1,0 +1,233 @@
+/**
+ * The timeline debug harness: the CLI host around the shared validator.
+ *
+ * `runTimelineValidate` is the cheap pre-flight — load a document, check it,
+ * report. `runTimelineDebug` additionally replays a scripted edit session
+ * against the headless `ui_timeline_*` bridge (the one the tool-loop eval
+ * drives), validates the document the session left behind, and writes a
+ * self-contained bundle.
+ *
+ * Everything that could pull in a heavy package is injected with a lazy
+ * default: the validator core (`@nodetool-ai/execution/timeline-debug`) and the
+ * bridge factory (`@nodetool-ai/agents`). Tests supply their own and load
+ * neither.
+ */
+import type { TimelineDocument } from "@nodetool-ai/protocol/api-schemas/timeline.js";
+import type {
+  TimelineDebugReport,
+  TimelineInteractionRecord,
+  TimelineValidation
+} from "@nodetool-ai/execution/timeline-debug";
+import type { TimelineInteractionStep } from "./interactions.js";
+import { runInteractionSteps } from "@nodetool-ai/cli-common/interaction-script";
+import { writeDebugBundle } from "@nodetool-ai/cli-common/debug-bundle";
+import {
+  resolveTimelineTarget,
+  type ResolvedTimelineTarget,
+  type TimelineSequenceSettings,
+  type TimelineTargetDeps
+} from "./target.js";
+
+/** The pieces of the shared core this host calls. */
+export interface TimelineDebugCore {
+  validateTimelineSequence: (
+    raw: unknown,
+    meta?: TimelineSequenceSettings
+  ) => TimelineValidation | Promise<TimelineValidation>;
+  buildTimelineDebugReport: (input: {
+    target: TimelineDebugReport["target"];
+    document: unknown;
+    meta?: TimelineSequenceSettings;
+    interactions?: TimelineInteractionRecord[];
+    finalState?: unknown;
+    finalDocument?: unknown;
+  }) => TimelineDebugReport | Promise<TimelineDebugReport>;
+  renderTimelineReportMarkdown: (report: TimelineDebugReport) => string;
+}
+
+/** The bridge surface this host drives — one tool per `ui_timeline_*` name. */
+export interface TimelineBridgeTool {
+  name: string;
+  /**
+   * HOLDOUT (anti-slop/no-unknown-returns): a `ui_timeline_*` tool answers in
+   * the open tool-result domain, and the bridge that implements this lives in
+   * `@nodetool-ai/agents`.
+   */
+  execute: (args: Record<string, unknown>) => Promise<unknown>;
+}
+
+/** The bridge's snapshot, including the full document the session ended with. */
+export interface TimelineBridgeSnapshot {
+  documentTracks?: TimelineDocument["tracks"];
+  documentClips?: TimelineDocument["clips"];
+  markers?: TimelineDocument["markers"];
+  /** The tempo the session ended on — `set_tempo`, or the first midi track. */
+  tempo?: TimelineDocument["tempo"];
+  camera2d?: TimelineDocument["camera2d"];
+}
+
+export interface TimelineBridge {
+  tools: TimelineBridgeTool[];
+  finalState: () => TimelineBridgeSnapshot;
+}
+
+export type CreateTimelineBridge = (initial: {
+  sequence: TimelineSequenceSettings & {
+    tracks: TimelineDocument["tracks"];
+    clips: TimelineDocument["clips"];
+    markers?: TimelineDocument["markers"];
+    tempo?: TimelineDocument["tempo"];
+    camera2d?: TimelineDocument["camera2d"];
+  };
+}) => TimelineBridge;
+
+export interface TimelineDebugDeps extends TimelineTargetDeps {
+  /** Defaults to `@nodetool-ai/execution/timeline-debug`. */
+  core?: TimelineDebugCore;
+  /** Defaults to `createTimelineToolBridge` from `@nodetool-ai/agents`. */
+  createBridge?: CreateTimelineBridge;
+  onLog?: (line: string) => void;
+}
+
+export interface TimelineDebugOptions {
+  interact?: TimelineInteractionStep[];
+  outDir?: string;
+}
+
+export interface TimelineValidateResult {
+  target: ResolvedTimelineTarget["target"];
+  validation: TimelineValidation;
+}
+
+export interface TimelineDebugResult {
+  report: TimelineDebugReport;
+  bundleDir: string;
+}
+
+async function loadCore(): Promise<TimelineDebugCore> {
+  const core = await import("@nodetool-ai/execution/timeline-debug");
+  return {
+    validateTimelineSequence: (raw, meta) =>
+      core.validateTimelineSequence(raw, meta),
+    buildTimelineDebugReport: (input) => core.buildTimelineDebugReport(input),
+    renderTimelineReportMarkdown: (report) =>
+      core.renderTimelineReportMarkdown(report)
+  };
+}
+
+async function loadBridgeFactory(): Promise<CreateTimelineBridge> {
+  const { createTimelineToolBridge } = await import("@nodetool-ai/agents");
+  return (initial) =>
+    // SAFETY: the eval-surface bridge in @nodetool-ai/agents implements this
+    // exact tool list and snapshot — it is the bridge this type describes. The
+    // two packages declare the timeline document types independently, and that
+    // duplication is the only reason the structures do not line up.
+    createTimelineToolBridge(
+      initial as Parameters<typeof createTimelineToolBridge>[0]
+    ) as TimelineBridge;
+}
+
+/** Load a timeline and validate it — no bridge, no bundle. */
+export async function runTimelineValidate(
+  ref: string,
+  deps: TimelineDebugDeps
+): Promise<TimelineValidateResult> {
+  const resolved = await resolveTimelineTarget(ref, deps);
+  const core = deps.core ?? (await loadCore());
+  const validation = await core.validateTimelineSequence(
+    resolved.raw,
+    resolved.meta
+  );
+  return { target: resolved.target, validation };
+}
+
+/**
+ * Replay `--interact` against the headless bridge and write the bundle.
+ *
+ * A failing step is recorded and the script continues: a run that stops at the
+ * first error hides every problem behind it, and the report is what the caller
+ * came for.
+ */
+export async function runTimelineDebug(
+  ref: string,
+  options: TimelineDebugOptions,
+  deps: TimelineDebugDeps
+): Promise<TimelineDebugResult> {
+  const resolved = await resolveTimelineTarget(ref, deps);
+  const core = deps.core ?? (await loadCore());
+
+  const steps = options.interact ?? [];
+  const interactions: TimelineInteractionRecord[] = [];
+  let snapshot: TimelineBridgeSnapshot | undefined;
+
+  if (steps.length > 0) {
+    const createBridge = deps.createBridge ?? (await loadBridgeFactory());
+    const sequence: Parameters<CreateTimelineBridge>[0]["sequence"] = {
+      ...resolved.meta,
+      tracks: resolved.document.tracks,
+      clips: resolved.document.clips,
+      markers: resolved.document.markers,
+      // Ticks are read against it, so a session that never sees the stored
+      // tempo rescales the midi clips off the 120 BPM default.
+      tempo: resolved.document.tempo
+    };
+    if (resolved.document.camera2d !== undefined) {
+      sequence.camera2d = resolved.document.camera2d;
+    }
+    const bridge = createBridge({ sequence });
+    interactions.push(
+      ...(await runInteractionSteps(
+        steps,
+        bridge.tools,
+        "timeline",
+        deps.onLog
+      ))
+    );
+    snapshot = bridge.finalState();
+  }
+
+  // The bridge hands back its full tracks, clips and markers, so the document
+  // the session ended with is a real document. Markers fall back to the ones
+  // the target carried, for a bridge that does not report them.
+  const finalCamera2d =
+    snapshot?.camera2d !== undefined
+      ? snapshot.camera2d
+      : resolved.document.camera2d;
+  let finalDocument: TimelineDocument | undefined;
+  if (snapshot?.documentTracks && snapshot.documentClips) {
+    finalDocument = {
+      tracks: snapshot.documentTracks,
+      clips: snapshot.documentClips,
+      markers: snapshot.markers ?? resolved.document.markers,
+      tempo: snapshot.tempo ?? resolved.document.tempo
+    };
+    if (finalCamera2d !== undefined) {
+      finalDocument.camera2d = finalCamera2d;
+    }
+  }
+
+  const reportInput: Parameters<typeof core.buildTimelineDebugReport>[0] = {
+    target: resolved.target,
+    document: resolved.raw,
+    meta: resolved.meta,
+    interactions
+  };
+  if (snapshot) {
+    reportInput.finalState = snapshot;
+  }
+  if (finalDocument) {
+    reportInput.finalDocument = finalDocument;
+  }
+  const report = await core.buildTimelineDebugReport(reportInput);
+
+  const bundleDir = await writeDebugBundle({
+    kind: "timeline",
+    ref,
+    outDir: options.outDir,
+    raw: resolved.raw,
+    report,
+    reportMarkdown: core.renderTimelineReportMarkdown(report),
+  });
+
+  return { report, bundleDir };
+}

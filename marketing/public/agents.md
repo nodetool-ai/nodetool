@@ -49,14 +49,14 @@ Each chat has a permission mode. Reading and searching run in every mode. The mo
 ## Connect your coding agent over MCP
 
 ```bash
-npx -y --package=@nodetool-ai/cli nodetool mcp install
+npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp install
 ```
 
 - **Install**: The command finds the coding agents on your computer and adds NodeTool to each one's settings. It needs Node.js 22.
 - **Restart the agent**: Then ask it: “List my NodeTool workflows.”
 - **Store your keys**: Run nodetool secrets store once per provider, such as FAL_API_KEY.
 
-For Cursor, Claude Desktop, or another MCP client, run `nodetool mcp config` and paste the block it prints. See https://nodetool.ai/mcp for every tool.
+For Cursor, Claude Desktop, or another MCP client, run `nodetool-mcp config` and paste the block it prints. See https://nodetool.ai/mcp for every tool.
 
 ## Questions
 
@@ -82,7 +82,7 @@ It means the AI agent works in the same editors you do. The node canvas, sketch 
 
 ### Can I use NodeTool from Claude Code, Codex, or Cursor?
 
-Yes. NodeTool runs as an MCP server. Run `npx -y --package=@nodetool-ai/cli nodetool mcp install` and restart the agent. The command registers NodeTool with Claude Code, Codex, and OpenCode, and `nodetool mcp config` prints a config block for Cursor, Claude Desktop, and other clients. The agent gets workflows, image, video, and audio generation, and your asset library as tools. Studio is optional. When Studio runs, the agent's changes appear in the open editor.
+Yes. NodeTool runs as an MCP server. Run `npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp install` and restart the agent. The command registers NodeTool with Claude Code, Codex, and OpenCode, and `nodetool-mcp config` prints a config block for Cursor, Claude Desktop, and other clients. The agent gets workflows, image, video, and audio generation, and your asset library as tools. Studio is optional. When Studio runs, the agent's changes appear in the open editor.
 
 ### What is a creative harness?
 

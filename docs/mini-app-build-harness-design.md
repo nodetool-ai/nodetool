@@ -16,7 +16,7 @@ contract is, and which existing modules do the work.
 
 The loop needs three things at once: `authorGraph` (`@nodetool-ai/agents`), the
 app document ops (`@nodetool-ai/app-runtime`), and the headless app simulator
-(today `packages/cli/src/app-debug/`). The dependency graph already almost
+(today `packages/cli-apps/src/app-debug/`). The dependency graph already almost
 allows it:
 
 ```
@@ -29,7 +29,7 @@ kernel ───────┘
 - `cli` and `websocket` both depend on `agents` today.
 
 One move makes it work: **the app-debug simulation core relocates from
-`packages/cli/src/app-debug/` to `packages/execution/src/app-debug/`**. This is
+`packages/cli-apps/src/app-debug/` to `packages/execution/src/app-debug/`**. This is
 the same move `debug_workflow` already forced for the workflow harness — its
 summary reducer and triage live in `@nodetool-ai/execution/debug` precisely so
 CLI and server surfaces cannot drift. `execution` has every dependency the
@@ -51,7 +51,7 @@ packages/agents/src/app-build/
   judge.ts        # Judge stage (goal-judge pattern)
   build.ts        # Orchestrator: stages, repair loop, budgets
 packages/execution/src/app-debug/   # relocated simulator (app-spec, runtime, harness)
-packages/cli/src/commands/app.ts    # + `app build` subcommand
+packages/cli-apps/src/commands/app.ts    # + `app build` subcommand
 packages/websocket/src/...          # HTTP surface
 ```
 
@@ -288,7 +288,7 @@ runtime is untouched — this provider exists only under the simulator.
 
 ### 5.1 CLI
 
-`packages/cli/src/commands/app.ts` gains `build`:
+`packages/cli-apps/src/commands/app.ts` gains `build`:
 
 ```
 nodetool app build "<prompt>" | spec.json

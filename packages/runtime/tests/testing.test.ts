@@ -11,11 +11,19 @@ describe("createFakeContext", () => {
     const first = createFakeContext();
     const second = createFakeContext();
     try {
+      const asset = await first.context.createAsset({
+        name: "reference.png",
+        contentType: "image/png",
+        content: new Uint8Array([1])
+      });
+      if (!asset || typeof asset !== "object" || !("id" in asset) || typeof asset.id !== "string") {
+        throw new Error("Fake asset missing its id");
+      }
       const args = {
         kind: "character" as const,
         name: "Lead",
         descriptor: "A red coat",
-        imageAssetId: "1234567890abcdef1234567890abcdef",
+        imageAssetId: asset.id,
         source: { key: "lead" }
       };
       const created = await first.context.upsertEntity(args);
@@ -45,11 +53,13 @@ describe("createFakeContext", () => {
       ).toEqual([]);
       expect(await first.context.getStoryboard(board.id)).toEqual(board);
       const saved = await first.context.updateStoryboard(board.id, {
-        document: { shots: [{ id: "shot" }] }
+        document: { shots: [{ id: "shot" }] },
+        timelineId: "timeline"
       });
       expect(saved).toMatchObject({
         id: board.id,
-        document: { shots: [{ id: "shot" }] }
+        document: { shots: [{ id: "shot" }] },
+        timelineId: "timeline"
       });
       expect(await first.context.getStoryboard(board.id)).toEqual(saved);
       expect(await second.context.getStoryboard(board.id)).toBeNull();
@@ -154,6 +164,33 @@ describe("createFakeContext", () => {
     } finally {
       handle.cleanup();
     }
+  });
+});
+
+describe("fake document and entity persistence", () => {
+  it("retains boards for reuse and entities keyed by their source without sharing contexts", async () => {
+    const fake = createFakeContext();
+    const isolated = createFakeContext();
+    try {
+      const document = { shots: [], templateId: "template", recastKey: "batch" };
+      const board = await fake.context.createStoryboard({ name: "Board", projectId: "project", document });
+      expect(board.id).toMatch(/^[0-9a-f]{32}$/);
+      expect(await fake.context.getStoryboard(board.id)).toMatchObject({ id: board.id, document });
+      expect(await fake.context.listStoryboards({ projectId: "project" })).toHaveLength(1);
+      expect(await fake.context.findRecastStoryboard({ projectId: "project", templateId: "template", recastKey: "batch" })).toMatchObject({ id: board.id });
+      expect(await isolated.context.listStoryboards()).toEqual([]);
+      const asset = await fake.context.createAsset({ name: "image.png", contentType: "image/png", content: new Uint8Array([1]) });
+      if (!asset || typeof asset !== "object" || !("id" in asset) || typeof asset.id !== "string") { throw new Error("Fake asset missing its id"); }
+      const args = { kind: "character" as const, name: "Lead", descriptor: "Original", imageAssetId: asset.id, source: { key: "lead" } };
+      const first = await fake.context.upsertEntity(args);
+      const second = await fake.context.upsertEntity({ ...args, name: "Renamed", descriptor: "Updated" });
+      expect(first.created).toBe(true);
+      expect(second.created).toBe(false);
+      expect(second.entity.id).toBe(first.entity.id);
+      expect((await fake.context.listEntities())[0]?.descriptor).toBe("Updated");
+      expect(await isolated.context.getEntity(first.entity.id)).toBeNull();
+      await expect(fake.context.upsertEntity({ ...args, imageAssetId: "missing" })).rejects.toThrow();
+    } finally { fake.cleanup(); isolated.cleanup(); }
   });
 });
 

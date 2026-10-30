@@ -3,8 +3,6 @@
   "compilerOptions": {
     "rootDir": "src",
     "outDir": "dist",
-    "jsx": "react-jsx",
-    "jsxImportSource": "react",
     "module": "Node16",
     "moduleResolution": "Node16",
     "lib": [
@@ -20,136 +18,25 @@
   ],
   "references": [
     {
-      "path": "../analytics"
+      "path": "../server-minimal"
     },
     {
-      "path": "../code-nodes"
+      "path": "../nodes-core"
     },
     {
-      "path": "../core-nodes"
+      "path": "../runtime-core"
     },
     {
-      "path": "../data-nodes"
+      "path": "../database-sqlite"
     },
     {
-      "path": "../llm-nodes"
+      "path": "../security-core"
     },
     {
-      "path": "../text-nodes"
+      "path": "../pack-manager"
     },
     {
-      "path": "../agents"
-    },
-    {
-      "path": "../base-nodes"
-    },
-    {
-      "path": "../chat"
-    },
-    {
-      "path": "../config"
-    },
-    {
-      "path": "../dsl"
-    },
-    {
-      "path": "../elevenlabs-nodes"
-    },
-    {
-      "path": "../execution"
-    },
-    {
-      "path": "../minimax-nodes"
-    },
-    {
-      "path": "../transformers-js-nodes"
-    },
-    {
-      "path": "../fal-nodes"
-    },
-    {
-      "path": "../kernel"
-    },
-    {
-      "path": "../models"
-    },
-    {
-      "path": "../node-catalog"
-    },
-    {
-      "path": "../node-sdk"
-    },
-    {
-      "path": "../protocol"
-    },
-    {
-      "path": "../../reliability/harness"
-    },
-    {
-      "path": "../replicate-nodes"
-    },
-    {
-      "path": "../runtime"
-    },
-    {
-      "path": "../sandbox-compiler"
-    },
-    {
-      "path": "../security"
-    },
-    {
-      "path": "../telegram"
-    },
-    {
-      "path": "../atlascloud-nodes"
-    },
-    {
-      "path": "../browser"
-    },
-    {
-      "path": "../app-runtime"
-    },
-    {
-      "path": "../app-export"
-    },
-    {
-      "path": "../compute"
-    },
-    {
-      "path": "../deploy"
-    },
-    {
-      "path": "../game-runtime"
-    },
-    {
-      "path": "../game-renderer"
-    },
-    {
-      "path": "../huggingface"
-    },
-    {
-      "path": "../huggingface-nodes"
-    },
-    {
-      "path": "../reve-nodes"
-    },
-    {
-      "path": "../storage"
-    },
-    {
-      "path": "../transformers-js-provider"
-    },
-    {
-      "path": "../vectorstore"
-    },
-    {
-      "path": "../video-nodes"
-    },
-    {
-      "path": "../websocket"
-    },
-    {
-      "path": "../whisper-cpp"
+      "path": "../server-features"
     }
   ]
 }

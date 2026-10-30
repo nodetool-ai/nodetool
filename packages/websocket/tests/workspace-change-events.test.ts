@@ -19,7 +19,7 @@ vi.mock("@nodetool-ai/execution/service", () => ({
   buildWorkspaceExecutionContext: vi.fn()
 }));
 
-vi.mock("../src/lib/storage.js", () => ({
+vi.mock("@nodetool-ai/asset-services/storage", () => ({
   getAssetAdapter: vi.fn()
 }));
 

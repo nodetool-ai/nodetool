@@ -25,18 +25,8 @@ import { isAssetIdSharedWithUser } from "./document-access.js";
  * it — so they stay readable without an ownership record. Nothing can
  * overwrite them: `/api/storage` no longer accepts writes at all.
  */
-const RUNTIME_SCRATCH_PREFIXES = ["temp/", "assets/"];
-
-function normalizeKey(key: string): string {
-  return key.replace(/\\/g, "/").replace(/^\/+/, "");
-}
-
-export function isRuntimeScratchKey(key: string): boolean {
-  const normalized = normalizeKey(key);
-  return RUNTIME_SCRATCH_PREFIXES.some((prefix) =>
-    normalized.startsWith(prefix)
-  );
-}
+import { normalizeKey, isRuntimeScratchKey } from "@nodetool-ai/asset-services/scratch-keys";
+export { isRuntimeScratchKey } from "@nodetool-ai/asset-services/scratch-keys";
 
 /**
  * Derive the owning asset id from a storage key. Asset files are stored as

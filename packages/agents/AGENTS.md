@@ -616,7 +616,7 @@ echo "Summarize this codebase" | nodetool-chat --provider anthropic
 
 ### Interactive Commands
 
-`CHAT_COMMANDS` in `packages/cli/src/app.tsx` is the list; anything else prints
+`CHAT_COMMANDS` in `packages/cli-chat/src/app.tsx` is the list; anything else prints
 `Unknown command`. Every session runs the unified agent loop. `/agent` inspects
 the sub-agent threads created by that loop. It does not switch agent modes.
 
@@ -635,7 +635,7 @@ the sub-agent threads created by that loop. It does not switch agent modes.
 ### `nodetool agent run`
 
 An objective is one CodeAct turn over the same belt chat uses, so there is no
-second loop to configure. `packages/cli/src/commands/agent.ts` assembles it:
+second loop to configure. `packages/cli-chat/src/commands/agent.ts` assembles it:
 `buildCliAgentBelt({ ..., planning: true })` puts `create_plan` and
 `execute_plan` on the belt, `createCliCodeActTurn` turns that belt into the
 `execute_code` action plus the direct tools, and `processChat` runs the turn.
@@ -789,7 +789,7 @@ shipped through that hole before anyone noticed nothing exercised them
 (#5095, #5100, #5103, #5105, #5107).
 
 So there is a second table one rung down:
-**`packages/cli/src/harness/capability-table.ts`**. One entry per exported
+**`packages/cli-harness/src/harness/capability-table.ts`**. One entry per exported
 capability, naming the file that implements it, the checked-in suites a
 selfcheck runs over it, the eval cases whose `expect.requiredTools` demand it,
 and — where nothing does yet — a written gap note. The invariant is the
@@ -1214,7 +1214,7 @@ with `headlessGate(hostName)`.
 | `nodetool.code.Code` node | `code-node.ts` reads `gateFromContext(context, "Code node")` and uses it for both doors: `createCapabilityRun` for the `@nodetool-ai/sandbox-nodetool/*` imports, `capabilityRunForTools` for the belt the bridge invokes | same | same |
 | Kernel workflow run | `buildWorkspaceExecutionContext` (`packages/execution/src/service/workflow-workspace.ts`) sets `headlessGate("kernel workflow run")` on the context it builds, and `ExecutionSession.create` sets the same on a caller's own context when that caller set none (see below) | `auto` | nobody: the headless deny |
 | Headless job runner (trigger-driven runs) | `packages/websocket/src/headless-job-runner.ts` sets `headlessGate("headless job runner")` on the run context | `auto` | nobody: the headless deny |
-| `nodetool agent run` on a TTY | `createCliPermissionGate` (`packages/cli/src/permission-gate.ts`), host name `nodetool agent run`, set on the run's context | `--permission-mode`, defaulting to `default` | the terminal: `y / n / a` prompted on stderr, because stdout carries the result. `a` answers `allow_for_chat`, and the name lands in the run's shared `sessionAllow` |
+| `nodetool agent run` on a TTY | `createCliPermissionGate` (`packages/cli-chat/src/permission-gate.ts`), host name `nodetool agent run`, set on the run's context | `--permission-mode`, defaulting to `default` | the terminal: `y / n / a` prompted on stderr, because stdout carries the result. `a` answers `allow_for_chat`, and the name lands in the run's shared `sessionAllow` |
 | `nodetool agent run` with the objective piped in | the same builder, not interactive | `--permission-mode`, defaulting to `auto` | nobody: `headlessGate`'s deny, its reason printed once per run |
 | `nodetool-chat` reading piped stdin (`runStdinMode`) | the same builder, host name `nodetool-chat`, set on each line's context | `--permission-mode`, defaulting to `auto` | nobody: the headless deny |
 | `nodetool-chat --url` | no gate is built here | — | the server's chat turn, which gates the belt it runs |
@@ -1233,7 +1233,7 @@ that stream stays one JSON object per line.
 is the terminal, not the design: the Ink session reads stdin itself
 (`useInput`), so the `readline` prompt every other CLI path uses cannot share
 it, and an approval there needs an Ink component instead. Rather than accept a
-mode it would ignore, `packages/cli/src/index.ts` prints that
+mode it would ignore, `packages/cli-chat/src/chat-entry.ts` prints that
 `--permission-mode` does not apply to the interactive session.
 
 **Both gated CLI hosts retain a `Tool[]` compatibility belt.** The provider
@@ -1575,7 +1575,7 @@ and the research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   them through the same `ui_*` contract.
   The CLI's local (no-server) turn runs the same session — `execute_code`,
   the core tools and `view_image` are what `processChat` sees, wired in
-  `packages/cli/src/chat-codeact.ts`.
+  `packages/cli-chat/src/chat-codeact.ts`.
 - Both executors also load the `nodetool` object model
   (`src/codeact/nodetool-api.ts`): the platform as objects instead of raw
   imports — `nodetool.workflows` (list/get/run/start/debug/validate/
@@ -1945,7 +1945,7 @@ as a success when all three hold:
    caller-supplied `GraphRunner`. The runner is injected so this package needs
    no execution dependency and the harness tests can drive scripted runs with
    no kernel; the CLI wires the real one over `ExecutionSession`
-   (`packages/cli/src/evals/graph-runner.ts`).
+   (`packages/cli-harness/src/evals/graph-runner.ts`).
 3. **judge** — deterministic output checks (an output by name exists, is
    non-empty, matches/doesn't match a literal) plus an LLM judge
    (`src/evals/goal-judge.ts`) that reads the case's goal statement and the

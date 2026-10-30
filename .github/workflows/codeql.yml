@@ -1,7 +1,7 @@
 name: CodeQL
 
 # Static analysis for injection, XSS, path traversal and similar flows in the
-# TypeScript code, and for unsafe patterns in these workflow files. Results
+# TypeScript and Python code, and for unsafe patterns in these workflow files. Results
 # land in the Security tab and annotate pull requests. Advisory: not a required
 # check.
 
@@ -39,7 +39,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [javascript-typescript, actions]
+        language: [javascript-typescript, python, actions]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

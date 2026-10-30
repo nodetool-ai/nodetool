@@ -88,7 +88,7 @@ The test is what the agent leaves behind. If it returns text you then act on, th
 
 ### Can I use my own agent instead of the built-in one?
 
-Yes. The toolbelt is exposed over MCP, so Claude Desktop, Claude Code, Codex, or any MCP-aware agent gets the same tools the built-in chat uses. Run nodetool mcp install for CLI agents, or install the .mcpb bundle for Claude Desktop.
+Yes. The toolbelt is exposed over MCP, so Claude Desktop, Claude Code, Codex, or any MCP-aware agent gets the same tools the built-in chat uses. Run nodetool-mcp install for CLI agents, or install the .mcpb bundle for Claude Desktop.
 
 ### Does privacy-first mean everything runs offline?
 

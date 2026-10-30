@@ -105,7 +105,7 @@ function mcpArchitecture() {
   const H = 900;
   const clients = [
     ["Claude Desktop", "installs nodetool.mcpb"],
-    ["Codex · any CLI agent", "nodetool mcp install"],
+    ["Codex · any CLI agent", "nodetool-mcp install"],
     ["Cursor · any MCP client", "points at /mcp"],
   ];
   const clientY = [214, 350, 486];

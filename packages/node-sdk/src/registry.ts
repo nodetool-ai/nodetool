@@ -17,7 +17,6 @@ import type {
 import { loadPythonPackageMetadata } from "./metadata.js";
 import { getNodeMetadata } from "./node-metadata.js";
 import { validateNodeProperties, type NodePropertyValidationIssue } from "./validation.js";
-import type { DeclaredPropertyMetadata } from "./decorators.js";
 import type { ScoredNode, ScoreOptions } from "./search.js";
 import { NodeSearchIndex } from "./search.js";
 
@@ -35,13 +34,8 @@ export type NodeMetadataSource =
 
 export type NodeAvailability = "executable" | "catalog" | "python" | "unknown";
 
-/** Structural catalog contract. The catalog package depends on node-sdk. */
-export interface NodeCatalogEntry {
-  readonly node_type: string;
-  readonly pack: string;
-  readonly metadata: NodeMetadata;
-  readonly declared: readonly DeclaredPropertyMetadata[];
-}
+export type { NodeCatalogEntry } from "@nodetool-ai/pack-core/metadata";
+import type { NodeCatalogEntry } from "@nodetool-ai/pack-core/metadata";
 
 export interface NodeCatalogPackMetadata {
   readonly id: string;

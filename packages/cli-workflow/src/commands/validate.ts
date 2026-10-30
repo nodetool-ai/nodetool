@@ -1,0 +1,184 @@
+/**
+ * `nodetool validate` — static workflow validator.
+ *
+ * Loads a workflow (DB id, JSON file, or DSL .ts file) and checks it against
+ * the node registry without running it: unknown node types, missing required
+ * properties, unselected models, dangling/mis-typed edges. Returns in well
+ * under a second, so it's the fast pre-flight before an expensive `debug` run.
+ * Heavy deps are imported lazily so command registration stays light.
+ */
+import type { Command } from "commander";
+import {
+  validationHeadline,
+  type GraphValidationIssue,
+  type GraphValidationReport
+} from "@nodetool-ai/node-sdk";
+import { printCommandError } from "@nodetool-ai/pack-manager/command-errors";
+
+interface ValidateCliOptions {
+  json?: boolean;
+  warningsAsErrors?: boolean;
+}
+
+type SecretLookup = (
+  key: string
+) => Promise<string | null | undefined> | string | null | undefined;
+
+/** Resolve declared node settings exactly as BaseNode secret injection does. */
+export async function collectAvailableSecrets(
+  keys: readonly string[],
+  getSecret: SecretLookup
+): Promise<Set<string>> {
+  const found = new Set<string>();
+  for (const key of keys) {
+    const value = await getSecret(key);
+    if (value) found.add(key);
+  }
+  return found;
+}
+
+export function registerValidateCommand(program: Command): void {
+  program
+    .command("validate <workflow_id_or_file>")
+    .description(
+      "Validate a workflow against the node registry without running it (unknown nodes, missing props, bad edges)"
+    )
+    .option("--json", "Print the full validation report as JSON")
+    .option(
+      "--warnings-as-errors",
+      "Exit non-zero when there are warnings (not just errors)"
+    )
+    .action(async (ref: string, opts: ValidateCliOptions) => {
+      try {
+        const { runValidate } = await import("@nodetool-ai/cli-execution/validate/index");
+
+        // Only a DB-id target needs the database; file/DSL targets validate
+        // with no DB at all, so initialize it lazily on first lookup.
+        let dbReady = false;
+        const ensureDb = async () => {
+          if (!dbReady) {
+            const { initDb } = await import("@nodetool-ai/models");
+            const { getDefaultDbPath } = await import("@nodetool-ai/config");
+            initDb(getDefaultDbPath());
+            dbReady = true;
+          }
+        };
+        const { target, report } = await runValidate(ref, {
+          loadFromDb: async (id) => {
+            await ensureDb();
+            const { Workflow } = await import("@nodetool-ai/models");
+            return Workflow.get(id) as Promise<{
+              graph: { nodes: never[]; edges: never[] };
+            } | null>;
+          },
+          // Node required settings use exact names. Provider aliases are
+          // resolved separately by the run preflight.
+          availableSecrets: async (keys) => {
+            await ensureDb();
+            const { getSecret } = await import("@nodetool-ai/models");
+            return collectAvailableSecrets(keys, (key) => getSecret(key, "1"));
+          }
+        });
+
+        if (opts.json) {
+          console.log(JSON.stringify({ target, report }, null, 2));
+        } else {
+          console.log(renderValidation(report).join("\n"));
+        }
+
+        const failed =
+          !report.ok ||
+          (opts.warningsAsErrors === true && report.counts.warnings > 0);
+        process.exit(failed ? validationFailureExitCode(report, opts.warningsAsErrors) : 0);
+      } catch (e) {
+        process.exit(printCommandError(e, opts.json));
+      }
+    });
+}
+
+/** Install-only validation failures share exit 3 with missing runtime libraries. */
+export function validationFailureExitCode(report: GraphValidationReport, warningsAsErrors = false): 1 | 3 {
+  const errors = report.issues.filter((issue) => issue.severity === "error" || (warningsAsErrors && issue.severity === "warning"));
+  return errors.length > 0 && errors.every((issue) => issue.code === "pack_not_installed") ? 3 : 1;
+}
+
+/**
+ * One line per issue code, printed as a legend under the issues so the report
+ * explains itself without a trip to the docs.
+ */
+const CODE_LEGEND: Readonly<Record<string, string>> = {
+  invalid_graph: "the graph's nodes or edges is not an array",
+  unknown_node: "node type is not in the registry",
+  pack_not_installed: "node metadata is known but its owning pack is not installed",
+  duplicate_id: "two nodes share an id",
+  property: "property is missing, empty, or the wrong shape",
+  dangling_edge: "edge references a node the graph does not contain",
+  unknown_handle: "edge references a handle the node does not have",
+  type_mismatch: "the two ends of an edge carry different types",
+  fan_in: "several edges target one input that takes a single value",
+  untyped_dynamic_slot:
+    "edge targets a dynamic input with no declared type, so the connection is not type-checked — expected on workflows saved before typed slots, one per dynamic edge; informational, never a failure",
+  dynamic_type_mismatch:
+    "inline value of a dynamic input does not match the type the slot declares",
+  unknown_provider:
+    "a model property names a provider the runtime cannot build",
+  missing_secret:
+    "a node declares a credential this install cannot resolve — the run may fail when the node executes",
+  slot_type_alias:
+    "a dynamic slot is typed with a JSON-Schema/TypeScript name instead of NodeTool's, so the handle will not connect",
+  code_syntax: "a Code node's body is not valid JavaScript",
+  code_module:
+    "a Code node's body uses `export`, a dynamic import, or an import the sandbox loader cannot serve",
+  code_undefined_name:
+    "a Code node reads a name that is neither a sandbox API nor one of its inputs",
+  code_no_return: "a Code node can finish without returning its outputs",
+  code_return_shape:
+    "a Code node returns something other than an output object",
+  code_missing_output: "a return path leaves a declared output unset",
+  code_undeclared_output:
+    "a Code node returns a key it does not declare as an output handle",
+  code_unused_input: "a Code node input the body never reads"
+};
+
+/**
+ * Human-readable report: headline, one line per issue, then a legend for the
+ * codes that occurred. Pure so it can be asserted on directly.
+ */
+export function renderValidation(report: GraphValidationReport): string[] {
+  const mark = report.ok ? (report.counts.warnings ? "⚠️" : "✅") : "❌";
+  const lines = ["", `${mark} ${validationHeadline(report)}`];
+  if (report.issues.length === 0) return lines;
+
+  lines.push("");
+  for (const issue of report.issues) {
+    lines.push(`  ${formatIssue(issue)}`);
+  }
+
+  const codes = [...new Set(report.issues.map((i) => i.code))]
+    .filter((code) => code in CODE_LEGEND)
+    .sort();
+  if (codes.length > 0) {
+    lines.push("", "  Codes:");
+    for (const code of codes) {
+      lines.push(`    ${code} — ${CODE_LEGEND[code]}`);
+    }
+  }
+
+  return lines;
+}
+
+function formatIssue(issue: GraphValidationIssue): string {
+  const tag =
+    issue.severity === "error"
+      ? "error"
+      : issue.severity === "info"
+        ? "info "
+        : "warn ";
+  const where =
+    issue.nodeId != null
+      ? ` [${issue.nodeType ?? "node"} ${issue.nodeId}]`
+      : issue.edgeId != null
+        ? ` [edge ${issue.edgeId}]`
+        : "";
+  return `${tag} ${issue.message}${where} (${issue.code})`;
+}

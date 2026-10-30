@@ -244,10 +244,12 @@ export async function bootstrapNodeRegistry(
   options: BootstrapRegistryOptions = {}
 ): Promise<NodeRegistry> {
   const registry = new NodeRegistry();
-  registry.loadPythonMetadata({
-    roots: options.metadataRoots,
-    maxDepth: options.metadataMaxDepth ?? 8
-  });
+  if (!options.packSource?.explicitSelection) {
+    registry.loadPythonMetadata({
+      roots: options.metadataRoots,
+      maxDepth: options.metadataMaxDepth ?? 8
+    });
+  }
   const builtinOptions: RegisterBuiltInNodesOptions = {};
   if (options.log) {
     builtinOptions.log = options.log;
@@ -256,7 +258,7 @@ export async function bootstrapNodeRegistry(
     builtinOptions.packSource = options.packSource;
   }
   await registerBuiltInNodes(registry, builtinOptions);
-  if (options.loadPacks !== false) {
+  if (options.loadPacks !== false && !options.packSource?.explicitSelection) {
     const loadOptions: Parameters<typeof loadInstalledPacks>[1] = {
       onResult: (result) => logPackResult(result, options.log)
     };

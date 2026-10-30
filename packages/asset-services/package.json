@@ -1,0 +1,108 @@
+{
+  "name": "@nodetool-ai/asset-services",
+  "version": "0.8.4",
+  "description": "Shared asset services for NodeTool hosts",
+  "type": "module",
+  "engines": {
+    "node": "24.22.1"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "test": "node ../../scripts/run-vitest.mjs run",
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit"
+  },
+  "dependencies": {
+    "@nodetool-ai/config": "*",
+    "@nodetool-ai/models": "*",
+    "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/storage": "*",
+    "@hyzyla/pdfium": "^2.1.12"
+  },
+  "devDependencies": {
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "vitest": "^5.0.1",
+    "@types/node": "^22.0.0",
+    "sharp": "^0.35.3"
+  },
+  "exports": {
+    ".": {
+      "nodetool-dev": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./asset-model-interface": {
+      "nodetool-dev": "./src/asset-model-interface.ts",
+      "types": "./dist/asset-model-interface.d.ts",
+      "import": "./dist/asset-model-interface.js"
+    },
+    "./thumbnail": {
+      "nodetool-dev": "./src/thumbnail.ts",
+      "types": "./dist/thumbnail.d.ts",
+      "import": "./dist/thumbnail.js"
+    },
+    "./asset-duration": {
+      "nodetool-dev": "./src/asset-duration.ts",
+      "types": "./dist/asset-duration.d.ts",
+      "import": "./dist/asset-duration.js"
+    },
+    "./asset-paths": {
+      "nodetool-dev": "./src/asset-paths.ts",
+      "types": "./dist/asset-paths.d.ts",
+      "import": "./dist/asset-paths.js"
+    },
+    "./storage": {
+      "nodetool-dev": "./src/storage.ts",
+      "types": "./dist/storage.d.ts",
+      "import": "./dist/storage.js"
+    },
+    "./external-asset-lookup": {
+      "nodetool-dev": "./src/external-asset-lookup.ts",
+      "types": "./dist/external-asset-lookup.d.ts",
+      "import": "./dist/external-asset-lookup.js"
+    },
+    "./scratch-keys": {
+      "nodetool-dev": "./src/scratch-keys.ts",
+      "types": "./dist/scratch-keys.d.ts",
+      "import": "./dist/scratch-keys.js"
+    }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/asset-services"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "message-types",
+    "msgpack",
+    "protocol",
+    "websocket"
+  ],
+  "peerDependencies": {
+    "sharp": "^0.35.3"
+  },
+  "peerDependenciesMeta": {
+    "sharp": {
+      "optional": true
+    }
+  }
+}

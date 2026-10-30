@@ -64,7 +64,7 @@ Other hosts:
 
 - **CLI (uncommitted work).** `nodetool runtime add` installs npm libraries into
   `<dataDir>/optional-node`. It spawns `npm` from `PATH`, through a shell on
-  Windows (`packages/cli/src/commands/runtime.ts:98`). It covers npm ids only.
+  Windows (`packages/cli-admin/src/commands/runtime.ts:98`). It covers npm ids only.
 - **install.sh** downloads micromamba 2.3.3-0 into `<dataDir>/micromamba` and
   creates the env at `<dataDir>/conda_env`. `NODETOOL_HOME` and `--prefix`
   change both paths (`install.sh:537`).
@@ -568,8 +568,8 @@ that step (F43).
 | `applyRuntimeEnv` never replaces a set value and sets absent paths | D15 | `packages/config/tests/` |
 | The exact error text per host and kind, with real paths | D9, D12 | `packages/protocol/tests/` |
 | A clean-HOME run of each printed managed npm command against a local test registry, for `cli`, `npx` and `source` | 5.7 | `scripts/__tests__/`, on request, with the pack spec 19.3 matrix |
-| The never-install matrix: the installer refuses in a `serve` or `mcp serve` process, and no capability installs | D8 | `packages/cli/src/commands/__tests__/runtime.test.ts`, `packages/agents/tests/` |
-| A missing runtime round trip: node error, sandbox result, CLI `--json` with exit code 3 | D12 | `packages/kernel/tests/`, `packages/cli/src/commands/__tests__/` |
+| The never-install matrix: the installer refuses in a `serve` or `mcp serve` process, and no capability installs | D8 | `packages/cli-admin/src/commands/__tests__/runtime.test.ts`, `packages/agents/tests/` |
+| A missing runtime round trip: node error, sandbox result, CLI `--json` with exit code 3 | D12 | `packages/kernel/tests/`, `packages/cli-admin/src/commands/__tests__/` |
 | The bridge with no candidate, and a Python node type with the bridge unavailable, throw id `python` | D16 | `packages/runtime/tests/`, `packages/websocket/tests/` |
 | Every id has a spec. Each `SERVER_OPTIONAL_PACKAGES` entry is a registry component. `install.sh` has the generated micromamba block | D11, 5.9 | `packages/protocol/tests/`, `scripts/__tests__/` |
 | The installer with a stub npm and a stub micromamba: argv, `--ignore-scripts`, declared rebuilds only, env marker check | D6, D10, F17 | `packages/runtime-install/tests/` |

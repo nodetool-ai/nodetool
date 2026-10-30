@@ -26,7 +26,7 @@ vi.mock("@nodetool-ai/runtime", async (orig) => {
   return { ...actual, safeFetch: mocks.safeFetch };
 });
 
-vi.mock("../src/lib/asset-model-interface.js", () => ({
+vi.mock("@nodetool-ai/asset-services/asset-model-interface", () => ({
   createAssetModelInterface: mocks.createAsset
 }));
 

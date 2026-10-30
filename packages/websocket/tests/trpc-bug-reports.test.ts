@@ -18,7 +18,7 @@ vi.mock("@nodetool-ai/models", async (orig) => {
   return { ...actual, createBugReport: mocks.createBugReport };
 });
 
-vi.mock("../src/lib/storage.js", () => ({
+vi.mock("@nodetool-ai/asset-services/storage", () => ({
   getAssetAdapter: vi.fn(() => mocks.adapter)
 }));
 

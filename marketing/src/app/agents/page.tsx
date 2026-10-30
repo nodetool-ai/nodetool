@@ -306,7 +306,7 @@ export default function AgentsPage() {
             <p className="mt-5 text-sm leading-relaxed text-slate-300">
               For Cursor, Claude Desktop, or another MCP client, run{" "}
               <code className="font-jetbrains text-slate-100">
-                nodetool mcp config
+                nodetool-mcp config
               </code>{" "}
               and paste the block it prints.{" "}
               <TrackedLink

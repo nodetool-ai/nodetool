@@ -20,10 +20,42 @@ Or run a single command without installing:
 
 ```bash
 npx --package=@nodetool-ai/cli nodetool --help
-npx --package=@nodetool-ai/cli nodetool-chat
 ```
 
 **Requires Node.js 22 or later** (`engines` in `packages/cli/package.json`, and the repository pins 24 in `.nvmrc`). Check with `node --version`, and install via [nvm](https://github.com/nvm-sh/nvm) if needed.
+
+## Install command features
+
+The default CLI provides the [lean execution commands](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli/README.md):
+JSON workflow execution, validation, authenticated server access, binary assets,
+encrypted secrets, and remote text calls. Optional commands are installed through
+the existing pack manager. A missing feature reports its ID and does not install
+itself.
+
+```bash
+nodetool packs add cli-game --yes
+nodetool game --help
+```
+
+| Command capability | Feature to install |
+|---|---|
+| Authored JavaScript/TypeScript workflows, debugging, node tools and extended workflow operations | `cli-workflow` |
+| Repository harnesses, affected-file selection, evaluation and reliability checks | `cli-harness` |
+| Interactive chat, agents and agent tools | `cli-chat` |
+| Additional model and provider commands | `cli-models` |
+| Deployment, workers, database and runtime administration | `cli-admin` |
+| MCP install, configuration and serving | `cli-mcp` |
+| Classic application API server | `cli-server` |
+| Mini apps | `cli-apps` |
+| Games | `cli-game` |
+| Timelines | `cli-timeline` |
+| Sketches | `cli-sketch` |
+| JavaScript script documents | `cli-script` |
+
+Install only the command features needed for the work. They register their own
+commands with the default CLI. The sections below include these optional commands.
+For MCP alone, the standalone `nodetool-mcp` executable is also available from
+`@nodetool-ai/cli-mcp`.
 
 ## Getting Help
 
@@ -87,7 +119,10 @@ inspect the creation tool's schema before saving it.
 
 ## Global Options
 
-These flags work on any `nodetool` command and control [OpenTelemetry tracing](https://github.com/nodetool-ai/nodetool/blob/main/docs/AGENTS.md):
+These options belong to the installed execution and authoring command features.
+Use `nodetool --help` for the default CLI connection options. The lean command
+path does not initialize optional tracing exporters. These feature options
+control [OpenTelemetry tracing](https://github.com/nodetool-ai/nodetool/blob/main/docs/AGENTS.md):
 
 - `--trace-file <path>` — append every LLM/agent/workflow span to `<path>` as JSONL (analyzer-friendly).
 - `--trace-stdout [format]` — stream spans to stdout: `pretty` (default) or `json`.
@@ -118,7 +153,22 @@ nodetool info --json
 
 ### `nodetool serve`
 
-Starts the TypeScript WebSocket + HTTP backend server. This serves the REST API, WebSocket endpoints, and static assets.
+Starts the authenticated lean execution server. It persists workflows, jobs,
+assets and encrypted secrets in the configured data directory and streams runs
+over MsgPack WebSockets. Configure its tokens and master key as described in the
+[default CLI guide](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli/README.md#start-an-authenticated-server).
+
+```bash
+nodetool serve --host 127.0.0.1 --port 7777
+```
+
+For the classic application API, explicitly install `cli-server` and use
+`nodetool server serve`.
+
+### `nodetool server server serve`
+
+Starts the classic TypeScript WebSocket and HTTP application server, including
+its application routes and static assets. Requires `cli-server`.
 
 **Options:**
 
@@ -129,13 +179,21 @@ Starts the TypeScript WebSocket + HTTP backend server. This serves the REST API,
 
 ```bash
 # Start the server on the default port
-nodetool serve
+nodetool server serve
 
 # Bind to all interfaces on a custom port
-nodetool serve --host 0.0.0.0 --port 8080
+nodetool server serve --host 0.0.0.0 --port 8080
 ```
 
 `serve` passes the two flags to the server as `HOST` and `PORT`, overwriting whatever those variables already held — use the flags, not the environment, to move the server.
+
+Administrators can constrain the installed catalog packs loaded by `serve` with
+`NODETOOL_SERVER_PACKS`, a JSON array of pack IDs. For example,
+`NODETOOL_SERVER_PACKS='["core","text"]' nodetool server serve` loads those packs only.
+The selection must include each pack's prerequisites. Duplicate IDs, missing
+packs, incompatible installed versions, and broken module initialization fail
+startup. This selection does not install packages. When unset, the existing
+installed-pack policy applies.
 
 ### `nodetool workflows run <workflow_id_or_file>`
 
@@ -2079,6 +2137,9 @@ nodetool generate fal-ai flux-dev "restyle this" --image in.png --strength 0.6
 
 ### `nodetool mcp`
 
+MCP commands require the explicitly installed `@nodetool-ai/cli-mcp` feature.
+The examples invoke its `nodetool-mcp` binary directly.
+
 Register NodeTool as an MCP server in Claude Code, Codex, and OpenCode, check
 the result, or run the server. See [NodeTool as an MCP Server](mcp-server.md)
 for the setup guide.
@@ -2090,30 +2151,30 @@ for the setup guide.
 ```bash
 # Register the stdio server with every client found on this machine.
 # Without a global install:
-npx -y --package=@nodetool-ai/cli nodetool mcp install
+npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp install
 
 # Register for Claude Code only
-nodetool mcp install --claude
+nodetool-mcp install --claude
 
 # Connect to a running server over HTTP instead of stdio
-nodetool mcp install --http
-nodetool mcp install --url http://127.0.0.1:8000/mcp
+nodetool-mcp install --http
+nodetool-mcp install --url http://127.0.0.1:8000/mcp
 
 # Show the registered entries, then start each one and list its tools
-nodetool mcp status
-nodetool mcp status --check
+nodetool-mcp status
+nodetool-mcp status --check
 
 # Print an mcpServers JSON block for Cursor, Claude Desktop, or another client
-nodetool mcp config
+nodetool-mcp config
 
 # Remove from all clients
-nodetool mcp uninstall
+nodetool-mcp uninstall
 ```
 
 | Option | Applies to | Effect |
 |---|---|---|
 | `--claude`, `--codex`, `--opencode` | `install`, `uninstall` | Select clients. `install` without one selects every client found. |
-| `--npx` | `install`, `config` | Launch through `npx` even when `nodetool` is on `PATH`. |
+| `--npx` | `install`, `config` | Launch through `npx` even when `nodetool-mcp` is on `PATH`. |
 | `--http`, `--url <url>` | `install`, `config` | Write an HTTP entry. The default URL is `http://127.0.0.1:7777/mcp`. |
 | `--no-verify` | `install` | Write the config without a test start of the server. |
 | `--check` | `status` | Start each registered server and list its tools. |
@@ -2122,11 +2183,11 @@ nodetool mcp uninstall
 `mcp uninstall` exits 1 when a client config cannot be written.
 
 `install` starts the server once before it writes a config, so a broken
-command never reaches a client config. The stdio entry runs `nodetool mcp serve`
-when the Node CLI is first on `PATH`, else
-`npx -y --package=@nodetool-ai/cli nodetool mcp serve`.
+command never reaches a client config. The stdio entry runs `nodetool-mcp serve`
+when the MCP executable is first on `PATH`, else
+`npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp serve`.
 
-HTTP MCP (`/mcp`) needs the API server (`nodetool serve`). `nodetool mcp serve`
+HTTP MCP (`/mcp`) needs the classic API server (`nodetool server serve` from `cli-server`). `nodetool-mcp serve`
 uses stdio for the client and forwards to the local API server when its MCP
 endpoint is available on port 7777 (or `PORT` when set). Actions then run in the API process, so
 connected UI clients receive live updates. When the endpoint is unavailable,
@@ -2177,7 +2238,7 @@ worked examples). Prompts `sandbox-action` and `sandbox-asset` are complete
 skill's name, and it returns the skill body.
 
 The session needs a user to run as — its tools touch that user's secrets, assets, and files — so
-`createMcpServer` refuses one that is not bound to a user (`nodetool mcp serve`, the local `/mcp`
+`createMcpServer` refuses one that is not bound to a user (`nodetool-mcp serve`, the local `/mcp`
 mount, or an authenticated session). File tools read and write under a per-user workspace at
 `<data-dir>/mcp-workspaces/<user-id>`, not the host filesystem.
 

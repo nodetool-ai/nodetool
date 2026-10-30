@@ -25,11 +25,11 @@ const mocks = vi.hoisted(() => ({
   generateThumb: vi.fn(async () => {})
 }));
 
-vi.mock("../src/lib/storage.js", () => ({
+vi.mock("@nodetool-ai/asset-services/storage", () => ({
   getAssetAdapter: () => mocks.adapter
 }));
 
-vi.mock("../src/lib/thumbnail.js", async (orig) => {
+vi.mock("@nodetool-ai/asset-services/thumbnail", async (orig) => {
   const actual = await orig<typeof import("../src/lib/thumbnail.js")>();
   return { ...actual, generateThumbnailForStoredAsset: mocks.generateThumb };
 });

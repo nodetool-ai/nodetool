@@ -20,10 +20,10 @@ marked ∥ can proceed in parallel once their listed dependency lands.
   before any end-to-end `nodetool app debug` smoke since the CLI loads
   decorator packages from `dist/`.
 - Read before writing. The modules this plan touches are documented in-file:
-  `packages/cli/src/app-debug/harness.ts` (orchestration),
+  `packages/cli-apps/src/app-debug/harness.ts` (orchestration),
   `packages/agents/src/evals/surfaces/app.ts` (bridge + drift rules),
   `packages/agents/src/evals/tool-loop-eval.ts` (loop driver),
-  `packages/cli/src/commands/eval.ts` ("suites are data"). Honor the
+  `packages/cli-harness/src/commands/eval.ts` ("suites are data"). Honor the
   invariants their header comments state.
 - The relocation PR (PR 3) is behavior-preserving and must be provably so:
   `nodetool app debug` output on the shipped example bundles is byte-identical
@@ -39,7 +39,7 @@ marked ∥ can proceed in parallel once their listed dependency lands.
 
 ### PR 1 — Simulate conditions and format (R6)
 
-All in `packages/cli/src/app-debug/` (pre-relocation — keep the diff where the
+All in `packages/cli-apps/src/app-debug/` (pre-relocation — keep the diff where the
 code lives today; PR 3 moves it wholesale).
 
 - `runtime.ts`: after every fold into app state, evaluate each widget's
@@ -58,7 +58,7 @@ code lives today; PR 3 moves it wholesale).
   conditions/format.
 - Verdict: new issue for a run-trigger widget whose `visibleWhen` never
   evaluated true in any executed interaction.
-- Tests (`packages/cli/tests/` next to the existing app-debug tests): a
+- Tests (`packages/cli-apps/tests/` next to the existing app-debug tests): a
   conditional Approve button — hidden click fails, satisfied click runs; a
   `format` template changes an `equals` check's outcome; the never-visible
   trigger verdict fires; an app with no conditions produces an unchanged
@@ -85,7 +85,7 @@ code lives today; PR 3 moves it wholesale).
   `harness.ts` to `packages/execution/src/app-debug/`; export from the package
   index the way `execution/debug` already does. `markdown.ts` moves too (it
   renders the report, needs nothing from cli).
-- Stays in `packages/cli/src/app-debug/`: `app-target.ts` (DB/file
+- Stays in `packages/cli-apps/src/app-debug/`: `app-target.ts` (DB/file
   resolution), bundle writing, the command wiring. It re-exports the moved
   types so `@nodetool-ai/cli` importers don't break.
 - The harness's `runOnServer` / `loadFromDb` / `loadApplication` injections
@@ -156,7 +156,7 @@ The core PR. `packages/agents/src/app-build/build.ts` + the CLI command.
   "app-build"`.
 - Spans: `app.build` + per-stage children (design §6), via the existing agent
   span helpers.
-- `packages/cli/src/commands/app.ts`: the `build` subcommand, flags and
+- `packages/cli-apps/src/commands/app.ts`: the `build` subcommand, flags and
   bundle layout per design §5.1. Exit 0 iff `verdict.ok`.
 - Tests (`packages/agents/tests/`): a scripted provider (the eval harness's
   mock pattern) drives a full green build over a template workflow with zero
@@ -186,7 +186,7 @@ The core PR. `packages/agents/src/app-build/build.ts` + the CLI command.
   cases over template graphs with exact expected widget values, judge
   skipped.
 - Runner in `evals/app-build-eval.ts`; one data entry in `EVAL_SUITES`
-  (`packages/cli/src/commands/eval.ts`) — follow the file's "suites are data"
+  (`packages/cli-harness/src/commands/eval.ts`) — follow the file's "suites are data"
   rule, no new command block. Metrics and `--min-success` semantics per
   design §5.3.
 - CI: deterministic cases join the Quality Gate; full suite gets a nightly

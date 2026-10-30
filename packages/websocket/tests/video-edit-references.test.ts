@@ -11,7 +11,7 @@ import { WebSocketClientSession } from "../src/websocket-client-session.js";
 const generation = vi.hoisted(() => vi.fn());
 const trim = vi.hoisted(() => vi.fn());
 vi.mock("../src/lib/media.js", () => ({ trimVideoWindow: trim }));
-vi.mock("../src/lib/asset-paths.js", () => ({
+vi.mock("@nodetool-ai/asset-services/asset-paths", () => ({
   retrieveAssetBytes: async (_adapter: unknown, _user: string, id: string) =>
     new Uint8Array([id === "entity" ? 2 : id === "reference" ? 3 : 1])
 }));

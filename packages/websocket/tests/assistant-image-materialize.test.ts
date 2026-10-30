@@ -12,7 +12,7 @@ import { WebSocketClientSession } from "../src/websocket-client-session.js";
 import type { MessageContent } from "@nodetool-ai/protocol";
 
 const storeMock = vi.fn(async () => undefined);
-vi.mock("../src/lib/thumbnail.js", () => ({
+vi.mock("@nodetool-ai/asset-services/thumbnail", () => ({
   storeAssetWithThumbnail: (...args: unknown[]) => storeMock(...args)
 }));
 

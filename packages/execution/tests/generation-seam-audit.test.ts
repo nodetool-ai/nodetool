@@ -81,7 +81,7 @@ const ALLOWED: ReadonlyArray<{ file: string; why: string }> = [
       "runGenerationWith"
   },
   {
-    file: "packages/cli/src/commands/generate.ts",
+    file: "packages/cli-workflow/src/commands/generate.ts",
     why: "nodetool generate, inside runGenerationWith"
   },
   {

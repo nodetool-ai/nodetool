@@ -13,6 +13,13 @@ const artifacts = ["@nodetool-ai/cli", "@nodetool-ai/fal-nodes", "@nodetool-ai/p
 function catalogFixture(releaseVersion = version) {
   return { coreVersion: releaseVersion, packs: [{ id: "fal", kind: "node-pack", npm: { ...artifacts[1], version: releaseVersion }, provides: [], scriptAllowlist: [], registrar: "registerFalNodes", nodeCount: 2 }] };
 }
+function installCatalogFixture() {
+  const catalog = catalogFixture();
+  for (const id of ["cli-workflow", "cli-harness"]) {
+    catalog.packs.push({ id, kind: "cli-feature", npm: { name: `@nodetool-ai/${id}`, version, integrity: `sha512-${id}` }, provides: [], scriptAllowlist: [], registrar: "feature", nodeCount: 0 });
+  }
+  return catalog;
+}
 function attestation(pin, change = statement => statement) {
   const statement = change({ _type: "https://in-toto.io/Statement/v1", predicateType: "https://slsa.dev/provenance/v1", subject: [{ name: `pkg:npm/${pin.name.replace(/^@/, "%40")}@${pin.version}`, digest: { sha512: Buffer.from(pin.integrity.slice(7), "base64").toString("hex") } }],
     predicate: { buildDefinition: { externalParameters: { workflow: { repository: RELEASE_REPOSITORY, path: RELEASE_WORKFLOW } } } } });
@@ -210,13 +217,14 @@ afterEach(() => { for (const root of roots.splice(0)) { rmSync(root, { recursive
 it("audits project and global installs before execution and verifies both FAL workflows", async () => {
   const root = mkdtempSync(join(tmpdir(), "registry-smoke-test-")); roots.push(root);
   const calls = [];
-  await verifyRegistryInstall(catalogFixture(), { temporaryRoot: root, run: (command, args, options) => {
+  const audited = [];
+  await verifyRegistryInstall(installCatalogFixture(), { auditInstall: directory => audited.push(directory), temporaryRoot: root, run: (command, args, options) => {
     calls.push([command, args, options]);
     if (args.includes("--global")) {
       const prefix = args[args.indexOf("--prefix") + 1];
-      const directory = join(prefix, process.platform === "win32" ? "node_modules" : "lib/node_modules", "@nodetool-ai/cli/node_modules/@nodetool-ai/core-nodes");
+      const directory = join(prefix, process.platform === "win32" ? "node_modules" : "lib/node_modules", "@nodetool-ai/cli/node_modules/@nodetool-ai/nodes-core");
       mkdirSync(directory, { recursive: true });
-      writeFileSync(join(directory, "package.json"), JSON.stringify({ name: "@nodetool-ai/core-nodes", version }));
+      writeFileSync(join(directory, "package.json"), JSON.stringify({ name: "@nodetool-ai/nodes-core", version }));
     }
     if (args.includes("--version")) { return version; }
     if (command === "du") { return "100 node_modules"; }
@@ -231,10 +239,13 @@ it("audits project and global installs before execution and verifies both FAL wo
     }
     return "";
   } });
+  expect(audited).toHaveLength(2);
+  expect(audited[0]).toBe(calls[0][2].cwd);
+  expect(audited[1]).toContain("@nodetool-ai/cli");
   expect(calls[1][1]).toEqual(["audit", "signatures"]);
   expect(calls[2][1]).toEqual(["rebuild", "better-sqlite3", "--ignore-scripts=false", "--no-audit", "--no-fund"]);
   expect(calls[3][1]).toEqual(["--version"]);
-  expect(calls[4][1]).toEqual(["packs", "add", "fal", "--yes"]);
+  expect(calls[4][1]).toEqual(["packs", "add", "cli-workflow", "cli-harness", "fal", "--yes"]);
   expect(calls[5][1]).toEqual(["audit", "signatures"]);
   const globalInstall = calls.findIndex(([, args]) => args.includes("--global"));
   const projectModules = join(calls[0][2].cwd, "node_modules");
@@ -259,11 +270,17 @@ it("audits project and global installs before execution and verifies both FAL wo
   expect(calls.every(([, , options]) => options.env.NODETOOL_PACKS_INSTALLER === undefined)).toBe(true);
 });
 
+it("requires admitted independent command features for the optional registry scenarios", async () => {
+  const run = vi.fn();
+  await expect(verifyRegistryInstall(catalogFixture(), { run })).rejects.toThrow("cli-workflow catalog entry");
+  expect(run).not.toHaveBeenCalled();
+});
+
 it("refuses to execute the installed CLI when its initial signature audit fails", async () => {
   const root = mkdtempSync(join(tmpdir(), "registry-cli-signature-refusal-"));
   roots.push(root);
   const calls = [];
-  await expect(verifyRegistryInstall(catalogFixture(), { temporaryRoot: root, run: (command, args) => {
+  await expect(verifyRegistryInstall(installCatalogFixture(), { auditInstall: () => {}, temporaryRoot: root, run: (command, args) => {
     calls.push([command, args]);
     if (args[0] === "audit") {
       throw new Error("CLI signature refused");
@@ -278,7 +295,7 @@ it("stops the registry smoke when the CLI refuses pack installation", async () =
   const root = mkdtempSync(join(tmpdir(), "registry-pack-refusal-"));
   roots.push(root);
   const calls = [];
-  await expect(verifyRegistryInstall(catalogFixture(), { temporaryRoot: root, run: (command, args, options) => {
+  await expect(verifyRegistryInstall(installCatalogFixture(), { auditInstall: () => {}, temporaryRoot: root, run: (command, args, options) => {
     calls.push([command, args]);
     if (args[0] === "packs") {
       expect(options.env.NODETOOL_PACKS_INSTALLER).toBeUndefined();
@@ -286,7 +303,7 @@ it("stops the registry smoke when the CLI refuses pack installation", async () =
     }
     return args[0] === "--version" ? version : "";
   } })).rejects.toThrow("pack integrity refused");
-  expect(calls.at(-1)[1]).toEqual(["packs", "add", "fal", "--yes"]);
+  expect(calls.at(-1)[1]).toEqual(["packs", "add", "cli-workflow", "cli-harness", "fal", "--yes"]);
   expect(calls.filter(([, args]) => args[0] === "audit")).toHaveLength(1);
   expect(calls.some(([, args]) => args[0] === "--input-type=module")).toBe(false);
 });

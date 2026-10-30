@@ -24,7 +24,8 @@
     "@nodetool-ai/kernel": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
-    "acorn": "^8.16.0"
+    "acorn": "^8.16.0",
+    "@nodetool-ai/pack-core": "*"
   },
   "devDependencies": {
     "@stryker-mutator/core": "^9.6.1",
@@ -72,6 +73,12 @@
       "types": "./dist/sandbox-pack-discovery.d.ts",
       "import": "./dist/sandbox-pack-discovery.js",
       "default": "./dist/sandbox-pack-discovery.js"
+    },
+    "./pack-verifier": {
+      "nodetool-dev": "./src/pack-verifier.ts",
+      "types": "./dist/pack-verifier.d.ts",
+      "import": "./dist/pack-verifier.js",
+      "default": "./dist/pack-verifier.js"
     }
   },
   "license": "MIT",

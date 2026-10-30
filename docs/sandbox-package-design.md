@@ -1034,7 +1034,7 @@ The measured candidate table and the cap decision are in
 [m3-implementation-plan.md](m3-implementation-plan.md). Regression suites:
 `packages/sandbox-compiler/tests/`, `packages/node-sdk/tests/sandbox-npm-discovery.test.ts`,
 `packages/websocket/tests/sandbox-catalog.test.ts`,
-`packages/cli/tests/packs-command.test.ts`.
+`packages/pack-manager/tests/packs/pack-management-command.test.ts`.
 
 ### M4 — WASM (scalar-only)
 

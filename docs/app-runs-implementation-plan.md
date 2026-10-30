@@ -15,7 +15,7 @@ are proposals for detailed design.
 ## Execution rules for the coordinator
 
 The coordinator owns integration, shared contract changes, phase gates, and
-updates to [the harness registry](../packages/cli/src/harness/registry.ts).
+updates to [the harness registry](../packages/cli-harness/src/harness/registry.ts).
 Dispatch one bounded assignment per fresh sub-agent context. Split a task
 further when its implementation no longer fits one reviewable change, retaining
 its acceptance criteria and dependency edges.
@@ -547,7 +547,7 @@ than accidentally becoming a tool transport failure. Unauthorized calls fail.
 ### A10 Expose runs through the CLI
 
 **Owner:** CLI agent.
-**Files:** New `packages/cli/src/commands/runs.ts`, command registration edits,
+**Files:** New `packages/cli-workflow/src/commands/runs.ts`, command registration edits,
 CLI tests, and `docs/cli.md`/`docs/harnesses.md` updates.
 
 Implement `runs list`, `show`, `trace`, `logs`, and `tail`, with JSON output,

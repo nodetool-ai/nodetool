@@ -27,7 +27,7 @@ export const generatedBlogPosts: BlogPost[] = [
       },
       {
         "question": "Can I use my own agent instead of the built-in one?",
-        "answer": "Yes. The toolbelt is exposed over MCP, so Claude Desktop, Claude Code, Codex, or any MCP-aware agent gets the same tools the built-in chat uses. Run nodetool mcp install for CLI agents, or install the .mcpb bundle for Claude Desktop."
+        "answer": "Yes. The toolbelt is exposed over MCP, so Claude Desktop, Claude Code, Codex, or any MCP-aware agent gets the same tools the built-in chat uses. Run nodetool-mcp install for CLI agents, or install the .mcpb bundle for Claude Desktop."
       },
       {
         "question": "Does privacy-first mean everything runs offline?",

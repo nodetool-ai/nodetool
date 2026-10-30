@@ -19,7 +19,7 @@
   "dependencies": {
     "@nodetool-ai/config": "*",
     "@nodetool-ai/protocol": "*",
-    "@nodetool-ai/runtime": "*"
+    "@nodetool-ai/execution-core": "*"
   },
   "devDependencies": {
     "@stryker-mutator/core": "^9.6.1",

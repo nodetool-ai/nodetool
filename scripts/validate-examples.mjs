@@ -11,8 +11,8 @@
 // example must validate with --warnings-as-errors, so a warning-level drift
 // fails the gate too, not just hard errors. Unselected models are exempt:
 // examples ship them blank and the editor fills them when the graph loads. It
-// runs against the built CLI (packages/cli/dist), since validate loads the
-// node registry from the decorator packages' dist output.
+// uses built cli-execution validation and cli-workflow diagnostics, since
+// validation loads the node registry from decorator packages' dist output.
 //
 // The weekly scheduled workflow (workflow-example-validation.yaml) covers the
 // self-healing side — it re-validates on the same drift and opens a repair PR
@@ -44,8 +44,8 @@ import { jsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.j
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(scriptDir, "..");
-const cliValidate = join(repoRoot, "packages/cli/dist/validate/index.js");
-const cliRender = join(repoRoot, "packages/cli/dist/commands/validate.js");
+const cliValidate = join(repoRoot, "packages/cli-execution/dist/validate/index.js");
+const cliRender = join(repoRoot, "packages/cli-workflow/dist/commands/validate.js");
 
 // Examples whose graphs drive nodes that exist only in the Python worker. The
 // TypeScript registry cannot know those types, so `unknown_node` for exactly

@@ -37,7 +37,7 @@ This inventory covers the shipped document components and the authoring, runtime
 | [Particle inspector](https://github.com/nodetool-ai/nodetool/blob/main/web/src/components/game/inspector/editors/ParticleEditor.tsx) and [presets](https://github.com/nodetool-ai/nodetool/blob/main/packages/protocol/src/game-particle-presets.ts) | Emitter controls, lifetime curves and gradients, deterministic preview, and Fire, Smoke, Sparks, Dust, Magic, Rain, Snow, and Explosion recipes |
 | [Editor](https://github.com/nodetool-ai/nodetool/tree/main/web/src/components/game) | Scene tree, selection/gizmos, inspector, asset browser, scripting, Console, Profiler, retained construction |
 | [Game tools](https://github.com/nodetool-ai/nodetool/blob/main/packages/system-skills/native-game/SKILL.md) | Agent creation, preparation, editing, playtesting, capture, and build |
-| [CLI](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli/src/commands/game.ts) | Validate, simulate, benchmark, capture, build, and smoke commands |
+| [CLI](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli-game/src/commands/game.ts) | Validate, simulate, benchmark, capture, build, and smoke commands |
 
 ## Compatibility and incomplete paths
 

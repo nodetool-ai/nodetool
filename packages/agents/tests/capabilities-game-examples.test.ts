@@ -94,6 +94,8 @@ describe("agent example games", () => {
   });
 
   it("plays and replays Signal Forge using its installed prepared collider bytes", async () => {
+    // Match the native game integration suites' budget scaling on shared runners.
+    vi.stubEnv("NODETOOL_GAME_SCRIPT_BUDGET_SCALE", "5");
     const storage = new InMemoryStorageAdapter();
     const agent = run(USER, storage);
     const installed = z.object({ game: z.object({ id: z.string() }), document: gameDocument3D }).parse(

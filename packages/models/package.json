@@ -30,10 +30,11 @@
   "dependencies": {
     "@nodetool-ai/app-runtime": "*",
     "@nodetool-ai/config": "*",
+    "@nodetool-ai/game-runtime": "*",
+    "@nodetool-ai/image-editor": "*",
+    "@nodetool-ai/models-core": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/security": "*",
-    "@nodetool-ai/image-editor": "*",
-    "@nodetool-ai/game-runtime": "*",
     "@nodetool-ai/timeline": "*",
     "better-sqlite3": "^12.8.0",
     "drizzle-orm": "^0.45.2",

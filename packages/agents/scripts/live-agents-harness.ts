@@ -16,8 +16,8 @@ import { createChatCodeActSession } from "../src/codeact/chat-codeact.js";
 import { createHarnessContext } from "./harness-context.js";
 import { Tool } from "../src/tools/base-tool.js";
 import { RunSubtaskTool } from "../src/tools/run-subtask-tool.js";
-import { runSingleNode } from "../../cli/src/node/run-node.js";
-import { createProviderStrict } from "../../cli/src/providers.js";
+import { runSingleNode } from "@nodetool-ai/cli-execution/node/run-node";
+import { createProviderStrict } from "@nodetool-ai/cli-providers";
 
 class HarnessRunNodeTool extends Tool {
   readonly name = "run_node";
