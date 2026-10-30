@@ -69,7 +69,11 @@ jobs:
         run: |
           npm ci --ignore-scripts
           npm run rebuild:native
-          npm run build:packages
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            npm run build:packages:tsc
+          else
+            npm run build:packages
+          fi
 
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
