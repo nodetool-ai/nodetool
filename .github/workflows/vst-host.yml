@@ -54,10 +54,15 @@ jobs:
               xfwm4 --compositor=off --sm-client-disable &
               wm_pid=$!
               trap "kill $wm_pid 2>/dev/null || true" EXIT
-              for attempt in {1..50}; do
+              for attempt in {1..300}; do
                 if xprop -root _NET_SUPPORTING_WM_CHECK | grep -q "window id"; then
                   node electron/scripts/build-vst-host.mjs --test
                   exit 0
+                fi
+                if ! kill -0 "$wm_pid" 2>/dev/null; then
+                  echo "Window manager exited before becoming ready" >&2
+                  wait "$wm_pid"
+                  exit 1
                 fi
                 sleep 0.1
               done
