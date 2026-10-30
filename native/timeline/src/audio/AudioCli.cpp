@@ -253,8 +253,14 @@ int avSyncCli(int argc, char** argv) {
         clock.tick();
         const playback::DeviceInfo dev = engine.feed().device.load();
         const playback::CallbackState cb = engine.feed().callback.load();
+        const double clockMs = clock.time();
+        const playback::CallbackState after = engine.feed().callback.load();
         if (clock.audioMaster()) {
-            samples.push_back({playback::audibleTimeline(cb, dev, tickNow).audibleFrames, clock.time(), dev.generation});
+            // A callback published during clock.time() would pair two different
+            // buffers at one host timestamp and manufacture a sync error.
+            if (cb.hostTimeNs == after.hostTimeNs && cb.framesAtStart == after.framesAtStart) {
+                samples.push_back({playback::audibleTimeline(cb, dev, tickNow).audibleFrames, clockMs, dev.generation});
+            }
         }
         if (!changed && tickNow - requestNs > static_cast<std::int64_t>(seconds * 0.5e9)) {
             changed = true;

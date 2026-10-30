@@ -187,6 +187,7 @@ std::unordered_map<std::string, LayerTransition> resolveDocumentTransitions(std:
         buckets[{c->trackId, key}].push_back(c);
     }
     std::unordered_map<std::string, LayerTransition> out;
+    out.reserve(clips.size());
     for (auto& [key, siblings] : buckets) {
         std::stable_sort(siblings.begin(), siblings.end(), [](const Clip* a, const Clip* b) { return a->startMs < b->startMs; });
         const Clip* furthestClip = nullptr;
