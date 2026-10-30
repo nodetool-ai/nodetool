@@ -2,7 +2,7 @@ import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, posix, win32 } from "node:path";
 import { z } from "zod";
-import type { MissingPackInstall } from "@nodetool-ai/pack-core";
+import type { MissingPackInstall, NodeCatalogIndex } from "@nodetool-ai/pack-core";
 
 export type InstallPathStyle = "posix" | "win32";
 
@@ -241,6 +241,37 @@ export function detectInstallMode(entryPath: string, options: InstallModeOptions
     return classifyInstallLayout({ ...layout, workspaceRoot });
   }
   return classifyInstallLayout(layout);
+}
+
+/** A standalone command feature may read its installed dependencies without owning a pack installer. */
+export function detectStandaloneFeatureMode(entryPath: string, catalog: NodeCatalogIndex): InstallMode {
+  const paths = process.platform === "win32" ? win32 : posix;
+  const entry = realpathSync(entryPath);
+  const directories = ancestorDirectories(paths.dirname(entry));
+  for (const directory of directories) {
+    const manifest = readManifest(directory);
+    if (!manifest) { continue; }
+    const owners = catalog.packs.filter(pack => pack.kind === "cli-feature" && pack.npm.name === manifest.name);
+    const owner = owners[0];
+    if (owners.length !== 1 || !owner) {
+      throw new Error(`Standalone command owner ${manifest.name ?? directory} is not an admitted CLI feature`);
+    }
+    if (manifest.version !== catalog.coreVersion || manifest.version !== owner.npm.version) {
+      throw new Error(`Standalone command ${owner.id} version ${String(manifest.version)} differs from catalog version ${catalog.coreVersion}`);
+    }
+    const modules = paths.dirname(paths.dirname(directory));
+    const project = readManifest(paths.dirname(modules));
+    const workspaceRoot = directories.find(candidate => readManifest(candidate)?.workspaces !== undefined);
+    const mode = classifyInstallLayout({
+      cliRoot: directory, coreVersion: manifest.version, pathStyle: process.platform === "win32" ? "win32" : "posix",
+      globalNodeModulesRoots: defaultGlobalRoots().map(canonicalGlobalRoot), workspaceRoot,
+      projectHasCli: Boolean(project?.dependencies?.["@nodetool-ai/cli"] ?? project?.devDependencies?.["@nodetool-ai/cli"] ?? project?.optionalDependencies?.["@nodetool-ai/cli"])
+    });
+    const reason = 'Standalone command features cannot install packs. Run "npm install -g @nodetool-ai/cli" or install it in a project, then use "nodetool packs add".';
+    return { cliRoot: mode.cliRoot, coreVersion: mode.coreVersion, pathStyle: mode.pathStyle,
+      kind: mode.kind === "npx" ? "npx" : "unsupported", nodeModulesRoot: mode.nodeModulesRoot, reason };
+  }
+  throw new Error(`Cannot find a catalog-admitted standalone command owner for ${entry}`);
 }
 
 /** The catalog factory supplies the concrete closure when no ids are available yet. */

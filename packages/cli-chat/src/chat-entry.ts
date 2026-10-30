@@ -57,7 +57,7 @@ if (!process.env["NODETOOL_LOG_FILE"]) {
 configureLogging();
 // Optional imports fall back to the root `nodetool runtime add` installs into.
 initializeCliRuntime(import.meta.url);
-configureCliPackHost(import.meta.resolve("@nodetool-ai/cli"));
+configureCliPackHost(import.meta.url);
 
 program
   .name("nodetool-chat")

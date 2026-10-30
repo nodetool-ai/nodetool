@@ -29,9 +29,6 @@
       "path": "../cli-common"
     },
     {
-      "path": "../cli"
-    },
-    {
       "path": "../core-nodes"
     },
     {

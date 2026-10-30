@@ -25,7 +25,7 @@ export async function disposePackRegistryFixtures(): Promise<void> {
   await Promise.all(roots.splice(0).map((root) => rm(root, { recursive: true, force: true })));
 }
 
-export async function setupPackRegistry(conflict = false, options: { readonly tls?: boolean; readonly optionalDependency?: boolean; readonly allowScript?: boolean; readonly globalCore?: boolean; readonly olderTransitiveDependency?: boolean } = {}) {
+export async function setupPackRegistry(conflict = false, options: { readonly tls?: boolean; readonly optionalDependency?: boolean; readonly allowScript?: boolean; readonly globalCore?: boolean; readonly olderTransitiveDependency?: boolean; readonly commandFeature?: { readonly name: string; readonly dependencies: Record<string, string> } } = {}) {
   const directory = await realpath(await mkdtemp(join(tmpdir(), "packs-registry-"))); roots.push(directory);
   const npm = findNpmCli(); if (!npm) { throw new Error("Local npm-cli.js required for integration fixture"); }
   const tarballs = new Map<string, { name: string; version: string; bytes: Buffer; integrity: string; dependencies: Record<string, string> }>();
@@ -36,6 +36,7 @@ export async function setupPackRegistry(conflict = false, options: { readonly tl
     ["@nodetool-ai/cli", "1.0.0", { "fixture-baseline": options.olderTransitiveDependency ? "^1.0.0" : "1.0.0", ...(options.globalCore ? { "@nodetool-ai/fixture2-nodes": "1.0.0" } : {}) }],
     ["@nodetool-ai/cli", "1.1.0", { "fixture-baseline": "1.0.0" }],
     ["fixture-optional", "1.0.0", {}],
+    ...(options.commandFeature ? [[options.commandFeature.name, "1.0.0", options.commandFeature.dependencies] as const] : []),
     ...(options.olderTransitiveDependency ? [
       ["fixture-baseline", "1.1.0", {}], ["fixture-extractor", "1.0.0", { "fixture-baseline": "1.0.0" }]
     ] as const : [])
@@ -45,7 +46,10 @@ export async function setupPackRegistry(conflict = false, options: { readonly tl
     await writeFile(join(path, "package.json"), JSON.stringify({ name, version, main: "index.js", ...(isPack ? { peerDependencies: dependencies } : { dependencies }),
       ...(options.optionalDependency && name === "@nodetool-ai/fixture-nodes" ? { optionalDependencies: { "fixture-optional": "1.0.0" } } : {}),
       scripts: { postinstall: "node -e \"require('fs').writeFileSync('SCRIPT_RAN', 'bad')\"" } }));
-    await writeFile(join(path, "index.js"), "module.exports = {};\n");
+    const source = name === options.commandFeature?.name
+      ? `exports.feature={descriptor:{id:${JSON.stringify(name.replace("@nodetool-ai/", ""))},apiVersion:1,requires:[],capabilities:["cli:fixture"]},run:async()=>{Reflect.set(globalThis,"__nodetoolFixtureHost",require.resolve("@nodetool-ai/cli"))}};`
+      : "module.exports = {};\n";
+    await writeFile(join(path, "index.js"), source);
     const result = await exec(process.execPath, [npm, "pack", "--json", "--ignore-scripts"], { cwd: path });
     const filename: string = JSON.parse(result.stdout)[0].filename;
     const bytes = await readFile(join(path, filename));

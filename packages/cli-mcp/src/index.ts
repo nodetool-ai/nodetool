@@ -19,7 +19,7 @@ export function createProgram(): Command {
     const { NodeRegistry } = await import("@nodetool-ai/node-sdk");
     const { registerCliPacks, configureCliPackHost } = await import("@nodetool-ai/cli-execution/packs/host");
     const { CLI_LOCAL_BUILTIN_PACK_POLICY } = await import("@nodetool-ai/cli-execution/node-registry");
-    configureCliPackHost(import.meta.resolve("@nodetool-ai/cli"));
+    configureCliPackHost(import.meta.url);
     const registry = new NodeRegistry();
     await registerCliPacks(registry, CLI_LOCAL_BUILTIN_PACK_POLICY);
     const { createCatalogPackSource } = await import("@nodetool-ai/websocket/pack-source");

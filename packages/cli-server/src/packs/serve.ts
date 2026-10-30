@@ -8,7 +8,7 @@ const entryUrl = new URL(import.meta.url.endsWith(".ts") ? "../index.ts" : "../i
 initializeCliRuntime(entryUrl);
 const selection = process.env["NODETOOL_SERVER_PACKS"];
 const configuredPackIds = selection === undefined ? undefined : z.array(z.string().min(1)).parse(JSON.parse(selection));
-configureCliPackHost(import.meta.resolve("@nodetool-ai/cli"), { configuredPackIds });
+configureCliPackHost(import.meta.url, { configuredPackIds });
 const packSource = await getCliPackSource();
 if (!packSource) {
   throw new Error("CLI serve requires an installed pack source");

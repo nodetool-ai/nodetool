@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { join } from "node:path";
@@ -5,7 +6,8 @@ import { realpath } from "node:fs/promises";
 import { getNodetoolDataDir } from "@nodetool-ai/config";
 import { loadPackLoaderContext, setPackLoaderContextProvider, type PackLoaderContext } from "@nodetool-ai/pack-core/loader-context";
 import type { NodeCatalogIndex } from "@nodetool-ai/pack-core/types";
-import { CliRootNotFoundError, detectInstallMode, installDetailsForMode, type InstallMode } from "./mode.js";
+import { readCatalogIndex } from "@nodetool-ai/pack-core/catalog-data";
+import { CliRootNotFoundError, detectInstallMode, detectStandaloneFeatureMode, installDetailsForMode, type InstallMode } from "./mode.js";
 import { readInstalledPacks, type InstalledPackSnapshot } from "./installed.js";
 import { readDesiredState } from "./install-selection.js";
 import { restoreWarning } from "./management.js";
@@ -27,7 +29,14 @@ export function configureCliPackHost(url: string, options: { readonly catalog?: 
       mode = detectInstallMode(fileURLToPath(url));
     } catch (error) {
       if (!(error instanceof CliRootNotFoundError)) { throw error; }
-      mode = detectInstallMode(createRequire(url).resolve("@nodetool-ai/cli"));
+      const resolver = createRequire(url);
+      try {
+        mode = detectInstallMode(resolver.resolve("@nodetool-ai/cli"));
+      } catch (cause) {
+        const installedHost = (resolver.resolve.paths("@nodetool-ai/cli") ?? []).some(directory => existsSync(join(directory, "@nodetool-ai/cli")));
+        if (!(cause instanceof Error) || !("code" in cause) || cause.code !== "MODULE_NOT_FOUND" || installedHost) { throw cause; }
+        mode = detectStandaloneFeatureMode(fileURLToPath(url), options.catalog ?? readCatalogIndex());
+      }
     }
     snapshot = readInstalledPacks(mode, options.catalog);
     if (mode.kind === "global" || mode.kind === "local") {

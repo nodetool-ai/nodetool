@@ -28,7 +28,6 @@
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
-    "@nodetool-ai/cli": "*",
     "@nodetool-ai/cli-common": "*",
     "@nodetool-ai/cli-execution": "*",
     "@nodetool-ai/pack-manager": "*",

@@ -23,9 +23,6 @@
       "path": "../websocket"
     },
     {
-      "path": "../cli"
-    },
-    {
       "path": "../core-nodes"
     },
     {

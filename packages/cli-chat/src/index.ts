@@ -17,7 +17,7 @@ export function createProgram(): Command {
 
 export async function run(argv: readonly string[]): Promise<void> {
   initializeCliRuntime(import.meta.url);
-  configureCliPackHost(import.meta.resolve("@nodetool-ai/cli"));
+  configureCliPackHost(import.meta.url);
   if (argv[0] === "chat") {
     const entry = new URL(import.meta.url.endsWith(".ts") ? "./chat-entry.ts" : "./chat-entry.js", import.meta.url);
     await new Promise<void>((resolve, reject) => {

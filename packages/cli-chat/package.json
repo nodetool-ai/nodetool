@@ -52,8 +52,7 @@
     "string-width": "^8.1.1",
     "wrap-ansi": "^9.0.0",
     "ws": "^8.18.3",
-    "zod": "^4.1.13",
-    "@nodetool-ai/cli": "*"
+    "zod": "^4.1.13"
   },
   "devDependencies": {
     "vitest": "^5.0.1",
