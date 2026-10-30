@@ -6,13 +6,31 @@ import QtQuick.Layouts
 Page {
     id: root
     required property var session
-    signal threadOpened()
+    signal threadOpened
     objectName: "chatThreads"
-    background: Rectangle { color: ChatTheme.background }
+    background: Rectangle {
+        color: ChatTheme.paper
+    }
     header: RowLayout {
         spacing: ChatTheme.md
-        Label { text: qsTr("Chats"); color: ChatTheme.text; font.pixelSize: ChatTheme.body; Layout.fillWidth: true; leftPadding: ChatTheme.lg }
-        ChatButton { objectName: "newChat"; text: qsTr("New chat"); enabled: !!root.session && root.session.connectionStatus === "connected"; onClicked: { root.session.createThread(); root.threadOpened() } }
+        Label {
+            text: qsTr("Chats")
+            color: ChatTheme.text
+            font.pixelSize: ChatTheme.label
+            font.weight: Font.Medium
+            Layout.fillWidth: true
+            leftPadding: ChatTheme.lg
+        }
+        ChatButton {
+            objectName: "newChat"
+            text: qsTr("New chat")
+            flat: true
+            enabled: !!root.session && root.session.connectionStatus === "connected"
+            onClicked: {
+                root.session.createThread();
+                root.threadOpened();
+            }
+        }
     }
     ListView {
         id: threads
@@ -29,14 +47,27 @@ Page {
             required property string title
             required property string status
             width: threads.width
+            implicitHeight: ChatTheme.control
             text: title || qsTr("Untitled chat")
             highlighted: root.session && root.session.selectedThreadId === threadId
             font.family: ChatTheme.sans
             font.pixelSize: ChatTheme.label
             Accessible.name: text + (status ? ", " + status : "")
-            contentItem: Label { text: threadRow.text; color: ChatTheme.text; elide: Text.ElideRight; verticalAlignment: Text.AlignVCenter }
-            background: Rectangle { color: threadRow.highlighted || threadRow.hovered ? ChatTheme.selected : ChatTheme.background; radius: ChatTheme.radius; border.color: threadRow.activeFocus ? ChatTheme.primary : "transparent" }
-            onClicked: { root.session.selectThread(threadId); root.threadOpened() }
+            contentItem: Label {
+                text: threadRow.text
+                color: ChatTheme.text
+                elide: Text.ElideRight
+                verticalAlignment: Text.AlignVCenter
+            }
+            background: Rectangle {
+                color: threadRow.highlighted || threadRow.hovered ? ChatTheme.selected : ChatTheme.paper
+                radius: ChatTheme.radius
+                border.color: threadRow.activeFocus ? ChatTheme.primary : "transparent"
+            }
+            onClicked: {
+                root.session.selectThread(threadId);
+                root.threadOpened();
+            }
         }
         Label {
             anchors.centerIn: parent

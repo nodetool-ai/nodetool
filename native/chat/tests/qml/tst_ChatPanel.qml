@@ -81,6 +81,7 @@ TestCase {
         const send = findChild(panel, "sendMessage")
         verify(input !== null)
         verify(send !== null)
+        verify(Qt.colorEqual(input.selectedTextColor, ChatTheme.text))
         compare(input.Accessible.name, "Message")
         compare(send.enabled, false)
         testSession.draft = "Make a film"
@@ -182,10 +183,59 @@ TestCase {
         wait(80)
         verify(Math.abs(view.contentY - before) < 40, "Reader position should survive switching threads: y " + before + " -> " + view.contentY + ", row " + beforeIndex + " -> " + view.indexAt(1, view.contentY + 1))
     }
-    function test_narrowNavigationUsesThreadPage() {
+    function test_conversationAndComposerShareCenteredColumn() {
+        test.width = 1600
+        testDriver.history("a", 1)
+        wait(80)
+        const composer = findChild(panel, "chatComposer")
+        const message = findVisible(panel, "message_0")
+        verify(composer !== null)
+        verify(message !== null)
+        compare(composer.width, 800)
+        compare(message.width, 800)
+        compare(Math.round(composer.mapToItem(panel, 0, 0).x), Math.round(message.mapToItem(panel, 0, 0).x))
+    }
+    function test_modelPickerKeepsEditableProviderAndModel() {
+        const chooser = findChild(panel, "chooseChatModel")
+        verify(chooser !== null)
+        chooser.forceActiveFocus()
+        keyClick(Qt.Key_Space)
+        wait(30)
+        const provider = findChild(panel, "chatProvider")
+        const model = findChild(panel, "chatModel")
+        verify(provider.visible)
+        verify(model.visible)
+        tryCompare(provider, "activeFocus", true)
+        typeLetters("test")
+        compare(testSession.provider, "test")
+        keyClick(Qt.Key_Tab)
+        tryCompare(model, "activeFocus", true)
+        typeLetters("model")
+        compare(testSession.model, "model")
+        keyClick(Qt.Key_Escape)
+        tryCompare(chooser, "activeFocus", true)
+        testSession.provider = ""
+        testSession.model = ""
+    }
+    function test_copyActionsWrapInsideNarrowColumn() {
+        test.width = 400
+        testDriver.codeHistory("a", "value\n```\n```js\n".repeat(30) + "value\n")
+        wait(80)
+        const message = findVisible(panel, "message_code")
+        verify(message !== null)
+        const actions = findText(message, "Copy full text").parent
+        verify(actions !== null)
+        verify(actions.width <= message.width)
+        verify(actions.childrenRect.width <= actions.width)
+    }
+    function test_narrowNavigationStartsInConversation() {
         test.width = 400
         wait(50)
+        verify(findChild(panel, "chatInput") !== null)
+        const chats = findText(panel, "Chats")
+        verify(chats !== null)
+        mouseClick(chats)
+        wait(100)
         verify(findChild(panel, "chatThreads") !== null)
-        verify(findChild(panel, "chatInput") === null)
     }
 }

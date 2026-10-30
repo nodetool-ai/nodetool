@@ -49,8 +49,9 @@ QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software native/chat/build/nodetool-c
 ```
 
 The composer keeps Enter for newlines and uses Ctrl+Enter or Cmd+Enter to send.
-This avoids submitting text during IME composition. Model and provider fields
-are optional and use server defaults when empty.
+This avoids submitting text during IME composition. The model button in the
+composer opens the provider and model fields. Both are optional and use server defaults when empty. In a narrow dock, chat opens
+the conversation first. The Chats button opens the thread list.
 
 ## State and media bounds
 
