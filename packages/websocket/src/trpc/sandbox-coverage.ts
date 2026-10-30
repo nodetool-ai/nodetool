@@ -489,6 +489,9 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "party access to this account. A run that could complete a link " +
       "could hand that access to whoever wrote the prompt."
   },
+  "generations.cancel": { capability: "cancel_generation" },
+  "generations.get": { capability: "get_generation" },
+  "generations.list": { capability: "list_generations" },
   "jobs.cancel": { capability: "cancel_job" },
   "jobs.get": { capability: "get_job" },
   "jobs.list": { capability: "list_jobs" },

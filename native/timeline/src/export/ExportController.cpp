@@ -1,4 +1,5 @@
 #include "export/ExportController.h"
+#include "activity/local/LocalActivityStore.h"
 #include "export/ExportCapabilities.h"
 #include "preview/effects/Masks.h"
 #include <QCoreApplication>
@@ -47,6 +48,8 @@ ExportController::ExportController(QObject* parent) : QObject(parent) {
         }
         self->m_job.reset();
         self->m_staging.reset();
+        nt::activity::LocalActivityStore::instance().finish(self->m_activityId, success, self->m_cancelled && code == 3, self->m_error);
+        self->m_activityId.clear();
         emit self->finished(success);
     });
     connect(&m_process, &QProcess::errorOccurred, this, [self = QPointer<ExportController>(this)](QProcess::ProcessError error) {
@@ -78,11 +81,17 @@ void ExportController::open() { if (!running()) emit openRequested(); }
 void ExportController::fail(const QString& message) {
     m_error = message;
     emit errorChanged();
+    if (!running()) {
+        nt::activity::LocalActivityStore::instance().finish(m_activityId, false, false, m_error);
+        m_activityId.clear();
+    }
     emit finished(false);
 }
 void ExportController::start(const QString& output, const QString& format, bool alpha) {
     if (running()) return;
     if (!m_timeline) { fail(QStringLiteral("Open a timeline before exporting.")); return; }
+    m_activityId = nt::activity::LocalActivityStore::instance().begin(
+        nt::activity::localScope(m_timeline->timeline().raw), QStringLiteral("Export %1").arg(m_timeline->name()), this, output);
     m_job = std::make_unique<QTemporaryDir>();
     if (!m_job->isValid()) { fail(QStringLiteral("Cannot create export snapshot")); return; }
     const auto raw = nt::exporting::exportSnapshot(*m_timeline);
@@ -130,6 +139,8 @@ void ExportController::readProgress() {
             m_frame = progress.value("frame").toInteger();
             m_total = progress.value("totalFrames").toInteger();
             m_ratio = progress.value("ratio").toDouble();
+            nt::activity::LocalActivityStore::instance().progress(m_activityId, m_phase,
+                progress.value("ratio").isDouble() ? progress.value("ratio").toDouble() : -1.0);
             emit progressChanged();
         } else {
             m_diagnostics += line + '\n';

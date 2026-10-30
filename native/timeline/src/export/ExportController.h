@@ -52,6 +52,7 @@ private:
     QProcess m_process;
     std::unique_ptr<QTemporaryDir> m_job;
     std::unique_ptr<QTemporaryDir> m_staging;
+    QString m_activityId;
     QString m_executable;
     QString m_phase;
     QString m_error;
