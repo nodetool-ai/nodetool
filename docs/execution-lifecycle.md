@@ -23,11 +23,28 @@ runner. README examples are documentation rather than execution entry points.
 
 ## Boundary
 
-Top-level Node/server execution uses `ExecutionSession`. Public APIs keep their
-own graph preparation and result presentation. Nested execution can construct a
-child kernel runner with its inherited environment. Browser execution uses the
-portable `runWorkflow` API. Kernel tests and browser harnesses can construct the
-runner directly. `npm run check:execution-boundary` guards production sources.
+Full Node/server execution uses `ExecutionSession`. The independently installed
+lean server uses the actor lifecycle in
+[`packages/nodes-core/src/index.ts`](../packages/nodes-core/src/index.ts), which
+has no dependency on the full session's Python, model or provider integrations.
+These are the two canonical top-level server lifecycle owners. Public APIs keep
+their own graph preparation and result presentation. Nested execution can
+construct a child kernel runner with its inherited environment. Browser execution
+uses the portable `runWorkflow` API. Kernel tests and browser harnesses can
+construct the runner directly. `npm run check:execution-boundary` enumerates the
+exact permitted source files, rejects multiple constructions in an owner, and
+checks both kernel and execution-core imports, including aliases and namespaces.
+
+The lean lifecycle validates and hydrates the graph before constructing a runner.
+It passes the run's owner and job IDs, workspace, message emitter and usage callback
+to registered node definitions. Its AbortSignal listener calls `runner.cancel()`
+and remains installed until the awaited runner returns a terminal result. The
+listener is removed on completion or failure. The authenticated
+[`server-core` host](../packages/server-core/src/index.ts) owns job persistence,
+message replay and terminal usage totals. The node adapter forwards provider
+terminal token usage to that host without estimating a monetary cost. This lean
+path does not connect Python, install packs or inherit the full session's timeout
+and scratch-cleanup policies.
 
 ## Session responsibility audit
 

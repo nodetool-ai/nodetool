@@ -6,7 +6,8 @@ import ts from "typescript";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const ALLOWED = new Map([
-  ["packages/execution/src/session.ts", "canonical server lifecycle"],
+  ["packages/execution/src/session.ts", "canonical full server lifecycle"],
+  ["packages/nodes-core/src/index.ts", "canonical lean actor lifecycle"],
   [
     "packages/core-nodes/src/nodes/run-inner-graph.ts",
     "nested run with inherited context"
@@ -16,6 +17,11 @@ const ALLOWED = new Map([
     "packages/workflow-runner/e2e/src/browser-entry.ts",
     "browser kernel harness"
   ]
+]);
+const RUNNER_MODULES = new Set([
+  "@nodetool-ai/kernel",
+  "@nodetool-ai/execution-core",
+  "@nodetool-ai/execution-core/runner"
 ]);
 const SKIP = new Set([
   "node_modules",
@@ -41,7 +47,7 @@ export function runnerConstructions(source, filename) {
   for (const statement of file.statements) {
     if (
       !ts.isImportDeclaration(statement) ||
-      statement.moduleSpecifier.text !== "@nodetool-ai/kernel"
+      !RUNNER_MODULES.has(statement.moduleSpecifier.text)
     ) {
       continue;
     }
@@ -76,11 +82,37 @@ export function runnerConstructions(source, filename) {
   return count;
 }
 
+/** Only enumerated lifecycle owners may construct one runner. */
+export function unauthorizedRunnerConstruction(source, filename) {
+  return constructionViolation(runnerConstructions(source, filename), filename);
+}
+
+function constructionViolation(count, filename) {
+  if (count === 0) {
+    return null;
+  }
+  const path = filename.replaceAll("\\", "/");
+  if (!ALLOWED.has(path)) {
+    return path;
+  }
+  return count === 1
+    ? null
+    : `${path} (${count} constructions, expected one lifecycle owner)`;
+}
+
+/** Ignore the Electron bundle output without excluding similarly named sources. */
+export function isGeneratedExecutionDirectory(path) {
+  return path.replaceAll("\\", "/") === "electron/backend-bundle";
+}
+
 async function* sourceFiles(dir) {
   for (const entry of await readdir(dir, { withFileTypes: true })) {
     const path = join(dir, entry.name);
     if (entry.isDirectory()) {
-      if (!SKIP.has(entry.name)) {
+      if (
+        !SKIP.has(entry.name) &&
+        !isGeneratedExecutionDirectory(relative(repoRoot, path))
+      ) {
         yield* sourceFiles(path);
       }
     } else if (
@@ -100,12 +132,15 @@ async function main() {
     for await (const file of sourceFiles(join(repoRoot, dir))) {
       inspected++;
       const path = relative(repoRoot, file).replaceAll("\\", "/");
-      if (!runnerConstructions(await readFile(file, "utf8"), file)) {
+      const source = await readFile(file, "utf8");
+      const count = runnerConstructions(source, file);
+      if (!count) {
         continue;
       }
       seen.add(path);
-      if (!ALLOWED.has(path)) {
-        violations.push(path);
+      const violation = constructionViolation(count, path);
+      if (violation) {
+        violations.push(violation);
       }
     }
   }
@@ -119,7 +154,7 @@ async function main() {
   }
   if (violations.length) {
     console.error(
-      `Unauthorized kernel runner construction:\n${violations.join("\n")}\nUse ExecutionSession for top-level server runs. See docs/execution-lifecycle.md.`
+      `Unauthorized kernel runner construction:\n${violations.join("\n")}\nUse the canonical full or lean lifecycle for top-level server runs. See docs/execution-lifecycle.md.`
     );
     process.exitCode = 1;
   } else {
