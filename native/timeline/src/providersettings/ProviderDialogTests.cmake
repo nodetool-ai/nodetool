@@ -4,10 +4,11 @@ function(nt_providerdialog_tests)
     target_include_directories(tst_providerdialog PRIVATE src/providersettings)
     target_link_libraries(tst_providerdialog PRIVATE timeline_server
         Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test)
+    set(provider_module_dir "${CMAKE_CURRENT_BINARY_DIR}/tst_providerdialog_qml/NodeTool/Timeline")
     # Mount the production dialog and controller without compiling the entire editor twice.
     qt_add_qml_module(tst_providerdialog URI NodeTool.Timeline
         NO_GENERATE_QMLDIR
-        OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_providerdialog_qml/NodeTool/Timeline
+        OUTPUT_DIRECTORY "${provider_module_dir}"
         QML_FILES qml/Theme.qml qml/providersettings/ProviderSettingsDialog.qml
         RESOURCES fonts/inter-latin-400-normal.woff2 fonts/inter-latin-500-normal.woff2
             fonts/inter-latin-600-normal.woff2 fonts/jetbrains-mono-latin-400-normal.woff2
@@ -15,7 +16,7 @@ function(nt_providerdialog_tests)
         SOURCES src/providersettings/ProviderSettings.h src/providersettings/ProviderSettings.cpp)
     # Other editor tests share this URI. Qt's generated qmake resource file
     # otherwise embeds whichever target wrote its qmldir last at configure time.
-    set(provider_module_dir "${CMAKE_CURRENT_BINARY_DIR}/provider-dialog-module")
+    # qmlcachegen also reads qmldir from the module's OUTPUT_DIRECTORY.
     file(MAKE_DIRECTORY "${provider_module_dir}")
     file(WRITE "${provider_module_dir}/qmldir"
         "module NodeTool.Timeline\nprefer :/qt/qml/NodeTool/Timeline/\nsingleton Theme 254.0 qml/Theme.qml\nProviderSettingsDialog 254.0 qml/providersettings/ProviderSettingsDialog.qml\n")
