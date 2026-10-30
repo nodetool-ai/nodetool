@@ -42,6 +42,7 @@ public:
     Q_INVOKABLE bool createLinkedScript();
     Q_INVOKABLE bool patchScriptLine(const QString& lineId, const QString& text);
     Q_INVOKABLE void setScriptLineDraft(const QString& scriptId, const QString& lineId, const QString& text);
+    Q_INVOKABLE bool discardScriptDrafts(const QString& scriptId);
     Q_INVOKABLE bool saveScriptLineDraft(const QString& scriptId, const QString& lineId);
     Q_INVOKABLE bool removeEmptyScriptLineForScript(const QString& scriptId, const QString& lineId, const QString& text);
     Q_INVOKABLE bool removeEmptyScriptLine(const QString& lineId, const QString& text);

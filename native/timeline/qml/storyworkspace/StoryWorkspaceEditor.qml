@@ -93,6 +93,7 @@ ScrollView {
             width: parent.width - parent.padding * 2
             spacing: Theme.spacingSm
             visible: !!resource.id
+            Button { text: "Discard all line drafts"; visible: document.sections !== undefined && controller.scriptDirty; enabled: !controller.busy && !workspace.dirty; onClicked: { lineDiscardDialog.scriptId = resource.id; lineDiscardDialog.open() } }
             Button { text: "Save changes"; objectName: "workspaceSave"; enabled: workspace.dirty && !controller.busy; onClicked: workspace.save() }
             Button { text: "Discard draft"; enabled: workspace.dirty && !controller.busy; onClicked: discardDialog.open() }
             Button { text: "Reopen"; enabled: !controller.busy; onClicked: document.shots !== undefined ? panel.openResource(resource.id, "storyboards") : document.sections !== undefined ? panel.openResource(resource.id, "scripts") : controller.openEntity(resource.id) }
@@ -130,6 +131,7 @@ ScrollView {
                     wrapMode: TextEdit.Wrap
                     onTextEdited: controller.setScriptLineDraft(line.modelData.scriptId, line.modelData.id, text)
                 }
+                Text { visible: !!line.modelData.draftOrphan; text: "This line was removed remotely. Copy its text before discarding the draft."; color: Theme.warning; width: parent.width; wrapMode: Text.Wrap }
                 Button { visible: line.lineDirty; text: "Save line"; enabled: !controller.busy && !workspace.dirty && !line.modelData.draftOrphan; onClicked: controller.saveScriptLineDraft(line.modelData.scriptId, line.modelData.id) }
             }
         }
@@ -217,6 +219,14 @@ ScrollView {
                 }
             }
         }
+    }
+    Dialog {
+        id: lineDiscardDialog
+        property string scriptId: ""
+        title: "Discard all unsaved script lines?"
+        modal: true
+        standardButtons: Dialog.Discard | Dialog.Cancel
+        onDiscarded: controller.discardScriptDrafts(scriptId)
     }
     Dialog {
         id: discardDialog
