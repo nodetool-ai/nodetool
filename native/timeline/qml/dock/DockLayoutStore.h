@@ -27,6 +27,7 @@ signals:
     void changed();
 private:
     QVariantMap call(const QString& name, const QVariantList& args);
+    QVariantMap withScriptPanelSelected(const QVariantMap& layout);
     void persist();
     QJSEngine m_engine;
     QVariantMap m_layout;

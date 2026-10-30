@@ -3,6 +3,7 @@
 #include "edit/ClipGestureController.h"
 #include "model/TimelineJson.h"
 #include "playback/PlaybackClock.h"
+#include "runtime/ChatSession.h"
 #include "edit/sourceEdit/SourceViewerState.h"
 #include <QMouseEvent>
 #include <QQuickItem>
@@ -10,6 +11,7 @@
 #include <QQuickRenderTarget>
 #include <QQuickWindow>
 #include <QQmlComponent>
+#include <QQmlContext>
 #include <QQmlEngine>
 #include <QTemporaryDir>
 #include <QtTest>
@@ -44,6 +46,12 @@ private slots:
         PlaybackClock clock;
         const auto document = model.documentJson();
         QQmlEngine engine;
+        nt::chat::ChatSession chat;
+        const QString threadId = QStringLiteral("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
+        chat.upsertThread({{"id", threadId}, {"title", "Draft"}});
+        chat.selectThread(threadId);
+        chat.setDraft(QStringLiteral("Keep this draft"));
+        engine.rootContext()->setContextProperty("nativeChatSession", &chat);
         QQuickRenderControl control;
         QQuickWindow window(&control);
         window.resize(1500, 900);
@@ -85,8 +93,24 @@ private slots:
         }
         auto* tracks = named(root, "tracksRegion");
         auto* inspector = named(root, "timelineInspector");
+        auto* scriptPanel = named(root, "timelineScriptPanel");
+        auto* storyboardPanel = named(root, "timelineStoryboardPanel");
         QVERIFY(tracks);
         QVERIFY(inspector);
+        QVERIFY(scriptPanel);
+        QVERIFY(storyboardPanel);
+        QVERIFY(scriptPanel != storyboardPanel);
+        QVERIFY(named(root, "timelineAssistantPanel"));
+        auto* chatLoader = named(root, "nativeChatPanel");
+        QVERIFY(chatLoader);
+        QCOMPARE(chatLoader->property("status").toInt(), 1);
+        auto* chatPanel = named(root, "chatPanel");
+        QVERIFY(chatPanel);
+        auto* scriptDrafts = scriptPanel->findChild<QObject*>("scriptDrafts");
+        auto* storyboardDrafts = storyboardPanel->findChild<QObject*>("storyboardDrafts");
+        QVERIFY(scriptDrafts);
+        QVERIFY(storyboardDrafts);
+        QVERIFY(scriptDrafts != storyboardDrafts);
         QVERIFY(named(root, "sourceViewer"));
         auto* gestures = qobject_cast<ClipGestureController*>(named(root, "clipGestures"));
         QVERIFY(gestures);
@@ -117,7 +141,9 @@ private slots:
             const bool inspectorVisible = i == 0 || i == 1;
             QCOMPARE(visible.contains("inspector"), inspectorVisible);
             QCOMPARE(visible.contains("assistant"), i == 2);
-            for (const auto& unavailable : {"transcript", "storyboard", "shot", "instruments", "history", "code"}) {
+            QCOMPARE(visible.contains("storyboard"), i == 0);
+            QCOMPARE(visible.contains("script"), i == 1);
+            for (const auto& unavailable : {"transcript", "shot", "instruments", "history", "code"}) {
                 QVERIFY(!visible.contains(QString::fromLatin1(unavailable)));
             }
             QCOMPARE(dock->property("bottomExtent").toInt(), bottomSizes[i]);
@@ -130,6 +156,41 @@ private slots:
             QCOMPARE(named(root, "tracksRegion"), tracks);
             QCOMPARE(named(root, "timelineInspector"), inspector);
         }
+        QVERIFY(QMetaObject::invokeMethod(scriptDrafts, "setJsonDraft",
+            Q_ARG(QString, QString()), Q_ARG(QString, QStringLiteral("test")),
+            Q_ARG(QString, QStringLiteral("{unfinished"))));
+        QVERIFY(scriptDrafts->property("dirty").toBool());
+        QCOMPARE(chat.draft(), QStringLiteral("Keep this draft"));
+        QCOMPARE(named(root, "chatPanel"), chatPanel);
+        QVERIFY(!storyboardDrafts->property("dirty").toBool());
+        QVERIFY(store->dispatch({{"type", "reveal"}, {"panelId", "script"}}));
+        render();
+        QVERIFY(scriptPanel->isVisible());
+        QVERIFY(store->dispatch({{"type", "reveal"}, {"panelId", "storyboard"}}));
+        render();
+        QVERIFY(storyboardPanel->isVisible());
+        QVERIFY(scriptDrafts->property("dirty").toBool());
+        auto* storyboardEditor = named(storyboardPanel, "storyWorkspaceEditor");
+        QVERIFY(storyboardEditor);
+        QVERIFY(QMetaObject::invokeMethod(storyboardEditor, "openResource",
+            Q_ARG(QVariant, QVariant(QStringLiteral("linked-script"))),
+            Q_ARG(QVariant, QVariant(QStringLiteral("scripts")))));
+        render();
+        QVERIFY(scriptPanel->isVisible());
+        QVERIFY(scriptDrafts->property("dirty").toBool());
+        QVERIFY(store->dispatch({{"type", "hide"}, {"panelId", "script"}}));
+        QVERIFY(store->dispatch({{"type", "reveal"}, {"panelId", "script"}}));
+        render();
+        QCOMPARE(named(root, "timelineScriptPanel"), scriptPanel);
+        QVERIFY(scriptDrafts->property("dirty").toBool());
+        auto* scriptEditor = named(scriptPanel, "storyWorkspaceEditor");
+        QVERIFY(scriptEditor);
+        QVERIFY(QMetaObject::invokeMethod(scriptEditor, "openResource",
+            Q_ARG(QVariant, QVariant(QStringLiteral("linked-board"))),
+            Q_ARG(QVariant, QVariant(QStringLiteral("storyboards")))));
+        render();
+        QVERIFY(storyboardPanel->isVisible());
+        QVERIFY(scriptDrafts->property("dirty").toBool());
         QVERIFY(store->dispatch({{"type", "move"}, {"panelId", "tracks"}, {"region", "viewport"},
             {"groupId", "viewport-program"}, {"index", 1}}));
         render();

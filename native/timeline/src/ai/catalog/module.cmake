@@ -9,7 +9,7 @@ function(nt_ai_catalog_tests)
         src/ai/catalog/ModelCatalogController.h src/ai/catalog/ModelCatalogController.cpp
         src/ai/catalog/EntityReferenceController.h src/ai/catalog/EntityReferenceController.cpp)
     target_include_directories(tst_ai_catalogserver PRIVATE tests)
-    target_link_libraries(tst_ai_catalogserver PRIVATE timeline_server Qt6::Qml Qt6::Test)
+    target_link_libraries(tst_ai_catalogserver PRIVATE timeline_server nodetool_model_picker Qt6::Qml Qt6::Test)
     add_test(NAME tst_ai_catalogserver COMMAND tst_ai_catalogserver)
 endfunction()
 nt_tests(nt_ai_catalog_tests)

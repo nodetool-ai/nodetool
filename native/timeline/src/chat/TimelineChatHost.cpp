@@ -31,8 +31,8 @@ void TimelineChatHost::setSelection(const QStringList& ids) {
     emit contextChanged();
 }
 QVariantMap TimelineChatHost::context() const {
-    const auto id = m_model.timeline().raw.value("id").toString(
-        QStringLiteral("native-local:%1").arg(m_model.documentGeneration()));
+    auto id = m_model.timeline().raw.value("id").toString();
+    if (id.isEmpty()) id = QStringLiteral("native-local:%1").arg(m_model.documentGeneration());
     return {{"timeline_id", id}, {"name", m_model.name()}, {"selected_clip_ids", m_selection}};
 }
 QVariantList TimelineChatHost::tools() {

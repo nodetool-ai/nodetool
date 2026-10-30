@@ -6,6 +6,9 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 include(CTest)
 find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2 Network WebSockets Test QuickTest)
 qt_standard_project_setup(REQUIRES 6.12)
+if(NOT TARGET nodetool_model_picker)
+    add_subdirectory(../model-picker ${CMAKE_CURRENT_BINARY_DIR}/model-picker)
+endif()
 
 file(GLOB chat_qml_files CONFIGURE_DEPENDS qml/*.qml)
 foreach(chat_qml IN LISTS chat_qml_files)
@@ -34,14 +37,14 @@ qt_add_resources(nodetool_chat chat_fonts
         ../timeline/fonts/inter-latin-500-normal.woff2
         ../timeline/fonts/inter-latin-600-normal.woff2
         ../timeline/fonts/jetbrains-mono-latin-400-normal.woff2)
-target_link_libraries(nodetool_chat PUBLIC Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::WebSockets)
+target_link_libraries(nodetool_chat PUBLIC nodetool_model_picker Qt6::Core Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Network Qt6::WebSockets)
 if(MSVC)
     target_compile_options(nodetool_chat PRIVATE /W4)
 else()
     target_compile_options(nodetool_chat PRIVATE -Wall -Wextra)
 endif()
 qt_add_executable(nodetool-chat src/main.cpp)
-target_link_libraries(nodetool-chat PRIVATE nodetool_chat nodetool_chatplugin)
+target_link_libraries(nodetool-chat PRIVATE nodetool_chat nodetool_chatplugin nodetool_model_pickerplugin)
 set_target_properties(nodetool-chat PROPERTIES MACOSX_BUNDLE TRUE WIN32_EXECUTABLE TRUE
     MACOSX_BUNDLE_GUI_IDENTIFIER ai.nodetool.chat)
 install(TARGETS nodetool-chat BUNDLE DESTINATION . RUNTIME DESTINATION bin)

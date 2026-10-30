@@ -2,7 +2,9 @@
 #include "model/MessageModel.h"
 #include "model/ThreadModel.h"
 #include "server/ChatClient.h"
+#include "ModelPickerCatalog.h"
 #include <QHash>
+#include <QSet>
 #include <map>
 #include <memory>
 namespace nt::chat {
@@ -20,6 +22,7 @@ class ChatSession : public QObject {
   Q_PROPERTY(
       QString provider READ provider WRITE setProvider NOTIFY stateChanged)
   Q_PROPERTY(QString model READ model WRITE setModel NOTIFY stateChanged)
+  Q_PROPERTY(nt::modelpicker::Catalog *modelCatalog READ modelCatalog CONSTANT)
   Q_PROPERTY(QVariantList attachments READ attachments NOTIFY stateChanged)
 public:
   explicit ChatSession(QObject *parent = nullptr);
@@ -40,6 +43,7 @@ public:
     emit stateChanged();
   }
   QString model() const { return m_model; }
+  nt::modelpicker::Catalog *modelCatalog() { return &m_catalog; }
   void setModel(const QString &v) {
     m_model = v;
     emit stateChanged();
@@ -52,6 +56,8 @@ public:
   Q_INVOKABLE void refresh();
   Q_INVOKABLE void loadMore();
   Q_INVOKABLE void connectToServer(const QUrl &, const QString &token = {});
+  Q_INVOKABLE void useServerDefaultModel();
+  Q_INVOKABLE void openProviderSettings();
   Q_INVOKABLE void disconnectFromServer();
   Q_INVOKABLE void suspendConnection();
   Q_INVOKABLE void resumeConnection();
@@ -65,6 +71,8 @@ public:
   Q_INVOKABLE void openExternal(const QUrl &);
   Q_INVOKABLE void copyText(const QString &);
   Q_INVOKABLE void setHostTools(const QVariantList &tools);
+  bool sendHostRequest(const QString &command, const QJsonObject &data,
+                       const QString &requestId);
   Q_PROPERTY(QVariantMap hostContext MEMBER m_hostContext NOTIFY stateChanged)
   void applyEvent(const QJsonObject &);
   void importHistory(const QString &, const QJsonArray &, bool prepend = false);
@@ -73,6 +81,7 @@ public:
 signals:
   void stateChanged();
   void hostToolRequested(QString id, QString name, QVariantMap args);
+  void hostResponseReceived(QJsonObject response);
 
 private:
   struct State {
@@ -94,9 +103,11 @@ private:
   ThreadModel m_threads;
   MessageModel m_empty;
   ChatClient m_client;
+  nt::modelpicker::Catalog m_catalog;
   std::map<QString, State> m_states;
   QHash<QString, QJsonObject> m_actions, m_hostCalls;
   QHash<QString, QJsonObject> m_hostResults;
+  QHash<QString, quint64> m_hostRequests;
   QList<QString> m_historyOrder;
   QVariantList m_hostTools;
   QVariantMap m_hostContext;

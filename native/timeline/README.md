@@ -11,29 +11,27 @@ planes converted in the shader). A clip without media shows a synthetic test
 pattern. With `--decode hw` or `auto`, video decodes with VideoToolbox and
 the frames go to the GPU with no copy (M1c).
 
-## Native chat (opt-in)
+## Assistant and story documents
 
-Build the [native chat component](../chat/README.md) into the timeline with
-`-DNT_ENABLE_CHAT=ON`. Launch with `--chat` to open its panel, or use the Chat
-button beside the document controls. Configure the server and bearer token in
-the panel. Provider credentials remain on the server.
-Chat shares the existing right dock with Inspector and can be moved using the
-dock controls.
-`--chat --screenshot PATH` captures the complete editor with its chat panel.
-Run this with the offscreen platform or under Xvfb.
-With `--chat`, `NODETOOL_CHAT_SERVER` connects the panel at startup and
-`NODETOOL_TOKEN` supplies its bearer token without a command-line credential.
+The right dock's Assistant uses the [native chat component](../chat/README.md).
+The Chat button reveals that panel, and `--chat` reveals it at startup without
+changing a saved layout when the flag is absent. A server timeline supplies
+the same server address and in-memory bearer token used to open that document.
+The connection form remains available for a local timeline; development
+fixtures may also set `NODETOOL_CHAT_SERVER` and `NODETOOL_TOKEN`. Provider
+credentials remain on the server. Closing or moving the panel keeps its chat
+session and draft alive. `--chat --screenshot PATH` captures the editor with
+the Assistant open; run it offscreen or under Xvfb.
 
-The host advertises `ui_timeline_get_state`, `ui_timeline_seek`,
-`ui_timeline_add_marker` (time and label), and `ui_timeline_delete_marker`.
-These tools address the open document only. Marker changes use the editor's
-existing commands, so Undo, Redo and local or server autosave apply. Other
-editor capabilities return an unsupported error. Closing chat disconnects its
-transport and leaves playback running.
+Scripts and storyboards are separate left dock panels, each with its own
+document controller and unsaved draft. A linked document opens in the other
+panel while preserving the current one. The Assistant advertises the existing
+undoable timeline edit and reviewed generation tools along with seek and
+marker actions. The chat connection owns their tool results and server history.
 
 From `native/timeline/`, `ctest --test-dir build -R tst_chathost --output-on-failure` checks that a host
 tool edit is undoable, survives save/reload and preserves unknown document
-fields. This host test also builds when the chat panel is disabled.
+fields.
 `node scripts/chat-integration.mjs --bin build/nodetool-timeline` starts an
 isolated HTTP/WebSocket mock and drives a real native host edit under Xvfb.
 It checks the tool result, replay protection, local persistence and a full

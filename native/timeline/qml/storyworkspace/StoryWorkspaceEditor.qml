@@ -11,6 +11,7 @@ Rectangle {
     required property var controller
     required property var workspace
     property string kind: "scripts"
+    property string fixedKind: ""
     property var mediaBrowser: null
     property string selectedShotId: ""
     property string returnId: ""
@@ -51,6 +52,7 @@ Rectangle {
         return result
     }
     readonly property string documentKind: document.shots !== undefined ? "storyboards" : "scripts"
+    signal linkedResourceRequested(string kind, string id)
     clip: true
 
     function browse(nextKind) {
@@ -60,6 +62,10 @@ Rectangle {
         controller.listContextResources(kind, linked.checked)
     }
     function openResource(id, nextKind) {
+        if (fixedKind !== "" && nextKind !== fixedKind && nextKind !== "entities") {
+            linkedResourceRequested(nextKind, id)
+            return
+        }
         kind = nextKind
         selectedShotId = ""
         if (kind === "scripts") controller.openScript(id)
@@ -218,6 +224,7 @@ Rectangle {
             Basic.ComboBox {
                 id: documentSelector
                 objectName: "workspaceDocumentKind"
+                visible: panel.fixedKind === ""
                 Layout.fillWidth: true
                 implicitHeight: Theme.toolbarHeight
                 model: ["Scripts", "Storyboards"]
@@ -248,6 +255,15 @@ Rectangle {
                     verticalAlignment: Text.AlignVCenter
                     elide: Text.ElideRight
                 }
+            }
+            Text {
+                visible: panel.fixedKind !== ""
+                Layout.fillWidth: true
+                text: panel.fixedKind === "storyboards" ? qsTr("Storyboards") : qsTr("Scripts")
+                color: Theme.textPrimary
+                font.family: Theme.sansFamily
+                font.pixelSize: Theme.fontSizeSmall
+                font.weight: Font.Medium
             }
             WorkspaceButton { text: "Refresh"; enabled: !controller.busy; onClicked: panel.browse(panel.kind === "entities" ? panel.returnKind : panel.kind) }
         }
@@ -313,7 +329,7 @@ Rectangle {
                     visible: !resource.id
                     WorkspaceLabel {
                         width: parent.width
-                        text: documentSelector.currentText
+                        text: panel.fixedKind === "storyboards" ? qsTr("Storyboards") : qsTr("Scripts")
                         color: Theme.textPrimary
                         font.pixelSize: Theme.fontSizeNormal
                         font.weight: Font.DemiBold
@@ -322,7 +338,7 @@ Rectangle {
                         width: parent.width
                         objectName: "workspaceListMessage"
                         visible: !controller.busy && panel.resourceList.length === 0
-                        text: documentSearch.text.trim() ? "No matching " + panel.kind + ". Try a different search." : panel.showingList ? "No documents in this context. Try another document type or turn off the linked filter." : "Browse your project's scripts and storyboards. Open a server timeline to load your documents."
+                        text: documentSearch.text.trim() ? "No matching " + panel.kind + ". Try a different search." : panel.showingList ? "No " + panel.kind + " in this context." : "Open a server timeline to load " + panel.kind + "."
                     }
                     WorkspaceButton {
                         text: "New script"

@@ -144,12 +144,17 @@ private slots:
         session.connectToServer(server.url(), "synthetic-test-token");
         QTRY_COMPARE(session.connectionStatus(), QStringLiteral("connected"));
         QTRY_COMPARE(session.selectedThreadId(), QString::fromLatin1(ThreadId));
+        QTRY_VERIFY(!session.historyLoading());
         QTRY_VERIFY(server.requests.size() >= 2);
         for (const auto& request : server.requests) {
             QVERIFY(request.contains("Authorization: Bearer synthetic-test-token"));
         }
         session.setProvider("test-provider");
         session.setModel("test-model");
+        session.setProperty("hostContext", QVariantMap{
+            {"workflow_id", "timeline-document"},
+            {"ui_context", QVariantMap{{"source", "timeline_assistant"},
+                                        {"selection", QVariantMap{{"clip_ids", QStringList{"clip-one"}}}}}}});
         session.setDraft("Hello server");
         session.send();
         QTRY_COMPARE(server.count("command", "chat_message"), 1);
@@ -158,6 +163,21 @@ private slots:
         const auto sent = *std::find_if(server.frames.cbegin(), server.frames.cend(), [](const auto& frame) { return frame["command"] == "chat_message"; });
         QCOMPARE(sent["data"].toObject()["provider"].toString(), QStringLiteral("test-provider"));
         QCOMPARE(sent["data"].toObject()["model"].toString(), QStringLiteral("test-model"));
+        QCOMPARE(sent["data"].toObject()["workflow_id"].toString(), QStringLiteral("timeline-document"));
+        QCOMPARE(sent["data"].toObject()["ui_context"].toObject()["selection"].toObject()["clip_ids"].toArray().first().toString(), QStringLiteral("clip-one"));
+        QSignalSpy hostResponses(&session, &ChatSession::hostResponseReceived);
+        QVERIFY(session.sendHostRequest("generate_text", {{"prompt", "Plan"}}, "host-request"));
+        QTRY_COMPARE(server.count("command", "generate_text"), 1);
+        server.emitEvent({{"type", "rpc_response"}, {"request_id", "host-request"},
+                          {"result", QJsonObject{{"text", "Plan ready"}}}});
+        QTRY_COMPARE(hostResponses.size(), 1);
+        session.disconnectFromServer();
+        session.applyEvent({{"type", "rpc_response"}, {"request_id", "host-request"},
+                            {"result", QJsonObject{{"text", "stale"}}}});
+        QCOMPARE(hostResponses.size(), 1);
+        session.connectToServer(server.url(), "synthetic-test-token");
+        QTRY_COMPARE(session.connectionStatus(), QStringLiteral("connected"));
+        QTRY_COMPARE(session.selectedThreadId(), QString::fromLatin1(ThreadId));
         server.emitEvent({{"type", "chunk"}, {"thread_id", ThreadId}, {"content", "reply"}, {"chat_seq", 1}});
         QTRY_COMPARE(session.turnStatus(), QStringLiteral("streaming"));
         session.stop();
@@ -242,6 +262,7 @@ private slots:
         session.setHostTools({QVariantMap{{"name", "ui_native_test"}}});
         session.connectToServer(server.url(), {});
         QTRY_COMPARE(session.selectedThreadId(), QString::fromLatin1(ThreadId));
+        QTRY_VERIFY(!session.historyLoading());
         QSignalSpy actions(&session, &ChatSession::hostToolRequested);
         const QJsonObject call{{"type", "tool_call"}, {"thread_id", ThreadId},
             {"tool_call_id", "once-only-edit"}, {"name", "ui_native_test"}, {"args", QJsonObject{}}};
@@ -290,15 +311,33 @@ private slots:
         ChatSession session;
         session.connectToServer(server.url(), {});
         QTRY_COMPARE(session.selectedThreadId(), QString::fromLatin1(ThreadId));
+        QTRY_VERIFY(!session.historyLoading());
         session.setDraft("run once");
         session.send();
         QTRY_COMPARE(server.count("command", "chat_message"), 1);
+        QSignalSpy hostResponses(&session, &ChatSession::hostResponseReceived);
+        QVERIFY(session.sendHostRequest("generate_text", {{"prompt", "Plan"}}, "reconnect-rpc"));
+        QTRY_COMPARE(server.count("command", "generate_text"), 1);
         QVERIFY(server.peer);
         server.peer->close();
         QTRY_COMPARE(session.connectionStatus(), QStringLiteral("disconnected"));
+        QTRY_COMPARE(hostResponses.size(), 1);
+        QVERIFY(!hostResponses.at(0).at(0).toJsonObject()["error"].toObject().isEmpty());
         QCOMPARE(session.turnStatus(), QStringLiteral("interrupted"));
         QTest::qWait(50);
         QCOMPARE(server.count("command", "chat_message"), 1);
+        session.resumeConnection();
+        QTRY_COMPARE(session.connectionStatus(), QStringLiteral("connected"));
+        session.applyEvent({{"type", "rpc_response"}, {"request_id", "reconnect-rpc"},
+                            {"result", QJsonObject{{"text", "stale"}}}});
+        QCOMPARE(hostResponses.size(), 1);
+        QVERIFY(session.sendHostRequest("generate_text", {{"prompt", "Retry"}}, "reconnect-rpc"));
+        QTRY_COMPARE(server.count("command", "generate_text"), 2);
+        server.emitEvent({{"type", "rpc_response"}, {"request_id", "reconnect-rpc"},
+                          {"result", QJsonObject{{"text", "fresh"}}}});
+        QTRY_COMPARE(hostResponses.size(), 2);
+        QCOMPARE(hostResponses.at(1).at(0).toJsonObject()["result"].toObject()["text"].toString(),
+                 QStringLiteral("fresh"));
     }
 };
 QTEST_MAIN(TransportTests)

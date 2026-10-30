@@ -1,15 +1,16 @@
-// nt-panel: slot=left id=script order=35 title="Scripts & storyboards"
+// nt-panel: slot=left id=script order=35 title="Scripts"
 import QtQuick
 import NodeTool.Timeline
 import "../assets/AssetContext.js" as Context
 
 Rectangle {
     id: panel
-    objectName: "storyWorkspacePanel"
+    objectName: "timelineScriptPanel"
     color: Theme.backgroundDefault
     property var timeline: null
+    function openResource(id) { editor.openResource(id, "scripts") }
     AssistController { id: documents; timeline: panel.timeline; documentOnly: true }
-    StoryWorkspace { id: drafts; controller: documents }
+    StoryWorkspace { id: drafts; objectName: "scriptDrafts"; controller: documents }
     AssetBrowser { id: media; timeline: panel.timeline }
     StoryWorkspaceEditor {
         id: editor
@@ -17,6 +18,11 @@ Rectangle {
         controller: documents
         workspace: drafts
         mediaBrowser: media
+        fixedKind: "scripts"
+        onLinkedResourceRequested: (kind, id) => {
+            const host = Context.editorFor(panel)
+            if (host) host.openStoryResource(kind, id)
+        }
     }
     Component.onCompleted: Qt.callLater(() => {
         const host = Context.editorFor(panel)
