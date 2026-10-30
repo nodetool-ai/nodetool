@@ -63,7 +63,7 @@ void ChatClient::connectToServer(const QUrl &base, const QString &token) {
   auto url = base;
   url.setScheme(base.scheme() == "https" ? "wss" : "ws");
   url.setPath("/ws");
-  url.setQuery({});
+  url.setQuery(QString{});
   url.setFragment({});
   QNetworkRequest request(url);
   request.setRawHeader("X-Nodetool-Client", "native-chat");
@@ -248,7 +248,7 @@ void ChatClient::call(const QString &procedure, QJsonObject input,
   const auto epoch = m_epoch;
   auto url = m_base;
   url.setPath("/trpc/" + procedure);
-  url.setQuery({});
+  url.setQuery(QString{});
   url.setFragment({});
   const auto body = QJsonDocument(input).toJson(QJsonDocument::Compact);
   if (!mutation) {
