@@ -32,14 +32,18 @@ private slots:
         TimelineModel model; model.setTimeline(timeline());
         AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
         StoryWorkspace workspace; workspace.setController(&controller);
-        auto stored = board(); int writes = 0;
-        controller.setCall([&](bool write, const QString&, const QJsonObject& input) {
+        auto stored = board(); int writes = 0; QString called;
+        auto document = stored.value("document").toObject(); document.insert("entityIds", QJsonArray{"character"}); stored.insert("document", document);
+        controller.setCall([&](bool write, const QString& procedure, const QJsonObject& input) {
+            called = procedure;
+            if (procedure == "scripts.list") { nt::server::QueryResult failure; failure.error.message = "Offline"; return failure; }
+            if (procedure == "assets.get") { return nt::server::QueryResult{QJsonObject{{"id", "character"}, {"metadata", QJsonObject{{"nodetool_entity", QJsonObject{{"kind", "character"}, {"name", "Alice"}}}}}}, {}}; }
             if (write) { ++writes; stored.insert("document", input.value("document")); stored.insert("updatedAt", "mounted-rev"); }
             return nt::server::QueryResult{stored, {}};
         });
         QVERIFY(controller.openStoryboard("board")); QTRY_VERIFY(!controller.busy());
         QQmlEngine engine;
-        QFile source(QStringLiteral(NT_STORY_SOURCE "/qml/storyworkspace/StoryWorkspaceEditor.qml"));
+        QFile source(qEnvironmentVariable("NODETOOL_STORY_EDITOR_TEST", QStringLiteral(NT_STORY_SOURCE "/qml/storyworkspace/StoryWorkspaceEditor.qml")));
         QVERIFY(source.open(QIODevice::ReadOnly));
         // Isolate the theme import so this mounted panel does not load the full app module.
         auto qml = source.readAll(); qml.replace("import NodeTool.Timeline", "import NodeTool.StoryWorkspaceTest");
@@ -65,6 +69,16 @@ private slots:
         auto* save = findItem(item, "workspaceSave", findItem); QVERIFY(save); QVERIFY(save->property("enabled").toBool());
         QVERIFY(QMetaObject::invokeMethod(save, "clicked")); QTRY_VERIFY(!controller.busy());
         QCOMPARE(writes, 1); QVERIFY(!workspace.dirty()); QCOMPARE(model.undoStack()->count(), 0);
+        auto* scripts = findItem(item, "workspaceScripts", findItem); QVERIFY(scripts);
+        QVERIFY(QMetaObject::invokeMethod(scripts, "clicked")); QTRY_VERIFY(!controller.busy());
+        QVERIFY(!controller.error().isEmpty());
+        auto* inspect = findItem(item, "workspaceInspectEntity", findItem); QVERIFY(inspect);
+        QVERIFY(QMetaObject::invokeMethod(inspect, "clicked")); QTRY_VERIFY(!controller.busy());
+        QCOMPARE(called, QString("assets.get"));
+        auto* back = findItem(item, "workspaceBackToDocument", findItem); QVERIFY(back);
+        QVERIFY(QMetaObject::invokeMethod(back, "clicked")); QTRY_VERIFY(!controller.busy());
+        QCOMPARE(called, QString("storyboards.get")); // A failed script browse must not change the return document's kind.
+        QCOMPARE(action(workspace), QString("Mounted edit"));
         QTest::qWait(50);
         const auto image = window.grabWindow(); QVERIFY(!image.isNull());
         QVERIFY(image.save(QDir::tempPath() + "/o5-workspace-narrow.png"));

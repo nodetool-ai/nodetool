@@ -97,7 +97,7 @@ ScrollView {
             Button { text: "Discard draft"; enabled: workspace.dirty && !controller.busy; onClicked: discardDialog.open() }
             Button { text: "Reopen"; enabled: !controller.busy; onClicked: document.shots !== undefined ? panel.openResource(resource.id, "storyboards") : document.sections !== undefined ? panel.openResource(resource.id, "scripts") : controller.openEntity(resource.id) }
             Button { text: "Review / apply in Production"; visible: panel.kind !== "entities"; enabled: !workspace.dirty && !controller.scriptDirty && !controller.busy; onClicked: panel.productionRequested() }
-            Button { text: "Back to document"; visible: panel.kind === "entities" && panel.returnId !== ""; enabled: !controller.busy; onClicked: panel.openResource(panel.returnId, panel.returnKind) }
+            Button { objectName: "workspaceBackToDocument"; text: "Back to document"; visible: panel.kind === "entities" && panel.returnId !== ""; enabled: !controller.busy; onClicked: panel.openResource(panel.returnId, panel.returnKind) }
         }
         Text { visible: workspace.dirty; text: "Unsaved document changes"; color: Theme.warning }
         Button {
@@ -193,9 +193,10 @@ ScrollView {
             delegate: Button {
                 required property string modelData
                 width: parent.width - parent.padding * 2
+                objectName: "workspaceInspectEntity"
                 text: "Inspect " + modelData
                 enabled: !controller.busy
-                onClicked: { panel.returnId = resource.id; panel.returnKind = panel.kind; panel.kind = "entities"; controller.openEntity(modelData) }
+                onClicked: { panel.returnId = resource.id; panel.returnKind = document.shots !== undefined ? "storyboards" : "scripts"; panel.kind = "entities"; controller.openEntity(modelData) }
             }
         }
         Column {
