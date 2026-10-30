@@ -5,6 +5,7 @@
 #include <QJsonDocument>
 #include <QRegularExpression>
 #include <QSignalSpy>
+#include <QScopeGuard>
 #include <QUrlQuery>
 #include <QtTest>
 
@@ -16,6 +17,21 @@ QByteArray answer(const QJsonValue& data) {
 class TestTimelineListClient : public QObject {
     Q_OBJECT
 private slots:
+    void defaultServer() {
+        const auto saved = qgetenv("NODETOOL_SERVER_URL");
+        const bool wasSet = qEnvironmentVariableIsSet("NODETOOL_SERVER_URL");
+        const auto restore = qScopeGuard([saved, wasSet] {
+            if (wasSet) {
+                qputenv("NODETOOL_SERVER_URL", saved);
+            } else {
+                qunsetenv("NODETOOL_SERVER_URL");
+            }
+        });
+        qunsetenv("NODETOOL_SERVER_URL");
+        QCOMPARE(nt::server::TimelineListController().serverUrl(), QUrl("http://localhost:7777"));
+        qputenv("NODETOOL_SERVER_URL", "http://127.0.0.1:17862");
+        QCOMPARE(nt::server::TimelineListController().serverUrl(), QUrl("http://127.0.0.1:17862"));
+    }
     void lifecycle() {
         TestHttpServer server;
         QVERIFY(server.base().port() > 0);

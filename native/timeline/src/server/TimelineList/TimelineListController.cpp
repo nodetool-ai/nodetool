@@ -7,7 +7,7 @@
 
 namespace nt::server {
 TimelineListController::TimelineListController(QObject* parent)
-    : TimelineListController(QUrl(qEnvironmentVariable("NODETOOL_SERVER_URL")),
+    : TimelineListController(QUrl(qEnvironmentVariable("NODETOOL_SERVER_URL", "http://localhost:7777")),
           qEnvironmentVariable("NODETOOL_API_TOKEN"), qEnvironmentVariable("NODETOOL_TIMELINE_EXPECT_INSTANCE"), parent) {}
 
 TimelineListController::TimelineListController(QUrl server, QString token, QString instance, QObject* parent)
