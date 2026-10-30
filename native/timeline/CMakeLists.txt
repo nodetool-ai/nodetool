@@ -240,6 +240,11 @@ function(nt_add_timeline_qml target)
     if(HOST_UNPARSED_ARGUMENTS)
         message(FATAL_ERROR "Unexpected QML host arguments: ${HOST_UNPARSED_ARGUMENTS}")
     endif()
+    # Some hosts explicitly listed a module source before the module was added.
+    # It must now come only from the archive, including registrar-only sources.
+    get_target_property(host_sources ${target} SOURCES)
+    list(REMOVE_ITEM host_sources ${NT_qml})
+    set_property(TARGET ${target} PROPERTY SOURCES "${host_sources}")
     target_link_libraries(${target} PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,timeline_qml>")
 endfunction()
 nt_add_timeline_qml(nodetool-timeline)
