@@ -37,6 +37,7 @@ import {
 } from "./InspectorPrimitives";
 import { FillFields, TextCommitField } from "./InspectorMotionFields";
 import {
+  commitNumber,
   formatNumberList,
   parseFiniteNumber,
   parseNumberList
@@ -425,18 +426,5 @@ export const ClipShapeSection: React.FC<ClipShapeSectionProps> = memo(
     );
   }
 );
-
-/** Commit a numeric field, ignoring blank, non-numeric or out-of-range input. */
-function commitNumber(
-  raw: string,
-  apply: (value: number) => void,
-  min?: number,
-  exclusiveMin = false
-): void {
-  const value = parseFiniteNumber(raw);
-  if (value === null) return;
-  if (min !== undefined && (exclusiveMin ? value <= min : value < min)) return;
-  apply(value);
-}
 
 ClipShapeSection.displayName = "ClipShapeSection";
