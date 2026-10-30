@@ -254,11 +254,13 @@ export function createFakeContext(
         if (!existing) {
           return null;
         }
-        const saved = {
-          ...existing,
-          ...(document === undefined ? {} : { document }),
-          ...(timelineId === undefined ? {} : { timelineId })
-        };
+        const saved = { ...existing };
+        if (document !== undefined) {
+          saved.document = document;
+        }
+        if (timelineId !== undefined) {
+          saved.timelineId = timelineId;
+        }
         boards.set(id, saved);
         return saved;
       },
