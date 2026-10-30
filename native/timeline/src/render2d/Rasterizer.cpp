@@ -15,6 +15,7 @@
 #include <hb.h>
 #include FT_FREETYPE_H
 #include FT_MULTIPLE_MASTERS_H
+#include FT_OUTLINE_H
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -101,6 +102,25 @@ QFont fontFor(const scene::TextStyle& style, double spacing = 0) {
     font.setLetterSpacing(QFont::AbsoluteSpacing, spacing);
     return font;
 }
+QString bundledFaceFile(const QString& family, const scene::TextStyle& style) {
+    const bool italic = style.fontStyle == "italic" || style.fontStyle == "oblique";
+    QString filename;
+    if (family == "Inter" && !italic && style.fontWeight >= 700) {
+        filename = "Inter-ExtraBold.ttf";
+    } else if (family == "Inter" && !italic && style.fontWeight == 600) {
+        filename = "Inter-SemiBold.ttf";
+    } else if (family == "Bebas Neue") {
+        filename = "BebasNeue-Regular.ttf";
+    } else if (family == "Inter" || family == "Lora" || family == "Playfair Display" || family == "JetBrains Mono" ||
+               family == "Space Grotesk") {
+        filename = family;
+        filename.remove(u' ');
+        filename += italic ? "-Italic-Variable.ttf" : "-Variable.ttf";
+    } else {
+        return {};
+    }
+    return filename;
+}
 struct ShapedText {
     QRawFont font;
     QList<quint32> glyphs;
@@ -165,7 +185,8 @@ ShapedText shapeText(const QString& text, const scene::TextStyle& style, double 
     // Lora and Space Grotesk. Use the same shaper as Canvas/Skia, on Qt's
     // selected bundled face, for both advances and glyph placement.
     thread_local std::unordered_map<std::string, Font> fonts;
-    const auto key = font.key().toStdString();
+    const auto filename = bundledFaceFile(raw.familyName(), style);
+    const auto key = (font.key() + u'/' + filename + u'/' + QString::number(style.fontWeight)).toStdString();
     auto found = fonts.find(key);
     if (found == fonts.end()) {
         if (fonts.size() >= 256) {
@@ -183,6 +204,17 @@ ShapedText shapeText(const QString& text, const scene::TextStyle& style, double 
                       },
                       tableFont.release(), [](void* data) { delete static_cast<QRawFont*>(data); }),
                   hb_face_destroy);
+        // A platform font matcher may choose the variable Inter face even
+        // when the corpus's static 800 face wins in Canvas. Shape the exact
+        // same file used for FreeType coverage and outlines.
+        if (!filename.isEmpty()) {
+            const auto file = (fontDirectory() + u'/' + filename).toUtf8();
+            using Blob = std::unique_ptr<hb_blob_t, decltype(&hb_blob_destroy)>;
+            Blob blob(hb_blob_create_from_file(file.constData()), hb_blob_destroy);
+            if (hb_blob_get_length(blob.get()) > 0) {
+                face.reset(hb_face_create(blob.get(), 0));
+            }
+        }
         Font hbFont(hb_font_create(face.get()), hb_font_destroy);
         hb_ot_font_set_funcs(hbFont.get());
         const int scale = static_cast<int>(std::round(raw.pixelSize() * 65536));
@@ -228,38 +260,15 @@ QImage surface(QSize size) {
     image.fill(Qt::transparent);
     return image;
 }
-bool paintFreeTypeRun(QPainter& painter, const ShapedText& shaped, const scene::TextStyle& style, QPointF origin) {
-
-    if (!shaped.fallbackRuns.isEmpty()) {
-        return false;
-    }
-    const auto transform = painter.worldTransform();
-    const bool rotated = std::abs(transform.m12()) > 1e-9 || std::abs(transform.m21()) > 1e-9;
-    FT_Matrix matrix{static_cast<FT_Fixed>(std::round(transform.m11() * 65536)),
-                     static_cast<FT_Fixed>(std::round(-transform.m21() * 65536)),
-                     static_cast<FT_Fixed>(std::round(-transform.m12() * 65536)),
-                     static_cast<FT_Fixed>(std::round(transform.m22() * 65536))};
+FT_Face freeTypeFace(const QRawFont& raw, const scene::TextStyle& style, double pixelSize) {
     struct RasterFont {
         std::unique_ptr<std::remove_pointer_t<FT_Library>, decltype(&FT_Done_FreeType)> library{nullptr,
                                                                                                 FT_Done_FreeType};
         std::unique_ptr<std::remove_pointer_t<FT_Face>, decltype(&FT_Done_Face)> face{nullptr, FT_Done_Face};
     };
-    const auto family = shaped.font.familyName();
-    const bool italic = style.fontStyle == "italic" || style.fontStyle == "oblique";
-    QString filename;
-    if (family == "Inter" && !italic && style.fontWeight >= 700) {
-        filename = "Inter-ExtraBold.ttf";
-    } else if (family == "Inter" && !italic && style.fontWeight == 600) {
-        filename = "Inter-SemiBold.ttf";
-    } else if (family == "Bebas Neue") {
-        filename = "BebasNeue-Regular.ttf";
-    } else if (family == "Inter" || family == "Lora" || family == "Playfair Display" || family == "JetBrains Mono" ||
-               family == "Space Grotesk") {
-        filename = family;
-        filename.remove(u' ');
-        filename += italic ? "-Italic-Variable.ttf" : "-Variable.ttf";
-    } else {
-        return false;
+    const auto filename = bundledFaceFile(raw.familyName(), style);
+    if (filename.isEmpty()) {
+        return nullptr;
     }
     thread_local std::unordered_map<std::string, RasterFont> faces;
     const auto key = filename.toStdString();
@@ -301,7 +310,56 @@ bool paintFreeTypeRun(QPainter& painter, const ShapedText& shaped, const scene::
         }
     }
     if (!font.face || FT_Set_Char_Size(font.face.get(), 0,
-                                       static_cast<FT_F26Dot6>(std::max(1.0, style.fontSizePx) * 64), 72, 72) != 0) {
+                                       static_cast<FT_F26Dot6>(std::max(1.0, pixelSize) * 64), 72, 72) != 0) {
+        return nullptr;
+    }
+    FT_Set_Transform(font.face.get(), nullptr, nullptr);
+    return font.face.get();
+}
+QPainterPath glyphOutline(FT_Face face, quint32 glyph) {
+    QPainterPath path;
+    if (!face || FT_Load_Glyph(face, glyph, FT_LOAD_NO_BITMAP | FT_LOAD_NO_HINTING) != 0) {
+        return path;
+    }
+    const FT_Outline_Funcs callbacks{
+        [](const FT_Vector* point, void* data) {
+            auto& out = *static_cast<QPainterPath*>(data);
+            out.closeSubpath();
+            out.moveTo(point->x / 64.0, -point->y / 64.0);
+            return 0;
+        },
+        [](const FT_Vector* point, void* data) {
+            static_cast<QPainterPath*>(data)->lineTo(point->x / 64.0, -point->y / 64.0);
+            return 0;
+        },
+        [](const FT_Vector* control, const FT_Vector* point, void* data) {
+            static_cast<QPainterPath*>(data)->quadTo(control->x / 64.0, -control->y / 64.0,
+                                                     point->x / 64.0, -point->y / 64.0);
+            return 0;
+        },
+        [](const FT_Vector* first, const FT_Vector* second, const FT_Vector* point, void* data) {
+            static_cast<QPainterPath*>(data)->cubicTo(first->x / 64.0, -first->y / 64.0,
+                second->x / 64.0, -second->y / 64.0, point->x / 64.0, -point->y / 64.0);
+            return 0;
+        }, 0, 0};
+    FT_Outline_Decompose(&face->glyph->outline, &callbacks, &path);
+    path.closeSubpath();
+    path.setFillRule(Qt::WindingFill);
+    return path;
+}
+bool paintFreeTypeRun(QPainter& painter, const ShapedText& shaped, const scene::TextStyle& style, QPointF origin) {
+
+    if (!shaped.fallbackRuns.isEmpty()) {
+        return false;
+    }
+    const auto transform = painter.worldTransform();
+    const bool rotated = std::abs(transform.m12()) > 1e-9 || std::abs(transform.m21()) > 1e-9;
+    FT_Matrix matrix{static_cast<FT_Fixed>(std::round(transform.m11() * 65536)),
+                     static_cast<FT_Fixed>(std::round(-transform.m21() * 65536)),
+                     static_cast<FT_Fixed>(std::round(-transform.m12() * 65536)),
+                     static_cast<FT_Fixed>(std::round(transform.m22() * 65536))};
+    const auto face = freeTypeFace(shaped.font, style, style.fontSizePx);
+    if (!face) {
         return false;
     }
     // Match Canvas's light hinting for axis-aligned glyphs and unhinted
@@ -312,13 +370,13 @@ bool paintFreeTypeRun(QPainter& painter, const ShapedText& shaped, const scene::
         const QPointF pixel(std::floor(position.x()), std::floor(position.y()));
         FT_Vector delta{static_cast<FT_Pos>(std::round((position.x() - pixel.x()) * 64)),
                         static_cast<FT_Pos>(-std::round((position.y() - pixel.y()) * 64))};
-        FT_Set_Transform(font.face.get(), &matrix, &delta);
-        if (FT_Load_Glyph(font.face.get(), shaped.glyphs[i], (rotated ? FT_LOAD_NO_HINTING : FT_LOAD_TARGET_LIGHT)) !=
+        FT_Set_Transform(face, &matrix, &delta);
+        if (FT_Load_Glyph(face, shaped.glyphs[i], (rotated ? FT_LOAD_NO_HINTING : FT_LOAD_TARGET_LIGHT)) !=
                 0 ||
-            FT_Render_Glyph(font.face->glyph, FT_RENDER_MODE_NORMAL) != 0) {
+            FT_Render_Glyph(face->glyph, FT_RENDER_MODE_NORMAL) != 0) {
             continue;
         }
-        const auto& bitmap = font.face->glyph->bitmap;
+        const auto& bitmap = face->glyph->bitmap;
         if (bitmap.width == 0 || bitmap.rows == 0) {
             continue;
         }
@@ -336,7 +394,7 @@ bool paintFreeTypeRun(QPainter& painter, const ShapedText& shaped, const scene::
         }
         painter.save();
         painter.resetTransform();
-        painter.drawImage(pixel + QPointF(font.face->glyph->bitmap_left, -font.face->glyph->bitmap_top), image);
+        painter.drawImage(pixel + QPointF(face->glyph->bitmap_left, -face->glyph->bitmap_top), image);
         painter.restore();
     }
     return true;
@@ -381,6 +439,9 @@ void paintRun(QPainter& p, const QJsonObject& style, const scene::TextStyle& par
     if (pathText) {
         pathFont.setPixelSize(64);
     }
+    // Keep bundled outlines independent of Qt's platform font engine.
+    // Paths and bitmap glyphs must use the same FreeType face.
+    const auto outlineFace = freeTypeFace(shaped.font, parsed, pathText ? 64 : parsed.fontSizePx);
     // Skia places a middle-aligned paragraph from its rounded line height,
     // then snaps the top and the ascent separately when rasterizing glyphs.
     const double baseline = !middle   ? std::floor(y + 0.5)
@@ -400,7 +461,8 @@ void paintRun(QPainter& p, const QJsonObject& style, const scene::TextStyle& par
         if (pathText) {
             at.scale(parsed.fontSizePx / 64, parsed.fontSizePx / 64);
         }
-        auto glyphPath = at.map(pathFont.pathForGlyph(shaped.glyphs[i]));
+        auto glyphPath = at.map(outlineFace ? glyphOutline(outlineFace, shaped.glyphs[i])
+                                            : pathFont.pathForGlyph(shaped.glyphs[i]));
         if (pathText) {
             glyphPath.setFillRule(Qt::WindingFill);
             glyphPaths.push_back(glyphPath);
