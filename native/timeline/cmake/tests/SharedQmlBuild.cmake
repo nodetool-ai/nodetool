@@ -14,6 +14,10 @@ list(REMOVE_DUPLICATES module_sources)
 set(registrations 0)
 set(theme_cache_objects 0)
 foreach(source IN LISTS module_sources)
+    # Chat and ModelPicker are separate shared QML modules.
+    if(source MATCHES "(nodetool_chat|nodetool_model_picker)[^/]*(_qmltyperegistrations|Theme_qml)\\.cpp$")
+        continue()
+    endif()
     # ProviderDialogTests.cmake owns a deliberately isolated, small QML module.
     if(source MATCHES "tst_providerdialog(_qmltyperegistrations|_qml_Theme_qml)\\.cpp$")
         continue()
