@@ -268,6 +268,15 @@ private slots:
         QVERIFY(popup);
         QVERIFY(popup->setProperty("popupType", popupWindow ? 1 : 0)); // Popup.Window / Popup.Item
         QVERIFY(item("toolToggle")->setProperty("compact", true));
+        auto* region = item("tracksRegion");
+        QVERIFY(region);
+        QSignalSpy initialFrame(view.get(), &QQuickWindow::frameSwapped);
+        view->update();
+        QTRY_VERIFY(!initialFrame.isEmpty());
+        const double overflow = select->mapToItem(region, {select->width(), 0}).x() - region->width();
+        if (overflow > 0) {
+            view->resize(view->width() + qCeil(overflow) + 100, view->height());
+        }
         view->requestActivate();
         QVERIFY(QTest::qWaitForWindowActive(view.get()));
         QVERIFY(QTest::qWaitForWindowExposed(view.get()));
