@@ -314,9 +314,9 @@ async function executeWorkflow(
     jobId: `fake-${workflow.fileName}`
   });
   const prepared = prepareForFakeRun(workflow.data.graph);
-  // Resolve shipped image refs to bytes so entity nodes can save their
-  // reference asset through the fake host, as they do for generated media.
-  for (const node of prepared.nodes) {
+  // Persist sample images so entity nodes and sandbox media readers receive
+  // the same asset references as generated media, without embedded buffers.
+  for (const [index, node] of prepared.nodes.entries()) {
     if (node.type !== "nodetool.input.ImageInput") {
       continue;
     }
@@ -331,7 +331,11 @@ async function executeWorkflow(
     if (!bytes) {
       throw new Error(`Cannot load sample image for ${String(node.id)}`);
     }
-    data.value = { ...value, data: bytes };
+    const extension = path.extname(value.uri ?? "") || ".png";
+    const samplePath = path.join(fake.workspaceDir, `sample-image-${index}${extension}`);
+    fs.writeFileSync(samplePath, bytes);
+    const asset = await fake.context.sandboxToAsset(samplePath);
+    data.value = { ...asset, uri: `${asset.uri}${extension}` };
   }
   const graph = await Graph.loadFromDict(prepared, {
     resolver,
