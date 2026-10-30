@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.24)
 
 project(NodeToolTimeline VERSION 0.1.0 LANGUAGES CXX)
 if(APPLE)
@@ -212,22 +212,35 @@ target_link_libraries(nodetool-timeline PRIVATE
     ${NT_APP_PLATFORM_LIBS} timeline_core timeline_decode Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 PkgConfig::FFMPEG)
 
 set_source_files_properties(qml/Theme.qml qml/Icons.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
-# The NodeTool.Timeline QML module. The app and the UI test (tst_tracksui)
-# each build it, the test into its own output folder.
+# Compile the QML module once. Whole-archive linkage preserves its generated
+# type/resource initializers and C++ registrars without a runtime plugin file.
+# App-only registrations stay in NT_app and remain specific to each host.
+qt_add_library(timeline_qml STATIC)
+target_compile_options(timeline_qml PRIVATE ${NT_WARNINGS})
+qt_add_qml_module(timeline_qml
+    URI NodeTool.Timeline
+    NO_PLUGIN
+    OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/NodeTool/Timeline
+    QML_FILES ${NT_qml_files}
+    RESOURCES ${NT_qml_resources}
+    SOURCES ${NT_qml})
+qt_add_shaders(timeline_qml timeline_compositor_shaders
+    PREFIX "/shaders"
+    BASE shaders
+    FILES shaders/composite.vert shaders/composite.frag)
+list(REMOVE_DUPLICATES NT_qml_includes)
+target_include_directories(timeline_qml PUBLIC src/model src/playback src/preview src/ui src/edit ${NT_qml_includes})
+target_link_libraries(timeline_qml PUBLIC timeline_core timeline_decode timeline_audio
+    Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 PkgConfig::FFMPEG)
+
 function(nt_add_timeline_qml target)
-    qt_add_qml_module(${target}
-        URI NodeTool.Timeline
-        ${ARGN}
-        QML_FILES ${NT_qml_files}
-        RESOURCES ${NT_qml_resources}
-        SOURCES ${NT_qml})
-    qt_add_shaders(${target} "${target}_compositor_shaders"
-        PREFIX "/shaders"
-        BASE shaders
-        FILES shaders/composite.vert shaders/composite.frag)
-    # The generated QML type registrations include the headers by base name.
-    list(REMOVE_DUPLICATES NT_qml_includes)
-    target_include_directories(${target} PRIVATE src/model src/playback src/preview src/ui src/edit ${NT_qml_includes})
+    # OUTPUT_DIRECTORY belonged to the former per-executable module. Keep the
+    # call interface so host-specific sources, resources and definitions stay local.
+    cmake_parse_arguments(HOST "" "OUTPUT_DIRECTORY" "" ${ARGN})
+    if(HOST_UNPARSED_ARGUMENTS)
+        message(FATAL_ERROR "Unexpected QML host arguments: ${HOST_UNPARSED_ARGUMENTS}")
+    endif()
+    target_link_libraries(${target} PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,timeline_qml>")
 endfunction()
 nt_add_timeline_qml(nodetool-timeline)
 # Compile-only check of the Linux hardware path on macOS: with a
@@ -274,3 +287,10 @@ endif()
 nt_sanitizer_test_checks()
 include(cmake/TestPreferences.cmake)
 nt_isolate_test_preferences()
+
+# Visual Studio does not emit compile_commands.json.
+if(CMAKE_GENERATOR MATCHES "Ninja|Makefiles")
+    add_test(NAME shared_qml_build COMMAND ${CMAKE_COMMAND}
+        -DNT_BUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/tests/SharedQmlBuild.cmake)
+endif()
