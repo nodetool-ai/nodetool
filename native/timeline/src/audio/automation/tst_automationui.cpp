@@ -28,7 +28,14 @@ class TestAutomationUi : public QObject {
             for (auto* child : at->childItems()) { if (auto* hit=self(self,child)) { return hit; } }
             return nullptr;
         };
-        return find(find,window->contentItem());
+        if (auto* hit=find(find,window->contentItem())) { return hit; }
+        for (auto* candidate : QGuiApplication::allWindows()) {
+            auto* popup=qobject_cast<QQuickWindow*>(candidate);
+            if (popup && popup!=window.get()) {
+                if (auto* hit=find(find,popup->contentItem())) { return hit; }
+            }
+        }
+        return nullptr;
     }
     bool open(const QByteArray& body, QVariantMap properties = {}) {
         engine=std::make_unique<QQmlEngine>();
@@ -55,7 +62,8 @@ Component.onCompleted: AutomationUIState.shownAutomationTrackIds = )" + QByteArr
         const QPointer<QQuickItem> target=item(name);
         const bool menuItem=target->inherits("QQuickMenuItem");
         const QPointer<QObject> menu=target->property("menu").value<QObject*>();
-        QTest::mouseClick(window.get(),Qt::LeftButton,Qt::NoModifier,point(target,target->width()/2,target->height()/2));
+        QVERIFY(target->window());
+        QTest::mouseClick(target->window(),Qt::LeftButton,Qt::NoModifier,point(target,target->width()/2,target->height()/2));
         QCoreApplication::processEvents();
         if(menuItem) {
             QTRY_VERIFY(!menu || !menu->property("visible").toBool());
@@ -258,7 +266,13 @@ ChannelStrip { x:130; width:120; height:360; timeline:parent.timeline; master:tr
         QTest::mouseRelease(window.get(),Qt::LeftButton,Qt::NoModifier,point(fader,12,cap+3));
         QCOMPARE(model.undoStack()->index(),0);
     }
+    void mountedSlots_data() {
+        QTest::addColumn<bool>("popupWindow");
+        QTest::newRow("default-popup") << false;
+        if (QGuiApplication::platformName() != "offscreen") { QTest::newRow("window-popup") << true; }
+    }
     void mountedSlots() {
+        QFETCH(bool, popupWindow);
         QVERIFY(open(R"(Item { width:800; height:900; required property TimelineModel timeline
  required property PlaybackClock clock
  MixerToolbar { timeline:parent.timeline }
@@ -282,6 +296,8 @@ ChannelStrip { x:130; width:120; height:360; timeline:parent.timeline; master:tr
         QCOMPARE(model.undoStack()->count(),1);
         {
             auto* picker=item("automation-picker-a"); QVERIFY(picker);
+            auto* popup=picker->property("popup").value<QObject*>(); QVERIFY(popup);
+            QVERIFY(popup->setProperty("popupType",popupWindow ? 1 : 0)); // Popup.Window / Popup.Item
             QTest::mouseClick(window.get(),Qt::LeftButton,Qt::NoModifier,point(picker,picker->width()-8,picker->height()/2));
         }
         click("automation-option-mixer:volumeDb");
