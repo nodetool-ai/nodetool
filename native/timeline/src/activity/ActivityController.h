@@ -53,6 +53,6 @@ private:
     quint64 m_epoch = 0;
     QVariantList m_rows;
     QString m_jobCursor, m_generationCursor, m_error, m_lastUpdated;
+    QString m_jobHeadCursor, m_generationHeadCursor;
     bool m_stale = true;
-    bool m_jobLoaded = false, m_generationLoaded = false;
 };

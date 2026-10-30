@@ -37,7 +37,7 @@ void ActivityController::setTimeline(TimelineModel* value) {
 void ActivityController::reset() {
     ++m_epoch;
     if (!m_explicitTarget) { m_target = nt::server::serverSaveTarget(); }
-    m_rows.clear(); m_jobCursor.clear(); m_generationCursor.clear(); m_error.clear(); m_lastUpdated.clear(); m_stale = true; m_jobLoaded = false; m_generationLoaded = false;
+    m_rows.clear(); m_jobCursor.clear(); m_generationCursor.clear(); m_jobHeadCursor.clear(); m_generationHeadCursor.clear(); m_error.clear(); m_lastUpdated.clear(); m_stale = true;
     emit changed();
     QTimer::singleShot(0, this, &ActivityController::refresh);
 }
@@ -178,8 +178,14 @@ void ActivityController::request(bool more, const QString& cancelId, const QStri
                 else { guard->m_rows[*existing] = row; }
             }
             std::stable_sort(guard->m_rows.begin(), guard->m_rows.end(), [](const QVariant& a, const QVariant& b) { return a.toMap().value("updatedAt").toString() > b.toMap().value("updatedAt").toString(); });
-            if (result.jobsFetched && (more || !guard->m_jobLoaded)) { guard->m_jobCursor = result.jobCursor; guard->m_jobLoaded = true; }
-            if (result.generationsFetched && (more || !guard->m_generationLoaded)) { guard->m_generationCursor = result.generationCursor; guard->m_generationLoaded = true; }
+            if (result.jobsFetched) {
+                if (more || result.jobCursor != guard->m_jobHeadCursor) { guard->m_jobCursor = result.jobCursor; }
+                if (!more) { guard->m_jobHeadCursor = result.jobCursor; }
+            }
+            if (result.generationsFetched) {
+                if (more || result.generationCursor != guard->m_generationHeadCursor) { guard->m_generationCursor = result.generationCursor; }
+                if (!more) { guard->m_generationHeadCursor = result.generationCursor; }
+            }
             guard->m_error = result.error; guard->m_stale = !result.jobsFetched && !result.generationsFetched && !result.proxiesFetched;
             if (!guard->m_stale) { guard->m_lastUpdated = QDateTime::currentDateTimeUtc().toString(Qt::ISODate); }
             emit guard->changed();
