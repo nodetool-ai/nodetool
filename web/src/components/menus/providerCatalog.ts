@@ -530,6 +530,14 @@ export const PROVIDER_META: ProviderMeta[] = [
     docsUrl: "https://docs.opper.ai"
   },
   {
+    key: "CHEAPER_INFERENCE_API_KEY",
+    providerId: PROVIDER_IDS.CHEAPER_INFERENCE,
+    name: "Cheaper Inference",
+    description: "Access multiple AI models through one OpenAI-compatible gateway.",
+    section: "gateways",
+    docsUrl: "https://cheaperinference.com/docs"
+  },
+  {
     key: "API_ROUTE_API_KEY",
     providerId: PROVIDER_IDS.API_ROUTE,
     name: "API Route",

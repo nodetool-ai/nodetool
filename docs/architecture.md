@@ -191,7 +191,7 @@ Model providers share one interface (`BaseProvider` in `packages/runtime/src/pro
 |------|-----------|
 | **Cloud text and multimodal** | OpenAI, Anthropic, Google Gemini, xAI, DeepSeek, Mistral, Groq, Cerebras, Cohere, Alibaba Cloud, GMI Cloud, Moonshot, MiniMax, Together |
 | **Media and model hosts** | FAL, Replicate, Hugging Face, Kie.ai, AtlasCloud, ElevenLabs, Topaz, Reve, Higgsfield |
-| **Routers** | OpenRouter, Requesty, Opper, API Route |
+| **Routers** | OpenRouter, Requesty, Opper, API Route, Cheaper Inference |
 | **Local and self-hosted** | Ollama, LM Studio, vLLM, llama.cpp, and Python-bridge providers such as MLX |
 | **Agent and OAuth backends** | Claude Agent SDK, Codex |
 | **Custom** | OpenAI-compatible endpoints you register |

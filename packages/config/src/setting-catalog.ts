@@ -363,6 +363,11 @@ sec(
   "Opper API key for accessing multiple AI models through one EU-hosted OpenAI-compatible gateway. Get yours at https://platform.opper.ai"
 );
 sec(
+  "CHEAPER_INFERENCE_API_KEY",
+  "Cheaper Inference",
+  "Cheaper Inference API key for accessing multiple AI models through one OpenAI-compatible gateway. Get yours at https://cheaperinference.com/signup"
+);
+sec(
   "API_ROUTE_API_KEY",
   "API Route",
   "API Route key for hosted OpenAI-compatible chat models. Get yours at https://www.api-route.com/api-keys"
