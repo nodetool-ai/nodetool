@@ -30,7 +30,11 @@ pkg-config --exists lame || {
 lame_cflags=$(pkg-config --cflags lame)
 lame_ldflags=$(pkg-config --libs-only-L lame)
 tarball="$root/ffmpeg-$version.tar.xz"
-[[ -f "$tarball" ]] || curl -sSfL -o "$tarball" "https://ffmpeg.org/releases/ffmpeg-$version.tar.xz"
+if [[ ! -f "$tarball" ]]; then
+    curl -sSfL --retry 3 --retry-all-errors --retry-delay 2 --retry-max-time 180 \
+        -o "$tarball.part" "https://ffmpeg.org/releases/ffmpeg-$version.tar.xz"
+    mv "$tarball.part" "$tarball"
+fi
 echo "$sha256  $tarball" | shasum -a 256 -c -
 tar xf "$tarball" -C "$root/src"
 case "$(uname -s)" in
