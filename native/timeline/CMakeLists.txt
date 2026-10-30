@@ -113,7 +113,7 @@ if(NOT MSVC)
 endif()
 
 # A module contributes to a target group or registers a test callback. All
-# registration sources compile directly into each consuming executable.
+# app registration sources compile directly into each consuming executable.
 function(nt_sources group)
     set_property(GLOBAL APPEND PROPERTY NT_${group} ${ARGN})
 endfunction()
