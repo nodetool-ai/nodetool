@@ -213,6 +213,16 @@
         "fx.reverb.size": 0.5,
         "fx.reverb.mix": 0.3
       }
+    },
+    "limiter": {
+      "type": "fable",
+      "enabled": true,
+      "kind": "limiter",
+      "params": {
+        "fx.limit.gain": 0,
+        "fx.limit.ceil": -1,
+        "fx.limit.rel": 0.1
+      }
     }
   },
   "strings": {
@@ -233,7 +243,8 @@
       "lab": "Lab",
       "chorus": "Chorus",
       "echo": "Tape echo",
-      "reverb": "Reverb"
+      "reverb": "Reverb",
+      "limiter": "Limiter"
     },
     "parameters": {
       "gainDb": "Gain",
@@ -316,7 +327,8 @@
     "lab": 1080,
     "chorus": 320,
     "echo": 320,
-    "reverb": 320
+    "reverb": 320,
+    "limiter": 320
   },
   "knobs": {
     "gain": [
@@ -512,9 +524,7 @@
   },
   "audioTypes": [
     "gain",
-    "eq3",
-    "filter",
-    "compressor"
+    "filter"
   ],
   "videoTypes": [
     "colorCorrection",
@@ -531,6 +541,7 @@
     "lab",
     "chorus",
     "echo",
-    "reverb"
+    "reverb",
+    "limiter"
   ]
 }

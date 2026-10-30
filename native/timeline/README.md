@@ -14,15 +14,27 @@ the frames go to the GPU with no copy (M1c).
 ## Build and test
 
 Requires Qt 6.12 (the build rejects other minor versions, because QRhi is a
-private API), Ninja, CMake, and FFmpeg with pkg-config files. On
+private API), Ninja, CMake 3.24 or newer, and FFmpeg with pkg-config files. On
 macOS:
 
 ```bash
-brew install qt ninja ffmpeg
+brew install qt ninja ffmpeg ffmpeg-full harfbuzz freetype lame
+export PATH="$(brew --prefix ffmpeg-full)/bin:$PATH"
+npm run build:packages
+node native/timeline/scripts/check-ci-prerequisites.mjs
+native/timeline/scripts/make-fixtures.sh
 cmake -S native/timeline -B native/timeline/build -G Ninja -DCMAKE_PREFIX_PATH=$(brew --prefix qt)
-cmake --build native/timeline/build
+nice -n 10 cmake --build native/timeline/build -j 2
 ctest --test-dir native/timeline/build
 ```
+
+The checks need FFmpeg's `drawtext` filter and the encoders verified by
+[`check-ci-prerequisites.mjs`](scripts/check-ci-prerequisites.mjs). Homebrew's
+`ffmpeg-full` supplies that command-line tool. The packaged LGPL libraries are
+built separately by [`build-ffmpeg-lgpl.sh`](scripts/build-ffmpeg-lgpl.sh), which
+needs LAME development files for MP3 export (`libmp3lame-dev` on Debian/Ubuntu).
+The editor and its UI test hosts link one shared static QML module. CI caches
+compiler output before running tests, so a test failure does not discard it.
 
 ### Linux
 
