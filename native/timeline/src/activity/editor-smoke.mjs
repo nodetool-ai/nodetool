@@ -20,13 +20,20 @@ try {
   writeFileSync(preferences, `[General]\nnodetool.timeline-layout.v1=${JSON.stringify(settings)}\n`);
   const image = path.join(temporary, 'editor.png');
   const args = [fileURLToPath(new URL('../../fixtures/three-tracks.json', import.meta.url)), '--audio', 'none', '--size', '1280x800', '--screenshot', image];
+  const graphics = {
+    linux: { platform: 'xcb', backend: 'vulkan' },
+    darwin: { platform: 'cocoa', backend: 'metal' },
+    win32: { platform: 'windows', backend: 'd3d11' }
+  }[process.platform];
+  assert.ok(graphics, `Unsupported screenshot platform: ${process.platform}`);
   const linux = process.platform === 'linux';
   const environment = {
     ...process.env,
     NODETOOL_TIMELINE_PREFERENCES: preferences,
     NODETOOL_TIMELINE_ACTIVITY_DIR: path.join(temporary, 'activity'),
-    QT_QPA_PLATFORM: linux ? 'xcb' : 'offscreen',
-    ...(linux ? { QSG_RHI_BACKEND: 'vulkan' } : {})
+    QT_QPA_PLATFORM: graphics.platform,
+    QSG_RHI_BACKEND: graphics.backend,
+    ...(process.platform === 'win32' ? { QSG_RHI_PREFER_SOFTWARE_RENDERER: '1' } : {})
   };
   delete environment.QT_QUICK_BACKEND;
   const result = spawnSync(linux ? 'xvfb-run' : binary, linux ? ['-a', binary, ...args] : args, {
