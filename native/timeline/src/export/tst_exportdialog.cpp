@@ -182,6 +182,8 @@ private slots:
         component.loadFromModule("NodeTool.Timeline", "ExportVideoDialog");
         std::unique_ptr<QObject> root(component.create());
         QVERIFY2(root, qPrintable(component.errorString()));
+        // Exercise each format independently of the host's installed encoders.
+        root->setProperty("mp4Supported", true);
         const auto options = root->property("formatOptions").value<QJSValue>().toVariant().toList();
         const QStringList labels{"MP4 (H.264)", "WebM (VP9)", "PNG sequence (.zip)", "WAV audio (16-bit)", "MP3 audio (320 kbps)"};
         QCOMPARE(options.size(), labels.size());
@@ -210,6 +212,11 @@ private slots:
         root->setProperty("mp4Supported", false);
         root->setProperty("format", "mp4");
         QCOMPARE(root->property("format").toString(), QString("webm"));
+        QCOMPARE(root->property("alphaEnabled").toBool(), true);
+        root->setProperty("alpha", true);
+        QVERIFY(QMetaObject::invokeMethod(root.get(), "confirmExport"));
+        QCOMPARE(exported.last().first().toMap().value("format").toString(), QString("webm"));
+        QCOMPARE(exported.last().first().toMap().value("alpha").toBool(), true);
         auto* select = root->findChild<QObject*>("formatSelect");
         QVERIFY(select);
         const auto updated = root->property("formatOptions").value<QJSValue>().toVariant().toList();
