@@ -5,9 +5,7 @@ import { TRPC_MAX_BATCH_SIZE } from "@nodetool-ai/protocol";
 const CLIENT_FILES = [
   "../../../electron/src/api.ts",
   "../../../mobile/src/trpc/client.ts",
-  // Shared RPC transport and the typed workflow client both enforce the policy.
   "../../../packages/cli-common/src/rpc-client.ts",
-  "../../../packages/cli-workflow/src/api-client.ts",
   "../../../packages/deploy/src/api-user-manager.ts",
   "../../../packages/sdk/src/client.ts",
   "../../../web/src/trpc/links.ts"
@@ -51,6 +49,24 @@ describe("shared tRPC client policy", () => {
     ]) {
       const text = source(path);
       expect(text, path).toContain("links: createTrpcLinks()");
+      expect(text, path).not.toContain("httpBatchLink(");
+    }
+  });
+
+  it("forwards CLI domain clients to the shared transport without changing the URL", () => {
+    expect(source("../../../packages/cli-common/src/index.ts")).toContain(
+      'export { createRpcClient } from "./rpc-client.js"'
+    );
+    for (const path of [
+      "../../../packages/cli-workflow/src/api-client.ts",
+      "../../../packages/cli-models/src/api-client.ts"
+    ]) {
+      const text = source(path);
+      expect(text, path).toContain(
+        'import { createRpcClient } from "@nodetool-ai/cli-common/rpc-client"'
+      );
+      expect(text, path).toContain("createRpcClient(apiUrl)");
+      expect(text, path).not.toContain("@trpc/client");
       expect(text, path).not.toContain("httpBatchLink(");
     }
   });

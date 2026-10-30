@@ -22,7 +22,9 @@
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
-    "@llamaindex/liteparse": "^1.5.2"
+    "@llamaindex/liteparse": "^1.5.2",
+    "@nodetool-ai/config": "*",
+    "@nodetool-ai/protocol": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

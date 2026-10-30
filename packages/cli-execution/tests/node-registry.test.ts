@@ -64,15 +64,23 @@ describe("CLI command host policies", () => {
   it("routes workflow and MCP entrypoint registration through shared policy", () => {
     const workflow = readFileSync(new URL("../../cli-workflow/src/index.ts", import.meta.url), "utf8");
     const mcp = readFileSync(new URL("../../cli-mcp/src/index.ts", import.meta.url), "utf8");
+    const host = readFileSync(new URL("../src/packs/host.ts", import.meta.url), "utf8");
     for (const source of [workflow, mcp]) {
       expect(source.length).toBeGreaterThan(0);
       expect(source).not.toMatch(/register\w+Nodes\(/);
       expect(source).toContain("registerCliPacks(");
+      expect(source).toContain('"@nodetool-ai/cli-execution/packs/host"');
+      expect(source).toContain('"@nodetool-ai/cli-execution/node-registry"');
     }
     expect(workflow.match(/registerCliPacks\(/g)).toHaveLength(2);
-    expect(workflow).toContain("registerCliPacks(registry, CLI_LOCAL_BUILTIN_PACK_POLICY)");
-    expect(workflow).toContain("await registerCliPacks(NodeRegistry.global, CLI_DSL_BUILTIN_PACK_POLICY)");
+    expect(workflow).toMatch(/registerCliPacks\(\s*registry,\s*CLI_LOCAL_BUILTIN_PACK_POLICY\s*\)/);
+    expect(workflow).toMatch(/await\s+registerCliPacks\(\s*NodeRegistry\.global,\s*CLI_DSL_BUILTIN_PACK_POLICY\s*\)/);
     expect(mcp.match(/registerCliPacks\(/g)).toHaveLength(1);
-    expect(mcp).toContain("registerCliPacks(registry, CLI_LOCAL_BUILTIN_PACK_POLICY)");
+    expect(mcp).toMatch(/registerCliPacks\(\s*registry,\s*CLI_LOCAL_BUILTIN_PACK_POLICY\s*\)/);
+    expect(host.length).toBeGreaterThan(0);
+    expect(host).toMatch(/await\s+initializeInstalledExecutionHost\(entryUrl,\s*\{/);
+    expect(host).toContain("snapshot: await loadCliPackSnapshot()");
+    expect(host).toContain("await source.register(registry, policy)");
+    expect(host).toContain("await registerAvailablePacks(registry, policy)");
   });
 });

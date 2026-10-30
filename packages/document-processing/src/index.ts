@@ -1,8 +1,14 @@
 import type { ParseResult } from "@llamaindex/liteparse";
+import { importOptionalModule } from "@nodetool-ai/config";
+import { missingRuntimePackageError } from "@nodetool-ai/protocol";
 
 /** Load the explicitly installed PDF parser without launching it at import time. */
 export async function loadLiteParse(): Promise<typeof import("@llamaindex/liteparse")> {
-  return import("@llamaindex/liteparse");
+  try {
+    return await importOptionalModule<typeof import("@llamaindex/liteparse")>("@llamaindex/liteparse");
+  } catch (cause) {
+    throw missingRuntimePackageError("@llamaindex/liteparse", "pdf-js", cause);
+  }
 }
 
 /** Parse document bytes using the same parser as the full server. */
