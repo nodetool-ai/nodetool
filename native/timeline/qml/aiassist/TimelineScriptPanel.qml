@@ -1,4 +1,3 @@
-// nt-panel: slot=left id=script order=35 title="Script"
 import QtQuick
 import QtQuick.Controls
 import NodeTool.Timeline
@@ -7,16 +6,18 @@ Rectangle {
     id: panel
     objectName: "timelineScriptPanel"
     color: Theme.backgroundDefault
+    property alias documentController: controller
+    property bool workspaceMode: false
     property var timeline: null
     property var clock: null
     property string documentKind: "scripts"
     property string reviewedShotId: ""
     property string reviewedShotKind: "video"
-    AssistController { id: controller; objectName: "timelineScriptController"; timeline: panel.timeline }
+    AssistController { id: controller; objectName: "timelineScriptController"; timeline: panel.timeline; documentOnly: panel.workspaceMode }
     ScriptVoicing {
         id: voicing
         timeline: panel.timeline
-        onSaved: scriptId => controller.applyScriptRevision(scriptId)
+        onSaved: scriptId => { if (panel.workspaceMode) controller.openScript(scriptId); else controller.applyScriptRevision(scriptId) }
     }
     BeatVoicing { id: beatVoicing; timeline: panel.timeline }
     ModelCatalogController { id: voiceCatalog; mode: "audio" }
@@ -34,12 +35,13 @@ Rectangle {
     ModelCatalogController { id: shotCatalog; mode: shotKind.currentIndex === 1 ? "image" : shotTask.currentIndex === 1 ? "image_to_video" : shotTask.currentIndex === 2 ? "reference_to_video" : "video" }
     CandidatePreview { id: review; timeline: panel.timeline }
     TranscriptRequest { id: transcription; timeline: panel.timeline }
-    Timer { interval: 3000; repeat: true; running: panel.timeline !== null && !voicing.busy && !beatVoicing.busy && !controller.busy; onTriggered: controller.refreshLinkedScript() }
+    Timer { interval: 3000; repeat: true; running: !panel.workspaceMode && panel.timeline !== null && !voicing.busy && !beatVoicing.busy && !controller.busy; onTriggered: controller.refreshLinkedScript() }
     Component.onCompleted: Qt.callLater(() => {
         const editor = Context.editorFor(panel)
         panel.timeline = editor ? editor.timeline : null
         panel.clock = editor ? editor.clock : null
     })
+    function previewReference(assetId) { review.preview(assetId, "image", 4000) }
     function selectedModelIndex(catalog) {
         for (let i = 0; i < catalog.models.length; ++i) {
             const model = catalog.models[i]
@@ -221,6 +223,7 @@ Rectangle {
         }
         Row {
             visible: panel.documentKind === "scripts" && !!controller.result && controller.result.document !== undefined
+            Button { visible: panel.workspaceMode; text: "Apply script revision to cut"; enabled: !controller.busy && !controller.scriptDirty; onClicked: controller.applyScriptRevision(controller.result.id) }
             Button { text: "Open script editor"; enabled: controller.scriptEditorLink.toString() !== ""; onClicked: Qt.openUrlExternally(controller.scriptEditorLink) }
             Button { text: "Link script"; enabled: !controller.busy; onClicked: controller.linkScript(controller.result.id, true) }
             Button { text: "Unlink script"; enabled: !controller.busy; onClicked: controller.linkScript(controller.result.id, false) }
