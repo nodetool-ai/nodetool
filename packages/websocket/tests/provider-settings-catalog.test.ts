@@ -6,7 +6,7 @@ import {
   listRegisteredProviderIds,
   getRegisteredProvider
 } from "@nodetool-ai/runtime";
-import { getSecret } from "@nodetool-ai/models";
+import { getSecrets } from "@nodetool-ai/models";
 import { customProviderId } from "@nodetool-ai/protocol";
 import { settingsRouter } from "../src/trpc/routers/settings.js";
 import { createCallerFactory } from "../src/trpc/index.js";
@@ -14,7 +14,7 @@ import type { Context } from "../src/trpc/context.js";
 
 vi.mock("@nodetool-ai/models", async (original) => ({
   ...await original<typeof import("@nodetool-ai/models")>(),
-  getSecret: vi.fn(async () => null)
+  getSecrets: vi.fn(async () => new Map<string, string | null>())
 }));
 
 const createCaller = createCallerFactory(settingsRouter);
@@ -33,8 +33,8 @@ describe("provider settings catalog", () => {
       }
     }
     vi.stubEnv("FAL_KEY", "");
-    vi.mocked(getSecret).mockReset();
-    vi.mocked(getSecret).mockResolvedValue(null);
+    vi.mocked(getSecrets).mockReset();
+    vi.mocked(getSecrets).mockResolvedValue(new Map());
     registerProvider(providerId, OpenAIProvider,
       { OPENAI_API_KEY: "", _bridge: "private-injection", UNREGISTERED_CONFIG: "private-default" },
       { OLLAMA_API_URL: "http://private-host:11434", OPENAI_API_KEY: "private-default" },
@@ -47,8 +47,9 @@ describe("provider settings catalog", () => {
   });
 
   it("offers only declared settings keys and reports caller-scoped credential availability without values", async () => {
-    vi.mocked(getSecret).mockImplementation(async (key, userId) =>
-      userId === "catalog-user" ? `fake-${key}-credential` : null);
+    vi.mocked(getSecrets).mockImplementation(async (keys, userId) =>
+      new Map(keys.map((key) => [key,
+        userId === "catalog-user" ? `fake-${key}-credential` : null])));
     const result = await caller().providerCatalog();
     const row = result.find((entry) => entry.provider === providerId);
     expect(row).toEqual({
@@ -62,7 +63,15 @@ describe("provider settings catalog", () => {
     expect(serialized).not.toContain("private-");
     expect(serialized).not.toContain("UNREGISTERED_CONFIG");
     expect(serialized).not.toContain("_bridge");
-    expect(getSecret).toHaveBeenCalledWith("OPENAI_API_KEY", "catalog-user");
+    expect(getSecrets).toHaveBeenCalledTimes(1);
+    expect(getSecrets).toHaveBeenCalledWith(expect.arrayContaining(["OPENAI_API_KEY"]), "catalog-user");
+  });
+
+  it("uses resolved credential truthiness rather than stored-row presence", async () => {
+    vi.mocked(getSecrets).mockResolvedValue(new Map([["OPENAI_API_KEY", ""]]));
+    expect((await caller().providerCatalog()).find((entry) => entry.provider === providerId)?.configured).toBe(false);
+    vi.mocked(getSecrets).mockResolvedValue(new Map([["OPENAI_API_KEY", "fake-working-credential"]]));
+    expect((await caller().providerCatalog()).find((entry) => entry.provider === providerId)?.configured).toBe(true);
   });
 
   it("keeps providers needing credentials discoverable before configuration", async () => {
