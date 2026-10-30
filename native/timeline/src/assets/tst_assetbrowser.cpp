@@ -1,4 +1,7 @@
 #include "assets/AssetBrowser.h"
+#include "aiassist/CandidatePreview.h"
+#include <QBuffer>
+#include <QProcess>
 #include "export/ExportController.h"
 #include "motion/mattes/MatteResolver.h"
 #include "app/EditRegistry.h"
@@ -816,15 +819,188 @@ Item {
         if (folder) { QVERIFY2(!root->property("dropped").toBool(), "folders must not start timeline drags"); }
         else { QTRY_VERIFY2(root->property("dropped").toBool(), "dragging an asset tile must deliver its asset to the lane drop key"); }
     }
+    void libraryPanelFlow() {
+        TestHttpServer http;
+        QVERIFY(http.base().port() != 7777);
+        QTemporaryDir cache;
+        QImage image(64, 32, QImage::Format_RGB32);
+        image.fill(QColor("#406080"));
+        QByteArray png;
+        QBuffer buffer(&png);
+        QVERIFY(buffer.open(QIODevice::WriteOnly));
+        QVERIFY(image.save(&buffer, "PNG"));
+        http.setFile("/library.png", ServedFile(png));
+        const QString pictureId = "11111111111111111111111111111111";
+        const QString folderId = "22222222222222222222222222222222";
+        const QString createdId = "33333333333333333333333333333333";
+        QJsonObject picture{{"id", pictureId}, {"user_id", "library-user"}, {"parent_id", "library-user"},
+            {"name", "Reference image"}, {"content_type", "image/png"}, {"size", png.size()},
+            {"get_url", "/library.png"}, {"favorite", false},
+            {"metadata", QJsonObject{{"tags", QJsonArray{"old"}}, {"description", "Keep this"}, {"width", 64}, {"height", 32}}}};
+        QJsonArray rows{picture, QJsonObject{{"id", folderId}, {"user_id", "library-user"},
+            {"parent_id", "library-user"}, {"name", "Footage"}, {"content_type", "folder"}}};
+        bool failTagOnce = true;
+        int tagWrites = 0;
+        http.setJson([&](const QByteArray& path, const QUrl& url) {
+            QJsonValue result;
+            if (path == "/trpc/assets.search") {
+                result = QJsonObject{{"assets", rows}, {"next_cursor", QJsonValue::Null}};
+            } else if (path == "/trpc/assets.get") {
+                const auto input = QJsonDocument::fromJson(QUrlQuery(url).queryItemValue("input", QUrl::FullyDecoded).toUtf8()).object();
+                for (const auto& row : rows) {
+                    if (row.toObject().value("id") == input.value("id")) { result = row; break; }
+                }
+            }
+            return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", result}}}}).toJson();
+        });
+        http.setPost([&](const QByteArray& path, const QByteArray& bytes) {
+            const auto input = QJsonDocument::fromJson(bytes).object();
+            if (path == "/api/assets") {
+                auto folder = input;
+                folder.insert("id", createdId); folder.insert("user_id", "library-user");
+                folder.insert("parent_id", "library-user"); rows.append(folder);
+                return QJsonDocument(folder).toJson();
+            }
+            if (path == "/trpc/assets.update") {
+                if (input.contains("metadata")) {
+                    ++tagWrites;
+                    if (failTagOnce) {
+                        failTagOnce = false;
+                        return QByteArray(R"({"error":{"message":"Tag write failed","data":{"code":"INTERNAL_SERVER_ERROR"}}})");
+                    }
+                }
+                for (qsizetype i = 0; i < rows.size(); ++i) {
+                    auto row = rows[i].toObject();
+                    if (row.value("id") != input.value("id")) { continue; }
+                    for (const auto& key : {"name", "favorite", "metadata", "parent_id"}) {
+                        if (input.contains(key)) { row.insert(key, input.value(key)); }
+                    }
+                    rows[i] = row;
+                    return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", row}}}}).toJson();
+                }
+            }
+            return QByteArray(R"({"result":{"data":{}}})");
+        });
+        QProcess child;
+        child.setProcessChannelMode(QProcess::MergedChannels);
+        child.start(QCoreApplication::applicationFilePath(), {"--probe-library", "--server", http.base().toString(),
+            "--timeline", "library-test", "--cache-dir", cache.path()});
+        QTRY_COMPARE_WITH_TIMEOUT(child.state(), QProcess::NotRunning, 60000);
+        const auto output = child.readAll();
+        QVERIFY2(child.exitStatus() == QProcess::NormalExit && child.exitCode() == 0, output.constData());
+        QCOMPARE(tagWrites, 2);
+        const auto saved = rows.first().toObject();
+        QCOMPARE(saved.value("name").toString(), QString("Renamed image"));
+        QVERIFY(saved.value("favorite").toBool());
+        QCOMPARE(saved.value("metadata").toObject().value("tags").toArray(), QJsonArray({"hero", "reference"}));
+        QCOMPARE(saved.value("metadata").toObject().value("description").toString(), QString("Keep this"));
+        QCOMPARE(rows.size(), 3);
+        QCOMPARE(rows.last().toObject().value("name").toString(), QString("References"));
+    }
+    void libraryPanelServerSession() {
+        if (!qApp->property("libraryProbe").toBool()) { QSKIP("Driven by the isolated libraryPanelFlow subprocess"); }
+        TimelineModel cut;
+        auto parsed = nt::parseTimelineJson(R"({"fps":30,"width":320,"height":180,"durationMs":4000,"tracks":[],"clips":[]})");
+        QVERIFY(parsed.timeline);
+        cut.setTimeline(std::move(*parsed.timeline));
+        const auto before = cut.documentJson();
+        const auto generation = cut.documentGeneration();
+        QQmlEngine engine;
+        QQmlComponent component(&engine, QUrl::fromLocalFile(QFINDTESTDATA("../../qml/assets/AssetExplorer.qml")));
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        std::unique_ptr<QObject> object(component.createWithInitialProperties({{"timeline", QVariant::fromValue(&cut)}, {"width", 320}, {"height", 640}}));
+        QVERIFY2(object, qPrintable(component.errorString()));
+        auto* panel = qobject_cast<QQuickItem*>(object.get());
+        QVERIFY(panel);
+        QQuickWindow window;
+        window.resize(320, 640);
+        panel->setParentItem(window.contentItem());
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        auto* browser = panel->findChild<AssetBrowser*>();
+        QVERIFY(browser);
+        QTRY_VERIFY(!browser->busy() && browser->assets().size() == 2);
+        const QString pictureId = "11111111111111111111111111111111";
+        panel->setProperty("selectedId", pictureId);
+        auto* tags = panel->findChild<QObject*>("libraryTagEditor");
+        QVERIFY(tags);
+        QTRY_COMPARE(panel->property("selectedId").toString(), pictureId);
+        QTRY_COMPARE(tags->property("text").toString(), QString("old"));
+        tags->setProperty("text", "hero, reference");
+        QVERIFY(QMetaObject::invokeMethod(tags, "textEdited"));
+        auto* save = panel->findChild<QObject*>("librarySaveTags");
+        QVERIFY(save);
+        QVERIFY(QMetaObject::invokeMethod(save, "clicked"));
+        QTRY_VERIFY(!browser->busy() && browser->error().contains("Tag write failed"));
+        QCOMPARE(tags->property("text").toString(), QString("hero, reference"));
+        QVERIFY(QMetaObject::invokeMethod(save, "clicked"));
+        QTRY_VERIFY(!browser->busy() && browser->error().isEmpty());
+        QTRY_COMPARE(browser->assets().first().toMap().value("metadata").toMap().value("tags").toStringList(), QStringList({"hero", "reference"}));
+        QVERIFY(QMetaObject::invokeMethod(panel, "renameSelected"));
+        auto* dialog = panel->findChild<QObject*>("libraryActionDialog");
+        auto* input = panel->findChild<QObject*>("libraryActionInput");
+        QVERIFY(dialog && input);
+        QTRY_VERIFY(dialog->property("opened").toBool());
+        input->setProperty("text", "Renamed image");
+        QVERIFY(QMetaObject::invokeMethod(dialog, "submit"));
+        QTRY_VERIFY(!browser->busy() && browser->assets().first().toMap().value("name").toString() == "Renamed image");
+        auto* favorite = panel->findChild<QObject*>("libraryFavorite");
+        QVERIFY(favorite);
+        QVERIFY(QMetaObject::invokeMethod(favorite, "clicked"));
+        QTRY_VERIFY(!browser->busy() && browser->assets().first().toMap().value("favorite").toBool());
+        auto* create = panel->findChild<QObject*>("libraryCreateFolder");
+        QVERIFY(create);
+        QVERIFY(QMetaObject::invokeMethod(create, "clicked"));
+        QTRY_VERIFY(dialog->property("opened").toBool());
+        input->setProperty("text", "References");
+        QVERIFY(QMetaObject::invokeMethod(dialog, "submit"));
+        QTRY_VERIFY(!browser->busy() && browser->assets().size() == 3);
+        QVERIFY(QMetaObject::invokeMethod(panel, "navigateFolder", Q_ARG(QVariant, QString("33333333333333333333333333333333"))));
+        QTRY_VERIFY(!browser->busy() && browser->assets().isEmpty());
+        QVERIFY(QMetaObject::invokeMethod(panel, "navigateFolder", Q_ARG(QVariant, QString())));
+        QTRY_VERIFY(!browser->busy() && browser->assets().size() == 3);
+        panel->setProperty("selectedId", pictureId);
+        const auto asset = browser->assets().first().toMap();
+        QVERIFY(QMetaObject::invokeMethod(panel, "showPreview", Q_ARG(QVariant, asset)));
+        auto* review = panel->findChild<CandidatePreview*>("libraryPreviewService");
+        QVERIFY(review);
+        QTRY_VERIFY_WITH_TIMEOUT(review->ready() || !review->error().isEmpty(), 15000);
+        QVERIFY2(review->ready(), qPrintable(review->error()));
+        QCOMPARE(review->previewTimeline()->timeline().width, 64);
+        QCOMPARE(review->previewTimeline()->timeline().height, 32);
+        QCOMPARE(review->audioMode(), QString("none"));
+        auto* audioChoice = panel->findChild<QObject*>("libraryPreviewAudio");
+        QVERIFY(audioChoice);
+        QVERIFY(!audioChoice->property("visible").toBool());
+        auto* preview = panel->findChild<QObject*>("assetPreview");
+        QVERIFY(preview);
+        QVERIFY(QMetaObject::invokeMethod(preview, "closePreview"));
+        QVERIFY(!review->ready());
+        QCOMPARE(cut.documentJson(), before);
+        QCOMPARE(cut.documentGeneration(), generation);
+        QCOMPARE(cut.undoStack()->count(), 0);
+        const auto capture = qEnvironmentVariable("NT_LIBRARY_CAPTURE");
+        if (!capture.isEmpty()) {
+            QTest::qWait(100);
+            QVERIFY(window.grabWindow().save(capture));
+        }
+    }
+
 };
 int main(int argc, char** argv) {
+    const bool probeLibrary = argc > 1 && QByteArray(argv[1]) == "--probe-library";
     const bool probeDrop = argc > 1 && QByteArray(argv[1]) == "--probe-drop";
     const bool listFolder = argc > 1 && QByteArray(argv[1]) == "--list-folder";
-    if (probeDrop || listFolder) {
+    if (probeDrop || listFolder || probeLibrary) {
         const int status = nt::server::takeServerArgs(argc, argv);
         if (status != 0) { return status; }
     }
     QGuiApplication app(argc, argv);
+    if (probeLibrary) {
+        app.setProperty("libraryProbe", true);
+        TestAssetBrowser test;
+        return QTest::qExec(&test, QStringList{app.arguments().first(), "libraryPanelServerSession"});
+    }
     if (listFolder) {
         const auto target = nt::server::serverSaveTarget();
         if (!target || target->server.port() == 7777) { return 2; }

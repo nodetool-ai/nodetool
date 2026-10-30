@@ -4,6 +4,15 @@ Visual AI workflow platform. Documents (workflows, timelines, sketches, storyboa
 
 ## Language
 
+### Asset library
+
+**Library collection**:
+A named selection of assets. An asset can belong to several library collections without changing its folder.
+_Avoid_: collection without a qualifier, which also names a vector-search collection
+
+**Asset tag**:
+A label attached to an asset for finding and filtering it in the library.
+
 ### Document sync
 
 **Document**:
