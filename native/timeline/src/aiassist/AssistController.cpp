@@ -483,4 +483,8 @@ bool AssistController::saveEntity(const QJsonObject& entity, const QJsonValue& e
     return call(true, "assets.update", {{"id", entity.value("id")}, {"expected_metadata", expectedMetadata}, {"metadata", entity.value("metadata")}});
 }
 
-bool AssistController::scriptDirty() const { return !m_scriptDrafts.value(draftKey(m_result.toMap().value("id").toString())).isEmpty(); }
+bool AssistController::scriptDirty() const {
+    const auto resource = QJsonObject::fromVariantMap(m_result.toMap());
+    return resource.value("document").toObject().value("sections").isArray() &&
+        !m_scriptDrafts.value(draftKey(resource.value("id").toString())).isEmpty();
+}

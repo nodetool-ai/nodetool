@@ -27,6 +27,65 @@ QString action(const StoryWorkspace& workspace) {
 class StoryWorkspaceTest : public QObject {
     Q_OBJECT
 private slots:
+    void mountedBrowseListsAndOpensResources_data() {
+        QTest::addColumn<QString>("kind");
+        QTest::addColumn<bool>("empty");
+        QTest::newRow("scripts") << QString("scripts") << false;
+        QTest::newRow("storyboards") << QString("storyboards") << false;
+        QTest::newRow("empty-scripts") << QString("scripts") << true;
+        QTest::newRow("empty-storyboards") << QString("storyboards") << true;
+    }
+    void mountedBrowseListsAndOpensResources() {
+        QFETCH(QString, kind);
+        QFETCH(bool, empty);
+        qmlRegisterSingletonType(QUrl::fromLocalFile(QStringLiteral(NT_STORY_SOURCE "/qml/Theme.qml")), "NodeTool.StoryWorkspaceTest", 1, 0, "Theme");
+        TimelineModel model; model.setTimeline(timeline());
+        AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
+        StoryWorkspace workspace; workspace.setController(&controller);
+        const QString resourceId = "123456789abc123456789abc12345678";
+        QString called, openedId;
+        controller.setCall([&](bool, const QString& procedure, const QJsonObject& input) {
+            called = procedure;
+            if (procedure.endsWith(".list")) {
+                return nt::server::QueryResult{empty ? QJsonArray{} : QJsonArray{QJsonObject{{"id", resourceId}, {"name", "Listed document"}}}, {}};
+            }
+            openedId = input.value("id").toString();
+            return nt::server::QueryResult{kind == "storyboards" ? board(resourceId) : QJsonObject{{"id", resourceId}, {"document", QJsonObject{{"sections", QJsonArray{}}}}}, {}};
+        });
+        QQmlEngine engine;
+        QFile source(qEnvironmentVariable("NODETOOL_STORY_EDITOR_TEST", QStringLiteral(NT_STORY_SOURCE "/qml/storyworkspace/StoryWorkspaceEditor.qml")));
+        QVERIFY(source.open(QIODevice::ReadOnly));
+        auto qml = source.readAll(); qml.replace("import NodeTool.Timeline", "import NodeTool.StoryWorkspaceTest");
+        QQmlComponent component(&engine); component.setData(qml, QUrl::fromLocalFile(source.fileName()));
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        std::unique_ptr<QObject> object(component.createWithInitialProperties({{"controller", QVariant::fromValue(&controller)}, {"workspace", QVariant::fromValue(&workspace)}}));
+        QVERIFY2(object, qPrintable(component.errorString()));
+        auto* item = qobject_cast<QQuickItem*>(object.get()); QVERIFY(item);
+        QQuickWindow window; window.resize(320, 480); item->setParentItem(window.contentItem()); item->setSize(window.size()); window.show();
+        QTRY_VERIFY(window.isVisible());
+        const auto findItem = [](QQuickItem* root, const QString& name, auto&& recurse) -> QQuickItem* {
+            if (root->objectName() == name) { return root; }
+            for (auto* child : root->childItems()) { if (auto* found = recurse(child, name, recurse)) { return found; } }
+            return nullptr;
+        };
+        auto* browse = findItem(item, kind == "scripts" ? "workspaceScripts" : "workspaceStoryboards", findItem);
+        QVERIFY(browse); QVERIFY(QMetaObject::invokeMethod(browse, "clicked"));
+        QTRY_VERIFY(!controller.busy()); QCOMPARE(called, kind + ".list");
+        QCOMPARE(controller.result().metaType().id(), QMetaType::QVariantList);
+        if (empty) {
+            auto* message = findItem(item, "workspaceListMessage", findItem); QVERIFY(message);
+            QVERIFY(message->property("text").toString().startsWith("No documents in this context."));
+        } else {
+            QQuickItem* row = nullptr;
+            QTRY_VERIFY_WITH_TIMEOUT((row = findItem(item, "workspaceResource_" + resourceId, findItem)), 2000);
+            QVERIFY(row->isVisible()); QCOMPARE(row->property("text").toString(), QString("Listed document"));
+            QVERIFY(QMetaObject::invokeMethod(row, "clicked")); QTRY_VERIFY(!controller.busy());
+            QCOMPARE(called, kind + ".get"); QCOMPARE(openedId, resourceId);
+            QCOMPARE(workspace.resource().value("id").toString(), resourceId);
+        }
+        QCOMPARE(model.undoStack()->count(), 0);
+        item->setParentItem(nullptr);
+    }
     void mountedNarrowEditorKeepsFocusAndSavesThroughF10() {
         qmlRegisterSingletonType(QUrl::fromLocalFile(QStringLiteral(NT_STORY_SOURCE "/qml/Theme.qml")), "NodeTool.StoryWorkspaceTest", 1, 0, "Theme");
         TimelineModel model; model.setTimeline(timeline());
@@ -83,6 +142,29 @@ private slots:
         const auto image = window.grabWindow(); QVERIFY(!image.isNull());
         QVERIFY(image.save(QDir::tempPath() + "/o5-workspace-narrow.png"));
         item->setParentItem(nullptr);
+    }
+    void lineDraftsDoNotMakeAnotherResourceKindWithSameIdDirty() {
+        const QString sharedId = "123456789abc123456789abc12345678";
+        TimelineModel model; model.setTimeline(timeline());
+        AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
+        const QJsonObject script{{"id", sharedId}, {"document", QJsonObject{{"sections", QJsonArray{QJsonObject{
+            {"id", "section"}, {"lines", QJsonArray{QJsonObject{{"id", "line"}, {"text", "Original"}}}}}}}}}};
+        const QJsonObject entity{{"id", sharedId}, {"metadata", QJsonObject{{"nodetool_entity", QJsonObject{{"kind", "character"}, {"name", "Alice"}}}}}};
+        controller.setCall([&](bool, const QString& procedure, const QJsonObject&) {
+            return nt::server::QueryResult{procedure == "scripts.get" ? script : procedure == "assets.get" ? entity : board(sharedId), {}};
+        });
+        QVERIFY(controller.openScript(sharedId)); QTRY_VERIFY(!controller.busy());
+        controller.setScriptLineDraft(sharedId, "line", "Retain this script draft"); QVERIFY(controller.scriptDirty());
+        QVERIFY(controller.openStoryboard(sharedId)); QTRY_VERIFY(!controller.busy()); QVERIFY(!controller.scriptDirty());
+        QVERIFY(controller.openEntity(sharedId)); QTRY_VERIFY(!controller.busy()); QVERIFY(!controller.scriptDirty());
+        QVERIFY(controller.openScript(sharedId)); QTRY_VERIFY(!controller.busy()); QVERIFY(controller.scriptDirty());
+        QVERIFY(controller.hasScriptLineDraft(sharedId, "line"));
+        bool retained = false;
+        for (const auto& value : controller.scriptRows()) {
+            const auto row = value.toMap();
+            if (row.value("id").toString() == "line") { retained = row.value("text").toString() == "Retain this script draft"; }
+        }
+        QVERIFY(retained); QCOMPARE(model.undoStack()->count(), 0);
     }
     void lateBoardRefreshCannotReplaceAnotherResourceKindWithSameId() {
         const QString sharedId = "123456789abc123456789abc12345678";
