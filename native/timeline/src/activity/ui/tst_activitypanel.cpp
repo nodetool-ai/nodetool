@@ -1,4 +1,5 @@
 #include <QGuiApplication>
+#include <QFontDatabase>
 #include <QLibraryInfo>
 #include <QQmlComponent>
 #include <QQmlEngine>
@@ -63,6 +64,11 @@ private:
 private slots:
     void init() { QTest::failOnWarning(QRegularExpression(".*")); }
     void initTestCase() {
+        const auto fontId = QFontDatabase::addApplicationFont(QStringLiteral(NT_ACTIVITY_SOURCE "/fonts/inter-latin-400-normal.woff2"));
+        QVERIFY(fontId >= 0);
+        const auto families = QFontDatabase::applicationFontFamilies(fontId);
+        QVERIFY(!families.isEmpty());
+        QGuiApplication::setFont(QFont(families.first()));
         qmlRegisterType<ActivityPanelSource>("NodeTool.Timeline", 1, 0, "ActivityController");
         qmlRegisterType<ActivityPanelSource>("NodeTool.Timeline", 1, 0, "LocalActivity");
         qmlRegisterSingletonType(QUrl::fromLocalFile(QStringLiteral(NT_ACTIVITY_SOURCE "/qml/Theme.qml")),
