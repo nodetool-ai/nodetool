@@ -1,11 +1,17 @@
 # Run against a configured Ninja/Makefiles build with compile commands enabled.
 file(STRINGS "${NT_BUILD_DIR}/compile_commands.json" sources REGEX "\"file\":")
 list(LENGTH sources count)
-set(registrations 0)
-set(theme_cache_objects 0)
+set(module_sources "")
 foreach(source IN LISTS sources)
     string(REGEX REPLACE ",$" "" source "${source}")
     string(JSON source GET "{${source}}" file)
+    list(APPEND module_sources "${source}")
+endforeach()
+# Multi-config generators compile the same module sources per configuration.
+list(REMOVE_DUPLICATES module_sources)
+set(registrations 0)
+set(theme_cache_objects 0)
+foreach(source IN LISTS module_sources)
     # ProviderDialogTests.cmake owns a deliberately isolated, small QML module.
     if(source MATCHES "tst_providerdialog(_qmltyperegistrations|_qml_Theme_qml)\\.cpp$")
         continue()
