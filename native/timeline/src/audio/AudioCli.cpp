@@ -250,14 +250,14 @@ int avSyncCli(int argc, char** argv) {
     std::uint64_t changeGeneration = 0;
     while (steadyNowNs() < endNs) {
         tickNow = steadyNowNs();
-        clock.tick();
         const playback::DeviceInfo dev = engine.feed().device.load();
         const playback::CallbackState cb = engine.feed().callback.load();
+        clock.tick();
         const double clockMs = clock.time();
         const playback::CallbackState after = engine.feed().callback.load();
         if (clock.audioMaster()) {
-            // A callback published during clock.time() would pair two different
-            // buffers at one host timestamp and manufacture a sync error.
+            // time() is cached by tick(). Reject a callback published during
+            // that tick so the measured frames use the same buffer.
             if (cb.hostTimeNs == after.hostTimeNs && cb.framesAtStart == after.framesAtStart) {
                 samples.push_back({playback::audibleTimeline(cb, dev, tickNow).audibleFrames, clockMs, dev.generation});
             }
