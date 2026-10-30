@@ -13,6 +13,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { measurePsnr } from "./measure-psnr.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -34,14 +35,7 @@ function parseArgs(argv) {
 }
 
 function measure(a, b) {
-  const result = execFileSync(
-    "bash",
-    ["-c", `ffmpeg -hide_banner -i "$0" -i "$1" -lavfi "[0:v]format=rgb24[a];[1:v]format=rgb24[b];[a][b]psnr" -f null - 2>&1`, a, b],
-    { encoding: "utf8" }
-  );
-  const m = /average:(inf|[0-9.]+)/.exec(result);
-  if (!m) throw new Error(`no PSNR in ffmpeg output for ${a}`);
-  return m[1] === "inf" ? Infinity : Number(m[1]);
+  return measurePsnr(a, b);
 }
 
 const args = parseArgs(process.argv.slice(2));
