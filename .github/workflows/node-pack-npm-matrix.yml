@@ -95,6 +95,7 @@ jobs:
         shell: bash
         env:
           ELECTRON_SKIP_BINARY_DOWNLOAD: '1'
+          NODETOOL_TURBO_CONCURRENCY: ${{ runner.os == 'Windows' && '1' || '' }}
         run: |
           npm ci --ignore-scripts
           npm run build:packages

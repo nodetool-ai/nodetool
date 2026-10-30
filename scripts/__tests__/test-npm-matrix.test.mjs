@@ -3,6 +3,7 @@ import { test } from "vitest";
 import { readFileSync } from "node:fs";
 import yaml from "js-yaml";
 import { assertNpmMatrixReport } from "../test-npm-matrix.mjs";
+import { turboArgs } from "../run-turbo.mjs";
 
 const assertions = Array.from({ length: 17 }, (_, index) => Array.from({ length: index === 7 ? 3 : index === 16 ? 2 : 1 }, () => ({
   fullName: `actual npm matrix M${String(index).padStart(2, "0")} scenario`, status: "passed"
@@ -47,4 +48,20 @@ test("the workflow schedules all six native platform and actual npm combinations
   assert.ok(bootstrap, "each native combination must exercise the initial global bootstrap");
   assert.equal(bootstrap["working-directory"], "packages/pack-manager");
   assert.equal(bootstrap.run, "node ../../scripts/run-vitest.mjs run tests/packs/global-bootstrap.test.ts");
+});
+
+test("Windows matrix setup serializes workspace builds without narrowing the build or installer matrix", () => {
+  const workflow = yaml.load(readFileSync(new URL("../../.github/workflows/node-pack-npm-matrix.yml", import.meta.url), "utf8"));
+  const steps = workflow.jobs["npm-matrix"].steps;
+  const build = steps.find(step => step.name === "Install and build the workspace");
+  assert.ok(build, "inspect the workspace build step");
+  assert.equal(build.env.NODETOOL_TURBO_CONCURRENCY, "${{ runner.os == 'Windows' && '1' || '' }}");
+  assert.match(build.run, /^npm ci --ignore-scripts$/m);
+  assert.match(build.run, /^npm run build:packages$/m);
+  assert.equal(build.if, undefined);
+  assert.deepEqual(turboArgs(["run", "build", "--filter=./packages/*"], { CI: "true", NODETOOL_TURBO_CONCURRENCY: "1" }), ["run", "build", "--filter=./packages/*", "--concurrency=1"]);
+  assert.deepEqual(turboArgs(["run", "build"], { CI: "true", NODETOOL_TURBO_CONCURRENCY: "" }), ["run", "build"]);
+  const matrix = steps.find(step => step.name === "Exercise the actual npm installer matrix");
+  assert.equal(matrix.run, "node scripts/test-npm-matrix.mjs");
+  assert.equal(matrix.env.NODETOOL_NPM_MATRIX, "1");
 });
