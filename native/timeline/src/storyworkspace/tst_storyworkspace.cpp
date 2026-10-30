@@ -84,6 +84,21 @@ private slots:
         QVERIFY(image.save(QDir::tempPath() + "/o5-workspace-narrow.png"));
         item->setParentItem(nullptr);
     }
+    void lateBoardRefreshCannotReplaceAnotherResourceKindWithSameId() {
+        const QString sharedId = "123456789abc123456789abc12345678";
+        TimelineModel model; model.setTimeline(timeline());
+        AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
+        const QJsonObject entity{{"id", sharedId}, {"metadata", QJsonObject{{"nodetool_entity", QJsonObject{{"kind", "character"}, {"name", "Alice"}}}}}};
+        const QJsonObject script{{"id", sharedId}, {"document", QJsonObject{{"sections", QJsonArray{}}}}};
+        controller.setCall([&](bool, const QString& procedure, const QJsonObject&) { return nt::server::QueryResult{procedure == "assets.get" ? entity : procedure == "scripts.get" ? script : board(sharedId), {}}; });
+        QVERIFY(controller.openEntity(sharedId)); QTRY_VERIFY(!controller.busy());
+        const auto entityBefore = controller.result(); controller.updateResource(board(sharedId, "rendered")); QCOMPARE(controller.result(), entityBefore);
+        QVERIFY(controller.openScript(sharedId)); QTRY_VERIFY(!controller.busy());
+        const auto scriptBefore = controller.result(); controller.updateResource(board(sharedId, "rendered")); QCOMPARE(controller.result(), scriptBefore);
+        QVERIFY(controller.openStoryboard(sharedId)); QTRY_VERIFY(!controller.busy());
+        controller.updateResource(board(sharedId, "rendered")); QCOMPARE(controller.result().toMap().value("updatedAt").toString(), QString("rendered"));
+        QCOMPARE(model.undoStack()->count(), 0);
+    }
     void orphanLineDraftRequiresExplicitLocalDiscard() {
         TimelineModel model; model.setTimeline(timeline());
         AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
