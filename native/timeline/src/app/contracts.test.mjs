@@ -136,8 +136,8 @@ int main(int argc, char** argv) {
     assert.doesNotMatch(output, /Warning \(dev\)/);
     const expected = [...readdirSync(path.join(directory, 'qml'), { recursive: true })
       .filter(file => /\.(qml|js)$/.test(file)).map(file => `qml/${file}`), 'src/app/PanelSlot.qml'].sort();
-    // App and every test QML module keep the same resource list, including the unlisted files.
-    for (const target of ['nodetool-timeline', 'tst_tracksui', 'tst_inspectorprimitives', 'tst_seamexample']) {
+    // The shared module keeps the complete discovered resource list for every host.
+    for (const target of ['timeline_qml']) {
       const resources = readFileSync(path.join(build, '.qt', 'rcc', `${target}_raw_qml_0.qrc`), 'utf8');
       assert.match(resources, /qml\/seamProbe\/UnlistedPanel.qml/);
       assert.match(resources, /qml\/seamProbe\/helper.js/);
