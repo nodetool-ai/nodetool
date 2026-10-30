@@ -18,11 +18,17 @@ sha256=b2751fccb6cc4c77708113cd78b561059b6fa904b24162fa0be2d60273d27b8e
 root=build-ffmpeg-lgpl
 prefix="$PWD/$root/install"
 [[ "${1:-}" == "--force" ]] && rm -rf "$root"
-if [[ -f "$prefix/lib/pkgconfig/libavcodec.pc" ]]; then
+if [[ -f "$prefix/lib/pkgconfig/libavcodec.pc" ]] && grep -qw libmp3lame "$root/configure.log"; then
     echo "kept $prefix"
     exit 0
 fi
 mkdir -p "$root/src" "$root/obj"
+pkg-config --exists lame || {
+    echo "error: MP3 export needs the libmp3lame development package (lame on Homebrew, libmp3lame-dev on Debian/Ubuntu)" >&2
+    exit 1
+}
+lame_cflags=$(pkg-config --cflags lame)
+lame_ldflags=$(pkg-config --libs-only-L lame)
 tarball="$root/ffmpeg-$version.tar.xz"
 [[ -f "$tarball" ]] || curl -sSfL -o "$tarball" "https://ffmpeg.org/releases/ffmpeg-$version.tar.xz"
 echo "$sha256  $tarball" | shasum -a 256 -c -
@@ -34,8 +40,8 @@ case "$(uname -s)" in
 esac
 (
     cd "$root/obj"
-    "../src/ffmpeg-$version/configure" --prefix="$prefix" --enable-shared --disable-static --disable-programs \
-        --disable-doc --disable-avdevice --disable-network "${platform[@]}" | tee ../configure.log
+    "../src/ffmpeg-$version/configure" --prefix="$prefix" --enable-shared --disable-static --disable-programs --enable-libmp3lame \
+        --disable-doc --disable-avdevice --disable-network --extra-cflags="$lame_cflags" --extra-ldflags="$lame_ldflags" "${platform[@]}" | tee ../configure.log
 )
 grep -q "^License: LGPL version 2.1 or later" "$root/configure.log" || {
     echo "error: the FFmpeg configuration is not LGPL" >&2
