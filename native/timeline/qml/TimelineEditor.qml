@@ -3,6 +3,7 @@
 import QtQuick
 import QtQuick.Layouts
 import NodeTool.Timeline
+import "assets/AssetContext.js" as Context
 
 Rectangle {
     id: root
@@ -12,7 +13,7 @@ Rectangle {
     property var chatSession: typeof nativeChatSession !== "undefined" ? nativeChatSession : null
     property var chatHost: typeof nativeChatHost !== "undefined" ? nativeChatHost : null
     readonly property bool chatInitiallyOpen: typeof nativeChatInitiallyOpen !== "undefined" && nativeChatInitiallyOpen
-    readonly property bool chatOpen: chatSession !== null && layoutStore.layout.hidden.indexOf("chat") < 0
+    readonly property bool chatOpen: chatSession !== null && dockCanvas.visiblePanels.indexOf("assistant") >= 0
     readonly property alias dockStore: layoutStore
     readonly property var dockPanels: {
         const panels = [{id: "program", title: "Program", defaultRegion: "viewport"},
@@ -22,9 +23,6 @@ Rectangle {
                 panels.push({id: panel.id, title: panel.title || panel.id,
                     defaultRegion: panel.id === "source" ? "viewport" : slot})
             }
-        }
-        if (chatSession !== null) {
-            panels.push({id: "chat", title: qsTr("Chat"), defaultRegion: "right"})
         }
         return panels
     }
@@ -36,13 +34,18 @@ Rectangle {
     Binding { target: root.clock; property: "durationMs"; value: root.timeline.contentEndMs }
     DockLayoutStore { id: layoutStore; objectName: "dockLayoutStore" }
     function toggleChat() {
-        layoutStore.dispatch({type: chatOpen ? "hide" : "reveal", panelId: "chat"})
+        layoutStore.dispatch({type: chatOpen ? "hide" : "reveal", panelId: "assistant"})
+    }
+    function openStoryResource(kind, id) {
+        const panelId = kind === "scripts" ? "script" : kind === "storyboards" ? "storyboard" : ""
+        if (!panelId || !id) return
+        layoutStore.dispatch({type: "reveal", panelId: panelId})
+        const panel = Context.itemNamed(root, panelId === "script" ? "timelineScriptPanel" : "timelineStoryboardPanel")
+        if (panel) panel.openResource(id)
     }
     Component.onCompleted: {
         layoutStore.registerPanels(dockPanels)
-        if (chatSession !== null) {
-            layoutStore.dispatch({type: chatInitiallyOpen ? "reveal" : "hide", panelId: "chat"})
-        }
+        if (chatInitiallyOpen) layoutStore.dispatch({type: "reveal", panelId: "assistant"})
     }
     FrameAnimation {
         running: root.clock.playing
@@ -102,15 +105,6 @@ Rectangle {
                     }
                 }
             }
-            StablePanelHost {
-                id: chatLoader
-                objectName: "nativeChatPanel"
-                dock: dockCanvas
-                panelId: "chat"
-                active: root.chatOpen
-                source: active ? "qrc:/qt/qml/NodeTool/Chat/ChatPanel.qml" : ""
-                onLoaded: item.session = root.chatSession
-            }
             PanelSlot { slot: "left"; dock: dockCanvas; anchors.fill: parent }
             PanelSlot { slot: "right"; dock: dockCanvas; anchors.fill: parent }
             PanelSlot { slot: "bottom"; dock: dockCanvas; anchors.fill: parent }
@@ -121,17 +115,6 @@ Rectangle {
         property: "selection"
         value: tracksHost.item && tracksHost.item.gestures ? tracksHost.item.gestures.selection : []
         when: root.chatHost !== null
-    }
-    onChatOpenChanged: {
-        if (chatSession) {
-            if (chatOpen) {
-                if (chatSession.connectionStatus === "disconnected") {
-                    chatSession.resumeConnection()
-                }
-            } else {
-                chatSession.suspendConnection()
-            }
-        }
     }
     PanelSlot { slot: "overlay"; anchors.fill: parent }
     ShortcutsSheet {

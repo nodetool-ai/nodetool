@@ -177,6 +177,23 @@ private slots:
                             {{"timeline_id", sequenceId}, {"target", "clip"}});
     QVERIFY(!result.value("ok").toBool());
     QCOMPARE(model.clipCount(), 1);
+    result = session.executeHostTool("ui_timeline_delete_clip",
+                                     {{"timeline_id", sequenceId}, {"target", "clip"}},
+                                     "chat-tool-call");
+    QVERIFY2(result.value("ok").toBool(), qPrintable(result.value("error").toString()));
+    QCOMPARE(model.clipCount(), 0);
+    model.undoStack()->undo();
+    QCOMPARE(model.clipCount(), 1);
+  }
+  void localDocumentUsesHostIdentity() {
+    TimelineModel model;
+    AssistantSession session;
+    session.setTimeline(&model);
+    const auto id = QStringLiteral("native-local:%1").arg(model.documentGeneration());
+    const auto result = session.executeHostTool("ui_timeline_get_state",
+                                                 {{"timeline_id", id}}, "local-state");
+    QVERIFY2(result.value("ok").toBool(), qPrintable(result.value("error").toString()));
+    QCOMPARE(result.value("sequenceId").toString(), id);
   }
   void canonicalGenerationToolsUseLiveController() {
     const QString sequenceId = "123456789abc123456789abc12345678";

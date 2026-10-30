@@ -6,10 +6,25 @@
 #include <QGuiApplication>
 #include <QJsonDocument>
 #include <QMimeDatabase>
+#include <QTimer>
 #include <QUuid>
 namespace nt::chat {
 ChatSession::ChatSession(QObject *parent)
-    : QObject(parent), m_threads(this), m_empty(this), m_client(this) {
+    : QObject(parent), m_threads(this), m_empty(this), m_client(this), m_catalog(this) {
+  m_catalog.setMode("chat");
+  m_catalog.setQuery([this](const QString &procedure, QJsonObject input,
+                            nt::modelpicker::Catalog::Completion done) {
+    m_client.call(procedure, input, false,
+                  [done = std::move(done)](QJsonValue value, QString error) mutable {
+                    done(value, error);
+                  });
+  });
+  connect(&m_catalog, &nt::modelpicker::Catalog::selectionCommitted, this,
+          [this](const QString &id, const QString &provider) {
+            m_model = id;
+            m_provider = provider;
+            emit stateChanged();
+          });
   connect(&m_client, &ChatClient::eventReceived, this,
           &ChatSession::applyEvent);
   connect(&m_client, &ChatClient::errorOccurred, this, &ChatSession::fail);
@@ -39,6 +54,12 @@ ChatSession::ChatSession(QObject *parent)
             m_client.send(result);
           }
         } else if (status == "disconnected") {
+          const auto pendingRequests = m_hostRequests.keys();
+          m_hostRequests.clear();
+          for (const auto &requestId : pendingRequests) {
+            emit hostResponseReceived({{"type", "rpc_response"}, {"request_id", requestId},
+                                       {"error", QJsonObject{{"message", "Chat connection closed."}}}});
+          }
           for (auto &[id, s] : m_states) {
             if (s.reconciling) {
               s.reloadHistory = true;
@@ -111,6 +132,22 @@ void ChatSession::connectToServer(const QUrl &url, const QString &token) {
   m_serverUrl = url;
   m_serverToken = token;
   m_client.connectToServer(url, token);
+  m_catalog.setIdentity(url.toString(QUrl::RemoveUserInfo) + QChar(0x1f) + token);
+  m_provider = m_catalog.selectedProvider();
+  m_model = m_catalog.selectedModelId();
+  emit stateChanged();
+}
+void ChatSession::useServerDefaultModel() { m_catalog.clearSelection(); }
+void ChatSession::openProviderSettings() {
+  if (m_serverUrl.scheme() != "http" && m_serverUrl.scheme() != "https") {
+    fail("Connect to a server before opening provider settings.");
+    return;
+  }
+  auto url = m_serverUrl;
+  url.setPath("/settings");
+  url.setQuery("tab=1");
+  url.setFragment({});
+  if (!QDesktopServices::openUrl(url)) fail("Could not open provider settings.");
 }
 void ChatSession::suspendConnection() { m_client.disconnectFromServer(); }
 void ChatSession::resumeConnection() {
@@ -119,6 +156,10 @@ void ChatSession::resumeConnection() {
   }
 }
 void ChatSession::disconnectFromServer() {
+  m_hostRequests.clear();
+  m_catalog.setIdentity({});
+  m_provider.clear();
+  m_model.clear();
   m_client.disconnectFromServer();
   m_serverUrl = QUrl{};
   m_serverToken.clear();
@@ -129,6 +170,7 @@ void ChatSession::disconnectFromServer() {
   m_actions.clear();
   m_hostCalls.clear();
   m_hostResults.clear();
+  m_hostRequests.clear();
   m_historyOrder.clear();
   m_error.clear();
   emit stateChanged();
@@ -317,6 +359,12 @@ void ChatSession::resolveMedia(const QString &id, const QJsonObject &message,
   }
 }
 void ChatSession::send() {
+  if (!m_model.isEmpty() && m_catalog.selectedModelId() == m_model &&
+      m_catalog.selectedProvider() == m_provider && m_catalog.loaded() &&
+      !m_catalog.selectionAvailable()) {
+    fail("The selected model is unavailable. Choose another model or use the server default.");
+    return;
+  }
   if (m_selected.isEmpty()) {
     fail("Create or select a conversation first");
     return;
@@ -375,9 +423,12 @@ void ChatSession::send() {
     message["model"] = m_model;
   }
   if (!m_hostContext.isEmpty()) {
-    message["system_prompt"] =
-        QString::fromUtf8(QJsonDocument::fromVariant(m_hostContext)
-                              .toJson(QJsonDocument::Compact));
+    const auto workflowId = m_hostContext.value("workflow_id").toString();
+    if (!workflowId.isEmpty()) message["workflow_id"] = workflowId;
+    const auto uiContext = m_hostContext.value("ui_context").toMap();
+    if (!uiContext.isEmpty()) message["ui_context"] = QJsonObject::fromVariantMap(uiContext);
+    const auto prompt = m_hostContext.value("system_prompt").toString();
+    if (!prompt.isEmpty()) message["system_prompt"] = prompt;
   }
   if (!m_client.send({{"command", "chat_message"}, {"data", message}})) {
     return;
@@ -408,6 +459,25 @@ void ChatSession::setHostTools(const QVariantList &tools) {
     m_client.send({{"type", "client_tools_manifest"},
                    {"tools", QJsonArray::fromVariantList(tools)}});
   }
+}
+bool ChatSession::sendHostRequest(const QString &command,
+                                  const QJsonObject &data,
+                                  const QString &requestId) {
+  if (requestId.isEmpty() || !m_client.ready() || m_hostRequests.size() >= 16 ||
+      m_hostRequests.contains(requestId)) return false;
+  const auto epoch = m_client.epoch();
+  m_hostRequests.insert(requestId, epoch);
+  QTimer::singleShot(120000, this, [this, requestId, epoch] {
+    if (m_hostRequests.value(requestId, 0) != epoch) return;
+    m_hostRequests.remove(requestId);
+    if (m_client.epoch() != epoch) return;
+    emit hostResponseReceived({{"type", "rpc_response"}, {"request_id", requestId},
+                               {"error", QJsonObject{{"message", "Host request timed out."}}}});
+  });
+  if (m_client.send({{"command", command}, {"request_id", requestId},
+                     {"data", data}})) return true;
+  m_hostRequests.remove(requestId);
+  return false;
 }
 void ChatSession::completeHostTool(const QString &id, const QVariantMap &result,
                                    const QString &error) {
@@ -545,6 +615,11 @@ void ChatSession::copyText(const QString &text) {
 void ChatSession::applyEvent(const QJsonObject &event) {
   const auto id = event["thread_id"].toString();
   const auto type = event["type"].toString();
+  if (type == "rpc_response" &&
+      m_hostRequests.remove(event["request_id"].toString())) {
+    emit hostResponseReceived(event);
+    return;
+  }
   if (id.isEmpty()) {
     if (type == "error") {
       fail(event["message"].toString());

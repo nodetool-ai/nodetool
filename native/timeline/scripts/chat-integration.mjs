@@ -80,9 +80,13 @@ export async function runChatIntegration(binary) {
           client.send(JSON.stringify({ message: "Mode set to text" }));
         } else if (message.type === "client_tools_manifest") {
           manifests += 1;
-          assert.deepEqual(message.tools.map((tool) => tool.name).sort(), [
-            "ui_timeline_add_marker", "ui_timeline_delete_marker", "ui_timeline_get_state", "ui_timeline_seek"
-          ]);
+          const names = message.tools.map((tool) => tool.name);
+          assert.equal(new Set(names).size, names.length, "Host tools must have unique names");
+          for (const name of ["ui_timeline_add_marker", "ui_timeline_delete_marker",
+            "ui_timeline_get_state", "ui_timeline_seek", "ui_timeline_move_clip",
+            "ui_timeline_generate_clip", "ui_timeline_plan_beats"]) {
+            assert.ok(names.includes(name), `Missing native host capability ${name}`);
+          }
           client.send(JSON.stringify(event));
         } else if (message.type === "tool_result") {
           assert.equal(message.tool_call_id, callId);

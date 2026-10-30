@@ -20,6 +20,7 @@ QtObject {
     readonly property color actionDisabled: Qt.rgba(1, 1, 1, 0.3)
     // palette.primary / secondary / info / success / warning / error
     readonly property color primary: "#3d68a8"
+    readonly property color primaryDark: "#2a4d80"
     readonly property color secondary: "#E879F9"
     readonly property color secondaryContrast: "#0B1220"
     readonly property color info: "#22D3EE"
@@ -49,6 +50,7 @@ QtObject {
 
     // CONTROL.height.xs, ICON_SIZE
     readonly property int controlXs: 24
+    readonly property int controlSm: 28
     readonly property int iconXs: 14
     readonly property int iconSm: 16
 

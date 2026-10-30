@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
+import NodeTool.ModelPicker
 
 Frame {
     id: root
@@ -93,9 +94,11 @@ Frame {
                 flat: true
                 id: modelChooser
                 objectName: "chooseChatModel"
-                text: root.session && root.session.model ? root.session.model + " ⌄" : qsTr("Default model ⌄")
+                text: root.session && root.session.model
+                      ? root.session.model + (root.session.modelCatalog.loaded && !root.session.modelCatalog.selectionAvailable ? qsTr(" (Unavailable)") : "") + " ⌄"
+                      : qsTr("Default model ⌄")
                 Accessible.name: qsTr("Choose provider and model")
-                onClicked: modelPicker.open()
+                onClicked: modelPicker.openAt(modelChooser)
             }
             Item {
                 Layout.fillWidth: true
@@ -120,83 +123,15 @@ Frame {
             }
         }
     }
-    component ModelField: TextField {
-        font.family: ChatTheme.sans
-        font.pixelSize: ChatTheme.label
-        color: ChatTheme.text
-        placeholderTextColor: ChatTheme.muted
-        selectionColor: ChatTheme.primary
-        selectByMouse: true
-        padding: ChatTheme.lg
-        background: Rectangle {
-            color: ChatTheme.background
-            radius: ChatTheme.radius
-            border.color: parent.activeFocus ? ChatTheme.primary : ChatTheme.divider
-        }
-    }
-    Popup {
+    ModelPicker {
         id: modelPicker
-        modal: true
-        focus: true
-        onOpened: providerField.forceActiveFocus()
-        onClosed: modelChooser.forceActiveFocus()
-        width: Math.min(root.width, ChatTheme.sidebar + ChatTheme.xxl)
-        y: -height - ChatTheme.md
-        padding: ChatTheme.xl
-        background: Rectangle {
-            color: ChatTheme.paper
-            radius: ChatTheme.bubbleRadius
-            border.color: ChatTheme.divider
+        catalog: root.session.modelCatalog
+        allowServerDefault: true
+        onUseServerDefaultRequested: {
+            root.session.useServerDefaultModel()
+            close()
         }
-        contentItem: ColumnLayout {
-            Label {
-                text: qsTr("Provider and model")
-                color: ChatTheme.text
-                font.weight: Font.Medium
-            }
-            ColumnLayout {
-                Layout.fillWidth: true
-                Label {
-                    text: qsTr("Provider")
-                    color: ChatTheme.muted
-                }
-                ModelField {
-                    id: providerField
-                    objectName: "chatProvider"
-                    Layout.fillWidth: true
-                    text: root.session ? root.session.provider : ""
-                    placeholderText: qsTr("Server default")
-                    Accessible.name: qsTr("Provider")
-                    onTextEdited: {
-                        if (root.session) {
-                            root.session.provider = text;
-                        }
-                    }
-                }
-                Label {
-                    text: qsTr("Model")
-                    color: ChatTheme.muted
-                }
-                ModelField {
-                    objectName: "chatModel"
-                    Layout.fillWidth: true
-                    text: root.session ? root.session.model : ""
-                    placeholderText: qsTr("Server default")
-                    Accessible.name: qsTr("Model")
-                    onTextEdited: {
-                        if (root.session) {
-                            root.session.model = text;
-                        }
-                    }
-                }
-            }
-            Label {
-                Layout.fillWidth: true
-                text: qsTr("Leave empty to use server defaults.")
-                color: ChatTheme.muted
-                wrapMode: Text.WordWrap
-            }
-        }
+        onAddProvidersRequested: root.session.openProviderSettings()
     }
     FileDialog {
         id: fileDialog

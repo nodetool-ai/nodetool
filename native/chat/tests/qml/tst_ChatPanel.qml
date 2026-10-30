@@ -195,27 +195,23 @@ TestCase {
         compare(message.width, 800)
         compare(Math.round(composer.mapToItem(panel, 0, 0).x), Math.round(message.mapToItem(panel, 0, 0).x))
     }
-    function test_modelPickerKeepsEditableProviderAndModel() {
+    function test_modelPickerUsesServerDefaultAndRestoresFocus() {
         const chooser = findChild(panel, "chooseChatModel")
         verify(chooser !== null)
+        testSession.provider = "test-provider"
+        testSession.model = "test-model"
         chooser.forceActiveFocus()
         keyClick(Qt.Key_Space)
         wait(30)
-        const provider = findChild(panel, "chatProvider")
-        const model = findChild(panel, "chatModel")
-        verify(provider.visible)
-        verify(model.visible)
-        tryCompare(provider, "activeFocus", true)
-        typeLetters("test")
-        compare(testSession.provider, "test")
-        keyClick(Qt.Key_Tab)
-        tryCompare(model, "activeFocus", true)
-        typeLetters("model")
-        compare(testSession.model, "model")
-        keyClick(Qt.Key_Escape)
+        const search = findChild(test.Window.window.contentItem, "modelPickerSearch")
+        const defaultButton = findChild(test.Window.window.contentItem, "modelPickerServerDefault")
+        verify(search !== null)
+        verify(defaultButton !== null)
+        tryCompare(search, "activeFocus", true)
+        mouseClick(defaultButton)
+        compare(testSession.provider, "")
+        compare(testSession.model, "")
         tryCompare(chooser, "activeFocus", true)
-        testSession.provider = ""
-        testSession.model = ""
     }
     function test_copyActionsWrapInsideNarrowColumn() {
         test.width = 400

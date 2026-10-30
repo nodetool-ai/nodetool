@@ -163,6 +163,8 @@ endforeach()
 
 include(src/app/QmlDiscovery.cmake)
 
+add_subdirectory(../model-picker ${CMAKE_CURRENT_BINARY_DIR}/model-picker)
+
 # Model and scene evaluation: no GUI, shared by the app and the tests.
 add_library(timeline_core STATIC ${NT_core})
 target_include_directories(timeline_core PUBLIC src)
@@ -195,13 +197,8 @@ target_compile_options(timeline_audio PRIVATE ${NT_WARNINGS})
 set_source_files_properties(src/audio/miniaudio.cpp PROPERTIES COMPILE_OPTIONS "${NT_NO_WARNINGS}")
 
 qt_add_executable(nodetool-timeline src/main.cpp ${NT_app})
-# The native chat client stays opt-in while its parity checks are exercised.
-option(NT_ENABLE_CHAT "Embed the native NodeTool chat panel" OFF)
-if(NT_ENABLE_CHAT)
-    add_subdirectory(../chat ${CMAKE_CURRENT_BINARY_DIR}/chat)
-    target_link_libraries(nodetool-timeline PRIVATE nodetool_chat nodetool_chatplugin)
-    target_compile_definitions(nodetool-timeline PRIVATE NT_ENABLE_CHAT)
-endif()
+add_subdirectory(../chat ${CMAKE_CURRENT_BINARY_DIR}/chat)
+target_link_libraries(nodetool-timeline PRIVATE nodetool_chat nodetool_chatplugin)
 # The edit operations one call at a time, for scripts/op-conformance.mjs.
 # Core only: no GUI, so a call starts in milliseconds.
 qt_add_executable(timeline-ops ${NT_ops})
@@ -238,7 +235,7 @@ qt_add_shaders(timeline_qml timeline_compositor_shaders
 list(REMOVE_DUPLICATES NT_qml_includes)
 target_include_directories(timeline_qml PUBLIC src/model src/playback src/preview src/ui src/edit ${NT_qml_includes})
 target_link_libraries(timeline_qml PUBLIC timeline_core timeline_decode timeline_audio
-    Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 PkgConfig::FFMPEG)
+    nodetool_model_picker nodetool_chat Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 PkgConfig::FFMPEG)
 
 function(nt_add_timeline_qml target)
     # OUTPUT_DIRECTORY belonged to the former per-executable module. Keep the
@@ -252,7 +249,8 @@ function(nt_add_timeline_qml target)
     get_target_property(host_sources ${target} SOURCES)
     list(REMOVE_ITEM host_sources ${NT_qml})
     set_property(TARGET ${target} PROPERTY SOURCES "${host_sources}")
-    target_link_libraries(${target} PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,timeline_qml>")
+    target_link_libraries(${target} PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,timeline_qml>"
+        nodetool_model_pickerplugin nodetool_chatplugin)
 endfunction()
 nt_add_timeline_qml(nodetool-timeline)
 # Compile-only check of the Linux hardware path on macOS: with a

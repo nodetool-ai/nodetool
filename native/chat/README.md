@@ -1,7 +1,7 @@
 # Native chat
 
 A C++20 and Qt Quick chat component, exported as `NodeTool.Chat`, with a
-standalone development app and an opt-in native timeline host. The server owns
+standalone development app and a native timeline host. The server owns
 agent execution and stored conversations. The UI follows the
 [Qt chat tutorial](https://doc.qt.io/qt-6/qtquickcontrols-chattutorial-example.html)
 with a C++ model and server-backed threads in place of local SQL contacts.
@@ -49,8 +49,10 @@ QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software native/chat/build/nodetool-c
 ```
 
 The composer keeps Enter for newlines and uses Ctrl+Enter or Cmd+Enter to send.
-This avoids submitting text during IME composition. The model button in the
-composer opens the provider and model fields. Both are optional and use server defaults when empty. In a narrow dock, chat opens
+This avoids submitting text during IME composition. The model button opens the
+shared model picker. Server default clears the provider and model together. The
+picker loads models from the connected server and opens its provider settings
+page for setup. In a narrow dock, chat opens
 the conversation first. The Chats button opens the thread list.
 
 ## State and media bounds
@@ -77,10 +79,10 @@ fail visibly.
 
 ## Timeline integration
 
-Configure `native/timeline` with `-DNT_ENABLE_CHAT=ON` to embed ChatPanel. The
-option defaults off while parity and platform acceptance remain incomplete.
-The host uses existing timeline commands and advertises only its supported
-tools. Standalone chat returns an explicit unsupported result for editor tools.
+The timeline Assistant embeds ChatPanel and connects through the server and
+in-memory token of the open server timeline. Its host uses existing undoable
+timeline commands and reviewed generation actions. Standalone chat returns an
+explicit unsupported result for editor tools.
 
 ## Packaging and platform acceptance
 

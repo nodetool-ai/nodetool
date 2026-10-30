@@ -81,8 +81,11 @@ public:
                              const QString &provider, const QString &model);
   void receive(const QJsonObject &frame);
   QJsonObject executeTool(const QString &name, const QJsonObject &args);
+  QJsonObject executeHostTool(const QString &name, const QJsonObject &args,
+                              const QString &callId);
 signals:
   void changed();
+  void hostToolCompleted(QString callId, QJsonObject result);
 private slots:
   void advanceBeatGeneration();
 
@@ -122,6 +125,7 @@ private:
   QString m_model;
   QStringList m_selected;
   QString m_threadId;
+  QSet<QString> m_externalHostCalls;
   HistoryCall m_historyCall;
   QJsonArray m_threads;
   QSet<QString> m_historyMessageIds;

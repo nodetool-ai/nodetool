@@ -3,6 +3,8 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import NodeTool.Timeline
+import NodeTool.ModelPicker
+import "../assets/AssetContext.js" as Context
 
 ColumnLayout {
     id: root
@@ -295,7 +297,9 @@ ColumnLayout {
                     Layout.fillWidth: true
                     readonly property var selected: field.row.value && typeof field.row.value === "object" ? field.row.value : ({})
                     readonly property string selectedId: typeof field.row.value === "string" ? field.row.value : (selected.repo_id || selected.id || "")
+                    readonly property var pickerCatalog: modelCatalog
                     ModelCatalogController { id: modelCatalog; mode: field.row.kind }
+                    Connections { target: root.timeline; function onDocumentReplaced() { modelCatalog.reload() } }
                     ComboBox {
                         objectName: "workflowInputModelScope_" + field.row.name
                         visible: field.row.kind === "huggingface_model"
@@ -303,32 +307,20 @@ ColumnLayout {
                         Accessible.name: "Hugging Face model source"
                         onActivated: index => modelCatalog.modelScope = index === 0 ? "local" : "worker"
                     }
-                    ComboBox {
+                    ModelPickerButton {
                         id: workflowModel
                         objectName: "workflowInputModel_" + field.row.name
                         Layout.fillWidth: true
-                        model: modelCatalog.models
-                        textRole: "name"
-                        delegate: ItemDelegate {
-                            required property var modelData
-                            width: workflowModel.width
-                            text: (modelData.name || modelData.id) + " (" + modelData.provider + ")"
-                        }
-                        currentIndex: {
-                            for (let i = 0; i < modelCatalog.models.length; ++i) {
-                                const candidate = modelCatalog.models[i]
-                                if (field.row.kind === "huggingface_model") {
-                                    const parts = candidate.id.split(":")
-                                    if (parts[0] === modelControl.selectedId && (parts[1] || candidate.path || "") === (modelControl.selected.path || "")) return i
-                                } else if (candidate.id === modelControl.selectedId && (!modelControl.selected.provider || candidate.provider === modelControl.selected.provider)) return i
-                            }
-                            return -1
-                        }
-                        displayText: currentIndex >= 0 ? currentText + " (" + modelCatalog.models[currentIndex].provider + ")" : modelControl.selectedId || (modelCatalog.loading ? "Loading models…" : "Select model")
+                        catalog: modelControl.pickerCatalog
+                        selectedId: field.row.kind === "huggingface_model" && modelControl.selected.path ? modelControl.selectedId + ":" + modelControl.selected.path : modelControl.selectedId
+                        selectedProvider: modelControl.selected.provider || (field.row.kind === "huggingface_model" ? "huggingface" : "")
                         enabled: !inspector.locked
                         Accessible.name: field.row.label || field.row.name
-                        onActivated: index => {
-                            const chosen = modelCatalog.models[index]
+                        onAddProvidersRequested: {
+                            const dialog = Context.itemNamed(root.Window.window ? root.Window.window.contentItem : null, "providerSettingsDialog")
+                            if (dialog) dialog.open()
+                        }
+                        onSelected: chosen => {
                             if (field.row.kind === "huggingface_model") {
                                 const parts = chosen.id.split(":")
                                 const repo = parts[0]

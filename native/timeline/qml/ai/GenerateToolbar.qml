@@ -4,10 +4,13 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import NodeTool.Timeline
+import NodeTool.ModelPicker
 import "../Tracks" as Tracks
+import "../assets/AssetContext.js" as Context
 
 Item {
     id: root
+    readonly property var pickerCatalog: catalog
     property TimelineModel timeline: null
     property ClipGestureController gestures: null
     property TimelineViewState viewState: null
@@ -25,6 +28,7 @@ Item {
         id: catalog
         mode: mode.currentIndex === 0 ? "video" : mode.currentIndex === 1 ? "audio" : "music"
     }
+    Connections { target: root.timeline; function onDocumentReplaced() { catalog.reload() } }
     property alias generationController: generation
     property var registeredGestures: null
     function registerHost() {
@@ -186,20 +190,16 @@ Item {
                     background: Rectangle { color: Theme.backgroundDefault; border.color: Theme.overlay; radius: Theme.radiusSm }
                 }
                 Label { text: "Model"; color: Theme.textSecondary }
-                ComboBox {
+                ModelPickerButton {
                     id: modelPicker
                     objectName: "generationModel"
                     Layout.fillWidth: true
-                    model: catalog.models
-                    textRole: "name"
-                    currentIndex: {
-                        for (let i = 0; i < catalog.models.length; ++i)
-                            if (catalog.models[i].id === catalog.selectedModelId && catalog.models[i].provider === catalog.selectedProvider) return i
-                        return -1
-                    }
-                    displayText: currentIndex < 0 ? (catalog.loading ? "Loading models…" : "Select model") : currentText
+                    catalog: root.pickerCatalog
                     Accessible.name: "Model"
-                    onActivated: index => catalog.selectModel(catalog.models[index].id, catalog.models[index].provider)
+                    onAddProvidersRequested: {
+                        const dialog = Context.itemNamed(root.Window.window ? root.Window.window.contentItem : null, "providerSettingsDialog")
+                        if (dialog) dialog.open()
+                    }
                 }
                 Label { visible: catalog.error !== ""; text: catalog.error; color: Theme.error; Layout.fillWidth: true; wrapMode: Text.Wrap }
                 RowLayout {
@@ -287,7 +287,7 @@ Item {
                     Button {
                         objectName: "generationSubmit"
                         text: "Generate"
-                        enabled: generation.ready && !generation.busy && prompt.text.trim() !== "" && catalog.selectedProvider !== "" && catalog.selectedModelId !== ""
+                        enabled: generation.ready && !generation.busy && prompt.text.trim() !== "" && catalog.selectionAvailable
                         onClicked: {
                             const start = root.gestures && root.gestures.clock ? root.gestures.clock.time : 0
                             generation.submit(mode.currentIndex === 0 ? "video" : mode.currentIndex === 1 ? "audio" : "music",

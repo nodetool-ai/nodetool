@@ -31,6 +31,14 @@ QVariantMap DockLayoutStore::call(const QString& name, const QVariantList& args)
     if (result.isError()) { qWarning().noquote() << "Dock:" << result.toString(); return {}; }
     return result.toVariant().toMap();
 }
+QVariantMap DockLayoutStore::withScriptPanelSelected(const QVariantMap& layout) {
+    const bool hasScript = std::any_of(m_panels.cbegin(), m_panels.cend(), [](const QVariant& panel) {
+        return panel.toMap().value("id") == QStringLiteral("script");
+    });
+    if (!hasScript) return layout;
+    const auto selected = call("transition", {layout, QVariantMap{{"type", "reveal"}, {"panelId", "script"}}});
+    return selected.isEmpty() ? layout : selected;
+}
 void DockLayoutStore::persist() {
     m_workspaces.insert(m_workspace, m_layout);
     const QJsonObject value{{"workspace", m_workspace}, {"workspaces", QJsonObject::fromVariantMap(m_workspaces)}};
@@ -50,17 +58,20 @@ void DockLayoutStore::registerPanels(const QVariantList& panels) {
     m_panels = panels;
     const auto next = call("registerMissingPanels", {m_layout, panels});
     if (next.isEmpty() || next == m_layout) { return; }
-    m_layout = next;
+    m_layout = m_workspace == "Script" && !m_workspaces.contains(m_workspace)
+        ? withScriptPanelSelected(next) : next;
     emit changed();
 }
 void DockLayoutStore::switchWorkspace(int index) {
     if (index < 0 || index >= workspaces().size()) { return; }
     m_workspaces.insert(m_workspace, m_layout);
     const auto name = workspaces()[index];
-    const auto next = m_workspaces.contains(name) ? call("hydrate", {m_workspaces.value(name)})
+    const bool saved = m_workspaces.contains(name);
+    const auto next = saved ? call("hydrate", {m_workspaces.value(name)})
         : call("presetWithExtensions", {m_layout, name});
     m_workspace = name;
     m_layout = call("registerMissingPanels", {next, m_panels});
+    if (name == "Script" && !saved) m_layout = withScriptPanelSelected(m_layout);
     ++m_epoch;
     persist();
     emit changed();
@@ -68,6 +79,7 @@ void DockLayoutStore::switchWorkspace(int index) {
 void DockLayoutStore::resetWorkspace() {
     m_layout = call("presetWithExtensions", {m_layout, m_workspace});
     m_layout = call("registerMissingPanels", {m_layout, m_panels});
+    if (m_workspace == "Script") m_layout = withScriptPanelSelected(m_layout);
     ++m_epoch;
     persist();
     emit changed();

@@ -752,10 +752,10 @@ private slots:
         QVERIFY(root);
         QTRY_VERIFY(itemNamed(root, "assetExplorer"));
         QTRY_VERIFY(itemNamed(root, "assetDropOverlay"));
-        QTRY_VERIFY(itemNamed(root, "storyWorkspacePanel"));
-        auto* story = itemNamed(root, "storyWorkspacePanel");
+        QTRY_VERIFY(itemNamed(root, "timelineScriptPanel"));
+        QTRY_VERIFY(itemNamed(root, "timelineStoryboardPanel"));
+        auto* story = itemNamed(root, "timelineScriptPanel");
         QVERIFY(itemNamed(story, "storyWorkspaceEditor"));
-        QVERIFY(!itemNamed(story, "timelineScriptPanel"));
         for (auto* child : story->findChildren<QObject*>()) {
             const auto text = child->property("text").toString();
             QVERIFY(text != "Production" && text != "Workspace");
@@ -833,6 +833,10 @@ private slots:
         root->setParentItem(window.contentItem());
         window.show();
         QVERIFY(QTest::qWaitForWindowExposed(&window));
+        auto* dockStore = root->findChild<QObject*>("dockLayoutStore");
+        QVERIFY(dockStore);
+        QVERIFY(QMetaObject::invokeMethod(dockStore, "dispatch", Q_ARG(QVariantMap,
+            (QVariantMap{{"type", "reveal"}, {"panelId", "assets"}}))));
         QTRY_VERIFY(itemNamed(root, "assetExplorer"));
         auto* explorer = itemNamed(root, "assetExplorer");
         auto* browser = explorer->findChild<AssetBrowser*>();
@@ -841,6 +845,7 @@ private slots:
         emit browser->assetsChanged();
         auto* grid = itemNamed(root, "libraryGrid");
         QVERIFY(grid);
+        QTRY_VERIFY(grid->isVisible());
         QTRY_VERIFY(!grid->childItems().isEmpty());
         auto* lanes = itemNamed(root, "lanesViewport");
         QVERIFY(lanes);

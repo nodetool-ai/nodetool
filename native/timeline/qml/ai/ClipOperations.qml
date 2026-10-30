@@ -2,9 +2,12 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import NodeTool.Timeline
+import NodeTool.ModelPicker
+import "../assets/AssetContext.js" as Context
 
 ColumnLayout {
     id: root
+    readonly property var pickerCatalog: catalog
     required property TimelineModel timeline
     required property ClipGestureController gestures
     required property var controller
@@ -17,6 +20,7 @@ ColumnLayout {
         id: catalog
         mode: root.selectedClip.mediaType === "image" ? "image_to_video" : operation.currentIndex === 1 ? "extend_video" : "video_to_video"
     }
+    Connections { target: root.timeline; function onDocumentReplaced() { catalog.reload() } }
     Label { text: "Selected clip: " + (root.selectedClip.name || "Clip"); color: Theme.textPrimary; font.weight: Font.DemiBold }
     ComboBox {
         id: operation
@@ -27,20 +31,16 @@ ColumnLayout {
         Accessible.name: "Clip operation"
     }
     Label { text: root.selectedClip.mediaType === "image" ? "Image to video" : operation.currentIndex === 1 ? "Extend" : "AI edit"; color: Theme.textSecondary }
-    ComboBox {
+    ModelPickerButton {
         id: modelPicker
         objectName: "clipAiModel"
         Layout.fillWidth: true
-        model: catalog.models
-        textRole: "name"
-        currentIndex: {
-            for (let i = 0; i < catalog.models.length; ++i)
-                if (catalog.models[i].id === catalog.selectedModelId && catalog.models[i].provider === catalog.selectedProvider) return i
-            return -1
-        }
-        displayText: currentIndex < 0 ? (catalog.loading ? "Loading models…" : "Select model") : currentText
-        onActivated: index => catalog.selectModel(catalog.models[index].id, catalog.models[index].provider)
+        catalog: root.pickerCatalog
         Accessible.name: "Clip generation model"
+        onAddProvidersRequested: {
+            const dialog = Context.itemNamed(root.Window.window ? root.Window.window.contentItem : null, "providerSettingsDialog")
+            if (dialog) dialog.open()
+        }
     }
     Label { visible: catalog.error !== ""; text: catalog.error; color: Theme.error; Layout.fillWidth: true; wrapMode: Text.Wrap }
     TextArea {
@@ -59,7 +59,7 @@ ColumnLayout {
         Label { text: "Extend from"; color: Theme.textSecondary }
         ComboBox {
             id: direction
-            readonly property var tasks: modelPicker.currentIndex >= 0 ? (catalog.models[modelPicker.currentIndex].supported_tasks || []) : []
+            readonly property var tasks: catalog.selectedModel.supported_tasks || []
             readonly property bool explicitDirections: tasks.includes("extend_video_start") || tasks.includes("extend_video_end")
             model: explicitDirections ? [tasks.includes("extend_video_end") ? "End" : "", tasks.includes("extend_video_start") ? "Start" : ""].filter(x => x !== "") : ["End", "Start"]
             Accessible.name: "Extend from"
@@ -75,10 +75,10 @@ ColumnLayout {
     Button {
         objectName: "clipAiSubmit"
         text: root.selectedClip.mediaType === "image" ? "Generate video" : operation.currentIndex === 1 ? "Generate extension" : "Generate edit"
-        enabled: root.controller.ready && !root.controller.busy && !inspector.locked && catalog.selectedModelId !== "" &&
+        enabled: root.controller.ready && !root.controller.busy && !inspector.locked && catalog.selectionAvailable &&
                  (root.selectedClip.mediaType === "video" && operation.currentIndex === 1 || instruction.text.trim() !== "")
         onClicked: {
-            const selected = catalog.models[modelPicker.currentIndex]
+            const selected = catalog.selectedModel
             const videoModel = { id: selected.id, provider: selected.provider, durations: catalog.constraints.durations || [],
                 aspectRatios: catalog.constraints.aspectRatios || [], resolutions: catalog.constraints.resolutions || [],
                 supportedTasks: selected.supported_tasks || [] }
