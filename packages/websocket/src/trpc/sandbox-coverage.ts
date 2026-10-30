@@ -928,6 +928,11 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "scripts.update": { capability: "edit_script" },
   "segmentation.segment": { capability: "segment_image" },
   "settings.list": { capability: "list_settings" },
+  "settings.providerCatalog": {
+    elsewhere:
+      "list_secrets exposes credential names and configured status; " +
+      "list_models and list_provider_models expose provider discovery."
+  },
   "settings.history.get": {
     withheld:
       "Database size, retention policy, and cleanup status are host " +
