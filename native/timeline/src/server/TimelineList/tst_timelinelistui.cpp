@@ -105,7 +105,7 @@ private slots:
                 qunsetenv("NODETOOL_SERVER_URL");
             }
         });
-        qunsetenv("NODETOOL_SERVER_URL");
+        qputenv("NODETOOL_SERVER_URL", "invalid");
         bool sawList = false;
         bool sawError = false;
         QTimer close;

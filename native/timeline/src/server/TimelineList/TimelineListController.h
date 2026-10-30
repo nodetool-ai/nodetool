@@ -19,6 +19,7 @@ public:
     TimelineListController(QUrl server, QString token, QString instance, QObject* parent = nullptr);
     QVariantList documents() const { return m_documents; }
     QVariantList projects() const { return m_projects; }
+    QUrl serverUrl() const { return m_server; }
     QString projectId() const { return m_projectId; }
     QString error() const { return m_error; }
     bool busy() const { return m_busy; }
