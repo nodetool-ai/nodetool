@@ -276,6 +276,9 @@ AudioEffects { selection: ["c"]; open: true; width: 400 })", QUrl());
         raw.insert("durationMs", 7000);
         AudioEditor e(QJsonDocument(raw).toJson());
         QVERIFY2(e.object, qPrintable(e.error));
+        // Keep the complete clip visible beside the registered side panels.
+        e.root()->setWidth(1800);
+        e.window.resize(1800, e.window.height());
         QVERIFY(QTest::qWaitForWindowExposed(&e.window));
         e.gestures()->viewState()->zoomTo(20, 0);
         e.gestures()->viewState()->setScrollLeftPx(0);
@@ -292,6 +295,8 @@ AudioEffects { selection: ["c"]; open: true; width: 400 })", QUrl());
         auto* out = e.item("fadeGrip-out-c");
         QVERIFY(out);
         QVERIFY(in->isVisible());
+        auto* lanes = e.item("lanesViewport");
+        QVERIFY(lanes);
         const auto before = e.model.clipsJson();
         for (auto* grip : {in, out}) {
             const bool incoming = grip == in;
@@ -299,6 +304,7 @@ AudioEffects { selection: ["c"]; open: true; width: 400 })", QUrl());
             for (const auto [delta, wanted] : {std::pair{180, 4200.0}, std::pair{-40, 0.0}, std::pair{500, 4400.0}}) {
                 const auto point = grip->mapToScene({grip->width() / 2, grip->height() / 2}).toPoint();
                 const auto end = point + QPoint(incoming ? delta : -delta, 0);
+                QVERIFY2(lanes->contains(lanes->mapFromScene(point)), "Fade grip must be inside the visible lane before pressing");
                 QTest::mousePress(&e.window, Qt::LeftButton, Qt::NoModifier, point);
                 QTest::mouseMove(&e.window, end, 20);
                 QCOMPARE(e.model.clipsJson()[0].toObject()[field].toDouble(), wanted);
