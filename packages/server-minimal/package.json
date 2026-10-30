@@ -1,0 +1,69 @@
+{
+  "name": "@nodetool-ai/server-minimal",
+  "version": "0.8.4",
+  "description": "Authenticated lean NodeTool execution server",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "test": "node ../../scripts/run-vitest.mjs run",
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit"
+  },
+  "dependencies": {
+    "@nodetool-ai/auth": "*",
+    "@nodetool-ai/database-sqlite": "*",
+    "@nodetool-ai/models-core": "*",
+    "@nodetool-ai/runtime-core": "*",
+    "@nodetool-ai/security-core": "*",
+    "@nodetool-ai/server-core": "*",
+    "@nodetool-ai/server-features": "*",
+    "@nodetool-ai/nodes-core": "*"
+  },
+  "devDependencies": {
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "vitest": "^5.0.1",
+    "@types/node": "^22.0.0"
+  },
+  "exports": {
+    ".": {
+      "nodetool-dev": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/server-minimal"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "message-types",
+    "msgpack",
+    "protocol",
+    "websocket"
+  ],
+  "bin": {
+    "nodetool-server-minimal": "dist/main.js"
+  }
+}

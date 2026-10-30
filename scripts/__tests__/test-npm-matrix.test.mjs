@@ -40,11 +40,11 @@ test("the workflow schedules all six native platform and actual npm combinations
     assert.match(row.npm, row.node === "22" ? /^10\.9\./ : /^11\./);
     assert.equal(row.arch, row.os === "macos-15" ? "ARM64" : "X64");
   }
-  assert.ok(workflow.on.pull_request.paths.includes("packages/cli/src/npm-runner.ts"));
-  assert.ok(workflow.on.pull_request.paths.includes("packages/cli/src/packs/**"));
-  assert.ok(workflow.on.pull_request.paths.includes("packages/cli/tests/packs/global-bootstrap.test.ts"));
+  assert.ok(workflow.on.pull_request.paths.includes("packages/cli-full/src/npm-runner.ts"));
+  assert.ok(workflow.on.pull_request.paths.includes("packages/cli-full/src/packs/**"));
+  assert.ok(workflow.on.pull_request.paths.includes("packages/cli-full/tests/packs/global-bootstrap.test.ts"));
   const bootstrap = workflow.jobs["npm-matrix"].steps.find(step => step.name === "Verify initial global integrity bootstrap");
   assert.ok(bootstrap, "each native combination must exercise the initial global bootstrap");
-  assert.equal(bootstrap["working-directory"], "packages/cli");
+  assert.equal(bootstrap["working-directory"], "packages/cli-full");
   assert.equal(bootstrap.run, "node ../../scripts/run-vitest.mjs run tests/packs/global-bootstrap.test.ts");
 });

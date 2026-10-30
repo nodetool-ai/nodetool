@@ -53,6 +53,15 @@ const runtimeLibraries = {
 };
 
 export const CATALOG_PACKS = [
+  {
+    id: "cli-full",
+    npmName: "@nodetool-ai/cli-full",
+    registrar: "feature",
+    kind: "cli-feature",
+    provides: [],
+    runtimeLibraries: [],
+    secrets: []
+  },
   ...[
     ["core", "registerCoreNodes"],
     ["text", "registerTextNodes"],

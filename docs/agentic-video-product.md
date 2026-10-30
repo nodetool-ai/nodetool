@@ -40,7 +40,7 @@ reused NodeTool.
 | Agent chat in every editor | `ChatView` + per-document agent panels and bridges |
 | Persistence | tRPC `storyboards` / `scripts` / `timeline` routers, autosave hooks |
 | Cost data | prediction ledger (`nodetool_predictions`) via `costs.dashboard` |
-| Headless QA | `nodetool timeline validate`, `storyboard`/`script` render tools, the tool-loop evals, and the `script-storyboard-link` harness selfcheck (`packages/cli/src/harness/registry.ts`) the gate runs on diffs touching either surface |
+| Headless QA | `nodetool timeline validate`, `storyboard`/`script` render tools, the tool-loop evals, and the `script-storyboard-link` harness selfcheck (`packages/cli-full/src/harness/registry.ts`) the gate runs on diffs touching either surface |
 
 The Studio module itself is five small files in `web/src/studio/` plus four
 routes in `web/src/index.tsx`. Nothing under `web/src/components/` changed.

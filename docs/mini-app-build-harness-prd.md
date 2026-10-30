@@ -125,7 +125,7 @@ prompt ──▶ SPEC ──▶ PLAN ──▶ AUTHOR ──▶ CHECK ──▶ 
 | **Spec** | LLM turns the prompt into an app spec: operations, widget list, variables, interaction expectations | New |
 | **Plan** | GraphPlanner authors each workflow the spec names (or binds an existing one by id) | `packages/agents` GraphPlanner |
 | **Author** | LLM drives `ui_app_*` against the headless bridge to build the document | `evals/surfaces/app.ts` bridge, promoted out of evals |
-| **Check** | Static wiring pass — `app debug --no-run` + `validate` per workflow | `packages/cli/src/app-debug/` |
+| **Check** | Static wiring pass — `app debug --no-run` + `validate` per workflow | `packages/cli-full/src/app-debug/` |
 | **Run** | Every operation, headlessly, with an interaction script **derived from the spec** (fill inputs, click run triggers, write the gate variable, click the second trigger) | `app debug` runtime + new script derivation |
 | **Judge** | LLM judge scores final widget states against the spec's expectations, same pattern as `graph-e2e`'s goal judge | `evals/goal-judge.ts` pattern |
 | **Repair** | Failures (validation issues, run errors, judge misses) go back to the author stage as a diff-shaped complaint; bounded rounds | New |

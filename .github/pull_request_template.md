@@ -21,7 +21,7 @@ declared contract (name, description, input schema, permission category,
 
 - [ ] `npm run capabilities:check` passes
 - [ ] Every added or re-declared capability names an eval case or a suite in
-      `packages/cli/src/harness/capability-table.ts`, or carries a gap note
+      `packages/cli-full/src/harness/capability-table.ts`, or carries a gap note
       saying what a check for it would look like
 
 ## New checks

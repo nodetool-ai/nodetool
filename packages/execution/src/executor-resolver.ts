@@ -1,7 +1,7 @@
 /**
  * The three-branch executor resolver: registry → Python bridge → throw.
- * Copy-pasted, before this package, in `packages/cli/src/nodetool.ts`,
- * `packages/cli/src/debug/server-runner.ts`, and
+ * Copy-pasted, before this package, in `packages/cli-full/src/nodetool.ts`,
+ * `packages/cli-full/src/debug/server-runner.ts`, and
  * `packages/websocket/src/headless-job-runner.ts`. See the package README's
  * inventory table (row "Executor resolution").
  */

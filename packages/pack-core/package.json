@@ -1,0 +1,53 @@
+{
+  "name": "@nodetool-ai/pack-core",
+  "version": "0.8.4",
+  "description": "Lean installed pack metadata and admitted package loaders",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "nodetool-dev": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./*": {
+      "nodetool-dev": "./src/*.ts",
+      "types": "./dist/*.d.ts",
+      "import": "./dist/*.js"
+    },
+    "./index.json": "./dist/index.json",
+    "./nodes.ndjson.gz": "./dist/nodes.ndjson.gz"
+  },
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs && node build.mjs",
+    "test": "node ../../scripts/run-vitest.mjs run",
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "vitest": "^5.0.1"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/pack-core"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "dependencies": {
+    "@nodetool-ai/config": "*",
+    "@nodetool-ai/protocol": "*",
+    "zod": "^4.4.3"
+  }
+}

@@ -44,6 +44,23 @@ function fixture({ duplicate = false, propertyDefault = null, empty = false } = 
 const generate = (input) => generateCatalog(input.definitions, input.options);
 
 describe("node catalog generator", () => {
+  it("catalogs an explicit CLI feature without loading its command tree", async () => {
+    const input = fixture();
+    const originalLoad = input.options.loadPack;
+    const originalManifest = input.options.readManifest;
+    const feature = { id: "cli-full", kind: "cli-feature", npmName: "@nodetool-ai/cli-full", registrar: "feature", provides: [], runtimeLibraries: [], secrets: [] };
+    input.definitions.push(feature);
+    input.options.loadPack = async (name) => {
+      if (name === feature.npmName) { throw new Error("Full CLI must not load during catalog generation"); }
+      return originalLoad(name);
+    };
+    input.options.readManifest = async (name) => name === feature.npmName
+      ? { version: "1.2.3", dependencies: { "@nodetool-ai/core-nodes": "1.2.3" } }
+      : originalManifest(name);
+    const index = JSON.parse((await generate(input)).index);
+    expect(index.packs.find(pack => pack.id === feature.id)).toMatchObject({ kind: "cli-feature", nodeCount: 0, requires: [], npm: { name: feature.npmName, integrity: "" } });
+    expect(Object.keys(index.owners)).toHaveLength(3);
+  });
   it("takes ownership from each registrar and requirements from pack dependencies", async () => {
     const generated = await generate(fixture());
     const index = JSON.parse(generated.index);

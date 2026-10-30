@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { computeAffected, EXTRA_WORKSPACE_PATHS } from "../../packages/cli/src/affected/affected.ts";
+import { computeAffected, EXTRA_WORKSPACE_PATHS } from "../../packages/cli-full/src/affected/affected.ts";
 import { partitionPlan, runCommands, validatePlan } from "../packed-verification.mjs";
 import { buildPlan, fullPlan, readPackages } from "../test-affected.mjs";
 
@@ -113,7 +113,7 @@ describe("Packed verification partition", () => {
       cwd: checkout, encoding: "utf8", env: { ...process.env, GITHUB_OUTPUT: join(dir, "outputs") }
     });
     try {
-      for (const file of ["scripts/packed-verification.mjs", "scripts/test-affected.mjs", "scripts/ci-plan.mjs", "packages/cli/src/affected/affected.ts"]) {
+      for (const file of ["scripts/packed-verification.mjs", "scripts/test-affected.mjs", "scripts/ci-plan.mjs", "packages/cli-full/src/affected/affected.ts"]) {
         mkdirSync(dirname(join(checkout, file)), { recursive: true });
         cpSync(join(ROOT, file), join(checkout, file));
       }

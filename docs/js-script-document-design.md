@@ -364,7 +364,7 @@ the `save_js_script` capability, and in the CLI harness.
 
 ## CLI harness and registry
 
-Following the sketch/timeline pair, `packages/cli/src/commands/js-script.ts`
+Following the sketch/timeline pair, `packages/cli-full/src/commands/js-script.ts`
 (registered in `nodetool.ts`; heavy deps imported lazily inside actions):
 
 ```bash
@@ -381,7 +381,7 @@ selfcheck-friendly command (a fixture script with deterministic cases runs
 keylessly). Report types live in `@nodetool-ai/execution/js-script-debug`;
 the CLI keeps target resolution and the bundle, as sketch/timeline do.
 
-Registry (`packages/cli/src/harness/registry.ts`): harness entries
+Registry (`packages/cli-full/src/harness/registry.ts`): harness entries
 `jsscript-validate`, `jsscript-run`, `jsscript-test` (selfcheck: cheap,
 no-db on file targets), `jsscript-debug`, `jsscript-versions`; a `jsscript`
 surface entry listing the paths above — the registry test fails without it.

@@ -13,7 +13,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 /** Walks up from this module to the checked-out repo root (the directory
- * whose `packages/cli/src/nodetool.ts` exists) — works from both `src/`
+ * whose `packages/cli-full/src/nodetool.ts` exists) — works from both `src/`
  * (ts-node/tsx dev) and `dist/` (built) locations since it only depends on
  * directory depth, not file extension. */
 export function findRepoRoot(): string {

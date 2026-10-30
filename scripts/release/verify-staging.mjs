@@ -108,7 +108,7 @@ export function hasReleaseProvenance(pin, response, originalRun) {
 }
 
 /** Verify a fresh registry CLI through its authorized pack installer. */
-export async function verifyRegistryInstall(catalog, { run: runCommand = runReleaseCommand, temporaryRoot = tmpdir() } = {}) {
+export async function verifyRegistryInstall(catalog, { run: runCommand = runReleaseCommand, temporaryRoot = tmpdir(), auditInstall = assertCoreOnlyInstall } = {}) {
   const run = (command, args, options) => {
     const started = Date.now();
     try { return runCommand(command, args, options); }
@@ -116,6 +116,8 @@ export async function verifyRegistryInstall(catalog, { run: runCommand = runRele
   };
   const pack = catalog.packs.find(entry => entry.kind === "node-pack" && entry.id === "fal");
   if (!pack) { throw new Error("No node pack is available for the staging install smoke"); }
+  const full = catalog.packs.find(entry => entry.kind === "cli-feature" && entry.id === "cli-full");
+  if (!full) { throw new Error("Staging full-feature smoke requires the admitted cli-full catalog entry"); }
   const work = mkdtempSync(join(temporaryRoot, "nodetool-registry-staging-"));
   try {
     const app = join(work, "app");
@@ -128,15 +130,17 @@ export async function verifyRegistryInstall(catalog, { run: runCommand = runRele
     // Verify registry signatures before executing the newly installed CLI.
     run("npm", ["audit", "signatures"], { cwd: app, env });
     run("npm", ["rebuild", "better-sqlite3", "--ignore-scripts=false", "--no-audit", "--no-fund"], { cwd: app, env });
+    auditInstall(app);
     const cli = join(app, "node_modules/.bin/nodetool");
     const version = run(cli, ["--version"], { cwd: app, env }).trim();
     if (version !== catalog.coreVersion) { throw new Error(`Staging CLI reports ${version}, expected ${catalog.coreVersion}`); }
-    run(cli, ["packs", "add", pack.id, "--yes"], {
+    run(cli, ["packs", "add", full.id, pack.id, "--yes"], {
       cwd: app,
       env
     });
     // Verify the expanded tree before the independent registration smoke.
     run("npm", ["audit", "signatures"], { cwd: app, env });
+    run(cli, ["harness", "--help"], { cwd: app, env });
     const code = `const { NodeRegistry } = await import('@nodetool-ai/node-sdk');
 const { importPack } = await import('@nodetool-ai/node-catalog');
 const module = await importPack(${JSON.stringify(pack.id)});
@@ -144,7 +148,7 @@ const registry = new NodeRegistry();
 module[${JSON.stringify(pack.registrar)}](registry);
 if (registry.list().length !== ${pack.nodeCount} || registry.list().length === 0) { throw new Error('Staging pack registration differs from the catalog'); }`;
     run(process.execPath, ["--input-type=module", "-e", code], { cwd: app, env });
-    runFalFixture(join(app, "node_modules/@nodetool-ai/cli/dist/nodetool.js"), app, env, run);
+    runFalFixture(join(app, "node_modules/@nodetool-ai/cli-full/dist/nodetool.js"), app, env, run);
 
     const prefix = join(work, "global");
     const globalHome = join(work, "global-home");
@@ -159,17 +163,19 @@ if (registry.list().length !== ${pack.nodeCount} || registry.list().length === 0
     // The project audits above also cover the CLI and no-save FAL roots themselves.
     audit();
     run("npm", ["rebuild", "better-sqlite3", "--ignore-scripts=false", "--no-audit", "--no-fund", "--global=false", "--prefix", globalRoot], { cwd: globalRoot, env: globalEnv });
-    assertCoreOnlyInstall(globalRoot);
+    auditInstall(globalRoot);
     if (process.platform === "linux" && process.arch === "x64") {
       assertCoreInstallSize(run("du", ["-sk", "node_modules"], { cwd: process.platform === "win32" ? prefix : join(prefix, "lib"), env: globalEnv }), CORE_INSTALL_BUDGET_KIB);
     }
     const globalEntry = join(globalRoot, "dist/nodetool.js");
     const globalOptions = { cwd: consumer, env: globalEnv };
     if (run(process.execPath, [globalEntry, "--version"], globalOptions).trim() !== catalog.coreVersion) { throw new Error("Global staging CLI version differs"); }
-    run(process.execPath, [globalEntry, "packs", "add", "fal", "--yes"], globalOptions);
+    run(process.execPath, [globalEntry, "packs", "add", full.id, pack.id, "--yes"], globalOptions);
     audit();
     run(process.execPath, [globalEntry, "packs", "doctor", "--installed", "--pack", "fal", "--json"], globalOptions);
-    runFalFixture(globalEntry, consumer, globalEnv, run);
+    run(process.execPath, [globalEntry, "harness", "--help"], globalOptions);
+    const globalFullEntry = join(globalRoot, "node_modules/@nodetool-ai/cli-full/dist/nodetool.js");
+    runFalFixture(globalFullEntry, consumer, globalEnv, run);
   } finally { rmSync(work, { recursive: true, force: true }); }
 }
 

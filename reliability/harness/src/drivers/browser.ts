@@ -8,7 +8,7 @@
  * `globalSetup`).
  *
  * Spawns Playwright directly (root `node_modules/.bin/playwright`, `cwd:
- * web/`) rather than importing `packages/cli/src/debug/browser-runner.ts`:
+ * web/`) rather than importing `packages/cli-full/src/debug/browser-runner.ts`:
  * that module lives in `@nodetool-ai/cli`, which depends on this package for
  * the `reliability` command (item 6), so importing it here would be a
  * circular workspace dependency — and going through the real Playwright

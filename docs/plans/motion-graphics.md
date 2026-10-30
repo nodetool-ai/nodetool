@@ -191,7 +191,7 @@ its PR and updates this list.
   index on top. Groups do not change this: a child's z is its own track's z.
 - **I10 A capability has a spec, an implementation, a table row, and a
   check.** New capabilities go in `*.specs.ts`, the implementation module,
-  `packages/cli/src/harness/capability-table.ts` (regenerated with
+  `packages/cli-full/src/harness/capability-table.ts` (regenerated with
   `npm run capabilities:sync`), and either a suite or an eval case.
   `npm run capabilities:check` fails otherwise.
 - **I11 Headless and browser tools share one implementation.** `edit_timeline`

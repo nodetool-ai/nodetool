@@ -1,0 +1,35 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.nodetool-ai/nodetool",
+  "title": "NodeTool",
+  "description": "Image, video and audio generation, workflows, a video timeline and a game engine over MCP",
+  "websiteUrl": "https://docs.nodetool.ai/mcp-server",
+  "repository": {
+    "url": "https://github.com/nodetool-ai/nodetool",
+    "source": "github",
+    "subfolder": "packages/cli-full"
+  },
+  "version": "0.8.4",
+  "packages": [
+    {
+      "registryType": "npm",
+      "registryBaseUrl": "https://registry.npmjs.org",
+      "identifier": "@nodetool-ai/cli-full",
+      "version": "0.8.4",
+      "runtimeHint": "npx",
+      "transport": {
+        "type": "stdio"
+      },
+      "packageArguments": [
+        {
+          "type": "positional",
+          "value": "mcp"
+        },
+        {
+          "type": "positional",
+          "value": "serve"
+        }
+      ]
+    }
+  ]
+}

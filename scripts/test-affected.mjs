@@ -222,12 +222,23 @@ export function fullPlan() {
   ];
 }
 
+const PACK_CORE_SHARED_INPUTS = new Set([
+  "packages/node-catalog/data/index.json",
+  "packages/node-catalog/data/nodes.ndjson"
+]);
+
 /**
  * Decide what to run for a set of changed files. Pure: `computeAffected` is
  * passed in so this can be unit-tested against a synthetic package graph.
  */
 export function buildPlan(files, packages, computeAffected) {
-  const result = computeAffected(files, packages);
+  // pack-core copies these canonical inputs without depending on node-catalog,
+  // which already depends on pack-core through node-sdk.
+  const sharedCatalogChanged = files.some((file) =>
+    PACK_CORE_SHARED_INPUTS.has(file.replace(/^\.\//, "").replace(/\\/g, "/"))
+  );
+  const packCore = sharedCatalogChanged ? packages.find((pkg) => pkg.name === "@nodetool-ai/pack-core") : undefined;
+  const result = computeAffected(packCore ? [...files, packCore.dir] : files, packages);
   const pathSteps = new Map();
   const globalFiles = [];
   for (const file of result.unmatched) {
@@ -398,7 +409,7 @@ async function main(argv) {
   // The mapping module is pure and imports nothing; Node strips its types, so
   // this reuses the harness logic instead of copying it.
   const { computeAffected, EXTRA_WORKSPACE_PATHS } = await import(
-    pathToFileURL(join(repoRoot, "packages/cli/src/affected/affected.ts")).href
+    pathToFileURL(join(repoRoot, "packages/cli-full/src/affected/affected.ts")).href
   );
 
   let steps;

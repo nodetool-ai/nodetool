@@ -1,5 +1,5 @@
 /**
- * Regenerate `packages/cli/src/harness/capability-table.ts` from the live
+ * Regenerate `packages/cli-full/src/harness/capability-table.ts` from the live
  * capability registry, the checked-in agent suites, and the eval case files.
  *
  * Everything mechanical is derived here so the table cannot drift: the wire
@@ -14,7 +14,7 @@
  * Needs `npm run build:packages` first (it builds every `packages/*`
  * workspace, `cli` included): the specs and eval cases come from
  * `packages/agents/dist`, the fingerprint and block scanner from
- * `packages/cli/dist`, so the derivation sees the same specs the product does.
+ * `packages/cli-full/dist`, so the derivation sees the same specs the product does.
  * The Quality Gate's `typecheck` leg runs `--check` over the `build` job's dist.
  */
 import { readFileSync, writeFileSync, readdirSync, existsSync } from "node:fs";
@@ -24,10 +24,10 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..");
 const AGENTS = join(ROOT, "packages", "agents");
-const TABLE = join(ROOT, "packages/cli/src/harness/capability-table.ts");
+const TABLE = join(ROOT, "packages/cli-full/src/harness/capability-table.ts");
 /** One fingerprint implementation, shared with the audit and the gate. */
 const { capabilityContractFingerprint, extractCoverageBlocks } = await import(
-  pathToFileURL(join(ROOT, "packages/cli/dist/harness/capability-coverage.js")).href
+  pathToFileURL(join(ROOT, "packages/cli-full/dist/harness/capability-coverage.js")).href
 );
 const TESTS = join(AGENTS, "tests");
 const EVAL_SRC = join(AGENTS, "src", "evals");
@@ -62,7 +62,7 @@ const SUITE_EXTRAS = [
   "game-asset-pipeline.test.ts"
   // `media-read-bytes.test.ts` drives `read_media_bytes` by guest import but
   // is not in the `capability-suites` selfcheck's filter list
-  // (packages/cli/src/harness/registry.ts), and a suite the table names must
+  // (packages/cli-full/src/harness/registry.ts), and a suite the table names must
   // be one that selfcheck runs. Add it there before adding it here.
 ];
 

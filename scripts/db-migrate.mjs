@@ -3,7 +3,7 @@
 // Postgres deployments have no in-process migrate step (only SQLite migrates
 // itself during local backend startup), so without this the prod schema drifts
 // behind the shipped code on every deploy. Mirrors the runner construction in
-// packages/cli/src/commands/db.ts (withPostgresMigrationRunner) but depends only
+// packages/cli-full/src/commands/db.ts (withPostgresMigrationRunner) but depends only
 // on @nodetool-ai/models + postgres, which already ship in the runtime image —
 // no need to bundle the full CLI.
 //

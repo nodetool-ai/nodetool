@@ -218,13 +218,13 @@ rebuilds and imports.
 | Registrars | `packages/base-nodes/src/builtin-packs.ts` (`BUILTIN_PACK_REGISTRARS`, `registerBuiltinPacks`, `CLI_BUILTIN_PACK_POLICY`), `packages/base-nodes/src/index.ts` (`ALL_BASE_NODES`, `registerBaseNodes`) | D19 and D22. Keep the policy semantics: the CLI excludes `kie`, `topaz`, `higgsfield` and `together`, and local runs also exclude `atlascloud`. |
 | Server registry | `packages/websocket/src/node-registry-setup.ts:28-33` | It imports `registerBuiltinPacks`, `setBuiltinPackEnabled`, `applyBuiltinNodePolicy` and `builtinPackUnavailableReason`. The pack source interface (A12) covers these four calls. `applyBuiltinNodePolicy` uses `protocol` only, so it moves to core. |
 | Server entry | `packages/websocket/src/server.ts:28-30`, `scripts/bundle-backend.mjs:42-48`, `scripts/dev-server.mjs:79` | D20. |
-| CLI serve | `packages/cli/src/nodetool-main.ts:452` | It spawns `node ../../websocket/dist/server.js`. Keep the path, and use `process.execPath` instead of `node`. |
-| CLI registry | `packages/cli/src/node-registry.ts:12-15`, `packages/cli/src/nodetool-main.ts:46`, `packages/cli/src/providers.ts:38-42` | Static pack and provider imports. |
-| Lazy modules | `packages/config/src/optional-modules.ts`, `packages/cli/src/optional-node-root.ts`, `packages/cli/src/commands/runtime.ts` | `importOptionalModule` and the `runtime` command exist. A19 extracts the npm runner from `optional-node-root.ts`. |
+| CLI serve | `packages/cli-full/src/nodetool-main.ts:452` | It spawns `node ../../websocket/dist/server.js`. Keep the path, and use `process.execPath` instead of `node`. |
+| CLI registry | `packages/cli-full/src/node-registry.ts:12-15`, `packages/cli-full/src/nodetool-main.ts:46`, `packages/cli-full/src/providers.ts:38-42` | Static pack and provider imports. |
+| Lazy modules | `packages/config/src/optional-modules.ts`, `packages/cli-full/src/optional-node-root.ts`, `packages/cli-full/src/commands/runtime.ts` | `importOptionalModule` and the `runtime` command exist. A19 extracts the npm runner from `optional-node-root.ts`. |
 | Image codecs | `packages/runtime/src/image-codec.ts` | `sharp` is lazy already. Its error text names `npm install sharp`. A4.1 changes it to the `imaging` runtime error. |
 | Packed smoke | `scripts/smoke-packed-cli.mjs` | Installs original pinned release artifacts through an isolated registry. Core purity and size checks precede authorized optional-pack installation. |
 | Publishing | `.github/workflows/publish.yaml`, `scripts/publish-packages.mjs`, `scripts/prepare-publish.mjs` | Uses npm trusted publishing and provenance. Original artifacts pass staging verification before promotion, with the CLI last. |
-| Test selection | `scripts/test-affected.mjs` (`PATH_CHECKS`), `packages/cli/src/harness/registry.ts` | A1 adds the catalog drift check. |
+| Test selection | `scripts/test-affected.mjs` (`PATH_CHECKS`), `packages/cli-full/src/harness/registry.ts` | A1 adds the catalog drift check. |
 | Validation | `packages/node-sdk/src/registry.ts` (`NodeMetadataSource`), `packages/node-sdk/src/graph-validation.ts` | A3. |
 
 ## 4. Phase 0: prerequisites
@@ -343,7 +343,7 @@ source propagate. A4.6 replaces both temporary paths with the catalog source.
 **Files:** new `packages/node-catalog/`, new
 `scripts/generate-node-catalog.mjs`, new `scripts/node-catalog/packs.mjs`,
 `packages/config/src/package-asset-registry.ts`, `scripts/test-affected.mjs`,
-`packages/cli/src/harness/registry.ts`.
+`packages/cli-full/src/harness/registry.ts`.
 
 1. **A1.1 Package.** Create `@nodetool-ai/node-catalog`. Its dependencies are
    `config`, `protocol` and `node-sdk`, and it has no pack dependency. Export
@@ -397,7 +397,7 @@ source propagate. A4.6 replaces both temporary paths with the catalog source.
 
 **Files:** `packages/node-catalog/src/`, `packages/protocol/src/`
 (the runtime ids), `electron/src/runtime/packages/definitions.ts`,
-`tools/oxlint/` or the lint config, `packages/cli/src/commands/runtime.ts`
+`tools/oxlint/` or the lint config, `packages/cli-full/src/commands/runtime.ts`
 (help text).
 
 1. **A2.1** `importPack(packId, specifier?)` and `MissingPackError` follow
@@ -508,7 +508,7 @@ These are the other A4.6 source cuts:
 
 **Acceptance:**
 
-- No `npx` call remains in `packages/cli/src`. A source scan test asserts
+- No `npx` call remains in `packages/cli-full/src`. A source scan test asserts
   this.
 - `nodetool run examples/workflows/concat_text.ts` works in the packed smoke.
 
@@ -606,8 +606,8 @@ beside phase 1.
 
 **Blocked by:** A2.
 
-**Files:** new `packages/cli/src/packs/mode.ts`, new
-`packages/cli/src/packs/installed.ts`.
+**Files:** new `packages/cli-full/src/packs/mode.ts`, new
+`packages/cli-full/src/packs/installed.ts`.
 
 1. Detect the install mode from the realpath of the CLI entry (pack spec
    11.1). Do not run `npm root -g` at startup.
@@ -694,8 +694,8 @@ with two processes shows that the second process waits.
 
 **Blocked by:** none.
 
-**Files:** `packages/cli/src/optional-node-root.ts`, new
-`packages/cli/src/npm-runner.ts`.
+**Files:** `packages/cli-full/src/optional-node-root.ts`, new
+`packages/cli-full/src/npm-runner.ts`.
 
 1. Extract the npm call from `optional-node-root.ts` into `npm-runner.ts`.
    Then `runtime add` and `packs add` use one runner.
@@ -710,7 +710,7 @@ with two processes shows that the second process waits.
 
 **Blocked by:** A14, A18, A19, A13.3 (for real pins), Q9 (for local mode).
 
-**Files:** new `packages/cli/src/packs/installer.ts`.
+**Files:** new `packages/cli-full/src/packs/installer.ts`.
 
 1. Implement pack spec 14.4 steps 1 to 11:
    - the snapshot
@@ -773,7 +773,7 @@ A second re-executed process never installs.
 1. Add a CI workflow for the pack spec 19.3 matrix:
    - macOS arm64, Linux x64 (glibc) and Windows x64
    - Node 22 with npm 10.9 and Node 24 with npm 11
-2. Run it on changes under `packages/cli/src/packs/`, on changes to
+2. Run it on changes under `packages/cli-full/src/packs/`, on changes to
    `npm-runner.ts`, and every night.
 
 **Acceptance:** every case in the 19.3 table passes on each platform.

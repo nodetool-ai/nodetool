@@ -12,13 +12,7 @@
   ],
   "references": [
     {
-      "path": "../config"
-    },
-    {
-      "path": "../protocol"
-    },
-    {
-      "path": "../runtime"
+      "path": "../execution-core"
     }
   ]
 }

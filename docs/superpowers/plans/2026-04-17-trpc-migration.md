@@ -87,7 +87,7 @@ mobile/src/trpc/
 - `web/src/stores/ApiClient.ts` — deleted after all consumers moved to the tRPC client.
 - Call sites across `web/src/` that import from `web/src/api.ts`, `@nodetool-ai/websocket`-style URL paths, or `stores/ApiClient` — swept to tRPC.
 - `mobile/` — same as web.
-- `packages/cli/src/nodetool.ts` — `apiGet`/`apiPost` helpers replaced with a typed tRPC client.
+- `packages/cli-full/src/nodetool.ts` — `apiGet`/`apiPost` helpers replaced with a typed tRPC client.
 - `electron/src/api.ts` — REST `fetch` replaced with typed tRPC client calls.
 - `packages/deploy/src/admin-client.ts`, `packages/deploy/src/api-user-manager.ts` — REST `fetch` replaced with typed tRPC client.
 
@@ -1465,7 +1465,7 @@ For domain `<D>` (examples: `settings`, `workflows`, `assets`, ...):
 3. **Router** — Create `packages/websocket/src/trpc/routers/<D>.ts` with one `protectedProcedure` per endpoint. Body logic is lifted from the matching handler in `<D>-api.ts` (or `http-api.ts` for workflows/assets/etc.). Use `throwApiError(ApiErrorCode.X, "message")` for error paths instead of returning `Response` objects.
 4. **Wire into appRouter** — Add `<D>: <D>Router` to `packages/websocket/src/trpc/router.ts`.
 5. **Integration smoke** — Add one `app.inject` test exercising the most-used procedure.
-6. **Client migration** — Find consumers with `grep -rn "/api/<D>" web/src mobile/src electron/src packages/cli/src packages/deploy/src`. Replace each call site with `trpc.<D>.<op>.useQuery()` / `useMutation()` for web+mobile, or `client.<D>.<op>.query()` / `mutate()` for vanilla-client cases (cli/electron/deploy).
+6. **Client migration** — Find consumers with `grep -rn "/api/<D>" web/src mobile/src electron/src packages/cli-full/src packages/deploy/src`. Replace each call site with `trpc.<D>.<op>.useQuery()` / `useMutation()` for web+mobile, or `client.<D>.<op>.query()` / `mutate()` for vanilla-client cases (cli/electron/deploy).
 7. **Delete old REST code** — Remove `packages/websocket/src/routes/<D>.ts`, the matching functions from `packages/websocket/src/<D>-api.ts` (or delete the whole file if empty), and the import + `app.register(<D>Routes)` line in `server.ts`. If any routes in the file serve binary/stream/metadata responses that must stay REST, shrink the file instead of deleting.
 
 Each domain must end on a `git commit` and `npm run typecheck` + relevant `npm test` must pass.
@@ -1501,7 +1501,7 @@ Apply the playbook with these specifics:
 - **Router** — each operation calls the corresponding model method with `ctx.userId`; errors mapped via `throwApiError(ApiErrorCode.NOT_FOUND, ...)` etc.
 - **Wire into appRouter** — add `settings: settingsRouter` to `router.ts`.
 - **Integration** — smoke one GET via `app.inject`.
-- **Client migration** — `grep -rn "/api/settings" web/src mobile/src electron/src packages/cli/src packages/deploy/src`; replace each.
+- **Client migration** — `grep -rn "/api/settings" web/src mobile/src electron/src packages/cli-full/src packages/deploy/src`; replace each.
 - **Delete REST code** — remove `routes/settings.ts`, `settings-api.ts`, and the `settingsRoutes` import/register in `server.ts`.
 
 - [ ] **Step 1:** Write schemas + index re-export. Commit: `feat(protocol): add settings api-schemas`.
@@ -1807,10 +1807,10 @@ git commit -m "refactor(mobile): migrate to @trpc/client; delete generated api.t
 
 ---
 
-### Task 4.3: CLI — migrate `packages/cli/src/nodetool.ts`
+### Task 4.3: CLI — migrate `packages/cli-full/src/nodetool.ts`
 
 **Files:**
-- Modify: `packages/cli/src/nodetool.ts`
+- Modify: `packages/cli-full/src/nodetool.ts`
 
 - [ ] **Step 1: Add a trpc client factory at the top of `nodetool.ts`**
 

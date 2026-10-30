@@ -14,7 +14,6 @@ import {
   rmSync,
   writeFileSync
 } from "node:fs";
-import { createRequire } from "node:module";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
 import { basename, join, resolve } from "node:path";
@@ -24,12 +23,14 @@ import { NODE_PACKS, RUNTIME_LIBRARIES } from "./node-catalog/tiers.mjs";
 
 import { startPackedRegistry, artifactIntegrity } from "./packed-registry.mjs";
 import { runFalFixture } from "./packed-fal-fixture.mjs";
+import { inspectMinimalTree, installedPackageDirectories } from "./minimal-dependency-guard.mjs";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const PACKAGE_ROOTS = ["packages", "reliability"];
 const CLI_NAME = "@nodetool-ai/cli";
-export const CORE_INSTALL_BUDGET_KIB = 892_097;
-export const REQUIRED_COMMANDS = [
+export const CORE_INSTALL_BUDGET_KIB = 150 * 1024;
+export const REQUIRED_COMMANDS = ["run", "validate", "workflows", "jobs", "assets", "secrets", "text", "serve", "packs", "models", "providers", "help"];
+export const FULL_REQUIRED_COMMANDS = [
   "run", "info", "serve", "chat", "workflows", "jobs", "assets", "models", "storage",
   "secrets", "settings", "mcp", "projects", "package", "packs", "runtime", "worker",
   "deploy", "agent", "db", "debug", "app", "apps", "validate", "timeline", "sketch",
@@ -115,40 +116,17 @@ export function installedPackages(root) {
 export function assertCoreOnlyInstall(appDir) {
   const packages = installedPackages(join(appDir, "node_modules"));
   if (packages.length === 0) { throw new Error("Core-only guard inspected no installed packages"); }
-  const forbiddenRuntime = new Set(RUNTIME_LIBRARIES.flatMap(library => library.packages).filter(name => name !== "esbuild" && name !== "typescript"));
+  const forbiddenRuntime = new Set(RUNTIME_LIBRARIES.flatMap(library => library.packages));
   const contamination = packages.filter(({ name, manifest }) => EXCLUDED_PACKAGES.has(name) || EXCLUDED_PACKAGES.has(manifest.name) || forbiddenRuntime.has(name) || forbiddenRuntime.has(manifest.name));
   if (contamination.length > 0) {
     throw new Error(`Core-only install contains excluded packages: ${contamination.map(({ manifest, dir }) => `${manifest.name} (${dir})`).join(", ")}`);
   }
-  for (const [compiler, dependentNames, field] of [
-    ["esbuild", ["tsx"], "dependencies"],
-    ["typescript", ["@trpc/client", "@trpc/server"], "peerDependencies"]
-  ]) {
-    const copies = packages.filter(({ name, manifest }) => name === compiler || manifest.name === compiler || (compiler === "typescript" && manifest.name === "@typescript/typescript6"));
-    if (copies.length === 0) { continue; }
-    const dependents = packages.filter(({ manifest }) => dependentNames.includes(manifest.name));
-    const permitted = new Set();
-    const requiredAliases = new Set();
-    for (const { manifest, dir } of dependents) {
-      if (!manifest[field]?.[compiler]) { throw new Error(`${manifest.name} does not declare its ${compiler} requirement`); }
-      const requireFromDependent = createRequire(join(dir, "package.json"));
-      permitted.add(realpathSync(join(requireFromDependent.resolve(`${compiler}/package.json`), "..")));
-    }
-    if (compiler === "typescript") {
-      for (const { manifest, dir } of copies) {
-        if (!permitted.has(dir) || manifest.name !== "@typescript/typescript6" || !manifest.dependencies?.["@typescript/old"]?.startsWith("npm:typescript@")) { continue; }
-        const requireFromWrapper = createRequire(join(dir, "package.json"));
-        permitted.add(realpathSync(join(requireFromWrapper.resolve("@typescript/old/package.json"), "..")));
-        requiredAliases.add("@typescript/old");
-      }
-    }
-    if (copies.some(({ dir }) => !permitted.has(dir))) { throw new Error(`${compiler} is installed outside its required core dependency closure`); }
-    // npm validates every installed copy against the dependents' declared semver ranges.
-    run("npm", ["ls", "--all", "--json", compiler], { cwd: appDir });
-    for (const alias of requiredAliases) {
-      run("npm", ["ls", "--all", "--json", alias], { cwd: appDir });
-    }
-  }
+  const directories = installedPackageDirectories(appDir);
+  const manifest = JSON.parse(readFileSync(join(appDir, "package.json"), "utf8"));
+  if (manifest.name === CLI_NAME) { directories.push(appDir); }
+  inspectMinimalTree(directories, { entryPackageName: CLI_NAME });
+  const external = packages.filter(({ manifest }) => !manifest.name.startsWith("@nodetool-ai/"));
+  if (external.length > 250) { throw new Error(`Core-only install contains ${external.length} external package instances, exceeding 250`); }
   return packages.length;
 }
 
@@ -194,8 +172,8 @@ console.log('ok  packed Mediabunny decodes 1024 audio samples and a 64x48 video 
 }
 
 /** Commands from REQUIRED_COMMANDS that `help` does not list. */
-export function missingCommands(help) {
-  return REQUIRED_COMMANDS.filter(
+export function missingCommands(help, required = REQUIRED_COMMANDS) {
+  return required.filter(
     (cmd) => !new RegExp(`^  ${cmd}( |$)`, "m").test(help)
   );
 }
@@ -435,7 +413,7 @@ async function main() {
 Installs ${CLI_NAME} from original pinned release tarballs into isolated
 project and global consumers, each with an empty HOME.
 
-  --core-only       Exercise the core and install only FAL after the core checks
+  --core-only       Verify the lean project and global CLI without installing optional features
   --keep            Keep the work directory for inspection
   --work-dir <dir>  Use this directory instead of a new temp directory
   --tarballs-dir <dir>  Reuse release tarballs, checking workspace names and versions`);
@@ -462,14 +440,12 @@ project and global consumers, each with an empty HOME.
     hashes = Object.entries(tarballs).map(([name, file]) => ({ name, file, integrity: artifactIntegrity(file) }));
     registry = await startPackedRegistry(tarballs);
     writeFileSync(join(home, ".npmrc"), `registry=${registry.url}\ncache=${join(work, "npm-cache")}\n`);
-    const env = { ...cleanEnv(home), SECRETS_MASTER_KEY: randomBytes(32).toString("base64") };
+    const env = { ...cleanEnv(home), SECRETS_MASTER_KEY: randomBytes(32).toString("base64"), NODETOOL_USER_ID: "packed-user", NODETOOL_DATA_DIR: join(appDir, "data"), NODETOOL_TOKENS: JSON.stringify({ ["packed-auth-token".repeat(2)]: "packed-user" }) };
     writeFileSync(join(appDir, "package.json"), JSON.stringify({ name: "nodetool-packed-smoke", private: true }));
     run("npm", ["install", "--no-audit", "--no-fund", "--loglevel=error", `${CLI_NAME}@${cli.version}`], { cwd: appDir, env });
     {
       const inspected = assertCoreOnlyInstall(appDir);
       console.log(`ok  core-only guard inspected ${inspected} installed packages`);
-      run(process.execPath, ["--input-type=module", "-e", 'await import("@nodetool-ai/dsl");'], { cwd: appDir, timeout: 120_000 });
-      console.log("ok  the packed DSL imports without node packs");
     }
     const diskUsage = run("du", ["-sk", "node_modules"], { cwd: appDir }).trim();
     console.log(`Packed CLI disk usage (KiB): ${diskUsage}`);
@@ -493,27 +469,43 @@ project and global consumers, each with an empty HOME.
     }
     console.log(`ok  nodetool --help lists ${REQUIRED_COMMANDS.join(", ")}`);
 
-    const coreWorkflow = JSON.parse(readFileSync(join(ROOT, NO_MODEL_WORKFLOW), "utf8")).graph;
-    const tools = await probeMcp(bin, env, appDir, coreWorkflow);
-    if (tools === 0) throw new Error("nodetool mcp serve listed no tools");
-    console.log(`ok  nodetool mcp serve lists tools${coreWorkflow ? " and runs a core workflow through execute_code" : ` (${tools})`}`);
+    const leanWorkflow = { graph: { nodes: [{ id: "value", type: "nodetool.constant.String", properties: { value: "packed smoke" } }, { id: "sink", type: "nodetool.output.Output", properties: { name: "result" } }], edges: [{ source: "value", sourceHandle: "output", target: "sink", targetHandle: "value" }] } };
+    const leanFixture = join(appDir, "lean-workflow.json");
+    writeFileSync(leanFixture, JSON.stringify(leanWorkflow));
+    run(bin, ["validate", leanFixture], cliOptions);
+    if (!run(bin, ["run", leanFixture], cliOptions).includes("packed smoke")) { throw new Error("Lean CLI did not execute the local JSON workflow"); }
+    await probeServe(bin, env, appDir);
+    console.log("ok  lean CLI validates, executes and serves without optional features");
 
-    const workflowFixture = join(appDir, "hello_input_output_cli.json");
-    writeFileSync(workflowFixture, readFileSync(join(ROOT, NO_MODEL_WORKFLOW)));
-    const out = run(
-      bin,
-      [
-        "workflows",
-        "run",
-        workflowFixture,
-        "--params",
-        JSON.stringify({ text: "packed smoke" }),
-        "--json"
-      ],
-      cliOptions
-    );
-    if (!out.includes("packed smoke")) {
-      throw new Error(`nodetool workflows run did not echo its input:\n${out}`);
+    const selectedPacks = values["core-only"] ? [] : ["cli-full", ...NODE_PACKS.map(pack => pack.id)];
+    if (!values["core-only"]) {
+      run(bin, ["packs", "add", "cli-full", "--yes"], { ...cliOptions, timeout: 900_000 });
+      assertInstalledSelection(run(bin, ["packs", "list", "--json"], cliOptions), ["cli-full"]);
+      const fullBin = join(appDir, "node_modules/.bin/nodetool-full");
+      const missingFull = missingCommands(run(fullBin, ["--help"], cliOptions), FULL_REQUIRED_COMMANDS);
+      if (missingFull.length) { throw new Error(`Installed cli-full help is missing: ${missingFull.join(", ")}`); }
+      run(process.execPath, ["--input-type=module", "-e", 'await import("@nodetool-ai/dsl");'], { cwd: appDir, env, timeout: 120_000 });
+      const coreWorkflow = JSON.parse(readFileSync(join(ROOT, NO_MODEL_WORKFLOW), "utf8")).graph;
+      const tools = await probeMcp(fullBin, env, appDir, coreWorkflow);
+      if (tools === 0) throw new Error("nodetool mcp serve listed no tools");
+      console.log(`ok  nodetool mcp serve lists tools${coreWorkflow ? " and runs a core workflow through execute_code" : ` (${tools})`}`);
+
+      const workflowFixture = join(appDir, "hello_input_output_cli.json");
+      writeFileSync(workflowFixture, readFileSync(join(ROOT, NO_MODEL_WORKFLOW)));
+      const out = run(
+        fullBin,
+        [
+          "workflows",
+          "run",
+          workflowFixture,
+          "--params",
+          JSON.stringify({ text: "packed smoke" }),
+          "--json"
+        ],
+        cliOptions
+      );
+      if (!out.includes("packed smoke")) {
+        throw new Error(`nodetool workflows run did not echo its input:\n${out}`);
     }
     console.log("ok  nodetool workflows run executes a no-model workflow");
 
@@ -522,7 +514,7 @@ project and global consumers, each with an empty HOME.
     for (const filename of ["package.json", "concat_text.ts"]) {
       writeFileSync(join(dslDir, filename), readFileSync(join(ROOT, "examples", "workflows", filename)));
     }
-    const dslOutput = run(bin, ["run", join(dslDir, "concat_text.ts"), "--json"], cliOptions);
+    const dslOutput = run(fullBin, ["run", join(dslDir, "concat_text.ts"), "--json"], cliOptions);
     if (!dslOutput.includes("Hello, NodeTool!")) {
       throw new Error(`nodetool run did not execute the TypeScript workflow:\n${dslOutput}`);
     }
@@ -531,19 +523,19 @@ project and global consumers, each with an empty HOME.
     {
       const falFixture = join(appDir, "missing-fal.json");
       writeFileSync(falFixture, JSON.stringify({ graph: missingFalGraph() }));
-      const validated = spawnSync(bin, ["validate", falFixture, "--json"], { encoding: "utf8", ...cliOptions });
+      const validated = spawnSync(fullBin, ["validate", falFixture, "--json"], { encoding: "utf8", ...cliOptions });
       if (validated.status !== 1) { throw new Error(`Missing FAL validation exited ${validated.status}: ${validated.stdout}${validated.stderr}`); }
       const report = JSON.parse(validated.stdout).report;
       if (!report.issues.some(issue => issue.code === "pack_not_installed") || !report.issues.some(issue => issue.code === "property")) {
         throw new Error(`Missing FAL validation omitted availability or property issues: ${validated.stdout}`);
       }
-      const failed = spawnSync(bin, ["workflows", "run", falFixture, "--json"], { encoding: "utf8", ...cliOptions });
+      const failed = spawnSync(fullBin, ["workflows", "run", falFixture, "--json"], { encoding: "utf8", ...cliOptions });
       const missingPack = JSON.parse(failed.stdout);
       if (failed.status !== 3 || missingPack.error !== "missing_pack" || !missingPack.packs.some(pack => pack.id === "fal")) {
         throw new Error(`Missing FAL execution must return missing_pack and exit 3: ${failed.stdout}${failed.stderr}`);
       }
       writeFileSync(falFixture, JSON.stringify({ graph: missingFalGraph({ audio: { type: "audio", data: "AA==" } }) }));
-      const installOnly = spawnSync(bin, ["validate", falFixture, "--json"], { encoding: "utf8", ...cliOptions });
+      const installOnly = spawnSync(fullBin, ["validate", falFixture, "--json"], { encoding: "utf8", ...cliOptions });
       const installReport = JSON.parse(installOnly.stdout).report;
       if (installOnly.status !== 3 || !installReport.issues.some(issue => issue.code === "pack_not_installed") || installReport.issues.some(issue => issue.severity === "error" && issue.code !== "pack_not_installed")) {
         throw new Error(`Missing-pack-only validation must exit 3: ${installOnly.stdout}${installOnly.stderr}`);
@@ -555,16 +547,17 @@ project and global consumers, each with an empty HOME.
     copyFileSync(join(ROOT, "scripts", "fixtures", "codec-identity.mp4"), codecFixture);
     console.log(run(process.execPath, ["--input-type=module", "-e", codecProbeSource(codecFixture)], { env, cwd: appDir, timeout: 120_000 }).trim());
 
-    await probeServe(bin, env, appDir);
+    await probeServe(fullBin, env, appDir);
     console.log("ok  nodetool serve answers /health");
 
-    const selectedPacks = values["core-only"] ? ["fal"] : NODE_PACKS.map(pack => pack.id);
     run(bin, ["packs", "add", ...selectedPacks, "--yes"], { ...cliOptions, timeout: 900_000 });
     assertInstalledSelection(run(bin, ["packs", "list", "--json"], cliOptions), selectedPacks);
     assertDesiredSelection(env, appDir, selectedPacks);
     run(bin, ["packs", "doctor", "--installed", "--json"], cliOptions);
-    runFalFixture(realpathSync(bin), appDir, env, run);
+    runFalFixture(realpathSync(fullBin), appDir, env, run);
     console.log(`ok  actual packs add installed ${selectedPacks.join(", ")} and FAL workflow completed`);
+
+    }
 
     const prefix = join(work, "global");
     const globalHome = join(work, "global-home");
@@ -581,12 +574,15 @@ project and global consumers, each with an empty HOME.
     const globalEntry = join(globalRoot, "dist/nodetool.js");
     const globalOptions = { cwd: globalCwd, env: globalEnv, timeout: 900_000 };
     if (run(process.execPath, [globalEntry, "--version"], globalOptions).trim() !== cli.version) { throw new Error("Global CLI version differs"); }
-    run(process.execPath, [globalEntry, "packs", "add", ...selectedPacks, "--yes"], globalOptions);
-    assertInstalledSelection(run(process.execPath, [globalEntry, "packs", "list", "--json"], globalOptions), selectedPacks);
-    assertDesiredSelection(globalEnv, globalRoot, selectedPacks);
-    run(process.execPath, [globalEntry, "packs", "doctor", "--installed", "--json"], globalOptions);
-    runFalFixture(globalEntry, globalCwd, globalEnv, run);
-    console.log("ok  global packed CLI installs packs and executes the FAL workflow");
+    if (!values["core-only"]) {
+      run(process.execPath, [globalEntry, "packs", "add", ...selectedPacks, "--yes"], globalOptions);
+      assertInstalledSelection(run(process.execPath, [globalEntry, "packs", "list", "--json"], globalOptions), selectedPacks);
+      assertDesiredSelection(globalEnv, globalRoot, selectedPacks);
+      run(process.execPath, [globalEntry, "packs", "doctor", "--installed", "--json"], globalOptions);
+      const globalFullEntry = join(globalRoot, "node_modules/@nodetool-ai/cli-full/dist/nodetool.js");
+      runFalFixture(globalFullEntry, globalCwd, globalEnv, run);
+      console.log("ok  global packed CLI explicitly installs full CLI/packs and executes the FAL workflow");
+    }
 
 
   } finally {

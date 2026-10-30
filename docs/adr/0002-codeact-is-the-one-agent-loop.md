@@ -18,7 +18,7 @@ Every host that runs a model loop, and where each one is constructed:
 | Chat turn (web, Telegram, MCP) | one CodeAct session over `provider.generateLoop` | `packages/websocket/src/session/chat-turn.ts` (`createChatCodeActSession`) | `gateTools` | `createChatTurnBudget` |
 | Chat plan mode | `create_plan` → `TaskPlanner.planMultiTask`, `execute_plan` → `ParallelTaskExecutor` | `packages/agents/src/capabilities/agents.ts` | inherited belt | the run's budget, via `subAgentRuntime` |
 | Workflow `AgentNode` | JSON tool calls over `provider.generateLoop` | `packages/llm-nodes/src/nodes/agents.ts` | none | its own `createRunBudget`, or the caller's via `budgetFromContext` |
-| CLI `nodetool agent run` | `Agent`: `TaskPlanner` → `ParallelTaskExecutor` → `TaskExecutor` → `CodeActExecutor` → `CompilerAgent` | `packages/cli/src/commands/agent.ts` | none | none |
+| CLI `nodetool agent run` | `Agent`: `TaskPlanner` → `ParallelTaskExecutor` → `TaskExecutor` → `CodeActExecutor` → `CompilerAgent` | `packages/cli-full/src/commands/agent.ts` | none | none |
 
 The call graph is one grep:
 
@@ -26,7 +26,7 @@ The call graph is one grep:
 grep -rn "new Agent(" packages web electron --include=*.ts --include=*.tsx
 ```
 
-It answers with `packages/cli/src/commands/agent.ts` and the `packages/agents/tests/` suites that exercise `Agent` directly. There is no other production caller, so the CLI is the whole audience for what `Agent` wires.
+It answers with `packages/cli-full/src/commands/agent.ts` and the `packages/agents/tests/` suites that exercise `Agent` directly. There is no other production caller, so the CLI is the whole audience for what `Agent` wires.
 
 The options only `Agent` passes are dead on the same evidence. `checkpointStore` and `planCache` are supplied at one site each, both inside `agent.ts`, and `FileCheckpointStore.load` resolves without reading anything until a `loadFromDisk()` that `Agent` never awaits, so a resumed run resumes from an empty store. `planningModel` and `reasoningModel` appear in `agent.ts` and `task-planner.ts` and are set by no caller, so the per-phase model selection they exist for has never selected a different model.
 
@@ -44,7 +44,7 @@ The plan approval gate is orphaned from the other side. `PLAN_APPROVAL_CONTEXT_K
 
 - `nodetool agent run` gains the chat belt's gate and budget, and loses the plan-first-then-execute shape it had by construction. The rewrite has to give that shape back — an objective that asks for a plan, or a permission mode the command exposes.
 - Plan approval moves from a bespoke callback to the permission ladder. A host with nobody to ask fails closed at `execute_plan` instead of inside `Agent`.
-- The `planning_update` message type stays, because `create_plan` emits it. The compiler phases stop being produced, so the consumers that render them (`packages/cli/src/useExecutionState.ts`) lose those branches.
+- The `planning_update` message type stays, because `create_plan` emits it. The compiler phases stop being produced, so the consumers that render them (`packages/cli-full/src/useExecutionState.ts`) lose those branches.
 - `AgentPolicy`'s bounds have one consumer left, `execute_plan`. They either fold into the run budget or survive as the constants file the two executors read.
 - The memory contract is unchanged. "Final synthesis by `CompilerAgent`" becomes "the calling loop reads `task:<id>` after `execute_plan` returns" in `packages/agents/AGENTS.md` and `docs/agent-memory.md`.
 - `AgentNode` still needs the gate. Its budget already comes from the shared `RunBudget`, its own or the calling run's.

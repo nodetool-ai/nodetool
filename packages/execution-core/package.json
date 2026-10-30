@@ -1,0 +1,161 @@
+{
+  "name": "@nodetool-ai/execution-core",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "version": "0.8.4",
+  "description": "Dependency-light workflow actor execution",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "test": "node ../../scripts/run-vitest.mjs run",
+    "test:watch": "node ../../scripts/run-vitest.mjs",
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit"
+  },
+  "dependencies": {
+    "@nodetool-ai/config": "*",
+    "@nodetool-ai/protocol": "*",
+    "@opentelemetry/api": "^1.9.0"
+  },
+  "devDependencies": {
+    "@stryker-mutator/core": "^9.6.1",
+    "@stryker-mutator/vitest-runner": "^9.6.1",
+    "@types/node": "^22.0.0",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "vitest": "^5.0.1"
+  },
+  "exports": {
+    ".": {
+      "nodetool-dev": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./actor": {
+      "nodetool-dev": "./src/actor.ts",
+      "types": "./dist/actor.d.ts",
+      "import": "./dist/actor.js"
+    },
+    "./correlation-analysis": {
+      "nodetool-dev": "./src/correlation-analysis.ts",
+      "types": "./dist/correlation-analysis.d.ts",
+      "import": "./dist/correlation-analysis.js"
+    },
+    "./durable-inbox": {
+      "nodetool-dev": "./src/durable-inbox.ts",
+      "types": "./dist/durable-inbox.d.ts",
+      "import": "./dist/durable-inbox.js"
+    },
+    "./dynamic-slots": {
+      "nodetool-dev": "./src/dynamic-slots.ts",
+      "types": "./dist/dynamic-slots.d.ts",
+      "import": "./dist/dynamic-slots.js"
+    },
+    "./edge-ids": {
+      "nodetool-dev": "./src/edge-ids.ts",
+      "types": "./dist/edge-ids.d.ts",
+      "import": "./dist/edge-ids.js"
+    },
+    "./graph-utils": {
+      "nodetool-dev": "./src/graph-utils.ts",
+      "types": "./dist/graph-utils.d.ts",
+      "import": "./dist/graph-utils.js"
+    },
+    "./graph": {
+      "nodetool-dev": "./src/graph.ts",
+      "types": "./dist/graph.d.ts",
+      "import": "./dist/graph.js"
+    },
+    "./inbox": {
+      "nodetool-dev": "./src/inbox.ts",
+      "types": "./dist/inbox.d.ts",
+      "import": "./dist/inbox.js"
+    },
+    "./io": {
+      "nodetool-dev": "./src/io.ts",
+      "types": "./dist/io.d.ts",
+      "import": "./dist/io.js"
+    },
+    "./loop": {
+      "nodetool-dev": "./src/loop.ts",
+      "types": "./dist/loop.d.ts",
+      "import": "./dist/loop.js"
+    },
+    "./message-stream": {
+      "nodetool-dev": "./src/message-stream.ts",
+      "types": "./dist/message-stream.d.ts",
+      "import": "./dist/message-stream.js"
+    },
+    "./predicates": {
+      "nodetool-dev": "./src/predicates.ts",
+      "types": "./dist/predicates.d.ts",
+      "import": "./dist/predicates.js"
+    },
+    "./run-state": {
+      "nodetool-dev": "./src/run-state.ts",
+      "types": "./dist/run-state.d.ts",
+      "import": "./dist/run-state.js"
+    },
+    "./runner": {
+      "nodetool-dev": "./src/runner.ts",
+      "types": "./dist/runner.d.ts",
+      "import": "./dist/runner.js"
+    },
+    "./substitute-validator": {
+      "nodetool-dev": "./src/substitute-validator.ts",
+      "types": "./dist/substitute-validator.d.ts",
+      "import": "./dist/substitute-validator.js"
+    },
+    "./supervisor": {
+      "nodetool-dev": "./src/supervisor.ts",
+      "types": "./dist/supervisor.d.ts",
+      "import": "./dist/supervisor.js"
+    },
+    "./trigger-wakeup": {
+      "nodetool-dev": "./src/trigger-wakeup.ts",
+      "types": "./dist/trigger-wakeup.d.ts",
+      "import": "./dist/trigger-wakeup.js"
+    },
+    "./invocation-account": {
+      "nodetool-dev": "./src/invocation-account.ts",
+      "types": "./dist/invocation-account.d.ts",
+      "import": "./dist/invocation-account.js"
+    },
+    "./tracing": {
+      "nodetool-dev": "./src/tracing.ts",
+      "types": "./dist/tracing.d.ts",
+      "import": "./dist/tracing.js"
+    }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/execution-core"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "workflow-engine",
+    "actor-model",
+    "dag",
+    "graph",
+    "workflow-runner"
+  ]
+}

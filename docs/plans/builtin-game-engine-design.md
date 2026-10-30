@@ -369,7 +369,7 @@ The inspected removal and replacement surfaces are:
 | [Image validators](https://github.com/nodetool-ai/nodetool/blob/main/packages/image-nodes/src/nodes/game.ts) and [audio validators](https://github.com/nodetool-ai/nodetool/blob/main/packages/audio-nodes/src/nodes/game.ts) | Preserve byte validation and generation outputs. Remove Godot-specific wording and dependencies in their contracts. |
 | Former `packages/agents/src/capabilities/godot.ts` and `packages/system-skills/godot-game/SKILL.md` | Remove the Godot tools and skill. Register native game authoring, bounded playtesting, and build tools, and update product knowledge and skill discovery. |
 | [Games router](https://github.com/nodetool-ai/nodetool/blob/main/packages/websocket/src/trpc/routers/games.ts) and former `web/src/components/setup/game/useGameSetupFlow.ts` | Serve native templates and open the native editor/player after creation. Replace instructions to download or open a Godot project. |
-| [Packaged assets](https://github.com/nodetool-ai/nodetool/blob/main/packages/config/src/package-asset-registry.ts), [harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli/src/harness/registry.ts), examples, and generated DSL bindings | Remove Godot packaging and checks, register native equivalents, rebuild examples, and regenerate bindings from the node registry. |
+| [Packaged assets](https://github.com/nodetool-ai/nodetool/blob/main/packages/config/src/package-asset-registry.ts), [harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli-full/src/harness/registry.ts), examples, and generated DSL bindings | Remove Godot packaging and checks, register native equivalents, rebuild examples, and regenerate bindings from the node registry. |
 
 Search manifests, lockfiles, build configuration, documentation, prompts, fixtures,
 and agent instructions again during implementation. This table identifies the
@@ -413,7 +413,7 @@ capabilities, independently of the browser playing the game.
 
 The `nodetool game validate|simulate|capture|build` CLI family and corresponding
 agent tools provide headless access. The game surface is registered in the
-[harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli/src/harness/registry.ts) following
+[harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli-full/src/harness/registry.ts) following
 [Harness-First Engineering](../HARNESS_FIRST.md).
 
 ### Performance targets and verification limits

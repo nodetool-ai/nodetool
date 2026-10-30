@@ -210,7 +210,7 @@ and `nodetool apps import-bundle my.app.json`, direct-DB like the existing
 `workflows export-bundle`. Editor command-menu entries mirror the workflow
 bundle ones.
 Depends on: T2, T3. Files: `packages/websocket/src/http-api.ts`,
-`packages/cli/src/commands/` (new `apps.ts`), web command menu, tests.
+`packages/cli-full/src/commands/` (new `apps.ts`), web command menu, tests.
 Done when: export → import on a clean DB reproduces a working app with its
 workflows.
 
@@ -219,8 +219,8 @@ Today the harness loads "the `app_doc` on a workflow". Accept an application
 id (models layer, no server) or an ApplicationBundle JSON file; keep
 workflow-id input as a legacy path that lifts via T1. Multi-operation apps
 already work in the harness — this is a loader change.
-Depends on: T1, T3. Files: `packages/cli/src/commands/app.ts`,
-`packages/cli/src/app-debug/app-spec.ts`, `debug/target.ts`, Vitest tests.
+Depends on: T1, T3. Files: `packages/cli-full/src/commands/app.ts`,
+`packages/cli-full/src/app-debug/app-spec.ts`, `debug/target.ts`, Vitest tests.
 Done when: `app debug <application_id>` and `app debug my.app.json` produce
 the same report shape an `app_doc` run did.
 

@@ -73,6 +73,25 @@
     { "path": "packages/game-nodes" },
     { "path": "packages/integration-nodes" },
     { "path": "packages/code-nodes" },
-    { "path": "packages/automation-nodes" }
+    { "path": "packages/automation-nodes" },
+    { "path": "packages/runtime-core" },
+    { "path": "packages/models-core" },
+    { "path": "packages/database-sqlite" },
+    { "path": "packages/security-core" },
+    { "path": "packages/server-features" },
+    { "path": "packages/execution-core" },
+    { "path": "packages/nodes-core" },
+    { "path": "packages/server-core" },
+    { "path": "packages/server-minimal" },
+    { "path": "packages/server-feature-sandbox" },
+    { "path": "packages/document-processing" },
+    { "path": "packages/feature-documents" },
+    { "path": "packages/provider-anthropic" },
+    { "path": "packages/database-postgres" },
+    { "path": "packages/cli-full" },
+    { "path": "packages/pack-core" },
+    { "path": "packages/sandbox-runtime" },
+    { "path": "packages/server-feature-packs" },
+    { "path": "packages/pack-manager" }
   ]
 }

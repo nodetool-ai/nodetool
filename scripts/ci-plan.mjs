@@ -217,7 +217,7 @@ function option(argv, name) {
 }
 
 async function loadAffected() {
-  return import(pathToFileURL(join(repoRoot, "packages/cli/src/affected/affected.ts")).href);
+  return import(pathToFileURL(join(repoRoot, "packages/cli-full/src/affected/affected.ts")).href);
 }
 
 async function main(argv) {

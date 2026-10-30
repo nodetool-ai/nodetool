@@ -600,7 +600,7 @@ Run replay/restore separately for each dimension and across Node/browser for 3D.
 Regeneration and prefab tests verify that shared definitions never acquire
 per-instance health, script state, or animation state.
 
-Register the 3D checks in the [harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli/src/harness/registry.ts)
+Register the 3D checks in the [harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli-full/src/harness/registry.ts)
 with affected paths for schemas, runtime, renderer, preparation, tools, packaging,
 and UI. A missing GPU skips neither rendering verification nor failure reporting.
 Report unavailable render capability separately from a simulation pass.

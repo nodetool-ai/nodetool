@@ -3393,6 +3393,23 @@
       "secrets": []
     },
     {
+      "id": "cli-full",
+      "installBytes": 0,
+      "kind": "cli-feature",
+      "nodeCount": 0,
+      "npm": {
+        "integrity": "",
+        "name": "@nodetool-ai/cli-full",
+        "version": "0.8.4"
+      },
+      "provides": [],
+      "registrar": "feature",
+      "requires": [],
+      "runtimeLibraries": [],
+      "scriptAllowlist": [],
+      "secrets": []
+    },
+    {
       "id": "code",
       "installBytes": 0,
       "kind": "core",

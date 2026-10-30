@@ -79,7 +79,7 @@ function offlineHelp(url) {
     `The NodeTool server is not reachable at ${url}.`,
     "",
     "To use NodeTool tools, start the server: open the NodeTool desktop",
-    "app, or run `nodetool serve` in a terminal. This connector retries",
+    "app, or run `nodetool-full serve` in a terminal. This connector retries",
     `automatically every ${Math.round(RETRY_MS / 1000)}s and will pick the`,
     "server up as soon as it is running — no restart needed. Call the",
     "nodetool_status tool to re-check availability."

@@ -12,6 +12,14 @@ import type { CatalogNode, CatalogPack } from "./types.js";
 const BASE_DOMAINS = ["core", "text", "llm", "code", "data", "document", "image", "audio", "video", "integration", "automation", "game", "blender", "manimgx"];
 const registrarSchema = z.custom<(registry: NodeRegistry) => void>(isCallable);
 
+export class NotNodePackError extends Error {
+  override readonly name = "NotNodePackError";
+  readonly code = "NOT_A_NODE_PACK";
+  constructor(readonly packId: string) {
+    super(`Catalog feature ${packId} provides CLI commands and cannot register workflow nodes`);
+  }
+}
+
 function enabled(pack: CatalogPack, policy: BuiltinPackPolicy): boolean {
   if (BASE_DOMAINS.includes(pack.id)) {
     return true;
@@ -32,6 +40,9 @@ export function catalogPackIdsForBuiltin(id: string): readonly string[] {
 }
 
 async function registerPackClass(registry: NodeRegistry, pack: CatalogPack): Promise<boolean> {
+  if (pack.kind === "cli-feature") {
+    throw new NotNodePackError(pack.id);
+  }
   let module: object;
   try {
     module = await importPack(pack.id);
@@ -72,7 +83,7 @@ export async function registerAvailablePacks(
     if (!pack) {
       throw new Error(`Catalog is missing pack ${id}`);
     }
-    if (!enabled(pack, policy)) {
+    if (pack.kind === "cli-feature" || !enabled(pack, policy)) {
       continue;
     }
     if (!(await registerPackClass(registry, pack))) {

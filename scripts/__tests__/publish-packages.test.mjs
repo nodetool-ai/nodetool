@@ -105,6 +105,7 @@ describe("unmetDeps", () => {
       mkdirSync(join(root, "bin"));
       copyFileSync(new URL("../publish-packages.mjs", import.meta.url), join(root, "scripts", "publish-packages.mjs"));
       copyFileSync(new URL("../smoke-packed-cli.mjs", import.meta.url), join(root, "scripts", "smoke-packed-cli.mjs"));
+      symlinkSync(new URL("../minimal-dependency-guard.mjs", import.meta.url), join(root, "scripts", "minimal-dependency-guard.mjs"));
       for (const file of ["packed-registry.mjs", "packed-fal-fixture.mjs"]) {
         copyFileSync(new URL(`../${file}`, import.meta.url), join(root, "scripts", file));
       }
@@ -160,7 +161,7 @@ function releaseFixture() {
     { npm: { name: "core-nodes" }, provides: [] },
     { npm: { name: "game-nodes" }, provides: ["game-renderer"] }
   ] }));
-  return { root, dest, packages: ["cli", "core-nodes", "game-nodes", "game-renderer", "node-catalog"].map(name => ({ name })) };
+  return { root, dest, packages: ["cli", "core-nodes", "game-nodes", "game-renderer", "pack-core", "node-catalog"].map(name => ({ name })) };
 }
 
 // npm rejects a provenance publish whose package.json repository differs from
@@ -250,9 +251,9 @@ describe("release packing order", () => {
       ["pack", ["core-nodes", "game-nodes", "game-renderer"]],
       ["pins", ["core-nodes", "game-nodes", "game-renderer"]],
       ["catalog"],
-      ["pack", ["cli", "node-catalog"]]
+      ["pack", ["cli", "pack-core", "node-catalog"]]
     ]);
-    expect(Object.keys(artifacts)).toEqual(["core-nodes", "game-nodes", "game-renderer", "cli", "node-catalog"]);
+    expect(Object.keys(artifacts)).toEqual(["core-nodes", "game-nodes", "game-renderer", "cli", "pack-core", "node-catalog"]);
     expect(readFileSync(artifacts["game-nodes"], "utf8")).toBe("original game-nodes");
   });
 

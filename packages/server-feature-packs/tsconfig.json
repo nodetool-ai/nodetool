@@ -1,0 +1,39 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "dist"
+  ],
+  "references": [
+    {
+      "path": "../nodes-core"
+    },
+    {
+      "path": "../runtime-core"
+    },
+    {
+      "path": "../runtime"
+    },
+    {
+      "path": "../node-sdk"
+    },
+    {
+      "path": "../pack-core"
+    },
+    {
+      "path": "../server-features"
+    },
+    {
+      "path": "../storage"
+    },
+    {
+      "path": "../execution-core"
+    }
+  ]
+}

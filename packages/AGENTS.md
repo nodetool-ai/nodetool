@@ -12,13 +12,20 @@ The `packages/` directory contains the TypeScript backend — a set of npm works
 |---------|-------------|
 | `@nodetool-ai/protocol` | Shared message types, Zod schemas, protocol definitions |
 | `@nodetool-ai/config` | Configuration loading and logging utilities |
-| `@nodetool-ai/security` | Secret storage and encryption |
+| `@nodetool-ai/security-core` | Shared secret encryption without keychain dependencies |
+| `@nodetool-ai/security` | Full master-key and keychain integration using shared encryption |
 | `@nodetool-ai/auth` | Authentication middleware and utilities |
 | `@nodetool-ai/storage` | File storage adapters (local, S3) |
-| `@nodetool-ai/models` | Data models via Drizzle ORM — SQLite (local/Electron) and PostgreSQL/Supabase (cloud) |
+| `@nodetool-ai/models-core` | Shared repository contracts, execution-table schemas and migrations |
+| `@nodetool-ai/database-sqlite`, `@nodetool-ai/database-postgres` | Independently selected Drizzle database adapters |
+| `@nodetool-ai/models` | Full application models using the shared execution schemas |
 | `@nodetool-ai/node-sdk` | BaseNode class, NodeRegistry, node authoring API, type system |
-| `@nodetool-ai/runtime` | ProcessingContext, LLM providers (Anthropic, OpenAI, Gemini, Ollama, etc.), message queue |
-| `@nodetool-ai/kernel` | Workflow graph model, NodeInbox, NodeActor, WorkflowRunner |
+| `@nodetool-ai/runtime-core`, `@nodetool-ai/execution-core`, `@nodetool-ai/nodes-core` | Lean workspace and remote text services, shared actors, and audited execution nodes |
+| `@nodetool-ai/runtime` | Full ProcessingContext, provider adapters and media services |
+| `@nodetool-ai/kernel` | Full-host compatibility exports of the shared actor implementation |
+| `@nodetool-ai/server-core`, `@nodetool-ai/server-minimal` | Authenticated execution routes and the standalone SQLite composition |
+| `@nodetool-ai/pack-core`, `@nodetool-ai/pack-manager` | Pack metadata and admitted resolution, then authorized installation and removal |
+| `@nodetool-ai/sandbox-runtime` | Shared QuickJS interpreter and worker isolation for explicitly selected sandbox hosts |
 | `@nodetool-ai/agents` | Planning agent system — TaskPlanner, TaskExecutor, CodeActExecutor, Tool registry |
 | `@nodetool-ai/chat` | Chat message processing and token counting |
 | `@nodetool-ai/base-nodes` | Compatibility shell re-exporting the domain node packages (`core-nodes`, `text-nodes`, `llm-nodes`, `data-nodes`, `document-nodes`, `image-nodes`, `audio-nodes`, `video-nodes`, `integration-nodes`, `code-nodes`, `automation-nodes`) as `ALL_BASE_NODES` |
@@ -31,7 +38,8 @@ The `packages/` directory contains the TypeScript backend — a set of npm works
 | `@nodetool-ai/huggingface` | HuggingFace model discovery and downloads |
 | `@nodetool-ai/vectorstore` | SQLite-vec vector store for RAG |
 | `@nodetool-ai/websocket` | Fastify HTTP + WebSocket server (main API, port 7777) |
-| `@nodetool-ai/cli` | Command-line interface (`nodetool` command) |
+| `@nodetool-ai/cli` | Lean command-line interface (`nodetool`), workflow execution, and explicit installed-feature loading |
+| `@nodetool-ai/cli-full` | Explicitly installed full CLI feature: interactive chat, MCP, authoring tools, and repository harnesses |
 | `@nodetool-ai/deploy` | Cloud deployment utilities |
 | `@nodetool-ai/dsl` | Workflow DSL for programmatic workflow creation |
 | `@nodetool-ai/storyboard` | Storyboard derivations — `recastStoryboard`, `planShotRenders`, and the one render path under `io/` |
@@ -129,19 +137,46 @@ The in-browser workflow harness exercises the full backend end-to-end via `packa
 
 ## Package Dependency Order
 
-The packages have a strict dependency hierarchy. Lower packages are dependencies of higher ones:
+Package manifests define the dependency graph. `npm run build:packages` uses
+that graph to build dependencies before their consumers. Do not restore the
+former full-runtime dependency through a lean package's public types.
 
-```
-protocol → config → security → auth → storage
-                             ↓
-                          runtime → kernel → node-sdk → base-nodes
-                                          ↓
-                                       models → agents → chat
-                                                         ↓
-                                                      websocket ← cli
+| Consumer | Shared implementation or selected adapter |
+|---|---|
+| [`nodes-core`](nodes-core/README.md) | [`execution-core`](execution-core/README.md) actors and [`runtime-core`](runtime-core/README.md) services |
+| Full `kernel`, `runtime`, `models` and `security` | Compatibility exports or composition of the shared core implementations |
+| [`database-sqlite`](database-sqlite/README.md), [`database-postgres`](database-postgres/README.md) | [`models-core`](models-core/README.md) with the selected database driver |
+| [`server-minimal`](server-minimal/README.md) | [`server-core`](server-core/README.md), core nodes, SQLite, encrypted secrets and explicit features |
+| Default [`cli`](cli/README.md) | Lean execution services and [`pack-manager`](pack-manager/README.md) |
+| Pack manager and full node catalog | [`pack-core`](pack-core/README.md) metadata and admitted package resolution |
+| Explicit [`cli-full`](cli-full/README.md) | Full authoring and terminal implementations, plus the default CLI install identity |
+
+Keep agents, codecs, GPU and browser runtimes, local inference, compilers,
+Ink/React terminal code, cloud and deploy/compute SDKs, MCP and tracing exporters
+outside the production dependency closures of `cli` and `server-minimal`. Optional dependencies install by default. Required
+peers and public declaration imports must not bring these features into either
+closure. Use explicitly installed features and the existing pack installer.
+The shared [QuickJS worker](sandbox-runtime/README.md) belongs to the optional
+sandbox feature, and its dependency compiler remains separately selected.
+
+Run separate normal-script packed-consumer checks after dependency changes:
+
+```bash
+node scripts/minimal-packed-consumer.mjs @nodetool-ai/cli /tmp/nodetool-cli-check
+node scripts/minimal-packed-consumer.mjs @nodetool-ai/server-minimal /tmp/nodetool-server-check
 ```
 
-**This order determines build order.** `npm run build:packages` builds in this order automatically. If you build a single package, its dependencies must already be built.
+The [consumer runner](../scripts/minimal-packed-consumer.mjs) measures each
+installation and invokes the [dependency guard](../scripts/minimal-dependency-guard.mjs)
+on reachable JavaScript and declarations. Its deliberate forbidden-edge tests
+live in [the guard suite](../scripts/__tests__/minimal-dependency-guard.test.mjs).
+Build first as required by the [verification rules](../AGENTS.md#mandatory-post-change-verification).
+
+The [installed-pack feature](server-feature-packs/README.md) admits audited node
+types. Browser, local-inference and other legacy nodes still require their host
+access to be audited before use in the lean host. Full compositions remain
+available through the explicitly installed full CLI and existing full server.
+Do not describe a catalog entry as a runnable lean feature.
 
 ## Key Packages
 
@@ -160,7 +195,7 @@ PORT=7777 HOST=127.0.0.1 node packages/websocket/dist/server.js
 
 ### `@nodetool-ai/kernel` — Workflow Runtime
 
-Implements the workflow execution engine:
+Reexports the workflow execution engine from `execution-core` for full hosts:
 - `WorkflowRunner` — executes workflow graphs
 - `NodeInbox` / `NodeActor` — actor-model message passing
 - Graph traversal and topological ordering
@@ -190,9 +225,11 @@ Base classes and registry for building workflow nodes:
 - `NodeRegistry` — registers and resolves node types
 - Type system for node inputs/outputs (connections enforce compatible types)
 
-### `@nodetool-ai/cli` — CLI & Agent Harnesses
+### CLI and Agent Harnesses
 
-The `nodetool` command-line interface (`packages/cli/src/commands/`). Beyond
+The default `nodetool` command lives in `packages/cli`. Full commands and agent
+harnesses live in the explicitly installed `@nodetool-ai/cli-full` feature
+(`packages/cli-full/src/commands/`). Beyond
 server/jobs/assets/secrets management, it ships the harnesses an agent uses to
 close the build→verify loop. Run from source with `npm run dev:nodetool -- <cmd>`
 (no build) or from `dist` with `npm run nodetool -- <cmd>`. Full flags in

@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { computeAffected } from "../../packages/cli/src/affected/affected.ts";
+import { computeAffected } from "../../packages/cli-full/src/affected/affected.ts";
 import { buildGateArgv, buildPlan, DOC_ONLY, MOBILE_DEPS } from "../test-affected.mjs";
 
 /** web and electron are named after the product, not their directories. */
@@ -30,6 +30,41 @@ const plan = (files) => buildPlan(files, PACKAGES, computeAffected);
 const labels = (files) => plan(files).steps.map((s) => s.label);
 
 describe("buildPlan", () => {
+  describe("shared pack catalog inputs", () => {
+    const graph = [
+      { name: "@nodetool-ai/pack-core", dir: "packages/pack-core", internalDeps: [] },
+      { name: "@nodetool-ai/node-sdk", dir: "packages/node-sdk", internalDeps: ["@nodetool-ai/pack-core"] },
+      { name: "@nodetool-ai/pack-manager", dir: "packages/pack-manager", internalDeps: ["@nodetool-ai/pack-core"] },
+      { name: "@nodetool-ai/cli", dir: "packages/cli", internalDeps: ["@nodetool-ai/pack-manager"] },
+      { name: "@nodetool-ai/node-catalog", dir: "packages/node-catalog", internalDeps: ["@nodetool-ai/node-sdk"] },
+      { name: "@nodetool-ai/unrelated", dir: "packages/unrelated", internalDeps: [] }
+    ];
+    const filters = (file) => buildPlan([file], graph, computeAffected).steps.flatMap((step) => step.args.filter((arg) => arg.startsWith("--filter=")));
+
+    it.each(["index.json", "nodes.ndjson"])("selects pack-core and its consumers for shared %s changes", (name) => {
+      const selected = filters(`packages/node-catalog/data/${name}`);
+      expect(selected.length).toBeGreaterThan(0);
+      expect(selected).toEqual(expect.arrayContaining([
+        "--filter=@nodetool-ai/pack-core", "--filter=@nodetool-ai/node-sdk",
+        "--filter=@nodetool-ai/pack-manager", "--filter=@nodetool-ai/cli",
+        "--filter=@nodetool-ai/node-catalog"
+      ]));
+      expect(selected).not.toContain("--filter=@nodetool-ai/unrelated");
+    });
+
+    it("keeps ordinary catalog source changes scoped to their existing downstream closure", () => {
+      expect(filters("packages/node-catalog/src/catalog-data.ts")).toEqual(["--filter=@nodetool-ai/node-catalog"]);
+      expect(filters("packages/node-catalog/data/unrelated.json")).toEqual(["--filter=@nodetool-ai/node-catalog"]);
+    });
+
+    it("uses the existing visited-set closure when consumers contain a cycle", () => {
+      const cyclic = graph.map((pkg) => pkg.name === "@nodetool-ai/pack-manager" ? { ...pkg, internalDeps: [...pkg.internalDeps, "@nodetool-ai/cli"] } : pkg);
+      const selected = buildPlan(["packages/node-catalog/data/index.json"], cyclic, computeAffected).steps.flatMap((step) => step.args.filter((arg) => arg.startsWith("--filter=")));
+      expect(selected).toHaveLength(5);
+      expect(new Set(selected).size).toBe(selected.length);
+    });
+  });
+
   it.each([
     "scripts/test-affected.mjs",
     "scripts/__tests__/test-affected.test.mjs",

@@ -43,7 +43,7 @@ describe("Claude Code", () => {
     const path = writeMcpClientEntry("claude", STDIO, home);
     expect(readJsonFile(path).mcpServers.nodetool).toEqual({
       type: "stdio",
-      command: "nodetool",
+      command: "nodetool-full",
       args: ["mcp", "serve"],
       env: {}
     });
@@ -73,7 +73,7 @@ describe("Claude Code", () => {
     const config = readJsonFile(path);
     expect(config.numStartups).toBe(3);
     expect(config.mcpServers.other).toBeDefined();
-    expect(config.mcpServers.nodetool.command).toBe("nodetool");
+    expect(config.mcpServers.nodetool.command).toBe("nodetool-full");
     expect(config.projects[home].mcpServers.nodetool).toBeUndefined();
     expect(config.projects[home].mcpServers.fal).toBeDefined();
   });
@@ -111,7 +111,7 @@ describe("Codex", () => {
     expect(content.match(/BEGIN NODETOOL MCP/g)).toHaveLength(1);
     expect(content).toContain('model = "o4"');
     expect(content).toContain(
-      'args = ["-y","--package=@nodetool-ai/cli","nodetool","mcp","serve"]'
+      'args = ["-y","--package=@nodetool-ai/cli-full","nodetool-full","mcp","serve"]'
     );
     expect(content).not.toContain("required");
     expect(readMcpClientEntry("codex", home)).toEqual(NPX);
@@ -139,12 +139,18 @@ describe("OpenCode", () => {
     const path = writeMcpClientEntry("opencode", STDIO, home);
     expect(readJsonFile(path).mcp.nodetool).toMatchObject({
       type: "local",
-      command: ["nodetool", "mcp", "serve"],
+      command: ["nodetool-full", "mcp", "serve"],
       enabled: true
     });
     expect(readMcpClientEntry("opencode", home)).toEqual(STDIO);
     writeMcpClientEntry("opencode", HTTP, home);
     expect(readMcpClientEntry("opencode", home)).toEqual(HTTP);
+  });
+});
+
+describe("new MCP launches", () => {
+  it("starts the explicit full CLI instead of a fresh lean-only npx installation", () => {
+    expect(stdioLaunch({ npx: true })).toEqual({ transport: "stdio", command: "npx", args: ["-y", "--package=@nodetool-ai/cli-full", "nodetool-full", "mcp", "serve"] });
   });
 });
 
@@ -154,7 +160,7 @@ describe("mcpServersSnippet", () => {
       mcpServers: {
         nodetool: {
           command: "npx",
-          args: ["-y", "--package=@nodetool-ai/cli", "nodetool", "mcp", "serve"]
+          args: ["-y", "--package=@nodetool-ai/cli-full", "nodetool-full", "mcp", "serve"]
         }
       }
     });
@@ -175,15 +181,15 @@ describe("probeMcpLaunch", () => {
 });
 
 describe.skipIf(process.platform === "win32")("hasNodetoolCli", () => {
-  function putOnPath(dir: string, script: string): string {
+  function putOnPath(dir: string, script: string, name = "nodetool-full"): string {
     const bin = join(home, dir);
     mkdirSync(bin, { recursive: true });
-    writeFileSync(join(bin, "nodetool"), script);
-    chmodSync(join(bin, "nodetool"), 0o755);
+    writeFileSync(join(bin, name), script);
+    chmodSync(join(bin, name), 0o755);
     return bin;
   }
 
-  it("accepts the Node CLI", () => {
+  it("accepts the full Node CLI", () => {
     const bin = putOnPath("node-bin", "#!/usr/bin/env node\nimport './x.js';\n");
     expect(hasNodetoolCli({ PATH: bin })).toBe(true);
   });
@@ -197,7 +203,28 @@ describe.skipIf(process.platform === "win32")("hasNodetoolCli", () => {
     expect(hasNodetoolCli({ PATH: `${legacy}:${node}` })).toBe(false);
   });
 
-  it("is false when nothing named nodetool is on PATH", () => {
+  it("does not select the lean Node CLI", () => {
+    const bin = putOnPath("lean-bin", "#!/usr/bin/env node\n", "nodetool");
+    expect(hasNodetoolCli({ PATH: bin })).toBe(false);
+  });
+
+  it("is false when the full binary is absent from PATH", () => {
     expect(hasNodetoolCli({ PATH: home })).toBe(false);
+  });
+});
+
+
+describe("legacy MCP entries", () => {
+  it.each(["claude", "codex", "opencode"] as const)("still reads and removes old stdio/npx entries for %s", (client) => {
+    const legacy: McpLaunch[] = [
+      { transport: "stdio", command: "nodetool", args: ["mcp", "serve"] },
+      { transport: "stdio", command: "npx", args: ["-y", "--package=@nodetool-ai/cli", "nodetool", "mcp", "serve"] }
+    ];
+    for (const launch of legacy) {
+      writeMcpClientEntry(client, launch, home);
+      expect(readMcpClientEntry(client, home)).toEqual(launch);
+      expect(removeMcpClientEntry(client, home)).toBe(true);
+      expect(readMcpClientEntry(client, home)).toBeNull();
+    }
   });
 });

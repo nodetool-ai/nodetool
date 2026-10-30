@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -7,6 +7,7 @@ import { describe, expect, it } from "vitest";
 const RELEASE_FILES = [
   "scripts/publish-packages.mjs",
   "scripts/smoke-packed-cli.mjs",
+  "scripts/minimal-dependency-guard.mjs",
   "scripts/packed-registry.mjs",
   "scripts/packed-fal-fixture.mjs",
   "scripts/fixtures/packed-fal-preload.mjs",
@@ -15,7 +16,8 @@ const RELEASE_FILES = [
   "scripts/release/commands.mjs",
   "scripts/node-catalog/tiers.mjs",
   "scripts/node-catalog/generate.mjs",
-  "packages/node-catalog/build.mjs"
+  "packages/node-catalog/build.mjs",
+  "packages/pack-core/build.mjs"
 ];
 
 function fixtureRepository(root) {
@@ -31,11 +33,12 @@ function fixtureRepository(root) {
     mkdirSync(join(root, "node_modules", name), { recursive: true });
     writeFileSync(join(root, "node_modules", name, "package.json"), JSON.stringify({ name, version: "4.5.6" }));
   }
-  const packages = ["core-nodes", "game-nodes", "game-renderer", "node-catalog", "cli"];
+  symlinkSync(join(source, "node_modules/typescript"), join(root, "node_modules/typescript"), "dir");
+  const packages = ["core-nodes", "game-nodes", "game-renderer", "pack-core", "node-catalog", "cli"];
   for (const name of packages) {
     const dir = join(root, "packages", name);
     mkdirSync(dir, { recursive: true });
-    const dependencies = name === "cli" ? { "@nodetool-ai/node-catalog": "1.2.3" } : {};
+    const dependencies = ["cli", "node-catalog"].includes(name) ? { "@nodetool-ai/pack-core": "1.2.3" } : {};
     writeFileSync(join(dir, "package.json"), JSON.stringify({ name: `@nodetool-ai/${name}`, version: "1.2.3", dependencies }));
   }
   const packs = ["core", "game"].map(id => ({
@@ -48,6 +51,8 @@ function fixtureRepository(root) {
   mkdirSync(data, { recursive: true });
   writeFileSync(join(data, "index.json"), JSON.stringify({ coreVersion: "1.2.3", packs }));
   writeFileSync(join(data, "nodes.ndjson"), '{"type":"nodetool.core.test"}\n');
+  mkdirSync(join(root, "packages/pack-core/dist"), { recursive: true });
+  copyFileSync(join(data, "index.json"), join(root, "packages/pack-core/dist/index.json"));
   return packages;
 }
 
@@ -124,14 +129,14 @@ if (args[0] === "pack") {
       const installs = calls.filter((call) => call.args[0] === "install");
       const publishes = calls.filter((call) => call.args[0] === "publish");
       expect(packs).toHaveLength(packages.length);
-      expect(measurements.map(call => call.name).sort()).toEqual(["@nodetool-ai/cli", "@nodetool-ai/node-catalog"]);
+      expect(measurements.map(call => call.name).sort()).toEqual(["@nodetool-ai/cli", "@nodetool-ai/node-catalog", "@nodetool-ai/pack-core"]);
       expect(measurements.every(call => !existsSync(call.file) && call.args.includes("--ignore-scripts"))).toBe(true);
       expect(new Set(packs.map(call => call.name))).toEqual(new Set(packages.map(name => `@nodetool-ai/${name}`)));
       expect(installs).toHaveLength(3);
       expect(installs.every(call => call.isolated)).toBe(true);
       expect(new Set(installs.map(call => call.cwd)).size).toBe(installs.length);
       const lastInstall = calls.findLastIndex(call => call.args[0] === "install");
-      expect(calls.slice(lastInstall + 1).filter(call => call.args[0] === "pack").map(call => call.name).sort()).toEqual(["@nodetool-ai/cli", "@nodetool-ai/node-catalog"]);
+      expect(calls.slice(lastInstall + 1).filter(call => call.args[0] === "pack").map(call => call.name).sort()).toEqual(["@nodetool-ai/cli", "@nodetool-ai/node-catalog", "@nodetool-ai/pack-core"]);
       expect(publishes).toHaveLength(packs.length);
       for (const publishedArtifact of publishes) {
         expect(dirname(publishedArtifact.file)).toBe(artifacts);
@@ -141,10 +146,19 @@ if (args[0] === "pack") {
       expect(calls.slice(0, firstInstall).filter(call => call.args[0] === "pack").map(call => call.name).sort()).toEqual([
         "@nodetool-ai/core-nodes", "@nodetool-ai/game-nodes", "@nodetool-ai/game-renderer"
       ]);
+      const coreArtifact = packs.find(call => call.name === "@nodetool-ai/pack-core");
+      const coreExtracted = spawnSync("tar", ["-xOf", coreArtifact.file, "package/dist/index.json"], { encoding: "utf8" });
+      expect(coreExtracted.status, coreExtracted.stderr).toBe(0);
+      const runtimeCatalog = JSON.parse(coreExtracted.stdout);
+      for (const pin of runtimeCatalog.packs) {
+        expect(pin.npm.integrity, "runtime catalog carrier contains final artifact integrity").toBe(packs.find(call => call.name === pin.npm.name).integrity);
+        expect(pin.installBytes).toBeGreaterThan(0);
+      }
       const catalogArtifact = packs.find(call => call.name === "@nodetool-ai/node-catalog");
       const extracted = spawnSync("tar", ["-xOf", catalogArtifact.file, "package/dist/index.json"], { encoding: "utf8" });
       expect(extracted.status, extracted.stderr).toBe(0);
       const pinned = JSON.parse(extracted.stdout);
+      expect(runtimeCatalog).toEqual(pinned);
       for (const pin of pinned.packs) {
         expect(pin.npm.integrity).toBe(packs.find(call => call.name === pin.npm.name).integrity);
         expect(pin.installBytes).toBeGreaterThan(0);

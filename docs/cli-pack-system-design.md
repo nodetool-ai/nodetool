@@ -144,7 +144,7 @@ Read from the `package.json` files. "Cut" names the change.
 | Edge | Location | Cut |
 |---|---|---|
 | `cli` → 14 node packs (`atlascloud`, `base`, `elevenlabs`, `fal`, `huggingface-nodes`, `minimax`, `replicate`, `reve`, `transformers-js-nodes`, `transformers-js-provider`, `video`, `whisper-cpp`) and `game-renderer` | `packages/cli/package.json:24-75` | Remove. Load through the pack loader (section 12). |
-| `cli` → `reliability-harness` | `packages/cli/package.json:46` | Remove. It depends on `base-nodes` and `websocket` (`reliability/harness/package.json`). `nodetool reliability` already imports it dynamically (`packages/cli/src/commands/reliability.ts:98`) and reports "development checkout only" when absent. |
+| `cli` → `reliability-harness` | `packages/cli/package.json:46` | Remove. It depends on `base-nodes` and `websocket` (`reliability/harness/package.json`). `nodetool reliability` already imports it dynamically (`packages/cli-full/src/commands/reliability.ts:98`) and reports "development checkout only" when absent. |
 | `agents` → `blender-nodes`, `game-nodes`, `game-renderer`, `video-nodes` | `packages/agents/package.json:26,30,31,44` | Remove. Lazy pack import (6.2). |
 | `agents` → `@mediabunny/server`, `mediabunny` | `packages/agents/package.json:23,61` | Keep as dependencies (D16). |
 | `agents` → `@napi-rs/canvas` | `packages/agents/package.json:24` | Optional peer. Runtime library `imaging`. |
@@ -161,12 +161,12 @@ Read from the `package.json` files. "Cut" names the change.
 | `sandbox-compiler` → `esbuild` | `packages/sandbox-compiler/package.json:25` | Optional peer. Needed only by `nodetool packs compile`. |
 | `data-nodes` → `@napi-rs/canvas`, `chart.js` | `packages/data-nodes/package.json:18,23` | `chart.js` stays a dependency (D16). `@napi-rs/canvas` becomes an optional peer. The chart node already imports it dynamically (`packages/data-nodes/src/nodes/lib-charts.ts:162-167`). |
 
-D11. One new edge is required. `packages/cli/src/run-dsl.ts:11` imports
+D11. One new edge is required. `packages/cli-full/src/run-dsl.ts:11` imports
 `tsx/esm/api`, but `tsx` is only a dev dependency (`package.json:232`,
 `packages/dsl/package.json:54`). A clean install cannot run a DSL file through
 that path. `tsx` becomes a regular dependency of `cli` (10.9 MB, 4 packages).
-The two `npx tsx` calls (`packages/cli/src/nodetool-main.ts:586`,
-`packages/cli/src/debug/target.ts:49`) are replaced by in-process `tsImport`.
+The two `npx tsx` calls (`packages/cli-full/src/nodetool-main.ts:586`,
+`packages/cli-full/src/debug/target.ts:49`) are replaced by in-process `tsImport`.
 `npx` fetches `tsx` from the registry when it is absent, which is an install
 without consent.
 
@@ -188,10 +188,10 @@ pack or heavy-library specifier.
 
 | Import | Kind | Cut |
 |---|---|---|
-| `packages/cli/src/nodetool-main.ts:46`, `packages/cli/src/node-registry.ts:15` → `base-nodes/builtin-packs` | static | Replace `registerBuiltinPacks` with the catalog pack loader (section 12). |
-| `packages/cli/src/providers.ts:38-39` → `transformers-js-provider`, `whisper-cpp` | static | Register each provider only when its pack is installed. |
-| `packages/cli/src/commands/timeline-render.ts:267-430` → `video-nodes/nodes/timeline/*` | dynamic | `importPack("video", subpath)`. The type import at `:12` is erased. |
-| `packages/cli/src/commands/game.ts:419-637`, `game-smoke.ts:11` → `game-renderer` | dynamic | `importRuntimeLibrary("game-renderer", subpath)`. |
+| `packages/cli-full/src/nodetool-main.ts:46`, `packages/cli-full/src/node-registry.ts:15` → `base-nodes/builtin-packs` | static | Replace `registerBuiltinPacks` with the catalog pack loader (section 12). |
+| `packages/cli-full/src/providers.ts:38-39` → `transformers-js-provider`, `whisper-cpp` | static | Register each provider only when its pack is installed. |
+| `packages/cli-full/src/commands/timeline-render.ts:267-430` → `video-nodes/nodes/timeline/*` | dynamic | `importPack("video", subpath)`. The type import at `:12` is erased. |
+| `packages/cli-full/src/commands/game.ts:419-637`, `game-smoke.ts:11` → `game-renderer` | dynamic | `importRuntimeLibrary("game-renderer", subpath)`. |
 | `packages/agents/src/capabilities/model3d.ts:28`, `timeline-bake.ts:22` → `blender-nodes` | static, inside a lazily loaded capability module | `importPack("blender")`. The capability returns `missing_pack`. |
 | `packages/agents/src/timeline-preview/model3d.ts:32,161` → `video-nodes/nodes/model3d/*` | static and dynamic | `importPack("video", subpath)`. |
 | `packages/agents/src/capabilities/game*.ts` → `game-nodes`, `game-renderer` | dynamic | `importPack("game")`, `importRuntimeLibrary("game-renderer")`. |
@@ -456,7 +456,7 @@ job packs the remaining core packages without changing any earlier tarball.
 `npm run check:node-catalog` regenerates the catalog and diffs it. It fails on
 any difference and asserts that it compared more than zero node types. Add it
 to `test:affected` path checks and to the harness registry
-(`packages/cli/src/harness/registry.ts`) for changes under node packages.
+(`packages/cli-full/src/harness/registry.ts`) for changes under node packages.
 
 Namespace prefixes stay for display and search only. `findBuiltinPackForNodeType`
 (`packages/protocol/src/builtin-packs.ts`) picks the first matching
@@ -638,8 +638,8 @@ same way through `importRuntimeLibrary`.
 | WebSocket run | a job error message with the same payload |
 | MCP | a tool result with `isError: true` and the payload as structured content. `restartRequired: true`, because a running MCP server cannot load new packs |
 
-No production code in `packages/cli/src` assigns exit code 3. It uses 0, 1,
-130, and 143. `packages/cli/src/child-exit.ts:15` forwards any child status, so
+No production code in `packages/cli-full/src` assigns exit code 3. It uses 0, 1,
+130, and 143. `packages/cli-full/src/child-exit.ts:15` forwards any child status, so
 `serve` and `chat` can pass a 3 from a child. Callers must check the
 `missing_pack` discriminator, not the exit code alone.
 
@@ -879,7 +879,7 @@ processes may fail on a later lazy import from the removed pack.
 After an install from `run`, `debug`, `node run`, or `workflows run`, the CLI
 re-executes: `spawnSync(process.execPath, [...process.execArgv, ...process.argv.slice(1)])`
 with inherited stdio and `NODETOOL_PACKS_REEXEC=1`. It exits with
-`childExitCode` (`packages/cli/src/child-exit.ts:12`). A re-executed process
+`childExitCode` (`packages/cli-full/src/child-exit.ts:12`). A re-executed process
 never installs. If packs are still missing, it exits 3.
 
 `packs add` from a terminal prints:
@@ -893,8 +893,8 @@ restart:
 |---|---|
 | DSL builtin registry promise | `packages/dsl/src/registry.ts:13,23-26` |
 | DSL factory references and script-export metadata | `packages/dsl/src/export.ts:107-114`, `packages/dsl/src/script-export.ts:226-235`. Catalog-backed after the cut, so they stop depending on installed packs. |
-| CLI validation registry | `packages/cli/src/validate/index.ts:45-51` |
-| Sandbox module catalog | `packages/websocket/src/sandbox-catalog.ts:34-40` (`refreshSandboxCatalog`), `packages/cli/src/sandbox-catalog.ts` |
+| CLI validation registry | `packages/cli-full/src/validate/index.ts:45-51` |
+| Sandbox module catalog | `packages/websocket/src/sandbox-catalog.ts:34-40` (`refreshSandboxCatalog`), `packages/cli-full/src/sandbox-catalog.ts` |
 | Provider registry (packs register local providers) | `packages/runtime/src/providers/provider-registry.ts:39` |
 | Mediabunny codec registration, which also memoizes a rejected promise | `packages/agents/src/analysis/mediabunny-runtime.ts:18-31` |
 | Optional-module fallback directory | `packages/config/src/optional-modules.ts:39`, read per call |

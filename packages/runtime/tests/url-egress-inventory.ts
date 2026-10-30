@@ -153,7 +153,7 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
   },
   // ---------------------------------------------------------------- screening
   {
-    file: "packages/runtime/src/providers/safe-url.ts",
+    file: "packages/runtime-core/src/safe-url.ts",
     owner: "SSRF screening core",
     inputSource: "none",
     schemes: ["https"],
@@ -199,6 +199,63 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     policy: "screening",
     guardedBy: ["isSafePublicHttpsUrl"],
     note: "Screens URLs inside an actor input before Apify's own machines fetch them; no socket opens here."
+  },
+
+  {
+    file: "packages/runtime/src/providers/safe-url.ts",
+    owner: "Full runtime egress compatibility export",
+    inputSource: "none",
+    schemes: [],
+    authScope: "none",
+    redirects: "none",
+    dnsRebinding: "n/a",
+    policy: "infrastructure",
+    guardedBy: [],
+    note: "Reexports the runtime-core policy; opens no outbound request."
+  },
+  guardedSafeFetch(
+    "packages/nodes-core/src/index.ts",
+    "Minimal HTTP workflow node",
+    "workflow",
+    "The workflow URL and every redirect hop use the canonical safeFetch policy."
+  ),
+  {
+    ...guardedSafeFetch(
+      "packages/runtime-core/src/text-provider.ts",
+      "Minimal OpenAI-compatible text transport",
+      "operator",
+      "The official SDK transport routes configured endpoint requests through safeFetch."
+    ),
+    authScope: "authenticated tenant's OpenAI API key"
+  },
+  {
+    ...guardedSafeFetch(
+      "packages/provider-anthropic/src/index.ts",
+      "Optional Anthropic text transport",
+      "operator",
+      "The official SDK transport routes configured endpoint requests through safeFetch."
+    ),
+    authScope: "authenticated tenant's Anthropic API key"
+  },
+
+  {
+    ...guardedSafeFetch(
+      "packages/sandbox-runtime/src/index.ts",
+      "Lean QuickJS fetch bridge",
+      "workflow",
+      "The isolated guest's fetch requests use the canonical default public HTTPS policy, response caps and cancellation; private-network mode is unavailable."
+    ),
+    authScope: "guest-supplied headers, stripped across origins"
+  },
+
+  {
+    ...guardedSafeFetch(
+      "packages/server-feature-packs/src/index.ts",
+      "Installed pack execution context transport",
+      "workflow",
+      "The explicitly installed pack adapter injects safeFetch and the authenticated run's cancellation signal into its full execution context."
+    ),
+    authScope: "calling pack's authenticated tenant credentials"
   },
 
   // ------------------------------------------------------- guarded (media refs)
@@ -622,7 +679,7 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     note: "Every model-named URL goes through safeFetch; the one plain fetch is the operator's BROWSER_URL screenshot service, which is usually internal on purpose."
   },
   {
-    file: "packages/cli/src/nodetool-main.ts",
+    file: "packages/cli-full/src/nodetool-main.ts",
     owner: "CLI asset resolution",
     inputSource: "operator",
     schemes: ["http", "https"],

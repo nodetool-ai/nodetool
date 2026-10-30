@@ -113,8 +113,8 @@ prefab overrides and unrestricted hot reload.
 - [2D edit operations](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-runtime/src/document-ops.ts) and
   [3D edit operations](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-runtime/src/document-ops3d.ts).
 - [Game persistence](https://github.com/nodetool-ai/nodetool/blob/main/packages/models/src/game.ts).
-- [Game CLI](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli/src/commands/game.ts) and
-  [harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli/src/harness/registry.ts).
+- [Game CLI](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli-full/src/commands/game.ts) and
+  [harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli-full/src/harness/registry.ts).
 
 The resulting interface is documented in
 [Retained game construction](../game-retained-authoring.md).

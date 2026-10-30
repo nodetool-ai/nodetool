@@ -24,7 +24,7 @@ The images below are unchanged copies of the repository's accepted native-game g
 | [BLACKSITE](/assets/game-engine/blacksite.png) | WebGL2 3D | 1280 × 720 | First-person night scene with shadows, fog, particles, decals, and UI HUD |
 | [Signal Forge](/assets/game-engine/signal-forge.png) | WebGL2 3D | 960 × 540 | Industrial models, interaction target, objective and control labels |
 
-The [source fixture directory](https://github.com/nodetool-ai/nodetool/tree/f328d856addeffd49f5d19c233957cab7b1ccb45/packages/cli/tests/fixtures/native-game-goldens) contains the originals and manifest. The [machine-readable image record](/assets/game-engine/screenshots.json) gives source paths, dimensions, and SHA-256 hashes.
+The [source fixture directory](https://github.com/nodetool-ai/nodetool/tree/f328d856addeffd49f5d19c233957cab7b1ccb45/packages/cli-full/tests/fixtures/native-game-goldens) contains the originals and manifest. The [machine-readable image record](/assets/game-engine/screenshots.json) gives source paths, dimensions, and SHA-256 hashes.
 
 These frames establish appearance under their capture conditions. They do not prove sound playback, touch usability, every collision surface, or recovery from every failure. The Signal Forge image predates the prepared static-machinery collider repair. The repair preserves the pictured art, and its collision and recovery checks are separate runtime tests.
 

@@ -5,7 +5,7 @@ import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { computeAffected, EXTRA_WORKSPACE_PATHS } from "../packages/cli/src/affected/affected.ts";
+import { computeAffected, EXTRA_WORKSPACE_PATHS } from "../packages/cli-full/src/affected/affected.ts";
 import { shardOf } from "./ci-plan.mjs";
 import { buildPlan, changedFiles, readPackages } from "./test-affected.mjs";
 

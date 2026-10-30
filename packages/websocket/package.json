@@ -62,7 +62,8 @@
     "msgpackr": "^1.11.2",
     "undici": "^7.30.1",
     "zod": "^4.0.0",
-    "@nodetool-ai/antigravity-cli": "*"
+    "@nodetool-ai/antigravity-cli": "*",
+    "@nodetool-ai/server-features": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

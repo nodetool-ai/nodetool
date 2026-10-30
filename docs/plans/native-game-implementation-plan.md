@@ -65,8 +65,8 @@ The engine is deterministic: 60 Hz fixed tick, seeded RNG, snapshots, replay (`n
 NodeTool follows harness-first engineering (`docs/HARNESS_FIRST.md`). Every feature must be drivable without the editor UI.
 
 - The in-product agent edits games through the game capability in `packages/agents/src/capabilities/game.ts` and the document ops. Confirm the new field or command is reachable through them. Add a case to `packages/agents/src/evals/surfaces/game.ts` when the feature changes what an agent can author.
-- `nodetool game validate | simulate | capture | build` (`packages/cli/src/commands/game.ts`) must accept documents that use the feature. Add a simulate or capture fixture.
-- Selfchecks are wired through `packages/cli/src/harness/registry.ts` (`game-flow` entry). Add new test filters there when a new test file is not already selected.
+- `nodetool game validate | simulate | capture | build` (`packages/cli-full/src/commands/game.ts`) must accept documents that use the feature. Add a simulate or capture fixture.
+- Selfchecks are wired through `packages/cli-full/src/harness/registry.ts` (`game-flow` entry). Add new test filters there when a new test file is not already selected.
 
 ### 2.6 Dependencies
 
@@ -155,7 +155,7 @@ R8 moves the 3D renderer from `WebGLRenderer` to `WebGPURenderer`. While R8 is o
 | `web/src/components/game/inspector/editors/<component>.tsx` | Stream that owns the component |
 | `web/src/stores/game/` | K during Wave 0, then E |
 | `web/src/components/game/useGamePlaySession*.ts` | K during Wave 0, then S |
-| `packages/cli/src/commands/game.ts` | D, with other streams adding options through the shared-file protocol |
+| `packages/cli-full/src/commands/game.ts` | D, with other streams adding options through the shared-file protocol |
 | `packages/agents/src/capabilities/game.ts`, `evals/surfaces/game.ts` | Shared by append (protocol below) |
 | `packages/system-skills/native-game/SKILL.md` | One section per stream, created by W6 |
 

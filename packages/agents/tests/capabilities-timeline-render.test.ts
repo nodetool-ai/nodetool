@@ -126,7 +126,7 @@ const storedAssets = new Map<string, Uint8Array>();
 /**
  * The persistence a run needs: the timeline the render node reads, and the
  * asset store the Output node writes the finished video into. The same two
- * interfaces `packages/cli/src/local-model-interfaces.ts` wires for a local
+ * interfaces `packages/cli-full/src/local-model-interfaces.ts` wires for a local
  * run, with the store in memory.
  */
 function installModelInterfaces(): void {

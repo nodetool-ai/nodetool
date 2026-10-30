@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { mkdirSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { parseArgs } from "node:util";
+import { isDeepStrictEqual, parseArgs } from "node:util";
 import { runReleaseCommand } from "./commands.mjs";
 import { hasReleaseProvenance, RELEASE_REPOSITORY, RELEASE_WORKFLOW, stagingPins } from "./verify-staging.mjs";
 import { loadRegistryDist, loadRegistryJson, loadRegistryResponse, REGISTRY_READINESS_MS } from "./registry.mjs";
@@ -89,6 +89,7 @@ export async function restoreOriginalArtifacts(original, names, version, directo
     const readiness = { deadline: Date.now() + REGISTRY_READINESS_MS };
     const artifacts = [];
     let catalogFile;
+    let compatibilityCatalogFile;
     for (const name of names) {
       const pin = { name, version };
       const dist = await loadDist(pin, readiness);
@@ -110,10 +111,15 @@ export async function restoreOriginalArtifacts(original, names, version, directo
       const manifest = readJsonMember(file, "package/package.json");
       if (manifest.name !== name || manifest.version !== version) { throw new Error(`Original tarball identity differs: ${name}@${version}`); }
       artifacts.push(pin);
-      if (name === "@nodetool-ai/node-catalog") { catalogFile = file; }
+      if (name === "@nodetool-ai/pack-core") { catalogFile = file; }
+      if (name === "@nodetool-ai/node-catalog") { compatibilityCatalogFile = file; }
     }
     // Only read the catalog after every cohort member passed the original-run checks.
-    const catalog = readJsonMember(catalogFile, "package/dist/index.json");
+    const catalog = readJsonMember(catalogFile ?? compatibilityCatalogFile, "package/dist/index.json");
+    if (catalogFile && compatibilityCatalogFile &&
+        !isDeepStrictEqual(catalog, readJsonMember(compatibilityCatalogFile, "package/dist/index.json"))) {
+      throw new Error("Original catalog carriers disagree");
+    }
     if (catalog.coreVersion !== version) { throw new Error("Original catalog version differs from requested recovery"); }
     stagingPins(catalog, artifacts);
     writeFileSync(join(directory, "catalog.json"), `${JSON.stringify(catalog, null, 2)}\n`, { flag: "wx" });

@@ -270,12 +270,12 @@ Use NodeTool from Claude Code, Codex, or OpenCode. One command registers the
 server with every client it finds. The desktop app is optional:
 
 ```bash
-npx -y --package=@nodetool-ai/cli nodetool mcp install
+npx -y --package=@nodetool-ai/cli-full nodetool-full mcp install
 ```
 
 The command starts the server once to check it, then writes each client's
 config. Restart the client and ask it to use NodeTool. For other clients,
-`nodetool mcp config` prints an `mcpServers` block. See
+`nodetool-full mcp config` prints an `mcpServers` block. See
 [NodeTool as an MCP Server](https://docs.nodetool.ai/mcp-server).
 
 For Claude Desktop, build the source MCP bundle after installing dependencies

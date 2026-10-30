@@ -7,6 +7,7 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL } from "@nodetool-ai/models-core";
 import { RUN_TRACES_DDL, applyRunTraceRls } from "./run-traces.js";
 
 import {
@@ -277,8 +278,6 @@ content_expired INTEGER NOT NULL DEFAULT 0)`,
     BEGIN DELETE FROM nodetool_generation_attachments WHERE target_type = 'app_run' AND target_id = OLD.id; END`
 ];
 
-const JOB_TRACE_MARKER_DDL = "ALTER TABLE nodetool_jobs ADD COLUMN has_run_trace INTEGER NOT NULL DEFAULT 0";
-const ASSET_FAVORITE_DDL = "ALTER TABLE nodetool_assets ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0";
 export const RESOURCE_CHANGE_OUTBOX_DDL: readonly string[] = [
   'CREATE TABLE IF NOT EXISTS "resource_change_outbox" ("id" text PRIMARY KEY NOT NULL, "payload" text NOT NULL, "created_at" text NOT NULL)',
   'CREATE INDEX IF NOT EXISTS "idx_resource_change_outbox_created_at" ON "resource_change_outbox" ("created_at")'

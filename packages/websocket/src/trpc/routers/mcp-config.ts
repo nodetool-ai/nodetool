@@ -53,7 +53,7 @@ function requireNonProduction(): void {
 
 /**
  * A stdio entry works whether or not this server runs, so it wins when the
- * `nodetool` CLI is installed. Without the CLI, the client reaches this
+ * `nodetool-full` CLI is installed. Without the CLI, the client reaches this
  * server over HTTP, which works while the server runs.
  */
 function defaultLaunch(url: string | undefined): McpLaunch {

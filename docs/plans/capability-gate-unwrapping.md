@@ -42,7 +42,7 @@ toolForCapabilityName(name, run)              LazyCapabilityTool, calls impl dir
 
 The sites are `buildAuthoringBelt` (`packages/agents/src/author-graph.ts`) and
 the `execute_plan` entries in `buildCliAgentBelt`
-(`packages/cli/src/chat-codeact.ts`) and the chat turn
+(`packages/cli-full/src/chat-codeact.ts`) and the chat turn
 (`packages/websocket/src/session/chat-turn.ts`).
 
 ## 2. Decisions
@@ -160,7 +160,7 @@ Files: `packages/agents/src/capabilities/lazy-tool.ts`,
    `names.map((n) => toolInvokingCapability(n, run))`. Update the function's
    doc comment. Cover with the existing author-graph tests, plus one test that
    a write-class belt tool in plan mode returns `blocked_in_plan_mode`.
-2. `buildCliAgentBelt` (`packages/cli/src/chat-codeact.ts`): `delegationRun`
+2. `buildCliAgentBelt` (`packages/cli-full/src/chat-codeact.ts`): `delegationRun`
    already carries `gate`. Replace the `gateTools([toolForCapabilityName(
    "execute_plan", delegationRun)], gate)` block with
    `toolInvokingCapability("execute_plan", delegationRun)`. Leave the other

@@ -1,0 +1,137 @@
+{
+  "name": "@nodetool-ai/sandbox-runtime",
+  "version": "0.8.4",
+  "description": "Shared QuickJS interpreter, worker isolation and lean host bridges",
+  "type": "module",
+  "engines": {
+    "node": "24.22.1"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "test": "node ../../scripts/run-vitest.mjs run",
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit"
+  },
+  "dependencies": {
+    "@nodetool-ai/config": "*",
+    "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/runtime-core": "*",
+    "@jitl/quickjs-ng-wasmfile-release-sync": "^0.31.0",
+    "@sebastianwessel/quickjs": "~3.0.1",
+    "quickjs-emscripten-core": "^0.31.0",
+    "acorn": "^8.15.0",
+    "eslint-scope": "^8.4.0"
+  },
+  "devDependencies": {
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "vitest": "^5.0.1",
+    "@types/node": "^22.0.0",
+    "@types/eslint-scope": "^3.7.7"
+  },
+  "exports": {
+    ".": {
+      "nodetool-dev": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./js-sandbox-worker/engine": {
+      "nodetool-dev": "./src/js-sandbox-worker/engine.ts",
+      "types": "./dist/js-sandbox-worker/engine.d.ts",
+      "import": "./dist/js-sandbox-worker/engine.js"
+    },
+    "./js-sandbox-worker/interpreter": {
+      "nodetool-dev": "./src/js-sandbox-worker/interpreter.ts",
+      "types": "./dist/js-sandbox-worker/interpreter.d.ts",
+      "import": "./dist/js-sandbox-worker/interpreter.js"
+    },
+    "./js-sandbox-worker/host": {
+      "nodetool-dev": "./src/js-sandbox-worker/host.ts",
+      "types": "./dist/js-sandbox-worker/host.d.ts",
+      "import": "./dist/js-sandbox-worker/host.js"
+    },
+    "./js-sandbox-worker/protocol": {
+      "nodetool-dev": "./src/js-sandbox-worker/protocol.ts",
+      "types": "./dist/js-sandbox-worker/protocol.d.ts",
+      "import": "./dist/js-sandbox-worker/protocol.js"
+    },
+    "./js-sandbox-worker/worker-entry": {
+      "nodetool-dev": "./src/js-sandbox-worker/worker-entry.ts",
+      "types": "./dist/js-sandbox-worker/worker-entry.d.ts",
+      "import": "./dist/js-sandbox-worker/worker-entry.js"
+    },
+    "./sandbox-canvas-api": {
+      "nodetool-dev": "./src/sandbox-canvas-api.ts",
+      "types": "./dist/sandbox-canvas-api.d.ts",
+      "import": "./dist/sandbox-canvas-api.js"
+    },
+    "./sandbox-bytes": {
+      "nodetool-dev": "./src/sandbox-bytes.ts",
+      "types": "./dist/sandbox-bytes.d.ts",
+      "import": "./dist/sandbox-bytes.js"
+    },
+    "./sandbox-constants": {
+      "nodetool-dev": "./src/sandbox-constants.ts",
+      "types": "./dist/sandbox-constants.d.ts",
+      "import": "./dist/sandbox-constants.js"
+    },
+    "./sandbox-bootstrap-modules": {
+      "nodetool-dev": "./src/sandbox-bootstrap-modules.ts",
+      "types": "./dist/sandbox-bootstrap-modules.d.ts",
+      "import": "./dist/sandbox-bootstrap-modules.js"
+    },
+    "./sandbox-json-transport": {
+      "nodetool-dev": "./src/sandbox-json-transport.ts",
+      "types": "./dist/sandbox-json-transport.d.ts",
+      "import": "./dist/sandbox-json-transport.js"
+    },
+    "./timeline-capture": {
+      "nodetool-dev": "./src/timeline-capture.ts",
+      "types": "./dist/timeline-capture.d.ts",
+      "import": "./dist/timeline-capture.js"
+    },
+    "./utils/type-guards": {
+      "nodetool-dev": "./src/utils/type-guards.ts",
+      "types": "./dist/utils/type-guards.d.ts",
+      "import": "./dist/utils/type-guards.js"
+    },
+    "./host-access-gate": {
+      "nodetool-dev": "./src/host-access-gate.ts",
+      "types": "./dist/host-access-gate.d.ts",
+      "import": "./dist/host-access-gate.js"
+    },
+    "./limits": {
+      "nodetool-dev": "./src/limits.ts",
+      "types": "./dist/limits.d.ts",
+      "import": "./dist/limits.js"
+    }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/sandbox-runtime"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "message-types",
+    "msgpack",
+    "protocol",
+    "websocket"
+  ]
+}

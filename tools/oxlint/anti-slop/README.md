@@ -83,11 +83,11 @@ npm run lint:anti-slop   # whole repo, exits 1 while findings remain
 
 # One directory — npm *appends* extra args to the script's own path list, so
 # passing a path to `lint:anti-slop` still lints everything. Call oxlint direct:
-npx oxlint --config .oxlintrc.anti-slop.json packages/cli/src
+npx oxlint --config .oxlintrc.anti-slop.json packages/cli-full/src
 ```
 
-`npm run lint` and CI do not run it. The rules find 16,912 violations in the
-current tree, so folding them into the main gate would leave it permanently red.
+`npm run lint` and CI do not run it. The rules still find backlog violations, so folding them into the main gate
+would leave it permanently red.
 Treat this as a backlog to work down, not a merge blocker.
 
 `.oxlintrc.anti-slop-enforced.json` is the other half, run as part of

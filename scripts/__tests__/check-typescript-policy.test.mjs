@@ -118,7 +118,7 @@ describe("TypeScript policy audit", () => {
       )
     ).toBe(true);
 
-    expect(isAuditExempt(posixRoot, `${posixRoot}/packages/cli/src/index.ts`)).toBe(false);
+    expect(isAuditExempt(posixRoot, `${posixRoot}/packages/cli-full/src/index.ts`)).toBe(false);
     expect(isAuditExempt(windowsRoot, `${windowsRoot}\\packages\\cli\\src\\index.ts`)).toBe(false);
   });
 

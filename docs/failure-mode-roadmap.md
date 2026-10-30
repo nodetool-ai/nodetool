@@ -180,7 +180,7 @@ add one 600 x 600 px test per migrated primitive.
 ## Completed work
 
 - **An eval case or a suite for each agent capability:** shipped 2026-08-22.
-  `packages/cli/src/harness/capability-table.ts` names every exported
+  `packages/cli-full/src/harness/capability-table.ts` names every exported
   capability — covered, or carrying a written gap note — with the
   implementation file, the suites the `capability-suites` selfcheck runs, and
   the eval cases whose `expect.requiredTools` demand them. The live tally is
@@ -191,7 +191,7 @@ add one 600 x 600 px test per migrated primitive.
   fails the check rather than review. Each entry carries a fingerprint of what
   the capability declares, and `nodetool harness gate --base <ref>` refuses a
   contract change whose coverage mapping stood still while saying nothing about
-  a refactor. Fixtures in `packages/cli/tests/harness-registry.test.ts`, the
+  a refactor. Fixtures in `packages/cli-full/tests/harness-registry.test.ts`, the
   table's own audit in `capability-coverage.test.ts`, the rule in
   `packages/agents/AGENTS.md`, and `.github/pull_request_template.md`.
 

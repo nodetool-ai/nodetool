@@ -122,7 +122,7 @@
       filled overlay text is on the exported sequence; the E4 run asserts
       the source cut's clip placements are unchanged on both retargets.
 - [x] **Harness registry.** `graph-resources` entry in
-      `packages/cli/src/harness/registry.ts` whose selfcheck runs the pure
+      `packages/cli-full/src/harness/registry.ts` whose selfcheck runs the pure
       suites and the fake-mode debug runs; `nodetool harness audit` clean;
       `harness gate` maps diffs under `packages/storyboard/`,
       `packages/game-nodes/`, the new node files and the examples to it.

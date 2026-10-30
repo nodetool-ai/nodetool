@@ -162,10 +162,10 @@ describe("missingCommands", () => {
   it("finds commands only at the command-list indent", () => {
     const help = [
       "Commands:",
-      ...REQUIRED_COMMANDS.filter(name => name !== "node").map(name => `  ${name} [options]    Description`),
-      "    node             (an option description, not a command)"
+      ...REQUIRED_COMMANDS.filter(name => name !== "run").map(name => `  ${name} [options]    Description`),
+      "    run             (an option description, not a command)"
     ].join("\n");
-    expect(missingCommands(help)).toEqual(["node"]);
+    expect(missingCommands(help)).toEqual(["run"]);
   });
 });
 
@@ -190,6 +190,7 @@ function installFixture(app, name, manifest = {}, modules = "node_modules") {
   const dir = join(app, modules, name);
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "package.json"), JSON.stringify({ name, version: "1.0.0", ...manifest }));
+  writeFileSync(join(dir, "index.js"), "export {};");
   return dir;
 }
 
@@ -204,16 +205,17 @@ describe("core-only contamination guard", () => {
   it("rejects an empty audit and accepts a tree containing executable core packages", () => {
     const app = appFixture();
     expect(() => assertCoreOnlyInstall(app)).toThrow("inspected no installed packages");
-    installFixture(app, "@nodetool-ai/core-nodes");
+    installFixture(app, "@nodetool-ai/nodes-core");
     expect(assertCoreOnlyInstall(app)).toBe(1);
   });
 
   it.each(["@nodetool-ai/fal-nodes", "@nodetool-ai/base-nodes", "@nodetool-ai/game-renderer", "sharp", "@napi-rs/canvas", "@dimforge/rapier3d-compat"])("fails when %s is deliberately installed as a nested dependency", name => {
     const app = appFixture();
-    installFixture(app, "@nodetool-ai/core-nodes");
-    const nested = installFixture(app, name, {}, "node_modules/@nodetool-ai/core-nodes/node_modules");
+    installFixture(app, "@nodetool-ai/nodes-core");
+    const nested = installFixture(app, name, {}, "node_modules/@nodetool-ai/nodes-core/node_modules");
     expect(installedPackages(join(app, "node_modules")).map(entry => entry.manifest.name)).toContain(name);
-    expect(() => assertCoreOnlyInstall(app)).toThrow(`${name} (${nested})`);
+    expect(() => assertCoreOnlyInstall(app)).toThrow(name);
+    expect(() => assertCoreOnlyInstall(app)).toThrow(nested);
   });
 
   it("rejects a deliberately installed pack tarball", () => {
@@ -224,52 +226,12 @@ describe("core-only contamination guard", () => {
     expect(() => assertCoreOnlyInstall(app)).toThrow("@nodetool-ai/fal-nodes");
   });
 
-  it("allows esbuild only when tsx requires that installed version", () => {
-    const app = appFixture({ tsx: "1.0.0" });
-    installFixture(app, "tsx", { dependencies: { esbuild: "~0.28.0" } });
-    installFixture(app, "esbuild", { version: "0.28.1" });
-    expect(assertCoreOnlyInstall(app)).toBe(2);
-    installFixture(app, "esbuild", { version: "0.27.0" });
-    expect(() => assertCoreOnlyInstall(app)).toThrow(/npm ls .* exited 1/);
-  });
-
-  it("rejects an esbuild copy outside the tsx dependency closure", () => {
-    const app = appFixture({ tsx: "1.0.0" });
-    installFixture(app, "tsx", { dependencies: { esbuild: "~0.28.0" } });
-    installFixture(app, "esbuild", { version: "0.28.1" });
-    installFixture(app, "@nodetool-ai/core-nodes");
-    installFixture(app, "esbuild", { version: "0.28.1" }, "node_modules/@nodetool-ai/core-nodes/node_modules");
-    expect(() => assertCoreOnlyInstall(app)).toThrow("esbuild is installed outside its required core dependency closure");
-  });
-
-  it("admits only the declared compiler dependency of tRPC's resolved TypeScript wrapper", () => {
-    const app = appFixture({ "@trpc/server": "1.0.0" });
-    installFixture(app, "@trpc/server", { peerDependencies: { typescript: ">=5.7.2" } });
-    installFixture(app, "typescript", { name: "@typescript/typescript6", version: "6.0.2", dependencies: { "@typescript/old": "npm:typescript@^6" } });
-    installFixture(app, "@typescript/old", { name: "typescript", version: "6.0.3" });
-    expect(assertCoreOnlyInstall(app)).toBe(3);
-    installFixture(app, "@nodetool-ai/core-nodes");
-    installFixture(app, "typescript", { version: "6.0.3" }, "node_modules/@nodetool-ai/core-nodes/node_modules");
-    expect(() => assertCoreOnlyInstall(app)).toThrow("typescript is installed outside its required core dependency closure");
-  });
-
-  it("rejects a wrapper compiler that violates its declared alias range", () => {
-    const app = appFixture({ "@trpc/server": "1.0.0" });
-    installFixture(app, "@trpc/server", { peerDependencies: { typescript: ">=5.7.2" } });
-    installFixture(app, "typescript", { name: "@typescript/typescript6", version: "6.0.2", dependencies: { "@typescript/old": "npm:typescript@^6" } });
-    installFixture(app, "@typescript/old", { name: "typescript", version: "5.6.0" });
-    expect(() => assertCoreOnlyInstall(app)).toThrow(/npm ls .* exited 1/);
-  });
-
-  it("allows TypeScript only when tRPC's installed mandatory peers require it", () => {
-    const app = appFixture({ "@trpc/client": "1.0.0", "@trpc/server": "1.0.0" });
-    for (const name of ["@trpc/client", "@trpc/server"]) {
-      installFixture(app, name, { peerDependencies: { typescript: ">=5.7.2" } });
-    }
-    installFixture(app, "typescript", { name: "@typescript/typescript6", version: "6.0.2" });
-    expect(assertCoreOnlyInstall(app)).toBe(3);
-    installFixture(app, "typescript", { version: "5.6.0" });
-    expect(() => assertCoreOnlyInstall(app)).toThrow(/npm ls .* exited 1/);
+  it.each(["esbuild", "typescript", "react", "ink", "@nodetool-ai/cli-full", "@nodetool-ai/runtime", "@nodetool-ai/agents"])("rejects full-only dependency %s even when another package requires it", name => {
+    const app = appFixture();
+    installFixture(app, "@nodetool-ai/nodes-core");
+    installFixture(app, "fixture-dependent", { dependencies: { [name]: "*" } });
+    installFixture(app, name);
+    expect(() => assertCoreOnlyInstall(app)).toThrow();
   });
 });
 
@@ -313,7 +275,7 @@ it("executes a core workflow through a fresh local MCP database", async () => {
   const graph = JSON.parse(readFileSync(join(root, "examples/workflows/hello_input_output_cli.json"), "utf8")).graph;
   const tools = await probeMcp(process.execPath, {
     ...cleanEnv(home), SECRETS_MASTER_KEY: "a".repeat(64)
-  }, home, graph, 45000, [join(root, "packages/cli/dist/nodetool.js")]);
+  }, home, graph, 45000, [join(root, "packages/cli-full/dist/nodetool.js")]);
   expect(tools).toBeGreaterThan(0);
 }, 60000);
 

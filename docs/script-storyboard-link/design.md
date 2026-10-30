@@ -282,7 +282,7 @@ Extend the storyboard/script tool files
   downgrade.
 - `nodetool timeline validate` already checks the assembled output; the joint
   assembler's tests feed it the built document.
-- Harness registry (`packages/cli/src/harness/registry.ts`): the linked
+- Harness registry (`packages/cli-full/src/harness/registry.ts`): the linked
   flow is part of the storyboard and script surfaces; extend their harness
   entries' selfchecks with the new deterministic tests so `harness gate`
   picks them up on diffs touching these paths.
