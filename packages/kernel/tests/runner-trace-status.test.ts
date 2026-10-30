@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { WorkflowRunner } from "../src/runner.js";
 
 const setStatus = vi.hoisted(() => vi.fn());
-vi.mock("@nodetool-ai/runtime/tracing", async (importOriginal) => {
-  const original = await importOriginal<typeof import("@nodetool-ai/runtime/tracing")>();
+vi.mock("@nodetool-ai/execution-core/tracing", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@nodetool-ai/execution-core/tracing")>();
   return {
     ...original,
     withWorkflowSpan: async (_attributes: unknown, fn: (span: { setStatus: typeof setStatus }) => Promise<unknown>) => fn({ setStatus })

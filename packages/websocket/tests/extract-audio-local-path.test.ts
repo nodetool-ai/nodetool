@@ -16,7 +16,7 @@ import {
 } from "@nodetool-ai/storage";
 
 const mocks = vi.hoisted(() => ({ adapter: null as StorageAdapter | null }));
-vi.mock("../src/lib/storage.js", async (orig) => ({
+vi.mock("@nodetool-ai/asset-services/storage", async (orig) => ({
   ...(await orig<typeof import("../src/lib/storage.js")>()),
   getAssetAdapter: () => mocks.adapter
 }));

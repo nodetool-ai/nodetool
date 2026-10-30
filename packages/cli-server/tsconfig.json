@@ -1,0 +1,32 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "references": [
+    {
+      "path": "../pack-manager"
+    },
+    {
+      "path": "../cli-common"
+    },
+    {
+      "path": "../cli-execution"
+    },
+    {
+      "path": "../websocket"
+    },
+    {
+      "path": "../core-nodes"
+    },
+    {
+      "path": "../text-nodes"
+    }
+  ]
+}

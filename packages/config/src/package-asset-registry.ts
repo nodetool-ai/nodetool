@@ -31,8 +31,8 @@ export interface PackageAssetRef {
 }
 
 export const PACKAGE_RUNTIME_ASSETS: readonly PackageAssetRef[] = [
-  { pkg: "@nodetool-ai/node-catalog", path: "index.json" },
-  { pkg: "@nodetool-ai/node-catalog", path: "nodes.ndjson.gz" },
+  { pkg: "@nodetool-ai/pack-core", path: "index.json" },
+  { pkg: "@nodetool-ai/pack-core", path: "nodes.ndjson.gz" },
   { pkg: "@nodetool-ai/atlascloud-nodes", path: "atlascloud-manifest.json" },
   { pkg: "@nodetool-ai/higgsfield-nodes", path: "higgsfield-manifest.json" },
   { pkg: "@nodetool-ai/fal-nodes", path: "fal-manifest.json" },

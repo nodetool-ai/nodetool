@@ -1,0 +1,81 @@
+{
+  "name": "@nodetool-ai/server-feature-packs",
+  "version": "0.8.4",
+  "description": "Explicit installed legacy node pack adapter for the lean server",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "test": "node ../../scripts/run-vitest.mjs run",
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit"
+  },
+  "dependencies": {
+    "@nodetool-ai/nodes-core": "*",
+    "@nodetool-ai/runtime-core": "*",
+    "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/node-sdk": "*",
+    "@nodetool-ai/pack-core": "*",
+    "@nodetool-ai/server-features": "*",
+    "@nodetool-ai/storage": "*",
+    "zod": "^4.4.3",
+    "@nodetool-ai/execution-core": "*"
+  },
+  "devDependencies": {
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "vitest": "^5.0.1",
+    "@types/node": "^22.0.0",
+    "@nodetool-ai/nodes-core": "*",
+    "@nodetool-ai/text-nodes": "*",
+    "@nodetool-ai/image-nodes": "*",
+    "@nodetool-ai/server-minimal": "*"
+  },
+  "exports": {
+    ".": {
+      "nodetool-dev": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./text": {
+      "nodetool-dev": "./src/text.ts",
+      "types": "./dist/text.d.ts",
+      "import": "./dist/text.js"
+    },
+    "./image": {
+      "nodetool-dev": "./src/image.ts",
+      "types": "./dist/image.d.ts",
+      "import": "./dist/image.js"
+    }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/server-feature-packs"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "message-types",
+    "msgpack",
+    "protocol",
+    "websocket"
+  ]
+}

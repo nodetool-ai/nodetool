@@ -1,0 +1,12 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "inputs": [
+        "$TURBO_EXTENDS$",
+        "build.mjs",
+        "$TURBO_ROOT$/packages/node-catalog/data/**"
+      ]
+    }
+  }
+}

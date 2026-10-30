@@ -39,6 +39,9 @@ export async function generateCatalog(definitions, { coreVersion, loadPack, read
   const packs = [];
   const packageOwners = new Map();
   for (const definition of definitions) {
+    if (definition.id === "cli-full" || definition.npmName === "@nodetool-ai/cli-full" || definition.provides.includes("@nodetool-ai/cli-full")) {
+      throw new Error("The removed cli-full aggregate cannot appear in a release catalog");
+    }
     for (const name of [definition.npmName, ...definition.provides]) {
       if (packageOwners.has(name)) {
         throw new Error(`Duplicate catalog package ownership: ${name}`);
@@ -51,15 +54,17 @@ export async function generateCatalog(definitions, { coreVersion, loadPack, read
     if (manifest.version !== coreVersion) {
       throw new Error(`Catalog package ${definition.npmName} version ${manifest.version} differs from core ${coreVersion}`);
     }
-    const module = await loadPack(definition.npmName);
-    const registrar = module[definition.registrar];
-    if (typeof registrar !== "function") {
-      throw new Error(`Missing registrar ${definition.registrar} in ${definition.npmName}`);
-    }
     const registry = createRegistry();
-    registrar(registry);
+    if (definition.kind !== "cli-feature") {
+      const module = await loadPack(definition.npmName);
+      const registrar = module[definition.registrar];
+      if (typeof registrar !== "function") {
+        throw new Error(`Missing registrar ${definition.registrar} in ${definition.npmName}`);
+      }
+      registrar(registry);
+    }
     const nodeTypes = registry.list();
-    if (nodeTypes.length === 0) {
+    if (nodeTypes.length === 0 && definition.kind !== "cli-feature") {
       throw new Error(`Registrar ${definition.registrar} registered zero node types`);
     }
     for (const nodeType of nodeTypes) {
@@ -92,7 +97,7 @@ export async function generateCatalog(definitions, { coreVersion, loadPack, read
       }
       nodes.push(canonicalJson({ node_type: nodeType, pack: definition.id, metadata, declared }, "$", true));
     }
-    const requires = new Set(Object.keys(manifest.dependencies ?? {}).flatMap((name) => {
+    const requires = new Set(definition.kind === "cli-feature" ? definition.requires ?? [] : Object.keys(manifest.dependencies ?? {}).flatMap((name) => {
       const owner = packageOwners.get(name);
       return owner && owner !== definition.id ? [owner] : [];
     }));

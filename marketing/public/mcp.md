@@ -12,14 +12,14 @@ NodeTool runs as an open-source MCP server. Add it to Claude Code, Codex, OpenCo
 ## Install
 
 ```bash
-npx -y --package=@nodetool-ai/cli nodetool mcp install
+npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp install
 ```
 
-- **Claude Code**: Configured by nodetool mcp install, in user scope for every project.
-- **Codex**: Configured by nodetool mcp install, with a 900-second tool timeout for long video jobs.
-- **OpenCode**: Configured by nodetool mcp install.
-- **Cursor, Windsurf, and other clients**: Run nodetool mcp config and paste the mcpServers block it prints.
-- **Claude Desktop**: Paste the nodetool mcp config block, or install the bundled extension from Studio under Settings, MCP Servers.
+- **Claude Code**: Configured by nodetool-mcp install, in user scope for every project.
+- **Codex**: Configured by nodetool-mcp install, with a 900-second tool timeout for long video jobs.
+- **OpenCode**: Configured by nodetool-mcp install.
+- **Cursor, Windsurf, and other clients**: Run nodetool-mcp config and paste the mcpServers block it prints.
+- **Claude Desktop**: Paste the nodetool-mcp config block, or install the bundled extension from Studio under Settings, MCP Servers.
 
 ## What your agent can do
 
@@ -44,8 +44,8 @@ Resources `nodetool://capabilities` and `nodetool://sandbox` describe everything
 
 ## Transports
 
-- **stdio (default)**: nodetool mcp serve. When Studio or a NodeTool server runs on 127.0.0.1:7777, requests go to it and open editors show the agent's changes live. Otherwise it runs on its own over the default data directory.
-- **HTTP**: nodetool mcp install --http points the client at http://127.0.0.1:7777/mcp while the server runs.
+- **stdio (default)**: nodetool-mcp serve. When Studio or the classic API server runs on 127.0.0.1:7777, requests go to it and open editors show the agent's changes live. Otherwise it runs on its own over the default data directory.
+- **HTTP**: nodetool-mcp install --http points the client at http://127.0.0.1:7777/mcp while the classic API server runs.
 - **Remote server**: Create an access token in Settings, MCP Servers, Connect an agent remotely, and point the client at that server.
 
 ## Good to know
@@ -59,7 +59,7 @@ Resources `nodetool://capabilities` and `nodetool://sandbox` describe everything
 
 ### What MCP server gives Claude Code image and video generation?
 
-NodeTool. Run npx -y --package=@nodetool-ai/cli nodetool mcp install, restart Claude Code, and ask it to generate an image or a video. It calls fal, Replicate, OpenAI, Gemini, and other providers on your own keys, and saves the results as assets you can reuse.
+NodeTool. Run npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp install, restart Claude Code, and ask it to generate an image or a video. It calls fal, Replicate, OpenAI, Gemini, and other providers on your own keys, and saves the results as assets you can reuse.
 
 ### Can an MCP server edit a video timeline, not just generate clips?
 
@@ -75,7 +75,7 @@ A ComfyUI MCP server runs ComfyUI workflows. NodeTool's server also gives the ag
 
 ### Do I need the desktop app?
 
-No. Without a running NodeTool server, nodetool mcp serve runs on its own. With Studio open, requests go to it and you watch the agent's edits happen in the editor.
+No. Without a running classic API server, nodetool-mcp serve runs on its own. With Studio open, requests go to it and you watch the agent's edits happen in the editor.
 
 ### Can I use it from a script or CI?
 
@@ -89,4 +89,4 @@ Yes. Besides MCP, the nodetool CLI runs workflows and generations from a termina
 - [Developer page: CLI, REST, and self-hosting](https://nodetool.ai/developers)
 - [Build games from Claude Code](https://nodetool.ai/gamedev)
 - [AI video editor](https://nodetool.ai/ai-video-editor)
-- [Package on npm](https://www.npmjs.com/package/@nodetool-ai/cli)
+- [Package on npm](https://www.npmjs.com/package/@nodetool-ai/cli-mcp)

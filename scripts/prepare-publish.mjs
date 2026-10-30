@@ -71,6 +71,18 @@ export function resolveWorkspaceDeps(pkg, versionMap) {
   return changes;
 }
 
+/** Keep the MCP registry sidecar tied to its published npm package. */
+export function resolveMcpServerVersion(pkg, server) {
+  if (!pkg.mcpName) { return false; }
+  if (server.name !== pkg.mcpName) { throw new Error(`MCP registry name differs from ${pkg.name}`); }
+  const entries = server.packages?.filter(entry => entry.registryType === "npm" && entry.identifier === pkg.name) ?? [];
+  if (!entries.length) { throw new Error(`MCP registry has no npm entry for ${pkg.name}`); }
+  const changed = server.version !== pkg.version || entries.some(entry => entry.version !== pkg.version);
+  server.version = pkg.version;
+  for (const entry of entries) { entry.version = pkg.version; }
+  return changed;
+}
+
 function main() {
   const { values } = parseArgs({
     options: {
@@ -101,10 +113,21 @@ public package.json files, preparing them for npm publish.
   }
 
   let totalChanges = 0;
+  let sidecarChanges = 0;
 
   for (const pkgPath of packageJsonPaths()) {
     const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
     if (pkg.private) continue;
+
+    if (pkg.mcpName) {
+      const sidecar = resolve(pkgPath, "../server.json");
+      const server = JSON.parse(readFileSync(sidecar, "utf8"));
+      if (resolveMcpServerVersion(pkg, server)) {
+        if (!values["dry-run"]) { writeFileSync(sidecar, JSON.stringify(server, null, 2) + "\n"); }
+        console.log(`${relative(ROOT, sidecar)}: ${values["dry-run"] ? "would align" : "aligned"} MCP registry version to ${pkg.version}`);
+        sidecarChanges++;
+      }
+    }
 
     const changes = resolveWorkspaceDeps(pkg, versionMap);
 
@@ -123,6 +146,7 @@ public package.json files, preparing them for npm publish.
     totalChanges += changes.length;
   }
 
+  if (sidecarChanges) { console.log(`MCP registry sidecars checked against their npm package versions.`); }
   if (totalChanges === 0) {
     console.log("No workspace \"*\" dependencies found to resolve.");
   } else if (values["dry-run"]) {

@@ -35,7 +35,9 @@
     "@nodetool-ai/antigravity-cli": "*",
     "@mediabunny/server": "1.54.0",
     "mediabunny": "1.54.0",
-    "node-av": "^6.1.1"
+    "node-av": "^6.1.1",
+    "@nodetool-ai/runtime-core": "*",
+    "@nodetool-ai/execution-core": "*"
   },
   "devDependencies": {
     "js-tiktoken": "^1.0.21",

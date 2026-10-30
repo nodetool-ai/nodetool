@@ -170,7 +170,7 @@ async function execute(doc, dir) {
     await new Promise((resolve, reject) => {
       const trigger = doc.graph.nodes.find((n) => n.type.startsWith("nodetool.triggers."));
       const triggerArgs = trigger ? ["--trigger-event", JSON.stringify({ node_id: trigger.id, payload: { event: "order.paid", order_id: "SAMPLE-1042", total: 24, currency: "EUR", path: "orders/sample-order.json" } })] : [];
-      const child = spawn(process.execPath, ["--conditions=nodetool-dev", "--import", "tsx", path.join(ROOT, "packages/cli/src/nodetool.ts"), "workflows", "run", file, "--workspace", dir, "--json", ...triggerArgs], {
+      const child = spawn(process.execPath, ["--conditions=nodetool-dev", "--import", "tsx", path.join(ROOT, "packages/cli-workflow/src/nodetool.ts"), "workflows", "run", file, "--workspace", dir, "--json", ...triggerArgs], {
         cwd: dir, stdio: ["ignore", output, log],
         env: { ...process.env, NODETOOL_PACKAGE_ASSETS_DIR: path.resolve(INPUTS, "../..") },
       });

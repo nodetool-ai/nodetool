@@ -19,7 +19,7 @@ import type {
   InputMode,
   OutputCorrelation
 } from "@nodetool-ai/protocol";
-import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { loadMediaRefBytes, sniffImageMime, extForImageMime, type ProcessingContext } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 
 import { entityDefault, imageRefDefault } from "./ref-defaults.js";
@@ -92,11 +92,11 @@ async function imageAssetId(
 
   // `data` is raw base64 or a Uint8Array, depending on which node produced it.
   const bytes =
-    ref.data instanceof Uint8Array
+    ref.data instanceof Uint8Array && ref.data.length > 0
       ? ref.data
       : isString(ref.data) && ref.data !== ""
         ? new Uint8Array(Buffer.from(ref.data, "base64"))
-        : null;
+        : uri ? await loadMediaRefBytes({ type: "image", uri }, context, { allowLocalFile: false }) : null;
   if (!bytes || bytes.length === 0) {
     throw new Error(
       "CreateEntity: the image input carries neither an asset id nor bytes — wire a generated or saved image."
@@ -107,9 +107,10 @@ async function imageAssetId(
       "CreateEntity: the image input has no asset id and this run cannot create assets."
     );
   }
+  const contentType = sniffImageMime(bytes) ?? "image/png";
   const created = (await context.createAsset({
-    name: `${name || "entity"}.png`,
-    contentType: "image/png",
+    name: `${name || "entity"}.${extForImageMime(contentType) ?? "png"}`,
+    contentType,
     content: bytes
   })) as { id?: unknown } | null;
   const id = trimmed(created?.id);

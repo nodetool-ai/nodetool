@@ -1669,6 +1669,28 @@ await app.register(websocketPlugin, {
 // here. The registry it consults is process-wide.
 const stopJobCancelPoller = startJobCancelPoller();
 
+app.get("/api/server/features", {
+  schema: {
+    response: {
+      200: {
+        type: "object", required: ["configured", "features", "capabilities"],
+        properties: {
+          configured: { type: "boolean" },
+          features: { type: "array", items: { type: "string" } },
+          capabilities: { type: "array", items: { type: "string" } }
+        }
+      }
+    }
+  }
+}, async () => {
+  const features = packSource.configuredFeatures?.() ?? [];
+  return {
+    configured: packSource.explicitSelection === true,
+    features: features.map((feature) => feature.id),
+    capabilities: [...new Set(features.flatMap((feature) => feature.capabilities ?? []))].sort()
+  };
+});
+
 await app.register(healthRoute);
 await app.register(configRoute);
 // Anonymous product analytics: validate, then relay or ingest. Auth-exempt.

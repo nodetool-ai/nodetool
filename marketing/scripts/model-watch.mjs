@@ -26,7 +26,7 @@
  *
  * The CLI invocation defaults to `npm run dev:nodetool -- generate …` run from
  * the repo root. Override with NODETOOL_MODEL_WATCH_CLI (a shell prefix), e.g.
- *   NODETOOL_MODEL_WATCH_CLI="node packages/cli/dist/index.js"
+ *   NODETOOL_MODEL_WATCH_CLI="node packages/cli-workflow/dist/nodetool.js"
  */
 
 import { spawnSync } from "node:child_process";

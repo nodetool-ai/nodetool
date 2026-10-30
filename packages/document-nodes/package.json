@@ -1,7 +1,7 @@
 {
   "name": "@nodetool-ai/document-nodes",
   "version": "0.8.4",
-  "description": "NodeTool document nodes — PDF text extraction, rasterization, generic document I/O",
+  "description": "NodeTool document nodes \u2014 PDF text extraction, rasterization, generic document I/O",
   "type": "module",
   "engines": {
     "node": ">=22.0.0"
@@ -21,7 +21,8 @@
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
-    "sharp": "^0.35.3"
+    "sharp": "^0.35.3",
+    "@nodetool-ai/document-processing": "*"
   },
   "devDependencies": {
     "@llamaindex/liteparse": "^1.5.2",

@@ -1,0 +1,38 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../game-runtime"
+    },
+    {
+      "path": "../protocol"
+    },
+    {
+      "path": "../node-catalog"
+    },
+    {
+      "path": "../pack-manager"
+    },
+    {
+      "path": "../game-renderer"
+    },
+    {
+      "path": "../cli-common"
+    },
+    {
+      "path": "../agents"
+    }
+  ],
+  "exclude": [
+    "src/**/__tests__/**"
+  ]
+}

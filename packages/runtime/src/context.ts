@@ -1235,6 +1235,8 @@ export class ProcessingContext {
     | null = null;
   /** Optional model-layer adapters used to mirror Python ProcessingContext APIs. */
   private _modelInterfaces: ProcessingContextModelInterfaces | null = null;
+  private readonly _inheritHostDefaults: boolean;
+  private readonly _assetBytesResolver?: (reference: string) => Promise<Uint8Array | null>;
   /** Provider cache keyed by provider id. */
   private _providers = new Map<string, BaseProvider>();
   private _providerPromises = new Map<string, Promise<BaseProvider>>();
@@ -1282,6 +1284,9 @@ export class ProcessingContext {
   private readonly _generationLifecycle: GenerationLifecycleHooks | null;
 
   constructor(opts: {
+    /** Explicit isolated hosts disable process environment and model-interface defaults. */
+    inheritHostDefaults?: boolean;
+    assetBytesResolver?: (reference: string) => Promise<Uint8Array | null>;
     jobId: string;
     workflowId?: string | null;
     projectId?: string | null;
@@ -1340,6 +1345,8 @@ export class ProcessingContext {
     runTraceContext?: RunTraceScope;
     appRunCostAccount?: AppRunCostAccount;
   }) {
+    this._inheritHostDefaults = opts.inheritHostDefaults ?? true;
+    this._assetBytesResolver = opts.assetBytesResolver;
     this.jobId = opts.jobId;
     this.workflowId = opts.workflowId ?? null;
     this.projectId = opts.projectId ?? null;
@@ -1363,7 +1370,7 @@ export class ProcessingContext {
     }
     this._variables = { ...(opts.variables ?? {}) };
     const env: Record<string, string> = {};
-    for (const [k, v] of Object.entries(safeProcessEnv())) {
+    for (const [k, v] of Object.entries(this._inheritHostDefaults ? safeProcessEnv() : {})) {
       if (v != null) env[k] = v;
     }
     this.environment = { ...env, ...(opts.environment ?? {}) };
@@ -1413,6 +1420,8 @@ export class ProcessingContext {
     workspace?: Workspace | null;
   }): ProcessingContext {
     const next = new ProcessingContext({
+      inheritHostDefaults: this._inheritHostDefaults,
+      assetBytesResolver: this._assetBytesResolver,
       jobId: opts?.jobId ?? this.jobId,
       projectId: this.projectId,
       workflowId: opts?.workflowId !== undefined ? opts.workflowId : this.workflowId,
@@ -1505,7 +1514,7 @@ export class ProcessingContext {
    */
   private modelInterfaces(): ProcessingContextModelInterfaces | null {
     const own = this._modelInterfaces;
-    const floor = getDefaultModelInterfaces();
+    const floor = this._inheritHostDefaults ? getDefaultModelInterfaces() : null;
     if (!own) return floor;
     if (!floor) return own;
     // Per key, not per object: a host that wires two interfaces of its own
@@ -2184,7 +2193,7 @@ export class ProcessingContext {
     const fn = this.modelInterfaces()?.[name];
     if (!fn) {
       throw new Error(
-        `ProcessingContext model interface '${String(name)}' is not configured`
+        `ProcessingContext model interface '${String(name)}' is not configured${this._inheritHostDefaults ? '' : '. Install and configure an explicit server feature providing this persistence operation'}`
       );
     }
     return fn as NonNullable<ProcessingContextModelInterfaces[K]>;
@@ -2620,6 +2629,9 @@ export class ProcessingContext {
     assetId: string,
     options?: { requireOwnedAsset?: boolean }
   ): Promise<{ bytes: Uint8Array | null; attempts: string[] }> {
+    if (this._assetBytesResolver) {
+      return {bytes:await this._assetBytesResolver(assetId),attempts:["host-scoped asset resolver"]};
+    }
     let idCandidates = this.parseAssetIdCandidates(assetId);
     const trimmed = assetId.trim();
     const attempts: string[] = [];

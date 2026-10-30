@@ -1,7 +1,7 @@
 /**
  * Per-node-channel stream diff (§4, §12).
  *
- * Grown from `packages/cli/src/debug/diff.ts`, which diffs two
+ * Grown from `packages/cli-workflow/src/debug/diff.ts`, which diffs two
  * `DebugReport`s at the verdict/summary level (issues, token/cost deltas)
  * for the debug harness's `--watch` mode. This module diffs two
  * `NormalizedRunRecord`s at the *message* level, one node-channel at a time

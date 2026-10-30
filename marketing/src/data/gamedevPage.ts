@@ -18,7 +18,7 @@ export const GAMEDEV_DESCRIPTION =
 export const GAMEDEV_LEAD =
   "NodeTool has its own 2D and 3D game engine, built so an AI agent can make a game and a person can keep working on it. The agent builds the levels, rules, scripts, art, and sound through checked edits, then plays the game headlessly to test it. You open the same game in the Game Editor, change anything, and export it as a web build. NodeTool is free and open source under AGPL-3.0.";
 
-export const MCP_INSTALL_COMMAND = "npx -y --package=@nodetool-ai/cli nodetool mcp install";
+export const MCP_INSTALL_COMMAND = "npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp install";
 
 export type AgentStep = { title: string; tool: string; body: string };
 

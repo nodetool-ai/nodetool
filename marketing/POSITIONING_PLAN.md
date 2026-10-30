@@ -588,7 +588,7 @@ a bundle was shown to fail it.
   estimates) against current list prices; date the sources on the page.
 - Fix the MCP tool count. The copy says "120+" (and "around 120" on
   `/agents`, `/developers`, and in `siteSchema.ts`); neither number matches
-  the registry. `packages/cli/src/harness/capability-table.ts` — generated
+  the registry. `packages/cli-harness/src/harness/capability-table.ts` — generated
   from the live registry by `npm run capabilities:sync` — lists **217**
   agent capabilities. The MCP mount itself registers far fewer *direct*
   tools: `registerAgentMcpTools` promotes a small set and publishes the rest

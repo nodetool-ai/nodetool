@@ -1,0 +1,44 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../cli-common"
+    },
+    {
+      "path": "../agents"
+    },
+    {
+      "path": "../pack-manager"
+    },
+    {
+      "path": "../runtime"
+    },
+    {
+      "path": "../models"
+    },
+    {
+      "path": "../config"
+    },
+    {
+      "path": "../storage"
+    },
+    {
+      "path": "../execution"
+    },
+    {
+      "path": "../protocol"
+    }
+  ],
+  "exclude": [
+    "src/**/__tests__/**"
+  ]
+}

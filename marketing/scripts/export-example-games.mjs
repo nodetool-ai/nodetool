@@ -1,4 +1,5 @@
 import { execFile } from "node:child_process";
+import { createHash } from "node:crypto";
 import { copyFile, cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -36,7 +37,7 @@ try {
     const documentPath = join(scratch, `${game.slug}.json`);
     await writeFile(documentPath, JSON.stringify(example.document));
     const output = join(scratch, `${game.slug}-web`);
-    const result = await run(process.execPath, [join(root, "packages/cli/dist/nodetool.js"), "game", "build", documentPath, "--assets-dir", assetsDir, "--out", output]);
+    const result = await run(process.execPath, [join(root, "packages/cli-game/dist/nodetool.js"), "game", "build", documentPath, "--assets-dir", assetsDir, "--out", output]);
     process.stdout.write(result.stdout);
     await copyFile(join(root, `packages/base-nodes/nodetool/assets/nodetool-base/games/${game.slug}/poster.jpg`), join(output, "poster.jpg"));
     const mediaDir = join(root, `packages/base-nodes/nodetool/assets/nodetool-base/games/${game.slug}`);
@@ -54,6 +55,12 @@ try {
     const playerPath = join(output, player3d ? "game3d-player.js" : "player-v1.js");
     const player = await readFile(playerPath, "utf8");
     await writeFile(playerPath, player.replace(/[ \t]+$/gm, "").replace(/^ +(?=\t)/gm, ""));
+    if (player3d) {
+      const manifestPath = join(output, "manifest.json");
+      const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+      manifest.files["game3d-player.js"] = createHash("sha256").update(await readFile(playerPath)).digest("hex");
+      await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
+    }
     entries.push({ ...game, name: example.name, description: example.description, controls: example.controls });
   }
   for (const game of games) {

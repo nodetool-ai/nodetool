@@ -16,7 +16,8 @@
   },
   "dependencies": {
     "@nodetool-ai/config": "*",
-    "keytar": "^7.9.0"
+    "keytar": "^7.9.0",
+    "@nodetool-ai/security-core": "*"
   },
   "devDependencies": {
     "@stryker-mutator/core": "^9.6.1",
@@ -49,7 +50,7 @@
     "dist",
     "README.md"
   ],
-  "description": "Secret storage and encryption for NodeTool — master-key management, crypto helpers, and startup security checks",
+  "description": "Secret storage and encryption for NodeTool \u2014 master-key management, crypto helpers, and startup security checks",
   "keywords": [
     "nodetool",
     "ai",

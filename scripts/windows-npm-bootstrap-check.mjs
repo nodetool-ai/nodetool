@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, mkdirSync, readFileSync, readdirSync, realpathSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { findNpmCli, installerNpmVersion, runInstallerNpm, runNpm } from "../packages/cli/src/npm-runner.ts";
+import { findNpmCli, installerNpmVersion, runInstallerNpm, runNpm } from "../packages/pack-manager/src/npm-runner.ts";
 
 if (process.platform !== "win32") { throw new Error("This check requires native Windows"); }
 const base = mkdtempSync(join(tmpdir(), "npm-bootstrap-check-"));

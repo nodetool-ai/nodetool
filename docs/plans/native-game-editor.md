@@ -171,7 +171,7 @@ Extend `playtest_native_game`:
 
 Update the following:
 - `game.specs.ts` and `packages/agents/src/capabilities/registry.ts`;
-- `packages/cli/src/harness/capability-table.ts` and `packages/websocket/src/trpc/sandbox-coverage.ts`;
+- `packages/cli-harness/src/harness/capability-table.ts` and `packages/websocket/src/trpc/sandbox-coverage.ts`;
 - `packages/system-skills/native-game/SKILL.md`;
 - the [native game pipeline](../harnesses.md#native-game-pipeline-templates-staging-playtest-web-build) section.
 

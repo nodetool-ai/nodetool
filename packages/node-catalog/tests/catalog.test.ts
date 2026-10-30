@@ -5,11 +5,11 @@ import { packForNodeType, readCatalogIndex, readCatalogNodes } from "../src/inde
 
 describe("node catalog", () => {
   it("loads the index without decompressing node metadata", () => {
-    expect(getPackageAssetResolutions().some((ref) => ref.pkg === "@nodetool-ai/node-catalog")).toBe(false);
+    expect(getPackageAssetResolutions().some((ref) => ref.pkg === "@nodetool-ai/pack-core")).toBe(false);
     const index = readCatalogIndex();
     expect(index.schemaVersion).toBe(1);
     expect(index.packs.length).toBeGreaterThan(0);
-    const resolutions = getPackageAssetResolutions().filter((ref) => ref.pkg === "@nodetool-ai/node-catalog");
+    const resolutions = getPackageAssetResolutions().filter((ref) => ref.pkg === "@nodetool-ai/pack-core");
     expect(resolutions.map((ref) => ref.path)).toEqual(["index.json"]);
     expect(readCatalogIndex()).toBe(index);
   });

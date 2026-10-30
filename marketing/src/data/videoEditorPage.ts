@@ -96,7 +96,7 @@ export const VIDEO_FAQ: QaPair[] = [
   {
     question: "Can Claude Code edit a video timeline?",
     answer:
-      "Yes. Run npx -y --package=@nodetool-ai/cli nodetool mcp install to add NodeTool as an MCP server. Claude Code can then create storyboards, render shots, voice a script, edit the timeline with edit_timeline, look at frames with preview_timeline_frame, and render the cut with render_timeline. The timeline opens in Studio like any other.",
+      "Yes. Run npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp install to add NodeTool as an MCP server. Claude Code can then create storyboards, render shots, voice a script, edit the timeline with edit_timeline, look at frames with preview_timeline_frame, and render the cut with render_timeline. The timeline opens in Studio like any other.",
   },
   {
     question: "Which video models does it support?",

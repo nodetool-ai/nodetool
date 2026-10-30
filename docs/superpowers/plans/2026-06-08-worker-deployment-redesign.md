@@ -39,12 +39,12 @@
 
 **Modify**
 - `packages/deploy/src/deployment-config.ts` — drop the five non-Docker schema variants from the union
-- `packages/deploy/src/manager.ts` and `packages/cli/src/commands/deploy-helpers.ts` — drop the deleted factory entries
-- `packages/cli/src/commands/deploy.ts` — drop the deleted `--type` choices
+- `packages/deploy/src/manager.ts` and `packages/cli-admin/src/commands/deploy-helpers.ts` — drop the deleted factory entries
+- `packages/cli-admin/src/commands/deploy.ts` — drop the deleted `--type` choices
 - `packages/deploy/src/docker-run.ts`, `compose.ts` — remove the `workflows`/`NODETOOL_WORKFLOWS` lines
 - `packages/runtime/src/python-websocket-bridge.ts` — add runtime-mutable target (`setTarget`)
 - `packages/websocket/src/trpc/router.ts` (+ new `packages/websocket/src/trpc/routers/worker.ts`) — `worker` router and attach wiring to the live bridge
-- `packages/cli/src/...` — `nodetool worker` command group
+- `packages/cli-admin/src/commands/worker.ts` — `nodetool worker` command group
 - `web/src/...` — Workers panel, store/query, status-bar indicator
 
 **Create — docs**
@@ -72,7 +72,7 @@ Do this first: it removes broken/aspirational code and shrinks `deploy` so the r
 **Files:**
 - Modify: `packages/deploy/src/deployment-config.ts`
 - Modify: `packages/deploy/src/manager.ts`, `packages/deploy/src/index.ts`
-- Modify: `packages/cli/src/commands/deploy-helpers.ts`, `packages/cli/src/commands/deploy.ts`
+- Modify: `packages/cli-admin/src/commands/deploy-helpers.ts`, `packages/cli-admin/src/commands/deploy.ts`
 
 - [ ] **Step 1: Update/trim the config tests first** — In the deploy config tests, remove cases asserting parsing of runpod/gcp/fly/railway/huggingface deployment objects, and add/keep a case asserting the union now rejects `type: "runpod"` (and the others) as invalid while still accepting `type: "docker"`. Run the test file; expect it to fail because the union still includes the old variants.
 - [ ] **Step 2: Shrink the discriminated union** — In `deployment-config.ts`, reduce `AnyDeploymentSchema` to the Docker variant only; delete the RunPod/GCP/Fly/Railway/HuggingFace schemas, their state schemas, and their `getServerUrl` helpers. Remove now-unused exports from `index.ts`.
@@ -263,9 +263,9 @@ Do this first: it removes broken/aspirational code and shrinks `deploy` so the r
 ### Task E2: `nodetool worker` CLI verbs
 
 **Files:**
-- Create: `packages/cli/src/commands/worker.ts`
+- Create: `packages/cli-admin/src/commands/worker.ts`
 - Modify: the CLI command registration entrypoint
-- Test: `packages/cli/src/__tests__/worker-command.test.ts`
+- Test: `packages/cli-admin/tests/worker-command.test.ts`
 
 - [ ] **Step 1: Write failing tests** — With a fake `WorkerManager`, assert the command group parses and dispatches: `worker profile add|list|rm`, `worker create --profile <name> [--attach]` (and inline `--target/--gpu/--image` form), `worker list`, `worker status <id>`, `worker stop <id>`, `worker stop --all`. Assert `--attach` triggers `manager.attach` and prints the resulting `wsUrl`; assert `create` prints the new instance id + `wsUrl` + token.
 - [ ] **Step 2: Run to fail** — `npm run test --workspace=packages/cli` on the file; expect failures.

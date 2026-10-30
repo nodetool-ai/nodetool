@@ -8,8 +8,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
 
-vi.mock("../src/lib/storage.js", () => ({ getAssetAdapter: vi.fn() }));
-vi.mock("../src/lib/thumbnail.js", () => ({
+vi.mock("@nodetool-ai/asset-services/storage", () => ({ getAssetAdapter: vi.fn() }));
+vi.mock("@nodetool-ai/asset-services/thumbnail", () => ({
   storeAssetWithThumbnail: vi.fn(),
   storeAssetFileWithThumbnail: vi.fn(),
   generateThumbnailForStoredAsset: vi.fn(),

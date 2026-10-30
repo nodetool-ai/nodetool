@@ -70,7 +70,7 @@ const WEB_GLOBAL = /^web\/src\/(setupTests\.ts$|__mocks__\/)/;
 const GAME_SHARD = new Set([
   "@nodetool-ai/game-runtime",
   "@nodetool-ai/game-renderer",
-  "@nodetool-ai/cli"
+  "@nodetool-ai/cli-game"
 ]);
 
 const NODES_SHARD = new Set([
@@ -217,7 +217,7 @@ function option(argv, name) {
 }
 
 async function loadAffected() {
-  return import(pathToFileURL(join(repoRoot, "packages/cli/src/affected/affected.ts")).href);
+  return import(pathToFileURL(join(repoRoot, "packages/cli-harness/src/affected/affected.ts")).href);
 }
 
 async function main(argv) {

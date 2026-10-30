@@ -19,7 +19,7 @@ is `url-egress-audit.test.ts` beside it. Run both with
 
 **Default:** https, to a host that is not a loopback, link-local, RFC1918,
 CGNAT or benchmarking address — and every redirect hop re-checked.
-`safeFetch` in `packages/runtime/src/providers/safe-url.ts` is that policy as a
+`safeFetch` in `packages/runtime-core/src/safe-url.ts` is that policy as a
 function, and it is the only thing that counts as protection. `isSafePublicHttpsUrl`
 and friends are predicates: a predicate can refuse an initial URL, but a public
 host that answers `302 Location: http://127.0.0.1:6379/` walks past one.
@@ -31,13 +31,18 @@ documented opt-out (below). Audio loading in
 `packages/runtime/src/media-ref-bytes.ts`, whose HTTP fallback calls
 `fetchExternalMedia` and checks every redirect hop.
 
-**The sandbox fetch bridge** runs its own policy on purpose: plain http is
+**The lean sandbox fetch bridge** in `packages/sandbox-runtime/src/index.ts`
+uses `safeFetch` under the default public HTTPS policy, with per-run request and
+response limits. Guest code cannot enable private network or host filesystem
+access in this host.
+
+**The full sandbox fetch bridge** runs its own policy on purpose: plain http is
 allowed, and a host — never guest code — may waive the address check for a node
 that replaces a trusted `lib.http` node. It reads the same address table.
 
 ### One address table
 
-`isBlockedIpLiteral` in `providers/safe-url.ts` decides which literals are
+`isBlockedIpLiteral` in `packages/runtime-core/src/safe-url.ts` decides which literals are
 internal. It covers IPv4 (loopback, 0.0.0.0/8, RFC1918, 169.254/16, CGNAT,
 198.18/15), the alternate spellings the WHATWG parser normalizes for us
 (decimal, hex, octal, short form), IPv6 loopback/unspecified/ULA/link-local, and
@@ -78,6 +83,12 @@ takes effect without a restart, and it is off by default. See
 
 ## Guarded surfaces
 
+Entity reference images in `packages/core-nodes/src/nodes/entity.ts` resolve
+URI-backed media through `loadMediaRefBytes` before creating an owned asset.
+Package references use the processing context's package resolver. Remote URLs
+use the shared media egress policy, including redirect checks.
+
+
 Everything here fetches a URL somebody else chose, through the protected fetch.
 
 | Surface | File | URL comes from |
@@ -93,7 +104,7 @@ Everything here fetches a URL somebody else chose, through the protected fetch.
 | `save_asset` / `view_image` | `packages/agents/src/capabilities/assets.ts` | model |
 | `yt_dlp` download | `packages/agents/src/capabilities/media.ts` | model |
 | Apify run artifacts → assets | `packages/agents/src/apify/assets.ts` | provider response |
-| `render_sketch` / `nodetool sketch render` layer images | `packages/agents/src/capabilities/sketches.ts`, `packages/cli/src/commands/sketch-render.ts` | sketch document |
+| `render_sketch` / `nodetool sketch render` layer images | `packages/agents/src/capabilities/sketches.ts`, `packages/cli-sketch/src/commands/sketch-render.ts` | sketch document |
 | Google Fonts family resolution (timeline) | `packages/timeline/src/fonts/google-fonts-fetch.ts` | workflow |
 | Reve reference image | `packages/reve-nodes/src/reve-base.ts` | workflow |
 | HF pipeline media input | `packages/huggingface-nodes/src/huggingface-base.ts` | workflow |
@@ -138,10 +149,25 @@ sample stills from it for a model that cannot read video):
 - `packages/runtime/src/providers/anthropic-provider.ts`
 - `packages/runtime/src/providers/video-frame-fallback.ts`
 
-Screening code itself: `packages/runtime/src/providers/safe-url.ts`,
+The explicitly installed pack adapter in
+`packages/server-feature-packs/src/index.ts` injects `safeFetch` and the current
+run's cancellation signal into its execution context. Pack transport uses the
+default public HTTPS policy and the authenticated tenant's credentials.
+
+The minimal HTTP workflow node in `packages/nodes-core/src/index.ts` passes
+workflow URLs through `safeFetch`. The OpenAI-compatible text adapter in
+`packages/runtime-core/src/text-provider.ts` and the optional Anthropic adapter
+in `packages/provider-anthropic/src/index.ts` inject `safeFetch` into their
+official SDK transports. Their endpoint URLs are operator-configured and carry
+the authenticated tenant's provider key. Each request and redirect hop must use
+public HTTPS under the default egress policy.
+
+Screening code itself: `packages/runtime-core/src/safe-url.ts`,
 `packages/runtime/src/external-media-fetch.ts`,
 `packages/agents/src/network-guard.ts`, `packages/agents/src/apify/policy.ts`.
-The guest bridge is `packages/agents/src/js-sandbox.ts`.
+The full runtime compatibility export in
+`packages/runtime/src/providers/safe-url.ts` delegates to runtime-core and opens
+no request. The guest bridge is `packages/agents/src/js-sandbox.ts`.
 
 ## Exemptions
 
@@ -231,12 +257,22 @@ at 24 hours.
   deployment (`isAuthEnforced`) the URL must pass `isSafePublicHttpsUrl`. A
   local install allows loopback and private addresses, because screenshotting
   the app on `localhost` is the reason to take one there.
-- `packages/cli/src/nodetool-main.ts` — runs on the operator's machine against their
+- `packages/cli-workflow/src/index.ts` — runs on the operator's machine against their
   own API URL, loopback by default.
 - `packages/websocket/src/mcp-server.ts` — the `nodetool mcp serve` forwarder
   reaches the local server's `/mcp` mount and refuses any host other than
   `127.0.0.1` or `localhost`.
 - `packages/deploy/src/admin-client.ts` — the server being deployed.
+
+**Scoped optional browser screenshots.**
+`packages/server-feature-packs/src/scoped-services.ts` executes
+`lib.browser.Screenshot` only with an administrator-configured browser service.
+It checks the workflow URL with `assertSafePublicHttpsUrl` and rejects embedded
+URL credentials before navigation. The service creates a fresh isolated session
+for the run owner. This check applies to the initial URL only. The browser resolves DNS and follows redirects and
+subresource URLs itself, outside `safeFetch`. Deployment egress controls must
+restrict those requests and prevent access to private addresses. The initial
+HTTPS check does not provide redirect or DNS-rebinding protection.
 
 **Browser-side.** The socket belongs to the viewer's browser, not the server:
 `packages/game-renderer/src/standalone-assets.ts` (only digest-named

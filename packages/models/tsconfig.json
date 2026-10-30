@@ -28,6 +28,9 @@
     },
     {
       "path": "../timeline"
+    },
+    {
+      "path": "../models-core"
     }
   ]
 }

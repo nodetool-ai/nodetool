@@ -13,7 +13,7 @@ import type { TextToVideoParams } from "@nodetool-ai/runtime";
 
 import { WebSocketClientSession } from "../src/websocket-client-session.js";
 
-vi.mock("../src/lib/thumbnail.js", () => ({
+vi.mock("@nodetool-ai/asset-services/thumbnail", () => ({
   storeAssetWithThumbnail: vi.fn(async () => undefined)
 }));
 

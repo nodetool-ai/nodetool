@@ -37,11 +37,11 @@ vi.mock("@nodetool-ai/models", async (orig) => {
   };
 });
 
-vi.mock("../src/lib/storage.js", () => ({
+vi.mock("@nodetool-ai/asset-services/storage", () => ({
   getAssetAdapter: vi.fn(() => mocks.adapter)
 }));
 
-vi.mock("../src/lib/thumbnail.js", async (orig) => {
+vi.mock("@nodetool-ai/asset-services/thumbnail", async (orig) => {
   const actual = await orig<typeof import("../src/lib/thumbnail.js")>();
   return { ...actual, generateThumbnailForStoredAsset: mocks.generateThumb };
 });

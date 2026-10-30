@@ -49,7 +49,7 @@ const PREAMBLE = `# NodeTool
 
 ## What NodeTool is
 
-- Agents operate the editors through tools, and every tool call, result, and error is recorded for inspection. External agents (Claude Code, Codex, OpenCode, Cursor) use the same tools through the NodeTool MCP server: \`npx -y --package=@nodetool-ai/cli nodetool mcp install\`.
+- Agents operate the editors through tools, and every tool call, result, and error is recorded for inspection. External agents (Claude Code, Codex, OpenCode, Cursor) use the same tools through the NodeTool MCP server: \`npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp install\`.
 - Video: an agent writes a storyboard, renders stills and clips, and assembles a multi-track timeline that a person keeps editing (trims, transitions, captions, takes, aspect-ratio versions). Export MP4, WebM, or a PNG sequence.
 - Games: a built-in 2D and 3D game engine. Agents create and edit game documents, generate and install art and audio, playtest headlessly, and export a standalone web build or a desktop app project. People edit the same game in the Game Editor.
 - A visual, node-based editor for building AI workflows: connect models and tools as nodes on a canvas instead of writing glue code.
@@ -154,7 +154,7 @@ ${steps}
 ${gamedev.MCP_INSTALL_COMMAND}
 \`\`\`
 
-This registers NodeTool as an MCP server in Claude Code, Codex, and OpenCode. For Cursor or another client, \`nodetool mcp config\` prints the block to paste. The agent calls the game tools inside \`execute_code\` and looks at captured frames with \`view_image\`. The game skills appear in Claude Code as slash commands.
+This registers NodeTool as an MCP server in Claude Code, Codex, and OpenCode. For Cursor or another client, \`nodetool-mcp config\` prints the block to paste. The agent calls the game tools inside \`execute_code\` and looks at captured frames with \`view_image\`. The game skills appear in Claude Code as slash commands.
 
 ## Game assets, installed in the game
 
@@ -346,7 +346,7 @@ ${mcp.MCP_INSTALL}
 
 ${agents.MCP_STEPS.map((s) => `- **${s.title}**: ${s.body}`).join("\n")}
 
-For Cursor, Claude Desktop, or another MCP client, run \`nodetool mcp config\` and paste the block it prints. See ${BASE_URL}/mcp for every tool.
+For Cursor, Claude Desktop, or another MCP client, run \`nodetool-mcp config\` and paste the block it prints. See ${BASE_URL}/mcp for every tool.
 
 ## Questions
 
@@ -497,10 +497,10 @@ Cloud uses hosted project storage and supported remote providers connected throu
     body: `NodeTool runs as a local MCP server. One command registers it with Claude Code, Codex, and OpenCode:
 
 \`\`\`bash
-npx -y --package=@nodetool-ai/cli nodetool mcp install
+npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp install
 \`\`\`
 
-For Cursor, Claude Desktop, or another MCP client, run \`nodetool mcp config\` and paste the printed block into the client config. The desktop app is optional.
+For Cursor, Claude Desktop, or another MCP client, run \`nodetool-mcp config\` and paste the printed block into the client config. The desktop app is optional.
 
 After the install, ask the agent for images, video, speech, transcripts, or a whole workflow in plain words. It saves files into the project and keeps a copy in the NodeTool asset library. Generation calls your own provider accounts at their list price.
 
