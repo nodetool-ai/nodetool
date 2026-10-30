@@ -16,6 +16,7 @@
 #include <QUuid>
 #include <QtTest>
 #include <memory>
+#include <algorithm>
 
 namespace {
 QQuickItem* find(QQuickItem* root, const QString& name) {
@@ -88,7 +89,11 @@ struct Editor {
         QQuickTest::qWaitForPolish(&window);
         auto* viewport = item("inspectorViewport");
         const auto y = target->mapToItem(viewport,QPointF{}).y();
-        viewport->setProperty("contentY",viewport->property("contentY").toDouble()+y-10);
+        const double maximum = std::max(0.0, viewport->property("contentHeight").toDouble() - viewport->height());
+        const double next = viewport->property("contentY").toDouble() + y - 10;
+        viewport->setProperty("contentY", std::clamp(next, 0.0, maximum));
+        QVERIFY(viewport->property("contentY").toDouble() >= 0);
+        QVERIFY(viewport->property("contentY").toDouble() <= maximum);
         QCoreApplication::processEvents();
         QQuickTest::qWaitForPolish(&window);
     }
@@ -96,9 +101,7 @@ struct Editor {
         reveal(target);
         window.requestActivate();
         QVERIFY(QTest::qWaitForWindowActive(&window));
-        QSignalSpy frame(&window, &QQuickWindow::frameSwapped);
-        window.requestUpdate();
-        QTRY_VERIFY(!frame.isEmpty());
+        QQuickTest::qWaitForPolish(&window);
         const auto at = target->mapToScene(QPointF(target->width()/2,target->height()/2)).toPoint();
         for (auto* parent = target; parent; parent = parent->parentItem()) {
             if (parent->clip()) {

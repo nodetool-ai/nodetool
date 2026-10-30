@@ -267,11 +267,12 @@ private slots:
         auto* popup = select->property("popup").value<QObject*>();
         QVERIFY(popup);
         QVERIFY(popup->setProperty("popupType", popupWindow ? 1 : 0)); // Popup.Window / Popup.Item
+        QVERIFY(item("toolToggle")->setProperty("compact", true));
         view->requestActivate();
         QVERIFY(QTest::qWaitForWindowActive(view.get()));
         QVERIFY(QTest::qWaitForWindowExposed(view.get()));
         QSignalSpy frame(view.get(), &QQuickWindow::frameSwapped);
-        view->requestUpdate();
+        view->update();
         QTRY_VERIFY(!frame.isEmpty());
         const auto clickPoint = select->mapToScene({select->width() - 8, select->height() / 2});
         for (auto* parent = select; parent; parent = parent->parentItem()) {
