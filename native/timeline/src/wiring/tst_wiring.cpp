@@ -306,9 +306,17 @@ private slots:
             QVERIFY(toolbar->setProperty("compact", compact));
             QCOMPARE(probe->property("compact").toBool(), compact);
         }
+        QVERIFY(toolbar->setProperty("compact", true));
+        QSignalSpy frame(view.get(), &QQuickWindow::frameSwapped);
+        view->update();
+        QVERIFY(!frame.isEmpty() || frame.wait(2000));
         const auto snapEnd = item("snapToggle")->mapToScene({item("snapToggle")->width(), 0});
         QVERIFY(probe->mapToScene({0, 0}).x() >= snapEnd.x());
         QCOMPARE(probe->property("gestures").value<QObject*>(), item("clipGestures"));
+        auto* region = item("tracksRegion");
+        QVERIFY(region);
+        const auto local = region->mapFromScene(probe->mapToScene({14, 14}));
+        QVERIFY2(region->contains(local), qPrintable(QString("Toolbar probe at %1,%2 lies outside the %3 by %4 tracks region").arg(local.x()).arg(local.y()).arg(region->width()).arg(region->height())));
         QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, probe->mapToScene({14, 14}).toPoint());
         QCOMPARE(probe->property("clicks").toInt(), 1);
     }
