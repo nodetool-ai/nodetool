@@ -5,6 +5,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { matteImports, prepareMatteFixture } from "./import-matte.mjs";
+import { measurePsnr } from "../../../scripts/measure-psnr.mjs";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "../../..");
@@ -83,13 +84,7 @@ export function compareDistinctFrames(directory, pairs) {
 }
 
 function psnr(golden, native) {
-  // Same RGB24 three-channel average as compare-golden.mjs. ffmpeg prints
-  // filter statistics on stderr, even on a successful run.
-  const output = execFileSync("bash", ["-c", 'exec ffmpeg -hide_banner -i "$0" -i "$1" -lavfi "[0:v]format=rgb24[a];[1:v]format=rgb24[b];[a][b]psnr" -f null - 2>&1', golden, native],
-    { encoding: "utf8" });
-  const match = /average:(inf|[0-9.]+)/.exec(output);
-  if (!match) { throw new Error(`No PSNR for ${golden}`); }
-  return match[1] === "inf" ? Infinity : Number(match[1]);
+  return measurePsnr(golden, native);
 }
 
 export function loadFixtures(directory, only) {

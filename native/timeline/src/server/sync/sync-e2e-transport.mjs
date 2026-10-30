@@ -70,11 +70,16 @@ export async function countingTimelineProxy(origin) {
   const sockets = new Set();
   const requests = new Set();
   const proxy = http.createServer((request, response) => {
-    const pathname = new URL(request.url, target).pathname;
+    if (!request.url?.startsWith("/") || request.url.startsWith("//")) {
+      response.writeHead(400); response.end("Expected an origin-relative request target"); return;
+    }
+    const { pathname, search } = new URL(request.url, target);
     if (request.method === "GET" && pathname === "/trpc/timeline.get") {
       ++gets;
     }
-    const upstream = http.request(new URL(request.url, target), {
+    const upstream = http.request({
+      protocol: "http:", hostname: "127.0.0.1", port: target.port || 80,
+      path: pathname + search,
       method: request.method,
       headers: { ...request.headers, host: target.host },
       agent: false
