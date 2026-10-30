@@ -10,6 +10,8 @@
 #include <QTcpServer>
 #include <QTcpSocket>
 #include <QJsonDocument>
+#include <QSet>
+#include <atomic>
 
 class ActivityTest : public QObject {
     Q_OBJECT
@@ -129,10 +131,64 @@ private slots:
         controller.loadMore(); QTRY_VERIFY(!controller.busy());
         QCOMPARE(controller.rows().size(), 10002);
         controller.refresh(); QTRY_VERIFY_WITH_TIMEOUT(!controller.busy(), 15000);
+        QCOMPARE(controller.rows().size(), 10002);
         controller.loadMore(); QTRY_VERIFY(!controller.busy());
         QCOMPARE(cursors, QStringList({"", "page-2", "", "page-3"}));
         QCOMPARE(controller.rows().size(), 10003);
         QVERIFY(!controller.hasMore());
+    }
+    void newlyArrivedHistoryIsPageable_data() {
+        QTest::addColumn<bool>("generations");
+        QTest::newRow("jobs") << false;
+        QTest::newRow("generations") << true;
+    }
+    void newlyArrivedHistoryIsPageable() {
+        QFETCH(bool, generations);
+        TimelineModel model;
+        nt::Timeline document;
+        document.raw = {{"projectId", "project-a"}};
+        model.setTimeline(document);
+        ActivityController controller;
+        controller.setTarget(nt::server::SaveTarget{QUrl("http://127.0.0.1:1"), "", "timeline", "", {}});
+        std::atomic<int> listCalls = 0;
+        const QString procedure = generations ? "generations.list" : "jobs.list";
+        const QString rowsKey = generations ? "generations" : "jobs";
+        const QString nextKey = generations ? "next" : "next_start_key";
+        const QString idKey = generations ? "generation_id" : "id";
+        controller.setCall([&](bool, const QString& requested, const QJsonObject& input) {
+            if (requested != procedure) {
+                const QString key = requested == "assets.list" ? "assets" : generations ? "jobs" : "generations";
+                return nt::server::QueryResult{QJsonObject{{key, QJsonArray{}}, {"next", QJsonValue::Null}}, {}};
+            }
+            const int call = ++listCalls;
+            QJsonArray rows;
+            QString next;
+            if (call > 1) {
+                const bool older = !input.value("start_key").toString().isEmpty();
+                const int begin = older ? 100 : 0;
+                const int end = older ? 101 : 100;
+                for (int i = begin; i < end; ++i) {
+                    rows.append(QJsonObject{{idKey, QString::number(i).rightJustified(32, '0')},
+                        {"project_id", "project-a"}, {"status", "completed"}});
+                }
+                if (!older) { next = "new-history-page-2"; }
+            }
+            return nt::server::QueryResult{QJsonObject{{rowsKey, rows}, {nextKey, next}}, {}};
+        });
+        controller.setTimeline(&model);
+        QTRY_VERIFY(listCalls.load() == 1 && !controller.busy());
+        QVERIFY(controller.rows().isEmpty());
+        QVERIFY(!controller.hasMore());
+        controller.refresh();
+        QTRY_VERIFY(!controller.busy() && controller.rows().size() == 100);
+        QVERIFY2(controller.hasMore(), "New records beyond the refreshed first page must remain discoverable");
+        controller.loadMore();
+        QTRY_VERIFY(!controller.busy() && controller.rows().size() == 101);
+        QVERIFY(!controller.hasMore());
+        QSet<QString> ids;
+        for (const auto& value : controller.rows()) { ids.insert(value.toMap().value("id").toString()); }
+        QCOMPARE(ids.size(), 101);
+        QVERIFY(ids.contains(QString::number(100).rightJustified(32, '0')));
     }
     void scopeHistoryOfflineAndCancellation() {
         TimelineModel model;
