@@ -258,6 +258,15 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     authScope: "calling pack's authenticated tenant credentials"
   },
 
+  {
+    ...guardedMedia(
+      "packages/core-nodes/src/nodes/entity.ts",
+      "Entity reference image persistence",
+      "References without asset IDs resolve through the shared media-byte resolver before creating an owned image asset."
+    ),
+    guardedBy: ["loadMediaRefBytes"]
+  },
+
   // ------------------------------------------------------- guarded (media refs)
   guardedMedia(
     "packages/runtime/src/media-ref-bytes.ts",

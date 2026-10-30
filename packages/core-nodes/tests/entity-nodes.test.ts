@@ -409,3 +409,41 @@ describe("CreateEntityNode", () => {
     expect(lib.rows.size).toBe(0);
   });
 });
+
+
+it("creates an entity from URI image bytes through the scoped media resolver with the original MIME", async () => {
+  const { createFakeContext } = await import("@nodetool-ai/runtime");
+  const fake = createFakeContext();
+  try {
+    const create = vi.spyOn(fake.context, "createAsset");
+    const entity = new CreateEntityNode();
+    entity.assign({ name: "Lead", kind: "character", descriptor: "Fixture", image: { type: "image", uri: "data:image/jpeg;base64,/9j/AA==" } });
+    const result = await entity.process(fake.context);
+    expect(result.entity.reference_images?.[0]?.asset_id).toBeTruthy();
+    expect(create).toHaveBeenCalledWith(expect.objectContaining({ name: "Lead.jpg", contentType: "image/jpeg", content: new Uint8Array([255, 216, 255, 0]) }));
+  } finally { fake.cleanup(); }
+});
+
+
+it("refuses local image file URIs outside the run workspace before creating an asset", async () => {
+  const { createFakeContext } = await import("@nodetool-ai/runtime");
+  const { mkdtemp, writeFile, rm } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { pathToFileURL } = await import("node:url");
+  const outside = await mkdtemp(join(tmpdir(), "entity-external-"));
+  const fake = createFakeContext();
+  try {
+    const file = join(outside, "private.png");
+    await writeFile(file, Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==", "base64"));
+    const create = vi.spyOn(fake.context, "createAsset");
+    const retrieve = vi.spyOn(fake.context.storage!, "retrieve");
+    for (const uri of [pathToFileURL(file).href, file]) {
+      const entity = new CreateEntityNode();
+      entity.assign({ name: "Private", kind: "character", descriptor: "Fixture", image: { type: "image", uri } });
+      await expect(entity.process(fake.context)).rejects.toThrow("neither an asset id nor bytes");
+    }
+    expect(create).not.toHaveBeenCalled();
+    expect(retrieve).not.toHaveBeenCalled();
+  } finally { fake.cleanup(); await rm(outside, { recursive: true, force: true }); }
+});

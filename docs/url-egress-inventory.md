@@ -83,6 +83,12 @@ takes effect without a restart, and it is off by default. See
 
 ## Guarded surfaces
 
+Entity reference images in `packages/core-nodes/src/nodes/entity.ts` resolve
+URI-backed media through `loadMediaRefBytes` before creating an owned asset.
+Package references use the processing context's package resolver. Remote URLs
+use the shared media egress policy, including redirect checks.
+
+
 Everything here fetches a URL somebody else chose, through the protected fetch.
 
 | Surface | File | URL comes from |

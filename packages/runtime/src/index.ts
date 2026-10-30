@@ -2,6 +2,7 @@
  * @nodetool-ai/runtime – Public API
  */
 
+export { sniffImageMime, extForImageMime } from "./providers/image-mime.js";
 export { sniffAudioMime } from "./providers/audio-mime.js";
 
 export {
