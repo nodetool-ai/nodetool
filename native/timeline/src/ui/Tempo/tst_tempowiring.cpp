@@ -273,7 +273,11 @@ private slots:
         QSignalSpy initialFrame(view.get(), &QQuickWindow::frameSwapped);
         view->update();
         QTRY_VERIFY(!initialFrame.isEmpty());
-        const double overflow = select->mapToItem(region, {select->width(), 0}).x() - region->width();
+        auto* toolbar = item("timelineToolbar");
+        QVERIFY(toolbar);
+        const double overflow = qMax(
+            select->mapToItem(region, {select->width(), 0}).x() - region->width(),
+            toolbar->property("rowWidth").toDouble() - toolbar->property("available").toDouble());
         if (overflow > 0) {
             view->resize(view->width() + qCeil(overflow) + 100, view->height());
         }
@@ -283,6 +287,8 @@ private slots:
         QSignalSpy frame(view.get(), &QQuickWindow::frameSwapped);
         view->update();
         QTRY_VERIFY(!frame.isEmpty());
+        QVERIFY2(toolbar->property("rowWidth").toDouble() <= toolbar->property("available").toDouble(),
+            "The popup fixture must fit both toolbar groups before clicking");
         const auto clickPoint = select->mapToScene({select->width() - 8, select->height() / 2});
         for (auto* parent = select; parent; parent = parent->parentItem()) {
             if (parent->clip()) {
