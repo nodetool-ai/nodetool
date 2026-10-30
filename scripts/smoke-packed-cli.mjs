@@ -79,6 +79,47 @@ export function assertInstalledSelection(output, selected) {
   }
 }
 
+export function installSmokeCommandFeatures(invoke, { probeMissing, probeInstalled }) {
+  function installAndCheck(id) {
+    invoke(["packs", "add", id, "--yes"]);
+    assertInstalledSelection(invoke(["packs", "list", "--json"]), [id]);
+    const missing = missingCommands(invoke(["feature", id, "--help"]), FEATURE_REQUIRED_COMMANDS[id]);
+    if (missing.length) { throw new Error(`Installed ${id} help is missing: ${missing.join(", ")}`); }
+  }
+  installAndCheck("cli-workflow");
+  probeMissing();
+  invoke(["packs", "add", "fal", "--yes"]);
+  assertInstalledSelection(invoke(["packs", "list", "--json"]), ["fal"]);
+  probeInstalled();
+  for (const feature of CLI_FEATURE_PACKS) {
+    if (feature.id !== "cli-workflow") { installAndCheck(feature.id); }
+  }
+}
+
+export function probeMissingFal(bin, appDir, cliOptions) {
+  const workflowArgs = ["feature", "cli-workflow"];
+  const falFixture = join(appDir, "missing-fal.json");
+  writeFileSync(falFixture, JSON.stringify({ graph: missingFalGraph() }));
+  const validated = spawnSync(bin, [...workflowArgs, "validate", falFixture, "--json"], { encoding: "utf8", ...cliOptions });
+  if (validated.status !== 1) { throw new Error(`Missing FAL validation exited ${validated.status}: ${validated.stdout}${validated.stderr}`); }
+  const report = JSON.parse(validated.stdout).report;
+  if (!report.issues.some(issue => issue.code === "pack_not_installed") || !report.issues.some(issue => issue.code === "property")) {
+    throw new Error(`Missing FAL validation omitted availability or property issues: ${validated.stdout}`);
+  }
+  const failed = spawnSync(bin, [...workflowArgs, "workflows", "run", falFixture, "--json"], { encoding: "utf8", ...cliOptions });
+  const missingPack = JSON.parse(failed.stdout);
+  if (failed.status !== 3 || missingPack.error !== "missing_pack" || !missingPack.packs.some(pack => pack.id === "fal")) {
+    throw new Error(`Missing FAL execution must return missing_pack and exit 3: ${failed.stdout}${failed.stderr}`);
+  }
+  writeFileSync(falFixture, JSON.stringify({ graph: missingFalGraph({ audio: { type: "audio", data: "AA==" } }) }));
+  const installOnly = spawnSync(bin, [...workflowArgs, "validate", falFixture, "--json"], { encoding: "utf8", ...cliOptions });
+  const installReport = JSON.parse(installOnly.stdout).report;
+  if (installOnly.status !== 3 || !installReport.issues.some(issue => issue.code === "pack_not_installed") || installReport.issues.some(issue => issue.severity === "error" && issue.code !== "pack_not_installed")) {
+    throw new Error(`Missing-pack-only validation must exit 3: ${installOnly.stdout}${installOnly.stderr}`);
+  }
+  console.log("ok  missing FAL validates properties and fails execution with the pack name");
+}
+
 function assertDesiredSelection(env, root, selected) {
   const data = process.platform === "win32" ? join(env.HOME, "AppData", "Roaming") : env.XDG_DATA_HOME;
   const state = JSON.parse(readFileSync(join(data, "nodetool", "cli-packs.json"), "utf8"))[realpathSync(root)];
@@ -486,12 +527,10 @@ project and global consumers, each with an empty HOME.
 
     const selectedPacks = values["core-only"] ? [] : COMPOSED_SMOKE_PACK_IDS;
     if (!values["core-only"]) {
-      for (const feature of CLI_FEATURE_PACKS) {
-        run(bin, ["packs", "add", feature.id, "--yes"], { ...cliOptions, timeout: 900_000 });
-        assertInstalledSelection(run(bin, ["packs", "list", "--json"], cliOptions), [feature.id]);
-        const missing = missingCommands(run(bin, ["feature", feature.id, "--help"], cliOptions), FEATURE_REQUIRED_COMMANDS[feature.id]);
-        if (missing.length) { throw new Error(`Installed ${feature.id} help is missing: ${missing.join(", ")}`); }
-      }
+      installSmokeCommandFeatures(args => run(bin, args, { ...cliOptions, timeout: 900_000 }), {
+        probeMissing: () => probeMissingFal(bin, appDir, cliOptions),
+        probeInstalled: () => runFalFixture(realpathSync(bin), appDir, env, run)
+      });
       const workflowArgs = ["feature", "cli-workflow"];
       run(process.execPath, ["--input-type=module", "-e", 'await import("@nodetool-ai/dsl");'], { cwd: appDir, env, timeout: 120_000 });
       const coreWorkflow = JSON.parse(readFileSync(join(ROOT, NO_MODEL_WORKFLOW), "utf8")).graph;
@@ -528,29 +567,6 @@ project and global consumers, each with an empty HOME.
       throw new Error(`nodetool run did not execute the TypeScript workflow:\n${dslOutput}`);
     }
     console.log("ok  nodetool run executes a TypeScript workflow without downloads");
-
-    {
-      const falFixture = join(appDir, "missing-fal.json");
-      writeFileSync(falFixture, JSON.stringify({ graph: missingFalGraph() }));
-      const validated = spawnSync(bin, [...workflowArgs, "validate", falFixture, "--json"], { encoding: "utf8", ...cliOptions });
-      if (validated.status !== 1) { throw new Error(`Missing FAL validation exited ${validated.status}: ${validated.stdout}${validated.stderr}`); }
-      const report = JSON.parse(validated.stdout).report;
-      if (!report.issues.some(issue => issue.code === "pack_not_installed") || !report.issues.some(issue => issue.code === "property")) {
-        throw new Error(`Missing FAL validation omitted availability or property issues: ${validated.stdout}`);
-      }
-      const failed = spawnSync(bin, [...workflowArgs, "workflows", "run", falFixture, "--json"], { encoding: "utf8", ...cliOptions });
-      const missingPack = JSON.parse(failed.stdout);
-      if (failed.status !== 3 || missingPack.error !== "missing_pack" || !missingPack.packs.some(pack => pack.id === "fal")) {
-        throw new Error(`Missing FAL execution must return missing_pack and exit 3: ${failed.stdout}${failed.stderr}`);
-      }
-      writeFileSync(falFixture, JSON.stringify({ graph: missingFalGraph({ audio: { type: "audio", data: "AA==" } }) }));
-      const installOnly = spawnSync(bin, [...workflowArgs, "validate", falFixture, "--json"], { encoding: "utf8", ...cliOptions });
-      const installReport = JSON.parse(installOnly.stdout).report;
-      if (installOnly.status !== 3 || !installReport.issues.some(issue => issue.code === "pack_not_installed") || installReport.issues.some(issue => issue.severity === "error" && issue.code !== "pack_not_installed")) {
-        throw new Error(`Missing-pack-only validation must exit 3: ${installOnly.stdout}${installOnly.stderr}`);
-      }
-      console.log("ok  missing FAL validates properties and fails execution with the pack name");
-    }
 
     const codecFixture = join(appDir, "codec-identity.mp4");
     copyFileSync(join(ROOT, "scripts", "fixtures", "codec-identity.mp4"), codecFixture);

@@ -9,7 +9,7 @@ import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import yaml from "js-yaml";
 
-import { assertInstalledSelection, assertCoreInstallSize, assertCoreOnlyInstall, cleanEnv, codecProbeSource, existingTarballs, installedPackages, mcpWorkflowCode, missingCommands, missingFalGraph, probeMcp, probeServe, REQUIRED_COMMANDS, FEATURE_REQUIRED_COMMANDS, COMPOSED_SMOKE_PACK_IDS } from "../smoke-packed-cli.mjs";
+import { assertInstalledSelection, assertCoreInstallSize, assertCoreOnlyInstall, cleanEnv, codecProbeSource, existingTarballs, installSmokeCommandFeatures, installedPackages, mcpWorkflowCode, missingCommands, missingFalGraph, probeMcp, probeServe, REQUIRED_COMMANDS, FEATURE_REQUIRED_COMMANDS, COMPOSED_SMOKE_PACK_IDS } from "../smoke-packed-cli.mjs";
 import { partitionPlan } from "../packed-verification.mjs";
 import { fullPlan, readPackages } from "../test-affected.mjs";
 
@@ -24,6 +24,37 @@ it("explicitly composes every classic core family in the full regression consume
   for (const id of ["core", "text", "data", "llm", "code"]) { expect(COMPOSED_SMOKE_PACK_IDS).toContain(id); }
   expect(new Set(COMPOSED_SMOKE_PACK_IDS).size).toBe(COMPOSED_SMOKE_PACK_IDS.length);
   expect(COMPOSED_SMOKE_PACK_IDS).not.toContain("cli-full");
+});
+
+it("checks missing FAL with only workflow admitted before installing FAL and the remaining command features", () => {
+  const selected = new Set();
+  const stages = [];
+  const helpChecked = [];
+  installSmokeCommandFeatures(args => {
+    if (args[0] === "packs" && args[1] === "add") {
+      selected.add(args[2]);
+      stages.push(`install:${args[2]}`);
+      return "";
+    }
+    if (args[0] === "packs" && args[1] === "list") {
+      return JSON.stringify([...selected].map(id => ({ id, installed: true })));
+    }
+    expect(args).toEqual(["feature", expect.any(String), "--help"]);
+    helpChecked.push(args[1]);
+    return FEATURE_REQUIRED_COMMANDS[args[1]].map(command => `  ${command}    Command`).join("\n");
+  }, {
+    probeMissing: () => {
+      expect([...selected]).toEqual(["cli-workflow"]);
+      stages.push("missing-fal");
+    },
+    probeInstalled: () => {
+      expect([...selected]).toEqual(["cli-workflow", "fal"]);
+      stages.push("installed-fal");
+    }
+  });
+  expect(stages.slice(0, 4)).toEqual(["install:cli-workflow", "missing-fal", "install:fal", "installed-fal"]);
+  expect(new Set(helpChecked)).toEqual(new Set(Object.keys(FEATURE_REQUIRED_COMMANDS)));
+  expect(helpChecked).toHaveLength(Object.keys(FEATURE_REQUIRED_COMMANDS).length);
 });
 
 const fixtures = [];
