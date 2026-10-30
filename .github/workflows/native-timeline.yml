@@ -74,7 +74,7 @@ jobs:
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
-          brew install ninja pkgconf ffmpeg ffmpeg-full harfbuzz freetype lame ccache
+          brew install ninja pkgconf ffmpeg ffmpeg-full harfbuzz freetype lame openh264 opus libvpx ccache
           # The regular formula omits drawtext, which the numbered fixtures need.
           echo "$(brew --prefix ffmpeg-full)/bin" >> "$GITHUB_PATH"
           echo "CMAKE_PREFIX_PATH=$(brew --prefix)" >> "$GITHUB_ENV"
@@ -86,7 +86,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y ccache ninja-build pkg-config nasm ffmpeg libmp3lame-dev libva-dev libvulkan-dev \
+          sudo apt-get install -y ccache ninja-build pkg-config nasm ffmpeg libmp3lame-dev libopenh264-dev libopus-dev libvpx-dev libva-dev libvulkan-dev \
             mesa-vulkan-drivers vulkan-tools libgl1-mesa-dev libxkbcommon-dev libfontconfig1-dev libegl1 \
             libasound2-dev libpulse-dev libharfbuzz-dev libfreetype-dev \
             xvfb xauth libx11-xcb1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
@@ -346,7 +346,7 @@ jobs:
         working-directory: .
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang libclang-rt-dev ccache ninja-build pkg-config nasm ffmpeg libmp3lame-dev libva-dev libvulkan-dev \
+          sudo apt-get install -y clang libclang-rt-dev ccache ninja-build pkg-config nasm ffmpeg libmp3lame-dev libopenh264-dev libopus-dev libvpx-dev libva-dev libvulkan-dev \
             mesa-vulkan-drivers vulkan-tools libgl1-mesa-dev libxkbcommon-dev libfontconfig1-dev libegl1 \
             libasound2-dev libpulse-dev libharfbuzz-dev libfreetype-dev \
             xvfb xauth libx11-xcb1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
