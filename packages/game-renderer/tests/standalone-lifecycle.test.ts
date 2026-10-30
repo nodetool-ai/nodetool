@@ -155,6 +155,8 @@ describe("standalone async save lifecycle", () => {
   });
 
   it("keeps live play available when acquiring legacy localStorage throws", async () => {
+    const animation = vi.spyOn(window, "requestAnimationFrame").mockReturnValue(1);
+    vi.spyOn(performance, "now").mockReturnValue(0);
     const descriptor = Object.getOwnPropertyDescriptor(globalThis, "localStorage");
     let acquisitions = 0;
     Object.defineProperty(globalThis, "localStorage", { configurable: true, get: () => {
@@ -164,8 +166,13 @@ describe("standalone async save lifecycle", () => {
     try {
       await startPlayer();
       expect(acquisitions).toBe(0);
+      expect(window.nativeGamePlayer.snapshot().tick).toBe(0);
       document.getElementById("pause")?.click();
-      await vi.waitFor(() => expect(window.nativeGamePlayer.snapshot().tick).toBeGreaterThan(0));
+      const frame = animation.mock.calls[0]?.[0];
+      if (!frame) { throw new Error("Live play did not schedule an animation frame"); }
+      frame(100);
+      expect(window.nativeGamePlayer.snapshot().tick).toBeGreaterThan(0);
+      expect(acquisitions).toBe(0);
     } finally {
       if (descriptor) { Object.defineProperty(globalThis, "localStorage", descriptor); }
       else { Reflect.deleteProperty(globalThis, "localStorage"); }

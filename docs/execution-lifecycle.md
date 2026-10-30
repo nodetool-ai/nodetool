@@ -25,7 +25,7 @@ runner. README examples are documentation rather than execution entry points.
 
 Full Node/server execution uses `ExecutionSession`. The independently installed
 lean server uses the actor lifecycle in
-[`packages/nodes-core/src/index.ts`](../packages/nodes-core/src/index.ts), which
+[`packages/nodes-core/src/index.ts`](https://github.com/nodetool-ai/nodetool/blob/main/packages/nodes-core/src/index.ts), which
 has no dependency on the full session's Python, model or provider integrations.
 These are the two canonical top-level server lifecycle owners. Public APIs keep
 their own graph preparation and result presentation. Nested execution can
@@ -40,7 +40,7 @@ It passes the run's owner and job IDs, workspace, message emitter and usage call
 to registered node definitions. Its AbortSignal listener calls `runner.cancel()`
 and remains installed until the awaited runner returns a terminal result. The
 listener is removed on completion or failure. The authenticated
-[`server-core` host](../packages/server-core/src/index.ts) owns job persistence,
+[`server-core` host](https://github.com/nodetool-ai/nodetool/blob/main/packages/server-core/src/index.ts) owns job persistence,
 message replay and terminal usage totals. The node adapter forwards provider
 terminal token usage to that host without estimating a monetary cost. This lean
 path does not connect Python, install packs or inherit the full session's timeout
