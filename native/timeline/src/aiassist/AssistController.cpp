@@ -416,6 +416,11 @@ bool AssistController::extractScript() {
     return call(true, "scripts.create", input);
 }
 void AssistController::updateResource(const QJsonObject& resource) {
+    // Shot completion may arrive while an asset or script with the same id is open.
+    const auto loaded = QJsonObject::fromVariantMap(m_result.toMap()).value("document").toObject();
+    const auto incoming = resource.value("document").toObject();
+    if (!loaded.value("shots").isArray() || loaded.value("sections").isArray() ||
+        !incoming.value("shots").isArray() || incoming.value("sections").isArray()) { return; }
     if (resource.value("id").toString().isEmpty() || m_result.toMap().value("id").toString() != resource.value("id").toString()) { return; }
     m_result = resource.toVariantMap(); emit changed();
 }
