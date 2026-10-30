@@ -33,6 +33,25 @@ export function run(program, argv, options = {}) {
 export function exportFile(fixture, out, format = "mp4", extra = []) {
   return JSON.parse(run(bin, [fixture, "--export", out, "--format", format, "--json", ...extra]).stdout);
 }
+// Older FFmpeg decoders expose the padded final AAC frame. Honor the file's
+// declared stream duration, never the fixture's expected length.
+export function decodeAudio(file, output) {
+  const streams = JSON.parse(run("ffprobe", ["-v", "error", "-select_streams", "a:0",
+    "-show_entries", "stream=sample_rate,time_base,duration_ts", "-of", "json", file]).stdout).streams;
+  assert.equal(streams.length, 1, "One exported audio stream");
+  const stream = streams[0];
+  const rate = Number(stream.sample_rate);
+  const ticks = Number(stream.duration_ts);
+  const [num, den] = String(stream.time_base).split("/").map(Number);
+  assert.equal(rate, 48000, "Exported audio sample rate");
+  assert.ok(Number.isSafeInteger(ticks) && ticks > 0, "Declared audio duration in ticks");
+  assert.ok(Number.isSafeInteger(num) && num > 0 && Number.isSafeInteger(den) && den > 0,
+    "Valid audio time base");
+  const samples = Math.round(ticks * num / den * rate);
+  assert.ok(Number.isSafeInteger(samples) && samples > 0, "Declared audio sample count");
+  run("ffmpeg", ["-v", "error", "-y", "-i", file, "-vn", "-af", `atrim=end_sample=${samples}`,
+    "-f", "f32le", "-ar", "48000", "-ac", "2", output]);
+}
 export function psnr(a, b) {
   assert.ok(fs.existsSync(a), `Missing frame ${a}`);
   assert.ok(fs.existsSync(b), `Missing frame ${b}`);
