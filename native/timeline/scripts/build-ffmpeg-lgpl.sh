@@ -18,17 +18,23 @@ sha256=b2751fccb6cc4c77708113cd78b561059b6fa904b24162fa0be2d60273d27b8e
 root=build-ffmpeg-lgpl
 prefix="$PWD/$root/install"
 [[ "${1:-}" == "--force" ]] && rm -rf "$root"
-if [[ -f "$prefix/lib/pkgconfig/libavcodec.pc" ]] && grep -qw libmp3lame "$root/configure.log"; then
+export_codecs_configured() {
+    local codec
+    for codec in libmp3lame libopenh264 libopus libvpx; do
+        grep -qw "$codec" "$root/configure.log" || return 1
+    done
+}
+if [[ -f "$prefix/lib/pkgconfig/libavcodec.pc" ]] && export_codecs_configured; then
     echo "kept $prefix"
     exit 0
 fi
 mkdir -p "$root/src" "$root/obj"
-pkg-config --exists lame || {
-    echo "error: MP3 export needs the libmp3lame development package (lame on Homebrew, libmp3lame-dev on Debian/Ubuntu)" >&2
+pkg-config --exists lame openh264 opus vpx || {
+    echo "error: export needs LAME, OpenH264, Opus and libvpx development packages" >&2
     exit 1
 }
-lame_cflags=$(pkg-config --cflags lame)
-lame_ldflags=$(pkg-config --libs-only-L lame)
+codec_cflags=$(pkg-config --cflags lame openh264 opus vpx)
+codec_ldflags=$(pkg-config --libs-only-L lame openh264 opus vpx)
 tarball="$root/ffmpeg-$version.tar.xz"
 if [[ ! -f "$tarball" ]]; then
     curl -sSfL --retry 3 --retry-all-errors --retry-delay 2 --retry-max-time 180 \
@@ -44,8 +50,9 @@ case "$(uname -s)" in
 esac
 (
     cd "$root/obj"
-    "../src/ffmpeg-$version/configure" --prefix="$prefix" --enable-shared --disable-static --disable-programs --enable-libmp3lame \
-        --disable-doc --disable-avdevice --disable-network --extra-cflags="$lame_cflags" --extra-ldflags="$lame_ldflags" "${platform[@]}" | tee ../configure.log
+    "../src/ffmpeg-$version/configure" --prefix="$prefix" --enable-shared --disable-static --disable-programs \
+        --enable-libmp3lame --enable-libopenh264 --enable-libopus --enable-libvpx \
+        --disable-doc --disable-avdevice --disable-network --extra-cflags="$codec_cflags" --extra-ldflags="$codec_ldflags" "${platform[@]}" | tee ../configure.log
 )
 grep -q "^License: LGPL version 2.1 or later" "$root/configure.log" || {
     echo "error: the FFmpeg configuration is not LGPL" >&2

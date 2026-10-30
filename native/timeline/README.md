@@ -46,7 +46,7 @@ private API), Ninja, CMake 3.24 or newer, and FFmpeg with pkg-config files. On
 macOS:
 
 ```bash
-brew install qt ninja ffmpeg ffmpeg-full harfbuzz freetype lame
+brew install qt ninja ffmpeg ffmpeg-full harfbuzz freetype lame openh264 opus libvpx
 export PATH="$(brew --prefix ffmpeg-full)/bin:$PATH"
 npm run build:packages
 node native/timeline/scripts/check-ci-prerequisites.mjs
@@ -60,7 +60,8 @@ The checks need FFmpeg's `drawtext` filter and the encoders verified by
 [`check-ci-prerequisites.mjs`](scripts/check-ci-prerequisites.mjs). Homebrew's
 `ffmpeg-full` supplies that command-line tool. The packaged LGPL libraries are
 built separately by [`build-ffmpeg-lgpl.sh`](scripts/build-ffmpeg-lgpl.sh), which
-needs LAME development files for MP3 export (`libmp3lame-dev` on Debian/Ubuntu).
+needs LAME, OpenH264, Opus and libvpx development files for MP3, MP4 and WebM
+export (`libmp3lame-dev libopenh264-dev libopus-dev libvpx-dev` on Debian/Ubuntu).
 The editor and its UI test hosts link one shared static QML module. CI caches
 compiler output before running tests, so a test failure does not discard it.
 
