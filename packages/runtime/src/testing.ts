@@ -22,7 +22,7 @@ import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import { ProcessingContext, MemoryCache } from "./context.js";
 import { FakeProvider } from "./providers/fake-provider.js";
 import type { BaseProvider } from "./providers/base-provider.js";
-import { isString } from "@nodetool-ai/protocol";
+import { isString, type Entity } from "@nodetool-ai/protocol";
 
 export interface FakeContextOptions {
   /**
@@ -138,6 +138,17 @@ export function createFakeContext(
   let assetCounter = 0;
   let sequenceCounter = 0;
   const sequences = new Map<string, { id: string }>();
+  const entities = new Map<string, Entity>();
+  const boards = new Map<
+    string,
+    {
+      id: string;
+      name?: string;
+      projectId?: string;
+      document: unknown;
+      timelineId?: string | null;
+    }
+  >();
 
   const context = new ProcessingContext({
     jobId: options.jobId ?? "fake-job",
@@ -183,6 +194,73 @@ export function createFakeContext(
           }
         }
         return { id, name: args.name, content_type: args.contentType };
+      },
+      listEntities: async ({ projectId, kind, tags, nameContains, limit }) =>
+        [...entities.values()]
+          .filter(
+            (entity) =>
+              (!projectId || entity.project_id === projectId) &&
+              (!kind || entity.kind === kind) &&
+              (!tags || tags.every((tag) => entity.tags?.includes(tag))) &&
+              (!nameContains ||
+                entity.name.toLowerCase().includes(nameContains.toLowerCase()))
+          )
+          .slice(0, limit),
+      getEntity: async ({ id }) => entities.get(id) ?? null,
+      upsertEntity: async (args) => {
+        const existing = [...entities.values()].find(
+          (entity) =>
+            entity.project_id === args.projectId &&
+            (args.source?.key
+              ? entity.source?.key === args.source.key
+              : entity.kind === args.kind &&
+                entity.name.toLowerCase() === args.name.toLowerCase())
+        );
+        const entity: Entity = {
+          type: "entity",
+          id: existing?.id ?? args.imageAssetId,
+          kind: args.kind,
+          name: args.name,
+          descriptor: args.descriptor,
+          project_id: args.projectId,
+          description: args.description,
+          tags: args.tags,
+          voice_id: args.voiceId,
+          source: args.source,
+          reference_images: [
+            {
+              type: "image",
+              asset_id: args.imageAssetId,
+              uri: `asset://${args.imageAssetId}.png`
+            }
+          ]
+        };
+        entities.set(entity.id, entity);
+        return { entity, created: existing === undefined };
+      },
+      listStoryboards: async ({ projectId, limit }) =>
+        [...boards.values()]
+          .filter((board) => !projectId || board.projectId === projectId)
+          .slice(0, limit),
+      getStoryboard: async ({ id }) => boards.get(id) ?? null,
+      createStoryboard: async ({ name, projectId, document }) => {
+        const id = `fake-board-${boards.size + 1}`;
+        const saved = { id, name, projectId, document };
+        boards.set(id, saved);
+        return saved;
+      },
+      updateStoryboard: async ({ id, document, timelineId }) => {
+        const existing = boards.get(id);
+        if (!existing) {
+          return null;
+        }
+        const saved = {
+          ...existing,
+          ...(document === undefined ? {} : { document }),
+          ...(timelineId === undefined ? {} : { timelineId })
+        };
+        boards.set(id, saved);
+        return saved;
       },
       // Timeline nodes save a sequence document and read it back by id.
       createTimelineSequence: async ({ sequence }) => {

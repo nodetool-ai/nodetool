@@ -25,6 +25,58 @@ async function decodeMedia(bytes: Uint8Array, filename: string): Promise<void> {
 }
 
 describe("createFakeContext", () => {
+  it("persists entities and storyboards within one fake host", async () => {
+    const first = createFakeContext();
+    const second = createFakeContext();
+    try {
+      const args = {
+        kind: "character" as const,
+        name: "Lead",
+        descriptor: "A red coat",
+        imageAssetId: "1234567890abcdef1234567890abcdef",
+        source: { key: "lead" }
+      };
+      const created = await first.context.upsertEntity(args);
+      expect(created.created).toBe(true);
+      expect(await first.context.getEntity(created.entity.id)).toEqual(
+        created.entity
+      );
+      const updated = await first.context.upsertEntity({
+        ...args,
+        descriptor: "A blue coat"
+      });
+      expect(updated.created).toBe(false);
+      expect(updated.entity.id).toBe(created.entity.id);
+      expect(updated.entity.descriptor).toBe("A blue coat");
+      expect(await second.context.getEntity(created.entity.id)).toBeNull();
+
+      const board = await first.context.createStoryboard({
+        name: "Cast board",
+        projectId: "project",
+        document: { shots: [] }
+      });
+      expect(
+        await first.context.listStoryboards({ projectId: "project" })
+      ).toEqual([board]);
+      expect(
+        await first.context.listStoryboards({ projectId: "other" })
+      ).toEqual([]);
+      expect(await first.context.getStoryboard(board.id)).toEqual(board);
+      const saved = await first.context.updateStoryboard(board.id, {
+        document: { shots: [{ id: "shot" }] }
+      });
+      expect(saved).toMatchObject({
+        id: board.id,
+        document: { shots: [{ id: "shot" }] }
+      });
+      expect(await first.context.getStoryboard(board.id)).toEqual(saved);
+      expect(await second.context.getStoryboard(board.id)).toBeNull();
+    } finally {
+      first.cleanup();
+      second.cleanup();
+    }
+  });
+
   it("returns a ProcessingContext with in-memory storage and a temp workspace", () => {
     const handle = createFakeContext();
     try {
