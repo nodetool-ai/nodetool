@@ -43,6 +43,21 @@ QQuickItem* sliderControl(QQuickItem* root) {
     }
     return nullptr;
 }
+QStringList itemsAt(QQuickItem* root, const QPointF& scenePoint) {
+    QStringList result;
+    if (!root || !root->isVisible()) { return result; }
+    const auto local = root->mapFromScene(scenePoint);
+    const bool contains = root->contains(local);
+    if (root->clip() && !contains) { return result; }
+    if (contains) {
+        result.append(QString("%1 name=%2 local=(%3,%4) size=(%5,%6) z=%7 enabled=%8")
+            .arg(root->metaObject()->className(), root->objectName())
+            .arg(local.x()).arg(local.y()).arg(root->width()).arg(root->height())
+            .arg(root->z()).arg(root->isEnabled()));
+    }
+    for (auto* child : root->childItems()) { result.append(itemsAt(child, scenePoint)); }
+    return result;
+}
 bool number(QObject* item, const char* signal, double value) {
     return item && QMetaObject::invokeMethod(item, signal, Q_ARG(double, value));
 }
@@ -115,8 +130,15 @@ struct Editor {
                     qPrintable("Click outside clipped ancestor: " + parent->objectName()));
             }
         }
+        const auto targetName = target->objectName();
+        QSignalSpy clicked(target, SIGNAL(clicked()));
+        QVERIFY(clicked.isValid());
         QTest::mouseClick(&window,Qt::LeftButton,Qt::NoModifier,at);
         QCoreApplication::processEvents();
+        const auto diagnostic = QString("Click did not reach %1 at (%2,%3). Items under pointer:\n%4")
+            .arg(targetName).arg(at.x()).arg(at.y())
+            .arg(itemsAt(window.contentItem(), at).join('\n'));
+        QVERIFY2(clicked.count() == 1, qPrintable(diagnostic));
     }
     bool add(const QString& type) {
         auto* section = item("clipEffectsList");
