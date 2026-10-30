@@ -9,10 +9,8 @@ P.InspectorSection {
     property var timelineModel: null
     property var gestures: null
     property var controller: null
-    readonly property var host: {
-        const revision = AiHostRegistry.revision
-        return AiHostRegistry.host(gestures)
-    }
+    // Use the revision in the result so late host registration refreshes the binding.
+    readonly property var host: AiHostRegistry.revision > 0 ? AiHostRegistry.host(gestures) : null
     readonly property var clip: controller ? controller.clip : ({})
     title: "AI"
     defaultOpen: true

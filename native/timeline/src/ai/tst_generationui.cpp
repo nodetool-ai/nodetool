@@ -83,6 +83,7 @@ private slots:
         };
         QTRY_VERIFY(findNamed(root, QStringLiteral("inspectorAiSection")));
         auto* section = findNamed(root, QStringLiteral("inspectorAiSection"));
+        QTRY_COMPARE(section->property("host").value<QObject*>(), toolbar);
         QTRY_VERIFY(section->isVisible());
         QTRY_VERIFY(findNamed(section, QStringLiteral("regenerateClip")));
         auto* regenerate = findNamed(section, QStringLiteral("regenerateClip"));
