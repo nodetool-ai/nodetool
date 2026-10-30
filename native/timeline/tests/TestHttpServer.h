@@ -198,9 +198,7 @@ private:
         if (f->chunkDelayMs <= 0) {
             socket->write(body.left(limit));
             if (drop) {
-                socket->flush();
-                socket->waitForBytesWritten(1000);
-                socket->abort();
+                socket->disconnectFromHost();
             }
             return;
         }
@@ -216,8 +214,7 @@ private:
             if (*offset >= limit) {
                 timer->stop();
                 if (drop) {
-                    guard->flush();
-                    guard->abort();
+                    guard->disconnectFromHost();
                 }
             }
         });

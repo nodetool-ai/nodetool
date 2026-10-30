@@ -215,6 +215,11 @@ private slots:
         QCOMPARE(readAll(r.path), data);
     }
 
+    void droppedBodyLargerThanSocketBufferIsRetained() {
+        m_http->setFile("/large.mp4", ServedFile{pattern(8 * 1024 * 1024, 10)});
+        makePartial("/large.mp4", QStringLiteral("large"), -1, 4 * 1024 * 1024);
+    }
+
     void unknownSizeResumeChecksTheFirstTotal() {
         // A proxy has no size in the API: the total of the first answer is
         // kept, and a resume must match it.
