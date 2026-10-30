@@ -527,8 +527,7 @@ private slots:
         client.start();
         QTRY_COMPARE_WITH_TIMEOUT(fixture.peers.size(), 1, 1000);
         QTRY_VERIFY_WITH_TIMEOUT(client.connected(), 1000);
-        QTest::qWait(60);
-        QCOMPARE(refreshes.size(), 1);
+        QTRY_COMPARE_WITH_TIMEOUT(refreshes.size(), 1, 1000);
         fixture.peers[0]->close(QWebSocketProtocol::CloseCodeGoingAway, "restart");
         fixture.server.close();
         QTRY_COMPARE_WITH_TIMEOUT(delays.size(), 1, 1000);
