@@ -12,7 +12,7 @@ it("every QuickJS wrapper consumer keeps fresh installs in the WASM variant's mi
     catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") { return []; } throw error; }
     return manifest.dependencies?.["@sebastianwessel/quickjs"] ? [{ name: entry.name, manifest }] : [];
   });
-  expect(consumers.map(consumer => consumer.name).sort()).toEqual(["agents", "sandbox-compiler", "sandbox-runtime"]);
+  expect(consumers.map(consumer => consumer.name).sort()).toEqual(["agents", "sandbox-compiler"]);
   const variantCohort = metadata.variant.version.split(".").slice(0, 2).join(".");
   for (const { manifest } of consumers) {
     const range = manifest.dependencies["@sebastianwessel/quickjs"];
@@ -25,4 +25,16 @@ it("every QuickJS wrapper consumer keeps fresh installs in the WASM variant's mi
   }
   // npm published 3.1.0 within the former ^3.0.1 range, but its ABI differs.
   expect(metadata.wrappers.find(wrapper => wrapper.version === "3.1.0")?.quickjsCore).toBe("^0.32.0");
+});
+
+it("keeps the vendored JavaScript runtime pinned to its recorded source and WASM ABI", () => {
+  const root = resolve(import.meta.dirname, "../../sandbox-runtime");
+  const manifest = JSON.parse(readFileSync(resolve(root, "package.json"), "utf8"));
+  const provenance = JSON.parse(readFileSync(resolve(root, "vendor/quickjs/PROVENANCE.json"), "utf8"));
+  expect(manifest.dependencies["@sebastianwessel/quickjs"]).toBeUndefined();
+  expect(manifest.devDependencies["@sebastianwessel/quickjs"]).toBe(provenance.version);
+  const wrapper = metadata.wrappers.find(wrapper => wrapper.version === provenance.version);
+  expect(wrapper).toBeDefined();
+  expect(wrapper?.quickjsCore).toBe("^" + metadata.variant.version);
+  expect(manifest.dependencies[metadata.variant.name]).toBe("^" + metadata.variant.version);
 });

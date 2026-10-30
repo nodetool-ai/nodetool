@@ -39,8 +39,13 @@ export interface ServerCoreOptions {
 class WorkflowValidationError extends Error {
   readonly statusCode = 422;
   get code(): string {
-    return this.issues.some(issue => typeof issue === "object" && issue !== null && "code" in issue && issue.code === "FEATURE_NOT_INSTALLED")
-      ? "FEATURE_NOT_INSTALLED" : "WORKFLOW_VALIDATION_FAILED";
+    for (const issue of this.issues) {
+      if (typeof issue === "object" && issue !== null && "code" in issue && typeof issue.code === "string" &&
+          ["FEATURE_NOT_INSTALLED", "FEATURE_NOT_CONFIGURED", "FEATURE_INITIALIZATION_FAILED"].includes(issue.code)) {
+        return issue.code;
+      }
+    }
+    return "WORKFLOW_VALIDATION_FAILED";
   }
   constructor(readonly issues: readonly unknown[]) { super("Workflow validation failed"); }
 }

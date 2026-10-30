@@ -21,6 +21,7 @@ export function createSandboxFeature(
     descriptor: {
       id: "code",
       apiVersion: 1,
+      requires: [],
       capabilities: ["sandbox"],
       nodeTypes: ["nodetool.code.Code"]
     },

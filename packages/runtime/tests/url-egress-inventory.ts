@@ -418,6 +418,19 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     note: "Under the cloud profile a base URL that is not https to a public host is refused on save, before the provider ever runs."
   },
 
+  {
+    file: "packages/server-feature-packs/src/scoped-services.ts",
+    owner: "scoped optional browser screenshot",
+    inputSource: "workflow",
+    schemes: ["https"],
+    authScope: "A fresh isolated browser session for the run owner; no shared signed-in page or URL credentials.",
+    redirects: "runtime-follows",
+    dnsRebinding: "deployment-egress",
+    policy: "guarded",
+    guardedBy: ["assertSafePublicHttpsUrl"],
+    note: "Screens only the initial URL before navigation and rejects URL credentials. The administrator-configured browser resolves DNS and follows redirects and subresources itself; deployment egress controls must restrict those requests."
+  },
+
   // -------------------------------------------- guarded (provider result URLs)
   guardedSafeFetch(
     "packages/kie-nodes/src/kie-base.ts",

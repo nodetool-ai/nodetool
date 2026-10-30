@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { configureFeatures, FeatureNotInstalledError, type ConfiguredFeature } from "../src/index.js";
+import { configureFeatures, FeatureNotInstalledError, type ConfiguredFeature, featureRecovery } from "../src/index.js";
 
 function feature(id: string, requires: readonly string[] = []): ConfiguredFeature<string[]> {
   return {
@@ -33,7 +33,7 @@ describe("configured features", () => {
         try {
           host.requireNode(nodeType);
         } catch (error) {
-          expect(error).toMatchObject({ code: "FEATURE_NOT_INSTALLED", nodeType, featureIds: ["document"] });
+          expect(error).toMatchObject({ code: host === before ? "FEATURE_NOT_INSTALLED" : "FEATURE_NOT_CONFIGURED", nodeType, featureIds: ["document"] });
         }
       }
       await host.close();
@@ -95,7 +95,7 @@ describe("configured features", () => {
   it("preserves configured load errors and activation errors with rollback", async () => {
     const cause = new Error("broken installed feature");
     await expect(configureFeatures([{ id: "broken", load: async () => { throw cause; } }], []))
-      .rejects.toMatchObject({ cause, message: "Loading configured feature broken failed" });
+      .rejects.toMatchObject({ cause, code: "FEATURE_INITIALIZATION_FAILED", message: expect.stringContaining("Loading configured feature broken failed") });
     const events: string[] = [];
     await expect(configureFeatures([feature("core"), {
       id: "broken", load: async () => ({
@@ -118,4 +118,19 @@ describe("configured features", () => {
     expect(stored.properties).toEqual({ source: "return 1" });
     expect(() => host.requireNode("unknown")).toThrow("Unknown node type");
   });
+});
+
+
+it("names npm installation for non-catalog providers and exact scoped adapter configuration", () => {
+  expect(featureRecovery("provider-anthropic", "@nodetool-ai/provider-anthropic", null)).toMatchObject({packId:null,installCommand:"npm install @nodetool-ai/provider-anthropic"});
+  expect(featureRecovery("automation", "@nodetool-ai/automation-nodes")).toMatchObject({packId:"automation",installCommand:"nodetool packs add automation --yes",adapterInstallCommand:"npm install @nodetool-ai/server-feature-packs",configuration:expect.stringContaining("isolatedBrowserService(browser)")});
+  expect(featureRecovery("transformers-js", "@nodetool-ai/transformers-js-nodes").configuration).toContain("localTransformersService(transformers");
+});
+
+it("preserves non-pack metadata on missing and failed feature initialization", async () => {
+  const descriptor = {id:"provider-anthropic",apiVersion:1,packageName:"@nodetool-ai/provider-anthropic",packId:null,nodeTypes:["anthropic.text.ChatComplete"]};
+  const host = await configureFeatures([], {}, [descriptor]);
+  expect(() => host.requireNode("anthropic.text.ChatComplete")).toThrow(expect.objectContaining({recovery:[expect.objectContaining({packId:null,installCommand:"npm install @nodetool-ai/provider-anthropic"})]}));
+  await expect(configureFeatures([{id:descriptor.id,load:async () => {throw new Error("failed import");}}], {}, [descriptor])).rejects.toMatchObject({code:"FEATURE_INITIALIZATION_FAILED",recovery:[expect.objectContaining({packageName:descriptor.packageName,packId:null})]});
+  await host.close();
 });

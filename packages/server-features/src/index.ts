@@ -3,6 +3,8 @@ export const FEATURE_API_VERSION = 1;
 export interface FeatureDescriptor {
   readonly id: string;
   readonly apiVersion: number;
+  readonly packageName?: string;
+  readonly packId?: string | null;
   readonly requires?: readonly string[];
   readonly capabilities?: readonly string[];
   readonly nodeTypes?: readonly string[];
@@ -22,12 +24,63 @@ export class FeatureConfigurationError extends Error {
   override readonly name = "FeatureConfigurationError";
 }
 
+export type FeatureFailureCode = "FEATURE_NOT_INSTALLED" | "FEATURE_NOT_CONFIGURED" | "FEATURE_INITIALIZATION_FAILED";
+
+export interface FeatureRecovery {
+  readonly featureId: string;
+  readonly packId: string | null;
+  readonly packageName: string;
+  readonly installCommand: string;
+  readonly adapterInstallCommand?: string;
+  readonly configuration: string;
+  readonly restart: string;
+  readonly authorizationRequired: true;
+}
+
+export function featureRecovery(featureId: string, packageName = "@nodetool-ai/server-feature-packs", packId: string | null = featureId): FeatureRecovery {
+  const scoped = featureId === "automation" || featureId === "transformers-js";
+  const configuration = featureId === "automation"
+    ? 'Import createInstalledPackFeature and isolatedBrowserService from @nodetool-ai/server-feature-packs, import the installed @nodetool-ai/browser module as browser, then configure createInstalledPackFeature({packId:"automation",nodeTypes:["lib.browser.Screenshot"],openBrowser:isolatedBrowserService(browser)}) in the server features option.'
+    : featureId === "transformers-js"
+      ? 'Import createInstalledPackFeature and localTransformersService from @nodetool-ai/server-feature-packs, import the explicitly installed @huggingface/transformers runtime as transformers, then configure createInstalledPackFeature({packId:"transformers-js",nodeTypes:["transformers.TextGeneration"],openLocalGeneration:localTransformersService(transformers,{small:"/approved/local/model/path"})}) in the server features option. Provision an approved local model and select model ID small in the workflow.'
+      : `Explicitly configure feature ${featureId} in the server features option. Installation alone does not activate it.`;
+  const recovery: FeatureRecovery = {
+    featureId, packId, packageName,
+    installCommand: packId === null ? `npm install ${packageName}` : `nodetool packs add ${packId} --yes`,
+    configuration,
+    restart: "Restart the server with the updated feature configuration, then retry the original workflow.",
+    authorizationRequired: true
+  };
+  if (scoped) { return { ...recovery, adapterInstallCommand: "npm install @nodetool-ai/server-feature-packs" }; }
+  return recovery;
+}
+
 export class FeatureNotInstalledError extends Error {
   override readonly name = "FeatureNotInstalledError";
-  readonly code = "FEATURE_NOT_INSTALLED";
+  readonly recovery: readonly FeatureRecovery[];
 
-  constructor(readonly nodeType: string, readonly featureIds: readonly string[]) {
-    super(`Node ${nodeType} requires feature ${featureIds.join(", ")}`);
+  constructor(
+    readonly nodeType: string,
+    readonly featureIds: readonly string[],
+    readonly code: FeatureFailureCode = "FEATURE_NOT_INSTALLED",
+    packages: ReadonlyMap<string, string> = new Map(),
+    packIds: ReadonlyMap<string, string | null> = new Map()
+  ) {
+    const recovery = featureIds.map(id => featureRecovery(id, packages.get(id), packIds.has(id) ? packIds.get(id) : id));
+    super(`Node ${nodeType} requires feature ${featureIds.join(", ")}. ${recovery.map(item => `Authorize installation using ${item.installCommand}.${item.adapterInstallCommand ? ` Then explicitly run ${item.adapterInstallCommand}.` : ""} ${item.configuration} ${item.restart}`).join(" ")}`);
+    this.recovery = recovery;
+  }
+}
+
+export class FeatureInitializationError extends FeatureConfigurationError {
+  readonly code = "FEATURE_INITIALIZATION_FAILED";
+  readonly featureIds: readonly string[];
+  readonly recovery: readonly FeatureRecovery[];
+  constructor(featureId: string, message: string, cause: unknown, descriptor?: FeatureDescriptor) {
+    const recovery = featureRecovery(featureId, descriptor?.packageName, descriptor?.packId);
+    super(`${message}. ${recovery.configuration} ${recovery.restart}`, {cause});
+    this.featureIds = [featureId];
+    this.recovery = [recovery];
   }
 }
 
@@ -53,6 +106,8 @@ function snapshot(descriptor: FeatureDescriptor): FeatureDescriptor {
   return Object.freeze({
     id: descriptor.id,
     apiVersion: descriptor.apiVersion,
+    packageName: descriptor.packageName,
+    packId: descriptor.packId,
     requires: Object.freeze([...(descriptor.requires ?? [])]),
     capabilities: Object.freeze([...(descriptor.capabilities ?? [])]),
     nodeTypes: Object.freeze([...(descriptor.nodeTypes ?? [])])
@@ -65,6 +120,7 @@ export async function configureFeatures<Host>(
   host: Host,
   catalog: readonly FeatureDescriptor[] = []
 ): Promise<FeatureHost> {
+  const catalogDescriptors = new Map(catalog.map(descriptor => [descriptor.id, descriptor]));
   const modules = new Map<string, ServerFeature<Host>>();
   const descriptors = new Map<string, FeatureDescriptor>();
   for (const entry of configured) {
@@ -75,14 +131,14 @@ export async function configureFeatures<Host>(
     try {
       feature = await entry.load();
     } catch (cause) {
-      throw new FeatureConfigurationError(`Loading configured feature ${entry.id} failed`, { cause });
+      throw new FeatureInitializationError(entry.id, `Loading configured feature ${entry.id} failed`, cause, catalogDescriptors.get(entry.id));
     }
     checkDescriptor(feature.descriptor);
     if (feature.descriptor.id !== entry.id) {
       throw new FeatureConfigurationError(`Feature ${entry.id} loaded descriptor ${feature.descriptor.id}`);
     }
     modules.set(entry.id, feature);
-    descriptors.set(entry.id, snapshot(feature.descriptor));
+    descriptors.set(entry.id, snapshot({ ...catalogDescriptors.get(entry.id), ...feature.descriptor }));
   }
   const remaining = new Map<string, number>();
   const dependents = new Map<string, string[]>();
@@ -169,14 +225,17 @@ export async function configureFeatures<Host>(
       try {
         await close();
       } catch (cleanupError) {
-        throw new FeatureConfigurationError(`Activating configured feature ${id} failed`, {
-          cause: new AggregateError([cause, cleanupError], "Feature activation and rollback failed")
-        });
+        throw new FeatureInitializationError(id, `Activating configured feature ${id} failed`,
+          new AggregateError([cause, cleanupError], "Feature activation and rollback failed"), descriptors.get(id));
       }
-      throw new FeatureConfigurationError(`Activating configured feature ${id} failed`, { cause });
+      if (cause instanceof FeatureNotInstalledError) { throw cause; }
+      throw new FeatureInitializationError(id, `Activating configured feature ${id} failed`, cause, descriptors.get(id));
     }
   }
   const features = Object.freeze([...descriptors.values()]);
+  const recoveryDescriptors = [...catalog, ...features];
+  const recoveryPackages = new Map(recoveryDescriptors.flatMap(entry => entry.packageName ? [[entry.id, entry.packageName] as const] : []));
+  const recoveryPackIds = new Map(recoveryDescriptors.map(entry => [entry.id, entry.packId === undefined ? entry.id : entry.packId] as const));
   return {
     features,
     capabilities: Object.freeze([...new Set(features.flatMap((descriptor) => descriptor.capabilities ?? []))].sort()),
@@ -186,7 +245,7 @@ export async function configureFeatures<Host>(
       }
       const owner = nodeOwners.get(nodeType);
       if (owner) {
-        throw new FeatureNotInstalledError(nodeType, [owner]);
+        throw new FeatureNotInstalledError(nodeType, [owner], descriptors.has(owner) ? "FEATURE_NOT_CONFIGURED" : "FEATURE_NOT_INSTALLED", recoveryPackages, recoveryPackIds);
       }
       throw new Error(`Unknown node type ${nodeType}`);
     },

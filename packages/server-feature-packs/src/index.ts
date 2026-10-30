@@ -1,3 +1,7 @@
+export { isolatedBrowserService, localTransformersService } from './scoped-services.js';
+export type { LocalTransformersRuntime } from './scoped-services.js';
+import { SCOPED_NODE_TYPES, executeScopedNode, requireScopedService, type ScopedPackServices } from './scoped-services.js';
+export type { ScopedPackServices, ScopedBrowserSession, ScopedLocalGeneration } from './scoped-services.js';
 import { z } from 'zod';
 import { importPack, readCatalogIndex } from '@nodetool-ai/pack-core';
 import { NodeRegistry, createGraphNodeTypeResolver } from '@nodetool-ai/node-sdk';
@@ -15,7 +19,7 @@ export interface InstalledPackHost {
   readonly getAssetInfo: (userId:string,reference:unknown)=>Promise<AssetInfoEntry>;
   readonly writeAsset: (userId:string,asset:{name:string;contentType:string;content:Uint8Array;metadata?:Record<string,unknown>|null})=>Promise<AssetInfoEntry & {uri:string}>;
 }
-export interface InstalledPackOptions {
+export interface InstalledPackOptions extends ScopedPackServices {
   readonly packId:string;
   /** Only these existing node types become executable, even if a registrar exports more. */
   readonly nodeTypes:readonly string[];
@@ -97,11 +101,12 @@ export function createInstalledPackFeature(options:InstalledPackOptions):ServerF
   if(!pack){throw new Error(`Unknown installed node pack: ${options.packId}`);}
   if(!options.nodeTypes.length || new Set(options.nodeTypes).size!==options.nodeTypes.length){throw new Error('Select a nonempty unique nodeTypes list');}
   for(const nodeType of options.nodeTypes){
-    if(!ISOLATED_NODE_TYPES.has(nodeType)){throw new Error(`Node ${nodeType} is not audited for the isolated pack host. Extract its filesystem/provider access through the scoped context before enabling it.`);}
+    if(!ISOLATED_NODE_TYPES.has(nodeType) && !SCOPED_NODE_TYPES.has(nodeType)){throw new Error(`Node ${nodeType} is not audited for the isolated pack host. Extract its filesystem/provider access through the scoped context before enabling it.`);}
     if(readCatalogIndex().owners[nodeType]!==pack.id){throw new Error(`Node ${nodeType} does not belong to pack ${pack.id}`);}}
   return {
-    descriptor:{id:pack.id,apiVersion:1,nodeTypes:options.nodeTypes,requires:options.requires,capabilities:[`nodes:${pack.id}`]},
+    descriptor:{id:pack.id,apiVersion:1,packageName:pack.npm.name,packId:pack.id,nodeTypes:options.nodeTypes,requires:options.requires,capabilities:[`nodes:${pack.id}`, ...options.nodeTypes.flatMap(type => type === "lib.browser.Screenshot" ? ["browser:screenshot"] : type === "transformers.TextGeneration" ? ["local-inference:text-generation"] : [])]},
     activate:async host=>{
+      for (const nodeType of options.nodeTypes) { requireScopedService(nodeType, options); }
       const registry=new NodeRegistry();
       const module=await importPack(pack.id);
       const registrar=z.object({[pack.registrar]:z.custom<(registry:NodeRegistry)=>void>(value=>typeof value==='function')}).parse(module)[pack.registrar];
@@ -115,6 +120,10 @@ export function createInstalledPackFeature(options:InstalledPackOptions):ServerF
         host.execution.register({type,dynamicOutputs:metadata.supports_dynamic_outputs,required:metadata.properties.filter(property=>property.required && property.default==null).map(property=>property.name),create:(node,request)=>{
           let context=contexts.get(request);
           if(!context){context=scopedContext(host,request,options);contexts.set(request,context);}
+          if (SCOPED_NODE_TYPES.has(nodeType)) {
+            const scoped = context;
+            return {process: inputs => executeScopedNode(nodeType, inputs, scoped, options)};
+          }
           return bindExecutor(registry.resolve(node),context);
         }});
       }

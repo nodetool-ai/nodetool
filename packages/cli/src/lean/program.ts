@@ -12,6 +12,8 @@ import { OpenAITextProvider } from "@nodetool-ai/runtime-core";
 import { createSqliteRepository } from "@nodetool-ai/database-sqlite";
 import { decrypt } from "@nodetool-ai/security-core";
 import { COMMAND_FEATURES } from "./commandFeatures.js";
+import { featureRecovery } from "@nodetool-ai/server-features";
+import { cliFailureSchema } from "./errors.js";
 
 export interface CliOptions {
   readonly env?: NodeJS.ProcessEnv;
@@ -28,6 +30,7 @@ export function createProgram(options: CliOptions = {}): Command {
   const env = options.env ?? process.env;
   const output = options.stdout ?? (value => process.stdout.write(value));
   const transport = options.fetch ?? fetch;
+  const featureCatalog = new Map(OPTIONAL_FEATURE_CATALOG.map(feature => [feature.id, feature]));
   const print = (value: unknown): void => {
     const text = z.string().safeParse(value);
     output(`${text.success ? text.data : JSON.stringify(value, null, 2)}\n`);
@@ -44,7 +47,15 @@ export function createProgram(options: CliOptions = {}): Command {
     const url = new URL(path, `${flags.apiUrl.replace(/\/$/, "")}/`);
     if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) throw new Error("Server URL must use HTTP(S) without credentials");
     const response = await transport(url, { ...init, headers: { authorization: `Bearer ${flags.token}`, ...init.headers }, redirect: "error" });
-    if (!response.ok) throw new Error(`Server returned ${response.status}: ${await response.text()}`);
+    if (!response.ok) {
+      const text = await response.text();
+      const error = new Error(`Server returned ${response.status}: ${text}`);
+      let payload: unknown;
+      try { payload = JSON.parse(text); } catch { throw error; }
+      const structured = cliFailureSchema.safeParse(payload);
+      if (structured.success) { Object.assign(error, structured.data); }
+      throw error;
+    }
     return response;
   }
   async function json(path: string, method = "GET", body?: unknown): Promise<unknown> {
@@ -84,6 +95,25 @@ export function createProgram(options: CliOptions = {}): Command {
     }
     return createCoreExecutionHost({ nodeFeatures, provider: async () => provider() });
   }
+  function validationIssues(host: ReturnType<typeof createCoreExecutionHost>, graph: unknown) {
+    return host.validate(graph).map(issue => {
+      if (!issue.featureIds?.length) { return issue; }
+      const recovery = issue.featureIds.map(id => {
+        const descriptor = featureCatalog.get(id);
+        return featureRecovery(id, descriptor?.packageName, descriptor?.packId);
+      });
+      return { ...issue, recovery };
+    });
+  }
+  function validationError(issues: ReturnType<typeof validationIssues>): Error {
+    const featureIssues = issues.filter(issue => issue.featureIds?.length);
+    return Object.assign(new Error("Workflow validation failed"), {
+      code: featureIssues[0]?.code ?? "WORKFLOW_VALIDATION_FAILED",
+      featureIds: [...new Set(featureIssues.flatMap(issue => issue.featureIds ?? []))],
+      recovery: featureIssues.flatMap(issue => "recovery" in issue ? issue.recovery ?? [] : []),
+      validation_issues: issues
+    });
+  }
   async function delegateAuthoredSource(file: string): Promise<boolean> {
     if (!isAuthoredSource(file)) { return false; }
     const feature = await loadInstalledCommandFeature(import.meta.url, "cli-workflow");
@@ -99,8 +129,8 @@ export function createProgram(options: CliOptions = {}): Command {
     process.once("SIGINT", abort);
     try {
       const host = executionHost();
-      const issues = host.validate(graph);
-      if (issues.length) { print({ valid: false, issues }); throw new Error("Workflow validation failed"); }
+      const issues = validationIssues(host, graph);
+      if (issues.length) { print({ valid: false, issues }); throw validationError(issues); }
       const params = z.record(z.string(), z.unknown()).parse(JSON.parse(parameters));
       print(await host.run({ graph, params, signal: controller.signal, userId: owner(), jobId: "cli-local", emit: () => {} }));
     } finally { process.removeListener("SIGINT", abort); }
@@ -125,9 +155,9 @@ export function createProgram(options: CliOptions = {}): Command {
     if (await delegateAuthoredSource(file)) { return; }
     const document = await fileJson(file);
     const graph = workflowGraph(document);
-    const issues = executionHost().validate(graph);
+    const issues = validationIssues(executionHost(), graph);
     print({ valid: issues.length === 0, issues });
-    if (issues.length) throw new Error("Workflow validation failed");
+    if (issues.length) throw validationError(issues);
   });
   const workflows = program.command("workflows").description("Manage authenticated workflows");
   workflows.command("list").option("--limit <number>").option("--cursor <id>").option("--project-id <id>").option("--run-mode <mode>").action(async (flags: { limit?: string; cursor?: string; projectId?: string; runMode?: string }) => {
@@ -211,7 +241,7 @@ export function createProgram(options: CliOptions = {}): Command {
       features.push({ id, load: async () => {
         const module = z.record(z.string(), z.unknown()).parse(await import(specifier));
         return z.object({
-          descriptor: z.object({ id: z.string(), apiVersion: z.number(), requires: z.array(z.string()).optional(), capabilities: z.array(z.string()).optional(), nodeTypes: z.array(z.string()).optional() }),
+          descriptor: z.object({ id: z.string(), apiVersion: z.number(), packageName: z.string().optional(), packId: z.string().nullable().optional(), requires: z.array(z.string()).optional(), capabilities: z.array(z.string()).optional(), nodeTypes: z.array(z.string()).optional() }),
           activate: z.custom<Feature["activate"]>(value => z.function().safeParse(value).success)
         }).parse(module.default);
       } });

@@ -26,7 +26,7 @@ import {
   getModuleLoader as createDefaultModuleLoader,
   loadQuickJs,
   modulePathNormalizer as defaultModulePathNormalizer
-} from "@sebastianwessel/quickjs";
+} from "../../vendor/quickjs/index.js";
 import * as acorn from "acorn";
 import { captureTimelineScenes } from "../timeline-capture.js";
 import { Scope } from "quickjs-emscripten-core";

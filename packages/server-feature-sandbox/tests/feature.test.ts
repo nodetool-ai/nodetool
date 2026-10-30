@@ -32,7 +32,7 @@ describe("installed sandbox feature", () => {
           throw new Error("No assets");
         }
       },
-      [{ id: "code", apiVersion: 1, nodeTypes: ["nodetool.code.Code"] }]
+      [{ id: "code", apiVersion: 1, requires: ["llm"], nodeTypes: ["nodetool.code.Code"] }]
     );
     installed.requireNode("nodetool.code.Code");
     const events: unknown[] = [];

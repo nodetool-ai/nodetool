@@ -6,7 +6,7 @@ import ts from "typescript";
 const SANDBOX_PACKAGES = new Set([
   "@nodetool-ai/server-feature-sandbox", "@nodetool-ai/sandbox-runtime",
   "@jitl/quickjs-ng-wasmfile-release-sync", "@jitl/quickjs-ffi-types",
-  "@sebastianwessel/quickjs", "quickjs-emscripten-core"
+  "quickjs-emscripten-core"
 ]);
 const FORBIDDEN_PACKAGES = new Set([
   "@hyzyla/pdfium", "@nodetool-ai/asset-services", "@nodetool-ai/document-services",

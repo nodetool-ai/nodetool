@@ -134,7 +134,7 @@ export async function createMinimalServer(options: MinimalServerOptions): Promis
               return issue;
             } catch (error) {
               if (error instanceof Error && "featureIds" in error) {
-                return { ...issue, code: "FEATURE_NOT_INSTALLED", featureIds: error.featureIds, message: error.message };
+                return { ...issue, code: "code" in error && typeof error.code === "string" ? error.code : "FEATURE_NOT_INSTALLED", featureIds: error.featureIds, recovery: "recovery" in error ? error.recovery : undefined, message: error.message };
               }
               return issue;
             }

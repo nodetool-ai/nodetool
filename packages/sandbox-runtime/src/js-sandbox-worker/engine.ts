@@ -1,4 +1,4 @@
-import { loadQuickJs } from "@sebastianwessel/quickjs";
+import { loadQuickJs } from "../../vendor/quickjs/index.js";
 import { Scope } from "quickjs-emscripten-core";
 
 /** Load an engine with property-handle ownership fixes for quickjs@3.0.1. */

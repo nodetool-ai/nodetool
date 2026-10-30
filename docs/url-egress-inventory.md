@@ -264,6 +264,16 @@ at 24 hours.
   `127.0.0.1` or `localhost`.
 - `packages/deploy/src/admin-client.ts` — the server being deployed.
 
+**Scoped optional browser screenshots.**
+`packages/server-feature-packs/src/scoped-services.ts` executes
+`lib.browser.Screenshot` only with an administrator-configured browser service.
+It checks the workflow URL with `assertSafePublicHttpsUrl` and rejects embedded
+URL credentials before navigation. The service creates a fresh isolated session
+for the run owner. This check applies to the initial URL only. The browser resolves DNS and follows redirects and
+subresource URLs itself, outside `safeFetch`. Deployment egress controls must
+restrict those requests and prevent access to private addresses. The initial
+HTTPS check does not provide redirect or DNS-rebinding protection.
+
 **Browser-side.** The socket belongs to the viewer's browser, not the server:
 `packages/game-renderer/src/standalone-assets.ts` (only digest-named
 `./assets/` paths with allowed media extensions, redirects rejected and response

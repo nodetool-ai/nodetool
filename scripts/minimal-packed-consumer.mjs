@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { inspectMinimalTree, installedPackageDirectories, assertNoRemovedAggregate } from "./minimal-dependency-guard.mjs";
+import { sandboxPackedRegression } from "./minimal-sandbox-packed-regression.mjs";
 import { startPackedRegistry } from "./packed-registry.mjs";
 import { CLI_FEATURE_PACKS, CATALOG_PACKS } from "./node-catalog/packs.mjs";
 import { collectReleaseInstallPins } from "./release/install-pins.mjs";
@@ -24,6 +25,11 @@ export function logicalBytes(path) {
 }
 
 export async function packedConsumer(packageName, output, { guard = true, baselineReport, features = [], installPacks = [], exerciseRemoval = false } = {}) {
+  const scopedServices = installPacks.includes("automation") && installPacks.includes("transformers-js");
+  if (scopedServices) {
+    if (!features.includes("@nodetool-ai/server-feature-packs")) { throw new Error("Scoped service smoke requires an explicitly selected server-feature-packs composition dependency"); }
+    await packedConsumer(packageName, join(output, "lean-baseline"), { guard: true });
+  }
   mkdirSync(output, { recursive: true });
   const tarballs = join(output, "tarballs");
   const consumer = join(output, "consumer");
@@ -81,6 +87,7 @@ export async function packedConsumer(packageName, output, { guard = true, baseli
       const smokePath = join(consumer, "packed-smoke.mjs");
       const smokeScript = packageName === "@nodetool-ai/cli" ? "minimal-cli-packed-smoke.mjs" : "minimal-packed-smoke.mjs";
       writeFileSync(smokePath, readFileSync(join(root, "scripts", smokeScript), "utf8"));
+      if (scopedServices) { writeFileSync(join(consumer, "scoped-packed-smoke.mjs"), readFileSync(join(root, "scripts/minimal-scoped-packed-smoke.mjs"), "utf8")); }
       const smoke = spawnSync(process.execPath, [smokePath, packageName, ...features], { cwd: consumer, encoding: "utf8", timeout: installPacks.length ? 300000 : 120000, env: { ...process.env,
         ...(registryAddress ? { NODETOOL_PACK_FIXTURE_REGISTRY: registryAddress, NODETOOL_PACK_FIXTURE_MANIFEST: fixtureManifest, NODETOOL_PACK_FIXTURE_PINS: join(output, "registry-fixture-pins.json"), NODETOOL_PACK_FIXTURE_IDS: installPacks.join(",") } : {}) } });
       writeFileSync(join(output, "smoke.log"), `${smoke.stdout ?? ""}\n${smoke.stderr ?? ""}`);
@@ -98,9 +105,10 @@ export async function packedConsumer(packageName, output, { guard = true, baseli
   const sandboxOnly = features.length === 1 && features[0] === "@nodetool-ai/server-feature-sandbox";
   const inspection = guard && (features.length === 0 || sandboxOnly) && installPacks.length === 0
     ? inspectMinimalTree(directories, { entryPackageName: packageName, ...(sandboxOnly ? { profile: "sandbox" } : {}) }) : null;
+  const sandboxRegression = guard && sandboxOnly ? sandboxPackedRegression(consumer) : null;
   const external = directories.filter((path) => !JSON.parse(readFileSync(join(path, "package.json"), "utf8")).name.startsWith("@nodetool-ai/"));
   const dependencyVersions = Object.fromEntries(["zod", "better-sqlite3", "openai"].map(name => [name, [...new Set(directories.map(path => JSON.parse(readFileSync(join(path, "package.json"), "utf8"))).filter(manifest => manifest.name === name).map(manifest => manifest.version))].sort()]));
-  const report = { dependencyVersions, packageName, platform: process.platform, arch: process.arch, nodeVersion: process.version, installScripts: true, consumer, logicalBytes: logicalBytes(join(consumer, "node_modules")), externalPackageInstances: external.length, workspacePackages: directories.length - external.length, packedWorkspaceArtifacts: selected.size, features, installPacks, optionalPackInstallPolicy: installPacks.length ? "Canonical pack manager applies the catalog lifecycle allowlist" : null, inspection };
+  const report = { sandboxRegression, dependencyVersions, packageName, platform: process.platform, arch: process.arch, nodeVersion: process.version, installScripts: true, consumer, logicalBytes: logicalBytes(join(consumer, "node_modules")), externalPackageInstances: external.length, workspacePackages: directories.length - external.length, packedWorkspaceArtifacts: selected.size, features, installPacks, optionalPackInstallPolicy: installPacks.length ? "Canonical pack manager applies the catalog lifecycle allowlist" : null, inspection };
   if (guard && features.length === 0 && installPacks.length === 0) {
     const baseline = baselineReport ? JSON.parse(readFileSync(baselineReport, "utf8")) : null;
     report.proposedTargets = { maxLogicalBytes: 150 * 1024 * 1024, maxExternalPackageInstances: 250, minimumReductionPercent: 60 };

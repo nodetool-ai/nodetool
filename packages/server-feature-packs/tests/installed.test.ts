@@ -22,6 +22,29 @@ async function hostFixture(){
   return {host,assets,close:()=>rm(directory,{recursive:true,force:true})};
 }
 describe('explicit installed legacy node adapter',()=>{
+  it('enables explicitly configured browser and local inference nodes through scoped services',async()=>{
+    const fixture=await hostFixture();
+    try {
+      const screenshot='lib.browser.Screenshot';
+      const generation='transformers.TextGeneration';
+      expect(fixture.host.execution.validate({nodes:[{id:'shot',type:screenshot,properties:{url:'https://example.com'}}],edges:[]})).not.toHaveLength(0);
+      await expect(createInstalledPackFeature({packId:'automation',nodeTypes:[screenshot]}).activate(fixture.host)).rejects.toMatchObject({code:'FEATURE_NOT_CONFIGURED'});
+      await createInstalledPackFeature({packId:'automation',nodeTypes:[screenshot],openBrowser:async context=>{
+        expect(context.userId).toBe('alice');
+        expect(context.workspace).toBeDefined();
+        expect(await context.getSecret('fixture-key')).toBeNull();
+        return {goto:async()=>undefined,waitForSelector:async()=>undefined,screenshot:async()=>new Uint8Array([1,2]),screenshotOfElement:async()=>new Uint8Array([3]),close:async()=>undefined};
+      }}).activate(fixture.host);
+      const browserGraph={nodes:[{id:'shot',type:screenshot,properties:{url:'https://example.com'}}],edges:[]};
+      expect(fixture.host.execution.validate(browserGraph)).toEqual([]);
+      const request={userId:'alice',jobId:'scoped-job',signal:new AbortController().signal,emit:()=>undefined};
+      expect(await fixture.host.execution.run({...request,graph:browserGraph})).toBeDefined();
+      await createInstalledPackFeature({packId:'transformers-js',nodeTypes:[generation],openLocalGeneration:async()=>({generate:async prompt=>`local: ${prompt}`,interrupt:()=>undefined,close:async()=>undefined})}).activate(fixture.host);
+      const graph={nodes:[{id:'local',type:generation,properties:{prompt:'hello',model:{type:'hf.model',repo_id:'approved'}}}],edges:[]};
+      expect(fixture.host.execution.validate(graph)).toEqual([]);
+      expect(await fixture.host.execution.run({...request,graph})).toEqual({'Text Generation':['local: hello']});
+    }finally{await fixture.close();}
+  });
   it('runs the actual installed text pack without admitting its other nodes',async()=>{
     const fixture=await hostFixture();
     try {

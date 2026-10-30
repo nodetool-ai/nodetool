@@ -26,7 +26,8 @@
     "@nodetool-ai/database-sqlite": "*",
     "@nodetool-ai/security-core": "*",
     "zod": "^4.4.3",
-    "@nodetool-ai/pack-manager": "*"
+    "@nodetool-ai/pack-manager": "*",
+    "@nodetool-ai/server-features": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

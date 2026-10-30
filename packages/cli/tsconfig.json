@@ -34,6 +34,9 @@
     },
     {
       "path": "../pack-manager"
+    },
+    {
+      "path": "../server-features"
     }
   ]
 }

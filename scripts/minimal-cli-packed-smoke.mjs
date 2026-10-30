@@ -219,8 +219,13 @@ if (explicitPackIds.length) {
   // This isolated registry models release metadata for unpublished local tarballs.
   writeFileSync(catalogFile, JSON.stringify(catalog));
   writeFileSync("cli-fixture.npmrc", "");
-  const installation = await command(["packs", "add", ...explicitPackIds, "--yes"], { env: { npm_config_registry: registry, npm_config_userconfig: resolve("cli-fixture.npmrc"), NODE_OPTIONS: "" }, timeout: 240000 });
-  process.stdout.write(installation.stdout + installation.stderr);
+  const install = async () => {
+    const installation = await command(["packs", "add", ...explicitPackIds, "--yes"], { env: { npm_config_registry: registry, npm_config_userconfig: resolve("cli-fixture.npmrc"), NODE_OPTIONS: "" }, timeout: 240000 });
+    process.stdout.write(installation.stdout + installation.stderr);
+  };
+  if (explicitPackIds.includes("automation") && explicitPackIds.includes("transformers-js")) {
+    await (await import("./scoped-packed-smoke.mjs")).runScopedPackedSmoke(install);
+  } else { await install(); }
   assert.equal(existsSync("node_modules/@nodetool-ai/cli-full"), false);
   const rows = json(await command(["packs", "list", "--json"]));
   for (const id of explicitPackIds) {

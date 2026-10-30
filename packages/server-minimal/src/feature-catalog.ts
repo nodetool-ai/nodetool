@@ -4,6 +4,8 @@ import type { FeatureDescriptor } from "@nodetool-ai/server-features";
 export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
   {
     "id": "atlascloud",
+    "packageName": "@nodetool-ai/atlascloud-nodes",
+    "packId": "atlascloud",
     "apiVersion": 1,
     "requires": [],
     "capabilities": [
@@ -194,6 +196,8 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
   },
   {
     "id": "audio",
+    "packageName": "@nodetool-ai/audio-nodes",
+    "packId": "audio",
     "apiVersion": 1,
     "requires": [],
     "capabilities": [
@@ -264,6 +268,8 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
   },
   {
     "id": "automation",
+    "packageName": "@nodetool-ai/automation-nodes",
+    "packId": "automation",
     "apiVersion": 1,
     "requires": [],
     "capabilities": [
@@ -281,6 +287,8 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
   },
   {
     "id": "blender",
+    "packageName": "@nodetool-ai/blender-nodes",
+    "packId": "blender",
     "apiVersion": 1,
     "requires": [],
     "capabilities": [
@@ -297,6 +305,8 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
   },
   {
     "id": "code",
+    "packageName": "@nodetool-ai/code-nodes",
+    "packId": "code",
     "apiVersion": 1,
     "requires": [
       "llm"
@@ -310,6 +320,8 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
   },
   {
     "id": "core",
+    "packageName": "@nodetool-ai/core-nodes",
+    "packId": "core",
     "apiVersion": 1,
     "requires": [],
     "capabilities": [
@@ -433,6 +445,8 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
   },
   {
     "id": "data",
+    "packageName": "@nodetool-ai/data-nodes",
+    "packId": "data",
     "apiVersion": 1,
     "requires": [],
     "capabilities": [
@@ -446,6 +460,8 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
   },
   {
     "id": "document",
+    "packageName": "@nodetool-ai/document-nodes",
+    "packId": "document",
     "apiVersion": 1,
     "requires": [],
     "capabilities": [
@@ -466,6 +482,8 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
   },
   {
     "id": "elevenlabs",
+    "packageName": "@nodetool-ai/elevenlabs-nodes",
+    "packId": "elevenlabs",
     "apiVersion": 1,
     "requires": [],
     "capabilities": [
@@ -481,6 +499,8 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
   },
   {
     "id": "fal",
+    "packageName": "@nodetool-ai/fal-nodes",
+    "packId": "fal",
     "apiVersion": 1,
     "requires": [],
     "capabilities": [
@@ -2136,6 +2156,8 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
   },
   {
     "id": "game",
+    "packageName": "@nodetool-ai/game-nodes",
+    "packId": "game",
     "apiVersion": 1,
     "requires": [],
     "capabilities": [
@@ -2149,6 +2171,8 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
   },
   {
     "id": "higgsfield",
+    "packageName": "@nodetool-ai/higgsfield-nodes",
+    "packId": "higgsfield",
     "apiVersion": 1,
     "requires": [],
     "capabilities": [
@@ -2239,6 +2263,8 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
   },
   {
     "id": "huggingface",
+    "packageName": "@nodetool-ai/huggingface-nodes",
+    "packId": "huggingface",
     "apiVersion": 1,
     "requires": [],
     "capabilities": [
@@ -2268,6 +2294,8 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
   },
   {
     "id": "image",
+    "packageName": "@nodetool-ai/image-nodes",
+    "packId": "image",
     "apiVersion": 1,
     "requires": [],
     "capabilities": [
@@ -2381,6 +2409,8 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
   },
   {
     "id": "integration",
+    "packageName": "@nodetool-ai/integration-nodes",
+    "packId": "integration",
     "apiVersion": 1,
     "requires": [
       "kie"
@@ -2400,6 +2430,8 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
   },
   {
     "id": "kie",
+    "packageName": "@nodetool-ai/kie-nodes",
+    "packId": "kie",
     "apiVersion": 1,
     "requires": [],
     "capabilities": [
@@ -2590,6 +2622,8 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
   },
   {
     "id": "llm",
+    "packageName": "@nodetool-ai/llm-nodes",
+    "packId": "llm",
     "apiVersion": 1,
     "requires": [],
     "capabilities": [
@@ -2645,6 +2679,8 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
   },
   {
     "id": "manimgx",
+    "packageName": "@nodetool-ai/manimgx-nodes",
+    "packId": "manimgx",
     "apiVersion": 1,
     "requires": [
       "llm"
@@ -2660,6 +2696,8 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
   },
   {
     "id": "minimax",
+    "packageName": "@nodetool-ai/minimax-nodes",
+    "packId": "minimax",
     "apiVersion": 1,
     "requires": [],
     "capabilities": [
@@ -2676,6 +2714,8 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
   },
   {
     "id": "replicate",
+    "packageName": "@nodetool-ai/replicate-nodes",
+    "packId": "replicate",
     "apiVersion": 1,
     "requires": [],
     "capabilities": [
@@ -3348,6 +3388,8 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
   },
   {
     "id": "reve",
+    "packageName": "@nodetool-ai/reve-nodes",
+    "packId": "reve",
     "apiVersion": 1,
     "requires": [],
     "capabilities": [
@@ -3361,6 +3403,8 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
   },
   {
     "id": "text",
+    "packageName": "@nodetool-ai/text-nodes",
+    "packId": "text",
     "apiVersion": 1,
     "requires": [],
     "capabilities": [
@@ -3386,6 +3430,8 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
   },
   {
     "id": "together",
+    "packageName": "@nodetool-ai/together-nodes",
+    "packId": "together",
     "apiVersion": 1,
     "requires": [],
     "capabilities": [
@@ -3452,6 +3498,8 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
   },
   {
     "id": "topaz",
+    "packageName": "@nodetool-ai/topaz-nodes",
+    "packId": "topaz",
     "apiVersion": 1,
     "requires": [],
     "capabilities": [
@@ -3473,6 +3521,8 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
   },
   {
     "id": "transformers-js",
+    "packageName": "@nodetool-ai/transformers-js-nodes",
+    "packId": "transformers-js",
     "apiVersion": 1,
     "requires": [
       "audio"
@@ -3502,6 +3552,8 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
   },
   {
     "id": "video",
+    "packageName": "@nodetool-ai/video-nodes",
+    "packId": "video",
     "apiVersion": 1,
     "requires": [
       "audio"
@@ -3587,6 +3639,8 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
   },
   {
     "id": "whisper-cpp",
+    "packageName": "@nodetool-ai/whisper-cpp",
+    "packId": "whisper-cpp",
     "apiVersion": 1,
     "requires": [
       "transformers-js"
@@ -3600,6 +3654,8 @@ export const OPTIONAL_FEATURE_CATALOG: readonly FeatureDescriptor[] = [
   },
   {
     "id": "provider-anthropic",
+    "packageName": "@nodetool-ai/provider-anthropic",
+    "packId": null,
     "apiVersion": 1,
     "requires": [],
     "capabilities": [

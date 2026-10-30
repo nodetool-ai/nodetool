@@ -194,14 +194,15 @@ describe("authenticated lean host", () => {
     expect((await app.inject({ url: "/api/workflows", headers: { cookie: "api_key=alice" } })).statusCode).toBe(401);
     expect((await app.inject({ url: "/api/workflows", headers: { authorization: "Bearer app-session" } })).statusCode).toBe(401);
   });
-  it("returns structured unavailable-feature diagnostics without changing saved graphs", async () => {
-    const issue = { nodeType: "Code", code: "FEATURE_NOT_INSTALLED", featureIds: ["sandbox"] };
+  it.each(["FEATURE_NOT_INSTALLED", "FEATURE_NOT_CONFIGURED", "FEATURE_INITIALIZATION_FAILED"])("preserves %s recovery in HTTP and MsgPack without changing saved graphs", async code => {
+    const recovery = [{featureId:"automation",packId:"automation",packageName:"@nodetool-ai/automation-nodes",installCommand:"nodetool packs add automation --yes",configuration:"Configure openBrowser with isolatedBrowserService(browser).",restart:"Restart the configured server and retry.",authorizationRequired:true}];
+    const issue = { nodeType: "lib.browser.Screenshot", code, featureIds: ["automation"], recovery };
     const { app, repository } = await fixture([issue]);
     const graph = { nodes: [], edges: [] };
     const saved = await repository.put("workflows", "alice", { graph });
     const response = await app.inject({ method: "POST", url: `/api/workflows/${saved.id}/run`, headers: { authorization: "Bearer alice" }, payload: {} });
     expect(response.statusCode).toBe(422);
-    expect(response.json()).toMatchObject({ code: "FEATURE_NOT_INSTALLED", validation_issues: [issue] });
+    expect(response.json()).toMatchObject({ code, validation_issues: [issue] });
     expect((await repository.get("workflows", "alice", saved.id))?.graph).toEqual(graph);
     await app.ready();
     const socket = await app.injectWS("/ws?api_key=alice");
@@ -210,7 +211,7 @@ describe("authenticated lean host", () => {
       socket.once("message", bytes => { clearTimeout(timeout); resolve(unpack(bytes)); });
     });
     socket.send(pack({ command: "run_job", data: { workflow_id: saved.id } }));
-    expect(await failed).toMatchObject({ status: "failed", code: "FEATURE_NOT_INSTALLED", validation_issues: [issue] });
+    expect(await failed).toMatchObject({ status: "failed", code, validation_issues: [issue] });
     socket.close();
   });
   it("streams MsgPack terminal events and cancels a tenant owned run", async () => {

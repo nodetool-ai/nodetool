@@ -86,6 +86,11 @@ describe("minimal dependency guard", () => {
     const heavy = fixture({ "index.d.ts": 'export type GPU = import("webgpu").GPU;' }, { name: "@nodetool-ai/sandbox-runtime" });
     expect(() => inspectMinimalTree([heavy], { profile: "sandbox" })).toThrow("webgpu");
   });
+  it.each(["index.js", "index.d.ts"])("rejects compiler edges in sandbox %s", file => {
+    const source = file.endsWith(".d.ts") ? 'export type Compiler = import("typescript").CompilerOptions;' : 'export const compiler = import("typescript");';
+    const directory = fixture({ [file]: source }, { name: "@nodetool-ai/sandbox-runtime" });
+    expect(() => inspectMinimalTree([directory], { profile: "sandbox" })).toThrow("Forbidden minimal dependency typescript");
+  });
   it("audits pure sandbox contract subpaths without treating them as optional packages", () => {
     const directory = fixture({ "index.d.ts": 'export type Contract = import("@nodetool-ai/protocol/sandbox-package").Contract;', "sandbox-package.d.ts": "export interface Contract { readonly id: string }" }, { name: "@nodetool-ai/protocol", exports: { "./sandbox-package": "./dist/sandbox-package.d.ts" } });
     expect(inspectMinimalTree([directory]).inspectedFiles).toBe(2);

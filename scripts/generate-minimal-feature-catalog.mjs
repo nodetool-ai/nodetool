@@ -2,8 +2,11 @@ import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 const root = new URL("../", import.meta.url);
+const anthropic = JSON.parse(await readFile(new URL("packages/provider-anthropic/package.json", root), "utf8"));
 const supplementalDescriptors = [{
   id: "provider-anthropic",
+  packageName: anthropic.name,
+  packId: null,
   apiVersion: 1,
   requires: [],
   capabilities: ["provider:anthropic"],
@@ -22,6 +25,8 @@ for (const [type, owner] of owners) {
 }
 const descriptors = catalog.packs.filter((pack) => pack.kind === "core" || pack.kind === "node-pack").map((pack) => ({
   id: pack.id,
+  packageName: pack.npm.name,
+  packId: pack.id,
   apiVersion: 1,
   requires: pack.requires,
   capabilities: [`nodes:${pack.id}`],

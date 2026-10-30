@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, utimes, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createPackCommandServices } from "../../src/packs/command-service.js";
@@ -106,9 +106,16 @@ describe("node command services with actual npm", () => {
 
 
 describe("managed runtime diagnostics", () => {
-  async function compilerFixture(version: string, nested = false) {
+  async function compilerFixture(version: string, options: { nested?: boolean; installPack?: boolean } = {}) {
     const f = await setupPackRegistry();
-    const path = nested ? "node_modules/fixture-baseline/node_modules/esbuild" : "node_modules/esbuild";
+    // npm may regenerate synthetic hidden-lock pins. Finish real installs
+    // before injecting the compiler used by read-only diagnostic assertions.
+    if (options.installPack) {
+      const service = await createPackCommandServices({ snapshot: readInstalledPacks(f.request.mode, f.request.catalog),
+        catalog: f.request.catalog, stateFile: f.request.stateFile, operations: f.operations });
+      await service.add(["fixture"], { yes: true });
+    }
+    const path = options.nested ? "node_modules/fixture-baseline/node_modules/esbuild" : "node_modules/esbuild";
     await mkdir(join(f.root, path), { recursive: true });
     await writeFile(join(f.root, path, "package.json"), JSON.stringify({ name: "esbuild", version }));
     const lockFile = join(f.root, "node_modules/.package-lock.json");
@@ -130,26 +137,43 @@ describe("managed runtime diagnostics", () => {
     expect(desired).toMatchObject({ healthy: false, issues: [expect.objectContaining({ kind: "integrity" })] });
   }, 30_000);
 
-  it("allows a core pack's optional runtime but diagnoses an optional pack's missing requirement", async () => {
+  it("rejects an npm install that rewrites a synthetic compiler integrity pin", async () => {
     const f = await compilerFixture("0.28.2");
     vi.spyOn(process.stderr, "write").mockImplementation(() => true);
-    await (await f.service()).add(["fixture"], { yes: true });
+    await utimes(join(f.root, "node_modules/.package-lock.json"), 0, 0);
+    await expect((await f.service()).add(["fixture"], { yes: true })).rejects.toMatchObject({
+      message: expect.stringContaining("rollback did not restore the tree"),
+      cause: expect.objectContaining({ message: "Install changed an existing package: node_modules/esbuild" })
+    });
+    const lock = JSON.parse(await readFile(join(f.root, "node_modules/.package-lock.json"), "utf8"));
+    expect(lock.packages["node_modules/esbuild"]?.integrity).not.toBe("compiler-integrity");
+    expect((await readDesiredState(f.request.stateFile))[f.root].dirty).toBe(true);
+  }, 30_000);
+
+  it("requires declared runtimes for independently installed core and node packs", async () => {
+    vi.spyOn(process.stderr, "write").mockImplementation(() => true);
+    const f = await compilerFixture("0.28.2", { installPack: true });
     const baseline = f.catalog.packs[0].npm;
-    const inspect = async (kind: "core" | "node-pack") => {
+    const inspect = async (kind: "core" | "node-pack", runtimeLibraries: readonly string[]) => {
       const catalog = { ...f.catalog, packs: [{ ...f.catalog.packs[0], id: "data", kind,
-        npm: { name: baseline.name, version: baseline.version, integrity: baseline.integrity }, runtimeLibraries: ["imaging"] }] };
+        npm: { name: baseline.name, version: baseline.version, integrity: baseline.integrity }, runtimeLibraries }] };
       const snapshot = readInstalledPacks(f.request.mode, catalog);
       expect(snapshot.packs.map(pack => pack.id)).toEqual(["data"]);
       const service = await createPackCommandServices({ snapshot, catalog,
         stateFile: f.request.stateFile, operations: f.operations });
+      const selection = await prepareInstallSelection({ ...f.request, packs: ["data"], catalog });
+      expect(selection.runtimeLibraries).toEqual(runtimeLibraries);
       return service.doctor({});
     };
-    expect(await inspect("core")).toMatchObject({ healthy: true });
-    expect(await inspect("node-pack")).toMatchObject({ healthy: false, issues: [expect.objectContaining({ kind: "integrity" })] });
+    for (const kind of ["core", "node-pack"] as const) {
+      expect(await inspect(kind, [])).toMatchObject({ healthy: true });
+      expect(await inspect(kind, ["imaging"])).toMatchObject({ healthy: false,
+        issues: [expect.objectContaining({ kind: "integrity", message: expect.stringContaining("has no catalog integrity pin") })] });
+    }
   }, 30_000);
 
   it("does not advertise or replay a nested matching compiler as a root runtime", async () => {
-    const f = await compilerFixture("0.28.1", true);
+    const f = await compilerFixture("0.28.1", { nested: true });
     await writeFile(f.request.stateFile, JSON.stringify({ [f.root]: { root: f.root, coreVersion: "1.0.0", packs: [], runtimeLibraries: ["esbuild"] } }));
     expect((await (await f.service()).list()).find(row => row.id === "esbuild")).toMatchObject({ installed: false });
     expect(await prepareInstallSelection({ ...f.request, packs: [], catalog: f.catalog })).toMatchObject({ replayLibraries: [] });
