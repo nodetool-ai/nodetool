@@ -1,6 +1,7 @@
 import { execFile, spawn } from "node:child_process";
 import { promisify } from "node:util";
-import { chmod, mkdir, readFile, rm, stat, utimes, writeFile } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, readFile, realpath, rm, stat, utimes, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import { delimiter, dirname, join } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -66,18 +67,20 @@ afterEach(async () => {
 // The suite is opt-in. Its default-prefix case writes only on disposable CI runners.
 describe.runIf(process.env["NODETOOL_NPM_MATRIX"] === "1")("actual npm matrix", () => {
   it("M00 verifies the runtime and npm version instead of trusting matrix labels", async () => {
-    const f = await setupMatrixFixture();
-    const npm = await installerNpmVersion(f.root);
-    expect(npm).toMatch(/^(10\.9\.|11\.)/);
-    if (process.env["NODETOOL_NPM_MATRIX_EXPECT_NPM"]) {
-      expect(npm).toBe(process.env["NODETOOL_NPM_MATRIX_EXPECT_NPM"]);
-    }
-    if (process.env["NODETOOL_NPM_MATRIX_EXPECT_NODE"]) {
-      expect(process.versions.node.split(".")[0]).toBe(process.env["NODETOOL_NPM_MATRIX_EXPECT_NODE"]);
-    }
-    if (process.env["NODETOOL_NPM_MATRIX_EXPECT_ARCH"]) {
-      expect(process.arch.toUpperCase()).toBe(process.env["NODETOOL_NPM_MATRIX_EXPECT_ARCH"]);
-    }
+    const root = await realpath(await mkdtemp(join(tmpdir(), "npm-runtime-version-")));
+    try {
+      const npm = await installerNpmVersion(root);
+      expect(npm).toMatch(/^(10\.9\.|11\.)/);
+      if (process.env["NODETOOL_NPM_MATRIX_EXPECT_NPM"]) {
+        expect(npm).toBe(process.env["NODETOOL_NPM_MATRIX_EXPECT_NPM"]);
+      }
+      if (process.env["NODETOOL_NPM_MATRIX_EXPECT_NODE"]) {
+        expect(process.versions.node.split(".")[0]).toBe(process.env["NODETOOL_NPM_MATRIX_EXPECT_NODE"]);
+      }
+      if (process.env["NODETOOL_NPM_MATRIX_EXPECT_ARCH"]) {
+        expect(process.arch.toUpperCase()).toBe(process.env["NODETOOL_NPM_MATRIX_EXPECT_ARCH"]);
+      }
+    } finally { await rm(root, { recursive: true, force: true }); }
   });
 
   it.runIf(process.env["GITHUB_ACTIONS"] === "true" && process.env["NODETOOL_NPM_MATRIX_DEFAULT_PREFIX"] === "1")("M01 installs globally at npm's actual default prefix", async () => {
