@@ -267,6 +267,19 @@ private slots:
         auto* popup = select->property("popup").value<QObject*>();
         QVERIFY(popup);
         QVERIFY(popup->setProperty("popupType", popupWindow ? 1 : 0)); // Popup.Window / Popup.Item
+        view->requestActivate();
+        QVERIFY(QTest::qWaitForWindowActive(view.get()));
+        QVERIFY(QTest::qWaitForWindowExposed(view.get()));
+        QSignalSpy frame(view.get(), &QQuickWindow::frameSwapped);
+        view->requestUpdate();
+        QTRY_VERIFY(!frame.isEmpty());
+        const auto clickPoint = select->mapToScene({select->width() - 8, select->height() / 2});
+        for (auto* parent = select; parent; parent = parent->parentItem()) {
+            if (parent->clip()) {
+                QVERIFY2(parent->contains(parent->mapFromScene(clickPoint)),
+                    qPrintable("Grid click outside clipped ancestor: " + parent->objectName()));
+            }
+        }
         // Exercise keyboard navigation in the item popup and a real option
         // click when the platform hosts the popup in a separate window.
         QTest::mouseClick(select->window(), Qt::LeftButton, Qt::NoModifier,

@@ -94,7 +94,18 @@ struct Editor {
     }
     void click(QQuickItem* target) {
         reveal(target);
+        window.requestActivate();
+        QVERIFY(QTest::qWaitForWindowActive(&window));
+        QSignalSpy frame(&window, &QQuickWindow::frameSwapped);
+        window.requestUpdate();
+        QTRY_VERIFY(!frame.isEmpty());
         const auto at = target->mapToScene(QPointF(target->width()/2,target->height()/2)).toPoint();
+        for (auto* parent = target; parent; parent = parent->parentItem()) {
+            if (parent->clip()) {
+                QVERIFY2(parent->contains(parent->mapFromScene(at)),
+                    qPrintable("Click outside clipped ancestor: " + parent->objectName()));
+            }
+        }
         QTest::mouseClick(&window,Qt::LeftButton,Qt::NoModifier,at);
         QCoreApplication::processEvents();
     }
