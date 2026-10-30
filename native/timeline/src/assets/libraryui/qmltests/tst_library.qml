@@ -38,10 +38,12 @@ Item {
             keyClick(Qt.Key_Return)
             compare(panel.browser.tagFilter, "reference")
             const types = findChild(panel, "libraryTypeFilter")
-            types.currentIndex = 2
-            types.activated(2)
+            types.forceActiveFocus()
+            keyClick(Qt.Key_Down)
+            keyClick(Qt.Key_Down)
             compare(panel.browser.typeFilter, "video")
-            mouseClick(findChild(panel, "libraryFavoritesButton"))
+            findChild(panel, "libraryFavoritesButton").forceActiveFocus()
+            keyClick(Qt.Key_Space)
             compare(panel.browser.favoritesOnly, true)
             panel.clearFilters()
             compare(panel.browser.searchText, "")
@@ -51,21 +53,19 @@ Item {
             compare(search.text, "")
             compare(tags.text, "")
         }
-        function test_emptyCollectionStaysSelected() {
+        function test_typeFilterVisibleWithoutExpandingFilters() {
             const panel = mount()
-            const saved = findChild(panel, "libraryCollections")
-            verify(saved)
-            saved.scope = "native-library-mounted-test"
-            const id = saved.create("Empty mounted collection")
-            verify(id.length === 32)
-            saved.selectedId = id
-            compare(panel.browser.collectionActive, true)
-            compare(panel.browser.collectionAssetIds.length, 0)
-            compare(findChild(panel, "libraryCollectionPicker").currentText, "Empty mounted collection")
+            compare(panel.filtersExpanded, false)
+            const types = findChild(panel, "libraryTypeFilter")
+            verify(types.visible)
+            const values = ["", "image", "video", "audio", "folder", "other"]
+            types.forceActiveFocus()
+            for (let i = 0; i < values.length; ++i) {
+                if (i > 0) keyClick(Qt.Key_Down)
+                compare(panel.browser.typeFilter, values[i])
+            }
             panel.clearFilters()
-            compare(saved.selectedId, "")
-            compare(panel.browser.collectionActive, false)
-            verify(saved.remove(id))
+            compare(types.currentIndex, 0)
         }
         function test_folderPromptRequiresNameAndKeyboardConfirms() {
             const panel = mount()

@@ -22,14 +22,13 @@ class AssetBrowser : public QObject {
     Q_PROPERTY(bool configured READ configured CONSTANT)
     Q_PROPERTY(bool busy READ busy NOTIFY stateChanged)
     Q_PROPERTY(QString error READ error NOTIFY stateChanged)
+    Q_PROPERTY(QVariantMap thumbnails READ thumbnails NOTIFY thumbnailsChanged)
     Q_PROPERTY(QVariantList assets READ assets NOTIFY assetsChanged)
     Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY timelineChanged)
     Q_PROPERTY(QString searchText READ searchText WRITE setSearchText NOTIFY filtersChanged)
     Q_PROPERTY(QString typeFilter READ typeFilter WRITE setTypeFilter NOTIFY filtersChanged)
     Q_PROPERTY(QString tagFilter READ tagFilter WRITE setTagFilter NOTIFY filtersChanged)
     Q_PROPERTY(bool favoritesOnly READ favoritesOnly WRITE setFavoritesOnly NOTIFY filtersChanged)
-    Q_PROPERTY(bool collectionActive READ collectionActive WRITE setCollectionActive NOTIFY filtersChanged)
-    Q_PROPERTY(QStringList collectionAssetIds READ collectionAssetIds WRITE setCollectionAssetIds NOTIFY filtersChanged)
     Q_PROPERTY(QString libraryScope READ libraryScope NOTIFY libraryScopeChanged)
     Q_PROPERTY(QVariantList breadcrumbs READ breadcrumbs NOTIFY folderChanged)
     Q_PROPERTY(QVariantList transfers READ transfers NOTIFY transfersChanged)
@@ -40,19 +39,17 @@ public:
     bool configured() const { return m_target.has_value(); }
     bool busy() const { return !m_thread.isNull(); }
     QString error() const { return m_error; }
+    QVariantMap thumbnails() const { return m_thumbnails; }
+    Q_INVOKABLE void requestThumbnail(const QString& assetId);
     QVariantList assets() const { return m_assets.toVariantList(); }
     QString searchText() const { return m_searchText; }
     QString typeFilter() const { return m_typeFilter; }
     QString tagFilter() const { return m_tagFilter; }
     bool favoritesOnly() const { return m_favoritesOnly; }
-    bool collectionActive() const { return m_collectionActive; }
-    QStringList collectionAssetIds() const { return m_collectionAssetIds; }
     void setSearchText(const QString& value);
     void setTypeFilter(const QString& value);
     void setTagFilter(const QString& value);
     void setFavoritesOnly(bool value);
-    void setCollectionActive(bool value);
-    void setCollectionAssetIds(const QStringList& value);
     QString libraryScope() const;
     QVariantList breadcrumbs() const;
     QVariantList transfers() const { return m_transfers; }
@@ -74,11 +71,13 @@ public:
     Q_INVOKABLE void importFiles(const QList<QUrl>& urls);
     Q_INVOKABLE QString mediaType(const QVariantMap& asset) const;
     Q_INVOKABLE QString trackAt(TrackWindowModel* rows, double contentY) const;
+    Q_INVOKABLE bool canDrop(const QVariantMap& asset, const QString& trackId) const;
     Q_INVOKABLE bool drop(const QVariantMap& asset, const QString& trackId, double startMs,
                           const QString& mode, double snapMs);
     Q_INVOKABLE void resolveClipMedia(const QVariantMap& asset, const QString& clipId);
     Q_INVOKABLE QUrl mediaUrl(const QString& path) const;
 signals:
+    void thumbnailsChanged();
     void filtersChanged();
     void libraryScopeChanged();
     void transfersChanged();
@@ -138,14 +137,13 @@ private:
     QPointer<TimelineModel> m_timeline;
     QPointer<QThread> m_thread;
     QJsonArray m_assets;
+    QVariantMap m_thumbnails;
     QHash<QString, int> m_pending;
     std::deque<QueuedImport> m_files;
     QString m_searchText;
     QString m_typeFilter;
     QString m_tagFilter;
     bool m_favoritesOnly = false;
-    bool m_collectionActive = false;
-    QStringList m_collectionAssetIds;
     quint64 m_queryGeneration = 0;
     quint64 m_documentEpoch = 0;
     std::shared_ptr<std::atomic_bool> m_activeQueryCancel;

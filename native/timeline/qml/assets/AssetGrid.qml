@@ -16,7 +16,7 @@ Item {
         for (let i = 0; i < rows.length; ++i) if (rows[i].id === selectedId) return rows[i]
         return null
     }
-    readonly property bool filtered: browser.searchText !== "" || browser.typeFilter !== "" || browser.tagFilter !== "" || browser.favoritesOnly || browser.collectionActive
+    readonly property bool filtered: browser.searchText !== "" || browser.typeFilter !== "" || browser.tagFilter !== "" || browser.favoritesOnly
     // AssetGridContent uses calculateGridDimensions with assetItemSize=2.
     readonly property int itemSpacing: Theme.spacingXs
     readonly property int columns: Math.max(1, Math.min(100, Math.floor((width + itemSpacing) / (84 + itemSpacing))))

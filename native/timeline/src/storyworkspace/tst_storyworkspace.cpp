@@ -47,10 +47,14 @@ private slots:
         controller.setCall([&](bool, const QString& procedure, const QJsonObject& input) {
             called = procedure;
             if (procedure.endsWith(".list")) {
-                return nt::server::QueryResult{empty ? QJsonArray{} : QJsonArray{QJsonObject{{"id", resourceId}, {"name", "Listed document"}}}, {}};
+                return nt::server::QueryResult{empty ? QJsonArray{} : QJsonArray{QJsonObject{{"id", resourceId}, {"name", "Listed document"}, {"updatedAt", "2000-01-01T00:00:00Z"}}}, {}};
             }
             openedId = input.value("id").toString();
-            return nt::server::QueryResult{kind == "storyboards" ? board(resourceId) : QJsonObject{{"id", resourceId}, {"document", QJsonObject{{"sections", QJsonArray{}}}}}, {}};
+            return nt::server::QueryResult{kind == "storyboards" ? board(resourceId) : QJsonObject{{"id", resourceId}, {"name", "Opening narration"}, {"document", QJsonObject{
+                {"cast", QJsonArray{QJsonObject{{"id", "narrator"}, {"name", "Narrator"}}}},
+                {"sections", QJsonArray{QJsonObject{{"id", "intro"}, {"title", "Teaser"}, {"lines", QJsonArray{
+                    QJsonObject{{"id", "line-one"}, {"speakerId", "narrator"}, {"text", "The convoy crossed the ridge."}},
+                    QJsonObject{{"id", "line-two"}, {"speakerId", "narrator"}, {"text", "Dust rose against the evening sky."}}}}}}}}}}, {}};
         });
         QQmlEngine engine;
         QFile source(qEnvironmentVariable("NODETOOL_STORY_EDITOR_TEST", QStringLiteral(NT_STORY_SOURCE "/qml/storyworkspace/StoryWorkspaceEditor.qml")));
@@ -68,8 +72,10 @@ private slots:
             for (auto* child : root->childItems()) { if (auto* found = recurse(child, name, recurse)) { return found; } }
             return nullptr;
         };
-        auto* browse = findItem(item, kind == "scripts" ? "workspaceScripts" : "workspaceStoryboards", findItem);
-        QVERIFY(browse); QVERIFY(QMetaObject::invokeMethod(browse, "clicked"));
+        auto* browse = findItem(item, "workspaceDocumentKind", findItem);
+        QVERIFY(browse);
+        const int kindIndex = kind == "storyboards" ? 1 : 0;
+        QVERIFY(QMetaObject::invokeMethod(browse, "activated", Q_ARG(int, kindIndex)));
         QTRY_VERIFY(!controller.busy()); QCOMPARE(called, kind + ".list");
         QCOMPARE(controller.result().metaType().id(), QMetaType::QVariantList);
         if (empty) {
@@ -79,9 +85,23 @@ private slots:
             QQuickItem* row = nullptr;
             QTRY_VERIFY_WITH_TIMEOUT((row = findItem(item, "workspaceResource_" + resourceId, findItem)), 2000);
             QVERIFY(row->isVisible()); QCOMPARE(row->property("text").toString(), QString("Listed document"));
+            auto* search = findItem(item, "workspaceSearch", findItem);
+            QVERIFY(search);
+            search->setProperty("text", "missing");
+            QTRY_VERIFY(!findItem(item, "workspaceResource_" + resourceId, findItem));
+            search->setProperty("text", "listed");
+            QTRY_VERIFY((row = findItem(item, "workspaceResource_" + resourceId, findItem)));
             QVERIFY(QMetaObject::invokeMethod(row, "clicked")); QTRY_VERIFY(!controller.busy());
             QCOMPARE(called, kind + ".get"); QCOMPARE(openedId, resourceId);
             QCOMPARE(workspace.resource().value("id").toString(), resourceId);
+            if (kind == "scripts") {
+                auto* line = findItem(item, "workspaceScriptLine_line-one", findItem);
+                QVERIFY(line);
+                QVERIFY(line->property("quiet").toBool());
+                QCOMPARE(line->property("text").toString(), QString("The convoy crossed the ridge."));
+                QCoreApplication::processEvents();
+                QVERIFY(window.grabWindow().save(QDir::tempPath() + "/native-web-script.png"));
+            }
         }
         QCOMPARE(model.undoStack()->count(), 0);
         item->setParentItem(nullptr);
@@ -120,7 +140,11 @@ private slots:
             for (auto* child : root->childItems()) { if (auto* found = recurse(child, name, recurse)) { return found; } }
             return nullptr;
         };
+        auto* editShot = findItem(item, "workspaceEditShot_shot", findItem);
+        QVERIFY(editShot);
+        QVERIFY(QMetaObject::invokeMethod(editShot, "clicked"));
         QTRY_VERIFY((field = findItem(item, "workspaceShot_action", findItem)));
+        QVERIFY(field->property("visible").toBool());
         field->setProperty("text", "Mounted edit");
         QVERIFY(QMetaObject::invokeMethod(field, "textEdited"));
         QVERIFY(workspace.dirty()); QCOMPARE(action(workspace), QString("Mounted edit"));
@@ -128,8 +152,8 @@ private slots:
         auto* save = findItem(item, "workspaceSave", findItem); QVERIFY(save); QVERIFY(save->property("enabled").toBool());
         QVERIFY(QMetaObject::invokeMethod(save, "clicked")); QTRY_VERIFY(!controller.busy());
         QCOMPARE(writes, 1); QVERIFY(!workspace.dirty()); QCOMPARE(model.undoStack()->count(), 0);
-        auto* scripts = findItem(item, "workspaceScripts", findItem); QVERIFY(scripts);
-        QVERIFY(QMetaObject::invokeMethod(scripts, "clicked")); QTRY_VERIFY(!controller.busy());
+        auto* scripts = findItem(item, "workspaceDocumentKind", findItem); QVERIFY(scripts);
+        QVERIFY(QMetaObject::invokeMethod(scripts, "activated", Q_ARG(int, 0))); QTRY_VERIFY(!controller.busy());
         QVERIFY(!controller.error().isEmpty());
         auto* inspect = findItem(item, "workspaceInspectEntity", findItem); QVERIFY(inspect);
         QVERIFY(QMetaObject::invokeMethod(inspect, "clicked")); QTRY_VERIFY(!controller.busy());
