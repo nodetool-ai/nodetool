@@ -1,0 +1,17 @@
+{
+  "source": "three@0.185.1/examples/jsm/postprocessing/SMAAPass.js",
+  "lookups": {
+    "native-smaa-area.png": {
+      "pngDigest": "b5a8e3bb3fbf11136d1411c6b7454f4469358559352987a074e22047582c0625",
+      "rgbaDigest": "53872ecb0c233e03f3bae14e37ce5572698ef0923dc83efd488ac03f7c668400",
+      "width": 160,
+      "height": 560
+    },
+    "native-smaa-search.png": {
+      "pngDigest": "025eb54fb8c4c2858a7d6d9743b88919fe5f9c661329c447a8f1e28971ae7403",
+      "rgbaDigest": "0280946a134416770d72b6550f87767d26de6a28b148332cea81a9f75b88fff4",
+      "width": 66,
+      "height": 33
+    }
+  }
+}

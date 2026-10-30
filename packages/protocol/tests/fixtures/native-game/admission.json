@@ -1,0 +1,1228 @@
+[
+  {
+    "name": "minimal",
+    "valid": true,
+    "document": {
+      "schemaVersion": 4,
+      "engine": "native-cpp-1",
+      "dimension": "3d",
+      "id": "game",
+      "title": "Course",
+      "initialSceneId": "main",
+      "scenes": [
+        {
+          "id": "main"
+        }
+      ]
+    }
+  },
+  {
+    "name": "unknown-field",
+    "valid": false,
+    "document": {
+      "schemaVersion": 4,
+      "engine": "native-cpp-1",
+      "dimension": "3d",
+      "id": "game",
+      "title": "Course",
+      "initialSceneId": "main",
+      "scenes": [
+        {
+          "id": "main"
+        }
+      ],
+      "unknown": true
+    }
+  },
+  {
+    "name": "wrong-version",
+    "valid": false,
+    "document": {
+      "schemaVersion": 3,
+      "engine": "native-cpp-1",
+      "dimension": "3d",
+      "id": "game",
+      "title": "Course",
+      "initialSceneId": "main",
+      "scenes": [
+        {
+          "id": "main"
+        }
+      ]
+    }
+  },
+  {
+    "name": "invalid-tuple",
+    "valid": false,
+    "document": {
+      "schemaVersion": 4,
+      "engine": "native-cpp-1",
+      "dimension": "3d",
+      "id": "game",
+      "title": "Course",
+      "initialSceneId": "main",
+      "scenes": [
+        {
+          "id": "main",
+          "entities": [
+            {
+              "id": "player",
+              "transform": {
+                "position": [
+                  0,
+                  0
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "nested-json-props",
+    "valid": true,
+    "document": {
+      "schemaVersion": 4,
+      "engine": "native-cpp-1",
+      "dimension": "3d",
+      "id": "game",
+      "title": "Course",
+      "initialSceneId": "main",
+      "scenes": [
+        {
+          "id": "main",
+          "entities": [
+            {
+              "id": "player",
+              "props": {
+                "health": 100,
+                "nested": {
+                  "items": [
+                    null,
+                    true,
+                    "x"
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "astral-length-limit",
+    "valid": false,
+    "document": {
+      "schemaVersion": 4,
+      "engine": "native-cpp-1",
+      "dimension": "3d",
+      "id": "game",
+      "title": "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+      "initialSceneId": "main",
+      "scenes": [
+        {
+          "id": "main"
+        }
+      ]
+    }
+  },
+  {
+    "name": "prefab-override",
+    "valid": true,
+    "document": {
+      "schemaVersion": 4,
+      "engine": "native-cpp-1",
+      "dimension": "3d",
+      "id": "game",
+      "title": "Course",
+      "initialSceneId": "main",
+      "scenes": [
+        {
+          "id": "main",
+          "entities": [
+            {
+              "id": "box",
+              "prefabId": "crate",
+              "prefabOverrides": [
+                {
+                  "entityId": "mesh",
+                  "props": {
+                    "color": "red"
+                  },
+                  "name": "Red crate"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "prefabs": [
+        {
+          "id": "crate",
+          "entities": [
+            {
+              "id": "mesh"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "prefab-override-identity-forbidden",
+    "valid": false,
+    "document": {
+      "schemaVersion": 4,
+      "engine": "native-cpp-1",
+      "dimension": "3d",
+      "id": "game",
+      "title": "Course",
+      "initialSceneId": "main",
+      "scenes": [
+        {
+          "id": "main",
+          "entities": [
+            {
+              "id": "box",
+              "prefabId": "crate",
+              "prefabOverrides": [
+                {
+                  "entityId": "mesh",
+                  "props": {
+                    "color": "red"
+                  },
+                  "name": "Red crate",
+                  "id": "replacement"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "prefabs": [
+        {
+          "id": "crate",
+          "entities": [
+            {
+              "id": "mesh"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "nonpositive-body-mass",
+    "valid": false,
+    "document": {
+      "schemaVersion": 4,
+      "engine": "native-cpp-1",
+      "dimension": "3d",
+      "id": "game",
+      "title": "Course",
+      "initialSceneId": "main",
+      "scenes": [
+        {
+          "id": "main",
+          "entities": [
+            {
+              "id": "zero-mass",
+              "body": {
+                "type": "dynamic",
+                "mass": 0
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "nonpositive-collider-radius",
+    "valid": false,
+    "document": {
+      "schemaVersion": 4,
+      "engine": "native-cpp-1",
+      "dimension": "3d",
+      "id": "game",
+      "title": "Course",
+      "initialSceneId": "main",
+      "scenes": [
+        {
+          "id": "main",
+          "entities": [
+            {
+              "id": "entity",
+              "collider": {
+                "shape": "sphere",
+                "radius": -1
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "nonpositive-script-time",
+    "valid": false,
+    "document": {
+      "schemaVersion": 4,
+      "engine": "native-cpp-1",
+      "dimension": "3d",
+      "id": "game",
+      "title": "Course",
+      "initialSceneId": "main",
+      "scenes": [
+        {
+          "id": "main",
+          "entities": [
+            {
+              "id": "entity",
+              "behaviors": [
+                {
+                  "id": "behavior",
+                  "scriptId": "script",
+                  "maxTickMs": 0
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "positive-physics-bounds",
+    "valid": true,
+    "document": {
+      "schemaVersion": 4,
+      "engine": "native-cpp-1",
+      "dimension": "3d",
+      "id": "game",
+      "title": "Course",
+      "initialSceneId": "main",
+      "scenes": [
+        {
+          "id": "main",
+          "entities": [
+            {
+              "id": "entity",
+              "body": {
+                "type": "dynamic",
+                "mass": 0.1
+              },
+              "collider": {
+                "shape": "sphere",
+                "radius": 0.1
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "nonpositive-box-extents",
+    "valid": false,
+    "document": {
+      "schemaVersion": 4,
+      "engine": "native-cpp-1",
+      "dimension": "3d",
+      "id": "game",
+      "title": "Course",
+      "initialSceneId": "main",
+      "scenes": [
+        {
+          "id": "main",
+          "entities": [
+            {
+              "id": "entity",
+              "body": {
+                "type": "static"
+              },
+              "collider": {
+                "shape": "box",
+                "halfExtents": [
+                  -1,
+                  1,
+                  1
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "prepared-static-mesh",
+    "valid": true,
+    "document": {
+      "schemaVersion": 4,
+      "engine": "native-cpp-1",
+      "dimension": "3d",
+      "id": "game",
+      "title": "Course",
+      "initialSceneId": "main",
+      "scenes": [
+        {
+          "id": "main",
+          "entities": [
+            {
+              "id": "entity",
+              "body": {
+                "type": "static"
+              },
+              "collider": {
+                "shape": "mesh",
+                "vertices": [
+                  [
+                    0,
+                    0,
+                    0
+                  ],
+                  [
+                    1,
+                    0,
+                    0
+                  ],
+                  [
+                    0,
+                    0,
+                    1
+                  ]
+                ],
+                "indices": [
+                  0,
+                  1,
+                  2
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "mesh-missing-indices",
+    "valid": false,
+    "document": {
+      "schemaVersion": 4,
+      "engine": "native-cpp-1",
+      "dimension": "3d",
+      "id": "game",
+      "title": "Course",
+      "initialSceneId": "main",
+      "scenes": [
+        {
+          "id": "main",
+          "entities": [
+            {
+              "id": "entity",
+              "body": {
+                "type": "static"
+              },
+              "collider": {
+                "shape": "mesh",
+                "vertices": [
+                  [
+                    0,
+                    0,
+                    0
+                  ],
+                  [
+                    1,
+                    0,
+                    0
+                  ],
+                  [
+                    0,
+                    0,
+                    1
+                  ]
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "collision-layer-out-of-range",
+    "valid": false,
+    "document": {
+      "schemaVersion": 4,
+      "engine": "native-cpp-1",
+      "dimension": "3d",
+      "id": "game",
+      "title": "Course",
+      "initialSceneId": "main",
+      "scenes": [
+        {
+          "id": "main",
+          "entities": [
+            {
+              "id": "entity",
+              "collider": {
+                "shape": "box",
+                "layer": 16
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "collision-mask-out-of-range",
+    "valid": false,
+    "document": {
+      "schemaVersion": 4,
+      "engine": "native-cpp-1",
+      "dimension": "3d",
+      "id": "game",
+      "title": "Course",
+      "initialSceneId": "main",
+      "scenes": [
+        {
+          "id": "main",
+          "entities": [
+            {
+              "id": "entity",
+              "collider": {
+                "shape": "box",
+                "mask": 65536
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "collision-mask-none",
+    "valid": true,
+    "document": {
+      "schemaVersion": 4,
+      "engine": "native-cpp-1",
+      "dimension": "3d",
+      "id": "game",
+      "title": "Course",
+      "initialSceneId": "main",
+      "scenes": [
+        {
+          "id": "main",
+          "entities": [
+            {
+              "id": "entity",
+              "collider": {
+                "shape": "box",
+                "layer": 15,
+                "mask": 0
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "native2d-minimal",
+    "valid": true,
+    "document": {
+      "schemaVersion": 5,
+      "engine": "native-cpp-1",
+      "dimension": "2d",
+      "id": "game2d",
+      "title": "Native 2D",
+      "initialSceneId": "main",
+      "scenes": [
+        {
+          "id": "main",
+          "entities": [
+            {
+              "id": "player"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "native2d-reject-quaternion",
+    "valid": false,
+    "document": {
+      "schemaVersion": 5,
+      "engine": "native-cpp-1",
+      "dimension": "2d",
+      "id": "game2d",
+      "title": "Native 2D",
+      "initialSceneId": "main",
+      "scenes": [
+        {
+          "id": "main",
+          "entities": [
+            {
+              "id": "bad",
+              "transform": {
+                "position": [
+                  0,
+                  0,
+                  0
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "native2d-reject-dynamic-body",
+    "valid": false,
+    "document": {
+      "schemaVersion": 5,
+      "engine": "native-cpp-1",
+      "dimension": "2d",
+      "id": "game2d",
+      "title": "Native 2D",
+      "initialSceneId": "main",
+      "scenes": [
+        {
+          "id": "main",
+          "entities": [
+            {
+              "id": "bad",
+              "body2d": {
+                "type": "dynamic"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "native2d-reject-malformed-atlas",
+    "valid": false,
+    "document": {
+      "schemaVersion": 5,
+      "engine": "native-cpp-1",
+      "dimension": "2d",
+      "id": "game2d",
+      "title": "Native 2D",
+      "initialSceneId": "main",
+      "scenes": [
+        {
+          "id": "main",
+          "entities": [
+            {
+              "id": "bad",
+              "sprite": {
+                "assetId": "atlas",
+                "width": 1,
+                "height": 1,
+                "frame": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 0,
+                  "height": 16
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "native2d-reject-camera",
+    "valid": false,
+    "document": {
+      "schemaVersion": 5,
+      "engine": "native-cpp-1",
+      "dimension": "2d",
+      "id": "game2d",
+      "title": "Native 2D",
+      "initialSceneId": "main",
+      "scenes": [
+        {
+          "id": "main",
+          "entities": [
+            {
+              "id": "bad",
+              "camera2d": {
+                "width": 0,
+                "height": 10
+              }
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "name": "native2d-components",
+    "valid": true,
+    "document": {
+      "schemaVersion": 5,
+      "engine": "native-cpp-1",
+      "dimension": "2d",
+      "id": "game2d",
+      "title": "Native 2D",
+      "initialSceneId": "main",
+      "scenes": [
+        {
+          "id": "main",
+          "entities": [
+            {
+              "id": "player",
+              "body2d": {
+                "type": "kinematic"
+              },
+              "collider2d": {
+                "width": 1,
+                "height": 2
+              },
+              "sprite": {
+                "assetId": "atlas",
+                "width": 1,
+                "height": 2,
+                "frame": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 16,
+                  "height": 32
+                }
+              },
+              "animator": {
+                "frames": [
+                  {
+                    "x": 0,
+                    "y": 0,
+                    "width": 16,
+                    "height": 32
+                  }
+                ],
+                "ticksPerFrame": 6
+              },
+              "light2d": {
+                "color": "#ffffff",
+                "intensity": 1,
+                "radius": 4
+              }
+            },
+            {
+              "id": "camera",
+              "camera2d": {
+                "width": 20,
+                "height": 12
+              }
+            },
+            {
+              "id": "tiles",
+              "tilemap": {
+                "assetId": "atlas",
+                "tiles": [
+                  {
+                    "x": 0,
+                    "y": -2,
+                    "width": 10,
+                    "height": 1,
+                    "solid": true
+                  }
+                ]
+              }
+            }
+          ]
+        }
+      ],
+      "lighting": {
+        "ambient": {
+          "color": "#334455",
+          "intensity": 0.3
+        },
+        "points": [
+          {
+            "x": 0,
+            "y": 0,
+            "color": "#ffffff",
+            "intensity": 1,
+            "radius": 3,
+            "falloff": 1
+          }
+        ]
+      },
+      "backgrounds": [
+        {
+          "id": "sky",
+          "assetId": "atlas",
+          "width": 20,
+          "height": 12
+        }
+      ],
+      "assets": [
+        {
+          "id": "atlas",
+          "kind": "image",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "path": "atlas.png",
+          "size": 1
+        }
+      ]
+    }
+  },
+  {
+    "name": "native2d-scene-overrides-image-metadata",
+    "valid": true,
+    "document": {
+      "schemaVersion": 5,
+      "engine": "native-cpp-1",
+      "dimension": "2d",
+      "id": "game2d",
+      "title": "Native 2D",
+      "initialSceneId": "main",
+      "scenes": [
+        {
+          "id": "main",
+          "entities": [
+            {
+              "id": "player",
+              "body2d": {
+                "type": "kinematic"
+              },
+              "collider2d": {
+                "width": 1,
+                "height": 2
+              },
+              "sprite": {
+                "assetId": "atlas",
+                "width": 1,
+                "height": 2,
+                "frame": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 16,
+                  "height": 32
+                }
+              },
+              "animator": {
+                "frames": [
+                  {
+                    "x": 0,
+                    "y": 0,
+                    "width": 16,
+                    "height": 32
+                  }
+                ],
+                "ticksPerFrame": 6
+              },
+              "light2d": {
+                "color": "#ffffff",
+                "intensity": 1,
+                "radius": 4
+              }
+            },
+            {
+              "id": "camera",
+              "camera2d": {
+                "width": 20,
+                "height": 12
+              }
+            },
+            {
+              "id": "tiles",
+              "tilemap": {
+                "assetId": "atlas",
+                "tiles": [
+                  {
+                    "x": 0,
+                    "y": -2,
+                    "width": 10,
+                    "height": 1,
+                    "solid": true
+                  }
+                ]
+              }
+            }
+          ],
+          "gravity": {
+            "x": 0,
+            "y": -3
+          },
+          "lighting": {
+            "ambient": {
+              "color": "#334455",
+              "intensity": 0.3
+            },
+            "points": [
+              {
+                "x": 0,
+                "y": 0,
+                "color": "#ffffff",
+                "intensity": 1,
+                "radius": 3,
+                "falloff": 1
+              }
+            ]
+          },
+          "backgrounds": []
+        }
+      ],
+      "lighting": {
+        "ambient": {
+          "color": "#334455",
+          "intensity": 0.3
+        },
+        "points": [
+          {
+            "x": 0,
+            "y": 0,
+            "color": "#ffffff",
+            "intensity": 1,
+            "radius": 3,
+            "falloff": 1
+          }
+        ]
+      },
+      "backgrounds": [
+        {
+          "id": "sky",
+          "assetId": "atlas",
+          "width": 20,
+          "height": 12
+        }
+      ],
+      "assets": [
+        {
+          "id": "atlas",
+          "kind": "image",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "path": "atlas.png",
+          "size": 1,
+          "sampling": "linear",
+          "pivot": {
+            "x": 0.5,
+            "y": 1
+          },
+          "trim": {
+            "sourceWidth": 32,
+            "sourceHeight": 64,
+            "x": 2,
+            "y": 3
+          }
+        }
+      ],
+      "healthEntityId": "player"
+    }
+  },
+  {
+    "name": "native2d-reject-unused-entity-lighting",
+    "valid": false,
+    "document": {
+      "schemaVersion": 5,
+      "engine": "native-cpp-1",
+      "dimension": "2d",
+      "id": "game2d",
+      "title": "Native 2D",
+      "initialSceneId": "main",
+      "scenes": [
+        {
+          "id": "main",
+          "entities": [
+            {
+              "id": "player",
+              "body2d": {
+                "type": "kinematic"
+              },
+              "collider2d": {
+                "width": 1,
+                "height": 2
+              },
+              "sprite": {
+                "assetId": "atlas",
+                "width": 1,
+                "height": 2,
+                "frame": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 16,
+                  "height": 32
+                }
+              },
+              "animator": {
+                "frames": [
+                  {
+                    "x": 0,
+                    "y": 0,
+                    "width": 16,
+                    "height": 32
+                  }
+                ],
+                "ticksPerFrame": 6
+              },
+              "light2d": {
+                "color": "#ffffff",
+                "intensity": 1,
+                "radius": 4
+              },
+              "lighting": {
+                "ambient": {
+                  "color": "#334455",
+                  "intensity": 0.3
+                },
+                "points": [
+                  {
+                    "x": 0,
+                    "y": 0,
+                    "color": "#ffffff",
+                    "intensity": 1,
+                    "radius": 3,
+                    "falloff": 1
+                  }
+                ]
+              }
+            },
+            {
+              "id": "camera",
+              "camera2d": {
+                "width": 20,
+                "height": 12
+              }
+            },
+            {
+              "id": "tiles",
+              "tilemap": {
+                "assetId": "atlas",
+                "tiles": [
+                  {
+                    "x": 0,
+                    "y": -2,
+                    "width": 10,
+                    "height": 1,
+                    "solid": true
+                  }
+                ]
+              }
+            }
+          ],
+          "gravity": {
+            "x": 0,
+            "y": -3
+          },
+          "lighting": {
+            "ambient": {
+              "color": "#334455",
+              "intensity": 0.3
+            },
+            "points": [
+              {
+                "x": 0,
+                "y": 0,
+                "color": "#ffffff",
+                "intensity": 1,
+                "radius": 3,
+                "falloff": 1
+              }
+            ]
+          },
+          "backgrounds": []
+        }
+      ],
+      "lighting": {
+        "ambient": {
+          "color": "#334455",
+          "intensity": 0.3
+        },
+        "points": [
+          {
+            "x": 0,
+            "y": 0,
+            "color": "#ffffff",
+            "intensity": 1,
+            "radius": 3,
+            "falloff": 1
+          }
+        ]
+      },
+      "backgrounds": [
+        {
+          "id": "sky",
+          "assetId": "atlas",
+          "width": 20,
+          "height": 12
+        }
+      ],
+      "assets": [
+        {
+          "id": "atlas",
+          "kind": "image",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "path": "atlas.png",
+          "size": 1,
+          "sampling": "linear",
+          "pivot": {
+            "x": 0.5,
+            "y": 1
+          },
+          "trim": {
+            "sourceWidth": 32,
+            "sourceHeight": 64,
+            "x": 2,
+            "y": 3
+          }
+        }
+      ],
+      "healthEntityId": "player"
+    }
+  },
+  {
+    "name": "native2d-reject-pivot-outside-image",
+    "valid": false,
+    "document": {
+      "schemaVersion": 5,
+      "engine": "native-cpp-1",
+      "dimension": "2d",
+      "id": "game2d",
+      "title": "Native 2D",
+      "initialSceneId": "main",
+      "scenes": [
+        {
+          "id": "main",
+          "entities": [
+            {
+              "id": "player",
+              "body2d": {
+                "type": "kinematic"
+              },
+              "collider2d": {
+                "width": 1,
+                "height": 2
+              },
+              "sprite": {
+                "assetId": "atlas",
+                "width": 1,
+                "height": 2,
+                "frame": {
+                  "x": 0,
+                  "y": 0,
+                  "width": 16,
+                  "height": 32
+                }
+              },
+              "animator": {
+                "frames": [
+                  {
+                    "x": 0,
+                    "y": 0,
+                    "width": 16,
+                    "height": 32
+                  }
+                ],
+                "ticksPerFrame": 6
+              },
+              "light2d": {
+                "color": "#ffffff",
+                "intensity": 1,
+                "radius": 4
+              }
+            },
+            {
+              "id": "camera",
+              "camera2d": {
+                "width": 20,
+                "height": 12
+              }
+            },
+            {
+              "id": "tiles",
+              "tilemap": {
+                "assetId": "atlas",
+                "tiles": [
+                  {
+                    "x": 0,
+                    "y": -2,
+                    "width": 10,
+                    "height": 1,
+                    "solid": true
+                  }
+                ]
+              }
+            }
+          ],
+          "gravity": {
+            "x": 0,
+            "y": -3
+          },
+          "lighting": {
+            "ambient": {
+              "color": "#334455",
+              "intensity": 0.3
+            },
+            "points": [
+              {
+                "x": 0,
+                "y": 0,
+                "color": "#ffffff",
+                "intensity": 1,
+                "radius": 3,
+                "falloff": 1
+              }
+            ]
+          },
+          "backgrounds": []
+        }
+      ],
+      "lighting": {
+        "ambient": {
+          "color": "#334455",
+          "intensity": 0.3
+        },
+        "points": [
+          {
+            "x": 0,
+            "y": 0,
+            "color": "#ffffff",
+            "intensity": 1,
+            "radius": 3,
+            "falloff": 1
+          }
+        ]
+      },
+      "backgrounds": [
+        {
+          "id": "sky",
+          "assetId": "atlas",
+          "width": 20,
+          "height": 12
+        }
+      ],
+      "assets": [
+        {
+          "id": "atlas",
+          "kind": "image",
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "path": "atlas.png",
+          "size": 1,
+          "sampling": "linear",
+          "pivot": {
+            "x": 2,
+            "y": 1
+          },
+          "trim": {
+            "sourceWidth": 32,
+            "sourceHeight": 64,
+            "x": 2,
+            "y": 3
+          }
+        }
+      ],
+      "healthEntityId": "player"
+    }
+  }
+]

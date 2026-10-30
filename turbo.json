@@ -44,6 +44,20 @@
       ],
       "outputs": ["dist/**", "tsconfig.tsbuildinfo"]
     },
+    // Native binaries are staged by a separate compiler profile. A TypeScript
+    // cache hit must preserve the caller's staged binary, not restore another one.
+    "@nodetool-ai/game-runtime#build": {
+      "outputs": ["dist/**", "!dist/native-game-worker", "!dist/native-game-worker.exe", "tsconfig.tsbuildinfo"]
+    },
+    "@nodetool-ai/game-renderer#build": {
+      "inputs": [
+        "src/**", "scripts/**", "tsconfig*.json", "package.json", "src/**/*.json",
+        // The generated browser identity belongs to this exact staged pair.
+        "dist/native-game.mjs", "dist/native-game.wasm",
+        "$TURBO_ROOT$/native/game/browser/emsdk.version"
+      ],
+      "outputs": ["dist/**", "!dist/native-game.mjs", "!dist/native-game.wasm", "tsconfig.tsbuildinfo"]
+    },
     // The web app (workspace name `nodetool`) is built by Vite, which reads
     // config, HTML and static files outside `src/`, plus build-time env:
     // GIT_COMMIT_HASH / BUILD_NUMBER in vite.config.ts and VITE_* inlined

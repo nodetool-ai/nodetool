@@ -1,0 +1,38 @@
+{
+  "quickjs": {
+    "version": "2025-09-13-2",
+    "url": "https://bellard.org/quickjs/quickjs-2025-09-13-2.tar.xz",
+    "sha256": "996c6b5018fc955ad4d06426d0e9cb713685a00c825aa5c0418bd53f7df8b0b4",
+    "license": "MIT",
+    "notice": "LICENSE"
+  },
+  "jolt": {
+    "version": "5.3.0",
+    "url": "https://github.com/jrouwe/JoltPhysics/archive/refs/tags/v5.3.0.tar.gz",
+    "sha256": "e7f9621e480646c434150e1fbe3a9410f4ec4b04ffe54791e0678326b741b918",
+    "license": "MIT",
+    "notice": "LICENSE"
+  },
+  "nlohmann-json": {
+    "version": "3.12.0",
+    "url": "https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz",
+    "sha256": "42f6e95cad6ec532fd372391373363b62a14af6d771056dbfc86160e6dfff7aa",
+    "license": "MIT",
+    "notice": "LICENSE.MIT"
+  },
+  "miniaudio": {
+    "source": "../timeline/third_party/miniaudio.h",
+    "sha256": "9019743287e443c55e5737a7297f38e5e358561701d6db2d905afb114390c410",
+    "license": "MIT-0",
+    "notice": "licenses/miniaudio-LICENSE"
+  },
+  "qt": {
+    "version": "6.12",
+    "license": "LGPL-3.0-or-later or commercial",
+    "source": "https://download.qt.io/archive/qt/6.12/",
+    "notices": [
+      "licenses/Qt-LGPL-3.0.txt",
+      "licenses/Qt-GPL-3.0.txt"
+    ]
+  }
+}

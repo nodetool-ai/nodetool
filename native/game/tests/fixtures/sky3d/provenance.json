@@ -1,0 +1,31 @@
+{
+  "threeVersion": "0.185.1",
+  "renderer": "Chromium ANGLE SwiftShader WebGL2",
+  "algorithm": "Three Sky, half-float CubeCamera 256, PMREMGenerator.fromCubemap, cube_uv_reflection_fragment textureCubeUV",
+  "tolerance": {
+    "relative": 0.02,
+    "absolute": 2e-05
+  },
+  "sourceSha256": {
+    "node_modules/three/package.json": "1d5c438acdc1fe5a52fb8ede2e417afd91fec91d22275c40f7b739591b24e4df",
+    "node_modules/three/examples/jsm/objects/Sky.js": "1dd7ee025607f425e15d5d9fe9850502905c837f1110c49b376a2501399dbf56",
+    "node_modules/three/src/extras/PMREMGenerator.js": "9ca266e7d718cd3c7b22f4b77950b7442d5f95376aab4bb5e04f1cd331f8d83d",
+    "node_modules/three/src/renderers/shaders/ShaderChunk/cube_uv_reflection_fragment.glsl.js": "8610f2598b998c8443c89c24f712ca8c36197f5d7152811c7176f9e0e255553c",
+    "packages/game-runtime/samples/blacksite/game.json": "446c1d130c46e66214bd3d8bf1df79630aa947188b9940d6d4b393225aa20a46",
+    "native/game/src/render/Sky3D.cpp": "d23275f39138bea086f9e40617fca3173937004ceb6feb46c9a16e45443290a7",
+    "native/game/src/render/Sky3D.h": "0cf51871735404457ed059e6bb9655427e1a08b7d5b5e2667bffcaaf1b5bffa3",
+    "native/game/tests/Sky3DTest.cpp": "b9312c67646625380e417741eae6238876e78cf74b678f1dd2cc7a154f666dc8",
+    "native/game/src/render/shaders/sky_ibl.glsl": "15b90a2573ab54fbf403960ba1ace946784494d38da81fc44163cfc2f53ded68",
+    "native/game/src/render/shaders/sky_filter.vert": "04f8cc9561ef82cf5fd94547d22c90688b110b591bc4b370e7ee5de51ef79dd7",
+    "native/game/src/render/shaders/sky_cube_to_uv.frag": "8376beb28cd40c0bd3c87fe570582e08e801e692f2b25f9dccb8c81d66f68e72",
+    "native/game/src/render/shaders/sky_pmrem.frag": "655daf48316a4929eee6db997a3a48f7008b32f14dd74dfc69b1645feee0c2d6",
+    "native/game/src/render/shaders/sky_background.vert": "5b4e5fd75e3f8732374f6677a7e0829d57d312742fe48574f49a6cc8c29182f8",
+    "native/game/src/render/shaders/sky_background.frag": "23db14cfcdf107b470d25d73cf1ade8c510e54e79ad59e1eb5a63a50ddba3e97"
+  },
+  "fixtureSha256": {
+    "day-settings.json": "7e1300af79067717a544080fbd6c1e04d426e3b8622ca27202aef6a577749ee8",
+    "night-settings.json": "89633c2dea2022c9e0b8ad381c78158073e785479a0cc5508ba21732c230920c",
+    "day-reference.json": "539b2ccfec8c27b06eab810a9ee702fa8ea65f5616cf630f26ddb4f9047a567b",
+    "night-reference.json": "075b34bd388475965eb0392da93201f02b5f2686cf373956e96b9ba9dd378daf"
+  }
+}

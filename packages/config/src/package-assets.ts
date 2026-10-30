@@ -82,7 +82,8 @@ export function resolvePackageAssetPath(
   importerUrl: string,
   registry: readonly PackageAssetRef[] = PACKAGE_RUNTIME_ASSETS
 ): string {
-  if (!findPackageAsset(ref.pkg, ref.path, registry)) {
+  const registered = findPackageAsset(ref.pkg, ref.path, registry);
+  if (!registered) {
     throw new Error(
       `Package asset ${ref.pkg}/${ref.path} is not registered. Add it to ` +
         `PACKAGE_RUNTIME_ASSETS in @nodetool-ai/config/src/package-asset-registry.ts ` +
@@ -114,6 +115,11 @@ export function resolvePackageAssetPath(
     return candidate;
   }
 
+  if (registered.optional) {
+    const message = `Optional native capability ${ref.pkg}/${ref.path} is unavailable. Stage the matching native build for this platform.`;
+    record({ pkg: ref.pkg, path: ref.path, resolvedPath: null, via: null, error: message });
+    throw new Error(message);
+  }
   const message =
     `Package asset ${ref.pkg}/${ref.path} not found. Tried package ` +
     `resolution of "${specifier}" and "${candidate}" (relative to the ` +

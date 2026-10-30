@@ -1,9 +1,30 @@
 ---
 name: native-game-performance
-description: "Make a native NodeTool game run at the display rate: frame and tick targets, budgets per game type, the authoring rules that set engine cost, and the measure-fix loop with nodetool game bench, capture and perf. Load before building a 3D game, at every build milestone, and when a game stutters, drops frames or runs slowly."
+description: "Measure and improve web and native C++ NodeTool game performance: frame and tick targets, budgets per game type, the authoring rules that set engine cost, and the measure-fix loop with nodetool game bench, capture and perf. Load before building a 3D game, at every build milestone, and when a game stutters, drops frames or runs slowly."
 ---
 
 # Native game performance
+
+## Native C++ measurements
+
+For `engine: "native-cpp-1"`, use `native_cpp_game_bench` to measure simulation
+with recorded input and warmup, and `native_cpp_game_capture` to inspect the
+native QRhi result. These tools use C++/QuickJS with Jolt for native 3D or the swept AABB solver
+for native 2D. The legacy web
+benchmarks below measure a different implementation.
+
+Keep seed, document revision, prepared asset manifest, tick count, and input route
+with the report. Verify replay inside the same live session. Measure script
+execution, physics, checkpoints, asset loading, and rendering separately when the
+installed native capabilities provide those timings. A simulation benchmark alone
+does not establish player frame rate. Software Vulkan captures establish visual
+correctness and must not be reported as hardware performance.
+
+Bound scene population, behavior commands, state, timers, and queries. Use targeted
+world lookups rather than scanning the whole world in every behavior. Visual
+animation cannot drive physics transforms. Diagnose the measured subsystem before
+reducing visual quality or changing gameplay.
+
 
 A game is done when it holds its frame target on the slowest machine it ships
 to. Measure at every milestone. A number from a tool decides, not a look at the

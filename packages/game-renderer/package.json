@@ -9,12 +9,13 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "node ../../scripts/build-typescript-workspace.mjs && node scripts/bundle-game3d.mjs",
+    "build": "node ../../scripts/build-typescript-workspace.mjs && node scripts/bundle-game3d.mjs && node scripts/bundle-native-browser.mjs",
     "test": "node ../../scripts/run-vitest.mjs run",
     "test:watch": "node ../../scripts/run-vitest.mjs",
     "benchmark:effects": "node --conditions=nodetool-dev --import=tsx scripts/benchmark-effects.ts",
     "lint": "node ../../scripts/run-tsc.mjs --noEmit",
-    "verify:electron3d": "node --conditions=nodetool-dev --import=tsx scripts/verify-game3d-electron.ts"
+    "verify:electron3d": "node --conditions=nodetool-dev --import=tsx scripts/verify-game3d-electron.ts",
+    "build:native-browser": "node scripts/bundle-native-browser.mjs"
   },
   "dependencies": {
     "@jitl/quickjs-ng-wasmfile-release-sync": "0.31.0",
@@ -102,7 +103,17 @@
       "nodetool-dev": "./src/preparation3d.ts",
       "types": "./dist/preparation3d.d.ts",
       "import": "./dist/preparation3d.js"
-    }
+    },
+    "./native-cpp": {
+      "nodetool-dev": "./src/native-cpp/index.ts",
+      "types": "./dist/native-cpp/index.d.ts",
+      "import": "./dist/native-cpp/index.js"
+    },
+    "./native-game.mjs": "./dist/native-game.mjs",
+    "./native-game.wasm": "./dist/native-game.wasm",
+    "./native-game-worker.js": "./dist/native-game-worker.js",
+    "./native-game-player.js": "./dist/native-game-player.js",
+    "./native-game-browser.json": "./dist/native-game-browser.json"
   },
   "files": [
     "dist"

@@ -1,0 +1,5 @@
+#pragma once
+namespace nodetool::game {
+inline constexpr const char* EmbeddedCommandsSchema = R"NTCOMMAND(@GAME_COMMANDS_SCHEMA@)NTCOMMAND";
+inline constexpr const char* EmbeddedCommands2DSchema = R"NTCOMMAND(@GAME_COMMANDS2D_SCHEMA@)NTCOMMAND";
+}

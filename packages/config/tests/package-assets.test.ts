@@ -156,3 +156,15 @@ describe("loadPackageAssetBytes", () => {
     }
   });
 });
+
+it("reports an unstaged optional native capability without claiming packaging failed", () => {
+  const root = mkdtempSync(join(tmpdir(), "native-optional-asset-"));
+  try {
+    const ref = { pkg: "@nodetool-ai/fake-native", path: "absent-native-worker" };
+    expect(() => resolvePackageAssetPath(ref, pathToFileURL(join(root, "server.mjs")).href,
+      [{ ...ref, optional: true }])).toThrow("Optional native capability");
+    expect(getPackageAssetResolutions()).toContainEqual(expect.objectContaining({ ...ref, resolvedPath: null }));
+  } finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});

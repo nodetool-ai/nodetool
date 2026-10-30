@@ -1,0 +1,53 @@
+{
+  "source": "packages/game-runtime/samples/blacksite/game.json",
+  "resolution": { "width": 1280, "height": 720 },
+  "seed": 1,
+  "regions": {
+    "corridor": [0.02, 0.16, 0.96, 0.46],
+    "floor": [0.02, 0.64, 0.52, 0.20],
+    "rifle-and-optic": [0.56, 0.52, 0.44, 0.48],
+    "drone": [0.44, 0.42, 0.12, 0.16],
+    "brand-HUD": [0.02, 0.03, 0.21, 0.11],
+    "objective-HUD": [0.74, 0.03, 0.24, 0.15],
+    "armor-HUD": [0.02, 0.87, 0.23, 0.12],
+    "ammunition-HUD": [0.76, 0.87, 0.22, 0.12],
+    "completion-banner": [0, 0.29, 1, 0.22],
+    "extraction-field": [0.22, 0.02, 0.52, 0.26]
+  },
+  "route": "completion.inputs.json",
+  "cameraPolicy": "Pin each renderer to the same resolved world-space camera for pixel comparisons. Record each engine's unmodified gameplay camera separately. The listed poses retain native camera1 gameplay anchors. The generated shared-probe camera, derived from the actual legacy reference quaternion including recoil and roll, is authoritative for controlled comparisons. Equal ticks do not establish cross-engine physical equivalence.",
+  "posePolicy": "Controlled presentation probes must also share entity world/local poses, active entity set, animation time, particle event history/seed and lighting time wherever the renderer contract supports them. Save those exact probe inputs and their digests. A renderer-only probe adapter is permitted and must be labelled explicitly. Keep actual native gameplay/replay captures separate. Never substitute legacy simulation for a native gameplay result, import a cross-session snapshot, or hide misalignment by increasing error tolerances.",
+  "views": [
+    {
+      "name": "start",
+      "tick": 0,
+      "camera": { "position": [0, 1.46, 7], "target": [0, 1.46, 6], "fov": 78, "near": 0.03, "far": 160 },
+      "inspect": ["corridor", "rifle", "optic", "drone", "sky", "HUD", "lights", "decals"]
+    },
+    {
+      "name": "combat",
+      "tick": 120,
+      "camera": { "position": [0, 1.4500001311302184, 7], "target": [-0.1737847576943794, 1.4523450160137243, 6.015219131223606], "fov": 78, "near": 0.03, "far": 160 },
+      "inspect": ["corridor", "normal maps", "drone", "rifle", "reload pose", "HUD ammunition", "particles"]
+    },
+    {
+      "name": "extraction",
+      "tick": 583,
+      "camera": { "position": [1.0042908607800472e-15, 1.4500001311302184, -29.183368682861328], "target": [1.0320464363956761e-15, 1.4500001311302184, -30.183368682861328], "fov": 78, "near": 0.03, "far": 160 },
+      "inspect": ["transparent extraction field", "emissive frame", "completion banner", "HUD ammunition", "rifle"]
+    }
+  ],
+  "transientProbes": [
+    { "name": "muzzle-and-hit", "route": "completion.inputs.json", "tick": 5, "inspect": ["muzzle flash", "tracer", "sparks", "hit marker", "camera recoil", "weapon recoil"] },
+    { "name": "drone-explosion", "route": "completion.inputs.json", "tick": 24, "inspect": ["spawned explosion prefab", "fireball", "smoke", "debris", "drone removal"] },
+    { "name": "reload-and-hover", "route": "completion.inputs.json", "tick": 70, "inspect": ["weapon reload rotation", "hover animation", "reload HUD", "rain", "steam"] },
+    { "name": "damage-feedback", "route": "damage.inputs.json", "tick": 91, "inspect": ["damage overlay", "armor value", "warning", "enemy shot effects"], "requireObservedDamageBeforeAcceptingFrame": true }
+  ],
+  "stages": [
+    { "id": "A1", "acceptance": "Original asset hashes and facility triangles are retained. Optic glass and extraction plane retain their actual alpha. Base-color, normal, metallic/roughness, emissive and sampler channels affect pixels. Compare source and adapted materials without admitting ignored fields." },
+    { "id": "A2", "acceptance": "Source ambient and authored lights, shadows, procedural sky, environment lighting and height fog affect pixels at the source values. Preserve unconfigured native rendering regressions." },
+    { "id": "A3", "acceptance": "Source HDR exposure, AgX, bloom, vignette and SMAA execute in the agreed order. Shader/LUT resources are included in installed exports." },
+    { "id": "A4", "acceptance": "Source fonts, widget tree and UI commands preserve text, layout, bars, hit/damage feedback and extraction banner. Decals, drone hover, muzzle/projectile/explosion prefabs, deterministic particles and camera/weapon poses remain visible at the transient probes." },
+    { "id": "A5", "acceptance": "Legacy, Qt and native browser captures use matching pose, resolution, seed and tick. Report whole-frame and named-region error, inspect paired images, and explain residuals. Select tolerances from measured references and controlled feature-removal failures. Do not declare parity from metadata or choose thresholds solely to pass the current renderer. Replay native combat/extraction after presentation changes." }
+  ]
+}

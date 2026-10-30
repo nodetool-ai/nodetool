@@ -1,0 +1,29 @@
+{
+  "threeVersion": "0.185.1",
+  "reference": "Three DataTexture anisotropy16, LinearMipmapLinearFilter, RepeatWrapping, no tone mapping; Chromium ANGLE SwiftShader",
+  "pattern": "1024x1024 generated linear UNORM stripes/checker; no scene-derived image",
+  "footprints": {
+    "uvExtent": [
+      2,
+      32
+    ],
+    "anglesRadians": [
+      0,
+      0.45,
+      1.1
+    ],
+    "outputSize": [
+      256,
+      256
+    ]
+  },
+  "sampling": "Jacobian ellipse eigenvectors; determinant-stable minor axis; minor-axis log2 LOD; at most16 evenly-spaced major-axis taps",
+  "toleranceMaeByte": 1,
+  "negativeControl": "isotropic textureLod at major-axis LOD; must exceed helper error by20percent",
+  "sha256": {
+    "native/game/tests/fixtures/anisotropic3d/game.json": "32380945ff0d0df2d6e9e72f8d7acd7cd6011bdfb1e71ad5cf09bf182b8ecc81",
+    "native/game/tests/fixtures/anisotropic3d/grazing.glb": "c3cd0a1e17c1cc0051e9aed663d0aca56c0e14270be44dcb01d9b44debcccc81",
+    "native/game/tests/fixtures/anisotropic3d/reference.mjs": "f0aa1ada863e0bcaea917fdc66440a43d3b5b7b8f67f94a074dcc50d8cbaf45b",
+    "native/game/src/render/shaders/anisotropic3d.glsl": "e9c13d9a1d7664ce5d29480a50a9cac125f62f70096db5a320b914948a4b235c"
+  }
+}

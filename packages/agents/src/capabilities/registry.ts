@@ -152,6 +152,10 @@ const CAPABILITY_MODULES: Readonly<Record<string, CapabilityModuleEntry>> = {
     loader: () => import("./model3d.js").then((m) => m.module),
     specs: CAPABILITY_SPECS["model3d"]
   },
+  "native-cpp-game": {
+    loader: () => import("./native-cpp-game.js").then((m) => m.module),
+    specs: CAPABILITY_SPECS["native-cpp-game"]
+  },
   game: {
     loader: () => import("./game.js").then((m) => m.module),
     specs: CAPABILITY_SPECS["game"]

@@ -71,6 +71,11 @@ export function partitionPlan(steps, packages, scripts) {
       buckets.get(id).push(`--filter=${name}`);
     }
     for (const [id, filters] of buckets) {
+      // Packed jobs have isolated filesystems, so the worker must be built in
+      // the same job that exercises native runtime, CLI, or agent integration.
+      if (filters.some((filter) => ["@nodetool-ai/websocket", "@nodetool-ai/game-runtime", "@nodetool-ai/cli", "@nodetool-ai/agents"].some((name) => filter === `--filter=${name}`))) {
+        add(id, { label: "native game worker prerequisite", command: "node", args: ["scripts/check-native-game.mjs"] });
+      }
       add(id, { label: id, command: "node", args: [...TURBO_PREFIX, ...filters] });
     }
   }

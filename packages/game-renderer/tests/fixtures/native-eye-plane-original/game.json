@@ -1,0 +1,212 @@
+{
+  "schemaVersion": 4,
+  "engine": "native-cpp-1",
+  "dimension": "3d",
+  "id": "visual-fixture",
+  "title": "Native visual feature patches",
+  "revision": 0,
+  "initialSceneId": "base",
+  "scenes": [
+    {
+      "id": "base",
+      "name": "Scene",
+      "environment": {
+        "background": "#101820",
+        "ambient": {
+          "color": "#9ba8b6",
+          "intensity": 0.3
+        },
+        "shadows": {
+          "enabled": false,
+          "mapSize": 512,
+          "extent": 10
+        },
+        "sky": {
+          "kind": "color"
+        },
+        "postProcessing": {
+          "enabled": true,
+          "exposure": 1,
+          "toneMapping": "agx",
+          "antialias": "smaa"
+        }
+      },
+      "entities": [
+        {
+          "id": "surface",
+          "name": "Entity",
+          "prefabOverrides": [],
+          "visual": {
+            "kind": "model",
+            "assetId": "surface"
+          },
+          "transform": {
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "props": {},
+          "assetIds": [],
+          "behaviors": []
+        },
+        {
+          "id": "floor",
+          "name": "Entity",
+          "prefabOverrides": [],
+          "visual": {
+            "kind": "primitive",
+            "shape": "box",
+            "color": [
+              1,
+              1,
+              1,
+              1
+            ],
+            "size": [
+              12,
+              0.2,
+              10
+            ],
+            "material": {
+              "color": "#7b8791",
+              "metalness": 0,
+              "roughness": 0.75,
+              "opacity": 1,
+              "alphaMode": "opaque",
+              "alphaCutoff": 0.5
+            }
+          },
+          "transform": {
+            "position": [
+              0,
+              -0.1,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "props": {},
+          "assetIds": [],
+          "behaviors": []
+        },
+        {
+          "id": "sun",
+          "name": "Entity",
+          "prefabOverrides": [],
+          "light3d": {
+            "kind": "directional",
+            "color": "#d8e6ff",
+            "intensity": 2,
+            "castShadow": true,
+            "shadowNormalBias": 0.01
+          },
+          "transform": {
+            "position": [
+              0,
+              4,
+              4
+            ],
+            "rotation": [
+              -0.37838630992789435,
+              -0.13806283196906857,
+              0.057187497461225936,
+              0.9135053612442318
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "props": {},
+          "assetIds": [],
+          "behaviors": []
+        },
+        {
+          "id": "lamp",
+          "name": "Entity",
+          "prefabOverrides": [],
+          "light3d": {
+            "kind": "point",
+            "color": "#ffb36c",
+            "intensity": 30,
+            "range": 10,
+            "decay": 2
+          },
+          "transform": {
+            "position": [
+              2,
+              2,
+              3
+            ],
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          },
+          "props": {},
+          "assetIds": [],
+          "behaviors": []
+        }
+      ]
+    }
+  ],
+  "prefabs": [],
+  "scripts": [],
+  "assets": [
+    {
+      "id": "surface",
+      "kind": "model",
+      "digest": "e61ac10c08547e57043d6561525b71e7e3b0930e231124bbca2ee902a819ad7e",
+      "path": "surface.glb",
+      "size": 1696,
+      "dependencies": []
+    }
+  ],
+  "inputActions": [],
+  "camera": {
+    "position": [
+      0,
+      1.2,
+      5
+    ],
+    "target": [
+      0,
+      1.2,
+      0
+    ],
+    "fov": 50,
+    "near": 0.03,
+    "far": 160
+  },
+  "hud": []
+}

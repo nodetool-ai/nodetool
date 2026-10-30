@@ -1,0 +1,448 @@
+{
+  "diagnostic": true,
+  "gating": false,
+  "cause": "Provisional lower-level eye-plane clipping behavior",
+  "exitCode": 0,
+  "depthResults": [
+    {
+      "mode": "model",
+      "samples": [
+        {
+          "row": 120,
+          "pixel": [
+            254,
+            130,
+            255,
+            0
+          ],
+          "depth": 0.9941863417625427
+        },
+        {
+          "row": 125,
+          "pixel": [
+            254,
+            130,
+            255,
+            0
+          ],
+          "depth": 0.9941863417625427
+        },
+        {
+          "row": 130,
+          "pixel": [
+            254,
+            130,
+            255,
+            0
+          ],
+          "depth": 0.9941863417625427
+        },
+        {
+          "row": 135,
+          "pixel": [
+            254,
+            130,
+            255,
+            0
+          ],
+          "depth": 0.9941863417625427
+        },
+        {
+          "row": 140,
+          "pixel": [
+            254,
+            130,
+            255,
+            0
+          ],
+          "depth": 0.9941863417625427
+        }
+      ],
+      "framebufferStatus": 36053,
+      "depthBits": 24,
+      "depthFunc": 515,
+      "rbWidth": 256,
+      "rbHeight": 192,
+      "rbFormat": 33190,
+      "glError": 0
+    },
+    {
+      "mode": "floor",
+      "samples": [
+        {
+          "row": 120,
+          "pixel": [
+            255,
+            255,
+            255,
+            255
+          ],
+          "depth": 1
+        },
+        {
+          "row": 125,
+          "pixel": [
+            255,
+            71,
+            165,
+            0
+          ],
+          "depth": 0.9971869587898254
+        },
+        {
+          "row": 130,
+          "pixel": [
+            255,
+            71,
+            165,
+            0
+          ],
+          "depth": 0.9971869587898254
+        },
+        {
+          "row": 135,
+          "pixel": [
+            255,
+            71,
+            165,
+            0
+          ],
+          "depth": 0.9971869587898254
+        },
+        {
+          "row": 140,
+          "pixel": [
+            255,
+            71,
+            165,
+            0
+          ],
+          "depth": 0.9971869587898254
+        }
+      ],
+      "framebufferStatus": 36053,
+      "depthBits": 24,
+      "depthFunc": 515,
+      "rbWidth": 256,
+      "rbHeight": 192,
+      "rbFormat": 33190,
+      "glError": 0
+    },
+    {
+      "mode": "combined",
+      "samples": [
+        {
+          "row": 120,
+          "pixel": [
+            254,
+            130,
+            255,
+            0
+          ],
+          "depth": 0.9941863417625427
+        },
+        {
+          "row": 125,
+          "pixel": [
+            255,
+            71,
+            165,
+            0
+          ],
+          "depth": 0.9971869587898254
+        },
+        {
+          "row": 130,
+          "pixel": [
+            255,
+            71,
+            165,
+            0
+          ],
+          "depth": 0.9971869587898254
+        },
+        {
+          "row": 135,
+          "pixel": [
+            255,
+            71,
+            165,
+            0
+          ],
+          "depth": 0.9971869587898254
+        },
+        {
+          "row": 140,
+          "pixel": [
+            255,
+            71,
+            165,
+            0
+          ],
+          "depth": 0.9971869587898254
+        }
+      ],
+      "framebufferStatus": 36053,
+      "depthBits": 24,
+      "depthFunc": 515,
+      "rbWidth": 256,
+      "rbHeight": 192,
+      "rbFormat": 33190,
+      "glError": 0
+    },
+    {
+      "mode": "never",
+      "samples": [
+        {
+          "row": 120,
+          "pixel": [
+            255,
+            255,
+            255,
+            255
+          ],
+          "depth": 1
+        },
+        {
+          "row": 125,
+          "pixel": [
+            255,
+            255,
+            255,
+            255
+          ],
+          "depth": 1
+        },
+        {
+          "row": 130,
+          "pixel": [
+            255,
+            255,
+            255,
+            255
+          ],
+          "depth": 1
+        },
+        {
+          "row": 135,
+          "pixel": [
+            255,
+            255,
+            255,
+            255
+          ],
+          "depth": 1
+        },
+        {
+          "row": 140,
+          "pixel": [
+            255,
+            255,
+            255,
+            255
+          ],
+          "depth": 1
+        }
+      ],
+      "framebufferStatus": 36053,
+      "depthBits": 24,
+      "depthFunc": 512,
+      "rbWidth": 256,
+      "rbHeight": 192,
+      "rbFormat": 33190,
+      "glError": 0
+    },
+    {
+      "mode": "front-before-eye",
+      "samples": [
+        {
+          "row": 120,
+          "pixel": [
+            254,
+            130,
+            255,
+            0
+          ],
+          "depth": 0.9941863417625427
+        },
+        {
+          "row": 125,
+          "pixel": [
+            254,
+            130,
+            255,
+            0
+          ],
+          "depth": 0.9941863417625427
+        },
+        {
+          "row": 130,
+          "pixel": [
+            254,
+            130,
+            255,
+            0
+          ],
+          "depth": 0.9941863417625427
+        },
+        {
+          "row": 135,
+          "pixel": [
+            254,
+            130,
+            255,
+            0
+          ],
+          "depth": 0.9941863417625427
+        },
+        {
+          "row": 140,
+          "pixel": [
+            254,
+            130,
+            255,
+            0
+          ],
+          "depth": 0.9941863417625427
+        }
+      ],
+      "framebufferStatus": 36053,
+      "depthBits": 24,
+      "depthFunc": 515,
+      "rbWidth": 256,
+      "rbHeight": 192,
+      "rbFormat": 33190,
+      "glError": 0
+    },
+    {
+      "mode": "fragcoord",
+      "samples": [
+        {
+          "row": 120,
+          "pixel": [
+            254,
+            131,
+            0,
+            0
+          ],
+          "depth": 0.9941864013671875
+        },
+        {
+          "row": 125,
+          "pixel": [
+            252,
+            91,
+            239,
+            0
+          ],
+          "depth": 0.9857777953147888
+        },
+        {
+          "row": 130,
+          "pixel": [
+            249,
+            83,
+            23,
+            0
+          ],
+          "depth": 0.9739241003990173
+        },
+        {
+          "row": 135,
+          "pixel": [
+            246,
+            74,
+            63,
+            0
+          ],
+          "depth": 0.9620704054832458
+        },
+        {
+          "row": 140,
+          "pixel": [
+            243,
+            65,
+            103,
+            0
+          ],
+          "depth": 0.9502167105674744
+        }
+      ],
+      "framebufferStatus": 36053,
+      "depthBits": 24,
+      "depthFunc": 515,
+      "rbWidth": 256,
+      "rbHeight": 192,
+      "rbFormat": 33190,
+      "glError": 0
+    },
+    {
+      "mode": "fresh-three-renderer",
+      "pixel": [
+        249,
+        83,
+        23,
+        0
+      ],
+      "error": 0
+    }
+  ],
+  "rawWebGLControl": {
+    "pixel": [
+      255,
+      0,
+      0,
+      255
+    ],
+    "linked": true,
+    "programLog": "",
+    "depthBits": 24,
+    "error": 0
+  },
+  "actualState": [
+    {
+      "geometry": "BufferGeometry",
+      "actualDepthEnabled": true,
+      "actualDepthMask": true,
+      "depthFunc": 515,
+      "depthRange": [
+        0,
+        1
+      ],
+      "polygonOffsetEnabled": false
+    },
+    {
+      "geometry": "BoxGeometry",
+      "actualDepthEnabled": true,
+      "actualDepthMask": true,
+      "depthFunc": 515,
+      "depthRange": [
+        0,
+        1
+      ],
+      "polygonOffsetEnabled": false
+    },
+    {
+      "geometry": "BufferGeometry",
+      "actualDepthEnabled": true,
+      "actualDepthMask": true,
+      "depthFunc": 515,
+      "depthRange": [
+        0,
+        1
+      ],
+      "polygonOffsetEnabled": false
+    },
+    {
+      "geometry": "BoxGeometry",
+      "actualDepthEnabled": true,
+      "actualDepthMask": true,
+      "depthFunc": 515,
+      "depthRange": [
+        0,
+        1
+      ],
+      "polygonOffsetEnabled": false
+    }
+  ]
+}

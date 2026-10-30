@@ -1,0 +1,10 @@
+{
+  "source": "three/src/renderers/shaders/DFGLUTData.js",
+  "version": "0.185.1",
+  "license": "../licenses/three-LICENSE",
+  "width": 16,
+  "height": 16,
+  "format": "RG16F little-endian",
+  "sha256": "b41ba8e2bd29fa007dfbf034d4d58b853f378062183847846b1f6d228f2c7e79",
+  "consumer": "Three WebGLRenderer getDFGLUT and lights_physical_pars_fragment DFG LUT sampling"
+}

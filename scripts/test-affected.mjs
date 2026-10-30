@@ -80,7 +80,46 @@ function websocketTest(name) {
  * site is a separate npm project that `marketing-ci.yml` tests, and no root
  * suite reads its files.
  */
+const NATIVE_GAME_CHECK = { label: "native game: build and CTest", command: "node", args: ["scripts/check-native-game.mjs"] };
+const NATIVE_GAME_STAGING_CHECK = { label: "native game delivery: staging regressions", command: "node", args: ["scripts/run-vitest.mjs", "run", "--config", "vitest.config.ts", "scripts/__tests__/native-game-delivery.test.mjs"] };
+
 export const PATH_CHECKS = [
+  {
+    path: /^(?:scripts\/check-native-game-browser\.mjs|native\/game\/(?:tests\/native-wasm-parity\.mjs|assets\/[^/]+))$/,
+    steps: [{ label: "native game browser: installed static export", command: "node", args: ["scripts/check-native-game-browser.mjs"] }]
+  },
+  {
+    path: /^scripts\/__tests__\/native-game-wrapper\.test\.mjs$/,
+    steps: [{ label: "native game GUI isolation", command: "node", args: ["scripts/run-vitest.mjs", "run", "--config", "vitest.config.ts", "scripts/__tests__/native-game-wrapper.test.mjs"] }]
+  },
+  {
+    path: /^(?:native\/game\/(?:src\/editor\/|qml\/|cmake\/Editor\.cmake$|tests\/(?:Editor[^/]*\.cpp|editor_ui_test\.py)$)|scripts\/check-native-game-editor\.mjs$)/,
+    steps: [{ label: "native game editor: transactions and UI", command: "node", args: ["scripts/check-native-game-editor.mjs"] }]
+  },
+  {
+    path: /^(?:native\/game\/(?:cmake\/Delivery\.cmake$|scripts\/check-delivery\.mjs$)|scripts\/check-native-game-delivery\.mjs$)/,
+    steps: [{ label: "native game delivery: standalone install", command: "node", args: ["scripts/check-native-game-delivery.mjs"] }]
+  },
+  {
+    path: /^(?:native\/game\/(?:src\/bench\/|benchmarks\/|scripts\/benchmark)|scripts\/check-native-game-bench\.mjs$)/,
+    steps: [{ label: "native game bench: workload measurements", command: "node", args: ["scripts/check-native-game-bench.mjs"] }]
+  },
+  {
+    path: /^scripts\/check-native-game-service\.mjs$/,
+    steps: [{ label: "native game service: authoring loop", command: "node", args: ["scripts/check-native-game-service.mjs"] }]
+  },
+  {
+    path: /^scripts\/(?:lib\/stage-package-assets\.mjs|__tests__\/native-game-delivery\.test\.mjs)$/,
+    steps: [NATIVE_GAME_STAGING_CHECK]
+  },
+  {
+    path: /^(?:native\/game\/(?:src\/(?:render|player|assets|audio)\/|assets\/|cmake\/Player\.cmake$|tests\/(?:(?:RenderTest|RenderProbe|PostFXTest|Sky3DTest|Decals3DTest|Hud3DTest|Effects3DTest|ParticleMeshLifetimeTest)\.cpp|(?:player(?:2d|3d|_)[^/]*|render_probe_test)\.py)$)|scripts\/check-native-game-player\.mjs$)/,
+    steps: [{ label: "native game player: build and capture", command: "node", args: ["scripts/check-native-game-player.mjs"] }]
+  },
+  {
+    path: /^(?:native\/game\/|scripts\/check-native-game\.mjs$)/,
+    steps: [NATIVE_GAME_CHECK]
+  },
   {
     path: /^scripts\/(?:ci-plan\.mjs|__tests__\/ci-plan\.test\.mjs)$/,
     steps: [{ label: "CI planning regressions", command: "node", args: ["scripts/run-vitest.mjs", "run", "--config", "vitest.config.ts", "scripts/__tests__/ci-plan.test.mjs"] }]
@@ -213,6 +252,7 @@ function depClosure(name, byName) {
 /** The full pass, as the steps a plan is made of. */
 export function fullPlan() {
   return [
+    NATIVE_GAME_CHECK,
     { label: "packages", command: "npm", args: ["run", "test:packages"] },
     ...Object.entries(APPS).map(([dir, cmd]) => ({
       label: dir,
@@ -230,6 +270,17 @@ export function buildPlan(files, packages, computeAffected) {
   const result = computeAffected(files, packages);
   const pathSteps = new Map();
   const globalFiles = [];
+  // Export scripts are workspace-owned, but their artifact admission tests live at the root.
+  if (files.some((file) => /^packages\/game-runtime\/scripts\/(?:native-game-export|native-game-web-export|stage-native-runtime)\.mjs$/.test(file))) {
+    pathSteps.set(NATIVE_GAME_STAGING_CHECK.label, NATIVE_GAME_STAGING_CHECK);
+  }
+  if (files.some((file) => /^(?:packages\/game-runtime\/(?:src\/native-browser\/|src\/native\.ts$|scripts\/native-game-web-export\.mjs$)|packages\/game-renderer\/(?:src\/native-cpp\/|src\/standalone-native-player\.ts$|scripts\/(?:bundle-native-browser|check-native-browser-host|generate-native-postfx)\.mjs$)|native\/game\/(?:browser\/|src\/browser\/))/.test(file))) {
+    pathSteps.set("native game browser: installed static export", { label: "native game browser: installed static export", command: "node", args: ["scripts/check-native-game-browser.mjs"] });
+  }
+  if (files.some((file) => /^packages\/game-renderer\/tests\/fixtures\/(?:native-(?:bsdf|normal)-reference\/|native(?:Bsdf|Normal)Reference\.mjs$)/.test(file))) {
+    pathSteps.set("native game player: build and capture", { label: "native game player: build and capture", command: "node", args: ["scripts/check-native-game-player.mjs"] });
+    pathSteps.set("native game browser: installed static export", { label: "native game browser: installed static export", command: "node", args: ["scripts/check-native-game-browser.mjs"] });
+  }
   for (const file of result.unmatched) {
     if (DOC_ONLY.test(file)) continue;
     const checks = PATH_CHECKS.filter((c) => c.path.test(file));
@@ -248,6 +299,10 @@ export function buildPlan(files, packages, computeAffected) {
 
   const steps = [];
   const backend = result.affected.filter((n) => !appNames.has(n));
+  if (backend.some((name) => ["@nodetool-ai/websocket", "@nodetool-ai/game-runtime", "@nodetool-ai/cli", "@nodetool-ai/agents"].includes(name)) || files.some((file) => /^(?:packages\/protocol\/(?:src\/native-game\.ts|scripts\/generate-native-game-schema\.ts|tests\/fixtures\/native-game\/)|native\/game\/|scripts\/check-native-game\.mjs$)/.test(file))) {
+    steps.push(NATIVE_GAME_CHECK);
+    pathSteps.delete(NATIVE_GAME_CHECK.label);
+  }
   if (backend.length > 0) {
     steps.push({
       label: `packages (${backend.length}): ${abbreviate(backend, 6)}`,
@@ -375,7 +430,11 @@ function run(command, args) {
       ? `${command}.cmd`
       : command;
   console.log(`\n$ ${command} ${args.join(" ")}`);
-  const result = spawnSync(bin, args, { cwd: repoRoot, stdio: "inherit" });
+  const result = spawnSync(bin, args, {
+    cwd: repoRoot,
+    stdio: "inherit",
+    env: { ...process.env, NODETOOL_NATIVE_GAME_WORKER: process.env.NODETOOL_NATIVE_GAME_WORKER ?? join(repoRoot, "native/game/build", process.platform === "win32" ? "game-worker.exe" : "game-worker") }
+  });
   if (result.error) throw result.error;
   return result.status ?? 1;
 }

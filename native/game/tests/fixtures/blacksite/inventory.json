@@ -1,0 +1,5827 @@
+{
+  "source": "packages/game-runtime/samples/blacksite/game.json",
+  "sourceDigest": "446c1d130c46e66214bd3d8bf1df79630aa947188b9940d6d4b393225aa20a46",
+  "legacyEngine": {
+    "schemaVersion": 3,
+    "engineVersion": "2",
+    "dimension": "3d"
+  },
+  "presentation": {
+    "aspectRatio": 1.7777777777777777,
+    "hudWidth": 1280,
+    "hudHeight": 720
+  },
+  "inputActions": [
+    "jump",
+    "fire",
+    "r"
+  ],
+  "inputAxes": [
+    "moveX",
+    "moveZ"
+  ],
+  "route": {
+    "source": "packages/game-runtime/samples/blacksite/completion.inputs.json",
+    "digest": "b291c476088363d81fe3958c6ee20c3decc6ce9ebe55eef9dc2ea00935be7099",
+    "ticks": 583,
+    "seed": 1,
+    "legacyAssertions": "packages/game-runtime/samples/blacksite/completion.assertions.json"
+  },
+  "assets": [
+    {
+      "slot": "facility",
+      "path": "packages/game-runtime/samples/blacksite/assets/accaba3a436c4d11b334fe5a5ad07006.glb",
+      "kind": "model",
+      "digest": "69d871210ccd993c993a5a2ffceed95a122aec11c237daf8ed78a6759afe5667",
+      "size": 18718680,
+      "model": {
+        "binaryChunkDigest": "44cebe3bc3d3ed9c63f1d6a10efc02c3b7615d52c4d53dcca0cc6ace4f2164d7",
+        "vertices": 140970,
+        "indices": 714156,
+        "materials": [
+          {
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.005605391621829108,
+                0.013702083043526807,
+                0.023153366173251363,
+                1
+              ],
+              "roughnessFactor": 0.45,
+              "metallicFactor": 0.55
+            }
+          },
+          {
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.10946171076915331,
+                0.7529422167708612,
+                0.7681511472425809,
+                1
+              ],
+              "roughnessFactor": 0.45,
+              "metallicFactor": 0.55
+            },
+            "emissiveFactor": [
+              0.04518620437910499,
+              0.3813260114221238,
+              0.43415363616478553
+            ]
+          },
+          {
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.5209955731953768,
+                0.9473065367320066,
+                0.913098651791473,
+                1
+              ],
+              "roughnessFactor": 0.45,
+              "metallicFactor": 0.55
+            },
+            "emissiveFactor": [
+              0.16202937562896222,
+              0.6583748172725346,
+              0.6866853124288864
+            ]
+          },
+          {
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.5583403896257968,
+                0.25818285291079235,
+                0.04666508633021928,
+                1
+              ],
+              "roughnessFactor": 0.45,
+              "metallicFactor": 0.55
+            },
+            "emissiveFactor": [
+              0.040915196900556984,
+              0.01680737574872402,
+              0.002428215868235294
+            ]
+          },
+          {
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.010329823026364548,
+                0.024157632443547246,
+                0.035601314869097636,
+                1
+              ],
+              "roughnessFactor": 0.45,
+              "metallicFactor": 0.55
+            }
+          },
+          {
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                1,
+                0.7454042095350284,
+                0.3515325994898463,
+                1
+              ],
+              "roughnessFactor": 0.45,
+              "metallicFactor": 0.55
+            },
+            "emissiveFactor": [
+              1,
+              0.4178850708380236,
+              0.059511238155621766
+            ]
+          },
+          {
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.0021246888847058823,
+                0.011612245176281512,
+                0.02217388478862708,
+                1
+              ],
+              "roughnessFactor": 0.45,
+              "metallicFactor": 0.55
+            }
+          },
+          {
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.3277780980458375,
+                1,
+                0.8879231178794776,
+                1
+              ],
+              "roughnessFactor": 0.45,
+              "metallicFactor": 0.55
+            },
+            "emissiveFactor": [
+              0.09084171117479915,
+              0.8387990117372213,
+              0.6724431569510133
+            ]
+          },
+          {
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.05612849004241121,
+                0.12743768042608497,
+                0.171441100722554,
+                1
+              ],
+              "roughnessFactor": 0.45,
+              "metallicFactor": 0.55
+            },
+            "emissiveFactor": [
+              0.02028856305209031,
+              0.06301001764564068,
+              0.08865558627723595
+            ]
+          },
+          {
+            "name": "Satin steel",
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.22,
+                0.27,
+                0.3,
+                1
+              ],
+              "roughnessFactor": 0.54,
+              "metallicFactor": 0.55
+            }
+          },
+          {
+            "name": "Black ceramic",
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.0343398068028541,
+                0.05612849004241121,
+                0.07421356837213867,
+                1
+              ],
+              "roughnessFactor": 0.55,
+              "metallicFactor": 0.2,
+              "baseColorTexture": {
+                "index": 0
+              }
+            }
+          },
+          {
+            "name": "Scratched blue paint",
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.5972017883558645,
+                0.6724431569510133,
+                0.7083757798856457,
+                1
+              ],
+              "roughnessFactor": 0.72,
+              "metallicFactor": 0.12,
+              "baseColorTexture": {
+                "index": 0
+              }
+            }
+          },
+          {
+            "name": "Cast concrete",
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.3712376804636741,
+                0.4286904966038916,
+                0.46207699964472876,
+                1
+              ],
+              "roughnessFactor": 0.95,
+              "metallicFactor": 0,
+              "baseColorTexture": {
+                "index": 1
+              }
+            }
+          },
+          {
+            "name": "Worn tread plate",
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.5583403896257968,
+                0.6038273388475408,
+                0.6307571363387763,
+                1
+              ],
+              "roughnessFactor": 0.62,
+              "metallicFactor": 0.3,
+              "baseColorTexture": {
+                "index": 2
+              }
+            },
+            "normalTexture": {
+              "index": 3,
+              "scale": 0.4
+            }
+          },
+          {
+            "name": "Warning enamel",
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.8069522576650873,
+                0.41254261347374327,
+                0.054480276435339814,
+                1
+              ],
+              "roughnessFactor": 0.7,
+              "metallicFactor": 0.08,
+              "baseColorTexture": {
+                "index": 0
+              }
+            }
+          },
+          {
+            "name": "Oxidized pipe",
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.3094689228067428,
+                0.16513219449147767,
+                0.10702310296918527,
+                1
+              ],
+              "roughnessFactor": 0.65,
+              "metallicFactor": 0.3
+            }
+          },
+          {
+            "name": "Cyan fixture",
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.46207699964472876,
+                1,
+                0.8879231178794776,
+                1
+              ],
+              "roughnessFactor": 0.4,
+              "metallicFactor": 0
+            },
+            "emissiveFactor": [
+              0.2874408377161099,
+              0.8069522576650873,
+              0.7454042095350284
+            ]
+          },
+          {
+            "name": "Warm fixture",
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                1,
+                0.7011018919268015,
+                0.4452011945063733,
+                1
+              ],
+              "roughnessFactor": 0.4,
+              "metallicFactor": 0
+            },
+            "emissiveFactor": [
+              1,
+              0.4793201830913402,
+              0.181164244239483
+            ]
+          },
+          {
+            "name": "Rubber seals",
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.005605391621829108,
+                0.010960094003125918,
+                0.015208514418949472,
+                1
+              ],
+              "roughnessFactor": 0.85,
+              "metallicFactor": 0
+            }
+          },
+          {
+            "name": "Sign lettering",
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.7156935005005721,
+                0.7835377915215659,
+                0.7912979403281551,
+                1
+              ],
+              "roughnessFactor": 0.75,
+              "metallicFactor": 0
+            },
+            "emissiveFactor": [
+              0.036889450395083165,
+              0.06301001764564068,
+              0.0722718506743852
+            ]
+          }
+        ],
+        "textures": [
+          {
+            "source": 3,
+            "sampler": 0
+          },
+          {
+            "source": 2,
+            "sampler": 0
+          },
+          {
+            "source": 0,
+            "sampler": 0
+          },
+          {
+            "source": 1,
+            "sampler": 0
+          }
+        ],
+        "samplers": [
+          {
+            "wrapS": 10497,
+            "wrapT": 10497
+          }
+        ],
+        "nodes": [
+          {
+            "mesh": 1,
+            "children": [],
+            "translation": [
+              0,
+              -0.6,
+              -11
+            ],
+            "name": "foundation"
+          },
+          {
+            "mesh": 2,
+            "children": [],
+            "translation": [
+              -13,
+              2.5,
+              -11
+            ],
+            "name": "left-wall"
+          },
+          {
+            "mesh": 8,
+            "children": [],
+            "translation": [
+              0,
+              0.005,
+              9
+            ],
+            "name": "floor-seam-9"
+          },
+          {
+            "mesh": 9,
+            "children": [],
+            "translation": [
+              -11.7,
+              0.025,
+              9
+            ],
+            "name": "lane-light--11.7-9"
+          },
+          {
+            "mesh": 10,
+            "children": [],
+            "translation": [
+              -12,
+              3,
+              8
+            ],
+            "name": "buttress--12-0"
+          },
+          {
+            "mesh": 11,
+            "children": [],
+            "translation": [
+              -11.53,
+              2.8,
+              8
+            ],
+            "name": "vertical-light--12-0"
+          },
+          {
+            "mesh": 3,
+            "children": [],
+            "translation": [
+              -11.9,
+              2,
+              4.6
+            ],
+            "name": "wall-panel--12-0"
+          },
+          {
+            "mesh": 12,
+            "children": [],
+            "translation": [
+              -5,
+              1.15,
+              2.01
+            ],
+            "name": "cover-stripe-0"
+          },
+          {
+            "mesh": 13,
+            "children": [],
+            "translation": [
+              -6.2,
+              0.7,
+              2.035
+            ],
+            "name": "crate-rib-0-0"
+          },
+          {
+            "mesh": 14,
+            "children": [],
+            "translation": [
+              -8,
+              3,
+              -29
+            ],
+            "name": "reactor--8"
+          },
+          {
+            "mesh": 15,
+            "children": [],
+            "translation": [
+              -8,
+              0.8,
+              -29
+            ],
+            "name": "reactor-band--8-0"
+          },
+          {
+            "mesh": 16,
+            "children": [],
+            "translation": [
+              -8,
+              3,
+              -27.55
+            ],
+            "name": "reactor-core--8"
+          },
+          {
+            "mesh": 0,
+            "children": [],
+            "translation": [
+              0,
+              2.5,
+              -32.7
+            ],
+            "name": "exit-dark"
+          },
+          {
+            "mesh": 17,
+            "children": [],
+            "translation": [
+              -2.5,
+              2.5,
+              -32.45
+            ],
+            "name": "exit-light--2.5"
+          },
+          {
+            "mesh": 18,
+            "children": [],
+            "translation": [
+              -17,
+              3.5999999999999996,
+              8.51
+            ],
+            "name": "tower-light-0-0"
+          },
+          {
+            "mesh": 19,
+            "children": [],
+            "translation": [
+              -10.8,
+              3.3,
+              -11
+            ],
+            "name": "Service pipe"
+          },
+          {
+            "mesh": 4,
+            "children": [],
+            "translation": [
+              -10.8,
+              2.9,
+              6.45
+            ],
+            "name": "Warning plate"
+          },
+          {
+            "mesh": 5,
+            "children": [],
+            "translation": [
+              -6.3,
+              1.17,
+              2.065
+            ],
+            "rotation": [
+              0,
+              0,
+              -0.2474039592545229,
+              0.9689124217106448
+            ],
+            "name": "Hazard stripe"
+          },
+          {
+            "mesh": 6,
+            "children": [],
+            "translation": [
+              -6.23,
+              0.45,
+              2.05
+            ],
+            "name": "Sign CARGO / 01"
+          },
+          {
+            "mesh": 7,
+            "children": [],
+            "translation": [
+              -7.6,
+              5.54,
+              8
+            ],
+            "name": "Overhead lamp lens"
+          },
+          {
+            "children": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18,
+              19
+            ]
+          },
+          {
+            "children": [
+              20
+            ],
+            "matrix": [
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        ],
+        "animations": []
+      }
+    },
+    {
+      "slot": "rifle",
+      "path": "packages/game-runtime/samples/blacksite/assets/e5a9ab41c01cb9a2012bbd5e8cd1de52.glb",
+      "kind": "model",
+      "digest": "e5a9ab41c01cb9a2012bbd5e8cd1de52a8c4eada4f940340f5e1bd3e88571324",
+      "size": 336800,
+      "model": {
+        "binaryChunkDigest": "86fca74b01a55de5527d752b87d2c0b83423f9d380c6672a20aa805ec47eb0be",
+        "vertices": 11328,
+        "indices": 11328,
+        "materials": [
+          {
+            "name": "Gunmetal",
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.15,
+                0.16,
+                0.17,
+                1
+              ],
+              "metallicFactor": 0.8,
+              "roughnessFactor": 0.36
+            }
+          },
+          {
+            "name": "Polymer",
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.045,
+                0.048,
+                0.052,
+                1
+              ],
+              "metallicFactor": 0,
+              "roughnessFactor": 0.5
+            }
+          },
+          {
+            "name": "Sand enamel",
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.46,
+                0.38,
+                0.26,
+                1
+              ],
+              "metallicFactor": 0.15,
+              "roughnessFactor": 0.55
+            }
+          },
+          {
+            "name": "Bare steel",
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.42,
+                0.44,
+                0.46,
+                1
+              ],
+              "metallicFactor": 1,
+              "roughnessFactor": 0.26
+            }
+          },
+          {
+            "name": "Recess",
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.004,
+                0.005,
+                0.006,
+                1
+              ],
+              "metallicFactor": 0,
+              "roughnessFactor": 0.9
+            }
+          },
+          {
+            "name": "Cyan display",
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.05,
+                0.6,
+                0.62,
+                1
+              ],
+              "metallicFactor": 0,
+              "roughnessFactor": 0.3
+            },
+            "emissiveFactor": [
+              0.12,
+              1,
+              0.95
+            ]
+          },
+          {
+            "name": "Heat glow",
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                1,
+                0.35,
+                0.06,
+                1
+              ],
+              "metallicFactor": 0,
+              "roughnessFactor": 0.4
+            },
+            "emissiveFactor": [
+              1,
+              0.32,
+              0.04
+            ]
+          },
+          {
+            "name": "Reticle",
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                1,
+                0.1,
+                0.06,
+                1
+              ],
+              "metallicFactor": 0,
+              "roughnessFactor": 0.3
+            },
+            "emissiveFactor": [
+              1,
+              0.08,
+              0.04
+            ]
+          },
+          {
+            "name": "Optic glass",
+            "alphaMode": "BLEND",
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.25,
+                0.75,
+                0.8,
+                0.16
+              ],
+              "metallicFactor": 0,
+              "roughnessFactor": 0.05
+            }
+          }
+        ],
+        "textures": [],
+        "samplers": [],
+        "nodes": [
+          {
+            "name": "Upper receiver",
+            "mesh": 0
+          },
+          {
+            "name": "Receiver plate",
+            "mesh": 1
+          },
+          {
+            "name": "Receiver bolts",
+            "mesh": 2
+          },
+          {
+            "name": "Lower receiver",
+            "mesh": 3
+          },
+          {
+            "name": "Magazine well",
+            "mesh": 4
+          },
+          {
+            "name": "Magazine",
+            "mesh": 5
+          },
+          {
+            "name": "Magazine cell",
+            "mesh": 6
+          },
+          {
+            "name": "Grip",
+            "mesh": 7
+          },
+          {
+            "name": "Trigger guard",
+            "mesh": 8
+          },
+          {
+            "name": "Top rail",
+            "mesh": 9
+          },
+          {
+            "name": "Rail teeth",
+            "mesh": 10
+          },
+          {
+            "name": "Optic mount",
+            "mesh": 11
+          },
+          {
+            "name": "Optic frame",
+            "mesh": 12
+          },
+          {
+            "name": "Optic glass",
+            "mesh": 13
+          },
+          {
+            "name": "Reticle",
+            "mesh": 14
+          },
+          {
+            "name": "Ammo display bezel",
+            "mesh": 15
+          },
+          {
+            "name": "Ammo display",
+            "mesh": 16
+          },
+          {
+            "name": "Charging handle",
+            "mesh": 17
+          },
+          {
+            "name": "Handguard",
+            "mesh": 18
+          },
+          {
+            "name": "Handguard rail",
+            "mesh": 19
+          },
+          {
+            "name": "Vent slots",
+            "mesh": 20
+          },
+          {
+            "name": "Heat strips",
+            "mesh": 21
+          },
+          {
+            "name": "Barrel",
+            "mesh": 22
+          },
+          {
+            "name": "Gas block",
+            "mesh": 23
+          },
+          {
+            "name": "Muzzle brake",
+            "mesh": 24
+          },
+          {
+            "name": "Brake ports",
+            "mesh": 25
+          },
+          {
+            "name": "Stock",
+            "mesh": 26
+          },
+          {
+            "name": "AR-09 pulse rifle",
+            "children": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13,
+              14,
+              15,
+              16,
+              17,
+              18,
+              19,
+              20,
+              21,
+              22,
+              23,
+              24,
+              25,
+              26
+            ]
+          }
+        ],
+        "animations": []
+      }
+    },
+    {
+      "slot": "shot",
+      "path": "packages/game-runtime/samples/blacksite/assets/8a17c3266f905897783e6146225e6416.wav",
+      "kind": "audio",
+      "digest": "8a17c3266f905897783e6146225e6416e52e78aa4cd67b2919c72fca1148c9a1",
+      "size": 52844
+    },
+    {
+      "slot": "reload",
+      "path": "packages/game-runtime/samples/blacksite/assets/6fd3cd2e3fcff5207c047e03bb09c9c1.wav",
+      "kind": "audio",
+      "digest": "6fd3cd2e3fcff5207c047e03bb09c9c14634c56d51e8c606c96c79d629c9fc2e",
+      "size": 110442
+    },
+    {
+      "slot": "destroyed",
+      "path": "packages/game-runtime/samples/blacksite/assets/2e2c9b142713f5ca0e294cb1e27a5282.wav",
+      "kind": "audio",
+      "digest": "2e2c9b142713f5ca0e294cb1e27a528235f81436908df9fdbcfc0fd37964aa27",
+      "size": 211244
+    },
+    {
+      "slot": "drone",
+      "path": "packages/game-runtime/samples/blacksite/assets/23bfbcaa90db5c932672c340e800f96d.glb",
+      "kind": "model",
+      "digest": "23bfbcaa90db5c932672c340e800f96d0436acedac4fe7c9e71dcd07bd2390a0",
+      "size": 3279804,
+      "model": {
+        "binaryChunkDigest": "98a1ee31185b56283b76db78de414f51e798373b2b7ed16e196c56306f273e35",
+        "vertices": 2912,
+        "indices": 15648,
+        "materials": [
+          {
+            "name": "Satin steel",
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.22,
+                0.27,
+                0.3,
+                1
+              ],
+              "roughnessFactor": 0.54,
+              "metallicFactor": 0.55
+            }
+          },
+          {
+            "name": "Black ceramic",
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.0343398068028541,
+                0.05612849004241121,
+                0.07421356837213867,
+                1
+              ],
+              "roughnessFactor": 0.55,
+              "metallicFactor": 0.2,
+              "baseColorTexture": {
+                "index": 0
+              }
+            }
+          },
+          {
+            "name": "Scratched blue paint",
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.5972017883558645,
+                0.6724431569510133,
+                0.7083757798856457,
+                1
+              ],
+              "roughnessFactor": 0.72,
+              "metallicFactor": 0.12,
+              "baseColorTexture": {
+                "index": 0
+              }
+            }
+          },
+          {
+            "name": "Cyan fixture",
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.46207699964472876,
+                1,
+                0.8879231178794776,
+                1
+              ],
+              "roughnessFactor": 0.4,
+              "metallicFactor": 0
+            },
+            "emissiveFactor": [
+              0.2874408377161099,
+              0.8069522576650873,
+              0.7454042095350284
+            ]
+          },
+          {
+            "name": "Warm fixture",
+            "pbrMetallicRoughness": {
+              "baseColorFactor": [
+                0.3,
+                0.02,
+                0.01,
+                1
+              ],
+              "roughnessFactor": 0.4,
+              "metallicFactor": 0
+            },
+            "emissiveFactor": [
+              1,
+              0.08,
+              0.03
+            ]
+          }
+        ],
+        "textures": [
+          {
+            "source": 0,
+            "sampler": 0
+          }
+        ],
+        "samplers": [
+          {
+            "wrapS": 10497,
+            "wrapT": 10497
+          }
+        ],
+        "nodes": [
+          {
+            "mesh": 0,
+            "children": [],
+            "name": "Drone armored hull"
+          },
+          {
+            "mesh": 1,
+            "children": [],
+            "translation": [
+              0,
+              0.3,
+              -0.05
+            ],
+            "name": "Drone upper carapace"
+          },
+          {
+            "mesh": 2,
+            "children": [],
+            "translation": [
+              0,
+              0,
+              0.43
+            ],
+            "name": "Optical sensor"
+          },
+          {
+            "mesh": 3,
+            "children": [],
+            "translation": [
+              0,
+              0,
+              0.48
+            ],
+            "name": "Lens armor"
+          },
+          {
+            "mesh": 4,
+            "children": [],
+            "translation": [
+              -0.93,
+              -0.18,
+              -0.06
+            ],
+            "name": "Thruster plasma"
+          },
+          {
+            "children": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ]
+          },
+          {
+            "children": [
+              5
+            ],
+            "matrix": [
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1,
+              0,
+              0,
+              0,
+              0,
+              1
+            ]
+          }
+        ],
+        "animations": [
+          {
+            "name": "hover",
+            "channels": [
+              {
+                "sampler": 0,
+                "target": {
+                  "node": 5,
+                  "path": "translation"
+                }
+              },
+              {
+                "sampler": 1,
+                "target": {
+                  "node": 5,
+                  "path": "rotation"
+                }
+              }
+            ],
+            "samplers": [
+              {
+                "input": 17,
+                "output": 18,
+                "interpolation": "LINEAR"
+              },
+              {
+                "input": 17,
+                "output": 19,
+                "interpolation": "LINEAR"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "slot": "drone-charge",
+      "path": "packages/game-runtime/samples/blacksite/assets/f71886c9890125dcdd76507b7a487f8a.wav",
+      "kind": "audio",
+      "digest": "f71886c9890125dcdd76507b7a487f8a06e60c5fb8839021696d6df3ce9d5d2a",
+      "size": 67244
+    },
+    {
+      "slot": "drone-fire",
+      "path": "packages/game-runtime/samples/blacksite/assets/a02d36085d06d84aa54d2a7bbc0fb647.wav",
+      "kind": "audio",
+      "digest": "a02d36085d06d84aa54d2a7bbc0fb64775b668a4c03e6c24f8ff2a9d8f7d7da6",
+      "size": 57644
+    },
+    {
+      "slot": "hit",
+      "path": "packages/game-runtime/samples/blacksite/assets/18dd537b1b19e68054d4351909276fb9.wav",
+      "kind": "audio",
+      "digest": "18dd537b1b19e68054d4351909276fb9148b54257ce906dce2b0b1a834d65442",
+      "size": 21164
+    },
+    {
+      "slot": "hurt",
+      "path": "packages/game-runtime/samples/blacksite/assets/b924d18facbf9e25ca56126b32876ec2.wav",
+      "kind": "audio",
+      "digest": "b924d18facbf9e25ca56126b32876ec28bb4a482c461a891599a05d8ec965dfe",
+      "size": 48044
+    },
+    {
+      "slot": "dry-fire",
+      "path": "packages/game-runtime/samples/blacksite/assets/4e4485cf2d45c70d551d0742c0f472e9.wav",
+      "kind": "audio",
+      "digest": "4e4485cf2d45c70d551d0742c0f472e9718e4d619563ee73bdd56e33712986ad",
+      "size": 11564
+    },
+    {
+      "slot": "victory",
+      "path": "packages/game-runtime/samples/blacksite/assets/b95d86f0700b4ec3d2e0b063b2e5e1c2.wav",
+      "kind": "audio",
+      "digest": "b95d86f0700b4ec3d2e0b063b2e5e1c2619a74921ecee1cde2b51bcdf11f276c",
+      "size": 345644
+    },
+    {
+      "slot": "score",
+      "path": "packages/game-runtime/samples/blacksite/assets/af2ff06cc10e5dc7320a5a3cd3ebbdc0.ogg",
+      "kind": "audio",
+      "digest": "af2ff06cc10e5dc7320a5a3cd3ebbdc0072f901dc4b5ce5814a5bed37461b49f",
+      "size": 431765
+    },
+    {
+      "slot": "decal-stencil-reactor",
+      "path": "packages/game-runtime/samples/blacksite/assets/c046ad4a8072491693f4861685c81bf2.png",
+      "kind": "image",
+      "digest": "c046ad4a8072491693f4861685c81bf24de644f88c79009ba6e7b901e38b8ee0",
+      "size": 80655
+    },
+    {
+      "slot": "decal-stencil-sector",
+      "path": "packages/game-runtime/samples/blacksite/assets/486b88ec83996e96490fed999dbc37d2.png",
+      "kind": "image",
+      "digest": "486b88ec83996e96490fed999dbc37d2cbc2f0079297fc433fd07bda11ffdbbc",
+      "size": 45549
+    },
+    {
+      "slot": "decal-stencil-exit",
+      "path": "packages/game-runtime/samples/blacksite/assets/e7bccc7b0770bd2973282b7826464055.png",
+      "kind": "image",
+      "digest": "e7bccc7b0770bd2973282b782646405526796fd9161471a8cb7664e2a9381140",
+      "size": 60760
+    },
+    {
+      "slot": "decal-hazard",
+      "path": "packages/game-runtime/samples/blacksite/assets/90d6409bd82c5ee12df05720e693e59c.png",
+      "kind": "image",
+      "digest": "90d6409bd82c5ee12df05720e693e59c8f067ee72bea71ad11fd9f8cf8e932d1",
+      "size": 30959
+    },
+    {
+      "slot": "decal-oil",
+      "path": "packages/game-runtime/samples/blacksite/assets/8582233c23f2c9d73a493adede7dbe20.png",
+      "kind": "image",
+      "digest": "8582233c23f2c9d73a493adede7dbe206dfeb41589ab87e07e87abfc4cb3f8b2",
+      "size": 70463
+    },
+    {
+      "slot": "decal-grime",
+      "path": "packages/game-runtime/samples/blacksite/assets/6fdb51e9d63b674cc8613fd80654a546.png",
+      "kind": "image",
+      "digest": "6fdb51e9d63b674cc8613fd80654a5467f8e051c416fcca588bc3fbce9762b18",
+      "size": 106233
+    },
+    {
+      "slot": "decal-scorch",
+      "path": "packages/game-runtime/samples/blacksite/assets/dcd95d511da132c625b3acfc1f1d6865.png",
+      "kind": "image",
+      "digest": "dcd95d511da132c625b3acfc1f1d686571f15dadc3ae01e8c58d5d9badee28fb",
+      "size": 43754
+    },
+    {
+      "slot": "font-display",
+      "path": "packages/game-runtime/samples/blacksite/assets/08e4623805102d819f58601e46e34564.ttf",
+      "kind": "font",
+      "digest": "08e4623805102d819f58601e46e345648846075e363b2ceb23313c2d1c83ec73",
+      "size": 61400
+    },
+    {
+      "slot": "font-ui",
+      "path": "packages/game-runtime/samples/blacksite/assets/a4086a4489237efa15b5c697f19a6d4f.ttf",
+      "kind": "font",
+      "digest": "a4086a4489237efa15b5c697f19a6d4ff9522d6a7375622575930c8d7b6373aa",
+      "size": 342688
+    }
+  ],
+  "scenes": [
+    {
+      "id": "reactor",
+      "activeCameraId": "camera",
+      "environment": {
+        "background": "#0b1018",
+        "ambient": {
+          "color": "#8aa2b8",
+          "intensity": 0.22
+        },
+        "fog": {
+          "kind": "height",
+          "color": "#11161d",
+          "density": 0.012,
+          "baseHeight": 0,
+          "heightFalloff": 0.3,
+          "maxOpacity": 0.55
+        },
+        "shadows": {
+          "enabled": true,
+          "mapSize": 2048,
+          "extent": 32,
+          "cascades": {
+            "count": 3,
+            "split": 0.6,
+            "maxDistance": 70
+          }
+        },
+        "sky": {
+          "kind": "procedural",
+          "sunEntityId": "horizon-sun",
+          "turbidity": 6,
+          "rayleigh": 3,
+          "groundColor": "#0d0f12",
+          "intensity": 0.35
+        },
+        "postProcessing": {
+          "enabled": true,
+          "exposure": 1,
+          "toneMapping": "agx",
+          "bloom": {
+            "threshold": 3,
+            "softness": 0.2,
+            "radius": 0.12,
+            "intensity": 0.35
+          },
+          "vignette": {
+            "intensity": 0.45,
+            "radius": 0.45,
+            "softness": 0.6
+          },
+          "antialias": "smaa"
+        }
+      },
+      "music": {
+        "assetId": "score",
+        "volume": 0.6,
+        "fadeInTicks": 120,
+        "fadeOutTicks": 60,
+        "streaming": {
+          "loopStartSeconds": 0
+        }
+      },
+      "entities": [
+        {
+          "id": "player",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0.81,
+              "z": 7
+            }
+          },
+          "body3d": {
+            "type": "kinematic"
+          },
+          "collider3d": {
+            "kind": "capsule",
+            "radius": 0.3,
+            "halfHeight": 0.5
+          },
+          "character3d": {
+            "speed": 6.5,
+            "acceleration": 48,
+            "jumpSpeed": 5,
+            "coyoteTicks": 6,
+            "jumpBufferTicks": 6,
+            "jumpAction": "jump"
+          },
+          "behaviors": [
+            {
+              "kind": "script",
+              "maxTickMs": 20,
+              "maxCommands": 48,
+              "sourceDigest": "6c4295ac677a08611110e8a0e2d8cbe5d1e3d638a66c4da0b91413351e9cc594",
+              "literalCommandKinds": [
+                "characterIntent",
+                "despawn",
+                "emit",
+                "hud",
+                "rayQuery",
+                "spawn",
+                "ui"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "camera",
+          "parentId": "player",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0.65,
+              "z": 0
+            }
+          },
+          "camera3d": {
+            "projection": {
+              "kind": "perspective",
+              "fov": 78,
+              "near": 0.03,
+              "far": 160
+            },
+            "behavior": {
+              "kind": "fixed"
+            }
+          },
+          "behaviors": [
+            {
+              "kind": "script",
+              "maxTickMs": 20,
+              "sourceDigest": "5f63fbd521667e8963be53f50b894d8ff6fbe484a0f1f597cbec58d59493c4b9",
+              "literalCommandKinds": [
+                "setVisual"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "muzzle",
+          "parentId": "camera",
+          "transform3d": {
+            "position": {
+              "x": 0.3,
+              "y": -0.222,
+              "z": -1.2
+            },
+            "rotation": [
+              -0.707107,
+              0,
+              0,
+              0.707107
+            ]
+          },
+          "particles": {
+            "emitters": [
+              {
+                "id": "flash",
+                "playOnStart": false,
+                "rate": 0,
+                "space": "local",
+                "lifetime": {
+                  "min": 0.04,
+                  "max": 0.06
+                },
+                "speed": 0,
+                "size": {
+                  "min": 0.16,
+                  "max": 0.3
+                },
+                "rotation": {
+                  "min": 0,
+                  "max": 6.28
+                },
+                "color": "#ffd28a",
+                "colorOverLifetime": [
+                  {
+                    "t": 0,
+                    "color": "#fff6d8"
+                  },
+                  {
+                    "t": 1,
+                    "color": "#ff8a2a"
+                  }
+                ],
+                "sizeOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0.6
+                  },
+                  {
+                    "t": 0.3,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0.4
+                  }
+                ],
+                "blend": "additive",
+                "unlit": true
+              },
+              {
+                "id": "core",
+                "playOnStart": false,
+                "rate": 0,
+                "space": "local",
+                "lifetime": 0.04,
+                "speed": 0,
+                "size": 0.12,
+                "color": "#fff3c4",
+                "blend": "additive",
+                "unlit": true
+              },
+              {
+                "id": "sparks",
+                "playOnStart": false,
+                "rate": 0,
+                "shape": {
+                  "kind": "cone",
+                  "angle": 22
+                },
+                "lifetime": {
+                  "min": 0.06,
+                  "max": 0.16
+                },
+                "speed": {
+                  "min": 5,
+                  "max": 11
+                },
+                "size": {
+                  "min": 0.008,
+                  "max": 0.016
+                },
+                "color": "#ffcf7a",
+                "colorOverLifetime": [
+                  {
+                    "t": 0,
+                    "color": "#fff1c2"
+                  },
+                  {
+                    "t": 1,
+                    "color": "#ff6a1e"
+                  }
+                ],
+                "gravity": {
+                  "x": 0,
+                  "y": -6,
+                  "z": 0
+                },
+                "blend": "additive",
+                "unlit": true,
+                "render": {
+                  "kind": "stretched",
+                  "length": 3,
+                  "speedScale": 0.02
+                }
+              },
+              {
+                "id": "tracer",
+                "playOnStart": false,
+                "rate": 0,
+                "shape": {
+                  "kind": "cone",
+                  "angle": 0
+                },
+                "lifetime": 0.09,
+                "speed": 150,
+                "size": 0.022,
+                "color": "#ffd49a",
+                "opacity": 0.85,
+                "blend": "additive",
+                "unlit": true,
+                "render": {
+                  "kind": "stretched",
+                  "length": 1,
+                  "speedScale": 0.012
+                }
+              },
+              {
+                "id": "smoke",
+                "playOnStart": false,
+                "rate": 0,
+                "shape": {
+                  "kind": "cone",
+                  "angle": 25
+                },
+                "lifetime": {
+                  "min": 0.5,
+                  "max": 0.9
+                },
+                "speed": {
+                  "min": 0.3,
+                  "max": 0.8
+                },
+                "size": {
+                  "min": 0.06,
+                  "max": 0.12
+                },
+                "color": "#8a8f96",
+                "opacity": 0.22,
+                "sizeOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0.5
+                  },
+                  {
+                    "t": 1,
+                    "value": 3
+                  }
+                ],
+                "opacityOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0
+                  },
+                  {
+                    "t": 0.1,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0
+                  }
+                ],
+                "gravity": {
+                  "x": 0,
+                  "y": 0.5,
+                  "z": 0
+                },
+                "drag": 2,
+                "unlit": true
+              }
+            ]
+          },
+          "behaviors": [
+            {
+              "kind": "script",
+              "maxTickMs": 20,
+              "sourceDigest": "2899dee190900233dce621cd00d2f8df25c95069330b51ae25e3d4745aaea27c",
+              "literalCommandKinds": [
+                "emitParticles"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "foundation",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": -0.6,
+              "z": -11
+            }
+          },
+          "body3d": {
+            "type": "static"
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 13,
+              "y": 0.6,
+              "z": 23
+            }
+          },
+          "behaviors": []
+        },
+        {
+          "id": "left-wall",
+          "transform3d": {
+            "position": {
+              "x": -13,
+              "y": 2.5,
+              "z": -11
+            }
+          },
+          "body3d": {
+            "type": "static"
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 0.5,
+              "y": 2.5,
+              "z": 23
+            }
+          },
+          "behaviors": []
+        },
+        {
+          "id": "right-wall",
+          "transform3d": {
+            "position": {
+              "x": 13,
+              "y": 2.5,
+              "z": -11
+            }
+          },
+          "body3d": {
+            "type": "static"
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 0.5,
+              "y": 2.5,
+              "z": 23
+            }
+          },
+          "behaviors": []
+        },
+        {
+          "id": "rear-wall",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 2.5,
+              "z": 12
+            }
+          },
+          "body3d": {
+            "type": "static"
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 13,
+              "y": 2.5,
+              "z": 0.5
+            }
+          },
+          "behaviors": []
+        },
+        {
+          "id": "end-wall",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 3,
+              "z": -34
+            }
+          },
+          "body3d": {
+            "type": "static"
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 13,
+              "y": 3,
+              "z": 0.5
+            }
+          },
+          "behaviors": []
+        },
+        {
+          "id": "buttress--12-0",
+          "transform3d": {
+            "position": {
+              "x": -12,
+              "y": 3,
+              "z": 8
+            }
+          },
+          "body3d": {
+            "type": "static"
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 0.45,
+              "y": 3,
+              "z": 0.6
+            }
+          },
+          "behaviors": []
+        },
+        {
+          "id": "buttress-12-0",
+          "transform3d": {
+            "position": {
+              "x": 12,
+              "y": 3,
+              "z": 8
+            }
+          },
+          "body3d": {
+            "type": "static"
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 0.45,
+              "y": 3,
+              "z": 0.6
+            }
+          },
+          "behaviors": []
+        },
+        {
+          "id": "buttress--12-1",
+          "transform3d": {
+            "position": {
+              "x": -12,
+              "y": 3,
+              "z": 0.5
+            }
+          },
+          "body3d": {
+            "type": "static"
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 0.45,
+              "y": 3,
+              "z": 0.6
+            }
+          },
+          "behaviors": []
+        },
+        {
+          "id": "buttress-12-1",
+          "transform3d": {
+            "position": {
+              "x": 12,
+              "y": 3,
+              "z": 0.5
+            }
+          },
+          "body3d": {
+            "type": "static"
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 0.45,
+              "y": 3,
+              "z": 0.6
+            }
+          },
+          "behaviors": []
+        },
+        {
+          "id": "buttress--12-2",
+          "transform3d": {
+            "position": {
+              "x": -12,
+              "y": 3,
+              "z": -7
+            }
+          },
+          "body3d": {
+            "type": "static"
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 0.45,
+              "y": 3,
+              "z": 0.6
+            }
+          },
+          "behaviors": []
+        },
+        {
+          "id": "buttress-12-2",
+          "transform3d": {
+            "position": {
+              "x": 12,
+              "y": 3,
+              "z": -7
+            }
+          },
+          "body3d": {
+            "type": "static"
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 0.45,
+              "y": 3,
+              "z": 0.6
+            }
+          },
+          "behaviors": []
+        },
+        {
+          "id": "buttress--12-3",
+          "transform3d": {
+            "position": {
+              "x": -12,
+              "y": 3,
+              "z": -14.5
+            }
+          },
+          "body3d": {
+            "type": "static"
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 0.45,
+              "y": 3,
+              "z": 0.6
+            }
+          },
+          "behaviors": []
+        },
+        {
+          "id": "buttress-12-3",
+          "transform3d": {
+            "position": {
+              "x": 12,
+              "y": 3,
+              "z": -14.5
+            }
+          },
+          "body3d": {
+            "type": "static"
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 0.45,
+              "y": 3,
+              "z": 0.6
+            }
+          },
+          "behaviors": []
+        },
+        {
+          "id": "buttress--12-4",
+          "transform3d": {
+            "position": {
+              "x": -12,
+              "y": 3,
+              "z": -22
+            }
+          },
+          "body3d": {
+            "type": "static"
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 0.45,
+              "y": 3,
+              "z": 0.6
+            }
+          },
+          "behaviors": []
+        },
+        {
+          "id": "buttress-12-4",
+          "transform3d": {
+            "position": {
+              "x": 12,
+              "y": 3,
+              "z": -22
+            }
+          },
+          "body3d": {
+            "type": "static"
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 0.45,
+              "y": 3,
+              "z": 0.6
+            }
+          },
+          "behaviors": []
+        },
+        {
+          "id": "buttress--12-5",
+          "transform3d": {
+            "position": {
+              "x": -12,
+              "y": 3,
+              "z": -29.5
+            }
+          },
+          "body3d": {
+            "type": "static"
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 0.45,
+              "y": 3,
+              "z": 0.6
+            }
+          },
+          "behaviors": []
+        },
+        {
+          "id": "buttress-12-5",
+          "transform3d": {
+            "position": {
+              "x": 12,
+              "y": 3,
+              "z": -29.5
+            }
+          },
+          "body3d": {
+            "type": "static"
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 0.45,
+              "y": 3,
+              "z": 0.6
+            }
+          },
+          "behaviors": []
+        },
+        {
+          "id": "cover-0",
+          "transform3d": {
+            "position": {
+              "x": -5,
+              "y": 0.8,
+              "z": 1
+            }
+          },
+          "body3d": {
+            "type": "static"
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 1.6,
+              "y": 0.8,
+              "z": 1
+            }
+          },
+          "behaviors": []
+        },
+        {
+          "id": "cover-1",
+          "transform3d": {
+            "position": {
+              "x": 5,
+              "y": 0.8,
+              "z": -5
+            }
+          },
+          "body3d": {
+            "type": "static"
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 1.6,
+              "y": 0.8,
+              "z": 1
+            }
+          },
+          "behaviors": []
+        },
+        {
+          "id": "cover-2",
+          "transform3d": {
+            "position": {
+              "x": -5,
+              "y": 0.8,
+              "z": -12
+            }
+          },
+          "body3d": {
+            "type": "static"
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 1.6,
+              "y": 0.8,
+              "z": 1
+            }
+          },
+          "behaviors": []
+        },
+        {
+          "id": "cover-3",
+          "transform3d": {
+            "position": {
+              "x": 5,
+              "y": 0.8,
+              "z": -20
+            }
+          },
+          "body3d": {
+            "type": "static"
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 1.6,
+              "y": 0.8,
+              "z": 1
+            }
+          },
+          "behaviors": []
+        },
+        {
+          "id": "cover-4",
+          "transform3d": {
+            "position": {
+              "x": -5,
+              "y": 0.8,
+              "z": -25
+            }
+          },
+          "body3d": {
+            "type": "static"
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 1.6,
+              "y": 0.8,
+              "z": 1
+            }
+          },
+          "behaviors": []
+        },
+        {
+          "id": "reactor-base--8",
+          "transform3d": {
+            "position": {
+              "x": -8,
+              "y": 0.35,
+              "z": -29
+            }
+          },
+          "body3d": {
+            "type": "static"
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 2,
+              "y": 0.35,
+              "z": 2
+            }
+          },
+          "behaviors": []
+        },
+        {
+          "id": "reactor--8",
+          "transform3d": {
+            "position": {
+              "x": -8,
+              "y": 3,
+              "z": -29
+            }
+          },
+          "body3d": {
+            "type": "static"
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 1.4,
+              "y": 2.65,
+              "z": 1.4
+            }
+          },
+          "behaviors": []
+        },
+        {
+          "id": "reactor-base-8",
+          "transform3d": {
+            "position": {
+              "x": 8,
+              "y": 0.35,
+              "z": -29
+            }
+          },
+          "body3d": {
+            "type": "static"
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 2,
+              "y": 0.35,
+              "z": 2
+            }
+          },
+          "behaviors": []
+        },
+        {
+          "id": "reactor-8",
+          "transform3d": {
+            "position": {
+              "x": 8,
+              "y": 3,
+              "z": -29
+            }
+          },
+          "body3d": {
+            "type": "static"
+          },
+          "collider3d": {
+            "kind": "box",
+            "halfExtents": {
+              "x": 1.4,
+              "y": 2.65,
+              "z": 1.4
+            }
+          },
+          "behaviors": []
+        },
+        {
+          "id": "sun",
+          "transform3d": {
+            "position": {
+              "x": 12,
+              "y": 26,
+              "z": -20
+            },
+            "rotation": [
+              -0.773366,
+              0.318445,
+              0,
+              0.548177
+            ]
+          },
+          "light3d": {
+            "kind": "directional",
+            "color": "#9db6e8",
+            "intensity": 1.1,
+            "castShadow": true,
+            "shadowNormalBias": 0.03
+          },
+          "behaviors": []
+        },
+        {
+          "id": "horizon-sun",
+          "transform3d": {
+            "position": {
+              "x": -20,
+              "y": -2,
+              "z": -80
+            },
+            "rotation": [
+              0.194499,
+              -0.972495,
+              0,
+              0.128158
+            ]
+          },
+          "light3d": {
+            "kind": "directional",
+            "color": "#ff9a5c",
+            "intensity": 0,
+            "castShadow": false
+          },
+          "behaviors": []
+        },
+        {
+          "id": "light-0",
+          "transform3d": {
+            "position": {
+              "x": -7,
+              "y": 4,
+              "z": 2
+            }
+          },
+          "light3d": {
+            "kind": "point",
+            "color": "#64dfff",
+            "intensity": 90,
+            "range": 16
+          },
+          "behaviors": []
+        },
+        {
+          "id": "light-1",
+          "transform3d": {
+            "position": {
+              "x": 7,
+              "y": 4,
+              "z": -12
+            }
+          },
+          "light3d": {
+            "kind": "point",
+            "color": "#72dfff",
+            "intensity": 90,
+            "range": 16
+          },
+          "behaviors": []
+        },
+        {
+          "id": "light-2",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 4,
+              "z": -27
+            }
+          },
+          "light3d": {
+            "kind": "point",
+            "color": "#ffae57",
+            "intensity": 90,
+            "range": 16
+          },
+          "behaviors": []
+        },
+        {
+          "id": "drone-0",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 1.5,
+              "z": -2
+            }
+          },
+          "model": {
+            "assetId": "drone"
+          },
+          "animator3d": {
+            "clips": {
+              "hover": "clip:0"
+            },
+            "initialClip": "hover",
+            "playbackRate": 1
+          },
+          "body3d": {
+            "type": "static",
+            "gravityScale": 0
+          },
+          "collider3d": {
+            "kind": "sphere",
+            "radius": 0.72
+          },
+          "behaviors": []
+        },
+        {
+          "id": "drone-0-jets",
+          "parentId": "drone-0",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": -0.3,
+              "z": 0.05
+            },
+            "rotation": [
+              1,
+              0,
+              0,
+              0
+            ]
+          },
+          "particles": {
+            "emitters": [
+              {
+                "id": "jet",
+                "rate": 30,
+                "maxParticles": 64,
+                "shape": {
+                  "kind": "box",
+                  "size": {
+                    "x": 1.5,
+                    "y": 0,
+                    "z": 0.1
+                  }
+                },
+                "lifetime": {
+                  "min": 0.12,
+                  "max": 0.22
+                },
+                "speed": {
+                  "min": 0.8,
+                  "max": 1.6
+                },
+                "size": {
+                  "min": 0.05,
+                  "max": 0.1
+                },
+                "color": "#5fe8ff",
+                "opacity": 0.6,
+                "opacityOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0
+                  },
+                  {
+                    "t": 0.15,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0
+                  }
+                ],
+                "sizeOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0.2
+                  }
+                ],
+                "blend": "additive",
+                "unlit": true
+              }
+            ]
+          },
+          "behaviors": []
+        },
+        {
+          "id": "drone-1",
+          "transform3d": {
+            "position": {
+              "x": -3,
+              "y": 1.5,
+              "z": -10
+            }
+          },
+          "model": {
+            "assetId": "drone"
+          },
+          "animator3d": {
+            "clips": {
+              "hover": "clip:0"
+            },
+            "initialClip": "hover",
+            "playbackRate": 0.86
+          },
+          "body3d": {
+            "type": "static",
+            "gravityScale": 0
+          },
+          "collider3d": {
+            "kind": "sphere",
+            "radius": 0.72
+          },
+          "behaviors": []
+        },
+        {
+          "id": "drone-1-jets",
+          "parentId": "drone-1",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": -0.3,
+              "z": 0.05
+            },
+            "rotation": [
+              1,
+              0,
+              0,
+              0
+            ]
+          },
+          "particles": {
+            "emitters": [
+              {
+                "id": "jet",
+                "rate": 30,
+                "maxParticles": 64,
+                "shape": {
+                  "kind": "box",
+                  "size": {
+                    "x": 1.5,
+                    "y": 0,
+                    "z": 0.1
+                  }
+                },
+                "lifetime": {
+                  "min": 0.12,
+                  "max": 0.22
+                },
+                "speed": {
+                  "min": 0.8,
+                  "max": 1.6
+                },
+                "size": {
+                  "min": 0.05,
+                  "max": 0.1
+                },
+                "color": "#5fe8ff",
+                "opacity": 0.6,
+                "opacityOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0
+                  },
+                  {
+                    "t": 0.15,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0
+                  }
+                ],
+                "sizeOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0.2
+                  }
+                ],
+                "blend": "additive",
+                "unlit": true
+              }
+            ]
+          },
+          "behaviors": []
+        },
+        {
+          "id": "drone-2",
+          "transform3d": {
+            "position": {
+              "x": 4,
+              "y": 1.5,
+              "z": -15
+            }
+          },
+          "model": {
+            "assetId": "drone"
+          },
+          "animator3d": {
+            "clips": {
+              "hover": "clip:0"
+            },
+            "initialClip": "hover",
+            "playbackRate": 1.12
+          },
+          "body3d": {
+            "type": "static",
+            "gravityScale": 0
+          },
+          "collider3d": {
+            "kind": "sphere",
+            "radius": 0.72
+          },
+          "behaviors": []
+        },
+        {
+          "id": "drone-2-jets",
+          "parentId": "drone-2",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": -0.3,
+              "z": 0.05
+            },
+            "rotation": [
+              1,
+              0,
+              0,
+              0
+            ]
+          },
+          "particles": {
+            "emitters": [
+              {
+                "id": "jet",
+                "rate": 30,
+                "maxParticles": 64,
+                "shape": {
+                  "kind": "box",
+                  "size": {
+                    "x": 1.5,
+                    "y": 0,
+                    "z": 0.1
+                  }
+                },
+                "lifetime": {
+                  "min": 0.12,
+                  "max": 0.22
+                },
+                "speed": {
+                  "min": 0.8,
+                  "max": 1.6
+                },
+                "size": {
+                  "min": 0.05,
+                  "max": 0.1
+                },
+                "color": "#5fe8ff",
+                "opacity": 0.6,
+                "opacityOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0
+                  },
+                  {
+                    "t": 0.15,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0
+                  }
+                ],
+                "sizeOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0.2
+                  }
+                ],
+                "blend": "additive",
+                "unlit": true
+              }
+            ]
+          },
+          "behaviors": []
+        },
+        {
+          "id": "drone-3",
+          "transform3d": {
+            "position": {
+              "x": -4,
+              "y": 1.5,
+              "z": -22
+            }
+          },
+          "model": {
+            "assetId": "drone"
+          },
+          "animator3d": {
+            "clips": {
+              "hover": "clip:0"
+            },
+            "initialClip": "hover",
+            "playbackRate": 0.93
+          },
+          "body3d": {
+            "type": "static",
+            "gravityScale": 0
+          },
+          "collider3d": {
+            "kind": "sphere",
+            "radius": 0.72
+          },
+          "behaviors": []
+        },
+        {
+          "id": "drone-3-jets",
+          "parentId": "drone-3",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": -0.3,
+              "z": 0.05
+            },
+            "rotation": [
+              1,
+              0,
+              0,
+              0
+            ]
+          },
+          "particles": {
+            "emitters": [
+              {
+                "id": "jet",
+                "rate": 30,
+                "maxParticles": 64,
+                "shape": {
+                  "kind": "box",
+                  "size": {
+                    "x": 1.5,
+                    "y": 0,
+                    "z": 0.1
+                  }
+                },
+                "lifetime": {
+                  "min": 0.12,
+                  "max": 0.22
+                },
+                "speed": {
+                  "min": 0.8,
+                  "max": 1.6
+                },
+                "size": {
+                  "min": 0.05,
+                  "max": 0.1
+                },
+                "color": "#5fe8ff",
+                "opacity": 0.6,
+                "opacityOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0
+                  },
+                  {
+                    "t": 0.15,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0
+                  }
+                ],
+                "sizeOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0.2
+                  }
+                ],
+                "blend": "additive",
+                "unlit": true
+              }
+            ]
+          },
+          "behaviors": []
+        },
+        {
+          "id": "drone-4",
+          "transform3d": {
+            "position": {
+              "x": 2,
+              "y": 1.5,
+              "z": -27
+            }
+          },
+          "model": {
+            "assetId": "drone"
+          },
+          "animator3d": {
+            "clips": {
+              "hover": "clip:0"
+            },
+            "initialClip": "hover",
+            "playbackRate": 1.06
+          },
+          "body3d": {
+            "type": "static",
+            "gravityScale": 0
+          },
+          "collider3d": {
+            "kind": "sphere",
+            "radius": 0.72
+          },
+          "behaviors": []
+        },
+        {
+          "id": "drone-4-jets",
+          "parentId": "drone-4",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": -0.3,
+              "z": 0.05
+            },
+            "rotation": [
+              1,
+              0,
+              0,
+              0
+            ]
+          },
+          "particles": {
+            "emitters": [
+              {
+                "id": "jet",
+                "rate": 30,
+                "maxParticles": 64,
+                "shape": {
+                  "kind": "box",
+                  "size": {
+                    "x": 1.5,
+                    "y": 0,
+                    "z": 0.1
+                  }
+                },
+                "lifetime": {
+                  "min": 0.12,
+                  "max": 0.22
+                },
+                "speed": {
+                  "min": 0.8,
+                  "max": 1.6
+                },
+                "size": {
+                  "min": 0.05,
+                  "max": 0.1
+                },
+                "color": "#5fe8ff",
+                "opacity": 0.6,
+                "opacityOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0
+                  },
+                  {
+                    "t": 0.15,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0
+                  }
+                ],
+                "sizeOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0.2
+                  }
+                ],
+                "blend": "additive",
+                "unlit": true
+              }
+            ]
+          },
+          "behaviors": []
+        },
+        {
+          "id": "facility",
+          "transform3d": {},
+          "model": {
+            "assetId": "facility"
+          },
+          "behaviors": []
+        },
+        {
+          "id": "weapon",
+          "parentId": "camera",
+          "transform3d": {},
+          "model": {
+            "assetId": "rifle",
+            "castShadow": false
+          },
+          "behaviors": [
+            {
+              "kind": "script",
+              "maxTickMs": 20,
+              "sourceDigest": "215c61235f52b0309feb1c14a7a98cf60c0f65dd5abff8ae33884532998321cd",
+              "literalCommandKinds": [
+                "setVisual"
+              ]
+            }
+          ]
+        },
+        {
+          "id": "sound-shot",
+          "transform3d": {},
+          "audioSource": {
+            "assetId": "shot",
+            "onEvent": "shot",
+            "volume": 0.55
+          },
+          "behaviors": []
+        },
+        {
+          "id": "sound-reload",
+          "transform3d": {},
+          "audioSource": {
+            "assetId": "reload",
+            "onEvent": "reload",
+            "volume": 0.6
+          },
+          "behaviors": []
+        },
+        {
+          "id": "sky-fill",
+          "transform3d": {
+            "position": {
+              "x": 10,
+              "y": 15,
+              "z": 5
+            },
+            "rotation": [
+              -0.12541890941943948,
+              0.25083781883887896,
+              0,
+              0.9598700358903763
+            ]
+          },
+          "light3d": {
+            "kind": "directional",
+            "color": "#bedff2",
+            "intensity": 0.75,
+            "castShadow": false
+          },
+          "behaviors": []
+        },
+        {
+          "id": "ceiling-fill-0--7.6",
+          "transform3d": {
+            "position": {
+              "x": -7.6,
+              "y": 5.35,
+              "z": 7
+            }
+          },
+          "light3d": {
+            "kind": "point",
+            "color": "#b5edff",
+            "intensity": 65,
+            "range": 10,
+            "decay": 1.7
+          },
+          "behaviors": []
+        },
+        {
+          "id": "ceiling-fill-0-7.6",
+          "transform3d": {
+            "position": {
+              "x": 7.6,
+              "y": 5.35,
+              "z": 7
+            }
+          },
+          "light3d": {
+            "kind": "point",
+            "color": "#b5edff",
+            "intensity": 65,
+            "range": 10,
+            "decay": 1.7
+          },
+          "behaviors": []
+        },
+        {
+          "id": "ceiling-fill-1--7.6",
+          "transform3d": {
+            "position": {
+              "x": -7.6,
+              "y": 5.35,
+              "z": -0.5
+            }
+          },
+          "light3d": {
+            "kind": "point",
+            "color": "#ffc68b",
+            "intensity": 65,
+            "range": 10,
+            "decay": 1.7
+          },
+          "behaviors": []
+        },
+        {
+          "id": "ceiling-fill-1-7.6",
+          "transform3d": {
+            "position": {
+              "x": 7.6,
+              "y": 5.35,
+              "z": -0.5
+            }
+          },
+          "light3d": {
+            "kind": "point",
+            "color": "#ffc68b",
+            "intensity": 65,
+            "range": 10,
+            "decay": 1.7
+          },
+          "behaviors": []
+        },
+        {
+          "id": "ceiling-fill-2--7.6",
+          "transform3d": {
+            "position": {
+              "x": -7.6,
+              "y": 5.35,
+              "z": -8
+            }
+          },
+          "light3d": {
+            "kind": "point",
+            "color": "#b5edff",
+            "intensity": 65,
+            "range": 10,
+            "decay": 1.7
+          },
+          "behaviors": []
+        },
+        {
+          "id": "ceiling-fill-2-7.6",
+          "transform3d": {
+            "position": {
+              "x": 7.6,
+              "y": 5.35,
+              "z": -8
+            }
+          },
+          "light3d": {
+            "kind": "point",
+            "color": "#b5edff",
+            "intensity": 65,
+            "range": 10,
+            "decay": 1.7
+          },
+          "behaviors": []
+        },
+        {
+          "id": "ceiling-fill-3--7.6",
+          "transform3d": {
+            "position": {
+              "x": -7.6,
+              "y": 5.35,
+              "z": -15.5
+            }
+          },
+          "light3d": {
+            "kind": "point",
+            "color": "#ffc68b",
+            "intensity": 65,
+            "range": 10,
+            "decay": 1.7
+          },
+          "behaviors": []
+        },
+        {
+          "id": "ceiling-fill-3-7.6",
+          "transform3d": {
+            "position": {
+              "x": 7.6,
+              "y": 5.35,
+              "z": -15.5
+            }
+          },
+          "light3d": {
+            "kind": "point",
+            "color": "#ffc68b",
+            "intensity": 65,
+            "range": 10,
+            "decay": 1.7
+          },
+          "behaviors": []
+        },
+        {
+          "id": "ceiling-fill-4--7.6",
+          "transform3d": {
+            "position": {
+              "x": -7.6,
+              "y": 5.35,
+              "z": -23
+            }
+          },
+          "light3d": {
+            "kind": "point",
+            "color": "#b5edff",
+            "intensity": 65,
+            "range": 10,
+            "decay": 1.7
+          },
+          "behaviors": []
+        },
+        {
+          "id": "ceiling-fill-4-7.6",
+          "transform3d": {
+            "position": {
+              "x": 7.6,
+              "y": 5.35,
+              "z": -23
+            }
+          },
+          "light3d": {
+            "kind": "point",
+            "color": "#b5edff",
+            "intensity": 65,
+            "range": 10,
+            "decay": 1.7
+          },
+          "behaviors": []
+        },
+        {
+          "id": "ceiling-fill-5--7.6",
+          "transform3d": {
+            "position": {
+              "x": -7.6,
+              "y": 5.35,
+              "z": -30.5
+            }
+          },
+          "light3d": {
+            "kind": "point",
+            "color": "#ffc68b",
+            "intensity": 65,
+            "range": 10,
+            "decay": 1.7
+          },
+          "behaviors": []
+        },
+        {
+          "id": "ceiling-fill-5-7.6",
+          "transform3d": {
+            "position": {
+              "x": 7.6,
+              "y": 5.35,
+              "z": -30.5
+            }
+          },
+          "light3d": {
+            "kind": "point",
+            "color": "#ffc68b",
+            "intensity": 65,
+            "range": 10,
+            "decay": 1.7
+          },
+          "behaviors": []
+        },
+        {
+          "id": "reactor-fill--8",
+          "transform3d": {
+            "position": {
+              "x": -8,
+              "y": 3,
+              "z": -26.5
+            }
+          },
+          "light3d": {
+            "kind": "point",
+            "color": "#ffae59",
+            "intensity": 85,
+            "range": 9,
+            "decay": 1.6,
+            "castShadow": true,
+            "shadowNormalBias": 0.03
+          },
+          "behaviors": []
+        },
+        {
+          "id": "reactor-fill-8",
+          "transform3d": {
+            "position": {
+              "x": 8,
+              "y": 3,
+              "z": -26.5
+            }
+          },
+          "light3d": {
+            "kind": "point",
+            "color": "#ffae59",
+            "intensity": 85,
+            "range": 9,
+            "decay": 1.6,
+            "castShadow": true,
+            "shadowNormalBias": 0.03
+          },
+          "behaviors": []
+        },
+        {
+          "id": "sound-hit",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "audioSource": {
+            "assetId": "hit",
+            "onEvent": "hit",
+            "volume": 0.45
+          },
+          "behaviors": []
+        },
+        {
+          "id": "sound-hurt",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "audioSource": {
+            "assetId": "hurt",
+            "onEvent": "hurt",
+            "volume": 0.7
+          },
+          "behaviors": []
+        },
+        {
+          "id": "sound-dry",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "audioSource": {
+            "assetId": "dry-fire",
+            "onEvent": "dry",
+            "volume": 0.5
+          },
+          "behaviors": []
+        },
+        {
+          "id": "sound-victory",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "audioSource": {
+            "assetId": "victory",
+            "onEvent": "sting",
+            "volume": 0.8
+          },
+          "behaviors": []
+        },
+        {
+          "id": "rain",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 9,
+              "z": -11
+            }
+          },
+          "particles": {
+            "emitters": [
+              {
+                "id": "rain",
+                "rate": 900,
+                "maxParticles": 1100,
+                "shape": {
+                  "kind": "box",
+                  "size": {
+                    "x": 26,
+                    "y": 0.2,
+                    "z": 46
+                  }
+                },
+                "lifetime": {
+                  "min": 0.55,
+                  "max": 0.75
+                },
+                "speed": 0,
+                "size": 0.02,
+                "color": "#a9bfd4",
+                "opacity": 0.55,
+                "opacityOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0
+                  },
+                  {
+                    "t": 0.1,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0
+                  }
+                ],
+                "gravity": {
+                  "x": 0.6,
+                  "y": -26,
+                  "z": 0.8
+                },
+                "unlit": true,
+                "render": {
+                  "kind": "stretched",
+                  "length": 4,
+                  "speedScale": 0.035
+                }
+              }
+            ]
+          },
+          "behaviors": []
+        },
+        {
+          "id": "splashes",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0.03,
+              "z": -11
+            }
+          },
+          "particles": {
+            "emitters": [
+              {
+                "id": "splash",
+                "rate": 260,
+                "maxParticles": 160,
+                "shape": {
+                  "kind": "box",
+                  "size": {
+                    "x": 24,
+                    "y": 0,
+                    "z": 44
+                  }
+                },
+                "lifetime": {
+                  "min": 0.1,
+                  "max": 0.2
+                },
+                "speed": {
+                  "min": 0.6,
+                  "max": 1.4
+                },
+                "size": {
+                  "min": 0.012,
+                  "max": 0.025
+                },
+                "color": "#b9cadb",
+                "opacity": 0.5,
+                "opacityOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0
+                  },
+                  {
+                    "t": 0.05,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0
+                  }
+                ],
+                "gravity": {
+                  "x": 0,
+                  "y": -9.8,
+                  "z": 0
+                },
+                "unlit": true
+              }
+            ]
+          },
+          "behaviors": []
+        },
+        {
+          "id": "dust-motes",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 2.4,
+              "z": -11
+            }
+          },
+          "particles": {
+            "emitters": [
+              {
+                "id": "motes",
+                "rate": 24,
+                "maxParticles": 220,
+                "shape": {
+                  "kind": "box",
+                  "size": {
+                    "x": 24,
+                    "y": 4,
+                    "z": 44
+                  }
+                },
+                "lifetime": {
+                  "min": 6,
+                  "max": 10
+                },
+                "speed": {
+                  "min": 0.02,
+                  "max": 0.08
+                },
+                "size": {
+                  "min": 0.012,
+                  "max": 0.03
+                },
+                "color": "#e8d7b8",
+                "opacity": 0.5,
+                "opacityOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0
+                  },
+                  {
+                    "t": 0.2,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0
+                  }
+                ],
+                "gravity": {
+                  "x": 0.02,
+                  "y": 0.01,
+                  "z": 0
+                },
+                "blend": "additive",
+                "unlit": true
+              }
+            ]
+          },
+          "behaviors": []
+        },
+        {
+          "id": "steam-left-3",
+          "transform3d": {
+            "position": {
+              "x": -11.6,
+              "y": 0.15,
+              "z": -3
+            }
+          },
+          "particles": {
+            "emitters": [
+              {
+                "id": "steam",
+                "rate": 9,
+                "maxParticles": 60,
+                "shape": {
+                  "kind": "cone",
+                  "angle": 12,
+                  "radius": 0.15
+                },
+                "lifetime": {
+                  "min": 2.2,
+                  "max": 3.4
+                },
+                "speed": {
+                  "min": 0.6,
+                  "max": 1.1
+                },
+                "size": {
+                  "min": 0.35,
+                  "max": 0.6
+                },
+                "color": "#aab4be",
+                "opacity": 0.16,
+                "sizeOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0.4
+                  },
+                  {
+                    "t": 1,
+                    "value": 3.2
+                  }
+                ],
+                "opacityOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0
+                  },
+                  {
+                    "t": 0.15,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0
+                  }
+                ],
+                "gravity": {
+                  "x": 0.12,
+                  "y": 0.25,
+                  "z": 0
+                },
+                "drag": 0.4,
+                "unlit": true,
+                "softness": 0.5
+              }
+            ]
+          },
+          "behaviors": []
+        },
+        {
+          "id": "steam-left-18",
+          "transform3d": {
+            "position": {
+              "x": -11.6,
+              "y": 0.15,
+              "z": -18.5
+            }
+          },
+          "particles": {
+            "emitters": [
+              {
+                "id": "steam",
+                "rate": 9,
+                "maxParticles": 60,
+                "shape": {
+                  "kind": "cone",
+                  "angle": 12,
+                  "radius": 0.15
+                },
+                "lifetime": {
+                  "min": 2.2,
+                  "max": 3.4
+                },
+                "speed": {
+                  "min": 0.6,
+                  "max": 1.1
+                },
+                "size": {
+                  "min": 0.35,
+                  "max": 0.6
+                },
+                "color": "#aab4be",
+                "opacity": 0.16,
+                "sizeOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0.4
+                  },
+                  {
+                    "t": 1,
+                    "value": 3.2
+                  }
+                ],
+                "opacityOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0
+                  },
+                  {
+                    "t": 0.15,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0
+                  }
+                ],
+                "gravity": {
+                  "x": 0.12,
+                  "y": 0.25,
+                  "z": 0
+                },
+                "drag": 0.4,
+                "unlit": true,
+                "softness": 0.5
+              }
+            ]
+          },
+          "behaviors": []
+        },
+        {
+          "id": "steam-right-3",
+          "transform3d": {
+            "position": {
+              "x": 11.6,
+              "y": 0.15,
+              "z": -3
+            }
+          },
+          "particles": {
+            "emitters": [
+              {
+                "id": "steam",
+                "rate": 9,
+                "maxParticles": 60,
+                "shape": {
+                  "kind": "cone",
+                  "angle": 12,
+                  "radius": 0.15
+                },
+                "lifetime": {
+                  "min": 2.2,
+                  "max": 3.4
+                },
+                "speed": {
+                  "min": 0.6,
+                  "max": 1.1
+                },
+                "size": {
+                  "min": 0.35,
+                  "max": 0.6
+                },
+                "color": "#aab4be",
+                "opacity": 0.16,
+                "sizeOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0.4
+                  },
+                  {
+                    "t": 1,
+                    "value": 3.2
+                  }
+                ],
+                "opacityOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0
+                  },
+                  {
+                    "t": 0.15,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0
+                  }
+                ],
+                "gravity": {
+                  "x": -0.12,
+                  "y": 0.25,
+                  "z": 0
+                },
+                "drag": 0.4,
+                "unlit": true,
+                "softness": 0.5
+              }
+            ]
+          },
+          "behaviors": []
+        },
+        {
+          "id": "steam-right-18",
+          "transform3d": {
+            "position": {
+              "x": 11.6,
+              "y": 0.15,
+              "z": -18.5
+            }
+          },
+          "particles": {
+            "emitters": [
+              {
+                "id": "steam",
+                "rate": 9,
+                "maxParticles": 60,
+                "shape": {
+                  "kind": "cone",
+                  "angle": 12,
+                  "radius": 0.15
+                },
+                "lifetime": {
+                  "min": 2.2,
+                  "max": 3.4
+                },
+                "speed": {
+                  "min": 0.6,
+                  "max": 1.1
+                },
+                "size": {
+                  "min": 0.35,
+                  "max": 0.6
+                },
+                "color": "#aab4be",
+                "opacity": 0.16,
+                "sizeOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0.4
+                  },
+                  {
+                    "t": 1,
+                    "value": 3.2
+                  }
+                ],
+                "opacityOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0
+                  },
+                  {
+                    "t": 0.15,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0
+                  }
+                ],
+                "gravity": {
+                  "x": -0.12,
+                  "y": 0.25,
+                  "z": 0
+                },
+                "drag": 0.4,
+                "unlit": true,
+                "softness": 0.5
+              }
+            ]
+          },
+          "behaviors": []
+        },
+        {
+          "id": "reactor-embers-l",
+          "transform3d": {
+            "position": {
+              "x": -8,
+              "y": 5.9,
+              "z": -29
+            }
+          },
+          "particles": {
+            "emitters": [
+              {
+                "id": "embers",
+                "rate": 7,
+                "maxParticles": 64,
+                "shape": {
+                  "kind": "sphere",
+                  "radius": 1
+                },
+                "lifetime": {
+                  "min": 1.5,
+                  "max": 3
+                },
+                "speed": {
+                  "min": 0.2,
+                  "max": 0.6
+                },
+                "size": {
+                  "min": 0.02,
+                  "max": 0.05
+                },
+                "color": "#ffae57",
+                "colorOverLifetime": [
+                  {
+                    "t": 0,
+                    "color": "#ffd9a0"
+                  },
+                  {
+                    "t": 1,
+                    "color": "#ff5a1a"
+                  }
+                ],
+                "opacityOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0
+                  },
+                  {
+                    "t": 0.1,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0
+                  }
+                ],
+                "gravity": {
+                  "x": 0,
+                  "y": 0.5,
+                  "z": 0
+                },
+                "blend": "additive",
+                "unlit": true
+              }
+            ]
+          },
+          "behaviors": []
+        },
+        {
+          "id": "reactor-embers-r",
+          "transform3d": {
+            "position": {
+              "x": 8,
+              "y": 5.9,
+              "z": -29
+            }
+          },
+          "particles": {
+            "emitters": [
+              {
+                "id": "embers",
+                "rate": 7,
+                "maxParticles": 64,
+                "shape": {
+                  "kind": "sphere",
+                  "radius": 1
+                },
+                "lifetime": {
+                  "min": 1.5,
+                  "max": 3
+                },
+                "speed": {
+                  "min": 0.2,
+                  "max": 0.6
+                },
+                "size": {
+                  "min": 0.02,
+                  "max": 0.05
+                },
+                "color": "#ffae57",
+                "colorOverLifetime": [
+                  {
+                    "t": 0,
+                    "color": "#ffd9a0"
+                  },
+                  {
+                    "t": 1,
+                    "color": "#ff5a1a"
+                  }
+                ],
+                "opacityOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0
+                  },
+                  {
+                    "t": 0.1,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0
+                  }
+                ],
+                "gravity": {
+                  "x": 0,
+                  "y": 0.5,
+                  "z": 0
+                },
+                "blend": "additive",
+                "unlit": true
+              }
+            ]
+          },
+          "behaviors": []
+        },
+        {
+          "id": "broken-lamp-sparks",
+          "transform3d": {
+            "position": {
+              "x": 7.6,
+              "y": 5.3,
+              "z": -15.5
+            }
+          },
+          "particles": {
+            "emitters": [
+              {
+                "id": "sparks",
+                "rate": 0,
+                "bursts": [
+                  {
+                    "time": 0,
+                    "count": 18,
+                    "cycles": 100,
+                    "interval": 1.7
+                  }
+                ],
+                "duration": 3.4,
+                "shape": {
+                  "kind": "sphere",
+                  "radius": 0.15
+                },
+                "lifetime": {
+                  "min": 0.6,
+                  "max": 1.4
+                },
+                "speed": {
+                  "min": 0.5,
+                  "max": 2.4
+                },
+                "size": {
+                  "min": 0.01,
+                  "max": 0.022
+                },
+                "color": "#ffd27a",
+                "colorOverLifetime": [
+                  {
+                    "t": 0,
+                    "color": "#fff4c8"
+                  },
+                  {
+                    "t": 1,
+                    "color": "#ff5a14"
+                  }
+                ],
+                "gravity": {
+                  "x": 0,
+                  "y": -9.8,
+                  "z": 0
+                },
+                "blend": "additive",
+                "unlit": true,
+                "render": {
+                  "kind": "stretched",
+                  "length": 2.5,
+                  "speedScale": 0.02
+                }
+              }
+            ]
+          },
+          "behaviors": []
+        },
+        {
+          "id": "exit-field-motes",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0.2,
+              "z": -32.2
+            }
+          },
+          "particles": {
+            "emitters": [
+              {
+                "id": "motes",
+                "rate": 40,
+                "maxParticles": 200,
+                "shape": {
+                  "kind": "box",
+                  "size": {
+                    "x": 4.4,
+                    "y": 0,
+                    "z": 0.4
+                  }
+                },
+                "lifetime": {
+                  "min": 1.5,
+                  "max": 2.8
+                },
+                "speed": {
+                  "min": 0.6,
+                  "max": 1.4
+                },
+                "size": {
+                  "min": 0.02,
+                  "max": 0.05
+                },
+                "color": "#6ff2ff",
+                "opacityOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0
+                  },
+                  {
+                    "t": 0.15,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0
+                  }
+                ],
+                "blend": "additive",
+                "unlit": true
+              }
+            ]
+          },
+          "behaviors": []
+        },
+        {
+          "id": "exit-field",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 2.5,
+              "z": -32.4
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 4.6,
+              "y": 4.9,
+              "z": 0.04
+            },
+            "material": {
+              "color": "#3ee6ff",
+              "metalness": 0.2,
+              "roughness": 0.1,
+              "emissive": "#0f6f7d",
+              "opacity": 0.12,
+              "alphaMode": "blend"
+            },
+            "castShadow": false,
+            "receiveShadow": false
+          },
+          "behaviors": []
+        },
+        {
+          "id": "exit-frame-top",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 5.05,
+              "z": -32.35
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 5.2,
+              "y": 0.12,
+              "z": 0.12
+            },
+            "material": {
+              "color": "#a8f6ff",
+              "metalness": 0.2,
+              "roughness": 0.5,
+              "emissive": "#7cf1ff"
+            },
+            "castShadow": false,
+            "receiveShadow": false
+          },
+          "behaviors": []
+        },
+        {
+          "id": "exit-sill",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0.03,
+              "z": -32.15
+            }
+          },
+          "primitive": {
+            "kind": "box",
+            "dimensions": {
+              "x": 5,
+              "y": 0.04,
+              "z": 0.16
+            },
+            "material": {
+              "color": "#2a6f78",
+              "metalness": 0.2,
+              "roughness": 0.5,
+              "emissive": "#0d5a66"
+            },
+            "castShadow": false,
+            "receiveShadow": false
+          },
+          "behaviors": []
+        },
+        {
+          "id": "exit-glow",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 2.2,
+              "z": -31.2
+            }
+          },
+          "light3d": {
+            "kind": "point",
+            "color": "#4be8ff",
+            "intensity": 14,
+            "range": 9,
+            "decay": 1.8
+          },
+          "behaviors": []
+        },
+        {
+          "id": "beacon-l-26",
+          "transform3d": {
+            "position": {
+              "x": -12.387749999999999,
+              "y": 4.4,
+              "z": -26.5
+            }
+          },
+          "primitive": {
+            "kind": "sphere",
+            "dimensions": {
+              "x": 0.16,
+              "y": 0.16,
+              "z": 0.16
+            },
+            "material": {
+              "color": "#ff3a20",
+              "emissive": "#ff2a10",
+              "roughness": 0.3,
+              "metalness": 0
+            },
+            "castShadow": false,
+            "receiveShadow": false
+          },
+          "behaviors": []
+        },
+        {
+          "id": "beacon-l-9",
+          "transform3d": {
+            "position": {
+              "x": -12.387749999999999,
+              "y": 4.4,
+              "z": -9
+            }
+          },
+          "primitive": {
+            "kind": "sphere",
+            "dimensions": {
+              "x": 0.16,
+              "y": 0.16,
+              "z": 0.16
+            },
+            "material": {
+              "color": "#ff3a20",
+              "emissive": "#ff2a10",
+              "roughness": 0.3,
+              "metalness": 0
+            },
+            "castShadow": false,
+            "receiveShadow": false
+          },
+          "behaviors": []
+        },
+        {
+          "id": "beacon-r-26",
+          "transform3d": {
+            "position": {
+              "x": 12.387749999999999,
+              "y": 4.4,
+              "z": -26.5
+            }
+          },
+          "primitive": {
+            "kind": "sphere",
+            "dimensions": {
+              "x": 0.16,
+              "y": 0.16,
+              "z": 0.16
+            },
+            "material": {
+              "color": "#ff3a20",
+              "emissive": "#ff2a10",
+              "roughness": 0.3,
+              "metalness": 0
+            },
+            "castShadow": false,
+            "receiveShadow": false
+          },
+          "behaviors": []
+        },
+        {
+          "id": "beacon-r-9",
+          "transform3d": {
+            "position": {
+              "x": 12.387749999999999,
+              "y": 4.4,
+              "z": -9
+            }
+          },
+          "primitive": {
+            "kind": "sphere",
+            "dimensions": {
+              "x": 0.16,
+              "y": 0.16,
+              "z": 0.16
+            },
+            "material": {
+              "color": "#ff3a20",
+              "emissive": "#ff2a10",
+              "roughness": 0.3,
+              "metalness": 0
+            },
+            "castShadow": false,
+            "receiveShadow": false
+          },
+          "behaviors": []
+        },
+        {
+          "id": "beacon-light-l",
+          "transform3d": {
+            "position": {
+              "x": -11.9,
+              "y": 4.3,
+              "z": -26.5
+            }
+          },
+          "light3d": {
+            "kind": "point",
+            "color": "#ff3a1c",
+            "intensity": 25,
+            "range": 6,
+            "decay": 1.8
+          },
+          "behaviors": []
+        },
+        {
+          "id": "beacon-light-r",
+          "transform3d": {
+            "position": {
+              "x": 11.9,
+              "y": 4.3,
+              "z": -26.5
+            }
+          },
+          "light3d": {
+            "kind": "point",
+            "color": "#ff3a1c",
+            "intensity": 25,
+            "range": 6,
+            "decay": 1.8
+          },
+          "behaviors": []
+        },
+        {
+          "id": "decal-sector",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": 4.2
+            },
+            "rotation": [
+              -0.707107,
+              0,
+              0,
+              0.707107
+            ]
+          },
+          "decal3d": {
+            "assetId": "decal-stencil-sector",
+            "receiverId": "facility",
+            "size": {
+              "x": 4.2,
+              "y": 1.05,
+              "z": 1
+            },
+            "opacity": 0.75,
+            "renderOrder": 2
+          },
+          "behaviors": []
+        },
+        {
+          "id": "decal-reactor",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": -24.6
+            },
+            "rotation": [
+              -0.707107,
+              0,
+              0,
+              0.707107
+            ]
+          },
+          "decal3d": {
+            "assetId": "decal-stencil-reactor",
+            "receiverId": "facility",
+            "size": {
+              "x": 7,
+              "y": 0.88,
+              "z": 1
+            },
+            "opacity": 0.85,
+            "renderOrder": 2
+          },
+          "behaviors": []
+        },
+        {
+          "id": "decal-exit",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": -30.6
+            },
+            "rotation": [
+              -0.707107,
+              0,
+              0,
+              0.707107
+            ]
+          },
+          "decal3d": {
+            "assetId": "decal-stencil-exit",
+            "receiverId": "facility",
+            "size": {
+              "x": 5,
+              "y": 0.83,
+              "z": 1
+            },
+            "opacity": 0.9,
+            "renderOrder": 2
+          },
+          "behaviors": []
+        },
+        {
+          "id": "decal-hazard-l",
+          "transform3d": {
+            "position": {
+              "x": -8,
+              "y": 0,
+              "z": -26.3
+            },
+            "rotation": [
+              -0.707107,
+              0,
+              0,
+              0.707107
+            ]
+          },
+          "decal3d": {
+            "assetId": "decal-hazard",
+            "receiverId": "facility",
+            "size": {
+              "x": 4.4,
+              "y": 0.55,
+              "z": 1
+            },
+            "opacity": 0.9,
+            "renderOrder": 1
+          },
+          "behaviors": []
+        },
+        {
+          "id": "decal-hazard-r",
+          "transform3d": {
+            "position": {
+              "x": 8,
+              "y": 0,
+              "z": -26.3
+            },
+            "rotation": [
+              -0.707107,
+              0,
+              0,
+              0.707107
+            ]
+          },
+          "decal3d": {
+            "assetId": "decal-hazard",
+            "receiverId": "facility",
+            "size": {
+              "x": 4.4,
+              "y": 0.55,
+              "z": 1
+            },
+            "opacity": 0.9,
+            "renderOrder": 1
+          },
+          "behaviors": []
+        },
+        {
+          "id": "decal-oil-1",
+          "transform3d": {
+            "position": {
+              "x": -2.6,
+              "y": 0,
+              "z": -6.5
+            },
+            "rotation": [
+              -0.683013,
+              0.183013,
+              0.183013,
+              0.683013
+            ]
+          },
+          "decal3d": {
+            "assetId": "decal-oil",
+            "receiverId": "facility",
+            "size": {
+              "x": 2.6,
+              "y": 2.6,
+              "z": 1
+            },
+            "opacity": 0.8,
+            "renderOrder": 0
+          },
+          "behaviors": []
+        },
+        {
+          "id": "decal-oil-2",
+          "transform3d": {
+            "position": {
+              "x": 3.4,
+              "y": 0,
+              "z": -17
+            },
+            "rotation": [
+              -0.40558,
+              0.579228,
+              0.579228,
+              0.40558
+            ]
+          },
+          "decal3d": {
+            "assetId": "decal-oil",
+            "receiverId": "facility",
+            "size": {
+              "x": 3.2,
+              "y": 3.2,
+              "z": 1
+            },
+            "opacity": 0.7,
+            "renderOrder": 0
+          },
+          "behaviors": []
+        },
+        {
+          "id": "decal-grime-1",
+          "transform3d": {
+            "position": {
+              "x": -9.5,
+              "y": 0,
+              "z": 0.5
+            },
+            "rotation": [
+              -0.612372,
+              0.353554,
+              0.353554,
+              0.612372
+            ]
+          },
+          "decal3d": {
+            "assetId": "decal-grime",
+            "receiverId": "facility",
+            "size": {
+              "x": 4.5,
+              "y": 4.5,
+              "z": 1
+            },
+            "opacity": 0.8,
+            "renderOrder": 0
+          },
+          "behaviors": []
+        },
+        {
+          "id": "decal-grime-2",
+          "transform3d": {
+            "position": {
+              "x": 9.5,
+              "y": 0,
+              "z": -12
+            },
+            "rotation": [
+              0.122788,
+              0.696365,
+              0.696365,
+              -0.122788
+            ]
+          },
+          "decal3d": {
+            "assetId": "decal-grime",
+            "receiverId": "facility",
+            "size": {
+              "x": 5,
+              "y": 5,
+              "z": 1
+            },
+            "opacity": 0.8,
+            "renderOrder": 0
+          },
+          "behaviors": []
+        },
+        {
+          "id": "decal-grime-3",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": -28.5
+            },
+            "rotation": [
+              -0.701058,
+              0.092296,
+              0.092296,
+              0.701058
+            ]
+          },
+          "decal3d": {
+            "assetId": "decal-grime",
+            "receiverId": "facility",
+            "size": {
+              "x": 6,
+              "y": 6,
+              "z": 1
+            },
+            "opacity": 0.6,
+            "renderOrder": 0
+          },
+          "behaviors": []
+        },
+        {
+          "id": "decal-scorch-1",
+          "transform3d": {
+            "position": {
+              "x": 4.2,
+              "y": 0,
+              "z": -7.2
+            },
+            "rotation": [
+              -0.664463,
+              0.241845,
+              0.241845,
+              0.664463
+            ]
+          },
+          "decal3d": {
+            "assetId": "decal-scorch",
+            "receiverId": "facility",
+            "size": {
+              "x": 2.4,
+              "y": 2.4,
+              "z": 1
+            },
+            "opacity": 0.85,
+            "renderOrder": 0
+          },
+          "behaviors": []
+        },
+        {
+          "id": "decal-scorch-2",
+          "transform3d": {
+            "position": {
+              "x": -5.6,
+              "y": 0,
+              "z": -15
+            },
+            "rotation": [
+              -0.122788,
+              0.696365,
+              0.696365,
+              0.122788
+            ]
+          },
+          "decal3d": {
+            "assetId": "decal-scorch",
+            "receiverId": "facility",
+            "size": {
+              "x": 2.8,
+              "y": 2.8,
+              "z": 1
+            },
+            "opacity": 0.85,
+            "renderOrder": 0
+          },
+          "behaviors": []
+        }
+      ]
+    }
+  ],
+  "prefabs": {
+    "impact": {
+      "rootId": "impact",
+      "entities": [
+        {
+          "id": "impact",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "tags": [
+            "impact"
+          ],
+          "particles": {
+            "emitters": [
+              {
+                "id": "impact-sparks",
+                "playOnStart": true,
+                "rate": 0,
+                "shape": {
+                  "kind": "cone",
+                  "angle": 40
+                },
+                "lifetime": {
+                  "min": 0.15,
+                  "max": 0.45
+                },
+                "speed": {
+                  "min": 2.5,
+                  "max": 7
+                },
+                "size": {
+                  "min": 0.01,
+                  "max": 0.022
+                },
+                "color": "#ffd27a",
+                "colorOverLifetime": [
+                  {
+                    "t": 0,
+                    "color": "#fff4c8"
+                  },
+                  {
+                    "t": 1,
+                    "color": "#ff5a14"
+                  }
+                ],
+                "gravity": {
+                  "x": 0,
+                  "y": -9.8,
+                  "z": 0
+                },
+                "blend": "additive",
+                "unlit": true,
+                "render": {
+                  "kind": "stretched",
+                  "length": 2.5,
+                  "speedScale": 0.025
+                },
+                "loop": false,
+                "duration": 0.1,
+                "bursts": [
+                  {
+                    "time": 0,
+                    "count": 10
+                  }
+                ]
+              },
+              {
+                "id": "impact-flash",
+                "playOnStart": true,
+                "rate": 0,
+                "lifetime": 0.06,
+                "speed": 0,
+                "size": 0.35,
+                "color": "#ffe2a8",
+                "opacityOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0
+                  }
+                ],
+                "blend": "additive",
+                "unlit": true,
+                "loop": false,
+                "duration": 0.1,
+                "bursts": [
+                  {
+                    "time": 0,
+                    "count": 1
+                  }
+                ]
+              },
+              {
+                "id": "impact-dust",
+                "playOnStart": true,
+                "rate": 0,
+                "shape": {
+                  "kind": "cone",
+                  "angle": 30
+                },
+                "lifetime": {
+                  "min": 0.5,
+                  "max": 0.9
+                },
+                "speed": {
+                  "min": 0.4,
+                  "max": 1.2
+                },
+                "size": {
+                  "min": 0.08,
+                  "max": 0.16
+                },
+                "color": "#7d7a74",
+                "opacity": 0.4,
+                "sizeOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0.5
+                  },
+                  {
+                    "t": 1,
+                    "value": 2.2
+                  }
+                ],
+                "opacityOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0
+                  },
+                  {
+                    "t": 0.1,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0
+                  }
+                ],
+                "drag": 3,
+                "unlit": true,
+                "loop": false,
+                "duration": 0.1,
+                "bursts": [
+                  {
+                    "time": 0,
+                    "count": 4
+                  }
+                ]
+              }
+            ]
+          },
+          "behaviors": [
+            {
+              "kind": "lifetime",
+              "ticks": 6,
+              "fade": false
+            }
+          ]
+        }
+      ]
+    },
+    "explosion": {
+      "rootId": "explosion",
+      "entities": [
+        {
+          "id": "explosion",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "tags": [
+            "explosion"
+          ],
+          "particles": {
+            "emitters": [
+              {
+                "id": "fireball",
+                "playOnStart": true,
+                "loop": false,
+                "duration": 0.1,
+                "rate": 0,
+                "bursts": [
+                  {
+                    "time": 0,
+                    "count": 40
+                  }
+                ],
+                "shape": {
+                  "kind": "sphere",
+                  "radius": 0.3
+                },
+                "lifetime": {
+                  "min": 0.35,
+                  "max": 0.8
+                },
+                "speed": {
+                  "min": 1.5,
+                  "max": 4.5
+                },
+                "size": {
+                  "min": 0.35,
+                  "max": 0.8
+                },
+                "color": "#ff9b30",
+                "sizeOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0.6
+                  },
+                  {
+                    "t": 0.25,
+                    "value": 1.3
+                  },
+                  {
+                    "t": 1,
+                    "value": 0.2
+                  }
+                ],
+                "opacityOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0
+                  },
+                  {
+                    "t": 0.08,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0
+                  }
+                ],
+                "colorOverLifetime": [
+                  {
+                    "t": 0,
+                    "color": "#fff6d0"
+                  },
+                  {
+                    "t": 0.3,
+                    "color": "#ffa236"
+                  },
+                  {
+                    "t": 1,
+                    "color": "#9a2412"
+                  }
+                ],
+                "drag": 3,
+                "blend": "additive",
+                "unlit": true
+              },
+              {
+                "id": "core",
+                "playOnStart": true,
+                "loop": false,
+                "duration": 0.1,
+                "rate": 0,
+                "bursts": [
+                  {
+                    "time": 0,
+                    "count": 3
+                  }
+                ],
+                "lifetime": 0.14,
+                "speed": 0,
+                "size": {
+                  "min": 1.3,
+                  "max": 1.7
+                },
+                "color": "#ffe7c0",
+                "opacityOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0
+                  }
+                ],
+                "blend": "additive",
+                "unlit": true
+              },
+              {
+                "id": "sparks",
+                "playOnStart": true,
+                "loop": false,
+                "duration": 0.1,
+                "rate": 0,
+                "bursts": [
+                  {
+                    "time": 0,
+                    "count": 70
+                  }
+                ],
+                "shape": {
+                  "kind": "sphere",
+                  "radius": 0.2
+                },
+                "lifetime": {
+                  "min": 0.4,
+                  "max": 1.2
+                },
+                "speed": {
+                  "min": 4,
+                  "max": 12
+                },
+                "size": {
+                  "min": 0.015,
+                  "max": 0.035
+                },
+                "color": "#ffcf6a",
+                "colorOverLifetime": [
+                  {
+                    "t": 0,
+                    "color": "#fff6c8"
+                  },
+                  {
+                    "t": 1,
+                    "color": "#ff4a10"
+                  }
+                ],
+                "gravity": {
+                  "x": 0,
+                  "y": -9.8,
+                  "z": 0
+                },
+                "drag": 0.8,
+                "blend": "additive",
+                "unlit": true,
+                "render": {
+                  "kind": "stretched",
+                  "length": 2,
+                  "speedScale": 0.03
+                }
+              },
+              {
+                "id": "smoke",
+                "playOnStart": true,
+                "loop": false,
+                "duration": 0.6,
+                "rate": 0,
+                "bursts": [
+                  {
+                    "time": 0.05,
+                    "count": 18
+                  }
+                ],
+                "shape": {
+                  "kind": "sphere",
+                  "radius": 0.5
+                },
+                "lifetime": {
+                  "min": 1.6,
+                  "max": 3
+                },
+                "speed": {
+                  "min": 0.4,
+                  "max": 1.4
+                },
+                "size": {
+                  "min": 0.6,
+                  "max": 1.2
+                },
+                "color": "#2c2b2a",
+                "opacity": 0.7,
+                "sizeOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0.5
+                  },
+                  {
+                    "t": 1,
+                    "value": 2.4
+                  }
+                ],
+                "opacityOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0
+                  },
+                  {
+                    "t": 0.15,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0
+                  }
+                ],
+                "gravity": {
+                  "x": 0,
+                  "y": 0.6,
+                  "z": 0
+                },
+                "drag": 1.5,
+                "softness": 0.6
+              },
+              {
+                "id": "debris",
+                "playOnStart": true,
+                "loop": false,
+                "duration": 0.1,
+                "rate": 0,
+                "bursts": [
+                  {
+                    "time": 0,
+                    "count": 22
+                  }
+                ],
+                "shape": {
+                  "kind": "sphere",
+                  "radius": 0.3
+                },
+                "lifetime": {
+                  "min": 0.8,
+                  "max": 1.6
+                },
+                "speed": {
+                  "min": 3,
+                  "max": 7
+                },
+                "size": {
+                  "min": 0.05,
+                  "max": 0.14
+                },
+                "angularVelocity": {
+                  "min": -10,
+                  "max": 10
+                },
+                "color": "#2b3036",
+                "gravity": {
+                  "x": 0,
+                  "y": -9.8,
+                  "z": 0
+                },
+                "render": {
+                  "kind": "mesh",
+                  "shape": "tetrahedron",
+                  "align": "world"
+                }
+              }
+            ]
+          },
+          "audioSource": {
+            "assetId": "destroyed",
+            "onEvent": "boom",
+            "volume": 1,
+            "spatial": true,
+            "minDistance": 3,
+            "maxDistance": 80
+          },
+          "behaviors": [
+            {
+              "kind": "lifetime",
+              "ticks": 12,
+              "fade": false
+            }
+          ]
+        }
+      ]
+    },
+    "drone-charge": {
+      "rootId": "drone-charge",
+      "entities": [
+        {
+          "id": "drone-charge",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "tags": [
+            "drone-charge"
+          ],
+          "particles": {
+            "emitters": [
+              {
+                "id": "charge",
+                "playOnStart": true,
+                "loop": false,
+                "duration": 0.62,
+                "rate": 90,
+                "maxParticles": 96,
+                "shape": {
+                  "kind": "sphere",
+                  "radius": 0.28,
+                  "fromSurface": true
+                },
+                "lifetime": {
+                  "min": 0.15,
+                  "max": 0.3
+                },
+                "speed": {
+                  "min": 0.1,
+                  "max": 0.4
+                },
+                "size": {
+                  "min": 0.04,
+                  "max": 0.1
+                },
+                "color": "#ff4a2a",
+                "colorOverLifetime": [
+                  {
+                    "t": 0,
+                    "color": "#ffd0b0"
+                  },
+                  {
+                    "t": 1,
+                    "color": "#ff2a12"
+                  }
+                ],
+                "opacityOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0
+                  },
+                  {
+                    "t": 0.2,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0
+                  }
+                ],
+                "blend": "additive",
+                "unlit": true
+              },
+              {
+                "id": "flare",
+                "playOnStart": true,
+                "loop": false,
+                "duration": 0.62,
+                "rate": 40,
+                "maxParticles": 8,
+                "lifetime": 0.07,
+                "speed": 0,
+                "size": {
+                  "min": 0.45,
+                  "max": 0.8
+                },
+                "color": "#ff3a1a",
+                "opacityOverLifetime": [
+                  {
+                    "t": 0,
+                    "value": 0
+                  },
+                  {
+                    "t": 0.3,
+                    "value": 1
+                  },
+                  {
+                    "t": 1,
+                    "value": 0
+                  }
+                ],
+                "blend": "additive",
+                "unlit": true
+              }
+            ]
+          },
+          "audioSource": {
+            "assetId": "drone-charge",
+            "onEvent": "charge",
+            "volume": 0.6,
+            "spatial": true,
+            "minDistance": 3,
+            "maxDistance": 50
+          },
+          "behaviors": [
+            {
+              "kind": "lifetime",
+              "ticks": 42,
+              "fade": false
+            }
+          ]
+        }
+      ]
+    },
+    "drone-shot": {
+      "rootId": "drone-shot",
+      "entities": [
+        {
+          "id": "drone-shot",
+          "transform3d": {
+            "position": {
+              "x": 0,
+              "y": 0,
+              "z": 0
+            }
+          },
+          "tags": [
+            "drone-shot"
+          ],
+          "particles": {
+            "emitters": [
+              {
+                "id": "bolt",
+                "playOnStart": true,
+                "rate": 0,
+                "shape": {
+                  "kind": "cone",
+                  "angle": 0
+                },
+                "lifetime": 0.32,
+                "speed": 55,
+                "size": 0.09,
+                "color": "#ff5232",
+                "blend": "additive",
+                "unlit": true,
+                "render": {
+                  "kind": "stretched",
+                  "length": 1,
+                  "speedScale": 0.05
+                },
+                "loop": false,
+                "duration": 0.1,
+                "bursts": [
+                  {
+                    "time": 0,
+                    "count": 1
+                  }
+                ]
+              },
+              {
+                "id": "blast",
+                "playOnStart": true,
+                "rate": 0,
+                "shape": {
+                  "kind": "cone",
+                  "angle": 35
+                },
+                "lifetime": {
+                  "min": 0.08,
+                  "max": 0.2
+                },
+                "speed": {
+                  "min": 2,
+                  "max": 6
+                },
+                "size": {
+                  "min": 0.03,
+                  "max": 0.08
+                },
+                "color": "#ff6a3a",
+                "blend": "additive",
+                "unlit": true,
+                "render": {
+                  "kind": "stretched",
+                  "length": 2,
+                  "speedScale": 0.03
+                },
+                "loop": false,
+                "duration": 0.1,
+                "bursts": [
+                  {
+                    "time": 0,
+                    "count": 16
+                  }
+                ]
+              }
+            ]
+          },
+          "audioSource": {
+            "assetId": "drone-fire",
+            "onEvent": "zap",
+            "volume": 0.8,
+            "spatial": true,
+            "minDistance": 3,
+            "maxDistance": 60
+          },
+          "behaviors": [
+            {
+              "kind": "lifetime",
+              "ticks": 10,
+              "fade": false
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "ui": {
+    "safeArea": true,
+    "nodes": [
+      {
+        "kind": "panel",
+        "id": "damage",
+        "anchor": {
+          "x": 0,
+          "y": 0
+        },
+        "width": 1280,
+        "height": 720,
+        "color": "#b0140c",
+        "opacity": 0.22,
+        "visible": false
+      },
+      {
+        "kind": "panel",
+        "id": "brand-panel",
+        "anchor": {
+          "x": 0,
+          "y": 0
+        },
+        "offset": {
+          "x": 28,
+          "y": 26
+        },
+        "width": 250,
+        "height": 62,
+        "color": "#05080b",
+        "opacity": 0.45,
+        "cornerRadius": 2
+      },
+      {
+        "kind": "panel",
+        "id": "brand-accent",
+        "parent": "brand-panel",
+        "anchor": {
+          "x": 0,
+          "y": 0
+        },
+        "width": 3,
+        "height": 62,
+        "color": "#5ce8f0"
+      },
+      {
+        "kind": "text",
+        "id": "brand",
+        "parent": "brand-panel",
+        "anchor": {
+          "x": 0,
+          "y": 0
+        },
+        "offset": {
+          "x": 16,
+          "y": 6
+        },
+        "text": "BLACKSITE",
+        "size": 34,
+        "color": "#eef8fb",
+        "fontId": "font-display"
+      },
+      {
+        "kind": "text",
+        "id": "mission",
+        "parent": "brand-panel",
+        "anchor": {
+          "x": 0,
+          "y": 0
+        },
+        "offset": {
+          "x": 17,
+          "y": 41
+        },
+        "text": "OPERATION DEAD CIRCUIT",
+        "size": 11,
+        "color": "#7fa3ae",
+        "fontId": "font-ui"
+      },
+      {
+        "kind": "panel",
+        "id": "objective-panel",
+        "anchor": {
+          "x": 1,
+          "y": 0
+        },
+        "offset": {
+          "x": -28,
+          "y": 26
+        },
+        "width": 300,
+        "height": 96,
+        "color": "#05080b",
+        "opacity": 0.45,
+        "cornerRadius": 2
+      },
+      {
+        "kind": "panel",
+        "id": "objective-accent",
+        "parent": "objective-panel",
+        "anchor": {
+          "x": 1,
+          "y": 0
+        },
+        "width": 3,
+        "height": 96,
+        "color": "#ffb04a"
+      },
+      {
+        "kind": "text",
+        "id": "objective-label",
+        "parent": "objective-panel",
+        "anchor": {
+          "x": 1,
+          "y": 0
+        },
+        "offset": {
+          "x": -16,
+          "y": 10
+        },
+        "text": "OBJECTIVE",
+        "size": 11,
+        "color": "#ffb04a",
+        "fontId": "font-ui",
+        "align": "right"
+      },
+      {
+        "kind": "text",
+        "id": "objective",
+        "parent": "objective-panel",
+        "anchor": {
+          "x": 1,
+          "y": 0
+        },
+        "offset": {
+          "x": -16,
+          "y": 28
+        },
+        "text": "ELIMINATE SECURITY DRONES",
+        "size": 14,
+        "color": "#eef8fb",
+        "fontId": "font-ui",
+        "align": "right"
+      },
+      {
+        "kind": "text",
+        "id": "objective-count",
+        "parent": "objective-panel",
+        "anchor": {
+          "x": 1,
+          "y": 0
+        },
+        "offset": {
+          "x": -16,
+          "y": 52
+        },
+        "text": "0 / 5",
+        "size": 26,
+        "color": "#ffb04a",
+        "fontId": "font-display",
+        "align": "right"
+      },
+      {
+        "kind": "panel",
+        "id": "vitals-panel",
+        "anchor": {
+          "x": 0,
+          "y": 1
+        },
+        "offset": {
+          "x": 28,
+          "y": -26
+        },
+        "width": 260,
+        "height": 74,
+        "color": "#05080b",
+        "opacity": 0.45,
+        "cornerRadius": 2
+      },
+      {
+        "kind": "text",
+        "id": "hp-label",
+        "parent": "vitals-panel",
+        "anchor": {
+          "x": 0,
+          "y": 0
+        },
+        "offset": {
+          "x": 16,
+          "y": 10
+        },
+        "text": "ARMOR",
+        "size": 11,
+        "color": "#7fa3ae",
+        "fontId": "font-ui"
+      },
+      {
+        "kind": "text",
+        "id": "hp-value",
+        "parent": "vitals-panel",
+        "anchor": {
+          "x": 0,
+          "y": 0
+        },
+        "offset": {
+          "x": 15,
+          "y": 22
+        },
+        "text": "100",
+        "size": 40,
+        "color": "#eef8fb",
+        "fontId": "font-display"
+      },
+      {
+        "kind": "bar",
+        "id": "hp-bar",
+        "parent": "vitals-panel",
+        "anchor": {
+          "x": 0,
+          "y": 0
+        },
+        "offset": {
+          "x": 84,
+          "y": 42
+        },
+        "width": 158,
+        "height": 8,
+        "value": 100,
+        "max": 100,
+        "color": "#5ce8f0",
+        "background": "#1c2a30"
+      },
+      {
+        "kind": "panel",
+        "id": "ammo-panel",
+        "anchor": {
+          "x": 1,
+          "y": 1
+        },
+        "offset": {
+          "x": -28,
+          "y": -26
+        },
+        "width": 260,
+        "height": 74,
+        "color": "#05080b",
+        "opacity": 0.45,
+        "cornerRadius": 2
+      },
+      {
+        "kind": "text",
+        "id": "weapon",
+        "parent": "ammo-panel",
+        "anchor": {
+          "x": 1,
+          "y": 0
+        },
+        "offset": {
+          "x": -16,
+          "y": 10
+        },
+        "text": "AR-09  PULSE RIFLE",
+        "size": 11,
+        "color": "#7fa3ae",
+        "fontId": "font-ui",
+        "align": "right"
+      },
+      {
+        "kind": "text",
+        "id": "ammo-value",
+        "parent": "ammo-panel",
+        "anchor": {
+          "x": 1,
+          "y": 0
+        },
+        "offset": {
+          "x": -64,
+          "y": 22
+        },
+        "text": "18",
+        "size": 40,
+        "color": "#eef8fb",
+        "fontId": "font-display",
+        "align": "right"
+      },
+      {
+        "kind": "text",
+        "id": "ammo-max",
+        "parent": "ammo-panel",
+        "anchor": {
+          "x": 1,
+          "y": 0
+        },
+        "offset": {
+          "x": -16,
+          "y": 36
+        },
+        "text": "/ 18",
+        "size": 22,
+        "color": "#7fa3ae",
+        "fontId": "font-display",
+        "align": "right"
+      },
+      {
+        "kind": "bar",
+        "id": "ammo-bar",
+        "parent": "ammo-panel",
+        "anchor": {
+          "x": 0,
+          "y": 0
+        },
+        "offset": {
+          "x": 16,
+          "y": 42
+        },
+        "width": 110,
+        "height": 8,
+        "value": 18,
+        "max": 18,
+        "color": "#ffb04a",
+        "background": "#2a2216",
+        "direction": "rightToLeft"
+      },
+      {
+        "kind": "panel",
+        "id": "cross-l",
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "pivot": {
+          "x": 1,
+          "y": 0.5
+        },
+        "offset": {
+          "x": -5,
+          "y": 0
+        },
+        "width": 9,
+        "height": 2,
+        "color": "#e8fbff",
+        "opacity": 0.85
+      },
+      {
+        "kind": "panel",
+        "id": "cross-r",
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "pivot": {
+          "x": 0,
+          "y": 0.5
+        },
+        "offset": {
+          "x": 5,
+          "y": 0
+        },
+        "width": 9,
+        "height": 2,
+        "color": "#e8fbff",
+        "opacity": 0.85
+      },
+      {
+        "kind": "panel",
+        "id": "cross-t",
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "pivot": {
+          "x": 0.5,
+          "y": 1
+        },
+        "offset": {
+          "x": 0,
+          "y": -5
+        },
+        "width": 2,
+        "height": 9,
+        "color": "#e8fbff",
+        "opacity": 0.85
+      },
+      {
+        "kind": "panel",
+        "id": "cross-b",
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "pivot": {
+          "x": 0.5,
+          "y": 0
+        },
+        "offset": {
+          "x": 0,
+          "y": 5
+        },
+        "width": 2,
+        "height": 9,
+        "color": "#e8fbff",
+        "opacity": 0.85
+      },
+      {
+        "kind": "text",
+        "id": "hitmarker",
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "text": "×",
+        "size": 38,
+        "color": "#ffb04a",
+        "fontId": "font-ui",
+        "align": "center",
+        "visible": false
+      },
+      {
+        "kind": "text",
+        "id": "warning",
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "offset": {
+          "x": 0,
+          "y": 150
+        },
+        "text": "",
+        "size": 26,
+        "color": "#ff5a3c",
+        "fontId": "font-display",
+        "align": "center",
+        "visible": false
+      },
+      {
+        "kind": "text",
+        "id": "help",
+        "anchor": {
+          "x": 0.5,
+          "y": 1
+        },
+        "pivot": {
+          "x": 0.5,
+          "y": 1
+        },
+        "offset": {
+          "x": 0,
+          "y": -14
+        },
+        "text": "WASD MOVE   ·   MOUSE AIM   ·   CLICK / F FIRE   ·   R RELOAD   ·   SPACE JUMP",
+        "size": 10,
+        "color": "#6f8c96",
+        "fontId": "font-ui",
+        "align": "center",
+        "opacity": 0.8
+      },
+      {
+        "kind": "panel",
+        "id": "banner",
+        "anchor": {
+          "x": 0.5,
+          "y": 0.4
+        },
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "width": 1280,
+        "height": 130,
+        "color": "#04070a",
+        "opacity": 0.72,
+        "visible": false
+      },
+      {
+        "kind": "panel",
+        "id": "banner-line",
+        "parent": "banner",
+        "anchor": {
+          "x": 0.5,
+          "y": 0
+        },
+        "pivot": {
+          "x": 0.5,
+          "y": 0
+        },
+        "width": 420,
+        "height": 2,
+        "color": "#5ce8f0"
+      },
+      {
+        "kind": "text",
+        "id": "banner-title",
+        "parent": "banner",
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "offset": {
+          "x": 0,
+          "y": -14
+        },
+        "text": "",
+        "size": 64,
+        "color": "#eef8fb",
+        "fontId": "font-display",
+        "align": "center"
+      },
+      {
+        "kind": "text",
+        "id": "banner-sub",
+        "parent": "banner",
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "pivot": {
+          "x": 0.5,
+          "y": 0.5
+        },
+        "offset": {
+          "x": 0,
+          "y": 34
+        },
+        "text": "",
+        "size": 13,
+        "color": "#5ce8f0",
+        "fontId": "font-ui",
+        "align": "center"
+      }
+    ]
+  },
+  "audio": {
+    "mixer": {
+      "buses": {
+        "music": {
+          "volume": 0.5
+        },
+        "sfx": {
+          "volume": 0.9,
+          "reverbSend": 0.18
+        },
+        "enemies": {
+          "parent": "sfx",
+          "volume": 1,
+          "reverbSend": 0.3
+        },
+        "ui": {
+          "volume": 0.7
+        }
+      },
+      "assetBuses": {
+        "drone-fire": "enemies",
+        "drone-charge": "enemies",
+        "destroyed": "enemies",
+        "hit": "ui",
+        "victory": "ui"
+      },
+      "reverb": {
+        "decaySeconds": 2.6
+      },
+      "ducking": [
+        {
+          "bus": "music",
+          "when": "ui",
+          "gain": 0.6,
+          "attackTicks": 2,
+          "releaseTicks": 40
+        }
+      ],
+      "snapshots": {
+        "extraction": {
+          "buses": {
+            "music": {
+              "volume": 0.25,
+              "lowpassHz": 1800
+            },
+            "enemies": {
+              "muted": true
+            }
+          }
+        }
+      },
+      "transitions": [
+        {
+          "on": {
+            "kind": "trigger",
+            "event": "victory"
+          },
+          "snapshot": "extraction",
+          "fadeTicks": 90
+        }
+      ]
+    }
+  }
+}

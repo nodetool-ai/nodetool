@@ -28,9 +28,21 @@ export interface PackageAssetRef {
   pkg: string;
   /** File path relative to the package's dist/, e.g. "kie-manifest.json". */
   path: string;
+  /** Platform capability assets are absent until their native target is staged. */
+  optional?: boolean;
 }
 
 export const PACKAGE_RUNTIME_ASSETS: readonly PackageAssetRef[] = [
+  { pkg: "@nodetool-ai/game-runtime", path: "native-game-export.mjs" },
+  { pkg: "@nodetool-ai/game-runtime", path: "native-game-web-export.mjs" },
+  { pkg: "@nodetool-ai/game-renderer", path: "native-game.mjs", optional: true },
+  { pkg: "@nodetool-ai/game-renderer", path: "native-game.wasm", optional: true },
+  { pkg: "@nodetool-ai/game-renderer", path: "native-game-worker.js", optional: true },
+  { pkg: "@nodetool-ai/game-renderer", path: "native-game-player.js", optional: true },
+  { pkg: "@nodetool-ai/game-renderer", path: "native-game-browser.json", optional: true },
+  { pkg: "@nodetool-ai/game-runtime", path: "native-game-notices.txt" },
+  { pkg: "@nodetool-ai/game-runtime", path: "native-game-worker", optional: true },
+  { pkg: "@nodetool-ai/game-runtime", path: "native-game-worker.exe", optional: true },
   { pkg: "@nodetool-ai/node-catalog", path: "index.json" },
   { pkg: "@nodetool-ai/node-catalog", path: "nodes.ndjson.gz" },
   { pkg: "@nodetool-ai/atlascloud-nodes", path: "atlascloud-manifest.json" },

@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.22)
+project(NodeToolGameDependencyProbe LANGUAGES C CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+include(CTest)
+include(FetchContent)
+option(GAME_BUILD_DEPENDENCY_PROBES "Build QuickJS and Jolt dependency probes" ON)
+include(../cmake/Dependencies.cmake)

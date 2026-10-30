@@ -247,6 +247,13 @@ and bundled `./assets/` paths),
 `packages/game-renderer/src/standalone-player3d.ts` (fixed relative `game.json`
 and `manifest.json`, then digest-named `./assets/` paths validated against the
 closed export manifest),
+`packages/game-renderer/src/native-cpp/player.ts` (fixed `game.json` and
+manifest-declared `assets/<path>` relative to the embedding page's static base
+URL, with redirects rejected). Its asset broker rejects absolute paths,
+traversal segments, URL delimiters and encoded paths, then verifies each
+response's declared size and SHA-256 before use. Fetch uses the browser's
+default same-origin credential policy. Installed native exports apply
+`connect-src 'self'` CSP,
 `packages/game-renderer/src/audio/player.ts` and
 `packages/game-renderer/src/browser-fonts.ts` (asset URLs resolved by the web
 app, or bundled `./assets/` paths in a standalone export),

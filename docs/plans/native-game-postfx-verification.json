@@ -1,0 +1,123 @@
+{
+  "browser": "148.0.7778.96",
+  "identity": {
+    "vendor": "Google Inc. (Google)",
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+    "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+  },
+  "width": 128,
+  "height": 96,
+  "fixtureSha256": "b7c5ed1218f90a87965f17cc34b429d8457037c21570fd2e3d07c00b4ea7e80d",
+  "bundleSha256": "fb4bd54cfb43419ab882601a17c72e13538afa708da87386b0bfd0c203e79229",
+  "comparisons": [
+    {
+      "name": "agx",
+      "max": 0,
+      "mean": 0
+    },
+    {
+      "name": "agx-qt-reference",
+      "max": 35,
+      "mean": 0.06597222222222222,
+      "changedFraction": 0.0002712673611111111
+    },
+    {
+      "name": "bloom",
+      "max": 0,
+      "mean": 0
+    },
+    {
+      "name": "bloom-qt-reference",
+      "max": 4,
+      "mean": 0.1157497829861111,
+      "changedFraction": 0
+    },
+    {
+      "name": "vignette",
+      "max": 0,
+      "mean": 0
+    },
+    {
+      "name": "vignette-qt-reference",
+      "max": 34,
+      "mean": 0.07866753472222222,
+      "changedFraction": 0.00018988715277777778
+    },
+    {
+      "name": "combined",
+      "max": 0,
+      "mean": 0
+    },
+    {
+      "name": "combined-qt-reference",
+      "max": 1,
+      "mean": 0.1281195746527778,
+      "changedFraction": 0
+    },
+    {
+      "name": "softness",
+      "max": 0,
+      "mean": 0
+    },
+    {
+      "name": "softness-qt-reference",
+      "max": 1,
+      "mean": 0.1330023871527778,
+      "changedFraction": 0
+    }
+  ],
+  "captureDigests": [
+    {
+      "name": "agx",
+      "referenceRgbaBottomUpSha256": "020cdbc0e5162ea49fd38e492c45388bad25baf0114de410be98032441f221a9",
+      "actualRgbaBottomUpSha256": "020cdbc0e5162ea49fd38e492c45388bad25baf0114de410be98032441f221a9"
+    },
+    {
+      "name": "bloom",
+      "referenceRgbaBottomUpSha256": "d0608e525883c113788837dc493acd651b496ad24f8557f944586e544a11bc83",
+      "actualRgbaBottomUpSha256": "d0608e525883c113788837dc493acd651b496ad24f8557f944586e544a11bc83"
+    },
+    {
+      "name": "vignette",
+      "referenceRgbaBottomUpSha256": "c7a0b184356367fbf02c51767247e76d57c65479f08c572b4849848efd0bb49f",
+      "actualRgbaBottomUpSha256": "c7a0b184356367fbf02c51767247e76d57c65479f08c572b4849848efd0bb49f"
+    },
+    {
+      "name": "combined",
+      "referenceRgbaBottomUpSha256": "8cc635dec8c66afefea52239d75cb2341e0987f6d1a10f968dcd948ccd63e062",
+      "actualRgbaBottomUpSha256": "8cc635dec8c66afefea52239d75cb2341e0987f6d1a10f968dcd948ccd63e062"
+    },
+    {
+      "name": "softness",
+      "referenceRgbaBottomUpSha256": "c394313b0c32ae13283264464592f7018d0fac4e4ff6e629f68f79014f51ac11",
+      "actualRgbaBottomUpSha256": "c394313b0c32ae13283264464592f7018d0fac4e4ff6e629f68f79014f51ac11"
+    }
+  ],
+  "sourceSha256": {
+    "native/game/src/render/PostFX3D.cpp": "d9a6ac487c2aa566741926ec4b5b9591caa52ef0e38df7c5140eb7753eeb5c98",
+    "native/game/src/render/shaders/postfx.frag": "deff4df0f5752ed6496b797861f4985c0640485aff29fc2ec962603eca82665b",
+    "native/game/assets/native-smaa-area.png": "b5a8e3bb3fbf11136d1411c6b7454f4469358559352987a074e22047582c0625",
+    "native/game/assets/native-smaa-search.png": "025eb54fb8c4c2858a7d6d9743b88919fe5f9c661329c447a8f1e28971ae7403",
+    "native/game/assets/native-smaa.json": "99b7aaee7cb26c98b9a5102c854fb2560d036b5539fcb1c990b080147008931e",
+    "packages/game-renderer/src/native-cpp/3d-post.ts": "b47abee2b394786b6b3591a7cd5ed62d87fdb3ba012415f6cb649ad11e2bbefe",
+    "packages/game-renderer/src/native-cpp/3d-builtins.ts": "d75d884a1edc40a1687f747a34e15cb51121ceb5359a58b931439786490358f0"
+  },
+  "method": {
+    "input": "Shared exact RGBA16F fixture, asymmetric diagonal edge, HDR hotspot and color gradient",
+    "native": "Qt 6.12 QRhi OpenGLES2, EGL with LIBGL_ALWAYS_SOFTWARE=1, isolated Xvfb",
+    "reference": "Actual GamePostProcessor3D configured with identical authored postProcessing values",
+    "browserHelper": "Native helper using verified decoded SMAA tables, same Three implementation",
+    "tolerance": {
+      "browserMaximumChannelDelta": 1,
+      "nativeMeanRgbChannelDelta": 1,
+      "nativeChannelFractionDeltaAbove16": 0.02
+    },
+    "units": "8-bit channel values, not normalized",
+    "performance": "Correctness only. No hardware frame rate or presentation latency claim."
+  },
+  "negativeWitness": {
+    "mutation": "Native browser helper exposure multiplied by two",
+    "result": "Failed AgX maximum channel delta 59 > 1; original source restored in finally, subsequent unchanged test passed",
+    "log": "postfx-exposure-negative.log"
+  }
+}

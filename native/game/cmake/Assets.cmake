@@ -1,0 +1,8 @@
+add_library(game_assets ${GAME_SOURCE_DIR}/src/assets/PreparedAssets.cpp)
+target_include_directories(game_assets PUBLIC ${GAME_SOURCE_DIR}/src)
+target_link_libraries(game_assets PUBLIC nlohmann_json::nlohmann_json)
+if(BUILD_TESTING)
+  add_executable(game-assets-tests tests/AssetsTest.cpp)
+  target_link_libraries(game-assets-tests PRIVATE game_assets)
+  add_test(NAME native-game-assets COMMAND game-assets-tests)
+endif()

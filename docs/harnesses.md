@@ -1455,6 +1455,31 @@ assets, and tick progress. The `game-flow` selfcheck includes the smoke suite.
 A legacy export node reports a migration
 diagnostic; external-engine scene behavior requires manual reconstruction.
 
+### Native C++ browser export selfcheck
+
+`node scripts/check-native-game-browser.mjs` checks the installed native browser
+profile after the pinned WebAssembly build and package builds. It requires
+nonempty fixture discovery and exact generated player/worker identity. It runs
+the same authored fixtures against the native worker and WebAssembly, with exact
+discrete state and numeric tolerances of absolute `1e-5` and relative `1e-6`.
+`--native-worker` selects the executable, defaulting to the configured worker or
+`native/game/build/game-worker`. It then runs real module workers, IndexedDB saves
+and recorded loaded responses, then packs
+and unpacks the runtime packages and serves exported 2D and 3D games as static
+files. Missing or altered runtime files fail. The request set must remain inside
+the exported inventory. Restart transitions must keep advancing rendered frames.
+
+The check also runs CLI and agent authoring tests with the browser profile
+enabled. Their sequence rejects faulty source, accepts a correction, reopens the
+saved game, verifies assertions and replay, then exports through the shipped tool.
+An installation without the browser capability fails explicitly.
+
+Pass `--native-player /path/to/game-player` to compare both dimensions against the
+installed Qt player. CI supplies that argument and the software graphics setup.
+Screenshots and measurement reports use the configured temporary directory.
+Software results establish correctness and cannot satisfy a hardware frame budget.
+See [browser build and export](../native/game/README.md#browser-runtime-and-static-export).
+
 ### Native game performance (`game bench`, `game capture`, `game perf`)
 
 Three commands give an agent a pass or fail number for a game's cost. Each

@@ -103,3 +103,7 @@ export * from "./run-readers.js";
 export type { GameStepTimings, GameSystemTiming } from "./game-step.js";
 export { missingPackDetailsSchema, missingPackInstallSchema, missingPackDetailsOf, missingPackText, MissingPackError } from "./missing-pack.js";
 export type { MissingPackDetails, MissingPackInstall } from "./missing-pack.js";
+
+export * from "./native-game.js";
+
+export { nativeGameScriptDeclarations } from "./native-game-declarations.js";

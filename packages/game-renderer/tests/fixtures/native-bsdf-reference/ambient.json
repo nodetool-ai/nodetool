@@ -1,0 +1,87 @@
+{
+  "engine": "native-cpp-1",
+  "schemaVersion": 4,
+  "dimension": "3d",
+  "id": "bsdf-ambient",
+  "title": "Normal map regression",
+  "initialSceneId": "scene",
+  "camera": {
+    "position": [
+      0,
+      0,
+      5
+    ],
+    "target": [
+      0,
+      0,
+      0
+    ],
+    "fov": 50,
+    "near": 0.03,
+    "far": 30
+  },
+  "assets": [
+    {
+      "id": "normal",
+      "kind": "model",
+      "path": "ambient.glb",
+      "size": 1216,
+      "digest": "6e11aae84fcbfde7ac98baeef8bd89627b19ec519fdb896b88614bb9542266fa",
+      "dependencies": []
+    }
+  ],
+  "scenes": [
+    {
+      "id": "scene",
+      "name": "Scene",
+      "environment": {
+        "background": "#000000",
+        "ambient": {
+          "color": "#ffffff",
+          "intensity": 1
+        },
+        "shadows": {
+          "enabled": false,
+          "mapSize": 512,
+          "extent": 10
+        },
+        "sky": {
+          "kind": "color"
+        },
+        "postProcessing": {
+          "enabled": true,
+          "toneMapping": "agx",
+          "antialias": "smaa",
+          "exposure": 1
+        }
+      },
+      "entities": [
+        {
+          "id": "surface",
+          "visual": {
+            "kind": "model",
+            "assetId": "normal"
+          },
+          "transform": {
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

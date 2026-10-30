@@ -1,0 +1,11 @@
+{
+  "simulationP95Ms": 4,
+  "frameP95Ms": 16.6667,
+  "gpuP95Ms": 12,
+  "width": 1920,
+  "height": 1080,
+  "warmupTicks": 30,
+  "measuredTicks": 120,
+  "measuredFrames": 120,
+  "hardwareRequiredForFrameGate": true
+}

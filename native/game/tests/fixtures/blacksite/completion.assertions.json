@@ -1,0 +1,30 @@
+[
+  {
+    "tick": 223,
+    "path": [
+      "score"
+    ],
+    "equals": 5
+  },
+  {
+    "tick": 557,
+    "path": [
+      "score"
+    ],
+    "equals": 105
+  },
+  {
+    "tick": 583,
+    "path": [
+      "score"
+    ],
+    "equals": 105
+  },
+  {
+    "tick": 583,
+    "path": [
+      "sceneId"
+    ],
+    "equals": "reactor"
+  }
+]

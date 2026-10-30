@@ -64,13 +64,26 @@ describe("Packed verification partition", () => {
     const fallback = partition(buildPlan(["demo/src/probe.ts"], packages, computeAffected).steps);
     expect(fallback.find(({ id }) => id === "test-packages-other")?.commands.length).toBeGreaterThan(0);
     const game = partition(fullPlan()).find(({ id }) => id === "test-packages-game");
-    expect(game.commands[0].args.slice(3).sort()).toEqual([
+    expect(game.commands.find(({ args }) => args[0] === "scripts/run-turbo.mjs").args.slice(3).sort()).toEqual([
       "--filter=@nodetool-ai/cli", "--filter=@nodetool-ai/game-renderer", "--filter=@nodetool-ai/game-runtime"
     ]);
     const fullJobs = partition(fullPlan());
-    expect(fullJobs.find(({ id }) => id === "apps-and-path-checks").commands).toEqual(fullPlan().slice(1));
+    expect(fullJobs.find(({ id }) => id === "apps-and-path-checks").commands).toEqual(fullPlan().filter(({ command, args }) => !(command === "npm" && args.join(" ") === "run test:packages")));
     const rootChecks = fullJobs.flatMap(({ commands }) => commands).filter(({ command, args }) => command === "npm" && ["test:oxlint-rules", "test:scripts"].includes(args[1]));
     expect(rootChecks.map(({ args }) => args)).toEqual([["run", "test:oxlint-rules"], ["run", "test:scripts"]]);
+  });
+
+  it("prepares the native worker in the isolated websocket test job", () => {
+    const steps = buildPlan(["packages/websocket/src/lib/native-game-worker.ts"], packages, computeAffected).steps;
+    const job = partition(steps).find(({ commands }) => commands.some(({ command, args }) => command === "node" && args.includes("--filter=@nodetool-ai/websocket")));
+    expect(job).toBeDefined();
+    expect(job.commands[0]).toMatchObject({ command: "node", args: ["scripts/check-native-game.mjs"] });
+  });
+
+  it.each(["@nodetool-ai/agents", "@nodetool-ai/game-runtime", "@nodetool-ai/cli"])("prepares the native worker in the isolated %s job", (name) => {
+    const jobs = partition([{ command: "node", args: ["scripts/run-turbo.mjs", "run", "test", `--filter=${name}`] }]);
+    const job = jobs.find(({ commands }) => commands.some(({ args }) => args.includes(`--filter=${name}`)));
+    expect(job.commands[0]).toMatchObject({ command: "node", args: ["scripts/check-native-game.mjs"] });
   });
 
   it("rejects changed npm lifecycle or Turbo semantics instead of omitting them", () => {

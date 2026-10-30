@@ -1,10 +1,94 @@
 ---
 name: native-game
-description: "Build or revise a playable 2D or 3D game in NodeTool's built-in engine: create and edit the document, generate and install art and audio, playtest and autoplay a route, capture frames, publish, and prepare a standalone web build. Also the entry point for making a game look or feel better. For a glTF model use nodetool-3d-scene. For nodetool.games calls inside a code action use api-games."
+description: "Build or revise a playable web game or native C++/QuickJS/Jolt game in NodeTool: create and edit the document, generate and install art and audio, playtest and autoplay a route, capture frames, publish, and prepare a standalone web build. Also the entry point for making a game look or feel better. For a glTF model use nodetool-3d-scene. For nodetool.games calls inside a code action use api-games."
 featured: true
 ---
 
 # Build a native game
+
+## Native C++ engine
+
+For `engine: "native-cpp-1"`, use the
+`native_cpp_game_*` tools. Native 3D uses schema version 4 and Jolt physics. Native 2D uses schema version 5 and the ported TypeScript swept AABB solver. Both use QuickJS scripts,
+and support the native Qt player or a static WebAssembly browser player.
+Existing `create_native_game` and related tools keep
+the web engine contract described below. Choose the engine explicitly before
+creating a game.
+
+1. Call `native_cpp_game_schema {dimension: "2d" | "3d"}` for admitted document and script command
+   schemas and installed runtime capabilities. Do not invent component fields.
+2. Call `native_cpp_game_create {project_id, workspace_id, document}`. The host
+   assigns the game ID and revision. Keep the returned `game_id` and revision.
+3. Inspect with `native_cpp_game_get {game_id}`. Outline supports `offset`,
+   `limit`, and selected `fields`. Use `view: "entity", entity_id` or
+   `view: "script", script_id` for focused changes.
+4. Apply `native_cpp_game_edit {game_id, expected_revision, operations}`. These
+   are typed native operations such as `setScript`, `addEntity`, and `setTitle`.
+   A stale revision returns `status: "conflict"`. Read the accepted state and
+   deliberately rebuild the edit before retrying. Invalid scripts leave the
+   saved revision unchanged.
+5. Install prepared workspace files with `native_cpp_game_install_asset
+   {game_id, expected_revision, asset_id, source_path, kind}`. Source paths are
+   relative to the game's authorized workspace. The host computes the digest
+   and immutable storage path. Bind the returned asset ID through an edit.
+6. Prove gameplay with `native_cpp_game_simulate {game_id, ticks, seed, inputs,
+   assertions, verify_replay: true}`. Inputs are one JSON action frame per tick.
+   Assertions use `{tick, path: ["score"], equals: 1}` or another committed frame
+   path. Read `report.valid`, failures, and replay verification before reporting
+   success. Source errors return entity, behavior, hook, and tick diagnostics.
+7. Render with `native_cpp_game_capture {game_id, ticks, seed, inputs}` and view
+   the returned image reference directly before judging appearance. Capture
+   needs an installed native player and graphics backend.
+8. Measure with `native_cpp_game_bench {game_id, ticks, warmup, seed, inputs}`.
+   Export with `native_cpp_game_export {game_id, target: "desktop"}` for a
+   standalone desktop player or `target: "web"` for a static browser player.
+   Desktop is the default. Both return a workspace artifact. Web export needs
+   the installed native browser runtime profile and refuses unavailable files.
+
+Native 2D uses the TypeScript component names `body2d`, `collider2d`, `sprite`,
+`animator`, `tilemap`, `camera2d`, `lighting`, and `light2d`. Transforms are
+`{x,y,rotation,scaleX,scaleY}` with radians and Y-up world units. Script vectors
+are `{x,y}`. Use the returned 2D command declarations. Three-coordinate vectors,
+quaternions, capsule characters, and impulses are rejected. The shared tools
+choose transaction defaults from the stored document dimension. Preserve the
+engine envelope when saving. Legacy web documents remain on their existing route.
+
+Native 2D `move` accepts a direction only. It rejects `jump`; implement an
+explicit jump by checking the committed `grounded` state and issuing
+`setVelocity {velocity:{x,y}}`. Static platform velocity carries and pushes
+kinematic bodies. `setPosition` teleports and does not carry riders. Physics
+ancestors must be fixed translations with unit scale and zero rotation.
+Scene `gravity`, `lighting`, and `backgrounds` override document defaults.
+`healthEntityId` selects the HUD health source. Prepared image assets can specify
+`sampling`, normalized `pivot`, and `trim` metadata. `setVisual` changes frame,
+tint, opacity, flip, rotation, and positive visual scales without changing physics.
+An audio command's optional `position:{x,y}` is an explicit world-space source.
+
+The CLI creates a prepared 2D course with `nodetool game native create <directory>
+--dimension 2d`. It includes an owned atlas and WAV, tile collisions, a moving
+platform, a one-way platform, collectible, gate, HUD, lighting, and backgrounds.
+
+For a game already open in the native editor, `native_cpp_game_editor
+{game_id, request}` applies `inspect`, revisioned `transaction`, `undo`, `redo`,
+`save`, `start`, `stop`, `step`, or `select`. The host configures the editor
+connection. The tool refuses another game's editor. Editor saves use its local
+file and conflict rules.
+
+Simulation sessions and snapshots stay inside one tool call. Replay restores a
+snapshot in the session that produced it. Importing a snapshot into another
+session or a restarted worker is unsupported. Durable progress uses script JSON
+commands such as `{kind:"save", scope:"progress", slot:"run", data:{level:2}}`
+and `{kind:"load", scope:"progress", slot:"run"}`. Use `scope:"settings"` for
+preferences. Load results enter `input.loaded` as `{scope,slot,data}` on a
+committed recorded tick. Missing slots return `data:null`. These records contain
+script data, not full-world snapshots. Browser storage uses IndexedDB and reports
+unavailable persistence explicitly. Native 2D and 3D browser exports run the native WebAssembly
+simulation. Serve the complete exported directory over HTTPS or localhost HTTP. Playing
+needs WebAssembly, module workers, and WebGL2. Audio starts after a gesture.
+No NodeTool server, provider key, SDK, or external CDN is required for play.
+
+
+## Legacy web engine
 
 Create and edit a versioned built-in game document. The engine owns simulation,
 rendering, and web export. The default is a playable 2D top-down room.

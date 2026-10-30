@@ -1,0 +1,212 @@
+{
+  "scope": "Historical simplified native first-person test copy, before visual parity. Omissions and capability limits below describe that earlier build.",
+  "supersededBy": "docs/plans/native-game-blacksite-visual-parity.md",
+  "engine": "native-cpp-1",
+  "source": "packages/game-runtime/samples/blacksite/game.json",
+  "adaptation": {
+    "facility": {
+      "chunks": 3,
+      "originalIndices": 714156,
+      "adaptedIndices": 714156,
+      "triangles": 238052,
+      "preserved": "Original vertex attributes, index subsequences, materials, textures, node transforms, and binary buffer bytes. No triangle simplification.",
+      "sourceVertices": 140970,
+      "sharedBinaryChunkDigest": "44cebe3bc3d3ed9c63f1d6a10efc02c3b7615d52c4d53dcca0cc6ace4f2164d7"
+    },
+    "rifle": {
+      "omittedMaterial": "Optic glass",
+      "originalAlpha": 0.16,
+      "omittedTriangles": 44,
+      "reason": "The earlier native prepared-model importer rejected BLEND. Only translucent optic surface removed by explicit authorization."
+    },
+    "omissions": [
+      "legacy scene lights/environment/postprocessing",
+      "decals",
+      "animated drone hover",
+      "particle prefab effects",
+      "legacy widget HUD and streamed mixer music",
+      "camera recoil/shake and weapon animation",
+      "translucent exit-field surface (alpha .12), while opaque exit frame/sill/beacon geometry remains",
+      "normal texture and emissive material channels are retained in GLBs but not rendered by native fixed lighting"
+    ],
+    "assetDigests": {
+      "original": {
+        "facility": "69d871210ccd993c993a5a2ffceed95a122aec11c237daf8ed78a6759afe5667",
+        "rifle": "e5a9ab41c01cb9a2012bbd5e8cd1de52a8c4eada4f940340f5e1bd3e88571324",
+        "drone": "23bfbcaa90db5c932672c340e800f96d0436acedac4fe7c9e71dcd07bd2390a0"
+      },
+      "adapted": {
+        "facility-chunk-0": "5eaf66d7a81692e31eafc063233c4799fce25f81e33fcf8ed2777ed8f3018eaa",
+        "facility-chunk-1": "6acf29740e68dc0413f6651fe592d82378673427e369d578907ec1fb4a4de81c",
+        "facility-chunk-2": "5754db24ce51e0f26f928e1ced88b2244cc10239f8ed4eacf6bd5409da26ac87",
+        "rifle": "181fa94225b031a97ca02cfc53c033be17fea05c0ad7aebc78cb6d8903379793",
+        "drone": "23bfbcaa90db5c932672c340e800f96d0436acedac4fe7c9e71dcd07bd2390a0",
+        "shot": "8a17c3266f905897783e6146225e6416e52e78aa4cd67b2919c72fca1148c9a1",
+        "reload": "6fd3cd2e3fcff5207c047e03bb09c9c14634c56d51e8c606c96c79d629c9fc2e",
+        "destroyed": "2e2c9b142713f5ca0e294cb1e27a528235f81436908df9fdbcfc0fd37964aa27",
+        "hit": "18dd537b1b19e68054d4351909276fb9148b54257ce906dce2b0b1a834d65442",
+        "hurt": "b924d18facbf9e25ca56126b32876ec28bb4a482c461a891599a05d8ec965dfe",
+        "dry-fire": "4e4485cf2d45c70d551d0742c0f472e9718e4d619563ee73bdd56e33712986ad",
+        "victory": "b95d86f0700b4ec3d2e0b063b2e5e1c2619a74921ecee1cde2b51bcdf11f276c"
+      }
+    }
+  },
+  "documentDigest": "8e17215b82e64b5de47befd27561d4fd1f2d181832860791d355872c39f92833",
+  "manifestDigest": "af99b88dc262dfba50e89ed74b69861524ff797c603d669d9d9dd99dda783831",
+  "sourceDigests": [
+    {
+      "id": "blacksite-mission",
+      "digest": "1921b52e713e484df8c81d179a38324bc1a30c1964ad9eb9f3efeb05a7c0679c"
+    }
+  ],
+  "seed": 1,
+  "inputTicks": 583,
+  "inputsDigest": "b291c476088363d81fe3958c6ee20c3decc6ce9ebe55eef9dc2ea00935be7099",
+  "simulation": {
+    "exitCode": 0,
+    "valid": true,
+    "failures": [],
+    "replayVerified": true,
+    "finalScore": 105,
+    "finalCamera": {
+      "position": [
+        1.0042908607800472e-15,
+        1.4500001311302184,
+        -29.183368682861328
+      ],
+      "target": [
+        1.0320464363956761e-15,
+        1.4500001311302184,
+        -30.183368682861328
+      ],
+      "fov": 78,
+      "near": 0.03,
+      "far": 160
+    },
+    "victoryTick": 557,
+    "legacyVictoryTick": 560
+  },
+  "live": {
+    "exitCode": 0,
+    "committedTick": 270,
+    "playerPosition": [
+      0.0,
+      0.8000001311302185,
+      3.100005865097046
+    ],
+    "camera": {
+      "far": 160,
+      "fov": 78,
+      "near": 0.03,
+      "position": [
+        0.0,
+        1.4500001311302184,
+        3.100005865097046
+      ],
+      "target": [
+        0.05995201407790342,
+        1.4699987978235516,
+        2.102004958615247
+      ]
+    },
+    "recordedLook": {
+      "x": 30,
+      "y": -10
+    },
+    "moveFrames": 36,
+    "fireFrames": 35,
+    "reloadFrames": 18
+  },
+  "benchmark": {
+    "exitCode": 0,
+    "metric": "host-roundtrip-ms",
+    "tickMs": {
+      "p50": 21.295877999998993,
+      "p95": 29.452578000000358,
+      "max": 71.41903400000047
+    },
+    "warmup": 0,
+    "ticks": 583
+  },
+  "artifactsDirectory": "/home/mg/.cache/native-final-tmp/blacksite-native-qa",
+  "captures": [
+    {
+      "image": "/home/mg/.cache/native-final-tmp/blacksite-native-qa/start.png",
+      "imageDigest": "6317776400cf01a92d194f7c6c07e99abc2f047a0a4fb673dc1ba3c624f16654",
+      "exitCode": 0,
+      "tick": 0,
+      "width": 1280,
+      "height": 720,
+      "camera": {
+        "far": 160,
+        "fov": 78,
+        "near": 0.03,
+        "position": [
+          0.0,
+          1.46,
+          7.0
+        ],
+        "target": [
+          0.0,
+          1.46,
+          6.0
+        ]
+      },
+      "device": "llvmpipe (LLVM 23.1.3, 256 bits)",
+      "qt": "6.12.0",
+      "build": "native-cpp-1-jolt5.3.0-layer32-quickjs2025-09-13-snapshot1-camera1"
+    },
+    {
+      "image": "/home/mg/.cache/native-final-tmp/blacksite-native-qa/combat.png",
+      "imageDigest": "cf29131e84ffffccd6737a33380080e9c7a92ccadf6c4cb5054869edd001619c",
+      "exitCode": 0,
+      "tick": 120,
+      "width": 1280,
+      "height": 720,
+      "camera": {
+        "far": 160,
+        "fov": 78,
+        "near": 0.03,
+        "position": [
+          0.0,
+          1.4500001311302184,
+          7.0
+        ],
+        "target": [
+          -0.1737847576943794,
+          1.4523450160137243,
+          6.015219131223606
+        ]
+      },
+      "device": "llvmpipe (LLVM 23.1.3, 256 bits)",
+      "qt": "6.12.0",
+      "build": "native-cpp-1-jolt5.3.0-layer32-quickjs2025-09-13-snapshot1-camera1"
+    },
+    {
+      "image": "/home/mg/.cache/native-final-tmp/blacksite-native-qa/extraction.png",
+      "imageDigest": "767233b68210106b1f3d2447a4e9e462840fc2bbe352f6f8f3e6570be601093a",
+      "exitCode": 0,
+      "tick": 583,
+      "width": 1280,
+      "height": 720,
+      "camera": {
+        "far": 160,
+        "fov": 78,
+        "near": 0.03,
+        "position": [
+          1.0042908607800472e-15,
+          1.4500001311302184,
+          -29.183368682861328
+        ],
+        "target": [
+          1.0320464363956761e-15,
+          1.4500001311302184,
+          -30.183368682861328
+        ]
+      },
+      "device": "llvmpipe (LLVM 23.1.3, 256 bits)",
+      "qt": "6.12.0",
+      "build": "native-cpp-1-jolt5.3.0-layer32-quickjs2025-09-13-snapshot1-camera1"
+    }
+  ]
+}

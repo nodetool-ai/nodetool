@@ -1,3 +1,4 @@
+import { stagePackageAssets } from "./lib/stage-package-assets.mjs";
 /**
  * esbuild-based hybrid bundler for the backend server artifact.
  *
@@ -1275,34 +1276,10 @@ async function main() {
     pathToFileURL(registryPath).href
   );
 
-  const stagedAssets = new Map();
-  for (const asset of PACKAGE_RUNTIME_ASSETS) {
-    const pkgRoot = resolvePackageRoot(asset.pkg);
-    if (!pkgRoot) {
-      throw new Error(
-        `Registered asset package not found: ${asset.pkg}. ` +
-        `Run 'npm install' and 'npm run build:packages' first.`
-      );
-    }
-    const src = path.join(pkgRoot, "dist", asset.path);
-    if (!fs.existsSync(src)) {
-      throw new Error(
-        `Registered asset missing from build output: ${src} ` +
-        `(${asset.pkg}/${asset.path}). Check the package's build copies it into dist/.`
-      );
-    }
-    const basename = path.basename(asset.path);
-    const existing = stagedAssets.get(basename);
-    if (existing && existing !== src) {
-      throw new Error(
-        `Asset basename collision: ${basename} in both ${existing} and ${src}. ` +
-        `Bundle root staging requires unique basenames.`
-      );
-    }
-    await fsp.copyFile(src, path.join(BUNDLE_DIR, basename));
-    stagedAssets.set(basename, src);
-    console.log(`  Staged ${basename} (from ${asset.pkg}/dist/${asset.path})`);
-  }
+  const stagedAssets = await stagePackageAssets(
+    PACKAGE_RUNTIME_ASSETS, BUNDLE_DIR, resolvePackageRoot,
+    (message) => console.log(`  ${message}`)
+  );
   console.log(`  Total: ${stagedAssets.size} registered asset(s) staged`);
 
   // --- Stage registered runtime asset directories ---

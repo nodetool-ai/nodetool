@@ -1,0 +1,6 @@
+#pragma once
+namespace nodetool::game {
+inline constexpr const char* EmbeddedDocumentSchema = R"NTSCHEMA(@GAME_DOCUMENT_SCHEMA@)NTSCHEMA";
+inline constexpr const char* EmbeddedTransactionSchema = R"NTSCHEMA(@GAME_TRANSACTION_SCHEMA@)NTSCHEMA";
+inline constexpr const char* EmbeddedTransaction2DSchema = R"NTSCHEMA(@GAME_TRANSACTION2D_SCHEMA@)NTSCHEMA";
+}

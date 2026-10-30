@@ -72,6 +72,7 @@ Guidelines](docs/BRAND.md).
   - [Components](web/src/components/AGENTS.md), [Stores](web/src/stores/AGENTS.md), [Contexts](web/src/contexts/AGENTS.md), [Hooks](web/src/hooks/AGENTS.md), [Utils](web/src/utils/AGENTS.md), [ServerState](web/src/serverState/AGENTS.md), [Lib](web/src/lib/AGENTS.md), [Config](web/src/config/AGENTS.md)
 - **[Testing](web/TESTING.md)** — Web testing guide (Jest, React Testing Library, Playwright)
 - **[Electron](electron/src/AGENTS.md)** — Desktop app
+- **[Native Game](native/game/AGENTS.md)** — C++ game documents and worker
 - **[Mobile](mobile/AGENTS.md)** — React Native / Expo app
 - **[Scripts](scripts/AGENTS.md)** — Build and release scripts
 - **[Marketing site](marketing/AGENTS.md)** — Recipe pages, production media, generated catalog data, and media verification
