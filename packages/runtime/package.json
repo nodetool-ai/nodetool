@@ -32,7 +32,10 @@
     "replicate": "^1.4.0",
     "ws": "^8.19.0",
     "zod": "^4.4.3",
-    "@nodetool-ai/antigravity-cli": "*"
+    "@nodetool-ai/antigravity-cli": "*",
+    "@mediabunny/server": "1.54.0",
+    "mediabunny": "1.54.0",
+    "node-av": "^6.1.1"
   },
   "devDependencies": {
     "js-tiktoken": "^1.0.21",
@@ -96,6 +99,18 @@
       "types": "./dist/trim-video-window.d.ts",
       "import": "./dist/trim-video-window.js",
       "default": "./dist/trim-video-window.js"
+    },
+    "./media": {
+      "nodetool-dev": "./src/media/index.ts",
+      "types": "./dist/media/index.d.ts",
+      "import": "./dist/media/index.js",
+      "default": "./dist/media/index.js"
+    },
+    "./media/testing": {
+      "nodetool-dev": "./src/media/testing.ts",
+      "types": "./dist/media/testing.d.ts",
+      "import": "./dist/media/testing.js",
+      "default": "./dist/media/testing.js"
     },
     "./context": {
       "nodetool-dev": "./src/context.ts",

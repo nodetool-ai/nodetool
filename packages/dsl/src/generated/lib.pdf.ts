@@ -80,7 +80,7 @@ export function screenshot(inputs: ScreenshotInputs, options?: NodeOptions): Nod
   return createNode("lib.pdf.Screenshot", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"list[image]"}, defaultOutput: "output" });
 }
 
-// PDF Rasterize (pdftoppm) — lib.pdf.Pdftoppm
+// PDF Rasterize — lib.pdf.Pdftoppm
 export type PdftoppmInputs = {
   pdf?: Connectable<unknown>;
   start_page?: Connectable<number>;

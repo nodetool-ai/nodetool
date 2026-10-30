@@ -876,10 +876,10 @@ describe.skip("lib-numpy gaps (removed)", () => {
 // lib-seaborn.ts gaps
 // ============================================================================
 
-// canvas native module required for chart rendering
+// @napi-rs/canvas native module required for chart rendering
 let hasCanvas = false;
 try {
-  require("canvas");
+  require("@napi-rs/canvas");
   hasCanvas = true;
 } catch {
   /* not installed */

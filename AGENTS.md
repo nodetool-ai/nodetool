@@ -94,7 +94,7 @@ Use these sections for the detailed rules summarized below.
 | UI quality | [MUI and primitives](docs/DEVELOPMENT_STANDARDS.md#5-mui-v7--emotion--ui-primitives), [accessibility](docs/DEVELOPMENT_STANDARDS.md#14-accessibility-a11y), [performance](docs/DEVELOPMENT_STANDARDS.md#15-performance) |
 | API and persistence | [Fastify](docs/DEVELOPMENT_STANDARDS.md#9-fastify-http--websocket-server), [Drizzle](docs/DEVELOPMENT_STANDARDS.md#10-drizzle-orm), [Zod](docs/DEVELOPMENT_STANDARDS.md#11-zod-validation), [WebSocket protocol](docs/DEVELOPMENT_STANDARDS.md#13-websocket-protocol) |
 | Verification and diagnostics | [testing](docs/DEVELOPMENT_STANDARDS.md#8-testing), [observability](docs/DEVELOPMENT_STANDARDS.md#17-observability), [enforcement](docs/DEVELOPMENT_STANDARDS.md#22-enforcement) |
-| Security boundaries | [application security](docs/DEVELOPMENT_STANDARDS.md#16-security), [Electron security](docs/DEVELOPMENT_STANDARDS.md#12-electron-39-security) |
+| Security boundaries | [application security](docs/DEVELOPMENT_STANDARDS.md#16-security), [Electron security](docs/DEVELOPMENT_STANDARDS.md#12-electron-security) |
 | Delivering changes | [documentation and comments](docs/DEVELOPMENT_STANDARDS.md#19-documentation--comments), [commits and PRs](docs/DEVELOPMENT_STANDARDS.md#20-git-commits-prs), [dependencies](docs/DEVELOPMENT_STANDARDS.md#21-dependencies--versions) |
 
 ## Repository Skills
@@ -283,9 +283,11 @@ Slash commands are in [.claude/README.md](.claude/README.md).
 - Run `npm run build:packages` before `test:affected` and `harness gate`.
   Selfchecks that run the CLI fail on a missing `packages/cli/dist`, which
   looks like a gate failure but is an unbuilt tree.
-- The runtime and base-nodes suites need `ffmpeg` and a Vulkan ICD, as in CI
+- The runtime and base-nodes suites need a Vulkan ICD, as in CI
   (`extra-apt` in `.github/workflows/quality-checks.yml`). Install
-  `ffmpeg mesa-vulkan-drivers` before a suite-wide run.
+  `mesa-vulkan-drivers` before a suite-wide run. Media runs in process on
+  `@nodetool-ai/runtime/media`, so no suite needs the `ffmpeg` binary; make
+  test media with `@nodetool-ai/runtime/media/testing`, never the CLI.
 - The root `postinstall` rebuilds `better-sqlite3` after npm finishes reifying
   dependencies. Keep the rebuild there, not in the Electron workspace hook.
   For `NODE_MODULE_VERSION` failures, run `npm run rebuild:native`.
@@ -501,7 +503,7 @@ See [span hierarchy and sinks](docs/harnesses.md#observing-agent-execution).
 ## Security
 
 Follow [Security](docs/DEVELOPMENT_STANDARDS.md#16-security) and
-[Electron Security](docs/DEVELOPMENT_STANDARDS.md#12-electron-39-security).
+[Electron Security](docs/DEVELOPMENT_STANDARDS.md#12-electron-security).
 
 - Outbound fetches of URLs chosen by callers, providers, or models must use
   `safeFetch` or `fetchExternalMedia` from `@nodetool-ai/runtime`. A predicate

@@ -162,6 +162,27 @@ describe("RightPanelStore", () => {
       });
       expect(useRightPanelStore.getState().panel.isVisible).toBe(true);
     });
+
+    it("stays hidden on selection after the toggle hides it", () => {
+      const { toggleInspector, revealForSelection } =
+        useRightPanelStore.getState();
+      act(() => {
+        revealForSelection();
+        toggleInspector();
+        revealForSelection();
+      });
+      expect(useRightPanelStore.getState().panel.isVisible).toBe(false);
+
+      act(() => {
+        toggleInspector();
+      });
+      expect(useRightPanelStore.getState().panel.isVisible).toBe(true);
+      act(() => {
+        useRightPanelStore.getState().closeInspector();
+        revealForSelection();
+      });
+      expect(useRightPanelStore.getState().panel.isVisible).toBe(true);
+    });
   });
 
   describe("closePanel", () => {

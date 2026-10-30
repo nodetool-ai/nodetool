@@ -54,6 +54,7 @@ import { getNodeGenerations } from "./nodeGenerationAccessor";
 import useMetadataStore from "./MetadataStore";
 import { getPendingResumeJobId } from "./resumeJobHint";
 import { noteWorkflowRunFinished } from "../lib/analytics";
+import { notifySystem } from "../utils/systemNotification";
 import {
   isNumber,
   isObjectLike,
@@ -977,7 +978,15 @@ const handleJobUpdate = (
       ) {
         useOnboardingStore.getState().markStep("describe-idea");
       }
-      // No toast — completion is reflected in the Queue panel/overlay.
+      // No toast — completion is reflected in the Queue panel/overlay. A
+      // user who looked away gets a desktop notification instead.
+      if (isRunnerJob) {
+        notifySystem({
+          title: workflow.name || undefined,
+          body: "Workflow run finished.",
+          tag: job.job_id ? `run-finished-${job.job_id}` : undefined
+        });
+      }
       // Don't clear this run's per-job state (progress/timings/edges): with
       // per-job keys those clears span the whole workflow and would wipe a
       // concurrently running sibling. The finished run's slice persists so it
@@ -1019,7 +1028,8 @@ const handleJobUpdate = (
           type: "error",
           alert: true,
           content: `Job ${job.status}${job.error ? ` ${job.error}` : ""}`,
-          timeout: NOTIFICATION_TIMEOUT_JOB_COMPLETED
+          timeout: NOTIFICATION_TIMEOUT_JOB_COMPLETED,
+          system: isRunnerJob && { title: workflow.name }
         });
       }
       // Keep this run's per-job slice (see "completed"): broad clears here

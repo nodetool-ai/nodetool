@@ -4,10 +4,9 @@
 //
 // The frames come from `renderTimelineComposited`, the GPU compositor behind
 // the Render Timeline node, so the file matches what the editor previews.
-// Needs `npm run build:packages`, ffmpeg, and a WebGPU adapter (a Vulkan ICD
-// such as lavapipe on a headless machine). Without `--out` the video and
+// Needs `npm run build:packages` and a WebGPU adapter (a Vulkan ICD such as
+// lavapipe on a headless machine). Without `--out` the video and
 // poster are written to the package asset paths the bundle's URIs point at.
-import { execFileSync } from "node:child_process";
 import { mkdirSync, readFileSync } from "node:fs";
 import { copyFile, mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
@@ -15,6 +14,8 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { parsePackageAssetUri } from "@nodetool-ai/protocol";
+import { pngFrames } from "@nodetool-ai/runtime/media";
+import sharp from "sharp";
 import { timelineDocument } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import { renderTimelineComposited } from "@nodetool-ai/video-nodes/nodes/timeline/compositeRender";
 import { mixCompositedTimelineAudio } from "@nodetool-ai/video-nodes/nodes/timeline";
@@ -97,7 +98,9 @@ try {
   await rm(workDir, { recursive: true, force: true });
 }
 
-execFileSync("ffmpeg", ["-v", "error", "-y", "-i", outPath, "-vf", `select=eq(n\\,${posterFrame}),scale=1280:-2`, "-frames:v", "1", "-q:v", "3", posterPath]);
+for await (const png of pngFrames({ filePath: outPath, filter: `select=eq(n\\,${posterFrame}),scale=1280:-2`, limit: 1 })) {
+  await sharp(png).jpeg({ quality: 90 }).toFile(posterPath);
+}
 console.log(`${totalFrames} frames in ${((Date.now() - started) / 1000).toFixed(1)}s -> ${outPath}`);
 console.log(`poster (frame ${posterFrame}) -> ${posterPath}`);
 // The GPU device keeps the event loop alive after the last frame.

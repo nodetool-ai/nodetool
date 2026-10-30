@@ -5,7 +5,7 @@
  * (engine, samples, output size, camera, lighting, background), and lists the
  * renders. Each render is an ordinary image asset.
  */
-import React, { memo, useCallback, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useTheme } from "@mui/material/styles";
 import CameraEnhanceOutlinedIcon from "@mui/icons-material/CameraEnhanceOutlined";

@@ -63,7 +63,7 @@ const PILL_HEIGHT_PX = 20;
  * the playhead on it, and a full-height hit area would then cover the marker.
  * The ruler scrubs on its own, so the band loses no gesture.
  */
-const hitAreaStyles = (theme: Theme, dragging: boolean) =>
+const hitAreaStyles = (theme: Theme) =>
   css({
     position: "absolute",
     top: 0,
@@ -191,8 +191,8 @@ export const Playhead: React.FC<PlayheadProps> = memo(
 
     // Playback never re-renders this (see the header), but zoom and scroll do.
     const hitAreaCss = useMemo(
-      () => hitAreaStyles(theme, dragging),
-      [theme, dragging]
+      () => hitAreaStyles(theme),
+      [theme]
     );
     const grabZoneCss = useMemo(() => grabZoneStyles(dragging), [dragging]);
     const pillCss = useMemo(

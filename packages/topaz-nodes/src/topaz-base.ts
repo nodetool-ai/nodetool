@@ -15,26 +15,19 @@
  *  - Video accept response: { uploadId, urls[] }. The signed download URL on a
  *    completed video request lives at `download.url` (nested).
  *
- * Uses native fetch (Node 18+) and the system `ffprobe` (installed via the
- * package manager) to probe source video metadata, which Topaz requires at
- * job-creation time.
+ * Uses native fetch (Node 18+) and probes source video metadata in process,
+ * which Topaz requires at job-creation time.
  */
-
-import { execFile as execFileCb } from "node:child_process";
-import { promises as fs } from "node:fs";
-import os from "node:os";
-import path from "node:path";
-import { promisify } from "node:util";
 
 import { loadMediaRefBytes, safeFetch, sniffImageMime } from "@nodetool-ai/runtime";
 import type { MediaRefValue, ProcessingContext } from "@nodetool-ai/runtime";
+import { packetTimes, probeMedia } from "@nodetool-ai/runtime/media";
 import {
   fetchWithRetry,
   imageRefFromBytes,
   pollUntilTerminal
 } from "@nodetool-ai/runtime/provider-transport";
 
-const execFile = promisify(execFileCb);
 
 export type TopazVideoKind = "upscale" | "interpolate";
 
@@ -159,85 +152,31 @@ export async function refToBytes(
 /** Image result → ImageRef (with sharp metadata when available). */
 export const topazImageRef = imageRefFromBytes;
 
-function parseFrameRate(raw: unknown): number {
-  if (typeof raw !== "string" || !raw) return 0;
-  const [num, den] = raw.split("/");
-  const n = Number(num);
-  const d = den === undefined ? 1 : Number(den);
-  if (!Number.isFinite(n) || !Number.isFinite(d) || d === 0) return 0;
-  return n / d;
-}
-
-async function withTempFile<T>(
-  bytes: Uint8Array,
-  suffix: string,
-  fn: (filePath: string) => Promise<T>
-): Promise<T> {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-topaz-"));
-  const file = path.join(dir, `input${suffix}`);
-  await fs.writeFile(file, bytes);
-  try {
-    return await fn(file);
-  } finally {
-    await fs.rm(dir, { recursive: true, force: true });
-  }
-}
-
 export async function probeVideoMetadata(
   bytes: Uint8Array,
   container = "mp4"
 ): Promise<TopazVideoMetadata> {
-  return withTempFile(bytes, `.${container}`, async (filePath) => {
-    let stdout: string;
-    try {
-      ({ stdout } = await execFile("ffprobe", [
-        "-v",
-        "error",
-        "-show_entries",
-        "format=duration,format_name,size:stream=width,height,avg_frame_rate,nb_frames,codec_type",
-        "-of",
-        "json",
-        filePath
-      ]));
-    } catch (err) {
-      throw new Error(
-        "Failed to probe video metadata with ffprobe. Ensure ffmpeg is " +
-          `installed (the Package Manager UI can do this for you). ${String(err)}`
-      );
-    }
-
-    const probe = JSON.parse(stdout) as {
-      format?: { duration?: string; format_name?: string; size?: string };
-      streams?: Array<{
-        codec_type?: string;
-        width?: number;
-        height?: number;
-        avg_frame_rate?: string;
-        nb_frames?: string;
-      }>;
-    };
-
-    const video = (probe.streams ?? []).find(
-      (s) => s.codec_type === "video"
-    );
-    if (!video || !video.width || !video.height) {
-      throw new Error("ffprobe did not report a video stream with dimensions");
-    }
-
-    const duration = Number(probe.format?.duration ?? 0) || 0;
-    const frameRate = parseFrameRate(video.avg_frame_rate);
-    const frameCount =
-      Number(video.nb_frames ?? 0) || Math.round(duration * frameRate);
-
-    return {
-      resolution: { width: video.width, height: video.height },
-      container,
-      size: Number(probe.format?.size ?? bytes.byteLength) || bytes.byteLength,
-      duration,
-      frameRate,
-      frameCount
-    };
-  });
+  let probe: Awaited<ReturnType<typeof probeMedia>>;
+  try {
+    probe = await probeMedia(bytes);
+  } catch (err) {
+    throw new Error(`Failed to probe video metadata: ${String(err)}`);
+  }
+  const video = probe.video;
+  if (!video || !video.width || !video.height) {
+    throw new Error("The probe found no video stream with dimensions");
+  }
+  const duration = probe.durationSec ?? 0;
+  const frameRate = video.averageFps;
+  const frameCount = (await packetTimes(bytes))?.length || Math.round(duration * frameRate);
+  return {
+    resolution: { width: video.width, height: video.height },
+    container,
+    size: bytes.byteLength,
+    duration,
+    frameRate,
+    frameCount
+  };
 }
 
 export async function topazExecuteImageTask(

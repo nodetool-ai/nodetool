@@ -1,7 +1,7 @@
-import { execFileSync } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { generateMedia, readPcm } from "@nodetool-ai/runtime/media/testing";
 import { afterEach, describe, expect, it } from "vitest";
 import { mixCompositedTimelineAudio, panSteps } from "../src/nodes/timeline.js";
 import { resolveTimelineOutput } from "../src/nodes/timeline/outputFormats.js";
@@ -25,8 +25,11 @@ async function channelRms(opts: {
   dirs.push(workDir);
   const basePath = path.join(workDir, "base.mp4");
   const audioPath = path.join(workDir, "tone.wav");
-  execFileSync("ffmpeg", ["-v", "error", "-y", "-f", "lavfi", "-i", "color=c=black:s=32x32:r=10", "-t", "1", "-an", "-c:v", "libx264", basePath]);
-  execFileSync("ffmpeg", ["-v", "error", "-y", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:duration=1", audioPath]);
+  await generateMedia({ outPath: basePath, video: { source: "color=c=black:s=32x32:r=10:duration=1" } });
+  await generateMedia({
+    outPath: audioPath,
+    audio: { source: "sine=frequency=440:sample_rate=48000:duration=1", codec: "pcm_s16le" }
+  });
   const sequence = {
     id: "seq", projectId: "test", name: "Mixer", width: 32, height: 32,
     fps: 10, durationMs: 1000, createdAt: "", updatedAt: "", transcript: [],
@@ -42,8 +45,7 @@ async function channelRms(opts: {
     basePath, workDir, output: resolveTimelineOutput({ format: "mp4" }),
     resolveAssetPath: async (id) => id === "tone" ? audioPath : null
   });
-  const pcm = execFileSync("ffmpeg", ["-v", "error", "-i", mixed, "-map", "0:a:0", "-f", "f32le", "-ac", "2", "-ar", "48000", "pipe:1"]);
-  const samples = new Float32Array(pcm.buffer, pcm.byteOffset, pcm.byteLength / 4);
+  const { samples } = await readPcm(mixed, { sampleRate: 48000, channels: 2 });
   const power = [0, 0];
   const from = Math.round(0.2 * 48000);
   const to = Math.round(0.8 * 48000);

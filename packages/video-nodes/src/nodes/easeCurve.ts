@@ -22,7 +22,7 @@ import {
   type ClipTimeRemap,
   type TimeRemapAudioSegment
 } from "@nodetool-ai/timeline";
-import { atempoChain } from "./ffmpeg-helpers.js";
+import { atempoChain } from "./video-helpers.js";
 
 /** Easing presets the node offers, in the timeline's easing ids. */
 export const EASE_CURVE_PRESETS = [
@@ -109,23 +109,26 @@ export function easeCurveSetptsExpr(segments: TimeRemapAudioSegment[]): string {
   return expr;
 }
 
-/** The ffmpeg `-filter_complex` graph and maps for one retime. */
+/**
+ * The `-filter_complex` graphs for one retime: the picture at link `[v]`, and
+ * the sound at link `[a]`, or `null` when no stretch is long enough to hear.
+ */
 export function easeCurveFilterGraph(opts: {
   segments: TimeRemapAudioSegment[];
   outputDurationMs: number;
   fps: number;
   withAudio: boolean;
-}): string[] {
+}): { video: string; audio: string | null } {
   const { segments, outputDurationMs, fps, withAudio } = opts;
   const video = `[0:v]setpts='(${easeCurveSetptsExpr(segments)})/TB',fps=${Number(fps.toFixed(6))},trim=end=${sec(outputDurationMs)}[v]`;
-  if (!withAudio) return ["-filter_complex", video, "-map", "[v]"];
+  if (!withAudio) return { video, audio: null };
 
   const audible = segments.filter(
     (s) => s.sourceEndMs - s.sourceStartMs >= MIN_AUDIO_SOURCE_MS
   );
-  if (audible.length === 0) return ["-filter_complex", video, "-map", "[v]"];
+  if (audible.length === 0) return { video, audio: null };
   const splits = audible.map((_, i) => `[s${i}]`).join("");
-  const filters = [video, `[0:a]asplit=${audible.length}${splits}`];
+  const filters = [`[0:a]asplit=${audible.length}${splits}`];
   for (const [i, s] of audible.entries()) {
     const delay = Math.max(0, Math.round(s.timelineStartMs));
     filters.push(
@@ -138,5 +141,5 @@ export function easeCurveFilterGraph(opts: {
   filters.push(
     `${mixed}amix=inputs=${audible.length}:duration=longest:normalize=0,asetpts=N/SR/TB,atrim=end=${sec(outputDurationMs)},apad=whole_dur=${sec(outputDurationMs)}[a]`
   );
-  return ["-filter_complex", filters.join(";"), "-map", "[v]", "-map", "[a]"];
+  return { video, audio: filters.join(";") };
 }

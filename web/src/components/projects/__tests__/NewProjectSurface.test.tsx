@@ -417,11 +417,24 @@ const setGuidedFlowTarget = jest.fn();
 // The tab on screen. Opening a guided tab makes it the active one, as the
 // real store does; a test moves it elsewhere to put the flow in the background.
 let mockActiveTabId: string | null = null;
+const mockTabsStoreState = () => ({
+  closeTab,
+  openTab,
+  openForegroundTab: openTab,
+  tabs: [] as [],
+  personalProjectId: null,
+  activeTabId: mockActiveTabId,
+  setActiveTab,
+  setActiveProjectId,
+  setGuidedFlowTarget
+});
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   ...jest.requireActual("../../../stores/WorkspaceTabsStore"),
-  useWorkspaceTabsStore: <T,>(
-    selector: (s: { closeTab: jest.Mock; openTab: jest.Mock; tabs: []; personalProjectId: null; activeTabId: string | null; setActiveTab: jest.Mock; setActiveProjectId: jest.Mock; setGuidedFlowTarget: jest.Mock }) => T
-  ) => selector({ closeTab, openTab, tabs: [], personalProjectId: null, activeTabId: mockActiveTabId, setActiveTab, setActiveProjectId, setGuidedFlowTarget })
+  useWorkspaceTabsStore: Object.assign(
+    <T,>(selector: (s: ReturnType<typeof mockTabsStoreState>) => T) =>
+      selector(mockTabsStoreState()),
+    { getState: mockTabsStoreState }
+  )
 }));
 
 const addNotification = jest.fn();
@@ -443,15 +456,18 @@ let selectedModel: { provider: string; id: string; name?: string } = {
   id: "claude-sonnet-5"
 };
 const setSelectedModel = jest.fn();
+const mockChatStoreState = () => ({
+  selectedModel,
+  setSelectedModel,
+  createNewThread
+});
 jest.mock("../../../stores/GlobalChatStore", () => ({
   __esModule: true,
-  default: <T,>(
-    selector: (s: {
-      selectedModel: unknown;
-      setSelectedModel: jest.Mock;
-      createNewThread: jest.Mock;
-    }) => T
-  ) => selector({ selectedModel, setSelectedModel, createNewThread })
+  default: Object.assign(
+    <T,>(selector: (s: ReturnType<typeof mockChatStoreState>) => T) =>
+      selector(mockChatStoreState()),
+    { getState: mockChatStoreState }
+  )
 }));
 
 // The real dialog fans out a query per provider; this surface only needs the
@@ -863,10 +879,12 @@ describe("NewProjectSurface", () => {
     const cards = screen.getByRole("group", { name: "Start with a guided flow" });
     await userEvent.click(within(cards).getByRole("button", { name: /^Create image / }));
 
-    await waitFor(() => expect(startImageFlowMock).toHaveBeenCalled());
+    await waitFor(() => expect(createNewThread).toHaveBeenCalled());
     expect(createProject).toHaveBeenCalledWith({ name: "A spot for our desk lamp" });
-    expect(startImageFlowMock).toHaveBeenCalledWith(
-      expect.objectContaining({ projectId: "p9" })
+    expect(createNewThread).toHaveBeenCalledWith(
+      "A spot for our desk lamp",
+      null,
+      expect.objectContaining({ projectId: "p9", mediaMode: "image" })
     );
   });
 
@@ -941,10 +959,12 @@ describe("NewProjectSurface", () => {
     });
     await userEvent.click(within(cards).getByRole("button", { name: /^Create image / }));
 
-    await waitFor(() => expect(startImageFlowMock).toHaveBeenCalled());
-    expect(startImageFlowMock.mock.calls[0]?.[0].references).toEqual([
-      expect.objectContaining({ name: "lamp.png" })
-    ]);
+    await waitFor(() => expect(createNewThread).toHaveBeenCalled());
+    expect(createNewThread).toHaveBeenCalledWith(
+      expect.any(String),
+      null,
+      expect.objectContaining({ mediaMode: "image_edit" })
+    );
     await waitFor(() =>
       expect(addNotification).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1545,13 +1565,13 @@ describe("NewProjectSurface", () => {
 
     await waitFor(() => expect(openTab).toHaveBeenCalledWith(expect.objectContaining({ type: "guided-flow", setupTarget: expect.objectContaining({ kind: "storyboard" }) })));
 
-    await userEvent.click(await screen.findByRole("button", { name: /^Create video Turn ideas/ }));
+    await userEvent.click(await screen.findByRole("button", { name: /^Create app / }));
 
     await waitFor(() => expect(openTab.mock.calls.filter(([input]) => input.type === "guided-flow")).toHaveLength(2));
 
     const flowTabs = openTab.mock.calls.filter(([input]) => input.type === "guided-flow").map(([input]) => input);
     expect(flowTabs[0].ref).not.toBe(flowTabs[1].ref);
-    expect(flowTabs.map((tab) => tab.setupTarget.kind)).toEqual(["storyboard", "video"]);
+    expect(flowTabs.map((tab) => tab.setupTarget.kind)).toEqual(["storyboard", "app"]);
     expect(await screen.findByRole("group", { name: "Start with a guided flow" })).toBeInTheDocument();
   });
 
@@ -1688,11 +1708,7 @@ describe("NewProjectSurface", () => {
     }
   });
 
-  // The create seeds the `timeline.get` cache with a sequence that has no
-  // setup, and the store load ignores every later copy of the same id — so the
-  // PATCHed document has to replace that cache entry or the flow mounts on
-  // stage `done` and renders nothing.
-  it("seeds the sequence cache with the setup the PATCH wrote", async () => {
+  it("opens a Video generation tab when clicking the Create video card", async () => {
     const user = userEvent.setup();
     renderSurface();
     const cards = screen.getByRole("group", {
@@ -1701,18 +1717,21 @@ describe("NewProjectSurface", () => {
 
     await user.click(within(cards).getByRole("button", { name: /^Create video / }));
 
-
     await waitFor(() =>
-      expect(seedTimelineDetail).toHaveBeenCalledWith(patchedSequence)
+      expect(createNewThread).toHaveBeenCalledWith(
+        expect.any(String),
+        null,
+        expect.objectContaining({ mediaMode: "video" })
+      )
     );
-    expect(deleteTimeline).not.toHaveBeenCalled();
+    expect(openTab).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "chat", ref: "chat-1" })
+    );
   });
 
-  // The setup goes in as a PATCH after the create. A PATCH that fails would
-  // leave an empty timeline in the project nobody opened (F15).
-  it("deletes the new timeline when its setup cannot be written", async () => {
+  it("reports an error when opening the Video generation tab fails", async () => {
     const user = userEvent.setup();
-    timelineUpdate.mockRejectedValueOnce(new Error("PATCH refused"));
+    createNewThread.mockRejectedValueOnce(new Error("Thread refused"));
     renderSurface();
     const cards = screen.getByRole("group", {
       name: "Start with a guided flow"
@@ -1721,16 +1740,17 @@ describe("NewProjectSurface", () => {
     await user.click(within(cards).getByRole("button", { name: /^Create video / }));
 
     await waitFor(() =>
-      expect(deleteTimeline).toHaveBeenCalledWith({ id: "seq-1" })
+      expect(addNotification).toHaveBeenCalledWith(
+        expect.objectContaining({ type: "error" })
+      )
     );
-    expect(seedTimelineDetail).not.toHaveBeenCalled();
   });
 
   it.each([
     ["Entity", () => openTab],
-    ["Video", () => createTimeline],
+    ["Video", () => createNewThread],
     ["Script", () => createScript],
-    ["Image", () => startImageFlowMock],
+    ["Image", () => createNewThread],
     ["Workflow", () => managerCreateWorkflow],
     ["Game", () => managerCreateWorkflow]
   ])("starts the %s flow from its own card", async (title, mock) => {
@@ -1877,12 +1897,16 @@ describe("NewProjectSurface", () => {
   // the host was rendered without the callback it hands the brief to.
   it("hands the video brief to the script flow", async () => {
     const user = userEvent.setup();
-    renderSurface();
-    const cards = screen.getByRole("group", {
-      name: "Start with a guided flow"
+    renderSurface({
+      ref: "flow-vid-1",
+      setupTarget: {
+        kind: "video",
+        id: "seq-1",
+        projectId: "default",
+        name: "A spot for our desk lamp",
+        ownsProject: false
+      }
     });
-
-    await user.click(within(cards).getByRole("button", { name: /^Create video / }));
 
     await screen.findByTestId("setup-flow");
     await user.click(
@@ -1908,11 +1932,16 @@ describe("NewProjectSurface", () => {
   // the draft was discarded for a script.
   it("carries the video flow's creative context into the script it starts", async () => {
     const user = userEvent.setup();
-    renderSurface();
-    const cards = screen.getByRole("group", {
-      name: "Start with a guided flow"
+    renderSurface({
+      ref: "flow-vid-2",
+      setupTarget: {
+        kind: "video",
+        id: "seq-1",
+        projectId: "default",
+        name: "A spot for our desk lamp",
+        ownsProject: false
+      }
     });
-    await user.click(within(cards).getByRole("button", { name: /^Create video / }));
 
     await screen.findByTestId("setup-flow");
     await user.click(
@@ -1937,19 +1966,20 @@ describe("NewProjectSurface", () => {
   // carries it too, the way the Script card would have.
   it("carries the video card's entities into the script it starts", async () => {
     const user = userEvent.setup();
-    renderSurface();
-    await user.click(screen.getByRole("button", { name: /^Entities · none/ }));
-    await user.click(screen.getByRole("button", { name: "Aurora lamp" }));
-    await user.click(screen.getByRole("button", { name: "Done" }));
-    await waitFor(() =>
-      expect(
-        screen.queryByRole("dialog", { name: /^Entities for this project/ })
-      ).not.toBeInTheDocument()
-    );
-    const cards = screen.getByRole("group", {
-      name: "Start with a guided flow"
+    renderSurface({
+      ref: "flow-vid-3",
+      setupTarget: {
+        kind: "video",
+        id: "seq-1",
+        projectId: "default",
+        name: "A spot for our desk lamp",
+        ownsProject: false,
+        carried: {
+          references: [],
+          entityIds: ["e1"]
+        }
+      }
     });
-    await user.click(within(cards).getByRole("button", { name: /^Create video / }));
 
     await screen.findByTestId("setup-flow");
     await user.click(
@@ -2231,7 +2261,7 @@ describe("NewProjectSurface", () => {
     });
   });
 
-  it("opens the image flow's sketch tab in the selected project", async () => {
+  it("opens the image generation tab in the selected project", async () => {
     const user = userEvent.setup();
     renderSurface();
     const cards = screen.getByRole("group", {
@@ -2243,7 +2273,7 @@ describe("NewProjectSurface", () => {
 
     await waitFor(() =>
       expect(openTab).toHaveBeenCalledWith(
-        expect.objectContaining({ type: "sketch", projectId: "default" })
+        expect.objectContaining({ type: "chat", projectId: "default" })
       )
     );
     expect(openProject).not.toHaveBeenCalled();
@@ -2348,7 +2378,7 @@ describe("NewProjectSurface", () => {
     );
   });
 
-  it("resolves picked entities into executable video reference bindings", async () => {
+  it("opens the video generation tab when entities are picked on Home", async () => {
     const user = userEvent.setup();
     renderSurface();
     await user.click(screen.getByRole("button", { name: /^Entities · none/ }));
@@ -2366,25 +2396,12 @@ describe("NewProjectSurface", () => {
       })
     );
 
-
     await waitFor(() =>
-      expect(timelineUpdate).toHaveBeenCalledWith({
-        id: "seq-1",
-        document: expect.objectContaining({
-          setup: expect.objectContaining({
-            entityIds: ["e1"],
-            creative_context: expect.objectContaining({
-              reference_bindings: [
-                expect.objectContaining({
-                  kind: "product",
-                  asset_id: "entity-ref",
-                  entity_id: "e1"
-                })
-              ]
-            })
-          })
-        })
-      })
+      expect(createNewThread).toHaveBeenCalledWith(
+        expect.any(String),
+        null,
+        expect.objectContaining({ mediaMode: "video" })
+      )
     );
   });
 

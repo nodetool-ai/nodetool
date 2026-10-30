@@ -10,6 +10,7 @@
 
 import type { CapabilitySpec } from "./types.js";
 import type { JsonSchema } from "@nodetool-ai/runtime";
+import { renameProperty } from "./rename.js";
 import { DEFAULT_CONCURRENCY, MAX_CONCURRENCY } from "./concurrency.js";
 
 export const SHOT_TARGETS_SCHEMA = {
@@ -183,6 +184,7 @@ export const EDIT_STORYBOARD_SCHEMA: JsonSchema = {
   type: "object",
   properties: {
     storyboard_id: { type: "string", description: "Storyboard id." },
+    name: renameProperty("storyboard"),
     expected_revision: { type: "integer", minimum: 0, description: "Reject if the Storyboard changed since it was read." },
     ops: {
       type: "array",
@@ -238,7 +240,7 @@ export const EDIT_STORYBOARD_SCHEMA: JsonSchema = {
       }
     }
   },
-  required: ["storyboard_id", "ops"]
+  required: ["storyboard_id"]
 };
 
 export const DIRECT_STORYBOARD_SCHEMA: JsonSchema = {
@@ -544,11 +546,15 @@ export const editStoryboardSpec: CapabilitySpec = {
     "the stored document and the " +
     "result is saved; an open board picks the change up live. Rendering stays " +
     "with render_storyboard_stills / render_storyboard_clips — this tool " +
-    "directs, it does not spend. Call get_storyboard first for shot ids.",
+    "directs, it does not spend. Call get_storyboard first for shot ids. " +
+    "Pass `name` to rename the storyboard, with or without ops.",
   inputSchema: EDIT_STORYBOARD_SCHEMA,
   category: "write",
   userMessage: (params) => {
     const count = Array.isArray(params["ops"]) ? params["ops"].length : 0;
+    if (count === 0 && typeof params["name"] === "string") {
+      return `Renaming storyboard ${String(params["storyboard_id"])}`;
+    }
     return `Editing storyboard ${String(params["storyboard_id"])} (${count} ops)`;
   }
 };

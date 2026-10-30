@@ -104,6 +104,7 @@ import { TIMELINE_NATIVE_MEDIA_CAPABILITIES } from "./timeline-native-media.js";
 import { isFiniteNumber, isRecord, isString } from "../utils/type-guards.js";
 
 import { resolveProjectId } from "./project-scope.js";
+import { editWithRename, parseRename, renameOwned } from "./rename.js";
 
 type ToolError = { error: string };
 
@@ -602,143 +603,100 @@ const editTimeline: CapabilityExport = {
         error: "timeline_id is required (use list_timelines to find one)."
       };
     }
-    const ops = parseOps(params["ops"]);
-    if (isError(ops)) return ops;
-    if (
-      ops.length > 1 &&
-      ops.some((entry) => entry.op === `${TOOL_PREFIX}retarget_format`)
-    ) {
-      return {
-        error:
-          "retarget_format creates a new sequence and must be the only op in " +
-          "an edit_timeline call. Call it once per target format, then edit " +
-          "the returned timeline id."
-      };
+    const name = parseRename(params["name"]);
+    if (isError(name)) return name;
+    return editWithRename({
+      ops: params["ops"],
+      name,
+      idKey: "timeline_id",
+      applyOps: () => applyTimelineEdit(run, timelineId, params),
+      rename: async (next) => {
+        const { TimelineSequence } = await import("@nodetool-ai/models");
+        return renameOwned(TimelineSequence, {
+          id: timelineId,
+          userId: run.context.userId,
+          name: next,
+          label: "Timeline"
+        });
+      }
+    });
+  }
+};
+
+/** The op script of one edit_timeline call, run and saved. */
+async function applyTimelineEdit(
+  run: CapabilityRun,
+  timelineId: string,
+  params: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const ops = parseOps(params["ops"]);
+  if (isError(ops)) return ops;
+  if (
+    ops.length > 1 &&
+    ops.some((entry) => entry.op === `${TOOL_PREFIX}retarget_format`)
+  ) {
+    return {
+      error:
+        "retarget_format creates a new sequence and must be the only op in " +
+        "an edit_timeline call. Call it once per target format, then edit " +
+        "the returned timeline id."
+    };
+  }
+
+  const { TimelineSequence, TimelineSequenceVersion } = await import("@nodetool-ai/models");
+  const { timelineMediaEditGenerator } = await import("./timeline-media-edit.js");
+  const generateMediaEdit = timelineMediaEditGenerator(run);
+  // Shared across retries, like the media edit generator: a retry re-applies
+  // every op, and a 3D bake already rendered must not render again.
+  const bakeModel3DClip = timelineModel3DBaker(run);
+  for (let attempt = 0; attempt < CAS_ATTEMPTS; attempt++) {
+    const sequence = await TimelineSequence.findById(timelineId);
+    // A sequence owned by someone else reads as missing — the rule the tRPC
+    // router's ownership check applies.
+    if (!sequence || sequence.user_id !== run.context.userId) {
+      return { error: `Timeline ${timelineId} was not found.` };
     }
+    const document: TimelineDocument = sequence.toDocument();
+    const { records, state } = await applyOps(run, sequence, document, ops, { generateMediaEdit, bakeModel3DClip });
 
-    const { TimelineSequence, TimelineSequenceVersion } = await import("@nodetool-ai/models");
-    const { timelineMediaEditGenerator } = await import("./timeline-media-edit.js");
-    const generateMediaEdit = timelineMediaEditGenerator(run);
-    // Shared across retries, like the media edit generator: a retry re-applies
-    // every op, and a 3D bake already rendered must not render again.
-    const bakeModel3DClip = timelineModel3DBaker(run);
-    for (let attempt = 0; attempt < CAS_ATTEMPTS; attempt++) {
-      const sequence = await TimelineSequence.findById(timelineId);
-      // A sequence owned by someone else reads as missing — the rule the tRPC
-      // router's ownership check applies.
-      if (!sequence || sequence.user_id !== run.context.userId) {
-        return { error: `Timeline ${timelineId} was not found.` };
-      }
-      const document: TimelineDocument = sequence.toDocument();
-      const { records, state } = await applyOps(run, sequence, document, ops, { generateMediaEdit, bakeModel3DClip });
-
-      // The transcript rides along untouched — no timeline operation edits it,
-      // so the stored copy stays authoritative. Markers come back from the
-      // bridge, which seeded them and which the marker ops write to.
-      const next: TimelineDocument = {
-        ...document,
-        tracks: state.documentTracks,
-        clips: state.documentClips,
-        markers: state.markers
-      };
-      // `set_tempo` and the first midi track both write it. Without this the
-      // stored document keeps the old BPM while the clips carry the rescaled
-      // milliseconds, so the part plays at the wrong speed on the next read.
-      if (state.tempo) next.tempo = state.tempo;
-      // The guided flow's stage and plan are document state like the rest: an
-      // op run that moved the flow on has to be what the row holds afterwards,
-      // or the next surface to open the sequence resumes at the old step.
-      if (state.setup) {
-        next.setup = state.setup;
-      }
-      // Subject/object tracks come back from the bridge the way markers do.
-      // A document that never carried one keeps the field absent rather than
-      // growing an empty array; one that did keeps what the ops left it with,
-      // including the empty array `delete_track_object` leaves behind.
-      if (state.mediaTracks.length > 0 || document.mediaTracks !== undefined) {
-        next.mediaTracks = state.mediaTracks;
-      }
-      const failed = records.filter((record) => !record.ok);
-      // Only the ops that landed describe the write, and a script where none
-      // landed is not a write at all: saving it would bump the revision and
-      // hand an open editor a merge with nothing in it.
-      const appliedOps = ops
-        .map((parsed, index) => ({ parsed, index }))
-        .filter(({ parsed, index }) => records[index]?.ok && !READ_ONLY_OPS.has(parsed.op));
-      if (appliedOps.length === 0) {
-        return {
-          timeline_id: timelineId,
-          updated_at: sequence.updated_at,
-          applied: records.filter((record) => record.ok).length,
-          failed: failed.length,
-          ops: records,
-          tracks: state.tracks,
-          clips: state.clips.map((clip) => ({
-            id: clip.id,
-            name: clip.name,
-            track_id: clip.trackId,
-            media_type: clip.mediaType,
-            start_ms: clip.startMs,
-            duration_ms: clip.durationMs,
-            animations: clip.animations
-          }))
-        };
-      }
-
-      // retarget_format has already created a derived row through the bridge's
-      // host callback. It deliberately leaves this source document untouched,
-      // including its revision and updated_at timestamp.
-      if (appliedOps[0]?.parsed.op === `${TOOL_PREFIX}retarget_format`) {
-        return {
-          timeline_id: timelineId,
-          updated_at: sequence.updated_at,
-          applied: 1,
-          failed: failed.length,
-          ops: records,
-          tracks: state.tracks,
-          clips: state.clips.map((clip) => ({
-            id: clip.id,
-            name: clip.name,
-            track_id: clip.trackId,
-            media_type: clip.mediaType,
-            start_ms: clip.startMs,
-            duration_ms: clip.durationMs,
-            animations: clip.animations
-          }))
-        };
-      }
-
-      const undo = appliedOps.some(({ parsed }) => parsed.op === `${TOOL_PREFIX}apply_take`)
-        ? await TimelineSequenceVersion.snapshot(sequence, { saveType: "manual", name: "Before applying AI edit take" })
-        : undefined;
-      const saved = await TimelineSequence.updateDocumentIfUnchanged(
-        sequence.id,
-        sequence.updated_at,
-        next,
-        {
-          ops: appliedOps.map(({ parsed, index }) => ({
-            tool: parsed.op,
-            input: resolveTimelineOpInput(
-              parsed.input,
-              document,
-              state,
-              records[index]?.result
-            )
-          }))
-        }
-      ).catch(async (error: unknown) => {
-        await undo?.delete();
-        throw error;
-      });
-      if (!saved) {
-        await undo?.delete();
-        continue;
-      }
-
-      const response = {
+    // The transcript rides along untouched — no timeline operation edits it,
+    // so the stored copy stays authoritative. Markers come back from the
+    // bridge, which seeded them and which the marker ops write to.
+    const next: TimelineDocument = {
+      ...document,
+      tracks: state.documentTracks,
+      clips: state.documentClips,
+      markers: state.markers
+    };
+    // `set_tempo` and the first midi track both write it. Without this the
+    // stored document keeps the old BPM while the clips carry the rescaled
+    // milliseconds, so the part plays at the wrong speed on the next read.
+    if (state.tempo) next.tempo = state.tempo;
+    // The guided flow's stage and plan are document state like the rest: an
+    // op run that moved the flow on has to be what the row holds afterwards,
+    // or the next surface to open the sequence resumes at the old step.
+    if (state.setup) {
+      next.setup = state.setup;
+    }
+    // Subject/object tracks come back from the bridge the way markers do.
+    // A document that never carried one keeps the field absent rather than
+    // growing an empty array; one that did keeps what the ops left it with,
+    // including the empty array `delete_track_object` leaves behind.
+    if (state.mediaTracks.length > 0 || document.mediaTracks !== undefined) {
+      next.mediaTracks = state.mediaTracks;
+    }
+    const failed = records.filter((record) => !record.ok);
+    // Only the ops that landed describe the write, and a script where none
+    // landed is not a write at all: saving it would bump the revision and
+    // hand an open editor a merge with nothing in it.
+    const appliedOps = ops
+      .map((parsed, index) => ({ parsed, index }))
+      .filter(({ parsed, index }) => records[index]?.ok && !READ_ONLY_OPS.has(parsed.op));
+    if (appliedOps.length === 0) {
+      return {
         timeline_id: timelineId,
-        updated_at: saved.updated_at,
-        applied: records.length - failed.length,
+        updated_at: sequence.updated_at,
+        applied: records.filter((record) => record.ok).length,
         failed: failed.length,
         ops: records,
         tracks: state.tracks,
@@ -752,17 +710,85 @@ const editTimeline: CapabilityExport = {
           animations: clip.animations
         }))
       };
-      if (undo) {
-        Object.assign(response, { undo_version: undo.version });
-      }
-      return response;
     }
 
-    return {
-      error: `Timeline ${timelineId} is being modified concurrently; nothing was saved. Retry the call.`
+    // retarget_format has already created a derived row through the bridge's
+    // host callback. It deliberately leaves this source document untouched,
+    // including its revision and updated_at timestamp.
+    if (appliedOps[0]?.parsed.op === `${TOOL_PREFIX}retarget_format`) {
+      return {
+        timeline_id: timelineId,
+        updated_at: sequence.updated_at,
+        applied: 1,
+        failed: failed.length,
+        ops: records,
+        tracks: state.tracks,
+        clips: state.clips.map((clip) => ({
+          id: clip.id,
+          name: clip.name,
+          track_id: clip.trackId,
+          media_type: clip.mediaType,
+          start_ms: clip.startMs,
+          duration_ms: clip.durationMs,
+          animations: clip.animations
+        }))
+      };
+    }
+
+    const undo = appliedOps.some(({ parsed }) => parsed.op === `${TOOL_PREFIX}apply_take`)
+      ? await TimelineSequenceVersion.snapshot(sequence, { saveType: "manual", name: "Before applying AI edit take" })
+      : undefined;
+    const saved = await TimelineSequence.updateDocumentIfUnchanged(
+      sequence.id,
+      sequence.updated_at,
+      next,
+      {
+        ops: appliedOps.map(({ parsed, index }) => ({
+          tool: parsed.op,
+          input: resolveTimelineOpInput(
+            parsed.input,
+            document,
+            state,
+            records[index]?.result
+          )
+        }))
+      }
+    ).catch(async (error: unknown) => {
+      await undo?.delete();
+      throw error;
+    });
+    if (!saved) {
+      await undo?.delete();
+      continue;
+    }
+
+    const response = {
+      timeline_id: timelineId,
+      updated_at: saved.updated_at,
+      applied: records.length - failed.length,
+      failed: failed.length,
+      ops: records,
+      tracks: state.tracks,
+      clips: state.clips.map((clip) => ({
+        id: clip.id,
+        name: clip.name,
+        track_id: clip.trackId,
+        media_type: clip.mediaType,
+        start_ms: clip.startMs,
+        duration_ms: clip.durationMs,
+        animations: clip.animations
+      }))
     };
+    if (undo) {
+      Object.assign(response, { undo_version: undo.version });
+    }
+    return response;
   }
-};
+
+  return {
+    error: `Timeline ${timelineId} is being modified concurrently; nothing was saved. Retry the call.`
+  };
+}
 
 // ---------------------------------------------------------------------------
 // validate_timeline

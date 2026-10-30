@@ -3,55 +3,19 @@
  * the editor uses) and the rough-cut fallback taken when no GPU device can be
  * acquired. `compositeRender` is mocked so the orchestration around it — what
  * gets rendered, what audio is mixed, what the fallback does — is what's under
- * test; child_process is mocked the same way as `timeline-nodes.test.ts`.
+ * test; the media module is faked the same way as `timeline-nodes.test.ts`.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import fsSync from "node:fs";
+import {
+  concatCall,
+  mediaCalls,
+  resetFakeMedia
+} from "./_fixtures/fake-media.js";
 
-let execFileCalls: Array<{ cmd: string; args: string[] }> = [];
-
-function mockResponse(
-  cmd: string,
-  args: string[]
-): { stdout: string; stderr: string } {
-  if (cmd === "ffprobe") {
-    const argsStr = args.join(" ");
-    if (argsStr.includes("codec_type")) return { stdout: "audio\n", stderr: "" };
-    if (argsStr.includes("format=duration")) return { stdout: "4\n", stderr: "" };
-    return { stdout: "", stderr: "" };
-  }
-  const outputPath = args[args.length - 1];
-  fsSync.writeFileSync(outputPath, Buffer.from(`fake:${outputPath}`));
-  return { stdout: "", stderr: "" };
-}
-
-vi.mock("node:child_process", async (importOriginal) => {
-  const original = (await importOriginal()) as Record<string, unknown>;
-  const mockExecFile = (
-    cmd: string,
-    args: string[],
-    optionsOrCb: unknown,
-    maybeCb?: unknown
-  ) => {
-    execFileCalls.push({ cmd, args: [...args] });
-    const cb =
-      typeof optionsOrCb === "function"
-        ? (optionsOrCb as (e: Error | null, o: string, s: string) => void)
-        : typeof maybeCb === "function"
-          ? (maybeCb as (e: Error | null, o: string, s: string) => void)
-          : null;
-    if (!cb) return;
-    const resp = mockResponse(cmd, args);
-    cb(null, resp.stdout, resp.stderr);
-  };
-  (mockExecFile as unknown as Record<symbol, unknown>)[
-    Symbol.for("nodejs.util.promisify.custom")
-  ] = (cmd: string, args: string[]) => {
-    execFileCalls.push({ cmd, args: [...args] });
-    return Promise.resolve(mockResponse(cmd, args));
-  };
-  return { ...original, execFile: mockExecFile };
-});
+vi.mock("@nodetool-ai/runtime/media", async (importOriginal) =>
+  (await import("./_fixtures/fake-media.js")).fakeMediaModule(await importOriginal())
+);
 
 const renderComposited = vi.fn();
 
@@ -150,14 +114,13 @@ function logs(severity: string): string {
     .join(" ");
 }
 
-function ffmpegArgs(): string[] {
-  return execFileCalls
-    .filter((c) => c.cmd === "ffmpeg")
-    .map((c) => c.args.join(" "));
+/** The mix graphs the render asked for. */
+function mixGraphs(): string[] {
+  return mediaCalls.flatMap((call) => (call.fn === "openFilterComplex" ? [call.graph] : []));
 }
 
 beforeEach(() => {
-  execFileCalls = [];
+  resetFakeMedia();
   posted = [];
   renderComposited.mockReset();
   renderComposited.mockResolvedValue({
@@ -180,7 +143,7 @@ describe("RenderTimeline — composited path", () => {
       durationMs: 4000
     });
     // No segment-per-clip encode: the rough cut is not involved.
-    expect(ffmpegArgs().some((a) => a.includes("-f concat"))).toBe(false);
+    expect(concatCall()).toBeUndefined();
   });
 
   it("reports which path produced the bytes", async () => {
@@ -246,13 +209,14 @@ describe("RenderTimeline — composited path", () => {
   it("mixes a video clip's own audio in, since a composite carries none", async () => {
     await render(sequence({ clips: [videoClip(), audioClip()] }));
 
-    const mix = ffmpegArgs().find((a) => a.includes("amix"));
+    const mix = mixGraphs().find((a) => a.includes("amix"));
     expect(mix).toBeDefined();
     // Both the audio-track clip and the video clip's embedded audio, and no
     // `[0:a]` — the composited base video is silent.
     expect(mix).toContain("amix=inputs=2");
     expect(mix).not.toContain("[0:a]");
-    expect(mix).toContain("-shortest");
+    // The mix is muxed beside the composited picture, which bounds its length.
+    expect(mediaCalls.some((call) => call.fn === "muxAudioWithVideoCopy")).toBe(true);
   });
 
   it("leaves a video clip's audio out when it was extracted onto an audio track", async () => {
@@ -264,7 +228,7 @@ describe("RenderTimeline — composited path", () => {
     });
     await render(seq);
 
-    const mix = ffmpegArgs().find((a) => a.includes("apad"));
+    const mix = mixGraphs().find((a) => a.includes("apad"));
     expect(mix).toBeDefined();
     // One source only: the extracted audio clip.
     expect(mix).not.toContain("amix");
@@ -274,7 +238,7 @@ describe("RenderTimeline — composited path", () => {
     await render(sequence({ clips: [videoClip(), audioClip()] }), {
       include_audio: false
     });
-    expect(ffmpegArgs().some((a) => a.includes("amix"))).toBe(false);
+    expect(mixGraphs().some((a) => a.includes("amix"))).toBe(false);
   });
 
   it("renders a timeline whose only picture is an overlay clip", async () => {
@@ -325,7 +289,7 @@ describe("RenderTimeline — fallback when no GPU is available", () => {
   it("falls back to the rough cut and says so on the job log", async () => {
     const out = await render(sequence({ clips: [videoClip()] }));
 
-    expect(ffmpegArgs().some((a) => a.includes("-f concat"))).toBe(true);
+    expect(concatCall()).toBeDefined();
     expect(logs("warning")).toMatch(/rough cut/);
     expect(logs("warning")).toMatch(/no adapter/);
     expect(out.output.metadata).toEqual({
@@ -338,7 +302,7 @@ describe("RenderTimeline — fallback when no GPU is available", () => {
   it("keeps the rough cut's own soundtrack in the mix", async () => {
     await render(sequence({ clips: [videoClip(), audioClip()] }));
 
-    const mix = ffmpegArgs().find((a) => a.includes("amix"));
+    const mix = mixGraphs().find((a) => a.includes("amix"));
     expect(mix).toContain("[0:a]");
   });
 

@@ -10,6 +10,7 @@
 
 import type { CapabilitySpec } from "./types.js";
 import type { JsonSchema } from "@nodetool-ai/runtime";
+import { renameProperty } from "./rename.js";
 import { DEFAULT_CONCURRENCY, MAX_CONCURRENCY } from "./concurrency.js";
 
 export const DEFAULT_ASR_PROVIDER = "openai";
@@ -105,6 +106,7 @@ export const EDIT_SCRIPT_SCHEMA: JsonSchema = {
   type: "object",
   properties: {
     script_id: { type: "string", description: "Script id." },
+    name: renameProperty("script"),
     ops: {
       type: "array",
       description:
@@ -131,7 +133,7 @@ export const EDIT_SCRIPT_SCHEMA: JsonSchema = {
       items: { type: "object" }
     }
   },
-  required: ["script_id", "ops"]
+  required: ["script_id"]
 };
 
 export const WRITE_SCRIPT_SCHEMA: JsonSchema = {
@@ -292,11 +294,15 @@ export const editScriptSpec: CapabilitySpec = {
     "Operations run in order against the stored document and the result is " +
     "saved; an open editor picks the change up live. Rewriting a line leaves " +
     "its takes in place as stale, so voice_script_lines re-records exactly " +
-    "those. Call get_script first for line and speaker ids.",
+    "those. Call get_script first for line and speaker ids. Pass `name` to " +
+    "rename the script, with or without ops.",
   inputSchema: EDIT_SCRIPT_SCHEMA,
   category: "write",
   userMessage: (params) => {
     const count = Array.isArray(params["ops"]) ? params["ops"].length : 0;
+    if (count === 0 && typeof params["name"] === "string") {
+      return `Renaming script ${String(params["script_id"])}`;
+    }
     return `Editing script ${String(params["script_id"])} (${count} ops)`;
   }
 };

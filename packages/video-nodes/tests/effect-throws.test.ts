@@ -1,55 +1,45 @@
 /**
- * A terminal ffmpeg failure on an effect node must throw an error carrying
- * ffmpeg's stderr — never silently pass the unchanged input through (a no-op
- * effect indistinguishable from a real one).
+ * A terminal failure on an effect node must throw — never silently pass the
+ * unchanged input through (a no-op effect indistinguishable from a real one).
+ * Bytes that are no video make every edit fail for real.
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 
-function ffmpegFailure(): Error & { code: number; stderr: string } {
-  const e = new Error("ffmpeg exited with code 1") as Error & {
-    code: number;
-    stderr: string;
-  };
-  e.code = 1;
-  e.stderr = "Error reinitializing filters! Invalid argument";
-  return e;
-}
-
-vi.mock("node:child_process", async (importOriginal) => {
-  const original = (await importOriginal()) as Record<string, unknown>;
-  const mockExecFile = (_cmd: string, _args: string[]) => undefined;
-  (mockExecFile as { [k: symbol]: unknown })[
-    Symbol.for("nodejs.util.promisify.custom")
-  ] = () => Promise.reject(ffmpegFailure());
-  return { ...original, execFile: mockExecFile };
-});
-
-const { DenoiseVideoNode, SetSpeedVideoNode } = await import(
+const { AddAudioVideoNode, DenoiseVideoNode, ResizeVideoNode, SetSpeedVideoNode } = await import(
   "@nodetool-ai/video-nodes"
 );
 
-function videoRef(bytes: number[]) {
-  return {
-    type: "video",
-    uri: "",
-    data: Buffer.from(new Uint8Array(bytes)).toString("base64")
-  };
-}
+const garbage = Buffer.from(new Uint8Array(4096).fill(7)).toString("base64");
+const notVideo = { type: "video", uri: "", data: garbage };
 
-beforeEach(() => {});
-
-describe("effect nodes throw on terminal ffmpeg failure", () => {
-  it("DenoiseVideoNode rejects and includes ffmpeg stderr", async () => {
+describe("effect nodes throw on a terminal failure", () => {
+  it("DenoiseVideoNode rejects instead of returning its input", async () => {
     const node = new DenoiseVideoNode();
-    node.assign({ video: videoRef([1, 2, 3, 4]), strength: 5 });
-    await expect(node.process()).rejects.toThrow(/reinitializing filters/);
+    node.assign({ video: notVideo, strength: 5 });
+    await expect(node.process()).rejects.toThrow(/Video processing failed/);
+  });
+
+  it("ResizeVideoNode rejects instead of returning its input", async () => {
+    const node = new ResizeVideoNode();
+    node.assign({ video: notVideo, width: 32, height: 24 });
+    await expect(node.process()).rejects.toThrow(/Video processing failed/);
   });
 
   it("SetSpeedVideoNode throws when even the video-only fallback fails", async () => {
     // The audio+video attempt is allowed to fall back; the video-only attempt is
     // terminal and must surface the failure, not return the input unchanged.
     const node = new SetSpeedVideoNode();
-    node.assign({ video: videoRef([1, 2, 3, 4]), speed_factor: 2 });
-    await expect(node.process()).rejects.toThrow(/ffmpeg failed/);
+    node.assign({ video: notVideo, speed_factor: 2 });
+    await expect(node.process()).rejects.toThrow(/Video processing failed/);
+  });
+
+  it("AddAudioVideoNode throws when even the replace fallback fails", async () => {
+    const node = new AddAudioVideoNode();
+    node.assign({
+      video: notVideo,
+      audio: { type: "audio", uri: "", data: garbage },
+      mix: true
+    });
+    await expect(node.process()).rejects.toThrow(/Video processing failed/);
   });
 });

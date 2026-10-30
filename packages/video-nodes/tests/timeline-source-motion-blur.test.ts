@@ -1,8 +1,8 @@
-import { execFileSync } from "node:child_process";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { openRgbaFrameReader } from "@nodetool-ai/runtime/media";
 import type { TimelineClip, TimelineSequence } from "@nodetool-ai/timeline";
 import { openFrameEncoder } from "../src/nodes/timeline/rawFrames.js";
 import { renderTimelineComposited } from "../src/nodes/timeline/compositeRender.js";
@@ -46,23 +46,17 @@ afterAll(async () => {
   }
 });
 
-function sourceGray(file: string, timeMs: number): number {
-  const rgba = execFileSync("ffmpeg", [
-    "-v",
-    "error",
-    "-ss",
-    String(timeMs / 1000),
-    "-i",
-    file,
-    "-frames:v",
-    "1",
-    "-f",
-    "rawvideo",
-    "-pix_fmt",
-    "rgba",
-    "pipe:1"
-  ]);
-  return rgba[(SIZE * Math.floor(SIZE / 2) + Math.floor(SIZE / 2)) * 4];
+/** Center gray of the frame shown at `timeMs`, decoded on its own. */
+async function sourceGray(file: string, timeMs: number): Promise<number> {
+  const reader = await openRgbaFrameReader({ filePath: file, filter: "format=rgba", seekSec: timeMs / 1000 });
+  if (!reader) throw new Error(`${file} has no video stream`);
+  try {
+    const frame = await reader.next();
+    if (!frame) throw new Error(`${file} has no frame at ${timeMs} ms`);
+    return frame.rgba[(SIZE * Math.floor(SIZE / 2) + Math.floor(SIZE / 2)) * 4]!;
+  } finally {
+    await reader.close();
+  }
 }
 async function render(
   file: string,
@@ -140,7 +134,7 @@ describe("source video shutter sampling", () => {
     }
   ]) {
     it(`averages independently decoded source frames during ${control.name}`, async () => {
-      const unblurred = sourceGray(
+      const unblurred = await sourceGray(
         dynamicPath,
         control.sourceTime(1000)
       );
@@ -149,8 +143,8 @@ describe("source video shutter sampling", () => {
         { length: 4 },
         (_, index) => 1000 + (((index + 0.5) / 4) * (1000 / 30)) / 2
       );
-      const values = times.map((time) =>
-        sourceGray(dynamicPath, control.sourceTime(time))
+      const values = await Promise.all(
+        times.map((time) => sourceGray(dynamicPath, control.sourceTime(time)))
       );
       expect(new Set(values).size).toBeGreaterThan(1);
       const expected =

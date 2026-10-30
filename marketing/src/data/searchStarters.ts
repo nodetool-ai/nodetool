@@ -47,6 +47,18 @@ export const searchStarters = {
       "Inspect the Poster output. Revise the brief or model, then save and rerun the workflow.",
     ],
   },
+  "camera-move": {
+    name: "Camera Move",
+    route: "/templates/camera-move",
+    summary: "Animate a still photo with one of 30 named camera movements — dolly in, crane up, orbit, crash zoom, or FPV fly-through — and inspect or swap the video model on the canvas.",
+    providers: "A FAL API key for hosted video models (Kling 3.0, Veo 3.1, Seedance, Wan), or $0 locally with Wan 2.2 through ComfyUI or Wan2GP.",
+    steps: [
+      "In Studio, open Camera Move from the template library.",
+      "Connect FAL in provider settings or select a local Wan 2.2 video model on the ImageToVideo node.",
+      "Pick a camera movement preset (such as dolly in, crane up, or 360 orbit), speed, and duration, then run the workflow.",
+      "Inspect the animated clip output. Swap the camera move or chain the clip into the multi-track timeline.",
+    ],
+  },
 } as const;
 
 export type SearchStarter = keyof typeof searchStarters;

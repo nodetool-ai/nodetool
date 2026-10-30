@@ -75,3 +75,31 @@ export function normalizeWheelDeltaPx(
   }
   return delta;
 }
+
+/**
+ * Natural-log zoom per pixel of wheel delta. Chromium reports a trackpad pinch
+ * as a ctrlKey wheel with `deltaY = -100 * ln(scale)`, so 1/100 would follow
+ * the fingers exactly. Twice that lets one pinch cover more of the range.
+ */
+const ZOOM_PER_PX = 0.02;
+
+/**
+ * Largest delta one event may contribute. A pinch sends many small deltas
+ * (well under this), while a mouse wheel notch reports about 100; the cap
+ * turns a notch into a ~35% step instead of a 7x jump.
+ */
+const MAX_ZOOM_DELTA_PX = 15;
+
+/**
+ * The msPerPx multiplier for one Ctrl/Cmd wheel event (> 1 zooms out).
+ * Exponential, so equal opposite deltas cancel exactly.
+ */
+export function wheelZoomFactor(
+  deltaY: number,
+  deltaMode: number,
+  pageSizePx: number
+): number {
+  const px = normalizeWheelDeltaPx(deltaY, deltaMode, pageSizePx);
+  const capped = Math.max(-MAX_ZOOM_DELTA_PX, Math.min(MAX_ZOOM_DELTA_PX, px));
+  return Math.exp(capped * ZOOM_PER_PX);
+}

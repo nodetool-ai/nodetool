@@ -30,7 +30,7 @@ Open **Tools > Package Manager** in the desktop app, or go to `/packages` in the
 
 ### Engines & tools, Built-in nodes, Python nodes, and Community nodes
 
-- **Engines & tools** manages programs that run on this computer: local AI engines such as llama.cpp and stable-diffusion.cpp, media tools such as FFmpeg, and languages such as Python. Local models and some nodes need them. The list shows them in groups for languages, media, and AI.
+- **Engines & tools** manages programs that run on this computer: local AI engines such as llama.cpp and stable-diffusion.cpp, media tools such as yt-dlp, and languages such as Python. Local models and some nodes need them. The list shows them in groups for languages, media, and AI.
 - **Built-in nodes** lists the packs that ship with NodeTool. Switch a pack on or off, then restart the server. The base pack is always on. Provider packs that need an API key are not listed. Their nodes appear after you add the key in **Settings > Models & Providers**.
 - **Python nodes** lists the Python node packs that NodeTool offers. They install from PyPI. Use **Install**, **Update**, or **Uninstall**, or **Update all** when several have updates. Installing a pack sets up Python first if it is missing.
   - A pack installs at its newest stable release, not a version tied to the app version. Prereleases are skipped.

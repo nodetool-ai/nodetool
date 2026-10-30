@@ -26,8 +26,8 @@ Download media from URLs using yt-dlp.
 |----------|------|-------------|---------|
 | url | `str` | URL of the media to download | `` |
 | mode | `enum` | Download mode: video, audio, or metadata only | `video` |
-| format_selector | `str` | yt-dlp format selector (e.g., 'best', 'bestvideo+bestaudio') | `best` |
-| container | `str` | Output container format (e.g., 'mp4', 'webm', 'auto') | `auto` |
+| format_selector | `str` | yt-dlp format selector (e.g., 'best', 'bestvideo+bestaudio'). Each side of a top-level '+' downloads on its own and the two are muxed without re-encoding. 'best' means 'bv*+ba/b'. | `best` |
+| container | `str` | Container for a muxed video and audio download: auto, mp4, mov, webm or mkv. Auto picks webm or mp4 when it holds both codecs, else mkv. A selector with no '+' keeps the downloaded file's own container. | `auto` |
 | subtitles | `bool` | Download subtitles if available | `false` |
 | sub_langs | `str` | Comma-separated subtitle language codes in yt-dlp syntax (e.g., 'en,en-US,en-GB', 'de.*', 'all'). Only used when Subtitles is enabled. | - |
 | thumbnail | `bool` | Download thumbnail if available | `false` |

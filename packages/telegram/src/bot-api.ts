@@ -165,24 +165,24 @@ export class BotApi {
     return this.call<TelegramMessage>("sendMessage", payload);
   }
 
-  editMessageText(payload: Record<string, unknown>): Promise<unknown> {
-    return this.call("editMessageText", payload);
+  editMessageText(payload: Record<string, unknown>): Promise<TelegramMessage | true> {
+    return this.call<TelegramMessage | true>("editMessageText", payload);
   }
 
-  sendChatAction(chatId: string, action: string): Promise<unknown> {
-    return this.call("sendChatAction", { chat_id: chatId, action });
+  sendChatAction(chatId: string, action: string): Promise<true> {
+    return this.call<true>("sendChatAction", { chat_id: chatId, action });
   }
 
-  answerCallbackQuery(callbackQueryId: string, text?: string): Promise<unknown> {
+  answerCallbackQuery(callbackQueryId: string, text?: string): Promise<true> {
     const payload: Record<string, unknown> = { callback_query_id: callbackQueryId };
     if (text !== undefined) {
       payload.text = text;
     }
-    return this.call("answerCallbackQuery", payload);
+    return this.call<true>("answerCallbackQuery", payload);
   }
 
-  setMyCommands(commands: readonly BotCommandSpec[]): Promise<unknown> {
-    return this.call("setMyCommands", { commands });
+  setMyCommands(commands: readonly BotCommandSpec[]): Promise<true> {
+    return this.call<true>("setMyCommands", { commands });
   }
 
   getMe(): Promise<{ id: number; username?: string }> {

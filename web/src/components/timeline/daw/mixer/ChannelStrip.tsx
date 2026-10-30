@@ -353,6 +353,7 @@ export interface ChannelStripViewProps {
   onAddEffect: (effect: TrackEffect["type"] | TrackEffect) => void;
   onToggleEffect: (effectId: string, enabled: boolean) => void;
   onOpenEffect: (effectId: string, anchor: HTMLElement) => void;
+  onRemoveEffect: (effectId: string) => void;
 }
 
 /** The strip itself, from plain values, so the master and tracks share it. */
@@ -404,6 +405,7 @@ export const ChannelStripView: React.FC<ChannelStripViewProps> = memo((props) =>
         onAdd={props.onAddEffect}
         onToggle={props.onToggleEffect}
         onOpen={props.onOpenEffect}
+        onRemove={props.onRemoveEffect}
       />
       <div className="strip__body">
         {props.onPan || props.onMute ? (
@@ -510,6 +512,7 @@ export const TrackStrip: React.FC<TrackStripProps> = memo(
     const setTrackSolo = useTimelineStore((s) => s.setTrackSolo);
     const addTrackEffect = useTimelineStore((s) => s.addTrackEffect);
     const updateTrackEffect = useTimelineStore((s) => s.updateTrackEffect);
+    const removeTrackEffect = useTimelineStore((s) => s.removeTrackEffect);
 
     const volume = useBatchedGesture<number>((db) => setTrackVolume(trackId, db));
     const pan = useBatchedGesture<number>((value) => setTrackPan(trackId, value));
@@ -550,7 +553,8 @@ export const TrackStrip: React.FC<TrackStripProps> = memo(
         onToggleEffect: (effectId: string, enabled: boolean) =>
           updateTrackEffect(trackId, effectId, { enabled }),
         onOpenEffect: (effectId: string, anchor: HTMLElement) =>
-          onOpenEffect(trackId, effectId, anchor)
+          onOpenEffect(trackId, effectId, anchor),
+        onRemoveEffect: (effectId: string) => removeTrackEffect(trackId, effectId)
       }),
       [
         volume,
@@ -564,6 +568,7 @@ export const TrackStrip: React.FC<TrackStripProps> = memo(
         onOpenDevice,
         addTrackEffect,
         updateTrackEffect,
+        removeTrackEffect,
         onOpenEffect
       ]
     );
@@ -585,6 +590,7 @@ export const MasterStrip: React.FC<MasterStripProps> = memo(({ readLevels, onOpe
   const setMasterVolume = useTimelineStore((s) => s.setMasterVolume);
   const addMasterEffect = useTimelineStore((s) => s.addMasterEffect);
   const updateMasterEffect = useTimelineStore((s) => s.updateMasterEffect);
+  const removeMasterEffect = useTimelineStore((s) => s.removeMasterEffect);
   const volume = useBatchedGesture<number>(setMasterVolume);
 
   const channel = useMemo<StripChannel>(
@@ -605,9 +611,10 @@ export const MasterStrip: React.FC<MasterStripProps> = memo(({ readLevels, onOpe
       onAddEffect: addMasterEffect,
       onToggleEffect: (effectId: string, enabled: boolean) =>
         updateMasterEffect(effectId, { enabled }),
-      onOpenEffect: (effectId: string, anchor: HTMLElement) => onOpenEffect(null, effectId, anchor)
+      onOpenEffect: (effectId: string, anchor: HTMLElement) => onOpenEffect(null, effectId, anchor),
+      onRemoveEffect: removeMasterEffect
     }),
-    [volume, setMasterVolume, addMasterEffect, updateMasterEffect, onOpenEffect]
+    [volume, setMasterVolume, addMasterEffect, updateMasterEffect, removeMasterEffect, onOpenEffect]
   );
   return <ChannelStripView channel={channel} readLevels={readLevels} {...handlers} />;
 });

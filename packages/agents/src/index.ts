@@ -657,6 +657,26 @@ export type {
   Model3DBridgeInitialState
 } from "./evals/surfaces/model3d.js";
 export {
+  createSvgToolBridge,
+  svgMarkupIssues,
+  SVG_TOOL_LOOP_CASES
+} from "./evals/surfaces/svg.js";
+export type {
+  SvgBridgeFinalState,
+  SvgBridgeInitialState
+} from "./evals/surfaces/svg.js";
+export {
+  createAudioToolBridge,
+  AUDIO_BRIDGE_SAMPLE_RATE,
+  AUDIO_TOOL_LOOP_CASES
+} from "./evals/surfaces/audio.js";
+export type {
+  AudioBridgeEffectRecord,
+  AudioBridgeFinalState,
+  AudioBridgeInitialState,
+  AudioBridgeSegment
+} from "./evals/surfaces/audio.js";
+export {
   createAppToolBridge,
   APP_TOOL_LOOP_CASES
 } from "./evals/surfaces/app.js";

@@ -156,15 +156,8 @@ import AppSetupHost, { type BuiltApp } from "../setup/app/AppSetupHost";
 import type { GameStartAlternative } from "../setup/game/IdeaStep";
 import type { BuildGameResult } from "../../hooks/game/useBuildGame";
 import EntitySetupHost from "../setup/entity/EntitySetupHost";
-import { newVideoSetupDocument } from "../setup/video/useVideoSetupFlow";
 import { newScriptSetupDocument } from "../setup/script/useScriptSetupFlow";
-import { startImageFlow } from "../setup/image/startImageFlow";
 import { MAX_IMAGE_REFERENCES } from "../setup/image/setupContext";
-import {
-  useCreateTimeline,
-  useDeleteTimeline,
-  useSeedTimelineDetail
-} from "../../hooks/useTimelineSequence";
 import { useCreateScript } from "../../hooks/script/useScripts";
 import { MEDIA_MODES } from "../chat/composer/mediaModes";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -176,7 +169,11 @@ import {
 import { newDocumentId } from "../../lib/newDocumentId";
 import { newStoryboardSetupDocument } from "../setup/storyboard/useStoryboardSetupFlow";
 import { stageChatTurn } from "../chat/pendingChatTurn";
-import { openSpeechChat } from "../chat/openSpeechChat";
+import {
+  openImageChat,
+  openSpeechChat,
+  openVideoChat
+} from "../chat/openSpeechChat";
 import { PROJECT_COLOR } from "./projectIdentity";
 import {
   composeFirstTurn,
@@ -607,9 +604,6 @@ const NewProjectSurface = ({
   const { data: skills } = useSkills({ includeSystem: true });
   const summaries = useProjectSummaries();
   const createStoryboard = useCreateStoryboard();
-  const createTimeline = useCreateTimeline();
-  const deleteTimeline = useDeleteTimeline();
-  const seedTimelineDetail = useSeedTimelineDetail();
   const createScript = useCreateScript();
   const createWorkflow = useWorkflowManager((state) => state.create);
   const openProject = useOpenProject();
@@ -1154,85 +1148,61 @@ const NewProjectSurface = ({
       }
       const text = flowPrompt.trim();
       const name =
-        text.length > 0 ? projectNameFromPrompt(text, null) : t("pass3_32.projects.home.documentNames.video");
+        text.length > 0
+          ? projectNameFromPrompt(text, null)
+          : t("pass3_32.projects.home.documentNames.video");
       setStarting(true);
-      // The sequence made before its setup PATCH. A failure in between
-      // deletes it, so no empty timeline is left in the project (F15).
-      let unfinishedId: string | null = null;
       try {
         const references = await uploadComposerReferences(droppedFiles);
-        const sequence = await createTimeline.mutateAsync({
-          name,
-          projectId
-        });
-        unfinishedId = sequence.id;
-        const entityReferenceBindings: ProductionReferenceBinding[] =
-          selectedEntities.flatMap((entity) => {
-            const assetId = assetIdOf(entity.reference_images?.[0]);
-            if (!assetId) {
-              return [];
-            }
-            return [
-              {
-                kind: entity.kind === "prop" ? "product" : entity.kind,
-                asset_id: assetId,
-                entity_id: entity.id,
-                label: entity.name
-              }
-            ];
-          });
-        const withSetup = await trpcClient.timeline.update.mutate({
-          id: sequence.id,
-          document: newVideoSetupDocument(text, {
-            references: references.map(({ uri, name: fileName }) => ({
-              uri,
-              name: fileName,
-              role: "product"
-            })),
-            entityIds,
-            ...(entityReferenceBindings.length > 0 && {
-              creativeContext: {
-                schema_version: 1,
-                reference_bindings: entityReferenceBindings
-              }
-            })
-          })
-        });
-        unfinishedId = null;
-        // The create seeded the detail cache with a sequence that has no setup;
-        // the flow's first render must not read that copy (see
-        // `useSeedTimelineDetail`).
-        seedTimelineDetail(withSetup);
+        const attachments = references.map((ref, idx) => ({
+          id: `home-vid-ref-${idx}-${Date.now()}`,
+          dataUri: ref.uri,
+          type: ref.type || "image/png",
+          name: ref.name,
+          assetUri: ref.uri
+        }));
         noteUncarriedContext("video", { entities: true, references: true });
-        applySetupTarget({
-          kind: "video",
-          id: sequence.id,
-          projectId,
-          name,
-          ownsProject: false
-        });
-      } catch (error) {
-        if (unfinishedId !== null) {
-          await deleteTimeline
-            .mutateAsync({ id: unfinishedId })
-            .catch(() => undefined);
+        if (!(await showDocumentProject(projectId, name))) {
+          return;
         }
+        if (!hasHomeTab) {
+          openTab({
+            type: "project-new",
+            ref: PROJECT_NEW_REF,
+            mode: "view",
+            title: t("pass3_32.projects.home.homeTab")
+          });
+        }
+        await openVideoChat(projectId, {
+          title: name,
+          draft: text,
+          attachments,
+          mediaMode: attachments.some((f) => f.type.startsWith("image/"))
+            ? "image_to_video"
+            : "video"
+        });
+        closeTab(
+          tabId(
+            flowRef ? "guided-flow" : "project-new",
+            flowRef ?? PROJECT_NEW_REF
+          )
+        );
+      } catch (error) {
         reportEntryFailure("video", error);
       } finally {
         setStarting(false);
       }
     },
     [
-      applySetupTarget,
-      createTimeline,
-      deleteTimeline,
+      closeTab,
       droppedFiles,
-      entityIds,
-      noteUncarriedContext,
       flowPrompt,
+      flowRef,
+      hasHomeTab,
+      noteUncarriedContext,
+      openTab,
       reportEntryFailure,
-      seedTimelineDetail,
-      selectedEntities,
+      showDocumentProject,
       starting,
       t
     ]
@@ -1288,9 +1258,6 @@ const NewProjectSurface = ({
     ]
   );
 
-  // Image has no step host: its flow is an overlay the sketch editor renders,
-  // so the card opens the editor and the overlay resumes from the document's
-  // stage (PRD § 10.4).
   const startImageProject = useCallback(
     async (projectId: string) => {
       if (starting) {
@@ -1306,13 +1273,13 @@ const NewProjectSurface = ({
         const references = await uploadComposerReferences(
           droppedFiles.filter((file) => file.type.startsWith("image/"))
         );
-        const started = await startImageFlow({
-          name,
-          projectId,
-          brief: text,
-          references,
-          entityIds
-        });
+        const attachments = references.map((ref, idx) => ({
+          id: `home-img-ref-${idx}-${Date.now()}`,
+          dataUri: ref.uri,
+          type: ref.type || "image/png",
+          name: ref.name,
+          assetUri: ref.uri
+        }));
         noteUncarriedContext("image", {
           entities: true,
           references: Math.min(references.length, MAX_IMAGE_REFERENCES)
@@ -1328,14 +1295,18 @@ const NewProjectSurface = ({
             title: t("pass3_32.projects.home.homeTab")
           });
         }
-        openTab({
-          type: "sketch",
-          ref: started.documentId,
-          mode: "edit",
+        await openImageChat(projectId, {
           title: name,
-          projectId
+          draft: text,
+          attachments,
+          mediaMode: attachments.length > 0 ? "image_edit" : "image"
         });
-        if (flowRef) closeTab(tabId("guided-flow", flowRef));
+        closeTab(
+          tabId(
+            flowRef ? "guided-flow" : "project-new",
+            flowRef ?? PROJECT_NEW_REF
+          )
+        );
       } catch (error) {
         reportEntryFailure("image", error);
       } finally {
@@ -1345,7 +1316,6 @@ const NewProjectSurface = ({
     [
       closeTab,
       droppedFiles,
-      entityIds,
       flowRef,
       hasHomeTab,
       noteUncarriedContext,

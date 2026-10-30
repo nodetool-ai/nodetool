@@ -326,7 +326,7 @@ static readonly replacedBy = "mypackage.example.NewNode"; // successor node type
 static readonly hidden = true;         // stay runnable, hide from node discovery UIs
 static readonly primaryOutput = "output"; // output slot saved and previewed as the main result
 static readonly isTrigger = true;      // trigger node (see Suspendable Nodes)
-static readonly requiredRuntimes = ["ffmpeg"]; // host binaries or runtimes the node needs
+static readonly requiredRuntimes = ["yt-dlp"]; // host binaries or runtimes the node needs
 ```
 
 > Triggers, `primaryOutput`, `autoSaveAsset`, dynamic slots, `appendStaticInputs`, and `requiredRuntimes` are explained in

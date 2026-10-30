@@ -12,6 +12,7 @@
 import {
   partitionTimelineWheel,
   normalizeWheelDeltaPx,
+  wheelZoomFactor,
   type TimelineWheelSrc
 } from "../timelineWheel";
 
@@ -89,5 +90,33 @@ describe("normalizeWheelDeltaPx", () => {
 
   it("scales page-mode deltas by the page (viewport) size", () => {
     expect(normalizeWheelDeltaPx(2, 2 /* DOM_DELTA_PAGE */, 800)).toBe(1600);
+  });
+});
+
+describe("wheelZoomFactor", () => {
+  it("zooms a Chromium trackpad pinch at twice the finger scale", () => {
+    // Chromium sends deltaY = -100 * ln(scale); split a 2x pinch-out into
+    // the many small events a trackpad delivers.
+    const steps = 10;
+    const perEvent = (-100 * Math.log(2)) / steps;
+    let factor = 1;
+    for (let i = 0; i < steps; i++) {
+      factor *= wheelZoomFactor(perEvent, 0, 1000);
+    }
+    expect(factor).toBeCloseTo(0.25, 6);
+  });
+
+  it("caps a mouse wheel notch to one bounded step", () => {
+    const notch = wheelZoomFactor(100, 0, 1000);
+    expect(notch).toBeGreaterThan(1.2);
+    expect(notch).toBeLessThan(1.4);
+    expect(wheelZoomFactor(-100, 0, 1000) * notch).toBeCloseTo(1, 10);
+  });
+
+  it("normalizes line-mode deltas before the cap", () => {
+    expect(wheelZoomFactor(1, 1 /* DOM_DELTA_LINE */, 1000)).toBeCloseTo(
+      Math.exp(0.3),
+      10
+    );
   });
 });

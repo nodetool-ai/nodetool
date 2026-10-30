@@ -139,6 +139,7 @@
 .fablesynth.fable-fx-device[data-kind='drive'],
 .fablesynth.fable-fx-device[data-kind='chorus'],
 .fablesynth.fable-fx-device[data-kind='echo'],
-.fablesynth.fable-fx-device[data-kind='reverb'] { max-width: 300px; }
+.fablesynth.fable-fx-device[data-kind='reverb'],
+.fablesynth.fable-fx-device[data-kind='limiter'] { max-width: 300px; }
 .fablesynth.fable-fx-device[data-kind='lab'] { max-width: 1100px; }
 .fablesynth.fable-fx-device .panel { grid-area: auto !important; }

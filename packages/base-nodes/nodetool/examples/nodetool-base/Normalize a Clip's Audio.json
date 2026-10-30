@@ -5,7 +5,7 @@
   "updated_at": "2026-06-21T16:55:51.256Z",
   "name": "Normalize a Clip's Audio",
   "tool_name": null,
-  "description": "Even out loudness on a track that was recorded too quiet or too hot. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
+  "description": "Even out loudness on a track that was recorded too quiet or too hot. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Built-in media engine - no API cost.",
   "tags": [
     "audio",
     "video",
@@ -20,7 +20,7 @@
         "id": "intro-comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Normalize a Clip's Audio\n\nEvens out the loudness of a clip recorded too quiet or too loud. It works on video footage because it pulls the audio out first.\n\n**How it works:** The \"Clip\" input goes to \"Extract audio\", which separates the soundtrack. \"Process\" normalizes its level, and \"Audio\" plays the result. It runs locally through ffmpeg with no model or key.\n\n**Try this:** Run it on a quiet phone recording and compare the output level with the original."
+          "comment": "# Normalize a Clip's Audio\n\nEvens out the loudness of a clip recorded too quiet or too loud. It works on video footage because it pulls the audio out first.\n\n**How it works:** The \"Clip\" input goes to \"Extract audio\", which separates the soundtrack. \"Process\" normalizes its level, and \"Audio\" plays the result. It runs in the built-in media engine on your machine, with no model or key.\n\n**Try this:** Run it on a quiet phone recording and compare the output level with the original."
         },
         "ui_properties": {
           "position": {

@@ -38,7 +38,7 @@ import type {
   ShotScaffold
 } from "@nodetool-ai/protocol";
 import type { CaptionWord } from "@nodetool-ai/timeline";
-import { paceSpeed } from "@nodetool-ai/protocol";
+import { paceSpeed, providerAppliesPace } from "@nodetool-ai/protocol";
 import {
   isFunction,
   isNonBlankString,
@@ -71,6 +71,7 @@ import {
 import { clampConcurrency, mapWithConcurrency } from "./concurrency.js";
 
 import { resolveProjectId } from "./project-scope.js";
+import { editWithRename, parseRename, renameOwned } from "./rename.js";
 /** Lines one call may voice, so a whole-script call cannot run away. */
 const MAX_LINES_PER_CALL = 60;
 /** Tokens the writer may spend on one script. */
@@ -191,45 +192,25 @@ async function appendTake(
 /**
  * Duration of the synthesized audio.
  *
- * ffprobe is the accurate answer and is what the editor's browser probe and the
- * VoiceScript node both effectively measure. When it is unavailable (no ffmpeg
- * on PATH), the last word timing is a close second, and the placeholder is the
- * floor — a take is still playable and still assemblable without an exact
- * length.
+ * The container's own duration is the accurate answer and is what the
+ * editor's browser probe and the VoiceScript node both measure. For audio the
+ * probe cannot read, the last word timing is a close second, and the
+ * placeholder is the floor — a take is still playable and still assemblable
+ * without an exact length.
  */
 async function measureDurationMs(
   bytes: Uint8Array,
   words: CaptionWord[]
 ): Promise<number> {
-  const { execFile: execFileCb } = await import("node:child_process");
-  const { promisify } = await import("node:util");
-  const { promises: fs } = await import("node:fs");
-  const os = await import("node:os");
-  const path = await import("node:path");
   const { PLACEHOLDER_LINE_MS } = await import("@nodetool-ai/timeline");
-  const execFile = promisify(execFileCb);
-
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-voice-"));
-  const file = path.join(dir, "take");
   try {
-    await fs.writeFile(file, bytes);
-    const { stdout } = await execFile("ffprobe", [
-      "-v",
-      "error",
-      "-show_entries",
-      "format=duration",
-      "-of",
-      "default=noprint_wrappers=1:nokey=1",
-      file
-    ]);
-    const seconds = parseFloat(stdout.trim());
-    if (Number.isFinite(seconds) && seconds > 0) {
-      return Math.round(seconds * 1000);
+    const { probeMedia } = await import("@nodetool-ai/runtime/media");
+    const { durationSec } = await probeMedia(bytes);
+    if (durationSec !== null && durationSec > 0) {
+      return Math.round(durationSec * 1000);
     }
   } catch {
-    // ffprobe missing or unreadable output — fall through to the estimates.
-  } finally {
-    await fs.rm(dir, { recursive: true, force: true });
+    // Audio the probe cannot read: fall through to the estimates.
   }
   const lastWordEnd = words.length > 0 ? words[words.length - 1].endMs : 0;
   return lastWordEnd > 0 ? lastWordEnd : PLACEHOLDER_LINE_MS;
@@ -274,18 +255,27 @@ interface LineOutcome {
   error?: string;
 }
 
+/** The pace speed a voicing of this script sends now, null for the default. */
+const scriptSpeed = (doc: ScriptDocument): number | null =>
+  paceSpeed(doc.setup?.pace) ?? null;
+
 /** The voicing state of a line, as the editor's gutter shows it. */
 function lineStatus(
   line: ScriptLine,
   voice: ScriptVoiceBinding | null,
+  speed: number | null,
   helpers: {
     currentTake: (line: ScriptLine) => ScriptTake | undefined;
-    needsVoicing: (line: ScriptLine, voice: ScriptVoiceBinding) => boolean;
+    needsVoicing: (
+      line: ScriptLine,
+      voice: ScriptVoiceBinding,
+      speed?: number | null
+    ) => boolean;
   }
 ): "draft" | "stale" | "voiced" | "no_voice" {
   if (!voice) return "no_voice";
   if (!helpers.currentTake(line)) return "draft";
-  return helpers.needsVoicing(line, voice) ? "stale" : "voiced";
+  return helpers.needsVoicing(line, voice, speed) ? "stale" : "voiced";
 }
 
 // ---------------------------------------------------------------------------
@@ -405,7 +395,7 @@ const listScripts: CapabilityExport = {
           lines: lines.length,
           voiced: lines.filter(
             (line) =>
-              lineStatus(line, effectiveVoice(line, doc.cast), {
+              lineStatus(line, effectiveVoice(line, doc.cast), scriptSpeed(doc), {
                 currentTake,
                 needsVoicing
               }) === "voiced"
@@ -505,7 +495,10 @@ const getScript: CapabilityExport = {
           direction: line.direction,
           pause_after_ms: line.pauseAfterMs,
           voice,
-          status: lineStatus(line, voice, { currentTake, needsVoicing }),
+          status: lineStatus(line, voice, scriptSpeed(doc), {
+            currentTake,
+            needsVoicing
+          }),
           take_count: line.takes.length,
           shot_id: link.shot_id_by_line_id[line.id] ?? null,
           orphaned: link.linked && orphans.has(line.id)
@@ -572,7 +565,11 @@ function selectLines(
       line: ScriptLine,
       cast: ScriptDocument["cast"]
     ) => ScriptVoiceBinding | null;
-    needsVoicing: (line: ScriptLine, voice: ScriptVoiceBinding) => boolean;
+    needsVoicing: (
+      line: ScriptLine,
+      voice: ScriptVoiceBinding,
+      speed?: number | null
+    ) => boolean;
   }
 ): SelectedLine[] | ToolError {
   if (targets === undefined || targets === null) {
@@ -583,7 +580,7 @@ function selectLines(
         return (
           line.text.trim().length > 0 &&
           !!voice &&
-          helpers.needsVoicing(line, voice)
+          helpers.needsVoicing(line, voice, scriptSpeed(doc))
         );
       });
   }
@@ -712,6 +709,12 @@ const voiceScriptLines: CapabilityExport = {
           if (speed !== undefined) {
             speechParams["speed"] = speed;
           }
+          // The line's delivery note, for models that take a direction, as
+          // the editor sends it.
+          const direction = line.direction?.trim() ?? "";
+          if (direction) {
+            speechParams["instructions"] = direction;
+          }
           const synthesized = (await generateSpeech.impl(speechRun, speechParams)) as {
             asset_id?: string;
             asset_uri?: string;
@@ -743,6 +746,11 @@ const voiceScriptLines: CapabilityExport = {
             words,
             textSnapshot: line.text,
             voiceSnapshot: voice,
+            // What else shaped the audio, so editing either marks it stale.
+            directionSnapshot: direction,
+            ...(providerAppliesPace(voice.provider) && {
+              speedSnapshot: speed ?? null
+            }),
             createdAt: new Date().toISOString()
           };
           const saved = await appendTake(row.id, line.id, take);
@@ -1444,91 +1452,117 @@ function applyScriptOp(
 const editScript: CapabilityExport = {
   spec: editScriptSpec,
   impl: async (run, params) => {
-    const ops = parseScriptOps(params["ops"]);
-    if (isError(ops)) return ops;
-
-    const { Script } = await import("@nodetool-ai/models");
-    const { scriptLines } = await import("@nodetool-ai/timeline");
-
-    for (let attempt = 0; attempt < CAS_ATTEMPTS; attempt++) {
-      const script = await loadScript(run, params["script_id"]);
-      if (isError(script)) return script;
-      const { row, doc } = script;
-
-      // A failing op is recorded and the script continues: stopping at the
-      // first error hides every problem behind it.
-      const records: ScriptOpRecord[] = [];
-      const resolvedOps: { tool: string; input: Record<string, unknown> }[] = [];
-      for (const parsed of ops) {
-        try {
-          const result = applyScriptOp(doc, parsed, scriptLines) as
-            | Record<string, unknown>
-            | undefined;
-          records.push({
-            op: parsed.op,
-            ok: true,
-            result
-          });
-          const canonicalId =
-            typeof result?.["id"] === "string"
-              ? (result["id"] as string)
-              : typeof result?.["removed"] === "string"
-                ? (result["removed"] as string)
-                : undefined;
-          const key = UNIT_KEY_BY_OP[parsed.op];
-          resolvedOps.push({
-            tool: parsed.op,
-            input:
-              canonicalId && key
-                ? { ...parsed.args, [key]: canonicalId, id: canonicalId }
-                : parsed.args
-          });
-        } catch (e) {
-          records.push({ op: parsed.op, ok: false, error: errorMessage(e) });
-          resolvedOps.push({ tool: parsed.op, input: parsed.args });
-        }
+    const name = parseRename(params["name"]);
+    if (isError(name)) return name;
+    return editWithRename({
+      ops: params["ops"],
+      name,
+      idKey: "script_id",
+      applyOps: () => applyScriptEdit(run, params),
+      rename: async (next) => {
+        const script = await loadScript(run, params["script_id"]);
+        if (isError(script)) return script;
+        const { Script } = await import("@nodetool-ai/models");
+        return renameOwned(Script, {
+          id: script.row.id,
+          userId: run.context.userId,
+          name: next,
+          label: "Script"
+        });
       }
-
-      const saved = await Script.updateFieldsIfUnchanged(
-        row.id,
-        row.updated_at,
-        {
-          document: JSON.stringify(doc)
-        },
-        // The ops ride on the write so an open editor merges this change per
-        // merge unit instead of treating the script as replaced.
-        { ops: resolvedOps }
-      );
-      if (!saved) continue;
-
-      const failed = records.filter((record) => !record.ok);
-      return {
-        script_id: row.id,
-        updated_at: saved.updated_at,
-        applied: records.length - failed.length,
-        failed: failed.length,
-        ops: records,
-        cast: doc.cast.map((speaker) => ({
-          id: speaker.id,
-          name: speaker.name,
-          has_voice: !!speaker.voice,
-          entityId: (speaker as { entityId?: string | null }).entityId ?? null
-        })),
-        lines: scriptLines(doc.sections).map((line, index) => ({
-          id: line.id,
-          index,
-          speaker_id: line.speakerId ?? null,
-          text: line.text,
-          takes: line.takes.length
-        }))
-      };
-    }
-
-    return {
-      error: `Script ${String(params["script_id"])} is being modified concurrently; nothing was saved. Retry the call.`
-    };
+    });
   }
 };
+
+/** The op script of one edit_script call, run and saved. */
+async function applyScriptEdit(
+  run: CapabilityRun,
+  params: Record<string, unknown>
+): Promise<Record<string, unknown>> {
+  const ops = parseScriptOps(params["ops"]);
+  if (isError(ops)) return ops;
+
+  const { Script } = await import("@nodetool-ai/models");
+  const { scriptLines } = await import("@nodetool-ai/timeline");
+
+  for (let attempt = 0; attempt < CAS_ATTEMPTS; attempt++) {
+    const script = await loadScript(run, params["script_id"]);
+    if (isError(script)) return script;
+    const { row, doc } = script;
+
+    // A failing op is recorded and the script continues: stopping at the
+    // first error hides every problem behind it.
+    const records: ScriptOpRecord[] = [];
+    const resolvedOps: { tool: string; input: Record<string, unknown> }[] = [];
+    for (const parsed of ops) {
+      try {
+        const result = applyScriptOp(doc, parsed, scriptLines) as
+          | Record<string, unknown>
+          | undefined;
+        records.push({
+          op: parsed.op,
+          ok: true,
+          result
+        });
+        const canonicalId =
+          typeof result?.["id"] === "string"
+            ? (result["id"] as string)
+            : typeof result?.["removed"] === "string"
+              ? (result["removed"] as string)
+              : undefined;
+        const key = UNIT_KEY_BY_OP[parsed.op];
+        resolvedOps.push({
+          tool: parsed.op,
+          input:
+            canonicalId && key
+              ? { ...parsed.args, [key]: canonicalId, id: canonicalId }
+              : parsed.args
+        });
+      } catch (e) {
+        records.push({ op: parsed.op, ok: false, error: errorMessage(e) });
+        resolvedOps.push({ tool: parsed.op, input: parsed.args });
+      }
+    }
+
+    const saved = await Script.updateFieldsIfUnchanged(
+      row.id,
+      row.updated_at,
+      {
+        document: JSON.stringify(doc)
+      },
+      // The ops ride on the write so an open editor merges this change per
+      // merge unit instead of treating the script as replaced.
+      { ops: resolvedOps }
+    );
+    if (!saved) continue;
+
+    const failed = records.filter((record) => !record.ok);
+    return {
+      script_id: row.id,
+      updated_at: saved.updated_at,
+      applied: records.length - failed.length,
+      failed: failed.length,
+      ops: records,
+      cast: doc.cast.map((speaker) => ({
+        id: speaker.id,
+        name: speaker.name,
+        has_voice: !!speaker.voice,
+        entityId: (speaker as { entityId?: string | null }).entityId ?? null
+      })),
+      lines: scriptLines(doc.sections).map((line, index) => ({
+        id: line.id,
+        index,
+        speaker_id: line.speakerId ?? null,
+        text: line.text,
+        takes: line.takes.length
+      }))
+    };
+  }
+
+  return {
+    error: `Script ${String(params["script_id"])} is being modified concurrently; nothing was saved. Retry the call.`
+  };
+}
 
 // ---------------------------------------------------------------------------
 // derive_storyboard_from_script

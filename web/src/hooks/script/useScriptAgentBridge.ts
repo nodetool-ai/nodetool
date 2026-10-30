@@ -228,33 +228,35 @@ export const useScriptAgentBridge = (scriptId: string): void => {
       addLine(input) {
         const script = requireScript();
         requireNotWriting();
+        if (input.speakerId) requireSpeaker(input.speakerId);
         // Insert before the line currently at `index`; append when omitted or
-        // out of range. Anchor to that line's section so it lands nearby.
+        // out of range. One store write, so the agent's add is one undo step.
         const flat = flatLines(script);
         const anchor =
           input.index !== undefined ? flat[input.index] : undefined;
-        const lineId = store().addLine(scriptId, anchor?.sectionId);
-        store().patchLine(scriptId, lineId, {
+        const line: ScriptLine = {
+          id: crypto.randomUUID(),
           text: input.text,
           speakerId: input.speakerId ?? null,
-          direction: input.direction
-        });
-        if (anchor) {
-          // The new line was appended to the anchor's section; move it to sit
-          // just before the anchor within that section.
-          const section = store()
-            .getScript(scriptId)
-            ?.sections.find((s) => s.id === anchor.sectionId);
-          if (section) {
-            const others = section.lines
-              .filter((l) => l.id !== lineId)
-              .map((l) => l.id);
-            const at = others.indexOf(anchor.line.id);
-            others.splice(at >= 0 ? at : others.length, 0, lineId);
-            store().reorderLines(scriptId, section.id, others);
-          }
+          takes: []
+        };
+        if (input.direction !== undefined) {
+          line.direction = input.direction;
         }
-        return reReadLine(lineId);
+        const section = anchor
+          ? script.sections.find((s) => s.id === anchor.sectionId)
+          : script.sections[script.sections.length - 1];
+        if (!section) {
+          store().addSection(scriptId, { lines: [line] });
+        } else {
+          const lines = [...section.lines];
+          const at = anchor
+            ? lines.findIndex((l) => l.id === anchor.line.id)
+            : -1;
+          lines.splice(at >= 0 ? at : lines.length, 0, line);
+          store().setSectionLines(scriptId, section.id, lines);
+        }
+        return reReadLine(line.id);
       },
 
       setLineText(target, text) {

@@ -30,6 +30,7 @@ import {
 } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { generateStructured, resolveEntities } from "@nodetool-ai/runtime";
+import { probeDurationSec } from "@nodetool-ai/runtime/media";
 import { concatBytes, encodePcm16Wav } from "@nodetool-ai/audio-nodes";
 import {
   assembleSubtitleCues,
@@ -58,7 +59,6 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { ffprobeDuration } from "./ffmpeg-helpers.js";
 import { stringValues } from "./placeholder-values.js";
 import { isString } from "@nodetool-ai/node-sdk";
 
@@ -169,7 +169,6 @@ export class VoiceScriptNode extends BaseNode {
   static readonly title = "Voice Script";
   static readonly description =
     "Synthesize speech for every draft or stale line of a script, using each line's cast voice, and save the takes back onto the script. Lines already up to date, or with no text or no voice, are skipped.\n    script, voiceover, tts, narration, batch\n\n    Use cases:\n    - Voice an LLM-written script in one step\n    - Re-voice lines whose text or voice changed\n    - Produce narration assets for timeline assembly";
-  static readonly requiredRuntimes = ["ffmpeg"];
   static readonly metadataOutputTypes = {
     output: "script",
     voiced_count: "int"
@@ -217,7 +216,15 @@ export class VoiceScriptNode extends BaseNode {
         if (!voice) continue;
         if (!needsVoicing(line, voice)) continue;
 
-        const synth = await synthesizeLine(context, text, voice, this.speed);
+        // The line's delivery note, for models that take a direction.
+        const direction = line.direction?.trim() ?? "";
+        const synth = await synthesizeLine(
+          context,
+          text,
+          voice,
+          this.speed,
+          direction
+        );
         if (!synth) continue;
 
         const durationMs = await probeDurationMs(
@@ -238,6 +245,7 @@ export class VoiceScriptNode extends BaseNode {
           words: [],
           textSnapshot: line.text,
           voiceSnapshot: voice,
+          directionSnapshot: direction,
           createdAt: new Date().toISOString()
         };
         await attachTake(context, script.id, line.id, take);
@@ -834,12 +842,16 @@ async function synthesizeLine(
   context: ProcessingContext,
   text: string,
   voice: VoiceBindingLike,
-  speed: number
+  speed: number,
+  direction: string
 ): Promise<SynthResult | null> {
   const provider = voice.provider;
   const model = voice.model;
   if (!provider || !model) return null;
-  const params = { text, voice: voice.voice, speed };
+  const params: Record<string, unknown> = { text, voice: voice.voice, speed };
+  if (direction) {
+    params["instructions"] = direction;
+  }
 
   // Providers that stream raw PCM (OpenAI, ElevenLabs…) are wrapped into a WAV.
   // Providers that return an encoded audio file (FAL, KIE) go through the
@@ -909,7 +921,7 @@ async function probeDurationMs(
   const probePath = path.join(workDir, `line_${index}`);
   try {
     await fs.writeFile(probePath, bytes);
-    const seconds = await ffprobeDuration(probePath);
+    const seconds = (await probeDurationSec(probePath)) ?? 0;
     return seconds > 0 ? Math.round(seconds * 1000) : PLACEHOLDER_LINE_MS;
   } catch {
     return PLACEHOLDER_LINE_MS;
@@ -921,7 +933,7 @@ export const SCRIPT_NODES = tagAsNode([
   VoiceScriptNode,
   ScriptToTimelineNode,
   ScriptToSubtitlesNode,
-  // Tagged first, so `tagAsNode` leaves them alone: neither node shells out to
-  // ffmpeg or writes a temp file, and both need the model interfaces.
+  // Tagged first, so `tagAsNode` leaves them alone: neither node loads libav
+  // or writes a temp file, and both need the model interfaces.
   ...tagAsServer([WriteScriptNode, FillScriptNode])
 ]);

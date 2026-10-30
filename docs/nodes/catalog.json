@@ -3360,9 +3360,9 @@
     },
     {
       "type": "lib.pdf.Pdftoppm",
-      "title": "PDF Rasterize (pdftoppm)",
+      "title": "PDF Rasterize",
       "namespace": "lib.pdf",
-      "description": "Rasterize PDF pages with poppler's pdftoppm. Higher fidelity than the PDFium-based Screenshot node for some PDFs and supports anti-aliasing controls.\n    pdf, pdftoppm, poppler, rasterize, render, image, pages",
+      "description": "Rasterize PDF pages to PNG, JPEG or TIFF images at a DPI or a target size.\n    pdf, pdftoppm, rasterize, render, image, pages, jpeg, tiff",
       "inputs": [
         {
           "name": "start_page",
@@ -3406,8 +3406,8 @@
           "type": "list[image]"
         }
       ],
-      "documentation_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfrasterizepdftoppm",
-      "markdown_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfrasterizepdftoppm.md"
+      "documentation_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfrasterize",
+      "markdown_url": "https://docs.nodetool.ai/nodes/lib/pdf/pdfrasterize.md"
     },
     {
       "type": "lib.pdf.Screenshot",
@@ -3726,14 +3726,14 @@
         {
           "name": "format_selector",
           "type": "str",
-          "description": "yt-dlp format selector (e.g., 'best', 'bestvideo+bestaudio')",
+          "description": "yt-dlp format selector (e.g., 'best', 'bestvideo+bestaudio'). Each side of a top-level '+' downloads on its own and the two are muxed without re-encoding. 'best' means 'bv*+ba/b'.",
           "required": false,
           "default": "best"
         },
         {
           "name": "container",
           "type": "str",
-          "description": "Output container format (e.g., 'mp4', 'webm', 'auto')",
+          "description": "Container for a muxed video and audio download: auto, mp4, mov, webm or mkv. Auto picks webm or mp4 when it holds both codecs, else mkv. A selector with no '+' keeps the downloaded file's own container.",
           "required": false,
           "default": "auto"
         },
@@ -13866,7 +13866,7 @@
       "type": "nodetool.video.ForEachFrame",
       "title": "For Each Frame",
       "namespace": "nodetool.video",
-      "description": "Extract frames from a video file with ffmpeg.\n    video, frames, extract, sequence",
+      "description": "Extract frames from a video file.\n    video, frames, extract, sequence",
       "inputs": [
         {
           "name": "video",

@@ -2,7 +2,7 @@
 
 **Navigation**: [Root AGENTS.md](../../AGENTS.md) → **Electron**
 
-> **Read [docs/DEVELOPMENT_STANDARDS.md §12 Electron Security](../../docs/DEVELOPMENT_STANDARDS.md#12-electron-39-security) first.** It is the canonical source for Electron security, IPC, sandboxing, and platform standards. The rules below are the area-specific overlay.
+> **Read [docs/DEVELOPMENT_STANDARDS.md §12 Electron Security](../../docs/DEVELOPMENT_STANDARDS.md#12-electron-security) first.** It is the canonical source for Electron security, IPC, sandboxing, and platform standards. The rules below are the area-specific overlay.
 
 Desktop application wrapping the NodeTool web UI with native capabilities (local file system, SQLite, Python/Conda integration).
 
@@ -37,7 +37,7 @@ Data files a package loads at runtime go through one guarded path: declare the f
 
 electron-builder copies the production tree of `electron/package.json` into `app.asar`. Keep `dependencies` to the modules `dist-electron/main.js` requires at runtime: the main-process externals in `vite.config.ts`. Put everything Vite inlines in `devDependencies`. The backend has its own modules under `resources/backend`, so a workspace package listed here ships a second copy of its whole dependency graph.
 
-A large library that only some nodes use belongs in `RUNTIME_PACKAGES` (`src/runtime/packages/definitions.ts`), not in the bundle. Declare it as an optional peer (plus a devDependency) of the package that imports it, add its id to `RuntimePackageId` in `@nodetool-ai/protocol` and `src/types.d.ts`, and load it through `importOptionalModule` from `@nodetool-ai/config`, which falls back to the optional-node root the Package Manager installs into. On failure throw `missingRuntimePackageError` from `@nodetool-ai/protocol`, so the editor offers the install. List it in `ESBUILD_ONLY_EXTERNAL_PACKAGES` in `scripts/bundle-backend.mjs` so the bundle neither inlines nor stages it, or in `SERVER_ONLY_EXTERNAL_PACKAGES` when the Docker image should still ship it. A library another staged package imports statically cannot move.
+A large library that only some nodes use belongs in `RUNTIME_PACKAGES` (`src/runtime/packages/definitions.ts`), not in the bundle. Declare it as an optional peer (plus a devDependency) of the package that imports it, add its id to `RuntimePackageId` in `@nodetool-ai/protocol` and `src/types.d.ts`, and load it through `importOptionalModule` from `@nodetool-ai/config`, which falls back to the optional-node root the Package Manager installs into. On failure throw `missingRuntimePackageError` from `@nodetool-ai/protocol`, so the editor offers the install. List it in `ESBUILD_ONLY_EXTERNAL_PACKAGES` in `scripts/bundle-backend.mjs` so the bundle neither inlines nor stages it, or in `COMMON_EXTERNAL_PACKAGES` when the Docker image should still ship it. A library another staged package imports statically cannot move.
 
 ### Development Modes
 
@@ -125,7 +125,7 @@ Desktop UI in `electron/src/components/` follows [UX Guidelines](../../docs/UX_G
 
 ### Security (Critical — non-negotiable)
 
-> See [DEVELOPMENT_STANDARDS §12](../../docs/DEVELOPMENT_STANDARDS.md#12-electron-39-security) for the full checklist (CSP, auto-update signing, `setWindowOpenHandler`, sandbox flag, `webSecurity`).
+> See [DEVELOPMENT_STANDARDS §12](../../docs/DEVELOPMENT_STANDARDS.md#12-electron-security) for the full checklist (CSP, auto-update signing, `setWindowOpenHandler`, sandbox flag, `webSecurity`).
 
 - **`contextIsolation: true`** on every `BrowserWindow`. No exceptions.
 - **`nodeIntegration: false`** on every `BrowserWindow`. No exceptions.

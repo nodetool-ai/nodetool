@@ -62,6 +62,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     contract: "136f6a0d501f",
     selfcheck: "capability-suites",
     suites: [
+      "packages/agents/tests/capabilities-document-rename.test.ts",
       "packages/agents/tests/capabilities-lifecycle.test.ts",
     ],
   },
@@ -462,7 +463,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "generate_speech",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "cc28002fa1f0",
+    contract: "840cb0b33149",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
@@ -473,7 +474,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "generate_music",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "b9917297fc35",
+    contract: "2f0cd7a403c9",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-generations.test.ts",
@@ -559,35 +560,36 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
-    name: "ffmpeg",
+    name: "media_edit",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "5b56c11cbef0",
+    contract: "95325a7a77de",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
-      "packages/agents/tests/capabilities-media-ffprobe.test.ts",
+      "packages/agents/tests/capabilities-media-edit.test.ts",
     ],
   },
   {
-    name: "ffprobe",
+    name: "media_probe",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "7d62f96db6d3",
+    contract: "901df55c7ad6",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
-      "packages/agents/tests/capabilities-media-ffprobe.test.ts",
+      "packages/agents/tests/capabilities-media-edit.test.ts",
     ],
   },
   {
     name: "yt_dlp",
     module: "media",
     impl: "packages/agents/src/capabilities/media.ts",
-    contract: "9c06b831c290",
+    contract: "30d6bb107aeb",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-media.test.ts",
+      "packages/agents/tests/capabilities-yt-dlp-mux.test.ts",
     ],
   },
   {
@@ -1353,20 +1355,22 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "convert_markdown_to_pdf",
     module: "documents",
     impl: "packages/agents/src/capabilities/documents.ts",
-    contract: "b4cb1118c47b",
+    contract: "74e807f42695",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-documents.test.ts",
+      "packages/agents/tests/capabilities-documents-convert.test.ts",
     ],
   },
   {
     name: "convert_document",
     module: "documents",
     impl: "packages/agents/src/capabilities/documents.ts",
-    contract: "8366c856fff5",
+    contract: "b3aca7b16b74",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-documents.test.ts",
+      "packages/agents/tests/capabilities-documents-convert.test.ts",
     ],
   },
   {
@@ -2253,7 +2257,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_timeline",
     module: "timelines",
     impl: "packages/agents/src/capabilities/timelines.ts",
-    contract: "72f40d89d821",
+    contract: "b276aab5160e",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-timelines.test.ts",
@@ -2262,7 +2266,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     evals: [
       {
         file: "packages/agents/src/evals/codeact-api-surfaces.ts",
-        cases: ["timeline-fix-and-validate"],
+        cases: ["rename-documents", "timeline-fix-and-validate"],
       },
     ],
   },
@@ -2558,7 +2562,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_sketch",
     module: "sketches",
     impl: "packages/agents/src/capabilities/sketches.ts",
-    contract: "7191db0810e1",
+    contract: "857c392ef084",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-sketches.test.ts",
@@ -2567,7 +2571,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     evals: [
       {
         file: "packages/agents/src/evals/codeact-api-surfaces.ts",
-        cases: ["sketch-layer-repair"],
+        cases: ["rename-documents", "sketch-layer-repair"],
       },
     ],
   },
@@ -2952,10 +2956,16 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_script",
     module: "scripts",
     impl: "packages/agents/src/capabilities/scripts.ts",
-    contract: "dbe437f49389",
+    contract: "f033430f011d",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-scripts.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["rename-documents"],
+      },
     ],
   },
   {
@@ -3131,11 +3141,11 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_storyboard",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "a2f214d7936b",
+    contract: "2388528aeec0",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",
-      "packages/agents/tests/capabilities-storyboard-board-ops.test.ts",
+      "packages/agents/tests/capabilities-document-rename.test.ts",
     ],
     evals: [
       {
@@ -3400,7 +3410,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_js_script",
     module: "js-scripts",
     impl: "packages/agents/src/capabilities/js-scripts.ts",
-    contract: "64e1071655a2",
+    contract: "06a14f9d2c2d",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/js-scripts-capabilities.test.ts",

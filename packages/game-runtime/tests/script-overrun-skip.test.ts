@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { gameDocument, type GameDocument } from "@nodetool-ai/protocol";
 import { createScriptedGameSession, createTopDownRoomGame } from "../src/index.js";
 import { wallScriptCallClock } from "../src/script-clock.js";
@@ -32,7 +32,9 @@ function input(tick: number): GameScriptInput {
   return { tick, pressed: [], justPressed: [], events: [], world: [] };
 }
 
-afterEach(() => { vi.restoreAllMocks(); });
+// These tests check the real limits, so they undo the suite-wide scale in vitest.config.ts.
+beforeEach(() => { vi.stubEnv("NODETOOL_GAME_SCRIPT_BUDGET_SCALE", "1"); });
+afterEach(() => { vi.restoreAllMocks(); vi.unstubAllEnvs(); });
 
 describe("script overruns with skip", () => {
   for (const [flavor, source] of Object.entries(SOURCES)) {

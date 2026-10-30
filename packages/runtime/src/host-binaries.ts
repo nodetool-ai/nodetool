@@ -1,8 +1,8 @@
 /**
  * Spawn a PATH binary with argv (no shell) inside the workspace.
  *
- * Used by the ffmpeg and yt-dlp capabilities. A missing binary is a named
- * error, not an ENOENT stack.
+ * Used by the yt-dlp capability and the Blender and ManimGX runners. A
+ * missing binary is a named error, not an ENOENT stack.
  *
  * What the caller gets is bounded on every axis a media tool can exhaust,
  * because the argv behind it comes from a model:
@@ -12,13 +12,13 @@
  *   each. `-loglevel debug` over a long clip used to accumulate the whole
  *   stream into one string in the server's heap.
  * - **Disk** — `maxArtifactBytes` watches the file being written and kills the
- *   child when it passes the cap. ffmpeg's own `-fs` does not hold: measured
- *   against ffmpeg 6.1, `-fs 50000` still produced a 164 KB mp4.
+ *   child when it passes the cap. A tool's own size limit does not hold:
+ *   measured against ffmpeg 6.1, `-fs 50000` still produced a 164 KB mp4.
  * - **CPU** — spawns run at most `maxConcurrentHostBinaries` at once per
  *   concurrency class; the rest queue. One run cannot take every core from
  *   the request handlers. The `render` class has its own cap
  *   (`NODETOOL_BLENDER_CONCURRENCY`) so a minutes-long render never holds a
- *   slot a two-second ffmpeg call is waiting for.
+ *   slot a two-second yt-dlp call is waiting for.
  *
  * The filesystem/network half of the boundary lives in
  * `host-binary-guard.ts` in `@nodetool-ai/agents`.

@@ -76,6 +76,7 @@ import {
   type VoiceCostEstimate
 } from "../../hooks/script/useVoiceCostEstimate";
 import { exportScriptSubtitles } from "../../stores/script/scriptSubtitles";
+import { redoScript, undoScript } from "../../stores/script/timelineSync";
 import { useScriptPlaythrough } from "../../hooks/script/useScriptPlaythrough";
 import { useScriptWriting } from "../../hooks/script/scriptWrites";
 import { useAssembleScriptTimeline } from "../../hooks/script/useAssembleScriptTimeline";
@@ -832,12 +833,11 @@ const ScriptDocumentPane = ({
   const moveLine = useScriptStore((s) => s.moveLine);
   const splitLine = useScriptStore((s) => s.splitLine);
   const removeLine = useScriptStore((s) => s.removeLine);
-  const undo = useScriptStore((s) => s.undo);
-  const redo = useScriptStore((s) => s.redo);
   const canUndo = useScriptCanUndo(scriptId);
   const canRedo = useScriptCanRedo(scriptId);
-  const onUndo = useCallback(() => undo(scriptId), [undo, scriptId]);
-  const onRedo = useCallback(() => redo(scriptId), [redo, scriptId]);
+  // Undo and redo bring the assembled timeline along when a take changes.
+  const onUndo = useCallback(() => undoScript(scriptId), [scriptId]);
+  const onRedo = useCallback(() => redoScript(scriptId), [scriptId]);
   const { playing, currentLineId, play, stop } =
     useScriptPlaythrough(scriptId);
   // A shot's "Appears in" chip opens the script at one line; playback's own
@@ -852,6 +852,9 @@ const ScriptDocumentPane = ({
   // A write the agent started replaces these lines, so voicing them now would
   // pay for takes the write throws away. Voicing refuses it.
   const writing = useScriptWriting(scriptId);
+  // The write replaces every line with what the writer returns, so an edit
+  // typed meanwhile would be thrown away. The lines lock until it lands.
+  const linesReadOnly = readOnly || writing;
   const [moreAnchor, setMoreAnchor] = useState<HTMLElement | null>(null);
   const [sendAnchor, setSendAnchor] = useState<HTMLElement | null>(null);
   const { assemble, assembling, error: assembleError } =
@@ -1221,8 +1224,8 @@ const ScriptDocumentPane = ({
           <EmptyState
             title={t("i18n-next25.script.document.emptyScript")}
             description={t("i18n-next25.script.document.emptyScriptDescription")}
-            actionText={readOnly ? undefined : t("i18n-next25.script.document.addFirstLine")}
-            onAction={readOnly ? undefined : () => addLine(scriptId)}
+            actionText={linesReadOnly ? undefined : t("i18n-next25.script.document.addFirstLine")}
+            onAction={linesReadOnly ? undefined : () => addLine(scriptId)}
           />
         )}
         <FlexColumn data-focus-id="script-lines" gap={SPACING.xxl}>
@@ -1232,14 +1235,14 @@ const ScriptDocumentPane = ({
               scriptId={scriptId}
               section={section}
               highlightedLineId={highlightedLineId}
-              readOnly={readOnly}
+              readOnly={linesReadOnly}
               mobile={isMobile}
               dnd={dnd}
               onKeyNav={onLineKeyNav}
             />
           ))}
         </FlexColumn>
-        {!readOnly && !isEmpty && (
+        {!linesReadOnly && !isEmpty && (
           <FlexRow
             gap={SPACING.sm}
             sx={{ marginLeft: isMobile ? 0 : `${TEXT_INSET}px` }}
@@ -1285,8 +1288,8 @@ const ScriptDocumentPane = ({
           status: readOnly ? undefined : <ScriptSaveIndicator scriptId={scriptId} />,
           history: readOnly ? undefined : (
             <UndoRedoButtons
-              canUndo={canUndo}
-              canRedo={canRedo}
+              canUndo={canUndo && !writing}
+              canRedo={canRedo && !writing}
               onUndo={onUndo}
               onRedo={onRedo}
               undoTooltip={t("i18n-next25.script.document.undo")}
@@ -1432,8 +1435,8 @@ const ScriptDocumentPane = ({
       >
         {!readOnly && (
           <UndoRedoButtons
-            canUndo={canUndo}
-            canRedo={canRedo}
+            canUndo={canUndo && !writing}
+            canRedo={canRedo && !writing}
             onUndo={onUndo}
             onRedo={onRedo}
             undoTooltip={t("i18n-next25.script.document.undo")}

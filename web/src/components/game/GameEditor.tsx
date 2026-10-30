@@ -18,7 +18,6 @@ import { anyGameMergeAdapter as gameMergeAdapter } from "../../stores/game/anyMe
 import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
 import { Caption, ConflictBanner, Dialog, EmptyState, FlexColumn, LoadingSpinner, MobileBottomSheet, SPACING, Text, TextInput, type DocumentBarRender } from "../ui_primitives";
 import ErrorBanner from "../support/ErrorBanner";
-import ReportBugButton from "../support/ReportBugButton";
 import GameAgentPanel from "./panels/agent/GameAgentPanel";
 import GameRevisions from "./panels/revisions/GameRevisions";
 import GameDraftRecovery, { isMissingDraft } from "./GameDraftRecovery";

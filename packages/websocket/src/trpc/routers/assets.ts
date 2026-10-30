@@ -597,7 +597,7 @@ export const assetsRouter = router({
         bytes: file.size
       });
 
-      // The adapter resolves the new row to its in-place file, so ffmpeg or
+      // The adapter resolves the new row to its in-place file, so libav or
       // sharp reads it by path and a file of any size gets a thumbnail.
       await generateThumbnailForStoredAsset(
         asset.user_id,

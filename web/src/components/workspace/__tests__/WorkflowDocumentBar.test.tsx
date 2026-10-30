@@ -5,6 +5,7 @@ import mockTheme from "../../../__mocks__/themeMock";
 import WorkflowDocumentBar from "../WorkflowDocumentBar";
 import { useSettingsStore } from "../../../stores/SettingsStore";
 import { useMiniMapStore } from "../../../stores/MiniMapStore";
+import { useRightPanelStore } from "../../../stores/RightPanelStore";
 
 const undo = jest.fn();
 const openWorkflowApp = jest.fn();
@@ -147,6 +148,18 @@ it("switches between graph and chain, with the mini map only on the graph", asyn
   expect(
     screen.queryByRole("button", { name: /mini map/i })
   ).not.toBeInTheDocument();
+});
+
+it("shows and hides the inspector", async () => {
+  act(() => {
+    useRightPanelStore.getState().closeInspector();
+  });
+  renderBar();
+  const toggle = screen.getByRole("button", { name: "Toggle inspector" });
+  await userEvent.click(toggle);
+  expect(useRightPanelStore.getState().panel.isVisible).toBe(true);
+  await userEvent.click(toggle);
+  expect(useRightPanelStore.getState().panel.isVisible).toBe(false);
 });
 
 it("holds the app and the exports in ⋮", async () => {

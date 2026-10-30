@@ -1,6 +1,6 @@
 /**
  * Behavior tests for the script node family (LoadScriptNode, VoiceScriptNode,
- * ScriptToTimelineNode). child_process is mocked so ffprobe answers a fixed
+ * ScriptToTimelineNode). The media module is faked so a probe answers a fixed
  * duration; the ProcessingContext is stubbed with in-memory script/timeline
  * stores and a fake streaming-TTS provider.
  */
@@ -8,37 +8,11 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { parseWavBytes, readWavHeader } from "@nodetool-ai/audio-nodes";
 import type { ScriptDocumentSchema } from "@nodetool-ai/protocol/api-schemas/scripts.js";
 
-function mockResponse(cmd: string): { stdout: string; stderr: string } {
-  if (cmd === "ffprobe") {
-    return { stdout: "1.5\n", stderr: "" };
-  }
-  return { stdout: "", stderr: "" };
-}
-
-vi.mock("node:child_process", async (importOriginal) => {
-  const original = (await importOriginal()) as Record<string, unknown>;
-  const mockExecFile = (
-    cmd: string,
-    _args: string[],
-    optionsOrCb: unknown,
-    maybeCb?: unknown
-  ) => {
-    const cb =
-      typeof optionsOrCb === "function"
-        ? (optionsOrCb as (e: Error | null, o: string, s: string) => void)
-        : typeof maybeCb === "function"
-          ? (maybeCb as (e: Error | null, o: string, s: string) => void)
-          : null;
-    if (cb) {
-      const resp = mockResponse(cmd);
-      cb(null, resp.stdout, resp.stderr);
-    }
-  };
-  (mockExecFile as any)[Symbol.for("nodejs.util.promisify.custom")] = (
-    cmd: string
-  ): Promise<{ stdout: string; stderr: string }> =>
-    Promise.resolve(mockResponse(cmd));
-  return { ...original, execFile: mockExecFile };
+vi.mock("@nodetool-ai/runtime/media", async (importOriginal) => {
+  const fake = await import("./_fixtures/fake-media.js");
+  // Every voiced take probes as 1.5 s long.
+  fake.fakeProbe.durationSec = 1.5;
+  return fake.fakeMediaModule(await importOriginal());
 });
 
 const {
@@ -446,7 +420,7 @@ describe("VoiceScriptNode", () => {
     const lines = script.document.sections[0].lines;
     expect(lines[0].takes).toHaveLength(1);
     expect(lines[0].currentTakeId).toBe(lines[0].takes[0].id);
-    // Duration comes from the mocked ffprobe (1.5s).
+    // Duration comes from the faked probe (1.5s).
     expect(lines[0].takes[0].durationMs).toBe(1500);
     expect(lines[0].takes[0].textSnapshot).toBe("Hello there.");
   });

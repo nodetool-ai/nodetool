@@ -46,6 +46,13 @@ import {
   type EffectParams
 } from "./audioEffects";
 import { useEditHistory } from "./useEditHistory";
+import { validateAudioEffectParams } from "@nodetool-ai/protocol/api-schemas/asset-editor-tool-contracts.js";
+import { applyAudioEdit, summarizePeaks } from "./audioAgentOps";
+import {
+  setAudioAgentHandler,
+  type AudioAgentHandler,
+  type AudioSnapshot
+} from "./audioAgentBridge";
 import { createPlayheadStore } from "./playheadStore";
 import {
   applyGain,
@@ -81,6 +88,11 @@ interface AudioSampleEditorProps {
    * stay in the toolbar.
    */
   documentBar?: DocumentBarRender;
+  /**
+   * Serve the `ui_audio_*` agent tools for this asset while the sample is
+   * loaded. Set by the workspace tab, which is what `ui_context` names.
+   */
+  serveAgentTools?: boolean;
 }
 
 const MIN_ZOOM = 1;
@@ -122,7 +134,8 @@ const AudioSampleEditor = ({
   active = true,
   onSaveSample,
   initialSelection,
-  documentBar
+  documentBar,
+  serveAgentTools = false
 }: AudioSampleEditorProps) => {
   const { t } = useTranslation();
   const history = useEditHistory<AudioSample>();
@@ -574,6 +587,96 @@ const AudioSampleEditor = ({
   const zoomFit = useCallback(() => setZoom(1), []);
 
   const ready = !loading && !error && !!sample;
+
+  const savedSampleRef = useRef(savedSample);
+  savedSampleRef.current = savedSample;
+  const commitHistory = history.commit;
+  const assetId = asset.id;
+  const assetName = asset.name;
+  useEffect(() => {
+    if (!serveAgentTools || !ready) return;
+    const current = (): AudioSample => {
+      const value = sampleRef.current;
+      if (!value) throw new Error("The audio is not loaded yet.");
+      return value;
+    };
+    const snapshot = (): AudioSnapshot => {
+      const value = current();
+      const { peaks, windowSeconds } = summarizePeaks(value);
+      const sel = selectionRef.current;
+      return {
+        assetId,
+        name: assetName,
+        durationSeconds: sampleDuration(value),
+        sampleRate: value.sampleRate,
+        channels: value.channels.length,
+        dirty: value !== savedSampleRef.current,
+        selection: sel && sel.end > sel.start ? { ...sel } : null,
+        peaks,
+        peakWindowSeconds: windowSeconds
+      };
+    };
+    // Tool calls in one turn can outrun a render, so the ref moves with the
+    // commit instead of waiting for it.
+    const commit = (next: AudioSample) => {
+      if (next === sampleRef.current) return;
+      commitHistory(next);
+      sampleRef.current = next;
+    };
+    const handler: AudioAgentHandler = {
+      getSnapshot: snapshot,
+      edit: (op, range, gainDb) => {
+        commit(applyAudioEdit(current(), op, range, gainDb));
+        if (op === "trim" || op === "delete") {
+          setSelection(null);
+          selectionRef.current = null;
+          playhead.set(op === "trim" ? 0 : (range?.start ?? 0));
+        }
+        return snapshot();
+      },
+      applyEffect: async (effectId, params, range) => {
+        const checked = validateAudioEffectParams(effectId, params);
+        const effect = getAudioEffect(checked.effect.id);
+        if (!effect) {
+          throw new Error(`The editor cannot render "${effectId}".`);
+        }
+        const before = current();
+        const result = await applyEffect(
+          before,
+          effect,
+          checked.params,
+          range?.start,
+          range?.end
+        );
+        if (sampleRef.current !== before) {
+          throw new Error(
+            "The audio changed while the effect rendered, so the result was dropped. Read it again with ui_audio_get_state and retry."
+          );
+        }
+        commit(result);
+        if (effect.changesLength) {
+          setSelection(null);
+          selectionRef.current = null;
+        }
+        return snapshot();
+      },
+      save: async () => {
+        const value = current();
+        if (value !== savedSampleRef.current) {
+          const saved = await save(value);
+          setSaveFailed(!saved);
+          if (!saved) {
+            throw new Error("Saving the audio failed. The edits are still in the editor.");
+          }
+          setSavedSample(value);
+          savedSampleRef.current = value;
+        }
+        return snapshot();
+      }
+    };
+    setAudioAgentHandler(assetId, handler);
+    return () => setAudioAgentHandler(assetId, null);
+  }, [serveAgentTools, ready, assetId, assetName, commitHistory, save, playhead]);
   const bar = documentBar?.(
     ready
       ? {

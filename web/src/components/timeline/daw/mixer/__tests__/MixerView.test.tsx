@@ -145,18 +145,48 @@ describe("MixerView", () => {
   it("adds, bypasses and opens an insert on a track and on the master", async () => {
     const instance = setup();
     await userEvent.click(screen.getByRole("button", { name: "Add an effect to Vox" }));
-    await userEvent.click(await screen.findByRole("menuitem", { name: "Compressor" }));
+    // The FableSynth EQ and compressor replace the built-in ones, unprefixed.
+    expect((await screen.findAllByRole("menuitem")).map((item) => item.textContent)).toEqual([
+      "Gain",
+      "Filter",
+      "EQ",
+      "OTT",
+      "Compressor",
+      "Drive",
+      "Lab",
+      "Chorus",
+      "Tape Echo",
+      "Reverb",
+      "Limiter"
+    ]);
+    await userEvent.click(screen.getByRole("menuitem", { name: "Compressor" }));
     const effect = doc(instance).tracks[2].effects![0];
-    expect(effect.type).toBe("compressor");
+    expect(effect).toMatchObject({ type: "fable", kind: "comp" });
     await userEvent.click(screen.getByRole("button", { name: "Bypass Compressor" }));
     expect(doc(instance).tracks[2].effects![0].enabled).toBe(false);
     await userEvent.click(screen.getByRole("button", { name: "Open Compressor" }));
     expect(screen.getByTestId("effect-popover")).toHaveTextContent(effect.id);
 
     await userEvent.click(screen.getByRole("button", { name: "Add an effect to Master" }));
-    const fable = await screen.findAllByRole("menuitem", { name: /FableSynth/ });
-    await userEvent.click(fable[0]);
-    expect(doc(instance).master?.effects?.[0].type).toBe("fable");
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Limiter" }));
+    expect(doc(instance).master?.effects?.[0]).toMatchObject({ type: "fable", kind: "limiter" });
+  });
+
+  it("removes an insert with its button or the Delete key, one undo entry each", async () => {
+    const instance = setup();
+    await userEvent.click(screen.getByRole("button", { name: "Add an effect to Vox" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Reverb" }));
+    await userEvent.click(screen.getByRole("button", { name: "Add an effect to Master" }));
+    await userEvent.click(await screen.findByRole("menuitem", { name: "Limiter" }));
+
+    const undoBefore = timelineTemporalOf(instance.doc).pastStates.length;
+    await userEvent.click(screen.getByRole("button", { name: "Remove Reverb" }));
+    expect(doc(instance).tracks[2].effects).toEqual([]);
+    expect(timelineTemporalOf(instance.doc).pastStates.length).toBe(undoBefore + 1);
+
+    screen.getByRole("button", { name: "Open Limiter" }).focus();
+    await userEvent.keyboard("{Delete}");
+    expect(doc(instance).master?.effects).toEqual([]);
   });
 
   it("opens a midi track's instrument", async () => {

@@ -5,7 +5,7 @@
   "updated_at": "2026-06-21T16:55:51.256Z",
   "name": "Trim a Clip",
   "tool_name": null,
-  "description": "Cut a clip down to an in and out point. `accurate` re-encodes so the cut lands on the exact frame instead of the nearest keyframe. Runs locally through ffmpeg - no API key and no per-run cost.",
+  "description": "Cut a clip down to an in and out point. `accurate` re-encodes so the cut lands on the exact frame instead of the nearest keyframe. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
   "tags": [
     "video",
     "utility",
@@ -19,7 +19,7 @@
         "id": "intro-comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Trim a Clip\n\nCuts a video down to an in point and an out point. It runs locally through ffmpeg, so there is no API key and no per-run cost.\n\n**How it works:** \"1 Clip\" takes the video. \"2 Trim\" keeps the part from 1.0 to 5.0 seconds, with accurate turned on so the cut lands on the exact frame instead of the nearest keyframe. \"3 Result\" returns the shorter clip.\n\n**Try this:** Turn off accurate on \"2 Trim\" for a faster cut that snaps to keyframes."
+          "comment": "# Trim a Clip\n\nCuts a video down to an in point and an out point. It runs on your machine with the built-in media engine, so there is no API key and no per-run cost.\n\n**How it works:** \"1 Clip\" takes the video. \"2 Trim\" keeps the part from 1.0 to 5.0 seconds, with accurate turned on so the cut lands on the exact frame instead of the nearest keyframe. \"3 Result\" returns the shorter clip.\n\n**Try this:** Turn off accurate on \"2 Trim\" for a faster cut that snaps to keyframes."
         },
         "ui_properties": {
           "position": {

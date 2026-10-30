@@ -81,6 +81,7 @@ const IpcChannels = {
   VST_OPEN_EDITOR: "vst-open-editor",
   VST_CLOSE_EDITOR: "vst-close-editor",
   VST_EVENT: "vst-event",
+  SYSTEM_NOTIFICATION_SHOW: "system-notification-show",
 } as const;
 
 jest.mock("../types.d", () => ({ IpcChannels, IpcEvents: {} }));
@@ -248,6 +249,24 @@ describe("preload contract", () => {
     ]);
     expect(jest.mocked(electronMock.ipcRenderer.invoke).mock.calls[1][1]).toEqual({ rescan: true });
     expect(jest.mocked(electronMock.ipcRenderer.on).mock.calls[0][0]).toBe(IpcChannels.VST_EVENT);
+  });
+
+  test("notifications.show routes to the notification channel with string fields only", () => {
+    jest.mocked(electronMock.ipcRenderer.invoke).mockClear();
+
+    api.notifications.show({ title: "NodeTool", body: "Run finished", tag: "run-1" });
+    api.notifications.show({ body: 42, title: { evil: true } } as never);
+
+    expect(jest.mocked(electronMock.ipcRenderer.invoke).mock.calls).toEqual([
+      [
+        IpcChannels.SYSTEM_NOTIFICATION_SHOW,
+        { title: "NodeTool", body: "Run finished", tag: "run-1", silent: false },
+      ],
+      [
+        IpcChannels.SYSTEM_NOTIFICATION_SHOW,
+        { title: undefined, body: "", tag: undefined, silent: false },
+      ],
+    ]);
   });
 
   test("windowControls uses ipcRenderer.send (fire-and-forget), not invoke", () => {

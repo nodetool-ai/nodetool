@@ -203,11 +203,14 @@ one about them that is both true and ours to make is narrow: what a hosted
 platform keeps is the editable project and the model list. State it once, in the
 ownership section, without a logo next to it.
 
-Two carve-outs, both navigation rather than argument: the footer's Compare
-column and the link line under the comparison table may name a product, because
-their whole job is to route a reader who is already searching for that name to
-its `/alternatives` page. Meta keywords may carry competitor terms for the same
-reason. Body copy on the homepage may not.
+Two carve-outs on the homepage, both navigation rather than argument: the
+footer's Compare column and the link line under the comparison table may name a
+product, because their whole job is to route a reader who is already searching
+for that name to its `/alternatives` page. Meta keywords may carry competitor
+terms for the same reason. Body copy on the homepage may not. Dedicated
+`/alternatives/*` comparison pages are exempt from the homepage competitor-name
+rule because their purpose is direct comparison with dated pricing, preset
+mappings, and verifiable trade-offs.
 
 ## Audience
 

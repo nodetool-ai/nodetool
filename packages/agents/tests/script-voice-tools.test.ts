@@ -14,11 +14,7 @@ import { toolForCapabilityName } from "../src/capabilities/lazy-tool.js";
 import { capabilityCategoryFor } from "../src/capabilities/registry.js";
 import { BUILTIN_TOOL_NAMES } from "../src/tools/builtin-tools.js";
 
-/**
- * A real 500ms mono 16-bit WAV at 8kHz. Real bytes so the duration probe has
- * something to measure: with ffprobe on PATH it reads 500ms, and without it
- * the word timings below say 500ms too — the assertion holds either way.
- */
+/** A real mono 16-bit WAV at 8kHz, 500ms unless told otherwise. */
 const TAKE_MS = 500;
 function wav(durationMs = TAKE_MS): Uint8Array {
   const sampleRate = 8000;
@@ -188,6 +184,16 @@ describe("script voice tools", () => {
     expect(result.error).toContain("not found");
   });
 
+  it("measures a take's length from its audio, not its word timings", async () => {
+    const row = await makeScript([line({ id: "l1", speakerId: "sp1", text: "First" })]);
+    // The words end at 500ms; the audio runs to 1250ms.
+    const { context } = ctx({ tts: async () => ({ data: wav(1250), mimeType: "audio/wav" }) });
+    const result = (await toolForCapabilityName("voice_script_lines").process(context, {
+      script_id: row.id
+    })) as { results: Array<{ duration_ms?: number }> };
+    expect(result.results[0].duration_ms).toBe(1250);
+  });
+
   it("voices every line that needs it, with each line's own voice", async () => {
     const row = await makeScript([
       line({ id: "l1", speakerId: "sp1", text: "First" }),
@@ -213,7 +219,6 @@ describe("script voice tools", () => {
     expect(result.voiced).toBe(2);
     expect(result.failed).toBe(0);
     expect(result.results.map((r) => r.line_id)).toEqual(["l1", "l3"]);
-    expect(result.results[0].duration_ms).toBe(TAKE_MS);
     expect(result.results[0].word_count).toBe(1);
     expect(textToSpeechEncoded.mock.calls[0][0]).toMatchObject({
       model: "tts-1",
@@ -227,6 +232,51 @@ describe("script voice tools", () => {
     expect(lines[0].takes[0].textSnapshot).toBe("First");
     // The up-to-date line is untouched.
     expect(lines[1].currentTakeId).toBe("t2");
+  });
+
+  it("sends each line's delivery note and records what shaped the take", async () => {
+    const row = await makeScript(
+      [line({ id: "l1", speakerId: "sp1", text: "Hush", direction: "  whispering " })],
+      undefined,
+      "fast"
+    );
+    const { context, textToSpeechEncoded } = ctx();
+
+    await toolForCapabilityName("voice_script_lines").process(context, {
+      script_id: row.id
+    });
+
+    expect(textToSpeechEncoded.mock.calls[0][0]).toMatchObject({
+      instructions: "whispering",
+      speed: 1.15
+    });
+    const saved = (await Script.findById(row.id))!.toDocument();
+    const recorded = saved.sections[0].lines[0].takes[0];
+    expect(recorded.directionSnapshot).toBe("whispering");
+    expect(recorded.speedSnapshot).toBe(1.15);
+  });
+
+  it("re-voices a line whose pace changed since its take", async () => {
+    const row = await makeScript(
+      [
+        line({
+          id: "l1",
+          speakerId: "sp1",
+          currentTakeId: "t1",
+          takes: [take({ id: "t1", speedSnapshot: null, directionSnapshot: "" })]
+        })
+      ],
+      undefined,
+      "slow"
+    );
+    const { context, textToSpeechEncoded } = ctx();
+
+    const result = (await toolForCapabilityName("voice_script_lines").process(context, {
+      script_id: row.id
+    })) as { voiced: number };
+
+    expect(result.voiced).toBe(1);
+    expect(textToSpeechEncoded).toHaveBeenCalledOnce();
   });
 
   it("skips a line with no voice and says how to fix it", async () => {
@@ -337,8 +387,8 @@ describe("script voice tools", () => {
 
     expect(automaticSpeechRecognition).not.toHaveBeenCalled();
     expect(result.results[0].word_count).toBe(0);
-    // ffprobe reads the real WAV; without it on PATH the placeholder applies.
-    expect([TAKE_MS, 3000]).toContain(result.results[0].duration_ms);
+    // The probe reads the real WAV's length, in process.
+    expect(result.results[0].duration_ms).toBe(TAKE_MS);
   });
 
   it("assembles voiced takes into a timeline and links it to the script", async () => {

@@ -5,7 +5,7 @@
   "updated_at": "2026-06-21T16:55:51.256Z",
   "name": "Sharpen Footage",
   "tool_name": null,
-  "description": "Add apparent detail back after a denoise or a downscale. Luma carries most of the perceived sharpness; chroma is kept low to avoid colour fringing. Runs locally through ffmpeg - no API key and no per-run cost.",
+  "description": "Add apparent detail back after a denoise or a downscale. Luma carries most of the perceived sharpness; chroma is kept low to avoid colour fringing. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
   "tags": [
     "video",
     "utility",
@@ -19,7 +19,7 @@
         "id": "intro-comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Sharpen Footage\n\nAdds apparent detail back to a clip after denoising or downscaling. It runs locally through ffmpeg with no API key or per-run cost.\n\n**How it works:** \"Clip\" takes your video. \"Sharpen\" applies a luma amount of 1.5 and a chroma amount of 0.5, keeping chroma low to avoid colour fringing. \"Result\" returns the sharpened clip.\n\n**Try this:** Lower the luma amount on \"Sharpen\" to 0.8 for a subtler pass on footage with visible grain or compression noise."
+          "comment": "# Sharpen Footage\n\nAdds apparent detail back to a clip after denoising or downscaling. It runs in the built-in media engine on your machine, with no API key or per-run cost.\n\n**How it works:** \"Clip\" takes your video. \"Sharpen\" applies a luma amount of 1.5 and a chroma amount of 0.5, keeping chroma low to avoid colour fringing. \"Result\" returns the sharpened clip.\n\n**Try this:** Lower the luma amount on \"Sharpen\" to 0.8 for a subtler pass on footage with visible grain or compression noise."
         },
         "ui_properties": {
           "position": {

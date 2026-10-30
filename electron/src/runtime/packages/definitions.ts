@@ -79,61 +79,14 @@ export const RUNTIME_PACKAGES = {
     },
   }),
 
-  ffmpeg: new CondaRuntimePackage({
-    id: "ffmpeg",
-    name: "FFmpeg & Codecs",
-    description:
-      "Audio/video processing toolkit. Required for video nodes and the FFmpeg Agent.",
-    category: "tool",
-    versionRange: ">=6 <7",
-    condaPackages: [
-      "ffmpeg>=6,<7",
-      "x264",
-      "x265",
-      "aom",
-      "libopus",
-      "libvorbis",
-      "libpng",
-      "libjpeg-turbo",
-      "libtiff",
-      "openjpeg",
-      "libwebp",
-      "giflib",
-      "lame",
-    ],
-    verifyBinary: "ffmpeg",
-    extraBinaries: { ffprobe: "ffprobe" },
-    windowsBinSubdir: "Library\\bin",
-  }),
-
-  pandoc: new CondaRuntimePackage({
-    id: "pandoc",
-    name: "Pandoc",
-    description:
-      "Universal document converter for text and file format conversion.",
-    category: "tool",
-    versionRange: "*",
-    condaPackages: ["pandoc"],
-    verifyBinary: "pandoc",
-  }),
-
-  pdftotext: new CondaRuntimePackage({
-    id: "pdftotext",
-    name: "PDF Tools (Poppler)",
-    description:
-      "PDF text extraction using pdftotext from poppler. Required for PDF-to-text conversion.",
-    category: "tool",
-    versionRange: "*",
-    condaPackages: ["poppler"],
-    verifyBinary: "pdftotext",
-  }),
-
   "yt-dlp": new CondaRuntimePackage({
     id: "yt-dlp",
     name: "yt-dlp",
     description: "Video/audio downloader from YouTube and other sites.",
     category: "tool",
     versionRange: "*",
+    // No ffmpeg: NodeTool downloads each format separately and muxes them
+    // in process, so yt-dlp never merges.
     condaPackages: ["yt-dlp"],
     verifyBinary: "yt-dlp",
   }),

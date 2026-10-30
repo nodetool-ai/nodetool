@@ -29,6 +29,7 @@ interface FirstWorkflowGuideProps {
   readonly readiness: FirstWorkflowReadiness;
   readonly onStart: () => void;
   readonly onChooseOwn: () => void;
+  readonly onBrowseTemplates?: () => void;
   readonly onClose: () => void;
 }
 
@@ -55,6 +56,7 @@ const FirstWorkflowGuide = ({
   readiness,
   onStart,
   onChooseOwn,
+  onBrowseTemplates,
   onClose
 }: FirstWorkflowGuideProps) => {
   const { t } = useTranslation();
@@ -117,6 +119,11 @@ const FirstWorkflowGuide = ({
             <EditorButton variant="outlined" onClick={onChooseOwn}>
               {t("i18n-next104-node.firstWorkflowGuide.chooseOwn")}
             </EditorButton>
+            {onBrowseTemplates ? (
+              <EditorButton variant="outlined" onClick={onBrowseTemplates}>
+                {t("pass3_17.templates.sectionTitle")}
+              </EditorButton>
+            ) : null}
           </FlexRow>
         )}
       </FlexColumn>

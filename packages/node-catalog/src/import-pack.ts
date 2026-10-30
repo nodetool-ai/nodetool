@@ -20,6 +20,18 @@ function packSpecifier(pack: CatalogPack, specifier?: string): string {
   throw new Error(`Pack ${pack.id} does not provide ${specifier}`);
 }
 
+type PackModuleLoader = () => Promise<object>;
+let bundledModules: ReadonlyMap<string, PackModuleLoader> = new Map();
+
+/**
+ * Hosts that compile packs into their own output (the packaged desktop
+ * backend inlines every pack into server.mjs) register a loader per module
+ * specifier, because those packages cannot be resolved from disk.
+ */
+export function setBundledPackModules(loaders: Readonly<Record<string, PackModuleLoader>>): void {
+  bundledModules = new Map(Object.entries(loaders));
+}
+
 /** Import only the requested catalog pack, without substituting a runtime root. */
 export async function importPack<T extends object = object>(
   packId: string,
@@ -30,6 +42,13 @@ export async function importPack<T extends object = object>(
     throw new Error(`Unknown node pack: ${packId}`);
   }
   const target = packSpecifier(pack, specifier);
+  const bundled = bundledModules.get(target);
+  if (bundled) {
+    // SAFETY: the host registered this loader for exactly this specifier, so
+    // it returns the module T describes, as the dynamic imports below do.
+    const module = (await bundled()) as T;
+    return module;
+  }
   const context = await loadPackLoaderContext();
   if (context) {
     const module: T = await import(resolveInstalledPack(pack, target, context));

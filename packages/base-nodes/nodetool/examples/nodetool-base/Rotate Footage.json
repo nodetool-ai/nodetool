@@ -5,7 +5,7 @@
   "updated_at": "2026-06-21T16:55:51.256Z",
   "name": "Rotate Footage",
   "tool_name": null,
-  "description": "Rotate a clip by a fixed angle - the fix for phone footage that arrives on its side. Runs locally through ffmpeg - no API key and no per-run cost.",
+  "description": "Rotate a clip by a fixed angle - the fix for phone footage that arrives on its side. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
   "tags": [
     "video",
     "utility",
@@ -19,7 +19,7 @@
         "id": "intro-comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Rotate Footage\n\nRotates a clip by a fixed angle, which fixes phone footage that arrives on its side. It runs locally through ffmpeg with no API key or per-run cost.\n\n**How it works:** \"Clip\" takes your video. \"Rotate\" turns every frame by the angle set on the node, 90 degrees by default, and \"Result\" returns the rotated clip.\n\n**Try this:** Set the angle on \"Rotate\" to 180 to fix footage that was recorded upside down, or to 270 to turn it the other way."
+          "comment": "# Rotate Footage\n\nRotates a clip by a fixed angle, which fixes phone footage that arrives on its side. It runs in the built-in media engine on your machine, with no API key or per-run cost.\n\n**How it works:** \"Clip\" takes your video. \"Rotate\" turns every frame by the angle set on the node, 90 degrees by default, and \"Result\" returns the rotated clip.\n\n**Try this:** Set the angle on \"Rotate\" to 180 to fix footage that was recorded upside down, or to 270 to turn it the other way."
         },
         "ui_properties": {
           "position": {

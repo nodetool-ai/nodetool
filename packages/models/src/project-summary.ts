@@ -23,7 +23,11 @@ import type {
   ScriptSection as ProtocolScriptSection,
   Speaker as ProtocolSpeaker
 } from "@nodetool-ai/protocol/api-schemas/scripts.js";
-import { readEntityMarker, type EntityMarker } from "@nodetool-ai/protocol";
+import {
+  paceSpeed,
+  readEntityMarker,
+  type EntityMarker
+} from "@nodetool-ai/protocol";
 import { Application } from "./application.js";
 import { Game } from "./game.js";
 import { Asset } from "./asset.js";
@@ -258,13 +262,18 @@ export function storyboardThumbnails(
   return stills;
 }
 
+/** The pace speed a voicing of this script sends now, null for the default. */
+const scriptSpeed = (doc: ScriptDocument): number | null =>
+  paceSpeed(doc.setup?.pace) ?? null;
+
 export function scriptStatus(doc: ScriptDocument): ScriptStatus {
   const cast = doc.cast as ProtocolSpeaker[];
+  const speed = scriptSpeed(doc);
   const lines = scriptLines(doc.sections as ProtocolScriptSection[]);
   let voiced = 0;
   let stale = 0;
   for (const line of lines as ProtocolScriptLine[]) {
-    if (!needsVoicing(line, effectiveVoice(line, cast))) {
+    if (!needsVoicing(line, effectiveVoice(line, cast), speed)) {
       voiced += 1;
     } else if (currentTake(line)) {
       stale += 1;
@@ -280,6 +289,7 @@ export function scriptStatus(doc: ScriptDocument): ScriptStatus {
  */
 export function scriptPreview(doc: ScriptDocument): ScriptPreview {
   const cast = doc.cast as ProtocolSpeaker[];
+  const speed = scriptSpeed(doc);
   const nameOf = new Map(cast.map((speaker) => [speaker.id, speaker.name]));
   const lines = (
     scriptLines(doc.sections as ProtocolScriptSection[]) as ProtocolScriptLine[]
@@ -289,7 +299,7 @@ export function scriptPreview(doc: ScriptDocument): ScriptPreview {
     lines: lines.map((line) => ({
       speaker: (line.speakerId && nameOf.get(line.speakerId)) || "",
       text: line.text,
-      state: !needsVoicing(line, effectiveVoice(line, cast))
+      state: !needsVoicing(line, effectiveVoice(line, cast), speed)
         ? "voiced"
         : currentTake(line)
           ? "stale"

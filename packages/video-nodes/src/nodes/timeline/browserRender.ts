@@ -6,7 +6,7 @@
  * preview's compositor and scene model, WebCodecs decode, mediabunny mux. This
  * runs that same exporter on the server so a workflow render is the picture
  * the preview showed, and variable-frame-rate clips decode by their own
- * timestamps instead of through a per-frame ffmpeg seek.
+ * timestamps instead of through a per-frame seek.
  *
  * A loopback HTTP server, bound to 127.0.0.1 behind a random path prefix,
  * serves the page (`renderPage.ts`), the clip media (with byte ranges, which
@@ -18,11 +18,11 @@
  * What the browser writes depends on what it can encode
  * ({@link encodingsFor}): H.264 MP4 and VP9 WebM are written as they are;
  * MP4 from a Chromium without an H.264 encoder (Playwright's own build) comes
- * back as VP9 or AV1 and ffmpeg transcodes it; ProRes MOV, a PNG sequence and
+ * back as VP9 or AV1 and libav transcodes it; ProRes MOV, a PNG sequence and
  * alpha WebM from a browser without a VP9 alpha encoder come back as PNG
- * frames that ffmpeg encodes or the zip writer stores.
+ * frames that libav encodes or the zip writer stores.
  *
- * Audio is not mixed here. The caller mixes it with ffmpeg, as it does for the
+ * Audio is not mixed here. The caller mixes it with libav, as it does for the
  * other render path, so the soundtrack does not depend on which path ran.
  */
 
@@ -34,6 +34,7 @@ import type { AddressInfo } from "node:net";
 import path from "node:path";
 
 import { importOptionalModule } from "@nodetool-ai/config";
+import { transcodeVideo } from "@nodetool-ai/runtime/media";
 import {
   BUNDLED_FONT_FILES,
   googleFontFaceCss,
@@ -49,11 +50,10 @@ import {
   type HeadlessRenderRequest
 } from "@nodetool-ai/timeline/render";
 
-import { execFfmpeg, FFMPEG_MAX_BUFFER } from "../ffmpeg-helpers.js";
 import type { ResolvedTimelineOutput } from "./outputFormats.js";
 import { DECODER_PROBES, openSourceConverter, type SourceConverter } from "./browserSources.js";
 import { openPngZipWriter } from "./pngSequence.js";
-import { openPngFrameEncoder } from "./rawFrames.js";
+import { encoderSpecFromArgs, openPngFrameEncoder } from "./rawFrames.js";
 import { loadTimelineRenderPage } from "./renderPage.js";
 
 /**
@@ -95,7 +95,7 @@ export interface BrowserRenderResult {
   /** Which browser ran: a path, a Playwright channel, or "bundled". */
   browser: string;
   encoding: HeadlessRenderEncoding;
-  /** Whether ffmpeg re-encoded what the browser wrote. */
+  /** Whether libav re-encoded what the browser wrote. */
   transcoded: boolean;
   frames: number;
   degradedBakes: number;
@@ -215,7 +215,7 @@ async function launchBrowser(): Promise<{ browser: PlaywrightBrowser; label: str
 
 /**
  * What to ask the page for, in preference order. The last entry is always
- * PNG frames, which every browser can produce and ffmpeg encodes to any of
+ * PNG frames, which every browser can produce and libav encodes to any of
  * the formats, so a missing WebCodecs encoder never fails the render.
  */
 export function encodingsFor(output: ResolvedTimelineOutput): HeadlessRenderEncoding[] {
@@ -224,7 +224,7 @@ export function encodingsFor(output: ResolvedTimelineOutput): HeadlessRenderEnco
   if (output.format === "webm") {
     return [{ kind: "video", container: "webm", codec: "vp9" }, png];
   }
-  // mp4 is H.264 unless the caller named another ffmpeg encoder, which only a
+  // mp4 is H.264 unless the caller named another libav encoder, which only a
   // transcode can honour.
   const direct: HeadlessRenderEncoding[] =
     output.requiredEncoder === "libx264"
@@ -252,10 +252,7 @@ export async function transcodeIntermediate(
   outPath: string,
   output: ResolvedTimelineOutput
 ): Promise<void> {
-  await execFfmpeg(
-    ["-y", "-v", "error", "-i", inPath, "-map", "0:v:0", ...output.encoderArgs, outPath],
-    { maxBuffer: FFMPEG_MAX_BUFFER }
-  );
+  await transcodeVideo({ inputPath: inPath, outPath, spec: encoderSpecFromArgs(output.encoderArgs) });
 }
 
 /** Media type a `<video>`/`<img>` needs to hear; only SVG is not sniffed. */

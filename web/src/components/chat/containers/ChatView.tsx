@@ -36,6 +36,11 @@ import MobileRailTabs, { type MobileRail } from "./MobileRailTabs";
 import { TodoSidebar } from "../sidebar/TodoSidebar";
 import { TaskUpdateSidebar } from "../sidebar/TaskUpdateSidebar";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
+import useMediaGenerationStore from "../../../stores/MediaGenerationStore";
+import ImageGenerationFeed from "../generation/ImageGenerationFeed";
+import VideoGenerationFeed from "../generation/VideoGenerationFeed";
+import AudioGenerationFeed from "../generation/AudioGenerationFeed";
+import { inferMediaCategory } from "../generation/extractGenerationTurns";
 import { getThreadRuntime } from "../../../core/chat/threadRuntime";
 import { useNotificationStore } from "../../../stores/NotificationStore";
 import { useCombo } from "../../../stores/KeyPressedStore";
@@ -73,6 +78,24 @@ const styles = (theme: Theme) =>
       // leave the reply a narrow strip down the middle of the screen.
       [theme.breakpoints.down("sm")]: {
         padding: theme.spacing(0, SPACING.md, SPACING.md)
+      },
+      "&[data-media-category]": {
+        padding: 0,
+        ".chat-thread-container": {
+          maxWidth: "none",
+          paddingBottom: 0,
+          width: "100%",
+          height: "100%"
+        },
+        ".chat-input-section": {
+          position: "absolute",
+          bottom: theme.spacing(3),
+          left: "50%",
+          transform: "translateX(-50%)",
+          zIndex: Z_INDEX.dropdown,
+          width: `calc(100% - ${theme.spacing(4)})`,
+          maxWidth: `${CHAT_COLUMN_MAX_WIDTH}px`
+        }
       }
     },
     ".chat-main": {
@@ -242,6 +265,7 @@ const ChatView = ({
   onModelChange,
   onStop,
   onNewChat,
+  workflowAssistant = false,
   systemPrompt,
   uiContext,
   chatSource,
@@ -304,6 +328,17 @@ const ChatView = ({
   const effectiveThreadId = useGlobalChatStore((state) =>
     resolveThreadId(threadId, state.currentThreadId)
   );
+  const threadMediaMode = useMediaGenerationStore((state) =>
+    effectiveThreadId && state.threadModes[effectiveThreadId] !== undefined
+      ? state.threadModes[effectiveThreadId]
+      : undefined
+  );
+  const mediaCategory = useMemo(() => {
+    if (workflowAssistant || hideModePicker) {
+      return null;
+    }
+    return inferMediaCategory(threadMediaMode, messages);
+  }, [hideModePicker, messages, threadMediaMode, workflowAssistant]);
   const [failedSubmission, setFailedSubmission] = useState<{
     threadId: string | null;
   } | null>(null);
@@ -512,6 +547,25 @@ const ChatView = ({
   // into the history a rewind cuts.
   const canResend = !isBusy && !externalScroll && Boolean(effectiveThreadId);
 
+  const handleDeleteTurn = useCallback(
+    async (message: Message) => {
+      if (!effectiveThreadId || !message.id) {
+        return;
+      }
+      try {
+        await rewindThread(effectiveThreadId, message.id);
+      } catch (error) {
+        addNotification({
+          type: "error",
+          content: t("i18n-next23.chat.errors.rewindConversation", {
+            error: error instanceof Error ? error.message : String(error)
+          })
+        });
+      }
+    },
+    [addNotification, effectiveThreadId, rewindThread, t]
+  );
+
   // `/rewind` takes back the last prompt. A compaction record is stored as a
   // user message, but it is not a prompt the user can take back.
   const lastPrompt = useMemo(() => {
@@ -618,13 +672,18 @@ const ChatView = ({
   });
 
   return (
-    <div className="chat-view" css={cssStyles} ref={rootRef}>
+    <div
+      className="chat-view"
+      data-media-category={mediaCategory ?? undefined}
+      css={cssStyles}
+      ref={rootRef}
+    >
       <div className="chat-main">
-        {((!isMobile && messages.length > 0) ||
+        {((!isMobile && messages.length > 0 && !mediaCategory) ||
           hasDesktopRail ||
           (showNewChatButton && onNewChat)) && (
           <FlexRow className="chat-overlay-actions" align="center" gap={SPACING.md}>
-            {!isMobile && messages.length > 0 && (
+            {!isMobile && messages.length > 0 && !mediaCategory && (
               <ToolbarIconButton
                 onClick={handleCopyConversation}
                 tooltip={t("i18n-next23.chat.actions.copyMarkdown")}
@@ -668,7 +727,29 @@ const ChatView = ({
         )}
         {activeMobileRail === "chat" ? (
           <div className="chat-thread-container">
-            {messages.length > 0 ? (
+            {mediaCategory === "image" ? (
+              <ImageGenerationFeed
+                messages={messages}
+                status={status}
+                threadId={effectiveThreadId}
+                onResendFrom={canResend ? handleResendFrom : undefined}
+              />
+            ) : mediaCategory === "video" ? (
+              <VideoGenerationFeed
+                messages={messages}
+                status={status}
+                threadId={effectiveThreadId}
+                onResendFrom={canResend ? handleResendFrom : undefined}
+                onRewindTo={canResend ? handleDeleteTurn : undefined}
+              />
+            ) : mediaCategory === "audio" ? (
+              <AudioGenerationFeed
+                messages={messages}
+                status={status}
+                onResendFrom={canResend ? handleResendFrom : undefined}
+                onRewindTo={canResend ? handleDeleteTurn : undefined}
+              />
+            ) : messages.length > 0 ? (
               <ChatThreadView
                 threadId={effectiveThreadId}
                 focusMessage={focusMessage}
@@ -709,7 +790,8 @@ const ChatView = ({
             sx={{
               maxWidth: `${CHAT_COLUMN_MAX_WIDTH}px`,
               alignSelf: "center",
-              pb: SPACING.sm
+              pb: mediaCategory ? 20 : SPACING.sm,
+              zIndex: Z_INDEX.dropdown
             }}
           >
             <ChatErrorBanner
@@ -733,6 +815,7 @@ const ChatView = ({
           hideModePicker={hideModePicker}
           hideModelPicker={hideModelPicker}
           threadId={effectiveThreadId}
+          mediaCategory={mediaCategory}
         />
       </div>
       {showTaskSidebar && currentTaskUpdate && (

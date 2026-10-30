@@ -1,0 +1,252 @@
+{
+  "id": "talking-avatar-photo-script-0001",
+  "access": "public",
+  "created_at": "2026-10-26T12:00:00.000000",
+  "updated_at": "2026-10-26T12:00:00.000000",
+  "name": "Talking Avatar from a Photo and a Script",
+  "description": "Turn a single portrait photo and a written script into a lip-synced talking avatar video: synthesize and level the voice track, animate natural head movement from the portrait, and lock mouth shapes to the audio. Estimated cost is about $0.40 to $0.95 per clip on fal at provider list price.",
+  "tags": [
+    "video",
+    "audio",
+    "higgsfield-pack",
+    "lipsync",
+    "example"
+  ],
+  "required_providers": [
+    "fal"
+  ],
+  "thumbnail": "AI Spokesperson.jpg",
+  "graph": {
+    "edges": [
+      {
+        "id": "e1",
+        "source": "script",
+        "sourceHandle": "output",
+        "target": "speech",
+        "targetHandle": "text"
+      },
+      {
+        "id": "e2",
+        "source": "speech",
+        "sourceHandle": "audio",
+        "target": "norm_audio",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e3",
+        "source": "norm_audio",
+        "sourceHandle": "output",
+        "target": "fade_in",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e4",
+        "source": "fade_in",
+        "sourceHandle": "output",
+        "target": "fade_out",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e5",
+        "source": "portrait_photo",
+        "sourceHandle": "output",
+        "target": "talking_head",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e6",
+        "source": "framing_prompt",
+        "sourceHandle": "output",
+        "target": "talking_head",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e7",
+        "source": "talking_head",
+        "sourceHandle": "output",
+        "target": "sync",
+        "targetHandle": "video"
+      },
+      {
+        "id": "e8",
+        "source": "fade_out",
+        "sourceHandle": "output",
+        "target": "sync",
+        "targetHandle": "audio"
+      },
+      {
+        "id": "e9",
+        "source": "sync",
+        "sourceHandle": "output",
+        "target": "avatar_clip",
+        "targetHandle": "value"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Talking Avatar from a Photo and a Script\n\n**Talking Avatar from a Photo and a Script** creates a spoken presenter clip from one portrait image and a line of copy.\n\n1. **Script** feeds **TextToSpeech**, **Normalize**, **FadeIn**, and **FadeOut** to produce a broadcast-level voiceover.\n2. **Portrait Photo** and **Framing Prompt** drive **ImageToVideo** to generate subtle presenter motion.\n3. **LipSync** aligns the presenter's lip movements to the leveled voice track."
+        },
+        "position": {
+          "x": 80,
+          "y": -220
+        },
+        "width": 700,
+        "height": 180
+      },
+      {
+        "id": "portrait_photo",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "portrait_photo",
+          "value": {
+            "type": "image",
+            "uri": "package://nodetool-base/recipe-inputs/ugc-creator-reference.png",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "description": "Front-facing portrait photo of the speaker."
+        },
+        "position": {
+          "x": 80,
+          "y": 40
+        }
+      },
+      {
+        "id": "script",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "script",
+          "value": "Freshly roasted coffee, brewed one cup at a time. Try our single-origin espresso blend this week.",
+          "description": "Spoken lines for the avatar to deliver.",
+          "line_mode": "multi_line"
+        },
+        "position": {
+          "x": 80,
+          "y": 280
+        }
+      },
+      {
+        "id": "framing_prompt",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "framing_prompt",
+          "value": "Natural presenter speaking directly to camera with subtle head nods and warm eye contact, soft key light, locked tripod shot.",
+          "description": "Posture and camera direction for the base video.",
+          "line_mode": "multi_line"
+        },
+        "position": {
+          "x": 80,
+          "y": 460
+        }
+      },
+      {
+        "id": "speech",
+        "type": "nodetool.audio.TextToSpeech",
+        "data": {
+          "model": {
+            "type": "tts_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          },
+          "speed": 1
+        },
+        "position": {
+          "x": 380,
+          "y": 280
+        }
+      },
+      {
+        "id": "norm_audio",
+        "type": "nodetool.audio.Normalize",
+        "data": {},
+        "position": {
+          "x": 640,
+          "y": 280
+        }
+      },
+      {
+        "id": "fade_in",
+        "type": "nodetool.audio.FadeIn",
+        "data": {
+          "duration": 0.08
+        },
+        "position": {
+          "x": 860,
+          "y": 280
+        }
+      },
+      {
+        "id": "fade_out",
+        "type": "nodetool.audio.FadeOut",
+        "data": {
+          "duration": 0.12
+        },
+        "position": {
+          "x": 1080,
+          "y": 280
+        }
+      },
+      {
+        "id": "talking_head",
+        "type": "nodetool.video.ImageToVideo",
+        "data": {
+          "model": {
+            "type": "video_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          },
+          "aspect_ratio": "9:16",
+          "resolution": "720p",
+          "duration": 5
+        },
+        "position": {
+          "x": 640,
+          "y": 60
+        }
+      },
+      {
+        "id": "sync",
+        "type": "nodetool.video.LipSync",
+        "data": {
+          "model": {
+            "type": "video_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          }
+        },
+        "position": {
+          "x": 1320,
+          "y": 160
+        }
+      },
+      {
+        "id": "avatar_clip",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "talking_avatar_video",
+          "description": "The lip-synced talking avatar video."
+        },
+        "position": {
+          "x": 1580,
+          "y": 160
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

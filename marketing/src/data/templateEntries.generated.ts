@@ -4,6 +4,241 @@ import type { TemplateEntry } from "./templates";
 
 export const templateEntries: TemplateEntry[] = [
   {
+    "route": "/templates/50-ad-variants-overnight",
+    "title": "50 Ad Variants Overnight — NodeTool AI Workflow Template",
+    "description": "Scrape a product URL once, generate a batch of distinct ad angles and camera directions (up to 50 variants), and loop through every variant with no rate-limit queue or automation ban. Estimated cost is about $0.30 per variant on fal at provider list price, or $0 locally with Ollama and Wan 2.2.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "50-ad-variants-overnight",
+    "name": "50 Ad Variants Overnight",
+    "summary": "Scrape a product URL once, generate a batch of distinct ad angles and camera directions (up to 50 variants), and loop through every variant with no rate-limit queue or automation ban. Estimated cost is about $0.30 per variant on fal at provider list price, or $0 locally with Ollama and Wan 2.2.",
+    "tags": [
+      "video",
+      "marketing",
+      "advertising",
+      "batch",
+      "higgsfield-pack",
+      "ads",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.Collect",
+        "label": "Collect",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ImageToVideo",
+        "label": "Image To Video",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.IntegerInput",
+        "label": "Integer Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.generators.ListGenerator",
+        "label": "List Generator",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Prompt",
+        "label": "Prompt",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Template",
+        "label": "Template",
+        "count": 1
+      }
+    ],
+    "nodeCount": 10,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "isComment": true
+        },
+        {
+          "id": "product_url",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "https://nodetool.ai"
+        },
+        {
+          "id": "product_photo",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "variant_count",
+          "type": "nodetool.input.IntegerInput",
+          "title": "Integer Input",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "research_prompt",
+          "type": "nodetool.text.Prompt",
+          "title": "Prompt",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "brand_scraper",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "hook_generator",
+          "type": "nodetool.generators.ListGenerator",
+          "title": "List Generator",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "Generate distinct 1-sentence commercial camera and lighting directions (varying camera move, pace, and mood) based on the creative brief. M…"
+        },
+        {
+          "id": "variant_prompt",
+          "type": "nodetool.text.Template",
+          "title": "Template",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "variant_clip",
+          "type": "nodetool.video.ImageToVideo",
+          "title": "Image To Video",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "collect_variants",
+          "type": "nodetool.control.Collect",
+          "title": "Collect",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "ad_variants",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "product_url",
+          "sourceHandle": "output",
+          "target": "research_prompt",
+          "targetHandle": "url",
+          "color": "any"
+        },
+        {
+          "source": "research_prompt",
+          "sourceHandle": "output",
+          "target": "brand_scraper",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "brand_scraper",
+          "sourceHandle": "text",
+          "target": "hook_generator",
+          "targetHandle": "input_text",
+          "color": "any"
+        },
+        {
+          "source": "variant_count",
+          "sourceHandle": "output",
+          "target": "hook_generator",
+          "targetHandle": "max_tokens",
+          "color": "any"
+        },
+        {
+          "source": "hook_generator",
+          "sourceHandle": "item",
+          "target": "variant_prompt",
+          "targetHandle": "angle",
+          "color": "any"
+        },
+        {
+          "source": "product_photo",
+          "sourceHandle": "output",
+          "target": "variant_clip",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "variant_prompt",
+          "sourceHandle": "output",
+          "target": "variant_clip",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "variant_clip",
+          "sourceHandle": "output",
+          "target": "collect_variants",
+          "targetHandle": "input_item",
+          "color": "any"
+        },
+        {
+          "source": "collect_variants",
+          "sourceHandle": "output",
+          "target": "ad_variants",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/a-campaign-concept-from-a-brief",
     "title": "A Campaign Concept from a Brief — NodeTool AI Workflow Template",
     "description": "A brief becomes a concept with a line, a visual idea and three channel executions. Asking for the executions is what forces the concept to be one that survives contact with a media plan.",
@@ -2219,13 +2454,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/boost-saturation",
     "title": "Boost Saturation — NodeTool AI Workflow Template",
-    "description": "Push colour intensity. Values above 1 saturate, below 1 move toward greyscale. Unlike the Color Boost template this runs in ffmpeg, so it needs no GPU. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "description": "Push colour intensity. Values above 1 saturate, below 1 move toward greyscale. Unlike the Color Boost template this runs on the CPU media engine, so it needs no GPU. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "boost-saturation",
     "name": "Boost Saturation",
-    "summary": "Push colour intensity. Values above 1 saturate, below 1 move toward greyscale. Unlike the Color Boost template this runs in ffmpeg, so it needs no GPU. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "summary": "Push colour intensity. Values above 1 saturate, below 1 move toward greyscale. Unlike the Color Boost template this runs on the CPU media engine, so it needs no GPU. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
     "tags": [
       "video",
       "utility",
@@ -3101,6 +3336,386 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/camera-move-contact-sheet",
+    "title": "Camera Move Contact Sheet — NodeTool AI Workflow Template",
+    "description": "Batch-render one still image across six camera movements — dolly in, crane up, orbit left, crash zoom in, pull back reveal, and low-angle hero rise — so you can compare coverage side by side before committing to a hero take. Estimated cost is about $1.80 for six 5-second clips on fal at provider list price, or $0 locally with Wan 2.2.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "camera-move-contact-sheet",
+    "name": "Camera Move Contact Sheet",
+    "summary": "Batch-render one still image across six camera movements — dolly in, crane up, orbit left, crash zoom in, pull back reveal, and low-angle hero rise — so you can compare coverage side by side before committing to a hero take. Estimated cost is about $1.80 for six 5-second clips on fal at provider list price, or $0 locally with Wan 2.2.",
+    "tags": [
+      "video",
+      "higgsfield-pack",
+      "camera-moves",
+      "batch",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.control.Collect",
+        "label": "Collect",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.ForEach",
+        "label": "For Each",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ImageToVideo",
+        "label": "Image To Video",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringListInput",
+        "label": "String List Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Template",
+        "label": "Template",
+        "count": 1
+      }
+    ],
+    "nodeCount": 8,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "isComment": true
+        },
+        {
+          "id": "still",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "moves",
+          "type": "nodetool.input.StringListInput",
+          "title": "String List Input",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "scene_notes",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "Subtle steam rises from the cup on a dark timber table in morning window light."
+        },
+        {
+          "id": "each_move",
+          "type": "nodetool.control.ForEach",
+          "title": "For Each",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "tpl",
+          "type": "nodetool.text.Template",
+          "title": "Template",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "vid",
+          "type": "nodetool.video.ImageToVideo",
+          "title": "Image To Video",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "collect_clips",
+          "type": "nodetool.control.Collect",
+          "title": "Collect",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "contact_sheet_clips",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "moves",
+          "sourceHandle": "output",
+          "target": "each_move",
+          "targetHandle": "input_list",
+          "color": "any"
+        },
+        {
+          "source": "each_move",
+          "sourceHandle": "output",
+          "target": "tpl",
+          "targetHandle": "move",
+          "color": "any"
+        },
+        {
+          "source": "scene_notes",
+          "sourceHandle": "output",
+          "target": "tpl",
+          "targetHandle": "notes",
+          "color": "any"
+        },
+        {
+          "source": "still",
+          "sourceHandle": "output",
+          "target": "vid",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "tpl",
+          "sourceHandle": "output",
+          "target": "vid",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "vid",
+          "sourceHandle": "output",
+          "target": "collect_clips",
+          "targetHandle": "input_item",
+          "color": "any"
+        },
+        {
+          "source": "collect_clips",
+          "sourceHandle": "output",
+          "target": "contact_sheet_clips",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/camera-move",
+    "title": "Camera Move — NodeTool AI Workflow Template",
+    "description": "Animate a still photo with one of 30 named camera movements — dolly in, crane up, orbit, crash zoom, FPV fly-through, or bullet time — at your chosen speed and duration. Estimated cost is about $0.30 to $0.85 per clip on fal at provider list price, or $0 locally with Wan 2.2 through ComfyUI or Wan2GP.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "camera-move",
+    "name": "Camera Move",
+    "summary": "Animate a still photo with one of 30 named camera movements — dolly in, crane up, orbit, crash zoom, FPV fly-through, or bullet time — at your chosen speed and duration. Estimated cost is about $0.30 to $0.85 per clip on fal at provider list price, or $0 locally with Wan 2.2 through ComfyUI or Wan2GP.",
+    "tags": [
+      "video",
+      "higgsfield-pack",
+      "camera-moves",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.SelectInput",
+        "label": "Select Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ImageToVideo",
+        "label": "Image To Video",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.IntegerInput",
+        "label": "Integer Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Template",
+        "label": "Template",
+        "count": 1
+      }
+    ],
+    "nodeCount": 8,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "isComment": true
+        },
+        {
+          "id": "still",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "camera_move",
+          "type": "nodetool.input.SelectInput",
+          "title": "Select Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "dolly in"
+        },
+        {
+          "id": "speed",
+          "type": "nodetool.input.SelectInput",
+          "title": "Select Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "normal"
+        },
+        {
+          "id": "subject_action",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "Warm steam rises gently from the ceramic cup under soft window light."
+        },
+        {
+          "id": "duration",
+          "type": "nodetool.input.IntegerInput",
+          "title": "Integer Input",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "tpl",
+          "type": "nodetool.text.Template",
+          "title": "Template",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "vid",
+          "type": "nodetool.video.ImageToVideo",
+          "title": "Image To Video",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "animated",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "still",
+          "sourceHandle": "output",
+          "target": "vid",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "camera_move",
+          "sourceHandle": "output",
+          "target": "tpl",
+          "targetHandle": "move",
+          "color": "any"
+        },
+        {
+          "source": "speed",
+          "sourceHandle": "output",
+          "target": "tpl",
+          "targetHandle": "speed",
+          "color": "any"
+        },
+        {
+          "source": "subject_action",
+          "sourceHandle": "output",
+          "target": "tpl",
+          "targetHandle": "action",
+          "color": "any"
+        },
+        {
+          "source": "tpl",
+          "sourceHandle": "output",
+          "target": "vid",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "duration",
+          "sourceHandle": "output",
+          "target": "vid",
+          "targetHandle": "duration",
+          "color": "any"
+        },
+        {
+          "source": "vid",
+          "sourceHandle": "output",
+          "target": "animated",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/chapter-markers-for-a-long-recording",
     "title": "Chapter Markers for a Long Recording — NodeTool AI Workflow Template",
     "description": "Long audio is unnavigable without chapters. The model proposes the topic boundaries; you keep the ones that match how the conversation actually moved.",
@@ -3223,6 +3838,232 @@ export const templateEntries: TemplateEntry[] = [
           "source": "ag",
           "sourceHandle": "text",
           "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/character-in-any-scene",
+    "title": "Character in Any Scene — NodeTool AI Workflow Template",
+    "description": "Place a reference character into a new environment while preserving facial identity and wardrobe, then animate the shot with a named camera move. Estimated cost is about $0.08 for the reference-guided still plus $0.35 to $0.85 for the video clip on fal, or $0 locally with Flux and Wan 2.2.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "character-in-any-scene",
+    "name": "Character in Any Scene",
+    "summary": "Place a reference character into a new environment while preserving facial identity and wardrobe, then animate the shot with a named camera move. Estimated cost is about $0.08 for the reference-guided still plus $0.35 to $0.85 for the video clip on fal, or $0 locally with Flux and Wan 2.2.",
+    "tags": [
+      "image",
+      "video",
+      "higgsfield-pack",
+      "characters",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.text.Template",
+        "label": "Template",
+        "count": 2
+      },
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.ImageToImage",
+        "label": "Image To Image",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ImageToVideo",
+        "label": "Image To Video",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.SelectInput",
+        "label": "Select Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 10,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "isComment": true
+        },
+        {
+          "id": "character_photo",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "character_descriptor",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "woman in her late 20s, dark wavy bob, olive linen jacket, silver hoop earrings"
+        },
+        {
+          "id": "scene_prompt",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "Standing on a rain-slicked Tokyo rooftop at dusk with neon reflections in puddles behind her"
+        },
+        {
+          "id": "camera_move",
+          "type": "nodetool.input.SelectInput",
+          "title": "Select Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "dolly in"
+        },
+        {
+          "id": "scene_still_prompt",
+          "type": "nodetool.text.Template",
+          "title": "Template",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "scene_still",
+          "type": "nodetool.image.ImageToImage",
+          "title": "Image To Image",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "scene_motion_prompt",
+          "type": "nodetool.text.Template",
+          "title": "Template",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "scene_clip",
+          "type": "nodetool.video.ImageToVideo",
+          "title": "Image To Video",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "still_out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "clip_out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "character_descriptor",
+          "sourceHandle": "output",
+          "target": "scene_still_prompt",
+          "targetHandle": "character",
+          "color": "any"
+        },
+        {
+          "source": "scene_prompt",
+          "sourceHandle": "output",
+          "target": "scene_still_prompt",
+          "targetHandle": "scene",
+          "color": "any"
+        },
+        {
+          "source": "character_photo",
+          "sourceHandle": "output",
+          "target": "scene_still",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "scene_still_prompt",
+          "sourceHandle": "output",
+          "target": "scene_still",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "scene_still",
+          "sourceHandle": "output",
+          "target": "still_out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "scene_still",
+          "sourceHandle": "output",
+          "target": "scene_clip",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "camera_move",
+          "sourceHandle": "output",
+          "target": "scene_motion_prompt",
+          "targetHandle": "move",
+          "color": "any"
+        },
+        {
+          "source": "scene_prompt",
+          "sourceHandle": "output",
+          "target": "scene_motion_prompt",
+          "targetHandle": "scene",
+          "color": "any"
+        },
+        {
+          "source": "scene_motion_prompt",
+          "sourceHandle": "output",
+          "target": "scene_clip",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "scene_clip",
+          "sourceHandle": "output",
+          "target": "clip_out",
           "targetHandle": "value",
           "color": "any"
         }
@@ -5448,6 +6289,285 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/consistent-cast-storyboard",
+    "title": "Consistent Cast Storyboard — NodeTool AI Workflow Template",
+    "description": "Direct a 6-shot narrative storyboard around a locked character entity, render every shot still and motion clip with identity preservation, and assemble the cut onto a multi-track timeline. Estimated cost is about $2.50 to $5.00 for a 6-shot board on fal at provider list price, or $0 locally with Ollama, Flux, and Wan 2.2.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "consistent-cast-storyboard",
+    "name": "Consistent Cast Storyboard",
+    "summary": "Direct a 6-shot narrative storyboard around a locked character entity, render every shot still and motion clip with identity preservation, and assemble the cut onto a multi-track timeline. Estimated cost is about $2.50 to $5.00 for a 6-shot board on fal at provider list price, or $0 locally with Ollama, Flux, and Wan 2.2.",
+    "tags": [
+      "video",
+      "storyboard",
+      "higgsfield-pack",
+      "characters",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 3
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.storyboard.AssembleTimeline",
+        "label": "Assemble Timeline",
+        "count": 1
+      },
+      {
+        "type": "nodetool.code.Code",
+        "label": "Code",
+        "count": 1
+      },
+      {
+        "type": "nodetool.entity.CreateEntity",
+        "label": "Create Entity",
+        "count": 1
+      },
+      {
+        "type": "nodetool.storyboard.CreateStoryboard",
+        "label": "Create Storyboard",
+        "count": 1
+      },
+      {
+        "type": "nodetool.creative.Director",
+        "label": "Director",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.storyboard.RenderClips",
+        "label": "Render Clips",
+        "count": 1
+      },
+      {
+        "type": "nodetool.storyboard.RenderStills",
+        "label": "Render Stills",
+        "count": 1
+      }
+    ],
+    "nodeCount": 13,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "isComment": true
+        },
+        {
+          "id": "lead_photo",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "lead_name",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "Maya"
+        },
+        {
+          "id": "lead_descriptor",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "woman in her late 20s, dark wavy bob, olive linen jacket, silver hoop earrings"
+        },
+        {
+          "id": "script_brief",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "At dawn, Maya opens her neighbourhood espresso bar, dials in the first pull, and hands a steaming cortado to the first regular at the windo…"
+        },
+        {
+          "id": "lead_entity",
+          "type": "nodetool.entity.CreateEntity",
+          "title": "Create Entity",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "pack_cast",
+          "type": "nodetool.code.Code",
+          "title": "Code",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "director",
+          "type": "nodetool.creative.Director",
+          "title": "Director",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "board",
+          "type": "nodetool.storyboard.CreateStoryboard",
+          "title": "Create Storyboard",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "stills",
+          "type": "nodetool.storyboard.RenderStills",
+          "title": "Render Stills",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "clips",
+          "type": "nodetool.storyboard.RenderClips",
+          "title": "Render Clips",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "timeline",
+          "type": "nodetool.storyboard.AssembleTimeline",
+          "title": "Assemble Timeline",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "storyboard_out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "timeline_out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "lead_name",
+          "sourceHandle": "output",
+          "target": "lead_entity",
+          "targetHandle": "name",
+          "color": "any"
+        },
+        {
+          "source": "lead_descriptor",
+          "sourceHandle": "output",
+          "target": "lead_entity",
+          "targetHandle": "descriptor",
+          "color": "any"
+        },
+        {
+          "source": "lead_photo",
+          "sourceHandle": "output",
+          "target": "lead_entity",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "lead_entity",
+          "sourceHandle": "entity",
+          "target": "pack_cast",
+          "targetHandle": "lead",
+          "color": "any"
+        },
+        {
+          "source": "script_brief",
+          "sourceHandle": "output",
+          "target": "director",
+          "targetHandle": "brief",
+          "color": "any"
+        },
+        {
+          "source": "director",
+          "sourceHandle": "screenplay",
+          "target": "board",
+          "targetHandle": "screenplay",
+          "color": "any"
+        },
+        {
+          "source": "pack_cast",
+          "sourceHandle": "output",
+          "target": "board",
+          "targetHandle": "cast",
+          "color": "any"
+        },
+        {
+          "source": "board",
+          "sourceHandle": "storyboard",
+          "target": "stills",
+          "targetHandle": "storyboard",
+          "color": "any"
+        },
+        {
+          "source": "stills",
+          "sourceHandle": "storyboard",
+          "target": "clips",
+          "targetHandle": "storyboard",
+          "color": "any"
+        },
+        {
+          "source": "clips",
+          "sourceHandle": "storyboard",
+          "target": "storyboard_out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "clips",
+          "sourceHandle": "storyboard",
+          "target": "timeline",
+          "targetHandle": "storyboard",
+          "color": "any"
+        },
+        {
+          "source": "timeline",
+          "sourceHandle": "timeline",
+          "target": "timeline_out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/count-a-list",
     "title": "Count a List — NodeTool AI Workflow Template",
     "description": "Count the items flowing through a stream. The counter sits on the stream rather than on a stored array, so it works the same whether the items came from a constant, a folder scan, or a generator. Runs entirely in-process: no model, no key, no cost.",
@@ -6429,13 +7549,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/denoise-footage",
     "title": "Denoise Footage — NodeTool AI Workflow Template",
-    "description": "Reduce sensor grain in footage shot at high ISO. Higher strength smooths more and softens fine detail with it. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "description": "Reduce sensor grain in footage shot at high ISO. Higher strength smooths more and softens fine detail with it. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "denoise-footage",
     "name": "Denoise Footage",
-    "summary": "Reduce sensor grain in footage shot at high ISO. Higher strength smooths more and softens fine detail with it. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "summary": "Reduce sensor grain in footage shot at high ISO. Higher strength smooths more and softens fine detail with it. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
     "tags": [
       "video",
       "utility",
@@ -7419,6 +8539,265 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/dub-a-video-into-5-languages",
+    "title": "Dub a Video into 5 Languages — NodeTool AI Workflow Template",
+    "description": "Extract speech from a source video, transcribe it, translate the spoken phrasing into five target languages in parallel, synthesize each localized voice track, and re-sync the speaker's lips for every language. Estimated cost is about $0.45 per language on fal at provider list price.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "dub-a-video-into-5-languages",
+    "name": "Dub a Video into 5 Languages",
+    "summary": "Extract speech from a source video, transcribe it, translate the spoken phrasing into five target languages in parallel, synthesize each localized voice track, and re-sync the speaker's lips for every language. Estimated cost is about $0.45 per language on fal at provider list price.",
+    "tags": [
+      "video",
+      "audio",
+      "higgsfield-pack",
+      "lipsync",
+      "batch",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.AutomaticSpeechRecognition",
+        "label": "Automatic Speech Recognition",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.Collect",
+        "label": "Collect",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ExtractAudio",
+        "label": "Extract Audio",
+        "count": 1
+      },
+      {
+        "type": "nodetool.control.ForEach",
+        "label": "For Each",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.LipSync",
+        "label": "Lip Sync",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringListInput",
+        "label": "String List Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Template",
+        "label": "Template",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.TextToSpeech",
+        "label": "Text To Speech",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 11,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "isComment": true
+        },
+        {
+          "id": "source_video",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "languages",
+          "type": "nodetool.input.StringListInput",
+          "title": "String List Input",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "extract_audio",
+          "type": "nodetool.video.ExtractAudio",
+          "title": "Extract Audio",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "transcribe",
+          "type": "nodetool.text.AutomaticSpeechRecognition",
+          "title": "Automatic Speech Recognition",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "each_language",
+          "type": "nodetool.control.ForEach",
+          "title": "For Each",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "translate_prompt",
+          "type": "nodetool.text.Template",
+          "title": "Template",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "translator",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "dub_voice",
+          "type": "nodetool.audio.TextToSpeech",
+          "title": "Text To Speech",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "dub_sync",
+          "type": "nodetool.video.LipSync",
+          "title": "Lip Sync",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "collect_dubs",
+          "type": "nodetool.control.Collect",
+          "title": "Collect",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "dubbed_videos",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "source_video",
+          "sourceHandle": "output",
+          "target": "extract_audio",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "extract_audio",
+          "sourceHandle": "output",
+          "target": "transcribe",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "languages",
+          "sourceHandle": "output",
+          "target": "each_language",
+          "targetHandle": "input_list",
+          "color": "any"
+        },
+        {
+          "source": "each_language",
+          "sourceHandle": "output",
+          "target": "translate_prompt",
+          "targetHandle": "language",
+          "color": "any"
+        },
+        {
+          "source": "transcribe",
+          "sourceHandle": "text",
+          "target": "translate_prompt",
+          "targetHandle": "transcript",
+          "color": "any"
+        },
+        {
+          "source": "translate_prompt",
+          "sourceHandle": "output",
+          "target": "translator",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "translator",
+          "sourceHandle": "text",
+          "target": "dub_voice",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "source_video",
+          "sourceHandle": "output",
+          "target": "dub_sync",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "dub_voice",
+          "sourceHandle": "audio",
+          "target": "dub_sync",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "dub_sync",
+          "sourceHandle": "output",
+          "target": "collect_dubs",
+          "targetHandle": "input_item",
+          "color": "any"
+        },
+        {
+          "source": "collect_dubs",
+          "sourceHandle": "output",
+          "target": "dubbed_videos",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/dungeon-and-ruins-starter-pack",
     "title": "Dungeon and Ruins Starter Pack — NodeTool AI Workflow Template",
     "description": "Low-poly dungeon models for adventure games: modular stone rooms, doors, gates, traps, torches, tombs and treasure. Includes seven animation clips. Run to expose each GLB as a named output. No provider or API key required.",
@@ -8082,6 +9461,154 @@ export const templateEntries: TemplateEntry[] = [
           "source": "img",
           "sourceHandle": "output",
           "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/effects-gallery",
+    "title": "Effects Gallery — NodeTool AI Workflow Template",
+    "description": "Apply one of 12 visual effects presets — levitation, glass shatter, liquid chrome melt, slow-motion embers, frost freeze, balloon inflate, or floral explosion — to any product or subject photo. Estimated cost is about $0.30 to $0.85 per clip on fal at provider list price, or $0 locally with Wan 2.2.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "effects-gallery",
+    "name": "Effects Gallery",
+    "summary": "Apply one of 12 visual effects presets — levitation, glass shatter, liquid chrome melt, slow-motion embers, frost freeze, balloon inflate, or floral explosion — to any product or subject photo. Estimated cost is about $0.30 to $0.85 per clip on fal at provider list price, or $0 locally with Wan 2.2.",
+    "tags": [
+      "video",
+      "image",
+      "higgsfield-pack",
+      "effects",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.SelectInput",
+        "label": "Select Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ImageToVideo",
+        "label": "Image To Video",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Template",
+        "label": "Template",
+        "count": 1
+      }
+    ],
+    "nodeCount": 6,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "isComment": true
+        },
+        {
+          "id": "subject_image",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "effect",
+          "type": "nodetool.input.SelectInput",
+          "title": "Select Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "levitate and float upward in zero gravity"
+        },
+        {
+          "id": "intensity",
+          "type": "nodetool.input.SelectInput",
+          "title": "Select Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "dramatic studio slow-motion"
+        },
+        {
+          "id": "effect_brief",
+          "type": "nodetool.text.Template",
+          "title": "Template",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "vfx_clip",
+          "type": "nodetool.video.ImageToVideo",
+          "title": "Image To Video",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "effect_video",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "subject_image",
+          "sourceHandle": "output",
+          "target": "vfx_clip",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "effect",
+          "sourceHandle": "output",
+          "target": "effect_brief",
+          "targetHandle": "effect",
+          "color": "any"
+        },
+        {
+          "source": "intensity",
+          "sourceHandle": "output",
+          "target": "effect_brief",
+          "targetHandle": "intensity",
+          "color": "any"
+        },
+        {
+          "source": "effect_brief",
+          "sourceHandle": "output",
+          "target": "vfx_clip",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "vfx_clip",
+          "sourceHandle": "output",
+          "target": "effect_video",
           "targetHandle": "value",
           "color": "any"
         }
@@ -8767,13 +10294,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/fade-audio-in-and-out",
     "title": "Fade Audio In and Out — NodeTool AI Workflow Template",
-    "description": "Ease a track in from silence so it does not start on a hard edit. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
+    "description": "Ease a track in from silence so it does not start on a hard edit. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Built-in media engine - no API cost.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "fade-audio-in-and-out",
     "name": "Fade Audio In and Out",
-    "summary": "Ease a track in from silence so it does not start on a hard edit. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
+    "summary": "Ease a track in from silence so it does not start on a hard edit. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Built-in media engine - no API cost.",
     "tags": [
       "audio",
       "video",
@@ -11867,6 +13394,251 @@ export const templateEntries: TemplateEntry[] = [
           "sourceHandle": "output",
           "target": "z",
           "targetHandle": "input_item",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/lens-and-look",
+    "title": "Lens and Look — NodeTool AI Workflow Template",
+    "description": "Dial focal length (14mm to 135mm, macro, or anamorphic), aperture depth of field, film stock grain, and camera motion before generating a keyframe still and its animated shot. Estimated cost is about $0.05 for the keyframe plus $0.35 to $0.85 for the clip on fal, or $0 locally with Flux and Wan 2.2.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "lens-and-look",
+    "name": "Lens and Look",
+    "summary": "Dial focal length (14mm to 135mm, macro, or anamorphic), aperture depth of field, film stock grain, and camera motion before generating a keyframe still and its animated shot. Estimated cost is about $0.05 for the keyframe plus $0.35 to $0.85 for the clip on fal, or $0 locally with Flux and Wan 2.2.",
+    "tags": [
+      "image",
+      "video",
+      "higgsfield-pack",
+      "camera-moves",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.SelectInput",
+        "label": "Select Input",
+        "count": 4
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.text.Template",
+        "label": "Template",
+        "count": 2
+      },
+      {
+        "type": "nodetool.video.ImageToVideo",
+        "label": "Image To Video",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.TextToImage",
+        "label": "Text To Image",
+        "count": 1
+      }
+    ],
+    "nodeCount": 11,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "isComment": true
+        },
+        {
+          "id": "subject",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "A watchmaker inspecting a brass chronograph movement at a rain-lit workshop bench"
+        },
+        {
+          "id": "lens",
+          "type": "nodetool.input.SelectInput",
+          "title": "Select Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "35mm"
+        },
+        {
+          "id": "aperture",
+          "type": "nodetool.input.SelectInput",
+          "title": "Select Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "f/1.8 shallow depth of field"
+        },
+        {
+          "id": "film_look",
+          "type": "nodetool.input.SelectInput",
+          "title": "Select Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "35mm Kodak Vision3 500T tungsten grain"
+        },
+        {
+          "id": "camera_move",
+          "type": "nodetool.input.SelectInput",
+          "title": "Select Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "slow push in"
+        },
+        {
+          "id": "still_brief",
+          "type": "nodetool.text.Template",
+          "title": "Template",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "keyframe",
+          "type": "nodetool.image.TextToImage",
+          "title": "Text To Image",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "motion_brief",
+          "type": "nodetool.text.Template",
+          "title": "Template",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "clip",
+          "type": "nodetool.video.ImageToVideo",
+          "title": "Image To Video",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "keyframe_out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "clip_out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "subject",
+          "sourceHandle": "output",
+          "target": "still_brief",
+          "targetHandle": "subject",
+          "color": "any"
+        },
+        {
+          "source": "lens",
+          "sourceHandle": "output",
+          "target": "still_brief",
+          "targetHandle": "lens",
+          "color": "any"
+        },
+        {
+          "source": "aperture",
+          "sourceHandle": "output",
+          "target": "still_brief",
+          "targetHandle": "aperture",
+          "color": "any"
+        },
+        {
+          "source": "film_look",
+          "sourceHandle": "output",
+          "target": "still_brief",
+          "targetHandle": "look",
+          "color": "any"
+        },
+        {
+          "source": "still_brief",
+          "sourceHandle": "output",
+          "target": "keyframe",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "keyframe",
+          "sourceHandle": "output",
+          "target": "keyframe_out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "keyframe",
+          "sourceHandle": "output",
+          "target": "clip",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "subject",
+          "sourceHandle": "output",
+          "target": "motion_brief",
+          "targetHandle": "subject",
+          "color": "any"
+        },
+        {
+          "source": "lens",
+          "sourceHandle": "output",
+          "target": "motion_brief",
+          "targetHandle": "lens",
+          "color": "any"
+        },
+        {
+          "source": "camera_move",
+          "sourceHandle": "output",
+          "target": "motion_brief",
+          "targetHandle": "move",
+          "color": "any"
+        },
+        {
+          "source": "motion_brief",
+          "sourceHandle": "output",
+          "target": "clip",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "clip",
+          "sourceHandle": "output",
+          "target": "clip_out",
+          "targetHandle": "value",
           "color": "any"
         }
       ]
@@ -15740,13 +17512,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/normalize-a-clip-s-audio",
     "title": "Normalize a Clip's Audio — NodeTool AI Workflow Template",
-    "description": "Even out loudness on a track that was recorded too quiet or too hot. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
+    "description": "Even out loudness on a track that was recorded too quiet or too hot. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Built-in media engine - no API cost.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "normalize-a-clip-s-audio",
     "name": "Normalize a Clip's Audio",
-    "summary": "Even out loudness on a track that was recorded too quiet or too hot. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
+    "summary": "Even out loudness on a track that was recorded too quiet or too hot. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Built-in media engine - no API cost.",
     "tags": [
       "audio",
       "video",
@@ -18797,6 +20569,497 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/product-url-to-cgi-commercial",
+    "title": "Product URL to CGI Commercial — NodeTool AI Workflow Template",
+    "description": "Scrape a live product page URL to extract its form factor, materials, and brand palette, generate a studio packshot keyframe, and animate a directed CGI-style tabletop commercial shot. Estimated cost is about $0.08 for the studio packshot plus $0.35 to $0.85 for the motion clip on fal, or $0 locally with Ollama, Flux, and Wan 2.2.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "product-url-to-cgi-commercial",
+    "name": "Product URL to CGI Commercial",
+    "summary": "Scrape a live product page URL to extract its form factor, materials, and brand palette, generate a studio packshot keyframe, and animate a directed CGI-style tabletop commercial shot. Estimated cost is about $0.08 for the studio packshot plus $0.35 to $0.85 for the motion clip on fal, or $0 locally with Ollama, Flux, and Wan 2.2.",
+    "tags": [
+      "video",
+      "marketing",
+      "advertising",
+      "higgsfield-pack",
+      "ads",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ImageToVideo",
+        "label": "Image To Video",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Prompt",
+        "label": "Prompt",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.SelectInput",
+        "label": "Select Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Template",
+        "label": "Template",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.TextToImage",
+        "label": "Text To Image",
+        "count": 1
+      }
+    ],
+    "nodeCount": 10,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "isComment": true
+        },
+        {
+          "id": "product_url",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "https://nodetool.ai"
+        },
+        {
+          "id": "visual_style",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "Macro tabletop commercial on dark brushed slate, warm amber rim lighting, crisp specular highlights, 85mm cinema lens"
+        },
+        {
+          "id": "camera_move",
+          "type": "nodetool.input.SelectInput",
+          "title": "Select Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "360 orbit"
+        },
+        {
+          "id": "brief",
+          "type": "nodetool.text.Prompt",
+          "title": "Prompt",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "commercial_director",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "packshot",
+          "type": "nodetool.image.TextToImage",
+          "title": "Text To Image",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "motion_prompt",
+          "type": "nodetool.text.Template",
+          "title": "Template",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "commercial_clip",
+          "type": "nodetool.video.ImageToVideo",
+          "title": "Image To Video",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "packshot_out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "commercial_out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "product_url",
+          "sourceHandle": "output",
+          "target": "brief",
+          "targetHandle": "url",
+          "color": "any"
+        },
+        {
+          "source": "visual_style",
+          "sourceHandle": "output",
+          "target": "brief",
+          "targetHandle": "style",
+          "color": "any"
+        },
+        {
+          "source": "camera_move",
+          "sourceHandle": "output",
+          "target": "brief",
+          "targetHandle": "move",
+          "color": "any"
+        },
+        {
+          "source": "brief",
+          "sourceHandle": "output",
+          "target": "commercial_director",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "commercial_director",
+          "sourceHandle": "text",
+          "target": "packshot",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "packshot",
+          "sourceHandle": "output",
+          "target": "packshot_out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "packshot",
+          "sourceHandle": "output",
+          "target": "commercial_clip",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "commercial_director",
+          "sourceHandle": "text",
+          "target": "motion_prompt",
+          "targetHandle": "shot_brief",
+          "color": "any"
+        },
+        {
+          "source": "camera_move",
+          "sourceHandle": "output",
+          "target": "motion_prompt",
+          "targetHandle": "move",
+          "color": "any"
+        },
+        {
+          "source": "motion_prompt",
+          "sourceHandle": "output",
+          "target": "commercial_clip",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "commercial_clip",
+          "sourceHandle": "output",
+          "target": "commercial_out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/product-url-to-ugc-ad",
+    "title": "Product URL to UGC Ad — NodeTool AI Workflow Template",
+    "description": "Paste a product page URL to extract its headline, value props, and proof points, write a 15-second spoken creator script, synthesize the voiceover, and lip-sync a creator portrait into a vertical UGC ad. Estimated cost is about $0.45 to $1.10 per ad on fal at provider list price.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "product-url-to-ugc-ad",
+    "name": "Product URL to UGC Ad",
+    "summary": "Paste a product page URL to extract its headline, value props, and proof points, write a 15-second spoken creator script, synthesize the voiceover, and lip-sync a creator portrait into a vertical UGC ad. Estimated cost is about $0.45 to $1.10 per ad on fal at provider list price.",
+    "tags": [
+      "video",
+      "marketing",
+      "advertising",
+      "ugc",
+      "higgsfield-pack",
+      "ads",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ImageToVideo",
+        "label": "Image To Video",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.LipSync",
+        "label": "Lip Sync",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.Normalize",
+        "label": "Normalize",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Prompt",
+        "label": "Prompt",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.TextToSpeech",
+        "label": "Text To Speech",
+        "count": 1
+      }
+    ],
+    "nodeCount": 11,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "isComment": true
+        },
+        {
+          "id": "product_url",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "https://nodetool.ai"
+        },
+        {
+          "id": "persona",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "Handheld vertical phone video of a warm, direct creator speaking naturally to camera in a sunlit apartment"
+        },
+        {
+          "id": "creator_photo",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "scrape_brief",
+          "type": "nodetool.text.Prompt",
+          "title": "Prompt",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "product_researcher",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "voice",
+          "type": "nodetool.audio.TextToSpeech",
+          "title": "Text To Speech",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "norm_voice",
+          "type": "nodetool.audio.Normalize",
+          "title": "Normalize",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "avatar_base",
+          "type": "nodetool.video.ImageToVideo",
+          "title": "Image To Video",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "synced_ugc",
+          "type": "nodetool.video.LipSync",
+          "title": "Lip Sync",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "script_out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "ugc_ad",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "product_url",
+          "sourceHandle": "output",
+          "target": "scrape_brief",
+          "targetHandle": "url",
+          "color": "any"
+        },
+        {
+          "source": "persona",
+          "sourceHandle": "output",
+          "target": "scrape_brief",
+          "targetHandle": "persona",
+          "color": "any"
+        },
+        {
+          "source": "scrape_brief",
+          "sourceHandle": "output",
+          "target": "product_researcher",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "product_researcher",
+          "sourceHandle": "text",
+          "target": "script_out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "product_researcher",
+          "sourceHandle": "text",
+          "target": "voice",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "voice",
+          "sourceHandle": "audio",
+          "target": "norm_voice",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "creator_photo",
+          "sourceHandle": "output",
+          "target": "avatar_base",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "persona",
+          "sourceHandle": "output",
+          "target": "avatar_base",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "avatar_base",
+          "sourceHandle": "output",
+          "target": "synced_ugc",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "norm_voice",
+          "sourceHandle": "output",
+          "target": "synced_ugc",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "synced_ugc",
+          "sourceHandle": "output",
+          "target": "ugc_ad",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/product-video-generator",
     "title": "Product Video Generator — NodeTool AI Workflow Template",
     "description": "Turn a campaign brief, audience, features, and a product photo into a realistic 16:9 launch video — an agent writes the motion prompt, then an image-to-video model animates the shot. Cost note: the video step is a paid generation, so this run costs noticeably more than an image-only template.",
@@ -19523,13 +21786,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/pull-a-still-from-a-clip",
     "title": "Pull a Still from a Clip — NodeTool AI Workflow Template",
-    "description": "Grab a single frame at a given timestamp - the quick way to get a thumbnail or a reference still out of footage you already have. Runs locally through ffmpeg.",
+    "description": "Grab a single frame at a given timestamp - the quick way to get a thumbnail or a reference still out of footage you already have. Runs on your machine with the built-in media engine.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "pull-a-still-from-a-clip",
     "name": "Pull a Still from a Clip",
-    "summary": "Grab a single frame at a given timestamp - the quick way to get a thumbnail or a reference still out of footage you already have. Runs locally through ffmpeg.",
+    "summary": "Grab a single frame at a given timestamp - the quick way to get a thumbnail or a reference still out of footage you already have. Runs on your machine with the built-in media engine.",
     "tags": [
       "video",
       "image",
@@ -22112,13 +24375,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/reverse-audio",
     "title": "Reverse Audio — NodeTool AI Workflow Template",
-    "description": "Play a track backwards - the basis of reverse-cymbal risers and pre-echo effects. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
+    "description": "Play a track backwards - the basis of reverse-cymbal risers and pre-echo effects. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Built-in media engine - no API cost.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "reverse-audio",
     "name": "Reverse Audio",
-    "summary": "Play a track backwards - the basis of reverse-cymbal risers and pre-echo effects. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
+    "summary": "Play a track backwards - the basis of reverse-cymbal risers and pre-echo effects. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Built-in media engine - no API cost.",
     "tags": [
       "audio",
       "video",
@@ -22222,13 +24485,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/reverse-a-clip",
     "title": "Reverse a Clip — NodeTool AI Workflow Template",
-    "description": "Play a clip backwards. Useful for loop-and-return transitions where the return leg is the same footage reversed. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "description": "Play a clip backwards. Useful for loop-and-return transitions where the return leg is the same footage reversed. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "reverse-a-clip",
     "name": "Reverse a Clip",
-    "summary": "Play a clip backwards. Useful for loop-and-return transitions where the return leg is the same footage reversed. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "summary": "Play a clip backwards. Useful for loop-and-return transitions where the return leg is the same footage reversed. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
     "tags": [
       "video",
       "utility",
@@ -22651,13 +24914,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/rotate-footage",
     "title": "Rotate Footage — NodeTool AI Workflow Template",
-    "description": "Rotate a clip by a fixed angle - the fix for phone footage that arrives on its side. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "description": "Rotate a clip by a fixed angle - the fix for phone footage that arrives on its side. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "rotate-footage",
     "name": "Rotate Footage",
-    "summary": "Rotate a clip by a fixed angle - the fix for phone footage that arrives on its side. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "summary": "Rotate a clip by a fixed angle - the fix for phone footage that arrives on its side. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
     "tags": [
       "video",
       "utility",
@@ -24901,13 +27164,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/sharpen-footage",
     "title": "Sharpen Footage — NodeTool AI Workflow Template",
-    "description": "Add apparent detail back after a denoise or a downscale. Luma carries most of the perceived sharpness; chroma is kept low to avoid colour fringing. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "description": "Add apparent detail back after a denoise or a downscale. Luma carries most of the perceived sharpness; chroma is kept low to avoid colour fringing. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "sharpen-footage",
     "name": "Sharpen Footage",
-    "summary": "Add apparent detail back after a denoise or a downscale. Luma carries most of the perceived sharpness; chroma is kept low to avoid colour fringing. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "summary": "Add apparent detail back after a denoise or a downscale. Luma carries most of the perceived sharpness; chroma is kept low to avoid colour fringing. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
     "tags": [
       "video",
       "utility",
@@ -25366,13 +27629,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/soften-a-plate",
     "title": "Soften a Plate — NodeTool AI Workflow Template",
-    "description": "Blur a clip so it can sit behind titles or a picture-in-picture inset without competing for attention. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "description": "Blur a clip so it can sit behind titles or a picture-in-picture inset without competing for attention. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "soften-a-plate",
     "name": "Soften a Plate",
-    "summary": "Blur a clip so it can sit behind titles or a picture-in-picture inset without competing for attention. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "summary": "Blur a clip so it can sit behind titles or a picture-in-picture inset without competing for attention. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
     "tags": [
       "video",
       "utility",
@@ -25919,13 +28182,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/stabilize-handheld",
     "title": "Stabilize Handheld — NodeTool AI Workflow Template",
-    "description": "Smooth out handheld camera shake. Stabilising moves the frame, so `crop_black` trims the empty edges it exposes. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "description": "Smooth out handheld camera shake. Stabilising moves the frame, so `crop_black` trims the empty edges it exposes. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "stabilize-handheld",
     "name": "Stabilize Handheld",
-    "summary": "Smooth out handheld camera shake. Stabilising moves the frame, so `crop_black` trims the empty edges it exposes. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "summary": "Smooth out handheld camera shake. Stabilising moves the frame, so `crop_black` trims the empty edges it exposes. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
     "tags": [
       "video",
       "utility",
@@ -27105,6 +29368,234 @@ export const templateEntries: TemplateEntry[] = [
           "sourceHandle": "output",
           "target": "op",
           "targetHandle": "input_item",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/talking-avatar-from-a-photo-and-a-script",
+    "title": "Talking Avatar from a Photo and a Script — NodeTool AI Workflow Template",
+    "description": "Turn a single portrait photo and a written script into a lip-synced talking avatar video: synthesize and level the voice track, animate natural head movement from the portrait, and lock mouth shapes to the audio. Estimated cost is about $0.40 to $0.95 per clip on fal at provider list price.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "talking-avatar-from-a-photo-and-a-script",
+    "name": "Talking Avatar from a Photo and a Script",
+    "summary": "Turn a single portrait photo and a written script into a lip-synced talking avatar video: synthesize and level the voice track, animate natural head movement from the portrait, and lock mouth shapes to the audio. Estimated cost is about $0.40 to $0.95 per clip on fal at provider list price.",
+    "tags": [
+      "video",
+      "audio",
+      "higgsfield-pack",
+      "lipsync",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.audio.FadeIn",
+        "label": "Fade In",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.FadeOut",
+        "label": "Fade Out",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.ImageToVideo",
+        "label": "Image To Video",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.LipSync",
+        "label": "Lip Sync",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.Normalize",
+        "label": "Normalize",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.TextToSpeech",
+        "label": "Text To Speech",
+        "count": 1
+      }
+    ],
+    "nodeCount": 10,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "isComment": true
+        },
+        {
+          "id": "portrait_photo",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "script",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "Freshly roasted coffee, brewed one cup at a time. Try our single-origin espresso blend this week."
+        },
+        {
+          "id": "framing_prompt",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "Natural presenter speaking directly to camera with subtle head nods and warm eye contact, soft key light, locked tripod shot."
+        },
+        {
+          "id": "speech",
+          "type": "nodetool.audio.TextToSpeech",
+          "title": "Text To Speech",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "norm_audio",
+          "type": "nodetool.audio.Normalize",
+          "title": "Normalize",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "fade_in",
+          "type": "nodetool.audio.FadeIn",
+          "title": "Fade In",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "fade_out",
+          "type": "nodetool.audio.FadeOut",
+          "title": "Fade Out",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "talking_head",
+          "type": "nodetool.video.ImageToVideo",
+          "title": "Image To Video",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "sync",
+          "type": "nodetool.video.LipSync",
+          "title": "Lip Sync",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "avatar_clip",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "script",
+          "sourceHandle": "output",
+          "target": "speech",
+          "targetHandle": "text",
+          "color": "any"
+        },
+        {
+          "source": "speech",
+          "sourceHandle": "audio",
+          "target": "norm_audio",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "norm_audio",
+          "sourceHandle": "output",
+          "target": "fade_in",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "fade_in",
+          "sourceHandle": "output",
+          "target": "fade_out",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "portrait_photo",
+          "sourceHandle": "output",
+          "target": "talking_head",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "framing_prompt",
+          "sourceHandle": "output",
+          "target": "talking_head",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "talking_head",
+          "sourceHandle": "output",
+          "target": "sync",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "fade_out",
+          "sourceHandle": "output",
+          "target": "sync",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "sync",
+          "sourceHandle": "output",
+          "target": "avatar_clip",
+          "targetHandle": "value",
           "color": "any"
         }
       ]
@@ -28408,6 +30899,219 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/train-a-character",
+    "title": "Train a Character — NodeTool AI Workflow Template",
+    "description": "Build a reusable character identity from a reference portrait, a trigger token, and a wardrobe descriptor, then generate a multi-angle character turnaround sheet ready for downstream storyboards or Flux LoRA fine-tuning. Estimated cost is about $0.05 to $0.15 for the turnaround sheet on fal (or ~$2 for a full Flux LoRA run), or $0 locally.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "train-a-character",
+    "name": "Train a Character",
+    "summary": "Build a reusable character identity from a reference portrait, a trigger token, and a wardrobe descriptor, then generate a multi-angle character turnaround sheet ready for downstream storyboards or Flux LoRA fine-tuning. Estimated cost is about $0.05 to $0.15 for the turnaround sheet on fal (or ~$2 for a full Flux LoRA run), or $0 locally.",
+    "tags": [
+      "image",
+      "storyboard",
+      "higgsfield-pack",
+      "characters",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 3
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 2
+      },
+      {
+        "type": "nodetool.entity.CreateEntity",
+        "label": "Create Entity",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.ImageInput",
+        "label": "Image Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.image.ImageToImage",
+        "label": "Image To Image",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Template",
+        "label": "Template",
+        "count": 1
+      }
+    ],
+    "nodeCount": 9,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "isComment": true
+        },
+        {
+          "id": "reference_photo",
+          "type": "nodetool.input.ImageInput",
+          "title": "Image Input",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "character_name",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "Maya"
+        },
+        {
+          "id": "trigger_word",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "MAYA_CHAR"
+        },
+        {
+          "id": "descriptor",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 0,
+          "width": 280,
+          "subtitle": "woman in her late 20s, dark wavy bob, olive linen overshirt, silver hoop earrings, warm natural skin texture"
+        },
+        {
+          "id": "character_entity",
+          "type": "nodetool.entity.CreateEntity",
+          "title": "Create Entity",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "sheet_prompt",
+          "type": "nodetool.text.Template",
+          "title": "Template",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "turnaround_sheet",
+          "type": "nodetool.image.ImageToImage",
+          "title": "Image To Image",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "entity_out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        },
+        {
+          "id": "turnaround_out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 0,
+          "y": 0,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "character_name",
+          "sourceHandle": "output",
+          "target": "character_entity",
+          "targetHandle": "name",
+          "color": "any"
+        },
+        {
+          "source": "descriptor",
+          "sourceHandle": "output",
+          "target": "character_entity",
+          "targetHandle": "descriptor",
+          "color": "any"
+        },
+        {
+          "source": "reference_photo",
+          "sourceHandle": "output",
+          "target": "character_entity",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "character_entity",
+          "sourceHandle": "entity",
+          "target": "entity_out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "character_name",
+          "sourceHandle": "output",
+          "target": "sheet_prompt",
+          "targetHandle": "name",
+          "color": "any"
+        },
+        {
+          "source": "trigger_word",
+          "sourceHandle": "output",
+          "target": "sheet_prompt",
+          "targetHandle": "trigger",
+          "color": "any"
+        },
+        {
+          "source": "descriptor",
+          "sourceHandle": "output",
+          "target": "sheet_prompt",
+          "targetHandle": "descriptor",
+          "color": "any"
+        },
+        {
+          "source": "reference_photo",
+          "sourceHandle": "output",
+          "target": "turnaround_sheet",
+          "targetHandle": "image",
+          "color": "any"
+        },
+        {
+          "source": "sheet_prompt",
+          "sourceHandle": "output",
+          "target": "turnaround_sheet",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "turnaround_sheet",
+          "sourceHandle": "output",
+          "target": "turnaround_out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/transcribe-audio",
     "title": "Transcribe Audio — NodeTool AI Workflow Template",
     "description": "Instant speech-to-text: drop in an audio clip, get a clean text transcript back — one step, auto-runs on upload.",
@@ -29039,13 +31743,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/trim-a-clip",
     "title": "Trim a Clip — NodeTool AI Workflow Template",
-    "description": "Cut a clip down to an in and out point. `accurate` re-encodes so the cut lands on the exact frame instead of the nearest keyframe. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "description": "Cut a clip down to an in and out point. `accurate` re-encodes so the cut lands on the exact frame instead of the nearest keyframe. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "trim-a-clip",
     "name": "Trim a Clip",
-    "summary": "Cut a clip down to an in and out point. `accurate` re-encodes so the cut lands on the exact frame instead of the nearest keyframe. Runs locally through ffmpeg - no API key and no per-run cost.",
+    "summary": "Cut a clip down to an in and out point. `accurate` re-encodes so the cut lands on the exact frame instead of the nearest keyframe. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
     "tags": [
       "video",
       "utility",
@@ -30268,13 +32972,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/warm-up-a-cold-clip",
     "title": "Warm Up a Cold Clip — NodeTool AI Workflow Template",
-    "description": "Per-channel colour balance — lift red, drop blue. A grade you can apply without a GPU, since it runs through ffmpeg rather than a shader.",
+    "description": "Per-channel colour balance — lift red, drop blue. A grade you can apply without a GPU, since it runs on the CPU media engine rather than a shader.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "warm-up-a-cold-clip",
     "name": "Warm Up a Cold Clip",
-    "summary": "Per-channel colour balance — lift red, drop blue. A grade you can apply without a GPU, since it runs through ffmpeg rather than a shader.",
+    "summary": "Per-channel colour balance — lift red, drop blue. A grade you can apply without a GPU, since it runs on the CPU media engine rather than a shader.",
     "tags": [
       "video",
       "example"

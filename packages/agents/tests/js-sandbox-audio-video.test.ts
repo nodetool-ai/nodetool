@@ -1,8 +1,8 @@
-import { execFileSync } from "node:child_process";
 import { Buffer } from "node:buffer";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { generateMedia } from "@nodetool-ai/runtime/media/testing";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { runInSandbox } from "../src/js-sandbox.js";
@@ -72,16 +72,6 @@ function floatToneWav(durationSeconds = 0.1): Uint8Array {
 function dataUri(mimeType: string, bytes: Uint8Array): string {
   return `data:${mimeType};base64,${Buffer.from(bytes).toString("base64")}`;
 }
-
-const hasFfmpeg = (() => {
-  try {
-    execFileSync("ffmpeg", ["-version"], { stdio: "ignore" });
-    execFileSync("ffprobe", ["-version"], { stdio: "ignore" });
-    return true;
-  } catch {
-    return false;
-  }
-})();
 
 describe("audio handles", () => {
   it("cancels cooperative PCM processing", async () => {
@@ -282,29 +272,14 @@ describe("audio handles", () => {
   });
 });
 
-describe.runIf(hasFfmpeg)("combined video and audio handles", () => {
+describe("combined video and audio handles", () => {
   let tempDir = "";
   let videoBytes = new Uint8Array();
 
   beforeAll(async () => {
     tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "sandbox-media-test-"));
     const videoPath = path.join(tempDir, "silent.mp4");
-    execFileSync(
-      "ffmpeg",
-      [
-        "-y",
-        "-f",
-        "lavfi",
-        "-i",
-        "color=c=blue:s=64x64:d=0.5",
-        "-c:v",
-        "libx264",
-        "-pix_fmt",
-        "yuv420p",
-        videoPath
-      ],
-      { stdio: "ignore" }
-    );
+    await generateMedia({ outPath: videoPath, video: { source: "color=c=blue:s=64x64:d=0.5" } });
     videoBytes = new Uint8Array(await fs.readFile(videoPath));
   });
 

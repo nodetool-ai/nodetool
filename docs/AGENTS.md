@@ -250,7 +250,7 @@ lazy implementation table disagree.
 | `code` | `validate_code`, `run_code`, `test_code` |
 | `flow` | `invoke_node`, `open_node_stream`, `take_node_stream`, `close_node_stream` |
 | `js-scripts` | `list_js_scripts`, `get_js_script`, `save_js_script`, `validate_js_script`, `run_js_script`, `test_js_script`, `list_js_script_versions`, `get_js_script_version`, `create_js_script_version`, `restore_js_script_version`, `delete_js_script_version`, `delete_js_script` |
-| `media` | `generate_image`, `edit_image`, `generate_video`, `animate_image`, `generate_speech`, `generate_music`, `transcribe_audio`, `embed_text`, `read_media_bytes`, `critique_image`, `compare_images`, `score_image_adherence`, `understand_video`, `ffmpeg`, `ffprobe`, `yt_dlp` |
+| `media` | `generate_image`, `edit_image`, `generate_video`, `animate_image`, `generate_speech`, `generate_music`, `transcribe_audio`, `embed_text`, `read_media_bytes`, `critique_image`, `compare_images`, `score_image_adherence`, `understand_video`, `media_edit`, `media_probe`, `yt_dlp` |
 | `analysis` | `analyze_audio`, `analyze_audio_spectrum`, `detect_audio_events`, `analyze_video`, `detect_video_scenes` |
 | `timelines` | `list_timelines`, `create_timeline`, `get_timeline`, `set_timeline_document`, `list_timeline_versions`, `get_timeline_version`, `create_timeline_version`, `restore_timeline_version`, `delete_timeline_version`, `edit_timeline`, `validate_timeline`, `preview_timeline_frame`, `compare_timeline_frames`, `render_timeline`, `delete_timeline` |
 | `compositions` | `list_compositions`, `get_composition`, `save_composition`, `delete_composition` — group clips with parameters stored as JSON assets; `edit_timeline`'s `insert_composition` op instantiates one |

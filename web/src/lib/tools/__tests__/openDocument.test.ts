@@ -15,6 +15,10 @@ import {
   type TimelineAgentHandler,
   type TimelineSnapshot
 } from "../../../components/timeline/timelineAgentBridge";
+import {
+  setSvgAgentHandler,
+  type SvgAgentHandler
+} from "../../../components/workspace/svgAgentBridge";
 import "../builtin/openDocument";
 import "../builtin/uiActions";
 import { trpcClient } from "../../../trpc/client";
@@ -147,7 +151,9 @@ describe("ui_open_document", () => {
       "script",
       "jsscript",
       "sketch",
-      "app"
+      "app",
+      "svg",
+      "audio"
     ]);
     expect(schema.required).toEqual(expect.arrayContaining(["type", "id"]));
   });
@@ -176,6 +182,33 @@ describe("ui_open_document", () => {
     expect(useWorkspaceTabsStore.getState().activeTabId).toBe(
       tabId("timeline", "seq-1")
     );
+  });
+
+  it("opens an SVG asset in an svg tab and links it as an asset", async () => {
+    jest
+      .mocked(trpcClient.assets.get.query)
+      .mockResolvedValue({ id: "svg-1", project_id: "p-1" } as never);
+    const pending = openDocument({ type: "svg", id: "svg-1" });
+    await waitFor(() => {
+      expect(useWorkspaceTabsStore.getState().tabs).toHaveLength(1);
+    });
+    expect(useWorkspaceTabsStore.getState().tabs[0]).toMatchObject({
+      id: tabId("svg", "svg-1"),
+      mode: "edit"
+    });
+
+    setSvgAgentHandler("svg-1", stub<SvgAgentHandler>({}));
+    try {
+      await expect(pending).resolves.toEqual({
+        ok: true,
+        type: "svg",
+        id: "svg-1",
+        already_open: false,
+        url: "asset://svg-1"
+      });
+    } finally {
+      setSvgAgentHandler("svg-1", null);
+    }
   });
 
   it("waits for the document to load, not just for the editor to mount", async () => {

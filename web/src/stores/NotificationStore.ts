@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { sanitizeDisplayText } from "../utils/sanitizeDisplayText";
+import { notifySystem } from "../utils/systemNotification";
 import {
   NOTIFICATION_TIMEOUT_DEFAULT,
   NOTIFICATION_TIMEOUT_MIN,
@@ -34,6 +35,12 @@ export interface Notification {
   dedupeKey?: string;
   /** When true, replaces existing notifications with the same dedupeKey instead of accumulating. */
   replaceExisting?: boolean;
+  /**
+   * Also show a desktop notification while NodeTool is not focused. Use it
+   * for results the user waits on, such as a finished run. Pass `title` to
+   * name the source; the toast content is the body and `dedupeKey` the tag.
+   */
+  system?: boolean | { title?: string };
 }
 
 /** Time window in milliseconds within which duplicate notifications are suppressed. */
@@ -122,6 +129,17 @@ export const useNotificationStore = create<NotificationStore>()((set, get) => ({
         ]
       };
     });
+
+    if (sanitizedNotification.system) {
+      notifySystem({
+        title:
+          typeof sanitizedNotification.system === "object"
+            ? sanitizedNotification.system.title
+            : undefined,
+        body: sanitizedNotification.content,
+        tag: sanitizedNotification.dedupeKey
+      });
+    }
   },
   removeNotification: (id: string) => {
     set((state) => ({

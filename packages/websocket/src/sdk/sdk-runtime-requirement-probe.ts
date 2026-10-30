@@ -1,30 +1,21 @@
-import { execFile } from "node:child_process";
-import { promisify } from "node:util";
 import type { SdkV1Requirement } from "@nodetool-ai/protocol/api-schemas/sdk-lifecycle-v1.js";
 import type { SdkV1RequirementAvailability } from "./sdk-static-preflight-service.js";
 
-const execFileAsync = promisify(execFile);
-const NODE_RUNTIMES = new Set(["node", "nodejs", "javascript", "typescript"]);
-const EXECUTABLE_RUNTIMES = new Map([
-  ["ffmpeg", "ffmpeg"],
-  ["ffprobe", "ffprobe"]
+/**
+ * Runtimes the server carries itself: Node, and libav (node-av), which stands
+ * in for the ffmpeg and ffprobe binaries older requirements name.
+ */
+const BUILT_IN_RUNTIMES = new Set([
+  "node",
+  "nodejs",
+  "javascript",
+  "typescript",
+  "ffmpeg",
+  "ffprobe"
 ]);
 
 interface CreateNodeToolSdkV1RuntimeProbeOptions {
   getPythonBridgeReady: () => boolean;
-  hasExecutable?: (command: string) => Promise<boolean>;
-}
-
-async function defaultHasExecutable(command: string): Promise<boolean> {
-  try {
-    await execFileAsync(command, ["-version"], {
-      timeout: 2_000,
-      windowsHide: true
-    });
-    return true;
-  } catch {
-    return false;
-  }
 }
 
 /**
@@ -36,11 +27,9 @@ export function createNodeToolSdkV1RuntimeProbe(
 ): (
   requirement: Readonly<SdkV1Requirement>
 ) => Promise<SdkV1RequirementAvailability> {
-  const hasExecutable = options.hasExecutable ?? defaultHasExecutable;
-
   return async (requirement) => {
     const runtime = requirement.id.trim().toLowerCase();
-    if (NODE_RUNTIMES.has(runtime)) {
+    if (BUILT_IN_RUNTIMES.has(runtime)) {
       return { status: "available", message: null };
     }
     if (runtime === "python") {
@@ -49,16 +38,6 @@ export function createNodeToolSdkV1RuntimeProbe(
         : {
             status: "unavailable",
             message: "The Python runtime is not ready."
-          };
-    }
-
-    const executable = EXECUTABLE_RUNTIMES.get(runtime);
-    if (executable) {
-      return (await hasExecutable(executable))
-        ? { status: "available", message: null }
-        : {
-            status: "missing",
-            message: `The ${runtime} runtime is not installed or not on PATH.`
           };
     }
 

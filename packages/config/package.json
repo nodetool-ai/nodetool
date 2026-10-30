@@ -37,6 +37,12 @@
       "types": "./dist/sd-cpp-runtime.d.ts",
       "import": "./dist/sd-cpp-runtime.js",
       "default": "./dist/sd-cpp-runtime.js"
+    },
+    "./threadpool": {
+      "nodetool-dev": "./src/threadpool.ts",
+      "types": "./dist/threadpool.d.ts",
+      "import": "./dist/threadpool.js",
+      "default": "./dist/threadpool.js"
     }
   },
   "license": "MIT",

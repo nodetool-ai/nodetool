@@ -1,11 +1,11 @@
 /**
  * `bake_model3d_clip` through the `edit_timeline` capability (design §D6).
  *
- * Blender and ffmpeg are both mocked: what is under test is the request the
+ * Blender and the frame encoder are both mocked: what is under test is the request the
  * capability builds — one model time and one camera per output frame, at the
  * sequence's own fps and size — and what it writes back on the clip, not what
  * a renderer draws for it. A transparent style is checked here too: T13 gives
- * it the WebM VP9 encode, and the ffmpeg call is what says which one ran.
+ * it the WebM VP9 encode, and the encoder call is what says which one ran.
  */
 
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -13,21 +13,24 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { runHostBinary } = vi.hoisted(() => ({
-  // ffmpeg is a host binary the mux shells out to; the fake writes the file
-  // the real one would, so the bake still ends in bytes.
-  runHostBinary: vi.fn(
-    async (_cmd: string, args: string[], opts: { cwd: string }) => {
-      writeFileSync(join(opts.cwd, args[args.length - 1]!), FAKE_MP4);
-      return { stdout: "", stderr: "", exitCode: 0 };
-    }
+const { openVideoFrameEncoder } = vi.hoisted(() => ({
+  // The mux encodes the frames in process; the fake writes the file the real
+  // one would, so the bake still ends in bytes.
+  openVideoFrameEncoder: vi.fn(
+    async (opts: { outPath: string; spec: { codec: string; pixelFormat: string } }) => ({
+      write: async () => {},
+      finish: async () => {
+        writeFileSync(opts.outPath, FAKE_MP4);
+      },
+      abort: async () => {}
+    })
   )
 }));
 
-vi.mock("@nodetool-ai/runtime", async (importOriginal) => {
+vi.mock("@nodetool-ai/runtime/media", async (importOriginal) => {
   const actual =
-    await importOriginal<typeof import("@nodetool-ai/runtime")>();
-  return { ...actual, runHostBinary };
+    await importOriginal<typeof import("@nodetool-ai/runtime/media")>();
+  return { ...actual, openVideoFrameEncoder };
 });
 
 import { ModelObserver, initTestDb } from "@nodetool-ai/models";
@@ -136,8 +139,8 @@ describe("bake_model3d_clip through edit_timeline", () => {
   beforeEach(() => {
     initTestDb();
     bench = harness();
-    // Each case reads the ffmpeg call it made, not the one before it.
-    runHostBinary.mockClear();
+    // Each case reads the encoder call it made, not the one before it.
+    openVideoFrameEncoder.mockClear();
   });
 
   afterEach(() => {
@@ -218,9 +221,9 @@ describe("bake_model3d_clip through edit_timeline", () => {
     expect(params["background_color"]).toBe("#101010");
     expect(Object.keys(jobs[0]!.outputs)).toHaveLength(6);
 
-    // ffmpeg muxed the sequence, and the bytes reached an asset.
-    expect(runHostBinary).toHaveBeenCalledTimes(1);
-    expect(runHostBinary.mock.calls[0]![0]).toBe("ffmpeg");
+    // The sequence was encoded, and the bytes reached an asset.
+    expect(openVideoFrameEncoder).toHaveBeenCalledTimes(1);
+    expect(openVideoFrameEncoder.mock.calls[0]![0].spec.codec).toBe("libx264");
 
     const clip = await clipOf(timelineId);
     const bake = clip.model3dStyle?.bake;
@@ -272,11 +275,10 @@ describe("bake_model3d_clip through edit_timeline", () => {
       (jobs[0]!.job.params as Record<string, unknown>)["transparent"]
     ).toBe(true);
 
-    // …and ffmpeg was asked for the one video format that keeps it.
-    const argv = runHostBinary.mock.calls[0]![1];
-    expect(argv).toContain("libvpx-vp9");
-    expect(argv).toContain("yuva420p");
-    expect(argv.at(-1)).toBe("bake.webm");
+    // …and the encoder was asked for the one video format that keeps it.
+    const request = openVideoFrameEncoder.mock.calls[0]![0];
+    expect(request.spec).toMatchObject({ codec: "libvpx-vp9", pixelFormat: "yuva420p" });
+    expect(request.outPath.endsWith("bake.webm")).toBe(true);
 
     const clip = await clipOf(timelineId);
     expect(clip.model3dStyle?.bake?.assetId).toBeDefined();

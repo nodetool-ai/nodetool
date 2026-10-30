@@ -44,7 +44,7 @@ export interface StorageAdapter {
 
   /**
    * The absolute path of a local file holding the entry's bytes, so a caller
-   * such as ffmpeg can read it in place instead of loading it into memory.
+   * such as libav can read it in place instead of loading it into memory.
    * Returns null when the entry is missing or the backend keeps no local file
    * (object stores and the in-memory store). The path is for reading only.
    */

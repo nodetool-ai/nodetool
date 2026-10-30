@@ -1,0 +1,615 @@
+[
+ {
+  "id": "model-selection",
+  "models": [
+   "unknown_model near Property \"model\" selects model \"gpt-6\", which provider \"openai\" does not offer. Did you mean: gpt-4, gpt-5, gpt-4o?",
+   "unknown_model asr Property \"model\" selects model \"gpt-9\", which provider \"openai\" does not offer. Did you mean: gpt?",
+   "unknown_model tts Property \"model\" selects model \"nothing\", which provider \"openai\" does not offer.",
+   "missing_provider noProvider Property \"model\" selects model \"gpt-5\" but names no provider; the runtime cannot resolve a model id on its own",
+   "unknown_provider badProvider Property \"model\" selects provider \"nope\", which is not registered. Known providers: anthropic, openai",
+   "unknown_model listed Property \"models[1]\" selects model \"o4\", which provider \"openai\" does not offer.",
+   "unknown_model nested Property \"config.inner.model\" selects model \"gpt-4x\", which provider \"openai\" does not offer. Did you mean: gpt-4o, gpt-4, gpt-4o-long-name?",
+   "unknown_provider dyn Property \"extra\" selects provider \"nope\", which is not registered. Known providers: anthropic, openai"
+  ],
+  "providers": [
+   "openai",
+   "anthropic",
+   "nope"
+  ],
+  "sites": [
+   {
+    "nodeId": "ok",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "ok",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "near",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "near",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "asr",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "asr",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "tts",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "tts",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "img",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "img",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "online",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "online",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "noProvider",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "noProvider",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "noId",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "noId",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "empty",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "empty",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "badProvider",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "badProvider",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "listed",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "listed",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "nested",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "nested",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "tooDeep",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "tooDeep",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "listDeep",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "listDeep",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "notModel",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "notModel",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   }
+  ],
+  "missing": [
+   "Node \"ok\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"near\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"asr\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"tts\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"img\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"online\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"noProvider\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"noId\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"empty\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"badProvider\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"listed\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"nested\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"tooDeep\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"listDeep\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"notModel\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs."
+  ],
+  "silent": [],
+  "links": []
+ },
+ {
+  "id": "required-model-inputs",
+  "models": [
+   "missing_provider noProviderRef Property \"model\" selects model \"gpt-5-mini\" but names no provider; the runtime cannot resolve a model id on its own"
+  ],
+  "providers": [
+   "openai"
+  ],
+  "sites": [
+   {
+    "nodeId": "src",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "src",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "blank",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "blank",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "filled",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "filled",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "nullish",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "nullish",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "nestedOnly",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "nestedOnly",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "noProviderRef",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "noProviderRef",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "noIdRef",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "noIdRef",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   }
+  ],
+  "missing": [
+   "Node \"src\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"blank\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"filled\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"nullish\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"nestedOnly\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"noProviderRef\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"noIdRef\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs."
+  ],
+  "silent": [],
+  "links": []
+ },
+ {
+  "id": "choices-and-properties",
+  "models": [],
+  "providers": [],
+  "sites": [
+   {
+    "nodeId": "bad",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "bad",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "good",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "good",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "typed",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "typed",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "odd",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "odd",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "wiredChoice",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "wiredChoice",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "src",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "src",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "misspelled",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "misspelled",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "misspelledOne",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "misspelledOne",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "reserved",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "reserved",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "handleLeft",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "handleLeft",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   }
+  ],
+  "missing": [
+   "Node \"bad\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"good\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"typed\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"odd\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"wiredChoice\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"src\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"misspelled\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"misspelledOne\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"reserved\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"handleLeft\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs."
+  ],
+  "silent": [],
+  "links": []
+ },
+ {
+  "id": "credentials",
+  "models": [],
+  "providers": [],
+  "sites": [
+   {
+    "nodeId": "needs",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "needs",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "again",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "again",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "code",
+    "nodeType": "nodetool.code.Code",
+    "key": "SECRET_A",
+    "source": "code_secret"
+   },
+   {
+    "nodeId": "code",
+    "nodeType": "nodetool.code.Code",
+    "key": "FEAT_KEY",
+    "source": "code_secret"
+   }
+  ],
+  "missing": [
+   "Node \"needs\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"again\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"code\" declares secret \"SECRET_A\", which this install cannot resolve — the body's reads of it will fail.",
+   "Node \"code\" declares secret \"FEAT_KEY\", which this install cannot resolve — the body's reads of it will fail."
+  ],
+  "silent": [],
+  "links": []
+ },
+ {
+  "id": "handles-and-fan-in",
+  "models": [],
+  "providers": [],
+  "sites": [
+   {
+    "nodeId": "s1",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "s1",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "s2",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "s2",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "loopBody",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "loopBody",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   }
+  ],
+  "missing": [
+   "Node \"s1\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"s2\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"loopBody\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs."
+  ],
+  "silent": [],
+  "links": []
+ },
+ {
+  "id": "linked-scripts",
+  "models": [],
+  "providers": [],
+  "sites": [
+   {
+    "nodeId": "src",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "src",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "sink",
+    "nodeType": "feat.Media",
+    "key": "FEAT_KEY",
+    "source": "required_setting"
+   },
+   {
+    "nodeId": "sink",
+    "nodeType": "feat.Media",
+    "key": "OTHER_KEY",
+    "source": "required_setting"
+   }
+  ],
+  "missing": [
+   "Node \"src\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs.",
+   "Node \"sink\" (feat.Media) needs \"FEAT_KEY\", which this install cannot resolve. Set it in Settings → Credentials, or the node may fail when it runs."
+  ],
+  "silent": [],
+  "links": [
+   {
+    "id": "script-1",
+    "version": 2
+   },
+   {
+    "id": "script-gone",
+    "version": 1
+   }
+  ]
+ }
+]

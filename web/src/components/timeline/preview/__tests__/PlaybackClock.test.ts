@@ -163,6 +163,19 @@ describe("PlaybackClock", () => {
     );
   });
 
+  it("counts from the given audio start time, not from start()", () => {
+    const fakeCtx = stub<AudioContext>({
+      currentTime: 5,
+      state: "running"
+    });
+
+    // The audio was scheduled against context time 4.5.
+    clock.start(1000, 1, fakeCtx, Infinity, { audioStartTimeSec: 4.5 });
+    flushRAF();
+
+    expect(mockSetTimeMs).toHaveBeenLastCalledWith(expect.closeTo(1500, 5));
+  });
+
   it("falls back to wall clock when AudioContext is suspended", () => {
     const fakeCtx = stub<AudioContext>({
       currentTime: 5,

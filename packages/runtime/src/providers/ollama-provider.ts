@@ -2,6 +2,7 @@ import type { Chunk } from "@nodetool-ai/protocol";
 import { createLogger } from "@nodetool-ai/config";
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import { trimTrailingSlashes } from "./openai-compat/index.js";
+import { parseDataUri } from "./data-uri.js";
 import { isNonEmptyString, isRecord, isString } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.runtime.providers.ollama");
@@ -47,24 +48,6 @@ type OllamaChatMessage = {
   images?: string[];
   tool_calls?: OllamaToolCall[];
 };
-
-function parseDataUri(uri: string) {
-  const idx = uri.indexOf(",");
-  if (idx < 0) {
-    throw new Error("Invalid data URI");
-  }
-  const header = uri.slice(5, idx);
-  const payload = uri.slice(idx + 1);
-  const isBase64 = header.includes(";base64");
-  const mime = header.split(";")[0] || "application/octet-stream";
-  if (isBase64) {
-    return { mime, base64: payload };
-  }
-  return {
-    mime,
-    base64: Buffer.from(decodeURIComponent(payload), "utf8").toString("base64")
-  };
-}
 
 function normalizeToolArgs(raw: unknown): Record<string, unknown> {
   if (!raw) return {};

@@ -15,7 +15,7 @@ let dir: string;
 
 beforeEach(async () => {
   dir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-runtime-detect-"));
-  await fs.writeFile(path.join(dir, "ffmpeg"), "#!/bin/sh\n", { mode: 0o755 });
+  await fs.writeFile(path.join(dir, "yt-dlp"), "#!/bin/sh\n", { mode: 0o755 });
   await fs.writeFile(path.join(dir, "notexec"), "#!/bin/sh\n", { mode: 0o644 });
   process.env["PATH"] = dir;
   clearRuntimeDetectionCache();
@@ -29,7 +29,7 @@ afterEach(async () => {
 
 describe("hasExecutable", () => {
   it("finds an executable on PATH", async () => {
-    await expect(hasExecutable("ffmpeg")).resolves.toBe(true);
+    await expect(hasExecutable("yt-dlp")).resolves.toBe(true);
   });
 
   it("ignores a file that is not executable", async () => {
@@ -42,11 +42,11 @@ describe("hasExecutable", () => {
 });
 
 describe("detectRuntimes", () => {
-  it("reports ffmpeg installed when it is on PATH", async () => {
-    const statuses = await detectRuntimes(["ffmpeg", "pandoc"]);
+  it("reports yt-dlp installed when it is on PATH", async () => {
+    const statuses = await detectRuntimes(["yt-dlp", "manimgx"]);
     expect(statuses).toEqual([
-      { id: "ffmpeg", installed: true },
-      { id: "pandoc", installed: false }
+      { id: "yt-dlp", installed: true },
+      { id: "manimgx", installed: false }
     ]);
   });
 
@@ -56,19 +56,19 @@ describe("detectRuntimes", () => {
   });
 
   it("refuses path-like ids instead of probing them", async () => {
-    const statuses = await detectRuntimes(["../../bin/sh", "ff mpeg", ""]);
+    const statuses = await detectRuntimes(["../../bin/sh", "yt dlp", ""]);
     expect(statuses.every((s) => !s.installed)).toBe(true);
   });
 
   it("caches a probe result", async () => {
-    await detectRuntimes(["ffmpeg"]);
-    await fs.rm(path.join(dir, "ffmpeg"));
-    await expect(detectRuntimes(["ffmpeg"])).resolves.toEqual([
-      { id: "ffmpeg", installed: true }
+    await detectRuntimes(["yt-dlp"]);
+    await fs.rm(path.join(dir, "yt-dlp"));
+    await expect(detectRuntimes(["yt-dlp"])).resolves.toEqual([
+      { id: "yt-dlp", installed: true }
     ]);
     clearRuntimeDetectionCache();
-    await expect(detectRuntimes(["ffmpeg"])).resolves.toEqual([
-      { id: "ffmpeg", installed: false }
+    await expect(detectRuntimes(["yt-dlp"])).resolves.toEqual([
+      { id: "yt-dlp", installed: false }
     ]);
   });
 });

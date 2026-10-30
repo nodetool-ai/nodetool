@@ -1,28 +1,17 @@
 /**
  * AddSubtitles must not let ordinary punctuation in subtitle text break the
- * ffmpeg -vf filtergraph. It writes each chunk's text to a temp file and points
+ * -vf filtergraph. It writes each chunk's text to a temp file and points
  * drawtext at it with `textfile=`, so commas/semicolons/quotes never reach the
  * filter string.
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { promises as fs } from "node:fs";
 
-let execFileCalls: Array<{ cmd: string; args: string[] }> = [];
+import { mediaCalls, resetFakeMedia } from "./_fixtures/fake-media.js";
 
-vi.mock("node:child_process", async (importOriginal) => {
-  const original = (await importOriginal()) as Record<string, unknown>;
-  const mockExecFile = (cmd: string, args: string[]) => {
-    execFileCalls.push({ cmd, args: [...args] });
-  };
-  (mockExecFile as { [k: symbol]: unknown })[
-    Symbol.for("nodejs.util.promisify.custom")
-  ] = (cmd: string, args: string[]) => {
-    execFileCalls.push({ cmd, args: [...args] });
-    // ffmpeg "fails" so no real output file is read; args are captured above.
-    return Promise.reject(new Error("mock ffmpeg: no real execution"));
-  };
-  return { ...original, execFile: mockExecFile };
-});
+vi.mock("@nodetool-ai/runtime/media", async (importOriginal) =>
+  (await import("./_fixtures/fake-media.js")).fakeMediaModule(await importOriginal(), { edits: true })
+);
 
 const { AddSubtitlesVideoNode } = await import("@nodetool-ai/video-nodes");
 
@@ -34,16 +23,15 @@ function videoRef(bytes: number[]) {
   };
 }
 
-/** The -vf argument passed to the (single) ffmpeg invocation. */
+/** The video filter of the (single) edit. */
 function vfArg(): string {
-  const call = execFileCalls.find((c) => c.cmd === "ffmpeg");
-  if (!call) return "";
-  const i = call.args.indexOf("-vf");
-  return i >= 0 ? call.args[i + 1] : "";
+  const call = mediaCalls.find((c) => c.fn === "transformMedia");
+  if (!call || call.fn !== "transformMedia") return "";
+  return /-vf (.*?) -map 0:a/.exec(call.args)?.[1] ?? "";
 }
 
 beforeEach(() => {
-  execFileCalls = [];
+  resetFakeMedia();
 });
 
 describe("AddSubtitlesVideoNode — punctuation-safe drawtext", () => {

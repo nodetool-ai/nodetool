@@ -1,25 +1,21 @@
 /**
- * The argv boundary around the host media binaries.
+ * The path boundary around yt-dlp's argv and the in-process media readers.
  *
  * Each case is an escape a model can write today: an absolute path, a `..`
  * chain, a path hidden inside a filter token, a symlink planted in the
- * workspace, and a URL input — which ffmpeg really does open (an unguarded
- * `-i http://…` reaches the socket, so in the cloud it reaches the instance
- * metadata service).
+ * workspace, and a URL input — which libav really does open, so in the cloud
+ * an unguarded one reaches the instance metadata service.
  */
-import { spawnSync } from "node:child_process";
-import { mkdtemp, mkdir, rm, stat, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { runHostBinary } from "../src/host-binaries.js";
 import { createDirectoryLink } from "./_helpers/filesystem-links.js";
 import {
-  FFMPEG_PROTOCOL_WHITELIST,
   MAX_DOWNLOAD_BYTES,
   buildYtDlpArgv,
   confineArgvToWorkspace,
-  hardenFfmpegArgv,
+  confineMediaPaths,
   refuseFlagLikeValue
 } from "../src/host-binary-guard.js";
 
@@ -120,82 +116,32 @@ describe("confineArgvToWorkspace", () => {
   });
 });
 
-describe("hardenFfmpegArgv", () => {
-  it("puts the protocol whitelist in front of every input", () => {
-    const hardened = hardenFfmpegArgv(["-i", "a.mp4", "-i", "b.mp4", "out.mp4"]);
-    expect(hardened).toEqual({
-      argv: [
-        "-nostdin",
-        "-protocol_whitelist",
-        FFMPEG_PROTOCOL_WHITELIST,
-        "-i",
-        "a.mp4",
-        "-protocol_whitelist",
-        FFMPEG_PROTOCOL_WHITELIST,
-        "-i",
-        "b.mp4",
-        "out.mp4"
-      ]
-    });
+describe("confineMediaPaths", () => {
+  const refusal = async (paths: string[]): Promise<string> =>
+    (await confineMediaPaths(paths, workspace, "Name a workspace file."))?.error ?? "";
+
+  it("refuses a path that leaves the workspace, a flag-shaped one included", async () => {
+    expect(await refusal(["../outside/secret.txt"])).toMatch(/outside the workspace/);
+    expect(await refusal([path.join(outside, "secret.txt")])).toMatch(/outside the workspace/);
+    // argv confinement skips flags; a media path has none, so this is a path.
+    expect(await refusal(["-x/../../outside/secret.txt"])).toMatch(/outside the workspace/);
   });
 
-  it("refuses a caller who sets the whitelist itself", () => {
-    const hardened = hardenFfmpegArgv([
-      "-protocol_whitelist",
-      "file,http",
-      "-i",
-      "a.mp4"
-    ]);
-    expect(hardened).toEqual({
-      error: expect.stringContaining("-protocol_whitelist is set by NodeTool")
-    });
+  it("refuses an opener other than a file", async () => {
+    expect(await refusal(["http://169.254.169.254/latest/meta-data/"])).toMatch(/":\/\/" is not allowed/);
+    expect(await refusal(["concat:a.mp4|b.mp4"])).toMatch(/not allowed/);
+    expect(await refusal(["/dev/stdin"])).toMatch(/not allowed/);
   });
-});
 
-/** ffmpeg ships on the CI images and on most dev boxes; skip where it does not. */
-const hasFfmpeg = spawnSync("ffmpeg", ["-version"]).status === 0;
+  it("refuses a symlink out of the workspace", async () => {
+    await createDirectoryLink(outside, path.join(workspace, "link"));
+    expect(await refusal(["link/secret.txt"])).toMatch(/outside the workspace/);
+  });
 
-describe.skipIf(!hasFfmpeg)("the hardened argv against real ffmpeg", () => {
-  it("still transcodes a workspace file", async () => {
-    const source = hardenFfmpegArgv([
-      "-f",
-      "lavfi",
-      "-i",
-      "testsrc=size=160x120:rate=5",
-      "-t",
-      "1",
-      "-y",
-      "out.mp4"
-    ]);
-    expect("argv" in source).toBe(true);
-    if (!("argv" in source)) return;
-    const result = await runHostBinary("ffmpeg", source.argv, {
-      cwd: workspace,
-      timeoutMs: 60_000
-    });
-    expect(result.exitCode).toBe(0);
-    expect((await stat(path.join(workspace, "out.mp4"))).size).toBeGreaterThan(0);
-  }, 90_000);
-
-  it("refuses a URL input that got past the token scan", async () => {
-    // Defense in depth: the scan above rejects `://` before ffmpeg sees it, so
-    // this drives ffmpeg directly to show what the whitelist itself does — an
-    // unwhitelisted run opens the socket instead (that is the SSRF this bounds).
-    const hardened = hardenFfmpegArgv([
-      "-i",
-      "http://169.254.169.254/latest/meta-data/",
-      "-y",
-      "out.txt"
-    ]);
-    expect("argv" in hardened).toBe(true);
-    if (!("argv" in hardened)) return;
-    const result = await runHostBinary("ffmpeg", hardened.argv, {
-      cwd: workspace,
-      timeoutMs: 60_000
-    });
-    expect(result.exitCode).not.toBe(0);
-    expect(result.stderr).toContain("not on whitelist");
-  }, 90_000);
+  it("allows workspace files, existing or not", async () => {
+    await mkdir(path.join(workspace, "clips"));
+    expect(await refusal(["clips/in.mp4", "clips/out.mp4"])).toBe("");
+  });
 });
 
 describe("buildYtDlpArgv", () => {

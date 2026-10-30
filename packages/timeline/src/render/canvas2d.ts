@@ -1264,15 +1264,9 @@ export function drawTimelineLayer<TSource>(
   if (!projective) ctx.setTransform(t.a, t.b, t.c, t.d, t.e, t.f);
 
   const radiusPx = layer.borderRadius ?? 0;
+  const cornerRadius = Math.min(radiusPx, width / 2, height / 2);
   if (radiusPx > 0 && !projective) {
-    clipRoundedRect(
-      ctx,
-      0,
-      0,
-      width,
-      height,
-      Math.min(radiusPx, width / 2, height / 2)
-    );
+    clipRoundedRect(ctx, 0, 0, width, height, cornerRadius);
   }
 
   // Both masks live in the layer's own source-pixel space, so they rotate with
@@ -1305,6 +1299,8 @@ export function drawTimelineLayer<TSource>(
       applied = prepared;
     }
   }
+  const dropShadowCount = countDropShadows(layer.effects);
+  const castsShadow = dropShadowCount > 0 && !stackedShadows;
   if (projective) {
     const target = surfaces.projectiveSurface?.(width, height);
     if (target) {
@@ -1312,63 +1308,46 @@ export function drawTimelineLayer<TSource>(
       pctx.save();
       pctx.setTransform(1, 0, 0, 1, 0, 0);
       pctx.clearRect(0, 0, width, height);
-      if (radiusPx > 0) clipRoundedRect(pctx, 0, 0, width, height, Math.min(radiusPx, width / 2, height / 2));
+      if (radiusPx > 0) clipRoundedRect(pctx, 0, 0, width, height, cornerRadius);
       if (shape && !applied.shape) clipMask(pctx, shape, width, height);
       if (wipe && !applied.wipe) clipWipeRect(pctx, width, height, wipe);
       pctx.filter = cpuTreated ? "none" : filterForEffects(layer.effects, layer.trackEffects, applied.brightness);
       pctx.drawImage(source, 0, 0, width, height);
       pctx.restore();
-      if (countDropShadows(layer.effects) > 0 && !stackedShadows) {
-        const shadowSurface = surfaces.projectiveSurface?.(geometry.canvasWidth, geometry.canvasHeight);
-        if (shadowSurface) {
-          const sctx = shadowSurface.ctx;
-          sctx.save();
-          sctx.setTransform(1, 0, 0, 1, 0, 0);
-          sctx.clearRect(0, 0, geometry.canvasWidth, geometry.canvasHeight);
-          sctx.filter = "none";
-          sctx.globalAlpha = 1;
-          const rasterResult = rasterizeProjectiveImage(pctx, sctx, width, height, placement, geometry);
-          if (rasterResult !== "drawn") {
-            drawProjectiveImage(sctx, target.surface, width, height, placement, geometry);
-            if (rasterResult === "near_plane") {
-              degraded.push({ clipId: layer.clipId, reason: "perspective_near_plane_fallback" });
-            }
-          }
-          sctx.restore();
-          ctx.setTransform(1, 0, 0, 1, 0, 0);
-          ctx.filter = "none";
-          applyDropShadow(ctx, layer.effects, t);
-          ctx.drawImage(shadowSurface.surface, 0, 0, geometry.canvasWidth, geometry.canvasHeight);
-          if (countDropShadows(layer.effects) > 1) degraded.push({ clipId: layer.clipId, reason: "drop_shadow_extra_ignored" });
-        } else {
-          drawProjectiveImage(ctx, target.surface, width, height, placement, geometry);
-          degraded.push({ clipId: layer.clipId, reason: "drop_shadow_skipped" });
-        }
+      const frameSurface = surfaces.projectiveSurface?.(
+        geometry.canvasWidth,
+        geometry.canvasHeight
+      );
+      if (!frameSurface) {
+        drawProjectiveImage(ctx, target.surface, width, height, placement, geometry);
+        if (castsShadow) degraded.push({ clipId: layer.clipId, reason: "drop_shadow_skipped" });
       } else {
         // Assemble the perspective image at full opacity, then blend it once
         // at the layer's opacity. Canvas triangle clips leave seams in some
         // browsers even when their paths overlap, so sample the inverse
         // projective mapping directly when the prepared source is readable.
-        const projected = surfaces.projectiveSurface?.(geometry.canvasWidth, geometry.canvasHeight);
-        if (projected) {
-          const projectedCtx = projected.ctx;
-          projectedCtx.save();
-          projectedCtx.setTransform(1, 0, 0, 1, 0, 0);
-          projectedCtx.clearRect(0, 0, geometry.canvasWidth, geometry.canvasHeight);
-          projectedCtx.filter = "none";
-          projectedCtx.globalAlpha = 1;
-          const rasterResult = rasterizeProjectiveImage(pctx, projectedCtx, width, height, placement, geometry);
-          if (rasterResult !== "drawn") {
-            drawProjectiveImage(projectedCtx, target.surface, width, height, placement, geometry);
-            if (rasterResult === "near_plane") {
-              degraded.push({ clipId: layer.clipId, reason: "perspective_near_plane_fallback" });
-            }
+        const fctx = frameSurface.ctx;
+        fctx.save();
+        fctx.setTransform(1, 0, 0, 1, 0, 0);
+        fctx.clearRect(0, 0, geometry.canvasWidth, geometry.canvasHeight);
+        fctx.filter = "none";
+        fctx.globalAlpha = 1;
+        const rasterResult = rasterizeProjectiveImage(pctx, fctx, width, height, placement, geometry);
+        if (rasterResult !== "drawn") {
+          drawProjectiveImage(fctx, target.surface, width, height, placement, geometry);
+          if (rasterResult === "near_plane") {
+            degraded.push({ clipId: layer.clipId, reason: "perspective_near_plane_fallback" });
           }
-          projectedCtx.restore();
-          ctx.setTransform(1, 0, 0, 1, 0, 0);
-          ctx.drawImage(projected.surface, 0, 0, geometry.canvasWidth, geometry.canvasHeight);
-        } else {
-          drawProjectiveImage(ctx, target.surface, width, height, placement, geometry);
+        }
+        fctx.restore();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        if (castsShadow) {
+          ctx.filter = "none";
+          applyDropShadow(ctx, layer.effects, t);
+        }
+        ctx.drawImage(frameSurface.surface, 0, 0, geometry.canvasWidth, geometry.canvasHeight);
+        if (castsShadow && dropShadowCount > 1) {
+          degraded.push({ clipId: layer.clipId, reason: "drop_shadow_extra_ignored" });
         }
       }
       ctx.restore();
@@ -1377,7 +1356,7 @@ export function drawTimelineLayer<TSource>(
     }
     degraded.push({ clipId: layer.clipId, reason: "perspective_skipped" });
     ctx.setTransform(t.a, t.b, t.c, t.d, t.e, t.f);
-    if (radiusPx > 0) clipRoundedRect(ctx, 0, 0, width, height, Math.min(radiusPx, width / 2, height / 2));
+    if (radiusPx > 0) clipRoundedRect(ctx, 0, 0, width, height, cornerRadius);
   }
   // Whatever the scratch pass did not take is drawn as a hard edge at the same
   // geometry, which is the honest fallback when the host vends no surface.
@@ -1395,7 +1374,7 @@ export function drawTimelineLayer<TSource>(
 
   ctx.filter = cpuTreated ? "none" : filterForEffects(layer.effects, layer.trackEffects, applied.brightness);
   if (!stackedShadows) applyDropShadow(ctx, layer.effects, t);
-  if (countDropShadows(layer.effects) > 1 && !stackedShadows) {
+  if (dropShadowCount > 1 && !stackedShadows) {
     degraded.push({
       clipId: layer.clipId,
       reason: "drop_shadow_extra_ignored"

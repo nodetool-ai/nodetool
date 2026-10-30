@@ -135,6 +135,7 @@ import {
   isString
 } from "../utils/type-guards.js";
 import { resolveProjectId } from "./project-scope.js";
+import { parseRename } from "./rename.js";
 
 /** The run environment this run can execute a workflow in, or null. */
 function runEnvironmentOf(run: CapabilityRun) {
@@ -320,7 +321,9 @@ const updateWorkflow: CapabilityExport = {
       }
       fields.graph = graph;
     }
-    if (isString(params["name"])) fields.name = params["name"];
+    const name = parseRename(params["name"]);
+    if (name !== undefined && typeof name !== "string") return name;
+    if (name !== undefined) fields.name = name;
     if (isString(params["description"])) {
       fields.description = params["description"];
     }

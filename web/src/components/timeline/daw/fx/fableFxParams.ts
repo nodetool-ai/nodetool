@@ -23,7 +23,8 @@ export const FABLE_FX_LABELS: Record<FableEffectKind, string> = {
   lab: "Lab",
   chorus: "Chorus",
   echo: "Tape Echo",
-  reverb: "Reverb"
+  reverb: "Reverb",
+  limiter: "Limiter"
 };
 
 /** FableSynth parameter id prefixes per kind (`fx.delay.` is the tape echo). */
@@ -35,7 +36,8 @@ const PREFIXES: Record<FableEffectKind, readonly string[]> = {
   lab: ["fx.crush.", "fx.reso.", "fx.shift.", "fx.spray.", "fx.glitch."],
   chorus: ["fx.chorus."],
   echo: ["fx.delay."],
-  reverb: ["fx.reverb."]
+  reverb: ["fx.reverb."],
+  limiter: ["fx.limit."]
 };
 
 /**
@@ -51,7 +53,8 @@ export const FABLE_FX_ON_PARAM: Record<FableEffectKind, string | null> = {
   lab: null,
   chorus: "fx.chorus.on",
   echo: "fx.delay.on",
-  reverb: "fx.reverb.on"
+  reverb: "fx.reverb.on",
+  limiter: "fx.limit.on"
 };
 
 /** Side-chain keys need the SQ-4 key bus, which a track insert does not have. */

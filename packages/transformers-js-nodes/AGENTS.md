@@ -6,8 +6,9 @@
 
 ## Audio decoding (node ↔ provider parity)
 
-- **Route audio through the shared ffmpeg-capable decoder
-  (`decodeAudioBytesToSamples`), never a WAV-only `decodeWav`.** ASR once called
+- **Route audio through the shared decoder (`decodeAudioBytesToSamples`,
+  libav in process for anything that is not WAV), never a WAV-only
+  `decodeWav`.** ASR once called
   `decodeWav` directly and rejected mp3/m4a/flac with "not a WAV file". Share the
   *exact* decode path between node and provider so behavior can't diverge, and
   thread documented model params (e.g. `temperature`) through.

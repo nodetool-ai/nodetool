@@ -65,10 +65,11 @@ export const BL1_CORE_PARAMS: ReadonlySet<string> = new Set([
   "master.volume"
 ]);
 
-/** Clamp a value into a param's declared range (and to an integer for int params). */
+/** Clamp a value into a param's declared range (and to an integer for int params). NaN becomes the param's default. */
 export function clampBl1Param(id: string, value: number): number {
   const def = BASS_PARAMS[id];
   if (!def) return value;
+  if (Number.isNaN(value)) return def.def;
   let v = value;
   if (def.min !== undefined && def.max !== undefined) {
     v = Math.min(def.max, Math.max(def.min, v));
