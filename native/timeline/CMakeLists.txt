@@ -292,12 +292,12 @@ if(NT_SANITIZER_PLANTS)
     add_subdirectory(tools/sanitizers/plants)
 endif()
 nt_sanitizer_test_checks()
-include(cmake/TestPreferences.cmake)
-nt_isolate_test_preferences()
-
 # Visual Studio does not emit compile_commands.json.
 if(CMAKE_GENERATOR MATCHES "Ninja|Makefiles")
     add_test(NAME shared_qml_build COMMAND ${CMAKE_COMMAND}
         -DNT_BUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}
         -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/tests/SharedQmlBuild.cmake)
 endif()
+
+include(cmake/TestPreferences.cmake)
+nt_isolate_test_preferences()
