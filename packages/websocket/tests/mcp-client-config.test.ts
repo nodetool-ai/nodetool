@@ -111,7 +111,7 @@ describe("Codex", () => {
     expect(content.match(/BEGIN NODETOOL MCP/g)).toHaveLength(1);
     expect(content).toContain('model = "o4"');
     expect(content).toContain(
-      'args = ["-y","--package=@nodetool-ai/cli-mcp","nodetool-mcp","serve"]'
+      'args = ["-y","@nodetool-ai/cli-mcp","serve"]'
     );
     expect(content).not.toContain("required");
     expect(readMcpClientEntry("codex", home)).toEqual(NPX);
@@ -150,7 +150,7 @@ describe("OpenCode", () => {
 
 describe("new MCP launches", () => {
   it("starts the explicit MCP CLI instead of a fresh lean-only npx installation", () => {
-    expect(stdioLaunch({ npx: true })).toEqual({ transport: "stdio", command: "npx", args: ["-y", "--package=@nodetool-ai/cli-mcp", "nodetool-mcp", "serve"] });
+    expect(stdioLaunch({ npx: true })).toEqual({ transport: "stdio", command: "npx", args: ["-y", "@nodetool-ai/cli-mcp", "serve"] });
   });
 });
 
@@ -160,7 +160,7 @@ describe("mcpServersSnippet", () => {
       mcpServers: {
         nodetool: {
           command: "npx",
-          args: ["-y", "--package=@nodetool-ai/cli-mcp", "nodetool-mcp", "serve"]
+          args: ["-y", "@nodetool-ai/cli-mcp", "serve"]
         }
       }
     });

@@ -67,7 +67,7 @@ export function stdioLaunch(options: { npx: boolean }): McpLaunch {
     return {
       transport: "stdio",
       command: "npx",
-      args: ["-y", `--package=${CLI_PACKAGE}`, CLI_COMMAND, "serve"]
+      args: ["-y", CLI_PACKAGE, "serve"]
     };
   }
   return { transport: "stdio", command: CLI_COMMAND, args: ["serve"] };

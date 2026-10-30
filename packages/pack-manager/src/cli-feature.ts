@@ -19,6 +19,7 @@ export class CliFeatureNotInstalledError extends Error {
   readonly featureIds: readonly string[];
   constructor(featureId: string) {
     super(`This command requires the ${featureId} feature. Run "nodetool packs add ${featureId}" and restart the command.`);
+    if (featureId === "cli-mcp") { this.message += ' For standalone MCP setup, run "npx -y @nodetool-ai/cli-mcp install".'; }
     this.featureIds = [featureId];
   }
 }
