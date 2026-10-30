@@ -139,6 +139,10 @@ struct Editor {
 class TestClipEffects : public QObject {
     Q_OBJECT
 private slots:
+    void init() {
+        QTest::failOnWarning(QRegularExpression(
+            "(InspectorActionButton|InspectorSectionTitle)\\.qml:.*does not support customization"));
+    }
     void registration();
     void colorGestureUndoReset();
     void colorRangesAndPointerGesture();
