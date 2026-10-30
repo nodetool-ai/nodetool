@@ -84,6 +84,46 @@ private slots:
         QVERIFY(image.save(QDir::tempPath() + "/o5-workspace-narrow.png"));
         item->setParentItem(nullptr);
     }
+    void orphanLineDraftRequiresExplicitLocalDiscard() {
+        TimelineModel model; model.setTimeline(timeline());
+        AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
+        const QString scriptId = "123456789abc123456789abc12345678", lineId = "abcdef0123456789abcdef0123456789";
+        auto document = QJsonObject{{"sections", QJsonArray{QJsonObject{{"id", "section"}, {"lines", QJsonArray{QJsonObject{{"id", lineId}, {"text", "Original"}}}}}}}};
+        QJsonObject stored{{"id", scriptId}, {"timelineId", "timeline"}, {"updatedAt", "base"}, {"document", document}};
+        int writes = 0;
+        controller.setCall([&](bool write, const QString&, const QJsonObject&) { if (write) { ++writes; } return nt::server::QueryResult{stored, {}}; });
+        QVERIFY(controller.openScript(scriptId)); QTRY_VERIFY(!controller.busy());
+        controller.setScriptLineDraft(scriptId, lineId, "Keep this text"); QVERIFY(controller.scriptDirty());
+        stored.insert("document", QJsonObject{{"sections", QJsonArray{}}}); stored.insert("updatedAt", "remote");
+        QVERIFY(controller.openScript(scriptId)); QTRY_VERIFY(!controller.busy());
+        bool orphan = false;
+        for (const auto& row : controller.scriptRows()) { if (row.toMap().value("draftOrphan").toBool()) { orphan = true; QCOMPARE(row.toMap().value("text").toString(), QString("Keep this text")); } }
+        QVERIFY(orphan); QVERIFY(controller.scriptDirty());
+        const auto before = model.timeline().raw;
+        QVERIFY(!controller.discardScriptDrafts("missing")); QVERIFY(controller.scriptDirty());
+        QVERIFY(controller.discardScriptDrafts(scriptId.left(12)));
+        QVERIFY(!controller.scriptDirty()); QVERIFY(controller.scriptRows().isEmpty());
+        QCOMPARE(writes, 0); QCOMPARE(model.timeline().raw, before); QCOMPARE(model.undoStack()->count(), 0);
+    }
+    void alreadyRemovedPendingDeletionCanBeDiscardedWithoutRows() {
+        TimelineModel model; model.setTimeline(timeline());
+        AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
+        const QString scriptId = "123456789abc123456789abc12345678", lineId = "abcdef0123456789abcdef0123456789";
+        QJsonObject stored{{"id", scriptId}, {"updatedAt", "base"}, {"document", QJsonObject{{"sections", QJsonArray{QJsonObject{{"id", "section"}, {"lines", QJsonArray{QJsonObject{{"id", lineId}, {"text", ""}}}}}}}}}};
+        int writes = 0;
+        controller.setCall([&](bool write, const QString&, const QJsonObject&) {
+            if (write) { ++writes; nt::server::QueryResult failure; failure.error.message = "Offline"; return failure; }
+            return nt::server::QueryResult{stored, {}};
+        });
+        QVERIFY(controller.openScript(scriptId)); QTRY_VERIFY(!controller.busy());
+        QVERIFY(controller.removeEmptyScriptLineForScript(scriptId, lineId, "")); QTRY_VERIFY(!controller.busy());
+        QVERIFY(controller.scriptDirty()); QCOMPARE(writes, 1);
+        stored.insert("document", QJsonObject{{"sections", QJsonArray{}}});
+        QVERIFY(controller.openScript(scriptId)); QTRY_VERIFY(!controller.busy());
+        QVERIFY(controller.scriptRows().isEmpty()); QVERIFY(controller.scriptDirty());
+        QVERIFY(controller.discardScriptDrafts(scriptId)); QVERIFY(!controller.scriptDirty()); QCOMPARE(writes, 1);
+        QCOMPARE(model.undoStack()->count(), 0);
+    }
     void unlinkedScriptCannotSilentlyApplyToAnotherCut() {
         TimelineModel model; model.setTimeline(timeline());
         AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
@@ -193,14 +233,17 @@ private slots:
         AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
         StoryWorkspace workspace; workspace.setController(&controller);
         const QJsonObject metadata{{"unrelated", "keep"}, {"nodetool_entity", QJsonObject{{"kind", "character"}, {"name", "Alice"}, {"descriptor", "Original"}}}};
-        QJsonObject stored{{"id", "character"}, {"metadata", metadata}}; QJsonObject submitted; QString procedure;
+        const QString entityId = "fedcba9876543210fedcba9876543210";
+        QJsonObject stored{{"id", entityId}, {"metadata", metadata}}; QJsonObject submitted; QString procedure, requestedId;
         controller.setCall([&](bool write, const QString& name, const QJsonObject& input) {
+            if (name == "assets.get") { requestedId = input.value("id").toString(); }
             if (write) { procedure = name; submitted = input; stored.insert("metadata", input.value("metadata")); }
             return nt::server::QueryResult{stored, {}};
         });
-        QVERIFY(controller.openEntity("character")); QTRY_VERIFY(!controller.busy());
+        QVERIFY(controller.openEntity(entityId.left(12))); QTRY_VERIFY(!controller.busy());
+        QCOMPARE(requestedId, entityId.left(12)); QCOMPARE(workspace.resource().value("id").toString(), entityId);
         QVERIFY(workspace.patchEntity("descriptor", "A red coat")); QVERIFY(workspace.save()); QTRY_VERIFY(!controller.busy());
-        QVERIFY(!workspace.dirty()); QCOMPARE(procedure, QString("assets.update")); QCOMPARE(submitted.value("expected_metadata").toObject(), metadata);
+        QVERIFY(!workspace.dirty()); QCOMPARE(procedure, QString("assets.update")); QCOMPARE(submitted.value("id").toString(), entityId); QCOMPARE(submitted.value("expected_metadata").toObject(), metadata);
         QCOMPARE(submitted.value("metadata").toObject().value("unrelated").toString(), QString("keep"));
         QCOMPARE(model.undoStack()->count(), 0);
     }

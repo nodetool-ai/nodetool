@@ -137,6 +137,13 @@ void AssistController::setScriptLineDraft(const QString& scriptId, const QString
     else { m_scriptDrafts[draftKey(scriptId)].insert(*resolved, {text, false}); }
     ++m_scriptDraftRevision; emit scriptDraftsChanged();
 }
+bool AssistController::discardScriptDrafts(const QString& scriptId) {
+    const auto source = QJsonObject::fromVariantMap(m_result.toMap());
+    if (m_busy || !source.value("document").toObject().value("sections").isArray()) { return false; }
+    const auto resolved = nt::aiassist::resolveId(scriptId, {source.value("id").toString()});
+    if (!resolved || !m_scriptDrafts.remove(draftKey(*resolved))) { return false; }
+    ++m_scriptDraftRevision; emit scriptDraftsChanged(); emit changed(); return true;
+}
 bool AssistController::saveScriptLineDraft(const QString& scriptId, const QString& lineId) {
     const auto source = QJsonObject::fromVariantMap(m_result.toMap());
     if (scriptId.isEmpty() || source.value("id").toString() != scriptId || m_busy) { return false; }
