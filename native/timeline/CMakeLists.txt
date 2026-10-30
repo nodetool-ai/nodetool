@@ -195,6 +195,13 @@ target_compile_options(timeline_audio PRIVATE ${NT_WARNINGS})
 set_source_files_properties(src/audio/miniaudio.cpp PROPERTIES COMPILE_OPTIONS "${NT_NO_WARNINGS}")
 
 qt_add_executable(nodetool-timeline src/main.cpp ${NT_app})
+# The native chat client stays opt-in while its parity checks are exercised.
+option(NT_ENABLE_CHAT "Embed the native NodeTool chat panel" OFF)
+if(NT_ENABLE_CHAT)
+    add_subdirectory(../chat ${CMAKE_CURRENT_BINARY_DIR}/chat)
+    target_link_libraries(nodetool-timeline PRIVATE nodetool_chat nodetool_chatplugin)
+    target_compile_definitions(nodetool-timeline PRIVATE NT_ENABLE_CHAT)
+endif()
 # The edit operations one call at a time, for scripts/op-conformance.mjs.
 # Core only: no GUI, so a call starts in milliseconds.
 qt_add_executable(timeline-ops ${NT_ops})

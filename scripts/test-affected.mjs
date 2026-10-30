@@ -82,6 +82,10 @@ function websocketTest(name) {
  */
 export const PATH_CHECKS = [
   {
+    path: /^native\/chat\//,
+    steps: [{ label: "native chat: build and conformance", command: "node", args: ["native/chat/scripts/check.mjs"] }]
+  },
+  {
     path: /^scripts\/(?:ci-plan\.mjs|__tests__\/ci-plan\.test\.mjs)$/,
     steps: [{ label: "CI planning regressions", command: "node", args: ["scripts/run-vitest.mjs", "run", "--config", "vitest.config.ts", "scripts/__tests__/ci-plan.test.mjs"] }]
   },

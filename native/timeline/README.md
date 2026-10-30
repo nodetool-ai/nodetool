@@ -11,6 +11,34 @@ planes converted in the shader). A clip without media shows a synthetic test
 pattern. With `--decode hw` or `auto`, video decodes with VideoToolbox and
 the frames go to the GPU with no copy (M1c).
 
+## Native chat (opt-in)
+
+Build the [native chat component](../chat/README.md) into the timeline with
+`-DNT_ENABLE_CHAT=ON`. Launch with `--chat` to open its panel, or use the Chat
+button beside the document controls. Configure the server and bearer token in
+the panel. Provider credentials remain on the server.
+Chat shares the existing right dock with Inspector and can be moved using the
+dock controls.
+`--chat --screenshot PATH` captures the complete editor with its chat panel.
+Run this with the offscreen platform or under Xvfb.
+With `--chat`, `NODETOOL_CHAT_SERVER` connects the panel at startup and
+`NODETOOL_TOKEN` supplies its bearer token without a command-line credential.
+
+The host advertises `ui_timeline_get_state`, `ui_timeline_seek`,
+`ui_timeline_add_marker` (time and label), and `ui_timeline_delete_marker`.
+These tools address the open document only. Marker changes use the editor's
+existing commands, so Undo, Redo and local or server autosave apply. Other
+editor capabilities return an unsupported error. Closing chat disconnects its
+transport and leaves playback running.
+
+From `native/timeline/`, `ctest --test-dir build -R tst_chathost --output-on-failure` checks that a host
+tool edit is undoable, survives save/reload and preserves unknown document
+fields. This host test also builds when the chat panel is disabled.
+`node scripts/chat-integration.mjs --bin build/nodetool-timeline` starts an
+isolated HTTP/WebSocket mock and drives a real native host edit under Xvfb.
+It checks the tool result, replay protection, local persistence and a full
+editor screenshot. It does not call a model provider.
+
 ## Build and test
 
 Requires Qt 6.12 (the build rejects other minor versions, because QRhi is a

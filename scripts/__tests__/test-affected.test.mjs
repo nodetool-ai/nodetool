@@ -191,6 +191,18 @@ describe("buildPlan", () => {
     ]);
   });
 
+  it.each([
+    "native/chat/src/runtime/ChatSession.cpp",
+    "native/chat/qml/ChatPanel.qml",
+    "native/chat/fixtures/stream.json",
+    "native/chat/scripts/check.mjs"
+  ])("selects the native chat check for %s", (file) => {
+    expect(plan([file]).globalFiles).toEqual([]);
+    expect(plan([file]).steps).toEqual([
+      { label: "native chat: build and conformance", command: "node", args: ["native/chat/scripts/check.mjs"] }
+    ]);
+  });
+
   it("runs each check once and still runs the owning workspaces", () => {
     expect(
       labels([
