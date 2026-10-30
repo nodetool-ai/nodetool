@@ -22,7 +22,7 @@ const updateAssetBytesModelInterface = vi.fn(async () => ({
   metadata: null
 }));
 
-vi.mock("@nodetool-ai/websocket/assets", () => ({
+vi.mock("@nodetool-ai/asset-services", () => ({
   createAssetModelInterface,
   updateAssetBytesModelInterface
 }));
