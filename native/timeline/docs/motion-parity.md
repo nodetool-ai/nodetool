@@ -94,7 +94,7 @@ The native motion controls do not add editors for wiggle amplitude keyframes or 
 Paths below are relative to `native/timeline/`. This enumerates the F11 changes since `fa68d18b6b` and its current untracked owned files. Files belonging only to concurrent F10 work are excluded. Shared integration files contain the motion changes as well as any preserved F10 changes.
 
 ```text
-../../packages/cli/src/timeline-debug/target.ts
+../../packages/cli-timeline/src/timeline-debug/target.ts
 docs/motion-parity.md
 fixtures/plan/exclusions.json
 qml/Inspector/KeyframeClipAnimationEditor.qml

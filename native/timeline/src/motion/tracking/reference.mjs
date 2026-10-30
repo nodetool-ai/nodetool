@@ -12,12 +12,12 @@ const hash = file => createHash('sha256').update(fs.readFileSync(file)).digest('
 export function prepareReferenceCli(run) {
   const cli = path.join(run,'cli');
   fs.copyFileSync(path.join(repo,'package.json'),path.join(run,'package.json'));
-  const originalTarget = path.join(repo,'packages/cli/src/timeline-debug/target.ts');
+  const originalTarget = path.join(repo,'packages/cli-timeline/src/timeline-debug/target.ts');
   const originalHash = hash(originalTarget);
   try {
-  fs.cpSync(path.join(repo,'packages/cli/src'),path.join(cli,'src'),{recursive:true});
-  fs.copyFileSync(path.join(repo,'packages/cli/package.json'),path.join(cli,'package.json'));
-  fs.symlinkSync(path.join(repo,'packages/cli/node_modules'),path.join(cli,'node_modules'),'dir');
+  fs.cpSync(path.join(repo,'packages/cli-timeline/src'),path.join(cli,'src'),{recursive:true});
+  fs.copyFileSync(path.join(repo,'packages/cli-timeline/package.json'),path.join(cli,'package.json'));
+  fs.symlinkSync(path.join(repo,'node_modules'),path.join(cli,'node_modules'),'dir');
   const file = path.join(cli,'src/timeline-debug/target.ts');
   const source = fs.readFileSync(file,'utf8');
   const needle = '  if (record.camera2d !== undefined) {';
