@@ -18,7 +18,7 @@ import {
   clearSecretCache,
   isOnePasswordReference,
   resolveUserSecretValue,
-  getSecret
+  getSecrets
 } from "@nodetool-ai/models";
 import type { Secret as SecretModel } from "@nodetool-ai/models";
 import {
@@ -299,12 +299,18 @@ export const settingsRouter = router({
           .filter((definition) => !cloud || isCloudSettingGroup(definition.group))
           .map((definition) => definition.envVar)
       );
-      const providers = [];
-      for (const provider of listRegisteredProviderIds()) {
+      const registrations = listRegisteredProviderIds().flatMap((provider) => {
         const registration = getRegisteredProvider(provider);
-        if (!registration || isCustomProviderId(provider) || (cloud && !isCloudProvider(provider))) {
-          continue;
-        }
+        return !registration || isCustomProviderId(provider) || (cloud && !isCloudProvider(provider))
+          ? [] : [{ provider, registration }];
+      });
+      const requiredKeys = registrations.flatMap(({ registration }) =>
+        Object.entries(registration.kwargs)
+          .filter(([key, value]) => !key.startsWith("_") && (value === "" || value == null))
+          .map(([key]) => key));
+      const credentials = await getSecrets(requiredKeys, ctx.userId);
+      const providers = [];
+      for (const { provider, registration } of registrations) {
         const keys = [...new Set([
           ...Object.keys(registration.kwargs),
           ...Object.keys(registration.optionalKwargs)
@@ -313,7 +319,7 @@ export const settingsRouter = router({
           provider,
           name: registration.metadata.displayName,
           configured: await isProviderConfigured(provider, (key) =>
-            getSecret(key, ctx.userId)),
+            credentials.get(key)),
           keys
         });
       }
