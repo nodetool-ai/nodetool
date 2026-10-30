@@ -11,6 +11,8 @@ ScrollView {
     property string returnKind: ""
     readonly property var resource: workspace.resource
     readonly property var document: resource.document || ({})
+    readonly property bool showingList: controller.result !== null && controller.result !== undefined && typeof controller.result.length === "number"
+    readonly property var resourceList: showingList ? Array.from(controller.result) : []
     signal productionRequested()
     signal referenceRequested(string assetId)
     clip: true
@@ -74,14 +76,16 @@ ScrollView {
             width: parent.width - parent.padding * 2
             wrapMode: Text.Wrap
             color: Theme.textSecondary
+            objectName: "workspaceListMessage"
             visible: !controller.busy && !resource.id
-            text: Array.isArray(controller.result) && controller.result.length === 0 ? "No documents in this context. Choose Scripts or Storyboards to retry, or create one in Production." : "Choose Scripts or Storyboards to open a document. Connect to your timeline's server to load and save it."
+            text: panel.showingList && panel.resourceList.length === 0 ? "No documents in this context. Choose Scripts or Storyboards to retry, or create one in Production." : "Choose Scripts or Storyboards to open a document. Connect to your timeline's server to load and save it."
         }
         Repeater {
-            model: Array.isArray(controller.result) ? controller.result : []
+            model: panel.resourceList
             delegate: Button {
                 required property var modelData
                 width: parent.width - parent.padding * 2
+                objectName: "workspaceResource_" + modelData.id
                 text: modelData.name || modelData.id
                 enabled: !controller.busy
                 onClicked: panel.openResource(modelData.id, panel.kind)
