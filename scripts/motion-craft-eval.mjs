@@ -199,7 +199,7 @@ export function extractTimelineIdFromAnswer(answer) {
 // ── CLI driving ──────────────────────────────────────────────────────────
 
 function nodetoolArgs(args) {
-  return ["tsx", join(root, "packages/cli-full/src/nodetool.ts"), ...args];
+  return ["tsx", join(root, "packages/cli/src/nodetool.ts"), ...args];
 }
 
 function runNodetoolCli(args) {

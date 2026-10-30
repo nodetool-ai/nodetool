@@ -193,7 +193,7 @@ The planner reuses `buildPlan` from `scripts/test-affected.mjs`, the mapping
   directory to the root, which no package depends on, so for such a diff
   `--affected` would select no task and the shard would pass without testing
   anything. That covers every full plan and the directories a workspace owns
-  from outside (`EXTRA_WORKSPACE_PATHS` in `packages/cli-full/src/affected/affected.ts`:
+  from outside (`EXTRA_WORKSPACE_PATHS` in `packages/cli-harness/src/affected/affected.ts`:
   `reliability/journeys`, `packages/system-skills`, `packages/sandbox-packs`).
   The shard then runs its whole slice, and turbo's task hashes decide what
   reruns. Each owner lists its directory in its `test` inputs in `turbo.json`.

@@ -34,7 +34,7 @@ import {
   setApplicationBudget
 } from "@nodetool-ai/models";
 
-vi.mock("../src/lib/thumbnail.js", () => ({
+vi.mock("@nodetool-ai/asset-services/thumbnail", () => ({
   storeAssetWithThumbnail: vi.fn(async () => undefined)
 }));
 

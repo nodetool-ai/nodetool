@@ -39,6 +39,9 @@ export async function generateCatalog(definitions, { coreVersion, loadPack, read
   const packs = [];
   const packageOwners = new Map();
   for (const definition of definitions) {
+    if (definition.id === "cli-full" || definition.npmName === "@nodetool-ai/cli-full" || definition.provides.includes("@nodetool-ai/cli-full")) {
+      throw new Error("The removed cli-full aggregate cannot appear in a release catalog");
+    }
     for (const name of [definition.npmName, ...definition.provides]) {
       if (packageOwners.has(name)) {
         throw new Error(`Duplicate catalog package ownership: ${name}`);

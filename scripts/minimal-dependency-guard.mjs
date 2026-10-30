@@ -24,11 +24,18 @@ const FORBIDDEN = /(?:^|[/@-])(?:ink|react|browser|playwright|puppeteer|gpu|node
 
 const BROAD_INTERNAL = /^@nodetool-ai\/(?:runtime|models|server|websocket|cli|cli-full|deploy|compute|huggingface|agents|chat|base-nodes|core-nodes|text-nodes|llm-nodes|data-nodes|code-nodes|integration-nodes|automation-nodes|blender-nodes|game-nodes|app-export|game-renderer|game-runtime|model3d|image-editor|timeline|document-nodes|image-nodes|audio-nodes|video-nodes)(?:\/|$)/;
 
+export function assertNoRemovedAggregate(manifest, source) {
+  const names = [manifest.name, ...Object.keys({ ...manifest.dependencies, ...manifest.optionalDependencies, ...manifest.peerDependencies })];
+  if (names.includes("@nodetool-ai/cli-full")) {
+    throw new Error(`Removed cli-full aggregate package or dependency in ${source}`);
+  }
+}
+
 export function assertMinimalDependency(name, source, { entryPackageName, profile } = {}) {
   if ((name === "@nodetool-ai/cli" || name.startsWith("@nodetool-ai/cli/")) && entryPackageName === "@nodetool-ai/cli") { return; }
   const packageName = name.startsWith("@") ? name.split("/").slice(0, 2).join("/") : name.split("/")[0];
   if (profile === "sandbox" && SANDBOX_PACKAGES.has(packageName)) { return; }
-  if (!name.startsWith(".") && !name.startsWith("node:") && (FORBIDDEN_PACKAGES.has(packageName) || FORBIDDEN.test(packageName) || BROAD_INTERNAL.test(name))) {
+  if (!name.startsWith(".") && !name.startsWith("node:") && (packageName.startsWith("@nodetool-ai/cli-") || FORBIDDEN_PACKAGES.has(packageName) || FORBIDDEN.test(packageName) || BROAD_INTERNAL.test(name))) {
     throw new Error(`Forbidden minimal dependency ${name} in ${source}`);
   }
 }

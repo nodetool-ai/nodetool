@@ -18,7 +18,7 @@ export function runFalFixture(cliEntry, cwd, env, run) {
   writeFileSync(file, JSON.stringify({ graph: falFixtureGraph(), params: {} }));
   writeFileSync(trace, "");
   const result = JSON.parse(run(process.execPath, ["--import", fileURLToPath(new URL("./fixtures/packed-fal-preload.mjs", import.meta.url)),
-    cliEntry, "workflows", "run", file, "--json"], { cwd, timeout: 120_000,
+    cliEntry, "feature", "cli-workflow", "workflows", "run", file, "--json"], { cwd, timeout: 120_000,
     env: { ...env, SECRETS_MASTER_KEY: randomBytes(32).toString("base64"), FAL_FIXTURE_TRACE: trace, FAL_API_KEY: "packed-fal-fixture-sentinel" } }));
   assert.equal(result.status, "completed");
   assert.deepEqual(result.outputs, { fal_result: ["packed FAL fixture"] });

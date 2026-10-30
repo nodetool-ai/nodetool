@@ -1,10 +1,11 @@
 import { fileURLToPath } from "node:url";
+import { createRequire } from "node:module";
 import { join } from "node:path";
 import { realpath } from "node:fs/promises";
 import { getNodetoolDataDir } from "@nodetool-ai/config";
 import { loadPackLoaderContext, setPackLoaderContextProvider, type PackLoaderContext } from "@nodetool-ai/pack-core/loader-context";
 import type { NodeCatalogIndex } from "@nodetool-ai/pack-core/types";
-import { detectInstallMode, installDetailsForMode } from "./mode.js";
+import { CliRootNotFoundError, detectInstallMode, installDetailsForMode, type InstallMode } from "./mode.js";
 import { readInstalledPacks, type InstalledPackSnapshot } from "./installed.js";
 import { readDesiredState } from "./install-selection.js";
 import { restoreWarning } from "./management.js";
@@ -21,7 +22,13 @@ export function configureCliPackHost(url: string, options: { readonly catalog?: 
   entryUrl = url;
   snapshot = undefined;
   setPackLoaderContextProvider(async () => {
-    const mode = detectInstallMode(fileURLToPath(url));
+    let mode: InstallMode;
+    try {
+      mode = detectInstallMode(fileURLToPath(url));
+    } catch (error) {
+      if (!(error instanceof CliRootNotFoundError)) { throw error; }
+      mode = detectInstallMode(createRequire(url).resolve("@nodetool-ai/cli"));
+    }
     snapshot = readInstalledPacks(mode, options.catalog);
     if (mode.kind === "global" || mode.kind === "local") {
       const root = await realpath(mode.installRoot);

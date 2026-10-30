@@ -32,7 +32,7 @@ export function createMissingPackError(
       runtimeLibraries.add(runtimeId);
     }
   }
-  const commandIds = [...new Set([...ids].filter(id => byId.get(id)?.kind !== "core").concat([...runtimeLibraries].filter(isRuntimeNpmPackageId)))].sort();
+  const commandIds = [...new Set([...ids].concat([...runtimeLibraries].filter(isRuntimeNpmPackageId)))].sort();
   const guidance: MissingPackInstall = install.supported && install.command === null
     ? { ...install, command: commandIds.length ? `nodetool packs add ${commandIds.join(" ")}` : "nodetool packs doctor --installed" }
     : install;

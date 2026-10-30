@@ -30,7 +30,7 @@ export async function verifyPackLoads(snapshot: InstalledPackSnapshot, catalog: 
     if (pack.kind === "cli-feature") {
       const module: unknown = await import(resolveInstalledPack(pack, pack.npm.name, context));
       verifyCliFeature(module, pack);
-    } else if (pack.kind === "node-pack") {
+    } else {
       nodePacks.push(pack);
     }
   }

@@ -7,7 +7,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it, vi } from "vitest";
 
-import { computeAffected } from "../../packages/cli-full/src/affected/affected.ts";
+import { computeAffected } from "../../packages/cli-harness/src/affected/affected.ts";
 import { QUEUE_ONLY_LEGS, buildCiPlan, deferToQueue, fullCiPlan } from "../ci-plan.mjs";
 import { MOBILE_DEPS } from "../test-affected.mjs";
 

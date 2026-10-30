@@ -39,7 +39,10 @@ The `packages/` directory contains the TypeScript backend — a set of npm works
 | `@nodetool-ai/vectorstore` | SQLite-vec vector store for RAG |
 | `@nodetool-ai/websocket` | Fastify HTTP + WebSocket server (main API, port 7777) |
 | `@nodetool-ai/cli` | Lean command-line interface (`nodetool`), workflow execution, and explicit installed-feature loading |
-| `@nodetool-ai/cli-full` | Explicitly installed full CLI feature: interactive chat, MCP, authoring tools, and repository harnesses |
+| `@nodetool-ai/cli-*` command features | Independently installed command implementations, selected through the pack manager |
+| `@nodetool-ai/cli-common`, `@nodetool-ai/cli-execution`, `@nodetool-ai/cli-local`, `@nodetool-ai/cli-providers` | Shared command implementation libraries, separate from feature registration |
+| `@nodetool-ai/asset-services`, `@nodetool-ai/document-services`, `@nodetool-ai/workflow-services`, `@nodetool-ai/project-services`, `@nodetool-ai/error-trace-services` | Canonical persistence and archive services shared by CLI and HTTP hosts |
+| `@nodetool-ai/pack-host` | HTTP-independent node-pack composition with explicit provider hooks |
 | `@nodetool-ai/deploy` | Cloud deployment utilities |
 | `@nodetool-ai/dsl` | Workflow DSL for programmatic workflow creation |
 | `@nodetool-ai/storyboard` | Storyboard derivations — `recastStoryboard`, `planShotRenders`, and the one render path under `io/` |
@@ -49,6 +52,8 @@ The `packages/` directory contains the TypeScript backend — a set of npm works
 | `@nodetool-ai/app-runtime` | Mini-app document, bindings, instance state, and the streaming fold — dependency-free, shared by web, mobile, and `app debug` ([README](app-runtime/README.md)) |
 | `@nodetool-ai/analytics` | Opt-in anonymous product analytics: the shared event schema, validation, bucketing and client core ([docs](../docs/analytics.md)) |
 | `@nodetool-ai/app-export` | Exports a mini app as a standalone Vite + Node project that runs its workflows in process ([README](app-export/README.md)) |
+
+Command implementations import the domain services directly. Keep `pack-host` free of HTTP and agent imports. Full hosts inject their provider hooks. The HTTP package reexports the canonical service implementations for existing callers.
 
 ## Package Overlays
 
@@ -149,7 +154,7 @@ former full-runtime dependency through a lean package's public types.
 | [`server-minimal`](server-minimal/README.md) | [`server-core`](server-core/README.md), core nodes, SQLite, encrypted secrets and explicit features |
 | Default [`cli`](cli/README.md) | Lean execution services and [`pack-manager`](pack-manager/README.md) |
 | Pack manager and full node catalog | [`pack-core`](pack-core/README.md) metadata and admitted package resolution |
-| Explicit [`cli-full`](cli-full/README.md) | Full authoring and terminal implementations, plus the default CLI install identity |
+| Explicit [CLI command features](../docs/cli.md#install-command-features) | Each feature owns its command implementations and selected dependencies |
 
 Keep agents, codecs, GPU and browser runtimes, local inference, compilers,
 Ink/React terminal code, cloud and deploy/compute SDKs, MCP and tracing exporters
@@ -175,7 +180,8 @@ Build first as required by the [verification rules](../AGENTS.md#mandatory-post-
 The [installed-pack feature](server-feature-packs/README.md) admits audited node
 types. Browser, local-inference and other legacy nodes still require their host
 access to be audited before use in the lean host. Full compositions remain
-available through the explicitly installed full CLI and existing full server.
+available through explicitly installed command features and the classic server
+feature. No aggregate CLI package is required.
 Do not describe a catalog entry as a runnable lean feature.
 
 ## Key Packages
@@ -228,8 +234,8 @@ Base classes and registry for building workflow nodes:
 ### CLI and Agent Harnesses
 
 The default `nodetool` command lives in `packages/cli`. Full commands and agent
-harnesses live in the explicitly installed `@nodetool-ai/cli-full` feature
-(`packages/cli-full/src/commands/`). Beyond
+harnesses live in independently installed command features. The registry belongs
+to `cli-harness`, and full workflow tooling belongs to `cli-workflow`. Beyond
 server/jobs/assets/secrets management, it ships the harnesses an agent uses to
 close the build→verify loop. Run from source with `npm run dev:nodetool -- <cmd>`
 (no build) or from `dist` with `npm run nodetool -- <cmd>`. Full flags in

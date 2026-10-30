@@ -15,6 +15,7 @@ const RELEASE_FILES = [
   "scripts/release/install-pins.mjs",
   "scripts/release/commands.mjs",
   "scripts/node-catalog/tiers.mjs",
+  "scripts/node-catalog/packs.mjs",
   "scripts/node-catalog/generate.mjs",
   "packages/node-catalog/build.mjs",
   "packages/pack-core/build.mjs"

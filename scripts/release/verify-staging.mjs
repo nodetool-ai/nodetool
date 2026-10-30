@@ -116,8 +116,11 @@ export async function verifyRegistryInstall(catalog, { run: runCommand = runRele
   };
   const pack = catalog.packs.find(entry => entry.kind === "node-pack" && entry.id === "fal");
   if (!pack) { throw new Error("No node pack is available for the staging install smoke"); }
-  const full = catalog.packs.find(entry => entry.kind === "cli-feature" && entry.id === "cli-full");
-  if (!full) { throw new Error("Staging full-feature smoke requires the admitted cli-full catalog entry"); }
+  const features = ["cli-workflow", "cli-harness"].map(id => {
+    const feature = catalog.packs.find(entry => entry.kind === "cli-feature" && entry.id === id);
+    if (!feature) { throw new Error(`Staging command smoke requires the admitted ${id} catalog entry`); }
+    return feature;
+  });
   const work = mkdtempSync(join(temporaryRoot, "nodetool-registry-staging-"));
   try {
     const app = join(work, "app");
@@ -134,7 +137,7 @@ export async function verifyRegistryInstall(catalog, { run: runCommand = runRele
     const cli = join(app, "node_modules/.bin/nodetool");
     const version = run(cli, ["--version"], { cwd: app, env }).trim();
     if (version !== catalog.coreVersion) { throw new Error(`Staging CLI reports ${version}, expected ${catalog.coreVersion}`); }
-    run(cli, ["packs", "add", full.id, pack.id, "--yes"], {
+    run(cli, ["packs", "add", ...features.map(feature => feature.id), pack.id, "--yes"], {
       cwd: app,
       env
     });
@@ -148,7 +151,7 @@ const registry = new NodeRegistry();
 module[${JSON.stringify(pack.registrar)}](registry);
 if (registry.list().length !== ${pack.nodeCount} || registry.list().length === 0) { throw new Error('Staging pack registration differs from the catalog'); }`;
     run(process.execPath, ["--input-type=module", "-e", code], { cwd: app, env });
-    runFalFixture(join(app, "node_modules/@nodetool-ai/cli-full/dist/nodetool.js"), app, env, run);
+    runFalFixture(join(app, "node_modules/@nodetool-ai/cli/dist/nodetool.js"), app, env, run);
 
     const prefix = join(work, "global");
     const globalHome = join(work, "global-home");
@@ -170,12 +173,11 @@ if (registry.list().length !== ${pack.nodeCount} || registry.list().length === 0
     const globalEntry = join(globalRoot, "dist/nodetool.js");
     const globalOptions = { cwd: consumer, env: globalEnv };
     if (run(process.execPath, [globalEntry, "--version"], globalOptions).trim() !== catalog.coreVersion) { throw new Error("Global staging CLI version differs"); }
-    run(process.execPath, [globalEntry, "packs", "add", full.id, pack.id, "--yes"], globalOptions);
+    run(process.execPath, [globalEntry, "packs", "add", ...features.map(feature => feature.id), pack.id, "--yes"], globalOptions);
     audit();
     run(process.execPath, [globalEntry, "packs", "doctor", "--installed", "--pack", "fal", "--json"], globalOptions);
     run(process.execPath, [globalEntry, "harness", "--help"], globalOptions);
-    const globalFullEntry = join(globalRoot, "node_modules/@nodetool-ai/cli-full/dist/nodetool.js");
-    runFalFixture(globalFullEntry, consumer, globalEnv, run);
+    runFalFixture(globalEntry, consumer, globalEnv, run);
   } finally { rmSync(work, { recursive: true, force: true }); }
 }
 

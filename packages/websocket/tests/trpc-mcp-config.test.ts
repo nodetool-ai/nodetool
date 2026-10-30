@@ -263,8 +263,8 @@ url = "http://127.0.0.1:7777/mcp"
       expect(result.launch).toMatch(/^http/);
     });
 
-    it("writes a stdio entry when the full CLI is on PATH", async () => {
-      const cli = join("/opt/bin", "nodetool-full");
+    it("writes a stdio entry when the MCP CLI is on PATH", async () => {
+      const cli = join("/opt/bin", "nodetool-mcp");
       process.env.PATH = "/opt/bin";
       (existsSync as ReturnType<typeof vi.fn>).mockImplementation(
         (p: string) => p === cli
@@ -277,14 +277,14 @@ url = "http://127.0.0.1:7777/mcp"
       );
       const caller = createCaller(makeCtx());
       const result = await caller.mcpConfig.install({ targets: ["claude"] });
-      expect(result.launch).toBe("nodetool-full mcp serve");
+      expect(result.launch).toBe("nodetool-mcp serve");
       const written = JSON.parse(
         (writeFileSync as ReturnType<typeof vi.fn>).mock.calls[0]?.[1] as string
       );
       expect(written.mcpServers.nodetool).toEqual({
         type: "stdio",
-        command: "nodetool-full",
-        args: ["mcp", "serve"],
+        command: "nodetool-mcp",
+        args: ["serve"],
         env: {}
       });
     });

@@ -5,7 +5,8 @@ import { z } from "zod";
 import { acquireInstallLock } from "../install-lock.js";
 
 const desiredSchema = z.object({ root: z.string(), coreVersion: z.string(), packs: z.array(z.string()),
-  runtimeLibraries: z.array(z.string()), dirty: z.boolean().optional() });
+  runtimeLibraries: z.array(z.string()),
+  requestedPacks: z.array(z.string()).optional(), managedPacks: z.array(z.string()).optional(), dirty: z.boolean().optional() });
 const stateSchema = z.record(z.string(), desiredSchema);
 export type DesiredPackState = z.infer<typeof desiredSchema>;
 

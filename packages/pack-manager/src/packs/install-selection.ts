@@ -61,7 +61,7 @@ export async function prepareInstallSelection(request: InstallPacksRequest, opti
   const tree = await readInstallTree(root, mode.kind === "global");
   const before = tree.packages;
   const names = new Set(before.map((entry) => entry.name));
-  const installedIds = catalog.packs.filter((pack) => pack.kind !== "core" && names.has(pack.npm.name)).map((pack) => pack.id);
+  const installedIds = catalog.packs.filter((pack) => names.has(pack.npm.name)).map((pack) => pack.id);
   const requested = expandCatalogPacks(catalog, [...request.packs, ...(options.restoreDesired ? previous.packs : [])]);
   const packs = expandCatalogPacks(catalog, [...installedIds, ...requested.map((pack) => pack.id)]);
   const byFolder = new Map((catalog.installPins ?? []).map((pin) => [pin.installName ?? pin.name, pin]));

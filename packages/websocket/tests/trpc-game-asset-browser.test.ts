@@ -17,7 +17,7 @@ const PROJECT_ID = "asset-browser-project";
 const assetRoot = vi.hoisted(() => ({ current: "" }));
 const scripted = vi.hoisted(() => ({ generate: null as null | ((run: { invoke: (name: string, args: Record<string, unknown>) => Promise<unknown> }, args: Record<string, unknown>) => Promise<unknown>) }));
 
-vi.mock("../src/lib/storage.js", async (original) => {
+vi.mock("@nodetool-ai/asset-services/storage", async (original) => {
   const { FileStorageAdapter } = await import("@nodetool-ai/storage");
   return { ...await original<typeof import("../src/lib/storage.js")>(), getAssetAdapter: () => new FileStorageAdapter(assetRoot.current) };
 });

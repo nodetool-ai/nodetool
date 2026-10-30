@@ -6,7 +6,7 @@
  * module, so the two surfaces produce the same entry in the same place.
  *
  * An entry launches NodeTool one of two ways:
- * - `stdio`: the harness starts `nodetool-full mcp serve` itself. This needs no
+ * - `stdio`: the harness starts `nodetool-mcp serve` itself. This needs no
  *   running app. When the app is running, the stdio process forwards to it.
  * - `http`: the harness connects to a running NodeTool server's `/mcp` mount.
  */
@@ -45,9 +45,9 @@ export const MCP_CLIENT_LABELS = {
 /** The name the server has in every client config. */
 const SERVER_NAME = "nodetool";
 
-/** The published CLI package. It has two bins, so `npx` needs `--package`. */
-const CLI_PACKAGE = "@nodetool-ai/cli-full";
-const CLI_COMMAND = "nodetool-full";
+/** The independently installed MCP command package. */
+const CLI_PACKAGE = "@nodetool-ai/cli-mcp";
+const CLI_COMMAND = "nodetool-mcp";
 
 const CODEX_BEGIN = "# BEGIN NODETOOL MCP";
 const CODEX_END = "# END NODETOOL MCP";
@@ -61,16 +61,16 @@ const CODEX_BLOCK = /# BEGIN NODETOOL MCP[\s\S]*?# END NODETOOL MCP\n?/;
 const STARTUP_TIMEOUT_SEC = 120;
 const TOOL_TIMEOUT_SEC = 900;
 
-/** The stdio launch for `nodetool-full mcp serve`. */
+/** The stdio launch for `nodetool-mcp serve`. */
 export function stdioLaunch(options: { npx: boolean }): McpLaunch {
   if (options.npx) {
     return {
       transport: "stdio",
       command: "npx",
-      args: ["-y", `--package=${CLI_PACKAGE}`, CLI_COMMAND, "mcp", "serve"]
+      args: ["-y", `--package=${CLI_PACKAGE}`, CLI_COMMAND, "serve"]
     };
   }
-  return { transport: "stdio", command: CLI_COMMAND, args: ["mcp", "serve"] };
+  return { transport: "stdio", command: CLI_COMMAND, args: ["serve"] };
 }
 
 /** The first executable with this name on `PATH`, or null. */
@@ -95,8 +95,7 @@ export function isOnPath(name: string, env = process.env): boolean {
 }
 
 /**
- * True when the full Node CLI is on PATH. The lean `nodetool` executable
- * cannot start MCP without an explicitly installed full feature.
+ * True when the independently installed MCP executable is on PATH.
  */
 export function hasNodetoolCli(env = process.env): boolean {
   const found = findOnPath(CLI_COMMAND, env);

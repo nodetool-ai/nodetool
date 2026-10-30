@@ -2,7 +2,7 @@ import { expect, it } from "vitest";
 import { BaseNode, NodeRegistry } from "@nodetool-ai/node-sdk";
 import { createMissingPackError } from "@nodetool-ai/node-catalog";
 import { missingPackDetailsOf } from "@nodetool-ai/protocol";
-import { commandFailureExitCode } from "../../cli-full/src/command-errors.js";
+import { commandFailureExitCode } from "../../cli-common/src/command-errors.js";
 import { run, type Workflow } from "../src/core.js";
 
 class LazyPackNode extends BaseNode {

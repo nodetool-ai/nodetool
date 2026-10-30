@@ -37,7 +37,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     const reportFile = join(directory, "report.json");
     const child = spawnSync(process.execPath, [join(repo, "scripts/run-vitest.mjs"), "run", "tests/packs/npm-matrix.test.ts",
       "--reporter=default", "--reporter=json", `--outputFile=${reportFile}`], {
-      cwd: join(repo, "packages/cli-full"), env: process.env, stdio: "inherit", timeout: 30 * 60 * 1000
+      cwd: join(repo, "packages/pack-manager"), env: process.env, stdio: "inherit", timeout: 30 * 60 * 1000
     });
     if (child.error) { throw child.error; }
     assert.equal(child.status, 0, `npm matrix process failed: ${child.status ?? child.signal}`);

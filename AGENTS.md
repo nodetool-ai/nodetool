@@ -168,18 +168,21 @@ workspace manifests. Build in dependency order with `npm run build:packages`.
 | Node definitions and registry | `packages/node-sdk/`, domain node packages, `packages/base-nodes/` re-exports |
 | Lean providers, workspace and actor execution | `packages/{runtime-core,execution-core,nodes-core}/` |
 | Full processing context and kernel compatibility exports | `packages/runtime/`, `packages/kernel/` |
+| HTTP-independent asset, document, archive, error and pack services | `packages/{asset-services,document-services,workflow-services,project-services,error-trace-services,pack-host}/` |
 | Planning and execution agents, chat | `packages/agents/`, `packages/chat/` |
 | Lean execution host and default CLI | `packages/{server-core,server-minimal,cli}/` |
 | Pack metadata, authorized installation and full node registration | `packages/{pack-core,pack-manager,node-catalog}/` |
-| Full API, CLI feature and browser automation | `packages/{websocket,cli-full,browser}/` |
+| Full API and browser automation | `packages/websocket/`, `packages/browser/` |
+| Independently installed CLI command features | `packages/cli-{workflow,harness,chat,models,admin,mcp,server,apps,game,timeline,sketch,script}/` |
+| Shared CLI utilities and optional command implementation libraries | `packages/cli-{common,execution,local,providers}/` |
 | Shared app state, pricing, 3D documents, RAG | `packages/{app-runtime,model-pricing,model3d,vectorstore}/` |
 | Shared QuickJS worker, optional dependency compiler and guest-only packs | `packages/sandbox-runtime/`, `packages/sandbox-compiler/`, `packages/sandbox-packs/` (packs are not workspaces) |
 | Web, desktop, mobile | `web/`, `electron/`, `mobile/` |
 | Product-demo recordings | `demo/`, `web/src/demo/` ([guide](demo/README.md)) |
 
 The default [CLI](packages/cli/README.md) and [execution server](packages/server-minimal/README.md)
-compose the lean packages. Full authoring, chat, MCP and deployment commands
-live in the explicitly installed [CLI feature](packages/cli-full/README.md).
+compose the lean packages. Authoring, chat, MCP and deployment commands live in
+independently installed [command features](docs/cli.md#install-command-features).
 Keep their dependency separation and packed-consumer checks described in the
 [backend rules](packages/AGENTS.md#package-dependency-order).
 
@@ -291,7 +294,7 @@ Slash commands are in [.claude/README.md](.claude/README.md).
   workspace added since the last install has no `node_modules/@nodetool-ai/`
   link and fails every build that imports it. Run `npm install` to link it.
 - Run `npm run build:packages` before `test:affected` and `harness gate`.
-  Selfchecks that run the CLI fail on a missing `packages/cli-full/dist`, which
+  Selfchecks that run the CLI fail on a missing command-feature `dist/` output, which
   looks like a gate failure but is an unbuilt tree.
 - The runtime and base-nodes suites need a Vulkan ICD, as in CI
   (`extra-apt` in `.github/workflows/quality-checks.yml`). Install
@@ -369,7 +372,7 @@ selection. If you change `buildPlan` in `scripts/test-affected.mjs`, update
 `scripts/__tests__/test-affected.test.mjs`.
 
 `harness gate` selects selfchecks through
-`packages/cli-full/src/harness/registry.ts`. Add `--dry-run` to inspect its plan.
+`packages/cli-harness/src/harness/registry.ts`. Add `--dry-run` to inspect its plan.
 See [gate selection](docs/HARNESS_FIRST.md#the-gate) and
 [CLI flags](docs/cli.md#nodetool-harness-gate-files). Run known affected
 suites directly when a shared fixture or generated file creates an undeclared
@@ -489,7 +492,7 @@ Other task references:
 | Entities and media | [Entity library](docs/harnesses.md#entity-library-tools-no-browser), [media analysis](docs/harnesses.md#media-analysis-tools-no-model-no-ffmpeg), [timeline previews](docs/harnesses.md#nodetool-timeline-validate--debug-timeline-harness) |
 | Chat and remote deployment | [Chat](docs/harnesses.md#nodetool-chat), [deployment and workers](docs/cli.md#deployment-and-workers) |
 
-Selfcheck mappings live in the [harness registry](packages/cli-full/src/harness/registry.ts).
+Selfcheck mappings live in the [harness registry](packages/cli-harness/src/harness/registry.ts).
 
 ### In-Browser Workflow Harness
 

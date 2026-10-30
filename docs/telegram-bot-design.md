@@ -267,7 +267,7 @@ The dependency-cone rule (D5) is enforced structurally: `packages/telegram` refe
 
 ## 13. Alternatives considered
 
-- **In-process agent loop** (import `processChat` + `createChatCodeActSession`, the way `packages/cli-full/src/stdin.ts` does). Rejected: the bot would own the DB, secret store, toolbelt assembly, and native modules, duplicate the server's credit gate and turn registry, and — fatally for multi-tenancy — would have to re-implement per-user isolation the server already enforces.
+- **In-process agent loop** (import `processChat` + `createChatCodeActSession`, the way `packages/cli-chat/src/stdin.ts` does). Rejected: the bot would own the DB, secret store, toolbelt assembly, and native modules, duplicate the server's credit gate and turn registry, and — fatally for multi-tenancy — would have to re-implement per-user isolation the server already enforces.
 - **OpenAI-compatible endpoint** (`POST /v1/chat/completions`). Rejected: a stateless provider passthrough — no threads, no agent toolbelt, no per-user anything.
 - **Bot-side token store** (bot keeps long-lived per-user tokens after linking). Rejected for D3: it turns the bridge into a credential vault, needs encrypted storage and revocation plumbing, and breaks the stateless-bridge property. The service-token + delegated-token exchange keeps all credentials and the identity mapping on the server.
 - **A Telegram SDK** (grammY, telegraf). Rejected: claude-pipe's adapter demonstrates the needed surface is ~8 Bot API methods over `fetch`; an SDK adds a dependency tree and its own update-loop abstractions for no coverage this design uses. Revisit if inline mode or payments ever land.

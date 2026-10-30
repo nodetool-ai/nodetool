@@ -758,7 +758,7 @@ and checks them against the capability registry and op list).
 `TIMELINE_SYSTEM_PROMPT`), `packages/agents/src/evals/tool-loop-eval.ts`,
 `packages/agents/src/jtbd/registry.ts` (`caption-titles-picture-locked`),
 `packages/agents/tests/jtbd-friction.test.ts` (the untouched-world rule),
-`packages/cli-full/src/harness/capability-table.ts`.
+`packages/cli-harness/src/harness/capability-table.ts`.
 
 **Change:**
 

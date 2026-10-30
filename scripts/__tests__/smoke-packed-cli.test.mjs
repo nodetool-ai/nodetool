@@ -9,9 +9,16 @@ import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import yaml from "js-yaml";
 
-import { assertInstalledSelection, assertCoreInstallSize, assertCoreOnlyInstall, cleanEnv, codecProbeSource, existingTarballs, installedPackages, mcpWorkflowCode, missingCommands, missingFalGraph, probeMcp, probeServe, REQUIRED_COMMANDS } from "../smoke-packed-cli.mjs";
+import { assertInstalledSelection, assertCoreInstallSize, assertCoreOnlyInstall, cleanEnv, codecProbeSource, existingTarballs, installedPackages, mcpWorkflowCode, missingCommands, missingFalGraph, probeMcp, probeServe, REQUIRED_COMMANDS, FEATURE_REQUIRED_COMMANDS } from "../smoke-packed-cli.mjs";
 import { partitionPlan } from "../packed-verification.mjs";
 import { fullPlan, readPackages } from "../test-affected.mjs";
+
+it("retains the published command inventory across independent feature checks", () => {
+  const verified = new Set([...REQUIRED_COMMANDS, ...Object.values(FEATURE_REQUIRED_COMMANDS).flat()]);
+  for (const command of ["run", "info", "serve", "chat", "workflows", "jobs", "assets", "models", "storage", "secrets", "settings", "mcp", "projects", "package", "packs", "runtime", "worker", "deploy", "agent", "db", "debug", "app", "apps", "validate", "timeline", "sketch", "game", "jsscript", "reliability", "node", "generate", "extension", "eval", "jtbd", "affected", "harness", "collections", "costs", "errors", "generations", "runs", "auth", "telegram", "help"]) {
+    expect(verified.has(command), `No independent packed check owns ${command}`).toBe(true);
+  }
+});
 
 const fixtures = [];
 afterEach(() => { for (const root of fixtures.splice(0)) { rmSync(root, { recursive: true, force: true }); } });
@@ -275,7 +282,7 @@ it("executes a core workflow through a fresh local MCP database", async () => {
   const graph = JSON.parse(readFileSync(join(root, "examples/workflows/hello_input_output_cli.json"), "utf8")).graph;
   const tools = await probeMcp(process.execPath, {
     ...cleanEnv(home), SECRETS_MASTER_KEY: "a".repeat(64)
-  }, home, graph, 45000, [join(root, "packages/cli-full/dist/nodetool.js")]);
+  }, home, graph, 45000, [join(root, "packages/cli/dist/nodetool.js")]);
   expect(tools).toBeGreaterThan(0);
 }, 60000);
 

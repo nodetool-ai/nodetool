@@ -1,0 +1,50 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": [
+    "src"
+  ],
+  "references": [
+    {
+      "path": "../node-catalog"
+    },
+    {
+      "path": "../video-nodes"
+    },
+    {
+      "path": "../pack-manager"
+    },
+    {
+      "path": "../models"
+    },
+    {
+      "path": "../config"
+    },
+    {
+      "path": "../runtime"
+    },
+    {
+      "path": "../storage"
+    },
+    {
+      "path": "../cli-common"
+    },
+    {
+      "path": "../execution"
+    },
+    {
+      "path": "../protocol"
+    },
+    {
+      "path": "../agents"
+    }
+  ],
+  "exclude": [
+    "src/**/__tests__/**"
+  ]
+}

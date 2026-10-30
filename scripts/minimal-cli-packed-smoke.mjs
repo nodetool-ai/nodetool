@@ -68,20 +68,24 @@ const manifestBefore = readFileSync("package.json", "utf8");
 const lockBefore = readFileSync("package-lock.json", "utf8");
 assert.match((await command(["--help"], { env: { SECRETS_MASTER_KEY: "", NODETOOL_USER_ID: "", NODETOOL_API_TOKEN: "", NODETOOL_TOKENS: "" } })).stdout, /workflows/);
 assert.match((await command(["--version"])).stdout.trim(), /^\d+\.\d+\.\d+/);
+const systemInfo = json(await command(["info", "--json"], { env: { OPENAI_API_KEY: "packed-presence-sentinel" } }));
+assert.equal(systemInfo.api_keys.OPENAI_API_KEY, "configured");
+assert.ok(!JSON.stringify(systemInfo).includes("packed-presence-sentinel"));
 assert.ok(json(await command(["providers", "list"])).some(provider => provider.id === "openai" && provider.installed));
 assert.equal(json(await command(["providers", "info", "openai"])).id, "openai");
 assert.match((await command(["packs", "--help"])).stdout, /install/);
 const availablePacks = json(await command(["packs", "list", "--json"]));
-assert.ok(availablePacks.some(pack => pack.id === "cli-full" && pack.installed === false));
+assert.ok(availablePacks.some(pack => pack.id === "cli-workflow" && pack.installed === false));
+assert.equal(availablePacks.some(pack => pack.id === "cli-full"), false);
 const unavailable = await command(["chat"], { allowFailure: true });
 assert.notEqual(unavailable.status, 0);
-assert.match(unavailable.stderr + unavailable.stdout, /cli-full/);
+assert.match(unavailable.stderr + unavailable.stdout, /cli-chat/);
 assert.equal(existsSync("node_modules/@nodetool-ai/cli-full"), false);
 for (const [action, flag] of [["run", "--json"], ["validate", "--warnings-as-errors"]]) {
   const missingDsl = await command([action, "not-installed-workflow.ts", flag], { allowFailure: true });
   assert.notEqual(missingDsl.status, 0);
   assert.match(missingDsl.stdout + missingDsl.stderr, /FEATURE_NOT_INSTALLED/);
-  assert.match(missingDsl.stdout + missingDsl.stderr, /cli-full/);
+  assert.match(missingDsl.stdout + missingDsl.stderr, /cli-workflow/);
   assert.ok(!(missingDsl.stdout + missingDsl.stderr).includes("ENOENT"));
 }
 const missingToken = await command(["workflows", "list"], { env: { NODETOOL_API_TOKEN: "" }, allowFailure: true });
@@ -133,7 +137,7 @@ try {
   const otherProvider = await command(["models", "list", "--provider", "anthropic"], { allowFailure: true });
   assert.notEqual(otherProvider.status, 0);
   assert.match(otherProvider.stdout + otherProvider.stderr, /FEATURE_NOT_INSTALLED/);
-  assert.match(otherProvider.stdout + otherProvider.stderr, /cli-full/);
+  assert.match(otherProvider.stdout + otherProvider.stderr, /cli-models/);
   const remoteGraph = prompt => ({ nodes: [{ id: "remote", type: "openai.text.ChatComplete", properties: { model: "fixture", prompt } }, { id: "out", type: "nodetool.output.Output", properties: { name: "result" } }], edges: [{ source: "remote", sourceHandle: "output", target: "out", targetHandle: "value" }] });
   writeFileSync("remote.json", JSON.stringify(remoteGraph("hello")));
   assert.deepEqual(json(await command(["run", "remote.json"])), { result: ["hello world"] });
@@ -186,34 +190,74 @@ if (explicitPackIds.length) {
   const fixtures = JSON.parse(readFileSync(process.env.NODETOOL_PACK_FIXTURE_MANIFEST, "utf8"));
   const catalogFile = "node_modules/@nodetool-ai/pack-core/dist/index.json";
   const catalog = JSON.parse(readFileSync(catalogFile, "utf8"));
-  for (const id of explicitPackIds) {
-    const fixture = fixtures.find(entry => entry.manifest.name === `@nodetool-ai/${id}`);
-    assert.ok(fixture, `No packed registry fixture for ${id}`);
+  // Use the same external runtime/shared identities as release pinning.
+  catalog.installPins = JSON.parse(readFileSync(process.env.NODETOOL_PACK_FIXTURE_PINS, "utf8"));
+  for (const pack of catalog.packs) {
+    const primary = fixtures.find(entry => entry.manifest.name === pack.npm.name);
+    if (primary) { pack.npm = { ...pack.npm, version: primary.manifest.version, integrity: primary.integrity }; }
+    for (const name of pack.provides) {
+      const companion = fixtures.find(entry => entry.manifest.name === name);
+      if (companion) { catalog.installPins.push({ name, version: companion.manifest.version, integrity: companion.integrity }); }
+    }
+  }
+
+  const visited = new Set();
+  const pending = [...explicitPackIds];
+  while (pending.length) {
+    const id = pending.pop();
+    if (visited.has(id)) { continue; }
+    visited.add(id);
     const original = catalog.packs.find(entry => entry.id === id);
-    assert.ok(original?.kind === "cli-feature" && original.npm.name === fixture.manifest.name, `No admitted CLI feature catalog entry for ${id}`);
+    assert.ok(original, `No admitted catalog entry for ${id}`);
+    assert.ok(["cli-feature", "node-pack", "core"].includes(original.kind));
+    const fixture = fixtures.find(entry => entry.manifest.name === original.npm.name);
+    assert.ok(fixture, `No packed registry fixture for prerequisite ${id}`);
     const descriptor = { ...original, npm: { ...original.npm, version: fixture.manifest.version, integrity: fixture.integrity } };
     catalog.packs = [...catalog.packs.filter(entry => entry.id !== id), descriptor];
+    pending.push(...original.requires);
   }
   // This isolated registry models release metadata for unpublished local tarballs.
   writeFileSync(catalogFile, JSON.stringify(catalog));
   writeFileSync("cli-fixture.npmrc", "");
   const installation = await command(["packs", "add", ...explicitPackIds, "--yes"], { env: { npm_config_registry: registry, npm_config_userconfig: resolve("cli-fixture.npmrc"), NODE_OPTIONS: "" }, timeout: 240000 });
   process.stdout.write(installation.stdout + installation.stderr);
-  assert.equal(existsSync("node_modules/@nodetool-ai/cli-full"), true);
+  assert.equal(existsSync("node_modules/@nodetool-ai/cli-full"), false);
   const rows = json(await command(["packs", "list", "--json"]));
-  assert.ok(rows.some(row => row.id === "cli-full" && row.installed));
-  const full = await command(["harness", "--help"], { env: { NODE_OPTIONS: "" } });
-  assert.match(full.stdout, /harness/);
-  assert.match(full.stdout, /gate|list/);
-  assert.match((await command(["full", "harness", "--help"], { env: { NODE_OPTIONS: "" } })).stdout, /gate|list/);
-  for (const [action, flag] of [["run", "--json"], ["validate", "--warnings-as-errors"]]) {
-    const authored = await command([action, "not-installed-workflow.ts", flag], { env: { NODE_OPTIONS: "" }, allowFailure: true });
-    assert.notEqual(authored.status, 0);
-    assert.doesNotMatch(authored.stdout + authored.stderr, /unknown option|FEATURE_NOT_INSTALLED/);
-    assert.match(authored.stdout + authored.stderr, /not-installed-workflow|not found|ENOENT/);
+  for (const id of explicitPackIds) {
+    assert.ok(rows.some(row => row.id === id && row.installed));
+    const selectedRow = rows.find(row => row.id === id);
+    if (selectedRow.kind !== "cli-feature") {
+      assert.equal(json(await command(["packs", "doctor", "--installed", "--pack", id, "--json"], { env: { NODE_OPTIONS: "" } })).healthy, true);
+      continue;
+    }
+    const commandByFeature = {
+      "cli-workflow": "debug", "cli-harness": "harness", "cli-chat": "chat", "cli-models": "models",
+      "cli-admin": "deploy", "cli-mcp": "mcp", "cli-server": "serve", "cli-apps": "app",
+      "cli-game": "game", "cli-timeline": "timeline", "cli-sketch": "sketch", "cli-script": "jsscript"
+    };
+    assert.ok(commandByFeature[id], `Missing packed smoke command for ${id}`);
+    const help = await command(["feature", id, commandByFeature[id], "--help"], { env: { NODE_OPTIONS: "" } });
+    assert.match(help.stdout, /Usage:|Options:|Commands:/);
   }
-  const filteredModels = json(await command(["models", "list", "--provider", "fal", "--json"], { env: { NODE_OPTIONS: "", NODETOOL_API_URL: "" }, timeout: 60000 }));
-  assert.ok(Array.isArray(filteredModels));
-  assert.ok(filteredModels.every(model => model.provider === "fal"));
-  process.stdout.write("Packed explicit cli-full catalog installation and full command dispatch passed\n");
+  if (explicitPackIds.includes("cli-workflow")) {
+    writeFileSync("typed-fixture.ts", `import { workflow, constant, text } from "@nodetool-ai/dsl";
+const greeting: string = "Hello, ";
+const result = text.concat({ a: constant.string({ value: greeting }).outputs.output, b: constant.string({ value: "NodeTool!" }).outputs.output });
+export const wf = workflow(result);
+`);
+    const executed = await command(["run", "typed-fixture.ts", "--json"], { env: { NODE_OPTIONS: "", NODETOOL_API_URL: "" }, timeout: 120000 });
+    assert.match(executed.stdout, /Hello, NodeTool!/);
+    for (const [action, flag] of [["run", "--json"], ["validate", "--warnings-as-errors"]]) {
+      const authored = await command([action, "not-installed-workflow.ts", flag], { env: { NODE_OPTIONS: "" }, allowFailure: true });
+      assert.notEqual(authored.status, 0);
+      assert.doesNotMatch(authored.stdout + authored.stderr, /unknown option|FEATURE_NOT_INSTALLED/);
+      assert.match(authored.stdout + authored.stderr, /not-installed-workflow|not found|ENOENT/);
+    }
+  }
+  if (explicitPackIds.includes("cli-models")) {
+    const filteredModels = json(await command(["models", "list", "--provider", "fal", "--json"], { env: { NODE_OPTIONS: "", NODETOOL_API_URL: "" }, timeout: 60000 }));
+    assert.ok(Array.isArray(filteredModels));
+    assert.ok(filteredModels.every(model => model.provider === "fal"));
+  }
+  process.stdout.write(`Packed independent command features installed and dispatched: ${explicitPackIds.join(", ")}\n`);
 }

@@ -5,7 +5,7 @@
  * the way the web editor prunes them at serialize time.
  *
  * Ported from `packages/websocket/src/headless-job-runner.ts`'s
- * `normalizeRunnableGraph` / `packages/cli-full/src/debug/server-runner.ts`'s
+ * `normalizeRunnableGraph` / `packages/cli-execution/src/debug/server-runner.ts`'s
  * inline filter — the two call sites this logic drifted between before this
  * package existed.
  */

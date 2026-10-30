@@ -15,7 +15,9 @@ function catalogFixture(releaseVersion = version) {
 }
 function installCatalogFixture() {
   const catalog = catalogFixture();
-  catalog.packs.push({ id: "cli-full", kind: "cli-feature", npm: { name: "@nodetool-ai/cli-full", version, integrity: "sha512-full" }, provides: [], scriptAllowlist: [], registrar: ".", nodeCount: 0 });
+  for (const id of ["cli-workflow", "cli-harness"]) {
+    catalog.packs.push({ id, kind: "cli-feature", npm: { name: `@nodetool-ai/${id}`, version, integrity: `sha512-${id}` }, provides: [], scriptAllowlist: [], registrar: "feature", nodeCount: 0 });
+  }
   return catalog;
 }
 function attestation(pin, change = statement => statement) {
@@ -243,7 +245,7 @@ it("audits project and global installs before execution and verifies both FAL wo
   expect(calls[1][1]).toEqual(["audit", "signatures"]);
   expect(calls[2][1]).toEqual(["rebuild", "better-sqlite3", "--ignore-scripts=false", "--no-audit", "--no-fund"]);
   expect(calls[3][1]).toEqual(["--version"]);
-  expect(calls[4][1]).toEqual(["packs", "add", "cli-full", "fal", "--yes"]);
+  expect(calls[4][1]).toEqual(["packs", "add", "cli-workflow", "cli-harness", "fal", "--yes"]);
   expect(calls[5][1]).toEqual(["audit", "signatures"]);
   const globalInstall = calls.findIndex(([, args]) => args.includes("--global"));
   const projectModules = join(calls[0][2].cwd, "node_modules");
@@ -268,9 +270,9 @@ it("audits project and global installs before execution and verifies both FAL wo
   expect(calls.every(([, , options]) => options.env.NODETOOL_PACKS_INSTALLER === undefined)).toBe(true);
 });
 
-it("requires an admitted full CLI feature for the optional registry scenarios", async () => {
+it("requires admitted independent command features for the optional registry scenarios", async () => {
   const run = vi.fn();
-  await expect(verifyRegistryInstall(catalogFixture(), { run })).rejects.toThrow("cli-full catalog entry");
+  await expect(verifyRegistryInstall(catalogFixture(), { run })).rejects.toThrow("cli-workflow catalog entry");
   expect(run).not.toHaveBeenCalled();
 });
 
@@ -301,7 +303,7 @@ it("stops the registry smoke when the CLI refuses pack installation", async () =
     }
     return args[0] === "--version" ? version : "";
   } })).rejects.toThrow("pack integrity refused");
-  expect(calls.at(-1)[1]).toEqual(["packs", "add", "cli-full", "fal", "--yes"]);
+  expect(calls.at(-1)[1]).toEqual(["packs", "add", "cli-workflow", "cli-harness", "fal", "--yes"]);
   expect(calls.filter(([, args]) => args[0] === "audit")).toHaveLength(1);
   expect(calls.some(([, args]) => args[0] === "--input-type=module")).toBe(false);
 });

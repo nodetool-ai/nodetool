@@ -9,7 +9,7 @@ import { FakeClientSession } from "./fake-client-session.js";
 const trim = vi.hoisted(() => vi.fn());
 const generation = vi.hoisted(() => vi.fn());
 vi.mock("../src/lib/media.js", () => ({ trimVideoWindow: trim }));
-vi.mock("../src/lib/asset-paths.js", () => ({
+vi.mock("@nodetool-ai/asset-services/asset-paths", () => ({
   retrieveAssetBytes: async () => new Uint8Array([1, 2, 3])
 }));
 vi.mock("../src/session/media-generation.js", () => ({

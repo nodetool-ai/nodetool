@@ -34,15 +34,16 @@ From the repository, run `npm run build:packages` before
 them outside the workspace with normal install scripts. Its report includes
 logical installed bytes, external package instances, budget results and the
 number of JavaScript and declaration files inspected by the dependency guard.
-Measure the broad compatibility bundle separately from the default lean CLI:
+Measure the default CLI separately:
 
 ```bash
-node scripts/minimal-packed-consumer.mjs @nodetool-ai/cli-full /tmp/nodetool-broad --baseline
-node scripts/minimal-packed-consumer.mjs @nodetool-ai/cli /tmp/nodetool-cli --baseline-report /tmp/nodetool-broad/measurement.json
+node scripts/minimal-packed-consumer.mjs @nodetool-ai/cli /tmp/nodetool-cli
 ```
 
-Each directory contains its own `measurement.json`. The CLI comparison reads
-the measured broad-bundle report rather than treating the default CLI as broad.
+Each consumer directory contains its own `measurement.json`. To compare with a
+previously measured installation, pass `--baseline-report <measurement.json>`.
+Do not substitute an unmeasured collection of optional command features for a
+clean-install baseline.
 
 Registered execution nodes receive a local `workspace` scoped to authenticated
 user and run. User and job IDs are hashed into directory segments under

@@ -73,12 +73,19 @@ async function installPacksTransaction(request: InstallPacksRequest, authorizati
     const plan = alreadyComplete ? { add: [], change: [], remove: [] } :
       parseInstallPlan(await operations.npm(root, ["install", ...specs, ...(Number(version.split(".")[0]) >= 11 ? ["--json"] : [])], { mode: mode.kind, dryRun: true, signal: request.signal, onWarning: request.onWarning }), version);
     assertAdditivePlan(normalizeGlobalBootstrap(normalizeOwnedPackReplay(plan, before, catalog, coreNames), bootstrap), before, coreNames, shared, mode.coreVersion);
-    let desired: DesiredPackState = { root, coreVersion: mode.coreVersion, packs: [...new Set([...previous.packs, ...packs.filter((pack) => pack.kind !== "core").map((pack) => pack.id)])].sort(), runtimeLibraries: [...new Set([...previous.runtimeLibraries, ...libraries])].sort() };
+    const requestedPacks = [...new Set([...(previous.requestedPacks ?? previous.packs), ...request.packs])].sort();
+    const installed = new Set(installedIds);
+    const managedPacks = [...new Set([...(previous.managedPacks ?? []), ...packs.filter(pack => !installed.has(pack.id)).map(pack => pack.id)])].sort();
+    let desired: DesiredPackState = { root, coreVersion: mode.coreVersion, packs: [...new Set([...previous.packs, ...packs.map((pack) => pack.id)])].sort(), runtimeLibraries: [...new Set([...previous.runtimeLibraries, ...libraries])].sort(), requestedPacks, managedPacks };
     if (operation === "repair") { desired = { ...desired, dirty: false }; }
     const restoreSavedFiles = await captureInstallManifests(root);
     try {
       if (!alreadyComplete) { await operations.npm(root, ["install", ...specs], { mode: mode.kind, signal: request.signal, onWarning: request.onWarning }); }
       const after = await snapshotInstallTree(root);
+      const afterNames = new Set(after.map(entry => entry.name));
+      const beforeNames = new Set(before.map(entry => entry.name));
+      desired = { ...desired, managedPacks: [...new Set([...managedPacks,
+        ...catalog.packs.filter(pack => afterNames.has(pack.npm.name) && !beforeNames.has(pack.npm.name)).map(pack => pack.id)])].sort() };
       const installedShared = shared.filter((pin) => after.some((entry) => entry.name === pin.name));
       assertTreePins(before, after, [...pins, ...installedShared], coreNames, mode.coreVersion, initialGlobalLockMissing);
       if (mode.kind === "global" && after.some((entry) => entry.name === "@nodetool-ai/cli")) { throw new Error("Install added another CLI core package"); }
@@ -88,7 +95,7 @@ async function installPacksTransaction(request: InstallPacksRequest, authorizati
           await operations.npm(root, ["rebuild", pin.name], { mode: mode.kind, rebuild: true, signal: request.signal, onWarning: request.onWarning });
         }
       }
-      await operations.loadCheck(mode, packs.filter((pack) => pack.kind !== "core").map((pack) => pack.id), request.signal);
+      await operations.loadCheck(mode, packs.map((pack) => pack.id), request.signal);
       await writeDesiredState(request.stateFile, desired);
       return desired;
     } catch (cause) {

@@ -22,7 +22,7 @@ import gamesRoutes from "../src/routes/games.js";
 const USER_ID = "game-owner";
 const PROJECT_ID = "game-project";
 const assetRoot = vi.hoisted(() => ({ current: "" }));
-vi.mock("../src/lib/storage.js", async () => {
+vi.mock("@nodetool-ai/asset-services/storage", async () => {
   const { FileStorageAdapter } = await import("@nodetool-ai/storage");
   return { getAssetAdapter: () => new FileStorageAdapter(assetRoot.current) };
 });

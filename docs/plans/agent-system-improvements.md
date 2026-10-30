@@ -24,7 +24,7 @@ describe.
 | Chat turn (web, Telegram, MCP) | one CodeAct session over `provider.generateLoop` | `packages/websocket/src/session/chat-turn.ts:1499`, loop at `:1974` | `gateTools` (`:1364`), mode from `permission_mode` | none | none |
 | Chat plan mode | `create_plan` → `TaskPlanner.planMultiTask`, `execute_plan` → `ParallelTaskExecutor` | `packages/agents/src/capabilities/agents.ts:177, 303` | inherited belt | none | none |
 | Workflow `AgentNode` | JSON tool calls over `provider.generateLoop`, `max_turns` 100 | `packages/llm-nodes/src/nodes/agents.ts:1195` | none | none | none |
-| CLI `nodetool agent run` | `Agent`: `TaskPlanner` → `ParallelTaskExecutor` → `TaskExecutor` → `CodeActExecutor` → `CompilerAgent` | `packages/cli-full/src/commands/agent.ts:278` | none | none | none |
+| CLI `nodetool agent run` | `Agent`: `TaskPlanner` → `ParallelTaskExecutor` → `TaskExecutor` → `CodeActExecutor` → `CompilerAgent` | `packages/cli-chat/src/commands/agent.ts:278` | none | none | none |
 
 `new Agent(` has no other production caller. Everything only `Agent` wires is
 therefore CLI-only: the plan approval gate (`agent.ts:633-649`), the security
@@ -138,7 +138,7 @@ written three or four times (`step-executor.ts:1221`, `compiler-agent.ts:488`,
   requires `npm run capabilities:check`.
 - **C-2.** A change to `packages/agents/src/capabilities/*.specs.ts` (a
   description, a schema) moves the capability's contract fingerprint; the
-  coverage table in `packages/cli-full/src/harness/capability-table.ts` must be
+  coverage table in `packages/cli-harness/src/harness/capability-table.ts` must be
   synced (`npm run capabilities:sync`).
 - **C-3.** `packages/agents/AGENTS.md` and `docs/AGENTS.md` are updated in the
   same PR as the code they describe. No counts, dates, or "currently".
@@ -355,8 +355,8 @@ export function createRunBudget(opts: {
   with `cost_cap_usd` below one turn fails with an error naming the cap; a
   node run under a chat context with a budget on it uses that budget (assert
   via the shared `spentUsd`). Depends: T-A1.1, T-A2.2 (the context key).
-- **T-A1.6 CLI flags.** Size S. Files: `packages/cli-full/src/commands/agent.ts`,
-  `packages/cli-full/src/chat-codeact.ts`, `packages/cli-full/src/index.ts` (flags),
+- **T-A1.6 CLI flags.** Size S. Files: `packages/cli-chat/src/commands/agent.ts`,
+  `packages/cli-chat/src/chat-codeact.ts`, `packages/cli-chat/src/chat-entry.ts` (flags),
   `docs/cli.md`, `AGENTS.md` § CLI. Acceptance: `--cost-cap 0.01` on a priced
   model prints the stop reason and exits non-zero; help text lists both
   flags. Depends: T-A1.1, and lands after T-A3.2 rewrites the command (do not
@@ -395,8 +395,8 @@ context-carried callback), `chat-turn.ts:1318-1340`,
 `packages/llm-nodes/src/nodes/agent-utils.ts:490-514`,
 `agent-tool-hydration.ts:84-112`, `packages/execution/src/service/
 workflow-workspace.ts:150-200` (`buildWorkspaceExecutionContext`),
-`packages/agents/src/js-script-sandbox.ts`, `packages/cli-full/src/commands/
-agent.ts`, `packages/cli-full/src/app.tsx:868-905`,
+`packages/agents/src/js-script-sandbox.ts`, `packages/cli-chat/src/commands/
+agent.ts`, `packages/cli-chat/src/app.tsx:868-905`,
 `docs/tool-class-retirement-design.md` § "Where the permission gate lives",
 `tests/capabilities-gate-parity.test.ts`.
 
@@ -460,11 +460,11 @@ agent.ts`, `packages/cli-full/src/app.tsx:868-905`,
   `gateTools` wrap in `buildTools` and watch the plan-mode case delete the
   row. Depends: T-A2.1.
 - **T-A2.3 CLI TTY gate and `--permission-mode`.** Size S. Files:
-  `packages/cli-full/src/commands/agent.ts`, `packages/cli-full/src/chat-codeact.ts`,
-  `packages/cli-full/src/index.ts`, `docs/cli.md`. Acceptance: piped input runs
+  `packages/cli-chat/src/commands/agent.ts`, `packages/cli-chat/src/chat-codeact.ts`,
+  `packages/cli-chat/src/chat-entry.ts`, `docs/cli.md`. Acceptance: piped input runs
   `auto` and prints the notice once; a TTY run in `default` mode blocks on a
   `write` tool until answered; `a` persists for the session. Tests:
-  `packages/cli-full/tests/` with a fake stdin. Depends: T-A2.1, and lands after
+  `packages/cli-chat/tests/` with a fake stdin. Depends: T-A2.1, and lands after
   T-A3.2.
 - **T-A2.4 Docs.** Size S. `packages/agents/AGENTS.md` (a "Where the gate is
   set" table: host → mode → approver), `docs/AGENTS.md` § Tool System,
@@ -493,9 +493,9 @@ in two places.
 `checkpoint-store.ts`, `agent-policy.ts`, `security-monitor.ts:1-40`,
 `prompts/security-monitor-prompt.ts`, `workflow-agent.ts`,
 `execute-agent-graph.ts`, `index.ts:132-143, 430-431, 480-501, 845-854`,
-`packages/cli-full/src/commands/agent.ts:225-300`,
-`packages/cli-full/src/useExecutionState.ts:50, 86` (reads compiler
-`planning_update`s), `packages/cli-full/src/chat-codeact.ts` (the local CodeAct
+`packages/cli-chat/src/commands/agent.ts:225-300`,
+`packages/cli-chat/src/useExecutionState.ts:50, 86` (reads compiler
+`planning_update`s), `packages/cli-chat/src/chat-codeact.ts` (the local CodeAct
 turn the CLI already runs), `codeact/chat-codeact.ts`
 (`createChatCodeActSession`), `capabilities/agents.ts` (`create_plan`,
 `execute_plan`), `packages/agents/AGENTS.md` §§ "Plan Approval Gate",
@@ -543,13 +543,13 @@ survives), `memory-propagation.test.ts` (re-target to `execute_plan`).
   section in `docs/codeact-design.md` stating D1 and D2 with the call graph
   from §0 as evidence. No code. Depends: none.
 - **T-A3.2 Rewrite `nodetool agent run` on the CodeAct session.** Size M.
-  Files: `packages/cli-full/src/commands/agent.ts`, `packages/cli-full/src/chat-codeact.ts`
-  (share the session builder), `packages/cli-full/src/useExecutionState.ts`,
+  Files: `packages/cli-chat/src/commands/agent.ts`, `packages/cli-chat/src/chat-codeact.ts`
+  (share the session builder), `packages/cli-chat/src/useExecutionState.ts`,
   `docs/agent-cli.md`, `docs/cli.md`. Acceptance: `echo "list my workflows" |
   nodetool agent run -p <p> -m <m> --json` emits `tool_call_update` events for
   an `execute_code` action and exits 0 with the final text; a plan-shaped
   objective can reach `create_plan`/`execute_plan` (scripted provider test
-  asserting both appear on the belt). Tests: `packages/cli-full/tests/agent-command
+  asserting both appear on the belt). Tests: `packages/cli-chat/tests/agent-command
   .test.ts` with `ScriptedProvider`. Depends: T-A3.1.
 - **T-A3.3 Delete `Agent` and what only it wired.** Size L (deletion-heavy,
   exempt from C-4). Files: delete `agent.ts`, `compiler-agent.ts`,
@@ -767,10 +767,10 @@ narrow it, and a report.
 
 **Context.** `.github/workflows/agent-eval.yml` (this package's deliverable),
 `.github/workflows/app-build-eval.yml` (the report-only shape it borrows from),
-`.github/actions/setup-build`, `packages/cli-full/src/commands/eval.ts`
+`.github/actions/setup-build`, `packages/cli-harness/src/commands/eval.ts`
 (`EVAL_SUITES`, `evalGateFailures`, the `--min-success`/`--min-score` gates),
-`packages/cli-full/src/commands/jtbd.ts` (`--min-achieved`),
-`packages/agents/src/evals/`, `packages/cli-full/tests/eval-command.test.ts`.
+`packages/cli-harness/src/commands/jtbd.ts` (`--min-achieved`),
+`packages/agents/src/evals/`, `packages/cli-harness/tests/eval-command.test.ts`.
 
 Which cases can run for free is a property of the suite, and it decides what a
 maintainer can dispatch without spending anything: `nodetool eval <suite>

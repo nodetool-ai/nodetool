@@ -85,11 +85,11 @@ of each other. Inside a phase, tasks are listed in dependency order.
       headless equivalents in `packages/agents/src/capabilities/storyboards.ts`
       and their specs. Each new tool has a test in
       `web/src/lib/tools/builtin/__tests__/` and a row or gap note in
-      `packages/cli-full/src/harness/capability-table.ts`. `npm run
+      `packages/cli-harness/src/harness/capability-table.ts`. `npm run
       capabilities:check` passes. (PRD § 7.10)
 - [ ] **Harness registry.** Add the P1 pure suites to the
       `script-storyboard-link` entry in
-      `packages/cli-full/src/harness/registry.ts` so `harness gate` selects them
+      `packages/cli-harness/src/harness/registry.ts` so `harness gate` selects them
       for a diff under `web/src/lib/storyboard/` or
       `packages/protocol/src/shot-prompt.ts`. Confirm with `--dry-run` on a
       diff touching each.
@@ -457,7 +457,7 @@ of each other. Inside a phase, tasks are listed in dependency order.
 - [x] **Headless setup capabilities.** `ui_game_*`'s server mirrors in
       `packages/agents/src/capabilities/workflows.ts`, capability table rows,
       `npm run capabilities:check` green.
-- [x] **Harness.** `game-flow` entry in `packages/cli-full/src/harness/registry.ts`
+- [x] **Harness.** `game-flow` entry in `packages/cli-harness/src/harness/registry.ts`
       whose selfcheck runs the protocol suites, a `packages/base-nodes` suite
       that builds every chip's placement against the real registry and
       passes it through the validator (criterion 5), the game-nodes suite,

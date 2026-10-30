@@ -304,7 +304,7 @@ export const competitors: Competitor[] = [
       },
       {
         question: "How does automation compare between Higgsfield and NodeTool?",
-        answer: "Higgsfield offers a REST API, MCP, and CLI, which always bill per-generation credits (website \"Unlimited\" promos do not apply to API, MCP, or CLI calls), and its Terms of Use prohibit automated bots or scraping on the web app. NodeTool is licensed under AGPL-3.0 and designed for automation: run batches with ForEach nodes, execute workflows headlessly via the nodetool CLI, or connect Claude Code and Codex with nodetool mcp install.",
+        answer: "Higgsfield offers a REST API, MCP, and CLI, which always bill per-generation credits (website \"Unlimited\" promos do not apply to API, MCP, or CLI calls), and its Terms of Use prohibit automated bots or scraping on the web app. NodeTool is licensed under AGPL-3.0 and designed for automation: run batches with ForEach nodes, execute workflows headlessly via the nodetool CLI, or connect Claude Code and Codex with nodetool-mcp install.",
       },
       {
         question: "Is NodeTool affiliated with Higgsfield?",

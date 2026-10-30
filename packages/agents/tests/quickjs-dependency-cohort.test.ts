@@ -12,7 +12,7 @@ it("every QuickJS wrapper consumer keeps fresh installs in the WASM variant's mi
     catch (error) { if ((error as NodeJS.ErrnoException).code === "ENOENT") { return []; } throw error; }
     return manifest.dependencies?.["@sebastianwessel/quickjs"] ? [{ name: entry.name, manifest }] : [];
   });
-  expect(consumers.map(consumer => consumer.name).sort()).toEqual(["agents", "sandbox-compiler"]);
+  expect(consumers.map(consumer => consumer.name).sort()).toEqual(["agents", "sandbox-compiler", "sandbox-runtime"]);
   const variantCohort = metadata.variant.version.split(".").slice(0, 2).join(".");
   for (const { manifest } of consumers) {
     const range = manifest.dependencies["@sebastianwessel/quickjs"];

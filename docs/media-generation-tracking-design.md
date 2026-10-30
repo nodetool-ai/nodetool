@@ -99,7 +99,7 @@ Read with `packages/execution/src/cost-ledger.ts` and
   capabilities go through `runProviderPrediction`. The chat turn's direct
   generation (`packages/websocket/src/session/chat-turn.ts`), the
   `generate_media` RPC (`session/inference.ts`) and `nodetool generate`
-  (`packages/cli-full/src/commands/generate.ts`) call `provider.textToImage(...)`
+  (`packages/cli-workflow/src/commands/generate.ts`) call `provider.textToImage(...)`
   and friends directly, each with its own asset save and its own
   `Prediction.create`. BYOK direct generation writes no row by design.
 - **F6. 3D generation is off the books.** `TextTo3DNode` and `ImageTo3DNode`
@@ -467,7 +467,7 @@ staying out with the reason.
 | S3 | Workflow nodes through `runProviderPrediction` (`image-nodes`, `video-nodes`, `audio-nodes`, `video-nodes/script.ts`, `llm-nodes/shots.ts`) | seam, no persist, `autoSaveAsset` on the websocket host (`packages/websocket/src/session/asset-autosave.ts`, driven per `generation_complete`, deduped on `metadata.generation_index`) | unchanged call; origin defaults to the run. The node returns an inline ref, so the seam cannot name the asset. Linking goes the other way: the tracker keeps, per `(job_id, node_id)`, the generation ids it opened and has not linked; autosave asks for them when it saves that node's `generation_complete`, stamps `metadata.generation_ids` on the asset, and the tracker writes `asset_ids` on those rows. A node that made several generations in one invocation links all of them to the asset rather than guessing which one |
 | S4 | 3D nodes (`video-nodes/src/nodes/model3d/generation.ts`) | direct `provider.textTo3D` (F6) | `runGeneration` with the two new capabilities |
 | S5 | Chat turn direct generation (`chat-turn.ts handleMediaGenerationMessage`) and `generate_media` RPC (`inference.ts runDirectMediaGeneration`) | direct provider methods, own asset save, own `Prediction.create` (RPC) | `ctx.runGeneration` with `persist` and `origin: {surface: "chat" \| "rpc", thread_id}`; delete both local `storeAsset` helpers and the RPC's row write; BYOK gets a row, unpriced when the catalog has no price |
-| S6 | `nodetool generate` (`packages/cli-full/src/commands/generate.ts`) | direct provider methods, `node:fs` write, hand-rolled `recordGenerationSpend` | build a `ProcessingContext` (the CLI already does for `node run`), `runGeneration` with `origin: {surface: "cli"}`; `-o` still writes the file; the row and the asset come from the seam when a database is open |
+| S6 | `nodetool generate` (`packages/cli-workflow/src/commands/generate.ts`) | direct provider methods, `node:fs` write, hand-rolled `recordGenerationSpend` | build a `ProcessingContext` (the CLI already does for `node run`), `runGeneration` with `origin: {surface: "cli"}`; `-o` still writes the file; the row and the asset come from the seam when a database is open |
 | S7 | Provider node packages that drive an SDK themselves: `fal-nodes`, `kie-nodes`, `atlascloud-nodes`, `together-nodes`, `topaz-nodes`, `minimax-nodes`, `replicate-nodes`, `reve-nodes`, `huggingface-nodes`, `elevenlabs-nodes`, `integration-nodes/kie-dynamic.ts` | `setProviderCost` on FAL and kie only, `autoSaveAsset` for the media, no row for the rest | **Stays on the `node_update` path in this design.** Two fixes ship with it: kie passes `taskId` as `provider_request_id` (F4) and `fal-dynamic.ts` calls `reportFalCost` like `fal-factory.ts` does. Moving these packages behind the seam means giving `dispatchCapability` an endpoint-shaped request, which is its own design. The audit (§9) lists them as an allowed set so the debt is visible, not forgotten |
 
 ## 9. Audit
@@ -552,7 +552,7 @@ shape is unchanged apart from that field.
   drives the five capabilities and `background: true` through the headless
   run, and asserts a foreign user's row is invisible.
 - **Registry**: surface `generation-tracking` in
-  `packages/cli-full/src/harness/registry.ts` with paths
+  `packages/cli-harness/src/harness/registry.ts` with paths
   `packages/execution/src/generation-tracker.ts`,
   `packages/agents/src/capabilities/generations*.ts`,
   `packages/runtime/src/generation-receipt.ts`, covered by

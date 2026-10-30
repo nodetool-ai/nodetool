@@ -25,7 +25,7 @@ vi.mock("@nodetool-ai/models", async (orig) => {
   };
 });
 
-vi.mock("../src/lib/storage.js", async (orig) => {
+vi.mock("@nodetool-ai/asset-services/storage", async (orig) => {
   const actual = await orig<typeof import("../src/lib/storage.js")>();
   return {
     ...actual,

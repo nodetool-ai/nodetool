@@ -17,7 +17,7 @@ storageMocks.adapter.exists.mockImplementation(async (uri: string) =>
   storageMocks.existingKeys.has(uri.replace("file:///assets/", ""))
 );
 
-vi.mock("../src/lib/storage.js", () => ({
+vi.mock("@nodetool-ai/asset-services/storage", () => ({
   getAssetAdapter: () => storageMocks.adapter
 }));
 

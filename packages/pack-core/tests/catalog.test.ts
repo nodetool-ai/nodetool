@@ -4,11 +4,11 @@ import { loadPackLoaderContext, setPackLoaderContext, setPackLoaderContextProvid
 import type { CatalogPack, NodeCatalogIndex } from "../src/types.js";
 
 it("retains installation guidance for explicitly selectable CLI features", () => {
-  const pack: CatalogPack = { id: "cli-full", kind: "cli-feature", npm: { name: "@nodetool-ai/cli-full", version: "0.8.4", integrity: "sha512-fixture" }, registrar: "feature", provides: [], requires: [], runtimeLibraries: [], secrets: [], scriptAllowlist: [], installBytes: 0, nodeCount: 0 };
+  const pack: CatalogPack = { id: "cli-harness", kind: "cli-feature", npm: { name: "@nodetool-ai/cli-harness", version: "0.8.4", integrity: "sha512-fixture" }, registrar: "feature", provides: [], requires: [], runtimeLibraries: [], secrets: [], scriptAllowlist: [], installBytes: 0, nodeCount: 0 };
   const catalog: NodeCatalogIndex = { schemaVersion: 1, coreVersion: "0.8.4", packs: [pack], owners: {} };
-  const error = createMissingPackError("cli-full", [], { supported: true, reason: null, command: null }, catalog);
-  expect(error.details.install.command).toBe("nodetool packs add cli-full");
-  expect(error.details.packs[0]?.id).toBe("cli-full");
+  const error = createMissingPackError("cli-harness", [], { supported: true, reason: null, command: null }, catalog);
+  expect(error.details.install.command).toBe("nodetool packs add cli-harness");
+  expect(error.details.packs[0]?.id).toBe("cli-harness");
 });
 
 it("shares one admitted inventory across concurrent lazy loaders", async () => {
@@ -22,4 +22,10 @@ it("shares one admitted inventory across concurrent lazy loaders", async () => {
   } finally {
     setPackLoaderContext(undefined);
   }
+});
+
+it("offers an explicit install for missing formerly bundled core families", () => {
+  const packs: CatalogPack[] = ["text", "code", "data"].map(id => ({ id, kind: "core", npm: { name: `@nodetool-ai/${id}-nodes`, version: "0.8.4", integrity: "sha512-fixture" }, registrar: "register", provides: [], requires: [], runtimeLibraries: [], secrets: [], scriptAllowlist: [], installBytes: 0, nodeCount: 1 }));
+  const catalog: NodeCatalogIndex = { schemaVersion: 1, coreVersion: "0.8.4", packs, owners: {} };
+  expect(createMissingPackError(["text", "code", "data"], [], { supported: true, reason: null, command: null }, catalog).details.install.command).toBe("nodetool packs add code data text");
 });

@@ -3,18 +3,18 @@ name: Node Pack npm Matrix
 on:
   pull_request:
     paths:
-      - 'packages/cli-full/src/packs/**'
       - 'packages/pack-manager/**'
+      - 'packages/pack-manager/src/packs/**'
       - 'packages/pack-core/**'
-      - 'packages/cli-full/src/commands/pack-management.ts'
-      - 'packages/cli-full/src/commands/packs.ts'
-      - 'packages/cli-full/src/commands/pack-install-authorization.ts'
-      - 'packages/cli-full/src/npm-runner.ts'
-      - 'packages/cli-full/src/install-lock.ts'
-      - 'packages/cli-full/tests/packs/npm-matrix.test.ts'
-      - 'packages/cli-full/tests/packs/global-bootstrap.test.ts'
-      - 'packages/cli-full/tests/_helpers/pack-registry.ts'
-      - 'packages/cli-full/tests/_fixtures/npm-matrix-*.pem'
+      - 'packages/pack-manager/src/commands/pack-management.ts'
+      - 'packages/pack-manager/src/commands/packs.ts'
+      - 'packages/pack-manager/src/commands/pack-install-authorization.ts'
+      - 'packages/pack-manager/src/npm-runner.ts'
+      - 'packages/pack-manager/src/install-lock.ts'
+      - 'packages/pack-manager/tests/packs/npm-matrix.test.ts'
+      - 'packages/pack-manager/tests/packs/global-bootstrap.test.ts'
+      - 'packages/pack-manager/tests/_helpers/pack-registry.ts'
+      - 'packages/pack-manager/tests/_fixtures/npm-matrix-*.pem'
       - 'scripts/test-npm-matrix.mjs'
       - 'scripts/windows-long-cwd-probe.mjs'
       - 'scripts/windows-npm-bootstrap-check.mjs'
@@ -117,5 +117,5 @@ jobs:
           NODETOOL_NPM_MATRIX_EXPECT_ARCH: ${{ matrix.arch }}
         run: node scripts/test-npm-matrix.mjs
       - name: Verify initial global integrity bootstrap
-        working-directory: packages/cli-full
+        working-directory: packages/pack-manager
         run: node ../../scripts/run-vitest.mjs run tests/packs/global-bootstrap.test.ts

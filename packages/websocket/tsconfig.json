@@ -148,6 +148,24 @@
     },
     {
       "path": "../server-features"
+    },
+    {
+      "path": "../asset-services"
+    },
+    {
+      "path": "../document-services"
+    },
+    {
+      "path": "../workflow-services"
+    },
+    {
+      "path": "../pack-host"
+    },
+    {
+      "path": "../project-services"
+    },
+    {
+      "path": "../error-trace-services"
     }
   ]
 }

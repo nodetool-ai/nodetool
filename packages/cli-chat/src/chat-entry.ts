@@ -1,0 +1,315 @@
+#!/usr/bin/env node
+/**
+ * nodetool-chat — Entry point.
+ *
+ * Usage:
+ *   nodetool-chat                           # use saved/auto-detected settings
+ *   nodetool-chat --provider anthropic      # override provider
+ *   nodetool-chat --model claude-opus-4-6   # override model
+ *   nodetool-chat --agent                   # start in agent mode
+ *   nodetool-chat --workspace /path/to/dir  # set workspace directory
+ */
+
+import { initTelemetry, shutdownTelemetry } from "@nodetool-ai/runtime";
+import { program } from "commander";
+import { render } from "ink";
+import React from "react";
+import { App } from "./app.js";
+import { enterTerminalScreen } from "./terminal-screen.js";
+import { MouseInput } from "./terminal-mouse.js";
+import { loadSettings } from "./settings.js";
+import { installLocalModelInterfaces } from "@nodetool-ai/cli-execution/local-model-interfaces";
+import { runStdinMode } from "./stdin.js";
+import {
+  parsePermissionMode,
+  PERMISSION_MODE_NAMES
+} from "./permission-gate.js";
+import type { PermissionMode } from "@nodetool-ai/agents";
+import {
+  buildConfiguredProviders,
+  DEFAULT_MODELS,
+  KNOWN_PROVIDERS
+} from "@nodetool-ai/cli-providers";
+import { initDb, migrateSqliteDb } from "@nodetool-ai/models";
+import { initMasterKey } from "@nodetool-ai/security";
+import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
+import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { buildFullRegistry } from "@nodetool-ai/cli-execution/node-registry";
+import { initializeCliRuntime } from "@nodetool-ai/cli-common/runtime-env";
+import { configureCliPackHost } from "@nodetool-ai/cli-execution/packs/host";
+
+// Configure logging: in interactive mode, suppress non-error logs to a file
+// so they don't interfere with the Ink TUI. Env vars can still override.
+import { join } from "node:path";
+import { homedir } from "node:os";
+import { mkdirSync, readFileSync } from "node:fs";
+import { z } from "zod";
+import { isString } from "@nodetool-ai/cli-common/predicates";
+
+if (!process.env["NODETOOL_LOG_LEVEL"]) {
+  process.env["NODETOOL_LOG_LEVEL"] = "error";
+}
+if (!process.env["NODETOOL_LOG_FILE"]) {
+  const logDir = join(homedir(), ".nodetool");
+  mkdirSync(logDir, { recursive: true });
+  process.env["NODETOOL_LOG_FILE"] = join(logDir, "chat.log");
+}
+configureLogging();
+// Optional imports fall back to the root `nodetool runtime add` installs into.
+initializeCliRuntime(import.meta.url);
+configureCliPackHost(import.meta.resolve("@nodetool-ai/cli"));
+
+program
+  .name("nodetool-chat")
+  .description(
+    "NodeTool interactive chat CLI with multi-provider LLM support and agent mode"
+  )
+  .option(
+    "-p, --provider <provider>",
+    `LLM provider (${KNOWN_PROVIDERS.join(", ")})`
+  )
+  .option("-m, --model <model>", "Model ID")
+  .option(
+    "--resume [id]",
+    "Resume a saved session in this workspace (latest when no id is given)"
+  )
+  .option(
+    "-a, --agent [mode]",
+    "[deprecated] No-op — every chat session runs the unified loop"
+  )
+  .option("--no-agent", "[deprecated] No-op")
+  .option(
+    "-w, --workspace <path>",
+    "Workspace directory (default: current directory)"
+  )
+  .option("--tools <tools>", "Comma-separated list of enabled tools")
+  .option(
+    "-u, --url <url>",
+    "NodeTool server WebSocket URL (e.g. ws://localhost:7777/ws)"
+  )
+  .option(
+    "--no-read-only-search",
+    "Disable the read-only run_search fan-out primitive (on by default)"
+  )
+  .option(
+    "--permission-mode <mode>",
+    `Permission mode (${PERMISSION_MODE_NAMES.join(" | ")}); interactive defaults to default, piped input to auto`
+  )
+  .option(
+    "--cost-cap <usd>",
+    "Ceiling on provider spend for one turn, shared by every loop it starts; " +
+      "0 lifts it (default: NODETOOL_AGENT_TURN_COST_CAP_USD)"
+  )
+  .option(
+    "--timeout <s>",
+    "Wall-clock bound on one turn in seconds; 0 leaves it no time at all " +
+      "(default: NODETOOL_AGENT_TURN_DEADLINE_MS)"
+  )
+  .option(
+    "--trace-file <path>",
+    "Append every LLM/agent/workflow span as JSONL to <path> (analyzer-friendly)"
+  )
+  .option(
+    "--trace-stdout [format]",
+    "Stream spans to stdout: 'pretty' (default, human-readable) or 'json' (JSONL)"
+  )
+  .option(
+    "--no-trace-stdout",
+    "Disable stdout span output (overrides NODETOOL_TRACE_STDOUT)"
+  )
+  .helpOption("-h, --help", "Show help")
+  .version(z.object({version:z.string()}).parse(JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"))).version)
+  .parse();
+
+const opts = program.opts<{
+  provider?: string;
+  model?: string;
+  resume?: string | boolean;
+  agent?: boolean | string;
+  workspace?: string;
+  tools?: string;
+  url?: string;
+  readOnlySearch?: boolean;
+  permissionMode?: string;
+  costCap?: string;
+  timeout?: string;
+  traceFile?: string;
+  traceStdout?: string | boolean;
+}>();
+
+// Refused before anything starts: a mode nobody recognizes must not fall back
+// to a default the user did not ask for.
+let permissionMode: PermissionMode | undefined;
+try {
+  permissionMode = parsePermissionMode(opts.permissionMode);
+} catch (err) {
+  process.stderr.write(`${err instanceof Error ? err.message : String(err)}\n`);
+  process.exit(1);
+}
+
+const traceStdout = opts.traceStdout ?? process.env["NODETOOL_TRACE_STDOUT"];
+if (process.stdin.isTTY && traceStdout !== undefined && parseTraceStdout(traceStdout)) {
+  process.stderr.write("Fullscreen chat uses stdout for its screen. Use --trace-file <path> and --no-trace-stdout for tracing.\n");
+  process.exit(1);
+}
+
+// Initialize OpenLLMetry before any LLM SDK calls are made. Honors CLI flags
+// and env vars (TRACELOOP_API_KEY, OTEL_EXPORTER_OTLP_ENDPOINT,
+// NODETOOL_TRACE_FILE, NODETOOL_TRACE_STDOUT). Registered run recording is always on.
+await initTelemetry({
+  ...(opts.traceFile && { traceFile: opts.traceFile }),
+  ...(opts.traceStdout !== undefined && {
+    stdout: parseTraceStdout(opts.traceStdout)
+  })
+});
+
+function parseTraceStdout(v: string | boolean): "pretty" | "json" | false {
+  if (v === false) return false;
+  if (v === true) return "pretty";
+  if (isString(v)) {
+    const lower = v.toLowerCase();
+    if (lower === "false" || lower === "0" || lower === "no") return false;
+    if (lower === "json") return "json";
+    if (lower === "pretty" || lower === "true" || lower === "1")
+      return "pretty";
+  }
+  throw new Error(
+    `--trace-stdout must be 'pretty' or 'json' (got ${JSON.stringify(v)})`
+  );
+}
+
+try {
+  const dbPath = getDefaultDbPath();
+  await migrateSqliteDb(dbPath);
+  initDb(dbPath);
+} catch {
+  // DB unavailable — secret lookups will fall back to env vars
+}
+
+// Resolve the master encryption key NOW (before Ink takes over the terminal)
+// so any first-time keychain prompt is visible to the user, and so that the
+// first secret lookup during a chat message doesn't race against keychain
+// initialization. Failures are surfaced clearly to stderr — silently falling
+// back to env-only would mask DB-stored secrets and produce confusing
+// "API_KEY is not configured" errors deep in provider construction.
+try {
+  await initMasterKey();
+} catch (err) {
+  const msg = err instanceof Error ? err.message : String(err);
+  process.stderr.write(
+    `[chat-cli] Could not unlock the secret store: ${msg}\n` +
+      `[chat-cli] Falling back to environment variables for API keys.\n` +
+      `[chat-cli] Tip: set SECRETS_MASTER_KEY or grant keychain access to enable DB-stored secrets.\n`
+  );
+}
+
+// The same persistence a local workflow run gets, for every context this
+// process builds (chat turns build their own on top; a sub-agent's does not).
+await installLocalModelInterfaces();
+
+// Load persisted settings and merge with CLI flags
+const settings = await loadSettings();
+
+const provider = opts.provider ?? settings.provider;
+const model =
+  opts.model ??
+  (opts.provider
+    ? (DEFAULT_MODELS[opts.provider] ?? settings.model)
+    : settings.model);
+
+// `--agent` and the persisted `agentMode` setting are deprecated no-ops —
+// every chat session now runs the unified LLM-with-tools loop, and the
+// agent decides for itself whether to decompose via `run_subtask`. The flag
+// is still accepted for backwards compatibility; a warning is emitted when
+// it is used.
+if (opts.agent !== undefined) {
+  // eslint-disable-next-line no-console
+  console.error(
+    "Warning: --agent is deprecated and has no effect — the unified chat agent always runs."
+  );
+}
+
+const workspace = opts.workspace ?? process.cwd();
+// `--tools` narrows the belt to the names given. Without it the chat offers the
+// full belt, as a server chat turn does.
+const enabledTools = opts.tools
+  ? opts.tools.split(",").map((t) => t.trim())
+  : undefined;
+
+// The full node registry, which also installs the sandbox pack catalog. Only
+// when running locally (no --url): the server has its own.
+const cliRegistry: NodeRegistry | undefined = opts.url
+  ? undefined
+  : await buildFullRegistry();
+
+// Build configured providers unconditionally so `find_model` and the
+// media-generation tools (generate_image, generate_speech, etc.) are
+// available to ANY agent loop — multi-task or graph — even without a
+// registry.
+const cliAgentProviders = await buildConfiguredProviders();
+
+// Stdin mode: activated when stdin is piped (not a TTY)
+if (!process.stdin.isTTY) {
+  let exitCode = 1;
+  try {
+    exitCode = await runStdinMode({
+      provider,
+      model,
+      workspaceDir: workspace,
+      wsUrl: opts.url,
+      registry: cliRegistry,
+      agentProviders: cliAgentProviders,
+      enableReadOnlySearch: opts.readOnlySearch !== false,
+      ...(permissionMode !== undefined && { permissionMode }),
+      ...(opts.costCap !== undefined && { costCap: opts.costCap }),
+      ...(opts.timeout !== undefined && { timeout: opts.timeout })
+    });
+  } finally {
+    await shutdownTelemetry();
+  }
+  process.exit(exitCode);
+}
+
+const restoreScreen = enterTerminalScreen(process.stdout);
+const mouseInput = new MouseInput(process.stdin);
+process.once("exit", restoreScreen);
+const terminate = (): void => {
+  restoreScreen();
+  process.exit(143);
+};
+process.once("SIGTERM", terminate);
+try {
+  const { waitUntilExit } = render(
+    React.createElement(App, {
+      initialProvider: provider,
+      initialModel: model,
+      enabledTools,
+      workspaceDir: workspace,
+      wsUrl: opts.url,
+      registry: cliRegistry,
+      agentProviders: cliAgentProviders,
+      permissionMode,
+      enableReadOnlySearch: opts.readOnlySearch !== false,
+      resume: opts.resume,
+      mouseEvents: mouseInput.events,
+      ...(opts.costCap !== undefined && { costCap: opts.costCap }),
+      ...(opts.timeout !== undefined && { timeout: opts.timeout })
+    }),
+    {
+      // Ink requires ReadStream, while this forwarding stream supplies its TTY methods.
+      // oxlint-disable-next-line anti-slop/no-chained-type-assertions
+      stdin: mouseInput as unknown as NodeJS.ReadStream,
+      exitOnCtrlC: false,
+      kittyKeyboard: { mode: "auto" }
+    }
+  );
+
+  await waitUntilExit();
+} finally {
+  restoreScreen();
+  mouseInput.close();
+  process.off("exit", restoreScreen);
+  process.off("SIGTERM", terminate);
+  await shutdownTelemetry();
+}
+process.exit(0);

@@ -1,7 +1,7 @@
 /**
  * `nodetool reliability` orchestration (§12's package-diagram `cli.ts`).
- * `packages/cli-full/src/commands/reliability.ts` is a thin Commander wrapper over
- * this module — same split as the debug harness (`packages/cli-full/src/debug/`
+ * `packages/cli-harness/src/commands/reliability.ts` is a thin Commander wrapper over
+ * this module — same split as the debug harness (`packages/cli-workflow/src/debug/`
  * does the work, `commands/debug.ts` just parses flags and prints).
  */
 import { existsSync } from "node:fs";

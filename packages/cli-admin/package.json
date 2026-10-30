@@ -1,0 +1,73 @@
+{
+  "name": "@nodetool-ai/cli-admin",
+  "version": "0.8.4",
+  "description": "Independent NodeTool admin command module",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "nodetool-dev": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./*": {
+      "nodetool-dev": "./src/*.ts",
+      "types": "./dist/*.d.ts",
+      "import": "./dist/*.js",
+      "default": "./dist/*.js"
+    }
+  },
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "test": "node ../../scripts/run-vitest.mjs run",
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^8.5.2",
+    "@nodetool-ai/analytics": "*",
+    "@nodetool-ai/browser": "*",
+    "@nodetool-ai/cli-common": "*",
+    "@nodetool-ai/cli-local": "*",
+    "@nodetool-ai/compute": "*",
+    "@nodetool-ai/config": "*",
+    "@nodetool-ai/deploy": "*",
+    "@nodetool-ai/huggingface": "*",
+    "@nodetool-ai/models": "*",
+    "@nodetool-ai/node-sdk": "*",
+    "@nodetool-ai/pack-manager": "*",
+    "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/sandbox-compiler": "*",
+    "@nodetool-ai/security": "*",
+    "@nodetool-ai/storage": "*",
+    "@nodetool-ai/telegram": "*",
+    "commander": "^12.1.0",
+    "js-yaml": "^4.3.2",
+    "postgres": "^3.4.7",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "vitest": "^5.0.1",
+    "@types/js-yaml": "^4.0.9"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/cli-admin"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
+}

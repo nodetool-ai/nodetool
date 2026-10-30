@@ -4,7 +4,7 @@ import { Check, Copy } from "lucide-react";
 import { track } from "../../lib/analytics";
 
 export const MCP_INSTALL_COMMAND =
-  "npx -y --package=@nodetool-ai/cli nodetool mcp install";
+  "npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp install";
 
 export default function McpInstallCommand({ placement }: { placement: string }) {
   const [copied, setCopied] = useState(false);

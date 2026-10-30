@@ -33,7 +33,7 @@ import { initTestDb, Job } from "@nodetool-ai/models";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 // Autosave persists bytes to storage; make that a no-op so tests touch only DB.
-vi.mock("../src/lib/thumbnail.js", () => ({
+vi.mock("@nodetool-ai/asset-services/thumbnail", () => ({
   storeAssetWithThumbnail: vi.fn(async () => undefined)
 }));
 

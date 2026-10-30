@@ -36,17 +36,16 @@ export async function prepareTreeVerification(selection: InstallSelection, cliRo
   const pins: readonly VerificationPin[] = [...packs.map((pack) => pack.npm), ...provided, ...runtimePins, ...packs.flatMap((pack) => pack.scriptAllowlist),
     ...shared.filter((pin) => before.some((entry) => entry.name === pin.name))];
   if (pins.some((pin) => !pin.integrity || pin.integrity === "PENDING")) { throw new Error("Installation requires published integrity pins"); }
-  const packNames = new Set(catalog.packs.filter((pack) => pack.kind !== "core").flatMap((pack) => [pack.npm.name, ...pack.provides]));
-  const coreNames = new Set([...before.filter((entry) => entry.name.startsWith("@nodetool-ai/") && !packNames.has(entry.name)).map((entry) => entry.name),
-    ...catalog.packs.filter((pack) => pack.kind === "core" && before.some(entry => entry.name === pack.npm.name)).map((pack) => pack.npm.name)]);
-  const dependencySchema = z.object({ dependencies: z.record(z.string(), z.string()).optional(),
+  const packNames = new Set(catalog.packs.flatMap((pack) => [pack.npm.name, ...pack.provides]));
+  const coreNames = new Set([...before.filter((entry) => entry.name.startsWith("@nodetool-ai/") && !packNames.has(entry.name)).map((entry) => entry.name)]);
+  const dependencySchema = z.object({ name: z.string().optional(), dependencies: z.record(z.string(), z.string()).optional(),
     optionalDependencies: z.record(z.string(), z.string()).optional(), peerDependencies: z.record(z.string(), z.string()).optional(),
     peerDependenciesMeta: z.record(z.string(), z.object({ optional: z.boolean().optional() })).optional() });
   for (const directory of [cliRoot, ...before.filter((entry) => coreNames.has(entry.name)).map((entry) => entry.realPath)]) {
     const manifest = dependencySchema.parse(JSON.parse(await readFile(join(directory, "package.json"), "utf8")));
     const requiredPeers = Object.keys(manifest.peerDependencies ?? {}).filter((name) => !manifest.peerDependenciesMeta?.[name]?.optional);
     for (const name of [...Object.keys({ ...manifest.dependencies, ...manifest.optionalDependencies }), ...requiredPeers]) {
-      if (name.startsWith("@nodetool-ai/") && !packNames.has(name)) { coreNames.add(name); }
+      if (name.startsWith("@nodetool-ai/") && ((directory === cliRoot && manifest.name === "@nodetool-ai/cli") || !packNames.has(name))) { coreNames.add(name); }
     }
   }
   if (initialGlobalLockMissing) {

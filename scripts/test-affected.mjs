@@ -409,7 +409,7 @@ async function main(argv) {
   // The mapping module is pure and imports nothing; Node strips its types, so
   // this reuses the harness logic instead of copying it.
   const { computeAffected, EXTRA_WORKSPACE_PATHS } = await import(
-    pathToFileURL(join(repoRoot, "packages/cli-full/src/affected/affected.ts")).href
+    pathToFileURL(join(repoRoot, "packages/cli-harness/src/affected/affected.ts")).href
   );
 
   let steps;

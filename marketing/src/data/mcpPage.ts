@@ -6,7 +6,7 @@ import type { QaPair } from "@/lib/jsonld";
  * directory listings, so keep it to what the server does today.
  *
  * Checked against docs/mcp-server.md, docs/cli.md ("What the MCP server
- * exposes"), packages/cli-full/src/commands/mcp.ts, and the belt in
+ * exposes"), packages/cli-mcp/src/commands/mcp.ts, and the belt in
  * packages/agents/src/tools/builtin-tools.ts and mcp-tools.ts.
  */
 
@@ -17,14 +17,14 @@ export const MCP_DESCRIPTION =
 export const MCP_LEAD =
   "NodeTool runs as an open-source MCP server. Add it to Claude Code, Codex, OpenCode, Cursor, or Claude Desktop, and your agent can generate images, video, speech, and music, then put them into documents you can open and edit: storyboards, timelines, scripts, sketches, games, and workflows. It runs on your own provider keys. The desktop app is optional.";
 
-export const MCP_INSTALL = "npx -y --package=@nodetool-ai/cli-full nodetool-full mcp install";
+export const MCP_INSTALL = "npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp install";
 
 export const CLIENT_ROWS: { client: string; setup: string }[] = [
-  { client: "Claude Code", setup: "Configured by nodetool-full mcp install, in user scope for every project." },
-  { client: "Codex", setup: "Configured by nodetool-full mcp install, with a 900-second tool timeout for long video jobs." },
-  { client: "OpenCode", setup: "Configured by nodetool-full mcp install." },
-  { client: "Cursor, Windsurf, and other clients", setup: "Run nodetool-full mcp config and paste the mcpServers block it prints." },
-  { client: "Claude Desktop", setup: "Paste the nodetool-full mcp config block, or install the bundled extension from Studio under Settings, MCP Servers." },
+  { client: "Claude Code", setup: "Configured by nodetool-mcp install, in user scope for every project." },
+  { client: "Codex", setup: "Configured by nodetool-mcp install, with a 900-second tool timeout for long video jobs." },
+  { client: "OpenCode", setup: "Configured by nodetool-mcp install." },
+  { client: "Cursor, Windsurf, and other clients", setup: "Run nodetool-mcp config and paste the mcpServers block it prints." },
+  { client: "Claude Desktop", setup: "Paste the nodetool-mcp config block, or install the bundled extension from Studio under Settings, MCP Servers." },
 ];
 
 export const CAPABILITY_GROUPS: { title: string; body: string }[] = [
@@ -65,8 +65,8 @@ export const DIRECT_TOOLS: { name: string; purpose: string }[] = [
 ];
 
 export const TRANSPORT_ROWS: { mode: string; detail: string }[] = [
-  { mode: "stdio (default)", detail: "nodetool-full mcp serve. When Studio or a NodeTool server runs on 127.0.0.1:7777, requests go to it and open editors show the agent's changes live. Otherwise it runs on its own over the default data directory." },
-  { mode: "HTTP", detail: "nodetool-full mcp install --http points the client at http://127.0.0.1:7777/mcp while the server runs." },
+  { mode: "stdio (default)", detail: "nodetool-mcp serve. When Studio or the classic API server runs on 127.0.0.1:7777, requests go to it and open editors show the agent's changes live. Otherwise it runs on its own over the default data directory." },
+  { mode: "HTTP", detail: "nodetool-mcp install --http points the client at http://127.0.0.1:7777/mcp while the classic API server runs." },
   { mode: "Remote server", detail: "Create an access token in Settings, MCP Servers, Connect an agent remotely, and point the client at that server." },
 ];
 
@@ -100,7 +100,7 @@ export const MCP_FAQ: QaPair[] = [
   {
     question: "Do I need the desktop app?",
     answer:
-      "No. Without a running NodeTool server, nodetool-full mcp serve runs on its own. With Studio open, requests go to it and you watch the agent's edits happen in the editor.",
+      "No. Without a running classic API server, nodetool-mcp serve runs on its own. With Studio open, requests go to it and you watch the agent's edits happen in the editor.",
   },
   {
     question: "Can I use it from a script or CI?",
@@ -116,5 +116,5 @@ export const MCP_LINKS: { label: string; href: string }[] = [
   { label: "Developer page: CLI, REST, and self-hosting", href: "/developers" },
   { label: "Build games from Claude Code", href: "/gamedev" },
   { label: "AI video editor", href: "/ai-video-editor" },
-  { label: "Package on npm", href: "https://www.npmjs.com/package/@nodetool-ai/cli-full" },
+  { label: "Package on npm", href: "https://www.npmjs.com/package/@nodetool-ai/cli-mcp" },
 ];

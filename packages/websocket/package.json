@@ -63,7 +63,13 @@
     "undici": "^7.30.1",
     "zod": "^4.0.0",
     "@nodetool-ai/antigravity-cli": "*",
-    "@nodetool-ai/server-features": "*"
+    "@nodetool-ai/server-features": "*",
+    "@nodetool-ai/asset-services": "*",
+    "@nodetool-ai/document-services": "*",
+    "@nodetool-ai/workflow-services": "*",
+    "@nodetool-ai/pack-host": "*",
+    "@nodetool-ai/project-services": "*",
+    "@nodetool-ai/error-trace-services": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

@@ -76,7 +76,7 @@ Implementation is assembly, not new machinery:
   from the inline document with graphs loaded per operation via
   `Workflow.find(userId, id).getGraph()`. The `application_id` path needs the
   application-row resolution that today lives in
-  `packages/cli-full/src/app-debug/app-target.ts` (`resolveApplication`,
+  `packages/cli-apps/src/app-debug/app-target.ts` (`resolveApplication`,
   `hostGraphFor`). Move that piece into `@nodetool-ai/execution/app-debug`
   with its loaders injected — the same relocation the build-harness design
   did for the simulator itself, for the same reason: CLI and server surfaces

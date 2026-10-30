@@ -6,12 +6,12 @@ import { verifyPackLoads } from "../src/packs/installer-load-check.js";
 import type { CatalogPack, NodeCatalogIndex } from "@nodetool-ai/pack-core";
 import type { InstalledPackSnapshot } from "../src/packs/installed.js";
 
-it("verifies an independently installed node pack without cli-full and rejects SDK identity and catalog mismatches", async () => {
+it.each(["node-pack", "core"] as const)("verifies independently installed %s nodes and rejects SDK identity and catalog mismatches", async (kind) => {
   const root = await mkdtemp(join(tmpdir(), "independent-node-pack-"));
   const sdkRoot = join(root, "node_modules/@nodetool-ai/node-sdk");
   const packRoot = join(root, "node_modules/@nodetool-ai/fixture-nodes");
   const version = "0.8.4";
-  const pack: CatalogPack = { id: "fixture", kind: "node-pack", npm: { name: "@nodetool-ai/fixture-nodes", version, integrity: "sha512-fixture" }, registrar: "register", provides: [], requires: [], runtimeLibraries: [], secrets: [], scriptAllowlist: [], installBytes: 0, nodeCount: 1 };
+  const pack: CatalogPack = { id: "fixture", kind, npm: { name: "@nodetool-ai/fixture-nodes", version, integrity: "sha512-fixture" }, registrar: "register", provides: [], requires: [], runtimeLibraries: [], secrets: [], scriptAllowlist: [], installBytes: 0, nodeCount: 1 };
   const catalog: NodeCatalogIndex = { schemaVersion: 1, coreVersion: version, packs: [pack], owners: { "fixture.Node": "fixture" }, installPins: [{ name: "@nodetool-ai/node-sdk", version, integrity: "sha512-sdk", shared: true }] };
   const mode = { kind: "local" as const, cliRoot: root, installRoot: root, nodeModulesRoot: join(root, "node_modules"), coreVersion: version, pathStyle: "posix" as const };
   const snapshot: InstalledPackSnapshot = { mode, packs: [{ id: pack.id, npm: pack.npm.name, version, packageRoot: packRoot, realPackageRoot: packRoot, providedPackages: [] }], wrongVersions: [], invalidPackages: [] };

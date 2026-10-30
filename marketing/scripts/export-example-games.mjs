@@ -36,7 +36,7 @@ try {
     const documentPath = join(scratch, `${game.slug}.json`);
     await writeFile(documentPath, JSON.stringify(example.document));
     const output = join(scratch, `${game.slug}-web`);
-    const result = await run(process.execPath, [join(root, "packages/cli-full/dist/nodetool.js"), "game", "build", documentPath, "--assets-dir", assetsDir, "--out", output]);
+    const result = await run(process.execPath, [join(root, "packages/cli-game/dist/nodetool.js"), "game", "build", documentPath, "--assets-dir", assetsDir, "--out", output]);
     process.stdout.write(result.stdout);
     await copyFile(join(root, `packages/base-nodes/nodetool/assets/nodetool-base/games/${game.slug}/poster.jpg`), join(output, "poster.jpg"));
     const mediaDir = join(root, `packages/base-nodes/nodetool/assets/nodetool-base/games/${game.slug}`);

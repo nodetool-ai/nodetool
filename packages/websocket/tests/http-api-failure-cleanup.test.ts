@@ -17,7 +17,7 @@ import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 
 const storeMock = vi.fn(async () => undefined);
 
-vi.mock("../src/lib/thumbnail.js", async () => {
+vi.mock("@nodetool-ai/asset-services/thumbnail", async () => {
   const actual = await vi.importActual<
     typeof import("../src/lib/thumbnail.js")
   >("../src/lib/thumbnail.js");

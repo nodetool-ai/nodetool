@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { computeAffected } from "../../packages/cli-full/src/affected/affected.ts";
+import { computeAffected } from "../../packages/cli-harness/src/affected/affected.ts";
 import { buildGateArgv, buildPlan, DOC_ONLY, MOBILE_DEPS } from "../test-affected.mjs";
 
 /** web and electron are named after the product, not their directories. */

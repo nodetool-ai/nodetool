@@ -141,11 +141,11 @@ jobs:
   #        `next build`s cost minutes each and belong to deploys, not
   #        the PR gate.
   #     8. `npm run capabilities:check` — the capability coverage table
-  #        (packages/cli-full/src/harness/capability-table.ts) regenerated
+  #        (packages/cli-harness/src/harness/capability-table.ts) regenerated
   #        from the live registry and diffed against the checked-in one.
   #        Fails on a capability with no suite, no eval case and no gap
   #        note, and on a table the diff left stale. Imports
-  #        packages/cli-full/dist and packages/agents/dist, both in the
+  #        packages/cli-harness/dist and packages/agents/dist, both in the
   #        `build` job's artifact; nothing else ran it, so the invariant
   #        packages/agents/AGENTS.md documents held only when someone
   #        remembered to run it by hand.
@@ -327,7 +327,7 @@ jobs:
             },
             {
               "check": "test-packages-core",
-              "command": "npm run test:oxlint-rules && npm run test:scripts && npx turbo run test --filter='./packages/*' --filter='./reliability/*' --filter='!./packages/*-nodes' --filter='!@nodetool-ai/gpu' --filter='!@nodetool-ai/workflow-runner' --filter='!@nodetool-ai/nodes-utils' --filter='!@nodetool-ai/websocket' --filter='!@nodetool-ai/agents' --filter='!@nodetool-ai/game-runtime' --filter='!@nodetool-ai/game-renderer' --filter='!@nodetool-ai/cli' --concurrency=2 $TURBO_AFFECTED",
+              "command": "npm run test:oxlint-rules && npm run test:scripts && npx turbo run test --filter='./packages/*' --filter='./reliability/*' --filter='!./packages/*-nodes' --filter='!@nodetool-ai/gpu' --filter='!@nodetool-ai/workflow-runner' --filter='!@nodetool-ai/nodes-utils' --filter='!@nodetool-ai/websocket' --filter='!@nodetool-ai/agents' --filter='!@nodetool-ai/game-runtime' --filter='!@nodetool-ai/game-renderer' --filter='!@nodetool-ai/cli-game' --concurrency=2 $TURBO_AFFECTED",
               "mobile-deps": "false",
               "extra-apt": "mesa-vulkan-drivers",
               "is-test": "true",
@@ -337,7 +337,7 @@ jobs:
             },
             {
               "check": "test-packages-game",
-              "command": "npx turbo run test --filter=@nodetool-ai/game-runtime --filter=@nodetool-ai/game-renderer --filter=@nodetool-ai/cli --concurrency=1 $TURBO_AFFECTED",
+              "command": "npx turbo run test --filter=@nodetool-ai/game-runtime --filter=@nodetool-ai/game-renderer --filter=@nodetool-ai/cli-game --concurrency=1 $TURBO_AFFECTED",
               "mobile-deps": "false",
               "extra-apt": "mesa-vulkan-drivers",
               "is-test": "true",
@@ -525,7 +525,7 @@ jobs:
   #
   # `harness-gate` runs `nodetool harness gate` (docs/HARNESS_FIRST.md § The
   # gate): it maps the diff against `inputs.base-sha` onto the surfaces in
-  # `packages/cli-full/src/harness/registry.ts` and runs the keyless selfcheck of
+  # `packages/cli-harness/src/harness/registry.ts` and runs the keyless selfcheck of
   # every harness covering a touched surface — the diff selects the checks,
   # not this file. This is what replaced the old `reliability:ring0` half of
   # the old `bundle` leg (still runs on any diff touching `packages/kernel/` —

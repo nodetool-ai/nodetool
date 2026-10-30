@@ -115,7 +115,8 @@ This plan turns the design into ordered, reviewable PRs with file-level targets 
 
 - `packages/websocket/src/trpc/routers/triggers.ts` — list, create, update, delete, fire now, by tag
 - `packages/automation-nodes/src/nodes/trigger-admin.ts` — a node that creates, updates, and deletes registrations (use case 17)
-- `packages/cli-full/src/commands/triggers.ts` — `nodetool triggers list|create|fire|disable`
+- A new `triggers.ts` module under `packages/cli-workflow/src/commands/` —
+  `nodetool triggers list|create|fire|disable`
 - tests for each
 
 **Exit criteria**

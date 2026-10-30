@@ -4,60 +4,99 @@ import { tmpdir } from "node:os";
 import { describe, expect, it, vi } from "vitest";
 import { createSqliteRepository } from "@nodetool-ai/database-sqlite";
 import { encrypt } from "@nodetool-ai/security-core";
-import { loadInstalledCliFeature } from "@nodetool-ai/pack-manager";
+import { loadInstalledCommandFeature } from "@nodetool-ai/pack-manager";
 import { createProgram, runCli } from "../src/lean/program.js";
 
 vi.mock("@nodetool-ai/pack-manager", async importOriginal => ({
   ...await importOriginal<typeof import("@nodetool-ai/pack-manager")>(),
-  loadInstalledCliFeature: vi.fn()
+  loadInstalledCommandFeature: vi.fn()
 }));
 
 describe("lean execution CLI", () => {
-  it("dispatches explicitly selected full commands without requiring a globally linked full binary", async () => {
+  it("routes the legacy workflow code migration to its administrator feature", async () => {
     const run = vi.fn(async (_argv: readonly string[]) => {});
-    vi.mocked(loadInstalledCliFeature).mockResolvedValueOnce({ run });
-    await runCli(["node", "nodetool", "full", "serve", "--port", "0"]);
-    expect(run).toHaveBeenCalledWith(["node", "nodetool", "serve", "--port", "0"]);
+    vi.mocked(loadInstalledCommandFeature).mockResolvedValueOnce({ run });
+    const argv = ["node", "nodetool", "workflows", "migrate-code-inputs", "--dry-run", "--json"];
+    await runCli(argv);
+    expect(loadInstalledCommandFeature).toHaveBeenLastCalledWith(expect.any(String), "cli-admin");
+    expect(run).toHaveBeenCalledWith(argv.slice(2));
   });
-  it.each(["eval", "jsscript"])("admits full-only %s commands with original flags before parsing", async command => {
+  it.each([["--trace-file", "trace.json"], ["--trace-stdout", "json"], ["--no-trace-stdout"]])("routes workflow tracing flags %s to its explicit command feature", async (...flags) => {
     const run = vi.fn(async (_argv: readonly string[]) => {});
-    vi.mocked(loadInstalledCliFeature).mockResolvedValueOnce({ run });
+    vi.mocked(loadInstalledCommandFeature).mockResolvedValueOnce({ run });
+    const argv = ["node", "nodetool", ...flags, "run", "workflow.json", "--json"];
+    await runCli(argv);
+    expect(loadInstalledCommandFeature).toHaveBeenLastCalledWith(expect.any(String), "cli-workflow");
+    expect(run).toHaveBeenCalledWith(argv.slice(2));
+  });
+  it("reports system info and credential presence without exposing values", async () => {
+    const output: string[] = [];
+    await createProgram({ env: { OPENAI_API_KEY: "private-fixture", PORT: "8000" }, stdout: value => output.push(value) }).parseAsync(["node", "nodetool", "info", "--json"]);
+    expect(JSON.parse(output.join(""))).toMatchObject({ node_version: process.version, platform: process.platform, arch: process.arch, api_keys: { OPENAI_API_KEY: "configured", ANTHROPIC_API_KEY: "not set" }, environment: { PORT: "8000" } });
+    expect(output.join("")).not.toContain("private-fixture");
+  });
+  it("selects one admitted feature for overlapping optional command flags", async () => {
+    const run = vi.fn(async (_argv: readonly string[]) => {});
+    vi.mocked(loadInstalledCommandFeature).mockResolvedValueOnce({ run });
+    await runCli(["node", "nodetool", "feature", "cli-workflow", "workflows", "run", "workflow.json", "--json"]);
+    expect(loadInstalledCommandFeature).toHaveBeenLastCalledWith(expect.any(String), "cli-workflow");
+    expect(run).toHaveBeenCalledWith(["workflows", "run", "workflow.json", "--json"]);
+  });
+  it("dispatches only the selected server command feature", async () => {
+    const run = vi.fn(async (_argv: readonly string[]) => {});
+    vi.mocked(loadInstalledCommandFeature).mockResolvedValueOnce({ run });
+    await runCli(["node", "nodetool", "server", "serve", "--port", "0"]);
+    expect(loadInstalledCommandFeature).toHaveBeenLastCalledWith(expect.any(String), "cli-server");
+    expect(run).toHaveBeenCalledWith(["serve", "--port", "0"]);
+  });
+  it("does not use an aggregate feature as a fallback for unknown commands", async () => {
+    const calls = vi.mocked(loadInstalledCommandFeature).mock.calls.length;
+    const exit = vi.spyOn(process, "exit").mockImplementation(() => { throw new Error("Unknown command rejected"); });
+    try { await expect(runCli(["node", "nodetool", "full", "serve"])).rejects.toThrow("Unknown command rejected"); }
+    finally { exit.mockRestore(); }
+    expect(loadInstalledCommandFeature).toHaveBeenCalledTimes(calls);
+  });
+  it.each(["eval", "jsscript"])("admits feature-specific %s commands with original flags before parsing", async command => {
+    const run = vi.fn(async (_argv: readonly string[]) => {});
+    vi.mocked(loadInstalledCommandFeature).mockResolvedValueOnce({ run });
     const argv = ["node", "nodetool", command, "test", "--json", "fixture"];
     await runCli(argv);
-    expect(run).toHaveBeenCalledWith(argv);
+    expect(loadInstalledCommandFeature).toHaveBeenLastCalledWith(expect.any(String), command === "eval" ? "cli-harness" : "cli-script");
+    expect(run).toHaveBeenCalledWith(argv.slice(2));
   });
-  it("reports missing authored-source feature before parsing its full-only flags", async () => {
-    vi.mocked(loadInstalledCliFeature).mockRejectedValueOnce(Object.assign(new Error("Install cli-full"), { code: "FEATURE_NOT_INSTALLED", featureIds: ["cli-full"] }));
-    await expect(runCli(["node", "nodetool", "--api-url", "http://localhost:7777", "run", "not-present.mts", "--json"])).rejects.toMatchObject({ code: "FEATURE_NOT_INSTALLED", featureIds: ["cli-full"] });
+  it("reports missing authored-source feature before parsing its feature-specific flags", async () => {
+    vi.mocked(loadInstalledCommandFeature).mockRejectedValueOnce(Object.assign(new Error("Install cli-workflow"), { code: "FEATURE_NOT_INSTALLED", featureIds: ["cli-workflow"] }));
+    await expect(runCli(["node", "nodetool", "--api-url", "http://localhost:7777", "run", "not-present.mts", "--json"])).rejects.toMatchObject({ code: "FEATURE_NOT_INSTALLED", featureIds: ["cli-workflow"] });
   });
-  it.each([["run", "--json"], ["validate", "--warnings-as-errors"]])("routes authored %s before parsing full-only flag %s", async (command, flag) => {
+  it.each([["run", "--json"], ["validate", "--warnings-as-errors"]])("routes authored %s before parsing feature-specific flag %s", async (command, flag) => {
     const run = vi.fn(async (_argv: readonly string[]) => {});
-    vi.mocked(loadInstalledCliFeature).mockResolvedValueOnce({ run });
+    vi.mocked(loadInstalledCommandFeature).mockResolvedValueOnce({ run });
     const argv = ["node", "nodetool", command, "workflow.ts", flag];
     const exit = vi.spyOn(process, "exit").mockImplementation(() => { throw new Error("Parser rejected authored-source flags"); });
     try { await runCli(argv); } finally { exit.mockRestore(); }
-    expect(run).toHaveBeenCalledWith(argv);
+    expect(run).toHaveBeenCalledWith(argv.slice(2));
   });
-  it("reports the full feature requirement for authored source without reading or executing it", async () => {
-    vi.mocked(loadInstalledCliFeature).mockRejectedValueOnce(Object.assign(new Error("Install cli-full"), { code: "FEATURE_NOT_INSTALLED", featureIds: ["cli-full"] }));
-    await expect(createProgram({ env: {}, fetch: async () => { throw new Error("No automatic network work"); } }).parseAsync(["node", "nodetool", "validate", "not-present.mjs"])).rejects.toMatchObject({ code: "FEATURE_NOT_INSTALLED", featureIds: ["cli-full"] });
+  it("reports the workflow feature requirement for authored source without reading or executing it", async () => {
+    vi.mocked(loadInstalledCommandFeature).mockRejectedValueOnce(Object.assign(new Error("Install cli-workflow"), { code: "FEATURE_NOT_INSTALLED", featureIds: ["cli-workflow"] }));
+    await expect(createProgram({ env: {}, fetch: async () => { throw new Error("No automatic network work"); } }).parseAsync(["node", "nodetool", "validate", "not-present.mjs"])).rejects.toMatchObject({ code: "FEATURE_NOT_INSTALLED", featureIds: ["cli-workflow"] });
   });
   it.each(["run", "validate"])("delegates %s of code-authored workflows before reading JSON", async command => {
     const run = vi.fn(async (_argv: readonly string[]) => {});
     for (const extension of ["ts", "js", "mts", "mjs", "cts", "cjs"]) {
-      vi.mocked(loadInstalledCliFeature).mockResolvedValueOnce({ run });
+      vi.mocked(loadInstalledCommandFeature).mockResolvedValueOnce({ run });
       const argv = ["node", "nodetool", command, `workflow.${extension}`];
       await createProgram({ env: {}, argv }).parseAsync(argv);
-      expect(run).toHaveBeenLastCalledWith(argv);
+      expect(run).toHaveBeenLastCalledWith(argv.slice(2));
     }
     expect(run).toHaveBeenCalledTimes(6);
   });
-  it("delegates unsupported providers and original JSON flags to the admitted full runner", async () => {
+  it("delegates unsupported providers and original JSON flags to the admitted provider command runner", async () => {
     const run = vi.fn(async (_argv: readonly string[]) => {});
-    vi.mocked(loadInstalledCliFeature).mockResolvedValueOnce({ run });
+    vi.mocked(loadInstalledCommandFeature).mockResolvedValueOnce({ run });
     const argv = ["node", "nodetool", "models", "list", "--provider", "fal", "--json"];
     await createProgram({ env: {}, argv }).parseAsync(argv);
-    expect(run).toHaveBeenCalledWith(argv);
+    expect(loadInstalledCommandFeature).toHaveBeenLastCalledWith(expect.any(String), "cli-models");
+    expect(run).toHaveBeenCalledWith(argv.slice(2));
   });
   it("lists builtin provider metadata without secrets or network access", async () => {
     const stdout: string[] = [];
@@ -65,8 +104,8 @@ describe("lean execution CLI", () => {
     expect(JSON.parse(stdout.join(""))).toEqual([{ id: "openai", name: "OpenAI-compatible", capabilities: ["text", "models"], installed: true }]);
   });
   it("reports an unavailable provider with its explicit installation feature", async () => {
-    vi.mocked(loadInstalledCliFeature).mockRejectedValueOnce(Object.assign(new Error("Install cli-full"), { code: "FEATURE_NOT_INSTALLED", featureIds: ["cli-full"] }));
-    await expect(createProgram({ env: {} }).parseAsync(["node", "nodetool", "models", "list", "--provider", "anthropic"])).rejects.toMatchObject({ code: "FEATURE_NOT_INSTALLED", featureIds: ["cli-full"] });
+    vi.mocked(loadInstalledCommandFeature).mockRejectedValueOnce(Object.assign(new Error("Install cli-models"), { code: "FEATURE_NOT_INSTALLED", featureIds: ["cli-models"] }));
+    await expect(createProgram({ env: {} }).parseAsync(["node", "nodetool", "models", "list", "--provider", "anthropic"])).rejects.toMatchObject({ code: "FEATURE_NOT_INSTALLED", featureIds: ["cli-models"] });
   });
   it("lists remote models through the SDK using only the selected tenant secret", async () => {
     const directory = await mkdtemp(join(tmpdir(), "nodetool-lean-models-"));

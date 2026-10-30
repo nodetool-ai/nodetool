@@ -91,7 +91,7 @@ Two deviations the plan did not anticipate.
 <dsl-file>` executes through `@nodetool-ai/dsl`'s own `run()`, which constructs
 a `WorkflowRunner` directly — one of the grandfathered sites this PR is
 forbidden to grow supervision on. So `--supervise` switches that command onto
-`ExecutionSession` (`packages/cli-full/src/run-dsl-supervised.ts`) and the
+`ExecutionSession` (`packages/cli-execution/src/run-dsl-supervised.ts`) and the
 unsupervised path stays byte-identical on the old one. One user-visible
 consequence: the supervised path does not rethrow the first node error the way
 the DSL path does. A node error the supervisor resolved is not a run failure;

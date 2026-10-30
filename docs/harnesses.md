@@ -4,38 +4,33 @@ The full reference for every headless harness, CLI command, and agent tool
 surface: what it checks, what it does not simulate, and why it is shaped the
 way it is. The index — which harness answers which need — is
 [AGENTS.md § Agent Harnesses & Tooling](https://github.com/nodetool-ai/nodetool/blob/main/AGENTS.md#agent-harnesses--tooling).
-Flag-level reference for the CLI: [cli.md](cli.md).
+Flag-level reference and the required independent command features:
+[cli.md](cli.md#install-command-features).
 
 ## Packed CLI smoke
 
-After `npm run build:packages`, prepare and pin the original release artifacts:
+After `npm run build:packages`, pack the release artifacts and check the default
+CLI separately from explicitly installed capabilities:
 
 ```bash
-node scripts/prepare-publish.mjs
 node scripts/publish-packages.mjs --pack-only --tarballs-dir .packed-artifacts
 node scripts/smoke-packed-cli.mjs --core-only --tarballs-dir .packed-artifacts
 node scripts/smoke-packed-cli.mjs --tarballs-dir .packed-artifacts
 ```
 
-The smoke requires an existing tarball directory and never rewrites those artifacts.
-Both modes install the actual CLI into isolated project and global consumers.
-The core checks run JSON and TypeScript workflows, execute a workflow through
-local MCP, start the HTTP server, validate an absent FAL pack, and decode audio
-and video through the installed media codecs. The installed-tree audit rejects
-accidental pack or optional-library dependencies before adding packs.
+The smoke requires an existing tarball directory and does not rewrite those
+artifacts. Both profiles install the actual CLI into isolated project and global
+consumers. Core mode checks dependency and declaration imports, budgets, help,
+version, local JSON execution and the lean server. It does not install optional
+command features or media codecs.
 
-Core mode installs FAL through `packs add`. Full mode installs every catalog
-node pack, retaining the optional coverage formerly provided by `base-nodes`.
-Both execute the installed FAL node with a deterministic queue response fixture.
-The fixture rejects unexpected network requests and never calls the live FAL API.
+The composed profile explicitly installs each independent command pack through
+`packs add` and checks its help. It then exercises authored workflows, MCP,
+missing-node diagnostics and media capabilities with their selected node packs.
+No aggregate command package supplies these capabilities.
 
-The compiler exceptions and their range checks are defined in
-[plan D23](cli-pack-system-plan.md#d23-compiler-dependencies-required-by-core-packages).
-
-The smoke prints `du -sk node_modules` for the installed tree. This is the Linux
-measurement used to establish the later size gate. The dedicated
-`packed-core-cli.yml` workflow runs the core smoke on pull requests, including
-stacked branches. Release CI runs it beside the full packed smoke.
+For independent CLI and server size reports, use the
+[packed-consumer commands](../packages/AGENTS.md#package-dependency-order).
 
 ## Release catalog pins
 
@@ -82,7 +77,7 @@ npm run chat -- [flags]
 
 Every chat session runs the unified agent loop. There is no mode to select:
 `-a, --agent` and `--no-agent` are accepted for backwards compatibility and do
-nothing (`packages/cli-full/src/index.ts` marks both `[deprecated] No-op`).
+nothing (`packages/cli-chat/src/chat-entry.ts` marks both `[deprecated] No-op`).
 
 ```bash
 # Interactive chat
@@ -375,7 +370,7 @@ decision, so an agent can see why a run was replaced, queued, or timed out.
 Simulator code: `packages/execution/src/app-debug/`
 (`@nodetool-ai/execution/app-debug`), so every host — the CLI, the agent build
 loop, the server — simulates an app the same way. The CLI keeps target
-resolution and bundle writing in `packages/cli-full/src/app-debug/`.
+resolution and bundle writing in `packages/cli-apps/src/app-debug/`.
 
 Conditions and formatting are simulated: after every fold the harness evaluates
 each widget's `visibleWhen`/`disabledWhen`, a click or change on a widget that
@@ -1116,7 +1111,7 @@ of `--inputs`; a staged handle the script does not declare is refused. `test`
 runs the document's own saved cases (which stage their own items in
 `inputStreams`), grades them the way `test_code` grades a case list, and exits
 non-zero on any failure — the keyless selfcheck the harness gate runs, against
-`packages/cli-full/tests/fixtures/js-script-sum.json`,
+`packages/cli-script/tests/fixtures/js-script-sum.json`,
 `js-script-running-total.json` and `js-script-timeline-pack.json`, which
 imports a shipped sandbox pack. `run` and `test` open the database and install
 the sandbox pack catalog, so a body can import packs and save through
@@ -1323,7 +1318,7 @@ node scripts/graph-resources-fixtures.mjs e1 --keep   # one, keeping the scratch
 `Product` prop entity and a style entity, the approved cut behind it carrying a
 `{{name}} — {{price}}` overlay on its own track, a b-roll board whose stills are
 stored assets, and a 16:9 launch cut. Then it runs each graph in
-`packages/cli-full/fixtures/graph-resources/` through `nodetool debug` and reads the
+`packages/cli-workflow/fixtures/graph-resources/` through `nodetool debug` and reads the
 result back out of the database. The fixtures are the shipped examples with the
 generators swapped for `nodetool.fake.*` and the board's models set to the
 `fake` provider, so a run costs nothing and needs no key.
@@ -2053,12 +2048,12 @@ Workspaces come from the root `package.json`, not from a scan of `packages/` —
 `reliability/harness` is a workspace too, and a scan of one directory reported
 every change under it as belonging to nothing. `reliability/journeys/` maps to
 the harness that runs it (`EXTRA_WORKSPACE_PATHS` in
-`packages/cli-full/src/affected/affected.ts`).
+`packages/cli-harness/src/affected/affected.ts`).
 
 ```bash
 npm run dev:nodetool -- affected                       # uses git working-tree changes
 npm run dev:nodetool -- affected --base main           # diff against a ref
-npm run dev:nodetool -- affected packages/cli-full/src/x.ts # explicit files
+npm run dev:nodetool -- affected packages/cli-harness/src/commands/affected.ts # explicit files
 npm run dev:nodetool -- affected --json
 ```
 
@@ -2167,7 +2162,7 @@ The machine-readable inventory behind harness-first engineering
 the repo, every product surface with the code paths it owns, and which
 harnesses cover which surface. An uncovered surface must carry a written gap
 note; one without it fails `audit` and the registry test. Shipping a new
-surface means adding it to `packages/cli-full/src/harness/registry.ts` — with its
+surface means adding it to `packages/cli-harness/src/harness/registry.ts` — with its
 harness or its debt written down.
 
 `harness list` distinguishes commands available in an installed CLI from
@@ -2220,7 +2215,7 @@ owned process group and exits with code 130 or 143 without starting later
 checks. SIGKILL cannot run this cleanup.
 
 `capabilities` is the same invariant one rung down, over
-`packages/cli-full/src/harness/capability-table.ts`: every exported agent capability
+`packages/cli-harness/src/harness/capability-table.ts`: every exported agent capability
 names the suites a selfcheck runs over it, the eval cases that drive a model
 through it, or a written gap note. The table is derived —
 `npm run capabilities:sync` rewrites it from the live registry, the agent
@@ -2521,7 +2516,7 @@ npm run dev:nodetool -- harness gate packages/execution/src/generation-recovery-
 ```
 
 The gate selects the focused model, execution, runtime, and websocket suites
-registered in `packages/cli-full/src/harness/registry.ts`. Live FAL callback and
+registered in `packages/cli-harness/src/harness/registry.ts`. Live FAL callback and
 billing canaries remain separate operational checks.
 
 ### nodetool storage
@@ -2745,7 +2740,7 @@ The fixtures open a server-owned app run before execution, propagate its
 identity to child work, fold its outputs into revisioned instance state, and
 read its generation attachment back from the database. They also check
 transport retries, failed preparation, cancellation, and stale state writes.
-The `app-runs` entry in the [harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli-full/src/harness/registry.ts)
+The `app-runs` entry in the [harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli-harness/src/harness/registry.ts)
 selects this check for instance, run, and app-runtime changes.
 
 ## Run traces phase 2
@@ -2762,7 +2757,7 @@ external sink. It checks captured request/response and activity events,
 run-resolved secret masking and content-free visitor runs. The bridge check
 verifies that live readers receive committed snapshots only. The same check
 exercises external content filtering, ownership, deletion and retention. The `run-traces`
-entry in the [harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli-full/src/harness/registry.ts) selects
+entry in the [harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli-harness/src/harness/registry.ts) selects
 this check for the trace store and its execution hosts.
 
 Model and runtime suites cover content separation, duplicate events, limits,
@@ -2801,7 +2796,7 @@ result. The store retains the latest snapshot of each span, so readers receive
 an explicit resnapshot indicator when replay cannot reconstruct intermediate
 updates. The CLI deduplicates event identities across polling and resume. See
 [run commands](cli.md#nodetool-runs) for filters and output flags. The
-`run-readers` entry in the [harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli-full/src/harness/registry.ts)
+`run-readers` entry in the [harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli-harness/src/harness/registry.ts)
 selects the check for these surfaces.
 
 ## Run inspection phase 4
@@ -2822,7 +2817,7 @@ The check uses production HTTP routes and the native UI harness. It verifies
 owner and visitor restrictions, payload caps, retries, cycle rejection,
 server-span protection, browser-root recovery and first-run W3C ancestry.
 The `browser-run-spans` and `run-inspection-ui` entries in the
-[harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli-full/src/harness/registry.ts) run ingestion,
+[harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli-harness/src/harness/registry.ts) run ingestion,
 recorder, replay and panel checks when these surfaces change.
 
 The real browser journey starts a keyless app operation, reads its stored

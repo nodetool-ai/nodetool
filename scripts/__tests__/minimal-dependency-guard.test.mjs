@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { inspectMinimalTree } from "../minimal-dependency-guard.mjs";
+import { inspectMinimalTree, assertNoRemovedAggregate } from "../minimal-dependency-guard.mjs";
 
 const temporary = [];
 function fixture(files, manifest = {}) {
@@ -62,7 +62,18 @@ describe("minimal dependency guard", () => {
     const broad = fixture({ "index.js": "export {}" }, { name: "@nodetool-ai/cli", dependencies: { "@nodetool-ai/cli-full": "*" } });
     expect(() => inspectMinimalTree([broad], { entryPackageName: "@nodetool-ai/cli" })).toThrow("cli-full");
   });
-  it.each(["ink", "react", "react-reconciler", "@nodetool-ai/deploy", "@nodetool-ai/compute"])("rejects terminal or deployment overhead %s", name => {
+  it.each(["dependencies", "optionalDependencies", "peerDependencies"])("rejects aggregate edges in optional artifact %s", field => {
+    expect(() => assertNoRemovedAggregate({ name: "@nodetool-ai/cli-workflow", [field]: { "@nodetool-ai/cli-full": "*" } }, "feature manifest")).toThrow("cli-full");
+    expect(() => assertNoRemovedAggregate({ name: "@nodetool-ai/cli-workflow", [field]: { "@nodetool-ai/runtime": "*" } }, "feature manifest")).not.toThrow();
+  });
+  it("rejects the aggregate artifact itself", () => {
+    expect(() => assertNoRemovedAggregate({ name: "@nodetool-ai/cli-full" }, "release artifact")).toThrow("cli-full");
+  });
+  it.each([undefined, "sandbox"])("never admits the removed aggregate as an entry package (%s)", profile => {
+    const directory = fixture({ "index.js": "export {}" }, { name: "@nodetool-ai/cli-full" });
+    expect(() => inspectMinimalTree([directory], { entryPackageName: "@nodetool-ai/cli-full", profile })).toThrow("cli-full");
+  });
+  it.each(["ink", "react", "react-reconciler", "@nodetool-ai/deploy", "@nodetool-ai/compute", "@nodetool-ai/cli-workflows", "@nodetool-ai/cli-harness"])("rejects terminal or deployment overhead %s", name => {
     expect(() => inspectMinimalTree([fixture({ "index.d.ts": `export type Value = import("${name}").Value` })], { entryPackageName: "@nodetool-ai/cli" })).toThrow("Forbidden");
   });
   it("admits only audited QuickJS packages in the explicit sandbox profile", () => {

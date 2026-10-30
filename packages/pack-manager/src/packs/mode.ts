@@ -36,6 +36,10 @@ export interface InstallModeOptions {
 
 const NPX_REASON = 'Packs need a global or local install. Run "npm install -g @nodetool-ai/cli" or "npm install @nodetool-ai/cli" in a project.';
 const DEV_REASON = "Node packs are workspaces in this checkout. Build the required workspace instead of installing it.";
+export class CliRootNotFoundError extends Error {
+  override readonly name = "CliRootNotFoundError";
+  constructor(entry: string) { super(`Cannot find @nodetool-ai/cli package root for ${entry}`); }
+}
 const dependenciesSchema = z.record(z.string(), z.string());
 const manifestSchema = z.object({
   name: z.string().optional(),
@@ -220,7 +224,7 @@ export function detectInstallMode(entryPath: string, options: InstallModeOptions
     }
   }
   if (!cliRoot || !coreVersion) {
-    throw new Error(`Cannot find @nodetool-ai/cli package root for ${entry}`);
+    throw new CliRootNotFoundError(entry);
   }
   const ancestors = ancestorDirectories(cliRoot);
   const yarnPnp = ancestors.some((directory) => [".pnp.cjs", ".pnp.js", ".pnp.loader.mjs"].some((file) => existsSync(paths.join(directory, file))));

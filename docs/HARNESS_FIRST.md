@@ -99,7 +99,7 @@ that keeps it true: a registry, an audit, and a gate.
 
 ## The registry
 
-`packages/cli-full/src/harness/registry.ts` is the machine-readable inventory:
+`packages/cli-harness/src/harness/registry.ts` is the machine-readable inventory:
 every harness (id, canonical command, capabilities, agent tool, selfcheck,
 docs pointer) and every surface (the harnesses covering it, the code paths it
 owns, or its gap note).
@@ -112,7 +112,7 @@ would have covered it exists — a diff there selects nothing, silently.
 `packages/`, plus `web/`, `electron/`, `mobile/`, must appear in some
 surface's `paths` or in `UNCLAIMED_PATHS`, which names the reason nothing
 claims it yet and what closing that gap would need.
-`packages/cli-full/tests/harness-registry.test.ts` walks the real repo tree and
+`packages/cli-harness/tests/harness-registry.test.ts` walks the real repo tree and
 fails the build on one that is in neither — the same shape as the
 harness-coverage invariant above, one layer below it.
 
@@ -126,7 +126,7 @@ npm run dev:nodetool -- harness audit --strict  # exit 1 while any gap remains
 `audit` always exits non-zero on a *broken* registry (an uncovered surface
 with no gap note, or a surface referencing a harness that does not exist);
 `--strict` also fails on documented gaps — the ratchet to pull once a gap is
-closed. `packages/cli-full/tests/harness-registry.test.ts` enforces the same
+closed. `packages/cli-harness/tests/harness-registry.test.ts` enforces the same
 invariants in CI, so the registry cannot rot silently.
 
 ## The capability table
@@ -135,7 +135,7 @@ A surface is coarse: `packages/agents/` is one path, so the gate cannot tell a
 diff that *adds* a capability from one that renames a local variable. Five
 capabilities shipped through that hole with nothing exercising them.
 
-`packages/cli-full/src/harness/capability-table.ts` closes it, with the registry's
+`packages/cli-harness/src/harness/capability-table.ts` closes it, with the registry's
 invariant one rung down: no capability without a check or a documented gap.
 Each entry names the implementation file, the suites a selfcheck runs over the
 capability, the eval cases whose `requiredTools` demand it, or the gap note

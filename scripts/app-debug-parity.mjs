@@ -60,7 +60,7 @@ for (const bundle of bundles) {
         "npx",
         [
           "tsx",
-          "packages/cli-full/src/nodetool.ts",
+          "packages/cli/src/nodetool.ts",
           "app",
           "debug",
           join(appsDir, bundle),

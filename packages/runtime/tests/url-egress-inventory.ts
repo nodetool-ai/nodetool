@@ -679,7 +679,7 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     note: "Every model-named URL goes through safeFetch; the one plain fetch is the operator's BROWSER_URL screenshot service, which is usually internal on purpose."
   },
   {
-    file: "packages/cli-full/src/nodetool-main.ts",
+    file: "packages/cli-workflow/src/index.ts",
     owner: "CLI asset resolution",
     inputSource: "operator",
     schemes: ["http", "https"],

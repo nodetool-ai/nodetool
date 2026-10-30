@@ -1,5 +1,6 @@
+import { printTable } from "@nodetool-ai/pack-manager/commands/output";
 import { refusePackInstallsInProcess } from "@nodetool-ai/pack-manager/packs/install-process";
-import { configureCliPackHost, registerPackCommands, loadInstalledCliFeature } from "@nodetool-ai/pack-manager";
+import { configureCliPackHost, registerPackCommands, loadInstalledCommandFeature } from "@nodetool-ai/pack-manager";
 import { z } from "zod";
 import { Command } from "commander";
 import { readFileSync } from "node:fs";
@@ -10,6 +11,7 @@ import { createCoreExecutionHost } from "@nodetool-ai/nodes-core";
 import { OpenAITextProvider } from "@nodetool-ai/runtime-core";
 import { createSqliteRepository } from "@nodetool-ai/database-sqlite";
 import { decrypt } from "@nodetool-ai/security-core";
+import { COMMAND_FEATURES } from "./commandFeatures.js";
 
 export interface CliOptions {
   readonly env?: NodeJS.ProcessEnv;
@@ -84,8 +86,8 @@ export function createProgram(options: CliOptions = {}): Command {
   }
   async function delegateAuthoredSource(file: string): Promise<boolean> {
     if (!isAuthoredSource(file)) { return false; }
-    const feature = await loadInstalledCliFeature(import.meta.url);
-    await feature.run(options.argv ?? process.argv);
+    const feature = await loadInstalledCommandFeature(import.meta.url, "cli-workflow");
+    await feature.run((options.argv ?? process.argv).slice(2));
     return true;
   }
   async function executeFile(file: string, parameters: string): Promise<void> {
@@ -103,6 +105,21 @@ export function createProgram(options: CliOptions = {}): Command {
       print(await host.run({ graph, params, signal: controller.signal, userId: owner(), jobId: "cli-local", emit: () => {} }));
     } finally { process.removeListener("SIGINT", abort); }
   }
+  program.command("info").description("Display system and environment information").option("--json", "Output as JSON").action((flags: { json?: boolean }) => {
+    const names = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY", "MISTRAL_API_KEY", "GROQ_API_KEY", "OLLAMA_API_URL", "SERPAPI_API_KEY", "HF_TOKEN"];
+    const data = { version, node_version: process.version, platform: process.platform, arch: process.arch,
+      api_keys: Object.fromEntries(names.map(name => [name, env[name] ? "configured" : "not set"])),
+      environment: { ENV: env.ENV ?? "development", LOG_LEVEL: env.LOG_LEVEL ?? "INFO", PORT: env.PORT ?? "7777" }
+    };
+    if (flags.json) { print(data); return; }
+    output("\nNodeTool System Information\n\n");
+    printTable([{ property: "Version", value: data.version }, { property: "Node.js", value: data.node_version }, { property: "Platform", value: `${data.platform}/${data.arch}` }]);
+    output("\nAPI Keys:\n");
+    printTable(Object.entries(data.api_keys).map(([key, status]) => ({ key, status })));
+    output("\nEnvironment:\n");
+    printTable(Object.entries(data.environment).map(([variable, value]) => ({ variable, value })));
+    output("\n");
+  });
   program.command("run <file>").description("Execute a saved workflow JSON file locally").option("--params <json>", "Workflow parameters", "{}").action(async (file: string, flags: { params: string }) => executeFile(file, flags.params));
   program.command("validate <file>").description("Validate a native JSON workflow or explicitly installed authored-source workflow").action(async (file: string) => {
     if (await delegateAuthoredSource(file)) { return; }
@@ -143,20 +160,19 @@ export function createProgram(options: CliOptions = {}): Command {
     print(await json("/api/secrets", "POST", { key, value: value.replace(/\r?\n$/, "") }));
   });
   const openAIProvider = { id: "openai", name: "OpenAI-compatible", capabilities: ["text", "models"], installed: true };
-  function requireOpenAI(providerId: string): void {
-    if (providerId !== "openai") {
-      throw Object.assign(new Error(`Provider ${providerId} operations require the explicitly installed cli-full feature`), { code: "FEATURE_NOT_INSTALLED", featureIds: ["cli-full"] });
-    }
-  }
   const providers = program.command("providers").description("Inspect installed remote provider capabilities");
   providers.command("list").action(() => print([openAIProvider]));
-  providers.command("info [provider]").action((providerId = "openai") => { requireOpenAI(providerId); print(openAIProvider); });
+  providers.command("info [provider]").action(async (providerId = "openai") => {
+    if (providerId === "openai") { print(openAIProvider); return; }
+    const feature = await loadInstalledCommandFeature(import.meta.url, "cli-models");
+    await feature.run((options.argv ?? process.argv).slice(2));
+  });
   const models = program.command("models").description("List remote models using a tenant's configured provider");
   models.command("providers").action(() => print([openAIProvider]));
   models.command("list").option("-p, --provider <provider>", "Remote provider", "openai").option("--json", "Output JSON (the default)").action(async (flags: { provider: string }) => {
     if (flags.provider !== "openai") {
-      const feature = await loadInstalledCliFeature(import.meta.url);
-      await feature.run(options.argv ?? process.argv);
+      const feature = await loadInstalledCommandFeature(import.meta.url, "cli-models");
+      await feature.run((options.argv ?? process.argv).slice(2));
       return;
     }
     const controller = new AbortController();
@@ -166,9 +182,9 @@ export function createProgram(options: CliOptions = {}): Command {
     finally { process.removeListener("SIGINT", abort); }
   });
   for (const name of ["recommended", "huggingface", "hf", "ollama", "by-provider", "storage"]) {
-    models.command(name).description("Requires the explicitly installed cli-full feature").helpOption(false).allowUnknownOption().allowExcessArguments().action(async () => {
-      const feature = await loadInstalledCliFeature(import.meta.url);
-      await feature.run(options.argv ?? process.argv);
+    models.command(name).description("Requires the independently installed cli-models feature").helpOption(false).allowUnknownOption().allowExcessArguments().action(async () => {
+      const feature = await loadInstalledCommandFeature(import.meta.url, "cli-models");
+      await feature.run((options.argv ?? process.argv).slice(2));
     });
   }
   program.command("text <prompt>").requiredOption("--model <id>").action(async (prompt: string, flags: { model: string }) => {
@@ -182,7 +198,7 @@ export function createProgram(options: CliOptions = {}): Command {
       output("\n");
     } finally { process.removeListener("SIGINT", abort); }
   });
-  program.command("serve").description("Start the minimal execution server. Use nodetool full serve for the installed full server.").option("--host <host>", "Listen address", env.HOST ?? "127.0.0.1").option("--port <port>", "Listen port", env.PORT ?? "7777").action(async (flags: { host: string; port: string }) => {
+  program.command("serve").description("Start the minimal execution server with explicitly configured server features.").option("--host <host>", "Listen address", env.HOST ?? "127.0.0.1").option("--port <port>", "Listen port", env.PORT ?? "7777").action(async (flags: { host: string; port: string }) => {
     const tokens = z.record(z.string(), z.string()).parse(JSON.parse(env.NODETOOL_TOKENS ?? "null"));
     type ConfiguredFeature = NonNullable<Parameters<typeof createMinimalServer>[0]["features"]>[number];
     type Feature = Awaited<ReturnType<ConfiguredFeature["load"]>>;
@@ -209,45 +225,75 @@ export function createProgram(options: CliOptions = {}): Command {
     try { print({ url: await app.listen({ host: flags.host, port: Number(flags.port) }) }); }
     catch (error) { await app.close(); throw error; }
   });
-  program.command("full").description("Run a command from the explicitly installed full CLI feature").helpOption(false).allowUnknownOption().allowExcessArguments().action(async () => {
-    const feature = await loadInstalledCliFeature(import.meta.url);
+  program.command("feature <id> [args...]").description("Run a command from one explicitly installed command feature").helpOption(false).allowUnknownOption().allowExcessArguments().action(async (featureId: string) => {
+    const feature = await loadInstalledCommandFeature(import.meta.url, featureId);
     const argv = [...(options.argv ?? process.argv)];
-    const index = argv.indexOf("full", 2);
-    if (index >= 0) { argv.splice(index, 1); }
-    await feature.run(argv);
+    const index = argv.indexOf("feature", 2);
+    argv.splice(index, 2);
+    await feature.run(argv.slice(2));
   });
   configureCliPackHost(import.meta.url);
   registerPackCommands(program, import.meta.url);
-  for (const name of ["chat", "harness", "debug", "agent", "app", "apps", "timeline", "sketch", "game", "js-script", "reliability", "node", "extension", "collections", "costs", "errors", "generations", "runs", "projects", "mcp", "deploy", "worker", "package", "runtime", "db", "auth", "telegram", "tools", "telemetry", "settings", "storage", "export-script", "export-dsl", "export-example", "export-bundle", "import-bundle", "migrate-keys", "migrate-code-inputs"]) {
-    program.command(name).description("Requires the explicitly installed cli-full feature").helpOption(false).allowUnknownOption().allowExcessArguments().action(async () => {
-      const feature = await loadInstalledCliFeature(import.meta.url);
-      await feature.run(options.argv ?? process.argv);
+  const native = new Set(program.commands.map(command => command.name()));
+  for (const [name, featureId] of Object.entries(COMMAND_FEATURES)) {
+    if (native.has(name)) { continue; }
+    program.command(name).description(`Requires the independently installed ${featureId} feature`).helpOption(false).allowUnknownOption().allowExcessArguments().action(async () => {
+      const feature = await loadInstalledCommandFeature(import.meta.url, featureId);
+      await feature.run((options.argv ?? process.argv).slice(2));
     });
   }
   return program;
 }
-/** Run the lean CLI without loading optional interactive or authoring modules. */
+/** Dispatch native commands or one explicitly installed command feature. */
 export async function runCli(argv: readonly string[] = process.argv): Promise<void> {
   let commandIndex = 2;
+  let workflowTrace = false;
   while (commandIndex < argv.length) {
     const argument = argv[commandIndex];
     if (argument === "--api-url" || argument === "--token") { commandIndex += 2; }
     else if (argument?.startsWith("--api-url=") || argument?.startsWith("--token=")) { commandIndex++; }
+    else if (argument === "--trace-file") { workflowTrace = true; commandIndex += 2; }
+    else if (argument?.startsWith("--trace-file=") || argument?.startsWith("--trace-stdout=") || argument === "--no-trace-stdout") { workflowTrace = true; commandIndex++; }
+    else if (argument === "--trace-stdout") {
+      workflowTrace = true;
+      commandIndex += ["pretty", "json"].includes(argv[commandIndex + 1] ?? "") ? 2 : 1;
+    }
     else { break; }
   }
   const command = argv[commandIndex];
-  if ((command === "run" || command === "validate") && argv.slice(commandIndex + 1).some(argument => !argument.startsWith("-") && isAuthoredSource(argument))) {
-    const feature = await loadInstalledCliFeature(import.meta.url);
-    await feature.run(argv);
+  const explicitlySelected = command === "feature" ? argv[commandIndex + 1] : undefined;
+  if (explicitlySelected) {
+    const feature = await loadInstalledCommandFeature(import.meta.url, explicitlySelected);
+    const delegated = [...argv];
+    delegated.splice(commandIndex, 2);
+    await feature.run(delegated.slice(2));
+    return;
+  }
+  if ((command === "run" || command === "validate" || command === "workflows" && argv[commandIndex + 1] === "run") && (workflowTrace || argv.slice(commandIndex + 1).some(argument => !argument.startsWith("-") && isAuthoredSource(argument)))) {
+    const feature = await loadInstalledCommandFeature(import.meta.url, "cli-workflow");
+    await feature.run(argv.slice(2));
+    return;
+  }
+  if (command === "workflows" && argv[commandIndex + 1] === "migrate-code-inputs") {
+    const feature = await loadInstalledCommandFeature(import.meta.url, "cli-admin");
+    await feature.run(argv.slice(2));
     return;
   }
   const program = createProgram({ argv });
-  const knownCommand = program.commands.some(candidate => candidate.name() === command || candidate.aliases().includes(command ?? ""));
-  if (command === "full" || command && !command.startsWith("-") && !knownCommand) {
-    const feature = await loadInstalledCliFeature(import.meta.url);
+  const nativeCommands = new Set(["run", "validate", "workflows", "jobs", "assets", "secrets", "providers", "models", "serve", "packs"]);
+  const featureId = command ? COMMAND_FEATURES[command] : undefined;
+  if (featureId && !nativeCommands.has(command ?? "")) {
+    const feature = await loadInstalledCommandFeature(import.meta.url, featureId);
     const delegated = [...argv];
-    if (command === "full") { delegated.splice(commandIndex, 1); }
-    await feature.run(delegated);
+    if (command === "server") { delegated.splice(commandIndex, 1); }
+    await feature.run(delegated.slice(2));
+    return;
+  }
+  const group = program.commands.find(candidate => candidate.name() === command);
+  const subcommand = argv[commandIndex + 1];
+  if (featureId && group?.commands.length && subcommand && !subcommand.startsWith("-") && !group.commands.some(candidate => candidate.name() === subcommand || candidate.aliases().includes(subcommand))) {
+    const feature = await loadInstalledCommandFeature(import.meta.url, featureId);
+    await feature.run(argv.slice(2));
     return;
   }
   await program.parseAsync([...argv]);

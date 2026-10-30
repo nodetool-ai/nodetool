@@ -27,7 +27,7 @@ filters them out of the catalog). Measured on this tree: `extends Tool` appears 
 times across 77 files**, 68 of them in `packages/agents` (tests included); outside
 agents the subclasses are `RunNodeTool` and two UI bridge tools in `websocket`, the
 Code-node tool factory in `code-nodes`, `SandboxTool` in `sandbox-tools`, the CLI's
-`ExecuteCodeTool` shim (`packages/cli-full/src/chat-codeact.ts:35`), and two browser-agent
+`ExecuteCodeTool` shim (`packages/cli-chat/src/chat-codeact.ts:35`), and two browser-agent
 factories in `automation-nodes`. 104 files import the `Tool` symbol; 27 of those import
 it purely as a type or for `Tool[]` plumbing without subclassing — executors, the
 permission gate, the eval runners, node hydration in `llm-nodes`, the MCP bridge.

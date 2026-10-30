@@ -20,9 +20,6 @@ export function requestedInstallIds(catalog: NodeCatalogIndex, ids: readonly str
   for (const id of new Set(ids)) {
     const pack = catalog.packs.find(entry => entry.id === id);
     if (pack) {
-      if (pack.kind === "core") {
-        throw new Error(`Pack ${id} ships with the CLI and cannot be installed separately`);
-      }
       packs.push(id);
     } else if (isRuntimeNpmPackageId(id)) {
       runtimeLibraries.push(id);

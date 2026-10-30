@@ -52,16 +52,16 @@ const runtimeLibraries = {
   automation: ["imaging"]
 };
 
+export const CLI_FEATURE_PACKS = [
+  "cli-workflow", "cli-harness", "cli-chat", "cli-models", "cli-admin", "cli-mcp",
+  "cli-server", "cli-apps", "cli-game", "cli-timeline", "cli-sketch", "cli-script"
+].map(id => ({
+  id, npmName: `@nodetool-ai/${id}`, registrar: "feature", kind: "cli-feature",
+  requires: id === "cli-workflow" ? ["core", "text"] : [], provides: [], runtimeLibraries: [], secrets: []
+}));
+
 export const CATALOG_PACKS = [
-  {
-    id: "cli-full",
-    npmName: "@nodetool-ai/cli-full",
-    registrar: "feature",
-    kind: "cli-feature",
-    provides: [],
-    runtimeLibraries: [],
-    secrets: []
-  },
+  ...CLI_FEATURE_PACKS,
   ...[
     ["core", "registerCoreNodes"],
     ["text", "registerTextNodes"],

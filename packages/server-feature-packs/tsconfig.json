@@ -34,6 +34,15 @@
     },
     {
       "path": "../execution-core"
+    },
+    {
+      "path": "../text-nodes"
+    },
+    {
+      "path": "../image-nodes"
+    },
+    {
+      "path": "../server-minimal"
     }
   ]
 }

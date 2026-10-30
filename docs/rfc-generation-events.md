@@ -249,7 +249,7 @@ Mini-app result tiles are built **entirely** from `output_update`: `:84-103` cre
 ### 8.10 Chat / agent path (`web/src/core/chat/chatProtocol.ts`)
 `chatProtocol.ts` independently consumes `node_update` (`:1263`) and `output_update` (`:1294` → `applyOutputUpdate` at `:492-521`); it has **no** `upsertLiveGeneration` / generation path (only `content_metadata.media_generation` chunk handling at `:430`). Two requirements: (1) `applyOutputUpdate` must honor `disposition` (same demotion as §8.1; chat string-streaming at `:523+` stays as legitimate whole-value display); (2) **explicitly decide** (Decision 11) whether the chat surface creates variants for a multi-execution generator invoked from a workflow tool, or **intentionally ignores `generation_complete`** (display-only). Recommend the latter for this cycle — document it — rather than leaving it implicit in a one-line note. If chat later needs variants it gets its own `generation_complete` branch.
 
-### 8.11 CLI (`packages/cli-full/src/websocket-client.ts`)
+### 8.11 CLI (`packages/cli-chat/src/websocket-client.ts`)
 Protocol consumer used by `nodetool workflows run --json` and piped chat: handles `node_update` (`:398-403`, surfacing `result`) and `output_update` (`:405-411`, surfacing `value`); no `generation_complete` case. After the change a 6-image CLI run reports 1 collapsed result via `node_update` and the variants exist only on a type the CLI ignores. **Decide (Decision 12):** surface `generation_complete` events in the JSON stream (one event per artifact) or aggregate them; add the message-type entry to the CLI union (`:36-38`). Lowest-priority consumer but must not silently drop variants from `--json` output.
 
 ---
@@ -307,7 +307,7 @@ Touch points (expanded to all consumers):
 9. **`web/src/hooks/timeline/useGenerateClip.ts` + `web/src/hooks/sketch/useGenerateLayer.ts`:** migrate asset extraction to `generation_complete.outputs`; thread `disposition` through their `setOutputResult` calls.
 10. **`web/src/components/miniapps/hooks/useMiniAppRunner.ts`:** build result tiles from `generation_complete.outputs`.
 11. **`mobile/src/stores/WorkflowRunner.ts` + `mobile/src/api.ts`:** add `generation_complete` case; regenerate message-type union; document `node_update.result` degradation (Decision 10).
-12. **`packages/cli-full/src/websocket-client.ts`:** add `generation_complete` to the union and the JSON event stream (Decision 12).
+12. **`packages/cli-chat/src/websocket-client.ts`:** add `generation_complete` to the union and the JSON event stream (Decision 12).
 
 ---
 

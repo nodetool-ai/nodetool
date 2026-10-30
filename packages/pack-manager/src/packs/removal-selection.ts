@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { z } from "zod";
 import { RUNTIME_NPM_PACKAGES, isRuntimeNpmPackageId } from "@nodetool-ai/protocol/runtime-npm-packages";
 import { planPackRemoval } from "./management.js";
-import { prepareInstallSelection, type InstallPacksRequest, type InstallSelection } from "./install-selection.js";
+import { prepareInstallSelection, expandCatalogPacks, type InstallPacksRequest, type InstallSelection } from "./install-selection.js";
 
 export interface RemovalSelection {
   readonly authorization: InstallSelection;
@@ -31,7 +31,13 @@ function reachable(roots: Iterable<string>, edges: ReadonlyMap<string, readonly 
 /** Preserve logical pack requirements and every dependency reachable from retained roots. */
 export async function preparePackRemoval(request: InstallPacksRequest): Promise<RemovalSelection> {
   const selection = await prepareInstallSelection({ ...request, packs: [], runtimeLibraries: [] });
-  const logical = planPackRemoval(selection.catalog, selection.installedIds, request.packs);
+  // Legacy state proves no automatic ownership. Preserve those entries as independent selections.
+  const explicit = new Set(selection.previous.requestedPacks ?? selection.previous.packs);
+  const managed = new Set(selection.previous.managedPacks ?? []);
+  const requested = new Set(request.packs);
+  const automatic = expandCatalogPacks(selection.catalog, request.packs)
+    .filter(pack => managed.has(pack.id) && !explicit.has(pack.id)).map(pack => pack.id);
+  let logical = planPackRemoval(selection.catalog, selection.installedIds, [...requested, ...automatic]);
   const requestedLibraries = [...new Set([...(request.runtimeLibraries ?? []), ...logical.runtimeLibraries])];
   for (const id of requestedLibraries) { if (!isRuntimeNpmPackageId(id)) { throw new Error(`Unknown runtime library: ${id}`); } }
   const byPath = new Map(selection.before.map((entry) => [entry.path, entry]));
@@ -57,6 +63,14 @@ export async function preparePackRemoval(request: InstallPacksRequest): Promise<
   };
   for (const entry of selection.before) { edges.set(entry.path, await dependencies(entry.realPath)); }
   const catalogById = new Map(selection.catalog.packs.map((pack) => [pack.id, pack]));
+  const physicalRoots = request.packs.flatMap(id => {
+    const pack = catalogById.get(id);
+    return pack ? [pack.npm.name, ...pack.provides].map(name => `node_modules/${name}`).filter(path => byPath.has(path)) : [];
+  });
+  const physicalClosure = reachable(physicalRoots, edges);
+  const physicalAutomatic = selection.catalog.packs.filter(pack => managed.has(pack.id) && !explicit.has(pack.id) &&
+    physicalClosure.has(`node_modules/${pack.npm.name}`)).map(pack => pack.id);
+  logical = planPackRemoval(selection.catalog, selection.installedIds, [...requested, ...automatic, ...physicalAutomatic]);
   const ownerRoots = new Map<string, readonly string[]>();
   for (const id of logical.remove) {
     const pack = catalogById.get(id)!;
@@ -64,7 +78,7 @@ export async function preparePackRemoval(request: InstallPacksRequest): Promise<
   }
   const installedIds = new Set(selection.installedIds);
   for (const id of request.packs) {
-    if (catalogById.get(id)?.kind !== "core" && !installedIds.has(id) && !logical.kept.includes(id)) { ownerRoots.set(id, []); }
+    if (!installedIds.has(id) && !logical.kept.includes(id)) { ownerRoots.set(id, []); }
   }
   for (const id of requestedLibraries) {
     if (isRuntimeNpmPackageId(id)) {

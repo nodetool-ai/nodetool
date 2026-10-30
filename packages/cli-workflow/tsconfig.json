@@ -1,0 +1,80 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "references": [
+    {
+      "path": "../analytics"
+    },
+    {
+      "path": "../cli-common"
+    },
+    {
+      "path": "../cli-execution"
+    },
+    {
+      "path": "../cli-local"
+    },
+    {
+      "path": "../cli-providers"
+    },
+    {
+      "path": "../config"
+    },
+    {
+      "path": "../dsl"
+    },
+    {
+      "path": "../error-trace-services"
+    },
+    {
+      "path": "../execution"
+    },
+    {
+      "path": "../models"
+    },
+    {
+      "path": "../node-catalog"
+    },
+    {
+      "path": "../node-sdk"
+    },
+    {
+      "path": "../pack-manager"
+    },
+    {
+      "path": "../project-services"
+    },
+    {
+      "path": "../protocol"
+    },
+    {
+      "path": "../runtime"
+    },
+    {
+      "path": "../security"
+    },
+    {
+      "path": "../storage"
+    },
+    {
+      "path": "../vectorstore"
+    },
+    {
+      "path": "../workflow-services"
+    },
+    {
+      "path": "../core-nodes"
+    },
+    {
+      "path": "../text-nodes"
+    }
+  ]
+}

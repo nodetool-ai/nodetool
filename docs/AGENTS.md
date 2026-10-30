@@ -583,7 +583,7 @@ const session = createChatCodeActSession({
 // provider is offered. Run them through the host's own generateLoop.
 ```
 
-`packages/cli-full/src/commands/agent.ts` is the smallest complete example: it
+`packages/cli-chat/src/commands/agent.ts` is the smallest complete example: it
 assembles the belt, wraps it with `createCliCodeActTurn`, and runs
 `processChat`. The stream it forwards is the shared `ProcessingMessage`
 union — `chunk`, `planning_update`, `task_update`, `tool_call_update`,

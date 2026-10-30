@@ -1240,7 +1240,7 @@ function buildFromSpec(specFile, outDir, provider, model) {
     "npx",
     [
       "tsx",
-      "./packages/cli-full/src/nodetool.ts",
+      "./packages/cli/src/nodetool.ts",
       "app",
       "build",
       specFile,
@@ -1482,7 +1482,7 @@ for (const file of bundleFiles) {
   const slug = path.basename(file, ".app.json");
   const args = [
     "tsx",
-    "./packages/cli-full/src/nodetool.ts",
+    "./packages/cli/src/nodetool.ts",
     "app",
     "debug",
     file,

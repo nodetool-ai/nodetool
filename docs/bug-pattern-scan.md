@@ -279,7 +279,7 @@ Evidence: `5917e4fa`, `dbcef8c2`, `91719bdc`, `f59c1cc1`.
 ```bash
 rg -n "Promise\.all\(" packages/models/src web/src/stores
 rg -n "\.catch\(\(\) => null\)" packages --type ts
-rg -n "_TIMEOUT_MS|TIMEOUT_MS\b" packages/agents/src packages/cli-full/src
+rg -n "_TIMEOUT_MS|TIMEOUT_MS\b" packages/agents/src packages/cli/src packages/cli-*/src
 ```
 
 Manual check: should independent parts degrade separately with

@@ -8,8 +8,8 @@ const CHILD_TIMEOUT_MS = 30_000;
 const SUBPROCESS_TEST_TIMEOUT_MS = CHILD_TIMEOUT_MS + 5_000;
 
 function fixture(body: string, version: "matching" | "wrong"): ReturnType<typeof spawnSync> {
-  const inventory = pathToFileURL(resolve(import.meta.dirname, "../../cli-full/src/packs/installed.ts")).href;
-  const mode = pathToFileURL(resolve(import.meta.dirname, "../../cli-full/src/packs/mode.ts")).href;
+  const inventory = pathToFileURL(resolve(import.meta.dirname, "../../pack-manager/src/packs/installed.ts")).href;
+  const mode = pathToFileURL(resolve(import.meta.dirname, "../../pack-manager/src/packs/mode.ts")).href;
   return spawnSync(process.execPath, ["--import", "tsx", "--input-type=module", "--eval", `
     import assert from 'node:assert/strict';
     import { mkdtempSync, mkdirSync, writeFileSync, rmSync, symlinkSync } from 'node:fs';

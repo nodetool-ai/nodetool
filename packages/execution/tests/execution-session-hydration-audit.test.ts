@@ -95,7 +95,7 @@ const KNOWN_UNHYDRATED: Record<string, string> = {
  * reporting, and names who.
  */
 const PREFLIGHT_PROPAGATORS: Record<string, string> = {
-  "packages/cli-full/src/nodetool-main.ts":
+  "packages/cli-workflow/src/index.ts":
     "the run command catches refusals and reports their message through printCommandError",
   "packages/execution/src/service/workflow-run.ts":
     "handles collectPreflightIssues before creating the environment and job row",
@@ -103,12 +103,12 @@ const PREFLIGHT_PROPAGATORS: Record<string, string> = {
     "DSL explicitly disables server preflight and propagates execution errors",
   // Called only from `nodetool run --supervise`, whose catch prints the
   // refusal through `printCommandError`.
-  "packages/cli-full/src/run-dsl-supervised.ts":
+  "packages/cli-execution/src/run-dsl-supervised.ts":
     "propagates to the `nodetool run` command's own reporting",
   // A refused graph is a failed eval case; the harness records the throw as
   // that case's error, which is exactly what a graph the runtime cannot
   // honour should score.
-  "packages/cli-full/src/evals/graph-runner.ts":
+  "packages/cli-harness/src/evals/graph-runner.ts":
     "a refusal is the eval case's failure"
 };
 

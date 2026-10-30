@@ -7,7 +7,7 @@ const identity = z.object({ name: z.string(), version: z.string(), path: z.strin
 const replayChange = z.object({ from: identity, to: identity });
 
 /** npm labels replaying an exact no-save owned package as a change. */
-export function normalizeOwnedPackReplay(plan: InstallPlan, before: readonly TreePackage[], catalog: NodeCatalogIndex, coreNames: ReadonlySet<string> = new Set(catalog.packs.filter((pack) => pack.kind === "core").map((pack) => pack.npm.name))): InstallPlan {
+export function normalizeOwnedPackReplay(plan: InstallPlan, before: readonly TreePackage[], catalog: NodeCatalogIndex, coreNames: ReadonlySet<string> = new Set()): InstallPlan {
   const table = new Map((catalog.installPins ?? []).map((pin) => [pin.installName ?? pin.name, pin]));
   const excluded = new Set([
     ...coreNames,
@@ -17,7 +17,6 @@ export function normalizeOwnedPackReplay(plan: InstallPlan, before: readonly Tre
   ]);
   const owned = new Map<string, InstallPackagePin>();
   for (const pack of catalog.packs) {
-    if (pack.kind === "core") { continue; }
     for (const pin of [pack.npm, ...pack.provides.map((name) => table.get(name)).filter((pin) => pin !== undefined)]) {
       if (!excluded.has(pin.name)) { owned.set(pin.name, pin); }
     }

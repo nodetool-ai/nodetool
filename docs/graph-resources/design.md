@@ -582,7 +582,7 @@ the clips so the director can decide which shots need a real 9:16 board
   admits both), the upsert returning the same id twice, and the E1 fake-mode
   run asserting the filled `{{name}} — {{price}}` overlay is present on the
   exported sequence.
-- Harness registry (`packages/cli-full/src/harness/registry.ts`): a
+- Harness registry (`packages/cli-harness/src/harness/registry.ts`): a
   `graph-resources` entry whose selfcheck runs the suites above plus
   `nodetool debug` on the four example workflows in fake mode
   (`nodetool.fake.GenerateImage` in place of the generators; render nodes

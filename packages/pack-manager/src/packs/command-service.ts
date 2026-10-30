@@ -18,6 +18,7 @@ import { inspectPackInstallLock } from "./doctor-lock.js";
 import { readInstalledPacks, type InstalledPackSnapshot } from "./installed.js";
 import { readInstallTree, assertTreePins, assertSharedIdentities, type TreePackage } from "./install-tree.js";
 import { installerNpmVersion } from "../npm-runner.js";
+import { loadInstalledCommandFeature, type WorkflowPackResolver } from "../cli-feature.js";
 
 async function verifyInstalledInChild(cliRoot: string, installRoot: string, ids: readonly string[]): Promise<void> {
   const entry = fileURLToPath(new URL("./installer-load-check.js", import.meta.url));
@@ -38,7 +39,7 @@ export interface PackCommandServiceOptions {
   readonly catalogNodes?: ReturnType<typeof readCatalogNodes>;
   readonly stateFile?: string;
   readonly operations?: InstallerOperations;
-  readonly resolveWorkflowPacks?: (target: string, snapshot: InstalledPackSnapshot, catalog: NodeCatalogIndex) => Promise<{ packs: readonly string[]; runtimeLibraries: readonly string[] }>;
+  readonly resolveWorkflowPacks?: WorkflowPackResolver;
 }
 
 export async function createPackCommandServices(context: PackCommandServiceOptions = {}): Promise<PackCommandServices> {
@@ -67,10 +68,9 @@ export async function createPackCommandServices(context: PackCommandServiceOptio
       if (options.restore) {
         selected = { packs: desired?.packs ?? [], runtimeLibraries: desired?.runtimeLibraries ?? [] };
       } else if (options.for) {
-        if (!context.resolveWorkflowPacks) {
-          throw new Error('Workflow pack discovery requires the cli-full feature. Run "nodetool packs add cli-full".');
-        }
-        const resolved = await context.resolveWorkflowPacks(options.for, snapshot, catalog);
+        const resolver = context.resolveWorkflowPacks ?? (await loadInstalledCommandFeature(import.meta.url, "cli-workflow", { snapshot, catalog })).resolveWorkflowPacks;
+        if (!resolver) { throw new Error("Configured cli-workflow feature does not provide workflow pack discovery"); }
+        const resolved = await resolver(options.for, snapshot, catalog);
         selected = { packs: [...resolved.packs], runtimeLibraries: [...resolved.runtimeLibraries] };
 
       }
@@ -123,7 +123,7 @@ export async function createPackCommandServices(context: PackCommandServiceOptio
             if (!pin) { throw new Error(`Installed package ${name} has no catalog integrity pin`); }
             return pin;
           };
-          const libraries = new Set([...(desired?.runtimeLibraries ?? []), ...packs.filter(pack => pack.kind !== "core").flatMap(pack => pack.runtimeLibraries)]);
+          const libraries = new Set([...(desired?.runtimeLibraries ?? []), ...packs.flatMap(pack => pack.runtimeLibraries)]);
           const runtimePins = [...libraries].flatMap(id => {
             if (!isRuntimeNpmPackageId(id)) { throw new Error(`Unknown desired runtime library: ${id}`); }
             return RUNTIME_NPM_PACKAGES[id].packageNames.map(name => ({ ...requiredPin(name), installPath: `node_modules/${name}` }));

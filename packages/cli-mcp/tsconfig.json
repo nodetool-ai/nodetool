@@ -1,0 +1,35 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "references": [
+    {
+      "path": "../pack-manager"
+    },
+    {
+      "path": "../websocket"
+    },
+    {
+      "path": "../cli-local"
+    },
+    {
+      "path": "../node-sdk"
+    },
+    {
+      "path": "../cli-execution"
+    },
+    {
+      "path": "../cli-common"
+    },
+    {
+      "path": "../cli"
+    }
+  ]
+}

@@ -57,20 +57,31 @@ nodetool validate workflow.json
 nodetool run workflow.json --params '{"prompt":"hello"}'
 ```
 
-## Install full capabilities
+## Install selected command features
+
+Use `nodetool packs list` to inspect the command features available for this
+installation. Install the feature named by a command's `FEATURE_NOT_INSTALLED`
+error through the existing pinned pack installer:
 
 ```bash
-nodetool packs add cli-full --yes
-nodetool full --help
-nodetool full mcp serve
-nodetool-chat
+nodetool packs add cli-chat --yes
+nodetool chat
+nodetool packs add cli-workflow --yes
+nodetool feature cli-workflow run workflow.ts --json
 ```
 
-This uses the existing pinned pack installer. Commands do not install missing
-features automatically. Authored JavaScript and TypeScript workflows delegate
-to the installed full feature. Missing features return `FEATURE_NOT_INSTALLED`
-with feature IDs. The full server remains available as `nodetool full serve`.
+Commands do not install missing features automatically. Authored JavaScript and
+TypeScript workflows, chat, provider SDKs, media and development tools select
+their own command features. Installing one feature does not activate unrelated
+command groups. `nodetool feature <feature-id> <command...>` selects one
+installed feature explicitly when its command overlaps a native operation.
+For example, `nodetool feature cli-workflow validate workflow.json --json`
+uses the workflow authoring feature while `nodetool validate workflow.json`
+uses the native validator.
 
-See the [full CLI package](../cli-full/README.md),
-[command reference](../../docs/cli.md), and
+MCP commands require `cli-mcp`. The classic server command is selected with
+`nodetool server serve` after installing `cli-server`. The default `nodetool
+serve` continues to start the minimal execution server.
+
+See the [command reference](../../docs/cli.md) and
 [minimal server](../server-minimal/README.md).

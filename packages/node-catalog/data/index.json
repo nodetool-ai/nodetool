@@ -3393,18 +3393,208 @@
       "secrets": []
     },
     {
-      "id": "cli-full",
+      "id": "cli-admin",
       "installBytes": 0,
       "kind": "cli-feature",
       "nodeCount": 0,
       "npm": {
         "integrity": "",
-        "name": "@nodetool-ai/cli-full",
+        "name": "@nodetool-ai/cli-admin",
         "version": "0.8.4"
       },
       "provides": [],
       "registrar": "feature",
       "requires": [],
+      "runtimeLibraries": [],
+      "scriptAllowlist": [],
+      "secrets": []
+    },
+    {
+      "id": "cli-apps",
+      "installBytes": 0,
+      "kind": "cli-feature",
+      "nodeCount": 0,
+      "npm": {
+        "integrity": "",
+        "name": "@nodetool-ai/cli-apps",
+        "version": "0.8.4"
+      },
+      "provides": [],
+      "registrar": "feature",
+      "requires": [],
+      "runtimeLibraries": [],
+      "scriptAllowlist": [],
+      "secrets": []
+    },
+    {
+      "id": "cli-chat",
+      "installBytes": 0,
+      "kind": "cli-feature",
+      "nodeCount": 0,
+      "npm": {
+        "integrity": "",
+        "name": "@nodetool-ai/cli-chat",
+        "version": "0.8.4"
+      },
+      "provides": [],
+      "registrar": "feature",
+      "requires": [],
+      "runtimeLibraries": [],
+      "scriptAllowlist": [],
+      "secrets": []
+    },
+    {
+      "id": "cli-game",
+      "installBytes": 0,
+      "kind": "cli-feature",
+      "nodeCount": 0,
+      "npm": {
+        "integrity": "",
+        "name": "@nodetool-ai/cli-game",
+        "version": "0.8.4"
+      },
+      "provides": [],
+      "registrar": "feature",
+      "requires": [],
+      "runtimeLibraries": [],
+      "scriptAllowlist": [],
+      "secrets": []
+    },
+    {
+      "id": "cli-harness",
+      "installBytes": 0,
+      "kind": "cli-feature",
+      "nodeCount": 0,
+      "npm": {
+        "integrity": "",
+        "name": "@nodetool-ai/cli-harness",
+        "version": "0.8.4"
+      },
+      "provides": [],
+      "registrar": "feature",
+      "requires": [],
+      "runtimeLibraries": [],
+      "scriptAllowlist": [],
+      "secrets": []
+    },
+    {
+      "id": "cli-mcp",
+      "installBytes": 0,
+      "kind": "cli-feature",
+      "nodeCount": 0,
+      "npm": {
+        "integrity": "",
+        "name": "@nodetool-ai/cli-mcp",
+        "version": "0.8.4"
+      },
+      "provides": [],
+      "registrar": "feature",
+      "requires": [],
+      "runtimeLibraries": [],
+      "scriptAllowlist": [],
+      "secrets": []
+    },
+    {
+      "id": "cli-models",
+      "installBytes": 0,
+      "kind": "cli-feature",
+      "nodeCount": 0,
+      "npm": {
+        "integrity": "",
+        "name": "@nodetool-ai/cli-models",
+        "version": "0.8.4"
+      },
+      "provides": [],
+      "registrar": "feature",
+      "requires": [],
+      "runtimeLibraries": [],
+      "scriptAllowlist": [],
+      "secrets": []
+    },
+    {
+      "id": "cli-script",
+      "installBytes": 0,
+      "kind": "cli-feature",
+      "nodeCount": 0,
+      "npm": {
+        "integrity": "",
+        "name": "@nodetool-ai/cli-script",
+        "version": "0.8.4"
+      },
+      "provides": [],
+      "registrar": "feature",
+      "requires": [],
+      "runtimeLibraries": [],
+      "scriptAllowlist": [],
+      "secrets": []
+    },
+    {
+      "id": "cli-server",
+      "installBytes": 0,
+      "kind": "cli-feature",
+      "nodeCount": 0,
+      "npm": {
+        "integrity": "",
+        "name": "@nodetool-ai/cli-server",
+        "version": "0.8.4"
+      },
+      "provides": [],
+      "registrar": "feature",
+      "requires": [],
+      "runtimeLibraries": [],
+      "scriptAllowlist": [],
+      "secrets": []
+    },
+    {
+      "id": "cli-sketch",
+      "installBytes": 0,
+      "kind": "cli-feature",
+      "nodeCount": 0,
+      "npm": {
+        "integrity": "",
+        "name": "@nodetool-ai/cli-sketch",
+        "version": "0.8.4"
+      },
+      "provides": [],
+      "registrar": "feature",
+      "requires": [],
+      "runtimeLibraries": [],
+      "scriptAllowlist": [],
+      "secrets": []
+    },
+    {
+      "id": "cli-timeline",
+      "installBytes": 0,
+      "kind": "cli-feature",
+      "nodeCount": 0,
+      "npm": {
+        "integrity": "",
+        "name": "@nodetool-ai/cli-timeline",
+        "version": "0.8.4"
+      },
+      "provides": [],
+      "registrar": "feature",
+      "requires": [],
+      "runtimeLibraries": [],
+      "scriptAllowlist": [],
+      "secrets": []
+    },
+    {
+      "id": "cli-workflow",
+      "installBytes": 0,
+      "kind": "cli-feature",
+      "nodeCount": 0,
+      "npm": {
+        "integrity": "",
+        "name": "@nodetool-ai/cli-workflow",
+        "version": "0.8.4"
+      },
+      "provides": [],
+      "registrar": "feature",
+      "requires": [
+        "core",
+        "text"
+      ],
       "runtimeLibraries": [],
       "scriptAllowlist": [],
       "secrets": []

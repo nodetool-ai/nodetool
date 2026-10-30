@@ -451,7 +451,7 @@ the repo gate (`npm run typecheck && npm run lint`), and any task touching
 
 ### T8 — Harness registry entry
 
-- **Files:** `packages/cli-full/src/harness/registry.ts`.
+- **Files:** `packages/cli-harness/src/harness/registry.ts`.
 - **Steps:** add a `dsl-native-flow` harness entry covering the
   `packages/dsl` surface, naming the T2/T3/T6 suites as the keyless
   selfcheck so `nodetool harness gate` runs them on diffs touching

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { assertCatalogMatches, canonicalJson, generateCatalog } from "../node-catalog/generate.mjs";
-import { CATALOG_PACKS } from "../node-catalog/packs.mjs";
+import { CATALOG_PACKS, CLI_FEATURE_PACKS } from "../node-catalog/packs.mjs";
 import { NODE_PACKS } from "../node-catalog/tiers.mjs";
 
 function fixture({ duplicate = false, propertyDefault = null, empty = false } = {}) {
@@ -44,14 +44,23 @@ function fixture({ duplicate = false, propertyDefault = null, empty = false } = 
 const generate = (input) => generateCatalog(input.definitions, input.options);
 
 describe("node catalog generator", () => {
+  it("publishes independently selectable command families without an aggregate", () => {
+    expect(CLI_FEATURE_PACKS.map(pack => pack.id)).toEqual([
+      "cli-workflow", "cli-harness", "cli-chat", "cli-models", "cli-admin", "cli-mcp",
+      "cli-server", "cli-apps", "cli-game", "cli-timeline", "cli-sketch", "cli-script"
+    ]);
+    expect(CLI_FEATURE_PACKS.find(pack => pack.id === "cli-workflow").requires).toEqual(["core", "text"]);
+    expect(CLI_FEATURE_PACKS.filter(pack => pack.id !== "cli-workflow").every(pack => pack.requires.length === 0)).toBe(true);
+    expect(CATALOG_PACKS.some(pack => pack.id === "cli-full" || pack.npmName === "@nodetool-ai/cli-full")).toBe(false);
+  });
   it("catalogs an explicit CLI feature without loading its command tree", async () => {
     const input = fixture();
     const originalLoad = input.options.loadPack;
     const originalManifest = input.options.readManifest;
-    const feature = { id: "cli-full", kind: "cli-feature", npmName: "@nodetool-ai/cli-full", registrar: "feature", provides: [], runtimeLibraries: [], secrets: [] };
+    const feature = { id: "cli-workflow", kind: "cli-feature", npmName: "@nodetool-ai/cli-workflow", registrar: "feature", provides: [], runtimeLibraries: [], secrets: [] };
     input.definitions.push(feature);
     input.options.loadPack = async (name) => {
-      if (name === feature.npmName) { throw new Error("Full CLI must not load during catalog generation"); }
+      if (name === feature.npmName) { throw new Error("CLI feature must not load during catalog generation"); }
       return originalLoad(name);
     };
     input.options.readManifest = async (name) => name === feature.npmName
@@ -60,6 +69,11 @@ describe("node catalog generator", () => {
     const index = JSON.parse((await generate(input)).index);
     expect(index.packs.find(pack => pack.id === feature.id)).toMatchObject({ kind: "cli-feature", nodeCount: 0, requires: [], npm: { name: feature.npmName, integrity: "" } });
     expect(Object.keys(index.owners)).toHaveLength(3);
+  });
+  it("rejects the removed aggregate before loading or publishing it", async () => {
+    const input = fixture();
+    input.definitions.push({ id: "cli-full", kind: "cli-feature", npmName: "@nodetool-ai/cli-full", registrar: "feature", provides: [], runtimeLibraries: [], secrets: [] });
+    await expect(generate(input)).rejects.toThrow("removed cli-full aggregate");
   });
   it("takes ownership from each registrar and requirements from pack dependencies", async () => {
     const generated = await generate(fixture());

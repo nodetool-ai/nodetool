@@ -1,0 +1,74 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "jsx": "react-jsx",
+    "jsxImportSource": "react",
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "lib": [
+      "ES2022"
+    ],
+    "strict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "skipLibCheck": true
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "references": [
+    {
+      "path": "../agents"
+    },
+    {
+      "path": "../chat"
+    },
+    {
+      "path": "../cli-common"
+    },
+    {
+      "path": "../cli-execution"
+    },
+    {
+      "path": "../cli-local"
+    },
+    {
+      "path": "../cli-providers"
+    },
+    {
+      "path": "../config"
+    },
+    {
+      "path": "../execution"
+    },
+    {
+      "path": "../models"
+    },
+    {
+      "path": "../node-sdk"
+    },
+    {
+      "path": "../pack-manager"
+    },
+    {
+      "path": "../protocol"
+    },
+    {
+      "path": "../runtime"
+    },
+    {
+      "path": "../security"
+    },
+    {
+      "path": "../storage"
+    },
+    {
+      "path": "../websocket"
+    },
+    {
+      "path": "../cli"
+    }
+  ]
+}

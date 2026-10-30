@@ -23,10 +23,10 @@ Play the example games at https://nodetool.ai/gamedev.
 ## Use it from Claude Code or Codex
 
 ```bash
-npx -y --package=@nodetool-ai/cli nodetool mcp install
+npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp install
 ```
 
-This registers NodeTool as an MCP server in Claude Code, Codex, and OpenCode. For Cursor or another client, `nodetool mcp config` prints the block to paste. The agent calls the game tools inside `execute_code` and looks at captured frames with `view_image`. The game skills appear in Claude Code as slash commands.
+This registers NodeTool as an MCP server in Claude Code, Codex, and OpenCode. For Cursor or another client, `nodetool-mcp config` prints the block to paste. The agent calls the game tools inside `execute_code` and looks at captured frames with `view_image`. The game skills appear in Claude Code as slash commands.
 
 ## Game assets, installed in the game
 
@@ -87,7 +87,7 @@ Yes. The agent creates the game, edits it through checked operations, generates 
 
 ### Can Claude Code build a game in NodeTool?
 
-Yes. Run npx -y --package=@nodetool-ai/cli nodetool mcp install to register NodeTool as an MCP server in Claude Code, Codex, or OpenCode. The agent calls the game tools inside execute_code, NodeTool's sandboxed action tool, and looks at captured frames with view_image. The game skills appear in Claude Code as slash commands.
+Yes. Run npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp install to register NodeTool as an MCP server in Claude Code, Codex, or OpenCode. The agent calls the game tools inside execute_code, NodeTool's sandboxed action tool, and looks at captured frames with view_image. The game skills appear in Claude Code as slash commands.
 
 ### Can I edit the game after the agent makes it?
 

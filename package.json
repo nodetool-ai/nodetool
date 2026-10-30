@@ -95,11 +95,32 @@
     "packages/feature-documents",
     "packages/provider-anthropic",
     "packages/database-postgres",
-    "packages/cli-full",
     "packages/pack-core",
     "packages/sandbox-runtime",
     "packages/server-feature-packs",
-    "packages/pack-manager"
+    "packages/pack-manager",
+    "packages/cli-common",
+    "packages/cli-providers",
+    "packages/cli-workflow",
+    "packages/cli-harness",
+    "packages/cli-chat",
+    "packages/cli-models",
+    "packages/cli-admin",
+    "packages/cli-mcp",
+    "packages/cli-server",
+    "packages/cli-apps",
+    "packages/cli-game",
+    "packages/cli-timeline",
+    "packages/cli-sketch",
+    "packages/cli-script",
+    "packages/cli-local",
+    "packages/cli-execution",
+    "packages/asset-services",
+    "packages/document-services",
+    "packages/pack-host",
+    "packages/workflow-services",
+    "packages/project-services",
+    "packages/error-trace-services"
   ],
   "scripts": {
     "postinstall": "node electron/scripts/rebuild-native.mjs",
@@ -151,7 +172,7 @@
     "lint:anti-slop:check": "node ./scripts/anti-slop-ratchet.mjs --check",
     "lint:eslint": "eslint packages/*/src",
     "workflow": "node ./scripts/run-workflow.mjs",
-    "chat": "node ./packages/cli-full/dist/index.js",
+    "chat": "node ./packages/cli-chat/dist/index.js",
     "nodetool": "node ./packages/cli/dist/nodetool.js",
     "generate:node-docs": "node scripts/generate-node-docs.mjs && node scripts/build-node-index.mjs",
     "generate:node-catalog": "node scripts/generate-node-catalog.mjs",
@@ -164,7 +185,7 @@
     "check:provider-gaps": "node scripts/provider-model-gaps.mjs",
     "generate:kie:check": "node scripts/provider-codegen-check.mjs --provider kie",
     "generate:aki": "tsx packages/runtime/scripts/generate-aki-manifest.ts",
-    "dev:chat": "NODE_OPTIONS='--conditions=nodetool-dev' tsx ./packages/cli-full/src/index.ts",
+    "dev:chat": "NODE_OPTIONS='--conditions=nodetool-dev' tsx ./packages/cli-chat/src/index.ts",
     "dev:workflow": "NODE_OPTIONS='--conditions=nodetool-dev' tsx ./packages/cli/src/nodetool.ts workflows run",
     "capabilities:sync": "node scripts/sync-capability-coverage.mjs",
     "capabilities:check": "node scripts/sync-capability-coverage.mjs --check",
@@ -248,9 +269,7 @@
     "build:sandbox-flow": "node packages/sandbox-packs/sandbox-flow/scripts/build.mjs",
     "build:sandbox-flow:check": "node packages/sandbox-packs/sandbox-flow/scripts/build.mjs --check",
     "test:minimal:packed": "node scripts/minimal-packed-consumer.mjs",
-    "check:minimal:catalog": "node scripts/generate-minimal-feature-catalog.mjs --check",
-    "dev:nodetool:full": "NODE_OPTIONS='--conditions=nodetool-dev' tsx ./packages/cli-full/src/nodetool.ts",
-    "nodetool:full": "node ./packages/cli-full/dist/nodetool.js"
+    "check:minimal:catalog": "node scripts/generate-minimal-feature-catalog.mjs --check"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
@@ -266,7 +285,8 @@
     "turbo": "^2.9.6",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "typescript-eslint": "8.70.0",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.1",
+    "zod": "~4.4.3"
   },
   "dependencies": {
     "fabric": "^7.4.0",
