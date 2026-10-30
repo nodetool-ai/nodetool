@@ -14,6 +14,7 @@
 #include "preview/SyntheticSource.h"
 #include "preview/layers/LayerRegistry.h"
 #include "preview/compose/ComposeRegistry.h"
+#include "preview/effects/ClipEffects.h"
 
 #include <rhi/qrhi.h>
 
@@ -193,8 +194,10 @@ private:
         std::unique_ptr<QRhiTextureRenderTarget> rt;
         std::unique_ptr<QRhiBuffer> ubuf;
         std::unique_ptr<QRhiShaderResourceBindings> srb;
+        std::unique_ptr<QRhiShaderResourceBindings> inputSrb;
     };
     struct Surface : SurfaceResources {
+        std::array<QRhiTexture*, 3> inputBound{};
         nt::RetireQueue* retire = nullptr;
         long long* frame = nullptr;
         ~Surface() {
@@ -208,7 +211,7 @@ private:
         nt::LayerEffectStage* stage;
         nt::LayerFrame input;
         Surface* output;
-        const QJsonObject* ext;
+        QJsonObject ext;
         const std::map<std::string, nt::LayerFrame>* sources;
     };
     std::unique_ptr<nt::MatteStage> m_matteStage;
@@ -884,7 +887,7 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
                 resourceFailed("cannot allocate an effect surface");
                 return {};
             }
-            passes.push_back({stage.get(), input, output, &ext, sources});
+            passes.push_back({stage.get(), input, output, ext, sources});
             input.format = nt::LayerFrame::Format::Rgba8Premultiplied;
             input.planes = {output->texture.get(), nullptr, nullptr};
             input.flipV = m_rhi->isYUpInFramebuffer();
@@ -898,7 +901,7 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
         for (const auto& pass : passes) {
             auto context = effectContext;
             context.sources = pass.sources;
-            if (!pass.stage->render(context, pass.input, *pass.output->rt, *pass.ext)) {
+            if (!pass.stage->render(context, pass.input, *pass.output->rt, pass.ext)) {
                 resourceFailed("cannot render an effect stage");
             }
         }
@@ -1067,9 +1070,60 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
         const bool useMatte = !isMatteSource && m_matteStage && layer.matte && layer.matte->layer;
         if (useMatte && !matteBindings.contains(layer.matte->layer.get())) { continue; }
         const QSize originalSize = frame.size;
+        auto effectInputSize = originalSize;
+        auto sampleRect = layer.sourceRect;
+        auto effectExt = layer.ext;
+        if (sampleRect != std::array<float, 4>{0, 0, 1, 1} &&
+            std::ranges::any_of(m_effectStages, [&](const auto& stage) { return stage->applies(effectExt); })) {
+            QJsonArray rect;
+            for (const float value : sampleRect) { rect.append(value); }
+            effectExt.insert("effectSourceRect", rect);
+            const auto crop = nt::effects::cropPixels(effectExt, originalSize);
+            auto* cropped = m_surfaces.acquire(crop.size(), m_frame);
+            if (!cropped) {
+                resourceFailed("cannot allocate a cropped effect input");
+                continue;
+            }
+            auto planes = frame.planes;
+            for (auto& plane : planes) { if (!plane) { plane = frame.planes[0]; } }
+            if (!cropped->inputSrb) { cropped->inputSrb.reset(m_rhi->newShaderResourceBindings()); }
+            if (cropped->inputBound != planes) {
+                const auto stages = QRhiShaderResourceBinding::VertexStage | QRhiShaderResourceBinding::FragmentStage;
+                cropped->inputSrb->setBindings({
+                    QRhiShaderResourceBinding::uniformBuffer(0, stages, cropped->ubuf.get()),
+                    QRhiShaderResourceBinding::sampledTexture(1, QRhiShaderResourceBinding::FragmentStage, planes[0], m_sampler.get()),
+                    QRhiShaderResourceBinding::sampledTexture(2, QRhiShaderResourceBinding::FragmentStage, planes[1], m_sampler.get()),
+                    QRhiShaderResourceBinding::sampledTexture(3, QRhiShaderResourceBinding::FragmentStage, planes[2], m_sampler.get())});
+                if (!cropped->inputSrb->create()) {
+                    resourceFailed("cannot bind a cropped effect input");
+                    continue;
+                }
+                cropped->inputBound = planes;
+            }
+            LayerUniforms cropUniforms{};
+            writeMatrix(cropUniforms, corr);
+            std::memcpy(cropUniforms.colorMatrix, frame.colorMatrix.data(), sizeof(cropUniforms.colorMatrix));
+            cropUniforms.opacity = 1.0f;
+            cropUniforms.flipV = frame.flipV ? 1.0f : 0.0f;
+            cropUniforms.mode = modeFor(frame.format);
+            cropUniforms.sourceTexelSize = {1.0f / originalSize.width(), 1.0f / originalSize.height(), 0, 0};
+            cropUniforms.sourceRect = {float(crop.x()) / originalSize.width(), float(crop.y()) / originalSize.height(),
+                                       float(crop.width()) / originalSize.width(), float(crop.height()) / originalSize.height()};
+            updates->updateDynamicBuffer(cropped->ubuf.get(), 0, sizeof(cropUniforms), &cropUniforms);
+            sourceConversions.push_back({cropped, cropped->inputSrb.get()});
+            frame.format = nt::LayerFrame::Format::Rgba8Premultiplied;
+            frame.planes = {cropped->texture.get(), nullptr, nullptr};
+            frame.flipV = m_rhi->isYUpInFramebuffer();
+            frame.size = crop.size();
+            effectInputSize = crop.size();
+            sampleRect = {0, 0, 1, 1};
+            effectExt.insert("effectSourceRect", QJsonArray{0, 0, 1, 1});
+            // Keep bounded effect coordinates after removing the physical crop.
+            effectExt.insert("effectSourceCropped", true);
+        }
         QMargins outset;
         if (!m_effectStages.empty()) {
-            const auto processed = planEffects(frame, layer.ext, layerEffects, outset, layerSources);
+            const auto processed = planEffects(frame, effectExt, layerEffects, outset, layerSources);
             if (!processed) { continue; }
             frame = *processed;
         }
@@ -1094,16 +1148,15 @@ PreviewCompositorRenderer::TapResult PreviewCompositorRenderer::renderSceneTap(Q
         // Its own opacity: a group's opacity applies once, to its surface (D35).
         u.opacity = useMatte ? 1.0f : static_cast<float>(layer.opacity);
         u.flipV = frame.flipV ? 1.0f : 0.0f;
-        std::copy(layer.sourceRect.begin(), layer.sourceRect.end(), u.sourceRect.begin());
+        std::copy(sampleRect.begin(), sampleRect.end(), u.sourceRect.begin());
         if (!outset.isNull()) {
-            // The crop remains in original source coordinates. Include the
-            // accumulated padding on both sides when sampling the grown frame.
-            u.sourceRect = {layer.sourceRect[0] * originalSize.width() / frame.size.width(),
-                            layer.sourceRect[1] * originalSize.height() / frame.size.height(),
-                            (layer.sourceRect[2] * originalSize.width() + outset.left() + outset.right()) / frame.size.width(),
-                            (layer.sourceRect[3] * originalSize.height() + outset.top() + outset.bottom()) / frame.size.height()};
+            // Include accumulated padding around the already-cropped effect input.
+            u.sourceRect = {sampleRect[0] * effectInputSize.width() / frame.size.width(),
+                            sampleRect[1] * effectInputSize.height() / frame.size.height(),
+                            (sampleRect[2] * effectInputSize.width() + outset.left() + outset.right()) / frame.size.width(),
+                            (sampleRect[3] * effectInputSize.height() + outset.top() + outset.bottom()) / frame.size.height()};
         }
-        const bool boundedCrop = !outset.isNull() && layer.sourceRect != std::array<float, 4>{0, 0, 1, 1};
+        const bool boundedCrop = !outset.isNull() && sampleRect != std::array<float, 4>{0, 0, 1, 1};
         if ((layer.borderRadius > 0 || boundedCrop) && sourceWidth > 0 && sourceHeight > 0) {
             const float width = float(sourceWidth), height = float(sourceHeight);
             const float expandedWidth = width + outset.left() + outset.right();
