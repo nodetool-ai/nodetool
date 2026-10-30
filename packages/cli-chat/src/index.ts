@@ -9,6 +9,7 @@ import { configureCliPackHost } from "@nodetool-ai/cli-execution/packs/host";
 
 export function createProgram(): Command {
   const program = new Command().name("nodetool");
+  program.command("chat").description("Start interactive chat (chat --help for options)");
   registerAgentCommands(program);
   registerAuthoringCommands(program);
   return program;
