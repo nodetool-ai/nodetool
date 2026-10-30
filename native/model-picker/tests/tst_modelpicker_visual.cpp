@@ -2,6 +2,7 @@
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QTest>
+#include <QSignalSpy>
 
 namespace {
 QQuickItem* findItem(QQuickItem* root, const QString& name) {
@@ -15,6 +16,21 @@ QQuickItem* findItem(QQuickItem* root, const QString& name) {
 class ModelPickerVisualTest : public QObject {
     Q_OBJECT
 private slots:
+    void catalogMayBeTemporarilyAbsent() {
+        QQmlApplicationEngine engine;
+        engine.load(QUrl::fromLocalFile(MODEL_PICKER_TEST_QML));
+        QVERIFY(!engine.rootObjects().isEmpty());
+        auto* popup = engine.rootObjects().first()->findChild<QObject*>("sharedModelPicker");
+        QVERIFY(popup);
+        const auto catalog = popup->property("catalog");
+        QSignalSpy warnings(&engine, &QQmlEngine::warnings);
+        QVERIFY(popup->setProperty("catalog", QVariant::fromValue<QObject*>(nullptr)));
+        QCoreApplication::processEvents();
+        QCOMPARE(warnings.size(), 0);
+        QVERIFY(popup->setProperty("catalog", catalog));
+        QCoreApplication::processEvents();
+        QCOMPARE(warnings.size(), 0);
+    }
     void popoverFitsAndRenders() {
         QQmlApplicationEngine engine;
         engine.load(QUrl::fromLocalFile(MODEL_PICKER_TEST_QML));

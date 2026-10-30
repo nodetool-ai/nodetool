@@ -125,7 +125,7 @@ Frame {
     }
     ModelPicker {
         id: modelPicker
-        catalog: root.session.modelCatalog
+        catalog: root.session ? root.session.modelCatalog : null
         allowServerDefault: true
         onUseServerDefaultRequested: {
             root.session.useServerDefaultModel()
