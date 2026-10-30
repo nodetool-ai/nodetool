@@ -85,6 +85,8 @@ public:
         if (mp4) {
             check(av_opt_set(m_format->priv_data, "movflags", "+faststart", 0), "Set MP4 faststart");
             check(av_opt_set(m_format->priv_data, "use_editlist", "1", 0), "Set MP4 edit list");
+            // Millisecond edit durations truncate fractional AAC tails.
+            check(av_opt_set_int(m_format->priv_data, "movie_timescale", 48000, 0), "Set MP4 sample-accurate edit timescale");
         }
         check(avformat_write_header(m_format.get(), nullptr), "Write export header");
     }
