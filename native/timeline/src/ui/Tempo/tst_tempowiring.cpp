@@ -269,7 +269,8 @@ private slots:
         QVERIFY(popup->setProperty("popupType", popupWindow ? 1 : 0)); // Popup.Window / Popup.Item
         // Exercise keyboard navigation in the item popup and a real option
         // click when the platform hosts the popup in a separate window.
-        click("gridDivisionSelect");
+        QTest::mouseClick(select->window(), Qt::LeftButton, Qt::NoModifier,
+            select->mapToScene({select->width() - 8, select->height() / 2}).toPoint());
         QTRY_VERIFY(popup->property("visible").toBool());
         auto* popupContent = popup->property("contentItem").value<QQuickItem*>();
         QVERIFY(popupContent);

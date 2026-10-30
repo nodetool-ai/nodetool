@@ -230,18 +230,18 @@ std::vector<nt::Clip> overlappingClips(int count) {
     return clips;
 }
 
-double medianRuntime(int count) {
-    const auto clips = overlappingClips(count);
-    const auto pointers = clipPointers(clips);
+double medianRuntime(std::span<const nt::Clip* const> pointers, std::size_t count) {
+    if (pointers.empty() || pointers.size() % count != 0) { qFatal("timing corpus must contain complete batches"); }
     std::array<double, 5> elapsed{};
     for (auto& duration : elapsed) {
         const auto start = std::chrono::steady_clock::now();
-        const auto result = nt::resolveDocumentTransitions(pointers, 40000);
-        const auto end = std::chrono::steady_clock::now();
-        if (result.size() != clips.size()) {
-            qFatal("timing bucket did not resolve every clip");
+        for (std::size_t offset = 0; offset < pointers.size(); offset += count) {
+            const auto batch = pointers.subspan(offset, count);
+            const auto result = nt::resolveDocumentTransitions(batch, 40000);
+            if (result.size() != count) { qFatal("timing bucket did not resolve every clip"); }
         }
-        duration = std::chrono::duration<double>(end - start).count();
+        const auto end = std::chrono::steady_clock::now();
+        duration = std::chrono::duration<double>(end - start).count() / (pointers.size() / count);
     }
     std::sort(elapsed.begin(), elapsed.end());
     return elapsed[elapsed.size() / 2];
@@ -377,8 +377,12 @@ private slots:
     }
 
     void linearScaling() {
-        const double small = medianRuntime(2000);
-        const double large = medianRuntime(32000);
+        // Sweep the same corpus at both batch sizes instead of comparing a
+        // small cache-resident corpus against a large memory-resident one.
+        const auto clips = overlappingClips(32000);
+        const auto pointers = clipPointers(clips);
+        const double small = medianRuntime(pointers, 2000);
+        const double large = medianRuntime(pointers, 32000);
         const double ratio = large / small;
         qInfo("median 2000=%.6fs, 32000=%.6fs, ratio=%.2f", small, large, ratio);
         QVERIFY2(ratio < 40, qPrintable(QStringLiteral("scaling ratio %1 must be below 40").arg(ratio)));
