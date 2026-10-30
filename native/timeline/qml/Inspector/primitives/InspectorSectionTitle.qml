@@ -1,5 +1,5 @@
 import QtQuick
-import QtQuick.Controls as Controls
+import QtQuick.Controls.Basic as Controls
 import QtQuick.Layouts
 import NodeTool.Timeline
 Item {
