@@ -15,10 +15,13 @@ the editors. The desktop app is optional.
 You need Node.js 22 or later. Run this in a terminal:
 
 ```bash
-npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp install
+npx -y @nodetool-ai/cli-mcp install
 ```
 
-Or install the CLI once and use the short form:
+npm selects the package’s single executable, `nodetool-mcp`, automatically.
+See [npm executable selection](https://docs.npmjs.com/cli/v11/commands/npm-exec#description).
+
+Or install the executable globally:
 
 ```bash
 npm install -g @nodetool-ai/cli-mcp
@@ -46,7 +49,7 @@ To use the same feature through the default CLI, run
 ## What the install writes
 
 The entry starts `nodetool-mcp serve` over stdio. The command is `nodetool-mcp` when
-the CLI is on `PATH`, and `npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp` when it
+the CLI is on `PATH`, and `npx -y @nodetool-ai/cli-mcp` when it
 is not. Add `--npx` to always use `npx`.
 
 | Client | File | Scope |
@@ -85,7 +88,7 @@ nodetool-mcp config
 To register the server with Claude Code by hand, run:
 
 ```bash
-claude mcp add --scope user nodetool -- npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp serve
+claude mcp add --scope user nodetool -- npx -y @nodetool-ai/cli-mcp serve
 ```
 
 Claude Desktop also installs the bundled extension from Studio: open
@@ -173,7 +176,7 @@ The server registers a short list of direct tools. Everything else NodeTool can 
 | Symptom | Fix |
 |---|---|
 | The harness shows the server as failed | Run `nodetool-mcp status --check`. It starts each registered server and prints the error. |
-| `npm error could not determine executable to run` | The command lacks `--package=@nodetool-ai/cli-mcp`. Use the explicit `--package=@nodetool-ai/cli-mcp nodetool-mcp` form, then rerun `install`. |
+| `npm error could not determine executable to run` | Use `npx -y @nodetool-ai/cli-mcp install`. This package supplies one executable, which npm selects automatically. |
 | The first start times out | Run `nodetool-mcp install` again. It fills the `npx` cache before the harness starts the server. |
 | `nodetool-mcp serve` fails, but `npx` works | The MCP executable is missing from `PATH` or is an older install. Use `--npx`, or update the global `@nodetool-ai/cli-mcp` package. |
 | A generation fails with a missing key | Store the key with `nodetool secrets store <NAME>`. |
