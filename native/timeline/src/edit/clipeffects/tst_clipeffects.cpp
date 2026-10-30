@@ -77,7 +77,11 @@ struct Editor {
         QCoreApplication::processEvents();
         if (object) { select("picture"); }
     }
-    QQuickItem* item(const QString& name) const { return find(window.contentItem(), name); }
+    QQuickItem* item(const QString& name) {
+        QCoreApplication::processEvents();
+        QQuickTest::qWaitForPolish(&window);
+        return find(window.contentItem(), name);
+    }
     void select(const QString& id) {
         object->findChild<ClipGestureController*>("clipGestures")->setSelection({id});
         QCoreApplication::processEvents();
@@ -99,6 +103,8 @@ struct Editor {
     }
     void click(QQuickItem* target) {
         reveal(target);
+        QVERIFY(target->isVisible());
+        QVERIFY(target->isEnabled());
         window.requestActivate();
         QVERIFY(QTest::qWaitForWindowActive(&window));
         QQuickTest::qWaitForPolish(&window);
@@ -115,7 +121,7 @@ struct Editor {
     bool add(const QString& type) {
         auto* section = item("clipEffectsList");
         if (!section) { return false; }
-        section->setProperty("open",true);
+        if (!QMetaObject::invokeMethod(section, "toggled", Q_ARG(bool, true))) { return false; }
         auto* add = item("effectsAdd");
         if (!add) { return false; }
         click(add);
@@ -177,7 +183,7 @@ void TestClipEffects::registration() {
 void TestClipEffects::colorGestureUndoReset() {
         Editor e; QVERIFY2(e.object,qPrintable(e.error));
         auto* color = e.item("clipAdjustments"); QVERIFY2(color,"ClipAdjustments must be in the Inspector");
-        color->setProperty("open",true);
+        QVERIFY(QMetaObject::invokeMethod(color, "toggled", Q_ARG(bool, true)));
         const auto original = e.model.documentJson();
         QVERIFY(toggle(color,"checkedChangedByUser",true));
         QCOMPARE(e.effects(),QJsonArray({QJsonObject{{"id","inspector:color"},{"type","color"},{"enabled",true}}}));
@@ -192,7 +198,7 @@ void TestClipEffects::colorGestureUndoReset() {
         e.model.undoStack()->undo(); QVERIFY(!e.effects()[0].toObject().contains("brightness"));
         e.model.undoStack()->undo(); QCOMPARE(e.model.documentJson(),original);
         e.model.undoStack()->redo(); e.model.undoStack()->redo(); QCOMPARE(e.model.documentJson(),edited);
-        auto* reset = resetAction(color); QVERIFY(reset);
+        auto* reset = resetAction(e.item("clipAdjustments")); QVERIFY(reset);
         e.click(reset); QCOMPARE(e.effects().size(),0);
         QCOMPARE(e.model.undoStack()->count(),3);
         e.model.undoStack()->undo(); QCOMPARE(e.model.documentJson(),edited);
@@ -237,7 +243,8 @@ void TestClipEffects::listActionsAndParameterGesture() {
             QJsonObject{{"id","inspector:color"},{"type","color"},{"enabled",true},{"contrast",1.3}},
             QJsonObject{{"id","future"},{"type","futureEffect"},{"enabled",true},{"opaque",QJsonObject{{"x",7}}}},
             QJsonObject{{"id","b"},{"type","vignette"},{"enabled",false},{"amount",0.4},{"softness",0.5}}}}});
-        auto* section = e.item("clipEffectsList"); QVERIFY(section); section->setProperty("open",true);
+        auto* section = e.item("clipEffectsList"); QVERIFY(section);
+        QVERIFY(QMetaObject::invokeMethod(section, "toggled", Q_ARG(bool, true)));
         QVERIFY(!e.item("effectRow_inspector:color"));
         const auto before = e.model.documentJson();
         auto* reorder = e.item("effectsReorder_a"); QVERIFY(reorder); reorder->forceActiveFocus();
