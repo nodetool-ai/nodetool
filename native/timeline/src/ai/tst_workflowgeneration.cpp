@@ -46,8 +46,10 @@ private slots:
         QTRY_COMPARE(candidates.size(), 1);
         QCOMPARE(candidates[0][0].toJsonObject(), frozen);
         QCOMPARE(candidates[0][1].toString(), QString("right"));
+        QSignalSpy duplicate(&transport, &nt::ai::GenerationTransport::message);
         peer->sendTextMessage(R"({"type":"job_update","job_id":"job","status":"completed"})");
-        QTest::qWait(10); QCOMPARE(candidates.size(), 1);
+        QTRY_COMPARE(duplicate.size(), 1);
+        QCOMPARE(candidates.size(), 1);
         nt::ai::WorkflowGeneration recovered(&transport);
         QVERIFY(recovered.recover(frozen));
         QTRY_COMPARE(frames.size(), 3);

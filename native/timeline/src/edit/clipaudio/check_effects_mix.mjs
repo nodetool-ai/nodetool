@@ -8,7 +8,7 @@ import * as webAudio from 'node-web-audio-api';
 
 const [root, fixture, binary] = process.argv.slice(2);
 const repo = path.resolve(root, '../..');
-const work = fs.mkdtempSync(path.join(root, 'build', 'd2-mix-'));
+const work = fs.mkdtempSync(path.join(path.dirname(path.resolve(binary)), 'd2-mix-'));
 Object.assign(globalThis, webAudio);
 try {
   // Use the same web render entry and instrument exclusions as P1's DSP oracle.

@@ -129,7 +129,7 @@ int main(int argc, char** argv) {
 `);
     const cache = [path.join(process.cwd(), 'CMakeCache.txt'), path.join(source, 'build/CMakeCache.txt')].find(existsSync);
     const qtDir = cache && readFileSync(cache, 'utf8').match(/^Qt6_DIR:PATH=(.+)$/m)?.[1].trim();
-    const prefix = process.env.CMAKE_PREFIX_PATH ?? (qtDir ? path.resolve(qtDir, '../../..') : undefined);
+    const prefix = qtDir ? path.resolve(qtDir, '../../..') : process.env.CMAKE_PREFIX_PATH;
     const args = ['-S', directory, '-B', build, '-G', 'Ninja', '-DCMAKE_BUILD_TYPE=Release',
       ...(prefix ? [`-DCMAKE_PREFIX_PATH=${prefix}`] : [])];
     const output = run('cmake', args);
