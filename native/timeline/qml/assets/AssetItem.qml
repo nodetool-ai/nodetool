@@ -5,12 +5,19 @@ Rectangle {
     id: tile
     required property var asset
     required property AssetBrowser browser
+    property var navigateFolder: null
+    function openFolder() {
+        if (navigateFolder) navigateFolder(asset.id)
+        else browser.openFolder(asset.id)
+    }
     property bool selected: false
     signal selectedByUser()
+    signal previewRequested()
+    signal actionsRequested()
     readonly property string mediaType: browser.mediaType(asset)
     readonly property bool isFolder: asset.content_type === "folder"
     readonly property string poster: asset.thumb_url || (mediaType === "image" ? asset.get_url || "" : "")
-    readonly property bool showCaption: hover.hovered || activeFocus || selected
+    readonly property bool showCaption: true
     color: Theme.backgroundPaper
     border.width: selected || activeFocus ? 2 : 1
     border.color: selected || activeFocus ? Theme.primary : Theme.divider
@@ -19,14 +26,20 @@ Rectangle {
     activeFocusOnTab: true
     Accessible.role: Accessible.Button
     Accessible.name: asset.name || "Asset"
-    Keys.onSpacePressed: selectedByUser()
+    Keys.onSpacePressed: { selectedByUser(); if (!isFolder) previewRequested() }
+    Keys.onPressed: event => {
+        if (event.key === Qt.Key_Menu || (event.key === Qt.Key_F10 && event.modifiers === Qt.ShiftModifier)) {
+            actionsRequested()
+            event.accepted = true
+        }
+    }
     Keys.onReturnPressed: {
-        if (isFolder) browser.openFolder(asset.id)
-        else selectedByUser()
+        if (isFolder) openFolder()
+        else { selectedByUser(); previewRequested() }
     }
     Keys.onEnterPressed: {
-        if (isFolder) browser.openFolder(asset.id)
-        else selectedByUser()
+        if (isFolder) openFolder()
+        else { selectedByUser(); previewRequested() }
     }
 
     Image {
@@ -42,7 +55,7 @@ Rectangle {
     Icon {
         anchors.centerIn: parent
         visible: !posterImage.visible
-        size: 32
+        size: Theme.iconSm * 2
         path: tile.mediaType === "audio" ? Icons.audiotrack : tile.mediaType === "video" ? Icons.videocam : Icons.layers
         color: Theme.clipAccent(tile.mediaType)
     }
@@ -97,10 +110,12 @@ Rectangle {
         id: mouse
         anchors.fill: parent
         drag.target: tile.isFolder ? null : dragPoint
-        onDoubleClicked: { if (tile.isFolder) tile.browser.openFolder(tile.asset.id) }
+        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        onDoubleClicked: { if (tile.isFolder) tile.openFolder(); else tile.previewRequested() }
         onPressed: event => {
             tile.forceActiveFocus()
             tile.selectedByUser()
+            if (event.button === Qt.RightButton) tile.actionsRequested()
             dragPoint.x = event.x
             dragPoint.y = event.y
         }

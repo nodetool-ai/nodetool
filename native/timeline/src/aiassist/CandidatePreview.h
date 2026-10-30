@@ -4,6 +4,7 @@
 #include "assets/AssetMedia.h"
 #include "audio/AppAudio.h"
 #include <QPointer>
+#include <optional>
 #include <QtQmlIntegration/qqmlintegration.h>
 class QThread;
 // The review owns an isolated document and a silent clock. It never edits the cut.
@@ -25,7 +26,7 @@ public:
     TimelineModel* previewTimeline() const { return m_preview; }
     PlaybackClock* previewClock() const { return m_clock; }
     bool ready() const { return m_ready; }
-    bool busy() const { return m_worker != nullptr; }
+    bool busy() const { return m_loading; }
     QString error() const { return m_error; }
     QString audioMode() const { return m_audioMode; }
     void setAudioMode(const QString& mode);
@@ -40,6 +41,9 @@ private:
     PlaybackClock* m_clock;
     std::shared_ptr<nt::assets::MediaProtection> m_protection;
     QThread* m_worker = nullptr;
+    struct PendingPreview { QString assetId; QString mediaType; double durationMs; };
+    std::optional<PendingPreview> m_pending;
+    bool m_loading = false;
     QString m_error;
     QString m_audioMode = QStringLiteral("none");
     std::unique_ptr<nt::audio::AppAudio> m_audio;

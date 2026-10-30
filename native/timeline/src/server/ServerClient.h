@@ -99,6 +99,8 @@ public:
     // Refused (code WRONG_SERVER) when an expected instance is set and the
     // server does not prove knowledge of its secret.
     QueryResult mutate(const QString& procedure, const QJsonObject& input);
+    // JSON-only asset creation (folders and metadata), through the same write proof.
+    QueryResult createAsset(const QJsonObject& fields);
     // Side-effect-free SDK static preflight; pins the same server as writes.
     QueryResult preflightWorkflow(const QString& workflowId, const QJsonObject& inputs = {});
     QueryResult upload(const QJsonObject& json, const QString& filePath, const QString& contentType);
