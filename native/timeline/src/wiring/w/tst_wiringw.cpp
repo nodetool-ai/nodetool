@@ -262,8 +262,17 @@ private slots:
         QVERIFY(item("track-fx-" + trackId));
         click("track-fx-" + trackId);
         click("fx-add-" + trackId);
-        click("fx-add-type-" + trackId + "-" + type);
+        if (type == "eq3" || type == "compressor") {
+            // The menu offers Fable EQ/comp; legacy documents still use these editors.
+            QVERIFY(!item("fx-add-type-" + trackId + "-" + type));
+            QVERIFY(item("fx-add-type-" + trackId + "-" + (type == "eq3" ? "eq" : "comp")));
+            QTest::keyClick(view.get(), Qt::Key_Escape);
+            QVERIFY(model.applyEdit("addTrackEffect", {{"trackId", trackId}, {"effect", type}}));
+        } else {
+            click("fx-add-type-" + trackId + "-" + type);
+        }
         QTRY_COMPARE(effects(trackId).size(), 1);
+        QCOMPARE(model.undoStack()->count(), 1);
         const auto effect = effects(trackId)[0].toObject();
         const auto id = effect.value("id").toString();
         const auto before = doc();
