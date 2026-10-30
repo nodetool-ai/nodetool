@@ -64,6 +64,8 @@ jobs:
 
       # Scratch-server and golden checks also load decorated node packages.
       - name: Build the server and timeline packages
+        env:
+          NODETOOL_TURBO_CONCURRENCY: "2"
         run: |
           npm ci --ignore-scripts
           npm run rebuild:native
