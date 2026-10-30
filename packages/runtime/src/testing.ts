@@ -203,7 +203,9 @@ export function createFakeContext(
       updateStoryboard: async ({ id, document, timelineId }) => {
         const existing = storyboards.get(id);
         if (!existing) { return null; }
-        const saved = { ...existing, document: document ?? existing.document, ...(timelineId === undefined ? {} : { timelineId }) };
+        const saved = { ...existing };
+        if (document !== undefined) { saved.document = document; }
+        if (timelineId !== undefined) { saved.timelineId = timelineId; }
         storyboards.set(id, saved);
         return saved;
       },
