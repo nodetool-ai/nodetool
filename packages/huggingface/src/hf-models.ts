@@ -743,33 +743,39 @@ const _DIFFUSION_REPO_CACHE = new Map<string, boolean>();
 // fnmatch-style glob matching
 // ---------------------------------------------------------------------------
 
-/**
- * Convert a simple fnmatch-style pattern (with `*` and `?`) to a RegExp.
- *
- * This is intentionally minimal: supports `*` -> `.*` and `?` -> `.`.
- * No support for `[...]` character classes, which are rarely used in HF patterns.
- */
-function _fnmatchToRegex(pattern: string): RegExp {
-  let regex = "^";
-  for (const ch of pattern) {
-    if (ch === "*") {
-      regex += ".*";
-    } else if (ch === "?") {
-      regex += ".";
-    } else if (".+^${}()|[]\\".includes(ch)) {
-      regex += "\\" + ch;
+/** Match simple `*`/`?` globs without an exponentially backtracking regex. */
+function _matchesPattern(value: string, pattern: string): boolean {
+  let valueIndex = 0;
+  let patternIndex = 0;
+  let starIndex = -1;
+  let starEnd = 0;
+  const isLineTerminator = (character: string): boolean =>
+    character === "\n" || character === "\r" || character === "\u2028" || character === "\u2029";
+  while (valueIndex < value.length) {
+    const token = pattern[patternIndex];
+    if (token === "*") {
+      starIndex = patternIndex++;
+      starEnd = valueIndex;
+    } else if (token === value[valueIndex] || token === "?" && !isLineTerminator(value[valueIndex])) {
+      valueIndex++;
+      patternIndex++;
+    } else if (starIndex >= 0 && !isLineTerminator(value[starEnd])) {
+      valueIndex = ++starEnd;
+      patternIndex = starIndex + 1;
     } else {
-      regex += ch;
+      return false;
     }
   }
-  regex += "$";
-  return new RegExp(regex);
+  while (pattern[patternIndex] === "*") {
+    patternIndex++;
+  }
+  return patternIndex === pattern.length;
 }
 
 /** Case-sensitive glob check; empty pattern list means match everything. */
 export function _matchesAnyPattern(value: string, patterns: string[]): boolean {
   if (patterns.length === 0) return true;
-  return patterns.some((p) => _fnmatchToRegex(p).test(value));
+  return patterns.some((p) => _matchesPattern(value, p));
 }
 
 /** Case-insensitive glob check used when filtering by repo id. */
@@ -779,7 +785,7 @@ export function _matchesAnyPatternCi(
 ): boolean {
   const valueLower = value.toLowerCase();
   return patterns.some((p) =>
-    _fnmatchToRegex(p.toLowerCase()).test(valueLower)
+    _matchesPattern(valueLower, p.toLowerCase())
   );
 }
 
