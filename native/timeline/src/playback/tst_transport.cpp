@@ -5,6 +5,56 @@
 class TstTransport : public QObject {
     Q_OBJECT
 private slots:
+    void durationChangesWithoutRestartingPlayback() {
+        PlaybackClock clock;
+        std::int64_t now = 0;
+        clock.setNowSource([&now] { return now; });
+        clock.setDurationMs(1000);
+        clock.play();
+        now = 600'000'000;
+        clock.tick();
+        clock.setDurationMs(2000);
+        now = 1200'000'000;
+        clock.tick();
+        QVERIFY(clock.playing());
+        QCOMPARE(clock.time(), 1200.0);
+        clock.setDurationMs(800);
+        QCOMPARE(clock.currentTimeMs(), 800.0);
+        clock.tick();
+        QVERIFY(!clock.playing());
+        QCOMPARE(clock.time(), 800.0);
+    }
+    void durationChangesPreserveExplicitPlaybackRange() {
+        PlaybackClock clock;
+        std::int64_t now = 0;
+        clock.setNowSource([&now] { return now; });
+        clock.setDurationMs(2000);
+        clock.setRangeIn(200);
+        clock.setRangeOut(1600);
+        clock.playInToOut();
+        clock.setDurationMs(1000);
+        now = 900'000'000;
+        clock.tick();
+        QVERIFY(clock.playing());
+        QCOMPARE(clock.time(), 1100.0);
+        now = 1400'000'000;
+        clock.tick();
+        QVERIFY(!clock.playing());
+        QCOMPARE(clock.time(), 1600.0);
+    }
+    void shorteningLoopUsesNewDuration() {
+        PlaybackClock clock;
+        std::int64_t now = 0;
+        clock.setNowSource([&now] { return now; });
+        clock.setDurationMs(2000);
+        clock.setLoop(true);
+        clock.play();
+        now = 1100'000'000;
+        clock.setDurationMs(1000);
+        clock.tick();
+        QVERIFY(clock.playing());
+        QCOMPARE(clock.time(), 0.0);
+    }
     void defaultAndSeek() {
         PlaybackClock c;
         QVERIFY(!c.loop());
