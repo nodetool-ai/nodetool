@@ -748,6 +748,7 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
     framing: t("screens4_16.shotEditPanel.fields.size"),
     angle: t("screens4_16.shotEditPanel.fields.perspective"),
     movement: t("screens4_16.shotEditPanel.fields.movement"),
+    presetIds: t("screens4_16.shotEditPanel.fields.movement"),
     equipment: t("screens4_16.shotEditPanel.fields.equipment"),
     lens: t("screens4_16.shotEditPanel.fields.focalLength"),
     notes: t("screens4_16.shotEditPanel.fields.notes"),

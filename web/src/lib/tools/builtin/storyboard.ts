@@ -42,6 +42,7 @@ const cameraParam = z
     lens: z.string().optional(),
     angle: z.string().optional(),
     movement: z.string().optional(),
+    preset_ids: z.array(z.string()).max(3).optional(),
     equipment: z
       .string()
       .optional()

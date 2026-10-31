@@ -5,3 +5,4 @@ export * from "./compile.js";
 
 export * from "./eject.js";
 export * from "./media.js";
+export * from "./camera.js";

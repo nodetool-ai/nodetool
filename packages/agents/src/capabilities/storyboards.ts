@@ -1,3 +1,5 @@
+import { cameraPresetIdsSchema } from "@nodetool-ai/protocol";
+import { presetCatalog } from "./presets.js";
 import { finishStoryboard, layoutStoryboard, previewStoryboardDesign } from "./finish-storyboard.js";
 /**
  * The `storyboards` capability module.
@@ -718,7 +720,8 @@ async function filterStale(
       doc,
       entities,
       kind,
-      selected.map((shot) => shot.id)
+      selected.map((shot) => shot.id),
+      { presetCatalog: presetCatalog() }
     )
       .filter((plan) => plan.fresh)
       .map((plan) => plan.shotId)
@@ -732,7 +735,7 @@ async function filterStale(
 }
 
 function modelOverrides(params: Record<string, unknown>): ShotRenderPlanOptions {
-  const options: ShotRenderPlanOptions = {};
+  const options: ShotRenderPlanOptions = { presetCatalog: presetCatalog() };
   if (isNonBlankString(params["provider"])) {
     options.provider = params["provider"];
   }
@@ -1844,8 +1847,12 @@ function applyShotFields(
   const next: Shot = { ...shot };
   if (args["action"] !== undefined) next.action = String(args["action"]);
   if (args["slug"] !== undefined) next.slug = String(args["slug"]);
-  if (args["camera"] !== undefined)
+  if (args["camera"] !== undefined) {
     next.camera = args["camera"] as Shot["camera"];
+  }
+  if (next.camera?.preset_ids !== undefined) {
+    cameraPresetIdsSchema.parse(next.camera.preset_ids);
+  }
   if (args["motion"] !== undefined) next.motion = String(args["motion"]);
   for (const field of ["end_state", "sound"] as const) {
     const value = args[field];

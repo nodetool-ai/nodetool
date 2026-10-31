@@ -64,6 +64,7 @@ describe("draftFromShot", () => {
       framing: "close-up",
       angle: "low angle",
       movement: "dolly in",
+      presetIds: [],
       equipment: "dolly",
       lens: "85mm",
       notes: "Do not paint the sky",
@@ -299,5 +300,19 @@ describe("savedShot", () => {
       action: "A lighthouse at dawn"
     });
     expect(savedShot(shot(), patch).action).toBe("A lighthouse at dawn");
+  });
+});
+
+describe("camera preset draft", () => {
+  it("preserves ids on save and merges assistant edits", () => {
+    const target = shot({ camera: { movement: "slow push in", preset_ids: ["camera.dolly-in"] } });
+    const original = draftFromShot(target, null);
+    expect(shotPatchFromDraft(original).camera?.preset_ids).toEqual(["camera.dolly-in"]);
+    const draft = { ...original, presetIds: ["camera.dolly-in", "camera.steadicam"] };
+    expect(changedDraftKeys(draft, original)).toEqual(["presetIds"]);
+    expect(shotPatchFromChangedDraft(draft, original, { ...target, camera: { ...target.camera, lens: "85mm" } }).camera).toEqual({
+      movement: "slow push in", lens: "85mm", preset_ids: ["camera.dolly-in", "camera.steadicam"]
+    });
+    expect(shotPatchFromChangedDraft({ ...original, presetIds: [] }, original, target).camera?.preset_ids).toBeUndefined();
   });
 });

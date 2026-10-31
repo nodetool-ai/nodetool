@@ -17,3 +17,11 @@ in the build order.
 
 See [AGENTS.md](AGENTS.md) and
 [docs/graph-resources/design.md](../../docs/graph-resources/design.md) §3.1.
+
+Clip plans with `camera.preset_ids` require `ShotRenderPlanOptions.presetCatalog`.
+Server hosts load this through the registered presets asset, as the presets
+capability does. Planning compiles only camera direction for the effective clip
+model and mode. Still prompts and shots without ids keep their existing text.
+Render records carry `camera_preset_ids` separately from the legacy direction
+prompt hash, so a changed stack invalidates a clip without requiring the
+catalogue at freshness boundaries.

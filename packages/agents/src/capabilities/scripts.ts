@@ -1629,7 +1629,8 @@ const DIRECTOR_SHOTS_SCHEMA = {
               framing: { type: "string" },
               lens: { type: "string" },
               angle: { type: "string" },
-              movement: { type: "string" }
+              movement: { type: "string" },
+              preset_ids: { type: "array", items: { type: "string" }, maxItems: 3 }
             }
           }
         }

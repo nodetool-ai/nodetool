@@ -50,3 +50,13 @@ and JSON Schema. `npm run generate:check --workspace=packages/presets`
 rejects drift. Tests validate every source file.
 
 See [backend dependency rules](../AGENTS.md#package-dependency-order).
+
+`compileCameraPresets(ids, { modelId, mode, catalog })` returns an optional
+`ShotPromptContext.compiledCamera` object, `{ clause, replacesEquipment }`.
+It compiles against an empty prompt, so fragments cannot replace the shot's
+action. The clause replaces free-text movement. A rig-slot selection also
+replaces equipment. Move-only selections keep equipment.
+
+`cameraPresetIdsForMovement(movement, catalog)` resolves a legacy movement
+through `byAlias` to zero or one camera preset ids for UI preselection. It
+never changes stored boards or opts free-text shots into preset rendering.

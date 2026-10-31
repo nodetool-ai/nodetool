@@ -10,6 +10,7 @@
  * Pure: no provider, no database, no clock.
  */
 
+import { compileCameraPresets, type Catalog } from "@nodetool-ai/presets";
 import {
   assertProductionGenerationAllowed,
   currentRenderInputs,
@@ -96,6 +97,8 @@ function imageAssetId(image: ImageRef): string | undefined {
 /** Per-call overrides. Each one is recorded, so a render made against something
  * other than the board's own settings reads stale against the board. */
 export interface ShotRenderPlanOptions {
+  /** Loaded by the host through the registered presets runtime asset. */
+  presetCatalog?: Catalog;
   provider?: string;
   model?: string;
   supportedTasks?: string[];
@@ -241,7 +244,18 @@ export function planShotRenders(
       aspect_ratio: aspectRatio,
       style
     };
+    if (kind === "clip" && shot.camera?.preset_ids?.length && !options.presetCatalog) {
+      throw new Error("Camera presets require a preset catalog when planning clips");
+    }
+    const compiledCamera = kind === "clip" && options.presetCatalog
+      ? compileCameraPresets(shot.camera?.preset_ids, {
+          modelId: model.model,
+          mode: mode === "keyframe" ? "image_to_video" : mode === "reference" ? "reference_to_video" : "video",
+          catalog: options.presetCatalog
+        })
+      : undefined;
     const context = {
+      ...(compiledCamera && { compiledCamera }),
       scene: sceneForShot(shot, doc.screenplay?.scenes),
       style
     };
