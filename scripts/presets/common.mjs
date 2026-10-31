@@ -48,7 +48,7 @@ export async function buildPlan(opts) {
     const compiled = compilePresets([preset.id], { catalog: createCatalog([preset]), modelId: model, mode: 'image_to_video', prompt });
     const workflow = presetToWorkflow(preset, { model: { provider: 'dreamina', id: model }, mode: 'image_to_video' });
     const generator = workflow.nodes.find((node) => node.id === 'generate');
-    Object.assign(generator.data, { seed, duration: 4, resolution: '480p' });
+    Object.assign(generator.data, { seed, duration: 4, resolution: opts.final ? '1080p' : '480p' });
     return { id: preset.id, path, preset, provider: 'dreamina', model, seed, prompt: compiled.prompt, source_hash: sourceHash,
       workflow, workflow_hash: hash(JSON.stringify({ workflow, sourceHash, prompt })),
       recordPath: resolve(root, 'packages/presets/runs', `${preset.id}.json`),
