@@ -51,6 +51,8 @@ export async function main(args) {
     return adapter.getPublicUrl(await adapter.store(key, bytes, type));
   };
   await publishPlans(await buildPlan(opts), { ...opts, encode, upload,
-    regenerate: () => promisify(execFile)(process.execPath, ['packages/presets/scripts/generate.mjs'], { cwd: root }) });
+    // The generator runs on plain node, so it must not inherit the dev source condition.
+    regenerate: () => promisify(execFile)(process.execPath, ['packages/presets/scripts/generate.mjs'], {
+      cwd: root, env: { ...process.env, NODE_OPTIONS: '' } }) });
 }
 if (isMain(import.meta.url)) { main().catch((error) => { console.error(error.message); process.exitCode = 1; }); }
