@@ -154,6 +154,40 @@ function jsonSafe(value: unknown): JsonSafeValue {
   return String(value);
 }
 
+/** Strings at least this long that start with `data:` are inline media. */
+const INLINE_MEDIA_MIN_LENGTH = 1024;
+
+/**
+ * The persisted copy of a provider request, with each inline media data URI
+ * replaced by its media type, length and SHA-256. The provider still receives
+ * the full request. Inline base64 inputs made single rows tens of megabytes,
+ * and the recovery worker reads these rows on every pass. Nothing reads the
+ * media back: the input fingerprint is computed from the live request.
+ */
+function withoutInlineMedia(value: JsonSafeValue): JsonSafeValue {
+  if (typeof value === "string") {
+    if (value.length < INLINE_MEDIA_MIN_LENGTH || !value.startsWith("data:")) {
+      return value;
+    }
+    const comma = value.indexOf(",");
+    const mediaType =
+      (comma > 5 ? value.slice(5, comma).split(";", 1)[0] : "") ||
+      "application/octet-stream";
+    const digest = createHash("sha256").update(value).digest("hex");
+    return `[inline ${mediaType} omitted: ${value.length} chars, sha256 ${digest}]`;
+  }
+  if (Array.isArray(value)) return value.map(withoutInlineMedia);
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, entry]) => [
+        key,
+        withoutInlineMedia(entry)
+      ])
+    );
+  }
+  return value;
+}
+
 function callbackOrigin(value: string | null | undefined): string | null {
   if (!value) return null;
   try {
@@ -236,6 +270,9 @@ export function createFalGenerationLifecycleHooks(
         attachments: [jsonSafe(request.destination)]
       });
     }
+    const persistedParams = withoutInlineMedia(
+      jsonSafe(request.params ?? {})
+    ) as Record<string, unknown>;
     const accepted = await lifecycle.accept({
       id: generationId,
       user_id: options.userId,
@@ -252,7 +289,7 @@ export function createFalGenerationLifecycleHooks(
       request_id: origin.request_id ?? null,
       job_id: options.jobId ?? request.workflowId ?? null,
       project_id: options.projectId ?? null,
-      parameters: jsonSafe(request.params ?? {}) as Record<string, unknown>,
+      parameters: persistedParams,
       metadata,
       document_id: request.destination?.document_id ?? null,
       provider_account_ref: accountRef,
@@ -261,7 +298,7 @@ export function createFalGenerationLifecycleHooks(
         ? createHash("sha256").update(callbackToken).digest("hex")
         : null,
       callback_token_ciphertext: callbackTokenCiphertext,
-      request_payload: jsonSafe(request.params ?? {}) as Record<string, unknown>
+      request_payload: persistedParams
     });
 
     if (!accepted.created) {

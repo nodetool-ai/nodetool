@@ -5,7 +5,9 @@ const models = vi.hoisted(() => ({
     pending: vi.fn(),
     recoverable: vi.fn(),
     claimLease: vi.fn(),
-    get: vi.fn(),
+    findById: vi.fn(),
+    requestPayload: vi.fn(),
+    bindProviderRequest: vi.fn(),
     findByProviderRequest: vi.fn(),
     bindRequestIfUnbound: vi.fn(),
     transition: vi.fn(),
@@ -19,6 +21,7 @@ const models = vi.hoisted(() => ({
   },
   Prediction: {
     find: vi.fn(),
+    findForRecovery: vi.fn(),
     claimGenerationLease: vi.fn(),
     transitionDurable: vi.fn(),
     renewGenerationLease: vi.fn(),
@@ -88,7 +91,7 @@ describe("DurableGenerationRecoveryWorker", () => {
     models.GenerationAttempt.recoverable.mockResolvedValue([attempt]);
     models.GenerationAttempt.claimLease.mockResolvedValue(attempt);
     models.GenerationAttempt.transition.mockResolvedValue(attempt);
-    models.Prediction.find.mockResolvedValue({
+    models.Prediction.findForRecovery.mockResolvedValue({
       id: "generation-1",
       metadata: null,
       cancel_requested_at: null
@@ -160,7 +163,7 @@ describe("DurableGenerationRecoveryWorker", () => {
     models.GenerationAttempt.recoverable.mockResolvedValue([attempt]);
     models.GenerationAttempt.claimLease.mockResolvedValue(attempt);
     models.GenerationAttempt.transition.mockResolvedValue(attempt);
-    models.Prediction.find.mockResolvedValue(generation);
+    models.Prediction.findForRecovery.mockResolvedValue(generation);
     models.Prediction.claimGenerationLease.mockResolvedValue({
       ...generation,
       lease_version: 3
@@ -273,12 +276,12 @@ describe("DurableGenerationRecoveryWorker", () => {
       provider_request_id: "request-1",
       lease_version: 2
     });
-    models.GenerationAttempt.get.mockResolvedValue(attempt);
+    models.GenerationAttempt.findById.mockResolvedValue(attempt);
     models.GenerationAttempt.claimLease.mockResolvedValue(attempt);
     models.GenerationAttempt.transition.mockResolvedValue(attempt);
     models.GenerationAttempt.recoverable.mockResolvedValue([]);
     models.GenerationOutput.forAttempt.mockResolvedValue([]);
-    models.Prediction.find.mockResolvedValue({
+    models.Prediction.findForRecovery.mockResolvedValue({
       id: "generation-1",
       status: "completed",
       provider_status: "succeeded",
@@ -321,9 +324,9 @@ describe("DurableGenerationRecoveryWorker", () => {
     };
     models.GenerationWebhookDelivery.pending.mockResolvedValue([delivery]);
     models.GenerationWebhookDelivery.claim.mockResolvedValue(delivery);
-    models.GenerationAttempt.get.mockResolvedValue(attempt);
+    models.GenerationAttempt.findById.mockResolvedValue(attempt);
     models.GenerationAttempt.recoverable.mockResolvedValue([]);
-    models.Prediction.find.mockResolvedValue({
+    models.Prediction.findForRecovery.mockResolvedValue({
       id: "generation-1",
       status: "completed",
       provider_status: "succeeded",
@@ -378,9 +381,9 @@ describe("DurableGenerationRecoveryWorker", () => {
     };
     models.GenerationWebhookDelivery.pending.mockResolvedValue([delivery]);
     models.GenerationWebhookDelivery.claim.mockResolvedValue(delivery);
-    models.GenerationAttempt.get.mockResolvedValue(attempt);
+    models.GenerationAttempt.findById.mockResolvedValue(attempt);
     models.GenerationAttempt.recoverable.mockResolvedValue([]);
-    models.Prediction.find.mockResolvedValue({
+    models.Prediction.findForRecovery.mockResolvedValue({
       id: "generation-1",
       status: "completed",
       provider_status: "succeeded",
@@ -437,7 +440,7 @@ describe("DurableGenerationRecoveryWorker", () => {
       ...attachment,
       status: "attached"
     });
-    models.Prediction.find.mockResolvedValue({
+    models.Prediction.findForRecovery.mockResolvedValue({
       id: "generation-1",
       status: "completed",
       provider_status: "succeeded",
@@ -492,7 +495,7 @@ describe("DurableGenerationRecoveryWorker", () => {
     models.GenerationAttempt.claimLease.mockResolvedValue(attempt);
     models.GenerationOutput.forAttempt.mockResolvedValue([]);
     models.GenerationAttempt.transition.mockResolvedValue(attempt);
-    models.Prediction.find
+    models.Prediction.findForRecovery
       .mockResolvedValueOnce({
         id: "generation-1",
         status: "running",
@@ -572,7 +575,7 @@ describe("DurableGenerationRecoveryWorker", () => {
     models.GenerationAttempt.claimLease.mockResolvedValue(attempt);
     models.GenerationAttempt.transition.mockResolvedValue(attempt);
     // The generation-state write was lost, so the row is still nonterminal.
-    models.Prediction.find.mockResolvedValue({
+    models.Prediction.findForRecovery.mockResolvedValue({
       id: "generation-1",
       status: "recovering",
       provider_status: "succeeded",
@@ -660,7 +663,7 @@ describe("DurableGenerationRecoveryWorker", () => {
     models.GenerationAttempt.recoverable.mockResolvedValue([attempt]);
     models.GenerationAttempt.claimLease.mockResolvedValue(attempt);
     models.GenerationAttempt.transition.mockResolvedValue(attempt);
-    models.Prediction.find.mockResolvedValue({
+    models.Prediction.findForRecovery.mockResolvedValue({
       id: "generation-1",
       status: "recovering",
       provider_status: "succeeded",
@@ -726,7 +729,7 @@ describe("DurableGenerationRecoveryWorker", () => {
     );
     models.GenerationAttempt.transition.mockResolvedValue(attempts[0]);
     models.GenerationOutput.forAttempt.mockResolvedValue([]);
-    models.Prediction.find.mockImplementation(async (id: string) => ({
+    models.Prediction.findForRecovery.mockImplementation(async (id: string) => ({
       id,
       status: "recovering",
       provider_status: "queued",
@@ -779,5 +782,255 @@ describe("DurableGenerationRecoveryWorker", () => {
     models.GenerationWebhookDelivery.pending.mockResolvedValue([]);
     await worker.runOnce();
     expect(models.GenerationWebhookDelivery.pending).toHaveBeenCalledTimes(2);
+  });
+
+  describe("unresolved attempts", () => {
+    const now = new Date("2026-10-31T12:00:00.000Z");
+    const unboundAttempt = (createdAt: string, checkAttempts = 0) => ({
+      id: "attempt-1",
+      generation_id: "generation-1",
+      provider: "fal_ai",
+      provider_request_id: null,
+      submission_status: "submission_unknown",
+      provider_status: "unknown",
+      endpoint: "fal-ai/flux/dev",
+      lease_version: 4,
+      check_attempts: checkAttempts,
+      last_error: null,
+      cancel_requested_at: null,
+      created_at: createdAt
+    });
+
+    beforeEach(() => {
+      models.GenerationWebhookDelivery.pending.mockResolvedValue([]);
+      models.GenerationAttempt.transition.mockResolvedValue({ id: "attempt-1" });
+      models.Prediction.findForRecovery.mockResolvedValue({
+        id: "generation-1",
+        status: "pending",
+        provider_status: "unknown",
+        output_status: "pending",
+        metadata: null,
+        cancel_requested_at: null
+      });
+      models.Prediction.claimGenerationLease.mockResolvedValue({
+        id: "generation-1",
+        lease_version: 7
+      });
+      models.Prediction.transitionDurable.mockResolvedValue({
+        id: "generation-1"
+      });
+    });
+
+    it("backs off an ambiguous submission and counts the check", async () => {
+      const attempt = unboundAttempt("2026-10-31T11:00:00.000Z", 2);
+      models.GenerationAttempt.recoverable.mockResolvedValue([attempt]);
+      models.GenerationAttempt.claimLease.mockResolvedValue(attempt);
+
+      await new DurableGenerationRecoveryWorker({
+        provider: { queueFor: vi.fn() },
+        leaseMs: 60_000,
+        now: () => now
+      }).runOnce();
+
+      expect(models.GenerationAttempt.transition).toHaveBeenCalledWith(
+        "attempt-1",
+        expect.any(String),
+        4,
+        expect.objectContaining({
+          submission_status: "submission_unknown",
+          provider_status: "unknown",
+          check_attempts: 3,
+          // The third check waits 2^2 leases.
+          next_check_at: "2026-10-31T12:04:00.000Z"
+        })
+      );
+      expect(models.Prediction.transitionDurable).not.toHaveBeenCalled();
+    });
+
+    it("caps the backoff between checks", async () => {
+      const attempt = unboundAttempt("2026-10-31T11:00:00.000Z", 40);
+      models.GenerationAttempt.recoverable.mockResolvedValue([attempt]);
+      models.GenerationAttempt.claimLease.mockResolvedValue(attempt);
+
+      await new DurableGenerationRecoveryWorker({
+        provider: { queueFor: vi.fn() },
+        leaseMs: 60_000,
+        now: () => now
+      }).runOnce();
+
+      expect(models.GenerationAttempt.transition).toHaveBeenCalledWith(
+        "attempt-1",
+        expect.any(String),
+        4,
+        expect.objectContaining({
+          check_attempts: 41,
+          next_check_at: "2026-10-31T12:30:00.000Z"
+        })
+      );
+    });
+
+    it("moves an ambiguous submission past the deadline to needs_attention", async () => {
+      const attempt = unboundAttempt("2026-09-18T08:00:00.000Z");
+      models.GenerationAttempt.recoverable.mockResolvedValue([attempt]);
+      models.GenerationAttempt.claimLease.mockResolvedValue(attempt);
+      const queueFor = vi.fn();
+
+      await new DurableGenerationRecoveryWorker({
+        provider: { queueFor },
+        now: () => now
+      }).runOnce();
+
+      expect(models.Prediction.transitionDurable).toHaveBeenCalledWith(
+        "generation-1",
+        expect.any(String),
+        7,
+        expect.objectContaining({
+          status: "needs_attention",
+          submission_status: "submission_unknown",
+          error: expect.stringContaining("could not be confirmed"),
+          next_check_at: null
+        })
+      );
+      expect(models.GenerationAttempt.transition).toHaveBeenCalledWith(
+        "attempt-1",
+        expect.any(String),
+        4,
+        expect.objectContaining({
+          provider_status: "unresolved",
+          check_attempts: 1,
+          next_check_at: null
+        })
+      );
+      expect(queueFor).not.toHaveBeenCalled();
+    });
+
+    it("keeps the attempt scheduled when another worker holds the generation", async () => {
+      const attempt = unboundAttempt("2026-09-18T08:00:00.000Z");
+      models.GenerationAttempt.recoverable.mockResolvedValue([attempt]);
+      models.GenerationAttempt.claimLease.mockResolvedValue(attempt);
+      models.Prediction.claimGenerationLease.mockResolvedValue(null);
+
+      await new DurableGenerationRecoveryWorker({
+        provider: { queueFor: vi.fn() },
+        now: () => now
+      }).runOnce();
+
+      expect(models.Prediction.transitionDurable).not.toHaveBeenCalled();
+      const [, , , update] = models.GenerationAttempt.transition.mock.calls[0];
+      expect(update.provider_status).toBe("unknown");
+      expect(update.next_check_at).not.toBeNull();
+    });
+
+    it("stops a bound request whose status reads keep failing", async () => {
+      const attempt = {
+        ...unboundAttempt("2026-09-18T08:00:00.000Z", 30),
+        provider_request_id: "request-1",
+        submission_status: "submitted"
+      };
+      models.GenerationAttempt.recoverable.mockResolvedValue([attempt]);
+      models.GenerationAttempt.claimLease.mockResolvedValue(attempt);
+      const queue = {
+        bind: vi.fn().mockResolvedValue({ bound: true }),
+        wait: vi.fn().mockRejectedValue(new Error("FAL queue HTTP 404"))
+      };
+
+      await new DurableGenerationRecoveryWorker({
+        provider: { queueFor: vi.fn().mockResolvedValue(queue) },
+        now: () => now
+      }).runOnce();
+
+      expect(models.Prediction.transitionDurable).toHaveBeenCalledWith(
+        "generation-1",
+        expect.any(String),
+        7,
+        expect.objectContaining({
+          status: "needs_attention",
+          submission_status: "submitted",
+          error: expect.stringContaining("FAL queue HTTP 404")
+        })
+      );
+      expect(models.GenerationAttempt.transition).toHaveBeenCalledWith(
+        "attempt-1",
+        expect.any(String),
+        4,
+        expect.objectContaining({
+          provider_status: "unresolved",
+          next_check_at: null
+        })
+      );
+    });
+
+    it("does not count a request still running at the provider", async () => {
+      const attempt = {
+        ...unboundAttempt("2026-09-18T08:00:00.000Z", 30),
+        provider_request_id: "request-1",
+        submission_status: "submitted"
+      };
+      models.GenerationAttempt.recoverable.mockResolvedValue([attempt]);
+      models.GenerationAttempt.claimLease.mockResolvedValue(attempt);
+      const queue = {
+        bind: vi.fn().mockResolvedValue({ bound: true }),
+        wait: vi.fn().mockImplementation(
+          async (
+            _binding: unknown,
+            options: { onUpdate?: (update: { state: string }) => void }
+          ) => {
+            options.onUpdate?.({ state: "running" });
+            throw new DOMException("The operation timed out.", "TimeoutError");
+          }
+        )
+      };
+
+      await new DurableGenerationRecoveryWorker({
+        provider: { queueFor: vi.fn().mockResolvedValue(queue) },
+        leaseMs: 60_000,
+        now: () => now
+      }).runOnce();
+
+      expect(models.Prediction.transitionDurable).not.toHaveBeenCalled();
+      expect(models.GenerationAttempt.transition).toHaveBeenCalledWith(
+        "attempt-1",
+        expect.any(String),
+        4,
+        {
+          submission_status: "submitted",
+          provider_status: "running",
+          check_attempts: 0,
+          last_error: null,
+          next_check_at: "2026-10-31T12:01:00.000Z"
+        }
+      );
+    });
+
+    it("loads the request payload and full generation only to resubmit", async () => {
+      const attempt = {
+        ...unboundAttempt("2026-10-31T11:59:00.000Z"),
+        submission_status: "accepted"
+      };
+      models.GenerationAttempt.recoverable.mockResolvedValue([attempt]);
+      models.GenerationAttempt.claimLease.mockResolvedValue(attempt);
+      models.GenerationAttempt.requestPayload.mockResolvedValue({
+        prompt: "a cat"
+      });
+      models.GenerationAttempt.bindProviderRequest.mockResolvedValue(true);
+      models.Prediction.find.mockResolvedValue({
+        id: "generation-1",
+        parameters: { prompt: "a cat" }
+      });
+      const submitAccepted = vi
+        .fn()
+        .mockResolvedValue({ providerRequestId: "request-9" });
+
+      await new DurableGenerationRecoveryWorker({
+        provider: { queueFor: vi.fn() },
+        submitAccepted,
+        now: () => now
+      }).runOnce();
+
+      expect(submitAccepted).toHaveBeenCalledWith(
+        expect.objectContaining({ parameters: { prompt: "a cat" } }),
+        expect.objectContaining({ request_payload: { prompt: "a cat" } })
+      );
+    });
   });
 });
