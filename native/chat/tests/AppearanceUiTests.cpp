@@ -40,7 +40,7 @@ private slots:
         auto* window = qobject_cast<QQuickWindow*>(engine.rootObjects().first());
         QVERIFY(window);
         QTRY_VERIFY(window->isVisible());
-        auto* status = findItem(window->contentItem(), "chatConnectionStatus");
+        auto* status = findItem(window->contentItem(), "chatConversationTitle");
         QVERIFY(status);
         QCOMPARE(QFontInfo(qvariant_cast<QFont>(status->property("font"))).family(), QStringLiteral("Inter"));
         auto* button = findItem(window->contentItem(), "chatAppearanceButton");

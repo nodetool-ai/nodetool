@@ -3,6 +3,7 @@ import QtQuick.Layouts
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
 import NodeTool.ModelPicker
+import "../assets/AssetContext.js" as Context
 
 // Renders one shot's still or clip with a model the creator picks here. The picker opens on the
 // model the shot used last, so a confirm without a change is the one-click regenerate.
@@ -36,6 +37,10 @@ Ui.Dialog {
             Layout.fillWidth: true
             catalog: catalog
             Accessible.name: dialog.kind === "image" ? "Still model" : "Clip model"
+            onAddProvidersRequested: {
+                const settings = Context.itemNamed(dialog.Window.window ? dialog.Window.window.contentItem : null, "providerSettingsDialog")
+                if (settings) settings.open()
+            }
         }
         Ui.Text { Layout.fillWidth: true; visible: catalog.error !== ""; text: catalog.error; tone: Ui.Text.Error; wrapMode: Text.Wrap }
     }

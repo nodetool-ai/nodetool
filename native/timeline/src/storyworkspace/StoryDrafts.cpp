@@ -119,7 +119,11 @@ DraftResult patchSpeaker(const QJsonObject& script, const QString& speakerId, co
     for (const auto& speaker : cast) { ids.append(speaker.toObject().value("id").toString()); }
     const auto id = nt::aiassist::resolveId(speakerId, ids);
     if (!id) { return invalid("Speaker is unavailable or its prefix is ambiguous."); }
-    if (!((field == "name" && value.isString()) || (field == "entityId" && (value.isNull() || identifier(value))))) {
+    const auto binding = value.toObject();
+    const bool voice = field == "voice" && (value.isNull() || (value.isObject()
+        && !binding.value("provider").toString().trimmed().isEmpty() && !binding.value("model").toString().trimmed().isEmpty()
+        && binding.value("voice").isString()));
+    if (!((field == "name" && value.isString()) || (field == "entityId" && (value.isNull() || identifier(value))) || voice)) {
         return invalid("Unsupported speaker field or invalid value. Entity ids must be full ids.");
     }
     for (qsizetype i = 0; i < cast.size(); ++i) {

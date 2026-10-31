@@ -77,17 +77,19 @@ Controls.Control {
                 Layout.fillWidth: true
                 timeline: root.timeline
                 autosave: root.saver
+                DockLayoutMenu {
+                    anchors.verticalCenter: parent.verticalCenter
+                    store: layoutStore
+                    panels: root.dockPanels
+                }
             }
             ToolButton {
                 visible: root.chatSession !== null
                 label: root.chatOpen ? qsTr("Close chat") : qsTr("Chat")
+                iconOnly: true
+                iconName: "forum"
                 activeFocusOnTab: true
                 onClicked: root.toggleChat()
-            }
-            DockLayoutMenu {
-                store: layoutStore
-                panels: root.dockPanels
-                Layout.rightMargin: Ui.Metrics.md
             }
         }
         SaveBanners { Layout.fillWidth: true; autosave: root.saver }

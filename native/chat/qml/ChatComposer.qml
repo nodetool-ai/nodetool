@@ -14,6 +14,17 @@ Ui.Surface {
     variant: Ui.Surface.Panel
     implicitHeight: composerContent.implicitHeight + Ui.Metrics.md * 2
     objectName: "chatComposer"
+    // The host app's provider settings dialog. The standalone chat app has none and opens the web settings.
+    function nativeProviderSettings() {
+        const pending = root.Window.window ? [root.Window.window.contentItem] : []
+        while (pending.length > 0) {
+            const item = pending.shift()
+            if (item.objectName === "providerSettingsDialog") return item
+            const data = item.data || []
+            for (let i = 0; i < data.length; ++i) pending.push(data[i])
+        }
+        return null
+    }
     function focusEditor() {
         editor.forceActiveFocus();
     }
@@ -140,7 +151,12 @@ Ui.Surface {
                 root.session.useServerDefaultModel()
                 close()
             }
-            onAddProvidersRequested: root.session.openProviderSettings()
+            onAddProvidersRequested: {
+                const dialog = root.nativeProviderSettings()
+                close()
+                if (dialog) dialog.open()
+                else root.session.openProviderSettings()
+            }
         }
     }
     FileDialog {

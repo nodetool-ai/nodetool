@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Window
 import QtQuick.Controls as Controls
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
@@ -15,7 +16,11 @@ Rectangle {
     objectName: "dockGroup_" + group.id
     color: Ui.Theme.surfacePanel
     clip: true
-    function openMenu(id) { menuPanel = id; menu.popup(0, tabs.height) }
+    function openMenu(id, anchor, alignRight) {
+        menuPanel = id
+        menu.openAt(anchor || tabs)
+        if (alignRight && anchor) menu.x = Math.max(0, anchor.mapToItem(menu.parent, anchor.width, 0).x - menu.width)
+    }
     function tabTarget(x, dragged) { return tabs.insertionIndex(x, dragged) }
     function trackSlot() { if (dock && group) dock.registerSlot(group.id, body) }
     onGroupChanged: trackSlot()
@@ -46,8 +51,10 @@ Rectangle {
     }
     Ui.ContextMenu {
         id: menu
+        width: Math.min(root.Window.window ? root.Window.window.width : TimelineMetrics.dockMenuWidth, TimelineMetrics.dockMenuWidth)
         popupType: Controls.Popup.Item
         Ui.MenuItem {
+            objectName: "dockMenuClose_" + root.group.id
             text: "Close " + root.dock.title(root.menuPanel)
             enabled: root.menuPanel !== "program" && root.menuPanel !== "tracks"
             onTriggered: root.dock.store.dispatch({type: "hide", panelId: root.menuPanel})

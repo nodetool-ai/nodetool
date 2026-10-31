@@ -111,7 +111,11 @@ private slots:
         auto* button = item("exportButton");
         QCOMPARE(button->property("text").toString(), QString("Export"));
         auto* bar = item("documentBar"); QVERIFY(bar);
-        QCOMPARE(button->mapToItem(bar, {button->width(), 0}).x(), bar->width() - 8);
+        // Export sits to the left of the project settings, the last control in the bar.
+        QTRY_VERIFY(item("projectSettingsButton"));
+        auto* settings = item("projectSettingsButton");
+        QVERIFY(button->mapToItem(bar, {button->width(), 0}).x() < settings->mapToItem(bar, {0, 0}).x());
+        QCOMPARE(settings->mapToItem(bar, {settings->width(), 0}).x(), bar->width() - 8);
         QVERIFY(button->height() >= 28.0);
         auto* controller = qobject_cast<ExportController*>(object("exportController")); QVERIFY(controller);
         QSignalSpy opened(controller, &ExportController::openRequested);

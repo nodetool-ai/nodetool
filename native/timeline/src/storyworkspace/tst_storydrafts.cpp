@@ -81,6 +81,11 @@ private slots:
         QCOMPARE(speaker.value("entityId").toString(), entityId); QVERIFY(speaker.value("future").toBool()); QVERIFY(speaker.value("voice").isObject());
         QVERIFY(!patchSpeaker(source, "speaker", "entityId", entityId.left(12)).ok());
         QVERIFY(!patchSpeaker(source, "speaker", "voice", "replace").ok());
+        const QJsonObject binding{{"provider", "openai"}, {"model", "tts-1"}, {"voice", "alloy"}};
+        auto voiced = patchSpeaker(source, "speaker", "voice", binding);
+        QVERIFY(voiced.ok());
+        QCOMPARE(voiced.resource.value("document").toObject().value("cast").toArray().first().toObject().value("voice").toObject(), binding);
+        QVERIFY(!patchSpeaker(source, "speaker", "voice", QJsonObject{{"provider", "openai"}, {"voice", "alloy"}}).ok());
     }
     void entityEditPreservesAssetIdentityAndMetadata() {
         const QJsonObject source{{"id", entityId}, {"metadata", QJsonObject{{"other", true}, {"nodetool_entity", QJsonObject{

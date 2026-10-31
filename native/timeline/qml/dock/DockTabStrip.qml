@@ -33,7 +33,7 @@ Rectangle {
     Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: Ui.Metrics.border; color: Ui.Theme.borderSubtle }
     Flickable {
         id: tabViewport
-        width: parent.width - options.width
+        width: parent.width - options.width - maximize.width
         height: parent.height
         contentWidth: tabRow.width
         contentHeight: height
@@ -113,7 +113,7 @@ Rectangle {
                         onReleased: event => {
                             if (dragged) root.dock.finishDrag()
                             else if (event.button === Qt.MiddleButton && tab.closable) root.dock.store.dispatch({type: "hide", panelId: tab.panelId})
-                            else if (event.button === Qt.RightButton) root.groupView.openMenu(tab.panelId)
+                            else if (event.button === Qt.RightButton) root.groupView.openMenu(tab.panelId, tab)
                             else tab.forceActiveFocus()
                         }
                         onCanceled: root.dock.cancelDrag()
@@ -133,7 +133,7 @@ Rectangle {
                         else if (event.key === Qt.Key_Home) root.focusTab(0)
                         else if (event.key === Qt.Key_End) root.focusTab(tabs.count - 1)
                         else if ((event.key === Qt.Key_Delete || event.key === Qt.Key_Backspace) && closable) root.dock.store.dispatch({type: "hide", panelId})
-                        else if (event.key === Qt.Key_Menu || (event.key === Qt.Key_F10 && event.modifiers & Qt.ShiftModifier)) root.groupView.openMenu(panelId)
+                        else if (event.key === Qt.Key_Menu || (event.key === Qt.Key_F10 && event.modifiers & Qt.ShiftModifier)) root.groupView.openMenu(panelId, tab)
                         else if (event.key === Qt.Key_Space && event.modifiers & Qt.ShiftModifier) root.dock.toggleMaximize(root.groupView.group.id)
                         else if (event.modifiers === Qt.NoModifier && (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space)) tab.activate()
                         else return
@@ -144,11 +144,22 @@ Rectangle {
         }
     }
     ToolButton {
+        id: maximize
+        objectName: "dockMaximize"
+        anchors.right: options.left
+        readonly property bool maximized: !!root.groupView && !!root.groupView.group && root.dock.maximizedGroup === root.groupView.group.id
+        label: maximized ? "Restore layout" : "Maximize panel"
+        iconOnly: true
+        iconName: maximized ? "fullscreenExit" : "fullscreen"
+        onClicked: root.dock.toggleMaximize(root.groupView.group.id)
+    }
+    ToolButton {
         id: options
+        objectName: root.groupView && root.groupView.group ? "dockPanelOptions_" + root.groupView.group.id : ""
         anchors.right: parent.right
         label: "Panel options"
         iconOnly: true
         iconName: "moreVert"
-        onClicked: root.groupView.openMenu(root.activeId)
+        onClicked: root.groupView.openMenu(root.activeId, options, true)
     }
 }

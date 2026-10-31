@@ -1,7 +1,8 @@
 // Mirrors ui_primitives/DocumentBar.tsx as TimelineDocumentBar.tsx fills it:
 // the document name and its save status, then Undo and Redo. 40 px high.
-// The web's layout menu, panel toggles and overflow menu have no native
-// counterpart yet. The right actions slot holds Export.
+// The leading row holds the layout menu. The right side holds Export, then
+// the project settings. Panel toggles and the overflow menu have no native
+// counterpart yet.
 import QtQuick
 import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
@@ -11,6 +12,8 @@ Rectangle {
     objectName: "documentBar"
     required property TimelineModel timeline
     property QtObject autosave: null
+    // Controls after Undo and Redo, such as the layout menu.
+    default property alias leading: leadingRow.data
 
     height: TimelineMetrics.documentBarHeight
     color: Ui.Theme.surfaceCanvas
@@ -60,17 +63,26 @@ Rectangle {
                 onClicked: bar.timeline.undoStack.redo()
             }
         }
+        Row {
+            id: leadingRow
+            anchors.verticalCenter: parent.verticalCenter
+            spacing: Ui.Metrics.md
+        }
+    }
+    Row {
+        anchors.right: parent.right
+        anchors.rightMargin: Ui.Metrics.md
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: Ui.Metrics.md
+        SlotItems {
+            anchors.verticalCenter: parent.verticalCenter
+            slot: "documentBarActions"
+            slotProperties: ({ timeline: bar.timeline })
+        }
         SlotItems {
             anchors.verticalCenter: parent.verticalCenter
             slot: "documentBar"
             slotProperties: ({ timeline: bar.timeline })
         }
-    }
-    SlotItems {
-        anchors.right: parent.right
-        anchors.rightMargin: Ui.Metrics.md
-        anchors.verticalCenter: parent.verticalCenter
-        slot: "documentBarActions"
-        slotProperties: ({ timeline: bar.timeline })
     }
 }

@@ -69,7 +69,6 @@ public:
   Q_INVOKABLE void completeHostTool(const QString &, const QVariantMap &,
                                     const QString &error = {});
   Q_INVOKABLE void openExternal(const QUrl &);
-  Q_INVOKABLE void copyText(const QString &);
   Q_INVOKABLE void setHostTools(const QVariantList &tools);
   bool sendHostRequest(const QString &command, const QJsonObject &data,
                        const QString &requestId);

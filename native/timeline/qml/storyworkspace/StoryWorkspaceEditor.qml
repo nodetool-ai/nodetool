@@ -717,6 +717,32 @@ Ui.Surface {
                         }
                     }
                 }
+                WorkspaceCheckBox { id: castVoices; objectName: "workspaceCastVoices"; text: "Cast voices"; visible: panel.hasDocument && document.cast !== undefined }
+                Column {
+                    width: parent.width
+                    spacing: Ui.Metrics.md
+                    visible: castVoices.visible && castVoices.checked
+                    WorkspaceLabel { width: parent.width; visible: (document.cast || []).length === 0; text: "Add a speaker to the script to give it a voice."; tone: Ui.Text.Secondary; wrapMode: Text.Wrap }
+                    Repeater {
+                        model: castVoices.checked ? document.cast || [] : []
+                        delegate: Column {
+                            id: castMember
+                            required property var modelData
+                            width: parent.width
+                            spacing: Ui.Metrics.xs
+                            WorkspaceLabel { text: castMember.modelData.name || "Unnamed" }
+                            Loader {
+                                width: parent.width
+                                source: "ScriptVoicePicker.qml"
+                                onLoaded: {
+                                    item.binding = Qt.binding(() => castMember.modelData.voice || null)
+                                    item.editable = Qt.binding(() => !controller.busy && !controller.scriptDirty)
+                                    item.changed.connect(binding => workspace.patchSpeaker(castMember.modelData.id, "voice", binding))
+                                }
+                            }
+                        }
+                    }
+                }
                 WorkspaceCheckBox { id: metadata; text: "Document details"; visible: panel.hasDocument }
                 Column {
                     width: parent.width

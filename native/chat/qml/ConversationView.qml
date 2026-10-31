@@ -70,12 +70,15 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         Ui.EditorButton {
+            objectName: "chatThreadsButton"
             visible: root.showBack
+            Layout.leftMargin: Ui.Metrics.md
             text: qsTr("Chats")
-            variant: Ui.EditorButton.Flat
+            iconName: "forum"
             onClicked: root.backRequested()
         }
         Ui.Text {
+            objectName: "chatConversationTitle"
             role: Ui.Typography.SansBody
             Layout.fillWidth: true
             text: qsTr("Chat")

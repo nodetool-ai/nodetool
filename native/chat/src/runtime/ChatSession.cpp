@@ -607,11 +607,6 @@ void ChatSession::openExternal(const QUrl &url) {
     fail("This link scheme is not supported");
   }
 }
-void ChatSession::copyText(const QString &text) {
-  if (auto *clipboard = QGuiApplication::clipboard()) {
-    clipboard->setText(text);
-  }
-}
 void ChatSession::applyEvent(const QJsonObject &event) {
   const auto id = event["thread_id"].toString();
   const auto type = event["type"].toString();

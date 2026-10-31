@@ -16,22 +16,13 @@ Item {
     ColumnLayout {
         anchors.fill: parent
         spacing: Ui.Metrics.none
-        RowLayout {
-            Layout.fillWidth: true
+        Ui.EditorButton {
+            Layout.alignment: Qt.AlignRight
             Layout.margins: Ui.Metrics.md
-            Ui.Text {
-                objectName: "chatConnectionStatus"
-                role: Ui.Typography.SansCaption
-                Layout.fillWidth: true
-                text: root.session ? root.session.connectionStatus : qsTr("Disconnected")
-                tone: Ui.Text.Secondary
-            }
-            Ui.EditorButton {
-                variant: Ui.EditorButton.Flat
-                text: qsTr("Reconnect")
-                visible: !!root.session && root.session.connectionStatus === "disconnected" && root.session.selectedThreadId.length > 0
-                onClicked: root.session.resumeConnection()
-            }
+            variant: Ui.EditorButton.Flat
+            text: qsTr("Reconnect")
+            visible: !!root.session && root.session.connectionStatus === "disconnected" && root.session.selectedThreadId.length > 0
+            onClicked: root.session.resumeConnection()
         }
         Ui.Text {
             role: Ui.Typography.SansLabel

@@ -2866,3 +2866,13 @@ binding = "onDoubleTapped"
 rule = "manual-control"
 owner = "Storyboard shot card"
 reason = "The card is a media tile: a click selects it and a double-click opens it full screen. Keyboard users select with Space, edit with Enter, and open full screen with the card's Fullscreen button."
+
+[[file]]
+path = "native/timeline/qml/storyworkspace/ScriptVoicePicker.qml"
+category = "chrome"
+controls = ["Ui.Select", "Ui.Text", "ModelPickerButton"]
+signals = ["changed"]
+test_host = "tst_storyworkspace"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/storyworkspace/StoryWorkspaceEditor.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Select, Ui.Text"

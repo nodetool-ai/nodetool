@@ -102,7 +102,7 @@ TestCase {
         verify(next.visible)
         mouseClick(next)
         tryVerify(function() { return findText(message, "Section 2 of 3 · Plain text") !== null })
-        verify(findText(message, "Copy full text") !== null)
+        compare(findText(message, "Copy full text"), null)
     }
     function test_historyLoadingIsSeparateFromTurnAndEmptyState() {
         loadingView.active = true
@@ -117,7 +117,7 @@ TestCase {
         tryCompare(label, "visible", false)
         tryCompare(prompt, "visible", true)
     }
-    function test_incompleteMarkdownStreamsAndCopiesExactText() {
+    function test_incompleteMarkdownStreams() {
         const first = "**Starting `code"
         testDriver.stream("a", first)
         wait(50)
@@ -125,40 +125,14 @@ TestCase {
         const view = findChild(panel, "chatMessages")
         view.positionViewAtEnd()
         wait(30)
-        const copy = findText(panel, "Copy full text")
-        verify(copy !== null)
-        testDriver.setClipboardText("before")
-        mouseClick(copy)
-        compare(testDriver.clipboardText(), first)
         const middle = "\n```cpp\nint x = 1;"
         testDriver.stream("a", middle)
         wait(50)
         view.positionViewAtEnd()
         wait(30)
-        const codeCopy = findText(panel, "Copy code 1")
-        verify(codeCopy !== null)
-        mouseClick(codeCopy)
-        compare(testDriver.clipboardText(), "int x = 1;")
         testDriver.stream("a", "\n```\n**done**", true)
         wait(30)
         compare(testSession.turnStatus, "idle")
-    }
-    function test_largeFencedCodeCopyKeepsCompleteSource() {
-        const code = "int value = 0;\n".repeat(800)
-        testDriver.codeHistory("a", code)
-        wait(80)
-        const view = findChild(panel, "chatMessages")
-        view.positionViewAtEnd()
-        wait(30)
-        const codeCopy = findText(panel, "Copy code 1")
-        const fullCopy = findText(panel, "Copy full text")
-        verify(codeCopy !== null)
-        verify(fullCopy !== null)
-        testDriver.setClipboardText("before")
-        mouseClick(codeCopy)
-        compare(testDriver.clipboardText(), code)
-        mouseClick(fullCopy)
-        compare(testDriver.clipboardText(), "```cpp\n" + code + "```")
     }
     function test_structuredPartsRenderThroughCppModel() {
         testDriver.approval("a")
@@ -261,16 +235,13 @@ TestCase {
         tryCompare(chooser, "activeFocus", true)
         compare(chooser.Accessible.expanded, false)
     }
-    function test_copyActionsWrapInsideNarrowColumn() {
-        test.width = 400
-        testDriver.codeHistory("a", "value\n```\n```js\n".repeat(30) + "value\n")
+    function test_messagesHaveNoCopyButtons() {
+        testDriver.codeHistory("a", "int value = 0;\n")
         wait(80)
         const message = findVisible(panel, "message_code")
         verify(message !== null)
-        const actions = findText(message, "Copy full text").parent
-        verify(actions !== null)
-        verify(actions.width <= message.width)
-        verify(actions.childrenRect.width <= actions.width)
+        compare(findText(message, "Copy full text"), null)
+        compare(findText(message, "Copy code 1"), null)
     }
     function test_narrowNavigationStartsInConversation() {
         test.width = 400

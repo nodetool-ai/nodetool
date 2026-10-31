@@ -21,18 +21,6 @@ ColumnLayout {
         text: root.userMessage ? root.text.slice(0, 4096) : ""
         font: userFont.font
     }
-    function codeBlocks(source) {
-        const blocks = [];
-        if (source.indexOf("```") < 0) {
-            return blocks;
-        }
-        const pattern = /```[^\n]*\n([\s\S]*?)(?:```|$)/g;
-        let match;
-        while ((match = pattern.exec(source)) !== null && blocks.length < 100) {
-            blocks.push(match[1]);
-        }
-        return blocks;
-    }
     component PagedText: ColumnLayout {
         id: paged
         property string sourceText: ""
@@ -120,29 +108,6 @@ ColumnLayout {
                 text: qsTr("Next section")
                 enabled: paged.page < paged.pages - 1
                 onClicked: ++paged.page
-            }
-        }
-        Flow {
-            objectName: "messageCopyActions"
-            Layout.fillWidth: true
-            layoutDirection: root.userMessage ? Qt.RightToLeft : Qt.LeftToRight
-            spacing: Ui.Metrics.xs
-            Ui.ToolbarIconButton {
-                variant: Ui.EditorButton.Flat
-                iconName: "copy"
-                text: qsTr("Copy full text")
-                onClicked: paged.chatSession.copyText(paged.sourceText)
-            }
-            Repeater {
-                model: root.codeBlocks(paged.sourceText)
-                delegate: Ui.ToolbarIconButton {
-                    required property string modelData
-                    required property int index
-                    variant: Ui.EditorButton.Flat
-                    iconName: "copy"
-                    text: qsTr("Copy code %1").arg(index + 1)
-                    onClicked: paged.chatSession.copyText(modelData)
-                }
             }
         }
     }
