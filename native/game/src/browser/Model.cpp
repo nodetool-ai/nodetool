@@ -14,7 +14,9 @@ Json prepareBrowserModel(const Json &request) {
     for (const auto &primitive : mesh) {
       auto vertices = Json::array();
       for (const auto &vertex : primitive.vertices) {
-        vertices.push_back({{"position", vertex.position}, {"normal", vertex.normal}, {"uv", vertex.uv}, {"joints", vertex.joints}, {"weights", vertex.weights}});
+        Json preparedVertex{{"position", vertex.position}, {"normal", vertex.normal}, {"uv", vertex.uv}, {"joints", vertex.joints}, {"weights", vertex.weights}};
+        if (primitive.hasVertexColors) { preparedVertex["color"] = vertex.color; }
+        vertices.push_back(std::move(preparedVertex));
       }
       primitives.push_back({{"vertices", vertices}, {"indices", primitive.indices}, {"material", primitive.material}});
     }
@@ -25,6 +27,11 @@ Json prepareBrowserModel(const Json &request) {
     materials.push_back({{"color", material.color}, {"metallic", material.metallic}, {"roughness", material.roughness}, {"image", material.image}, {"doubleSided", material.doubleSided},
       {"emissive", material.emissive}, {"normalImage", material.normalImage}, {"normalScale", material.normalScale}, {"alphaMode", material.alphaMode}, {"alphaCutoff", material.alphaCutoff},
       {"baseColorSampler", sampler(material.baseColorSampler)}, {"normalSampler", sampler(material.normalSampler)}});
+  }
+  for (std::size_t i = 0; i < model->materials.size(); ++i) {
+    if (model->materials[i].emissiveStrength != 1) {
+      materials[i]["emissiveStrength"] = model->materials[i].emissiveStrength;
+    }
   }
   for (const auto &image : model->images) {
     if (!image.source) { throw Error("validation_error", "Prepared image has no verified source"); }

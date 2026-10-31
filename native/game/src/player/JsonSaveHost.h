@@ -148,7 +148,7 @@ public:
     if (durable_ && !replay_) { worker_ = std::make_unique<JsonSaveWorker>(JsonSaveStore(std::move(gameId), true, std::move(storageRoot))); }
   }
   Json step(Session &session, Json input) {
-    const auto generation = session.frame().at("generation").get<std::uint64_t>();
+    const auto generation = session.generation();
     resetIfChanged(generation);
     if (!replay_) {
       if (input.contains("loaded")) { throw Error("validation_error", "Recorded loaded input requires replay mode"); }

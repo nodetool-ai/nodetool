@@ -131,6 +131,14 @@ void Session::createSpatialWorld() {
   physics_ = makeSpatialWorld(entities_, document_.value("dimension", std::string("3d")),
                              gravity, document_.value("tickRate", 60.));
 }
+void Session::cacheAuthoredOrder(const std::string &sceneId, const Json &entities) {
+  auto nextSceneId = sceneId;
+  Json order = Json::object();
+  std::size_t next = document_.at("dimension") == "2d" ? 128 : 0;
+  for (const auto &entity : entities) { order[entity.at("id").get<std::string>()] = next++; }
+  authoredOrderSeed_.swap(order);
+  authoredOrderSceneId_.swap(nextSceneId);
+}
 void Session::openScene(const std::string &id) {
   sceneId_ = id;
   uiOverrides_ = Json::object();
@@ -138,6 +146,7 @@ void Session::openScene(const std::string &id) {
   if (entities_.is_object() && entities_.contains("entities")) {
     entities_ = entities_["entities"];
   }
+  cacheAuthoredOrder(id, entities_);
   std::sort(
       entities_.begin(), entities_.end(),
       [](const Json &a, const Json &b) { return a.at("id") < b.at("id"); });
@@ -258,7 +267,7 @@ Json Session::step(const Json &input) {
   finiteTree(input);
   if (input.contains("loaded")) { validateLoadedSaves(input.at("loaded")); }
   measure("inputMs");
-  const auto checkpoint = snapshot();
+  const auto checkpoint = captureCheckpoint();
   measure("checkpointMs");
   try {
     checkCancellation();
@@ -703,6 +712,10 @@ Json Session::resolveCamera(bool aim) const {
   if (aim) { result["yaw"] = yaw; result["pitch"] = pitch; result["forward"] = forward; }
   return result;
 }
+std::uint64_t Session::generation() const {
+  requireRecoverable();
+  return generation_;
+}
 Json Session::frame() const {
   requireRecoverable();
   auto result = baseFrame();
@@ -729,15 +742,18 @@ Json Session::baseFrame() const {
     }
   }
   auto shownEntities = entities_;
-  Json authoredOrder = Json::object(), worldTransforms = Json::object();
+  auto authoredOrder = authoredOrderSeed_;
+  std::size_t nextOrder = (document_.at("dimension") == "2d" ? 128 : 0) + authoredOrder.size();
+  for (const auto &entity : entities_) {
+    const auto id = entity.at("id").get<std::string>();
+    if (!authoredOrder.contains(id)) { authoredOrder[id] = nextOrder++; }
+  }
+  Json worldTransforms = Json::object();
   if (document_.at("dimension") == "2d") {
-    std::size_t order = 128;
-    for (const auto &entity : resolvePrefabs(document_, sceneId_)) { authoredOrder[entity.at("id").get<std::string>()] = order++; }
     std::map<std::string, const Json *> definitions;
     for (const auto &entity : entities_) {
       const auto id = entity.at("id").get<std::string>();
       definitions.emplace(id, &entity);
-      if (!authoredOrder.contains(id)) { authoredOrder[id] = order++; }
     }
     for (const auto &entity : entities_) {
       std::vector<std::string> chain;
@@ -824,7 +840,7 @@ Json Session::baseFrame() const {
           {"generation", generation_},
           {"sceneId", sceneId_},
           {"dimension", document_.value("dimension", std::string("3d"))},
-          {"entities", shownEntities},
+          {"entities", std::move(shownEntities)},
           {"events", events_},
           {"presentationEvents", presentation_},
           {"hostRequests", hostRequests_},
@@ -833,26 +849,22 @@ Json Session::baseFrame() const {
           {"score", score_},
           {"health", health},
           {"logs", logs_},
-          {"camera", camera},
-          {"lighting", lighting},
-          {"backgrounds", backgrounds},
+          {"camera", std::move(camera)},
+          {"lighting", std::move(lighting)},
+          {"backgrounds", std::move(backgrounds)},
           {"hud", document_.value("hud", Json::array())}};
   if (document_.at("dimension") == "3d") {
     result["particles"] = Json::array();
-    Json order = Json::object(); std::size_t next = 0;
-    for (const auto &entity : resolvePrefabs(document_, sceneId_)) { order[entity.at("id").get<std::string>()] = next++; }
-    for (const auto &entity : entities_) { const auto id = entity.at("id").get<std::string>(); if (!order.contains(id)) { order[id] = next++; } }
-    result["authoredOrder"] = order;
-    result["worldTransforms"] = worldTransforms;
     for (const auto &scene : document_.at("scenes")) { if (scene.at("id") == sceneId_ && scene.contains("environment")) { result["environment"] = scene.at("environment"); break; } }
     if (document_.contains("presentation")) { result["presentation"] = document_.at("presentation"); }
     if (document_.contains("ui")) {
       auto nodes = document_.at("ui").at("nodes");
       for (auto &node : nodes) { const auto id = node.at("id").get<std::string>(); if (uiOverrides_.contains(id)) { for (auto field = uiOverrides_.at(id).begin(); field != uiOverrides_.at(id).end(); ++field) { node[field.key()] = field.value(); } } }
-      result["ui"] = {{"safeArea", document_.at("ui").value("safeArea", true)}, {"focusNavigation", false}, {"nodes", nodes}};
+      result["ui"] = {{"safeArea", document_.at("ui").value("safeArea", true)}, {"focusNavigation", false}, {"nodes", std::move(nodes)}};
     }
   }
-  if (document_.at("dimension") == "2d") { result["authoredOrder"] = authoredOrder; result["worldTransforms"] = worldTransforms; }
+  result["authoredOrder"] = std::move(authoredOrder);
+  result["worldTransforms"] = std::move(worldTransforms);
   return result;
 }
 Json Session::inspect() const {
@@ -861,10 +873,8 @@ Json Session::inspect() const {
   result["faulted"] = faulted_;
   return result;
 }
-Json Session::snapshot() const {
-  requireRecoverable();
-  Json result = {{"build", Build},        {"document", document_},
-                 {"tick", tick_},         {"generation", generation_},
+Json Session::captureCheckpoint() const {
+  Json result = {{"tick", tick_},         {"generation", generation_},
                  {"rngState", rng_},      {"sceneId", sceneId_},
                  {"entities", entities_}, {"states", states_},
                  {"timers", timers_},     {"started", started_},
@@ -876,6 +886,13 @@ Json Session::snapshot() const {
                  {"cameraState", cameraState_}};
   result["uiOverrides"] = uiOverrides_;
   if (particlePresentation_) { result["particlePresentation"] = particlePresentation_->snapshot(); }
+  return result;
+}
+Json Session::snapshot() const {
+  requireRecoverable();
+  auto result = captureCheckpoint();
+  result["build"] = Build;
+  result["document"] = document_;
   result["documentDigest"] = documentDigest_;
   result["assetManifestDigest"] = manifestDigest_;
   result["restoreScope"] = "same-session";
@@ -886,6 +903,7 @@ void Session::restoreUnchecked(const Json &s) {
   seed_ = s.at("seed");
   usedIds_ = s.at("usedIds").get<std::set<std::string>>();
   sceneId_ = s.at("sceneId");
+  if (authoredOrderSceneId_ != sceneId_) { cacheAuthoredOrder(sceneId_, resolvePrefabs(document_, sceneId_)); }
   entities_ = s.at("entities");
   createSpatialWorld();
   physics_->restore(s.at("physics"));
@@ -964,6 +982,8 @@ void Session::adopt(Session &other) noexcept {
   sceneId_.swap(other.sceneId_);
   physics_.swap(other.physics_);
   sources_.swap(other.sources_);
+  authoredOrderSeed_.swap(other.authoredOrderSeed_);
+  authoredOrderSceneId_.swap(other.authoredOrderSceneId_);
   usedIds_.swap(other.usedIds_);
   std::swap(seed_, other.seed_);
   std::swap(tick_, other.tick_);

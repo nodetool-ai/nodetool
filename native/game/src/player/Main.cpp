@@ -2,6 +2,7 @@
 #include "core/Session.h"
 #include "player/JsonSaveHost.h"
 #include "player/PlayerAudio.h"
+#include "player/PlayerInput.h"
 #include "render/GameViewport.h"
 #include <QCommandLineParser>
 #include <QFile>
@@ -29,6 +30,8 @@
 #include <thread>
 
 using namespace nodetool::game;
+using player::InputState;
+using player::consumeInput;
 namespace {
 Json readJson(const QString &path) {
   std::ifstream file(path.toStdString());
@@ -48,38 +51,6 @@ void writeJson(const QString &path, const Json &value) {
   if (!file) {
     throw Error("file", "Cannot write " + path.toStdString());
   }
-}
-struct InputState {
-  std::mutex mutex;
-  Json actions = Json::object();
-  std::set<std::string> heldActions;
-  std::vector<Json> recorded;
-  bool recording = false;
-  bool lookEnabled = false;
-  double lookX = 0, lookY = 0;
-  std::atomic<bool> paused = false;
-};
-Json consumeInput(InputState &state) {
-  std::scoped_lock lock(state.mutex);
-  Json result = {{"actions", state.actions}};
-  if (state.lookEnabled) {
-    result["look"] = {{"x", state.lookX}, {"y", state.lookY}};
-    state.lookX = 0;
-    state.lookY = 0;
-  }
-  if (state.recording) {
-    if (state.recorded.size() >= 1'000'000) {
-      throw Error("resource_limit", "Input recording exceeds frame budget");
-    }
-    state.recorded.push_back(result);
-  }
-  for (auto &[key, value] : state.actions.items()) {
-    if (key != "left" && key != "right" && key != "forward" &&
-        key != "backward" && !state.heldActions.contains(key)) {
-      value = false;
-    }
-  }
-  return result;
 }
 int capture(GameViewport &item, QQuickRenderControl &control,
             QQuickWindow &window, QSize size, const QString &path,
@@ -479,7 +450,7 @@ int main(int argc, char **argv) {
         const int key = value["key"];
         const bool pressed = value.value("pressed", false);
         if (key == Qt::Key_P && pressed) {
-          input.paused = !input.paused.load();
+          player::togglePause(input);
           return;
         }
         std::string action;
@@ -498,17 +469,9 @@ int main(int argc, char **argv) {
         if (key == Qt::Key_Space) {
           action = "jump";
         }
-        std::scoped_lock lock(input.mutex);
-        const auto setAction = [&](const std::string &id) {
-          input.actions[id] = pressed;
-          if (pressed) {
-            input.heldActions.insert(id);
-          } else {
-            input.heldActions.erase(id);
-          }
-        };
+        std::vector<std::string> actions;
         if (!action.empty()) {
-          setAction(action);
+          actions.push_back(action);
         }
         const auto name = QKeySequence(key)
                               .toString(QKeySequence::PortableText)
@@ -518,22 +481,16 @@ int main(int argc, char **argv) {
           for (const auto &physical :
                binding.value("bindings", Json::array())) {
             if (physical == name || physical == "Key" + name) {
-              setAction(binding.at("id").get<std::string>());
+              actions.push_back(binding.at("id").get<std::string>());
               break;
             }
           }
         }
+        player::setPhysicalActions(input, actions, pressed);
       } else if (value.contains("look")) {
-        if (!input.paused.load()) {
-          std::scoped_lock lock(input.mutex);
-          input.lookX += value.at("look").at("x").get<double>();
-          input.lookY += value.at("look").at("y").get<double>();
-        }
+        player::addLook(input, value.at("look"));
       } else if (value.contains("actions")) {
-        std::scoped_lock lock(input.mutex);
-        for (const auto &[key, state] : value["actions"].items()) {
-          input.actions[key] = state;
-        }
+        player::setActionValues(input, value.at("actions"));
       }
     });
     QObject::connect(&window, &QQuickWindow::widthChanged, &item,

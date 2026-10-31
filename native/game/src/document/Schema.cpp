@@ -87,7 +87,9 @@ Json normalize(const Json& root, const Json& schema, Json value, const std::stri
         }
     }
     if (value.is_object()) {
-        const auto properties = schema.value("properties", Json::object());
+        static const Json emptyProperties = Json::object();
+        const auto propertiesEntry = schema.find("properties");
+        const auto& properties = propertiesEntry == schema.end() ? emptyProperties : *propertiesEntry;
         for (auto it = properties.begin(); it != properties.end(); ++it) {
             if (!value.contains(it.key()) && it.value().contains("default")) { value[it.key()] = it.value().at("default"); }
         }

@@ -16,6 +16,7 @@ public:
   Json step(const Json &input = Json::object());
   Json inspect() const;
   Json frame() const;
+  std::uint64_t generation() const;
   void recordTimings(bool enabled) noexcept { recordTimings_ = enabled; }
   const Json &timings() const noexcept { return timings_; }
   Json snapshot() const;
@@ -51,11 +52,15 @@ private:
   bool recordTimings_ = false;
   Json timings_ = Json::object();
   std::map<std::string, Json> sources_;
+  Json authoredOrderSeed_ = Json::object();
+  std::string authoredOrderSceneId_;
   void adopt(Session &candidate) noexcept;
   void requireRecoverable() const;
   void createSpatialWorld();
   void openScene(const std::string &id);
+  void cacheAuthoredOrder(const std::string &sceneId, const Json &entities);
   void restoreUnchecked(const Json &saved);
+  Json captureCheckpoint() const;
   Json baseFrame() const;
   Json resolveCamera(bool aim = false) const;
   Json invoke(const Json &entity, const Json &behavior, const Json &input,

@@ -145,8 +145,9 @@ MaterialUniform material(const ModelMaterial &source, const QMatrix4x4 &model,
   result.model = model;
   result.normal = model.inverted().transposed();
   result.baseColor = source.color;
-  result.emissiveNormal = {source.emissive[0], source.emissive[1],
-                           source.emissive[2], source.normalScale};
+  result.emissiveNormal = {source.emissive[0] * source.emissiveStrength,
+                           source.emissive[1] * source.emissiveStrength,
+                           source.emissive[2] * source.emissiveStrength, source.normalScale};
   result.surface = {source.metallic, source.roughness, source.alphaCutoff,
                     source.alphaMode == "BLEND"  ? 2.F
                     : source.alphaMode == "MASK" ? 1.F
@@ -564,7 +565,8 @@ struct Scene3D::State {
     layout.setBindings({{sizeof(Vertex3D)}});
     layout.setAttributes(
         {{0, 0, QRhiVertexInputAttribute::Float3, 0},
-         {0, 2, QRhiVertexInputAttribute::Float2, 6 * sizeof(float)}});
+         {0, 2, QRhiVertexInputAttribute::Float2, 6 * sizeof(float)},
+         {0, 3, QRhiVertexInputAttribute::Float4, 8 * sizeof(float)}});
     value->setVertexInputLayout(layout);
     value->setShaderResourceBindings(shadowBinding(draw));
     value->setRenderPassDescriptor(shadowPass.get());
@@ -587,13 +589,13 @@ struct Scene3D::State {
         cb->beginPass(target.target.get(), Qt::black, {1, 0}, updates);
         updates = nullptr;
         const auto dimensions = target.target->pixelSize();
-        cb->setViewport(
-            {0, 0, float(dimensions.width()), float(dimensions.height())});
         for (const auto &draw : draws) {
           if (!draw.cast || draw.decal) {
             continue;
           }
           cb->setGraphicsPipeline(shadowPipeline(draw));
+          cb->setViewport(
+              {0, 0, float(dimensions.width()), float(dimensions.height())});
           const QRhiCommandBuffer::DynamicOffset offsets[] = {
               {1, quint32(draw.uniform * materialStride)},
               {8, quint32(target.uniform * passStride)}};
@@ -1408,7 +1410,7 @@ Json Scene3D::render(QRhi *rhi, QRhiCommandBuffer *cb, QRhiRenderTarget *output,
               for (const auto &v : source.vertices) {
                 vertices.push_back({v.position[0], v.position[1], v.position[2],
                                     v.normal[0], v.normal[1], v.normal[2],
-                                    v.uv[0], v.uv[1]});
+                                    v.uv[0], v.uv[1], v.color[0], v.color[1], v.color[2], v.color[3]});
               }
               gpu = &s.mesh(key, vertices, source.indices, update);
             }
@@ -1435,7 +1437,7 @@ Json Scene3D::render(QRhi *rhi, QRhiCommandBuffer *cb, QRhiRenderTarget *output,
               normal.normalize();
               vertices.push_back({position.x(), position.y(), position.z(),
                                   normal.x(), normal.y(), normal.z(), v.uv[0],
-                                  v.uv[1]});
+                                  v.uv[1], v.color[0], v.color[1], v.color[2], v.color[3]});
             }
             gpu = &s.dynamicMesh(
                 "dynamic:skin:" + entity.at("id").get<std::string>() + ":" +

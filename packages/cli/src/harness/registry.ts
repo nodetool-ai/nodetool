@@ -2399,7 +2399,7 @@ export const SURFACES: SurfaceEntry[] = [
       "native/game/tests/player_test.py", "native/game/tests/player2d_test.py", "native/game/tests/player2d_",
       "native/game/tests/PostFXTest.cpp", "native/game/assets/",
       "native/game/tests/Sky3DTest.cpp", "native/game/tests/Decals3DTest.cpp", "native/game/tests/Hud3DTest.cpp",
-      "native/game/tests/Effects3DTest.cpp", "native/game/tests/RenderProbe.cpp", "native/game/tests/render_probe_test.py",
+      "native/game/tests/Effects3DTest.cpp", "native/game/tests/RenderProbe.cpp", "native/game/tests/MaterialRenderTest.cpp", "native/game/tests/PlayerInputTest.cpp", "native/game/tests/render_probe_test.py",
       "native/game/tests/ParticleMeshLifetimeTest.cpp",
       "native/game/tests/player3d_", "native/game/tests/player_camera",
       "packages/game-renderer/tests/fixtures/native-bsdf-reference/", "packages/game-renderer/tests/fixtures/native-normal-reference/",

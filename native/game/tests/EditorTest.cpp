@@ -126,6 +126,85 @@ private slots:
       QCOMPARE(failed.frame().at("tick"), Json(1));
     }
   }
+  void pendingJsonSaveLoadsRespectGenerationChanges() {
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    for (const auto *dimension : {"2d", "3d"}) {
+      auto doc = fixture();
+      doc["dimension"] = dimension;
+      doc["schemaVersion"] = std::string(dimension) == "2d" ? 5 : 4;
+      if (std::string(dimension) == "2d") {
+        doc["scenes"][0]["entities"][0].erase("visual");
+      }
+      doc["scripts"][0]["source"] =
+          "i=>({commands:i.input.write?"
+          "[{kind:'save',scope:'progress',slot:'slot',data:{version:1,value:7}}]:"
+          "i.input.load?[{kind:'load',scope:'progress',slot:'slot'}]:"
+          "(i.input.loaded||[]).map(r=>({kind:'score',amount:r.data?r.data.value:0}))})";
+      for (const bool durable : {false, true}) {
+        Session session(doc);
+        JsonSaveHost host(std::string("generation-") + dimension, durable,
+                          false, directory.path());
+        host.step(session, {{"write", true}});
+        host.drain();
+        const auto saved = session.snapshot();
+        host.step(session, {{"load", true}});
+        host.drain();
+        session.restore(saved);
+        const auto restored = host.step(session, Json::object());
+        QCOMPARE(restored.at("score"), Json(0));
+        QVERIFY(restored.at("generation") > saved.at("generation"));
+        QVERIFY(!host.lastInput().contains("loaded"));
+        host.step(session, {{"load", true}});
+        host.drain();
+        QCOMPARE(host.step(session, Json::object()).at("score"), Json(7));
+        QCOMPARE(host.lastInput().at("loaded").size(), std::size_t(1));
+        host.step(session, {{"load", true}});
+        host.drain();
+        session.reload(doc);
+        QCOMPARE(host.step(session, Json::object()).at("score"), Json(0));
+        QVERIFY(!host.lastInput().contains("loaded"));
+        host.step(session, {{"load", true}});
+        host.drain();
+        QCOMPARE(host.step(session, Json::object()).at("score"), Json(7));
+        QCOMPARE(host.lastInput().at("loaded").size(), std::size_t(1));
+      }
+    }
+  }
+  void recordedJsonSaveLoadsReplayWithoutStorage() {
+    QTemporaryDir directory;
+    QVERIFY(directory.isValid());
+    QFile denied(directory.path() + "/file");
+    QVERIFY(denied.open(QIODevice::WriteOnly));
+    denied.close();
+    for (const auto *dimension : {"2d", "3d"}) {
+      auto doc = fixture();
+      doc["dimension"] = dimension;
+      doc["schemaVersion"] = std::string(dimension) == "2d" ? 5 : 4;
+      if (std::string(dimension) == "2d") {
+        doc["scenes"][0]["entities"][0].erase("visual");
+      }
+      doc["scripts"][0]["source"] =
+          "i=>({commands:i.input.write?"
+          "[{kind:'save',scope:'progress',slot:'slot',data:{version:1,value:7}}]:"
+          "i.input.load?[{kind:'load',scope:'progress',slot:'slot'}]:"
+          "(i.input.loaded||[]).map(r=>({kind:'score',amount:r.data?r.data.value:0}))})";
+      Session recorded(doc), replayed(doc);
+      JsonSaveHost writer;
+      JsonSaveHost replay("recorded", true, true, denied.fileName());
+      const auto inputs = Json::array(
+          {Json{{"write", true}}, Json{{"load", true}}, Json::object()});
+      for (const auto &input : inputs) {
+        const auto expected = writer.step(recorded, input);
+        QCOMPARE(replay.step(replayed, writer.lastInput()), expected);
+      }
+      replay.drain();
+      QVERIFY(writer.lastInput().contains("loaded"));
+      QCOMPARE(replayed.frame().at("score"), Json(7));
+      QCOMPARE(replay.report().at("replay"), Json(true));
+      QVERIFY(replay.report().at("diagnostics").empty());
+    }
+  }
   void keyboardMovementUses2DObjectInput() {
     auto doc = fixture();
     doc["dimension"] = "2d"; doc["schemaVersion"] = 5; doc["gravity"] = {{"x", 0}, {"y", 0}};

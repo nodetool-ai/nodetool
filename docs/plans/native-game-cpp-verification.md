@@ -4,6 +4,59 @@ This record covers native 3D through A8.2 and native 2D through A8.3 in the
 [port plan](native-game-cpp-port.md). The implementation remains uncommitted.
 Browser delivery has a separate A8.4 gate.
 
+## BLACKSITE WAV fixture admission follow-up
+
+The final closed BLACKSITE browser export exposed an asset-preparation gap:
+the original `score` OGG remained in the native manifest, while browser audio
+admits WAV. The real installed player stopped before its first completed frame
+with `Native audio requires admitted WAV: score`. Earlier renderer-only captures
+did not initialize audio and therefore did not exercise this path. The failed
+export, status and screenshot remain in `blacksite-post-astra-qa` under the
+verification cache.
+
+The fixture preparer now preserves the original OGG and decodes its verified
+bytes to canonical RIFF tag-3 float32 WAV. The 48-second mono 48 kHz score has
+2,304,000 finite samples and occupies 9,216,044 bytes. The payload matches an
+independent float32 decode byte for byte. Its SHA-256 is
+`67ba5bc33d0dd15db5dc782e25d9a7aca7d471192407b8de1af7933d5d65d6bf`.
+Every other asset byte and every non-asset document field is unchanged. The
+original score is retained at `source-audio/score.ogg` in the new native copy.
+Only the `score` manifest entry changes. Existing audio admission permits
+64 MiB files. Model/image file and model-closure limits remain 8 MiB and 16 MiB,
+and audio is absent from those model closures. No engine limit was changed.
+
+The copied-OGG regression failed before the fixture fix. All ten focused fixture
+tests then passed, including source/visual preservation, independent PCM
+comparison and malformed/budget-negative cases. Fresh Astra review cleared the
+five-file fixture/CTest snapshot with no findings. Its manifest SHA-256 is
+`d98db934fe5e07eab904099ae63568d026967b3c13be9401b1dad464bf7aa776`.
+
+The installed worker admitted the new document, and the final installed web
+profile exported it successfully. The real `index.html` and
+`native-game-player.js` then produced a completed tick-zero canvas frame.
+Both declared fonts were loaded before completion. The status was empty, page
+and console errors were absent, and every request reaching the test server was
+declared by the closed export. Its CSP remained present. The score WAV was
+requested and no OGG was requested. This is actual installed-player startup,
+not the renderer-only probe.
+
+The resulting frame SHA-256 is
+`070254cc20dab4759bcf60c2158c0183e8aa933c698bfa2c8e710523c2ac720e`,
+matching the independently verified native worker start frame. The screenshot
+is byte-identical to the retained native browser start image. The unchanged
+installed profile uses player SHA-256
+`4eff8a261ac44ad0fe933d876b603ec71a3859eef6b75ecda34f55ddbec103a0`
+and WASM SHA-256
+`4df4eafe960044bf209cc3ae64bbdee4576f045ac4ab1948cb498b1ced11d6b0`.
+
+The new copy and all evidence are under
+`/home/mg/.cache/native-final-tmp/blacksite-post-astra-wav-qa/`, including
+`fixture-audio-review.json`, `audio-adaptation-proof.json`,
+`native-validation.json`, `web-export-evidence.json`,
+`installed-startup-final-report.json`, `actual-startup-comparison.json` and
+`installed-startup-final.png`. Earlier mission/replay and visual evidence remains
+separate. Audio mixer/playback parity and hardware frame rates are not claimed.
+
 ## Release checks
 
 The following commands completed with exit status zero against the native 3D
@@ -1250,3 +1303,778 @@ exited one using the same Node, Chromium and FFmpeg. Logs are
 `timeline-parity-baseline-build.log`, `timeline-parity-baseline.log` and
 `timeline-parity-current.log`. The mismatch therefore predates this port on this
 host. Its lower-level pixel cause is not established. No threshold was changed.
+
+
+## Relay Yard native game trial
+
+The [reproducible Relay Yard port](../../native/game/tests/fixtures/relay-yard/README.md)
+preserves the original web document and its three script bodies. The native copy
+retains all 44 source entities and 41 visuals, with two documented nonvisual
+helpers and one generated closed capsule model. One native controller executes
+the original roles with separate states and explicit command owners.
+
+The final installed worker ran 165 recorded gameplay ticks with seed one and
+passed all six frame assertions. Both cells were physically collected for score
+two, the gate opened, the checkpoint was saved and the win event occurred at tick
+150. All 83 continuation ticks match after midpoint restoration in the same live
+session. Grounded and held jump, camera-relative movement and orbit, respawn,
+fall recovery, platform motion and real crate-only contact negatives pass.
+Removing the actor-only sensor filter deliberately makes the negative fail.
+No synthetic score is awarded.
+
+Four 1280 by 720 captures use the actual installed Qt player: start at zero,
+midpoint at 90, finish at 165 and an orbit continuation at 166. The latter adds
+one recorded look-only input after completion. The default finish camera is
+obscured by the raised gate because native sphere camera occlusion remains
+unsupported. The original obstructed capture is retained. No hidden renderer
+camera override was used. Font weight and tone mapping differ from the legacy
+image, so this is not a pixel-identity claim.
+
+The idle benchmark uses 240 measured ticks after 60 warmup ticks. Consolidating
+eight native behavior calls into one reduced total tick p95 from 11.595 ms to
+6.273 ms and script p95 from 9.137 ms to 3.733 ms, with the same 16-command bound.
+The unchanged 4 ms target still fails with exit status two. This is idle
+simulation instrumentation, not a completion-route benchmark or hardware FPS.
+
+A fresh Astra review verified the ten-file snapshot manifest
+`1722fce2677f39646ef7c209a1bf717ec1615b11c32603fe614fd379e376ef6f`
+and found no blocking functional issues in the port. It did not clear the failed
+performance budget or camera-occlusion limitation. All six adapter regressions
+pass. The registered Relay Yard and BLACKSITE fixture CTests both pass with
+nonempty discovery (`new-game-fixtures-ctest.log`).
+
+Evidence is retained in
+`/home/mg/.cache/native-final-tmp/relay-yard-native-qa/`: the native document,
+asset, provenance, source manifest, run report, probes, frame assertions,
+capture metadata, four screenshots and idle benchmark. The final document
+SHA-256 is `eea4947468fa481463b1a4823c88ecc962a69ffde00e2f5bd2ab532584b266aa`.
+The original eight-call profile remains under `before-consolidation/`.
+
+
+## Accepted timeline baseline blocker
+
+The user explicitly requested that the timeline compositor mismatch be retained
+as a documented baseline blocker. Its identical HEAD and current results are
+recorded above. No timeline source, fixture, tolerance or test selection was
+changed to hide the failure. Final affected-test results must retain their
+actual exit status. The accepted baseline is not a waiver for another failure.
+
+The final backend bundle smoke completed with exit status zero
+(`astra-reviewed-final-backend-smoke.log`). Its post-bundle artifact audit
+confirms the staged and bundled worker and browser files match the final
+Release and portable artifacts. This verifies the Node backend bundle, not an
+installed Electron window or a Windows/macOS runtime.
+
+### Relay Yard live native input session
+
+The installed Release Qt player ran interactively under isolated Xvfb with
+actual XTest keyboard and pointer events. It exited 0 after 1,104 committed
+ticks. The recorded native input confirms forward movement, jump, R respawn
+and drag orbit. Four actual window screenshots cover start, movement/jump,
+orbit and respawn. The orbit and respawn images were visually inspected.
+This session exercised live input rather than a prerecorded route and does
+not establish course completion or hardware frame rate. The device was llvmpipe.
+
+Evidence, native input recording, final render report and screenshots are in
+`/home/mg/.cache/native-final-tmp/relay-yard-live/`, indexed by `evidence.json`.
+The initial post-run evidence validator expected legacy input fields and failed.
+Validation against the actual native `move`, `actions` and `jump` fields passed
+without changing inputs or rerunning the player. No engine source changed.
+
+## Kindle native 2D game port
+
+The existing Kindle web sample is adapted to schema 5 and `native-cpp-1`,
+using native swept-AABB 2D physics and shared QuickJS. The original source
+document, scripts, input route and media remain unchanged. The fixture keeps
+153 active entities, four spawn templates, all three original function bodies
+and 39 verified media bindings. Native engine source is unchanged.
+
+The corrected document SHA256 is
+`c14e1da54ebd30e9448551dd87d8fe33194b1b6ea9d45b544b4b10540b34af18`.
+The installed worker remains
+`529dbb1968e7f6ef57919ee60ef8676c3f9ba83e95be76cd06976ebbffbde4be`
+and player remains
+`acf102f9ac963f851dd898c0c5c90a0471b9c0da6a25eac781340a3226575944`.
+
+### Gameplay and replay
+
+The installed worker completed the original 3,535-frame route using Qt-shaped
+input fields. It physically collected 46 embers, activated checkpoints at
+ticks 22, 484, 1549 and 2863, and emitted victory at tick 3334 without hurt
+events. Final hero position was `(230.2977848157551, 15.45)`. All 1,768
+continuation frame digests matched after midpoint restore in the same live
+session. The runner and separate outcome verifier both exited 0.
+This establishes authenticated same-live-session replay, not portable snapshots.
+
+Evidence is under `/home/mg/.cache/native-final-tmp/kindle-native-qa/`,
+including `assertions-report.json`, `report.json`, `observations.json` and
+`verify.log`. The combined route and replay took 483,421.6 ms with full
+frame IPC. That elapsed time is neither simulation tick cost nor player FPS.
+An earlier actions-only attempt hit its 240-second transport deadline.
+Another was canceled as superseded by the live-input correction. Those
+outcomes remain separate from the successful corrected run. The longer
+20-minute transport deadline did not change the native 20 ms script watchdog.
+
+Seven focused regressions pass, including source immutability, original
+function preservation, role ownership, contact collection/deduplication,
+non-player negatives, unsupported commands and tampered assets. The registered
+`native-game-kindle-fixtures` CTest also passes against the reviewed correction.
+Real-physics probes cover jumping, camera following, patrol/lift movement,
+stationary spawned effects, non-player contacts and two water death/respawn
+cycles. The old Qt-shaped jump probe and actor-intent unit regression failed
+before the fixture fix and pass afterward.
+
+### Actual native Qt input and captures
+
+Independent XTest keyboard QA exposed an input-intent defect in the first
+fixture. The actions-only worker route had omitted Qt movement fields.
+The fixture now overrides default movement intents explicitly for original
+actors and newly spawned kinematic effects. Fresh Astra review cleared the
+corrected immutable scope, recorded in the
+[Astra record](native-game-cpp-astra-review.md#kindle-live-input-correction-follow-up).
+
+Actual Space/Right and Up/Right tests pass in isolated Xvfb using the installed
+Qt player. Space enters the temple. Space/Right moves the hero from `(3,0.45)`
+to `(3.3979303834,0.9388333333)`. Actual Up/Right moves it to
+`(3.4587372241,1.0240833333)`, with recorded `actions.up:true`,
+`actions.forward:true`, `move:{x:1,y:1}` and `jump:false`. This independently
+proves the original Up action works despite the built-in jump flag being false.
+The recordings and window screenshots are under
+`/home/mg/.cache/native-final-tmp/kindle-live/xtest-run-2/` and
+`/home/mg/.cache/native-final-tmp/kindle-live/xtest-up-run-1/`.
+The original failed live attempt is retained under `xtest-run-1/`.
+
+Corrected installed Qt captures at ticks 0, 2 and 600 pass with same-session
+restore and were visually inspected. Tick 600 displays the temple, animated
+hero, lit brazier and native score of 11/73. Its image SHA256 is
+`ccf4bc6894127695f306aec9ffe5adad1b651e684de07b880e77db6bca5ee032`.
+Capture evidence is under `kindle-live/corrected-captures/` in the same cache.
+The backend is llvmpipe. Captures do not establish hardware frame rate.
+Audio diagnostics were empty with the null audio backend, which does not
+establish audible playback parity.
+
+### Fidelity boundaries
+
+Sprites, atlas animation, tilemaps, bodies/colliders, lighting, camera and
+backgrounds use admitted native components. Dynamic widget UI, custom HUD
+fonts, particles, visualAnimation, bloom/LUT and source audio mixing are
+unsupported. Static title/help and native score replace dynamic widgets.
+Victory is verified from the original event and state rather than a fabricated
+win panel. Source audio becomes native event/music commands without the
+original reverb, ducking, fades, snapshots or spatial attenuation.
+The MP3 music has a separate float32 WAV copy of approximately 32 MiB, within
+existing native 64 MiB audio admission. No browser 8 MiB portability or
+screenshot/audio identity is claimed. See the
+[fixture instructions](../../native/game/tests/fixtures/kindle/README.md) for
+reproduction and the full omission inventory.
+
+### Kindle final installed Qt frame
+
+The corrected document also passes an actual installed Qt capture at tick
+3535 with same-session restore, exit 0. The final image shows the hero at
+the lit beacon and native score 46/73. Both QA and root visually inspected it.
+The image SHA256 is
+`415e149e3eabbc965f018b9d9203e75b2c1df2b5b6e6212b7e5e3ebbdbcc8a16`.
+PNG, render report and timing/provenance are under
+`/home/mg/.cache/native-final-tmp/kindle-live/corrected-final-capture-retry/`.
+The report has `loading:false`, 26 images, 103 draw calls, 32 lights and
+no audio diagnostics. This is Release llvmpipe with null audio.
+
+The first full capture hit an undersized 120-second outer process timeout.
+Its logs are retained in `kindle-live/corrected-final-capture/`. The successful
+600-tick capture had taken 70.596 seconds, implying about 416 seconds for
+3535 ticks. One explicitly authorized retry used a 600-second outer deadline
+and completed in 339.753 seconds, with 336.413 seconds child user CPU.
+This changed only the cache QA process deadline. The native script watchdog,
+engine source and performance budgets were unchanged. These capture elapsed
+and CPU totals are not a hardware FPS or tick-budget result.
+
+### Kindle isolated idle benchmarks
+
+Both isolated Release simulation benchmarks fail the unchanged 4 ms tick
+p95 budget with exit 2. Each uses 240 measured ticks and 60 warmup ticks
+and verifies replay. No other owned CPU/GPU work ran concurrently.
+
+| Input | Entities | Total p95 | Checkpoint p95 | Scripts p95 | Presentation p95 | Physics p95 |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Canonical title idle | 17 | 12.489042 ms | 10.033082 ms | 1.457651 ms | 0.749399 ms | 0.012574 ms |
+| Temple idle | 136 | 54.094373 ms | 30.619216 ms | 8.240090 ms | 13.408191 ms | 0.357322 ms |
+
+The temple input is a cache-only copy whose sole structural change is
+`initialSceneId` from `title` to `temple`. Its SHA256 is
+`426af554fd95f55e2260b657db9c0e596b3e0d34c193701ced3ba4b6bcbec0d7`.
+`benchmark-inputs.json` proves that difference and pins both document hashes.
+Reports `benchmark-title.json` and `benchmark-temple.json-report.json` are in
+`/home/mg/.cache/native-final-tmp/kindle-native-qa/`.
+
+The port passes gameplay and replay but is not performance-ready. Checkpoint
+copying is the largest measured cost, followed by presentation and scripts in
+the active temple. These are idle simulation measurements, not completion-route
+performance or hardware frame rate. No engine optimization, quality reduction
+or budget relaxation was made to pass the measurements.
+
+### Frozen Kindle verification before optimization
+
+The complete corrected-display baseline attempt passed package build,
+`test:affected`, typecheck, lint and harness gate. The gate passed all 20
+selected selfchecks and all six staged/bundled artifact audits passed.
+Native CTest passed all 24 tests, including Kindle. Backend testing passed
+145 tasks, with 129 cache hits. Fresh agents testing passed 372 files and
+5,744 tests, including the previously failing 3D capture. Fresh websocket
+testing passed 360 files and 3,839 tests. Web passed 2,143 suites and
+21,623 tests, Electron passed 72 suites and 842 tests, and mobile passed
+79 suites. Existing conditional skips and TODO cases remain in the raw logs.
+
+This attempt used outer Xvfb for affected tests. It resolves the earlier
+invalid inherited-display verification failure. Its ordinary video-nodes
+result was a cache hit, replaying 60 files and 495 passing tests. It did
+not rerun or fix the separate explicit timeline browser/Node pixel profile.
+The user-accepted bit-identical HEAD/current timeline mean of
+0.027244001906318083 against 0.02 remains documented above.
+
+The existing desktop exporter then passed with an actual installed Qt
+Release Vulkan tick-zero capture and a closed asset audit. It verified
+all 39 game assets, totaling 40,913,493 bytes. The largest file was
+32,838,140 bytes, below the unchanged native 64 MiB limit. The artifact is
+`/home/mg/.cache/native-final-tmp/kindle-desktop-export-57raKV/game`.
+Its player SHA256 is
+`acf102f9ac963f851dd898c0c5c90a0471b9c0da6a25eac781340a3226575944`.
+The smoke reported 768 vertices and 128 draws with llvmpipe. This is not a
+hardware frame-rate measurement or a browser export claim.
+
+The ordered attempt and earlier failed-display history are retained in
+[native-game-cpp-final-checks.json](native-game-cpp-final-checks.json).
+Raw status and logs are `kindle-scope-final-checks.json`,
+`kindle-scope-final-*.log`, `kindle-desktop-export-status.json` and
+`kindle-desktop-export-smoke.log` under `/home/mg/.cache/native-final-tmp/`.
+These results cover the frozen pre-optimization engine and Kindle fixture.
+Subsequent checkpoint/presentation and Sunrush rendering changes require
+new verification and artifact identities.
+
+## Native checkpoint optimization: phase 1
+
+Tick rollback now captures mutable state without copying or authenticating
+the public snapshot envelope. Public snapshots still contain the same
+document, build, digests, scope and authentication. The inactive-scene
+allocation regression failed before the fix: 111,055 versus 4,311,487
+allocated bytes per step. Afterward both cases allocate 35,065 bytes.
+Constructors are excluded and no wall-clock assertion is used.
+
+Six focused native suites pass, covering session, 2D session, bridge,
+camera, worker and allocation behavior, including cancellation, rollback,
+authentication, OOM eviction and replay. Exact old/new comparisons pass
+444 results across title, temple and a 3D course, including snapshots,
+restore and reload. Only session-specific authentication was normalized.
+Generation, build, document, digests and scope match exactly.
+
+The unchanged Release idle benchmark uses 240 measured ticks after 60 warmup
+ticks with the same frozen documents and 4 ms target:
+
+| Input | Baseline total p95 | Phase 1 total p95 | Checkpoint p95 before/after | Exit |
+| --- | ---: | ---: | ---: | ---: |
+| Title | 12.489042 ms | 2.296858 ms | 10.033082 / 0.177004 ms | 0 |
+| Temple | 54.094373 ms | 27.249944 ms | 30.619216 / 3.009310 ms | 2 |
+
+The title meets the target. The temple still fails it. Residual temple
+presentation p95 is 14.276168 ms and scripts p95 is 8.191504 ms. These
+are simulation measurements, not hardware FPS. The phase 1 worker SHA256 is
+`3834cf8f27fad5c74819c72104c32efff6abc64b40308f41092abc3a655750d7`.
+Evidence is under `/home/mg/.cache/native-final-tmp/native-perf-opt-phase1/`,
+indexed by `summary.json`; the original installed profile remains untouched.
+
+## Native presentation optimization: phase 2
+
+The session caches authored presentation order for the current scene only.
+The seed and scene tag swap atomically after preparation. Runtime entities
+remain ordered from live state. Frame construction moves consumed local JSON
+values without moving authoritative document or entity state. The save host
+uses the guarded generation accessor instead of constructing a frame.
+
+The final bounded-cache implementation passes six focused native suites.
+The earlier implementation passed all 26 CPU CTests before the cache was
+restricted to the current scene. Tests cover both dimensions, prefab order,
+runtime spawn and despawn, cold cross-scene restore, reload, cancellation
+after a scene switch, and generation rollback. New editor storage/replay
+tests are authored but have not yet run.
+
+Serialized comparisons pass 444 results across the original, phase 1 and
+phase 2 workers, with exact generation and only authentication normalized.
+The earlier concurrent comparison failed with a script watchdog under load.
+It is retained as a failed attempt, not a parity mismatch or passing check.
+
+| Input | Original total p95 | Final phase 2 total p95 | Presentation p95 | Exit |
+| --- | ---: | ---: | ---: | ---: |
+| Title | 12.489042 ms | 2.782371 ms | 0.280989 ms | 0 |
+| Temple | 54.094373 ms | 14.452392 ms | 1.664887 ms | 2 |
+
+These use the same 240 measured ticks, 60 warmup ticks and 4 ms target.
+Temple checkpoint p95 is 2.880840 ms and scripts p95 is 8.184701 ms.
+Temple still fails the target. These are simulation costs, not hardware FPS.
+The final worker SHA256 is
+`c53102bed7423329305540c6d66ba13b238bdb26f295905dda5b84db96c640df`.
+Evidence is under `/home/mg/.cache/native-final-tmp/native-perf-opt-phase2/`
+in `summary.json` and its benchmark, parity and focused-test logs. Fresh Astra,
+Qt host, browser, packaging and aggregate verification remain pending for
+these changes.
+
+## Vertex color and emissive strength focused verification
+
+The native importer focused suite passes. The preserved color and emissive
+fixtures that exited 1 on the old importer now each exit 0. Initial Qt build
+failure from temporary-file quota was retained, then the focused build passed
+with the required cache TMPDIR. Synthetic Qt fixture initialization failures
+and an unproven receiver-shadow positive control remain separate attempts.
+The latter is still being diagnosed, so the Qt material suite is not yet green.
+
+Protocol prepared-material and image tests pass five tests in two files.
+Renderer material and selected-scene tests pass seven tests in two files.
+Actual Chromium WebGL2 readback passes all 13 material cases in its focused
+test: linear gradient and tint, multiplied BLEND alpha, MASK cutoffs, depth
+and distance shadow alpha, emissive scaling and finite half-float saturation.
+All three executed commands exit 0. The first protocol command was rejected
+for duplicate worker flags before running tests, and its corrected invocation
+is retained. Logs are `browser-material-{protocol-retry,renderer,pixels}.log`
+under `/home/mg/.cache/native-final-tmp/`.
+
+These Chromium results exercise prepared-model rendering. They do not prove
+that the previous WASM artifact imports the new channels. A fresh shared-core
+WASM build and actual game startup are still required. No hardware frame-rate
+result is claimed.
+
+## Sunrush Kart functional port
+
+The native fixture preserves all 31 source entity IDs and ten original
+function bodies. Ten adapter tests pass. An initial 200-tick run failed at
+tick 179 because the original racer leaves a sparse slot in its contact
+array. The legacy JSON serializer turns that hole into null. The adapter now
+materializes sparse holes as null while still rejecting explicit undefined
+and nonfinite state. The focused regression demonstrates both behaviors.
+
+The corrected 200-tick route and 100-frame same-session replay pass. The full
+3,717-tick route, 1,859-frame midpoint continuation replay, strict verifier
+and control probes each exit 0. The player completes three ordered laps,
+gate 13 and a first-place finish at tick 3,705 in 58.7666667 seconds of game
+time. Drift, boost, pickups and items occur, and the native results HUD reads
+COASTLINE CHAMPION. These are observed native outcomes, not synthetic finish
+commands or copied legacy position assertions.
+
+Control probes verify title without start, paused countdown preservation,
+resume, resolved look-back view direction, and recovery without lap or gate
+credit. The worker SHA256 is
+`c53102bed7423329305540c6d66ba13b238bdb26f295905dda5b84db96c640df`.
+Logs, reports and the preserved failure are under
+`/home/mg/.cache/native-final-tmp/sunrush-kart-native-qa/`.
+
+Actual model admission, native graphics, live keyboard input, fresh WASM
+startup and performance remain unverified. The fixture keeps
+`modelAdmissionPending: true`. Authenticated snapshots were restored only
+in the originating live session. See the fixture
+[verification contract](../../native/game/tests/fixtures/sunrush-kart/VERIFY.md)
+for the authored source and documented presentation differences.
+
+## Save-host generation optimization verification
+
+Both before/after host binaries link the same frozen Release core. Their
+regression modes pass, and all twelve timing runs exit 0 with identical
+complete frame digests, consumed loaded inputs and host reports. Three
+alternating pairs use 60 warmup and 240 measured ticks per scene. Median
+pair p95 host-step wall cost changes from 2.534491 to 2.342800 ms for title
+and from 25.101563 to 21.943498 ms for temple. These are CPU wall costs,
+not GPU frame-rate results or a passing temple performance budget.
+
+The reported wall-minus-session-timing residual includes possible return
+cleanup and destructor costs because the Session stopwatch stops before
+return-scope cleanup. It must not be attributed solely to host work.
+Commands, source/library/binary hashes, raw pairs and regressions are under
+`/home/mg/.cache/native-final-tmp/native-perf-opt-phase2-host/`, indexed by
+`build-manifest.json` and `results-summary.json`.
+
+Qt configure and build exit 0. All five focused Qt checks pass in 43.63
+seconds: player 2D, camera, editor unit, editor UI and gestures. Verbose output
+confirms both new pending-generation and recorded-load replay cases execute,
+alongside existing concurrency and committed-storage cases. Evidence is
+`qt-{configure,build,checks}.{log,exit}` in the same cache directory.
+
+## Qt material backend qualification
+
+The registered default two-cascade OpenGL material CTest exits 0 with its
+original numeric conditions, including an opaque-caster receiver-shadow
+positive control. Vulkan still fails that positive control. Corrected old/new
+Vulkan RenderProbe comparisons draw visible caster geometry but show no
+receiver-shadow difference in either binary. This behavior predates the new
+material channels on the measured fixture, but it is not an accepted exception
+or a passing verification result.
+
+The first comparison used identical receiver and caster material colors and
+lacked a visible geometry control. It is retained as inconclusive. Corrected
+comparison inputs, reports and hashes are in
+`/home/mg/.cache/native-final-tmp/material-shadow-ab/corrected-summary.json`.
+A cache-only Vulkan D32F readback reports clear depth for the tested layers.
+Equivalent OpenGL depth readback returns unsupported/invalid data, so it is
+not a measurement positive control. The exact Vulkan failure mechanism remains
+unresolved. No production shadow changes have been made for this diagnosis.
+
+## Residual script-cost diagnosis
+
+Isolated Release baseline and instrumented temple runs each exit 0 with
+240 measured ticks, 60 warmup ticks and verified replay. The temporary
+profiling copy records 426 calls, including 342 invocations and 84 source
+validations, with zero errors and zero dropped records. Every invocation
+keeps the original 20 ms limit. Validation retains its existing separate
+limit. Fresh runtimes, contexts and all input fields remain unchanged.
+
+Mean per-invocation costs are 2.922952 ms for host output processing,
+2.419070 ms for user-source compilation, 1.238797 ms for dispatch execution
+and 0.609816 ms for setup compilation. World queries are nested within
+dispatch time and must not be added again. Baseline script p95 is
+8.184970 ms versus 8.188749 ms in the instrumented copy. Profiling changes
+compile/evaluation boundaries and is diagnostic evidence, not a shipped
+performance improvement. No instrumentation or ScriptHost change is in
+production source. Raw copies, commands, hashes, counts and measurements
+are under `/home/mg/.cache/native-final-tmp/script-host-profile/`.
+
+Output normalization currently deep-copies schema properties for every
+attempted union branch. A cache-only const-reference experiment is queued
+against the preserved baseline. No bytecode cache or reused guest realm has
+been introduced. The overall 4 ms temple target remains unmet.
+
+## Vulkan shadow correction
+
+The shadow pass set its viewport before binding a graphics pipeline.
+Qt Vulkan initializes the default scissor from the viewport only when a
+pipeline is current. Cache-only shader isolation and depth readback first
+showed valid clip coordinates but no depth writes. Moving viewport setup
+after shadow-pipeline binding restores opaque-caster depth writes and
+receiver shadows. See the [Qt Vulkan implementation](https://raw.githubusercontent.com/qt/qtbase/6.12/src/gui/rhi/qrhivulkan.cpp)
+for the command-state dependency.
+
+The production change is limited to that command order. The registered
+default two-cascade material CTests now exit 0 on Vulkan and OpenGL, taking
+1.34 and 1.47 seconds respectively. Prior shared-source failure is retained
+as `material-shadow-cascaded.log`; passing commands and hashes are indexed
+by `material-production-green-manifest.json` under the cache directory.
+The cache depth probe changes from all-clear opaque layers to minimum
+depths 0.564774 and 0.555562, with 8,580 and 704 written pixels. Transparent
+MASK and absent-caster controls remain clear.
+
+The final shipped test removes temporary diagnostic modes and retains RGB,
+interpolation, alpha, emission, HDR and receiver-shadow positive controls.
+Fresh Astra follow-up, final Release rebuild and installed game capture
+remain pending for this correction. The earlier pre-correction install
+is preserved with its original artifact audit.
+
+## Schema-copy optimization
+
+Production normalization now references immutable schema properties instead
+of deep-copying them for every attempted branch. Branch selection, defaults,
+errors and cancellation flow are unchanged. No dispatch cache, bytecode cache,
+ScriptHost change or guest-context reuse was added.
+
+A frozen old/new Release pair with 240 measured and 60 warmup ticks records
+temple script p95 8.862901 to 6.873096 ms and total p95 16.131531 to
+13.065240 ms. Both benches verify replay and exit 0. Other stages also vary
+between runs, so the entire total reduction cannot be assigned to this
+change. The 4 ms target still fails. Exact differential execution passes
+444 results across title, temple and 3D course with only authentication
+normalized. Generation, document, build and scope remain exact.
+
+The production source matches the measured candidate. Focused document, 2D
+admission and script suites pass three of three tests after a successful
+build. Tiny actual-code old/new probes confirm identical null/array schema
+errors. Commands, hashes and exits are indexed by
+`/home/mg/.cache/native-final-tmp/script-host-profile/properties-production-verification.json`
+and `properties-experiment-manifest.json`. Fresh Astra review cleared this
+change. Final portable and aggregate verification remains pending.
+
+## Sunrush installed native model admission
+
+The final Release v2 player passes actual OpenGL tick-zero capture and
+same-live-session restore with no loading state or diagnostics. Before the
+first frame, Main.cpp prepares all 16 referenced model assets; preflight
+verifies all 35 closed asset digests. The capture visibly includes the
+coastal course, ocean colors, karts, authored fonts and title HUD. The frame
+reports two shadow cascades and 158 shadow draws. This is actual model and
+graphics evidence, not a hardware frame-rate result.
+
+Document SHA256:
+`7d1e6f40b7698a79f5d76c2d3fed4d01ee088e5d1da0ca9dfa8ebfa0f34890f8`.
+Player SHA256:
+`0c6cbfa4fbd20c7798686a08b379b688d8dcddd52dc5568d342badf56315699b`.
+PNG: `/home/mg/.cache/native-final-tmp/sunrush-kart-live/final-gl-title/tick-0.png`,
+SHA256 `dd3ffe82855be1054513757a2ee9db3b62a2e47012d1dae73ccc76b212277edc`.
+The generator still starts new outputs with pending admission; this measured
+result applies to the hashed document and install above. Racing, actual
+keyboard control, Vulkan game capture and fresh browser startup are separate
+checks still in progress.
+
+## Native held-key regression
+
+Actual Sunrush XTest recording exposed a throttle drop while W remained
+physically held, about 30 recorded ticks after press. Read-only inspection
+found that GameViewport ignored auto-repeat presses but forwarded their
+paired releases. The initial 587-frame recording and failed semantic-control
+assertion are preserved under `sunrush-kart-live/final-gl-live/`; it is not
+a passing control test. An auto-repeat-disabled helper was prepared but
+never run and is not acceptance evidence.
+
+A reduced Qt event regression fails on unchanged production code for W,
+Shift and Space immediately after the first repeat release. Physical tap
+behavior passes. The production fix only accepts and ignores auto-repeat
+releases, matching the existing press handler. The full player unit suite
+then passes all ten cases with no skipped cases, including held state,
+physical release, press edges, taps and existing raster/pointer checks.
+RED exits 3 and GREEN exits 0; evidence and the failing binary are under
+`/home/mg/.cache/native-final-tmp/native-held-key-repeat/`.
+
+Both sources are frozen for fresh Astra review. Fresh Release installation
+and default-auto-repeat live acceptance remain pending. Portable core and
+WASM code are unchanged by this Qt-only correction.
+
+## Fresh portable-core conformance
+
+The fresh Emscripten 6.0.13 WASM artifact SHA256 is
+`f3fa21d71592efeabf02f450a8bda63964f0779c9620ca245f2adac79839be24`.
+Package builds, explicit browser bundle and identity check, and post-Turbo
+staging of the final Release worker pass. Original browser artifacts remain
+preserved separately. Qt-only held-key changes do not affect portable sources.
+
+All four serial Node checks exit 0. WASM bridge conformance passes 225
+assertions. OOM returns structured resource_limit and preserves another
+context. Native/WASM parity compares 136,656 values, including 70,962 numbers
+and 14,320 particle numbers, at existing absolute/relative tolerances of
+1e-5/1e-6. Twenty-five lifetime cycles plateau at 139,198,464 bytes and end
+with zero active contexts.
+
+All 16 Sunrush models actually prepare through fresh WASM with descriptor
+and image closure verification. Every source file fits the unchanged 8 MiB
+check, with a largest file of 4,189,136 bytes. The largest prepared response
+is 11,600,365 bytes, below 16 MiB. This covers actual import of the retained
+vertex colors and emissive-strength materials. It is separate from complete
+browser startup, which remains pending.
+
+Commands, artifact pins, actual exits and logs are indexed by
+`/home/mg/.cache/native-final-tmp/perf-final-v3-node-conformance.json`.
+Per-model output digests are in `perf-final-v3-models-report.json`.
+
+## Sunrush final installed live controls
+
+The final Release v4 player passes the acknowledged XTest sequence with
+default key repeat enabled and the explicit Mesa `LP_NUM_THREADS=1`
+software-renderer configuration. Resolution, visuals, documents and native
+20 ms limits remain unchanged. This is functional software-renderer
+evidence, not hardware performance or proof that default driver contention
+caused the earlier watchdog failure.
+
+The actual run closes gracefully, records 852 frames and has no native
+error or kill fallback. OCR confirms the start HUD and 64 km/h before
+steering/drift. Held W remains present for 556 consecutive frames, then
+physical release is recorded. Movement, steering, positive on-road drift
+charge, look-behind, recovery, item boost and scripted pause are observed
+and reproduced through the final worker. The same-live-session midpoint
+continuation matches all 426 replay frames. Host-P settled PNG pairs match
+exactly, separately from scripted pause semantics.
+
+Maximum manual drift charge is 0.0872254, below the 0.35 release-boost
+threshold. This run does not prove drift-release boost; the full authored
+route covers that mechanism separately. The original replay criterion
+requires positive drifting charge and was not weakened. The retained diff
+only adds diagnostic trace output.
+
+A final v4 OpenGL tick-600 capture and restore pass. Its PNG is byte-identical
+to the v2 reference, SHA256
+`df6fb60f88a16c525b762ca5a337f8c338777270d21240651814d3b027e61342`.
+Player SHA256 is
+`a9a7984870b89277a167191adf96288c393c04f08899d05b480f53e2bf95b3a0`.
+The final index is
+`/home/mg/.cache/native-final-tmp/sunrush-kart-live/final-v4-qa-index.json`,
+SHA256 `1295795339157e94bd07a7c2843a1007b28695517cbd4641b6bcfa1170a9e1d4`.
+Previous failed live attempts, exact worker diagnostics and their limitations
+remain preserved alongside this result.
+
+## Final frozen Release measurements
+
+The installed v4 benchmark binary is frozen at SHA256
+`8bcf02b1276ef0a13acef2b3ad0de2750f0b492c951365eb9a2791d3677fe8d9`.
+Each input runs once with `--ticks 240 --warmup 60 --max-p95-ms 4`.
+Title uses the original `game.json` document SHA256
+`c14e1da54ebd30e9448551dd87d8fe33194b1b6ea9d45b544b4b10540b34af18`;
+temple uses SHA256
+`426af554fd95f55e2260b657db9c0e596b3e0d34c193701ced3ba4b6bcbec0d7`.
+Document, manifest and binary hashes remain unchanged.
+
+| Case | Original total p95 | Final total p95 | Actual exit | 4 ms result |
+| --- | ---: | ---: | ---: | --- |
+| Title | 12.489042 ms | 1.749896 ms | 0 | Pass |
+| Temple | 54.094373 ms | 12.304107 ms | 2 | Fail |
+
+Both verify replay and emit empty stderr. Final temple p95 stages are
+6.757118 ms scripts, 2.498836 ms checkpoint, 1.416608 ms presentation,
+1.456653 ms spatial sync and 0.298643 ms physics. MsgPack encoding is
+reported separately at 2.730223 ms. These are headless steady-clock
+simulation timings, not pure CPU or GPU measurements. The Session stopwatch
+can exclude return cleanup, as qualified in the host comparison above.
+
+Reports, exact commands and all stage values are in
+`/home/mg/.cache/native-final-tmp/final-frozen-release-bench/status.json`.
+The initially prepared title path pointed to an old report. Preflight caught
+it before execution; the runner now checks document shape and uses the
+original frozen document. There was no failed measurement or retry. The
+runner exit 0 validates the reports; it does not turn temple exit 2 into
+a performance pass.
+
+## Sunrush browser aggregate-budget result
+
+The full required fresh-browser profile and bridge checks pass. Sunrush
+exports successfully with the corrected closed asset root, but actual
+installed startup fails before a completed frame with Native render vertex
+budget exceeded. The first export attempt used a cache symlink outside the
+prepared root and correctly failed traversal protection. Both attempts and
+the corrected actual startup failure are retained. No source or cap changed.
+
+A read-only audit verifies all 16 model file digests and enumerates every
+visual entity and selected model node. The renderer counts indexed draw
+vertices, totaling 1,111,518 against the existing 1,000,000 aggregate limit.
+All-node and selected-root counts are equal, so this is not inactive-scene
+overcount. Stored attribute vertices total 415,222. The prior lossless weld
+reduces storage vertices without reducing index count.
+
+There are 2,676 triangles with exactly repeated Float32 positions. Removing
+only those would save 8,028 indices and still leave 1,103,490. Nothing was
+removed. This audit does not prove that every possible remeshing strategy
+fails; it establishes that the verified preparation and this strict zero-area
+reduction cannot meet the existing cap. Further geometry changes would alter
+the current triangle-preservation contract.
+
+The actual failure is not counted as a browser game pass or silently
+classified as an accepted baseline exception. Native Sunrush and fresh WASM
+model imports pass independently. A product-scope question is pending about
+retaining native fidelity with this browser limit documented versus a separate
+reduced-detail browser version. Native final verification continues.
+
+Evidence: `/home/mg/.cache/native-final-tmp/perf-final-v4-browser-checks.json`,
+`sunrush-fresh-browser-qa/installed-startup-final-failure.json`, and
+`sunrush-browser-budget-audit/report.json` under the same cache root.
+
+## Physical press-latch regression and generated schema
+
+A cache probe using the actual Main accumulator and exact binding callback
+confirms a fast tap can be lost when press and release occur before sampling.
+Held, straddled-tap, HUD and recording controls pass. This does not establish
+the failed live Title scenario had the same cause.
+
+The existing input state and sampling logic now live in an internal pure C++
+header used by Main and its regression test. A pending physical-press set
+survives until one sample without changing real held state or packet shape.
+Aliases update under one mutex. Pause drops unconsumed physical pulses and
+does not queue new paused taps. Existing HUD, look and recording behavior and
+recording cap remain covered.
+
+The shipping test fails exactly three quick-tap cases on the extracted old
+behavior while seven controls pass. With the latch, the unchanged test passes
+all ten cases. Configure and target builds exit 0. Evidence is under
+`/home/mg/.cache/native-final-tmp/native-player-input-latch/`. Fresh Astra
+implementation and integration reviews cleared both scopes.
+
+The final core wrapper first caught stale generated runtime-response JSON.
+Canonical generation adds only the reviewed optional RGBA and emissive
+strength properties. Generator --check now exits 0 and Astra cleared the
+artifact. This response schema is not embedded in native/WASM binaries. The
+first failed attempt remains recorded; core attempt two passes 26/26 tests.
+Native runtime status and subsequent sanitizer/Qt/installed checks are in
+`/home/mg/.cache/native-final-tmp/native-final-runtime-checks.json`.
+
+## Final native profiles and aggregate receipt
+
+All final native profiles pass: core 26/26, ASan/UBSan session/camera/hierarchy
+4/4, script/assets sanitizer 2/2, pure input sanitizer 10/10, full Qt player
+22/22, editor 3/3 and installed v4 delivery 9/9 with no skips. Existing vendor
+sanitizer exclusions are unchanged. The first sanitizer build refreshed an
+old target graph and then lacked newly generated target rules; the exact
+retry passes. That setup history and the earlier generated-schema drift
+remain retained rather than overwritten.
+
+Pinned installed worker, player, editor and benchmark hashes remain unchanged.
+The complete command/exit/log receipt is
+`/home/mg/.cache/native-final-tmp/native-final-runtime-checks.json`.
+
+The final serial aggregate completed with source identities and artifact
+audits. Capabilities sync/check, package build, browser identity, Release
+worker staging, backend smoke, typecheck and lint exited 0. Harness gate
+passed 20/20. All 21 artifact audits passed. Affected tests exited 1 after
+the backend passed 145/145 tasks. The web suite passed 2,142 suites and
+21,622 tests but failed `RecentProjects.test.tsx:154`: the newest-document
+case unexpectedly called `scrollIntoView` once. This failure is separate
+from the accepted historical timeline pixel baseline. Receipt:
+`/home/mg/.cache/native-final-tmp/perf-sunrush-final-checks.json`.
+Post-Turbo staging records the observed transient worker hash and its own
+actual exit before auditing the candidate. Browser and bundle drift remain
+independently checked. The third ordered attempt in
+`native-game-cpp-final-checks.json` preserves earlier results and marks
+strict mandatory verification as failed.
+
+The exact existing `RecentProjects` file passed all six tests in a focused
+rerun. The component, test, resume hook and four inspected dependencies are
+byte-identical to HEAD. A cache-only controlled Jest fixture imports the
+existing resume hook and proves that a queued `requestAnimationFrame`
+survives unmount, then scrolls a later test's replacement document anchor.
+Newest-document navigation opens the correct document and queues no callback;
+flushing only the earlier callback produces exactly one smooth/start scroll.
+Without that earlier callback, newest-document navigation does not scroll.
+All three mechanism checks pass. A negative control asserting no leakage
+fails with the exact aggregate assertion and arguments. This proves the
+mechanism on the unchanged HEAD boundary. The original aggregate did not
+trace callback scheduling, so its specific causal history remains uncertain.
+The failure is not classified as an accepted baseline. No UI code or
+repository test changed. The fixture, configuration, commands, actual exits
+and setup history are retained in
+`/home/mg/.cache/native-final-tmp/recent-projects-raf-mechanism-report.json`.
+Evidence: `/home/mg/.cache/native-final-tmp/recent-projects-focused-diagnosis.log`
+and `recent-projects-head-comparison.json` in the same cache directory.
+
+Affected verification stopped before Electron and mobile. Both subsequently
+passed as serial supplemental checks: Electron 72 suites/842 tests and
+mobile 79 suites/921 tests, with no skips. Their actual exits and commands
+are in `/home/mg/.cache/native-final-tmp/selected-app-supplemental.json`.
+These results do not turn the failed aggregate into a pass. The full Sunrush
+browser startup's existing vertex-cap failure and the failed performance
+budget remain separate product limitations.
+
+## Project resume lifecycle correction
+
+The subsequently authorized UI correction gives each effect setup its own
+lifetime. Cleanup cancels its queued animation frames. Project-open promise
+completions from an ended lifetime cannot schedule a scroll or open a tab,
+including the discarded first setup in root StrictMode. Mounted document-list
+scrolling, newest-document navigation and saved-tab behavior remain covered.
+
+The new real-hook regression failed against the original implementation in
+four lifecycle cases while three behavior controls passed. The fixed hook
+and the existing `RecentProjects` file pass all 13 tests. Web typecheck,
+targeted lint and formatting pass. Initial typed-fixture omissions and the
+StrictMode test setup correction are retained in the focused receipt rather
+than omitted. Frozen source hashes and logs are recorded in
+`/home/mg/.cache/native-final-tmp/resume-project-frozen-source-v2/manifest.json`.
+The earlier failed aggregate remains preserved. After fresh Astra clearance
+and the reviewed results-button fixture correction, the final serial
+aggregate passed: capabilities sync/check, package build, browser identity,
+Release worker staging, backend smoke, affected tests, typecheck, lint and
+harness gate all exited 0. The gate passed 20/20. All 21 artifact audits
+passed, and every captured source hash remained unchanged through the run.
+Affected verification passed 145 backend tasks from cache, 2,144 web suites
+and 21,630 tests, 72 Electron suites/842 tests, and 79 mobile suites/921 tests.
+Web retains three conditional skips and two todo cases. Both `RecentProjects`
+and the new lifecycle regression passed in the full web suite.
+
+The fourth ordered attempt in `native-game-cpp-final-checks.json` records the
+latest strict and mandatory results as passed without replacing earlier
+failures. Complete commands, actual exits and artifact receipts are in
+`/home/mg/.cache/native-final-tmp/resume-project-final-checks.json`.
+The native-fidelity decision preserves Sunrush's actual browser vertex-cap
+rejection and the failed performance budget as product limitations. No cap,
+geometry, timing target or watchdog was relaxed to obtain these test results.
+
+The user chose to preserve Sunrush native fidelity and document the browser
+vertex-cap limitation. A separate reduced-detail browser version is outside
+this effort. No geometry, source asset or admission cap changed. Actual full
+Sunrush browser startup remains failed, while native Qt verification passed.
+The unrelated web scroll assertion remains an unresolved verification blocker.

@@ -173,7 +173,11 @@ void main() {
    float opacity=min(scene.fogSettings.w,1.0-exp(-min(80.0,scene.fogSettings.x*distance*exp(exponent)*average)));
    outgoing=mix(outgoing,scene.fogColorEnabled.rgb,opacity);
  }
- hdrColor=vec4(max(outgoing,vec3(0.0)),material.surface.w>1.5?base.a:1.0);
+ // Keep HDR writes representable in the RGBA16F scene target.
+ for(int channel=0;channel<3;++channel) {
+   outgoing[channel]=isnan(outgoing[channel])?0.0:clamp(outgoing[channel],0.0,65504.0);
+ }
+ hdrColor=vec4(outgoing,material.surface.w>1.5?base.a:1.0);
 #ifndef PBR_TRANSPARENT
  linearDepth=depth;
 #endif

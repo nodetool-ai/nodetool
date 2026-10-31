@@ -54,6 +54,9 @@ if(BUILD_TESTING)
   add_executable(game-session2d-tests tests/Session2DTest.cpp)
   target_link_libraries(game-session2d-tests PRIVATE game_core)
   add_test(NAME native-game-session2d COMMAND game-session2d-tests)
+  add_executable(game-session-checkpoint-perf-tests tests/SessionCheckpointPerfTest.cpp)
+  target_link_libraries(game-session-checkpoint-perf-tests PRIVATE game_core)
+  add_test(NAME native-game-session-checkpoint-allocation COMMAND game-session-checkpoint-perf-tests)
   add_executable(game-session-tests tests/SessionTest.cpp)
   target_link_libraries(game-session-tests PRIVATE game_core)
   add_test(NAME native-game-session COMMAND game-session-tests)
@@ -67,8 +70,18 @@ if(BUILD_TESTING)
   add_test(NAME native-game-blacksite-fixtures COMMAND ${GAME_NODE_EXECUTABLE} --test
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/blacksite/adapt.test.mjs
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/blacksite/lossless-glb.test.mjs
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/blacksite/prepare-assets.test.mjs
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/blacksite/probe-frame.test.mjs)
   set_tests_properties(native-game-blacksite-fixtures PROPERTIES LABELS "fixtures;3d")
+  add_test(NAME native-game-relay-yard-fixtures COMMAND ${GAME_NODE_EXECUTABLE} --test
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/relay-yard/adapt.test.mjs)
+  set_tests_properties(native-game-relay-yard-fixtures PROPERTIES LABELS "fixtures;3d")
+  add_test(NAME native-game-kindle-fixtures COMMAND ${GAME_NODE_EXECUTABLE} --test
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/kindle/adapt.test.mjs)
+  set_tests_properties(native-game-kindle-fixtures PROPERTIES LABELS "fixtures;2d")
+  add_test(NAME native-game-sunrush-kart-fixtures COMMAND ${GAME_NODE_EXECUTABLE} --test
+    ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/sunrush-kart/adapt.test.mjs)
+  set_tests_properties(native-game-sunrush-kart-fixtures PROPERTIES LABELS "fixtures;3d")
   add_test(NAME native-game-blacksite-pixel-metrics COMMAND ${Python3_EXECUTABLE}
     ${CMAKE_CURRENT_SOURCE_DIR}/tests/fixtures/blacksite/pixel-metrics.test.py)
   set_tests_properties(native-game-blacksite-pixel-metrics PROPERTIES LABELS "fixtures;3d")

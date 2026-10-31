@@ -5,6 +5,10 @@ import {
   Group,
   Matrix4,
   Mesh,
+  MeshDepthMaterial,
+  MeshDistanceMaterial,
+  MeshStandardMaterial,
+  RGBADepthPacking,
   Material,
   Quaternion,
   Skeleton,
@@ -12,6 +16,7 @@ import {
   Uint16BufferAttribute,
   Vector3
 } from "three";
+import { nativeVertexAlphaShadowShader } from "./3d-shaders.js";
 import type { NativePreparedModel } from "./model3d-types.js";
 
 /** Builds a render instance without parsing glTF or resolving URLs. */
@@ -24,6 +29,8 @@ export class NativeModelInstance {
     scale: Vector3;
   }[];
   private readonly meshes: Mesh[] = [];
+  private readonly coloredMaterials = new Map<Material, Material>();
+  private readonly shadowMaterials = new Map<Material, { depth: MeshDepthMaterial; distance: MeshDistanceMaterial }>();
   private readonly geometries: BufferGeometry[] = [];
   private readonly skeletons: Skeleton[] = [];
   private readonly a = new Quaternion();
@@ -101,9 +108,48 @@ export class NativeModelInstance {
             2
           )
         );
+        const colored = primitive.vertices.some((vertex) => vertex.color !== undefined);
+        if (colored) {
+          geometry.setAttribute("color", new Float32BufferAttribute(
+            primitive.vertices.flatMap((vertex) => [...(vertex.color ?? [1, 1, 1, 1])]), 4
+          ));
+        }
         geometry.setIndex([...primitive.indices]);
         this.geometries.push(geometry);
-        const material = materials[Math.max(0, primitive.material)];
+        const sourceMaterial = materials[Math.max(0, primitive.material)];
+        let material = sourceMaterial;
+        if (colored) {
+          let variant = this.coloredMaterials.get(sourceMaterial);
+          if (!variant) {
+            variant = sourceMaterial.clone();
+            variant.vertexColors = true;
+            variant.onBeforeCompile = sourceMaterial.onBeforeCompile;
+            variant.customProgramCacheKey = sourceMaterial.customProgramCacheKey;
+            this.coloredMaterials.set(sourceMaterial, variant);
+          }
+          material = variant;
+        }
+        const configureShadows = (mesh: Mesh): void => {
+          if (!colored || !(material instanceof MeshStandardMaterial) || material.alphaTest <= 0) { return; }
+          let shadow = this.shadowMaterials.get(material);
+          if (!shadow) {
+            shadow = { depth: new MeshDepthMaterial({ depthPacking: RGBADepthPacking }), distance: new MeshDistanceMaterial() };
+            for (const entry of [shadow.depth, shadow.distance]) {
+              entry.vertexColors = true;
+              entry.map = material.map;
+              entry.alphaTest = material.alphaTest;
+              const opacity = material.opacity;
+              entry.onBeforeCompile = (shader) => {
+                shader.uniforms.nativeOpacity = { value: opacity };
+                nativeVertexAlphaShadowShader(shader);
+              };
+              entry.customProgramCacheKey = () => "native-vertex-alpha-shadow-1";
+            }
+            this.shadowMaterials.set(material, shadow);
+          }
+          mesh.customDepthMaterial = shadow.depth;
+          mesh.customDistanceMaterial = shadow.distance;
+        };
         if (node.skin >= 0) {
           geometry.setAttribute(
             "skinIndex",
@@ -122,12 +168,14 @@ export class NativeModelInstance {
           const mesh = new SkinnedMesh(geometry, material);
           mesh.bind(skins[node.skin], new Matrix4());
           mesh.frustumCulled = false;
+          configureShadows(mesh);
           mesh.castShadow = true;
           mesh.receiveShadow = true;
           this.meshes.push(mesh);
           this.root.add(mesh);
         } else {
           const mesh = new Mesh(geometry, material);
+          configureShadows(mesh);
           mesh.castShadow = true;
           mesh.receiveShadow = true;
           this.meshes.push(mesh);
@@ -216,6 +264,10 @@ export class NativeModelInstance {
     for (const skeleton of this.skeletons) {
       skeleton.dispose();
     }
+    for (const material of this.coloredMaterials.values()) { material.dispose(); }
+    for (const shadow of this.shadowMaterials.values()) { shadow.depth.dispose(); shadow.distance.dispose(); }
+    this.coloredMaterials.clear();
+    this.shadowMaterials.clear();
     this.root.clear();
   }
 }

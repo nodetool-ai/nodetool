@@ -6,7 +6,7 @@
  * where they will appear, into view.
  */
 
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 import { useWorkspaceTabsStore } from "../stores/WorkspaceTabsStore";
 import { useOpenProject } from "./useProjects";
@@ -19,10 +19,31 @@ import type {
 export const useResumeProject = (): ((detail: ProjectDetail) => void) => {
   const openProject = useOpenProject();
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
+  const lifetimeRef = useRef<{ active: boolean; frames: Set<number> } | null>(
+    null
+  );
+  useEffect(() => {
+    const lifetime = { active: true, frames: new Set<number>() };
+    lifetimeRef.current = lifetime;
+    return () => {
+      lifetime.active = false;
+      for (const frame of lifetime.frames) {
+        cancelAnimationFrame(frame);
+      }
+    };
+  }, []);
   return useCallback(
     ({ project, documents }: ProjectDetail) => {
+      const lifetime = lifetimeRef.current;
+      if (!lifetime?.active) {
+        return;
+      }
       void openProject(project).then((opened) => {
-        if (!opened || useWorkspaceTabsStore.getState().activeTabId !== null) {
+        if (
+          !lifetime.active ||
+          !opened ||
+          useWorkspaceTabsStore.getState().activeTabId !== null
+        ) {
           return;
         }
         const latest = documents.reduce<ProjectDocument | undefined>(
@@ -39,11 +60,16 @@ export const useResumeProject = (): ((detail: ProjectDetail) => void) => {
           });
           return;
         }
-        requestAnimationFrame(() => {
+        const frame = requestAnimationFrame(() => {
+          lifetime.frames.delete(frame);
+          if (!lifetime.active) {
+            return;
+          }
           document
             .getElementById(PROJECT_DOCUMENTS_ID)
             ?.scrollIntoView({ behavior: "smooth", block: "start" });
         });
+        lifetime.frames.add(frame);
       });
     },
     [openProject, openTab]

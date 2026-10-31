@@ -1,7 +1,8 @@
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 
-// Existing contracts: native/game/src/audio/Audio.cpp, src/assets/PreparedAssets.h,
+// Existing contracts: native/game/src/audio/Audio.cpp and
+// native/game/src/assets/PreparedAssets.h,
 // and packages/game-renderer/src/native-cpp/audio.ts. No engine limit changes.
 export const BLACKSITE_AUDIO_LIMITS = Object.freeze({ fileBytes: 64 * 1024 * 1024, decodedSamples: 64_000_000, durationSeconds: 600 });
 const sha256 = bytes => createHash("sha256").update(bytes).digest("hex");

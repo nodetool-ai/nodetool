@@ -70,6 +70,8 @@ describe("buildPlan", () => {
     ["native/game/tests/Effects3DTest.cpp", "native game player: build and capture"],
     ["native/game/tests/ParticleMeshLifetimeTest.cpp", "native game player: build and capture"],
     ["native/game/tests/RenderProbe.cpp", "native game player: build and capture"],
+    ["native/game/tests/MaterialRenderTest.cpp", "native game player: build and capture"],
+    ["native/game/tests/PlayerInputTest.cpp", "native game player: build and capture"],
     ["native/game/tests/player3d_material_test.py", "native game player: build and capture"],
     ["native/game/tests/player_camera_test.py", "native game player: build and capture"],
     ["native/game/tests/player_camera_input_test.py", "native game player: build and capture"],

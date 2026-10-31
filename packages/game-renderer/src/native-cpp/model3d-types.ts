@@ -26,6 +26,7 @@ export interface NativePreparedModel {
     readonly image: number;
     readonly doubleSided: boolean;
     readonly emissive?: readonly number[];
+    readonly emissiveStrength?: number;
     readonly normalImage?: number;
     readonly normalScale?: number;
     readonly alphaMode?: "OPAQUE" | "MASK" | "BLEND";
@@ -61,6 +62,7 @@ export interface NativeModelPrimitive {
   readonly vertices: readonly {
     readonly position: readonly number[];
     readonly normal: readonly number[];
+    readonly color?: readonly number[];
     readonly uv: readonly number[];
     readonly joints: readonly number[];
     readonly weights: readonly number[];

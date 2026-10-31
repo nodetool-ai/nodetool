@@ -22,7 +22,7 @@ import type {
   NativePreparedModel
 } from "./model3d-types.js";
 import { DEFAULT_NATIVE_MODEL_SAMPLER } from "./model3d-types.js";
-import { NATIVE_SKIN_NORMAL_VERTEX } from "./3d-shaders.js";
+import { NATIVE_SKIN_NORMAL_VERTEX, NATIVE_FINITE_HDR_FRAGMENT } from "./3d-shaders.js";
 
 function wrapping(
   value: number
@@ -151,6 +151,7 @@ export class NativePBRMaterials {
         metalness: source.metallic,
         roughness: source.roughness,
         emissive: new Color(emissive[0], emissive[1], emissive[2]),
+        emissiveIntensity: source.emissiveStrength ?? 1,
         opacity: source.color[3],
         transparent: alpha === "BLEND",
         depthWrite: alpha !== "BLEND",
@@ -173,6 +174,7 @@ export class NativePBRMaterials {
           "#include <skinnormal_vertex>",
           NATIVE_SKIN_NORMAL_VERTEX
         );
+        shader.fragmentShader = shader.fragmentShader.replace("#include <opaque_fragment>", NATIVE_FINITE_HDR_FRAGMENT + "\n#include <opaque_fragment>");
       };
       material.customProgramCacheKey = () => "native-pbr-skin-normal-1";
       return material;

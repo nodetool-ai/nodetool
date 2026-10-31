@@ -264,8 +264,12 @@ PreparedAssets::prepare(const std::string &id,
   }
   require(gltf.is_object() && gltf.at("asset").at("version") == "2.0",
           "unsupported glTF version");
-  require(gltf.value("extensionsRequired", AssetJson::array()).empty(),
-          "unsupported required glTF extension");
+  const auto requiredExtensions = gltf.value("extensionsRequired", AssetJson::array());
+  require(requiredExtensions.is_array(), "invalid required glTF extensions");
+  for (const auto &extension : requiredExtensions) {
+    require(extension == "KHR_materials_emissive_strength",
+            "unsupported required glTF extension");
+  }
   for (const auto *field :
        {"buffers", "bufferViews", "accessors", "images", "textures",
         "materials", "meshes", "nodes", "skins", "animations", "samplers"}) {
@@ -472,7 +476,18 @@ PreparedAssets::prepare(const std::string &id,
     if (material.contains("emissiveFactor")) { require(material.at("emissiveFactor").is_array() && material.at("emissiveFactor").size() == 3, "emissive factor must have three components"); }
     prepared.emissive = material.value("emissiveFactor", prepared.emissive);
     for (const auto value : prepared.emissive) { require(std::isfinite(value) && value >= 0 && value <= 1, "invalid material emissive factor"); }
-    require(material.value("extensions", AssetJson::object()).empty(), "material extensions unsupported");
+    const auto extensions = material.value("extensions", AssetJson::object());
+    require(extensions.is_object(), "invalid material extensions");
+    for (const auto &[name, extension] : extensions.items()) {
+      require(name == "KHR_materials_emissive_strength", "material extensions unsupported");
+      require(extension.is_object(), "invalid emissive strength extension");
+      const auto strength = extension.value("emissiveStrength", AssetJson(1));
+      require(strength.is_number(), "invalid emissive strength");
+      const auto value = strength.get<double>();
+      require(std::isfinite(value) && value >= 0 &&
+                  value <= std::numeric_limits<float>::max(), "invalid emissive strength");
+      prepared.emissiveStrength = static_cast<float>(value);
+    }
     require(!material.contains("emissiveTexture") && !material.contains("occlusionTexture"), "emissive and occlusion textures unsupported");
     const auto pbr =
         material.value("pbrMetallicRoughness", AssetJson::object());
@@ -507,8 +522,6 @@ PreparedAssets::prepare(const std::string &id,
       checkpoint(stop);
       require(primitive.value("mode", 4) == 4, "only triangles supported");
       require(!primitive.contains("targets"), "morph targets unsupported");
-      require(!primitive.at("attributes").contains("COLOR_0"),
-              "vertex colors unsupported");
       ModelPrimitive prepared;
       auto positions = read(primitive.at("attributes").at("POSITION"), 3);
       require(gltf.at("accessors")
@@ -536,6 +549,24 @@ PreparedAssets::prepare(const std::string &id,
           }
         }
       };
+      if (primitive.at("attributes").contains("COLOR_0")) {
+        const auto index = primitive.at("attributes").at("COLOR_0").get<std::size_t>();
+        const auto &accessor = gltf.at("accessors").at(index);
+        const auto type = accessor.at("type").get<std::string>();
+        const auto component = accessor.at("componentType").get<int>();
+        const bool normalized = accessor.value("normalized", false);
+        require(type == "VEC3" || type == "VEC4", "vertex colors require RGB or RGBA");
+        require((component == 5126 && !normalized) ||
+                    ((component == 5121 || component == 5123) && normalized),
+                "vertex colors require float or normalized unsigned byte/short components");
+        const std::size_t width = type == "VEC3" ? 3 : 4;
+        attribute("COLOR_0", width, [width](auto &vertex, const float *values) {
+          for (std::size_t k = 0; k < width; ++k) {
+            vertex.color[k] = std::clamp(values[k], 0.F, 1.F);
+          }
+        });
+        prepared.hasVertexColors = true;
+      }
       attribute("NORMAL", 3, [](auto &v, const float *p) {
         std::copy_n(p, 3, v.normal.begin());
       });

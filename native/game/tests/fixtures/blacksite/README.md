@@ -27,10 +27,34 @@ and prepared SHA-256 digests cover expanded triangle attributes, preserving
 winding, positions, normals and UVs. Material bindings, node transforms and
 compressed image bytes are checked separately. The four original PNG images
 are external closed image dependencies shared by every model chunk. Their
-bytes remain unchanged, and every prepared file stays within the browser
-asset limit of 8 MiB. The test deliberately changes
+bytes remain unchanged. Model chunks and image files stay within portable model
+preparation's 8 MiB file limit. The test deliberately changes
 a prepared position byte and a material and proves that verification fails.
 Output files cannot overwrite an existing preparation.
+
+Asset preparation requires `ffmpeg` and `ffprobe` on `PATH`. The original score
+is Vorbis OGG, while native browser audio admits WAV. The preparer decodes its
+verified bytes to float32 PCM and copies that payload unchanged into a canonical
+RIFF format-tag-3 WAV. It applies no gain, resampling or integer quantization.
+The logical `score` asset remains present. Its original OGG is retained unchanged
+at `source-audio/score.ogg` alongside conversion provenance. Legacy source files
+and every visual asset remain unchanged.
+
+The score retains mono, 48 kHz and 48 seconds, with 2,304,000 finite samples.
+Its WAV occupies 9,216,044 bytes. It uses the existing 64 MiB audio file admission
+in [the native decoder](../../../src/audio/Audio.cpp) and
+[browser exporter](../../../../../packages/game-runtime/scripts/native-game-web-export.mjs).
+The [browser audio decoder](../../../../../packages/game-renderer/src/native-cpp/audio.ts)
+also bounds decoded audio to 64,000,000 samples and 600 seconds. Model/image
+files retain their 8 MiB limit and model dependency closures retain their
+16 MiB limit in [portable model preparation](../../../src/browser/Model.cpp).
+Audio is outside those model closures. No engine budget is increased.
+
+`prepare-assets.test.mjs` retains the copied-OGG regression, compares every
+decoded payload byte with an independent decode, verifies the original source
+copy and hashes, and checks the fixed visual-manifest digest. It also rejects
+nonfinite samples, invalid channels/rates, incomplete blocks and oversized audio.
+Music mixer and playback parity remain outside the visual comparison scope.
 
 `adapt.mjs --out <directory>` performs that preparation and writes the native
 document, copied routes, assertions and adaptation provenance. It wraps the

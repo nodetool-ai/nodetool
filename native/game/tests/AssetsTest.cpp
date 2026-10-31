@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 using namespace nodetool::game;
 namespace {
@@ -76,6 +77,84 @@ void putFloat(std::vector<std::uint8_t> &out, float value) {
     out.push_back(static_cast<std::uint8_t>(bits >> (i * 8)));
   }
 }
+void materialChannels() {
+  Directory directory;
+  const auto prepare = [&](AssetJson json, const std::vector<std::uint8_t> &bytes) {
+    json["buffers"][0]["byteLength"] = bytes.size();
+    const auto source = encoded(json);
+    write(directory.path / "triangle.gltf", source);
+    write(directory.path / "triangle.bin", bytes);
+    auto modelEntry = entry("mesh", "triangle.gltf", source);
+    modelEntry["dependencies"] = {"buffer"};
+    PreparedAssets assets(directory.path, AssetJson::array({modelEntry, entry("buffer", "triangle.bin", bytes, "buffer")}));
+    return assets.model("mesh");
+  };
+  std::vector<std::uint8_t> positions;
+  for (float value : std::array<float, 9>{0, 0, 0, 1, 0, 0, 0, 1, 0}) { putFloat(positions, value); }
+  const auto plain = prepare(modelJson(), positions);
+  check(!plain->meshes[0][0].hasVertexColors && plain->meshes[0][0].vertices[0].color == std::array<float, 4>{1, 1, 1, 1}, "Absent vertex colors default white");
+  for (const int component : {5126, 5121, 5123}) {
+    for (const std::size_t width : {std::size_t(3), std::size_t(4)}) {
+      auto bytes = positions;
+      for (int vertex = 0; vertex < 3; ++vertex) {
+        for (std::size_t channel = 0; channel < width; ++channel) {
+          if (component == 5126) { putFloat(bytes, channel == 0 ? 2.F : channel == 1 ? -.5F : .5F); }
+          else {
+            const unsigned value = channel == 0 ? (component == 5121 ? 255 : 65535) : 0;
+            bytes.push_back(static_cast<std::uint8_t>(value));
+            if (component == 5123) { bytes.push_back(static_cast<std::uint8_t>(value >> 8)); }
+          }
+        }
+      }
+      auto json = modelJson();
+      json["bufferViews"].push_back({{"buffer", 0}, {"byteOffset", 36}, {"byteLength", bytes.size() - 36}});
+      json["accessors"].push_back({{"bufferView", 1}, {"componentType", component}, {"count", 3}, {"type", width == 3 ? "VEC3" : "VEC4"}, {"normalized", component != 5126}});
+      json["meshes"][0]["primitives"][0]["attributes"]["COLOR_0"] = 1;
+      const auto model = prepare(json, bytes);
+      const auto &primitive = model->meshes[0][0];
+      check(primitive.hasVertexColors && primitive.vertices[0].color[0] == 1 && primitive.vertices[0].color[1] == 0, "Vertex RGB normalized and clamped");
+      check(primitive.vertices[0].color[3] == (width == 3 ? 1.F : component == 5126 ? .5F : 0.F), "RGBA alpha preserved and RGB alpha defaults one");
+      auto invalid = json; invalid["accessors"][1]["count"] = 2;
+      rejects([&] { prepare(invalid, bytes); });
+      invalid = json; invalid["accessors"][1]["type"] = "VEC2";
+      rejects([&] { prepare(invalid, bytes); });
+      invalid = json; invalid["accessors"][1]["normalized"] = component == 5126;
+      rejects([&] { prepare(invalid, bytes); });
+      invalid = json; invalid["accessors"][1]["componentType"] = 5125;
+      rejects([&] { prepare(invalid, bytes); });
+      if (component == 5126) {
+        auto nonfinite = positions; putFloat(nonfinite, std::numeric_limits<float>::infinity());
+        nonfinite.resize(bytes.size());
+        rejects([&] { prepare(json, nonfinite); });
+      }
+    }
+  }
+  auto json = modelJson();
+  json["materials"] = AssetJson::array({{{"emissiveFactor", {1, .32, .035}}}});
+  check(prepare(json, positions)->materials[0].emissiveStrength == 1, "Absent emissive strength defaults one");
+  auto &extension = json["materials"][0]["extensions"]["KHR_materials_emissive_strength"];
+  extension = AssetJson::object();
+  check(prepare(json, positions)->materials[0].emissiveStrength == 1, "Empty strength extension defaults one");
+  json["extensionsRequired"] = {"KHR_materials_emissive_strength"};
+  for (const float strength : {0.F, 1.F, 2.8F, std::numeric_limits<float>::max()}) {
+    extension["emissiveStrength"] = strength;
+    const auto material = prepare(json, positions)->materials[0];
+    check(material.emissiveStrength == strength && material.emissive[0] == 1 && material.emissive[1] == .32F, "Strength stays separate from bounded emissive factor");
+  }
+  for (const auto &strength : AssetJson::array({-1, "2", nullptr, true, 1e100})) {
+    extension["emissiveStrength"] = strength;
+    rejects([&] { prepare(json, positions); });
+  }
+  extension["emissiveStrength"] = 1;
+  auto invalid = json; invalid["materials"][0]["emissiveFactor"] = {2, 0, 0};
+  rejects([&] { prepare(invalid, positions); });
+  invalid = json; invalid["extensionsRequired"].push_back("KHR_materials_unlit");
+  rejects([&] { prepare(invalid, positions); });
+  invalid = json; invalid["materials"][0]["extensions"]["KHR_materials_unlit"] = AssetJson::object();
+  rejects([&] { prepare(invalid, positions); });
+  invalid = json; invalid["materials"][0]["extensions"]["KHR_materials_emissive_strength"] = 0;
+  rejects([&] { prepare(invalid, positions); });
+}
 } // namespace
 int main(int argc, char **argv) {
   try {
@@ -100,6 +179,7 @@ int main(int argc, char **argv) {
       std::cout << models.dump() << '\n';
       return 0;
     }
+    materialChannels();
     check(
         assetDigest({'a', 'b', 'c'}) ==
             "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad",
@@ -193,7 +273,7 @@ int main(int argc, char **argv) {
     auto defaults = textured; defaults["materials"] = AssetJson::array({AssetJson::object()});
     const auto defaultMaterial = prepareMaterial(defaults)->materials[0];
     check(defaultMaterial.alphaMode == "OPAQUE" && defaultMaterial.alphaCutoff == .5F && defaultMaterial.normalImage == -1 && defaultMaterial.emissive == std::array<float, 3>{0, 0, 0}, "Material defaults preserved");
-    for (const auto &field : {"alphaMode", "alphaCutoff", "emissiveFactor", "emissiveWidth", "imageMime", "normalTexture", "samplers", "samplerShape", "textureIndex", "uvSet", "missingUv", "tangent", "vertexColor", "mrTexture", "emissiveTexture", "occlusionTexture", "extensions"}) {
+    for (const auto &field : {"alphaMode", "alphaCutoff", "emissiveFactor", "emissiveWidth", "imageMime", "normalTexture", "samplers", "samplerShape", "textureIndex", "uvSet", "missingUv", "tangent", "mrTexture", "emissiveTexture", "occlusionTexture", "extensions"}) {
       auto invalid = textured;
       if (field == std::string("alphaMode")) { invalid["materials"][0]["alphaMode"] = "ADDITIVE"; }
       else if (field == std::string("alphaCutoff")) { invalid["materials"][0]["alphaCutoff"] = 2; }
@@ -207,7 +287,6 @@ int main(int argc, char **argv) {
       else if (field == std::string("uvSet")) { invalid["materials"][0]["normalTexture"]["texCoord"] = 1; }
       else if (field == std::string("missingUv")) { invalid["meshes"][0]["primitives"][0]["attributes"].erase("TEXCOORD_0"); }
       else if (field == std::string("tangent")) { invalid["meshes"][0]["primitives"][0]["attributes"]["TANGENT"] = 0; }
-      else if (field == std::string("vertexColor")) { invalid["meshes"][0]["primitives"][0]["attributes"]["COLOR_0"] = 0; }
       else if (field == std::string("mrTexture")) { invalid["materials"][0]["pbrMetallicRoughness"]["metallicRoughnessTexture"] = {{"index", 0}}; }
       else if (field == std::string("extensions")) { invalid["materials"][0]["extensions"] = {{"KHR_materials_unlit", AssetJson::object()}}; }
       else { invalid["materials"][0][field] = {{"index", 0}}; }

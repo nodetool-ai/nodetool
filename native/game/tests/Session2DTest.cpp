@@ -1,4 +1,5 @@
 #include "core/Session.h"
+#include <algorithm>
 #include <iostream>
 using namespace nodetool::game;
 namespace {
@@ -12,9 +13,72 @@ Json document() {
     {"gravity", {{"x", 0}, {"y", 0}}},
     {"scenes", Json::array({Json{{"id", "scene"}, {"entities", Json::array({entity})}}})}};
 }
+void checkAuthoredOrder(bool twoDimensional) {
+  const std::size_t offset = twoDimensional ? 128 : 0;
+  const Json controller{{"id", "a"}, {"behaviors", Json::array({{{"id", "b"}, {"scriptId", "commands"}}})}};
+  Json doc{{"engine", "native-cpp-1"}, {"schemaVersion", twoDimensional ? 5 : 4},
+           {"dimension", twoDimensional ? "2d" : "3d"}, {"id", "order"}, {"title", "Order"},
+           {"initialSceneId", "a"},
+           {"prefabs", Json::array({{{"id", "pair"}, {"entities", Json::array({{{"id", "leafB"}}, {{"id", "leafA"}}})}}})},
+           {"scripts", Json::array({{{"id", "commands"}, {"source", "i=>({commands:i.input.commands||[]})"}}})},
+           {"scenes", Json::array({
+             {{"id", "a"}, {"entities", Json::array({Json{{"id", "z"}, {"prefabId", "pair"}}, controller})}},
+             {{"id", "b"}, {"entities", Json::array({{{"id", "b2"}}, {{"id", "b1"}}})}}
+           })}};
+  Session session(doc);
+  const auto original = session.snapshot();
+  const auto initial = session.frame();
+  const Json expected{{"z", offset}, {"z:leafB", offset + 1}, {"z:leafA", offset + 2}, {"a", offset + 3}};
+  require(initial.at("authoredOrder") == expected, "Authored prefab DFS order precedes simulation ID sorting");
+  require(session.generation() == initial.at("generation"), "Scalar generation matches committed frame");
+  auto step = [&](Json commands) { return session.step({{"commands", std::move(commands)}}); };
+  auto spawned = step(Json::array({{{"kind", "spawn"}, {"entity", {{"id", "zRuntime"}}}}, {{"kind", "spawn"}, {"entity", {{"id", "aRuntime"}}}}, {{"kind", "despawn"}, {"entityId", "z:leafB"}}}));
+  auto order = expected;
+  order["aRuntime"] = offset + 4; order["zRuntime"] = offset + 5;
+  require(spawned.at("authoredOrder") == order, "Authored despawn retains rank and current runtime IDs append in simulation order");
+  auto replaced = step(Json::array({{{"kind", "despawn"}, {"entityId", "aRuntime"}}, {{"kind", "spawn"}, {"entity", {{"id", "mRuntime"}}}}}));
+  order.erase("aRuntime"); order["mRuntime"] = offset + 4;
+  require(replaced.at("authoredOrder") == order, "Runtime order compresses after despawn and reorders new IDs");
+  auto removed = step(Json::array({{{"kind", "despawn"}, {"entityId", "zRuntime"}}}));
+  order.erase("zRuntime");
+  require(removed.at("authoredOrder") == order, "Dead runtime IDs never enter cached authored seed");
+  const auto beforeFrames = session.snapshot();
+  require(session.frame() == removed && session.frame() == removed && session.snapshot() == beforeFrames, "Frame locals move without consuming authoritative state");
+  const auto next = step(Json::array({{{"kind", "transition"}, {"sceneId", "b"}}}));
+  const Json nextOrder{{"b2", offset}, {"b1", offset + 1}};
+  require(next.at("authoredOrder") == nextOrder, "Transition derives new scene order");
+  const auto savedB = session.snapshot();
+  session.restore(savedB);
+  require(session.frame().at("authoredOrder") == nextOrder && session.generation() == session.frame().at("generation"), "Cold cross-scene restore derives authored seed from document");
+  session.restore(original);
+  require(session.frame().at("authoredOrder") == expected, "Restoring initial scene replaces cross-scene cache");
+  const auto beforeCancelledTransition = session.snapshot();
+  const auto previousGeneration = session.generation();
+  setCancellationCheck([&] {
+    if (session.generation() != previousGeneration) { throw Error("cancelled", "cancel after scene switch"); }
+  });
+  bool cancelledTransition = false;
+  try { step(Json::array({{{"kind", "transition"}, {"sceneId", "b"}}})); }
+  catch (const Error &error) { cancelledTransition = error.code == "cancelled"; }
+  setCancellationCheck({});
+  require(cancelledTransition && session.snapshot() == beforeCancelledTransition && session.frame().at("authoredOrder") == expected, "Post-switch cancellation restores prior scene order and exact checkpoint");
+  session.restore(original);
+  const auto beforeFailure = session.snapshot();
+  bool rejected = false;
+  try { step(Json::array({{{"kind", "transition"}, {"sceneId", "missing"}}})); } catch (const Error &) { rejected = true; }
+  require(rejected && session.snapshot() == beforeFailure && session.frame().at("authoredOrder") == expected, "Rejected transition preserves snapshot and derived order");
+  auto reordered = doc;
+  std::reverse(reordered["scenes"][0]["entities"].begin(), reordered["scenes"][0]["entities"].end());
+  std::reverse(reordered["prefabs"][0]["entities"].begin(), reordered["prefabs"][0]["entities"].end());
+  session.reload(reordered);
+  const Json reloadedOrder{{"a", offset}, {"z", offset + 1}, {"z:leafA", offset + 2}, {"z:leafB", offset + 3}};
+  require(session.frame().at("authoredOrder") == reloadedOrder, "Same scene ID reload replaces authored and prefab order seed");
+}
 }
 int main() {
   try {
+    checkAuthoredOrder(true);
+    checkAuthoredOrder(false);
     {
       auto doc = document();
       doc["scenes"][0]["entities"] = Json::array({

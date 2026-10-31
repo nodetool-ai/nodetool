@@ -166,9 +166,10 @@ Geometry geometry(const Json &frame,
                     std::max(0.F, QVector3D::dotProduct(
                                       normal,
                                       QVector3D(.4F, .8F, .5F).normalized()));
-            out.push_back({p.x(), p.y(), p.z(), material.color[0] * light,
-                           material.color[1] * light, material.color[2] * light,
-                           material.color[3], vertex.uv[0], vertex.uv[1]});
+            out.push_back({p.x(), p.y(), p.z(), material.color[0] * vertex.color[0] * light,
+                           material.color[1] * vertex.color[1] * light,
+                           material.color[2] * vertex.color[2] * light,
+                           material.color[3] * vertex.color[3], vertex.uv[0], vertex.uv[1]});
           }
           result.draws.push_back(
               {first, int(out.size()) - first,
@@ -809,6 +810,10 @@ void GameViewport::keyPressEvent(QKeyEvent *event) {
   event->accept();
 }
 void GameViewport::keyReleaseEvent(QKeyEvent *event) {
+  if (event->isAutoRepeat()) {
+    event->accept();
+    return;
+  }
   if (input_) {
     input_({{"key", event->key()}, {"pressed", false}});
   }

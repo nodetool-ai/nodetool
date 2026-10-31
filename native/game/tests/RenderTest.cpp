@@ -2,6 +2,7 @@
 #include <QBuffer>
 #include <QFile>
 #include <QGuiApplication>
+#include <QKeyEvent>
 #include <QMouseEvent>
 #include <QTemporaryDir>
 #include <QtTest>
@@ -38,6 +39,64 @@ private slots:
             Qt::RightButton);
     pointer(QEvent::MouseMove, {17, 15}, Qt::NoButton, Qt::RightButton);
     QCOMPARE(input.size(), std::size_t(1));
+  }
+  void autoRepeatKeepsPhysicalKeyHeld_data() {
+    QTest::addColumn<int>("key");
+    QTest::newRow("move-w") << int(Qt::Key_W);
+    QTest::newRow("sprint-shift") << int(Qt::Key_Shift);
+    QTest::newRow("jump-space") << int(Qt::Key_Space);
+  }
+  void autoRepeatKeepsPhysicalKeyHeld() {
+    QFETCH(int, key);
+    GameViewport viewport;
+    bool held = false;
+    std::vector<Json> input;
+    viewport.setInputHandler([&](const Json &value) {
+      input.push_back(value);
+      held = value.at("pressed").get<bool>();
+    });
+    const auto send = [&](QEvent::Type type, bool repeat) {
+      const auto modifiers = key == Qt::Key_Shift ? Qt::ShiftModifier
+                                                 : Qt::NoModifier;
+      QKeyEvent event(type, key, modifiers, QString(), repeat, 1);
+      event.setAccepted(false);
+      QCoreApplication::sendEvent(&viewport, &event);
+      return event.isAccepted();
+    };
+    QVERIFY(send(QEvent::KeyPress, false));
+    QVERIFY(held);
+    QCOMPARE(input.size(), std::size_t(1));
+    QCOMPARE(input.front().at("key"), Json(key));
+    for (int repeat = 0; repeat < 3; ++repeat) {
+      QVERIFY(send(QEvent::KeyRelease, true));
+      QVERIFY(held);
+      QCOMPARE(input.size(), std::size_t(1));
+      QVERIFY(send(QEvent::KeyPress, true));
+      QVERIFY(held);
+      QCOMPARE(input.size(), std::size_t(1));
+    }
+    QVERIFY(send(QEvent::KeyRelease, false));
+    QVERIFY(!held);
+    QCOMPARE(input.size(), std::size_t(2));
+    QCOMPARE(input.back().at("pressed"), Json(false));
+    // Late repeat events cannot restore a key that was physically released.
+    QVERIFY(send(QEvent::KeyRelease, true));
+    QVERIFY(send(QEvent::KeyPress, true));
+    QVERIFY(!held);
+    QCOMPARE(input.size(), std::size_t(2));
+  }
+  void physicalTapProducesOnePressAndRelease() {
+    GameViewport viewport;
+    std::vector<Json> input;
+    viewport.setInputHandler(
+        [&](const Json &value) { input.push_back(value); });
+    for (const auto type : {QEvent::KeyPress, QEvent::KeyRelease}) {
+      QKeyEvent event(type, Qt::Key_Space, Qt::NoModifier);
+      QCoreApplication::sendEvent(&viewport, &event);
+    }
+    QCOMPARE(input.size(), std::size_t(2));
+    QCOMPARE(input[0], (Json{{"key", int(Qt::Key_Space)}, {"pressed", true}}));
+    QCOMPARE(input[1], (Json{{"key", int(Qt::Key_Space)}, {"pressed", false}}));
   }
   void boundedRasterPreparation() {
     QTemporaryDir directory;

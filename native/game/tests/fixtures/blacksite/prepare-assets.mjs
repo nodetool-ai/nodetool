@@ -15,6 +15,7 @@ export async function prepareBlacksiteAssets(outputDirectory) {
   const source = JSON.parse(sourceBytes);
   const names = await readdir(new URL("assets/", sourceRoot));
   const assets = [];
+  let preparedBytes = 0;
   const provenance = { source: "packages/game-runtime/samples/blacksite/game.json", sourceDigest: hash(sourceBytes), assets: [], omittedVisualSurfaces: [] };
   let facility;
   for (const [slot, binding] of Object.entries(source.assets)) {
@@ -33,11 +34,12 @@ export async function prepareBlacksiteAssets(outputDirectory) {
       if (asset.size > fileLimit) {
         throw new Error(`BLACKSITE prepared file exceeds the native browser cap: ${id}`);
       }
-      if (assets.reduce((sum, entry) => sum + entry.size, 0) + asset.size > 256 * 1024 * 1024) {
+      if (preparedBytes + asset.size > 256 * 1024 * 1024) {
         throw new Error("BLACKSITE prepared assets exceed the existing aggregate byte budget");
       }
       await writeFile(resolve(output, path), prepared, { flag: "wx" });
       assets.push(asset);
+      preparedBytes += asset.size;
       provenance.assets.push({ id, sourceSlot: slot, originalDigest, preparedDigest: asset.digest, path });
     };
     if (slot === "facility") {

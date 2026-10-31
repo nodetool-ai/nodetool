@@ -15,6 +15,7 @@ using Matrix4 = std::array<float, 16>;
 struct ModelVertex {
   std::array<float, 3> position{}, normal{};
   std::array<float, 2> uv{};
+  std::array<float, 4> color{1, 1, 1, 1};
   std::array<std::uint16_t, 4> joints{};
   std::array<float, 4> weights{};
 };
@@ -24,7 +25,7 @@ struct ModelSampler {
 struct ModelMaterial {
   std::array<float, 4> color{1, 1, 1, 1};
   std::array<float, 3> emissive{};
-  float metallic = 1, roughness = 1;
+  float metallic = 1, roughness = 1, emissiveStrength = 1;
   int image = -1, normalImage = -1;
   float normalScale = 1, alphaCutoff = .5F;
   std::string alphaMode = "OPAQUE";
@@ -45,6 +46,7 @@ struct ModelPrimitive {
   std::vector<ModelVertex> vertices;
   std::vector<std::uint32_t> indices;
   int material = -1;
+  bool hasVertexColors = false;
 };
 struct ModelNode {
   Matrix4 local;

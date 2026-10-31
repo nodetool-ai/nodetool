@@ -113,7 +113,7 @@ export const PATH_CHECKS = [
     steps: [NATIVE_GAME_STAGING_CHECK]
   },
   {
-    path: /^(?:native\/game\/(?:src\/(?:render|player|assets|audio)\/|assets\/|cmake\/Player\.cmake$|tests\/(?:(?:RenderTest|RenderProbe|PostFXTest|Sky3DTest|Decals3DTest|Hud3DTest|Effects3DTest|ParticleMeshLifetimeTest)\.cpp|(?:player(?:2d|3d|_)[^/]*|render_probe_test)\.py)$)|scripts\/check-native-game-player\.mjs$)/,
+    path: /^(?:native\/game\/(?:src\/(?:render|player|assets|audio)\/|assets\/|cmake\/Player\.cmake$|tests\/(?:(?:RenderTest|RenderProbe|MaterialRenderTest|PlayerInputTest|PostFXTest|Sky3DTest|Decals3DTest|Hud3DTest|Effects3DTest|ParticleMeshLifetimeTest)\.cpp|(?:player(?:2d|3d|_)[^/]*|render_probe_test)\.py)$)|scripts\/check-native-game-player\.mjs$)/,
     steps: [{ label: "native game player: build and capture", command: "node", args: ["scripts/check-native-game-player.mjs"] }]
   },
   {
