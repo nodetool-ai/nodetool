@@ -152,6 +152,7 @@ export const RENDER_CLIPS_SCHEMA: JsonSchema = {
 export const REVISE_CLIP_SCHEMA: JsonSchema = {
   type: "object",
   properties: {
+    preset_ids: { type: "array", items: { type: "string" }, maxItems: 3 },
     storyboard_id: { type: "string", description: "Storyboard id." },
     target: {
       type: "string",

@@ -36,3 +36,17 @@ describe("presetToWorkflow", () => {
     expect(result).not.toBe(graph);
   });
 });
+
+describe("video restyles", () => {
+  it("connects a video source to the video-to-video generator", () => {
+    const restyle = presetSchema.parse({
+      id: "effect.restyle-test", version: 1, kind: "effect", name: "Restyle test",
+      description: "Restyle", modes: ["video_edit"], inputs: ["video"],
+      prompt: { default: "Paint every frame." }
+    });
+    const graph = presetToWorkflow(restyle, { model, mode: "video_edit" });
+    expect(graph.nodes.find(node => node.id === "video")?.type).toBe("nodetool.input.VideoInput");
+    expect(graph.nodes.find(node => node.id === "generate")?.type).toBe("nodetool.video.VideoToVideo");
+    expect(graph.edges).toContainEqual(expect.objectContaining({ source: "video", target: "generate", targetHandle: "video" }));
+  });
+});

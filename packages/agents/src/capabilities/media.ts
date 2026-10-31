@@ -470,7 +470,7 @@ async function runMediaGeneration(
   const id = randomUUID();
   if (params["preset_ids"] !== undefined) {
     try {
-      const modes: Record<string, string> = { text_to_image: "image", image_to_image: "image_edit", text_to_video: "video", image_to_video: "image_to_video" };
+      const modes: Record<string, string> = { text_to_image: "image", image_to_image: "image_edit", text_to_video: "video", image_to_video: "image_to_video", video_to_video: "video_edit" };
       const mode = modes[spec.capability] ?? spec.capability;
       const compiled = compileMediaPresets(params["preset_ids"], spec.m.provider, spec.m.model, mode, String(spec.params["prompt"] ?? ""), presetCatalog());
       presetWarnings = compiled.warnings;

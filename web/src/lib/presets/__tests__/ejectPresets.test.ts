@@ -1,5 +1,5 @@
 import { ejectModeFor, ejectPresetIds } from "../ejectPresets";
-import { presetCatalog } from "../catalog";
+import { presetCatalog, EFFECT_PRESETS } from "../catalog";
 
 const MODEL = { provider: "fake", id: "fake-video" };
 
@@ -47,4 +47,12 @@ describe("ejectPresetIds", () => {
     expect(ejectPresetIds([], "video", MODEL)).toBeNull();
     expect(ejectPresetIds(["effect.claymation"], "video", MODEL)).toBeNull();
   });
+});
+
+it("ejects video restyles and keeps them out of the image Effects gallery", () => {
+  const restyle = presetCatalog.getPreset("effect.restyle-anime")!;
+  expect(ejectModeFor(restyle, "video")).toBe("video_edit");
+  const result = ejectPresetIds([restyle.id], "video", MODEL);
+  expect(result?.graph.nodes.find(node => node.id === "generate")?.type).toBe("nodetool.video.VideoToVideo");
+  expect(EFFECT_PRESETS.some(preset => preset.modes.includes("video_edit"))).toBe(false);
 });

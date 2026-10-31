@@ -1,0 +1,22 @@
+{
+  "id": "effect.restyle-clay",
+  "version": 1,
+  "kind": "effect",
+  "name": "Clay animation restyle",
+  "description": "Restyle the video as clay animation with sculpted forms, tactile surfaces and soft studio lighting.",
+  "tags": [
+    "restyle",
+    "clay"
+  ],
+  "slot": "effect",
+  "modes": [
+    "video_edit"
+  ],
+  "inputs": [
+    "video"
+  ],
+  "stackable": false,
+  "prompt": {
+    "default": "Restyle the video as clay animation with sculpted forms, tactile surfaces and soft studio lighting. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+  }
+}

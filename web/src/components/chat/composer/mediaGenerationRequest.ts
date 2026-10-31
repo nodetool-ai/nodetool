@@ -128,7 +128,8 @@ export function buildMediaGenerationRequest(
     return {
       mode: "retake",
       provider: retakeParams.model?.provider ?? null,
-      model: retakeParams.model?.id ?? null
+      model: retakeParams.model?.id ?? null,
+      preset_ids: presetIds.retake?.length ? presetIds.retake : undefined
     };
   }
   if (mode === "extend") {

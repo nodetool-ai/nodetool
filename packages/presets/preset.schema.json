@@ -54,7 +54,8 @@
           "image_to_video",
           "reference_to_video",
           "image",
-          "image_edit"
+          "image_edit",
+          "video_edit"
         ]
       }
     },

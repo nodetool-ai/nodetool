@@ -1,0 +1,22 @@
+{
+  "id": "effect.restyle-noir",
+  "version": 1,
+  "kind": "effect",
+  "name": "Film noir restyle",
+  "description": "Restyle the video as black-and-white film noir with deep shadows, hard directional light and fine film grain.",
+  "tags": [
+    "restyle",
+    "noir"
+  ],
+  "slot": "effect",
+  "modes": [
+    "video_edit"
+  ],
+  "inputs": [
+    "video"
+  ],
+  "stackable": false,
+  "prompt": {
+    "default": "Restyle the video as black-and-white film noir with deep shadows, hard directional light and fine film grain. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+  }
+}

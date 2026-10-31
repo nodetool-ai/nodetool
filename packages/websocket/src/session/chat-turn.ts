@@ -3394,7 +3394,7 @@ export class ChatTurnHandler {
       // a provider call and leave a durable assistant failure row.
       const sourceVideoImage = mode === "video"
         ? await this.deps.resolveSourceImageBytes(data, mediaGeneration, userId) : null;
-      const presetMode = mode === "video" && sourceVideoImage?.length ? "image_to_video" : mode;
+      const presetMode = mode === "video" && sourceVideoImage?.length ? "image_to_video" : mode === "retake" ? "video_edit" : mode;
       const presets = compileMediaPresets(mediaGeneration.preset_ids, providerId, modelId, presetMode, prompt);
       const settings = mediaPresetSettings(presets, presetMode);
       mediaGeneration = { ...mediaGeneration, ...settings,

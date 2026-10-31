@@ -1,0 +1,22 @@
+{
+  "id": "effect.restyle-anime",
+  "version": 1,
+  "kind": "effect",
+  "name": "Anime restyle",
+  "description": "Restyle the video as hand-drawn anime with clean ink outlines, cel shading and painted backgrounds.",
+  "tags": [
+    "restyle",
+    "anime"
+  ],
+  "slot": "effect",
+  "modes": [
+    "video_edit"
+  ],
+  "inputs": [
+    "video"
+  ],
+  "stackable": false,
+  "prompt": {
+    "default": "Restyle the video as hand-drawn anime with clean ink outlines, cel shading and painted backgrounds. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+  }
+}

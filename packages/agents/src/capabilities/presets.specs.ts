@@ -5,7 +5,7 @@ const kind = {
 } as const;
 const mode = {
   type: "string",
-  enum: ["video", "image_to_video", "reference_to_video", "image", "image_edit"]
+  enum: ["video", "image_to_video", "reference_to_video", "image", "image_edit", "video_edit"]
 } as const;
 export const presetsSpecs: readonly CapabilitySpec[] = [
   {

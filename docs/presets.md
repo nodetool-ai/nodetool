@@ -20,7 +20,7 @@ Presets are data. The catalogue is JSON in `packages/presets/catalog/`, the comp
 | `id` | `<kind>.<slug>`, for example `camera.dolly-zoom`. Also the file name |
 | `kind` | `camera`, `look`, `effect` or `studio`. The catalogue ships `camera` and `effect` presets |
 | `slot` | What the preset occupies: `move`, `rig`, `speed`, `look` or `effect` |
-| `modes` | Where it runs: `video`, `image_to_video`, `reference_to_video`, `image` or `image_edit` |
+| `modes` | Where it runs: `video`, `image_to_video`, `reference_to_video`, `image`, `image_edit` or `video_edit` |
 | `inputs` | What the preset needs from you: `text`, `image` or `video` |
 | `stackable`, `conflicts` | Whether it can combine with others and which ids it refuses |
 | `aliases` | Other names that resolve to this preset, such as the free-text movement words older storyboards hold |
@@ -84,6 +84,12 @@ Effect cards, camera cards and the picker are `PresetCard` and `PresetPicker` in
 
 ---
 
+## Video restyles
+
+Choose Retake in the chat composer, attach a video and select a restyle from the preset chip. Anime, watercolor, clay animation, pixel art, oil painting, comic book, film noir and neon treatments preserve source action and timing. These are `effect` presets with `modes: ["video_edit"]` and `inputs: ["video"]`. They are excluded from the image-input Effects gallery. Previews arrive in P20.
+
+RPC callers use `generate_media` with `mode: "video_edit"` and `preset_ids`. Agents can pass `preset_ids` to `revise_storyboard_clip`.
+
 ## Eject to a workflow
 
 Any preset can become an ordinary workflow. `presetToWorkflow(preset, { model, mode })` builds the graph from the same compile:
@@ -92,7 +98,7 @@ Any preset can become an ordinary workflow. `presetToWorkflow(preset, { model, m
 StringInput (prompt) → Template ({{ prompt }}) → generation node for the mode → Output (result)
 ```
 
-Image modes add an `ImageInput`, and reference video mode connects media to `reference_images` and `reference_videos`. The Template holds the compiled wording for the chosen model, so editing it changes what the model receives. A preset with a `workflow` field ejects a copy of that hand-built graph instead, which needs a host that can resolve the workflow by name.
+Video restyles use mode `video_edit` and connect a `VideoInput` to `nodetool.video.VideoToVideo`. Image modes add an `ImageInput`, and reference video mode connects media to `reference_images` and `reference_videos`. The Template holds the compiled wording for the chosen model, so editing it changes what the model receives. A preset with a `workflow` field ejects a copy of that hand-built graph instead, which needs a host that can resolve the workflow by name.
 
 The web creates the workflow through the normal creation path and opens it in a tab. **Open as workflow** appears in the Effects gallery, on Create view items and on Generations panel entries that carry `preset_ids`. From the command line:
 

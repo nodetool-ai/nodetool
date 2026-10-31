@@ -1,0 +1,22 @@
+{
+  "id": "effect.restyle-comic",
+  "version": 1,
+  "kind": "effect",
+  "name": "Comic book restyle",
+  "description": "Restyle the video as a comic book animation with bold ink contours, halftone shading and graphic color blocks.",
+  "tags": [
+    "restyle",
+    "comic"
+  ],
+  "slot": "effect",
+  "modes": [
+    "video_edit"
+  ],
+  "inputs": [
+    "video"
+  ],
+  "stackable": false,
+  "prompt": {
+    "default": "Restyle the video as a comic book animation with bold ink contours, halftone shading and graphic color blocks. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+  }
+}

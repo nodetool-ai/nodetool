@@ -23,12 +23,12 @@ export interface EjectModel {
 /** The modes a generation of this media kind can have run in, best first. */
 const MODES_BY_KIND: Record<"image" | "video", readonly PresetMode[]> = {
   image: ["image_edit", "image"],
-  video: ["image_to_video", "video", "reference_to_video"]
+  video: ["image_to_video", "video", "reference_to_video", "video_edit"]
 };
 /** The same modes for a preset that starts from text, best first. */
 const TEXT_MODES_BY_KIND: Record<"image" | "video", readonly PresetMode[]> = {
   image: ["image", "image_edit"],
-  video: ["video", "image_to_video", "reference_to_video"]
+  video: ["video", "image_to_video", "reference_to_video", "video_edit"]
 };
 
 /**

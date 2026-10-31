@@ -12,7 +12,7 @@ import { runOnServer } from "../src/debug/server-runner.js";
 const catalog = createCatalog(JSON.parse(readFileSync(new URL("../../presets/preset-catalog.json", import.meta.url), "utf8")));
 const dir = mkdtempSync(join(tmpdir(), "preset-ejection-"));
 afterAll(() => rmSync(dir, { recursive: true, force: true }));
-const modes: PresetMode[] = ["video", "image_to_video", "reference_to_video", "image", "image_edit"];
+const modes: PresetMode[] = ["video", "image_to_video", "reference_to_video", "image", "image_edit", "video_edit"];
 function modelFor(mode: PresetMode) {
   return { provider: "fake", id: mode === "image" || mode === "image_edit" ? "fake-image" : "fake-video" };
 }
