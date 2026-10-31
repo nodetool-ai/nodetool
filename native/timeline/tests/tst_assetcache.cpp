@@ -55,7 +55,11 @@ private:
         QVERIFY2(!r.ok(), "the first download must fail");
         const QString part = cache().pathFor(QStringLiteral("a1"), QStringLiteral("original"), remote(path, version, size)) +
                              QStringLiteral(".part");
-        QCOMPARE(QFileInfo(part).size(), static_cast<qint64>(bytes));
+        const qint64 actual = QFileInfo(part).size();
+        const auto diagnostic = QStringLiteral("partial has %1 bytes, expected %2; fetch error: %3; downloaded: %4; GET requests: %5; exists: %6")
+            .arg(actual).arg(bytes).arg(r.error).arg(r.bytesDownloaded)
+            .arg(m_http->countRequests("GET", path)).arg(QFileInfo::exists(part));
+        QVERIFY2(actual == static_cast<qint64>(bytes), qPrintable(diagnostic));
     }
 
 private slots:
