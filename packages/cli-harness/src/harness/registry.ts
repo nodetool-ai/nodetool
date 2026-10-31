@@ -2295,7 +2295,9 @@ export const SURFACES: SurfaceEntry[] = [
     id: "presets",
     title: "Generation presets",
     harnesses: ["shared-services", "preset-ejection", "preset-compilation"],
-    paths: ["packages/presets/"]
+    // The Effects Gallery template is regenerated from the effect presets, and
+    // the presets suite fails when it drifts.
+    paths: ["packages/presets/", "packages/base-nodes/nodetool/examples/nodetool-base/Effects Gallery.json", "scripts/presets/sync-effects-template.mjs"]
   },
   {
     id: "shared-services",

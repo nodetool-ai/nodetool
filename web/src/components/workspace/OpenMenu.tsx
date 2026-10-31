@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import AddOutlinedIcon from "@mui/icons-material/AddOutlined";
 import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
+import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 
 import {
   ContextMenu,
@@ -20,6 +21,7 @@ import {
   type NewDocumentSubmenu
 } from "./newDocumentCatalog";
 import { useGuidedFlowStarters } from "./useGuidedFlowStarters";
+import { openPageTab } from "./openPageTab";
 import { MEDIA_MODES } from "../chat/composer/mediaModes";
 
 interface OpenMenuProps {
@@ -174,6 +176,18 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
             disabled={busy}
           />
         )),
+        // The gallery is a page, not a guided flow, so it has no starter.
+        <MenuItemPrimitive
+          key="guided-effects"
+          label={t("pass3_32.projects.home.createCards.effects.title")}
+          icon={<AutoAwesomeOutlinedIcon fontSize="small" />}
+          secondary={t("pass3_32.projects.home.createCards.effects.description")}
+          onClick={() => {
+            openPageTab("effects");
+            close();
+          }}
+          disabled={busy}
+        />,
         <Divider key="blank-divider" className="open-menu-section-divider" />,
         <ListSubheader key="blank-label" className="open-menu-blank-section">
           {t("batch2_0.blankDocuments")}

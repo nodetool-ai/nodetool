@@ -1,0 +1,32 @@
+{
+  "id": "effect.electric-arcs",
+  "version": 1,
+  "kind": "effect",
+  "name": "Electric arcs",
+  "description": "Animates the subject to crackle with high-voltage blue electric arcs.",
+  "tags": [
+    "effect",
+    "electric",
+    "glow"
+  ],
+  "slot": "effect",
+  "modes": [
+    "image_to_video"
+  ],
+  "inputs": [
+    "image"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "crackle with high-voltage blue electric arcs"
+  ],
+  "prompt": {
+    "default": "The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+    "kling": "The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. Physically accurate motion, steady locked camera.",
+    "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. Physically accurate motion.",
+    "veo": "The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. Cinematic lighting, realistic physics, locked camera.",
+    "wan": "The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. Locked camera, smooth realistic motion, high detail."
+  },
+  "params": {}
+}

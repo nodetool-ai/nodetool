@@ -332,6 +332,27 @@ describe("FakeProvider as a stand-in provider", () => {
     expect(new FakeProvider({}, "anthropic").getCapabilities()).not.toContain("text_to_image");
   });
 
+  it("offers a video model and a playable clip for image-to-video", async () => {
+    const openai = new FakeProvider({}, "openai");
+    expect(openai.getCapabilities()).toEqual(
+      expect.arrayContaining(["text_to_video", "image_to_video"])
+    );
+    expect(await openai.getAvailableVideoModels()).toMatchObject([
+      {
+        id: "test-video-model",
+        provider: "openai",
+        supportedTasks: expect.arrayContaining(["image_to_video"])
+      }
+    ]);
+    expect(new FakeProvider({}, "anthropic").getCapabilities()).not.toContain("image_to_video");
+    const clip = await openai.imageToVideo(new Uint8Array([1, 2, 3]), {
+      prompt: "",
+      model: { id: "test-video-model", name: "Test Video Model", provider: "openai" }
+    } as Parameters<FakeProvider["imageToVideo"]>[1]);
+    // An MP4 starts with an `ftyp` box.
+    expect(Buffer.from(clip).subarray(4, 8).toString("ascii")).toBe("ftyp");
+  });
+
   it("returns a visible PNG for an image", async () => {
     const bytes = await new FakeProvider().textToImage({
       prompt: "A fox",

@@ -31,7 +31,7 @@ import { modelFamily } from "@nodetool-ai/presets";
 import type { ShotRenderMode } from "@nodetool-ai/protocol";
 
 import { presetText } from "../../utils/presetText";
-import { CAMERA_PRESETS, presetCatalog } from "./cameraOptions";
+import { CAMERA_PRESETS, presetCatalog } from "../../lib/presets/catalog";
 import type { ShotDraft } from "./shotDraft";
 import {
   draftPatchForPresets,

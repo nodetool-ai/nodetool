@@ -1,0 +1,32 @@
+{
+  "id": "effect.smoke-vanish",
+  "version": 1,
+  "kind": "effect",
+  "name": "Smoke vanish",
+  "description": "Animates the subject to dissolve into drifting smoke and vanish.",
+  "tags": [
+    "effect",
+    "smoke",
+    "transform"
+  ],
+  "slot": "effect",
+  "modes": [
+    "image_to_video"
+  ],
+  "inputs": [
+    "image"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "dissolve into drifting smoke and vanish"
+  ],
+  "prompt": {
+    "default": "The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+    "kling": "The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. Physically accurate motion, steady locked camera.",
+    "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. Physically accurate motion.",
+    "veo": "The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. Cinematic lighting, realistic physics, locked camera.",
+    "wan": "The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. Locked camera, smooth realistic motion, high detail."
+  },
+  "params": {}
+}

@@ -19,6 +19,7 @@ const CollectionsExplorer = React.lazy(
 const WorkspacesPage = React.lazy(() => import("../workspaces/WorkspacesPage"));
 const SettingsPage = React.lazy(() => import("../menus/SettingsMenu"));
 const EntityLibrary = React.lazy(() => import("../entities/EntityLibrary"));
+const EffectsGallery = React.lazy(() => import("../effects/EffectsGallery"));
 const MemoryPage = React.lazy(() => import("../memory/MemoryPage"));
 
 const PAGE_COMPONENTS = {
@@ -31,6 +32,7 @@ const PAGE_COMPONENTS = {
   collections: CollectionsExplorer,
   workspaces: WorkspacesPage,
   entities: EntityLibrary,
+  effects: EffectsGallery,
   memory: MemoryPage,
   settings: SettingsPage
 } satisfies Record<PageTabKey, React.ComponentType>;
@@ -54,7 +56,8 @@ const SCROLLING_SURFACE_STYLE: React.CSSProperties = {
 const SELF_SCROLLING_PAGES = new Set<PageTabKey>([
   "assets",
   "settings",
-  "memory"
+  "memory",
+  "effects"
 ]);
 
 // Pages that manage the server's own machine: downloading models into its

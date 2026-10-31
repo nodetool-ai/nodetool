@@ -1230,5 +1230,633 @@
       "wan": "Lens zooms out from a fixed camera position."
     },
     "params": {}
+  },
+  {
+    "id": "effect.bioluminescent-dissolve",
+    "version": 1,
+    "kind": "effect",
+    "name": "Bioluminescent dissolve",
+    "description": "Animates the subject to dissolve into swirling bioluminescent particles.",
+    "tags": [
+      "effect",
+      "particles",
+      "glow"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "dissolve into swirling bioluminescent particles"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to dissolve into swirling bioluminescent particles. Glowing blue-green motes spiral away into darkness. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to dissolve into swirling bioluminescent particles. Glowing blue-green motes spiral away into darkness. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to dissolve into swirling bioluminescent particles. Glowing blue-green motes spiral away into darkness. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to dissolve into swirling bioluminescent particles. Glowing blue-green motes spiral away into darkness. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to dissolve into swirling bioluminescent particles. Glowing blue-green motes spiral away into darkness. Locked camera, smooth realistic motion, high detail."
+    },
+    "params": {}
+  },
+  {
+    "id": "effect.claymation",
+    "version": 1,
+    "kind": "effect",
+    "name": "Claymation",
+    "description": "Edits the photo to restyle it as a handmade claymation scene with visible fingerprints in the clay.",
+    "tags": [
+      "effect",
+      "stylize",
+      "craft"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_edit"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "restyle it as a handmade claymation scene with visible fingerprints in the clay"
+    ],
+    "prompt": {
+      "default": "Edit the image to restyle it as a handmade claymation scene with visible fingerprints in the clay. Keep the composition and subject identical."
+    },
+    "params": {}
+  },
+  {
+    "id": "effect.confetti-burst",
+    "version": 1,
+    "kind": "effect",
+    "name": "Confetti burst",
+    "description": "Animates the subject to explode into slow-motion colorful confetti.",
+    "tags": [
+      "effect",
+      "celebration",
+      "particles"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "explode into slow-motion colorful confetti"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to explode into slow-motion colorful confetti. Paper pieces spin and glitter as they fill the frame. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to explode into slow-motion colorful confetti. Paper pieces spin and glitter as they fill the frame. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to explode into slow-motion colorful confetti. Paper pieces spin and glitter as they fill the frame. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to explode into slow-motion colorful confetti. Paper pieces spin and glitter as they fill the frame. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to explode into slow-motion colorful confetti. Paper pieces spin and glitter as they fill the frame. Locked camera, smooth realistic motion, high detail."
+    },
+    "params": {}
+  },
+  {
+    "id": "effect.electric-arcs",
+    "version": 1,
+    "kind": "effect",
+    "name": "Electric arcs",
+    "description": "Animates the subject to crackle with high-voltage blue electric arcs.",
+    "tags": [
+      "effect",
+      "electric",
+      "glow"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "crackle with high-voltage blue electric arcs"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. Locked camera, smooth realistic motion, high detail."
+    },
+    "params": {}
+  },
+  {
+    "id": "effect.frost-crystals",
+    "version": 1,
+    "kind": "effect",
+    "name": "Frost crystals",
+    "description": "Animates the subject to freeze rapidly in branching frost and ice crystals.",
+    "tags": [
+      "effect",
+      "ice",
+      "nature"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "freeze rapidly in branching frost and ice crystals"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Locked camera, smooth realistic motion, high detail."
+    },
+    "params": {}
+  },
+  {
+    "id": "effect.glass-shatter",
+    "version": 1,
+    "kind": "effect",
+    "name": "Glass shatter",
+    "description": "Animates the subject to shatter into slow-motion crystalline glass fragments.",
+    "tags": [
+      "effect",
+      "destruction",
+      "glass"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "shatter into slow-motion crystalline glass fragments"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to shatter into slow-motion crystalline glass fragments. Fragments catch the light as they scatter outward. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to shatter into slow-motion crystalline glass fragments. Fragments catch the light as they scatter outward. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to shatter into slow-motion crystalline glass fragments. Fragments catch the light as they scatter outward. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to shatter into slow-motion crystalline glass fragments. Fragments catch the light as they scatter outward. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to shatter into slow-motion crystalline glass fragments. Fragments catch the light as they scatter outward. Locked camera, smooth realistic motion, high detail."
+    },
+    "params": {}
+  },
+  {
+    "id": "effect.golden-embers",
+    "version": 1,
+    "kind": "effect",
+    "name": "Golden embers",
+    "description": "Animates the subject to ignite in rising golden embers and heat shimmer.",
+    "tags": [
+      "effect",
+      "fire",
+      "particles"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "ignite in rising golden embers and heat shimmer"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. Sparks drift upward through warm heat distortion. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. Sparks drift upward through warm heat distortion. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. Sparks drift upward through warm heat distortion. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. Sparks drift upward through warm heat distortion. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. Sparks drift upward through warm heat distortion. Locked camera, smooth realistic motion, high detail."
+    },
+    "params": {}
+  },
+  {
+    "id": "effect.hydraulic-press",
+    "version": 1,
+    "kind": "effect",
+    "name": "Hydraulic press",
+    "description": "Animates the subject to compress under a studio hydraulic press.",
+    "tags": [
+      "effect",
+      "crush",
+      "studio"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "compress under a studio hydraulic press"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. Locked camera, smooth realistic motion, high detail."
+    },
+    "params": {}
+  },
+  {
+    "id": "effect.levitate",
+    "version": 1,
+    "kind": "effect",
+    "name": "Levitate",
+    "description": "Animates the subject to levitate and float upward in zero gravity.",
+    "tags": [
+      "effect",
+      "motion",
+      "physics"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "levitate and float upward in zero gravity"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to levitate and float upward in zero gravity. Soft contact shadows shrink away as it rises. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to levitate and float upward in zero gravity. Soft contact shadows shrink away as it rises. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to levitate and float upward in zero gravity. Soft contact shadows shrink away as it rises. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to levitate and float upward in zero gravity. Soft contact shadows shrink away as it rises. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to levitate and float upward in zero gravity. Soft contact shadows shrink away as it rises. Locked camera, smooth realistic motion, high detail."
+    },
+    "params": {}
+  },
+  {
+    "id": "effect.liquid-chrome",
+    "version": 1,
+    "kind": "effect",
+    "name": "Liquid chrome",
+    "description": "Animates the subject to melt into mirror-polished liquid chrome.",
+    "tags": [
+      "effect",
+      "liquid",
+      "metal"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "melt into mirror-polished liquid chrome"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to melt into mirror-polished liquid chrome. Reflections ripple across the molten metal surface. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to melt into mirror-polished liquid chrome. Reflections ripple across the molten metal surface. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to melt into mirror-polished liquid chrome. Reflections ripple across the molten metal surface. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to melt into mirror-polished liquid chrome. Reflections ripple across the molten metal surface. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to melt into mirror-polished liquid chrome. Reflections ripple across the molten metal surface. Locked camera, smooth realistic motion, high detail."
+    },
+    "params": {}
+  },
+  {
+    "id": "effect.marble-petrify",
+    "version": 1,
+    "kind": "effect",
+    "name": "Marble petrify",
+    "description": "Animates the subject to petrify into veined Carrara marble sculpture.",
+    "tags": [
+      "effect",
+      "stone",
+      "transform"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "petrify into veined Carrara marble sculpture"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. Locked camera, smooth realistic motion, high detail."
+    },
+    "params": {}
+  },
+  {
+    "id": "effect.metallic-balloon",
+    "version": 1,
+    "kind": "effect",
+    "name": "Metallic balloon",
+    "description": "Animates the subject to inflate like a glossy metallic balloon and lift off.",
+    "tags": [
+      "effect",
+      "inflate",
+      "metal"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "inflate like a glossy metallic balloon and lift off"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. Locked camera, smooth realistic motion, high detail."
+    },
+    "params": {}
+  },
+  {
+    "id": "effect.molten-gold",
+    "version": 1,
+    "kind": "effect",
+    "name": "Molten gold",
+    "description": "Animates the subject to transform into flowing molten gold.",
+    "tags": [
+      "effect",
+      "liquid",
+      "metal"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "transform into flowing molten gold"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to transform into flowing molten gold. Bright liquid metal runs and pools with warm highlights. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to transform into flowing molten gold. Bright liquid metal runs and pools with warm highlights. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to transform into flowing molten gold. Bright liquid metal runs and pools with warm highlights. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to transform into flowing molten gold. Bright liquid metal runs and pools with warm highlights. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to transform into flowing molten gold. Bright liquid metal runs and pools with warm highlights. Locked camera, smooth realistic motion, high detail."
+    },
+    "params": {}
+  },
+  {
+    "id": "effect.neon-outline",
+    "version": 1,
+    "kind": "effect",
+    "name": "Neon outline",
+    "description": "Animates the subject to light up in pulsing neon tube outlines.",
+    "tags": [
+      "effect",
+      "glow",
+      "stylize"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "light up in pulsing neon tube outlines"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges in a dark room. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges in a dark room. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges in a dark room. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges in a dark room. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges in a dark room. Locked camera, smooth realistic motion, high detail."
+    },
+    "params": {}
+  },
+  {
+    "id": "effect.origami-fold",
+    "version": 1,
+    "kind": "effect",
+    "name": "Origami fold",
+    "description": "Animates the subject to fold itself into crisp origami paper.",
+    "tags": [
+      "effect",
+      "paper",
+      "transform"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "fold itself into crisp origami paper"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to fold itself into crisp origami paper. Creases form in sequence until the paper shape is complete. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to fold itself into crisp origami paper. Creases form in sequence until the paper shape is complete. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to fold itself into crisp origami paper. Creases form in sequence until the paper shape is complete. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to fold itself into crisp origami paper. Creases form in sequence until the paper shape is complete. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to fold itself into crisp origami paper. Creases form in sequence until the paper shape is complete. Locked camera, smooth realistic motion, high detail."
+    },
+    "params": {}
+  },
+  {
+    "id": "effect.petal-burst",
+    "version": 1,
+    "kind": "effect",
+    "name": "Petal burst",
+    "description": "Animates the subject to burst into a cloud of velvet botanical petals.",
+    "tags": [
+      "effect",
+      "botanical",
+      "particles"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "burst into a cloud of velvet botanical petals"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to burst into a cloud of velvet botanical petals. Petals tumble and fan out in slow motion. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to burst into a cloud of velvet botanical petals. Petals tumble and fan out in slow motion. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to burst into a cloud of velvet botanical petals. Petals tumble and fan out in slow motion. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to burst into a cloud of velvet botanical petals. Petals tumble and fan out in slow motion. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to burst into a cloud of velvet botanical petals. Petals tumble and fan out in slow motion. Locked camera, smooth realistic motion, high detail."
+    },
+    "params": {}
+  },
+  {
+    "id": "effect.smoke-vanish",
+    "version": 1,
+    "kind": "effect",
+    "name": "Smoke vanish",
+    "description": "Animates the subject to dissolve into drifting smoke and vanish.",
+    "tags": [
+      "effect",
+      "smoke",
+      "transform"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "dissolve into drifting smoke and vanish"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. Locked camera, smooth realistic motion, high detail."
+    },
+    "params": {}
+  },
+  {
+    "id": "effect.snow-blanket",
+    "version": 1,
+    "kind": "effect",
+    "name": "Snow blanket",
+    "description": "Edits the photo to cover the scene in a fresh blanket of soft snow with gentle snowfall.",
+    "tags": [
+      "effect",
+      "weather",
+      "stylize"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_edit"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "cover the scene in a fresh blanket of soft snow with gentle snowfall"
+    ],
+    "prompt": {
+      "default": "Edit the image to cover the scene in a fresh blanket of soft snow with gentle snowfall. Keep the composition and subject identical."
+    },
+    "params": {}
+  },
+  {
+    "id": "effect.tilt-shift-miniature",
+    "version": 1,
+    "kind": "effect",
+    "name": "Tilt-shift miniature",
+    "description": "Edits the photo to restyle it as a tilt-shift miniature model with shallow focus and saturated colors.",
+    "tags": [
+      "effect",
+      "stylize",
+      "lens"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_edit"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "restyle it as a tilt-shift miniature model with shallow focus and saturated colors"
+    ],
+    "prompt": {
+      "default": "Edit the image to restyle it as a tilt-shift miniature model with shallow focus and saturated colors. Keep the composition and subject identical."
+    },
+    "params": {}
+  },
+  {
+    "id": "effect.underwater-caustics",
+    "version": 1,
+    "kind": "effect",
+    "name": "Underwater drift",
+    "description": "Animates the subject to drift underwater with slow caustic light ripples.",
+    "tags": [
+      "effect",
+      "water",
+      "light"
+    ],
+    "slot": "effect",
+    "modes": [
+      "image_to_video"
+    ],
+    "inputs": [
+      "image"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "drift underwater with slow caustic light ripples"
+    ],
+    "prompt": {
+      "default": "The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+      "kling": "The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. Physically accurate motion, steady locked camera.",
+      "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. Physically accurate motion.",
+      "veo": "The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. Cinematic lighting, realistic physics, locked camera.",
+      "wan": "The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. Locked camera, smooth realistic motion, high detail."
+    },
+    "params": {}
   }
 ]

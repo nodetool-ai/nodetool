@@ -1,0 +1,32 @@
+{
+  "id": "effect.frost-crystals",
+  "version": 1,
+  "kind": "effect",
+  "name": "Frost crystals",
+  "description": "Animates the subject to freeze rapidly in branching frost and ice crystals.",
+  "tags": [
+    "effect",
+    "ice",
+    "nature"
+  ],
+  "slot": "effect",
+  "modes": [
+    "image_to_video"
+  ],
+  "inputs": [
+    "image"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "freeze rapidly in branching frost and ice crystals"
+  ],
+  "prompt": {
+    "default": "The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+    "kling": "The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Physically accurate motion, steady locked camera.",
+    "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Physically accurate motion.",
+    "veo": "The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Cinematic lighting, realistic physics, locked camera.",
+    "wan": "The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Locked camera, smooth realistic motion, high detail."
+  },
+  "params": {}
+}

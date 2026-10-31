@@ -1,0 +1,32 @@
+{
+  "id": "effect.metallic-balloon",
+  "version": 1,
+  "kind": "effect",
+  "name": "Metallic balloon",
+  "description": "Animates the subject to inflate like a glossy metallic balloon and lift off.",
+  "tags": [
+    "effect",
+    "inflate",
+    "metal"
+  ],
+  "slot": "effect",
+  "modes": [
+    "image_to_video"
+  ],
+  "inputs": [
+    "image"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "inflate like a glossy metallic balloon and lift off"
+  ],
+  "prompt": {
+    "default": "The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+    "kling": "The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. Physically accurate motion, steady locked camera.",
+    "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. Physically accurate motion.",
+    "veo": "The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. Cinematic lighting, realistic physics, locked camera.",
+    "wan": "The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. Locked camera, smooth realistic motion, high detail."
+  },
+  "params": {}
+}

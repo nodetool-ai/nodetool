@@ -765,8 +765,12 @@ export class DirectInferenceHandler {
       throw new Error("model is required");
     }
     // An upscale or a reframe works from the image alone; the prompt is an
-    // optional hint there.
-    const promptOptional = req.mode === "upscale" || req.mode === "outpaint";
+    // optional hint there. A preset supplies its own text, so a request that
+    // names one needs no prompt of its own (the effects gallery sends none).
+    const promptOptional =
+      req.mode === "upscale" ||
+      req.mode === "outpaint" ||
+      Boolean(req.presetIds?.length);
     if (!promptOptional && (!req.prompt || !req.prompt.trim())) {
       throw new Error("prompt is required");
     }

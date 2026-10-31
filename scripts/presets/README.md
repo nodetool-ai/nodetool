@@ -42,3 +42,18 @@ interpret null as zero or use Dreamina records as BYOK price evidence.
 pipeline, dedicated to the public domain under
 [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). It contains no external
 photography. Its SHA-256 is included in every workflow identity.
+
+## Effects Gallery template
+
+```bash
+node scripts/presets/sync-effects-template.mjs
+node scripts/presets/sync-effects-template.mjs --check
+```
+
+The script rewrites the Effect Preset options and the effect count in the
+description of `Effects Gallery.json` from the built catalogue. Run
+`npm run build --workspace=packages/presets` first. `--check` exits 1 when the
+template differs, and `packages/presets/tests/effects-template.test.ts` runs it.
+After a change, refresh the marketing copies with
+`node marketing/scripts/generate-template-entries.mjs` and
+`node marketing/scripts/generate-template-catalog.mjs`.

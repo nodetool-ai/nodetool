@@ -6331,6 +6331,10 @@
           "model3d": {
             "title": "3D 模型",
             "description": "一个空白 3D 模型，手动编辑。无需 AI 提供商。"
+          },
+          "effects": {
+            "title": "给照片加特效",
+            "description": "把一张图片变成简短的特效视频"
           }
         },
         "allTypes": {
@@ -15868,7 +15872,8 @@
         "workspaces": "工作区",
         "entities": "实体",
         "memory": "记忆",
-        "settings": "设置"
+        "settings": "设置",
+        "effects": "特效"
       }
     },
     "script": {
@@ -18879,7 +18884,8 @@
       "timeline": "时间线",
       "model3d": "3D 模型",
       "script": "脚本"
-    }
+    },
+    "openAsWorkflow": "作为工作流打开"
   },
   "shareDocument": {
     "description": "登录此服务器的任何人打开查看或编辑链接后，都会获得该链接对应的角色。查看者可以打开文档，编辑者还可以保存更改。只有你可以删除文档或更改访问权限。撤销链接后，新用户将无法加入。已加入的用户仍会列在下方。",
@@ -19143,6 +19149,88 @@
         "name": "zoom out",
         "description": "Lens zooms out from a fixed camera position."
       }
+    },
+    "effect": {
+      "bioluminescent-dissolve": {
+        "name": "Bioluminescent dissolve",
+        "description": "Animates the subject to dissolve into swirling bioluminescent particles."
+      },
+      "claymation": {
+        "name": "Claymation",
+        "description": "Edits the photo to restyle it as a handmade claymation scene with visible fingerprints in the clay."
+      },
+      "confetti-burst": {
+        "name": "Confetti burst",
+        "description": "Animates the subject to explode into slow-motion colorful confetti."
+      },
+      "electric-arcs": {
+        "name": "Electric arcs",
+        "description": "Animates the subject to crackle with high-voltage blue electric arcs."
+      },
+      "frost-crystals": {
+        "name": "Frost crystals",
+        "description": "Animates the subject to freeze rapidly in branching frost and ice crystals."
+      },
+      "glass-shatter": {
+        "name": "Glass shatter",
+        "description": "Animates the subject to shatter into slow-motion crystalline glass fragments."
+      },
+      "golden-embers": {
+        "name": "Golden embers",
+        "description": "Animates the subject to ignite in rising golden embers and heat shimmer."
+      },
+      "hydraulic-press": {
+        "name": "Hydraulic press",
+        "description": "Animates the subject to compress under a studio hydraulic press."
+      },
+      "levitate": {
+        "name": "Levitate",
+        "description": "Animates the subject to levitate and float upward in zero gravity."
+      },
+      "liquid-chrome": {
+        "name": "Liquid chrome",
+        "description": "Animates the subject to melt into mirror-polished liquid chrome."
+      },
+      "marble-petrify": {
+        "name": "Marble petrify",
+        "description": "Animates the subject to petrify into veined Carrara marble sculpture."
+      },
+      "metallic-balloon": {
+        "name": "Metallic balloon",
+        "description": "Animates the subject to inflate like a glossy metallic balloon and lift off."
+      },
+      "molten-gold": {
+        "name": "Molten gold",
+        "description": "Animates the subject to transform into flowing molten gold."
+      },
+      "neon-outline": {
+        "name": "Neon outline",
+        "description": "Animates the subject to light up in pulsing neon tube outlines."
+      },
+      "origami-fold": {
+        "name": "Origami fold",
+        "description": "Animates the subject to fold itself into crisp origami paper."
+      },
+      "petal-burst": {
+        "name": "Petal burst",
+        "description": "Animates the subject to burst into a cloud of velvet botanical petals."
+      },
+      "smoke-vanish": {
+        "name": "Smoke vanish",
+        "description": "Animates the subject to dissolve into drifting smoke and vanish."
+      },
+      "snow-blanket": {
+        "name": "Snow blanket",
+        "description": "Edits the photo to cover the scene in a fresh blanket of soft snow with gentle snowfall."
+      },
+      "tilt-shift-miniature": {
+        "name": "Tilt-shift miniature",
+        "description": "Edits the photo to restyle it as a tilt-shift miniature model with shallow focus and saturated colors."
+      },
+      "underwater-caustics": {
+        "name": "Underwater drift",
+        "description": "Animates the subject to drift underwater with slow caustic light ripples."
+      }
     }
   },
   "shot_camera_field": {
@@ -19193,6 +19281,51 @@
       "downloadFailed": "无法下载：{{reason}}",
       "workflowName": "创作工作流",
       "workflowFailed": "无法生成工作流：{{reason}}"
+    }
+  },
+  "effectsGallery": {
+    "title": "特效",
+    "subtitle": "先选择一张图片，再选择特效。结果会显示在这里和“生成”面板中。",
+    "noEffect": "未选择特效",
+    "apply": "应用特效",
+    "applying": "正在应用…",
+    "effects": "特效",
+    "source": {
+      "zoneLabel": "特效使用的图片",
+      "dropHint": "将图片拖放到此处",
+      "choose": "选择图片",
+      "replace": "更换图片",
+      "previewAlt": "要应用特效的图片",
+      "notImage": "该文件不是图片。请使用 PNG、JPG 或 WebP 文件。",
+      "uploadFailed": "无法上传图片。请检查网络连接后重试。"
+    },
+    "model": {
+      "video": "视频模型",
+      "image": "图像模型",
+      "choose": "选择一个模型以应用特效。",
+      "estimated": "每个结果约 {{estimate}}。",
+      "noEstimate": "此模型没有标价。"
+    },
+    "reason": {
+      "needPicture": "添加一张图片以应用特效。",
+      "needEffect": "请在下方选择特效。",
+      "needVideoModel": "请选择视频模型。",
+      "needImageModel": "请选择图像模型。"
+    },
+    "result": {
+      "running": "正在应用“{{effect}}”。视频可能需要几分钟。你可以离开此标签页，结果也会显示在“生成”面板中。",
+      "done": "“{{effect}}”已完成。",
+      "alt": "“{{effect}}”的结果",
+      "failed": "特效未完成，也没有返回结果。请重试或选择其他模型。",
+      "failedWithReason": "特效未完成：{{reason}} 请重试或选择其他模型。",
+      "tryAgain": "重试",
+      "emptyTitle": "结果会显示在这里",
+      "emptyPickEffect": "在下方选择特效，然后选择“应用特效”。",
+      "emptyAddPicture": "先添加一张图片，再选择特效。"
+    },
+    "card": {
+      "actions": "{{name}}的操作",
+      "openAsWorkflow": "作为工作流打开"
     }
   }
 }

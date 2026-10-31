@@ -1,0 +1,32 @@
+{
+  "id": "effect.confetti-burst",
+  "version": 1,
+  "kind": "effect",
+  "name": "Confetti burst",
+  "description": "Animates the subject to explode into slow-motion colorful confetti.",
+  "tags": [
+    "effect",
+    "celebration",
+    "particles"
+  ],
+  "slot": "effect",
+  "modes": [
+    "image_to_video"
+  ],
+  "inputs": [
+    "image"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "explode into slow-motion colorful confetti"
+  ],
+  "prompt": {
+    "default": "The subject begins still, then proceeds to explode into slow-motion colorful confetti. Paper pieces spin and glitter as they fill the frame. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+    "kling": "The subject begins still, then proceeds to explode into slow-motion colorful confetti. Paper pieces spin and glitter as they fill the frame. Physically accurate motion, steady locked camera.",
+    "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to explode into slow-motion colorful confetti. Paper pieces spin and glitter as they fill the frame. Physically accurate motion.",
+    "veo": "The subject begins still, then proceeds to explode into slow-motion colorful confetti. Paper pieces spin and glitter as they fill the frame. Cinematic lighting, realistic physics, locked camera.",
+    "wan": "The subject begins still, then proceeds to explode into slow-motion colorful confetti. Paper pieces spin and glitter as they fill the frame. Locked camera, smooth realistic motion, high detail."
+  },
+  "params": {}
+}
