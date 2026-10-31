@@ -12,7 +12,8 @@ vi.mock("../src/lib/media.js", () => ({ trimVideoWindow: trim }));
 vi.mock("@nodetool-ai/asset-services/asset-paths", () => ({
   retrieveAssetBytes: async () => new Uint8Array([1, 2, 3])
 }));
-vi.mock("../src/session/media-generation.js", () => ({
+vi.mock("../src/session/media-generation.js", async (importOriginal) => ({
+  ...await importOriginal<typeof import("../src/session/media-generation.js")>(),
   createGenerationRun: () => ({
     generate: generation,
     seamAssetId: () => "extended-asset"
