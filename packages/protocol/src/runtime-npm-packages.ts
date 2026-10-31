@@ -19,9 +19,9 @@ export interface RuntimeNpmPackage {
 
 export const RUNTIME_NPM_PACKAGES = {
   imaging: {
-    npmPackages: ["sharp@0.35.5", "@napi-rs/canvas@0.1.100"],
-    packageNames: ["sharp", "@napi-rs/canvas"],
-    description: "Image codecs and canvas rendering.",
+    npmPackages: ["sharp@0.35.5", "@napi-rs/canvas@0.1.100", "@hyzyla/pdfium@2.1.13"],
+    packageNames: ["sharp", "@napi-rs/canvas", "@hyzyla/pdfium"],
+    description: "Image codecs, canvas rendering and PDF page rendering.",
     bundledHosts: ["desktop", "docker"]
   },
   typescript: {

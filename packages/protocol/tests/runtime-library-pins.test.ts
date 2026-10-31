@@ -25,7 +25,8 @@ const loaders: ReadonlyArray<readonly [RuntimeNpmPackageId, string, string]> = [
   ["media-codecs", "@mediabunny/server", "agents"],
   ["media-codecs", "mediabunny", "runtime"],
   ["media-codecs", "mediabunny", "agents"],
-  ["webgpu", "webgpu", "gpu"]
+  ["webgpu", "webgpu", "gpu"],
+  ["imaging", "@hyzyla/pdfium", "asset-services"]
 ];
 
 describe("shared runtime library pins", () => {

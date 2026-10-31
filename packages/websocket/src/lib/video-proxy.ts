@@ -48,7 +48,11 @@ import {
   type StorageAdapter
 } from "@nodetool-ai/storage";
 import { getSetting } from "../settings-registry.js";
-import { localAssetPath } from "./asset-paths.js";
+import {
+  localAssetPath,
+  videoProxyFileNames,
+  videoProxyManifestFileName
+} from "./asset-paths.js";
 import { externalAssetsAvailable } from "./external-assets.js";
 import { verifiedExternalPath } from "./external-asset-lookup.js";
 import { getAssetAdapter } from "./storage.js";
@@ -98,18 +102,7 @@ export interface VideoProxyState {
   version: string | null;
 }
 
-function manifestFileName(assetId: string): string {
-  return `${assetId}_proxy.json`;
-}
-
-/** Every file a proxy can leave in the owner's folder. Asset delete removes them. */
-export function videoProxyFileNames(assetId: string): string[] {
-  return [
-    `${assetId}_proxy.mp4`,
-    `${assetId}_proxy.webm`,
-    manifestFileName(assetId)
-  ];
-}
+export { videoProxyFileNames };
 
 /**
  * Whether this server makes proxies: the local file store, outside
@@ -183,7 +176,7 @@ async function readManifest(
   const bytes = await adapter
     .retrieve(
       adapter.uriForKey(
-        assetObjectKey(asset.user_id, manifestFileName(asset.id))
+        assetObjectKey(asset.user_id, videoProxyManifestFileName(asset.id))
       )
     )
     .catch(() => null);
@@ -559,7 +552,7 @@ export async function runVideoProxyJob(
       height: out?.height ?? 0
     };
     await adapter.store(
-      assetObjectKey(asset.user_id, manifestFileName(asset.id)),
+      assetObjectKey(asset.user_id, videoProxyManifestFileName(asset.id)),
       new TextEncoder().encode(JSON.stringify(manifest)),
       "application/json"
     );

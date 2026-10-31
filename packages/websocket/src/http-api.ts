@@ -1,4 +1,3 @@
-import { createMissingPackError } from "@nodetool-ai/node-catalog";
 import { getUserId } from "./lib/http-user-id.js";
 import {
   createServer,
@@ -8,21 +7,11 @@ import {
 } from "node:http";
 import { gzipSync } from "node:zlib";
 import { once } from "node:events";
-import {
-  readFileSync,
-  readdirSync,
-  existsSync,
-  promises as fsp
-} from "node:fs";
+import { existsSync, promises as fsp } from "node:fs";
 import nodePath from "node:path";
 import os from "node:os";
 import { GZIP_THRESHOLD } from "./lib/compression.js";
-import { withCacheBuster } from "./lib/example-thumbnail.js";
-import {
-  loadExampleGraph,
-  shippedWorkflowExamplesDir,
-  deriveExampleAssetsDir
-} from "./example-workflows.js";
+import { loadExampleGraph, deriveExampleAssetsDir } from "./example-workflows.js";
 import { createLogger } from "@nodetool-ai/config";
 import { workflowToDsl } from "@nodetool-ai/dsl";
 import {
@@ -32,7 +21,6 @@ import {
   Asset,
   Project
 } from "@nodetool-ai/models";
-import { resolveWorkerSettingsEnv } from "./worker-settings-env.js";
 import {
   loadPythonPackageMetadata,
   type NodeMetadata,
@@ -40,28 +28,18 @@ import {
 } from "@nodetool-ai/node-sdk";
 import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import {
-  PythonNodeExecutor,
-  createPythonBridge,
-  loadMediaModule,
-  logPythonWorkerStderr,
-  type NodeExecutor,
-  type ProcessingContext,
-  type PythonBridge,
-  type StorageAdapter
-} from "@nodetool-ai/runtime";
-import {
-  createAssetModelInterface,
-  updateAssetBytesModelInterface
-} from "./lib/asset-model-interface.js";
+  createWorkflowRuntimeEnvironment,
+  type WorkflowRuntimeEnvironment
+} from "@nodetool-ai/project-services/workflow-runtime-environment";
+import { loadMediaModule } from "@nodetool-ai/runtime";
 import { probeAssetDurationSeconds } from "./lib/asset-duration.js";
-import { scanExampleNeeds, verdictSchema } from "@nodetool-ai/protocol";
+import { verdictSchema } from "@nodetool-ai/protocol";
 import {
   cancelDebugSession,
   debugSessions,
   peekDebugSession,
   runWorkflow,
   submitEscalationVerdict,
-  type RunGeneration,
   type RunWorkflowOutcome
 } from "@nodetool-ai/execution/service";
 import { resolveWorkflowWorkspace } from "./lib/workflow-workspace.js";
@@ -78,7 +56,7 @@ import {
   generateThumbnailForStoredAsset
 } from "./lib/thumbnail.js";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
-import { getAssetAdapter, getTempAdapter } from "./lib/storage.js";
+import { getAssetAdapter } from "./lib/storage.js";
 import { extractAudio } from "./lib/media.js";
 import {
   packWorkflowsBundle,
@@ -97,7 +75,6 @@ import { z } from "zod";
 import {
   isBoolean,
   isNonEmptyString,
-  isObjectLike,
   isRecord,
   isString
 } from "./lib/wire-values.js";
@@ -125,10 +102,6 @@ import {
   normalizeAssetContentType
 } from "./lib/asset-paths.js";
 import { resolveAssetBytesForExport } from "./lib/asset-export.js";
-import {
-  autoSaveAssets,
-  primaryTextOutputName
-} from "./session/asset-autosave.js";
 import { toAssetResponse } from "./lib/asset-response.js";
 import { scheduleVideoProxy } from "./lib/video-proxy.js";
 import { isJsonContentType } from "./lib/json-body.js";
@@ -225,226 +198,20 @@ function getStorageHandler(
   return _storageHandler;
 }
 
-type WorkflowRuntimeEnvironment = {
-  registry: NodeRegistry;
-  pythonBridge: PythonBridge;
-  ensurePythonBridge: () => Promise<void>;
-  resolveExecutor: (node: {
-    id: string;
-    type: string;
-    [key: string]: unknown;
-  }) => NodeExecutor;
-  configureContext: (context: ProcessingContext) => void;
-  assetStorage: StorageAdapter;
-  storage: StorageAdapter;
-  persistGeneration: (generation: RunGeneration) => Promise<void>;
-};
-
-export async function getWorkflowRuntimeEnvironment(
+export function getWorkflowRuntimeEnvironment(
   options: HttpApiOptions = {}
 ): Promise<WorkflowRuntimeEnvironment> {
-  if (!workflowRuntimePromise) {
-    workflowRuntimePromise = (async () => {
-      const bootstrapOptions: Parameters<typeof bootstrapNodeRegistry>[0] = {
-        metadataMaxDepth: options.metadataMaxDepth ?? 8,
-        log
-      };
-      if (options.metadataRoots) {
-        bootstrapOptions.metadataRoots = options.metadataRoots;
-      }
-      const registry =
-        options.registry ?? (await bootstrapNodeRegistry(bootstrapOptions));
-
-      const pythonBridge = createPythonBridge({
-        workerArgs: process.env["NODETOOL_WORKER_NAMESPACES"]
-          ? ["--namespaces", process.env["NODETOOL_WORKER_NAMESPACES"]]
-          : [],
-        workerEnv: () => resolveWorkerSettingsEnv()
-      });
-
-      const logPythonBridgeDiagnostics = (context: string): void => {
-        const loadErrors =
-          (
-            pythonBridge as {
-              getLoadErrors?: () => Array<{
-                module: string;
-                phase: string;
-                error: string;
-              }>;
-            }
-          ).getLoadErrors?.() ?? [];
-        if (loadErrors.length === 0) return;
-        log.warn(
-          `HTTP API Python bridge ${context} with ${loadErrors.length} load error(s)`
-        );
-        for (const entry of loadErrors.slice(0, 10)) {
-          log.warn(
-            `[python-worker][load-error] ${entry.module} (${entry.phase}): ${entry.error}`
-          );
-        }
-      };
-
-      let pythonBridgeReady = false;
-      pythonBridge.on("stderr", (msg: string) => {
-        for (const line of msg.split("\n")) {
-          logPythonWorkerStderr(line, log);
-        }
-      });
-      pythonBridge.on("error", (err: Error) => {
-        log.error(`HTTP API Python bridge protocol error: ${err.message}`);
-        pythonBridgeReady = false;
-      });
-      pythonBridge.on("exit", (code: number) => {
-        log.warn(`HTTP API Python worker exited with code ${code}`);
-        pythonBridgeReady = false;
-      });
-
-      const ensurePythonBridge = async (): Promise<void> => {
-        log.info("HTTP API lazily starting Python bridge");
-        try {
-          await pythonBridge.ensureConnected();
-        } catch (err) {
-          log.warn(
-            "HTTP API Python bridge lazy start failed",
-            err instanceof Error ? err : new Error(String(err))
-          );
-          throw err;
-        }
-        pythonBridgeReady = true;
-        log.info("HTTP API Python bridge lazy start completed");
-        const meta = pythonBridge.getNodeMetadata();
-        log.info(
-          `HTTP API Python bridge connected — ${meta.length} Python nodes`
-        );
-        (
-          pythonBridge as {
-            getWorkerStatus?: () => Promise<{
-              protocol_version: number;
-              node_count: number;
-              provider_count: number;
-              namespaces: string[];
-              transport: string;
-              max_frame_size: number;
-              load_errors: Array<unknown>;
-            }>;
-          }
-        )
-          .getWorkerStatus?.()
-          ?.then((status) => {
-            log.info("HTTP API Python bridge status", {
-              protocol_version: status.protocol_version,
-              node_count: status.node_count,
-              provider_count: status.provider_count,
-              namespaces: status.namespaces,
-              transport: status.transport,
-              max_frame_size: status.max_frame_size,
-              load_error_count: status.load_errors.length
-            });
-          })
-          .catch((err: unknown) => {
-            log.warn(
-              "HTTP API failed to fetch Python bridge status",
-              err instanceof Error ? err : new Error(String(err))
-            );
-          });
-        logPythonBridgeDiagnostics("connected");
-      };
-
-      const resolveExecutor = (node: {
-        id: string;
-        type: string;
-        [key: string]: unknown;
-      }): NodeExecutor => {
-        if (registry.has(node.type)) {
-          return registry.resolve(node);
-        }
-        const catalogEntry = registry.catalogEntry(node.type);
-        if (catalogEntry && registry.availability(node.type) === "catalog") {
-          throw createMissingPackError(catalogEntry.pack, [node.type]);
-        }
-        if (pythonBridgeReady && pythonBridge.hasNodeType(node.type)) {
-          const meta = pythonBridge
-            .getNodeMetadata()
-            .find((n) => n.node_type === node.type);
-          const props = (node.properties ?? node.data ?? {}) as Record<
-            string,
-            unknown
-          >;
-          return new PythonNodeExecutor(
-            pythonBridge,
-            node.type,
-            props,
-            Object.fromEntries(
-              (meta?.outputs ?? []).map((o) => [o.name, o.type.type])
-            ),
-            meta?.required_settings ?? [],
-            node.id,
-            meta?.requires_vram_gb
-          );
-        }
-        if (registry.availability(node.type) === "python") {
-          const stderrSummary =
-            (
-              pythonBridge as { getRecentStderrSummary?: () => string | null }
-            ).getRecentStderrSummary?.() ?? null;
-          const loadErrors =
-            (
-              pythonBridge as {
-                getLoadErrors?: () => Array<{ module: string; error: string }>;
-              }
-            ).getLoadErrors?.() ?? [];
-          const matchingLoadError = loadErrors.find(
-            (entry) =>
-              entry.module.includes(node.type) ||
-              node.type.startsWith(entry.module.split(".").slice(2).join("."))
-          );
-          throw new Error(
-            pythonBridgeReady
-              ? `Python node "${node.type}" cannot execute: it is declared in metadata but was not loaded by the Python worker.${matchingLoadError ? ` Load error: ${matchingLoadError.module}: ${matchingLoadError.error}.` : stderrSummary ? ` Recent Python worker stderr: ${stderrSummary}` : " Check Python worker status/load errors for import failures."}`
-              : `Python node "${node.type}" cannot execute: Python worker is not connected.${stderrSummary ? ` Recent Python worker stderr: ${stderrSummary}` : ""}`
-          );
-        }
-        return registry.resolve(node);
-      };
-
-      return {
-        registry,
-        pythonBridge,
-        ensurePythonBridge,
-        resolveExecutor,
-        // Asset persistence for the run's ProcessingContext — an Output node
-        // that stores an image needs it on every host, not just chat turns.
-        configureContext: (context: ProcessingContext) => {
-          context.setModelInterfaces({
-            createAsset: createAssetModelInterface,
-            updateAssetBytes: updateAssetBytesModelInterface
-          });
-        },
-        // The stores the run reads through. `asset://<id>` inputs — every
-        // uploaded image wired into a graph — live in the asset store; without
-        // it the reference resolves to nothing and the node runs on an empty
-        // input. Same pair the streaming WebSocket runner uses.
-        assetStorage: getAssetAdapter(),
-        storage: getTempAdapter(),
-        // The same per-generation autosave the editor's runs do, so a later
-        // run with `node_ids` can reuse what this one generated.
-        persistGeneration: (generation: RunGeneration) =>
-          autoSaveAssets(generation.outputs, {
-            userId: generation.userId,
-            workflowId: generation.workflowId,
-            jobId: generation.jobId,
-            nodeId: generation.nodeId,
-            textOutputName: primaryTextOutputName(
-              registry.getMetadata(generation.nodeType)
-            ),
-            generationIndex: generation.index,
-            properties: generation.properties ?? undefined,
-            nodeType: generation.nodeType
-          })
-      };
-    })();
-  }
-
+  workflowRuntimePromise ??= createWorkflowRuntimeEnvironment(async () => {
+    if (options.registry) return options.registry;
+    const bootstrapOptions: Parameters<typeof bootstrapNodeRegistry>[0] = {
+      metadataMaxDepth: options.metadataMaxDepth ?? 8,
+      log
+    };
+    if (options.metadataRoots) {
+      bootstrapOptions.metadataRoots = options.metadataRoots;
+    }
+    return bootstrapNodeRegistry(bootstrapOptions);
+  });
   return workflowRuntimePromise;
 }
 
@@ -814,178 +581,9 @@ export async function handleWorkflowTools(
   });
 }
 
-// ── Workflow examples ──────────────────────────────────────────────────
+import { buildExampleWorkflows } from "@nodetool-ai/project-services/example-catalog";
 
-/** URL prefix for example workflow thumbnail images served by this API. */
-const EXAMPLES_THUMBNAILS_PREFIX = "/api/workflows/examples/thumbnails/";
-
-interface ExampleMetadata {
-  id?: string;
-  name: string;
-  description?: string;
-  tags?: string[];
-}
-
-/**
- * Read example workflow metadata from a directory of JSON files.
- * Returns lightweight objects (no graph data) suitable for the /examples list.
- *
- * When the sibling `assets` directory exists (e.g.
- * `packages/base-nodes/nodetool/assets/nodetool-base`), a `thumbnail_url`
- * pointing to `/api/workflows/examples/thumbnails/<name>` is set so the
- * frontend can display the pre-generated JPG thumbnails.
- */
-function buildExamplesFromDir(
-  examplesDir: string,
-  examplesAssetsFallbackDir?: string,
-  registry?: NodeRegistry
-): unknown[] {
-  if (!existsSync(examplesDir)) return [];
-  const assetsDir = deriveExampleAssetsDir(
-    examplesDir,
-    examplesAssetsFallbackDir
-  );
-  const now = new Date().toISOString();
-  const workflows: unknown[] = [];
-  let files: string[];
-  try {
-    files = readdirSync(examplesDir)
-      .filter((f) => f.toLowerCase().endsWith(".json"))
-      .sort((a, b) => a.localeCompare(b));
-  } catch (err) {
-    log.warn(`Failed to read examples directory ${examplesDir}: ${err}`);
-    return [];
-  }
-  for (const file of files) {
-    try {
-      const raw = readFileSync(nodePath.join(examplesDir, file), "utf8");
-      const parsed = JSON.parse(raw) as Record<string, unknown>;
-      const name = isString(parsed.name)
-        ? parsed.name
-        : file.replace(/\.json$/i, "");
-      // Point thumbnail_url to the served JPG when the file exists in
-      // assets. withCacheBuster() appends ?v=<md5-8> so the browser cache
-      // invalidates whenever the JPG is regenerated.
-      const jpgFile = `${name}.jpg`;
-      const jpgPath = nodePath.join(assetsDir, jpgFile);
-      const thumbnailUrl = existsSync(jpgPath)
-        ? withCacheBuster(
-            `${EXAMPLES_THUMBNAILS_PREFIX}${encodeURIComponent(jpgFile)}`,
-            jpgPath
-          )
-        : null;
-      workflows.push({
-        id: file,
-        access: "public",
-        created_at: now,
-        updated_at: now,
-        name,
-        tool_name: null,
-        description: isString(parsed.description) ? parsed.description : "",
-        tags: Array.isArray(parsed.tags) ? parsed.tags.filter(isString) : [],
-        thumbnail: thumbnailUrl ? jpgFile : null,
-        thumbnail_url: thumbnailUrl,
-        graph: { nodes: [], edges: [] },
-        input_schema: null,
-        output_schema: null,
-        settings: null,
-        package_name: isString(parsed.package_name)
-          ? parsed.package_name
-          : null,
-        path: null,
-        run_mode: null,
-        workspace_id: null,
-        required_providers: null,
-        required_models: null,
-        needs: scanExampleNeeds(
-          parsed.graph,
-          (nodeType) => registry?.getMetadata(nodeType)?.required_settings
-        ),
-        html_app: null,
-        app_doc: isObjectLike(parsed.app_doc) ? parsed.app_doc : null,
-        etag: null
-      });
-    } catch (err) {
-      log.debug(`Skipping invalid example workflow file ${file}: ${err}`);
-    }
-  }
-  return workflows;
-}
-
-export function buildExampleWorkflows(
-  options: Pick<
-    HttpApiOptions,
-    | "examplesDir"
-    | "examplesAssetsFallbackDir"
-    | "registry"
-    | "metadataRoots"
-    | "metadataMaxDepth"
-  >
-): unknown[] {
-  if (options.examplesDir) {
-    return buildExamplesFromDir(
-      options.examplesDir,
-      options.examplesAssetsFallbackDir,
-      options.registry
-    );
-  }
-  const loaded = loadPythonPackageMetadata({
-    roots: options.metadataRoots,
-    maxDepth: options.metadataMaxDepth
-  });
-  const now = new Date().toISOString();
-  const workflows: unknown[] = [];
-  for (const pkg of loaded.packages) {
-    if (!pkg.examples || pkg.examples.length === 0) continue;
-    for (const ex of pkg.examples) {
-      const meta = ex as ExampleMetadata;
-      workflows.push({
-        id: meta.id ?? "",
-        access: "public",
-        created_at: now,
-        updated_at: now,
-        name: meta.name,
-        tool_name: null,
-        description: meta.description ?? "",
-        tags: meta.tags ?? [],
-        thumbnail: null,
-        thumbnail_url: null,
-        graph: { nodes: [], edges: [] },
-        input_schema: null,
-        output_schema: null,
-        settings: null,
-        package_name: pkg.name,
-        path: null,
-        run_mode: null,
-        workspace_id: null,
-        required_providers: null,
-        required_models: null,
-        html_app: null,
-        app_doc: null,
-        etag: null
-      });
-    }
-  }
-  const shippedDirectory = shippedWorkflowExamplesDir();
-  const shipped = shippedDirectory
-    ? buildExamplesFromDir(shippedDirectory, options.examplesAssetsFallbackDir, options.registry)
-    : [];
-  const seen = new Set<string>();
-  return [...workflows, ...shipped].filter((workflow) => {
-    if (!isObjectLike(workflow)) {
-      return false;
-    }
-    const key = JSON.stringify([
-      workflow.package_name ?? "nodetool-base",
-      isString(workflow.id) && workflow.id !== "" ? workflow.id : workflow.name
-    ]);
-    if (seen.has(key)) {
-      return false;
-    }
-    seen.add(key);
-    return true;
-  });
-}
+export { buildExampleWorkflows };
 
 export async function handleWorkflowExamples(
   request: Request,

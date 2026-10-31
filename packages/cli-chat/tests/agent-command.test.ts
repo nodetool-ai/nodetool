@@ -187,7 +187,8 @@ vi.mock("@nodetool-ai/chat", async () => {
   return { processChat: real.processChat };
 });
 
-vi.mock("@nodetool-ai/websocket", () => ({ mcpToolHostDeps: () => ({}) }));
+vi.mock("@nodetool-ai/project-services/mcp-tool-host-deps", () => ({ mcpToolHostDeps: () => ({}) }));
+vi.mock("@nodetool-ai/project-services/workflow-runtime-environment", () => ({ createWorkflowRuntimeEnvironment: () => Promise.resolve({}) }));
 vi.mock("@nodetool-ai/cli-execution/node-registry", () => ({ buildFullRegistry: () => ({}) }));
 vi.mock("../src/chat-context.js", () => ({
   createChatContext: async () => ({

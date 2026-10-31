@@ -26,6 +26,7 @@ import path from "node:path";
 import type { Sharp } from "sharp";
 import { loadMediaModule, loadSharpOrThrow } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
+import { missingRuntimePackageError } from "@nodetool-ai/protocol";
 import {
   assetKeyCandidates,
   assetObjectKey,
@@ -168,7 +169,13 @@ async function generatePdfThumb(source: ThumbnailSource): Promise<Buffer> {
     bytes = source.bytes;
   }
   const sharp = await loadSharpOrThrow();
-  const { PDFiumLibrary } = await import("@hyzyla/pdfium");
+  let pdfium: typeof import("@hyzyla/pdfium");
+  try {
+    pdfium = await import("@hyzyla/pdfium");
+  } catch (error) {
+    throw missingRuntimePackageError("@hyzyla/pdfium", "imaging", error);
+  }
+  const { PDFiumLibrary } = pdfium;
   const lib = await PDFiumLibrary.init();
   let doc: Awaited<ReturnType<typeof lib.loadDocument>> | null = null;
   try {

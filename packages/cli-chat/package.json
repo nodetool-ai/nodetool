@@ -41,7 +41,6 @@
     "@nodetool-ai/runtime": "*",
     "@nodetool-ai/security": "*",
     "@nodetool-ai/storage": "*",
-    "@nodetool-ai/websocket": "*",
     "chalk": "^5.3.0",
     "commander": "^12.1.0",
     "ink": "^6.8.0",
@@ -52,7 +51,8 @@
     "string-width": "^8.1.1",
     "wrap-ansi": "^9.0.0",
     "ws": "^8.18.3",
-    "zod": "^4.1.13"
+    "zod": "^4.1.13",
+    "@nodetool-ai/project-services": "*"
   },
   "devDependencies": {
     "vitest": "^5.0.1",
