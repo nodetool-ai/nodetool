@@ -82,6 +82,8 @@ a numeric `value`, `displayValue`, `unit`, `from`, `to`, and `stepSize`. Fields
 also accept `accessibleName`, `readOnly`, `enabled`, `valid`, `errorText`, and
 `density`. TextField accepts `suffix`. All emit `editStarted()`,
 `valuePreviewed(value)`, `valueCommitted(value)`, and `editCanceled()`.
+`NumberField.previewWhileTyping` defaults to true. Set it to false to defer
+typed drafts until commit while retaining arrow-key previews.
 `cancelEdit()` discards the draft. Invalid focus loss cancels and restores the
 latest authoritative value. Hosts roll back previewed document changes.
 

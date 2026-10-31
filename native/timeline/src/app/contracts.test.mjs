@@ -84,7 +84,7 @@ test('QML-only packages discover resources, singletons, panels and nested module
     for (const entry of ['packages', 'web']) {
       symlinkSync(path.resolve(source, '../..', entry), path.join(scratch, entry), 'dir');
     }
-    for (const sibling of ['chat', 'model-picker']) {
+    for (const sibling of ['chat', 'model-picker', 'ui_primitives']) {
       symlinkSync(path.resolve(source, '..', sibling), path.join(scratch, 'native', sibling), 'dir');
     }
     for (const entry of readdirSync(source)) {
@@ -143,13 +143,14 @@ int main(int argc, char** argv) {
     const output = run('cmake', args);
     assert.doesNotMatch(output, /Warning \(dev\)/);
     const expected = [...readdirSync(path.join(directory, 'qml'), { recursive: true })
-      .filter(file => /\.(qml|js)$/.test(file)).map(file => `qml/${file}`), 'src/app/PanelSlot.qml'].sort();
+      .filter(file => /\.(qml|js)$/.test(file) && !file.split(path.sep).includes('tests')).map(file => `qml/${file}`), 'src/app/PanelSlot.qml'].sort();
     // The shared module keeps the complete discovered resource list for every host.
     for (const target of ['timeline_qml']) {
       const resources = readFileSync(path.join(build, '.qt', 'rcc', `${target}_raw_qml_0.qrc`), 'utf8');
       assert.match(resources, /qml\/seamProbe\/UnlistedPanel.qml/);
       assert.match(resources, /qml\/seamProbe\/helper.js/);
       assert.doesNotMatch(resources, /src\/app\/example/);
+      assert.doesNotMatch(resources, /qml\/[^"]*\/tests\//);
       const aliases = [...resources.matchAll(/<file alias="([^"]+)"/g)].map(match => match[1]).sort();
       assert.deepEqual(aliases, expected, `${target} resources must match discovery without duplicates`);
     }

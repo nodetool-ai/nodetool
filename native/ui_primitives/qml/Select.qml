@@ -82,6 +82,7 @@ Basic.ComboBox {
         id: item
         required property int index
         required property var modelData
+        text: modelData.label
         width: root.popup.width
         enabled: !root.readOnly && root.enabled && modelData.enabled !== false
         highlighted: list.currentIndex === index

@@ -15,6 +15,15 @@ Ui.TextArea {
     implicitHeight: Math.max(Ui.Metrics.small * 3, contentHeight + topPadding + bottomPadding)
     role: Ui.Typography.SansLabel
     accessibleName: "Text content"
+    Connections {
+        target: root.editor
+        function onTypingChanged() {
+            if (!root.editor.typing) {
+                root.editing = false
+                root.text = root.value
+            }
+        }
+    }
     onEditStarted: if (!editor.typing) editor.beginTyping()
     onValuePreviewed: value => editor.previewTyping(value)
     onValueCommitted: editor.finishTyping()
