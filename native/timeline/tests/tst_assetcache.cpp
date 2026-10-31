@@ -219,6 +219,26 @@ private slots:
         QCOMPARE(readAll(r.path), data);
     }
 
+    void shortSuccessfulResponseRetainsPartial() {
+        const auto data = pattern(300000, 10);
+        auto first = ServedFile{data.left(100000)};
+        first.closeDelimited = true;
+        m_http->setFile("/short.mp4", first);
+        const auto file = remote("/short.mp4", "v1", data.size());
+        const auto interrupted = cache().fetch("a1", "original", file);
+        QVERIFY(!interrupted.ok());
+        QCOMPARE(interrupted.bytesDownloaded, qint64(100000));
+        const auto part = cache().pathFor("a1", "original", file) + ".part";
+        QCOMPARE(readAll(part), data.left(100000));
+        m_http->setFile("/short.mp4", ServedFile{data});
+        m_http->clearRequests();
+        const auto resumed = cache().fetch("a1", "original", file);
+        QVERIFY2(resumed.ok(), qPrintable(resumed.error));
+        QVERIFY(resumed.resumed);
+        QCOMPARE(m_http->requests().front().headers.value("range"), QByteArray("bytes=100000-"));
+        QCOMPARE(readAll(resumed.path), data);
+    }
+
     void droppedBodyLargerThanSocketBufferIsRetained() {
         m_http->setFile("/large.mp4", ServedFile{pattern(8 * 1024 * 1024, 10)});
         makePartial("/large.mp4", QStringLiteral("large"), -1, 4 * 1024 * 1024);
