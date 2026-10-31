@@ -53,6 +53,44 @@ describe("DurableGenerationLifecycle", () => {
     });
   });
 
+  it("persists inline media inputs as a digest, not the data URI", async () => {
+    const hooks = createFalGenerationLifecycleHooks({
+      userId: "u1",
+      callbacks: false
+    });
+    const media = `data:image/png;base64,${"A".repeat(8192)}`;
+    const request = {
+      provider: "fal_ai",
+      capability: "image_to_image" as const,
+      model: "fal-ai/flux/dev/image-to-image",
+      params: {
+        prompt: "a cat",
+        image_url: media,
+        image_urls: ["https://example.com/cat.png", media],
+        mask_url: "data:image/png;base64,AAAA"
+      }
+    };
+    await hooks.onGenerationAccepted?.({
+      generationId: "inline-media",
+      request
+    });
+    const generation = await Prediction.find("inline-media");
+    const omitted = expect.stringMatching(
+      /^\[inline image\/png omitted: 8214 chars, sha256 [0-9a-f]{64}\]$/
+    );
+    const persisted = {
+      prompt: "a cat",
+      image_url: omitted,
+      image_urls: ["https://example.com/cat.png", omitted],
+      mask_url: "data:image/png;base64,AAAA"
+    };
+    expect(generation?.parameters).toEqual(persisted);
+    const [attempt] = await GenerationAttempt.forGeneration("inline-media");
+    expect(
+      await GenerationAttempt.requestPayload(attempt?.id ?? "")
+    ).toEqual(persisted);
+  });
+
   it("returns one accepted generation and fences competing workers", async () => {
     const lifecycle = createDurableGenerationLifecycle();
     const input = {

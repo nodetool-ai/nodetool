@@ -53,7 +53,9 @@ export function createGenerationRecoveryWorker(
   return new DurableGenerationRecoveryWorker({
     provider: {
       queueFor: async (attempt) => {
-        const generation = await Prediction.find(attempt.generation_id);
+        const generation = await Prediction.findForRecovery(
+          attempt.generation_id
+        );
         if (!generation) throw new Error("Generation no longer exists");
         const expectedAccountRef = `user:${generation.user_id}:secret:FAL_API_KEY`;
         if (attempt.provider_account_ref !== expectedAccountRef) {
@@ -73,7 +75,9 @@ export function createGenerationRecoveryWorker(
         };
       }
       if (attachment.target_type === "timeline_clip") {
-        return recoverTimelineMediaEdit(generation, attachment.target_id, output.asset_id);
+        // Recovery reads leave out `parameters`; the saved edit lives there.
+        const full = (await Prediction.find(generation.id)) ?? generation;
+        return recoverTimelineMediaEdit(full, attachment.target_id, output.asset_id);
       }
       if (
         attachment.target_type !== "storyboard_keyframe" &&

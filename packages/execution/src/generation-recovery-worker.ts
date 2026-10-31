@@ -45,7 +45,9 @@ export interface DurableGenerationRecoveryOptions {
     generation: Prediction,
     attempt: GenerationAttempt
   ) => Promise<DurableRecoverySubmission>;
-  /** Persist provider media and return its durable storage state. */
+  /** Persist provider media and return its durable storage state.
+   * `generation` and `attempt` are recovery reads without `parameters` or
+   * `request_payload`. */
   readonly finalizeOutput?: (input: {
     readonly generation: Prediction;
     readonly attempt: GenerationAttempt;
@@ -53,7 +55,8 @@ export interface DurableGenerationRecoveryOptions {
     readonly descriptor: FalOutputDescriptor;
   }) => Promise<GenerationOutputSaveState>;
   /** Apply a destination-specific mutation after an output is saved. Returning
-   * null leaves the durable attachment intent pending for a later adapter. */
+   * null leaves the durable attachment intent pending for a later adapter.
+   * `generation` is the recovery read, so `parameters` is not loaded. */
   readonly attachOutput?: (input: {
     readonly generation: Prediction;
     readonly attempt: GenerationAttempt;
@@ -69,6 +72,18 @@ export interface DurableRecoveryRunResult {
   readonly failed: number;
   readonly skipped: number;
 }
+
+/**
+ * How long recovery keeps re-checking an attempt it cannot resolve: a
+ * submission that never returned a provider request ID, or a bound request
+ * whose status read keeps failing. After this the generation is marked
+ * `needs_attention` and the attempt is no longer polled. A provider webhook
+ * can still finalize it, because webhook rows are processed independently.
+ */
+export const UNRESOLVED_ATTEMPT_DEADLINE_MS = 24 * 60 * 60_000;
+
+/** Upper bound of the backoff between re-checks of an unresolved attempt. */
+export const UNRESOLVED_ATTEMPT_MAX_BACKOFF_MS = 30 * 60_000;
 
 /** The instant a lease is claimed and when that claim expires. */
 interface RecoveryLeaseWindow {
@@ -265,7 +280,7 @@ export class DurableGenerationRecoveryWorker {
     expiresAt: string
   ): Promise<"completed" | "failed" | "skipped"> {
     let attempt = delivery.attempt_id
-      ? await GenerationAttempt.get<GenerationAttempt>(delivery.attempt_id)
+      ? await GenerationAttempt.findById(delivery.attempt_id)
       : await GenerationAttempt.findByProviderRequest(
           delivery.provider,
           delivery.provider_account_ref,
@@ -280,7 +295,7 @@ export class DurableGenerationRecoveryWorker {
       );
       return "skipped";
     }
-    const existingGeneration = await Prediction.find(attempt.generation_id);
+    const existingGeneration = await Prediction.findForRecovery(attempt.generation_id);
     const deliveryStatus = asString(record(delivery.observation)?.status);
     const contradictoryTerminal = existingGeneration
       ? (existingGeneration.status === "completed" &&
@@ -394,7 +409,7 @@ export class DurableGenerationRecoveryWorker {
     let observation: unknown = delivery.observation;
     if (!attempt.provider_request_id) {
       try {
-        const generation = await Prediction.find(attempt.generation_id);
+        const generation = await Prediction.findForRecovery(attempt.generation_id);
         if (!generation) return "skipped";
         const queue = await this.provider.queueFor(attempt);
         const binding = await queue.bind({
@@ -414,7 +429,7 @@ export class DurableGenerationRecoveryWorker {
           delivery.provider_request_id
         );
         if (!adopted) {
-          const current = await GenerationAttempt.get<GenerationAttempt>(
+          const current = await GenerationAttempt.findById(
             attempt.id
           );
           if (current?.provider_request_id !== delivery.provider_request_id) {
@@ -429,7 +444,7 @@ export class DurableGenerationRecoveryWorker {
         }
         observation = verified;
         attempt =
-          (await GenerationAttempt.get<GenerationAttempt>(attempt.id)) ??
+          (await GenerationAttempt.findById(attempt.id)) ??
           attempt;
       } catch {
         return "skipped";
@@ -502,7 +517,7 @@ export class DurableGenerationRecoveryWorker {
       expiresAt
     );
     if (!claimed) return "skipped";
-    const generation = await Prediction.find(claimed.generation_id);
+    const generation = await Prediction.findForRecovery(claimed.generation_id);
     if (!generation) return "skipped";
     if (isTerminalProjection(generation)) {
       const storedOutputs =
@@ -554,7 +569,15 @@ export class DurableGenerationRecoveryWorker {
         );
         if (!submitting) return "skipped";
         try {
-          const submission = await this.submitAccepted(generation, claimed);
+          // Recovery reads leave out the request body and parameters, which
+          // can embed media. Only a resubmission needs them.
+          claimed.request_payload = await GenerationAttempt.requestPayload(
+            claimed.id
+          );
+          const submission = await this.submitAccepted(
+            (await Prediction.find(generation.id)) ?? generation,
+            claimed
+          );
           if (!submission.providerRequestId)
             throw new Error("submission did not return a request ID");
           const bound = await GenerationAttempt.bindProviderRequest(
@@ -583,35 +606,25 @@ export class DurableGenerationRecoveryWorker {
         } catch (error) {
           const message =
             error instanceof Error ? error.message : String(error);
-          await GenerationAttempt.transition(
-            claimed.id,
-            this.workerId,
-            claimed.lease_version,
-            {
-              submission_status: "submission_unknown",
-              provider_status: "unknown",
-              last_error: message,
-              next_check_at: new Date(
-                this.now().getTime() + this.leaseMs
-              ).toISOString()
-            }
+          return this.rescheduleUnresolved(
+            claimed,
+            generation,
+            "submission_unknown",
+            message,
+            nowIso,
+            expiresAt
           );
-          return "skipped";
         }
       }
-      await GenerationAttempt.transition(
-        claimed.id,
-        this.workerId,
-        claimed.lease_version,
-        {
-          submission_status: "submission_unknown",
-          provider_status: "unknown",
-          next_check_at: new Date(
-            this.now().getTime() + this.leaseMs
-          ).toISOString()
-        }
+      return this.rescheduleUnresolved(
+        claimed,
+        generation,
+        "submission_unknown",
+        claimed.last_error ??
+          "Submission ended without a provider request ID",
+        nowIso,
+        expiresAt
       );
-      return "skipped";
     }
     if (generation.cancel_requested_at || claimed.cancel_requested_at) {
       try {
@@ -632,6 +645,7 @@ export class DurableGenerationRecoveryWorker {
         });
       }
     }
+    let lastState: string | null = null;
     try {
       const queue = await this.provider.queueFor(claimed);
       const binding = await queue.bind({
@@ -642,7 +656,10 @@ export class DurableGenerationRecoveryWorker {
       });
       const observation = await queue.wait(binding, {
         signal: AbortSignal.timeout(5_000),
-        pollIntervalMs: 500
+        pollIntervalMs: 500,
+        onUpdate: (update) => {
+          lastState = update.state;
+        }
       });
       return this.finalizeAttempt(
         claimed,
@@ -653,23 +670,124 @@ export class DurableGenerationRecoveryWorker {
       );
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      await GenerationAttempt.transition(
-        claimed.id,
-        this.workerId,
-        claimed.lease_version,
-        {
-          // A bound request remains submitted when a status/result read times
-          // out. Only an ambiguous submit is submission_unknown.
-          submission_status: "submitted",
-          provider_status: "unknown",
-          last_error: message,
-          next_check_at: new Date(
-            this.now().getTime() + this.leaseMs
-          ).toISOString()
-        }
+      // The bounded wait times out on any request still in the provider's
+      // queue. That is progress, not an unresolved read.
+      const inProgress = lastState as string | null;
+      if (inProgress === "queued" || inProgress === "running") {
+        await GenerationAttempt.transition(
+          claimed.id,
+          this.workerId,
+          claimed.lease_version,
+          {
+            submission_status: "submitted",
+            provider_status: inProgress,
+            check_attempts: 0,
+            last_error: null,
+            next_check_at: new Date(
+              this.now().getTime() + Math.min(this.leaseMs, 60_000)
+            ).toISOString()
+          }
+        );
+        return "skipped";
+      }
+      // A bound request remains submitted when a status/result read fails.
+      // Only an ambiguous submit is submission_unknown.
+      return this.rescheduleUnresolved(
+        claimed,
+        generation,
+        "submitted",
+        message,
+        nowIso,
+        expiresAt
       );
-      return "skipped";
     }
+  }
+
+  /**
+   * Re-check an attempt recovery cannot resolve with exponential backoff, and
+   * stop once it is older than {@link UNRESOLVED_ATTEMPT_DEADLINE_MS}. A
+   * stopped attempt's generation becomes `needs_attention` with the reason,
+   * so it shows up for a person instead of being polled forever.
+   */
+  private async rescheduleUnresolved(
+    attempt: GenerationAttempt,
+    generation: Prediction,
+    submissionStatus: "submitted" | "submission_unknown",
+    reason: string,
+    nowIso: string,
+    expiresAt: string
+  ): Promise<"skipped"> {
+    const checks = (attempt.check_attempts ?? 0) + 1;
+    const nowMs = this.now().getTime();
+    const createdMs = Date.parse(attempt.created_at);
+    const expired =
+      Number.isFinite(createdMs) &&
+      nowMs - createdMs >= UNRESOLVED_ATTEMPT_DEADLINE_MS;
+    if (expired) {
+      const generationLease = await Prediction.claimGenerationLease(
+        generation.id,
+        this.workerId,
+        nowIso,
+        expiresAt
+      );
+      // Another worker holds the generation. Keep the attempt scheduled and
+      // stop it on a later pass rather than leave the two rows disagreeing.
+      if (generationLease) {
+        const error =
+          submissionStatus === "submission_unknown"
+            ? `Provider submission could not be confirmed within 24 hours: ${reason}`
+            : `Provider status could not be read within 24 hours: ${reason}`;
+        const projected = await Prediction.transitionDurable(
+          generation.id,
+          this.workerId,
+          generationLease.lease_version,
+          {
+            status: "needs_attention",
+            submission_status: submissionStatus,
+            error,
+            next_check_at: null
+          }
+        );
+        if (projected) {
+          await GenerationAttempt.transition(
+            attempt.id,
+            this.workerId,
+            attempt.lease_version,
+            {
+              submission_status: submissionStatus,
+              provider_status: "unresolved",
+              check_attempts: checks,
+              last_error: error,
+              next_check_at: null
+            }
+          );
+          log.warn("Stopped recovering an unresolved FAL attempt", {
+            generationId: generation.id,
+            attemptId: attempt.id,
+            checks,
+            error
+          });
+          return "skipped";
+        }
+      }
+    }
+    const backoffMs = Math.min(
+      this.leaseMs * 2 ** Math.min(checks - 1, 16),
+      Math.max(this.leaseMs, UNRESOLVED_ATTEMPT_MAX_BACKOFF_MS)
+    );
+    await GenerationAttempt.transition(
+      attempt.id,
+      this.workerId,
+      attempt.lease_version,
+      {
+        submission_status: submissionStatus,
+        provider_status: "unknown",
+        check_attempts: checks,
+        last_error: reason,
+        next_check_at: new Date(nowMs + backoffMs).toISOString()
+      }
+    );
+    return "skipped";
   }
 
   private async finalizeAttempt(
@@ -679,7 +797,7 @@ export class DurableGenerationRecoveryWorker {
     expiresAt: string,
     attemptAlreadyClaimed = false
   ): Promise<"completed" | "failed" | "skipped"> {
-    const generation = await Prediction.find(attempt.generation_id);
+    const generation = await Prediction.findForRecovery(attempt.generation_id);
     if (!generation) return "skipped";
     const observation = record(rawObservation) ?? {};
     const status = asString(observation.status);
@@ -1355,7 +1473,7 @@ export class DurableGenerationRecoveryWorker {
       }
     );
     if (!projected) {
-      const current = await Prediction.find(generation.id);
+      const current = await Prediction.findForRecovery(generation.id);
       const alreadyProjected = current
         ? hasRetryingOutput
           ? current.provider_status === "succeeded" &&

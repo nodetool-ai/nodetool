@@ -672,4 +672,100 @@ describe("durable generation persistence", () => {
     });
     expect(retained[0]?.status).toBe("retrying");
   });
+
+  it("keeps request payloads and parameters out of recovery reads and writes", async () => {
+    const media = `data:image/png;base64,${"A".repeat(4096)}`;
+    const accepted = await Prediction.acceptGenerationWithAttempt({
+      user_id: "u1",
+      provider: "fal_ai",
+      model: "flux",
+      idempotency_key: "large-payload",
+      input_fingerprint: "hash",
+      parameters: { image_url: media },
+      request_payload: { image_url: media }
+    });
+    const now = "2026-09-13T10:00:00.000Z";
+    const expiresAt = "2026-09-13T10:01:00.000Z";
+
+    const [due] = await GenerationAttempt.recoverable(now);
+    expect(due?.id).toBe(accepted.attempt.id);
+    expect(due?.request_payload).toBeUndefined();
+    expect(due?.submission_status).toBe("accepted");
+
+    const lease = await GenerationAttempt.claimLease(
+      accepted.attempt.id,
+      "worker-a",
+      now,
+      expiresAt
+    );
+    expect(lease?.lease_version).toBe(1);
+    expect(lease?.request_payload).toBeUndefined();
+    const moved = await GenerationAttempt.transition(
+      accepted.attempt.id,
+      "worker-a",
+      lease?.lease_version ?? -1,
+      { submission_status: "submission_unknown", check_attempts: 2 }
+    );
+    expect(moved?.check_attempts).toBe(2);
+    expect(moved?.request_payload).toBeUndefined();
+    expect(
+      (await GenerationAttempt.findById(accepted.attempt.id))?.request_payload
+    ).toBeUndefined();
+    expect(await GenerationAttempt.requestPayload(accepted.attempt.id)).toEqual(
+      { image_url: media }
+    );
+
+    const generation = await Prediction.findForRecovery(accepted.generation.id);
+    expect(generation?.user_id).toBe("u1");
+    expect(generation?.parameters).toBeNull();
+    const generationLease = await Prediction.claimGenerationLease(
+      accepted.generation.id,
+      "worker-a",
+      now,
+      expiresAt
+    );
+    expect(generationLease?.parameters).toBeNull();
+    const projected = await Prediction.transitionDurable(
+      accepted.generation.id,
+      "worker-a",
+      generationLease?.lease_version ?? -1,
+      { status: "needs_attention" }
+    );
+    expect(projected?.status).toBe("needs_attention");
+    expect(projected?.parameters).toBeNull();
+    expect((await Prediction.find(accepted.generation.id))?.parameters).toEqual(
+      { image_url: media }
+    );
+  });
+
+  it("stops recovering an attempt marked unresolved", async () => {
+    const accepted = await Prediction.acceptGenerationWithAttempt({
+      user_id: "u1",
+      provider: "fal_ai",
+      model: "flux",
+      idempotency_key: "unresolved",
+      input_fingerprint: "hash"
+    });
+    const now = "2026-09-13T10:00:00.000Z";
+    const lease = await GenerationAttempt.claimLease(
+      accepted.attempt.id,
+      "worker-a",
+      now,
+      "2026-09-13T10:01:00.000Z"
+    );
+    await GenerationAttempt.transition(
+      accepted.attempt.id,
+      "worker-a",
+      lease?.lease_version ?? -1,
+      {
+        submission_status: "submission_unknown",
+        provider_status: "unresolved",
+        next_check_at: null
+      }
+    );
+    const due = await GenerationAttempt.recoverable("2026-09-14T10:00:00.000Z");
+    expect(due.map((attempt) => attempt.id)).not.toContain(
+      accepted.attempt.id
+    );
+  });
 });

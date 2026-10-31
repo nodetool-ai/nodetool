@@ -9,7 +9,8 @@ import {
   ne,
   or,
   sql,
-  asc
+  asc,
+  getTableColumns
 } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
@@ -68,13 +69,19 @@ export type DurableSubmissionStatus =
   | "submitting"
   | "submitted"
   | "submission_unknown";
+/**
+ * `unresolved` is attempt-only: recovery stopped re-checking an attempt it
+ * could not resolve and moved its generation to `needs_attention`. A provider
+ * webhook can still finalize it.
+ */
 export type DurableProviderStatus =
   | "unknown"
   | "queued"
   | "running"
   | "succeeded"
   | "failed"
-  | "cancelled";
+  | "cancelled"
+  | "unresolved";
 export type DurableOutputStatus =
   | "pending"
   | "saving"
@@ -105,6 +112,37 @@ export interface DurableGenerationTransition {
   asset_ids?: string[] | null;
   last_error?: string | null;
 }
+
+function withoutColumn<T extends Record<string, unknown>, K extends keyof T>(
+  columns: T,
+  omitted: K
+): Omit<T, K> {
+  const copy: Record<string, unknown> = { ...columns };
+  delete copy[omitted as string];
+  return copy as Omit<T, K>;
+}
+
+/**
+ * Every generation column except `parameters`, the caller's request
+ * parameters. Those can embed media and run to megabytes, and recovery only
+ * needs status, lease and destination fields. Recovery passes run every 30
+ * seconds, so returning the full row on each read and write multiplies
+ * database egress.
+ */
+const generationRecoveryColumns = withoutColumn(
+  getTableColumns(predictions),
+  "parameters"
+);
+
+/**
+ * Every attempt column except `request_payload`, the provider request body.
+ * It can embed media and is only needed to submit an accepted attempt, so it
+ * is read on its own through {@link GenerationAttempt.requestPayload}.
+ */
+const attemptColumns = withoutColumn(
+  getTableColumns(generationAttempts),
+  "request_payload"
+);
 
 export interface GenerationAttemptObservation {
   provider_status?: DurableProviderStatus;
@@ -468,7 +506,7 @@ export class DurablePrediction extends DBModel {
           )
         )
       )
-      .returning();
+      .returning(generationRecoveryColumns);
     return updated[0] ? new DurablePrediction(updated[0]) : null;
   }
 
@@ -594,8 +632,22 @@ export class DurablePrediction extends DBModel {
           eq(predictions.lease_version, version)
         )
       )
-      .returning();
+      .returning(generationRecoveryColumns);
     return updated[0] ? new DurablePrediction(updated[0]) : null;
+  }
+
+  /**
+   * Read a generation for recovery without `parameters`. A destination
+   * adapter that needs the parameters reads the full row.
+   */
+  static async findForRecovery(id: string): Promise<DurablePrediction | null> {
+    const db = getPortableDb();
+    const rows = await db
+      .select(generationRecoveryColumns)
+      .from(predictions)
+      .where(eq(predictions.id, id))
+      .limit(1);
+    return rows[0] ? new DurablePrediction(rows[0]) : null;
   }
 
   static async recoverableGenerations(
@@ -604,7 +656,7 @@ export class DurablePrediction extends DBModel {
   ): Promise<DurablePrediction[]> {
     const db = getPortableDb();
     const rows = await db
-      .select()
+      .select(generationRecoveryColumns)
       .from(predictions)
       .where(
         and(
@@ -700,7 +752,8 @@ export class GenerationAttempt extends DBModel {
   declare submission_idempotency_key: string | null;
   declare submission_status: string;
   declare provider_status: string;
-  declare request_payload: Record<string, unknown> | null;
+  /** Not loaded by reads in this module. Use {@link GenerationAttempt.requestPayload}. */
+  declare request_payload?: Record<string, unknown> | null;
   declare raw_result_ref: string | null;
   declare lease_owner: string | null;
   declare lease_expires_at: string | null;
@@ -724,12 +777,36 @@ export class GenerationAttempt extends DBModel {
     this.updated_at ??= now;
   }
 
+  /** Read one attempt without its request payload. */
+  static async findById(id: string): Promise<GenerationAttempt | null> {
+    const db = getPortableDb();
+    const rows = await db
+      .select(attemptColumns)
+      .from(generationAttempts)
+      .where(eq(generationAttempts.id, id))
+      .limit(1);
+    return rows[0] ? new GenerationAttempt(rows[0]) : null;
+  }
+
+  /** The stored provider request body, read only when it is resubmitted. */
+  static async requestPayload(
+    id: string
+  ): Promise<Record<string, unknown> | null> {
+    const db = getPortableDb();
+    const rows = await db
+      .select({ request_payload: generationAttempts.request_payload })
+      .from(generationAttempts)
+      .where(eq(generationAttempts.id, id))
+      .limit(1);
+    return rows[0]?.request_payload ?? null;
+  }
+
   static async forGeneration(
     generationId: string
   ): Promise<GenerationAttempt[]> {
     const db = getPortableDb();
     const rows = await db
-      .select()
+      .select(attemptColumns)
       .from(generationAttempts)
       .where(eq(generationAttempts.generation_id, generationId));
     return rows.map(
@@ -780,7 +857,7 @@ export class GenerationAttempt extends DBModel {
       })
       .returning({ id: generationAttempts.id });
     const rows = await db
-      .select()
+      .select(attemptColumns)
       .from(generationAttempts)
       .where(
         and(
@@ -823,7 +900,7 @@ export class GenerationAttempt extends DBModel {
           )
         )
       )
-      .returning();
+      .returning(attemptColumns);
     return updated[0] ? new GenerationAttempt(updated[0]) : null;
   }
 
@@ -875,7 +952,7 @@ export class GenerationAttempt extends DBModel {
           isNull(generationAttempts.provider_request_id)
         )
       )
-      .returning();
+      .returning(attemptColumns);
     return updated[0] ? new GenerationAttempt(updated[0]) : null;
   }
 
@@ -886,7 +963,7 @@ export class GenerationAttempt extends DBModel {
   ): Promise<GenerationAttempt | null> {
     const db = getPortableDb();
     const rows = await db
-      .select()
+      .select(attemptColumns)
       .from(generationAttempts)
       .where(
         and(
@@ -906,7 +983,7 @@ export class GenerationAttempt extends DBModel {
   ): Promise<GenerationAttempt | null> {
     const db = getPortableDb();
     const rows = await db
-      .select()
+      .select(attemptColumns)
       .from(generationAttempts)
       .where(eq(generationAttempts.callback_token_hash, callbackTokenHash))
       .limit(1);
@@ -927,7 +1004,7 @@ export class GenerationAttempt extends DBModel {
       .update(callbackToken)
       .digest("hex");
     const rows = await db
-      .select()
+      .select(attemptColumns)
       .from(generationAttempts)
       .where(
         and(
@@ -959,7 +1036,7 @@ export class GenerationAttempt extends DBModel {
           eq(generationAttempts.lease_version, version)
         )
       )
-      .returning();
+      .returning(attemptColumns);
     return updated[0] ? new GenerationAttempt(updated[0]) : null;
   }
 
@@ -1004,7 +1081,7 @@ export class GenerationAttempt extends DBModel {
           eq(generationAttempts.lease_version, version)
         )
       )
-      .returning();
+      .returning(attemptColumns);
     return updated[0] ? new GenerationAttempt(updated[0]) : null;
   }
 
@@ -1014,7 +1091,7 @@ export class GenerationAttempt extends DBModel {
   ): Promise<GenerationAttempt[]> {
     const db = getPortableDb();
     const rows = await db
-      .select()
+      .select(attemptColumns)
       .from(generationAttempts)
       .where(
         and(
@@ -1337,9 +1414,7 @@ export class GenerationOutput extends DBModel {
     provider_ref?: string | null;
     raw_result?: Record<string, unknown> | null;
   }): Promise<GenerationOutput> {
-    const attempt = await GenerationAttempt.get<GenerationAttempt>(
-      input.attempt_id
-    );
+    const attempt = await GenerationAttempt.findById(input.attempt_id);
     if (!attempt || attempt.generation_id !== input.generation_id) {
       throw new Error("Output attempt does not belong to generation");
     }
