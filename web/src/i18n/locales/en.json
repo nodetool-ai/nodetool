@@ -15874,7 +15874,8 @@
         "entities": "Entities",
         "memory": "Memory",
         "settings": "Settings",
-        "effects": "Effects"
+        "effects": "Effects",
+        "lipsync": "Lipsync"
       }
     },
     "script": {
@@ -19426,5 +19427,23 @@
       "actions": "{{name}} actions",
       "openAsWorkflow": "Open as workflow"
     }
+  },
+  "lipsync": {
+    "title": "Lipsync",
+    "subtitle": "Make a picture speak with a voice you choose.",
+    "entity": "Choose an entity",
+    "entityImage": "Choose an entity with a saved reference image, or upload a picture.",
+    "realPerson": "This is a real person",
+    "consent": "I have this person's consent to use their image in this generated clip.",
+    "line": "What should they say?",
+    "model": "Lipsync video model",
+    "requirements": "Add a picture and a line, then choose a speech model, voice and lipsync model. Results also appear in Generations.",
+    "render": "Render lipsync",
+    "speech": "Generating speech…",
+    "video": "Rendering lipsync…",
+    "failed": "Lipsync failed. {{reason}} Try rendering again.",
+    "result": "Lipsync result",
+    "estimate": "Video list price: {{amount}}. Final cost depends on speech length. Speech is billed separately.",
+    "noEstimate": "No price estimate is available. Speech and video are billed separately."
   }
 }

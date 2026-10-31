@@ -11,6 +11,7 @@ export type PageTabKey =
   | "collections"
   | "workspaces"
   | "entities"
+  | "lipsync"
   | "effects"
   | "memory"
   | "settings";
@@ -25,6 +26,7 @@ export const PAGE_TAB_TITLES = {
   collections: "Collections",
   workspaces: "Workspaces",
   entities: "Entities",
+  lipsync: "Lipsync",
   effects: "Effects",
   memory: "Memory",
   settings: "Settings"

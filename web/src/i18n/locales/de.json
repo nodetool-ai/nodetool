@@ -15874,7 +15874,8 @@
         "entities": "Entitäten",
         "memory": "Erinnerung",
         "settings": "Einstellungen",
-        "effects": "Effekte"
+        "effects": "Effekte",
+        "lipsync": "Lippensynchronisation"
       }
     },
     "script": {
@@ -19426,5 +19427,23 @@
       "actions": "Aktionen für {{name}}",
       "openAsWorkflow": "Als Workflow öffnen"
     }
+  },
+  "lipsync": {
+    "title": "Lippensynchronisation",
+    "subtitle": "Lass ein Bild mit einer Stimme deiner Wahl sprechen.",
+    "entity": "Entität auswählen",
+    "entityImage": "Wähle eine Entität mit gespeichertem Referenzbild oder lade ein Bild hoch.",
+    "realPerson": "Dies ist eine echte Person",
+    "consent": "Ich habe die Zustimmung dieser Person, ihr Bild in diesem generierten Clip zu verwenden.",
+    "line": "Was soll die Person sagen?",
+    "model": "Videomodell für Lippensynchronisation",
+    "requirements": "Füge ein Bild und einen Text hinzu. Wähle dann ein Sprachmodell, eine Stimme und ein Modell für Lippensynchronisation. Ergebnisse erscheinen auch unter Generierungen.",
+    "render": "Lippensynchronisation rendern",
+    "speech": "Sprache wird generiert…",
+    "video": "Lippensynchronisation wird gerendert…",
+    "failed": "Lippensynchronisation fehlgeschlagen. {{reason}} Versuche es erneut.",
+    "result": "Ergebnis der Lippensynchronisation",
+    "estimate": "Video-Listenpreis: {{amount}}. Die endgültigen Kosten hängen von der Sprachlänge ab. Sprache wird separat abgerechnet.",
+    "noEstimate": "Keine Preisschätzung verfügbar. Sprache und Video werden separat abgerechnet."
   }
 }

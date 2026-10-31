@@ -916,6 +916,18 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "lipsync-studio",
+    title: "Lipsync studio consent and speech-to-video flow",
+    command: "npm run test:journeys --workspace=web -- lipsync-studio.spec.ts",
+    kind: "meta",
+    capabilities: ["browser"],
+    docs: "docs/presets.md",
+    selfcheck: {
+      command: "npm run test --workspace=web -- --runInBand --runTestsByPath src/stores/__tests__/LipsyncStudioStore.test.ts src/components/lipsync/__tests__/LipsyncStudio.test.tsx",
+      cost: "cheap"
+    }
+  },
+  {
     id: "provider-contract",
     title:
       "Provider contract probes (raw response fixtures + one live request per provider)",
@@ -2290,6 +2302,12 @@ export const SURFACES: SurfaceEntry[] = [
       // groups it with the node packages for the same reason.
       "packages/workflow-runner/"
     ]
+  },
+  {
+    id: "lipsync-studio",
+    title: "Lipsync studio",
+    harnesses: ["lipsync-studio"],
+    paths: ["web/src/components/lipsync/", "web/src/stores/LipsyncStudioStore.ts", "web/tests/journeys/lipsync-studio.spec.ts"]
   },
   {
     id: "presets",

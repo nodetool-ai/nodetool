@@ -41,6 +41,8 @@ import type { RunJobRequest } from "./job-execution.js";
 
 const log = createLogger("nodetool.websocket.runner");
 const referenceMediaDataSchema = generateMediaDataSchema.pick({
+  audio_asset_id: true,
+  person_consent: true,
   preset_ids: true,
   timeline_context: true,
   capability: true,
@@ -865,6 +867,7 @@ export class CommandRouter {
         | "upscale"
         | "outpaint"
         | "video"
+        | "audio_to_video"
         | "video_edit"
         | "video_extend"
         | "audio"
@@ -879,7 +882,9 @@ export class CommandRouter {
                 ? "outpaint"
                 : rawMode === "video"
               ? "video"
-              : rawMode === "video_edit"
+              : rawMode === "audio_to_video"
+                ? "audio_to_video"
+                : rawMode === "video_edit"
                 ? "video_edit"
                 : rawMode === "video_extend"
                   ? "video_extend"
@@ -987,6 +992,8 @@ export class CommandRouter {
           model,
           prompt,
           sourceAssetId,
+          audioAssetId: references.audio_asset_id,
+          personConsent: references.person_consent,
           maskAssetId,
           width,
           height,

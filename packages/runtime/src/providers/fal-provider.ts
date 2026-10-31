@@ -1969,11 +1969,11 @@ export class FalProvider extends BaseProvider {
   ): Promise<Uint8Array> {
     const modelId = params.model.id;
     const [videoUrl, audioUrl] = await Promise.all([
-      this.upload(video, "video/mp4"),
-      this.upload(params.audio, "audio/mpeg")
+      this.upload(video, params.visualMimeType ?? "video/mp4"),
+      this.upload(params.audio, params.audioMimeType ?? "audio/mpeg")
     ]);
     const b = new FalArgsBuilder(modelId);
-    b.attachAsset("video", videoUrl).attachAsset("audio", audioUrl);
+    b.attachAsset(params.visualMimeType?.startsWith("image/") ? "image" : "video", videoUrl).attachAsset("audio", audioUrl);
     if (params.seed != null && params.seed !== -1) b.set("seed", params.seed);
     log.debug("FAL lipSync", { model: modelId });
     return this.runVideoEndpoint(modelId, b.args);

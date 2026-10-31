@@ -289,7 +289,7 @@ export class FakeProvider extends ScriptedProvider {
         id: modelId(name),
         name,
         provider: this.fakeProviderId,
-        supportedTasks: ["text_to_video", "image_to_video"]
+        supportedTasks: ["text_to_video", "image_to_video", "audio_to_video"]
       })
     );
   }
@@ -314,7 +314,7 @@ export class FakeProvider extends ScriptedProvider {
         : []),
       ...((catalog?.speech.length ?? 0) > 0 ? (["text_to_speech"] as const) : []),
       ...((catalog?.video.length ?? 0) > 0
-        ? (["text_to_video", "image_to_video"] as const)
+        ? (["text_to_video", "image_to_video", "lip_sync"] as const)
         : [])
     ];
   }
@@ -329,6 +329,10 @@ export class FakeProvider extends ScriptedProvider {
     params: ImageToVideoParams
   ): Promise<Uint8Array> {
     return CLIP_SOURCE.imageToVideo(image, params);
+  }
+
+  override async lipSync(visual: Uint8Array, params: Parameters<BaseProvider["lipSync"]>[1]): Promise<Uint8Array> {
+    return CLIP_SOURCE.lipSync(visual, params);
   }
 
   /** Speech is silence whose length follows the text. */

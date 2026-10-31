@@ -553,6 +553,8 @@ Acceptance: component tests for one prompt box per surface.
 
 ### P18: Lipsync studio
 
+Status: done.
+
 - A surface that takes an entity or image, a line of text, a voice and a
   lipsync model, and renders a clip: speech first, then the audio-to-video
   mode. Reuse the speech path behind `voice_script_lines` and the

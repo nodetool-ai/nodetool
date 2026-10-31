@@ -220,7 +220,7 @@ export const ONBOARDING_PROVIDERS: OnboardingProvider[] = [
     secretKey: "FAL_API_KEY",
     icon: falColorIcon,
     tagline: "Fast image and video generation (FLUX and more).",
-    capabilities: ["text_to_image", "text_to_video"],
+    capabilities: ["text_to_image", "text_to_video", "lip_sync"],
     stepCapabilities: [
       "image_to_image",
       "inpainting",
@@ -245,6 +245,7 @@ export const ONBOARDING_PROVIDERS: OnboardingProvider[] = [
     capabilities: [
       "text_to_image",
       "text_to_video",
+      "lip_sync",
       "text_to_music",
       "generate_message"
     ],
@@ -285,6 +286,7 @@ export const CAPABILITY_LABELS = {
   text_to_music: "music generation",
   audio_to_audio: "audio transforms (voice change, isolation, separation)",
   text_to_video: "video generation",
+  lip_sync: "lipsync video",
   generate_embedding: "embeddings",
   text_to_3d: "3D generation",
   image_to_3d: "3D generation from images"

@@ -61,6 +61,7 @@ export interface DirectMediaGenerationRequest {
     | "upscale"
     | "outpaint"
     | "video"
+    | "audio_to_video"
     | "video_edit"
     | "video_extend"
     | "audio"
@@ -69,6 +70,8 @@ export interface DirectMediaGenerationRequest {
   model: string;
   prompt: string;
   sourceAssetId?: string;
+  audioAssetId?: string;
+  personConsent?: { real_person: boolean; confirmed: boolean };
   maskAssetId?: string;
   width?: number;
   height?: number;
@@ -764,6 +767,12 @@ export class DirectInferenceHandler {
     if (!req.model) {
       throw new Error("model is required");
     }
+    if (req.personConsent?.real_person && !req.personConsent.confirmed) {
+      throw new Error("Confirm the person's consent before generating.");
+    }
+    if (req.mode === "audio_to_video" && (!req.sourceAssetId || !req.audioAssetId)) {
+      throw new Error("audio_to_video requires source_asset_id and audio_asset_id");
+    }
     // An upscale or a reframe works from the image alone; the prompt is an
     // optional hint there. A preset supplies its own text, so a request that
     // names one needs no prompt of its own (the effects gallery sends none).
@@ -1183,6 +1192,29 @@ export class DirectInferenceHandler {
       return { asset_ids: [assetId] };
     }
 
+    if (req.mode === "audio_to_video") {
+      if (!req.sourceAssetId || !req.audioAssetId) {
+        throw new Error("audio_to_video requires source_asset_id and audio_asset_id");
+      }
+      const source = await Asset.find(userId, req.sourceAssetId);
+      const audio = await Asset.find(userId, req.audioAssetId);
+      if (!source?.content_type.startsWith("image/") || !audio?.content_type.startsWith("audio/")) {
+        throw new Error("Lipsync requires an owned image and audio asset");
+      }
+      const [imageBytes, audioBytes] = await Promise.all([
+        retrieveSourceAssetBytes(userId, source.id),
+        retrieveSourceAssetBytes(userId, audio.id)
+      ]);
+      const generated = await generate("lip_sync", {
+        prompt, source_asset_id: source.id, audio_asset_id: audio.id,
+        person_consent: req.personConsent, duration_seconds: req.durationSeconds
+      }, { mime: "video/mp4" }, () => provider.lipSync(imageBytes, {
+        model: { id: req.model, name: req.model, provider: req.provider },
+        audio: audioBytes, visualMimeType: source.content_type, audioMimeType: audio.content_type
+      }));
+      return { asset_ids: [seamAssetId(generated) ?? await storeAsset(generated.output, "video/mp4", "mp4")] };
+    }
+
     if (req.mode === "video_edit" || req.mode === "video_extend") {
       if (!req.sourceAssetId) {
         throw new Error(`source_asset_id is required for ${req.mode}`);
@@ -1306,6 +1338,7 @@ export class DirectInferenceHandler {
           ? { prompt, duration_seconds: req.durationSeconds }
           : {
               text: prompt,
+              person_consent: req.personConsent,
               voice: req.voice,
               speed: req.speed,
               language: req.language,
