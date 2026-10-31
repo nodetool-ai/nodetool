@@ -16,8 +16,9 @@ function(nt_app_tests)
     add_test(NAME peaks_check_plan COMMAND node --test ${CMAKE_CURRENT_SOURCE_DIR}/scripts/conformance/peaks-check.test.mjs)
     # The bundle dependency audit of scripts/macho-deps.py (review F5): builds
     # tiny Mach-O files with clang.
+    find_program(NT_PYTHON3 NAMES python3 NO_CACHE REQUIRED)
+    add_test(NAME macho_notices COMMAND ${NT_PYTHON3} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/macho-notices.test.py)
     if(APPLE)
-        find_program(NT_PYTHON3 NAMES python3 NO_CACHE REQUIRED)
         add_test(NAME macho_deps COMMAND ${NT_PYTHON3} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/macho-deps.test.py)
     endif()
 endfunction()
