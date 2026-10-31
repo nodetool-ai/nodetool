@@ -217,7 +217,7 @@ export async function startNativeBrowserPlayer(options: {
   const host: NativePresentationHost = {
     subscribe(listener) { listeners.add(listener); return () => listeners.delete(listener); },
     pause() { paused = true; clock.pause(); bindings.releaseAll(); void audio.suspend().catch(onError); },
-    resume() { if (!graphicsLost && !options.canvas.ownerDocument.hidden) { paused = false; clock.pause(false); void audio.resume().catch(onError); } },
+    resume() { if (!graphicsLost && !options.canvas.ownerDocument.hidden) { if (paused) { bindings.releaseAll(); input.sample(); } paused = false; clock.pause(false); void audio.resume().catch(onError); } },
     async close() { closed = true; cancelAnimationFrame(animation); controller.abort(); bindings.dispose(); observer.disconnect(); storage.close(); assets.dispose(); await session.close(); }
   };
   const presentation = createNativePresentationPlayer({ host, renderer, hud, audio, onError,

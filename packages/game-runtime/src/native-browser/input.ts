@@ -42,6 +42,8 @@ export class NativeBrowserInput {
   private readonly digitalPresses = new Set<string>();
   private readonly edges: NativeInputEdge[] = [];
   private sequence = 0;
+  private lookX = 0;
+  private lookY = 0;
   private pointer: { x: number; y: number; down: boolean } | undefined;
   constructor(private readonly dimension: "2d" | "3d" = "3d") {}
   set(action: string, value: number | boolean): void {
@@ -62,7 +64,14 @@ export class NativeBrowserInput {
     if (!Number.isFinite(x) || !Number.isFinite(y)) { throw new Error("Invalid native pointer coordinates"); }
     this.pointer = { x, y, down };
   }
+  addLook(x: number, y: number): void {
+    if (this.dimension !== "3d") { return; }
+    const nextX = this.lookX + x, nextY = this.lookY + y;
+    if (!Number.isFinite(x) || !Number.isFinite(y) || Math.abs(nextX) > 1_000_000 || Math.abs(nextY) > 1_000_000) { throw new Error("Native look input limit reached"); }
+    this.lookX = nextX; this.lookY = nextY;
+  }
   releaseAll(): void {
+    this.lookX = 0; this.lookY = 0;
     for (const [action, value] of this.held) { if (value) { this.set(action, typeof value === "boolean" ? false : 0); } }
     // Blur/pause/reset cancels unstaged action pulses. Ordered press/release edges remain available.
     this.digitalPresses.clear();
@@ -78,8 +87,9 @@ export class NativeBrowserInput {
     const value: Record<string, unknown> = { actions, move: this.dimension === "2d" ? { x: horizontal, y: vertical } : [horizontal, 0, vertical ? -vertical : 0],
       jump: Boolean(actions.jump), edges: this.edges };
     if (this.pointer) { value.pointer = this.pointer; }
+    if (this.lookX || this.lookY) { value.look = { x: this.lookX, y: this.lookY }; }
     const input = nativeRuntimeInput.parse(value);
-    this.edges.length = 0; this.digitalPresses.clear(); return input;
+    this.edges.length = 0; this.digitalPresses.clear(); this.lookX = 0; this.lookY = 0; return input;
   }
 }
 
@@ -97,6 +107,7 @@ export function attachNativeBrowserInput(input: NativeBrowserInput, target: HTML
   const allBindings = [...NATIVE_DEFAULT_INPUT_BINDINGS, ...bindings];
   const bindingActions = new Map<string, Set<string>>(), actionBindings = new Map<string, Set<string>>();
   const values = new Map<string, number | boolean>();
+  let drag: { pointerId: number; x: number; y: number } | undefined;
   for (const entry of allBindings) {
     const actions = bindingActions.get(entry.binding) ?? new Set<string>(); actions.add(entry.action); bindingActions.set(entry.binding, actions);
     const sources = actionBindings.get(entry.action) ?? new Set<string>(); sources.add(entry.binding); actionBindings.set(entry.action, sources);
@@ -112,15 +123,24 @@ export function attachNativeBrowserInput(input: NativeBrowserInput, target: HTML
       input.set(action, amount);
     }
   };
-  const release = (): void => { values.clear(); input.releaseAll(); };
+  const release = (): void => { drag = undefined; values.clear(); input.releaseAll(); };
   target.addEventListener("keydown", (event) => { if (!event.repeat) { apply(`key:${event.code}`, true); } }, { signal });
   window.addEventListener("keyup", (event) => apply(`key:${event.code}`, false), { signal });
   target.addEventListener("pointerdown", (event) => {
+    if (event.button === 0 || event.button === 2) { drag = { pointerId: event.pointerId, x: event.clientX, y: event.clientY }; }
     apply(`pointer:${event.button}`, true); input.setPointer(event.offsetX, event.offsetY, true);
     if (target.hasPointerCapture && !target.hasPointerCapture(event.pointerId)) { target.setPointerCapture(event.pointerId); }
   }, { signal });
-  target.addEventListener("pointermove", (event) => input.setPointer(event.offsetX, event.offsetY, event.buttons !== 0), { signal });
+  target.addEventListener("pointermove", (event) => {
+    input.setPointer(event.offsetX, event.offsetY, event.buttons !== 0);
+    if (target.ownerDocument.pointerLockElement === target) { input.addLook(event.movementX, event.movementY); }
+    else if (drag?.pointerId === event.pointerId && (event.buttons & 3)) {
+      input.addLook(event.clientX - drag.x, event.clientY - drag.y);
+      drag = { pointerId: event.pointerId, x: event.clientX, y: event.clientY };
+    }
+  }, { signal });
   window.addEventListener("pointerup", (event) => {
+    if (drag?.pointerId === event.pointerId && !(event.buttons & 3)) { drag = undefined; }
     apply(`pointer:${event.button}`, false);
     const bounds = target.getBoundingClientRect(); input.setPointer(event.clientX - bounds.left, event.clientY - bounds.top, false);
   }, { signal });
