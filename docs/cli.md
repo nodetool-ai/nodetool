@@ -3157,3 +3157,19 @@ again, and a person can read the transcript before any model proposes anything.
 - Set `NODETOOL_API_URL` environment variable to avoid specifying `--api-url` on every command.
 - Use `nodetool serve` to start the local backend server before running API commands.
 - See [Environment Variables](configuration.md#environment-variables-index) for a complete list of configurable variables.
+
+## Generation presets
+
+Install the `cli-models` command feature to browse and compile the shipped catalogue.
+
+```bash
+nodetool presets list --kind camera --mode video --family kling
+nodetool presets show camera.bullet-time
+nodetool presets compile camera.bullet-time --model fal-ai/kling-video/v3/pro/text-to-video
+nodetool presets eject camera.bullet-time --model fal-ai/kling-video/v3/pro/text-to-video --provider fal --out workflow.json
+```
+
+Compilation accepts up to three ids, `--mode` (default `video`), `--prompt` and
+`--provider` for managed model delegation. It prints JSON containing `prompt`,
+`params`, `applied` and `warnings`. Ejection accepts `--mode` and prints workflow
+JSON when `--out` is omitted.

@@ -1073,6 +1073,17 @@ describe("clip length on the video capabilities", () => {
     }
   });
 
+  it("generate_video compiles presets for the selected model before provider work", async () => {
+    const context = videoContext();
+    await asTool(generateVideo).process(context, {
+      provider: "fal_ai",
+      model: "fal-ai/kling-video/v3/pro/text-to-video",
+      prompt: "a red fox in snow",
+      preset_ids: ["camera.bullet-time"]
+    });
+    expect(paramsOf(context)["prompt"]).toBe("a red fox in snow Camera arcs around the subject while the action hangs nearly frozen in time.");
+  });
+
   it("generate_video forwards duration_seconds to text_to_video", async () => {
     const context = videoContext();
     await asTool(generateVideo).process(context, {

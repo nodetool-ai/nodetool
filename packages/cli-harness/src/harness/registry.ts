@@ -281,6 +281,7 @@ const CLI_COMMAND_PACKAGES = [
 ];
 
 export const HARNESSES: HarnessEntry[] = [
+  { id: "preset-compilation", title: "Preset compilation across model families", command: "npm run test --workspace=packages/presets -- compile-all", kind: "execution", capabilities: ["gated:pr"], docs: "packages/presets/README.md", selfcheck: { command: "npm run test --workspace=packages/presets -- compile-all", cost: "cheap" } },
   {
     id: "preset-ejection",
     title: "Preset workflow ejection",
@@ -2293,7 +2294,7 @@ export const SURFACES: SurfaceEntry[] = [
   {
     id: "presets",
     title: "Generation presets",
-    harnesses: ["shared-services", "preset-ejection"],
+    harnesses: ["shared-services", "preset-ejection", "preset-compilation"],
     paths: ["packages/presets/"]
   },
   {

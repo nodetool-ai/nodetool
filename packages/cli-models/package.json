@@ -34,7 +34,9 @@
     "@nodetool-ai/cli-providers": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/pack-manager": "*",
-    "zod": "^4.1.13"
+    "zod": "^4.1.13",
+    "@nodetool-ai/presets": "*",
+    "@nodetool-ai/config": "*"
   },
   "devDependencies": {
     "vitest": "^5.0.1",

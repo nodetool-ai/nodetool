@@ -1,3 +1,4 @@
+import { presetsSpecs } from "./presets.specs.js";
 import type { CapabilitySpec } from "./types.js";
 import { agentsSpecs } from "./agents.specs.js";
 import { analysisSpecs } from "./analysis.specs.js";
@@ -44,6 +45,7 @@ import { videoProductionSpecs } from "./video-production.specs.js";
 import { workflowsSpecs } from "./workflows.specs.js";
 
 export const CAPABILITY_SPECS = {
+  presets: presetsSpecs,
   workflows: workflowsSpecs,
   models: modelsSpecs,
   media: mediaSpecs,

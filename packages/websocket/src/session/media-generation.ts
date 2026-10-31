@@ -12,15 +12,13 @@
  */
 
 import { randomUUID } from "node:crypto";
-
 import { z } from "zod";
+
 import {
-  compilePresets,
+  compileMediaPresets as compileSharedMediaPresets,
   loadCatalog,
   type CompiledPresets,
-  type PresetMode
 } from "@nodetool-ai/presets";
-import { resolveNodetoolDelegate } from "@nodetool-ai/protocol";
 import { createLogger, loadPackageAssetJson } from "@nodetool-ai/config";
 import { encryptFernet, getMasterKey } from "@nodetool-ai/security";
 import { Asset, Prediction } from "@nodetool-ai/models";
@@ -45,85 +43,14 @@ import { storeAssetWithThumbnail } from "../lib/thumbnail.js";
 
 const log = createLogger("nodetool.websocket.media-generation");
 
-/** Compile at the media boundary before provider work. */
-export function compileMediaPresets(
-  ids: unknown,
-  provider: string,
-  model: string,
-  mode: string,
-  prompt: string
-): CompiledPresets {
-  const presetIds =
-    z.array(z.string().min(1)).max(3).optional().parse(ids) ?? [];
-  if (!presetIds.length) {
-    return { prompt, params: {}, applied: [], warnings: [] };
-  }
-  let presetMode: PresetMode;
-  switch (mode) {
-    case "image":
-    case "image_edit":
-    case "video":
-    case "image_to_video":
-    case "reference_to_video":
-      presetMode = mode;
-      break;
-    default:
-      throw new Error(`Presets do not support mode ${mode}`);
-  }
-  const catalog = loadCatalog(() =>
-    loadPackageAssetJson(
-      { pkg: "@nodetool-ai/presets", path: "preset-catalog.json" },
-      import.meta.url
-    )
-  );
-  const task =
-    presetMode === "video"
-      ? "text_to_video"
-      : presetMode === "image_edit"
-        ? "image_to_image"
-        : presetMode === "image"
-          ? "text_to_image"
-          : presetMode;
-  const modelId =
-    provider === "nodetool"
-      ? (resolveNodetoolDelegate(model, task)?.model ?? model)
-      : model;
-  return compilePresets(presetIds, {
-    modelId,
-    mode: presetMode,
-    prompt,
-    catalog
-  });
+export function compileMediaPresets(ids: unknown, provider: string, model: string, mode: string, prompt: string): CompiledPresets {
+  const parsed = z.array(z.string().min(1)).max(3).optional().parse(ids) ?? [];
+  if (!parsed.length) { return { prompt, params: {}, applied: [], warnings: [] }; }
+  return compileSharedMediaPresets(parsed, provider, model, mode, prompt, loadCatalog(() =>
+    loadPackageAssetJson({ pkg: "@nodetool-ai/presets", path: "preset-catalog.json" }, import.meta.url)
+  ));
 }
-
-/** Restrict catalogue parameters to settings accepted by the mode. */
-export function mediaPresetSettings(
-  compiled: CompiledPresets,
-  mode: string
-): Record<string, string | number | boolean> {
-  const keys =
-    mode === "image"
-      ? ["width", "height", "aspect_ratio", "resolution", "seed"]
-      : mode === "image_edit"
-        ? [
-            "width",
-            "height",
-            "strength",
-            "num_inference_steps",
-            "seed",
-            "aspect_ratio",
-            "resolution"
-          ]
-        : [
-            "aspect_ratio",
-            "resolution",
-            "duration_seconds",
-            "num_inference_steps"
-          ];
-  return Object.fromEntries(
-    Object.entries(compiled.params).filter(([key]) => keys.includes(key))
-  );
-}
+export { mediaPresetSettings } from "@nodetool-ai/presets";
 
 export interface GenerationRunOptions {
   presets?: CompiledPresets;
