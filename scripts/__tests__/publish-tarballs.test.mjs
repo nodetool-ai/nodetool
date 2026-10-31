@@ -30,7 +30,7 @@ function fixtureRepository(root) {
   writeFileSync(join(root, "package.json"), '{"type":"module"}');
   mkdirSync(join(root, "packages/protocol/dist"), { recursive: true });
   writeFileSync(join(root, "packages/protocol/dist/runtime-npm-packages.js"), 'export const RUNTIME_NPM_PACKAGES = { typescript: { npmPackages: ["typescript@npm:@typescript/typescript6@6.0.2"], packageNames: ["typescript"] } };');
-  for (const name of ["mediabunny", "@mediabunny/server"]) {
+  for (const name of ["mediabunny"]) {
     mkdirSync(join(root, "node_modules", name), { recursive: true });
     writeFileSync(join(root, "node_modules", name, "package.json"), JSON.stringify({ name, version: "4.5.6" }));
   }
@@ -167,10 +167,9 @@ if (args[0] === "pack") {
       expect(pinned.installPins).toEqual(expect.arrayContaining([
         { name: "@nodetool-ai/game-renderer", version: "1.2.3", integrity: packs.find(call => call.name === "@nodetool-ai/game-renderer").integrity },
         { name: "@typescript/typescript6", installName: "typescript", version: "6.0.2", integrity: expect.stringMatching(/^sha512-/), installBytes: expect.any(Number) },
-        { name: "mediabunny", version: "4.5.6", shared: true, integrity: expect.stringMatching(/^sha512-/) },
-        { name: "@mediabunny/server", version: "4.5.6", shared: true, integrity: expect.stringMatching(/^sha512-/) }
+        { name: "mediabunny", version: "4.5.6", shared: true, integrity: expect.stringMatching(/^sha512-/) }
       ]));
-      expect(pinned.installPins).toHaveLength(4);
+      expect(pinned.installPins).toHaveLength(3);
       expect(pinned.installPins.find(pin => pin.installName === "typescript").installBytes).toBeGreaterThan(0);
     } finally {
       rmSync(root, { recursive: true, force: true });

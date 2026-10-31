@@ -28,7 +28,7 @@ export async function prepareTreeVerification(selection: InstallSelection, cliRo
     return pin;
   }));
   const shared = installPins.filter((pin) => pin.shared);
-  for (const name of ["mediabunny", "@mediabunny/server"]) {
+  for (const name of ["mediabunny"]) {
     if (before.some((entry) => entry.name === name) && !shared.some((pin) => pin.name === name)) {
       throw new Error(`Shared library ${name} has no integrity pin`);
     }
@@ -52,7 +52,7 @@ export async function prepareTreeVerification(selection: InstallSelection, cliRo
     for (const pin of pins) {
       const existing = before.filter((entry) => entry.name === pin.name && (!pin.installPath || entry.path === pin.installPath));
       if (existing.some((entry) => entry.version !== pin.version)) { throw new Error(`Global baseline package version differs from pin: ${pin.name}`); }
-      if (shared.some((identity) => identity.name === pin.name) && existing.length !== 1) { throw new Error(`Shared library must exist exactly once: ${pin.name}`); }
+      if (shared.some((identity) => identity.name === pin.name) && existing.length > 1) { throw new Error(`Shared library must exist exactly once: ${pin.name}`); }
     }
   }
   assertTreePins(before, before, pins.filter((pin) => before.some((entry) => entry.name === pin.name && (!pin.installPath || entry.path === pin.installPath) && (!initialGlobalLockMissing || entry.integrity !== undefined))), coreNames, selection.coreVersion);

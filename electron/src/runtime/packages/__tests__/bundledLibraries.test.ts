@@ -10,7 +10,7 @@ const context: RuntimeContext = {
   platform: "linux", arch: "x64", log: jest.fn()
 };
 
-it.each(["imaging", "typescript", "tracing", "esbuild", "rapier"] as const)(
+it.each(["imaging", "typescript", "tracing", "esbuild", "rapier", "media-codecs", "webgpu"] as const)(
   "%s is included and has no npm installation lifecycle",
   async (id) => {
     const pkg = RUNTIME_PACKAGES[id];

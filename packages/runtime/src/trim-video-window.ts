@@ -1,4 +1,4 @@
-import { trimVideo } from "./media/convert.js";
+import { loadMediaModule } from "./media-loader.js";
 import { withTaskSpan } from "./tracing-helpers.js";
 
 /**
@@ -25,6 +25,7 @@ export async function trimVideoWindow(
     );
   }
   signal?.throwIfAborted();
+  const { trimVideo } = await loadMediaModule();
   return withTaskSpan(
     "cpu",
     "media.trim_video_window",

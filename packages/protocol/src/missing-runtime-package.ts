@@ -31,7 +31,9 @@ export type RuntimePackageId =
   | "typescript"
   | "tracing"
   | "rapier"
-  | "esbuild";
+  | "esbuild"
+  | "media-codecs"
+  | "webgpu";
 
 /** Display names for the runtime packages, as the Package Manager lists them. */
 export const RUNTIME_PACKAGE_NAMES: Readonly<Record<RuntimePackageId, string>> = {
@@ -56,7 +58,9 @@ export const RUNTIME_PACKAGE_NAMES: Readonly<Record<RuntimePackageId, string>> =
   typescript: "TypeScript",
   tracing: "Execution Tracing",
   rapier: "3D Game Physics",
-  esbuild: "Sandbox Compiler"
+  esbuild: "Sandbox Compiler",
+  "media-codecs": "Audio & Video Codecs",
+  webgpu: "WebGPU (Dawn)"
 };
 
 const MISSING_RUNTIME_PACKAGE = Symbol.for("nodetool.missingRuntimePackage");

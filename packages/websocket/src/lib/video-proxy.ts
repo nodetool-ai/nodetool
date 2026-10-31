@@ -53,12 +53,8 @@ import { externalAssetsAvailable } from "./external-assets.js";
 import { verifiedExternalPath } from "./external-asset-lookup.js";
 import { getAssetAdapter } from "./storage.js";
 import { isObjectLike } from "./wire-values.js";
-import {
-  hasEncoder,
-  probeVideoStream,
-  transcodeVideo,
-  type VideoEncoderSpec
-} from "@nodetool-ai/runtime/media";
+import type { VideoEncoderSpec } from "@nodetool-ai/runtime/media";
+import { loadMediaModule } from "@nodetool-ai/runtime";
 import { withTaskSpan } from "@nodetool-ai/runtime/tracing";
 
 const log = createLogger("nodetool.video-proxy");
@@ -262,7 +258,7 @@ export interface VideoProbe {
 /** The first video stream's size, or null when the file has none. */
 export async function probeVideo(filePath: string): Promise<VideoProbe | null> {
   // A file Mediabunny cannot read answers null; the encode would fail the same way.
-  const video = await probeVideoStream(filePath);
+  const video = await (await loadMediaModule()).probeVideoStream(filePath);
   if (!video || !(video.width > 0) || !(video.height > 0)) return null;
   return {
     width: video.width,
@@ -278,7 +274,9 @@ let encoderPromise: Promise<"h264" | "vp9"> | null = null;
 
 /** libx264 when the bundled libav has it, else VP9. Asked once per process. */
 function proxyCodec(): Promise<"h264" | "vp9"> {
-  encoderPromise ??= hasEncoder("libx264").then((has) => (has ? "h264" : "vp9"));
+  encoderPromise ??= loadMediaModule()
+    .then(({ hasEncoder }) => hasEncoder("libx264"))
+    .then((has) => (has ? "h264" : "vp9"));
   return encoderPromise;
 }
 
@@ -338,6 +336,7 @@ export async function encodeVideoProxy(
       muxerOptions.video_track_timescale = String(probe.timescale);
     }
   }
+  const { transcodeVideo } = await loadMediaModule();
   await withTaskSpan(
     "cpu",
     "video.encode_proxy",
