@@ -1,5 +1,6 @@
 #include "app/EditRegistry.h"
 #include "wiring/WiringFixture.h"
+#include "wiring/SourceDurations.h"
 #include "model/TimelineJson.h"
 #include "edit/ClipGestureController.h"
 #include "playback/PlaybackClock.h"
@@ -194,7 +195,12 @@ private slots:
         fixture.insert("clips", QJsonArray{outgoing, incoming});
         auto parsed = nt::parseTimelineJson(QJsonDocument(fixture).toJson()); QVERIFY(parsed.timeline);
         model.setTimeline(std::move(*parsed.timeline));
-        if (finite) { QTRY_COMPARE(gestures()->sourceCapMs("c"), 4000.0); }
+        if (finite) {
+            // sourceCapMs also returns the existing out-point before probing finishes.
+            const auto path = outgoing.value("mediaPath").toString();
+            QTRY_COMPARE(nt::wiring::knownSourceDuration(path).value_or(-1.0), 4000.0);
+            QCOMPARE(gestures()->sourceCapMs("c"), 4000.0);
+        }
         QCoreApplication::processEvents();
         auto* grip = item("clip-transition-handle-d");
         QVERIFY2(grip, "B33: production transition wedge needs its Transition length grip");
