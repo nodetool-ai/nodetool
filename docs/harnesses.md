@@ -2621,7 +2621,7 @@ instead.
 
 ## Native Qt presentation checks
 
-The native UI library has a standalone [build and test interface](../native/ui_primitives/README.md).
+The native UI library has a standalone [build and test interface](https://github.com/nodetool-ai/nodetool/blob/main/native/ui_primitives/README.md).
 Its checks read native configuration and sources. They do not import web tokens
 or require npm packages.
 
@@ -2641,7 +2641,7 @@ and loads its packaged QML resources offscreen.
 `harness gate` runs the Python contracts for changes to the primitive module
 or migrated QML chrome. It reports Qt interaction tests as manual work when
 run outside the dedicated native workflow. The standalone
-[`native-ui-primitives` workflow](../.github/workflows/native-ui-primitives.yml)
+[`native-ui-primitives` workflow](https://github.com/nodetool-ai/nodetool/blob/main/.github/workflows/native-ui-primitives.yml)
 provides Qt and runs the native tests separately from web and backend builds.
 Offscreen tests do not establish physical mixed-DPI behavior, screen-reader
 compatibility, or operating-system IME behavior.
