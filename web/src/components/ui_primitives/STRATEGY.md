@@ -87,6 +87,9 @@ Media that is being generated shows `MagicGenerationFill` over its host: the ske
 ### Media (the media-locator rendering boundary)
 `ResponsiveImage` | `VideoPlayer` | `AudioPlayback`
 
+### Presets
+`PresetCard` (poster, muted preview loop through a `bare` `VideoPlayer` on hover or focus, paused under `prefers-reduced-motion`, name, family badges, caller-supplied `costHint`; presets without a preview show their description) | `PresetPicker` (searchable grid with kind and tag filters, up to three presets, disabled cards explain themselves in a tooltip, one tab stop with arrow-key navigation, removable chips). Stack rules come from `canAddPreset` in `@nodetool-ai/presets`, the same pair rules `compilePresets` applies. Preset names and descriptions are localized from the generated `preset_catalog` locale block: `npm run i18n:presets --workspace=web` writes it and `i18n:presets:check` fails on drift. Preview URLs are public https URLs and reach elements through `resolveStaticMediaUri`.
+
 ### Docking
 `DockTabStrip` (the tab strip on a docked panel group: tabs name the panels, report drag past a 4 px threshold, close by button, middle click or Delete, and open a menu on right click or Shift+F10) | `DockDropOverlay` with `dockZoneAt` (the drop preview over a group: center adds a tab, an edge splits). The host owns the layout; these primitives only report gestures and draw previews. The shared dock in `components/dock/` is the reference host, used by the game, timeline and app builder editors.
 
