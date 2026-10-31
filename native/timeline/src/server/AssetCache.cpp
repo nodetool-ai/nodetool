@@ -25,13 +25,46 @@ namespace {
 
 constexpr int kMaxAttempts = 4;
 
+struct ActiveLeases {
+    std::mutex mutex;
+    std::map<QString, size_t> counts;
+};
+
+ActiveLeases& activeLeases() {
+    static ActiveLeases registry;
+    return registry;
+}
+
+QString pathKey(const QString& path) {
+    const QFileInfo info(path);
+    const QString canonical = info.canonicalFilePath();
+    if (!canonical.isEmpty()) return canonical;
+    const QString parent = QFileInfo(info.absolutePath()).canonicalFilePath();
+    return QDir(parent.isEmpty() ? info.absolutePath() : parent).filePath(info.fileName());
+}
+
+struct LeaseHolder {
+    explicit LeaseHolder(QString value) : path(std::move(value)) {
+        auto& registry = activeLeases();
+        std::lock_guard lock(registry.mutex);
+        ++registry.counts[path];
+    }
+    ~LeaseHolder() {
+        auto& registry = activeLeases();
+        std::lock_guard lock(registry.mutex);
+        auto it = registry.counts.find(path);
+        if (--it->second == 0) registry.counts.erase(it);
+    }
+    QString path;
+};
+
 // One in-process mutex per variant folder. The lock file covers other
 // processes; this covers threads of this one.
 std::shared_ptr<std::mutex> folderMutex(const QString& dir) {
     static std::mutex guard;
     static std::map<QString, std::weak_ptr<std::mutex>> mutexes;
     std::lock_guard lock(guard);
-    auto& weak = mutexes[dir];
+    auto& weak = mutexes[pathKey(dir)];
     auto m = weak.lock();
     if (!m) {
         m = std::make_shared<std::mutex>();
@@ -268,12 +301,32 @@ AssetCache::AssetCache(QString root, QString serverKey, QString userKey, Decorat
 }
 
 void AssetCache::protect(const QString& path) {
+    if (path.isEmpty()) return;
     std::lock_guard lock(m_protected->mutex);
-    m_protected->paths.insert(QFileInfo(path).absoluteFilePath());
+    auto held = lease(path);
+    const QString key = *held;
+    m_protected->paths.try_emplace(key, std::move(held));
+}
+
+AssetCache::Lease AssetCache::lease(const QString& path) {
+    if (path.isEmpty()) return {};
+    auto holder = std::make_shared<LeaseHolder>(pathKey(path));
+    return Lease(holder, &holder->path);
+}
+
+bool AssetCache::removeIfUnprotected(const QString& path) {
+    auto& registry = activeLeases();
+    std::lock_guard lock(registry.mutex);
+    return !registry.counts.contains(pathKey(path)) && QFile::remove(path);
 }
 
 void AssetCache::evict(const QString& justFetched) const {
-    if (m_budgetBytes <= 0) return;
+    evictRoot(m_root, m_budgetBytes, justFetched, {}, true);
+}
+
+void AssetCache::evictRoot(const QString& root, qint64 budget, const QString& justFetched,
+                           const std::function<void()>& afterScan, bool fetchedFolderLocked) {
+    if (budget <= 0) return;
     struct Entry {
         QString path;
         QDateTime used;
@@ -281,7 +334,7 @@ void AssetCache::evict(const QString& justFetched) const {
     };
     std::vector<Entry> files;
     qint64 total = 0;
-    QDirIterator it(m_root, QDir::Files, QDirIterator::Subdirectories);
+    QDirIterator it(root, QDir::Files, QDirIterator::Subdirectories);
     while (it.hasNext()) {
         const QFileInfo info(it.next());
         const QString name = info.fileName();
@@ -290,23 +343,24 @@ void AssetCache::evict(const QString& justFetched) const {
         files.push_back({info.absoluteFilePath(), std::max(info.lastRead(), info.lastModified()), info.size()});
         total += info.size();
     }
-    if (total <= m_budgetBytes) return;
+    if (total <= budget) return;
     std::sort(files.begin(), files.end(), [](const Entry& a, const Entry& b) { return a.used < b.used; });
-    std::set<QString> keep;
-    {
-        std::lock_guard lock(m_protected->mutex);
-        keep = m_protected->paths;
-    }
-    keep.insert(QFileInfo(justFetched).absoluteFilePath());
+    if (afterScan) afterScan();
+    const QString fetchedPath = pathKey(justFetched);
+    const QString fetchedFolder = pathKey(QFileInfo(justFetched).absolutePath());
     for (const Entry& e : files) {
-        if (total <= m_budgetBytes) break;
-        if (keep.count(e.path)) continue;
+        if (total <= budget) break;
+        if (pathKey(e.path) == fetchedPath) continue;
         // A folder another fetch holds is in use; leave it.
-        QLockFile folderLock(QFileInfo(e.path).absolutePath() + QStringLiteral("/.lock"));
+        const QString folder = QFileInfo(e.path).absolutePath();
+        const bool ownFolder = fetchedFolderLocked && pathKey(folder) == fetchedFolder;
+        const auto threadMutex = folderMutex(folder);
+        std::unique_lock<std::mutex> threadLock(*threadMutex, std::defer_lock);
+        if (!ownFolder && !threadLock.try_lock()) continue;
+        QLockFile folderLock(folder + QStringLiteral("/.lock"));
         folderLock.setStaleLockTime(0);
-        const bool ownFolder = QFileInfo(e.path).absolutePath() == QFileInfo(justFetched).absolutePath();
         if (!ownFolder && !folderLock.tryLock(0)) continue;
-        if (QFile::remove(e.path)) total -= e.size;
+        if (removeIfUnprotected(e.path)) total -= e.size;
     }
 }
 
@@ -322,7 +376,7 @@ QString AssetCache::pathFor(const QString& assetId, const QString& variant, cons
 }
 
 FetchResult AssetCache::fetch(const QString& assetId, const QString& variant, const RemoteFile& file,
-                              const Recheck& recheck) const {
+                              const Recheck& recheck, const OnReady& onReady) const {
     FetchResult result;
     if (QThread::currentThread()->isInterruptionRequested()) {
         result.error = QStringLiteral("asset download cancelled");
@@ -352,6 +406,7 @@ FetchResult AssetCache::fetch(const QString& assetId, const QString& variant, co
         result.hit = true;
         result.version = cur.version;
         touch(result.path);
+        if (onReady) onReady(result.path);
         return result;
     }
 
@@ -368,6 +423,7 @@ FetchResult AssetCache::fetch(const QString& assetId, const QString& variant, co
             result.path = pathFor(assetId, variant, cur);
             result.hit = true;
             result.version = cur.version;
+            if (onReady) onReady(result.path);
             return result;
         }
     }
@@ -425,7 +481,10 @@ FetchResult AssetCache::fetch(const QString& assetId, const QString& variant, co
             result.error = QStringLiteral("downloaded %1 bytes, expected %2").arg(size).arg(want);
             return result;
         }
-        QFile::remove(finalPath);
+        if (QFileInfo::exists(finalPath) && !removeIfUnprotected(finalPath)) {
+            result.error = QStringLiteral("cannot replace protected cache file %1").arg(finalPath);
+            return result;
+        }
         if (!QFile::rename(part, finalPath)) {
             result.error = QStringLiteral("cannot move %1 into place").arg(part);
             return result;
@@ -434,10 +493,11 @@ FetchResult AssetCache::fetch(const QString& assetId, const QString& variant, co
         // The older versions of this asset and variant are stale now.
         for (const QString& name : QDir(dir).entryList(QDir::Files | QDir::Hidden)) {
             const QString path = QDir(dir).filePath(name);
-            if (path != finalPath && name != u".lock") QFile::remove(path);
+            if (path != finalPath && name != u".lock") removeIfUnprotected(path);
         }
         result.path = finalPath;
         result.version = cur.version;
+        if (onReady) onReady(result.path);
         evict(finalPath);
         return result;
     }
