@@ -27,13 +27,13 @@ import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import useMediaGenerationStore, {
   CATEGORY_SUB_MODES,
   mediaCategoryForMode,
-  resolveImageSize,
   type MediaGenerationCategory,
   type MediaMode
 } from "../../../stores/MediaGenerationStore";
 import { MEDIA_MODES } from "./mediaModes";
 import MediaControlChip from "./MediaControlChip";
 import ModeChips from "./ModeChips";
+import { buildMediaGenerationRequest } from "./mediaGenerationRequest";
 import ModeSelectChip from "./ModeSelectChip";
 import ModelChip, { type ModelPickerHandle } from "./ModelChip";
 import ModeProviderSetupBanner from "./ModeProviderSetupBanner";
@@ -89,6 +89,10 @@ const MOBILE_TEXTAREA_MAX_HEIGHT = 140;
  *  the chips stay on one line in a narrow column (the project agent) as well
  *  as on a phone. */
 const NARROW_CARD_WIDTH = 520;
+/** From here up to this width the chip row shrinks its chips instead of wrapping. */
+const SHRINK_CARD_WIDTH = 900;
+/** Below this width a wrapped row serves better than shrunken chips. */
+const WRAP_CARD_WIDTH = 720;
 
 const NO_COMMANDS: readonly ChatCommand[] = [];
 
@@ -203,6 +207,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
   /** Icon-first chips on one non-wrapping line. */
   const isCompact = isMobile || (cardWidth > 0 && cardWidth < NARROW_CARD_WIDTH);
+  const shrinksChips =
+    !isMobile && cardWidth >= WRAP_CARD_WIDTH && cardWidth < SHRINK_CARD_WIDTH;
 
   // Mode + media params from persistent store. The params are read here for
   // the outgoing `media_generation` payload; the chips that edit them read
@@ -518,135 +524,34 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   }, [addDroppedFiles, pendingAttachments, takeAttachments, threadId]);
 
   // Build media_generation payload from current state
-  const buildMediaGeneration = useCallback((): MediaGenerationRequest => {
-    if (mode === "chat") {
-      return { mode: "chat" };
-    }
-    if (mode === "image") {
-      const { width, height } = resolveImageSize(
-        imageParams.resolution,
-        imageParams.aspectRatio
-      );
-      return {
-        mode: "image",
-        provider: imageParams.model?.provider ?? null,
-        model: imageParams.model?.id ?? null,
-        width,
-        height,
-        aspect_ratio: imageParams.aspectRatio,
-        resolution: imageParams.resolution,
-        variations: imageParams.variations
-      };
-    }
-    if (mode === "image_edit") {
-      const { width, height } = resolveImageSize(
-        imageEditParams.resolution,
-        imageEditParams.aspectRatio
-      );
-      return {
-        mode: "image_edit",
-        provider: imageEditParams.model?.provider ?? null,
-        model: imageEditParams.model?.id ?? null,
-        width,
-        height,
-        aspect_ratio: imageEditParams.aspectRatio,
-        resolution: imageEditParams.resolution,
-        variations: imageEditParams.variations,
-        strength: imageEditParams.strength,
-        num_inference_steps: imageEditParams.numInferenceSteps
-      };
-    }
-    if (mode === "video") {
-      return {
-        mode: "video",
-        provider: videoParams.model?.provider ?? null,
-        model: videoParams.model?.id ?? null,
-        aspect_ratio: videoParams.aspectRatio,
-        resolution: videoParams.resolution,
-        duration: videoParams.duration,
-        preset_ids: presetIds.video?.length ? presetIds.video : undefined
-      };
-    }
-    if (mode === "image_to_video") {
-      return {
-        mode: "image_to_video",
-        provider: imageToVideoParams.model?.provider ?? null,
-        model: imageToVideoParams.model?.id ?? null,
-        aspect_ratio: imageToVideoParams.aspectRatio,
-        resolution: imageToVideoParams.resolution,
-        duration: imageToVideoParams.duration,
-        num_inference_steps: imageToVideoParams.numInferenceSteps,
-        preset_ids: presetIds.image_to_video?.length
-          ? presetIds.image_to_video
-          : undefined
-      };
-    }
-    if (mode === "reference_to_video") {
-      return {
-        mode: "reference_to_video",
-        provider: referenceToVideoParams.model?.provider ?? null,
-        model: referenceToVideoParams.model?.id ?? null,
-        aspect_ratio: referenceToVideoParams.aspectRatio,
-        resolution: referenceToVideoParams.resolution,
-        duration: referenceToVideoParams.duration,
-        // Only sent when on: a model that cannot take it rejects the request,
-        // so an off toggle must not state anything.
-        use_reference_video_audio: referenceToVideoParams.useReferenceVideoAudio
-          ? true
-          : null,
-        preset_ids: presetIds.reference_to_video?.length
-          ? presetIds.reference_to_video
-          : undefined
-      };
-    }
-    if (mode === "retake") {
-      return {
-        mode: "retake",
-        provider: retakeParams.model?.provider ?? null,
-        model: retakeParams.model?.id ?? null
-      };
-    }
-    if (mode === "extend") {
-      return {
-        mode: "extend",
-        provider: extendParams.model?.provider ?? null,
-        model: extendParams.model?.id ?? null,
-        extend_direction: extendParams.direction,
-        duration: extendParams.duration
-      };
-    }
-    if (mode === "music") {
-      return {
-        mode,
-        provider: musicParams.model?.provider ?? null,
-        model: musicParams.model?.id ?? null,
-        duration: musicParams.duration
-      };
-    }
-    if (mode === "audio") {
-      return {
-        mode: "audio",
-        provider: audioParams.model?.provider ?? null,
-        model: audioParams.model?.id ?? null,
-        voice: audioParams.voice,
-        speed: audioParams.speed,
-        audio_format: audioParams.format
-      };
-    }
-    return { mode };
-  }, [
-    mode,
-    imageParams,
-    imageEditParams,
-    videoParams,
-    imageToVideoParams,
-    referenceToVideoParams,
-    retakeParams,
-    extendParams,
-    audioParams,
-    musicParams,
-    presetIds
-  ]);
+  const buildMediaGeneration = useCallback(
+    (): MediaGenerationRequest =>
+      buildMediaGenerationRequest(mode, {
+        image: imageParams,
+        imageEdit: imageEditParams,
+        video: videoParams,
+        imageToVideo: imageToVideoParams,
+        referenceToVideo: referenceToVideoParams,
+        retake: retakeParams,
+        extend: extendParams,
+        audio: audioParams,
+        music: musicParams,
+        presetIds
+      }),
+    [
+      mode,
+      imageParams,
+      imageEditParams,
+      videoParams,
+      imageToVideoParams,
+      referenceToVideoParams,
+      retakeParams,
+      extendParams,
+      audioParams,
+      musicParams,
+      presetIds
+    ]
+  );
 
   const { queuedMessage, sendMessage, cancelQueued, sendQueuedNow } =
     useMessageQueue({
@@ -1119,7 +1024,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         )}
 
         <div
-          className={`media-chip-row${isCompact ? " narrow" : ""}`}
+          className={`media-chip-row${isCompact ? " narrow" : ""}${shrinksChips ? " shrink" : ""}`}
         >
           {/* Chip cluster: mode/model chips. */}
           <div className="media-chip-main">

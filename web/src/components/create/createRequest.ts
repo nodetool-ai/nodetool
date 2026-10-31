@@ -45,7 +45,7 @@ export const createSettingsRequest = (
   if (mode === "image") {
     const { image } = settings;
     const { width, height } = resolveImageSize(image.resolution, image.aspectRatio);
-    return {
+    const imageRequest: MediaGenerationRequest = {
       mode: "image",
       provider: image.model?.provider ?? null,
       model: image.model?.id ?? null,
@@ -56,6 +56,11 @@ export const createSettingsRequest = (
       // A batch is N requests, so each asks for one image.
       variations: 1
     };
+    const imagePresetIds = settings.presetIds.image;
+    if (imagePresetIds && imagePresetIds.length > 0) {
+      imageRequest.preset_ids = imagePresetIds;
+    }
+    return imageRequest;
   }
   const { video } = settings;
   const request: MediaGenerationRequest = {

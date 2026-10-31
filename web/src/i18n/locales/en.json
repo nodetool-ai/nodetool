@@ -6158,6 +6158,7 @@
         "checkingModels": "Still checking your language models. Try again in a moment.",
         "chatNeedsModel": "Almost there — chat needs a model to run.",
         "pickModelToStartChat": "Pick a language model and the chat starts.",
+        "pickMediaModel": "Pick a model and the generation starts.",
         "openChatError": "Could not open chat: {{error}}",
         "startFlowError": "Could not start the {{flow}}: {{error}}",
         "flowNames": {

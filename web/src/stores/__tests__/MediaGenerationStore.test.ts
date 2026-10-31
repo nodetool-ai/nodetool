@@ -354,14 +354,15 @@ describe("preset selection", () => {
     useMediaGenerationStore.setState({ presetIds: {} });
   });
 
-  it("maps the video modes to preset modes and no other mode", () => {
+  it("maps the image and video modes to preset modes and no other mode", () => {
     expect(presetModeForMediaMode("video")).toBe("video");
     expect(presetModeForMediaMode("image_to_video")).toBe("image_to_video");
     expect(presetModeForMediaMode("reference_to_video")).toBe(
       "reference_to_video"
     );
     expect(presetModeForMediaMode("chat")).toBeNull();
-    expect(presetModeForMediaMode("image")).toBeNull();
+    expect(presetModeForMediaMode("image")).toBe("image");
+    expect(presetModeForMediaMode("image_edit")).toBe("image_edit");
     expect(presetModeForMediaMode("audio")).toBeNull();
     expect(presetModeForMediaMode("extend")).toBeNull();
     expect(presetModeForMediaMode(null)).toBeNull();

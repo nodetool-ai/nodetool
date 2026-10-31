@@ -79,6 +79,8 @@ export type MediaGenerationCategory = "image" | "video" | "audio";
  * applies presets under. A mode missing here takes no presets.
  */
 export const PRESET_MODE_FOR_MEDIA_MODE = {
+  image: "image",
+  image_edit: "image_edit",
   video: "video",
   image_to_video: "image_to_video",
   reference_to_video: "reference_to_video"

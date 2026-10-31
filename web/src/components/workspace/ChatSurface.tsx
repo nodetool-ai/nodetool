@@ -4,7 +4,11 @@ import { useShallow } from "zustand/react/shallow";
 
 import { FlexColumn } from "../ui_primitives";
 import ChatView from "../chat/containers/ChatView";
-import { clearChatTurn, peekChatTurn } from "../chat/pendingChatTurn";
+import {
+  clearChatTurn,
+  peekChatTurn,
+  peekChatTurnMedia
+} from "../chat/pendingChatTurn";
 import WelcomePlaceholder from "../chat/containers/WelcomePlaceholder";
 import useGlobalChatStore, {
   useThreadRuntime
@@ -160,14 +164,16 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
     const content = peekChatTurn(refId);
     if (!content) return;
     pendingTurnInFlight.current = true;
+    const mediaGeneration = peekChatTurnMedia(refId);
     void trySendMessage(
       {
         type: "message",
         name: "",
         role: "user",
-        provider: model.provider,
-        model: model.id,
+        provider: mediaGeneration?.provider ?? model.provider,
+        model: mediaGeneration?.model ?? model.id,
         content,
+        media_generation: mediaGeneration,
         ui_context: buildUiContext({ source: "workspace_chat" })
       },
       refId

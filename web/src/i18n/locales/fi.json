@@ -6158,6 +6158,7 @@
         "checkingModels": "Kielimalleja tarkistetaan vielä. Yritä hetken kuluttua uudelleen.",
         "chatNeedsModel": "Melkein valmista — keskustelu tarvitsee mallin toimiakseen.",
         "pickModelToStartChat": "Valitse kielimalli, niin keskustelu alkaa.",
+        "pickMediaModel": "Valitse malli, niin generointi alkaa.",
         "openChatError": "Keskustelua ei voitu avata: {{error}}",
         "startFlowError": "Kulkua {{flow}} ei voitu aloittaa: {{error}}",
         "flowNames": {

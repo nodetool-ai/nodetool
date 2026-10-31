@@ -95,7 +95,8 @@ const createStyles = (
     justifyContent: "flex-start",
     flex: grow ? "1 1 auto" : undefined,
     flexShrink: grow || truncate ? 1 : 0,
-    minWidth: grow || truncate ? 0 : undefined,
+    // Enough room for an icon and a few letters, so a squeezed chip stays a chip.
+    minWidth: grow || truncate ? (iconOnly ? 0 : 72) : undefined,
     maxWidth: grow || truncate ? maxWidth : undefined,
     overflow: grow || truncate ? "hidden" : undefined,
     "&:hover:not(:disabled)": {

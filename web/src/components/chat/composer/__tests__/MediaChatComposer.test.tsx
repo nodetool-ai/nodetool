@@ -786,7 +786,7 @@ describe("MediaChatComposer", () => {
       });
     });
 
-    it("sends no presets in a mode that takes none, and keeps the selection for later", async () => {
+    it("sends only the presets of the current mode, and keeps the other selections for later", async () => {
       const user = userEvent.setup();
       const onSendMessage = jest.fn();
       useMediaGenerationStore.setState({
@@ -807,7 +807,7 @@ describe("MediaChatComposer", () => {
 
       const sent = await sendPrompt(user, onSendMessage);
       expect(sent.mode).toBe("image");
-      expect(sent).not.toHaveProperty("preset_ids");
+      expect(sent.preset_ids).toBeUndefined();
       expect(useMediaGenerationStore.getState().presetIds.video).toEqual([
         "camera.dolly-in"
       ]);

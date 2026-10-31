@@ -6158,6 +6158,7 @@
         "checkingModels": "正在检查语言模型，请稍后重试。",
         "chatNeedsModel": "快好了，聊天需要模型才能运行。",
         "pickModelToStartChat": "选择语言模型即可开始聊天。",
+        "pickMediaModel": "选择一个模型，生成随即开始。",
         "openChatError": "无法打开聊天：{{error}}",
         "startFlowError": "无法启动{{flow}}：{{error}}",
         "flowNames": {

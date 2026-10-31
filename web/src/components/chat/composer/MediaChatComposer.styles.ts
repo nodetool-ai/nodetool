@@ -109,6 +109,13 @@ export const createMediaComposerStyles = (theme: Theme) =>
       flexWrap: "nowrap"
     },
 
+    // A mid-width card shrinks the truncating chips before it wraps: a row
+    // that only just misses fitting would otherwise drop one chip onto a
+    // second line while space is left beside it.
+    ".media-chip-row.shrink .media-chip-main": {
+      flexWrap: "nowrap"
+    },
+
     ".media-chip-row .divider-dot": {
       width: 4,
       height: 4,

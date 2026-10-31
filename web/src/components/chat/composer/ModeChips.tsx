@@ -116,7 +116,7 @@ function ModePresetChip({
   model
 }: {
   mode: PresetMediaMode;
-  model: VideoModelSelection | null;
+  model: { id: string; provider?: string | null } | null;
 }) {
   const value = useMediaGenerationStore((s) => s.presetIds[mode]) ?? NO_PRESETS;
   const setPresetIds = useMediaGenerationStore((s) => s.setPresetIds);
@@ -203,6 +203,7 @@ function ImageModeChips({ openModelPickerRef, hideVariations }: ClusterProps) {
           }
         }}
       />
+      <ModePresetChip mode="image" model={params.model} />
       <OptionChip
         menu="option"
         icon={<DisplaySettingsIcon fontSize="small" />}
@@ -278,6 +279,7 @@ function ImageEditModeChips({ openModelPickerRef }: ClusterProps) {
           }
         }}
       />
+      <ModePresetChip mode="image_edit" model={params.model} />
       <OptionChip
         menu="option"
         icon={<DisplaySettingsIcon fontSize="small" />}
