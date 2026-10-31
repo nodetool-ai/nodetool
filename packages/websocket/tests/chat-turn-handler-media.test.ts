@@ -7,6 +7,8 @@
  * Assets are written through the real file storage adapter into a temp
  * directory (ASSET_FOLDER), so no module is mocked.
  */
+import { createRequire } from "node:module";
+import { createCatalog } from "@nodetool-ai/presets";
 import { describe, it, expect, beforeEach, beforeAll, vi } from "vitest";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -24,6 +26,18 @@ beforeAll(() => {
   // user's data dir. Set before anything touches storage in this worker.
   process.env.ASSET_FOLDER = mkdtempSync(join(tmpdir(), "chat-turn-media-"));
 });
+
+const dollyIn = createCatalog(
+  createRequire(import.meta.url)("@nodetool-ai/presets/preset-catalog.json")
+).getPreset("camera.dolly-in");
+/** The shipped dolly-in fragment for a family, so retuning the catalogue does not break these tests. */
+function dollyInFragment(family: "default" | "kling" | "seedance"): string {
+  const fragment = dollyIn?.prompt[family];
+  if (typeof fragment !== "string") {
+    throw new Error(`camera.dolly-in has no string ${family} fragment`);
+  }
+  return fragment;
+}
 
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
@@ -872,8 +886,9 @@ describe("chat media presets", () => {
     );
     expect(textToVideo).toHaveBeenCalledWith(
       expect.objectContaining({
-        prompt:
-          "a red fox in snow The camera dollies smoothly toward the subject."
+        prompt: `a red fox in snow ${dollyInFragment(
+          model.includes("kling") ? "kling" : "seedance"
+        )}`
       })
     );
     const [rows] = await Prediction.paginate(
