@@ -32,6 +32,7 @@ nice -n 10 cmake --build "$build" -j "${NT_JOBS:-3}" --target nodetool-timeline 
 app="$build/NodeTool Timeline.app"
 rm -rf "$app"
 cp -R "$build/nodetool-timeline.app" "$app"
+app=$(cd "$app" && pwd -P)
 # Qt frameworks and plugins, the QML imports the module uses, and every
 # non-system dylib (FFmpeg) into Contents/Frameworks.
 "$qt/bin/macdeployqt" "$app" -qmldir=qml -libpath="$ffmpeg/lib" -always-overwrite -verbose=1 > "$build/package-deploy.log" 2>&1
@@ -61,7 +62,7 @@ while IFS= read -r f; do
             echo "error: $(basename "$f") needs $dep, which the bundle does not have" >&2
             missing=1
         fi
-    done < <(otool -L "$f" | tail -n +2 | awk '{print $1}')
+    done < <(otool -L "$f" | tail -n +2 | sed -E 's/^[[:space:]]+//; s/ \(compatibility.*$//')
 done < <(find "$app" -type f)
 [[ $missing == 0 ]] || exit 1
 # Every rpath that leaves the bundle goes, and so does every plug-in whose

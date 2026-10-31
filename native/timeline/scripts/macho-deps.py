@@ -141,9 +141,9 @@ def rpaths(path):
     for i, line in enumerate(lines):
         if line.strip() == "cmd LC_RPATH":
             for follow in lines[i + 1 : i + 4]:
-                parts = follow.split()
-                if parts and parts[0] == "path":
-                    out.append(parts[1])
+                line = follow.strip()
+                if line.startswith("path "):
+                    out.append(line[5:].rsplit(" (offset ", 1)[0])
                     break
     return out
 

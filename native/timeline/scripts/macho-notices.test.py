@@ -74,6 +74,41 @@ class QtSdkNoticesTest(unittest.TestCase):
 
 
 class QtPackagingSelectionTest(unittest.TestCase):
+    def test_rewrite_preserves_spaces_in_library_paths(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            app = root / "NodeTool Timeline.app"
+            dependency = app / "Contents/Frameworks/QtCore.framework/Versions/A/QtCore"
+            dependency.parent.mkdir(parents=True)
+            dependency.write_text("Mach-O fixture")
+            script = Path(__file__).with_name("package-macos.sh").read_text()
+            rewrite = 'frameworks="$app/Contents/Frameworks"' + script.split(
+                'frameworks="$app/Contents/Frameworks"', 1)[1].split("# Every rpath", 1)[0]
+            stubs = r'''
+file() { echo Mach-O; }
+otool() {
+    if [[ "$1" == -D ]]; then
+        printf '%s:\n@rpath/QtCore.framework/Versions/A/QtCore\n' "$2"
+    else
+        printf '%s:\n\t%s (compatibility version 6.0.0, current version 6.12.0)\n' "$2" "$DEPENDENCY"
+    fi
+}
+install_name_tool() { printf '%s\n' "$@" >> "$CAPTURE"; }
+app=$APP
+'''
+            capture = root / "rewrite-args"
+            result = subprocess.run(["bash", "-euo", "pipefail", "-c", stubs + rewrite],
+                                    env={**os.environ, "APP": str(app), "DEPENDENCY": str(dependency),
+                                         "CAPTURE": str(capture)}, capture_output=True, text=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn(str(dependency), capture.read_text().splitlines())
+            self.assertIn("@rpath/QtCore.framework/Versions/A/QtCore", capture.read_text().splitlines())
+
+    def test_rpaths_preserve_spaces(self):
+        output = "Load command 1\n          cmd LC_RPATH\n      cmdsize 80\n         path /tmp/NodeTool Timeline.app/Contents/Frameworks (offset 12)\n"
+        with patch.object(macho, "otool", return_value=output):
+            self.assertEqual(macho.rpaths("fixture"), ["/tmp/NodeTool Timeline.app/Contents/Frameworks"])
+
     def test_configure_uses_selected_sdk_before_homebrew(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
