@@ -17,6 +17,8 @@ struct ParseResult {
 // Parses a timeline sequence document. Unknown fields are ignored, the way Zod
 // strips them. Relative `mediaPath` values resolve against `baseDir`.
 ParseResult parseTimelineJson(const QByteArray& json, const QString& baseDir = QString());
+// The same, from a parsed object: no text step.
+ParseResult parseTimeline(const QJsonObject& root, const QString& baseDir = QString());
 ParseResult loadTimelineFile(const QString& path);
 
 }  // namespace nt

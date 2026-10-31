@@ -5,8 +5,24 @@
 #include <algorithm>
 #include <cmath>
 #include <map>
+#include <optional>
 
 namespace nt::edit {
+
+int EditDoc::indexOf(const QString& id) const {
+    if (!idIndex) {
+        auto index = std::make_shared<QHash<QString, int>>();
+        index->reserve(static_cast<int>(clips.size()));
+        for (size_t i = 0; i < clips.size(); ++i) index->insert(clipId(clips[i]), static_cast<int>(i));
+        idIndex = std::move(index);
+    }
+    const int i = idIndex->value(id, -1);
+    if (i >= 0 && static_cast<size_t>(i) < clips.size() && clipId(clips[static_cast<size_t>(i)]) == id) return i;
+    for (size_t j = 0; j < clips.size(); ++j) {
+        if (clipId(clips[j]) == id) return static_cast<int>(j);
+    }
+    return -1;
+}
 
 namespace {
 
@@ -18,7 +34,7 @@ int indexOfId(const ClipList& clips, const QString& id) {
 }
 
 bool isGroupId(const EditDoc& doc, const QString& id) {
-    const int i = indexOfId(doc.clips, id);
+    const int i = doc.indexOf(id);
     return i >= 0 && isGroupClip(doc.clips[static_cast<size_t>(i)]);
 }
 
@@ -87,21 +103,36 @@ IdSet lockedTrackIds(const EditDoc& doc) {
 }
 
 IdSet editableUserTargets(const EditDoc& doc, const IdSet& targetIds, bool followLinks, bool includeGroupDescendants) {
-    QHash<QString, int> byId;
-    QHash<QString, std::vector<int>> byLink;
-    QHash<QString, std::vector<int>> childrenByParent;
-    for (size_t i = 0; i < doc.clips.size(); ++i) {
-        const auto& c = doc.clips[i];
-        byId.insert(clipId(c), static_cast<int>(i));
-        if (!clipLinkId(c).isEmpty()) byLink[clipLinkId(c)].push_back(static_cast<int>(i));
-        const QString parent = c.value(u"parentId").toString();
-        if (!parent.isEmpty()) childrenByParent[parent].push_back(static_cast<int>(i));
-    }
+    // The link and group maps are built only when a unit has a link or a
+    // group: a plain clip needs neither.
+    std::optional<QHash<QString, std::vector<int>>> byLink;
+    std::optional<QHash<QString, std::vector<int>>> childrenByParent;
+    const auto links = [&]() -> const QHash<QString, std::vector<int>>& {
+        if (!byLink) {
+            byLink.emplace();
+            for (size_t i = 0; i < doc.clips.size(); ++i) {
+                const QString link = clipLinkId(doc.clips[i]);
+                if (!link.isEmpty()) (*byLink)[link].push_back(static_cast<int>(i));
+            }
+        }
+        return *byLink;
+    };
+    const auto children = [&]() -> const QHash<QString, std::vector<int>>& {
+        if (!childrenByParent) {
+            childrenByParent.emplace();
+            for (size_t i = 0; i < doc.clips.size(); ++i) {
+                const QString parent = doc.clips[i].value(u"parentId").toString();
+                if (!parent.isEmpty()) (*childrenByParent)[parent].push_back(static_cast<int>(i));
+            }
+        }
+        return *childrenByParent;
+    };
     const IdSet locked = lockedTrackIds(doc);
     IdSet editable;
     for (const QString& targetId : targetIds) {
-        if (!byId.contains(targetId)) continue;
-        std::vector<int> pending{byId.value(targetId)};
+        const int target = doc.indexOf(targetId);
+        if (target < 0) continue;
+        std::vector<int> pending{target};
         IdSet unit;
         bool blocked = false;
         while (!pending.empty()) {
@@ -112,10 +143,10 @@ IdSet editableUserTargets(const EditDoc& doc, const IdSet& targetIds, bool follo
             unit.insert(clipId(c));
             if (c.value(u"locked").toBool(false) || locked.count(clipTrackId(c))) blocked = true;
             if (followLinks && !clipLinkId(c).isEmpty()) {
-                for (int j : byLink.value(clipLinkId(c))) pending.push_back(j);
+                for (int j : links().value(clipLinkId(c))) pending.push_back(j);
             }
             if (includeGroupDescendants && isGroupClip(c)) {
-                for (int j : childrenByParent.value(clipId(c))) pending.push_back(j);
+                for (int j : children().value(clipId(c))) pending.push_back(j);
             }
         }
         if (!blocked) editable.insert(targetId);
@@ -283,7 +314,7 @@ bool clipFitsTrack(const QString& mediaType, const QString& trackType) {
 }
 
 ClipList moveClip(const EditDoc& doc, const QString& id, double deltaMs, const QString& toTrackId, bool linked) {
-    const int i = indexOfId(doc.clips, id);
+    const int i = doc.indexOf(id);
     if (i < 0 || isGroupId(doc, id) || !isEditable(doc, id, linked, true)) return doc.clips;
     for (const auto& track : doc.tracks) {
         if (!toTrackId.isEmpty() && track.id == toTrackId && track.locked) { return doc.clips; }
@@ -301,21 +332,17 @@ ClipList moveClip(const EditDoc& doc, const QString& id, double deltaMs, const Q
         appliedDelta = std::max(appliedDelta, -minStartMs);
         newStartMs = clipStartMs(clip) + appliedDelta;
     }
-    IdSet linkedIds;
+    // Only the moved clips change: the others keep their shared JSON.
+    ClipList out = doc.clips;
+    QJsonObject& moved = out[static_cast<size_t>(i)];
+    moved.insert(QStringLiteral("startMs"), newStartMs);
+    if (!toTrackId.isEmpty()) moved.insert(QStringLiteral("trackId"), toTrackId);
     if (linked && !clipLinkId(clip).isEmpty()) {
-        for (const auto& c : doc.clips) {
-            if (clipLinkId(c) == clipLinkId(clip) && clipId(c) != id) linkedIds.insert(clipId(c));
+        const QString link = clipLinkId(clip);
+        for (size_t j = 0; j < out.size(); ++j) {
+            if (static_cast<int>(j) == i || clipLinkId(out[j]) != link) continue;
+            out[j].insert(QStringLiteral("startMs"), std::max(0.0, clipStartMs(out[j]) + appliedDelta));
         }
-    }
-    ClipList out;
-    for (auto c : doc.clips) {
-        if (clipId(c) == id) {
-            c.insert(QStringLiteral("startMs"), newStartMs);
-            if (!toTrackId.isEmpty()) c.insert(QStringLiteral("trackId"), toTrackId);
-        } else if (linkedIds.count(clipId(c))) {
-            c.insert(QStringLiteral("startMs"), std::max(0.0, clipStartMs(c) + appliedDelta));
-        }
-        out.push_back(c);
     }
     return out;
 }

@@ -30,7 +30,7 @@ void SpeedController::setModel(TimelineModel* model) {
     emit documentChanged();
 }
 QVariantMap SpeedController::document() const {
-    return m_model ? QJsonDocument::fromJson(m_model->documentJson()).object().toVariantMap() : QVariantMap{};
+    return m_model ? m_model->timeline().raw.toVariantMap() : QVariantMap{};
 }
 bool SpeedController::apply(const QString& action, const QJsonObject& payload) {
     return m_model && m_model->applyEdit(action, payload);
@@ -41,7 +41,7 @@ void SpeedController::beginGesture(const QString& action, const QJsonObject& pay
     if (!m_model) {
         return;
     }
-    m_before = QJsonDocument::fromJson(m_model->documentJson()).object();
+    m_before = m_model->timeline().raw;
     m_preview = m_model->clipsJson();
     m_generation = m_model->documentGeneration();
     m_gesture = true;

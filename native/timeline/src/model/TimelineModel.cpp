@@ -89,7 +89,9 @@ void TimelineModel::setTimeline(nt::Timeline timeline) {
             m_media.insert(mediaKey(c.raw), {c.mediaPath, c.originalMediaPath, c.audioPath});
     }
     timeline.revision = nt::nextTimelineRevision();
+    timeline.indexClips();
     m_timeline = std::make_shared<const nt::Timeline>(std::move(timeline));
+    markAllChanged();
     ++m_generation;
     emit documentReplaced();
     m_undo->clear();
@@ -119,38 +121,86 @@ QByteArray TimelineModel::documentJson() const {
 
 bool TimelineModel::replaceClips(const QJsonArray& clips) {
     // Incremental: a clip whose JSON did not change keeps its typed copy, and
-    // only the changed clips are parsed, in a document of their own with the
-    // sequence's fields and tracks. A whole-document parse costs ~13 ms at
-    // 2000 clips, too much for a live gesture update.
+    // only the changed clips are parsed. An unchanged clip shares its JSON
+    // with the old one, so the comparison is a pointer check.
     const nt::Timeline& old = *m_timeline;
-    QHash<QString, int> oldIndex;
-    oldIndex.reserve(static_cast<int>(old.clips.size()));
-    for (size_t i = 0; i < old.clips.size(); ++i) {
-        oldIndex.insert(QString::fromStdString(old.clips[i].id), static_cast<int>(i));
-    }
     std::vector<int> reuse(static_cast<size_t>(clips.size()), -1);
-    QJsonArray changed;
-    bool same = clips.size() == static_cast<int>(old.clips.size());
+    bool sameIds = clips.size() == static_cast<int>(old.clips.size());
+    bool same = sameIds;
     for (int i = 0; i < clips.size(); ++i) {
         const QJsonObject c = clips.at(i).toObject();
-        const int j = oldIndex.value(c.value(u"id").toString(), -1);
-        if (j >= 0 && old.clips[static_cast<size_t>(j)].raw == c) {
+        // Most clips keep their place: compare at the same index first.
+        if (static_cast<size_t>(i) < old.clips.size() && old.clips[static_cast<size_t>(i)].raw == c) {
+            reuse[static_cast<size_t>(i)] = i;
+            continue;
+        }
+        const nt::Clip* prev = old.findClip(c.value(u"id").toString().toStdString());
+        const int j = prev ? static_cast<int>(prev - old.clips.data()) : -1;
+        sameIds = sameIds && j == i;
+        if (j >= 0 && prev->raw == c) {
             reuse[static_cast<size_t>(i)] = j;
             same = same && j == i;
         } else {
-            changed.append(c);
             same = false;
         }
     }
     if (same) return false;
+    return applyClips(clips, reuse, sameIds);
+}
 
+bool TimelineModel::patchClips(const QJsonArray& changed) {
+    return patch(changed, false);
+}
+
+bool TimelineModel::previewClips(const QJsonArray& changed) {
+    return patch(changed, true);
+}
+
+void TimelineModel::settleTransient() {
+    if (!m_transient) return;
+    Transient pending = std::move(*m_transient);
+    m_transient.reset();
+    m_changedClipIds = std::move(pending.clipIds);
+    m_changedTrackIds = std::move(pending.trackIds);
+    if (pending.takesChanged) ++m_takesRevision;
+    emit clipsChanged();
+    emit timelineChanged();
+}
+
+bool TimelineModel::patch(const QJsonArray& changed, bool transient) {
+    const nt::Timeline& old = *m_timeline;
+    QJsonArray clips = old.raw.value(u"clips").toArray();
+    std::vector<int> reuse(old.clips.size());
+    for (size_t i = 0; i < reuse.size(); ++i) reuse[i] = static_cast<int>(i);
+    bool any = false;
+    for (const auto& value : changed) {
+        const QJsonObject c = value.toObject();
+        const nt::Clip* prev = old.findClip(c.value(u"id").toString().toStdString());
+        if (!prev) return false;
+        if (prev->raw == c) continue;
+        const auto i = static_cast<size_t>(prev - old.clips.data());
+        clips.replace(static_cast<int>(i), c);
+        reuse[i] = -1;
+        any = true;
+    }
+    return any && applyClips(clips, reuse, true, transient);
+}
+
+bool TimelineModel::applyClips(const QJsonArray& clips, const std::vector<int>& reuse, bool sameIds, bool transient) {
+    const nt::Timeline& old = *m_timeline;
     QJsonObject raw = old.raw;
     raw.insert(QStringLiteral("clips"), clips);
+    QJsonArray changed;
+    for (size_t i = 0; i < reuse.size(); ++i) {
+        if (reuse[i] < 0) changed.append(clips.at(static_cast<int>(i)));
+    }
     std::vector<nt::Clip> parsedClips;
     if (!changed.isEmpty()) {
+        // The changed clips parse in a document of their own with the
+        // sequence's fields and tracks.
         QJsonObject part = raw;
         part.insert(QStringLiteral("clips"), changed);
-        nt::ParseResult parsed = nt::parseTimelineJson(QJsonDocument(part).toJson(QJsonDocument::Compact));
+        nt::ParseResult parsed = nt::parseTimeline(part);
         if (!parsed.timeline || parsed.timeline->clips.size() != static_cast<size_t>(changed.size())) return false;
         parsedClips = std::move(parsed.timeline->clips);
         // The parse knows neither the load's base folder nor the server's
@@ -165,22 +215,74 @@ bool TimelineModel::replaceClips(const QJsonArray& clips) {
             }
         }
     }
+    QSet<QString> changedIds;
+    QSet<QString> changedTracks;
+    bool takesChanged = !sameIds;
     std::vector<nt::Clip> nextClips;
-    nextClips.reserve(static_cast<size_t>(clips.size()));
+    nextClips.reserve(reuse.size());
     size_t k = 0;
     for (size_t i = 0; i < reuse.size(); ++i) {
-        nextClips.push_back(reuse[i] >= 0 ? old.clips[static_cast<size_t>(reuse[i])] : std::move(parsedClips[k++]));
+        if (reuse[i] >= 0) {
+            nextClips.push_back(old.clips[static_cast<size_t>(reuse[i])]);
+            continue;
+        }
+        nt::Clip& next = parsedClips[k++];
+        if (!takesChanged) {
+            const nt::Clip* prev = old.findClip(next.id);
+            takesChanged = !prev || prev->raw.value(u"versions") != next.raw.value(u"versions");
+        }
+        changedIds.insert(QString::fromStdString(next.id));
+        if (const nt::Clip* prev = old.findClip(next.id)) changedTracks.insert(QString::fromStdString(prev->trackId));
+        changedTracks.insert(QString::fromStdString(next.trackId));
+        nextClips.push_back(std::move(next));
     }
     // Every other field (the sequence's and the tracks') stays as loaded.
     nt::Timeline full = old;
     full.raw = raw;
     full.clips = std::move(nextClips);
     full.revision = nt::nextTimelineRevision();
+    if (!sameIds) full.indexClips();
     m_timeline = std::make_shared<const nt::Timeline>(std::move(full));
     m_tracks->rebind(m_timeline.get());
+    if (transient) {
+        if (!m_transient) m_transient.emplace();
+        m_transient->clipIds.unite(changedIds);
+        m_transient->trackIds.unite(changedTracks);
+        m_transient->takesChanged = m_transient->takesChanged || takesChanged;
+        emit previewChanged();
+        return true;
+    }
+    if (m_transient) {
+        // A full change also carries the transient ones before it.
+        changedIds.unite(m_transient->clipIds);
+        changedTracks.unite(m_transient->trackIds);
+        takesChanged = takesChanged || m_transient->takesChanged;
+        m_transient.reset();
+    }
+    m_changedClipIds = sameIds ? std::optional<QSet<QString>>(std::move(changedIds)) : std::nullopt;
+    m_changedTrackIds = std::move(changedTracks);
+    if (takesChanged) ++m_takesRevision;
     emit clipsChanged();
     emit timelineChanged();
     return true;
+}
+
+bool TimelineModel::trackTouched(const QString& trackId) const {
+    return !m_changedClipIds || m_changedTrackIds.contains(trackId);
+}
+
+bool TimelineModel::clipTouched(const QString& clipId) const {
+    return !m_changedClipIds || m_changedClipIds->contains(clipId);
+}
+
+const nt::Clip* TimelineModel::findClip(const QString& clipId) const {
+    return m_timeline->findClip(clipId.toStdString());
+}
+
+void TimelineModel::markAllChanged() {
+    m_transient.reset();
+    m_changedClipIds.reset();
+    ++m_takesRevision;
 }
 
 quint64 TimelineModel::commitEdit(const QString& text, const QJsonArray& before, const QJsonArray& after, int mergeId,
@@ -235,6 +337,7 @@ bool TimelineModel::replaceMarkers(const QJsonArray& incoming) {
     next.raw.insert(QStringLiteral("markers"), markers);
     next.revision = nt::nextTimelineRevision();
     m_timeline = std::make_shared<const nt::Timeline>(std::move(next));
+    markAllChanged();
     m_tracks->rebind(m_timeline.get());
     emit markersChanged();
     return true;
@@ -303,7 +406,7 @@ quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload
             if (!changed.isEmpty()) {
                 auto part = after;
                 part.insert("clips", changed);
-                const auto parsed = nt::parseTimelineJson(QJsonDocument(part).toJson(QJsonDocument::Compact));
+                const auto parsed = nt::parseTimeline(part);
                 if (!parsed.timeline || parsed.timeline->clips.size() != static_cast<size_t>(changed.size())) {
                     return false;
                 }
@@ -317,7 +420,7 @@ quint64 TimelineModel::applyEdit(const QString& name, const QJsonObject& payload
                 if (!after.value("markers").isArray()) {
                     return false;
                 }
-            } else if (!nt::parseTimelineJson(QJsonDocument(after).toJson(QJsonDocument::Compact)).timeline) {
+            } else if (!nt::parseTimeline(after).timeline) {
                 return false;
             }
         }
@@ -360,7 +463,7 @@ bool TimelineModel::replaceDocument(const QJsonObject& incoming) {
     if (beforeFields == afterFields && raw.contains("markers")) {
         return replaceMarkers(raw.value("markers").toArray());
     }
-    auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson(QJsonDocument::Compact));
+    auto parsed = nt::parseTimeline(raw);
     if (!parsed.timeline) {
         return false;
     }
@@ -378,6 +481,7 @@ bool TimelineModel::replaceDocument(const QJsonObject& incoming) {
     }
     next.revision = nt::nextTimelineRevision();
     m_timeline = std::make_shared<const nt::Timeline>(std::move(next));
+    markAllChanged();
     if (tracksChanged) {
         m_tracks->reset(m_timeline.get());
     } else {
@@ -419,6 +523,7 @@ void TimelineModel::registerMedia(const nt::Clip& media) {
     if (!changed) { return; }
     next.revision = nt::nextTimelineRevision();
     m_timeline = std::make_shared<const nt::Timeline>(std::move(next));
+    markAllChanged();
     m_tracks->rebind(m_timeline.get());
     emit clipsChanged();
     emit timelineChanged();
@@ -452,13 +557,14 @@ void TimelineModel::registerMatteMedia(const QString& assetId, const std::string
     if (!changed) { return; }
     next.revision = nt::nextTimelineRevision();
     m_timeline = std::make_shared<const nt::Timeline>(std::move(next));
+    markAllChanged();
     m_tracks->rebind(m_timeline.get());
     emit clipsChanged();
     emit timelineChanged();
 }
 
 bool TimelineModel::settleDocument(const QJsonObject& document) {
-    if (!nt::parseTimelineJson(QJsonDocument(document).toJson(QJsonDocument::Compact)).timeline) { return false; }
+    if (!nt::parseTimeline(document).timeline) { return false; }
     const auto before = m_timeline->raw;
     const QJsonObject incoming = document;
     emit beforeCommand();
@@ -475,7 +581,7 @@ bool TimelineModel::settleCommand(quint64 token, const QJsonObject& document) {
         const auto* command = dynamic_cast<const DocumentCommand*>(m_undo->command(i));
         if (!command || command->token() != token) { continue; }
         if (i + 1 != m_undo->count()) { return false; }
-        if (!nt::parseTimelineJson(QJsonDocument(document).toJson(QJsonDocument::Compact)).timeline) {
+        if (!nt::parseTimeline(document).timeline) {
             return false;
         }
         QJsonObject settled = document;
@@ -486,7 +592,7 @@ bool TimelineModel::settleCommand(quint64 token, const QJsonObject& document) {
             const auto restored = m_timeline->raw;
             if (before != restored) { settled = nt::motion::rebaseDocumentDelta(restored, before, settled); }
         }
-        if (!nt::parseTimelineJson(QJsonDocument(settled).toJson(QJsonDocument::Compact)).timeline) {
+        if (!nt::parseTimeline(settled).timeline) {
             return false;
         }
         // QUndoStack exposes commands as const, but owns the mutable command.

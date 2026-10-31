@@ -15,6 +15,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace nt {
@@ -152,6 +153,29 @@ struct Timeline {
     // new value from nextTimelineRevision(), so a cache keyed by it (the flex
     // layout's) is never stale. 0: a document no model owns, never cached.
     std::uint64_t revision = 0;
+    // Clip id to its index in `clips`, shared by snapshots with the same ids
+    // in the same order. Null: not built; findClip then scans.
+    std::shared_ptr<const std::unordered_map<std::string, std::size_t>> clipIndex;
+
+    // Builds `clipIndex` from `clips`. Call it after the ids or their order change.
+    void indexClips() {
+        auto index = std::make_shared<std::unordered_map<std::string, std::size_t>>();
+        index->reserve(clips.size());
+        for (std::size_t i = 0; i < clips.size(); ++i) index->emplace(clips[i].id, i);
+        clipIndex = std::move(index);
+    }
+
+    // A stale index entry (a copy with edited `clips`) falls back to a scan.
+    const Clip* findClip(const std::string& clipId) const {
+        if (clipIndex) {
+            const auto it = clipIndex->find(clipId);
+            if (it != clipIndex->end() && it->second < clips.size() && clips[it->second].id == clipId) return &clips[it->second];
+        }
+        for (const auto& c : clips) {
+            if (c.id == clipId) return &c;
+        }
+        return nullptr;
+    }
 
     const Track* findTrack(const std::string& trackId) const {
         for (const auto& t : tracks) {

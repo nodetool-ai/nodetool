@@ -22,7 +22,7 @@ bool editClips(ClipGestureController& gestures, const QVariantMap& context, cons
     const auto ids = targets(gestures, context);
     if (ids.isEmpty()) { return false; }
     const IdSet requested(ids.begin(), ids.end());
-    auto raw = QJsonDocument::fromJson(gestures.timeline()->documentJson()).object();
+    auto raw = gestures.timeline()->timeline().raw;
     const auto doc = structure::editDocument(raw);
     const auto editable = editableUserTargets(doc, requested, false, false);
     const auto before = raw.value("clips").toArray();

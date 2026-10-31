@@ -333,6 +333,7 @@ void PreviewCompositor::setTimeline(TimelineModel* timeline) {
     m_timeline = timeline;
     if (m_timeline) {
         connect(m_timeline, &TimelineModel::timelineChanged, this, &QQuickItem::update);
+        connect(m_timeline, &TimelineModel::previewChanged, this, &QQuickItem::update);
     }
     emit timelineChanged();
     update();

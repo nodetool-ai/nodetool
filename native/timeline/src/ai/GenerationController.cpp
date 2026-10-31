@@ -101,7 +101,7 @@ const bool registered = nt::app::registerEdit("ai.insertGeneration", insertClip)
 const bool imageRegistered = nt::app::registerEdit("ai.insertImageVideo", insertImageVideo);
 bool clipLocked(const TimelineModel& model, const QJsonObject& clip) {
     if (clip.value("locked").toBool()) return true;
-    const auto document = QJsonDocument::fromJson(model.documentJson()).object();
+    const auto document = model.timeline().raw;
     for (const auto& value : document.value("tracks").toArray()) {
         const auto track = value.toObject();
         if (track.value("id") == clip.value("trackId")) return track.value("locked").toBool();
@@ -377,6 +377,12 @@ bool GenerationController::setWorkflowInput(const QString& clipId, const QString
 }
 
 QVariantList GenerationController::candidates() const {
+    // A clip move changes no take: reuse the list while the takes revision stays the same.
+    const quint64 takesRevision = m_timeline ? m_timeline->takesRevision() : 0;
+    if (m_candidatesCache && m_candidatesCache->candidates == m_candidates && m_candidatesCache->timeline == m_timeline &&
+        m_candidatesCache->takesRevision == takesRevision) {
+        return m_candidatesCache->result;
+    }
     auto entries = m_candidates;
     const auto key = [](const QJsonValue& value) {
         if (value.isString()) return QStringLiteral("s:") + value.toString();
@@ -433,7 +439,8 @@ QVariantList GenerationController::candidates() const {
         item.insert("clipMissing", !clipIds.contains(item.value("clipId").toString()));
         entries.replace(i, item);
     }
-    return entries.toVariantList();
+    m_candidatesCache = CandidatesCache{m_candidates, m_timeline, takesRevision, entries.toVariantList()};
+    return m_candidatesCache->result;
 }
 bool GenerationController::canonicalizeTarget() {
     if (!m_target || !m_timeline) { setError("Open a server timeline to generate media."); return false; }
@@ -1384,7 +1391,7 @@ void GenerationController::resolve(const QString& clipId, const QString& takeId,
                         if (timing.isEmpty()) { controller->setError("Choose an extension timing mode."); return; }
                         clips.replace(i, clip);
                         QSet<QString> lockedTracks;
-                        for (const auto& entry : QJsonDocument::fromJson(model->documentJson()).object().value("tracks").toArray()) {
+                        for (const auto& entry : model->timeline().raw.value("tracks").toArray()) {
                             const auto track = entry.toObject(); if (track.value("locked").toBool()) lockedTracks.insert(track.value("id").toString());
                         }
                         const auto extended = nt::ai::applyExtension(clips, extensionSnapshot.value("source").toObject(), version.value("id").toString(),

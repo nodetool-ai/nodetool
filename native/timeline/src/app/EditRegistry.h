@@ -83,6 +83,14 @@ inline bool registerEdit(const QString& name, Edit edit,
     edits().insert(name, std::move(edit));
     return true;
 }
+// The built-in clip edits register this callable, so a caller can tell one
+// from a replacement registered under the same name.
+struct BuiltinClipEdit {
+    QString name;
+    QJsonObject (*apply)(const QString&, QJsonObject, const QJsonObject&);
+    QJsonObject operator()(QJsonObject raw, const QJsonObject& payload) const { return apply(name, std::move(raw), payload); }
+};
+inline bool isBuiltinEdit(const Edit& edit) { return edit && edit.target<BuiltinClipEdit>() != nullptr; }
 inline Edit findEdit(const QString& name) {
     const auto override = editOverrides().constFind(name);
     return override != editOverrides().cend() ? *override : edits().value(name);

@@ -180,7 +180,7 @@ QVariantList RulerCanvas::ticks() const {
     request.toMs = request.fromMs + width() * m_msPerPx;
     request.fps = m_fps;
     request.gridDivision = m_gridDivision;
-    if (m_timeline) { request.document = QJsonDocument::fromJson(m_timeline->documentJson()).object(); }
+    if (m_timeline) { request.document = m_timeline->timeline().raw; }
     for (const auto& tick : nt::wiring::rulerTicks(m_rulerMode, request)) {
         if (!std::isfinite(tick.timeMs) || tick.timeMs < request.fromMs || tick.timeMs > request.toMs) { continue; }
         result.append(QVariantMap{{"timeMs", tick.timeMs}, {"major", tick.major}, {"label", tick.label}});

@@ -14,7 +14,7 @@
 #include <algorithm>
 
 QJsonObject nt::exporting::exportSnapshot(const TimelineModel& model) {
-    auto raw = QJsonDocument::fromJson(model.documentJson()).object();
+    auto raw = model.timeline().raw;
     QJsonArray clips;
     double duration = model.timeline().clips.empty() ? model.timeline().durationMs : 0;
     for (const auto& clip : model.timeline().clips) {

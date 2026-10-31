@@ -347,7 +347,7 @@ void AssetBrowser::importFiles(const QList<QUrl>& urls) {
     QJsonObject fields;
     if (!m_folderId.isEmpty()) { fields.insert("parent_id", m_folderId); }
     if (m_timeline) {
-        const auto raw = QJsonDocument::fromJson(m_timeline->documentJson()).object();
+        const auto raw = m_timeline->timeline().raw;
         if (!raw.value("projectId").toString().isEmpty()) { fields.insert("project_id", raw.value("projectId")); }
     }
     for (const auto& url : urls) {

@@ -35,6 +35,7 @@ void LaneClipModel::setTimeline(TimelineModel* timeline) {
     m_timeline = timeline;
     if (m_timeline) {
         connect(m_timeline, &TimelineModel::clipsChanged, this, [this]() {
+            if (!m_timeline->trackTouched(m_trackId) && rebase()) return;
             rebuildClips();
             recompute();
         });
@@ -68,6 +69,20 @@ void LaneClipModel::setPinnedClipId(const QString& id) {
     m_pinned = id;
     recompute();
     emit pinnedClipIdChanged();
+}
+
+bool LaneClipModel::rebase() {
+    // No clip of this lane changed and every clip kept its index: point the
+    // same rows at the new snapshot, with no scan and no row signal.
+    const auto next = m_timeline->snapshot();
+    if (!m_snapshot || m_snapshotNext != m_snapshot || next->clips.size() != m_snapshot->clips.size()) return false;
+    const nt::Clip* oldBase = m_snapshot->clips.data();
+    const nt::Clip* newBase = next->clips.data();
+    for (auto& c : m_clips) c = newBase + (c - oldBase);
+    for (auto& c : m_rows) c = newBase + (c - oldBase);
+    m_snapshot = next;
+    m_snapshotNext = next;
+    return true;
 }
 
 void LaneClipModel::rebuildClips() {

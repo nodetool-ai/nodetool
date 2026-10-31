@@ -26,7 +26,7 @@ void ReframeController::setModel(TimelineModel* model) {
     emit documentChanged();
 }
 QVariantMap ReframeController::document() const {
-    return m_model ? QJsonDocument::fromJson(m_model->documentJson()).object().toVariantMap() : QVariantMap{};
+    return m_model ? m_model->timeline().raw.toVariantMap() : QVariantMap{};
 }
 bool ReframeController::apply(const QString& action, const QJsonObject& payload) {
     finishGesture();
@@ -38,7 +38,7 @@ void ReframeController::beginGesture(const QString& action, const QJsonObject& p
         return;
     }
     m_cancelled = false;
-    m_before = QJsonDocument::fromJson(m_model->documentJson()).object();
+    m_before = m_model->timeline().raw;
     m_lastPreview = m_model->clipsJson();
     m_payload = payload;
     m_generation = m_model->documentGeneration();
@@ -120,7 +120,7 @@ QVariantMap ReframeController::previewState(const QStringList& selection, double
     if (found == plan.layers.end()) {
         return {};
     }
-    const auto doc = QJsonDocument::fromJson(m_model->documentJson()).object();
+    const auto doc = m_model->timeline().raw;
     QJsonObject track;
     for (const auto& value : doc.value("mediaTracks").toArray()) {
         if (value.toObject().value("id") == clip->raw.value("reframe").toObject().value("trackId")) {

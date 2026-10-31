@@ -29,7 +29,7 @@ int TrackHeaderActions::position(TimelineModel* timeline, const QString& trackId
     if (!timeline) {
         return -1;
     }
-    const auto tracks = QJsonDocument::fromJson(timeline->documentJson()).object().value("tracks").toArray();
+    const auto tracks = timeline->timeline().raw.value("tracks").toArray();
     for (qsizetype i = 0; i < tracks.size(); ++i) {
         if (tracks[i].toObject().value("id") == trackId) {
             return static_cast<int>(i);

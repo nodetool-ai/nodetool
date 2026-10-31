@@ -127,6 +127,13 @@ private:
     int m_reconnectAttempts = 0;
     QJsonObject m_job;
     QJsonArray m_candidates;
+    struct CandidatesCache {
+        QJsonArray candidates;
+        const TimelineModel* timeline = nullptr;
+        quint64 takesRevision = 0;
+        QVariantList result;
+    };
+    mutable std::optional<CandidatesCache> m_candidatesCache;
     QHash<QString, QUrl> m_previews;
     quint64 m_generation = 0;
     QString m_state;

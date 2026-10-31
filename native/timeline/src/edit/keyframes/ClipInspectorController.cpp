@@ -58,11 +58,14 @@ void ClipInspectorController::setClipId(const QString& id) {
     emit playheadChanged();
 }
 QJsonObject ClipInspectorController::selected() const {
-    if (m_timeline) {
-        for (const auto& value : m_timeline->clipsJson()) {
-            if (value.toObject()["id"] == m_clipId) {
-                return value.toObject();
-            }
+    // The typed clips keep each clip's JSON, so the lookup reads no JSON array.
+    if (!m_timeline || m_clipId.isEmpty()) {
+        return {};
+    }
+    const auto id = m_clipId.toStdString();
+    for (const auto& clip : m_timeline->timeline().clips) {
+        if (clip.id == id) {
+            return clip.raw;
         }
     }
     return {};

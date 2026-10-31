@@ -410,6 +410,41 @@ class TestTracksUi : public QObject {
 private slots:
     void cleanup() { unload(); }
 
+    // ── Drag cost bench ──
+    // Prints the median and p90 cost of one live move step at 3200 clips.
+    // Runs only with NT_DRAG_BENCH=1: the numbers depend on the machine.
+    void dragCostBench() {
+        if (!qEnvironmentVariableIsSet("NT_DRAG_BENCH")) QSKIP("set NT_DRAG_BENCH=1");
+        load({8, 400});
+        seed(10, 0);
+        // NT_DRAG_BENCH_PREVIEW=1: the playhead stays on the moved clip, so
+        // every step writes the document for the program preview.
+        if (qEnvironmentVariableIsSet("NT_DRAG_BENCH_PREVIEW")) {
+            const QJsonObject clip = clipJson("c-0-2");
+            clock->seek(clip.value("startMs").toDouble() + clip.value("durationMs").toDouble() / 2);
+        }
+        const QPoint from = clipPoint("c-0-2", 30);
+        QSignalSpy writes(model, &TimelineModel::clipsChanged);
+        QTest::mousePress(view.get(), Qt::LeftButton, Qt::AltModifier, from);
+        std::vector<qint64> costs;
+        std::vector<qint64> moves;
+        const int steps = std::max(120, qEnvironmentVariableIntValue("NT_DRAG_BENCH"));
+        for (int i = 1; i <= steps; ++i) {
+            QElapsedTimer t;
+            t.start();
+            QTest::mouseMove(view.get(), from + QPoint(i % 2 ? 4 + i % 5 : -4 - i % 5, 0));
+            moves.push_back(t.nsecsElapsed() / 1000);
+            frame();
+            costs.push_back(t.nsecsElapsed() / 1000);
+        }
+        qInfo("document writes during the drag: %lld, live %f", (long long)writes.count(), controller()->liveStartMs("c-0-2"));
+        QTest::mouseRelease(view.get(), Qt::LeftButton, {}, from);
+        std::sort(costs.begin(), costs.end());
+        std::sort(moves.begin(), moves.end());
+        qInfo("drag step: median %lld us, p90 %lld us; move event alone: median %lld us, p90 %lld us",
+              costs[costs.size() / 2], costs[costs.size() * 9 / 10], moves[moves.size() / 2], moves[moves.size() * 9 / 10]);
+    }
+
     // ── --ui-bench media check ──
     // The 8-track bench with hardware decode started its measured range while
     // the layers still showed the keyframe before their in-points (frame error
@@ -1159,7 +1194,10 @@ private slots:
             auto expectedRaw = rawBefore;
             expectedRaw.remove("clips");
             QCOMPARE(raw, expectedRaw);
-            QCOMPARE(inputClips.at(0).toObject().value("registryVisits").toInt(), refusing ? 0 : int(i));
+            // A move step writes only the clips under the playhead (for the
+            // preview); the others reach the document on release.
+            const bool live = editName == "moveClip" || editName == "moveSelectedClips";
+            if (!live) QCOMPARE(inputClips.at(0).toObject().value("registryVisits").toInt(), refusing ? 0 : int(i));
             QCOMPARE(undoCounts[i], 0);  // previews never push commands
             QCOMPARE(payloads[i].value("linked"), QJsonValue(false));
         }
@@ -1580,17 +1618,25 @@ private slots:
         for (QQuickItem* c : itemsNamed(QStringLiteral("clip-c-")))
             if (!c->objectName().startsWith(QLatin1String("clip-c-2-"))) otherClips.append(c);
         const int liveBefore = controller()->liveUpdates();
-        drag(clipPoint("c-2-5", 30), clipPoint("c-2-5", 30) + QPoint(15, 0), 10, Qt::AltModifier);
-        const int liveMoves = controller()->liveUpdates() - liveBefore;
-        QVERIFY(liveMoves > 0);
-        QVERIFY(signalCount.value("track-2") > 0);
+        QQuickItem* moved = itemsNamed(QStringLiteral("clip-c-2-5")).value(0);
+        QVERIFY(moved);
+        const qreal xBefore = moved->x();
+        const QPoint from = clipPoint("c-2-5", 30);
+        QTest::mousePress(view.get(), Qt::LeftButton, Qt::AltModifier, from);
+        for (int i = 1; i <= 10; ++i) QTest::mouseMove(view.get(), from + QPoint(15, 0) * i / 10);
+        frame();
+        QVERIFY(controller()->liveUpdates() - liveBefore > 0);
+        // The steps show through the live list: the clip moved, no lane changed.
+        QVERIFY(moved->x() > xBefore);
+        for (auto it = lanes.begin(); it != lanes.end(); ++it) QCOMPARE(signalCount.value(it.key()), 0);
+        QTest::mouseRelease(view.get(), Qt::LeftButton, {}, from + QPoint(15, 0));
+        frame();
+        // The release writes the move once: only the moved clip's row in its own lane.
         for (auto it = lanes.begin(); it != lanes.end(); ++it) {
             if (it.key() != "track-2") QCOMPARE(signalCount.value(it.key()), 0);
         }
         for (const auto& p : otherClips) QVERIFY(p);
-        // In its own lane only the moved clip's row changed: one row per
-        // live update of the gesture.
-        QCOMPARE(lanes.value("track-2")->dataChangedRows(), liveMoves);
+        QCOMPARE(lanes.value("track-2")->dataChangedRows(), 1);
     }
 
 
@@ -1613,6 +1659,35 @@ private slots:
         QCOMPARE(controller()->activeClipId(), QString());
     }
 
+    // A move writes the document during the drag only when the program
+    // preview can show it: here the playhead is on the moved clip.
+    void aMoveUnderThePlayheadUpdatesTheDocumentLive() {
+        load({2, 10});
+        seed(10, 0);
+        const QJsonObject clip = clipJson("c-0-2");
+        clock->seek(clip.value("startMs").toDouble() + 1);
+        const QByteArray original = model->documentJson();
+        const QPoint press = clipPoint("c-0-2", 30);
+        QSignalSpy preview(model, &TimelineModel::previewChanged);
+        QSignalSpy clips(model, &TimelineModel::clipsChanged);
+        QSignalSpy timeline(model, &TimelineModel::timelineChanged);
+        QTest::mousePress(view.get(), Qt::LeftButton, Qt::AltModifier, press);
+        // The clip leaves the playhead at this step: the preview must lose it.
+        QTest::mouseMove(view.get(), press + QPoint(10, 0));
+        QVERIFY(model->documentJson() != original);
+        QVERIFY(controller()->liveStartMs("c-0-2") >= 0);
+        // Only the preview heard the step.
+        QCOMPARE(preview.count(), 1);
+        QCOMPARE(clips.count(), 0);
+        QCOMPARE(timeline.count(), 0);
+        QTest::mouseRelease(view.get(), Qt::LeftButton, {}, press + QPoint(10, 0));
+        frame();
+        // The release tells the other listeners once.
+        QCOMPARE(clips.count(), 1);
+        QCOMPARE(model->undoStack()->count(), 1);
+        QCOMPARE(controller()->liveStartMs("c-0-2"), -1.0);
+    }
+
     // F6: Escape cancels the gesture and restores the press state; a key
     // command during a gesture cancels the gesture before it runs.
     void escapeCancelsAndKeysEndTheGesture() {
@@ -1624,8 +1699,10 @@ private slots:
         QTest::mousePress(view.get(), Qt::LeftButton, Qt::AltModifier, press);
         QTest::mouseMove(view.get(), press + QPoint(10, 0));
         QTest::mouseMove(view.get(), press + QPoint(40, 0));
-        QVERIFY(model->documentJson() != original);  // live
+        QVERIFY(controller()->liveStartMs("c-0-2") >= 0);  // live, not in the document
+        QCOMPARE(model->documentJson(), original);
         key(Qt::Key_Escape);
+        QCOMPARE(controller()->liveStartMs("c-0-2"), -1.0);
         QCOMPARE(model->documentJson(), original);
         QTest::mouseRelease(view.get(), Qt::LeftButton, {}, press + QPoint(40, 0));
         frame();

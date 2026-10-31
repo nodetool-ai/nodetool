@@ -18,7 +18,7 @@ void TransitionController::setModel(TimelineModel* model) {
     emit modelChanged(); emit documentChanged();
 }
 QVariantMap TransitionController::document() const {
-    return m_model ? QJsonDocument::fromJson(m_model->documentJson()).object().toVariantMap() : QVariantMap{};
+    return m_model ? m_model->timeline().raw.toVariantMap() : QVariantMap{};
 }
 QJsonObject TransitionController::withSourceCaps(QJsonObject payload) const {
     QJsonObject caps;
@@ -41,7 +41,7 @@ bool TransitionController::apply(const QString& action, const QJsonObject& paylo
 void TransitionController::beginGesture(const QString& action, const QJsonObject& payload) {
     if (!m_model) { return; }
     m_cancelled = false;
-    m_before = QJsonDocument::fromJson(m_model->documentJson()).object();
+    m_before = m_model->timeline().raw;
     m_lastPreview = m_model->clipsJson();
     m_generation = m_model->documentGeneration(); m_action = action; m_payload = withSourceCaps(payload); m_gesture = true;
 }

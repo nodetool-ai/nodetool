@@ -10,6 +10,8 @@
 #include <QUndoStack>
 
 #include <memory>
+#include <optional>
+#include <vector>
 #include <QtQmlIntegration/qqmlintegration.h>
 
 // The document the editor shows. It owns the timeline; QML only observes it.
@@ -71,6 +73,26 @@ public:
     // live preview use it). The tracks stay, so the track rows stay; the
     // lanes re-read their clips. Returns false when nothing changed.
     bool replaceClips(const QJsonArray& clips);
+    // Replaces only the given clips, matched by id, in place. No clip is
+    // added or removed, so no comparison of the other clips runs. Returns
+    // false when an id is unknown or nothing changed.
+    bool patchClips(const QJsonArray& changed);
+    // The same for one step of a drag: only the preview hears it
+    // (previewChanged). The other listeners hear every transient change at
+    // once on settleTransient, when the gesture ends.
+    bool previewClips(const QJsonArray& changed);
+    void settleTransient();
+    // O(1) through the snapshot's id index. Null: no such clip.
+    const nt::Clip* findClip(const QString& clipId) const;
+    // True when the last clips change touched the clip. A change that added,
+    // removed or reordered clips, or a new document, touches every clip.
+    Q_INVOKABLE bool clipTouched(const QString& clipId) const;
+    // True when the last clips change touched a clip on the track, before or
+    // after it. When false, the clips keep their ids and order, so a clip
+    // has the same index in the new snapshot.
+    bool trackTouched(const QString& trackId) const;
+    // Goes up when the takes (`versions`) of a clip can have changed.
+    quint64 takesRevision() const { return m_takesRevision; }
     // Pushes one undo command from `before` to `after` (and applies `after`).
     // No command when the two are equal. A `continuation` with a `mergeId`
     // folds into the previous command of that id (a held key's repeats).
@@ -107,9 +129,25 @@ signals:
     // A new document replaced the old one (emitted before clipsChanged).
     void documentReplaced();
     void markersChanged();
+    // A transient snapshot for the preview (previewClips). The preview and
+    // the audio follow it. timelineChanged and clipsChanged come later.
+    void previewChanged();
 
 private:
     bool replaceDocument(const QJsonObject& raw);
+    bool applyClips(const QJsonArray& clips, const std::vector<int>& reuse, bool sameIds, bool transient = false);
+    bool patch(const QJsonArray& changed, bool transient);
+    // The clips and tracks the transient snapshots changed since the last full notification.
+    struct Transient {
+        QSet<QString> clipIds;
+        QSet<QString> trackIds;
+        bool takesChanged = false;
+    };
+    std::optional<Transient> m_transient;
+    void markAllChanged();
+    std::optional<QSet<QString>> m_changedClipIds;
+    QSet<QString> m_changedTrackIds;
+    quint64 m_takesRevision = 0;
     std::shared_ptr<const nt::Timeline> m_timeline;
     TrackListModel* m_tracks;
     QUndoStack* m_undo;

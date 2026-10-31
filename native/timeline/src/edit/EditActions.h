@@ -18,8 +18,10 @@
 
 #include "edit/ClipOps.h"
 
+#include <QHash>
 #include <QStringList>
 
+#include <memory>
 #include <optional>
 #include <vector>
 
@@ -36,6 +38,11 @@ struct EditDoc {
     std::vector<TrackInfo> tracks;
     // Clips that own a media track (`mediaTracks[].clipId`).
     IdSet clipsWithMediaTracks;
+    // Clip id to its index in `clips`, built on first use. A caller can set
+    // one it already has. A stale entry (edited `clips`) falls back to a scan.
+    mutable std::shared_ptr<const QHash<QString, int>> idIndex;
+
+    int indexOf(const QString& id) const;
 };
 
 // TimelineStore.ts helpers.

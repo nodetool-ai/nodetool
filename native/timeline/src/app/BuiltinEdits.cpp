@@ -105,9 +105,7 @@ const bool registered = [] {
              "splitClipAtTime", "splitSelectedAtPlayhead", "deleteSelected", "rippleDeleteSelected", "moveClip",
              "moveSelectedClips", "nudge", "trimClipStart", "trimClipEnd", "rippleTrimClipStart", "rippleTrimClipEnd",
              "rollClipEdge", "resolveDropAction", "rateStretchClip", "slideClip", "slipClip"}) {
-        nt::app::registerEdit(name, [name](QJsonObject raw, const QJsonObject& payload) {
-            return clipEdit(name, std::move(raw), payload);
-        });
+        nt::app::registerEdit(name, nt::app::BuiltinClipEdit{name, &clipEdit});
     }
     nt::app::registerEdit("addMarker", [](QJsonObject raw, const QJsonObject& payload) {
         auto markers = raw.value("markers").toArray();

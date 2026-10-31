@@ -35,6 +35,7 @@ bool AppAudio::start(const QString& mode, double latencyMs, TimelineModel& model
     const auto update = [engine, &model]() { engine->setTimeline(model.snapshot()); };
     m_connections[0] = QObject::connect(&model, &TimelineModel::timelineChanged, &clock, update);
     m_connections[1] = QObject::connect(&model, &TimelineModel::clipsChanged, &clock, update);
+    m_connections[2] = QObject::connect(&model, &TimelineModel::previewChanged, &clock, update);
     std::string why;
     if (!m_engine->start(options, &why)) {
         if (error) *error = QString::fromStdString(why);

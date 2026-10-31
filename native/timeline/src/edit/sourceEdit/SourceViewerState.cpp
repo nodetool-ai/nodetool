@@ -84,7 +84,7 @@ bool SourceViewerState::perform(const QString& kind, ClipGestureController* gest
         (kind != "append" && kind != "insert" && kind != "overwrite")) { return false; }
     auto* timeline = gestures->timeline();
     const auto before = timeline->clipsJson();
-    const auto result = nt::sourceedit::performSourceEdit(kind, QJsonDocument::fromJson(timeline->documentJson()).object(),
+    const auto result = nt::sourceedit::performSourceEdit(kind, timeline->timeline().raw,
         nt::targeting::TrackTargeting::current().state(), QJsonObject::fromVariantMap(m_marks),
         gestures->clock()->time(), QJsonObject::fromVariantMap(m_asset));
     if (!result) { return false; }

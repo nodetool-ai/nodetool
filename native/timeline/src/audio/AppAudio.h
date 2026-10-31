@@ -41,7 +41,7 @@ private:
     PlaybackClock* m_clock = nullptr;
     QString m_mode;
     QString m_reportPath;
-    QMetaObject::Connection m_connections[2];
+    QMetaObject::Connection m_connections[3];
 };
 
 }  // namespace nt::audio

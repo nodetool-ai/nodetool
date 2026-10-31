@@ -69,6 +69,8 @@ class ClipGestureController : public QQuickItem {
     // The candidate a moving edge locked onto, or -1.
     Q_PROPERTY(double snapGuideMs READ snapGuideMs NOTIFY snapGuideChanged)
     Q_PROPERTY(int liveUpdates READ liveUpdates NOTIFY gestureChanged)
+    // Goes up when the live list of a move changes (liveStartMs).
+    Q_PROPERTY(int liveRevision READ liveRevision NOTIFY liveChanged)
     Q_PROPERTY(double trackDropY READ trackDropY NOTIFY gestureChanged)
     Q_PROPERTY(QVariantMap rubberBand READ rubberBand NOTIFY gestureChanged)
     Q_PROPERTY(QVariantMap selectedGap READ selectedGap NOTIFY selectionChanged)
@@ -104,6 +106,11 @@ public:
     QString gestureKind() const { return m_gesture.kind; }
     double snapGuideMs() const { return m_snapGuideMs; }
     int liveUpdates() const { return m_liveUpdates; }
+    int liveRevision() const { return m_liveUpdates; }
+    // The place of a clip a move shows before the document has it. -1: the
+    // clip is not in the live list, so the document has its place.
+    Q_INVOKABLE double liveStartMs(const QString& clipId) const;
+    Q_INVOKABLE double liveDurationMs(const QString& clipId) const;
     double trackDropY() const { return m_trackDropY; }
     QVariantMap rubberBand() const { return m_rubberBand; }
     QVariantMap selectedGap() const { return m_selectedGap; }
@@ -120,6 +127,8 @@ public:
 
     Q_INVOKABLE bool runAction(const QString& action, const QVariantMap& context = {});
     Q_INVOKABLE QVariantMap clipData(const QString& clipId) const;
+    // True when the last clips change touched the clip (TimelineModel::clipTouched).
+    Q_INVOKABLE bool clipTouched(const QString& clipId) const { return !m_timeline || m_timeline->clipTouched(clipId); }
 
 public slots:
     // A press on a clip: `part` is "body", "start" or "end". Grabs the mouse.
@@ -155,6 +164,7 @@ signals:
     void selectionChanged();
     void optionsChanged();
     void gestureChanged();
+    void liveChanged();
     void snapGuideChanged();
     // The `?` key: open or close the shortcut sheet.
     void shortcutsToggled();
@@ -205,6 +215,9 @@ private:
                                    const std::function<nt::edit::ClipList()>& fallback,
                                    std::optional<double> maxSourceDurationMs = std::nullopt) const;
     void setDoc(const nt::edit::ClipList& clips);
+    void setLiveDoc(const nt::edit::ClipList& clips);
+    void flushLive();
+    void clearLive();
     void applyMove();
     void applyTrim();
     void applySlip();
@@ -225,8 +238,6 @@ private:
     void probeSources();
     void syncPlaybackRange();
 
-    mutable QHash<QString, QJsonObject> m_clipData;
-    mutable std::uint64_t m_clipDataRevision = 0;
     QPointer<TimelineModel> m_timeline;
     QPointer<TimelineViewState> m_view;
     QPointer<TrackWindowModel> m_rows;
@@ -249,6 +260,14 @@ private:
     // Bumped by a document replacement: older probe results are dropped.
     quint64 m_probeGeneration = 0;
     int m_liveUpdates = 0;
+    mutable std::shared_ptr<const QHash<QString, int>> m_editIndex;
+    mutable std::shared_ptr<const std::unordered_map<std::string, std::size_t>> m_editIndexSource;
+    // A move's changed clips (start, duration) and its whole result, while
+    // the document does not have them.
+    QHash<QString, QPair<double, double>> m_live;
+    nt::edit::ClipList m_liveClips;
+    // The snapshot the lanes last heard of while a move shows its steps live.
+    std::shared_ptr<const nt::Timeline> m_liveBase;
     double m_trackDropY = -1;
     QStringList m_trackOrder;
     QVariantMap m_rubberBand;

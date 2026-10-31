@@ -116,8 +116,6 @@ void ClipGestureController::setTimeline(TimelineModel* m) {
     if (m == m_timeline) return;
     if (m_timeline) disconnect(m_timeline, nullptr, this, nullptr);
     m_timeline = m;
-    m_clipData.clear();
-    m_clipDataRevision = 0;
     if (m_timeline) {
         // A new document ends a gesture on the old one, with no write.
         connect(m_timeline, &TimelineModel::documentReplaced, this, [this]() {
@@ -133,11 +131,9 @@ void ClipGestureController::setTimeline(TimelineModel* m) {
         // A clip the document lost leaves the selection.
         connect(m_timeline, &TimelineModel::clipsChanged, this, [this]() {
             if (m_selection.isEmpty()) return;
-            QSet<QString> ids;
-            for (const QJsonValue& v : m_timeline->clipsJson()) ids.insert(v.toObject().value(u"id").toString());
             QStringList live;
             for (const QString& id : m_selection) {
-                if (ids.contains(id)) live.append(id);
+                if (m_timeline->findClip(id)) live.append(id);
             }
             if (live != m_selection) setSelection(live);
         });
@@ -222,6 +218,16 @@ EditDoc ClipGestureController::editDoc() const {
     EditDoc doc;
     if (!m_timeline) return doc;
     for (const QJsonValue& v : m_timeline->clipsJson()) doc.clips.push_back(v.toObject());
+    // The snapshot's id index, converted once while the ids stay the same.
+    const auto& typed = m_timeline->timeline();
+    if (m_editIndexSource != typed.clipIndex || !m_editIndex) {
+        auto index = std::make_shared<QHash<QString, int>>();
+        index->reserve(static_cast<int>(typed.clips.size()));
+        for (size_t i = 0; i < typed.clips.size(); ++i) index->insert(QString::fromStdString(typed.clips[i].id), static_cast<int>(i));
+        m_editIndex = std::move(index);
+        m_editIndexSource = typed.clipIndex;
+    }
+    doc.idIndex = m_editIndex;
     for (const QJsonValue& v : m_timeline->timeline().raw.value(u"tracks").toArray()) {
         const QJsonObject t = v.toObject();
         doc.tracks.push_back({t.value(u"id").toString(), t.value(u"type").toString(), t.value(u"locked").toBool()});
@@ -237,7 +243,10 @@ ClipList ClipGestureController::resolveEdit(const QString& name, QJsonObject pay
                                              const std::function<ClipList()>& fallback,
                                              std::optional<double> maxSourceDurationMs) const {
     const auto edit = nt::app::findEdit(name);
-    if (!edit) {
+    // The built-in move runs the same native edit as `fallback`: call that on
+    // the clips and skip the conversion of the whole document to JSON and
+    // back on each step of a drag.
+    if (!edit || (nt::app::isBuiltinEdit(edit) && (name == u"moveClip" || name == u"moveSelectedClips"))) {
         return fallback();
     }
     // Gestures own preview and undo. Registered edits see the live clips,
@@ -258,10 +267,87 @@ ClipList ClipGestureController::resolveEdit(const QString& name, QJsonObject pay
 }
 
 void ClipGestureController::setDoc(const ClipList& clips) {
-    if (m_timeline && m_timeline->replaceClips(toArray(clips))) {
+    if (!m_timeline) return;
+    // A gesture step changes a few clips in place: send only those.
+    const auto& live = m_timeline->timeline().clips;
+    bool patch = clips.size() == live.size();
+    QJsonArray changed;
+    for (size_t i = 0; patch && i < clips.size(); ++i) {
+        if (live[i].raw == clips[i]) continue;
+        patch = clipId(clips[i]).toStdString() == live[i].id;
+        changed.append(clips[i]);
+    }
+    if (patch && changed.isEmpty()) return;
+    if (patch ? m_timeline->patchClips(changed) : m_timeline->replaceClips(toArray(clips))) {
         ++m_liveUpdates;
         emit gestureChanged();
     }
+}
+
+void ClipGestureController::setLiveDoc(const ClipList& clips) {
+    if (!m_timeline) return;
+    // A move step changes the lane drawing and, when a changed clip covers
+    // the playhead, the program preview. The lanes show it from the live
+    // list, against the snapshot they last heard of (`m_liveBase`). The
+    // preview gets a transient snapshot that only it hears (previewClips).
+    // The other listeners hear the move once, when the gesture ends. Clips
+    // that change lanes, appear or disappear need the full document change.
+    if (!m_liveBase) m_liveBase = m_timeline->snapshot();
+    const auto& base = m_liveBase->clips;
+    const auto& doc = m_timeline->timeline().clips;
+    bool full = clips.size() != base.size() || clips.size() != doc.size();
+    const double t = playheadMs();
+    const auto covers = [t](double start, double duration) { return start <= t && t < start + duration; };
+    QHash<QString, QPair<double, double>> live;
+    QJsonArray preview;
+    for (size_t i = 0; !full && i < clips.size(); ++i) {
+        const QJsonObject& c = clips[i];
+        if (doc[i].raw != c) {
+            preview.append(c);
+            if (!covers(doc[i].startMs, doc[i].durationMs) && !covers(clipStartMs(c), clipDurationMs(c))) preview.pop_back();
+        }
+        if (base[i].raw == c) continue;
+        full = clipId(c).toStdString() != base[i].id || clipTrackId(c).toStdString() != base[i].trackId;
+        live.insert(clipId(c), {clipStartMs(c), clipDurationMs(c)});
+    }
+    if (full) {
+        clearLive();
+        setDoc(clips);
+        m_timeline->settleTransient();
+        return;
+    }
+    if (!preview.isEmpty()) m_timeline->previewClips(preview);
+    if (live.isEmpty() && m_live.isEmpty()) return;
+    m_liveClips = live.isEmpty() ? ClipList{} : clips;
+    m_live = std::move(live);
+    ++m_liveUpdates;
+    emit liveChanged();
+    emit gestureChanged();
+}
+
+void ClipGestureController::flushLive() {
+    const ClipList clips = std::move(m_liveClips);
+    clearLive();
+    if (!clips.empty()) setDoc(clips);
+    if (m_timeline) m_timeline->settleTransient();
+}
+
+void ClipGestureController::clearLive() {
+    m_liveBase.reset();
+    if (m_live.isEmpty() && m_liveClips.empty()) return;
+    m_live.clear();
+    m_liveClips.clear();
+    emit liveChanged();
+}
+
+double ClipGestureController::liveStartMs(const QString& clipId) const {
+    const auto it = m_live.constFind(clipId);
+    return it == m_live.constEnd() ? -1 : it->first;
+}
+
+double ClipGestureController::liveDurationMs(const QString& clipId) const {
+    const auto it = m_live.constFind(clipId);
+    return it == m_live.constEnd() ? -1 : it->second;
 }
 
 double ClipGestureController::playheadMs() const {
@@ -295,7 +381,7 @@ std::vector<double> ClipGestureController::collectSnapCandidates(const IdSet& ex
     source.maxTimeMs = (m_timeline ? m_timeline->durationMs() : 0.0) + TICK_INTERVAL_MS;
     auto candidates = buildSnapPoints(source);
     nt::wiring::SnapRequest request;
-    if (m_timeline) { request.document = QJsonDocument::fromJson(m_timeline->documentJson()).object(); }
+    if (m_timeline) { request.document = m_timeline->timeline().raw; }
     request.msPerPx = m_view ? m_view->msPerPx() : 10;
     request.fromMs = m_view ? m_view->scrollLeftPx() * request.msPerPx : 0;
     const double widthPx = m_view && m_view->viewportWidthPx() > 0
@@ -469,7 +555,7 @@ void ClipGestureController::applyMove() {
         return multi ? moveSelectedClips(doc, g.clipId, m_selection, adjustedDeltaMs, target, m_linked)
                      : moveClip(doc, g.clipId, adjustedDeltaMs, target, m_linked);
     });
-    setDoc(next);
+    setLiveDoc(next);
     const QJsonObject* moved = findClip(next, g.clipId);
     setSnapGuide(moved && clipStartMs(*moved) == snapped.startMs ? snapped.guideMs : -1);
 }
@@ -774,6 +860,7 @@ void ClipGestureController::updatePolish() {
 }
 
 void ClipGestureController::dropGesture() {
+    clearLive();
     if (m_gesture.kind.isEmpty()) return;
     m_gesture = Gesture{};
     m_trackDropY = -1;
@@ -837,6 +924,7 @@ void ClipGestureController::finishGesture(bool completed, Qt::KeyboardModifiers 
         m_gesture = g;
         applyMove();
         m_gesture = Gesture{};
+        flushLive();
         const bool multi = m_selection.contains(g.clipId) && m_selection.size() > 1;
         const IdSet moved = multi ? IdSet(m_selection.begin(), m_selection.end()) : IdSet{g.clipId};
         const bool insert = modifiers & (Qt::ControlModifier | Qt::MetaModifier);
@@ -863,6 +951,7 @@ void ClipGestureController::finishGesture(bool completed, Qt::KeyboardModifiers 
                                [&] { return resolveDropAction(editDoc(), moved, mode); }));
         }
     }
+    clearLive();
     setSnapGuide(-1);
     if (!m_timeline) return;
     if (g.dragging && completed) {
@@ -1445,15 +1534,6 @@ void ClipGestureController::redo() {
 }
 
 QVariantMap ClipGestureController::clipData(const QString& id) const {
-    if (!m_timeline) { return {}; }
-    if (m_clipDataRevision != m_timeline->timeline().revision) {
-        m_clipData.clear();
-        m_clipData.reserve(m_timeline->clipCount());
-        for (const auto& value : m_timeline->clipsJson()) {
-            const auto clip = value.toObject();
-            m_clipData.insert(clip.value("id").toString(), clip);
-        }
-        m_clipDataRevision = m_timeline->timeline().revision;
-    }
-    return m_clipData.value(id).toVariantMap();
+    const nt::Clip* clip = m_timeline ? m_timeline->findClip(id) : nullptr;
+    return clip ? clip->raw.toVariantMap() : QVariantMap{};
 }

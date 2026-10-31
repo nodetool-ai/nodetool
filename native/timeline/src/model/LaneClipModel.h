@@ -91,6 +91,7 @@ signals:
 
 private:
     void rebuildClips();
+    bool rebase();
     void recompute();
 
     QPointer<TimelineModel> m_timeline;

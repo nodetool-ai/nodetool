@@ -4,7 +4,8 @@
 // A press on the body starts a move and a press on a trim handle a trim; the
 // ClipGestureController runs both (useClipDrag.ts, useClipTrim.ts), takes
 // the pointer, and applies the edit to the model as the pointer moves, so
-// this item only follows its clip's startMs. The clip under a gesture is
+// this item only follows its clip's startMs. A move shows its steps through
+// the controller's live list and writes the model only when needed. The clip under a gesture is
 // pinned in its LaneClipModel (D28) through the controller's activeClipId.
 pragma ComponentBehavior: Bound
 import QtQuick
@@ -44,9 +45,13 @@ Item {
     readonly property bool trimHandles: width >= 28
 
     objectName: "clip-" + clipId
-    x: startMs / msPerPx
+    // A move shows its steps through the controller's live list until the
+    // document has them.
+    readonly property double liveStartMs: gestures && gestures.liveRevision >= 0 ? gestures.liveStartMs(clipId) : -1
+    readonly property double liveDurationMs: liveStartMs >= 0 ? gestures.liveDurationMs(clipId) : -1
+    x: (liveStartMs >= 0 ? liveStartMs : startMs) / msPerPx
     y: 6
-    width: Math.max(4, durationMs / msPerPx)       // MIN_CLIP_WIDTH_PX
+    width: Math.max(4, (liveDurationMs >= 0 ? liveDurationMs : durationMs) / msPerPx)       // MIN_CLIP_WIDTH_PX
     height: Math.max(0, laneHeight - 12)
     z: underGesture ? TimelineMetrics.clipBodyLayer : Ui.Metrics.layerContent
     opacity: mutedTrack ? 0.5 : 1
@@ -54,7 +59,7 @@ Item {
     property var clipData: gestures ? gestures.clipData(clipId) : ({})
     Connections {
         target: clipItem.gestures ? clipItem.gestures.timeline : null
-        function onClipsChanged() { clipItem.clipData = clipItem.gestures.clipData(clipItem.clipId) }
+        function onClipsChanged() { if (clipItem.gestures.clipTouched(clipItem.clipId)) clipItem.clipData = clipItem.gestures.clipData(clipItem.clipId) }
     }
 
     ClipBody {

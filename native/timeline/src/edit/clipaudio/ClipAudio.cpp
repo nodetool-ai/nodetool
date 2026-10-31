@@ -129,7 +129,7 @@ void ClipAudio::beginFade(const QString& clipId, const QString& edge) {
 }
 void ClipAudio::previewFade(double value) {
     if (!m_timeline || m_beforeClip.isEmpty() || m_generation != generation() || !std::isfinite(value)) { return; }
-    const auto raw = QJsonDocument::fromJson(m_timeline->documentJson()).object();
+    const auto raw = m_timeline->timeline().raw;
     m_fadeValue = value;
     m_previewed = true;
     m_timeline->replaceClips(editClipAudio(raw, {{"clipId", m_beforeClip.value("id")},

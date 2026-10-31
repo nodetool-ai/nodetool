@@ -48,19 +48,23 @@ Vec2 vec2From(const QJsonValue& v, Vec2 fallback) {
 }  // namespace
 
 ParseResult parseTimelineJson(const QByteArray& json, const QString& baseDir) {
-    ParseResult result;
     QJsonParseError err{};
     const QJsonDocument doc = QJsonDocument::fromJson(json, &err);
     if (err.error != QJsonParseError::NoError) {
+        ParseResult result;
         result.error = QStringLiteral("JSON parse error at %1: %2").arg(err.offset).arg(err.errorString());
         return result;
     }
     if (!doc.isObject()) {
+        ParseResult result;
         result.error = QStringLiteral("root is not an object");
         return result;
     }
-    const QJsonObject root = doc.object();
+    return parseTimeline(doc.object(), baseDir);
+}
 
+ParseResult parseTimeline(const QJsonObject& root, const QString& baseDir) {
+    ParseResult result;
     Timeline tl;
     tl.id = root.value(u"id").toString().toStdString();
     tl.name = root.value(u"name").toString().toStdString();
@@ -175,6 +179,7 @@ ParseResult parseTimelineJson(const QByteArray& json, const QString& baseDir) {
 
     tl.scene = scene::parseSequenceScene(root);
     tl.raw = root;
+    tl.indexClips();
     result.timeline = std::move(tl);
     return result;
 }
