@@ -1,4 +1,3 @@
-<<<<<<<< Updated upstream:packages/project-services/src/asset-autosave.ts
 import {
   generationsForNode,
   linkGenerationAssets
@@ -570,6 +569,3 @@ export async function autoSaveAssets(
     }
   }
 }
-========
-export * from "@nodetool-ai/project-services/asset-autosave";
->>>>>>>> Stashed changes:packages/websocket/src/session/asset-autosave.ts

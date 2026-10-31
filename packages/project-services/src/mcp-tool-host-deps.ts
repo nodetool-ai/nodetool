@@ -1,10 +1,23 @@
 /**
- * The server's agent-toolbelt host deps: the shared builder, bound to this
- * process's run environment and its project delete.
+ * The pieces the agent toolbelt cannot construct for itself.
+ *
+ * `getAllMcpTools` runs everything in-process now — workflows, jobs and assets
+ * come from `@nodetool-ai/models`, runs from `@nodetool-ai/execution/service`.
+ * Three things still live above `packages/agents` in the dependency order: the
+ * shipped example workflows (JSON inside the installed node packages, found by
+ * walking the metadata roots), the DSL exporter (`@nodetool-ai/dsl`), and the
+ * catalog of constant assets shipped inside those packages. This module hands
+ * them over.
  */
-import { mcpToolHostDeps as sharedMcpToolHostDeps } from "@nodetool-ai/project-services/mcp-tool-host-deps";
+
+import { workflowToDsl } from "@nodetool-ai/dsl";
+import { contextSecretAvailability } from "@nodetool-ai/agents";
+import type {
+  ExampleWorkflowCatalog,
+  GetAllMcpToolsOptions
+} from "@nodetool-ai/agents";
+import { loadExampleGraph, defaultExamplePackageName } from "./example-workflows.js";
 import {
-<<<<<<<< Updated upstream:packages/project-services/src/mcp-tool-host-deps.ts
   buildExampleWorkflows,
   type ExampleSourceOptions
 } from "./example-catalog.js";
@@ -20,16 +33,20 @@ export interface McpToolHostOptions extends ExampleSourceOptions {
   /** The host's project delete. Defaults to the delete with no live work to stop. */
   deleteProject?: GetAllMcpToolsOptions["deleteProject"];
 }
-========
-  getWorkflowRuntimeEnvironment,
-  type HttpApiOptions
-} from "./http-api.js";
-import { deleteProjectForUser } from "./lib/project-delete.js";
->>>>>>>> Stashed changes:packages/websocket/src/mcp-tool-deps.ts
 
-export { createExampleWorkflowCatalog } from "@nodetool-ai/project-services/mcp-tool-host-deps";
+/** Match the free-text filter `/api/workflows/examples/search` applies. */
+function matchesQuery(workflow: unknown, query: string): boolean {
+  const wf = workflow as Record<string, unknown>;
+  const name = String(wf["name"] ?? "").toLowerCase();
+  const description = String(wf["description"] ?? "").toLowerCase();
+  const tags = (wf["tags"] as string[] | undefined) ?? [];
+  return (
+    name.includes(query) ||
+    description.includes(query) ||
+    tags.some((tag) => tag.toLowerCase().includes(query))
+  );
+}
 
-<<<<<<<< Updated upstream:packages/project-services/src/mcp-tool-host-deps.ts
 export function createExampleWorkflowCatalog(
   options: ExampleSourceOptions = {}
 ): ExampleWorkflowCatalog {
@@ -94,14 +111,4 @@ export function mcpToolHostDeps(
     // agent-run workflow must execute exactly like an HTTP-run one.
     workflowEnvironment: options.workflowEnvironment
   };
-========
-export function mcpToolHostDeps(
-  options: HttpApiOptions = {}
-): ReturnType<typeof sharedMcpToolHostDeps> {
-  return sharedMcpToolHostDeps({
-    ...options,
-    workflowEnvironment: () => getWorkflowRuntimeEnvironment(options),
-    deleteProject: deleteProjectForUser
-  });
->>>>>>>> Stashed changes:packages/websocket/src/mcp-tool-deps.ts
 }

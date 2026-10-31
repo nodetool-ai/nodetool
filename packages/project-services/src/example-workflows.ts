@@ -1,4 +1,3 @@
-<<<<<<<< Updated upstream:packages/project-services/src/example-workflows.ts
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import nodePath from "node:path";
 import { fileURLToPath } from "node:url";
@@ -192,6 +191,3 @@ export function defaultExamplePackageName(
   }
   return null;
 }
-========
-export * from "@nodetool-ai/project-services/example-workflows";
->>>>>>>> Stashed changes:packages/websocket/src/example-workflows.ts

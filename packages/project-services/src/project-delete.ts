@@ -1,5 +1,4 @@
 /**
-<<<<<<<< Updated upstream:packages/project-services/src/project-delete.ts
  * The full project delete: database rows, stored asset bytes, workspace files,
  * and the live jobs and chat turns that still write into the project.
  *
@@ -24,22 +23,9 @@ import {
 } from "@nodetool-ai/asset-services/asset-paths";
 import { thumbnailKey } from "@nodetool-ai/asset-services/thumbnail";
 import { workspaceFromRow } from "@nodetool-ai/execution/service";
-========
- * The server's project delete: the shared delete plus this process's live
- * jobs, chat turns and queued video proxies.
- */
-import {
-  deleteProjectForUser as deleteProject,
-  type ProjectDeleteOutcome
-} from "@nodetool-ai/project-services/project-delete";
-import { videoProxyQueue } from "./video-proxy.js";
-import { jobRunRegistry } from "../job-run-registry.js";
-import { chatTurnRegistry } from "../chat-turn-registry.js";
->>>>>>>> Stashed changes:packages/websocket/src/lib/project-delete.ts
 
-export type { ProjectDeleteOutcome };
+export type ProjectDeleteOutcome = "deleted" | "not_found" | "personal";
 
-<<<<<<<< Updated upstream:packages/project-services/src/project-delete.ts
 /** The live work in a project that is being deleted. */
 export interface ProjectLiveWork {
   userId: string;
@@ -85,14 +71,10 @@ async function deleteProjectWorkspaceFiles(
 }
 
 export async function deleteProjectForUser(
-========
-export function deleteProjectForUser(
->>>>>>>> Stashed changes:packages/websocket/src/lib/project-delete.ts
   userId: string,
   projectId: string,
   options: ProjectDeleteOptions = {}
 ): Promise<ProjectDeleteOutcome> {
-<<<<<<<< Updated upstream:packages/project-services/src/project-delete.ts
   // A tombstoned project is still found here, so a failed delete can be retried.
   const target = await Project.findOwnedIncludingDeleted(userId, projectId);
   if (!target) return "not_found";
@@ -121,13 +103,4 @@ export function deleteProjectForUser(
   ]);
   const deleted = await Project.deleteOwned(userId, id);
   return deleted ? "deleted" : "not_found";
-========
-  return deleteProject(userId, projectId, {
-    cancelLiveWork: ({ jobIds, threadIds, assetIds }) => {
-      for (const assetId of assetIds) videoProxyQueue.cancel(assetId);
-      jobRunRegistry.cancelJobs(userId, jobIds);
-      chatTurnRegistry.abortThreads(userId, threadIds);
-    }
-  });
->>>>>>>> Stashed changes:packages/websocket/src/lib/project-delete.ts
 }
