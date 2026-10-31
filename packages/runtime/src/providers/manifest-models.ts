@@ -518,6 +518,20 @@ export function inferImageTasks(name: string, id: string): string[] {
 
 const _cache = new Map<string, ManifestNode[]>();
 
+/** A manifest that could not be loaded, so its provider lists no models. */
+export interface ManifestLoadFailure {
+  readonly packageName: string;
+  readonly exportPath: string;
+  readonly error: string;
+}
+
+const _failures = new Map<string, ManifestLoadFailure>();
+
+/** The manifests that failed to load in this process, by package name. */
+export function manifestLoadFailures(): ManifestLoadFailure[] {
+  return [..._failures.values()];
+}
+
 export function loadManifest(
   packageName: string,
   exportPath: string
@@ -536,6 +550,7 @@ export function loadManifest(
   } catch (err) {
     // Stryker disable next-line StringLiteral: diagnostic log, not asserted.
     log.warn(`Could not load ${key}: ${err}`);
+    _failures.set(key, { packageName, exportPath, error: err instanceof Error ? err.message : String(err) });
     _cache.set(key, []);
     return [];
   }

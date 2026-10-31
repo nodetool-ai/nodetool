@@ -1,6 +1,6 @@
 import { printTable } from "@nodetool-ai/pack-manager/commands/output";
 import { refusePackInstallsInProcess } from "@nodetool-ai/pack-manager/packs/install-process";
-import { configureCliPackHost, registerPackCommands, loadInstalledCommandFeature } from "@nodetool-ai/pack-manager";
+import { configureCliPackHost, registerPackCommands, loadInstalledCommandFeature, loadCliPackSnapshot } from "@nodetool-ai/pack-manager";
 import { z } from "zod";
 import { Command } from "commander";
 import { existsSync, readFileSync } from "node:fs";
@@ -14,6 +14,7 @@ import { decrypt, encrypt } from "@nodetool-ai/security-core";
 import { COMMAND_FEATURES } from "./commandFeatures.js";
 import { featureRecovery } from "@nodetool-ai/server-features";
 import { cliFailureSchema } from "./errors.js";
+import { providerStates, type ProviderState } from "./providerStatus.js";
 
 export interface CliOptions {
   readonly env?: NodeJS.ProcessEnv;
@@ -26,13 +27,18 @@ export const DEFAULT_TEXT_MODEL = "gpt-4.1-mini";
 /** Local single-user ID shared with the desktop app and the installed command features. */
 export const DEFAULT_LOCAL_USER_ID = "1";
 const QUICK_START = `
-Quick start (only OPENAI_API_KEY is required; no server, no packs):
-  nodetool info                                 show configured provider keys
-  nodetool text "Write a haiku about rivers"    one-shot completion (default model ${DEFAULT_TEXT_MODEL})
+Quick start (no server, no packs). Set the key of any provider you use:
+  nodetool info                                 show each provider's credential state
+  nodetool providers list                       providers usable now (key set, pack installed, or claude CLI found)
+  nodetool text "Write a haiku about rivers"    one-shot completion on an OpenAI-compatible endpoint (default model ${DEFAULT_TEXT_MODEL})
   echo "Summarize this" | nodetool text -m gpt-4.1 --system "Be brief"
   nodetool nodes --example > flow.json          workflow using only built-in nodes
   nodetool run flow.json --params '{"topic":"rivers"}'
   nodetool packs list                           optional features (chat, agents, media nodes)
+
+Pick a provider: \`nodetool agent run -p <provider> --objective "..."\` (cli-chat feature) works with
+any provider in \`nodetool providers list\`, for example anthropic, claude_agent_sdk or openrouter.
+\`nodetool generate <provider> <model> <prompt> --kind image|speech|video\` (cli-workflow feature) makes media.
 
 Environment: OPENAI_API_KEY, OPENAI_BASE_URL (any OpenAI-compatible endpoint),
 NODETOOL_TEXT_MODEL, NODETOOL_DATA_DIR (default ./nodetool-data), NODETOOL_USER_ID
@@ -211,10 +217,36 @@ export function createProgram(options: CliOptions = {}): Command {
       print(await host.run({ graph, params, signal: controller.signal, userId: owner(), jobId: "cli-local", emit: () => {} }));
     } finally { process.removeListener("SIGINT", abort); }
   }
-  program.command("info").description("Display system and environment information").option("--json", "Output as JSON").action((flags: { json?: boolean }) => {
+  /** Secret names in the local store. Reading names needs no master key. */
+  async function storedKeyNames(): Promise<Set<string>> {
+    if (!existsSync(join(directory(), "nodetool.db"))) return new Set();
+    try {
+      return await withLocalRepository(async repository => new Set((await repository.list("secrets", owner())).map(row => String(row.key))));
+    } catch {
+      return new Set();
+    }
+  }
+  async function installedPackIds(): Promise<Set<string>> {
+    try { return new Set((await loadCliPackSnapshot()).packs.map(pack => pack.id)); }
+    catch { return new Set(); }
+  }
+  async function currentProviderStates(): Promise<ProviderState[]> {
+    return providerStates({ env, storedKeys: await storedKeyNames(), installedPacks: await installedPackIds() });
+  }
+  const credentialStatus = (state: ProviderState): string => {
+    if (state.source === "claude CLI") return "found";
+    if (state.source === "pack") return "installed";
+    if (state.source) return `set (${state.source})`;
+    if (state.requires === "claude CLI") return "not found";
+    return state.requires.startsWith("pack ") ? "not installed" : "not set";
+  };
+  const usableProviders = async (): Promise<ProviderState[]> => (await currentProviderStates()).filter(state => state.usable);
+  program.command("info").description("Display system and environment information").option("--json", "Output as JSON").action(async (flags: { json?: boolean }) => {
+    const states = await currentProviderStates();
     const names = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY", "GEMINI_API_KEY", "MISTRAL_API_KEY", "GROQ_API_KEY", "OLLAMA_API_URL", "SERPAPI_API_KEY", "HF_TOKEN"];
     const data = { version, node_version: process.version, platform: process.platform, arch: process.arch,
       api_keys: Object.fromEntries(names.map(name => [name, env[name] ? "configured" : "not set"])),
+      providers: states.map(state => ({ id: state.id, requires: state.requires, status: credentialStatus(state) })),
       environment: { ENV: env.ENV ?? "development", LOG_LEVEL: env.LOG_LEVEL ?? "INFO", PORT: env.PORT ?? "7777" }
     };
     if (flags.json) { print(data); return; }
@@ -222,6 +254,8 @@ export function createProgram(options: CliOptions = {}): Command {
     printTable([{ property: "Version", value: data.version }, { property: "Node.js", value: data.node_version }, { property: "Platform", value: `${data.platform}/${data.arch}` }]);
     output("\nAPI Keys:\n");
     printTable(Object.entries(data.api_keys).map(([key, status]) => ({ key, status })));
+    output("\nProviders:\n");
+    printTable(data.providers);
     output("\nEnvironment:\n");
     printTable(Object.entries(data.environment).map(([variable, value]) => ({ variable, value })));
     output("\n");
@@ -282,16 +316,15 @@ export function createProgram(options: CliOptions = {}): Command {
       return metadata;
     }));
   });
-  const openAIProvider = { id: "openai", name: "OpenAI-compatible", capabilities: ["text", "models"], installed: true };
-  const providers = program.command("providers").description("Inspect installed remote provider capabilities");
-  providers.command("list").action(() => print([openAIProvider]));
+  const providers = program.command("providers").description("Inspect providers and their credential state");
+  providers.command("list").description("List usable providers: a key is set, a pack enables it, or it needs no key (claude_agent_sdk with the claude CLI)").option("--all", "Include providers that are not usable yet").action(async (flags: { all?: boolean }) => print(flags.all ? await currentProviderStates() : await usableProviders()));
   providers.command("info [provider]").action(async (providerId = "openai") => {
-    if (providerId === "openai") { print(openAIProvider); return; }
+    if (providerId === "openai") { print((await currentProviderStates()).find(state => state.id === "openai")); return; }
     const feature = await loadInstalledCommandFeature(import.meta.url, "cli-models");
     await feature.run((options.argv ?? process.argv).slice(2));
   });
   const models = program.command("models").description("List remote models using a tenant's configured provider");
-  models.command("providers").action(() => print([openAIProvider]));
+  models.command("providers").description("List usable providers (same as `nodetool providers list`)").action(async () => print(await usableProviders()));
   models.command("list").option("-p, --provider <provider>", "Remote provider", "openai").option("--json", "Output JSON (the default)").action(async (flags: { provider: string }) => {
     if (flags.provider !== "openai") {
       const feature = await loadInstalledCommandFeature(import.meta.url, "cli-models");

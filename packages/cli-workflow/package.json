@@ -36,6 +36,7 @@
     "@nodetool-ai/config": "*",
     "@nodetool-ai/dsl": "*",
     "@nodetool-ai/execution": "*",
+    "@nodetool-ai/model-pricing": "*",
     "@nodetool-ai/models": "*",
     "@nodetool-ai/node-catalog": "*",
     "@nodetool-ai/node-sdk": "*",

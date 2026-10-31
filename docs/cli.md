@@ -140,6 +140,22 @@ nodetool --trace-stdout pretty workflows run <id>
 
 Display the CLI version, Node.js version, platform, which provider API keys are set (`configured` or `not set`, never the value), and the `ENV`, `LOG_LEVEL` and `PORT` environment values.
 
+The `Providers` table (`providers` in `--json`) gives the credential state of
+each known provider by credential name only: `set (env)`, `set (stored)` or
+`not set` for a key such as `FAL_API_KEY`, `found` or `not found` for the
+`claude` CLI that `claude_agent_sdk` uses, and `installed` or `not installed`
+for a provider that a pack registers.
+
+### `nodetool providers list`
+
+List the providers you can use now: a provider whose key is set in the
+environment or the local secret store, a provider that an installed pack
+registers (`transformers_js`, `whisper_cpp`), and `claude_agent_sdk` when the
+`claude` CLI is found on `CLAUDE_CLI_PATH`, `PATH` or `~/.local/bin`.
+`nodetool models providers` prints the same list. `--all` also lists the
+providers that are not usable yet, with the credential each one needs.
+The output is JSON with `id`, `name`, `requires`, `usable` and `source`.
+
 **Options:**
 
 - `--json` — output as JSON.
@@ -1996,7 +2012,7 @@ List models and providers. Queries local providers and caches by default. `provi
 **Subcommands:**
 
 - `list` — list all models (recommended + provider + HuggingFace cached).
-- `providers` — list configured providers and their capabilities.
+- `providers` — list usable providers, as `nodetool providers list` does.
 - `recommended` — list recommended models.
 - `ollama` — list Ollama models.
 - `huggingface` — list HuggingFace cached models (`--query`, `--type` to filter).
@@ -2107,19 +2123,17 @@ nodetool models download-hf --repo-id Qwen/Qwen3-0.6B-GGUF -a "*.gguf"
 Local and self-hosted installs expose `fake-image` and `fake-video` on provider
 `fake` for no-cost tests without credentials. They produce a fixed PNG or a
 two-second MP4. Select fake explicitly with `find_model({provider_hint: "fake", ...})`.
-Automatic model selection excludes fake media. `generate` accepts image models.
-For a video fixture, use the video tool:
-
-```bash
-nodetool tools info generate_video
-nodetool tools call generate_video --args '{"provider":"fake","model":"fake-video","prompt":"test fixture"}'
-nodetool skills read storyboard-core
-```
+Automatic model selection excludes fake media. For a video fixture, run
+`nodetool generate fake fake-video "test fixture" --kind video`.
 
 Storyboards can use these refs as `image_model` and `video_model` board defaults.
 
-Generate an image from any registered provider straight to a file, with no
-workflow in between. Use it to try a model, check that a provider's key resolves,
+Generate an image, speech or video from any registered provider straight to a
+file, with no workflow in between. `--kind` selects the medium (default
+`image`). `--kind speech` and `--kind video` run the `generate_speech` and
+`generate_video` tools of the cli-chat feature, the same tools as
+`nodetool tools call`, so the generation row and cost record are identical.
+They need `nodetool packs add cli-chat --yes`. Use it to try a model, check that a provider's key resolves,
 or produce one image from a script.
 
 Provider and model names are matched leniently against the registry and the
@@ -2129,6 +2143,7 @@ environment; when it is missing the error names the variable to set.
 
 **Options:**
 
+- `--kind <kind>` — `image` (default), `speech` (alias `audio`) or `video`.
 - `-o, --output <path>` — output file or directory. A directory (or a path
   ending in a separator) keeps the generated name; a file path is used as the
   base name. Default is a `nodetool-<model>-<timestamp>.<ext>` file in the
@@ -2142,7 +2157,14 @@ environment; when it is missing the error names the variable to set.
 - `--steps <n>` / `--guidance <n>` — inference steps and guidance scale.
 - `--image <path...>` — input image(s); switches to image-to-image.
 - `--strength <n>` — image-to-image strength, with `--image`.
-- `--list-models` — list the provider's image models and exit.
+- `--voice <name>` / `--speed <n>` / `--instructions <text>` — speech voice,
+  speed and delivery direction, with `--kind speech`.
+- `--duration <seconds>` / `--resolution <res>` — clip length and resolution,
+  with `--kind video`. `--aspect-ratio` and `--negative-prompt` also apply.
+- `--list-models` — list the provider's models of `--kind` and exit. Each
+  model shows its price from the pricing catalog (`packages/model-pricing`) or
+  `—` when the catalog has none. Priced models come first, cheapest first, then
+  the rest by name. `--json` gives `price` (USD) and `billing_unit` per model.
 - `--json` — print the result as JSON.
 
 **Examples:**
@@ -2162,6 +2184,13 @@ nodetool generate fal-ai flux-schnell "a logo" --aspect-ratio 1:1 -n 4 -o ./out/
 
 # Image to image
 nodetool generate fal-ai flux-dev "restyle this" --image in.png --strength 0.6
+
+# Speech
+nodetool generate openai gpt-4o-mini-tts "Welcome to NodeTool" --kind speech --voice alloy -o hello.mp3
+
+# Video, after picking a model from the priced list
+nodetool generate fal-ai --kind video --list-models
+nodetool generate fal-ai <video-model-id> "waves at dusk" --kind video --duration 5 -o waves.mp4
 ```
 
 ## MCP Integration
@@ -2284,6 +2313,11 @@ on the belt, so an objective that wants decomposing gets a task DAG and the
 `planning_update` / `task_update` events stream with the rest of the trace.
 
 **Subcommands:** `run`, `diagnose`
+
+`-p/--provider` is required. Without `-m/--model`, `run` uses the provider's
+default model (for example `sonnet` for `claude_agent_sdk`) and says so on
+stderr. A provider with no default model fails with the command that lists its
+models, `nodetool models list --provider <id>`.
 
 ```bash
 # Run an agent with an objective

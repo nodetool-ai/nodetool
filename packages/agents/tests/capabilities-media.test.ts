@@ -985,6 +985,51 @@ describe("generate_speech streaming PCM content", () => {
   });
 });
 
+describe("generate_speech output_file container", () => {
+  function encodedContext(mimeType: string) {
+    const writes: Array<{ path: string; mime: string | undefined }> = [];
+    const context = withGenerationSeam({
+      userId: "user-1",
+      textToSpeechEncoded: async () => ({
+        data: new Uint8Array([1, 2, 3, 4]),
+        mimeType
+      }),
+      workspace: {
+        write: async (p: string, _bytes: Uint8Array, mime?: string) => {
+          writes.push({ path: p, mime });
+        }
+      }
+    }) as unknown as ProcessingContext;
+    return { context, writes };
+  }
+
+  it("writes WAV bytes under .wav when the caller named .mp3", async () => {
+    // fal-ai/kokoro answers WAV whatever format is asked for. Writing those
+    // bytes to `speech.mp3` gave a file whose extension lies about its codec.
+    const { context, writes } = encodedContext("audio/wav");
+    const result = (await asTool(generateSpeech).process(context, {
+      provider: "fal_ai",
+      model: "fal-ai/kokoro/american-english",
+      text: "hello",
+      output_file: "direct/speech.mp3"
+    })) as Record<string, unknown>;
+
+    expect(writes).toEqual([{ path: "direct/speech.wav", mime: "audio/wav" }]);
+    expect(result).toMatchObject({ path: "direct/speech.wav", mime_type: "audio/wav" });
+  });
+
+  it("keeps the requested name when the bytes match its extension", async () => {
+    const { context, writes } = encodedContext("audio/mpeg");
+    await asTool(generateSpeech).process(context, {
+      provider: "openai",
+      model: "tts-1",
+      text: "hello",
+      output_file: "speech.mp3"
+    });
+    expect(writes.map((w) => w.path)).toEqual(["speech.mp3"]);
+  });
+});
+
 describe("generate_music through the adapter", () => {
   it("dispatches text_to_music and saves the result", async () => {
     // Before this capability existed, scoring a cut meant running

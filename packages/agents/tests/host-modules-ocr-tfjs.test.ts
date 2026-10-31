@@ -243,7 +243,7 @@ describe("ocr.recognize", () => {
       name: "MissingRuntimePackageError",
       runtimePackage: "tesseract-ocr",
       details: { runtimePackage: "tesseract-ocr", missing: "tesseract.js",
-        reason: "missing", managed: "nodetool runtime add tesseract-ocr" }
+        reason: "missing", managed: "nodetool packs add tesseract-ocr --yes" }
     });
   });
 
@@ -530,7 +530,7 @@ describe("tfjs.classify", () => {
       name: "MissingRuntimePackageError",
       runtimePackage: "tensorflow-js",
       details: { runtimePackage: "tensorflow-js", missing: "@tensorflow/tfjs",
-        reason: "missing", managed: "nodetool runtime add tensorflow-js" }
+        reason: "missing", managed: "nodetool packs add tensorflow-js --yes" }
     });
   });
 
@@ -542,7 +542,7 @@ describe("tfjs.classify", () => {
       name: "MissingRuntimePackageError",
       runtimePackage: "tensorflow-js",
       details: { runtimePackage: "tensorflow-js", missing: "@tensorflow-models/mobilenet",
-        reason: "missing", managed: "nodetool runtime add tensorflow-js" }
+        reason: "missing", managed: "nodetool packs add tensorflow-js --yes" }
     });
   });
 
@@ -577,7 +577,7 @@ describe("tfjs.classify", () => {
       name: "MissingRuntimePackageError",
       runtimePackage: "tensorflow-js",
       details: { runtimePackage: "tensorflow-js", missing: "@tensorflow-models/mobilenet",
-        reason: "missing", managed: "nodetool runtime add tensorflow-js" }
+        reason: "missing", managed: "nodetool packs add tensorflow-js --yes" }
     });
     expect(await classify(fixturePng)).toEqual([
       { className: "cat", probability: 1 }
@@ -722,7 +722,7 @@ describe("tfjs.detect", () => {
       name: "MissingRuntimePackageError",
       runtimePackage: "tensorflow-js",
       details: { runtimePackage: "tensorflow-js", missing: "@tensorflow-models/coco-ssd",
-        reason: "missing", managed: "nodetool runtime add tensorflow-js" }
+        reason: "missing", managed: "nodetool packs add tensorflow-js --yes" }
     });
   });
 });
@@ -797,7 +797,7 @@ describe("tfjs.answer", () => {
       name: "MissingRuntimePackageError",
       runtimePackage: "tensorflow-js",
       details: { runtimePackage: "tensorflow-js", missing: "@tensorflow-models/qna",
-        reason: "missing", managed: "nodetool runtime add tensorflow-js" }
+        reason: "missing", managed: "nodetool packs add tensorflow-js --yes" }
     });
   });
 });

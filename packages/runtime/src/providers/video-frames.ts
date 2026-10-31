@@ -103,8 +103,9 @@ export async function probeVideoDurationSeconds(
     "media.probe_video_duration",
     { "media.byte_length": bytes.byteLength },
     async () => {
-      // Loaded on demand: the media module is Node-only.
-      const { probeDurationSec } = await import("../media/probe.js");
+      // Loaded on demand: the media module is Node-only, and node-av is the
+      // optional media-codecs package.
+      const { probeDurationSec } = await loadMediaModule();
       const durationSec = await probeDurationSec(bytes, { signal });
       return durationSec !== null && durationSec > 0 ? durationSec : null;
     }

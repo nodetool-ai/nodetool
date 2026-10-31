@@ -110,11 +110,11 @@ export function missingRuntimePackageDetails(
     const specs = RUNTIME_NPM_PACKAGES[runtimePackage].npmPackages.join(" ");
     const modules = env["NODETOOL_OPTIONAL_NODE_MODULES"];
     const root = modules?.replace(/[\\/]node_modules[\\/]?$/, "");
-    if (host === "cli") { managed = `nodetool runtime add ${runtimePackage}`; }
-    if (host === "source") { managed = `npm run dev:nodetool -- runtime add ${runtimePackage}`; }
+    if (host === "cli") { managed = `nodetool packs add ${runtimePackage} --yes`; }
+    if (host === "source") { managed = `npm run dev:nodetool -- packs add ${runtimePackage} --yes`; }
     if (host === "npx") {
       const version = env["NODETOOL_CLI_VERSION"];
-      managed = `npx -p @nodetool-ai/cli${version ? `@${version}` : ""} nodetool runtime add ${runtimePackage}`;
+      managed = `npx -p @nodetool-ai/cli${version ? `@${version}` : ""} nodetool packs add ${runtimePackage} --yes`;
     }
     if (host === "docker") {
       // The registry build argument is migration step 3. Until then only mounting works.

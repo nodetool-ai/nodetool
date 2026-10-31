@@ -25,6 +25,9 @@ const KEYRING_ACCOUNT = "secrets_master_key";
 
 let cachedMasterKey: string | null = null;
 
+/** Why the last key resolution failed, named when a secret then needs the key. */
+let lastInitFailure: string | null = null;
+
 /** In-flight resolution promise, used to de-duplicate concurrent first-run inits. */
 let initInFlight: Promise<string> | null = null;
 
@@ -70,14 +73,10 @@ async function loadKeytar(): Promise<KeytarModule> {
     return _keytarResolved;
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err);
-    // Stryker disable all: diagnostic log, not behavior
-    log.error(
-      "keytar native module failed to load. For headless deployments " +
-        "(Docker, CI, Linux servers without libsecret) set the SECRETS_MASTER_KEY " +
-        "environment variable to a base64-encoded 32-byte key.",
-      { error: message }
-    );
-    // Stryker restore all
+    // Debug only: many commands never read a stored secret. getMasterKey
+    // names this failure when one does.
+    // Stryker disable next-line all: diagnostic log, not behavior
+    log.debug("keytar native module failed to load", { error: message });
     throw keychainAccessError(`Unable to load system keychain backend: ${message}`);
   }
 }
@@ -132,6 +131,13 @@ export function getMasterKey(): string {
     return envKey;
   }
 
+  if (lastInitFailure !== null) {
+    throw new KeychainAccessError(
+      `${lastInitFailure}\nFor a machine without a system keychain (Docker, CI, ` +
+        "Linux without libsecret), set SECRETS_MASTER_KEY to a base64-encoded 32-byte key."
+    );
+  }
+
   throw new Error(
     "Master key is not initialized. Call `initMasterKey()` once at startup " +
       "(loads from system keychain / SECRETS_MASTER_KEY) " +
@@ -169,7 +175,12 @@ export async function initMasterKey(): Promise<string> {
 
   initInFlight = resolveMasterKey();
   try {
-    return await initInFlight;
+    const key = await initInFlight;
+    lastInitFailure = null;
+    return key;
+  } catch (err: unknown) {
+    lastInitFailure = err instanceof Error ? err.message : String(err);
+    throw err;
   } finally {
     initInFlight = null;
   }
@@ -239,6 +250,7 @@ async function resolveMasterKey(): Promise<string> {
  */
 export function clearMasterKeyCache(): void {
   cachedMasterKey = null;
+  lastInitFailure = null;
 }
 
 /**

@@ -2,7 +2,11 @@ import { missingRuntimePackageError } from "@nodetool-ai/protocol";
 
 /** A failure to load the optional node-av or Mediabunny server packages. */
 function isMissingCodecs(error: unknown): boolean {
-  const message = error instanceof Error ? error.message : String(error);
+  let message = "";
+  for (let e: unknown = error, depth = 0; depth < 4 && e; depth += 1) {
+    message += e instanceof Error ? `${e.message}\n` : String(e);
+    e = e instanceof Error ? e.cause : undefined;
+  }
   return /node-av|@mediabunny\/server/.test(message);
 }
 

@@ -32,6 +32,20 @@ nodetool run flow.json --params '{"topic":"rivers"}'
 store when `SECRETS_MASTER_KEY` is set and the key is stored, and from the
 environment otherwise.
 
+No single provider is required. `nodetool info` shows the credential state of
+each provider (names only, never values), and `nodetool providers list` lists
+the providers usable now: a key is set, an installed pack registers it, or, for
+`claude_agent_sdk`, the `claude` CLI is found. `nodetool text` uses an
+OpenAI-compatible endpoint. To use another provider, install a command feature
+and pick the provider with `-p`:
+
+```bash
+nodetool packs add cli-chat --yes
+nodetool agent run -p claude_agent_sdk --objective "Summarize README.md"   # default model: sonnet
+nodetool packs add cli-workflow --yes
+nodetool generate fal-ai --kind video --list-models                          # priced, cheapest first
+```
+
 ## Start an authenticated server
 
 Generate credentials once, keep them in your secret manager, and reuse the

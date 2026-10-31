@@ -277,7 +277,7 @@ export function detectStandaloneFeatureMode(entryPath: string, catalog: NodeCata
 /** The catalog factory supplies the concrete closure when no ids are available yet. */
 export function installDetailsForMode(mode: InstallMode, ids: readonly string[] = []): MissingPackInstall {
   if (mode.kind === "global" || mode.kind === "local") {
-    return { supported: true, reason: null, command: ids.length ? `nodetool packs add ${[...new Set(ids)].sort().join(" ")}` : null };
+    return { supported: true, reason: null, command: ids.length ? `nodetool packs add ${[...new Set(ids)].sort().join(" ")} --yes` : null };
   }
   return { supported: false, reason: mode.reason, command: null };
 }

@@ -35,6 +35,21 @@ describe("lean execution CLI", () => {
     expect(JSON.parse(output.join(""))).toMatchObject({ node_version: process.version, platform: process.platform, arch: process.arch, api_keys: { OPENAI_API_KEY: "configured", ANTHROPIC_API_KEY: "not set" }, environment: { PORT: "8000" } });
     expect(output.join("")).not.toContain("private-fixture");
   });
+  it("reports each provider's credential state by name, including FAL and the claude CLI", async () => {
+    const bin = await mkdtemp(join(tmpdir(), "nodetool-claude-bin-"));
+    try {
+      await writeFile(join(bin, "claude"), "#!/bin/sh\n", { mode: 0o755 });
+      const output: string[] = [];
+      await createProgram({ env: { FAL_KEY: "private-fal", PATH: bin }, stdout: value => output.push(value) }).parseAsync(["node", "nodetool", "info", "--json"]);
+      const providers = JSON.parse(output.join("")).providers;
+      expect(providers).toEqual(expect.arrayContaining([
+        { id: "fal_ai", requires: "FAL_API_KEY", status: "set (env)" },
+        { id: "openai", requires: "OPENAI_API_KEY", status: "not set" },
+        { id: "claude_agent_sdk", requires: "claude CLI", status: "found" }
+      ]));
+      expect(output.join("")).not.toContain("private-fal");
+    } finally { await rm(bin, { recursive: true, force: true }); }
+  });
   it("selects one admitted feature for overlapping optional command flags", async () => {
     const run = vi.fn(async (_argv: readonly string[]) => {});
     vi.mocked(loadInstalledCommandFeature).mockResolvedValueOnce({ run });
@@ -98,10 +113,22 @@ describe("lean execution CLI", () => {
     expect(loadInstalledCommandFeature).toHaveBeenLastCalledWith(expect.any(String), "cli-models");
     expect(run).toHaveBeenCalledWith(argv.slice(2));
   });
-  it("lists builtin provider metadata without secrets or network access", async () => {
+  it.each([["providers", "list"], ["models", "providers"]])("lists every usable provider with %s %s, without secrets or network access", async (...command) => {
+    const bin = await mkdtemp(join(tmpdir(), "nodetool-claude-bin-"));
+    try {
+      await writeFile(join(bin, "claude"), "#!/bin/sh\n", { mode: 0o755 });
+      const stdout: string[] = [];
+      await createProgram({ env: { OPENAI_API_KEY: "private-openai", FAL_API_KEY: "private-fal", PATH: bin }, stdout: text => stdout.push(text), fetch: async () => { throw new Error("Metadata must be local"); } }).parseAsync(["node", "nodetool", ...command]);
+      const listed: { id: string; source: string }[] = JSON.parse(stdout.join(""));
+      // A source checkout admits every pack, so pack-enabled providers are listed too.
+      expect(listed.filter(state => state.source !== "pack").map(state => state.id)).toEqual(["openai", "fal_ai", "claude_agent_sdk"]);
+      expect(stdout.join("")).not.toContain("private-");
+    } finally { await rm(bin, { recursive: true, force: true }); }
+  });
+  it("omits claude_agent_sdk when the claude CLI is not found", async () => {
     const stdout: string[] = [];
-    await createProgram({ env: {}, stdout: text => stdout.push(text), fetch: async () => { throw new Error("Metadata must be local"); } }).parseAsync(["node", "nodetool", "providers", "list"]);
-    expect(JSON.parse(stdout.join(""))).toEqual([{ id: "openai", name: "OpenAI-compatible", capabilities: ["text", "models"], installed: true }]);
+    await createProgram({ env: { PATH: "" }, stdout: text => stdout.push(text) }).parseAsync(["node", "nodetool", "providers", "list"]);
+    expect(JSON.parse(stdout.join("")).filter((state: { source: string }) => state.source !== "pack")).toEqual([]);
   });
   it("reports an unavailable provider with its explicit installation feature", async () => {
     vi.mocked(loadInstalledCommandFeature).mockRejectedValueOnce(Object.assign(new Error("Install cli-models"), { code: "FEATURE_NOT_INSTALLED", featureIds: ["cli-models"] }));

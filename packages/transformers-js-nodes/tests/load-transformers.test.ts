@@ -19,7 +19,7 @@ describe("loadTransformers", () => {
     const failure = await loadTransformers().catch((err: unknown) => err);
     expect(missingRuntimePackageOf(failure)).toBe("transformers-js");
     expect(failure).toMatchObject({ cause, details: { missing: "@huggingface/transformers" } });
-    expect(String(failure)).toContain("npm run dev:nodetool -- runtime add transformers-js");
+    expect(String(failure)).toContain("npm run dev:nodetool -- packs add transformers-js --yes");
     expect(String(failure)).not.toContain("Package Manager");
 
     const installed = { pipeline: vi.fn() };

@@ -24,7 +24,7 @@ import { randomInt, randomUUID } from "node:crypto";
 import { mkdir, readFile, rm } from "node:fs/promises";
 import path from "node:path";
 import type { Message, MessageContent } from "@nodetool-ai/protocol";
-import { missingRuntimeDetailsOf } from "@nodetool-ai/protocol";
+import { missingRuntimeDetailsOf, missingRuntimePackageError } from "@nodetool-ai/protocol";
 import type {
   GenerationRequest,
   BaseProvider,
@@ -37,10 +37,10 @@ import type {
 import {
   currentGenerationReceipt,
   DEFAULT_YT_DLP_FORMAT,
+  loadMediaModule,
   loadMediaRefBytes,
   splitYtDlpFormat
 } from "@nodetool-ai/runtime";
-import { muxStreamCopy } from "@nodetool-ai/runtime/media";
 import { getMaxLocalUploadBytes } from "@nodetool-ai/storage";
 import {
   backgroundGenerationLimitError,
@@ -991,6 +991,30 @@ function audioFormatFromOutputFile(
   return AUDIO_EXT_TO_FORMAT[ext] ?? null;
 }
 
+/**
+ * The caller's file name with the extension the bytes really have. Providers
+ * may answer in another container than the one asked for (fal-ai/kokoro
+ * always answers WAV), and no encoder runs here, so the file takes the true
+ * extension — as streamed PCM already does with `.wav` — and the result
+ * reports that path.
+ */
+function outputFileForMime(
+  outputFile: string | undefined,
+  mime: string
+): string | undefined {
+  if (!outputFile) return outputFile;
+  const actualExt = MIME_TO_EXT[mime];
+  if (!actualExt || actualExt === "bin") return outputFile;
+  const requested = audioFormatFromOutputFile(outputFile);
+  if (requested && requested === AUDIO_EXT_TO_FORMAT[actualExt]) {
+    return outputFile;
+  }
+  return path.join(
+    path.dirname(outputFile),
+    `${path.basename(outputFile, path.extname(outputFile))}.${actualExt}`
+  );
+}
+
 function concatUint8(parts: Uint8Array[]): Uint8Array {
   let total = 0;
   for (const p of parts) total += p.length;
@@ -1213,6 +1237,7 @@ function runAudioGeneration(
       req,
       async (provider, signal) => {
         const audio = await call(provider, signal);
+        audio.outputFile = outputFileForMime(audio.outputFile, audio.mimeType);
         if (audio.outputFile && req.persist) {
           req.persist.name = path.basename(audio.outputFile);
         }
@@ -2403,7 +2428,7 @@ const mediaEdit: CapabilityExport = {
     if ("error" in root) return root;
     const { workspace, cwd } = root;
     const { parseMediaEditRequest, mediaEditInputs, probeFile, runMediaEdit } =
-      await import("../media-edit.js");
+      await importMediaEdit();
     const request = parseMediaEditRequest(params);
     if ("error" in request) return request;
 
@@ -2499,7 +2524,7 @@ const mediaProbe: CapabilityExport = {
     );
     if ("error" in prepared) return prepared;
     const probePath = prepared.resolved.get(requested) ?? requested;
-    const { probeFile } = await import("../media-edit.js");
+    const { probeFile } = await importMediaEdit();
     try {
       const report: Record<string, unknown> = {
         path: requested,
@@ -2707,7 +2732,7 @@ const ytDlp: CapabilityExport = {
       let muxed: string;
       try {
         muxed = (
-          await muxStreamCopy({
+          await (await loadMediaModule()).muxStreamCopy({
             videoPath: video.path,
             audioPath: audio.path,
             outStem,
@@ -2803,3 +2828,24 @@ export {
   mediaProbe,
   ytDlp
 };
+
+/**
+ * The media edit module. It imports node-av, the optional media-codecs
+ * runtime package, so a missing package becomes an error that names the
+ * install command.
+ */
+export async function importMediaEdit(): Promise<typeof import("../media-edit.js")> {
+  try {
+    return await import("../media-edit.js");
+  } catch (cause) {
+    let message = "";
+    for (let e: unknown = cause, depth = 0; depth < 4 && e; depth += 1) {
+      message += e instanceof Error ? `${e.message}\n` : String(e);
+      e = e instanceof Error ? e.cause : undefined;
+    }
+    if (/node-av|@mediabunny\/server/.test(message)) {
+      throw missingRuntimePackageError("node-av", "media-codecs", cause);
+    }
+    throw cause;
+  }
+}

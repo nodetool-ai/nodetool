@@ -34,7 +34,7 @@ it("keeps the failed specifier, cause, and source install command on the loader 
   const { loadWhisperNode } = await import("../src/binding.js");
   const error = await loadWhisperNode().catch((failure: unknown) => failure);
   expect(error).toMatchObject({ cause, details: { runtimePackage: "whisper-cpp", missing: "@fugood/whisper.node" } });
-  expect(String(error)).toContain("npm run dev:nodetool -- runtime add whisper-cpp");
+  expect(String(error)).toContain("npm run dev:nodetool -- packs add whisper-cpp --yes");
   expect(String(error)).not.toContain("Package Manager");
 });
 

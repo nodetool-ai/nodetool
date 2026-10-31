@@ -33,9 +33,9 @@ describe("host-aware missing runtime details", () => {
   const env = { NODETOOL_OPTIONAL_NODE_MODULES: "/data/optional-node/node_modules", NODETOOL_CLI_VERSION: "0.8.3" };
   it.each([
     ["desktop", "Install PDF Libraries in Settings › Packages."],
-    ["cli", "nodetool runtime add pdf-js"],
-    ["source", "npm run dev:nodetool -- runtime add pdf-js"],
-    ["npx", "npx -p @nodetool-ai/cli@0.8.3 nodetool runtime add pdf-js"]
+    ["cli", "nodetool packs add pdf-js --yes"],
+    ["source", "npm run dev:nodetool -- packs add pdf-js --yes"],
+    ["npx", "npx -p @nodetool-ai/cli@0.8.3 nodetool packs add pdf-js --yes"]
   ])("names an available managed npm command on %s", (host, managed) => {
     const details = missingRuntimePackageDetails("@llamaindex/liteparse", "pdf-js", {}, { ...env, NODETOOL_HOST: host });
     expect(details).toEqual({

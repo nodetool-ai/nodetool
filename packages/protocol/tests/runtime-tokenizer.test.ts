@@ -9,6 +9,6 @@ describe("tokenizer runtime package", () => {
     expect(RUNTIME_NPM_PACKAGES.tokenizer.packageNames).toEqual(["js-tiktoken"]);
     const error = missingRuntimePackageError("js-tiktoken", "tokenizer");
     expect(missingRuntimePackageOf(error)).toBe("tokenizer");
-    expect(error.message).toContain("nodetool runtime add tokenizer");
+    expect(error.message).toContain("nodetool packs add tokenizer --yes");
   });
 });
