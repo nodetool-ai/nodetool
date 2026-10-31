@@ -6,6 +6,7 @@ import {
   normalizeStoryboardShot,
   parseStoryboardBundle,
   storyboardDocument,
+  storyboardShot,
   storyboardShotGraphics,
   storyboardScreenplay
 } from "../src/api-schemas/storyboards.js";
@@ -625,5 +626,15 @@ describe("authored frames on graphics", () => {
     ["a weight outside the set", { typography: { weight: 800 } }]
   ])("rejects %s", (_name, extra) => {
     expect(storyboardShotGraphics.safeParse({ elements: [{ ...element, ...extra }] }).success).toBe(false);
+  });
+});
+
+
+describe("camera preset persistence boundary", () => {
+  const target = { type: "shot", id: "s1", index: 0, action: "walk", status: "planned" };
+  it("round-trips preset ids and enforces the three-id limit", () => {
+    const camera = { movement: "slow push in", preset_ids: ["camera.dolly-in", "camera.steadicam"] };
+    expect(storyboardShot.parse({ ...target, camera }).camera).toEqual(camera);
+    expect(storyboardShot.safeParse({ ...target, camera: { preset_ids: ["a", "b", "c", "d"] } }).success).toBe(false);
   });
 });

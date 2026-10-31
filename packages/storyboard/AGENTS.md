@@ -44,7 +44,10 @@
 - **`RenderInputs.prompt_hash` hashes the composed prompt, not the injected
   one.** `promptHashFor` in protocol's `render-record.ts` hashes
   `keyframePrompt`/`clipPrompt`/`directClipPrompt` before `injectEntities`
-  runs. `entity_conditioning_hash` separately records effective entity names,
+  runs. Camera preset clips keep the free-text direction hash and record the
+  ordered `camera_preset_ids` separately. This lets freshness compare stacks
+  without loading the catalogue. The render plan compiles the camera clause
+  through `ShotRenderPlanOptions.presetCatalog`. `entity_conditioning_hash` separately records effective entity names,
   descriptors and primary reference content through protocol's
   `entityConditioningHash`. Still records also carry reference asset ids.
   Freshness callers must supply the same selected entities used for generation.

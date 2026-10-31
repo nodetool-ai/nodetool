@@ -230,6 +230,15 @@ export const EDIT_STORYBOARD_SCHEMA: JsonSchema = {
       items: {
         type: "object",
         properties: {
+          camera: {
+            type: "object",
+            properties: {
+              framing: { type: "string" }, lens: { type: "string" },
+              angle: { type: "string" }, movement: { type: "string" },
+              equipment: { type: "string" },
+              preset_ids: { type: "array", items: { type: "string" }, maxItems: 3, description: "Camera preset ids from list_presets. Compiled for the clip model instead of movement." }
+            }
+          },
           op: { type: "string", description: "Operation name from the ops description." },
           target: {
             anyOf: [{ type: "string", minLength: 1 }, { type: "integer", minimum: 0 }],

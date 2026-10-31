@@ -47,6 +47,7 @@ export const storyboardRenderProvenance = productionTakeMetadata.extend({
     reference_asset_ids: z.array(z.string()).optional(),
     entity_conditioning_hash: z.string().optional(),
     render_mode: z.enum(["keyframe", "direct", "reference"]).optional(),
+    camera_preset_ids: z.array(z.string()).max(3).optional(),
     recorded_at: z.string()
   })
 });
@@ -194,7 +195,12 @@ export function currentRenderInputs(
     aspect_ratio: board.aspect_ratio,
     style_entity_id: board.style_entity_id
   };
-  if (kind === "clip") draft.render_mode = mode;
+  if (kind === "clip") {
+    draft.render_mode = mode;
+    if (shot.camera?.preset_ids?.length) {
+      draft.camera_preset_ids = [...shot.camera.preset_ids];
+    }
+  }
   // A keyframe-mode clip animates the selected still, so which still that was
   // is one of its inputs: re-picking a take makes the clip stale. A direct clip
   // has no source.
@@ -272,6 +278,8 @@ function renderInputsMatchDraft(
     recorded.style_entity_id === current.style_entity_id &&
     recorded.entity_conditioning_hash === current.entity_conditioning_hash &&
     recordedRenderMode === current.render_mode &&
+    JSON.stringify(recorded.camera_preset_ids ?? []) ===
+      JSON.stringify(current.camera_preset_ids ?? []) &&
     JSON.stringify(recorded.reference_asset_ids ?? []) ===
       JSON.stringify(current.reference_asset_ids ?? []) &&
     recorded.source_version_id === current.source_version_id

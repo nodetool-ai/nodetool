@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { createCatalog } from "@nodetool-ai/presets";
 import { describe, expect, it, vi } from "vitest";
 import { productionRequirement } from "@nodetool-ai/protocol";
 import type { Entity, ImageRef, Shot } from "@nodetool-ai/protocol";
@@ -554,4 +556,21 @@ describe("render policy before provider spend", () => {
       "protected source fidelity"
     );
   });
+});
+
+
+describe("camera preset dispatch", () => {
+  const catalog = createCatalog(JSON.parse(readFileSync(new URL("../../presets/preset-catalog.json", import.meta.url), "utf8")));
+  for (const model of ["kling-v3", "dreamina_seedance_45_pro"]) {
+    it(`sends a stacked camera clause to ${model}`, async () => {
+      const doc = board([shot({ id: "s1", index: 0, render_mode: "direct", camera: {
+        movement: "legacy movement", equipment: "legacy rig", preset_ids: ["camera.dolly-in", "camera.steadicam"]
+      } })]);
+      const { host, requests } = fakeHost(doc);
+      await renderShots(host, { id: "b1" }, planShotRenders(doc, [], "clip", undefined, { model, presetCatalog: catalog }));
+      const suffix = model.startsWith("dreamina") ? " throughout one continuous shot" : "";
+      expect(requests[0].params.prompt).toBe(`action 0, Camera dollies smoothly toward the subject with visible depth change${suffix}. Camera is stabilized on a Steadicam with smooth floating motion${suffix}.`);
+      expect(requests[0].model).toBe(model);
+    });
+  }
 });

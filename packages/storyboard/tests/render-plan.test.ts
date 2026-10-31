@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { createCatalog } from "@nodetool-ai/presets";
 import { describe, expect, it } from "vitest";
 import {
   currentRenderInputs,
@@ -347,4 +349,25 @@ describe("per-shot model selection", () => {
       ]);
     }
   );
+});
+
+
+describe("camera preset render prompts", () => {
+  const catalog = createCatalog(JSON.parse(readFileSync(new URL("../../presets/preset-catalog.json", import.meta.url), "utf8")));
+  for (const [model, clause] of [
+    ["kling-v3", "Camera dollies smoothly toward the subject with visible depth change. Camera is stabilized on a Steadicam with smooth floating motion."],
+    ["dreamina_seedance_45_pro", "Camera dollies smoothly toward the subject with visible depth change throughout one continuous shot. Camera is stabilized on a Steadicam with smooth floating motion throughout one continuous shot."]
+  ]) {
+    for (const mode of ["keyframe", "direct", "reference"] as const) {
+      it(`compiles a move and rig for ${model} in ${mode} mode`, () => {
+        const target = shot({ id: "s1", index: 0, render_mode: mode, motion: "The actor walks", camera: {
+          movement: "legacy movement", equipment: "legacy rig", preset_ids: ["camera.dolly-in", "camera.steadicam"]
+        } });
+        const [plan] = planShotRenders(board([target]), [], "clip", undefined, { model, presetCatalog: catalog });
+        expect(plan.prompt).toBe(mode === "keyframe"
+          ? `The actor walks, action 0, ${clause}`
+          : `action 0, The actor walks, ${clause}, moody neon`);
+      });
+    }
+  }
 });

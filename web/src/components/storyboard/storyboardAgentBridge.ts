@@ -35,6 +35,7 @@ export interface StoryboardShotNode {
   index: number;
   slug?: string;
   action: string;
+  /** Free-text direction plus an optional camera.preset_ids stack (max three). */
   camera?: CameraDirection;
   motion?: string;
   graphics?: ShotGraphics;
@@ -130,6 +131,7 @@ export interface StoryboardAddShotInput {
   action: string;
   /** Short human title for the shot, e.g. "Lighthouse at dusk". */
   slug?: string;
+  /** Free-text direction plus an optional camera.preset_ids stack (max three). */
   camera?: CameraDirection;
   motion?: string;
   graphics?: ShotGraphics;
@@ -195,6 +197,7 @@ export interface StoryboardUpdateShotPatch {
   action?: string;
   /** Short human title for the shot, e.g. "Lighthouse at dusk". */
   slug?: string;
+  /** Free-text direction plus an optional camera.preset_ids stack (max three). */
   camera?: CameraDirection;
   motion?: string;
   graphics?: ShotGraphics | null;

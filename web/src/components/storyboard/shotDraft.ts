@@ -2,7 +2,7 @@
  * shotDraft
  *
  * The Edit Shot dialog's draft: every field of the § 7.7.2 table row plus the
- * header row, held as flat strings while the creator types and turned back
+ * header row, held as editable values while the creator types and turned back
  * into one `updateShot` patch on Save (PRD D11).
  *
  * Pure and side-effect free, so the save contract — which fields move, which
@@ -17,8 +17,7 @@ import type {
   ShotRenderMode
 } from "@nodetool-ai/protocol";
 
-/** The dialog's editable state. Every value is a string so an empty field and
- * an unset field are the same thing to the form. */
+/** The dialog's editable state. Text fields use empty strings for unset values. */
 export interface ShotDraft {
   /** Header row: the shot's own label. */
   slug: string;
@@ -40,6 +39,8 @@ export interface ShotDraft {
   angle: string;
   /** Movement → `camera.movement`. */
   movement: string;
+  /** Preset selection, separate from free-text movement. */
+  presetIds: string[];
   /** Equipment → `camera.equipment`. */
   equipment: string;
   /** Focal length → `camera.lens`. */
@@ -68,6 +69,7 @@ const DRAFT_KEYS = [
   "framing",
   "angle",
   "movement",
+  "presetIds",
   "equipment",
   "lens",
   "notes",
@@ -91,6 +93,7 @@ export const draftFromShot = (shot: Shot, scene: Scene | null): ShotDraft => ({
   framing: shot.camera?.framing ?? "",
   angle: shot.camera?.angle ?? "",
   movement: shot.camera?.movement ?? "",
+  presetIds: [...(shot.camera?.preset_ids ?? [])],
   equipment: shot.camera?.equipment ?? "",
   lens: shot.camera?.lens ?? "",
   notes: shot.notes ?? "",
@@ -201,9 +204,9 @@ export const withDurationSourceToggled = (draft: ShotDraft): ShotDraft => ({
 /**
  * The one patch Save writes.
  *
- * `camera` is replaced wholesale rather than merged: the four direction
- * selects and equipment are the whole of `CameraDirection`, so a field cleared
- * here must not survive in the stored object. A camera with nothing left in it
+ * `camera` is replaced wholesale rather than merged: direction fields and
+ * preset ids form the draft camera, so a cleared field must not survive in
+ * the stored object. A camera with nothing left in it
  * is dropped entirely.
  */
 export const shotPatchFromDraft = (draft: ShotDraft): Partial<Shot> => {
@@ -211,6 +214,7 @@ export const shotPatchFromDraft = (draft: ShotDraft): Partial<Shot> => {
     framing: orUndefined(draft.framing),
     angle: orUndefined(draft.angle),
     movement: orUndefined(draft.movement),
+    ...(draft.presetIds.length > 0 && { preset_ids: [...draft.presetIds] }),
     equipment: orUndefined(draft.equipment),
     lens: orUndefined(draft.lens)
   };
@@ -271,12 +275,15 @@ export const shotPatchFromChangedDraft = (
   if (changed.has("endState")) patch.end_state = orUndefined(draft.endState);
   if (changed.has("sound")) patch.sound = orUndefined(draft.sound);
 
-  if (CAMERA_KEYS.some((key) => changed.has(key))) {
+  if (changed.has("presetIds") || CAMERA_KEYS.some((key) => changed.has(key))) {
     const camera = { ...current.camera };
     for (const key of CAMERA_KEYS) {
       if (changed.has(key)) {
         camera[key] = orUndefined(draft[key]);
       }
+    }
+    if (changed.has("presetIds")) {
+      camera.preset_ids = draft.presetIds.length > 0 ? [...draft.presetIds] : undefined;
     }
     patch.camera = Object.values(camera).some((value) => value !== undefined)
       ? camera
