@@ -17,7 +17,7 @@ NATIVE_SOURCES = ('ui_primitives', 'chat', 'model-picker')
 BLOCKED_TOOLS = ('node', 'nodejs', 'npm', 'npx', 'yarn', 'pnpm')
 POSIX_TOOLS = (
     'cmake', 'ctest', 'ninja', 'c++', 'g++', 'gcc', 'cc', 'clang', 'clang++',
-    'ar', 'ranlib', 'ld', 'as', 'strip', 'dsymutil', 'xcrun', 'codesign',
+    'ar', 'ranlib', 'ld', 'as', 'strip', 'objdump', 'dsymutil', 'xcrun', 'codesign',
     'install_name_tool', 'otool', 'xcode-select', 'lipo', 'ditto', 'xattr',
     'file', 'uname', 'sw_vers', 'xcodebuild', 'make', 'sh', 'bash',
     'env', 'python3', 'python', 'pkg-config', 'sed', 'grep', 'awk', 'tr', 'head',
