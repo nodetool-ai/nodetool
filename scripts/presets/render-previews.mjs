@@ -1,5 +1,5 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
-import { dirname } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { options, buildPlan, readRecord, matches, atomicJson, runRecord, source, prompt, isMain } from './common.mjs';
 
 export async function renderPlans(plans, { dryRun, checkConnection, render, log = console.log }) {
@@ -36,7 +36,28 @@ async function checkConnection() {
     if (await handle.page.evaluate('location.hostname') !== 'dreamina.capcut.com') { throw new Error('Open the signed-in Dreamina tab in Chrome'); }
   } finally { await handle.close(); }
 }
+let storageReady = null;
+/**
+ * The ejected graph ends in an Output node, which saves its value as an asset.
+ * Point that at a scratch database and asset folder beside the preview media
+ * so previews never land in the user's own library.
+ */
+function prepareStorage(outputDir) {
+  storageReady ??= (async () => {
+    const scratch = resolve(outputDir, '.render-store');
+    await mkdir(resolve(scratch, 'assets'), { recursive: true });
+    process.env.DB_PATH = resolve(scratch, 'nodetool.sqlite3');
+    process.env.ASSET_FOLDER = resolve(scratch, 'assets');
+    const { initDb, migrateSqliteDb } = await import('@nodetool-ai/models');
+    await migrateSqliteDb(process.env.DB_PATH);
+    initDb(process.env.DB_PATH);
+    const { installLocalModelInterfaces } = await import('@nodetool-ai/cli-execution/local-model-interfaces');
+    await installLocalModelInterfaces();
+  })();
+  return storageReady;
+}
 async function render(plan) {
+  await prepareStorage(dirname(plan.output_path));
   const { run } = await import('@nodetool-ai/dsl');
   const { loadMediaRefBytes } = await import('@nodetool-ai/runtime/media-ref-bytes');
   const image = { type: 'image', data: (await readFile(source)).toString('base64') };
