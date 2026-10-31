@@ -44,6 +44,9 @@ void PlaybackClock::setDurationMs(double ms) {
             return;
         }
         m_durationMs = ms;
+        // Keep the current anchors; the next tick applies stop/loop behavior
+        // at the new end. Explicit In/Out bounds remain authoritative.
+        updateBoundsLocked();
     }
     emit durationMsChanged();
 }
