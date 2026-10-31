@@ -281,6 +281,15 @@ const CLI_COMMAND_PACKAGES = [
 ];
 
 export const HARNESSES: HarnessEntry[] = [
+  {
+    id: "preset-ejection",
+    title: "Preset workflow ejection",
+    command: "npm run test --workspace=packages/cli-execution -- preset-ejection",
+    kind: "execution",
+    capabilities: ["gated:pr"],
+    docs: "packages/presets/README.md",
+    selfcheck: { command: "npm run test --workspace=packages/cli-execution -- preset-ejection", cost: "cheap", suiteOnly: true }
+  },
   ...CLI_COMMAND_PACKAGES.map((name): HarnessEntry => ({
     id: `${name}-module`,
     title: `Command package ${name}`,
@@ -2282,10 +2291,16 @@ export const SURFACES: SurfaceEntry[] = [
     ]
   },
   {
+    id: "presets",
+    title: "Generation presets",
+    harnesses: ["shared-services", "preset-ejection"],
+    paths: ["packages/presets/"]
+  },
+  {
     id: "shared-services",
     title: "Shared service libraries (vector store, model pricing)",
     harnesses: ["shared-services"],
-    paths: ["packages/vectorstore/", "packages/model-pricing/", "packages/presets/"]
+    paths: ["packages/vectorstore/", "packages/model-pricing/"]
   },
   {
     id: "repo-scripts",
