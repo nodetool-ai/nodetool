@@ -396,7 +396,13 @@ struct Scene3D::State {
                             float bias) {
       const int index = int(shadowMatrices.size());
       shadowMatrices.push_back(matrix);
-      scene.shadowMatrices[index] = matrix;
+      // Shaders map clip y to texture v as y*.5+.5. Where clip y points up
+      // but texture rows start at the top (Metal, D3D), sample mirrored rows.
+      QMatrix4x4 sampling;
+      if (rhi->isYUpInNDC() && !rhi->isYUpInFramebuffer()) {
+        sampling.scale(1, -1, 1);
+      }
+      scene.shadowMatrices[index] = sampling * matrix;
       scene.shadowLayers[index] = {float(layer), point ? 1.F : 0.F,
                                    1.F / (point ? pointSize : directionalSize),
                                    bias};
