@@ -5,7 +5,7 @@ import { z } from "zod";
 import { Command } from "commander";
 import { existsSync, readFileSync } from "node:fs";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
-import { resolve, join, extname } from "node:path";
+import { resolve, join, extname, basename } from "node:path";
 import { createMinimalServer, OPTIONAL_FEATURE_CATALOG } from "@nodetool-ai/server-minimal";
 import { createCoreExecutionHost } from "@nodetool-ai/nodes-core";
 import { OpenAITextProvider } from "@nodetool-ai/runtime-core";
@@ -77,6 +77,28 @@ function isAuthoredSource(file: string): boolean {
 }
 
 /** Build the separately installable execution CLI command tree. */
+const CONTENT_TYPES: Record<string, string> = {
+  ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp", ".svg": "image/svg+xml",
+  ".mp3": "audio/mpeg", ".wav": "audio/wav", ".ogg": "audio/ogg", ".m4a": "audio/mp4", ".flac": "audio/flac",
+  ".mp4": "video/mp4", ".webm": "video/webm", ".mov": "video/quicktime",
+  ".txt": "text/plain", ".md": "text/markdown", ".csv": "text/csv", ".json": "application/json", ".pdf": "application/pdf", ".glb": "model/gltf-binary"
+};
+/** The upload content type for a file name. Unknown extensions stay binary. */
+export function contentTypeFor(file: string): string {
+  return CONTENT_TYPES[extname(file).toLowerCase()] ?? "application/octet-stream";
+}
+const nodeToolNotFoundSchema = z.object({ error: z.string() }).strict();
+/** A NodeTool route answers a missing resource with `{error}`. Fastify's default 404 for an unknown route also has `message` and `statusCode`. */
+export function isNodeToolNotFound(payload: unknown): boolean {
+  return nodeToolNotFoundSchema.safeParse(payload).success;
+}
+/** `nodetool serve` loads only the features in NODETOOL_FEATURES, so give the CLI steps, not the embedding API text. */
+function serverRecovery<T extends { recovery?: readonly { configuration?: string; restart?: string }[] }>(failure: T): T {
+  if (!failure.recovery) { return failure; }
+  return { ...failure, recovery: failure.recovery.map(item => ({ ...item,
+    configuration: "Serve every installed pack with `nodetool server serve` (install it with `nodetool packs add cli-server --yes`), or add the feature to NODETOOL_FEATURES for `nodetool serve`.",
+    restart: "Restart the server, then run the workflow again." })) };
+}
 export function createProgram(options: CliOptions = {}): Command {
   const env = options.env ?? process.env;
   const output = options.stdout ?? (value => process.stdout.write(value));
@@ -102,12 +124,12 @@ export function createProgram(options: CliOptions = {}): Command {
     const response = await transport(url, { ...init, headers: { authorization: `Bearer ${flags.token}`, ...init.headers }, redirect: "error" });
     if (!response.ok) {
       const text = await response.text();
-      const hint = response.status === 404 ? ` (is ${flags.apiUrl} a server started with \`nodetool serve\`? Another app may own that port; set NODETOOL_API_URL or --api-url)` : "";
-      const error = new Error(`Server returned ${response.status}${hint}: ${text}`);
       let payload: unknown;
-      try { payload = JSON.parse(text); } catch { throw error; }
+      try { payload = JSON.parse(text); } catch { payload = undefined; }
+      const hint = response.status === 404 && !isNodeToolNotFound(payload) ? ` (no NodeTool route at ${url.pathname}: is ${flags.apiUrl} a server started with \`nodetool serve\`? Set NODETOOL_API_URL or --api-url)` : "";
+      const error = new Error(`Server returned ${response.status}${hint}: ${text}`);
       const structured = cliFailureSchema.safeParse(payload);
-      if (structured.success) { Object.assign(error, structured.data); }
+      if (structured.success) { Object.assign(error, serverRecovery(structured.data)); }
       throw error;
     }
     return response;
@@ -299,7 +321,9 @@ export function createProgram(options: CliOptions = {}): Command {
   jobs.command("cancel <id>").action(async (id: string) => print(await json(`/api/jobs/${segment(id)}/cancel`, "POST")));
   const assets = program.command("assets");
   assets.command("upload <file>").action(async (file: string) => {
-    const response = await request("/api/assets", { method: "POST", body: await readFile(file), headers: { "content-type": "application/octet-stream" } });
+    const form = new FormData();
+    form.append("file", new Blob([await readFile(file)], { type: contentTypeFor(file) }), basename(file));
+    const response = await request("/api/assets", { method: "POST", body: form });
     print(await response.json());
   });
   assets.command("get <id>").action(async (id: string) => print(await json(`/api/assets/${segment(id)}`)));
@@ -310,7 +334,7 @@ export function createProgram(options: CliOptions = {}): Command {
     if (hasToken()) { print(await json("/api/secrets")); return; }
     print(await withLocalRepository(async repository => (await repository.list("secrets", owner())).map(({ encrypted_value: _encrypted, ...metadata }) => metadata)));
   });
-  secrets.command("set <key>").alias("store").description("Read a secret value from stdin, e.g. printf %s \"$OPENAI_API_KEY\" | nodetool secrets set OPENAI_API_KEY").action(async (key: string) => {
+  secrets.command("set <key>").alias("store").description("Read a secret value from stdin, e.g. printf %s \"$OPENAI_API_KEY\" | nodetool secrets set OPENAI_API_KEY. With a token (--token or NODETOOL_API_TOKEN) it writes to the server. Without a token it writes to the local encrypted store, which needs SECRETS_MASTER_KEY.").action(async (key: string) => {
     if (process.stdin.isTTY) throw new Error("Pipe the secret value on stdin, e.g. printf %s \"$VALUE\" | nodetool secrets set KEY");
     const value = (await readStdin()).replace(/\r?\n$/, "");
     if (hasToken()) { print(await json("/api/secrets", "POST", { key, value })); return; }
@@ -372,9 +396,13 @@ export function createProgram(options: CliOptions = {}): Command {
         if (flags.json) { print({ model: flags.model, text, usage }); } else { output("\n"); }
       } finally { process.removeListener("SIGINT", abort); }
     });
-  program.command("serve").description("Start the minimal execution server with explicitly configured server features.").option("--host <host>", "Listen address", env.HOST ?? "127.0.0.1").option("--port <port>", "Listen port", env.PORT ?? "7777").action(async (flags: { host: string; port: string }) => {
-    const masterKey = requireMasterKey("start the server (it encrypts tenant secrets)");
-    const tokens = serverTokens();
+  program.command("serve").description("Start the minimal execution server. Needs SECRETS_MASTER_KEY and NODETOOL_API_TOKEN (or NODETOOL_TOKENS). It runs core nodes only: add pack features with NODETOOL_FEATURES=feature-id=package,..., or serve every installed pack with `nodetool server serve` (nodetool packs add cli-server --yes).").option("--host <host>", "Listen address", env.HOST ?? "127.0.0.1").option("--port <port>", "Listen port", env.PORT ?? "7777").action(async (flags: { host: string; port: string }) => {
+    const missing: string[] = [];
+    let masterKey = "";
+    let tokens: Record<string, string> = {};
+    try { masterKey = requireMasterKey("start the server (it encrypts tenant secrets)"); } catch (error) { missing.push(error instanceof Error ? error.message : String(error)); }
+    try { tokens = serverTokens(); } catch (error) { missing.push(error instanceof Error ? error.message : String(error)); }
+    if (missing.length) { throw new Error(missing.join("\n")); }
     type ConfiguredFeature = NonNullable<Parameters<typeof createMinimalServer>[0]["features"]>[number];
     type Feature = Awaited<ReturnType<ConfiguredFeature["load"]>>;
     const features: ConfiguredFeature[] = [];
@@ -397,7 +425,11 @@ export function createProgram(options: CliOptions = {}): Command {
     const app = await createMinimalServer(configuration);
     const close = (): void => { void app.close().catch(() => { process.exitCode = 1; }); };
     process.once("SIGINT", close); process.once("SIGTERM", close);
-    try { print({ url: await app.listen({ host: flags.host, port: Number(flags.port) }) }); }
+    try {
+      const url = await app.listen({ host: flags.host, port: Number(flags.port) });
+      process.stderr.write(`NodeTool server ready at ${url}. Point clients at it with NODETOOL_API_URL=${url}. Stop it with Ctrl+C.\n`);
+      print({ url });
+    }
     catch (error) {
       await app.close();
       if (error instanceof Error && "code" in error && error.code === "EADDRINUSE") throw new Error(`Port ${flags.port} is already in use (the NodeTool desktop app uses 7777). Pass --port or set PORT, and point clients at it with NODETOOL_API_URL.`);
@@ -423,8 +455,24 @@ export function createProgram(options: CliOptions = {}): Command {
   }
   return program;
 }
+const GLOBAL_VALUE_OPTIONS = new Set(["--api-url", "--token"]);
+/** Accept `--api-url` and `--token` after the subcommand too: move them before it. */
+export function hoistGlobalOptions(argv: readonly string[]): string[] {
+  const head = argv.slice(0, 2);
+  const hoisted: string[] = [];
+  const rest: string[] = [];
+  for (let index = 2; index < argv.length; index++) {
+    const argument = argv[index] ?? "";
+    if (argument === "--") { rest.push(...argv.slice(index)); break; }
+    if (GLOBAL_VALUE_OPTIONS.has(argument) && index + 1 < argv.length) { hoisted.push(argument, argv[index + 1] ?? ""); index++; }
+    else if ([...GLOBAL_VALUE_OPTIONS].some(option => argument.startsWith(`${option}=`))) { hoisted.push(argument); }
+    else { rest.push(argument); }
+  }
+  return [...head, ...hoisted, ...rest];
+}
 /** Dispatch native commands or one explicitly installed command feature. */
-export async function runCli(argv: readonly string[] = process.argv): Promise<void> {
+export async function runCli(input: readonly string[] = process.argv): Promise<void> {
+  const argv = hoistGlobalOptions(input);
   let commandIndex = 2;
   let workflowTrace = false;
   while (commandIndex < argv.length) {
