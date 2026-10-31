@@ -51,6 +51,14 @@ int main() {
   require(invalid,"Candidate syntax rejection");
   const auto fresh=call("(()=>{let retained=0;return ()=>({state:{count:++retained}});})()");
   require(host.invoke(fresh)["state"]["count"]==1 && host.invoke(fresh)["state"]["count"]==1,"Fresh realms discard hidden state");
+  const auto globalLeak=call("i=>{globalThis.leak=(globalThis.leak||0)+1;Array.prototype.leak=(Array.prototype.leak||0)+1;return {state:{g:globalThis.leak===undefined,a:[].leak===undefined}};}");
+  require(host.invoke(globalLeak)==host.invoke(globalLeak) && host.invoke(globalLeak)["state"]["g"]==true && host.invoke(globalLeak)["state"]["a"]==true,"Reused realms discard global and intrinsic writes");
+  require(host.invoke(call("()=>{class Fail extends Error{constructor(){super('x');this.name='Fail';}} const o={}; o.toString=()=>'own'; return {state:{name:new Fail().name,own:String(o)}};}"))["state"]==Json({{"name","Fail"},{"own","own"}}),"Instances override frozen prototype members");
+  const auto flaky=call("i=>{if(i.tick===1)throw Error('boom');return {state:{ok:true}};}");
+  auto failing=flaky; failing["tick"]=1; bool threw=false; try{host.invoke(failing);}catch(const Error&){threw=true;}
+  require(threw && host.invoke(flaky)["state"]["ok"]==true,"Realm recovers after guest error");
+  rejects(host,"()=>{while(true){}}");
+  require(host.invoke(flaky)["state"]["ok"]==true,"Runtime recovers after budget failure");
   std::cout<<"Bounded QuickJS, lifecycle, timers, query transport, replacement admission passed\n";
   return 0;
  } catch(const std::exception& error) {std::cerr<<error.what()<<'\n';return 1;}

@@ -147,6 +147,11 @@ originating live session.
 
 QuickJS behaviors use explicit JSON state. Commands, timers, and seeded randomness
 commit with the tick. A failed behavior does not publish its staged commands.
+Each distinct source keeps one realm for the session, and the source expression is
+evaluated again on every call. The global object and all builtins are frozen, so
+global writes and prototype changes do not persist between calls. In sloppy mode,
+an assignment to an undeclared name is ignored. Instances can still override inherited
+members such as `name`, `message`, and `toString`.
 The host preserves structured source diagnostics in `NativeGameWorkerError.details`
 alongside the error code and document path.
 
