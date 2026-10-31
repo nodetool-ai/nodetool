@@ -618,6 +618,9 @@ export class ImageToVideoNode extends BaseNode {
   })
   declare timeout_seconds: number;
 
+  @prop({ type: "int", default: -1, title: "Seed", description: "Generation seed. Use -1 for a random seed." })
+  declare seed: number;
+
   async process(context?: ProcessingContext): Promise<ImageToVideoNodeOutputs> {
     let images = normalizeImageList(this.image);
     let prompt = String(this.prompt ?? "");
@@ -665,6 +668,7 @@ export class ImageToVideoNode extends BaseNode {
       params: {
         image,
         prompt,
+        seed: this.seed >= 0 ? this.seed : undefined,
         negative_prompt: this.negative_prompt,
         entities: await resolveEntities(this.entities, context),
         duration_seconds: Number(this.duration ?? 0) || undefined,
