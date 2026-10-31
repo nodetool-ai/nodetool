@@ -6,6 +6,7 @@
 #include <QWebSocketServer>
 #include <QTemporaryFile>
 #include <QtTest>
+#include <QTimer>
 #include <algorithm>
 using namespace nt::chat;
 namespace {
@@ -91,7 +92,11 @@ public:
     }
     bool listen() { return http.listen(QHostAddress::LocalHost, 0); }
     QUrl url() const { return QUrl(QStringLiteral("http://127.0.0.1:%1").arg(http.serverPort())); }
-    void emitEvent(const QJsonObject& event) {
+    void emitEvent(const QJsonObject& event, int delayMs = 0) {
+        if (delayMs > 0) {
+            QTimer::singleShot(delayMs, this, [this, event] { emitEvent(event); });
+            return;
+        }
         if (peer) { peer->sendTextMessage(QString::fromUtf8(QJsonDocument(event).toJson(QJsonDocument::Compact))); }
     }
     int count(const QString& field, const QString& value) const {
@@ -185,8 +190,18 @@ private slots:
         QCOMPARE(session.turnStatus(), QStringLiteral("stopping"));
         server.emitEvent({{"type", "generation_stopped"}, {"thread_id", ThreadId}, {"chat_seq", 2}});
         QTRY_COMPARE(session.turnStatus(), QStringLiteral("idle"));
-        server.emitEvent({{"type", "tool_approval_request"}, {"thread_id", ThreadId}, {"approval_id", "approval-one"}, {"tool_name", "write"}, {"message", "Change document?"}, {"chat_seq", 3}});
-        QTest::qWait(30);
+        server.emitEvent({{"type", "tool_approval_request"}, {"thread_id", ThreadId}, {"approval_id", "approval-one"}, {"tool_name", "write"}, {"message", "Change document?"}, {"chat_seq", 3}}, 75);
+        const auto approvalReceived = [&] {
+            const auto* messages = qobject_cast<MessageModel*>(session.messages());
+            if (!messages) { return false; }
+            for (const auto& row : messages->snapshot()) {
+                for (const auto& part : row.toObject()["parts"].toArray()) {
+                    if (part.toObject()["actionId"] == "approval-one") { return true; }
+                }
+            }
+            return false;
+        };
+        QTRY_VERIFY(approvalReceived());
         session.respondToAction("approval-one", true);
         session.respondToAction("approval-one", true);
         QTRY_COMPARE(server.count("type", "tool_approval_response"), 1);
