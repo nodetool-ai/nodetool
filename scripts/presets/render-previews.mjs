@@ -12,6 +12,7 @@ export async function renderPlans(plans, { dryRun, checkConnection, render, log 
   }
   if (!pending.length) { return; }
   await checkConnection();
+  const rejected = [];
   for (const plan of pending) {
     const started = new Date().toISOString();
     await atomicJson(plan.recordPath, runRecord(plan, 'running', started));
@@ -23,9 +24,20 @@ export async function renderPlans(plans, { dryRun, checkConnection, render, log 
         credits: result.credits ?? null, cost_usd: result.cost_usd ?? null
       }));
     } catch (error) {
+      // Dreamina refused this one output (a moderation or copyright check).
+      // The tab is fine, so record it and move on to the next preset.
+      if (/Dreamina generation failed/.test(error.message)) {
+        await atomicJson(plan.recordPath, runRecord(plan, 'rejected', started, { error: error.message }));
+        log(`${plan.id}: rejected by Dreamina, continuing. ${error.message}`);
+        rejected.push(plan.id);
+        continue;
+      }
       await atomicJson(plan.recordPath, runRecord(plan, 'interrupted', started, { error: error.message }));
       throw new Error(`${plan.id}: rendering stopped. Inspect the tab and run record before retrying. ${error.message}`, { cause: error });
     }
+  }
+  if (rejected.length) {
+    throw new Error(`Dreamina rejected ${rejected.length} preset(s): ${rejected.join(', ')}. Rerun to retry them.`);
   }
 }
 async function checkConnection() {
