@@ -2,12 +2,12 @@ pragma Singleton
 import QtQuick
 QtObject {
     enum Role { SansTitle, SansBody, SansLabel, SansCaption, MonoCode, MonoStrong, MonoLabel, MonoCaption }
-    readonly property FontLoader interRegular: FontLoader { source: "qrc:/qt/qml/NodeTool/UiPrimitives/fonts/inter-latin-400-normal.woff2" }
-    readonly property FontLoader interMedium: FontLoader { source: "qrc:/qt/qml/NodeTool/UiPrimitives/fonts/inter-latin-500-normal.woff2" }
-    readonly property FontLoader interSemibold: FontLoader { source: "qrc:/qt/qml/NodeTool/UiPrimitives/fonts/inter-latin-600-normal.woff2" }
-    readonly property FontLoader monoRegular: FontLoader { source: "qrc:/qt/qml/NodeTool/UiPrimitives/fonts/jetbrains-mono-latin-400-normal.woff2" }
-    readonly property FontLoader monoMedium: FontLoader { source: "qrc:/qt/qml/NodeTool/UiPrimitives/fonts/jetbrains-mono-latin-500-normal.woff2" }
-    readonly property FontLoader monoSemibold: FontLoader { source: "qrc:/qt/qml/NodeTool/UiPrimitives/fonts/jetbrains-mono-latin-600-normal.woff2" }
+    readonly property FontLoader interRegular: FontLoader { source: "qrc:/qt/qml/NodeTool/UiPrimitives/fonts/inter-latin-400-normal.ttf" }
+    readonly property FontLoader interMedium: FontLoader { source: "qrc:/qt/qml/NodeTool/UiPrimitives/fonts/inter-latin-500-normal.ttf" }
+    readonly property FontLoader interSemibold: FontLoader { source: "qrc:/qt/qml/NodeTool/UiPrimitives/fonts/inter-latin-600-normal.ttf" }
+    readonly property FontLoader monoRegular: FontLoader { source: "qrc:/qt/qml/NodeTool/UiPrimitives/fonts/jetbrains-mono-latin-400-normal.ttf" }
+    readonly property FontLoader monoMedium: FontLoader { source: "qrc:/qt/qml/NodeTool/UiPrimitives/fonts/jetbrains-mono-latin-500-normal.ttf" }
+    readonly property FontLoader monoSemibold: FontLoader { source: "qrc:/qt/qml/NodeTool/UiPrimitives/fonts/jetbrains-mono-latin-600-normal.ttf" }
     readonly property string sansFamily: interRegular.status === FontLoader.Ready ? interRegular.font.family : "sans-serif"
     readonly property string monoFamily: monoRegular.status === FontLoader.Ready ? monoRegular.font.family : "monospace"
     function family(role) { return role >= Typography.MonoCode ? monoFamily : sansFamily }

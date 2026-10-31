@@ -84,6 +84,8 @@ jobs:
             "qt.qt6.$qtv.addons.qtwebsockets.win64_msvc2022_64"
           echo "QT_PREFIX=$RUNNER_TEMP/qt/$QT_VERSION/msvc2022_64" >> "$GITHUB_ENV"
           echo "$RUNNER_TEMP/qt/$QT_VERSION/msvc2022_64/bin" >> "$GITHUB_PATH"
+          # The offscreen FreeType backend does not discover Windows system fonts.
+          echo "QT_QPA_FONTDIR=$WINDIR/Fonts" >> "$GITHUB_ENV"
 
       - name: Check native design and dependencies
         run: |
