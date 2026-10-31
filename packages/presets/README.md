@@ -22,6 +22,20 @@ const catalog = loadCatalog(() => loadPackageAssetJson(
 ));
 ```
 
+`presetToWorkflow(preset, { model: { provider, id, name?, path? }, mode,
+resolveWorkflow? })` returns `{ nodes, edges }` in saved-template format.
+Each node has `{ id, type, data, position }`. The graph wires `StringInput`
+(`prompt`) → `Template` (`{{ prompt }}`) → the mode's generic generation node
+→ `Output` (`result`). Image-conditioned modes add `ImageInput`. Reference
+video mode connects media to `reference_images` and `reference_videos`.
+The compiler selects the model-family fragment and supplies generation params.
+A replacement fragment intentionally replaces the user prompt.
+
+For a preset with `workflow`, the host must supply the synchronous
+`resolveWorkflow(name)` callback. Ejection returns a deep copy of that graph
+instead of generating nodes. Unsupported modes and missing resolvers throw.
+Video inputs require reference-video mode.
+
 The root entry also exports `presetSchema`, `fragmentSchema`,
 `presetJsonSchema`, `modelFamily` and their types. No source module imports
 Node APIs. Hosts own disk access.
