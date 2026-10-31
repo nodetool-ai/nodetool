@@ -14,6 +14,9 @@
     "image_to_video",
     "reference_to_video"
   ],
+  "inputs": [
+    "text"
+  ],
   "stackable": false,
   "conflicts": [],
   "aliases": [
@@ -26,5 +29,10 @@
     "veo": "Camera locked off with fixed framing.",
     "wan": "Camera locked off with fixed framing."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.static/9fa4becc78ecd82faf048febc4e55f8493a54d9a8aba4be27d63b54194210ee9.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.static/9fa4becc78ecd82faf048febc4e55f8493a54d9a8aba4be27d63b54194210ee9.png",
+    "run": "runs/camera.static.json"
+  }
 }

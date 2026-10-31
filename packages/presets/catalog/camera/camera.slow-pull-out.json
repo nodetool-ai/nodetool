@@ -14,6 +14,9 @@
     "image_to_video",
     "reference_to_video"
   ],
+  "inputs": [
+    "text"
+  ],
   "stackable": true,
   "conflicts": [
     "camera.dolly-in"
@@ -28,5 +31,10 @@
     "veo": "Camera slowly pulls away from the subject.",
     "wan": "Camera slowly pulls away from the subject."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.slow-pull-out/987972b7e6af3522d570d73a90b25f9355eebdadf1c05076adadae2f920b1562.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.slow-pull-out/987972b7e6af3522d570d73a90b25f9355eebdadf1c05076adadae2f920b1562.png",
+    "run": "runs/camera.slow-pull-out.json"
+  }
 }

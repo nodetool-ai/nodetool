@@ -28,5 +28,10 @@
     "veo": "The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. The subject glows from within like hot coals and the embers grow denser until the end of the shot, sparks drifting upward through warm heat distortion. Cinematic lighting, realistic physics, locked camera.",
     "wan": "The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. The subject glows from within like hot coals and the embers grow denser until the end of the shot, sparks drifting upward through warm heat distortion. Locked camera, smooth realistic motion, high detail."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.golden-embers/9f1b6d2f1c8ebeb395ffc3a78eb0297d1c143d4925c02a7722b19892966bb4c3.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.golden-embers/9f1b6d2f1c8ebeb395ffc3a78eb0297d1c143d4925c02a7722b19892966bb4c3.png",
+    "run": "runs/effect.golden-embers.json"
+  }
 }

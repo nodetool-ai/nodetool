@@ -28,5 +28,10 @@
     "veo": "The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. Cinematic lighting, realistic physics, locked camera.",
     "wan": "The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. Locked camera, smooth realistic motion, high detail."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.electric-arcs/08854a7e2fdca1eebd1267cea80a3d505884d48d32720500e93b0e1361f5ba41.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.electric-arcs/08854a7e2fdca1eebd1267cea80a3d505884d48d32720500e93b0e1361f5ba41.png",
+    "run": "runs/effect.electric-arcs.json"
+  }
 }

@@ -14,6 +14,9 @@
     "image_to_video",
     "reference_to_video"
   ],
+  "inputs": [
+    "text"
+  ],
   "stackable": true,
   "conflicts": [
     "camera.crash-zoom-out"
@@ -28,5 +31,10 @@
     "veo": "Lens zooms rapidly into the subject from a fixed camera position.",
     "wan": "Lens zooms rapidly into the subject from a fixed camera position."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.crash-zoom-in/797d3805a53496a5c2ea7fd2922b884789a8fdd3db1667b4cd133085f7b17d33.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.crash-zoom-in/797d3805a53496a5c2ea7fd2922b884789a8fdd3db1667b4cd133085f7b17d33.png",
+    "run": "runs/camera.crash-zoom-in.json"
+  }
 }

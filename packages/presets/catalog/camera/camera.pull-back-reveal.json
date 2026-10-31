@@ -14,6 +14,9 @@
     "image_to_video",
     "reference_to_video"
   ],
+  "inputs": [
+    "text"
+  ],
   "stackable": true,
   "conflicts": [],
   "aliases": [
@@ -26,5 +29,10 @@
     "veo": "Camera pulls back from a close view to reveal the surroundings.",
     "wan": "Camera pulls back from a close view to reveal the surroundings."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pull-back-reveal/ddb3f1acc5d2a0faef1541e739fc2f8bf0b8cb61bb45ea81bade69f731db71ce.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pull-back-reveal/ddb3f1acc5d2a0faef1541e739fc2f8bf0b8cb61bb45ea81bade69f731db71ce.png",
+    "run": "runs/camera.pull-back-reveal.json"
+  }
 }

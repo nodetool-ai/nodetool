@@ -14,6 +14,9 @@
     "image_to_video",
     "reference_to_video"
   ],
+  "inputs": [
+    "text"
+  ],
   "stackable": true,
   "conflicts": [],
   "aliases": [
@@ -26,5 +29,10 @@
     "veo": "Camera follows behind the moving subject with subtle handheld sway.",
     "wan": "Camera follows behind the moving subject with subtle handheld sway."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.handheld-follow/be3b7a5cf2771901296b6a979897a677139080da5f93896faff7ad4843f1ddcd.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.handheld-follow/be3b7a5cf2771901296b6a979897a677139080da5f93896faff7ad4843f1ddcd.png",
+    "run": "runs/camera.handheld-follow.json"
+  }
 }

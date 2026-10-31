@@ -14,6 +14,9 @@
     "image_to_video",
     "reference_to_video"
   ],
+  "inputs": [
+    "text"
+  ],
   "stackable": true,
   "conflicts": [],
   "aliases": [
@@ -27,5 +30,10 @@
     "veo": "Camera completes a full circle around the subject at a steady distance.",
     "wan": "Camera completes a full circle around the subject at a steady distance."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.orbit/5f909c6c5e25291eee3edd4615f5303b54caaf91901dd0dd4d67a9c2011fb5d4.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.orbit/5f909c6c5e25291eee3edd4615f5303b54caaf91901dd0dd4d67a9c2011fb5d4.png",
+    "run": "runs/camera.orbit.json"
+  }
 }

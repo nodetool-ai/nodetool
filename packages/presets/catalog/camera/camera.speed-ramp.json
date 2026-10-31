@@ -14,6 +14,9 @@
     "image_to_video",
     "reference_to_video"
   ],
+  "inputs": [
+    "text"
+  ],
   "stackable": true,
   "conflicts": [],
   "aliases": [],
@@ -24,5 +27,10 @@
     "veo": "Motion accelerates from normal speed into a rapid burst then eases into slow motion.",
     "wan": "Motion accelerates from normal speed into a rapid burst then eases into slow motion."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.speed-ramp/7aa1d104dfc26f216f8e018ba94b0675ad280e9c74ca0b2cdf2c083591dae545.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.speed-ramp/7aa1d104dfc26f216f8e018ba94b0675ad280e9c74ca0b2cdf2c083591dae545.png",
+    "run": "runs/camera.speed-ramp.json"
+  }
 }

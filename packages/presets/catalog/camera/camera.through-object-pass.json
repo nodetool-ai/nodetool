@@ -14,6 +14,9 @@
     "image_to_video",
     "reference_to_video"
   ],
+  "inputs": [
+    "text"
+  ],
   "stackable": true,
   "conflicts": [],
   "aliases": [
@@ -26,5 +29,10 @@
     "veo": "The camera pushes forward through a gap between foreground elements that are already in the scene, such as leaves, an archway or a doorway, which sweep past the lens and out of frame to reveal the subject beyond. No new objects appear.",
     "wan": "The camera pushes forward through a gap between foreground elements that are already in the scene, such as leaves, an archway or a doorway, which sweep past the lens and out of frame to reveal the subject beyond. No new objects appear."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.through-object-pass/a35391d5e2eed0bb13f92303745583bb75ec9f76093858b086c0d65564b28f92.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.through-object-pass/a35391d5e2eed0bb13f92303745583bb75ec9f76093858b086c0d65564b28f92.png",
+    "run": "runs/camera.through-object-pass.json"
+  }
 }

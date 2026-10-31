@@ -14,6 +14,9 @@
     "image_to_video",
     "reference_to_video"
   ],
+  "inputs": [
+    "text"
+  ],
   "stackable": false,
   "conflicts": [],
   "aliases": [
@@ -26,5 +29,10 @@
     "veo": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts.",
     "wan": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.snorricam/0148da2bc19ac3e7d839fdfa23e292b5d30edf7d0e4665b8fac5d201333319e8.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.snorricam/0148da2bc19ac3e7d839fdfa23e292b5d30edf7d0e4665b8fac5d201333319e8.png",
+    "run": "runs/camera.snorricam.json"
+  }
 }

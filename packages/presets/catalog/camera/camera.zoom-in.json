@@ -14,6 +14,9 @@
     "image_to_video",
     "reference_to_video"
   ],
+  "inputs": [
+    "text"
+  ],
   "stackable": true,
   "conflicts": [
     "camera.zoom-out"
@@ -28,5 +31,10 @@
     "veo": "Lens zooms in from a fixed camera position.",
     "wan": "Lens zooms in from a fixed camera position."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.zoom-in/3a2685add69157f2cc539c44229e27f981d1a018bd7c8ed8e2470df8295217d3.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.zoom-in/3a2685add69157f2cc539c44229e27f981d1a018bd7c8ed8e2470df8295217d3.png",
+    "run": "runs/camera.zoom-in.json"
+  }
 }

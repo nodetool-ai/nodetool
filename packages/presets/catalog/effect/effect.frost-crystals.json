@@ -28,5 +28,10 @@
     "veo": "The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Cinematic lighting, realistic physics, locked camera.",
     "wan": "The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Locked camera, smooth realistic motion, high detail."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.frost-crystals/4bfacccbee966214f752c95bc995af6241bd697d46983245a5e197cc1659181b.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.frost-crystals/4bfacccbee966214f752c95bc995af6241bd697d46983245a5e197cc1659181b.png",
+    "run": "runs/effect.frost-crystals.json"
+  }
 }

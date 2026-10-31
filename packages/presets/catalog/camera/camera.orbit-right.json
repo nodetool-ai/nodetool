@@ -14,6 +14,9 @@
     "image_to_video",
     "reference_to_video"
   ],
+  "inputs": [
+    "text"
+  ],
   "stackable": true,
   "conflicts": [
     "camera.orbit-left"
@@ -28,5 +31,10 @@
     "veo": "Camera arcs right around the subject at a steady distance.",
     "wan": "Camera arcs right around the subject at a steady distance."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.orbit-right/1458c0321b76fdf7313eb1dd11e07c46e68c2984d62726c52cd7500665edefed.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.orbit-right/1458c0321b76fdf7313eb1dd11e07c46e68c2984d62726c52cd7500665edefed.png",
+    "run": "runs/camera.orbit-right.json"
+  }
 }

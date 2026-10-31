@@ -28,5 +28,10 @@
     "veo": "The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. Cinematic lighting, realistic physics, locked camera.",
     "wan": "The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. Locked camera, smooth realistic motion, high detail."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.underwater-caustics/b9c3d9a2d2c97d2dada18f72ed7e7a7bafbfaf8eb84498e8bd4e253d356ff795.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.underwater-caustics/b9c3d9a2d2c97d2dada18f72ed7e7a7bafbfaf8eb84498e8bd4e253d356ff795.png",
+    "run": "runs/effect.underwater-caustics.json"
+  }
 }

@@ -14,6 +14,9 @@
     "image_to_video",
     "reference_to_video"
   ],
+  "inputs": [
+    "text"
+  ],
   "stackable": true,
   "conflicts": [
     "camera.dolly-in"
@@ -28,5 +31,10 @@
     "veo": "Camera dollies smoothly away from the subject with visible depth change.",
     "wan": "Camera dollies smoothly away from the subject with visible depth change."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.dolly-out/ddd203b32ac86f716fe9351bd65d64d7f650a86fb35219f454241d866c4e8ed8.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.dolly-out/ddd203b32ac86f716fe9351bd65d64d7f650a86fb35219f454241d866c4e8ed8.png",
+    "run": "runs/camera.dolly-out.json"
+  }
 }

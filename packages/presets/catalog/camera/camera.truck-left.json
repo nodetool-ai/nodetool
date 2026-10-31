@@ -14,6 +14,9 @@
     "image_to_video",
     "reference_to_video"
   ],
+  "inputs": [
+    "text"
+  ],
   "stackable": true,
   "conflicts": [
     "camera.truck-right"
@@ -28,5 +31,10 @@
     "veo": "Camera translates left parallel to the subject.",
     "wan": "Camera translates left parallel to the subject."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.truck-left/d3c27f618afb7a66aa15f0afdb7ce17f11f87a61d5d545361492e882c0a6e48b.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.truck-left/d3c27f618afb7a66aa15f0afdb7ce17f11f87a61d5d545361492e882c0a6e48b.png",
+    "run": "runs/camera.truck-left.json"
+  }
 }

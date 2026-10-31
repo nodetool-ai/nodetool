@@ -15,6 +15,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [],
     "aliases": [],
@@ -25,7 +28,12 @@
       "veo": "Camera travels through a gentle quarter-circle around the subject at constant height.",
       "wan": "Camera travels through a gentle quarter-circle around the subject at constant height."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.arc/c0ded97242b8a490665aef12ed32968fb6a5cdbc78673bfd87c10f2a0247689f.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.arc/c0ded97242b8a490665aef12ed32968fb6a5cdbc78673bfd87c10f2a0247689f.png",
+      "run": "runs/camera.arc.json"
+    }
   },
   {
     "id": "camera.bullet-time",
@@ -43,6 +51,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": false,
     "conflicts": [],
     "aliases": [
@@ -55,7 +66,12 @@
       "veo": "Camera arcs around the subject while the action hangs nearly frozen in time.",
       "wan": "Camera arcs around the subject while the action hangs nearly frozen in time."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.bullet-time/d29d66c81102599ac1cfec0d1afa4f7d21733c991a70caa7d4bff90a69cea011.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.bullet-time/d29d66c81102599ac1cfec0d1afa4f7d21733c991a70caa7d4bff90a69cea011.png",
+      "run": "runs/camera.bullet-time.json"
+    }
   },
   {
     "id": "camera.crane-down",
@@ -73,6 +89,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [
       "camera.crane-up"
@@ -87,7 +106,12 @@
       "veo": "Camera cranes downward and tilts up to keep the subject framed.",
       "wan": "Camera cranes downward and tilts up to keep the subject framed."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.crane-down/d89e1e60f1c3dfca657f0549a9290bd2030b8dc8d6918002263da78835f4712f.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.crane-down/d89e1e60f1c3dfca657f0549a9290bd2030b8dc8d6918002263da78835f4712f.png",
+      "run": "runs/camera.crane-down.json"
+    }
   },
   {
     "id": "camera.crane-up",
@@ -105,6 +129,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [
       "camera.crane-down"
@@ -119,7 +146,12 @@
       "veo": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear.",
       "wan": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.crane-up/ec9fe69e2efea589ce3b0ded33ca306ecb3cbce16e6f326eff53c8bf51478c4f.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.crane-up/ec9fe69e2efea589ce3b0ded33ca306ecb3cbce16e6f326eff53c8bf51478c4f.png",
+      "run": "runs/camera.crane-up.json"
+    }
   },
   {
     "id": "camera.crash-zoom-in",
@@ -137,6 +169,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [
       "camera.crash-zoom-out"
@@ -151,7 +186,12 @@
       "veo": "Lens zooms rapidly into the subject from a fixed camera position.",
       "wan": "Lens zooms rapidly into the subject from a fixed camera position."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.crash-zoom-in/797d3805a53496a5c2ea7fd2922b884789a8fdd3db1667b4cd133085f7b17d33.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.crash-zoom-in/797d3805a53496a5c2ea7fd2922b884789a8fdd3db1667b4cd133085f7b17d33.png",
+      "run": "runs/camera.crash-zoom-in.json"
+    }
   },
   {
     "id": "camera.crash-zoom-out",
@@ -169,6 +209,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [
       "camera.crash-zoom-in"
@@ -183,7 +226,12 @@
       "veo": "Lens zooms rapidly out from the subject from a fixed camera position.",
       "wan": "Lens zooms rapidly out from the subject from a fixed camera position."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.crash-zoom-out/f45fbea52933efb176d8c70f2529dc20d6c8c9ca41a497a1572b4171cc8f8f4a.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.crash-zoom-out/f45fbea52933efb176d8c70f2529dc20d6c8c9ca41a497a1572b4171cc8f8f4a.png",
+      "run": "runs/camera.crash-zoom-out.json"
+    }
   },
   {
     "id": "camera.dolly-in",
@@ -200,6 +248,9 @@
       "video",
       "image_to_video",
       "reference_to_video"
+    ],
+    "inputs": [
+      "text"
     ],
     "stackable": true,
     "conflicts": [
@@ -218,7 +269,12 @@
       "veo": "Camera dollies smoothly toward the subject with visible depth change.",
       "wan": "Camera dollies smoothly toward the subject with visible depth change."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.dolly-in/f71a51ff8637b65add4e4fb86cf57aa8ab9bce70cc6024f2c6d903fb5ff5ea90.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.dolly-in/f71a51ff8637b65add4e4fb86cf57aa8ab9bce70cc6024f2c6d903fb5ff5ea90.png",
+      "run": "runs/camera.dolly-in.json"
+    }
   },
   {
     "id": "camera.dolly-out",
@@ -236,6 +292,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [
       "camera.dolly-in"
@@ -250,7 +309,12 @@
       "veo": "Camera dollies smoothly away from the subject with visible depth change.",
       "wan": "Camera dollies smoothly away from the subject with visible depth change."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.dolly-out/ddd203b32ac86f716fe9351bd65d64d7f650a86fb35219f454241d866c4e8ed8.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.dolly-out/ddd203b32ac86f716fe9351bd65d64d7f650a86fb35219f454241d866c4e8ed8.png",
+      "run": "runs/camera.dolly-out.json"
+    }
   },
   {
     "id": "camera.dolly-zoom",
@@ -268,6 +332,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [],
     "aliases": [
@@ -280,7 +347,12 @@
       "veo": "Camera dollies backward while zooming in, holding subject size as the background expands.",
       "wan": "Camera dollies backward while zooming in, holding subject size as the background expands."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.dolly-zoom/0faf8aa85f3d00d9e99218b1bfecd18edcf2e1b3e54a484e1027e8413c9d3540.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.dolly-zoom/0faf8aa85f3d00d9e99218b1bfecd18edcf2e1b3e54a484e1027e8413c9d3540.png",
+      "run": "runs/camera.dolly-zoom.json"
+    }
   },
   {
     "id": "camera.dutch-roll",
@@ -298,6 +370,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [],
     "aliases": [],
@@ -308,7 +383,12 @@
       "veo": "Camera rolls gradually around its optical axis, tilting the horizon.",
       "wan": "Camera rolls gradually around its optical axis, tilting the horizon."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.dutch-roll/55056d723d7d5d0b285a7b62b50d58e40a5ec5c6ca0595a7aa8acb0ffb134275.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.dutch-roll/55056d723d7d5d0b285a7b62b50d58e40a5ec5c6ca0595a7aa8acb0ffb134275.png",
+      "run": "runs/camera.dutch-roll.json"
+    }
   },
   {
     "id": "camera.fpv-drone-fly-through",
@@ -326,6 +406,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": false,
     "conflicts": [],
     "aliases": [
@@ -338,7 +421,12 @@
       "veo": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path.",
       "wan": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.fpv-drone-fly-through/3a369458ef42ad6dac805c48ee063c6bd9438b1189205de50527090ab0dfc48d.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.fpv-drone-fly-through/3a369458ef42ad6dac805c48ee063c6bd9438b1189205de50527090ab0dfc48d.png",
+      "run": "runs/camera.fpv-drone-fly-through.json"
+    }
   },
   {
     "id": "camera.handheld-follow",
@@ -356,6 +444,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [],
     "aliases": [
@@ -368,7 +459,12 @@
       "veo": "Camera follows behind the moving subject with subtle handheld sway.",
       "wan": "Camera follows behind the moving subject with subtle handheld sway."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.handheld-follow/be3b7a5cf2771901296b6a979897a677139080da5f93896faff7ad4843f1ddcd.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.handheld-follow/be3b7a5cf2771901296b6a979897a677139080da5f93896faff7ad4843f1ddcd.png",
+      "run": "runs/camera.handheld-follow.json"
+    }
   },
   {
     "id": "camera.handheld",
@@ -386,6 +482,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [],
     "aliases": [
@@ -398,7 +497,12 @@
       "veo": "Camera has gentle irregular handheld sway.",
       "wan": "Camera has gentle irregular handheld sway."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.handheld/20c89a90d9d7e733b3dae7f9f7ca6926d008e92654b1f34c5da4b4ce11f36134.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.handheld/20c89a90d9d7e733b3dae7f9f7ca6926d008e92654b1f34c5da4b4ce11f36134.png",
+      "run": "runs/camera.handheld.json"
+    }
   },
   {
     "id": "camera.low-angle-hero-rise",
@@ -416,6 +520,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [],
     "aliases": [
@@ -428,7 +535,12 @@
       "veo": "Camera rises from ground level toward a low-angle view of the subject.",
       "wan": "Camera rises from ground level toward a low-angle view of the subject."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.low-angle-hero-rise/b1b854da18dba4e29327b9a8605c4539cb005fa51c274991e63802540046f6d9.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.low-angle-hero-rise/b1b854da18dba4e29327b9a8605c4539cb005fa51c274991e63802540046f6d9.png",
+      "run": "runs/camera.low-angle-hero-rise.json"
+    }
   },
   {
     "id": "camera.orbit-left",
@@ -446,6 +558,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [
       "camera.orbit-right"
@@ -460,7 +575,12 @@
       "veo": "Camera arcs left around the subject at a steady distance.",
       "wan": "Camera arcs left around the subject at a steady distance."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.orbit-left/c8abdd660883288424f77d0d4f23a2b4c9776c7a64a198915df07a7f07fe0db5.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.orbit-left/c8abdd660883288424f77d0d4f23a2b4c9776c7a64a198915df07a7f07fe0db5.png",
+      "run": "runs/camera.orbit-left.json"
+    }
   },
   {
     "id": "camera.orbit-right",
@@ -478,6 +598,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [
       "camera.orbit-left"
@@ -492,7 +615,12 @@
       "veo": "Camera arcs right around the subject at a steady distance.",
       "wan": "Camera arcs right around the subject at a steady distance."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.orbit-right/1458c0321b76fdf7313eb1dd11e07c46e68c2984d62726c52cd7500665edefed.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.orbit-right/1458c0321b76fdf7313eb1dd11e07c46e68c2984d62726c52cd7500665edefed.png",
+      "run": "runs/camera.orbit-right.json"
+    }
   },
   {
     "id": "camera.orbit",
@@ -510,6 +638,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [],
     "aliases": [
@@ -523,7 +654,12 @@
       "veo": "Camera completes a full circle around the subject at a steady distance.",
       "wan": "Camera completes a full circle around the subject at a steady distance."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.orbit/5f909c6c5e25291eee3edd4615f5303b54caaf91901dd0dd4d67a9c2011fb5d4.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.orbit/5f909c6c5e25291eee3edd4615f5303b54caaf91901dd0dd4d67a9c2011fb5d4.png",
+      "run": "runs/camera.orbit.json"
+    }
   },
   {
     "id": "camera.overhead-spiral",
@@ -541,6 +677,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": false,
     "conflicts": [],
     "aliases": [
@@ -553,7 +692,12 @@
       "veo": "Camera ascends in a widening spiral while looking down at the subject.",
       "wan": "Camera ascends in a widening spiral while looking down at the subject."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.overhead-spiral/e0c3403e1efed5f276e877e5f01e9479e6011e05fe1a0f02c94a7652b8178ee5.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.overhead-spiral/e0c3403e1efed5f276e877e5f01e9479e6011e05fe1a0f02c94a7652b8178ee5.png",
+      "run": "runs/camera.overhead-spiral.json"
+    }
   },
   {
     "id": "camera.pan-left",
@@ -571,6 +715,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [
       "camera.pan-right"
@@ -585,7 +732,12 @@
       "veo": "The camera stays fixed in one place and turns steadily to the left on its axis, so the whole scene slides to the right across the frame and new parts of the scene enter from the left edge.",
       "wan": "The camera stays fixed in one place and turns steadily to the left on its axis, so the whole scene slides to the right across the frame and new parts of the scene enter from the left edge."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pan-left/f55e17801b94407b0eac70606028d68b65f611051fce60125d1d054ff93d986b.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pan-left/f55e17801b94407b0eac70606028d68b65f611051fce60125d1d054ff93d986b.png",
+      "run": "runs/camera.pan-left.json"
+    }
   },
   {
     "id": "camera.pan-right",
@@ -603,6 +755,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [
       "camera.pan-left"
@@ -617,7 +772,12 @@
       "veo": "Camera pans right from a fixed position.",
       "wan": "Camera pans right from a fixed position."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pan-right/91cec0ff5dc2321d885523817a19be7ab30ccdb28be321595093e764dc0098cd.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pan-right/91cec0ff5dc2321d885523817a19be7ab30ccdb28be321595093e764dc0098cd.png",
+      "run": "runs/camera.pan-right.json"
+    }
   },
   {
     "id": "camera.parallax-slide",
@@ -635,6 +795,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [],
     "aliases": [],
@@ -645,7 +808,12 @@
       "veo": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly.",
       "wan": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.parallax-slide/a458a2ca17936a80a549f33155f0cd32f36da13782015eb4c94a6af1e968c8db.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.parallax-slide/a458a2ca17936a80a549f33155f0cd32f36da13782015eb4c94a6af1e968c8db.png",
+      "run": "runs/camera.parallax-slide.json"
+    }
   },
   {
     "id": "camera.pedestal-down",
@@ -663,6 +831,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [
       "camera.pedestal-up"
@@ -677,7 +848,12 @@
       "veo": "Camera lowers vertically without tilting.",
       "wan": "Camera lowers vertically without tilting."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pedestal-down/255bf9ccfe8abfc814beca256f4141169a77877f9afbf0b3f5b462c9465c2288.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pedestal-down/255bf9ccfe8abfc814beca256f4141169a77877f9afbf0b3f5b462c9465c2288.png",
+      "run": "runs/camera.pedestal-down.json"
+    }
   },
   {
     "id": "camera.pedestal-up",
@@ -695,6 +871,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [
       "camera.pedestal-down"
@@ -709,7 +888,12 @@
       "veo": "Camera rises vertically without tilting.",
       "wan": "Camera rises vertically without tilting."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pedestal-up/bb8c5289e1432e24707959e54cc8ac2d3e75894b35ca53f3ed2b243579fb8316.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pedestal-up/bb8c5289e1432e24707959e54cc8ac2d3e75894b35ca53f3ed2b243579fb8316.png",
+      "run": "runs/camera.pedestal-up.json"
+    }
   },
   {
     "id": "camera.pull-back-reveal",
@@ -727,6 +911,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [],
     "aliases": [
@@ -739,7 +926,12 @@
       "veo": "Camera pulls back from a close view to reveal the surroundings.",
       "wan": "Camera pulls back from a close view to reveal the surroundings."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pull-back-reveal/ddb3f1acc5d2a0faef1541e739fc2f8bf0b8cb61bb45ea81bade69f731db71ce.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pull-back-reveal/ddb3f1acc5d2a0faef1541e739fc2f8bf0b8cb61bb45ea81bade69f731db71ce.png",
+      "run": "runs/camera.pull-back-reveal.json"
+    }
   },
   {
     "id": "camera.rack-focus",
@@ -757,6 +949,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": false,
     "conflicts": [],
     "aliases": [
@@ -769,7 +964,12 @@
       "veo": "Focus shifts smoothly from foreground to background with fixed framing.",
       "wan": "Focus shifts smoothly from foreground to background with fixed framing."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.rack-focus/48d222ef1a4d232ecd4418baf4a5fec6cb3258f3db252eb56f1506ba4ecb23dc.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.rack-focus/48d222ef1a4d232ecd4418baf4a5fec6cb3258f3db252eb56f1506ba4ecb23dc.png",
+      "run": "runs/camera.rack-focus.json"
+    }
   },
   {
     "id": "camera.slow-pull-out",
@@ -787,6 +987,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [
       "camera.dolly-in"
@@ -801,7 +1004,12 @@
       "veo": "Camera slowly pulls away from the subject.",
       "wan": "Camera slowly pulls away from the subject."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.slow-pull-out/987972b7e6af3522d570d73a90b25f9355eebdadf1c05076adadae2f920b1562.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.slow-pull-out/987972b7e6af3522d570d73a90b25f9355eebdadf1c05076adadae2f920b1562.png",
+      "run": "runs/camera.slow-pull-out.json"
+    }
   },
   {
     "id": "camera.snorricam",
@@ -819,6 +1027,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": false,
     "conflicts": [],
     "aliases": [
@@ -831,7 +1042,12 @@
       "veo": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts.",
       "wan": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.snorricam/0148da2bc19ac3e7d839fdfa23e292b5d30edf7d0e4665b8fac5d201333319e8.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.snorricam/0148da2bc19ac3e7d839fdfa23e292b5d30edf7d0e4665b8fac5d201333319e8.png",
+      "run": "runs/camera.snorricam.json"
+    }
   },
   {
     "id": "camera.speed-ramp",
@@ -849,6 +1065,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [],
     "aliases": [],
@@ -859,7 +1078,12 @@
       "veo": "Motion accelerates from normal speed into a rapid burst then eases into slow motion.",
       "wan": "Motion accelerates from normal speed into a rapid burst then eases into slow motion."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.speed-ramp/7aa1d104dfc26f216f8e018ba94b0675ad280e9c74ca0b2cdf2c083591dae545.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.speed-ramp/7aa1d104dfc26f216f8e018ba94b0675ad280e9c74ca0b2cdf2c083591dae545.png",
+      "run": "runs/camera.speed-ramp.json"
+    }
   },
   {
     "id": "camera.static",
@@ -877,6 +1101,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": false,
     "conflicts": [],
     "aliases": [
@@ -889,7 +1116,12 @@
       "veo": "Camera locked off with fixed framing.",
       "wan": "Camera locked off with fixed framing."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.static/9fa4becc78ecd82faf048febc4e55f8493a54d9a8aba4be27d63b54194210ee9.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.static/9fa4becc78ecd82faf048febc4e55f8493a54d9a8aba4be27d63b54194210ee9.png",
+      "run": "runs/camera.static.json"
+    }
   },
   {
     "id": "camera.steadicam",
@@ -907,6 +1139,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [],
     "aliases": [],
@@ -917,7 +1152,12 @@
       "veo": "Camera is stabilized on a Steadicam with smooth floating motion.",
       "wan": "Camera is stabilized on a Steadicam with smooth floating motion."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.steadicam/26d2fa9f29547d1a595d975a01337cae2b99fb45b7a097fcde2e63af8dfa39fb.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.steadicam/26d2fa9f29547d1a595d975a01337cae2b99fb45b7a097fcde2e63af8dfa39fb.png",
+      "run": "runs/camera.steadicam.json"
+    }
   },
   {
     "id": "camera.through-object-pass",
@@ -935,6 +1175,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [],
     "aliases": [
@@ -947,7 +1190,12 @@
       "veo": "The camera pushes forward through a gap between foreground elements that are already in the scene, such as leaves, an archway or a doorway, which sweep past the lens and out of frame to reveal the subject beyond. No new objects appear.",
       "wan": "The camera pushes forward through a gap between foreground elements that are already in the scene, such as leaves, an archway or a doorway, which sweep past the lens and out of frame to reveal the subject beyond. No new objects appear."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.through-object-pass/a35391d5e2eed0bb13f92303745583bb75ec9f76093858b086c0d65564b28f92.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.through-object-pass/a35391d5e2eed0bb13f92303745583bb75ec9f76093858b086c0d65564b28f92.png",
+      "run": "runs/camera.through-object-pass.json"
+    }
   },
   {
     "id": "camera.tilt-down",
@@ -965,6 +1213,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [
       "camera.tilt-up"
@@ -979,7 +1230,12 @@
       "veo": "Camera tilts downward from a fixed position.",
       "wan": "Camera tilts downward from a fixed position."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.tilt-down/caa8dc58b88fe65030135f856ace9db90a0b2e8204acb6f8460b964ce1229661.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.tilt-down/caa8dc58b88fe65030135f856ace9db90a0b2e8204acb6f8460b964ce1229661.png",
+      "run": "runs/camera.tilt-down.json"
+    }
   },
   {
     "id": "camera.tilt-up",
@@ -997,6 +1253,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [
       "camera.tilt-down"
@@ -1011,7 +1270,12 @@
       "veo": "Camera tilts upward from a fixed position.",
       "wan": "Camera tilts upward from a fixed position."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.tilt-up/0cd4c700b1905b06b39759beac52995c58a41b32bd32285d9ae6e279ecd8b8b8.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.tilt-up/0cd4c700b1905b06b39759beac52995c58a41b32bd32285d9ae6e279ecd8b8b8.png",
+      "run": "runs/camera.tilt-up.json"
+    }
   },
   {
     "id": "camera.top-down-rise",
@@ -1029,6 +1293,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [],
     "aliases": [
@@ -1041,7 +1308,12 @@
       "veo": "Camera rises straight upward while looking vertically down, widening the view.",
       "wan": "Camera rises straight upward while looking vertically down, widening the view."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.top-down-rise/f2908dbdc8e345411ab43555322a0afc056a176bcb4d69e7ec65392482afd723.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.top-down-rise/f2908dbdc8e345411ab43555322a0afc056a176bcb4d69e7ec65392482afd723.png",
+      "run": "runs/camera.top-down-rise.json"
+    }
   },
   {
     "id": "camera.tracking",
@@ -1059,6 +1331,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [],
     "aliases": [
@@ -1071,7 +1346,12 @@
       "veo": "Camera tracks alongside the moving subject at matching speed.",
       "wan": "Camera tracks alongside the moving subject at matching speed."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.tracking/7b996cedcb68e6fec8bdc4fa7d0dcd88d1421aab2cf4550bb0b1202203a4870e.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.tracking/7b996cedcb68e6fec8bdc4fa7d0dcd88d1421aab2cf4550bb0b1202203a4870e.png",
+      "run": "runs/camera.tracking.json"
+    }
   },
   {
     "id": "camera.truck-left",
@@ -1089,6 +1369,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [
       "camera.truck-right"
@@ -1103,7 +1386,12 @@
       "veo": "Camera translates left parallel to the subject.",
       "wan": "Camera translates left parallel to the subject."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.truck-left/d3c27f618afb7a66aa15f0afdb7ce17f11f87a61d5d545361492e882c0a6e48b.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.truck-left/d3c27f618afb7a66aa15f0afdb7ce17f11f87a61d5d545361492e882c0a6e48b.png",
+      "run": "runs/camera.truck-left.json"
+    }
   },
   {
     "id": "camera.truck-right",
@@ -1121,6 +1409,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [
       "camera.truck-left"
@@ -1135,7 +1426,12 @@
       "veo": "Camera translates right parallel to the subject.",
       "wan": "Camera translates right parallel to the subject."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.truck-right/07c68cea5387c21c71d9ac8cd19289152970829bdc8f8dbb2387a9738e5fc9cd.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.truck-right/07c68cea5387c21c71d9ac8cd19289152970829bdc8f8dbb2387a9738e5fc9cd.png",
+      "run": "runs/camera.truck-right.json"
+    }
   },
   {
     "id": "camera.whip-pan",
@@ -1153,6 +1449,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [],
     "aliases": [
@@ -1165,7 +1464,12 @@
       "veo": "Camera pans rapidly sideways with directional motion blur, then settles.",
       "wan": "Camera pans rapidly sideways with directional motion blur, then settles."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.whip-pan/63f3ffac1bff13afba411c2576e238059e0db4efb726bc206fa74fad520986f5.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.whip-pan/63f3ffac1bff13afba411c2576e238059e0db4efb726bc206fa74fad520986f5.png",
+      "run": "runs/camera.whip-pan.json"
+    }
   },
   {
     "id": "camera.zoom-in",
@@ -1183,6 +1487,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [
       "camera.zoom-out"
@@ -1197,7 +1504,12 @@
       "veo": "Lens zooms in from a fixed camera position.",
       "wan": "Lens zooms in from a fixed camera position."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.zoom-in/3a2685add69157f2cc539c44229e27f981d1a018bd7c8ed8e2470df8295217d3.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.zoom-in/3a2685add69157f2cc539c44229e27f981d1a018bd7c8ed8e2470df8295217d3.png",
+      "run": "runs/camera.zoom-in.json"
+    }
   },
   {
     "id": "camera.zoom-out",
@@ -1215,6 +1527,9 @@
       "image_to_video",
       "reference_to_video"
     ],
+    "inputs": [
+      "text"
+    ],
     "stackable": true,
     "conflicts": [
       "camera.zoom-in"
@@ -1229,7 +1544,12 @@
       "veo": "Lens zooms out from a fixed camera position.",
       "wan": "Lens zooms out from a fixed camera position."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.zoom-out/215010eb92a634e6e755ee45080418a7003a066e836f265ad1a079c11c3d805b.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.zoom-out/215010eb92a634e6e755ee45080418a7003a066e836f265ad1a079c11c3d805b.png",
+      "run": "runs/camera.zoom-out.json"
+    }
   },
   {
     "id": "effect.bioluminescent-dissolve",
@@ -1261,7 +1581,12 @@
       "veo": "The subject begins still, then proceeds to dissolve into swirling bioluminescent particles. Glowing blue-green motes spiral away into darkness. Cinematic lighting, realistic physics, locked camera.",
       "wan": "The subject begins still, then proceeds to dissolve into swirling bioluminescent particles. Glowing blue-green motes spiral away into darkness. Locked camera, smooth realistic motion, high detail."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.bioluminescent-dissolve/a719585f74ed1b149c01c8dba91aaecbd20fd901ad66e453fef90c1496af10e6.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.bioluminescent-dissolve/a719585f74ed1b149c01c8dba91aaecbd20fd901ad66e453fef90c1496af10e6.png",
+      "run": "runs/effect.bioluminescent-dissolve.json"
+    }
   },
   {
     "id": "effect.claymation",
@@ -1321,7 +1646,12 @@
       "veo": "The subject begins still, then proceeds to explode into slow-motion colorful confetti. Paper pieces spin and glitter as they fill the frame. Cinematic lighting, realistic physics, locked camera.",
       "wan": "The subject begins still, then proceeds to explode into slow-motion colorful confetti. Paper pieces spin and glitter as they fill the frame. Locked camera, smooth realistic motion, high detail."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.confetti-burst/16b42f8d298d98cf769c61fb4c67c54495f48aec1aef9a3aaf10dbd36ac753b9.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.confetti-burst/16b42f8d298d98cf769c61fb4c67c54495f48aec1aef9a3aaf10dbd36ac753b9.png",
+      "run": "runs/effect.confetti-burst.json"
+    }
   },
   {
     "id": "effect.electric-arcs",
@@ -1353,7 +1683,12 @@
       "veo": "The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. Cinematic lighting, realistic physics, locked camera.",
       "wan": "The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. Locked camera, smooth realistic motion, high detail."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.electric-arcs/08854a7e2fdca1eebd1267cea80a3d505884d48d32720500e93b0e1361f5ba41.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.electric-arcs/08854a7e2fdca1eebd1267cea80a3d505884d48d32720500e93b0e1361f5ba41.png",
+      "run": "runs/effect.electric-arcs.json"
+    }
   },
   {
     "id": "effect.frost-crystals",
@@ -1385,7 +1720,12 @@
       "veo": "The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Cinematic lighting, realistic physics, locked camera.",
       "wan": "The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Locked camera, smooth realistic motion, high detail."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.frost-crystals/4bfacccbee966214f752c95bc995af6241bd697d46983245a5e197cc1659181b.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.frost-crystals/4bfacccbee966214f752c95bc995af6241bd697d46983245a5e197cc1659181b.png",
+      "run": "runs/effect.frost-crystals.json"
+    }
   },
   {
     "id": "effect.glass-shatter",
@@ -1417,7 +1757,12 @@
       "veo": "The subject begins still, then proceeds to shatter into slow-motion crystalline glass fragments. Fragments catch the light as they scatter outward. Cinematic lighting, realistic physics, locked camera.",
       "wan": "The subject begins still, then proceeds to shatter into slow-motion crystalline glass fragments. Fragments catch the light as they scatter outward. Locked camera, smooth realistic motion, high detail."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.glass-shatter/60fbb906a7374c147852a71e1c1b11f08ff49a9a642896ddb5db4160ed00c1f2.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.glass-shatter/60fbb906a7374c147852a71e1c1b11f08ff49a9a642896ddb5db4160ed00c1f2.png",
+      "run": "runs/effect.glass-shatter.json"
+    }
   },
   {
     "id": "effect.golden-embers",
@@ -1449,7 +1794,12 @@
       "veo": "The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. The subject glows from within like hot coals and the embers grow denser until the end of the shot, sparks drifting upward through warm heat distortion. Cinematic lighting, realistic physics, locked camera.",
       "wan": "The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. The subject glows from within like hot coals and the embers grow denser until the end of the shot, sparks drifting upward through warm heat distortion. Locked camera, smooth realistic motion, high detail."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.golden-embers/9f1b6d2f1c8ebeb395ffc3a78eb0297d1c143d4925c02a7722b19892966bb4c3.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.golden-embers/9f1b6d2f1c8ebeb395ffc3a78eb0297d1c143d4925c02a7722b19892966bb4c3.png",
+      "run": "runs/effect.golden-embers.json"
+    }
   },
   {
     "id": "effect.hydraulic-press",
@@ -1481,7 +1831,12 @@
       "veo": "The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. Cinematic lighting, realistic physics, locked camera.",
       "wan": "The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. Locked camera, smooth realistic motion, high detail."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.hydraulic-press/f0a117cceb1ee8ab7d1b2161474cb62ba9108ee5db960bfaa47441e1c2d238c0.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.hydraulic-press/f0a117cceb1ee8ab7d1b2161474cb62ba9108ee5db960bfaa47441e1c2d238c0.png",
+      "run": "runs/effect.hydraulic-press.json"
+    }
   },
   {
     "id": "effect.levitate",
@@ -1513,7 +1868,12 @@
       "veo": "The subject begins still, then proceeds to levitate and float upward in zero gravity. Soft contact shadows shrink away as it rises. Cinematic lighting, realistic physics, locked camera.",
       "wan": "The subject begins still, then proceeds to levitate and float upward in zero gravity. Soft contact shadows shrink away as it rises. Locked camera, smooth realistic motion, high detail."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.levitate/f346b1092c269dcf33fdc9fe7c051a249946801e84093f32c7e0385803d99fc8.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.levitate/f346b1092c269dcf33fdc9fe7c051a249946801e84093f32c7e0385803d99fc8.png",
+      "run": "runs/effect.levitate.json"
+    }
   },
   {
     "id": "effect.liquid-chrome",
@@ -1545,7 +1905,12 @@
       "veo": "The subject begins still, then proceeds to melt into mirror-polished liquid chrome. Reflections ripple across the molten metal surface. Cinematic lighting, realistic physics, locked camera.",
       "wan": "The subject begins still, then proceeds to melt into mirror-polished liquid chrome. Reflections ripple across the molten metal surface. Locked camera, smooth realistic motion, high detail."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.liquid-chrome/c38dc1457271908cc3798bc06df5b9956c85e25d50ed0c2372e64fc7438410b5.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.liquid-chrome/c38dc1457271908cc3798bc06df5b9956c85e25d50ed0c2372e64fc7438410b5.png",
+      "run": "runs/effect.liquid-chrome.json"
+    }
   },
   {
     "id": "effect.marble-petrify",
@@ -1577,7 +1942,12 @@
       "veo": "The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. Cinematic lighting, realistic physics, locked camera.",
       "wan": "The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. Locked camera, smooth realistic motion, high detail."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.marble-petrify/c73d86582657cb6469a82b97078d7853e183b6e175a77450ae4c1bb0142d7518.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.marble-petrify/c73d86582657cb6469a82b97078d7853e183b6e175a77450ae4c1bb0142d7518.png",
+      "run": "runs/effect.marble-petrify.json"
+    }
   },
   {
     "id": "effect.metallic-balloon",
@@ -1609,7 +1979,12 @@
       "veo": "The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. Cinematic lighting, realistic physics, locked camera.",
       "wan": "The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. Locked camera, smooth realistic motion, high detail."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.metallic-balloon/8c73ba277a0b9450c0d27a66f9096516d7a221543512eb61baff142ad9ef227a.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.metallic-balloon/8c73ba277a0b9450c0d27a66f9096516d7a221543512eb61baff142ad9ef227a.png",
+      "run": "runs/effect.metallic-balloon.json"
+    }
   },
   {
     "id": "effect.molten-gold",
@@ -1641,7 +2016,12 @@
       "veo": "The subject begins still, then proceeds to transform into flowing molten gold. Bright liquid metal runs and pools with warm highlights. Cinematic lighting, realistic physics, locked camera.",
       "wan": "The subject begins still, then proceeds to transform into flowing molten gold. Bright liquid metal runs and pools with warm highlights. Locked camera, smooth realistic motion, high detail."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.molten-gold/3c90f898fde3b3057c55fa3931292f8ff717387407b21e9d83e8c23e25badedf.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.molten-gold/3c90f898fde3b3057c55fa3931292f8ff717387407b21e9d83e8c23e25badedf.png",
+      "run": "runs/effect.molten-gold.json"
+    }
   },
   {
     "id": "effect.neon-outline",
@@ -1673,7 +2053,12 @@
       "veo": "The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges and stay lit to the end while the surroundings dim slightly. Nothing else in the scene changes. Cinematic lighting, realistic physics, locked camera.",
       "wan": "The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges and stay lit to the end while the surroundings dim slightly. Nothing else in the scene changes. Locked camera, smooth realistic motion, high detail."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.neon-outline/9b525dd7d3ddb477fd9d6920f5a42491d03b9e6a99db16341d92200475227a3a.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.neon-outline/9b525dd7d3ddb477fd9d6920f5a42491d03b9e6a99db16341d92200475227a3a.png",
+      "run": "runs/effect.neon-outline.json"
+    }
   },
   {
     "id": "effect.origami-fold",
@@ -1705,7 +2090,12 @@
       "veo": "The subject begins still, then proceeds to fold itself into crisp origami paper. Creases form in sequence until the paper shape is complete. Cinematic lighting, realistic physics, locked camera.",
       "wan": "The subject begins still, then proceeds to fold itself into crisp origami paper. Creases form in sequence until the paper shape is complete. Locked camera, smooth realistic motion, high detail."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.origami-fold/57a0983aef3d4549ef80c82b9494c6ee9c9d34453e122ae3eeb4eb36e9e0c0e1.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.origami-fold/57a0983aef3d4549ef80c82b9494c6ee9c9d34453e122ae3eeb4eb36e9e0c0e1.png",
+      "run": "runs/effect.origami-fold.json"
+    }
   },
   {
     "id": "effect.petal-burst",
@@ -1737,7 +2127,12 @@
       "veo": "The subject begins still, then proceeds to burst into a cloud of velvet botanical petals. Petals tumble and fan out in slow motion. Cinematic lighting, realistic physics, locked camera.",
       "wan": "The subject begins still, then proceeds to burst into a cloud of velvet botanical petals. Petals tumble and fan out in slow motion. Locked camera, smooth realistic motion, high detail."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.petal-burst/a55a6bcb4279c7607e7b75f275f01a9609860c4888d72b513c27b1dbc1469921.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.petal-burst/a55a6bcb4279c7607e7b75f275f01a9609860c4888d72b513c27b1dbc1469921.png",
+      "run": "runs/effect.petal-burst.json"
+    }
   },
   {
     "id": "effect.smoke-vanish",
@@ -1769,7 +2164,12 @@
       "veo": "The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. Cinematic lighting, realistic physics, locked camera.",
       "wan": "The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. Locked camera, smooth realistic motion, high detail."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.smoke-vanish/b0420249251076509815f36c7bf4597ff3e890ff2b232564ec035f1bc537dd92.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.smoke-vanish/b0420249251076509815f36c7bf4597ff3e890ff2b232564ec035f1bc537dd92.png",
+      "run": "runs/effect.smoke-vanish.json"
+    }
   },
   {
     "id": "effect.snow-blanket",
@@ -1857,6 +2257,11 @@
       "veo": "The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. Cinematic lighting, realistic physics, locked camera.",
       "wan": "The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. Locked camera, smooth realistic motion, high detail."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.underwater-caustics/b9c3d9a2d2c97d2dada18f72ed7e7a7bafbfaf8eb84498e8bd4e253d356ff795.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.underwater-caustics/b9c3d9a2d2c97d2dada18f72ed7e7a7bafbfaf8eb84498e8bd4e253d356ff795.png",
+      "run": "runs/effect.underwater-caustics.json"
+    }
   }
 ]

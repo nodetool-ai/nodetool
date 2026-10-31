@@ -28,5 +28,10 @@
     "veo": "The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. Cinematic lighting, realistic physics, locked camera.",
     "wan": "The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. Locked camera, smooth realistic motion, high detail."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.marble-petrify/c73d86582657cb6469a82b97078d7853e183b6e175a77450ae4c1bb0142d7518.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.marble-petrify/c73d86582657cb6469a82b97078d7853e183b6e175a77450ae4c1bb0142d7518.png",
+    "run": "runs/effect.marble-petrify.json"
+  }
 }

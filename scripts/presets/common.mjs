@@ -12,14 +12,14 @@ export const seed = 20261031;
 export const prompt = 'A large bronze ring sculpture with a twisted open loop and a green-gold patina on a rough travertine plinth in a sunlit Mediterranean stone courtyard, olive trees in terracotta pots in the foreground, an arched colonnade behind, cypress trees and mountains in the distance, golden late-afternoon light.';
 export function options(args = process.argv.slice(2)) {
   const { values } = parseArgs({ args, options: {
-    ids: { type: 'string' }, final: { type: 'boolean' }, 'dry-run': { type: 'boolean' },
+    ids: { type: 'string' }, final: { type: 'boolean' }, 'dry-run': { type: 'boolean' }, resolution: { type: 'string' },
     'output-dir': { type: 'string', default: resolve(homedir(), '.cache/nodetool/preset-previews') }
   }});
   const outputDir = resolve(values['output-dir']);
   if (outputDir === root || outputDir.startsWith(`${root}/`)) {
     throw new Error('Preview media output must be outside the repository');
   }
-  return { ids: values.ids?.split(','), final: values.final, dryRun: values['dry-run'], outputDir };
+  return { ids: values.ids?.split(','), final: values.final, dryRun: values['dry-run'], resolution: values.resolution, outputDir };
 }
 export async function catalogFiles() {
   const files = [];
@@ -48,7 +48,7 @@ export async function buildPlan(opts) {
     const compiled = compilePresets([preset.id], { catalog: createCatalog([preset]), modelId: model, mode: 'image_to_video', prompt });
     const workflow = presetToWorkflow(preset, { model: { provider: 'dreamina', id: model }, mode: 'image_to_video' });
     const generator = workflow.nodes.find((node) => node.id === 'generate');
-    Object.assign(generator.data, { seed, duration: 4, resolution: opts.final ? '1080p' : '480p' });
+    Object.assign(generator.data, { seed, duration: 4, resolution: opts.resolution ?? (opts.final ? '1080p' : '480p') });
     return { id: preset.id, path, preset, provider: 'dreamina', model, seed, prompt: compiled.prompt, source_hash: sourceHash,
       workflow, workflow_hash: hash(JSON.stringify({ workflow, sourceHash, prompt })),
       recordPath: resolve(root, 'packages/presets/runs', `${preset.id}.json`),

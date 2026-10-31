@@ -14,6 +14,9 @@
     "image_to_video",
     "reference_to_video"
   ],
+  "inputs": [
+    "text"
+  ],
   "stackable": true,
   "conflicts": [
     "camera.pan-right"
@@ -28,5 +31,10 @@
     "veo": "The camera stays fixed in one place and turns steadily to the left on its axis, so the whole scene slides to the right across the frame and new parts of the scene enter from the left edge.",
     "wan": "The camera stays fixed in one place and turns steadily to the left on its axis, so the whole scene slides to the right across the frame and new parts of the scene enter from the left edge."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pan-left/f55e17801b94407b0eac70606028d68b65f611051fce60125d1d054ff93d986b.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pan-left/f55e17801b94407b0eac70606028d68b65f611051fce60125d1d054ff93d986b.png",
+    "run": "runs/camera.pan-left.json"
+  }
 }

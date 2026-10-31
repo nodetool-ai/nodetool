@@ -28,5 +28,10 @@
     "veo": "The subject begins still, then proceeds to transform into flowing molten gold. Bright liquid metal runs and pools with warm highlights. Cinematic lighting, realistic physics, locked camera.",
     "wan": "The subject begins still, then proceeds to transform into flowing molten gold. Bright liquid metal runs and pools with warm highlights. Locked camera, smooth realistic motion, high detail."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.molten-gold/3c90f898fde3b3057c55fa3931292f8ff717387407b21e9d83e8c23e25badedf.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.molten-gold/3c90f898fde3b3057c55fa3931292f8ff717387407b21e9d83e8c23e25badedf.png",
+    "run": "runs/effect.molten-gold.json"
+  }
 }

@@ -14,6 +14,9 @@
     "image_to_video",
     "reference_to_video"
   ],
+  "inputs": [
+    "text"
+  ],
   "stackable": true,
   "conflicts": [],
   "aliases": [],
@@ -24,5 +27,10 @@
     "veo": "Camera rolls gradually around its optical axis, tilting the horizon.",
     "wan": "Camera rolls gradually around its optical axis, tilting the horizon."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.dutch-roll/55056d723d7d5d0b285a7b62b50d58e40a5ec5c6ca0595a7aa8acb0ffb134275.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.dutch-roll/55056d723d7d5d0b285a7b62b50d58e40a5ec5c6ca0595a7aa8acb0ffb134275.png",
+    "run": "runs/camera.dutch-roll.json"
+  }
 }

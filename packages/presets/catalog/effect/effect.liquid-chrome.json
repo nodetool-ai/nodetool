@@ -28,5 +28,10 @@
     "veo": "The subject begins still, then proceeds to melt into mirror-polished liquid chrome. Reflections ripple across the molten metal surface. Cinematic lighting, realistic physics, locked camera.",
     "wan": "The subject begins still, then proceeds to melt into mirror-polished liquid chrome. Reflections ripple across the molten metal surface. Locked camera, smooth realistic motion, high detail."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.liquid-chrome/c38dc1457271908cc3798bc06df5b9956c85e25d50ed0c2372e64fc7438410b5.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.liquid-chrome/c38dc1457271908cc3798bc06df5b9956c85e25d50ed0c2372e64fc7438410b5.png",
+    "run": "runs/effect.liquid-chrome.json"
+  }
 }

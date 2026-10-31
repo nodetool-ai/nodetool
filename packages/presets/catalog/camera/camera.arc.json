@@ -14,6 +14,9 @@
     "image_to_video",
     "reference_to_video"
   ],
+  "inputs": [
+    "text"
+  ],
   "stackable": true,
   "conflicts": [],
   "aliases": [],
@@ -24,5 +27,10 @@
     "veo": "Camera travels through a gentle quarter-circle around the subject at constant height.",
     "wan": "Camera travels through a gentle quarter-circle around the subject at constant height."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.arc/c0ded97242b8a490665aef12ed32968fb6a5cdbc78673bfd87c10f2a0247689f.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.arc/c0ded97242b8a490665aef12ed32968fb6a5cdbc78673bfd87c10f2a0247689f.png",
+    "run": "runs/camera.arc.json"
+  }
 }

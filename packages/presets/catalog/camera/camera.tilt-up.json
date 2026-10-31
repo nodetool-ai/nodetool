@@ -14,6 +14,9 @@
     "image_to_video",
     "reference_to_video"
   ],
+  "inputs": [
+    "text"
+  ],
   "stackable": true,
   "conflicts": [
     "camera.tilt-down"
@@ -28,5 +31,10 @@
     "veo": "Camera tilts upward from a fixed position.",
     "wan": "Camera tilts upward from a fixed position."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.tilt-up/0cd4c700b1905b06b39759beac52995c58a41b32bd32285d9ae6e279ecd8b8b8.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.tilt-up/0cd4c700b1905b06b39759beac52995c58a41b32bd32285d9ae6e279ecd8b8b8.png",
+    "run": "runs/camera.tilt-up.json"
+  }
 }

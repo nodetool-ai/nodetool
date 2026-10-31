@@ -14,6 +14,9 @@
     "image_to_video",
     "reference_to_video"
   ],
+  "inputs": [
+    "text"
+  ],
   "stackable": false,
   "conflicts": [],
   "aliases": [
@@ -26,5 +29,10 @@
     "veo": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path.",
     "wan": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.fpv-drone-fly-through/3a369458ef42ad6dac805c48ee063c6bd9438b1189205de50527090ab0dfc48d.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.fpv-drone-fly-through/3a369458ef42ad6dac805c48ee063c6bd9438b1189205de50527090ab0dfc48d.png",
+    "run": "runs/camera.fpv-drone-fly-through.json"
+  }
 }

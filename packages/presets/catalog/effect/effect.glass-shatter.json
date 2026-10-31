@@ -28,5 +28,10 @@
     "veo": "The subject begins still, then proceeds to shatter into slow-motion crystalline glass fragments. Fragments catch the light as they scatter outward. Cinematic lighting, realistic physics, locked camera.",
     "wan": "The subject begins still, then proceeds to shatter into slow-motion crystalline glass fragments. Fragments catch the light as they scatter outward. Locked camera, smooth realistic motion, high detail."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.glass-shatter/60fbb906a7374c147852a71e1c1b11f08ff49a9a642896ddb5db4160ed00c1f2.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.glass-shatter/60fbb906a7374c147852a71e1c1b11f08ff49a9a642896ddb5db4160ed00c1f2.png",
+    "run": "runs/effect.glass-shatter.json"
+  }
 }

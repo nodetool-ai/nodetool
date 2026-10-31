@@ -28,5 +28,10 @@
     "veo": "The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. Cinematic lighting, realistic physics, locked camera.",
     "wan": "The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. Locked camera, smooth realistic motion, high detail."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.smoke-vanish/b0420249251076509815f36c7bf4597ff3e890ff2b232564ec035f1bc537dd92.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.smoke-vanish/b0420249251076509815f36c7bf4597ff3e890ff2b232564ec035f1bc537dd92.png",
+    "run": "runs/effect.smoke-vanish.json"
+  }
 }

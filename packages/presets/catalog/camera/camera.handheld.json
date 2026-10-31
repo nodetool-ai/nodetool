@@ -14,6 +14,9 @@
     "image_to_video",
     "reference_to_video"
   ],
+  "inputs": [
+    "text"
+  ],
   "stackable": true,
   "conflicts": [],
   "aliases": [
@@ -26,5 +29,10 @@
     "veo": "Camera has gentle irregular handheld sway.",
     "wan": "Camera has gentle irregular handheld sway."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.handheld/20c89a90d9d7e733b3dae7f9f7ca6926d008e92654b1f34c5da4b4ce11f36134.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.handheld/20c89a90d9d7e733b3dae7f9f7ca6926d008e92654b1f34c5da4b4ce11f36134.png",
+    "run": "runs/camera.handheld.json"
+  }
 }

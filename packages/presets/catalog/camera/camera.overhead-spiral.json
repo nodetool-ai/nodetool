@@ -14,6 +14,9 @@
     "image_to_video",
     "reference_to_video"
   ],
+  "inputs": [
+    "text"
+  ],
   "stackable": false,
   "conflicts": [],
   "aliases": [
@@ -26,5 +29,10 @@
     "veo": "Camera ascends in a widening spiral while looking down at the subject.",
     "wan": "Camera ascends in a widening spiral while looking down at the subject."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.overhead-spiral/e0c3403e1efed5f276e877e5f01e9479e6011e05fe1a0f02c94a7652b8178ee5.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.overhead-spiral/e0c3403e1efed5f276e877e5f01e9479e6011e05fe1a0f02c94a7652b8178ee5.png",
+    "run": "runs/camera.overhead-spiral.json"
+  }
 }

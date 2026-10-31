@@ -28,5 +28,10 @@
     "veo": "The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. Cinematic lighting, realistic physics, locked camera.",
     "wan": "The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. Locked camera, smooth realistic motion, high detail."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.metallic-balloon/8c73ba277a0b9450c0d27a66f9096516d7a221543512eb61baff142ad9ef227a.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.metallic-balloon/8c73ba277a0b9450c0d27a66f9096516d7a221543512eb61baff142ad9ef227a.png",
+    "run": "runs/effect.metallic-balloon.json"
+  }
 }

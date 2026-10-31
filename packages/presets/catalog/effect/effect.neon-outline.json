@@ -28,5 +28,10 @@
     "veo": "The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges and stay lit to the end while the surroundings dim slightly. Nothing else in the scene changes. Cinematic lighting, realistic physics, locked camera.",
     "wan": "The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges and stay lit to the end while the surroundings dim slightly. Nothing else in the scene changes. Locked camera, smooth realistic motion, high detail."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.neon-outline/9b525dd7d3ddb477fd9d6920f5a42491d03b9e6a99db16341d92200475227a3a.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.neon-outline/9b525dd7d3ddb477fd9d6920f5a42491d03b9e6a99db16341d92200475227a3a.png",
+    "run": "runs/effect.neon-outline.json"
+  }
 }

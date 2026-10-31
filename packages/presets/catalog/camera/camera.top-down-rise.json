@@ -14,6 +14,9 @@
     "image_to_video",
     "reference_to_video"
   ],
+  "inputs": [
+    "text"
+  ],
   "stackable": true,
   "conflicts": [],
   "aliases": [
@@ -26,5 +29,10 @@
     "veo": "Camera rises straight upward while looking vertically down, widening the view.",
     "wan": "Camera rises straight upward while looking vertically down, widening the view."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.top-down-rise/f2908dbdc8e345411ab43555322a0afc056a176bcb4d69e7ec65392482afd723.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.top-down-rise/f2908dbdc8e345411ab43555322a0afc056a176bcb4d69e7ec65392482afd723.png",
+    "run": "runs/camera.top-down-rise.json"
+  }
 }

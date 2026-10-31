@@ -14,6 +14,9 @@
     "image_to_video",
     "reference_to_video"
   ],
+  "inputs": [
+    "text"
+  ],
   "stackable": true,
   "conflicts": [],
   "aliases": [
@@ -26,5 +29,10 @@
     "veo": "Camera rises from ground level toward a low-angle view of the subject.",
     "wan": "Camera rises from ground level toward a low-angle view of the subject."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.low-angle-hero-rise/b1b854da18dba4e29327b9a8605c4539cb005fa51c274991e63802540046f6d9.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.low-angle-hero-rise/b1b854da18dba4e29327b9a8605c4539cb005fa51c274991e63802540046f6d9.png",
+    "run": "runs/camera.low-angle-hero-rise.json"
+  }
 }

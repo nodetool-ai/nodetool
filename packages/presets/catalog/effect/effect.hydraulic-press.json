@@ -28,5 +28,10 @@
     "veo": "The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. Cinematic lighting, realistic physics, locked camera.",
     "wan": "The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. Locked camera, smooth realistic motion, high detail."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.hydraulic-press/f0a117cceb1ee8ab7d1b2161474cb62ba9108ee5db960bfaa47441e1c2d238c0.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.hydraulic-press/f0a117cceb1ee8ab7d1b2161474cb62ba9108ee5db960bfaa47441e1c2d238c0.png",
+    "run": "runs/effect.hydraulic-press.json"
+  }
 }

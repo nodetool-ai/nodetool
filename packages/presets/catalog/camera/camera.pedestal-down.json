@@ -14,6 +14,9 @@
     "image_to_video",
     "reference_to_video"
   ],
+  "inputs": [
+    "text"
+  ],
   "stackable": true,
   "conflicts": [
     "camera.pedestal-up"
@@ -28,5 +31,10 @@
     "veo": "Camera lowers vertically without tilting.",
     "wan": "Camera lowers vertically without tilting."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pedestal-down/255bf9ccfe8abfc814beca256f4141169a77877f9afbf0b3f5b462c9465c2288.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.pedestal-down/255bf9ccfe8abfc814beca256f4141169a77877f9afbf0b3f5b462c9465c2288.png",
+    "run": "runs/camera.pedestal-down.json"
+  }
 }

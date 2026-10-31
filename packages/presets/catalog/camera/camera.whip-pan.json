@@ -14,6 +14,9 @@
     "image_to_video",
     "reference_to_video"
   ],
+  "inputs": [
+    "text"
+  ],
   "stackable": true,
   "conflicts": [],
   "aliases": [
@@ -26,5 +29,10 @@
     "veo": "Camera pans rapidly sideways with directional motion blur, then settles.",
     "wan": "Camera pans rapidly sideways with directional motion blur, then settles."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.whip-pan/63f3ffac1bff13afba411c2576e238059e0db4efb726bc206fa74fad520986f5.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.whip-pan/63f3ffac1bff13afba411c2576e238059e0db4efb726bc206fa74fad520986f5.png",
+    "run": "runs/camera.whip-pan.json"
+  }
 }

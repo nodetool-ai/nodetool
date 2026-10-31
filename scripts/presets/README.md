@@ -10,8 +10,10 @@ node scripts/presets/publish-previews.mjs --dry-run
 node scripts/presets/publish-previews.mjs
 ```
 
-Add `--final` to both rendering and publishing for the final Seedance model.
-The default model is Dreamina Seedance 2.5 draft at 480p. Rendering is sequential.
+Add `--final` to both rendering and publishing for the final Seedance model at
+1080p. The default model is Dreamina Seedance 2.5 draft at 480p. `--resolution`
+overrides the resolution for either script, so a clip rendered at another
+resolution can still be published. Rendering is sequential.
 `--ids camera.arc,camera.orbit` limits either script. `--output-dir /absolute/path`
 changes the media directory from `~/.cache/nodetool/preset-previews`. Media output
 inside the repository is rejected. Dry runs require neither Chrome nor credentials.
@@ -20,10 +22,14 @@ Before rendering, connect the NodeTool Chrome extension and open
 <https://dreamina.capcut.com> in Chrome. Sign in, bring that tab to the front,
 and keep Chrome available throughout the batch. Rendering spends Dreamina credits.
 The preflight checks the native extension bridge and attaches to the Dreamina tab.
-The provider checks authentication before submitting.
+The provider checks authentication before submitting. When Dreamina refuses one
+output, for example `OutputAudioCopyright`, the run record is marked `rejected`,
+the batch continues, and the script exits non-zero so a rerun retries it.
 
 Publishing requires `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` and
 `PRESET_PREVIEWS_BUCKET` in the environment. Create that bucket as public first.
+The shipped previews live in the public `preset-previews` bucket of the NodeTool
+Supabase project.
 The script uses the storage adapter to upload a muted MP4 of up to three seconds
 and a PNG poster, updates the preset JSON, and regenerates the catalogue. Set
 `--final` when publishing final renders. Review every clip before publishing.

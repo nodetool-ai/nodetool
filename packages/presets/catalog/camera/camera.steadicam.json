@@ -14,6 +14,9 @@
     "image_to_video",
     "reference_to_video"
   ],
+  "inputs": [
+    "text"
+  ],
   "stackable": true,
   "conflicts": [],
   "aliases": [],
@@ -24,5 +27,10 @@
     "veo": "Camera is stabilized on a Steadicam with smooth floating motion.",
     "wan": "Camera is stabilized on a Steadicam with smooth floating motion."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.steadicam/26d2fa9f29547d1a595d975a01337cae2b99fb45b7a097fcde2e63af8dfa39fb.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.steadicam/26d2fa9f29547d1a595d975a01337cae2b99fb45b7a097fcde2e63af8dfa39fb.png",
+    "run": "runs/camera.steadicam.json"
+  }
 }

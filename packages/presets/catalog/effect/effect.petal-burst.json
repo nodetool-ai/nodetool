@@ -28,5 +28,10 @@
     "veo": "The subject begins still, then proceeds to burst into a cloud of velvet botanical petals. Petals tumble and fan out in slow motion. Cinematic lighting, realistic physics, locked camera.",
     "wan": "The subject begins still, then proceeds to burst into a cloud of velvet botanical petals. Petals tumble and fan out in slow motion. Locked camera, smooth realistic motion, high detail."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.petal-burst/a55a6bcb4279c7607e7b75f275f01a9609860c4888d72b513c27b1dbc1469921.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.petal-burst/a55a6bcb4279c7607e7b75f275f01a9609860c4888d72b513c27b1dbc1469921.png",
+    "run": "runs/effect.petal-burst.json"
+  }
 }
