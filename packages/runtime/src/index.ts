@@ -279,6 +279,7 @@ export {
   resolvePythonNodeExecutor
 } from "./python-graph-resolver.js";
 export { loadMediaRefBytes, type MediaRefValue, type MediaRefContext, type MediaRefByteOptions } from "./media-ref-bytes.js";
+export { loadMediaModule } from "./media-loader.js";
 export {
   IMAGE_EDIT_TASK,
   imageModelSupportsTask,

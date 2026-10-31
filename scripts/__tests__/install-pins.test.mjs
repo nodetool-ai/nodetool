@@ -17,21 +17,25 @@ describe("release install identities", () => {
     const shared = pins.filter(pin => pin.shared);
     expect(shared).toHaveLength(2);
     for (const pin of shared) {
-      expect(agents.dependencies[pin.name]).toBe(pin.version);
+      expect(agents.dependencies[pin.name] ?? agents.peerDependencies[pin.name]).toBe(pin.version);
     }
   });
 
   it("covers every runtime npm target and both actual shared versions in one flat pin table", async () => {
     const readRegistryMetadata = vi.fn(metadata);
-    const pins = await collectReleaseInstallPins({ runtimePackages: RUNTIME_NPM_PACKAGES, readRegistryMetadata, readInstalledManifest: installed });
+    const runtimeServer = RUNTIME_NPM_PACKAGES["media-codecs"].npmPackages.find(spec => spec.startsWith("@mediabunny/server@"));
+    const serverVersion = runtimeServer.slice(runtimeServer.lastIndexOf("@") + 1);
+    const pins = await collectReleaseInstallPins({ runtimePackages: RUNTIME_NPM_PACKAGES, readRegistryMetadata,
+      readInstalledManifest: name => name === "@mediabunny/server" ? { name, version: serverVersion } : installed(name) });
     const targets = runtimeInstallTargets(RUNTIME_NPM_PACKAGES);
     expect(targets.length).toBeGreaterThan(0);
     expect(pins.map(pin => [pin.installName ?? pin.name, pin.name, pin.version])).toEqual([
       ...targets.map(pin => [pin.installName ?? pin.name, pin.name, pin.version]),
-      ["mediabunny", "mediabunny", "4.5.6"], ["@mediabunny/server", "@mediabunny/server", "4.5.6"]
+      ["mediabunny", "mediabunny", "4.5.6"]
     ]);
+    expect(new Set(pins.map(pin => pin.installName ?? pin.name)).size).toBe(pins.length);
     expect(pins.find(pin => pin.installName === "typescript")).toEqual({ name: "@typescript/typescript6", installName: "typescript", version: "6.0.2", integrity: integrity("@typescript/typescript6@6.0.2") });
-    expect(pins.filter(pin => pin.shared).map(pin => pin.name)).toEqual(["mediabunny", "@mediabunny/server"]);
+    expect(pins.filter(pin => pin.shared).map(pin => pin.name).sort()).toEqual(["@mediabunny/server", "mediabunny"]);
     expect(readRegistryMetadata.mock.calls).toEqual(pins.map(pin => [pin.name, pin.version]));
   });
 

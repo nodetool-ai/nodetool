@@ -2,7 +2,7 @@
  * Asset media helpers for the audio-extraction endpoint and video edits, on
  * the in-process media module.
  */
-import { convertAudioToWav, probeDurationSec } from "@nodetool-ai/runtime/media";
+import { loadMediaModule } from "@nodetool-ai/runtime";
 import { withTaskSpan } from "@nodetool-ai/runtime/tracing";
 
 /**
@@ -15,6 +15,7 @@ export async function extractAudio(
   inputPath: string,
   outputPath: string
 ): Promise<{ durationMs: number | null }> {
+  const { convertAudioToWav, probeDurationSec } = await loadMediaModule();
   await withTaskSpan("cpu", "media.extract_audio", {}, () =>
     convertAudioToWav(inputPath, outputPath)
   );

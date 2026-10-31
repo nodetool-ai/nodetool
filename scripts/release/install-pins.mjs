@@ -75,6 +75,14 @@ export async function collectReleaseInstallPins({
   for (const name of ["mediabunny", "@mediabunny/server"]) {
     const manifest = await readInstalledManifest(name);
     if (manifest.name !== name) { throw new Error(`Shared release package identity differs: ${name}`); }
+    // A runtime package can install a shared library too (media-codecs ships
+    // @mediabunny/server). It keeps one pin, marked shared.
+    const runtimeTarget = targets.find(target => target.name === name && !target.installName);
+    if (runtimeTarget) {
+      if (runtimeTarget.version !== manifest.version) { throw new Error(`Shared release package version differs from its runtime pin: ${name}`); }
+      runtimeTarget.shared = true;
+      continue;
+    }
     const target = { name, version: manifest.version, shared: true };
     validateInstallPin({ ...target, integrity: `sha512-${Buffer.alloc(64).toString("base64")}` });
     targets.push(target);

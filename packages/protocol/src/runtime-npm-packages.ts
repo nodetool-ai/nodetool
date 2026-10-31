@@ -48,6 +48,19 @@ export const RUNTIME_NPM_PACKAGES = {
     description: "Physics simulation for 3D games.",
     bundledHosts: ["desktop", "docker"]
   },
+  "media-codecs": {
+    // @mediabunny/server depends on node-av; both are listed so the pins match.
+    npmPackages: ["node-av@6.1.1", "@mediabunny/server@1.54.0"],
+    packageNames: ["node-av", "@mediabunny/server"],
+    description: "FFmpeg-based audio and video decoding, encoding and filtering.",
+    bundledHosts: ["desktop", "docker"]
+  },
+  webgpu: {
+    npmPackages: ["webgpu@0.4.0"],
+    packageNames: ["webgpu"],
+    description: "GPU rendering on Node through Dawn.",
+    bundledHosts: ["desktop", "docker"]
+  },
   "transformers-js": {
     // 3.x, not 4.x: kokoro-js 1.2.1 requires @huggingface/transformers
     // ^3.5.1. With 4.x installed npm nested a second 3.x copy under
