@@ -3399,6 +3399,7 @@ export class ProcessingContext {
           {
             signal: params.signal as AbortSignal | undefined,
             prompt: params.prompt as string | undefined,
+            seed: isNumber(params.seed) ? params.seed : undefined,
             entities: await coerceEntityList(params, this),
             model: { id: req.model, name: req.model, provider: req.provider },
             negativePrompt: params.negative_prompt as string | undefined,
