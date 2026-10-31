@@ -524,12 +524,15 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
   const [formValue, setFormValue] = useState("");
   const [formValues, setFormValues] = useState<Record<string, string>>({});
   const [formError, setFormError] = useState<string | null>(null);
+  const [rejectedKeyValue, setRejectedKeyValue] = useState<string | null>(null);
+  const [savingSecret, setSavingSecret] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [secretToDelete, setSecretToDelete] = useState<SecretResponse | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
 
   const addNotification = useNotificationStore((state) => state.addNotification);
   const updateSecret = useSecretsStore((state) => state.updateSecret);
+  const validateSecret = useSecretsStore((state) => state.validateSecret);
   const deleteSecret = useSecretsStore((state) => state.deleteSecret);
 
   const lowerSearch = searchTerm.toLowerCase().trim();
@@ -640,6 +643,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
     setEditingSecret(secret);
     setFormValue("");
     setFormError(null);
+    setRejectedKeyValue(null);
     if (meta?.fields) {
       setFormValues({});
     }
@@ -651,6 +655,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
     setEditingSecret(secret);
     setFormValue("");
     setFormError(null);
+    setRejectedKeyValue(null);
     if (meta?.fields) {
       setFormValues({});
     }
@@ -663,10 +668,11 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
   }, []);
 
   const handleSave = useCallback(async () => {
-    if (!editingSecret) return;
+    if (!editingSecret || savingSecret) return;
 
     const meta = getParentProviderMeta(editingSecret.key);
 
+    setSavingSecret(true);
     try {
       if (meta?.fields) {
         // Multi-field provider: update all fields
@@ -677,7 +683,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
         }
         if (
           !combinedValues &&
-          !meta.fields.every((f) => formValues[f.key])
+          !meta.fields.every((f) => formValues[f.key]?.trim())
         ) {
           setFormError(t("i18n-cont-settings-01.apiKeys.allFieldsRequired"));
           return;
@@ -685,16 +691,25 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
         for (const field of meta.fields) {
           await updateSecret(
             field.key,
-            combinedValues?.[field.key] ?? formValues[field.key]
+            (combinedValues?.[field.key] ?? formValues[field.key] ?? "").trim()
           );
         }
       } else {
         // Single-field provider
-        if (!formValue) {
+        const trimmed = formValue.trim();
+        if (!trimmed) {
           setFormError(t("i18n-cont-settings-01.apiKeys.secretRequired"));
           return;
         }
-        await updateSecret(editingSecret.key, formValue);
+        if (rejectedKeyValue !== trimmed) {
+          const validation = await validateSecret(editingSecret.key, trimmed);
+          if (validation.status === "invalid") {
+            setRejectedKeyValue(trimmed);
+            setFormError(t("i18n-next33.provider.keyRejected"));
+            return;
+          }
+        }
+        await updateSecret(editingSecret.key, trimmed);
       }
 
       addNotification({
@@ -706,14 +721,17 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
       setEditingSecret(null);
       setFormValue("");
       setFormValues({});
+      setRejectedKeyValue(null);
     } catch (err) {
       addNotification({
         type: "error",
         content: t("i18n-cont-settings-01.apiKeys.updateSecretError", { error: err instanceof Error ? err.message : String(err) }),
         dismissable: true
       });
+    } finally {
+      setSavingSecret(false);
     }
-  }, [editingSecret, formValue, formValues, updateSecret, addNotification, t]);
+  }, [editingSecret, savingSecret, formValue, formValues, rejectedKeyValue, validateSecret, updateSecret, addNotification, t]);
 
   const confirmDelete = useCallback(async () => {
     if (!secretToDelete) return;
@@ -753,6 +771,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
     setFormValue("");
     setFormValues({});
     setFormError(null);
+    setRejectedKeyValue(null);
   }, []);
 
   const handleCloseDelete = useCallback(() => {
@@ -916,10 +935,14 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
           const isMultiField = !!meta?.fields && meta.fields.length > 0;
           const allFieldsFilled =
             meta?.combinedCredential
-              ? formValue
+              ? formValue.trim()
               : isMultiField && meta?.fields
-              ? meta.fields.every((f) => formValues[f.key])
-              : formValue;
+              ? meta.fields.every((f) => formValues[f.key]?.trim())
+              : formValue.trim();
+          const isRejectedSingleKey =
+            !meta?.fields &&
+            rejectedKeyValue !== null &&
+            rejectedKeyValue === formValue.trim();
 
           return (
             <Dialog
@@ -930,8 +953,13 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
                 meta?.name || editingSecret.key
               }`}
               onConfirm={handleSave}
-              confirmText={t(editingSecret?.is_configured ? "i18n-cont-settings-01.apiKeys.update" : "i18n-cont-settings-01.apiKeys.connect")}
-              confirmDisabled={!allFieldsFilled}
+              confirmText={
+                isRejectedSingleKey
+                  ? t("i18n-next33.provider.saveAnyway")
+                  : t(editingSecret?.is_configured ? "i18n-cont-settings-01.apiKeys.update" : "i18n-cont-settings-01.apiKeys.connect")
+              }
+              isLoading={savingSecret}
+              confirmDisabled={!allFieldsFilled || savingSecret}
             >
               <FlexColumn gap={SPACING.lg}>
                 {meta?.combinedCredential ? (
@@ -992,6 +1020,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
                     onChange={(e) => {
                       setFormValue(e.target.value);
                       setFormError(null);
+                      setRejectedKeyValue(null);
                     }}
                     fullWidth
                     placeholder={t("i18n-cont-settings-01.apiKeys.apiKeyPlaceholder")}
