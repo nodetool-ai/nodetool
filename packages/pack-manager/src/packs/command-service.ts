@@ -1,7 +1,8 @@
 import { spawn } from "node:child_process";
 import { join } from "node:path";
-import { realpath } from "node:fs/promises";
+import { readFile, realpath } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import { z } from "zod";
 import { getNodetoolDataDir } from "@nodetool-ai/config";
 import { readCatalogIndex, readCatalogNodes, type NodeCatalogIndex } from "@nodetool-ai/pack-core";
 import { RUNTIME_NPM_PACKAGES, isRuntimeNpmPackageId } from "@nodetool-ai/protocol/runtime-npm-packages";
@@ -123,7 +124,23 @@ export async function createPackCommandServices(context: PackCommandServiceOptio
             if (!pin) { throw new Error(`Installed package ${name} has no catalog integrity pin`); }
             return pin;
           };
-          const libraries = new Set([...(desired?.runtimeLibraries ?? []), ...packs.flatMap(pack => pack.runtimeLibraries)]);
+          const manifestText = await readFile(join(root, "package.json"), "utf8").catch((error: unknown) => {
+            if (error instanceof Error && "code" in error && error.code === "ENOENT") { return "{}"; }
+            throw error;
+          });
+          const manifest = z.object({
+            dependencies: z.record(z.string(), z.string()).optional(),
+            devDependencies: z.record(z.string(), z.string()).optional(),
+            optionalDependencies: z.record(z.string(), z.string()).optional(),
+            peerDependencies: z.record(z.string(), z.string()).optional()
+          }).parse(JSON.parse(manifestText));
+          const declared = new Set(Object.keys({ ...manifest.dependencies, ...manifest.devDependencies,
+            ...manifest.optionalDependencies, ...manifest.peerDependencies }));
+          const selected = new Set(desired?.packs ?? []);
+          // Hoisted transitive node packs do not select their optional runtimes.
+          const libraries = new Set([...(desired?.runtimeLibraries ?? []), ...packs
+            .filter(pack => selected.has(pack.id) || declared.has(pack.npm.name))
+            .flatMap(pack => pack.runtimeLibraries)]);
           const runtimePins = [...libraries].flatMap(id => {
             if (!isRuntimeNpmPackageId(id)) { throw new Error(`Unknown desired runtime library: ${id}`); }
             return RUNTIME_NPM_PACKAGES[id].packageNames.map(name => ({ ...requiredPin(name), installPath: `node_modules/${name}` }));
