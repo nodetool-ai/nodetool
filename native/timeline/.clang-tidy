@@ -1,0 +1,4 @@
+Checks: '-*,bugprone-*,clang-analyzer-*,cppcoreguidelines-owning-memory'
+HeaderFilterRegex: '(^|/)(src|tests)/'
+SystemHeaders: false
+FormatStyle: none

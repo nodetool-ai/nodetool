@@ -28,6 +28,9 @@
 #include <iostream>
 #include <thread>
 #include "VstHost.h"
+#if JUCE_MAC
+#include "MacApplication.h"
+#endif
 
 using namespace juce;
 using namespace vsthost;
@@ -193,13 +196,13 @@ private:
         const int64 frames = (int64)req["frames"];
         const File out(req["out"].toString());
         if (!File::isAbsolutePath(req["out"].toString())) { fail(id, "Render output must be an absolute path"); return; }
-        const String state = applyState ? req["state"].toString() : String();
-        std::thread([id, inst = std::move(inst), events, rate, frames, out, state]() mutable {
+        const String state = req["state"].toString();
+        std::thread([id, inst = std::move(inst), events, rate, frames, out, state, applyState]() mutable {
             [&] {
                 AudioBuffer<float> buffer;
                 String error;
                 std::lock_guard<std::recursive_mutex> guard(inst->lock);
-                if (!inst->setState(state, error)) { fail(id, error); return; }
+                if (applyState && !inst->setState(state, error)) { fail(id, error); return; }
                 if (!inst->render(rate, frames, events, buffer, error)) { fail(id, error); return; }
                 if (!writePlanarF32(buffer, out)) { fail(id, "Cannot write " + out.getFullPathName()); return; }
                 auto body = object();
@@ -269,6 +272,9 @@ private:
 };
 
 int main(int, char**) {
+   #if JUCE_MAC
+    initialiseMacApplication();
+   #endif
     ScopedJuceInitialiser_GUI init;
     auto host = std::make_unique<Host>();
     auto* hostPtr = host.get();

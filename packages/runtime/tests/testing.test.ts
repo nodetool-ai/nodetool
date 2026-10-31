@@ -7,6 +7,68 @@ import { FakeProvider } from "../src/providers/fake-provider.js";
 import { verifyDecodes } from "../src/media/index.js";
 
 describe("createFakeContext", () => {
+  it("persists entities and storyboards within one fake host", async () => {
+    const first = createFakeContext();
+    const second = createFakeContext();
+    try {
+      const asset = await first.context.createAsset({
+        name: "reference.png",
+        contentType: "image/png",
+        content: new Uint8Array([1])
+      });
+      if (!asset || typeof asset !== "object" || !("id" in asset) || typeof asset.id !== "string") {
+        throw new Error("Fake asset missing its id");
+      }
+      const args = {
+        kind: "character" as const,
+        name: "Lead",
+        descriptor: "A red coat",
+        imageAssetId: asset.id,
+        source: { key: "lead" }
+      };
+      const created = await first.context.upsertEntity(args);
+      expect(created.created).toBe(true);
+      expect(await first.context.getEntity(created.entity.id)).toEqual(
+        created.entity
+      );
+      const updated = await first.context.upsertEntity({
+        ...args,
+        descriptor: "A blue coat"
+      });
+      expect(updated.created).toBe(false);
+      expect(updated.entity.id).toBe(created.entity.id);
+      expect(updated.entity.descriptor).toBe("A blue coat");
+      expect(await second.context.getEntity(created.entity.id)).toBeNull();
+
+      const board = await first.context.createStoryboard({
+        name: "Cast board",
+        projectId: "project",
+        document: { shots: [] }
+      });
+      expect(
+        await first.context.listStoryboards({ projectId: "project" })
+      ).toEqual([board]);
+      expect(
+        await first.context.listStoryboards({ projectId: "other" })
+      ).toEqual([]);
+      expect(await first.context.getStoryboard(board.id)).toEqual(board);
+      const saved = await first.context.updateStoryboard(board.id, {
+        document: { shots: [{ id: "shot" }] },
+        timelineId: "timeline"
+      });
+      expect(saved).toMatchObject({
+        id: board.id,
+        document: { shots: [{ id: "shot" }] },
+        timelineId: "timeline"
+      });
+      expect(await first.context.getStoryboard(board.id)).toEqual(saved);
+      expect(await second.context.getStoryboard(board.id)).toBeNull();
+    } finally {
+      first.cleanup();
+      second.cleanup();
+    }
+  });
+
   it("returns a ProcessingContext with in-memory storage and a temp workspace", () => {
     const handle = createFakeContext();
     try {

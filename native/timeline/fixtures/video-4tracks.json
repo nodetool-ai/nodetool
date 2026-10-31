@@ -1,0 +1,244 @@
+{
+  "id": "seq-video-4tracks",
+  "projectId": "native-prototype",
+  "name": "Four 1080p30 tracks",
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "durationMs": 15000,
+  "tracks": [
+    {
+      "id": "track-1",
+      "name": "Cuts",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    },
+    {
+      "id": "track-2",
+      "name": "PiP B",
+      "type": "video",
+      "index": 1,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    },
+    {
+      "id": "track-3",
+      "name": "PiP C",
+      "type": "video",
+      "index": 2,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    },
+    {
+      "id": "track-4",
+      "name": "Background",
+      "type": "video",
+      "index": 3,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "cut-1",
+      "trackId": "track-1",
+      "name": "A from 0",
+      "startMs": 0,
+      "durationMs": 5000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1920,
+      "height": 1080,
+      "opacity": 1.0,
+      "mediaPath": "media/numbered-a-1080p30.mp4",
+      "transform": {
+        "position": {
+          "x": -470,
+          "y": -170
+        },
+        "scale": {
+          "x": 0.4,
+          "y": 0.4
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "cut-2",
+      "trackId": "track-1",
+      "name": "C from 2 s",
+      "startMs": 5000,
+      "durationMs": 5000,
+      "inPointMs": 2000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1920,
+      "height": 1080,
+      "opacity": 1.0,
+      "mediaPath": "media/numbered-c-1080p30.mp4",
+      "transform": {
+        "position": {
+          "x": -470,
+          "y": -170
+        },
+        "scale": {
+          "x": 0.4,
+          "y": 0.4
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "cut-3",
+      "trackId": "track-1",
+      "name": "A from 12 s",
+      "startMs": 10000,
+      "durationMs": 5000,
+      "inPointMs": 12000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1920,
+      "height": 1080,
+      "opacity": 1.0,
+      "mediaPath": "media/numbered-a-1080p30.mp4",
+      "transform": {
+        "position": {
+          "x": -470,
+          "y": -170
+        },
+        "scale": {
+          "x": 0.4,
+          "y": 0.4
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "pip-b",
+      "trackId": "track-2",
+      "name": "B",
+      "startMs": 0,
+      "durationMs": 15000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1920,
+      "height": 1080,
+      "opacity": 1.0,
+      "mediaPath": "media/numbered-b-1080p30.mp4",
+      "transform": {
+        "position": {
+          "x": 470,
+          "y": -170
+        },
+        "scale": {
+          "x": 0.4,
+          "y": 0.4
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "pip-c",
+      "trackId": "track-3",
+      "name": "C from 3 s",
+      "startMs": 0,
+      "durationMs": 15000,
+      "inPointMs": 3000,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1920,
+      "height": 1080,
+      "opacity": 1.0,
+      "mediaPath": "media/numbered-c-1080p30.mp4",
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 280
+        },
+        "scale": {
+          "x": 0.4,
+          "y": 0.4
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    },
+    {
+      "id": "bg-d",
+      "trackId": "track-4",
+      "name": "D",
+      "startMs": 0,
+      "durationMs": 15000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1920,
+      "height": 1080,
+      "opacity": 1.0,
+      "mediaPath": "media/numbered-d-1080p30.mp4",
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z"
+}

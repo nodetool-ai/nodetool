@@ -2619,6 +2619,33 @@ database, providers, and caches by default — no server required. Pass
 `--api-url <url>` (env: `NODETOOL_API_URL`) to route through a remote server
 instead.
 
+## Native Qt presentation checks
+
+The native UI library has a standalone [build and test interface](https://github.com/nodetool-ai/nodetool/blob/main/native/ui_primitives/README.md).
+Its checks read native configuration and sources. They do not import web tokens
+or require npm packages.
+
+```bash
+python3 native/ui_primitives/tools/check_design.py --strict
+python3 native/ui_primitives/tools/check_dependencies.py
+python3 native/ui_primitives/tools/check_isolated_build.py --qt-prefix /path/to/Qt
+```
+
+The design check audits the native migration inventory and presentation rules.
+The dependency check rejects feature, backend, and web dependencies in the
+primitive module. The isolation check copies the module into a temporary tree,
+then separately copies the chat and model-picker hosts. It configures, builds,
+and tests with Node and npm absent from its tool path. It also installs chat
+and loads its packaged QML resources offscreen.
+
+`harness gate` runs the Python contracts for changes to the primitive module
+or migrated QML chrome. It reports Qt interaction tests as manual work when
+run outside the dedicated native workflow. The standalone
+[`native-ui-primitives` workflow](https://github.com/nodetool-ai/nodetool/blob/main/.github/workflows/native-ui-primitives.yml)
+provides Qt and runs the native tests separately from web and backend builds.
+Offscreen tests do not establish physical mixed-DPI behavior, screen-reader
+compatibility, or operating-system IME behavior.
+
 ## Observing Agent Execution
 
 NodeTool emits a hierarchy of OpenTelemetry spans that an analyzer agent can

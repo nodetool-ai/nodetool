@@ -1,0 +1,389 @@
+#include "TempoGrid.h"
+#include "TempoProviders.h"
+#include "ui/RulerCanvas.h"
+#include "wiring/SnapProviders.h"
+#include "wiring/WiringFixture.h"
+
+#include <QFile>
+#include <QImage>
+#include <QJSValue>
+#include <QPainter>
+#include <QQmlProperty>
+#include <QTemporaryDir>
+
+class TempoWiringTests : public WiringFixture {
+    Q_OBJECT
+
+    void loadDocument(bool midi, bool customTempo) {
+        auto document = doc();
+        QJsonArray tracks{QJsonObject{{"id", "v"}, {"name", "Video"}, {"type", "video"},
+                                     {"index", 0}, {"heightPx", 80}}};
+        if (midi) {
+            tracks.append(QJsonObject{{"id", "m"}, {"name", "MIDI"}, {"type", "midi"}, {"index", 1}});
+        }
+        document.insert("tracks", tracks);
+        document.insert("clips", QJsonArray{QJsonObject{{"id", "c"}, {"trackId", "v"}, {"name", "Still"},
+            {"mediaType", "image"}, {"startMs", 1000}, {"durationMs", 501}}});
+        if (customTempo) {
+            document.insert("tempo", QJsonObject{{"bpm", 140}, {"offsetMs", 123},
+                {"timeSignature", QJsonObject{{"beatsPerBar", 3}, {"beatUnit", 4}}}});
+        } else {
+            document.remove("tempo");
+        }
+        auto parsed = nt::parseTimelineJson(QJsonDocument(document).toJson());
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        QCoreApplication::processEvents();
+    }
+
+    void loadInvalidTempoDocument() {
+        loadDocument(true, true);
+        auto document = doc();
+        auto tempo = document.value("tempo").toObject();
+        tempo.insert("bpm", 0);
+        document.insert("tempo", tempo);
+        document.insert("clips", QJsonArray{QJsonObject{{"id", "c"}, {"trackId", "m"}, {"name", "MIDI"},
+            {"mediaType", "midi"}, {"startMs", 1000}, {"durationMs", 501}}});
+        auto parsed = nt::parseTimelineJson(QJsonDocument(document).toJson());
+        QVERIFY(parsed.timeline);
+        model.setTimeline(std::move(*parsed.timeline));
+        QCoreApplication::processEvents();
+    }
+
+private slots:
+    void initTestCase() {
+        QTest::ignoreMessage(QtWarningMsg, "Refused ruler provider bars");
+        QVERIFY(!nt::wiring::registerRulerProvider("bars", nt::tempo::barRulerTicks));
+    }
+    void init() { open(); }
+    void cleanup() { view.reset(); }
+
+    void toolbarToggle() {
+        QTRY_VERIFY_WITH_TIMEOUT(item("barsToggle"), 1000);
+        auto* bars = item("barsToggle");
+        auto* snap = item("snapToggle");
+        QVERIFY(snap);
+        QVERIFY(bars->mapToScene({0, 0}).x() >= snap->mapToScene({snap->width(), 0}).x());
+        QCOMPARE(bars->property("label").toString(), QString("Bars"));
+        QCOMPARE(bars->property("description").toString(), QString("The ruler counts bars and beats, not seconds"));
+        QVERIFY(!bars->property("active").toBool());
+        click("barsToggle");
+        QCOMPARE(gestures()->viewState()->rulerMode(), QString("bars"));
+        QVERIFY(bars->property("active").toBool());
+        click("barsToggle");
+        QCOMPARE(gestures()->viewState()->rulerMode(), QString("time"));
+        QVERIFY(!bars->property("active").toBool());
+        gestures()->viewState()->setRulerMode("bars");
+        QVERIFY(bars->property("active").toBool());
+        QCOMPARE(model.undoStack()->count(), 0);
+    }
+
+    void toolbarCompact() {
+        QTRY_VERIFY_WITH_TIMEOUT(item("barsToggle"), 1000);
+        auto* bars = item("barsToggle");
+        auto* toolbar = item("toolToggle");
+        QVERIFY(toolbar);
+        for (const bool compact : {false, true, false}) {
+            QVERIFY(toolbar->setProperty("compact", compact));
+            QCOMPARE(bars->property("compact").toBool(), compact);
+            QCOMPARE(bars->property("showLabel").toBool(), !compact);
+        }
+    }
+
+    void rulerAccessibleName() {
+        auto* ruler = item("timeRuler");
+        QVERIFY(ruler);
+        for (const auto& mode : {QStringLiteral("time"), QStringLiteral("bars"), QStringLiteral("time")}) {
+            gestures()->viewState()->setRulerMode(mode);
+            QCOMPARE(QQmlProperty::read(ruler, "Accessible.name", qmlContext(ruler)).toString(),
+                mode == "bars" ? QStringLiteral("Bars ruler — click or drag to set playhead")
+                               : QStringLiteral("Time ruler — click or drag to set playhead"));
+        }
+    }
+
+    void rulerTicks_data() {
+        QTest::addColumn<bool>("customTempo");
+        QTest::addColumn<double>("zoom");
+        QTest::newRow("140bpm-3-4-offset-close") << true << 10.0;
+        QTest::newRow("140bpm-3-4-offset-wide") << true << 80.0;
+        QTest::newRow("default-close") << false << 10.0;
+        QTest::newRow("default-wide") << false << 80.0;
+    }
+    void rulerTicks() {
+        QFETCH(bool, customTempo);
+        QFETCH(double, zoom);
+        loadDocument(false, customTempo);
+        auto* state = gestures()->viewState();
+        state->zoomTo(zoom, 0);
+        state->setScrollLeftPx(0);
+        state->flush();
+        QCoreApplication::processEvents();
+        auto* canvas = item("rulerCanvas");
+        QVERIFY(canvas);
+        const auto timeTicks = canvas->property("ticks").toList();
+        QVERIFY(!timeTicks.isEmpty());
+        state->setRulerMode("bars");
+        const nt::tempo::Tempo tempo = customTempo ? nt::tempo::Tempo{140, 123, 3, 4} : nt::tempo::Tempo{};
+        for (const double scroll : {0.0, 37.0}) {
+            state->setScrollLeftPx(scroll);
+            state->flush();
+            QCoreApplication::processEvents();
+            const double from = state->scrollLeftPx() * zoom;
+            const auto expected = nt::tempo::computeBarRulerTicks(tempo, zoom, from, from + canvas->width() * zoom);
+            const auto actual = canvas->property("ticks").toList();
+            QVERIFY(!expected.empty());
+            QCOMPARE(actual.size(), qsizetype(expected.size()));
+            for (qsizetype i = 0; i < actual.size(); ++i) {
+                const auto tick = actual[i].toMap();
+                const auto& oracle = expected[std::size_t(i)];
+                QCOMPARE(tick.value("timeMs").toDouble(), oracle.timeMs);
+                QCOMPARE(tick.value("major").toBool(), oracle.kind == "bar");
+                QCOMPARE(tick.value("label").toString(), QString::fromStdString(oracle.label.value_or("")));
+            }
+            if (scroll == 0) {
+                QCOMPARE(actual.first().toMap().value("label").toString(), QString("1"));
+            }
+            canvas->setProperty("fps", 59.94);
+            QCOMPARE(canvas->property("ticks").toList(), actual);
+            canvas->setProperty("fps", 30.0);
+        }
+        state->setScrollLeftPx(0);
+        state->flush();
+        state->setRulerMode("time");
+        QCOMPARE(canvas->property("ticks").toList(), timeTicks);
+        QCOMPARE(model.undoStack()->count(), 0);
+    }
+
+    void invalidRulerTempo_data() {
+        QTest::addColumn<QJsonObject>("tempo");
+        QTest::addColumn<QString>("error");
+        QTest::newRow("zero-bpm")
+            << QJsonObject{{"bpm", 0}, {"offsetMs", 0},
+                {"timeSignature", QJsonObject{{"beatsPerBar", 4}, {"beatUnit", 4}}}}
+            << QString("bpm must be a positive number; got 0.");
+        QTest::newRow("zero-beats-per-bar")
+            << QJsonObject{{"bpm", 120}, {"offsetMs", 0},
+                {"timeSignature", QJsonObject{{"beatsPerBar", 0}, {"beatUnit", 4}}}}
+            << QString("beatsPerBar must be a positive number; got 0.");
+        QTest::newRow("zero-beat-unit")
+            << QJsonObject{{"bpm", 120}, {"offsetMs", 0},
+                {"timeSignature", QJsonObject{{"beatsPerBar", 4}, {"beatUnit", 0}}}}
+            << QString("beatUnit must be a positive number; got 0.");
+    }
+    void invalidRulerTempo() {
+        QFETCH(QJsonObject, tempo);
+        QFETCH(QString, error);
+        nt::wiring::RulerRequest request;
+        request.document = doc();
+        request.document.insert("tempo", tempo);
+        request.toMs = 10000;
+        QTest::ignoreMessage(QtWarningMsg, qPrintable("Bars ruler provider failed: " + error));
+        QVERIFY(nt::wiring::rulerTicks("bars", request).empty());
+    }
+
+    void invalidSnapGrid_data() {
+        QTest::addColumn<double>("bpm");
+        QTest::addColumn<QString>("division");
+        QTest::addColumn<QString>("error");
+        QTest::newRow("zero-bpm") << 0.0 << QString("beat")
+            << QString("bpm must be a positive number; got 0.");
+        QTest::newRow("unknown-division") << 120.0 << QString("unknown")
+            << QString("Unknown quantize division \"unknown\"; expected one of 1/4, 1/8, 1/16, 1/32, 1/8T, 1/16T.");
+    }
+    void invalidSnapGrid() {
+        QFETCH(double, bpm);
+        QFETCH(QString, division);
+        QFETCH(QString, error);
+        loadDocument(true, true);
+        nt::wiring::SnapRequest request;
+        request.document = doc();
+        auto tempo = request.document.value("tempo").toObject();
+        tempo.insert("bpm", bpm);
+        request.document.insert("tempo", tempo);
+        request.toMs = 10000;
+        request.gridDivision = division;
+        QTest::ignoreMessage(QtWarningMsg, qPrintable("Tempo beat snap provider failed: " + error));
+        QVERIFY(nt::wiring::extraSnapCandidates(request).empty());
+    }
+
+    void invalidTempoRulerPaint() {
+        loadInvalidTempoDocument();
+        gestures()->viewState()->setRulerMode("bars");
+        auto* canvas = qobject_cast<RulerCanvas*>(item("rulerCanvas"));
+        QVERIFY(canvas);
+        QVERIFY(canvas->width() > 0 && canvas->height() > 0);
+        QImage image(canvas->size().toSize(), QImage::Format_ARGB32_Premultiplied);
+        QPainter painter(&image);
+        const auto before = canvas->paintCount();
+        QTest::ignoreMessage(QtWarningMsg, "Bars ruler provider failed: bpm must be a positive number; got 0.");
+        canvas->paint(&painter);
+        QCOMPARE(canvas->paintCount(), before + 1);
+        QCOMPARE(canvas->labelCount(), 0);
+    }
+
+    void invalidTempoMidiDrag() {
+        loadInvalidTempoDocument();
+        QVERIFY(gestures()->snapEnabled());
+        clock.seek(8000);
+        QTRY_VERIFY(item("clip-c"));
+        const auto before = doc();
+        const auto from = center(item("clip-c"));
+        const auto to = from + QPoint(53, 0);
+        QTest::ignoreMessage(QtWarningMsg, "Tempo beat snap provider failed: bpm must be a positive number; got 0.");
+        drag(from, to);
+        QCOMPARE(model.undoStack()->count(), 1);
+        QCOMPARE(clip("c").value("trackId").toString(), QString("m"));
+        QVERIFY(clip("c").value("startMs").toDouble() > 1000);
+        click("undoButton");
+        QCOMPARE(doc(), before);
+    }
+
+    void gridSelection_data() {
+        QTest::addColumn<bool>("popupWindow");
+        QTest::newRow("default-popup") << false;
+        if (QGuiApplication::platformName() != "offscreen") { QTest::newRow("window-popup") << true; }
+    }
+    void gridSelection() {
+        QFETCH(bool, popupWindow);
+        QTRY_VERIFY_WITH_TIMEOUT(item("gridDivisionSelect"), 1000);
+        auto* select = item("gridDivisionSelect");
+        auto* bars = item("barsToggle");
+        QVERIFY(bars);
+        QVERIFY(select->mapToScene({0, 0}).x() >= bars->mapToScene({bars->width(), 0}).x());
+        QCOMPARE(select->implicitWidth(), 72.0);
+        QCOMPARE(select->implicitHeight(), 28.0);
+        QCOMPARE(select->property("label").toString(), QString("Grid division"));
+        QCOMPARE(select->property("displayText").toString(), QString("Beat"));
+        const auto raw = select->property("options");
+        const auto options = raw.metaType() == QMetaType::fromType<QJSValue>()
+            ? raw.value<QJSValue>().toVariant().toList() : raw.toList();
+        const QStringList values{"bar", "beat", "1/4", "1/8", "1/16", "1/32", "1/8T", "1/16T"};
+        const QStringList labels{"Bar", "Beat", "1/4", "1/8", "1/16", "1/32", "1/8T", "1/16T"};
+        QCOMPARE(options.size(), values.size());
+        for (qsizetype i = 0; i < values.size(); ++i) {
+            QCOMPARE(options[i].toMap().value("value").toString(), values[i]);
+            QCOMPARE(options[i].toMap().value("label").toString(), labels[i]);
+        }
+        auto* popup = select->property("popup").value<QObject*>();
+        QVERIFY(popup);
+        QVERIFY(popup->setProperty("popupType", popupWindow ? 1 : 0)); // Popup.Window / Popup.Item
+        QVERIFY(item("toolToggle")->setProperty("compact", true));
+        auto* region = item("tracksRegion");
+        QVERIFY(region);
+        QSignalSpy initialFrame(view.get(), &QQuickWindow::frameSwapped);
+        view->update();
+        QTRY_VERIFY(!initialFrame.isEmpty());
+        auto* toolbar = item("timelineToolbar");
+        QVERIFY(toolbar);
+        const double overflow = qMax(
+            select->mapToItem(region, {select->width(), 0}).x() - region->width(),
+            toolbar->property("rowWidth").toDouble() - toolbar->property("available").toDouble());
+        if (overflow > 0) {
+            view->resize(view->width() + qCeil(overflow) + 100, view->height());
+        }
+        view->requestActivate();
+        QVERIFY(QTest::qWaitForWindowActive(view.get()));
+        QVERIFY(QTest::qWaitForWindowExposed(view.get()));
+        QSignalSpy frame(view.get(), &QQuickWindow::frameSwapped);
+        view->update();
+        QTRY_VERIFY(!frame.isEmpty());
+        QVERIFY2(toolbar->property("rowWidth").toDouble() <= toolbar->property("available").toDouble(),
+            "The popup fixture must fit both toolbar groups before clicking");
+        const auto clickPoint = select->mapToScene({select->width() - 8, select->height() / 2});
+        for (auto* parent = select; parent; parent = parent->parentItem()) {
+            if (parent->clip()) {
+                QVERIFY2(parent->contains(parent->mapFromScene(clickPoint)),
+                    qPrintable("Grid click outside clipped ancestor: " + parent->objectName()));
+            }
+        }
+        // Exercise keyboard navigation in the item popup and a real option
+        // click when the platform hosts the popup in a separate window.
+        QTest::mouseClick(select->window(), Qt::LeftButton, Qt::NoModifier,
+            select->mapToScene({select->width() - 8, select->height() / 2}).toPoint());
+        QTRY_VERIFY(popup->property("visible").toBool());
+        auto* popupContent = popup->property("contentItem").value<QQuickItem*>();
+        QVERIFY(popupContent);
+        QTRY_VERIFY(popupContent->window());
+        if (popupWindow) {
+            const auto findOption = [&](auto&& self, QQuickItem* at) -> QQuickItem* {
+                if (at->inherits("QQuickAbstractButton") && at->property("text").toString() == "1/4") { return at; }
+                for (auto* child : at->childItems()) {
+                    if (auto* found = self(self, child)) { return found; }
+                }
+                return nullptr;
+            };
+            QTRY_VERIFY(findOption(findOption, popupContent));
+            auto* option = findOption(findOption, popupContent);
+            QTest::mouseClick(option->window(), Qt::LeftButton, Qt::NoModifier, center(option));
+        } else {
+            QTest::keyClick(view.get(), Qt::Key_Down);
+            QTest::keyClick(view.get(), Qt::Key_Return);
+        }
+        QTRY_COMPARE(gestures()->viewState()->gridDivision(), QString("1/4"));
+        QCOMPARE(select->property("displayText").toString(), QString("1/4"));
+        gestures()->viewState()->setGridDivision("1/16T");
+        QTRY_COMPARE(select->property("displayText").toString(), QString("1/16T"));
+        QCOMPARE(model.undoStack()->count(), 0);
+    }
+
+    void snapDrag_data() {
+        QTest::addColumn<bool>("midi");
+        QTest::addColumn<bool>("enabled");
+        QTest::addColumn<QString>("division");
+        QTest::addColumn<bool>("barTarget");
+        QTest::addColumn<bool>("barsMode");
+        QTest::addColumn<bool>("snapped");
+        QTest::newRow("midi-beat") << true << true << QString("beat") << false << false << true;
+        QTest::newRow("snap-off") << true << false << QString("beat") << false << false << false;
+        QTest::newRow("midi-bar") << true << true << QString("bar") << true << false << true;
+        QTest::newRow("bar-excludes-beat") << true << true << QString("bar") << false << false << false;
+        QTest::newRow("video-time") << false << true << QString("beat") << false << false << false;
+        QTest::newRow("video-bars") << false << true << QString("beat") << false << true << true;
+    }
+    void snapDrag() {
+        QFETCH(bool, midi);
+        QFETCH(bool, enabled);
+        QFETCH(QString, division);
+        QFETCH(bool, barTarget);
+        QFETCH(bool, barsMode);
+        QFETCH(bool, snapped);
+        loadDocument(midi, true);
+        auto* state = gestures()->viewState();
+        state->setGridDivision(division);
+        state->setRulerMode(barsMode ? "bars" : "time");
+        if (!enabled) { click("snapToggle"); }
+        QCOMPARE(gestures()->snapEnabled(), enabled);
+        const auto before = doc();
+        clock.seek(8000);
+        QTRY_VERIFY(item("clip-c"));
+        const auto from = center(item("clip-c"));
+        // Web tempo: offset 123 + n * 60000/140, with three beats per bar.
+        const double line = 123 + (barTarget ? 6 : 5) * (60000.0 / 140);
+        const int pixels = qRound((line - 1000) / state->msPerPx()) + 3;
+        const double rawStart = 1000 + pixels * state->msPerPx();
+        const auto to = from + QPoint(pixels, 0);
+        QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, from);
+        QTest::mouseMove(view.get(), to, 20);
+        QCOMPARE(model.undoStack()->count(), 0);
+        QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, to);
+        QCoreApplication::processEvents();
+        QCOMPARE(model.undoStack()->count(), 1);
+        QCOMPARE(clip("c").value("durationMs").toDouble(), 501.0);
+        const double actual = clip("c").value("startMs").toDouble();
+        QCOMPARE(actual, snapped ? line : rawStart);
+        click("undoButton");
+        QCOMPARE(doc(), before);
+    }
+};
+
+int main(int argc, char** argv) {
+    QTemporaryDir settings;
+    if (!settings.isValid()) {
+        return 1;
+    }
+    qputenv("NODETOOL_TIMELINE_PREFERENCES", QFile::encodeName(settings.filePath("settings.ini")));
+    QGuiApplication app(argc, argv);
+    TempoWiringTests test;
+    return QTest::qExec(&test, argc, argv);
+}
+#include "tst_tempowiring.moc"

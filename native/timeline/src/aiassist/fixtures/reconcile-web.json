@@ -1,0 +1,218 @@
+{
+  "timeline": {
+    "id": "timeline",
+    "tracks": [
+      {
+        "id": "voice",
+        "type": "audio"
+      },
+      {
+        "id": "music",
+        "type": "audio"
+      }
+    ],
+    "clips": [
+      {
+        "id": "clip-one",
+        "trackId": "voice",
+        "scriptId": "script",
+        "scriptLineId": "one",
+        "currentAssetId": "asset-one",
+        "name": "Old",
+        "prompt": "Old",
+        "speaker": "Old speaker",
+        "provider": "old",
+        "model": "old",
+        "voice": "old",
+        "startMs": 7000,
+        "durationMs": 2000,
+        "inPointMs": 25,
+        "caption": {
+          "words": [
+            {
+              "word": "Original",
+              "startMs": 0,
+              "endMs": 2000
+            }
+          ]
+        }
+      },
+      {
+        "id": "clip-two",
+        "trackId": "voice",
+        "scriptId": "script",
+        "scriptLineId": "two",
+        "currentAssetId": "asset-two",
+        "name": "Old",
+        "prompt": "Old",
+        "speaker": "Old speaker",
+        "provider": "old",
+        "model": "old",
+        "voice": "old",
+        "startMs": 10000,
+        "durationMs": 2000,
+        "inPointMs": 25,
+        "caption": {
+          "words": [
+            {
+              "word": "Original",
+              "startMs": 0,
+              "endMs": 2000
+            }
+          ]
+        }
+      },
+      {
+        "id": "clip-removed",
+        "trackId": "voice",
+        "scriptId": "script",
+        "scriptLineId": "removed",
+        "currentAssetId": "asset-removed",
+        "name": "Old",
+        "prompt": "Old",
+        "speaker": "Old speaker",
+        "provider": "old",
+        "model": "old",
+        "voice": "old",
+        "startMs": 14000,
+        "durationMs": 2000,
+        "inPointMs": 25,
+        "caption": {
+          "words": [
+            {
+              "word": "Original",
+              "startMs": 0,
+              "endMs": 2000
+            }
+          ]
+        }
+      },
+      {
+        "id": "music",
+        "trackId": "music",
+        "mediaType": "audio",
+        "startMs": 0,
+        "durationMs": 15000
+      }
+    ],
+    "markers": [
+      {
+        "id": "marker",
+        "timeMs": 25
+      }
+    ],
+    "custom": "preserved"
+  },
+  "script": {
+    "id": "script",
+    "document": {
+      "cast": [],
+      "sections": [
+        {
+          "id": "section",
+          "lines": [
+            {
+              "id": "two",
+              "text": "Revised two",
+              "currentTakeId": "take-two",
+              "takes": [
+                {
+                  "id": "take-two",
+                  "assetId": "asset-two",
+                  "durationMs": 3000,
+                  "words": []
+                }
+              ],
+              "pauseAfterMs": 500
+            },
+            {
+              "id": "one",
+              "text": "Revised one",
+              "currentTakeId": "take-one",
+              "takes": [
+                {
+                  "id": "take-one",
+                  "assetId": "asset-one",
+                  "durationMs": 3000,
+                  "words": []
+                }
+              ],
+              "pauseAfterMs": 500
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "expected": {
+    "id": "timeline",
+    "tracks": [
+      {
+        "id": "voice",
+        "type": "audio"
+      },
+      {
+        "id": "music",
+        "type": "audio"
+      }
+    ],
+    "clips": [
+      {
+        "id": "clip-one",
+        "trackId": "voice",
+        "scriptId": "script",
+        "scriptLineId": "one",
+        "currentAssetId": "asset-one",
+        "name": "Revised one",
+        "prompt": "Revised one",
+        "startMs": 7000,
+        "durationMs": 2000,
+        "inPointMs": 25,
+        "caption": {
+          "words": [
+            {
+              "word": "Original",
+              "startMs": 0,
+              "endMs": 2000
+            }
+          ]
+        }
+      },
+      {
+        "id": "clip-two",
+        "trackId": "voice",
+        "scriptId": "script",
+        "scriptLineId": "two",
+        "currentAssetId": "asset-two",
+        "name": "Revised two",
+        "prompt": "Revised two",
+        "startMs": 10000,
+        "durationMs": 2000,
+        "inPointMs": 25,
+        "caption": {
+          "words": [
+            {
+              "word": "Original",
+              "startMs": 0,
+              "endMs": 2000
+            }
+          ]
+        }
+      },
+      {
+        "id": "music",
+        "trackId": "music",
+        "mediaType": "audio",
+        "startMs": 0,
+        "durationMs": 15000
+      }
+    ],
+    "markers": [
+      {
+        "id": "marker",
+        "timeMs": 25
+      }
+    ],
+    "custom": "preserved"
+  }
+}

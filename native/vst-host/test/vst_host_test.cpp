@@ -76,6 +76,9 @@ int main(int argc, char** argv) {
         p->setValueNotifyingHost(p->getValue() > 0.5f ? 0.0f : 1.0f);
         const auto changed = inst.getState();
         check(changed != state, "a parameter change changes the state");
+        if (argc >= 3) {
+            check(juce::File(juce::String(argv[2])).replaceWithText(changed), "writes nondefault state fixture");
+        }
         check(inst.setState({}, error) && inst.getState() == state, "empty state restores the default", error);
         check(inst.setState(changed, error) && inst.getState() == changed, "and the changed state applies again", error);
         check(inst.setState(state, error), "back to the default", error);
@@ -88,6 +91,41 @@ int main(int argc, char** argv) {
     check(copy.render(rate, 48000, events, c, error), "the copy renders", error);
     check(std::abs(rms(c, 6000, 24000) - rms(b, 6000, 24000)) < 0.25 * rms(b, 6000, 24000),
           "and sounds at the same level", juce::String(rms(c, 6000, 24000)));
+
+    std::printf("\n== NodeToolVstHost: latency compensation ==\n");
+    constexpr int renderFrames = 1003;
+    const std::vector<NoteEvent> held = {{60, 110, 0, renderFrames}};
+    juce::AudioBuffer<float> reference;
+    check(copy.render(rate, renderFrames, held, reference, error), "renders latency reference", error);
+    for (const int latency : {733, 2048}) {
+        Instance delayed;
+        check(delayed.load(path, inst.uid(), error), "loads delayed instrument", error);
+        auto delayedParameters = delayed.plugin()->getParameters();
+        check(delayedParameters.size() >= 2, "exposes the test latency parameter");
+        if (delayedParameters.size() < 2) continue;
+        delayedParameters[1]->setValueNotifyingHost(static_cast<float>(latency) / 2048.0f);
+        juce::AudioBuffer<float> compensated;
+        check(delayed.render(rate, renderFrames, held, compensated, error), "renders delayed instrument", error);
+        check(delayed.plugin()->getLatencySamples() == latency, "instrument reports latency after preparation");
+        double maxDifference = 0;
+        for (int ch = 0; ch < 2; ++ch)
+            for (int i = 0; i < renderFrames; ++i)
+                maxDifference = std::max(maxDifference, static_cast<double>(std::abs(
+                    reference.getSample(ch, i) - compensated.getSample(ch, i))));
+        check(compensated.getNumSamples() == renderFrames && maxDifference < 1e-7,
+              "latency compensation preserves alignment and the final partial block", juce::String(maxDifference));
+        const std::vector<NoteEvent> lateNote = {{60, 110, renderFrames - 32, renderFrames}};
+        check(copy.render(rate, renderFrames, lateNote, reference, error) &&
+              delayed.render(rate, renderFrames, lateNote, compensated, error), "renders a note near the end", error);
+        maxDifference = 0;
+        for (int ch = 0; ch < 2; ++ch)
+            for (int i = 0; i < renderFrames; ++i)
+                maxDifference = std::max(maxDifference, static_cast<double>(std::abs(
+                    reference.getSample(ch, i) - compensated.getSample(ch, i))));
+        check(maxDifference < 1e-7 && rms(compensated, renderFrames - 30, renderFrames) > 1e-3,
+              "latency drain retains a note at the requested end", juce::String(maxDifference));
+        check(copy.render(rate, renderFrames, held, reference, error), "restores the held-note reference", error);
+    }
 
     std::printf("\n== NodeToolVstHost: output file ==\n");
     const auto file = juce::File::createTempFile(".f32");

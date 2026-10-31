@@ -1,0 +1,57 @@
+{
+  "id": "seq-colorbars-bt709-full",
+  "projectId": "native-prototype",
+  "name": "Colour bars bt709-full",
+  "fps": 30,
+  "width": 1920,
+  "height": 1080,
+  "durationMs": 3000,
+  "tracks": [
+    {
+      "id": "track-bars",
+      "name": "Bars",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false,
+      "muted": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "bars",
+      "trackId": "track-bars",
+      "name": "Bars bt709-full",
+      "startMs": 0,
+      "durationMs": 3000,
+      "inPointMs": 0,
+      "mediaType": "video",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "width": 1920,
+      "height": 1080,
+      "opacity": 1.0,
+      "mediaPath": "media/colorbars-bt709-full.mp4",
+      "transform": {
+        "position": {
+          "x": 0,
+          "y": 0
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0
+        },
+        "rotation": 0,
+        "anchor": {
+          "x": 0.5,
+          "y": 0.5
+        }
+      }
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z"
+}
