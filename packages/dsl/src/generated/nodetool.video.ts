@@ -34,6 +34,7 @@ export type ImageToVideoInputs = {
   resolution?: Connectable<string>;
   duration?: Connectable<number>;
   timeout_seconds?: Connectable<number>;
+  seed?: Connectable<number>;
 };
 
 export interface ImageToVideoOutputs {

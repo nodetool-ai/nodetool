@@ -36,6 +36,7 @@ export type ImageToVideoInputs = {
   resolution?: string;
   duration?: number;
   timeout_seconds?: number;
+  seed?: number;
 };
 
 export interface ImageToVideoOutputs {
