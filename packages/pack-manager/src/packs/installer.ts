@@ -10,6 +10,7 @@ import { normalizeGlobalBootstrap } from "./global-bootstrap.js";
 import { normalizeOwnedPackReplay } from "./owned-replay-plan.js";
 import { writeDesiredState } from "./install-state.js";
 import type { InstallMode } from "./mode.js";
+import { isRuntimePackageId, missingRuntimePackageDetails } from "@nodetool-ai/protocol/missing-runtime-package";
 import { snapshotInstallTree, installTreeRestored, parseInstallPlan, assertAdditivePlan, assertTreePins, assertSharedIdentities, removeSnapshotAdditions, type VerificationPin } from "./install-tree.js";
 
 export type { DesiredPackState, InstallPacksRequest } from "./install-selection.js";
@@ -72,7 +73,11 @@ async function installPacksTransaction(request: InstallPacksRequest, authorizati
     const alreadyComplete = operation === "repair" && !initialGlobalLockMissing && pins.every((pin) => before.some((entry) => entry.name === pin.name && entry.version === pin.version && entry.integrity === pin.integrity));
     const plan = alreadyComplete ? { add: [], change: [], remove: [] } :
       parseInstallPlan(await operations.npm(root, ["install", ...specs, ...(Number(version.split(".")[0]) >= 11 ? ["--json"] : [])], { mode: mode.kind, dryRun: true, signal: request.signal, onWarning: request.onWarning }), version);
-    assertAdditivePlan(normalizeGlobalBootstrap(normalizeOwnedPackReplay(plan, before, catalog, coreNames), bootstrap), before, coreNames, shared, mode.coreVersion);
+    try {
+      assertAdditivePlan(normalizeGlobalBootstrap(normalizeOwnedPackReplay(plan, before, catalog, coreNames), bootstrap), before, coreNames, shared, mode.coreVersion);
+    } catch (error) {
+      throw error instanceof Error ? withRuntimeLibraryFallback(error, libraries) : error;
+    }
     const requestedPacks = [...new Set([...(previous.requestedPacks ?? previous.packs), ...request.packs])].sort();
     const installed = new Set(installedIds);
     const managedPacks = [...new Set([...(previous.managedPacks ?? []), ...packs.filter(pack => !installed.has(pack.id)).map(pack => pack.id)])].sort();
@@ -128,4 +133,17 @@ async function installPacksTransaction(request: InstallPacksRequest, authorizati
       throw cause;
     }
   } finally { await release(); }
+}
+
+/**
+ * A refused runtime library can still be installed outside the managed tree.
+ * Put that command in the refusal, so the user does not need a second error.
+ */
+function withRuntimeLibraryFallback(error: Error, libraries: readonly string[]): Error {
+  const commands = libraries
+    .filter(isRuntimePackageId)
+    .map((id) => missingRuntimePackageDetails(id, id).bringYourOwn)
+    .filter((command): command is string => Boolean(command));
+  if (commands.length === 0) return error;
+  return new Error(`${error.message}\nInstall it outside the managed tree instead:\n${commands.map((c) => `  ${c}`).join("\n")}`, { cause: error });
 }

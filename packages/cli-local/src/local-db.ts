@@ -4,7 +4,7 @@
  * commands) without pulling in the heavy deploy stack.
  */
 
-import { initDb } from "@nodetool-ai/models";
+import { initDb, migrateSqliteDb } from "@nodetool-ai/models";
 import { initMasterKey, isKeychainBackendMissing } from "@nodetool-ai/security";
 import { getDefaultDbPath } from "@nodetool-ai/config";
 
@@ -22,6 +22,9 @@ let ready: Promise<void> | null = null;
  */
 export function setupLocalDb(): Promise<void> {
   ready ??= (async () => {
+    // initDb applies only the baseline schema. Migrate first, or a command
+    // that writes an asset fails on a column added later.
+    await migrateSqliteDb(getDefaultDbPath());
     initDb(getDefaultDbPath());
     try {
       await initMasterKey();
@@ -40,7 +43,5 @@ export function setupLocalDb(): Promise<void> {
 
 /** Migrate a standalone command database before unlocking its local credentials. */
 export async function setupCliDb(): Promise<void> {
-  const { migrateSqliteDb } = await import("@nodetool-ai/models");
-  await migrateSqliteDb(getDefaultDbPath());
   await setupLocalDb();
 }

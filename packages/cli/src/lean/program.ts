@@ -1,6 +1,6 @@
 import { printTable } from "@nodetool-ai/pack-manager/commands/output";
 import { refusePackInstallsInProcess } from "@nodetool-ai/pack-manager/packs/install-process";
-import { configureCliPackHost, registerPackCommands, loadInstalledCommandFeature, loadCliPackSnapshot } from "@nodetool-ai/pack-manager";
+import { configureCliPackHost, registerPackCommands, loadInstalledCommandFeature, loadCliPackSnapshot, CliFeatureNotInstalledError } from "@nodetool-ai/pack-manager";
 import { z } from "zod";
 import { Command } from "commander";
 import { existsSync, readFileSync } from "node:fs";
@@ -15,6 +15,8 @@ import { COMMAND_FEATURES } from "./commandFeatures.js";
 import { featureRecovery } from "@nodetool-ai/server-features";
 import { cliFailureSchema } from "./errors.js";
 import { providerStates, type ProviderState } from "./providerStatus.js";
+
+const WORKFLOW_SUBCOMMANDS = new Set(["examples", "export-script", "export-dsl", "export-example", "export-bundle", "import-bundle"]);
 
 export interface CliOptions {
   readonly env?: NodeJS.ProcessEnv;
@@ -182,7 +184,11 @@ export function createProgram(options: CliOptions = {}): Command {
       if (!issue.featureIds?.length) { return issue; }
       const recovery = issue.featureIds.map(id => {
         const descriptor = featureCatalog.get(id);
-        return featureRecovery(id, descriptor?.packageName, descriptor?.packId);
+        // The CLI runs pack nodes through the cli-workflow feature, not a
+        // configured server, so the server configuration text does not apply.
+        return { ...featureRecovery(id, descriptor?.packageName, descriptor?.packId),
+          configuration: "Install the workflow feature with `nodetool packs add cli-workflow --yes`. It loads every installed pack.",
+          restart: "Run the command again." };
       });
       return { ...issue, recovery };
     });
@@ -263,7 +269,7 @@ export function createProgram(options: CliOptions = {}): Command {
   program.command("nodes").description("List the built-in node types usable by `run` without installing packs (JSON)").option("--example", "Print a runnable example workflow instead").option("-m, --model <id>", "Model for the example workflow", env.NODETOOL_TEXT_MODEL ?? DEFAULT_TEXT_MODEL).action((flags: { example?: boolean; model: string }) => {
     if (flags.example) { print(exampleWorkflow(flags.model)); return; }
     print({
-      note: "Workflow JSON is {nodes:[{id,type,properties}],edges:[{source,sourceHandle,target,targetHandle}]} (optionally wrapped as {graph}). Wire an output name into an input name; dynamic-input nodes accept any targetHandle. Nodes from packs need `nodetool packs add <pack>`; `nodetool nodes --example` prints a complete workflow.",
+      note: "Workflow JSON is {nodes:[{id,type,properties}],edges:[{source,sourceHandle,target,targetHandle}]} (optionally wrapped as {graph}). Wire an output name into an input name; dynamic-input nodes accept any targetHandle. Nodes from packs need `nodetool packs add <pack>`; `nodetool nodes --example` prints a complete workflow. `nodetool examples --no-keys` lists shipped examples that need no API key (cli-workflow feature).",
       nodes: executionHost().describe()
     });
   });
@@ -447,6 +453,19 @@ export async function runCli(argv: readonly string[] = process.argv): Promise<vo
     await feature.run(argv.slice(2));
     return;
   }
+  // A JSON workflow may use nodes from installed packs, which only the
+  // cli-workflow feature registers. Hand it the file when it is installed.
+  if ((command === "run" || command === "validate") && argv.slice(commandIndex + 1).some(argument => argument.endsWith(".json"))) {
+    const feature = await loadInstalledCommandFeature(import.meta.url, "cli-workflow").catch((error: Error) => {
+      if (error instanceof CliFeatureNotInstalledError) { return null; }
+      throw error;
+    });
+    if (feature) {
+      const rest = argv.slice(commandIndex + 1);
+      await feature.run(command === "run" ? ["workflows", "run", ...rest] : ["validate", ...rest]);
+      return;
+    }
+  }
   if (command === "workflows" && argv[commandIndex + 1] === "migrate-code-inputs") {
     const feature = await loadInstalledCommandFeature(import.meta.url, "cli-admin");
     await feature.run(argv.slice(2));
@@ -459,6 +478,8 @@ export async function runCli(argv: readonly string[] = process.argv): Promise<vo
     const feature = await loadInstalledCommandFeature(import.meta.url, featureId);
     const delegated = [...argv];
     if (command === "server") { delegated.splice(commandIndex, 1); }
+    // These live under `workflows` in the feature; accept them at the top level too.
+    if (WORKFLOW_SUBCOMMANDS.has(command ?? "")) { delegated.splice(commandIndex, 0, "workflows"); }
     await feature.run(delegated.slice(2));
     return;
   }

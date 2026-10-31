@@ -19,6 +19,7 @@ import {
   getSecret
 } from "@nodetool-ai/models";
 import { initMasterKey, isKeychainBackendMissing } from "@nodetool-ai/security";
+import { registerExamplesCommand } from "./commands/examples.js";
 import { getDefaultDbPath, getDefaultAssetsPath } from "@nodetool-ai/config";
 import { ExecutionSession, type RawGraphInput } from "@nodetool-ai/execution";
 import {
@@ -110,8 +111,12 @@ export async function createProgram(): Promise<CommanderCommand> {
   // skips master-key unlocking (no secret decryption needed to list/read rows),
   // so it never emits a keychain warning. Idempotent — initDb() is a no-op once
   // a connection is open.
-  function ensureDb(): void {
-    initDb(getDefaultDbPath());
+  async function ensureDb(): Promise<void> {
+    const dbPath = getDefaultDbPath();
+    // initDb applies only the baseline schema, so a fresh database misses
+    // later columns (nodetool_assets.favorite) until migrated.
+    await migrateSqliteDb(dbPath);
+    initDb(dbPath);
   }
 
   async function setupDb(): Promise<void> {
@@ -387,6 +392,8 @@ export async function createProgram(): Promise<CommanderCommand> {
   const workflows = program
     .command("workflows")
     .description("Workflow management");
+
+  registerExamplesCommand(workflows);
 
   addSupervisorOptions(
     workflows
@@ -746,7 +753,7 @@ export async function createProgram(): Promise<CommanderCommand> {
             graph = (raw.graph ?? raw) as typeof graph;
             name = isString(raw.name) ? raw.name : null;
           } else {
-            ensureDb();
+            await ensureDb();
             const wf = await Workflow.find(LOCAL_USER_ID, idOrFile);
             if (!wf) throw new Error(`Workflow not found: ${idOrFile}`);
             graph = wf.getGraph();
@@ -816,7 +823,7 @@ export async function createProgram(): Promise<CommanderCommand> {
               `/api/workflows/${idOrFile}/dsl-export`
             );
           } else {
-            ensureDb();
+            await ensureDb();
             const wf = await Workflow.find(LOCAL_USER_ID, idOrFile);
             if (!wf) throw new Error(`Workflow not found: ${idOrFile}`);
             const graph = wf.getGraph();
@@ -919,7 +926,7 @@ export async function createProgram(): Promise<CommanderCommand> {
               : [];
             graph = wf.graph as typeof graph;
           } else {
-            ensureDb();
+            await ensureDb();
             const wf = await Workflow.find(LOCAL_USER_ID, idOrFile);
             if (!wf) throw new Error(`Workflow not found: ${idOrFile}`);
             name = isString(wf.name) ? wf.name : "workflow";
@@ -1061,7 +1068,7 @@ export async function createProgram(): Promise<CommanderCommand> {
 
           const useServer = Boolean(opts.apiUrl);
           const apiUrl = opts.apiUrl ? trimTrailingSlashes(opts.apiUrl) : "";
-          if (!useServer) ensureDb();
+          if (!useServer) await ensureDb();
           const workflowsToPack: BundleWf[] = [];
           for (const idOrFile of idsOrFiles) {
             const isFile =

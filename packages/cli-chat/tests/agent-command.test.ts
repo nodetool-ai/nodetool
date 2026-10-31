@@ -232,7 +232,7 @@ vi.mock("@nodetool-ai/cli-providers", () => ({
 const { ScriptedProvider, textScript, toolCallScript } = await import(
   "../../runtime/src/providers/scripted-provider.js"
 );
-const { runAgentCommand, resolveAgentModel } = await import("../src/commands/agent.js");
+const { runAgentCommand, resolveAgentModel, runPreferences } = await import("../src/commands/agent.js");
 const { headlessDenialReason } = await import(
   "../../runtime/src/permission-gate.js"
 );
@@ -495,6 +495,13 @@ describe("the budget a CLI run holds", () => {
   it("uses the provider's default model when --model is omitted", () => {
     expect(resolveAgentModel("claude_agent_sdk", undefined)).toBe("sonnet");
     expect(resolveAgentModel("claude_agent_sdk", "opus")).toBe("opus");
+  });
+
+  it("tells the agent to use the run's provider and model in what it builds", () => {
+    const text = runPreferences("claude_agent_sdk", "sonnet", "/tmp/ws");
+    expect(text).toContain('"provider":"claude_agent_sdk","id":"sonnet"');
+    expect(text).toContain("cheapest");
+    expect(text).toContain("/tmp/ws");
   });
 
   it("names the model listing command when a provider has no default model", () => {

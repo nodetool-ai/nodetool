@@ -368,6 +368,16 @@ export async function migrateSqliteDb(dbPath: string): Promise<string[]> {
 }
 
 /**
+ * Migrate a local SQLite file, then open it. Use this rather than `initDb`
+ * for a file database: `initDb` applies only the baseline schema, so columns
+ * added later (such as `nodetool_assets.favorite`) are missing on a new file.
+ */
+export async function initMigratedDb(dbPath: string): Promise<void> {
+  await migrateSqliteDb(dbPath);
+  initDb(dbPath);
+}
+
+/**
  * Close the database connection and reset state.
  * For PostgreSQL, returns a Promise that resolves once the connection pool is drained.
  */

@@ -97,11 +97,11 @@ export function registerNodeCommands(program: Command): void {
           | ((key: string) => Promise<string | null>)
           | undefined;
         if (useSecrets) {
-          const { initDb } = await import("@nodetool-ai/models");
+          const { initMigratedDb } = await import("@nodetool-ai/models");
           const { resolveLocalSecret } = await import("@nodetool-ai/cli-local/local-secrets");
           const { initMasterKey } = await import("@nodetool-ai/security");
           const { getDefaultDbPath } = await import("@nodetool-ai/config");
-          initDb(getDefaultDbPath());
+          await initMigratedDb(getDefaultDbPath());
           try {
             await initMasterKey();
           } catch {

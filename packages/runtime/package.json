@@ -24,7 +24,7 @@
     "@nodetool-ai/config": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/storage": "*",
-    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/api": "~1.9.0",
     "@pydantic/genai-prices": "^0.1.9",
     "fflate": "^0.8.2",
     "msgpackr": "^1.11.2",

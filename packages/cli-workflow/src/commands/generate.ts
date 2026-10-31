@@ -148,10 +148,10 @@ function resolveImageModel(
 /** Init the secret DB so encrypted keys resolve; env-only keys work regardless. */
 async function initSecretStore(): Promise<void> {
   try {
-    const { initDb } = await import("@nodetool-ai/models");
+    const { initMigratedDb } = await import("@nodetool-ai/models");
     const { initMasterKey } = await import("@nodetool-ai/security");
     const { getDefaultDbPath } = await import("@nodetool-ai/config");
-    initDb(getDefaultDbPath());
+    await initMigratedDb(getDefaultDbPath());
     try {
       await initMasterKey();
     } catch {

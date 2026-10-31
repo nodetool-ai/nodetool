@@ -15,7 +15,7 @@ export async function resolveWorkflowPacks(
   const load = async (id: string) => {
     db ??= import("@nodetool-ai/models").then(async (models) => {
       const { getDefaultDbPath } = await import("@nodetool-ai/config");
-      models.initDb(getDefaultDbPath());
+      await models.initMigratedDb(getDefaultDbPath());
       return models;
     });
     return (await db).Workflow.find("1", id);

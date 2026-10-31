@@ -25,7 +25,7 @@ describe('feature recovery at CLI boundaries', () => {
       expect(failure).toBeInstanceOf(Error);
       const payload = JSON.parse(formatCliError(failure));
       expect(payload.validation_issues).toEqual(JSON.parse(output.join('')).issues);
-      expect(payload).toMatchObject({code:'FEATURE_NOT_INSTALLED',featureIds:['automation'],recovery:[{featureId:'automation',packId:'automation',packageName:'@nodetool-ai/automation-nodes',installCommand:'nodetool packs add automation --yes',adapterInstallCommand:'npm install @nodetool-ai/server-feature-packs',configuration:expect.stringContaining('isolatedBrowserService(browser)'),restart:expect.stringContaining('Restart')}],validation_issues:[{nodeType:'lib.browser.Screenshot'}]});
+      expect(payload).toMatchObject({code:'FEATURE_NOT_INSTALLED',featureIds:['automation'],recovery:[{featureId:'automation',packId:'automation',packageName:'@nodetool-ai/automation-nodes',installCommand:'nodetool packs add automation --yes',adapterInstallCommand:'npm install @nodetool-ai/server-feature-packs',configuration:expect.stringContaining('nodetool packs add cli-workflow --yes'),restart:'Run the command again.'}],validation_issues:[{nodeType:'lib.browser.Screenshot'}]});
     } finally {await rm(directory,{recursive:true,force:true});}
   });
   it.each(['FEATURE_NOT_INSTALLED','FEATURE_NOT_CONFIGURED','FEATURE_INITIALIZATION_FAILED'])('preserves %s HTTP recovery payload in CLI stderr', async code => {

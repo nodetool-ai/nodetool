@@ -100,8 +100,33 @@ export function parseInstallPlan(output: string, npmVersion: string): InstallPla
   return { add, change, remove };
 }
 
+/** "name from → to" for an npm plan entry, or its JSON when the shape is unknown. */
+function describePlanChange(entry: unknown): string {
+  const parsed = z.object({
+    from: z.object({ name: z.string(), version: z.string() }).optional(),
+    to: z.object({ name: z.string(), version: z.string() }).optional(),
+    name: z.string().optional(),
+    version: z.string().optional()
+  }).safeParse(entry);
+  if (!parsed.success) return JSON.stringify(entry);
+  const { from, to, name, version } = parsed.data;
+  if (from && to) return `${from.name} ${from.version} → ${to.version}`;
+  if (from) return `${from.name} ${from.version}`;
+  if (name) return version ? `${name} ${version}` : name;
+  return JSON.stringify(entry);
+}
+
 export function assertAdditivePlan(plan: InstallPlan, before: readonly TreePackage[], coreNames: ReadonlySet<string>, shared: readonly PinnedPackage[], coreVersion: string): void {
-  if (plan.change.length || plan.remove.length) { throw new Error(`npm plan changes or removes installed packages: ${JSON.stringify({ change: plan.change, remove: plan.remove })}`); }
+  if (plan.change.length || plan.remove.length) {
+    const changed = plan.change.map(describePlanChange);
+    const removed = plan.remove.map(describePlanChange);
+    throw new Error([
+      "npm plan changes or removes installed packages, so this install was refused.",
+      ...changed.map((entry) => `  change ${entry}`),
+      ...removed.map((entry) => `  remove ${entry}`),
+      "A pack can only add packages. The pinned versions need a version that the installed tree does not have."
+    ].join("\n"));
+  }
   const identities = new Set(shared.map((pin) => pin.name));
   const existing = new Set(before.map((entry) => entry.name));
   const added = new Set<string>();

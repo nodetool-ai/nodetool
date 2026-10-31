@@ -335,3 +335,28 @@ describe("formatValidationIssues", () => {
     expect(formatValidationIssues([])).toBe("");
   });
 });
+
+describe("validateNodeProperties scalar types", () => {
+  const declared = [
+    { name: "steps", options: { type: "int" } },
+    { name: "scale", options: { type: "float" } },
+    { name: "flag", options: { type: "bool" } }
+  ];
+
+  it("rejects a value that cannot be read as the declared scalar", () => {
+    const issues = validateNodeProperties(declared, { steps: "four", scale: "x", flag: "maybe" });
+    expect(issues.map((i) => [i.property, i.code])).toEqual([
+      ["steps", "property_type_mismatch"],
+      ["scale", "property_type_mismatch"],
+      ["flag", "property_type_mismatch"]
+    ]);
+    expect(issues[0].message).toContain("a whole number");
+  });
+
+  it("accepts convertible strings, unset values and connected inputs", () => {
+    expect(validateNodeProperties(declared, { steps: "4", scale: "1.5", flag: "true" })).toEqual([]);
+    expect(validateNodeProperties(declared, { steps: "", scale: null })).toEqual([]);
+    expect(validateNodeProperties(declared, { steps: "four" }, { connectedHandles: ["steps"] })).toEqual([]);
+    expect(validateNodeProperties(declared, { steps: 2.5 })[0]?.code).toBe("property_type_mismatch");
+  });
+});

@@ -48,7 +48,7 @@ describe("standalone command database startup", () => {
     await Promise.all([first, setupLocalDb()]);
     expect(state.initialize).toHaveBeenCalledOnce();
     expect(state.unlock).toHaveBeenCalledOnce();
-    expect(state.migrate).not.toHaveBeenCalled();
+    expect(state.migrate).toHaveBeenCalledOnce();
   });
 
   it("does not initialize or unlock credentials after migration fails", async () => {

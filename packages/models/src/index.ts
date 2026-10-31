@@ -11,6 +11,7 @@ export {
   initPostgresDb,
   initTestDb,
   migrateSqliteDb,
+  initMigratedDb,
   getPortableDb,
   getDb,
   getDatabase,

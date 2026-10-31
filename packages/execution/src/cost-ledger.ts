@@ -484,6 +484,22 @@ export async function recordFromMessage(
       state.receiptCostNodes.delete(msg.node_id);
       return;
     }
+    // Some nodes name their type, not their id, on the seam request.
+    const seamKey = [msg.node_id, msg.node_type].find((key) => key && state.seamRows.has(key));
+    const seamRowId = seamKey ? state.seamRows.get(seamKey) : undefined;
+    if (seamKey && seamRowId) {
+      state.seamRows.delete(seamKey);
+      // The node measured what it produced, so its figure replaces the
+      // catalog estimate on the row the seam already wrote.
+      const cost = msg.provider_cost;
+      await Prediction.patchReconciliation(seamRowId, {
+        cost: cost.amount,
+        currency: cost.currency ?? "USD",
+        quantity: cost.quantity ?? null,
+        unit_price: cost.unit_price ?? null
+      }).catch(() => false);
+      return;
+    }
     await recordNodeProviderCost({
       userId: options.userId,
       appRunContext: options.appRunContext,

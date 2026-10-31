@@ -8,6 +8,7 @@
 
 // 
 import { describe, it, expect } from "vitest";
+import { setNodeCost } from "@nodetool-ai/execution-core/invocation-account";
 import { NodeActor, type NodeExecutor } from "../src/actor.js";
 import { NodeInbox } from "../src/inbox.js";
 import type { NodeAnalysis } from "../src/correlation-analysis.js";
@@ -175,20 +176,34 @@ describe("NodeActor._emitNodeStatus & skipResult", () => {
   it("emits node_name (name ?? type), node_type and provider_cost", async () => {
     const node = makeNode({ is_streaming_input: true, name: "Friendly" });
     const inbox = new NodeInbox();
-    const executor: NodeExecutor = { async process() { return {}; } };
-    const ctx = {
-      clearProviderCost: () => {},
-      getProviderCost: () => 1.25
-    } as never;
-    const { actor, messages } = createActor(node, inbox, executor, {
-      executionContext: ctx
-    });
+    const charge = { provider: "fal", amount: 1.25, unit: "USD" };
+    const executor: NodeExecutor = {
+      async process() {
+        setNodeCost(charge);
+        return {};
+      }
+    };
+    const { actor, messages } = createActor(node, inbox, executor);
     await actor.run();
     const running = statusMsg(messages, "running")!;
     expect(running.node_name).toBe("Friendly");
     expect(running.node_type).toBe("test.Node");
     const completed = statusMsg(messages, "completed")!;
-    expect(completed.provider_cost).toBe(1.25);
+    expect(completed.provider_cost).toEqual(charge);
+  });
+
+  it("does not report a charge another node set on the shared context", async () => {
+    const ctx = {
+      clearProviderCost: () => {},
+      getProviderCost: () => ({ provider: "fal", amount: 1, unit: "USD" })
+    } as never;
+    const node = makeNode({ is_streaming_input: true });
+    const executor: NodeExecutor = { async process() { return {}; } };
+    const { actor, messages } = createActor(node, new NodeInbox(), executor, {
+      executionContext: ctx
+    });
+    await actor.run();
+    expect(statusMsg(messages, "completed")?.provider_cost).toBeNull();
   });
 
   it("falls back to node.type for node_name when name is absent", async () => {

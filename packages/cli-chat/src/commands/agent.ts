@@ -23,7 +23,7 @@ import type { BaseProvider, Message } from "@nodetool-ai/runtime";
 import { RUN_BUDGET_CONTEXT_KEY } from "@nodetool-ai/runtime";
 import { PERMISSION_GATE_CONTEXT_KEY } from "@nodetool-ai/agents";
 import { processChat } from "@nodetool-ai/chat";
-import { initDb } from "@nodetool-ai/models";
+import { initMigratedDb } from "@nodetool-ai/models";
 import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
 import { type ProcessingMessage } from "@nodetool-ai/protocol";
 import { createProvider, buildConfiguredProviders, DEFAULT_MODELS } from "@nodetool-ai/cli-providers";
@@ -201,6 +201,21 @@ function finalAssistantText(messages: Message[]): string | null {
   return null;
 }
 
+/**
+ * What the run was started with, as rules the agent applies to the workflows
+ * and tools it chooses. Without them it picked other language-model
+ * providers and the most expensive media model, and kept workflows only in
+ * the database.
+ */
+export function runPreferences(providerId: string, modelId: string, workspaceDir: string): string {
+  return [
+    "## Run preferences",
+    `- This run uses the ${providerId} provider with model ${modelId}. When a workflow node or tool needs a language model, use {"type":"language_model","provider":"${providerId}","id":"${modelId}"} unless the objective names another one.`,
+    "- Use only the providers the objective names. If it names none for media, ask find_model for the options and pick the cheapest model that does the job.",
+    `- When you create a workflow, also write it as a JSON file in the workspace (${workspaceDir}), so the user can run it with \`nodetool run <file>\`.`
+  ].join("\n");
+}
+
 /** The requested model, else the provider's default model. */
 export function resolveAgentModel(providerId: string, model: string | undefined): string {
   const modelId = model ?? DEFAULT_MODELS[providerId];
@@ -224,7 +239,7 @@ export async function runAgentCommand(opts: RunOptions): Promise<number> {
 
   // DB for secrets
   try {
-    initDb(getDefaultDbPath());
+    await initMigratedDb(getDefaultDbPath());
   } catch {
     /* fallback to env vars */
   }
@@ -364,7 +379,7 @@ export async function runAgentCommand(opts: RunOptions): Promise<number> {
     }
   });
   const messages: Message[] = [];
-  applySystemPrompt(messages, turn.systemPrompt);
+  applySystemPrompt(messages, `${turn.systemPrompt}\n\n${runPreferences(providerId, modelId, workspaceDir)}`);
 
   let errored = false;
   try {
