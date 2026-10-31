@@ -1,10 +1,14 @@
 [
   {
-    "id": "camera.crane-up",
+    "id": "camera.arc",
     "version": 1,
     "kind": "camera",
-    "name": "Crane up",
-    "description": "The camera rises vertically to reveal the surroundings.",
+    "name": "arc",
+    "description": "Camera travels through a gentle quarter-circle around the subject at constant height.",
+    "tags": [
+      "camera",
+      "move"
+    ],
     "slot": "move",
     "modes": [
       "video",
@@ -12,23 +16,185 @@
       "reference_to_video"
     ],
     "stackable": true,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "Camera travels through a gentle quarter-circle around the subject at constant height.",
+      "kling": "Camera travels through a gentle quarter-circle around the subject at constant height.",
+      "seedance": "Camera travels through a gentle quarter-circle around the subject at constant height throughout one continuous shot.",
+      "veo": "Camera travels through a gentle quarter-circle around the subject at constant height.",
+      "wan": "Camera travels through a gentle quarter-circle around the subject at constant height."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.bullet-time",
+    "version": 1,
+    "kind": "camera",
+    "name": "bullet time",
+    "description": "Camera arcs around the subject while the action hangs nearly frozen in time.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "bullet time"
+    ],
+    "prompt": {
+      "default": "Camera arcs around the subject while the action hangs nearly frozen in time.",
+      "kling": "Camera arcs around the subject while the action hangs nearly frozen in time.",
+      "seedance": "Camera arcs around the subject while the action hangs nearly frozen in time throughout one continuous shot.",
+      "veo": "Camera arcs around the subject while the action hangs nearly frozen in time.",
+      "wan": "Camera arcs around the subject while the action hangs nearly frozen in time."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.crane-down",
+    "version": 1,
+    "kind": "camera",
+    "name": "crane down",
+    "description": "Camera cranes downward and tilts up to keep the subject framed.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.crane-up"
+    ],
+    "aliases": [
+      "crane down"
+    ],
+    "prompt": {
+      "default": "Camera cranes downward and tilts up to keep the subject framed.",
+      "kling": "Camera cranes downward and tilts up to keep the subject framed.",
+      "seedance": "Camera cranes downward and tilts up to keep the subject framed throughout one continuous shot.",
+      "veo": "Camera cranes downward and tilts up to keep the subject framed.",
+      "wan": "Camera cranes downward and tilts up to keep the subject framed."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.crane-up",
+    "version": 1,
+    "kind": "camera",
+    "name": "crane up",
+    "description": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.crane-down"
+    ],
     "aliases": [
       "crane up"
     ],
     "prompt": {
-      "default": "The camera rises vertically to reveal the surroundings.",
-      "kling": "The camera rises vertically to reveal the surroundings.",
-      "seedance": "The camera rises vertically to reveal the surroundings.",
-      "veo": "The camera rises vertically to reveal the surroundings.",
-      "wan": "The camera rises vertically to reveal the surroundings."
-    }
+      "default": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear.",
+      "kling": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear.",
+      "seedance": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear throughout one continuous shot.",
+      "veo": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear.",
+      "wan": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.crash-zoom-in",
+    "version": 1,
+    "kind": "camera",
+    "name": "crash zoom in",
+    "description": "Lens zooms rapidly into the subject from a fixed camera position.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.crash-zoom-out"
+    ],
+    "aliases": [
+      "crash zoom in"
+    ],
+    "prompt": {
+      "default": "Lens zooms rapidly into the subject from a fixed camera position.",
+      "kling": "Lens zooms rapidly into the subject from a fixed camera position.",
+      "seedance": "Lens zooms rapidly into the subject from a fixed camera position throughout one continuous shot.",
+      "veo": "Lens zooms rapidly into the subject from a fixed camera position.",
+      "wan": "Lens zooms rapidly into the subject from a fixed camera position."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.crash-zoom-out",
+    "version": 1,
+    "kind": "camera",
+    "name": "crash zoom out",
+    "description": "Lens zooms rapidly out from the subject from a fixed camera position.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.crash-zoom-in"
+    ],
+    "aliases": [
+      "crash zoom out"
+    ],
+    "prompt": {
+      "default": "Lens zooms rapidly out from the subject from a fixed camera position.",
+      "kling": "Lens zooms rapidly out from the subject from a fixed camera position.",
+      "seedance": "Lens zooms rapidly out from the subject from a fixed camera position throughout one continuous shot.",
+      "veo": "Lens zooms rapidly out from the subject from a fixed camera position.",
+      "wan": "Lens zooms rapidly out from the subject from a fixed camera position."
+    },
+    "params": {}
   },
   {
     "id": "camera.dolly-in",
     "version": 1,
     "kind": "camera",
-    "name": "Dolly in",
-    "description": "The camera dollies smoothly toward the subject.",
+    "name": "dolly in",
+    "description": "Camera dollies smoothly toward the subject with visible depth change.",
+    "tags": [
+      "camera",
+      "move"
+    ],
     "slot": "move",
     "modes": [
       "video",
@@ -36,23 +202,308 @@
       "reference_to_video"
     ],
     "stackable": true,
+    "conflicts": [
+      "camera.dolly-out",
+      "camera.slow-pull-out"
+    ],
     "aliases": [
-      "dolly in"
+      "dolly in",
+      "slow push in",
+      "push in slow"
     ],
     "prompt": {
-      "default": "The camera dollies smoothly toward the subject.",
-      "kling": "The camera dollies smoothly toward the subject.",
-      "seedance": "The camera dollies smoothly toward the subject.",
-      "veo": "The camera dollies smoothly toward the subject.",
-      "wan": "The camera dollies smoothly toward the subject."
-    }
+      "default": "Camera dollies smoothly toward the subject with visible depth change.",
+      "kling": "Camera dollies smoothly toward the subject with visible depth change.",
+      "seedance": "Camera dollies smoothly toward the subject with visible depth change throughout one continuous shot.",
+      "veo": "Camera dollies smoothly toward the subject with visible depth change.",
+      "wan": "Camera dollies smoothly toward the subject with visible depth change."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.dolly-out",
+    "version": 1,
+    "kind": "camera",
+    "name": "dolly out",
+    "description": "Camera dollies smoothly away from the subject with visible depth change.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.dolly-in"
+    ],
+    "aliases": [
+      "dolly out"
+    ],
+    "prompt": {
+      "default": "Camera dollies smoothly away from the subject with visible depth change.",
+      "kling": "Camera dollies smoothly away from the subject with visible depth change.",
+      "seedance": "Camera dollies smoothly away from the subject with visible depth change throughout one continuous shot.",
+      "veo": "Camera dollies smoothly away from the subject with visible depth change.",
+      "wan": "Camera dollies smoothly away from the subject with visible depth change."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.dolly-zoom",
+    "version": 1,
+    "kind": "camera",
+    "name": "dolly zoom (vertigo)",
+    "description": "Camera dollies backward while zooming in, holding subject size as the background expands.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [
+      "dolly zoom (vertigo)"
+    ],
+    "prompt": {
+      "default": "Camera dollies backward while zooming in, holding subject size as the background expands.",
+      "kling": "Camera dollies backward while zooming in, holding subject size as the background expands.",
+      "seedance": "Camera dollies backward while zooming in, holding subject size as the background expands throughout one continuous shot.",
+      "veo": "Camera dollies backward while zooming in, holding subject size as the background expands.",
+      "wan": "Camera dollies backward while zooming in, holding subject size as the background expands."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.dutch-roll",
+    "version": 1,
+    "kind": "camera",
+    "name": "dutch roll",
+    "description": "Camera rolls gradually around its optical axis, tilting the horizon.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "Camera rolls gradually around its optical axis, tilting the horizon.",
+      "kling": "Camera rolls gradually around its optical axis, tilting the horizon.",
+      "seedance": "Camera rolls gradually around its optical axis, tilting the horizon throughout one continuous shot.",
+      "veo": "Camera rolls gradually around its optical axis, tilting the horizon.",
+      "wan": "Camera rolls gradually around its optical axis, tilting the horizon."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.fpv-drone-fly-through",
+    "version": 1,
+    "kind": "camera",
+    "name": "FPV drone fly-through",
+    "description": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path.",
+    "tags": [
+      "camera",
+      "rig"
+    ],
+    "slot": "rig",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "FPV drone fly-through"
+    ],
+    "prompt": {
+      "default": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path.",
+      "kling": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path.",
+      "seedance": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path throughout one continuous shot.",
+      "veo": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path.",
+      "wan": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.handheld-follow",
+    "version": 1,
+    "kind": "camera",
+    "name": "handheld follow",
+    "description": "Camera follows behind the moving subject with subtle handheld sway.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [
+      "handheld follow"
+    ],
+    "prompt": {
+      "default": "Camera follows behind the moving subject with subtle handheld sway.",
+      "kling": "Camera follows behind the moving subject with subtle handheld sway.",
+      "seedance": "Camera follows behind the moving subject with subtle handheld sway throughout one continuous shot.",
+      "veo": "Camera follows behind the moving subject with subtle handheld sway.",
+      "wan": "Camera follows behind the moving subject with subtle handheld sway."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.handheld",
+    "version": 1,
+    "kind": "camera",
+    "name": "handheld",
+    "description": "Camera has gentle irregular handheld sway.",
+    "tags": [
+      "camera",
+      "rig"
+    ],
+    "slot": "rig",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [
+      "handheld"
+    ],
+    "prompt": {
+      "default": "Camera has gentle irregular handheld sway.",
+      "kling": "Camera has gentle irregular handheld sway.",
+      "seedance": "Camera has gentle irregular handheld sway throughout one continuous shot.",
+      "veo": "Camera has gentle irregular handheld sway.",
+      "wan": "Camera has gentle irregular handheld sway."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.low-angle-hero-rise",
+    "version": 1,
+    "kind": "camera",
+    "name": "low-angle hero rise",
+    "description": "Camera rises from ground level toward a low-angle view of the subject.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [
+      "low-angle hero rise"
+    ],
+    "prompt": {
+      "default": "Camera rises from ground level toward a low-angle view of the subject.",
+      "kling": "Camera rises from ground level toward a low-angle view of the subject.",
+      "seedance": "Camera rises from ground level toward a low-angle view of the subject throughout one continuous shot.",
+      "veo": "Camera rises from ground level toward a low-angle view of the subject.",
+      "wan": "Camera rises from ground level toward a low-angle view of the subject."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.orbit-left",
+    "version": 1,
+    "kind": "camera",
+    "name": "orbit left",
+    "description": "Camera arcs left around the subject at a steady distance.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.orbit-right"
+    ],
+    "aliases": [
+      "orbit left"
+    ],
+    "prompt": {
+      "default": "Camera arcs left around the subject at a steady distance.",
+      "kling": "Camera arcs left around the subject at a steady distance.",
+      "seedance": "Camera arcs left around the subject at a steady distance throughout one continuous shot.",
+      "veo": "Camera arcs left around the subject at a steady distance.",
+      "wan": "Camera arcs left around the subject at a steady distance."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.orbit-right",
+    "version": 1,
+    "kind": "camera",
+    "name": "orbit right",
+    "description": "Camera arcs right around the subject at a steady distance.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.orbit-left"
+    ],
+    "aliases": [
+      "orbit right"
+    ],
+    "prompt": {
+      "default": "Camera arcs right around the subject at a steady distance.",
+      "kling": "Camera arcs right around the subject at a steady distance.",
+      "seedance": "Camera arcs right around the subject at a steady distance throughout one continuous shot.",
+      "veo": "Camera arcs right around the subject at a steady distance.",
+      "wan": "Camera arcs right around the subject at a steady distance."
+    },
+    "params": {}
   },
   {
     "id": "camera.orbit",
     "version": 1,
     "kind": "camera",
-    "name": "Orbit",
-    "description": "The camera orbits the subject at a steady distance.",
+    "name": "orbit",
+    "description": "Camera completes a full circle around the subject at a steady distance.",
+    "tags": [
+      "camera",
+      "move"
+    ],
     "slot": "move",
     "modes": [
       "video",
@@ -60,15 +511,724 @@
       "reference_to_video"
     ],
     "stackable": true,
+    "conflicts": [],
     "aliases": [
-      "orbit"
+      "orbit",
+      "360 orbit"
     ],
     "prompt": {
-      "default": "The camera orbits the subject at a steady distance.",
-      "kling": "The camera orbits the subject at a steady distance.",
-      "seedance": "The camera orbits the subject at a steady distance.",
-      "veo": "The camera orbits the subject at a steady distance.",
-      "wan": "The camera orbits the subject at a steady distance."
-    }
+      "default": "Camera completes a full circle around the subject at a steady distance.",
+      "kling": "Camera completes a full circle around the subject at a steady distance.",
+      "seedance": "Camera completes a full circle around the subject at a steady distance throughout one continuous shot.",
+      "veo": "Camera completes a full circle around the subject at a steady distance.",
+      "wan": "Camera completes a full circle around the subject at a steady distance."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.overhead-spiral",
+    "version": 1,
+    "kind": "camera",
+    "name": "overhead spiral",
+    "description": "Camera ascends in a widening spiral while looking down at the subject.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "overhead spiral"
+    ],
+    "prompt": {
+      "default": "Camera ascends in a widening spiral while looking down at the subject.",
+      "kling": "Camera ascends in a widening spiral while looking down at the subject.",
+      "seedance": "Camera ascends in a widening spiral while looking down at the subject throughout one continuous shot.",
+      "veo": "Camera ascends in a widening spiral while looking down at the subject.",
+      "wan": "Camera ascends in a widening spiral while looking down at the subject."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.pan-left",
+    "version": 1,
+    "kind": "camera",
+    "name": "pan left",
+    "description": "Camera pans left from a fixed position.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.pan-right"
+    ],
+    "aliases": [
+      "pan left"
+    ],
+    "prompt": {
+      "default": "Camera pans left from a fixed position.",
+      "kling": "Camera pans left from a fixed position.",
+      "seedance": "Camera pans left from a fixed position throughout one continuous shot.",
+      "veo": "Camera pans left from a fixed position.",
+      "wan": "Camera pans left from a fixed position."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.pan-right",
+    "version": 1,
+    "kind": "camera",
+    "name": "pan right",
+    "description": "Camera pans right from a fixed position.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.pan-left"
+    ],
+    "aliases": [
+      "pan right"
+    ],
+    "prompt": {
+      "default": "Camera pans right from a fixed position.",
+      "kling": "Camera pans right from a fixed position.",
+      "seedance": "Camera pans right from a fixed position throughout one continuous shot.",
+      "veo": "Camera pans right from a fixed position.",
+      "wan": "Camera pans right from a fixed position."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.parallax-slide",
+    "version": 1,
+    "kind": "camera",
+    "name": "parallax slide",
+    "description": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly.",
+      "kling": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly.",
+      "seedance": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly throughout one continuous shot.",
+      "veo": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly.",
+      "wan": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.pedestal-down",
+    "version": 1,
+    "kind": "camera",
+    "name": "pedestal down",
+    "description": "Camera lowers vertically without tilting.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.pedestal-up"
+    ],
+    "aliases": [
+      "pedestal down"
+    ],
+    "prompt": {
+      "default": "Camera lowers vertically without tilting.",
+      "kling": "Camera lowers vertically without tilting.",
+      "seedance": "Camera lowers vertically without tilting throughout one continuous shot.",
+      "veo": "Camera lowers vertically without tilting.",
+      "wan": "Camera lowers vertically without tilting."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.pedestal-up",
+    "version": 1,
+    "kind": "camera",
+    "name": "pedestal up",
+    "description": "Camera rises vertically without tilting.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.pedestal-down"
+    ],
+    "aliases": [
+      "pedestal up"
+    ],
+    "prompt": {
+      "default": "Camera rises vertically without tilting.",
+      "kling": "Camera rises vertically without tilting.",
+      "seedance": "Camera rises vertically without tilting throughout one continuous shot.",
+      "veo": "Camera rises vertically without tilting.",
+      "wan": "Camera rises vertically without tilting."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.pull-back-reveal",
+    "version": 1,
+    "kind": "camera",
+    "name": "pull back reveal",
+    "description": "Camera pulls back from a close view to reveal the surroundings.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [
+      "pull back reveal"
+    ],
+    "prompt": {
+      "default": "Camera pulls back from a close view to reveal the surroundings.",
+      "kling": "Camera pulls back from a close view to reveal the surroundings.",
+      "seedance": "Camera pulls back from a close view to reveal the surroundings throughout one continuous shot.",
+      "veo": "Camera pulls back from a close view to reveal the surroundings.",
+      "wan": "Camera pulls back from a close view to reveal the surroundings."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.rack-focus",
+    "version": 1,
+    "kind": "camera",
+    "name": "rack focus",
+    "description": "Focus shifts smoothly from foreground to background with fixed framing.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "rack focus"
+    ],
+    "prompt": {
+      "default": "Focus shifts smoothly from foreground to background with fixed framing.",
+      "kling": "Focus shifts smoothly from foreground to background with fixed framing.",
+      "seedance": "Focus shifts smoothly from foreground to background with fixed framing throughout one continuous shot.",
+      "veo": "Focus shifts smoothly from foreground to background with fixed framing.",
+      "wan": "Focus shifts smoothly from foreground to background with fixed framing."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.slow-pull-out",
+    "version": 1,
+    "kind": "camera",
+    "name": "slow pull out",
+    "description": "Camera slowly pulls away from the subject.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.dolly-in"
+    ],
+    "aliases": [
+      "slow pull out"
+    ],
+    "prompt": {
+      "default": "Camera slowly pulls away from the subject.",
+      "kling": "Camera slowly pulls away from the subject.",
+      "seedance": "Camera slowly pulls away from the subject throughout one continuous shot.",
+      "veo": "Camera slowly pulls away from the subject.",
+      "wan": "Camera slowly pulls away from the subject."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.snorricam",
+    "version": 1,
+    "kind": "camera",
+    "name": "snorricam",
+    "description": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts.",
+    "tags": [
+      "camera",
+      "rig"
+    ],
+    "slot": "rig",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "snorricam"
+    ],
+    "prompt": {
+      "default": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts.",
+      "kling": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts.",
+      "seedance": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts throughout one continuous shot.",
+      "veo": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts.",
+      "wan": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.speed-ramp",
+    "version": 1,
+    "kind": "camera",
+    "name": "speed ramp",
+    "description": "Motion accelerates from normal speed into a rapid burst then eases into slow motion.",
+    "tags": [
+      "camera",
+      "speed"
+    ],
+    "slot": "speed",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "Motion accelerates from normal speed into a rapid burst then eases into slow motion.",
+      "kling": "Motion accelerates from normal speed into a rapid burst then eases into slow motion.",
+      "seedance": "Motion accelerates from normal speed into a rapid burst then eases into slow motion throughout one continuous shot.",
+      "veo": "Motion accelerates from normal speed into a rapid burst then eases into slow motion.",
+      "wan": "Motion accelerates from normal speed into a rapid burst then eases into slow motion."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.static",
+    "version": 1,
+    "kind": "camera",
+    "name": "static",
+    "description": "Camera locked off with fixed framing.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": false,
+    "conflicts": [],
+    "aliases": [
+      "static"
+    ],
+    "prompt": {
+      "default": "Camera locked off with fixed framing.",
+      "kling": "Camera locked off with fixed framing.",
+      "seedance": "Camera locked off with fixed framing throughout one continuous shot.",
+      "veo": "Camera locked off with fixed framing.",
+      "wan": "Camera locked off with fixed framing."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.steadicam",
+    "version": 1,
+    "kind": "camera",
+    "name": "steadicam",
+    "description": "Camera is stabilized on a Steadicam with smooth floating motion.",
+    "tags": [
+      "camera",
+      "rig"
+    ],
+    "slot": "rig",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [],
+    "prompt": {
+      "default": "Camera is stabilized on a Steadicam with smooth floating motion.",
+      "kling": "Camera is stabilized on a Steadicam with smooth floating motion.",
+      "seedance": "Camera is stabilized on a Steadicam with smooth floating motion throughout one continuous shot.",
+      "veo": "Camera is stabilized on a Steadicam with smooth floating motion.",
+      "wan": "Camera is stabilized on a Steadicam with smooth floating motion."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.through-object-pass",
+    "version": 1,
+    "kind": "camera",
+    "name": "through-object pass",
+    "description": "Camera advances through an opening in the foreground object to reveal the subject beyond.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [
+      "through-object pass"
+    ],
+    "prompt": {
+      "default": "Camera advances through an opening in the foreground object to reveal the subject beyond.",
+      "kling": "Camera advances through an opening in the foreground object to reveal the subject beyond.",
+      "seedance": "Camera advances through an opening in the foreground object to reveal the subject beyond throughout one continuous shot.",
+      "veo": "Camera advances through an opening in the foreground object to reveal the subject beyond.",
+      "wan": "Camera advances through an opening in the foreground object to reveal the subject beyond."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.tilt-down",
+    "version": 1,
+    "kind": "camera",
+    "name": "tilt down",
+    "description": "Camera tilts downward from a fixed position.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.tilt-up"
+    ],
+    "aliases": [
+      "tilt down"
+    ],
+    "prompt": {
+      "default": "Camera tilts downward from a fixed position.",
+      "kling": "Camera tilts downward from a fixed position.",
+      "seedance": "Camera tilts downward from a fixed position throughout one continuous shot.",
+      "veo": "Camera tilts downward from a fixed position.",
+      "wan": "Camera tilts downward from a fixed position."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.tilt-up",
+    "version": 1,
+    "kind": "camera",
+    "name": "tilt up",
+    "description": "Camera tilts upward from a fixed position.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.tilt-down"
+    ],
+    "aliases": [
+      "tilt up"
+    ],
+    "prompt": {
+      "default": "Camera tilts upward from a fixed position.",
+      "kling": "Camera tilts upward from a fixed position.",
+      "seedance": "Camera tilts upward from a fixed position throughout one continuous shot.",
+      "veo": "Camera tilts upward from a fixed position.",
+      "wan": "Camera tilts upward from a fixed position."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.top-down-rise",
+    "version": 1,
+    "kind": "camera",
+    "name": "top-down rise",
+    "description": "Camera rises straight upward while looking vertically down, widening the view.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [
+      "top-down rise"
+    ],
+    "prompt": {
+      "default": "Camera rises straight upward while looking vertically down, widening the view.",
+      "kling": "Camera rises straight upward while looking vertically down, widening the view.",
+      "seedance": "Camera rises straight upward while looking vertically down, widening the view throughout one continuous shot.",
+      "veo": "Camera rises straight upward while looking vertically down, widening the view.",
+      "wan": "Camera rises straight upward while looking vertically down, widening the view."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.tracking",
+    "version": 1,
+    "kind": "camera",
+    "name": "tracking",
+    "description": "Camera tracks alongside the moving subject at matching speed.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [
+      "tracking"
+    ],
+    "prompt": {
+      "default": "Camera tracks alongside the moving subject at matching speed.",
+      "kling": "Camera tracks alongside the moving subject at matching speed.",
+      "seedance": "Camera tracks alongside the moving subject at matching speed throughout one continuous shot.",
+      "veo": "Camera tracks alongside the moving subject at matching speed.",
+      "wan": "Camera tracks alongside the moving subject at matching speed."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.truck-left",
+    "version": 1,
+    "kind": "camera",
+    "name": "truck left",
+    "description": "Camera translates left parallel to the subject.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.truck-right"
+    ],
+    "aliases": [
+      "truck left"
+    ],
+    "prompt": {
+      "default": "Camera translates left parallel to the subject.",
+      "kling": "Camera translates left parallel to the subject.",
+      "seedance": "Camera translates left parallel to the subject throughout one continuous shot.",
+      "veo": "Camera translates left parallel to the subject.",
+      "wan": "Camera translates left parallel to the subject."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.truck-right",
+    "version": 1,
+    "kind": "camera",
+    "name": "truck right",
+    "description": "Camera translates right parallel to the subject.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.truck-left"
+    ],
+    "aliases": [
+      "truck right"
+    ],
+    "prompt": {
+      "default": "Camera translates right parallel to the subject.",
+      "kling": "Camera translates right parallel to the subject.",
+      "seedance": "Camera translates right parallel to the subject throughout one continuous shot.",
+      "veo": "Camera translates right parallel to the subject.",
+      "wan": "Camera translates right parallel to the subject."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.whip-pan",
+    "version": 1,
+    "kind": "camera",
+    "name": "whip pan",
+    "description": "Camera pans rapidly sideways with directional motion blur, then settles.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [],
+    "aliases": [
+      "whip pan"
+    ],
+    "prompt": {
+      "default": "Camera pans rapidly sideways with directional motion blur, then settles.",
+      "kling": "Camera pans rapidly sideways with directional motion blur, then settles.",
+      "seedance": "Camera pans rapidly sideways with directional motion blur, then settles throughout one continuous shot.",
+      "veo": "Camera pans rapidly sideways with directional motion blur, then settles.",
+      "wan": "Camera pans rapidly sideways with directional motion blur, then settles."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.zoom-in",
+    "version": 1,
+    "kind": "camera",
+    "name": "zoom in",
+    "description": "Lens zooms in from a fixed camera position.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.zoom-out"
+    ],
+    "aliases": [
+      "zoom in"
+    ],
+    "prompt": {
+      "default": "Lens zooms in from a fixed camera position.",
+      "kling": "Lens zooms in from a fixed camera position.",
+      "seedance": "Lens zooms in from a fixed camera position throughout one continuous shot.",
+      "veo": "Lens zooms in from a fixed camera position.",
+      "wan": "Lens zooms in from a fixed camera position."
+    },
+    "params": {}
+  },
+  {
+    "id": "camera.zoom-out",
+    "version": 1,
+    "kind": "camera",
+    "name": "zoom out",
+    "description": "Lens zooms out from a fixed camera position.",
+    "tags": [
+      "camera",
+      "move"
+    ],
+    "slot": "move",
+    "modes": [
+      "video",
+      "image_to_video",
+      "reference_to_video"
+    ],
+    "stackable": true,
+    "conflicts": [
+      "camera.zoom-in"
+    ],
+    "aliases": [
+      "zoom out"
+    ],
+    "prompt": {
+      "default": "Lens zooms out from a fixed camera position.",
+      "kling": "Lens zooms out from a fixed camera position.",
+      "seedance": "Lens zooms out from a fixed camera position throughout one continuous shot.",
+      "veo": "Lens zooms out from a fixed camera position.",
+      "wan": "Lens zooms out from a fixed camera position."
+    },
+    "params": {}
   }
 ]

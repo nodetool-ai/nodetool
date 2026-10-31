@@ -1,0 +1,32 @@
+{
+  "id": "camera.orbit-left",
+  "version": 1,
+  "kind": "camera",
+  "name": "orbit left",
+  "description": "Camera arcs left around the subject at a steady distance.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "camera.orbit-right"
+  ],
+  "aliases": [
+    "orbit left"
+  ],
+  "prompt": {
+    "default": "Camera arcs left around the subject at a steady distance.",
+    "kling": "Camera arcs left around the subject at a steady distance.",
+    "seedance": "Camera arcs left around the subject at a steady distance throughout one continuous shot.",
+    "veo": "Camera arcs left around the subject at a steady distance.",
+    "wan": "Camera arcs left around the subject at a steady distance."
+  },
+  "params": {}
+}

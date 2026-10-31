@@ -1,0 +1,30 @@
+{
+  "id": "camera.top-down-rise",
+  "version": 1,
+  "kind": "camera",
+  "name": "top-down rise",
+  "description": "Camera rises straight upward while looking vertically down, widening the view.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [
+    "top-down rise"
+  ],
+  "prompt": {
+    "default": "Camera rises straight upward while looking vertically down, widening the view.",
+    "kling": "Camera rises straight upward while looking vertically down, widening the view.",
+    "seedance": "Camera rises straight upward while looking vertically down, widening the view throughout one continuous shot.",
+    "veo": "Camera rises straight upward while looking vertically down, widening the view.",
+    "wan": "Camera rises straight upward while looking vertically down, widening the view."
+  },
+  "params": {}
+}

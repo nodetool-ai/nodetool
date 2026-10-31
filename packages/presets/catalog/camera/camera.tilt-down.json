@@ -1,0 +1,32 @@
+{
+  "id": "camera.tilt-down",
+  "version": 1,
+  "kind": "camera",
+  "name": "tilt down",
+  "description": "Camera tilts downward from a fixed position.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "camera.tilt-up"
+  ],
+  "aliases": [
+    "tilt down"
+  ],
+  "prompt": {
+    "default": "Camera tilts downward from a fixed position.",
+    "kling": "Camera tilts downward from a fixed position.",
+    "seedance": "Camera tilts downward from a fixed position throughout one continuous shot.",
+    "veo": "Camera tilts downward from a fixed position.",
+    "wan": "Camera tilts downward from a fixed position."
+  },
+  "params": {}
+}

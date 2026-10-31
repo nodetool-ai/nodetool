@@ -8,6 +8,9 @@
  * opening a select never silently rewrites a value it does not recognise.
  */
 
+import { createCatalog } from "@nodetool-ai/presets";
+import presetData from "@nodetool-ai/presets/preset-catalog.json";
+
 import type { SelectOption } from "../ui_primitives";
 
 export const FRAMING_OPTIONS = [
@@ -46,46 +49,12 @@ export const ANGLE_OPTIONS = [
   "dutch angle"
 ] as const;
 
-export const MOVEMENT_OPTIONS = [
-  "static",
-  "slow push in",
-  "slow pull out",
-  "push in slow",
-  "pull back reveal",
-  "dolly in",
-  "dolly out",
-  "dolly zoom (vertigo)",
-  "truck left",
-  "truck right",
-  "pedestal up",
-  "pedestal down",
-  "pan left",
-  "pan right",
-  "whip pan",
-  "tilt up",
-  "tilt down",
-  "crane up",
-  "crane down",
-  "orbit",
-  "orbit left",
-  "orbit right",
-  "360 orbit",
-  "zoom in",
-  "zoom out",
-  "crash zoom in",
-  "crash zoom out",
-  "tracking",
-  "handheld",
-  "handheld follow",
-  "FPV drone fly-through",
-  "top-down rise",
-  "snorricam",
-  "bullet time",
-  "rack focus",
-  "through-object pass",
-  "low-angle hero rise",
-  "overhead spiral"
-] as const;
+const cameraPresets = createCatalog(presetData).filter({ kind: "camera" });
+
+export const MOVEMENT_OPTIONS: readonly string[] = Array.from(new Set([
+  ...cameraPresets.filter((preset) => preset.slot === "move").map((preset) => preset.name),
+  ...cameraPresets.flatMap((preset) => preset.aliases)
+]));
 
 export const EQUIPMENT_OPTIONS = [
   "handheld",

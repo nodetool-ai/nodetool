@@ -1,0 +1,30 @@
+{
+  "id": "camera.whip-pan",
+  "version": 1,
+  "kind": "camera",
+  "name": "whip pan",
+  "description": "Camera pans rapidly sideways with directional motion blur, then settles.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [
+    "whip pan"
+  ],
+  "prompt": {
+    "default": "Camera pans rapidly sideways with directional motion blur, then settles.",
+    "kling": "Camera pans rapidly sideways with directional motion blur, then settles.",
+    "seedance": "Camera pans rapidly sideways with directional motion blur, then settles throughout one continuous shot.",
+    "veo": "Camera pans rapidly sideways with directional motion blur, then settles.",
+    "wan": "Camera pans rapidly sideways with directional motion blur, then settles."
+  },
+  "params": {}
+}

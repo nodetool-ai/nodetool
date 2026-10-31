@@ -1,0 +1,30 @@
+{
+  "id": "camera.through-object-pass",
+  "version": 1,
+  "kind": "camera",
+  "name": "through-object pass",
+  "description": "Camera advances through an opening in the foreground object to reveal the subject beyond.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [
+    "through-object pass"
+  ],
+  "prompt": {
+    "default": "Camera advances through an opening in the foreground object to reveal the subject beyond.",
+    "kling": "Camera advances through an opening in the foreground object to reveal the subject beyond.",
+    "seedance": "Camera advances through an opening in the foreground object to reveal the subject beyond throughout one continuous shot.",
+    "veo": "Camera advances through an opening in the foreground object to reveal the subject beyond.",
+    "wan": "Camera advances through an opening in the foreground object to reveal the subject beyond."
+  },
+  "params": {}
+}

@@ -1,0 +1,32 @@
+{
+  "id": "camera.crane-down",
+  "version": 1,
+  "kind": "camera",
+  "name": "crane down",
+  "description": "Camera cranes downward and tilts up to keep the subject framed.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "camera.crane-up"
+  ],
+  "aliases": [
+    "crane down"
+  ],
+  "prompt": {
+    "default": "Camera cranes downward and tilts up to keep the subject framed.",
+    "kling": "Camera cranes downward and tilts up to keep the subject framed.",
+    "seedance": "Camera cranes downward and tilts up to keep the subject framed throughout one continuous shot.",
+    "veo": "Camera cranes downward and tilts up to keep the subject framed.",
+    "wan": "Camera cranes downward and tilts up to keep the subject framed."
+  },
+  "params": {}
+}

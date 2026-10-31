@@ -1,0 +1,30 @@
+{
+  "id": "camera.dolly-zoom",
+  "version": 1,
+  "kind": "camera",
+  "name": "dolly zoom (vertigo)",
+  "description": "Camera dollies backward while zooming in, holding subject size as the background expands.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [
+    "dolly zoom (vertigo)"
+  ],
+  "prompt": {
+    "default": "Camera dollies backward while zooming in, holding subject size as the background expands.",
+    "kling": "Camera dollies backward while zooming in, holding subject size as the background expands.",
+    "seedance": "Camera dollies backward while zooming in, holding subject size as the background expands throughout one continuous shot.",
+    "veo": "Camera dollies backward while zooming in, holding subject size as the background expands.",
+    "wan": "Camera dollies backward while zooming in, holding subject size as the background expands."
+  },
+  "params": {}
+}

@@ -1,0 +1,32 @@
+{
+  "id": "camera.dolly-out",
+  "version": 1,
+  "kind": "camera",
+  "name": "dolly out",
+  "description": "Camera dollies smoothly away from the subject with visible depth change.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "camera.dolly-in"
+  ],
+  "aliases": [
+    "dolly out"
+  ],
+  "prompt": {
+    "default": "Camera dollies smoothly away from the subject with visible depth change.",
+    "kling": "Camera dollies smoothly away from the subject with visible depth change.",
+    "seedance": "Camera dollies smoothly away from the subject with visible depth change throughout one continuous shot.",
+    "veo": "Camera dollies smoothly away from the subject with visible depth change.",
+    "wan": "Camera dollies smoothly away from the subject with visible depth change."
+  },
+  "params": {}
+}
