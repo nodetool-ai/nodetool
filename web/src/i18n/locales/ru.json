@@ -19559,6 +19559,12 @@
     "sketchTitle": "Sketch",
     "audio": "Звук"
   },
+  "preset_chip": {
+    "label": "Пресеты",
+    "title": "Выбрать пресеты",
+    "dialogTitle": "Пресеты",
+    "fallbackWarning": "Для этой модели нет настроенной формулировки: {{names}}. Вместо неё используется стандартная."
+  },
   "preset_picker": {
     "searchPlaceholder": "Поиск пресетов",
     "searchLabel": "Поиск пресетов",

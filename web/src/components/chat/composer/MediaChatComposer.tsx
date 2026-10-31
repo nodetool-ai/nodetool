@@ -234,6 +234,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   const audioParams = useMediaGenerationStore((s) => s.audio);
   const retakeParams = useMediaGenerationStore((s) => s.retake);
   const extendParams = useMediaGenerationStore((s) => s.extend);
+  const presetIds = useMediaGenerationStore((s) => s.presetIds);
 
   // Language-model selection from chat store (used in chat mode & forwarded
   // as provider/model for media calls when a media model is not picked).
@@ -562,7 +563,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         model: videoParams.model?.id ?? null,
         aspect_ratio: videoParams.aspectRatio,
         resolution: videoParams.resolution,
-        duration: videoParams.duration
+        duration: videoParams.duration,
+        preset_ids: presetIds.video?.length ? presetIds.video : undefined
       };
     }
     if (mode === "image_to_video") {
@@ -573,7 +575,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         aspect_ratio: imageToVideoParams.aspectRatio,
         resolution: imageToVideoParams.resolution,
         duration: imageToVideoParams.duration,
-        num_inference_steps: imageToVideoParams.numInferenceSteps
+        num_inference_steps: imageToVideoParams.numInferenceSteps,
+        preset_ids: presetIds.image_to_video?.length
+          ? presetIds.image_to_video
+          : undefined
       };
     }
     if (mode === "reference_to_video") {
@@ -588,7 +593,10 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         // so an off toggle must not state anything.
         use_reference_video_audio: referenceToVideoParams.useReferenceVideoAudio
           ? true
-          : null
+          : null,
+        preset_ids: presetIds.reference_to_video?.length
+          ? presetIds.reference_to_video
+          : undefined
       };
     }
     if (mode === "retake") {
@@ -636,7 +644,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
     retakeParams,
     extendParams,
     audioParams,
-    musicParams
+    musicParams,
+    presetIds
   ]);
 
   const { queuedMessage, sendMessage, cancelQueued, sendQueuedNow } =

@@ -18945,6 +18945,12 @@
     "sketchTitle": "Sketch",
     "audio": "Ääni"
   },
+  "preset_chip": {
+    "label": "Esiasetukset",
+    "title": "Valitse esiasetuksia",
+    "dialogTitle": "Esiasetukset",
+    "fallbackWarning": "Tälle mallille ei ole sovitettua muotoilua: {{names}}. Käytössä on oletusmuotoilu."
+  },
   "preset_picker": {
     "searchPlaceholder": "Hae esiasetuksia",
     "searchLabel": "Hae esiasetuksia",
