@@ -4,14 +4,15 @@ import QtQuick
 import QtQuick.Controls
 import NodeTool.Timeline
 import "../src/edit/inspectorsections" as Sections
+import NodeTool.UiPrimitives as Ui
 
 Rectangle {
     id: root
     objectName: "sourceViewer"
-    implicitWidth: 360
-    implicitHeight: visible ? content.implicitHeight + Theme.spacingMd * 2 : 0
+    implicitWidth: TimelineMetrics.sourceViewerPreferredWidth
+    implicitHeight: visible ? content.implicitHeight + Ui.Metrics.md * 2 : 0
     visible: !!SourceViewerState.asset.id
-    color: Theme.backgroundDefault
+    color: Ui.Theme.surfaceCanvas
     activeFocusOnTab: true
     Accessible.role: Accessible.Pane
     Accessible.name: "Source monitor"
@@ -20,6 +21,7 @@ Rectangle {
     property var gestures: null
     property var sourceGrid: null
     property real playerTimeMs: 0
+    property real scrubBaselineMs: 0
     readonly property var asset: SourceViewerState.asset
     readonly property string mediaType: SourceViewerState.mediaType
     readonly property var selectedAsset: {
@@ -87,163 +89,145 @@ Rectangle {
         }
     }
 
-    Column {
-        id: content
-        x: Theme.spacingMd
-        y: Theme.spacingMd
-        width: parent.width - Theme.spacingMd * 2
-        spacing: Theme.spacingMd
-        Text {
-            objectName: "sourceEmptyState"
-            width: parent.width
-            visible: !root.asset.id
-            text: "Select an asset in the library to view it here"
-            wrapMode: Text.WordWrap
-            color: Theme.textSecondary
-            font.family: Theme.sansFamily
-            font.pixelSize: Theme.fontSizeSmall
-        }
-        Text {
-            objectName: "sourceName"
-            width: parent.width
-            text: root.asset.name || ""
-            elide: Text.ElideRight
-            color: Theme.textPrimary
-            font.family: Theme.sansFamily
-            font.pixelSize: Theme.fontSizeSmall
-            font.weight: Font.Medium
-            ToolTip.visible: nameHover.hovered && truncated
-            ToolTip.text: text
-            HoverHandler { id: nameHover }
-        }
-        Rectangle {
-            width: parent.width
-            implicitHeight: media.implicitHeight
-            color: Theme.backgroundDefault
-            radius: Theme.radiusSm
-            clip: true
-            Column {
-                id: media
+    Flickable {
+        anchors.fill: parent
+        contentHeight: content.implicitHeight + Ui.Metrics.md * 2
+        clip: true
+        boundsBehavior: Flickable.StopAtBounds
+        ScrollBar.vertical: Ui.ScrollBar {}
+        Column {
+            id: content
+            x: Ui.Metrics.md
+            y: Ui.Metrics.md
+            width: parent.width - Ui.Metrics.md * 2
+            spacing: Ui.Metrics.md
+            Ui.Text {
+                objectName: "sourceEmptyState"
                 width: parent.width
-                spacing: Theme.spacingXs
-                Image {
-                    objectName: "sourcePoster"
+                visible: !root.asset.id
+                text: "Select an asset in the library to view it here"
+                wrapMode: Text.WordWrap
+                role: Ui.Typography.SansLabel
+                tone: Ui.Text.Secondary
+            }
+            Ui.Text {
+                id: sourceName
+                objectName: "sourceName"
+                width: parent.width
+                text: root.asset.name || ""
+                elide: Text.ElideRight
+                role: Ui.Typography.SansLabel
+                Ui.Tooltip { trigger: sourceName; visible: nameHover.hovered && sourceName.truncated; text: sourceName.text }
+                HoverHandler { id: nameHover }
+            }
+            Rectangle {
+                width: parent.width
+                implicitHeight: media.implicitHeight
+                color: Ui.Theme.surfaceCanvas
+                radius: Ui.Metrics.xs
+                clip: true
+                Column {
+                    id: media
                     width: parent.width
-                    height: visible ? width * 9 / 16 : 0
-                    visible: root.mediaType === "image" || root.mediaType === "video"
-                    source: root.posterUrl()
-                    asynchronous: true
-                    fillMode: Image.PreserveAspectFit
-                    Accessible.name: root.asset.name || ""
-                }
-                Slider {
-                    objectName: "sourceScrub"
-                    width: parent.width
-                    visible: root.mediaType === "video" || root.mediaType === "audio"
-                    from: 0
-                    to: Math.max(1, SourceViewerState.durationMs)
-                    value: root.playerTimeMs
-                    onMoved: root.playerTimeMs = Math.round(value)
-                    Accessible.name: "Source time"
-                    implicitHeight: Theme.controlXs
-                    background: Rectangle {
-                        x: parent.leftPadding
-                        y: (parent.height - height) / 2
-                        width: parent.availableWidth
-                        height: Theme.spacingXs
-                        radius: Theme.radiusXs
-                        color: Theme.overlayStrong
-                        Rectangle {
-                            width: parent.width * (root.playerTimeMs / Math.max(1, SourceViewerState.durationMs))
-                            height: parent.height
-                            color: Theme.primary
-                            radius: Theme.radiusXs
-                        }
+                    spacing: Ui.Metrics.xs
+                    Image {
+                        objectName: "sourcePoster"
+                        width: parent.width
+                        height: visible ? width * 9 / 16 : 0
+                        visible: root.mediaType === "image" || root.mediaType === "video"
+                        source: root.posterUrl()
+                        asynchronous: true
+                        fillMode: Image.PreserveAspectFit
+                        Accessible.name: root.asset.name || ""
                     }
-                    handle: Rectangle {
-                        x: parent.leftPadding + parent.visualPosition * (parent.availableWidth - width)
-                        y: (parent.height - height) / 2
-                        implicitWidth: Theme.spacingLg
-                        implicitHeight: Theme.spacingLg
-                        radius: Theme.radiusLg
-                        color: Theme.textPrimary
+                    Ui.Slider {
+                        objectName: "sourceScrub"
+                        width: parent.width
+                        visible: root.mediaType === "video" || root.mediaType === "audio"
+                        from: 0
+                        to: Math.max(1, SourceViewerState.durationMs)
+                        value: root.playerTimeMs
+                        onEditStarted: root.scrubBaselineMs = root.playerTimeMs
+                        onValuePreviewed: value => root.playerTimeMs = Math.round(value)
+                        onValueCommitted: value => root.playerTimeMs = Math.round(value)
+                        onEditCanceled: root.playerTimeMs = root.scrubBaselineMs
+                        accessibleName: "Source time"
+                        density: Ui.EditorButton.Compact
+                    }
+                    Ui.Text {
+                        width: parent.width
+                        visible: !root.mediaType
+                        text: "This asset type cannot go on the timeline."
+                        wrapMode: Text.WordWrap
+                        role: Ui.Typography.SansCaption
+                        tone: Ui.Text.Secondary
                     }
                 }
-                Text {
-                    width: parent.width
-                    visible: !root.mediaType
-                    text: "This asset type cannot go on the timeline."
-                    wrapMode: Text.WordWrap
-                    color: Theme.textSecondary
-                    font.family: Theme.sansFamily
-                    font.pixelSize: Theme.fontSizeSmaller
+            }
+            InspectorRow {
+                width: parent.width
+                label: "In"
+                InspectorPillInput {
+                    objectName: "sourceIn"
+                    value: (SourceViewerState.inMs / 1000).toFixed(2)
+                    unit: "s"
+                    ariaLabel: "Source in point"
+                    onCommit: raw => SourceViewerState.setIn(raw)
                 }
-            }
-        }
-        InspectorRow {
-            width: parent.width
-            label: "In"
-            InspectorPillInput {
-                objectName: "sourceIn"
-                value: (SourceViewerState.inMs / 1000).toFixed(2)
-                unit: "s"
-                ariaLabel: "Source in point"
-                onCommit: raw => SourceViewerState.setIn(raw)
-            }
-            Sections.InspectorActionButton {
-                objectName: "sourceMarkIn"
-                visible: root.mediaType === "video"
-                text: "Mark in"
-                outlined: false
-                ToolTip.visible: hovered
-                ToolTip.text: "I"
-                onClicked: root.mark("in")
-            }
-        }
-        InspectorRow {
-            width: parent.width
-            label: "Out"
-            InspectorPillInput {
-                objectName: "sourceOut"
-                value: (SourceViewerState.outMs / 1000).toFixed(2)
-                unit: "s"
-                ariaLabel: "Source out point"
-                onCommit: raw => SourceViewerState.setOut(raw)
-            }
-            Sections.InspectorActionButton {
-                objectName: "sourceMarkOut"
-                visible: root.mediaType === "video"
-                text: "Mark out"
-                outlined: false
-                ToolTip.visible: hovered
-                ToolTip.text: "O"
-                onClicked: root.mark("out")
-            }
-        }
-        Text {
-            objectName: "sourceRangeSummary"
-            width: parent.width
-            text: "Range " + ((SourceViewerState.outMs - SourceViewerState.inMs) / 1000).toFixed(2)
-                + " s. Insert and Overwrite land at the playhead on the first unlocked track that fits the media."
-            wrapMode: Text.WordWrap
-            color: Theme.textSecondary
-            opacity: 0.7
-            font.family: Theme.sansFamily
-            font.pixelSize: Theme.fontSizeSmaller
-        }
-        Flow {
-            width: parent.width
-            spacing: Theme.spacingSm
-            Repeater {
-                model: ["Append", "Insert", "Overwrite"]
-                delegate: Sections.InspectorActionButton {
-                    required property string modelData
-                    objectName: "source" + modelData
-                    text: modelData
-                    enabled: !!root.mediaType
+                Sections.InspectorActionButton {
+                    objectName: "sourceMarkIn"
+                    visible: root.mediaType === "video"
+                    text: "Mark in"
+                    outlined: false
                     ToolTip.visible: hovered
-                    ToolTip.text: SourceViewerState.shortcut(modelData.toLowerCase(), root.gestures ? root.gestures.keyboardPreset : "nodetool")
-                    onClicked: SourceViewerState.perform(modelData.toLowerCase(), root.gestures)
+                    ToolTip.text: "I"
+                    onClicked: root.mark("in")
+                }
+            }
+            InspectorRow {
+                width: parent.width
+                label: "Out"
+                InspectorPillInput {
+                    objectName: "sourceOut"
+                    value: (SourceViewerState.outMs / 1000).toFixed(2)
+                    unit: "s"
+                    ariaLabel: "Source out point"
+                    onCommit: raw => SourceViewerState.setOut(raw)
+                }
+                Sections.InspectorActionButton {
+                    objectName: "sourceMarkOut"
+                    visible: root.mediaType === "video"
+                    text: "Mark out"
+                    outlined: false
+                    ToolTip.visible: hovered
+                    ToolTip.text: "O"
+                    onClicked: root.mark("out")
+                }
+            }
+            Ui.Text {
+                objectName: "sourceRangeSummary"
+                width: parent.width
+                text: "Range " + ((SourceViewerState.outMs - SourceViewerState.inMs) / 1000).toFixed(2)
+                    + " s. Insert and Overwrite land at the playhead on the first unlocked track that fits the media."
+                wrapMode: Text.WordWrap
+                role: Ui.Typography.SansCaption
+                tone: Ui.Text.Secondary
+            }
+            Flow {
+                width: parent.width
+                spacing: Ui.Metrics.sm
+                Repeater {
+                    model: ["Append", "Insert", "Overwrite"]
+                    delegate: Sections.InspectorActionButton {
+                        required property string modelData
+                        objectName: "source" + modelData
+                        text: modelData
+                        iconName: modelData === "Append" ? "playlistAdd" : modelData === "Insert" ? "keyboardTab" : "flipToFront"
+                        enabled: !!root.mediaType
+                        ToolTip.visible: hovered
+                        ToolTip.text: SourceViewerState.shortcut(modelData.toLowerCase(), root.gestures ? root.gestures.keyboardPreset : "nodetool")
+                        onClicked: SourceViewerState.perform(modelData.toLowerCase(), root.gestures)
+                    }
                 }
             }
         }

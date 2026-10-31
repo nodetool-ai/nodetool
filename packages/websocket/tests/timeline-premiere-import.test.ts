@@ -33,6 +33,15 @@ describe("Premiere archive media matching", () => {
     expect(storeAsset).toHaveBeenCalledTimes(2);
     expect(result.timeline.clips.map((clip) => clip.currentAssetId)).toEqual(["asset-1", "asset-2"]);
   });
+  it.each([
+    ["Audio/take.m4a", "audio/x-m4a"],
+    ["Audio/take.flac", "audio/x-flac"],
+    ["Video/take.mov", "video/quicktime"]
+  ])("stores %s as %s", async (file, contentType) => {
+    const storeAsset = vi.fn(async () => ({ assetId: "a" }));
+    await importPremiereArchive(xml([file]), { [file]: new Uint8Array([1]) }, { storeAsset });
+    expect(storeAsset).toHaveBeenCalledWith(expect.objectContaining({ contentType }));
+  });
   it("leaves an ambiguous basename unresolved", async () => {
     const storeAsset = vi.fn(async () => ({ assetId: "wrong" }));
     const result = await importPremiereArchive(xml(["file://localhost/editor/C0001.mp4"]), {

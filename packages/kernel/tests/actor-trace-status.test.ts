@@ -9,8 +9,8 @@ interface FakeSpan {
 
 const spans = vi.hoisted(() => [] as FakeSpan[]);
 
-vi.mock("@nodetool-ai/runtime/tracing", async (importOriginal) => {
-  const original = await importOriginal<typeof import("@nodetool-ai/runtime/tracing")>();
+vi.mock("@nodetool-ai/execution-core/tracing", async (importOriginal) => {
+  const original = await importOriginal<typeof import("@nodetool-ai/execution-core/tracing")>();
   return {
     ...original,
     // Mirror withSpan: OK is set only when no ERROR status was recorded.

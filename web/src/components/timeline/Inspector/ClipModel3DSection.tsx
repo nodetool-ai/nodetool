@@ -57,7 +57,7 @@ import {
   InspectorStaticValue,
   InspectorToggleRow
 } from "./InspectorPrimitives";
-import { parseFiniteNumber } from "./InspectorPrimitives.helpers";
+import { commitNumber } from "./InspectorPrimitives.helpers";
 import {
   useModel3DSessionNames,
   type Model3DSessionNames
@@ -437,18 +437,5 @@ const NamePickerRow: React.FC<NamePickerRowProps> = memo(
   }
 );
 NamePickerRow.displayName = "NamePickerRow";
-
-/** Commit a numeric field, ignoring blank, non-numeric or out-of-range input. */
-function commitNumber(
-  raw: string,
-  apply: (value: number) => void,
-  min?: number,
-  exclusiveMin = false
-): void {
-  const value = parseFiniteNumber(raw);
-  if (value === null) return;
-  if (min !== undefined && (exclusiveMin ? value <= min : value < min)) return;
-  apply(value);
-}
 
 ClipModel3DSection.displayName = "ClipModel3DSection";

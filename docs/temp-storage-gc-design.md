@@ -131,9 +131,9 @@ must not stop the server.
 
 Add a CLI command, for example `nodetool storage temp-gc [--dry-run]
 [--older-than <hours>]`, that prints the `TempSweepResult`. Register a
-selfcheck in `packages/cli/src/harness/registry.ts` per
+selfcheck in `packages/cli-harness/src/harness/registry.ts` per
 [Harness-First Engineering](HARNESS_FIRST.md). Follow the existing CLI
-command layout in `packages/cli/src/`.
+command layout in the independently installed `packages/cli-workflow/src/` feature.
 
 ### D7. Make the SDK expiry contract true
 
@@ -215,7 +215,7 @@ Do the tasks in this order. Each task must leave the tree green.
    `packages/websocket/src/storage-retention.ts` (D5). A sweep failure logs a
    warning and never stops the server.
 8. Add the CLI command with `--dry-run` and `--older-than <hours>`, and
-   register its selfcheck in `packages/cli/src/harness/registry.ts` (D6).
+   register its selfcheck in `packages/cli-harness/src/harness/registry.ts` (D6).
 9. Set `expires_at` in the SDK temporary-asset upload response (D7).
 10. Update `docs/storage.md` with the retention variable, the sweep, and the
     recommended `TEMP_BUCKET` lifecycle rule. Update

@@ -726,7 +726,7 @@ static readonly appendStaticInputs = ["value"];
 
 ### `requiredRuntimes`
 
-`static readonly requiredRuntimes = ["ffmpeg"]` declares host binaries or runtimes the node needs. It is metadata only. It does not install or check anything when the node runs. The editor shows a missing-runtime warning on the node (`web/src/components/node/NodeDependencyWarning.tsx:79`) and the SDK preflight reports it as a `runtime` requirement (`packages/websocket/src/sdk/sdk-static-preflight-service.ts:320`). `RenderTimelineNode` declares it (`packages/video-nodes/src/nodes/timeline.ts:1129`). Your `process()` still has to fail clearly when the binary is absent.
+`static readonly requiredRuntimes = ["yt-dlp"]` declares host binaries or runtimes the node needs. It is metadata only. It does not install or check anything when the node runs. The editor shows a missing-runtime warning on the node (`web/src/components/node/NodeDependencyWarning.tsx:79`) and the SDK preflight reports it as a `runtime` requirement (`packages/websocket/src/sdk/sdk-static-preflight-service.ts:320`). `RenderTimelineNode` declares it (`packages/video-nodes/src/nodes/timeline.ts:1129`). Your `process()` still has to fail clearly when the binary is absent.
 
 ---
 

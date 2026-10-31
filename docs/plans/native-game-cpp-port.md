@@ -58,7 +58,7 @@ assume their implementation choices are required by the native contract.
 | [Script host](../../packages/game-runtime/src/scripts.ts), [lifecycle](../../packages/game-runtime/src/script-lifecycle.ts) | Isolated calls, explicit state, hooks, timers, budgets |
 | [Reload](../../packages/game-runtime/src/script-reload.ts), [declarations](../../packages/game-runtime/src/script-declarations.ts) | Source validation and discoverable script contracts |
 | [Renderer overview](../../packages/game-renderer/README.md) | Prepared assets, transform ownership, presentation from committed ticks |
-| [Game CLI](../../packages/cli/src/commands/game.ts) | Validate, simulate, inspect, capture, benchmark, export |
+| [Game CLI](../../packages/cli-game/src/commands/game.ts) | Validate, simulate, inspect, capture, benchmark, export |
 | [Games router](../../packages/websocket/src/trpc/routers/games.ts), [draft history](../../packages/websocket/src/trpc/routers/gameDraftHistory.ts) | Authorized persistence, revisions, draft recovery |
 | [Native timeline design](../../native/timeline/docs/DESIGN.md), [build](../../native/timeline/CMakeLists.txt) | Qt Quick viewport, offscreen rendering, CMake and platform packaging |
 | [Harness reference](../harnesses.md), [harness doctrine](../HARNESS_FIRST.md) | Every shipped operation is executable and verifiable headlessly |
@@ -869,7 +869,7 @@ threading. Fuzz document, protocol, snapshot, and prepared-asset decoders with
 bounded inputs. Keep rendering correctness tests separate from GPU performance.
 
 Register native source paths and selfchecks in
-[the harness registry](../../packages/cli/src/harness/registry.ts). Add native path
+[the harness registry](../../packages/cli-harness/src/harness/registry.ts). Add native path
 selection to [test selection](../../scripts/test-affected.mjs) with its selection
 tests. Native-only edits must execute native tests rather than relying on unrelated
 TS suites. Prove new audits fail with deliberately invalid fixtures and inspect a

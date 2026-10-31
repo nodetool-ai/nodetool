@@ -4,6 +4,7 @@
 // the playhead at its viewport x; it reads the clock once, on the click.
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 Row {
     id: controls
@@ -12,37 +13,46 @@ Row {
     required property PlaybackClock clock
     // Narrow toolbar: keep the step buttons, drop the slider.
     property bool compact: false
-    spacing: Theme.spacingXs
+    spacing: Ui.Metrics.xs
 
-    ZoomStepButton {
+    Ui.ToolbarIconButton {
         objectName: "zoomOut"
         anchors.verticalCenter: parent.verticalCenter
-        icon: Icons.remove
-        enabledState: controls.viewState.canZoomOut
+        iconName: "remove"
+        accessibleName: "Zoom out"
+        enabled: controls.viewState.canZoomOut
         onClicked: controls.viewState.zoomBy(1.25, controls.clock.time)
     }
-    CompactSlider {
+    Ui.Slider {
         objectName: "zoomSlider"
+        property real gestureBaseline: 0
         visible: !controls.compact
         anchors.verticalCenter: parent.verticalCenter
-        width: 96
+        width: Ui.Metrics.standard * 3
         from: 0
         to: 100
         stepSize: 1
         value: controls.viewState.zoomSliderValue
-        onMoved: controls.viewState.zoomFromSlider(value, controls.clock.time)
+        onEditStarted: gestureBaseline = value
+        onValuePreviewed: value => controls.viewState.zoomFromSlider(value, controls.clock.time)
+        onValueCommitted: value => controls.viewState.zoomFromSlider(value, controls.clock.time)
+        onEditCanceled: controls.viewState.zoomFromSlider(gestureBaseline, controls.clock.time)
+        accessibleName: "Timeline zoom"
+        density: Ui.EditorButton.Compact
     }
-    ZoomStepButton {
+    Ui.ToolbarIconButton {
         objectName: "zoomIn"
         anchors.verticalCenter: parent.verticalCenter
-        icon: Icons.add
-        enabledState: controls.viewState.canZoomIn
+        iconName: "add"
+        accessibleName: "Zoom in"
+        enabled: controls.viewState.canZoomIn
         onClicked: controls.viewState.zoomBy(0.8, controls.clock.time)
     }
-    ZoomStepButton {
+    Ui.ToolbarIconButton {
         objectName: "zoomFit"
         anchors.verticalCenter: parent.verticalCenter
-        icon: Icons.fitScreen
+        iconName: "fitScreen"
+        accessibleName: "Zoom to fit"
         onClicked: controls.viewState.zoomToFit()
     }
 }

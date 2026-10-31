@@ -379,7 +379,7 @@ export default function DevelopersPage() {
             <p className="mt-6 text-sm leading-relaxed text-slate-300">
               Cursor, Claude Desktop, or another MCP client: run{" "}
               <code className="font-jetbrains text-slate-100">
-                nodetool mcp config
+                nodetool-mcp config
               </code>{" "}
               and paste the block it prints into the client config. The{" "}
               <a

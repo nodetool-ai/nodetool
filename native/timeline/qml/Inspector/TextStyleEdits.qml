@@ -76,6 +76,12 @@ QtObject {
         typingPayload = null;
         edits.commit("patchClip", pending);
     }
+    function cancelTyping() {
+        if (!typing) return;
+        typingClip = null;
+        typingPayload = null;
+        edits.cancelGesture();
+    }
     function begin() {
         if (!locked)
             edits.beginGesture("patchClip", {

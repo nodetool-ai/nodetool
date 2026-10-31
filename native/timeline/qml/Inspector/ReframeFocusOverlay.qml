@@ -1,5 +1,6 @@
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 // The host supplies the preview frame rectangle and the evaluated layer geometry.
 Item {
@@ -25,7 +26,7 @@ Item {
     property real frameHeight: 0
     readonly property var geometry: ({crop: crop, transform: layerTransform, parentMatrix: parentMatrix, drawMatrix: drawMatrix, sourceWidth: sourceWidth, sourceHeight: sourceHeight, sequenceWidth: sequenceWidth, sequenceHeight: sequenceHeight, frameWidth: frameWidth, frameHeight: frameHeight})
     readonly property var displayed: math.evaluate({op: "sourcePointToReframeViewport", x: focusX, y: focusY, geometry: geometry})
-    readonly property real handleRadius: Math.max(Theme.spacingMd, 0.025 * Math.min(frameWidth, frameHeight))
+    readonly property real handleRadius: Math.max(Ui.Metrics.md, 0.025 * Math.min(frameWidth, frameHeight))
     property bool dragging: false
     property real gestureSourceMs: 0
     property string gestureClipId: ""
@@ -93,8 +94,8 @@ Item {
         onPaint: {
             const ctx = getContext("2d")
             ctx.reset()
-            ctx.strokeStyle = Theme.primary
-            ctx.lineWidth = Theme.spacingMicro
+            ctx.strokeStyle = Ui.Theme.accentPrimary
+            ctx.lineWidth = Ui.Metrics.micro
             const cx = root.displayed.x, cy = root.displayed.y, r = root.handleRadius
             ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.stroke()
             ctx.beginPath(); ctx.moveTo(cx - r * 1.5, cy); ctx.lineTo(cx + r * 1.5, cy)

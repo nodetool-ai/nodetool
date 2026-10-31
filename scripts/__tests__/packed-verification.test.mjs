@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
-import { computeAffected, EXTRA_WORKSPACE_PATHS } from "../../packages/cli/src/affected/affected.ts";
+import { computeAffected, EXTRA_WORKSPACE_PATHS } from "../../packages/cli-harness/src/affected/affected.ts";
 import { partitionPlan, runCommands, validatePlan } from "../packed-verification.mjs";
 import { buildPlan, fullPlan, readPackages } from "../test-affected.mjs";
 
@@ -65,7 +65,7 @@ describe("Packed verification partition", () => {
     expect(fallback.find(({ id }) => id === "test-packages-other")?.commands.length).toBeGreaterThan(0);
     const game = partition(fullPlan()).find(({ id }) => id === "test-packages-game");
     expect(game.commands.find(({ args }) => args[0] === "scripts/run-turbo.mjs").args.slice(3).sort()).toEqual([
-      "--filter=@nodetool-ai/cli", "--filter=@nodetool-ai/game-renderer", "--filter=@nodetool-ai/game-runtime"
+      "--filter=@nodetool-ai/cli-game", "--filter=@nodetool-ai/game-renderer", "--filter=@nodetool-ai/game-runtime"
     ]);
     const fullJobs = partition(fullPlan());
     expect(fullJobs.find(({ id }) => id === "apps-and-path-checks").commands).toEqual(fullPlan().filter(({ command, args }) => !(command === "npm" && args.join(" ") === "run test:packages")));
@@ -80,7 +80,7 @@ describe("Packed verification partition", () => {
     expect(job.commands[0]).toMatchObject({ command: "node", args: ["scripts/check-native-game.mjs"] });
   });
 
-  it.each(["@nodetool-ai/agents", "@nodetool-ai/game-runtime", "@nodetool-ai/cli"])("prepares the native worker in the isolated %s job", (name) => {
+  it.each(["@nodetool-ai/agents", "@nodetool-ai/game-runtime", "@nodetool-ai/cli-game"])("prepares the native worker in the isolated %s job", (name) => {
     const jobs = partition([{ command: "node", args: ["scripts/run-turbo.mjs", "run", "test", `--filter=${name}`] }]);
     const job = jobs.find(({ commands }) => commands.some(({ args }) => args.includes(`--filter=${name}`)));
     expect(job.commands[0]).toMatchObject({ command: "node", args: ["scripts/check-native-game.mjs"] });
@@ -126,7 +126,7 @@ describe("Packed verification partition", () => {
       cwd: checkout, encoding: "utf8", env: { ...process.env, GITHUB_OUTPUT: join(dir, "outputs") }
     });
     try {
-      for (const file of ["scripts/packed-verification.mjs", "scripts/test-affected.mjs", "scripts/ci-plan.mjs", "packages/cli/src/affected/affected.ts"]) {
+      for (const file of ["scripts/packed-verification.mjs", "scripts/test-affected.mjs", "scripts/ci-plan.mjs", "packages/cli-harness/src/affected/affected.ts"]) {
         mkdirSync(dirname(join(checkout, file)), { recursive: true });
         cpSync(join(ROOT, file), join(checkout, file));
       }

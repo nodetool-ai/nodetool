@@ -9207,6 +9207,10 @@
         "soundNotifications": {
           "label": "声音通知",
           "description": "工作流完成、导出结束或发生其他重要事件时播放系统提示音。"
+        },
+        "systemNotifications": {
+          "label": "桌面通知",
+          "description": "NodeTool 在后台时，运行或聊天回复完成后显示系统通知。"
         }
       },
       "updates": {
@@ -10621,6 +10625,9 @@
       "off": "关",
       "stop": "停止",
       "miniMap": "小地图",
+      "showInspector": "显示检查器",
+      "hideInspector": "隐藏检查器",
+      "toggleInspector": "切换检查器",
       "visible": "可见",
       "hidden": "隐藏",
       "downloadJson": "下载 JSON",
@@ -10982,7 +10989,8 @@
         "lab": "实验室",
         "chorus": "合唱",
         "echo": "磁带回声",
-        "reverb": "混响"
+        "reverb": "混响",
+        "limiter": "限幅器"
       },
       "parameters": {
         "gainDb": "增益",
@@ -15206,6 +15214,11 @@
       "frames": "帧",
       "deleteFrame": "删除帧",
       "addFrame": "添加帧"
+    },
+    "limiter": {
+      "ariaLabel": "限幅器",
+      "caption": "上限 {{ceiling}} dB",
+      "displayAria": "限幅器：输入峰值 {{input}} dB，输出峰值 {{output}} dB，增益衰减 {{reduction}} dB"
     }
   },
   "i18n-next46": {
@@ -15780,7 +15793,11 @@
       "askAgent": "询问代理"
     },
     "audio": {
-      "asset": "音频资源"
+      "asset": "音频资源",
+      "assistant": "助手",
+      "resizeAssistant": "调整音频助手大小",
+      "assistantWelcomeTitle": "音频助手",
+      "assistantWelcomeBody": "让我编辑这段音频，例如“剪掉开头的静音”“让最后两秒淡出”或“加一点混响”。在你保存之前，修改不会保存。"
     },
     "chat": {
       "conversation": "对话",
@@ -15880,7 +15897,11 @@
       "loadError": "无法加载此 SVG。",
       "notFound": "未找到 SVG",
       "mayHaveBeenDeleted": "它可能已被删除。",
-      "contentLoadError": "无法加载 SVG 内容。"
+      "contentLoadError": "无法加载 SVG 内容。",
+      "assistant": "助手",
+      "resizeAssistant": "调整 SVG 助手大小",
+      "assistantWelcomeTitle": "SVG 助手",
+      "assistantWelcomeBody": "让我修改这张图，例如“把圆形改成红色”“添加投影”或“简化路径”。在你保存之前，修改不会保存。"
     },
     "text": {
       "loadError": "无法加载此文本文件。",
@@ -16720,6 +16741,7 @@
       "copyName": "{{name}}（副本）",
       "createScriptAction": "创建脚本",
       "duplicateScriptAction": "复制脚本",
+      "deleteScriptAction": "删除脚本",
       "singular": "脚本",
       "plural": "脚本",
       "emptyDescription": "点击上方的 + 按钮创建新脚本。",
@@ -17502,6 +17524,7 @@
         "bypass": "旁通 {{title}}",
         "enable": "启用 {{title}}",
         "open": "打开 {{title}}",
+        "remove": "移除 {{title}}",
         "add": "向 {{channel}} 添加效果"
       }
     }
@@ -18891,5 +18914,35 @@
     "missingTarget": "已移除的设备",
     "laneLabel": "自动化轨道：{{name}}",
     "deletePoint": "删除点"
+  },
+  "generationFeed": {
+    "recent": "最近",
+    "imageEmptyTitle": "生成图像",
+    "imageEmptyDescription": "在下方描述场景，并选择模型和宽高比。附加图像即可对其进行编辑。",
+    "videoEmptyTitle": "生成视频",
+    "videoEmptyDescription": "在下方描述镜头、运镜和光线。附加一帧画面即可将其制作成动画。",
+    "audioEmptyTitle": "生成语音和音乐",
+    "audioEmptyDescription": "输入一句话即可朗读。切换到“生成音乐”可创作一段曲目。",
+    "editImage": "编辑此图像",
+    "openInSketch": "在 Sketch 中打开",
+    "addToCanvas": "添加到画布",
+    "rerun": "重新运行",
+    "copyPrompt": "复制提示词",
+    "removeFromThread": "从对话中移除",
+    "history": "历史（{{total}}）",
+    "tileSize": "图块大小",
+    "viewMode": "视图",
+    "list": "列表",
+    "grid": "网格",
+    "video": "视频",
+    "speech": "语音",
+    "music": "音乐",
+    "noVideoOutput": "未返回视频。",
+    "noAudioOutput": "未返回音频。",
+    "untitledTrack": "音轨",
+    "extendClip": "延长此片段",
+    "referenceAlt": "参考图 {{index}}",
+    "sketchTitle": "Sketch",
+    "audio": "音频"
   }
 }

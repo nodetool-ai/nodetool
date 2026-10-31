@@ -1,4 +1,5 @@
 #include "audio/AudioCli.h"
+#include "audio/AvSyncInterpolation.h"
 
 #include "audio/AudioEngine.h"
 #include "audio/LoopbackCapture.h"
@@ -236,12 +237,7 @@ int avSyncCli(int argc, char** argv) {
     clock.setDurationMs(timeline->durationMs);
     clock.setLoop(false);
     clock.setAudioFeed(&engine.feed());
-    struct Sample {
-        double audible;
-        double clockMs;
-        std::uint64_t generation;
-    };
-    std::vector<Sample> samples;
+    std::vector<AvSyncSample> samples;
     const auto requestNs = steadyNowNs();
     clock.seek(0.0);
     clock.play();
@@ -250,11 +246,20 @@ int avSyncCli(int argc, char** argv) {
     std::uint64_t changeGeneration = 0;
     while (steadyNowNs() < endNs) {
         tickNow = steadyNowNs();
-        clock.tick();
         const playback::DeviceInfo dev = engine.feed().device.load();
         const playback::CallbackState cb = engine.feed().callback.load();
+        clock.tick();
+        const double clockMs = clock.time();
+        const playback::CallbackState after = engine.feed().callback.load();
         if (clock.audioMaster()) {
-            samples.push_back({playback::audibleTimeline(cb, dev, tickNow).audibleFrames, clock.time(), dev.generation});
+            // time() is cached by tick(). Reject a callback published during
+            // that tick so the measured frames use the same buffer.
+            if (cb.hostTimeNs == after.hostTimeNs && cb.framesAtStart == after.framesAtStart) {
+                const auto reading = playback::audibleTimeline(cb, dev, tickNow);
+                const auto command = engine.feed().command.load();
+                samples.push_back({reading.audibleFrames, clockMs, dev.generation,
+                                   reading.held || cb.cur().seekSeq != command.seekSeq});
+            }
         }
         if (!changed && tickNow - requestNs > static_cast<std::int64_t>(seconds * 0.5e9)) {
             changed = true;
@@ -274,25 +279,9 @@ int avSyncCli(int argc, char** argv) {
     std::vector<double> liveMs;
     std::vector<double> liveAfterChange;
     for (std::int64_t f : detectOnsets(recording, 0.05, kRate / 200)) {
-        const auto fd = static_cast<double>(f);
-        for (std::size_t i = 1; i < samples.size(); ++i) {
-            const Sample& a = samples[i - 1];
-            const Sample& b = samples[i];
-            if (a.generation != b.generation || !(a.audible <= fd && fd < b.audible)) continue;
-            // Holds (a seek or play start not audible yet) have a flat clock.
-            if (b.clockMs <= a.clockMs) break;
-            double ms = a.clockMs + (b.clockMs - a.clockMs) * (fd - a.audible) / (b.audible - a.audible);
-            // A click on the first audible frame of an anchor: `a` is still
-            // in the hold, so take the slope of the two ticks after it.
-            const bool aHeld = i >= 2 && samples[i - 2].clockMs == a.clockMs;
-            if (aHeld && i + 1 < samples.size() && samples[i + 1].generation == b.generation &&
-                samples[i + 1].audible > b.audible) {
-                const Sample& c = samples[i + 1];
-                ms = b.clockMs + (c.clockMs - b.clockMs) * (fd - b.audible) / (c.audible - b.audible);
-            }
-            liveMs.push_back(ms);
-            if (a.generation == changeGeneration) liveAfterChange.push_back(ms);
-            break;
+        if (const auto click = interpolateAvSyncClick(samples, static_cast<double>(f))) {
+            liveMs.push_back(click->clockMs);
+            if (click->generation == changeGeneration) { liveAfterChange.push_back(click->clockMs); }
         }
     }
     const double lastMs = samples.empty() ? 0.0 : samples.back().clockMs;

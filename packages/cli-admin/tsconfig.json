@@ -1,0 +1,65 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "references": [
+    {
+      "path": "../cli-local"
+    },
+    {
+      "path": "../runtime"
+    },
+    {
+      "path": "../cli-common"
+    },
+    {
+      "path": "../models"
+    },
+    {
+      "path": "../deploy"
+    },
+    {
+      "path": "../compute"
+    },
+    {
+      "path": "../security"
+    },
+    {
+      "path": "../config"
+    },
+    {
+      "path": "../huggingface"
+    },
+    {
+      "path": "../node-sdk"
+    },
+    {
+      "path": "../protocol"
+    },
+    {
+      "path": "../pack-manager"
+    },
+    {
+      "path": "../browser"
+    },
+    {
+      "path": "../analytics"
+    },
+    {
+      "path": "../telegram"
+    },
+    {
+      "path": "../storage"
+    },
+    {
+      "path": "../sandbox-compiler"
+    }
+  ]
+}

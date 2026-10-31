@@ -37,7 +37,9 @@ InspectorSection { width: 300; title: "Effect"; checkable: true; checked: true }
         std::unique_ptr<QObject> object(component.create());
         QVERIFY2(object, qPrintable(component.errorString()));
         QSignalSpy changes(object.get(), SIGNAL(checkedChangedByUser(bool)));
+        QSignalSpy toggles(object.get(), SIGNAL(toggled(bool)));
         QVERIFY(changes.isValid());
+        QVERIFY(toggles.isValid());
         QVERIFY(object->setProperty("checkboxDisabled", disabled));
         auto* item = qobject_cast<QQuickItem*>(object.get());
         QVERIFY(item);
@@ -60,6 +62,50 @@ InspectorSection { width: 300; title: "Effect"; checkable: true; checked: true }
         if (!disabled) {
             QCOMPARE(changes[0][0].toBool(), false);
         }
+        QQuickItem* disclosure = nullptr;
+        for (auto* child : item->findChildren<QQuickItem*>()) {
+            if (child->property("menuButton").toBool() && child->property("accessibleName").toString() == "Effect") {
+                disclosure = child;
+                break;
+            }
+        }
+        QVERIFY(disclosure);
+        const auto disclosurePoint = disclosure->mapToScene(QPointF(disclosure->width() - 12, disclosure->height() / 2)).toPoint();
+        QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier, disclosurePoint);
+        QCOMPARE(toggles.count(), 1);
+        QCOMPARE(toggles.last()[0].toBool(), false);
+        disclosure->forceActiveFocus();
+        QTest::keyClick(&window, Qt::Key_Return);
+        QCOMPARE(toggles.count(), 2);
+        QCOMPARE(toggles.last()[0].toBool(), true);
+    }
+    void sliderDoubleTapResetsThroughSharedControl() {
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData(R"(import QtQuick
+import NodeTool.Timeline
+InspectorSliderRow { width: 300; label: "Opacity"; value: 0.2; min: 0; max: 1; resetValue: 0.7 })", QUrl());
+        std::unique_ptr<QObject> object(component.create());
+        QVERIFY2(object, qPrintable(component.errorString()));
+        auto* item = qobject_cast<QQuickItem*>(object.get());
+        QVERIFY(item);
+        QQuickWindow window;
+        window.resize(300, 50);
+        item->setParentItem(window.contentItem());
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QQuickItem* slider = nullptr;
+        for (auto* child : item->findChildren<QQuickItem*>()) {
+            if (child->property("resetOnDoubleTap").toBool()) { slider = child; break; }
+        }
+        QVERIFY(slider);
+        QSignalSpy changes(object.get(), SIGNAL(change(double)));
+        QVERIFY(changes.isValid());
+        const auto point = slider->mapToScene(QPointF(slider->width() / 2, slider->height() / 2)).toPoint();
+        QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier, point);
+        QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier, point);
+        QTRY_COMPARE(changes.count(), 1);
+        QCOMPARE(changes[0][0].toDouble(), 0.7);
     }
     void previewFeedback_data() {
         QTest::addColumn<bool>("keyboard");
@@ -192,8 +238,12 @@ InspectorPillInput { width: 140; value: "10"; scrub: ({step:1,min:0,max:100}); o
         QVERIFY(!model.applyEdit("example.rename", {{"name", "Must not register here"}}));
         PanelRegistry panels;
         MenuRegistry menus;
-        QVERIFY(panels.forSlot("left").isEmpty());
-        QVERIFY(menus.query("clip", {}).isEmpty());
+        for (const auto& panel : panels.forSlot("left")) {
+            QVERIFY(panel.toMap().value("id").toString() != "example");
+        }
+        for (const auto& entry : menus.query("clip", {})) {
+            QVERIFY(entry.toMap().value("action").toString() != "example.rename");
+        }
     }
     void pillDragCommitsOnceAndBlankDraftIsRejected() {
         QQmlEngine engine;

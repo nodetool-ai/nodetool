@@ -73,6 +73,7 @@ import {
 } from "./threadRuntime";
 import { applyMediaPrediction } from "./mediaPrediction";
 import { isNumber, isString } from "../../utils/typePredicates";
+import { notifySystem } from "../../utils/systemNotification";
 import {
   THOUGHT_CLOSE,
   hasOpenThought,
@@ -481,6 +482,33 @@ const trailingText = (content: Message["content"]): string => {
     return lastBlock && lastBlock.type === "text" ? lastBlock.text : "";
   }
   return "";
+};
+
+/** Characters of the reply a desktop notification previews. */
+const REPLY_PREVIEW_LENGTH = 140;
+
+/**
+ * Tell a user who looked away that a chat turn finished, with the start of
+ * the reply. `notifySystem` stays silent while the app is focused.
+ */
+const announceTurnFinished = (state: GlobalChatState, threadId: string): void => {
+  const messages = state.messageCache[threadId] || [];
+  const lastMessage = messages[messages.length - 1];
+  const reply =
+    lastMessage?.role === "assistant"
+      ? stripThoughtContent(trailingText(lastMessage.content))
+          .replace(/\s+/g, " ")
+          .trim()
+      : "";
+  const preview =
+    reply.length > REPLY_PREVIEW_LENGTH
+      ? `${reply.slice(0, REPLY_PREVIEW_LENGTH - 1)}…`
+      : reply;
+  notifySystem({
+    title: state.threads[threadId]?.title || "Chat",
+    body: preview || "Chat reply finished.",
+    tag: `chat-turn-finished-${threadId}`
+  });
 };
 
 /**
@@ -1646,6 +1674,9 @@ export async function handleChatWebSocketMessage(
       );
     }
     applyReducer(applyChunk, data);
+    if (data.done && tid) {
+      announceTurnFinished(get(), tid);
+    }
   } else if (data.type === "output_update") {
     applyReducer(applyOutputUpdate, data);
   } else if (data.type === "tool_call_update") {

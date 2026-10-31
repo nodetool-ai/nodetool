@@ -1,6 +1,7 @@
 import QtQuick
 import NodeTool.Timeline
 import "primitives"
+import NodeTool.UiPrimitives as Ui
 
 Column {
     id: root
@@ -8,7 +9,7 @@ Column {
     property bool disabled: false
     required property var controller
     signal change(var easing)
-    spacing: Theme.spacingMicro
+    spacing: Ui.Metrics.micro
     InspectorRow {
         width: parent.width
         label: "Easing"
@@ -17,29 +18,27 @@ Column {
             value: root.value
             placeholder: "linear"
             allowEmpty: true
-            minWidth: 140
+            minWidth: Ui.Metrics.touch * 3 + Ui.Metrics.md
             ariaLabel: "Transition easing"
             disabled: root.disabled
             onCommit: raw => root.change(raw.trim() === "" ? null : raw.trim())
         }
     }
-    Text {
+    Ui.Text {
         objectName: "transitionEasingWarning"
         width: parent.width
         visible: root.value !== "" && !root.controller.easingReadable(root.value)
         text: "This build cannot read this easing; it will play as linear."
         wrapMode: Text.WordWrap
-        color: Theme.textSecondary
-        font.family: Theme.sansFamily
-        font.pixelSize: Theme.fontSizeSmaller
+        role: Ui.Typography.SansCaption
+        tone: Ui.Text.Secondary
     }
-    Text {
+    Ui.Text {
         objectName: "transitionEasingHint"
         width: parent.width
         text: "Use linear, easeIn, easeOut, easeInOut, easeOutBack, easeOutElastic, easeOutBounce, cubic-bezier(x1,y1,x2,y2), or spring(stiffness,damping,mass)."
         wrapMode: Text.WordWrap
-        color: Theme.textSecondary
-        font.family: Theme.sansFamily
-        font.pixelSize: Theme.fontSizeSmaller
+        role: Ui.Typography.SansCaption
+        tone: Ui.Text.Secondary
     }
 }

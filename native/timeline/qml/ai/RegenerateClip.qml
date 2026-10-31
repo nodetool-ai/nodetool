@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 RowLayout {
     id: root
@@ -16,8 +17,8 @@ RowLayout {
              && !!selectedClip.currentAssetId && (!sourceRequired || sourceAvailable)
     ClipInspectorController { id: source; timeline: root.timeline; clipId: root.selectedClip.sourceClipId || "" }
     ClipInspectorController { id: inspector; timeline: root.timeline; clipId: root.clipId }
-    Label { text: "New take for " + (root.selectedClip.name || "clip"); color: Theme.textSecondary; Layout.fillWidth: true; elide: Text.ElideRight }
-    Button {
+    Ui.Text { role: Ui.Typography.SansLabel; text: "New take for " + (root.selectedClip.name || "clip"); tone: Ui.Text.Secondary; Layout.fillWidth: true; elide: Text.ElideRight }
+    Ui.EditorButton {
         objectName: "regenerateClip"
         text: "Generate new take"
         enabled: root.controller.ready && !root.controller.busy && !inspector.locked

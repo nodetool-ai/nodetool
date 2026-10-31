@@ -6,7 +6,6 @@ import type { GameDocument } from "@nodetool-ai/protocol/game.js";
 import { trpc } from "../../trpc/client";
 import { Box, Caption, EditorButton, EmptyState, FlexColumn, FlexRow, LoadingSpinner, SPACING, Text } from "../ui_primitives";
 import ErrorBanner from "../support/ErrorBanner";
-import ReportBugButton from "../support/ReportBugButton";
 import { useGamePlaySession } from "./useGamePlaySession";
 import { gamePlayStatus } from "./gamePlayStatus";
 

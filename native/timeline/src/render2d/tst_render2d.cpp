@@ -11,6 +11,7 @@
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QPainter>
+#include <QRawFont>
 #include <QTextLayout>
 #include <QtTest>
 #include <cmath>
@@ -102,6 +103,41 @@ class TestRender2d : public QObject {
         const double expected = line.naturalTextWidth();
         QVERIFY2(std::abs(measure(text, style) - expected) < 0.02,
                  qPrintable(QString("fallback advance %1 expected %2").arg(measure(text, style)).arg(expected)));
+    }
+    void bundledInterWeights_data() {
+        QTest::addColumn<QString>("family");
+        QTest::addColumn<int>("weight");
+        QTest::addColumn<QString>("file");
+        for (const auto& family : {QString(), QStringLiteral("Inter"), QStringLiteral("\"Inter\", sans-serif")}) {
+            for (const int weight : {600, 700, 800, 900}) {
+                QTest::newRow(qPrintable(QString("%1-%2").arg(family).arg(weight)))
+                    << family << weight << QString(weight == 600 ? "Inter-SemiBold.ttf" : "Inter-ExtraBold.ttf");
+            }
+        }
+    }
+    void bundledInterWeights() {
+        QFETCH(QString, family);
+        QFETCH(int, weight);
+        QFETCH(QString, file);
+        nt::scene::TextStyle style;
+        style.fontFamily = family;
+        style.fontWeight = weight;
+        style.fontSizePx = 156;
+        const auto directory = nt::render2d::resolveFontDirectory(QGuiApplication::applicationDirPath());
+        const QRawFont face(directory + u'/' + file, style.fontSizePx, QFont::PreferNoHinting);
+        QVERIFY(face.isValid());
+        // Digits have no pair positioning here. Design advances from the
+        // shipped static face detect a platform matcher choosing variable 700.
+        const auto text = QStringLiteral("4218306");
+        const auto glyphs = face.glyphIndexesForString(text);
+        const auto advances = face.advancesForGlyphIndexes(glyphs, QRawFont::UseDesignMetrics);
+        double expected = 0;
+        for (const auto& advance : advances) {
+            expected += advance.x();
+        }
+        const auto actual = nt::render2d::textMeasurer()(text, style);
+        QVERIFY2(std::abs(actual - expected) < 0.1,
+                 qPrintable(QString("bundled weight %1 advance %2 expected %3").arg(weight).arg(actual).arg(expected)));
     }
     void cssColors_data() {
         QTest::addColumn<QString>("css");

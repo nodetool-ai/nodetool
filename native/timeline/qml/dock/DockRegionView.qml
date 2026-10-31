@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 Item {
     id: root
@@ -9,11 +10,11 @@ Item {
     readonly property var groups: dock.groups(region)
     readonly property bool horizontal: region === "viewport" || region === "bottom"
     readonly property real totalWeight: groups.reduce((sum, group) => sum + (group.weight || 1), 0)
-    readonly property real length: Math.max(0, (horizontal ? width : height) - Theme.spacingSm * Math.max(0, groups.length - 1))
+    readonly property real length: Math.max(0, (horizontal ? width : height) - Ui.Metrics.sm * Math.max(0, groups.length - 1))
     function groupLength(index) { return totalWeight ? length * (groups[index].weight || 1) / totalWeight : 0 }
     function offset(index) {
         let result = 0
-        for (let i = 0; i < index; ++i) result += groupLength(i) + Theme.spacingSm
+        for (let i = 0; i < index; ++i) result += groupLength(i) + Ui.Metrics.sm
         return result
     }
     objectName: "dockRegion_" + region
@@ -40,9 +41,11 @@ Item {
             vertical: root.horizontal
             x: root.horizontal ? root.offset(index) + root.groupLength(index) : 0
             y: root.horizontal ? 0 : root.offset(index) + root.groupLength(index)
-            width: root.horizontal ? Theme.spacingSm : root.width
-            height: root.horizontal ? root.height : Theme.spacingSm
+            width: root.horizontal ? Ui.Metrics.sm : root.width
+            height: root.horizontal ? root.height : Ui.Metrics.sm
             label: "Resize timeline " + root.region + " panel groups"
+            onResizeStarted: root.dock.store.beginResize()
+            onResizeFinished: canceled => root.dock.store.finishResize(canceled)
             value: root.groupLength(index)
             minimum: Math.min(64, (value + root.groupLength(index + 1)) / 2)
             maximum: Math.max((value + root.groupLength(index + 1)) / 2, value + root.groupLength(index + 1) - 64)

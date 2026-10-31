@@ -15,10 +15,12 @@ class AssistController : public QObject {
     Q_PROPERTY(QVariantList scriptRows READ scriptRows NOTIFY changed)
     Q_PROPERTY(QVariantMap scriptHeader READ scriptHeader NOTIFY changed)
     Q_PROPERTY(QUrl scriptEditorLink READ scriptEditorUrl NOTIFY changed)
+    Q_PROPERTY(bool scriptDirty READ scriptDirty NOTIFY scriptDraftsChanged)
     Q_PROPERTY(quint64 scriptDraftRevision READ scriptDraftRevision NOTIFY scriptDraftsChanged)
     Q_PROPERTY(QString error READ error NOTIFY changed)
     Q_PROPERTY(QVariant result READ result NOTIFY changed)
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
+    Q_PROPERTY(bool documentOnly MEMBER m_documentOnly)
 public:
     using MediaResolver = std::function<nt::Clip(const QJsonObject&)>;
     void setMediaResolver(MediaResolver resolver) { m_mediaResolver = std::move(resolver); }
@@ -31,6 +33,7 @@ public:
     QVariantList words() const;
     QVariantList beats() const;
     QVariantList scriptRows() const;
+    bool scriptDirty() const;
     quint64 scriptDraftRevision() const { return m_scriptDraftRevision; }
     Q_INVOKABLE bool hasScriptLineDraft(const QString& scriptId, const QString& lineId) const;
     QVariantMap scriptHeader() const;
@@ -39,6 +42,7 @@ public:
     Q_INVOKABLE bool createLinkedScript();
     Q_INVOKABLE bool patchScriptLine(const QString& lineId, const QString& text);
     Q_INVOKABLE void setScriptLineDraft(const QString& scriptId, const QString& lineId, const QString& text);
+    Q_INVOKABLE bool discardScriptDrafts(const QString& scriptId);
     Q_INVOKABLE bool saveScriptLineDraft(const QString& scriptId, const QString& lineId);
     Q_INVOKABLE bool removeEmptyScriptLineForScript(const QString& scriptId, const QString& lineId, const QString& text);
     Q_INVOKABLE bool removeEmptyScriptLine(const QString& lineId, const QString& text);
@@ -56,6 +60,9 @@ public:
     Q_INVOKABLE bool extractScript();
     Q_INVOKABLE bool assembleStoryboard(const QJsonObject& board);
     Q_INVOKABLE void updateResource(const QJsonObject& resource);
+    Q_INVOKABLE bool listContextResources(const QString& kind, bool linkedOnly = false);
+    Q_INVOKABLE bool openEntity(const QString& id);
+    Q_INVOKABLE bool saveEntity(const QJsonObject& entity, const QJsonValue& expectedMetadata);
     Q_INVOKABLE bool listScripts();
     Q_INVOKABLE bool listStoryboards();
     Q_INVOKABLE bool openScript(const QString& id);
@@ -77,9 +84,11 @@ private:
     MediaResolver m_mediaResolver;
     std::shared_ptr<nt::assets::MediaProtection> m_mediaProtection = std::make_shared<nt::assets::MediaProtection>();
     bool m_busy = false;
+    bool m_documentOnly = false;
     std::shared_ptr<std::atomic_bool> m_cancelled;
     QString m_error;
     QVariant m_result;
+    QString m_resultScope;
     QHash<QString, QString> m_scriptRevisions;
     QHash<QString, QHash<QString, LineDraft>> m_scriptDrafts;
     quint64 m_scriptDraftRevision = 0;

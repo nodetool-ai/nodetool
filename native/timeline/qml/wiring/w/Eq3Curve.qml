@@ -1,5 +1,6 @@
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 import "CurveMath.js" as MathFx
 
 Rectangle {
@@ -9,20 +10,19 @@ Rectangle {
     property bool disabled: false
     signal preview(var patch)
     signal commit(var patch)
+    signal editCanceled()
     readonly property var ranges: [[40,400], [100,8000], [2000,16000]]
     readonly property var bands: ["low", "mid", "high"]
-    readonly property var colors: [Theme.info, Theme.success, Theme.warning]
+    readonly property var colors: [Ui.Theme.statusInfo, Ui.Theme.statusSuccess, Ui.Theme.statusWarning]
     implicitHeight: 160
     height: implicitHeight
-    radius: Theme.radiusSm
-    border.width: 1
-    border.color: Theme.divider
-    gradient: Gradient {
-        GradientStop { position: 0; color: Theme.backgroundPaper }
-        GradientStop { position: 1; color: Theme.scrimSoft }
-    }
+    radius: Ui.Metrics.xs
+    border.width: Ui.Metrics.border
+    border.color: Ui.Theme.borderSubtle
+    color: Ui.Theme.surfaceInput
     function frequencyX(f) { return Math.log(f / 20) / Math.log(1000) * width }
     function gainY(db) { return height / 2 - db / 18 * height / 2 }
+    Connections { target: Ui.Theme; function onEffectiveSchemeChanged() { curve.requestPaint() } }
     onEffectChanged: curve.requestPaint()
     onDisabledChanged: curve.requestPaint()
     Canvas {
@@ -32,19 +32,15 @@ Rectangle {
             const ctx = getContext("2d")
             ctx.reset()
             const e = graph.effect
-            ctx.strokeStyle = Theme.divider
+            ctx.strokeStyle = Ui.Theme.borderSubtle
             ctx.lineWidth = 0.5
-            ctx.font = "9px monospace"
-            ctx.fillStyle = Theme.textDisabled
             for (const f of [50,100,200,500,1000,2000,5000,10000]) {
                 const x = graph.frequencyX(f)
                 ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,height); ctx.stroke()
-                ctx.fillText(f >= 1000 ? f / 1000 + "k" : String(f), x + 2, height - 4)
             }
             for (const db of [-12,-6,0,6,12]) {
                 const y = graph.gainY(db)
                 ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(width,y); ctx.stroke()
-                ctx.fillText((db > 0 ? "+" : "") + db, 4, y - 3)
             }
             ctx.beginPath()
             for (let i = 0; i <= 256; ++i) {
@@ -56,13 +52,21 @@ Rectangle {
                 if (i === 0) ctx.moveTo(0,y)
                 else ctx.lineTo(i / 256 * width,y)
             }
-            ctx.strokeStyle = graph.disabled ? Theme.textDisabled : Theme.primary
+            ctx.strokeStyle = graph.disabled ? Ui.Theme.textDisabled : Ui.Theme.accentPrimary
             ctx.lineWidth = 1.75
             ctx.stroke()
             ctx.lineTo(width,height / 2); ctx.lineTo(0,height / 2); ctx.closePath()
             ctx.globalAlpha = graph.disabled ? 0.06 : 0.14
-            ctx.fillStyle = Theme.primary; ctx.fill()
+            ctx.fillStyle = Ui.Theme.accentPrimary; ctx.fill()
         }
+    }
+    Repeater {
+        model: [50,100,200,500,1000,2000,5000,10000]
+        delegate: Ui.Text { required property int modelData; x: graph.frequencyX(modelData) + Ui.Metrics.micro; y: graph.height - height; text: modelData >= 1000 ? modelData / 1000 + "k" : String(modelData); role: Ui.Typography.MonoCaption; tone: Ui.Text.Disabled }
+    }
+    Repeater {
+        model: [-12,-6,0,6,12]
+        delegate: Ui.Text { required property int modelData; x: Ui.Metrics.xs; y: graph.gainY(modelData) - height; text: (modelData > 0 ? "+" : "") + modelData; role: Ui.Typography.MonoCaption; tone: Ui.Text.Disabled }
     }
     Repeater {
         model: graph.bands
@@ -74,16 +78,17 @@ Rectangle {
             width: 22; height: 22; radius: width / 2
             x: graph.frequencyX(graph.effect[modelData + "Freq"]) - width / 2
             y: graph.gainY(graph.effect[modelData + "GainDb"]) - height / 2
-            color: Theme.backgroundPaper
-            border.width: activeFocus ? 3 : 2
-            border.color: graph.disabled ? Theme.textDisabled : graph.colors[index]
+            color: Ui.Theme.surfacePanel
+            border.width: activeFocus ? Ui.Metrics.focus : Ui.Metrics.border
+            border.color: graph.disabled ? Ui.Theme.textDisabled : graph.colors[index]
             enabled: !graph.disabled
             activeFocusOnTab: true
             Accessible.role: Accessible.Slider
             Accessible.name: TrackEffectsReference.data.strings.eq.band.replace("{{band}}", TrackEffectsReference.data.strings.eq.bands[modelData])
             Accessible.description: graph.effect[modelData + "Freq"].toFixed(0) + " Hz, " + graph.effect[modelData + "GainDb"].toFixed(1) + " dB"
-            Text { anchors.centerIn: parent; text: handle.modelData[0].toUpperCase(); color: handle.border.color; font.pixelSize: 9; font.family: Theme.monoFamily }
+            Ui.Text { anchors.centerIn: parent; text: handle.modelData[0].toUpperCase(); domainColor: handle.border.color; role: Ui.Typography.MonoCaption }
             Keys.onPressed: event => {
+                if (event.key === Qt.Key_Escape) { event.accepted = true; graph.editCanceled(); return }
                 const dir = event.key === Qt.Key_Right || event.key === Qt.Key_Up ? 1 : event.key === Qt.Key_Left || event.key === Qt.Key_Down ? -1 : 0
                 if (!dir) return
                 event.accepted = true
@@ -99,7 +104,12 @@ Rectangle {
                 }
                 graph.preview(patch)
             }
-            Keys.onReleased: graph.commit({})
+            Keys.onReleased: event => {
+                if (!event.isAutoRepeat && (event.key === Qt.Key_Up || event.key === Qt.Key_Down || event.key === Qt.Key_Left || event.key === Qt.Key_Right)) {
+                    event.accepted = true
+                    graph.commit({})
+                }
+            }
             MouseArea {
                 anchors.fill: parent
                 preventStealing: true
@@ -114,7 +124,7 @@ Rectangle {
                     graph.preview(patch)
                 }
                 onReleased: graph.commit({})
-                onCanceled: graph.commit({})
+                onCanceled: graph.editCanceled()
             }
             Timer { id: wheelEnd; interval: 250; onTriggered: graph.commit({}) }
             WheelHandler {

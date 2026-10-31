@@ -72,8 +72,8 @@ and the model-line skill says how to write them.
   model supports. Measure with `analyze_video` before cutting to it.
 - **Frame.** Aspect ratio is not guaranteed — an image-to-video route often
   ignores a 9:16 source and emits 16:9. `analyze_video` reports it; fix it with
-  an ffmpeg crop to the target frame (`nodetool.media.ffmpeg` in a code action;
-  `api-media` has its contract) before compositing, not after.
+  a crop to the target frame (`nodetool.media.edit("crop", …)` in a code
+  action; `api-media` has its contract) before compositing, not after.
 - **The mix.** Judge it with `understand_video` (Gemini gets the audio; every
   other vision model is sent silent stills), `analyze_audio` for the levels, and
   `detect_video_scenes` to confirm the cuts landed where the beats said. Never

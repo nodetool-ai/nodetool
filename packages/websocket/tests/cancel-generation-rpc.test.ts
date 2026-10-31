@@ -11,7 +11,7 @@ import {
 } from "../src/websocket-client-session.js";
 import type { TextToImageParams } from "@nodetool-ai/runtime";
 
-vi.mock("../src/lib/thumbnail.js", () => ({
+vi.mock("@nodetool-ai/asset-services/thumbnail", () => ({
   storeAssetWithThumbnail: vi.fn(async () => undefined)
 }));
 

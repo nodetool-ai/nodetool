@@ -7,36 +7,36 @@ export const contentDates: {
 } = {
   "routes": {
     "/agents": {
-      "date": "2026-10-21",
-      "hash": "903a16b2f01f83ba"
+      "date": "2026-10-30",
+      "hash": "79098662cdd9d180"
     },
     "/marketing": {
       "date": "2026-10-17",
       "hash": "3096463add7ce4af"
     },
     "/gamedev": {
-      "date": "2026-10-22",
-      "hash": "ccfec15cb2bdf765"
+      "date": "2026-10-30",
+      "hash": "a64808b0e6373aae"
     },
     "/gamedev/ai-game-engines": {
       "date": "2026-10-17",
       "hash": "b9a7ae3e72adb4a0"
     },
     "/ai-video-editor": {
-      "date": "2026-10-20",
-      "hash": "fd9ee060019f6aa6"
+      "date": "2026-10-30",
+      "hash": "bbfdb7c6713787be"
     },
     "/ai-image-editor": {
       "date": "2026-10-20",
       "hash": "f766b366d635ba58"
     },
     "/mcp": {
-      "date": "2026-10-20",
-      "hash": "ffaab11d5322e861"
+      "date": "2026-10-30",
+      "hash": "6565a6e3cc7f6c2e"
     },
     "/developers": {
-      "date": "2026-10-20",
-      "hash": "11bc235d47950bb7"
+      "date": "2026-10-30",
+      "hash": "77d284892b9ad83e"
     },
     "/studio": {
       "date": "2026-10-21",

@@ -3,6 +3,7 @@ import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import NodeTool.Timeline
 import "AudioEffectsKnobs.js" as Effects
+import NodeTool.UiPrimitives as Ui
 
 Column {
     id: root
@@ -18,59 +19,49 @@ Column {
     signal patch(var patch)
     signal remove()
     signal move(int delta)
-    spacing: Theme.spacingMicro
-    Rectangle { width: parent.width; height: 1; color: Theme.divider }
+    spacing: Ui.Metrics.micro
+    Ui.Separator { width: parent.width }
     RowLayout {
         width: parent.width
-        spacing: Theme.spacingMicro
-        Controls.CheckBox {
+        spacing: Ui.Metrics.micro
+        Ui.CheckBox {
+            id: enabledBox
             objectName: "audioEffectEnabled-" + root.effect.id
-            implicitWidth: Theme.controlXs
-            implicitHeight: Theme.controlXs
-            checked: !!root.effect.enabled
-            Accessible.name: root.name + " enabled"
-            onClicked: root.patch({enabled: checked})
+            Binding { target: enabledBox; property: "checked"; value: !!root.effect.enabled }
+            accessibleName: root.name + " enabled"
+            onCheckedChangedByUser: checked => root.patch({enabled: checked})
         }
-        Controls.Button {
+        Ui.EditorButton {
             objectName: "audioEffectExpand-" + root.effect.id
             Layout.fillWidth: true
-            implicitHeight: Theme.controlXs
-            flat: true
-            text: (root.expanded ? "⌄ " : "› ") + root.name
-            font.family: Theme.sansFamily
-            font.pixelSize: Theme.fontSizeSmall
+            density: Ui.EditorButton.Compact
+            variant: Ui.EditorButton.Flat
+            contentAlignment: Qt.AlignLeft
+            text: root.name
+            trailingIconName: root.expanded ? "arrowDropDown" : "navigateNext"
+            accessibleName: (root.expanded ? "Collapse " : "Expand ") + root.name
             onClicked: root.expand()
         }
-        Controls.ToolButton {
+        Ui.ToolbarIconButton {
             objectName: "audioEffectUp-" + root.effect.id
-            implicitWidth: Theme.controlXs
-            implicitHeight: Theme.controlXs
-            text: "↑"
+            iconName: "arrowUpward"
             enabled: !root.isFirst
-            Accessible.name: "Move " + root.name + " up"
-            Controls.ToolTip.text: "Move earlier in the chain"
-            Controls.ToolTip.visible: hovered
+            accessibleName: "Move " + root.name + " up"
+            description: "Move earlier in the chain"
             onClicked: root.move(-1)
         }
-        Controls.ToolButton {
+        Ui.ToolbarIconButton {
             objectName: "audioEffectDown-" + root.effect.id
-            implicitWidth: Theme.controlXs
-            implicitHeight: Theme.controlXs
-            text: "↓"
+            iconName: "arrowDownward"
             enabled: !root.isLast
-            Accessible.name: "Move " + root.name + " down"
-            Controls.ToolTip.text: "Move later in the chain"
-            Controls.ToolTip.visible: hovered
+            accessibleName: "Move " + root.name + " down"
+            description: "Move later in the chain"
             onClicked: root.move(1)
         }
-        Controls.ToolButton {
+        Ui.ToolbarIconButton {
             objectName: "audioEffectRemove-" + root.effect.id
-            implicitWidth: Theme.controlXs
-            implicitHeight: Theme.controlXs
-            text: "×"
-            Accessible.name: "Remove " + root.name
-            Controls.ToolTip.text: Accessible.name
-            Controls.ToolTip.visible: hovered
+            iconName: "close"
+            accessibleName: "Remove " + root.name
             onClicked: root.remove()
         }
     }

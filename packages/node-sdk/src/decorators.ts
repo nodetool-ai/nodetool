@@ -1,21 +1,10 @@
+import type { PropOptions, DeclaredPropertyMetadata } from "@nodetool-ai/pack-core/metadata";
+export type { PropOptions, DeclaredPropertyMetadata } from "@nodetool-ai/pack-core/metadata";
 import { isCallable } from "./type-predicates.js";
 
-export interface PropOptions {
-  type: string;
-  default?: unknown;
-  title?: string;
-  description?: string;
-  min?: number;
-  max?: number;
-  required?: boolean;
-  values?: Array<string | number>;
-  json_schema_extra?: Record<string, unknown>;
-}
 
-export interface DeclaredPropertyMetadata {
-  name: string;
-  options: PropOptions;
-}
+
+
 
 const declaredPropsByClass = new WeakMap<
   Function,

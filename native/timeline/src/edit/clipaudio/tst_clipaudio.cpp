@@ -276,6 +276,9 @@ AudioEffects { selection: ["c"]; open: true; width: 400 })", QUrl());
         raw.insert("durationMs", 7000);
         AudioEditor e(QJsonDocument(raw).toJson());
         QVERIFY2(e.object, qPrintable(e.error));
+        // Keep the complete clip visible beside the registered side panels.
+        e.root()->setWidth(1800);
+        e.window.resize(1800, e.window.height());
         QVERIFY(QTest::qWaitForWindowExposed(&e.window));
         e.gestures()->viewState()->zoomTo(20, 0);
         e.gestures()->viewState()->setScrollLeftPx(0);
@@ -292,6 +295,8 @@ AudioEffects { selection: ["c"]; open: true; width: 400 })", QUrl());
         auto* out = e.item("fadeGrip-out-c");
         QVERIFY(out);
         QVERIFY(in->isVisible());
+        auto* lanes = e.item("lanesViewport");
+        QVERIFY(lanes);
         const auto before = e.model.clipsJson();
         for (auto* grip : {in, out}) {
             const bool incoming = grip == in;
@@ -299,6 +304,7 @@ AudioEffects { selection: ["c"]; open: true; width: 400 })", QUrl());
             for (const auto [delta, wanted] : {std::pair{180, 4200.0}, std::pair{-40, 0.0}, std::pair{500, 4400.0}}) {
                 const auto point = grip->mapToScene({grip->width() / 2, grip->height() / 2}).toPoint();
                 const auto end = point + QPoint(incoming ? delta : -delta, 0);
+                QVERIFY2(lanes->contains(lanes->mapFromScene(point)), "Fade grip must be inside the visible lane before pressing");
                 QTest::mousePress(&e.window, Qt::LeftButton, Qt::NoModifier, point);
                 QTest::mouseMove(&e.window, end, 20);
                 QCOMPARE(e.model.clipsJson()[0].toObject()[field].toDouble(), wanted);
@@ -639,29 +645,33 @@ AudioGainDialog { clipIds: ["c", "silent"] })", QUrl());
         std::unique_ptr<QObject> dialog(component.createWithInitialProperties({{"timeline", QVariant::fromValue(&model)}}));
         QVERIFY2(dialog, qPrintable(component.errorString()));
         QCOMPARE(dialog->property("title").toString(), wording["title"].toString());
-        auto* content = dialog->property("contentItem").value<QQuickItem*>();
-        QVERIFY(content);
-        const auto items = content->childItems();
-        QCOMPARE(items.size(), 7);
-        QCOMPARE(items[0]->property("text").toString(), wording["change"].toString());
-        QCOMPARE(items[1]->property("text").toString(), wording["setGainTo"].toString());
-        QCOMPARE(items[2]->property("text").toString(), wording["adjustGainBy"].toString());
+        auto* changeLabel = dialog->findChild<QObject*>("gainChangeLabel");
+        auto* modeSelect = dialog->findChild<QObject*>("gainChangeMode");
+        auto* valueLabel = dialog->findChild<QObject*>("gainValueLabel");
+        auto* rangeError = dialog->findChild<QObject*>("gainRangeError");
+        auto* scope = dialog->findChild<QObject*>("gainScope");
+        QVERIFY(changeLabel && modeSelect && valueLabel && rangeError && scope);
+        QCOMPARE(changeLabel->property("text").toString(), wording["change"].toString());
+        const auto options = modeSelect->property("options").toList();
+        QCOMPARE(options.size(), 2);
+        QCOMPARE(options[0].toMap().value("label").toString(), wording["setGainTo"].toString());
+        QCOMPARE(options[1].toMap().value("label").toString(), wording["adjustGainBy"].toString());
         auto* input = dialog->findChild<QObject*>("gainInput");
         QVERIFY(input);
         for (const auto& mode : {QString("set"), QString("adjust")}) {
             QVERIFY(dialog->setProperty("mode", mode));
             const auto expected = wording[mode == "set" ? "gain" : "change"].toString();
-            QCOMPARE(items[3]->property("text").toString(), expected);
+            QCOMPARE(valueLabel->property("text").toString(), expected);
             QCOMPARE(QQmlProperty::read(input, "Accessible.name", qmlContext(input)).toString(), expected);
         }
         QVERIFY(dialog->setProperty("mode", "set"));
         QVERIFY(dialog->setProperty("dbText", "25"));
         QVERIFY(!dialog->property("valid").toBool());
-        QCOMPARE(items[5]->property("text").toString(), wording["rangeError"].toString()
+        QCOMPARE(rangeError->property("text").toString(), wording["rangeError"].toString()
             .replace("{{min}}", "-120").replace("{{max}}", "24"));
-        QCOMPARE(items[6]->property("text").toString(), wording["appliesToOne"].toString());
+        QCOMPARE(scope->property("text").toString(), wording["appliesToOne"].toString());
         QVERIFY(dialog->setProperty("clipIds", QStringList{"silent"}));
-        QCOMPARE(items[6]->property("text").toString(), wording["noAudio"].toString());
+        QCOMPARE(scope->property("text").toString(), wording["noAudio"].toString());
         const auto parsed = QJsonDocument::fromJson(model.documentJson()).object();
         auto multiple = parsed;
         auto clips = multiple["clips"].toArray();
@@ -673,13 +683,10 @@ AudioGainDialog { clipIds: ["c", "silent"] })", QUrl());
         QVERIFY(timeline.timeline);
         model.setTimeline(std::move(*timeline.timeline));
         QVERIFY(dialog->setProperty("clipIds", QStringList{"c", "second", "silent"}));
-        QCOMPARE(items[6]->property("text").toString(), wording["appliesToMany_other"].toString().replace("{{count}}", "2"));
-        auto* footer = dialog->property("footer").value<QObject*>();
-        QVERIFY(footer);
-        QQmlListReference buttons(footer, "contentChildren");
-        QVERIFY(buttons.isReadable());
-        QCOMPARE(buttons.count(), 2);
-        QCOMPARE(buttons.at(1)->property("text").toString(), english["batch2_25"].toObject()["common"].toObject()["apply"].toString());
+        QCOMPARE(scope->property("text").toString(), wording["appliesToMany_other"].toString().replace("{{count}}", "2"));
+        auto* apply = dialog->findChild<QObject*>("gainApply");
+        QVERIFY(apply);
+        QCOMPARE(apply->property("text").toString(), english["batch2_25"].toObject()["common"].toObject()["apply"].toString());
     }
     void registeredEdits() {
         TimelineModel model;

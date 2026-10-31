@@ -1,0 +1,8 @@
+{
+  "name": "@sebastianwessel/quickjs",
+  "version": "3.0.1",
+  "license": "MIT",
+  "npmIntegrity": "sha512-9pKTzjtsHIBxokMhYgNPyqvBSpX9WLus5j+cqspB2VHOKbC0L45NQiVQhbEiaWXEyBtxd3W8MLnvlxvtBLo0Ew==",
+  "esmAndLicenseSha256": "3537d085ff5f01fb797945cbf25fd8b6a32901b3c6a73bcddfb9d68303dc0ed5",
+  "generator": "scripts/vendor-quickjs-javascript.mjs"
+}

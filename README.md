@@ -270,12 +270,12 @@ Use NodeTool from Claude Code, Codex, or OpenCode. One command registers the
 server with every client it finds. The desktop app is optional:
 
 ```bash
-npx -y --package=@nodetool-ai/cli nodetool mcp install
+npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp install
 ```
 
 The command starts the server once to check it, then writes each client's
 config. Restart the client and ask it to use NodeTool. For other clients,
-`nodetool mcp config` prints an `mcpServers` block. See
+`nodetool-mcp config` prints an `mcpServers` block. See
 [NodeTool as an MCP Server](https://docs.nodetool.ai/mcp-server).
 
 For Claude Desktop, build the source MCP bundle after installing dependencies
@@ -308,8 +308,11 @@ npm run workflow -- ./examples/workflows/hello_input_output_cli.json \
 
 The input node named `text` connects to a `Reroute` output node. The command's
 JSON summary includes `hello from NodeTool` in its outputs. See
-[`examples/workflows/README.md`](examples/workflows/README.md) for more
-examples and expected behavior.
+[`examples/workflows/README.md`](examples/workflows/README.md) for more CLI
+smoke tests and expected behavior. The creator workflow templates, mini apps,
+storyboards, timelines, and recipes shipped in Studio live in
+[`packages/base-nodes/nodetool/examples/`](packages/base-nodes/nodetool/examples/)
+and are browsable in the [template gallery](https://nodetool.ai/templates).
 
 To run an agent or a model-backed workflow, configure a provider first. Export
 an OpenAI key and use the checked-in OpenAI example:
@@ -385,7 +388,8 @@ repository gate is `npm run check`.
 | [`electron/`](electron/) | Desktop Studio shell |
 | [`mobile/`](mobile/) | React Native app |
 | [`docs/`](docs/) | Documentation and development guides |
-| [`examples/workflows/`](examples/workflows/) | Runnable workflow examples |
+| [`packages/base-nodes/nodetool/examples/`](packages/base-nodes/nodetool/examples/) | Shipped workflow templates, mini apps, storyboards, timelines, and recipes |
+| [`examples/workflows/`](examples/workflows/) | CLI smoke-test workflow examples |
 
 ## Contributing
 

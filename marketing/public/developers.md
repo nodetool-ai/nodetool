@@ -10,10 +10,10 @@ product: NodeTool
 NodeTool runs as a local MCP server. One command registers it with Claude Code, Codex, and OpenCode:
 
 ```bash
-npx -y --package=@nodetool-ai/cli nodetool mcp install
+npx -y --package=@nodetool-ai/cli-mcp nodetool-mcp install
 ```
 
-For Cursor, Claude Desktop, or another MCP client, run `nodetool mcp config` and paste the printed block into the client config. The desktop app is optional.
+For Cursor, Claude Desktop, or another MCP client, run `nodetool-mcp config` and paste the printed block into the client config. The desktop app is optional.
 
 After the install, ask the agent for images, video, speech, transcripts, or a whole workflow in plain words. It saves files into the project and keeps a copy in the NodeTool asset library. Generation calls your own provider accounts at their list price.
 

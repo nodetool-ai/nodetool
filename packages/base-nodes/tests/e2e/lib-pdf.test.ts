@@ -267,13 +267,40 @@ describe("lib.pdf nodes", () => {
     expect(images).toHaveLength(2);
   });
 
-  it("Pdftoppm declares the pdftoppm runtime and rejects missing PDF data", async () => {
+  it("Pdftoppm renders in process and needs no external runtime", async () => {
     expect(PdfToppmNode.nodeType).toBe("lib.pdf.Pdftoppm");
-    expect(PdfToppmNode.requiredRuntimes).toEqual(["pdftoppm"]);
+    expect(PdfToppmNode.requiredRuntimes).toBeUndefined();
 
     const node = new PdfToppmNode();
     node.assign({ pdf: {} });
     await expect(node.process()).rejects.toThrow("No PDF data or URI provided");
+  });
+
+  it("Pdftoppm encodes each format and honors page range", async () => {
+    const signatures = {
+      png: [0x89, 0x50, 0x4e, 0x47],
+      jpeg: [0xff, 0xd8, 0xff],
+      tiff: [0x49, 0x49, 0x2a, 0x00]
+    } as const;
+    for (const format of ["png", "jpeg", "tiff"] as const) {
+      const node = new PdfToppmNode();
+      node.assign({ pdf: twoPagePdf, start_page: 1, end_page: -1, dpi: 72, format });
+      const result = await node.process();
+      expect(result.output).toHaveLength(1);
+      const bytes = Buffer.from(result.output[0].data, "base64");
+      expect([...bytes.subarray(0, signatures[format].length)]).toEqual([
+        ...signatures[format]
+      ]);
+    }
+  });
+
+  it("Pdftoppm scale_to sets the longest side in pixels", async () => {
+    const sharp = (await import("sharp")).default;
+    const node = new PdfToppmNode();
+    node.assign({ pdf: singlePagePdf, start_page: 0, end_page: 0, scale_to: 400 });
+    const result = await node.process();
+    const meta = await sharp(Buffer.from(result.output[0].data, "base64")).metadata();
+    expect(Math.max(meta.width ?? 0, meta.height ?? 0)).toBe(400);
   });
 
   it("ExtractOcr runs OCR and returns text from rendered pages", async () => {

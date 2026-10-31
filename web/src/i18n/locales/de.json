@@ -9207,6 +9207,10 @@
         "soundNotifications": {
           "label": "Tonbenachrichtigungen",
           "description": "Spiele einen Systemton ab, wenn Workflows abgeschlossen sind, Exporte fertig sind oder andere wichtige Ereignisse eintreten."
+        },
+        "systemNotifications": {
+          "label": "Desktop-Benachrichtigungen",
+          "description": "Zeige eine Systembenachrichtigung, wenn ein Lauf oder eine Chat-Antwort fertig ist, während NodeTool im Hintergrund ist."
         }
       },
       "updates": {
@@ -10621,6 +10625,9 @@
       "off": "Aus",
       "stop": "Anhalten",
       "miniMap": "Minikarte",
+      "showInspector": "Inspektor einblenden",
+      "hideInspector": "Inspektor ausblenden",
+      "toggleInspector": "Inspektor ein-/ausblenden",
       "visible": "Sichtbar",
       "hidden": "Ausgeblendet",
       "downloadJson": "JSON herunterladen",
@@ -10982,7 +10989,8 @@
         "lab": "Lab",
         "chorus": "Chorus",
         "echo": "Tape-Echo",
-        "reverb": "Hall"
+        "reverb": "Hall",
+        "limiter": "Limiter"
       },
       "parameters": {
         "gainDb": "Lautstärke",
@@ -15206,6 +15214,11 @@
       "frames": "Frames",
       "deleteFrame": "Frame löschen",
       "addFrame": "Frame hinzufügen"
+    },
+    "limiter": {
+      "ariaLabel": "Limiter",
+      "caption": "Obergrenze {{ceiling}} dB",
+      "displayAria": "Limiter: Eingangsspitze {{input}} dB, Ausgangsspitze {{output}} dB, Pegelreduktion {{reduction}} dB"
     }
   },
   "i18n-next46": {
@@ -15780,7 +15793,11 @@
       "askAgent": "Agent fragen"
     },
     "audio": {
-      "asset": "Audio-Asset"
+      "asset": "Audio-Asset",
+      "assistant": "Assistent",
+      "resizeAssistant": "Audio-Assistent in der Größe ändern",
+      "assistantWelcomeTitle": "Audio-Assistent",
+      "assistantWelcomeBody": "Bitte mich, dieses Audio zu bearbeiten, zum Beispiel „schneide die Stille am Anfang weg“, „blende die letzten zwei Sekunden aus“ oder „füge etwas Hall hinzu“. Änderungen bleiben ungespeichert, bis du speicherst."
     },
     "chat": {
       "conversation": "Unterhaltung",
@@ -15880,7 +15897,11 @@
       "loadError": "Diese SVG-Datei konnte nicht geladen werden.",
       "notFound": "SVG nicht gefunden",
       "mayHaveBeenDeleted": "Sie wurde möglicherweise gelöscht.",
-      "contentLoadError": "Der SVG-Inhalt konnte nicht geladen werden."
+      "contentLoadError": "Der SVG-Inhalt konnte nicht geladen werden.",
+      "assistant": "Assistent",
+      "resizeAssistant": "SVG-Assistent in der Größe ändern",
+      "assistantWelcomeTitle": "SVG-Assistent",
+      "assistantWelcomeBody": "Bitte mich, diese Zeichnung zu ändern, zum Beispiel „mach den Kreis rot“, „füge einen Schlagschatten hinzu“ oder „vereinfache die Pfade“. Änderungen bleiben ungespeichert, bis du speicherst."
     },
     "text": {
       "loadError": "Diese Textdatei konnte nicht geladen werden.",
@@ -16720,6 +16741,7 @@
       "copyName": "{{name}} (Kopie)",
       "createScriptAction": "das Skript erstellen",
       "duplicateScriptAction": "das Skript duplizieren",
+      "deleteScriptAction": "das Skript löschen",
       "singular": "Script",
       "plural": "Skripte",
       "emptyDescription": "Erstelle mit der Schaltfläche + oben ein neues Skript.",
@@ -17502,6 +17524,7 @@
         "bypass": "{{title}} umgehen",
         "enable": "{{title}} aktivieren",
         "open": "{{title}} öffnen",
+        "remove": "{{title}} entfernen",
         "add": "Effekt zu {{channel}} hinzufügen"
       }
     }
@@ -18891,5 +18914,35 @@
     "missingTarget": "Entferntes Gerät",
     "laneLabel": "Automationsspur: {{name}}",
     "deletePoint": "Punkt löschen"
+  },
+  "generationFeed": {
+    "recent": "Neueste",
+    "imageEmptyTitle": "Bilder erstellen",
+    "imageEmptyDescription": "Beschreibe unten eine Szene und wähle Modell und Seitenverhältnis. Hänge ein Bild an, um es zu bearbeiten.",
+    "videoEmptyTitle": "Videos erstellen",
+    "videoEmptyDescription": "Beschreibe unten Einstellung, Kamerabewegung und Licht. Hänge ein Bild an, um es zu animieren.",
+    "audioEmptyTitle": "Sprache und Musik erzeugen",
+    "audioEmptyDescription": "Gib einen Satz ein, um ihn vorlesen zu lassen. Wechsle zu „Musik erzeugen“, um einen Track zu komponieren.",
+    "editImage": "Dieses Bild bearbeiten",
+    "openInSketch": "In Sketch öffnen",
+    "addToCanvas": "Zur Arbeitsfläche hinzufügen",
+    "rerun": "Erneut ausführen",
+    "copyPrompt": "Prompt kopieren",
+    "removeFromThread": "Aus dem Verlauf entfernen",
+    "history": "Verlauf ({{total}})",
+    "tileSize": "Kachelgröße",
+    "viewMode": "Ansicht",
+    "list": "Liste",
+    "grid": "Raster",
+    "video": "Video",
+    "speech": "Sprache",
+    "music": "Musik",
+    "noVideoOutput": "Es wurde kein Video zurückgegeben.",
+    "noAudioOutput": "Es wurde kein Audio zurückgegeben.",
+    "untitledTrack": "Audiospur",
+    "extendClip": "Diesen Clip verlängern",
+    "referenceAlt": "Referenz {{index}}",
+    "sketchTitle": "Sketch",
+    "audio": "Ton"
   }
 }

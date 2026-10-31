@@ -45,6 +45,8 @@ import "./script";
 import "./jsscript";
 import "./puck";
 import "./model3d";
+import "./svg";
+import "./audio";
 import "./code";
 
 // Entity assets.

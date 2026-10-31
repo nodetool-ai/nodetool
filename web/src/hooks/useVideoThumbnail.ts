@@ -2,10 +2,9 @@
  * Poster frame for a stored video, with a client-side fallback.
  *
  * The server mints `thumb_url` for every video asset from a deterministic
- * storage key, without checking that the object exists. Generating that
- * object needs `ffmpeg` on PATH (see `packages/websocket/src/lib/thumbnail.ts`),
- * so on any install without it the URL is a 404 and the asset grid paints an
- * empty tile — `background-image` fails silently, and the video branch's
+ * storage key, without checking that the object exists. When the server
+ * could not generate it (see `packages/websocket/src/lib/thumbnail.ts`), the
+ * URL is a 404 and the asset grid paints an empty tile — `background-image` fails silently, and the video branch's
  * `thumb_url || get_url` fallback is no better, because no browser paints an
  * MP4 as a background image.
  *
@@ -102,7 +101,7 @@ export function useVideoThumbnail(
 
   const probe = thumbUrl ? probes.get(thumbUrl) : undefined;
   // Only decode once the stored thumbnail is known to be missing, so the
-  // common (ffmpeg present) case never spins up a video element.
+  // common case never spins up a video element.
   const needsFallback = !thumbUrl || probe === "failed";
   const fallbackUrl = needsFallback && videoUrl ? videoUrl : null;
 

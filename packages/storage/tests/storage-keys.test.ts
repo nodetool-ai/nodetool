@@ -1,6 +1,7 @@
+import { readFileSync } from "node:fs";
 import { describe, it, expect } from "vitest";
+import { isWithinRoot } from "../src/file-storage-adapter.js";
 import {
-  isWithinRoot,
   normalizeStorageKey,
   joinStorageKey,
   assetObjectKey,
@@ -153,5 +154,16 @@ describe("assetKeyOwner", () => {
 
   it("ignores a leading slash rather than reporting an empty owner", () => {
     expect(assetKeyOwner("/abc.png")).toBeNull();
+  });
+});
+
+describe("storage-keys module", () => {
+  it("has no imports, so its browser/Edge subpath export stays Node-free", () => {
+    const source = readFileSync(
+      new URL("../src/storage-keys.ts", import.meta.url),
+      "utf8"
+    );
+    expect(source).toContain("export function normalizeStorageKey");
+    expect(source).not.toMatch(/^import\b/m);
   });
 });

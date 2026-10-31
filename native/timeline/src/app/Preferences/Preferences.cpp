@@ -2,14 +2,17 @@
 #include "edit/ClipGestureController.h"
 #include "audio/LoopbackCapture.h"
 #include <QCoreApplication>
+#include <QGuiApplication>
 #include <QFileInfo>
 #include <QDir>
 #include <QKeyEvent>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QQuickWindow>
+#include <QStyleHints>
 #include <QTimer>
 #include <algorithm>
+#include <cmath>
 
 namespace nt::app {
 namespace {
@@ -19,10 +22,24 @@ bool validLayout(const QString& layout) {
 bool validDecoder(const QString& mode) {
     return mode == "sw" || mode == "hw" || mode == "auto";
 }
+bool validTheme(const QString& value) {
+    return value == "System" || value == "Dark" || value == "Light";
+}
+bool validMotion(const QString& value) {
+    return value == "System" || value == "Reduce" || value == "Full";
+}
+double readScale(const QSettings& settings, const QString& key, double minimum, double maximum) {
+    bool ok = false;
+    const double value = settings.value(key, 1.0).toDouble(&ok);
+    return ok && std::isfinite(value) && value >= minimum && value <= maximum ? value : 1.0;
+}
 }
 Preferences::Preferences(QObject* parent) : QObject(parent) {
     m_settings = openTimelinePreferences();
     m_devices.append(QVariantMap{{"label", "System default"}, {"value", ""}});
+    if (auto* hints = QGuiApplication::styleHints()) {
+        connect(hints, &QStyleHints::colorSchemeChanged, this, &Preferences::systemSchemeChanged);
+    }
 }
 QString Preferences::keyboardLayout() const {
     const QString value = m_settings->value("keyboardLayout", "nodetool").toString();
@@ -37,6 +54,26 @@ QString Preferences::decoderMode() const {
     return validDecoder(value) ? value : QStringLiteral("sw");
 }
 QString Preferences::audioDevice() const { return m_settings->value("audioDevice").toString(); }
+QString Preferences::themePreference() const {
+    const QString value = m_settings->value("appearance/themePreference", "System").toString();
+    return validTheme(value) ? value : QStringLiteral("System");
+}
+double Preferences::uiScale() const { return readScale(*m_settings, "appearance/uiScale", 0.75, 2.0); }
+double Preferences::textScale() const { return readScale(*m_settings, "appearance/textScale", 1.0, 2.0); }
+QString Preferences::motionPreference() const {
+    const QString value = m_settings->value("appearance/motionPreference", "System").toString();
+    return validMotion(value) ? value : QStringLiteral("System");
+}
+QString Preferences::systemScheme() const {
+    const auto* hints = QGuiApplication::styleHints();
+    if (!hints) return QStringLiteral("Unknown");
+    switch (hints->colorScheme()) {
+    case Qt::ColorScheme::Dark: return QStringLiteral("Dark");
+    case Qt::ColorScheme::Light: return QStringLiteral("Light");
+    default: return QStringLiteral("Unknown");
+    }
+}
+bool Preferences::reducedMotion() const { return motionPreference() == "Reduce"; }
 void Preferences::write(const QString& key, const QVariant& value) {
     if (m_settings->contains(key) && m_settings->value(key) == value) {
         return;
@@ -58,6 +95,18 @@ void Preferences::setDecoderMode(const QString& value) {
     }
 }
 void Preferences::setAudioDevice(const QString& value) { write("audioDevice", value); }
+void Preferences::setThemePreference(const QString& value) {
+    if (validTheme(value)) write("appearance/themePreference", value);
+}
+void Preferences::setUiScale(double value) {
+    if (std::isfinite(value) && value >= 0.75 && value <= 2.0) write("appearance/uiScale", value);
+}
+void Preferences::setTextScale(double value) {
+    if (std::isfinite(value) && value >= 1.0 && value <= 2.0) write("appearance/textScale", value);
+}
+void Preferences::setMotionPreference(const QString& value) {
+    if (validMotion(value)) write("appearance/motionPreference", value);
+}
 void Preferences::refreshDevices() {
     m_devices = {QVariantMap{{"label", "System default"}, {"value", ""}}};
     std::string error;

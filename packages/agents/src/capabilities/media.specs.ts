@@ -311,6 +311,11 @@ export const GENERATE_SPEECH_SCHEMA: JsonSchema = {
     speed: {
       type: "number" as const,
       description: "Speech speed (e.g. 0.25–4.0)."
+    },
+    instructions: {
+      type: "string" as const,
+      description:
+        "Delivery direction for models that take one (e.g. 'whispering, tired')."
     }
   },
   required: ["provider", "model", "text"]
@@ -340,7 +345,7 @@ export const GENERATE_MUSIC_SCHEMA: JsonSchema = {
     duration_seconds: {
       type: "number" as const,
       description:
-        "Requested length. Models honour this loosely and some ignore it — probe the result with ffprobe before cutting to it."
+        "Requested length. Models honour this loosely and some ignore it — probe the result with media_probe before cutting to it."
     },
     output_file: {
       type: "string" as const,
@@ -753,104 +758,151 @@ export const scoreImageAdherenceSpec: CapabilitySpec = {
   userMessage: () => "Scoring image adherence to the brief"
 };
 
-export const FFMPEG_SCHEMA: JsonSchema = {
+/** Where a file reaches `media_edit` and `media_probe` from, said once for both. */
+const MEDIA_FILE_DESCRIPTION =
+  "A workspace-relative path, or an `asset://` URI or `/api/storage/` key, " +
+  "which is copied into the workspace first. Any other URL is refused — " +
+  "nothing here fetches the network.";
+
+const STAGE_INPUTS_DESCRIPTION =
+  "Files to copy into the workspace before the edit, as " +
+  '{"<workspace-relative name>": "<asset:// URI, /api/storage/ key, ' +
+  'or data: URI>"}, to name them in the edit afterwards. At most 8 files, ' +
+  "100 MiB each and 256 MiB total. Local asset:// inputs use the configured " +
+  "local upload limit (2 GiB by default), also bounding the total.";
+
+export const MEDIA_EDIT_SCHEMA: JsonSchema = {
   type: "object" as const,
   properties: {
-    args: {
+    operation: {
+      type: "string" as const,
+      enum: [
+        "trim",
+        "concat",
+        "extract_audio",
+        "extract_frames",
+        "scale",
+        "crop",
+        "rotate",
+        "convert",
+        "add_audio",
+        "mix_audio",
+        "fade",
+        "normalize",
+        "overlay"
+      ],
+      description:
+        "trim: input, start/end seconds. concat: sources (2+ videos), joined at " +
+        "the first one's size and rate. extract_audio: input to an audio file. " +
+        "extract_frames: input, `times` in seconds or `fps` + `max_frames`, " +
+        "into the output_file folder. scale: input, width and/or height " +
+        "(`fit` when both). crop: input, x, y, width, height. rotate: input, " +
+        "degrees 90/180/270. convert: input to the container and codecs the " +
+        "output_file extension names. add_audio: input video plus `audio`; " +
+        "`mode` replace (default) or mix, `volume` for the added track; the " +
+        "result is as long as the picture. mix_audio: sources (2+ audio " +
+        "files), optional per-source `volumes`. fade: input, fade_in and/or " +
+        "fade_out seconds, picture and sound. normalize: input, loudness to " +
+        "-16 LUFS. overlay: input video plus `overlay` (image or video) at " +
+        "x/y, optional width/height for the overlay and start/end window."
+    },
+    input: { type: "string" as const, description: `The file to edit. ${MEDIA_FILE_DESCRIPTION}` },
+    sources: {
       type: "array" as const,
       items: { type: "string" as const },
-      description:
-        "ffmpeg arguments after the binary name. Paths are workspace-relative " +
-        "and cannot escape it; ffmpeg opens local files only, so an " +
-        "asset:// URI or a URL in args is refused — name it in `inputs` " +
-        "instead. " +
-        'Example: ["-i", "in.mp4", "-vf", "scale=1280:-2", "out.mp4"].'
+      description: `Files for concat and mix_audio, in order. Each is ${MEDIA_FILE_DESCRIPTION.toLowerCase()}`
     },
-    inputs: {
-      type: "object" as const,
-      description:
-        "Files to copy into the workspace before the run, as " +
-        '{"<workspace-relative name>": "<asset:// URI, /api/storage/ key, ' +
-        'or data: URI>"}. This is how an asset reaches ffmpeg: stage it, ' +
-        "then use the name in args. At most 8 files, 100 MiB each and 256 MiB total. " +
-        "Local asset:// inputs use the configured local upload limit (2 GiB by default), also bounding the total. " +
-        'Example: {"a.mp4": "asset://<id>.mp4", "b.mp4": "asset://<id>.mp4"}.',
-      additionalProperties: { type: "string" as const }
-    },
+    audio: { type: "string" as const, description: `The soundtrack for add_audio. ${MEDIA_FILE_DESCRIPTION}` },
+    overlay: { type: "string" as const, description: `The picture for overlay. ${MEDIA_FILE_DESCRIPTION}` },
     output_file: {
       type: "string" as const,
       description:
-        "Optional workspace-relative output path. Appended as the last " +
-        "argument when it is not already in args. Persisted as an asset " +
-        "when the run succeeds."
+        "Workspace-relative output path; its extension picks the container " +
+        "(.mp4 .m4v .mov .mkv .webm for video, .wav .mp3 .m4a .aac .ogg .flac " +
+        "for audio). For extract_frames, the folder the frames go in. Saved " +
+        "as an asset when the edit succeeds."
     },
-    timeout_seconds: {
-      type: "number" as const,
-      description: "Wall-clock timeout. Default 180, max 600."
-    }
-  },
-  required: ["args"]
-};
-
-export const ffmpegSpec: CapabilitySpec = {
-  name: "ffmpeg",
-  description:
-    "Run ffmpeg on workspace files. Pass argv after the binary name " +
-    "(no shell). Paths are workspace-relative and confined to the " +
-    "workspace; ffmpeg opens local files only (no URLs, pipes, or device " +
-    "files) — put asset:// URIs in `inputs` to stage them under workspace " +
-    "names first. Install ffmpeg if the binary is missing. Use output_file " +
-    "to persist the result as an asset. Concatenating two assets is one " +
-    "call: inputs {a.mp4, b.mp4} plus a concat filter_complex.",
-  inputSchema: FFMPEG_SCHEMA,
-  category: "execute",
-  userMessage: (params) => {
-    const out = isString(params["output_file"]) ? params["output_file"] : "";
-    return out ? `Running ffmpeg → ${out}` : "Running ffmpeg";
-  }
-};
-
-export const FFPROBE_SCHEMA: JsonSchema = {
-  type: "object" as const,
-  properties: {
-    path: {
+    start: { type: "number" as const, description: "Seconds: trim start, overlay window start, extract_frames start." },
+    end: { type: "number" as const, description: "Seconds: trim end, overlay window end." },
+    width: { type: "integer" as const, description: "Pixels: scale or crop width, overlay width, concat frame width." },
+    height: { type: "integer" as const, description: "Pixels: scale or crop height, overlay height, concat frame height." },
+    x: { type: "integer" as const, description: "Pixels from the left: crop or overlay position." },
+    y: { type: "integer" as const, description: "Pixels from the top: crop or overlay position." },
+    degrees: { type: "integer" as const, enum: [90, 180, 270], description: "Clockwise rotation." },
+    fit: {
       type: "string" as const,
-      description:
-        "Media to inspect: a workspace-relative path, or an `asset://` URI " +
-        "or `/api/storage/` key, which is staged into the workspace for you. " +
-        "Any other URL is refused — nothing here fetches the network."
+      enum: ["fill", "contain", "cover"],
+      description: "How scale treats a new aspect ratio: stretch (fill, the default), letterbox, or crop."
+    },
+    times: {
+      type: "array" as const,
+      items: { type: "number" as const },
+      description: "extract_frames: the seconds to take a frame at (up to 100)."
+    },
+    fps: { type: "number" as const, description: "extract_frames: frames per second to take; concat: output rate." },
+    max_frames: { type: "integer" as const, description: "extract_frames with fps: most frames to write (default 10, max 100)." },
+    image_format: { type: "string" as const, enum: ["png", "jpeg"], description: "extract_frames image type. Default png." },
+    fade_in: { type: "number" as const, description: "fade: seconds of fade from black and silence." },
+    fade_out: { type: "number" as const, description: "fade: seconds of fade to black and silence." },
+    mode: { type: "string" as const, enum: ["replace", "mix"], description: "add_audio: replace the sound (default) or mix under it." },
+    volume: { type: "number" as const, description: "add_audio: gain for the added track, 0-10. Default 1." },
+    volumes: {
+      type: "array" as const,
+      items: { type: "number" as const },
+      description: "mix_audio: one gain per source, 0-10. Default 1 each."
     },
     inputs: {
       type: "object" as const,
-      description:
-        "Files to copy into the workspace before the run, as " +
-        '{"<workspace-relative name>": "<asset:// URI, /api/storage/ key, ' +
-        'or data: URI>"} — the same staging `ffmpeg` takes. `path` stages an ' +
-        "asset by itself, so this is for the extra files a probe needs. At " +
-        "most 8 files, 100 MiB each and 256 MiB total. Local asset:// inputs " +
-        "use the configured local upload limit (2 GiB by default), also bounding the total.",
+      description: STAGE_INPUTS_DESCRIPTION,
       additionalProperties: { type: "string" as const }
-    },
-    timeout_seconds: {
-      type: "number" as const,
-      description: "Wall-clock timeout. Default 30, max 120."
+    }
+  },
+  required: ["operation", "output_file"]
+};
+
+export const mediaEditSpec: CapabilitySpec = {
+  name: "media_edit",
+  description:
+    "Edit audio and video files in the workspace with one typed operation: " +
+    "trim, concat, extract_audio, extract_frames, scale, crop, rotate, " +
+    "convert, add_audio, mix_audio, fade, normalize or overlay. Runs in " +
+    "process; no ffmpeg install is needed and no command line is taken. " +
+    "Inputs and outputs stay inside the workspace, and an asset:// URI " +
+    "names an input directly. Speed changes and burned-in subtitles are not " +
+    "offered yet. Probe with media_probe first to plan a cut.",
+  inputSchema: MEDIA_EDIT_SCHEMA,
+  category: "write",
+  userMessage: (params) => {
+    const op = isString(params["operation"]) ? params["operation"] : "edit";
+    const out = isString(params["output_file"]) ? params["output_file"] : "";
+    return out ? `Media ${op} → ${out}` : `Media ${op}`;
+  }
+};
+
+export const MEDIA_PROBE_SCHEMA: JsonSchema = {
+  type: "object" as const,
+  properties: {
+    path: { type: "string" as const, description: `Media to inspect. ${MEDIA_FILE_DESCRIPTION}` },
+    inputs: {
+      type: "object" as const,
+      description: STAGE_INPUTS_DESCRIPTION,
+      additionalProperties: { type: "string" as const }
     }
   },
   required: ["path"]
 };
 
-export const ffprobeSpec: CapabilitySpec = {
-  name: "ffprobe",
+export const mediaProbeSpec: CapabilitySpec = {
+  name: "media_probe",
   description:
-    "Read a media file's format and streams with ffprobe: duration, size, " +
-    "bit rate, and per-stream codec/resolution/frame rate/channels. Takes a " +
-    "workspace path, not argv — or an `asset://` URI / `/api/storage/` key " +
-    "in `path` directly, which it stages for itself; `inputs` stages the " +
-    "rest. ffprobe reports every number as a string, so the answer also " +
-    "carries a `summary` with duration_seconds/width/height/has_audio as " +
-    "real numbers and booleans. Use it before ffmpeg to decide what to do.",
-  inputSchema: FFPROBE_SCHEMA,
-  category: "execute",
+    "Read a media file's container and streams: duration_seconds, " +
+    "has_video, has_audio, width, height, fps, rotation, alpha, codecs, " +
+    "sample_rate and channels, all as numbers and booleans. Takes a " +
+    "workspace path or an asset:// URI. Use it before media_edit to decide " +
+    "what to cut.",
+  inputSchema: MEDIA_PROBE_SCHEMA,
+  // An asset:// path is copied into the workspace before it is read.
+  category: "write",
   userMessage: (params) => {
     const target = isString(params["path"]) ? params["path"] : "a file";
     return `Inspecting ${target}`;
@@ -872,7 +924,10 @@ export const YT_DLP_SCHEMA: JsonSchema = {
     },
     format: {
       type: "string" as const,
-      description: "Optional yt-dlp format selector (the -f value)."
+      description:
+        "Optional yt-dlp format selector (the -f value). Default bv*+ba/b. " +
+        "Each side of a top-level + downloads on its own and the two are " +
+        "muxed without re-encoding; a + inside parentheses is refused."
     },
     timeout_seconds: {
       type: "number" as const,
@@ -887,8 +942,8 @@ export const ytDlpSpec: CapabilitySpec = {
   description:
     "Download a video with yt-dlp into the workspace. Requires a public " +
     "http(s) URL — internal and loopback addresses are refused — and writes " +
-    "only inside the workspace, up to 2 GiB. Install yt-dlp (and ffmpeg for " +
-    "merge/transcode) if the binary is missing. Returns the output path and " +
+    "only inside the workspace, up to 2 GiB per format. Install yt-dlp if " +
+    "the binary is missing; no ffmpeg is needed. Returns the output path and " +
     "an asset handle when possible.",
   inputSchema: YT_DLP_SCHEMA,
   category: "external",
@@ -917,7 +972,7 @@ export const mediaSpecs: readonly CapabilitySpec[] = [
   compareImagesSpec,
   scoreImageAdherenceSpec,
   understandVideoSpec,
-  ffmpegSpec,
-  ffprobeSpec,
+  mediaEditSpec,
+  mediaProbeSpec,
   ytDlpSpec
 ];

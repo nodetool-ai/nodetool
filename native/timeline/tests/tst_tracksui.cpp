@@ -1934,15 +1934,32 @@ private slots:
     void toolbarDropsItsLabelsWhenNarrow() {
         load({2, 4});
         QQuickItem* select = itemNamed("tool_select");
-        QVERIFY(!select->property("compact").toBool());
+        auto* toolbar = itemNamed("timelineToolbar");
+        view->resize(2000, kRegionHeight);
+        frame();
+        QVERIFY2(!select->property("compact").toBool(), qPrintable(QStringLiteral("toolbar width=%1 available=%2 row=%3 needed=%4")
+            .arg(toolbar->width()).arg(toolbar->property("available").toDouble()).arg(toolbar->property("rowWidth").toDouble())
+            .arg(toolbar->property("neededWidth").toDouble())));
         QVERIFY(select->width() > 28);
         QCOMPARE(itemNamed("tool_slip")->width(), 28.0);  // iconOnly in both
+        view->resize(kRegionWidth, kRegionHeight);
+        frame();
+        QVERIFY(select->property("compact").toBool());
+        QVERIFY(toolbar->property("rowWidth").toDouble() <= toolbar->property("available").toDouble());
         view->resize(700, kRegionHeight);
         frame();
         QVERIFY(select->property("compact").toBool());
         QCOMPARE(select->width(), 28.0);
         QVERIFY(!itemNamed("zoomSlider")->isVisible());
-        view->resize(kRegionWidth, kRegionHeight);
+        view->resize(600, kRegionHeight);
+        frame();
+        auto* viewport = itemNamed("timelineToolViewport");
+        auto* help = itemNamed("helpButton");
+        QVERIFY(viewport->clip());
+        QVERIFY(viewport->property("contentWidth").toDouble() > viewport->width());
+        QVERIFY(viewport->mapToScene(QPointF(viewport->width(), 0)).x()
+                <= help->mapToScene(QPointF()).x());
+        view->resize(2000, kRegionHeight);
         frame();
         QVERIFY(!select->property("compact").toBool());
     }
@@ -2000,8 +2017,13 @@ private slots:
         QCOMPARE(clock->time(), 6000.0);
         key(Qt::Key_M, Qt::ShiftModifier | Qt::MetaModifier, "M");
         QCOMPARE(clock->time(), 2500.0);
-        // Delete through the ruler, then undo it and the adds.
-        QMetaObject::invokeMethod(itemNamed("timeRuler"), "deleteMarkerRequested", Q_ARG(QString, m.value("id").toString()));
+        // Delete through the marker button, then undo it and the adds.
+        auto* markerDelete = first->findChild<QQuickItem*>(QStringLiteral("markerDelete"));
+        QVERIFY(markerDelete);
+        const auto deletePoint = markerDelete->mapToScene(QPointF(markerDelete->width() / 2, markerDelete->height() / 2)).toPoint();
+        QTest::mouseMove(view.get(), deletePoint);
+        QTRY_VERIFY(markerDelete->isVisible());
+        click(deletePoint);
         frame();
         QCOMPARE(model->markersJson().size(), 1);
         model->undoStack()->undo();
@@ -2059,7 +2081,17 @@ private slots:
         component.loadFromModule("NodeTool.Timeline", "ShortcutsSheet");
         std::unique_ptr<QObject> sheet(component.createWithInitialProperties({{"gestures", QVariant::fromValue(g)}}));
         QVERIFY2(sheet, qPrintable(component.errorString()));
+        auto* sheetItem = qobject_cast<QQuickItem*>(sheet.get());
+        QVERIFY(sheetItem);
+        sheetItem->setParentItem(region);
+        sheetItem->setSize(region->size());
+        sheetItem->setZ(100);
+        auto* focusBefore = view->activeFocusItem();
+        QVERIFY(focusBefore);
         sheet->setProperty("open", true);
+        auto* dialog = sheet->findChild<QObject*>(QStringLiteral("shortcutsDialog"));
+        QVERIFY(dialog);
+        QTRY_VERIFY(dialog->property("visible").toBool());
         const QVariantMap content = sheet->property("content").toMap();
         QCOMPARE(content.value("title").toString(), QStringLiteral("Keyboard shortcuts"));
         const QVariantList groups = content.value("groups").toList();
@@ -2077,14 +2109,10 @@ private slots:
         for (const QVariant& gv : groups) rows += gv.toMap().value("rows").toList().size();
         QCOMPARE(rows, 107);
         if (qEnvironmentVariableIsSet("NT_SHOT_DIR")) {
-            auto* item = qobject_cast<QQuickItem*>(sheet.get());
             view->resize(1600, 1000);
-            item->setParentItem(region);
-            item->setSize(QSizeF(1600, 1000));
-            item->setZ(100);
+            sheetItem->setSize(region->size());
             frame();
             view->grabWindow().save(qEnvironmentVariable("NT_SHOT_DIR") + "/native-sheet.png");
-            item->setParentItem(nullptr);
         }
         g->setKeyboardPreset(QStringLiteral("premiere"));
         sheet->setProperty("open", false);
@@ -2092,6 +2120,26 @@ private slots:
         const QVariantMap redo = sheet->property("content").toMap().value("groups").toList().last().toMap()
                                      .value("rows").toList().at(1).toMap();
         QCOMPARE(combos(redo), (QList<QStringList>{{"Ctrl", "Shift", "Z"}, {"Ctrl", "Y"}}));
+        view->resize(320, 480);
+        sheetItem->setSize(region->size());
+        frame();
+        QVERIFY(dialog->property("x").toDouble() >= 0);
+        QVERIFY(dialog->property("y").toDouble() >= 0);
+        QVERIFY(dialog->property("x").toDouble() + dialog->property("width").toDouble() <= view->width());
+        QVERIFY(dialog->property("y").toDouble() + dialog->property("height").toDouble() <= view->height());
+        if (qEnvironmentVariableIsSet("NT_SHOT_DIR"))
+            view->grabWindow().save(qEnvironmentVariable("NT_SHOT_DIR") + "/native-sheet-narrow.png");
+        QTest::keyClick(view.get(), Qt::Key_Escape);
+        QTRY_VERIFY(!sheet->property("open").toBool());
+        QCOMPARE(view->activeFocusItem(), focusBefore);
+        sheet->setProperty("open", true);
+        QTRY_VERIFY(dialog->property("visible").toBool());
+        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, {2, 2});
+        QTRY_VERIFY(!sheet->property("open").toBool());
+        sheet->setProperty("open", true);
+        QTRY_VERIFY(dialog->property("visible").toBool());
+        key(Qt::Key_Question, Qt::ShiftModifier, "?");
+        QTRY_VERIFY(!sheet->property("open").toBool());
     }
 
     // ── M2b: waveforms and filmstrips ──
@@ -2308,11 +2356,11 @@ private slots:
                 view->grabWindow().copy(0, 0, 900, 200).save(qEnvironmentVariable("NT_SHOT_DIR") + "/save-" + name + ".png");
         };
         QCOMPARE(label(), QStringLiteral("Saved"));
-        QCOMPARE(find("saveDot")->property("color").value<QColor>(), QColor("#50FA7B"));
+        QCOMPARE(find("saveDot")->property("color").value<QColor>(), QColor("#80DCA0"));
         shot("saved");
         saver->setProperty("dirty", true);
         QCOMPARE(label(), QStringLiteral("Unsaved changes"));
-        QCOMPARE(find("saveDot")->property("color").value<QColor>(), QColor("#FFB86C"));
+        QCOMPARE(find("saveDot")->property("color").value<QColor>(), QColor("#FFD08A"));
         saver->setProperty("saving", true);
         QCOMPARE(label(), QStringLiteral("Saving…"));
         QVERIFY(find("saveSpinner")->isVisible());

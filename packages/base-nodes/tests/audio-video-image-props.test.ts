@@ -3,7 +3,6 @@
  * These verify that the renamed properties (commit 86c4a62d5 / 480d281e1)
  * are correctly wired in process() methods.
  */
-import { spawnSync } from "node:child_process";
 import { describe, it, expect } from "vitest";
 import {
   OverlayAudioNode,
@@ -21,24 +20,6 @@ import {
 } from "../src/index.js";
 
 // --- Helpers ---
-
-/**
- * Whether the `ffmpeg` binary is on PATH. The video effect nodes shell out to
- * ffmpeg and, as of the codec-hardening pass, a MISSING binary throws a clear
- * "ffmpeg is not installed" error instead of silently passing the input video
- * through unprocessed. Tests that exercise those nodes are gated on this so
- * they run meaningfully where ffmpeg exists and skip (not false-fail) where it
- * doesn't — e.g. the CI quality gate, which has no ffmpeg installed.
- */
-function ffmpegAvailable(): boolean {
-  try {
-    const r = spawnSync("ffmpeg", ["-version"], { stdio: "ignore" });
-    return !r.error && r.status === 0;
-  } catch {
-    return false;
-  }
-}
-const HAS_FFMPEG = ffmpegAvailable();
 
 function audioRef(bytes: number[]) {
   return {
@@ -220,7 +201,7 @@ describe("FpsNode — uses ffprobe for fps extraction", () => {
   });
 });
 
-describe("ForEachFrameNode — uses ffmpeg for frame extraction", () => {
+describe("ForEachFrameNode — frame extraction", () => {
   it("yields nothing for empty video", async () => {
     const node = new ForEachFrameNode();
     const frames: Record<string, unknown>[] = [];
@@ -234,7 +215,7 @@ describe("ForEachFrameNode — uses ffmpeg for frame extraction", () => {
   });
 });
 
-describe("TrimVideoNode — uses ffmpeg for trimming", () => {
+describe("TrimVideoNode — trimming", () => {
   it("returns empty video ref for empty input", async () => {
     const node = new TrimVideoNode();
     node.assign({
@@ -258,7 +239,7 @@ describe("FrameToVideoNode — uses frame property (not frames)", () => {
       ]
     });
     // Both frames are read from `frame` and written to disk, after which
-    // ffmpeg fails on the fake PNG bytes (or is missing) and the node
+    // The encoder fails on the fake PNG bytes and the node
     // throws. If the property were misread, the node would resolve with an
     // empty video instead.
     await expect(node.process()).rejects.toThrow(
@@ -268,39 +249,37 @@ describe("FrameToVideoNode — uses frame property (not frames)", () => {
 });
 
 describe("BlurVideoNode — uses strength property (not radius)", () => {
-  // Requires ffmpeg: the node shells out to it. The invalid (3-byte) input makes
-  // ffmpeg fail, which the node surfaces as an error rather than passing the
-  // input through — but the filter args are built from `strength` before that,
-  // so a misread property name would instead give the `radius <= 0` early
-  // return and resolve. Skipped when ffmpeg is absent, where the node throws a
-  // missing-binary error for an unrelated reason.
-  it.skipIf(!HAS_FFMPEG)("reads the blur radius from strength", async () => {
+  // The invalid (3-byte) input makes the edit fail, which the node surfaces as
+  // an error rather than passing the input through — but the filter is built
+  // from `strength` before that, so a misread property name would instead give
+  // the `radius <= 0` early return and resolve.
+  it("reads the blur radius from strength", async () => {
     const node = new BlurVideoNode();
     node.assign({
       video: videoRef([1, 2, 3]),
       strength: 5
     });
-    await expect(node.process()).rejects.toThrow("ffmpeg failed");
+    await expect(node.process()).rejects.toThrow("Video processing failed");
   });
 });
 
 describe("ChromaKeyVideoNode — uses key_color property (not color)", () => {
   // `key_color` is a color object, not a bare string. The node builds its
   // colorkey filter from it and then fails on the invalid (3-byte) input, so
-  // reaching the ffmpeg error means assign() accepted the property under its
-  // current name. Skipped without ffmpeg, where the failure is unrelated.
-  it.skipIf(!HAS_FFMPEG)("accepts key_color parameter", async () => {
+  // reaching the edit's error means assign() accepted the property under its
+  // current name.
+  it("accepts key_color parameter", async () => {
     const node = new ChromaKeyVideoNode();
     node.assign({
       video: videoRef([1, 2, 3]),
       key_color: { value: "#FF0000" },
       similarity: 0.2
     });
-    await expect(node.process()).rejects.toThrow("ffmpeg failed");
+    await expect(node.process()).rejects.toThrow("Video processing failed");
   });
 });
 
-describe("ExtractFrameVideoNode — uses ffmpeg for frame extraction", () => {
+describe("ExtractFrameVideoNode — frame extraction", () => {
   it("returns null image for empty video", async () => {
     const node = new ExtractFrameVideoNode();
     node.assign({

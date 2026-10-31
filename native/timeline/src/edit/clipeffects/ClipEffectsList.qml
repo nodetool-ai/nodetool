@@ -4,6 +4,7 @@ import QtQuick.Controls as Controls
 import NodeTool.Timeline
 import "ClipEffectsCatalog.js" as Catalog
 import "../inspectorsections" as Sections
+import NodeTool.UiPrimitives as Ui
 
 InspectorSection {
     id: root
@@ -16,7 +17,7 @@ InspectorSection {
     readonly property string identity: JSON.stringify(listed.map(effect => effect.id))
     property string expandedId: ""
     title: "Effects"
-    icon: "✧"
+    icon: "autoAwesome"
     meta: listed.length ? listed.filter(effect => effect.enabled).length + "/" + listed.length + " active" : ""
     defaultOpen: false
     open: ClipEffectsUi.folds.effects ?? false
@@ -66,64 +67,43 @@ InspectorSection {
     Sections.InspectorActionButton {
         id: add
         objectName: "effectsAdd"
-        text: "+ Add effect"
+        text: "Add effect"
+        iconName: "add"
         outlined: false
         enabled: !effectEdits.locked
         Accessible.name: "Add effect"
         onClicked: {
             search.text = "";
-            popup.open();
+            popup.openAt(add);
         }
-        Controls.Popup {
+        Ui.Popover {
             id: popup
-            y: add.height
-            width: Math.max(root.width - InspectorTokens.sectionIndent, InspectorTokens.rowControlMinWidth * 2)
-            padding: Theme.spacingMd
-            closePolicy: Controls.Popup.CloseOnEscape | Controls.Popup.CloseOnPressOutside
+            width: parent ? Math.min(parent.width - 2 * Ui.Metrics.dialogNarrowInset,
+                Math.max(root.width - InspectorTokens.sectionIndent, InspectorTokens.rowControlMinWidth * 2)) : root.width
             onOpened: search.forceActiveFocus()
-            background: Rectangle {
-                color: Theme.backgroundPaper
-                radius: Theme.radiusMd
-                border.width: 1
-                border.color: Theme.overlayStrong
-            }
             contentItem: Column {
-                spacing: Theme.spacingMd
+                spacing: Ui.Metrics.md
                 Accessible.role: Accessible.Dialog
                 Accessible.name: "Add effect"
-                Controls.TextField {
+                Ui.TextField {
                     id: search
                     objectName: "effectsSearch"
                     width: parent.width
-                    implicitHeight: InspectorTokens.controlSm
                     placeholderText: "Search effects"
-                    Accessible.name: "Search effects"
-                    font.family: Theme.sansFamily
-                    font.pixelSize: Theme.fontSizeSmall
-                    color: Theme.textPrimary
-                    background: Rectangle {
-                        color: Theme.backgroundDefault
-                        radius: Theme.radiusSm
-                        border.width: 1
-                        border.color: search.activeFocus ? Theme.primary : Theme.overlayStrong
-                    }
+                    accessibleName: "Search effects"
+                    density: Ui.EditorButton.Compact
                 }
                 Column {
                     width: parent.width
                     Repeater {
                         model: Catalog.addableEffects.filter(effect => effect.label.toLowerCase().includes(search.text.trim().toLowerCase()))
-                        delegate: Sections.InspectorActionButton {
+                        delegate: Ui.EditorButton {
                             required property var modelData
                             objectName: "effectsAdd_" + modelData.value
                             width: parent.width
-                            outlined: false
+                            variant: Ui.EditorButton.Flat
+                            contentAlignment: Qt.AlignLeft
                             text: modelData.label
-                            contentItem: Text {
-                                text: parent.text
-                                font: parent.font
-                                color: Theme.textPrimary
-                                verticalAlignment: Text.AlignVCenter
-                            }
                             onClicked: {
                                 root.expandedId = effectEdits.add(modelData.value);
                                 popup.close();

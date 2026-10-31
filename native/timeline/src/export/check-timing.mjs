@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { root, run, exportFile, duration, scratchBase } from './check-export.mjs';
+import { root, run, exportFile, duration, scratchBase, decodeAudio } from './check-export.mjs';
 const dir = fs.mkdtempSync(path.join(scratchBase, 'nt-export-timing-'));
 try {
   for (const name of ['odd-size', 'av-sync', 'av-sync-fractional', 'fractional-grid', 'sequence-trim']) {
@@ -34,7 +34,7 @@ try {
     const expectedTicks = frames / doc.fps * den / num;
     assert.ok(Math.abs(Number(video.duration_ts) - expectedTicks) < 1e-8, `Exact video duration in ticks: ${video.duration_ts} vs ${expectedTicks}`);
     const decoded = path.join(dir, 'audio.f32');
-    run('ffmpeg', ['-v', 'error', '-y', '-i', out, '-vn', '-f', 'f32le', '-ar', '48000', '-ac', '2', decoded]);
+    decodeAudio(out, decoded);
     assert.equal(fs.statSync(decoded).size / 8, Math.round(frames / doc.fps * 48000), 'Exact decoded sample count');
     console.log(`${name}: PASS (${frames} frames, ${video.duration_ts} ticks)`);
   }

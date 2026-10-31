@@ -90,7 +90,7 @@
 - [x] **Tool/summary surface.** `get_storyboard` / `get_script` report link
       state, drift, and orphans (design §3.2).
 - [x] **Harness registry.** Extend the storyboard/script surface entries in
-      `packages/cli/src/harness/registry.ts` with the new deterministic
+      `packages/cli-harness/src/harness/registry.ts` with the new deterministic
       selfchecks; `nodetool harness audit` stays clean.
 - [x] **Docs.** Update `docs/script-editor-concept.md` (phase table) and
       `docs/agentic-video-product.md` (reuse table, home cards) to reflect

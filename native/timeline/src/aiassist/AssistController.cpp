@@ -19,7 +19,7 @@ QString draftKey(const QString& scriptId) {
     if (!target) { return scriptId; }
     auto origin = target->server;
     origin.setPath({}); origin.setQuery(QString{}); origin.setFragment(QString{}); origin.setUserInfo(QString{});
-    const auto scope = origin.toEncoded() + '\0' + target->token.toUtf8();
+    const auto scope = origin.toEncoded() + '\0' + target->token.toUtf8() + '\0' + target->expectedInstance.toUtf8();
     return QString::fromLatin1(QCryptographicHash::hash(scope, QCryptographicHash::Sha256).toHex()) + ':' + scriptId;
 }
 QString clipMediaKey(const QJsonObject& raw) {
@@ -47,7 +47,7 @@ void AssistController::setModel(TimelineModel* model) {
         connect(model->undoStack(), &QUndoStack::indexChanged, this, [invalidate](int) { invalidate(); });
         connect(model, &TimelineModel::documentReplaced, this, [this]() { if (m_cancelled) { m_cancelled->store(true); } m_result.clear(); m_scriptRevisions.clear(); m_pendingCommitId.clear(); emit changed(); });
     }
-    emit changed();
+    emit scriptDraftsChanged(); emit changed();
 }
 QVariantList AssistController::words() const {
     return m_model ? nt::aiassist::transcript(m_model->timeline().raw).toVariantList() : QVariantList{};
@@ -137,6 +137,13 @@ void AssistController::setScriptLineDraft(const QString& scriptId, const QString
     else { m_scriptDrafts[draftKey(scriptId)].insert(*resolved, {text, false}); }
     ++m_scriptDraftRevision; emit scriptDraftsChanged();
 }
+bool AssistController::discardScriptDrafts(const QString& scriptId) {
+    const auto source = QJsonObject::fromVariantMap(m_result.toMap());
+    if (m_busy || !source.value("document").toObject().value("sections").isArray()) { return false; }
+    const auto resolved = nt::aiassist::resolveId(scriptId, {source.value("id").toString()});
+    if (!resolved || !m_scriptDrafts.remove(draftKey(*resolved))) { return false; }
+    ++m_scriptDraftRevision; emit scriptDraftsChanged(); emit changed(); return true;
+}
 bool AssistController::saveScriptLineDraft(const QString& scriptId, const QString& lineId) {
     const auto source = QJsonObject::fromVariantMap(m_result.toMap());
     if (scriptId.isEmpty() || source.value("id").toString() != scriptId || m_busy) { return false; }
@@ -214,6 +221,10 @@ bool AssistController::deleteWords(double startMs, double endMs) {
 }
 bool AssistController::removeFillers() { return m_model && m_model->applyEdit("assist.removeFillers", {}) != 0; }
 bool AssistController::call(bool write, const QString& procedure, const QJsonObject& input) {
+    if (write && (procedure == "scripts.update" || procedure == "storyboards.update" || procedure == "assets.update") &&
+        input.value("id").toString() == m_result.toMap().value("id").toString() && m_resultScope != draftKey({})) {
+        m_error = "The server identity changed. Reopen the document before saving. Your draft is retained."; emit changed(); return false;
+    }
     auto transport = m_call;
     if (!transport) {
         if (const auto target = nt::server::serverSaveTarget()) {
@@ -228,6 +239,7 @@ bool AssistController::call(bool write, const QString& procedure, const QJsonObj
     if (m_busy) { return false; }
     const auto observed = m_model->timeline().raw;
     auto mediaResolver = m_mediaResolver;
+    const bool documentOnly = m_documentOnly && procedure != "scripts.getCommitted" && procedure != "storyboards.assembleNative";
     QSet<QString> resolvedBefore, protectedPaths;
     for (const auto& clip : m_model->timeline().clips) {
         const auto path = clip.mediaType == nt::MediaType::Audio ? clip.audioPath : clip.mediaPath;
@@ -249,6 +261,8 @@ bool AssistController::call(bool write, const QString& procedure, const QJsonObj
             };
         }
     }
+    if (documentOnly) { mediaResolver = {}; }
+    const auto targetAtStart = nt::server::serverSaveTarget();
     const auto generation = m_model->documentGeneration();
     const QPointer<TimelineModel> model = m_model;
     m_busy = true;
@@ -256,10 +270,10 @@ bool AssistController::call(bool write, const QString& procedure, const QJsonObj
     const QPointer<AssistController> self(this);
     m_cancelled = std::make_shared<std::atomic_bool>(false);
     const auto cancelled = m_cancelled;
-    auto* worker = QThread::create([self, model, observed, generation, transport, write, procedure, input, cancelled, mediaResolver, resolvedBefore]() {
+    auto* worker = QThread::create([self, model, observed, generation, transport, write, procedure, input, cancelled, mediaResolver, resolvedBefore, documentOnly, targetAtStart]() {
         auto resolvedInput = input;
         const auto requestedId = input.value("id").toString();
-        if (requestedId.size() == 12) {
+        if (requestedId.size() == 12 && !procedure.startsWith("assets.")) {
             const auto family = procedure.section('.', 0, 0);
             const auto listing = transport(false, family + ".list", {});
             QStringList scope;
@@ -339,10 +353,14 @@ bool AssistController::call(bool write, const QString& procedure, const QJsonObj
             }
         }
         if (!self) { return; }
-        QMetaObject::invokeMethod(self, [self, model, observed, generation, response, procedure, resolvedMedia, cancelled, input]() {
+        QMetaObject::invokeMethod(self, [self, model, observed, generation, response, procedure, resolvedMedia, cancelled, input, documentOnly, targetAtStart]() {
             if (!self) { return; }
             self->m_busy = false;
-            if (cancelled->load() || !model || self->m_model != model || generation != model->documentGeneration() ||
+            const auto targetNow = nt::server::serverSaveTarget();
+            const bool sameTarget = (!targetAtStart && !targetNow) || (targetAtStart && targetNow &&
+                targetAtStart->server == targetNow->server && targetAtStart->token == targetNow->token &&
+                targetAtStart->expectedInstance == targetNow->expectedInstance && targetAtStart->timelineId == targetNow->timelineId);
+            if (!sameTarget || cancelled->load() || !model || self->m_model != model || generation != model->documentGeneration() ||
                 !nt::aiassist::acceptsResult(observed, model->timeline().raw)) {
                 self->m_error = "The timeline changed. Refresh the linked document.";
             } else {
@@ -352,9 +370,9 @@ bool AssistController::call(bool write, const QString& procedure, const QJsonObj
                     if (procedure == "storyboards.assembleNative") {
                         self->m_result = response.data.toObject().value("board").toVariant();
                         if (!model->applyEdit("assist.assembleStoryboard", response.data.toObject())) { self->m_error = "Storyboard assembly is unchanged or unavailable."; }
-                    } else if (procedure != "scripts.linked" && (procedure != "scripts.getCommitted" || self->m_result.toMap().value("id").toString() == response.data.toObject().value("id").toString())) { self->m_result = response.data.toVariant(); }
+                    } else if (procedure != "scripts.linked" && (procedure != "scripts.getCommitted" || self->m_result.toMap().value("id").toString() == response.data.toObject().value("id").toString())) { self->m_result = response.data.toVariant(); self->m_resultScope = draftKey({}); }
                     const auto resource = response.data.toObject();
-                    if (resource.value("timelineId") == observed.value("id") &&
+                    if (!documentOnly && resource.value("timelineId") == observed.value("id") &&
                         resource.value("document").toObject().contains("sections")) {
                         const auto scriptId = resource.value("id").toString();
                         const auto revision = resource.value("updatedAt").toString();
@@ -366,7 +384,7 @@ bool AssistController::call(bool write, const QString& procedure, const QJsonObj
                 }
                 if (response.ok()) { for (const auto& media : resolvedMedia) { model->registerMedia(media); } }
             }
-            emit self->changed();
+            emit self->scriptDraftsChanged(); emit self->changed();
             if (!self->m_pendingCommitId.isEmpty()) {
                 const auto id = std::exchange(self->m_pendingCommitId, QString{});
                 self->applyScriptRevision(id);
@@ -398,6 +416,11 @@ bool AssistController::extractScript() {
     return call(true, "scripts.create", input);
 }
 void AssistController::updateResource(const QJsonObject& resource) {
+    // Shot completion may arrive while an asset or script with the same id is open.
+    const auto loaded = QJsonObject::fromVariantMap(m_result.toMap()).value("document").toObject();
+    const auto incoming = resource.value("document").toObject();
+    if (!loaded.value("shots").isArray() || loaded.value("sections").isArray() ||
+        !incoming.value("shots").isArray() || incoming.value("sections").isArray()) { return; }
     if (resource.value("id").toString().isEmpty() || m_result.toMap().value("id").toString() != resource.value("id").toString()) { return; }
     m_result = resource.toVariantMap(); emit changed();
 }
@@ -421,6 +444,10 @@ bool AssistController::openClipScript(const QString& clipId) {
     return false;
 }
 bool AssistController::applyScriptRevision(const QString& id) {
+    if (m_documentOnly && m_model && m_result.toMap().value("id").toString() == id &&
+        m_result.toMap().value("timelineId").toString() != m_model->timeline().raw.value("id").toString()) {
+        m_error = "Link this script to this cut before applying its revision."; emit changed(); return false;
+    }
     if (m_busy) { m_pendingCommitId = id; return true; }
     return call(false, "scripts.getCommitted", {{"id", id}});
 }
@@ -437,4 +464,27 @@ bool AssistController::saveScript(const QJsonObject& script) {
 bool AssistController::saveStoryboard(const QJsonObject& storyboard) {
     if (storyboard.value("updatedAt").toString().isEmpty()) { return false; }
     return call(true, "storyboards.update", {{"id", storyboard.value("id")}, {"document", storyboard.value("document")}, {"baseUpdatedAt", storyboard.value("updatedAt")}});
+}
+
+bool AssistController::listContextResources(const QString& kind, bool linkedOnly) {
+    if (!m_model || (kind != "scripts" && kind != "storyboards")) { return false; }
+    QJsonObject input;
+    const auto project = m_model->timeline().raw.value("projectId").toString();
+    if (!project.isEmpty()) { input.insert("projectId", project); }
+    if (kind == "scripts" && linkedOnly) { input.insert("timelineId", m_model->timeline().raw.value("id")); }
+    if (kind == "storyboards" && project.isEmpty()) {
+        m_error = "Open a project timeline to browse its storyboards."; emit changed(); return false;
+    }
+    return call(false, kind + ".list", input);
+}
+bool AssistController::openEntity(const QString& id) { return call(false, "assets.get", {{"id", id}}); }
+bool AssistController::saveEntity(const QJsonObject& entity, const QJsonValue& expectedMetadata) {
+    if (entity.value("id").toString().isEmpty() || !entity.value("metadata").toObject().value("nodetool_entity").isObject()) { return false; }
+    return call(true, "assets.update", {{"id", entity.value("id")}, {"expected_metadata", expectedMetadata}, {"metadata", entity.value("metadata")}});
+}
+
+bool AssistController::scriptDirty() const {
+    const auto resource = QJsonObject::fromVariantMap(m_result.toMap());
+    return resource.value("document").toObject().value("sections").isArray() &&
+        !m_scriptDrafts.value(draftKey(resource.value("id").toString())).isEmpty();
 }

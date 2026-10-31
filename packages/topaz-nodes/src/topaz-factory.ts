@@ -3,7 +3,7 @@
  *
  * Generates node classes from `topaz-manifest.json` at runtime, mirroring the
  * kie-nodes factory. Image nodes upload bytes directly to the Topaz image API;
- * the video node probes source metadata locally (ffprobe) before driving the
+ * the video node probes source metadata locally before driving the
  * multi-step video upload pipeline.
  */
 

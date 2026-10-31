@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import type { SdkV1Requirement } from "@nodetool-ai/protocol/api-schemas/sdk-lifecycle-v1.js";
 import { createNodeToolSdkV1RuntimeProbe } from "../src/sdk/sdk-runtime-requirement-probe.js";
 
@@ -14,25 +14,18 @@ function runtime(id: string): SdkV1Requirement {
 }
 
 describe("NodeTool SDK v1 runtime requirement probe", () => {
-  it("reports the server's Node runtime without spawning a process", async () => {
-    const hasExecutable = vi.fn(async () => false);
-    const probe = createNodeToolSdkV1RuntimeProbe({
-      getPythonBridgeReady: () => false,
-      hasExecutable
-    });
-
-    await expect(probe(runtime("typescript"))).resolves.toEqual({
-      status: "available",
-      message: null
-    });
-    expect(hasExecutable).not.toHaveBeenCalled();
+  it("reports the server's own runtimes as available", async () => {
+    const probe = createNodeToolSdkV1RuntimeProbe({ getPythonBridgeReady: () => false });
+    // libav runs in process, so an older requirement naming ffmpeg is met.
+    for (const id of ["typescript", "ffmpeg", "ffprobe"]) {
+      await expect(probe(runtime(id))).resolves.toEqual({ status: "available", message: null });
+    }
   });
 
   it("uses hydrated Python bridge readiness", async () => {
     let ready = false;
     const probe = createNodeToolSdkV1RuntimeProbe({
-      getPythonBridgeReady: () => ready,
-      hasExecutable: async () => false
+      getPythonBridgeReady: () => ready
     });
 
     await expect(probe(runtime("python"))).resolves.toMatchObject({
@@ -45,25 +38,10 @@ describe("NodeTool SDK v1 runtime requirement probe", () => {
     });
   });
 
-  it("checks only allow-listed external executables", async () => {
-    const hasExecutable = vi.fn(
-      async (command: string) => command === "ffmpeg"
-    );
-    const probe = createNodeToolSdkV1RuntimeProbe({
-      getPythonBridgeReady: () => false,
-      hasExecutable
-    });
-
-    await expect(probe(runtime("ffmpeg"))).resolves.toEqual({
-      status: "available",
-      message: null
-    });
-    await expect(probe(runtime("ffprobe"))).resolves.toMatchObject({
-      status: "missing"
-    });
+  it("does not claim to know any other runtime", async () => {
+    const probe = createNodeToolSdkV1RuntimeProbe({ getPythonBridgeReady: () => false });
     await expect(probe(runtime("arbitrary-command"))).resolves.toMatchObject({
       status: "unknown"
     });
-    expect(hasExecutable.mock.calls).toEqual([["ffmpeg"], ["ffprobe"]]);
   });
 });

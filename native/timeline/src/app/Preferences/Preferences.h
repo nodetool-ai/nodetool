@@ -20,6 +20,12 @@ class Preferences : public QObject {
     Q_PROPERTY(qint64 cacheBudgetMb READ cacheBudgetMb WRITE setCacheBudgetMb NOTIFY changed)
     Q_PROPERTY(QString decoderMode READ decoderMode WRITE setDecoderMode NOTIFY changed)
     Q_PROPERTY(QString audioDevice READ audioDevice WRITE setAudioDevice NOTIFY changed)
+    Q_PROPERTY(QString themePreference READ themePreference WRITE setThemePreference NOTIFY changed)
+    Q_PROPERTY(double uiScale READ uiScale WRITE setUiScale NOTIFY changed)
+    Q_PROPERTY(double textScale READ textScale WRITE setTextScale NOTIFY changed)
+    Q_PROPERTY(QString motionPreference READ motionPreference WRITE setMotionPreference NOTIFY changed)
+    Q_PROPERTY(QString systemScheme READ systemScheme NOTIFY systemSchemeChanged)
+    Q_PROPERTY(bool reducedMotion READ reducedMotion NOTIFY changed)
     Q_PROPERTY(QVariantList recentTimelines READ recentTimelines NOTIFY recentTimelinesChanged)
     Q_PROPERTY(QVariantList playbackDevices READ playbackDevices NOTIFY devicesChanged)
 public:
@@ -29,11 +35,21 @@ public:
     qint64 cacheBudgetMb() const;
     QString decoderMode() const;
     QString audioDevice() const;
+    QString themePreference() const;
+    double uiScale() const;
+    double textScale() const;
+    QString motionPreference() const;
+    QString systemScheme() const;
+    bool reducedMotion() const;
     void setKeyboardLayout(const QString& value);
     void setCacheFolder(const QString& value);
     void setCacheBudgetMb(qint64 value);
     void setDecoderMode(const QString& value);
     void setAudioDevice(const QString& value);
+    void setThemePreference(const QString& value);
+    void setUiScale(double value);
+    void setTextScale(double value);
+    void setMotionPreference(const QString& value);
     QVariantList playbackDevices() const { return m_devices; }
     Q_INVOKABLE void refreshDevices();
     QVariantList recentTimelines() const;
@@ -46,6 +62,7 @@ signals:
     void changed();
     void devicesChanged();
     void recentTimelinesChanged();
+    void systemSchemeChanged();
 private:
     void write(const QString& key, const QVariant& value);
     void addRecent(QVariantMap entry);

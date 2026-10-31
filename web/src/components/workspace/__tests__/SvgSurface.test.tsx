@@ -30,6 +30,13 @@ jest.mock("../MonacoPane", () => ({
   )
 }));
 
+jest.mock("../AssetAgentPanel", () => ({
+  __esModule: true,
+  default: ({ type, assetId }: { type: string; assetId: string }) => (
+    <div>{`${type} assistant for ${assetId}`}</div>
+  )
+}));
+
 const update = jest.fn().mockResolvedValue({});
 jest.mock("../../../stores/AssetStore", () => ({
   useAssetStore: <T,>(selector: (s: { update: unknown }) => T) =>
@@ -52,6 +59,11 @@ jest.mock("../../../serverState/useAssetById", () => ({
 }));
 
 import SvgSurface from "../SvgSurface";
+import {
+  getSvgAgentHandler,
+  hasSvgAgentHandler
+} from "../svgAgentBridge";
+import { act } from "@testing-library/react";
 
 const SVG = '<svg xmlns="http://www.w3.org/2000/svg"><rect width="4" height="4"/></svg>';
 
@@ -145,6 +157,54 @@ describe("SvgSurface", () => {
       screen.getByRole("button", { name: /undo/i })
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /save/i })).toBeEnabled();
+  });
+
+  it("docks the assistant beside the editor in edit mode", async () => {
+    renderSurface("edit");
+    await screen.findByTestId("monaco");
+    expect(screen.getByText("svg assistant for svg-1")).toBeInTheDocument();
+  });
+
+  it("serves the agent tools only in edit mode", async () => {
+    const view = renderSurface("view");
+    await waitFor(() => expect(fetch).toHaveBeenCalled());
+    expect(hasSvgAgentHandler("svg-1")).toBe(false);
+    view.unmount();
+
+    const edit = renderSurface("edit");
+    await screen.findByTestId("monaco");
+    expect(hasSvgAgentHandler("svg-1")).toBe(true);
+    edit.unmount();
+    expect(hasSvgAgentHandler("svg-1")).toBe(false);
+  });
+
+  it("applies agent edits to the draft and saves them", async () => {
+    const { container } = renderSurface("edit");
+    await screen.findByTestId("monaco");
+    const handler = getSvgAgentHandler("svg-1");
+    expect(handler.getSnapshot()).toMatchObject({ markup: SVG, dirty: false });
+
+    const next = '<svg xmlns="http://www.w3.org/2000/svg"><circle r="2"/></svg>';
+    act(() => {
+      expect(handler.setMarkup(next)).toMatchObject({
+        markup: next,
+        dirty: true
+      });
+    });
+    expect(screen.getByTestId("monaco")).toHaveValue(next);
+    expect(container.querySelector("svg circle")).not.toBeNull();
+    expect(update).not.toHaveBeenCalled();
+
+    let saved: unknown;
+    await act(async () => {
+      saved = await getSvgAgentHandler("svg-1").save();
+    });
+    expect(update).toHaveBeenCalledWith({
+      id: "svg-1",
+      data: next,
+      content_type: "image/svg+xml"
+    });
+    expect(saved).toMatchObject({ dirty: false });
   });
 
   it("keeps the view bar to the title and View/Edit", async () => {

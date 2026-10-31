@@ -1,0 +1,2716 @@
+# Native QML inventory and reviewed domain-only exceptions.
+version = 1
+
+# qml_callers enumerates static references in inventoried native QML only; dynamic C++/Loader mounts are excluded.
+# test_scope distinguishes direct interaction coverage from build/import coverage.
+
+[[file]]
+path = "native/chat/qml/ChatComposer.qml"
+category = "chrome"
+controls = ["Ui.Surface", "ScrollView", "Ui.TextArea", "Ui.Text", "Ui.Progress", "Ui.EditorButton", "Ui.ToolbarIconButton", "FileDialog"]
+signals = []
+test_host = "node native/chat/scripts/check.mjs"
+test_scope = "interaction"
+qml_callers = ["native/chat/qml/ConversationView.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.TextArea, Ui.Text, Ui.Progress, Ui.EditorButton, Ui.ToolbarIconButton"
+
+[[file]]
+path = "native/chat/qml/ChatMetrics.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "node native/chat/scripts/check.mjs"
+test_scope = "build/import"
+qml_callers = ["native/chat/qml/ChatPanel.qml", "native/chat/qml/ConversationView.qml", "native/chat/qml/MessageDelegate.qml"]
+replacement = "Named chat geometry scaled by Ui.Theme.uiScale"
+
+[[file]]
+path = "native/chat/qml/ChatPanel.qml"
+category = "chrome"
+controls = ["Ui.Surface", "Ui.Text", "Ui.EditorButton", "Ui.ToolbarIconButton", "Ui.Separator", "ConversationView", "Ui.Dialog", "Ui.TextField"]
+signals = []
+test_host = "node native/chat/scripts/check.mjs"
+test_scope = "interaction"
+qml_callers = ["native/chat/qml/Main.qml", "native/timeline/qml/aiassist/TimelineAgentPanel.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.Text, Ui.EditorButton, Ui.ToolbarIconButton, Ui.Separator, Ui.Dialog, Ui.TextField"
+
+[[file]]
+path = "native/chat/qml/ConversationView.qml"
+category = "chrome"
+controls = ["Ui.Surface", "Ui.EditorButton", "Ui.Text", "Ui.ToolbarIconButton", "ListView", "Ui.ScrollBar", "Ui.BusyIndicator"]
+signals = ["backRequested"]
+test_host = "node native/chat/scripts/check.mjs"
+test_scope = "build/import"
+qml_callers = ["native/chat/qml/ChatPanel.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.EditorButton, Ui.Text, Ui.ToolbarIconButton, Ui.ScrollBar, Ui.BusyIndicator"
+
+[[file]]
+path = "native/chat/qml/Main.qml"
+category = "chrome"
+controls = ["Ui.ToolbarIconButton", "ChatPanel", "Ui.Dialog", "Ui.ScrollBar", "Ui.Text", "Ui.Select", "Ui.EditorButton"]
+signals = []
+test_host = "node native/chat/scripts/check.mjs"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.ToolbarIconButton, Ui.Dialog, Ui.ScrollBar, Ui.Text, Ui.Select, Ui.EditorButton"
+
+[[file]]
+path = "native/chat/qml/MessageDelegate.qml"
+category = "chrome"
+controls = ["Ui.Text", "Ui.TextArea", "Ui.EditorButton", "Ui.ToolbarIconButton", "PagedText", "Ui.Surface", "Image", "Ui.TextField"]
+signals = []
+test_host = "node native/chat/scripts/check.mjs"
+test_scope = "build/import"
+qml_callers = ["native/chat/qml/ConversationView.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.TextArea, Ui.EditorButton, Ui.ToolbarIconButton, Ui.Surface, Ui.TextField"
+
+[[file]]
+path = "native/chat/qml/ThreadList.qml"
+category = "chrome"
+controls = ["Ui.Surface", "Ui.Text", "Ui.EditorButton", "ListView", "Ui.ScrollBar"]
+signals = ["threadOpened"]
+test_host = "node native/chat/scripts/check.mjs"
+test_scope = "build/import"
+qml_callers = ["native/chat/qml/ChatPanel.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.Text, Ui.EditorButton, Ui.ScrollBar"
+
+[[file]]
+path = "native/model-picker/qml/ModelPicker.qml"
+category = "chrome"
+controls = ["Ui.Popover", "Ui.EditorButton", "Ui.TextField", "ActionButton", "Ui.Separator", "Ui.Text", "ScrollView", "ListView", "Ui.ListRow", "Ui.Icon", "Ui.ToolbarIconButton"]
+signals = ["addProvidersRequested", "useServerDefaultRequested", "selected"]
+test_host = "model-picker-visual-tests"
+test_scope = "interaction"
+qml_callers = ["native/chat/qml/ChatComposer.qml", "native/model-picker/qml/ModelPickerButton.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Popover, Ui.EditorButton, Ui.TextField, Ui.Separator, Ui.Text, Ui.ListRow, Ui.Icon, Ui.ToolbarIconButton"
+
+[[file]]
+path = "native/model-picker/qml/ModelPickerButton.qml"
+category = "chrome"
+controls = ["Ui.EditorButton"]
+signals = ["selected", "addProvidersRequested"]
+test_host = "model-picker-visual-tests"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/ai/ClipOperations.qml", "native/timeline/qml/ai/GenerateToolbar.qml", "native/timeline/qml/ai/WorkflowClip.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton"
+
+[[file]]
+path = "native/model-picker/qml/ModelPickerMetrics.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "model-picker-visual-tests"
+test_scope = "build/import"
+qml_callers = ["native/model-picker/qml/ModelPicker.qml"]
+replacement = "Named picker geometry scaled by Ui.Theme.uiScale"
+
+[[file]]
+path = "native/timeline/qml/DocumentBar.qml"
+category = "chrome"
+controls = ["Rectangle", "Ui.Text", "ToolButton"]
+signals = []
+test_host = "tst_wiringedit"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/TimelineEditor.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/ExportVideoDialog.qml"
+category = "chrome"
+controls = ["FileDialog", "Ui.Dialog", "Ui.Text", "InspectorSelect", "InspectorToggleRow", "Ui.EditorButton", "Rectangle", "Ui.Progress"]
+signals = ["exportRequested"]
+test_host = "tst_exportdialog"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.EditorButton, Ui.Progress"
+
+[[file]]
+path = "native/timeline/qml/Inspector/AudioEffects.qml"
+category = "chrome"
+controls = ["InspectorSection", "Ui.EditorButton", "Ui.ContextMenu", "Ui.MenuItem", "Ui.Text", "AudioEffectsRow"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton, Ui.ContextMenu, Ui.MenuItem, Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/Inspector/AudioEffectsFields.qml"
+category = "chrome"
+controls = ["InspectorRow", "InspectorSelect", "InspectorSliderRow"]
+signals = ["patch"]
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/AudioEffectsRow.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/Inspector/AudioEffectsRow.qml"
+category = "chrome"
+controls = ["Ui.Separator", "Ui.CheckBox", "Ui.EditorButton", "Ui.ToolbarIconButton"]
+signals = ["expand", "patch", "remove", "move"]
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/AudioEffects.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Separator, Ui.CheckBox, Ui.EditorButton, Ui.ToolbarIconButton"
+
+[[file]]
+path = "native/timeline/qml/Inspector/AudioGainDialog.qml"
+category = "chrome"
+controls = ["Ui.Dialog", "Ui.Text", "Ui.Select", "Ui.TextField", "Ui.EditorButton"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.Select, Ui.TextField, Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/Inspector/AudioSection.qml"
+category = "chrome"
+controls = ["InspectorSection", "InspectorSliderRow", "InspectorRow", "InspectorPillInput", "InspectorSelect"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/Inspector/CaptionStyle.qml"
+category = "chrome"
+controls = ["InspectorSection", "InspectorRow", "InspectorPillInput"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/Inspector/KeyframeAnimations.qml"
+category = "chrome"
+controls = ["InspectorSection", "InspectorSelect", "Ui.EditorButton", "Ui.Text"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/TimelineInspector.qml", "native/timeline/src/motion/controls/GroupMotion.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton, Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/Inspector/KeyframeButton.qml"
+category = "chrome"
+controls = ["Ui.ToolbarIconButton"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/KeyframeClipAnimationEditor.qml", "native/timeline/qml/Inspector/KeyframeClipCustomCurves.qml", "native/timeline/qml/Inspector/KeyframedPropertyRow.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.ToolbarIconButton"
+
+[[file]]
+path = "native/timeline/qml/Inspector/KeyframeClipAnimationEditor.qml"
+category = "chrome"
+controls = ["Ui.Text", "KeyframeButton", "InspectorToggleRow", "InspectorRow", "InspectorSelect", "InspectorPillInput", "MotionEasingField"]
+signals = ["patch", "presetChange", "remove"]
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/KeyframeAnimations.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/Inspector/KeyframeClipCustomCurves.qml"
+category = "chrome"
+controls = ["Ui.Text", "KeyframeButton", "InspectorRow", "InspectorSelect", "InspectorPillInput", "Ui.EditorButton"]
+signals = ["change"]
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/KeyframeClipAnimationEditor.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/Inspector/KeyframeClipDiamonds.qml"
+category = "domain"
+controls = ["Rectangle", "MouseArea"]
+signals = ["seek", "move"]
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Tracks/ClipBody.qml", "native/timeline/src/edit/keyframes/qmltests/tst_diamonds.qml"]
+replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
+
+[[file]]
+path = "native/timeline/qml/Inspector/KeyframeLane.qml"
+category = "domain"
+controls = ["Rectangle", "MouseArea", "Ui.ContextMenu", "Ui.MenuItem", "Ui.Separator"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/KeyframedPropertyRow.qml", "native/timeline/src/edit/keyframes/qmltests/tst_lane.qml"]
+replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
+
+[[file]]
+path = "native/timeline/qml/Inspector/KeyframedPropertyRow.qml"
+category = "chrome"
+controls = ["InspectorRow", "KeyframeButton", "InspectorPillInput"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/MotionFields.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/Inspector/MotionAnimationCatalog.qml"
+category = "domain"
+controls = []
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/KeyframeAnimations.qml", "native/timeline/qml/Inspector/KeyframeClipAnimationEditor.qml", "native/timeline/qml/Inspector/MotionAnimationParam.qml"]
+replacement = "Domain state and edit behavior; presentation lives in shared Ui controls"
+
+[[file]]
+path = "native/timeline/qml/Inspector/MotionAnimationParam.qml"
+category = "chrome"
+controls = ["InspectorRow", "InspectorSelect", "InspectorToggleRow", "InspectorPillInput", "InspectorSliderRow"]
+signals = ["change"]
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/KeyframeClipAnimationEditor.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/Inspector/MotionEasingField.qml"
+category = "chrome"
+controls = ["InspectorRow", "InspectorPillInput", "Ui.Text"]
+signals = ["change"]
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/KeyframeClipAnimationEditor.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/Inspector/MotionFields.qml"
+category = "chrome"
+controls = ["InspectorSection", "KeyframedPropertyRow", "InspectorSliderRow", "InspectorRow", "InspectorPillInput"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/TimelineInspector.qml", "native/timeline/src/motion/controls/GroupMotion.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/Inspector/ReframeButton.qml"
+category = "chrome"
+controls = ["Ui.EditorButton"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/ReframeSection.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/Inspector/ReframeCaption.qml"
+category = "chrome"
+controls = ["Ui.Text"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/ReframeSection.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/Inspector/ReframeCrop.qml"
+category = "chrome"
+controls = ["InspectorSection", "InspectorSliderRow"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/Inspector/ReframeFocusOverlay.qml"
+category = "domain"
+controls = ["Canvas", "MouseArea"]
+signals = ["change", "dragStarted", "dragEnded"]
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/ReframePreview.qml"]
+replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
+
+[[file]]
+path = "native/timeline/qml/Inspector/ReframePreview.qml"
+category = "domain"
+controls = []
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Frame preview media and crop geometry"
+
+[[file]]
+path = "native/timeline/qml/Inspector/ReframeSection.qml"
+category = "chrome"
+controls = ["InspectorSection", "InspectorRow", "InspectorSelect", "InspectorSliderRow", "ReframeButton"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/Inspector/ShapeSection.qml"
+category = "chrome"
+controls = ["InspectorSection", "InspectorRow", "InspectorSelect", "InspectorPillInput", "InspectorSliderRow"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/Inspector/SpeedDurationDialog.qml"
+category = "chrome"
+controls = ["Ui.Dialog", "Ui.Text", "InspectorPillInput", "Ui.TextField", "Ui.CheckBox", "Ui.EditorButton"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/wiring/w/SpeedDurationHost.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.TextField, Ui.CheckBox, Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/Inspector/SpeedTimeRemap.qml"
+category = "chrome"
+controls = ["InspectorSection", "Ui.Text", "InspectorPillInput", "Ui.ToolbarIconButton", "Ui.EditorButton"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.ToolbarIconButton, Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/Inspector/TextContentInput.qml"
+category = "chrome"
+controls = ["Ui.TextArea"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/TextStyleSection.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.TextArea"
+
+[[file]]
+path = "native/timeline/qml/Inspector/TextFillFields.qml"
+category = "chrome"
+controls = ["InspectorRow", "InspectorSelect", "InspectorPillInput"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/ShapeSection.qml", "native/timeline/qml/Inspector/TextStyleSection.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/Inspector/TextFontPicker.qml"
+category = "chrome"
+controls = ["InspectorSelect"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/CaptionStyle.qml", "native/timeline/qml/Inspector/TextStyleSection.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/Inspector/TextStyleEdits.qml"
+category = "domain"
+controls = []
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/CaptionStyle.qml", "native/timeline/qml/Inspector/ShapeSection.qml", "native/timeline/qml/Inspector/TextStyleSection.qml"]
+replacement = "Domain state and edit behavior; presentation lives in shared Ui controls"
+
+[[file]]
+path = "native/timeline/qml/Inspector/TextStyleNumber.qml"
+category = "chrome"
+controls = ["InspectorPillInput"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/CaptionStyle.qml", "native/timeline/qml/Inspector/ShapeSection.qml", "native/timeline/qml/Inspector/TextStyleSection.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/Inspector/TextStyleSection.qml"
+category = "chrome"
+controls = ["InspectorSection", "TextContentInput", "InspectorRow", "InspectorSelect", "InspectorToggleRow"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/Inspector/TimelineInspector.qml"
+category = "chrome"
+controls = ["Rectangle", "Flickable", "Ui.ScrollBar", "InspectorHeader", "Ui.Text", "Sections.InspectorActionButton", "ClipIdentityCard", "Sections.ClipGroupPanel"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/src/edit/keyframes/qmltests/tst_inspector.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.ScrollBar, Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/Inspector/TransitionEasingField.qml"
+category = "chrome"
+controls = ["InspectorRow", "InspectorPillInput", "Ui.Text"]
+signals = ["change"]
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/TransitionSection.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/Inspector/TransitionSection.qml"
+category = "chrome"
+controls = ["InspectorSection", "InspectorRow", "InspectorSelect", "InspectorPillInput", "InspectorSliderRow", "TransitionEasingField", "Ui.Text"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/Inspector/primitives/ClipIdentityCard.qml"
+category = "chrome"
+controls = ["InspectorCard", "Ui.Text", "Rectangle"]
+signals = []
+test_host = "tst_inspectorprimitives"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/TimelineInspector.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/Inspector/primitives/InspectorCard.qml"
+category = "chrome"
+controls = ["Ui.InspectorCard"]
+signals = []
+test_host = "tst_inspectorprimitives"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/primitives/ClipIdentityCard.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.InspectorCard"
+
+[[file]]
+path = "native/timeline/qml/Inspector/primitives/InspectorColour.qml"
+category = "chrome"
+controls = ["InspectorRow", "Rectangle", "InspectorPillInput"]
+signals = ["commit"]
+test_host = "tst_inspectorprimitives"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/CaptionStyle.qml", "native/timeline/qml/Inspector/ShapeSection.qml", "native/timeline/qml/Inspector/TextFillFields.qml", "native/timeline/qml/Inspector/TextStyleSection.qml", "native/timeline/qml/Inspector/TransitionSection.qml", "native/timeline/src/edit/clipeffects/EffectFields.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/Inspector/primitives/InspectorDivider.qml"
+category = "chrome"
+controls = ["Rectangle"]
+signals = []
+test_host = "tst_inspectorprimitives"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Inspector separator geometry with Ui.Theme and Ui.Metrics tokens"
+
+[[file]]
+path = "native/timeline/qml/Inspector/primitives/InspectorHeader.qml"
+category = "chrome"
+controls = ["Ui.Text", "Ui.ToolbarIconButton"]
+signals = ["actionTriggered"]
+test_host = "tst_inspectorprimitives"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/TimelineInspector.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.ToolbarIconButton"
+
+[[file]]
+path = "native/timeline/qml/Inspector/primitives/InspectorPillInput.qml"
+category = "chrome"
+controls = ["Ui.NumberField", "Ui.TextField", "MouseArea"]
+signals = ["gestureStarted", "preview", "commit", "canceled"]
+test_host = "tst_inspectorprimitives"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/AudioSection.qml", "native/timeline/qml/Inspector/CaptionStyle.qml", "native/timeline/qml/Inspector/KeyframeClipAnimationEditor.qml", "native/timeline/qml/Inspector/KeyframeClipCustomCurves.qml", "native/timeline/qml/Inspector/KeyframedPropertyRow.qml", "native/timeline/qml/Inspector/MotionAnimationParam.qml", "native/timeline/qml/Inspector/MotionEasingField.qml", "native/timeline/qml/Inspector/MotionFields.qml", "native/timeline/qml/Inspector/ShapeSection.qml", "native/timeline/qml/Inspector/SpeedDurationDialog.qml", "native/timeline/qml/Inspector/SpeedTimeRemap.qml", "native/timeline/qml/Inspector/TextFillFields.qml", "native/timeline/qml/Inspector/TextStyleNumber.qml", "native/timeline/qml/Inspector/TransitionEasingField.qml", "native/timeline/qml/Inspector/TransitionSection.qml", "native/timeline/qml/Inspector/primitives/InspectorColour.qml", "native/timeline/qml/Preferences/PreferencesDialog.qml", "native/timeline/qml/SourceViewerPanel.qml", "native/timeline/src/edit/clipeffects/EffectNumber.qml", "native/timeline/src/edit/inspectorsections/ClipGroupPanel.qml", "native/timeline/src/edit/inspectorsections/TimingSection.qml", "native/timeline/src/motion/blurcontrols/MotionBlur.qml", "native/timeline/src/motion/controls/AdvancedMotion.qml", "native/timeline/src/motion/tracking/TrackBinding.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.NumberField, Ui.TextField"
+
+[[file]]
+path = "native/timeline/qml/Inspector/primitives/InspectorRow.qml"
+category = "chrome"
+controls = ["Ui.Text"]
+signals = []
+test_host = "tst_inspectorprimitives"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/AudioEffectsFields.qml", "native/timeline/qml/Inspector/AudioSection.qml", "native/timeline/qml/Inspector/CaptionStyle.qml", "native/timeline/qml/Inspector/KeyframeClipAnimationEditor.qml", "native/timeline/qml/Inspector/KeyframeClipCustomCurves.qml", "native/timeline/qml/Inspector/KeyframedPropertyRow.qml", "native/timeline/qml/Inspector/MotionAnimationParam.qml", "native/timeline/qml/Inspector/MotionEasingField.qml", "native/timeline/qml/Inspector/MotionFields.qml", "native/timeline/qml/Inspector/ReframeSection.qml", "native/timeline/qml/Inspector/ShapeSection.qml", "native/timeline/qml/Inspector/TextFillFields.qml", "native/timeline/qml/Inspector/TextStyleSection.qml", "native/timeline/qml/Inspector/TransitionEasingField.qml", "native/timeline/qml/Inspector/TransitionSection.qml", "native/timeline/qml/Inspector/primitives/InspectorColour.qml", "native/timeline/qml/Inspector/primitives/InspectorToggleRow.qml", "native/timeline/qml/Preferences/PreferencesDialog.qml", "native/timeline/qml/SourceViewerPanel.qml", "native/timeline/src/edit/clipeffects/EffectFields.qml", "native/timeline/src/edit/inspectorsections/ClipGroupPanel.qml", "native/timeline/src/edit/inspectorsections/MediaSection.qml", "native/timeline/src/edit/inspectorsections/TimingSection.qml", "native/timeline/src/motion/blurcontrols/MotionBlur.qml", "native/timeline/src/motion/controls/AdvancedMotion.qml", "native/timeline/src/motion/tracking/TrackBinding.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/Inspector/primitives/InspectorSection.qml"
+category = "chrome"
+controls = ["Ui.Separator", "Ui.EditorButton"]
+signals = ["toggled", "checkedChangedByUser"]
+test_host = "tst_inspectorprimitives"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/Inspector/AudioEffects.qml", "native/timeline/qml/Inspector/AudioSection.qml", "native/timeline/qml/Inspector/CaptionStyle.qml", "native/timeline/qml/Inspector/KeyframeAnimations.qml", "native/timeline/qml/Inspector/MotionFields.qml", "native/timeline/qml/Inspector/ReframeCrop.qml", "native/timeline/qml/Inspector/ReframeSection.qml", "native/timeline/qml/Inspector/ShapeSection.qml", "native/timeline/qml/Inspector/SpeedTimeRemap.qml", "native/timeline/qml/Inspector/TextStyleSection.qml", "native/timeline/qml/Inspector/TransitionSection.qml", "native/timeline/qml/Preferences/PreferencesDialog.qml", "native/timeline/qml/ai/AiInspectorSection.qml", "native/timeline/src/edit/clipeffects/ClipAdjustments.qml", "native/timeline/src/edit/clipeffects/ClipEffectsList.qml", "native/timeline/src/edit/inspectorsections/ClipGroupPanel.qml", "native/timeline/src/edit/inspectorsections/MediaSection.qml", "native/timeline/src/edit/inspectorsections/TimingSection.qml", "native/timeline/src/motion/blurcontrols/MotionBlur.qml", "native/timeline/src/motion/controls/AdvancedMotion.qml", "native/timeline/src/motion/controls/BorderRadius.qml", "native/timeline/src/motion/tracking/TrackBinding.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Separator, Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/Inspector/primitives/InspectorSectionTitle.qml"
+category = "chrome"
+controls = ["Ui.CheckBox", "MouseArea", "Ui.Icon", "Ui.Text", "Ui.ToolbarIconButton"]
+signals = ["checkedChangedByUser", "actionTriggered"]
+test_host = "tst_inspectorprimitives"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/primitives/InspectorSection.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.CheckBox, Ui.Icon, Ui.Text, Ui.ToolbarIconButton"
+
+[[file]]
+path = "native/timeline/qml/Inspector/primitives/InspectorSelect.qml"
+category = "chrome"
+controls = ["Ui.Select"]
+signals = ["change"]
+test_host = "tst_inspectorprimitives"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/ExportVideoDialog.qml", "native/timeline/qml/Inspector/AudioEffectsFields.qml", "native/timeline/qml/Inspector/AudioSection.qml", "native/timeline/qml/Inspector/KeyframeAnimations.qml", "native/timeline/qml/Inspector/KeyframeClipAnimationEditor.qml", "native/timeline/qml/Inspector/KeyframeClipCustomCurves.qml", "native/timeline/qml/Inspector/MotionAnimationParam.qml", "native/timeline/qml/Inspector/ReframeSection.qml", "native/timeline/qml/Inspector/ShapeSection.qml", "native/timeline/qml/Inspector/TextFillFields.qml", "native/timeline/qml/Inspector/TextFontPicker.qml", "native/timeline/qml/Inspector/TextStyleSection.qml", "native/timeline/qml/Inspector/TransitionSection.qml", "native/timeline/qml/Preferences/PreferencesDialog.qml", "native/timeline/qml/Tracks/GridDivisionSelect.qml", "native/timeline/src/edit/inspectorsections/MediaSection.qml", "native/timeline/src/motion/controls/AdvancedMotion.qml", "native/timeline/src/motion/tracking/TrackBinding.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Select"
+
+[[file]]
+path = "native/timeline/qml/Inspector/primitives/InspectorSliderRow.qml"
+category = "chrome"
+controls = ["Ui.Text", "Ui.Slider"]
+signals = ["gestureStarted", "preview", "change", "canceled"]
+test_host = "tst_inspectorprimitives"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/Inspector/AudioEffectsFields.qml", "native/timeline/qml/Inspector/AudioSection.qml", "native/timeline/qml/Inspector/MotionAnimationParam.qml", "native/timeline/qml/Inspector/MotionFields.qml", "native/timeline/qml/Inspector/ReframeCrop.qml", "native/timeline/qml/Inspector/ReframeSection.qml", "native/timeline/qml/Inspector/ShapeSection.qml", "native/timeline/qml/Inspector/TransitionSection.qml", "native/timeline/qml/mixer/EffectDevicePopover.qml", "native/timeline/src/edit/clipeffects/ClipAdjustments.qml", "native/timeline/src/edit/clipeffects/EffectFields.qml", "native/timeline/src/motion/controls/BorderRadius.qml", "native/timeline/src/motion/tracking/TrackBinding.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.Slider"
+
+[[file]]
+path = "native/timeline/qml/Inspector/primitives/InspectorStaticValue.qml"
+category = "chrome"
+controls = ["Ui.Text", "Ui.Tooltip"]
+signals = []
+test_host = "tst_inspectorprimitives"
+test_scope = "build/import"
+qml_callers = ["native/timeline/src/edit/inspectorsections/ClipGroupPanel.qml", "native/timeline/src/edit/inspectorsections/MediaSection.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.Tooltip"
+
+[[file]]
+path = "native/timeline/qml/Inspector/primitives/InspectorToggleRow.qml"
+category = "chrome"
+controls = ["InspectorRow", "Ui.Toggle"]
+signals = ["change"]
+test_host = "tst_inspectorprimitives"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/ExportVideoDialog.qml", "native/timeline/qml/Inspector/KeyframeClipAnimationEditor.qml", "native/timeline/qml/Inspector/MotionAnimationParam.qml", "native/timeline/qml/Inspector/TextStyleSection.qml", "native/timeline/src/edit/clipeffects/EffectFields.qml", "native/timeline/src/edit/inspectorsections/TimingSection.qml", "native/timeline/src/motion/blurcontrols/MotionBlur.qml", "native/timeline/src/motion/controls/AdvancedMotion.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Toggle"
+
+[[file]]
+path = "native/timeline/qml/Inspector/primitives/InspectorTokens.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_inspectorprimitives"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/ShapeSection.qml", "native/timeline/qml/Inspector/TextStyleSection.qml", "native/timeline/qml/Inspector/primitives/InspectorPillInput.qml", "native/timeline/qml/Inspector/primitives/InspectorRow.qml", "native/timeline/qml/Inspector/primitives/InspectorSection.qml", "native/timeline/qml/Inspector/primitives/InspectorStaticValue.qml", "native/timeline/qml/Tracks/GridDivisionSelect.qml", "native/timeline/src/edit/clipeffects/ClipEffectsList.qml", "native/timeline/src/edit/inspectorsections/ClipGroupPanel.qml", "native/timeline/src/edit/inspectorsections/TimingSection.qml"]
+replacement = "Inspector spacing and geometry derived from Ui.Metrics"
+
+[[file]]
+path = "native/timeline/qml/PasteAttributesDialog.qml"
+category = "chrome"
+controls = ["Ui.Dialog", "Ui.Text", "Ui.ToolbarIconButton", "Ui.Separator", "ScrollView", "Ui.CheckBox", "Ui.EditorButton"]
+signals = ["groupsChosen"]
+test_host = "tst_fclipboard"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Tracks/TracksRegion.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.ToolbarIconButton, Ui.Separator, Ui.CheckBox, Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/Preferences/AppShell.qml"
+category = "chrome"
+controls = ["Shortcut", "PreferencesDialog", "ProviderSettingsDialog"]
+signals = []
+test_host = "tst_appshell_preferences"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/Preferences/PreferencesDialog.qml"
+category = "chrome"
+controls = ["Ui.Dialog", "Basic.ScrollView", "InspectorSection", "InspectorRow", "InspectorSelect", "Ui.EditorButton", "InspectorPillInput", "Ui.Text"]
+signals = ["providersRequested"]
+test_host = "tst_appshell_preferences"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/Preferences/AppShell.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.EditorButton, Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/ProjectSettingsDialog.qml"
+category = "chrome"
+controls = ["ToolButton", "Ui.EditorButton", "Ui.Dialog", "Ui.Text", "Ui.ToolbarIconButton", "Ui.Separator", "Controls.ScrollView", "Ui.NumberField", "TimelineListDialog", "Ui.Select", "NumberField"]
+signals = ["confirmed", "cancelled"]
+test_host = "tst_appshell_preferences"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton, Ui.Dialog, Ui.Text, Ui.ToolbarIconButton, Ui.Separator, Ui.NumberField, Ui.Select"
+
+[[file]]
+path = "native/timeline/qml/SaveBanners.qml"
+category = "chrome"
+controls = ["Ui.EditorButton", "Rectangle", "Ui.Icon", "Ui.Text", "ToolButton"]
+signals = ["dismissed"]
+test_host = "tst_tracksui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/TimelineEditor.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton, Ui.Icon, Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/SaveStatus.qml"
+category = "chrome"
+controls = ["Rectangle", "Ui.BusyIndicator", "Ui.Text"]
+signals = []
+test_host = "tst_tracksui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/DocumentBar.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.BusyIndicator, Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/SourceViewerPanel.qml"
+category = "chrome"
+controls = ["Rectangle", "Flickable", "Ui.ScrollBar", "Ui.Text", "Ui.Tooltip", "Image", "Ui.Slider", "InspectorRow", "InspectorPillInput", "Sections.InspectorActionButton"]
+signals = []
+test_host = "tst_sourceviewer"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.Tooltip, Ui.Slider"
+
+[[file]]
+path = "native/timeline/qml/TimelineDocumentActions.qml"
+category = "chrome"
+controls = ["Shortcut", "ToolButton", "ActionButton", "Ui.Popover", "TimelineListPanel", "Ui.Text"]
+signals = []
+test_host = "tst_wiringedit"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Popover, Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/TimelineEditor.qml"
+category = "chrome"
+controls = ["Controls.Control", "Rectangle", "DocumentBar", "ToolButton", "DockLayoutMenu", "TimelineTracksPanel", "ShortcutsSheet"]
+signals = []
+test_host = "tst_ai_ui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/TimelineListPanel.qml"
+category = "chrome"
+controls = ["Rectangle", "Ui.ListRow", "Ui.Icon", "Ui.Text", "TapHandler", "Ui.TextField", "Ui.ToolbarIconButton", "Controls.ScrollView", "Ui.ContextMenu", "Ui.MenuItem", "Ui.Select", "Ui.PanelHeader", "ProjectSettingsDialog.TimelineListButton", "Ui.Separator", "DocumentListPanel", "ProjectSettingsDialog.TimelineListDialog"]
+signals = ["dismissRequested", "opened", "contextRequested", "renamed", "renameCancelled"]
+test_host = "tst_timelinelistlayout"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/TimelineDocumentActions.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.ListRow, Ui.Icon, Ui.Text, Ui.TextField, Ui.ToolbarIconButton, Ui.ContextMenu, Ui.MenuItem, Ui.Select, Ui.PanelHeader, Ui.Separator"
+
+[[file]]
+path = "native/timeline/qml/TimelineMetrics.qml"
+category = "domain"
+controls = []
+signals = []
+test_host = "tst_tracksui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/DocumentBar.qml", "native/timeline/qml/Inspector/AudioEffects.qml", "native/timeline/qml/Inspector/AudioSection.qml", "native/timeline/qml/Inspector/KeyframeClipDiamonds.qml", "native/timeline/qml/Inspector/KeyframeLane.qml", "native/timeline/qml/Inspector/ReframeCrop.qml", "native/timeline/qml/Inspector/ReframeSection.qml", "native/timeline/qml/Inspector/SpeedTimeRemap.qml", "native/timeline/qml/TimelineDocumentActions.qml", "native/timeline/qml/Tracks/Clip.qml", "native/timeline/qml/Tracks/ClipBody.qml", "native/timeline/qml/Tracks/Playhead.qml", "native/timeline/qml/Tracks/ShortcutsSheet.qml", "native/timeline/qml/Tracks/TimeRuler.qml", "native/timeline/qml/Tracks/TimelineScrollbar.qml", "native/timeline/qml/Tracks/TracksRegion.qml", "native/timeline/qml/Tracks/automation/AutomationAddLaneHeader.qml", "native/timeline/qml/assets/AssetDropOverlay.qml", "native/timeline/qml/assets/AssetExplorer.qml", "native/timeline/qml/dock/DockCanvas.qml", "native/timeline/qml/dock/DockLayoutMenu.qml", "native/timeline/qml/preview/PreviewArea.qml", "native/timeline/qml/storyworkspace/StoryWorkspaceEditor.qml"]
+replacement = "Timeline-specific geometry and stacking scaled by Ui.Theme.uiScale"
+
+[[file]]
+path = "native/timeline/qml/TimelineVisuals.qml"
+category = "domain"
+controls = []
+signals = []
+test_host = "tst_tracksui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/TimelineInspector.qml", "native/timeline/qml/Tracks/AddTrackButton.qml", "native/timeline/qml/Tracks/ClipBody.qml", "native/timeline/qml/Tracks/GroupBracket.qml", "native/timeline/qml/Tracks/Playhead.qml", "native/timeline/qml/Tracks/RubberBandOverlay.qml", "native/timeline/qml/Tracks/TrackHeader.qml", "native/timeline/qml/assets/AssetItem.qml", "native/timeline/qml/fx/FxKnob.qml", "native/timeline/qml/fx/FxStepper.qml", "native/timeline/qml/mixer/ChannelStrip.qml", "native/timeline/qml/mixer/ChannelStripView.qml", "native/timeline/qml/wiring/w/CompressorCurve.qml", "native/timeline/qml/wiring/w/CompressorEditor.qml"]
+replacement = "Timeline media colors and document render helpers"
+
+[[file]]
+path = "native/timeline/qml/Tracks/AddTrackButton.qml"
+category = "chrome"
+controls = ["TrackIconButton", "Ui.ContextMenu", "Ui.MenuItem"]
+signals = []
+test_host = "tst_tracksui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Tracks/TracksRegion.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.ContextMenu, Ui.MenuItem"
+
+[[file]]
+path = "native/timeline/qml/Tracks/Clip.qml"
+category = "domain"
+controls = ["ClipContextMenu", "MouseArea"]
+signals = []
+test_host = "tst_tracksui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Tracks/TrackLane.qml"]
+replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
+
+[[file]]
+path = "native/timeline/qml/Tracks/ClipBody.qml"
+category = "domain"
+controls = ["Rectangle", "Shape", "ShapePath", "MouseArea", "Ui.Text", "Ui.Icon"]
+signals = []
+test_host = "tst_tracksui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Tracks/Clip.qml"]
+replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
+
+[[file]]
+path = "native/timeline/qml/Tracks/ClipFadeGrips.qml"
+category = "domain"
+controls = ["ClipFadeShapeMenu", "Rectangle", "MouseArea"]
+signals = []
+test_host = "tst_tracksui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
+
+[[file]]
+path = "native/timeline/qml/Tracks/ClipFadeShapeMenu.qml"
+category = "chrome"
+controls = ["Ui.ContextMenu", "Ui.MenuItem"]
+signals = ["select"]
+test_host = "tst_tracksui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Tracks/ClipFadeGrips.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.ContextMenu, Ui.MenuItem"
+
+[[file]]
+path = "native/timeline/qml/Tracks/FadeRamp.qml"
+category = "domain"
+controls = ["Shape", "ShapePath"]
+signals = []
+test_host = "tst_tracksui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Tracks/ClipBody.qml"]
+replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
+
+[[file]]
+path = "native/timeline/qml/Tracks/GridDivisionSelect.qml"
+category = "chrome"
+controls = ["InspectorSelect"]
+signals = []
+test_host = "tst_tracksui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/src/ui/Tempo/TempoToolbar.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/Tracks/GroupBracket.qml"
+category = "domain"
+controls = ["Rectangle"]
+signals = []
+test_host = "tst_tracksui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Tracks/ClipBody.qml"]
+replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
+
+[[file]]
+path = "native/timeline/qml/Tracks/Playhead.qml"
+category = "domain"
+controls = ["Rectangle", "Ui.Text", "MouseArea"]
+signals = []
+test_host = "tst_tracksui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Tracks/TracksRegion.qml"]
+replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
+
+[[file]]
+path = "native/timeline/qml/Tracks/RubberBandOverlay.qml"
+category = "domain"
+controls = ["Rectangle"]
+signals = []
+test_host = "tst_tracksui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Tracks/TracksRegion.qml"]
+replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
+
+[[file]]
+path = "native/timeline/qml/Tracks/ShortcutsSheet.qml"
+category = "chrome"
+controls = ["Ui.Text", "Rectangle", "Ui.ShortcutHint", "Ui.Dialog", "ToolButton"]
+signals = []
+test_host = "tst_tracksui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/TimelineEditor.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.ShortcutHint, Ui.Dialog"
+
+[[file]]
+path = "native/timeline/qml/Tracks/TimeRuler.qml"
+category = "domain"
+controls = ["Rectangle", "MouseArea", "RegistryContextMenu", "Ui.Text", "Ui.ToolbarIconButton"]
+signals = ["seekRequested", "deleteMarkerRequested"]
+test_host = "tst_tracksui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Tracks/TracksRegion.qml"]
+replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
+
+[[file]]
+path = "native/timeline/qml/Tracks/TimelineScrollbar.qml"
+category = "chrome"
+controls = ["Rectangle", "MouseArea"]
+signals = []
+test_host = "tst_tracksui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Tracks/TracksRegion.qml"]
+replacement = "Timeline viewport scrollbar geometry with Ui.Theme and Ui.Metrics tokens"
+
+[[file]]
+path = "native/timeline/qml/Tracks/TimelineZoomControls.qml"
+category = "chrome"
+controls = ["Ui.ToolbarIconButton", "Ui.Slider"]
+signals = []
+test_host = "tst_tracksui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Tracks/TracksRegion.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.ToolbarIconButton, Ui.Slider"
+
+[[file]]
+path = "native/timeline/qml/Tracks/ToolButton.qml"
+category = "chrome"
+controls = ["Ui.ToolbarIconButton"]
+signals = []
+test_host = "tst_tracksui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/DocumentBar.qml", "native/timeline/qml/ProjectSettingsDialog.qml", "native/timeline/qml/SaveBanners.qml", "native/timeline/qml/TimelineDocumentActions.qml", "native/timeline/qml/TimelineEditor.qml", "native/timeline/qml/Tracks/ShortcutsSheet.qml", "native/timeline/qml/Tracks/ToolToggle.qml", "native/timeline/qml/Tracks/TracksRegion.qml", "native/timeline/qml/dock/DockLayoutMenu.qml", "native/timeline/qml/dock/DockTabStrip.qml", "native/timeline/src/edit/tracks/TestHeaderAction.qml", "native/timeline/src/ui/Tempo/TempoToolbar.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.ToolbarIconButton"
+
+[[file]]
+path = "native/timeline/qml/Tracks/ToolToggle.qml"
+category = "chrome"
+controls = ["ToolButton"]
+signals = []
+test_host = "tst_tracksui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Tracks/TracksRegion.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/Tracks/ToolbarDivider.qml"
+category = "chrome"
+controls = ["Rectangle"]
+signals = []
+test_host = "tst_tracksui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/DocumentBar.qml", "native/timeline/qml/Tracks/ToolToggle.qml"]
+replacement = "Toolbar separator geometry with Ui.Theme and Ui.Metrics tokens"
+
+[[file]]
+path = "native/timeline/qml/Tracks/TrackHeader.qml"
+category = "chrome"
+controls = ["Rectangle", "Ui.Icon", "MouseArea", "Ui.Text", "Ui.EditorButton", "TrackIconButton", "TrackEffectsButton"]
+signals = ["deleteRequested", "resizeStepRequested"]
+test_host = "tst_tracksregion"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/Tracks/TracksRegion.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Icon, Ui.Text, Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/Tracks/TrackHeaderMenu.qml"
+category = "chrome"
+controls = ["Ui.ContextMenu", "Ui.MenuItem", "HeaderMenuItem", "Ui.Separator", "Ui.Dialog", "Ui.Text", "Ui.EditorButton"]
+signals = ["renameRequested"]
+test_host = "tst_tracksregion"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/Tracks/TracksRegion.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.ContextMenu, Ui.MenuItem, Ui.Separator, Ui.Dialog, Ui.Text, Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/Tracks/TrackHeightSlider.qml"
+category = "chrome"
+controls = ["Ui.Slider"]
+signals = []
+test_host = "tst_tracksui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Tracks/TracksRegion.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Slider"
+
+[[file]]
+path = "native/timeline/qml/Tracks/TrackIconButton.qml"
+category = "chrome"
+controls = ["Ui.EditorButton"]
+signals = []
+test_host = "tst_tracksui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Tracks/AddTrackButton.qml", "native/timeline/qml/Tracks/TrackHeader.qml", "native/timeline/qml/wiring/w/TrackEffectsButton.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/Tracks/TrackLane.qml"
+category = "domain"
+controls = ["Rectangle", "MouseArea", "TrackLaneContextMenu"]
+signals = []
+test_host = "tst_tracksui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Tracks/TracksRegion.qml"]
+replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
+
+[[file]]
+path = "native/timeline/qml/Tracks/TracksRegion.qml"
+category = "chrome"
+controls = ["Rectangle", "ToolToggle", "ToolButton", "Ui.Text", "TrackHeightSlider", "AddTrackButton", "TrackHeader", "MouseArea", "Ui.TextField", "TrackHeaderMenu", "PasteAttributesDialog"]
+signals = ["shortcutsRequested"]
+test_host = "tst_tracksui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/dock/TimelineTracksPanel.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.TextField"
+
+[[file]]
+path = "native/timeline/qml/Tracks/automation/AutomationAddLaneHeader.qml"
+category = "chrome"
+controls = ["Rectangle", "Ui.TextField", "TapHandler", "Ui.Popover", "Ui.ListRow", "Ui.Text", "Ui.Separator"]
+signals = []
+test_host = "tst_automationui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/Tracks/automation/AutomationLaneHeaders.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.TextField, Ui.Popover, Ui.ListRow, Ui.Text, Ui.Separator"
+
+[[file]]
+path = "native/timeline/qml/Tracks/automation/AutomationLaneHeader.qml"
+category = "chrome"
+controls = ["Rectangle", "Ui.Text", "Ui.ToolbarIconButton", "Ui.Separator"]
+signals = []
+test_host = "tst_automationui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Tracks/automation/AutomationLaneHeaders.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.ToolbarIconButton, Ui.Separator"
+
+[[file]]
+path = "native/timeline/qml/Tracks/automation/AutomationLaneHeaders.qml"
+category = "chrome"
+controls = ["AutomationLaneHeader", "AutomationAddLaneHeader"]
+signals = []
+test_host = "tst_automationui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/Tracks/automation/AutomationLaneView.qml"
+category = "domain"
+controls = ["Rectangle", "Canvas", "Ui.Text", "MouseArea", "Ui.ContextMenu", "Ui.MenuItem", "Controls.MenuSeparator", "Ui.Separator"]
+signals = []
+test_host = "tst_automationui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Tracks/automation/AutomationLanes.qml"]
+replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
+
+[[file]]
+path = "native/timeline/qml/Tracks/automation/AutomationLanes.qml"
+category = "chrome"
+controls = ["AutomationLaneView"]
+signals = []
+test_host = "tst_automationui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/Tracks/automation/AutomationUIState.qml"
+category = "domain"
+controls = []
+signals = []
+test_host = "tst_automationui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Tracks/TrackHeader.qml", "native/timeline/qml/Tracks/automation/AutomationLaneHeaders.qml", "native/timeline/qml/Tracks/automation/AutomationLanes.qml", "native/timeline/qml/mixer/MixerPanel.qml", "native/timeline/qml/mixer/MixerToolbar.qml"]
+replacement = "Domain state and edit behavior; presentation lives in shared Ui controls"
+
+[[file]]
+path = "native/timeline/qml/activity/ActivityPanel.qml"
+category = "chrome"
+controls = ["Ui.Surface", "Ui.Text", "Ui.EditorButton", "Ui.TextField", "Ui.Select", "ListView", "Ui.ScrollBar", "Ui.TextArea", "Ui.Progress"]
+signals = []
+test_host = "tst_activitypanel"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.Text, Ui.EditorButton, Ui.TextField, Ui.Select, Ui.ScrollBar, Ui.TextArea, Ui.Progress"
+
+[[file]]
+path = "native/timeline/qml/ai/AiInspectorSection.qml"
+category = "chrome"
+controls = ["P.InspectorSection", "Ui.EditorButton"]
+signals = []
+test_host = "tst_ai_ui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/ai/ClipOperations.qml"
+category = "chrome"
+controls = ["Ui.Text", "Ui.Select", "ModelPickerButton", "Ui.TextArea", "Ui.EditorButton"]
+signals = []
+test_host = "tst_ai_ui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/ai/AiInspectorSection.qml", "native/timeline/qml/ai/GenerateToolbar.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.Select, Ui.TextArea, Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/ai/GenerateToolbar.qml"
+category = "chrome"
+controls = ["Ui.ToolbarIconButton", "Ui.Dialog", "Ui.Text", "ListView", "Ui.EditorButton", "ScrollView", "Ui.Select", "Ui.TextArea", "ModelPickerButton", "Ui.Slider", "Ui.TextField"]
+signals = []
+test_host = "tst_ai_ui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.ToolbarIconButton, Ui.Dialog, Ui.Text, Ui.EditorButton, Ui.Select, Ui.TextArea, Ui.Slider, Ui.TextField"
+
+[[file]]
+path = "native/timeline/qml/ai/LineDelivery.qml"
+category = "chrome"
+controls = ["Ui.Text", "Ui.TextArea", "Ui.EditorButton"]
+signals = []
+test_host = "tst_ai_ui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/ai/AiInspectorSection.qml", "native/timeline/qml/ai/GenerateToolbar.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.TextArea, Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/ai/RegenerateClip.qml"
+category = "chrome"
+controls = ["Ui.Text", "Ui.EditorButton"]
+signals = []
+test_host = "tst_ai_ui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/ai/AiInspectorSection.qml", "native/timeline/qml/ai/GenerateToolbar.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/ai/WorkflowClip.qml"
+category = "chrome"
+controls = ["Ui.Text", "Ui.EditorButton", "Ui.TextField", "Ui.Select", "ModelPickerButton", "Ui.Toggle", "Ui.TextArea", "Ui.Dialog", "ListView"]
+signals = []
+test_host = "tst_ai_ui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/ai/AiInspectorSection.qml", "native/timeline/qml/ai/GenerateToolbar.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.EditorButton, Ui.TextField, Ui.Select, Ui.Toggle, Ui.TextArea, Ui.Dialog"
+
+[[file]]
+path = "native/timeline/qml/aiassist/TimelineAgentPanel.qml"
+category = "chrome"
+controls = ["Rectangle", "ChatPanel", "Ui.Text", "Basic.ScrollView", "Ui.EditorButton"]
+signals = []
+test_host = "tst_ai_ui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/assets/AssetDropOverlay.qml"
+category = "chrome"
+controls = ["Rectangle", "Ui.Text"]
+signals = []
+test_host = "tst_assetbrowser"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/assets/AssetExplorer.qml"
+category = "chrome"
+controls = ["Ui.Surface", "ScrollView", "Ui.ScrollBar", "LibraryButton", "LibraryField", "Ui.Select", "Flickable", "Ui.Toggle", "Ui.ContextMenu", "Ui.MenuItem", "Ui.Separator", "Ui.Dialog", "LibraryActionDialog", "FileDialog", "Rectangle"]
+signals = []
+test_host = "tst_assetbrowser"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.ScrollBar, Ui.Select, Ui.Toggle, Ui.ContextMenu, Ui.MenuItem, Ui.Separator, Ui.Dialog"
+
+[[file]]
+path = "native/timeline/qml/assets/AssetGrid.qml"
+category = "chrome"
+controls = ["GridView", "Ui.ScrollBar", "Ui.Text", "LibraryButton"]
+signals = ["previewRequested", "actionsRequested", "importRequested", "clearFiltersRequested"]
+test_host = "tst_assetbrowser"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/assets/AssetExplorer.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.ScrollBar, Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/assets/AssetItem.qml"
+category = "chrome"
+controls = ["Rectangle", "Image", "Ui.Icon", "Ui.Text", "MouseArea"]
+signals = ["selectedByUser", "previewRequested", "actionsRequested"]
+test_host = "tst_assetbrowser"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/assets/AssetGrid.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Icon, Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/assets/AssetPreview.qml"
+category = "chrome"
+controls = ["Ui.Surface", "Ui.Text", "Ui.EditorButton", "Ui.Slider"]
+signals = []
+test_host = "tst_assetbrowser"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/assets/AssetExplorer.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.Text, Ui.EditorButton, Ui.Slider"
+
+[[file]]
+path = "native/timeline/qml/assets/LibraryActionDialog.qml"
+category = "chrome"
+controls = ["Ui.Dialog", "ScrollView", "Ui.ScrollBar", "LibraryField", "LibraryButton"]
+signals = ["confirmed"]
+test_host = "tst_assetbrowser"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/assets/AssetExplorer.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.ScrollBar"
+
+[[file]]
+path = "native/timeline/qml/assets/LibraryButton.qml"
+category = "chrome"
+controls = ["Ui.EditorButton"]
+signals = []
+test_host = "tst_assetbrowser"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/assets/AssetExplorer.qml", "native/timeline/qml/assets/AssetGrid.qml", "native/timeline/qml/assets/LibraryActionDialog.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/assets/LibraryField.qml"
+category = "chrome"
+controls = ["Ui.TextField"]
+signals = []
+test_host = "tst_assetbrowser"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/assets/AssetExplorer.qml", "native/timeline/qml/assets/LibraryActionDialog.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.TextField"
+
+[[file]]
+path = "native/timeline/qml/assets/LibraryLabel.qml"
+category = "chrome"
+controls = ["Ui.Text"]
+signals = []
+test_host = "tst_assetbrowser"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/assets/AssetExplorer.qml", "native/timeline/qml/assets/LibraryActionDialog.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/dock/DockCanvas.qml"
+category = "chrome"
+controls = ["DockRegionView", "Rectangle"]
+signals = []
+test_host = "tst_dockui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/TimelineEditor.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/dock/DockGroup.qml"
+category = "chrome"
+controls = ["Rectangle", "DockPanelHeader", "Ui.ContextMenu", "Ui.MenuItem", "Controls.MenuSeparator", "Ui.Separator"]
+signals = []
+test_host = "tst_dockui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/dock/DockRegionView.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.ContextMenu, Ui.MenuItem, Ui.Separator"
+
+[[file]]
+path = "native/timeline/qml/dock/DockLayoutMenu.qml"
+category = "chrome"
+controls = ["ToolButton", "Ui.ContextMenu", "Ui.MenuItem", "Controls.MenuSeparator", "Ui.Separator"]
+signals = []
+test_host = "tst_dockui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/TimelineEditor.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.ContextMenu, Ui.MenuItem, Ui.Separator"
+
+[[file]]
+path = "native/timeline/qml/dock/DockPanelHeader.qml"
+category = "chrome"
+controls = ["Ui.Text", "Ui.Separator"]
+signals = []
+test_host = "tst_dockui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/dock/DockGroup.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.Separator"
+
+[[file]]
+path = "native/timeline/qml/dock/DockRegionView.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_dockui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/dock/DockCanvas.qml"]
+replacement = "Dock region layout composition; hosted controls use Ui primitives"
+
+[[file]]
+path = "native/timeline/qml/dock/DockResizeHandle.qml"
+category = "chrome"
+controls = ["Rectangle", "MouseArea"]
+signals = ["resizeStarted", "resizeRequested", "resizeFinished"]
+test_host = "tst_dockui"
+test_scope = "interaction: live region/group resize, release persistence, Escape rollback"
+qml_callers = ["native/timeline/qml/dock/DockCanvas.qml", "native/timeline/qml/dock/DockRegionView.qml"]
+replacement = "Dock resize gesture geometry with Ui.Theme and Ui.Metrics tokens"
+
+[[file]]
+path = "native/timeline/qml/dock/DockTabStrip.qml"
+category = "chrome"
+controls = ["Rectangle", "Flickable", "Ui.Text", "MouseArea", "Ui.ToolbarIconButton", "ToolButton"]
+signals = []
+test_host = "tst_dockui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/dock/DockGroup.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.ToolbarIconButton"
+
+[[file]]
+path = "native/timeline/qml/dock/StablePanelHost.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_dockui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/TimelineEditor.qml", "native/timeline/src/app/PanelSlot.qml"]
+replacement = "Retained dock item and layout composition; hosted controls use Ui primitives"
+
+[[file]]
+path = "native/timeline/qml/dock/TimelineTracksPanel.qml"
+category = "chrome"
+controls = []
+signals = ["shortcutsRequested"]
+test_host = "tst_dockui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/TimelineEditor.qml"]
+replacement = "Timeline viewport composition; hosted controls use Ui primitives"
+
+[[file]]
+path = "native/timeline/qml/fx/FxKnob.qml"
+category = "domain"
+controls = ["Rectangle", "Canvas", "Ui.Text", "MouseArea"]
+signals = ["change", "setValue", "gestureEnd", "gestureCanceled"]
+test_host = "tst_fxcontrols"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/wiring/w/KnobList.qml"]
+replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
+
+[[file]]
+path = "native/timeline/qml/fx/FxPower.qml"
+category = "chrome"
+controls = ["Ui.CheckBox"]
+signals = ["toggle"]
+test_host = "tst_fxcontrols"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/wiring/w/EffectCard.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.CheckBox"
+
+[[file]]
+path = "native/timeline/qml/fx/FxStepper.qml"
+category = "chrome"
+controls = ["Ui.ToolbarIconButton", "Ui.Text"]
+signals = ["setValue"]
+test_host = "tst_fxcontrols"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/wiring/w/FilterEditor.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.ToolbarIconButton, Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/menus/ClipContextMenu.qml"
+category = "chrome"
+controls = ["Ui.ContextMenu", "Ui.Separator"]
+signals = []
+test_host = "tst_menus"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Tracks/Clip.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.ContextMenu, Ui.Separator"
+
+[[file]]
+path = "native/timeline/qml/menus/MenuActionItem.qml"
+category = "chrome"
+controls = ["Ui.MenuItem"]
+signals = []
+test_host = "tst_menus"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/menus/ClipContextMenu.qml", "native/timeline/qml/menus/TrackLaneContextMenu.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.MenuItem"
+
+[[file]]
+path = "native/timeline/qml/menus/TrackLaneContextMenu.qml"
+category = "chrome"
+controls = ["Ui.ContextMenu"]
+signals = []
+test_host = "tst_menus"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Tracks/TrackLane.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.ContextMenu"
+
+[[file]]
+path = "native/timeline/qml/mixer/ChannelStrip.qml"
+category = "chrome"
+controls = ["Ui.Surface", "Rectangle", "ChannelStripView"]
+signals = ["openEffect"]
+test_host = "tst_mixerui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/mixer/MixerView.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Surface"
+
+[[file]]
+path = "native/timeline/qml/mixer/ChannelStripView.qml"
+category = "chrome"
+controls = ["Ui.Icon", "Ui.Text", "Ui.Surface", "Canvas", "MouseArea", "Ui.EditorButton", "Ui.TextField"]
+signals = ["volumeCommit", "panCommit", "mute", "solo", "addEffect", "toggleEffect", "openEffect"]
+test_host = "tst_mixerui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/mixer/ChannelStrip.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Icon, Ui.Text, Ui.Surface, Ui.EditorButton, Ui.TextField"
+
+[[file]]
+path = "native/timeline/qml/mixer/EffectDevicePopover.qml"
+category = "chrome"
+controls = ["Ui.Popover", "Flickable", "Ui.ScrollBar", "Ui.Text", "Ui.ToolbarIconButton", "Ui.Surface", "Rectangle", "Ui.Select", "InspectorSliderRow", "Ui.EditorButton"]
+signals = ["finishGestures"]
+test_host = "tst_mixerui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/mixer/MixerView.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Popover, Ui.ScrollBar, Ui.Text, Ui.ToolbarIconButton, Ui.Surface, Ui.Select, Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/mixer/InsertSlots.qml"
+category = "chrome"
+controls = ["Flickable", "Ui.Surface", "Ui.ToolbarIconButton", "Ui.EditorButton", "Ui.ScrollBar", "Ui.ContextMenu", "Ui.MenuItem"]
+signals = ["add", "toggle", "open"]
+test_host = "tst_mixerui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/mixer/ChannelStripView.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.ToolbarIconButton, Ui.EditorButton, Ui.ScrollBar, Ui.ContextMenu, Ui.MenuItem"
+
+[[file]]
+path = "native/timeline/qml/mixer/MixerCompressorCurve.qml"
+category = "domain"
+controls = ["Ui.Surface", "Canvas", "Rectangle", "Ui.Text", "MouseArea"]
+signals = ["preview", "commit", "canceled"]
+test_host = "tst_mixerui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/mixer/EffectDevicePopover.qml"]
+replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
+
+[[file]]
+path = "native/timeline/qml/mixer/MixerEq3Curve.qml"
+category = "domain"
+controls = ["Ui.Surface", "Canvas", "Rectangle", "Ui.Text", "MouseArea"]
+signals = ["preview", "commit", "canceled"]
+test_host = "tst_mixerui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/mixer/EffectDevicePopover.qml"]
+replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
+
+[[file]]
+path = "native/timeline/qml/mixer/MixerFader.qml"
+category = "chrome"
+controls = ["Ui.Fader"]
+signals = ["preview", "commit", "canceled"]
+test_host = "tst_mixerui"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/mixer/ChannelStripView.qml", "native/timeline/qml/mixer/tests/tst_MixerFader.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Fader"
+
+[[file]]
+path = "native/timeline/qml/mixer/MixerMeter.qml"
+category = "domain"
+controls = ["Ui.LevelMeter"]
+signals = []
+test_host = "tst_mixerui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/mixer/ChannelStripView.qml"]
+replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
+
+[[file]]
+path = "native/timeline/qml/mixer/MixerPanel.qml"
+category = "chrome"
+controls = ["MixerView"]
+signals = []
+test_host = "tst_mixerui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/mixer/MixerToolbar.qml"
+category = "chrome"
+controls = ["Ui.ToolbarIconButton"]
+signals = []
+test_host = "tst_mixerui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.ToolbarIconButton"
+
+[[file]]
+path = "native/timeline/qml/mixer/MixerView.qml"
+category = "chrome"
+controls = ["Ui.Surface", "Flickable", "Ui.ScrollBar", "Ui.Text", "Ui.Separator", "EffectDevicePopover"]
+signals = []
+test_host = "tst_mixerui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/mixer/MixerPanel.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.ScrollBar, Ui.Text, Ui.Separator"
+
+[[file]]
+path = "native/timeline/qml/mixer/tests/tst_MixerFader.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_mixerui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/preview/ClipTransformContextMenu.qml"
+category = "chrome"
+controls = ["Ui.ContextMenu", "Ui.MenuItem", "Ui.Separator", "Ui.Text", "TransformMenuItem"]
+signals = ["action"]
+test_host = "tst_gizmo"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/preview/TransformGizmoOverlay.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.ContextMenu, Ui.MenuItem, Ui.Separator, Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/preview/PreviewArea.qml"
+category = "chrome"
+controls = ["Rectangle", "Ui.ToolbarIconButton", "Ui.Text", "Ui.Slider"]
+signals = []
+test_host = "tst_gizmo"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/TimelineEditor.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.ToolbarIconButton, Ui.Text, Ui.Slider"
+
+[[file]]
+path = "native/timeline/qml/preview/TransformGizmoOverlay.qml"
+category = "domain"
+controls = ["ClipTransformContextMenu"]
+signals = []
+test_host = "tst_gizmo"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/wiring/FrameGizmoOverlay.qml"]
+replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
+
+[[file]]
+path = "native/timeline/qml/providersettings/ProviderSettingsDialog.qml"
+category = "chrome"
+controls = ["Ui.Dialog", "Shortcut", "Ui.BusyIndicator", "Ui.Text", "Ui.EditorButton", "Ui.Select", "ScrollView", "Ui.TextField"]
+signals = []
+test_host = "tst_providerdialog"
+test_scope = "interaction"
+qml_callers = ["native/timeline/qml/Preferences/AppShell.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.BusyIndicator, Ui.Text, Ui.EditorButton, Ui.Select, Ui.TextField"
+
+[[file]]
+path = "native/timeline/qml/storyworkspace/StoryWorkspaceEditor.qml"
+category = "chrome"
+controls = ["Ui.Surface", "Ui.Icon", "Ui.EditorButton", "Ui.Text", "Ui.TextField", "Ui.TextArea", "Ui.Toggle", "Ui.Select", "WorkspaceButton", "WorkspaceField", "Ui.Separator", "ScrollView", "Ui.ScrollBar", "Rectangle", "Image", "Ui.Dialog"]
+signals = ["linkedResourceRequested"]
+test_host = "tst_storyworkspace"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/storyworkspace/StoryWorkspacePanel.qml", "native/timeline/qml/storyworkspace/StoryboardPanel.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.Icon, Ui.EditorButton, Ui.Text, Ui.TextField, Ui.TextArea, Ui.Toggle, Ui.Select, Ui.Separator, Ui.ScrollBar, Ui.Dialog"
+
+[[file]]
+path = "native/timeline/qml/storyworkspace/StoryWorkspacePanel.qml"
+category = "chrome"
+controls = ["Ui.Surface"]
+signals = []
+test_host = "tst_storyworkspace"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Surface"
+
+[[file]]
+path = "native/timeline/qml/storyworkspace/StoryboardPanel.qml"
+category = "chrome"
+controls = ["Ui.Surface"]
+signals = []
+test_host = "tst_storyworkspace"
+test_scope = "interaction"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.Surface"
+
+[[file]]
+path = "native/timeline/qml/wiring/FrameGizmoOverlay.qml"
+category = "domain"
+controls = []
+signals = []
+test_host = "tst_wiringedit"
+test_scope = "build/import"
+qml_callers = []
+replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
+
+[[file]]
+path = "native/timeline/qml/wiring/RegistryContextMenu.qml"
+category = "chrome"
+controls = ["Ui.ContextMenu"]
+signals = []
+test_host = "tst_wiringedit"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Tracks/TimeRuler.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.ContextMenu"
+
+[[file]]
+path = "native/timeline/qml/wiring/RegistryMenuItems.qml"
+category = "chrome"
+controls = ["Ui.MenuItem"]
+signals = []
+test_host = "tst_wiringedit"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Tracks/TracksRegion.qml", "native/timeline/qml/menus/TrackLaneContextMenu.qml", "native/timeline/qml/wiring/RegistryContextMenu.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.MenuItem"
+
+[[file]]
+path = "native/timeline/qml/wiring/SlotItems.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_wiringedit"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/DocumentBar.qml", "native/timeline/qml/Tracks/ClipBody.qml", "native/timeline/qml/Tracks/ToolToggle.qml", "native/timeline/qml/Tracks/TracksRegion.qml", "native/timeline/qml/preview/PreviewArea.qml"]
+replacement = "Registry slot composition; hosted chrome uses Ui primitives"
+
+[[file]]
+path = "native/timeline/qml/wiring/w/ChromaKeyEditor.qml"
+category = "chrome"
+controls = ["Ui.Text", "Ui.ToolbarIconButton", "Rectangle", "ColorDialog"]
+signals = []
+test_host = "tst_wiringw"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/wiring/w/TrackEffectParams.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.ToolbarIconButton"
+
+[[file]]
+path = "native/timeline/qml/wiring/w/ColorCorrectionEditor.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_wiringw"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/wiring/w/TrackEffectParams.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/wiring/w/CompressorCurve.qml"
+category = "domain"
+controls = ["Rectangle", "Canvas", "Ui.Text", "MouseArea"]
+signals = ["preview", "commit", "editCanceled"]
+test_host = "tst_wiringw"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/wiring/w/CompressorEditor.qml"]
+replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
+
+[[file]]
+path = "native/timeline/qml/wiring/w/CompressorEditor.qml"
+category = "chrome"
+controls = ["Rectangle", "Ui.Text", "Ui.Tooltip"]
+signals = []
+test_host = "tst_wiringw"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/wiring/w/TrackEffectParams.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.Tooltip"
+
+[[file]]
+path = "native/timeline/qml/wiring/w/EffectCard.qml"
+category = "chrome"
+controls = ["Ui.Surface", "Rectangle", "Ui.Icon", "MouseArea", "Ui.Tooltip", "Ui.Text", "Ui.ToolbarIconButton", "Ui.ScrollBar"]
+signals = []
+test_host = "tst_wiringw"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/wiring/w/TrackEffectsPanel.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.Icon, Ui.Tooltip, Ui.Text, Ui.ToolbarIconButton, Ui.ScrollBar"
+
+[[file]]
+path = "native/timeline/qml/wiring/w/EffectEditor.qml"
+category = "chrome"
+controls = []
+signals = ["preview", "commit", "editCanceled"]
+test_host = "tst_wiringw"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/wiring/w/ChromaKeyEditor.qml", "native/timeline/qml/wiring/w/ColorCorrectionEditor.qml", "native/timeline/qml/wiring/w/CompressorEditor.qml", "native/timeline/qml/wiring/w/Eq3Editor.qml", "native/timeline/qml/wiring/w/FilterEditor.qml", "native/timeline/qml/wiring/w/GainEditor.qml", "native/timeline/qml/wiring/w/SharpenEditor.qml", "native/timeline/qml/wiring/w/VideoBlurEditor.qml", "native/timeline/qml/wiring/w/VignetteEditor.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/wiring/w/Eq3Curve.qml"
+category = "domain"
+controls = ["Rectangle", "Canvas", "Ui.Text", "MouseArea"]
+signals = ["preview", "commit", "editCanceled"]
+test_host = "tst_wiringw"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/wiring/w/Eq3Editor.qml"]
+replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
+
+[[file]]
+path = "native/timeline/qml/wiring/w/Eq3Editor.qml"
+category = "chrome"
+controls = ["Rectangle", "Ui.Text", "Ui.Tooltip"]
+signals = []
+test_host = "tst_wiringw"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/wiring/w/TrackEffectParams.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.Tooltip"
+
+[[file]]
+path = "native/timeline/qml/wiring/w/ExportButton.qml"
+category = "chrome"
+controls = ["Ui.EditorButton"]
+signals = []
+test_host = "tst_wiringw"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/wiring/w/FilterEditor.qml"
+category = "chrome"
+controls = ["Ui.Text"]
+signals = []
+test_host = "tst_wiringw"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/wiring/w/TrackEffectParams.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/wiring/w/GainEditor.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_wiringw"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/wiring/w/TrackEffectParams.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/wiring/w/KnobList.qml"
+category = "chrome"
+controls = ["Ui.Text"]
+signals = ["preview", "commit", "editCanceled"]
+test_host = "tst_wiringw"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/wiring/w/ChromaKeyEditor.qml", "native/timeline/qml/wiring/w/ColorCorrectionEditor.qml", "native/timeline/qml/wiring/w/CompressorEditor.qml", "native/timeline/qml/wiring/w/FilterEditor.qml", "native/timeline/qml/wiring/w/GainEditor.qml", "native/timeline/qml/wiring/w/SharpenEditor.qml", "native/timeline/qml/wiring/w/VideoBlurEditor.qml", "native/timeline/qml/wiring/w/VignetteEditor.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text"
+
+[[file]]
+path = "native/timeline/qml/wiring/w/SharpenEditor.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_wiringw"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/wiring/w/TrackEffectParams.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/wiring/w/SpeedDurationHost.qml"
+category = "chrome"
+controls = ["SpeedDurationDialog"]
+signals = []
+test_host = "tst_wiringw"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/wiring/w/TrackEffectParams.qml"
+category = "chrome"
+controls = []
+signals = ["preview", "commit", "editCanceled"]
+test_host = "tst_wiringw"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/wiring/w/EffectCard.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/wiring/w/TrackEffectsButton.qml"
+category = "chrome"
+controls = ["TrackIconButton"]
+signals = []
+test_host = "tst_wiringw"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Tracks/TrackHeader.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/wiring/w/TrackEffectsHost.qml"
+category = "chrome"
+controls = ["TrackEffectsPanel"]
+signals = []
+test_host = "tst_wiringw"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/wiring/w/TrackEffectsPanel.qml"
+category = "chrome"
+controls = ["Ui.Surface", "Ui.Separator", "Ui.Text", "Ui.EditorButton", "Ui.ContextMenu", "Ui.MenuItem", "Ui.ScrollBar", "EffectCard"]
+signals = []
+test_host = "tst_wiringw"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/wiring/w/TrackEffectsHost.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.Separator, Ui.Text, Ui.EditorButton, Ui.ContextMenu, Ui.MenuItem, Ui.ScrollBar"
+
+[[file]]
+path = "native/timeline/qml/wiring/w/TrackEffectsState.qml"
+category = "domain"
+controls = []
+signals = []
+test_host = "tst_wiringw"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/wiring/w/EffectCard.qml", "native/timeline/qml/wiring/w/KnobList.qml", "native/timeline/qml/wiring/w/TrackEffectsButton.qml", "native/timeline/qml/wiring/w/TrackEffectsHost.qml"]
+replacement = "Domain state and edit behavior; presentation lives in shared Ui controls"
+
+[[file]]
+path = "native/timeline/qml/wiring/w/VideoBlurEditor.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_wiringw"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/wiring/w/TrackEffectParams.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/qml/wiring/w/VideoPreview.qml"
+category = "domain"
+controls = ["Rectangle", "Canvas"]
+signals = []
+test_host = "tst_wiringw"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/wiring/w/VideoBlurEditor.qml", "native/timeline/qml/wiring/w/VignetteEditor.qml"]
+replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
+
+[[file]]
+path = "native/timeline/qml/wiring/w/VignetteEditor.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_wiringw"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/wiring/w/TrackEffectParams.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/app/PanelSlot.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_seamexample"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/TimelineEditor.qml"]
+replacement = "Panel registry slot composition; hosted chrome uses Ui primitives"
+
+[[file]]
+path = "native/timeline/src/app/example/ExamplePanel.qml"
+category = "chrome"
+controls = ["Rectangle"]
+signals = []
+test_host = "tst_seamexample"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/assets/libraryui/qmltests/tst_library.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "library_ui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/edit/clipeffects/ClipAdjustments.qml"
+category = "chrome"
+controls = ["InspectorSection", "InspectorSliderRow"]
+signals = []
+test_host = "tst_clipeffects"
+test_scope = "build/import"
+qml_callers = ["native/timeline/src/edit/inspectorsections/ClipGroupPanel.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/edit/clipeffects/ClipEffectsEdits.qml"
+category = "domain"
+controls = []
+signals = []
+test_host = "tst_clipeffects"
+test_scope = "build/import"
+qml_callers = ["native/timeline/src/edit/clipeffects/ClipAdjustments.qml", "native/timeline/src/edit/clipeffects/ClipEffectsList.qml"]
+replacement = "Domain state and edit behavior; presentation lives in shared Ui controls"
+
+[[file]]
+path = "native/timeline/src/edit/clipeffects/ClipEffectsList.qml"
+category = "chrome"
+controls = ["InspectorSection", "Sections.InspectorActionButton", "Ui.Popover", "Ui.TextField", "Ui.EditorButton", "EffectRow"]
+signals = []
+test_host = "tst_clipeffects"
+test_scope = "build/import"
+qml_callers = ["native/timeline/src/edit/inspectorsections/ClipGroupPanel.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Popover, Ui.TextField, Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/src/edit/clipeffects/EffectFields.qml"
+category = "chrome"
+controls = ["InspectorSliderRow", "InspectorRow", "InspectorToggleRow"]
+signals = []
+test_host = "tst_clipeffects"
+test_scope = "build/import"
+qml_callers = ["native/timeline/src/edit/clipeffects/EffectRow.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/edit/clipeffects/EffectNumber.qml"
+category = "chrome"
+controls = ["InspectorPillInput"]
+signals = []
+test_host = "tst_clipeffects"
+test_scope = "build/import"
+qml_callers = ["native/timeline/src/edit/clipeffects/EffectFields.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/edit/clipeffects/EffectRow.qml"
+category = "chrome"
+controls = ["Ui.Separator", "Ui.ToolbarIconButton", "MouseArea", "Ui.CheckBox", "Ui.EditorButton"]
+signals = ["expand"]
+test_host = "tst_clipeffects"
+test_scope = "build/import"
+qml_callers = ["native/timeline/src/edit/clipeffects/ClipEffectsList.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Separator, Ui.ToolbarIconButton, Ui.CheckBox, Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/src/edit/clipeffects/ToneCurveEditor.qml"
+category = "domain"
+controls = ["Ui.EditorButton", "Canvas", "MouseArea", "Rectangle", "Ui.Text"]
+signals = ["patch", "gestureStarted", "gestureCancelled"]
+test_host = "tst_clipeffects"
+test_scope = "build/import"
+qml_callers = ["native/timeline/src/edit/clipeffects/EffectFields.qml"]
+replacement = "TimelineVisuals/TimelineMetrics for editor geometry; Ui controls for labels and actions"
+
+[[file]]
+path = "native/timeline/src/edit/inspectorsections/ClipGroupPanel.qml"
+category = "chrome"
+controls = ["InspectorSection", "InspectorRow", "InspectorPillInput", "InspectorActionButton", "TimingSection"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/TimelineInspector.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/edit/inspectorsections/InspectorActionButton.qml"
+category = "chrome"
+controls = ["Ui.EditorButton"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/TimelineInspector.qml", "native/timeline/qml/SourceViewerPanel.qml", "native/timeline/src/edit/clipeffects/ClipEffectsList.qml", "native/timeline/src/edit/inspectorsections/ClipGroupPanel.qml", "native/timeline/src/edit/inspectorsections/MediaSection.qml", "native/timeline/src/motion/tracking/TrackBinding.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/src/edit/inspectorsections/InspectorCaption.qml"
+category = "chrome"
+controls = ["Ui.Text"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/ShapeSection.qml", "native/timeline/qml/Inspector/TextFillFields.qml", "native/timeline/qml/Inspector/TextStyleSection.qml", "native/timeline/src/edit/clipeffects/ClipEffectsList.qml", "native/timeline/src/edit/clipeffects/EffectFields.qml", "native/timeline/src/edit/inspectorsections/ClipGroupPanel.qml", "native/timeline/src/edit/inspectorsections/TimingSection.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text"
+
+[[file]]
+path = "native/timeline/src/edit/inspectorsections/MediaSection.qml"
+category = "chrome"
+controls = ["InspectorSection", "InspectorRow", "InspectorSelect", "InspectorActionButton"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/edit/inspectorsections/RegisteredInspectorSections.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/Inspector/TimelineInspector.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/edit/inspectorsections/TestInspectorSection.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/edit/inspectorsections/TimingSection.qml"
+category = "chrome"
+controls = ["InspectorSection", "InspectorRow", "InspectorPillInput", "InspectorToggleRow"]
+signals = []
+test_host = "tst_inspectorsections"
+test_scope = "build/import"
+qml_callers = ["native/timeline/src/edit/inspectorsections/ClipGroupPanel.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/edit/keyframes/qmltests/tst_diamonds.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_keyframesui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/edit/keyframes/qmltests/tst_inspector.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_keyframesui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/edit/keyframes/qmltests/tst_lane.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_keyframesui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/edit/keyframes/qmltests/tst_mountedinspector.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_keyframesui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/edit/tracks/TestHeaderAction.qml"
+category = "chrome"
+controls = ["ToolButton"]
+signals = []
+test_host = "tst_tracksregion"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/motion/blurcontrols/MotionBlur.qml"
+category = "chrome"
+controls = ["InspectorSection", "InspectorToggleRow", "InspectorRow", "InspectorPillInput"]
+signals = []
+test_host = "tst_motionblurcontrols"
+test_scope = "build/import"
+qml_callers = ["native/timeline/src/motion/controls/GroupMotion.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/motion/blurcontrols/concurrentqmltests/tst_concurrent.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_motionblurcontrols"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/motion/blurcontrols/groupqmltests/tst_groupblur.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_motionblurcontrols"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/motion/blurcontrols/qmltests/tst_motionblur.qml"
+category = "chrome"
+controls = []
+signals = ["changed"]
+test_host = "tst_motionblurcontrols"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/motion/controls/AdvancedMotion.qml"
+category = "chrome"
+controls = ["InspectorSection", "InspectorToggleRow", "InspectorRow", "InspectorPillInput", "Ui.EditorButton", "InspectorSelect"]
+signals = []
+test_host = "tst_followpathui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/src/motion/controls/GroupMotion.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/src/motion/controls/BorderRadius.qml"
+category = "chrome"
+controls = ["InspectorSection", "InspectorSliderRow"]
+signals = []
+test_host = "tst_followpathui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/src/motion/controls/GroupMotion.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/motion/controls/GroupMotion.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_followpathui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/src/edit/inspectorsections/ClipGroupPanel.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/motion/controls/qmltests/tst_advancedmotion.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_followpathui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/motion/controls/qmltests/tst_borderradius.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_followpathui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/motion/controls/qmltests/tst_followpath.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_followpathui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/motion/controls/qmltests/tst_groupmotion.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_followpathui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/motion/controls/qmltests/tst_motiondiagnostics.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_followpathui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/motion/tracking/TrackBinding.qml"
+category = "chrome"
+controls = ["InspectorSection", "InspectorRow", "InspectorPillInput", "InspectorSelect", "Sections.InspectorActionButton", "InspectorSliderRow"]
+signals = []
+test_host = "tracking_ui"
+test_scope = "build/import"
+qml_callers = ["native/timeline/src/motion/controls/GroupMotion.qml"]
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/motion/tracking/qmltests/tst_tracking.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tracking_ui"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/server/sync/ExternalConflictsBanner.qml"
+category = "chrome"
+controls = ["Ui.EditorButton", "Ui.Surface", "Ui.Text"]
+signals = []
+test_host = "tst_sync"
+test_scope = "build/import"
+qml_callers = []
+replacement = "NodeTool.UiPrimitives: Ui.EditorButton, Ui.Surface, Ui.Text"
+
+[[file]]
+path = "native/timeline/src/ui/Tempo/TempoToolbar.qml"
+category = "chrome"
+controls = ["ToolButton", "GridDivisionSelect"]
+signals = []
+test_host = "tst_tempo"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/wiring/TestClipBody.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_wiringedit"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/wiring/TestDocumentBar.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_wiringedit"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/wiring/TestHeaderActions.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_wiringedit"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/wiring/TestPreview.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_wiringedit"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/wiring/TestSlotProbe.qml"
+category = "domain"
+controls = ["Rectangle", "MouseArea"]
+signals = ["activated"]
+test_host = "tst_wiringedit"
+test_scope = "build/import"
+qml_callers = ["native/timeline/src/wiring/TestClipBody.qml", "native/timeline/src/wiring/TestDocumentBar.qml", "native/timeline/src/wiring/TestHeaderActions.qml", "native/timeline/src/wiring/TestPreview.qml", "native/timeline/src/wiring/TestToolbar.qml"]
+replacement = "Synthetic timeline hit-testing fixture; no product chrome"
+
+[[file]]
+path = "native/timeline/src/wiring/TestToolbar.qml"
+category = "chrome"
+controls = []
+signals = []
+test_host = "tst_wiringedit"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Feature composition through migrated native Ui wrappers"
+
+[[file]]
+path = "native/timeline/src/wiring/TestTrackLane.qml"
+category = "domain"
+controls = ["MouseArea"]
+signals = []
+test_host = "tst_wiringedit"
+test_scope = "build/import"
+qml_callers = []
+replacement = "Synthetic timeline hit-testing fixture; no product chrome"
+[[exception]]
+path = "native/timeline/qml/TimelineVisuals.qml"
+object = "QtObject[0]"
+binding = "overlay"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "Timeline media-category colors and clip tints are domain presentation, independent of application surfaces."
+
+[[exception]]
+path = "native/timeline/qml/TimelineVisuals.qml"
+object = "QtObject[0]"
+binding = "overlayContrast"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "Timeline media-category colors and clip tints are domain presentation, independent of application surfaces."
+
+[[exception]]
+path = "native/timeline/qml/TimelineVisuals.qml"
+object = "QtObject[0]"
+binding = "information"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "Timeline media-category colors and clip tints are domain presentation, independent of application surfaces."
+
+[[exception]]
+path = "native/timeline/qml/TimelineVisuals.qml"
+object = "QtObject[0]"
+binding = "audio"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "Timeline media-category colors and clip tints are domain presentation, independent of application surfaces."
+
+[[exception]]
+path = "native/timeline/qml/TimelineVisuals.qml"
+object = "QtObject[0]"
+binding = "warning"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "Timeline media-category colors and clip tints are domain presentation, independent of application surfaces."
+
+[[exception]]
+path = "native/timeline/qml/TimelineVisuals.qml"
+object = "QtObject[0]"
+binding = "chord"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "Timeline media-category colors and clip tints are domain presentation, independent of application surfaces."
+
+[[exception]]
+path = "native/timeline/qml/TimelineVisuals.qml"
+object = "QtObject[0]"
+binding = "@function:clipSurfaceTint"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "Timeline media-category colors and clip tints are domain presentation, independent of application surfaces."
+
+[[exception]]
+path = "native/timeline/qml/TimelineVisuals.qml"
+object = "QtObject[0]"
+binding = "@function:clipBorderTint"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "Timeline media-category colors and clip tints are domain presentation, independent of application surfaces."
+
+[[exception]]
+path = "native/timeline/qml/Inspector/CaptionStyle.qml"
+object = "root/InspectorColour[0]"
+binding = "value"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "The fallback initializes a user-authored document color, which must not follow the application theme."
+
+[[exception]]
+path = "native/timeline/qml/Inspector/CaptionStyle.qml"
+object = "root/InspectorColour[1]"
+binding = "value"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "The fallback initializes a user-authored document color, which must not follow the application theme."
+
+[[exception]]
+path = "native/timeline/qml/Inspector/CaptionStyle.qml"
+object = "root/InspectorColour[2]"
+binding = "value"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "The fallback initializes a user-authored document color, which must not follow the application theme."
+
+[[exception]]
+path = "native/timeline/qml/Inspector/CaptionStyle.qml"
+object = "root/InspectorColour[3]"
+binding = "value"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "The fallback initializes a user-authored document color, which must not follow the application theme."
+
+[[exception]]
+path = "native/timeline/qml/Inspector/ShapeSection.qml"
+object = "root/InspectorColour[0]"
+binding = "value"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "The fallback initializes a user-authored document color, which must not follow the application theme."
+
+[[exception]]
+path = "native/timeline/qml/Inspector/ShapeSection.qml"
+object = "root/InspectorColour[1]"
+binding = "value"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "The fallback initializes a user-authored document color, which must not follow the application theme."
+
+[[exception]]
+path = "native/timeline/qml/Inspector/TextFillFields.qml"
+object = "root/InspectorColour[0]"
+binding = "value"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "The fallback initializes a user-authored document color, which must not follow the application theme."
+
+[[exception]]
+path = "native/timeline/qml/Inspector/TextStyleSection.qml"
+object = "root/InspectorColour[0]"
+binding = "value"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "The fallback initializes a user-authored document color, which must not follow the application theme."
+
+[[exception]]
+path = "native/timeline/qml/Inspector/TextStyleSection.qml"
+object = "root/InspectorColour[1]"
+binding = "value"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "The fallback initializes a user-authored document color, which must not follow the application theme."
+
+[[exception]]
+path = "native/timeline/qml/Inspector/TextStyleSection.qml"
+object = "root/InspectorColour[2]"
+binding = "value"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "The fallback initializes a user-authored document color, which must not follow the application theme."
+
+[[exception]]
+path = "native/timeline/qml/Inspector/TextStyleSection.qml"
+object = "root/InspectorColour[3]"
+binding = "value"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "The fallback initializes a user-authored document color, which must not follow the application theme."
+
+[[exception]]
+path = "native/timeline/qml/Inspector/TransitionSection.qml"
+object = "root/section/InspectorColour[0]"
+binding = "value"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "The fallback initializes a user-authored document color, which must not follow the application theme."
+
+[[exception]]
+path = "native/timeline/qml/Inspector/TextStyleSection.qml"
+object = "root/InspectorToggleRow[1]"
+binding = "onChange"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "Enabling a document text effect initializes its stored color. This changes exported text content, not chrome."
+
+[[exception]]
+path = "native/timeline/qml/Inspector/TextStyleSection.qml"
+object = "root/InspectorToggleRow[2]"
+binding = "onChange"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "Enabling a document text effect initializes its stored color. This changes exported text content, not chrome."
+
+[[exception]]
+path = "native/timeline/qml/Inspector/TextStyleSection.qml"
+object = "root/InspectorToggleRow[3]"
+binding = "onChange"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "Enabling a document text effect initializes its stored color. This changes exported text content, not chrome."
+
+[[exception]]
+path = "native/timeline/qml/Inspector/primitives/InspectorColour.qml"
+object = "root"
+binding = "value"
+rule = "color"
+owner = "Timeline document presentation"
+reason = "The field value is an editable document color. Its default is content data."
+
+[[exception]]
+path = "native/timeline/qml/assets/AssetItem.qml"
+object = "tile/mouse"
+binding = "onDoubleClicked"
+rule = "manual-control"
+owner = "Timeline asset library"
+reason = "The asset tile combines selection, drag/drop, folder navigation and media preview. Its double click is a domain interaction alongside keyboard navigation."
+
+[[exception]]
+path = "native/timeline/qml/fx/FxKnob.qml"
+object = "root/Rectangle[0]"
+binding = "radius"
+rule = "metric"
+owner = "Timeline effect editor"
+reason = "The focus outline follows the circular geometry of the bounded effect dial."
+
+[[exception]]
+path = "native/timeline/qml/fx/FxKnob.qml"
+object = "root/mouse"
+binding = "onDoubleClicked"
+rule = "manual-control"
+owner = "Timeline effect editor"
+reason = "Double click resets the bounded effect parameter through its domain transaction controller."
+
+[[exception]]
+path = "native/timeline/qml/mixer/ChannelStripView.qml"
+object = "root/body/side/pan/MouseArea[0]"
+binding = "onDoubleClicked"
+rule = "manual-control"
+owner = "Timeline mixer"
+reason = "Double click resets bounded pan to center through the mixer commit path."
+
+[[exception]]
+path = "native/timeline/qml/wiring/w/CompressorCurve.qml"
+object = "graph/Repeater[1]/handle"
+binding = "radius"
+rule = "metric"
+owner = "Timeline audio effects"
+reason = "The circular handle geometry represents a draggable compressor parameter in transfer-curve coordinates."
+
+[[exception]]
+path = "native/timeline/qml/wiring/w/Eq3Curve.qml"
+object = "graph/Repeater[2]/handle"
+binding = "radius"
+rule = "metric"
+owner = "Timeline audio effects"
+reason = "The circular handle geometry represents frequency and gain in logarithmic EQ coordinates."
+
+[[exception]]
+path = "native/timeline/qml/wiring/w/VideoPreview.qml"
+object = "preview/baseImage"
+binding = "onPaint"
+rule = "gradient"
+owner = "Timeline effect preview"
+reason = "The bounded sample image previews effect output and is media content rather than application chrome."
+
+[[exception]]
+path = "native/timeline/qml/wiring/w/VideoPreview.qml"
+object = "preview/image"
+binding = "onPaint"
+rule = "gradient"
+owner = "Timeline effect preview"
+reason = "The bounded blur and vignette sample gradients visualize effect parameters rather than application surfaces."
+
+[[exception]]
+path = "native/timeline/qml/wiring/w/VideoPreview.qml"
+object = "preview/image"
+binding = "onPaint"
+rule = "color"
+owner = "Timeline effect preview"
+reason = "Black with effect-controlled alpha is the vignette sample content and must not follow the chrome palette."
+
+[[exception]]
+path = "native/timeline/src/edit/clipeffects/ToneCurveEditor.qml"
+object = "root/graph/Repeater[0]/point"
+binding = "radius"
+rule = "metric"
+owner = "Timeline tone curve editor"
+reason = "Circular handles represent document tone-curve points in normalized coordinates."
+
+[[exception]]
+path = "native/timeline/src/edit/clipeffects/ToneCurveEditor.qml"
+object = "root/graph/Repeater[0]/point/MouseArea[0]"
+binding = "onDoubleClicked"
+rule = "manual-control"
+owner = "Timeline tone curve editor"
+reason = "Double click removes a document curve point through the editor transaction controller."
+
+[[exception]]
+path = "native/timeline/qml/Inspector/CaptionStyle.qml"
+object = "root"
+binding = "@function:outline"
+rule = "color"
+owner = "Timeline document text"
+reason = "The black fallback is stored as the clip caption outline color and changes exported video content."
+
+[[exception]]
+path = "native/timeline/qml/Inspector/CaptionStyle.qml"
+object = "root"
+binding = "@function:scrim"
+rule = "color"
+owner = "Timeline document text"
+reason = "The black fallback is stored as the clip caption scrim color and changes exported video content."
+
+[[exception]]
+path = "native/timeline/qml/Inspector/TextFillFields.qml"
+object = "root"
+binding = "@function:typeChange"
+rule = "color"
+owner = "Timeline document text"
+reason = "Solid and gradient stop defaults become user-authored text fill colors in the document."
+
+[[exception]]
+path = "native/timeline/qml/TimelineListPanel.qml"
+object = "root/row/TapHandler[0]"
+binding = "onTapped"
+rule = "manual-control"
+owner = "Timeline document list"
+reason = "Right click augments the selectable document row with its actions menu; Menu key and Shift+F10 invoke the same menu."
+
+[[exception]]
+path = "native/timeline/qml/Tracks/ClipBody.qml"
+object = "body/headerRow/dot"
+binding = "radius"
+rule = "metric"
+owner = "Timeline clip rendering"
+reason = "The media-type dot uses half its six-pixel width for its circular clip-content geometry."
+
+[[exception]]
+path = "native/timeline/qml/Tracks/ClipBody.qml"
+object = "body/headerRow/dot"
+binding = "border.width"
+rule = "metric"
+owner = "Timeline clip rendering"
+reason = "The one-pixel outline separates the media-type dot from the clip surface inside the track lane."
+
+[[exception]]
+path = "native/timeline/qml/Tracks/ClipBody.qml"
+object = "body/Rectangle[2]"
+binding = "border.width"
+rule = "metric"
+owner = "Timeline clip rendering"
+reason = "The clip selection border changes from one to one-and-a-half pixels to distinguish selected document content."
+
+[[exception]]
+path = "native/timeline/qml/Tracks/ClipFadeGrips.qml"
+object = "root/Repeater[0]/grip/Rectangle[0]"
+binding = "radius"
+rule = "metric"
+owner = "Timeline clip fade editor"
+reason = "The nine-pixel fade curve handle is circular so its radius follows the plotted handle width."
+
+[[exception]]
+path = "native/timeline/qml/Tracks/ClipFadeGrips.qml"
+object = "root/Repeater[0]/grip/pointer"
+binding = "anchors.margins"
+rule = "metric"
+owner = "Timeline clip fade editor"
+reason = "The negative margin enlarges the drag target around a fade point without moving the point in clip coordinates."
+
+[[exception]]
+path = "native/timeline/qml/Tracks/FadeRamp.qml"
+object = "ramp/ShapePath[0]"
+binding = "fillColor"
+rule = "color"
+owner = "Timeline audio fade rendering"
+reason = "The translucent fill visualizes amplitude under the clip fade curve, not an application surface."
+
+[[exception]]
+path = "native/timeline/qml/Tracks/Playhead.qml"
+object = "playhead/Rectangle[0]"
+binding = "color"
+rule = "color"
+owner = "Timeline playhead rendering"
+reason = "The translucent halo marks the time cursor in timeline coordinates."
+
+[[exception]]
+path = "native/timeline/qml/Tracks/Playhead.qml"
+object = "playhead/pill"
+binding = "radius"
+rule = "metric"
+owner = "Timeline playhead rendering"
+reason = "The timecode pill radius follows its dynamic label height to keep the cursor marker rounded."
+
+[[exception]]
+path = "native/timeline/qml/Tracks/RubberBandOverlay.qml"
+object = "Rectangle[0]"
+binding = "color"
+rule = "color"
+owner = "Timeline selection rendering"
+reason = "The translucent fill marks the selected rectangle in track coordinates."
+
+[[exception]]
+path = "native/timeline/qml/Tracks/RubberBandOverlay.qml"
+object = "Rectangle[0]"
+binding = "border.width"
+rule = "metric"
+owner = "Timeline selection rendering"
+reason = "The one-pixel outline bounds the track-coordinate marquee during selection."
+
+[[exception]]
+path = "native/timeline/qml/Tracks/RubberBandOverlay.qml"
+object = "Rectangle[0]"
+binding = "z"
+rule = "layer"
+owner = "Timeline selection rendering"
+reason = "The marquee must render above clips while the pointer selects a range of track content."
+
+[[exception]]
+path = "native/timeline/qml/Tracks/TimeRuler.qml"
+object = "ruler/Item[0]/Repeater[0]/flag/MouseArea[0]"
+binding = "onClicked"
+rule = "manual-control"
+owner = "Timeline marker navigation"
+reason = "Clicking a marker flag seeks to its document time; the separate delete action uses Ui.ToolbarIconButton."
+
+[[exception]]
+path = "native/timeline/qml/Tracks/TrackLane.qml"
+object = "lane/Rectangle[0]"
+binding = "color"
+rule = "color"
+owner = "Timeline gap selection"
+reason = "The translucent band shows a selected gap range in track coordinates."
+
+[[exception]]
+path = "native/timeline/qml/Tracks/TracksRegion.qml"
+object = "region/headerColumn/Item[0]/headerRepeater/header/MouseArea[0]"
+binding = "onClicked"
+rule = "manual-control"
+owner = "Timeline track header"
+reason = "Right click adds track actions to the editable header; Menu key and Shift+F10 open the same shared context menu and focus returns to the header."
+
+[[exception]]
+path = "native/timeline/qml/Tracks/automation/AutomationAddLaneHeader.qml"
+object = "root/picker/TapHandler[0]"
+binding = "onTapped"
+rule = "manual-control"
+owner = "Timeline automation editor"
+reason = "Tapping the target field opens available track parameters; typing or Down opens it and Enter chooses the highlighted option."
+
+[[exception]]
+path = "native/timeline/qml/Tracks/automation/AutomationLaneView.qml"
+object = "root/Repeater[0]/Rectangle[0]"
+binding = "radius"
+rule = "metric"
+owner = "Timeline automation editor"
+reason = "The automation keyframe point is a circular handle plotted in time and value coordinates."
+
+[[exception]]
+path = "native/timeline/qml/Tracks/automation/AutomationLaneView.qml"
+object = "root/MouseArea[0]"
+binding = "onDoubleClicked"
+rule = "manual-control"
+owner = "Timeline automation editor"
+reason = "Double click removes the hit automation point; selected points also support Delete or Backspace and a Delete point menu action."
+
+[[exception]]
+path = "native/timeline/src/wiring/TestSlotProbe.qml"
+object = "Item[0]/Rectangle[0]"
+binding = "color"
+rule = "color"
+owner = "Timeline wiring test fixture"
+reason = "Cyan distinguishes a synthetic slot hit target in the offscreen test; this fixture is not shipped chrome."
+
+[[exception]]
+path = "native/timeline/src/wiring/TestSlotProbe.qml"
+object = "Item[0]/MouseArea[0]"
+binding = "onClicked"
+rule = "manual-control"
+owner = "Timeline wiring test fixture"
+reason = "The synthetic slot emits activation to verify extension hit routing in the offscreen wiring host."
+
+[[exception]]
+path = "native/timeline/src/wiring/TestTrackLane.qml"
+object = "Item[0]/MouseArea[0]"
+binding = "onClicked"
+rule = "manual-control"
+owner = "Timeline wiring test fixture"
+reason = "The synthetic track lane counts pointer hits to verify playhead passthrough and extension routing."

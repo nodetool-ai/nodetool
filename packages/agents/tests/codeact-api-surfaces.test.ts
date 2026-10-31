@@ -172,6 +172,19 @@ const SOLUTIONS: Record<string, string[]> = {
        markdownFile: md.output_file
      });`
   ],
+  "rename-documents": [
+    `await nodetool.timelines.rename("tl_promo", "Promo final");
+     await nodetool.sketches.rename("img_cover", "Cover v2");
+     await nodetool.scripts.rename("scr_intro", "Intro VO");
+     const timelines = (await nodetool.timelines.list()).timelines;
+     const sketches = (await nodetool.sketches.list()).sketches;
+     const scripts = (await nodetool.scripts.list()).scripts;
+     await finish({
+       timelineName: timelines.find((t) => t.timeline_id === "tl_promo").name,
+       sketchName: sketches.find((s) => s.image_document_id === "img_cover").name,
+       scriptName: scripts.find((s) => s.script_id === "scr_intro").name
+     });`
+  ],
   "timeline-fix-and-validate": [
     `const before = await nodetool.timelines.validate("tl_promo");
      const snap = await nodetool.timelines.snapshot("tl_promo", {name: "before repair"});

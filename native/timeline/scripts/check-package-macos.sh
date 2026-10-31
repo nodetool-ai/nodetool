@@ -34,10 +34,10 @@ while IFS= read -r f; do
     file -b "$f" | grep -q "Mach-O" && machos+=("$f")
 done < <(find "$app" -type f)
 bad_links=$(for f in "${machos[@]}"; do
-    otool -L "$f" | tail -n +2 | awk '{print $1}' |
+    otool -L "$f" | tail -n +2 | sed -E '/ \(compatibility/!d; s/^[[:space:]]+//; s/ \(compatibility.*$//' |
         grep -E -v '^(/System/|/usr/lib/|@rpath/|@executable_path/|@loader_path/)' | sed "s|^|$(basename "$f"): |"
     # A relative reference that still names a build machine path.
-    otool -L "$f" | tail -n +2 | awk '{print $1}' | grep -E '/opt/homebrew|/usr/local|/Users/|/private/' |
+    otool -L "$f" | tail -n +2 | sed -E '/ \(compatibility/!d; s/^[[:space:]]+//; s/ \(compatibility.*$//' | grep -E '/opt/homebrew|/usr/local|/Users/|/private/' |
         sed "s|^|$(basename "$f"): |"
 done)
 bad_rpaths=$(for f in "${machos[@]}"; do
@@ -82,9 +82,12 @@ done
 
 # Full licence texts and the source information (review F8).
 lic="$app/Contents/Resources/licenses"
-for name in Qt-LGPL-3.0 Qt-GPL-3.0 FFmpeg-LGPL-2.1 miniaudio Inter-OFL-1.1 JetBrainsMono-OFL-1.1 Yoga-MIT; do
+for name in Qt-LGPL-3.0 Qt-GPL-3.0 FFmpeg-LGPL-2.1 miniaudio Inter-OFL-1.1 JetBrainsMono-OFL-1.1 MUI-MIT Material-Icons-Apache-2.0 Yoga-MIT; do
     f="$lic/$name.txt"
     if [[ ! -s "$f" ]] || [[ $(wc -l < "$f") -lt 10 ]]; then fail+=("licence text $name is missing or not the full text"); fi
+done
+for name in Material-Icons-notice Provider-Icons-notice; do
+    [[ -s "$lic/$name.md" ]] || fail+=("notice $name is missing")
 done
 grep -q "Permission is hereby granted" "$lic/Yoga-MIT.txt" 2> /dev/null || fail+=("Yoga licence is not the MIT text")
 grep -q "^Yoga 3.2.1 (MIT), compiled in" "$app/Contents/Resources/source/SOURCES.txt" 2> /dev/null ||
@@ -111,8 +114,8 @@ team=$(echo "$sig" | awk -F= '/^TeamIdentifier=/{print $2}')
 codesign --verify --deep --strict "$app" 2> /dev/null || fail+=("the ad-hoc signature does not verify")
 if xcrun stapler validate "$app" > /dev/null 2>&1; then fail+=("a notarization ticket is stapled"); fi
 
-# 4. Headless runs of the copy. Default platform (cocoa) with no window, as
-# every offscreen mode runs; audio mode none.
+# 4. Headless runs of the copy. QQuickRenderControl writes images without a
+# desktop window; its macOS QRhi requires Cocoa QPA. Audio mode is none.
 out="$tmp/out"
 mkdir -p "$out"
 dry=$("$bin" fixtures/av-sync.json --audio-dry-run 2> /dev/null)

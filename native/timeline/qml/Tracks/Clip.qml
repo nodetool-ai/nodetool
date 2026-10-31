@@ -9,6 +9,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 Item {
     id: clipItem
@@ -29,7 +30,7 @@ Item {
     required property double inPointMs
     required property double sourceOutMs
 
-    property double laneHeight: Theme.trackHeight
+    property double laneHeight: TimelineMetrics.trackHeight
     property bool trackLocked: false
     property bool mutedTrack: false
     property TimelineViewState viewState
@@ -47,7 +48,7 @@ Item {
     y: 6
     width: Math.max(4, durationMs / msPerPx)       // MIN_CLIP_WIDTH_PX
     height: Math.max(0, laneHeight - 12)
-    z: underGesture ? 1 : 0
+    z: underGesture ? TimelineMetrics.clipBodyLayer : Ui.Metrics.layerContent
     opacity: mutedTrack ? 0.5 : 1
 
     property var clipData: gestures ? gestures.clipData(clipId) : ({})
@@ -58,7 +59,7 @@ Item {
 
     ClipBody {
         id: clipBody
-        z: 1
+        z: TimelineMetrics.clipBodyLayer
         clipData: clipItem.clipData
         timeline: clipItem.gestures ? clipItem.gestures.timeline : null
         gestures: clipItem.gestures
@@ -133,7 +134,7 @@ Item {
     // The trim grips (TRIM_HANDLE_WIDTH_PX), over the body.
     MouseArea {
         objectName: "clipTrimStart"
-        z: 2
+        z: TimelineMetrics.trimHandleLayer
         visible: clipItem.trimHandles
         width: 8
         height: parent.height
@@ -143,7 +144,7 @@ Item {
     }
     MouseArea {
         objectName: "clipTrimEnd"
-        z: 2
+        z: TimelineMetrics.trimHandleLayer
         visible: clipItem.trimHandles
         x: parent.width - width
         width: 8

@@ -9,6 +9,7 @@
  * file is not in the zip is left out and counted.
  */
 import { strFromU8 } from "fflate";
+import { mimeTypeForPath } from "@nodetool-ai/protocol";
 import {
   MAX_PREMIERE_XML_BYTES,
   premiereToTimeline,
@@ -16,34 +17,18 @@ import {
   type PremiereImport
 } from "@nodetool-ai/timeline";
 
-/** Content types for the media extensions Premiere sequences carry. */
-const CONTENT_TYPES: Record<string, string> = {
-  mp4: "video/mp4",
-  m4v: "video/mp4",
-  mov: "video/quicktime",
-  webm: "video/webm",
-  avi: "video/x-msvideo",
-  mpg: "video/mpeg",
-  mpeg: "video/mpeg",
-  wav: "audio/wav",
-  mp3: "audio/mpeg",
-  aac: "audio/aac",
-  m4a: "audio/x-m4a",
-  ogg: "audio/ogg",
-  flac: "audio/x-flac",
-  png: "image/png",
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  gif: "image/gif",
-  webp: "image/webp",
-  tif: "image/tiff",
-  tiff: "image/tiff",
-  bmp: "image/bmp"
+/**
+ * `audio/x-m4a` and `audio/x-flac` instead of the registered types: they are
+ * the spellings `getAssetFileName` maps to a stored `.m4a` / `.flac` name, so
+ * imported clips keep their extension instead of landing as `.bin`.
+ */
+export const PREMIERE_MIME_OVERRIDES: Readonly<Record<string, string>> = {
+  ".m4a": "audio/x-m4a",
+  ".flac": "audio/x-flac"
 };
 
 function contentTypeOf(name: string): string {
-  const ext = name.split(".").pop()?.toLowerCase() ?? "";
-  return CONTENT_TYPES[ext] ?? "application/octet-stream";
+  return mimeTypeForPath(name, PREMIERE_MIME_OVERRIDES);
 }
 
 function baseName(path: string): string {

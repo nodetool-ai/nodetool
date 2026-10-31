@@ -4,7 +4,7 @@ import { gameBehavior, gameNonSpatialScriptCommand, gameUiScriptCommand, resolve
 
 import { GameScriptLogCollector, withGameScriptLogs, type GameScriptLogEntry } from "./script-log.js";
 import { GameScriptSaveCollector, type GameSaveRequest } from "./script-saves.js";
-import { defaultScriptCallClock, startScriptCallTimer, type ScriptCallClock } from "./script-clock.js";
+import { defaultScriptCallClock, scriptBudgetScale, startScriptCallTimer, type ScriptCallClock } from "./script-clock.js";
 import { commitScriptHooks, planScriptHooks, scriptHookIssue, SCRIPT_LIFECYCLE_DISPATCH, SCRIPT_SYNCHRONOUS_RESULT, type GameScriptHookPlan, type GameScriptLifecycle } from "./script-lifecycle.js";
 import { canPersistGameScript, canReuseGameScript } from "./script-persistence.js";
 import { gameScriptValue, scriptHandleResult } from "./script-transport.js";
@@ -190,7 +190,7 @@ export interface GameScriptOptions {
   /**
    * Measures each call against its `maxTickMs`, capped at 20 ms. The default is the thread's CPU time where the host
    * reports it (Node), otherwise wall time. On Node, garbage collection pauses during the call do not count.
-   * The batch budget and preparation limits use wall time.
+   * The batch budget and user source preparation limits use wall time. Trusted preparation shell setup is excluded.
    */
   readonly callClock?: ScriptCallClock;
   /**
@@ -369,6 +369,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
 ): Promise<IsolatedScriptRunner<Call, Input, Command>> {
   const callClock = options.callClock ?? defaultScriptCallClock;
   const skipOverruns = options.overrun === "skip";
+  const budgetScale = scriptBudgetScale();
   let envelope = envelopeSchemas.get(commandSchema);
   if (envelope === undefined) {
     envelope = z.object({ value: z.strictObject({ state: z.json(), commands: z.array(commandSchema) }), rngState: z.number().int().nonnegative() });
@@ -491,9 +492,17 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
       disposeRealm(shell); throw error;
     }
   };
+  /** Preparation bounds user evaluation, after the host creates its pristine realm. Tick setup keeps its batch limit. */
+  const prepareRealm = <T>(persistent: boolean, reusable: boolean, evaluate: (shell: RealmShell) => T): T => {
+    runtime.removeInterruptHandler();
+    const shell = createRealmShell(0, persistent, false, reusable);
+    const deadline = performance.now() + 100;
+    runtime.setInterruptHandler(() => performance.now() >= deadline);
+    try { return evaluate(shell); }
+    finally { runtime.removeInterruptHandler(); }
+  };
   /** Prepare-time evaluation: a function, or a lifecycle object whose hooks pass `scriptHookIssue`. */
-  const inspectSource = (sourceKey: string, source: string, persistent: boolean): { readonly realm: ScriptRealm; readonly hooks: boolean; readonly onEvent: boolean } => {
-    const shell = createRealmShell(0, persistent);
+  const inspectSource = (sourceKey: string, source: string, persistent: boolean): { readonly realm: ScriptRealm; readonly hooks: boolean; readonly onEvent: boolean } => prepareRealm(persistent, false, (shell) => {
     try {
       const kind = evaluateSourceKind(shell.context, source);
       let onEvent = false;
@@ -513,7 +522,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
     } catch (error) {
       disposeRealm(shell); throw error;
     }
-  };
+  });
   try {
     for (const scene of document.scenes) {
       for (const entity of scene.entities) {
@@ -521,23 +530,22 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
           if (behavior.kind !== "script" || behavior.source === undefined) {
             return;
           }
+          const source = behavior.source;
           const keyOf = scene.sourceScope === "prefab" ? prefabScriptSourceKey
             : scene.sourceScope === "scene" ? sceneScriptSourceKey : scriptSourceKey;
           const key = keyOf(scene.id, entity.id, index);
           if (sources.has(key)) { throw new Error(`Duplicate game script source ${key}`); }
           try {
-            const deadline = performance.now() + 100;
-            runtime.setInterruptHandler(() => performance.now() >= deadline);
-            const persistent = canPersistGameScript(behavior.source);
-            const { realm, hooks, onEvent } = inspectSource(key, behavior.source, persistent);
+            const persistent = canPersistGameScript(source);
+            const { realm, hooks, onEvent } = inspectSource(key, source, persistent);
             if (persistent) {
               persistentSources.add(key);
             }
-            if (!persistent && !hooks && canReuseGameScript(behavior.source)) {
+            if (!persistent && !hooks && canReuseGameScript(source)) {
               reusableSources.add(key);
               // Freezing a realm takes milliseconds, so it happens here rather than inside a tick budget.
               if (reusableRealms.size < REUSABLE_REALM_LIMIT) {
-                try { reusableRealms.set(key, loadSource(createRealmShell(0, false, false, true), key, behavior.source, false, true)); }
+                try { reusableRealms.set(key, prepareRealm(false, true, (shell) => loadSource(shell, key, source, false, true))); }
                 catch { reusableSources.delete(key); }
               }
             }
@@ -549,7 +557,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
           } catch (error) {
             throw new Error(`Game script ${key} could not be prepared: ${error instanceof Error ? error.message : String(error)}`);
           }
-          sources.set(key, behavior.source);
+          sources.set(key, source);
           if (behavior.params !== undefined) { paramsJson.set(key, JSON.stringify(resolveGameScriptParams(behavior.params, behavior.values))); }
         });
       }
@@ -629,7 +637,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
       const byEntity: Record<string, { durationMs: number; calls: number }> = Object.create(null);
       const results: { entityId: string; state: GameSnapshot["scriptState"][string]; commands: Command[] }[] = [];
       for (const [index, call] of calls.entries()) {
-        const callBudgetMs = Number.isFinite(call.maxTickMs) ? Math.min(MAX_SCRIPT_CALL_MS, call.maxTickMs) : MAX_SCRIPT_CALL_MS;
+        const callBudgetMs = (Number.isFinite(call.maxTickMs) ? Math.min(MAX_SCRIPT_CALL_MS, call.maxTickMs) : MAX_SCRIPT_CALL_MS) * budgetScale;
         if (skipOverruns && performance.now() >= batchDeadline) {
           const skipped = calls.slice(index);
           for (const rest of skipped) { results.push({ entityId: rest.entityId, state: rest.state, commands: [] }); }
@@ -852,8 +860,6 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
         for (const update of updates) {
           gameBehavior.options[9].shape.source.parse(update.source);
           if (!sources.has(update.sourceKey)) { throw new Error(`Unknown game script ${update.sourceKey}`); }
-          const deadline = performance.now() + 100;
-          runtime.setInterruptHandler(() => performance.now() >= deadline);
           const persistent = canPersistGameScript(update.source);
           const inspected = inspectSource(update.sourceKey, update.source, persistent);
           try {
@@ -873,9 +879,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
           if (!persistent && canReuseGameScript(update.source)) {
             reusableSources.add(update.sourceKey);
             if (reusableRealms.size < REUSABLE_REALM_LIMIT) {
-              const deadline = performance.now() + 100;
-              runtime.setInterruptHandler(() => performance.now() >= deadline);
-              try { reusableRealms.set(update.sourceKey, loadSource(createRealmShell(0, false, false, true), update.sourceKey, update.source, false, true)); }
+              try { reusableRealms.set(update.sourceKey, prepareRealm(false, true, (shell) => loadSource(shell, update.sourceKey, update.source, false, true))); }
               catch { reusableSources.delete(update.sourceKey); }
             }
           }
@@ -896,7 +900,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
           if (calls.length === 0) {
             return { results: [], rngState, stats: { durationMs: 0, commands: 0, calls: 0, byEntity: {} } };
           }
-          const batchMs = firstBatch ? FIRST_BATCH_MS : SCRIPT_BATCH_MS;
+          const batchMs = (firstBatch ? FIRST_BATCH_MS : SCRIPT_BATCH_MS) * budgetScale;
           firstBatch = false;
           return execute(calls, input, rngState, world, batchMs);
         } catch (error) {

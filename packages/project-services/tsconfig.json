@@ -1,0 +1,35 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "noUnusedLocals": false,
+    "noUnusedParameters": false
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "references": [
+    {
+      "path": "../asset-services"
+    },
+    {
+      "path": "../config"
+    },
+    {
+      "path": "../execution"
+    },
+    {
+      "path": "../models"
+    },
+    {
+      "path": "../protocol"
+    },
+    {
+      "path": "../runtime"
+    },
+    {
+      "path": "../storage"
+    }
+  ]
+}

@@ -1043,13 +1043,17 @@ LayerFrame FfmpegSource::frameAt(const FrameContext& ctx, double sourceTimeMs) {
         if (shown.get() != m_uploaded) {
             const AVFrame* fr = shown->frame;
             const int planes = shown->layout == PlaneLayout::I420 ? 3 : (shown->layout == PlaneLayout::Nv12 ? 2 : 1);
+            // Repeated layers can replace m_uploadedRef again before this batch is
+            // submitted. Keep every queued frame alive through the retire queue.
+            if (ctx.retire) { ctx.retire->retire(shown, ctx.frameNumber); }
             for (int i = 0; i < planes; ++i) {
                 const int rows = i == 0 ? fr->height : (fr->height + 1) / 2;
                 const int cols = i == 0 ? fr->width : (fr->width + 1) / 2;
-                // The batch is submitted in this render(), while `shown` is
-                // alive, so the plane memory is read in place.
-                QRhiTextureSubresourceUploadDescription desc(
-                    QByteArray::fromRawData(reinterpret_cast<const char*>(fr->data[i]), fr->linesize[i] * rows));
+                const auto* data = reinterpret_cast<const char*>(fr->data[i]);
+                const qsizetype bytes = qsizetype(fr->linesize[i]) * rows;
+                // A caller without a retire queue needs an owning byte copy.
+                QRhiTextureSubresourceUploadDescription desc(ctx.retire
+                    ? QByteArray::fromRawData(data, bytes) : QByteArray(data, bytes));
                 desc.setDataStride(static_cast<quint32>(fr->linesize[i]));
                 desc.setSourceSize(QSize(cols, rows));
                 ctx.updates->uploadTexture(m_planes[static_cast<size_t>(i)].get(), QRhiTextureUploadEntry(0, 0, desc));

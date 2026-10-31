@@ -238,7 +238,13 @@ private slots:
         QCOMPARE(doc(), before);
     }
 
+    void gridSelection_data() {
+        QTest::addColumn<bool>("popupWindow");
+        QTest::newRow("default-popup") << false;
+        if (QGuiApplication::platformName() != "offscreen") { QTest::newRow("window-popup") << true; }
+    }
     void gridSelection() {
+        QFETCH(bool, popupWindow);
         QTRY_VERIFY_WITH_TIMEOUT(item("gridDivisionSelect"), 1000);
         auto* select = item("gridDivisionSelect");
         auto* bars = item("barsToggle");
@@ -258,10 +264,61 @@ private slots:
             QCOMPARE(options[i].toMap().value("value").toString(), values[i]);
             QCOMPARE(options[i].toMap().value("label").toString(), labels[i]);
         }
-        // Open the real popup, then choose with its keyboard navigation.
-        click("gridDivisionSelect");
-        QTest::keyClick(view.get(), Qt::Key_Down);
-        QTest::keyClick(view.get(), Qt::Key_Return);
+        auto* popup = select->property("popup").value<QObject*>();
+        QVERIFY(popup);
+        QVERIFY(popup->setProperty("popupType", popupWindow ? 1 : 0)); // Popup.Window / Popup.Item
+        QVERIFY(item("toolToggle")->setProperty("compact", true));
+        auto* region = item("tracksRegion");
+        QVERIFY(region);
+        QSignalSpy initialFrame(view.get(), &QQuickWindow::frameSwapped);
+        view->update();
+        QTRY_VERIFY(!initialFrame.isEmpty());
+        auto* toolbar = item("timelineToolbar");
+        QVERIFY(toolbar);
+        const double overflow = qMax(
+            select->mapToItem(region, {select->width(), 0}).x() - region->width(),
+            toolbar->property("rowWidth").toDouble() - toolbar->property("available").toDouble());
+        if (overflow > 0) {
+            view->resize(view->width() + qCeil(overflow) + 100, view->height());
+        }
+        view->requestActivate();
+        QVERIFY(QTest::qWaitForWindowActive(view.get()));
+        QVERIFY(QTest::qWaitForWindowExposed(view.get()));
+        QSignalSpy frame(view.get(), &QQuickWindow::frameSwapped);
+        view->update();
+        QTRY_VERIFY(!frame.isEmpty());
+        QVERIFY2(toolbar->property("rowWidth").toDouble() <= toolbar->property("available").toDouble(),
+            "The popup fixture must fit both toolbar groups before clicking");
+        const auto clickPoint = select->mapToScene({select->width() - 8, select->height() / 2});
+        for (auto* parent = select; parent; parent = parent->parentItem()) {
+            if (parent->clip()) {
+                QVERIFY2(parent->contains(parent->mapFromScene(clickPoint)),
+                    qPrintable("Grid click outside clipped ancestor: " + parent->objectName()));
+            }
+        }
+        // Exercise keyboard navigation in the item popup and a real option
+        // click when the platform hosts the popup in a separate window.
+        QTest::mouseClick(select->window(), Qt::LeftButton, Qt::NoModifier,
+            select->mapToScene({select->width() - 8, select->height() / 2}).toPoint());
+        QTRY_VERIFY(popup->property("visible").toBool());
+        auto* popupContent = popup->property("contentItem").value<QQuickItem*>();
+        QVERIFY(popupContent);
+        QTRY_VERIFY(popupContent->window());
+        if (popupWindow) {
+            const auto findOption = [&](auto&& self, QQuickItem* at) -> QQuickItem* {
+                if (at->inherits("QQuickAbstractButton") && at->property("text").toString() == "1/4") { return at; }
+                for (auto* child : at->childItems()) {
+                    if (auto* found = self(self, child)) { return found; }
+                }
+                return nullptr;
+            };
+            QTRY_VERIFY(findOption(findOption, popupContent));
+            auto* option = findOption(findOption, popupContent);
+            QTest::mouseClick(option->window(), Qt::LeftButton, Qt::NoModifier, center(option));
+        } else {
+            QTest::keyClick(view.get(), Qt::Key_Down);
+            QTest::keyClick(view.get(), Qt::Key_Return);
+        }
         QTRY_COMPARE(gestures()->viewState()->gridDivision(), QString("1/4"));
         QCOMPARE(select->property("displayText").toString(), QString("1/4"));
         gestures()->viewState()->setGridDivision("1/16T");

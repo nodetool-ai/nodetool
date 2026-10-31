@@ -4,6 +4,7 @@
 // counterpart yet. The right actions slot holds Export.
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 Rectangle {
     id: bar
@@ -11,53 +12,51 @@ Rectangle {
     required property TimelineModel timeline
     property QtObject autosave: null
 
-    height: 40                                          // DOCUMENT_BAR_HEIGHT
-    color: Theme.backgroundDefault
+    height: TimelineMetrics.documentBarHeight
+    color: Ui.Theme.surfaceCanvas
     Rectangle {
         anchors.bottom: parent.bottom
         width: parent.width
-        height: 1
-        color: Theme.divider
+        height: Ui.Metrics.border
+        color: Ui.Theme.borderSubtle
     }
 
     Row {
-        x: Theme.spacingLg
+        x: Ui.Metrics.lg
         anchors.verticalCenter: parent.verticalCenter
-        spacing: Theme.spacingMd
-        Text {
+        spacing: Ui.Metrics.md
+        Ui.Text {
             objectName: "documentTitle"
             anchors.verticalCenter: parent.verticalCenter
             width: Math.min(implicitWidth, bar.width / 2)
             elide: Text.ElideRight
             text: bar.timeline.name
-            color: Theme.textPrimary
-            font.family: Theme.sansFamily
-            font.pixelSize: Theme.fontSizeNormal
-            font.weight: Font.Medium
+            role: Ui.Typography.SansLabel
+            tone: Ui.Text.Primary
         }
         SaveStatus {
             anchors.verticalCenter: parent.verticalCenter
             autosave: bar.autosave
-            compact: bar.width < 640                    // COMPACT_BAR_WIDTH
+            compact: bar.width < TimelineMetrics.compactDocumentBarWidth
         }
         ToolbarDivider { anchors.verticalCenter: parent.verticalCenter }
         Row {
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 2
+            spacing: Ui.Metrics.micro
             ToolButton {
                 objectName: "undoButton"
                 label: "Undo"
                 iconOnly: true
-                iconPath: Icons.undo
-                opacity: bar.timeline.undoStack.canUndo ? 1 : 0.38
+                iconName: "undo"
+                enabled: bar.timeline.undoStack.canUndo
                 onClicked: bar.timeline.undoStack.undo()
             }
             ToolButton {
                 objectName: "redoButton"
                 label: "Redo"
                 iconOnly: true
-                iconPath: Icons.redo
-                opacity: bar.timeline.undoStack.canRedo ? 1 : 0.38
+                iconName: "redo"
+                enabled: bar.timeline.undoStack.canRedo
                 onClicked: bar.timeline.undoStack.redo()
             }
         }
@@ -69,7 +68,7 @@ Rectangle {
     }
     SlotItems {
         anchors.right: parent.right
-        anchors.rightMargin: Theme.spacingMd
+        anchors.rightMargin: Ui.Metrics.md
         anchors.verticalCenter: parent.verticalCenter
         slot: "documentBarActions"
         slotProperties: ({ timeline: bar.timeline })

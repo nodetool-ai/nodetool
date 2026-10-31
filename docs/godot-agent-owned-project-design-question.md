@@ -787,9 +787,9 @@ Current behavior is covered in these areas:
 - `packages/agents/tests/capabilities-godot.test.ts` tests agent export and
   verification
 - `packages/protocol` tests the game manifest, slot prompts, and graph builder
-- `packages/cli/fixtures/graph-resources/platformer-asset-pack.fake.json` runs a
-  graph fixture through project export
-- `packages/cli/src/harness/registry.ts` registers the Godot game pipeline
+- The historical platformer graph fixture tested project export. Current
+  execution fixtures live in `packages/cli-workflow/fixtures/graph-resources/`.
+- `packages/cli-harness/src/harness/registry.ts` registers the Godot game pipeline
   checks
 - `web/src/components/setup/game/__tests__/` tests guided-flow summaries and
   verification reporting
@@ -818,7 +818,7 @@ This list is an impact map, not a proposed patch:
 | `web/src/components/setup/game/`                  | Guided game creation and landing state                     |
 | `packages/protocol/src/game-graph.ts`             | Current template-slot workflow builder                     |
 | `docs/creation-flows/game-prd.md`                 | Current workflow-as-game product decision                  |
-| `packages/cli/src/harness/registry.ts`            | Required headless verification surface                     |
+| `packages/cli-harness/src/harness/registry.ts`            | Required headless verification surface                     |
 
 ## Out of scope for this design question
 

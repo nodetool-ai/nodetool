@@ -1,6 +1,7 @@
 # Keep explicit module contributions and discover resources owned by QML-only packages.
 file(GLOB_RECURSE discovered_qml CONFIGURE_DEPENDS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
     "${CMAKE_CURRENT_SOURCE_DIR}/qml/*.qml" "${CMAKE_CURRENT_SOURCE_DIR}/qml/*.js")
+list(FILTER discovered_qml EXCLUDE REGEX "/tests/")
 list(SORT discovered_qml)
 list(APPEND NT_qml_files ${discovered_qml})
 list(REMOVE_DUPLICATES NT_qml_files)

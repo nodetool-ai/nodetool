@@ -53,11 +53,12 @@
     "fast-xml-parser": "^5.7.3",
     "fflate": "^0.8.2",
     "ics": "^3.12.0",
-    "js-yaml": "^4.3.2",
+    "marked": "^12.0.0",
     "mediabunny": "1.54.0",
     "papaparse": "^5.5.3",
     "subtitle": "^4.2.2",
-    "turndown": "^7.2.2"
+    "turndown": "^7.2.2",
+    "@nodetool-ai/sandbox-runtime": "*"
   },
   "devDependencies": {
     "@llamaindex/liteparse": "^1.5.2",
@@ -71,7 +72,6 @@
     "@types/chrome-remote-interface": "^0.33.0",
     "@types/diff": "^5.2.3",
     "@types/eslint-scope": "^3.7.7",
-    "@types/js-yaml": "^4.0.9",
     "@types/mailparser": "^3.4.6",
     "@types/node": "^22.0.0",
     "@types/turndown": "^5.0.5",

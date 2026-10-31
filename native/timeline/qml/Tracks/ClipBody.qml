@@ -10,6 +10,7 @@ import QtQuick
 import QtQuick.Shapes
 import QtQuick.Controls
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 Item {
     id: body
@@ -43,8 +44,8 @@ Item {
     property double visibleFromPx: 0
     property double visibleToPx: width
 
-    readonly property color accent: Theme.clipAccent(mediaType)
-    readonly property int radius: Theme.radiusMd
+    readonly property color accent: TimelineVisuals.clipAccent(mediaType)
+    readonly property int radius: Ui.Metrics.radiusControl
     // COMPACT_THRESHOLD_PX, MIN_TRIM_HANDLE_CLIP_WIDTH_PX (8 * 2 + 12)
     readonly property bool showDuration: width >= 96
     readonly property bool showTrimHandles: width >= 28
@@ -73,12 +74,12 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: body.radius
-        color: Theme.backgroundPaper
+        color: Ui.Theme.surfacePanel
     }
     Rectangle {
         anchors.fill: parent
         radius: body.radius
-        color: Theme.clipSurfaceTint(body.mediaType)
+        color: TimelineVisuals.clipSurfaceTint(body.mediaType)
     }
 
     // The filmstrip (video) or the picture (image): inset 6 px, under the
@@ -97,7 +98,7 @@ Item {
             inPointMs: body.inPointMs
             outPointMs: body.sourceOutMs
             clipWidthPx: body.width
-            stripeColor: Theme.overlayStrong
+            stripeColor: Ui.Theme.actionPressed
             contentX: body.contentX + 6
             viewState: body.viewState
         }
@@ -111,7 +112,7 @@ Item {
             source: body.mediaSource
             inPointMs: body.inPointMs
             outPointMs: body.inPointMs + body.durationMs
-            color: Theme.success
+            color: Ui.Theme.statusSuccess
             contentX: body.contentX
             viewState: body.viewState
         }
@@ -142,7 +143,7 @@ Item {
     Loader {
         active: (body.clipData.animations || []).length > 0
         anchors.fill: parent
-        z: 3
+        z: TimelineMetrics.clipOverlayLayer
         sourceComponent: Item {
             ClipInspectorController {
                 id: keyframeEdits
@@ -227,7 +228,7 @@ Item {
                 anchors.fill: parent
                 preferredRendererType: Shape.CurveRenderer
                 ShapePath {
-                    strokeColor: Theme.clipBorderTint(body.mediaType)
+                    strokeColor: TimelineVisuals.clipBorderTint(body.mediaType)
                     strokeWidth: 2
                     fillColor: "transparent"
                     capStyle: ShapePath.FlatCap
@@ -261,7 +262,7 @@ Item {
                 x: parent.width - width + 3
                 width: 8
                 height: parent.height
-                z: 3
+                z: TimelineMetrics.clipOverlayLayer
                 enabled: !body.locked
                 preventStealing: true
                 hoverEnabled: true
@@ -283,18 +284,16 @@ Item {
                     transitionEdits.preview({durationMs: wantedMs})
                 }
                 onReleased: transitionEdits.commit("setTransitionDuration", {durationMs: wantedMs})
-                onCanceled: transitionEdits.commit("setTransitionDuration", {durationMs: wantedMs})
+                onCanceled: transitionEdits.cancelGesture()
             }
-            Text {
+            Ui.Text {
                 visible: body.transitionPx >= 48       // TRANSITION_LABEL_MIN_PX
-                x: Theme.spacingSm
+                x: Ui.Metrics.sm
                 anchors.bottom: parent.bottom
-                anchors.bottomMargin: Theme.spacingXs
+                anchors.bottomMargin: Ui.Metrics.xs
                 text: body.transitionType
-                color: Theme.textSecondary
-                font.family: Theme.monoFamily
-                font.pixelSize: Theme.fontSizeSmaller
-                font.weight: Font.Medium
+                role: Ui.Typography.MonoCaption
+                tone: Ui.Text.Secondary
             }
         }
     }
@@ -307,38 +306,32 @@ Item {
         clip: true
         Rectangle {
             id: dot
-            x: Theme.spacingMd
+            x: Ui.Metrics.md
             anchors.verticalCenter: parent.verticalCenter
             width: 6
             height: 6
             radius: 3
             color: body.accent
             border.width: 1
-            border.color: Theme.scrim
+            border.color: Ui.Theme.scrimModal
         }
-        Text {
+        Ui.Text {
             id: nameText
-            x: dot.x + dot.width + Theme.spacingSm
+            x: dot.x + dot.width + Ui.Metrics.sm
             anchors.verticalCenter: parent.verticalCenter
-            width: Math.max(0, (body.showDuration ? durationText.x - Theme.spacingSm : headerRow.width - Theme.spacingMd) - x)
+            width: Math.max(0, (body.showDuration ? durationText.x - Ui.Metrics.sm : headerRow.width - Ui.Metrics.md) - x)
             text: body.name
-            color: Theme.textPrimary
-            font.family: Theme.sansFamily
-            font.pixelSize: Theme.fontSizeSmaller
-            font.weight: Font.Medium
-            font.letterSpacing: -0.005 * Theme.fontSizeSmaller
+            role: Ui.Typography.SansCaption
             elide: Text.ElideRight
         }
-        Text {
+        Ui.Text {
             id: durationText
             visible: body.showDuration
-            x: headerRow.width - Theme.spacingMd - implicitWidth
+            x: headerRow.width - Ui.Metrics.md - implicitWidth
             anchors.verticalCenter: parent.verticalCenter
             text: TimelineFormat.clipDuration(body.durationMs)
-            color: Theme.textSecondary
-            font.family: Theme.monoFamily
-            font.pixelSize: Theme.fontSizeSmaller
-            font.weight: Font.Medium
+            role: Ui.Typography.MonoCaption
+            tone: Ui.Text.Secondary
         }
     }
 
@@ -350,19 +343,19 @@ Item {
             x: index === 0 ? 0 : body.width - width
             width: 8                                     // TRIM_HANDLE_WIDTH_PX
             height: body.height
-            color: Theme.overlayStrong
+            color: Ui.Theme.actionPressed
             opacity: body.selected || body.hovered ? 1 : 0
         }
     }
 
     Loader {
         active: body.locked
-        x: Theme.spacingMd
-        y: body.height - 4 - Theme.iconXs
-        sourceComponent: Icon {
-            path: Icons.lock
-            size: Theme.iconXs
-            color: Theme.textPrimary
+        x: Ui.Metrics.md
+        y: body.height - 4 - Ui.Metrics.iconXs
+        sourceComponent: Ui.Icon {
+            name: "lock"
+            size: Ui.Metrics.iconXs
+            tone: Ui.Text.Primary
             opacity: 0.85
         }
     }
@@ -381,6 +374,6 @@ Item {
         radius: body.radius
         color: "transparent"
         border.width: body.selected ? 1.5 : 1
-        border.color: body.selected ? Theme.secondary : Theme.clipBorderTint(body.mediaType)
+        border.color: body.selected ? TimelineVisuals.overlay : TimelineVisuals.clipBorderTint(body.mediaType)
     }
 }

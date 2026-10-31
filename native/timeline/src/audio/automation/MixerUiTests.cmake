@@ -1,0 +1,8 @@
+function(nt_mixer_ui_tests)
+    qt_add_executable(tst_mixerui qml/mixer/tests/main.cpp)
+    target_link_libraries(tst_mixerui PRIVATE Qt6::QuickTest Qt6::Test)
+    nt_add_timeline_qml(tst_mixerui)
+    add_test(NAME tst_mixerui COMMAND tst_mixerui -input ${CMAKE_CURRENT_SOURCE_DIR}/qml/mixer/tests)
+    set_tests_properties(tst_mixerui PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+endfunction()
+nt_tests(nt_mixer_ui_tests)

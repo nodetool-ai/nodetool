@@ -201,6 +201,13 @@ Attempt downloadOnce(QNetworkAccessManager& nam, const AssetCache::Decorate& dec
             a.kind = Attempt::Fail;
             a.reason = QStringLiteral("download interrupted: %1").arg(reply->errorString());
             a.keepPartial = true;
+        } else if (a.total >= 0 && QFileInfo(part).size() < a.total) {
+            // A clean HTTP EOF can still end before the asset's expected size.
+            // Keep the received prefix so the next fetch can resume it.
+            a.kind = Attempt::Fail;
+            a.reason = QStringLiteral("download interrupted: received %1 bytes, expected %2")
+                .arg(QFileInfo(part).size()).arg(a.total);
+            a.keepPartial = true;
         } else {
             a.kind = Attempt::Complete;
         }

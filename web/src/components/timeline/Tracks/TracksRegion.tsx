@@ -104,7 +104,7 @@ import { Playhead } from "./Playhead";
 import { AddTextButton } from "./AddTextButton";
 import { AddTrackButton } from "./AddTrackButton";
 import { ScriptToggleButton } from "./ScriptToggleButton";
-import { TimelineViewControls } from "./TimelineViewControls";
+import { TimelineZoomControls, TrackHeightSlider } from "./TimelineZoomControls";
 import {
   TimelineScrollbar,
   TIMELINE_SCROLLBAR_HEIGHT_PX
@@ -129,7 +129,6 @@ import {
   HelpButton,
   ResizeHandle,
   Toolbar,
-  ToolbarIconButton,
   TYPOGRAPHY,
   FONT_SIZE_MONO,
   FONT_WEIGHT,
@@ -147,7 +146,11 @@ import { assetMediaType } from "../dnd/assetToClipAdapter";
 import { dropShotOnTrack, isShotDrag } from "../dnd/shotToClipAdapter";
 import { getSourceCapMs } from "./useClipSourceDuration";
 import { buildTypedIndexMap } from "./trackVisuals";
-import { partitionTimelineWheel, normalizeWheelDeltaPx } from "./timelineWheel";
+import {
+  partitionTimelineWheel,
+  normalizeWheelDeltaPx,
+  wheelZoomFactor
+} from "./timelineWheel";
 import { followScrollLeft } from "./followPlayhead";
 import { nextToolbarFit, type ToolbarFit } from "./toolbarFit";
 import {
@@ -201,7 +204,6 @@ const TOOL_FOR_ACTION: Record<
   cutTool: "cut",
   slipTool: "slip"
 };
-const ZOOM_SENSITIVITY = 0.001;
 /** How much one expand or shrink keypress changes the track-height scale. */
 const TRACK_HEIGHT_STEP = 0.25;
 /** Extra gap (ms) inserted after the source clip when using Ctrl+Shift+D. */
@@ -261,7 +263,6 @@ const tracksSectionHeaderStyles = (theme: Theme, compact: boolean) =>
 
 const trackCountChipStyles = (theme: Theme) =>
   css({
-    marginLeft: "auto",
     minWidth: 18,
     height: 16,
     padding: theme.spacing(0, 1.5),
@@ -723,10 +724,13 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         e.preventDefault();
         if (webkitGestureActiveRef.current) return;
         const { zoomDelta } = partitionTimelineWheel(e);
-        // Exponential, so a large delta (a fast mouse wheel, a hard flick)
-        // zooms by a bounded factor instead of crossing zero and pinning the
-        // zoom to its limit, and equal opposite deltas cancel exactly.
-        pendingZoomFactorRef.current *= Math.exp(zoomDelta * ZOOM_SENSITIVITY);
+        // A pinch follows the fingers 1:1, and a mouse wheel notch is capped
+        // to one bounded step (see wheelZoomFactor).
+        pendingZoomFactorRef.current *= wheelZoomFactor(
+          zoomDelta,
+          e.deltaMode,
+          el.clientWidth
+        );
         pendingZoomClientXRef.current = e.clientX;
         if (zoomRafIdRef.current === null) {
           zoomRafIdRef.current = requestAnimationFrame(flushZoom);
@@ -2028,7 +2032,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
               tooltip={t("i18n-next73.tracks.keyboardShortcuts")}
             />
           )}
-          <TimelineViewControls
+          <TimelineZoomControls
             compact={toolbarCompact}
             onZoomToFit={zoomToFit}
           />
@@ -2038,6 +2042,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         <FlexRow align="stretch" fullWidth>
           <div css={tracksSectionHeaderStyles(theme, isMobile)}>
             <span>{t("i18n-next73.tracks.title")}</span>
+            <TrackHeightSlider />
             <span
               css={trackCountChipStyles(theme)}
               aria-label={t("i18n-next73.tracks.count", { count: tracks.length })}

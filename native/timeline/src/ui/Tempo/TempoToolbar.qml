@@ -1,5 +1,6 @@
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 Row {
     id: tools
@@ -7,14 +8,14 @@ Row {
     required property ClipGestureController gestures
     required property TimelineViewState viewState
     property bool compact: false
-    spacing: Theme.spacingMicro
+    spacing: Ui.Metrics.micro
 
     ToolButton {
         objectName: "barsToggle"
         anchors.verticalCenter: parent.verticalCenter
         label: qsTr("Bars")
         description: qsTr("The ruler counts bars and beats, not seconds")
-        iconPath: Icons.straighten
+        iconName: "straighten"
         active: tools.viewState.rulerMode === "bars"
         compact: tools.compact
         onClicked: tools.viewState.rulerMode = active ? "time" : "bars"

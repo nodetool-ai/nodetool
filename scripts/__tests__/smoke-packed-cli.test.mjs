@@ -9,9 +9,53 @@ import { join, resolve } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import yaml from "js-yaml";
 
-import { assertInstalledSelection, assertCoreInstallSize, assertCoreOnlyInstall, cleanEnv, codecProbeSource, existingTarballs, installedPackages, mcpWorkflowCode, missingCommands, missingFalGraph, probeMcp, probeServe, REQUIRED_COMMANDS } from "../smoke-packed-cli.mjs";
+import { assertInstalledSelection, assertCoreInstallSize, assertCoreOnlyInstall, cleanEnv, codecProbeSource, existingTarballs, installSmokeCommandFeatures, installedPackages, mcpWorkflowCode, missingCommands, missingFalGraph, probeMcp, probeServe, REQUIRED_COMMANDS, FEATURE_REQUIRED_COMMANDS, COMPOSED_SMOKE_PACK_IDS } from "../smoke-packed-cli.mjs";
 import { partitionPlan } from "../packed-verification.mjs";
 import { fullPlan, readPackages } from "../test-affected.mjs";
+
+it("retains the published command inventory across independent feature checks", () => {
+  const verified = new Set([...REQUIRED_COMMANDS, ...Object.values(FEATURE_REQUIRED_COMMANDS).flat()]);
+  for (const command of ["run", "info", "serve", "chat", "workflows", "jobs", "assets", "models", "storage", "secrets", "settings", "mcp", "projects", "package", "packs", "runtime", "worker", "deploy", "agent", "db", "debug", "app", "apps", "validate", "timeline", "sketch", "game", "jsscript", "reliability", "node", "generate", "extension", "eval", "jtbd", "affected", "harness", "collections", "costs", "errors", "generations", "runs", "auth", "telegram", "help"]) {
+    expect(verified.has(command), `No independent packed check owns ${command}`).toBe(true);
+  }
+});
+
+it("explicitly composes every classic core family in the full regression consumer", () => {
+  for (const id of ["core", "text", "data", "llm", "code"]) { expect(COMPOSED_SMOKE_PACK_IDS).toContain(id); }
+  expect(new Set(COMPOSED_SMOKE_PACK_IDS).size).toBe(COMPOSED_SMOKE_PACK_IDS.length);
+  expect(COMPOSED_SMOKE_PACK_IDS).not.toContain("cli-full");
+});
+
+it("checks missing FAL with only workflow admitted before installing FAL and the remaining command features", () => {
+  const selected = new Set();
+  const stages = [];
+  const helpChecked = [];
+  installSmokeCommandFeatures(args => {
+    if (args[0] === "packs" && args[1] === "add") {
+      selected.add(args[2]);
+      stages.push(`install:${args[2]}`);
+      return "";
+    }
+    if (args[0] === "packs" && args[1] === "list") {
+      return JSON.stringify([...selected].map(id => ({ id, installed: true })));
+    }
+    expect(args).toEqual(["feature", expect.any(String), "--help"]);
+    helpChecked.push(args[1]);
+    return FEATURE_REQUIRED_COMMANDS[args[1]].map(command => `  ${command}    Command`).join("\n");
+  }, {
+    probeMissing: () => {
+      expect([...selected]).toEqual(["cli-workflow"]);
+      stages.push("missing-fal");
+    },
+    probeInstalled: () => {
+      expect([...selected]).toEqual(["cli-workflow", "fal"]);
+      stages.push("installed-fal");
+    }
+  });
+  expect(stages.slice(0, 4)).toEqual(["install:cli-workflow", "missing-fal", "install:fal", "installed-fal"]);
+  expect(new Set(helpChecked)).toEqual(new Set(Object.keys(FEATURE_REQUIRED_COMMANDS)));
+  expect(helpChecked).toHaveLength(Object.keys(FEATURE_REQUIRED_COMMANDS).length);
+});
 
 const fixtures = [];
 afterEach(() => { for (const root of fixtures.splice(0)) { rmSync(root, { recursive: true, force: true }); } });
@@ -91,7 +135,7 @@ it("prepares sandboxed Chromium before packed verification runs browser suites",
   const mobileIndex = steps.findIndex(step => step.run === "npm --prefix mobile ci");
   expect(mobileIndex).toBeGreaterThanOrEqual(0);
   expect(mobileIndex).toBeLessThan(affectedIndex);
-  expect(steps.find(step => step.uses === "./.github/actions/setup-build").with["extra-apt"]).toBe("ffmpeg mesa-vulkan-drivers");
+  expect(steps.find(step => step.uses === "./.github/actions/setup-build").with["extra-apt"]).toBe("mesa-vulkan-drivers");
 });
 
 it("bounds verification test concurrency without changing build scheduling", () => {
@@ -162,10 +206,10 @@ describe("missingCommands", () => {
   it("finds commands only at the command-list indent", () => {
     const help = [
       "Commands:",
-      ...REQUIRED_COMMANDS.filter(name => name !== "node").map(name => `  ${name} [options]    Description`),
-      "    node             (an option description, not a command)"
+      ...REQUIRED_COMMANDS.filter(name => name !== "run").map(name => `  ${name} [options]    Description`),
+      "    run             (an option description, not a command)"
     ].join("\n");
-    expect(missingCommands(help)).toEqual(["node"]);
+    expect(missingCommands(help)).toEqual(["run"]);
   });
 });
 
@@ -190,6 +234,7 @@ function installFixture(app, name, manifest = {}, modules = "node_modules") {
   const dir = join(app, modules, name);
   mkdirSync(dir, { recursive: true });
   writeFileSync(join(dir, "package.json"), JSON.stringify({ name, version: "1.0.0", ...manifest }));
+  writeFileSync(join(dir, "index.js"), "export {};");
   return dir;
 }
 
@@ -204,16 +249,17 @@ describe("core-only contamination guard", () => {
   it("rejects an empty audit and accepts a tree containing executable core packages", () => {
     const app = appFixture();
     expect(() => assertCoreOnlyInstall(app)).toThrow("inspected no installed packages");
-    installFixture(app, "@nodetool-ai/core-nodes");
+    installFixture(app, "@nodetool-ai/nodes-core");
     expect(assertCoreOnlyInstall(app)).toBe(1);
   });
 
   it.each(["@nodetool-ai/fal-nodes", "@nodetool-ai/base-nodes", "@nodetool-ai/game-renderer", "sharp", "@napi-rs/canvas", "@dimforge/rapier3d-compat"])("fails when %s is deliberately installed as a nested dependency", name => {
     const app = appFixture();
-    installFixture(app, "@nodetool-ai/core-nodes");
-    const nested = installFixture(app, name, {}, "node_modules/@nodetool-ai/core-nodes/node_modules");
+    installFixture(app, "@nodetool-ai/nodes-core");
+    const nested = installFixture(app, name, {}, "node_modules/@nodetool-ai/nodes-core/node_modules");
     expect(installedPackages(join(app, "node_modules")).map(entry => entry.manifest.name)).toContain(name);
-    expect(() => assertCoreOnlyInstall(app)).toThrow(`${name} (${nested})`);
+    expect(() => assertCoreOnlyInstall(app)).toThrow(name);
+    expect(() => assertCoreOnlyInstall(app)).toThrow(nested);
   });
 
   it("rejects a deliberately installed pack tarball", () => {
@@ -224,52 +270,12 @@ describe("core-only contamination guard", () => {
     expect(() => assertCoreOnlyInstall(app)).toThrow("@nodetool-ai/fal-nodes");
   });
 
-  it("allows esbuild only when tsx requires that installed version", () => {
-    const app = appFixture({ tsx: "1.0.0" });
-    installFixture(app, "tsx", { dependencies: { esbuild: "~0.28.0" } });
-    installFixture(app, "esbuild", { version: "0.28.1" });
-    expect(assertCoreOnlyInstall(app)).toBe(2);
-    installFixture(app, "esbuild", { version: "0.27.0" });
-    expect(() => assertCoreOnlyInstall(app)).toThrow(/npm ls .* exited 1/);
-  });
-
-  it("rejects an esbuild copy outside the tsx dependency closure", () => {
-    const app = appFixture({ tsx: "1.0.0" });
-    installFixture(app, "tsx", { dependencies: { esbuild: "~0.28.0" } });
-    installFixture(app, "esbuild", { version: "0.28.1" });
-    installFixture(app, "@nodetool-ai/core-nodes");
-    installFixture(app, "esbuild", { version: "0.28.1" }, "node_modules/@nodetool-ai/core-nodes/node_modules");
-    expect(() => assertCoreOnlyInstall(app)).toThrow("esbuild is installed outside its required core dependency closure");
-  });
-
-  it("admits only the declared compiler dependency of tRPC's resolved TypeScript wrapper", () => {
-    const app = appFixture({ "@trpc/server": "1.0.0" });
-    installFixture(app, "@trpc/server", { peerDependencies: { typescript: ">=5.7.2" } });
-    installFixture(app, "typescript", { name: "@typescript/typescript6", version: "6.0.2", dependencies: { "@typescript/old": "npm:typescript@^6" } });
-    installFixture(app, "@typescript/old", { name: "typescript", version: "6.0.3" });
-    expect(assertCoreOnlyInstall(app)).toBe(3);
-    installFixture(app, "@nodetool-ai/core-nodes");
-    installFixture(app, "typescript", { version: "6.0.3" }, "node_modules/@nodetool-ai/core-nodes/node_modules");
-    expect(() => assertCoreOnlyInstall(app)).toThrow("typescript is installed outside its required core dependency closure");
-  });
-
-  it("rejects a wrapper compiler that violates its declared alias range", () => {
-    const app = appFixture({ "@trpc/server": "1.0.0" });
-    installFixture(app, "@trpc/server", { peerDependencies: { typescript: ">=5.7.2" } });
-    installFixture(app, "typescript", { name: "@typescript/typescript6", version: "6.0.2", dependencies: { "@typescript/old": "npm:typescript@^6" } });
-    installFixture(app, "@typescript/old", { name: "typescript", version: "5.6.0" });
-    expect(() => assertCoreOnlyInstall(app)).toThrow(/npm ls .* exited 1/);
-  });
-
-  it("allows TypeScript only when tRPC's installed mandatory peers require it", () => {
-    const app = appFixture({ "@trpc/client": "1.0.0", "@trpc/server": "1.0.0" });
-    for (const name of ["@trpc/client", "@trpc/server"]) {
-      installFixture(app, name, { peerDependencies: { typescript: ">=5.7.2" } });
-    }
-    installFixture(app, "typescript", { name: "@typescript/typescript6", version: "6.0.2" });
-    expect(assertCoreOnlyInstall(app)).toBe(3);
-    installFixture(app, "typescript", { version: "5.6.0" });
-    expect(() => assertCoreOnlyInstall(app)).toThrow(/npm ls .* exited 1/);
+  it.each(["esbuild", "typescript", "react", "ink", "@nodetool-ai/cli-full", "@nodetool-ai/runtime", "@nodetool-ai/agents"])("rejects full-only dependency %s even when another package requires it", name => {
+    const app = appFixture();
+    installFixture(app, "@nodetool-ai/nodes-core");
+    installFixture(app, "fixture-dependent", { dependencies: { [name]: "*" } });
+    installFixture(app, name);
+    expect(() => assertCoreOnlyInstall(app)).toThrow();
   });
 });
 

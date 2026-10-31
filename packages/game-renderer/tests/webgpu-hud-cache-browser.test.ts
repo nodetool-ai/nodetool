@@ -103,7 +103,7 @@ describe("actual Chromium WebGPU sprite composition", () => {
   });
 
   it("includes game font identity when reusing the HUD texture", async () => {
-    const font = Array.from(await readFile(new URL("../../cli/tests/fixtures/game-golden-fonts/DejaVuSans.ttf", import.meta.url)));
+    const font = Array.from(await readFile(new URL("../../cli-game/tests/fixtures/game-golden-fonts/DejaVuSans.ttf", import.meta.url)));
     console.info(`GPU parity font SHA-256: ${createHash("sha256").update(Uint8Array.from(font)).digest("hex")}`);
     const result = await page.evaluate(async (bytes) => {
       const { createGpu, frame, gameFontFamily } = window.gpuParity;

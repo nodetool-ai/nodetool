@@ -2,8 +2,6 @@ nt_sources(app src/app/CliModes.h src/app/CliModes.cpp src/app/UploadAssetCli.cp
 nt_qml_sources(src/app/PanelRegistry.h src/app/PanelRegistry.cpp
     src/app/MenuRegistry.h src/app/MenuRegistry.cpp src/app/BuiltinEdits.cpp)
 nt_qml_files(qml/TimelineEditor.qml)
-nt_sources(qml_resources
-    fonts/inter-latin-400-normal.woff2 fonts/inter-latin-500-normal.woff2 fonts/inter-latin-600-normal.woff2 fonts/jetbrains-mono-latin-400-normal.woff2 fonts/jetbrains-mono-latin-500-normal.woff2 fonts/jetbrains-mono-latin-600-normal.woff2)
 
 function(nt_app_tests)
     # The comparison helpers of scripts/plan-conformance.mjs (node:test).
@@ -16,8 +14,9 @@ function(nt_app_tests)
     add_test(NAME peaks_check_plan COMMAND node --test ${CMAKE_CURRENT_SOURCE_DIR}/scripts/conformance/peaks-check.test.mjs)
     # The bundle dependency audit of scripts/macho-deps.py (review F5): builds
     # tiny Mach-O files with clang.
+    find_program(NT_PYTHON3 NAMES python3 NO_CACHE REQUIRED)
+    add_test(NAME macho_notices COMMAND ${NT_PYTHON3} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/macho-notices.test.py)
     if(APPLE)
-        find_program(NT_PYTHON3 NAMES python3 NO_CACHE REQUIRED)
         add_test(NAME macho_deps COMMAND ${NT_PYTHON3} ${CMAKE_CURRENT_SOURCE_DIR}/scripts/macho-deps.test.py)
     endif()
 endfunction()

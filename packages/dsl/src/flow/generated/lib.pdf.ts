@@ -82,7 +82,7 @@ export function screenshot(inputs: ScreenshotInputs): Promise<ScreenshotOutputs>
   return callNode<ScreenshotOutputs>("lib.pdf.Screenshot", inputs);
 }
 
-// PDF Rasterize (pdftoppm) — lib.pdf.Pdftoppm
+// PDF Rasterize — lib.pdf.Pdftoppm
 export type PdftoppmInputs = {
   pdf?: unknown;
   start_page?: number;

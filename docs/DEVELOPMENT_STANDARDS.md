@@ -71,7 +71,7 @@ native executable.
 
 ## 2. ES Modules & Node Runtime
 
-All packages use `"type": "module"`. The required runtime is **Node.js 24.22.1** (see [`.nvmrc`](../.nvmrc)), the October 2026 security release of the 24.x line. The packaged backend runs on this bundled Node, not on the Node embedded in Electron 41.10.6 (pinned in [`electron/package.json`](../electron/package.json)).
+All packages use `"type": "module"`. The required runtime is **Node.js 24.22.1** (see [`.nvmrc`](../.nvmrc)), the October 2026 security release of the 24.x line. The packaged backend runs on this bundled Node, not on the Node embedded in Electron (version pinned in [`electron/package.json`](../electron/package.json)).
 
 ### Rules
 
@@ -80,7 +80,7 @@ All packages use `"type": "module"`. The required runtime is **Node.js 24.22.1**
 - **Never import from `dist/`** in source code. Always `@nodetool-ai/<package>`.
 - **Top-level `await` is allowed** in ESM but should be reserved for initialization paths that block startup intentionally. Don't use it to dodge proper async wiring.
 - **`AbortController` / `AbortSignal`** is mandatory for any cancellable async operation — long-running fetches, streams, subprocesses, LLM calls. Plumb the signal through; do not invent custom cancellation flags.
-- **Native fetch (Node 22)** — no `node-fetch`, no `axios` in new code unless there is a specific reason (e.g. interceptor needs) documented in the PR.
+- **Native fetch** — no `node-fetch`, no `axios` in new code unless there is a specific reason (e.g. interceptor needs) documented in the PR.
 - **No CommonJS interop hacks.** If a dep is CJS-only, import its default export and document the constraint.
 - **Pin Node version** in CI and package `engines`. **target**: every workspace `package.json` declares `"engines": { "node": "24.22.1" }`.
 
@@ -353,7 +353,7 @@ Zod v4 is used in `protocol`, `deploy`, `websocket`. It is the canonical validat
 
 ---
 
-## 12. Electron 39 Security
+## 12. Electron Security
 
 The desktop app embeds Node and exposes native APIs. Every IPC channel is an attack surface. See `electron/src/AGENTS.md` for app-specific patterns.
 
@@ -610,6 +610,28 @@ The mechanisms that make the above stick:
 If a rule is not yet enforced by tooling, it is enforced by review. Reviewers should reject PRs that violate documented standards; if a standard is impractical, change the standard with a PR rather than ignoring it.
 
 ---
+
+## 23. Native Qt UI
+
+Qt Quick presentation follows the
+[native design specification](../native/ui_primitives/DESIGN.md) and uses
+`NodeTool.UiPrimitives`. Native configuration, fonts, icons, and build tooling
+are owned under `native/`. React retains its separate configuration and
+implementation. Neither implementation imports or generates the other's
+presentation configuration.
+
+Feature code supplies content, state, actions, and outer layout. Primitives
+own typography, internal spacing, colors, borders, focus, disabled states,
+and feedback. Keep editor geometry, document colors, networking, persistence,
+and undo policy with their features. Structural Qt layout items remain valid
+feature composition tools.
+
+Preserve editing transactions and existing inspector behavior during
+extraction. Changes to cancellation or focus-loss behavior require interaction
+and undo tests. Follow the [native verification commands](../native/ui_primitives/README.md)
+for the standalone module, isolated builds, design checks, and affected hosts.
+Run GUI checks offscreen. Report platform accessibility and rendering checks
+separately from local automated results.
 
 ## Related Documents
 

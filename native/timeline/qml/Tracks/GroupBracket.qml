@@ -1,5 +1,6 @@
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 Item {
     id: bracket
@@ -16,25 +17,25 @@ Item {
     readonly property real bracketRight: spanEndMs === null ? widthPx : toPx(spanEndMs)
     visible: durationMs > 0 && widthPx > 0
     x: bracketLeft
-    y: Theme.spacingXl
+    y: Ui.Metrics.xl
     width: Math.max(1, bracketRight - bracketLeft)
-    height: Theme.spacingMd
+    height: Ui.Metrics.md
     opacity: 0.7
     Accessible.ignored: true
     Rectangle {
         width: parent.width
         height: 1
-        color: Theme.secondary
+        color: TimelineVisuals.overlay
     }
     Rectangle {
         width: 1
         height: parent.height
-        color: Theme.secondary
+        color: TimelineVisuals.overlay
     }
     Rectangle {
         x: parent.width - width
         width: 1
         height: parent.height
-        color: Theme.secondary
+        color: TimelineVisuals.overlay
     }
 }

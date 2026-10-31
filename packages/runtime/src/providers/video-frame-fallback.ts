@@ -4,7 +4,7 @@
  * Most chat APIs are OpenAI-compatible and have nowhere to put a clip, so a
  * `video` part reaching them used to be a hard refusal — even when the model
  * behind the endpoint reads images perfectly well. This samples the clip into
- * stills with ffmpeg and puts them on the message as ordinary image parts,
+ * stills in process and puts them on the message as ordinary image parts,
  * labelled with their timestamps so the model can reason about order and
  * timing.
  *
@@ -60,7 +60,7 @@ function parseDataUri(uri: string): Uint8Array {
 
 /**
  * Source a video part's bytes: inline data first, then its URI. The container
- * type is not read off the ref — ffmpeg sniffs it from the file itself, which
+ * type is not read off the ref — libav sniffs it from the file itself, which
  * is right more often than a `mimeType` the caller guessed.
  */
 async function videoContentBytes(
@@ -174,9 +174,9 @@ export async function expandVideoContentAsFrames(
       });
       if (sample.frames.length === 0) {
         throw new Error(
-          `ffmpeg decoded no frames from the attached video, so ` +
+          `No frames could be decoded from the attached video, so ` +
             `${options.provider ?? "this provider"} has nothing to read. The ` +
-            `file may not be a video, or may use a codec this ffmpeg build ` +
+            `file may not be a video, or may use a codec this build ` +
             `does not decode.`
         );
       }

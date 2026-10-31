@@ -4,8 +4,8 @@
  *
  * PNG is the only format here that carries straight alpha with no chroma
  * subsampling, which is what makes it the reference an alpha render is checked
- * against. The frames go through `@napi-rs/canvas` rather than ffmpeg — the
- * compositor already hands over RGBA8, so an ffmpeg round trip would only add a
+ * against. The frames go through `@napi-rs/canvas` rather than libav — the
+ * compositor already hands over RGBA8, so a libav round trip would only add a
  * process per frame and a second colour conversion.
  *
  * The zip is written entry by entry with no compression: a PNG is already

@@ -1,0 +1,63 @@
+{
+  "name": "@nodetool-ai/cli-sketch",
+  "version": "0.8.4",
+  "description": "Independent sketch command feature for NodeTool",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "nodetool-sketch": "dist/nodetool.js"
+  },
+  "exports": {
+    ".": {
+      "nodetool-dev": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./*": {
+      "nodetool-dev": "./src/*.ts",
+      "types": "./dist/*.d.ts",
+      "import": "./dist/*.js",
+      "default": "./dist/*.js"
+    }
+  },
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "test": "node ../../scripts/run-vitest.mjs run",
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit"
+  },
+  "dependencies": {
+    "@nodetool-ai/agents": "*",
+    "@nodetool-ai/cli-common": "*",
+    "@nodetool-ai/config": "*",
+    "@nodetool-ai/execution": "*",
+    "@nodetool-ai/models": "*",
+    "@nodetool-ai/pack-manager": "*",
+    "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/storage": "*",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@nodetool-ai/protocol": "*",
+    "@types/node": "^22.0.0",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "vitest": "^5.0.1"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/cli-sketch"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
+}

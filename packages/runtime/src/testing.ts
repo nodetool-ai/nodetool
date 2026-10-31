@@ -22,7 +22,7 @@ import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 import { ProcessingContext, MemoryCache } from "./context.js";
 import { FakeProvider } from "./providers/fake-provider.js";
 import type { BaseProvider } from "./providers/base-provider.js";
-import { isString } from "@nodetool-ai/protocol";
+import { isString, isRecord, type Entity } from "@nodetool-ai/protocol";
 
 export interface FakeContextOptions {
   /**
@@ -138,6 +138,9 @@ export function createFakeContext(
   let assetCounter = 0;
   let sequenceCounter = 0;
   const sequences = new Map<string, { id: string }>();
+  const storyboards = new Map<string, { id: string; name: string; project_id: string; document: unknown; timelineId?: string | null }>();
+  const entities = new Map<string, Entity>();
+  const assets = new Map<string, string>();
 
   const context = new ProcessingContext({
     jobId: options.jobId ?? "fake-job",
@@ -182,7 +185,54 @@ export function createFakeContext(
             );
           }
         }
+        assets.set(id, args.contentType);
         return { id, name: args.name, content_type: args.contentType };
+      },
+      getStoryboard: async ({ id }) => storyboards.get(id) ?? null,
+      listStoryboards: async ({ projectId, limit }) => [...storyboards.values()]
+        .filter(board => !projectId || board.project_id === projectId)
+        .slice(0, limit),
+      findRecastStoryboard: async ({ projectId, templateId, recastKey }) => [...storyboards.values()]
+        .find(board => (!projectId || board.project_id === projectId) && isRecord(board.document) && board.document.templateId === templateId && board.document.recastKey === recastKey) ?? null,
+      createStoryboard: async ({ name, projectId, document }) => {
+        const id = globalThis.crypto.randomUUID().replaceAll("-", "");
+        const board = { id, name: name ?? "", project_id: projectId ?? "default", document };
+        storyboards.set(id, board);
+        return board;
+      },
+      updateStoryboard: async ({ id, document, timelineId }) => {
+        const existing = storyboards.get(id);
+        if (!existing) { return null; }
+        const saved = { ...existing };
+        if (document !== undefined) { saved.document = document; }
+        if (timelineId !== undefined) { saved.timelineId = timelineId; }
+        storyboards.set(id, saved);
+        return saved;
+      },
+      getEntity: async ({ id }) => entities.get(id) ?? null,
+      listEntities: async ({ projectId, kind, tags, nameContains, limit }) => [...entities.values()]
+        .filter(entity => (!projectId || entity.project_id === projectId) && (!kind || entity.kind === kind) && (!nameContains || entity.name.toLowerCase().includes(nameContains.toLowerCase())) && (!tags?.length || tags.every(tag => entity.tags?.includes(tag))))
+        .slice(0, limit),
+      upsertEntity: async (args) => {
+        if (!assets.get(args.imageAssetId)?.startsWith("image/")) {
+          throw new Error("Fake entity reference must identify a created image asset");
+        }
+        const projectId = args.projectId ?? "default";
+        const existing = [...entities.values()].find(entity => entity.project_id === projectId && (
+          args.source?.key ? entity.source?.key === args.source.key : entity.kind === args.kind && entity.name.toLowerCase() === args.name.toLowerCase()
+        ));
+        const entity: Entity = {
+          ...existing,
+          type: "entity", id: existing?.id ?? args.imageAssetId,
+          kind: args.kind, name: args.name, descriptor: args.descriptor, project_id: projectId,
+          reference_images: [{ type: "image", asset_id: args.imageAssetId, uri: `asset://${args.imageAssetId}.png` }]
+        };
+        if (args.description !== undefined) { entity.description = args.description; }
+        if (args.tags !== undefined) { entity.tags = args.tags; }
+        if (args.source !== undefined) { entity.source = args.source; }
+        if (args.voiceId !== undefined) { entity.voice_id = args.voiceId; }
+        entities.set(entity.id, entity);
+        return { entity, created: !existing };
       },
       // Timeline nodes save a sequence document and read it back by id.
       createTimelineSequence: async ({ sequence }) => {

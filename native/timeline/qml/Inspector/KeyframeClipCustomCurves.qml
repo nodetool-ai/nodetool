@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 Column {
     id: root
     required property ClipInspectorController controller
@@ -52,14 +53,14 @@ Column {
     }
     readonly property string validationError: curveError()
     signal change(var custom)
-    spacing: Theme.spacingMd
+    spacing: Ui.Metrics.md
     function setCurves(curves) { change(Object.assign({},custom,{curves:curves})) }
     function patchCurve(index,patch) { setCurves(custom.curves.map((c,i) => i === index ? Object.assign({},c,patch) : c)) }
     function patchKeyframe(curveIndex,index,patch) {
         patchCurve(curveIndex,{keyframes:custom.curves[curveIndex].keyframes.map((k,i) => i === index ? Object.assign({},k,patch) : k)})
     }
-    Text { width: parent.width; visible: root.baked; text: "Baked from JavaScript"; color: Theme.textSecondary; font.pixelSize: Theme.fontSizeSmall }
-    Text { width: parent.width; visible: root.sourceAnchored; text: "Times follow the source clock. Keyframe positions are read-only here."; color: Theme.textSecondary; font.pixelSize: Theme.fontSizeSmall; wrapMode: Text.WordWrap }
+    Ui.Text { width: parent.width; visible: root.baked; text: "Baked from JavaScript"; role: Ui.Typography.SansLabel; tone: Ui.Text.Secondary }
+    Ui.Text { width: parent.width; visible: root.sourceAnchored; text: "Times follow the source clock. Keyframe positions are read-only here."; role: Ui.Typography.SansLabel; tone: Ui.Text.Secondary; wrapMode: Text.WordWrap }
     Repeater {
         model: root.baked ? [] : root.custom.curves
         Column {
@@ -67,10 +68,10 @@ Column {
             required property var modelData
             required property int index
             width: parent.width
-            spacing: Theme.spacingXs
+            spacing: Ui.Metrics.xs
             Row {
-                spacing: Theme.spacingMd
-                Text { text: "Curve " + (curveEditor.index+1); color: Theme.textPrimary; font.pixelSize: Theme.fontSizeSmall }
+                spacing: Ui.Metrics.md
+                Ui.Text { text: "Curve " + (curveEditor.index+1); role: Ui.Typography.SansLabel }
                 KeyframeButton { text: "×"; label: "Delete curve " + (curveEditor.index+1); enabled: !root.controller.locked; onClicked: root.setCurves(root.custom.curves.filter((c,i) => i !== curveEditor.index)) }
             }
             InspectorRow {
@@ -84,9 +85,9 @@ Column {
                     id: keyframeRow
                     required property var modelData
                     required property int index
-                    spacing: Theme.spacingMicro
+                    spacing: Ui.Metrics.micro
                     InspectorPillInput {
-                        minWidth: 52
+                        minWidth: Ui.Metrics.small * 2 + Ui.Metrics.xs
                         value: root.sourceAnchored ? String(keyframeRow.modelData.sourceMs || 0)+"ms" : keyframeRow.modelData.t.toFixed(2)
                         disabled: root.controller.locked || root.sourceAnchored
                         ariaLabel: "Keyframe time"
@@ -94,14 +95,14 @@ Column {
                         onCommit: raw => { const n = Number(raw); if (Number.isFinite(n)) root.patchKeyframe(curveEditor.index,keyframeRow.index,{t:Math.max(0,Math.min(1,n))}) }
                     }
                     InspectorPillInput {
-                        minWidth: 64
+                        minWidth: Ui.Metrics.standard * 2
                         value: String(keyframeRow.modelData.value)
                         disabled: root.controller.locked
                         ariaLabel: "Keyframe value"
                         onCommit: raw => { const n = Number(raw); if (Number.isFinite(n)) root.patchKeyframe(curveEditor.index,keyframeRow.index,{value:n}) }
                     }
                     InspectorPillInput {
-                        minWidth: 96
+                        minWidth: Ui.Metrics.standard * 3
                         value: keyframeRow.modelData.easing || ""
                         placeholder: "linear"
                         allowEmpty: true
@@ -112,8 +113,9 @@ Column {
                     KeyframeButton { text: "×"; label: "Delete keyframe"; enabled: !root.controller.locked && curveEditor.modelData.keyframes.length > 1; onClicked: root.patchCurve(curveEditor.index,{keyframes:curveEditor.modelData.keyframes.filter((k,i) => i !== keyframeRow.index)}) }
                 }
             }
-            Button {
-                text: "+ Add keyframe to curve " + (curveEditor.index+1)
+            Ui.EditorButton {
+                text: "Add keyframe to curve " + (curveEditor.index+1)
+                iconName: "add"
                 enabled: !root.controller.locked
                 onClicked: {
                     const keys = curveEditor.modelData.keyframes
@@ -123,18 +125,19 @@ Column {
             }
         }
     }
-    Text {
+    Ui.Text {
         objectName: "customCurveWarning"
         width: parent.width
         visible: !root.baked && root.validationError !== ""
         text: "These curves will not play: " + root.validationError + "."
-        color: Theme.textSecondary
-        font.pixelSize: Theme.fontSizeSmall
+        role: Ui.Typography.SansLabel
+        tone: Ui.Text.Secondary
         wrapMode: Text.WordWrap
     }
-    Text { width: parent.width; visible: !root.baked; text: "Time (0–1), value, easing. linear, easeIn, easeOut, easeInOut, hold, cubic-bezier(x1,y1,x2,y2), spring(stiffness,damping,mass)"; color: Theme.textSecondary; font.pixelSize: Theme.fontSizeSmall; wrapMode: Text.WordWrap }
-    Button {
-        text: "+ Add curve"
+    Ui.Text { width: parent.width; visible: !root.baked; text: "Time (0–1), value, easing. linear, easeIn, easeOut, easeInOut, hold, cubic-bezier(x1,y1,x2,y2), spring(stiffness,damping,mass)"; role: Ui.Typography.SansLabel; tone: Ui.Text.Secondary; wrapMode: Text.WordWrap }
+    Ui.EditorButton {
+        text: "Add curve"
+        iconName: "add"
         visible: !root.baked
         enabled: !root.controller.locked && root.properties.some(p => !root.custom.curves.some(c => c.property === p))
         onClicked: {

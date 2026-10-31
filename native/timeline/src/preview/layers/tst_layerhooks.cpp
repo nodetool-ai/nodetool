@@ -165,12 +165,14 @@ private slots:
         media.mediaPath = NT_FIXTURES_DIR "/media/colorbars-bt709-limited.mp4";
         model.registerMedia(media);
         QCOMPARE(model.timeline().clips.front().mediaPath, media.mediaPath);
-        QImage resolved;
-        QTRY_VERIFY_WITH_TIMEOUT(!(resolved = still.capture()).isNull(), 3000);
+        const auto resolved = still.capture(3000);
+        QVERIFY2(!resolved.isNull(), "registered media capture did not complete");
         QVERIFY2(resolved != placeholder, "resolved fixture must replace the synthetic picture");
         media.mediaPath.clear();
         model.registerMedia(media);
-        QCOMPARE(still.capture(), placeholder);
+        const auto restored = still.capture(3000);
+        QVERIFY2(!restored.isNull(), "synthetic source capture did not complete after removing registered media");
+        QCOMPARE(restored, placeholder);
     }
     void factoryRegistrationReplacesCachedSource() {
         TimelineModel model; model.setTimeline(pixels());

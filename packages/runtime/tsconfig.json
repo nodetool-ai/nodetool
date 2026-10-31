@@ -25,6 +25,12 @@
     },
     {
       "path": "../antigravity-cli"
+    },
+    {
+      "path": "../runtime-core"
+    },
+    {
+      "path": "../execution-core"
     }
   ]
 }

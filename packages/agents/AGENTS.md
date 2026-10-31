@@ -616,7 +616,7 @@ echo "Summarize this codebase" | nodetool-chat --provider anthropic
 
 ### Interactive Commands
 
-`CHAT_COMMANDS` in `packages/cli/src/app.tsx` is the list; anything else prints
+`CHAT_COMMANDS` in `packages/cli-chat/src/app.tsx` is the list; anything else prints
 `Unknown command`. Every session runs the unified agent loop. `/agent` inspects
 the sub-agent threads created by that loop. It does not switch agent modes.
 
@@ -635,7 +635,7 @@ the sub-agent threads created by that loop. It does not switch agent modes.
 ### `nodetool agent run`
 
 An objective is one CodeAct turn over the same belt chat uses, so there is no
-second loop to configure. `packages/cli/src/commands/agent.ts` assembles it:
+second loop to configure. `packages/cli-chat/src/commands/agent.ts` assembles it:
 `buildCliAgentBelt({ ..., planning: true })` puts `create_plan` and
 `execute_plan` on the belt, `createCliCodeActTurn` turns that belt into the
 `execute_code` action plus the direct tools, and `processChat` runs the turn.
@@ -789,7 +789,7 @@ shipped through that hole before anyone noticed nothing exercised them
 (#5095, #5100, #5103, #5105, #5107).
 
 So there is a second table one rung down:
-**`packages/cli/src/harness/capability-table.ts`**. One entry per exported
+**`packages/cli-harness/src/harness/capability-table.ts`**. One entry per exported
 capability, naming the file that implements it, the checked-in suites a
 selfcheck runs over it, the eval cases whose `expect.requiredTools` demand it,
 and — where nothing does yet — a written gap note. The invariant is the
@@ -953,9 +953,10 @@ half-specified override is an error, not a guess. Lines are voiced concurrently
 Synthesis delegates to `GenerateSpeechTool`, so the encoded/streaming-PCM
 provider split is handled in one place. Word timings come from a best-effort ASR
 pass (`whisper-1` by default, `transcribe: false` to skip it) and ride into the
-assembled clips as captions. Take duration is ffprobe's answer, falling back to
-the last word timing and then to the 3s placeholder — a take stays assemblable
-without an exact length.
+assembled clips as captions. Take duration is the container's own, probed in
+process through `@nodetool-ai/runtime/media`, falling back to the last word
+timing and then to the 3s placeholder. A take stays assemblable without an
+exact length.
 
 The voice rule (`effectiveVoice`), the staleness rule (`needsVoicing`) and the
 script → timeline mapping (`buildScriptTimeline`) live in
@@ -1079,8 +1080,7 @@ checks the real scheduling and response paths with a controlled decoder.
 Three properties worth keeping when changing any of this:
 
 - **No ffmpeg.** Mediabunny decodes, so an install with no managed runtime
-  tools still answers. `nodetool.video.GetVideoInfo` returns a record of zeros
-  when `ffprobe` is missing; that is the failure mode this exists to avoid.
+  tools still answers.
 - **Every answer is bounded, and says so.** Series are decimated to a point
   budget (`decimated`), decoding stops at a duration cap (`truncated`), and
   video frames are never all held at once — `forEachVideoFrame` closes each one
@@ -1147,7 +1147,7 @@ virtual secret key `GOOGLE_ACCESS_TOKEN`, which `getSecret` routes to
 `resolveGoogleAccessToken` (refreshing a stale token when `GOOGLE_CLIENT_ID` and
 `GOOGLE_CLIENT_SECRET` are set).
 
-They are not in `BUILTIN_TOOL_CLASSES`. A server without a login can never
+A server without a login can never
 produce a token, so the chat toolbelt adds them only when
 `isGoogleWorkspaceEnabled()` (`@nodetool-ai/config`) is true — Supabase auth
 mode, or `NODETOOL_GOOGLE_WORKSPACE=1`.
@@ -1214,7 +1214,7 @@ with `headlessGate(hostName)`.
 | `nodetool.code.Code` node | `code-node.ts` reads `gateFromContext(context, "Code node")` and uses it for both doors: `createCapabilityRun` for the `@nodetool-ai/sandbox-nodetool/*` imports, `capabilityRunForTools` for the belt the bridge invokes | same | same |
 | Kernel workflow run | `buildWorkspaceExecutionContext` (`packages/execution/src/service/workflow-workspace.ts`) sets `headlessGate("kernel workflow run")` on the context it builds, and `ExecutionSession.create` sets the same on a caller's own context when that caller set none (see below) | `auto` | nobody: the headless deny |
 | Headless job runner (trigger-driven runs) | `packages/websocket/src/headless-job-runner.ts` sets `headlessGate("headless job runner")` on the run context | `auto` | nobody: the headless deny |
-| `nodetool agent run` on a TTY | `createCliPermissionGate` (`packages/cli/src/permission-gate.ts`), host name `nodetool agent run`, set on the run's context | `--permission-mode`, defaulting to `default` | the terminal: `y / n / a` prompted on stderr, because stdout carries the result. `a` answers `allow_for_chat`, and the name lands in the run's shared `sessionAllow` |
+| `nodetool agent run` on a TTY | `createCliPermissionGate` (`packages/cli-chat/src/permission-gate.ts`), host name `nodetool agent run`, set on the run's context | `--permission-mode`, defaulting to `default` | the terminal: `y / n / a` prompted on stderr, because stdout carries the result. `a` answers `allow_for_chat`, and the name lands in the run's shared `sessionAllow` |
 | `nodetool agent run` with the objective piped in | the same builder, not interactive | `--permission-mode`, defaulting to `auto` | nobody: `headlessGate`'s deny, its reason printed once per run |
 | `nodetool-chat` reading piped stdin (`runStdinMode`) | the same builder, host name `nodetool-chat`, set on each line's context | `--permission-mode`, defaulting to `auto` | nobody: the headless deny |
 | `nodetool-chat --url` | no gate is built here | — | the server's chat turn, which gates the belt it runs |
@@ -1233,7 +1233,7 @@ that stream stays one JSON object per line.
 is the terminal, not the design: the Ink session reads stdin itself
 (`useInput`), so the `readline` prompt every other CLI path uses cannot share
 it, and an approval there needs an Ink component instead. Rather than accept a
-mode it would ignore, `packages/cli/src/index.ts` prints that
+mode it would ignore, `packages/cli-chat/src/chat-entry.ts` prints that
 `--permission-mode` does not apply to the interactive session.
 
 **Both gated CLI hosts retain a `Tool[]` compatibility belt.** The provider
@@ -1575,7 +1575,7 @@ and the research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   them through the same `ui_*` contract.
   The CLI's local (no-server) turn runs the same session — `execute_code`,
   the core tools and `view_image` are what `processChat` sees, wired in
-  `packages/cli/src/chat-codeact.ts`.
+  `packages/cli-chat/src/chat-codeact.ts`.
 - Both executors also load the `nodetool` object model
   (`src/codeact/nodetool-api.ts`): the platform as objects instead of raw
   imports — `nodetool.workflows` (list/get/run/start/debug/validate/
@@ -1587,10 +1587,12 @@ and the research it follows (CodeAct, ICML 2024): docs/codeact-design.md.
   plus the judge loop `critique/compare/scoreAdherence` and
   `understandVideo(video, prompt, model)`, which hands a whole clip to a model
   that reads video and answers as text — each taking a pick/find result or
-  `"provider/model_id"`; plus the host binaries `ffprobe(path)`, `ffmpeg(args)`
-  and `downloadVideo(url, outputFile)`, whose argv is confined to the workspace
-  and to local-file inputs by `src/host-binary-guard.ts` and bounded on wall
-  clock, captured output, artifact size and concurrency by
+  `"provider/model_id"`; plus `probe(path)` and `edit(operation, opts)`, the
+  typed in-process media operations in `src/media-edit.ts` whose every path
+  is confined to the workspace by `confineMediaPaths`
+  (`src/host-binary-guard.ts`), and the host binary
+  `downloadVideo(url, outputFile)`, whose argv is confined the same way and
+  bounded on wall clock, captured output, artifact size and concurrency by
   `src/host-binaries.ts`), `nodetool.nodes`
   (`search/info/list` — the graph builder's discovery half),
   `nodetool.documents` (convert, PDF text/tables, markdown↔pdf),
@@ -1943,7 +1945,7 @@ as a success when all three hold:
    caller-supplied `GraphRunner`. The runner is injected so this package needs
    no execution dependency and the harness tests can drive scripted runs with
    no kernel; the CLI wires the real one over `ExecutionSession`
-   (`packages/cli/src/evals/graph-runner.ts`).
+   (`packages/cli-harness/src/evals/graph-runner.ts`).
 3. **judge** — deterministic output checks (an output by name exists, is
    non-empty, matches/doesn't match a literal) plus an LLM judge
    (`src/evals/goal-judge.ts`) that reads the case's goal statement and the
@@ -2116,7 +2118,7 @@ loop completed *and* no critical check failed, and `successRate` — what
 provider error" is reported alongside as `completionRate`: it is a liveness
 signal, not a result, and a model that called zero tools scores 100% on it.
 
-Eleven suites are registered:
+Thirteen suites are registered:
 
 | Suite | Tools | Bridge (`src/evals/`) |
 |---|---|---|
@@ -2128,6 +2130,8 @@ Eleven suites are registered:
 | `timeline-tools` | `ui_timeline_*` | `surfaces/timeline.ts` |
 | `storyboard-tools` | `ui_storyboard_*` | `surfaces/storyboard.ts` |
 | `model3d-tools` | `ui_3d_*` | `surfaces/model3d.ts` |
+| `svg-tools` | `ui_svg_*` SVG markup editor | `surfaces/svg.ts` |
+| `audio-tools` | `ui_audio_*` audio sample editor | `surfaces/audio.ts` |
 | `app-tools` | `ui_app_*` App Builder | `surfaces/app.ts` |
 | `memory-tools` | `memory_*` / `asset_*` | `surfaces/memory.ts` |
 | `creative-pipeline` | the three creative surfaces, composed, plus `ui_brief_*` / `ui_review_*` | `surfaces/creative-pipeline.ts` |
@@ -2271,6 +2275,16 @@ does not have before accepting it isn't there. Run it with
 Harness tests, including a golden transcript per case so no case can be
 unsatisfiable: `tests/escalation-tool-loop.test.ts`.
 
+The `svg-tools` and `audio-tools` bridges build every tool from the shared
+contracts in `@nodetool-ai/protocol/api-schemas/asset-editor-tool-contracts`,
+the same record the browser tools read, and apply its exact-once replacement,
+range and effect-parameter rules. The SVG bridge checks markup with
+fast-xml-parser where the browser uses `DOMParser`. The audio bridge edits a
+mono buffer at `AUDIO_BRIDGE_SAMPLE_RATE` and validates effects without
+rendering them, because rendering needs an `OfflineAudioContext`. It records
+each effect with its filled-in parameters, and `speed` changes the length as
+the real render does.
+
 `memory-tools` is the odd one out: instead of reimplementing a browser
 surface, its bridge executes the **real backend tools** (`memory_save`,
 `memory_list`, `memory_search`, `asset_search`) plus a stub `generate_image`
@@ -2326,7 +2340,7 @@ npm run dev:nodetool -- eval model3d-tools -p openai -m gpt-5.4-mini --min-succe
 ```
 
 Harness tests (scripted provider, no network): `tests/tool-loop-eval.test.ts`
-plus one per surface (`tests/{script,js-script,sketch,timeline,storyboard,model3d,app,memory,creative-pipeline}-tool-loop.test.ts`).
+plus one per surface (`tests/{script,js-script,sketch,timeline,storyboard,model3d,svg,audio,app,memory,creative-pipeline}-tool-loop.test.ts`).
 For a live check against a real model, run the eval command above — a suite
 whose verdict depends on what a model chose belongs behind an explicit
 invocation, not in the unit suite, where a weak local model fails the run for

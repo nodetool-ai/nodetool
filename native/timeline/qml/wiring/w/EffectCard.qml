@@ -1,8 +1,9 @@
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic as Basic
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
-Rectangle {
+Ui.Surface {
     id: card
     required property var effect
     required property int effectIndex
@@ -13,27 +14,24 @@ Rectangle {
     readonly property string effectLabel: panel.strings.labels[effect.type === "fable" ? effect.kind : effect.type]
     objectName: "effect-" + effect.id
     width: effect.type === "fable" ? panel.reference.fableWidths[effect.kind] : panel.reference.widths[effect.type]
-    radius: Theme.radiusSm
-    border.width: 1
-    border.color: Theme.divider
-    color: Theme.backgroundPaper
     opacity: panel.draggingIndex === effectIndex ? 0.4 : 1
     function preview(patch) { draft = Object.assign({}, draft, patch) }
     function commit(patch) {
         const finalPatch = Object.assign({}, draft, patch)
         draft = ({})
+        if (Object.keys(finalPatch).length === 0) return
         panel.timeline.applyEdit("updateTrackEffect", {trackId: panel.track.id, effectId: effect.id, patch: finalPatch})
     }
     Rectangle {
         visible: card.panel.dropIndex === card.effectIndex || (card.effectIndex === card.panel.effects.length - 1 && card.panel.dropIndex === card.effectIndex + 1)
         x: card.panel.dropIndex === card.effectIndex ? -5 : card.width + 2
-        width: 3; height: parent.height; radius: Theme.radiusXs; color: Theme.primary
+        width: 3; height: parent.height; radius: Ui.Metrics.micro; color: Ui.Theme.accentPrimary
     }
     Item {
         id: header
-        x: Theme.spacingMd
-        y: Theme.spacingMd
-        width: parent.width - 2 * Theme.spacingMd
+        x: Ui.Metrics.md
+        y: Ui.Metrics.md
+        width: parent.width - 2 * Ui.Metrics.md
         height: 24
         Item {
             id: grip
@@ -52,7 +50,7 @@ Rectangle {
                     card.panel.timeline.applyEdit("moveTrackEffect", {trackId: card.panel.track.id, oldIndex: card.effectIndex, newIndex: card.effectIndex + delta})
                 }
             }
-            Icon { anchors.centerIn: parent; path: Icons.dragIndicator; size: 16; color: mouse.containsMouse ? Theme.textSecondary : Theme.textDisabled }
+            Ui.Icon { anchors.centerIn: parent; name: "dragIndicator"; size: Ui.Metrics.iconSm; tone: mouse.containsMouse ? Ui.Text.Secondary : Ui.Text.Disabled }
             MouseArea {
                 id: mouse
                 anchors.fill: parent
@@ -70,60 +68,47 @@ Rectangle {
                 }
                 onCanceled: { card.panel.draggingIndex = -1; card.panel.dropIndex = -1 }
             }
-            ToolTip.visible: mouse.containsMouse
-            ToolTip.delay: 500
-            ToolTip.text: card.panel.strings.reorderHelp
+            Ui.Tooltip { trigger: grip; visible: mouse.containsMouse; text: card.panel.strings.reorderHelp }
         }
         FxPower {
             id: power
             objectName: "fx-power-" + card.effect.id
-            x: grip.width + Theme.spacingXs
+            x: grip.width + Ui.Metrics.xs
             anchors.verticalCenter: parent.verticalCenter
             on: card.effect.enabled
             label: card.effectLabel
             onToggle: card.commit({enabled: !card.effect.enabled})
         }
-        Text {
-            x: power.x + power.width + Theme.spacingXs
+        Ui.Text {
+            x: power.x + power.width + Ui.Metrics.xs
+            width: Math.max(0, remove.x - x - Ui.Metrics.xs)
+            elide: Text.ElideRight
             anchors.verticalCenter: parent.verticalCenter
             text: card.effectLabel
-            color: Theme.textPrimary
-            font.family: Theme.sansFamily
-            font.pixelSize: Theme.fontSizeSmall
+            role: Ui.Typography.SansLabel; tone: Ui.Text.Primary
         }
-        Item {
+        Ui.ToolbarIconButton {
             id: remove
             objectName: "fx-remove-" + card.effect.id
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
-            width: 18; height: 18
-            activeFocusOnTab: true
-            Accessible.role: Accessible.Button
-            Accessible.name: card.panel.strings.remove.replace("{{label}}", card.effectLabel)
-            function activate() { card.panel.timeline.applyEdit("removeTrackEffect", {trackId: card.panel.track.id, effectId: card.effect.id}) }
-            Accessible.onPressAction: activate()
-            Keys.onSpacePressed: activate()
-            Keys.onReturnPressed: activate()
-            Rectangle { anchors.fill: parent; radius: Theme.radiusXs; color: removeHover.hovered ? Theme.actionHover : "transparent" }
-            Icon { anchors.centerIn: parent; path: Icons.deleteOutline; size: 14; color: Theme.textSecondary }
-            TapHandler { onTapped: remove.activate() }
-            HoverHandler { id: removeHover; cursorShape: Qt.PointingHandCursor }
-            ToolTip.visible: removeHover.hovered
-            ToolTip.delay: 500
-            ToolTip.text: card.panel.strings.removeHelp
+            iconName: "deleteOutline"
+            accessibleName: card.panel.strings.remove.replace("{{label}}", card.effectLabel)
+            description: card.panel.strings.removeHelp
+            onClicked: card.panel.timeline.applyEdit("removeTrackEffect", {trackId: card.panel.track.id, effectId: card.effect.id})
         }
     }
     Flickable {
-        x: Theme.spacingMd
-        y: header.y + header.height + Theme.spacingXs
-        width: parent.width - 2 * Theme.spacingMd
-        height: parent.height - y - Theme.spacingMd
+        x: Ui.Metrics.md
+        y: header.y + header.height + Ui.Metrics.xs
+        width: parent.width - 2 * Ui.Metrics.md
+        height: parent.height - y - Ui.Metrics.md
         contentWidth: width
         contentHeight: params.implicitHeight
         clip: true
         interactive: contentHeight > height && !TrackEffectsState.parameterGesture
         boundsBehavior: Flickable.StopAtBounds
-        ScrollBar.vertical: ScrollBar { }
+        Basic.ScrollBar.vertical: Ui.ScrollBar { }
         TrackEffectParams {
             id: params
             width: parent.width
@@ -131,6 +116,7 @@ Rectangle {
             disabled: !card.effect.enabled
             onPreview: patch => card.preview(patch)
             onCommit: patch => card.commit(patch)
+            onEditCanceled: card.draft = ({})
         }
     }
 }

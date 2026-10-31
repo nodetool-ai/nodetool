@@ -8,9 +8,9 @@ Rectangle {
     y: bandRect ? bandRect.top : 0
     width: bandRect ? bandRect.width : 0
     height: bandRect ? bandRect.height : 0
-    color: Qt.rgba(Theme.secondary.r, Theme.secondary.g, Theme.secondary.b, 0x22 / 255)
+    color: Qt.rgba(TimelineVisuals.overlay.r, TimelineVisuals.overlay.g, TimelineVisuals.overlay.b, 0x22 / 255)
     border.width: 1
-    border.color: Theme.secondary
+    border.color: TimelineVisuals.overlay
     z: 20 // Z_INDEX.sticky
     Accessible.ignored: true
 }

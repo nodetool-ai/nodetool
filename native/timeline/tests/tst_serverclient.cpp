@@ -170,6 +170,45 @@ class TestServerClient : public QObject {
     Q_OBJECT
 
 private slots:
+    void createFolderJson_data() {
+        QTest::addColumn<bool>("proveInstance");
+        QTest::newRow("authenticated") << false;
+        QTest::newRow("pinned-instance") << true;
+    }
+    void createFolderJson() {
+        QFETCH(bool, proveInstance);
+        TestHttpServer http;
+        QVERIFY(http.base().port() != 7777);
+        const QByteArray secret("library-instance");
+        http.setInstanceSecret(secret);
+        http.setFile("/ready", ServedFile("{}"));
+        const QJsonObject fields{{"name", "References"}, {"content_type", "folder"}, {"parent_id", "legacy-home"}};
+        auto asset = fields;
+        asset.insert("id", "0123456789abcdef0123456789abcdef");
+        http.setPost([&](const QByteArray& path, const QByteArray& body) {
+            if (path != "/api/assets" || QJsonDocument::fromJson(body).object() != fields) { return QByteArray("{}"); }
+            return QJsonDocument(asset).toJson(QJsonDocument::Compact);
+        });
+        ServerClient client(http.base(), "library-token");
+        if (proveInstance) { client.setExpectedInstance(QString::fromUtf8(secret)); }
+        const auto result = client.createAsset(fields);
+        QVERIFY2(result.ok(), qPrintable(result.describe()));
+        QCOMPARE(result.data.toObject(), asset);
+        QCOMPARE(http.countRequests("POST", "/api/assets"), 1);
+        const auto request = http.requests().back();
+        QCOMPARE(request.headers.value("content-type"), QByteArray("application/json"));
+        QCOMPARE(request.headers.value("authorization"), QByteArray("Bearer library-token"));
+        QCOMPARE(QJsonDocument::fromJson(request.body).object(), fields);
+    }
+    void createFolderRefusesUnprovedServer() {
+        TestHttpServer http;
+        ServerClient client(http.base());
+        client.setExpectedInstance("expected-library-instance");
+        QCOMPARE(client.createAsset({{"name", "Private folder"}, {"content_type", "folder"}, {"parent_id", ""}}).error.code,
+                 QString("WRONG_SERVER"));
+        QCOMPARE(http.countRequests("POST", "/api/assets"), 0);
+    }
+
     void uploadMultipartAndReadBack_data() {
         QTest::addColumn<bool>("expected");
         QTest::newRow("direct") << false;

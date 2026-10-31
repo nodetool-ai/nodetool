@@ -9207,6 +9207,10 @@
         "soundNotifications": {
           "label": "Sound notifications",
           "description": "Play a system beep sound when workflows complete, exports finish, or other important events occur."
+        },
+        "systemNotifications": {
+          "label": "Desktop notifications",
+          "description": "Show a system notification when a run or chat reply finishes while NodeTool is in the background."
         }
       },
       "updates": {
@@ -10621,6 +10625,9 @@
       "off": "Off",
       "stop": "Stop",
       "miniMap": "Mini map",
+      "showInspector": "Show inspector",
+      "hideInspector": "Hide inspector",
+      "toggleInspector": "Toggle inspector",
       "visible": "Visible",
       "hidden": "Hidden",
       "downloadJson": "Download JSON",
@@ -10982,7 +10989,8 @@
         "lab": "Lab",
         "chorus": "Chorus",
         "echo": "Tape echo",
-        "reverb": "Reverb"
+        "reverb": "Reverb",
+        "limiter": "Limiter"
       },
       "parameters": {
         "gainDb": "Gain",
@@ -15206,6 +15214,11 @@
       "frames": "Frames",
       "deleteFrame": "Delete frame",
       "addFrame": "Add frame"
+    },
+    "limiter": {
+      "ariaLabel": "Limiter",
+      "caption": "Ceiling {{ceiling}} dB",
+      "displayAria": "Limiter: input peak {{input}} dB, output peak {{output}} dB, gain reduction {{reduction}} dB"
     }
   },
   "i18n-next46": {
@@ -15780,7 +15793,11 @@
       "askAgent": "Ask agent"
     },
     "audio": {
-      "asset": "audio asset"
+      "asset": "audio asset",
+      "assistant": "Assistant",
+      "resizeAssistant": "Resize audio assistant",
+      "assistantWelcomeTitle": "Audio assistant",
+      "assistantWelcomeBody": "Ask me to edit this audio, for example \"trim the silence at the start\", \"fade out the last two seconds\" or \"add some reverb\". Edits stay unsaved until you save."
     },
     "chat": {
       "conversation": "conversation",
@@ -15880,7 +15897,11 @@
       "loadError": "Could not load this SVG.",
       "notFound": "SVG not found",
       "mayHaveBeenDeleted": "It may have been deleted.",
-      "contentLoadError": "Could not load the SVG content."
+      "contentLoadError": "Could not load the SVG content.",
+      "assistant": "Assistant",
+      "resizeAssistant": "Resize SVG assistant",
+      "assistantWelcomeTitle": "SVG assistant",
+      "assistantWelcomeBody": "Ask me to change this drawing, for example \"make the circle red\", \"add a drop shadow\" or \"simplify the paths\". Edits stay unsaved until you save."
     },
     "text": {
       "loadError": "Could not load this text file.",
@@ -16720,6 +16741,7 @@
       "copyName": "{{name}} (copy)",
       "createScriptAction": "create the script",
       "duplicateScriptAction": "duplicate the script",
+      "deleteScriptAction": "delete the script",
       "singular": "script",
       "plural": "scripts",
       "emptyDescription": "Create a new script with the + button above.",
@@ -17502,6 +17524,7 @@
         "bypass": "Bypass {{title}}",
         "enable": "Enable {{title}}",
         "open": "Open {{title}}",
+        "remove": "Remove {{title}}",
         "add": "Add an effect to {{channel}}"
       }
     }
@@ -18891,5 +18914,35 @@
     "missingTarget": "Removed device",
     "laneLabel": "Automation lane: {{name}}",
     "deletePoint": "Delete point"
+  },
+  "generationFeed": {
+    "recent": "Recent",
+    "imageEmptyTitle": "Create images",
+    "imageEmptyDescription": "Describe a scene below and pick a model and aspect ratio. Attach an image to edit it.",
+    "videoEmptyTitle": "Create videos",
+    "videoEmptyDescription": "Describe the shot, camera motion and lighting below. Attach a frame to animate it.",
+    "audioEmptyTitle": "Generate speech and music",
+    "audioEmptyDescription": "Type a line to hear it read aloud. Switch to Generate music to compose a track.",
+    "editImage": "Edit this image",
+    "openInSketch": "Open in Sketch",
+    "addToCanvas": "Add to canvas",
+    "rerun": "Rerun",
+    "copyPrompt": "Copy prompt",
+    "removeFromThread": "Remove from thread",
+    "history": "History ({{total}})",
+    "tileSize": "Tile size",
+    "viewMode": "View mode",
+    "list": "List",
+    "grid": "Grid",
+    "video": "Video",
+    "speech": "Speech",
+    "music": "Music",
+    "noVideoOutput": "No video was returned.",
+    "noAudioOutput": "No audio was returned.",
+    "untitledTrack": "Audio track",
+    "extendClip": "Extend this clip",
+    "referenceAlt": "Reference {{index}}",
+    "sketchTitle": "Sketch",
+    "audio": "Audio"
   }
 }

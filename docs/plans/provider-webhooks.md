@@ -351,7 +351,7 @@ paid POST. Prove a new failure check fails before relying on it.
 
 Extend existing generation tracker, seam, fal provider, agent generation, and
 browser recovery suites. Add a deterministic recovery selfcheck to the
-[registry](../../packages/cli/src/harness/registry.ts) that verifies restart and
+[registry](../../packages/cli-harness/src/harness/registry.ts) that verifies restart and
 duplicate-delivery behavior without a paid provider call. Keep the live canary
 separate from routine CI. Exercise a large recovery backlog to verify bounded
 queries, fair scheduling, and no duplicate concurrent downloads.

@@ -5,11 +5,9 @@
  * response's `proxy_status`/`proxy_url`, invalidation when the source file
  * changes, the threshold, `assets.ensureProxy`, relink, and delete.
  */
-import { execFile } from "node:child_process";
 import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
-import { promisify } from "node:util";
 import {
   afterAll,
   afterEach,
@@ -22,6 +20,11 @@ import {
 } from "vitest";
 import { Asset, initTestDb, ModelObserver } from "@nodetool-ai/models";
 import {
+  generateMedia,
+  inspectMedia,
+  videoPacketInfo
+} from "@nodetool-ai/runtime/media/testing";
+import {
   assetObjectKey,
   FileStorageAdapter,
   type StorageAdapter
@@ -31,12 +34,12 @@ const mocks = vi.hoisted(() => ({
   adapter: null as StorageAdapter | null
 }));
 
-vi.mock("../src/lib/storage.js", async (orig) => ({
+vi.mock("@nodetool-ai/asset-services/storage", async (orig) => ({
   ...(await orig<typeof import("../src/lib/storage.js")>()),
   getAssetAdapter: () => mocks.adapter
 }));
 
-vi.mock("../src/lib/thumbnail.js", async (orig) => {
+vi.mock("@nodetool-ai/asset-services/thumbnail", async (orig) => {
   const actual = await orig<typeof import("../src/lib/thumbnail.js")>();
   return { ...actual, generateThumbnailForStoredAsset: vi.fn(async () => {}) };
 });
@@ -57,7 +60,6 @@ import {
   type VideoProxyResult
 } from "../src/lib/video-proxy.js";
 
-const execFileAsync = promisify(execFile);
 const createCaller = createCallerFactory(appRouter);
 const USER = "user-1";
 
@@ -71,45 +73,19 @@ function makeCtx(userId = USER): Context {
   } as Context;
 }
 
-interface Frame {
-  pts: number;
-  key: boolean;
-}
-
 /** Every video frame's presentation time (seconds) and keyframe flag. */
-async function frames(file: string): Promise<Frame[]> {
-  const { stdout } = await execFileAsync("ffprobe", [
-    "-v", "error",
-    "-select_streams", "v:0",
-    "-show_entries", "frame=pts_time,key_frame",
-    "-of", "json",
-    file
-  ]);
-  const parsed = JSON.parse(stdout) as {
-    frames: Array<{ pts_time: string; key_frame: number }>;
-  };
-  return parsed.frames.map((f) => ({
-    pts: Number(f.pts_time),
-    key: f.key_frame === 1
-  }));
-}
+const frames = videoPacketInfo;
 
 async function formatInfo(
   file: string
 ): Promise<{ duration: number; streams: string[] }> {
-  const { stdout } = await execFileAsync("ffprobe", [
-    "-v", "error",
-    "-show_entries", "format=duration:stream=codec_type",
-    "-of", "json",
-    file
-  ]);
-  const parsed = JSON.parse(stdout) as {
-    format: { duration: string };
-    streams: Array<{ codec_type: string }>;
-  };
+  const report = await inspectMedia(file);
   return {
-    duration: Number(parsed.format.duration),
-    streams: parsed.streams.map((s) => s.codec_type)
+    duration: report.durationSec ?? 0,
+    streams: [
+      ...(report.video ? ["video"] : []),
+      ...(report.audio ? ["audio"] : [])
+    ]
   };
 }
 
@@ -120,16 +96,15 @@ async function makeVideo(
   seconds: number,
   extraVideoFilter?: string
 ): Promise<void> {
-  await execFileAsync("ffmpeg", [
-    "-y", "-v", "error",
-    "-f", "lavfi", "-i", `testsrc=size=${size}:rate=25:duration=${seconds}`,
-    "-f", "lavfi", "-i", `sine=frequency=440:duration=${seconds}`,
-    ...(extraVideoFilter ? ["-vf", extraVideoFilter, "-fps_mode", "vfr"] : []),
-    "-c:v", "libx264", "-preset", "ultrafast", "-g", "50", "-bf", "2",
-    "-pix_fmt", "yuv420p",
-    "-c:a", "aac", "-shortest",
-    file
-  ]);
+  await generateMedia({
+    outPath: file,
+    video: {
+      source: `testsrc=size=${size}:rate=25:duration=${seconds}`,
+      filter: extraVideoFilter,
+      options: { preset: "ultrafast", g: "50", bf: "2" }
+    },
+    audio: { source: `sine=frequency=440:duration=${seconds}` }
+  });
 }
 
 let tmp: string;

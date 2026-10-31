@@ -115,8 +115,17 @@ export interface LoadConfigOptions {
    */
   readonly configPath?: string;
   /** Already-parsed file config, for callers that hold it in memory. */
-  readonly fileConfig?: unknown;
+  readonly fileConfig?: JsonValue;
 }
+
+/** Decoded JSON, which `fileSchema` validates before the bridge reads it. */
+type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
 
 function fail(prefix: string, error: z.ZodError): never {
   const issues = error.issues.map((issue) => {
@@ -127,7 +136,7 @@ function fail(prefix: string, error: z.ZodError): never {
   throw new TelegramConfigError(`${prefix}\n  ${issues.join("\n  ")}`, fields);
 }
 
-function readFileConfig(options: LoadConfigOptions): unknown {
+function readFileConfig(options: LoadConfigOptions): JsonValue {
   if (options.fileConfig !== undefined) {
     return options.fileConfig;
   }
@@ -146,7 +155,8 @@ function readFileConfig(options: LoadConfigOptions): unknown {
     );
   }
   try {
-    return JSON.parse(raw) as unknown;
+    // SAFETY: JSON.parse yields only JSON values; `fileSchema` validates the shape.
+    return JSON.parse(raw) as JsonValue;
   } catch (err) {
     throw new TelegramConfigError(
       `${path} is not valid JSON: ${(err as Error).message}`,

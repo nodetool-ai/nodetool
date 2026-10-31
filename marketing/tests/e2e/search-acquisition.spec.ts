@@ -5,7 +5,7 @@ import type { PlausibleProps } from "../../src/lib/analytics";
 const journeys = [
   { path: "/alternatives/comfyui", source: "comfyui", starter: "generate-then-upscale-a-poster", heading: "Try a generation graph in NodeTool" },
   { path: "/alternatives/figma-weave", source: "figma-weave", starter: "write-the-prompt-then-make-the-image", heading: "Try an editable image project on your own keys" },
-  { path: "/alternatives/higgsfield", source: "higgsfield", starter: "movie-trailer-generator", heading: "Try a trailer workflow you can inspect" },
+  { path: "/alternatives/higgsfield", source: "higgsfield", starter: "camera-move", heading: "Try the Camera Move workflow in Studio" },
   { path: "/alternatives/openart", source: "openart", starter: "write-the-prompt-then-make-the-image", heading: "Try an image workflow with inspectable outputs" },
   { path: "/alternatives/ltx-studio", source: "ltx-studio", starter: "movie-trailer-generator", heading: "Build a trailer from a visible workflow" },
   { path: "/alternatives/google-flow", source: "google-flow", starter: "movie-trailer-generator", heading: "Plan a trailer with providers you choose" },

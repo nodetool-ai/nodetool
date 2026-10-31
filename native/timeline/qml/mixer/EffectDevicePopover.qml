@@ -1,18 +1,13 @@
 import QtQuick
+import NodeTool.UiPrimitives as Ui
 import QtQuick.Controls as Controls
 import NodeTool.Timeline
 import "../Tracks/automation/automationTargets.js" as Targets
-Controls.Popup {
+Ui.Popover {
     id: root
-    parent: Controls.Overlay.overlay
-    palette.window: Theme.backgroundPaper; palette.windowText: Theme.textPrimary
-    palette.base: Theme.backgroundDefault; palette.text: Theme.textPrimary
-    palette.button: Theme.backgroundPaper; palette.buttonText: Theme.textPrimary
-    palette.highlight: Theme.primary; palette.highlightedText: Theme.textPrimary
     property TimelineModel timeline: null
     property string trackId: ""
     property string effectId: ""
-    property var anchor: null
     property var previews: ({})
     property var openGeneration: 0
     signal finishGestures()
@@ -25,25 +20,13 @@ Controls.Popup {
     })[effect.type] || [] : []
     width: Math.min(parent?parent.width:420,effect ? ({gain:200,eq3:420,filter:240,compressor:380})[effect.type] || 320 : 320)
     height: Math.min(implicitHeight,parent?parent.height*.9:implicitHeight)
-    y: {
-        if(!anchor || !parent) return 0
-        var p=anchor.mapToItem(parent,0,0)
-        var preferredY=p.y>parent.height/2?p.y-height:p.y+anchor.height
-        return Math.max(0,Math.min(parent.height-height,preferredY))
-    }
-    font.family:Theme.sansFamily; font.pixelSize:Theme.fontSizeSmall
-    padding:Theme.spacingMd
-    closePolicy:Controls.Popup.CloseOnEscape | Controls.Popup.CloseOnPressOutside
     onAboutToHide:root.finishGestures()
-    background:Rectangle { color:Theme.backgroundPaper; border.color:Theme.divider; radius:Theme.radiusMd }
     AutomationController { id:controller; timeline:root.timeline; trackId:root.trackId; master:root.trackId==="" }
     Connections { target:root.timeline; function onDocumentReplaced() { root.close() } }
     function show(trackId,effectId,anchor) {
         root.finishGestures()
-        root.trackId=trackId; root.effectId=effectId; root.anchor=anchor; root.previews={}; root.openGeneration=controller.generation()
-        var p=anchor.mapToItem(root.parent,0,0)
-        root.x=Math.max(0,Math.min(parent.width-width,trackId===""?p.x+anchor.width-width:p.x))
-        root.open()
+        root.trackId=trackId; root.effectId=effectId; root.previews={}; root.openGeneration=controller.generation()
+        root.openAt(anchor)
     }
     function formatHz(hz) { return hz>=1000?(hz/1000).toFixed(hz>=10000?1:2)+" kHz":Math.round(hz)+" Hz" }
     function fieldValue(def,value) { return Number((def.min+Math.round((Math.max(def.min,Math.min(def.max,value))-def.min)/def.step)*def.step).toFixed(4)) }
@@ -53,68 +36,69 @@ Controls.Popup {
         previews={}
         controller.edit(trackId===""?"updateMasterEffect":"updateTrackEffect",{effectId:effectId,patch:p})
     }
-    contentItem:Flickable {
+    Flickable {
+        anchors.fill: parent
         clip:true; contentWidth:width; contentHeight:params.implicitHeight; implicitHeight:params.implicitHeight
         boundsBehavior:Flickable.StopAtBounds
-        Controls.ScrollBar.vertical:Controls.ScrollBar {}
+        Controls.ScrollBar.vertical:Ui.ScrollBar {}
         Column {
-            id:params; width:parent.width; spacing:Theme.spacingMd
+            id:params; width:parent.width; spacing:Ui.Metrics.md
             Row {
                 width:parent.width
-                Text { width:parent.width-24; text:root.effect?(Targets.EFFECT_LABELS[root.effect.type] || root.effect.type)+" device":"";color:Theme.textPrimary;font.family:Theme.sansFamily;font.pixelSize:Theme.fontSizeSmall }
-                Controls.ToolButton { objectName:"close-effect-popover";width:24;height:24;text:"×";Accessible.name:"Close effect";onClicked:root.close() }
+                Ui.Text { role: Ui.Typography.SansLabel; width:parent.width-24; text:root.effect?(Targets.EFFECT_LABELS[root.effect.type] || root.effect.type)+" device":"";}
+                Ui.ToolbarIconButton { objectName:"close-effect-popover"; iconName:"close"; accessibleName:qsTr("Close effect"); onClicked:root.close() }
             }
             Loader {
                 width:parent.width; active:root.effect!==null && root.effect.type==="eq3"
                 sourceComponent:Column {
-                    spacing:Theme.spacingMd
+                    spacing:Ui.Metrics.md
                     MixerEq3Curve {
                         id:eqCurve
-                        width:parent.width;effect:root.displayed;disabled:root.effect===null || root.effect.enabled===false;onPreview:p=>root.preview(p);onCommit:p=>root.patch(p)
+                        width:parent.width;effect:root.displayed;disabled:root.effect===null || root.effect.enabled===false;onPreview:p=>root.preview(p);onCommit:p=>root.patch(p);onCanceled:root.previews={}
                         Connections { target:root; function onFinishGestures() { eqCurve.finish() } }
                     }
                     Row {
-                        width:parent.width;spacing:Theme.spacingMicro
+                        width:parent.width;spacing:Ui.Metrics.micro
                         Repeater {
-                            model:[{band:"low",label:"Low shelf",color:Theme.info},{band:"mid",label:"Mid peak",color:Theme.success},{band:"high",label:"High shelf",color:Theme.warning}]
-                            delegate:Rectangle {
+                            model:[{band:"low",label:"Low shelf",color:Ui.Theme.statusInfo},{band:"mid",label:"Mid peak",color:Ui.Theme.statusSuccess},{band:"high",label:"High shelf",color:Ui.Theme.statusWarning}]
+                            delegate:Ui.Surface {
                                 required property var modelData
-                                width:(parent.width-4)/3;height:68;radius:Theme.radiusXs;color:Theme.backgroundPaper;border.color:Theme.divider
+                                width:(parent.width-4)/3;height:68
                                 Rectangle { width:parent.width;height:2;color:modelData.color }
                                 Column {
-                                    x:Theme.spacingXs;y:Theme.spacingXs;width:parent.width-8
-                                    Text { text:modelData.label;color:Theme.textSecondary;font.family:Theme.sansFamily;font.pixelSize:Theme.fontSizeSmaller }
-                                    Text { text:((root.displayed[modelData.band+"GainDb"] || 0)>=0?"+":"")+(root.displayed[modelData.band+"GainDb"] || 0).toFixed(1)+" dB";color:Theme.textPrimary;font.family:Theme.monoFamily;font.pixelSize:Theme.fontSizeSmaller }
-                                    Text { text:root.formatHz(root.displayed[modelData.band+"Freq"] || 0);color:Theme.textPrimary;font.family:Theme.monoFamily;font.pixelSize:Theme.fontSizeSmaller }
-                                    Text { visible:modelData.band==="mid";text:"Q "+(root.displayed.midQ || 1).toFixed(2);color:Theme.textPrimary;font.family:Theme.monoFamily;font.pixelSize:Theme.fontSizeSmaller }
+                                    x:Ui.Metrics.xs;y:Ui.Metrics.xs;width:parent.width-8
+                                    Ui.Text { role: Ui.Typography.SansCaption; text:modelData.label;tone: Ui.Text.Secondary;}
+                                    Ui.Text { role: Ui.Typography.MonoCaption; text:((root.displayed[modelData.band+"GainDb"] || 0)>=0?"+":"")+(root.displayed[modelData.band+"GainDb"] || 0).toFixed(1)+" dB";}
+                                    Ui.Text { role: Ui.Typography.MonoCaption; text:root.formatHz(root.displayed[modelData.band+"Freq"] || 0);}
+                                    Ui.Text { role: Ui.Typography.MonoCaption; visible:modelData.band==="mid";text:"Q "+(root.displayed.midQ || 1).toFixed(2);}
                                 }
                             }
                         }
                     }
-                    Text { width:parent.width;text:"Drag bands · scroll mid for Q";wrapMode:Text.WordWrap;color:Theme.textSecondary;font.family:Theme.sansFamily;font.pixelSize:Theme.fontSizeSmaller }
+                    Ui.Text { role: Ui.Typography.SansCaption; width:parent.width;text:"Drag bands · scroll mid for Q";wrapMode:Text.WordWrap;tone: Ui.Text.Secondary;}
                 }
             }
             Loader {
                 width:parent.width;active:root.effect!==null && root.effect.type==="compressor"
                 sourceComponent:Row {
-                    spacing:Theme.spacingMd
+                    spacing:Ui.Metrics.md
                     MixerCompressorCurve {
                         id:compressorCurve
-                        effect:root.displayed;disabled:root.effect===null || root.effect.enabled===false;onPreview:p=>root.preview(p);onCommit:p=>root.patch(p)
+                        effect:root.displayed;disabled:root.effect===null || root.effect.enabled===false;onPreview:p=>root.preview(p);onCommit:p=>root.patch(p);onCanceled:root.previews={}
                         Connections { target:root; function onFinishGestures() { compressorCurve.finish() } }
                     }
                     Grid {
-                        width:parent.width-188;columns:2;spacing:Theme.spacingMicro
+                        width:parent.width-188;columns:2;spacing:Ui.Metrics.micro
                         Repeater {
                             model:[{key:"thresholdDb",label:"Threshold",unit:" dB"},{key:"ratio",label:"Ratio",unit:":1"},{key:"kneeDb",label:"Knee",unit:" dB"},{key:"attackMs",label:"Attack",unit:" ms"}]
-                            delegate:Rectangle {
+                            delegate:Ui.Surface {
                                 required property var modelData
-                                width:(parent.width-2)/2;height:82;color:Theme.backgroundPaper;border.color:Theme.divider;radius:Theme.radiusXs
-                                Rectangle { width:parent.width;height:2;color:modelData.key==="thresholdDb"?Theme.warningLight:Theme.warning }
+                                width:(parent.width-2)/2;height:82
+                                Rectangle { width:parent.width;height:2;color:modelData.key==="thresholdDb"?Ui.Theme.statusInfo:Ui.Theme.statusWarning }
                                 Column {
-                                    x:Theme.spacingXs;y:Theme.spacingMd
-                                    Text { text:modelData.label;color:Theme.textSecondary;font.family:Theme.sansFamily;font.pixelSize:Theme.fontSizeSmaller }
-                                    Text { text:(root.displayed[modelData.key] || 0).toFixed(1)+modelData.unit;color:Theme.textPrimary;font.family:Theme.monoFamily;font.pixelSize:Theme.fontSizeSmaller }
+                                    x:Ui.Metrics.xs;y:Ui.Metrics.md
+                                    Ui.Text { role: Ui.Typography.SansCaption; text:modelData.label;tone: Ui.Text.Secondary;}
+                                    Ui.Text { role: Ui.Typography.MonoCaption; text:(root.displayed[modelData.key] || 0).toFixed(1)+modelData.unit;}
                                 }
                             }
                         }
@@ -123,12 +107,16 @@ Controls.Popup {
             }
             Column {
                 width:parent.width;visible:root.effect!==null && root.effect.type==="filter";height:visible?48:0
-                Text { text:"Mode";color:Theme.textSecondary;font.family:Theme.sansFamily;font.pixelSize:Theme.fontSizeSmaller }
-                Controls.ComboBox {
-                    objectName:"filter-mode";width:parent.width;height:24;textRole:"label";enabled:root.effect!==null && root.effect.enabled!==false
-                    model:[{value:"lowpass",label:"Low-pass"},{value:"highpass",label:"High-pass"},{value:"bandpass",label:"Band-pass"}]
-                    currentIndex:root.effect?model.findIndex(m=>m.value===root.effect.mode):0
-                    onActivated:index=>root.patch({mode:model[index].value})
+                Ui.Text { role: Ui.Typography.SansCaption; text:"Mode";tone: Ui.Text.Secondary;}
+                Ui.Select {
+                    objectName: "filter-mode"
+                    width: parent.width
+                    density: Ui.EditorButton.Compact
+                    accessibleName: qsTr("Filter mode")
+                    enabled: root.effect !== null && root.effect.enabled !== false
+                    options: [{value:"lowpass",label:"Low-pass"},{value:"highpass",label:"High-pass"},{value:"bandpass",label:"Band-pass"}]
+                    value: root.effect ? root.effect.mode : "lowpass"
+                    onValueCommitted: selected => root.patch({mode: selected})
                 }
             }
             Repeater {
@@ -145,8 +133,8 @@ Controls.Popup {
                     onChange:value=>{var p={};p[modelData.param]=root.fieldValue(modelData,value);root.patch(p)}
                 }
             }
-            Text { width:parent.width;visible:root.effect!==null && root.effect.type==="compressor";text:"Drag T = threshold · R = ratio · scroll T = knee";wrapMode:Text.WordWrap;color:Theme.textSecondary;font.family:Theme.sansFamily;font.pixelSize:Theme.fontSizeSmaller }
-            Controls.Button { objectName:"remove-effect";text:"Remove effect";onClicked:{controller.edit(root.trackId===""?"removeMasterEffect":"removeTrackEffect",{effectId:root.effectId});root.close()} }
+            Ui.Text { role: Ui.Typography.SansCaption; width:parent.width;visible:root.effect!==null && root.effect.type==="compressor";text:"Drag T = threshold · R = ratio · scroll T = knee";wrapMode:Text.WordWrap;tone: Ui.Text.Secondary;}
+            Ui.EditorButton { objectName:"remove-effect";variant:Ui.EditorButton.Destructive;text:"Remove effect";onClicked:{controller.edit(root.trackId===""?"removeMasterEffect":"removeTrackEffect",{effectId:root.effectId});root.close()} }
         }
     }
 }

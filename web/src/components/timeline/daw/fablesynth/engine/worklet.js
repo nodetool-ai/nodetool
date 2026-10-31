@@ -2764,7 +2764,7 @@ class FableProcessor extends AudioWorkletProcessor {
       const pol = p[MATPOL1 + s] | 0, native = SOURCE_BIPOLAR[src];
       const bi = pol === 1 ? false : pol === 2 ? true : native;
       const sv = bi === native ? srcs[src] : bi ? srcs[src] * 2 - 1 : (srcs[src] + 1) * 0.5;
-      // Aux source: scale by its unipolar value (params.ts auxScale).
+      // Aux source: scale by its unipolar value.
       const aux = p[MATAUX1 + s] | 0;
       const ax = aux > 0 && aux < NUM_SOURCES ? (SOURCE_BIPOLAR[aux] ? (srcs[aux] + 1) * 0.5 : srcs[aux]) : 1;
       const x = sv * (p[b + M_AMT] || 0) * ax;

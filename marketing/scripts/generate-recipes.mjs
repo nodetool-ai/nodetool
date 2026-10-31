@@ -43,8 +43,7 @@ const RECIPE_SUFFIX = ".recipe.json";
 
 /**
  * Stamped into each bundle manifest, matching what the CLI exporter writes.
- * The root package.json carries no version, so read the CLI's own — the same
- * file `cliVersion()` reads in packages/cli/src/nodetool.ts.
+ * The root package.json carries no version, so read the default CLI manifest.
  */
 const NODETOOL_VERSION = JSON.parse(
   fs.readFileSync(path.join(REPO_ROOT, "packages/cli/package.json"), "utf8")

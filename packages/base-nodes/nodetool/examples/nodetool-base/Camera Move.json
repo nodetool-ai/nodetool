@@ -1,0 +1,257 @@
+{
+  "id": "camera-move-00000000000000000001",
+  "access": "public",
+  "created_at": "2026-10-26T12:00:00.000000",
+  "updated_at": "2026-10-26T12:00:00.000000",
+  "name": "Camera Move",
+  "description": "Animate a still photo with one of 30 named camera movements — dolly in, crane up, orbit, crash zoom, FPV fly-through, or bullet time — at your chosen speed and duration. Estimated cost is about $0.30 to $0.85 per clip on fal at provider list price, or $0 locally with Wan 2.2 through ComfyUI or Wan2GP.",
+  "tags": [
+    "video",
+    "higgsfield-pack",
+    "camera-moves",
+    "example"
+  ],
+  "required_providers": [
+    "fal"
+  ],
+  "thumbnail": "Camera Move.jpg",
+  "graph": {
+    "edges": [
+      {
+        "id": "e1",
+        "source": "still",
+        "sourceHandle": "output",
+        "target": "vid",
+        "targetHandle": "image"
+      },
+      {
+        "id": "e2",
+        "source": "camera_move",
+        "sourceHandle": "output",
+        "target": "tpl",
+        "targetHandle": "move"
+      },
+      {
+        "id": "e3",
+        "source": "speed",
+        "sourceHandle": "output",
+        "target": "tpl",
+        "targetHandle": "speed"
+      },
+      {
+        "id": "e4",
+        "source": "subject_action",
+        "sourceHandle": "output",
+        "target": "tpl",
+        "targetHandle": "action"
+      },
+      {
+        "id": "e5",
+        "source": "tpl",
+        "sourceHandle": "output",
+        "target": "vid",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e6",
+        "source": "duration",
+        "sourceHandle": "output",
+        "target": "vid",
+        "targetHandle": "duration"
+      },
+      {
+        "id": "e7",
+        "source": "vid",
+        "sourceHandle": "output",
+        "target": "animated",
+        "targetHandle": "value"
+      }
+    ],
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Camera Move\n\n**Camera Move** turns a single still frame into a directed camera shot using the shared 30-move vocabulary.\n\n1. **Still Image**, **Camera Move**, **Speed**, and **Subject Action** feed into **Template** to compose the camera direction.\n2. **ImageToVideo** renders the clip at the requested duration using your selected video provider (Kling, Veo, Seedance, Wan, or a local Wan 2.2 model)."
+        },
+        "position": {
+          "x": 80,
+          "y": -220
+        },
+        "width": 660,
+        "height": 170
+      },
+      {
+        "id": "still",
+        "type": "nodetool.input.ImageInput",
+        "data": {
+          "name": "still_image",
+          "value": {
+            "type": "image",
+            "uri": "package://nodetool-base/recipe-inputs/coffee.jpg",
+            "asset_id": null,
+            "data": null,
+            "metadata": null
+          },
+          "description": "The starting frame to animate."
+        },
+        "position": {
+          "x": 80,
+          "y": 40
+        }
+      },
+      {
+        "id": "camera_move",
+        "type": "nodetool.input.SelectInput",
+        "data": {
+          "name": "camera_move",
+          "value": "dolly in",
+          "options": [
+            "static",
+            "slow push in",
+            "slow pull out",
+            "push in slow",
+            "pull back reveal",
+            "dolly in",
+            "dolly out",
+            "dolly zoom (vertigo)",
+            "truck left",
+            "truck right",
+            "pedestal up",
+            "pedestal down",
+            "pan left",
+            "pan right",
+            "whip pan",
+            "tilt up",
+            "tilt down",
+            "crane up",
+            "crane down",
+            "orbit",
+            "orbit left",
+            "orbit right",
+            "360 orbit",
+            "zoom in",
+            "zoom out",
+            "crash zoom in",
+            "crash zoom out",
+            "tracking",
+            "handheld",
+            "handheld follow",
+            "FPV drone fly-through",
+            "top-down rise",
+            "snorricam",
+            "bullet time",
+            "rack focus",
+            "through-object pass",
+            "low-angle hero rise",
+            "overhead spiral"
+          ],
+          "enum_type_name": "camera_move",
+          "description": "Named camera movement preset."
+        },
+        "position": {
+          "x": 80,
+          "y": 280
+        }
+      },
+      {
+        "id": "speed",
+        "type": "nodetool.input.SelectInput",
+        "data": {
+          "name": "speed",
+          "value": "normal",
+          "options": [
+            "slow",
+            "normal",
+            "fast"
+          ],
+          "enum_type_name": "camera_speed",
+          "description": "Pacing of the camera movement."
+        },
+        "position": {
+          "x": 80,
+          "y": 460
+        }
+      },
+      {
+        "id": "subject_action",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "subject_action",
+          "value": "Warm steam rises gently from the ceramic cup under soft window light.",
+          "description": "What happens inside the frame while the camera moves.",
+          "line_mode": "multi_line"
+        },
+        "position": {
+          "x": 80,
+          "y": 620
+        }
+      },
+      {
+        "id": "duration",
+        "type": "nodetool.input.IntegerInput",
+        "data": {
+          "name": "duration_seconds",
+          "value": 5,
+          "min": 2,
+          "max": 10,
+          "description": "Clip duration in seconds."
+        },
+        "position": {
+          "x": 380,
+          "y": 540
+        }
+      },
+      {
+        "id": "tpl",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "Camera movement: {{ move }} ({{ speed }} pace). {{ action }} Smooth, physically grounded camera trajectory with consistent lighting and focus.",
+          "values": {}
+        },
+        "position": {
+          "x": 380,
+          "y": 280
+        }
+      },
+      {
+        "id": "vid",
+        "type": "nodetool.video.ImageToVideo",
+        "data": {
+          "model": {
+            "type": "video_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null
+          },
+          "aspect_ratio": "16:9",
+          "resolution": "1080p",
+          "duration": 5
+        },
+        "position": {
+          "x": 680,
+          "y": 220
+        }
+      },
+      {
+        "id": "animated",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "animated_clip",
+          "description": "The animated camera-move video clip."
+        },
+        "position": {
+          "x": 980,
+          "y": 220
+        }
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

@@ -10,58 +10,11 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import fsSync from "node:fs";
 
-let execFileCalls: Array<{ cmd: string; args: string[] }> = [];
+import { resetFakeMedia } from "./_fixtures/fake-media.js";
 
-function mockResponse(
-  cmd: string,
-  args: string[]
-): { stdout: string; stderr: string } {
-  if (cmd === "ffprobe") {
-    const argsStr = args.join(" ");
-    if (argsStr.includes("codec_type")) return { stdout: "audio\n", stderr: "" };
-    if (argsStr.includes("format=duration")) return { stdout: "4\n", stderr: "" };
-    return { stdout: "", stderr: "" };
-  }
-  if (args.includes("-encoders")) {
-    return {
-      stdout: ["Encoders:", " V....D libx264 x264", " V....D libvpx-vp9 vp9"].join(
-        "\n"
-      ),
-      stderr: ""
-    };
-  }
-  const outputPath = args[args.length - 1];
-  fsSync.writeFileSync(outputPath, Buffer.from(`fake:${outputPath}`));
-  return { stdout: "", stderr: "" };
-}
-
-vi.mock("node:child_process", async (importOriginal) => {
-  const original = (await importOriginal()) as Record<string, unknown>;
-  const mockExecFile = (
-    cmd: string,
-    args: string[],
-    optionsOrCb: unknown,
-    maybeCb?: unknown
-  ) => {
-    execFileCalls.push({ cmd, args: [...args] });
-    const cb =
-      typeof optionsOrCb === "function"
-        ? (optionsOrCb as (e: Error | null, o: string, s: string) => void)
-        : typeof maybeCb === "function"
-          ? (maybeCb as (e: Error | null, o: string, s: string) => void)
-          : null;
-    if (!cb) return;
-    const resp = mockResponse(cmd, args);
-    cb(null, resp.stdout, resp.stderr);
-  };
-  (mockExecFile as unknown as Record<symbol, unknown>)[
-    Symbol.for("nodejs.util.promisify.custom")
-  ] = (cmd: string, args: string[]) => {
-    execFileCalls.push({ cmd, args: [...args] });
-    return Promise.resolve(mockResponse(cmd, args));
-  };
-  return { ...original, execFile: mockExecFile };
-});
+vi.mock("@nodetool-ai/runtime/media", async (importOriginal) =>
+  (await import("./_fixtures/fake-media.js")).fakeMediaModule(await importOriginal())
+);
 
 vi.mock("../src/nodes/timeline/compositeRender.js", async (importOriginal) => {
   const original = (await importOriginal()) as Record<string, unknown>;
@@ -138,7 +91,7 @@ async function render(
 }
 
 beforeEach(() => {
-  execFileCalls = [];
+  resetFakeMedia();
   created = [];
 });
 

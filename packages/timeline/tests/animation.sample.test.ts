@@ -2,7 +2,9 @@ import { describe, expect, it } from "vitest";
 import { compileClipAnimations } from "../src/animation/compile.js";
 import {
   IDENTITY_SAMPLE,
+  createAnimationSample,
   hasActiveAnimationWindow,
+  isIdentitySample,
   sampleAnimations
 } from "../src/animation/sample.js";
 import { ANIMATION_PRESETS } from "../src/animation/presets.js";
@@ -291,5 +293,50 @@ describe("sampleAnimations — silent traps the validator names", () => {
     // Undriven: the shape keeps its own trimEnd (1), a full ring.
     expect(sampleAnimations(c, 100).trimEnd).toBeUndefined();
     expect(sampleAnimations(c, 133).trimEnd).toBe(0);
+  });
+});
+
+describe("isIdentitySample", () => {
+  const IDENTITY_FIELDS = Object.keys(createAnimationSample()) as Array<
+    keyof ReturnType<typeof createAnimationSample>
+  >;
+
+  it("is true for a fresh sample and the frozen IDENTITY_SAMPLE", () => {
+    expect(isIdentitySample(createAnimationSample())).toBe(true);
+    expect(isIdentitySample(IDENTITY_SAMPLE)).toBe(true);
+  });
+
+  it("treats negative zero as identity for additive channels", () => {
+    expect(isIdentitySample({ ...createAnimationSample(), offsetX: -0 })).toBe(true);
+  });
+
+  it.each(IDENTITY_FIELDS.flatMap((field) => [[field, 0.5], [field, NaN]] as const))(
+    "is false when %s is %s",
+    (field, value) => {
+      expect(isIdentitySample({ ...createAnimationSample(), [field]: value })).toBe(false);
+    }
+  );
+
+  it("is false for a wipe mask and for a recorded replace channel", () => {
+    const mask = { direction: "left" as const, progress: 1, softness: 0 };
+    expect(isIdentitySample({ ...createAnimationSample(), mask })).toBe(false);
+    expect(
+      isIdentitySample({ ...createAnimationSample(), replacedBy: { positionX: "a" } })
+    ).toBe(false);
+  });
+
+  it("is false for every animated property once an animation drives it", () => {
+    for (const property of ANIMATED_PROPERTIES) {
+      const s = sampleAnimations(compile([driver("d", { [property]: 0.5 })], 1000), 500);
+      expect(isIdentitySample(s), property).toBe(false);
+    }
+  });
+
+  it("is true again after a reused scratch sample is reset", () => {
+    const out = createAnimationSample();
+    sampleAnimations(compile([driver("d", { positionX: 10, opacity: 0.5 })], 1000), 500, out);
+    expect(isIdentitySample(out)).toBe(false);
+    sampleAnimations(compile([], 1000), 500, out);
+    expect(isIdentitySample(out)).toBe(true);
   });
 });

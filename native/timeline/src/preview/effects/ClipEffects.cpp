@@ -141,7 +141,7 @@ bool ClipEffectStage::render(const EffectContext &ctx, const LayerFrame &input, 
     const auto effects = ext.value("clipEffects").toArray();
     const auto chain = planChain(effects, ext.value("trackEffects").toArray());
     const auto crop = cropPixels(ext, input.size);
-    const bool boundedCrop = crop != QRect(QPoint{}, input.size);
+    const bool boundedCrop = ext.value("effectSourceCropped").toBool() || crop != QRect(QPoint{}, input.size);
     const auto margins = outset(ext, input.size);
     const QSize workingSize = crop.size() + QSize(margins.left() + margins.right(), margins.top() + margins.bottom());
     const QPoint pad{margins.left(), margins.top()};

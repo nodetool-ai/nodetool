@@ -4,7 +4,6 @@ import { GAME_PARTICLE_PRESET_IDS, gameParticleEmitter, gameParticleIssues, game
 
 import { Caption, CurveEditor, EditorButton, FlexColumn, FlexRow, GradientEditor, InspectorFieldRow, InspectorSection, InspectorSelect, SPACING } from "../../../ui_primitives";
 import ErrorBanner from "../../../support/ErrorBanner";
-import ReportBugButton from "../../../support/ReportBugButton";
 import SchemaFields from "../SchemaFields";
 import type { GameComponentEditorProps } from "../componentEditors";
 import ParticlePreview from "./ParticlePreview";

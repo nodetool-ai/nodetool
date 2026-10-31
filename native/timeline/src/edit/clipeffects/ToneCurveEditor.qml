@@ -1,7 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
-import "../inspectorsections" as Sections
+import NodeTool.UiPrimitives as Ui
 
 Column {
     id: root
@@ -30,7 +30,7 @@ Column {
         }
     ]
     readonly property string channelLabel: channels.find(item => item.value === channel).label
-    readonly property color curveColor: channel === "r" ? Theme.error : channel === "g" ? Theme.success : channel === "b" ? Theme.info : Theme.textPrimary
+    readonly property color curveColor: channel === "r" ? Ui.Theme.statusError : channel === "g" ? Ui.Theme.statusSuccess : channel === "b" ? Ui.Theme.statusInfo : Ui.Theme.textPrimary
     readonly property var points: editablePoints(root[channel])
     property int dragIndex: -1
     property bool dragChanged: false
@@ -38,7 +38,7 @@ Column {
     signal patch(var change, string phase)
     signal gestureStarted
     signal gestureCancelled
-    spacing: Theme.spacingMd
+    spacing: Ui.Metrics.md
     onPointsChanged: if (graph)
         graph.requestPaint()
     onCurveColorChanged: if (graph)
@@ -131,24 +131,21 @@ Column {
     }
     Row {
         width: parent.width
-        spacing: Theme.spacingMd
+        spacing: Ui.Metrics.md
         Row {
-            width: parent.width - reset.width - Theme.spacingMd
+            width: parent.width - reset.width - Ui.Metrics.md
             Accessible.name: "Curve channel"
             Repeater {
                 model: root.channels
-                delegate: Sections.InspectorActionButton {
+                delegate: Ui.EditorButton {
                     required property var modelData
                     width: parent.width / 4
                     objectName: "toneCurveChannel_" + modelData.value
                     text: modelData.label
-                    outlined: false
+                    density: Ui.EditorButton.Compact
+                    variant: Ui.EditorButton.Flat
                     enabled: !root.disabled
-                    highlighted: root.channel === modelData.value
-                    background: Rectangle {
-                        color: root.channel === parent.modelData.value ? Theme.actionSelected : "transparent"
-                        radius: Theme.radiusSm
-                    }
+                    active: root.channel === modelData.value
                     onClicked: {
                         root.cancelDrag();
                         root.channel = modelData.value;
@@ -156,11 +153,12 @@ Column {
                 }
             }
         }
-        Sections.InspectorActionButton {
+        Ui.EditorButton {
             id: reset
             objectName: "toneCurveReset"
             text: "Reset"
-            outlined: false
+            density: Ui.EditorButton.Compact
+            variant: Ui.EditorButton.Flat
             enabled: !root.disabled
             onClicked: {
                 root.cancelDrag();
@@ -168,6 +166,7 @@ Column {
             }
         }
     }
+    Connections { target: Ui.Theme; function onEffectiveSchemeChanged() { graph.requestPaint() } }
     Canvas {
         id: graph
         objectName: "toneCurveGraph"
@@ -179,9 +178,9 @@ Column {
         onPaint: {
             const ctx = getContext("2d");
             ctx.reset();
-            ctx.fillStyle = Theme.backgroundPaper;
+            ctx.fillStyle = Ui.Theme.surfacePanel;
             ctx.fillRect(0, 0, width, height);
-            ctx.strokeStyle = Theme.divider;
+            ctx.strokeStyle = Ui.Theme.borderSubtle;
             ctx.lineWidth = 1;
             ctx.strokeRect(0, 0, width, height);
             ctx.lineWidth = 0.5;
@@ -193,7 +192,7 @@ Column {
                 ctx.lineTo(width, height * fraction);
                 ctx.stroke();
             }
-            ctx.strokeStyle = Theme.textDisabled;
+            ctx.strokeStyle = Ui.Theme.textDisabled;
             ctx.lineWidth = 0.75;
             ctx.setLineDash([2, 2]);
             ctx.beginPath();
@@ -237,9 +236,9 @@ Column {
                 radius: width / 2
                 x: root.points[index].x * graph.width - width / 2
                 y: (1 - root.points[index].y) * graph.height - height / 2
-                color: Theme.backgroundPaper
+                color: Ui.Theme.surfacePanel
                 border.color: root.curveColor
-                border.width: activeFocus ? 3 : 2
+                border.width: activeFocus ? Ui.Metrics.focus : Ui.Metrics.border
                 activeFocusOnTab: true
                 Accessible.role: Accessible.Button
                 Accessible.name: root.channelLabel + " point " + (index + 1) + ", input " + root.points[index].x.toFixed(2) + ", output " + root.points[index].y.toFixed(2)
@@ -286,7 +285,10 @@ Column {
             }
         }
     }
-    Sections.InspectorCaption {
+    Ui.Text {
+        role: Ui.Typography.SansCaption
+        tone: Ui.Text.Secondary
+        wrapMode: Text.WordWrap
         width: parent.width
         text: "Click to add a point. Drag points to shape the curve. Double-click a point or press Delete to remove it."
     }

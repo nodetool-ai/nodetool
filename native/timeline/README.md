@@ -11,18 +11,57 @@ planes converted in the shader). A clip without media shows a synthetic test
 pattern. With `--decode hw` or `auto`, video decodes with VideoToolbox and
 the frames go to the GPU with no copy (M1c).
 
+## Assistant and story documents
+
+The right dock's Assistant uses the [native chat component](../chat/README.md).
+The Chat button reveals that panel, and `--chat` reveals it at startup without
+changing a saved layout when the flag is absent. A server timeline supplies
+the same server address and in-memory bearer token used to open that document.
+The connection form remains available for a local timeline; development
+fixtures may also set `NODETOOL_CHAT_SERVER` and `NODETOOL_TOKEN`. Provider
+credentials remain on the server. Closing or moving the panel keeps its chat
+session and draft alive. `--chat --screenshot PATH` captures the editor with
+the Assistant open; run it offscreen or under Xvfb.
+
+Scripts and storyboards are separate left dock panels, each with its own
+document controller and unsaved draft. A linked document opens in the other
+panel while preserving the current one. The Assistant advertises the existing
+undoable timeline edit and reviewed generation tools along with seek and
+marker actions. The chat connection owns their tool results and server history.
+
+From `native/timeline/`, `ctest --test-dir build -R tst_chathost --output-on-failure` checks that a host
+tool edit is undoable, survives save/reload and preserves unknown document
+fields.
+`node scripts/chat-integration.mjs --bin build/nodetool-timeline` starts an
+isolated HTTP/WebSocket mock and drives a real native host edit under Xvfb.
+It checks the tool result, replay protection, local persistence and a full
+editor screenshot. It does not call a model provider.
+
 ## Build and test
 
 Requires Qt 6.12 (the build rejects other minor versions, because QRhi is a
-private API), Ninja, CMake, and FFmpeg with pkg-config files. On
+private API), Ninja, CMake 3.24 or newer, and FFmpeg with pkg-config files. On
 macOS:
 
 ```bash
-brew install qt ninja ffmpeg
+brew install qt ninja ffmpeg ffmpeg-full harfbuzz freetype lame openh264 opus libvpx
+export PATH="$(brew --prefix ffmpeg-full)/bin:$PATH"
+npm run build:packages
+node native/timeline/scripts/check-ci-prerequisites.mjs
+native/timeline/scripts/make-fixtures.sh
 cmake -S native/timeline -B native/timeline/build -G Ninja -DCMAKE_PREFIX_PATH=$(brew --prefix qt)
-cmake --build native/timeline/build
+nice -n 10 cmake --build native/timeline/build -j 2
 ctest --test-dir native/timeline/build
 ```
+
+The checks need FFmpeg's `drawtext` filter and the encoders verified by
+[`check-ci-prerequisites.mjs`](scripts/check-ci-prerequisites.mjs). Homebrew's
+`ffmpeg-full` supplies that command-line tool. The packaged LGPL libraries are
+built separately by [`build-ffmpeg-lgpl.sh`](scripts/build-ffmpeg-lgpl.sh), which
+needs LAME, OpenH264, Opus and libvpx development files for MP3, MP4 and WebM
+export (`libmp3lame-dev libopenh264-dev libopus-dev libvpx-dev` on Debian/Ubuntu).
+The editor and its UI test hosts link one shared static QML module. CI caches
+compiler output before running tests, so a test failure does not discard it.
 
 ### Linux
 
@@ -157,12 +196,9 @@ opening a device. See [Audio](#audio-m3).
 
 ## Tracks UI (M2)
 
-The tracks region copies `web/src/components/timeline/Tracks/` component by
-component (`TracksRegion`, `TimeRuler`, `TrackHeader`, `TrackLane`, `Clip`,
-`ClipBody`, `Playhead`, `TimelineZoomControls`, `TimelineScrollbar`), with the
-web theme tokens in `qml/Theme.qml`, the web fonts (Inter, JetBrains Mono,
-OFL, in `fonts/`) and the Material icon paths in `qml/Icons.qml`
-(`node scripts/extract-icons.mjs` regenerates it).
+The tracks region uses the native [UI primitives](../ui_primitives/README.md)
+for shared typography, colors, controls, and icons. Timeline geometry and
+visual data remain in `TimelineMetrics.qml` and `TimelineVisuals.qml`.
 
 - Zoom and pan (D29): `src/ui/TimelineWheel` holds the wheel, pinch, scroll
   bar and anchored-zoom math of `timelineWheel.ts`, `TimelineScrollbar.tsx`
@@ -740,8 +776,9 @@ into one NV12 texture, wrapped as R8 and RG8), VAAPI on Linux
 or none. `HwWindow` picks the graphics API and the shared device. Any
 hardware failure before the first frame falls back to software (D15).
 
-- **macOS package.** `package-macos.sh` builds with the LGPL FFmpeg only
-  (pkg-config sees no other), runs `macdeployqt` with the QML imports,
+- **macOS package.** `package-macos.sh` uses `QT_PREFIX` when set, otherwise
+  Homebrew's Qt. It selects the LGPL FFmpeg through pkg-config and runs
+  `macdeployqt` with the QML imports,
   rewrites the absolute paths that Homebrew's split Qt kegs leave, drops
   every rpath that leaves the bundle and every plug-in or QML module whose
   libraries the bundle does not have (`scripts/macho-deps.py prune`: QtPdf,
@@ -756,7 +793,11 @@ hardware failure before the first frame falls back to software (D15).
   copies get their licence texts (`licenses/third-party/<formula>/`) and
   their source. Each keg's source comes from its install record
   (`sbom.spdx.json`, `.brew/<formula>.rb`), not from the current Homebrew
-  metadata, which can name a newer Qt than the one installed. The bundle has no identity signature and no notarization:
+  metadata, which can name a newer Qt than the one installed. For an official
+  SDK selected through `QT_PREFIX`, notices identify only frameworks and
+  plug-ins present in that SDK. They record its version and the matching
+  official Qt source archive URL and SHA-256. Framework version checks apply
+  to both SDK and Homebrew builds. The bundle has no identity signature and no notarization:
   that is a release step for the owner of a Developer ID.
   `check-package-macos.sh` copies the bundle to a temp folder and fails on
   any library path or rpath outside the bundle and the system, any

@@ -121,6 +121,17 @@ export const PATH_CHECKS = [
     steps: [NATIVE_GAME_CHECK]
   },
   {
+    path: /^native\/ui_primitives\//,
+    steps: [
+      { label: "native UI: design contracts", command: "python3", args: ["native/ui_primitives/tools/check_design.py", "--strict"] },
+      { label: "native UI: dependency boundaries", command: "python3", args: ["native/ui_primitives/tools/check_dependencies.py"] }
+    ]
+  },
+  {
+    path: /^native\/chat\//,
+    steps: [{ label: "native chat: build and conformance", command: "node", args: ["native/chat/scripts/check.mjs"] }]
+  },
+  {
     path: /^scripts\/(?:ci-plan\.mjs|__tests__\/ci-plan\.test\.mjs)$/,
     steps: [{ label: "CI planning regressions", command: "node", args: ["scripts/run-vitest.mjs", "run", "--config", "vitest.config.ts", "scripts/__tests__/ci-plan.test.mjs"] }]
   },
@@ -262,12 +273,23 @@ export function fullPlan() {
   ];
 }
 
+const PACK_CORE_SHARED_INPUTS = new Set([
+  "packages/node-catalog/data/index.json",
+  "packages/node-catalog/data/nodes.ndjson"
+]);
+
 /**
  * Decide what to run for a set of changed files. Pure: `computeAffected` is
  * passed in so this can be unit-tested against a synthetic package graph.
  */
 export function buildPlan(files, packages, computeAffected) {
-  const result = computeAffected(files, packages);
+  // pack-core copies these canonical inputs without depending on node-catalog,
+  // which already depends on pack-core through node-sdk.
+  const sharedCatalogChanged = files.some((file) =>
+    PACK_CORE_SHARED_INPUTS.has(file.replace(/^\.\//, "").replace(/\\/g, "/"))
+  );
+  const packCore = sharedCatalogChanged ? packages.find((pkg) => pkg.name === "@nodetool-ai/pack-core") : undefined;
+  const result = computeAffected(packCore ? [...files, packCore.dir] : files, packages);
   const pathSteps = new Map();
   const globalFiles = [];
   // Export scripts are workspace-owned, but their artifact admission tests live at the root.
@@ -299,7 +321,7 @@ export function buildPlan(files, packages, computeAffected) {
 
   const steps = [];
   const backend = result.affected.filter((n) => !appNames.has(n));
-  if (backend.some((name) => ["@nodetool-ai/websocket", "@nodetool-ai/game-runtime", "@nodetool-ai/cli", "@nodetool-ai/agents"].includes(name)) || files.some((file) => /^(?:packages\/protocol\/(?:src\/native-game\.ts|scripts\/generate-native-game-schema\.ts|tests\/fixtures\/native-game\/)|native\/game\/|scripts\/check-native-game\.mjs$)/.test(file))) {
+  if (backend.some((name) => ["@nodetool-ai/websocket", "@nodetool-ai/game-runtime", "@nodetool-ai/cli-game", "@nodetool-ai/agents"].includes(name)) || files.some((file) => /^(?:packages\/protocol\/(?:src\/native-game\.ts|scripts\/generate-native-game-schema\.ts|tests\/fixtures\/native-game\/)|native\/game\/|scripts\/check-native-game\.mjs$)/.test(file))) {
     steps.push(NATIVE_GAME_CHECK);
     pathSteps.delete(NATIVE_GAME_CHECK.label);
   }
@@ -457,7 +479,7 @@ async function main(argv) {
   // The mapping module is pure and imports nothing; Node strips its types, so
   // this reuses the harness logic instead of copying it.
   const { computeAffected, EXTRA_WORKSPACE_PATHS } = await import(
-    pathToFileURL(join(repoRoot, "packages/cli/src/affected/affected.ts")).href
+    pathToFileURL(join(repoRoot, "packages/cli-harness/src/affected/affected.ts")).href
   );
 
   let steps;

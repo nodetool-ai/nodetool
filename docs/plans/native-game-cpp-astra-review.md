@@ -379,3 +379,30 @@ that button is identical. Closed asset hashes are unchanged. The review
 snapshot's pending-capture flag describes its earlier state; the completed
 receipt is
 `/home/mg/.cache/native-final-tmp/sunrush-kart-live/button-layout-final/qa-index.json`.
+
+## Parent-branch merge review
+
+The merge preserves the native game changes while incorporating parent
+`bbbc6fb73950b0877f61e037ba7b596d67431a3a` and its CLI feature-package split.
+The original 13-file resolution snapshot is retained under
+`/home/mg/.cache/native-final-tmp/parent-merge-review/`, with manifest SHA256
+`c0ec045ffb1d038565b33f3c93cd1a6361b05439b61c6c39257c88a468321b5b`.
+Native game selection and worker preparation now follow `cli-game`; the
+parent's native UI/chat and shared catalog selection remain covered.
+
+Astra identified two integration omissions: the moved native CLI test was
+missing from real-package test selection, and native CI paths still named
+the old CLI location. The correction restores the real-package test entry
+in `cli-game`, removes it from the unrelated workflow package and migrates
+the native workflow paths. Fresh follow-up review cleared the three-file
+snapshot with no remaining supported findings. Its manifest SHA256 is
+`97b13350c2d0e7794f793532c6f77734b840eec77914608b7aa7b420a8842bb7`
+under `/home/mg/.cache/native-final-tmp/astra-cli-native-profile-review/`.
+The original 13 source hashes remain unchanged.
+
+The explicit native browser CLI profile failed before correction and passed
+all three tests afterward. A selection proof verifies the real-package
+project and migrated CI paths. Script selection/partition regressions pass
+99 tests, and the moved harness registry passes 239 tests. These focused
+results and review do not replace the final merge aggregate or claim a
+native runtime rebuild. Final aggregate evidence is recorded separately.

@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Effects
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 Rectangle {
     id: preview
     property var effect: ({})
@@ -8,22 +9,24 @@ Rectangle {
     property bool vignette: false
     implicitHeight: width * 9 / 16
     height: implicitHeight
-    radius: Theme.radiusSm
-    border.width: 1; border.color: Theme.divider
-    color: Theme.backgroundPaper
+    radius: Ui.Metrics.xs
+    border.width: Ui.Metrics.border; border.color: Ui.Theme.borderSubtle
+    color: Ui.Theme.surfacePanel
     clip: true
     opacity: disabled ? 0.4 : 1
     Canvas {
+        id: baseImage
         anchors.fill: parent
         onPaint: {
             const ctx = getContext("2d")
             const gradient = ctx.createLinearGradient(0,0,width,height)
-            gradient.addColorStop(0,Theme.backgroundPaper)
+            gradient.addColorStop(0,Ui.Theme.surfacePanel)
             gradient.addColorStop(0.35,TrackEffectsReference.data.palette.grey600)
             gradient.addColorStop(1,TrackEffectsReference.data.palette.grey400)
             ctx.fillStyle = gradient; ctx.fillRect(0,0,width,height)
         }
     }
+    Connections { target: Ui.Theme; function onEffectiveSchemeChanged() { baseImage.requestPaint(); image.requestPaint() } }
     Canvas {
         id: image
         anchors.fill: parent
@@ -44,7 +47,7 @@ Rectangle {
                 gradient.addColorStop(Math.min(1,preview.effect.radius),Qt.rgba(0,0,0,preview.effect.intensity))
                 ctx.fillStyle = gradient; ctx.fillRect(0,0,1,1); ctx.restore()
             } else {
-                for (const spot of [[0.3,0.4,0.4,Theme.overlayStrong],[0.75,0.65,0.35,Qt.rgba(Theme.error.r,Theme.error.g,Theme.error.b,0.4)]]) {
+                for (const spot of [[0.3,0.4,0.4,Ui.Theme.actionPressed],[0.75,0.65,0.35,Qt.rgba(Ui.Theme.statusError.r,Ui.Theme.statusError.g,Ui.Theme.statusError.b,0.4)]]) {
                     const gradient = ctx.createRadialGradient(width*spot[0],height*spot[1],0,width*spot[0],height*spot[1],Math.sqrt(width*width+height*height)*spot[2])
                     gradient.addColorStop(0,spot[3]); gradient.addColorStop(1,"transparent")
                     ctx.fillStyle = gradient; ctx.fillRect(0,0,width,height)

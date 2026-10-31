@@ -27,9 +27,9 @@ function runFixture() {
   return { run, jobs };
 }
 
-function fixture(version = defaultVersion, original = defaultOriginal) {
-  const bytes = new Map(names.map(name => [name, Buffer.from(name)]));
-  const pins = names.map(name => ({ name, version, integrity: `sha512-${createHash("sha512").update(bytes.get(name)).digest("base64")}` }));
+function fixture(version = defaultVersion, original = defaultOriginal, cohort = names) {
+  const bytes = new Map(cohort.map(name => [name, Buffer.from(name)]));
+  const pins = cohort.map(name => ({ name, version, integrity: `sha512-${createHash("sha512").update(bytes.get(name)).digest("base64")}` }));
   const catalog = { coreVersion: version, packs: [{ id: "fal", kind: "node-pack", npm: pins[2], provides: [], scriptAllowlist: [] }] };
   const events = [];
   const attestations = pin => ({ attestations: [{ predicateType: "https://slsa.dev/provenance/v1", bundle: { dsseEnvelope: {
@@ -53,7 +53,7 @@ function fixture(version = defaultVersion, original = defaultOriginal) {
       attestations: { url: `https://registry.npmjs.org/${encodeURIComponent(pin.name)}`, provenance: { predicateType: "https://slsa.dev/provenance/v1" } }
     })),
     loadAttestations: vi.fn(async url => { const pin = pins.find(item => url.endsWith(encodeURIComponent(item.name))); events.push(`provenance:${pin.name}`); return attestations(pin); }),
-    download: vi.fn(async url => { const name = names.find(item => url.startsWith(`https://registry.npmjs.org/${item}/`)); events.push(`download:${name}`); return bytes.get(name); }),
+    download: vi.fn(async url => { const name = cohort.find(item => url.startsWith(`https://registry.npmjs.org/${item}/`)); events.push(`download:${name}`); return bytes.get(name); }),
     readJsonMember: vi.fn((file, member) => {
       events.push(member);
       if (member === "package/dist/index.json") { return catalog; }
@@ -183,4 +183,23 @@ describe("original artifact recovery", () => {
     await expect(restoreOriginalArtifacts(original, names, version, root, options)).rejects.toThrow("must be empty");
     expect(readdirSync(root)).toEqual(preserved);
   });
+});
+
+it("recovers runtime catalog pins from pack-core and checks the compatibility carrier", async () => {
+  const cohort = [...names, "@nodetool-ai/pack-core"];
+  const { options } = fixture(undefined, undefined, cohort);
+  await expect(restoreOriginalArtifacts(original, cohort, version, directory(), options)).resolves.toHaveProperty("catalog");
+  const reads = options.readJsonMember.mock.calls.filter(([, member]) => member === "package/dist/index.json").map(([file]) => file);
+  expect(reads).toHaveLength(2);
+  expect(reads[0]).toContain("pack-core");
+  expect(reads[1]).toContain("node-catalog");
+});
+
+it("rejects conflicting runtime and compatibility catalog carriers", async () => {
+  const cohort = [...names, "@nodetool-ai/pack-core"];
+  const { options, catalog } = fixture(undefined, undefined, cohort);
+  const read = options.readJsonMember;
+  options.readJsonMember = vi.fn((file, member) => member === "package/dist/index.json" && file.includes("node-catalog")
+    ? { ...catalog, coreVersion: "stale" } : read(file, member));
+  await expect(restoreOriginalArtifacts(original, cohort, version, directory(), options)).rejects.toThrow("catalog carriers disagree");
 });

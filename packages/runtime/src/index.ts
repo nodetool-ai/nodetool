@@ -2,6 +2,7 @@
  * @nodetool-ai/runtime – Public API
  */
 
+export { sniffImageMime, extForImageMime } from "./providers/image-mime.js";
 export { sniffAudioMime } from "./providers/audio-mime.js";
 
 export {
@@ -351,6 +352,7 @@ export {
   type HostBinaryResult,
   type RunHostBinaryOptions
 } from "./host-binaries.js";
+export { DEFAULT_YT_DLP_FORMAT, splitYtDlpFormat } from "./yt-dlp-format.js";
 export { RECOMMENDED_MODELS } from "./recommended-models.js";
 export type { RecommendedUnifiedModel } from "./recommended-models.js";
 export {

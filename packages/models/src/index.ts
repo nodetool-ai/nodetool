@@ -191,6 +191,7 @@ export type {
 export { Secret } from "./secret.js";
 export {
   getSecret,
+  getSecrets,
   getSecretRequired,
   hasSecret,
   getSecretSync,
@@ -603,6 +604,6 @@ export { threadHasTraceContentTools } from "./trace-provenance.js";
 
 export { listAppInstanceMetadata } from "./app-instance-list.js";
 
-export { openResourceChangeChannel, resolveResourceChangeListenerUrl, NOTIFY_PAYLOAD_LIMIT, MAX_PENDING_NOTIFICATIONS, RESYNC_MESSAGE, packResourceChangeMessages, encodeResourceChangeGroup } from "./resource-change-channel.js";
+export { openResourceChangeChannel, openResourceChangeChannelWithFallback, resolveResourceChangeListenerUrl, NOTIFY_PAYLOAD_LIMIT, MAX_PENDING_NOTIFICATIONS, RESYNC_MESSAGE, packResourceChangeMessages, encodeResourceChangeGroup } from "./resource-change-channel.js";
 
 export { NativeGameStore } from "./native-game.js";

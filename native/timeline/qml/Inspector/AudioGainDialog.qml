@@ -2,8 +2,9 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
-Dialog {
+Ui.Dialog {
     id: root
     property TimelineModel timeline: null
     property var clipIds: []
@@ -16,10 +17,7 @@ Dialog {
     modal: true
     focus: true
     closePolicy: Popup.CloseOnEscape
-    width: Theme.trackHeaderWidth
-    padding: Theme.spacingXl
-    font.family: Theme.sansFamily
-    font.pixelSize: Theme.fontSizeSmall
+    width: parent ? Math.min(Ui.Metrics.dialogCompactWidth, parent.width - 2 * Ui.Metrics.dialogNarrowInset) : Ui.Metrics.dialogCompactWidth
     onModeChanged: dbText = mode === "adjust" ? "0" : String(reader.audible[0]?.volumeDb ?? 0)
     onOpened: {
         openedGeneration = reader.generation
@@ -33,41 +31,48 @@ Dialog {
         close()
     }
     ClipAudio { id: reader; timeline: root.timeline; selection: root.clipIds }
-    background: Rectangle { color: Theme.backgroundPaper; border.color: Theme.divider; radius: Theme.radiusMd }
     contentItem: ColumnLayout {
-        spacing: Theme.spacingLg
-        Label { text: "Change"; color: Theme.textSecondary }
-        RadioButton { text: "Set gain to"; checked: root.mode === "set"; onClicked: root.mode = "set" }
-        RadioButton { text: "Adjust gain by"; checked: root.mode === "adjust"; onClicked: root.mode = "adjust" }
-        Label { text: root.mode === "set" ? "Gain" : "Change"; color: Theme.textSecondary }
+        spacing: Ui.Metrics.lg
+        Ui.Text { objectName: "gainChangeLabel"; text: "Change"; role: Ui.Typography.SansLabel; tone: Ui.Text.Secondary }
+        Ui.Select {
+            objectName: "gainChangeMode"
+            Layout.fillWidth: true
+            accessibleName: "Gain change"
+            options: [{label: "Set gain to", value: "set"}, {label: "Adjust gain by", value: "adjust"}]
+            value: root.mode
+            onValueCommitted: value => root.mode = value
+        }
+        Ui.Text { objectName: "gainValueLabel"; text: root.mode === "set" ? "Gain" : "Change"; role: Ui.Typography.SansLabel; tone: Ui.Text.Secondary }
         RowLayout {
-            TextField {
+            Ui.TextField {
                 id: input
                 objectName: "gainInput"
                 Layout.fillWidth: true
-                text: root.dbText
-                color: Theme.textPrimary
+                value: root.dbText
+                suffix: "dB"
+                valid: root.valid
+                errorText: "Enter a value from -120 to 24 dB."
                 selectByMouse: true
-                Accessible.name: root.mode === "set" ? "Gain" : "Change"
-                onTextEdited: root.dbText = text
+                accessibleName: root.mode === "set" ? "Gain" : "Change"
+                onValuePreviewed: value => root.dbText = value
                 onAccepted: root.confirm()
-                background: Rectangle { color: Theme.backgroundDefault; border.color: root.valid ? Theme.overlay : Theme.error; radius: Theme.radiusSm }
             }
-            Label { text: "dB"; color: Theme.textSecondary }
         }
-        Label { visible: !root.valid; text: "Enter a value from -120 to 24 dB."; color: Theme.error; wrapMode: Text.Wrap; Layout.fillWidth: true }
-        Label {
+        Ui.Text { objectName: "gainRangeError"; visible: !root.valid; text: "Enter a value from -120 to 24 dB."; role: Ui.Typography.SansCaption; tone: Ui.Text.Error; wrapMode: Text.Wrap; Layout.fillWidth: true }
+        Ui.Text {
+            objectName: "gainScope"
             Layout.fillWidth: true
             wrapMode: Text.Wrap
-            color: Theme.textSecondary
+            role: Ui.Typography.SansCaption
+            tone: Ui.Text.Secondary
             text: reader.audible.length === 0 ? "None of the selected clips has sound."
                   : reader.audible.length === 1 ? "Applies to the selected clip."
                   : "Applies to " + reader.audible.length + " clips with sound."
         }
     }
-    footer: DialogButtonBox {
-        Button { text: "Cancel"; DialogButtonBox.buttonRole: DialogButtonBox.RejectRole }
-        Button { text: "Apply"; enabled: root.valid && reader.audible.length > 0; onClicked: root.confirm() }
-        onRejected: root.close()
+    footer: Row {
+        spacing: Ui.Metrics.md
+        Ui.EditorButton { objectName: "gainCancel"; text: "Cancel"; onClicked: root.close() }
+        Ui.EditorButton { objectName: "gainApply"; text: "Apply"; variant: Ui.EditorButton.Primary; enabled: root.valid && reader.audible.length > 0; onClicked: root.confirm() }
     }
 }

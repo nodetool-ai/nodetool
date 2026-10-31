@@ -40,6 +40,13 @@
 #include "server/SaveCli.h"
 #include "server/ServerSource.h"
 
+#include "aiassist/AgentBridge.h"
+#include "aiassist/AssistantSession.h"
+#include "chat/TimelineChatHost.h"
+#include "runtime/ChatSession.h"
+#include <QtQml/QQmlExtensionPlugin>
+Q_IMPORT_QML_PLUGIN(NodeTool_ChatPlugin)
+
 extern "C" {
 #include <libavcodec/avcodec.h>
 #include <libavformat/avformat.h>
@@ -66,6 +73,7 @@ extern "C" {
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QQuickItem>
+#include <QQuickStyle>
 #include <QQuickRenderControl>
 #include <QQuickRenderTarget>
 #include <QQuickView>
@@ -85,6 +93,17 @@ extern "C" {
 #include <cstring>
 
 namespace {
+
+QQuickItem* namedVisualItem(QQuickItem* root, const QString& name) {
+    if (!root) return nullptr;
+    QList<QQuickItem*> pending{root};
+    while (!pending.isEmpty()) {
+        auto* item = pending.takeLast();
+        if (item->objectName() == name) return item;
+        pending.append(item->childItems());
+    }
+    return nullptr;
+}
 
 QString avVersion(unsigned v) {
     return QStringLiteral("%1.%2.%3").arg(AV_VERSION_MAJOR(v)).arg(AV_VERSION_MINOR(v)).arg(AV_VERSION_MICRO(v));
@@ -656,6 +675,7 @@ int main(int argc, char** argv) {
         qputenv("QSG_RHI_PROFILE", "1");  // GPU timestamps for lastCompletedGpuTime
     }
 
+    QQuickStyle::setStyle(QStringLiteral("Basic"));
     QGuiApplication app(argc, argv);
     app.setApplicationName(QStringLiteral("nodetool-timeline"));
 
@@ -746,7 +766,11 @@ int main(int argc, char** argv) {
                                       QStringLiteral("FILE"));
     parser.addOption(peaksOpt);
     parser.addOptions({benchOpt, framesOpt, sizeOpt, seekOpt, playOpt, shotOpt, warmupOpt, budgetOpt, noVsyncOpt, realtimeOpt, stillsOpt, stillFramesOpt, backgroundOpt, playStillsOpt, decodeOpt, decoderOpt, teardownOpt, hideTestOpt, onTopOpt, scrubOpt, scrubOutOpt, jsonOpt});
+    const QCommandLineOption chatOpt(QStringLiteral("chat"), QStringLiteral("Open the native chat panel"));
+    parser.addOption(chatOpt);
     parser.process(app);
+    bool captureChat = false;
+    captureChat = parser.isSet(chatOpt) && parser.isSet(shotOpt);
 
     std::fprintf(stderr, "nodetool-timeline: Qt %s, libavformat %s, libavcodec %s, libavutil %s, libswscale %s\n",
                  qVersion(), qPrintable(avVersion(avformat_version())), qPrintable(avVersion(avcodec_version())),
@@ -888,7 +912,7 @@ int main(int argc, char** argv) {
         return runOffscreen(model, clock, QSize(winW, winH), {}, {}, {}, {}, parser.value(scrubOpt), out, source,
                             selectedDecodeMode);
     }
-    if (parser.isSet(shotOpt) || parser.isSet(stillsOpt) || parser.isSet(playStillsOpt)) {
+    if (!captureChat && (parser.isSet(shotOpt) || parser.isSet(stillsOpt) || parser.isSet(playStillsOpt))) {
         // Screenshots and stills render with no window at all (offscreen).
         std::vector<long long> frames;
         if (parser.isSet(stillsOpt) || parser.isSet(playStillsOpt)) {
@@ -935,6 +959,93 @@ int main(int argc, char** argv) {
         QObject::connect(localSaver.get(), &nt::app::LocalDocumentSaver::saveFailed, &app,
                          [](const QString& error) { qWarning().noquote() << error; });
     }
+    nt::chat::ChatSession chatSession;
+    nt::chat::TimelineChatHost chatHost(model, clock);
+    AssistantSession assistantTools;
+    assistantTools.setTimeline(&model);
+    QVariantList hostTools = nt::aiassist::assistantTools().toVariantList();
+    for (const auto& tool : nt::chat::TimelineChatHost::tools()) {
+        if (tool.toMap().value("name") != QStringLiteral("ui_timeline_get_state")) hostTools.append(tool);
+    }
+    chatSession.setHostTools(hostTools);
+    const auto chatContext = [&chatHost]() -> QVariantMap {
+        const auto state = chatHost.context();
+        const auto id = state.value("timeline_id").toString();
+        return {{"workflow_id", id},
+                {"ui_context", QVariantMap{{"source", "timeline_assistant"},
+                                             {"focused", QVariantMap{{"type", "timeline"}, {"id", id}}},
+                                             {"selection", QVariantMap{{"clip_ids", state.value("selected_clip_ids")}}}}}};
+    };
+    chatSession.setProperty("hostContext", chatContext());
+    QObject::connect(&chatHost, &nt::chat::TimelineChatHost::contextChanged, &chatSession,
+                     [&chatSession, chatContext] { chatSession.setProperty("hostContext", chatContext()); });
+    QObject::connect(&chatSession, &nt::chat::ChatSession::stateChanged, &assistantTools,
+                     [&chatSession, &assistantTools] {
+        if (assistantTools.property("provider").toString() != chatSession.provider())
+            assistantTools.setProperty("provider", chatSession.provider());
+        if (assistantTools.property("model").toString() != chatSession.model())
+            assistantTools.setProperty("model", chatSession.model());
+    });
+    QObject::connect(&chatSession, &nt::chat::ChatSession::hostToolRequested, &chatHost,
+                     [&chatSession, &chatHost, &assistantTools, &clock](const QString& id, const QString& name, const QVariantMap& args) {
+        if (name == QStringLiteral("ui_timeline_seek") || name == QStringLiteral("ui_timeline_add_marker") ||
+            name == QStringLiteral("ui_timeline_delete_marker")) {
+            const auto result = chatHost.execute(name, args);
+            chatSession.completeHostTool(id, result, result.value("error").toString());
+            return;
+        }
+        assistantTools.setProperty("selectedClipIds", chatHost.selection());
+        assistantTools.setProperty("playheadMs", clock.currentTimeMs());
+        assistantTools.setProperty("provider", chatSession.provider());
+        assistantTools.setProperty("model", chatSession.model());
+        const auto result = assistantTools.executeHostTool(name, QJsonObject::fromVariantMap(args), id);
+        if (!result.value("deferred").toBool()) {
+            chatSession.completeHostTool(id, result.toVariantMap(), result.value("error").toString());
+        }
+    });
+    QObject::connect(&assistantTools, &AssistantSession::hostToolCompleted, &chatSession,
+                     [&chatSession](const QString& id, const QJsonObject& result) {
+        chatSession.completeHostTool(id, result.toVariantMap(), result.value("error").toString());
+    });
+    assistantTools.setPlanningSend([&chatSession](const QString& command, const QJsonObject& data, const QString& id) {
+        return chatSession.sendHostRequest(command, data, id);
+    });
+    QObject::connect(&chatSession, &nt::chat::ChatSession::hostResponseReceived, &assistantTools,
+                     [&assistantTools](const QJsonObject& response) { assistantTools.receive(response); });
+    QUrl connectedChatServer;
+    QString connectedChatToken;
+    const auto syncChatServer = [&chatSession, &model, &connectedChatServer, &connectedChatToken] {
+        const auto target = nt::server::serverSaveTarget();
+        const auto documentId = model.timeline().raw.value("id").toString();
+        QUrl server;
+        QString token;
+        if (target && target->timelineId == documentId) {
+            server = target->server;
+            token = target->token;
+        } else if (!target) {
+            const QUrl configured(qEnvironmentVariable("NODETOOL_CHAT_SERVER"));
+            if ((configured.scheme() == "http" || configured.scheme() == "https") && !configured.host().isEmpty()) {
+                server = configured;
+                token = qEnvironmentVariable("NODETOOL_TOKEN");
+            }
+        }
+        if (server.isEmpty()) {
+            chatSession.disconnectFromServer();
+            connectedChatServer = QUrl{};
+            connectedChatToken.clear();
+            return;
+        }
+        if (connectedChatServer == server && connectedChatToken == token) return;
+        chatSession.connectToServer(server, token);
+        connectedChatServer = server;
+        connectedChatToken = token;
+    };
+    syncChatServer();
+    QObject::connect(&model, &TimelineModel::documentReplaced, &chatSession, syncChatServer);
+    view.rootContext()->setContextProperty(QStringLiteral("nativeChatSession"), &chatSession);
+    view.rootContext()->setContextProperty(QStringLiteral("nativeChatHost"), &chatHost);
+    view.rootContext()->setContextProperty(QStringLiteral("nativeAssistantTools"), &assistantTools);
+    view.rootContext()->setContextProperty(QStringLiteral("nativeChatInitiallyOpen"), parser.isSet(chatOpt));
     view.rootContext()->setContextProperty(QStringLiteral("autosave"), autosave.get());
     view.loadFromModule("NodeTool.Timeline", "TimelineEditor");
     if (view.status() != QQuickView::Ready) {
@@ -948,6 +1059,35 @@ int main(int argc, char** argv) {
         view.setFlags(view.flags() | Qt::WindowStaysOnTopHint);
     }
     view.show();  // never raise() or requestActivate()
+    if (captureChat) {
+        auto* captureTimer = new QTimer(&view);
+        const auto captureStarted = std::chrono::steady_clock::now();
+        QObject::connect(captureTimer, &QTimer::timeout, &view,
+                         [&view, &app, captureTimer, captureStarted, path = parser.value(shotOpt)] {
+            const auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - captureStarted).count();
+            if (elapsed < 500) { return; }
+            const auto* session = view.rootContext()->contextProperty(QStringLiteral("nativeChatSession"))
+                                      .value<QObject*>();
+            if (session && session->property("connectionStatus").toString() == QStringLiteral("connecting")) {
+                if (elapsed < 5000) { return; }
+                captureTimer->stop();
+                qWarning("The native chat connection did not settle for capture");
+                app.exit(1);
+                return;
+            }
+            captureTimer->stop();
+            const auto* loader = namedVisualItem(view.rootObject(), QStringLiteral("nativeChatPanel"));
+            if (!loader || loader->property("status").toInt() != 1) {
+                qWarning("The native chat panel did not load for capture");
+                app.exit(1);
+                return;
+            }
+            const auto image = view.grabWindow();
+            app.exit(!image.isNull() && image.save(path) ? 0 : 1);
+        });
+        captureTimer->start(100);
+    }
 
     auto* compositor = view.rootObject()->findChild<PreviewCompositor*>(QStringLiteral("previewCompositor"));
     if ((bench || parser.isSet(teardownOpt)) && !compositor) {

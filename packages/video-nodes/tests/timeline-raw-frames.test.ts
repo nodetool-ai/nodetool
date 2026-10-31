@@ -1,254 +1,218 @@
 /**
- * The RGBA plumbing between ffmpeg and the timeline compositor: frames are
- * sliced out of a byte stream that arrives in arbitrary chunks, a skipped
- * layer must not desync the stream, and a clip that outlives its media holds
- * its last frame. `spawn` is faked so no ffmpeg is involved.
+ * The compositor's decode and encode ends on real media: frames come out of
+ * a clip in order and at the size asked for, skipped indices are dropped
+ * rather than shifting later frames, the last frame is held past the end,
+ * and the encoder writes every frame with the arguments `outputFormats.ts`
+ * chose.
  */
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { EventEmitter } from "node:events";
-import { PassThrough, Writable } from "node:stream";
 
-interface FakeChild extends EventEmitter {
-  stdout: PassThrough;
-  stderr: PassThrough;
-  stdin: Writable & { written: Buffer[] };
-  kill: (signal?: string) => boolean;
-}
+import { promises as fs } from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
-let spawned: FakeChild[] = [];
-let spawnArgs: string[][] = [];
-let blockEncoderWrites = false;
+import {
+  inspectMedia,
+  meanRgba,
+  readRgbaFrames,
+  solidRgba,
+  writeRgbaVideo
+} from "@nodetool-ai/runtime/media/testing";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-function makeChild(): FakeChild {
-  const child = new EventEmitter() as FakeChild;
-  child.stdout = new PassThrough();
-  child.stderr = new PassThrough();
-  const written: Buffer[] = [];
-  const stdin = new Writable({
-    highWaterMark: blockEncoderWrites ? 1 : undefined,
-    write(chunk, _enc, cb) {
-      written.push(Buffer.from(chunk));
-      if (!blockEncoderWrites) cb();
-    }
-  }) as Writable & { written: Buffer[] };
-  stdin.written = written;
-  child.stdin = stdin;
-  child.kill = () => true;
-  return child;
-}
+import {
+  defaultEncoderArgs,
+  encoderSpecFromArgs,
+  fitWithin,
+  openFrameEncoder,
+  openVideoFrameStream
+} from "../src/nodes/timeline/rawFrames.js";
+import { resolveTimelineOutput } from "../src/nodes/timeline/outputFormats.js";
 
-vi.mock("node:child_process", async (importOriginal) => {
-  const original = (await importOriginal()) as Record<string, unknown>;
-  return {
-    ...original,
-    spawn: (_cmd: string, args: string[]) => {
-      const child = makeChild();
-      spawned.push(child);
-      spawnArgs.push([...args]);
-      return child;
-    }
-  };
+const SIZE = { width: 8, height: 6 };
+const FPS = 10;
+let dir = "";
+let clip = "";
+
+/** Frame `i` of the fixture is gray level `i * 20`. */
+const grayAt = (index: number): number => index * 20;
+
+beforeAll(async () => {
+  dir = await fs.mkdtemp(path.join(os.tmpdir(), "nodetool-raw-frames-"));
+  clip = path.join(dir, "gray.mkv");
+  await writeRgbaVideo({
+    outPath: clip,
+    ...SIZE,
+    fps: FPS,
+    frames: 5,
+    frameAt: (index) => solidRgba(SIZE.width, SIZE.height, [grayAt(index), grayAt(index), grayAt(index), 255])
+  });
 });
 
-const { fitWithin, openFrameEncoder, openVideoFrameStream } = await import(
-  "../src/nodes/timeline/rawFrames.js"
-);
-
-/** A 1×1 RGBA frame filled with `value`. */
-function frame(value: number): Buffer {
-  return Buffer.from([value, value, value, 255]);
-}
-
-beforeEach(() => {
-  spawned = [];
-  spawnArgs = [];
-  blockEncoderWrites = false;
+afterAll(async () => {
+  if (dir) await fs.rm(dir, { recursive: true, force: true });
 });
 
-async function settleWithin<T>(promise: Promise<T>): Promise<{ value?: T; error?: Error }> {
-  let timeout: ReturnType<typeof setTimeout> | undefined;
-  try {
-    return await Promise.race([
-      promise.then(
-        (value) => ({ value }),
-        (error: Error) => ({ error })
-      ),
-      new Promise<never>((_resolve, reject) => {
-        timeout = setTimeout(() => reject(new Error("write stayed pending")), 100);
-      })
-    ]);
-  } finally {
-    if (timeout) clearTimeout(timeout);
-  }
+function stream(startSec = 0) {
+  return openVideoFrameStream({ filePath: clip, size: SIZE, fps: FPS, startSec, speed: 1 });
 }
+
+const gray = (frame: Uint8Array | null): number => (frame ? meanRgba(frame)[0] : -1);
 
 describe("fitWithin", () => {
   it("shrinks a source to fit the frame, keeping its aspect", () => {
-    expect(fitWithin({ width: 3840, height: 2160 }, { width: 1920, height: 1080 }))
-      .toEqual({ width: 1920, height: 1080 });
-    expect(fitWithin({ width: 1000, height: 4000 }, { width: 1920, height: 1080 }))
-      .toEqual({ width: 270, height: 1080 });
+    expect(fitWithin({ width: 3840, height: 2160 }, { width: 1920, height: 1080 })).toEqual({
+      width: 1920,
+      height: 1080
+    });
+    expect(fitWithin({ width: 1000, height: 1000 }, { width: 1920, height: 1080 })).toEqual({
+      width: 1000,
+      height: 1000
+    });
   });
 
   it("never upscales — a small source stays its own size", () => {
-    expect(fitWithin({ width: 64, height: 64 }, { width: 1920, height: 1080 }))
-      .toEqual({ width: 64, height: 64 });
+    expect(fitWithin({ width: 320, height: 240 }, { width: 1920, height: 1080 })).toEqual({
+      width: 320,
+      height: 240
+    });
   });
 });
 
 describe("openVideoFrameStream", () => {
-  const open = () =>
-    openVideoFrameStream({
-      filePath: "/tmp/clip.mp4",
-      size: { width: 1, height: 1 },
-      fps: 30,
-      startSec: 0,
-      speed: 1
-    });
-
-  it("slices frames out of chunks that don't align with frame boundaries", async () => {
-    const stream = open();
-    const child = spawned[0];
-    // Three frames delivered as two ragged chunks.
-    const all = Buffer.concat([frame(1), frame(2), frame(3)]);
-    child.stdout.write(all.subarray(0, 6));
-    child.stdout.write(all.subarray(6));
-
-    expect(await stream.frameAt(0)).toEqual(new Uint8Array(frame(1)));
-    expect(await stream.frameAt(1)).toEqual(new Uint8Array(frame(2)));
-    expect(await stream.frameAt(2)).toEqual(new Uint8Array(frame(3)));
-  });
-
-  it("waits for frames that have not been decoded yet", async () => {
-    const stream = open();
-    const child = spawned[0];
-    const pending = stream.frameAt(0);
-    child.stdout.write(frame(7));
-    expect(await pending).toEqual(new Uint8Array(frame(7)));
+  it("hands out each frame in order at the requested size", async () => {
+    const frames = stream();
+    try {
+      for (let index = 0; index < 5; index++) {
+        const frame = await frames.frameAt(index);
+        expect(frame).toHaveLength(SIZE.width * SIZE.height * 4);
+        expect(gray(frame)).toBe(grayAt(index));
+      }
+    } finally {
+      frames.close();
+    }
   });
 
   it("drops the frames of a skipped index instead of desyncing", async () => {
-    const stream = open();
-    const child = spawned[0];
-    child.stdout.write(Buffer.concat([frame(1), frame(2), frame(3)]));
-
-    // Frames 0 and 1 are never asked for (the layer was skipped).
-    expect(await stream.frameAt(2)).toEqual(new Uint8Array(frame(3)));
+    const frames = stream();
+    try {
+      // Frames 0 and 1 are never asked for (the layer was skipped).
+      expect(gray(await frames.frameAt(2))).toBe(grayAt(2));
+      expect(gray(await frames.frameAt(3))).toBe(grayAt(3));
+    } finally {
+      frames.close();
+    }
   });
 
   it("holds the last frame once the source runs out", async () => {
-    const stream = open();
-    const child = spawned[0];
-    child.stdout.write(frame(9));
-    child.stdout.end();
-
-    expect(await stream.frameAt(0)).toEqual(new Uint8Array(frame(9)));
-    expect(await stream.frameAt(5)).toEqual(new Uint8Array(frame(9)));
+    const frames = stream();
+    try {
+      expect(gray(await frames.frameAt(4))).toBe(grayAt(4));
+      expect(gray(await frames.frameAt(9))).toBe(grayAt(4));
+    } finally {
+      frames.close();
+    }
   });
 
-  it("reports a decode failure with ffmpeg's own message", async () => {
-    const stream = open();
-    const child = spawned[0];
-    child.stderr.write("moov atom not found");
-    child.stdout.end();
-    child.emit("close", 1);
+  it("starts at the in point", async () => {
+    const frames = stream(0.2);
+    try {
+      expect(gray(await frames.frameAt(0))).toBe(grayAt(2));
+    } finally {
+      frames.close();
+    }
+  });
 
-    await expect(stream.frameAt(0)).rejects.toThrow(/moov atom not found/);
+  it("reports a file it cannot decode", async () => {
+    const broken = path.join(dir, "broken.mp4");
+    await fs.writeFile(broken, "not a video");
+    const frames = openVideoFrameStream({
+      filePath: broken,
+      size: SIZE,
+      fps: FPS,
+      startSec: 0,
+      speed: 1
+    });
+    await expect(frames.frameAt(0)).rejects.toThrow();
+    frames.close();
+  });
+});
+
+describe("encoderSpecFromArgs", () => {
+  it("defaults to H.264 at yuv420p, converted to BT.709 and tagged", () => {
+    expect(encoderSpecFromArgs(defaultEncoderArgs())).toEqual({
+      codec: "libx264",
+      pixelFormat: "yuv420p",
+      filter: "scale=out_color_matrix=bt709:out_range=tv",
+      options: {
+        preset: "veryfast",
+        colorspace: "bt709",
+        color_primaries: "bt709",
+        color_trc: "bt709"
+      }
+    });
+  });
+
+  it("reads the alpha-carrying ProRes arguments", () => {
+    const spec = encoderSpecFromArgs(
+      resolveTimelineOutput({ format: "mov", alpha: true, bitrate: 5_000_000 }).encoderArgs
+    );
+    expect(spec).toMatchObject({
+      codec: "prores_ks",
+      pixelFormat: "yuva444p10le",
+      options: { profile: "4444", b: "5000000" }
+    });
   });
 });
 
 describe("openFrameEncoder", () => {
-  it("settles a backpressured write when encoding is aborted", async () => {
-    blockEncoderWrites = true;
-    const encoder = openFrameEncoder({ outPath: "/tmp/out.mp4", width: 1, height: 1, fps: 30 });
-    const pending = encoder.write(new Uint8Array(frame(1)));
-    encoder.abort();
-    const result = await settleWithin(pending);
-    expect(result.error).toBeInstanceOf(Error);
+  it("writes each composited frame and finalizes the file", async () => {
+    const outPath = path.join(dir, "out.mp4");
+    const encoder = openFrameEncoder({ outPath, ...SIZE, fps: FPS });
+    for (let index = 0; index < 5; index++) {
+      await encoder.write(solidRgba(SIZE.width, SIZE.height, [grayAt(index), grayAt(index), grayAt(index), 255]));
+    }
+    await encoder.finish();
+    const report = await inspectMedia(outPath);
+    expect(report.video).toMatchObject({ codec: "avc", ...SIZE });
+    expect(report.frameTimes).toHaveLength(5);
+    const frames = await readRgbaFrames(outPath, SIZE);
+    expect(frames.map((frame) => Math.round(gray(frame) / 20))).toEqual([0, 1, 2, 3, 4]);
   });
 
-  it("reports ffmpeg's error to a backpressured write", async () => {
-    blockEncoderWrites = true;
-    const encoder = openFrameEncoder({ outPath: "/tmp/out.mp4", width: 1, height: 1, fps: 30 });
-    const child = spawned[0];
-    const pending = encoder.write(new Uint8Array(frame(1)));
-    child.stderr.write("encoder rejected frame");
-    child.emit("close", 1);
-    const result = await settleWithin(pending);
-    expect(result.error?.message).toMatch(/encoder rejected frame/);
-  });
-
-  it("preserves the first process error when abort follows", async () => {
-    blockEncoderWrites = true;
-    const encoder = openFrameEncoder({ outPath: "/tmp/out.mp4", width: 1, height: 1, fps: 30 });
-    const child = spawned[0];
-    const pending = encoder.write(new Uint8Array(frame(1)));
-    const original = new Error("encoder pipe failed");
-    child.emit("error", original);
-    encoder.abort();
-    const result = await settleWithin(pending);
-    expect(result.error).toBe(original);
-  });
-
-  it("writes each composited frame to the encoder and finalizes on exit 0", async () => {
+  it("keeps alpha through VP9 at yuva420p", async () => {
+    const outPath = path.join(dir, "alpha.webm");
     const encoder = openFrameEncoder({
-      outPath: "/tmp/out.mp4",
-      width: 1,
-      height: 1,
-      fps: 30
+      outPath,
+      width: 16,
+      height: 16,
+      fps: FPS,
+      encoderArgs: resolveTimelineOutput({ format: "webm", alpha: true }).encoderArgs
     });
-    const child = spawned[0];
-
-    await encoder.write(new Uint8Array(frame(1)));
-    await encoder.write(new Uint8Array(frame(2)));
-    const done = encoder.finish();
-    child.emit("close", 0);
-    await done;
-
-    expect(Buffer.concat(child.stdin.written)).toEqual(
-      Buffer.concat([frame(1), frame(2)])
-    );
+    await encoder.write(solidRgba(16, 16, [255, 255, 255, 0]));
+    await encoder.finish();
+    const report = await inspectMedia(outPath);
+    expect(report.video?.codec).toBe("vp9");
   });
 
-  it("defaults to H.264 at yuv420p, which drops the alpha channel", () => {
-    openFrameEncoder({ outPath: "/tmp/out.mp4", width: 2, height: 2, fps: 30 });
-    expect(spawnArgs[0]).toEqual(
-      expect.arrayContaining(["-c:v", "libx264", "-pix_fmt", "yuv420p"])
-    );
-  });
-
-  it("passes the alpha-carrying encoder arguments through verbatim", () => {
-    openFrameEncoder({
-      outPath: "/tmp/out.webm",
-      width: 2,
-      height: 2,
-      fps: 30,
-      encoderArgs: ["-c:v", "libvpx-vp9", "-pix_fmt", "yuva420p"]
-    });
-    const args = spawnArgs[0];
-    expect(args).toEqual(
-      expect.arrayContaining(["-c:v", "libvpx-vp9", "-pix_fmt", "yuva420p"])
-    );
-    // The RGBA the compositor writes is still what goes in; only the output
-    // pixel format changed.
-    expect(args.slice(0, args.indexOf("-i"))).toEqual(
-      expect.arrayContaining(["-f", "rawvideo", "-pix_fmt", "rgba"])
-    );
-    expect(args).not.toContain("libx264");
-  });
-
-  it("fails with ffmpeg's message when the encode exits non-zero", async () => {
+  it("fails when the encoder cannot be opened", async () => {
     const encoder = openFrameEncoder({
-      outPath: "/tmp/out.mp4",
-      width: 1,
-      height: 1,
-      fps: 30
+      outPath: path.join(dir, "bad.mp4"),
+      ...SIZE,
+      fps: FPS,
+      encoderArgs: ["-c:v", "no_such_encoder", "-pix_fmt", "yuv420p"]
     });
-    const child = spawned[0];
-    child.stderr.write("height not divisible by 2");
-    const done = encoder.finish();
-    child.emit("close", 1);
+    await expect(encoder.write(solidRgba(SIZE.width, SIZE.height, [0, 0, 0, 255]))).rejects.toThrow(
+      /no_such_encoder/
+    );
+    encoder.abort();
+  });
 
-    await expect(done).rejects.toThrow(/height not divisible by 2/);
+  it("refuses writes after an abort", async () => {
+    const encoder = openFrameEncoder({ outPath: path.join(dir, "aborted.mp4"), ...SIZE, fps: FPS });
+    await encoder.write(solidRgba(SIZE.width, SIZE.height, [0, 0, 0, 255]));
+    encoder.abort();
+    await expect(encoder.write(solidRgba(SIZE.width, SIZE.height, [0, 0, 0, 255]))).rejects.toThrow(
+      /aborted/
+    );
   });
 });

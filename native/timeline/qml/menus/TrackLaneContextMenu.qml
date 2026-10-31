@@ -3,8 +3,9 @@ import QtQuick
 import QtQml
 import QtQuick.Controls
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
-Menu {
+Ui.ContextMenu {
     id: menu
     required property ClipGestureController gestures
     property var context: ({})
@@ -12,9 +13,9 @@ Menu {
     readonly property var actionContext: Object.assign({}, context, { kind: "lane" })
     readonly property var webItems: {
         const items = []
-        if (["overlay", "video"].includes(context.trackType)) items.push({ action: "addText", label: "Add text", icon: Icons.title })
+        if (["overlay", "video"].includes(context.trackType)) items.push({ action: "addText", label: "Add text", icon: "title" })
         if (hasGap) items.push({ action: "closeGapAt", label: "Close gap",
-                                 icon: "M4 9v2h16V9zm12-5-1.41-1.41L13 4.17V1h-2v3.19L9.39 2.61 8 4l4 4zM4 14h16v-2H4zm4 5 1.39 1.39L11 18.81V22h2v-3.17l1.59 1.59L16 19l-4-4z" })
+                                 icon: "closeGap" })
         return items
     }
     // Reuse the existing raw-document reader, taking one snapshot per open as the web does.
@@ -36,17 +37,14 @@ Menu {
         Qt.callLater(() => { if (count > 0) popup(px, py) })
     }
     objectName: "registryContextMenu-lane"
-    width: Math.max(180, implicitContentWidth + 2 * Theme.spacingXs)
-    padding: Theme.spacingXs
     popupType: Popup.Item
-    background: Rectangle { color: Theme.backgroundPaper; radius: Theme.radiusLg; border.color: Theme.divider }
     Instantiator {
         model: menu.webItems
         delegate: MenuActionItem {
             required property var modelData
             objectName: "laneMenu-" + (modelData.action === "closeGapAt" ? "closeGap" : modelData.action)
             text: modelData.label
-            iconPath: modelData.icon
+            iconName: modelData.icon
             actionName: modelData.action
             actionContext: menu.actionContext
             gestures: menu.gestures

@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import NodeTool.Timeline
 import "ClipEffectsCatalog.js" as Catalog
 import "../inspectorsections" as Sections
+import NodeTool.UiPrimitives as Ui
 
 Item {
     id: root
@@ -19,27 +20,19 @@ Item {
     Column {
         id: content
         width: parent.width
-        spacing: Theme.spacingXs
-        topPadding: Theme.spacingMd
-        Rectangle {
-            width: parent.width
-            height: 1
-            color: Theme.divider
-        }
+        spacing: Ui.Metrics.xs
+        topPadding: Ui.Metrics.md
+        Ui.Separator { width: parent.width }
         RowLayout {
             width: parent.width
-            spacing: Theme.spacingMicro
-            Sections.InspectorActionButton {
+            spacing: Ui.Metrics.micro
+            Ui.ToolbarIconButton {
                 id: reorder
                 objectName: "effectsReorder_" + root.effectId
-                implicitWidth: Theme.controlXs
-                implicitHeight: Theme.controlXs
-                text: "⠿"
-                outlined: false
+                iconName: "dragIndicator"
                 enabled: !root.editor.locked
-                Accessible.name: "Reorder " + root.name
-                Controls.ToolTip.visible: hovered
-                Controls.ToolTip.text: "Drag to reorder, or use Alt + arrow keys"
+                accessibleName: "Reorder " + root.name
+                description: "Drag to reorder, or use Alt + arrow keys"
                 Keys.onPressed: event => {
                     if ((event.modifiers & Qt.AltModifier) && (event.key === Qt.Key_Up || event.key === Qt.Key_Down)) {
                         root.editor.move(root.effectId, event.key === Qt.Key_Up ? -1 : 1);
@@ -73,59 +66,32 @@ Item {
                     }
                 }
             }
-            Controls.CheckBox {
+            Ui.CheckBox {
                 id: activation
                 objectName: "effectsEnabled_" + root.effectId
-                checked: root.effect.enabled ?? false
+                Binding { target: activation; property: "checked"; value: root.effect.enabled ?? false }
                 enabled: !root.editor.locked
-                implicitWidth: Theme.controlXs
-                implicitHeight: Theme.controlXs
-                padding: 0
-                Accessible.name: root.name + " enabled"
-                indicator: Rectangle {
-                    width: Theme.fontSizeSmall
-                    height: width
-                    x: (activation.width - width) / 2
-                    y: (activation.height - height) / 2
-                    radius: Theme.radiusXs
-                    border.width: 1
-                    border.color: Theme.overlayStrong
-                    color: activation.checked ? Theme.primary : "transparent"
-                    Text {
-                        anchors.centerIn: parent
-                        text: activation.checked ? "✓" : ""
-                        color: Theme.textPrimary
-                        font.pixelSize: Theme.fontSizeSmaller
-                    }
-                }
-                onClicked: root.editor.patch(root.effectId, {
+                accessibleName: root.name + " enabled"
+                onCheckedChangedByUser: checked => root.editor.patch(root.effectId, {
                     enabled: checked
                 })
             }
-            Sections.InspectorActionButton {
+            Ui.EditorButton {
                 objectName: "effectsExpand_" + root.effectId
                 Layout.fillWidth: true
-                outlined: false
-                text: (root.expanded ? "⌄ " : "› ") + root.name
-                Accessible.name: root.name
-                contentItem: Text {
-                    text: parent.text
-                    font: parent.font
-                    elide: Text.ElideRight
-                    color: root.effect.enabled ? Theme.textPrimary : Theme.textSecondary
-                    verticalAlignment: Text.AlignVCenter
-                }
+                variant: Ui.EditorButton.Flat
+                contentAlignment: Qt.AlignLeft
+                text: root.name
+                trailingIconName: root.expanded ? "arrowDropDown" : "navigateNext"
+                textTone: root.effect.enabled ? Ui.Text.Primary : Ui.Text.Secondary
+                accessibleName: root.name
                 onClicked: root.expand()
             }
-            Sections.InspectorActionButton {
+            Ui.ToolbarIconButton {
                 objectName: "effectsRemove_" + root.effectId
-                implicitWidth: Theme.controlXs
-                outlined: false
-                text: "×"
+                iconName: "close"
                 enabled: !root.editor.locked
-                Accessible.name: "Remove " + root.name + " effect"
-                Controls.ToolTip.visible: hovered
-                Controls.ToolTip.text: Accessible.name
+                accessibleName: "Remove " + root.name + " effect"
                 onClicked: root.editor.remove(root.effectId)
             }
         }

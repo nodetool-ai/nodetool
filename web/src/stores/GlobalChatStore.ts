@@ -1492,12 +1492,16 @@ const useGlobalChatStore = create<GlobalChatState>()(
           keepMediaMode?: boolean;
         }
       ) => {
-        if (!options?.keepMediaMode) {
-          useMediaGenerationStore
-            .getState()
-            .setMode(options?.mediaMode ?? "chat");
-        }
         const id = crypto.randomUUID();
+        if (!options?.keepMediaMode) {
+          const nextMode = options?.mediaMode ?? "chat";
+          const mediaStore = useMediaGenerationStore.getState();
+          mediaStore.setMode(nextMode);
+          mediaStore.setThreadMode(id, nextMode);
+        } else {
+          const mediaStore = useMediaGenerationStore.getState();
+          mediaStore.setThreadMode(id, mediaStore.mode);
+        }
         get().ensureLocalThread(id, {
           title: isString(title) ? title : undefined,
           workflowId,

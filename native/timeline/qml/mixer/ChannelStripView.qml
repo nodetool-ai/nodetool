@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls as Controls
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 import "faderTaper.js" as Taper
 Item {
     id: root
@@ -25,24 +26,22 @@ Item {
     function cancelGesture() { volumeGesture=false; panGesture=false; fader.dragging=false; pan.dragging=false }
     function endVolume() { if(volumeGesture) { volumeGesture=false; volumeCommit(draftDb) } }
     function endPan() { if(panGesture) { panGesture=false; panCommit(draftPan) } }
-    Icon {
-        visible: !root.master; path: Theme.trackIcon(root.channel.type)
-        size: Theme.iconXs; y: 1; color: Theme.trackAccent(root.channel.type)
+    Ui.Icon {
+        visible: !root.master; name: TimelineVisuals.trackIconName(root.channel.type)
+        size: Ui.Metrics.iconXs; y: 1; domainColor: TimelineVisuals.trackAccent(root.channel.type)
     }
-    Text {
-        id: head; x: root.master ? 0 : Theme.iconXs+Theme.spacingXs
-        width: parent.width-x; height: 16
-        text: root.channelName; elide: Text.ElideRight; color: Theme.textPrimary
-        font.family: Theme.sansFamily; font.pixelSize: Theme.fontSizeSmall; font.weight: Font.Medium
-    }
-    Rectangle {
-        id: device; anchors.top: head.bottom; anchors.topMargin: Theme.spacingXs
-        width: parent.width; height: 20; color: "transparent"; border.color: Theme.divider; radius: Theme.radiusSm
-        Text { anchors.fill: parent; anchors.leftMargin: Theme.spacingXs; verticalAlignment: Text.AlignVCenter; text: root.master ? "Stereo out" : root.channel.type === "midi"
-            ? ({subtractive:"Synth",wavetable:"WT-1 Wavetable",bass:"BL-1 Bass",drum:"DR-1 Drums",sampler:"Sampler",vst:"VST"})[(root.channel.instrument || {}).type || "subtractive"] || "Instrument" : "Audio"; color: Theme.textSecondary; font.family: Theme.sansFamily; font.pixelSize: Theme.fontSizeSmaller }
+    Ui.Text { role: Ui.Typography.SansLabel;
+        id: head; x: root.master ? 0 : Ui.Metrics.iconXs+Ui.Metrics.xs
+        width: parent.width-x; height: Math.max(Ui.Metrics.iconSm, implicitHeight)
+        text: root.channelName; elide: Text.ElideRight; }
+    Ui.Surface {
+        id: device; variant: Ui.Surface.Input; anchors.top: head.bottom; anchors.topMargin: Ui.Metrics.xs
+        width: parent.width; height: Math.max(Ui.Metrics.small, deviceLabel.implicitHeight + Ui.Metrics.xs)
+        Ui.Text { id: deviceLabel; role: Ui.Typography.SansCaption; anchors.fill: parent; anchors.leftMargin: Ui.Metrics.xs; verticalAlignment: Text.AlignVCenter; text: root.master ? "Stereo out" : root.channel.type === "midi"
+            ? ({subtractive:"Synth",wavetable:"WT-1 Wavetable",bass:"BL-1 Bass",drum:"DR-1 Drums",sampler:"Sampler",vst:"VST"})[(root.channel.instrument || {}).type || "subtractive"] || "Instrument" : "Audio"; tone: Ui.Text.Secondary }
     }
     InsertSlots {
-        id: inserts; anchors.top: device.bottom; anchors.topMargin: Theme.spacingXs
+        id: inserts; anchors.top: device.bottom; anchors.topMargin: Ui.Metrics.xs
         width: parent.width; channelId: root.channelId; channel: root.channelName; effects: root.channel.effects || []
         maxListHeight: Math.max(20,Math.min(96,root.height-180))
         onAdd: effect => root.addEffect(effect)
@@ -50,12 +49,12 @@ Item {
         onOpen: (id,anchor) => root.openEffect(id,anchor)
     }
     Item {
-        id: body; anchors.top: inserts.bottom; anchors.topMargin: Theme.spacingXs; anchors.bottom: readout.top; anchors.bottomMargin: Theme.spacingXs
+        id: body; anchors.top: inserts.bottom; anchors.topMargin: Ui.Metrics.xs; anchors.bottom: readout.top; anchors.bottomMargin: Ui.Metrics.xs
         width: parent.width
         Item {
             id: side
             width: root.compact ? parent.width : 36
-            height: root.compact ? 52 : parent.height
+            height: root.compact ? 64 : parent.height
             x: root.compact ? 0 : parent.width-width
             visible: !root.master
             Item {
@@ -70,9 +69,11 @@ Item {
                 Accessible.name: root.channelName + " pan"
                 Accessible.description: Taper.panValueText(root.displayPan)
                 function finish() { dragging=false; root.endPan() }
+                function cancel() { dragging=false; root.panGesture=false; root.draftPan=root.channel.pan || 0 }
                 function nudge(next) { root.panGesture=true; root.draftPan=Math.max(-1,Math.min(1,next)) }
                 onActiveFocusChanged: if(!activeFocus) finish()
                 Keys.onPressed: event => {
+                    if (event.key === Qt.Key_Escape && root.panGesture) { cancel(); event.accepted=true; return }
                     var current=root.displayPan, next=current
                     var step=event.modifiers & Qt.ShiftModifier ? .001 : .01
                     switch(event.key) {
@@ -94,18 +95,19 @@ Item {
                         var ctx=getContext("2d"), c=width/2, r=c-3
                         var angle=root.displayPan*135
                         ctx.reset(); ctx.beginPath(); ctx.arc(c,c,r-2,0,2*Math.PI)
-                        ctx.fillStyle=Theme.actionHover; ctx.fill()
-                        ctx.lineWidth=3; ctx.lineCap="round"; ctx.strokeStyle=Theme.divider
+                        ctx.fillStyle=Ui.Theme.actionHover; ctx.fill()
+                        ctx.lineWidth=3; ctx.lineCap="round"; ctx.strokeStyle=Ui.Theme.borderSubtle
                         ctx.beginPath(); ctx.arc(c,c,r,-225*Math.PI/180,45*Math.PI/180); ctx.stroke()
-                        ctx.strokeStyle=Theme.primary; ctx.beginPath()
+                        ctx.strokeStyle=Ui.Theme.accentPrimary; ctx.beginPath()
                         ctx.arc(c,c,r,-Math.PI/2,(angle-90)*Math.PI/180,angle<0); ctx.stroke()
                         ctx.beginPath(); ctx.moveTo(c,c)
                         ctx.lineTo(c+Math.cos((angle-90)*Math.PI/180)*(r-4),c+Math.sin((angle-90)*Math.PI/180)*(r-4))
-                        ctx.strokeStyle=Theme.textPrimary; ctx.lineWidth=2; ctx.stroke()
-                        if(pan.activeFocus) { ctx.strokeStyle=Theme.primary; ctx.lineWidth=1; ctx.strokeRect(0,0,width,height) }
+                        ctx.strokeStyle=Ui.Theme.textPrimary; ctx.lineWidth=2; ctx.stroke()
+                        if(pan.activeFocus) { ctx.strokeStyle=Ui.Theme.accentPrimary; ctx.lineWidth=1; ctx.strokeRect(0,0,width,height) }
                     }
                     Connections { target: root; function onDisplayPanChanged() { panDial.requestPaint() } }
                     Connections { target: pan; function onActiveFocusChanged() { panDial.requestPaint() } }
+                    Connections { target: Ui.Theme; function onEffectiveSchemeChanged() { panDial.requestPaint() } }
                 }
                 MouseArea {
                     anchors.fill: parent; cursorShape: Qt.SizeAllCursor
@@ -120,40 +122,42 @@ Item {
                         pan.nudge(pan.startValue+delta*2/(160*(event.modifiers & Qt.ShiftModifier ? 10 : 1)))
                     }
                     onReleased: pan.finish()
-                    onCanceled: pan.finish()
+                    onCanceled: pan.cancel()
                     onDoubleClicked: { pan.dragging=false; root.panGesture=false; root.panCommit(0) }
                 }
             }
-            Text { x: root.compact ? 30 : 0; y: root.compact ? 8 : 30; width: 36; text: Taper.formatPan(root.displayPan); color: Theme.textSecondary; font.family: Theme.monoFamily; font.pixelSize: Theme.fontSizeSmaller; horizontalAlignment: Text.AlignHCenter }
+            Ui.Text { role: Ui.Typography.MonoCaption; x: root.compact ? 30 : 0; y: root.compact ? 8 : 30; width: 36; text: Taper.formatPan(root.displayPan); tone: Ui.Text.Secondary; horizontalAlignment: Text.AlignHCenter }
             Item {
-                x: 0; y: root.compact ? 32 : 60; height: root.compact ? 20 : 44
+                x: 0; y: root.compact ? 32 : 60; height: root.compact ? Ui.Metrics.compact : Ui.Metrics.compact * 2 + Ui.Metrics.xs
                 width: parent.width
                 // The roomy strip stacks the two toggles beside the fader.
-                Controls.Button {
-                    objectName: "mute-" + root.channelId; width: root.compact ? (side.width-4)/2 : 36; height: 20
-                    palette.buttonText: root.channel.muted ? Theme.backgroundDefault : Theme.textSecondary
-                    font.family: Theme.monoFamily; font.pixelSize: Theme.fontSizeSmall; font.weight: Font.DemiBold
-                    text: "M"; checkable: true; checked: !!root.channel.muted
-                    Accessible.name: (root.channel.muted?"Unmute ":"Mute ")+root.channelName
+                Ui.EditorButton {
+                    objectName: "mute-" + root.channelId
+                    width: root.compact ? (side.width - Ui.Metrics.xs) / 2 : side.width
+                    density: Ui.EditorButton.Compact
+                    text: "M"
+                    checkable: true
+                    checked: !!root.channel.muted
+                    accessibleName: (root.channel.muted ? "Unmute " : "Mute ") + root.channelName
                     onClicked: root.mute()
-                    background: Rectangle { color: root.channel.muted ? Theme.warning : "transparent"; border.color: Theme.divider; radius: Theme.radiusSm }
                 }
-                Controls.Button {
+                Ui.EditorButton {
                     objectName: "solo-" + root.channelId
-                    x: root.compact ? (side.width+4)/2 : 0; y: root.compact ? 0 : 24
-                    width: root.compact ? (side.width-4)/2 : 36; height: 20
-                    palette.buttonText: root.channel.solo ? Theme.backgroundDefault : Theme.textSecondary
-                    font.family: Theme.monoFamily; font.pixelSize: Theme.fontSizeSmall; font.weight: Font.DemiBold
-                    text: "S"; checkable: true; checked: !!root.channel.solo
-                    Accessible.name: (root.channel.solo?"Unsolo ":"Solo ")+root.channelName
+                    x: root.compact ? (side.width + Ui.Metrics.xs) / 2 : 0
+                    y: root.compact ? 0 : Ui.Metrics.compact + Ui.Metrics.xs
+                    width: root.compact ? (side.width - Ui.Metrics.xs) / 2 : side.width
+                    density: Ui.EditorButton.Compact
+                    text: "S"
+                    checkable: true
+                    checked: !!root.channel.solo
+                    accessibleName: (root.channel.solo ? "Unsolo " : "Solo ") + root.channelName
                     onClicked: root.solo()
-                    background: Rectangle { color: root.channel.solo ? Theme.success : "transparent"; border.color: Theme.divider; radius: Theme.radiusSm }
                 }
             }
         }
         Item {
             id: level
-            y: root.compact ? 56 : 0; height: parent.height-y
+            y: root.compact ? 68 : 0; height: parent.height-y
             width: root.compact || root.master ? parent.width : parent.width-40
             MixerFader {
                 id: fader; objectName: "fader-" + root.channelId
@@ -163,24 +167,28 @@ Item {
                 label: root.channelName+" volume"
                 onPreview: db => { root.volumeGesture=true; root.draftDb=db }
                 onCommit: db => { root.volumeGesture=false; root.volumeCommit(db) }
+                onCanceled: { root.volumeGesture=false; root.draftDb=root.channel.volumeDb || 0 }
             }
             MixerMeter {
-                x: fader.x+fader.width+Theme.spacingXs; width: 12; height: parent.height
+                x: fader.x+fader.width+Ui.Metrics.xs; width: 12; height: parent.height
                 channelId: root.channelId
             }
         }
     }
-    Controls.TextField {
-        id: readout; objectName: "db-readout-"+root.channelId
-        anchors.bottom: parent.bottom; width: parent.width; height: 20; padding: 0
-        property bool cancelled: false
-        onActiveFocusChanged: if(activeFocus) cancelled=false
-        text: activeFocus ? (root.channel.volumeDb || 0).toFixed(1) : Taper.formatDb(root.displayDb)
+    Ui.TextField {
+        id: readout
+        objectName: "db-readout-" + root.channelId
+        anchors.bottom: parent.bottom
+        width: parent.width
+        density: Ui.EditorButton.Compact
+        value: activeFocus ? (root.channel.volumeDb || 0).toFixed(1) : Taper.formatDb(root.displayDb)
         horizontalAlignment: TextInput.AlignHCenter
-        color: Theme.textPrimary; font.family: Theme.monoFamily; font.pixelSize: Theme.fontSizeSmaller
-        Accessible.name: root.channelName+" level (dB)"
-        background: Rectangle { color: Theme.backgroundDefault; border.color: readout.activeFocus?Theme.primary:Theme.divider; radius: Theme.radiusSm }
-        onEditingFinished: { var next=Taper.parseDb(text); if(next!==null && !cancelled) root.volumeCommit(next); focus=false }
-        Keys.onEscapePressed: { cancelled=true; text=Taper.formatDb(root.channel.volumeDb || 0); focus=false }
+        valid: Taper.parseDb(text) !== null
+        errorText: qsTr("Enter a level in dB")
+        accessibleName: root.channelName + " level (dB)"
+        onValueCommitted: text => {
+            const next = Taper.parseDb(text)
+            if (next !== null) root.volumeCommit(next)
+        }
     }
 }

@@ -56,7 +56,8 @@ Guidelines](docs/BRAND.md).
 
 - **[Development Standards](docs/DEVELOPMENT_STANDARDS.md)** — Required for all work.
 - **[Repository Skills](#repository-skills)** — Task-specific engineering and NodeTool authoring workflows.
-- **[Design System](docs/DESIGN.md)** — Required for UI work.
+- **[Design System](docs/DESIGN.md)** — Required for React UI work.
+- **[Native UI primitives](native/ui_primitives/AGENTS.md)** — Qt Quick presentation rules and the independent [native design specification](native/ui_primitives/DESIGN.md).
 - **[UX Guidelines](docs/UX_GUIDELINES.md)** — Required for UI work: entry points, model defaults, keeping work, empty states, errors, labels, small windows. Drawn from the UX research studies.
 - **[UI Primitives Strategy](web/src/components/ui_primitives/STRATEGY.md)** — Required for frontend work.
 - **[Harness-First Engineering](docs/HARNESS_FIRST.md)** — The doctrine: every surface headlessly drivable, the registry, `nodetool harness audit`
@@ -71,6 +72,7 @@ Guidelines](docs/BRAND.md).
 - **[Web UI](web/src/AGENTS.md)** — React web application
   - [Components](web/src/components/AGENTS.md), [Stores](web/src/stores/AGENTS.md), [Contexts](web/src/contexts/AGENTS.md), [Hooks](web/src/hooks/AGENTS.md), [Utils](web/src/utils/AGENTS.md), [ServerState](web/src/serverState/AGENTS.md), [Lib](web/src/lib/AGENTS.md), [Config](web/src/config/AGENTS.md)
 - **[Testing](web/TESTING.md)** — Web testing guide (Jest, React Testing Library, Playwright)
+- **[Native chat](native/chat/AGENTS.md)** — Qt Quick chat component and standalone app
 - **[Electron](electron/src/AGENTS.md)** — Desktop app
 - **[Native Game](native/game/AGENTS.md)** — C++ game documents and worker
 - **[Mobile](mobile/AGENTS.md)** — React Native / Expo app
@@ -93,9 +95,10 @@ Use these sections for the detailed rules summarized below.
 | Language and runtime | [TypeScript](docs/DEVELOPMENT_STANDARDS.md#1-typescript), [ES modules](docs/DEVELOPMENT_STANDARDS.md#2-es-modules--node-runtime), [error handling](docs/DEVELOPMENT_STANDARDS.md#18-error-handling) |
 | Components and state | [React](docs/DEVELOPMENT_STANDARDS.md#3-react), [Zustand](docs/DEVELOPMENT_STANDARDS.md#4-zustand), [TanStack Query](docs/DEVELOPMENT_STANDARDS.md#6-tanstack-query-v5), [ReactFlow](docs/DEVELOPMENT_STANDARDS.md#7-reactflow-12) |
 | UI quality | [MUI and primitives](docs/DEVELOPMENT_STANDARDS.md#5-mui-v7--emotion--ui-primitives), [accessibility](docs/DEVELOPMENT_STANDARDS.md#14-accessibility-a11y), [performance](docs/DEVELOPMENT_STANDARDS.md#15-performance) |
+| Native Qt UI | [Native presentation rules](docs/DEVELOPMENT_STANDARDS.md#23-native-qt-ui), [native design specification](native/ui_primitives/DESIGN.md) |
 | API and persistence | [Fastify](docs/DEVELOPMENT_STANDARDS.md#9-fastify-http--websocket-server), [Drizzle](docs/DEVELOPMENT_STANDARDS.md#10-drizzle-orm), [Zod](docs/DEVELOPMENT_STANDARDS.md#11-zod-validation), [WebSocket protocol](docs/DEVELOPMENT_STANDARDS.md#13-websocket-protocol) |
 | Verification and diagnostics | [testing](docs/DEVELOPMENT_STANDARDS.md#8-testing), [observability](docs/DEVELOPMENT_STANDARDS.md#17-observability), [enforcement](docs/DEVELOPMENT_STANDARDS.md#22-enforcement) |
-| Security boundaries | [application security](docs/DEVELOPMENT_STANDARDS.md#16-security), [Electron security](docs/DEVELOPMENT_STANDARDS.md#12-electron-39-security) |
+| Security boundaries | [application security](docs/DEVELOPMENT_STANDARDS.md#16-security), [Electron security](docs/DEVELOPMENT_STANDARDS.md#12-electron-security) |
 | Delivering changes | [documentation and comments](docs/DEVELOPMENT_STANDARDS.md#19-documentation--comments), [commits and PRs](docs/DEVELOPMENT_STANDARDS.md#20-git-commits-prs), [dependencies](docs/DEVELOPMENT_STANDARDS.md#21-dependencies--versions) |
 
 ## Repository Skills
@@ -165,16 +168,28 @@ workspace manifests. Build in dependency order with `npm run build:packages`.
 | Area | Location |
 |---|---|
 | Shared messages and schemas | `packages/protocol/` |
-| Configuration, secrets, auth, storage, persistence | `packages/{config,security,auth,storage,models}/` |
+| Configuration, secrets, auth, storage | `packages/{config,security-core,security,auth,storage}/` |
+| Persistence contracts and selected database adapters | `packages/{models-core,database-sqlite,database-postgres}/`, full `packages/models/` |
 | Node definitions and registry | `packages/node-sdk/`, domain node packages, `packages/base-nodes/` re-exports |
-| Providers, processing context, workspace | `packages/runtime/` |
-| Workflow graph and actor execution | `packages/kernel/` |
+| Lean providers, workspace and actor execution | `packages/{runtime-core,execution-core,nodes-core}/` |
+| Full processing context and kernel compatibility exports | `packages/runtime/`, `packages/kernel/` |
+| HTTP-independent asset, document, archive, error and pack services | `packages/{asset-services,document-services,workflow-services,project-services,error-trace-services,pack-host}/` |
 | Planning and execution agents, chat | `packages/agents/`, `packages/chat/` |
-| HTTP/WebSocket API, CLI, browser automation | `packages/{websocket,cli,browser}/` |
+| Lean execution host and default CLI | `packages/{server-core,server-minimal,cli}/` |
+| Pack metadata, authorized installation and full node registration | `packages/{pack-core,pack-manager,node-catalog}/` |
+| Full API and browser automation | `packages/websocket/`, `packages/browser/` |
+| Independently installed CLI command features | `packages/cli-{workflow,harness,chat,models,admin,mcp,server,apps,game,timeline,sketch,script}/` |
+| Shared CLI utilities and optional command implementation libraries | `packages/cli-{common,execution,local,providers}/` |
 | Shared app state, pricing, 3D documents, RAG | `packages/{app-runtime,model-pricing,model3d,vectorstore}/` |
-| QuickJS dependency compiler and guest-only packs | `packages/sandbox-compiler/`, `packages/sandbox-packs/` (packs are not workspaces) |
+| Shared QuickJS worker, optional dependency compiler and guest-only packs | `packages/sandbox-runtime/`, `packages/sandbox-compiler/`, `packages/sandbox-packs/` (packs are not workspaces) |
 | Web, desktop, mobile | `web/`, `electron/`, `mobile/` |
 | Product-demo recordings | `demo/`, `web/src/demo/` ([guide](demo/README.md)) |
+
+The default [CLI](packages/cli/README.md) and [execution server](packages/server-minimal/README.md)
+compose the lean packages. Authoring, chat, MCP and deployment commands live in
+independently installed [command features](docs/cli.md#install-command-features).
+Keep their dependency separation and packed-consumer checks described in the
+[backend rules](packages/AGENTS.md#package-dependency-order).
 
 ### Cross-Package Rules
 
@@ -189,7 +204,9 @@ workspace manifests. Build in dependency order with `npm run build:packages`.
 - Workflow WebSocket messages use MsgPack and existing serialization helpers.
   REST uses JSON. Frontend connections use `GlobalWebSocketManager`, never new
   `WebSocket` instances. Frontend tools use the `ui_` prefix.
-- LLM providers live in `packages/runtime/src/providers/`. Python nodes connect
+- The lean text adapter and workspace implementation live in
+  [`runtime-core`](packages/runtime-core/README.md). Full provider adapters live
+  in `packages/runtime/src/providers/`. Python nodes connect
   lazily through `PythonStdioBridge` using length-prefixed MsgPack over stdio.
 
 #### Resource ID Principles
@@ -282,11 +299,13 @@ Slash commands are in [.claude/README.md](.claude/README.md).
   workspace added since the last install has no `node_modules/@nodetool-ai/`
   link and fails every build that imports it. Run `npm install` to link it.
 - Run `npm run build:packages` before `test:affected` and `harness gate`.
-  Selfchecks that run the CLI fail on a missing `packages/cli/dist`, which
+  Selfchecks that run the CLI fail on a missing command-feature `dist/` output, which
   looks like a gate failure but is an unbuilt tree.
-- The runtime and base-nodes suites need `ffmpeg` and a Vulkan ICD, as in CI
+- The runtime and base-nodes suites need a Vulkan ICD, as in CI
   (`extra-apt` in `.github/workflows/quality-checks.yml`). Install
-  `ffmpeg mesa-vulkan-drivers` before a suite-wide run.
+  `mesa-vulkan-drivers` before a suite-wide run. Media runs in process on
+  `@nodetool-ai/runtime/media`, so no suite needs the `ffmpeg` binary; make
+  test media with `@nodetool-ai/runtime/media/testing`, never the CLI.
 - The root `postinstall` rebuilds `better-sqlite3` after npm finishes reifying
   dependencies. Keep the rebuild there, not in the Electron workspace hook.
   For `NODE_MODULE_VERSION` failures, run `npm run rebuild:native`.
@@ -358,7 +377,7 @@ selection. If you change `buildPlan` in `scripts/test-affected.mjs`, update
 `scripts/__tests__/test-affected.test.mjs`.
 
 `harness gate` selects selfchecks through
-`packages/cli/src/harness/registry.ts`. Add `--dry-run` to inspect its plan.
+`packages/cli-harness/src/harness/registry.ts`. Add `--dry-run` to inspect its plan.
 See [gate selection](docs/HARNESS_FIRST.md#the-gate) and
 [CLI flags](docs/cli.md#nodetool-harness-gate-files). Run known affected
 suites directly when a shared fixture or generated file creates an undeclared
@@ -451,6 +470,7 @@ from `packages/agents/src/tools/mcp-tools.ts` over shell commands.
 
 | Need | Command or tool |
 |---|---|
+| [Check native Qt presentation](native/ui_primitives/README.md) | `python3 native/ui_primitives/tools/check_design.py --strict` and `python3 native/ui_primitives/tools/check_dependencies.py` |
 | [Validate a graph before running it](docs/harnesses.md#nodetool-validate-static-workflow-check) | `nodetool validate <id\|file.json\|file.ts>` / `validate_workflow` |
 | [Isolate a node](docs/harnesses.md#nodetool-node-run-single-node-harness) | `nodetool node run <type> --props '{…}' [--no-secrets]` |
 | [Run and inspect a workflow](docs/harnesses.md#nodetool-debug-workflow-debug-harness) | `nodetool debug <id\|file>` / `debug_workflow` |
@@ -478,7 +498,7 @@ Other task references:
 | Entities and media | [Entity library](docs/harnesses.md#entity-library-tools-no-browser), [media analysis](docs/harnesses.md#media-analysis-tools-no-model-no-ffmpeg), [timeline previews](docs/harnesses.md#nodetool-timeline-validate--debug-timeline-harness) |
 | Chat and remote deployment | [Chat](docs/harnesses.md#nodetool-chat), [deployment and workers](docs/cli.md#deployment-and-workers) |
 
-Selfcheck mappings live in the [harness registry](packages/cli/src/harness/registry.ts).
+Selfcheck mappings live in the [harness registry](packages/cli-harness/src/harness/registry.ts).
 
 ### In-Browser Workflow Harness
 
@@ -502,7 +522,7 @@ See [span hierarchy and sinks](docs/harnesses.md#observing-agent-execution).
 ## Security
 
 Follow [Security](docs/DEVELOPMENT_STANDARDS.md#16-security) and
-[Electron Security](docs/DEVELOPMENT_STANDARDS.md#12-electron-39-security).
+[Electron Security](docs/DEVELOPMENT_STANDARDS.md#12-electron-security).
 
 - Outbound fetches of URLs chosen by callers, providers, or models must use
   `safeFetch` or `fetchExternalMedia` from `@nodetool-ai/runtime`. A predicate

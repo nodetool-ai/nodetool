@@ -15,20 +15,24 @@ import {
   cleanupStorage,
   compactStorage,
   getStorageStatus,
-  clearSecretCache
+  clearSecretCache,
+  getSecrets
 } from "@nodetool-ai/models";
 import type { Secret as SecretModel } from "@nodetool-ai/models";
 import {
   clearProviderCache,
   checkCredential,
-  readCredentialEnv
+  readCredentialEnv,
+  getRegisteredProvider,
+  listRegisteredProviderIds,
+  isProviderConfigured
 } from "@nodetool-ai/runtime";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { settingCatalog } from "@nodetool-ai/config";
-import { isCloudSettingGroup } from "@nodetool-ai/protocol";
+import { isCloudProvider, isCloudSettingGroup, isCustomProviderId } from "@nodetool-ai/protocol";
 import { isCloudProfile } from "../../lib/cloud-profile.js";
 import type { SettingWithValue } from "../../settings-registry.js";
 import {
@@ -263,6 +267,50 @@ const historyRouter = router({
 // ── Root settings router ───────────────────────────────────────────
 
 export const settingsRouter = router({
+  /** Configuration keys accepted by each registered provider, never their values. */
+  providerCatalog: protectedProcedure
+    .output(z.array(
+      z.object({
+        provider: z.string(),
+        name: z.string(),
+        configured: z.boolean(),
+        keys: z.array(z.string())
+      })
+    ))
+    .query(async ({ ctx }) => {
+      const cloud = isCloudProfile();
+      const visibleKeys = new Set(
+        settingCatalog()
+          .filter((definition) => !cloud || isCloudSettingGroup(definition.group))
+          .map((definition) => definition.envVar)
+      );
+      const registrations = listRegisteredProviderIds().flatMap((provider) => {
+        const registration = getRegisteredProvider(provider);
+        return !registration || isCustomProviderId(provider) || (cloud && !isCloudProvider(provider))
+          ? [] : [{ provider, registration }];
+      });
+      const requiredKeys = registrations.flatMap(({ registration }) =>
+        Object.entries(registration.kwargs)
+          .filter(([key, value]) => !key.startsWith("_") && (value === "" || value == null))
+          .map(([key]) => key));
+      const credentials = await getSecrets(requiredKeys, ctx.userId);
+      const providers = [];
+      for (const { provider, registration } of registrations) {
+        const keys = [...new Set([
+          ...Object.keys(registration.kwargs),
+          ...Object.keys(registration.optionalKwargs)
+        ])].filter((key) => visibleKeys.has(key));
+        providers.push({
+          provider,
+          name: registration.metadata.displayName,
+          configured: await isProviderConfigured(provider, (key) =>
+            credentials.get(key)),
+          keys
+        });
+      }
+      return providers;
+    }),
+
   list: protectedProcedure.output(listOutput).query(async ({ ctx }) => {
     const userSettings = await Setting.listForUser(ctx.userId);
     const settingsMap = new Map(userSettings.map((s) => [s.key, s.value]));

@@ -1,0 +1,30 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src"
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "dist"
+  ],
+  "references": [
+    {
+      "path": "../server-features"
+    },
+    {
+      "path": "../server-minimal"
+    },
+    {
+      "path": "../sandbox-runtime"
+    },
+    {
+      "path": "../protocol"
+    },
+    {
+      "path": "../nodes-core"
+    }
+  ]
+}

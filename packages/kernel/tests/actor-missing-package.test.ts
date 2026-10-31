@@ -3,7 +3,7 @@ import { MissingRuntimePackageError } from "@nodetool-ai/protocol";
 import { WorkflowRunner } from "../src/runner.js";
 
 describe("missing runtime package failure", () => {
-  it.each(["whisper-cpp", "ffmpeg", "python"] as const)("retains %s details through node_update and the run result", async (runtimePackage) => {
+  it.each(["whisper-cpp", "yt-dlp", "python"] as const)("retains %s details through node_update and the run result", async (runtimePackage) => {
     const error = new MissingRuntimePackageError("Runtime fixture is not installed", runtimePackage);
     const runner = new WorkflowRunner("missing-pkg", {
       resolveExecutor: () => ({

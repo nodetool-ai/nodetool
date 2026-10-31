@@ -189,6 +189,16 @@ declare global {
       };
       /** VST3 instruments. Desktop only. */
       vst?: VstBridge;
+      /** Native OS notifications. Desktop only. */
+      notifications?: {
+        /** Resolves whether a notification was shown: none while focused. */
+        show: (request: {
+          title?: string;
+          body: string;
+          tag?: string;
+          silent?: boolean;
+        }) => Promise<boolean>;
+      };
       windowControls: WindowControls;
       platform: string;
       logging?: {

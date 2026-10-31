@@ -8,6 +8,7 @@
 //   error   error dot    "Not saved" (a conflict, or a failed save)
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 Row {
     id: status
@@ -24,45 +25,35 @@ Row {
                                        error: "Not saved", idle: "" })[state]
 
     visible: state !== "idle"
-    spacing: Theme.spacingXs
+    spacing: Ui.Metrics.xs
     Accessible.role: Accessible.StaticText
     Accessible.name: label
 
     Item {
         anchors.verticalCenter: parent.verticalCenter
-        width: status.state === "saving" ? 14 : 8
+        width: status.state === "saving" ? Ui.Metrics.iconXs : Ui.Metrics.md
         height: width
         Rectangle {
             objectName: "saveDot"
             visible: status.state !== "saving"
             anchors.fill: parent
-            radius: width / 2
-            color: status.state === "dirty" ? Theme.warning : status.state === "error" ? Theme.error : Theme.success
+            radius: Ui.Metrics.radiusPill
+            color: status.state === "dirty" ? Ui.Theme.statusWarning : status.state === "error" ? Ui.Theme.statusError : Ui.Theme.statusSuccess
         }
-        Icon {
+        Ui.BusyIndicator {
             objectName: "saveSpinner"
             visible: status.state === "saving"
             anchors.fill: parent
-            size: 14
-            stroke: true
-            color: Theme.primary
-            path: "M12 3 a9 9 0 1 1 -9 9"
-            RotationAnimator on rotation {
-                running: status.state === "saving"
-                from: 0
-                to: 360
-                duration: 1000
-                loops: Animation.Infinite
-            }
+            running: visible
+            accessibleName: "Saving timeline"
         }
     }
-    Text {
+    Ui.Text {
         objectName: "saveLabel"
         visible: !status.compact
         anchors.verticalCenter: parent.verticalCenter
         text: status.label
-        color: Theme.textSecondary
-        font.family: Theme.sansFamily
-        font.pixelSize: Theme.fontSizeSmaller
+        tone: Ui.Text.Secondary
+        role: Ui.Typography.SansCaption
     }
 }

@@ -68,6 +68,14 @@ registerLiveDevice("drum", async () => {
   return device;
 });
 
+// A bass device is ready at once, so it can start before a slow drum device.
+const bassDevices: FakeDevice[] = [];
+registerLiveDevice("bass", async () => {
+  const device = new FakeDevice();
+  bassDevices.push(device);
+  return device;
+});
+
 const drum = (gainDb: number): MidiInstrument =>
   ({ type: "drum", baseNote: 36, pads: [], gainDb }) as MidiInstrument;
 
@@ -101,6 +109,7 @@ const clip = {
 
 beforeEach(() => {
   devices = [];
+  bassDevices.length = 0;
   release = null;
 });
 
@@ -151,5 +160,36 @@ describe("AudioGraph live devices", () => {
     await pending;
     expect(devices).toHaveLength(1);
     expect(devices[0].instruments.at(-1)).toEqual(drum(-6));
+  });
+
+  it("starts every track on one clock reading when a device loads slowly", async () => {
+    release = () => undefined;
+    const ctx = new FakeContext();
+    const graph = new AudioGraph(ctx as unknown as BaseAudioContext);
+    const bassTrack: TimelineTrack = {
+      ...track({ type: "bass" } as MidiInstrument),
+      id: "t2",
+      name: "Bass"
+    };
+    const bassClip = { ...clip, id: "c2", trackId: "t2" } as TimelineClip;
+    const pending = graph.scheduleClips(
+      [
+        { clip, live: { bpm: 120 } },
+        { clip: bassClip, live: { bpm: 120 } }
+      ],
+      [track(drum(0)), bassTrack],
+      500
+    );
+    // The bass device is ready. The drum device loads for 300 ms more.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    ctx.currentTime = 10.3;
+    release();
+    const anchorSec = await pending;
+    const firstOn = (device: FakeDevice) => device.scheduled[0].events[0].timeSec;
+    expect(firstOn(devices[0])).toBeCloseTo(firstOn(bassDevices[0]), 9);
+    // The clips start 500 ms after the playhead, on the returned anchor.
+    expect(anchorSec).toBeCloseTo(10.3, 9);
+    expect(firstOn(devices[0])).toBeCloseTo(10.8, 9);
+    expect(devices[0].tempo.at(-1)).toEqual(bassDevices[0].tempo.at(-1));
   });
 });

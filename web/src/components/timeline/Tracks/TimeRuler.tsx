@@ -78,6 +78,9 @@ const rulerStyles = (theme: Theme) =>
     position: "relative",
     height: RULER_HEIGHT_PX,
     flexShrink: 0,
+    // The marker layer scrolls by translateX and keeps an overscan of flags
+    // past the left edge. Clip it so they never draw over the tracks header.
+    overflow: "hidden",
     cursor: "pointer",
     userSelect: "none",
     backgroundColor: theme.vars.palette.background.paper,

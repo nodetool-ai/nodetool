@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.22)
+cmake_minimum_required(VERSION 3.24)
 
 project(NodeToolTimeline VERSION 0.1.0 LANGUAGES CXX)
 if(APPLE)
@@ -7,14 +7,14 @@ endif()
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-enable_testing()
+include(CTest)
 
 include(cmake/Hardening.cmake)
 include(cmake/Sanitizers.cmake)
 
 # GuiPrivate carries the include path of the semi-public QRhi API (<rhi/qrhi.h>).
 set(QT_NO_PRIVATE_MODULE_WARNING ON)
-find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui GuiPrivate Qml Quick QuickControls2 ShaderTools Test)
+find_package(Qt6 6.12 REQUIRED COMPONENTS Svg Core Gui GuiPrivate Qml Quick QuickControls2 ShaderTools Test QuickTest)
 # QRhi through GuiPrivate is only compatible within one Qt minor version, so
 # the build accepts the tested 6.12 only.
 if(Qt6_VERSION VERSION_GREATER_EQUAL 6.13)
@@ -113,7 +113,7 @@ if(NOT MSVC)
 endif()
 
 # A module contributes to a target group or registers a test callback. All
-# registration sources compile directly into each consuming executable.
+# app registration sources compile directly into each consuming executable.
 function(nt_sources group)
     set_property(GLOBAL APPEND PROPERTY NT_${group} ${ARGN})
 endfunction()
@@ -163,6 +163,13 @@ endforeach()
 
 include(src/app/QmlDiscovery.cmake)
 
+if(NOT TARGET nodetool_ui_primitives)
+    add_subdirectory(../ui_primitives ${CMAKE_CURRENT_BINARY_DIR}/ui_primitives)
+endif()
+if(NOT TARGET nodetool_model_picker)
+    add_subdirectory(../model-picker ${CMAKE_CURRENT_BINARY_DIR}/model-picker)
+endif()
+
 # Model and scene evaluation: no GUI, shared by the app and the tests.
 add_library(timeline_core STATIC ${NT_core})
 target_include_directories(timeline_core PUBLIC src)
@@ -195,6 +202,8 @@ target_compile_options(timeline_audio PRIVATE ${NT_WARNINGS})
 set_source_files_properties(src/audio/miniaudio.cpp PROPERTIES COMPILE_OPTIONS "${NT_NO_WARNINGS}")
 
 qt_add_executable(nodetool-timeline src/main.cpp ${NT_app})
+add_subdirectory(../chat ${CMAKE_CURRENT_BINARY_DIR}/chat)
+target_link_libraries(nodetool-timeline PRIVATE nodetool_chat nodetool_chatplugin)
 # The edit operations one call at a time, for scripts/op-conformance.mjs.
 # Core only: no GUI, so a call starts in milliseconds.
 qt_add_executable(timeline-ops ${NT_ops})
@@ -211,23 +220,42 @@ target_compile_options(nodetool-timeline PRIVATE ${NT_WARNINGS})
 target_link_libraries(nodetool-timeline PRIVATE
     ${NT_APP_PLATFORM_LIBS} timeline_core timeline_decode Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 PkgConfig::FFMPEG)
 
-set_source_files_properties(qml/Theme.qml qml/Icons.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
-# The NodeTool.Timeline QML module. The app and the UI test (tst_tracksui)
-# each build it, the test into its own output folder.
+# Compile the QML module once. Whole-archive linkage preserves its generated
+# type/resource initializers and C++ registrars without a runtime plugin file.
+# App-only registrations stay in NT_app and remain specific to each host.
+qt_add_library(timeline_qml STATIC)
+target_compile_options(timeline_qml PRIVATE ${NT_WARNINGS})
+qt_add_qml_module(timeline_qml
+    URI NodeTool.Timeline
+    NO_PLUGIN
+    OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/NodeTool/Timeline
+    QML_FILES ${NT_qml_files}
+    RESOURCES ${NT_qml_resources}
+    SOURCES ${NT_qml})
+qt_add_shaders(timeline_qml timeline_compositor_shaders
+    PREFIX "/shaders"
+    BASE shaders
+    FILES shaders/composite.vert shaders/composite.frag)
+list(REMOVE_DUPLICATES NT_qml_includes)
+target_include_directories(timeline_qml PUBLIC src/model src/playback src/preview src/ui src/edit ${NT_qml_includes})
+target_link_libraries(timeline_qml PUBLIC timeline_core timeline_decode timeline_audio
+    nodetool_model_picker nodetool_chat Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 PkgConfig::FFMPEG)
+
 function(nt_add_timeline_qml target)
-    qt_add_qml_module(${target}
-        URI NodeTool.Timeline
-        ${ARGN}
-        QML_FILES ${NT_qml_files}
-        RESOURCES ${NT_qml_resources}
-        SOURCES ${NT_qml})
-    qt_add_shaders(${target} "${target}_compositor_shaders"
-        PREFIX "/shaders"
-        BASE shaders
-        FILES shaders/composite.vert shaders/composite.frag)
-    # The generated QML type registrations include the headers by base name.
-    list(REMOVE_DUPLICATES NT_qml_includes)
-    target_include_directories(${target} PRIVATE src/model src/playback src/preview src/ui src/edit ${NT_qml_includes})
+    # OUTPUT_DIRECTORY belonged to the former per-executable module. Keep the
+    # call interface so host-specific sources, resources and definitions stay local.
+    cmake_parse_arguments(HOST "" "OUTPUT_DIRECTORY" "" ${ARGN})
+    if(HOST_UNPARSED_ARGUMENTS)
+        message(FATAL_ERROR "Unexpected QML host arguments: ${HOST_UNPARSED_ARGUMENTS}")
+    endif()
+    # Some hosts explicitly listed a module source before the module was added.
+    # It must now come only from the archive, including registrar-only sources.
+    get_target_property(host_sources ${target} SOURCES)
+    list(REMOVE_ITEM host_sources ${NT_qml})
+    set_property(TARGET ${target} PROPERTY SOURCES "${host_sources}")
+    nodetool_use_ui_primitives(${target})
+    target_link_libraries(${target} PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,timeline_qml>"
+        nodetool_model_pickerplugin nodetool_chatplugin)
 endfunction()
 nt_add_timeline_qml(nodetool-timeline)
 # Compile-only check of the Linux hardware path on macOS: with a
@@ -250,6 +278,8 @@ find_package(Qt6 6.12 REQUIRED COMPONENTS Network WebSockets)
 add_library(timeline_server STATIC ${NT_server})
 target_link_libraries(timeline_server PUBLIC timeline_core timeline_decode Qt6::Network Qt6::WebSockets)
 target_compile_options(timeline_server PRIVATE ${NT_WARNINGS})
+# QML controllers include server headers, including their WebSocket types.
+target_link_libraries(timeline_qml PUBLIC timeline_server)
 # The save banners are tested against the real AutosaveController (M2b).
 target_link_libraries(nodetool-timeline PRIVATE timeline_server)
 # The save harness needs TimelineModel, which the app's QML module compiles.
@@ -272,5 +302,15 @@ if(NT_SANITIZER_PLANTS)
     add_subdirectory(tools/sanitizers/plants)
 endif()
 nt_sanitizer_test_checks()
+# Visual Studio does not emit compile_commands.json.
+if(CMAKE_GENERATOR MATCHES "Ninja|Makefiles")
+    add_test(NAME shared_qml_build_fixtures COMMAND ${CMAKE_COMMAND}
+        -DNT_BUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/tests/SharedQmlBuildTest.cmake)
+    add_test(NAME shared_qml_build COMMAND ${CMAKE_COMMAND}
+        -DNT_BUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/tests/SharedQmlBuild.cmake)
+endif()
+
 include(cmake/TestPreferences.cmake)
 nt_isolate_test_preferences()

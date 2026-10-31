@@ -28,7 +28,7 @@ This file re-exports component modules. Follow its relative exports for field de
 
 `gameDocumentOp3D`, `GameDocumentOp3D`, `InstantiatedPrefab3D`, `instantiateGamePrefab3D`, `applyGameOps3D`, `anyGameDocumentOp`, `AnyGameDocumentOp`, `MAX_GAME_DRAFT_OPS`, `applyAnyGameOps`, `applyAnyGameOps`, `applyAnyGameOps`, `applyAnyGameOps`
 
-### [packages/cli/src/commands/game.ts](../../packages/cli/src/commands/game.ts)
+### [packages/cli-game/src/commands/game.ts](../../packages/cli-game/src/commands/game.ts)
 
 `registerGameCommands`
 

@@ -13,7 +13,7 @@ Item {
     readonly property bool locked: !clip || !!clip.locked || (document.tracks || []).some(t => t.id === clip.trackId && t.locked)
     readonly property var crop: clip && clip.crop ? clip.crop : ({left: 0, right: 0, top: 0, bottom: 0})
     width: implicitWidth
-    implicitWidth: clip ? Theme.trackHeaderWidth : 0
+    implicitWidth: clip ? TimelineMetrics.trackHeaderWidth : 0
     implicitHeight: clip ? section.implicitHeight : 0
     visible: !!clip
     ReframeController { id: edits; model: root.timelineModel }
@@ -40,6 +40,7 @@ Item {
                 onGestureStarted: edits.beginGesture("setClipCropEdge", payload(value))
                 onPreview: value => edits.preview(payload(value))
                 onChange: value => edits.commit("setClipCropEdge", payload(value))
+                onCanceled: edits.cancelGesture()
             }
         }
     }

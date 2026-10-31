@@ -6,6 +6,7 @@
 #include <QPointer>
 #include <QQuickItem>
 #include <QQuickView>
+#include <QQmlProperty>
 #include <QtTest>
 #include <memory>
 
@@ -129,6 +130,24 @@ private slots:
         QCOMPARE(item("trackMenu-insertBelow")->property("text").toString(), "Insert " + label + " track below");
         QCOMPARE(item("trackMenu-remove")->property("text").toString(), QString("Delete track"));
     }
+    void keyboardContextMenu() {
+        auto* header = item("trackHeader-v");
+        QVERIFY(header);
+        header->forceActiveFocus();
+        QVERIFY(header->hasActiveFocus());
+        QVERIFY(QQmlProperty(header, "border.width").read().toDouble() > 0);
+        QTest::keyClick(view.get(), Qt::Key_Menu);
+        QTRY_VERIFY(menu() && menu()->property("opened").toBool());
+        QCOMPARE(menu()->property("trackId").toString(), QString("v"));
+        QTest::keyClick(view.get(), Qt::Key_Escape);
+        QTRY_VERIFY(!menu()->property("opened").toBool());
+        QCOMPARE(view->activeFocusItem(), header);
+        QTest::keyClick(view.get(), Qt::Key_F10, Qt::ShiftModifier);
+        QTRY_VERIFY(menu()->property("opened").toBool());
+        QTest::keyClick(view.get(), Qt::Key_Escape);
+        QTRY_VERIFY(!menu()->property("opened").toBool());
+        QCOMPARE(view->activeFocusItem(), header);
+    }
     void contextInsert_data() {
         QTest::addColumn<QString>("action");
         QTest::addColumn<int>("position");
@@ -179,7 +198,10 @@ private slots:
         QCOMPARE(confirm->property("title").toString(), QString("Delete track?"));
         QCOMPARE(item("deleteTrackContent")->property("text").toString(), QString("Track \"Video\" and all its clips are deleted."));
         QCOMPARE(doc(), before);
-        click(item("confirmDeleteTrack"));
+        auto* deleteButton = item("confirmDeleteTrack");
+        QSignalSpy deleteClicks(deleteButton, SIGNAL(clicked()));
+        click(deleteButton);
+        QCOMPARE(deleteClicks.count(), 1);
         if (locked) {
             QCOMPARE(doc(), before);
             QCOMPARE(model.undoStack()->count(), 0);

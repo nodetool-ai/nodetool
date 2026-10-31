@@ -17,10 +17,10 @@ import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 
 const storeMock = vi.fn(async () => undefined);
 
-vi.mock("../src/lib/thumbnail.js", async () => {
+vi.mock("@nodetool-ai/asset-services/thumbnail", async () => {
   const actual = await vi.importActual<
-    typeof import("../src/lib/thumbnail.js")
-  >("../src/lib/thumbnail.js");
+    typeof import("@nodetool-ai/asset-services/thumbnail")
+  >("@nodetool-ai/asset-services/thumbnail");
   return {
     ...actual,
     storeAssetWithThumbnail: (...args: unknown[]) => storeMock(...args)
@@ -116,6 +116,7 @@ describe("asset upload failure cleanup", () => {
         {}
       )
     ).rejects.toThrow("upload exceeds maximum size");
+    expect(storeMock).toHaveBeenCalledOnce();
 
     const [assets] = await Asset.paginate("user-1", { limit: 100 });
     expect(assets.filter((a) => a.name === "pic.png")).toHaveLength(0);
@@ -145,6 +146,7 @@ describe("asset upload failure cleanup", () => {
       {}
     );
     expect(res.status).toBe(200);
+    expect(storeMock).toHaveBeenCalledOnce();
 
     const [assets] = await Asset.paginate("user-1", { limit: 100 });
     expect(assets.filter((a) => a.name === "ok.png")).toHaveLength(1);

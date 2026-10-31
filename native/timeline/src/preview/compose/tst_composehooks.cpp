@@ -463,18 +463,53 @@ private slots:
         near(image.pixelColor(14,16),QColor(Qt::red));
         near(image.pixelColor(40,16),top);
     }
+    void effectOutsetChainAndCrop_data() {
+        QTest::addColumn<bool>("offsetCrop");
+        QTest::newRow("top-half") << false;
+        QTest::newRow("offset-pattern") << true;
+    }
     void effectOutsetChainAndCrop() {
+        QFETCH(bool, offsetCrop);
         sources(); border(true,false,true);
+        auto timeline = document();
+        if (offsetCrop) {
+            m_sources.push_back(nt::registerLayerSource("shape", [](const nt::ActiveLayer& layer) {
+                QImage image(layer.sourceWidth,layer.sourceHeight,QImage::Format_RGBA8888_Premultiplied);
+                image.fill(layer.clipId == "b" ? QColor(Qt::blue) : bottom);
+                if (layer.clipId == "b") {
+                    for (int y = 8; y < 24; ++y) {
+                        for (int x = 32; x < 96; ++x) { image.setPixelColor(x,y,top); }
+                    }
+                }
+                return std::make_unique<nt::test::PaintSource>(std::move(image));
+            }));
+            m_hooks.push_back(nt::registerLayerDecorator([](nt::ActiveLayer& layer, const nt::Clip&, double) {
+                if (layer.clipId == "b") { layer.sourceRect = {0.25f,0.25f,0.5f,0.5f}; }
+            }));
+            auto raw = timeline.raw;
+            auto clips = raw.value("clips").toArray();
+            auto clip = clips[1].toObject();
+            clip.insert("width",128);
+            clips[1] = clip;
+            raw.insert("clips",clips);
+            auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
+            QVERIFY(parsed.timeline);
+            timeline = std::move(*parsed.timeline);
+        }
         m_stages.push_back(nt::registerEffectStage([] { return std::make_unique<nt::test::BorderStage>(); }));
-        const auto image = capture(document());
+        const auto image = capture(timeline);
         QVERIFY(!image.isNull());
         // Cropped source is 64x16, contain fit .5: old bounds x16..48,
         // y12..20. Two 4px source outsets add 4 canvas pixels per side.
         near(image.pixelColor(12,16),QColor(Qt::red));
         near(image.pixelColor(51,16),QColor(Qt::red));
         near(image.pixelColor(32,8),QColor(Qt::red));
+        near(image.pixelColor(32,23),QColor(Qt::red));
         near(image.pixelColor(32,16),top);
+        near(image.pixelColor(17,13),top);
+        near(image.pixelColor(46,18),top);
         near(image.pixelColor(11,16),bottom);
+        near(image.pixelColor(32,24),bottom);
     }
 };
 QTEST_MAIN(TestComposeHooks)

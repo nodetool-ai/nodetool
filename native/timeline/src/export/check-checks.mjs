@@ -53,7 +53,8 @@ try {
   // The 4:2:0 measure: a red-then-blue movie against the red still.
   const movie = path.join(dir, 'cut.mp4');
   run('ffmpeg', ['-v', 'error', '-y', '-f', 'lavfi', '-i', 'color=c=red:size=64x64:rate=1:duration=1',
-    '-f', 'lavfi', '-i', 'color=c=blue:size=64x64:rate=1:duration=1', '-filter_complex', '[0:v][1:v]concat=n=2',
+    '-f', 'lavfi', '-i', 'color=c=blue:size=64x64:rate=1:duration=1', '-filter_complex',
+    '[0:v][1:v]concat=n=2,scale=in_color_matrix=bt601:out_color_matrix=bt709:out_range=tv',
     '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-colorspace', 'bt709', '-color_range', 'tv', movie]);
   const own = psnrYuv(pictures[0], movie, 0, 64, 64);
   requireFrames([{ fixture: 'yuv same frame', frame: 0, psnr: own }]);

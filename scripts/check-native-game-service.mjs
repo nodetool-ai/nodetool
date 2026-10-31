@@ -12,7 +12,7 @@ const npm = process.platform === "win32" ? "npm.cmd" : "npm";
 const commands = [
   [process.execPath, ["scripts/check-native-game.mjs"]],
   [npm, ["run", "test", "--workspace=packages/game-runtime", "--", "native-cpp.test.ts", "native-editor-client.test.ts"]],
-  [npm, ["run", "test", "--workspace=packages/cli", "--", "game-native-cpp.test.ts"]],
+  [npm, ["run", "test", "--workspace=packages/cli-game", "--", "game-native-cpp.test.ts"]],
   [npm, ["run", "test", "--workspace=packages/agents", "--", "capabilities-native-cpp-game.test.ts"]]
 ];
 for (const [command, args] of commands) {

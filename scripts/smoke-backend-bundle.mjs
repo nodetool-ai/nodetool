@@ -282,6 +282,17 @@ async function bootAndProbe(bundleDir, timeoutMs, nodeBinary) {
     }
   }
 
+  // Routes that load a pack module through importPack must find it inlined
+  // in server.mjs: the packaged backend has no pack packages on disk.
+  let packRouteError = "";
+  if (healthy) {
+    try {
+      packRouteError = await probePackRoute(port, output);
+    } catch (e) {
+      packRouteError = e.message;
+    }
+  }
+
   if (exit === null) {
     child.kill("SIGTERM");
     // Don't let a backend that ignores SIGTERM hang the job.
@@ -291,7 +302,23 @@ async function bootAndProbe(bundleDir, timeoutMs, nodeBinary) {
   }
   await fsp.rm(dataDir, { recursive: true, force: true });
 
-  return { healthy, exit, output: output.join(""), port, lastProbeError };
+  return { healthy, exit, output: output.join(""), port, lastProbeError, packRouteError };
+}
+
+/** POST a ComfyUI workflow to the parser route. Returns "" when it parses. */
+async function probePackRoute(port, output) {
+  const workflow = {
+    "1": { class_type: "LoadImage", inputs: { image: "in.png" } },
+    "2": { class_type: "SaveImage", inputs: { images: ["1", 0], filename_prefix: "out" } },
+  };
+  const res = await fetch(`http://127.0.0.1:${port}/api/comfy/resolve-workflow`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ workflow }),
+  });
+  const body = await res.text();
+  output.push(`\n--- POST /api/comfy/resolve-workflow -> ${res.status} ${body.slice(0, 500)}\n`);
+  return res.ok ? "" : `POST /api/comfy/resolve-workflow returned HTTP ${res.status}: ${body.slice(0, 500)}`;
 }
 
 /** Move resolution outside the checkout so ancestor dependencies cannot hide gaps. */
@@ -322,10 +349,11 @@ export async function smokeBackendBundle(
     result = await bootAndProbe(isolated, timeoutMs, nodeBinary);
     result.nodeBinary = nodeBinary;
 
-    if (result.healthy) return result;
+    if (result.healthy && !result.packRouteError) return result;
 
-    const why =
-      result.exit !== null
+    const why = result.packRouteError
+      ? result.packRouteError
+      : result.exit !== null
         ? `server.mjs exited (code ${result.exit.code}, signal ${result.exit.signal}) ` +
           `before answering /health`
         : `server.mjs never answered /health within ${timeoutMs}ms ` +
@@ -369,7 +397,7 @@ if (isCli && process.argv[2] === "--probe-mediabunny") {
       nodePath,
     });
     console.log(
-      `  OK: server.mjs booted on ${nodeBinary} and answered /health on :${port}`
+      `  OK: server.mjs booted on ${nodeBinary} and answered /health and the pack-backed Comfy route on :${port}`
     );
   } catch (e) {
     console.error(e.message);

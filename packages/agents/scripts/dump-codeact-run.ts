@@ -13,7 +13,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { ProcessingContext } from "@nodetool-ai/runtime";
 // The CLI's provider factory: registry-backed, same path `nodetool eval` uses.
-import { createProviderStrict } from "../../cli/src/providers.js";
+import { createProviderStrict } from "@nodetool-ai/cli-providers";
 import type { StepResult, ToolCallUpdate } from "@nodetool-ai/protocol";
 import {
   CodeActExecutor,

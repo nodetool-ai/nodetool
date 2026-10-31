@@ -33,7 +33,7 @@ vi.mock("@nodetool-ai/runtime", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@nodetool-ai/runtime")>()),
   fetchExternalMedia: (...args: unknown[]) => fetchExternalMedia(...args)
 }));
-vi.mock("../src/lib/thumbnail.js", () => ({
+vi.mock("@nodetool-ai/asset-services/thumbnail", () => ({
   storeAssetWithThumbnail: (...args: unknown[]) =>
     storeAssetWithThumbnail(...args)
 }));

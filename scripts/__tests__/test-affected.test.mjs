@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from "vitest";
 
-import { computeAffected } from "../../packages/cli/src/affected/affected.ts";
+import { computeAffected } from "../../packages/cli-harness/src/affected/affected.ts";
 import { buildGateArgv, buildPlan, DOC_ONLY, MOBILE_DEPS } from "../test-affected.mjs";
 
 /** web and electron are named after the product, not their directories. */
@@ -87,7 +87,7 @@ describe("buildPlan", () => {
     const result=buildPlan([`packages/game-renderer/tests/fixtures/${fixture}`],packages,computeAffected);
     expect(result.steps.map(step=>step.label)).toContain("native game player: build and capture");
   });
-  it.each(["@nodetool-ai/game-runtime", "@nodetool-ai/agents", "@nodetool-ai/cli"])("builds the native worker before %s integration tests", (name) => {
+  it.each(["@nodetool-ai/game-runtime", "@nodetool-ai/agents", "@nodetool-ai/cli-game"])("builds the native worker before %s integration tests", (name) => {
     const dir = `packages/${name.split("/")[1]}`;
     const packages = [...PACKAGES, { name, dir, internalDeps: [] }];
     const result = buildPlan([`${dir}/src/probe.ts`], packages, computeAffected);
@@ -112,6 +112,41 @@ describe("buildPlan", () => {
     expect(plan([file]).steps).toEqual([
       { label: "native game: build and CTest", command: "node", args: ["scripts/check-native-game.mjs"] }
     ]);
+  });
+
+  describe("shared pack catalog inputs", () => {
+    const graph = [
+      { name: "@nodetool-ai/pack-core", dir: "packages/pack-core", internalDeps: [] },
+      { name: "@nodetool-ai/node-sdk", dir: "packages/node-sdk", internalDeps: ["@nodetool-ai/pack-core"] },
+      { name: "@nodetool-ai/pack-manager", dir: "packages/pack-manager", internalDeps: ["@nodetool-ai/pack-core"] },
+      { name: "@nodetool-ai/cli", dir: "packages/cli", internalDeps: ["@nodetool-ai/pack-manager"] },
+      { name: "@nodetool-ai/node-catalog", dir: "packages/node-catalog", internalDeps: ["@nodetool-ai/node-sdk"] },
+      { name: "@nodetool-ai/unrelated", dir: "packages/unrelated", internalDeps: [] }
+    ];
+    const filters = (file) => buildPlan([file], graph, computeAffected).steps.flatMap((step) => step.args.filter((arg) => arg.startsWith("--filter=")));
+
+    it.each(["index.json", "nodes.ndjson"])("selects pack-core and its consumers for shared %s changes", (name) => {
+      const selected = filters(`packages/node-catalog/data/${name}`);
+      expect(selected.length).toBeGreaterThan(0);
+      expect(selected).toEqual(expect.arrayContaining([
+        "--filter=@nodetool-ai/pack-core", "--filter=@nodetool-ai/node-sdk",
+        "--filter=@nodetool-ai/pack-manager", "--filter=@nodetool-ai/cli",
+        "--filter=@nodetool-ai/node-catalog"
+      ]));
+      expect(selected).not.toContain("--filter=@nodetool-ai/unrelated");
+    });
+
+    it("keeps ordinary catalog source changes scoped to their existing downstream closure", () => {
+      expect(filters("packages/node-catalog/src/catalog-data.ts")).toEqual(["--filter=@nodetool-ai/node-catalog"]);
+      expect(filters("packages/node-catalog/data/unrelated.json")).toEqual(["--filter=@nodetool-ai/node-catalog"]);
+    });
+
+    it("uses the existing visited-set closure when consumers contain a cycle", () => {
+      const cyclic = graph.map((pkg) => pkg.name === "@nodetool-ai/pack-manager" ? { ...pkg, internalDeps: [...pkg.internalDeps, "@nodetool-ai/cli"] } : pkg);
+      const selected = buildPlan(["packages/node-catalog/data/index.json"], cyclic, computeAffected).steps.flatMap((step) => step.args.filter((arg) => arg.startsWith("--filter=")));
+      expect(selected).toHaveLength(5);
+      expect(new Set(selected).size).toBe(selected.length);
+    });
   });
 
   it.each([
@@ -273,6 +308,30 @@ describe("buildPlan", () => {
     const steps = plan(["native/vst-host/source/VstHost.cpp"]).steps;
     expect(steps.map((s) => [s.command, ...s.args])).toEqual([
       ["node", "electron/scripts/build-vst-host.mjs", "--test"]
+    ]);
+  });
+
+  it.each([
+    "native/chat/src/runtime/ChatSession.cpp",
+    "native/chat/qml/ChatPanel.qml",
+    "native/chat/fixtures/stream.json",
+    "native/chat/scripts/check.mjs"
+  ])("selects the native chat check for %s", (file) => {
+    expect(plan([file]).globalFiles).toEqual([]);
+    expect(plan([file]).steps).toEqual([
+      { label: "native chat: build and conformance", command: "node", args: ["native/chat/scripts/check.mjs"] }
+    ]);
+  });
+
+  it.each([
+    "native/ui_primitives/qml/EditorButton.qml",
+    "native/ui_primitives/CMakeLists.txt",
+    "native/ui_primitives/tools/check_design.py"
+  ])("selects the native UI checks for %s", (file) => {
+    expect(plan([file]).globalFiles).toEqual([]);
+    expect(plan([file]).steps).toEqual([
+      { label: "native UI: design contracts", command: "python3", args: ["native/ui_primitives/tools/check_design.py", "--strict"] },
+      { label: "native UI: dependency boundaries", command: "python3", args: ["native/ui_primitives/tools/check_dependencies.py"] }
     ]);
   });
 

@@ -5,14 +5,14 @@ import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { computeAffected, EXTRA_WORKSPACE_PATHS } from "../packages/cli/src/affected/affected.ts";
+import { computeAffected, EXTRA_WORKSPACE_PATHS } from "../packages/cli-harness/src/affected/affected.ts";
 import { shardOf } from "./ci-plan.mjs";
 import { buildPlan, changedFiles, readPackages } from "./test-affected.mjs";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const FULL_BACKEND_SCRIPT = 'npm run test:oxlint-rules && npm run test:scripts && node scripts/run-turbo.mjs run test --filter="./packages/*" --filter="./reliability/*"';
 const GAME_PACKAGES = new Set([
-  "@nodetool-ai/game-runtime", "@nodetool-ai/game-renderer", "@nodetool-ai/cli"
+  "@nodetool-ai/game-runtime", "@nodetool-ai/game-renderer", "@nodetool-ai/cli-game"
 ]);
 const TURBO_PREFIX = ["scripts/run-turbo.mjs", "run", "test"];
 const FIXED_STEPS = [
@@ -73,7 +73,7 @@ export function partitionPlan(steps, packages, scripts) {
     for (const [id, filters] of buckets) {
       // Packed jobs have isolated filesystems, so the worker must be built in
       // the same job that exercises native runtime, CLI, or agent integration.
-      if (filters.some((filter) => ["@nodetool-ai/websocket", "@nodetool-ai/game-runtime", "@nodetool-ai/cli", "@nodetool-ai/agents"].some((name) => filter === `--filter=${name}`))) {
+      if (filters.some((filter) => ["@nodetool-ai/websocket", "@nodetool-ai/game-runtime", "@nodetool-ai/cli-game", "@nodetool-ai/agents"].some((name) => filter === `--filter=${name}`))) {
         add(id, { label: "native game worker prerequisite", command: "node", args: ["scripts/check-native-game.mjs"] });
       }
       add(id, { label: id, command: "node", args: [...TURBO_PREFIX, ...filters] });

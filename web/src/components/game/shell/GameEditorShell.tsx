@@ -6,7 +6,6 @@ import type { GamePanelLayoutState } from "../../../stores/game/GamePanelLayoutS
 import { useGameShortcutStore } from "../../../stores/game/GameShortcutStore";
 import { Caption, EditorButton, EditorUiProvider, FlexColumn, FlexRow, SPACING, type DocumentBarRender } from "../../ui_primitives";
 import ErrorBanner from "../../support/ErrorBanner";
-import ReportBugButton from "../../support/ReportBugButton";
 import GameToolbar from "./GameToolbar";
 import GameStatusBar from "./GameStatusBar";
 import GameCommandPalette from "./GameCommandPalette";

@@ -183,6 +183,13 @@ QueryResult ServerClient::mutate(const QString& procedure, const QJsonObject& in
     return write(procedure, request, &body);
 }
 
+QueryResult ServerClient::createAsset(const QJsonObject& fields) {
+    QNetworkRequest request(m_base.resolved(QUrl(QStringLiteral("/api/assets"))));
+    request.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
+    const QByteArray body = QJsonDocument(fields).toJson(QJsonDocument::Compact);
+    return write(QStringLiteral("create asset"), request, &body, nullptr, {}, true);
+}
+
 QueryResult ServerClient::preflightWorkflow(const QString& workflowId, const QJsonObject& inputs) {
     if (workflowId.isEmpty()) return failed("INVALID_INPUT", "Workflow ID is required.");
     QNetworkRequest request(m_base.resolved(QUrl(QStringLiteral("/api/sdk/v1/preflight"))));

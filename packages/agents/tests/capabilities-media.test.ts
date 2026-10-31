@@ -44,8 +44,8 @@ import {
   understandVideo,
   videoFromReferences,
   classifyReferenceMedia,
-  ffmpeg,
-  ffprobe,
+  mediaEdit,
+  mediaProbe,
   ytDlp
 } from "../src/capabilities/media.js";
 import type { CapabilityExport } from "../src/capabilities/types.js";
@@ -104,8 +104,8 @@ describe("the media capability module", () => {
       "compare_images",
       "score_image_adherence",
       "understand_video",
-      "ffmpeg",
-      "ffprobe",
+      "media_edit",
+      "media_probe",
       "yt_dlp"
     ]);
   });
@@ -135,7 +135,8 @@ describe("wire identity: a Tool built from the spec", () => {
     [compareImages, toolForCapabilityName("compare_images")],
     [scoreImageAdherence, toolForCapabilityName("score_image_adherence")],
     [understandVideo, toolForCapabilityName("understand_video")],
-    [ffmpeg, toolForCapabilityName("ffmpeg")],
+    [mediaEdit, toolForCapabilityName("media_edit")],
+    [mediaProbe, toolForCapabilityName("media_probe")],
     [ytDlp, toolForCapabilityName("yt_dlp")]
   ];
 
@@ -598,8 +599,8 @@ describe("understand_video through the adapter", () => {
 });
 
 /**
- * A context whose workspace is the given real directory — what the host-binary
- * capabilities need, since they run a binary in it.
+ * A context whose workspace is the given real directory — what the media and
+ * host-binary capabilities need, since they read and write real files in it.
  */
 function localWorkspaceContext(dir: string): ProcessingContext {
   return {
@@ -607,18 +608,20 @@ function localWorkspaceContext(dir: string): ProcessingContext {
   } as unknown as ProcessingContext;
 }
 
-describe("ffmpeg and yt_dlp capabilities", () => {
-  it("ffmpeg rejects missing args before spawn", async () => {
-    const result = (await asTool(ffmpeg).process(
+describe("media_edit, media_probe and yt_dlp capabilities", () => {
+  it("media_edit refuses an operation it does not offer", async () => {
+    const result = (await asTool(mediaEdit).process(
       localWorkspaceContext("/tmp"),
-      { args: [] }
+      { operation: "filter_complex", input: "in.mp4", output_file: "out.mp4" }
     )) as Record<string, unknown>;
-    expect(String(result["error"])).toMatch(/args must be/);
+    expect(String(result["error"])).toMatch(/operation must be one of/);
   });
 
-  it("ffmpeg requires a workspace", async () => {
-    const result = (await asTool(ffmpeg).process(makeContext(), {
-      args: ["-version"]
+  it("media_edit requires a workspace", async () => {
+    const result = (await asTool(mediaEdit).process(makeContext(), {
+      operation: "convert",
+      input: "in.mp4",
+      output_file: "out.webm"
     })) as Record<string, unknown>;
     expect(String(result["error"])).toMatch(/workspace is required/);
   });
@@ -639,32 +642,51 @@ describe("ffmpeg and yt_dlp capabilities", () => {
   });
 
   // The guard is unit-tested in host-binary-guard.test.ts; these pin that the
-  // capability actually calls it, and refuses before anything is spawned.
-  it("ffmpeg refuses a path outside the workspace", async () => {
-    const result = (await asTool(ffmpeg).process(
+  // capability actually calls it, and refuses before anything is opened.
+  it.each([
+    ["input", { input: "/etc/passwd" }],
+    ["concat source", { operation: "concat", sources: ["a.mp4", "../../etc/passwd"] }],
+    ["soundtrack", { operation: "add_audio", input: "a.mp4", audio: "../../etc/passwd" }],
+    ["overlay", { operation: "overlay", input: "a.mp4", overlay: "/etc/passwd" }]
+  ])("media_edit refuses a %s outside the workspace", async (_label, extra) => {
+    const result = (await asTool(mediaEdit).process(
       localWorkspaceContext("/tmp"),
-      { args: ["-i", "/etc/passwd", "out.wav"] }
+      { operation: "convert", output_file: "out.wav", ...extra }
     )) as Record<string, unknown>;
     expect(String(result["error"])).toMatch(/outside the workspace/);
   });
 
-  it("ffmpeg refuses a network input", async () => {
-    const result = (await asTool(ffmpeg).process(
+  it("media_probe refuses a path outside the workspace", async () => {
+    const result = (await asTool(mediaProbe).process(
       localWorkspaceContext("/tmp"),
-      { args: ["-i", "http://169.254.169.254/latest/meta-data/", "out.txt"] }
+      { path: "../../etc/passwd" }
+    )) as Record<string, unknown>;
+    expect(String(result["error"])).toMatch(/outside the workspace/);
+  });
+
+  it("media_edit refuses a network input", async () => {
+    const result = (await asTool(mediaEdit).process(
+      localWorkspaceContext("/tmp"),
+      {
+        operation: "convert",
+        input: "http://169.254.169.254/latest/meta-data/",
+        output_file: "out.txt"
+      }
     )) as Record<string, unknown>;
     expect(String(result["error"])).toMatch(
       /Only workspace files are readable/
     );
   });
 
-  it("ffmpeg stages an inputs ref into the workspace before running", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "ffmpeg-inputs-"));
+  it("media_edit stages an inputs ref into the workspace before reading", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "media-inputs-"));
     try {
-      // ffmpeg may not be installed here; staging happens before the spawn,
-      // so the file on disk is what this pins.
-      await asTool(ffmpeg).process(workspaceContext(dir), {
-        args: ["-i", "a.txt", "out.mp4"],
+      // The bytes are no media file, so the edit fails; staging happens
+      // before the read, so the file on disk is what this pins.
+      await asTool(mediaEdit).process(workspaceContext(dir), {
+        operation: "convert",
+        input: "a.txt",
+        output_file: "out.mp4",
         inputs: { "a.txt": "data:text/plain;base64,aGk=" }
       });
       expect(await readFile(join(dir, "a.txt"), "utf8")).toBe("hi");
@@ -673,8 +695,8 @@ describe("ffmpeg and yt_dlp capabilities", () => {
     }
   });
 
-  it.each([{ wire: "ffmpeg", tool: ffmpeg }, { wire: "ffprobe", tool: ffprobe }])("$wire stages a local stored asset larger than the inline input limit", async ({ tool }) => {
-    const dir = await mkdtemp(join(tmpdir(), "ffmpeg-large-input-"));
+  it.each([{ wire: "media_edit", tool: mediaEdit }, { wire: "media_probe", tool: mediaProbe }])("$wire stages a local stored asset larger than the inline input limit", async ({ tool }) => {
+    const dir = await mkdtemp(join(tmpdir(), "media-large-input-"));
     try {
       const context = workspaceContext(dir);
       const bytes = new Uint8Array(101 * 1024 * 1024);
@@ -682,7 +704,9 @@ describe("ffmpeg and yt_dlp capabilities", () => {
       const write = vi.spyOn(context.workspace, "write").mockResolvedValue(undefined);
       vi.spyOn(context.workspace, "materialize").mockResolvedValue(join(dir, "source.mov"));
       await asTool(tool).process(context, {
-        args: ["-i", "source.mov", "out.mp4"],
+        operation: "convert",
+        input: "source.mov",
+        output_file: "out.mp4",
         path: "source.mov",
         inputs: { "source.mov": "asset://55c3ade10616.mov" }
       });
@@ -694,15 +718,17 @@ describe("ffmpeg and yt_dlp capabilities", () => {
     }
   });
 
-  it.each([{ wire: "ffmpeg", tool: ffmpeg }, { wire: "ffprobe", tool: ffprobe }])("$wire enforces the configured limit on local asset staging", async ({ tool }) => {
-    const dir = await mkdtemp(join(tmpdir(), "ffmpeg-input-limit-"));
+  it.each([{ wire: "media_edit", tool: mediaEdit }, { wire: "media_probe", tool: mediaProbe }])("$wire enforces the configured limit on local asset staging", async ({ tool }) => {
+    const dir = await mkdtemp(join(tmpdir(), "media-input-limit-"));
     vi.stubEnv("NODETOOL_MAX_UPLOAD_BYTES", "1024");
     try {
       const context = workspaceContext(dir);
       context.resolveAssetBytes = vi.fn().mockResolvedValue({ bytes: new Uint8Array(1025) });
       const write = vi.spyOn(context.workspace, "write");
       const result = await asTool(tool).process(context, {
-        args: ["-i", "source.mov", "out.mp4"],
+        operation: "convert",
+        input: "source.mov",
+        output_file: "out.mp4",
         path: "source.mov",
         inputs: { "source.mov": "asset://55c3ade10616.mov" }
       });
@@ -715,18 +741,20 @@ describe("ffmpeg and yt_dlp capabilities", () => {
   });
 
   it.each(["absolute path", "file URI"])(
-    "ffmpeg does not stage a host file named by %s in inputs",
+    "media_edit does not stage a host file named by %s in inputs",
     async (kind) => {
       // On a remote MCP session or a cloud chat the host disk is not the
       // caller's. A staged copy would land in the workspace, readable back.
-      const dir = await mkdtemp(join(tmpdir(), "ffmpeg-inputs-host-"));
-      const outside = await mkdtemp(join(tmpdir(), "ffmpeg-host-secret-"));
+      const dir = await mkdtemp(join(tmpdir(), "media-inputs-host-"));
+      const outside = await mkdtemp(join(tmpdir(), "media-host-secret-"));
       try {
         const secret = join(outside, "secret.txt");
         await writeFile(secret, "do-not-leak");
         const ref = kind === "file URI" ? pathToFileURL(secret).href : secret;
-        const result = (await asTool(ffmpeg).process(workspaceContext(dir), {
-          args: ["-i", "a.txt", "out.mp4"],
+        const result = (await asTool(mediaEdit).process(workspaceContext(dir), {
+          operation: "convert",
+          input: "a.txt",
+          output_file: "out.mp4",
           inputs: { "a.txt": ref }
         })) as Record<string, unknown>;
         expect(String(result["error"])).toMatch(/could not read/);
@@ -738,11 +766,13 @@ describe("ffmpeg and yt_dlp capabilities", () => {
     }
   );
 
-  it("ffmpeg refuses an inputs name that escapes the workspace", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "ffmpeg-inputs-"));
+  it("media_edit refuses an inputs name that escapes the workspace", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "media-inputs-"));
     try {
-      const result = (await asTool(ffmpeg).process(workspaceContext(dir), {
-        args: ["-i", "a.txt", "out.mp4"],
+      const result = (await asTool(mediaEdit).process(workspaceContext(dir), {
+        operation: "convert",
+        input: "a.txt",
+        output_file: "out.mp4",
         inputs: { "../escaped.txt": "data:text/plain;base64,aGk=" }
       })) as Record<string, unknown>;
       expect(String(result["error"])).toMatch(/outside the workspace/);
@@ -751,12 +781,13 @@ describe("ffmpeg and yt_dlp capabilities", () => {
     }
   });
 
-  it("ffmpeg names the ref it could not read", async () => {
-    const dir = await mkdtemp(join(tmpdir(), "ffmpeg-inputs-"));
+  it("media_edit names the ref it could not read", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "media-inputs-"));
     try {
-      const result = (await asTool(ffmpeg).process(workspaceContext(dir), {
-        args: ["-i", "a.mp4", "out.mp4"],
-        inputs: { "a.mp4": "asset://does-not-exist.mp4" }
+      const result = (await asTool(mediaEdit).process(workspaceContext(dir), {
+        operation: "convert",
+        input: "asset://does-not-exist.mp4",
+        output_file: "out.mp4"
       })) as Record<string, unknown>;
       expect(String(result["error"])).toMatch(/could not read/);
     } finally {
@@ -764,12 +795,12 @@ describe("ffmpeg and yt_dlp capabilities", () => {
     }
   });
 
-  it("ffmpeg names why an inputs ref failed to resolve", async () => {
+  it("media_edit names why an asset ref failed to resolve", async () => {
     // The same shape `view_image` hit: the ref is a perfectly good form, and
     // the read fails underneath. Reporting only the accepted forms sends the
     // model back round with the ref it already had — it cannot tell a typo
     // from an unreachable bucket, so it guesses at the one thing it can change.
-    const dir = await mkdtemp(join(tmpdir(), "ffmpeg-inputs-err-"));
+    const dir = await mkdtemp(join(tmpdir(), "media-inputs-err-"));
     try {
       const context = {
         userId: "user-1",
@@ -780,9 +811,10 @@ describe("ffmpeg and yt_dlp capabilities", () => {
         }
       } as unknown as ProcessingContext;
 
-      const result = (await asTool(ffmpeg).process(context, {
-        args: ["-i", "a.mp4", "out.mp4"],
-        inputs: { "a.mp4": "asset://abc.mp4" }
+      const result = (await asTool(mediaEdit).process(context, {
+        operation: "convert",
+        input: "asset://abc.mp4",
+        output_file: "out.mp4"
       })) as Record<string, unknown>;
 
       expect(String(result["error"])).toContain("storage backend unreachable");
@@ -791,18 +823,33 @@ describe("ffmpeg and yt_dlp capabilities", () => {
     }
   });
 
-  it("ffmpeg points a refused URI at the inputs parameter", async () => {
-    const result = (await asTool(ffmpeg).process(
+  it("media_edit points a refused URL at naming the asset instead", async () => {
+    const result = (await asTool(mediaEdit).process(
       localWorkspaceContext("/tmp"),
-      { args: ["-i", "asset://abc.mp4", "out.mp4"] }
+      { operation: "convert", input: "https://example.com/a.mp4", output_file: "out.mp4" }
     )) as Record<string, unknown>;
-    expect(String(result["error"])).toMatch(/`inputs`/);
+    expect(String(result["error"])).toMatch(/asset:\/\/ URI itself/);
   });
 
-  it("ffmpeg refuses an output_file that escapes the workspace", async () => {
-    const result = (await asTool(ffmpeg).process(
+  it("media_edit refuses an output_file that escapes the workspace", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "media-out-"));
+    try {
+      await writeFile(join(dir, "in.mp4"), "x");
+      const result = (await asTool(mediaEdit).process(localWorkspaceContext(dir), {
+        operation: "convert",
+        input: "in.mp4",
+        output_file: "../../etc/cron.d/x.mp4"
+      })) as Record<string, unknown>;
+      expect(String(result["error"])).toMatch(/outside the workspace/);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("media_edit refuses a flag-shaped output_file that escapes the workspace", async () => {
+    const result = (await asTool(mediaEdit).process(
       localWorkspaceContext("/tmp"),
-      { args: ["-i", "in.mp4"], output_file: "../../etc/cron.d/x" }
+      { operation: "convert", input: "in.mp4", output_file: "-x/../../../etc/cron.d/x.mp4" }
     )) as Record<string, unknown>;
     expect(String(result["error"])).toMatch(/outside the workspace/);
   });
@@ -861,6 +908,31 @@ describe("generate_speech when both TTS paths fail", () => {
 
     expect(String(result["error"])).toContain("is not enabled");
     expect(String(result["error"])).toContain("streaming fallback then failed");
+  });
+});
+
+describe("generate_speech delivery direction", () => {
+  it("passes instructions to the provider, and leaves them out when blank", async () => {
+    const textToSpeechEncoded = vi.fn(async (_req: { params: Record<string, unknown> }) => ({
+      data: new Uint8Array([1, 2, 3]),
+      mimeType: "audio/mpeg"
+    }));
+    const context = withGenerationSeam({
+      userId: "user-1",
+      textToSpeechEncoded,
+      hasModelInterface: (name: string) => name === "createAsset",
+      createAsset: async () => ({ id: "speech-asset" })
+    }) as unknown as ProcessingContext;
+
+    await asTool(generateSpeech).process(context, {
+      provider: "openai", model: "gpt-4o-mini-tts", text: "hello", instructions: "whispering"
+    });
+    await asTool(generateSpeech).process(context, {
+      provider: "openai", model: "gpt-4o-mini-tts", text: "hello", instructions: "  "
+    });
+
+    expect(textToSpeechEncoded.mock.calls[0][0].params["instructions"]).toBe("whispering");
+    expect(textToSpeechEncoded.mock.calls[1][0].params).not.toHaveProperty("instructions");
   });
 });
 

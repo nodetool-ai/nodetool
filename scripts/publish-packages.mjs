@@ -138,7 +138,11 @@ export async function packRelease(packages, dest, {
   root = ROOT,
   packPackages = pack,
   pin = writeReleasePinnedCatalog,
-  rebuildCatalog = () => runReleaseCommand(process.execPath, [join(root, "packages/node-catalog/build.mjs")], { cwd: root })
+  rebuildCatalog = () => {
+    for (const carrier of ["pack-core", "node-catalog"]) {
+      runReleaseCommand(process.execPath, [join(root, `packages/${carrier}/build.mjs`)], { cwd: root });
+    }
+  }
 } = {}) {
   if (readdirSync(dest).some(name => name.endsWith(".tgz"))) {
     throw new Error("Release tarball directory must be empty. Reuse existing artifacts with --tarballs-dir without --pack-only.");

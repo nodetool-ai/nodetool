@@ -18,7 +18,6 @@ import React, {
 import { useTranslation } from "react-i18next";
 import AddIcon from "@mui/icons-material/AddOutlined";
 import {
-  sketchFieldSx,
   SKETCH_CHECKERBOARD,
   SKETCH_COLORS,
   SKETCH_SIZE
@@ -41,7 +40,6 @@ import {
   BORDER_RADIUS,
   SPACING,
   getSpacingPx,
-  IconButton,
   Button,
   ContextMenu,
   MenuItemPrimitive,

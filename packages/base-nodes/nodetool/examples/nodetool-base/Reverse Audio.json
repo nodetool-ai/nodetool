@@ -5,7 +5,7 @@
   "updated_at": "2026-06-21T16:55:51.256Z",
   "name": "Reverse Audio",
   "tool_name": null,
-  "description": "Play a track backwards - the basis of reverse-cymbal risers and pre-echo effects. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
+  "description": "Play a track backwards - the basis of reverse-cymbal risers and pre-echo effects. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Built-in media engine - no API cost.",
   "tags": [
     "audio",
     "video",
@@ -20,7 +20,7 @@
         "id": "intro-comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# Reverse Audio\n\nPlays the soundtrack of a clip backwards, the starting point for reverse-cymbal risers and pre-echo effects. It runs locally through ffmpeg with no model or API key.\n\n**How it works:** \"Clip\" takes a video file. \"Extract audio\" pulls out its soundtrack, \"Process\" reverses it, and \"Audio\" returns the reversed track.\n\n**Try this:** Feed in a clip that ends on a cymbal hit, then place the reversed audio just before the hit in your edit to build a riser."
+          "comment": "# Reverse Audio\n\nPlays the soundtrack of a clip backwards, the starting point for reverse-cymbal risers and pre-echo effects. It runs in the built-in media engine on your machine, with no model or API key.\n\n**How it works:** \"Clip\" takes a video file. \"Extract audio\" pulls out its soundtrack, \"Process\" reverses it, and \"Audio\" returns the reversed track.\n\n**Try this:** Feed in a clip that ends on a cymbal hit, then place the reversed audio just before the hit in your edit to build a riser."
         },
         "ui_properties": {
           "position": {

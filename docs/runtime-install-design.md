@@ -36,7 +36,7 @@ The table gives defaults. The precedence rules follow it.
 
 | Kind | Default location | Installer | How the backend finds it |
 |---|---|---|---|
-| Conda env | macOS `~/nodetool_env`. Linux `~/.local/share/nodetool/conda_env`, or `/opt/nodetool/conda_env` when `SUDO_USER` is set. Windows `%ALLUSERSPROFILE%\nodetool\conda_env`, or `%APPDATA%\nodetool\conda_env` when `ALLUSERSPROFILE` is unset (`electron/src/config.ts:34`) | `micromamba create` with `ca-certificates` only (`electron/src/installer.ts:584`). Python, uv, ffmpeg, pandoc, pdftotext, yt-dlp and rust install later as separate runtime packages | the `PATH` that `getProcessEnv` builds (`electron/src/config.ts`) |
+| Conda env | macOS `~/nodetool_env`. Linux `~/.local/share/nodetool/conda_env`, or `/opt/nodetool/conda_env` when `SUDO_USER` is set. Windows `%ALLUSERSPROFILE%\nodetool\conda_env`, or `%APPDATA%\nodetool\conda_env` when `ALLUSERSPROFILE` is unset (`electron/src/config.ts:34`) | `micromamba create` with `ca-certificates` only (`electron/src/installer.ts:584`). Python, uv, ffmpeg, yt-dlp and rust install later as separate runtime packages | the `PATH` that `getProcessEnv` builds (`electron/src/config.ts`) |
 | Python packages | the env's interpreter | `installRequiredPythonPackages` (`electron/src/python.ts:293`) installs `nodetool-core` and caller additions. `packageManager.ts` installs Python node packs, with torch backend selection, CPU fallback and the requirements of packs already installed (`:359`, `:970`, `:1113`) | `PythonStdioBridge`, see below |
 | uv tools | `userData/uv-tools/{tools,bin,python}` (`uvToolDirs.ts`) | `uv tool install` with the env's uv (`UvToolRuntimePackage.ts`) | the desktop `PATH` |
 | npm root | `userData/optional-node` (`NpmRuntimePackage.ts`, `nodePackManager.ts`) | the npm bundled with the app, system npm in an unpackaged build (`config.ts:457`). Cache in `userData/npm-cache` | `NODETOOL_OPTIONAL_NODE_MODULES`, set at backend spawn (`config.ts:352`) |
@@ -64,7 +64,7 @@ Other hosts:
 
 - **CLI (uncommitted work).** `nodetool runtime add` installs npm libraries into
   `<dataDir>/optional-node`. It spawns `npm` from `PATH`, through a shell on
-  Windows (`packages/cli/src/commands/runtime.ts:98`). It covers npm ids only.
+  Windows (`packages/cli-admin/src/commands/runtime.ts:98`). It covers npm ids only.
 - **install.sh** downloads micromamba 2.3.3-0 into `<dataDir>/micromamba` and
   creates the env at `<dataDir>/conda_env`. `NODETOOL_HOME` and `--prefix`
   change both paths (`install.sh:537`).
@@ -85,7 +85,7 @@ Other hosts:
 
 - **F1. The CLI can install only one of the four kinds.** `nodetool runtime add`
   covers npm libraries. An npm user without the desktop app gets Python,
-  ffmpeg or manimgx only through `install.sh`, a manual conda setup, or the
+  yt-dlp or manimgx only through `install.sh`, a manual conda setup, or the
   system package manager.
 - **F2. No backend package reads `settings.yaml`.** The CLI never sees a custom
   `CONDA_ENV`.
@@ -388,7 +388,7 @@ restart.
 
 `bringYourOwn` for Python on every host except `docker`:
 `Or set NODETOOL_PYTHON to a Python 3.11+ that has nodetool-core installed.`
-For a conda binary it is `Or put ffmpeg on PATH (brew install ffmpeg, apt install ffmpeg).`
+For a conda binary it is `Or put yt-dlp on PATH (brew install yt-dlp, apt install yt-dlp).`
 For a uv tool it is `Or put manimgx on PATH (uv tool install manimgx).`
 
 An example message on the `cli` host:
@@ -568,8 +568,8 @@ that step (F43).
 | `applyRuntimeEnv` never replaces a set value and sets absent paths | D15 | `packages/config/tests/` |
 | The exact error text per host and kind, with real paths | D9, D12 | `packages/protocol/tests/` |
 | A clean-HOME run of each printed managed npm command against a local test registry, for `cli`, `npx` and `source` | 5.7 | `scripts/__tests__/`, on request, with the pack spec 19.3 matrix |
-| The never-install matrix: the installer refuses in a `serve` or `mcp serve` process, and no capability installs | D8 | `packages/cli/src/commands/__tests__/runtime.test.ts`, `packages/agents/tests/` |
-| A missing runtime round trip: node error, sandbox result, CLI `--json` with exit code 3 | D12 | `packages/kernel/tests/`, `packages/cli/src/commands/__tests__/` |
+| The never-install matrix: the installer refuses in a `serve` or `mcp serve` process, and no capability installs | D8 | `packages/cli-admin/src/commands/__tests__/runtime.test.ts`, `packages/agents/tests/` |
+| A missing runtime round trip: node error, sandbox result, CLI `--json` with exit code 3 | D12 | `packages/kernel/tests/`, `packages/cli-admin/src/commands/__tests__/` |
 | The bridge with no candidate, and a Python node type with the bridge unavailable, throw id `python` | D16 | `packages/runtime/tests/`, `packages/websocket/tests/` |
 | Every id has a spec. Each `SERVER_OPTIONAL_PACKAGES` entry is a registry component. `install.sh` has the generated micromamba block | D11, 5.9 | `packages/protocol/tests/`, `scripts/__tests__/` |
 | The installer with a stub npm and a stub micromamba: argv, `--ignore-scripts`, declared rebuilds only, env marker check | D6, D10, F17 | `packages/runtime-install/tests/` |

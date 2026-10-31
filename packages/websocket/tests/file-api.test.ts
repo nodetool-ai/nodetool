@@ -81,6 +81,16 @@ describe("/api/files/local", () => {
     expect(await res.text()).toBe("video-bytes");
   });
 
+  it.each(["page.html", "page.htm", "feed.xml", "app.js"])(
+    "serves %s as text/plain, not as a document or script",
+    async (name) => {
+      const file = path.join(tmpDir, name);
+      await fs.writeFile(file, "<script>alert(1)</script>");
+      const res = await handleFileRequest(localRequest(file));
+      expect(res.headers.get("Content-Type")).toBe("text/plain");
+    }
+  );
+
   // This route answers on the API's own origin, which the local trust check
   // treats as the user's UI, so an SVG's script must not run.
   it("serves SVG with a sandbox policy, ranges included", async () => {

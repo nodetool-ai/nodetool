@@ -113,6 +113,17 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "character-in-any-scene",
+        "name": "Character in Any Scene",
+        "description": "Place a reference character into a new environment while preserving facial identity and wardrobe, then animate the shot with a named camera move. Estimated cost is about $0.08 for the reference-guided still plus $0.35 to $0.85 for the video clip on fal, or $0 locally with Flux and Wan 2.2.",
+        "tags": [
+          "image",
+          "video",
+          "higgsfield-pack",
+          "characters"
+        ]
+      },
+      {
         "slug": "circles-and-lines",
         "name": "Circles and Lines",
         "description": "An orbital poster drawn from circles, ellipses and lines in one Code node. The array order is the paint order, so the planets pass in front of the sun.",
@@ -207,6 +218,17 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "effects-gallery",
+        "name": "Effects Gallery",
+        "description": "Apply one of 12 visual effects presets — levitation, glass shatter, liquid chrome melt, slow-motion embers, frost freeze, balloon inflate, or floral explosion — to any product or subject photo. Estimated cost is about $0.30 to $0.85 per clip on fal at provider list price, or $0 locally with Wan 2.2.",
+        "tags": [
+          "video",
+          "image",
+          "higgsfield-pack",
+          "effects"
+        ]
+      },
+      {
         "slug": "emboss-a-still",
         "name": "Emboss a Still",
         "description": "Turn the image into a relief. Emboss reads gradients rather than colour, so a flat region goes grey and only the edges survive.",
@@ -273,6 +295,17 @@ export const templateCatalog: CatalogCategory[] = [
         "description": "A straight negative — every channel flipped. The cheapest way to see whether a filter chain is operating on the pixels you think it is.",
         "tags": [
           "image"
+        ]
+      },
+      {
+        "slug": "lens-and-look",
+        "name": "Lens and Look",
+        "description": "Dial focal length (14mm to 135mm, macro, or anamorphic), aperture depth of field, film stock grain, and camera motion before generating a keyframe still and its animated shot. Estimated cost is about $0.05 for the keyframe plus $0.35 to $0.85 for the clip on fal, or $0 locally with Flux and Wan 2.2.",
+        "tags": [
+          "image",
+          "video",
+          "higgsfield-pack",
+          "camera-moves"
         ]
       },
       {
@@ -365,7 +398,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "pull-a-still-from-a-clip",
         "name": "Pull a Still from a Clip",
-        "description": "Grab a single frame at a given timestamp - the quick way to get a thumbnail or a reference still out of footage you already have. Runs locally through ffmpeg.",
+        "description": "Grab a single frame at a given timestamp - the quick way to get a thumbnail or a reference still out of footage you already have. Runs on your machine with the built-in media engine.",
         "tags": [
           "video",
           "image",
@@ -470,6 +503,17 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "train-a-character",
+        "name": "Train a Character",
+        "description": "Build a reusable character identity from a reference portrait, a trigger token, and a wardrobe descriptor, then generate a multi-angle character turnaround sheet ready for downstream storyboards or Flux LoRA fine-tuning. Estimated cost is about $0.05 to $0.15 for the turnaround sheet on fal (or ~$2 for a full Flux LoRA run), or $0 locally.",
+        "tags": [
+          "image",
+          "storyboard",
+          "higgsfield-pack",
+          "characters"
+        ]
+      },
+      {
         "slug": "turn-a-logo-into-print-ready-vector",
         "name": "Turn a Logo into Print-Ready Vector",
         "description": "A raster logo cannot be set on a billboard or embroidered. Tracing to SVG paths gives a mark that scales to any size a supplier asks for.",
@@ -536,6 +580,19 @@ export const templateCatalog: CatalogCategory[] = [
     "description": "Turn prompts, images, and briefs into video — trailers, product spots, animations, and music visuals.",
     "templates": [
       {
+        "slug": "50-ad-variants-overnight",
+        "name": "50 Ad Variants Overnight",
+        "description": "Scrape a product URL once, generate a batch of distinct ad angles and camera directions (up to 50 variants), and loop through every variant with no rate-limit queue or automation ban. Estimated cost is about $0.30 per variant on fal at provider list price, or $0 locally with Ollama and Wan 2.2.",
+        "tags": [
+          "video",
+          "marketing",
+          "advertising",
+          "batch",
+          "higgsfield-pack",
+          "ads"
+        ]
+      },
+      {
         "slug": "ai-spokesperson",
         "name": "AI Spokesperson",
         "description": "Turn a script into speech, normalise the volume, and soften the audio edges before syncing it to your presenter clip.",
@@ -567,7 +624,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "boost-saturation",
         "name": "Boost Saturation",
-        "description": "Push colour intensity. Values above 1 saturate, below 1 move toward greyscale. Unlike the Color Boost template this runs in ffmpeg, so it needs no GPU. Runs locally through ffmpeg - no API key and no per-run cost.",
+        "description": "Push colour intensity. Values above 1 saturate, below 1 move toward greyscale. Unlike the Color Boost template this runs on the CPU media engine, so it needs no GPU. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
         "tags": [
           "video",
           "utility"
@@ -583,6 +640,27 @@ export const templateCatalog: CatalogCategory[] = [
           "ugc",
           "captions",
           "motion-graphics"
+        ]
+      },
+      {
+        "slug": "camera-move-contact-sheet",
+        "name": "Camera Move Contact Sheet",
+        "description": "Batch-render one still image across six camera movements — dolly in, crane up, orbit left, crash zoom in, pull back reveal, and low-angle hero rise — so you can compare coverage side by side before committing to a hero take. Estimated cost is about $1.80 for six 5-second clips on fal at provider list price, or $0 locally with Wan 2.2.",
+        "tags": [
+          "video",
+          "higgsfield-pack",
+          "camera-moves",
+          "batch"
+        ]
+      },
+      {
+        "slug": "camera-move",
+        "name": "Camera Move",
+        "description": "Animate a still photo with one of 30 named camera movements — dolly in, crane up, orbit, crash zoom, FPV fly-through, or bullet time — at your chosen speed and duration. Estimated cost is about $0.30 to $0.85 per clip on fal at provider list price, or $0 locally with Wan 2.2 through ComfyUI or Wan2GP.",
+        "tags": [
+          "video",
+          "higgsfield-pack",
+          "camera-moves"
         ]
       },
       {
@@ -602,6 +680,17 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "consistent-cast-storyboard",
+        "name": "Consistent Cast Storyboard",
+        "description": "Direct a 6-shot narrative storyboard around a locked character entity, render every shot still and motion clip with identity preservation, and assemble the cut onto a multi-track timeline. Estimated cost is about $2.50 to $5.00 for a 6-shot board on fal at provider list price, or $0 locally with Ollama, Flux, and Wan 2.2.",
+        "tags": [
+          "video",
+          "storyboard",
+          "higgsfield-pack",
+          "characters"
+        ]
+      },
+      {
         "slug": "cut-a-landscape-clip-for-vertical",
         "name": "Cut a Landscape Clip for Vertical",
         "description": "Footage arrives 16:9 and the channel wants 9:16. Resizing to the vertical frame is the unglamorous step between having a film and being able to post it.",
@@ -612,7 +701,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "denoise-footage",
         "name": "Denoise Footage",
-        "description": "Reduce sensor grain in footage shot at high ISO. Higher strength smooths more and softens fine detail with it. Runs locally through ffmpeg - no API key and no per-run cost.",
+        "description": "Reduce sensor grain in footage shot at high ISO. Higher strength smooths more and softens fine detail with it. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
         "tags": [
           "video",
           "utility"
@@ -641,6 +730,18 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "dub-a-video-into-5-languages",
+        "name": "Dub a Video into 5 Languages",
+        "description": "Extract speech from a source video, transcribe it, translate the spoken phrasing into five target languages in parallel, synthesize each localized voice track, and re-sync the speaker's lips for every language. Estimated cost is about $0.45 per language on fal at provider list price.",
+        "tags": [
+          "video",
+          "audio",
+          "higgsfield-pack",
+          "lipsync",
+          "batch"
+        ]
+      },
+      {
         "slug": "explainer-clip-from-a-paragraph",
         "name": "Explainer Clip from a Paragraph",
         "description": "A paragraph of explanation becomes narration and a matching visual. The agent writes the shot description, so the picture follows the words rather than being prompted separately and drifting from them.",
@@ -651,7 +752,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "fade-audio-in-and-out",
         "name": "Fade Audio In and Out",
-        "description": "Ease a track in from silence so it does not start on a hard edit. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
+        "description": "Ease a track in from silence so it does not start on a hard edit. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Built-in media engine - no API cost.",
         "tags": [
           "audio",
           "video",
@@ -734,7 +835,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "normalize-a-clips-audio",
         "name": "Normalize a Clip's Audio",
-        "description": "Even out loudness on a track that was recorded too quiet or too hot. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
+        "description": "Even out loudness on a track that was recorded too quiet or too hot. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Built-in media engine - no API cost.",
         "tags": [
           "audio",
           "video",
@@ -761,6 +862,31 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "product-url-to-cgi-commercial",
+        "name": "Product URL to CGI Commercial",
+        "description": "Scrape a live product page URL to extract its form factor, materials, and brand palette, generate a studio packshot keyframe, and animate a directed CGI-style tabletop commercial shot. Estimated cost is about $0.08 for the studio packshot plus $0.35 to $0.85 for the motion clip on fal, or $0 locally with Ollama, Flux, and Wan 2.2.",
+        "tags": [
+          "video",
+          "marketing",
+          "advertising",
+          "higgsfield-pack",
+          "ads"
+        ]
+      },
+      {
+        "slug": "product-url-to-ugc-ad",
+        "name": "Product URL to UGC Ad",
+        "description": "Paste a product page URL to extract its headline, value props, and proof points, write a 15-second spoken creator script, synthesize the voiceover, and lip-sync a creator portrait into a vertical UGC ad. Estimated cost is about $0.45 to $1.10 per ad on fal at provider list price.",
+        "tags": [
+          "video",
+          "marketing",
+          "advertising",
+          "ugc",
+          "higgsfield-pack",
+          "ads"
+        ]
+      },
+      {
         "slug": "product-video-generator",
         "name": "Product Video Generator",
         "description": "Turn a campaign brief, audience, features, and a product photo into a realistic 16:9 launch video — an agent writes the motion prompt, then an image-to-video model animates the shot. Cost note: the video step is a paid generation, so this run costs noticeably more than an image-only template.",
@@ -781,7 +907,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "reverse-audio",
         "name": "Reverse Audio",
-        "description": "Play a track backwards - the basis of reverse-cymbal risers and pre-echo effects. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Local ffmpeg - no API cost.",
+        "description": "Play a track backwards - the basis of reverse-cymbal risers and pre-echo effects. Pulls the audio out of a video first, so it works on footage as well as on a bare track. Built-in media engine - no API cost.",
         "tags": [
           "audio",
           "video",
@@ -791,7 +917,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "reverse-a-clip",
         "name": "Reverse a Clip",
-        "description": "Play a clip backwards. Useful for loop-and-return transitions where the return leg is the same footage reversed. Runs locally through ffmpeg - no API key and no per-run cost.",
+        "description": "Play a clip backwards. Useful for loop-and-return transitions where the return leg is the same footage reversed. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
         "tags": [
           "video",
           "utility"
@@ -800,7 +926,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "rotate-footage",
         "name": "Rotate Footage",
-        "description": "Rotate a clip by a fixed angle - the fix for phone footage that arrives on its side. Runs locally through ffmpeg - no API key and no per-run cost.",
+        "description": "Rotate a clip by a fixed angle - the fix for phone footage that arrives on its side. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
         "tags": [
           "video",
           "utility"
@@ -851,7 +977,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "sharpen-footage",
         "name": "Sharpen Footage",
-        "description": "Add apparent detail back after a denoise or a downscale. Luma carries most of the perceived sharpness; chroma is kept low to avoid colour fringing. Runs locally through ffmpeg - no API key and no per-run cost.",
+        "description": "Add apparent detail back after a denoise or a downscale. Luma carries most of the perceived sharpness; chroma is kept low to avoid colour fringing. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
         "tags": [
           "video",
           "utility"
@@ -877,7 +1003,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "soften-a-plate",
         "name": "Soften a Plate",
-        "description": "Blur a clip so it can sit behind titles or a picture-in-picture inset without competing for attention. Runs locally through ffmpeg - no API key and no per-run cost.",
+        "description": "Blur a clip so it can sit behind titles or a picture-in-picture inset without competing for attention. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
         "tags": [
           "video",
           "utility"
@@ -894,10 +1020,21 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "stabilize-handheld",
         "name": "Stabilize Handheld",
-        "description": "Smooth out handheld camera shake. Stabilising moves the frame, so `crop_black` trims the empty edges it exposes. Runs locally through ffmpeg - no API key and no per-run cost.",
+        "description": "Smooth out handheld camera shake. Stabilising moves the frame, so `crop_black` trims the empty edges it exposes. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
         "tags": [
           "video",
           "utility"
+        ]
+      },
+      {
+        "slug": "talking-avatar-from-a-photo-and-a-script",
+        "name": "Talking Avatar from a Photo and a Script",
+        "description": "Turn a single portrait photo and a written script into a lip-synced talking avatar video: synthesize and level the voice track, animate natural head movement from the portrait, and lock mouth shapes to the audio. Estimated cost is about $0.40 to $0.95 per clip on fal at provider list price.",
+        "tags": [
+          "video",
+          "audio",
+          "higgsfield-pack",
+          "lipsync"
         ]
       },
       {
@@ -921,7 +1058,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "trim-a-clip",
         "name": "Trim a Clip",
-        "description": "Cut a clip down to an in and out point. `accurate` re-encodes so the cut lands on the exact frame instead of the nearest keyframe. Runs locally through ffmpeg - no API key and no per-run cost.",
+        "description": "Cut a clip down to an in and out point. `accurate` re-encodes so the cut lands on the exact frame instead of the nearest keyframe. Runs on your machine with the built-in media engine - no API key and no per-run cost.",
         "tags": [
           "video",
           "utility"
@@ -930,7 +1067,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "warm-up-a-cold-clip",
         "name": "Warm Up a Cold Clip",
-        "description": "Per-channel colour balance — lift red, drop blue. A grade you can apply without a GPU, since it runs through ffmpeg rather than a shader.",
+        "description": "Per-channel colour balance — lift red, drop blue. A grade you can apply without a GPU, since it runs on the CPU media engine rather than a shader.",
         "tags": [
           "video"
         ]

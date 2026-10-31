@@ -6,7 +6,7 @@
  * The shipped examples under
  * `packages/base-nodes/nodetool/examples/nodetool-base/` spend real money and
  * read documents a director approved by hand, so nothing in CI can run them.
- * The fixtures in `packages/cli/fixtures/graph-resources/` are the same graphs
+ * The fixtures in `packages/cli-workflow/fixtures/graph-resources/` are the same graphs
  * with the generators swapped for `nodetool.fake.*` and the render nodes
  * pointed at the `fake` provider. This script gives them the world they read —
  * a template board with a Product entity and a style entity, the approved cut
@@ -37,7 +37,7 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-const fixturesDir = join(repoRoot, "packages/cli/fixtures/graph-resources");
+const fixturesDir = join(repoRoot, "packages/cli-workflow/fixtures/graph-resources");
 
 /** The seeded ids the fixture graphs name. Change one, change both sides. */
 const IDS = {

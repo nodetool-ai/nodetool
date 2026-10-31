@@ -1,6 +1,6 @@
 /**
  * Headless-app driver (§12) — wraps `nodetool app debug` (packages/cli's
- * app-debug runtime, `packages/cli/src/app-debug/`) for journeys whose
+ * app-debug runtime, `packages/cli-apps/src/app-debug/`) for journeys whose
  * workflow carries an app document. Spawns the real CLI (`spawn-cli.ts`)
  * rather than importing the app-debug runtime directly: `@nodetool-ai/cli`'s
  * own `reliability` command (item 6) depends on this package, so a static
@@ -10,7 +10,7 @@
  *
  * A journey "carries an app" when its workflow JSON has a top-level
  * `app_doc` field — the same shape `nodetool debug`/`workflows run` read
- * (`packages/cli/src/debug/target.ts`). None of the seed journeys (§5) do
+ * (`packages/cli-workflow/src/debug/target.ts`). None of the seed journeys (§5) do
  * yet, so `supports()` reports `false` for all of them today and the driver
  * is skipped as not-applicable — the "headless-app or n/a-clean" leg of C4's
  * done-when (item 8). The conversion half (`runRecordFromAppDebugReport`) is
@@ -27,7 +27,7 @@ import { spawnNodetoolCli } from "./spawn-cli.js";
 import type { RunDriver } from "./types.js";
 
 /** Minimal shape this driver needs from an `AppDebugReport`'s `report.json`
- * (`packages/cli/src/app-debug/types.ts`). */
+ * (`packages/cli-apps/src/app-debug/types.ts`). */
 export interface AppDebugReportLike {
   target?: { workflowId?: string | null } | null;
   runs?: Array<{

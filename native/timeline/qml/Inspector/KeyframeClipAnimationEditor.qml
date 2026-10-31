@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 Column {
     id: root
     required property var animation
@@ -29,7 +30,7 @@ Column {
     signal patch(var values, string phase)
     signal presetChange(string value)
     signal remove()
-    spacing: Theme.spacingMd
+    spacing: Ui.Metrics.md
     function param(name,value,phase) {
         const params = Object.assign({},animation.params || {})
         params[name] = value
@@ -37,7 +38,7 @@ Column {
     }
     RowLayout {
         width: root.width
-        Text { Layout.fillWidth: true; text: root.roleLabel; color: Theme.textPrimary; font.pixelSize: Theme.fontSizeSmall }
+        Ui.Text { Layout.fillWidth: true; text: root.roleLabel; role: Ui.Typography.SansLabel }
         KeyframeButton { text: "×"; label: "Remove " + root.roleLabel + " animation"; enabled: !root.controller.locked; onClicked: root.remove() }
     }
     InspectorToggleRow { width: root.width; label: "Enabled"; checked: root.animation.enabled !== false; disabled: root.controller.locked; onChange: next => root.patch({enabled:next},"") }
@@ -109,7 +110,7 @@ Column {
             InspectorPillInput { value: String(root.animation.stagger ? root.animation.stagger.offsetMs : 120); unit: "ms"; ariaLabel: root.roleLabel + " animation stagger offset"; disabled: root.controller.locked; onCommit: raw => { const n = Number(raw); if (Number.isFinite(n) && n > 0) root.patch({stagger:Object.assign({},root.animation.stagger,{offsetMs:n})},"") } }
         }
     }
-    Text {
+    Ui.Text {
         objectName: "staggerOverrunWarning"
         width: root.width
         visible: root.controller.clip.mediaType === "text" && !(root.preset && root.preset.fullClip) &&
@@ -117,8 +118,8 @@ Column {
         text: "Staggered over " + root.staggerCount + " " + ((root.animation.stagger?.unit || "word").charAt(0).toUpperCase() + (root.animation.stagger?.unit || "word").slice(1)) + (root.staggerCount === 1 ? "" : "s") +
               " this runs " + Math.round(root.staggerSpan) + "ms, past the clip's " +
               (root.controller.clip.durationMs || 0) + "ms. The last units are cut off."
-        color: Theme.textSecondary
-        font.pixelSize: Theme.fontSizeSmall
+        role: Ui.Typography.SansLabel
+        tone: Ui.Text.Secondary
         wrapMode: Text.WordWrap
     }
     KeyframeClipCustomCurves {
@@ -160,5 +161,5 @@ Column {
             onChange: (next,phase) => root.param(spec.name,next,phase)
         }
     }
-    Text { width: root.width; visible: !!root.preset; text: root.preset ? (MotionAnimationCatalog.labels.descriptions[root.preset.id] || root.preset.describe) : ""; color: Theme.textSecondary; font.pixelSize: Theme.fontSizeSmall; wrapMode: Text.WordWrap }
+    Ui.Text { width: root.width; visible: !!root.preset; text: root.preset ? (MotionAnimationCatalog.labels.descriptions[root.preset.id] || root.preset.describe) : ""; role: Ui.Typography.SansLabel; tone: Ui.Text.Secondary; wrapMode: Text.WordWrap }
 }

@@ -1,5 +1,6 @@
 #include "app/EditRegistry.h"
 #include "wiring/WiringFixture.h"
+#include "wiring/SourceDurations.h"
 #include "model/TimelineJson.h"
 #include "edit/ClipGestureController.h"
 #include "playback/PlaybackClock.h"
@@ -194,7 +195,12 @@ private slots:
         fixture.insert("clips", QJsonArray{outgoing, incoming});
         auto parsed = nt::parseTimelineJson(QJsonDocument(fixture).toJson()); QVERIFY(parsed.timeline);
         model.setTimeline(std::move(*parsed.timeline));
-        if (finite) { QTRY_COMPARE(gestures()->sourceCapMs("c"), 4000.0); }
+        if (finite) {
+            // sourceCapMs also returns the existing out-point before probing finishes.
+            const auto path = outgoing.value("mediaPath").toString();
+            QTRY_COMPARE(nt::wiring::knownSourceDuration(path).value_or(-1.0), 4000.0);
+            QCOMPARE(gestures()->sourceCapMs("c"), 4000.0);
+        }
         QCoreApplication::processEvents();
         auto* grip = item("clip-transition-handle-d");
         QVERIFY2(grip, "B33: production transition wedge needs its Transition length grip");
@@ -217,8 +223,18 @@ private slots:
         click("undoButton"); QCOMPARE(doc(), before);
         view.reset();
     }
+    void productionSoftnessPointer_data() {
+        QTest::addColumn<int>("height");
+        QTest::newRow("standard-window") << 900;
+        QTest::newRow("short-window") << 600;
+    }
     void productionSoftnessPointer() {
+        QFETCH(int, height);
         open();
+        view->resize(view->width(), height);
+        auto* dock = qobject_cast<DockLayoutStore*>(view->rootObject()->property("dockStore").value<QObject*>());
+        QVERIFY(dock);
+        dock->dispatch({{"type", "reveal"}, {"panelId", "inspector"}});
         QVERIFY(gestures());
         auto fixture = doc(); auto clips = fixture["clips"].toArray();
         auto incoming = clips[0].toObject();
@@ -230,6 +246,13 @@ private slots:
         // Selection reveals nested Inspector positioners whose geometry needs polish.
         QVERIFY(QQuickTest::qWaitForPolish(view.get()));
         auto* softness = item("transitionSoftness"); QVERIFY(softness);
+        QTRY_VERIFY(softness->isVisible());
+        auto* viewport = item("inspectorViewport"); QVERIFY(viewport);
+        const double y = softness->mapToItem(viewport, QPointF{}).y();
+        const double contentY = viewport->property("contentY").toDouble();
+        const double maximum = std::max(0.0, viewport->property("contentHeight").toDouble() - viewport->height());
+        QVERIFY(viewport->setProperty("contentY", std::clamp(contentY + y, 0.0, maximum)));
+        QVERIFY(QQuickTest::qWaitForPolish(view.get()));
         QVERIFY2(softness->isVisible() && softness->mapToScene({0, 0}).y() < view->height(),
             "Transition softness must be visible inside the production Inspector");
         QQuickItem* slider = nullptr;

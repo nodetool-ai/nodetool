@@ -5,6 +5,8 @@ nt_sources(server
     src/server/TimelineList/TimelineListController.cpp)
 
 function(nt_timeline_list_tests)
+    add_test(NAME timelinelist_document_controls_output COMMAND node --test
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/server/TimelineList/document-controls.test.mjs)
     add_test(NAME timelinelist_document_controls COMMAND node
         ${CMAKE_CURRENT_SOURCE_DIR}/src/server/TimelineList/document-controls.mjs $<TARGET_FILE:nodetool-timeline>)
     set_tests_properties(timelinelist_document_controls PROPERTIES TIMEOUT 1800

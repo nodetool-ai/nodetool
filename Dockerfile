@@ -87,7 +87,10 @@ RUN cd web && NODE_OPTIONS="$WEB_BUILD_NODE_OPTIONS" npm run build \
 
 FROM node:24.22.1-bookworm-slim AS runtime
 
+# server.mjs is a bundle whose external native imports run before its own
+# code, so the libuv pool size comes from here (packages/config/src/threadpool.ts).
 ENV NODE_ENV=production \
+    UV_THREADPOOL_SIZE=128 \
     NODETOOL_ENV=production \
     NODETOOL_HOST=docker \
     NODETOOL_STORAGE_AUTO_CLEANUP=1 \
@@ -102,13 +105,11 @@ ENV NODE_ENV=production \
 # SECRETS_MASTER_KEY, not a system keychain inside the container.
 #
 # Beyond ca-certificates/curl (health check, downloads), this bakes in the
-# CLIs that agent skill nodes (execute_bash) and document/video nodes shell
-# out to at runtime, so containers don't fail or install tools on every run:
-#   ffmpeg            — FFmpeg agents/capabilities, video nodes
+# CLIs that agent skill nodes (execute_bash) shell out to at runtime, so
+# containers don't fail or install tools on every run. There is no ffmpeg:
+# media runs on libav in process, and yt-dlp downloads each format separately
+# for an in-process mux.
 #   git               — Git agent
-#   poppler-utils     — PDF agents, pdf-to-image nodes (pdftoppm/pdftotext)
-#   qpdf              — PDF agents (split/merge/optimize/check)
-#   pandoc            — document conversion nodes
 #   postgresql-client-17 — psql/pg_dump for DATABASE_URL deployments, from
 #                     PGDG: pg_dump refuses servers newer than itself, and
 #                     bookworm ships 15 while docker-compose
@@ -129,8 +130,9 @@ ENV NODE_ENV=production \
 #                     shaderUniform*ArrayDynamicIndexing required" and still
 #                     hands back a null adapter. 25.0 satisfies it.
 #
-# chromium (+ fonts/libs) backs the browser_* agent tools, which drive it
-# over CDP from the host process. wget is a shell tool convenience.
+# chromium (+ fonts/libs) backs the browser_* agent tools and the PDF output
+# of the document conversion tools, which drive it over CDP from the host
+# process. wget is a shell tool convenience.
 RUN echo 'deb http://deb.debian.org/debian bookworm-backports main' \
       > /etc/apt/sources.list.d/backports.list \
     && apt-get update && apt-get install -y --no-install-recommends \
@@ -143,8 +145,7 @@ RUN echo 'deb http://deb.debian.org/debian bookworm-backports main' \
       > /etc/apt/sources.list.d/pgdg.list \
     && apt-get update && apt-get install -y --no-install-recommends \
     wget \
-    ffmpeg git jq zip unzip \
-    poppler-utils qpdf pandoc \
+    git jq zip unzip \
     postgresql-client-17 \
     python3 python3-venv \
     chromium fonts-liberation fonts-noto-color-emoji \

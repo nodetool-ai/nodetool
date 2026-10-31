@@ -70,7 +70,9 @@ test('suite report fails closed on missing, empty, failed and uncollected suites
 });
 
 test('QML-only packages discover resources, singletons, panels and nested modules', { timeout: 180000 }, () => {
-  const directory = mkdtempSync(path.join(tmpdir(), 's1-qml-'));
+  const scratch = mkdtempSync(path.join(tmpdir(), 's1-qml-'));
+  const directory = path.join(scratch, 'native', 'timeline');
+  mkdirSync(directory, { recursive: true });
   const source = path.resolve(import.meta.dirname, '../..');
   const build = path.join(directory, 'build');
   const run = (command, args) => {
@@ -79,6 +81,12 @@ test('QML-only packages discover resources, singletons, panels and nested module
     return result.stdout + result.stderr;
   };
   try {
+    for (const entry of ['packages', 'web']) {
+      symlinkSync(path.resolve(source, '../..', entry), path.join(scratch, entry), 'dir');
+    }
+    for (const sibling of ['chat', 'model-picker']) {
+      symlinkSync(path.resolve(source, '..', sibling), path.join(scratch, 'native', sibling), 'dir');
+    }
     for (const entry of readdirSync(source)) {
       if (/^build/.test(entry)) continue;
       const from = path.join(source, entry);
@@ -93,7 +101,7 @@ test('QML-only packages discover resources, singletons, panels and nested module
     writeFileSync(path.join(qml, 'helper.js'), '.pragma library\nfunction answer() { return 42 }\n');
     writeFileSync(path.join(qml, 'module.cmake'), `
 function(nt_qml_probe)
-    if(NOT EXISTS "\$\{CMAKE_CURRENT_BINARY_DIR\}/nt_qml_panels.cpp")
+    if(NOT EXISTS "\${CMAKE_CURRENT_BINARY_DIR}/nt_qml_panels.cpp")
         message(FATAL_ERROR "QML panel registration was not generated")
     endif()
     get_source_file_property(singleton qml/seamProbe/UnlistedSingleton.qml QT_QML_SINGLETON_TYPE)
@@ -102,11 +110,11 @@ function(nt_qml_probe)
     endif()
     foreach(resource qml/seamProbe/UnlistedPanel.qml qml/seamProbe/UnlistedSingleton.qml qml/seamProbe/helper.js)
         if(NOT resource IN_LIST NT_qml_files)
-            message(FATAL_ERROR "unlisted resource missing: \$\{resource\}")
+            message(FATAL_ERROR "unlisted resource missing: \${resource}")
         endif()
     endforeach()
     qt_add_executable(qml_probe src/app/qml_probe.cpp src/app/PanelRegistry.cpp
-        "\$\{CMAKE_CURRENT_BINARY_DIR\}/nt_qml_panels.cpp")
+        "\${CMAKE_CURRENT_BINARY_DIR}/nt_qml_panels.cpp")
     target_include_directories(qml_probe PRIVATE src)
     target_link_libraries(qml_probe PRIVATE Qt6::Core Qt6::Qml)
     qt_add_resources(qml_probe probe PREFIX /qt/qml/NodeTool/Timeline
@@ -129,15 +137,15 @@ int main(int argc, char** argv) {
 `);
     const cache = [path.join(process.cwd(), 'CMakeCache.txt'), path.join(source, 'build/CMakeCache.txt')].find(existsSync);
     const qtDir = cache && readFileSync(cache, 'utf8').match(/^Qt6_DIR:PATH=(.+)$/m)?.[1].trim();
-    const prefix = process.env.CMAKE_PREFIX_PATH ?? (qtDir ? path.resolve(qtDir, '../../..') : undefined);
+    const prefix = qtDir ? path.resolve(qtDir, '../../..') : process.env.CMAKE_PREFIX_PATH;
     const args = ['-S', directory, '-B', build, '-G', 'Ninja', '-DCMAKE_BUILD_TYPE=Release',
       ...(prefix ? [`-DCMAKE_PREFIX_PATH=${prefix}`] : [])];
     const output = run('cmake', args);
     assert.doesNotMatch(output, /Warning \(dev\)/);
     const expected = [...readdirSync(path.join(directory, 'qml'), { recursive: true })
       .filter(file => /\.(qml|js)$/.test(file)).map(file => `qml/${file}`), 'src/app/PanelSlot.qml'].sort();
-    // App and every test QML module keep the same resource list, including the unlisted files.
-    for (const target of ['nodetool-timeline', 'tst_tracksui', 'tst_inspectorprimitives', 'tst_seamexample']) {
+    // The shared module keeps the complete discovered resource list for every host.
+    for (const target of ['timeline_qml']) {
       const resources = readFileSync(path.join(build, '.qt', 'rcc', `${target}_raw_qml_0.qrc`), 'utf8');
       assert.match(resources, /qml\/seamProbe\/UnlistedPanel.qml/);
       assert.match(resources, /qml\/seamProbe\/helper.js/);
@@ -152,5 +160,5 @@ int main(int argc, char** argv) {
     assert.notEqual(malformed.status, 0);
     assert.match(malformed.stdout + malformed.stderr, /UnlistedPanel.qml/);
     assert.match(malformed.stdout + malformed.stderr, /[Mm]alformed.*nt-panel/);
-  } finally { rmSync(directory, { recursive: true, force: true }); }
+  } finally { rmSync(scratch, { recursive: true, force: true }); }
 });

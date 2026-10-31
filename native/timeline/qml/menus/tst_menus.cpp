@@ -359,13 +359,23 @@ private slots:
             "trackMenu-insertAbove:Insert " + label + " track above", "trackMenu-insertBelow:Insert " + label + " track below",
             "trackMenu-deleteDivider:", "trackMenu-remove:Delete track"}));
     }
-    void rulerEmptyThenExtension() {
+    void rulerRegisteredActionsThenExtension() {
+        MenuRegistry registry;
+        QStringList expected;
+        for (const auto& value : registry.query("ruler", {})) {
+            const auto entry = value.toMap();
+            expected.append("registryMenu-ruler-" + entry.value("action").toString() + ":" + entry.value("label").toString());
+        }
         auto* menu = popup("ruler", "timeRuler"); QVERIFY(menu);
-        QVERIFY(!menu->property("visible").toBool());
+        QCOMPARE(menu->property("visible").toBool(), !expected.isEmpty());
+        QCOMPARE(entries(menu), expected);
+        QVERIFY(QMetaObject::invokeMethod(menu, "close"));
+        QTRY_VERIFY(!menu->property("visible").toBool());
         QVERIFY(nt::app::registerMenuItem({"ruler", "selectAll", "Select all clips", "Ctrl+A", {}}));
         menu = popup("ruler", "timeRuler"); QVERIFY(menu);
         QTRY_VERIFY(menu->property("visible").toBool());
-        QCOMPARE(entries(menu), QStringList{"registryMenu-ruler-selectAll:Select all clips"});
+        expected.append("registryMenu-ruler-selectAll:Select all clips");
+        QCOMPARE(entries(menu), expected);
         trigger("registryMenu-ruler-selectAll"); QCOMPARE(gestures()->selection().size(), 5);
     }
 };

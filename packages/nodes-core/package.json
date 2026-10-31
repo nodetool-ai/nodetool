@@ -1,0 +1,67 @@
+{
+  "name": "@nodetool-ai/nodes-core",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "version": "0.8.4",
+  "description": "Audited lean workflow nodes and kernel composition",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "test": "node ../../scripts/run-vitest.mjs run",
+    "test:watch": "node ../../scripts/run-vitest.mjs",
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit"
+  },
+  "dependencies": {
+    "@nodetool-ai/execution-core": "*",
+    "@nodetool-ai/runtime-core": "*",
+    "@nodetool-ai/protocol": "*",
+    "@opentelemetry/api": "^1.9.0"
+  },
+  "devDependencies": {
+    "@stryker-mutator/core": "^9.6.1",
+    "@stryker-mutator/vitest-runner": "^9.6.1",
+    "@types/node": "^22.0.0",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "vitest": "^5.0.1"
+  },
+  "exports": {
+    ".": {
+      "nodetool-dev": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/nodes-core"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "workflow-engine",
+    "actor-model",
+    "dag",
+    "graph",
+    "workflow-runner"
+  ]
+}

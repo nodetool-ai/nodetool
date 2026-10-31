@@ -44,6 +44,7 @@ import { applyVaultSwitch } from "./vaultSwitch";
 import { setMenuSnapToGrid } from "./menu";
 import { installMcpBundle } from "./mcpBundle";
 import { getVstHost } from "./vstHost";
+import { showSystemNotification } from "./systemNotifications";
 import { IpcRequest } from "./types.d";
 import {
   registerWorkflowShortcut,
@@ -1018,6 +1019,15 @@ export function initializeIpcHandlers(): void {
   createIpcMainHandler(IpcChannels.SHELL_BEEP, async () => {
     shell.beep();
   });
+
+  createIpcMainHandler(
+    IpcChannels.SYSTEM_NOTIFICATION_SHOW,
+    async (event, request) =>
+      showSystemNotification(
+        request,
+        BrowserWindow.fromWebContents(event.sender),
+      ),
+  );
 
   // Settings handlers
   createIpcMainHandler(IpcChannels.SETTINGS_GET_CLOSE_BEHAVIOR, async () => {

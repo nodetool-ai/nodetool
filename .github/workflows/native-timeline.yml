@@ -15,6 +15,9 @@ on:
   pull_request:
     paths:
       - "native/timeline/**"
+      - "native/ui_primitives/**"
+      - "native/chat/**"
+      - "native/model-picker/**"
       - ".github/workflows/native-timeline.yml"
 
 permissions:
@@ -27,6 +30,8 @@ concurrency:
 env:
   QT_VERSION: "6.12.0"
   NT_NO_HW_DECODE: "1"
+  CCACHE_BASEDIR: ${{ github.workspace }}
+  CCACHE_COMPILERCHECK: content
 
 jobs:
   build:
@@ -50,22 +55,35 @@ jobs:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Set native temporary paths
+        run: |
+          echo "CCACHE_DIR=$RUNNER_TEMP/native-ccache" >> "$GITHUB_ENV"
+          echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
+
       - name: Set up Node
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version-file: ".nvmrc"
 
-      # The fade vectors, the mix reference and the plan check import the
-      # TypeScript timeline package.
-      - name: Build the TypeScript timeline packages
+      # Scratch-server and golden checks also load decorated node packages.
+      - name: Build the server and timeline packages
+        env:
+          NODETOOL_TURBO_CONCURRENCY: "2"
         run: |
           npm ci --ignore-scripts
-          npm run build --workspace=packages/protocol --workspace=packages/timeline
+          npm run rebuild:native
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            npm run build:packages:tsc
+          else
+            npm run build:packages
+          fi
 
       - name: Install dependencies (macOS)
         if: runner.os == 'macOS'
         run: |
-          brew install ninja pkgconf ffmpeg harfbuzz freetype
+          brew install ninja pkgconf ffmpeg ffmpeg-full harfbuzz freetype lame openh264 opus libvpx ccache
+          # The regular formula omits drawtext, which the numbered fixtures need.
+          echo "$(brew --prefix ffmpeg-full)/bin" >> "$GITHUB_PATH"
           echo "CMAKE_PREFIX_PATH=$(brew --prefix)" >> "$GITHUB_ENV"
           # Homebrew's Qt lags behind the Qt version the build requires.
           pipx run aqtinstall install-qt mac desktop "$QT_VERSION" clang_64 -m qtshadertools qtwebsockets -O "$RUNNER_TEMP/qt"
@@ -75,7 +93,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y ninja-build pkg-config nasm ffmpeg libva-dev libvulkan-dev \
+          sudo apt-get install -y gdb ccache ninja-build pkg-config nasm ffmpeg libmp3lame-dev libopenh264-dev libopus-dev libvpx-dev libva-dev libvulkan-dev \
             mesa-vulkan-drivers vulkan-tools libgl1-mesa-dev libxkbcommon-dev libfontconfig1-dev libegl1 \
             libasound2-dev libpulse-dev libharfbuzz-dev libfreetype-dev \
             xvfb xauth libx11-xcb1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
@@ -143,14 +161,46 @@ jobs:
         if: runner.os == 'Windows'
         uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
 
+      - name: Restore compiler cache
+        id: compiler-cache
+        if: runner.os != 'Windows'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: native-ccache-${{ runner.os }}-qt${{ env.QT_VERSION }}-${{ github.sha }}
+          restore-keys: |
+            native-ccache-${{ runner.os }}-qt${{ env.QT_VERSION }}-
+
+      - name: Verify prerequisites and prepare media
+        run: |
+          node native/timeline/scripts/check-ci-prerequisites.mjs
+          node --test native/timeline/scripts/check-ci-prerequisites.test.mjs \
+            native/timeline/scripts/measure-psnr.test.mjs \
+            native/timeline/src/server/sync/sync-e2e-transport.test.mjs
+          native/timeline/scripts/make-fixtures.sh
+
       - name: Configure
         run: |
+          launcher=()
+          if command -v ccache >/dev/null 2>&1; then
+            launcher=(-DCMAKE_CXX_COMPILER_LAUNCHER=ccache)
+            if [[ "$RUNNER_OS" == macOS ]]; then launcher+=(-DCMAKE_OBJCXX_COMPILER_LAUNCHER=ccache); fi
+          fi
           cmake -S native/timeline -B native/timeline/build-ci -G Ninja -DCMAKE_BUILD_TYPE=Release \
-            -DCMAKE_PREFIX_PATH="$QT_PREFIX"
+            -DCMAKE_PREFIX_PATH="$QT_PREFIX" "${launcher[@]}"
 
       - name: Build
+        id: native-build
         # -k 0 reports every failing file in one run, not only the first.
-        run: cmake --build native/timeline/build-ci -- -k 0
+        run: cmake --build native/timeline/build-ci --parallel 3 -- -k 0
+
+      # Preserve successful compilation even when a later test fails.
+      - name: Save compiler cache
+        if: runner.os != 'Windows' && steps.compiler-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.CCACHE_DIR }}
+          key: ${{ steps.compiler-cache.outputs.cache-primary-key }}
 
       # The offscreen QPA platform has no QRhi: Qt Quick falls back to the
       # software scene graph there, and tst_editpreview cannot initialize its
@@ -185,7 +235,7 @@ jobs:
             | tee "$RUNNER_TEMP/render.log"
           grep -q "Creating QRhi with backend Vulkan" "$RUNNER_TEMP/render.log" ||
             { echo "::error::the render tests did not run on Vulkan"; exit 1; }
-          grep -A1 "Physical device [0-9]*: 'llvmpipe" "$RUNNER_TEMP/render.log" | grep -q "using this physical device" ||
+          grep -A1 "Physical device [0-9]*: 'llvmpipe" "$RUNNER_TEMP/render.log" | grep "using this physical device" > /dev/null ||
             { echo "::error::the render tests did not run on lavapipe"; exit 1; }
 
       - name: Test (headless, Windows)
@@ -200,8 +250,37 @@ jobs:
             | tee "$RUNNER_TEMP/render.log"
           grep -q "Creating QRhi with backend D3D11" "$RUNNER_TEMP/render.log" ||
             { echo "::error::the render tests did not run on D3D11"; exit 1; }
-          grep -A1 "Adapter [0-9]*: 'Microsoft Basic Render Driver'" "$RUNNER_TEMP/render.log" | grep -q "using this adapter" ||
+          grep -A1 "Adapter [0-9]*: 'Microsoft Basic Render Driver'" "$RUNNER_TEMP/render.log" | grep "using this adapter" > /dev/null ||
             { echo "::error::the render tests did not run on WARP"; exit 1; }
+
+      - name: Diagnose Linux matte crash
+        if: failure() && runner.os == 'Linux'
+        continue-on-error: true
+        timeout-minutes: 3
+        env:
+          QT_QPA_PLATFORM: xcb
+          QSG_RHI_BACKEND: vulkan
+          QSG_INFO: "1"
+        run: |
+          failed=native/timeline/build-ci/Testing/Temporary/LastTestsFailed.log
+          if [[ ! -f "$failed" ]] || ! grep -q ':tst_mattecarrier$' "$failed"; then
+            exit 0
+          fi
+          diagnostic_status=0
+          xvfb-run -a -s "-screen 0 1920x1080x24" \
+            gdb --return-child-result -batch -ex 'set pagination off' -ex 'set debuginfod enabled off' \
+              -ex run -ex 'thread apply all bt' --args native/timeline/build-ci/tst_mattecarrier \
+              > "$RUNNER_TEMP/matte-gdb.log" 2>&1 || diagnostic_status=$?
+          cat "$RUNNER_TEMP/matte-gdb.log"
+          exit "$diagnostic_status"
+
+      - name: Upload Linux matte diagnostics
+        if: failure() && runner.os == 'Linux'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: native-timeline-matte-backtrace
+          path: ${{ runner.temp }}/matte-gdb.log
+          if-no-files-found: ignore
 
       - name: Package (macOS, unsigned)
         if: runner.os == 'macOS'
@@ -287,20 +366,23 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set native temporary paths
+        run: echo "TMPDIR=$RUNNER_TEMP" >> "$GITHUB_ENV"
       - name: Set up Node
         uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6.5.0
         with:
           node-version-file: ".nvmrc"
-      - name: Build the TypeScript timeline packages
+      - name: Build the server and timeline packages
         working-directory: .
         run: |
           npm ci --ignore-scripts
-          npm run build --workspace=packages/protocol --workspace=packages/timeline
+          npm run rebuild:native
+          npm run build:packages
       - name: Install dependencies (Linux)
         working-directory: .
         run: |
           sudo apt-get update
-          sudo apt-get install -y clang libclang-rt-dev ccache ninja-build pkg-config nasm ffmpeg libva-dev libvulkan-dev \
+          sudo apt-get install -y clang libclang-rt-dev ccache ninja-build pkg-config nasm ffmpeg libmp3lame-dev libopenh264-dev libopus-dev libvpx-dev libva-dev libvulkan-dev \
             mesa-vulkan-drivers vulkan-tools libgl1-mesa-dev libxkbcommon-dev libfontconfig1-dev libegl1 \
             libasound2-dev libpulse-dev libharfbuzz-dev libfreetype-dev \
             xvfb xauth libx11-xcb1 libxkbcommon-x11-0 libxcb-cursor0 libxcb-icccm4 libxcb-image0 \
@@ -323,6 +405,10 @@ jobs:
           echo "PKG_CONFIG_PATH=$GITHUB_WORKSPACE/native/timeline/build-ffmpeg-lgpl/install/lib/pkgconfig" >> "$GITHUB_ENV"
           echo "LD_LIBRARY_PATH=$GITHUB_WORKSPACE/native/timeline/build-ffmpeg-lgpl/install/lib" >> "$GITHUB_ENV"
 
+      - name: Verify prerequisites and prepare media
+        run: |
+          node scripts/check-ci-prerequisites.mjs
+          scripts/make-fixtures.sh
       - name: Configure
         run: |
           cmake --preset "${{ matrix.preset }}" -DCMAKE_PREFIX_PATH="$QT_PREFIX" \

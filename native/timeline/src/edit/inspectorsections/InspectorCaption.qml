@@ -1,9 +1,9 @@
 import QtQuick
-import NodeTool.Timeline
-Text {
+import NodeTool.UiPrimitives as Ui
+
+Ui.Text {
     width: parent.width
-    font.family: Theme.sansFamily
-    font.pixelSize: Theme.fontSizeSmaller
-    color: Theme.textSecondary
+    role: Ui.Typography.SansCaption
+    tone: Ui.Text.Secondary
     wrapMode: Text.WordWrap
 }

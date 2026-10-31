@@ -4,8 +4,9 @@ import QtQuick.Layouts
 import NodeTool.Timeline
 import "primitives"
 import "primitives/InspectorPrimitivesHelpers.js" as Helpers
+import NodeTool.UiPrimitives as Ui
 
-Dialog {
+Ui.Dialog {
     id: root
     objectName: "speedDurationDialog"
     required property SpeedController controller
@@ -21,9 +22,7 @@ Dialog {
     readonly property bool speedValid: Number.isFinite(Number(speedText)) && Number(speedText) >= 1 && Number(speedText) <= 10000
     title: "Clip speed / duration"
     modal: true
-    anchors.centerIn: Overlay.overlay
-    width: 480
-    padding: Theme.spacingXl
+    width: parent ? Math.min(Ui.Metrics.dialogCompactWidth, parent.width - 2 * Ui.Metrics.dialogNarrowInset) : Ui.Metrics.dialogCompactWidth
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
     function openForSelection() {
         editingIds = clipIds.slice()
@@ -51,13 +50,13 @@ Dialog {
         close()
     }
     contentItem: ColumnLayout {
-        spacing: Theme.spacingLg
+        spacing: Ui.Metrics.lg
         RowLayout {
             Layout.fillWidth: true
-            spacing: Theme.spacingLg
+            spacing: Ui.Metrics.lg
             ColumnLayout {
                 Layout.fillWidth: true
-                Text { text: "Speed"; font.family: Theme.sansFamily; font.pixelSize: Theme.fontSizeSmall; color: Theme.textSecondary }
+                Ui.Text { text: "Speed"; role: Ui.Typography.SansLabel; tone: Ui.Text.Secondary }
                 InspectorPillInput {
                     objectName: "dialogSpeed"
                     Layout.fillWidth: true
@@ -70,50 +69,41 @@ Dialog {
                     onPreview: raw => root.handleSpeed(raw)
                     onCommit: raw => root.handleSpeed(raw)
                 }
-                Text { visible: !root.speedValid; text: "1–10000%"; font.pixelSize: Theme.fontSizeSmaller; color: Theme.error }
+                Ui.Text { visible: !root.speedValid; text: "1–10000%"; role: Ui.Typography.SansCaption; tone: Ui.Text.Error }
             }
             ColumnLayout {
                 Layout.fillWidth: true
-                Text { text: "Duration"; font.family: Theme.sansFamily; font.pixelSize: Theme.fontSizeSmall; color: Theme.textSecondary }
-                TextField {
+                Ui.Text { text: "Duration"; role: Ui.Typography.SansLabel; tone: Ui.Text.Secondary }
+                Ui.TextField {
                     objectName: "dialogDuration"
                     Layout.fillWidth: true
-                    implicitHeight: Theme.toolbarHeight
-                    text: root.durationText
+                    value: root.durationText
                     enabled: root.editingIds.length === 1
-                    Accessible.name: "Duration"
-                    font.family: Theme.monoFamily
-                    font.pixelSize: Theme.fontSizeSmall
-                    color: enabled ? Theme.textPrimary : Theme.textDisabled
-                    padding: Theme.spacingMd
+                    accessibleName: "Duration"
                     selectByMouse: true
-                    background: Rectangle {
-                        color: Theme.backgroundDefault
-                        radius: Theme.radiusSm
-                        border.width: 1
-                        border.color: parent.activeFocus ? Theme.primary : Theme.overlay
-                    }
-                    onTextEdited: root.handleDuration(text)
+                    onValuePreviewed: value => root.handleDuration(value)
+                    onValueCommitted: value => root.handleDuration(value)
                 }
             }
         }
-        CheckBox {
+        Ui.CheckBox {
+            id: rippleBox
             text: "Ripple edit, shifting trailing clips"
-            checked: root.ripple
-            onToggled: root.ripple = checked
+            Binding { target: rippleBox; property: "checked"; value: root.ripple }
+            onCheckedChangedByUser: checked => root.ripple = checked
         }
-        Text {
+        Ui.Text {
             Layout.fillWidth: true
             visible: root.editingIds.length > 1
             text: "All " + root.editingIds.length + " clips take this speed. Duration follows each clip's own length."
             wrapMode: Text.WordWrap
-            font.family: Theme.sansFamily
-            font.pixelSize: Theme.fontSizeSmaller
-            color: Theme.textSecondary
+            role: Ui.Typography.SansCaption
+            tone: Ui.Text.Secondary
         }
     }
-    footer: DialogButtonBox {
-        Button { text: "Cancel"; DialogButtonBox.buttonRole: DialogButtonBox.RejectRole; onClicked: root.close() }
-        Button { text: "Apply"; enabled: root.speedValid; DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole; onClicked: root.apply() }
+    footer: Row {
+        spacing: Ui.Metrics.md
+        Ui.EditorButton { text: "Cancel"; onClicked: root.close() }
+        Ui.EditorButton { text: "Apply"; enabled: root.speedValid; variant: Ui.EditorButton.Primary; onClicked: root.apply() }
     }
 }

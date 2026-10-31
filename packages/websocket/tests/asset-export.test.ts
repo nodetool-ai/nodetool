@@ -11,7 +11,7 @@ import { initTestDb, Asset } from "@nodetool-ai/models";
 
 const adapter = new InMemoryStorageAdapter();
 
-vi.mock("../src/lib/storage.js", () => ({
+vi.mock("@nodetool-ai/asset-services/storage", () => ({
   getAssetAdapter: () => adapter,
   getTempAdapter: () => adapter
 }));

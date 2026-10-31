@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls as Controls
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 Rectangle {
     id: root
@@ -15,27 +16,23 @@ Rectangle {
     readonly property var documents: previewDocuments !== null ? previewDocuments : controller ? controller.documents : []
     width: 320
     height: 640
-    color: Theme.backgroundDefault
+    color: Ui.Theme.surfaceCanvas
     Component.onCompleted: { if (autoRefresh && controller) Qt.callLater(controller.refresh) }
 
-    component TimelineListItem: FocusScope {
+    component TimelineListItem: Ui.ListRow {
         id: row
         required property var document
-        property bool active: false
         property bool editing: false
-        readonly property int padding: 4 // listPanelStyles theme.spacing(1), theme spacing=4
-        readonly property int iconGap: 4 // ListPanelItem FlexRow gap={1}
+        readonly property real iconGap: Ui.Metrics.xs
         signal opened()
         signal contextRequested()
         signal renamed(string name)
         signal renameCancelled()
         objectName: "TimelineListItem_" + document.id
-        implicitHeight: 28 // 20px icon + 2 * 4px row padding
+        implicitHeight: Ui.Metrics.compact
         activeFocusOnTab: true
-        Accessible.role: Accessible.Button
-        Accessible.name: document.name || "Untitled video"
-        Keys.onReturnPressed: opened()
-        Keys.onSpacePressed: opened()
+        accessibleName: document.name || "Untitled video"
+        onClicked: if (!editing) opened()
         Keys.onMenuPressed: contextRequested()
         Keys.onPressed: event => {
             if (event.key === Qt.Key_F10 && (event.modifiers & Qt.ShiftModifier)) {
@@ -43,61 +40,35 @@ Rectangle {
                 event.accepted = true
             }
         }
-        Rectangle {
-            anchors.fill: parent
-            radius: Theme.radiusMd
-            color: row.active ? Theme.actionSelected : hover.hovered ? Theme.actionHover : "transparent"
-            border.width: row.activeFocus && !row.editing ? 2 : 0
-            border.color: Theme.primary
-        }
-        Icon {
+        Ui.Icon {
             objectName: "listPanelIcon"
-            x: row.padding
+            x: 0
             anchors.verticalCenter: parent.verticalCenter
-            size: 20 // listPanelStyles .list-panel-icon
-            // MovieOutlined from the web TimelineListItem.
-            path: "M4 6.47 5.76 10H20v8H4zM22 4h-4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2z"
-            color: Theme.textSecondary
+            size: Ui.Metrics.iconLg
+            name: "movieOutlined"
         }
-        Text {
-            x: row.padding + 20 + row.iconGap
+        Ui.Text {
+            x: Ui.Metrics.iconLg + row.iconGap
             anchors.verticalCenter: parent.verticalCenter
-            width: parent.width - x - row.padding
+            width: parent.width - x
             visible: !row.editing
             text: row.document.name || "Untitled video"
             elide: Text.ElideRight
-            color: Theme.textPrimary
-            font.family: Theme.sansFamily
-            font.pixelSize: Theme.fontSizeSmall
-            font.weight: Font.Medium
-            lineHeight: 1.35
+            role: Ui.Typography.SansLabel
         }
-        HoverHandler { id: hover; cursorShape: Qt.PointingHandCursor }
-        TapHandler { enabled: !row.editing; onTapped: { row.forceActiveFocus(); row.opened() } }
         TapHandler { enabled: !row.editing; acceptedButtons: Qt.RightButton; onTapped: row.contextRequested() }
-        Controls.TextField {
+        Ui.TextField {
             id: rename
-            x: row.padding + 20 + row.iconGap
+            x: Ui.Metrics.iconLg + row.iconGap
             anchors.verticalCenter: parent.verticalCenter
-            width: parent.width - x - row.padding
-            height: row.height
+            width: parent.width - x
             visible: row.editing
-            text: row.document.name
-            color: Theme.textPrimary
-            selectionColor: Theme.primary
-            selectedTextColor: Theme.textPrimary
-            leftPadding: Theme.spacingMd
-            rightPadding: Theme.spacingMd
-            font.family: Theme.sansFamily
-            font.pixelSize: Theme.fontSizeSmall
-            font.weight: Font.Medium
-            selectByMouse: true
-            Accessible.name: "Timeline name"
-            background: Rectangle { color: "transparent"; radius: Theme.radiusSm; border.color: Theme.primary; border.width: 1 }
-            onVisibleChanged: { if (visible) { text = row.document.name; forceActiveFocus(); selectAll() } }
-            onAccepted: row.renamed(text)
-            onActiveFocusChanged: { if (!activeFocus && row.editing) row.renamed(text) }
-            Keys.onEscapePressed: event => { row.renameCancelled(); event.accepted = true }
+            value: row.document.name
+            accessibleName: "Timeline name"
+            density: Ui.EditorButton.Compact
+            onVisibleChanged: { if (visible) { forceActiveFocus(); selectAll() } }
+            onValueCommitted: value => row.renamed(value)
+            onEditCanceled: row.renameCancelled()
         }
     }
     component DocumentListPanel: Item {
@@ -107,6 +78,7 @@ Rectangle {
         property string activeId: ""
         property string editingId: ""
         property string menuId: ""
+        property string query: ""
         readonly property bool busy: listController ? listController.busy : false
         readonly property string errorMessage: listController ? listController.error : ""
         readonly property var rows: {
@@ -117,49 +89,47 @@ Rectangle {
         Item {
             id: searchContainer
             width: parent.width
-            height: 44 // listPanelStyles: 8px top/bottom + SearchInput CONTROL.height.sm
-            Controls.TextField {
+            height: Ui.Metrics.touch
+            Ui.Icon {
+                id: searchIcon
+                x: Ui.Metrics.md
+                anchors.verticalCenter: search.verticalCenter
+                size: Ui.Metrics.iconLg
+                tone: Ui.Text.Disabled
+                name: "search"
+            }
+            Ui.TextField {
                 id: search
                 objectName: "searchInput"
-                y: Theme.spacingMd
-                width: parent.width
-                height: 28
+                y: Ui.Metrics.md
+                x: searchIcon.x + searchIcon.width + Ui.Metrics.sm
+                width: Math.max(0, parent.width - x - (clearSearch.visible ? clearSearch.width + Ui.Metrics.sm : Ui.Metrics.md))
+                density: Ui.EditorButton.Compact
                 placeholderText: "Search timelines"
-                placeholderTextColor: Theme.textDisabled
-                color: Theme.textPrimary
-                selectionColor: Theme.primary
-                selectedTextColor: Theme.textPrimary
-                leftPadding: 32
-                rightPadding: text ? 28 : Theme.spacingMd
-                font.family: Theme.sansFamily
-                font.pixelSize: Theme.fontSizeNormal
-                Accessible.name: "Search timelines"
-                selectByMouse: true
+                value: panel.query
+                onValuePreviewed: value => panel.query = value
+                onValueCommitted: value => panel.query = value
+                accessibleName: "Search timelines"
                 Component.onCompleted: forceActiveFocus()
-                background: Rectangle { color: Theme.overlay; border.width: 1; border.color: search.activeFocus ? Theme.primary : Theme.divider; radius: Theme.radiusMd }
-                Icon {
-                    x: Theme.spacingMd
-                    anchors.verticalCenter: parent.verticalCenter
-                    size: 20
-                    color: Theme.textDisabled
-                    path: "M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14"
-                }
-                ProjectSettingsDialog.TimelineListButton {
-                    anchors.right: parent.right
-                    visible: !!search.text
-                    iconPath: Icons.close
-                    accessibleLabel: "Clear search"
-                    onClicked: { search.clear(); search.forceActiveFocus() }
-                }
                 Keys.onEscapePressed: event => {
                     if (root.dismissOnEscape) {
                         root.dismissRequested()
                         event.accepted = true
                     } else if (text) {
+                        panel.query = ""
                         clear()
                         event.accepted = true
                     }
                 }
+            }
+            Ui.ToolbarIconButton {
+                id: clearSearch
+                anchors.right: parent.right
+                anchors.verticalCenter: search.verticalCenter
+                visible: !!search.text
+                iconName: "close"
+                accessibleName: "Clear search"
+                onClicked: { panel.query = ""; search.clear(); search.forceActiveFocus() }
             }
         }
         Controls.ScrollView {
@@ -171,8 +141,8 @@ Rectangle {
             clip: true
             Controls.ScrollBar.horizontal.policy: Controls.ScrollBar.AlwaysOff
             Column {
-                width: parent.width - Theme.spacingMicro
-                spacing: Theme.spacingMicro
+                width: parent.width - Ui.Metrics.micro
+                spacing: Ui.Metrics.micro
                 Repeater {
                     model: panel.rows
                     delegate: Column {
@@ -183,14 +153,12 @@ Rectangle {
                             width: parent.width
                             height: visible ? 28 : 0 // date-header-row: 8px / 4px + 11px caption line
                             visible: index === 0 || panel.rows[index - 1].group !== modelData.group
-                            Text {
-                                x: Theme.spacingMd
-                                y: Theme.spacingMd
+                            Ui.Text {
+                                x: Ui.Metrics.md
+                                y: Ui.Metrics.md
                                 text: (modelData.group || "").toUpperCase()
-                                color: Theme.textSecondary
-                                font.family: Theme.sansFamily
-                                font.pixelSize: Theme.fontSizeSmaller
-                                font.letterSpacing: 0.66
+                                tone: Ui.Text.Secondary
+                                role: Ui.Typography.SansCaption
                             }
                         }
                         TimelineListItem {
@@ -202,7 +170,7 @@ Rectangle {
                             onOpened: { if (panel.listController) panel.listController.openTimeline(modelData.id) }
                             onContextRequested: {
                                 panel.menuId = modelData.id
-                                contextMenu.popup(this, 0, height)
+                                contextMenu.openAt(this)
                             }
                             onRenamed: name => {
                                 if (panel.editingId !== modelData.id) return
@@ -218,43 +186,39 @@ Rectangle {
         Column {
             anchors.centerIn: parent
             width: parent.width - 16
-            spacing: Theme.spacingMd
+            spacing: Ui.Metrics.md
             visible: panel.busy || panel.rows.length === 0
-            Text {
+            Ui.Text {
                 objectName: "emptyTitle"
                 width: parent.width
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
                 text: panel.busy ? "Loading timelines" : panel.errorMessage ? "Could not load timelines" : search.text ? "No matching timelines" : "No timelines yet"
-                color: Theme.textPrimary
-                font.family: Theme.sansFamily
-                font.pixelSize: Theme.fontSizeNormal
+                role: Ui.Typography.SansBody
             }
-            Text {
+            Ui.Text {
                 width: parent.width
                 horizontalAlignment: Text.AlignHCenter
                 wrapMode: Text.WordWrap
                 text: panel.busy ? "" : panel.errorMessage || (search.text ? "Try a different search term." : "Create a new video timeline with the + button above.")
-                color: Theme.textSecondary
-                font.family: Theme.sansFamily
-                font.pixelSize: Theme.fontSizeSmall
+                tone: Ui.Text.Secondary
+                role: Ui.Typography.SansLabel
             }
         }
         // Mutation failures keep the rows visible and show the server's error.
-        Text {
+        Ui.Text {
             anchors.bottom: parent.bottom
             width: parent.width
             visible: panel.errorMessage !== "" && panel.rows.length > 0
             text: panel.errorMessage
             wrapMode: Text.WordWrap
-            color: Theme.error
-            font.family: Theme.sansFamily
-            font.pixelSize: Theme.fontSizeSmall
+            tone: Ui.Text.Error
+            role: Ui.Typography.SansLabel
         }
-        Controls.Menu {
+        Ui.ContextMenu {
             id: contextMenu
-            Controls.MenuItem { text: "Rename"; onTriggered: panel.editingId = panel.menuId }
-            Controls.MenuItem { text: "Delete"; onTriggered: { if (panel.listController) panel.listController.requestDelete(panel.menuId) } }
+            Ui.MenuItem { text: "Rename"; onTriggered: panel.editingId = panel.menuId }
+            Ui.MenuItem { text: "Delete"; onTriggered: { if (panel.listController) panel.listController.requestDelete(panel.menuId) } }
         }
     }
     Item {
@@ -262,80 +226,63 @@ Rectangle {
         width: parent.width
         height: root.controller && root.controller.projects.length > 1 ? 36 : 0
         visible: height > 0
-        Controls.ComboBox {
+        Ui.Select {
             anchors.fill: parent
-            anchors.margins: Theme.spacingXs
-            model: root.controller ? root.controller.projects : []
-            textRole: "name"
-            valueRole: "id"
-            Accessible.name: "Project"
-            currentIndex: {
-                if (!root.controller) return -1
-                for (let i = 0; i < root.controller.projects.length; ++i) {
-                    if (root.controller.projects[i].id === root.controller.projectId) return i
-                }
-                return -1
-            }
-            onActivated: { if (root.controller) root.controller.projectId = currentValue }
+            anchors.margins: Ui.Metrics.xs
+            options: root.controller ? root.controller.projects.map(project => ({label: project.name, value: project.id})) : []
+            value: root.controller ? root.controller.projectId : ""
+            accessibleName: "Project"
+            onValueCommitted: value => { if (root.controller) root.controller.projectId = value }
         }
     }
-    Rectangle {
+    Item {
         id: header
         objectName: "panelHeader"
         y: projectSelector.height
         width: parent.width
-        height: 36 // PanelHeader PANEL_HEADER_HEIGHT
-        color: Theme.backgroundDefault
-        Text {
-            x: Theme.spacingLg
-            anchors.verticalCenter: parent.verticalCenter
+        height: Ui.Metrics.comfortable
+        Ui.PanelHeader {
+            anchors.fill: parent
+            anchors.leftMargin: Ui.Metrics.lg
+            anchors.rightMargin: Ui.Metrics.lg
             text: "Timelines"
-            color: Theme.textPrimary
-            font.family: Theme.sansFamily
-            font.pixelSize: Theme.fontSizeSmall
-            font.weight: Font.Medium
-        }
-        ProjectSettingsDialog.TimelineListButton {
-            objectName: "createTimeline"
-            anchors.right: parent.right
-            anchors.rightMargin: Theme.spacingLg
-            anchors.verticalCenter: parent.verticalCenter
-            iconPath: Icons.add
-            accessibleLabel: "New timeline"
-            enabled: root.controller && !root.controller.busy && !!root.controller.projectId
-            onClicked: {
-                const created = root.controller.createTimeline()
-                if (created.id) root.controller.openTimeline(created.id)
+            ProjectSettingsDialog.TimelineListButton {
+                objectName: "createTimeline"
+                iconName: "add"
+                accessibleLabel: "New timeline"
+                enabled: root.controller && !root.controller.busy && !!root.controller.projectId
+                onClicked: {
+                    const created = root.controller.createTimeline()
+                    if (created.id) root.controller.openTimeline(created.id)
+                }
             }
         }
-        Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.divider }
+        Ui.Separator { anchors.bottom: parent.bottom; width: parent.width }
     }
     DocumentListPanel {
         id: documentListPanel
-        x: Theme.spacingLg
+        x: Ui.Metrics.lg
         y: header.y + header.height
-        width: parent.width - 2 * Theme.spacingLg
+        width: parent.width - 2 * Ui.Metrics.lg
         height: parent.height - y
         documents: root.documents
         listController: root.controller
         activeId: root.activeTimelineId
     }
     ProjectSettingsDialog.TimelineListDialog {
-        anchors.fill: parent
         title: "Delete timeline"
+        returnFocusTo: documentListPanel
         confirmText: "Delete"
         destructive: true
-        opened: root.controller && !!root.controller.deleteTarget.id
+        visible: root.controller && !!root.controller.deleteTarget.id
         busy: root.controller ? root.controller.busy : false
         onConfirmed: { if (root.controller) root.controller.confirmDelete() }
         onCancelled: { if (root.controller) root.controller.cancelDelete() }
-        content: Text {
+        content: Ui.Text {
             width: parent.width
             wrapMode: Text.WordWrap
             text: 'Delete "' + (root.controller ? root.controller.deleteTarget.name || "Untitled video" : "") + '"? This cannot be undone.'
-            color: Theme.textPrimary
-            font.family: Theme.sansFamily
-            font.pixelSize: Theme.fontSizeNormal
+            role: Ui.Typography.SansBody
         }
     }
 }

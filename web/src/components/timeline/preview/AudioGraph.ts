@@ -853,17 +853,23 @@ export class AudioGraph {
    * its value now and ramps along its curve on the context clock: the fader,
    * pan and built-in effects as AudioParam ramps, instruments and FableSynth
    * inserts as lanes in their worklets. An offline render waits until every
-   * worklet holds its lanes.
+   * worklet holds its lanes. `anchorSec` is the context time at which
+   * `currentTimeMs` plays, as returned by `addClips`; it defaults to now.
    */
   async startAutomation(
     tracks: TimelineTrack[],
     currentTimeMs: number,
-    globalRate = 1
+    globalRate = 1,
+    anchorSec?: number
   ): Promise<void> {
     this.stopAutomation();
     if (!(globalRate > 0)) return;
     const ctx = this.getContext();
-    this.automationClock = { ctxSec: ctx.currentTime, docMs: currentTimeMs, rate: globalRate };
+    this.automationClock = {
+      ctxSec: anchorSec ?? ctx.currentTime,
+      docMs: currentTimeMs,
+      rate: globalRate
+    };
     const sounding = tracks.filter((t) => t.type === "audio" || t.type === "midi");
     await Promise.all(sounding.map((track) => this.scheduleTrackAutomation(track)));
     if (typeof OfflineAudioContext !== "undefined" && ctx instanceof OfflineAudioContext) {
@@ -1176,24 +1182,31 @@ export class AudioGraph {
     return preloaded;
   }
 
-  /** Send a live clip's notes from the playhead on to its track's device. */
-  private async scheduleLiveClip(
+  /** The live device of a clip's track, created if needed. */
+  private async liveClipDevice(
+    clip: TimelineClip,
+    tracks: TimelineTrack[]
+  ): Promise<LiveInstrumentDevice | null> {
+    const track = tracks.find((t) => t.id === clip.trackId);
+    if (!track) return null;
+    this.syncTrackDevice(track);
+    return (await this.trackDevices.get(track.id)?.device) ?? null;
+  }
+
+  /**
+   * Send a live clip's notes from the playhead on to its track's device.
+   * `now` is the context time at which `currentTimeMs` plays, read once for
+   * every clip of a gesture so the tracks share one beat grid.
+   */
+  private scheduleLiveClip(
     clip: TimelineClip,
     bpm: number,
-    tracks: TimelineTrack[],
-    currentTimeInput: number | (() => number),
-    globalRate: number,
-    shouldCancel?: () => boolean
-  ): Promise<void> {
-    const track = tracks.find((t) => t.id === clip.trackId);
-    if (!track) return;
-    this.syncTrackDevice(track);
-    const device = await this.trackDevices.get(track.id)?.device;
-    if (!device || shouldCancel?.() || this.liveClips.has(clip.id)) return;
-    const ctx = this.getContext();
-    const currentTimeMs =
-      typeof currentTimeInput === "function" ? currentTimeInput() : currentTimeInput;
-    const now = ctx.currentTime;
+    device: LiveInstrumentDevice,
+    currentTimeMs: number,
+    now: number,
+    globalRate: number
+  ): void {
+    if (this.liveClips.has(clip.id)) return;
     const g = Math.max(0.0001, globalRate);
     this.beatZeroSec = now - currentTimeMs / 1000 / g;
     device.setTempo(bpm, this.beatZeroSec);
@@ -1203,7 +1216,7 @@ export class AudioGraph {
       velocity: event.velocity,
       on: event.on
     }));
-    this.liveClips.set(clip.id, track.id);
+    this.liveClips.set(clip.id, clip.trackId);
     device.schedule(events, clip.id);
   }
 
@@ -1213,6 +1226,8 @@ export class AudioGraph {
    * decoded and scheduled via `addClips`. Used for a play/seek gesture's
    * initial window, where the caller wants playback to end up matching this
    * set exactly (superseding whatever an older gesture left running).
+   * Resolves to the context time at which `currentTimeMs` plays, or null
+   * when the gesture was cancelled. Start the playhead clock on it.
    */
   async scheduleClips(
     clips: ScheduledAudioClip[],
@@ -1220,7 +1235,7 @@ export class AudioGraph {
     currentTimeMs: number,
     shouldCancel?: () => boolean,
     globalRate = 1
-  ): Promise<void> {
+  ): Promise<number | null> {
     const activeIds = new Set(clips.map((c) => c.clip.id));
     this.stopClips(
       [...this.clipSources.keys(), ...this.liveClips.keys()].filter(
@@ -1228,9 +1243,16 @@ export class AudioGraph {
       )
     );
 
-    await this.addClips(clips, tracks, currentTimeMs, shouldCancel, globalRate);
-    if (shouldCancel?.()) return;
-    await this.startAutomation(tracks, currentTimeMs, globalRate);
+    const anchorSec = await this.addClips(
+      clips,
+      tracks,
+      currentTimeMs,
+      shouldCancel,
+      globalRate
+    );
+    if (anchorSec === null || shouldCancel?.()) return null;
+    await this.startAutomation(tracks, currentTimeMs, globalRate, anchorSec);
+    return anchorSec;
   }
 
   /**
@@ -1347,7 +1369,8 @@ export class AudioGraph {
    * stopping any other currently-scheduled source. This is the primitive
    * `scheduleClips` builds on; windowed audio top-up calls it directly so
    * bringing newly-in-range clips in never disturbs sources already playing
-   * from an earlier `scheduleClips`/`addClips` call.
+   * from an earlier `scheduleClips`/`addClips` call. Resolves to the context
+   * time the clips were scheduled against, or null when cancelled.
    */
   async addClips(
     clips: ScheduledAudioClip[],
@@ -1355,27 +1378,18 @@ export class AudioGraph {
     currentTimeInput: number | (() => number),
     shouldCancel?: () => boolean,
     globalRate = 1
-  ): Promise<void> {
+  ): Promise<number | null> {
     const ctx = this.getContext();
     const live = clips.filter(
       (scheduled): scheduled is Extract<ScheduledAudioClip, { live: { bpm: number } }> =>
         "live" in scheduled && scheduled.live !== undefined
     );
-    if (live.length > 0) {
-      this.updateTracks(tracks);
-      await Promise.all(
-        live.map((scheduled) =>
-          this.scheduleLiveClip(
-            scheduled.clip,
-            scheduled.live.bpm,
-            tracks,
-            currentTimeInput,
-            globalRate,
-            shouldCancel
-          )
-        )
-      );
-    }
+    if (live.length > 0) this.updateTracks(tracks);
+    // Devices load at different speeds. Wait for all of them, then schedule
+    // every clip from one clock reading below.
+    const liveDevices = await Promise.all(
+      live.map((scheduled) => this.liveClipDevice(scheduled.clip, tracks))
+    );
     const pcmClips = clips.filter(
       (scheduled): scheduled is PcmScheduledClip => !("live" in scheduled && scheduled.live)
     );
@@ -1439,16 +1453,30 @@ export class AudioGraph {
     // A newer play/pause/seek gesture superseded this call while buffers were
     // loading — registering now would schedule audio at a stale offset.
     if (shouldCancel?.()) {
-      return;
+      return null;
     }
     const bufferMap = new Map(loadedBuffers.map((b) => [b.clipId, b]));
-    // The playhead moves while buffers fetch and decode, and `now` below is
-    // read after them. A reader is sampled here, beside `now`, so the position
-    // and the audio clock describe the same instant.
+    // The playhead moves while devices load and buffers decode. A reader is
+    // sampled here, beside `now`, so the position and the audio clock
+    // describe the same instant, and every clip below starts from them.
     const currentTimeMs =
       typeof currentTimeInput === "function"
         ? currentTimeInput()
         : currentTimeInput;
+    const now = ctx.currentTime;
+
+    live.forEach((scheduled, i) => {
+      const device = liveDevices[i];
+      if (!device) return;
+      this.scheduleLiveClip(
+        scheduled.clip,
+        scheduled.live.bpm,
+        device,
+        currentTimeMs,
+        now,
+        globalRate
+      );
+    });
 
     for (const { clip } of pcmClips) {
       if (this.clipSources.has(clip.id)) {
@@ -1481,7 +1509,6 @@ export class AudioGraph {
       const clipGain = ctx.createGain();
       clipGain.gain.value = volumeLinear;
 
-      const now = ctx.currentTime;
       // Schedule each stretch's start on the audio clock. If it begins in the
       // future (relative to the playhead), defer src.start; otherwise start
       // immediately with a buffer offset for mid-clip seeks.
@@ -1503,7 +1530,7 @@ export class AudioGraph {
 
       // Fades run along the clip's authored curve, clamped so two that would
       // cross meet in the middle instead — the same resolution the overlay in
-      // the tracks region draws and the ffmpeg export renders.
+      // the tracks region draws and the server export renders.
       const fades = resolveClipFades(clip, clip.durationMs);
 
       // Where the fade-in's automation ends, computed once as `start +
@@ -1633,6 +1660,7 @@ export class AudioGraph {
         this.clipEffectChains.set(clip.id, effectChain);
       }
     }
+    return now;
   }
 
   /**

@@ -1,0 +1,63 @@
+{
+  "name": "@nodetool-ai/server-feature-sandbox",
+  "version": "0.8.4",
+  "description": "Explicit QuickJS sandbox feature for the minimal NodeTool server",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "test": "node ../../scripts/run-vitest.mjs run",
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit"
+  },
+  "dependencies": {
+    "@nodetool-ai/server-features": "*",
+    "@nodetool-ai/server-minimal": "*",
+    "@nodetool-ai/sandbox-runtime": "*",
+    "@nodetool-ai/protocol": "*"
+  },
+  "devDependencies": {
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "vitest": "^5.0.1",
+    "@types/node": "^22.0.0",
+    "@nodetool-ai/nodes-core": "*"
+  },
+  "exports": {
+    ".": {
+      "nodetool-dev": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/server-feature-sandbox"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "keywords": [
+    "nodetool",
+    "ai",
+    "workflow",
+    "workflow-automation",
+    "typescript",
+    "message-types",
+    "msgpack",
+    "protocol",
+    "websocket"
+  ]
+}

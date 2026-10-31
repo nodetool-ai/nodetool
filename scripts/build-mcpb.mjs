@@ -78,7 +78,7 @@ function buildManifest(version) {
       "Connects Claude (or any MCPB-aware agent) to your local NodeTool " +
       "server over MCP. Exposes workflow execution and validation, asset " +
       "and collection browsing, node search, job management, and agent " +
-      "tools. Requires a running NodeTool app or `nodetool serve`.",
+      "tools. Requires a running NodeTool app or `nodetool server serve`.",
     author: { name: "NodeTool", url: "https://nodetool.ai" },
     homepage: "https://nodetool.ai",
     documentation: "https://github.com/nodetool-ai/nodetool",
@@ -104,7 +104,7 @@ function buildManifest(version) {
         title: "NodeTool server URL",
         description:
           "The /mcp endpoint of your running NodeTool server. The default " +
-          "matches the desktop app and `nodetool serve`.",
+          "matches the desktop app and `nodetool server serve`.",
         default: "http://127.0.0.1:7777/mcp",
         required: true
       },

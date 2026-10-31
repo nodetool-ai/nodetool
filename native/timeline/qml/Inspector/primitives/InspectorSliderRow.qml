@@ -1,7 +1,7 @@
 import QtQuick
-import QtQuick.Controls
 import QtQuick.Layouts
-import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
+
 Item {
     id: root
     property string label: ""
@@ -16,59 +16,31 @@ Item {
     signal gestureStarted()
     signal preview(real value)
     signal change(real value)
-    implicitHeight: Theme.controlXs
+    signal canceled()
+    implicitHeight: Ui.Metrics.compact
+
     RowLayout {
         anchors.fill: parent
-        spacing: Theme.spacingSm
-        Text { text: root.label; color: Theme.textSecondary; font.family: Theme.sansFamily; font.pixelSize: Theme.fontSizeSmall }
-        Slider {
+        spacing: Ui.Metrics.sm
+        Ui.Text { text: root.label; role: Ui.Typography.SansLabel; tone: Ui.Text.Secondary }
+        Ui.Slider {
             id: slider
             Layout.fillWidth: true
-            implicitHeight: Theme.controlXs
+            density: Ui.EditorButton.Compact
             from: root.min
             to: root.max
             stepSize: root.step
             value: root.value
+            origin: root.origin === undefined ? root.min : root.origin
+            resetValue: root.resetValue === undefined ? root.value : root.resetValue
+            resetOnDoubleTap: true
             enabled: !root.disabled
-            Accessible.name: root.label
-            onPressedChanged: {
-                if (pressed) root.gestureStarted()
-                else root.change(value)
-            }
-            onMoved: {
-                root.preview(value)
-                if (!pressed) root.change(value)
-            }
-            handle: Rectangle {
-                x: slider.leftPadding + slider.visualPosition * (slider.availableWidth - width)
-                y: slider.topPadding + slider.availableHeight / 2 - height / 2
-                width: Theme.spacingLg
-                height: width
-                radius: width / 2
-                color: slider.enabled ? Theme.primary : Theme.actionDisabled
-                border.width: slider.activeFocus ? 1 : 0
-                border.color: Theme.textPrimary
-            }
-            background: Item {
-                x: slider.leftPadding
-                y: slider.topPadding + slider.availableHeight / 2 - height / 2
-                width: slider.availableWidth
-                height: Theme.spacingXs
-                readonly property real neutral: root.origin === undefined ? 0 : (root.origin - root.min) / (root.max - root.min)
-                Rectangle { anchors.fill: parent; radius: height / 2; color: Theme.overlayStrong }
-                Rectangle {
-                    x: Math.min(parent.neutral, slider.position) * parent.width
-                    width: Math.abs(slider.position - parent.neutral) * parent.width
-                    height: parent.height
-                    color: Theme.primary
-                    radius: height / 2
-                }
-                Rectangle { visible: root.origin !== undefined; x: parent.neutral * parent.width; width: 1; height: Theme.spacingMd; anchors.verticalCenter: parent.verticalCenter; color: Theme.textSecondary }
-            }
-            TapHandler {
-                onDoubleTapped: if (root.resetValue !== undefined) root.change(root.resetValue)
-            }
+            accessibleName: root.label
+            onEditStarted: root.gestureStarted()
+            onValuePreviewed: value => root.preview(value)
+            onValueCommitted: value => root.change(value)
+            onEditCanceled: root.canceled()
         }
-        Text { text: root.display; color: Theme.textSecondary; font.family: Theme.monoFamily; font.pixelSize: Theme.fontSizeSmall }
+        Ui.Text { text: root.display; role: Ui.Typography.MonoLabel; tone: Ui.Text.Secondary }
     }
 }

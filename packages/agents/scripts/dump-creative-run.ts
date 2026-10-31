@@ -13,7 +13,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { zodToJsonSchema } from "@nodetool-ai/runtime";
-import { createProviderStrict } from "../../cli/src/providers.js";
+import { createProviderStrict } from "@nodetool-ai/cli-providers";
 import {
   CREATIVE_PIPELINE_TOOL_LOOP_CASES,
   createCreativePipelineBridge,

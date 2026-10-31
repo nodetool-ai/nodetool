@@ -140,6 +140,12 @@
       "types": "./dist/native-game.d.ts",
       "import": "./dist/native-game.js",
       "default": "./dist/native-game.js"
+    },
+    "./code-body": {
+      "nodetool-dev": "./src/code-body.ts",
+      "types": "./dist/code-body.d.ts",
+      "import": "./dist/code-body.js",
+      "default": "./dist/code-body.js"
     }
   },
   "license": "MIT",

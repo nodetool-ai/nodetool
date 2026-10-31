@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
-import { root, bin, run, exportFile, duration, scratchBase } from './check-export.mjs';
+import { root, bin, run, exportFile, duration, scratchBase, decodeAudio } from './check-export.mjs';
 
 const dir = fs.mkdtempSync(path.join(scratchBase, 'nt-export-audio-'));
 function floats(file) {
@@ -45,7 +45,7 @@ try {
       const file = path.join(dir, `${name}.${format}`);
       exportFile(fixture, file, format);
       const decoded = path.join(dir, 'decoded.f32');
-      run('ffmpeg', ['-v', 'error', '-y', '-i', file, '-vn', '-f', 'f32le', '-ar', '48000', '-ac', '2', decoded]);
+      decodeAudio(file, decoded);
       compare(floats(ref), floats(decoded), format === 'wav');
       console.log(`${name} ${format}: PASS`);
     }

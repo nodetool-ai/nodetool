@@ -29,6 +29,36 @@ export function resolveResourceChangeListenerUrl(
 }
 
 /**
+ * Opens the channel on DIRECT_URL, or on DATABASE_URL when DIRECT_URL is not
+ * set. A DIRECT_URL that cannot be reached falls back to a session-mode
+ * DATABASE_URL: a host without an IPv6 route cannot reach Supabase's direct
+ * endpoint, and a failed listener stops the server from starting.
+ */
+export async function openResourceChangeChannelWithFallback(
+  databaseUrl: string,
+  directUrl: string | undefined,
+  receive: (message: string) => void,
+  resync: () => void
+): Promise<ResourceChangeChannel> {
+  const listenerUrl = resolveResourceChangeListenerUrl(databaseUrl, directUrl);
+  try {
+    return await openResourceChangeChannel(listenerUrl, receive, resync);
+  } catch (error) {
+    if (
+      listenerUrl === databaseUrl ||
+      new URL(databaseUrl).port === "6543"
+    ) {
+      throw error;
+    }
+    log.warn(
+      "Resource change listener could not use DIRECT_URL. Listening on DATABASE_URL.",
+      { error: String(error) }
+    );
+    return openResourceChangeChannel(databaseUrl, receive, resync);
+  }
+}
+
+/**
  * Packs JSON messages into groups that each encode to at most `limit` bytes.
  * A group of one stays in the original single-envelope form, so replicas that
  * predate batching can still read it. Larger groups encode as a JSON array.

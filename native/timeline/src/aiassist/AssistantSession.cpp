@@ -807,7 +807,9 @@ QJsonObject AssistantSession::normalizePlanningReferences(
           if (!result.value("ok").toBool() && self->m_historyEpoch == epoch) {
             self->m_error = result.value("error").toString();
           }
-          if (!toolCallId.isEmpty() && self->m_threadId == threadId) {
+          if (self->m_externalHostCalls.remove(toolCallId)) {
+            emit self->hostToolCompleted(toolCallId, result);
+          } else if (!toolCallId.isEmpty() && self->m_threadId == threadId) {
             self->sendFrame({{"type", "tool_result"},
                              {"tool_call_id", toolCallId},
                              {"ok", result.value("ok")},
@@ -830,6 +832,16 @@ QJsonObject AssistantSession::executeTool(const QString &name,
                                           const QJsonObject &args) {
   return executeToolScoped(name, args, {});
 }
+QJsonObject AssistantSession::executeHostTool(const QString &name,
+                                              const QJsonObject &args,
+                                              const QString &callId) {
+  if (m_timeline) m_generation = m_timeline->documentGeneration();
+  const auto result = executeToolScoped(name, args, callId);
+  if (result.value("deferred").toBool() && !callId.isEmpty()) {
+    m_externalHostCalls.insert(callId);
+  }
+  return result;
+}
 QJsonObject AssistantSession::executeToolScoped(const QString &name,
                                                 const QJsonObject &args,
                                                 const QString &toolCallId) {
@@ -840,7 +852,11 @@ QJsonObject AssistantSession::executeToolScoped(const QString &name,
     return failure("The timeline changed. Read its state again.");
   }
   const auto raw = m_timeline->timeline().raw;
-  const auto sequenceId = raw.value("id").toString();
+  auto sequenceId = raw.value("id").toString();
+  if (sequenceId.isEmpty()) {
+    sequenceId = QStringLiteral("native-local:%1")
+                     .arg(m_timeline->documentGeneration());
+  }
   if (!nt::aiassist::resolveId(args.value("timeline_id").toString(),
                                {sequenceId})) {
     return failure("This timeline is not open in the assistant.");

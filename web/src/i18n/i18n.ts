@@ -2,6 +2,8 @@ import { createInstance, type i18n } from "i18next";
 import { initReactI18next } from "react-i18next";
 import en from "./locales/en.json";
 import de from "./locales/de.json";
+import fi from "./locales/fi.json";
+import ru from "./locales/ru.json";
 import zhCN from "./locales/zh-CN.json";
 import { DEFAULT_LOCALE, type Locale } from "./locales";
 
@@ -9,13 +11,15 @@ function appI18nOptions(locale: Locale) {
   return {
     lng: locale,
     fallbackLng: DEFAULT_LOCALE,
-    supportedLngs: ["en", "de", "zh-CN"],
+    supportedLngs: ["en", "de", "fi", "ru", "zh-CN"],
     load: "currentOnly" as const,
     initAsync: false as const,
     defaultNS: "translation" as const,
     resources: {
       en: { translation: en },
       de: { translation: de },
+      fi: { translation: fi },
+      ru: { translation: ru },
       "zh-CN": { translation: zhCN }
     },
     returnNull: false,

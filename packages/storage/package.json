@@ -13,6 +13,11 @@
       "nodetool-dev": "./src/index.ts",
       "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
+    },
+    "./storage-keys": {
+      "nodetool-dev": "./src/storage-keys.ts",
+      "import": "./dist/storage-keys.js",
+      "types": "./dist/storage-keys.d.ts"
     }
   },
   "scripts": {

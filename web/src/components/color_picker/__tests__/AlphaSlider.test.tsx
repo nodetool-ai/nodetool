@@ -4,6 +4,37 @@ import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import AlphaSlider from "../AlphaSlider";
 
+const sliderOf = (container: HTMLElement): HTMLElement => {
+  const el = container.firstElementChild;
+  if (!(el instanceof HTMLElement)) {
+    throw new Error("AlphaSlider did not render an element");
+  }
+  return el;
+};
+
+const cursorOf = (container: HTMLElement): HTMLElement => {
+  const el = container.querySelector<HTMLElement>(".alpha-cursor");
+  if (!el) {
+    throw new Error("AlphaSlider did not render a cursor");
+  }
+  return el;
+};
+
+const touchAt = (target: HTMLElement, clientX: number, clientY: number): Touch => ({
+  identifier: 0,
+  target,
+  clientX,
+  clientY,
+  screenX: clientX,
+  screenY: clientY,
+  pageX: clientX,
+  pageY: clientY,
+  radiusX: 1,
+  radiusY: 1,
+  rotationAngle: 0,
+  force: 1
+});
+
 describe("AlphaSlider", () => {
   const renderWithTheme = (component: React.ReactElement) => {
     return render(
@@ -34,7 +65,7 @@ describe("AlphaSlider", () => {
         <AlphaSlider color="#ff0000" alpha={0.5} onChange={mockOnChange} />
       );
 
-      const slider = container.firstChild as HTMLElement;
+      const slider = sliderOf(container);
       expect(slider).toHaveStyle({ width: "100%" });
       expect(slider).toHaveStyle({ height: "24px" });
     });
@@ -44,7 +75,7 @@ describe("AlphaSlider", () => {
         <AlphaSlider color="#ff0000" alpha={0.5} onChange={mockOnChange} orientation="vertical" />
       );
 
-      const slider = container.firstChild as HTMLElement;
+      const slider = sliderOf(container);
       expect(slider).toHaveStyle({ width: "24px" });
       expect(slider).toHaveStyle({ height: "100%" });
     });
@@ -74,7 +105,7 @@ describe("AlphaSlider", () => {
         <AlphaSlider color="#ff0000" alpha={0.5} onChange={mockOnChange} orientation="horizontal" />
       );
 
-      const cursor = container.querySelector(".alpha-cursor") as HTMLElement;
+      const cursor = cursorOf(container);
       expect(cursor.style.left).toBe("50%");
     });
 
@@ -83,7 +114,7 @@ describe("AlphaSlider", () => {
         <AlphaSlider color="#ff0000" alpha={0.5} onChange={mockOnChange} orientation="vertical" />
       );
 
-      const cursor = container.querySelector(".alpha-cursor") as HTMLElement;
+      const cursor = cursorOf(container);
       expect(cursor.style.top).toBe("50%");
     });
 
@@ -92,7 +123,7 @@ describe("AlphaSlider", () => {
         <AlphaSlider color="#ff0000" alpha={0} onChange={mockOnChange} />
       );
 
-      const cursor = container.querySelector(".alpha-cursor") as HTMLElement;
+      const cursor = cursorOf(container);
       expect(cursor.style.left).toBe("0%");
     });
 
@@ -101,7 +132,7 @@ describe("AlphaSlider", () => {
         <AlphaSlider color="#ff0000" alpha={1} onChange={mockOnChange} />
       );
 
-      const cursor = container.querySelector(".alpha-cursor") as HTMLElement;
+      const cursor = cursorOf(container);
       expect(cursor.style.left).toBe("100%");
     });
   });
@@ -112,7 +143,7 @@ describe("AlphaSlider", () => {
         <AlphaSlider color="#00ff00" alpha={0.5} onChange={mockOnChange} />
       );
 
-      const cursor = container.querySelector(".alpha-cursor") as HTMLElement;
+      const cursor = cursorOf(container);
       expect(cursor.style.backgroundColor).toBe("rgb(0, 255, 0)");
     });
   });
@@ -123,7 +154,7 @@ describe("AlphaSlider", () => {
         <AlphaSlider color="#ff0000" alpha={0.5} onChange={mockOnChange} />
       );
 
-      const slider = container.firstChild as HTMLElement;
+      const slider = sliderOf(container);
       fireEvent.mouseDown(slider, { clientX: 100, clientY: 50 });
 
       expect(mockOnChange).toHaveBeenCalled();
@@ -134,7 +165,7 @@ describe("AlphaSlider", () => {
         <AlphaSlider color="#ff0000" alpha={0.5} onChange={mockOnChange} />
       );
 
-      const slider = container.firstChild as HTMLElement;
+      const slider = sliderOf(container);
       jest.spyOn(slider, "getBoundingClientRect").mockReturnValue({
         left: 0,
         top: 0,
@@ -157,7 +188,7 @@ describe("AlphaSlider", () => {
         <AlphaSlider color="#ff0000" alpha={0.5} onChange={mockOnChange} />
       );
 
-      const slider = container.firstChild as HTMLElement;
+      const slider = sliderOf(container);
       jest.spyOn(slider, "getBoundingClientRect").mockReturnValue({
         left: 0,
         top: 0,
@@ -180,7 +211,7 @@ describe("AlphaSlider", () => {
         <AlphaSlider color="#ff0000" alpha={0.5} onChange={mockOnChange} />
       );
 
-      const slider = container.firstChild as HTMLElement;
+      const slider = sliderOf(container);
       jest.spyOn(slider, "getBoundingClientRect").mockReturnValue({
         left: 0,
         top: 0,
@@ -203,7 +234,7 @@ describe("AlphaSlider", () => {
         <AlphaSlider color="#ff0000" alpha={0.5} onChange={mockOnChange} />
       );
 
-      const slider = container.firstChild as HTMLElement;
+      const slider = sliderOf(container);
       jest.spyOn(slider, "getBoundingClientRect").mockReturnValue({
         left: 0,
         top: 0,
@@ -228,7 +259,7 @@ describe("AlphaSlider", () => {
         <AlphaSlider color="#ff0000" alpha={0.5} onChange={mockOnChange} />
       );
 
-      const slider = container.firstChild as HTMLElement;
+      const slider = sliderOf(container);
       jest.spyOn(slider, "getBoundingClientRect").mockReturnValue({
         left: 0,
         top: 0,
@@ -253,7 +284,7 @@ describe("AlphaSlider", () => {
         <AlphaSlider color="#ff0000" alpha={0.5} onChange={mockOnChange} />
       );
 
-      const slider = container.firstChild as HTMLElement;
+      const slider = sliderOf(container);
       jest.spyOn(slider, "getBoundingClientRect").mockReturnValue({
         left: 0,
         top: 0,
@@ -280,7 +311,7 @@ describe("AlphaSlider", () => {
         <AlphaSlider color="#ff0000" alpha={0.5} onChange={mockOnChange} orientation="vertical" />
       );
 
-      const slider = container.firstChild as HTMLElement;
+      const slider = sliderOf(container);
       jest.spyOn(slider, "getBoundingClientRect").mockReturnValue({
         left: 0,
         top: 0,
@@ -303,7 +334,7 @@ describe("AlphaSlider", () => {
         <AlphaSlider color="#ff0000" alpha={0.5} onChange={mockOnChange} orientation="vertical" />
       );
 
-      const slider = container.firstChild as HTMLElement;
+      const slider = sliderOf(container);
       jest.spyOn(slider, "getBoundingClientRect").mockReturnValue({
         left: 0,
         top: 0,
@@ -332,7 +363,7 @@ describe("AlphaSlider", () => {
         <AlphaSlider color="#ff0000" alpha={0.5} onChange={mockOnChange} />
       );
 
-      const slider = container.firstChild as HTMLElement;
+      const slider = sliderOf(container);
       jest.spyOn(slider, "getBoundingClientRect").mockReturnValue({
         left: 0,
         top: 0,
@@ -346,7 +377,7 @@ describe("AlphaSlider", () => {
       });
 
       fireEvent.touchStart(slider, {
-        touches: [{ clientX: 100, clientY: 12 }] as any
+        touches: [touchAt(slider, 100, 12)]
       });
 
       expect(mockOnChange).toHaveBeenCalledWith(0.5);
@@ -357,7 +388,7 @@ describe("AlphaSlider", () => {
         <AlphaSlider color="#ff0000" alpha={0.5} onChange={mockOnChange} />
       );
 
-      const slider = container.firstChild as HTMLElement;
+      const slider = sliderOf(container);
       jest.spyOn(slider, "getBoundingClientRect").mockReturnValue({
         left: 0,
         top: 0,
@@ -371,13 +402,13 @@ describe("AlphaSlider", () => {
       });
 
       fireEvent.touchStart(slider, {
-        touches: [{ clientX: 50, clientY: 12 }] as any
+        touches: [touchAt(slider, 50, 12)]
       });
       fireEvent.touchMove(slider, {
-        touches: [{ clientX: 100, clientY: 12 }] as any
+        touches: [touchAt(slider, 100, 12)]
       });
       fireEvent.touchMove(slider, {
-        touches: [{ clientX: 150, clientY: 12 }] as any
+        touches: [touchAt(slider, 150, 12)]
       });
 
       expect(mockOnChange).toHaveBeenCalledTimes(3);
@@ -388,7 +419,7 @@ describe("AlphaSlider", () => {
         <AlphaSlider color="#ff0000" alpha={0.5} onChange={mockOnChange} />
       );
 
-      const slider = container.firstChild as HTMLElement;
+      const slider = sliderOf(container);
       jest.spyOn(slider, "getBoundingClientRect").mockReturnValue({
         left: 0,
         top: 0,
@@ -402,11 +433,11 @@ describe("AlphaSlider", () => {
       });
 
       fireEvent.touchStart(slider, {
-        touches: [{ clientX: 100, clientY: 12 }] as any
+        touches: [touchAt(slider, 100, 12)]
       });
       fireEvent.touchEnd(slider);
       fireEvent.touchMove(slider, {
-        touches: [{ clientX: 150, clientY: 12 }] as any
+        touches: [touchAt(slider, 150, 12)]
       });
 
       expect(mockOnChange).toHaveBeenCalledTimes(1);
@@ -419,7 +450,7 @@ describe("AlphaSlider", () => {
         <AlphaSlider color="#ff0000" alpha={0.5} onChange={mockOnChange} />
       );
 
-      const slider = container.firstChild as HTMLElement;
+      const slider = sliderOf(container);
       jest.spyOn(slider, "getBoundingClientRect").mockReturnValue({
         left: 0,
         top: 0,
@@ -444,7 +475,7 @@ describe("AlphaSlider", () => {
         <AlphaSlider color="#ff0000" alpha={0.5} onChange={mockOnChange} />
       );
 
-      const slider = container.firstChild as HTMLElement;
+      const slider = sliderOf(container);
       jest.spyOn(slider, "getBoundingClientRect").mockReturnValue({
         left: 0,
         top: 0,
@@ -458,11 +489,11 @@ describe("AlphaSlider", () => {
       });
 
       fireEvent.touchStart(slider, {
-        touches: [{ clientX: 100, clientY: 12 }] as any
+        touches: [touchAt(slider, 100, 12)]
       });
       fireEvent.touchEnd(window);
       fireEvent.touchMove(slider, {
-        touches: [{ clientX: 150, clientY: 12 }] as any
+        touches: [touchAt(slider, 150, 12)]
       });
 
       expect(mockOnChange).toHaveBeenCalledTimes(1);
@@ -475,7 +506,7 @@ describe("AlphaSlider", () => {
         <AlphaSlider color="#ff0000" alpha={0.5} onChange={mockOnChange} />
       );
 
-      const slider = container.firstChild as HTMLElement;
+      const slider = sliderOf(container);
       jest.spyOn(slider, "getBoundingClientRect").mockReturnValue({
         left: 0,
         top: 0,
@@ -507,7 +538,7 @@ describe("AlphaSlider", () => {
         <AlphaSlider color="#ff0000" alpha={0.5} onChange={mockOnChange} />
       );
 
-      const slider = container.firstChild as HTMLElement;
+      const slider = sliderOf(container);
       jest.spyOn(slider, "getBoundingClientRect").mockReturnValue({
         left: 0,
         top: 0,
@@ -530,7 +561,7 @@ describe("AlphaSlider", () => {
         <AlphaSlider color="#ff0000" alpha={0.5} onChange={mockOnChange} />
       );
 
-      const slider = container.firstChild as HTMLElement;
+      const slider = sliderOf(container);
       jest.spyOn(slider, "getBoundingClientRect").mockReturnValue({
         left: 0,
         top: 0,

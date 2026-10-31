@@ -115,6 +115,7 @@ import {
 } from "../../utils/scheduleNodeInternalsRefresh";
 import { edgeKey } from "../../stores/nodeKey";
 import FirstWorkflowGuide from "../node_editor/FirstWorkflowGuide";
+import { openExamplesTab } from "../workspace/openPageTab";
 import { Slugify } from "../../utils/TypeHandler";
 import { PortLabelVisibilityContext } from "../../contexts/PortLabelVisibilityContext";
 
@@ -1163,6 +1164,7 @@ const ReactFlowWrapper = ({
           readiness={firstWorkflowReadiness}
           onStart={handleStartFirstWorkflow}
           onChooseOwn={handleChooseOwnNodes}
+          onBrowseTemplates={() => openExamplesTab("workflows")}
           onClose={() => setShowFirstWorkflowGuide(false)}
         />
       )}

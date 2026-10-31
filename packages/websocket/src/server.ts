@@ -95,8 +95,7 @@ import {
   getWorkerProfile,
   initDb,
   initPostgresDb,
-  openResourceChangeChannel,
-  resolveResourceChangeListenerUrl,
+  openResourceChangeChannelWithFallback,
   isAccessToken,
   McpOauthClient,
   MCP_OAUTH_ACCESS_TOKEN_PREFIX,
@@ -328,11 +327,9 @@ try {
   if (postgresDatabaseUrl) {
     await initPostgresDb(postgresDatabaseUrl);
     if (getInstanceId()) {
-      const channel = await openResourceChangeChannel(
-        resolveResourceChangeListenerUrl(
-          postgresDatabaseUrl,
-          process.env["DIRECT_URL"]
-        ),
+      const channel = await openResourceChangeChannelWithFallback(
+        postgresDatabaseUrl,
+        process.env["DIRECT_URL"],
         (message) => resourceChangeBus.receive(message),
         () => resourceChangeBus.resync()
       );
@@ -1671,6 +1668,28 @@ await app.register(websocketPlugin, {
 // instance's own running runs so a cancel written on another instance lands
 // here. The registry it consults is process-wide.
 const stopJobCancelPoller = startJobCancelPoller();
+
+app.get("/api/server/features", {
+  schema: {
+    response: {
+      200: {
+        type: "object", required: ["configured", "features", "capabilities"],
+        properties: {
+          configured: { type: "boolean" },
+          features: { type: "array", items: { type: "string" } },
+          capabilities: { type: "array", items: { type: "string" } }
+        }
+      }
+    }
+  }
+}, async () => {
+  const features = packSource.configuredFeatures?.() ?? [];
+  return {
+    configured: packSource.explicitSelection === true,
+    features: features.map((feature) => feature.id),
+    capabilities: [...new Set(features.flatMap((feature) => feature.capabilities ?? []))].sort()
+  };
+});
 
 await app.register(healthRoute);
 await app.register(configRoute);

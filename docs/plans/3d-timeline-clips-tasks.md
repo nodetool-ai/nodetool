@@ -413,7 +413,7 @@ generated clip registers a job and stores a version).
 
 **Read first:** design §D6 output format. `render_animation.py`,
 `packages/video-nodes/src/nodes/timeline/outputFormats.ts` (the `webm`
-VP9 `yuva420p` entry), `packages/video-nodes/src/nodes/ffmpeg-helpers.ts`,
+VP9 `yuva420p` entry), `packages/video-nodes/src/nodes/video-helpers.ts`,
 `packages/blender-nodes/blender_ops/ops/render_passes.py` (RGBA PNG output).
 
 **Steps:**
@@ -439,7 +439,7 @@ VP9 `yuva420p` entry), `packages/video-nodes/src/nodes/ffmpeg-helpers.ts`,
 
 **Steps:** `web/src/components/timeline/README.md` drop table and a "3D
 clips" section; `docs/harnesses.md` entry for the 3D layer in
-`preview_timeline_frame`; `packages/cli/src/harness/registry.ts` maps a diff
+`preview_timeline_frame`; `packages/cli-harness/src/harness/registry.ts` maps a diff
 under `packages/video-nodes/src/nodes/model3d/` to the T3 and T5 suites;
 `AGENTS.md` harness table row if a new command appears. Set this design's
 status to implemented.

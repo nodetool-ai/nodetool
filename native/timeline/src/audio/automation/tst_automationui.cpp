@@ -28,7 +28,14 @@ class TestAutomationUi : public QObject {
             for (auto* child : at->childItems()) { if (auto* hit=self(self,child)) { return hit; } }
             return nullptr;
         };
-        return find(find,window->contentItem());
+        if (auto* hit=find(find,window->contentItem())) { return hit; }
+        for (auto* candidate : QGuiApplication::allWindows()) {
+            auto* popup=qobject_cast<QQuickWindow*>(candidate);
+            if (popup && popup!=window.get()) {
+                if (auto* hit=find(find,popup->contentItem())) { return hit; }
+            }
+        }
+        return nullptr;
     }
     bool open(const QByteArray& body, QVariantMap properties = {}) {
         engine=std::make_unique<QQmlEngine>();
@@ -55,7 +62,8 @@ Component.onCompleted: AutomationUIState.shownAutomationTrackIds = )" + QByteArr
         const QPointer<QQuickItem> target=item(name);
         const bool menuItem=target->inherits("QQuickMenuItem");
         const QPointer<QObject> menu=target->property("menu").value<QObject*>();
-        QTest::mouseClick(window.get(),Qt::LeftButton,Qt::NoModifier,point(target,target->width()/2,target->height()/2));
+        QVERIFY(target->window());
+        QTest::mouseClick(target->window(),Qt::LeftButton,Qt::NoModifier,point(target,target->width()/2,target->height()/2));
         QCoreApplication::processEvents();
         if(menuItem) {
             QTRY_VERIFY(!menu || !menu->property("visible").toBool());
@@ -232,6 +240,36 @@ track: ({id:"a",type:"audio"}); lane: ({id:"lane",target:{kind:"mixer",param:"vo
         QVERIFY(std::abs(track()["volumeDb"].toDouble())<=.3);
         model.undoStack()->undo(); QCOMPARE(track()["volumeDb"].toDouble(),-6.);
     }
+    void faderCancellationRestoresDraftWithoutUndo() {
+        QVERIFY(open(R"(ChannelStrip { width:120; height:360; required timeline; trackId:"a" })"));
+        auto* fader = item("fader-a");
+        QVERIFY(fader);
+        const auto from = point(fader, 12, fader->height() * .6);
+        const auto to = point(fader, 12, fader->height() * .3);
+        QTest::mousePress(window.get(), Qt::LeftButton, Qt::NoModifier, from);
+        QTest::mouseMove(window.get(), to, 20);
+        QVERIFY(fader->property("draft").toDouble() != -6.);
+        QCOMPARE(model.undoStack()->count(), 0);
+        QTest::keyClick(window.get(), Qt::Key_Escape);
+        QTest::mouseRelease(window.get(), Qt::LeftButton, Qt::NoModifier, to);
+        QCOMPARE(model.undoStack()->count(), 0);
+        QCOMPARE(track()["volumeDb"].toDouble(), -6.);
+        QCOMPARE(fader->property("draft").toDouble(), -6.);
+    }
+    void panCancellationRestoresDraftWithoutUndo() {
+        QVERIFY(open(R"(ChannelStrip { width:120; height:360; required timeline; trackId:"a" })"));
+        auto* pan = item("pan-a");
+        QVERIFY(pan);
+        const auto from = point(pan, pan->width() / 2, pan->height() / 2);
+        const auto to = from + QPoint(12, -12);
+        QTest::mousePress(window.get(), Qt::LeftButton, Qt::NoModifier, from);
+        QTest::mouseMove(window.get(), to, 20);
+        QCOMPARE(model.undoStack()->count(), 0);
+        QTest::keyClick(window.get(), Qt::Key_Escape);
+        QTest::mouseRelease(window.get(), Qt::LeftButton, Qt::NoModifier, to);
+        QCOMPARE(model.undoStack()->count(), 0);
+        QCOMPARE(track()["pan"].toDouble(), 0.);
+    }
     void panMuteSoloMaster() {
         QVERIFY(open(R"(Item { width:400; height:360; required property TimelineModel timeline
 ChannelStrip { width:120; height:360; timeline:parent.timeline; trackId:"a" }
@@ -258,7 +296,13 @@ ChannelStrip { x:130; width:120; height:360; timeline:parent.timeline; master:tr
         QTest::mouseRelease(window.get(),Qt::LeftButton,Qt::NoModifier,point(fader,12,cap+3));
         QCOMPARE(model.undoStack()->index(),0);
     }
+    void mountedSlots_data() {
+        QTest::addColumn<bool>("popupWindow");
+        QTest::newRow("default-popup") << false;
+        if (QGuiApplication::platformName() != "offscreen") { QTest::newRow("window-popup") << true; }
+    }
     void mountedSlots() {
+        QFETCH(bool, popupWindow);
         QVERIFY(open(R"(Item { width:800; height:900; required property TimelineModel timeline
  required property PlaybackClock clock
  MixerToolbar { timeline:parent.timeline }
@@ -282,7 +326,16 @@ ChannelStrip { x:130; width:120; height:360; timeline:parent.timeline; master:tr
         QCOMPARE(model.undoStack()->count(),1);
         {
             auto* picker=item("automation-picker-a"); QVERIFY(picker);
+            auto* header=item("automation-add-a"); QVERIFY(header);
+            auto* popup=header->property("popupControl").value<QObject*>(); QVERIFY(popup);
+            QVERIFY(popup->setProperty("popupType",popupWindow ? 1 : 0)); // Popup.Window / Popup.Item
             QTest::mouseClick(window.get(),Qt::LeftButton,Qt::NoModifier,point(picker,picker->width()-8,picker->height()/2));
+            QTRY_VERIFY(popup->property("visible").toBool());
+            QTest::keyClick(window.get(), Qt::Key_V);
+            QTest::keyClick(window.get(), Qt::Key_O);
+            QTest::keyClick(window.get(), Qt::Key_L);
+            QTRY_VERIFY(item("automation-option-mixer:volumeDb"));
+            QVERIFY(!item("automation-option-mixer:pan"));
         }
         click("automation-option-mixer:volumeDb");
         QCOMPARE(track()["automation"].toArray().size(),1);
@@ -290,8 +343,42 @@ ChannelStrip { x:130; width:120; height:360; timeline:parent.timeline; master:tr
         const auto lane=track()["automation"].toArray()[0].toObject();
         QVERIFY(QRegularExpression("^[0-9a-f]{32}$").match(lane["id"].toString()).hasMatch());
         QCOMPARE(lane["target"].toObject()["param"].toString(),"volumeDb");
-        QTRY_VERIFY(item("automation-picker-a"));
-        QCOMPARE(item("automation-picker-a")->property("count").toInt(),1);
+        auto* picker=item("automation-picker-a"); QVERIFY(picker);
+        QTest::mouseClick(window.get(),Qt::LeftButton,Qt::NoModifier,point(picker,picker->width()-8,picker->height()/2));
+        QTRY_VERIFY(item("automation-option-mixer:pan"));
+    }
+    void effectCurveCancellationRestoresWithoutUndo_data() {
+        QTest::addColumn<QString>("type");
+        QTest::addColumn<QString>("handle");
+        QTest::addColumn<bool>("disable");
+        QTest::newRow("eq-escape") << "eq3" << "mid" << false;
+        QTest::newRow("eq-disable") << "eq3" << "mid" << true;
+        QTest::newRow("compressor-escape") << "compressor" << "threshold" << false;
+        QTest::newRow("compressor-disable") << "compressor" << "threshold" << true;
+    }
+    void effectCurveCancellationRestoresWithoutUndo() {
+        QFETCH(QString, type);
+        QFETCH(QString, handle);
+        QFETCH(bool, disable);
+        QVERIFY(open(R"(MixerView { width:800; height:360; required timeline })"));
+        click("add-effect-a");
+        click("add-" + type + "-a");
+        const auto before = track()["effects"].toArray();
+        const auto effectId = before.first().toObject()["id"].toString();
+        click("open-effect-" + effectId);
+        auto* grip = item("effect-handle-" + type + "-" + handle);
+        QVERIFY(grip);
+        const auto from = point(grip, grip->width() / 2, grip->height() / 2);
+        const auto to = from + QPoint(18, -12);
+        const auto undoCount = model.undoStack()->count();
+        QTest::mousePress(window.get(), Qt::LeftButton, Qt::NoModifier, from);
+        QTest::mouseMove(window.get(), to, 20);
+        QCOMPARE(model.undoStack()->count(), undoCount);
+        if (disable) grip->setEnabled(false);
+        else QTest::keyClick(window.get(), Qt::Key_Escape);
+        QTest::mouseRelease(window.get(), Qt::LeftButton, Qt::NoModifier, to);
+        QCOMPARE(model.undoStack()->count(), undoCount);
+        QCOMPARE(track()["effects"].toArray(), before);
     }
     void effectCurveEditors_data() {
         QTest::addColumn<QString>("type"); QTest::addColumn<QString>("handle"); QTest::addColumn<QString>("parameter");

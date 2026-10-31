@@ -16,6 +16,7 @@
 #include <QUuid>
 #include <QtTest>
 #include <memory>
+#include <algorithm>
 
 namespace {
 QQuickItem* find(QQuickItem* root, const QString& name) {
@@ -28,7 +29,7 @@ QQuickItem* find(QQuickItem* root, const QString& name) {
 }
 QQuickItem* resetAction(QQuickItem* root) {
     if (!root) { return nullptr; }
-    if (root->inherits("QQuickToolButton") && root->property("text").toString() == "↺") { return root; }
+    if (root->inherits("QQuickAbstractButton") && root->property("accessibleName").toString() == "Reset color") { return root; }
     for (auto* child : root->childItems()) {
         if (auto* found = resetAction(child)) { return found; }
     }
@@ -41,6 +42,21 @@ QQuickItem* sliderControl(QQuickItem* root) {
         if (auto* found = sliderControl(child)) { return found; }
     }
     return nullptr;
+}
+QStringList itemsAt(QQuickItem* root, const QPointF& scenePoint) {
+    QStringList result;
+    if (!root || !root->isVisible()) { return result; }
+    const auto local = root->mapFromScene(scenePoint);
+    const bool contains = root->contains(local);
+    if (root->clip() && !contains) { return result; }
+    if (contains) {
+        result.append(QString("%1 name=%2 local=(%3,%4) size=(%5,%6) z=%7 enabled=%8")
+            .arg(root->metaObject()->className(), root->objectName())
+            .arg(local.x()).arg(local.y()).arg(root->width()).arg(root->height())
+            .arg(root->z()).arg(root->isEnabled()));
+    }
+    for (auto* child : root->childItems()) { result.append(itemsAt(child, scenePoint)); }
+    return result;
 }
 bool number(QObject* item, const char* signal, double value) {
     return item && QMetaObject::invokeMethod(item, signal, Q_ARG(double, value));
@@ -76,7 +92,11 @@ struct Editor {
         QCoreApplication::processEvents();
         if (object) { select("picture"); }
     }
-    QQuickItem* item(const QString& name) const { return find(window.contentItem(), name); }
+    QQuickItem* item(const QString& name) {
+        QCoreApplication::processEvents();
+        QQuickTest::qWaitForPolish(&window);
+        return find(window.contentItem(), name);
+    }
     void select(const QString& id) {
         object->findChild<ClipGestureController*>("clipGestures")->setSelection({id});
         QCoreApplication::processEvents();
@@ -88,20 +108,42 @@ struct Editor {
         QQuickTest::qWaitForPolish(&window);
         auto* viewport = item("inspectorViewport");
         const auto y = target->mapToItem(viewport,QPointF{}).y();
-        viewport->setProperty("contentY",viewport->property("contentY").toDouble()+y-10);
+        const double maximum = std::max(0.0, viewport->property("contentHeight").toDouble() - viewport->height());
+        const double next = viewport->property("contentY").toDouble() + y - 10;
+        viewport->setProperty("contentY", std::clamp(next, 0.0, maximum));
+        QVERIFY(viewport->property("contentY").toDouble() >= 0);
+        QVERIFY(viewport->property("contentY").toDouble() <= maximum);
         QCoreApplication::processEvents();
         QQuickTest::qWaitForPolish(&window);
     }
     void click(QQuickItem* target) {
         reveal(target);
+        QVERIFY(target->isVisible());
+        QVERIFY(target->isEnabled());
+        window.requestActivate();
+        QVERIFY(QTest::qWaitForWindowActive(&window));
+        QQuickTest::qWaitForPolish(&window);
         const auto at = target->mapToScene(QPointF(target->width()/2,target->height()/2)).toPoint();
+        for (auto* parent = target; parent; parent = parent->parentItem()) {
+            if (parent->clip()) {
+                QVERIFY2(parent->contains(parent->mapFromScene(at)),
+                    qPrintable("Click outside clipped ancestor: " + parent->objectName()));
+            }
+        }
+        const auto targetName = target->objectName();
+        QSignalSpy clicked(target, SIGNAL(clicked()));
+        QVERIFY(clicked.isValid());
         QTest::mouseClick(&window,Qt::LeftButton,Qt::NoModifier,at);
         QCoreApplication::processEvents();
+        const auto diagnostic = QString("Click did not reach %1 at (%2,%3). Items under pointer:\n%4")
+            .arg(targetName).arg(at.x()).arg(at.y())
+            .arg(itemsAt(window.contentItem(), at).join('\n'));
+        QVERIFY2(clicked.count() == 1, qPrintable(diagnostic));
     }
     bool add(const QString& type) {
         auto* section = item("clipEffectsList");
         if (!section) { return false; }
-        section->setProperty("open",true);
+        if (!QMetaObject::invokeMethod(section, "toggled", Q_ARG(bool, true))) { return false; }
         auto* add = item("effectsAdd");
         if (!add) { return false; }
         click(add);
@@ -125,11 +167,17 @@ struct Editor {
 class TestClipEffects : public QObject {
     Q_OBJECT
 private slots:
+    void init() {
+        QTest::failOnWarning(QRegularExpression(
+            "(InspectorActionButton|InspectorSectionTitle)\\.qml:.*does not support customization"));
+    }
     void registration();
+    void colorGestureUndoReset_data();
     void colorGestureUndoReset();
     void colorRangesAndPointerGesture();
     void catalogue_data();
     void catalogue();
+    void listActionsAndParameterGesture_data();
     void listActionsAndParameterGesture();
     void dragReorder();
     void collapsedRowsReleaseSpace();
@@ -156,10 +204,30 @@ void TestClipEffects::registration() {
         }
     }
 
+void TestClipEffects::colorGestureUndoReset_data() {
+    QTest::addColumn<int>("scrollBarWidth");
+    QTest::newRow("platform-scrollbar") << -1;
+    // The macOS native scrollbar occupies 14 pixels of the viewport.
+    QTest::newRow("wide-scrollbar") << 14;
+}
+
+void TestClipEffects::listActionsAndParameterGesture_data() {
+    colorGestureUndoReset_data();
+}
+
 void TestClipEffects::colorGestureUndoReset() {
         Editor e; QVERIFY2(e.object,qPrintable(e.error));
+        QFETCH(int, scrollBarWidth);
+        if (scrollBarWidth > 0) {
+            auto* scrollBar = e.item("inspectorScrollBar"); QVERIFY(scrollBar);
+            scrollBar->setProperty("implicitWidth", scrollBarWidth);
+            scrollBar->setWidth(scrollBarWidth);
+            scrollBar->setProperty("policy", 2); // ScrollBar.AlwaysOn
+            scrollBar->setProperty("active", true);
+            QCOMPARE(scrollBar->width(), qreal(scrollBarWidth));
+        }
         auto* color = e.item("clipAdjustments"); QVERIFY2(color,"ClipAdjustments must be in the Inspector");
-        color->setProperty("open",true);
+        QVERIFY(QMetaObject::invokeMethod(color, "toggled", Q_ARG(bool, true)));
         const auto original = e.model.documentJson();
         QVERIFY(toggle(color,"checkedChangedByUser",true));
         QCOMPARE(e.effects(),QJsonArray({QJsonObject{{"id","inspector:color"},{"type","color"},{"enabled",true}}}));
@@ -174,7 +242,7 @@ void TestClipEffects::colorGestureUndoReset() {
         e.model.undoStack()->undo(); QVERIFY(!e.effects()[0].toObject().contains("brightness"));
         e.model.undoStack()->undo(); QCOMPARE(e.model.documentJson(),original);
         e.model.undoStack()->redo(); e.model.undoStack()->redo(); QCOMPARE(e.model.documentJson(),edited);
-        auto* reset = resetAction(color); QVERIFY(reset);
+        auto* reset = resetAction(e.item("clipAdjustments")); QVERIFY(reset);
         e.click(reset); QCOMPARE(e.effects().size(),0);
         QCOMPARE(e.model.undoStack()->count(),3);
         e.model.undoStack()->undo(); QCOMPARE(e.model.documentJson(),edited);
@@ -214,12 +282,22 @@ void TestClipEffects::catalogue() {
 
 void TestClipEffects::listActionsAndParameterGesture() {
         Editor e; QVERIFY2(e.object,qPrintable(e.error));
+        QFETCH(int, scrollBarWidth);
+        if (scrollBarWidth > 0) {
+            auto* scrollBar = e.item("inspectorScrollBar"); QVERIFY(scrollBar);
+            scrollBar->setProperty("implicitWidth", scrollBarWidth);
+            scrollBar->setWidth(scrollBarWidth);
+            scrollBar->setProperty("policy", 2); // ScrollBar.AlwaysOn
+            scrollBar->setProperty("active", true);
+            QCOMPARE(scrollBar->width(), qreal(scrollBarWidth));
+        }
         e.patch({{"effects",QJsonArray{
             QJsonObject{{"id","a"},{"type","blur"},{"enabled",true},{"radius",8},{"sigma",2}},
             QJsonObject{{"id","inspector:color"},{"type","color"},{"enabled",true},{"contrast",1.3}},
             QJsonObject{{"id","future"},{"type","futureEffect"},{"enabled",true},{"opaque",QJsonObject{{"x",7}}}},
             QJsonObject{{"id","b"},{"type","vignette"},{"enabled",false},{"amount",0.4},{"softness",0.5}}}}});
-        auto* section = e.item("clipEffectsList"); QVERIFY(section); section->setProperty("open",true);
+        auto* section = e.item("clipEffectsList"); QVERIFY(section);
+        QVERIFY(QMetaObject::invokeMethod(section, "toggled", Q_ARG(bool, true)));
         QVERIFY(!e.item("effectRow_inspector:color"));
         const auto before = e.model.documentJson();
         auto* reorder = e.item("effectsReorder_a"); QVERIFY(reorder); reorder->forceActiveFocus();

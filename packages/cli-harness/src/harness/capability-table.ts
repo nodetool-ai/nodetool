@@ -1,0 +1,4077 @@
+/**
+ * GENERATED — the capability coverage table. Do not hand-edit anything but a
+ * gap note; `npm run capabilities:sync` rewrites the rest.
+ *
+ * One entry per exported agent capability: the file that implements it, the
+ * checked-in suites a selfcheck runs over it, the eval cases that drive a
+ * model through it, and a written gap note where nothing does yet. The rules,
+ * the audit, and the gate live in `capability-coverage.ts`; the derivation
+ * lives in `scripts/sync-capability-coverage.mjs`.
+ *
+ * A new capability lands here with no suite and no eval case, and
+ * `npm run capabilities:check` fails until someone either writes the case or
+ * writes down why there isn't one.
+ */
+
+import type { CapabilityCoverageEntry } from "./capability-coverage.js";
+
+export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
+  {
+    name: "list_workflows",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "21550fd305ce",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-dispatcher.test.ts",
+      "packages/agents/tests/mcp-tools.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-core.ts",
+        cases: ["api-background-job-wait", "api-batch-existing-workflow"],
+      },
+    ],
+  },
+  {
+    name: "get_workflow",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "500f60f725d0",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-dispatcher.test.ts",
+      "packages/agents/tests/mcp-tools.test.ts",
+    ],
+  },
+  {
+    name: "create_workflow",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "aabee6fd66f7",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-dispatcher.test.ts",
+      "packages/agents/tests/mcp-tools.test.ts",
+    ],
+  },
+  {
+    name: "update_workflow",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "136f6a0d501f",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-document-rename.test.ts",
+      "packages/agents/tests/capabilities-lifecycle.test.ts",
+    ],
+  },
+  {
+    name: "add_workflow_link",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "4d0ce00d0c90",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workflow-links.test.ts",
+    ],
+  },
+  {
+    name: "remove_workflow_link",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "490c7dd1e6a6",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workflow-links.test.ts",
+    ],
+  },
+  {
+    name: "delete_workflow",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "70ad54003754",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-lifecycle.test.ts",
+    ],
+  },
+  {
+    name: "list_workflow_versions",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "d08688d87b5f",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/workflow-version-tools.test.ts",
+    ],
+  },
+  {
+    name: "get_workflow_version",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "4b4b302632da",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/workflow-version-tools.test.ts",
+    ],
+  },
+  {
+    name: "create_workflow_version",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "a61aa87a1700",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/workflow-version-tools.test.ts",
+    ],
+  },
+  {
+    name: "restore_workflow_version",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "2a57e08bef6f",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/workflow-version-tools.test.ts",
+    ],
+  },
+  {
+    name: "delete_workflow_version",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "f01a9f5fd0e3",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/workflow-version-tools.test.ts",
+    ],
+  },
+  {
+    name: "set_workflow_access",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "66f81d2fb2c7",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-lifecycle.test.ts",
+    ],
+  },
+  {
+    name: "run_workflow",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "7b1bf01fe074",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/nodetool-api-workflows.test.ts",
+      "packages/agents/tests/mcp-tools.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-core.ts",
+        cases: ["api-batch-existing-workflow", "api-graph-build-and-run", "api-interactive-escalation", "api-probe-node-then-wire"],
+      },
+    ],
+  },
+  {
+    name: "debug_workflow",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "3f7fa54dfdc5",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/mcp-tools.test.ts",
+    ],
+  },
+  {
+    name: "resolve_workflow_escalation",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "42abfc3a3312",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/mcp-tools.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-core.ts",
+        cases: ["api-interactive-escalation"],
+      },
+    ],
+  },
+  {
+    name: "validate_workflow",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "7af3e305f546",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/nodetool-api-workflows.test.ts",
+      "packages/agents/tests/mcp-tools.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-core.ts",
+        cases: ["api-graph-build-and-run"],
+      },
+    ],
+  },
+  {
+    name: "start_background_job",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "3ab70a6e5607",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/mcp-tools.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-core.ts",
+        cases: ["api-background-job-wait"],
+      },
+    ],
+  },
+  {
+    name: "get_example_workflow",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "5f748ba651f3",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/mcp-tools.test.ts",
+    ],
+  },
+  {
+    name: "export_workflow_digraph",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "e77dc5f2c0d1",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/mcp-tools.test.ts",
+    ],
+  },
+  {
+    name: "set_workflow_setup",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "59bff5063fb4",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workflow-setup.test.ts",
+    ],
+  },
+  {
+    name: "plan_workflow",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "f214384d9c9b",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workflow-setup.test.ts",
+    ],
+  },
+  {
+    name: "update_workflow_plan_step",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "997202184d62",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workflow-setup.test.ts",
+    ],
+  },
+  {
+    name: "build_workflow_from_plan",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "398e489ad3ab",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-workflow-setup.test.ts",
+    ],
+  },
+  {
+    name: "set_game_setup",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "4eb91ec78d6a",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game-setup.test.ts",
+    ],
+  },
+  {
+    name: "design_game",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "78db82a76559",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game-setup.test.ts",
+    ],
+  },
+  {
+    name: "update_game_design",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "dd496066a910",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game-setup.test.ts",
+    ],
+  },
+  {
+    name: "build_game",
+    module: "workflows",
+    impl: "packages/agents/src/capabilities/workflows.ts",
+    contract: "e5f2902b4565",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game-setup.test.ts",
+    ],
+  },
+  {
+    name: "find_model",
+    module: "models",
+    impl: "packages/agents/src/capabilities/models.ts",
+    contract: "0830e70672b0",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-models.test.ts",
+      "packages/agents/tests/capabilities-models-and-storyboards-reference-video.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-core.ts",
+        cases: ["api-generate-then-critique", "api-pick-model-and-batch-images"],
+      },
+    ],
+  },
+  {
+    name: "list_models",
+    module: "models",
+    impl: "packages/agents/src/capabilities/models.ts",
+    contract: "9b5ed87d0dbc",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-models.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-core.ts",
+        cases: ["api-pick-model-and-batch-images"],
+      },
+    ],
+  },
+  {
+    name: "list_provider_models",
+    module: "models",
+    impl: "packages/agents/src/capabilities/models.ts",
+    contract: "af8e36f33309",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-models.test.ts",
+    ],
+  },
+  {
+    name: "generate_text",
+    module: "media",
+    impl: "packages/agents/src/capabilities/media.ts",
+    contract: "2ba10bf514c9",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-media.test.ts",
+    ],
+  },
+  {
+    name: "generate_image",
+    module: "media",
+    impl: "packages/agents/src/capabilities/media.ts",
+    contract: "f500c24bccdb",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-media.test.ts",
+      "packages/agents/tests/capabilities-generations.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-core.ts",
+        cases: ["api-generate-then-critique", "api-pick-model-and-batch-images"],
+      },
+      {
+        file: "packages/agents/src/evals/surfaces/memory.ts",
+        cases: ["generate-and-remember"],
+      },
+    ],
+  },
+  {
+    name: "edit_image",
+    module: "media",
+    impl: "packages/agents/src/capabilities/media.ts",
+    contract: "0ba76865f4a4",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-media.test.ts",
+      "packages/agents/tests/capabilities-generations.test.ts",
+    ],
+  },
+  {
+    name: "segment_image",
+    module: "media",
+    impl: "packages/agents/src/capabilities/media.ts",
+    contract: "e65e3ff23393",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-segment-image.test.ts",
+    ],
+  },
+  {
+    name: "generate_video",
+    module: "media",
+    impl: "packages/agents/src/capabilities/media.ts",
+    contract: "8dac8cdc0840",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-media.test.ts",
+      "packages/agents/tests/capabilities-generations.test.ts",
+    ],
+  },
+  {
+    name: "animate_image",
+    module: "media",
+    impl: "packages/agents/src/capabilities/media.ts",
+    contract: "e1b1dc701776",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-media.test.ts",
+      "packages/agents/tests/capabilities-generations.test.ts",
+    ],
+  },
+  {
+    name: "generate_video_from_references",
+    module: "media",
+    impl: "packages/agents/src/capabilities/media.ts",
+    contract: "dea82ea56a14",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-media.test.ts",
+    ],
+  },
+  {
+    name: "generate_speech",
+    module: "media",
+    impl: "packages/agents/src/capabilities/media.ts",
+    contract: "840cb0b33149",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-media.test.ts",
+      "packages/agents/tests/capabilities-generations.test.ts",
+    ],
+  },
+  {
+    name: "generate_music",
+    module: "media",
+    impl: "packages/agents/src/capabilities/media.ts",
+    contract: "2f0cd7a403c9",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-generations.test.ts",
+    ],
+  },
+  {
+    name: "transcribe_audio",
+    module: "media",
+    impl: "packages/agents/src/capabilities/media.ts",
+    contract: "be650010c230",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-media.test.ts",
+    ],
+  },
+  {
+    name: "embed_text",
+    module: "media",
+    impl: "packages/agents/src/capabilities/media.ts",
+    contract: "7ccf08214e00",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-media.test.ts",
+    ],
+  },
+  {
+    name: "read_media_bytes",
+    module: "media",
+    impl: "packages/agents/src/capabilities/media.ts",
+    contract: "57305485ad36",
+    gap:
+      "`media-read-bytes.test.ts` drives it from a chat action by " +
+      "guest import, but the `capability-suites` selfcheck's filter " +
+      "list (packages/cli-harness/src/harness/registry.ts) does not run that " +
+      "file, and a suite named here must be one it runs. Adding " +
+      "`media-read-bytes` to that command and to the sync script's " +
+      "extras would credit it.",
+  },
+  {
+    name: "critique_image",
+    module: "media",
+    impl: "packages/agents/src/capabilities/media.ts",
+    contract: "d46bd53f7dfd",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-media.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-core.ts",
+        cases: ["api-generate-then-critique"],
+      },
+    ],
+  },
+  {
+    name: "compare_images",
+    module: "media",
+    impl: "packages/agents/src/capabilities/media.ts",
+    contract: "426279b0dd84",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-media.test.ts",
+    ],
+  },
+  {
+    name: "score_image_adherence",
+    module: "media",
+    impl: "packages/agents/src/capabilities/media.ts",
+    contract: "27f4c2507b82",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-media.test.ts",
+    ],
+  },
+  {
+    name: "understand_video",
+    module: "media",
+    impl: "packages/agents/src/capabilities/media.ts",
+    contract: "f5f8b48f6315",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-media.test.ts",
+    ],
+  },
+  {
+    name: "media_edit",
+    module: "media",
+    impl: "packages/agents/src/capabilities/media.ts",
+    contract: "95325a7a77de",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-media.test.ts",
+      "packages/agents/tests/capabilities-media-edit.test.ts",
+    ],
+  },
+  {
+    name: "media_probe",
+    module: "media",
+    impl: "packages/agents/src/capabilities/media.ts",
+    contract: "901df55c7ad6",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-media.test.ts",
+      "packages/agents/tests/capabilities-media-edit.test.ts",
+    ],
+  },
+  {
+    name: "yt_dlp",
+    module: "media",
+    impl: "packages/agents/src/capabilities/media.ts",
+    contract: "30d6bb107aeb",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-media.test.ts",
+      "packages/agents/tests/capabilities-yt-dlp-mux.test.ts",
+    ],
+  },
+  {
+    name: "list_collections",
+    module: "collections",
+    impl: "packages/agents/src/capabilities/collections.ts",
+    contract: "229fb4676997",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-collections.test.ts",
+    ],
+  },
+  {
+    name: "query_collection",
+    module: "collections",
+    impl: "packages/agents/src/capabilities/collections.ts",
+    contract: "1759e46aff01",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-collections.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["rag-index-and-answer"],
+      },
+    ],
+  },
+  {
+    name: "vector_text_search",
+    module: "collections",
+    impl: "packages/agents/src/capabilities/collections.ts",
+    contract: "d8bee8d9430c",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-collections.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["rag-index-and-answer"],
+      },
+    ],
+  },
+  {
+    name: "vector_index",
+    module: "collections",
+    impl: "packages/agents/src/capabilities/collections.ts",
+    contract: "a270bb328fac",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-collections.test.ts",
+    ],
+  },
+  {
+    name: "vector_hybrid_search",
+    module: "collections",
+    impl: "packages/agents/src/capabilities/collections.ts",
+    contract: "c539b3772a27",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-collections.test.ts",
+    ],
+  },
+  {
+    name: "vector_recursive_split_and_index",
+    module: "collections",
+    impl: "packages/agents/src/capabilities/collections.ts",
+    contract: "d76cb2befb82",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-collections.test.ts",
+    ],
+  },
+  {
+    name: "vector_markdown_split_and_index",
+    module: "collections",
+    impl: "packages/agents/src/capabilities/collections.ts",
+    contract: "38746e1afe7b",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-collections.test.ts",
+    ],
+  },
+  {
+    name: "vector_batch_index",
+    module: "collections",
+    impl: "packages/agents/src/capabilities/collections.ts",
+    contract: "deb290cc67c1",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-collections.test.ts",
+    ],
+  },
+  {
+    name: "create_collection",
+    module: "collections",
+    impl: "packages/agents/src/capabilities/collections.ts",
+    contract: "4fd457fa1ff6",
+    gap:
+      "`capabilities-collections.test.ts` snapshots the module's wire " +
+      "names and builds Tools for the readers and indexers; neither " +
+      "lifecycle call has a case. A case that creates a collection, " +
+      "indexes into it and deletes it would close it.",
+  },
+  {
+    name: "delete_collection",
+    module: "collections",
+    impl: "packages/agents/src/capabilities/collections.ts",
+    contract: "eb59236a182f",
+    gap:
+      "`capabilities-collections.test.ts` snapshots the module's wire " +
+      "names and builds Tools for the readers and indexers; neither " +
+      "lifecycle call has a case. A case that creates a collection, " +
+      "indexes into it and deletes it would close it.",
+  },
+  {
+    name: "get_cost_summary",
+    module: "costs",
+    impl: "packages/agents/src/capabilities/costs.ts",
+    contract: "2c90c598b870",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-lifecycle.test.ts",
+    ],
+  },
+  {
+    name: "list_nodes",
+    module: "nodes",
+    impl: "packages/agents/src/capabilities/nodes.ts",
+    contract: "6f70c870b22f",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-nodes.test.ts",
+    ],
+  },
+  {
+    name: "search_nodes",
+    module: "nodes",
+    impl: "packages/agents/src/capabilities/nodes.ts",
+    contract: "600f8b51d0d0",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-nodes.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-core.ts",
+        cases: ["api-graph-build-and-run"],
+      },
+    ],
+  },
+  {
+    name: "get_node_info",
+    module: "nodes",
+    impl: "packages/agents/src/capabilities/nodes.ts",
+    contract: "ee61a4038c57",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-nodes.test.ts",
+    ],
+  },
+  {
+    name: "list_jobs",
+    module: "jobs",
+    impl: "packages/agents/src/capabilities/jobs.ts",
+    contract: "2d22d3a3e08e",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-jobs.test.ts",
+      "packages/agents/tests/mcp-tools.test.ts",
+    ],
+  },
+  {
+    name: "get_job",
+    module: "jobs",
+    impl: "packages/agents/src/capabilities/jobs.ts",
+    contract: "2beacec6db44",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-jobs.test.ts",
+      "packages/agents/tests/mcp-tools.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-core.ts",
+        cases: ["api-background-job-wait"],
+      },
+    ],
+  },
+  {
+    name: "get_job_logs",
+    module: "jobs",
+    impl: "packages/agents/src/capabilities/jobs.ts",
+    contract: "d1e498b51f0c",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-jobs.test.ts",
+      "packages/agents/tests/capabilities-runs.test.ts",
+    ],
+  },
+  {
+    name: "cancel_job",
+    module: "jobs",
+    impl: "packages/agents/src/capabilities/jobs.ts",
+    contract: "0e7a1fa204a4",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-jobs.test.ts",
+    ],
+  },
+  {
+    name: "list_error_traces",
+    module: "errors",
+    impl: "packages/agents/src/capabilities/errors.ts",
+    contract: "a7ca730c2193",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-errors.test.ts",
+    ],
+  },
+  {
+    name: "get_error_trace",
+    module: "errors",
+    impl: "packages/agents/src/capabilities/errors.ts",
+    contract: "1d5a2345e2b4",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-errors.test.ts",
+    ],
+  },
+  {
+    name: "export_error_report",
+    module: "errors",
+    impl: "packages/agents/src/capabilities/errors.ts",
+    contract: "52e8b9895632",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-errors.test.ts",
+    ],
+  },
+  {
+    name: "list_runs",
+    module: "runs",
+    impl: "packages/agents/src/capabilities/runs.ts",
+    contract: "883b99a2dd71",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-runs.test.ts",
+      "packages/agents/tests/capabilities-runs-declared-contract.test.ts",
+    ],
+  },
+  {
+    name: "get_run",
+    module: "runs",
+    impl: "packages/agents/src/capabilities/runs.ts",
+    contract: "be664555d83f",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-runs.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-runs.ts",
+        cases: ["api-run-failure-drill-down"],
+      },
+    ],
+  },
+  {
+    name: "get_run_trace",
+    module: "runs",
+    impl: "packages/agents/src/capabilities/runs.ts",
+    contract: "4a0414b4efa0",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-runs.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-runs.ts",
+        cases: ["api-run-failure-drill-down"],
+      },
+    ],
+  },
+  {
+    name: "get_run_logs",
+    module: "runs",
+    impl: "packages/agents/src/capabilities/runs.ts",
+    contract: "b7ec8b18b93f",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-runs.test.ts",
+    ],
+  },
+  {
+    name: "await_run",
+    module: "runs",
+    impl: "packages/agents/src/capabilities/runs.ts",
+    contract: "47cd92497a4d",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-runs.test.ts",
+    ],
+  },
+  {
+    name: "list_generations",
+    module: "generations",
+    impl: "packages/agents/src/capabilities/generations.ts",
+    contract: "f299e282d127",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-generations.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-core.ts",
+        cases: ["api-generation-cost"],
+      },
+    ],
+  },
+  {
+    name: "get_generation",
+    module: "generations",
+    impl: "packages/agents/src/capabilities/generations.ts",
+    contract: "683305344d3b",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-generations.test.ts",
+    ],
+  },
+  {
+    name: "await_generation",
+    module: "generations",
+    impl: "packages/agents/src/capabilities/generations.ts",
+    contract: "3f4cf9a0df62",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-generations.test.ts",
+      "packages/agents/tests/capabilities-model3d.test.ts",
+    ],
+  },
+  {
+    name: "cancel_generation",
+    module: "generations",
+    impl: "packages/agents/src/capabilities/generations.ts",
+    contract: "e1ca3821f7ad",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-generations.test.ts",
+    ],
+  },
+  {
+    name: "reconcile_generation",
+    module: "generations",
+    impl: "packages/agents/src/capabilities/generations.ts",
+    contract: "d7aea544279b",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-generations.test.ts",
+    ],
+  },
+  {
+    name: "list_provider_generations",
+    module: "generations",
+    impl: "packages/agents/src/capabilities/generations.ts",
+    contract: "cc949bb0abfb",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-generations.test.ts",
+    ],
+  },
+  {
+    name: "get_provider_generation",
+    module: "generations",
+    impl: "packages/agents/src/capabilities/generations.ts",
+    contract: "427e679c46ab",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-generations.test.ts",
+    ],
+  },
+  {
+    name: "list_assets",
+    module: "assets",
+    impl: "packages/agents/src/capabilities/assets.ts",
+    contract: "0a9994a19245",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-assets.test.ts",
+      "packages/agents/tests/capabilities-dispatcher.test.ts",
+    ],
+  },
+  {
+    name: "get_asset",
+    module: "assets",
+    impl: "packages/agents/src/capabilities/assets.ts",
+    contract: "9f3234517e74",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-assets.test.ts",
+      "packages/agents/tests/mcp-tools.test.ts",
+    ],
+  },
+  {
+    name: "save_asset",
+    module: "assets",
+    impl: "packages/agents/src/capabilities/assets.ts",
+    contract: "dfb0317d6e85",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-assets.test.ts",
+      "packages/agents/tests/apify-capabilities.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-core.ts",
+        cases: ["api-asset-round-trip"],
+      },
+    ],
+  },
+  {
+    name: "read_asset",
+    module: "assets",
+    impl: "packages/agents/src/capabilities/assets.ts",
+    contract: "754ddc200ba0",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-assets.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-core.ts",
+        cases: ["api-asset-round-trip"],
+      },
+    ],
+  },
+  {
+    name: "asset_search",
+    module: "assets",
+    impl: "packages/agents/src/capabilities/assets.ts",
+    contract: "48cf8b892c51",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-assets.test.ts",
+      "packages/agents/tests/memory-tools.test.ts",
+    ],
+  },
+  {
+    name: "asset_list",
+    module: "assets",
+    impl: "packages/agents/src/capabilities/assets.ts",
+    contract: "22be9a0e970d",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-assets.test.ts",
+      "packages/agents/tests/memory-tools.test.ts",
+    ],
+  },
+  {
+    name: "list_images",
+    module: "assets",
+    impl: "packages/agents/src/capabilities/assets.ts",
+    contract: "c7ae881622fd",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-assets.test.ts",
+    ],
+  },
+  {
+    name: "view_image",
+    module: "assets",
+    impl: "packages/agents/src/capabilities/assets.ts",
+    contract: "c8433ab4fc37",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-assets.test.ts",
+    ],
+  },
+  {
+    name: "update_asset",
+    module: "assets",
+    impl: "packages/agents/src/capabilities/assets.ts",
+    contract: "8dfc3e1b4b9e",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-assets.test.ts",
+      "packages/agents/tests/capabilities-lifecycle.test.ts",
+    ],
+  },
+  {
+    name: "browser_status",
+    module: "browser",
+    impl: "packages/agents/src/capabilities/browser.ts",
+    contract: "58ec839719ca",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-browser.test.ts",
+    ],
+  },
+  {
+    name: "browser_view",
+    module: "browser",
+    impl: "packages/agents/src/capabilities/browser.ts",
+    contract: "b4c94f55cac8",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-browser.test.ts",
+    ],
+  },
+  {
+    name: "browser_navigate",
+    module: "browser",
+    impl: "packages/agents/src/capabilities/browser.ts",
+    contract: "9660cd6b5c02",
+    gap:
+      "`capabilities-browser.test.ts` reaches this action only by " +
+      "iterating the module's exports (dispatch by name, category, " +
+      "argument pass-through); no test calls it by name with real " +
+      "arguments. A case that drives it against the recorded page " +
+      "fixture and asserts the action's own result would close it.",
+  },
+  {
+    name: "browser_restart",
+    module: "browser",
+    impl: "packages/agents/src/capabilities/browser.ts",
+    contract: "defb85a11e39",
+    gap:
+      "`capabilities-browser.test.ts` reaches this action only by " +
+      "iterating the module's exports (dispatch by name, category, " +
+      "argument pass-through); no test calls it by name with real " +
+      "arguments. A case that drives it against the recorded page " +
+      "fixture and asserts the action's own result would close it.",
+  },
+  {
+    name: "browser_click",
+    module: "browser",
+    impl: "packages/agents/src/capabilities/browser.ts",
+    contract: "d1b6b204cd27",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-browser.test.ts",
+    ],
+  },
+  {
+    name: "browser_input_text",
+    module: "browser",
+    impl: "packages/agents/src/capabilities/browser.ts",
+    contract: "4d24b135bb69",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-browser.test.ts",
+    ],
+  },
+  {
+    name: "browser_move_mouse",
+    module: "browser",
+    impl: "packages/agents/src/capabilities/browser.ts",
+    contract: "1a36915fa601",
+    gap:
+      "`capabilities-browser.test.ts` reaches this action only by " +
+      "iterating the module's exports (dispatch by name, category, " +
+      "argument pass-through); no test calls it by name with real " +
+      "arguments. A case that drives it against the recorded page " +
+      "fixture and asserts the action's own result would close it.",
+  },
+  {
+    name: "browser_press_key",
+    module: "browser",
+    impl: "packages/agents/src/capabilities/browser.ts",
+    contract: "d1b1b2fc95c9",
+    gap:
+      "`capabilities-browser.test.ts` reaches this action only by " +
+      "iterating the module's exports (dispatch by name, category, " +
+      "argument pass-through); no test calls it by name with real " +
+      "arguments. A case that drives it against the recorded page " +
+      "fixture and asserts the action's own result would close it.",
+  },
+  {
+    name: "browser_select_option",
+    module: "browser",
+    impl: "packages/agents/src/capabilities/browser.ts",
+    contract: "73c53d222990",
+    gap:
+      "`capabilities-browser.test.ts` reaches this action only by " +
+      "iterating the module's exports (dispatch by name, category, " +
+      "argument pass-through); no test calls it by name with real " +
+      "arguments. A case that drives it against the recorded page " +
+      "fixture and asserts the action's own result would close it.",
+  },
+  {
+    name: "browser_scroll",
+    module: "browser",
+    impl: "packages/agents/src/capabilities/browser.ts",
+    contract: "e2012b881bd6",
+    gap:
+      "`capabilities-browser.test.ts` reaches this action only by " +
+      "iterating the module's exports (dispatch by name, category, " +
+      "argument pass-through); no test calls it by name with real " +
+      "arguments. A case that drives it against the recorded page " +
+      "fixture and asserts the action's own result would close it.",
+  },
+  {
+    name: "browser_console_exec",
+    module: "browser",
+    impl: "packages/agents/src/capabilities/browser.ts",
+    contract: "7add1995b4bc",
+    gap:
+      "`capabilities-browser.test.ts` reaches this action only by " +
+      "iterating the module's exports (dispatch by name, category, " +
+      "argument pass-through); no test calls it by name with real " +
+      "arguments. A case that drives it against the recorded page " +
+      "fixture and asserts the action's own result would close it.",
+  },
+  {
+    name: "browser_console_view",
+    module: "browser",
+    impl: "packages/agents/src/capabilities/browser.ts",
+    contract: "daf5f59b767f",
+    gap:
+      "`capabilities-browser.test.ts` reaches this action only by " +
+      "iterating the module's exports (dispatch by name, category, " +
+      "argument pass-through); no test calls it by name with real " +
+      "arguments. A case that drives it against the recorded page " +
+      "fixture and asserts the action's own result would close it.",
+  },
+  {
+    name: "browser_capture_media",
+    module: "browser",
+    impl: "packages/agents/src/capabilities/browser.ts",
+    contract: "92363bd381a2",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-browser.test.ts",
+    ],
+  },
+  {
+    name: "browser_upload_asset",
+    module: "browser",
+    impl: "packages/agents/src/capabilities/browser.ts",
+    contract: "f083302fd2b9",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-browser.test.ts",
+    ],
+  },
+  {
+    name: "debug_app",
+    module: "apps",
+    impl: "packages/agents/src/capabilities/apps.ts",
+    contract: "5a5c4836f062",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-apps.test.ts",
+      "packages/agents/tests/mcp-tools.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["app-wiring-check"],
+      },
+    ],
+  },
+  {
+    name: "list_apps",
+    module: "apps",
+    impl: "packages/agents/src/capabilities/apps.ts",
+    contract: "8e4f918a4fb5",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-lifecycle.test.ts",
+    ],
+  },
+  {
+    name: "get_app",
+    module: "apps",
+    impl: "packages/agents/src/capabilities/apps.ts",
+    contract: "999e2a10fccb",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-apps.test.ts",
+      "packages/agents/tests/capabilities-lifecycle.test.ts",
+    ],
+  },
+  {
+    name: "create_app",
+    module: "apps",
+    impl: "packages/agents/src/capabilities/apps.ts",
+    contract: "af8025058000",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-apps.test.ts",
+    ],
+  },
+  {
+    name: "edit_app",
+    module: "apps",
+    impl: "packages/agents/src/capabilities/apps.ts",
+    contract: "5d71cf4b7e8e",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-apps.test.ts",
+    ],
+  },
+  {
+    name: "delete_app",
+    module: "apps",
+    impl: "packages/agents/src/capabilities/apps.ts",
+    contract: "34f77614fa6d",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-lifecycle.test.ts",
+    ],
+  },
+  {
+    name: "extract_pdf_text",
+    module: "documents",
+    impl: "packages/agents/src/capabilities/documents.ts",
+    contract: "6d8881cf9905",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-documents.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["document-extraction-pipeline"],
+      },
+    ],
+  },
+  {
+    name: "extract_pdf_tables",
+    module: "documents",
+    impl: "packages/agents/src/capabilities/documents.ts",
+    contract: "0d944ee5e9a8",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-documents.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["document-extraction-pipeline"],
+      },
+    ],
+  },
+  {
+    name: "convert_pdf_to_markdown",
+    module: "documents",
+    impl: "packages/agents/src/capabilities/documents.ts",
+    contract: "307e69f736e9",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-documents.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["document-extraction-pipeline"],
+      },
+    ],
+  },
+  {
+    name: "convert_markdown_to_pdf",
+    module: "documents",
+    impl: "packages/agents/src/capabilities/documents.ts",
+    contract: "74e807f42695",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-documents.test.ts",
+      "packages/agents/tests/capabilities-documents-convert.test.ts",
+    ],
+  },
+  {
+    name: "convert_document",
+    module: "documents",
+    impl: "packages/agents/src/capabilities/documents.ts",
+    contract: "b3aca7b16b74",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-documents.test.ts",
+      "packages/agents/tests/capabilities-documents-convert.test.ts",
+    ],
+  },
+  {
+    name: "search_email",
+    module: "email",
+    impl: "packages/agents/src/capabilities/email.ts",
+    contract: "009d8426f54e",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-email.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["email-triage"],
+      },
+    ],
+  },
+  {
+    name: "archive_email",
+    module: "email",
+    impl: "packages/agents/src/capabilities/email.ts",
+    contract: "cd1a4980a2db",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-email.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["email-triage"],
+      },
+    ],
+  },
+  {
+    name: "add_label_to_email",
+    module: "email",
+    impl: "packages/agents/src/capabilities/email.ts",
+    contract: "e6eadbfd482c",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-email.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["email-triage"],
+      },
+    ],
+  },
+  {
+    name: "memory_save",
+    module: "memory",
+    impl: "packages/agents/src/capabilities/memory.ts",
+    contract: "3ce3bc95c763",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-memory.test.ts",
+      "packages/agents/tests/memory-tools.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["memory-lifecycle"],
+      },
+      {
+        file: "packages/agents/src/evals/surfaces/memory.ts",
+        cases: ["generate-and-remember"],
+      },
+    ],
+  },
+  {
+    name: "memory_list",
+    module: "memory",
+    impl: "packages/agents/src/capabilities/memory.ts",
+    contract: "3f0c7dee6c36",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-memory.test.ts",
+      "packages/agents/tests/memory-tools.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["memory-lifecycle"],
+      },
+      {
+        file: "packages/agents/src/evals/surfaces/memory.ts",
+        cases: ["recall-existing"],
+      },
+    ],
+  },
+  {
+    name: "memory_search",
+    module: "memory",
+    impl: "packages/agents/src/capabilities/memory.ts",
+    contract: "611215d2c382",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-memory.test.ts",
+      "packages/agents/tests/memory-tools.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/surfaces/memory.ts",
+        cases: ["search-across-threads"],
+      },
+    ],
+  },
+  {
+    name: "memory_update",
+    module: "memory",
+    impl: "packages/agents/src/capabilities/memory.ts",
+    contract: "1366d2d42ae6",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-memory.test.ts",
+      "packages/agents/tests/memory-tools.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["memory-lifecycle"],
+      },
+    ],
+  },
+  {
+    name: "memory_delete",
+    module: "memory",
+    impl: "packages/agents/src/capabilities/memory.ts",
+    contract: "b5a1bfc659ec",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-memory.test.ts",
+      "packages/agents/tests/memory-tools.test.ts",
+    ],
+  },
+  {
+    name: "list_shared",
+    module: "shared",
+    impl: "packages/agents/src/capabilities/shared.ts",
+    contract: "2ce5956cae84",
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["shared-handoff"],
+      },
+    ],
+  },
+  {
+    name: "read_shared",
+    module: "shared",
+    impl: "packages/agents/src/capabilities/shared.ts",
+    contract: "8df73f7ba674",
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["shared-handoff"],
+      },
+    ],
+  },
+  {
+    name: "share_result",
+    module: "shared",
+    impl: "packages/agents/src/capabilities/shared.ts",
+    contract: "51e593b67d6a",
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["shared-handoff"],
+      },
+    ],
+  },
+  {
+    name: "web_search",
+    module: "web",
+    impl: "packages/agents/src/capabilities/web.ts",
+    contract: "e4946512515e",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-web.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["web-research-brief"],
+      },
+    ],
+  },
+  {
+    name: "image_search",
+    module: "web",
+    impl: "packages/agents/src/capabilities/web.ts",
+    contract: "3c50d887acb1",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-web.test.ts",
+      "packages/agents/tests/capability-module-exports.test.ts",
+    ],
+  },
+  {
+    name: "browser",
+    module: "web",
+    impl: "packages/agents/src/capabilities/web.ts",
+    contract: "0ac8eba370a2",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-web.test.ts",
+      "packages/agents/tests/browser-tools.test.ts",
+    ],
+  },
+  {
+    name: "take_screenshot",
+    module: "web",
+    impl: "packages/agents/src/capabilities/web.ts",
+    contract: "6990fdc0a93a",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-web.test.ts",
+      "packages/agents/tests/browser-tools.test.ts",
+    ],
+  },
+  {
+    name: "download_file",
+    module: "web",
+    impl: "packages/agents/src/capabilities/web.ts",
+    contract: "29547bbe8c33",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-web.test.ts",
+      "packages/agents/tests/capabilities-web-download.test.ts",
+    ],
+  },
+  {
+    name: "http_request",
+    module: "web",
+    impl: "packages/agents/src/capabilities/web.ts",
+    contract: "8f88568453f5",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-web.test.ts",
+    ],
+  },
+  {
+    name: "prepare_video_production",
+    module: "video-production",
+    impl: "packages/agents/src/capabilities/video-production.ts",
+    contract: "feff1e70ec45",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-video-production.test.ts",
+    ],
+  },
+  {
+    name: "submit_video_production",
+    module: "video-production",
+    impl: "packages/agents/src/capabilities/video-production.ts",
+    contract: "352f5fc11f02",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-video-production.test.ts",
+    ],
+  },
+  {
+    name: "inspect_video_production_candidates",
+    module: "video-production",
+    impl: "packages/agents/src/capabilities/video-production.ts",
+    contract: "c26a15aef594",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-video-production.test.ts",
+    ],
+  },
+  {
+    name: "accept_video_production_candidates",
+    module: "video-production",
+    impl: "packages/agents/src/capabilities/video-production.ts",
+    contract: "bd68db05252c",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-video-production.test.ts",
+    ],
+  },
+  {
+    name: "read_file",
+    module: "files",
+    impl: "packages/agents/src/capabilities/files.ts",
+    contract: "47c3c494861d",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-files.test.ts",
+      "packages/agents/tests/capabilities-files-token-counter.test.ts",
+    ],
+  },
+  {
+    name: "write_file",
+    module: "files",
+    impl: "packages/agents/src/capabilities/files.ts",
+    contract: "ef2b4b130fad",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-files.test.ts",
+      "packages/agents/tests/capabilities-files-virtual.test.ts",
+    ],
+  },
+  {
+    name: "list_directory",
+    module: "files",
+    impl: "packages/agents/src/capabilities/files.ts",
+    contract: "46957c0d5f46",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-files.test.ts",
+      "packages/agents/tests/capabilities-files-virtual.test.ts",
+    ],
+  },
+  {
+    name: "edit_file",
+    module: "files",
+    impl: "packages/agents/src/capabilities/files.ts",
+    contract: "af00c00c67c5",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-files.test.ts",
+      "packages/agents/tests/capabilities-files-virtual.test.ts",
+    ],
+  },
+  {
+    name: "glob",
+    module: "files",
+    impl: "packages/agents/src/capabilities/files.ts",
+    contract: "4095f07d31d7",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-files.test.ts",
+      "packages/agents/tests/capabilities-files-virtual.test.ts",
+    ],
+  },
+  {
+    name: "grep",
+    module: "files",
+    impl: "packages/agents/src/capabilities/files.ts",
+    contract: "b44ec5de4b68",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-files.test.ts",
+      "packages/agents/tests/capabilities-files-virtual.test.ts",
+    ],
+  },
+  {
+    name: "todo_write",
+    module: "files",
+    impl: "packages/agents/src/capabilities/files.ts",
+    contract: "f042b9d36772",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-files.test.ts",
+    ],
+  },
+  {
+    name: "run_subtask",
+    module: "agents",
+    impl: "packages/agents/src/capabilities/agents.ts",
+    contract: "9ede211359e7",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-agents.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-core.ts",
+        cases: ["api-delegate-subtask"],
+      },
+    ],
+  },
+  {
+    name: "run_search",
+    module: "agents",
+    impl: "packages/agents/src/capabilities/agents.ts",
+    contract: "4d4c6ddc88ee",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-agents.test.ts",
+    ],
+  },
+  {
+    name: "start_subtask",
+    module: "agents",
+    impl: "packages/agents/src/capabilities/agents.ts",
+    contract: "cbd1367c51d6",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-agents.test.ts",
+    ],
+  },
+  {
+    name: "wait_subtasks",
+    module: "agents",
+    impl: "packages/agents/src/capabilities/agents.ts",
+    contract: "761238019e95",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-agents.test.ts",
+    ],
+  },
+  {
+    name: "create_plan",
+    module: "agents",
+    impl: "packages/agents/src/capabilities/agents.ts",
+    contract: "b3a92d89d2f2",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-agents.test.ts",
+    ],
+  },
+  {
+    name: "execute_plan",
+    module: "agents",
+    impl: "packages/agents/src/capabilities/agents.ts",
+    contract: "322f965a870f",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-agents.test.ts",
+    ],
+  },
+  {
+    name: "run_agent",
+    module: "agents",
+    impl: "packages/agents/src/capabilities/agents.ts",
+    contract: "18a8cbb7e60b",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-agents.test.ts",
+      "packages/agents/tests/capabilities-run-agent.test.ts",
+    ],
+  },
+  {
+    name: "google_drive_search",
+    module: "google",
+    impl: "packages/agents/src/capabilities/google.ts",
+    contract: "5eb13fc29956",
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
+  },
+  {
+    name: "google_drive_read_file",
+    module: "google",
+    impl: "packages/agents/src/capabilities/google.ts",
+    contract: "0faf5cd573c3",
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
+  },
+  {
+    name: "google_drive_get_file",
+    module: "google",
+    impl: "packages/agents/src/capabilities/google.ts",
+    contract: "afdc399211bb",
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
+  },
+  {
+    name: "google_drive_create_file",
+    module: "google",
+    impl: "packages/agents/src/capabilities/google.ts",
+    contract: "cd4796152389",
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
+  },
+  {
+    name: "gmail_search",
+    module: "google",
+    impl: "packages/agents/src/capabilities/google.ts",
+    contract: "c95cdb216e9c",
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
+  },
+  {
+    name: "gmail_get_message",
+    module: "google",
+    impl: "packages/agents/src/capabilities/google.ts",
+    contract: "f05758fd1d38",
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
+  },
+  {
+    name: "gmail_send_message",
+    module: "google",
+    impl: "packages/agents/src/capabilities/google.ts",
+    contract: "9bd61587642a",
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
+  },
+  {
+    name: "gmail_modify_labels",
+    module: "google",
+    impl: "packages/agents/src/capabilities/google.ts",
+    contract: "3817260faa01",
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
+  },
+  {
+    name: "gmail_list_labels",
+    module: "google",
+    impl: "packages/agents/src/capabilities/google.ts",
+    contract: "0e9627c9efcd",
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
+  },
+  {
+    name: "google_docs_read",
+    module: "google",
+    impl: "packages/agents/src/capabilities/google.ts",
+    contract: "26bd47cd6a0f",
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
+  },
+  {
+    name: "google_docs_create",
+    module: "google",
+    impl: "packages/agents/src/capabilities/google.ts",
+    contract: "456bad82acbc",
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
+  },
+  {
+    name: "google_docs_append",
+    module: "google",
+    impl: "packages/agents/src/capabilities/google.ts",
+    contract: "eb73d01f558b",
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
+  },
+  {
+    name: "google_sheets_read",
+    module: "google",
+    impl: "packages/agents/src/capabilities/google.ts",
+    contract: "3a21bbb8c59f",
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
+  },
+  {
+    name: "google_sheets_append",
+    module: "google",
+    impl: "packages/agents/src/capabilities/google.ts",
+    contract: "f0f81493694e",
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
+  },
+  {
+    name: "google_sheets_update",
+    module: "google",
+    impl: "packages/agents/src/capabilities/google.ts",
+    contract: "47e7930f9810",
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
+  },
+  {
+    name: "google_sheets_create",
+    module: "google",
+    impl: "packages/agents/src/capabilities/google.ts",
+    contract: "ba23cc1b88c6",
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
+  },
+  {
+    name: "google_calendar_list_calendars",
+    module: "google",
+    impl: "packages/agents/src/capabilities/google.ts",
+    contract: "151e73884ee0",
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
+  },
+  {
+    name: "google_calendar_list_events",
+    module: "google",
+    impl: "packages/agents/src/capabilities/google.ts",
+    contract: "539122030fbd",
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
+  },
+  {
+    name: "google_calendar_create_event",
+    module: "google",
+    impl: "packages/agents/src/capabilities/google.ts",
+    contract: "7e6f8ec90cbc",
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
+  },
+  {
+    name: "google_calendar_delete_event",
+    module: "google",
+    impl: "packages/agents/src/capabilities/google.ts",
+    contract: "cf6421e03cd2",
+    gap:
+      "`capabilities-google.test.ts` reaches this call only by " +
+      "iterating the module's exports through the missing-token path " +
+      "and pinning its category; the call itself needs a live Google " +
+      "token and has no fixture. A case that replays a recorded " +
+      "response through the client would close it.",
+  },
+  {
+    name: "list_threads",
+    module: "threads",
+    impl: "packages/agents/src/capabilities/threads.ts",
+    contract: "d73f9ee0bda4",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-threads.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["threads-recall"],
+      },
+    ],
+  },
+  {
+    name: "get_thread",
+    module: "threads",
+    impl: "packages/agents/src/capabilities/threads.ts",
+    contract: "6552626c45a6",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-threads.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["threads-recall"],
+      },
+    ],
+  },
+  {
+    name: "get_message",
+    module: "threads",
+    impl: "packages/agents/src/capabilities/threads.ts",
+    contract: "083087750456",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-threads.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["threads-recall"],
+      },
+    ],
+  },
+  {
+    name: "list_projects",
+    module: "projects",
+    impl: "packages/agents/src/capabilities/projects.ts",
+    contract: "3f85c7749274",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-projects.test.ts",
+    ],
+  },
+  {
+    name: "search_projects",
+    module: "projects",
+    impl: "packages/agents/src/capabilities/projects.ts",
+    contract: "5530734b8198",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-projects.test.ts",
+    ],
+  },
+  {
+    name: "update_project",
+    module: "projects",
+    impl: "packages/agents/src/capabilities/projects.ts",
+    contract: "27411eee910e",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-projects.test.ts",
+    ],
+  },
+  {
+    name: "delete_project",
+    module: "projects",
+    impl: "packages/agents/src/capabilities/projects.ts",
+    contract: "d1c6eda0786e",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-projects.test.ts",
+    ],
+  },
+  {
+    name: "list_example_timelines",
+    module: "example-timelines",
+    impl: "packages/agents/src/capabilities/example-timelines.ts",
+    contract: "fad8ffa3d6a5",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-example-timelines.test.ts",
+    ],
+  },
+  {
+    name: "get_example_timeline",
+    module: "example-timelines",
+    impl: "packages/agents/src/capabilities/example-timelines.ts",
+    contract: "2bc26c013376",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-example-timelines.test.ts",
+    ],
+  },
+  {
+    name: "get_example_timeline_source",
+    module: "example-timelines",
+    impl: "packages/agents/src/capabilities/example-timelines.ts",
+    contract: "917b30f6d822",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-example-timelines.test.ts",
+    ],
+  },
+  {
+    name: "list_timelines",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "60d09f71d39c",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timelines.test.ts",
+    ],
+  },
+  {
+    name: "create_timeline",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "280ed2d9ce0b",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timelines.test.ts",
+      "packages/agents/tests/capabilities-timeline-bake.test.ts",
+    ],
+  },
+  {
+    name: "get_timeline",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "1f500cb8f942",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timelines.test.ts",
+      "packages/agents/tests/capabilities-agentic-storyboard-finish.test.ts",
+    ],
+  },
+  {
+    name: "list_timeline_versions",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "e8d8eabc91e1",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timelines.test.ts",
+    ],
+  },
+  {
+    name: "get_timeline_version",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "8b9464fb8c3c",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timelines.test.ts",
+    ],
+  },
+  {
+    name: "create_timeline_version",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "df0b3a5b805f",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timelines.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["timeline-fix-and-validate"],
+      },
+    ],
+  },
+  {
+    name: "restore_timeline_version",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "3acd389edc7e",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timelines.test.ts",
+    ],
+  },
+  {
+    name: "delete_timeline_version",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "8c8f167074d4",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timelines.test.ts",
+    ],
+  },
+  {
+    name: "edit_timeline",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "b276aab5160e",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timelines.test.ts",
+      "packages/agents/tests/capabilities-timelines-grain.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["rename-documents", "timeline-fix-and-validate"],
+      },
+    ],
+  },
+  {
+    name: "validate_timeline",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "8c3aa8829823",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timelines.test.ts",
+      "packages/agents/tests/mcp-tools.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["timeline-fix-and-validate"],
+      },
+      {
+        file: "packages/agents/src/evals/surfaces/creative-pipeline.ts",
+        cases: ["script-to-linked-cut"],
+      },
+    ],
+  },
+  {
+    name: "set_timeline_document",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "4cc7e6065c81",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timelines.test.ts",
+    ],
+  },
+  {
+    name: "preview_timeline_frame",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "de9bcce846ee",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timeline-preview.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/surfaces/timeline.ts",
+        cases: ["looked-before-done", "three-d-turntable"],
+      },
+    ],
+  },
+  {
+    name: "compare_timeline_frames",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "804a34575912",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timeline-compare.test.ts",
+    ],
+  },
+  {
+    name: "render_timeline",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "4b189f832d50",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timelines.test.ts",
+      "packages/agents/tests/capabilities-timeline-render.test.ts",
+    ],
+  },
+  {
+    name: "bake_audio_animation",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "5dc8c66be598",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-bake-audio-animation.test.ts",
+    ],
+  },
+  {
+    name: "isolate_subject",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "6c8827254ac7",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-isolate-subject.test.ts",
+    ],
+  },
+  {
+    name: "track_object",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "80e63cd3e227",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-track-object.test.ts",
+    ],
+  },
+  {
+    name: "expand_frame",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "10feff1eccbe",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-media-editing.test.ts",
+    ],
+  },
+  {
+    name: "upscale_video",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "2f23f8afd988",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-media-editing.test.ts",
+    ],
+  },
+  {
+    name: "video_to_audio",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "bda7d25b41a4",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-media-editing.test.ts",
+    ],
+  },
+  {
+    name: "recorded_voice_replacement",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "5fd59f740166",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-media-editing.test.ts",
+    ],
+  },
+  {
+    name: "lip_sync",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "8e15891254d4",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-media-editing.test.ts",
+    ],
+  },
+  {
+    name: "get_timeline_code",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "26c7d5c6df9d",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timelines.test.ts",
+    ],
+  },
+  {
+    name: "set_timeline_code",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "b0f14f67b887",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timelines.test.ts",
+    ],
+  },
+  {
+    name: "edit_timeline_code",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "2ab04933428e",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timelines.test.ts",
+    ],
+  },
+  {
+    name: "rebake_timeline_code",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "b5fa750b9243",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timelines.test.ts",
+    ],
+  },
+  {
+    name: "detach_timeline_code",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "d95c45f350d1",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-timelines.test.ts",
+    ],
+  },
+  {
+    name: "delete_timeline",
+    module: "timelines",
+    impl: "packages/agents/src/capabilities/timelines.ts",
+    contract: "8a3eb82365c0",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-lifecycle.test.ts",
+    ],
+  },
+  {
+    name: "list_sketches",
+    module: "sketches",
+    impl: "packages/agents/src/capabilities/sketches.ts",
+    contract: "be444e7d7d9a",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-sketches.test.ts",
+    ],
+  },
+  {
+    name: "create_sketch",
+    module: "sketches",
+    impl: "packages/agents/src/capabilities/sketches.ts",
+    contract: "72b119db3396",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-sketches.test.ts",
+    ],
+  },
+  {
+    name: "get_sketch",
+    module: "sketches",
+    impl: "packages/agents/src/capabilities/sketches.ts",
+    contract: "0ccfe3a6d5d1",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-sketches.test.ts",
+    ],
+  },
+  {
+    name: "list_sketch_versions",
+    module: "sketches",
+    impl: "packages/agents/src/capabilities/sketches.ts",
+    contract: "2891d6c3f462",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-sketches.test.ts",
+    ],
+  },
+  {
+    name: "get_sketch_version",
+    module: "sketches",
+    impl: "packages/agents/src/capabilities/sketches.ts",
+    contract: "54ad47fe5baa",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-sketches.test.ts",
+    ],
+  },
+  {
+    name: "create_sketch_version",
+    module: "sketches",
+    impl: "packages/agents/src/capabilities/sketches.ts",
+    contract: "e388aa0edf99",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-sketches.test.ts",
+    ],
+  },
+  {
+    name: "restore_sketch_version",
+    module: "sketches",
+    impl: "packages/agents/src/capabilities/sketches.ts",
+    contract: "67e7a2ddc682",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-sketches.test.ts",
+    ],
+  },
+  {
+    name: "delete_sketch_version",
+    module: "sketches",
+    impl: "packages/agents/src/capabilities/sketches.ts",
+    contract: "4fb74f78a618",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-sketches.test.ts",
+    ],
+  },
+  {
+    name: "edit_sketch",
+    module: "sketches",
+    impl: "packages/agents/src/capabilities/sketches.ts",
+    contract: "857c392ef084",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-sketches.test.ts",
+      "packages/agents/tests/capabilities-image-flow.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["rename-documents", "sketch-layer-repair"],
+      },
+    ],
+  },
+  {
+    name: "refine_image_brief",
+    module: "sketches",
+    impl: "packages/agents/src/capabilities/sketches.ts",
+    contract: "f610f42c574e",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-sketches.test.ts",
+      "packages/agents/tests/capabilities-image-flow.test.ts",
+    ],
+  },
+  {
+    name: "validate_sketch",
+    module: "sketches",
+    impl: "packages/agents/src/capabilities/sketches.ts",
+    contract: "6ff561f86c35",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-sketches.test.ts",
+      "packages/agents/tests/mcp-tools.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["sketch-layer-repair"],
+      },
+    ],
+  },
+  {
+    name: "render_sketch",
+    module: "sketches",
+    impl: "packages/agents/src/capabilities/sketches.ts",
+    contract: "2c4cf879b284",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-sketches.test.ts",
+      "packages/agents/tests/capabilities-sketch-render.test.ts",
+    ],
+  },
+  {
+    name: "delete_sketch",
+    module: "sketches",
+    impl: "packages/agents/src/capabilities/sketches.ts",
+    contract: "8a4a0df4daf9",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-lifecycle.test.ts",
+    ],
+  },
+  {
+    name: "list_model3ds",
+    module: "model3d",
+    impl: "packages/agents/src/capabilities/model3d.ts",
+    contract: "a2b4b5c96430",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-model3d.test.ts",
+    ],
+  },
+  {
+    name: "create_model3d",
+    module: "model3d",
+    impl: "packages/agents/src/capabilities/model3d.ts",
+    contract: "fe21d44be4b5",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-model3d.test.ts",
+    ],
+  },
+  {
+    name: "get_model3d",
+    module: "model3d",
+    impl: "packages/agents/src/capabilities/model3d.ts",
+    contract: "4405bcfef4c1",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-model3d.test.ts",
+    ],
+  },
+  {
+    name: "edit_model3d",
+    module: "model3d",
+    impl: "packages/agents/src/capabilities/model3d.ts",
+    contract: "1cb386cf7cbd",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-model3d.test.ts",
+    ],
+  },
+  {
+    name: "validate_model3d",
+    module: "model3d",
+    impl: "packages/agents/src/capabilities/model3d.ts",
+    contract: "e317eef26924",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-model3d.test.ts",
+    ],
+  },
+  {
+    name: "render_model3d",
+    module: "model3d",
+    impl: "packages/agents/src/capabilities/model3d.ts",
+    contract: "87ab7a3e2f89",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-model3d.test.ts",
+    ],
+  },
+  {
+    name: "create_native_game",
+    module: "game",
+    impl: "packages/agents/src/capabilities/game.ts",
+    contract: "e5b214fca42a",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game.test.ts",
+      "packages/agents/tests/capabilities-game3d.test.ts",
+      "packages/agents/tests/capabilities-game-assertions.test.ts",
+      "packages/agents/tests/capabilities-game-asset-browser.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["game-whole-document-save"],
+      },
+    ],
+  },
+  {
+    name: "get_native_game",
+    module: "game",
+    impl: "packages/agents/src/capabilities/game.ts",
+    contract: "24fc05a439c1",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game.test.ts",
+      "packages/agents/tests/capabilities-game3d.test.ts",
+      "packages/agents/tests/capabilities-game-authoring.test.ts",
+      "packages/agents/tests/capabilities-game-examples.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["game-whole-document-save"],
+      },
+    ],
+  },
+  {
+    name: "publish_native_game",
+    module: "game",
+    impl: "packages/agents/src/capabilities/game.ts",
+    contract: "06b6dc47f711",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game.test.ts",
+      "packages/agents/tests/capabilities-game-authoring.test.ts",
+      "packages/agents/tests/capabilities-game-publish-safety.test.ts",
+    ],
+  },
+  {
+    name: "install_native_game_asset",
+    module: "game",
+    impl: "packages/agents/src/capabilities/game.ts",
+    contract: "33bd1702d04b",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game.test.ts",
+      "packages/agents/tests/capabilities-game3d.test.ts",
+      "packages/agents/tests/capabilities-game-asset-browser.test.ts",
+      "packages/agents/tests/game-asset-pipeline.test.ts",
+    ],
+  },
+  {
+    name: "playtest_native_game",
+    module: "game",
+    impl: "packages/agents/src/capabilities/game.ts",
+    contract: "7b0863b4985f",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game.test.ts",
+      "packages/agents/tests/capabilities-game3d.test.ts",
+      "packages/agents/tests/capabilities-game-assertions.test.ts",
+      "packages/agents/tests/capabilities-game-autoplay.test.ts",
+    ],
+  },
+  {
+    name: "build_native_game",
+    module: "game",
+    impl: "packages/agents/src/capabilities/game.ts",
+    contract: "476194ab48ae",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game.test.ts",
+      "packages/agents/tests/capabilities-game3d.test.ts",
+    ],
+  },
+  {
+    name: "edit_native_game",
+    module: "game",
+    impl: "packages/agents/src/capabilities/game.ts",
+    contract: "62dd09300905",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game.test.ts",
+      "packages/agents/tests/capabilities-game3d.test.ts",
+      "packages/agents/tests/capabilities-game-assertions.test.ts",
+      "packages/agents/tests/capabilities-game-authoring.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["game-whole-document-save"],
+      },
+      {
+        file: "packages/agents/src/evals/surfaces/game.ts",
+        cases: ["audio-mixer-buses", "cascaded-shadows", "collision-layer-matrix", "entity-tags-properties", "environment-preset-3d", "forces-and-torques-3d", "height-fog-and-decals-3d", "hud-widget-tree", "hud-widget-tree-3d", "input-bindings", "lifecycle-timer-script", "material-system-3d", "particle-emitter", "particle-rendering", "particle-rendering-3d", "physics-materials", "player-saves-script", "post-processing", "procedural-sky", "render-culling", "script-parameters", "spatial-audio-source", "typed-event-script"],
+      },
+    ],
+  },
+  {
+    name: "capture_native_game_frame",
+    module: "game",
+    impl: "packages/agents/src/capabilities/game.ts",
+    contract: "7fe9c9560685",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game.test.ts",
+      "packages/agents/tests/capabilities-game3d.test.ts",
+      "packages/agents/tests/capabilities-game-autoplay.test.ts",
+      "packages/agents/tests/game-asset-pipeline.test.ts",
+    ],
+  },
+  {
+    name: "generate_game_asset",
+    module: "game",
+    impl: "packages/agents/src/capabilities/game.ts",
+    contract: "cbf61bed04a8",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game.test.ts",
+      "packages/agents/tests/capabilities-game3d.test.ts",
+      "packages/agents/tests/game-asset-pipeline.test.ts",
+    ],
+  },
+  {
+    name: "list_example_games",
+    module: "game",
+    impl: "packages/agents/src/capabilities/game.ts",
+    contract: "5dd0cbf32251",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game-examples.test.ts",
+    ],
+  },
+  {
+    name: "get_example_game",
+    module: "game",
+    impl: "packages/agents/src/capabilities/game.ts",
+    contract: "41f8b2d5e145",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game-examples.test.ts",
+    ],
+  },
+  {
+    name: "install_example_game",
+    module: "game",
+    impl: "packages/agents/src/capabilities/game.ts",
+    contract: "a23ead1f83a6",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game-examples.test.ts",
+    ],
+  },
+  {
+    name: "autoplay_native_game",
+    module: "game",
+    impl: "packages/agents/src/capabilities/game.ts",
+    contract: "1861611ab497",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game3d.test.ts",
+      "packages/agents/tests/capabilities-game-autoplay.test.ts",
+    ],
+  },
+  {
+    name: "preview_native_game_authoring",
+    module: "game",
+    impl: "packages/agents/src/capabilities/game.ts",
+    contract: "72fdc680682c",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game-authoring.test.ts",
+    ],
+  },
+  {
+    name: "apply_native_game_authoring",
+    module: "game",
+    impl: "packages/agents/src/capabilities/game.ts",
+    contract: "879763afefcb",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game-authoring.test.ts",
+    ],
+  },
+  {
+    name: "browse_native_game_assets",
+    module: "game",
+    impl: "packages/agents/src/capabilities/game.ts",
+    contract: "813a7cac1c81",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-game-asset-browser.test.ts",
+    ],
+  },
+  {
+    name: "native_cpp_game_schema",
+    module: "native-cpp-game",
+    impl: "packages/agents/src/capabilities/native-cpp-game.ts",
+    contract: "05123e4e13ae",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-cpp-game.test.ts",
+    ],
+  },
+  {
+    name: "native_cpp_game_create",
+    module: "native-cpp-game",
+    impl: "packages/agents/src/capabilities/native-cpp-game.ts",
+    contract: "7631c2c107e0",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-cpp-game.test.ts",
+    ],
+  },
+  {
+    name: "native_cpp_game_get",
+    module: "native-cpp-game",
+    impl: "packages/agents/src/capabilities/native-cpp-game.ts",
+    contract: "d69b06a49246",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-cpp-game.test.ts",
+    ],
+  },
+  {
+    name: "native_cpp_game_edit",
+    module: "native-cpp-game",
+    impl: "packages/agents/src/capabilities/native-cpp-game.ts",
+    contract: "a5b0e8938e4b",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-cpp-game.test.ts",
+    ],
+  },
+  {
+    name: "native_cpp_game_simulate",
+    module: "native-cpp-game",
+    impl: "packages/agents/src/capabilities/native-cpp-game.ts",
+    contract: "4874efeb013e",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-cpp-game.test.ts",
+    ],
+  },
+  {
+    name: "native_cpp_game_capture",
+    module: "native-cpp-game",
+    impl: "packages/agents/src/capabilities/native-cpp-game.ts",
+    contract: "5bec9a7fc49d",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-cpp-game.test.ts",
+    ],
+  },
+  {
+    name: "native_cpp_game_bench",
+    module: "native-cpp-game",
+    impl: "packages/agents/src/capabilities/native-cpp-game.ts",
+    contract: "e83ee24e1365",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-cpp-game.test.ts",
+    ],
+  },
+  {
+    name: "native_cpp_game_export",
+    module: "native-cpp-game",
+    impl: "packages/agents/src/capabilities/native-cpp-game.ts",
+    contract: "ca187534961e",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-cpp-game.test.ts",
+    ],
+  },
+  {
+    name: "native_cpp_game_editor",
+    module: "native-cpp-game",
+    impl: "packages/agents/src/capabilities/native-cpp-game.ts",
+    contract: "619a3acf82a1",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-cpp-game.test.ts",
+    ],
+  },
+  {
+    name: "native_cpp_game_install_asset",
+    module: "native-cpp-game",
+    impl: "packages/agents/src/capabilities/native-cpp-game.ts",
+    contract: "dd1195a61158",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-cpp-game.test.ts",
+    ],
+  },
+  {
+    name: "list_scripts",
+    module: "scripts",
+    impl: "packages/agents/src/capabilities/scripts.ts",
+    contract: "915ad505a9f2",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-scripts.test.ts",
+    ],
+  },
+  {
+    name: "create_script",
+    module: "scripts",
+    impl: "packages/agents/src/capabilities/scripts.ts",
+    contract: "ceac594f5274",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-scripts.test.ts",
+    ],
+  },
+  {
+    name: "get_script",
+    module: "scripts",
+    impl: "packages/agents/src/capabilities/scripts.ts",
+    contract: "705cc1145075",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-scripts.test.ts",
+    ],
+  },
+  {
+    name: "voice_script_lines",
+    module: "scripts",
+    impl: "packages/agents/src/capabilities/scripts.ts",
+    contract: "6cb7a132ea53",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-scripts.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["script-voice-and-assemble"],
+      },
+    ],
+  },
+  {
+    name: "assemble_script_timeline",
+    module: "scripts",
+    impl: "packages/agents/src/capabilities/scripts.ts",
+    contract: "3df3dd02eba0",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-scripts.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["script-voice-and-assemble"],
+      },
+    ],
+  },
+  {
+    name: "edit_script",
+    module: "scripts",
+    impl: "packages/agents/src/capabilities/scripts.ts",
+    contract: "f033430f011d",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-scripts.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["rename-documents"],
+      },
+    ],
+  },
+  {
+    name: "write_script",
+    module: "scripts",
+    impl: "packages/agents/src/capabilities/scripts.ts",
+    contract: "1cc17ba0c559",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-scripts.test.ts",
+    ],
+  },
+  {
+    name: "derive_storyboard_from_script",
+    module: "scripts",
+    impl: "packages/agents/src/capabilities/scripts.ts",
+    contract: "96a41b5c30a7",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-scripts.test.ts",
+    ],
+  },
+  {
+    name: "delete_script",
+    module: "scripts",
+    impl: "packages/agents/src/capabilities/scripts.ts",
+    contract: "d2d070ab0705",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-scripts.test.ts",
+      "packages/agents/tests/capabilities-lifecycle.test.ts",
+    ],
+  },
+  {
+    name: "finish_storyboard",
+    module: "storyboards",
+    impl: "packages/agents/src/capabilities/storyboards.ts",
+    contract: "887be3b8ef05",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-agentic-storyboard-finish.test.ts",
+      "packages/agents/tests/capabilities-finish-storyboard.test.ts",
+    ],
+  },
+  {
+    name: "layout_storyboard",
+    module: "storyboards",
+    impl: "packages/agents/src/capabilities/storyboards.ts",
+    contract: "02d8a2735de2",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-layout-storyboard.test.ts",
+    ],
+  },
+  {
+    name: "preview_storyboard_design",
+    module: "storyboards",
+    impl: "packages/agents/src/capabilities/storyboards.ts",
+    contract: "a8a3fc0d01a5",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-finish-storyboard.test.ts",
+    ],
+  },
+  {
+    name: "list_storyboards",
+    module: "storyboards",
+    impl: "packages/agents/src/capabilities/storyboards.ts",
+    contract: "3d3f1e6f7ce6",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-storyboards.test.ts",
+    ],
+  },
+  {
+    name: "create_storyboard",
+    module: "storyboards",
+    impl: "packages/agents/src/capabilities/storyboards.ts",
+    contract: "90b995271f45",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-storyboards.test.ts",
+    ],
+  },
+  {
+    name: "get_storyboard",
+    module: "storyboards",
+    impl: "packages/agents/src/capabilities/storyboards.ts",
+    contract: "23b366075a94",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-storyboards.test.ts",
+      "packages/agents/tests/capabilities-run-agent.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["storyboard-direct-shots"],
+      },
+    ],
+  },
+  {
+    name: "render_storyboard_stills",
+    module: "storyboards",
+    impl: "packages/agents/src/capabilities/storyboards.ts",
+    contract: "da01cbd62dfc",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-storyboards.test.ts",
+      "packages/agents/tests/capabilities-storyboard-board-ops.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["storyboard-render-and-assemble"],
+      },
+    ],
+  },
+  {
+    name: "render_storyboard_clips",
+    module: "storyboards",
+    impl: "packages/agents/src/capabilities/storyboards.ts",
+    contract: "568457bf299c",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-storyboards.test.ts",
+      "packages/agents/tests/capabilities-models-and-storyboards-reference-video.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["storyboard-render-and-assemble"],
+      },
+    ],
+  },
+  {
+    name: "revise_storyboard_clip",
+    module: "storyboards",
+    impl: "packages/agents/src/capabilities/storyboards.ts",
+    contract: "6ffde89a2dee",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-storyboards.test.ts",
+    ],
+  },
+  {
+    name: "assemble_storyboard_timeline",
+    module: "storyboards",
+    impl: "packages/agents/src/capabilities/storyboards.ts",
+    contract: "4f90b57e8da8",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-storyboards.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["storyboard-render-and-assemble"],
+      },
+    ],
+  },
+  {
+    name: "derive_shot_from_clip",
+    module: "storyboards",
+    impl: "packages/agents/src/capabilities/storyboards.ts",
+    contract: "62268429cf19",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-derive-shot.test.ts",
+    ],
+  },
+  {
+    name: "edit_storyboard",
+    module: "storyboards",
+    impl: "packages/agents/src/capabilities/storyboards.ts",
+    contract: "2388528aeec0",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-storyboards.test.ts",
+      "packages/agents/tests/capabilities-document-rename.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["storyboard-direct-shots"],
+      },
+    ],
+  },
+  {
+    name: "direct_storyboard",
+    module: "storyboards",
+    impl: "packages/agents/src/capabilities/storyboards.ts",
+    contract: "87b782d42437",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-storyboards.test.ts",
+      "packages/agents/tests/capabilities-storyboard-board-ops.test.ts",
+    ],
+  },
+  {
+    name: "extract_script_from_storyboard",
+    module: "storyboards",
+    impl: "packages/agents/src/capabilities/storyboards.ts",
+    contract: "fb432273a11a",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-storyboards.test.ts",
+    ],
+  },
+  {
+    name: "delete_storyboard",
+    module: "storyboards",
+    impl: "packages/agents/src/capabilities/storyboards.ts",
+    contract: "fcec52d68eb0",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-lifecycle.test.ts",
+    ],
+  },
+  {
+    name: "get_storyboard_one_take",
+    module: "storyboards",
+    impl: "packages/agents/src/capabilities/storyboards.ts",
+    contract: "312a31bed7e2",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-storyboard-one-take.test.ts",
+    ],
+  },
+  {
+    name: "update_storyboard_one_take",
+    module: "storyboards",
+    impl: "packages/agents/src/capabilities/storyboards.ts",
+    contract: "974a52d1d90c",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-storyboard-one-take.test.ts",
+    ],
+  },
+  {
+    name: "list_entities",
+    module: "entities",
+    impl: "packages/agents/src/capabilities/entities.ts",
+    contract: "090a35cd6195",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-entities.test.ts",
+    ],
+  },
+  {
+    name: "get_entity",
+    module: "entities",
+    impl: "packages/agents/src/capabilities/entities.ts",
+    contract: "6af0acba8645",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-entities.test.ts",
+    ],
+  },
+  {
+    name: "apply_entities",
+    module: "entities",
+    impl: "packages/agents/src/capabilities/entities.ts",
+    contract: "34c14b907c14",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-entities.test.ts",
+    ],
+  },
+  {
+    name: "create_entity",
+    module: "entities",
+    impl: "packages/agents/src/capabilities/entities.ts",
+    contract: "fb242b420a90",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-entities.test.ts",
+    ],
+  },
+  {
+    name: "update_entity",
+    module: "entities",
+    impl: "packages/agents/src/capabilities/entities.ts",
+    contract: "3bf2ff8ece5a",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-entities.test.ts",
+    ],
+  },
+  {
+    name: "delete_entity",
+    module: "entities",
+    impl: "packages/agents/src/capabilities/entities.ts",
+    contract: "6d2e841db72f",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-entities.test.ts",
+    ],
+  },
+  {
+    name: "list_compositions",
+    module: "compositions",
+    impl: "packages/agents/src/capabilities/compositions.ts",
+    contract: "93cb1b05b76c",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-compositions.test.ts",
+    ],
+  },
+  {
+    name: "get_composition",
+    module: "compositions",
+    impl: "packages/agents/src/capabilities/compositions.ts",
+    contract: "107ce31b2f59",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-compositions.test.ts",
+    ],
+  },
+  {
+    name: "save_composition",
+    module: "compositions",
+    impl: "packages/agents/src/capabilities/compositions.ts",
+    contract: "08fa8b0e28ec",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-compositions.test.ts",
+    ],
+  },
+  {
+    name: "delete_composition",
+    module: "compositions",
+    impl: "packages/agents/src/capabilities/compositions.ts",
+    contract: "774bfb43b032",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-compositions.test.ts",
+    ],
+  },
+  {
+    name: "validate_code",
+    module: "code",
+    impl: "packages/agents/src/capabilities/code.ts",
+    contract: "8c6ce58f65fc",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/code-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "run_code",
+    module: "code",
+    impl: "packages/agents/src/capabilities/code.ts",
+    contract: "ff41dab56c40",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/code-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "test_code",
+    module: "code",
+    impl: "packages/agents/src/capabilities/code.ts",
+    contract: "8db4b25f2583",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/code-capabilities.test.ts",
+      "packages/agents/tests/js-scripts-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "invoke_node",
+    module: "flow",
+    impl: "packages/agents/src/capabilities/flow.ts",
+    contract: "9c194a0446f7",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-flow.test.ts",
+    ],
+  },
+  {
+    name: "open_node_stream",
+    module: "flow",
+    impl: "packages/agents/src/capabilities/flow.ts",
+    contract: "4520058d2c85",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-flow.test.ts",
+    ],
+  },
+  {
+    name: "take_node_stream",
+    module: "flow",
+    impl: "packages/agents/src/capabilities/flow.ts",
+    contract: "b9d2126bc6aa",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-flow.test.ts",
+    ],
+  },
+  {
+    name: "close_node_stream",
+    module: "flow",
+    impl: "packages/agents/src/capabilities/flow.ts",
+    contract: "959fd84b20d1",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-flow.test.ts",
+    ],
+  },
+  {
+    name: "list_js_scripts",
+    module: "js-scripts",
+    impl: "packages/agents/src/capabilities/js-scripts.ts",
+    contract: "d212a2c14484",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/js-scripts-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "get_js_script",
+    module: "js-scripts",
+    impl: "packages/agents/src/capabilities/js-scripts.ts",
+    contract: "58bd4cdcbc2f",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/js-scripts-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "save_js_script",
+    module: "js-scripts",
+    impl: "packages/agents/src/capabilities/js-scripts.ts",
+    contract: "b6323e3dc559",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/js-scripts-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "edit_js_script",
+    module: "js-scripts",
+    impl: "packages/agents/src/capabilities/js-scripts.ts",
+    contract: "06a14f9d2c2d",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/js-scripts-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "validate_js_script",
+    module: "js-scripts",
+    impl: "packages/agents/src/capabilities/js-scripts.ts",
+    contract: "d7c93528a54e",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/js-scripts-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "run_js_script",
+    module: "js-scripts",
+    impl: "packages/agents/src/capabilities/js-scripts.ts",
+    contract: "f57c0b842920",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/js-scripts-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "test_js_script",
+    module: "js-scripts",
+    impl: "packages/agents/src/capabilities/js-scripts.ts",
+    contract: "db2fc27723bc",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/js-scripts-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "list_js_script_versions",
+    module: "js-scripts",
+    impl: "packages/agents/src/capabilities/js-scripts.ts",
+    contract: "1251a24e6d23",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/js-scripts-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "get_js_script_version",
+    module: "js-scripts",
+    impl: "packages/agents/src/capabilities/js-scripts.ts",
+    contract: "36cb408aac3f",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/js-scripts-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "create_js_script_version",
+    module: "js-scripts",
+    impl: "packages/agents/src/capabilities/js-scripts.ts",
+    contract: "d75395b3484a",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/js-scripts-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "restore_js_script_version",
+    module: "js-scripts",
+    impl: "packages/agents/src/capabilities/js-scripts.ts",
+    contract: "7573bab23a6b",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/js-scripts-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "delete_js_script_version",
+    module: "js-scripts",
+    impl: "packages/agents/src/capabilities/js-scripts.ts",
+    contract: "bdbdca988955",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/js-scripts-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "delete_js_script",
+    module: "js-scripts",
+    impl: "packages/agents/src/capabilities/js-scripts.ts",
+    contract: "a5f048e679e4",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-lifecycle.test.ts",
+    ],
+  },
+  {
+    name: "get_sandbox_package_docs",
+    module: "packs",
+    impl: "packages/agents/src/capabilities/packs.ts",
+    contract: "c1e9c5c4ab71",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/sandbox-package-docs.test.ts",
+    ],
+  },
+  {
+    name: "list_sandbox_packages",
+    module: "packs",
+    impl: "packages/agents/src/capabilities/packs.ts",
+    contract: "0614b41b2a78",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/sandbox-package-listing.test.ts",
+    ],
+  },
+  {
+    name: "ui_get_graph",
+    module: "ui",
+    impl: "packages/agents/src/capabilities/ui.ts",
+    contract: "d3925ec6efe2",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-declared-workflow-contracts.test.ts",
+      "packages/agents/tests/capabilities-workflow-revisions.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/tool-loop-cases.ts",
+        cases: ["rewire-and-relabel"],
+      },
+    ],
+  },
+  {
+    name: "ui_add_node",
+    module: "ui",
+    impl: "packages/agents/src/capabilities/ui.ts",
+    contract: "10dcb798878f",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-declared-workflow-contracts.test.ts",
+      "packages/agents/tests/capabilities-workflow-revisions.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/escalation-cases.ts",
+        cases: ["ask-for-missing-names", "ask-which-step", "escalate-missing-capability", "no-escalation-needed"],
+      },
+      {
+        file: "packages/agents/src/evals/tool-loop-cases.ts",
+        cases: ["extend-existing", "summarize"],
+      },
+    ],
+  },
+  {
+    name: "ui_connect_nodes",
+    module: "ui",
+    impl: "packages/agents/src/capabilities/ui.ts",
+    contract: "22bb33c5033b",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-declared-workflow-contracts.test.ts",
+      "packages/agents/tests/capabilities-workflow-revisions.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/escalation-cases.ts",
+        cases: ["ask-for-missing-names", "ask-which-step", "escalate-missing-capability", "no-escalation-needed"],
+      },
+      {
+        file: "packages/agents/src/evals/tool-loop-cases.ts",
+        cases: ["extend-existing", "rewire-and-relabel", "summarize"],
+      },
+    ],
+  },
+  {
+    name: "ui_update_node_data",
+    module: "ui",
+    impl: "packages/agents/src/capabilities/ui.ts",
+    contract: "c3b4be67dd31",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-declared-workflow-contracts.test.ts",
+      "packages/agents/tests/capabilities-workflow-revisions.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/tool-loop-cases.ts",
+        cases: ["rewire-and-relabel"],
+      },
+    ],
+  },
+  {
+    name: "ui_delete_node",
+    module: "ui",
+    impl: "packages/agents/src/capabilities/ui.ts",
+    contract: "a0e4902a612c",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-declared-workflow-contracts.test.ts",
+      "packages/agents/tests/capabilities-workflow-revisions.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/escalation-cases.ts",
+        cases: ["confirm-before-delete"],
+      },
+    ],
+  },
+  {
+    name: "ui_delete_edge",
+    module: "ui",
+    impl: "packages/agents/src/capabilities/ui.ts",
+    contract: "80b1b37021fb",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-declared-workflow-contracts.test.ts",
+      "packages/agents/tests/capabilities-workflow-revisions.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/tool-loop-cases.ts",
+        cases: ["rewire-and-relabel"],
+      },
+    ],
+  },
+  {
+    name: "ui_move_node",
+    module: "ui",
+    impl: "packages/agents/src/capabilities/ui.ts",
+    contract: "d01594539e6b",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-declared-workflow-contracts.test.ts",
+      "packages/agents/tests/capabilities-workflow-revisions.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/tool-loop-cases.ts",
+        cases: ["rewire-and-relabel"],
+      },
+    ],
+  },
+  {
+    name: "ui_set_node_title",
+    module: "ui",
+    impl: "packages/agents/src/capabilities/ui.ts",
+    contract: "4c88d672167f",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-declared-workflow-contracts.test.ts",
+      "packages/agents/tests/capabilities-workflow-revisions.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/tool-loop-cases.ts",
+        cases: ["rewire-and-relabel"],
+      },
+    ],
+  },
+  {
+    name: "search_apify_actors",
+    module: "apify",
+    impl: "packages/agents/src/capabilities/apify.ts",
+    contract: "50af542cf6f8",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/apify-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "get_apify_actor",
+    module: "apify",
+    impl: "packages/agents/src/capabilities/apify.ts",
+    contract: "09ec9f55bd63",
+    gap:
+      "The Apify suites cover search, schema, run, abort, and the " +
+      "dataset reader; fetching one actor's record has no case. A " +
+      "read-only case against the recorded actor fixture would close " +
+      "it.",
+  },
+  {
+    name: "get_apify_actor_schema",
+    module: "apify",
+    impl: "packages/agents/src/capabilities/apify.ts",
+    contract: "34c022823a29",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/apify-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "run_apify_actor",
+    module: "apify",
+    impl: "packages/agents/src/capabilities/apify.ts",
+    contract: "cf4fb14ea0de",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/apify-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "get_apify_run",
+    module: "apify",
+    impl: "packages/agents/src/capabilities/apify.ts",
+    contract: "c37157bc759d",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/apify-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "abort_apify_run",
+    module: "apify",
+    impl: "packages/agents/src/capabilities/apify.ts",
+    contract: "a7cbc2ab4845",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/apify-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "get_apify_dataset_items",
+    module: "apify",
+    impl: "packages/agents/src/capabilities/apify.ts",
+    contract: "020cbfa36319",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/apify-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "get_apify_key_value_record",
+    module: "apify",
+    impl: "packages/agents/src/capabilities/apify.ts",
+    contract: "73208a1ca49b",
+    gap:
+      "The dataset reader is covered, the key-value reader is not. A " +
+      "case that runs an actor writing to the store and reads one " +
+      "record back would close it.",
+  },
+  {
+    name: "list_serpapi_engines",
+    module: "serpapi",
+    impl: "packages/agents/src/capabilities/serpapi.ts",
+    contract: "75de5f72edf2",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/serpapi-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "get_serpapi_engine_schema",
+    module: "serpapi",
+    impl: "packages/agents/src/capabilities/serpapi.ts",
+    contract: "104ab31876fd",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/serpapi-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "serpapi_search",
+    module: "serpapi",
+    impl: "packages/agents/src/capabilities/serpapi.ts",
+    contract: "e5e0e423dada",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/serpapi-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "get_serpapi_account",
+    module: "serpapi",
+    impl: "packages/agents/src/capabilities/serpapi.ts",
+    contract: "4bb30a68b979",
+    gap:
+      "The SerpAPI suites cover engine discovery, schema, search, and " +
+      "locations; the account/quota read has no case. A case that " +
+      "reads the remaining searches before a budgeted fan-out would " +
+      "close it.",
+  },
+  {
+    name: "get_serpapi_locations",
+    module: "serpapi",
+    impl: "packages/agents/src/capabilities/serpapi.ts",
+    contract: "a5a352a564d3",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/serpapi-capabilities.test.ts",
+    ],
+  },
+  {
+    name: "list_settings",
+    module: "settings",
+    impl: "packages/agents/src/capabilities/settings.ts",
+    contract: "db413f34a932",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-settings.test.ts",
+    ],
+  },
+  {
+    name: "get_setting",
+    module: "settings",
+    impl: "packages/agents/src/capabilities/settings.ts",
+    contract: "d87d447224c8",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-settings.test.ts",
+      "packages/agents/tests/capabilities-invoke-validation.test.ts",
+    ],
+  },
+  {
+    name: "set_setting",
+    module: "settings",
+    impl: "packages/agents/src/capabilities/settings.ts",
+    contract: "45361d7bbdb8",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-settings.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["settings-and-credentials"],
+      },
+    ],
+  },
+  {
+    name: "list_secrets",
+    module: "settings",
+    impl: "packages/agents/src/capabilities/settings.ts",
+    contract: "2001f833fde0",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-settings.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["settings-and-credentials"],
+      },
+    ],
+  },
+  {
+    name: "request_secret",
+    module: "settings",
+    impl: "packages/agents/src/capabilities/settings.ts",
+    contract: "adad33baaa59",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-settings.test.ts",
+      "packages/agents/tests/mcp-tools.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-surfaces.ts",
+        cases: ["settings-and-credentials"],
+      },
+    ],
+  },
+  {
+    name: "list_skills",
+    module: "skills",
+    impl: "packages/agents/src/capabilities/skills.ts",
+    contract: "2963789253ad",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-skills.test.ts",
+    ],
+  },
+  {
+    name: "load_skill",
+    module: "skills",
+    impl: "packages/agents/src/capabilities/skills.ts",
+    contract: "33b2c6e9e7e4",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-skills.test.ts",
+    ],
+  },
+  {
+    name: "create_skill",
+    module: "skills",
+    impl: "packages/agents/src/capabilities/skills.ts",
+    contract: "6404db74f39b",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-skills.test.ts",
+    ],
+  },
+  {
+    name: "update_skill",
+    module: "skills",
+    impl: "packages/agents/src/capabilities/skills.ts",
+    contract: "29a0aa33a2aa",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-skills.test.ts",
+    ],
+  },
+  {
+    name: "delete_skill",
+    module: "skills",
+    impl: "packages/agents/src/capabilities/skills.ts",
+    contract: "29ca02ca69cc",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-skills.test.ts",
+    ],
+  },
+  {
+    name: "analyze_audio",
+    module: "analysis",
+    impl: "packages/agents/src/capabilities/analysis.ts",
+    contract: "328dadfe45f9",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-analysis.test.ts",
+    ],
+  },
+  {
+    name: "analyze_audio_spectrum",
+    module: "analysis",
+    impl: "packages/agents/src/capabilities/analysis.ts",
+    contract: "00830f0c748f",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-analysis.test.ts",
+    ],
+  },
+  {
+    name: "detect_audio_events",
+    module: "analysis",
+    impl: "packages/agents/src/capabilities/analysis.ts",
+    contract: "064835616149",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-analysis.test.ts",
+    ],
+  },
+  {
+    name: "analyze_video",
+    module: "analysis",
+    impl: "packages/agents/src/capabilities/analysis.ts",
+    contract: "8676971690ce",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-analysis.test.ts",
+      "packages/agents/tests/capabilities-video-analysis-sampling.test.ts",
+    ],
+  },
+  {
+    name: "detect_video_scenes",
+    module: "analysis",
+    impl: "packages/agents/src/capabilities/analysis.ts",
+    contract: "8e1a187c4d11",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-analysis.test.ts",
+      "packages/agents/tests/capabilities-video-analysis-sampling.test.ts",
+    ],
+  },
+];

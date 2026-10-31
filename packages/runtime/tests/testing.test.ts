@@ -1,30 +1,74 @@
 import { describe, it, expect } from "vitest";
 import fs from "node:fs";
-import { execFile as execFileCallback } from "node:child_process";
-import { promisify } from "node:util";
 import os from "node:os";
 import path from "node:path";
 import { createFakeContext, stubGlobalFetch } from "../src/testing.js";
 import { FakeProvider } from "../src/providers/fake-provider.js";
-
-const execFile = promisify(execFileCallback);
-
-async function decodeMedia(bytes: Uint8Array, filename: string): Promise<void> {
-  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "nodetool-fake-decode-"));
-  try {
-    const file = path.join(directory, filename);
-    fs.writeFileSync(file, bytes);
-    const result = await execFile("ffmpeg", [
-      "-v", "error", "-xerror", "-err_detect", "explode", "-i", file,
-      "-map", "0", "-f", "null", "-"
-    ]);
-    expect(result.stderr).toBe("");
-  } finally {
-    fs.rmSync(directory, { recursive: true, force: true });
-  }
-}
+import { verifyDecodes } from "../src/media/index.js";
 
 describe("createFakeContext", () => {
+  it("persists entities and storyboards within one fake host", async () => {
+    const first = createFakeContext();
+    const second = createFakeContext();
+    try {
+      const asset = await first.context.createAsset({
+        name: "reference.png",
+        contentType: "image/png",
+        content: new Uint8Array([1])
+      });
+      if (!asset || typeof asset !== "object" || !("id" in asset) || typeof asset.id !== "string") {
+        throw new Error("Fake asset missing its id");
+      }
+      const args = {
+        kind: "character" as const,
+        name: "Lead",
+        descriptor: "A red coat",
+        imageAssetId: asset.id,
+        source: { key: "lead" }
+      };
+      const created = await first.context.upsertEntity(args);
+      expect(created.created).toBe(true);
+      expect(await first.context.getEntity(created.entity.id)).toEqual(
+        created.entity
+      );
+      const updated = await first.context.upsertEntity({
+        ...args,
+        descriptor: "A blue coat"
+      });
+      expect(updated.created).toBe(false);
+      expect(updated.entity.id).toBe(created.entity.id);
+      expect(updated.entity.descriptor).toBe("A blue coat");
+      expect(await second.context.getEntity(created.entity.id)).toBeNull();
+
+      const board = await first.context.createStoryboard({
+        name: "Cast board",
+        projectId: "project",
+        document: { shots: [] }
+      });
+      expect(
+        await first.context.listStoryboards({ projectId: "project" })
+      ).toEqual([board]);
+      expect(
+        await first.context.listStoryboards({ projectId: "other" })
+      ).toEqual([]);
+      expect(await first.context.getStoryboard(board.id)).toEqual(board);
+      const saved = await first.context.updateStoryboard(board.id, {
+        document: { shots: [{ id: "shot" }] },
+        timelineId: "timeline"
+      });
+      expect(saved).toMatchObject({
+        id: board.id,
+        document: { shots: [{ id: "shot" }] },
+        timelineId: "timeline"
+      });
+      expect(await first.context.getStoryboard(board.id)).toEqual(saved);
+      expect(await second.context.getStoryboard(board.id)).toBeNull();
+    } finally {
+      first.cleanup();
+      second.cleanup();
+    }
+  });
+
   it("returns a ProcessingContext with in-memory storage and a temp workspace", () => {
     const handle = createFakeContext();
     try {
@@ -123,6 +167,33 @@ describe("createFakeContext", () => {
   });
 });
 
+describe("fake document and entity persistence", () => {
+  it("retains boards for reuse and entities keyed by their source without sharing contexts", async () => {
+    const fake = createFakeContext();
+    const isolated = createFakeContext();
+    try {
+      const document = { shots: [], templateId: "template", recastKey: "batch" };
+      const board = await fake.context.createStoryboard({ name: "Board", projectId: "project", document });
+      expect(board.id).toMatch(/^[0-9a-f]{32}$/);
+      expect(await fake.context.getStoryboard(board.id)).toMatchObject({ id: board.id, document });
+      expect(await fake.context.listStoryboards({ projectId: "project" })).toHaveLength(1);
+      expect(await fake.context.findRecastStoryboard({ projectId: "project", templateId: "template", recastKey: "batch" })).toMatchObject({ id: board.id });
+      expect(await isolated.context.listStoryboards()).toEqual([]);
+      const asset = await fake.context.createAsset({ name: "image.png", contentType: "image/png", content: new Uint8Array([1]) });
+      if (!asset || typeof asset !== "object" || !("id" in asset) || typeof asset.id !== "string") { throw new Error("Fake asset missing its id"); }
+      const args = { kind: "character" as const, name: "Lead", descriptor: "Original", imageAssetId: asset.id, source: { key: "lead" } };
+      const first = await fake.context.upsertEntity(args);
+      const second = await fake.context.upsertEntity({ ...args, name: "Renamed", descriptor: "Updated" });
+      expect(first.created).toBe(true);
+      expect(second.created).toBe(false);
+      expect(second.entity.id).toBe(first.entity.id);
+      expect((await fake.context.listEntities())[0]?.descriptor).toBe("Updated");
+      expect(await isolated.context.getEntity(first.entity.id)).toBeNull();
+      await expect(fake.context.upsertEntity({ ...args, imageAssetId: "missing" })).rejects.toThrow();
+    } finally { fake.cleanup(); isolated.cleanup(); }
+  });
+});
+
 describe("stubGlobalFetch", () => {
   it("replaces global fetch and restore() puts the original back", async () => {
     const original = globalThis.fetch;
@@ -171,7 +242,7 @@ describe("FakeProvider media capabilities", () => {
     });
     expect(bytes[0]).toBe(0x89);
     expect(String.fromCharCode(bytes[1], bytes[2], bytes[3])).toBe("PNG");
-    await decodeMedia(bytes, "still.png");
+    await verifyDecodes(bytes, { kind: "video", format: "png_pipe" });
   });
 
   it("textToVideo returns a fully decodable MP4", async () => {
@@ -183,7 +254,9 @@ describe("FakeProvider media capabilities", () => {
     expect(String.fromCharCode(bytes[4], bytes[5], bytes[6], bytes[7])).toBe(
       "ftyp"
     );
-    await decodeMedia(bytes, "clip.mp4");
+    // Every stream of the clip decodes, with strict error detection.
+    await verifyDecodes(bytes, { kind: "video" });
+    await verifyDecodes(bytes, { kind: "audio" });
   });
 
   it("textToSpeechEncoded returns a parseable WAV", async () => {

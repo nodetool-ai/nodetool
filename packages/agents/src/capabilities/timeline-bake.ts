@@ -128,14 +128,13 @@ export async function bakeModel3DClipOnServer(
         });
         return baked.video;
       } catch (error) {
-        // A server with neither Blender nor ffmpeg still serves the op and
-        // only fails here; naming the binary is the difference between a fix
-        // and a shrug.
+        // A server without Blender still serves the op and only fails here;
+        // naming the binary is the difference between a fix and a shrug.
         if (error instanceof HostBinaryMissingError) {
           throw new Error(
             `Could not bake clip "${clip.name}": this server has no ` +
-              `${error.binary} installed. A bake renders in Blender and muxes ` +
-              `with ffmpeg, so it needs both on the machine.`
+              `${error.binary} installed. A bake renders in Blender, so it ` +
+              `needs Blender on the machine.`
           );
         }
         throw error;

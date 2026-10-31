@@ -1,0 +1,71 @@
+{
+  "name": "@nodetool-ai/cli-apps",
+  "version": "0.8.4",
+  "description": "Independent apps command feature for NodeTool",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "nodetool-apps": "dist/nodetool.js"
+  },
+  "exports": {
+    ".": {
+      "nodetool-dev": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./*": {
+      "nodetool-dev": "./src/*.ts",
+      "types": "./dist/*.d.ts",
+      "import": "./dist/*.js",
+      "default": "./dist/*.js"
+    }
+  },
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "test": "node ../../scripts/run-vitest.mjs run",
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit"
+  },
+  "dependencies": {
+    "@nodetool-ai/agents": "*",
+    "@nodetool-ai/app-export": "*",
+    "@nodetool-ai/app-runtime": "*",
+    "@nodetool-ai/cli-common": "*",
+    "@nodetool-ai/cli-execution": "*",
+    "@nodetool-ai/cli-local": "*",
+    "@nodetool-ai/cli-providers": "*",
+    "@nodetool-ai/config": "*",
+    "@nodetool-ai/execution": "*",
+    "@nodetool-ai/models": "*",
+    "@nodetool-ai/node-sdk": "*",
+    "@nodetool-ai/pack-manager": "*",
+    "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/security": "*",
+    "@nodetool-ai/storage": "*",
+    "commander": "^12.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "vitest": "^5.0.1"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/cli-apps"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
+}

@@ -4,6 +4,7 @@
 import QtQuick
 import QtQuick.Shapes
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 Shape {
     id: ramp
@@ -33,13 +34,13 @@ Shape {
 
     preferredRendererType: Shape.CurveRenderer
     ShapePath {
-        fillColor: Qt.rgba(Theme.textPrimary.r, Theme.textPrimary.g, Theme.textPrimary.b, 0.25)
+        fillColor: Qt.rgba(Ui.Theme.textPrimary.r, Ui.Theme.textPrimary.g, Ui.Theme.textPrimary.b, 0.25)
         strokeWidth: -1
         PathSvg { path: ramp.rampPath + " L" + ramp.width + " 0 L0 0 Z" }
     }
     ShapePath {
         fillColor: "transparent"
-        strokeColor: Theme.textPrimary
+        strokeColor: Ui.Theme.textPrimary
         strokeWidth: 1
         PathSvg { path: ramp.rampPath }
     }

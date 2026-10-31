@@ -1,9 +1,6 @@
 import React, { memo, Suspense } from "react";
 import { useTranslation } from "react-i18next";
-import type {
-  WorkspaceTab,
-  WorkspaceTabType
-} from "../../stores/WorkspaceTabsStore";
+import type { WorkspaceTab } from "../../stores/WorkspaceTabsStore";
 import { LoadingSpinner } from "../ui_primitives";
 import { isPageTabKey } from "./pageTabs";
 

@@ -26,7 +26,7 @@ if (values['native-runtime']) { environment.NODETOOL_NATIVE_GAME_RUNTIME_DIR = r
 for (const [cwd, args] of [
   ['.', ['scripts/run-vitest.mjs', 'run', '--config', 'vitest.config.ts', 'scripts/__tests__/native-game-delivery.test.mjs']],
   ['packages/game-renderer', ['../../scripts/run-vitest.mjs', 'run', 'tests/native-browser-export.test.ts', 'tests/native-browser-player-startup.test.ts', 'tests/native-browser2d-pixels.test.ts', 'tests/native-post3d.test.ts', 'tests/native-browser3d-visual.test.ts', 'tests/native-browser3d-vertex-materials.test.ts', 'tests/native-browser3d-vertex-pixels.test.ts']],
-  ['packages/cli', ['../../scripts/run-vitest.mjs', 'run', 'tests/game-native-cpp.test.ts']],
+  ['packages/cli-game', ['../../scripts/run-vitest.mjs', 'run', 'tests/game-native-cpp.test.ts']],
   ['packages/agents', ['../../scripts/run-vitest.mjs', 'run', 'tests/capabilities-native-cpp-game.test.ts']]
 ]) {
   const result = spawnSync(process.execPath, args, { cwd, stdio: 'inherit', env: environment });

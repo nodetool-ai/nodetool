@@ -40,7 +40,7 @@ The build script (`package.json` `build`) compiles the TypeScript and then copie
 
 **Image nodes** call a single multipart POST → poll status → download flow implemented in `topazExecuteImageTask` (`topaz-base.ts`).
 
-**Video nodes** drive a multi-step pipeline: create job → accept (get presigned upload URLs) → PUT bytes → complete-upload → poll status → download. This requires `ffprobe` installed locally to probe the source video's resolution, frame rate, and duration before the job is created.
+**Video nodes** drive a multi-step pipeline: create job → accept (get presigned upload URLs) → PUT bytes → complete-upload → poll status → download. The node probes the source video's resolution, frame rate, and duration in process before the job is created.
 
 ---
 
@@ -129,11 +129,10 @@ Copy either `EnhanceVideo` or `InterpolateVideo` from the manifest. Video entrie
 
 - `"outputType": "video"`
 - `"videoKind": "upscale"` or `"videoKind": "interpolate"`
-- `"requiredRuntimes": ["ffmpeg"]` — tells the UI the node needs ffmpeg/ffprobe installed
 - `"acceptEndpoint"` and `"completeEndpoint"` for the two extra pipeline steps
 - A `"video"` typed field with `"uploadField": true`
 
-The factory detects `outputType === "video"` and routes through `topazExecuteVideoTask`, which calls `ffprobe` to probe the source before creating the job.
+The factory detects `outputType === "video"` and routes through `topazExecuteVideoTask`, which probes the source in process before creating the job.
 
 ---
 

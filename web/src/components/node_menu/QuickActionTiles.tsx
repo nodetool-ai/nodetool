@@ -11,7 +11,6 @@ import type {
   MouseEvent as ReactMouseEvent
 } from "react";
 import useNodeMenuStore from "../../stores/NodeMenuStore";
-import { useShallow } from "zustand/react/shallow";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import usePendingNodeCreateStore from "../../stores/PendingNodeCreateStore";
@@ -25,8 +24,7 @@ import {
   getSpacingPx
 } from "../ui_primitives";
 import { NOTIFICATION_TIMEOUT_MEDIUM } from "../../config/constants";
-import { serializeDragData } from "../../lib/dragdrop";
-import { useDragDropStore } from "../../lib/dragdrop/store";
+import { useNodeTileDrag } from "../../hooks/nodes/useNodeTileDrag";
 import {
   AI_TASK_ACTIONS,
   PROVIDER_ACTIONS,
@@ -200,18 +198,11 @@ const QuickActionTiles = memo(function QuickActionTiles() {
   const theme = useTheme();
   const memoizedStyles = useMemo(() => tileStyles(theme), [theme]);
 
-  const { setDragToCreate, setHoveredNode } = useNodeMenuStore(
-    useShallow((state) => ({
-      setDragToCreate: state.setDragToCreate,
-      setHoveredNode: state.setHoveredNode
-    }))
-  );
+  const setHoveredNode = useNodeMenuStore((state) => state.setHoveredNode);
   const getMetadata = useMetadataStore((state) => state.getMetadata);
   const addNotification = useNotificationStore(
     (state) => state.addNotification
   );
-  const setActiveDrag = useDragDropStore((s) => s.setActiveDrag);
-  const clearDrag = useDragDropStore((s) => s.clearDrag);
 
   // Route click-to-add via PendingNodeCreateStore so this component is safe
   // to render outside the editor's ReactFlowProvider.
@@ -222,30 +213,7 @@ const QuickActionTiles = memo(function QuickActionTiles() {
     [getMetadata]
   );
 
-  const handleDragStart = useCallback(
-    (event: ReactDragEvent<HTMLDivElement>) => {
-      const nodeType = event.currentTarget.dataset.nodeType;
-      const metadata = nodeType ? getMetadata(nodeType) : undefined;
-      if (!metadata) {
-        event.preventDefault();
-        event.stopPropagation();
-        return;
-      }
-      setDragToCreate(true);
-      serializeDragData(
-        { type: "create-node", payload: metadata },
-        event.dataTransfer
-      );
-      event.dataTransfer.effectAllowed = "copyMove";
-      setActiveDrag({ type: "create-node", payload: metadata });
-    },
-    [getMetadata, setDragToCreate, setActiveDrag]
-  );
-
-  const handleDragEnd = useCallback(() => {
-    setDragToCreate(false);
-    clearDrag();
-  }, [setDragToCreate, clearDrag]);
+  const { handleDragStart, handleDragEnd } = useNodeTileDrag();
 
   const createFromTile = useCallback(
     (tile: HTMLDivElement) => {
