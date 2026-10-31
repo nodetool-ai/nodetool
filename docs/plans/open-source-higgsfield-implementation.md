@@ -183,6 +183,8 @@ through the browser extension.
 
 Size: 3–4 days.
 
+Status: done.
+
 - Create `packages/presets` with the layout above, a README and the `AGENTS.md`
   overlay entry required by the backend rules.
 - Move the model-line regexes from `packages/agents/src/model-prompting-skills.ts`
@@ -215,6 +217,8 @@ Acceptance:
 
 Size: 3 days for the files, more for tuning in P5.
 
+Status: done.
+
 - Write 40 camera presets. Start from the 38 `MOVEMENT_OPTIONS` strings: merge
   near-duplicates (`slow push in` and `push in slow`, `orbit` and `360 orbit`)
   into one preset with both strings as aliases, and add the rest from the
@@ -235,6 +239,8 @@ Acceptance:
 ### P3: Server wiring
 
 Size: 3 days.
+
+Status: done.
 
 - Add `preset_ids` to `generateMediaDataSchema` and to the chat media settings
   the composer sends. Validate the count and the ids at the boundary and return
@@ -259,6 +265,8 @@ Acceptance:
 
 Size: 2 days.
 
+Status: done.
+
 - Add a `presets` capability module with `list_presets` (filter by kind, mode
   and family), `get_preset` and `compile_presets`. Add `preset_ids` to
   `generate_video`, `animate_image`, `generate_image` and `edit_image`.
@@ -278,6 +286,8 @@ Acceptance:
 ### P5: Preview rendering pipeline and run records
 
 Size: 1 week, mostly render and review time.
+
+Status: tooling done, previews pending.
 
 - Add `scripts/presets/render-previews.mjs`: for each preset without a current
   preview, build the eject graph, run it with `nodetool run` against a fixed
@@ -308,6 +318,8 @@ Acceptance:
 
 Size: 3 days.
 
+Status: done.
+
 - `ui_primitives/PresetCard`: poster, hover or focus loop through `VideoPlayer`,
   name, family support badges, cost hint from the existing cost estimate hook.
 - `ui_primitives/PresetPicker`: searchable grid, kind and tag filters,
@@ -325,6 +337,8 @@ Acceptance:
 ### P7: Shot editor picker and storyboard render path
 
 Size: 3–4 days.
+
+Status: done.
 
 - Replace the Movement select in `ShotEditTable.tsx` with a field that opens
   `PresetPicker` filtered to `kind: "camera"`, and still accepts free text.
@@ -349,6 +363,8 @@ Acceptance:
 
 Size: 2 days.
 
+Status: done.
+
 - Add a preset chip to `MediaSettingChips.tsx` for `video`, `image_to_video`
   and `reference_to_video`. It opens `PresetPicker` filtered to presets whose
   `modes` include the current mode.
@@ -366,6 +382,8 @@ Acceptance:
 
 Size: 2–3 days.
 
+Status: done.
+
 - Implement `presetToWorkflow` per D7, validated with `validate_workflow` in
   tests for every preset in the catalogue.
 - Add "Open as workflow" to the preset card menu and to each Generations panel
@@ -381,6 +399,8 @@ Acceptance:
 ### P10: Effects catalogue and gallery
 
 Size: 1 week including tuning.
+
+Status: done.
 
 - Write 20 effect presets. Start from the 12 options in `Effects Gallery.json`
   and add eight more. Exclude face swap and real-person effects (strategy risk
@@ -409,6 +429,8 @@ Acceptance:
 
 Size: 1 week.
 
+Status: done.
+
 - Add a `create` workspace tab type and `CreateSurface`. The top is a prompt bar
   built from the composer's chips (mode, model, preset, aspect, duration,
   batch 1–4, cost). The body is a grid of generations from
@@ -431,6 +453,8 @@ Acceptance:
 
 Size: 3 days, plus legal review.
 
+Status: not started.
+
 - Extend the `higgsfield` entry in `competitorEntries.ts` with a presets section
   linking to the preset catalogue and the eject demo clip.
 - Add a credit vs BYOK mode to `ByokCalculator.tsx`: inputs are plan, clips a
@@ -449,6 +473,8 @@ Acceptance:
 ### P13: Documentation
 
 Size: 2 days.
+
+Status: done.
 
 - New `docs/presets.md`: what a preset is, how compile works per family,
   how to eject, how to write one, and the CLI and agent tools.
