@@ -59,6 +59,8 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR AND BUILD_TESTING)
     target_link_libraries(ui_accessibility_tests PRIVATE Qt6::Test)
     nodetool_use_ui_primitives(ui_accessibility_tests)
     add_test(NAME ui_accessibility_tests COMMAND ui_accessibility_tests)
+    # Keep Windows test tools attached to standard output for CTest.
+    set_target_properties(ui_gallery ui_primitives_tests ui_accessibility_tests PROPERTIES WIN32_EXECUTABLE FALSE)
     set_tests_properties(ui_gallery_smoke ui_primitives_tests ui_accessibility_tests PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endif()
