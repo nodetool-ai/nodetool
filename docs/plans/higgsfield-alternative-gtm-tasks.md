@@ -12,7 +12,7 @@ Spec: [higgsfield-alternative-gtm.md](higgsfield-alternative-gtm.md)
 - **T6** (Rewrite `/alternatives/higgsfield` with dated cost table, preset map & starter) — blocked by **T1**, **T3**, **T4**, **T5**
 - **T7** (Regenerate marketing template catalog, SEO artifacts & verify gates) — blocked by **T3**, **T4**, **T5**, **T6**
 - **T8** (Wave 2 P1 workflow templates: Morpher, 4K Upscale, Face Swap, Headshots, Synced SFX) — blocked by **T7**
-- **T9** (Wave 2 interactive mini apps for Camera Move Studio & Effects Gallery) — blocked by **T3**, **T8**
+- **T9** (Wave 2 interactive mini apps for Camera Move Studio & Effects Gallery) — blocked by **T3**, **T8** (closed, superseded)
 - **T10** (Wave 2 Remotion 60-second side-by-side demo video on `/alternatives/higgsfield`) — blocked by **T6**, **T7**
 
 ---
@@ -143,7 +143,7 @@ Spec: [higgsfield-alternative-gtm.md](higgsfield-alternative-gtm.md)
 
 ### T9: Build Wave 2 interactive mini apps for Camera Move Studio and Effects Gallery
 
-- **Status**: Planned (Wave 2)
+- **Status**: Closed. Superseded by the preset picker and Effects gallery in [open-source-higgsfield-implementation.md](open-source-higgsfield-implementation.md) (P7, P8, P10)
 - **Blocked by**: T3, T8
 - **Blocks**: None
 - **Description**:
