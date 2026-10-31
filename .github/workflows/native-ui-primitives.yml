@@ -22,6 +22,7 @@ env:
   QT_VERSION: "6.12.0"
   QT_QPA_PLATFORM: offscreen
   QT_QUICK_BACKEND: software
+  QT_FORCE_STDERR_LOGGING: "1"
 
 jobs:
   standalone:
@@ -127,7 +128,13 @@ jobs:
           tests = json.loads(subprocess.check_output(
               ['ctest', '--test-dir', str(build), '--show-only=json-v1'], text=True))
           for test in tests['tests']:
-              inspect(test['command'])
+              command = test['command']
+              report = build / (test['name'] + '.startup.txt')
+              if test['name'] != 'ui_gallery_smoke':
+                  command = command + ['-o', str(report) + ',txt']
+              inspect(command)
+              if report.is_file():
+                  print(report.read_text(encoding='utf-8', errors='replace'), flush=True)
           with os.add_dll_directory(str(qt / 'bin')):
               for name in ['Qt6Core', 'Qt6Gui', 'Qt6Qml', 'Qt6Quick', 'Qt6QuickControls2',
                            'Qt6Svg', 'Qt6Test', 'Qt6QuickTest']:
@@ -185,5 +192,6 @@ jobs:
           name: native-ui-${{ matrix.os }}
           path: |
             native/ui_primitives/build/Testing/Temporary/
+            native/ui_primitives/build/*.startup.txt
             native/ui_primitives/build/gallery-captures/
             ${{ runner.temp }}/native-ui-windows-startup.log
