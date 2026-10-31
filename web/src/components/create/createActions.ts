@@ -13,7 +13,7 @@ import {
   type PresetMode
 } from "@nodetool-ai/presets";
 import type { Graph } from "../../stores/ApiTypes";
-import { presetCatalog } from "../storyboard/cameraOptions";
+import { presetCatalog } from "../../lib/presets/catalog";
 import type { CreateFeedItem } from "./createFeed";
 import type { GenerationRequestSettings } from "../../stores/GenerationActivityStore";
 import { batchSeeds } from "./createRequest";

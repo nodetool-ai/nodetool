@@ -4,7 +4,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../../__mocks__/themeMock";
 import { MediaPresetChip } from "../MediaSettingChips";
-import { presetCatalog } from "../../../storyboard/cameraOptions";
+import { presetCatalog } from "../../../../lib/presets/catalog";
 
 const KLING = { id: "fal-ai/kling-video/v2.6/pro/text-to-video", provider: "fal_ai" };
 const MINIMAX = { id: "minimax/h3/text-to-video", provider: "fal_ai" };

@@ -1,4 +1,4 @@
-import { presetCatalog } from "../../components/storyboard/cameraOptions";
+import { presetCatalog } from "../../lib/presets/catalog";
 import { presetFamilyOf, presetsWithoutFragment } from "../presetFamily";
 
 describe("presetFamily", () => {

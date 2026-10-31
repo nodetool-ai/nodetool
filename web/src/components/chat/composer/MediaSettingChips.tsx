@@ -30,7 +30,7 @@ import {
   type AspectRatioOption,
   type PresetMediaMode
 } from "../../../stores/MediaGenerationStore";
-import { presetCatalog } from "../../storyboard/cameraOptions";
+import { presetCatalog } from "../../../lib/presets/catalog";
 import {
   presetFamilyOf,
   presetsWithoutFragment
