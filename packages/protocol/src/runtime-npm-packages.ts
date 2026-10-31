@@ -50,8 +50,10 @@ export const RUNTIME_NPM_PACKAGES = {
   },
   "media-codecs": {
     // @mediabunny/server depends on node-av; both are listed so the pins match.
-    npmPackages: ["node-av@6.1.1", "@mediabunny/server@1.54.0"],
-    packageNames: ["node-av", "@mediabunny/server"],
+    // mediabunny is listed so npm places the version runtime and agents pin
+    // beside the server's peer, instead of the newest release.
+    npmPackages: ["node-av@6.1.1", "@mediabunny/server@1.54.0", "mediabunny@1.54.0"],
+    packageNames: ["node-av", "@mediabunny/server", "mediabunny"],
     description: "FFmpeg-based audio and video decoding, encoding and filtering.",
     bundledHosts: ["desktop", "docker"]
   },

@@ -58,6 +58,8 @@ const runtimeLibraries = {
 };
 
 const featureRuntimeLibraries = {
+  // reliability-harness depends on base-nodes, which registers the video and game packs.
+  "cli-harness": ["media-codecs", "webgpu"],
   "cli-server": ["media-codecs", "webgpu"],
   "cli-timeline": ["media-codecs", "webgpu"],
   "cli-game": ["media-codecs", "webgpu"]

@@ -23,6 +23,8 @@ const loaders: ReadonlyArray<readonly [RuntimeNpmPackageId, string, string]> = [
   ["media-codecs", "node-av", "runtime"],
   ["media-codecs", "@mediabunny/server", "runtime"],
   ["media-codecs", "@mediabunny/server", "agents"],
+  ["media-codecs", "mediabunny", "runtime"],
+  ["media-codecs", "mediabunny", "agents"],
   ["webgpu", "webgpu", "gpu"]
 ];
 

@@ -3479,7 +3479,10 @@
       "provides": [],
       "registrar": "feature",
       "requires": [],
-      "runtimeLibraries": [],
+      "runtimeLibraries": [
+        "media-codecs",
+        "webgpu"
+      ],
       "scriptAllowlist": [],
       "secrets": []
     },
