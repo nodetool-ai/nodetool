@@ -304,7 +304,8 @@ jobs:
           windeployqt --release --qmldir native/timeline/qml --no-translations "$out/nodetool-timeline.exe"
           cp "$FFMPEG_LGPL_BIN"/*.dll "$out/"
           mkdir -p "$out/licenses"
-          cp native/timeline/licenses/*.txt native/timeline/fonts/LICENSE-*.txt "$out/licenses/"
+          cp native/timeline/licenses/*.txt native/ui_primitives/resources/licenses/* "$out/licenses/"
+          cp native/ui_primitives/resources/icons/providers/README.md "$out/licenses/Provider-Icons-notice.md"
           tmp=$(cygpath -u "$RUNNER_TEMP")
           copy="$tmp/package-copy"
           rm -rf "$copy" && cp -R "$out" "$copy"
@@ -334,7 +335,8 @@ jobs:
           dir=native/timeline/build-ci/AppDir
           rm -rf "$dir" && mkdir -p "$dir/usr/bin" "$dir/usr/share/licenses/nodetool-timeline"
           cp native/timeline/build-ci/nodetool-timeline "$dir/usr/bin/"
-          cp native/timeline/licenses/*.txt native/timeline/fonts/LICENSE-*.txt "$dir/usr/share/licenses/nodetool-timeline/"
+          cp native/timeline/licenses/*.txt native/ui_primitives/resources/licenses/* "$dir/usr/share/licenses/nodetool-timeline/"
+          cp native/ui_primitives/resources/icons/providers/README.md "$dir/usr/share/licenses/nodetool-timeline/Provider-Icons-notice.md"
           printf '[Desktop Entry]\nType=Application\nName=NodeTool Timeline\nExec=nodetool-timeline\nIcon=nodetool-timeline\nCategories=AudioVideo;\n' > "$dir/nodetool-timeline.desktop"
           convert -size 256x256 xc:'#202024' "$dir/nodetool-timeline.png" 2> /dev/null || cp /usr/share/pixmaps/debian-logo.png "$dir/nodetool-timeline.png" || true
           curl -sSfL -o "$RUNNER_TEMP/linuxdeploy" https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20250213-2/linuxdeploy-x86_64.AppImage
