@@ -7,9 +7,9 @@ import { createHash } from 'node:crypto';
 import { createCatalog, compilePresets, presetToWorkflow } from '@nodetool-ai/presets';
 
 export const root = fileURLToPath(new URL('../../', import.meta.url));
-export const source = resolve(root, 'scripts/presets/source.png');
+export const source = resolve(root, 'scripts/presets/source.jpg');
 export const seed = 20261031;
-export const prompt = 'A red sculpture on a stone plinth in a sunlit courtyard, trees and mountains in the distance.';
+export const prompt = 'A large bronze ring sculpture with a twisted open loop and a green-gold patina on a rough travertine plinth in a sunlit Mediterranean stone courtyard, olive trees in terracotta pots in the foreground, an arched colonnade behind, cypress trees and mountains in the distance, golden late-afternoon light.';
 export function options(args = process.argv.slice(2)) {
   const { values } = parseArgs({ args, options: {
     ids: { type: 'string' }, final: { type: 'boolean' }, 'dry-run': { type: 'boolean' },

@@ -38,10 +38,9 @@ Copy the output there before publishing. Keep records alongside preset changes.
 Credits and USD cost remain null when the runner does not report them. Never
 interpret null as zero or use Dreamina records as BYOK price evidence.
 
-`source.png` is an original geometric scene drawn programmatically for this
-pipeline, dedicated to the public domain under
-[CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). It contains no external
-photography. Its SHA-256 is included in every workflow identity.
+`source.jpg` was generated on Dreamina with GPT Image 2.5 Sunburst by
+`node scripts/presets/source-stills.mjs`, which records the prompt and seed.
+It contains no people, text or logos, and no external photography. Its SHA-256 is included in every workflow identity.
 
 ## Effects Gallery template
 
