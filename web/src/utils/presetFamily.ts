@@ -19,6 +19,8 @@ function taskOfMode(mode: PresetMode): string {
       return "text_to_video";
     case "image":
       return "text_to_image";
+    case "video_edit":
+      return "video_to_video";
     case "image_edit":
       return "image_to_image";
     default:

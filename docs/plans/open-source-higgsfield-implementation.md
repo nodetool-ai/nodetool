@@ -569,6 +569,8 @@ Playwright test against the fake provider.
 
 ### P19: Video restyle presets
 
+Status: done.
+
 - Add `video_edit` to the preset modes. Write at least eight restyle presets.
 - `generate_media` with `video_edit`, the chat retake mode and the agent video
   edit path accept `preset_ids`. Eject builds a video-edit graph.

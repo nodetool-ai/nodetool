@@ -1,6 +1,7 @@
 /**
  * @jest-environment node
  */
+import { buildMediaGenerationRequest } from "../../components/chat/composer/mediaGenerationRequest";
 import useMediaGenerationStore, {
   resolveImageSize,
   deriveImageSizePreset,
@@ -392,5 +393,17 @@ describe("preset selection", () => {
       video: [],
       image_to_video: ["camera.orbit"]
     });
+  });
+});
+
+describe("retake restyle request", () => {
+  it("maps retake to video_edit and sends its selected preset ids", () => {
+    const state = useMediaGenerationStore.getState();
+    expect(presetModeForMediaMode("retake")).toBe("video_edit");
+    const request = buildMediaGenerationRequest("retake", {
+      ...state, presetIds: { retake: ["effect.restyle-anime"] }
+    });
+    expect(request).toMatchObject({ mode: "retake", preset_ids: ["effect.restyle-anime"] });
+    expect(buildMediaGenerationRequest("retake", { ...state, presetIds: {} }).preset_ids).toBeUndefined();
   });
 });

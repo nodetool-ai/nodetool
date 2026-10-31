@@ -1,0 +1,22 @@
+{
+  "id": "effect.restyle-oil-painting",
+  "version": 1,
+  "kind": "effect",
+  "name": "Oil painting restyle",
+  "description": "Restyle the video as animated oil painting with visible brushstrokes, layered pigments and rich canvas texture.",
+  "tags": [
+    "restyle",
+    "oil-painting"
+  ],
+  "slot": "effect",
+  "modes": [
+    "video_edit"
+  ],
+  "inputs": [
+    "video"
+  ],
+  "stackable": false,
+  "prompt": {
+    "default": "Restyle the video as animated oil painting with visible brushstrokes, layered pigments and rich canvas texture. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+  }
+}

@@ -61,3 +61,16 @@ it("shares managed model delegation, validation and mode parameter filtering", (
     ).prompt
   ).toBe("unchanged");
 });
+
+it("compiles video restyles at the shared RPC and chat media boundary", () => {
+  const restyles = createCatalog([{
+    id: "effect.restyle-test", version: 1, kind: "effect", name: "Restyle",
+    description: "Restyle video", modes: ["video_edit"], inputs: ["video"],
+    prompt: { default: "Use watercolor." }
+  }]);
+  const result = compileMediaPresets(
+    ["effect.restyle-test"], "fake", "fake-video", "video_edit", "A dancer", restyles
+  );
+  expect(result.prompt).toBe("A dancer Use watercolor.");
+  expect(result.applied).toEqual(["effect.restyle-test"]);
+});

@@ -2140,6 +2140,182 @@
     }
   },
   {
+    "id": "effect.restyle-anime",
+    "version": 1,
+    "kind": "effect",
+    "name": "Anime restyle",
+    "description": "Restyle the video as hand-drawn anime with clean ink outlines, cel shading and painted backgrounds.",
+    "tags": [
+      "restyle",
+      "anime"
+    ],
+    "slot": "effect",
+    "modes": [
+      "video_edit"
+    ],
+    "inputs": [
+      "video"
+    ],
+    "stackable": false,
+    "prompt": {
+      "default": "Restyle the video as hand-drawn anime with clean ink outlines, cel shading and painted backgrounds. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+    }
+  },
+  {
+    "id": "effect.restyle-clay",
+    "version": 1,
+    "kind": "effect",
+    "name": "Clay animation restyle",
+    "description": "Restyle the video as clay animation with sculpted forms, tactile surfaces and soft studio lighting.",
+    "tags": [
+      "restyle",
+      "clay"
+    ],
+    "slot": "effect",
+    "modes": [
+      "video_edit"
+    ],
+    "inputs": [
+      "video"
+    ],
+    "stackable": false,
+    "prompt": {
+      "default": "Restyle the video as clay animation with sculpted forms, tactile surfaces and soft studio lighting. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+    }
+  },
+  {
+    "id": "effect.restyle-comic",
+    "version": 1,
+    "kind": "effect",
+    "name": "Comic book restyle",
+    "description": "Restyle the video as a comic book animation with bold ink contours, halftone shading and graphic color blocks.",
+    "tags": [
+      "restyle",
+      "comic"
+    ],
+    "slot": "effect",
+    "modes": [
+      "video_edit"
+    ],
+    "inputs": [
+      "video"
+    ],
+    "stackable": false,
+    "prompt": {
+      "default": "Restyle the video as a comic book animation with bold ink contours, halftone shading and graphic color blocks. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+    }
+  },
+  {
+    "id": "effect.restyle-neon",
+    "version": 1,
+    "kind": "effect",
+    "name": "Neon restyle",
+    "description": "Restyle the video with luminous neon lighting, cyan and magenta highlights, deep violet shadows and reflective surfaces.",
+    "tags": [
+      "restyle",
+      "neon"
+    ],
+    "slot": "effect",
+    "modes": [
+      "video_edit"
+    ],
+    "inputs": [
+      "video"
+    ],
+    "stackable": false,
+    "prompt": {
+      "default": "Restyle the video with luminous neon lighting, cyan and magenta highlights, deep violet shadows and reflective surfaces. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+    }
+  },
+  {
+    "id": "effect.restyle-noir",
+    "version": 1,
+    "kind": "effect",
+    "name": "Film noir restyle",
+    "description": "Restyle the video as black-and-white film noir with deep shadows, hard directional light and fine film grain.",
+    "tags": [
+      "restyle",
+      "noir"
+    ],
+    "slot": "effect",
+    "modes": [
+      "video_edit"
+    ],
+    "inputs": [
+      "video"
+    ],
+    "stackable": false,
+    "prompt": {
+      "default": "Restyle the video as black-and-white film noir with deep shadows, hard directional light and fine film grain. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+    }
+  },
+  {
+    "id": "effect.restyle-oil-painting",
+    "version": 1,
+    "kind": "effect",
+    "name": "Oil painting restyle",
+    "description": "Restyle the video as animated oil painting with visible brushstrokes, layered pigments and rich canvas texture.",
+    "tags": [
+      "restyle",
+      "oil-painting"
+    ],
+    "slot": "effect",
+    "modes": [
+      "video_edit"
+    ],
+    "inputs": [
+      "video"
+    ],
+    "stackable": false,
+    "prompt": {
+      "default": "Restyle the video as animated oil painting with visible brushstrokes, layered pigments and rich canvas texture. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+    }
+  },
+  {
+    "id": "effect.restyle-pixel",
+    "version": 1,
+    "kind": "effect",
+    "name": "Pixel art restyle",
+    "description": "Restyle the video as pixel art animation with crisp pixel edges, a limited palette and readable silhouettes.",
+    "tags": [
+      "restyle",
+      "pixel"
+    ],
+    "slot": "effect",
+    "modes": [
+      "video_edit"
+    ],
+    "inputs": [
+      "video"
+    ],
+    "stackable": false,
+    "prompt": {
+      "default": "Restyle the video as pixel art animation with crisp pixel edges, a limited palette and readable silhouettes. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+    }
+  },
+  {
+    "id": "effect.restyle-watercolor",
+    "version": 1,
+    "kind": "effect",
+    "name": "Watercolor restyle",
+    "description": "Restyle the video as watercolor animation with translucent washes, soft pigment edges and textured paper.",
+    "tags": [
+      "restyle",
+      "watercolor"
+    ],
+    "slot": "effect",
+    "modes": [
+      "video_edit"
+    ],
+    "inputs": [
+      "video"
+    ],
+    "stackable": false,
+    "prompt": {
+      "default": "Restyle the video as watercolor animation with translucent washes, soft pigment edges and textured paper. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+    }
+  },
+  {
     "id": "effect.smoke-vanish",
     "version": 1,
     "kind": "effect",

@@ -1,4 +1,5 @@
 import { cameraPresetIdsSchema } from "@nodetool-ai/protocol";
+import { compileMediaPresets, mediaPresetSettings } from "@nodetool-ai/presets";
 import { presetCatalog } from "./presets.js";
 import { finishStoryboard, layoutStoryboard, previewStoryboardDesign } from "./finish-storyboard.js";
 /**
@@ -1094,6 +1095,7 @@ const reviseStoryboardClip: CapabilityExport = {
 
     const { loadMediaRefBytes } = await import("@nodetool-ai/runtime");
     try {
+      const compiled = compileMediaPresets(params["preset_ids"], model.provider, model.model, "video_edit", instruction, presetCatalog());
       const source = await loadMediaRefBytes(shot.clip, context);
       if (!source || source.length === 0) {
         return {
@@ -1111,7 +1113,7 @@ const reviseStoryboardClip: CapabilityExport = {
           provider: model.provider,
           capability: "video_to_video",
           model: model.model,
-          params: { video: source, prompt: instruction }
+          params: { ...mediaPresetSettings(compiled, "video_edit"), video: source, prompt: compiled.prompt }
         },
         `shot-${shot.index + 1}-revision`,
         "video/mp4"

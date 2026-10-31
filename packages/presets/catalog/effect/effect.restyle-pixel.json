@@ -1,0 +1,22 @@
+{
+  "id": "effect.restyle-pixel",
+  "version": 1,
+  "kind": "effect",
+  "name": "Pixel art restyle",
+  "description": "Restyle the video as pixel art animation with crisp pixel edges, a limited palette and readable silhouettes.",
+  "tags": [
+    "restyle",
+    "pixel"
+  ],
+  "slot": "effect",
+  "modes": [
+    "video_edit"
+  ],
+  "inputs": [
+    "video"
+  ],
+  "stackable": false,
+  "prompt": {
+    "default": "Restyle the video as pixel art animation with crisp pixel edges, a limited palette and readable silhouettes. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+  }
+}

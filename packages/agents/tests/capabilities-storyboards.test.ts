@@ -901,6 +901,21 @@ describe("storyboards capability behaviour", () => {
     expect(context.runProviderPrediction).not.toHaveBeenCalled();
   });
 
+  it("compiles restyle preset ids for a video revision", async () => {
+    const board = await makeBoard([renderedShot("s1", 0)]);
+    const context = ctx();
+    context.resolveAssetBytes = vi.fn(async () => ({ bytes: MP4, attempts: [] }));
+    const result = await run(context).invoke("revise_storyboard_clip", {
+      storyboard_id: board.id, target: "s1", instruction: "A dancer",
+      preset_ids: ["effect.restyle-anime"]
+    });
+    expect(result).not.toHaveProperty("error");
+    expect(context.runProviderPrediction).toHaveBeenCalledWith(expect.objectContaining({
+      capability: "video_to_video",
+      params: expect.objectContaining({ prompt: expect.stringContaining("hand-drawn anime") })
+    }));
+  });
+
   it("refuses to revise a shot with no clip", async () => {
     const board = await makeBoard([shot({ id: "s1", index: 0 })]);
     const result = (await run(ctx()).invoke("revise_storyboard_clip", {

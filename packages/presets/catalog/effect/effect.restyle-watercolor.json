@@ -1,0 +1,22 @@
+{
+  "id": "effect.restyle-watercolor",
+  "version": 1,
+  "kind": "effect",
+  "name": "Watercolor restyle",
+  "description": "Restyle the video as watercolor animation with translucent washes, soft pigment edges and textured paper.",
+  "tags": [
+    "restyle",
+    "watercolor"
+  ],
+  "slot": "effect",
+  "modes": [
+    "video_edit"
+  ],
+  "inputs": [
+    "video"
+  ],
+  "stackable": false,
+  "prompt": {
+    "default": "Restyle the video as watercolor animation with translucent washes, soft pigment edges and textured paper. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+  }
+}

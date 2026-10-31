@@ -28,7 +28,8 @@ const GENERATORS = {
   image_to_video: "nodetool.video.ImageToVideo",
   reference_to_video: "nodetool.video.ReferenceToVideo",
   image: "nodetool.image.TextToImage",
-  image_edit: "nodetool.image.ImageToImage"
+  image_edit: "nodetool.image.ImageToImage",
+  video_edit: "nodetool.video.VideoToVideo"
 } as const;
 
 /** Eject one preset into an editable graph using the shared server compiler. */
@@ -64,12 +65,12 @@ export function presetToWorkflow(preset: Preset, options: EjectOptions): PresetW
       edges.push({ id: "image-generate", source: "image", sourceHandle: "output", target: "generate", targetHandle: options.mode === "reference_to_video" ? "reference_images" : "image" });
     }
   }
-  if (preset.inputs.includes("video")) {
-    if (options.mode !== "reference_to_video") {
-      throw new Error(`Video inputs require reference_to_video mode: ${preset.id}`);
+  if (preset.inputs.includes("video") || options.mode === "video_edit") {
+    if (options.mode !== "reference_to_video" && options.mode !== "video_edit") {
+      throw new Error(`Video inputs require reference_to_video or video_edit mode: ${preset.id}`);
     }
     nodes.push({ id: "video", type: "nodetool.input.VideoInput", data: { name: "video" }, position: { x: 80, y: 560 } });
-    edges.push({ id: "video-generate", source: "video", sourceHandle: "output", target: "generate", targetHandle: "reference_videos" });
+    edges.push({ id: "video-generate", source: "video", sourceHandle: "output", target: "generate", targetHandle: options.mode === "video_edit" ? "video" : "reference_videos" });
   }
   return { nodes, edges };
 }

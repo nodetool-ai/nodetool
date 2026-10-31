@@ -24,7 +24,7 @@ const catalog = loadCatalog(() =>
 
 describe("effects catalogue", () => {
   it("has 20 effects that take an image and exclude identity effects", () => {
-    const effects = catalog.filter({ kind: "effect" });
+    const effects = catalog.filter({ kind: "effect" }).filter(preset => preset.inputs.includes("image"));
     expect(effects).toHaveLength(20);
     for (const effect of effects) {
       expect(effect.inputs, effect.id).toEqual(["image"]);

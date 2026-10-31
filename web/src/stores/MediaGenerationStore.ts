@@ -83,7 +83,8 @@ export const PRESET_MODE_FOR_MEDIA_MODE = {
   image_edit: "image_edit",
   video: "video",
   image_to_video: "image_to_video",
-  reference_to_video: "reference_to_video"
+  reference_to_video: "reference_to_video",
+  retake: "video_edit"
 } as const satisfies Partial<Record<MediaMode, PresetMode>>;
 
 export type PresetMediaMode = keyof typeof PRESET_MODE_FOR_MEDIA_MODE;

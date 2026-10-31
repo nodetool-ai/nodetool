@@ -22,6 +22,7 @@ export function compileMediaPresets(
   switch (mode) {
     case "image":
     case "image_edit":
+    case "video_edit":
     case "video":
     case "image_to_video":
     case "reference_to_video":
@@ -37,7 +38,7 @@ export function compileMediaPresets(
         ? "image_to_image"
         : presetMode === "image"
           ? "text_to_image"
-          : presetMode;
+          : presetMode === "video_edit" ? "video_to_video" : presetMode;
   const modelId =
     provider === "nodetool"
       ? (resolveNodetoolDelegate(model, task)?.model ?? model)

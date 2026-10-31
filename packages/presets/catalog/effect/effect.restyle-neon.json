@@ -1,0 +1,22 @@
+{
+  "id": "effect.restyle-neon",
+  "version": 1,
+  "kind": "effect",
+  "name": "Neon restyle",
+  "description": "Restyle the video with luminous neon lighting, cyan and magenta highlights, deep violet shadows and reflective surfaces.",
+  "tags": [
+    "restyle",
+    "neon"
+  ],
+  "slot": "effect",
+  "modes": [
+    "video_edit"
+  ],
+  "inputs": [
+    "video"
+  ],
+  "stackable": false,
+  "prompt": {
+    "default": "Restyle the video with luminous neon lighting, cyan and magenta highlights, deep violet shadows and reflective surfaces. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+  }
+}

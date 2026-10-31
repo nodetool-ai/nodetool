@@ -19217,6 +19217,38 @@
         "name": "Petal burst",
         "description": "Animates the subject to burst into a cloud of velvet botanical petals."
       },
+      "restyle-anime": {
+        "name": "Anime restyle",
+        "description": "Restyle the video as hand-drawn anime with clean ink outlines, cel shading and painted backgrounds."
+      },
+      "restyle-clay": {
+        "name": "Clay animation restyle",
+        "description": "Restyle the video as clay animation with sculpted forms, tactile surfaces and soft studio lighting."
+      },
+      "restyle-comic": {
+        "name": "Comic book restyle",
+        "description": "Restyle the video as a comic book animation with bold ink contours, halftone shading and graphic color blocks."
+      },
+      "restyle-neon": {
+        "name": "Neon restyle",
+        "description": "Restyle the video with luminous neon lighting, cyan and magenta highlights, deep violet shadows and reflective surfaces."
+      },
+      "restyle-noir": {
+        "name": "Film noir restyle",
+        "description": "Restyle the video as black-and-white film noir with deep shadows, hard directional light and fine film grain."
+      },
+      "restyle-oil-painting": {
+        "name": "Oil painting restyle",
+        "description": "Restyle the video as animated oil painting with visible brushstrokes, layered pigments and rich canvas texture."
+      },
+      "restyle-pixel": {
+        "name": "Pixel art restyle",
+        "description": "Restyle the video as pixel art animation with crisp pixel edges, a limited palette and readable silhouettes."
+      },
+      "restyle-watercolor": {
+        "name": "Watercolor restyle",
+        "description": "Restyle the video as watercolor animation with translucent washes, soft pigment edges and textured paper."
+      },
       "smoke-vanish": {
         "name": "Smoke vanish",
         "description": "Animates the subject to dissolve into drifting smoke and vanish."

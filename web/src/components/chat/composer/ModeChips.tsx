@@ -553,19 +553,22 @@ function RetakeModeChips({ openModelPickerRef }: ClusterProps) {
   const addRecentModel = useModelPreferencesStore((s) => s.addRecent);
 
   return (
-    <ModelChip
-      openRef={openModelPickerRef}
-      icon={<ReplayIcon fontSize="small" />}
-      label={params.model?.name || t("i18n-next54.composer.selectRetakeModel")}
-      picker={{
-        kind: "video",
-        task: "video_to_video",
-        onPick: (model) => {
-          setParams({ model: videoModelSelection(model) });
-          addRecentModel(recentModelEntry(model));
-        }
-      }}
-    />
+    <>
+      <ModelChip
+        openRef={openModelPickerRef}
+        icon={<ReplayIcon fontSize="small" />}
+        label={params.model?.name || t("i18n-next54.composer.selectRetakeModel")}
+        picker={{
+          kind: "video",
+          task: "video_to_video",
+          onPick: (model) => {
+            setParams({ model: videoModelSelection(model) });
+            addRecentModel(recentModelEntry(model));
+          }
+        }}
+      />
+      <ModePresetChip mode="retake" model={params.model} />
+    </>
   );
 }
 

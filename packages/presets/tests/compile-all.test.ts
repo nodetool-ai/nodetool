@@ -9,6 +9,12 @@ describe("preset compilation selfcheck", () => {
       )
     );
     expect(catalog.presets.length).toBeGreaterThan(0);
+    const restyles = catalog.filter({ mode: "video_edit" });
+    expect(restyles.length).toBeGreaterThanOrEqual(8);
+    for (const restyle of restyles) {
+      expect(restyle.kind).toBe("effect");
+      expect(restyle.inputs).toEqual(["video"]);
+    }
     const models = [
       "kling-v3",
       "seedance-2",
