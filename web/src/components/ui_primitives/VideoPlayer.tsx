@@ -199,6 +199,12 @@ export interface VideoPlayerProps {
    */
   hoverControls?: boolean;
   /**
+   * Render the video with no controls and no click-to-toggle, for a looping
+   * preview inside a tile that owns the pointer and keyboard. Pair with
+   * `autoplay`, `loop` and `muted`.
+   */
+  bare?: boolean;
+  /**
    * Park the player at this time, in seconds: once the media has loaded and
    * again whenever the value changes. A timeline's match frame uses it.
    */
@@ -217,6 +223,7 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
   label,
   prominentPlay = false,
   hoverControls = false,
+  bare = false,
   seekToSeconds,
   className
 }) => {
@@ -383,9 +390,9 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
         onPause={handlePause}
         onLoadedMetadata={handleLoadedMetadata}
         onTimeUpdate={handleVideoTimeUpdate}
-        onClick={handleTogglePlay}
+        onClick={bare ? undefined : handleTogglePlay}
       />
-      {prominentPlay && !isPlaying && (
+      {prominentPlay && !bare && !isPlaying && (
         <IconButton
           aria-label={t("i18n-next86.videoPlayer.playClip")}
           onClick={handleTogglePlay}
@@ -414,51 +421,53 @@ const ResolvedVideoPlayer: React.FC<Omit<VideoPlayerProps, "locator">> = ({
           <PlayArrowIcon />
         </IconButton>
       )}
-      <div className="controls">
-        <IconButton
-          className="play-button"
-          size="small"
-          onClick={handleTogglePlay}
-          aria-label={isPlaying ? t("i18n-next86.videoPlayer.pause") : t("i18n-next86.videoPlayer.play")}
-        >
-          {isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
-        </IconButton>
-        <input
-          type="range"
-          className="seek"
-          min={0}
-          max={duration || 0}
-          step={0.05}
-          value={currentTime}
-          onChange={handleSeek}
-          aria-label={t("i18n-next86.videoPlayer.seek")}
-        />
-        <span className="timestamp">
-          {formatTime(currentTime)} / {formatTime(duration)}
-        </span>
-        <select
-          className="speed-select"
-          value={speed}
-          onChange={handleSpeedChange}
-          aria-label={t("i18n-next86.videoPlayer.playbackSpeed")}
-        >
-          {SPEED_OPTIONS.map((s) => (
-            <option key={s} value={s}>
-              {s}×
-            </option>
-          ))}
-        </select>
-        {fullscreenAvailable && (
+      {!bare && (
+        <div className="controls">
           <IconButton
-            className="fullscreen-button"
+            className="play-button"
             size="small"
-            onClick={handleToggleFullscreen}
-            aria-label={isFullscreen ? t("i18n-next86.videoPlayer.exitFullscreen") : t("i18n-next86.videoPlayer.enterFullscreen")}
+            onClick={handleTogglePlay}
+            aria-label={isPlaying ? t("i18n-next86.videoPlayer.pause") : t("i18n-next86.videoPlayer.play")}
           >
-            {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+            {isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
           </IconButton>
-        )}
-      </div>
+          <input
+            type="range"
+            className="seek"
+            min={0}
+            max={duration || 0}
+            step={0.05}
+            value={currentTime}
+            onChange={handleSeek}
+            aria-label={t("i18n-next86.videoPlayer.seek")}
+          />
+          <span className="timestamp">
+            {formatTime(currentTime)} / {formatTime(duration)}
+          </span>
+          <select
+            className="speed-select"
+            value={speed}
+            onChange={handleSpeedChange}
+            aria-label={t("i18n-next86.videoPlayer.playbackSpeed")}
+          >
+            {SPEED_OPTIONS.map((s) => (
+              <option key={s} value={s}>
+                {s}×
+              </option>
+            ))}
+          </select>
+          {fullscreenAvailable && (
+            <IconButton
+              className="fullscreen-button"
+              size="small"
+              onClick={handleToggleFullscreen}
+              aria-label={isFullscreen ? t("i18n-next86.videoPlayer.exitFullscreen") : t("i18n-next86.videoPlayer.enterFullscreen")}
+            >
+              {isFullscreen ? <FullscreenExitIcon /> : <FullscreenIcon />}
+            </IconButton>
+          )}
+        </div>
+      )}
     </div>
   );
 };

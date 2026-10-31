@@ -18944,5 +18944,194 @@
     "referenceAlt": "Reference {{index}}",
     "sketchTitle": "Sketch",
     "audio": "Audio"
+  },
+  "preset_picker": {
+    "searchPlaceholder": "Search presets",
+    "searchLabel": "Search presets",
+    "kindLabel": "Preset kind",
+    "allKinds": "All",
+    "kind": {
+      "camera": "Camera",
+      "look": "Look",
+      "effect": "Effect",
+      "studio": "Studio"
+    },
+    "tagsLabel": "Tags",
+    "listLabel": "Presets",
+    "selectedLabel": "Selected presets",
+    "selectedCount": "{{count}} of {{max}} selected",
+    "remove": "Remove {{name}}",
+    "clearFilters": "Clear filters",
+    "reason": {
+      "limit": "You can combine up to {{max}} presets.",
+      "mode": "{{name}} is not available for this kind of generation.",
+      "notStackable": "{{name}} cannot be combined with other presets.",
+      "slot": "{{name}} already covers the same slot.",
+      "conflict": "Conflicts with {{name}}."
+    }
+  },
+  "preset_catalog": {
+    "camera": {
+      "arc": {
+        "name": "arc",
+        "description": "Camera travels through a gentle quarter-circle around the subject at constant height."
+      },
+      "bullet-time": {
+        "name": "bullet time",
+        "description": "Camera arcs around the subject while the action hangs nearly frozen in time."
+      },
+      "crane-down": {
+        "name": "crane down",
+        "description": "Camera cranes downward and tilts up to keep the subject framed."
+      },
+      "crane-up": {
+        "name": "crane up",
+        "description": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear."
+      },
+      "crash-zoom-in": {
+        "name": "crash zoom in",
+        "description": "Lens zooms rapidly into the subject from a fixed camera position."
+      },
+      "crash-zoom-out": {
+        "name": "crash zoom out",
+        "description": "Lens zooms rapidly out from the subject from a fixed camera position."
+      },
+      "dolly-in": {
+        "name": "dolly in",
+        "description": "Camera dollies smoothly toward the subject with visible depth change."
+      },
+      "dolly-out": {
+        "name": "dolly out",
+        "description": "Camera dollies smoothly away from the subject with visible depth change."
+      },
+      "dolly-zoom": {
+        "name": "dolly zoom (vertigo)",
+        "description": "Camera dollies backward while zooming in, holding subject size as the background expands."
+      },
+      "dutch-roll": {
+        "name": "dutch roll",
+        "description": "Camera rolls gradually around its optical axis, tilting the horizon."
+      },
+      "fpv-drone-fly-through": {
+        "name": "FPV drone fly-through",
+        "description": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path."
+      },
+      "handheld": {
+        "name": "handheld",
+        "description": "Camera has gentle irregular handheld sway."
+      },
+      "handheld-follow": {
+        "name": "handheld follow",
+        "description": "Camera follows behind the moving subject with subtle handheld sway."
+      },
+      "low-angle-hero-rise": {
+        "name": "low-angle hero rise",
+        "description": "Camera rises from ground level toward a low-angle view of the subject."
+      },
+      "orbit": {
+        "name": "orbit",
+        "description": "Camera completes a full circle around the subject at a steady distance."
+      },
+      "orbit-left": {
+        "name": "orbit left",
+        "description": "Camera arcs left around the subject at a steady distance."
+      },
+      "orbit-right": {
+        "name": "orbit right",
+        "description": "Camera arcs right around the subject at a steady distance."
+      },
+      "overhead-spiral": {
+        "name": "overhead spiral",
+        "description": "Camera ascends in a widening spiral while looking down at the subject."
+      },
+      "pan-left": {
+        "name": "pan left",
+        "description": "Camera pans left from a fixed position."
+      },
+      "pan-right": {
+        "name": "pan right",
+        "description": "Camera pans right from a fixed position."
+      },
+      "parallax-slide": {
+        "name": "parallax slide",
+        "description": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly."
+      },
+      "pedestal-down": {
+        "name": "pedestal down",
+        "description": "Camera lowers vertically without tilting."
+      },
+      "pedestal-up": {
+        "name": "pedestal up",
+        "description": "Camera rises vertically without tilting."
+      },
+      "pull-back-reveal": {
+        "name": "pull back reveal",
+        "description": "Camera pulls back from a close view to reveal the surroundings."
+      },
+      "rack-focus": {
+        "name": "rack focus",
+        "description": "Focus shifts smoothly from foreground to background with fixed framing."
+      },
+      "slow-pull-out": {
+        "name": "slow pull out",
+        "description": "Camera slowly pulls away from the subject."
+      },
+      "snorricam": {
+        "name": "snorricam",
+        "description": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts."
+      },
+      "speed-ramp": {
+        "name": "speed ramp",
+        "description": "Motion accelerates from normal speed into a rapid burst then eases into slow motion."
+      },
+      "static": {
+        "name": "static",
+        "description": "Camera locked off with fixed framing."
+      },
+      "steadicam": {
+        "name": "steadicam",
+        "description": "Camera is stabilized on a Steadicam with smooth floating motion."
+      },
+      "through-object-pass": {
+        "name": "through-object pass",
+        "description": "Camera advances through an opening in the foreground object to reveal the subject beyond."
+      },
+      "tilt-down": {
+        "name": "tilt down",
+        "description": "Camera tilts downward from a fixed position."
+      },
+      "tilt-up": {
+        "name": "tilt up",
+        "description": "Camera tilts upward from a fixed position."
+      },
+      "top-down-rise": {
+        "name": "top-down rise",
+        "description": "Camera rises straight upward while looking vertically down, widening the view."
+      },
+      "tracking": {
+        "name": "tracking",
+        "description": "Camera tracks alongside the moving subject at matching speed."
+      },
+      "truck-left": {
+        "name": "truck left",
+        "description": "Camera translates left parallel to the subject."
+      },
+      "truck-right": {
+        "name": "truck right",
+        "description": "Camera translates right parallel to the subject."
+      },
+      "whip-pan": {
+        "name": "whip pan",
+        "description": "Camera pans rapidly sideways with directional motion blur, then settles."
+      },
+      "zoom-in": {
+        "name": "zoom in",
+        "description": "Lens zooms in from a fixed camera position."
+      },
+      "zoom-out": {
+        "name": "zoom out",
+        "description": "Lens zooms out from a fixed camera position."
+      }
+    }
   }
 }

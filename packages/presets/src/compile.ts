@@ -1,6 +1,7 @@
 import type { Catalog } from "./catalog.js";
 import { modelFamily } from "./families.js";
 import type { Preset, PresetMode } from "./schema.js";
+import { MAX_PRESET_STACK, presetPairBlock } from "./stack.js";
 
 export interface CompileOptions {
   modelId: string;
@@ -17,7 +18,7 @@ export interface CompiledPresets {
 
 /** Compile a validated stack in request order, rejecting incompatible presets. */
 export function compilePresets(ids: readonly string[], options: CompileOptions): CompiledPresets {
-  if (ids.length > 3) { throw new Error("At most three presets can be applied"); }
+  if (ids.length > MAX_PRESET_STACK) { throw new Error("At most three presets can be applied"); }
   const presets = ids.map((id) => {
     const preset = options.catalog.getPreset(id);
     if (!preset) { throw new Error(`Unknown preset: ${id}`); }
@@ -30,9 +31,7 @@ export function compilePresets(ids: readonly string[], options: CompileOptions):
     for (let j = i + 1; j < presets.length; j++) {
       const a = presets[i];
       const b = presets[j];
-      if (!a.stackable || !b.stackable || a.id === b.id ||
-          (a.slot && a.slot === b.slot) ||
-          a.conflicts.includes(b.id) || b.conflicts.includes(a.id)) {
+      if (presetPairBlock(a, b)) {
         throw new Error(`Presets ${a.id} and ${b.id} cannot combine`);
       }
     }
