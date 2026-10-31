@@ -1,0 +1,116 @@
+{
+  "engine": "native-cpp-1",
+  "schemaVersion": 4,
+  "dimension": "3d",
+  "id": "bsdf-mixed-metal",
+  "title": "Normal map regression",
+  "initialSceneId": "scene",
+  "camera": {
+    "position": [
+      0,
+      0,
+      5
+    ],
+    "target": [
+      0,
+      0,
+      0
+    ],
+    "fov": 50,
+    "near": 0.03,
+    "far": 30
+  },
+  "assets": [
+    {
+      "id": "normal",
+      "kind": "model",
+      "path": "mixed-metal.glb",
+      "size": 1216,
+      "digest": "9c43e11a8ca08934ab35d7607c1972739963e7e69830d350334b9b54bc61c564",
+      "dependencies": []
+    }
+  ],
+  "scenes": [
+    {
+      "id": "scene",
+      "name": "Scene",
+      "environment": {
+        "background": "#000000",
+        "ambient": {
+          "color": "#ffffff",
+          "intensity": 0
+        },
+        "shadows": {
+          "enabled": false,
+          "mapSize": 512,
+          "extent": 10
+        },
+        "sky": {
+          "kind": "procedural",
+          "intensity": 0.7,
+          "sunEntityId": "sun"
+        },
+        "postProcessing": {
+          "enabled": true,
+          "toneMapping": "agx",
+          "antialias": "smaa",
+          "exposure": 1
+        }
+      },
+      "entities": [
+        {
+          "id": "surface",
+          "visual": {
+            "kind": "model",
+            "assetId": "normal"
+          },
+          "transform": {
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "rotation": [
+              0,
+              0,
+              0,
+              1
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          }
+        },
+        {
+          "id": "sun",
+          "light3d": {
+            "kind": "directional",
+            "color": "#ffffff",
+            "intensity": 0,
+            "castShadow": false
+          },
+          "transform": {
+            "position": [
+              0,
+              0,
+              0
+            ],
+            "rotation": [
+              -0.7071067811865476,
+              0,
+              0,
+              0.7071067811865476
+            ],
+            "scale": [
+              1,
+              1,
+              1
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

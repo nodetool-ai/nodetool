@@ -35,6 +35,7 @@ import { memoriesRouter } from "./routers/memories.js";
 import { errorTracesRouter } from "./routers/error-traces.js";
 import { bugReportsRouter } from "./routers/bug-reports.js";
 import { sketchRouter } from "./routers/sketch.js";
+import { nativeGamesRouter } from "./routers/nativeGames.js";
 import { gamesRouter } from "./routers/games.js";
 import { storyboardsRouter } from "./routers/storyboards.js";
 import { skillsRouter } from "./routers/skills.js";
@@ -67,6 +68,7 @@ type AppRouterRecord = {
   files: typeof filesRouter;
   fonts: typeof fontsRouter;
   games: typeof gamesRouter;
+  nativeGames: typeof nativeGamesRouter;
   integrations: typeof integrationsRouter;
   generations: typeof generationsRouter;
   jobs: typeof jobsRouter;
@@ -119,6 +121,7 @@ export const appRouter: ReturnType<typeof router<AppRouterRecord>> = router({
   files: filesRouter,
   fonts: fontsRouter,
   games: gamesRouter,
+  nativeGames: nativeGamesRouter,
   integrations: integrationsRouter,
   generations: generationsRouter,
   jobs: jobsRouter,

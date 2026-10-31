@@ -74,6 +74,7 @@ Guidelines](docs/BRAND.md).
 - **[Testing](web/TESTING.md)** — Web testing guide (Jest, React Testing Library, Playwright)
 - **[Native chat](native/chat/AGENTS.md)** — Qt Quick chat component and standalone app
 - **[Electron](electron/src/AGENTS.md)** — Desktop app
+- **[Native Game](native/game/AGENTS.md)** — C++ game documents and worker
 - **[Mobile](mobile/AGENTS.md)** — React Native / Expo app
 - **[Scripts](scripts/AGENTS.md)** — Build and release scripts
 - **[Marketing site](marketing/AGENTS.md)** — Recipe pages, production media, generated catalog data, and media verification

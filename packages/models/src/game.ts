@@ -176,6 +176,7 @@ export class Game extends DBModel {
     workspaceId: string;
     name: string;
     revision: string;
+    draftVersionId?: string;
   }): Promise<Game | null> {
     const game = new Game({
       id: data.id,
@@ -183,7 +184,8 @@ export class Game extends DBModel {
       project_id: data.projectId,
       workspace_id: data.workspaceId,
       name: data.name,
-      current_revision: data.revision
+      current_revision: data.revision,
+      draft_version_id: data.draftVersionId ?? ""
     });
     const rows = await getPortableDb()
       .insert(games)

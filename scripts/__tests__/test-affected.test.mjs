@@ -30,6 +30,90 @@ const plan = (files) => buildPlan(files, PACKAGES, computeAffected);
 const labels = (files) => plan(files).steps.map((s) => s.label);
 
 describe("buildPlan", () => {
+  it("selects the native GUI isolation check without requiring a Qt build", () => {
+    const result = plan(["scripts/__tests__/native-game-wrapper.test.mjs"]);
+    expect(result.globalFiles).toEqual([]);
+    expect(result.steps.map((step) => step.label)).toEqual(["native game GUI isolation"]);
+  });
+  it("selects root export admission tests for the workspace-owned native exporter", () => {
+    const packages = [...PACKAGES, { name: "@nodetool-ai/game-runtime", dir: "packages/game-runtime", internalDeps: [] }];
+    const result = buildPlan(["packages/game-runtime/scripts/native-game-export.mjs"], packages, computeAffected);
+    expect(result.globalFiles).toEqual([]);
+    expect(result.steps.map((step) => step.label)).toContain("native game delivery: staging regressions");
+  });
+  it("selects browser static export checks for native presentation changes", () => {
+    const packages = [...PACKAGES, { name: "@nodetool-ai/game-renderer", dir: "packages/game-renderer", internalDeps: [] }];
+    const result = buildPlan(["packages/game-renderer/src/native-cpp/player.ts"], packages, computeAffected);
+    expect(result.globalFiles).toEqual([]);
+    expect(result.steps.map((step) => step.label)).toContain("native game browser: installed static export");
+  });
+  it("selects browser semantic export checks for the installed exporter", () => {
+    const packages = [...PACKAGES, { name: "@nodetool-ai/game-runtime", dir: "packages/game-runtime", internalDeps: [] }];
+    const result = buildPlan(["packages/game-runtime/scripts/native-game-web-export.mjs"], packages, computeAffected);
+    expect(result.globalFiles).toEqual([]);
+    expect(result.steps.map((step) => step.label)).toContain("native game browser: installed static export");
+  });
+  it.each([
+    ["native/game/src/editor/EditorController.cpp", "native game editor: transactions and UI"],
+    ["scripts/check-native-game-editor.mjs", "native game editor: transactions and UI"],
+    ["native/game/cmake/Delivery.cmake", "native game delivery: standalone install"],
+    ["scripts/check-native-game-delivery.mjs", "native game delivery: standalone install"],
+    ["native/game/src/bench/Main.cpp", "native game bench: workload measurements"],
+    ["scripts/check-native-game-bench.mjs", "native game bench: workload measurements"],
+    ["scripts/check-native-game-service.mjs", "native game service: authoring loop"],
+    ["scripts/check-native-game-browser.mjs", "native game browser: installed static export"],
+    ["native/game/tests/player2d_live_input_test.py", "native game player: build and capture"],
+    ["native/game/tests/PostFXTest.cpp", "native game player: build and capture"],
+    ["native/game/tests/Sky3DTest.cpp", "native game player: build and capture"],
+    ["native/game/tests/Decals3DTest.cpp", "native game player: build and capture"],
+    ["native/game/tests/Hud3DTest.cpp", "native game player: build and capture"],
+    ["native/game/tests/Effects3DTest.cpp", "native game player: build and capture"],
+    ["native/game/tests/ParticleMeshLifetimeTest.cpp", "native game player: build and capture"],
+    ["native/game/tests/RenderProbe.cpp", "native game player: build and capture"],
+    ["native/game/tests/MaterialRenderTest.cpp", "native game player: build and capture"],
+    ["native/game/tests/PlayerInputTest.cpp", "native game player: build and capture"],
+    ["native/game/tests/player3d_material_test.py", "native game player: build and capture"],
+    ["native/game/tests/player_camera_test.py", "native game player: build and capture"],
+    ["native/game/tests/player_camera_input_test.py", "native game player: build and capture"],
+    ["native/game/tests/render_probe_test.py", "native game player: build and capture"],
+    ["native/game/assets/native-smaa-area.png", "native game browser: installed static export"],
+    ["scripts/lib/stage-package-assets.mjs", "native game delivery: staging regressions"]
+  ])("maps %s to its native verification", (file, label) => {
+    expect(plan([file]).globalFiles).toEqual([]);
+    expect(labels([file])).toContain(label);
+  });
+  it.each(["native-bsdf-reference/ambient.json", "native-normal-reference/front-y.glb", "nativeBsdfReference.mjs", "nativeNormalReference.mjs"])("selects player checks for renderer reference fixture %s", (fixture) => {
+    const packages = [...PACKAGES, {name:"@nodetool-ai/game-renderer",dir:"packages/game-renderer",internalDeps:[]}];
+    const result=buildPlan([`packages/game-renderer/tests/fixtures/${fixture}`],packages,computeAffected);
+    expect(result.steps.map(step=>step.label)).toContain("native game player: build and capture");
+  });
+  it.each(["@nodetool-ai/game-runtime", "@nodetool-ai/agents", "@nodetool-ai/cli-game"])("builds the native worker before %s integration tests", (name) => {
+    const dir = `packages/${name.split("/")[1]}`;
+    const packages = [...PACKAGES, { name, dir, internalDeps: [] }];
+    const result = buildPlan([`${dir}/src/probe.ts`], packages, computeAffected);
+    expect(result.steps[0].label).toBe("native game: build and CTest");
+  });
+  it.each(["native/game/src/render/Viewport.cpp", "native/game/src/assets/Manifest.cpp", "scripts/check-native-game-player.mjs"])("verifies the native player for %s", (file) => {
+    expect(plan([file]).globalFiles).toEqual([]);
+    expect(labels([file])).toContain("native game player: build and capture");
+  });
+  it("builds the worker before websocket integration tests", () => {
+    const packages = [...PACKAGES, { name: "@nodetool-ai/websocket", dir: "packages/websocket", internalDeps: ["@nodetool-ai/protocol"] }];
+    const result = buildPlan(["packages/websocket/src/lib/native-game-worker.ts"], packages, computeAffected);
+    expect(result.steps[0].label).toBe("native game: build and CTest");
+    expect(result.steps[1].args).toContain("--filter=@nodetool-ai/websocket");
+  });
+  it("builds the native contract before protocol package tests", () => {
+    expect(plan(["packages/protocol/src/native-game.ts"]).steps[0].label).toBe("native game: build and CTest");
+  });
+
+  it.each(["native/game/src/document/Document.cpp", "native/game/CMakeLists.txt", "scripts/check-native-game.mjs"])("builds and tests the native game for %s", (file) => {
+    expect(plan([file]).globalFiles).toEqual([]);
+    expect(plan([file]).steps).toEqual([
+      { label: "native game: build and CTest", command: "node", args: ["scripts/check-native-game.mjs"] }
+    ]);
+  });
+
   describe("shared pack catalog inputs", () => {
     const graph = [
       { name: "@nodetool-ai/pack-core", dir: "packages/pack-core", internalDeps: [] },
@@ -92,7 +176,7 @@ describe("buildPlan", () => {
       "scripts/__tests__/desktop-release-recovery.test.mjs"
     ])).toEqual(["script regressions", "backend:smoke"]);
     expect(labels(["scripts/unknown-release-utility.mjs"])).toEqual([
-      "packages", "web", "electron", "mobile"
+      "native game: build and CTest", "packages", "web", "electron", "mobile"
     ]);
   });
 
@@ -165,6 +249,7 @@ describe("buildPlan", () => {
     const { steps, globalFiles } = plan(["package.json"]);
     expect(globalFiles).toEqual(["package.json"]);
     expect(steps.map((s) => s.label)).toEqual([
+      "native game: build and CTest",
       "packages",
       "web",
       "electron",
@@ -270,7 +355,7 @@ describe("buildPlan", () => {
       "turbo.json"
     ]);
     expect(globalFiles).toEqual(["turbo.json"]);
-    expect(steps.map((s) => s.label)).toEqual(["packages", "web", "electron", "mobile"]);
+    expect(steps.map((s) => s.label)).toEqual(["native game: build and CTest", "packages", "web", "electron", "mobile"]);
   });
 
   it("runs nothing from the root for the marketing site, which has its own CI", () => {

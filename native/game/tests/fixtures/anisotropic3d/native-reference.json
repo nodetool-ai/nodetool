@@ -1,0 +1,11 @@
+{
+  "source": "actual Three0.185.1 GLTFLoader geometry/materials in native scene environment and AgX/SMAA pipeline",
+  "width": 256,
+  "height": 256,
+  "meanAbsoluteTolerance": 0.00392156862745098,
+  "sha256": {
+    "game.json": "32380945ff0d0df2d6e9e72f8d7acd7cd6011bdfb1e71ad5cf09bf182b8ecc81",
+    "grazing.glb": "c3cd0a1e17c1cc0051e9aed663d0aca56c0e14270be44dcb01d9b44debcccc81",
+    "legacy-reference.png": "5a4a1cfa56c817882c21de5b7baafe62d5ab74e701e22c8ba91829ffe7e36e90"
+  }
+}

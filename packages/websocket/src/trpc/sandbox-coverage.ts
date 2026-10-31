@@ -1072,6 +1072,11 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "games.restoreDraft": {
     gap: "Restoring a revision to the draft is an editor action; the agent has no whole-revision restore capability."
   },
+  "nativeGames.create": { capability: "native_cpp_game_create" },
+  "nativeGames.get": { capability: "native_cpp_game_get" },
+  "nativeGames.save": {
+    elsewhere: "native_cpp_game_edit validates typed document operations and saves the resulting draft with revision CAS. Sandboxed code uses that operation instead of replacing a native document directly."
+  },
   "games.saveDraft": { capability: "edit_native_game" },
   "games.saveDraftDocument": {
     elsewhere: "The editor saves a whole document only when its op batch is rejected or too large; edit_native_game saves agent edits as ops."

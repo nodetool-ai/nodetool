@@ -1,0 +1,57 @@
+{
+  "environment": {
+    "background": "#0b1018",
+    "ambient": {
+      "color": "#8aa2b8",
+      "intensity": 0.22
+    },
+    "fog": {
+      "kind": "height",
+      "color": "#11161d",
+      "density": 0.012,
+      "baseHeight": 0,
+      "heightFalloff": 0.3,
+      "maxOpacity": 0.55
+    },
+    "shadows": {
+      "enabled": true,
+      "mapSize": 2048,
+      "extent": 32,
+      "cascades": {
+        "count": 3,
+        "split": 0.6,
+        "maxDistance": 70
+      }
+    },
+    "sky": {
+      "kind": "procedural",
+      "sunEntityId": "horizon-sun",
+      "turbidity": 6,
+      "rayleigh": 3,
+      "groundColor": "#0d0f12",
+      "intensity": 0.35
+    },
+    "postProcessing": {
+      "enabled": true,
+      "exposure": 1.0,
+      "toneMapping": "agx",
+      "bloom": {
+        "threshold": 3,
+        "softness": 0.2,
+        "radius": 0.12,
+        "intensity": 0.35
+      },
+      "vignette": {
+        "intensity": 0.45,
+        "radius": 0.45,
+        "softness": 0.6
+      },
+      "antialias": "smaa"
+    }
+  },
+  "sun": [
+    -0.24926602841999998,
+    -0.049853205684,
+    -0.9671527720520001
+  ]
+}

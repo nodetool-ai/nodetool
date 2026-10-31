@@ -12,6 +12,7 @@ import { benchmarkNativeGame } from "./game-benchmark.js";
 import { printCommandError } from "@nodetool-ai/pack-manager/command-errors";
 import { checkoutPackageAssetsDir } from "@nodetool-ai/cli-common/package-assets";
 import { registerGameSmokeCommand } from "./game-smoke.js";
+import { registerNativeCppGameCommands } from "./game-native-cpp.js";
 
 interface SimulateOptions {
   ticks: string;
@@ -318,6 +319,7 @@ function validateCliDocument(value: unknown) {
 export function registerGameCommands(program: Command): void {
   const game = program.command("game").description("Validate and playtest native games");
   registerGameSmokeCommand(game);
+  registerNativeCppGameCommands(game);
 
   game
     .command("validate <game_file>")

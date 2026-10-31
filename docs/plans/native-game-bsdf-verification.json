@@ -1,0 +1,117 @@
+{
+  "scope": "Controlled BSDF correctness probes, not a whole-game parity or GPU performance result",
+  "reference": "Actual Three 0.185.1 GLTFLoader and MeshStandardMaterial in matched scene; SwiftShader configured via Chromium --use-angle=swiftshader --enable-unsafe-swiftshader",
+  "resolution": [
+    256,
+    256
+  ],
+  "threshold": {
+    "metric": "center8x8 mean RGB absolute error, normalized8bit channel values",
+    "maximum": 0.00392156862745098,
+    "beforeControlMustExceed": 0.00392156862745098
+  },
+  "comparisons": [
+    {
+      "name": "ambient",
+      "fixed": {
+        "mean": 5.584916258169935e-07,
+        "centerMean": 0,
+        "max": 1
+      },
+      "before": {
+        "mean": 0.006754716860702614,
+        "centerMean": 0.036601307189542485,
+        "max": 12
+      }
+    },
+    {
+      "name": "mixed-metal",
+      "fixed": {
+        "mean": 0.0008076187831903594,
+        "centerMean": 0.00130718954248366,
+        "max": 1
+      },
+      "before": {
+        "mean": 0.007269327001633987,
+        "centerMean": 0.03562091503267974,
+        "max": 13
+      }
+    },
+    {
+      "name": "smooth-specular",
+      "fixed": {
+        "mean": 1.5159058415032679e-06,
+        "centerMean": 0.00024509803921568627,
+        "max": 1
+      },
+      "before": {
+        "mean": 0.00011161854064542483,
+        "centerMean": 0.1090686274509804,
+        "max": 54
+      }
+    }
+  ],
+  "browserImporterComparisons": [
+    {
+      "name": "ambient",
+      "reference": {
+        "mean": 0,
+        "changedFraction": 0,
+        "max": 0
+      }
+    },
+    {
+      "name": "mixed-metal",
+      "reference": {
+        "mean": 0,
+        "changedFraction": 0,
+        "max": 0
+      }
+    },
+    {
+      "name": "smooth-specular",
+      "reference": {
+        "mean": 0,
+        "changedFraction": 0,
+        "max": 0
+      }
+    }
+  ],
+  "sourceSha256": {
+    "native/game/src/render/shaders/pbr_fragment.glsl": "c4ed8d3ae8aa273dd6e6e013b75ce6e872d23d4aa77ed4b9a3c9d2f6758908bd",
+    "packages/game-renderer/tests/fixtures/native-bsdf-reference/ambient.json": "d50365bf95f4f132166c32404b3434c8131b6eb629aec0e4c45ac58ff1f09aa6",
+    "packages/game-renderer/tests/fixtures/native-bsdf-reference/mixed-metal.json": "a36c5af7e2c12933698acf12860ebf5f2db806c4c9932329431146bb6d9f2f49",
+    "packages/game-renderer/tests/fixtures/native-bsdf-reference/smooth-specular.json": "877c069b94261728c6bdf40944f1b7b20d41d6bb1cb63f3f47e941b3d87601f1",
+    "packages/game-renderer/tests/fixtures/native-bsdf-reference/numeric-red.json": "9ea64f433ba066f5d98b453b928b11918405ac1ba8fd74de218641ea92ce4701",
+    "packages/game-renderer/tests/fixtures/native-bsdf-reference/ambient.glb": "6e11aae84fcbfde7ac98baeef8bd89627b19ec519fdb896b88614bb9542266fa",
+    "packages/game-renderer/tests/fixtures/native-bsdf-reference/mixed-metal.glb": "9c43e11a8ca08934ab35d7607c1972739963e7e69830d350334b9b54bc61c564",
+    "packages/game-renderer/tests/fixtures/native-bsdf-reference/smooth-specular.glb": "fe1b0e072fbdb14be411d96366f0196b81fa1ab44e5eac99c72e9db962eeaec5"
+  },
+  "playerSha256": {
+    "fixed": "81a157705f3ac9e7540dcbb3f6f7072bdbed30233fe2e3306380acc527a564c5",
+    "before": "95922bba3853670615b8ce2ca11123c21a6e6d22901bee604cb5bb1bf538e22b"
+  },
+  "captureSha256": {
+    "ambient-before.png": "aa8113a7f33874f8c5d380f455950d3083a4cb15885aa6ceb69f7efefee5bc7c",
+    "ambient-fixed.png": "b7a1432d537f72c20aa95f8af84bb42e99baefbcf88f797a723254343d6cbd9c",
+    "ambient-nativePng.png": "098b8c3f2f4c9d3b16524f38a228ec118ac75b8bedd397760bcfc8b74f965ebd",
+    "ambient-referencePng.png": "098b8c3f2f4c9d3b16524f38a228ec118ac75b8bedd397760bcfc8b74f965ebd",
+    "mixed-metal-before.png": "07e79e1c80e1d1533b1df1e8058537bc67106467067b9c25d49cb03a0980ccef",
+    "mixed-metal-fixed.png": "6385876cbdb81fa14315519538885d832a95479c7797f6a4e47afe89d74f68fa",
+    "mixed-metal-nativePng.png": "7f115961b0477be17b82f06b4e1801bd94a4c14cd48d9a0bf0f2ce53cde89dd0",
+    "mixed-metal-referencePng.png": "7f115961b0477be17b82f06b4e1801bd94a4c14cd48d9a0bf0f2ce53cde89dd0",
+    "smooth-specular-before.png": "34c2719e21a063be01e9a63897e570362d0319237a3f074e7ccbe2320fea261d",
+    "smooth-specular-fixed.png": "e732374838def9a971af2776c3b022feef280af70744758c7ffe215cd982182e",
+    "smooth-specular-nativePng.png": "41d94e51ef66f654ab130ccf05c11c8317e412d35d6d7f82d733875ca5ec00fb",
+    "smooth-specular-referencePng.png": "41d94e51ef66f654ab130ccf05c11c8317e412d35d6d7f82d733875ca5ec00fb"
+  },
+  "method": {
+    "nativeBackend": "Vulkan; captured reports retained with each PNG",
+    "environmentAlignment": "Mixed-metal uses an explicit linked +Y sun of zero direct-light intensity; ambient and smooth probes have no environment irradiance",
+    "colorComparison": "Encoded PNG RGB bytes; identical camera, geometry, material, environment and resolution",
+    "oldPlayer": "Preserved before BSDF correction; independent fresh process per case",
+    "noHardwarePerformanceClaim": true
+  },
+  "reproduction": "node --conditions=nodetool-dev --import=tsx packages/game-renderer/tests/fixtures/nativeBsdfReference.mjs under validXvfb with NODETOOL_NATIVE_GAME_PLAYER and optional NODETOOL_NATIVE_BSDF_BEFORE_PLAYER",
+  "artifactDirectory": "native-bsdf-reference-GkaWB7"
+}

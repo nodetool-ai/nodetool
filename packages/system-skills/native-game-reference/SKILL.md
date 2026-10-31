@@ -1,9 +1,183 @@
 ---
 name: native-game-reference
-description: "Field reference for native game documents: scripts, lifecycle hooks, events, tags and props, 2D visuals, particles, lighting, effects, 3D rendering, physics layers, audio mix, animation graphs, input bindings, HUD widgets, performance and editor panels. Load after native-game when an edit needs one of these fields."
+description: "Field reference for web and native C++ game documents: scripts, lifecycle hooks, events, tags and props, 2D visuals, particles, lighting, effects, 3D rendering, physics layers, audio mix, animation graphs, input bindings, HUD widgets, performance and editor panels. Load after native-game when an edit needs one of these fields."
 ---
 
 # Native game field reference
+
+## Native C++ document contract
+
+Native C++ documents use `engine: "native-cpp-1"`. Native 3D uses
+`schemaVersion: 4`, `dimension: "3d"`, and Jolt. Native 2D uses
+`schemaVersion: 5`, `dimension: "2d"`, and the ported TypeScript swept AABB
+solver. Call `native_cpp_game_schema {dimension:"2d"}` or the `"3d"` variant
+for admitted document, transaction, and command declarations. Schema numbers alone
+do not select the engine. The legacy web reference below has a different envelope.
+
+Both dimensions share scenes, prefabs, scripts, prepared assets, input actions,
+HUD, audio, document operations, and QuickJS lifecycle. Native 3D transforms use
+position in meters, Y-up, quaternion rotation, and unit scale for physics.
+Collision layers are 0–15 with 16-bit masks. Both masks must admit the other layer.
+Mesh colliders require static bodies.
+
+Native 3D cameras use either a fixed `camera:{position:[x,y,z],target:[x,y,z],fov}`
+or a first-person camera:
+
+```json
+{"kind":"firstPerson","targetId":"player","offset":[0,0.65,0],"yaw":0,"pitch":0,"sensitivity":0.002,"minPitch":-1.3,"maxPitch":1.3,"fov":78,"near":0.03,"far":160}
+```
+
+Place this object in document `camera`. The target must exist in every scene.
+The eye follows the target's world position plus the world-space `offset`.
+Yaw and pitch are radians, while `fov` is degrees. Session input
+`look:{x,y}` contains raw mouse pixels for that tick. The core subtracts
+`look.x * sensitivity` from yaw and `look.y * sensitivity` from pitch, clamps
+pitch, and preserves the angles in same-session snapshots. Scripts read resolved
+`i.camera.position`, `target`, `forward`, `yaw`, `pitch`, `fov`, `near`, and `far`
+after that tick's look input. Use this aim state for queries instead of applying
+look a second time. Raw look is also available as `i.input.look`.
+
+Committed frames expose the resolved camera for both desktop and browser
+rendering. Qt captures use that same camera. Fixed cameras keep their previous
+behavior and accept optional clipping planes, defaulting to `near:0.05` and
+`far:10000`. In the Qt first-person player, click the view to capture mouse look,
+press Escape to release it, or hold the right mouse button and drag. Declared
+`inputActions` bindings such as `KeyF` and `KeyR` produce held action states and
+are retained alongside raw look in input recordings.
+
+A model visual can set `cameraRelative:true` for a viewmodel. Its entity must be
+a root with no body, collider, or character. Its descendants must also remain
+nonphysical. Its authored transform is local to the resolved camera. The core emits a world-space frame
+pose and removes the presentation marker, so renderers apply no second camera
+transform. This changes presentation only and keeps the authored transform and
+physical world unchanged.
+
+A scene can instead select `activeCameraId` from its entities. That entity uses
+`camera3d:{projection:{kind:"perspective",fov,near,far},behavior:{kind:"fixed"}}`.
+Its parent hierarchy places and orients the eye. This mode preserves camera,
+weapon, and muzzle child transforms. Native 3D `setVisual` takes a quaternion
+at the top level, for example `{kind:"setVisual",rotation:[0,0,0,1]}`. It
+replaces the issuing nonphysical entity's local visual rotation. The camera's
+resolved `up` vector preserves roll. Follow and orthographic cameras are rejected.
+
+Native 3D presentation frames bake entity hierarchy poses into world TRS and
+remove `parentId` from frame entities. Authored documents retain their parent
+links and local transforms. Parent scale must commute with child rotation:
+uniform scale permits any rotation, while nonuniform scale permits rotations
+within equally scaled axes. Rotations across unequally scaled axes are rejected
+before document commit and before a simulation tick commits. Prepared glTF node
+matrices retain their own model hierarchy.
+
+### Native 3D presentation subset
+
+The native presentation contract admits the fields used by BLACKSITE. Select
+its scene `environment` explicitly when using `light3d`, `decal3d`, `particles`,
+`animator3d`, or primitive material and shadow fields. Its `postProcessing` must
+include `enabled:true`, `toneMapping:"agx"`, and `antialias:"smaa"`. Exposure,
+bloom threshold, softness, radius and intensity, and vignette intensity, radius
+and softness use the shared TypeScript vocabulary. Other tone mapping and
+antialias branches, and disabled post-processing, are rejected. Documents without
+an environment keep the existing fixed shading path.
+
+Environment fields include background, colored ambient light, height fog, solid
+or procedural sky, and shadow settings. Procedural `sunEntityId` must identify a
+directional light in that scene. HDR images, linear fog, and spot lights are not
+admitted. A scene allows 32 directional and point lights combined, one
+shadow-casting directional light, and four shadow-casting point lights. Shadow
+maps are 512, 1024 or 2048 pixels, with two to four directional cascades when
+configured.
+
+Primitive visuals can add `material` with `color`, `metalness`, `roughness`,
+`opacity`, `emissive`, `alphaMode`, and `alphaCutoff`. Use `alphaMode:"blend"`
+for translucent surfaces. Both model and primitive visuals support `castShadow`
+and `receiveShadow`. Prepared model materials preserve glTF base color,
+metalness, roughness, normal-map scale and channel sampler settings, emissive
+color, alpha mode and cutoff, and double-sided state. Their physical rendering
+uses the explicit environment path. `animator3d` selects an `initialClip` from
+`clips`, whose values are `clip:0`, `clip:1`, and so on, with `playbackRate` and
+`loop`. Frames resolve the clip index and committed animation time.
+
+The document can supply `presentation:{aspectRatio,hudWidth,hudHeight}` and
+`ui:{safeArea,nodes}`. Native UI supports panel, text and bar nodes with the shared
+parent, anchor, pivot, offset, visibility and opacity fields. Parents must be
+preceding panels. Panels and bars require dimensions. `fontId` selects a verified
+font asset. `ui` commands update text, bar values and visibility by node ID.
+Other widget kinds and health-derived bar sources are rejected.
+
+Native 3D particles use the shared emitter fields used by BLACKSITE: point,
+sphere, cone or box shapes, local or world space, continuous rates and bursts,
+lifetimes, initial speed, size and opacity curves, color gradients, gravity and drag.
+Drawing supports billboards, stretched billboards, and world-aligned tetrahedron
+meshes. Sprite sheets, child emitters, speed curves, circular and edge shapes,
+velocity-aligned meshes and color ranges are rejected. `emitParticles` selects an
+optional emitter and burst count. The portable native presentation helper
+advances every committed tick and publishes at most 8192 resolved samples.
+Same-session snapshots preserve particle state and UI overrides, including tick
+rollback and replay.
+
+At most 32 `decal3d` projectors use verified image assets and an explicit model
+receiver or a receiver root containing model descendants. Their size, opacity
+and render order follow the shared TypeScript fields. Prepared receiver geometry
+must satisfy the decal helper's rigid and opaque restrictions. Native rendering
+limits each projector to 200,000 eligible receiver triangles, summed across its
+receiver geometry before broadphase filtering. Splitting the same geometry across
+meshes or models leaves this count unchanged. This limit is stricter than the
+legacy web engine's visited-triangle accounting. An over-budget projector is
+dropped with a bounded, nonfatal per-decal diagnostic.
+
+Native 2D uses `transform:{x,y,rotation,scaleX,scaleY}` in Y-up world units with
+radians, plus the TypeScript component vocabulary `body2d`, `collider2d`, `sprite`,
+`animator`, `tilemap`, `camera2d`, and `light2d`. Bodies are static or kinematic.
+Colliders are axis-aligned with 32-bit category/mask filtering, sensors, and
+one-way surfaces. Physics ancestors must remain fixed translations with zero
+rotation and unit scale. Visual-only hierarchies can rotate and scale. A camera
+entity's transform places its `camera2d`; document `camera2d` supplies the default.
+Scene `gravity`, `lighting`, and `backgrounds` override document defaults.
+`healthEntityId` chooses the HUD health entity.
+
+Native 2D commands use `{x,y}` vectors. `move` rejects `jump`; check committed
+`grounded` state and issue `setVelocity` for a jump. Use static-body velocity for
+platform carry/push. `setPosition` teleports without carrying riders. `setVisual`
+can select atlas frame, tint, opacity, flip, rotation, and positive visual scales
+without changing collider transforms. Image assets support `sampling`, normalized
+`pivot`, and `trim:{sourceWidth,sourceHeight,x,y}`. Animation samples committed
+ticks. Audio `position:{x,y}` is explicit world-space placement. Native 2D rejects
+3D vectors, quaternions, impulses, and capsule characters before execution.
+
+A behavior refers to a script by `scriptId` and owns an explicit JSON state.
+Hooks include start, scene enter, trigger/contact, event, fixed update, update,
+and destruction. Each call runs in a fresh QuickJS realm. Persist data in returned
+`state`, not globals or closures. Timers use tick numbers and named handlers.
+There is no filesystem, networking, Qt object access, or asynchronous gameplay.
+
+A minimal behavior source is:
+
+```javascript
+input => ({
+  state: { ticks: (input.state.ticks || 0) + 1 },
+  commands: [{ kind: "score", amount: 1 }]
+})
+```
+
+The generated declarations returned by the native schema tools describe commands
+and world queries. Commands are validated before commit. Movement affects the
+current physics step. Query and contact results reach scripts on the next tick.
+Scripts run in stable entity/behavior order at 60 Hz. A failed script batch rolls
+back state, RNG, timers, commands, and presentation effects. Runtime inspection
+and source replacement errors name the relevant source revision.
+
+Use `native_cpp_game_get` entity/script views to inspect large documents. Use
+native typed operations with `expected_revision` for edits. `setScript` validates
+source before save. A valid simulation-affecting edit restarts the running state
+from the authored document. Saved documents and short resource IDs are handled by
+the authorized host. Native physics snapshots only restore inside their original
+live session.
+
+
+## Legacy web engine reference
+
+The remaining sections describe the web engine, not `native-cpp-1`. Their schema
+versions and command fields must not be copied into native C++ documents.
 
 The fields and runtime rules behind `native-game`. Load `native-game` first for
 the build, playtest and asset loop. The `edit_native_game` op description also
@@ -196,7 +370,12 @@ one before it. Within a tick they run in this order:
 
 `onDestroy` runs alone in the tick after the entity despawns. It may return
 only `hud`, `emit`, `spawn`, `despawn`, `sceneTransition`, `log`, `save` and `load` commands. A scene
-transition discards behavior state without calling `onDestroy`.
+transition in the legacy TypeScript runtime discards behavior state without calling
+`onDestroy`. Native C++ scene transitions run outgoing `onDestroy` hooks before
+committing the transition, preserving their behavior state during the hook. A
+same-tick despawn and transition destroys each outgoing behavior once. Function
+scripts run only as updates and are not called during native destruction. After a
+successful native destruction, the behavior's state and timers are released.
 
 `after(ticks, name)` calls the object's method `name` once, `ticks` ticks
 later. `every(ticks, name)` calls it every `ticks` ticks. `ticks` is an

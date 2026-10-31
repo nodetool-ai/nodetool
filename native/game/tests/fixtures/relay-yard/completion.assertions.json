@@ -1,0 +1,8 @@
+[
+  { "tick": 0, "path": ["score"], "equals": 0 },
+  { "tick": 60, "path": ["score"], "equals": 1 },
+  { "tick": 90, "path": ["worldTransforms", "door", "position", 1], "equals": 4.5 },
+  { "tick": 120, "path": ["ui", "nodes", 3, "text"], "equals": "CHECKPOINT SAVED" },
+  { "tick": 165, "path": ["score"], "equals": 2 },
+  { "tick": 165, "path": ["ui", "nodes", 1, "text"], "equals": "Course complete" }
+]

@@ -24,6 +24,7 @@ import { jsScriptsSpecs } from "./js-scripts.specs.js";
 import { mediaSpecs } from "./media.specs.js";
 import { memorySpecs } from "./memory.specs.js";
 import { model3dSpecs } from "./model3d.specs.js";
+import { nativeCppGameSpecs } from "./native-cpp-game.specs.js";
 import { gameSpecs } from "./game.specs.js";
 import { modelsSpecs } from "./models.specs.js";
 import { nodesSpecs } from "./nodes.specs.js";
@@ -73,6 +74,7 @@ export const CAPABILITY_SPECS = {
   sketches: sketchesSpecs,
   model3d: model3dSpecs,
   game: gameSpecs,
+  "native-cpp-game": nativeCppGameSpecs,
   scripts: scriptsSpecs,
   storyboards: storyboardsSpecs,
   entities: entitiesSpecs,

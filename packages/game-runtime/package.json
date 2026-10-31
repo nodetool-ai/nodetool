@@ -9,9 +9,10 @@
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "build": "node ../../scripts/build-typescript-workspace.mjs && node -e \"for (const file of ['native-game-export.mjs','native-game-web-export.mjs','native-game-notices.txt']) require('node:fs').copyFileSync('scripts/'+file,'dist/'+file)\"",
     "test": "node ../../scripts/run-vitest.mjs run",
-    "lint": "node ../../scripts/run-tsc.mjs --noEmit"
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit",
+    "stage:native": "node scripts/stage-native-runtime.mjs"
   },
   "dependencies": {
     "@nodetool-ai/config": "*",
@@ -19,7 +20,8 @@
     "@nodetool-ai/protocol": "*",
     "quickjs-emscripten-core": "^0.31.0",
     "zod": "^4.0.0",
-    "acorn": "^8.16.0"
+    "acorn": "^8.16.0",
+    "msgpackr": "^1.12.1"
   },
   "devDependencies": {
     "typescript": "npm:@typescript/typescript6@6.0.2",
@@ -32,7 +34,30 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
-    }
+    },
+    "./native": {
+      "nodetool-dev": "./src/native.ts",
+      "types": "./dist/native.d.ts",
+      "import": "./dist/native.js",
+      "default": "./dist/native.js"
+    },
+    "./native-game-export.mjs": "./dist/native-game-export.mjs",
+    "./native-game-worker": "./dist/native-game-worker",
+    "./native-game-worker.exe": "./dist/native-game-worker.exe",
+    "./native-game-notices.txt": "./dist/native-game-notices.txt",
+    "./native-browser": {
+      "nodetool-dev": "./src/native-browser/index.ts",
+      "types": "./dist/native-browser/index.d.ts",
+      "import": "./dist/native-browser/index.js",
+      "default": "./dist/native-browser/index.js"
+    },
+    "./native-browser/worker": {
+      "nodetool-dev": "./src/native-browser/worker.ts",
+      "types": "./dist/native-browser/worker.d.ts",
+      "import": "./dist/native-browser/worker.js",
+      "default": "./dist/native-browser/worker.js"
+    },
+    "./native-game-web-export.mjs": "./dist/native-game-web-export.mjs"
   },
   "license": "MIT",
   "repository": {

@@ -386,6 +386,7 @@ describe("selectChecks", () => {
     const packages = readWorkspacePackages(root);
     expect(packages.length).toBeGreaterThan(0);
     expect(fullPlan()).toEqual([
+      { label: "native game: build and CTest", command: "node", args: ["scripts/check-native-game.mjs"] },
       { label: "packages", command: "npm", args: ["run", "test:packages"] },
       { label: "web", command: "npm", args: ["test", "--workspace=web"] },
       { label: "electron", command: "npm", args: ["test", "--workspace=electron"] },

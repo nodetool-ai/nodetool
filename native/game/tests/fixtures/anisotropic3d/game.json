@@ -1,0 +1,65 @@
+{
+  "schemaVersion": 4,
+  "engine": "native-cpp-1",
+  "dimension": "3d",
+  "id": "anisotropic-grazing",
+  "title": "Anisotropic grazing checker",
+  "initialSceneId": "scene",
+  "assets": [
+    {
+      "id": "checker",
+      "kind": "model",
+      "path": "grazing.glb",
+      "size": 19924,
+      "digest": "c3cd0a1e17c1cc0051e9aed663d0aca56c0e14270be44dcb01d9b44debcccc81",
+      "dependencies": []
+    }
+  ],
+  "camera": {
+    "position": [
+      0,
+      0.35,
+      4
+    ],
+    "target": [
+      0,
+      0,
+      0
+    ],
+    "fov": 45,
+    "near": 0.1,
+    "far": 20
+  },
+  "scenes": [
+    {
+      "id": "scene",
+      "environment": {
+        "background": "#000000",
+        "ambient": {
+          "color": "#ffffff",
+          "intensity": 3.141592653589793
+        },
+        "shadows": {
+          "enabled": false,
+          "mapSize": 1024,
+          "extent": 30
+        },
+        "postProcessing": {
+          "enabled": true,
+          "toneMapping": "agx",
+          "antialias": "smaa",
+          "exposure": 1
+        }
+      },
+      "entities": [
+        {
+          "id": "floor",
+          "visual": {
+            "kind": "model",
+            "assetId": "checker"
+          }
+        }
+      ]
+    }
+  ]
+}

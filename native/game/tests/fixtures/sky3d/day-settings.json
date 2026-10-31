@@ -1,0 +1,16 @@
+{
+  "environment": {
+    "background": "#0b1018",
+    "sky": {
+      "turbidity": 6,
+      "rayleigh": 3,
+      "groundColor": "#0d0f12",
+      "kind": "procedural"
+    }
+  },
+  "sun": [
+    0,
+    0.5,
+    -1
+  ]
+}

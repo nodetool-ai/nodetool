@@ -1,0 +1,6 @@
+{
+  "course": { "simulationP95Ms": 4, "transactionP95Ms": 50 },
+  "hierarchy": { "simulationP95Ms": 250, "transactionP95Ms": 1500 },
+  "queries": { "simulationP95Ms": 100, "transactionP95Ms": 100 },
+  "churn": { "simulationP95Ms": 25, "transactionP95Ms": 100 }
+}

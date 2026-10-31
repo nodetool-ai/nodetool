@@ -1348,6 +1348,53 @@ nodetool jsscript versions create <js_script_id> --name "before the rewrite"
 nodetool jsscript versions restore <js_script_id> 3
 ```
 
+### `nodetool game native`
+
+The explicit `native` branch runs engine `native-cpp-1` documents. Native 3D
+uses schema version 4. Native 2D uses schema version 5 and the ported TypeScript
+collision solver. Both share QuickJS, authoring operations, and tools. The other `game` commands retain their existing engine routes.
+Configure `NODETOOL_NATIVE_GAME_WORKER` with the C++ worker executable, or install
+the native worker runtime asset. Capture needs `NODETOOL_NATIVE_GAME_PLAYER` or a
+Qt distribution at `NODETOOL_NATIVE_GAME_RUNTIME_DIR`.
+
+```bash
+nodetool game native schema
+nodetool game native capabilities --json
+nodetool game native create ./course --title "Relay Course" --json
+nodetool game native create ./course2d --dimension 2d --json
+nodetool game native schema --dimension 2d
+nodetool game native validate ./course/game.json --json
+nodetool game native inspect ./course/game.json --limit 20 --fields id,name,transform --json
+nodetool game native transact ./course/game.json edits.json --out ./course/edited.json --json
+nodetool game native simulate ./course/edited.json --ticks 120 --inputs route.json --assertions assertions.json --verify-replay --json
+nodetool game native capture ./course/edited.json --ticks 120 --inputs route.json --assets-dir ./course --out frame.png --json
+nodetool game native bench ./course/edited.json --ticks 120 --warmup 30 --inputs route.json --json
+nodetool game native export ./course/edited.json --assets-dir ./course --out ./standalone --json
+nodetool game native export ./course/edited.json --target web --assets-dir ./course --out ./browser-player --json
+nodetool game native editor edit-request.json --socket /path/to/editor.sock --json
+```
+
+| Command | Contract |
+| --- | --- |
+| `schema` | Document, transaction, and script-command JSON schemas plus generated guest declarations. |
+| `capabilities` | Installed worker protocol, engine, and supported operations. |
+| `create <directory>` | Writes a course document and owned WAV. Existing files are not overwritten. |
+| `validate <file>` | Native schema, semantic, and script compilation checks. |
+| `inspect <file>` | `--scene <id>`, `--offset <integer>`, `--limit <1..256>`, and comma-separated `--fields`. Returns the next offset. |
+| `transact <file> <transaction>` | Typed operations with `expectedRevision`. Writes the accepted document to required `--out`. |
+| `simulate <file>` | Required `--ticks`, optional `--seed`, `--inputs`, `--assertions`, and `--verify-replay`. Assertions are `{tick,path,equals}` records. A failed assertion exits nonzero. |
+| `capture <file>` | Required `--out`. `--ticks` defaults to 0. `--assets-dir` locates prepared media. The player accepts seed 1. |
+| `bench <file>` | Measures host-to-worker round-trip latency, including transport. It does not report isolated physics or GPU time. |
+| `export <file>` | Required `--out`. `--target desktop` is the default and uses the installed runtime or `--build-dir`. `--target web` uses the installed browser runtime profile. Both verify prepared manifests before atomic publication. |
+| `editor <request>` | Sends a validated operation to a user-local live editor socket. The editor's shared revision and transaction rules apply. |
+
+All data commands accept `--json`. Simulation and benchmarks have an aggregate
+120-second deadline. Native child processes have bounded output and receive only
+runtime and graphics environment variables. Gameplay reports include document,
+manifest, and script digests, engine build identity, and committed tick. Midpoint
+replay restores within the same live session. Exported snapshots cannot restore
+into another session or worker.
+
 ### `nodetool game`
 
 Validate, replay, capture, measure, and export a native game document from a

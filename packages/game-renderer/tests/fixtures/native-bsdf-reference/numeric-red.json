@@ -1,0 +1,32 @@
+{
+  "case": "ambient-only unit white irradiance; no direct lights; black environment radiance+irradiance",
+  "baseColor": [
+    0.5,
+    0.2,
+    0.1
+  ],
+  "metalness": 0.5,
+  "roughness": 0.5,
+  "NdotV": 0.5,
+  "dfg": [
+    0.83447265625,
+    0.022686004638671875
+  ],
+  "threeLinearRGB": [
+    0.07957747154594767,
+    0.03183098861837907,
+    0.015915494309189534
+  ],
+  "scope": "CPU evaluation of inspected shader equations; not GPU capture",
+  "oldNativeLinearRGB": [
+    0.06253737866930793,
+    0.02450338387064956,
+    0.012217323006265752
+  ],
+  "oldNativeMinusThree": [
+    -0.01704009287663974,
+    -0.007327604747729508,
+    -0.0036981713029237816
+  ],
+  "expectedFailure": "Old shader applies IBL compensation to ambient-only irradiance; corrected shader keeps the ambient diffuse term separate."
+}

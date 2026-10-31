@@ -1,0 +1,6047 @@
+{
+  "schemaVersion": 1,
+  "scope": "Installed native browser exports, software rendering correctness and bounded measurement evidence. No hardware frame-rate gate is claimed.",
+  "reproduction": {
+    "build": "node native/game/browser/build.mjs --sdk <pinned-emsdk-directory> --build-dir <temporary-build-directory> --output-dir packages/game-renderer/dist && npm run build:packages",
+    "check": "node scripts/check-native-game-browser.mjs",
+    "nativePixelParity": "node scripts/check-native-game-browser.mjs --native-player <Release-player> --native-runtime <installed-runtime> --native-worker <Release-worker>",
+    "fixtures": [
+      "packages/game-runtime/src/native-template.ts",
+      "packages/game-renderer/tests/native-browser-export.test.ts",
+      "packages/game-renderer/scripts/check-native-browser-host.mjs",
+      "native/game/tests/native-wasm-parity.mjs"
+    ],
+    "profile": "Explicit selfcheck requires staged profile and sets NODETOOL_NATIVE_BROWSER_PROFILE=1. Ordinary package suites omit actual-module integration when the profile is absent.",
+    "inputDigestMethod": "SHA-256 of UTF-8 JSON.stringify(measuredInputs), using the stored property order. Document and artifact digests hash exact exported bytes.",
+    "temporaryArtifacts": "$NODETOOL_NATIVE_BROWSER_REPORT_DIR/{2d,3d}.{json,png}"
+  },
+  "nativeWorkerArtifact": {
+    "path": "packages/game-runtime/dist/native-game-worker",
+    "buildType": "Release",
+    "size": 7380360,
+    "digest": "8e827be57f9ac05129146825dc915e99b6ad9f2114d5f3033ead984f4a6b29fb"
+  },
+  "nativeWasmParity": {
+    "hosts": [
+      "native-worker",
+      "node-wasm"
+    ],
+    "dimensions": [
+      "2d",
+      "3d"
+    ],
+    "compared": 136656,
+    "numeric": 70962,
+    "particleNumeric": 14320,
+    "particleMaxDifference": 2.7755575615628914e-17,
+    "numericTolerance": {
+      "absolute": 1e-05,
+      "relative": 1e-06
+    },
+    "coverage": {
+      "2d": {
+        "events": 180,
+        "queries": 0,
+        "hostRequests": 2,
+        "particleSamples": 0,
+        "loadedReplay": true
+      },
+      "3d": {
+        "events": 64,
+        "queries": 90,
+        "hostRequests": 2,
+        "particleSamples": 333,
+        "loadedReplay": true
+      }
+    },
+    "stepsPerDimension": 90,
+    "lifetimeCycles": 25,
+    "heapExtents": [
+      115998720,
+      139198464,
+      139198464,
+      139198464,
+      139198464,
+      139198464,
+      139198464,
+      139198464,
+      139198464,
+      139198464,
+      139198464,
+      139198464,
+      139198464,
+      139198464,
+      139198464,
+      139198464,
+      139198464,
+      139198464,
+      139198464,
+      139198464,
+      139198464,
+      139198464,
+      139198464,
+      139198464,
+      139198464
+    ],
+    "wasmDispatchP95Ms": 23.093753000000106,
+    "scriptOnlyLatency": "not instrumented",
+    "activeContextsAfter": 0
+  },
+  "browserExports": {
+    "2d": {
+      "dimension": "2d",
+      "seed": 1,
+      "documentDigest": "64ef2a2f2c36b5aaadd572bd7c2024b2e09f9c9ea2a448a941d82c01a1f39151",
+      "inputDigest": "f889561c9c38da229d02260246a4bacbced7cb9fb8d0ab651c3c0a777064a573",
+      "measuredInputs": [
+        {
+          "generation": 1,
+          "tick": 1,
+          "input": {
+            "actions": {},
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 1,
+          "tick": 2,
+          "input": {
+            "actions": {
+              "restart": true
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [
+              {
+                "action": "restart",
+                "pressed": true,
+                "sequence": 0
+              }
+            ],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 2,
+          "tick": 3,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [
+              {
+                "action": "restart",
+                "pressed": false,
+                "sequence": 1
+              }
+            ],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 2,
+          "tick": 4,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 2,
+          "tick": 5,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 2,
+          "tick": 6,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 2,
+          "tick": 7,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 2,
+          "tick": 8,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 2,
+          "tick": 9,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 2,
+          "tick": 10,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 2,
+          "tick": 11,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 2,
+          "tick": 12,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 2,
+          "tick": 13,
+          "input": {
+            "actions": {
+              "restart": true
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [
+              {
+                "action": "restart",
+                "pressed": true,
+                "sequence": 2
+              },
+              {
+                "action": "restart",
+                "pressed": false,
+                "sequence": 3
+              }
+            ],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 14,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 15,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 16,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 17,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 18,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 19,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 20,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 21,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 22,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 23,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 24,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 25,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 26,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 27,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 28,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 29,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 30,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 31,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 32,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 33,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 34,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 35,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 36,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 37,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 38,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 39,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 40,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 41,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 42,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 43,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 44,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 45,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 46,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 47,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 48,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 49,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 50,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 51,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 52,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 53,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 54,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 55,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 56,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 57,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 58,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 59,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 60,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 61,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 62,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 63,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 64,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 65,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 66,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 67,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 68,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 69,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 70,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 71,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 72,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 73,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 74,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 75,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 76,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 77,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 78,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 79,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 80,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 81,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 82,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 83,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 84,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 85,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 86,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 87,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 88,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 89,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 90,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 91,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 92,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 93,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 94,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 95,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 96,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 97,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 98,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 99,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 100,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 101,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 102,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 103,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 104,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 105,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 106,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 107,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 108,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 109,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 110,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 111,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 112,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 113,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 114,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 115,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 116,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 117,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 118,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 119,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 120,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 121,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 122,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 123,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 124,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 125,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 126,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 127,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 128,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 129,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 130,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 131,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 132,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 133,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": {
+              "x": 0,
+              "y": 0
+            },
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        }
+      ],
+      "browser": "148.0.7778.96",
+      "cpu": "AMD Ryzen 5 3600 6-Core Processor",
+      "os": {
+        "platform": "linux",
+        "release": "7.2.5-3-omarchy",
+        "architecture": "x64"
+      },
+      "webgl": {
+        "vendor": "Google Inc. (Google)",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+      },
+      "build": {
+        "mode": "Release",
+        "emscriptenVersion": "6.0.13",
+        "artifacts": [
+          {
+            "path": "native-game-player.js",
+            "size": 1291775,
+            "digest": "b9f7d976401659da9448f9bd368edb7553d42c6fdf31422e11f999e9c9f43334"
+          },
+          {
+            "path": "native-game-worker.js",
+            "size": 373910,
+            "digest": "950ec7e3548e70a06869ab98c18deee6729091ceebf96899c82902ac04c26786"
+          },
+          {
+            "path": "native-game.mjs",
+            "size": 76051,
+            "digest": "7a0b7e1633e5ab3d946796c4a4bc33470a361bccf63fef00545e5c9123c0a11c"
+          },
+          {
+            "path": "native-game.wasm",
+            "size": 4623859,
+            "digest": "b3fa7f5689151df60169a87421e7262d3068ef0cc9b40c195133661ffc257daf"
+          },
+          {
+            "path": "native-game-notices.txt",
+            "size": 47063,
+            "digest": "05aaa71d9842c90129bb70b9fd82bbe776b253f925b6bf37ab5d6c53599e6c65"
+          }
+        ]
+      },
+      "resolution": [
+        960,
+        540
+      ],
+      "renderer": "software correctness only",
+      "method": "fresh browser process/context/page navigation to first completed canvas frame, then restart checks and 120 event-timestamped samples with benchmark=1 canvas CPU+GPU synchronization; HTTP gzip default per file including compression cost; OS caches uncontrolled",
+      "frameScope": "canvas CPU and GPU completion, excludes DOM compositor, display and GPU-only timing",
+      "warmupFrames": 14,
+      "startupMs": 681.5029279999999,
+      "compressedBundleBytes": 1691135,
+      "downloadedGzipBytes": 1674455,
+      "completedFrameMeanMs": 18.04621848739496,
+      "assetManifestBytes": 3342,
+      "assetTransfers": [
+        {
+          "path": "/assets/collect.wav",
+          "startTime": 235.29999995231628,
+          "responseEnd": 238.20000004768372,
+          "durationMs": 2.9000000953674316,
+          "encodedBytes": 2992,
+          "decodedBytes": 3244
+        },
+        {
+          "path": "/assets/course.png",
+          "startTime": 244,
+          "responseEnd": 247.29999995231628,
+          "durationMs": 3.299999952316284,
+          "encodedBytes": 121,
+          "decodedBytes": 98
+        }
+      ],
+      "latency": {
+        "canvasCpuGpuCompletionMs": {
+          "p50": 0.19999992847442627,
+          "p95": 0.3999999761581421,
+          "max": 0.8000000715255737
+        },
+        "nativeWholeCallMs": {
+          "p50": 15.599999904632568,
+          "p95": 18.699999928474426,
+          "max": 30.200000047683716
+        },
+        "scriptOnly": "not instrumented"
+      },
+      "samples": [
+        {
+          "completionMs": 0.6000000238418579,
+          "dispatchWholeCallMs": 30.200000047683716,
+          "sampleTimeMs": 1057.7999999523163
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 23.90000009536743,
+          "sampleTimeMs": 1088
+        },
+        {
+          "completionMs": 0.3999999761581421,
+          "dispatchWholeCallMs": 13.899999976158142,
+          "sampleTimeMs": 1106
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 18.899999976158142,
+          "sampleTimeMs": 1127.6000000238419
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 15.700000047683716,
+          "sampleTimeMs": 1154.5
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 16,
+          "sampleTimeMs": 1171
+        },
+        {
+          "completionMs": 0.30000007152557373,
+          "dispatchWholeCallMs": 15.299999952316284,
+          "sampleTimeMs": 1187.7999999523163
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 15.100000023841858,
+          "sampleTimeMs": 1205
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 15.100000023841858,
+          "sampleTimeMs": 1221.6000000238419
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 15.100000023841858,
+          "sampleTimeMs": 1237.8999999761581
+        },
+        {
+          "completionMs": 0,
+          "dispatchWholeCallMs": 15.199999928474426,
+          "sampleTimeMs": 1254.2000000476837
+        },
+        {
+          "completionMs": 0.30000007152557373,
+          "dispatchWholeCallMs": 15.300000071525574,
+          "sampleTimeMs": 1271.1000000238419
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 14.899999976158142,
+          "sampleTimeMs": 1287.6000000238419
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 15.399999976158142,
+          "sampleTimeMs": 1304.2000000476837
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 15.899999976158142,
+          "sampleTimeMs": 1321.7999999523163
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 15.899999976158142,
+          "sampleTimeMs": 1338.7999999523163
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 15.799999952316284,
+          "sampleTimeMs": 1355.6000000238419
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 16.399999976158142,
+          "sampleTimeMs": 1373.6000000238419
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 15.700000047683716,
+          "sampleTimeMs": 1390.6000000238419
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 15.700000047683716,
+          "sampleTimeMs": 1407.2000000476837
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 16,
+          "sampleTimeMs": 1424.3999999761581
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 15.799999952316284,
+          "sampleTimeMs": 1442.1000000238419
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 16.100000023841858,
+          "sampleTimeMs": 1459.3999999761581
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 15.399999976158142,
+          "sampleTimeMs": 1476
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 14.899999976158142,
+          "sampleTimeMs": 1491.8999999761581
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 14.799999952316284,
+          "sampleTimeMs": 1508.5
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 16.100000023841858,
+          "sampleTimeMs": 1525.7000000476837
+        },
+        {
+          "completionMs": 0.09999990463256836,
+          "dispatchWholeCallMs": 15.299999952316284,
+          "sampleTimeMs": 1542.3999999761581
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 15.799999952316284,
+          "sampleTimeMs": 1559.3999999761581
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 14.899999976158142,
+          "sampleTimeMs": 1576
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 15.800000071525574,
+          "sampleTimeMs": 1593.1000000238419
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 14.600000023841858,
+          "sampleTimeMs": 1608.7999999523163
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 16.799999952316284,
+          "sampleTimeMs": 1626.8999999761581
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 15.5,
+          "sampleTimeMs": 1654.3999999761581
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 12.699999928474426,
+          "sampleTimeMs": 1671.2000000476837
+        },
+        {
+          "completionMs": 0.8000000715255737,
+          "dispatchWholeCallMs": 15.700000047683716,
+          "sampleTimeMs": 1688.2999999523163
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 18.299999952316284,
+          "sampleTimeMs": 1704.1000000238419
+        },
+        {
+          "completionMs": 0.09999990463256836,
+          "dispatchWholeCallMs": 15.5,
+          "sampleTimeMs": 1721.2999999523163
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 15.199999928474426,
+          "sampleTimeMs": 1737.7000000476837
+        },
+        {
+          "completionMs": 0,
+          "dispatchWholeCallMs": 16.299999952316284,
+          "sampleTimeMs": 1755.1000000238419
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 15.899999976158142,
+          "sampleTimeMs": 1772.2000000476837
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 15.200000047683716,
+          "sampleTimeMs": 1788.8999999761581
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 14.900000095367432,
+          "sampleTimeMs": 1805.2000000476837
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 15.399999976158142,
+          "sampleTimeMs": 1821.7000000476837
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 15.199999928474426,
+          "sampleTimeMs": 1838.1000000238419
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 15,
+          "sampleTimeMs": 1854.8999999761581
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 14.900000095367432,
+          "sampleTimeMs": 1871
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 15.5,
+          "sampleTimeMs": 1887.7999999523163
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 16.100000023841858,
+          "sampleTimeMs": 1905.3999999761581
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 15.599999904632568,
+          "sampleTimeMs": 1922.7999999523163
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 16.399999976158142,
+          "sampleTimeMs": 1940.3999999761581
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 15.700000047683716,
+          "sampleTimeMs": 1957.2000000476837
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 16,
+          "sampleTimeMs": 1975.2000000476837
+        },
+        {
+          "completionMs": 0.09999990463256836,
+          "dispatchWholeCallMs": 16.5,
+          "sampleTimeMs": 1992.7999999523163
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 16.5,
+          "sampleTimeMs": 2020.8999999761581
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 15.099999904632568,
+          "sampleTimeMs": 2037.3999999761581
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 15.300000071525574,
+          "sampleTimeMs": 2054.2000000476837
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 15.5,
+          "sampleTimeMs": 2071
+        },
+        {
+          "completionMs": 0.09999990463256836,
+          "dispatchWholeCallMs": 16.399999976158142,
+          "sampleTimeMs": 2088.399999976158
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 18,
+          "sampleTimeMs": 2108
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 14.5,
+          "sampleTimeMs": 2123.5
+        },
+        {
+          "completionMs": 0.09999990463256836,
+          "dispatchWholeCallMs": 17.899999976158142,
+          "sampleTimeMs": 2142.7999999523163
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 16.100000023841858,
+          "sampleTimeMs": 2160.399999976158
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 16.699999928474426,
+          "sampleTimeMs": 2187.600000023842
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 13.100000023841858,
+          "sampleTimeMs": 2204.2000000476837
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 14.900000095367432,
+          "sampleTimeMs": 2220.899999976158
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 15.599999904632568,
+          "sampleTimeMs": 2237.5
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 14.700000047683716,
+          "sampleTimeMs": 2254.2000000476837
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 16.399999976158142,
+          "sampleTimeMs": 2271.7000000476837
+        },
+        {
+          "completionMs": 0.09999990463256836,
+          "dispatchWholeCallMs": 14.799999952316284,
+          "sampleTimeMs": 2287.7999999523163
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 15.699999928474426,
+          "sampleTimeMs": 2304.5
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 14.899999976158142,
+          "sampleTimeMs": 2321.399999976158
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 15.799999952316284,
+          "sampleTimeMs": 2338.399999976158
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 16.399999976158142,
+          "sampleTimeMs": 2356.100000023842
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 16.200000047683716,
+          "sampleTimeMs": 2374.100000023842
+        },
+        {
+          "completionMs": 0.09999990463256836,
+          "dispatchWholeCallMs": 15,
+          "sampleTimeMs": 2390.2999999523163
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 14.899999976158142,
+          "sampleTimeMs": 2406.899999976158
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 14.5,
+          "sampleTimeMs": 2423
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 15,
+          "sampleTimeMs": 2439
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 15.5,
+          "sampleTimeMs": 2455.5
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 15.299999952316284,
+          "sampleTimeMs": 2472.2000000476837
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 15.699999928474426,
+          "sampleTimeMs": 2489.399999976158
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 15.100000023841858,
+          "sampleTimeMs": 2505.600000023842
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 14.800000071525574,
+          "sampleTimeMs": 2522.100000023842
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 16.899999976158142,
+          "sampleTimeMs": 2540.2000000476837
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 16.899999976158142,
+          "sampleTimeMs": 2558
+        },
+        {
+          "completionMs": 0.30000007152557373,
+          "dispatchWholeCallMs": 17.5,
+          "sampleTimeMs": 2577.2000000476837
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 15.600000023841858,
+          "sampleTimeMs": 2604.2000000476837
+        },
+        {
+          "completionMs": 0.09999990463256836,
+          "dispatchWholeCallMs": 15.800000071525574,
+          "sampleTimeMs": 2620.7999999523163
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 17.5,
+          "sampleTimeMs": 2639.899999976158
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 17.600000023841858,
+          "sampleTimeMs": 2658.7999999523163
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 17.699999928474426,
+          "sampleTimeMs": 2677.600000023842
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 14.799999952316284,
+          "sampleTimeMs": 2704.2999999523163
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 19.600000023841858,
+          "sampleTimeMs": 2725.899999976158
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 15.599999904632568,
+          "sampleTimeMs": 2754.600000023842
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 12.700000047683716,
+          "sampleTimeMs": 2770.7000000476837
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 15.299999952316284,
+          "sampleTimeMs": 2787.5
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 15.899999976158142,
+          "sampleTimeMs": 2805.100000023842
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 14.600000023841858,
+          "sampleTimeMs": 2821.2000000476837
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 15.100000023841858,
+          "sampleTimeMs": 2837.899999976158
+        },
+        {
+          "completionMs": 0.30000007152557373,
+          "dispatchWholeCallMs": 15.599999904632568,
+          "sampleTimeMs": 2855.100000023842
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 16.100000023841858,
+          "sampleTimeMs": 2873.7000000476837
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 17.399999976158142,
+          "sampleTimeMs": 2892.600000023842
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 15.300000071525574,
+          "sampleTimeMs": 2909.2999999523163
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 14.100000023841858,
+          "sampleTimeMs": 2924.899999976158
+        },
+        {
+          "completionMs": 0.40000009536743164,
+          "dispatchWholeCallMs": 14.900000095367432,
+          "sampleTimeMs": 2941.2000000476837
+        },
+        {
+          "completionMs": 0.30000007152557373,
+          "dispatchWholeCallMs": 14.5,
+          "sampleTimeMs": 2956.7000000476837
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 13.899999976158142,
+          "sampleTimeMs": 2972.399999976158
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 16.700000047683716,
+          "sampleTimeMs": 2992.899999976158
+        },
+        {
+          "completionMs": 0.3999999761581421,
+          "dispatchWholeCallMs": 18.699999928474426,
+          "sampleTimeMs": 3021.100000023842
+        },
+        {
+          "completionMs": 0.7000000476837158,
+          "dispatchWholeCallMs": 19.299999952316284,
+          "sampleTimeMs": 3043.7000000476837
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 15.900000095367432,
+          "sampleTimeMs": 3071
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 13.699999928474426,
+          "sampleTimeMs": 3087.600000023842
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 14.600000023841858,
+          "sampleTimeMs": 3104.2999999523163
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 15.299999952316284,
+          "sampleTimeMs": 3121.600000023842
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 15.100000023841858,
+          "sampleTimeMs": 3138.100000023842
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 15.600000023841858,
+          "sampleTimeMs": 3155.100000023842
+        },
+        {
+          "completionMs": 0.10000002384185791,
+          "dispatchWholeCallMs": 14.200000047683716,
+          "sampleTimeMs": 3172.100000023842
+        },
+        {
+          "completionMs": 0,
+          "dispatchWholeCallMs": 15.399999976158142,
+          "sampleTimeMs": 3189.100000023842
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 15,
+          "sampleTimeMs": 3205.2999999523163
+        }
+      ],
+      "firstSample": {
+        "nativeRecordingStatus": "disabled",
+        "nativeTick": "13",
+        "nativeGeneration": "3",
+        "nativeFrames": "14",
+        "nativeLinearMemoryBytes": "67108864",
+        "nativePeakLinearMemoryBytes": "67108864",
+        "nativeMemoryGrowthCount": "0",
+        "nativeModuleInitializationMs": "121.10000002384186",
+        "nativeDispatchMs": "24.600000023841858",
+        "nativeSubmittedFrames": "14",
+        "nativeCompletedFrames": "14",
+        "nativeCanvasCompletionMs": "1.3000000715255737",
+        "nativeCompletionScope": "canvas CPU+GPU completion, excludes DOM compositor/presentation"
+      },
+      "diagnostics": {
+        "nativeRecordingStatus": "disabled",
+        "nativeTick": "133",
+        "nativeGeneration": "3",
+        "nativeFrames": "134",
+        "nativeLinearMemoryBytes": "67108864",
+        "nativePeakLinearMemoryBytes": "67108864",
+        "nativeMemoryGrowthCount": "0",
+        "nativeModuleInitializationMs": "121.10000002384186",
+        "nativeDispatchMs": "15",
+        "nativeSubmittedFrames": "134",
+        "nativeCompletedFrames": "134",
+        "nativeCanvasCompletionMs": "0.19999992847442627",
+        "nativeCompletionScope": "canvas CPU+GPU completion, excludes DOM compositor/presentation"
+      },
+      "memoryMethod": "WASM linear-memory extent sampled after dispatch, excludes live allocation, GPU and JS heaps",
+      "decodedAssetMemory": "not instrumented",
+      "requests": [
+        "/",
+        "/styles.css",
+        "/native-game-player.js",
+        "/game.json",
+        "/assets/collect.wav",
+        "/assets/course.png",
+        "/native-game-worker.js",
+        "/native-game.mjs",
+        "/native-game.wasm"
+      ],
+      "gpuTiming": "unavailable"
+    },
+    "3d": {
+      "dimension": "3d",
+      "seed": 1,
+      "documentDigest": "320b25b4152b5232e99a4aca87547e57b2df9c86547205f449d638d4fc018329",
+      "inputDigest": "c3dafecb6362e0011d2b319fb9baa26ef896ca28538b71e57c805ccf8f64c461",
+      "measuredInputs": [
+        {
+          "generation": 1,
+          "tick": 1,
+          "input": {
+            "actions": {},
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 1,
+          "tick": 2,
+          "input": {
+            "actions": {
+              "restart": true
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [
+              {
+                "action": "restart",
+                "pressed": true,
+                "sequence": 0
+              }
+            ],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 2,
+          "tick": 3,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [
+              {
+                "action": "restart",
+                "pressed": false,
+                "sequence": 1
+              }
+            ],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 2,
+          "tick": 4,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 2,
+          "tick": 5,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 2,
+          "tick": 6,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 2,
+          "tick": 7,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 2,
+          "tick": 8,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 2,
+          "tick": 9,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 2,
+          "tick": 10,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 2,
+          "tick": 11,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 2,
+          "tick": 12,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 2,
+          "tick": 13,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 2,
+          "tick": 14,
+          "input": {
+            "actions": {
+              "restart": true
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [
+              {
+                "action": "restart",
+                "pressed": true,
+                "sequence": 2
+              },
+              {
+                "action": "restart",
+                "pressed": false,
+                "sequence": 3
+              }
+            ],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 15,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 16,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 17,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 18,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 19,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 20,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 21,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 22,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 23,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 24,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 25,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 26,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 27,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 28,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 29,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 30,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 31,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 32,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 33,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 34,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 35,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 36,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 37,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 38,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 39,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 40,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 41,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 42,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 43,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 44,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 45,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 46,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 47,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 48,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 49,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 50,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 51,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 52,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 53,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 54,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 55,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 56,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 57,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 58,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 59,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 60,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 61,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 62,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 63,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 64,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 65,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 66,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 67,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 68,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 69,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 70,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 71,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 72,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 73,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 74,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 75,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 76,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 77,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 78,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 79,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 80,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 81,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 82,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 83,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 84,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 85,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 86,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 87,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 88,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 89,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 90,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 91,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 92,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 93,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 94,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 95,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 96,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 97,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 98,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 99,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 100,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 101,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 102,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 103,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 104,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 105,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 106,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 107,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 108,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 109,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 110,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 111,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 112,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 113,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 114,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 115,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 116,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 117,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 118,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 119,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 120,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 121,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 122,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 123,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 124,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 125,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 126,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 127,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 128,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 129,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 130,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 131,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 132,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 133,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 134,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        },
+        {
+          "generation": 3,
+          "tick": 135,
+          "input": {
+            "actions": {
+              "restart": false
+            },
+            "move": [
+              0,
+              0,
+              0
+            ],
+            "jump": false,
+            "edges": [],
+            "loaded": []
+          }
+        }
+      ],
+      "browser": "148.0.7778.96",
+      "cpu": "AMD Ryzen 5 3600 6-Core Processor",
+      "os": {
+        "platform": "linux",
+        "release": "7.2.5-3-omarchy",
+        "architecture": "x64"
+      },
+      "webgl": {
+        "vendor": "Google Inc. (Google)",
+        "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+      },
+      "build": {
+        "mode": "Release",
+        "emscriptenVersion": "6.0.13",
+        "artifacts": [
+          {
+            "path": "native-game-player.js",
+            "size": 1291775,
+            "digest": "b9f7d976401659da9448f9bd368edb7553d42c6fdf31422e11f999e9c9f43334"
+          },
+          {
+            "path": "native-game-worker.js",
+            "size": 373910,
+            "digest": "950ec7e3548e70a06869ab98c18deee6729091ceebf96899c82902ac04c26786"
+          },
+          {
+            "path": "native-game.mjs",
+            "size": 76051,
+            "digest": "7a0b7e1633e5ab3d946796c4a4bc33470a361bccf63fef00545e5c9123c0a11c"
+          },
+          {
+            "path": "native-game.wasm",
+            "size": 4623859,
+            "digest": "b3fa7f5689151df60169a87421e7262d3068ef0cc9b40c195133661ffc257daf"
+          },
+          {
+            "path": "native-game-notices.txt",
+            "size": 47063,
+            "digest": "05aaa71d9842c90129bb70b9fd82bbe776b253f925b6bf37ab5d6c53599e6c65"
+          }
+        ]
+      },
+      "resolution": [
+        960,
+        540
+      ],
+      "renderer": "software correctness only",
+      "method": "fresh browser process/context/page navigation to first completed canvas frame, then restart checks and 120 event-timestamped samples with benchmark=1 canvas CPU+GPU synchronization; HTTP gzip default per file including compression cost; OS caches uncontrolled",
+      "frameScope": "canvas CPU and GPU completion, excludes DOM compositor, display and GPU-only timing",
+      "warmupFrames": 14,
+      "startupMs": 934.0079570000016,
+      "compressedBundleBytes": 1690670,
+      "downloadedGzipBytes": 1674063,
+      "completedFrameMeanMs": 17.223529411965057,
+      "assetManifestBytes": 3244,
+      "assetTransfers": [
+        {
+          "path": "/assets/collect.wav",
+          "startTime": 269.40000009536743,
+          "responseEnd": 272.3000000715256,
+          "durationMs": 2.899999976158142,
+          "encodedBytes": 2992,
+          "decodedBytes": 3244
+        }
+      ],
+      "latency": {
+        "canvasCpuGpuCompletionMs": {
+          "p50": 0.30000007152557373,
+          "p95": 0.7999999523162842,
+          "max": 1.100000023841858
+        },
+        "nativeWholeCallMs": {
+          "p50": 13.399999976158142,
+          "p95": 18.200000047683716,
+          "max": 22.5
+        },
+        "scriptOnly": "not instrumented"
+      },
+      "samples": [
+        {
+          "completionMs": 0.5,
+          "dispatchWholeCallMs": 20.800000071525574,
+          "sampleTimeMs": 1321.6000000238419
+        },
+        {
+          "completionMs": 0.5,
+          "dispatchWholeCallMs": 22.5,
+          "sampleTimeMs": 1346.2000000476837
+        },
+        {
+          "completionMs": 0.6000000238418579,
+          "dispatchWholeCallMs": 16.799999952316284,
+          "sampleTimeMs": 1364.4000000953674
+        },
+        {
+          "completionMs": 0.8000000715255737,
+          "dispatchWholeCallMs": 16.199999928474426,
+          "sampleTimeMs": 1388.4000000953674
+        },
+        {
+          "completionMs": 0.6000000238418579,
+          "dispatchWholeCallMs": 18.299999952316284,
+          "sampleTimeMs": 1404.9000000953674
+        },
+        {
+          "completionMs": 0.3999999761581421,
+          "dispatchWholeCallMs": 13.800000071525574,
+          "sampleTimeMs": 1421.4000000953674
+        },
+        {
+          "completionMs": 0.5,
+          "dispatchWholeCallMs": 14.5,
+          "sampleTimeMs": 1438.3000000715256
+        },
+        {
+          "completionMs": 0.3999999761581421,
+          "dispatchWholeCallMs": 18.200000047683716,
+          "sampleTimeMs": 1456
+        },
+        {
+          "completionMs": 0.5,
+          "dispatchWholeCallMs": 19.399999976158142,
+          "sampleTimeMs": 1477.6000000238419
+        },
+        {
+          "completionMs": 0.7000000476837158,
+          "dispatchWholeCallMs": 17.399999976158142,
+          "sampleTimeMs": 1497.4000000953674
+        },
+        {
+          "completionMs": 0.7999999523162842,
+          "dispatchWholeCallMs": 17.600000023841858,
+          "sampleTimeMs": 1516.7000000476837
+        },
+        {
+          "completionMs": 0.5,
+          "dispatchWholeCallMs": 17.40000009536743,
+          "sampleTimeMs": 1538.2000000476837
+        },
+        {
+          "completionMs": 0.5,
+          "dispatchWholeCallMs": 17.700000047683716,
+          "sampleTimeMs": 1554.8000000715256
+        },
+        {
+          "completionMs": 1.100000023841858,
+          "dispatchWholeCallMs": 16.699999928474426,
+          "sampleTimeMs": 1574.5
+        },
+        {
+          "completionMs": 0.5999999046325684,
+          "dispatchWholeCallMs": 15.799999952316284,
+          "sampleTimeMs": 1591.5
+        },
+        {
+          "completionMs": 0.6999999284744263,
+          "dispatchWholeCallMs": 16.600000023841858,
+          "sampleTimeMs": 1609.6000000238419
+        },
+        {
+          "completionMs": 0.3999999761581421,
+          "dispatchWholeCallMs": 17.300000071525574,
+          "sampleTimeMs": 1628.3000000715256
+        },
+        {
+          "completionMs": 1.100000023841858,
+          "dispatchWholeCallMs": 16.899999976158142,
+          "sampleTimeMs": 1647.9000000953674
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 17.5,
+          "sampleTimeMs": 1671.3000000715256
+        },
+        {
+          "completionMs": 0.40000009536743164,
+          "dispatchWholeCallMs": 15.699999928474426,
+          "sampleTimeMs": 1688
+        },
+        {
+          "completionMs": 0.5,
+          "dispatchWholeCallMs": 17.09999990463257,
+          "sampleTimeMs": 1704.7000000476837
+        },
+        {
+          "completionMs": 0.6000000238418579,
+          "dispatchWholeCallMs": 19.699999928474426,
+          "sampleTimeMs": 1726.4000000953674
+        },
+        {
+          "completionMs": 0.5,
+          "dispatchWholeCallMs": 16,
+          "sampleTimeMs": 1743.7000000476837
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 15.599999904632568,
+          "sampleTimeMs": 1760.6000000238419
+        },
+        {
+          "completionMs": 0.3999999761581421,
+          "dispatchWholeCallMs": 17,
+          "sampleTimeMs": 1779.1000000238419
+        },
+        {
+          "completionMs": 0.3999999761581421,
+          "dispatchWholeCallMs": 18.100000023841858,
+          "sampleTimeMs": 1805.2000000476837
+        },
+        {
+          "completionMs": 1,
+          "dispatchWholeCallMs": 15.199999928474426,
+          "sampleTimeMs": 1822
+        },
+        {
+          "completionMs": 0.3999999761581421,
+          "dispatchWholeCallMs": 17.699999928474426,
+          "sampleTimeMs": 1838
+        },
+        {
+          "completionMs": 0.3999999761581421,
+          "dispatchWholeCallMs": 15.600000023841858,
+          "sampleTimeMs": 1854.7000000476837
+        },
+        {
+          "completionMs": 0.7000000476837158,
+          "dispatchWholeCallMs": 17,
+          "sampleTimeMs": 1874.2000000476837
+        },
+        {
+          "completionMs": 0.5,
+          "dispatchWholeCallMs": 17.5,
+          "sampleTimeMs": 1892.2000000476837
+        },
+        {
+          "completionMs": 0.30000007152557373,
+          "dispatchWholeCallMs": 12.699999928474426,
+          "sampleTimeMs": 1905.8000000715256
+        },
+        {
+          "completionMs": 0.5999999046325684,
+          "dispatchWholeCallMs": 13.100000023841858,
+          "sampleTimeMs": 1921.6000000238419
+        },
+        {
+          "completionMs": 0.5,
+          "dispatchWholeCallMs": 14.199999928474426,
+          "sampleTimeMs": 1938.1000000238419
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 16.600000023841858,
+          "sampleTimeMs": 1955.3000000715256
+        },
+        {
+          "completionMs": 0.5,
+          "dispatchWholeCallMs": 14.799999952316284,
+          "sampleTimeMs": 1971.5
+        },
+        {
+          "completionMs": 0.30000007152557373,
+          "dispatchWholeCallMs": 14.799999952316284,
+          "sampleTimeMs": 1988
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 14.599999904632568,
+          "sampleTimeMs": 2004.6000000238419
+        },
+        {
+          "completionMs": 0.3999999761581421,
+          "dispatchWholeCallMs": 14.700000047683716,
+          "sampleTimeMs": 2021.4000000953674
+        },
+        {
+          "completionMs": 0.40000009536743164,
+          "dispatchWholeCallMs": 13.5,
+          "sampleTimeMs": 2037.9000000953674
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 13,
+          "sampleTimeMs": 2054.5
+        },
+        {
+          "completionMs": 0.3999999761581421,
+          "dispatchWholeCallMs": 13.600000023841858,
+          "sampleTimeMs": 2071.3000000715256
+        },
+        {
+          "completionMs": 0.3999999761581421,
+          "dispatchWholeCallMs": 11.600000023841858,
+          "sampleTimeMs": 2088.100000023842
+        },
+        {
+          "completionMs": 0.3999999761581421,
+          "dispatchWholeCallMs": 12.300000071525574,
+          "sampleTimeMs": 2104.600000023842
+        },
+        {
+          "completionMs": 0.3999999761581421,
+          "dispatchWholeCallMs": 12.399999976158142,
+          "sampleTimeMs": 2121.2000000476837
+        },
+        {
+          "completionMs": 0.30000007152557373,
+          "dispatchWholeCallMs": 12.600000023841858,
+          "sampleTimeMs": 2137.8000000715256
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 12.399999976158142,
+          "sampleTimeMs": 2154.5
+        },
+        {
+          "completionMs": 0.3999999761581421,
+          "dispatchWholeCallMs": 12.100000023841858,
+          "sampleTimeMs": 2171.2000000476837
+        },
+        {
+          "completionMs": 0.40000009536743164,
+          "dispatchWholeCallMs": 11.600000023841858,
+          "sampleTimeMs": 2187.9000000953674
+        },
+        {
+          "completionMs": 0.7999999523162842,
+          "dispatchWholeCallMs": 12.600000023841858,
+          "sampleTimeMs": 2205
+        },
+        {
+          "completionMs": 0.3999999761581421,
+          "dispatchWholeCallMs": 12.899999976158142,
+          "sampleTimeMs": 2221.2000000476837
+        },
+        {
+          "completionMs": 0.30000007152557373,
+          "dispatchWholeCallMs": 12.799999952316284,
+          "sampleTimeMs": 2237.9000000953674
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 12.200000047683716,
+          "sampleTimeMs": 2254.5
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 12.899999976158142,
+          "sampleTimeMs": 2271.100000023842
+        },
+        {
+          "completionMs": 0.30000007152557373,
+          "dispatchWholeCallMs": 12.299999952316284,
+          "sampleTimeMs": 2287.8000000715256
+        },
+        {
+          "completionMs": 0.3999999761581421,
+          "dispatchWholeCallMs": 12.200000047683716,
+          "sampleTimeMs": 2304.600000023842
+        },
+        {
+          "completionMs": 0.3999999761581421,
+          "dispatchWholeCallMs": 11.299999952316284,
+          "sampleTimeMs": 2321.2000000476837
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 12.900000095367432,
+          "sampleTimeMs": 2337.8000000715256
+        },
+        {
+          "completionMs": 0.3999999761581421,
+          "dispatchWholeCallMs": 12.699999928474426,
+          "sampleTimeMs": 2354.5
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 13,
+          "sampleTimeMs": 2371.100000023842
+        },
+        {
+          "completionMs": 0.3999999761581421,
+          "dispatchWholeCallMs": 12.5,
+          "sampleTimeMs": 2388.100000023842
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 13.599999904632568,
+          "sampleTimeMs": 2404.4000000953674
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 13.800000071525574,
+          "sampleTimeMs": 2421.2000000476837
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 13.699999928474426,
+          "sampleTimeMs": 2437.8000000715256
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 12.5,
+          "sampleTimeMs": 2454.5
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 13.5,
+          "sampleTimeMs": 2471.100000023842
+        },
+        {
+          "completionMs": 0.30000007152557373,
+          "dispatchWholeCallMs": 14.299999952316284,
+          "sampleTimeMs": 2487.9000000953674
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 14.100000023841858,
+          "sampleTimeMs": 2504.600000023842
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 12.799999952316284,
+          "sampleTimeMs": 2521.100000023842
+        },
+        {
+          "completionMs": 0.30000007152557373,
+          "dispatchWholeCallMs": 12.5,
+          "sampleTimeMs": 2537.8000000715256
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 12.799999952316284,
+          "sampleTimeMs": 2554.600000023842
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 12.600000023841858,
+          "sampleTimeMs": 2571.2000000476837
+        },
+        {
+          "completionMs": 0.30000007152557373,
+          "dispatchWholeCallMs": 12.600000023841858,
+          "sampleTimeMs": 2587.8000000715256
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 12.800000071525574,
+          "sampleTimeMs": 2604.5
+        },
+        {
+          "completionMs": 0.3999999761581421,
+          "dispatchWholeCallMs": 12.799999952316284,
+          "sampleTimeMs": 2621.2000000476837
+        },
+        {
+          "completionMs": 0.30000007152557373,
+          "dispatchWholeCallMs": 13,
+          "sampleTimeMs": 2637.8000000715256
+        },
+        {
+          "completionMs": 0.3999999761581421,
+          "dispatchWholeCallMs": 12.600000023841858,
+          "sampleTimeMs": 2654.5
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 12.899999976158142,
+          "sampleTimeMs": 2671.100000023842
+        },
+        {
+          "completionMs": 0.30000007152557373,
+          "dispatchWholeCallMs": 11.899999976158142,
+          "sampleTimeMs": 2687.8000000715256
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 12.200000047683716,
+          "sampleTimeMs": 2704.5
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 12.200000047683716,
+          "sampleTimeMs": 2721.2000000476837
+        },
+        {
+          "completionMs": 0.30000007152557373,
+          "dispatchWholeCallMs": 13.300000071525574,
+          "sampleTimeMs": 2737.8000000715256
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 13,
+          "sampleTimeMs": 2754.5
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 13.600000023841858,
+          "sampleTimeMs": 2771
+        },
+        {
+          "completionMs": 0.40000009536743164,
+          "dispatchWholeCallMs": 12.399999976158142,
+          "sampleTimeMs": 2787.9000000953674
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 13.600000023841858,
+          "sampleTimeMs": 2804.5
+        },
+        {
+          "completionMs": 0.3999999761581421,
+          "dispatchWholeCallMs": 13.5,
+          "sampleTimeMs": 2821.2000000476837
+        },
+        {
+          "completionMs": 0.40000009536743164,
+          "dispatchWholeCallMs": 12.5,
+          "sampleTimeMs": 2838
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 13,
+          "sampleTimeMs": 2854.5
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 12.5,
+          "sampleTimeMs": 2871.2000000476837
+        },
+        {
+          "completionMs": 0.40000009536743164,
+          "dispatchWholeCallMs": 12.400000095367432,
+          "sampleTimeMs": 2887.9000000953674
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 12.700000047683716,
+          "sampleTimeMs": 2904.5
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 13.100000023841858,
+          "sampleTimeMs": 2921.2000000476837
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 15,
+          "sampleTimeMs": 2938
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 14,
+          "sampleTimeMs": 2954.5
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 13.799999952316284,
+          "sampleTimeMs": 2971.100000023842
+        },
+        {
+          "completionMs": 0.30000007152557373,
+          "dispatchWholeCallMs": 13.399999976158142,
+          "sampleTimeMs": 2987.8000000715256
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 13.399999976158142,
+          "sampleTimeMs": 3004.4000000953674
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 12.199999928474426,
+          "sampleTimeMs": 3021.100000023842
+        },
+        {
+          "completionMs": 0.30000007152557373,
+          "dispatchWholeCallMs": 12.300000071525574,
+          "sampleTimeMs": 3037.9000000953674
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 12.699999928474426,
+          "sampleTimeMs": 3054.600000023842
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 12.5,
+          "sampleTimeMs": 3071.100000023842
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 12.800000071525574,
+          "sampleTimeMs": 3087.7000000476837
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 12.699999928474426,
+          "sampleTimeMs": 3104.3000000715256
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 12.600000023841858,
+          "sampleTimeMs": 3121.2000000476837
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 12.899999976158142,
+          "sampleTimeMs": 3137.7000000476837
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 12.799999952316284,
+          "sampleTimeMs": 3154.5
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 12.299999952316284,
+          "sampleTimeMs": 3171.100000023842
+        },
+        {
+          "completionMs": 0.3999999761581421,
+          "dispatchWholeCallMs": 12.700000047683716,
+          "sampleTimeMs": 3188.100000023842
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 13.5,
+          "sampleTimeMs": 3204.5
+        },
+        {
+          "completionMs": 0.30000007152557373,
+          "dispatchWholeCallMs": 13.699999928474426,
+          "sampleTimeMs": 3221.3000000715256
+        },
+        {
+          "completionMs": 0.30000007152557373,
+          "dispatchWholeCallMs": 15.199999928474426,
+          "sampleTimeMs": 3238
+        },
+        {
+          "completionMs": 0.6000000238418579,
+          "dispatchWholeCallMs": 13.699999928474426,
+          "sampleTimeMs": 3254.9000000953674
+        },
+        {
+          "completionMs": 0.30000007152557373,
+          "dispatchWholeCallMs": 14.100000023841858,
+          "sampleTimeMs": 3271.4000000953674
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 14.100000023841858,
+          "sampleTimeMs": 3287.7000000476837
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 12.600000023841858,
+          "sampleTimeMs": 3304.4000000953674
+        },
+        {
+          "completionMs": 0.2999999523162842,
+          "dispatchWholeCallMs": 12.5,
+          "sampleTimeMs": 3321.2000000476837
+        },
+        {
+          "completionMs": 0.30000007152557373,
+          "dispatchWholeCallMs": 13.900000095367432,
+          "sampleTimeMs": 3337.8000000715256
+        },
+        {
+          "completionMs": 0.20000004768371582,
+          "dispatchWholeCallMs": 13,
+          "sampleTimeMs": 3354.4000000953674
+        },
+        {
+          "completionMs": 0.19999992847442627,
+          "dispatchWholeCallMs": 13.200000047683716,
+          "sampleTimeMs": 3371.2000000476837
+        }
+      ],
+      "firstSample": {
+        "engine": "three.js r185",
+        "nativeRecordingStatus": "disabled",
+        "nativeTick": "14",
+        "nativeGeneration": "3",
+        "nativeFrames": "15",
+        "nativeLinearMemoryBytes": "96665600",
+        "nativePeakLinearMemoryBytes": "96665600",
+        "nativeMemoryGrowthCount": "1",
+        "nativeModuleInitializationMs": "151.19999992847443",
+        "nativeDispatchMs": "26.700000047683716",
+        "nativeSubmittedFrames": "14",
+        "nativeCompletedFrames": "14",
+        "nativeCanvasCompletionMs": "0.8999999761581421",
+        "nativeCompletionScope": "canvas CPU+GPU completion, excludes DOM compositor/presentation"
+      },
+      "diagnostics": {
+        "engine": "three.js r185",
+        "nativeRecordingStatus": "disabled",
+        "nativeTick": "135",
+        "nativeGeneration": "3",
+        "nativeFrames": "136",
+        "nativeLinearMemoryBytes": "96665600",
+        "nativePeakLinearMemoryBytes": "96665600",
+        "nativeMemoryGrowthCount": "1",
+        "nativeModuleInitializationMs": "151.19999992847443",
+        "nativeDispatchMs": "13.300000071525574",
+        "nativeSubmittedFrames": "134",
+        "nativeCompletedFrames": "134",
+        "nativeCanvasCompletionMs": "0.19999992847442627",
+        "nativeCompletionScope": "canvas CPU+GPU completion, excludes DOM compositor/presentation"
+      },
+      "memoryMethod": "WASM linear-memory extent sampled after dispatch, excludes live allocation, GPU and JS heaps",
+      "decodedAssetMemory": "not instrumented",
+      "requests": [
+        "/",
+        "/styles.css",
+        "/native-game-player.js",
+        "/game.json",
+        "/assets/collect.wav",
+        "/native-game-worker.js",
+        "/native-game.mjs",
+        "/native-game.wasm"
+      ],
+      "gpuTiming": "unavailable"
+    }
+  },
+  "negativeWitnesses": {
+    "exportAdmission": "Omitting the installed WASM validate dispatch makes the QuickJS syntax, expanded prefab collision, and unsupported 2D physics cases fail. Restoring it rejects all three before publication with no output or sibling staging.",
+    "profileAbsent": "With native-game.wasm temporarily removed, profile-off native browser suites passed. The explicit browser selfcheck failed with an unavailable-profile error. The file was restored in finally.",
+    "emptyDiscovery": "The browser selfcheck rejects an empty fixture directory.",
+    "runtimeAndAssets": "Missing capability, altered runtime bytes, altered owned assets, traversal, existing destinations and cancellation are rejected.",
+    "sourceDrift": "The generated bundle check rejects stale artifact identity."
+  },
+  "limitations": [
+    "WASM memory values are linear-memory extent, not live allocation or process RSS.",
+    "Decoded asset memory, GPU asset memory, isolated script latency and isolated GPU-only timing are not instrumented.",
+    "Canvas completion uses opt-in gl.finish and excludes the DOM compositor and display presentation.",
+    "Startup uses a fresh browser process/context/page and measures navigation to the first completed canvas frame. OS caches are uncontrolled.",
+    "Each dimension has one startup observation and 120 timestamped steady canvas-completion samples after restart checks. Results are not statistical startup distributions.",
+    "SwiftShader is a software renderer. These measurements do not establish a hardware frame-rate budget."
+  ]
+}

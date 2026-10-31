@@ -812,6 +812,18 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     note: "The browser fetches fixed relative game.json and manifest.json plus digest-named ./assets/ paths validated against the closed manifest. Its connect-src self CSP constrains browser redirects to the static origin, and no server socket opens."
   },
   {
+    file: "packages/game-renderer/src/native-cpp/player.ts",
+    owner: "native C++ browser game export assets",
+    inputSource: "operator",
+    schemes: ["http", "https"],
+    authScope: "the page's cookies only for same-origin requests (browser fetch default)",
+    redirects: "none",
+    dnsRebinding: "n/a",
+    policy: "browser",
+    guardedBy: [],
+    note: "The embedding page supplies the static base URL. Browser fetch loads fixed game.json and declared assets/<path> only; the broker rejects noncanonical relative paths and verifies declared size and SHA-256 before use. All fetches reject redirects. Installed exports apply connect-src self CSP; no server socket opens."
+  },
+  {
     file: "packages/game-renderer/src/audio/player.ts",
     owner: "browser game audio assets",
     inputSource: "workflow",

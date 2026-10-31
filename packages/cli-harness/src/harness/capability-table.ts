@@ -2891,6 +2891,106 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "native_cpp_game_schema",
+    module: "native-cpp-game",
+    impl: "packages/agents/src/capabilities/native-cpp-game.ts",
+    contract: "05123e4e13ae",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-cpp-game.test.ts",
+    ],
+  },
+  {
+    name: "native_cpp_game_create",
+    module: "native-cpp-game",
+    impl: "packages/agents/src/capabilities/native-cpp-game.ts",
+    contract: "7631c2c107e0",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-cpp-game.test.ts",
+    ],
+  },
+  {
+    name: "native_cpp_game_get",
+    module: "native-cpp-game",
+    impl: "packages/agents/src/capabilities/native-cpp-game.ts",
+    contract: "d69b06a49246",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-cpp-game.test.ts",
+    ],
+  },
+  {
+    name: "native_cpp_game_edit",
+    module: "native-cpp-game",
+    impl: "packages/agents/src/capabilities/native-cpp-game.ts",
+    contract: "a5b0e8938e4b",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-cpp-game.test.ts",
+    ],
+  },
+  {
+    name: "native_cpp_game_simulate",
+    module: "native-cpp-game",
+    impl: "packages/agents/src/capabilities/native-cpp-game.ts",
+    contract: "4874efeb013e",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-cpp-game.test.ts",
+    ],
+  },
+  {
+    name: "native_cpp_game_capture",
+    module: "native-cpp-game",
+    impl: "packages/agents/src/capabilities/native-cpp-game.ts",
+    contract: "5bec9a7fc49d",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-cpp-game.test.ts",
+    ],
+  },
+  {
+    name: "native_cpp_game_bench",
+    module: "native-cpp-game",
+    impl: "packages/agents/src/capabilities/native-cpp-game.ts",
+    contract: "e83ee24e1365",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-cpp-game.test.ts",
+    ],
+  },
+  {
+    name: "native_cpp_game_export",
+    module: "native-cpp-game",
+    impl: "packages/agents/src/capabilities/native-cpp-game.ts",
+    contract: "ca187534961e",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-cpp-game.test.ts",
+    ],
+  },
+  {
+    name: "native_cpp_game_editor",
+    module: "native-cpp-game",
+    impl: "packages/agents/src/capabilities/native-cpp-game.ts",
+    contract: "619a3acf82a1",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-cpp-game.test.ts",
+    ],
+  },
+  {
+    name: "native_cpp_game_install_asset",
+    module: "native-cpp-game",
+    impl: "packages/agents/src/capabilities/native-cpp-game.ts",
+    contract: "dd1195a61158",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-native-cpp-game.test.ts",
+    ],
+  },
+  {
     name: "list_scripts",
     module: "scripts",
     impl: "packages/agents/src/capabilities/scripts.ts",

@@ -1314,6 +1314,70 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "native-game-cpp",
+    title: "Native C++ game documents and worker",
+    command: "node scripts/check-native-game.mjs",
+    kind: "execution",
+    capabilities: ["no-db", "interact"],
+    docs: "native/game/README.md",
+    selfcheck: { command: "node scripts/check-native-game.mjs", cost: "cheap" }
+  },
+  {
+    id: "native-game-player",
+    title: "Native game player rendering, capture, HUD, and audio",
+    command: "node scripts/check-native-game-player.mjs",
+    kind: "execution",
+    capabilities: ["no-db", "interact"],
+    docs: "native/game/README.md",
+    // Qt and a graphics device are provisioned by the dedicated native-game workflow.
+    selfcheck: { command: "node scripts/check-native-game-player.mjs", cost: "expensive" }
+  },
+  {
+    id: "native-game-service",
+    title: "Native game authoring tools and CLI",
+    command: "node scripts/check-native-game-service.mjs",
+    kind: "execution",
+    capabilities: ["no-db", "interact"],
+    docs: "native/game/README.md",
+    selfcheck: { command: "node scripts/check-native-game-service.mjs", cost: "cheap" }
+  },
+  {
+    id: "native-game-editor",
+    title: "Native Qt game editor and shared transactions",
+    command: "node scripts/check-native-game-editor.mjs",
+    kind: "execution",
+    capabilities: ["no-db", "interact"],
+    docs: "native/game/README.md",
+    selfcheck: { command: "node scripts/check-native-game-editor.mjs", cost: "expensive" }
+  },
+  {
+    id: "native-game-delivery",
+    title: "Native game runtime installation and standalone export",
+    command: "node scripts/check-native-game-delivery.mjs",
+    kind: "execution",
+    capabilities: ["no-db"],
+    docs: "native/game/README.md",
+    selfcheck: { command: "node scripts/check-native-game-delivery.mjs", cost: "expensive" }
+  },
+  {
+    id: "native-game-bench",
+    title: "Native game simulation benchmark workloads",
+    command: "node scripts/check-native-game-bench.mjs",
+    kind: "execution",
+    capabilities: ["no-db", "json"],
+    docs: "native/game/README.md",
+    selfcheck: { command: "node scripts/check-native-game-bench.mjs", cost: "cheap" }
+  },
+  {
+    id: "native-game-browser",
+    title: "Native browser installed export and closed static playback",
+    command: "node scripts/check-native-game-browser.mjs",
+    kind: "execution",
+    capabilities: ["no-db"],
+    docs: "native/game/README.md",
+    selfcheck: { command: "node scripts/check-native-game-browser.mjs", cost: "expensive" }
+  },
+  {
     id: "native-chat",
     title: "Native chat model, wire conformance and Qt Quick interactions",
     command: "node native/chat/scripts/check.mjs",
@@ -2467,6 +2531,98 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/cli-harness/tests/harness-registry.test.ts",
       "packages/cli-harness/tests/capability-coverage.test.ts",
       "scripts/sync-capability-coverage.mjs"
+    ]
+  },
+  {
+    id: "native-game-cpp",
+    title: "Native C++ game document authoring and worker",
+    harnesses: ["native-game-cpp"],
+    paths: [
+      "native/game/",
+      "scripts/check-native-game.mjs",
+      "packages/protocol/src/native-game.ts",
+      "packages/protocol/scripts/generate-native-game-schema.ts",
+      "packages/protocol/tests/fixtures/native-game/",
+      "packages/websocket/src/lib/native-game-worker.ts",
+      "packages/models/src/native-game.ts",
+      "packages/websocket/src/trpc/routers/nativeGames.ts",
+      "packages/websocket/tests/native-game"
+    ]
+  },
+  {
+    id: "native-game-player",
+    title: "Native game player and prepared media",
+    harnesses: ["native-game-player"],
+    paths: [
+      "native/game/src/render/", "native/game/src/player/", "native/game/src/assets/", "native/game/src/audio/",
+      "native/game/CMakeLists.txt", "native/game/cmake/Player.cmake", "native/game/tests/RenderTest.cpp",
+      "native/game/tests/player_test.py", "native/game/tests/player2d_test.py", "native/game/tests/player2d_",
+      "native/game/tests/PostFXTest.cpp", "native/game/assets/",
+      "native/game/tests/Sky3DTest.cpp", "native/game/tests/Decals3DTest.cpp", "native/game/tests/Hud3DTest.cpp",
+      "native/game/tests/Effects3DTest.cpp", "native/game/tests/RenderProbe.cpp", "native/game/tests/MaterialRenderTest.cpp", "native/game/tests/PlayerInputTest.cpp", "native/game/tests/render_probe_test.py",
+      "native/game/tests/ParticleMeshLifetimeTest.cpp",
+      "native/game/tests/player3d_", "native/game/tests/player_camera",
+      "packages/game-renderer/tests/fixtures/native-bsdf-reference/", "packages/game-renderer/tests/fixtures/native-normal-reference/",
+      "packages/game-renderer/tests/fixtures/nativeBsdfReference.mjs", "packages/game-renderer/tests/fixtures/nativeNormalReference.mjs",
+      "scripts/check-native-game-player.mjs"
+    ]
+  },
+  {
+    id: "native-game-service",
+    title: "Native game service, CLI, and agent capabilities",
+    harnesses: ["native-game-service"],
+    paths: [
+      "packages/game-runtime/src/native", "packages/game-runtime/tests/native-cpp.test.ts", "packages/game-runtime/tests/native-editor-client.test.ts",
+      "packages/cli-game/src/commands/game-native-cpp.ts", "packages/cli-game/tests/game-native-cpp.test.ts",
+      "packages/agents/src/capabilities/native-cpp-game", "packages/agents/tests/capabilities-native-cpp-game.test.ts",
+      "scripts/check-native-game-service.mjs"
+    ]
+  },
+  {
+    id: "native-game-editor",
+    title: "Native game Qt editor",
+    harnesses: ["native-game-editor"],
+    paths: [
+      "native/game/CMakeLists.txt", "native/game/src/editor/", "native/game/src/render/", "native/game/qml/", "native/game/cmake/Editor.cmake",
+      "native/game/tests/Editor", "native/game/tests/editor_ui_test.py", "scripts/check-native-game-editor.mjs",
+      "packages/game-runtime/src/native-editor-client.ts", "packages/game-runtime/tests/native-editor-client.test.ts"
+    ]
+  },
+  {
+    id: "native-game-delivery",
+    title: "Native game runtime distribution and export",
+    harnesses: ["native-game-delivery"],
+    paths: [
+      "native/game/CMakeLists.txt", "native/game/cmake/Delivery.cmake", "native/game/scripts/check-delivery.mjs",
+      "packages/game-runtime/scripts/native-game-export.mjs", "packages/game-runtime/scripts/stage-native-runtime.mjs",
+      "scripts/lib/stage-package-assets.mjs", "scripts/__tests__/native-game-delivery.test.mjs", "scripts/check-native-game-delivery.mjs"
+    ]
+  },
+  {
+    id: "native-game-bench",
+    title: "Native game simulation performance measurement",
+    harnesses: ["native-game-bench"],
+    paths: [
+      "native/game/CMakeLists.txt", "native/game/src/core/", "native/game/src/physics/", "native/game/src/bench/", "native/game/benchmarks/", "native/game/scripts/benchmark", "scripts/check-native-game-bench.mjs"
+    ]
+  },
+  {
+    id: "native-game-browser",
+    title: "Native browser simulation, presentation, and installed export",
+    harnesses: ["native-game-browser"],
+    paths: [
+      "native/game/browser/", "native/game/src/browser/", "native/game/src/service/",
+      "native/game/tests/native-wasm-parity.mjs",
+      "packages/game-runtime/src/native-browser/", "packages/game-runtime/scripts/native-game-web-export.mjs",
+      "packages/game-runtime/src/native.ts", "packages/cli-game/src/commands/game-native-cpp.ts", "packages/agents/src/capabilities/native-cpp-game",
+      "packages/game-renderer/src/native-cpp/", "packages/game-renderer/src/standalone-native-player.ts",
+      "packages/game-renderer/scripts/bundle-native-browser.mjs", "packages/game-renderer/tests/native-browser",
+      "packages/game-renderer/scripts/check-native-browser-host.mjs",
+      "packages/game-renderer/scripts/generate-native-postfx.mjs", "packages/game-renderer/tests/native-post3d.test.ts",
+      "packages/game-renderer/tests/fixtures/native-bsdf-reference/", "packages/game-renderer/tests/fixtures/native-normal-reference/",
+      "packages/game-renderer/tests/fixtures/nativeBsdfReference.mjs", "packages/game-renderer/tests/fixtures/nativeNormalReference.mjs",
+      "native/game/assets/",
+      "scripts/check-native-game-browser.mjs"
     ]
   },
   {

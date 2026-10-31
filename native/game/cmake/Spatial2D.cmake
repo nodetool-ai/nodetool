@@ -1,0 +1,5 @@
+if(BUILD_TESTING)
+  add_executable(game-spatial2d-tests tests/Spatial2DTest.cpp)
+  target_link_libraries(game-spatial2d-tests PRIVATE game_core)
+  add_test(NAME native-game-spatial2d COMMAND game-spatial2d-tests)
+endif()

@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 4,
+  "engine": "native-cpp-1",
+  "dimension": "3d",
+  "id": "benchmark-course",
+  "title": "Native benchmark course",
+  "initialSceneId": "course",
+  "scenes": [
+    {
+      "id": "course",
+      "entities": [
+        {
+          "id": "floor",
+          "body": {
+            "type": "static"
+          },
+          "collider": {
+            "shape": "box",
+            "halfExtents": [
+              20,
+              0.5,
+              20
+            ]
+          },
+          "transform": {
+            "position": [
+              0,
+              -0.5,
+              0
+            ]
+          },
+          "visual": {
+            "kind": "primitive",
+            "shape": "box",
+            "size": [
+              40,
+              1,
+              40
+            ],
+            "color": [
+              0.4,
+              0.4,
+              0.4,
+              1
+            ]
+          }
+        },
+        {
+          "id": "player",
+          "character": {},
+          "collider": {
+            "shape": "capsule"
+          },
+          "transform": {
+            "position": [
+              0,
+              2,
+              0
+            ]
+          },
+          "visual": {
+            "kind": "primitive",
+            "shape": "capsule",
+            "color": [
+              0.8,
+              0.2,
+              0.1,
+              1
+            ]
+          }
+        }
+      ]
+    }
+  ],
+  "assets": []
+}

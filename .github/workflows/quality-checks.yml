@@ -433,6 +433,10 @@ jobs:
         with:
           build-packages: "false"
 
+      - name: Prepare native game worker for isolated test shards
+        if: ${{ !(inputs.skip-tests && matrix.is-test == 'true') && (matrix.check == 'test-packages-websocket' || matrix.check == 'test-packages-agents' || matrix.check == 'test-packages-game') }}
+        run: node scripts/check-native-game.mjs
+
       - name: Run ${{ matrix.check }}
         env:
           NODETOOL_CHECK_COMMAND: ${{ matrix.command }}
@@ -721,6 +725,10 @@ jobs:
           cat /etc/os-release > "${{ runner.temp }}/native-game-golden-diagnostics/os-release.txt"
           fc-match system-ui > "${{ runner.temp }}/native-game-golden-diagnostics/fonts.txt"
           fc-match sans-serif >> "${{ runner.temp }}/native-game-golden-diagnostics/fonts.txt"
+
+      - name: Prepare native game worker for isolated test shards
+        if: ${{ !(inputs.skip-tests && matrix.is-test == 'true') && (matrix.check == 'test-packages-websocket' || matrix.check == 'test-packages-agents' || matrix.check == 'test-packages-game') }}
+        run: node scripts/check-native-game.mjs
 
       - name: Run ${{ matrix.check }}
         # skip-tests drops the package + app test legs without touching the

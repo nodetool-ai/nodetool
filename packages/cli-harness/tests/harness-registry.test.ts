@@ -40,6 +40,44 @@ import {
 
 describe("harness registry", () => {
   it.each([
+    ["packages/game-runtime/src/native.ts", "native-game-service"],
+    ["packages/cli-game/src/commands/game-native-cpp.ts", "native-game-service"],
+    ["packages/cli-game/tests/game-native-cpp.test.ts", "native-game-service"],
+    ["packages/agents/src/capabilities/native-cpp-game.ts", "native-game-service"],
+    ["native/game/src/editor/EditorController.cpp", "native-game-editor"],
+    ["native/game/cmake/Editor.cmake", "native-game-editor"],
+    ["packages/game-runtime/scripts/native-game-export.mjs", "native-game-delivery"],
+    ["scripts/lib/stage-package-assets.mjs", "native-game-delivery"],
+    ["native/game/src/bench/Main.cpp", "native-game-bench"]
+  ])("registers the executable %s verification surface", (path, harness) => {
+    const plan = planGate([path]);
+    expect(plan.surfaces.map((surface) => surface.id)).toContain(harness);
+    expect(plan.checks.find((check) => check.harnessId === harness)).toBeDefined();
+    expect(plan.unmappedFiles).toEqual([]);
+  });
+  it.each([
+    "native/game/src/render/Viewport.cpp", "native/game/src/assets/Manifest.cpp", "scripts/check-native-game-player.mjs",
+    "native/game/tests/player2d_test.py", "native/game/tests/player2d_audio_test.py", "native/game/tests/player2d_live_input_test.py",
+    "native/game/tests/PostFXTest.cpp", "native/game/assets/native-smaa-area.png",
+    "native/game/tests/Sky3DTest.cpp", "native/game/tests/Decals3DTest.cpp", "native/game/tests/Hud3DTest.cpp",
+    "native/game/tests/Effects3DTest.cpp", "native/game/tests/RenderProbe.cpp", "native/game/tests/render_probe_test.py",
+    "native/game/tests/player3d_material_test.py", "native/game/tests/player_camera_test.py", "native/game/tests/player_camera_input_test.py",
+    "packages/game-renderer/tests/fixtures/native-bsdf-reference/ambient.json", "packages/game-renderer/tests/fixtures/native-normal-reference/front-y.glb",
+    "packages/game-renderer/tests/fixtures/nativeBsdfReference.mjs", "packages/game-renderer/tests/fixtures/nativeNormalReference.mjs"
+  ])("registers explicit graphics verification for %s", (path) => {
+    const plan = planGate([path]);
+    expect(plan.surfaces.map((surface) => surface.id)).toContain("native-game-player");
+    expect(plan.checks.find((check) => check.harnessId === "native-game-player")?.command)
+      .toBe("node scripts/check-native-game-player.mjs");
+  });
+  it.each(["native/game/src/document/Document.cpp", "native/game/CMakeLists.txt", "scripts/check-native-game.mjs"])("executes native game checks for %s", (path) => {
+    const plan = planGate([path]);
+    expect(plan.surfaces.map((surface) => surface.id)).toContain("native-game-cpp");
+    expect(plan.checks.find((check) => check.harnessId === "native-game-cpp")?.command)
+      .toBe("node scripts/check-native-game.mjs");
+  });
+
+  it.each([
     "database-postgres", "database-sqlite", "document-processing", "execution-core",
     "feature-documents", "models-core", "nodes-core", "provider-anthropic",
     "runtime-core", "security-core", "server-core", "server-feature-sandbox",
