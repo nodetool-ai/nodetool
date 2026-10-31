@@ -99,6 +99,7 @@ import {
   useShotDuration
 } from "../../hooks/storyboard/useShotDuration";
 import { useShotCostEstimate } from "../../hooks/storyboard/useShotCostEstimate";
+import { useShotVideoModelId } from "../../hooks/storyboard/useShotVideoModelId";
 import { useEntities } from "../../serverState/useEntities";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { requestDocumentFocus } from "../../stores/DocumentFocusStore";
@@ -334,6 +335,7 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
         : (shot ?? PLACEHOLDER_SHOT),
     [draft, shot]
   );
+  const videoModelId = useShotVideoModelId(boardId, previewShot);
   const duration = useShotDuration(boardId, previewShot);
   const costEstimate = useShotCostEstimate(boardId, previewShot);
   const scriptLines = useBoardScriptLines(boardId);
@@ -883,6 +885,7 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
                 readOnly={readOnly}
                 focusDialogue={focusDialogue}
                 onEditInScript={linksLines ? handleEditInScript : undefined}
+                videoModelId={videoModelId}
               />
               <Card variant="outlined" padding="normal">
                 <CollapsibleSection
@@ -922,6 +925,7 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
                 scene={promptScene}
                 style={boardStyle}
                 castNames={castNames}
+                videoModelId={videoModelId}
               />
               <ShotScriptPanel
                 boardId={boardId}

@@ -8101,7 +8101,11 @@
         "copyPrompt": "Copy {{promptType}}",
         "emptyPrompt": "Nothing to send yet.",
         "referenceImages_one": "Reference image for {{names}} is attached when the render starts.",
-        "referenceImages_other": "Reference images for {{names}} are attached when the render starts."
+        "referenceImages_other": "Reference images for {{names}} are attached when the render starts.",
+        "cameraClause": "Camera wording",
+        "defaultFallback": "{{model}} has no tuned wording for {{names}}, so the default wording is used.",
+        "noVideoModel": "The video model",
+        "cameraError": "The camera presets cannot compile: {{message}}"
       }
     }
   },
@@ -19139,5 +19143,11 @@
         "description": "Lens zooms out from a fixed camera position."
       }
     }
+  },
+  "shot_camera_field": {
+    "browse": "Browse presets",
+    "title": "Camera presets",
+    "done": "Done",
+    "remove": "Remove {{name}}"
   }
 }

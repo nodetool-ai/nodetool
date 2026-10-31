@@ -8101,7 +8101,11 @@
         "copyPrompt": "{{promptType}} kopieren",
         "emptyPrompt": "Noch nichts zum Senden.",
         "referenceImages_one": "Das Referenzbild für {{names}} wird angehängt, sobald das Rendering startet.",
-        "referenceImages_other": "Die Referenzbilder für {{names}} werden angehängt, sobald das Rendering startet."
+        "referenceImages_other": "Die Referenzbilder für {{names}} werden angehängt, sobald das Rendering startet.",
+        "cameraClause": "Kamera-Formulierung",
+        "defaultFallback": "{{model}} hat keine abgestimmte Formulierung für {{names}}, daher gilt die Standardformulierung.",
+        "noVideoModel": "Das Videomodell",
+        "cameraError": "Die Kamera-Presets lassen sich nicht kompilieren: {{message}}"
       }
     }
   },
@@ -19139,5 +19143,11 @@
         "description": "Lens zooms out from a fixed camera position."
       }
     }
+  },
+  "shot_camera_field": {
+    "browse": "Presets durchsuchen",
+    "title": "Kamera-Presets",
+    "done": "Fertig",
+    "remove": "{{name}} entfernen"
   }
 }

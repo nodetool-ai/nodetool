@@ -49,7 +49,13 @@ export const ANGLE_OPTIONS = [
   "dutch angle"
 ] as const;
 
-const cameraPresets = createCatalog(presetData).filter({ kind: "camera" });
+/** The one catalogue instance the storyboard editors share. */
+export const presetCatalog = createCatalog(presetData);
+
+/** Every camera preset, in catalogue order. */
+export const CAMERA_PRESETS = presetCatalog.filter({ kind: "camera" });
+
+const cameraPresets = CAMERA_PRESETS;
 
 export const MOVEMENT_OPTIONS: readonly string[] = Array.from(new Set([
   ...cameraPresets.filter((preset) => preset.slot === "move").map((preset) => preset.name),
