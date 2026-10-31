@@ -15874,7 +15874,8 @@
         "entities": "Entiteetit",
         "memory": "Muisti",
         "settings": "Asetukset",
-        "effects": "Tehosteet"
+        "effects": "Tehosteet",
+        "lipsync": "Huulisynkronointi"
       }
     },
     "script": {
@@ -19328,5 +19329,23 @@
       "actions": "{{name}}: toiminnot",
       "openAsWorkflow": "Avaa työnkulkuna"
     }
+  },
+  "lipsync": {
+    "title": "Huulisynkronointi",
+    "subtitle": "Anna kuvan puhua valitsemallasi äänellä.",
+    "entity": "Valitse entiteetti",
+    "entityImage": "Valitse entiteetti, jolla on tallennettu viitekuva, tai lataa kuva.",
+    "realPerson": "Tämä on oikea henkilö",
+    "consent": "Minulla on tämän henkilön suostumus käyttää hänen kuvaansa tässä generoidussa videoleikkeessä.",
+    "line": "Mitä henkilö sanoo?",
+    "model": "Huulisynkronoinnin videomalli",
+    "requirements": "Lisää kuva ja repliikki. Valitse sitten puhemalli, ääni ja huulisynkronointimalli. Tulokset näkyvät myös Generoinneissa.",
+    "render": "Renderöi huulisynkronointi",
+    "speech": "Generoidaan puhetta…",
+    "video": "Renderöidään huulisynkronointia…",
+    "failed": "Huulisynkronointi epäonnistui. {{reason}} Yritä renderöintiä uudelleen.",
+    "result": "Huulisynkronoinnin tulos",
+    "estimate": "Videon listahinta: {{amount}}. Lopullinen hinta riippuu puheen pituudesta. Puhe laskutetaan erikseen.",
+    "noEstimate": "Hinta-arviota ei ole saatavilla. Puhe ja video laskutetaan erikseen."
   }
 }

@@ -176,6 +176,9 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
             disabled={busy}
           />
         )),
+        <MenuItemPrimitive key="lipsync" label={t("lipsync.title")} secondary={t("lipsync.subtitle")}
+          icon={<AutoAwesomeOutlinedIcon fontSize="small" />} disabled={busy}
+          onClick={() => { openPageTab("lipsync"); close(); }} />,
         // The gallery is a page, not a guided flow, so it has no starter.
         <MenuItemPrimitive
           key="guided-effects"

@@ -214,3 +214,22 @@ Use `--dry-run` to see the plan without Chrome or credentials. Rendering is sequ
 - [Harnesses](harnesses.md#nodetool-presets) for the selfchecks and CLI
 - [Agent Architecture & Tools](AGENTS.md#built-in-capabilities) for the capability table
 - [packages/presets/README.md](../packages/presets/README.md) for the package API
+
+## Lipsync studio
+
+Open **+ New → Lipsync**, or choose **Lipsync** under the start page's creation
+types. Upload a picture or choose an entity with a saved reference image. Enter
+a line, choose a speech model and voice, then choose an audio-to-video model.
+**Render lipsync** generates speech first and uses that audio to animate the
+picture. The clip appears in the studio and in **Generations**. Closing the tab
+keeps the working state and the running generation.
+
+For a real person, select **This is a real person** and confirm that you have
+their consent. Replacing the picture clears that confirmation. The
+`generate_media` request records `person_consent` (`real_person`, `confirmed`)
+in the lipsync prediction's params with `source_asset_id` and `audio_asset_id`.
+The server rejects a real-person request without confirmation.
+
+The keyless studio check is registered as `lipsync-studio`. Run
+`npm run test:journeys --workspace=web -- lipsync-studio.spec.ts` for the full
+fake-provider browser flow, including consent and the Generations result.

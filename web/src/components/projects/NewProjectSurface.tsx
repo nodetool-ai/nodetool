@@ -1747,6 +1747,8 @@ const NewProjectSurface = ({
       more: [
         examplesCard,
         effectsCard,
+        { id: "lipsync", title: t("lipsync.title"), description: t("lipsync.subtitle"),
+          icon: <AutoAwesomeOutlinedIcon />, accent: "var(--palette-secondary-main)" },
         ...MORE_CREATION_IDS.map((id) => flowCard(id, false)),
         modelCard
       ]
@@ -1760,6 +1762,10 @@ const NewProjectSurface = ({
     }
     if (id === EXAMPLES_CARD_ID) {
       openExamplesTab("workflows");
+      return;
+    }
+    if (id === "lipsync") {
+      openPageTab("lipsync");
       return;
     }
     if (id === EFFECTS_CARD_ID) {

@@ -1397,8 +1397,8 @@ export class ReplicateProvider extends BaseProvider {
     params: LipSyncParams
   ): Promise<Uint8Array> {
     const input: Record<string, unknown> = {
-      video: this.dataUri(video, "video/mp4"),
-      audio: this.dataUri(params.audio, "audio/mpeg")
+      [params.visualMimeType?.startsWith("image/") ? "image" : "video"]: this.dataUri(video, params.visualMimeType ?? "video/mp4"),
+      audio: this.dataUri(params.audio, params.audioMimeType ?? "audio/mpeg")
     };
     if (params.seed != null) input.seed = params.seed;
     log.debug("lipSync", { model: params.model.id });

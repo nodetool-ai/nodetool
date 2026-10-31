@@ -15874,7 +15874,8 @@
         "entities": "实体",
         "memory": "记忆",
         "settings": "设置",
-        "effects": "特效"
+        "effects": "特效",
+        "lipsync": "口型同步"
       }
     },
     "script": {
@@ -19328,5 +19329,23 @@
       "actions": "{{name}}的操作",
       "openAsWorkflow": "作为工作流打开"
     }
+  },
+  "lipsync": {
+    "title": "口型同步",
+    "subtitle": "让图片用你选择的声音说话。",
+    "entity": "选择实体",
+    "entityImage": "请选择带有已保存参考图的实体，或上传图片。",
+    "realPerson": "这是真实人物",
+    "consent": "我已获得此人的同意，可以在这段生成的视频中使用其肖像。",
+    "line": "人物要说什么？",
+    "model": "口型同步视频模型",
+    "requirements": "添加图片和台词，然后选择语音模型、声音和口型同步模型。结果也会出现在“生成记录”中。",
+    "render": "生成口型同步视频",
+    "speech": "正在生成语音…",
+    "video": "正在生成口型同步视频…",
+    "failed": "口型同步失败。{{reason}} 请重试。",
+    "result": "口型同步结果",
+    "estimate": "视频标价：{{amount}}。最终费用取决于语音长度。语音单独计费。",
+    "noEstimate": "暂无价格估算。语音和视频单独计费。"
   }
 }
