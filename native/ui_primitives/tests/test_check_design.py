@@ -1,4 +1,5 @@
 import unittest
+import subprocess
 import sys
 import tempfile
 import io
@@ -10,6 +11,43 @@ from check_design import audit
 import check_design
 
 class DesignAuditTests(unittest.TestCase):
+    def test_regex_character_classes_and_escapes_are_opaque(self):
+        source = r'value = /[a/b\]]{2}/gi'
+        tokens, errors = check_design.tokenize(source)
+        self.assertEqual(errors, [])
+        self.assertEqual(tokens[-1].kind, 'regex')
+        self.assertEqual(tokens[-1].value, source.split(' = ', 1)[1])
+
+    def test_adversarial_parser_inputs_complete_without_backtracking(self):
+        program = r"""
+import sys
+from pathlib import Path
+import check_design
+source = sys.stdin.read()
+if sys.argv[1] == 'regex':
+    tokens, errors = check_design.tokenize(source)
+    assert errors, 'unterminated regex must be rejected'
+else:
+    import tempfile
+    with tempfile.TemporaryDirectory() as directory:
+        manifest = Path(directory) / 'inventory.toml'
+        manifest.write_text(source)
+        try:
+            check_design.read_manifest(manifest)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError('unterminated array must be rejected')
+"""
+        inputs = {'regex': 'value = /' + '[]' * 50000,
+                  'manifest': '[[file]]\nname = [' + ' ""' * 50000}
+        for kind, source in inputs.items():
+            with self.subTest(kind=kind):
+                result = subprocess.run([sys.executable, '-c', program, kind], input=source,
+                                        cwd=Path(check_design.__file__).parent, text=True,
+                                        capture_output=True, timeout=3)
+                self.assertEqual(result.returncode, 0, result.stderr)
+
     def test_acceptance_review_style_bypasses_are_rejected(self):
         cases = [
             'Item { anchors.margins: 13 }',
