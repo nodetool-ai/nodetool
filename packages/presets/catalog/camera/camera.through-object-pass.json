@@ -20,11 +20,11 @@
     "through-object pass"
   ],
   "prompt": {
-    "default": "Camera advances through an opening in the foreground object to reveal the subject beyond.",
-    "kling": "Camera advances through an opening in the foreground object to reveal the subject beyond.",
-    "seedance": "Camera advances through an opening in the foreground object to reveal the subject beyond throughout one continuous shot.",
-    "veo": "Camera advances through an opening in the foreground object to reveal the subject beyond.",
-    "wan": "Camera advances through an opening in the foreground object to reveal the subject beyond."
+    "default": "The camera pushes forward through a gap between foreground elements that are already in the scene, such as leaves, an archway or a doorway, which sweep past the lens and out of frame to reveal the subject beyond. No new objects appear.",
+    "kling": "The camera pushes forward through a gap between foreground elements that are already in the scene, such as leaves, an archway or a doorway, which sweep past the lens and out of frame to reveal the subject beyond. No new objects appear.",
+    "seedance": "The camera pushes forward through a gap between foreground elements that are already in the scene, such as leaves, an archway or a doorway, which sweep past the lens and out of frame to reveal the subject beyond. No new objects appear. One continuous shot.",
+    "veo": "The camera pushes forward through a gap between foreground elements that are already in the scene, such as leaves, an archway or a doorway, which sweep past the lens and out of frame to reveal the subject beyond. No new objects appear.",
+    "wan": "The camera pushes forward through a gap between foreground elements that are already in the scene, such as leaves, an archway or a doorway, which sweep past the lens and out of frame to reveal the subject beyond. No new objects appear."
   },
   "params": {}
 }

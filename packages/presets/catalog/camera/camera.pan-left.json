@@ -22,11 +22,11 @@
     "pan left"
   ],
   "prompt": {
-    "default": "Camera pans left from a fixed position.",
-    "kling": "Camera pans left from a fixed position.",
-    "seedance": "Camera pans left from a fixed position throughout one continuous shot.",
-    "veo": "Camera pans left from a fixed position.",
-    "wan": "Camera pans left from a fixed position."
+    "default": "The camera stays fixed in one place and turns steadily to the left on its axis, so the whole scene slides to the right across the frame and new parts of the scene enter from the left edge.",
+    "kling": "The camera stays fixed in one place and turns steadily to the left on its axis, so the whole scene slides to the right across the frame and new parts of the scene enter from the left edge.",
+    "seedance": "The camera stays fixed in one place and turns steadily to the left on its axis, so the whole scene slides to the right across the frame and new parts of the scene enter from the left edge. One continuous shot.",
+    "veo": "The camera stays fixed in one place and turns steadily to the left on its axis, so the whole scene slides to the right across the frame and new parts of the scene enter from the left edge.",
+    "wan": "The camera stays fixed in one place and turns steadily to the left on its axis, so the whole scene slides to the right across the frame and new parts of the scene enter from the left edge."
   },
   "params": {}
 }
