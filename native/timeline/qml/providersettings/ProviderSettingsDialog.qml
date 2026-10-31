@@ -17,7 +17,7 @@ Ui.Dialog {
     modal: true
     focus: true
     closePolicy: Popup.NoAutoClose
-    onOpened: controller.reload()
+    onOpened: { groupPicked = false; controller.reload() }
     onClosed: controller.discard()
     function reveal(control) {
         Qt.callLater(function() {
@@ -39,10 +39,21 @@ Ui.Dialog {
     }
     function requestGroup(group) {
         if (group === controller.selectedGroup) return
+        groupPicked = true
         if (controller.dirty) {
             pendingGroup = group
             discardDialog.open()
         } else controller.selectGroup(group)
+    }
+    // Open on a ready provider until the user picks one.
+    Connections {
+        target: sheet.controller
+        function onFieldsChanged() {
+            const first = sheet.visibleGroups[0]
+            if (!sheet.groupPicked && !sheet.controller.dirty && first && first !== sheet.controller.selectedGroup
+                    && sheet.providerFor(first).configured && !sheet.activeProvider.configured)
+                Qt.callLater(() => sheet.controller.selectGroup(first))
+        }
     }
     Shortcut {
         sequence: "Escape"
@@ -50,212 +61,302 @@ Ui.Dialog {
         enabled: sheet.visible && !discardDialog.visible && !removeDialog.visible
         onActivated: sheet.requestClose()
     }
+    function providerFor(group) {
+        return controller.providers.find(p => p.name === group || (p.name + " (" + p.provider + ")") === group) || ({})
+    }
+    readonly property var activeProvider: providerFor(controller.selectedGroup)
+    property string groupFilter: ""
+    property bool groupPicked: false
+    // Ready providers first, then the rest. Each part keeps the server order.
+    readonly property var visibleGroups: {
+        const query = groupFilter.trim().toLowerCase()
+        const shown = controller.groups.filter(group => group.toLowerCase().includes(query))
+        return shown.filter(group => providerFor(group).configured).concat(shown.filter(group => !providerFor(group).configured))
+    }
     contentItem: ColumnLayout {
-        spacing: Ui.Metrics.md
+        spacing: Ui.Metrics.lg
+        Ui.InspectorCard {
+            Layout.fillWidth: true
+            visible: sheet.controller.message.length > 0
+            RowLayout {
+                width: parent.width
+                spacing: Ui.Metrics.md
+                Ui.Icon { Layout.alignment: Qt.AlignTop; name: "info"; tone: Ui.Text.Info }
+                Ui.Text {
+                    objectName: "providerSettingsMessage"
+                    Layout.fillWidth: true
+                    text: sheet.controller.message
+                    wrapMode: Text.WordWrap
+                    role: Ui.Typography.SansBody
+                    Accessible.role: Accessible.AlertMessage
+                }
+                Ui.EditorButton {
+                    text: "Reload"
+                    visible: !sheet.controller.dirty
+                    enabled: !sheet.controller.busy
+                    onClicked: sheet.controller.reload()
+                }
+            }
+        }
         Ui.BusyIndicator {
-            objectName: "providerSettingsLoading"
-            Layout.alignment: Qt.AlignHCenter
-            running: sheet.controller.busy
+            Layout.alignment: Qt.AlignCenter
+            Layout.fillHeight: true
+            running: sheet.controller.busy && sheet.controller.groups.length === 0
             visible: running
-            Accessible.name: "Loading provider settings"
+            Accessible.name: "Loading providers"
         }
-        Ui.Text {
-            objectName: "providerSettingsMessage"
-            Layout.fillWidth: true
-            visible: text.length > 0
-            text: sheet.controller.message
-            wrapMode: Text.WordWrap
-            role: Ui.Typography.SansLabel
-            Accessible.role: Accessible.AlertMessage
-        }
-        Ui.EditorButton {
-            objectName: "retryProviderSettings"
-            text: "Reload providers"
-            enabled: !sheet.controller.busy && !sheet.controller.dirty
-            onClicked: sheet.controller.reload()
-        }
-        Ui.Select {
-            id: groupPicker
-            objectName: "providerGroup"
-            Layout.fillWidth: true
-            options: sheet.controller.groups.map(group => ({label: group, value: group}))
-            value: sheet.controller.selectedGroup
-            enabled: !sheet.controller.busy && count > 0
-            accessibleName: "Provider settings group"
-            onValueCommitted: value => sheet.requestGroup(value)
-        }
-        ScrollView {
-            id: scroller
-            objectName: "providerSettingsScroll"
+        Ui.EmptyState {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            clip: true
-            contentWidth: availableWidth
-            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
-            ScrollBar.vertical.active: true
-            Column {
-                width: scroller.availableWidth
-                spacing: Ui.Metrics.lg
-                Ui.Text {
-                    width: parent.width
-                    text: "Configure providers on the connected NodeTool server. Changes are saved only when you press Save."
-                    wrapMode: Text.WordWrap
-                    role: Ui.Typography.SansLabel
-                    tone: Ui.Text.Secondary
+            visible: sheet.controller.groups.length === 0 && !sheet.controller.busy
+            title: "No providers to show"
+            message: "Connect to a NodeTool server to set up providers and API keys."
+        }
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            visible: sheet.controller.groups.length > 0
+            spacing: Ui.Metrics.lg
+            ColumnLayout {
+                Layout.preferredWidth: Math.min(Ui.Metrics.xxxl * 6, sheet.width * 0.34)
+                Layout.maximumWidth: Layout.preferredWidth
+                Layout.fillHeight: true
+                spacing: Ui.Metrics.md
+                Ui.TextField {
+                    objectName: "providerFilter"
+                    Layout.fillWidth: true
+                    placeholderText: "Filter providers"
+                    accessibleName: "Filter providers"
+                    onValuePreviewed: value => sheet.groupFilter = value
                 }
-                Repeater {
-                    model: sheet.controller.fields
-                    delegate: Column {
-                        id: field
-                        required property var modelData
-                        width: parent.width
-                        spacing: Ui.Metrics.xs
-                        Ui.Text {
-                            width: parent.width
-                            text: field.modelData.key + (field.modelData.secret ? (field.modelData.unreadable ? " · Stored key needs replacement" : field.modelData.configured ? " · Configured" : " · Not configured") : "")
-                            wrapMode: Text.WrapAnywhere
-                            role: Ui.Typography.SansLabel
-                        }
-                        Ui.Text {
-                            width: parent.width
-                            text: field.modelData.description || ""
-                            wrapMode: Text.WordWrap
-                            role: Ui.Typography.SansCaption
-                            tone: Ui.Text.Secondary
-                        }
-                        Ui.Text {
-                            width: parent.width
-                            visible: !!field.modelData.secret && !!field.modelData.configured && !field.modelData.removable
-                            text: "Configured by the server environment. A replacement key stores an override for this account."
-                            wrapMode: Text.WordWrap
-                            role: Ui.Typography.SansCaption
-                            tone: Ui.Text.Secondary
-                        }
-                        Ui.TextField {
-                            id: input
-                            objectName: "providerField_" + field.modelData.key
-                            width: parent.width
-                            visible: !field.modelData.options || field.modelData.options.length === 0
-                            enabled: !sheet.controller.busy
-                            value: field.modelData.secret ? "" : String(field.modelData.value || "")
-                            placeholderText: field.modelData.secret && field.modelData.configured ? "Enter a replacement key" : ""
-                            echoMode: field.modelData.secret ? TextInput.Password : TextInput.Normal
-                            inputMethodHints: field.modelData.secret ? Qt.ImhSensitiveData | Qt.ImhNoPredictiveText : Qt.ImhNone
-                            accessibleName: field.modelData.key
-                            onActiveFocusChanged: { if (activeFocus) sheet.reveal(input) }
-                            onValuePreviewed: value => sheet.controller.draft(field.modelData.key, value)
-                            Connections {
-                                target: sheet.controller
-                                function onDraftsCleared() { input.text = field.modelData.secret ? "" : String(field.modelData.value || "") }
-                            }
-                        }
-                        Ui.Select {
-                            id: choice
-                            objectName: "providerChoice_" + field.modelData.key
-                            width: parent.width
-                            visible: !!field.modelData.options && field.modelData.options.length > 0
-                            enabled: !sheet.controller.busy
-                            options: (field.modelData.options || []).map(value => ({label: value, value: value}))
-                            value: String(field.modelData.value || "")
-                            displayText: currentIndex < 0 ? "Not set" : currentText
-                            accessibleName: field.modelData.key
-                            onActiveFocusChanged: { if (activeFocus) sheet.reveal(choice) }
-                            onValueCommitted: value => sheet.controller.draft(field.modelData.key, value)
-                        }
-                        Flow {
-                            width: parent.width
+                ListView {
+                    id: groupPicker
+                    objectName: "providerGroup"
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    clip: true
+                    spacing: Ui.Metrics.micro
+                    activeFocusOnTab: true
+                    keyNavigationEnabled: false
+                    model: sheet.visibleGroups
+                    currentIndex: sheet.visibleGroups.indexOf(sheet.controller.selectedGroup)
+                    readonly property string currentText: sheet.controller.selectedGroup
+                    Accessible.role: Accessible.List
+                    Accessible.name: "Providers"
+                    function synchronize() { currentIndex = Qt.binding(() => sheet.visibleGroups.indexOf(sheet.controller.selectedGroup)) }
+                    function step(delta) {
+                        const next = Math.max(0, Math.min(count - 1, currentIndex + delta))
+                        if (next !== currentIndex) sheet.requestGroup(sheet.visibleGroups[next])
+                    }
+                    Keys.onUpPressed: step(-1)
+                    Keys.onDownPressed: step(1)
+                    delegate: Ui.ListRow {
+                        id: row
+                        required property string modelData
+                        required property int index
+                        readonly property var provider: sheet.providerFor(modelData)
+                        width: ListView.view.width
+                        active: ListView.isCurrentItem
+                        focusPolicy: Qt.NoFocus
+                        enabled: !sheet.controller.busy
+                        accessibleName: modelData + (provider.configured ? ", ready" : ", needs setup")
+                        onClicked: { groupPicker.forceActiveFocus(); sheet.requestGroup(modelData) }
+                        Row {
                             spacing: Ui.Metrics.md
-                            visible: !!field.modelData.secret
-                            Ui.EditorButton {
-                                id: testButton
-                                objectName: "testProvider_" + field.modelData.key
-                                text: "Test credential"
-                                enabled: !sheet.controller.busy
-                                onActiveFocusChanged: { if (activeFocus) sheet.reveal(testButton) }
-                                onClicked: sheet.controller.test(field.modelData.key)
+                            width: row.availableWidth
+                            Ui.ProviderIcon {
+                                anchors.verticalCenter: parent.verticalCenter
+                                entry: row.provider.provider || row.modelData.toLowerCase()
+                                size: Ui.Metrics.iconMd
                             }
-                            Ui.EditorButton {
-                                id: removeButton
-                                objectName: "removeProvider_" + field.modelData.key
-                                text: "Remove stored key…"
-                                enabled: !sheet.controller.busy && !sheet.controller.dirty && !!field.modelData.removable
-                                onActiveFocusChanged: { if (activeFocus) sheet.reveal(removeButton) }
-                                onClicked: { sheet.pendingRemoval = field.modelData.key; removeDialog.open() }
+                            Column {
+                                width: parent.width - Ui.Metrics.iconMd - Ui.Metrics.md
+                                Ui.Text { width: parent.width; text: row.modelData; elide: Text.ElideRight; role: Ui.Typography.SansLabel }
+                                Ui.Text {
+                                    width: parent.width
+                                    text: row.provider.configured ? "Ready" : "Needs setup"
+                                    role: Ui.Typography.SansCaption
+                                    tone: row.provider.configured ? Ui.Text.Success : Ui.Text.Secondary
+                                }
                             }
                         }
                     }
                 }
-                Ui.Text {
-                    width: parent.width
-                    visible: sheet.controller.fields.length === 0 && !sheet.controller.busy
-                    text: "No editable provider settings are available for this server."
-                    wrapMode: Text.WordWrap
-                    role: Ui.Typography.SansLabel
-                    tone: Ui.Text.Secondary
+            }
+            Ui.Separator { Layout.fillHeight: true; orientation: Qt.Vertical }
+            ColumnLayout {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                spacing: Ui.Metrics.lg
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: Ui.Metrics.md
+                    visible: sheet.controller.selectedGroup.length > 0
+                    Ui.ProviderIcon {
+                        entry: sheet.activeProvider.provider || sheet.controller.selectedGroup.toLowerCase()
+                        size: Ui.Metrics.iconLg
+                    }
+                    Ui.Text {
+                        Layout.fillWidth: true
+                        text: sheet.controller.selectedGroup
+                        elide: Text.ElideRight
+                        role: Ui.Typography.SansTitle
+                    }
+                    Ui.Status {
+                        status: sheet.activeProvider.configured ? Ui.Status.Success : Ui.Status.Warning
+                        message: sheet.activeProvider.configured ? "Ready" : "Needs setup"
+                    }
                 }
-                Ui.EditorButton {
-                    id: modelsButton
-                    objectName: "checkProviderModels"
-                    text: "Check saved models"
-                    enabled: !sheet.controller.busy && !sheet.controller.dirty && sheet.controller.selectedGroup.length > 0
-                    onActiveFocusChanged: { if (activeFocus) sheet.reveal(modelsButton) }
-                    onClicked: sheet.controller.checkModels()
+                Ui.BusyIndicator {
+                    objectName: "providerSettingsLoading"
+                    Layout.alignment: Qt.AlignHCenter
+                    running: sheet.controller.busy
+                    visible: running
+                    Accessible.name: "Loading provider settings"
                 }
-                Ui.Text {
-                    width: parent.width
-                    text: "Save or discard edits before checking model availability."
-                    visible: sheet.controller.dirty
-                    wrapMode: Text.WordWrap
-                    role: Ui.Typography.SansCaption
-                    tone: Ui.Text.Secondary
-                }
-                Ui.Text {
-                    objectName: "providerTestMessage"
-                    width: parent.width
-                    visible: text.length > 0
-                    text: sheet.controller.testMessage
-                    wrapMode: Text.WordWrap
-                    role: Ui.Typography.SansLabel
-                    Accessible.role: Accessible.AlertMessage
-                }
-                Ui.Text {
-                    width: parent.width
-                    text: "Testing contacts the provider to check the credential. Save or discard changes before removing a stored key."
-                    wrapMode: Text.WordWrap
-                    role: Ui.Typography.SansCaption
-                    tone: Ui.Text.Secondary
-                }
-                Ui.Text { text: "Provider availability"; role: Ui.Typography.SansLabel }
-                Ui.Text {
-                    width: parent.width
-                    text: "Configured means required settings are present. It does not confirm the provider is reachable."
-                    wrapMode: Text.WordWrap
-                    role: Ui.Typography.SansCaption
-                    tone: Ui.Text.Secondary
-                }
-                Repeater {
-                    model: sheet.controller.providers
-                    delegate: Ui.Text {
-                        required property var modelData
-                        width: parent.width
-                        text: (modelData.name || modelData.id || modelData.provider || "") + " · " + (modelData.configured ? "Configured" : "Not configured")
-                        wrapMode: Text.WordWrap
-                        role: Ui.Typography.SansCaption
-                        tone: Ui.Text.Secondary
+                ScrollView {
+                    id: scroller
+                    objectName: "providerSettingsScroll"
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    clip: true
+                    contentWidth: availableWidth
+                    ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+                    ScrollBar.vertical.active: true
+                    Column {
+                        width: scroller.availableWidth
+                        spacing: Ui.Metrics.xl
+                        Repeater {
+                            model: sheet.controller.fields
+                            delegate: Column {
+                                id: field
+                                required property var modelData
+                                readonly property bool secret: !!modelData.secret
+                                readonly property bool envOnly: secret && !!modelData.configured && !modelData.removable
+                                width: parent.width
+                                spacing: Ui.Metrics.sm
+                                RowLayout {
+                                    width: parent.width
+                                    spacing: Ui.Metrics.md
+                                    Ui.Text {
+                                        Layout.fillWidth: true
+                                        text: field.modelData.key
+                                        wrapMode: Text.WrapAnywhere
+                                        role: Ui.Typography.MonoLabel
+                                    }
+                                    Ui.Text {
+                                        visible: field.secret
+                                        text: field.modelData.unreadable ? "Replace key" : field.envOnly ? "From server" : field.modelData.configured ? "Saved" : "Not set"
+                                        role: Ui.Typography.SansCaption
+                                        tone: field.modelData.unreadable ? Ui.Text.Error : field.modelData.configured ? Ui.Text.Success : Ui.Text.Secondary
+                                    }
+                                }
+                                RowLayout {
+                                    width: parent.width
+                                    spacing: Ui.Metrics.md
+                                    Ui.TextField {
+                                        id: input
+                                        objectName: "providerField_" + field.modelData.key
+                                        Layout.fillWidth: true
+                                        visible: !field.modelData.options || field.modelData.options.length === 0
+                                        enabled: !sheet.controller.busy
+                                        value: field.secret ? "" : String(field.modelData.value || "")
+                                        placeholderText: field.secret ? (field.modelData.configured ? "••••••••  Paste a new key to replace" : "Paste your API key") : ""
+                                        echoMode: field.secret ? TextInput.Password : TextInput.Normal
+                                        inputMethodHints: field.secret ? Qt.ImhSensitiveData | Qt.ImhNoPredictiveText : Qt.ImhNone
+                                        accessibleName: field.modelData.key
+                                        onActiveFocusChanged: { if (activeFocus) sheet.reveal(input) }
+                                        onValuePreviewed: value => sheet.controller.draft(field.modelData.key, value)
+                                        Connections {
+                                            target: sheet.controller
+                                            function onDraftsCleared() { input.text = field.secret ? "" : String(field.modelData.value || "") }
+                                        }
+                                    }
+                                    Ui.Select {
+                                        id: choice
+                                        objectName: "providerChoice_" + field.modelData.key
+                                        Layout.fillWidth: true
+                                        visible: !!field.modelData.options && field.modelData.options.length > 0
+                                        enabled: !sheet.controller.busy
+                                        options: (field.modelData.options || []).map(value => ({label: value, value: value}))
+                                        value: String(field.modelData.value || "")
+                                        displayText: currentIndex < 0 ? "Not set" : currentText
+                                        accessibleName: field.modelData.key
+                                        onActiveFocusChanged: { if (activeFocus) sheet.reveal(choice) }
+                                        onValueCommitted: value => sheet.controller.draft(field.modelData.key, value)
+                                    }
+                                    Ui.EditorButton {
+                                        id: testButton
+                                        objectName: "testProvider_" + field.modelData.key
+                                        visible: field.secret
+                                        text: "Test"
+                                        accessibleName: "Test " + field.modelData.key
+                                        enabled: !sheet.controller.busy
+                                        onActiveFocusChanged: { if (activeFocus) sheet.reveal(testButton) }
+                                        onClicked: sheet.controller.test(field.modelData.key)
+                                    }
+                                    Ui.EditorButton {
+                                        id: removeButton
+                                        objectName: "removeProvider_" + field.modelData.key
+                                        visible: field.secret && !!field.modelData.removable
+                                        variant: Ui.EditorButton.Flat
+                                        iconName: "deleteOutline"
+                                        text: ""
+                                        accessibleName: "Remove stored " + field.modelData.key
+                                        enabled: !sheet.controller.busy && !sheet.controller.dirty
+                                        onActiveFocusChanged: { if (activeFocus) sheet.reveal(removeButton) }
+                                        onClicked: { sheet.pendingRemoval = field.modelData.key; removeDialog.open() }
+                                    }
+                                }
+                                Ui.Text {
+                                    width: parent.width
+                                    visible: text.length > 0
+                                    text: field.envOnly ? "Set by the server environment. A new key here overrides it for this account." : (field.modelData.description || "")
+                                    wrapMode: Text.WordWrap
+                                    role: Ui.Typography.SansCaption
+                                    tone: Ui.Text.Secondary
+                                }
+                            }
+                        }
+                        Ui.EmptyState {
+                            width: parent.width
+                            visible: sheet.controller.fields.length === 0 && !sheet.controller.busy && sheet.controller.selectedGroup.length > 0
+                            title: "Nothing to configure"
+                            message: "This server has no editable settings for this provider."
+                        }
+                        Ui.Status {
+                            objectName: "providerTestMessage"
+                            width: parent.width
+                            visible: message.length > 0
+                            status: Ui.Status.Info
+                            message: sheet.controller.testMessage
+                            Accessible.role: Accessible.AlertMessage
+                        }
+                        Ui.EditorButton {
+                            id: modelsButton
+                            objectName: "checkProviderModels"
+                            visible: sheet.controller.selectedGroup.length > 0
+                            text: "Check available models"
+                            iconName: "refresh"
+                            enabled: !sheet.controller.busy && !sheet.controller.dirty && sheet.controller.selectedGroup.length > 0
+                            onActiveFocusChanged: { if (activeFocus) sheet.reveal(modelsButton) }
+                            onClicked: sheet.controller.checkModels()
+                        }
                     }
                 }
             }
         }
-        Ui.Text {
-            Layout.fillWidth: true
-            visible: sheet.controller.dirty
-            text: "Unsaved changes"
-            role: Ui.Typography.SansLabel
-            tone: Ui.Text.Warning
-        }
-        Flow {
+        Ui.Separator { Layout.fillWidth: true }
+        RowLayout {
             Layout.fillWidth: true
             spacing: Ui.Metrics.md
+            Ui.Text {
+                Layout.fillWidth: true
+                text: sheet.controller.dirty ? "Unsaved changes" : "Keys are stored on the connected server."
+                elide: Text.ElideRight
+                role: Ui.Typography.SansCaption
+                tone: sheet.controller.dirty ? Ui.Text.Warning : Ui.Text.Secondary
+            }
             Ui.EditorButton {
                 objectName: "cancelProviderSettings"
                 text: "Close"
@@ -264,7 +365,8 @@ Ui.Dialog {
             }
             Ui.EditorButton {
                 objectName: "saveProviderSettings"
-                text: sheet.controller.busy ? "Working…" : "Save"
+                variant: Ui.EditorButton.Primary
+                text: "Save"
                 enabled: !sheet.controller.busy && sheet.controller.dirty
                 onClicked: sheet.controller.save()
             }
