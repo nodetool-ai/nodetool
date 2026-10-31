@@ -8101,7 +8101,11 @@
         "copyPrompt": "复制{{promptType}}",
         "emptyPrompt": "暂无可发送内容。",
         "referenceImages_one": "开始渲染时会附上 {{names}} 的参考图像。",
-        "referenceImages_other": "开始渲染时会附上 {{names}} 的参考图像。"
+        "referenceImages_other": "开始渲染时会附上 {{names}} 的参考图像。",
+        "cameraClause": "镜头措辞",
+        "defaultFallback": "{{model}} 没有针对 {{names}} 调校的措辞，因此使用默认措辞。",
+        "noVideoModel": "视频模型",
+        "cameraError": "无法编译镜头预设：{{message}}"
       }
     }
   },
@@ -19133,5 +19137,11 @@
         "description": "Lens zooms out from a fixed camera position."
       }
     }
+  },
+  "shot_camera_field": {
+    "browse": "浏览预设",
+    "title": "镜头预设",
+    "done": "完成",
+    "remove": "移除 {{name}}"
   }
 }

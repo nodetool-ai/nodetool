@@ -8101,7 +8101,11 @@
         "copyPrompt": "Kopioi {{promptType}}",
         "emptyPrompt": "Ei vielä mitään lähetettävää.",
         "referenceImages_one": "Viitekuva kohteelle {{names}} liitetään, kun renderöinti alkaa.",
-        "referenceImages_other": "Viitekuvat kohteille {{names}} liitetään, kun renderöinti alkaa."
+        "referenceImages_other": "Viitekuvat kohteille {{names}} liitetään, kun renderöinti alkaa.",
+        "cameraClause": "Kameran sanamuoto",
+        "defaultFallback": "{{model}} ei ole viritetty sanamuotoa kohteelle {{names}}, joten oletussanamuotoa käytetään.",
+        "noVideoModel": "Videomalli",
+        "cameraError": "Kameran esiasetuksia ei voi kääntää: {{message}}"
       }
     }
   },
@@ -19133,5 +19137,11 @@
         "description": "Lens zooms out from a fixed camera position."
       }
     }
+  },
+  "shot_camera_field": {
+    "browse": "Selaa esiasetuksia",
+    "title": "Kameran esiasetukset",
+    "done": "Valmis",
+    "remove": "Poista {{name}}"
   }
 }
