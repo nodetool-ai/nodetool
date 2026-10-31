@@ -21,9 +21,9 @@ target_link_libraries(nodetool_ui_primitives PUBLIC Qt6::Core Qt6::Gui Qt6::Qml 
 target_include_directories(nodetool_ui_primitives PRIVATE private)
 qt_add_resources(nodetool_ui_primitives ui_fonts PREFIX /qt/qml/NodeTool/UiPrimitives/fonts
     BASE resources/fonts FILES
-    resources/fonts/inter-latin-400-normal.woff2 resources/fonts/inter-latin-500-normal.woff2
-    resources/fonts/inter-latin-600-normal.woff2 resources/fonts/jetbrains-mono-latin-400-normal.woff2
-    resources/fonts/jetbrains-mono-latin-500-normal.woff2 resources/fonts/jetbrains-mono-latin-600-normal.woff2)
+    resources/fonts/inter-latin-400-normal.ttf resources/fonts/inter-latin-500-normal.ttf
+    resources/fonts/inter-latin-600-normal.ttf resources/fonts/jetbrains-mono-latin-400-normal.ttf
+    resources/fonts/jetbrains-mono-latin-500-normal.ttf resources/fonts/jetbrains-mono-latin-600-normal.ttf)
 file(GLOB ui_provider_icons CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/resources/icons/providers/*.svg")
 qt_add_resources(nodetool_ui_primitives ui_provider_icons
     PREFIX /qt/qml/NodeTool/UiPrimitives/providers
