@@ -20,6 +20,7 @@ nt_sources(audio
 )
 cmake_language(DEFER CALL target_link_libraries timeline_audio PRIVATE Qt6::Gui)
 nt_sources(app
+    src/audio/AvSyncInterpolation.h
     src/audio/AudioCli.h
     src/audio/AudioCli.cpp
 )
