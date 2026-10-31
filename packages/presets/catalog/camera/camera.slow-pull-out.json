@@ -1,0 +1,32 @@
+{
+  "id": "camera.slow-pull-out",
+  "version": 1,
+  "kind": "camera",
+  "name": "slow pull out",
+  "description": "Camera slowly pulls away from the subject.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "camera.dolly-in"
+  ],
+  "aliases": [
+    "slow pull out"
+  ],
+  "prompt": {
+    "default": "Camera slowly pulls away from the subject.",
+    "kling": "Camera slowly pulls away from the subject.",
+    "seedance": "Camera slowly pulls away from the subject throughout one continuous shot.",
+    "veo": "Camera slowly pulls away from the subject.",
+    "wan": "Camera slowly pulls away from the subject."
+  },
+  "params": {}
+}

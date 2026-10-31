@@ -2,8 +2,12 @@
   "id": "camera.orbit",
   "version": 1,
   "kind": "camera",
-  "name": "Orbit",
-  "description": "The camera orbits the subject at a steady distance.",
+  "name": "orbit",
+  "description": "Camera completes a full circle around the subject at a steady distance.",
+  "tags": [
+    "camera",
+    "move"
+  ],
   "slot": "move",
   "modes": [
     "video",
@@ -11,14 +15,17 @@
     "reference_to_video"
   ],
   "stackable": true,
+  "conflicts": [],
   "aliases": [
-    "orbit"
+    "orbit",
+    "360 orbit"
   ],
   "prompt": {
-    "default": "The camera orbits the subject at a steady distance.",
-    "kling": "The camera orbits the subject at a steady distance.",
-    "seedance": "The camera orbits the subject at a steady distance.",
-    "veo": "The camera orbits the subject at a steady distance.",
-    "wan": "The camera orbits the subject at a steady distance."
-  }
+    "default": "Camera completes a full circle around the subject at a steady distance.",
+    "kling": "Camera completes a full circle around the subject at a steady distance.",
+    "seedance": "Camera completes a full circle around the subject at a steady distance throughout one continuous shot.",
+    "veo": "Camera completes a full circle around the subject at a steady distance.",
+    "wan": "Camera completes a full circle around the subject at a steady distance."
+  },
+  "params": {}
 }

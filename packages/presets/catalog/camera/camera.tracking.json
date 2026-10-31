@@ -1,0 +1,30 @@
+{
+  "id": "camera.tracking",
+  "version": 1,
+  "kind": "camera",
+  "name": "tracking",
+  "description": "Camera tracks alongside the moving subject at matching speed.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [
+    "tracking"
+  ],
+  "prompt": {
+    "default": "Camera tracks alongside the moving subject at matching speed.",
+    "kling": "Camera tracks alongside the moving subject at matching speed.",
+    "seedance": "Camera tracks alongside the moving subject at matching speed throughout one continuous shot.",
+    "veo": "Camera tracks alongside the moving subject at matching speed.",
+    "wan": "Camera tracks alongside the moving subject at matching speed."
+  },
+  "params": {}
+}

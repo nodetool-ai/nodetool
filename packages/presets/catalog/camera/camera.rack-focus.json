@@ -1,0 +1,30 @@
+{
+  "id": "camera.rack-focus",
+  "version": 1,
+  "kind": "camera",
+  "name": "rack focus",
+  "description": "Focus shifts smoothly from foreground to background with fixed framing.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "rack focus"
+  ],
+  "prompt": {
+    "default": "Focus shifts smoothly from foreground to background with fixed framing.",
+    "kling": "Focus shifts smoothly from foreground to background with fixed framing.",
+    "seedance": "Focus shifts smoothly from foreground to background with fixed framing throughout one continuous shot.",
+    "veo": "Focus shifts smoothly from foreground to background with fixed framing.",
+    "wan": "Focus shifts smoothly from foreground to background with fixed framing."
+  },
+  "params": {}
+}

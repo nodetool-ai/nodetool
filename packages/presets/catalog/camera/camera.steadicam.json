@@ -1,0 +1,28 @@
+{
+  "id": "camera.steadicam",
+  "version": 1,
+  "kind": "camera",
+  "name": "steadicam",
+  "description": "Camera is stabilized on a Steadicam with smooth floating motion.",
+  "tags": [
+    "camera",
+    "rig"
+  ],
+  "slot": "rig",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "Camera is stabilized on a Steadicam with smooth floating motion.",
+    "kling": "Camera is stabilized on a Steadicam with smooth floating motion.",
+    "seedance": "Camera is stabilized on a Steadicam with smooth floating motion throughout one continuous shot.",
+    "veo": "Camera is stabilized on a Steadicam with smooth floating motion.",
+    "wan": "Camera is stabilized on a Steadicam with smooth floating motion."
+  },
+  "params": {}
+}

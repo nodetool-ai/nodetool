@@ -1,0 +1,28 @@
+{
+  "id": "camera.arc",
+  "version": 1,
+  "kind": "camera",
+  "name": "arc",
+  "description": "Camera travels through a gentle quarter-circle around the subject at constant height.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "Camera travels through a gentle quarter-circle around the subject at constant height.",
+    "kling": "Camera travels through a gentle quarter-circle around the subject at constant height.",
+    "seedance": "Camera travels through a gentle quarter-circle around the subject at constant height throughout one continuous shot.",
+    "veo": "Camera travels through a gentle quarter-circle around the subject at constant height.",
+    "wan": "Camera travels through a gentle quarter-circle around the subject at constant height."
+  },
+  "params": {}
+}

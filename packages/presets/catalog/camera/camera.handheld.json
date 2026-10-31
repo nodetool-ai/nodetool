@@ -1,0 +1,30 @@
+{
+  "id": "camera.handheld",
+  "version": 1,
+  "kind": "camera",
+  "name": "handheld",
+  "description": "Camera has gentle irregular handheld sway.",
+  "tags": [
+    "camera",
+    "rig"
+  ],
+  "slot": "rig",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [
+    "handheld"
+  ],
+  "prompt": {
+    "default": "Camera has gentle irregular handheld sway.",
+    "kling": "Camera has gentle irregular handheld sway.",
+    "seedance": "Camera has gentle irregular handheld sway throughout one continuous shot.",
+    "veo": "Camera has gentle irregular handheld sway.",
+    "wan": "Camera has gentle irregular handheld sway."
+  },
+  "params": {}
+}

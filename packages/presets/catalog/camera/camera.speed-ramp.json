@@ -1,0 +1,28 @@
+{
+  "id": "camera.speed-ramp",
+  "version": 1,
+  "kind": "camera",
+  "name": "speed ramp",
+  "description": "Motion accelerates from normal speed into a rapid burst then eases into slow motion.",
+  "tags": [
+    "camera",
+    "speed"
+  ],
+  "slot": "speed",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "Motion accelerates from normal speed into a rapid burst then eases into slow motion.",
+    "kling": "Motion accelerates from normal speed into a rapid burst then eases into slow motion.",
+    "seedance": "Motion accelerates from normal speed into a rapid burst then eases into slow motion throughout one continuous shot.",
+    "veo": "Motion accelerates from normal speed into a rapid burst then eases into slow motion.",
+    "wan": "Motion accelerates from normal speed into a rapid burst then eases into slow motion."
+  },
+  "params": {}
+}

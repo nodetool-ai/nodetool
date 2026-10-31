@@ -1,0 +1,32 @@
+{
+  "id": "camera.zoom-out",
+  "version": 1,
+  "kind": "camera",
+  "name": "zoom out",
+  "description": "Lens zooms out from a fixed camera position.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "camera.zoom-in"
+  ],
+  "aliases": [
+    "zoom out"
+  ],
+  "prompt": {
+    "default": "Lens zooms out from a fixed camera position.",
+    "kling": "Lens zooms out from a fixed camera position.",
+    "seedance": "Lens zooms out from a fixed camera position throughout one continuous shot.",
+    "veo": "Lens zooms out from a fixed camera position.",
+    "wan": "Lens zooms out from a fixed camera position."
+  },
+  "params": {}
+}

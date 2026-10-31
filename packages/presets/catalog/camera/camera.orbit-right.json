@@ -1,0 +1,32 @@
+{
+  "id": "camera.orbit-right",
+  "version": 1,
+  "kind": "camera",
+  "name": "orbit right",
+  "description": "Camera arcs right around the subject at a steady distance.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "camera.orbit-left"
+  ],
+  "aliases": [
+    "orbit right"
+  ],
+  "prompt": {
+    "default": "Camera arcs right around the subject at a steady distance.",
+    "kling": "Camera arcs right around the subject at a steady distance.",
+    "seedance": "Camera arcs right around the subject at a steady distance throughout one continuous shot.",
+    "veo": "Camera arcs right around the subject at a steady distance.",
+    "wan": "Camera arcs right around the subject at a steady distance."
+  },
+  "params": {}
+}

@@ -1,0 +1,28 @@
+{
+  "id": "camera.dutch-roll",
+  "version": 1,
+  "kind": "camera",
+  "name": "dutch roll",
+  "description": "Camera rolls gradually around its optical axis, tilting the horizon.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "Camera rolls gradually around its optical axis, tilting the horizon.",
+    "kling": "Camera rolls gradually around its optical axis, tilting the horizon.",
+    "seedance": "Camera rolls gradually around its optical axis, tilting the horizon throughout one continuous shot.",
+    "veo": "Camera rolls gradually around its optical axis, tilting the horizon.",
+    "wan": "Camera rolls gradually around its optical axis, tilting the horizon."
+  },
+  "params": {}
+}

@@ -1,0 +1,30 @@
+{
+  "id": "camera.snorricam",
+  "version": 1,
+  "kind": "camera",
+  "name": "snorricam",
+  "description": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts.",
+  "tags": [
+    "camera",
+    "rig"
+  ],
+  "slot": "rig",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "snorricam"
+  ],
+  "prompt": {
+    "default": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts.",
+    "kling": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts.",
+    "seedance": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts throughout one continuous shot.",
+    "veo": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts.",
+    "wan": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts."
+  },
+  "params": {}
+}

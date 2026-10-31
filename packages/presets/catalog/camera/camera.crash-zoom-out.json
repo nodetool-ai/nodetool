@@ -1,0 +1,32 @@
+{
+  "id": "camera.crash-zoom-out",
+  "version": 1,
+  "kind": "camera",
+  "name": "crash zoom out",
+  "description": "Lens zooms rapidly out from the subject from a fixed camera position.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "camera.crash-zoom-in"
+  ],
+  "aliases": [
+    "crash zoom out"
+  ],
+  "prompt": {
+    "default": "Lens zooms rapidly out from the subject from a fixed camera position.",
+    "kling": "Lens zooms rapidly out from the subject from a fixed camera position.",
+    "seedance": "Lens zooms rapidly out from the subject from a fixed camera position throughout one continuous shot.",
+    "veo": "Lens zooms rapidly out from the subject from a fixed camera position.",
+    "wan": "Lens zooms rapidly out from the subject from a fixed camera position."
+  },
+  "params": {}
+}

@@ -1,0 +1,30 @@
+{
+  "id": "camera.low-angle-hero-rise",
+  "version": 1,
+  "kind": "camera",
+  "name": "low-angle hero rise",
+  "description": "Camera rises from ground level toward a low-angle view of the subject.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [
+    "low-angle hero rise"
+  ],
+  "prompt": {
+    "default": "Camera rises from ground level toward a low-angle view of the subject.",
+    "kling": "Camera rises from ground level toward a low-angle view of the subject.",
+    "seedance": "Camera rises from ground level toward a low-angle view of the subject throughout one continuous shot.",
+    "veo": "Camera rises from ground level toward a low-angle view of the subject.",
+    "wan": "Camera rises from ground level toward a low-angle view of the subject."
+  },
+  "params": {}
+}

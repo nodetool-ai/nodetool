@@ -1,0 +1,28 @@
+{
+  "id": "camera.parallax-slide",
+  "version": 1,
+  "kind": "camera",
+  "name": "parallax slide",
+  "description": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly.",
+    "kling": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly.",
+    "seedance": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly throughout one continuous shot.",
+    "veo": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly.",
+    "wan": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly."
+  },
+  "params": {}
+}

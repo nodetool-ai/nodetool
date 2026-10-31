@@ -1,0 +1,32 @@
+{
+  "id": "camera.pedestal-up",
+  "version": 1,
+  "kind": "camera",
+  "name": "pedestal up",
+  "description": "Camera rises vertically without tilting.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "camera.pedestal-down"
+  ],
+  "aliases": [
+    "pedestal up"
+  ],
+  "prompt": {
+    "default": "Camera rises vertically without tilting.",
+    "kling": "Camera rises vertically without tilting.",
+    "seedance": "Camera rises vertically without tilting throughout one continuous shot.",
+    "veo": "Camera rises vertically without tilting.",
+    "wan": "Camera rises vertically without tilting."
+  },
+  "params": {}
+}

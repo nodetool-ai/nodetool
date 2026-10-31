@@ -2,8 +2,12 @@
   "id": "camera.dolly-in",
   "version": 1,
   "kind": "camera",
-  "name": "Dolly in",
-  "description": "The camera dollies smoothly toward the subject.",
+  "name": "dolly in",
+  "description": "Camera dollies smoothly toward the subject with visible depth change.",
+  "tags": [
+    "camera",
+    "move"
+  ],
   "slot": "move",
   "modes": [
     "video",
@@ -11,14 +15,21 @@
     "reference_to_video"
   ],
   "stackable": true,
+  "conflicts": [
+    "camera.dolly-out",
+    "camera.slow-pull-out"
+  ],
   "aliases": [
-    "dolly in"
+    "dolly in",
+    "slow push in",
+    "push in slow"
   ],
   "prompt": {
-    "default": "The camera dollies smoothly toward the subject.",
-    "kling": "The camera dollies smoothly toward the subject.",
-    "seedance": "The camera dollies smoothly toward the subject.",
-    "veo": "The camera dollies smoothly toward the subject.",
-    "wan": "The camera dollies smoothly toward the subject."
-  }
+    "default": "Camera dollies smoothly toward the subject with visible depth change.",
+    "kling": "Camera dollies smoothly toward the subject with visible depth change.",
+    "seedance": "Camera dollies smoothly toward the subject with visible depth change throughout one continuous shot.",
+    "veo": "Camera dollies smoothly toward the subject with visible depth change.",
+    "wan": "Camera dollies smoothly toward the subject with visible depth change."
+  },
+  "params": {}
 }

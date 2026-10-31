@@ -1,0 +1,30 @@
+{
+  "id": "camera.pull-back-reveal",
+  "version": 1,
+  "kind": "camera",
+  "name": "pull back reveal",
+  "description": "Camera pulls back from a close view to reveal the surroundings.",
+  "tags": [
+    "camera",
+    "move"
+  ],
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [
+    "pull back reveal"
+  ],
+  "prompt": {
+    "default": "Camera pulls back from a close view to reveal the surroundings.",
+    "kling": "Camera pulls back from a close view to reveal the surroundings.",
+    "seedance": "Camera pulls back from a close view to reveal the surroundings throughout one continuous shot.",
+    "veo": "Camera pulls back from a close view to reveal the surroundings.",
+    "wan": "Camera pulls back from a close view to reveal the surroundings."
+  },
+  "params": {}
+}
