@@ -38,6 +38,7 @@ import { DreaminaProvider } from "./dreamina-provider.js";
 import { ChatGPTProvider } from "./chatgpt-provider.js";
 import { GeminiWebProvider } from "./gemini-web-provider.js";
 import { GeminiProvider } from "./gemini-provider.js";
+import { GeminiVertexProvider } from "./gemini-vertex-provider.js";
 import { LlamaProvider } from "./llama-provider.js";
 import { NodeLlamaCppProvider } from "./node-llama-cpp-provider.js";
 import { StableDiffusionCppProvider } from "./sdcpp-provider.js";
@@ -242,6 +243,7 @@ export { AntigravityProvider };
 export { DreaminaProvider, setDreaminaPageRunner, type DreaminaPageRunner } from "./dreamina-provider.js";
 export { ChatGPTProvider, setChatGPTTab } from "./chatgpt-provider.js";
 export { GeminiWebProvider, setGeminiWebTab } from "./gemini-web-provider.js";
+export { GeminiVertexProvider } from "./gemini-vertex-provider.js";
 export {
   ToolCallTextFilter,
   parseToolCalls,
@@ -710,6 +712,23 @@ const _envProcess =
 const _cloudProfile = isCloudProfileActive(
   _envProcess.env[CLOUD_PROFILE_ENV],
   _envProcess.env[NODE_ENV_VAR]
+);
+
+// Gemini through Vertex AI. The project is required. The credential is a pasted
+// service account key or Vertex API key, or, off the cloud profile, the
+// machine's own Application Default Credentials (`gcloud auth
+// application-default login`). On the cloud profile those would be the
+// server's identity, so they are never read there.
+registerBuiltinProvider(
+  PROVIDER_IDS.GEMINI_VERTEX,
+  GeminiVertexProvider,
+  { GOOGLE_CLOUD_PROJECT: "", _allowApplicationDefault: !_cloudProfile },
+  {
+    GOOGLE_CLOUD_LOCATION: "",
+    GOOGLE_VERTEX_CREDENTIALS: "",
+    GOOGLE_VERTEX_API_KEY: ""
+  },
+  { displayName: "Gemini (Google Cloud)" }
 );
 if (!_cloudProfile) {
   // Ollama defaults to the standard local daemon port so the provider is

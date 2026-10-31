@@ -93,6 +93,11 @@ export const requiredSecretForProvider = (
   if (p.includes(PROVIDER_IDS.ANTHROPIC)) {
     return "ANTHROPIC_API_KEY";
   }
+  // Vertex AI needs a project, not the AI Studio key. Checked before the
+  // `gemini` substring below would claim it.
+  if (p === PROVIDER_IDS.GEMINI_VERTEX) {
+    return "GOOGLE_CLOUD_PROJECT";
+  }
   if (p.includes(PROVIDER_IDS.GEMINI) || p.includes("google")) {
     return "GEMINI_API_KEY";
   }

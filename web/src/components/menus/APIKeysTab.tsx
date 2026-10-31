@@ -74,8 +74,12 @@ const areAllFieldsConfigured = (
   if (!meta.fields) {
     return configuredKeys.has(meta.key);
   }
-  return meta.fields.every((field) => configuredKeys.has(field.key));
+  return requiredFields(meta).every((field) => configuredKeys.has(field.key));
 };
+
+/** The fields a multi-field card cannot be saved without. */
+const requiredFields = (meta: ProviderMeta) =>
+  (meta.fields ?? []).filter((field) => !field.optional);
 
 /* ------------------------------------------------------------------ */
 //  Provider card
@@ -683,16 +687,20 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
         }
         if (
           !combinedValues &&
-          !meta.fields.every((f) => formValues[f.key]?.trim())
+          !requiredFields(meta).every((f) => formValues[f.key]?.trim())
         ) {
           setFormError(t("i18n-cont-settings-01.apiKeys.allFieldsRequired"));
           return;
         }
         for (const field of meta.fields) {
-          await updateSecret(
-            field.key,
-            (combinedValues?.[field.key] ?? formValues[field.key] ?? "").trim()
-          );
+          const value = (
+            combinedValues?.[field.key] ??
+            formValues[field.key] ??
+            ""
+          ).trim();
+          // An empty optional field stays unset rather than stored as "".
+          if (field.optional && !value) continue;
+          await updateSecret(field.key, value);
         }
       } else {
         // Single-field provider
@@ -936,8 +944,8 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
           const allFieldsFilled =
             meta?.combinedCredential
               ? formValue.trim()
-              : isMultiField && meta?.fields
-              ? meta.fields.every((f) => formValues[f.key]?.trim())
+              : isMultiField && meta
+              ? requiredFields(meta).every((f) => formValues[f.key]?.trim())
               : formValue.trim();
           const isRejectedSingleKey =
             !meta?.fields &&
@@ -1005,7 +1013,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
                             : undefined
                         }
                         errorMessage={
-                          formError && !formValues[field.key]
+                          formError && !field.optional && !formValues[field.key]
                             ? formError
                             : undefined
                         }

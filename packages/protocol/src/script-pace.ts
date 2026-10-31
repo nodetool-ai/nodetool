@@ -14,6 +14,7 @@ export function paceSpeed(pace: ScriptPace | undefined): number | undefined {
 /** Providers that take `speed` and do nothing with it. */
 const PACE_BLIND_PROVIDERS: readonly string[] = [
   "gemini",
+  "gemini_vertex",
   "google",
   "huggingface",
   "hf",

@@ -1,4 +1,5 @@
 import { useCallback } from "react";
+import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import useModelPreferencesStore from "../stores/ModelPreferencesStore";
 import { useSecrets } from "./useSecrets";
 import {
@@ -31,7 +32,10 @@ export const useModelAvailability = (): ((
     ): ModelAvailability => {
       const provider = model.provider || "";
       const env = requiredSecretForProvider(model.provider);
-      const normKey = /gemini|google/i.test(provider) ? "gemini" : provider;
+      const normKey =
+        provider !== PROVIDER_IDS.GEMINI_VERTEX && /gemini|google/i.test(provider)
+          ? "gemini"
+          : provider;
       const providerEnabled = enabledProviders?.[normKey] !== false;
       const hasKey = env ? isApiKeySet(env) : true;
       const executionReady = model.execution?.state === "ready";

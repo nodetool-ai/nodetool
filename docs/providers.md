@@ -21,6 +21,7 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | Azure OpenAI | ✅ | ✅ | | ✅ | ✅ | ✅ | |
 | Amazon Bedrock | ✅ | ✅ | | | | | |
 | Google Gemini | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
+| Gemini (Google Cloud) | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | xAI (Grok) | ✅ | ✅ | ✅ | | | | |
 | DeepSeek | ✅ | | | | | | |
 | Groq | ✅ | | | | | | |
@@ -100,6 +101,18 @@ Amazon Bedrock runs chat through the Converse API, which covers every Bedrock ch
 ## Google Gemini
 
 Gemini handles chat with native multimodal input (images, audio, video as Blobs), Nano Banana image generation (the `gemini-*-image` models), Veo video, Gemini TTS, Lyria music, audio transcription, and text embeddings. Cloud only, keyed by `GEMINI_API_KEY`. Text models auto-fetch. The image, video, TTS, and music models are static lists. Imagen is not available because Google shut it down in the Gemini API. See the [Gemini provider guide](developer/providers/gemini.md).
+
+## Gemini (Google Cloud)
+
+The `gemini_vertex` provider runs the same Gemini models through Vertex AI (`aiplatform.googleapis.com`, which Google now calls Gemini Enterprise Agent Platform). Usage is billed to a Google Cloud project on its normal post-paid billing, not to an AI Studio key. Requests and features match the Gemini provider above. `GOOGLE_CLOUD_PROJECT` is required, and the project needs billing and the Vertex AI API enabled. `GOOGLE_CLOUD_LOCATION` defaults to `global`, the only location that serves preview models. Set `us`, `eu`, or a region such as `us-central1` to keep requests in one place.
+
+The provider uses the first credential it finds:
+
+1. `GOOGLE_VERTEX_CREDENTIALS`, a service account key file pasted as JSON. The service account needs the Vertex AI User role.
+2. `GOOGLE_VERTEX_API_KEY`, a Vertex AI API key from express mode, or a Google Cloud API key bound to a service account. Key requests use the project-less publisher paths.
+3. On a local or self-hosted install, the machine's Application Default Credentials: the file in `GOOGLE_APPLICATION_CREDENTIALS`, or the one `gcloud auth application-default login` writes. The cloud profile never reads these, because they would be the server's own identity.
+
+Chat models are listed from Vertex's `publishers/google/models`. The image, video, TTS, and music lists are the Gemini provider's. Vertex has no Files API, so video or audio larger than 19 MB cannot be sent and fails with a message that says so.
 
 ## xAI (Grok)
 

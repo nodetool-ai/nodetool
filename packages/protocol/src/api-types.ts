@@ -1175,6 +1175,8 @@ export const PROVIDER_IDS = {
   // logged-in gemini.google.com tab (no API key, local installs only).
   GEMINI_WEB: "gemini_web",
   GEMINI: "gemini",
+  // Gemini through Vertex AI, billed to the user's Google Cloud project.
+  GEMINI_VERTEX: "gemini_vertex",
   GROQ: "groq",
   MISTRAL: "mistral",
   MOONSHOT: "moonshot",

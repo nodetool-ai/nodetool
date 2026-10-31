@@ -44,6 +44,7 @@ const MODELS_DEV_PROVIDER: Readonly<Record<string, string>> = {
   [PROVIDER_IDS.OPENAI]: "openai",
   [PROVIDER_IDS.ANTHROPIC]: "anthropic",
   [PROVIDER_IDS.GEMINI]: "google",
+  [PROVIDER_IDS.GEMINI_VERTEX]: "google-vertex",
   [PROVIDER_IDS.GROQ]: "groq",
   [PROVIDER_IDS.MISTRAL]: "mistral",
   [PROVIDER_IDS.MOONSHOT]: "moonshotai",

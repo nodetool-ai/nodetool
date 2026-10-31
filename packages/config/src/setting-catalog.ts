@@ -498,6 +498,26 @@ sec(
   "Gemini API key for accessing Google's Gemini AI models. Get yours at https://aistudio.google.com/app/apikey"
 );
 sec(
+  "GOOGLE_CLOUD_PROJECT",
+  "Gemini (Google Cloud)",
+  "Google Cloud project ID that Gemini on Vertex AI bills to. The project needs billing and the Vertex AI API enabled."
+);
+sec(
+  "GOOGLE_CLOUD_LOCATION",
+  "Gemini (Google Cloud)",
+  "Vertex AI location, e.g. global, us, eu or us-central1. Defaults to global, the only location that serves preview models."
+);
+sec(
+  "GOOGLE_VERTEX_CREDENTIALS",
+  "Gemini (Google Cloud)",
+  "Service account key (the whole JSON file) for Gemini on Vertex AI. Leave empty on a local install to use `gcloud auth application-default login`."
+);
+sec(
+  "GOOGLE_VERTEX_API_KEY",
+  "Gemini (Google Cloud)",
+  "Vertex AI API key (express mode, or a Google Cloud API key bound to a service account), used instead of a service account key."
+);
+sec(
   "HF_TOKEN",
   "HF",
   "Token for HuggingFace Inference Providers. Get yours at https://huggingface.co/settings/tokens"
