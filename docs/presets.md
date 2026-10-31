@@ -18,14 +18,15 @@ Presets are data. The catalogue is JSON in `packages/presets/catalog/`, the comp
 | Field | Meaning |
 |---|---|
 | `id` | `<kind>.<slug>`, for example `camera.dolly-zoom`. Also the file name |
-| `kind` | `camera`, `look`, `effect` or `studio`. The catalogue ships `camera` and `effect` presets |
-| `slot` | What the preset occupies: `move`, `rig`, `speed`, `look` or `effect` |
+| `kind` | `camera`, `look`, `effect` or `studio`. The catalogue ships `camera`, `look` and `effect` presets |
+| `slot` | What the preset occupies: `move`, `rig`, `speed`, `look`, `effect`, `body`, `stock`, `grade`, `lighting`, `era` or `ramp` |
 | `modes` | Where it runs: `video`, `image_to_video`, `reference_to_video`, `image` or `image_edit` |
 | `inputs` | What the preset needs from you: `text`, `image` or `video` |
 | `stackable`, `conflicts` | Whether it can combine with others and which ids it refuses |
 | `aliases` | Other names that resolve to this preset, such as the free-text movement words older storyboards hold |
 | `prompt` | One fragment per model family, with a required `default` |
 | `params` | Generation settings the preset sets, such as `duration_seconds` |
+| `family_params` | Optional map from family name to settings. The selected family overrides matching keys in `params` |
 | `families` | The families the preset was tested on |
 | `preview`, `workflow`, `author` | Optional. A preview clip and poster, a hand-built workflow to eject instead of a generated one, and a pack author |
 
@@ -36,7 +37,7 @@ The Zod schema in `packages/presets/src/schema.ts` is the source of truth. The s
 A request carries at most three presets. The compiler and the picker apply the same rules, from `canAddPreset` and `presetPairBlock` in `packages/presets/src/stack.ts`:
 
 - Every preset in a stack must be `stackable`.
-- Two presets cannot share a `slot`. A stack can hold one move, one rig and one speed preset.
+- Two presets cannot share a `slot`. A stack can hold a camera move, a rig and a film stock, for example. The three-preset limit still applies.
 - A preset cannot appear in the same stack as an id in its `conflicts` list, in either direction.
 - Every preset must list the request's mode in `modes`.
 
@@ -51,7 +52,52 @@ The picker disables a card that would break a rule and names the preset blocking
 1. `modelFamily(modelId)` maps the provider model id to a family: `kling`, `seedance`, `veo`, `wan`, `sora`, `minimax`, `ltx`, `local-wan` or `default`. The same table picks the prompting guide in `MODEL_PROMPTING_SKILLS`, so one list decides both. For the `nodetool` provider, the delegate model resolves first.
 2. For each preset in stack order, the compiler takes the fragment for that family, or `default` when the preset has none.
 3. A string fragment appends to the prompt with a space. An object fragment `{ prefix, suffix, replace }` joins `prefix`, then `replace` (or the current prompt when there is no `replace`), then `suffix`. A `replace` fragment drops the prompt built so far, so use it only for effects that must own the whole instruction.
-4. `params` merge in stack order. Two presets that set the same key to different values fail the compile with an error naming both.
+4. For each preset, the selected `family_params` entry overrides `params`. There is no default-family fallback for settings. A scoped key absent from both the selected family and shared params is dropped with a warning naming the preset, key and family. Settings outside the mode allowlist in `mediaPresetSettings` are also dropped with a warning before conflict checking. The remaining params merge in stack order. Two presets that set the same key to different values fail the compile with an error naming both.
+
+### Family settings support
+
+The compiler conservatively drops `fps` and `negative_prompt` from shared and
+family-scoped params in every mode. No generation provider is called to discover
+support during compile.
+
+| Families | `fps` | `negative_prompt` |
+|---|---|---|
+| `kling`, `seedance`, `veo`, `wan` | Dropped | Dropped |
+| `sora`, `minimax`, `ltx`, `local-wan`, `default`, unknown | Dropped | Dropped |
+
+The generic video interfaces in
+[provider types](../packages/runtime/src/providers/types.ts) expose duration and
+frame count, but no requested fps. Negative prompts reach some endpoints through
+the FAL, KIE and Replicate adapters, but support varies within a family and by
+mode. The media preset boundary does not forward them. Family membership alone
+cannot establish endpoint support, so presets express these directions in prose
+until a narrower capability boundary exists. Ejected workflows use the same
+filtering.
+
+For supported settings, a preset can use
+`"family_params": { "seedance": { "duration_seconds": 5 } }`.
+Other families omit that setting with a warning unless shared `params` supplies
+it. An override within one preset is allowed. Different values across presets
+remain a conflict.
+
+### Looks
+
+Look presets describe camera-body rendering, film stock, color grade, lighting,
+an era's finish, or a speed ramp. They use slots `body`, `stock`, `grade`,
+`lighting`, `era` and `ramp`. Each has default, Kling, Seedance, Veo and Wan
+wording. These fragments are authored direction, not a claim of rendered
+validation on each provider.
+
+Looks support video, image-to-video and reference-to-video. Still-compatible
+looks also support image generation. Speed ramps only support video modes and
+describe action timing without promising a numeric frame rate. Monochrome looks
+conflict with color-dependent treatments, and look ramps conflict with the
+camera speed-ramp preset. Looks have no previews until the preview-rendering
+ticket.
+
+Use looks through the CLI, agent preset tools or media requests with
+`preset_ids`. The existing composer picker continues to offer camera and effect
+presets. Dedicated storyboard and composer look controls follow in P15.
 
 ### Fallback warning
 
@@ -80,7 +126,7 @@ The server compiles, not the client:
 | Agent | The `list_presets`, `get_preset` and `compile_presets` capabilities, and `preset_ids` on the media tools |
 | CLI | `nodetool presets` |
 
-Effect cards, camera cards and the picker are `PresetCard` and `PresetPicker` in `web/src/components/ui_primitives/`. A card plays its preview loop on hover or focus and stays still under reduced motion. Preset names and descriptions are translated through the web locale files.
+Effect cards, camera cards and the picker are `PresetCard` and `PresetPicker` in `web/src/components/ui_primitives/`. A card plays its preview loop on hover or focus and stays still under reduced motion. Preset names and descriptions use the web locale files, with English source text for new entries awaiting translation.
 
 ---
 

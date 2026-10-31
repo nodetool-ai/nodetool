@@ -1,4 +1,7 @@
 import { z } from "zod";
+import { MODEL_FAMILIES } from "./families.js";
+
+const paramsSchema = z.record(z.string(), z.union([z.string(), z.number(), z.boolean()]));
 
 export const fragmentSchema = z.union([
   z.string(),
@@ -16,7 +19,7 @@ export const presetSchema = z.strictObject({
   name: z.string().min(1),
   description: z.string().min(1),
   tags: z.array(z.string()).default([]),
-  slot: z.enum(["move", "rig", "speed", "look", "effect"]).optional(),
+  slot: z.enum(["move", "rig", "speed", "look", "effect", "body", "stock", "grade", "lighting", "era", "ramp"]).optional(),
   modes: z.array(presetModeSchema).min(1),
   inputs: z.array(z.enum(["text", "image", "video"])).default(["text"]),
   stackable: z.boolean().default(false),
@@ -26,7 +29,8 @@ export const presetSchema = z.strictObject({
     (fragments) => Object.hasOwn(fragments, "default"),
     { message: "A default prompt fragment is required" }
   ),
-  params: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).default({}),
+  params: paramsSchema.default({}),
+  family_params: z.partialRecord(z.enum(MODEL_FAMILIES), paramsSchema).optional(),
   families: z.array(z.string()).optional(),
   preview: z.strictObject({ url: z.url(), poster: z.url(), run: z.string() }).optional(),
   workflow: z.string().optional(),

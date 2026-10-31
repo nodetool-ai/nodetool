@@ -43,11 +43,11 @@ describe("compilePresets", () => {
     expect(compile([preset("camera.a")], [])).toEqual({ prompt: "subject", params: {}, warnings: [], applied: [] });
   });
   it("merges equal parameters and rejects unequal values naming both presets", () => {
-    const a = preset("camera.a", { params: { fps: 24 } });
-    const b = preset("camera.b", { params: { fps: 24, audio: true } });
-    expect(compile([a, b]).params).toEqual({ fps: 24, audio: true });
-    b.params.fps = 30;
-    expect(() => compile([a, b])).toThrow(/fps.*camera.a.*camera.b/);
+    const a = preset("camera.a", { params: { duration_seconds: 4 } });
+    const b = preset("camera.b", { params: { duration_seconds: 4, resolution: "720p" } });
+    expect(compile([a, b]).params).toEqual({ duration_seconds: 4, resolution: "720p" });
+    b.params.duration_seconds = 8;
+    expect(() => compile([a, b])).toThrow(/duration_seconds.*camera.a.*camera.b/);
   });
   it.each([
     { slot: "move" as const },
@@ -75,5 +75,47 @@ describe("compilePresets", () => {
   it("rejects unknown ids and unsupported modes", () => {
     expect(() => compile([preset("camera.a")], ["camera.missing"])).toThrow("Unknown preset: camera.missing");
     expect(() => compile([preset("camera.a", { modes: ["image"] })])).toThrow(/does not support mode video/);
+  });
+});
+
+describe("look parameters", () => {
+  it("overrides shared params within a family before checking stack conflicts", () => {
+    const look = preset("look.a", {
+      kind: "look", slot: "stock", params: { duration_seconds: 4 },
+      family_params: { kling: { duration_seconds: 6, resolution: "1080p" } }
+    });
+    expect(compile([look], undefined, "kling-v3").params).toEqual({ duration_seconds: 6, resolution: "1080p" });
+    const result = compile([look], undefined, "veo-3");
+    expect(result.params).toEqual({ duration_seconds: 4 });
+    expect(result.warnings).toContainEqual(expect.stringMatching(/look.a.*resolution.*dropped.*veo/));
+    const camera = preset("camera.a", { params: { duration_seconds: 4 } });
+    expect(() => compile([camera, look], undefined, "kling-v3")).toThrow(/duration_seconds.*camera.a.*look.a/);
+  });
+  it.each(["kling-v3", "veo-3", "unknown"])("drops unsafe params before conflict checking for %s", (model) => {
+    const look = preset("look.a", {
+      kind: "look", slot: "ramp", params: { fps: 24 },
+      family_params: { kling: { fps: 30, negative_prompt: "motion blur" } }
+    });
+    const result = compile([look], undefined, model);
+    expect(result.params).toEqual({});
+    expect(result.warnings).toContainEqual(expect.stringMatching(/look.a.*fps.*dropped/));
+    expect(result.warnings).toContainEqual(expect.stringMatching(/look.a.*negative_prompt.*dropped/));
+  });
+  it("warns about every setting removed by mode filtering", () => {
+    const look = preset("look.a", { kind: "look", params: { width: 1024, typo: true } });
+    const result = compile([look], undefined, "veo-3");
+    expect(result.params).toEqual({});
+    expect(result.warnings).toContainEqual(expect.stringMatching(/look.a.*width.*dropped.*veo/));
+    expect(result.warnings).toContainEqual(expect.stringMatching(/look.a.*typo.*dropped.*veo/));
+  });
+  it("does not use default family settings as a fallback for an unknown model", () => {
+    const look = preset("look.a", { kind: "look", family_params: { default: { resolution: "720p" } } });
+    expect(compile([look], undefined, "default").params).toEqual({ resolution: "720p" });
+    const result = compile([look], undefined, "unknown");
+    expect(result.params).toEqual({});
+    expect(result.warnings).toContainEqual(expect.stringMatching(/resolution.*dropped.*unknown/));
+  });
+  it("rejects unknown family names in the schema", () => {
+    expect(() => presetSchema.parse({ ...preset("look.a"), family_params: { typo: { fps: 24 } } })).toThrow();
   });
 });

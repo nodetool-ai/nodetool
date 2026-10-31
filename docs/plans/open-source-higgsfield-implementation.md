@@ -501,6 +501,8 @@ P19 Video restyle presets ───────── P20
 
 ### P14: Look schema and catalogue
 
+Status: done.
+
 - Add the look slots `body`, `stock`, `grade`, `lighting`, `era` and `ramp` to
   the preset schema. One preset per slot in a stack, as for camera slots.
 - Let a preset scope params to families, so a look can set `fps` or

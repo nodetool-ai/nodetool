@@ -1,0 +1,32 @@
+{
+  "id": "look.red-v-raptor",
+  "version": 1,
+  "kind": "look",
+  "name": "RED V-Raptor",
+  "description": "RED V-Raptor rendering: crisp fine texture, dense blacks and clean specular highlights without digital halos.",
+  "tags": [
+    "look",
+    "body"
+  ],
+  "slot": "body",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video",
+    "image"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "RED V-Raptor rendering: crisp fine texture, dense blacks and clean specular highlights without digital halos.",
+    "kling": "RED V-Raptor rendering: crisp fine texture, dense blacks and clean specular highlights without digital halos. Maintain this rendering consistently across the scene.",
+    "seedance": "RED V-Raptor rendering: crisp fine texture, dense blacks and clean specular highlights without digital halos. Preserve this appearance throughout one continuous shot.",
+    "veo": "RED V-Raptor rendering: crisp fine texture, dense blacks and clean specular highlights without digital halos. Keep the lighting and color response consistent between frames.",
+    "wan": "RED V-Raptor rendering: crisp fine texture, dense blacks and clean specular highlights without digital halos. Retain natural subject detail under this visual treatment."
+  },
+  "params": {}
+}

@@ -1,0 +1,32 @@
+{
+  "id": "look.vhs-1990s",
+  "version": 1,
+  "kind": "look",
+  "name": "1990s VHS",
+  "description": "Use a 1990s VHS transfer finish: limited chroma resolution, slight horizontal color bleed, interlaced edge texture and soft tape noise. Preserve the described scene and wardrobe.",
+  "tags": [
+    "look",
+    "era"
+  ],
+  "slot": "era",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video",
+    "image"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "Use a 1990s VHS transfer finish: limited chroma resolution, slight horizontal color bleed, interlaced edge texture and soft tape noise. Preserve the described scene and wardrobe.",
+    "kling": "Use a 1990s VHS transfer finish: limited chroma resolution, slight horizontal color bleed, interlaced edge texture and soft tape noise. Preserve the described scene and wardrobe. Maintain this rendering consistently across the scene.",
+    "seedance": "Use a 1990s VHS transfer finish: limited chroma resolution, slight horizontal color bleed, interlaced edge texture and soft tape noise. Preserve the described scene and wardrobe. Preserve this appearance throughout one continuous shot.",
+    "veo": "Use a 1990s VHS transfer finish: limited chroma resolution, slight horizontal color bleed, interlaced edge texture and soft tape noise. Preserve the described scene and wardrobe. Keep the lighting and color response consistent between frames.",
+    "wan": "Use a 1990s VHS transfer finish: limited chroma resolution, slight horizontal color bleed, interlaced edge texture and soft tape noise. Preserve the described scene and wardrobe. Retain natural subject detail under this visual treatment."
+  },
+  "params": {}
+}

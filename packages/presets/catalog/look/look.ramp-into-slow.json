@@ -1,0 +1,33 @@
+{
+  "id": "look.ramp-into-slow",
+  "version": 1,
+  "kind": "look",
+  "name": "Ramp into slow motion",
+  "description": "Begin at natural action speed, smoothly decelerate into slow motion at the action peak, then hold slow motion through the end. Keep the same action and camera path.",
+  "tags": [
+    "look",
+    "ramp"
+  ],
+  "slot": "ramp",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "camera.speed-ramp"
+  ],
+  "aliases": [],
+  "prompt": {
+    "default": "Begin at natural action speed, smoothly decelerate into slow motion at the action peak, then hold slow motion through the end. Keep the same action and camera path.",
+    "kling": "Begin at natural action speed, smoothly decelerate into slow motion at the action peak, then hold slow motion through the end. Keep the same action and camera path. Apply the speed change to the subject's motion, without a camera cut.",
+    "seedance": "Begin at natural action speed, smoothly decelerate into slow motion at the action peak, then hold slow motion through the end. Keep the same action and camera path. Keep the speed transition continuous within one shot.",
+    "veo": "Begin at natural action speed, smoothly decelerate into slow motion at the action peak, then hold slow motion through the end. Keep the same action and camera path. Show a smooth temporal transition with consistent subject identity.",
+    "wan": "Begin at natural action speed, smoothly decelerate into slow motion at the action peak, then hold slow motion through the end. Keep the same action and camera path. Gradually vary action speed with continuous subject motion."
+  },
+  "params": {}
+}

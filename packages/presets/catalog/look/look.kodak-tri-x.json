@@ -1,0 +1,35 @@
+{
+  "id": "look.kodak-tri-x",
+  "version": 1,
+  "kind": "look",
+  "name": "Kodak Tri-X",
+  "description": "Kodak Tri-X reversal emulation in monochrome: coarse silver grain, bright whites, deep blacks and a short tonal shoulder.",
+  "tags": [
+    "look",
+    "stock"
+  ],
+  "slot": "stock",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video",
+    "image"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "look.teal-amber",
+    "look.technicolor-1950s"
+  ],
+  "aliases": [],
+  "prompt": {
+    "default": "Kodak Tri-X reversal emulation in monochrome: coarse silver grain, bright whites, deep blacks and a short tonal shoulder.",
+    "kling": "Kodak Tri-X reversal emulation in monochrome: coarse silver grain, bright whites, deep blacks and a short tonal shoulder. Maintain this rendering consistently across the scene.",
+    "seedance": "Kodak Tri-X reversal emulation in monochrome: coarse silver grain, bright whites, deep blacks and a short tonal shoulder. Preserve this appearance throughout one continuous shot.",
+    "veo": "Kodak Tri-X reversal emulation in monochrome: coarse silver grain, bright whites, deep blacks and a short tonal shoulder. Keep the lighting and color response consistent between frames.",
+    "wan": "Kodak Tri-X reversal emulation in monochrome: coarse silver grain, bright whites, deep blacks and a short tonal shoulder. Retain natural subject detail under this visual treatment."
+  },
+  "params": {}
+}

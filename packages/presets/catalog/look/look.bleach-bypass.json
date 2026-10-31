@@ -1,0 +1,32 @@
+{
+  "id": "look.bleach-bypass",
+  "version": 1,
+  "kind": "look",
+  "name": "Bleach bypass",
+  "description": "Bleach-bypass grade: retain silver-like density, reduce color saturation, deepen blacks and preserve bright metallic highlights.",
+  "tags": [
+    "look",
+    "grade"
+  ],
+  "slot": "grade",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video",
+    "image"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "Bleach-bypass grade: retain silver-like density, reduce color saturation, deepen blacks and preserve bright metallic highlights.",
+    "kling": "Bleach-bypass grade: retain silver-like density, reduce color saturation, deepen blacks and preserve bright metallic highlights. Maintain this rendering consistently across the scene.",
+    "seedance": "Bleach-bypass grade: retain silver-like density, reduce color saturation, deepen blacks and preserve bright metallic highlights. Preserve this appearance throughout one continuous shot.",
+    "veo": "Bleach-bypass grade: retain silver-like density, reduce color saturation, deepen blacks and preserve bright metallic highlights. Keep the lighting and color response consistent between frames.",
+    "wan": "Bleach-bypass grade: retain silver-like density, reduce color saturation, deepen blacks and preserve bright metallic highlights. Retain natural subject detail under this visual treatment."
+  },
+  "params": {}
+}

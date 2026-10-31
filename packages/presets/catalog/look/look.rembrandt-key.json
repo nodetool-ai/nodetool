@@ -1,0 +1,32 @@
+{
+  "id": "look.rembrandt-key",
+  "version": 1,
+  "kind": "look",
+  "name": "Rembrandt key",
+  "description": "Light with one soft key forty-five degrees to the face and slightly above eye level, leaving a small triangle on the shadow cheek and minimal fill.",
+  "tags": [
+    "look",
+    "lighting"
+  ],
+  "slot": "lighting",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video",
+    "image"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "Light with one soft key forty-five degrees to the face and slightly above eye level, leaving a small triangle on the shadow cheek and minimal fill.",
+    "kling": "Light with one soft key forty-five degrees to the face and slightly above eye level, leaving a small triangle on the shadow cheek and minimal fill. Maintain this rendering consistently across the scene.",
+    "seedance": "Light with one soft key forty-five degrees to the face and slightly above eye level, leaving a small triangle on the shadow cheek and minimal fill. Preserve this appearance throughout one continuous shot.",
+    "veo": "Light with one soft key forty-five degrees to the face and slightly above eye level, leaving a small triangle on the shadow cheek and minimal fill. Keep the lighting and color response consistent between frames.",
+    "wan": "Light with one soft key forty-five degrees to the face and slightly above eye level, leaving a small triangle on the shadow cheek and minimal fill. Retain natural subject detail under this visual treatment."
+  },
+  "params": {}
+}

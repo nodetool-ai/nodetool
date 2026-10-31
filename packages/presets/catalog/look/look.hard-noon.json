@@ -1,0 +1,34 @@
+{
+  "id": "look.hard-noon",
+  "version": 1,
+  "kind": "look",
+  "name": "Hard noon sun",
+  "description": "Light with hard overhead midday sun: short dense shadows, crisp contours and bright pavement bounce beneath the face.",
+  "tags": [
+    "look",
+    "lighting"
+  ],
+  "slot": "lighting",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video",
+    "image"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "look.moonlit-blue"
+  ],
+  "aliases": [],
+  "prompt": {
+    "default": "Light with hard overhead midday sun: short dense shadows, crisp contours and bright pavement bounce beneath the face.",
+    "kling": "Light with hard overhead midday sun: short dense shadows, crisp contours and bright pavement bounce beneath the face. Maintain this rendering consistently across the scene.",
+    "seedance": "Light with hard overhead midday sun: short dense shadows, crisp contours and bright pavement bounce beneath the face. Preserve this appearance throughout one continuous shot.",
+    "veo": "Light with hard overhead midday sun: short dense shadows, crisp contours and bright pavement bounce beneath the face. Keep the lighting and color response consistent between frames.",
+    "wan": "Light with hard overhead midday sun: short dense shadows, crisp contours and bright pavement bounce beneath the face. Retain natural subject detail under this visual treatment."
+  },
+  "params": {}
+}

@@ -60,8 +60,9 @@ describe("MediaPresetChip", () => {
   it("offers only presets that list the current mode", () => {
     render(<Harness mode="reference_to_video" />);
     fireEvent.click(screen.getByRole("button", { name: "Presets" }));
+    expect(screen.queryByRole("option", { name: /ARRI Alexa/ })).not.toBeInTheDocument();
     expect(screen.getAllByRole("option")).toHaveLength(
-      presetCatalog.filter({ mode: "reference_to_video" }).length
+      presetCatalog.filter({ mode: "reference_to_video" }).filter((preset) => preset.kind !== "look").length
     );
   });
 

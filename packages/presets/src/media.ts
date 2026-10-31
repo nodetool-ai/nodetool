@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { resolveNodetoolDelegate } from "@nodetool-ai/protocol";
+import { presetParameterKeys } from "./params.js";
 import { compilePresets, type CompiledPresets } from "./compile.js";
 import type { Catalog } from "./catalog.js";
 import type { PresetMode } from "./schema.js";
@@ -54,25 +55,7 @@ export function mediaPresetSettings(
   compiled: CompiledPresets,
   mode: string
 ): Record<string, string | number | boolean> {
-  const keys =
-    mode === "image"
-      ? ["width", "height", "aspect_ratio", "resolution", "seed"]
-      : mode === "image_edit"
-        ? [
-            "width",
-            "height",
-            "strength",
-            "num_inference_steps",
-            "seed",
-            "aspect_ratio",
-            "resolution"
-          ]
-        : [
-            "aspect_ratio",
-            "resolution",
-            "duration_seconds",
-            "num_inference_steps"
-          ];
+  const keys = presetParameterKeys(mode);
   return Object.fromEntries(
     Object.entries(compiled.params).filter(([key]) => keys.includes(key))
   );

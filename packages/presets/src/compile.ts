@@ -1,3 +1,4 @@
+import { presetParameterKeys } from "./params.js";
 import type { Catalog } from "./catalog.js";
 import { modelFamily } from "./families.js";
 import type { Preset, PresetMode } from "./schema.js";
@@ -41,6 +42,7 @@ export function compilePresets(ids: readonly string[], options: CompileOptions):
   const owners = new Map<string, string>();
   const warnings: string[] = [];
   const family = modelFamily(options.modelId);
+  const acceptedKeys = presetParameterKeys(options.mode);
   for (const preset of presets) {
     const hasFamily = family !== null && Object.hasOwn(preset.prompt, family);
     const fragment = preset.prompt[hasFamily ? family : "default"];
@@ -52,7 +54,21 @@ export function compilePresets(ids: readonly string[], options: CompileOptions):
     } else {
       prompt = [fragment.prefix, fragment.replace ?? prompt, fragment.suffix].filter(Boolean).join(" ");
     }
-    for (const [key, value] of Object.entries(preset.params)) {
+    const scoped = preset.family_params ?? {};
+    const familyParams = family === null ? {} : scoped[family] ?? {};
+    const selectedParams = { ...preset.params, ...familyParams };
+    for (const key of new Set(Object.values(scoped).flatMap((values) => Object.keys(values)))) {
+      if (!Object.hasOwn(selectedParams, key)) {
+        warnings.push(`Preset ${preset.id} parameter ${key} dropped for ${family ?? options.modelId}: no family value`);
+      }
+    }
+    for (const [key, value] of Object.entries(selectedParams)) {
+      // Generic generation has no fps input. Negative-prompt support varies by
+      // endpoint and mode within a family, so neither is safe family-wide.
+      if (!acceptedKeys.includes(key)) {
+        warnings.push(`Preset ${preset.id} parameter ${key} dropped for ${family ?? options.modelId}: not supported by the generic generation path`);
+        continue;
+      }
       const owner = owners.get(key);
       if (owner && params.get(key) !== value) {
         throw new Error(`Parameter ${key} conflicts between ${owner} and ${preset.id}`);

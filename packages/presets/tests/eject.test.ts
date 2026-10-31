@@ -5,7 +5,7 @@ const model = { provider: "fake", id: "veo-3", path: "/models/local" };
 const preset = presetSchema.parse({
   id: "camera.test", version: 1, kind: "camera", name: "Test", description: "Test",
   modes: ["video", "image_to_video", "reference_to_video", "image", "image_edit"],
-  prompt: { default: "Fallback", veo: { prefix: "Start", suffix: "End" } }, params: { duration: 5 }
+  prompt: { default: "Fallback", veo: { prefix: "Start", suffix: "End" } }, params: { resolution: "720p" }
 });
 
 describe("presetToWorkflow", () => {
@@ -14,7 +14,7 @@ describe("presetToWorkflow", () => {
     expect(graph.nodes.find(n => n.id === "template")?.data.string).toBe(
       compilePresets([preset.id], { catalog: createCatalog([preset]), mode, modelId: model.id, prompt: "{{ prompt }}" }).prompt
     );
-    expect(graph.nodes.find(n => n.id === "generate")?.data).toMatchObject({ duration: 5, model });
+    expect(graph.nodes.find(n => n.id === "generate")?.data).toMatchObject({ resolution: "720p", model });
     expect(graph.edges).toContainEqual(expect.objectContaining({ source: "prompt", target: "template", targetHandle: "prompt" }));
   });
   it("preserves replace fragments", () => {

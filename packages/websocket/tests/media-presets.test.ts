@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createCatalog, compilePresets } from "@nodetool-ai/presets";
+import { createCatalog, compilePresets, type PresetMode } from "@nodetool-ai/presets";
 import {
   compileMediaPresets,
   mediaPresetSettings
@@ -56,22 +56,22 @@ describe("media preset boundary", () => {
         }
       }
     ]);
-    const compiled = compilePresets(["studio.test"], {
+    const compileFor = (mode: PresetMode) => compilePresets(["studio.test"], {
       catalog,
-      mode: "video",
+      mode,
       modelId: "default",
       prompt: "subject"
     });
-    expect(mediaPresetSettings(compiled, "video")).toEqual({
+    expect(mediaPresetSettings(compileFor("video"), "video")).toEqual({
       duration_seconds: 5,
       resolution: "720p"
     });
-    expect(mediaPresetSettings(compiled, "image")).toEqual({
+    expect(mediaPresetSettings(compileFor("image"), "image")).toEqual({
       width: 640,
       height: 480,
       resolution: "720p"
     });
-    expect(mediaPresetSettings(compiled, "image_edit")).toEqual({
+    expect(mediaPresetSettings(compileFor("image_edit"), "image_edit")).toEqual({
       width: 640,
       height: 480,
       strength: 0.5,

@@ -19846,6 +19846,104 @@
         "name": "Underwater drift",
         "description": "Animates the subject to drift underwater with slow caustic light ripples."
       }
+    },
+    "look": {
+      "arri-alexa": {
+        "name": "ARRI Alexa",
+        "description": "ARRI Alexa large-format rendering: gentle highlight roll-off, open shadow detail and restrained edge sharpening."
+      },
+      "bleach-bypass": {
+        "name": "Bleach bypass",
+        "description": "Bleach-bypass grade: retain silver-like density, reduce color saturation, deepen blacks and preserve bright metallic highlights."
+      },
+      "bolex-h16": {
+        "name": "Bolex H16",
+        "description": "Bolex H16 16 mm rendering: slight gate weave, compact grain and soft corners with a subtle mechanical exposure flutter."
+      },
+      "fast-slow-fast": {
+        "name": "Fast slow fast",
+        "description": "Start with accelerated action, smoothly settle into slow motion at the midpoint, then accelerate through the finish without cuts or repeated action."
+      },
+      "fuji-eterna": {
+        "name": "Fuji Eterna 400T",
+        "description": "Fuji Eterna 400T negative emulation: muted greens, pastel skin tones, low contrast and a cool bias in the shadows."
+      },
+      "hard-noon": {
+        "name": "Hard noon sun",
+        "description": "Light with hard overhead midday sun: short dense shadows, crisp contours and bright pavement bounce beneath the face."
+      },
+      "impact-ramp": {
+        "name": "Impact speed ramp",
+        "description": "Play the action at natural speed, briefly decelerate through the moment of contact, then smoothly return to natural speed without repeating the action."
+      },
+      "kodak-5207": {
+        "name": "Kodak Vision3 250D",
+        "description": "Kodak Vision3 5207 250D daylight-negative emulation: warm skin, clear blue skies, fine grain and a long highlight shoulder."
+      },
+      "kodak-5219": {
+        "name": "Kodak Vision3 500T",
+        "description": "Kodak Vision3 5219 500T tungsten-negative emulation: warm practical bulbs, cyan shadow separation, fine grain and soft highlight halation."
+      },
+      "kodak-tri-x": {
+        "name": "Kodak Tri-X",
+        "description": "Kodak Tri-X reversal emulation in monochrome: coarse silver grain, bright whites, deep blacks and a short tonal shoulder."
+      },
+      "moonlit-blue": {
+        "name": "Moonlit blue",
+        "description": "Light with a broad cool moonlight source from the side, a low fill level and a narrow rim separating the silhouette from the dark background."
+      },
+      "new-hollywood-1970s": {
+        "name": "1970s New Hollywood",
+        "description": "Use a 1970s New Hollywood print finish: warm earth tones, subdued blues, visible 35 mm grain and slight halation around practical lights. Preserve the described scene and wardrobe."
+      },
+      "pastel-print": {
+        "name": "Pastel print",
+        "description": "Pastel print grade: lifted black floor, low saturation, peach highlights and soft blue shadows with gentle contrast."
+      },
+      "ramp-into-slow": {
+        "name": "Ramp into slow motion",
+        "description": "Begin at natural action speed, smoothly decelerate into slow motion at the action peak, then hold slow motion through the end. Keep the same action and camera path."
+      },
+      "ramp-out-of-slow": {
+        "name": "Ramp out of slow motion",
+        "description": "Begin in slow motion, smoothly accelerate to natural action speed halfway through, then hold natural speed. Keep the same action and camera path."
+      },
+      "red-v-raptor": {
+        "name": "RED V-Raptor",
+        "description": "RED V-Raptor rendering: crisp fine texture, dense blacks and clean specular highlights without digital halos."
+      },
+      "rembrandt-key": {
+        "name": "Rembrandt key",
+        "description": "Light with one soft key forty-five degrees to the face and slightly above eye level, leaving a small triangle on the shadow cheek and minimal fill."
+      },
+      "silent-1920s": {
+        "name": "1920s silent cinema",
+        "description": "Use a 1920s silent-cinema finish: monochrome orthochromatic-like tonality, luminous skin, dark reds, mild corner falloff and irregular fine scratches. Preserve the described scene and wardrobe."
+      },
+      "silver-monochrome": {
+        "name": "Silver monochrome",
+        "description": "Neutral black-and-white grade: separate skin and fabric through luminance, hold midtone detail and keep whites free of color tint."
+      },
+      "sony-venice": {
+        "name": "Sony Venice",
+        "description": "Sony Venice full-frame rendering: clean low-light detail, neutral skin tones and fine separation in saturated practical lights."
+      },
+      "teal-amber": {
+        "name": "Teal and amber",
+        "description": "Teal-and-amber grade: cool cyan shadows against warm skin, neutral whites and controlled saturation in highlights."
+      },
+      "technicolor-1950s": {
+        "name": "1950s dye-transfer print",
+        "description": "Use a 1950s three-strip dye-transfer print finish: rich reds, separated emerald greens, luminous skin and dense stable blacks. Preserve the described scene and wardrobe."
+      },
+      "tungsten-practicals": {
+        "name": "Tungsten practicals",
+        "description": "Light with visible warm tungsten practical bulbs, localized pools of amber light and dim cool ambient fill, retaining detail around each bulb."
+      },
+      "vhs-1990s": {
+        "name": "1990s VHS",
+        "description": "Use a 1990s VHS transfer finish: limited chroma resolution, slight horizontal color bleed, interlaced edge texture and soft tape noise. Preserve the described scene and wardrobe."
+      }
     }
   },
   "shot_camera_field": {

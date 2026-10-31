@@ -1,0 +1,32 @@
+{
+  "id": "look.tungsten-practicals",
+  "version": 1,
+  "kind": "look",
+  "name": "Tungsten practicals",
+  "description": "Light with visible warm tungsten practical bulbs, localized pools of amber light and dim cool ambient fill, retaining detail around each bulb.",
+  "tags": [
+    "look",
+    "lighting"
+  ],
+  "slot": "lighting",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video",
+    "image"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "Light with visible warm tungsten practical bulbs, localized pools of amber light and dim cool ambient fill, retaining detail around each bulb.",
+    "kling": "Light with visible warm tungsten practical bulbs, localized pools of amber light and dim cool ambient fill, retaining detail around each bulb. Maintain this rendering consistently across the scene.",
+    "seedance": "Light with visible warm tungsten practical bulbs, localized pools of amber light and dim cool ambient fill, retaining detail around each bulb. Preserve this appearance throughout one continuous shot.",
+    "veo": "Light with visible warm tungsten practical bulbs, localized pools of amber light and dim cool ambient fill, retaining detail around each bulb. Keep the lighting and color response consistent between frames.",
+    "wan": "Light with visible warm tungsten practical bulbs, localized pools of amber light and dim cool ambient fill, retaining detail around each bulb. Retain natural subject detail under this visual treatment."
+  },
+  "params": {}
+}

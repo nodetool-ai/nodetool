@@ -1,0 +1,34 @@
+{
+  "id": "look.moonlit-blue",
+  "version": 1,
+  "kind": "look",
+  "name": "Moonlit blue",
+  "description": "Light with a broad cool moonlight source from the side, a low fill level and a narrow rim separating the silhouette from the dark background.",
+  "tags": [
+    "look",
+    "lighting"
+  ],
+  "slot": "lighting",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video",
+    "image"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "look.hard-noon"
+  ],
+  "aliases": [],
+  "prompt": {
+    "default": "Light with a broad cool moonlight source from the side, a low fill level and a narrow rim separating the silhouette from the dark background.",
+    "kling": "Light with a broad cool moonlight source from the side, a low fill level and a narrow rim separating the silhouette from the dark background. Maintain this rendering consistently across the scene.",
+    "seedance": "Light with a broad cool moonlight source from the side, a low fill level and a narrow rim separating the silhouette from the dark background. Preserve this appearance throughout one continuous shot.",
+    "veo": "Light with a broad cool moonlight source from the side, a low fill level and a narrow rim separating the silhouette from the dark background. Keep the lighting and color response consistent between frames.",
+    "wan": "Light with a broad cool moonlight source from the side, a low fill level and a narrow rim separating the silhouette from the dark background. Retain natural subject detail under this visual treatment."
+  },
+  "params": {}
+}

@@ -1,0 +1,35 @@
+{
+  "id": "look.silver-monochrome",
+  "version": 1,
+  "kind": "look",
+  "name": "Silver monochrome",
+  "description": "Neutral black-and-white grade: separate skin and fabric through luminance, hold midtone detail and keep whites free of color tint.",
+  "tags": [
+    "look",
+    "grade"
+  ],
+  "slot": "grade",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video",
+    "image"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [
+    "look.teal-amber",
+    "look.technicolor-1950s"
+  ],
+  "aliases": [],
+  "prompt": {
+    "default": "Neutral black-and-white grade: separate skin and fabric through luminance, hold midtone detail and keep whites free of color tint.",
+    "kling": "Neutral black-and-white grade: separate skin and fabric through luminance, hold midtone detail and keep whites free of color tint. Maintain this rendering consistently across the scene.",
+    "seedance": "Neutral black-and-white grade: separate skin and fabric through luminance, hold midtone detail and keep whites free of color tint. Preserve this appearance throughout one continuous shot.",
+    "veo": "Neutral black-and-white grade: separate skin and fabric through luminance, hold midtone detail and keep whites free of color tint. Keep the lighting and color response consistent between frames.",
+    "wan": "Neutral black-and-white grade: separate skin and fabric through luminance, hold midtone detail and keep whites free of color tint. Retain natural subject detail under this visual treatment."
+  },
+  "params": {}
+}

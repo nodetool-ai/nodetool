@@ -7,6 +7,10 @@ Install with `npm install @nodetool-ai/presets`.
 `{ prompt, params, applied, warnings }`. It throws for unknown ids, unsupported
 modes and incompatible stacks. Structured fragments replace the current prompt
 first, then add their prefix and suffix. Strings append with a space.
+Optional `family_params` entries override shared `params` for that family.
+Settings with no value for the selected family, or outside the mode's generation
+allowlist, are dropped with warnings before stack conflict checks. See
+[family settings support](../../docs/presets.md#family-settings-support).
 
 `createCatalog(data)` validates an array and exposes `getPreset(id)`,
 `byAlias(text)` and `filter({ kind, mode })`. `loadCatalog(loader)` accepts

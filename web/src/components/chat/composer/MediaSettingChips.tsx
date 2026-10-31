@@ -30,7 +30,7 @@ import {
   type AspectRatioOption,
   type PresetMediaMode
 } from "../../../stores/MediaGenerationStore";
-import { presetCatalog } from "../../../lib/presets/catalog";
+import { MEDIA_PRESETS, presetCatalog } from "../../../lib/presets/catalog";
 import {
   presetFamilyOf,
   presetsWithoutFragment
@@ -208,7 +208,7 @@ export function MediaPresetChip({
             </Caption>
           )}
           <PresetPicker
-            presets={presetCatalog.presets}
+            presets={MEDIA_PRESETS}
             value={value}
             onChange={onChange}
             filter={filter}

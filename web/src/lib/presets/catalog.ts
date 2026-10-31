@@ -14,3 +14,6 @@ export const CAMERA_PRESETS = presetCatalog.filter({ kind: "camera" });
 
 /** Every effect preset, in catalogue order. */
 export const EFFECT_PRESETS = presetCatalog.filter({ kind: "effect" });
+
+/** Composer kinds available before the dedicated look controls. */
+export const MEDIA_PRESETS = presetCatalog.presets.filter((preset) => preset.kind !== "look");

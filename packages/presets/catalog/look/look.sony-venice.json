@@ -1,0 +1,32 @@
+{
+  "id": "look.sony-venice",
+  "version": 1,
+  "kind": "look",
+  "name": "Sony Venice",
+  "description": "Sony Venice full-frame rendering: clean low-light detail, neutral skin tones and fine separation in saturated practical lights.",
+  "tags": [
+    "look",
+    "body"
+  ],
+  "slot": "body",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video",
+    "image"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "Sony Venice full-frame rendering: clean low-light detail, neutral skin tones and fine separation in saturated practical lights.",
+    "kling": "Sony Venice full-frame rendering: clean low-light detail, neutral skin tones and fine separation in saturated practical lights. Maintain this rendering consistently across the scene.",
+    "seedance": "Sony Venice full-frame rendering: clean low-light detail, neutral skin tones and fine separation in saturated practical lights. Preserve this appearance throughout one continuous shot.",
+    "veo": "Sony Venice full-frame rendering: clean low-light detail, neutral skin tones and fine separation in saturated practical lights. Keep the lighting and color response consistent between frames.",
+    "wan": "Sony Venice full-frame rendering: clean low-light detail, neutral skin tones and fine separation in saturated practical lights. Retain natural subject detail under this visual treatment."
+  },
+  "params": {}
+}

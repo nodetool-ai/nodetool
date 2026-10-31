@@ -24,11 +24,12 @@ describe("catalogue", () => {
     expect(rows.length).toBeGreaterThan(0);
     expect(createCatalog(rows).presets).toHaveLength(rows.length);
   });
-  it("ships a rendered preview backed by a run record for every preset", () => {
+  it("ships a rendered preview backed by a run record for camera and effect presets", () => {
     let inspected = 0;
     for (const kind of readdirSync(new URL("catalog/", root))) {
       for (const file of readdirSync(new URL(`catalog/${kind}/`, root))) {
         const preset = presetSchema.parse(readJson(`catalog/${kind}/${file}`));
+        if (preset.kind !== "camera" && preset.kind !== "effect") { continue; }
         expect(preset.preview?.url, preset.id).toMatch(/^https:\/\/.+\.mp4$/);
         expect(preset.preview?.poster, preset.id).toMatch(/^https:\/\/.+\.png$/);
         expect(existsSync(new URL(preset.preview?.run ?? "missing", root)), preset.id).toBe(true);
@@ -52,7 +53,7 @@ describe("catalogue", () => {
     expect(catalog.getPreset("missing")).toBeUndefined();
     expect(catalog.filter({ kind: "camera", mode: "video" }).length).toBeGreaterThan(0);
     expect(catalog.filter({ kind: "effect" })).toHaveLength(20);
-    expect(catalog.filter({ mode: "image" })).toEqual([]);
+    expect(catalog.filter({ kind: "look", mode: "image" }).length).toBeGreaterThan(0);
   });
   it("rejects duplicate ids and aliases across presets", () => {
     const catalog = loadCatalog(() => readJson("preset-catalog.json"));

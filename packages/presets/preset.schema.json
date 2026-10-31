@@ -41,7 +41,13 @@
         "rig",
         "speed",
         "look",
-        "effect"
+        "effect",
+        "body",
+        "stock",
+        "grade",
+        "lighting",
+        "era",
+        "ramp"
       ]
     },
     "modes": {
@@ -139,6 +145,42 @@
             "type": "boolean"
           }
         ]
+      }
+    },
+    "family_params": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "enum": [
+          "kling",
+          "seedance",
+          "veo",
+          "wan",
+          "sora",
+          "minimax",
+          "ltx",
+          "local-wan",
+          "default"
+        ]
+      },
+      "additionalProperties": {
+        "type": "object",
+        "propertyNames": {
+          "type": "string"
+        },
+        "additionalProperties": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            }
+          ]
+        }
       }
     },
     "families": {

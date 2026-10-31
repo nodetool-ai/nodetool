@@ -1,0 +1,32 @@
+{
+  "id": "look.kodak-5207",
+  "version": 1,
+  "kind": "look",
+  "name": "Kodak Vision3 250D",
+  "description": "Kodak Vision3 5207 250D daylight-negative emulation: warm skin, clear blue skies, fine grain and a long highlight shoulder.",
+  "tags": [
+    "look",
+    "stock"
+  ],
+  "slot": "stock",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video",
+    "image"
+  ],
+  "inputs": [
+    "text"
+  ],
+  "stackable": true,
+  "conflicts": [],
+  "aliases": [],
+  "prompt": {
+    "default": "Kodak Vision3 5207 250D daylight-negative emulation: warm skin, clear blue skies, fine grain and a long highlight shoulder.",
+    "kling": "Kodak Vision3 5207 250D daylight-negative emulation: warm skin, clear blue skies, fine grain and a long highlight shoulder. Maintain this rendering consistently across the scene.",
+    "seedance": "Kodak Vision3 5207 250D daylight-negative emulation: warm skin, clear blue skies, fine grain and a long highlight shoulder. Preserve this appearance throughout one continuous shot.",
+    "veo": "Kodak Vision3 5207 250D daylight-negative emulation: warm skin, clear blue skies, fine grain and a long highlight shoulder. Keep the lighting and color response consistent between frames.",
+    "wan": "Kodak Vision3 5207 250D daylight-negative emulation: warm skin, clear blue skies, fine grain and a long highlight shoulder. Retain natural subject detail under this visual treatment."
+  },
+  "params": {}
+}
