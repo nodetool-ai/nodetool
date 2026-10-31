@@ -4,3 +4,4 @@ export * from "./catalog.js";
 export * from "./compile.js";
 
 export * from "./eject.js";
+export * from "./media.js";
