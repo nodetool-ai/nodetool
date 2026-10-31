@@ -20,7 +20,7 @@
         "id": "template",
         "type": "nodetool.text.Template",
         "data": {
-          "string": "{{ prompt }} Camera advances through an opening in the foreground object to reveal the subject beyond throughout one continuous shot."
+          "string": "{{ prompt }} The camera pushes forward through a gap between foreground elements that are already in the scene, such as leaves, an archway or a doorway, which sweep past the lens and out of frame to reveal the subject beyond. No new objects appear. One continuous shot."
         },
         "position": {
           "x": 380,
@@ -100,15 +100,15 @@
       }
     ]
   },
-  "workflow_hash": "880a5c538a8670b40552f90aefbd96ad39dddb525c4fea1417347b6b0bf4e046",
+  "workflow_hash": "a35391d5e2eed0bb13f92303745583bb75ec9f76093858b086c0d65564b28f92",
   "provider": "dreamina",
   "model": "dreamina_seedance_45_pro_draft",
   "seed": 20261031,
-  "prompt": "A large bronze ring sculpture with a twisted open loop and a green-gold patina on a rough travertine plinth in a sunlit Mediterranean stone courtyard, olive trees in terracotta pots in the foreground, an arched colonnade behind, cypress trees and mountains in the distance, golden late-afternoon light. Camera advances through an opening in the foreground object to reveal the subject beyond throughout one continuous shot.",
+  "prompt": "A large bronze ring sculpture with a twisted open loop and a green-gold patina on a rough travertine plinth in a sunlit Mediterranean stone courtyard, olive trees in terracotta pots in the foreground, an arched colonnade behind, cypress trees and mountains in the distance, golden late-afternoon light. The camera pushes forward through a gap between foreground elements that are already in the scene, such as leaves, an archway or a doorway, which sweep past the lens and out of frame to reveal the subject beyond. No new objects appear. One continuous shot.",
   "source_hash": "adbf4a2064a6325d86502adc505cd9c7fab33cde19180d0d3281c6f5f15a8267",
   "credits": null,
   "cost_usd": null,
-  "started_at": "2026-10-31T18:27:10.136Z",
-  "finished_at": "2026-10-31T18:28:45.070Z",
+  "started_at": "2026-10-31T19:11:49.762Z",
+  "finished_at": "2026-10-31T19:13:20.701Z",
   "output_path": "/home/mg/.cache/nodetool/preset-previews/camera.through-object-pass-dreamina_seedance_45_pro_draft.mp4"
 }

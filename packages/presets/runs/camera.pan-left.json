@@ -20,7 +20,7 @@
         "id": "template",
         "type": "nodetool.text.Template",
         "data": {
-          "string": "{{ prompt }} Camera pans left from a fixed position throughout one continuous shot."
+          "string": "{{ prompt }} The camera stays fixed in one place and turns steadily to the left on its axis, so the whole scene slides to the right across the frame and new parts of the scene enter from the left edge. One continuous shot."
         },
         "position": {
           "x": 380,
@@ -33,9 +33,9 @@
         "data": {
           "model": {
             "provider": "dreamina",
-            "id": "dreamina_seedance_45_pro_draft",
+            "id": "dreamina_seedance_45_pro",
             "type": "video_model",
-            "name": "dreamina_seedance_45_pro_draft"
+            "name": "dreamina_seedance_45_pro"
           },
           "seed": 20261031,
           "duration": 4,
@@ -100,15 +100,15 @@
       }
     ]
   },
-  "workflow_hash": "4690049cd42bd674a7fd69b08b63946ece91e42822f236036b130e7d2083ce69",
+  "workflow_hash": "f55e17801b94407b0eac70606028d68b65f611051fce60125d1d054ff93d986b",
   "provider": "dreamina",
-  "model": "dreamina_seedance_45_pro_draft",
+  "model": "dreamina_seedance_45_pro",
   "seed": 20261031,
-  "prompt": "A large bronze ring sculpture with a twisted open loop and a green-gold patina on a rough travertine plinth in a sunlit Mediterranean stone courtyard, olive trees in terracotta pots in the foreground, an arched colonnade behind, cypress trees and mountains in the distance, golden late-afternoon light. Camera pans left from a fixed position throughout one continuous shot.",
+  "prompt": "A large bronze ring sculpture with a twisted open loop and a green-gold patina on a rough travertine plinth in a sunlit Mediterranean stone courtyard, olive trees in terracotta pots in the foreground, an arched colonnade behind, cypress trees and mountains in the distance, golden late-afternoon light. The camera stays fixed in one place and turns steadily to the left on its axis, so the whole scene slides to the right across the frame and new parts of the scene enter from the left edge. One continuous shot.",
   "source_hash": "adbf4a2064a6325d86502adc505cd9c7fab33cde19180d0d3281c6f5f15a8267",
   "credits": null,
   "cost_usd": null,
-  "started_at": "2026-10-31T18:04:59.640Z",
-  "finished_at": "2026-10-31T18:07:11.023Z",
-  "output_path": "/home/mg/.cache/nodetool/preset-previews/camera.pan-left-dreamina_seedance_45_pro_draft.mp4"
+  "started_at": "2026-10-31T19:16:52.737Z",
+  "finished_at": "2026-10-31T19:19:57.054Z",
+  "output_path": "/home/mg/.cache/nodetool/preset-previews/camera.pan-left-dreamina_seedance_45_pro.mp4"
 }

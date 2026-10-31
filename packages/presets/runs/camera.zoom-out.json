@@ -1,7 +1,7 @@
 {
   "version": 1,
   "id": "camera.zoom-out",
-  "status": "running",
+  "status": "completed",
   "workflow": {
     "nodes": [
       {
@@ -109,6 +109,6 @@
   "credits": null,
   "cost_usd": null,
   "started_at": "2026-10-31T18:41:44.360Z",
-  "finished_at": null,
+  "finished_at": "2026-10-31T18:43:18.714Z",
   "output_path": "/home/mg/.cache/nodetool/preset-previews/camera.zoom-out-dreamina_seedance_45_pro_draft.mp4"
 }
