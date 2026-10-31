@@ -155,13 +155,13 @@ describe("managed runtime diagnostics", () => {
     const f = await compilerFixture("0.28.2", { installPack: true });
     const baseline = f.catalog.packs[0].npm;
     const inspect = async (kind: "core" | "node-pack", runtimeLibraries: readonly string[]) => {
-      const catalog = { ...f.catalog, packs: [{ ...f.catalog.packs[0], id: "data", kind,
+      const catalog = { ...f.catalog, packs: [{ ...f.catalog.packs[0], kind,
         npm: { name: baseline.name, version: baseline.version, integrity: baseline.integrity }, runtimeLibraries }] };
       const snapshot = readInstalledPacks(f.request.mode, catalog);
-      expect(snapshot.packs.map(pack => pack.id)).toEqual(["data"]);
+      expect(snapshot.packs.map(pack => pack.id)).toEqual([f.catalog.packs[0].id]);
       const service = await createPackCommandServices({ snapshot, catalog,
         stateFile: f.request.stateFile, operations: f.operations });
-      const selection = await prepareInstallSelection({ ...f.request, packs: ["data"], catalog });
+      const selection = await prepareInstallSelection({ ...f.request, packs: [f.catalog.packs[0].id], catalog });
       expect(selection.runtimeLibraries).toEqual(runtimeLibraries);
       return service.doctor({});
     };
