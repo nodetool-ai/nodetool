@@ -249,7 +249,8 @@ describe("buildImageModels", () => {
     const out = buildImageModels(
       [
         { outputType: "image", endpointId: "img" },
-        { outputType: "dict", endpointId: "fal/clarity-upscaler" },
+        { outputType: "dict", endpointId: "fal/clarity-upscaler", tags: ["image", "upscale"] },
+        { outputType: "dict", endpointId: "fal/silero-vad", tags: ["speech", "audio-analysis"] },
         { outputType: "audio", endpointId: "aud" } // must be excluded
       ],
       "fal"

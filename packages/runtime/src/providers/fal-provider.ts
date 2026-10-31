@@ -163,6 +163,7 @@ interface FalManifestField {
   default?: unknown;
   enumValues?: string[];
   acceptsObject?: boolean;
+  required?: boolean;
   /** Declared bounds. Numeric for int/float fields, a length for str/list. */
   min?: number;
   max?: number;
@@ -353,6 +354,45 @@ function setOutpaintPadding(
 }
 
 /**
+ * Put the requested voice in an endpoint's `voice` or `speaker` field. A voice
+ * the endpoint does not list fails before the paid request, with the list. A
+ * required voice field with no voice requested gets its default or first value.
+ */
+function setVoiceField(
+  b: FalArgsBuilder,
+  modelId: string,
+  name: string,
+  voice: string | undefined
+): void {
+  const field = b.fieldFor(name);
+  if (!field) {
+    b.set(name, voice);
+    return;
+  }
+  const choices = field.enumValues ?? [];
+  if (voice) {
+    if (choices.length > 0) {
+      const match = choices.find((c) => c.toLowerCase() === voice.toLowerCase());
+      if (!match) {
+        throw new Error(
+          `${modelId} has no voice "${voice}". Use --voice with one of: ${choices.join(", ")}`
+        );
+      }
+      b.set(name, match);
+      return;
+    }
+    b.set(name, voice);
+    return;
+  }
+  if (!field.required) return;
+  const fallback =
+    typeof field.default === "string" && field.default !== ""
+      ? field.default
+      : choices[0];
+  if (fallback) b.set(name, fallback);
+}
+
+/**
  * Helper bound to one endpoint that adds keys only when the manifest declares
  * them, and attaches asset URLs to whatever field name/shape the endpoint
  * actually expects. Falls back to permissive behavior when the endpoint isn't
@@ -383,6 +423,18 @@ class FalArgsBuilder {
   /** True only when the manifest describes this endpoint and lists `apiName`. */
   declares(apiName: string): boolean {
     return this.known && this.accepted.has(apiName);
+  }
+
+  /** Required fields the endpoint declares that the args do not set. */
+  missingRequired(): string[] {
+    return this.fields
+      .filter((f) => f.required && !((f.apiParamName ?? f.name) in this.args))
+      .map((f) => f.apiParamName ?? f.name);
+  }
+
+  /** The manifest field for `apiName`, when the endpoint declares it. */
+  fieldFor(apiName: string): FalManifestField | undefined {
+    return this.accepted.get(apiName);
   }
 
   /** propType for a manifest field by API name, lowercased. */
@@ -1157,9 +1209,18 @@ export class FalProvider extends BaseProvider {
         .set("gen_text", params.text)
         .set("input", params.text);
     }
-    b.set("voice", params.voice).set("speaker", params.voice);
+    for (const name of ["voice", "speaker"]) {
+      setVoiceField(b, modelId, name, params.voice);
+    }
     if (params.speed != null) b.set("speed", params.speed);
     b.set("language", params.language).set("instructions", params.instructions);
+    const missing = b.missingRequired();
+    if (missing.length > 0) {
+      throw new Error(
+        `${modelId} also needs ${missing.join(", ")}, which text-to-speech cannot supply. ` +
+          "Pick a speech model that needs only text."
+      );
+    }
     return b.args;
   }
 

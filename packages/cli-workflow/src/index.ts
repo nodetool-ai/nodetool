@@ -18,7 +18,7 @@ import {
   Secret,
   getSecret
 } from "@nodetool-ai/models";
-import { initMasterKey } from "@nodetool-ai/security";
+import { initMasterKey, isKeychainBackendMissing } from "@nodetool-ai/security";
 import { getDefaultDbPath, getDefaultAssetsPath } from "@nodetool-ai/config";
 import { ExecutionSession, type RawGraphInput } from "@nodetool-ai/execution";
 import {
@@ -126,6 +126,8 @@ export async function createProgram(): Promise<CommanderCommand> {
     try {
       await initMasterKey();
     } catch (err) {
+      // A missing keychain module matters only when a stored secret is read.
+      if (err instanceof Error && isKeychainBackendMissing(err)) return;
       const msg = err instanceof Error ? err.message : String(err);
       process.stderr.write(
         `Could not unlock the secret store: ${msg}\n` +

@@ -2174,23 +2174,23 @@ environment; when it is missing the error names the variable to set.
 nodetool generate fake --list-models
 nodetool generate fake fake-image "test fixture" -o fixture.png
 
-nodetool generate fal-ai --list-models
+nodetool generate fal_ai --list-models
 
 # Text to image
-nodetool generate fal-ai flux-schnell "a red fox in snow" -o fox.png
+nodetool generate fal_ai flux-schnell "a red fox in snow" -o fox.png
 
 # Four square variants into a directory
-nodetool generate fal-ai flux-schnell "a logo" --aspect-ratio 1:1 -n 4 -o ./out/
+nodetool generate fal_ai flux-schnell "a logo" --aspect-ratio 1:1 -n 4 -o ./out/
 
 # Image to image
-nodetool generate fal-ai flux-dev "restyle this" --image in.png --strength 0.6
+nodetool generate fal_ai flux-dev "restyle this" --image in.png --strength 0.6
 
 # Speech
 nodetool generate openai gpt-4o-mini-tts "Welcome to NodeTool" --kind speech --voice alloy -o hello.mp3
 
 # Video, after picking a model from the priced list
-nodetool generate fal-ai --kind video --list-models
-nodetool generate fal-ai <video-model-id> "waves at dusk" --kind video --duration 5 -o waves.mp4
+nodetool generate fal_ai --kind video --list-models
+nodetool generate fal_ai <video-model-id> "waves at dusk" --kind video --duration 5 -o waves.mp4
 ```
 
 ## MCP Integration

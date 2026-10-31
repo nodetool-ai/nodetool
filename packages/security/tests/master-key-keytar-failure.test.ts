@@ -26,6 +26,7 @@ import {
   initMasterKey,
   getMasterKey,
   KeychainAccessError,
+  isKeychainBackendMissing,
   clearMasterKeyCache,
   resetKeytarLoader
 } from "../src/master-key.js";
@@ -56,6 +57,8 @@ describe("loadKeytar — dynamic import failure path", () => {
     expect((error as Error).message).toContain(
       "Allow NodeTool access to the system keychain when prompted."
     );
+    expect(isKeychainBackendMissing(error as Error)).toBe(true);
+    expect(isKeychainBackendMissing(new KeychainAccessError("denied"))).toBe(false);
   });
 
   it("prints no error while no secret needs the keychain", async () => {

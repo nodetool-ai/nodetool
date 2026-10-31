@@ -1,9 +1,9 @@
 /**
  * `nodetool generate` — generate media from any provider, from the terminal.
  *
- *   nodetool generate fal-ai flux-schnell "a red fox in snow" -o fox.png
+ *   nodetool generate fal_ai flux-schnell "a red fox in snow" -o fox.png
  *   nodetool generate openai gpt-image-1 "a logo" --aspect-ratio 1:1
- *   nodetool generate fal-ai --list-models            # discover model ids
+ *   nodetool generate fal_ai --list-models            # discover model ids
  *
  * Built to be agent-friendly: positional `<provider> <model> <prompt>`, lenient
  * model/provider name matching, `--json` machine output, and a `--list-models`
@@ -172,10 +172,10 @@ export function registerGenerateCommand(program: Command): void {
       "after",
       `
 Examples:
-  nodetool generate fal-ai flux-schnell "a red fox in snow" -o fox.png
+  nodetool generate fal_ai flux-schnell "a red fox in snow" -o fox.png
   nodetool generate openai gpt-4o-mini-tts "Welcome to NodeTool" --kind speech --voice alloy -o hello.mp3
-  nodetool generate fal-ai <video-model-id> "waves at dusk" --kind video --duration 5 -o waves.mp4
-  nodetool generate fal-ai --kind video --list-models   models with catalog prices, cheapest first
+  nodetool generate fal_ai <video-model-id> "waves at dusk" --kind video --duration 5 -o waves.mp4
+  nodetool generate fal_ai --kind video --list-models   models with catalog prices, cheapest first
 
 Speech and video run the generate_speech and generate_video tools of the cli-chat feature
 (nodetool packs add cli-chat --yes), the same tools as \`nodetool tools call\`.
@@ -268,7 +268,10 @@ async function run(
     .catch(() => []);
   const kindModels: ListedModel[] =
     kind === "image"
-      ? models
+      ? // `generate` makes an image from a prompt, so list text-to-image models.
+        models.filter(
+          (m) => !m.supportedTasks?.length || m.supportedTasks.includes("text_to_image")
+        )
       : await (kind === "speech"
           ? provider.getAvailableTTSModels()
           : provider.getAvailableVideoModels()
@@ -279,11 +282,7 @@ async function run(
     if (opts.json) {
       console.log(JSON.stringify({ provider: providerId, kind, models: priced }, null, 2));
     } else if (priced.length === 0) {
-      console.log(
-        kind === "image"
-          ? emptyModelListMessage(providerId, manifestLoadFailures())
-          : `No ${kind} models listed for ${providerId}.`
-      );
+      console.log(emptyModelListMessage(providerId, manifestLoadFailures(), kind));
     } else {
       console.log(
         `\n${kind[0].toUpperCase()}${kind.slice(1)} models for ${providerId} (${priced.length}), cheapest first; "—" means no catalog price:\n`
@@ -490,17 +489,28 @@ async function writeImages(
  */
 export function emptyModelListMessage(
   providerId: string,
-  failures: readonly { packageName: string; exportPath: string; error: string }[]
+  failures: readonly { packageName: string; exportPath: string; error: string }[],
+  kind = "image"
 ): string {
   if (failures.length === 0) {
-    return `No image models listed for ${providerId}.`;
+    return `No ${kind} models listed for ${providerId}.`;
   }
-  const lines = [`Could not list image models for ${providerId}: its model manifest did not load.`];
+  // Catalog pack ids are the npm name without the scope and "-nodes".
+  const packIds = [
+    ...new Set(
+      failures.map((f) => f.packageName.replace(/^@nodetool-ai\//, "").replace(/-nodes$/, ""))
+    )
+  ];
+  const lines = [
+    `The ${providerId} model list is not installed. Install it with:`,
+    ...packIds.map((id) => `  nodetool packs add ${id} --yes`),
+    "",
+    "Details:"
+  ];
   for (const failure of failures) {
-    // Catalog pack ids are the npm name without the scope and "-nodes".
-    const packId = failure.packageName.replace(/^@nodetool-ai\//, "").replace(/-nodes$/, "");
-    lines.push(`  ${failure.packageName}/${failure.exportPath}: ${failure.error}`);
-    lines.push(`  Install it: nodetool packs add ${packId} --yes`);
+    const firstLine = failure.error.split("\n")[0] ?? "";
+    const short = firstLine.length > 160 ? `${firstLine.slice(0, 157)}...` : firstLine;
+    lines.push(`  ${failure.packageName}/${failure.exportPath}: ${short}`);
   }
   return lines.join("\n");
 }

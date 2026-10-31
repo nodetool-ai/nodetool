@@ -5,7 +5,7 @@
  */
 
 import { initDb } from "@nodetool-ai/models";
-import { initMasterKey } from "@nodetool-ai/security";
+import { initMasterKey, isKeychainBackendMissing } from "@nodetool-ai/security";
 import { getDefaultDbPath } from "@nodetool-ai/config";
 
 /** Local single-user id used across the TS stack. */
@@ -26,6 +26,8 @@ export function setupLocalDb(): Promise<void> {
     try {
       await initMasterKey();
     } catch (err) {
+      // A missing keychain module matters only when a stored secret is read.
+      if (err instanceof Error && isKeychainBackendMissing(err)) return;
       const msg = err instanceof Error ? err.message : String(err);
       process.stderr.write(
         `Could not unlock the secret store: ${msg}\n` +

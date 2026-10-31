@@ -147,16 +147,83 @@ export function priceGeneration(
   if (!price || price.declined) return null;
   if (!Number.isFinite(price.unit_price)) return null;
 
+  const unit = (price.billing_unit ?? "").toLowerCase();
+  const billedQuantity =
+    unit.includes("megapixel") && isVideoCapability(spend.capability)
+      ? videoMegapixels(spend.params)
+      : quantity;
+  // A per-megapixel video is billed on every frame. Without the frame size
+  // and length the catalog cannot price it, and one megapixel is far too low.
+  if (billedQuantity === null) return null;
+
   const priced: PricedGeneration = {
-    cost: price.unit_price * quantity,
+    cost: price.unit_price * billedQuantity,
     unit_price: price.unit_price,
-    quantity,
+    quantity: billedQuantity,
     billing_unit: price.billing_unit || (spend.capability ?? "run"),
     currency: price.currency || "USD"
   };
   if (price.breakdown) priced.breakdown = price.breakdown;
   if (price.assumptions?.length) priced.assumptions = price.assumptions;
   return priced;
+}
+
+const VIDEO_FRAME_TIERS = {
+  "480p": [854, 480],
+  "540p": [960, 540],
+  "580p": [1024, 580],
+  "720p": [1280, 720],
+  "1080p": [1920, 1080]
+} satisfies Record<string, readonly [number, number]>;
+const DEFAULT_VIDEO_FPS = 25;
+
+function isVideoCapability(capability: string | null | undefined): boolean {
+  return capability != null && /video/i.test(capability);
+}
+
+function positive(value: unknown): number | undefined {
+  const n = typeof value === "string" ? Number.parseFloat(value) : value;
+  return typeof n === "number" && Number.isFinite(n) && n > 0 ? n : undefined;
+}
+
+function framePixels(params: Record<string, unknown>): number | undefined {
+  const width = positive(params.width);
+  const height = positive(params.height);
+  if (width !== undefined && height !== undefined) return width * height;
+  for (const key of ["resolution", "video_size", "size", "aspect_ratio"]) {
+    const value = params[key];
+    if (typeof value !== "string") continue;
+    const pair = /^(\d+)\s*[x*×]\s*(\d+)$/i.exec(value.trim());
+    if (pair) return Number(pair[1]) * Number(pair[2]);
+    const tierName = value.trim().toLowerCase();
+    if (tierName in VIDEO_FRAME_TIERS) {
+      const [w, h] = VIDEO_FRAME_TIERS[tierName as keyof typeof VIDEO_FRAME_TIERS];
+      return w * h;
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Megapixels across every frame of a clip: width × height × frames / 1e6.
+ * Returns `null` when the job does not state the frame size or the length.
+ */
+export function videoMegapixels(
+  params: Record<string, unknown> | null | undefined
+): number | null {
+  if (!params) return null;
+  const pixels = framePixels(params);
+  if (pixels === undefined) return null;
+  const fps =
+    positive(params.fps) ?? positive(params.frames_per_second) ?? DEFAULT_VIDEO_FPS;
+  const frames =
+    positive(params.num_frames) ??
+    (() => {
+      const seconds = positive(params.duration) ?? positive(params.seconds);
+      return seconds === undefined ? undefined : Math.round(seconds * fps);
+    })();
+  if (frames === undefined) return null;
+  return Math.round((pixels * frames) / 10_000) / 100;
 }
 
 /**

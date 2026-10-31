@@ -11,6 +11,7 @@ describe("nodetool generate --list-models with no models", () => {
     expect(message).toContain("Cannot find package '@nodetool-ai/fal-nodes'");
     expect(message).toContain("nodetool packs add fal --yes");
     expect(message).not.toContain("No image models listed");
+    expect(message.split("\n")[1]).toBe("  nodetool packs add fal --yes");
   });
 
   it("keeps the plain sentence when every manifest loaded", () => {

@@ -43,7 +43,7 @@ and pick the provider with `-p`:
 nodetool packs add cli-chat --yes
 nodetool agent run -p claude_agent_sdk --objective "Summarize README.md"   # default model: sonnet
 nodetool packs add cli-workflow --yes
-nodetool generate fal-ai --kind video --list-models                          # priced, cheapest first
+nodetool generate fal_ai --kind video --list-models                          # priced, cheapest first
 ```
 
 ## Start an authenticated server

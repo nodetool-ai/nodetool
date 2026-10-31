@@ -10,7 +10,7 @@ vi.mock("@nodetool-ai/models", () => ({
   migrateSqliteDb: state.migrate,
   initDb: state.initialize
 }));
-vi.mock("@nodetool-ai/security", () => ({ initMasterKey: state.unlock }));
+vi.mock("@nodetool-ai/security", () => ({ initMasterKey: state.unlock, isKeychainBackendMissing: () => false }));
 vi.mock("@nodetool-ai/config", () => ({ getDefaultDbPath: () => "/fixture/local.sqlite3" }));
 
 beforeEach(() => {

@@ -54,6 +54,17 @@ export class KeychainAccessError extends Error {
   }
 }
 
+const KEYCHAIN_BACKEND_MISSING = "Unable to load system keychain backend";
+
+/**
+ * True when init failed only because the keychain module could not load. A
+ * command that never reads a stored secret can ignore it: getMasterKey names
+ * the failure when a secret is read.
+ */
+export function isKeychainBackendMissing(err: Error): boolean {
+  return err instanceof KeychainAccessError && err.message.includes(KEYCHAIN_BACKEND_MISSING);
+}
+
 function keychainAccessError(message: string): KeychainAccessError {
   return new KeychainAccessError(
     `${message}. Allow NodeTool access to the system keychain when prompted.`
@@ -77,7 +88,7 @@ async function loadKeytar(): Promise<KeytarModule> {
     // names this failure when one does.
     // Stryker disable next-line all: diagnostic log, not behavior
     log.debug("keytar native module failed to load", { error: message });
-    throw keychainAccessError(`Unable to load system keychain backend: ${message}`);
+    throw keychainAccessError(`${KEYCHAIN_BACKEND_MISSING}: ${message}`);
   }
 }
 
