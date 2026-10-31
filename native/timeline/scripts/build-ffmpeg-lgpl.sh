@@ -33,7 +33,9 @@ pkg-config --exists lame openh264 opus vpx || {
     echo "error: export needs LAME, OpenH264, Opus and libvpx development packages" >&2
     exit 1
 }
-codec_cflags=$(pkg-config --cflags lame openh264 opus vpx)
+# LAME's pkg-config flags name include/lame, while FFmpeg includes lame/lame.h.
+# Its parent is not a default compiler include directory on Homebrew.
+codec_cflags="$(pkg-config --cflags lame openh264 opus vpx) -I$(pkg-config --variable=includedir lame)"
 codec_ldflags=$(pkg-config --libs-only-L lame openh264 opus vpx)
 tarball="$root/ffmpeg-$version.tar.xz"
 if [[ ! -f "$tarball" ]]; then
