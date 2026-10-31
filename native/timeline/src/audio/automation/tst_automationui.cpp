@@ -303,16 +303,18 @@ ChannelStrip { x:130; width:120; height:360; timeline:parent.timeline; master:tr
     }
     void mountedSlots() {
         QFETCH(bool, popupWindow);
-        QVERIFY(open(R"(Item { width:800; height:900; required property TimelineModel timeline
+        QVERIFY(open(R"(Item { width:800; height:640; required property TimelineModel timeline
  required property PlaybackClock clock
  MixerToolbar { timeline:parent.timeline }
  PanelSlot { slot:"bottom"; y:100; width:parent.width }
- TracksRegion { y:460; width:800; height:400; timeline:parent.timeline; clock:parent.clock }
+ TracksRegion { y:100; width:800; height:400; visible: !AutomationUIState.mixerOpen; timeline:parent.timeline; clock:parent.clock }
  Component.onCompleted: { AutomationUIState.mixerOpen=false; AutomationUIState.shownAutomationTrackIds=[] }
 })",{{"clock",QVariant::fromValue(&clock)}}));
         click("mixer-toggle");
         QTRY_VERIFY(item("mixer-strip-a"));
         QVERIFY(item("mixer-strip-a")->isVisible());
+        click("mixer-toggle");
+        QTRY_VERIFY(!item("mixer-strip-a")->isVisible());
         click("track-automation-a");
         QTRY_VERIFY(item("automation-lane-lane"));
         QCOMPARE(item("automation-lane-lane")->height(),56.);
@@ -344,7 +346,9 @@ ChannelStrip { x:130; width:120; height:360; timeline:parent.timeline; master:tr
         QVERIFY(QRegularExpression("^[0-9a-f]{32}$").match(lane["id"].toString()).hasMatch());
         QCOMPARE(lane["target"].toObject()["param"].toString(),"volumeDb");
         auto* picker=item("automation-picker-a"); QVERIFY(picker);
-        QTest::mouseClick(window.get(),Qt::LeftButton,Qt::NoModifier,point(picker,picker->width()-8,picker->height()/2));
+        const auto reopenPoint = point(picker,picker->width()-8,picker->height()/2);
+        QVERIFY(QRect(QPoint(), window->size()).contains(reopenPoint));
+        QTest::mouseClick(window.get(),Qt::LeftButton,Qt::NoModifier,reopenPoint);
         QTRY_VERIFY(item("automation-option-mixer:pan"));
     }
     void effectCurveCancellationRestoresWithoutUndo_data() {
