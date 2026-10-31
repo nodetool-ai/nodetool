@@ -18949,6 +18949,12 @@
     "sketchTitle": "Sketch",
     "audio": "Audio"
   },
+  "preset_chip": {
+    "label": "Presets",
+    "title": "Choose presets",
+    "dialogTitle": "Presets",
+    "fallbackWarning": "No tuned wording for this model: {{names}}. The default wording is used instead."
+  },
   "preset_picker": {
     "searchPlaceholder": "Search presets",
     "searchLabel": "Search presets",

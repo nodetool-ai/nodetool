@@ -18949,6 +18949,12 @@
     "sketchTitle": "Sketch",
     "audio": "Ton"
   },
+  "preset_chip": {
+    "label": "Presets",
+    "title": "Presets auswählen",
+    "dialogTitle": "Presets",
+    "fallbackWarning": "Keine angepasste Formulierung für dieses Modell: {{names}}. Stattdessen gilt die Standardformulierung."
+  },
   "preset_picker": {
     "searchPlaceholder": "Presets durchsuchen",
     "searchLabel": "Presets durchsuchen",

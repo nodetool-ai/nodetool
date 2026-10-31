@@ -40,6 +40,7 @@ import type {
   AudioFormat,
   ExtendDirection,
   MediaMode,
+  PresetMediaMode,
   VideoModelSelection
 } from "../../../stores/MediaGenerationStore";
 import type { MusicModel, VideoModel } from "../../../stores/ApiTypes";
@@ -47,6 +48,7 @@ import useModelPreferencesStore from "../../../stores/ModelPreferencesStore";
 import ModelChip, { type ModelPickerHandle } from "./ModelChip";
 import OptionChip from "./OptionChip";
 import { type MediaOption } from "./MediaOptionMenu";
+import { MediaPresetChip } from "./MediaSettingChips";
 import {
   buildImageEditOptions,
   buildImageModelOptions,
@@ -98,6 +100,32 @@ interface ModeChipsProps {
 
 interface ClusterProps {
   openModelPickerRef: React.Ref<ModelPickerHandle>;
+}
+
+const NO_PRESETS: string[] = [];
+
+/** The preset chip of a video mode, bound to that mode's own selection. */
+function ModePresetChip({
+  mode,
+  model
+}: {
+  mode: PresetMediaMode;
+  model: VideoModelSelection | null;
+}) {
+  const value = useMediaGenerationStore((s) => s.presetIds[mode]) ?? NO_PRESETS;
+  const setPresetIds = useMediaGenerationStore((s) => s.setPresetIds);
+  const handleChange = useCallback(
+    (ids: string[]) => setPresetIds(mode, ids),
+    [mode, setPresetIds]
+  );
+  return (
+    <MediaPresetChip
+      mode={mode}
+      model={model}
+      value={value}
+      onChange={handleChange}
+    />
+  );
 }
 
 function MusicModeChips({ openModelPickerRef }: ClusterProps) {
@@ -315,6 +343,7 @@ function VideoModeChips({ openModelPickerRef }: ClusterProps) {
           }
         }}
       />
+      <ModePresetChip mode="video" model={params.model} />
       <OptionChip
         menu="option"
         icon={<AccessTimeIcon fontSize="small" />}
@@ -387,6 +416,7 @@ function ImageToVideoModeChips({ openModelPickerRef }: ClusterProps) {
           }
         }}
       />
+      <ModePresetChip mode="image_to_video" model={params.model} />
       <OptionChip
         menu="option"
         icon={<AccessTimeIcon fontSize="small" />}
@@ -455,6 +485,7 @@ function ReferenceToVideoModeChips({ openModelPickerRef }: ClusterProps) {
           }
         }}
       />
+      <ModePresetChip mode="reference_to_video" model={params.model} />
       <OptionChip
         menu="option"
         icon={<AccessTimeIcon fontSize="small" />}

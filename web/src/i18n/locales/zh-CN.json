@@ -18949,6 +18949,12 @@
     "sketchTitle": "Sketch",
     "audio": "音频"
   },
+  "preset_chip": {
+    "label": "预设",
+    "title": "选择预设",
+    "dialogTitle": "预设",
+    "fallbackWarning": "此模型没有适配的措辞：{{names}}。将改用默认措辞。"
+  },
   "preset_picker": {
     "searchPlaceholder": "搜索预设",
     "searchLabel": "搜索预设",
