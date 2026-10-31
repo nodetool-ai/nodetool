@@ -3,12 +3,20 @@
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
 #include "preview/layers/TestStill.h"
+#include "preview/FfmpegSource.h"
+#include "preview/FrameCache.h"
+#include "preview/RetireQueue.h"
+#include <QScopeGuard>
+extern "C" {
+#include <libavutil/frame.h>
+}
 #include <QDir>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
 #include <QTemporaryDir>
 #include <QtTest>
+#include <cstring>
 
 namespace {
 nt::Timeline fixture(bool carrier) {
@@ -44,6 +52,68 @@ nt::Timeline fixture(bool carrier) {
 class TestMatteCarrier : public QObject {
     Q_OBJECT
 private slots:
+    void queuedVideoUploadOwnsPixels_data() {
+        QTest::addColumn<bool>("withRetireQueue");
+        QTest::newRow("owned-upload") << false;
+        QTest::newRow("retained-frame") << true;
+    }
+    void queuedVideoUploadOwnsPixels() {
+        QFETCH(bool, withRetireQueue);
+        QQuickRenderControl control;
+        QQuickWindow window(&control);
+        nt::hw::prepareWindow(&window);
+        window.resize(640, 360);
+        QVERIFY(control.initialize());
+        auto* rhi = control.rhi();
+        auto document = fixture(false);
+        QVERIFY(!document.clips.empty());
+        nt::FfmpegSource source(document.clips[0].mediaPath, 0.0, {640, 360}, nt::DecodeMode::Software);
+        std::shared_ptr<nt::DecodedFrame> decoded;
+        QTRY_VERIFY_WITH_TIMEOUT((decoded = source.decoder().frameAt(0.0)) && source.decoder().exact(), 15000);
+        QVERIFY(!decoded->hardware);
+        const int bytesPerPixel = decoded->layout == nt::PlaneLayout::Rgba ? 4 : 1;
+        const auto* frame = decoded->frame;
+        const QByteArray original(reinterpret_cast<const char*>(frame->data[0]), frame->linesize[0] * frame->height);
+        QByteArray expected;
+        for (int y = 0; y < frame->height; ++y) {
+            expected.append(original.constData() + y * frame->linesize[0], frame->width * bytesPerPixel);
+        }
+        QVERIFY(expected != QByteArray(expected.size(), '\0'));
+        QRhiCommandBuffer* cb = nullptr;
+        QCOMPARE(rhi->beginOffscreenFrame(&cb), QRhi::FrameOpSuccess);
+        auto* updates = rhi->nextResourceUpdateBatch();
+        nt::RetireQueue retire;
+        const auto uploaded = source.frameAt({rhi, updates, 1, withRetireQueue ? &retire : nullptr}, 0.0);
+        QVERIFY(uploaded.planes[0]);
+        std::weak_ptr<nt::DecodedFrame> lifetime = decoded;
+        if (withRetireQueue) {
+            decoded.reset();
+            source.takeDecoder().reset();
+            nt::FrameCache::shared().eraseSource(document.clips[0].mediaPath);
+            QVERIFY2(!lifetime.expired(), "Queued upload lost its decoded frame before submission");
+        } else {
+            // Without a retire queue, the upload must own bytes before storage is recycled.
+            std::memset(frame->data[0], 0, original.size());
+        }
+        const auto restore = qScopeGuard([&] {
+            if (decoded) { std::memcpy(frame->data[0], original.constData(), original.size()); }
+        });
+        cb->resourceUpdate(updates);
+        QRhiReadbackResult result;
+        bool complete = false;
+        result.completed = [&] { complete = true; };
+        auto* readback = rhi->nextResourceUpdateBatch();
+        readback->readBackTexture(QRhiReadbackDescription(uploaded.planes[0]), &result);
+        cb->resourceUpdate(readback);
+        QCOMPARE(rhi->endOffscreenFrame(), QRhi::FrameOpSuccess);
+        QVERIFY(complete);
+        QCOMPARE(result.data, expected);
+        if (withRetireQueue) {
+            retire.collect(3, 2);
+            QVERIFY(lifetime.expired());
+        }
+    }
+
     void previewAndPngExport() {
         auto a = fixture(true), b = fixture(false);
         QVERIFY(!a.clips.empty()); QVERIFY(!b.clips.empty());
