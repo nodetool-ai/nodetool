@@ -9,6 +9,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+QTPATHS = 'qtpaths.exe' if os.name == 'nt' else 'qtpaths'
+
 TOOLS = Path(__file__).resolve().parents[1] / 'tools'
 
 
@@ -101,7 +103,7 @@ class DependencyTests(unittest.TestCase):
             reply.mkdir(parents=True)
             qt = root / 'qt'
             (qt / 'bin').mkdir(parents=True)
-            (qt / 'bin/qtpaths').touch()
+            (qt / 'bin' / QTPATHS).touch()
             metadata = qt / 'share/qt/metatypes/qt6qml_metatypes.json'
             metadata.parent.mkdir(parents=True)
             metadata.write_text('{}')
@@ -124,7 +126,7 @@ class DependencyTests(unittest.TestCase):
             reply.mkdir(parents=True)
             qt = root / 'qt'
             (qt / 'bin').mkdir(parents=True)
-            (qt / 'bin/qtpaths').touch()
+            (qt / 'bin' / QTPATHS).touch()
             metadata = qt / 'lib/metatypes/qt6qml_metatypes.json'
             metadata.parent.mkdir(parents=True)
             metadata.write_text('{}')
@@ -135,7 +137,7 @@ class DependencyTests(unittest.TestCase):
             target.write_text(json.dumps({'sources': [{'path': str(metadata)}]}))
             with patch.object(isolation.subprocess, 'check_output', return_value=str(qt)) as query:
                 isolation.validate_configured_inputs(stage, build, qt)
-                self.assertEqual(query.call_args.args[0], [str(qt / 'bin/qtpaths'), '--query', 'QT_INSTALL_ARCHDATA'])
+                self.assertEqual(query.call_args.args[0], [str(qt / 'bin' / QTPATHS), '--query', 'QT_INSTALL_ARCHDATA'])
             unrelated = root / 'unrelated/metatypes/qt6qml_metatypes.json'
             unrelated.parent.mkdir(parents=True)
             unrelated.write_text('{}')
@@ -154,7 +156,7 @@ class DependencyTests(unittest.TestCase):
             reply.mkdir(parents=True)
             qt = root / 'qt'
             (qt / 'bin').mkdir(parents=True)
-            (qt / 'bin/qtpaths').touch()
+            (qt / 'bin' / QTPATHS).touch()
             archdata = root / 'sdk-share'
             metadata = archdata / 'metatypes/qt6qml_metatypes.json'
             metadata.parent.mkdir(parents=True)
