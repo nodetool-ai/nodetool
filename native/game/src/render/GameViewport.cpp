@@ -677,6 +677,7 @@ class GameViewportRenderer final : public QQuickRhiItemRenderer {
 GameViewport::GameViewport(QQuickItem *parent) : QQuickRhiItem(parent) {
   initializeGameShaders();
   setAcceptedMouseButtons(Qt::LeftButton | Qt::RightButton);
+  setAcceptHoverEvents(true);
   setFlag(ItemIsFocusScope);
   setFocus(true);
 }
@@ -707,6 +708,24 @@ void GameViewport::releaseLook() {
     capturedWindow_.clear();
     unsetCursor();
   }
+}
+void GameViewport::captureLook() {
+  if (capturedWindow_ || !window() || !cameraLookInput()) {
+    return;
+  }
+  window()->setMouseGrabEnabled(true);
+  capturedWindow_ = window();
+  capturedWindow_->installEventFilter(this);
+  setCursor(Qt::BlankCursor);
+  const auto center = mapToScene(QPointF(width() / 2, height() / 2));
+  QCursor::setPos(capturedWindow_->mapToGlobal(center.toPoint()));
+}
+void GameViewport::hoverMoveEvent(QHoverEvent *event) {
+  if (!lookReleasedByUser_ && window() && window()->isActive()) {
+    forceActiveFocus();
+    captureLook();
+  }
+  event->ignore();
 }
 bool GameViewport::eventFilter(QObject *watched, QEvent *event) {
   if (capturedWindow_ && watched == capturedWindow_) {
@@ -765,13 +784,12 @@ void GameViewport::mousePressEvent(QMouseEvent *event) {
     previousPointer_ = event->position();
     if (event->button() == Qt::RightButton) {
       lookDragging_ = true;
-    } else if (event->button() == Qt::LeftButton && window() &&
-               window()->setMouseGrabEnabled(true)) {
-      capturedWindow_ = window();
-      capturedWindow_->installEventFilter(this);
-      setCursor(Qt::BlankCursor);
-      const auto center = mapToScene(QPointF(width() / 2, height() / 2));
-      QCursor::setPos(capturedWindow_->mapToGlobal(center.toPoint()));
+    } else if (event->button() == Qt::LeftButton) {
+      if (capturedWindow_) {
+        input_({{"mouse", "MouseLeft"}, {"pressed", true}});
+      }
+      lookReleasedByUser_ = false;
+      captureLook();
     }
     event->accept();
     return;
@@ -791,11 +809,14 @@ void GameViewport::mouseMoveEvent(QMouseEvent *event) {
 void GameViewport::mouseReleaseEvent(QMouseEvent *event) {
   if (event->button() == Qt::RightButton) {
     lookDragging_ = false;
+  } else if (event->button() == Qt::LeftButton && input_) {
+    input_({{"mouse", "MouseLeft"}, {"pressed", false}});
   }
   event->accept();
 }
 void GameViewport::keyPressEvent(QKeyEvent *event) {
   if (event->key() == Qt::Key_Escape && (capturedWindow_ || lookDragging_)) {
+    lookReleasedByUser_ = true;
     releaseLook();
     event->accept();
     return;

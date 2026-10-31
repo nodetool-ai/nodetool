@@ -991,9 +991,9 @@
                 "shape": {
                   "kind": "box",
                   "size": {
-                    "x": 2.5,
+                    "x": 1.875,
                     "y": 0.06,
-                    "z": 1.6
+                    "z": 1.2
                   }
                 },
                 "space": "world",
@@ -1077,9 +1077,9 @@
                 "shape": {
                   "kind": "box",
                   "size": {
-                    "x": 0.85,
+                    "x": 0.638,
                     "y": 0.08,
-                    "z": 1.6
+                    "z": 1.2
                   }
                 },
                 "space": "world",
@@ -1559,7 +1559,7 @@
           "behaviors": [
             {
               "kind": "script",
-              "source": "x=>{const a=.016666666666666666,t=x.state||{};{const s=world.get(\"kart-0\"),o=s&&s.props.lift||0;if(o===t.lift)return{state:t,commands:[]};t.lift=o;const h=-Math.asin(Math.min(o/12,1))/2;return{state:t,commands:[{kind:\"setVisual\",rotation:[Math.sin(h),0,0,Math.cos(h)]}]}}const c=world.get(\"racer-0\");if(!c)return{state:t,commands:[]};const d=(s,o,h)=>Math.max(o,Math.min(h,s)),F=s=>Math.atan2(Math.sin(s),Math.cos(s)),w=(s,o)=>[s[3]*o[0]+s[0]*o[3]+s[1]*o[2]-s[2]*o[1],s[3]*o[1]-s[0]*o[2]+s[1]*o[3]+s[2]*o[0],s[3]*o[2]+s[0]*o[1]-s[1]*o[0]+s[2]*o[3],s[3]*o[3]-s[0]*o[0]-s[1]*o[1]-s[2]*o[2]],l=(s,o,h,T)=>{t[s+\"V\"]+=(h*(o-t[s])-T*t[s+\"V\"])*a,t[s]+=t[s+\"V\"]*a},n=c.rotation,r=Math.atan2(2*(n[3]*n[1]+n[0]*n[2]),1-2*(n[1]*n[1]+n[2]*n[2])),V=c.position.x,g=c.position.z,m=c.props;if(t.x===void 0||Math.hypot(V-t.x,g-t.z)>2.5)Object.assign(t,{fwd:0,acc:0,w:0,roll:0,rollV:0,pitch:0,pitchV:0,off:0,offV:0,sq:0,sqV:0,hop:0,hopV:0,drifting:!1,sign:1,jolt:m.jolt||0,lift:0});else{const s=(-Math.sin(r)*(V-t.x)-Math.cos(r)*(g-t.z))/a;t.acc+=((s-t.fwd)/a-t.acc)*.12,t.w+=(F(r-t.yaw)/a-t.w)*.25,t.fwd=s}t.x=V,t.z=g,t.yaw=r;const M=!!m.drifting,u=d(t.fwd/30,0,1),q=x.tick;M&&Math.abs(t.w)>.15&&(t.sign=Math.sign(t.w)),M&&!t.drifting&&(t.hopV=2.8),t.drifting=M,(t.hop>0||t.hopV>0)&&(t.hopV-=16*a,t.hop+=t.hopV*a,t.hop<=0&&(t.hop=0,t.hopV=0,t.sqV+=2.2));const j=m.jolt||0;j!==t.jolt&&(t.jolt=j,t.sqV+=3);const I=.16*Math.tanh(t.w*t.fwd*.0045/.16),z=M?t.sign:0;l(\"roll\",-I-.03*z+.004*u*Math.sin(q*.51),140,19),l(\"pitch\",d(t.acc*.0035,-.09,.06)+.005*u*Math.sin(q*.37),140,19),l(\"off\",.17*z,60,14),l(\"sq\",0,500,12),t.sq=d(t.sq,-.15,.2);const p=Math.round((.9*(Math.abs(Math.sin(t.roll))+1.4*Math.abs(Math.sin(t.pitch)))+t.hop)*1e3)/1e3,y=Math.asin(Math.min(p/12,1)),L=1-t.sq+.01*u*Math.sin(q*.42),k=1+t.sq*.5,i=w(w(w([Math.sin(y/2),0,0,Math.cos(y/2)],[0,Math.sin(t.off/2),0,Math.cos(t.off/2)]),[Math.sin(t.pitch/2),0,0,Math.cos(t.pitch/2)]),[0,0,Math.sin(t.roll/2),Math.cos(t.roll/2)]),e=Math.hypot(i[0],i[1],i[2],i[3]),R=[{kind:\"setVisual\",rotation:[i[0]/e,i[1]/e,i[2]/e,i[3]/e],scale:{x:k,y:L,z:k}}];return p!==t.lift&&(t.lift=p,R.push({kind:\"setProp\",key:\"lift\",value:p})),{state:t,commands:R}}",
+              "source": "x=>{const a=.016666666666666666,t=x.state||{};{const s=world.get(\"kart-0\"),o=s&&s.props.lift||0;if(o===t.lift)return{state:t,commands:[]};t.lift=o;const h=-Math.asin(Math.min(o/12,1))/2;return{state:t,commands:[{kind:\"setVisual\",rotation:[Math.sin(h),0,0,Math.cos(h)]}]}}const c=world.get(\"racer-0\");if(!c)return{state:t,commands:[]};const d=(s,o,h)=>Math.max(o,Math.min(h,s)),E=s=>Math.atan2(Math.sin(s),Math.cos(s)),w=(s,o)=>[s[3]*o[0]+s[0]*o[3]+s[1]*o[2]-s[2]*o[1],s[3]*o[1]-s[0]*o[2]+s[1]*o[3]+s[2]*o[0],s[3]*o[2]+s[0]*o[1]-s[1]*o[0]+s[2]*o[3],s[3]*o[3]-s[0]*o[0]-s[1]*o[1]-s[2]*o[2]],l=(s,o,h,k)=>{t[s+\"V\"]+=(h*(o-t[s])-k*t[s+\"V\"])*a,t[s]+=t[s+\"V\"]*a},n=c.rotation,r=Math.atan2(2*(n[3]*n[1]+n[0]*n[2]),1-2*(n[1]*n[1]+n[2]*n[2])),V=c.position.x,g=c.position.z,m=c.props;if(t.x===void 0||Math.hypot(V-t.x,g-t.z)>2.5)Object.assign(t,{fwd:0,acc:0,w:0,roll:0,rollV:0,pitch:0,pitchV:0,off:0,offV:0,sq:0,sqV:0,hop:0,hopV:0,drifting:!1,sign:1,jolt:m.jolt||0,lift:0});else{const s=(-Math.sin(r)*(V-t.x)-Math.cos(r)*(g-t.z))/a;t.acc+=((s-t.fwd)/a-t.acc)*.12,t.w+=(E(r-t.yaw)/a-t.w)*.25,t.fwd=s}t.x=V,t.z=g,t.yaw=r;const M=!!m.drifting,u=d(t.fwd/30,0,1),q=x.tick;M&&Math.abs(t.w)>.15&&(t.sign=Math.sign(t.w)),M&&!t.drifting&&(t.hopV=2.8),t.drifting=M,(t.hop>0||t.hopV>0)&&(t.hopV-=16*a,t.hop+=t.hopV*a,t.hop<=0&&(t.hop=0,t.hopV=0,t.sqV+=2.2));const j=m.jolt||0;j!==t.jolt&&(t.jolt=j,t.sqV+=3);const S=.16*Math.tanh(t.w*t.fwd*.0045/.16),z=M?t.sign:0;l(\"roll\",-S-.03*z+.004*u*Math.sin(q*.51),140,19),l(\"pitch\",d(t.acc*.0035,-.09,.06)+.005*u*Math.sin(q*.37),140,19),l(\"off\",.17*z,60,14),l(\"sq\",0,500,12),t.sq=d(t.sq,-.15,.2);const p=Math.round((.9*(Math.abs(Math.sin(t.roll))+1.4*Math.abs(Math.sin(t.pitch)))+t.hop)*.75*1e3)/1e3,L=Math.asin(Math.min(p/12,1)),y=1-t.sq+.01*u*Math.sin(q*.42),A=1+t.sq*.5,i=w(w(w([Math.sin(L/2),0,0,Math.cos(L/2)],[0,Math.sin(t.off/2),0,Math.cos(t.off/2)]),[Math.sin(t.pitch/2),0,0,Math.cos(t.pitch/2)]),[0,0,Math.sin(t.roll/2),Math.cos(t.roll/2)]),e=Math.hypot(i[0],i[1],i[2],i[3]),C=[{kind:\"setVisual\",rotation:[i[0]/e,i[1]/e,i[2]/e,i[3]/e],scale:{x:A*.75,y:y*.75,z:A*.75}}];return p!==t.lift&&(t.lift=p,C.push({kind:\"setProp\",key:\"lift\",value:p})),{state:t,commands:C}}",
               "maxTickMs": 20,
               "maxCommands": 4
             }
@@ -1573,6 +1573,11 @@
               "x": 0,
               "y": 0,
               "z": 12
+            },
+            "scale": {
+              "x": 0.75,
+              "y": 0.75,
+              "z": 0.75
             }
           },
           "model": {
@@ -1583,7 +1588,7 @@
           "behaviors": [
             {
               "kind": "script",
-              "source": "x=>{const a=.016666666666666666,t=x.state||{},h=world.get(\"racer-0\");if(!h)return{state:t,commands:[]};const d=(s,o,e)=>Math.max(o,Math.min(e,s)),F=s=>Math.atan2(Math.sin(s),Math.cos(s)),w=(s,o)=>[s[3]*o[0]+s[0]*o[3]+s[1]*o[2]-s[2]*o[1],s[3]*o[1]-s[0]*o[2]+s[1]*o[3]+s[2]*o[0],s[3]*o[2]+s[0]*o[1]-s[1]*o[0]+s[2]*o[3],s[3]*o[3]-s[0]*o[0]-s[1]*o[1]-s[2]*o[2]],c=(s,o,e,T)=>{t[s+\"V\"]+=(e*(o-t[s])-T*t[s+\"V\"])*a,t[s]+=t[s+\"V\"]*a},i=h.rotation,l=Math.atan2(2*(i[3]*i[1]+i[0]*i[2]),1-2*(i[1]*i[1]+i[2]*i[2])),V=h.position.x,g=h.position.z,m=h.props;if(t.x===void 0||Math.hypot(V-t.x,g-t.z)>2.5)Object.assign(t,{fwd:0,acc:0,w:0,roll:0,rollV:0,pitch:0,pitchV:0,off:0,offV:0,sq:0,sqV:0,hop:0,hopV:0,drifting:!1,sign:1,jolt:m.jolt||0,lift:0});else{const s=(-Math.sin(l)*(V-t.x)-Math.cos(l)*(g-t.z))/a;t.acc+=((s-t.fwd)/a-t.acc)*.12,t.w+=(F(l-t.yaw)/a-t.w)*.25,t.fwd=s}t.x=V,t.z=g,t.yaw=l;const r=!!m.drifting,q=d(t.fwd/30,0,1),u=x.tick;r&&Math.abs(t.w)>.15&&(t.sign=Math.sign(t.w)),r&&!t.drifting&&(t.hopV=2.8),t.drifting=r,(t.hop>0||t.hopV>0)&&(t.hopV-=16*a,t.hop+=t.hopV*a,t.hop<=0&&(t.hop=0,t.hopV=0,t.sqV+=2.2));const j=m.jolt||0;j!==t.jolt&&(t.jolt=j,t.sqV+=3);const I=.16*Math.tanh(t.w*t.fwd*.0045/.16),z=r?t.sign:0;c(\"roll\",-I-.03*z+.004*q*Math.sin(u*.51),140,19),c(\"pitch\",d(t.acc*.0035,-.09,.06)+.005*q*Math.sin(u*.37),140,19),c(\"off\",.17*z,60,14),c(\"sq\",0,500,12),t.sq=d(t.sq,-.15,.2);const M=Math.round((.9*(Math.abs(Math.sin(t.roll))+1.4*Math.abs(Math.sin(t.pitch)))+t.hop)*1e3)/1e3,k=Math.asin(Math.min(M/12,1)),L=1-t.sq+.01*q*Math.sin(u*.42),y=1+t.sq*.5,n=w(w(w([Math.sin(k/2),0,0,Math.cos(k/2)],[0,Math.sin(t.off/2),0,Math.cos(t.off/2)]),[Math.sin(t.pitch/2),0,0,Math.cos(t.pitch/2)]),[0,0,Math.sin(t.roll/2),Math.cos(t.roll/2)]),p=Math.hypot(n[0],n[1],n[2],n[3]),R=[{kind:\"setVisual\",rotation:[n[0]/p,n[1]/p,n[2]/p,n[3]/p],scale:{x:y,y:L,z:y}}];return M!==t.lift&&(t.lift=M,R.push({kind:\"setProp\",key:\"lift\",value:M})),{state:t,commands:R}}",
+              "source": "x=>{const a=.016666666666666666,t=x.state||{},h=world.get(\"racer-0\");if(!h)return{state:t,commands:[]};const d=(s,o,e)=>Math.max(o,Math.min(e,s)),C=s=>Math.atan2(Math.sin(s),Math.cos(s)),w=(s,o)=>[s[3]*o[0]+s[0]*o[3]+s[1]*o[2]-s[2]*o[1],s[3]*o[1]-s[0]*o[2]+s[1]*o[3]+s[2]*o[0],s[3]*o[2]+s[0]*o[1]-s[1]*o[0]+s[2]*o[3],s[3]*o[3]-s[0]*o[0]-s[1]*o[1]-s[2]*o[2]],c=(s,o,e,y)=>{t[s+\"V\"]+=(e*(o-t[s])-y*t[s+\"V\"])*a,t[s]+=t[s+\"V\"]*a},i=h.rotation,l=Math.atan2(2*(i[3]*i[1]+i[0]*i[2]),1-2*(i[1]*i[1]+i[2]*i[2])),V=h.position.x,g=h.position.z,m=h.props;if(t.x===void 0||Math.hypot(V-t.x,g-t.z)>2.5)Object.assign(t,{fwd:0,acc:0,w:0,roll:0,rollV:0,pitch:0,pitchV:0,off:0,offV:0,sq:0,sqV:0,hop:0,hopV:0,drifting:!1,sign:1,jolt:m.jolt||0,lift:0});else{const s=(-Math.sin(l)*(V-t.x)-Math.cos(l)*(g-t.z))/a;t.acc+=((s-t.fwd)/a-t.acc)*.12,t.w+=(C(l-t.yaw)/a-t.w)*.25,t.fwd=s}t.x=V,t.z=g,t.yaw=l;const r=!!m.drifting,q=d(t.fwd/30,0,1),u=x.tick;r&&Math.abs(t.w)>.15&&(t.sign=Math.sign(t.w)),r&&!t.drifting&&(t.hopV=2.8),t.drifting=r,(t.hop>0||t.hopV>0)&&(t.hopV-=16*a,t.hop+=t.hopV*a,t.hop<=0&&(t.hop=0,t.hopV=0,t.sqV+=2.2));const j=m.jolt||0;j!==t.jolt&&(t.jolt=j,t.sqV+=3);const E=.16*Math.tanh(t.w*t.fwd*.0045/.16),z=r?t.sign:0;c(\"roll\",-E-.03*z+.004*q*Math.sin(u*.51),140,19),c(\"pitch\",d(t.acc*.0035,-.09,.06)+.005*q*Math.sin(u*.37),140,19),c(\"off\",.17*z,60,14),c(\"sq\",0,500,12),t.sq=d(t.sq,-.15,.2);const M=Math.round((.9*(Math.abs(Math.sin(t.roll))+1.4*Math.abs(Math.sin(t.pitch)))+t.hop)*.75*1e3)/1e3,L=Math.asin(Math.min(M/12,1)),S=1-t.sq+.01*q*Math.sin(u*.42),k=1+t.sq*.5,n=w(w(w([Math.sin(L/2),0,0,Math.cos(L/2)],[0,Math.sin(t.off/2),0,Math.cos(t.off/2)]),[Math.sin(t.pitch/2),0,0,Math.cos(t.pitch/2)]),[0,0,Math.sin(t.roll/2),Math.cos(t.roll/2)]),p=Math.hypot(n[0],n[1],n[2],n[3]),A=[{kind:\"setVisual\",rotation:[n[0]/p,n[1]/p,n[2]/p,n[3]/p],scale:{x:k*.75,y:S*.75,z:k*.75}}];return M!==t.lift&&(t.lift=M,A.push({kind:\"setProp\",key:\"lift\",value:M})),{state:t,commands:A}}",
               "maxTickMs": 20,
               "maxCommands": 4
             }
@@ -1592,7 +1597,13 @@
         {
           "id": "kart-1",
           "parentId": "racer-1",
-          "transform3d": {},
+          "transform3d": {
+            "scale": {
+              "x": 0.75,
+              "y": 0.75,
+              "z": 0.75
+            }
+          },
           "model": {
             "assetId": "kart-1",
             "castShadow": true,
@@ -1602,7 +1613,13 @@
         {
           "id": "kart-2",
           "parentId": "racer-2",
-          "transform3d": {},
+          "transform3d": {
+            "scale": {
+              "x": 0.75,
+              "y": 0.75,
+              "z": 0.75
+            }
+          },
           "model": {
             "assetId": "kart-2",
             "castShadow": true,
@@ -1612,7 +1629,13 @@
         {
           "id": "kart-3",
           "parentId": "racer-3",
-          "transform3d": {},
+          "transform3d": {
+            "scale": {
+              "x": 0.75,
+              "y": 0.75,
+              "z": 0.75
+            }
+          },
           "model": {
             "assetId": "kart-3",
             "castShadow": true,
@@ -1622,7 +1645,13 @@
         {
           "id": "kart-4",
           "parentId": "racer-4",
-          "transform3d": {},
+          "transform3d": {
+            "scale": {
+              "x": 0.75,
+              "y": 0.75,
+              "z": 0.75
+            }
+          },
           "model": {
             "assetId": "kart-4",
             "castShadow": true,
@@ -1632,7 +1661,13 @@
         {
           "id": "kart-5",
           "parentId": "racer-5",
-          "transform3d": {},
+          "transform3d": {
+            "scale": {
+              "x": 0.75,
+              "y": 0.75,
+              "z": 0.75
+            }
+          },
           "model": {
             "assetId": "kart-5",
             "castShadow": true,

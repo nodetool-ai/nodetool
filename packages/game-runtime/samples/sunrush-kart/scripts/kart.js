@@ -1,5 +1,5 @@
 (input) => {
-  const LIFT = __LIFT__, R = 12, dt = 1 / 60;
+  const LIFT = __LIFT__, SCALE = __SCALE__, R = 12, dt = 1 / 60;
   const s = input.state || {};
   // Only the player's kart runs this. Rivals lean through their racer pose in racer.js.
   // The lever entity sits R behind the racer and carries the kart R ahead of itself. Turning it about X lifts the kart,
@@ -48,12 +48,12 @@
   step("off", 0.17 * sign, 60, 14);
   step("sq", 0, 500, 12);
   s.sq = clamp(s.sq, -0.15, 0.2);
-  const lift = Math.round((0.9 * (Math.abs(Math.sin(s.roll)) + 1.4 * Math.abs(Math.sin(s.pitch))) + s.hop) * 1000) / 1000;
+  const lift = Math.round((0.9 * (Math.abs(Math.sin(s.roll)) + 1.4 * Math.abs(Math.sin(s.pitch))) + s.hop) * SCALE * 1000) / 1000;
   const c = Math.asin(Math.min(lift / R, 1)), sy = 1 - s.sq + 0.01 * speed * Math.sin(t * 0.42), sxz = 1 + s.sq * 0.5;
   const o = mul(mul(mul([Math.sin(c / 2), 0, 0, Math.cos(c / 2)], [0, Math.sin(s.off / 2), 0, Math.cos(s.off / 2)]),
     [Math.sin(s.pitch / 2), 0, 0, Math.cos(s.pitch / 2)]), [0, 0, Math.sin(s.roll / 2), Math.cos(s.roll / 2)]);
   const n = Math.hypot(o[0], o[1], o[2], o[3]);
-  const commands = [{ kind: "setVisual", rotation: [o[0] / n, o[1] / n, o[2] / n, o[3] / n], scale: { x: sxz, y: sy, z: sxz } }];
+  const commands = [{ kind: "setVisual", rotation: [o[0] / n, o[1] / n, o[2] / n, o[3] / n], scale: { x: sxz * SCALE, y: sy * SCALE, z: sxz * SCALE } }];
   if (lift !== s.lift) { s.lift = lift; commands.push({ kind: "setProp", key: "lift", value: lift }); }
   return { state: s, commands };
 }

@@ -147,7 +147,7 @@ export function createBlacksiteDocument(source, assets, facilitySlots) {
     prefabs,
     scripts,
     assets,
-    inputActions: [{ id: "jump", bindings: ["Space"] }, { id: "fire", bindings: ["KeyF"] }, { id: "r", bindings: ["KeyR"] }],
+    inputActions: [{ id: "jump", bindings: ["Space"] }, { id: "fire", bindings: ["KeyF", "MouseLeft"] }, { id: "r", bindings: ["KeyR"] }],
     presentation: structuredClone(source.presentation),
     ui: structuredClone(source.ui),
     hud: []

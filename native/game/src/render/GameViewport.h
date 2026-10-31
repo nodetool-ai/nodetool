@@ -71,6 +71,7 @@ protected:
   void mouseMoveEvent(QMouseEvent *event) override;
   void mouseReleaseEvent(QMouseEvent *event) override;
   bool eventFilter(QObject *watched, QEvent *event) override;
+  void hoverMoveEvent(QHoverEvent *event) override;
   void keyPressEvent(QKeyEvent *event) override;
   void keyReleaseEvent(QKeyEvent *event) override;
 
@@ -88,6 +89,8 @@ private:
   QPointF previousPointer_;
   QPointer<QQuickWindow> capturedWindow_;
   bool cameraLookInput() const;
+  bool lookReleasedByUser_ = false;
+  void captureLook();
   void releaseLook();
 };
 QImage paintHud(const Json &document, const Json &frame, QSize size);

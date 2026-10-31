@@ -487,6 +487,20 @@ int main(int argc, char **argv) {
           }
         }
         player::setPhysicalActions(input, actions, pressed);
+      } else if (value.contains("mouse")) {
+        std::vector<std::string> actions;
+        for (const auto &binding :
+             document.value("inputActions", Json::array())) {
+          for (const auto &physical :
+               binding.value("bindings", Json::array())) {
+            if (physical == value.at("mouse")) {
+              actions.push_back(binding.at("id").get<std::string>());
+              break;
+            }
+          }
+        }
+        player::setPhysicalActions(input, actions,
+                                   value.value("pressed", false));
       } else if (value.contains("look")) {
         player::addLook(input, value.at("look"));
       } else if (value.contains("actions")) {
