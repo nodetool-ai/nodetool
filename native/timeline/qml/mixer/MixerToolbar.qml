@@ -19,6 +19,12 @@ Row {
         display: showLabel ? Controls.AbstractButton.TextBesideIcon : Controls.AbstractButton.IconOnly
         iconName: "graphicEq"
         active: AutomationUIState.mixerOpen
-        onClicked: AutomationUIState.mixerOpen=!AutomationUIState.mixerOpen
+        onClicked: {
+            // In the docked editor the mixer is a tab, so the button brings that tab forward.
+            let at = root.parent
+            while (at && at.dockStore === undefined) at = at.parent
+            if (at && at.dockStore) at.dockStore.dispatch({type: "reveal", panelId: "mixer"})
+            else AutomationUIState.mixerOpen = !AutomationUIState.mixerOpen
+        }
     }
 }

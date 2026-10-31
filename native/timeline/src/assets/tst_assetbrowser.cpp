@@ -13,6 +13,7 @@
 #include "playback/PlaybackClock.h"
 #include "server/ServerSource.h"
 #include "../../tests/TestHttpServer.h"
+#include "../../tests/TrickleHttpServer.h"
 #include <QEventLoop>
 #include <QFileInfo>
 #include <QJsonDocument>
@@ -43,6 +44,17 @@ QQuickItem* itemNamed(QQuickItem* root, const QString& name) {
 class TestAssetBrowser : public QObject {
     Q_OBJECT
 private slots:
+    void destructionCancelsTricklingQuery() {
+        TrickleHttpServer http;
+        auto browser = std::make_unique<AssetBrowser>();
+        browser->m_target = nt::server::SaveTarget{http.base(), {}, {}, {}, {}};
+        browser->refresh();
+        QTRY_VERIFY(http.requests() > 0 && http.chunks() >= 2);
+        QElapsedTimer elapsed;
+        elapsed.start();
+        browser.reset();
+        QVERIFY2(elapsed.elapsed() < 1000, "Browser destruction waited for the trickling response");
+    }
     void resolvesExistingMatteAfterEdit_data() {
         QTest::addColumn<QString>("reference");
         QTest::addColumn<bool>("resolves");
@@ -239,6 +251,8 @@ private slots:
             QCOMPARE(file.write(QByteArray(700000, 'b')), 700000);
             QVERIFY(file.setFileTime(QDateTime::fromSecsSinceEpoch(paths.size() + 1),
                                      QFileDevice::FileModificationTime));
+            QVERIFY(file.setFileTime(QDateTime::fromSecsSinceEpoch(paths.size() + 1),
+                                     QFileDevice::FileAccessTime));
             paths.append(path);
         }
         QLockFile held(dir.filePath("locked/.lock"));
@@ -251,6 +265,51 @@ private slots:
         for (const auto& path : paths) {
             if (path != paths[2]) { QVERIFY2(QFileInfo::exists(path), qPrintable(path)); }
         }
+    }
+    void mediaLeasesReleaseWithOwner() {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QStringList paths;
+        for (const auto& name : {"document.png", "export.png", "new.png"}) {
+            const QString path = dir.filePath(name);
+            QFile file(path);
+            QVERIFY(file.open(QIODevice::WriteOnly));
+            QCOMPARE(file.write(QByteArray(700000, 'b')), 700000);
+            paths.append(path);
+        }
+        nt::assets::MediaProtection document;
+        document.reset({paths[0]});
+        auto exportLeases = nt::assets::MediaProtection::leasePaths({paths[1]});
+        document.evict(dir.path(), 700000, paths[2]);
+        QVERIFY(QFileInfo::exists(paths[0]));
+        QVERIFY(QFileInfo::exists(paths[1]));
+        document.reset({});
+        exportLeases.clear();
+        document.evict(dir.path(), 700000, paths[2]);
+        QVERIFY(!QFileInfo::exists(paths[0]));
+        QVERIFY(!QFileInfo::exists(paths[1]));
+        QVERIFY(QFileInfo::exists(paths[2]));
+    }
+    void proxyVideoRetainsOriginalPicturePath() {
+        TestHttpServer http;
+        QVERIFY(http.base().port() > 0);
+        http.setFile("/proxy.mp4", ServedFile{QByteArray(400000, 'p')});
+        http.setFile("/original.mp4", ServedFile{QByteArray(700000, 'o')});
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        nt::server::ServerClient client(http.base());
+        nt::assets::MediaProtection protection;
+        const QJsonObject asset{{"id", "video"}, {"get_url", "/original.mp4"},
+            {"size", 700000}, {"content_type", "video/mp4"},
+            {"proxy_status", "ready"}, {"proxy_url", "/proxy.mp4?v=proxy1"}};
+        const auto media = nt::assets::resolveDroppedMedia(client, dir.path(), asset,
+            {{"id", "clip"}, {"mediaType", "video"}}, protection, protection.generation());
+        const QString preview = QString::fromStdString(media.mediaPath);
+        const QString original = QString::fromStdString(media.originalMediaPath);
+        QVERIFY(QFileInfo::exists(preview));
+        QVERIFY(QFileInfo::exists(original));
+        QVERIFY(preview != original);
+        QCOMPARE(media.audioPath, media.originalMediaPath);
     }
     void linkedAudioTrackedDeletion_data() {
         QTest::addColumn<QString>("outcome");
@@ -577,6 +636,11 @@ private slots:
             const auto path = QString::fromStdString(result.media->mediaType == nt::MediaType::Audio
                 ? result.media->audioPath : result.media->mediaPath);
             QVERIFY2(QFileInfo::exists(path), qPrintable(path));
+            if (result.media->mediaType == nt::MediaType::Video) {
+                QCOMPARE(result.media->originalMediaPath, result.media->audioPath);
+            } else if (result.media->mediaType == nt::MediaType::Image) {
+                QCOMPARE(result.media->originalMediaPath, result.media->mediaPath);
+            }
             paths.append(path);
             if (request.done) { request.done(result); }
         }
@@ -1261,6 +1325,21 @@ Item {
         QVERIFY(preview);
         QVERIFY(QMetaObject::invokeMethod(preview, "closePreview"));
         QVERIFY(!review->ready());
+        auto* gallery = panel->findChild<QObject*>("assetGallery");
+        QVERIFY(gallery);
+        QVERIFY(QMetaObject::invokeMethod(gallery, "openAsset", Q_ARG(QVariant, asset)));
+        QTRY_VERIFY(gallery->property("opened").toBool());
+        QCOMPARE(gallery->property("index").toInt(), 0);
+        const int galleryCount = gallery->property("items").toList().size();
+        QVERIFY(galleryCount > 0);
+        QVERIFY(QMetaObject::invokeMethod(gallery, "step", Q_ARG(QVariant, 1)));
+        QCOMPARE(gallery->property("index").toInt(), qMin(1, galleryCount - 1));
+        QVERIFY(QMetaObject::invokeMethod(gallery, "wheelStep", Q_ARG(QVariant, 60)));
+        QCOMPARE(gallery->property("index").toInt(), qMin(1, galleryCount - 1));
+        QVERIFY(QMetaObject::invokeMethod(gallery, "wheelStep", Q_ARG(QVariant, 60)));
+        QCOMPARE(gallery->property("index").toInt(), 0);
+        QVERIFY(QMetaObject::invokeMethod(gallery, "close"));
+        QTRY_COMPARE(gallery->property("index").toInt(), -1);
         QCOMPARE(cut.documentJson(), before);
         QCOMPARE(cut.documentGeneration(), generation);
         QCOMPARE(cut.undoStack()->count(), 0);

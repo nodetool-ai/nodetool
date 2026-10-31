@@ -100,11 +100,5 @@ Rectangle {
                 Ui.EditorButton { text: qsTr("Cancel planning"); variant: Ui.EditorButton.Flat; onClicked: panel.toolEngine.approvePlanning(false) }
             }
         }
-        Ui.EditorButton {
-            visible: !!panel.toolEngine
-            Layout.margins: Ui.Metrics.lg
-            text: qsTr("Recover prepared batch")
-            onClicked: panel.toolEngine.recoverPlanning()
-        }
     }
 }

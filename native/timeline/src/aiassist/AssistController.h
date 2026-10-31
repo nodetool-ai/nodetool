@@ -20,6 +20,8 @@ class AssistController : public QObject {
     Q_PROPERTY(QString error READ error NOTIFY changed)
     Q_PROPERTY(QVariant result READ result NOTIFY changed)
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
+    // True after a call found no server. Panels show this as a state, not as an error.
+    Q_PROPERTY(bool offline READ offline NOTIFY changed)
     Q_PROPERTY(bool documentOnly MEMBER m_documentOnly)
 public:
     using MediaResolver = std::function<nt::Clip(const QJsonObject&)>;
@@ -53,6 +55,7 @@ public:
     QString error() const { return m_error; }
     QVariant result() const { return m_result; }
     bool busy() const { return m_busy; }
+    bool offline() const { return m_offline; }
     Q_INVOKABLE bool correctWord(const QString& clipId, int index, const QString& text);
     Q_INVOKABLE bool deleteWords(double startMs, double endMs);
     Q_INVOKABLE bool removeFillers();
@@ -72,6 +75,10 @@ public:
     Q_INVOKABLE bool linkScript(const QString& id, bool linked);
     Q_INVOKABLE bool saveScript(const QJsonObject& script);
     Q_INVOKABLE bool saveStoryboard(const QJsonObject& storyboard);
+    // Merges fields into one line or speaker of the open script and saves it.
+    Q_INVOKABLE bool scriptOnTimeline() const;
+    Q_INVOKABLE bool updateScriptLine(const QString& lineId, const QJsonObject& fields);
+    Q_INVOKABLE bool updateScriptSpeaker(const QString& speakerId, const QJsonObject& fields);
 signals:
     void changed();
     void scriptDraftsChanged();
@@ -84,6 +91,7 @@ private:
     MediaResolver m_mediaResolver;
     std::shared_ptr<nt::assets::MediaProtection> m_mediaProtection = std::make_shared<nt::assets::MediaProtection>();
     bool m_busy = false;
+    bool m_offline = false;
     bool m_documentOnly = false;
     std::shared_ptr<std::atomic_bool> m_cancelled;
     QString m_error;
@@ -93,4 +101,5 @@ private:
     QHash<QString, QHash<QString, LineDraft>> m_scriptDrafts;
     quint64 m_scriptDraftRevision = 0;
     QString m_pendingCommitId;
+    QString m_timelineId;
 };

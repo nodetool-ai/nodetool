@@ -6,6 +6,7 @@
 #include "server/ServerClient.h"
 #include "server/ServerTimeline.h"
 #include "TestHttpServer.h"
+#include "TrickleHttpServer.h"
 
 #include <QCoreApplication>
 #include <QChildEvent>
@@ -170,6 +171,89 @@ class TestServerClient : public QObject {
     Q_OBJECT
 
 private slots:
+    void inactivityTimeoutIsTypedAfterAnyHeaders_data() {
+        QTest::addColumn<bool>("headers");
+        QTest::addColumn<QString>("operation");
+        for (const auto* operation : {"query", "mutation", "asset", "upload"}) {
+            for (bool headers : {false, true}) {
+                const auto name = QByteArray(operation) + (headers ? "-headers" : "-silent");
+                QTest::newRow(name.constData()) << headers << QString::fromLatin1(operation);
+            }
+        }
+    }
+    void inactivityTimeoutIsTypedAfterAnyHeaders() {
+        QFETCH(bool, headers);
+        QFETCH(QString, operation);
+        TrickleHttpServer http(3000, {}, false, headers);
+        ServerClient client(http.base(), {}, 50);
+        client.setDeadlineMs(1000); // Force Qt's inactivity timeout to win.
+        QTemporaryDir dir;
+        QFile file(dir.filePath("upload.bin"));
+        QVERIFY(file.open(QIODevice::WriteOnly));
+        file.write("fixture");
+        file.close();
+        const auto result = operation == "query" ? client.query("assets.search", {})
+            : operation == "mutation" ? client.mutate("assets.update", {})
+            : operation == "asset" ? client.createAsset({{"name", "fixture"}})
+            : client.upload({}, file.fileName(), "application/octet-stream");
+        QCOMPARE(result.error.code, QString("TIMEOUT"));
+    }
+    void queryHasAbsoluteDeadlineWhileBytesKeepArriving_data() {
+        QTest::addColumn<bool>("explicitDeadline");
+        QTest::newRow("explicit") << true;
+        QTest::newRow("default") << false;
+    }
+    void queryHasAbsoluteDeadlineWhileBytesKeepArriving() {
+        QFETCH(bool, explicitDeadline);
+        TrickleHttpServer http;
+        ServerClient client(http.base(), {}, explicitDeadline ? 1000 : 120);
+        if (explicitDeadline) { client.setDeadlineMs(120); }
+        QElapsedTimer elapsed;
+        elapsed.start();
+        const auto result = client.query("assets.search", {});
+        QCOMPARE(result.error.code, QString("TIMEOUT"));
+        QVERIFY(elapsed.elapsed() < 1000);
+        QVERIFY(http.chunks() > 0);
+    }
+    void queryRespondsToThreadInterruption_data() {
+        QTest::addColumn<bool>("write");
+        QTest::addColumn<bool>("proveInstance");
+        QTest::newRow("query") << false << false;
+        QTest::newRow("mutation") << true << false;
+        QTest::newRow("proven-mutation") << true << true;
+    }
+    void queryRespondsToThreadInterruption() {
+        QFETCH(bool, write);
+        QFETCH(bool, proveInstance);
+        TrickleHttpServer http(3000, "fixture-instance");
+        QueryResult result;
+        auto worker = std::unique_ptr<QThread>(QThread::create([&] {
+            ServerClient client(http.base(), {}, 1000);
+            if (proveInstance) { client.setExpectedInstance("fixture-instance"); }
+            result = write ? client.mutate("assets.update", {}) : client.query("assets.search", {});
+        }));
+        worker->start();
+        QTRY_VERIFY(http.requests() > 0 && http.chunks() >= 2);
+        worker->requestInterruption();
+        const bool bounded = worker->wait(1000);
+        if (!bounded) { worker->wait(5000); }
+        QVERIFY(bounded);
+        QCOMPARE(result.error.code, QString("CANCELLED"));
+    }
+    void batchDeadlinePreservesCompletedResponses() {
+        TestHttpServer fast;
+        fast.setJson([](const QByteArray&, const QUrl&) { return QByteArray("{\"result\":{\"data\":7}}"); });
+        TrickleHttpServer slow;
+        ServerClient client(fast.base(), {}, 1000);
+        client.setDeadlineMs(200);
+        const auto results = client.sendAll({{fast.base().resolved(QUrl("/trpc/fast")), false},
+                                            {slow.base().resolved(QUrl("/trpc/slow")), false}});
+        QCOMPARE(results.size(), size_t(2));
+        const auto completed = parseTrpcResponse(results[0]);
+        QVERIFY2(completed.ok(), qPrintable(completed.describe()));
+        QCOMPARE(completed.data.toInt(), 7);
+        QCOMPARE(parseTrpcResponse(results[1]).error.code, QString("TIMEOUT"));
+    }
     void createFolderJson_data() {
         QTest::addColumn<bool>("proveInstance");
         QTest::newRow("authenticated") << false;
@@ -739,6 +823,7 @@ private slots:
             http.setFile(QStringLiteral("/api/storage/1/%1.mp4").arg(id).toLatin1(), ServedFile{original});
         }
         http.setFile(QStringLiteral("/api/storage/1/%1.mp4").arg(kMatte).toLatin1(), ServedFile{original});
+        http.setFile(QStringLiteral("/api/storage/1/%1_proxy.mp4").arg(kMatte).toLatin1(), ServedFile{proxy});
         http.setFile(QStringLiteral("/api/storage/1/%1.wav").arg(kAudio).toLatin1(), ServedFile{original});
         http.setFile(QStringLiteral("/api/storage/1/%1_proxy.mp4").arg(kReady).toLatin1(), ServedFile{proxy});
         ServedFile pkg{QByteArray(500, 'k')};
@@ -789,7 +874,10 @@ private slots:
                     return envelope(assetJson(id, QStringLiteral("video/mp4"), original.size(), QStringLiteral("ready"),
                                               QStringLiteral("/api/storage/1/%1_proxy.mp4?v=p1").arg(id)));
                 }
-                if (id == kMatte) return envelope(assetJson(id, QStringLiteral("video/mp4"), original.size(), {}, {}));
+                if (id == kMatte) {
+                    return envelope(assetJson(id, QStringLiteral("video/mp4"), original.size(), QStringLiteral("ready"),
+                        QStringLiteral("/api/storage/1/%1_proxy.mp4?v=p1").arg(id)));
+                }
                 if (id == kPending) return envelope(assetJson(id, QStringLiteral("video/mp4"), original.size(), QStringLiteral("queued"), {}));
                 if (id == kFailed) return envelope(assetJson(id, QStringLiteral("video/mp4"), original.size(), QStringLiteral("failed"), {}));
                 if (id == kNone) return envelope(assetJson(id, QStringLiteral("video/mp4"), original.size(), QStringLiteral("none"), {}));
@@ -815,6 +903,9 @@ private slots:
         };
         auto variantOf = [](const std::string& path) { return QFileInfo(QFileInfo(QString::fromStdString(path)).absolutePath()).fileName(); };
         QCOMPARE(variantOf(clip("ready").mediaPath), QStringLiteral("proxy"));
+        QCOMPARE(variantOf(clip("ready").originalMediaPath), QStringLiteral("original"));
+        QCOMPARE(clip("ready").originalMediaPath, clip("ready").audioPath);
+        QVERIFY(clip("ready").mediaPath != clip("ready").originalMediaPath);
         QCOMPARE(variantOf(clip("ready").audioPath), QStringLiteral("original"));  // a proxy has no audio
         if (resolves) {
             QVERIFY(QFileInfo::exists(QString::fromStdString(clip("ready").generatedMattePath)));
@@ -827,6 +918,7 @@ private slots:
         QCOMPARE(variantOf(clip("failed").mediaPath), QStringLiteral("original"));
         QCOMPARE(variantOf(clip("none").mediaPath), QStringLiteral("original"));
         QCOMPARE(variantOf(clip("pkg").mediaPath), QStringLiteral("package"));
+        QCOMPARE(clip("pkg").originalMediaPath, clip("pkg").mediaPath);
         QCOMPARE(variantOf(clip("music").audioPath), QStringLiteral("original"));
         QVERIFY(clip("music").mediaPath.empty());
         QCOMPARE(clip("again").mediaPath, clip("ready").mediaPath);
@@ -838,9 +930,20 @@ private slots:
 
         const QJsonObject report = r.report;
         const QJsonArray missing = report.value(u"missingAssets").toArray();
-        QCOMPARE(missing.size(), 1);
-        QCOMPARE(missing[0].toObject().value(u"clipId").toString(), QStringLiteral("missing"));
-        QVERIFY(missing[0].toObject().value(u"reason").toString().contains(QStringLiteral("NOT_FOUND")));
+        QCOMPARE(missing.size(), resolves ? 1 : 2);
+        bool foundMissingClip = false;
+        bool foundInvalidMatte = false;
+        for (const QJsonValue& value : missing) {
+            const QJsonObject item = value.toObject();
+            if (item.value(u"clipId") == QStringLiteral("missing")) {
+                foundMissingClip = item.value(u"reason").toString().contains(QStringLiteral("NOT_FOUND"));
+            }
+            if (item.value(u"kind") == QStringLiteral("generatedMatte")) foundInvalidMatte = true;
+        }
+        QVERIFY(foundMissingClip);
+        if (!resolves) {
+            QVERIFY(foundInvalidMatte);
+        }
         // The fake bytes are not media: every picture file is rejected and named.
         QJsonArray rejected = report.value(u"rejectedMedia").toArray();
         QVERIFY(rejected.size() >= 5);
@@ -852,9 +955,10 @@ private slots:
         QCOMPARE(pendingReasons, QStringList{QStringLiteral("proxy pending (queued)")});
         QCOMPARE(report.value(u"fields").toObject().value(u"fields").toObject().value(u"clip.mediaType=text").toObject().value(u"count").toInt(), 1);
         QVERIFY(QFileInfo::exists(report.value(u"rawDocument").toString()));
-        // Two files for the ready asset, one for each other: the proxy is fetched once for two clips.
+        // A matte-only video asset skips its proxy entirely; final pixels use the original.
         QCOMPARE(report.value(u"summary").toObject().value(u"downloads").toInt(), resolves ? 8 : 7);
         QCOMPARE(http.countRequests("GET", QStringLiteral("/api/storage/1/%1_proxy.mp4").arg(kReady).toLatin1()), 1);
+        QCOMPARE(http.countRequests("GET", QStringLiteral("/api/storage/1/%1_proxy.mp4").arg(kMatte).toLatin1()), 0);
 
         // Warm cache: no byte is downloaded again.
         http.clearRequests();

@@ -123,12 +123,10 @@ Ui.Surface {
                 }
                 Ui.EditorButton {
                     Layout.alignment: Qt.AlignHCenter
-                    visible: !panel.controller.busy
-                    text: panel.allRows.length ? "Clear filters" : "Refresh activity"
-                    onClicked: {
-                        if (panel.allRows.length) { search.clear(); panel.filterState = "All" }
-                        else panel.controller.refresh()
-                    }
+                    // The header already has a refresh button, so only filtered rows need an action here.
+                    visible: !panel.controller.busy && panel.allRows.length > 0
+                    text: "Clear filters"
+                    onClicked: { search.clear(); panel.filterState = "All" }
                 }
             }
         }

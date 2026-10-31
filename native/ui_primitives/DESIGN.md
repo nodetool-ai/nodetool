@@ -13,32 +13,35 @@ Dark when the platform scheme is unknown. The module owns no settings or OS
 subscriptions. Metrics scale with UI scale. Font sizes scale with UI scale and
 text scale. Theme changes update presentation without changing document data.
 
-The native palette uses these solid roles:
+The native palette follows the web palette in
+[`paletteDark.ts`](../../web/src/components/themes/paletteDark.ts) and
+[`paletteLight.ts`](../../web/src/components/themes/paletteLight.ts). Change
+both together. Translucent web values are flattened over the panel surface.
 
-| Role | Dark | Light |
-| --- | --- | --- |
-| Canvas / panel | `#08090a` / `#101113` | `#f7f8f8` / `#ffffff` |
-| Overlay / input | `#202226` / `#191b1f` | `#ffffff` / `#f1f2f3` |
-| Primary / secondary text | `#f7f8f8` / `#b5bac3` | `#17191c` / `#535a64` |
-| Disabled / on-accent text | `#858b95` / `#ffffff` | `#777d85` / `#ffffff` |
-| Subtle / control border | `#454a52` / `#747b85` | `#c6cad0` / `#717883` |
-| Strong / focus / error border | `#aeb5bf` / `#8ab4f8` / `#ff8383` | `#4e5661` / `#285bad` / `#b42323` |
-| Accent / hover | `#3266af` / `#3267ae` | `#285bad` / `#1d498e` |
-| Destructive / hover | `#a91f2a` / `#861923` | `#a91f2a` / `#861923` |
-| Success / warning | `#80dca0` / `#ffd08a` | `#16713d` / `#825100` |
-| Error / info | `#ff8383` / `#8ab4f8` | `#b42323` / `#285bad` |
-| Warning surface / text | `#3d2b10` / `#ffd08a` | `#fff1d6` / `#825100` |
-| Error surface / text | `#441d21` / `#ffb3b3` | `#ffebeb` / `#b42323` |
+| Role | Dark | Light | Web source |
+| --- | --- | --- | --- |
+| Canvas / panel | `#08090a` / `#101113` | `#f5f5f6` / `#ffffff` | `background.default` / `background.paper` |
+| Overlay / input | `#17181b` / `#17181a` | `#f2f2f4` / `#f9f9f9` | `Paper.overlay` / `c_overlay_subtle` |
+| Primary / secondary text | `#f7f8f8` / `#8a8f98` | `#18181b` / `#5b5b66` | `text.primary` / `text.secondary` |
+| Disabled / on-accent text | `#686969` / `#ffffff` | `#a1a1aa` / `#ffffff` | `text.disabled` / `primary.contrastText` |
+| Subtle / control border | `#232426` / `#27292e` | `#e4e4e7` / `#dcdce1` | `divider` / `grey.700`, `Chip.defaultBorder` |
+| Strong / focus / error border | `#8a8f98` / `#3d68a8` / `#ff5555` | `#5b5b66` / `#2f62c4` / `#d92d20` | `text.secondary` / `primary.main` / `error.main` |
+| Accent / hover | `#3d68a8` / `#2a4d80` | `#2f62c4` / `#244e9e` | `primary.main` / `primary.dark` |
+| Destructive / hover | `#c62828` / `#a32020` | `#b42318` / `#912018` | `error.dark` |
+| Success / warning | `#50fa7b` / `#ffb86c` | `#16a34a` / `#dc6803` | `success.main` / `warning.main` |
+| Error / info | `#ff5555` / `#22d3ee` | `#d92d20` / `#0e7490` | `error.main` / `info.main` |
+| Warning surface / text | `#3d2b10` / `#ffd08a` | `#fff1d6` / `#825100` | native |
+| Error surface / text | `#441d21` / `#ffb3b3` | `#ffebeb` / `#b42323` | native |
 
-Action hover, pressed, selected, and disabled use respectively 8%, 16%, 12%,
-and 4% white over dark surfaces, or 6%, 12%, 9%, and 4% black over light
-surfaces. Media and modal scrims use 60% black. `Theme.qml` defines the same
-roles in executable form. Normal primary and secondary text target
-4.5:1 against the canvas, panel, input, and overlay surfaces. Text on primary,
-hover, and destructive fills targets 4.5:1. Focus and control borders target
-3:1 against their adjacent surfaces. The tests measure these solid pairs.
-Disabled text and translucent recipes need review in their actual contexts.
-Media and modal scrims remain dark in both schemes.
+Action hover, pressed, selected, and disabled use respectively 2%, 8%, 5%,
+and 10% white over dark surfaces, or 4%, 10%, 7%, and 8% of `#18181b` over
+light surfaces, as in the web `action` palette. Media and modal scrims use 60%
+black. `Theme.qml` defines the same roles in executable form. Primary and
+secondary text target 4.5:1 against the canvas, panel, input, and overlay
+surfaces. Text on primary, hover, and destructive fills targets 4.5:1. Focus
+borders target 3:1 against the panel. Control borders are quiet, as on the
+web, and controls are identified by their fill and label. The tests measure
+these solid pairs. Media and modal scrims remain dark in both schemes.
 
 Borders are one logical pixel and focus is two. Focus does not change control
 geometry. Persistent chrome is flat. Transient overlays use an overlay surface

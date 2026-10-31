@@ -65,7 +65,6 @@ Rectangle {
         Column {
             id: content
             width: parent.width - scrollBar.width
-            InspectorHeader { width: parent.width; visible: root.selection.length === 0; eyebrow: "Inspector" }
             Column {
                 width: parent.width
                 visible: root.selection.length === 0

@@ -12,6 +12,11 @@ Text {
     font.weight: Typography.weight(role)
     lineHeightMode: Text.ProportionalHeight
     lineHeight: Typography.lineHeight(role)
+    // Qt puts the extra line height under each line. Move half of it above,
+    // so the glyphs sit on the vertical center of the text box.
+    readonly property real halfLeading: (lineHeight - 1) * font.pixelSize * 0.5
+    topPadding: halfLeading
+    bottomPadding: -halfLeading
     color: domainColor !== undefined ? domainColor : tone === 1 ? Theme.textSecondary : tone === 2 ? Theme.textDisabled :
            tone === 3 ? Theme.textOnAccent : tone === 4 ? Theme.statusSuccess :
            tone === 5 ? Theme.statusWarning : tone === 6 ? Theme.statusError :

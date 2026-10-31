@@ -1,5 +1,8 @@
 #include <QFontInfo>
 #include "storyworkspace/StoryWorkspace.h"
+#include "aiassist/ScriptVoicing.h"
+#include "aiassist/CandidatePreview.h"
+#include "aiassist/ShotWorkflow.h"
 #include "model/TimelineJson.h"
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -40,6 +43,9 @@ private slots:
         QFETCH(QString, kind);
         QFETCH(bool, empty);
         qmlRegisterSingletonType(QUrl::fromLocalFile(QStringLiteral(NT_STORY_SOURCE "/qml/TimelineMetrics.qml")), "NodeTool.StoryWorkspaceTest", 1, 0, "TimelineMetrics");
+        qmlRegisterType<ScriptVoicing>("NodeTool.StoryWorkspaceTest", 1, 0, "ScriptVoicing");
+        qmlRegisterType<CandidatePreview>("NodeTool.StoryWorkspaceTest", 1, 0, "CandidatePreview");
+        qmlRegisterType<ShotWorkflow>("NodeTool.StoryWorkspaceTest", 1, 0, "ShotWorkflow");
         TimelineModel model; model.setTimeline(timeline());
         AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
         StoryWorkspace workspace; workspace.setController(&controller);
@@ -116,8 +122,95 @@ private slots:
         QCOMPARE(model.undoStack()->count(), 0);
         item->setParentItem(nullptr);
     }
+    void linkedScriptPanelLinksAndUnlinksThroughDialog() {
+        qmlRegisterSingletonType(QUrl::fromLocalFile(QStringLiteral(NT_STORY_SOURCE "/qml/TimelineMetrics.qml")), "NodeTool.StoryWorkspaceTest", 1, 0, "TimelineMetrics");
+        qmlRegisterType<ScriptVoicing>("NodeTool.StoryWorkspaceTest", 1, 0, "ScriptVoicing");
+        qmlRegisterType<CandidatePreview>("NodeTool.StoryWorkspaceTest", 1, 0, "CandidatePreview");
+        qmlRegisterType<ShotWorkflow>("NodeTool.StoryWorkspaceTest", 1, 0, "ShotWorkflow");
+        TimelineModel model; model.setTimeline(timeline());
+        AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
+        AssistController picker; picker.setModel(&model); picker.setProperty("documentOnly", true);
+        StoryWorkspace workspace; workspace.setController(&controller);
+        const QString chosen = "aaaaaaaaaaaa1111111111111111aaaa", other = "bbbbbbbbbbbb2222222222222222bbbb";
+        QString linkedId;
+        QStringList calls;
+        const auto script = [](const QString& id, const QString& name) {
+            return QJsonObject{{"id", id}, {"name", name}, {"updatedAt", "2000-01-02T00:00:00Z"}, {"document", QJsonObject{
+                {"cast", QJsonArray{QJsonObject{{"id", "narrator"}, {"name", "Narrator"}}}},
+                {"sections", QJsonArray{QJsonObject{{"id", "intro"}, {"title", "Teaser"}, {"lines", QJsonArray{
+                    QJsonObject{{"id", "line-one"}, {"speakerId", "narrator"}, {"text", "The convoy crossed the ridge."}}}}}}}}}};
+        };
+        const auto call = [&](bool, const QString& procedure, const QJsonObject& input) {
+            calls.append(procedure + (input.contains("timelineId") ? (input.value("timelineId").isNull() ? ":null" : ":timeline") : QString()));
+            if (procedure == "scripts.list") {
+                QJsonArray rows{QJsonObject{{"id", chosen}, {"name", "Opening narration"}, {"updatedAt", "2000-01-02T00:00:00Z"}},
+                    QJsonObject{{"id", other}, {"name", "Closing credits"}, {"updatedAt", "2000-01-01T00:00:00Z"}}};
+                if (input.contains("timelineId")) { rows = {}; }
+                if (input.contains("timelineId") && !linkedId.isEmpty()) { rows.append(QJsonObject{{"id", linkedId}, {"name", "Opening narration"}}); }
+                return nt::server::QueryResult{rows, {}};
+            }
+            if (procedure == "scripts.update") {
+                linkedId = input.value("timelineId").isNull() ? QString() : input.value("id").toString();
+                return nt::server::QueryResult{script(input.value("id").toString(), "Opening narration"), {}};
+            }
+            return nt::server::QueryResult{script(input.value("id").toString(), "Opening narration"), {}};
+        };
+        controller.setCall(call); picker.setCall(call);
+        QQmlEngine engine;
+        QFile source(qEnvironmentVariable("NODETOOL_STORY_EDITOR_TEST", QStringLiteral(NT_STORY_SOURCE "/qml/storyworkspace/StoryWorkspaceEditor.qml")));
+        QVERIFY(source.open(QIODevice::ReadOnly));
+        auto qml = source.readAll(); qml.replace("import NodeTool.Timeline", "import NodeTool.StoryWorkspaceTest");
+        QQmlComponent component(&engine); component.setData(qml, QUrl::fromLocalFile(source.fileName()));
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        std::unique_ptr<QObject> object(component.createWithInitialProperties({{"controller", QVariant::fromValue(&controller)},
+            {"workspace", QVariant::fromValue(&workspace)}, {"picker", QVariant::fromValue(&picker)}, {"fixedKind", "scripts"}}));
+        QVERIFY2(object, qPrintable(component.errorString()));
+        auto* item = qobject_cast<QQuickItem*>(object.get()); QVERIFY(item);
+        QQuickWindow window; window.resize(720, 560); item->setParentItem(window.contentItem()); item->setSize({340, 560}); window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        const auto findItem = [](QQuickItem* root, const QString& name, auto&& recurse) -> QQuickItem* {
+            if (root->objectName() == name && root->isVisible()) { return root; }
+            for (auto* child : root->childItems()) { if (auto* found = recurse(child, name, recurse)) { return found; } }
+            return nullptr;
+        };
+        const auto click = [&](QQuickItem* target) {
+            QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier, target->mapToScene({target->width() / 2, target->height() / 2}).toPoint());
+        };
+        QVERIFY(QMetaObject::invokeMethod(item, "loadLinked"));
+        QTRY_VERIFY(findItem(window.contentItem(), "workspaceLinkEmpty", findItem));
+        QVERIFY(window.grabWindow().save(QDir::tempPath() + "/linked-script-empty.png"));
+        click(findItem(window.contentItem(), "workspaceLinkButton", findItem));
+        QQuickItem* row = nullptr;
+        QTRY_VERIFY((row = findItem(window.contentItem(), "linkDocument_" + chosen, findItem)));
+        QVERIFY(findItem(window.contentItem(), "linkDocument_" + other, findItem));
+        QVERIFY(window.grabWindow().save(QDir::tempPath() + "/linked-script-dialog.png"));
+        auto* confirm = findItem(window.contentItem(), "linkDocumentConfirm", findItem); QVERIFY(confirm);
+        QVERIFY(!confirm->isEnabled());
+        click(row);
+        QTRY_VERIFY(confirm->isEnabled());
+        calls.clear();
+        click(confirm);
+        QTRY_COMPARE(calls, (QStringList{"scripts.update:timeline", "scripts.get"}));
+        QTRY_VERIFY(!controller.busy());
+        QCOMPARE(linkedId, chosen);
+        auto* name = findItem(window.contentItem(), "workspaceLinkedName", findItem);
+        QTRY_VERIFY(name); QCOMPARE(name->property("text").toString(), QString("Opening narration"));
+        QTRY_VERIFY(findItem(window.contentItem(), "workspaceScriptLine_line-one", findItem));
+        QVERIFY(!findItem(window.contentItem(), "workspaceLinkEmpty", findItem));
+        QVERIFY(window.grabWindow().save(QDir::tempPath() + "/linked-script-open.png"));
+        calls.clear();
+        click(findItem(window.contentItem(), "workspaceUnlink", findItem));
+        QTRY_COMPARE(calls, QStringList{"scripts.update:null"});
+        QTRY_VERIFY(findItem(window.contentItem(), "workspaceLinkEmpty", findItem));
+        QVERIFY(linkedId.isEmpty());
+        QCOMPARE(model.undoStack()->count(), 0);
+        item->setParentItem(nullptr);
+    }
     void mountedNarrowEditorKeepsFocusAndSavesThroughF10() {
         qmlRegisterSingletonType(QUrl::fromLocalFile(QStringLiteral(NT_STORY_SOURCE "/qml/TimelineMetrics.qml")), "NodeTool.StoryWorkspaceTest", 1, 0, "TimelineMetrics");
+        qmlRegisterType<ScriptVoicing>("NodeTool.StoryWorkspaceTest", 1, 0, "ScriptVoicing");
+        qmlRegisterType<CandidatePreview>("NodeTool.StoryWorkspaceTest", 1, 0, "CandidatePreview");
+        qmlRegisterType<ShotWorkflow>("NodeTool.StoryWorkspaceTest", 1, 0, "ShotWorkflow");
         TimelineModel model; model.setTimeline(timeline());
         AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
         StoryWorkspace workspace; workspace.setController(&controller);
@@ -150,11 +243,15 @@ private slots:
             for (auto* child : root->childItems()) { if (auto* found = recurse(child, name, recurse)) { return found; } }
             return nullptr;
         };
-        auto* editShot = findItem(item, "workspaceEditShot_shot", findItem);
-        QVERIFY(editShot);
+        auto* card = findItem(item, "shotCard_shot", findItem);
+        QVERIFY(card);
+        qobject_cast<QQuickItem*>(card)->forceActiveFocus();
+        QTest::keyClick(&window, Qt::Key_Space);
+        QObject* editShot = nullptr;
+        QTRY_VERIFY((editShot = findItem(item, "shotInspectorEdit", findItem)));
         qobject_cast<QQuickItem*>(editShot)->forceActiveFocus();
         QTest::keyClick(&window, Qt::Key_Space);
-        QTRY_VERIFY((field = findItem(item, "workspaceShot_action", findItem)));
+        QTRY_VERIFY((field = findItem(item, "shotEdit_action", findItem)));
         QVERIFY(field->property("visible").toBool());
         qobject_cast<QQuickItem*>(field.data())->forceActiveFocus();
         QTest::keyClick(&window, Qt::Key_A, Qt::ControlModifier);
@@ -162,24 +259,159 @@ private slots:
             QTest::keyClick(&window, static_cast<Qt::Key>(letter.toUpper().unicode()),
                 letter.isUpper() ? Qt::ShiftModifier : Qt::NoModifier);
         }
-        QVERIFY(workspace.dirty()); QCOMPARE(action(workspace), QString("mounted edit"));
-        QCoreApplication::processEvents(); QVERIFY(field); // A keystroke must not rebuild the focused delegate.
-        auto* save = findItem(item, "workspaceSave", findItem); QVERIFY(save); QVERIFY(save->property("enabled").toBool());
+        // The shot editor holds a draft. Nothing reaches the board until Save.
+        QVERIFY(!workspace.dirty()); QCOMPARE(writes, 0);
+        QCoreApplication::processEvents(); QVERIFY(field); // A keystroke must not rebuild the focused field.
+        auto* save = findItem(item, "shotEditorSave", findItem); QVERIFY(save); QTRY_VERIFY(save->property("enabled").toBool());
         qobject_cast<QQuickItem*>(save)->forceActiveFocus(); QTest::keyClick(&window, Qt::Key_Space); QTRY_VERIFY(!controller.busy());
-        QCOMPARE(writes, 1); QVERIFY(!workspace.dirty()); QCOMPARE(model.undoStack()->count(), 0);
+        QCOMPARE(writes, 1); QVERIFY(!workspace.dirty()); QCOMPARE(action(workspace), QString("mounted edit")); QCOMPARE(model.undoStack()->count(), 0);
+        QVERIFY(!save->property("enabled").toBool());
+        auto* back = findItem(item, "shotEditorBack", findItem); QVERIFY(back);
+        qobject_cast<QQuickItem*>(back)->forceActiveFocus(); QTest::keyClick(&window, Qt::Key_Space);
+        QTRY_VERIFY(!findItem(item, "shotEditor", findItem));
         auto* scripts = findItem(item, "workspaceDocumentKind", findItem); QVERIFY(scripts);
         qobject_cast<QQuickItem*>(scripts)->forceActiveFocus(); QTest::keyClick(&window, Qt::Key_Space); QTest::keyClick(&window, Qt::Key_Up); QTest::keyClick(&window, Qt::Key_Return); QTRY_VERIFY(!controller.busy());
         QVERIFY(!controller.error().isEmpty());
-        auto* inspect = findItem(item, "workspaceInspectEntity", findItem); QVERIFY(inspect);
+        auto* settingsToggle = findItem(item, "storyboardSettingsToggle", findItem); QVERIFY(settingsToggle);
+        qobject_cast<QQuickItem*>(settingsToggle)->forceActiveFocus(); QTest::keyClick(&window, Qt::Key_Space);
+        QObject* inspect = nullptr; QTRY_VERIFY((inspect = findItem(item, "workspaceInspectEntity", findItem)));
         qobject_cast<QQuickItem*>(inspect)->forceActiveFocus(); QTest::keyClick(&window, Qt::Key_Space); QTRY_VERIFY(!controller.busy());
         QCOMPARE(called, QString("assets.get"));
-        auto* back = findItem(item, "workspaceBackToDocument", findItem); QVERIFY(back);
-        qobject_cast<QQuickItem*>(back)->forceActiveFocus(); QTest::keyClick(&window, Qt::Key_Space); QTRY_VERIFY(!controller.busy());
+        auto* returnBack = findItem(item, "workspaceBackToDocument", findItem); QVERIFY(returnBack);
+        qobject_cast<QQuickItem*>(returnBack)->forceActiveFocus(); QTest::keyClick(&window, Qt::Key_Space); QTRY_VERIFY(!controller.busy());
         QCOMPARE(called, QString("storyboards.get")); // A failed script browse must not change the return document's kind.
         QCOMPARE(action(workspace), QString("mounted edit"));
         QTest::qWait(50);
         const auto image = window.grabWindow(); QVERIFY(!image.isNull());
         QVERIFY(image.save(QDir::tempPath() + "/o5-workspace-narrow.png"));
+        item->setParentItem(nullptr);
+    }
+    void shotEditorKeepsDraftUntilSaveAndAsksBeforeDiscard() {
+        qmlRegisterSingletonType(QUrl::fromLocalFile(QStringLiteral(NT_STORY_SOURCE "/qml/TimelineMetrics.qml")), "NodeTool.StoryWorkspaceTest", 1, 0, "TimelineMetrics");
+        qmlRegisterType<ScriptVoicing>("NodeTool.StoryWorkspaceTest", 1, 0, "ScriptVoicing");
+        qmlRegisterType<CandidatePreview>("NodeTool.StoryWorkspaceTest", 1, 0, "CandidatePreview");
+        qmlRegisterType<ShotWorkflow>("NodeTool.StoryWorkspaceTest", 1, 0, "ShotWorkflow");
+        TimelineModel model; model.setTimeline(timeline());
+        AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
+        StoryWorkspace workspace; workspace.setController(&controller);
+        QJsonObject stored{{"id", "board"}, {"projectId", "project"}, {"updatedAt", "rev1"}, {"document", QJsonObject{{"style", "noir"}, {"entityIds", QJsonArray{}},
+            {"shots", QJsonArray{QJsonObject{{"id", "one"}, {"index", 0}, {"scene_id", "s"}, {"action", "A door opens"}, {"camera", QJsonObject{{"framing", "wide"}}}},
+                QJsonObject{{"id", "two"}, {"index", 1}, {"scene_id", "s"}, {"action", "A hand"}}}}}}};
+        int writes = 0;
+        controller.setCall([&](bool write, const QString&, const QJsonObject& input) {
+            if (write) { ++writes; stored.insert("document", input.value("document")); stored.insert("updatedAt", "rev" + QString::number(writes + 1)); }
+            return nt::server::QueryResult{stored, {}};
+        });
+        QVERIFY(controller.openStoryboard("board")); QTRY_VERIFY(!controller.busy());
+        QQmlEngine engine;
+        QFile source(QStringLiteral(NT_STORY_SOURCE "/qml/storyworkspace/StoryWorkspaceEditor.qml")); QVERIFY(source.open(QIODevice::ReadOnly));
+        auto qml = source.readAll(); qml.replace("import NodeTool.Timeline", "import NodeTool.StoryWorkspaceTest");
+        QQmlComponent component(&engine); component.setData(qml, QUrl::fromLocalFile(source.fileName()));
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        std::unique_ptr<QObject> object(component.createWithInitialProperties({{"controller", QVariant::fromValue(&controller)}, {"workspace", QVariant::fromValue(&workspace)}}));
+        auto* item = qobject_cast<QQuickItem*>(object.get()); QVERIFY(item);
+        QQuickWindow window; window.resize(1280, 800); item->setParentItem(window.contentItem()); item->setSize(window.size()); window.show();
+        QTRY_VERIFY(window.isVisible());
+        const auto findItem = [](QQuickItem* root, const QString& name, auto&& recurse) -> QQuickItem* {
+            if (root->objectName() == name && root->isVisible()) { return root; }
+            for (auto* child : root->childItems()) { if (auto* found = recurse(child, name, recurse)) { return found; } }
+            return nullptr;
+        };
+        const auto press = [&window](QQuickItem* button) { QVERIFY(button); button->forceActiveFocus(); QTest::keyClick(&window, Qt::Key_Space); };
+        item->setProperty("selectedShotId", "one");
+        QQuickItem* editor = nullptr; QTRY_VERIFY((editor = findItem(item, "shotEditor", findItem)));
+        auto* title = findItem(editor, "shotEditTitle", findItem); QVERIFY(title);
+        QCOMPARE(title->property("text").toString(), QString("Scene 1, Shot 1"));
+        auto* field = findItem(editor, "shotEdit_action", findItem); QVERIFY(field);
+        field->forceActiveFocus(); QTest::keyClick(&window, Qt::Key_End);
+        for (const QChar letter : QStringLiteral(" slowly")) { QTest::keyClick(&window, letter == ' ' ? Qt::Key_Space : static_cast<Qt::Key>(letter.toUpper().unicode())); }
+        QVERIFY(editor->property("dirty").toBool()); QCOMPARE(writes, 0); QVERIFY(!workspace.dirty());
+        // The prompt preview reads the draft through the same composer the render uses.
+        auto* renders = item->findChild<QObject*>("shotRenders"); QVERIFY(renders);
+        QString prompt;
+        QVERIFY(QMetaObject::invokeMethod(renders, "prompt", Q_RETURN_ARG(QString, prompt), Q_ARG(QJsonObject, QJsonObject::fromVariantMap(editor->property("promptDocument").toMap())),
+            Q_ARG(QJsonObject, QJsonObject::fromVariantMap(editor->property("previewShot").toMap())), Q_ARG(QString, "image")));
+        QCOMPARE(prompt, QString("A door opens slowly, wide shot, noir"));
+        QTest::qWait(50);
+        QVERIFY(window.grabWindow().save(QDir::tempPath() + "/shot-editor-wide.png"));
+        auto* form = findItem(editor, "shotEditForm", findItem); QVERIFY(form);
+        form->setProperty("advancedOpen", true); form->setProperty("promptsOpen", true);
+        auto* formScroll = findItem(editor, "shotEditorForm", findItem); QVERIFY(formScroll);
+        QTest::qWait(100);
+        QVERIFY(formScroll->property("contentHeight").toReal() > formScroll->height());
+        formScroll->setProperty("contentY", formScroll->property("contentHeight").toReal() - formScroll->height());
+        QTest::qWait(50);
+        QVERIFY(window.grabWindow().save(QDir::tempPath() + "/shot-editor-wide-advanced.png"));
+        editor->forceActiveFocus(); QTest::keyClick(&window, Qt::Key_Escape);
+        QQuickItem* discard = nullptr; QTRY_VERIFY((discard = findItem(window.contentItem(), "shotDiscard", findItem)));
+        press(discard);
+        QTRY_VERIFY(!findItem(item, "shotEditor", findItem));
+        QCOMPARE(writes, 0); QCOMPARE(action(workspace), QString("A door opens"));
+        item->setProperty("selectedShotId", "one");
+        QTRY_VERIFY((editor = findItem(item, "shotEditor", findItem)));
+        press(findItem(editor, "shotEditorNext", findItem));
+        QTRY_COMPARE(findItem(editor, "shotEditTitle", findItem)->property("text").toString(), QString("Scene 1, Shot 2"));
+        QVERIFY(QMetaObject::invokeMethod(editor, "nudge", Q_ARG(QVariant, -1)));
+        QTRY_VERIFY(!controller.busy()); QCOMPARE(writes, 1);
+        QTRY_COMPARE(findItem(editor, "shotEditTitle", findItem)->property("text").toString(), QString("Scene 1, Shot 1"));
+        item->setParentItem(nullptr);
+    }
+    void storyboardBoardEditsShotsAndSavesEachAct() {
+        qmlRegisterSingletonType(QUrl::fromLocalFile(QStringLiteral(NT_STORY_SOURCE "/qml/TimelineMetrics.qml")), "NodeTool.StoryWorkspaceTest", 1, 0, "TimelineMetrics");
+        qmlRegisterType<ScriptVoicing>("NodeTool.StoryWorkspaceTest", 1, 0, "ScriptVoicing");
+        qmlRegisterType<CandidatePreview>("NodeTool.StoryWorkspaceTest", 1, 0, "CandidatePreview");
+        qmlRegisterType<ShotWorkflow>("NodeTool.StoryWorkspaceTest", 1, 0, "ShotWorkflow");
+        TimelineModel model; model.setTimeline(timeline());
+        AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
+        StoryWorkspace workspace; workspace.setController(&controller);
+        QJsonObject stored{{"id", "board"}, {"name", "Night run"}, {"projectId", "project"}, {"updatedAt", "rev1"}, {"document", QJsonObject{{"style", "noir"}, {"entityIds", QJsonArray{}},
+            {"screenplay", QJsonObject{{"scenes", QJsonArray{QJsonObject{{"id", "s1"}, {"slugline", "EXT. STREET - NIGHT"}}, QJsonObject{{"id", "s2"}, {"slugline", "INT. CAR"}}}}}},
+            {"shots", QJsonArray{QJsonObject{{"id", "one"}, {"index", 0}, {"scene_id", "s1"}, {"action", "A door opens"}, {"status", "planned"}},
+                QJsonObject{{"id", "two"}, {"index", 1}, {"scene_id", "s1"}, {"action", "A hand on the rail"}, {"status", "failed"}},
+                QJsonObject{{"id", "three"}, {"index", 2}, {"scene_id", "s2"}, {"action", "Rain on glass"}, {"status", "planned"}}}}}}};
+        int writes = 0;
+        controller.setCall([&](bool write, const QString&, const QJsonObject& input) {
+            if (write) { ++writes; stored.insert("document", input.value("document")); if (input.contains("name")) { stored.insert("name", input.value("name")); } stored.insert("updatedAt", "rev" + QString::number(writes + 1)); }
+            return nt::server::QueryResult{stored, {}};
+        });
+        QVERIFY(controller.openStoryboard("board")); QTRY_VERIFY(!controller.busy());
+        QQmlEngine engine;
+        QFile source(QStringLiteral(NT_STORY_SOURCE "/qml/storyworkspace/StoryWorkspaceEditor.qml")); QVERIFY(source.open(QIODevice::ReadOnly));
+        auto qml = source.readAll(); qml.replace("import NodeTool.Timeline", "import NodeTool.StoryWorkspaceTest");
+        QQmlComponent component(&engine); component.setData(qml, QUrl::fromLocalFile(source.fileName()));
+        QVERIFY2(component.isReady(), qPrintable(component.errorString()));
+        std::unique_ptr<QObject> object(component.createWithInitialProperties({{"controller", QVariant::fromValue(&controller)}, {"workspace", QVariant::fromValue(&workspace)}}));
+        auto* item = qobject_cast<QQuickItem*>(object.get()); QVERIFY(item);
+        QQuickWindow window; window.resize(1280, 900); item->setParentItem(window.contentItem()); item->setSize(window.size()); window.show();
+        QTRY_VERIFY(window.isVisible());
+        const auto findItem = [](QQuickItem* root, const QString& name, auto&& recurse) -> QQuickItem* {
+            if (root->objectName() == name && root->isVisible()) { return root; }
+            for (auto* child : root->childItems()) { if (auto* found = recurse(child, name, recurse)) { return found; } }
+            return nullptr;
+        };
+        const auto press = [&window](QQuickItem* button) { QVERIFY(button); button->forceActiveFocus(); QTest::keyClick(&window, Qt::Key_Space); };
+        const auto ids = [&stored] { QStringList list; for (const auto& shot : stored.value("document").toObject().value("shots").toArray()) { list.append(shot.toObject().value("id").toString()); } return list; };
+        QQuickItem* boardItem = nullptr; QTRY_VERIFY((boardItem = findItem(item, "storyboardBoard", findItem)));
+        QCOMPARE(findItem(boardItem, "storyboardTitle", findItem)->property("text").toString(), QString("Night run"));
+        QVERIFY(findItem(boardItem, "storyboardScene_1", findItem)); QVERIFY(findItem(boardItem, "storyboardScene_2", findItem));
+        QVERIFY(findItem(boardItem, "shotRenderError_two", findItem));
+        QTest::qWait(50);
+        QVERIFY(window.grabWindow().save(QDir::tempPath() + "/storyboard-board.png"));
+        press(findItem(boardItem, "storyboardAddShot", findItem));
+        QTRY_COMPARE(writes, 1); QTRY_VERIFY(!controller.busy()); QCOMPARE(ids().size(), 4); QCOMPARE(ids().last().size(), 32);
+        QVERIFY(QMetaObject::invokeMethod(boardItem, "duplicate", Q_ARG(QVariant, "one")));
+        QTRY_COMPARE(writes, 2); QTRY_VERIFY(!controller.busy()); QCOMPARE(ids().at(0), QString("one")); QCOMPARE(ids().size(), 5);
+        QVERIFY(QMetaObject::invokeMethod(boardItem, "confirmDelete", Q_ARG(QVariant, "two")));
+        QQuickItem* confirm = nullptr; QTRY_VERIFY((confirm = findItem(window.contentItem(), "shotDeleteConfirm", findItem)));
+        press(confirm);
+        QTRY_COMPARE(writes, 3); QTRY_VERIFY(!controller.busy()); QVERIFY(!ids().contains("two"));
+        // Dropping "three" on "one" moves it into the first scene at that place.
+        boardItem->setProperty("dragShotId", "three"); boardItem->setProperty("dropTargetId", "one");
+        QVERIFY(QMetaObject::invokeMethod(boardItem, "dropDragged"));
+        QTRY_COMPARE(writes, 4); QTRY_VERIFY(!controller.busy()); QCOMPARE(ids().first(), QString("three"));
+        boardItem->setProperty("query", "rain");
+        QCOMPARE(boardItem->property("visibleCount").toInt(), 1);
+        boardItem->setProperty("query", "");
         item->setParentItem(nullptr);
     }
     void lineDraftsDoNotMakeAnotherResourceKindWithSameIdDirty() {

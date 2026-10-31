@@ -41,8 +41,18 @@ function(nt_export_tests)
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
     nt_add_timeline_qml(tst_exportdialog OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_exportdialog_qml/NodeTool/Timeline)
     add_test(NAME tst_exportdialog COMMAND tst_exportdialog dialog panelContext controllerCancelBeforeFrames
-        snapshotKeepsRelativeMatte cancelExportDuringAudio cancelBlockedAudio cancelOfflineMix stuckChildTeardownCleansStaging)
+        snapshotKeepsRelativeMatte refusesUnavailableServerOriginal audioOnlyExportAllowsMissingPictureOriginal
+        cancelExportDuringAudio cancelBlockedAudio cancelOfflineMix stuckChildTeardownCleansStaging)
     set_tests_properties(tst_exportdialog PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
+    add_test(NAME export_original_pixels COMMAND tst_exportdialog snapshotRendersOriginalPicture
+        relativeMatteSurvivesOriginalPictureSelection)
+    if(APPLE)
+        set_tests_properties(export_original_pixels PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=cocoa")
+    endif()
+    # RenderControl needs the platform RHI; Linux/Windows inherit the same
+    # headless render backend as the other render-labelled tests.
+    set_tests_properties(export_original_pixels PROPERTIES LABELS render FIXTURES_REQUIRED media RUN_SERIAL TRUE
+        ENVIRONMENT_MODIFICATION "QT_QUICK_BACKEND=unset:")
     add_test(NAME export_controller_cancel COMMAND tst_exportdialog controllerCancel)
     set_tests_properties(export_controller_cancel PROPERTIES LABELS render FIXTURES_REQUIRED media)
 endfunction()

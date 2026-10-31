@@ -43,6 +43,7 @@ struct HttpResponse {
     QString networkError;      // empty on success at the transport level
     QByteArray body;
     QHash<QByteArray, QByteArray> headers;  // lower-case names
+    QString networkErrorCode;  // TIMEOUT/CANCELLED even if headers already arrived
 
     QByteArray header(const QByteArray& lowerName) const { return headers.value(lowerName); }
 };
@@ -106,9 +107,9 @@ public:
     QueryResult upload(const QJsonObject& json, const QString& filePath, const QString& contentType);
     // Empty: no instance check.
     void setExpectedInstance(const QString& instance) { m_expectedInstance = instance.toUtf8(); }
-    // A bound on the private write path, check included, in elapsed time; the
-    // transfer timeout only bounds silence. 0: none. Aborted calls fail with
-    // code TIMEOUT.
+    // An elapsed bound for one read batch or write (including instance proof).
+    // Reads default to timeoutMs; writes retain their inactivity timeout unless
+    // a deadline is supplied. Explicit 0 disables the elapsed bound.
     void setDeadlineMs(int ms) { m_deadlineMs = ms; }
 
     QueryResult getTimeline(const QString& id) { return query(QStringLiteral("timeline.get"), {{QStringLiteral("id"), id}}); }
@@ -123,7 +124,7 @@ private:
     QString m_token;
     int m_timeoutMs;
     QByteArray m_expectedInstance;
-    int m_deadlineMs = 0;
+    int m_deadlineMs = -1;
     std::unique_ptr<QNetworkAccessManager> m_nam;
 };
 

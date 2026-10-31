@@ -5,8 +5,11 @@
 #include "TestHttpServer.h"
 
 #include <QFile>
+#include <QBuffer>
+#include <QImage>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QUrlQuery>
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <QQuickItem>
@@ -42,6 +45,91 @@ bool write(const QString& path, const QJsonObject& raw) {
 class TestRecovery : public QObject {
     Q_OBJECT
 private slots:
+    void restoredCopyResolvesBackupOnlyMediaAndMatte() {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString pictureId(32, u'a');
+        const QString matteId(32, u'b');
+        auto backup = document(200);
+        auto clip = backup.value("clips").toArray().first().toObject();
+        clip.insert("mediaType", "image");
+        clip.insert("status", "generated");
+        clip.insert("currentAssetId", pictureId);
+        clip.insert("generatedMatte", QJsonObject{{"assetId", matteId}, {"status", "ready"}});
+        backup.insert("clips", QJsonArray{clip});
+        QVERIFY(write(dir.filePath("seq.recovery.json"), backup));
+
+        QImage image(8, 8, QImage::Format_RGBA8888);
+        image.fill(Qt::red);
+        QByteArray png;
+        QBuffer buffer(&png);
+        QVERIFY(buffer.open(QIODevice::WriteOnly));
+        QVERIFY(image.save(&buffer, "PNG"));
+        TestHttpServer http;
+        http.setFile("/picture.png", ServedFile{png});
+        http.setFile("/matte.png", ServedFile{png});
+        http.setJson([&](const QByteArray& path, const QUrl& url) {
+            if (path != "/trpc/assets.get") return QByteArray();
+            const auto query = QUrlQuery(url).queryItemValue("input");
+            const auto id = QJsonDocument::fromJson(query.toUtf8()).object().value("id").toString();
+            const QJsonObject asset{{"get_url", id == pictureId ? "/picture.png" : "/matte.png"},
+                {"content_type", "image/png"}, {"size", png.size()}, {"updated_at", "u1"}};
+            return QJsonDocument(QJsonObject{{"result", QJsonObject{{"data", asset}}}}).toJson();
+        });
+
+        TimelineModel model;
+        QVERIFY(load(model, document(0)));
+        AutosaveController save({http.base(), {}, "seq", dir.path(), {}}, model.undoStack(),
+                                [&model] { return model.timeline().raw; }, "u0");
+        save.setExternalSync(false);
+        save.setAutosave(false);
+        save.setQuitFallbackDirs({});
+        QVERIFY(save.restoreEarlierCopy(&model));
+        QVERIFY(save.restoringEarlier());
+        QVERIFY(!save.discardEarlierCopy());
+        QTRY_COMPARE_WITH_TIMEOUT(model.undoStack()->count(), 1, 5000);
+        QVERIFY(!save.restoringEarlier());
+        QCOMPARE(model.timeline().raw.value("clips"), backup.value("clips"));
+        QTRY_VERIFY_WITH_TIMEOUT(!model.timeline().clips.front().mediaPath.empty(), 3000);
+        QTRY_VERIFY_WITH_TIMEOUT(!model.timeline().clips.front().generatedMattePath.empty(), 3000);
+        QVERIFY(QFile::exists(QString::fromStdString(model.timeline().clips.front().mediaPath)));
+        QVERIFY(QFile::exists(QString::fromStdString(model.timeline().clips.front().generatedMattePath)));
+        QVERIFY(model.resolvedMediaPaths().contains(QString::fromStdString(model.timeline().clips.front().mediaPath)));
+        QVERIFY(model.resolvedMediaPaths().contains(QString::fromStdString(model.timeline().clips.front().generatedMattePath)));
+        QCOMPARE(http.countRequests("GET", "/trpc/timeline.get"), 0);
+        model.undoStack()->undo();
+        QCOMPARE(model.timeline().raw.value("clips"), document(0).value("clips"));
+        model.undoStack()->redo();
+        QCOMPARE(model.timeline().raw.value("clips"), backup.value("clips"));
+        QVERIFY(!model.timeline().clips.front().mediaPath.empty());
+        QVERIFY(!model.timeline().clips.front().generatedMattePath.empty());
+    }
+    void restoredDocumentReportsUnavailableMediaSeparately() {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        auto backup = document(200);
+        auto clip = backup.value("clips").toArray().first().toObject();
+        clip.insert("mediaType", "image");
+        clip.insert("status", "generated");
+        clip.insert("currentAssetId", QString(32, u'c'));
+        backup.insert("clips", QJsonArray{clip});
+        QVERIFY(write(dir.filePath("seq.recovery.json"), backup));
+        TestHttpServer http;
+        TimelineModel model;
+        QVERIFY(load(model, document(0)));
+        AutosaveController save({http.base(), {}, "seq", dir.path(), {}}, model.undoStack(),
+                                [&model] { return model.timeline().raw; }, "u0");
+        save.setExternalSync(false);
+        save.setAutosave(false);
+        save.setQuitFallbackDirs({});
+        QVERIFY(save.restoreEarlierCopy(&model));
+        QTRY_COMPARE_WITH_TIMEOUT(model.undoStack()->count(), 1, 5000);
+        QCOMPARE(model.timeline().raw.value("clips"), backup.value("clips"));
+        QVERIFY(save.earlierCopyError().contains("document was restored"));
+        QVERIFY(!QFile::exists(QString::fromStdString(model.timeline().clips.front().mediaPath)));
+        model.undoStack()->undo();
+        QCOMPARE(model.timeline().raw.value("clips"), document(0).value("clips"));
+    }
     void registeredRestoreReplacesOnlyDocumentContent() {
         TimelineModel model;
         const auto original = document(0);

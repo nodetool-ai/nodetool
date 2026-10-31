@@ -1,7 +1,9 @@
 #include "export/ExportEngine.h"
+#include "assets/AssetMedia.h"
 #include "export/OffscreenFrames.h"
 #include "export/ExportCapabilities.h"
 #include "export/PngZip.h"
+#include "preview/effects/Masks.h"
 #include <QBuffer>
 #include <array>
 #include "audio/AudioEngine.h"
@@ -11,6 +13,7 @@
 #include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QSet>
 #include <QTemporaryDir>
 #include <algorithm>
 #include <cmath>
@@ -207,6 +210,13 @@ Result exportTimeline(const Timeline& timeline, const Options& options, std::sto
         result.fps = timeline.fps;
         const bool audioOnly = options.format == u"wav" || options.format == u"mp3";
         const bool png = options.format == u"png_sequence";
+        QSet<QString> mediaPaths;
+        for (const auto& clip : timeline.clips) {
+            for (const auto& path : {clip.mediaPath, clip.originalMediaPath, clip.audioPath, clip.generatedMattePath}) {
+                if (!path.empty()) mediaPaths.insert(QString::fromStdString(path));
+            }
+        }
+        const auto mediaLeases = nt::assets::MediaProtection::leasePaths(mediaPaths);
         result.samples = std::max<qint64>(1, std::llround((audioOnly ? duration / 1000 : result.frames / timeline.fps) * 48000));
         if (png && static_cast<quint64>(result.frames) >= PngZip::MaxEntries) {
             throw std::runtime_error("PNG sequence exceeds classic ZIP limit of 65535 entries including the manifest");
@@ -281,7 +291,22 @@ Result exportTimeline(const Timeline& timeline, const Options& options, std::sto
         };
         if (!audioOnly) {
             TimelineModel model;
-            model.setTimeline(timeline);
+            Timeline pictureTimeline = timeline;
+            for (auto& clip : pictureTimeline.clips) {
+                auto matte = clip.raw.value("generatedMatte").toObject();
+                if (!matte.isEmpty() && !matte.value("mediaPath").toString().isEmpty()) {
+                    const QString resolved = nt::effects::resolvedGeneratedMattePath(clip);
+                    if (!resolved.isEmpty()) {
+                        matte.insert("mediaPath", resolved);
+                        clip.raw.insert("generatedMatte", matte);
+                    }
+                }
+                if ((clip.mediaType == MediaType::Video || clip.mediaType == MediaType::Image) &&
+                    !clip.originalMediaPath.empty()) {
+                    clip.mediaPath = clip.originalMediaPath;
+                }
+            }
+            model.setTimeline(std::move(pictureTimeline));
             OffscreenFrames frames(model);
             std::unique_ptr<SwsContext, ScaleDelete> scale;
             Frame output;

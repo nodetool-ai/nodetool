@@ -145,7 +145,6 @@ Item {
                 required property string messageId
                 required property string role
                 required property string text
-                required property string timestamp
                 required property var parts
                 required property string status
                 width: messages.width
@@ -157,7 +156,6 @@ Item {
                     messageId: parent.messageId
                     role: parent.role
                     text: parent.text
-                    timestamp: parent.timestamp
                     parts: parent.parts
                     status: parent.status
                     session: root.session

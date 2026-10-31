@@ -1,11 +1,13 @@
 #pragma once
 #include "model/TimelineModel.h"
+#include "server/AssetCache.h"
 #include <QObject>
 #include <QPointer>
 #include <QProcess>
 #include <QTemporaryDir>
 #include <QtQmlIntegration/qqmlintegration.h>
 #include <memory>
+#include <vector>
 
 namespace nt::exporting {
 QJsonObject exportSnapshot(const TimelineModel& model);
@@ -52,6 +54,7 @@ private:
     QProcess m_process;
     std::unique_ptr<QTemporaryDir> m_job;
     std::unique_ptr<QTemporaryDir> m_staging;
+    std::vector<nt::server::AssetCache::Lease> m_mediaLeases;
     QString m_activityId;
     QString m_executable;
     QString m_phase;

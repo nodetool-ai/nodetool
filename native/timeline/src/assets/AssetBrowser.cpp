@@ -25,7 +25,20 @@ AssetBrowser::AssetBrowser(QObject* parent) : QObject(parent), m_target(nt::serv
 }
 
 AssetBrowser::~AssetBrowser() {
-    if (m_thread) { m_thread->requestInterruption(); m_thread->wait(); }
+    m_poll.stop();
+    m_requests.clear();
+    if (m_activeQueryCancel) { m_activeQueryCancel->store(true); }
+    if (auto* thread = m_thread.data()) {
+        disconnect(thread, nullptr, this, nullptr);
+        thread->requestInterruption();
+        if (!thread->wait(1000)) {
+            // Work captures its inputs/result by value. A non-network task
+            // may still be finishing; never delete a running child thread.
+            thread->setParent(nullptr);
+            connect(thread, &QThread::finished, thread, &QObject::deleteLater);
+            if (thread->isFinished()) { thread->deleteLater(); }
+        }
+    }
 }
 
 TimelineModel* AssetBrowser::timeline() const { return m_timeline; }
@@ -51,7 +64,7 @@ void AssetBrowser::setTimeline(TimelineModel* model) {
 
 void AssetBrowser::resetDocumentState() {
     ++m_documentEpoch;
-    m_thumbnails.clear();
+    m_thumbnails.clear(); m_originals.clear(); m_details.clear();
     emit thumbnailsChanged();
     m_settlements.clear();
     const auto project = projectId();
@@ -68,22 +81,12 @@ void AssetBrowser::resetDocumentState() {
         if (m_hasQueried) { refresh(); }
     }
     emit libraryScopeChanged();
-    QSet<QString> paths;
-    if (m_timeline) {
-        for (const auto& clip : m_timeline->timeline().clips) {
-            if (!clip.mediaPath.empty()) { paths.insert(QString::fromStdString(clip.mediaPath)); }
-            if (!clip.audioPath.empty()) { paths.insert(QString::fromStdString(clip.audioPath)); }
-        }
-    }
-    m_mediaProtection->reset(std::move(paths));
+    m_mediaProtection->reset(m_timeline ? m_timeline->resolvedMediaPaths() : QSet<QString>{});
 }
 
 void AssetBrowser::protectDocumentMedia() {
     if (!m_timeline) { return; }
-    for (const auto& clip : m_timeline->timeline().clips) {
-        m_mediaProtection->protect(QString::fromStdString(clip.mediaPath));
-        m_mediaProtection->protect(QString::fromStdString(clip.audioPath));
-    }
+    m_mediaProtection->replaceCurrent(m_timeline->resolvedMediaPaths());
 }
 
 void AssetBrowser::reconcileLinkedAudio() {
@@ -128,7 +131,10 @@ void AssetBrowser::request(std::function<Result(nt::server::ServerClient&)> work
     if (!m_target) { return; }
     if (busy()) {
         if (queryCancel) {
-            if (m_activeQueryCancel) { m_activeQueryCancel->store(true); }
+            if (m_activeQueryCancel) {
+                m_activeQueryCancel->store(true);
+                m_thread->requestInterruption();
+            }
             std::erase_if(m_requests, [](const Request& queued) { return queued.queryCancel != nullptr; });
         }
         m_requests.push_back({std::move(work), std::move(done), documentEpoch, std::move(queryCancel)});
@@ -420,6 +426,12 @@ void AssetBrowser::requestThumbnail(const QString& assetId) {
         }
         if (path.isEmpty()) { m_thumbnails.remove(assetId); }
         else { m_thumbnails.insert(assetId, mediaUrl(path).toString()); }
+        const auto original = asset.value("get_url").toString();
+        if (!original.isEmpty()) { m_originals.insert(assetId, mediaUrl(original).toString()); }
+        if (!asset.isEmpty()) {
+            m_details.insert(assetId, QVariantMap{{"name", asset.value("name").toString()},
+                {"kind", asset.value("metadata").toObject().value("nodetool_entity").toObject().value("kind").toString()}});
+        }
         emit thumbnailsChanged();
     }, m_documentEpoch);
 }

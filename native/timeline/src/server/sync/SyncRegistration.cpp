@@ -12,7 +12,7 @@ QString mediaKey(const QJsonObject& raw) {
     // Same identity as TimelineModel's resolved-media table. JSON encoding
     // preserves boundaries even when a path contains a separator character.
     return QString::fromUtf8(QJsonDocument(QJsonArray{raw.value("mediaType"), raw.value("mediaPath"),
-        raw.value("audioPath"), raw.value("currentAssetId")}).toJson(QJsonDocument::Compact));
+        raw.value("originalMediaPath"), raw.value("audioPath"), raw.value("currentAssetId")}).toJson(QJsonDocument::Compact));
 }
 const bool registered = [] {
     nt::server::sync::setMediaRegistrar([](QObject* timeline, const nt::Clip& media) {
@@ -46,9 +46,11 @@ const bool registered = [] {
                 }
             }
             if (source) {
-                // ServerTimeline sets these two fields beyond parsed JSON.
+                // ServerTimeline sets these paths beyond parsed JSON.
                 clip.mediaPath = source->mediaPath;
+                clip.originalMediaPath = source->originalMediaPath;
                 clip.audioPath = source->audioPath;
+                clip.generatedMattePath = source->generatedMattePath;
             }
         }
         model->setTimeline(std::move(*parsed.timeline));

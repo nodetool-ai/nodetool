@@ -32,13 +32,6 @@ Item {
                 visible: !!root.session && root.session.connectionStatus === "disconnected" && root.session.selectedThreadId.length > 0
                 onClicked: root.session.resumeConnection()
             }
-            Ui.ToolbarIconButton {
-                id: connectionButton
-                variant: Ui.EditorButton.Flat
-                iconName: "settings"
-                text: qsTr("Connection")
-                onClicked: connection.open()
-            }
         }
         Ui.Text {
             role: Ui.Typography.SansLabel
@@ -85,58 +78,6 @@ Item {
                         onThreadOpened: root.threadPickerActive = false
                     }
                 }
-            }
-        }
-    }
-    Ui.Dialog {
-        id: connection
-        title: qsTr("Connect to NodeTool")
-        width: Math.min(root.width - Ui.Metrics.xl * 2, 440)
-        returnFocusTo: connectionButton
-        ColumnLayout {
-            width: parent.width
-            Ui.Text {
-                role: Ui.Typography.SansLabel
-                text: qsTr("Server address")
-            }
-            Ui.TextField {
-                id: server
-                Layout.fillWidth: true
-                value: "http://localhost:7777"
-                accessibleName: qsTr("Server address")
-                selectByMouse: true
-            }
-            Ui.Text {
-                role: Ui.Typography.SansLabel
-                text: qsTr("Access token")
-            }
-            Ui.TextField {
-                id: token
-                Layout.fillWidth: true
-                echoMode: TextInput.Password
-                accessibleName: qsTr("Access token")
-                placeholderText: qsTr("Leave empty for local authentication")
-            }
-            RowLayout {
-                Ui.EditorButton {
-                    text: qsTr("Connect")
-                    enabled: !!root.session && server.text.length > 0
-                    onClicked: {
-                        root.session.connectToServer(server.text, token.text);
-                        token.clear();
-                        connection.close();
-                    }
-                }
-                Ui.EditorButton {
-                    text: qsTr("Disconnect")
-                    enabled: !!root.session
-                    onClicked: {
-                        root.session.disconnectFromServer();
-                        token.clear();
-                        connection.close();
-                    }
-                }
-                Ui.EditorButton { text: qsTr("Close"); onClicked: connection.close() }
             }
         }
     }

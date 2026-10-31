@@ -26,6 +26,15 @@ public:
     Q_INVOKABLE bool patchSpeaker(const QString& id, const QString& field, const QJsonValue& value);
     Q_INVOKABLE bool patchEntity(const QString& field, const QJsonValue& value);
     Q_INVOKABLE bool patchDocument(const QString& field, const QJsonValue& value);
+    Q_INVOKABLE bool applyShotDraft(const QString& shotId, const QJsonObject& patch);
+    Q_INVOKABLE bool nudgeShot(const QString& shotId, int direction);
+    Q_INVOKABLE bool removeShotVersion(const QString& shotId, const QString& kind, int index);
+    // Board edits. insertShot and duplicateShot return the new shot's id, or an empty string.
+    Q_INVOKABLE QString insertShot(const QString& afterShotId);
+    Q_INVOKABLE QString duplicateShot(const QString& shotId);
+    Q_INVOKABLE bool removeShot(const QString& shotId);
+    Q_INVOKABLE bool moveShot(const QString& shotId, const QString& sceneId, int position);
+    Q_INVOKABLE bool patchBoard(const QString& field, const QJsonValue& value);
     Q_INVOKABLE bool save();
     Q_INVOKABLE void discard();
     Q_INVOKABLE QString json(const QJsonValue& value) const;

@@ -35,6 +35,9 @@ Item {
     onWidthChanged: noteGeometry()
     onHeightChanged: noteGeometry()
     function noteGeometry() { ++geometryEpoch }
+    readonly property var panelIcons: ({assets: "all", script: "subtitles", storyboard: "gridGoldenratio", inspector: "tune",
+        activity: "recent", assistant: "autoAwesome", mixer: "graphicEq", source: "videocam", program: "movieOutlined", tracks: "layers"})
+    function icon(id) { return panelIcons[id] || "" }
     function title(id) { const panel = registry.find(entry => entry.id === id); return panel ? panel.title : id }
     function shown(id) { return availableIds.indexOf(id) >= 0 && layout.hidden.indexOf(id) < 0 }
     function activePanel(group) {

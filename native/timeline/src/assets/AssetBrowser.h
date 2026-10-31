@@ -23,6 +23,10 @@ class AssetBrowser : public QObject {
     Q_PROPERTY(bool busy READ busy NOTIFY stateChanged)
     Q_PROPERTY(QString error READ error NOTIFY stateChanged)
     Q_PROPERTY(QVariantMap thumbnails READ thumbnails NOTIFY thumbnailsChanged)
+    // Full-size image URLs, filled by requestThumbnail with the thumbnail.
+    Q_PROPERTY(QVariantMap originals READ originals NOTIFY thumbnailsChanged)
+    // The name and entity kind of each asset requestThumbnail fetched.
+    Q_PROPERTY(QVariantMap details READ details NOTIFY thumbnailsChanged)
     Q_PROPERTY(QVariantList assets READ assets NOTIFY assetsChanged)
     Q_PROPERTY(TimelineModel* timeline READ timeline WRITE setTimeline NOTIFY timelineChanged)
     Q_PROPERTY(QString searchText READ searchText WRITE setSearchText NOTIFY filtersChanged)
@@ -40,6 +44,8 @@ public:
     bool busy() const { return !m_thread.isNull(); }
     QString error() const { return m_error; }
     QVariantMap thumbnails() const { return m_thumbnails; }
+    QVariantMap originals() const { return m_originals; }
+    QVariantMap details() const { return m_details; }
     Q_INVOKABLE void requestThumbnail(const QString& assetId);
     QVariantList assets() const { return m_assets.toVariantList(); }
     QString searchText() const { return m_searchText; }
@@ -138,6 +144,8 @@ private:
     QPointer<QThread> m_thread;
     QJsonArray m_assets;
     QVariantMap m_thumbnails;
+    QVariantMap m_originals;
+    QVariantMap m_details;
     QHash<QString, int> m_pending;
     std::deque<QueuedImport> m_files;
     QString m_searchText;

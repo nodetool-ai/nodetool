@@ -28,6 +28,7 @@
 #include <QUrl>
 
 #include <optional>
+#include <vector>
 
 namespace nt::server {
 
@@ -39,15 +40,20 @@ struct ServerOpenOptions {
     QString cacheRoot;
     QString token;
     bool probeMedia = true;  // run probeMedia (D10a) on each picture file
+    QString expectedInstance;
 };
 
 struct ServerOpenResult {
     std::optional<Timeline> timeline;
     QString error;        // a load error; the timeline is absent
     QJsonObject report;   // the loader report, also on a load error
+    std::vector<AssetCache::Lease> mediaLeases; // keep fetched files through model adoption
 };
 
 ServerOpenResult openServerTimeline(const ServerOpenOptions& options);
+// Resolve a recovered local document's assets without fetching or replacing
+// the current server timeline or its last-load raw backup.
+ServerOpenResult resolveTimelineDocumentMedia(const ServerOpenOptions& options, const QJsonObject& raw);
 
 // Normalize a supported asset reference for assets.get.
 QString assetIdForReference(const QString& reference);

@@ -2,7 +2,7 @@ nt_sources(app src/server/recovery/RecoveryRegistration.cpp)
 
 function(nt_recovery_tests)
     qt_add_executable(tst_recovery src/server/recovery/tst_recovery.cpp
-        src/server/recovery/RecoveryRegistration.cpp)
+        src/server/recovery/RecoveryRegistration.cpp src/server/sync/SyncRegistration.cpp)
     target_link_libraries(tst_recovery PRIVATE timeline_core timeline_decode timeline_audio timeline_server
         Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test PkgConfig::FFMPEG ${NT_APP_PLATFORM_LIBS})
     nt_add_timeline_qml(tst_recovery OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/tst_recovery_qml/NodeTool/Timeline)

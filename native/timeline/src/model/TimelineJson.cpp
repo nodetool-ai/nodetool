@@ -156,6 +156,8 @@ ParseResult parseTimelineJson(const QByteArray& json, const QString& baseDir) {
         };
         const QString mediaPath = c.value(u"mediaPath").toString();
         if (!mediaPath.isEmpty()) clip.mediaPath = local(mediaPath);
+        const QString originalMediaPath = c.value(u"originalMediaPath").toString();
+        if (!originalMediaPath.isEmpty()) clip.originalMediaPath = local(originalMediaPath);
         const QString audioPath = c.value(u"audioPath").toString();
         if (!audioPath.isEmpty()) clip.audioPath = local(audioPath);
         clip.raw = c;

@@ -11,6 +11,7 @@ Ui.Surface {
     property var timeline: null
     function openResource(id) { editor.openResource(id, "scripts") }
     AssistController { id: documents; timeline: panel.timeline; documentOnly: true }
+    AssistController { id: picker; timeline: panel.timeline; documentOnly: true }
     StoryWorkspace { id: drafts; objectName: "scriptDrafts"; controller: documents }
     AssetBrowser { id: media; timeline: panel.timeline }
     StoryWorkspaceEditor {
@@ -19,6 +20,7 @@ Ui.Surface {
         controller: documents
         workspace: drafts
         mediaBrowser: media
+        picker: picker
         fixedKind: "scripts"
         onLinkedResourceRequested: (kind, id) => {
             const host = Context.editorFor(panel)
@@ -28,6 +30,6 @@ Ui.Surface {
     Component.onCompleted: Qt.callLater(() => {
         const host = Context.editorFor(panel)
         if (host) panel.timeline = host.timeline
-        if (panel.timeline) editor.browse("scripts")
+        if (panel.timeline) editor.loadLinked()
     })
 }

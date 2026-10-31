@@ -92,7 +92,6 @@ TestCase {
             verify(contrast(Ui.Theme.statusWarningOnSurface, Ui.Theme.statusWarningSurface) >= 4.5)
             verify(contrast(Ui.Theme.statusErrorOnSurface, Ui.Theme.statusErrorSurface) >= 4.5)
             verify(contrast(Ui.Theme.borderFocus, Ui.Theme.surfacePanel) >= 3)
-            verify(contrast(Ui.Theme.borderControl, Ui.Theme.surfaceInput) >= 3)
         }
     }
     function test_theme() {

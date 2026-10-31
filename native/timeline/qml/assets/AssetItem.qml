@@ -20,7 +20,7 @@ Rectangle {
     readonly property string mediaType: browser.mediaType(asset)
     readonly property bool isFolder: asset.content_type === "folder"
     readonly property string poster: asset.thumb_url || (mediaType === "image" ? asset.get_url || "" : "")
-    readonly property bool showCaption: true
+    readonly property bool showCaption: hover.hovered || activeFocus
     readonly property bool dragging: dragPoint.Drag.active
     readonly property bool dropAllowed: !!dragPoint.Drag.target && dragPoint.Drag.target.dropAllowed !== false
     readonly property int dragAction: dragPoint.Drag.target && dragPoint.Drag.target.dropAction === Qt.MoveAction ? Qt.MoveAction : Qt.CopyAction

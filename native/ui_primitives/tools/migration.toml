@@ -1145,6 +1145,16 @@ qml_callers = ["native/timeline/qml/assets/AssetGrid.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Icon, Ui.Text"
 
 [[file]]
+path = "native/timeline/qml/assets/AssetGallery.qml"
+category = "chrome"
+controls = ["Ui.Dialog", "Rectangle", "Flickable", "Image", "ListView", "Ui.Surface", "Ui.Text", "Ui.Icon", "Ui.ToolbarIconButton", "Ui.EditorButton", "Ui.Slider", "Ui.ScrollBar"]
+signals = []
+test_host = "tst_assetbrowser"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/assets/AssetExplorer.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.Text, Ui.Icon, Ui.ToolbarIconButton, Ui.EditorButton, Ui.Slider"
+
+[[file]]
 path = "native/timeline/qml/assets/AssetPreview.qml"
 category = "chrome"
 controls = ["Ui.Surface", "Ui.Text", "Ui.EditorButton", "Ui.Slider"]
@@ -1513,6 +1523,116 @@ test_host = "tst_storyworkspace"
 test_scope = "build/import"
 qml_callers = ["native/timeline/qml/storyworkspace/StoryWorkspacePanel.qml", "native/timeline/qml/storyworkspace/StoryboardPanel.qml"]
 replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.Icon, Ui.EditorButton, Ui.Text, Ui.TextField, Ui.TextArea, Ui.Toggle, Ui.Select, Ui.Separator, Ui.ScrollBar, Ui.Dialog"
+
+[[file]]
+path = "native/timeline/qml/storyworkspace/ShotEditor.qml"
+category = "chrome"
+controls = ["Ui.Surface", "Ui.EditorButton", "Ui.ToolbarIconButton", "Ui.Text", "Ui.Separator", "Ui.ScrollBar", "Ui.ContextMenu", "Ui.MenuItem", "Ui.Dialog", "Flickable", "Rectangle", "Loader"]
+signals = ["closeRequested", "shotChangeRequested", "scriptRequested"]
+test_host = "tst_storyworkspace"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/storyworkspace/StoryWorkspaceEditor.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Surface, Ui.EditorButton, Ui.ToolbarIconButton, Ui.Text, Ui.Separator, Ui.ScrollBar, Ui.ContextMenu, Ui.MenuItem, Ui.Dialog"
+
+[[file]]
+path = "native/timeline/qml/storyworkspace/ShotEditForm.qml"
+category = "chrome"
+controls = ["Ui.Text", "Ui.TextArea", "Ui.TextField", "Ui.Select", "Ui.EditorButton", "Ui.ToolbarIconButton", "Ui.ContextMenu", "Ui.MenuItem", "Ui.InspectorSection", "Rectangle", "Image", "TextEdit"]
+signals = []
+test_host = "tst_storyworkspace"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/storyworkspace/ShotEditor.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.TextArea, Ui.TextField, Ui.Select, Ui.EditorButton, Ui.ToolbarIconButton, Ui.ContextMenu, Ui.MenuItem, Ui.InspectorSection"
+
+[[file]]
+path = "native/timeline/qml/storyworkspace/ShotEditViewer.qml"
+category = "chrome"
+controls = ["Ui.Text", "Ui.EditorButton", "Ui.ToolbarIconButton", "Ui.BusyIndicator", "Rectangle", "Image", "Loader"]
+signals = ["acceptRequested"]
+test_host = "tst_storyworkspace"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/storyworkspace/ShotEditor.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.EditorButton, Ui.ToolbarIconButton, Ui.BusyIndicator"
+
+[[file]]
+path = "native/timeline/qml/storyworkspace/ShotTakesGallery.qml"
+category = "chrome"
+controls = ["Ui.Text", "Ui.EditorButton", "Ui.ToolbarIconButton", "Ui.Dialog", "Rectangle", "Image", "Loader"]
+signals = ["acceptRequested", "removeRequested"]
+test_host = "tst_storyworkspace"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/storyworkspace/ShotEditor.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.EditorButton, Ui.ToolbarIconButton, Ui.Dialog"
+
+[[file]]
+path = "native/timeline/qml/storyworkspace/ShotGraphicsEditor.qml"
+category = "chrome"
+controls = ["Ui.Text", "Ui.EditorButton", "Ui.Select", "Ui.TextArea", "Ui.TextField"]
+signals = ["graphicsEdited"]
+test_host = "tst_storyworkspace"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/storyworkspace/ShotEditForm.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.EditorButton, Ui.Select, Ui.TextArea, Ui.TextField"
+
+[[file]]
+path = "native/timeline/qml/storyworkspace/ShotClipPlayer.qml"
+category = "chrome"
+controls = ["Ui.Text", "Ui.ToolbarIconButton", "Ui.Slider"]
+signals = []
+test_host = "tst_storyworkspace"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/storyworkspace/ShotEditViewer.qml", "native/timeline/qml/storyworkspace/ShotMediaViewer.qml", "native/timeline/qml/storyworkspace/ShotCard.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.ToolbarIconButton, Ui.Slider"
+
+[[file]]
+path = "native/timeline/qml/storyworkspace/ShotRenderDialog.qml"
+category = "chrome"
+controls = ["Ui.Dialog", "Ui.Text", "Ui.EditorButton", "ModelPickerButton"]
+signals = ["renderRequested"]
+test_host = "tst_storyworkspace"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/storyworkspace/ShotEditor.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/storyworkspace/StoryboardBoard.qml"
+category = "chrome"
+controls = ["Ui.Text", "Ui.EditorButton", "Ui.ToolbarIconButton", "Ui.TextField", "Ui.TextArea", "Ui.Select", "Ui.Slider", "Ui.Separator", "Ui.ScrollBar", "Ui.EmptyState", "Ui.Dialog", "Flickable", "Rectangle", "Loader"]
+signals = ["editShotRequested", "entityRequested", "scriptRequested"]
+test_host = "tst_storyworkspace"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/storyworkspace/StoryWorkspaceEditor.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.EditorButton, Ui.ToolbarIconButton, Ui.TextField, Ui.TextArea, Ui.Select, Ui.Slider, Ui.Separator, Ui.ScrollBar, Ui.EmptyState, Ui.Dialog"
+
+[[file]]
+path = "native/timeline/qml/storyworkspace/ShotCard.qml"
+category = "chrome"
+controls = ["Ui.Text", "Ui.Icon", "Ui.EditorButton", "Ui.ToolbarIconButton", "Ui.BusyIndicator", "Ui.ContextMenu", "Ui.MenuItem", "Rectangle", "Image", "Loader"]
+signals = ["selectRequested", "editRequested", "renderRequested", "duplicateRequested", "nudgeRequested", "deleteRequested", "fullscreenRequested", "dragStarted", "dragMoved", "dragEnded"]
+test_host = "tst_storyworkspace"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/storyworkspace/StoryboardBoard.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Text, Ui.Icon, Ui.EditorButton, Ui.ToolbarIconButton, Ui.BusyIndicator, Ui.ContextMenu, Ui.MenuItem"
+
+[[file]]
+path = "native/timeline/qml/storyworkspace/ShotMediaViewer.qml"
+category = "chrome"
+controls = ["Ui.Dialog", "Ui.ToolbarIconButton", "Ui.EditorButton", "Image", "Loader"]
+signals = []
+test_host = "tst_storyworkspace"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/storyworkspace/StoryboardBoard.qml", "native/timeline/qml/storyworkspace/ShotTakesGallery.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.ToolbarIconButton, Ui.EditorButton"
+
+[[file]]
+path = "native/timeline/qml/storyworkspace/LinkDocumentDialog.qml"
+category = "chrome"
+controls = ["Ui.Dialog", "Ui.Text", "Ui.TextField", "Ui.Surface", "Ui.ListRow", "Ui.Icon", "Ui.ToolbarIconButton", "Ui.EditorButton", "Ui.Separator", "Ui.ScrollBar", "Ui.BusyIndicator", "ListView"]
+signals = ["picked", "createRequested"]
+test_host = "tst_storyworkspace"
+test_scope = "build/import"
+qml_callers = ["native/timeline/qml/storyworkspace/StoryWorkspaceEditor.qml"]
+replacement = "NodeTool.UiPrimitives: Ui.Dialog, Ui.Text, Ui.TextField, Ui.Surface, Ui.ListRow, Ui.Icon, Ui.ToolbarIconButton, Ui.EditorButton, Ui.Separator, Ui.ScrollBar, Ui.BusyIndicator"
 
 [[file]]
 path = "native/timeline/qml/storyworkspace/StoryWorkspacePanel.qml"
@@ -2714,3 +2834,35 @@ binding = "onClicked"
 rule = "manual-control"
 owner = "Timeline wiring test fixture"
 reason = "The synthetic track lane counts pointer hits to verify playhead passthrough and extension routing."
+
+[[exception]]
+path = "native/timeline/qml/assets/AssetGallery.qml"
+object = "gallery/Item[0]/ColumnLayout[0]/RowLayout[1]/stage/imageView/TapHandler[0]"
+binding = "onDoubleTapped"
+rule = "manual-control"
+owner = "Asset library gallery"
+reason = "Media canvas and filmstrip frames are pointer targets on rendered media. Keyboard users step with the arrow keys and the Previous and Next buttons."
+
+[[exception]]
+path = "native/timeline/qml/assets/AssetGallery.qml"
+object = "gallery/Item[0]/ColumnLayout[0]/ListView[0]/thumb/TapHandler[0]"
+binding = "onTapped"
+rule = "manual-control"
+owner = "Asset library gallery"
+reason = "Media canvas and filmstrip frames are pointer targets on rendered media. Keyboard users step with the arrow keys and the Previous and Next buttons."
+
+[[exception]]
+path = "native/timeline/qml/storyworkspace/ShotCard.qml"
+object = "card/TapHandler[0]"
+binding = "onTapped"
+rule = "manual-control"
+owner = "Storyboard shot card"
+reason = "The card is a media tile: a click selects it and a double-click opens it full screen. Keyboard users select with Space, edit with Enter, and open full screen with the card's Fullscreen button."
+
+[[exception]]
+path = "native/timeline/qml/storyworkspace/ShotCard.qml"
+object = "card/TapHandler[0]"
+binding = "onDoubleTapped"
+rule = "manual-control"
+owner = "Storyboard shot card"
+reason = "The card is a media tile: a click selects it and a double-click opens it full screen. Keyboard users select with Space, edit with Enter, and open full screen with the card's Fullscreen button."

@@ -39,6 +39,8 @@ public:
     Q_INVOKABLE bool unlink(const QString& clipId);
     Q_INVOKABLE void derive(const QJsonObject& board, const QString& clipId, int frameCount, const QString& action);
     Q_INVOKABLE void recover(const QJsonObject& board, const QString& shotId, const QString& kind);
+    // The prompt a render of this shot sends, before reference images are attached.
+    Q_INVOKABLE QString prompt(const QJsonObject& document, const QJsonObject& shot, const QString& kind) const;
     Q_INVOKABLE void cancel();
 signals:
     void changed();

@@ -6,6 +6,7 @@
 #include <QHash>
 #include <QJsonArray>
 #include <QObject>
+#include <QSet>
 #include <QUndoStack>
 
 #include <memory>
@@ -41,6 +42,7 @@ public:
     // Adds runtime paths by media identity and refreshes matching snapshot clips.
     void registerMedia(const nt::Clip& media);
     void registerMatteMedia(const QString& assetId, const std::string& path);
+    QSet<QString> resolvedMediaPaths() const;
     const nt::Timeline& timeline() const { return *m_timeline; }
     // An immutable snapshot the render thread keeps by pointer (D8). A new
     // document makes a new snapshot; an old one stays valid while held.
@@ -118,6 +120,11 @@ private:
     // server open set outside the JSON, so an edit (a split, an undone
     // delete) gives a clip back the media it had. Filled by setTimeline and
     // kept for the document's life.
-    QHash<QString, std::pair<std::string, std::string>> m_media;
+    struct MediaPaths {
+        std::string picture;
+        std::string originalPicture;
+        std::string audio;
+    };
+    QHash<QString, MediaPaths> m_media;
     QHash<QString, std::string> m_mattes;
 };

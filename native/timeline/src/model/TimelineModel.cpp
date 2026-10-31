@@ -20,7 +20,8 @@ namespace {
 // loader resolves (the picture, the sound and the asset).
 QString mediaKey(const QJsonObject& raw) {
     return raw.value(u"mediaType").toString() + QChar(0x1f) + raw.value(u"mediaPath").toString() + QChar(0x1f) +
-           raw.value(u"audioPath").toString() + QChar(0x1f) + raw.value(u"currentAssetId").toString();
+           raw.value(u"originalMediaPath").toString() + QChar(0x1f) + raw.value(u"audioPath").toString() +
+           QChar(0x1f) + raw.value(u"currentAssetId").toString();
 }
 
 quint64 nextCommandToken() {
@@ -84,7 +85,8 @@ void TimelineModel::setTimeline(nt::Timeline timeline) {
     m_mattes.clear();
     for (const auto& c : timeline.clips) {
         if (!c.generatedMattePath.empty()) m_mattes.insert(c.raw.value("generatedMatte").toObject().value("assetId").toString(), c.generatedMattePath);
-        if (!c.mediaPath.empty() || !c.audioPath.empty()) m_media.insert(mediaKey(c.raw), {c.mediaPath, c.audioPath});
+        if (!c.mediaPath.empty() || !c.originalMediaPath.empty() || !c.audioPath.empty())
+            m_media.insert(mediaKey(c.raw), {c.mediaPath, c.originalMediaPath, c.audioPath});
     }
     timeline.revision = nt::nextTimelineRevision();
     m_timeline = std::make_shared<const nt::Timeline>(std::move(timeline));
@@ -157,8 +159,9 @@ bool TimelineModel::replaceClips(const QJsonArray& clips) {
             c.generatedMattePath = m_mattes.value(c.raw.value("generatedMatte").toObject().value("assetId").toString());
             const auto it = m_media.constFind(mediaKey(c.raw));
             if (it != m_media.constEnd()) {
-                c.mediaPath = it->first;
-                c.audioPath = it->second;
+                c.mediaPath = it->picture;
+                c.originalMediaPath = it->originalPicture;
+                c.audioPath = it->audio;
             }
         }
     }
@@ -368,8 +371,9 @@ bool TimelineModel::replaceDocument(const QJsonObject& incoming) {
         clip.generatedMattePath = m_mattes.value(clip.raw.value("generatedMatte").toObject().value("assetId").toString());
         const auto media = m_media.constFind(mediaKey(clip.raw));
         if (media != m_media.constEnd()) {
-            clip.mediaPath = media->first;
-            clip.audioPath = media->second;
+            clip.mediaPath = media->picture;
+            clip.originalMediaPath = media->originalPicture;
+            clip.audioPath = media->audio;
         }
     }
     next.revision = nt::nextTimelineRevision();
@@ -389,14 +393,26 @@ bool TimelineModel::replaceDocument(const QJsonObject& incoming) {
 
 void TimelineModel::registerMedia(const nt::Clip& media) {
     const auto key = mediaKey(media.raw);
-    m_media.insert(key, {media.mediaPath, media.audioPath});
+    m_media.insert(key, {media.mediaPath, media.originalMediaPath, media.audioPath});
+    const QString matteId = media.raw.value("generatedMatte").toObject().value("assetId").toString();
+    if (!matteId.isEmpty() && !media.generatedMattePath.empty()) {
+        m_mattes.insert(matteId, media.generatedMattePath);
+    }
     auto next = *m_timeline;
     bool changed = false;
     for (auto& clip : next.clips) {
         if (mediaKey(clip.raw) == key &&
-            (clip.mediaPath != media.mediaPath || clip.audioPath != media.audioPath)) {
+            (clip.mediaPath != media.mediaPath || clip.originalMediaPath != media.originalMediaPath ||
+             clip.audioPath != media.audioPath)) {
             clip.mediaPath = media.mediaPath;
+            clip.originalMediaPath = media.originalMediaPath;
             clip.audioPath = media.audioPath;
+            changed = true;
+        }
+        if (!matteId.isEmpty() && !media.generatedMattePath.empty() &&
+            clip.raw.value("generatedMatte").toObject().value("assetId").toString() == matteId &&
+            clip.generatedMattePath != media.generatedMattePath) {
+            clip.generatedMattePath = media.generatedMattePath;
             changed = true;
         }
     }
@@ -406,6 +422,19 @@ void TimelineModel::registerMedia(const nt::Clip& media) {
     m_tracks->rebind(m_timeline.get());
     emit clipsChanged();
     emit timelineChanged();
+}
+
+QSet<QString> TimelineModel::resolvedMediaPaths() const {
+    QSet<QString> paths;
+    for (const auto& media : m_media) {
+        if (!media.picture.empty()) paths.insert(QString::fromStdString(media.picture));
+        if (!media.originalPicture.empty()) paths.insert(QString::fromStdString(media.originalPicture));
+        if (!media.audio.empty()) paths.insert(QString::fromStdString(media.audio));
+    }
+    for (const auto& matte : m_mattes) {
+        if (!matte.empty()) paths.insert(QString::fromStdString(matte));
+    }
+    return paths;
 }
 
 void TimelineModel::registerMatteMedia(const QString& assetId, const std::string& path) {

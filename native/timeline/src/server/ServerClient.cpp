@@ -11,6 +11,7 @@
 #include <QNetworkProxy>
 #include <QNetworkReply>
 #include <QTimer>
+#include <QThread>
 
 #include <algorithm>
 #include <utility>
@@ -26,9 +27,9 @@ QString QueryResult::describe() const {
 
 QueryResult parseTrpcResponse(const HttpResponse& response) {
     QueryResult result;
-    if (!response.networkError.isEmpty() && response.status == 0) {
+    if (!response.networkError.isEmpty() && (response.status == 0 || !response.networkErrorCode.isEmpty())) {
         result.error.message = response.networkError;
-        result.error.code = QStringLiteral("NETWORK");
+        result.error.code = response.networkErrorCode.isEmpty() ? QStringLiteral("NETWORK") : response.networkErrorCode;
         return result;
     }
     QJsonParseError err{};
@@ -109,6 +110,16 @@ void ServerClient::decorate(QNetworkRequest& request) const {
 
 std::vector<HttpResponse> ServerClient::sendAll(const std::vector<HttpRequest>& requests) {
     std::vector<HttpResponse> out(requests.size());
+    if (requests.empty()) { return out; }
+    QElapsedTimer elapsed;
+    elapsed.start();
+    if (QThread::currentThread()->isInterruptionRequested()) {
+        for (auto& response : out) {
+            response.networkErrorCode = QStringLiteral("CANCELLED");
+            response.networkError = QStringLiteral("Request cancelled.");
+        }
+        return out;
+    }
     std::vector<QNetworkReply*> replies;
     replies.reserve(requests.size());
     QEventLoop loop;
@@ -125,17 +136,45 @@ std::vector<HttpResponse> ServerClient::sendAll(const std::vector<HttpRequest>& 
         });
         replies.push_back(reply);
     }
+    const auto abortPending = [&](const QString& code) {
+        for (size_t i = 0; i < replies.size(); ++i) {
+            if (!replies[i]->isFinished()) {
+                out[i].networkErrorCode = code;
+                out[i].networkError = code == "CANCELLED" ? QStringLiteral("Request cancelled.")
+                    : QStringLiteral("Request exceeded its elapsed deadline.");
+                replies[i]->abort();
+            }
+        }
+        loop.quit();
+    };
+    QTimer deadline;
+    const int deadlineMs = m_deadlineMs < 0 ? m_timeoutMs : m_deadlineMs;
+    if (deadlineMs > 0) {
+        deadline.setSingleShot(true);
+        deadline.setTimerType(Qt::PreciseTimer);
+        QObject::connect(&deadline, &QTimer::timeout, &loop, [&] { abortPending(QStringLiteral("TIMEOUT")); });
+        deadline.start(static_cast<int>(std::max<qint64>(0, deadlineMs - elapsed.elapsed())));
+    }
+    QTimer interruption;
+    QObject::connect(&interruption, &QTimer::timeout, &loop, [&] {
+        if (QThread::currentThread()->isInterruptionRequested()) { abortPending(QStringLiteral("CANCELLED")); }
+    });
+    interruption.start(25);
     if (pending > 0) loop.exec();
     for (size_t i = 0; i < replies.size(); ++i) {
         QNetworkReply* reply = replies[i];
         HttpResponse& resp = out[i];
         resp.status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
-        resp.body = reply->readAll();
+        resp.body = reply->isOpen() ? reply->readAll() : QByteArray();
         for (const auto& pair : reply->rawHeaderPairs()) {
             resp.headers.insert(pair.first.toLower(), pair.second);
         }
+        if (resp.networkErrorCode.isEmpty() && reply->error() == QNetworkReply::TimeoutError) {
+            resp.networkErrorCode = QStringLiteral("TIMEOUT");
+            resp.networkError = QStringLiteral("Request timed out.");
+        }
         // An HTTP error status is a response, not a transport failure.
-        if (reply->error() != QNetworkReply::NoError && resp.status == 0) {
+        if (reply->error() != QNetworkReply::NoError && resp.status == 0 && resp.networkErrorCode.isEmpty()) {
             resp.networkError = reply->errorString();
         }
         reply->deleteLater();
@@ -227,7 +266,9 @@ QueryResult ServerClient::upload(const QJsonObject& json, const QString& filePat
 
 QueryResult ServerClient::write(const QString& procedure, QNetworkRequest request, const QByteArray* json,
                                 std::unique_ptr<QHttpMultiPart> multipart, const QString& contentType, bool plainJson) {
+    if (QThread::currentThread()->isInterruptionRequested()) { return failed("CANCELLED", "Request cancelled."); }
     const bool isUpload = multipart != nullptr;
+    bool interrupted = false;
     QElapsedTimer clock;
     clock.start();
     // Sends one request, aborted at the deadline. Returns false on the abort.
@@ -242,12 +283,20 @@ QueryResult ServerClient::write(const QString& procedure, QNetworkRequest reques
         }
         QObject::connect(reply, &QNetworkReply::finished, &loop, &QEventLoop::quit);
         bool aborted = false;
+        QTimer interruption;
+        QObject::connect(&interruption, &QTimer::timeout, reply, [&] {
+            if (!aborted && QThread::currentThread()->isInterruptionRequested()) {
+                interrupted = true;
+                aborted = true;
+                reply->abort();
+            }
+        });
+        interruption.start(25);
         QTimer deadline;
         if (m_deadlineMs > 0) {
             deadline.setSingleShot(true);
             QObject::connect(&deadline, &QTimer::timeout, reply, [reply, &aborted]() {
-                aborted = true;
-                reply->abort();
+                if (!aborted) { aborted = true; reply->abort(); }
             });
             deadline.start(static_cast<int>(std::max<qint64>(0, m_deadlineMs - clock.elapsed())));
         }
@@ -255,6 +304,10 @@ QueryResult ServerClient::write(const QString& procedure, QNetworkRequest reques
         resp.status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
         resp.body = reply->isOpen() ? reply->readAll() : QByteArray();
         for (const auto& pair : reply->rawHeaderPairs()) resp.headers.insert(pair.first.toLower(), pair.second);
+        if (reply->error() == QNetworkReply::TimeoutError) {
+            resp.networkErrorCode = QStringLiteral("TIMEOUT");
+            resp.networkError = QStringLiteral("Request timed out.");
+        }
         if (reply->error() != QNetworkReply::NoError && resp.status == 0) resp.networkError = reply->errorString();
         reply->deleteLater();
         return !aborted;
@@ -299,8 +352,12 @@ QueryResult ServerClient::write(const QString& procedure, QNetworkRequest reques
             return timedOut();
         }
         if (!send(request, json, multipart.get(), resp)) {
+            if (interrupted) { return failed("CANCELLED", "Request cancelled."); }
             return timedOut();
         }
+    }
+    if (!resp.networkErrorCode.isEmpty()) {
+        return failed(resp.networkErrorCode, resp.networkError, resp.status);
     }
     if (resp.status >= 300 && resp.status < 400) {
         return failed(QStringLiteral("REDIRECT"), QStringLiteral("refusing a redirect from %1").arg(procedure), resp.status);

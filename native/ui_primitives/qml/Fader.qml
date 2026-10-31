@@ -56,7 +56,7 @@ Item {
         model: root.marks
         delegate: Ui.Text {
             required property var modelData
-            x: Metrics.compact; y: Metrics.sm + Metrics.xs + (root.height - 2 * (Metrics.sm + Metrics.xs)) * (1 - modelData.position) - height / 2
+            x: Metrics.compact + Metrics.xs; y: Metrics.sm + Metrics.xs + (root.height - 2 * (Metrics.sm + Metrics.xs)) * (1 - modelData.position) - height / 2
             text: modelData.label; role: Typography.MonoCaption; tone: Ui.Text.Secondary
         }
     }

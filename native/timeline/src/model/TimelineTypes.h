@@ -118,6 +118,9 @@ struct Clip {
     // Prototype-only, not in the schema: a local media file for the decoder
     // step. A real document references `currentAssetId` instead.
     std::string mediaPath;
+    // The full-quality picture source. Preview may read a proxy at mediaPath;
+    // export must use this original when it is resolved. Session-only.
+    std::string originalMediaPath;
     // The local file that audio reads. A server open (src/server/) sets it to
     // the original even when `mediaPath` is the video proxy, which has no
     // audio track (DESIGN.md F4). Empty: audio reads `mediaPath`.

@@ -52,10 +52,12 @@ Rectangle {
                     readonly property string panelId: root.panels[index]
                     readonly property bool selected: root.activeId === panelId
                     readonly property bool closable: panelId !== "program" && panelId !== "tracks"
+                    readonly property bool showClose: closable && selected
                     objectName: "dockTab_" + panelId
-                    width: Math.min(Ui.Metrics.small * 8 + Ui.Metrics.md,
-                        title.implicitWidth + Ui.Metrics.md * 2 + (closable ? Ui.Metrics.compact : 0))
-                    height: root.height
+                    width: Math.min(Ui.Metrics.small * 10 + Ui.Metrics.md,
+                        title.implicitWidth + Ui.Metrics.md * 2 + (glyph.visible ? glyph.width + Ui.Metrics.sm : 0) + (showClose ? Ui.Metrics.compact : 0))
+                    // Inactive tabs stop above the strip's bottom border. The selected tab covers it and joins its panel.
+                    height: selected ? root.height : root.height - Ui.Metrics.border
                     color: selected ? Ui.Theme.surfacePanel : hover.containsMouse ? Ui.Theme.actionHover : Ui.Theme.surfaceCanvas
                     activeFocusOnTab: selected
                     Accessible.role: Accessible.PageTab
@@ -66,11 +68,19 @@ Rectangle {
                         root.dock.store.dispatch({type: "activate", panelId: panelId})
                         forceActiveFocus()
                     }
-                    Ui.Text {
-                        id: title
+                    Ui.Icon {
+                        id: glyph
                         x: Ui.Metrics.md
                         anchors.verticalCenter: parent.verticalCenter
-                        width: parent.width - x * 2 - (tab.closable ? Ui.Metrics.compact : 0)
+                        name: root.dock.icon(tab.panelId)
+                        visible: name !== ""
+                        tone: tab.selected ? Ui.Text.Primary : Ui.Text.Secondary
+                    }
+                    Ui.Text {
+                        id: title
+                        x: glyph.visible ? glyph.x + glyph.width + Ui.Metrics.sm : Ui.Metrics.md
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: parent.width - x - Ui.Metrics.md - (tab.showClose ? Ui.Metrics.compact : 0)
                         text: root.dock.title(tab.panelId)
                         elide: Text.ElideRight
                         role: Ui.Typography.SansLabel
@@ -113,7 +123,7 @@ Rectangle {
                         anchors.verticalCenter: parent.verticalCenter
                         iconName: "close"
                         accessibleName: "Close " + root.dock.title(tab.panelId)
-                        visible: tab.closable && (tab.selected || hover.containsMouse)
+                        visible: tab.showClose
                         focusPolicy: Qt.NoFocus
                         onClicked: root.dock.store.dispatch({type: "hide", panelId: tab.panelId})
                     }

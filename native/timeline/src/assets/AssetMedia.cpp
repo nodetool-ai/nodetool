@@ -2,85 +2,68 @@
 #include "server/AssetCache.h"
 #include "server/ServerTimeline.h"
 #include <QDir>
-#include <QDateTime>
-#include <QDirIterator>
-#include <QFile>
-#include <QFileInfo>
-#include <QLockFile>
-#include <algorithm>
-#include <vector>
+#include <iterator>
 
 namespace nt::assets {
-namespace {
-std::mutex& protectionMutex() { static std::mutex mutex; return mutex; }
-QSet<MediaProtection*>& protections() { static QSet<MediaProtection*> instances; return instances; }
-}
-MediaProtection::MediaProtection() {
-    const std::lock_guard lock(protectionMutex());
-    protections().insert(this);
-}
-MediaProtection::~MediaProtection() {
-    const std::lock_guard lock(protectionMutex());
-    protections().remove(this);
-}
 void MediaProtection::reset(QSet<QString> paths) {
-    QSet<QString> absolutePaths;
+    std::map<QString, Lease> replacement;
     for (const auto& path : paths) {
-        if (!path.isEmpty()) { absolutePaths.insert(QFileInfo(path).absoluteFilePath()); }
+        if (!path.isEmpty()) {
+            auto held = nt::server::AssetCache::lease(path);
+            const QString key = *held;
+            replacement.try_emplace(key, std::move(held));
+        }
     }
-    const std::lock_guard lock(protectionMutex());
+    const std::lock_guard lock(m_mutex);
     ++m_generation;
-    m_paths = std::move(absolutePaths);
+    m_paths.swap(replacement);
+    m_fetched.clear();
+}
+
+void MediaProtection::replaceCurrent(QSet<QString> paths) {
+    std::map<QString, Lease> replacement;
+    for (const auto& path : paths) {
+        if (!path.isEmpty()) {
+            auto held = nt::server::AssetCache::lease(path);
+            const QString key = *held;
+            replacement.try_emplace(key, std::move(held));
+        }
+    }
+    const std::lock_guard lock(m_mutex);
+    m_paths.swap(replacement);
+    for (auto it = m_fetched.begin(); it != m_fetched.end();) {
+        it = m_paths.contains(it->first) ? m_fetched.erase(it) : std::next(it);
+    }
 }
 
 quint64 MediaProtection::generation() const {
-    const std::lock_guard lock(protectionMutex());
+    const std::lock_guard lock(m_mutex);
     return m_generation;
 }
 
 void MediaProtection::protect(const QString& path, std::optional<quint64> generation) {
     if (path.isEmpty()) { return; }
-    const std::lock_guard lock(protectionMutex());
+    const std::lock_guard lock(m_mutex);
     if (generation && *generation != m_generation) { return; }
-    m_paths.insert(QFileInfo(path).absoluteFilePath());
+    auto held = nt::server::AssetCache::lease(path);
+    const QString key = *held;
+    if (!m_paths.contains(key) && !m_fetched.contains(key)) {
+        m_fetched.emplace(key, std::move(held));
+    }
+}
+
+std::vector<MediaProtection::Lease> MediaProtection::leasePaths(const QSet<QString>& paths) {
+    std::vector<Lease> leases;
+    leases.reserve(paths.size());
+    for (const auto& path : paths) {
+        if (!path.isEmpty()) leases.push_back(nt::server::AssetCache::lease(path));
+    }
+    return leases;
 }
 
 void MediaProtection::evict(const QString& root, qint64 budget, const QString& justFetched,
-                           const std::function<void()>& afterScan) {
-    if (budget <= 0) { return; }
-    struct Entry {
-        QString path;
-        QDateTime used;
-        qint64 size;
-    };
-    std::vector<Entry> files;
-    qint64 total = 0;
-    QDirIterator it(root, QDir::Files, QDirIterator::Subdirectories);
-    while (it.hasNext()) {
-        const QFileInfo info(it.next());
-        const auto name = info.fileName();
-        if (name.startsWith(u'.') || name.endsWith(u".part") || name.endsWith(u".total") || name.endsWith(u".json")) {
-            continue;
-        }
-        files.push_back({info.absoluteFilePath(), info.lastModified(), info.size()});
-        total += info.size();
-    }
-    if (total <= budget) { return; }
-    std::sort(files.begin(), files.end(), [](const Entry& a, const Entry& b) { return a.used < b.used; });
-    const auto fetchedPath = QFileInfo(justFetched).absoluteFilePath();
-    if (afterScan) { afterScan(); }
-    // A completed reset/protect must cover every subsequent deletion decision.
-    const std::lock_guard lock(protectionMutex());
-    QSet<QString> protectedPaths;
-    for (const auto* protection : protections()) protectedPaths.unite(protection->m_paths);
-    for (const auto& file : files) {
-        if (total <= budget) { break; }
-        if (file.path == fetchedPath || protectedPaths.contains(file.path)) { continue; }
-        QLockFile folderLock(QFileInfo(file.path).absolutePath() + QStringLiteral("/.lock"));
-        folderLock.setStaleLockTime(0);
-        if (!folderLock.tryLock(0)) { continue; }
-        if (QFile::remove(file.path)) { total -= file.size; }
-    }
+                            const std::function<void()>& afterScan) {
+    nt::server::AssetCache::evictRoot(root, budget, justFetched, afterScan);
 }
 
 nt::Clip resolveDroppedMedia(nt::server::ServerClient& client, const QString& cacheRoot,
@@ -99,14 +82,14 @@ nt::Clip resolveDroppedMedia(nt::server::ServerClient& client, const QString& ca
     const auto budget = cache.budgetBytes();
     cache.setBudgetBytes(0);
     const auto fetch = [&](const QString& variant, const nt::server::RemoteFile& file) {
-        const auto result = cache.fetch(id, variant, file, [&]() -> std::optional<nt::server::RemoteFile> {
-            const auto fresh = client.getAsset(id);
-            if (!fresh.ok()) { return std::nullopt; }
-            QString why;
-            return variant == "proxy" ? nt::server::proxyFile(client, fresh.data.toObject(), &why)
-                                      : nt::server::originalFile(client, fresh.data.toObject(), &why);
-        });
-        if (result.ok()) { protection.protect(result.path, generation); }
+        const auto result = cache.fetch(id, variant, file,
+            [&]() -> std::optional<nt::server::RemoteFile> {
+                const auto fresh = client.getAsset(id);
+                if (!fresh.ok()) { return std::nullopt; }
+                QString why;
+                return variant == "proxy" ? nt::server::proxyFile(client, fresh.data.toObject(), &why)
+                                          : nt::server::originalFile(client, fresh.data.toObject(), &why);
+            }, [&](const QString& path) { protection.protect(path, generation); });
         if (result.ok() && !result.hit) { protection.evict(cacheRoot, budget, result.path); }
         return result;
     };
@@ -115,21 +98,32 @@ nt::Clip resolveDroppedMedia(nt::server::ServerClient& client, const QString& ca
     bool failed = !original;
     if (original && picture) {
         const auto proxy = nt::server::proxyFile(client, asset, &why);
+        bool usedOriginal = !proxy;
         auto fetched = proxy ? fetch("proxy", *proxy) : fetch("original", *original);
-        if (!fetched.ok() && proxy) { fetched = fetch("original", *original); }
+        if (!fetched.ok() && proxy) {
+            fetched = fetch("original", *original);
+            usedOriginal = true;
+        }
         failed = !fetched.ok();
         media.mediaPath = fetched.path.toStdString();
+        if (usedOriginal) media.originalMediaPath = fetched.path.toStdString();
     }
     if (!failed && audio) {
         const auto fetched = fetch("original", *original);
         failed = !fetched.ok();
         media.audioPath = fetched.path.toStdString();
+        if (picture) media.originalMediaPath = fetched.path.toStdString();
+    } else if (!failed && picture && media.originalMediaPath.empty()) {
+        const auto fetched = fetch("original", *original);
+        failed = !fetched.ok();
+        media.originalMediaPath = fetched.path.toStdString();
     }
     if (failed) {
         if (picture) {
             media.mediaPath = QDir(cacheRoot).filePath("missing/" + nt::server::safePathPart(id)).toStdString();
         }
         media.audioPath.clear();
+        media.originalMediaPath.clear();
     }
     return media;
 }

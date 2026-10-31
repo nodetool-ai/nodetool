@@ -130,6 +130,7 @@ class AutosaveController : public QObject {
     Q_PROPERTY(QString recoveryError READ recoveryError NOTIFY stateChanged)
     Q_PROPERTY(QString earlierCopy READ earlierCopy NOTIFY stateChanged)
     Q_PROPERTY(QString earlierCopyError READ earlierCopyError NOTIFY stateChanged)
+    Q_PROPERTY(bool restoringEarlier READ restoringEarlier NOTIFY stateChanged)
 
 public:
     using DocumentFn = std::function<QJsonObject()>;
@@ -160,6 +161,7 @@ public:
     QString baseUpdatedAt() const { return m_base; }
     QString earlierCopy() const { return m_earlierCopies.value(0); }
     QString earlierCopyError() const { return m_earlierCopyError; }
+    bool restoringEarlier() const { return m_restoringEarlier; }
     Q_INVOKABLE bool restoreEarlierCopy(QObject* timeline);
     Q_INVOKABLE bool discardEarlierCopy();
 
@@ -224,6 +226,8 @@ private:
     QTimer m_retry;
     bool m_retryRecovery = false;
     QPointer<QThread> m_fetchWorker;
+    QPointer<QThread> m_restoreWorker;
+    bool m_restoringEarlier = false;
     QTimer m_externalRetry;
     std::unique_ptr<sync::ResourceChangeClient> m_changes;
     QUrl m_syncUrl;
@@ -231,6 +235,7 @@ private:
     struct ExternalConflict {
         sync::MergeConflict unit;
         std::vector<nt::Clip> media;
+        std::vector<AssetCache::Lease> mediaLeases;
     };
     QList<ExternalConflict> m_externalConflicts;
     QString m_externalState = QStringLiteral("idle");
@@ -249,6 +254,7 @@ private:
     bool m_flushing = false;
     std::optional<QDeadlineTimer> m_quitDeadline;
     std::optional<nt::Timeline> m_fetched;
+    std::vector<AssetCache::Lease> m_fetchedLeases;
     QElapsedTimer m_fetchElapsed;
     int m_retryBaseMs = 1000;
     int m_retryAttempt = 0;

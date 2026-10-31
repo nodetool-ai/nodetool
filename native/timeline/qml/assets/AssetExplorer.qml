@@ -31,6 +31,10 @@ Ui.Surface {
     height: parent && parent.parent ? parent.parent.height : TimelineMetrics.trackHeight * 9
     clip: true
 
+    AssetGallery {
+        id: gallery
+        browser: browserModel
+    }
     AssetBrowser {
         id: browserModel
         timeline: explorer.timeline
@@ -196,7 +200,7 @@ Ui.Surface {
                 Layout.minimumHeight: TimelineMetrics.trackHeight
                 browser: browserModel
                 navigateFolder: id => explorer.navigateFolder(id)
-                onPreviewRequested: row => explorer.showPreview(row)
+                onPreviewRequested: row => gallery.openAsset(row)
                 onActionsRequested: row => { selectedId = row.id; assetMenu.returnFocusTo = explorer.Window.window ? explorer.Window.window.activeFocusItem : null; assetMenu.popup() }
                 onImportRequested: files.open()
                 onClearFiltersRequested: explorer.clearFilters()

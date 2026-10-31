@@ -155,11 +155,13 @@ std::optional<RemoteFile> proxyFile(const ServerClient& client, const QJsonObjec
     return f;
 }
 
-ServerOpenResult openServerTimeline(const ServerOpenOptions& options) {
+static ServerOpenResult openServerTimelineImpl(const ServerOpenOptions& options,
+                                               const std::optional<QJsonObject>& sourceDocument) {
     QElapsedTimer total;
     total.start();
     ServerOpenResult out;
     ServerClient client(options.server, options.token);
+    client.setExpectedInstance(options.expectedInstance);
     QJsonObject report{
         {QStringLiteral("source"),
          QJsonObject{{QStringLiteral("server"), options.server.toString()},
@@ -179,10 +181,15 @@ ServerOpenResult openServerTimeline(const ServerOpenOptions& options) {
 
     QElapsedTimer step;
     step.start();
-    const QueryResult got = client.getTimeline(options.timelineId);
-    timings.insert(QStringLiteral("getMs"), static_cast<double>(step.elapsed()));
-    if (!got.ok()) return fail(QStringLiteral("timeline.get: %1").arg(got.describe()));
-    const QJsonObject raw = got.data.toObject();
+    QJsonObject raw;
+    if (sourceDocument) {
+        raw = *sourceDocument;
+    } else {
+        const QueryResult got = client.getTimeline(options.timelineId);
+        timings.insert(QStringLiteral("getMs"), static_cast<double>(step.elapsed()));
+        if (!got.ok()) return fail(QStringLiteral("timeline.get: %1").arg(got.describe()));
+        raw = got.data.toObject();
+    }
     const QByteArray rawBytes = QJsonDocument(raw).toJson(QJsonDocument::Compact);
 
     // D4: the raw document of the last load stays on disk next to the cache.
@@ -191,24 +198,26 @@ ServerOpenResult openServerTimeline(const ServerOpenOptions& options) {
     const QString rawPath = QDir(userDir).filePath(QStringLiteral("timelines/%1.json").arg(safePathPart(options.timelineId)));
     // Written to a temporary file and renamed into place, so a failure keeps
     // the previous backup whole. A failure is reported, not a load error.
-    QString backupError;
-    if (!QDir().mkpath(QFileInfo(rawPath).absolutePath())) {
-        backupError = QStringLiteral("cannot create %1").arg(QFileInfo(rawPath).absolutePath());
-    } else {
-        QSaveFile f(rawPath);
-        if (!f.open(QIODevice::WriteOnly)) {
-            backupError = QStringLiteral("cannot open %1: %2").arg(rawPath, f.errorString());
-        } else if (f.write(rawBytes) != rawBytes.size()) {
-            backupError = QStringLiteral("cannot write %1: %2").arg(rawPath, f.errorString());
-            f.cancelWriting();
-        } else if (!f.commit()) {
-            backupError = QStringLiteral("cannot save %1: %2").arg(rawPath, f.errorString());
+    if (!sourceDocument) {
+        QString backupError;
+        if (!QDir().mkpath(QFileInfo(rawPath).absolutePath())) {
+            backupError = QStringLiteral("cannot create %1").arg(QFileInfo(rawPath).absolutePath());
+        } else {
+            QSaveFile f(rawPath);
+            if (!f.open(QIODevice::WriteOnly)) {
+                backupError = QStringLiteral("cannot open %1: %2").arg(rawPath, f.errorString());
+            } else if (f.write(rawBytes) != rawBytes.size()) {
+                backupError = QStringLiteral("cannot write %1: %2").arg(rawPath, f.errorString());
+                f.cancelWriting();
+            } else if (!f.commit()) {
+                backupError = QStringLiteral("cannot save %1: %2").arg(rawPath, f.errorString());
+            }
         }
-    }
-    if (backupError.isEmpty()) {
-        report.insert(QStringLiteral("rawDocument"), rawPath);
-    } else {
-        report.insert(QStringLiteral("rawDocumentError"), backupError);
+        if (backupError.isEmpty()) {
+            report.insert(QStringLiteral("rawDocument"), rawPath);
+        } else {
+            report.insert(QStringLiteral("rawDocumentError"), backupError);
+        }
     }
     report.insert(QStringLiteral("fields"), auditTimelineFields(raw));
 
@@ -220,6 +229,7 @@ ServerOpenResult openServerTimeline(const ServerOpenOptions& options) {
     struct Need {
         AssetRef ref;
         bool picture = false;
+        bool proxyEligible = false;
         bool audio = false;
         std::vector<size_t> clips;
         std::vector<size_t> mattes;
@@ -239,6 +249,10 @@ ServerOpenResult openServerTimeline(const ServerOpenOptions& options) {
                 n.ref = ref;
                 n.picture = true;
                 n.mattes.push_back(i);
+            } else {
+                missing.append(QJsonObject{{QStringLiteral("clipId"), QString::fromStdString(clip.id)},
+                    {QStringLiteral("assetId"), matteId}, {QStringLiteral("kind"), QStringLiteral("generatedMatte")},
+                    {QStringLiteral("reason"), QStringLiteral("not an asset id or package URI")}});
             }
         }
         const bool pic = needsPicture(clip.mediaType);
@@ -265,6 +279,7 @@ ServerOpenResult openServerTimeline(const ServerOpenOptions& options) {
         Need& n = needs[ref.id];
         n.ref = ref;
         n.picture = n.picture || pic;
+        n.proxyEligible = n.proxyEligible || pic;
         n.audio = n.audio || aud;
         n.clips.push_back(i);
     }
@@ -314,7 +329,8 @@ ServerOpenResult openServerTimeline(const ServerOpenOptions& options) {
             const QString type = p.asset.value(u"content_type").toString();
             if (p.need->picture && p.original) {
                 QString proxyWhy;
-                const auto proxy = type.startsWith(u"video/") ? proxyFile(client, p.asset, &proxyWhy) : std::nullopt;
+                const auto proxy = p.need->proxyEligible && type.startsWith(u"video/")
+                    ? proxyFile(client, p.asset, &proxyWhy) : std::nullopt;
                 if (proxy) {
                     p.picture = proxy;
                     p.pictureVariant = QStringLiteral("proxy");
@@ -379,11 +395,14 @@ ServerOpenResult openServerTimeline(const ServerOpenOptions& options) {
             return variant == u"proxy" ? proxyFile(client, now.data.toObject(), &why)
                                        : originalFile(client, now.data.toObject(), &why);
         };
-        FetchResult r = cache.fetch(p.need->ref.cacheId, variant, file, isAsset ? recheck : AssetCache::Recheck{});
+        FetchResult r = cache.fetch(p.need->ref.cacheId, variant, file, isAsset ? recheck : AssetCache::Recheck{},
+            [&](const QString& path) {
+                cache.protect(path);
+                out.mediaLeases.push_back(AssetCache::lease(path));
+            });
         if (r.ok()) {
             pathByKey[key] = r.path;
             (r.hit ? hits : downloads) += 1;
-            cache.protect(r.path);  // this open uses it: a later download never evicts it
         }
         return r;
     };
@@ -399,6 +418,7 @@ ServerOpenResult openServerTimeline(const ServerOpenOptions& options) {
         entry.insert(QStringLiteral("clips"), clipIds);
         if (!p.proxyStatus.isEmpty()) entry.insert(QStringLiteral("proxyStatus"), p.proxyStatus);
         std::string picturePath;
+        std::string originalPath;
         std::string audioPath;
         if (p.error.isEmpty() && p.picture) {
             FetchResult r = fetchVariant(p, p.pictureVariant, *p.picture);
@@ -420,13 +440,19 @@ ServerOpenResult openServerTimeline(const ServerOpenOptions& options) {
                 p.error = r.error;
             }
         }
-        if (p.error.isEmpty() && p.need->audio && p.original) {
+        if (p.error.isEmpty() && p.original && (p.need->picture || p.need->audio)) {
             const FetchResult r = fetchVariant(p, p.originalVariant, *p.original);
             if (r.ok()) {
-                audioPath = r.path.toStdString();
-                entry.insert(QStringLiteral("audio"), QJsonObject{{QStringLiteral("variant"), p.originalVariant},
+                originalPath = r.path.toStdString();
+                entry.insert(QStringLiteral("original"), QJsonObject{{QStringLiteral("variant"), p.originalVariant},
                                                                   {QStringLiteral("path"), r.path},
                                                                   {QStringLiteral("cacheHit"), r.hit}});
+                if (p.need->audio) {
+                    audioPath = originalPath;
+                    entry.insert(QStringLiteral("audio"), QJsonObject{{QStringLiteral("variant"), p.originalVariant},
+                                                                      {QStringLiteral("path"), r.path},
+                                                                      {QStringLiteral("cacheHit"), r.hit}});
+                }
             } else {
                 p.error = r.error;
             }
@@ -438,15 +464,26 @@ ServerOpenResult openServerTimeline(const ServerOpenOptions& options) {
                                            {QStringLiteral("assetId"), p.need->ref.id},
                                            {QStringLiteral("reason"), p.error}});
             }
+            for (size_t i : p.need->mattes) {
+                missing.append(QJsonObject{{QStringLiteral("clipId"), QString::fromStdString(tl.clips[i].id)},
+                    {QStringLiteral("assetId"), p.need->ref.id}, {QStringLiteral("kind"), QStringLiteral("generatedMatte")},
+                    {QStringLiteral("reason"), p.error}});
+            }
             picturePath = missingPath(p.need->ref.id);
+            originalPath.clear();
             audioPath.clear();
         }
         if (p.error.isEmpty()) {
-            for (size_t i : p.need->mattes) tl.clips[i].generatedMattePath = picturePath;
+            // Mattes affect final pixels, so their sole resolved path is always
+            // the original. A video matte may still have a separate proxy.
+            for (size_t i : p.need->mattes) tl.clips[i].generatedMattePath = originalPath;
         }
         for (size_t i : p.need->clips) {
             Clip& clip = tl.clips[i];
-            if (needsPicture(clip.mediaType)) clip.mediaPath = picturePath;
+            if (needsPicture(clip.mediaType)) {
+                clip.mediaPath = picturePath;
+                clip.originalMediaPath = originalPath;
+            }
             if (needsAudio(clip.mediaType)) clip.audioPath = audioPath;
         }
         assetsReport.append(entry);
@@ -501,6 +538,14 @@ ServerOpenResult openServerTimeline(const ServerOpenOptions& options) {
     out.timeline = std::move(tl);
     out.report = report;
     return out;
+}
+
+ServerOpenResult openServerTimeline(const ServerOpenOptions& options) {
+    return openServerTimelineImpl(options, std::nullopt);
+}
+
+ServerOpenResult resolveTimelineDocumentMedia(const ServerOpenOptions& options, const QJsonObject& raw) {
+    return openServerTimelineImpl(options, raw);
 }
 
 }  // namespace nt::server

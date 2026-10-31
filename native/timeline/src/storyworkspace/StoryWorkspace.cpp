@@ -5,6 +5,7 @@
 #include <QJsonDocument>
 #include <QJsonArray>
 #include <QSet>
+#include <QUuid>
 
 void StoryWorkspace::setController(AssistController* controller) {
     if (m_controller == controller) { return; }
@@ -54,6 +55,40 @@ bool StoryWorkspace::patchDocument(const QString& field, const QJsonValue& value
     const auto result = nt::storyworkspace::patchDocument(QJsonObject::fromVariantMap(resource()), field, value);
     return retain(result.resource, result.error);
 }
+bool StoryWorkspace::applyShotDraft(const QString& shotId, const QJsonObject& patch) {
+    const auto result = nt::storyworkspace::applyShotDraft(QJsonObject::fromVariantMap(resource()), shotId, patch);
+    return retain(result.resource, result.error);
+}
+bool StoryWorkspace::nudgeShot(const QString& shotId, int direction) {
+    const auto result = nt::storyworkspace::nudgeShot(QJsonObject::fromVariantMap(resource()), shotId, direction);
+    return retain(result.resource, result.error);
+}
+bool StoryWorkspace::removeShotVersion(const QString& shotId, const QString& kind, int index) {
+    const auto result = nt::storyworkspace::removeShotVersion(QJsonObject::fromVariantMap(resource()), shotId, kind, index);
+    return retain(result.resource, result.error);
+}
+QString StoryWorkspace::insertShot(const QString& afterShotId) {
+    const auto id = QUuid::createUuid().toString(QUuid::Id128);
+    const auto result = nt::storyworkspace::insertShot(QJsonObject::fromVariantMap(resource()), afterShotId, id);
+    return retain(result.resource, result.error) ? id : QString{};
+}
+QString StoryWorkspace::duplicateShot(const QString& shotId) {
+    const auto id = QUuid::createUuid().toString(QUuid::Id128);
+    const auto result = nt::storyworkspace::duplicateShot(QJsonObject::fromVariantMap(resource()), shotId, id);
+    return retain(result.resource, result.error) ? id : QString{};
+}
+bool StoryWorkspace::removeShot(const QString& shotId) {
+    const auto result = nt::storyworkspace::removeShot(QJsonObject::fromVariantMap(resource()), shotId);
+    return retain(result.resource, result.error);
+}
+bool StoryWorkspace::moveShot(const QString& shotId, const QString& sceneId, int position) {
+    const auto result = nt::storyworkspace::moveShot(QJsonObject::fromVariantMap(resource()), shotId, sceneId, position);
+    return retain(result.resource, result.error);
+}
+bool StoryWorkspace::patchBoard(const QString& field, const QJsonValue& value) {
+    const auto result = nt::storyworkspace::patchBoard(QJsonObject::fromVariantMap(resource()), field, value);
+    return retain(result.resource, result.error);
+}
 bool StoryWorkspace::save() {
     if (!m_controller || m_controller->busy() || !dirty()) { return false; }
     for (const auto& raw : m_jsonDrafts.value(key())) {
@@ -75,7 +110,7 @@ void StoryWorkspace::observe() {
         const auto saved = current();
         const bool entity = m_submitted.value("metadata").isObject();
         const auto field = entity ? QStringLiteral("metadata") : QStringLiteral("document");
-        if (m_controller->error().isEmpty() && key() == m_submitting && saved.value("id") == m_submitted.value("id") && saved.value(field) == m_submitted.value(field)) {
+        if (m_controller->error().isEmpty() && key() == m_submitting && saved.value("id") == m_submitted.value("id") && saved.value(field) == m_submitted.value(field) && (entity || saved.value("name") == m_submitted.value("name"))) {
             m_drafts.remove(m_submitting); m_jsonDrafts.remove(m_submitting);
         } else { m_error = "Save was not confirmed. Your draft is retained. Retry after reconnecting, or reopen to check for conflicts."; }
         m_submitting.clear(); m_submitted = {};

@@ -9,7 +9,6 @@ ColumnLayout {
     required property string messageId
     required property string role
     required property string text
-    required property string timestamp
     required property var parts
     required property string status
     required property var session
@@ -237,13 +236,6 @@ ColumnLayout {
                 }
             }
         }
-    }
-    Ui.Text {
-        role: Ui.Typography.SansCaption
-        text: root.timestamp
-        visible: text.length > 0
-        tone: Ui.Text.Secondary
-        Layout.alignment: root.userMessage ? Qt.AlignRight : Qt.AlignLeft
     }
     Ui.Text {
         role: Ui.Typography.SansCaption

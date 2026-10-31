@@ -195,6 +195,22 @@ private slots:
         QCOMPARE(linkedInput->value("baseUpdatedAt").toString(), QString("revision"));
         QCOMPARE(controller.result().toMap().value("id").toString(), QString("script"));
     }
+    void syncOfSameTimelineKeepsOpenScript() {
+        const auto load = [](const QString& id) {
+            const QJsonObject document{{"id", id}, {"tracks", QJsonArray{}}, {"clips", QJsonArray{}}};
+            return *nt::parseTimelineJson(QJsonDocument(document).toJson()).timeline;
+        };
+        TimelineModel model; model.setTimeline(load("sequence"));
+        const QJsonObject resource{{"id", "script"}, {"updatedAt", "revision"}, {"timelineId", "sequence"}, {"document", QJsonObject{{"cast", QJsonArray{}}, {"sections", QJsonArray{}}}}};
+        AssistController controller; controller.setProperty("documentOnly", true); controller.setModel(&model);
+        controller.setCall([resource](bool, const QString&, const QJsonObject&) { return nt::server::QueryResult{resource, {}}; });
+        QVERIFY(controller.openScript("script")); QTRY_VERIFY(!controller.busy());
+        model.setTimeline(load("sequence"));
+        QCOMPARE(controller.result().toMap().value("id").toString(), QString("script"));
+        QVERIFY(controller.scriptOnTimeline());
+        model.setTimeline(load("other"));
+        QVERIFY(!controller.result().isValid());
+    }
     void failedScriptSaveKeepsTypedLineDraft() {
         const QJsonObject document{{"id", "sequence"}, {"tracks", QJsonArray{}}, {"clips", QJsonArray{}}};
         const auto parsed = nt::parseTimelineJson(QJsonDocument(document).toJson());

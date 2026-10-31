@@ -14,7 +14,16 @@ Rectangle {
     signal resizeStarted()
     signal resizeRequested(real next)
     signal resizeFinished(bool canceled)
-    color: mouse.containsMouse || mouse.pressed || activeFocus ? Ui.Theme.accentPrimary : Ui.Theme.surfaceCanvas
+    readonly property bool engaged: mouse.containsMouse || mouse.pressed || activeFocus
+    color: engaged ? Ui.Theme.accentPrimary : Ui.Theme.surfaceCanvas
+    // A hairline marks the seam between regions while the handle is idle.
+    Rectangle {
+        visible: !root.engaged
+        anchors.centerIn: parent
+        width: root.vertical ? Ui.Metrics.border : parent.width
+        height: root.vertical ? parent.height : Ui.Metrics.border
+        color: Ui.Theme.borderSubtle
+    }
     activeFocusOnTab: true
     Accessible.role: Accessible.Grip
     Accessible.name: label

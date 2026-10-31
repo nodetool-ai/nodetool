@@ -8,6 +8,7 @@
 #include <QSslSocket>
 #include <QTcpSocket>
 #include <QTimer>
+#include <QThread>
 
 #include <algorithm>
 #include <limits>
@@ -45,6 +46,12 @@ public:
         }
     }
     bool budget() {
+        if (QThread::currentThread()->isInterruptionRequested()) {
+            socket->abort();
+            code = "CANCELLED";
+            error = "server write cancelled";
+            return false;
+        }
         if ((deadlineMs > 0 && elapsed.elapsed() >= deadlineMs) || (timeoutMs > 0 && idle.elapsed() >= timeoutMs)) {
             code = "TIMEOUT";
             error = "server write timed out";
@@ -66,7 +73,7 @@ public:
             if (socket->state() == QAbstractSocket::UnconnectedState) {
                 return fail("server connection closed: " + socket->errorString());
             }
-            qint64 left = std::numeric_limits<int>::max();
+            qint64 left = 25;  // Also wake to observe thread interruption.
             if (timeoutMs > 0) {
                 left = std::min(left, timeoutMs - idle.elapsed());
             }

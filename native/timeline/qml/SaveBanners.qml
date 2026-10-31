@@ -37,6 +37,7 @@ Column {
     readonly property string earlierCopy: autosave !== null && autosave.earlierCopy !== undefined ? autosave.earlierCopy : ""
     readonly property string earlierCopyError: autosave !== null && autosave.earlierCopyError !== undefined
                                                ? autosave.earlierCopyError : ""
+    readonly property bool restoringEarlier: autosave !== null && autosave.restoringEarlier === true
 
     function editorAbove() {
         let item = parent
@@ -105,7 +106,8 @@ Column {
                 spacing: Ui.Metrics.sm
                 RecoveryAction {
                     objectName: "restoreEarlierCopyButton"
-                    text: "Restore"
+                    text: banners.restoringEarlier ? "Loading media…" : "Restore"
+                    enabled: !banners.restoringEarlier
                     onClicked: {
                         const editor = banners.editorAbove()
                         if (editor && banners.autosave) banners.autosave.restoreEarlierCopy(editor.timeline)
@@ -114,6 +116,7 @@ Column {
                 RecoveryAction {
                     objectName: "discardEarlierCopyButton"
                     text: "Discard"
+                    enabled: !banners.restoringEarlier
                     onClicked: if (banners.autosave) banners.autosave.discardEarlierCopy()
                 }
             }
@@ -137,6 +140,7 @@ Column {
         title: "An earlier session left unsaved edits."
         detail: banners.earlierCopy + ". Restore replaces the timeline content as one undo step. "
                 + "The copy stays until you discard it."
+                + (banners.restoringEarlier ? " Loading media…" : "")
                 + (banners.earlierCopyError !== "" ? " " + banners.earlierCopyError : "")
     }
     Alert {

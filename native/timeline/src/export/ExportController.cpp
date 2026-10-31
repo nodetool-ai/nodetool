@@ -1,5 +1,6 @@
 #include "export/ExportController.h"
 #include "activity/local/LocalActivityStore.h"
+#include "assets/AssetMedia.h"
 #include "export/ExportCapabilities.h"
 #include "preview/effects/Masks.h"
 #include <QCoreApplication>
@@ -19,7 +20,9 @@ QJsonObject nt::exporting::exportSnapshot(const TimelineModel& model) {
     for (const auto& clip : model.timeline().clips) {
         duration = std::max(duration, clip.endMs());
         auto json = clip.raw;
-        if (!clip.mediaPath.empty()) json.insert("mediaPath", QString::fromStdString(clip.mediaPath));
+        const auto& picture = clip.originalMediaPath.empty() ? clip.mediaPath : clip.originalMediaPath;
+        if (!picture.empty()) json.insert("mediaPath", QString::fromStdString(picture));
+        if (!clip.originalMediaPath.empty()) json.insert("originalMediaPath", QString::fromStdString(clip.originalMediaPath));
         if (!clip.audioPath.empty()) json.insert("audioPath", QString::fromStdString(clip.audioPath));
         const auto mattePath = nt::effects::resolvedGeneratedMattePath(clip);
         if (!mattePath.isEmpty()) {
@@ -48,6 +51,7 @@ ExportController::ExportController(QObject* parent) : QObject(parent) {
         }
         self->m_job.reset();
         self->m_staging.reset();
+        self->m_mediaLeases.clear();
         nt::activity::LocalActivityStore::instance().finish(self->m_activityId, success, self->m_cancelled && code == 3, self->m_error);
         self->m_activityId.clear();
         emit self->finished(success);
@@ -56,6 +60,7 @@ ExportController::ExportController(QObject* parent) : QObject(parent) {
         if (self && error == QProcess::FailedToStart) {
             self->m_job.reset();
             self->m_staging.reset();
+            self->m_mediaLeases.clear();
             self->fail(self->m_process.errorString());
         }
     });
@@ -82,6 +87,7 @@ void ExportController::fail(const QString& message) {
     m_error = message;
     emit errorChanged();
     if (!running()) {
+        m_mediaLeases.clear();
         nt::activity::LocalActivityStore::instance().finish(m_activityId, false, false, m_error);
         m_activityId.clear();
     }
@@ -90,6 +96,30 @@ void ExportController::fail(const QString& message) {
 void ExportController::start(const QString& output, const QString& format, bool alpha) {
     if (running()) return;
     if (!m_timeline) { fail(QStringLiteral("Open a timeline before exporting.")); return; }
+    const bool videoOutput = format != u"wav" && format != u"mp3";
+    for (const auto& clip : m_timeline->timeline().clips) {
+        const auto label = QString::fromStdString(clip.name.empty() ? clip.id : clip.name);
+        if (videoOutput && (clip.mediaType == nt::MediaType::Video || clip.mediaType == nt::MediaType::Image)) {
+            const auto assetId = clip.raw.value("currentAssetId").toString();
+            if (!assetId.isEmpty() && clip.originalMediaPath.empty()) {
+                fail(QStringLiteral("The original media for %1 is unavailable. Reconnect and reload the timeline before exporting.").arg(label));
+                return;
+            }
+            if (!clip.originalMediaPath.empty() && !QFileInfo::exists(QString::fromStdString(clip.originalMediaPath))) {
+                fail(QStringLiteral("The original media for %1 is missing from the cache. Reconnect and reload the timeline before exporting.").arg(label));
+                return;
+            }
+        }
+        const auto matte = clip.raw.value("generatedMatte").toObject();
+        if (videoOutput && !matte.value("assetId").toString().isEmpty() && matte.value("mediaPath").toString().isEmpty() &&
+            matte.value("status").toString("ready") == "ready") {
+            if (clip.generatedMattePath.empty() || !QFileInfo::exists(QString::fromStdString(clip.generatedMattePath))) {
+                fail(QStringLiteral("The original generated matte for %1 is unavailable. Reconnect and reload the timeline before exporting.").arg(label));
+                return;
+            }
+        }
+    }
+    m_mediaLeases = nt::assets::MediaProtection::leasePaths(m_timeline->resolvedMediaPaths());
     m_activityId = nt::activity::LocalActivityStore::instance().begin(
         nt::activity::localScope(m_timeline->timeline().raw), QStringLiteral("Export %1").arg(m_timeline->name()), this, output);
     m_job = std::make_unique<QTemporaryDir>();

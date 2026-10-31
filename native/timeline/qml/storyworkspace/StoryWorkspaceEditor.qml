@@ -14,11 +14,43 @@ Ui.Surface {
     property string kind: "scripts"
     property string fixedKind: ""
     property var mediaBrowser: null
+    // Lists documents for the link dialog without replacing the open document.
+    property var picker: null
+    readonly property bool linkedMode: fixedKind !== ""
+    property bool unlinked: false
+    property var steps: []
     property string selectedShotId: ""
     property string returnId: ""
     property string returnKind: ""
+    property var voiceQueue: []
+    property bool voiceNext: false
+    property string voicingLineId: ""
+    readonly property var voiceTargets: controller.scriptRows.filter(row => row.kind === "line" && row.hasVoice && row.status !== "voiced" && (row.text || "").trim() !== "" && !row.draftDirty)
+    function voiceLine(lineId) {
+        voicingLineId = lineId
+        voicing.voice(controller.result, lineId)
+    }
+    function voiceAll() {
+        voiceQueue = voiceTargets.map(row => row.id)
+        voiceQueued()
+    }
+    function voiceQueued() {
+        if (voiceQueue.length === 0) { voicingLineId = ""; return }
+        const next = voiceQueue[0]
+        voiceQueue = voiceQueue.slice(1)
+        voiceLine(next)
+    }
+    property string playingTakeId: ""
+    function playTake(take) {
+        if (playingTakeId === take.id && takePlayer.ready) { takePlayer.togglePlay(); return }
+        takePlayer.close()
+        playingTakeId = take.id
+        takePlayer.preview(take.assetId, "audio", take.durationMs || 0)
+    }
+    function seconds(ms) { return ms > 0 ? (ms / 1000).toFixed(1) + " s" : "" }
     readonly property var resource: workspace.resource
-    readonly property var document: resource.document || ({})
+    readonly property bool hasDocument: !!resource.id && !(linkedMode && unlinked)
+    readonly property var document: hasDocument ? resource.document || ({}) : ({})
     readonly property bool showingList: controller.result !== null && controller.result !== undefined && typeof controller.result.length === "number"
     readonly property var resourceList: {
         if (!showingList) return []
@@ -44,15 +76,8 @@ Ui.Surface {
         }
         return {lines, words}
     }
-    readonly property var sceneNames: {
-        const result = Object.create(null)
-        for (let i = 0; i < (document.scenes || []).length; ++i) {
-            const scene = document.scenes[i]
-            result[scene.id] = scene.name || scene.title || "Scene " + (i + 1)
-        }
-        return result
-    }
     readonly property string documentKind: document.shots !== undefined ? "storyboards" : "scripts"
+    readonly property bool showsBoard: hasDocument && documentKind === "storyboards" && kind !== "entities"
     signal linkedResourceRequested(string kind, string id)
     clip: true
 
@@ -62,11 +87,61 @@ Ui.Surface {
         selectedShotId = ""
         controller.listContextResources(kind, linked.checked)
     }
+    // Each step either starts a server call or returns false to stop the sequence.
+    function run(list) { steps = list; advance() }
+    function advance() {
+        while (steps.length > 0 && !controller.busy) {
+            const next = steps[0]
+            steps = steps.slice(1)
+            if (next() === false) steps = []
+        }
+    }
+    function newest(rows) {
+        return Array.from(rows || []).sort((a, b) => (Date.parse(b.updatedAt || "") || 0) - (Date.parse(a.updatedAt || "") || 0))
+    }
+    function loadLinked() {
+        if (fixedKind === "storyboards") {
+            const board = workspace.linkedResources.find(row => row.kind === "storyboards")
+            if (board) openResource(board.id, "storyboards")
+            else unlinked = true
+            return
+        }
+        run([() => controller.listContextResources("scripts", true), () => {
+            const rows = showingList ? newest(controller.result) : []
+            if (rows.length === 0) { unlinked = true; return false }
+            openResource(rows[0].id, "scripts")
+        }])
+    }
+    function linkDocument(id) {
+        if (fixedKind === "storyboards") { openResource(id, "storyboards"); return }
+        const previous = hasDocument ? resource.id : ""
+        const list = []
+        if (previous && previous !== id) list.push(() => controller.linkScript(previous, false))
+        list.push(() => controller.linkScript(id, true), () => openResource(id, "scripts"))
+        run(list)
+    }
+    function unlinkDocument() {
+        if (!hasDocument) return
+        const id = resource.id
+        run([() => controller.linkScript(id, false), () => { unlinked = true }])
+    }
+    function createLinkedDocument() {
+        const previous = hasDocument ? resource.id : ""
+        const list = []
+        if (previous) list.push(() => controller.linkScript(previous, false))
+        list.push(() => controller.createLinkedScript(), () => loadLinked())
+        run(list)
+    }
+    function choose() {
+        linkDialog.currentId = hasDocument ? resource.id : ""
+        linkDialog.open()
+    }
     function openResource(id, nextKind) {
         if (fixedKind !== "" && nextKind !== fixedKind && nextKind !== "entities") {
             linkedResourceRequested(nextKind, id)
             return
         }
+        unlinked = false
         kind = nextKind
         selectedShotId = ""
         if (kind === "scripts") controller.openScript(id)
@@ -88,22 +163,6 @@ Ui.Surface {
         if (date.toDateString() === yesterday.toDateString()) return "Yesterday"
         return now - date < 7 * 24 * 60 * 60 * 1000 ? "Previous 7 days" : "Earlier"
     }
-    function mediaId(ref) {
-        return ref.asset_id || ((ref.uri || "").startsWith("asset://") ? ref.uri.slice(8) : "")
-    }
-    function thumbnail(ref) {
-        if ((ref.uri || "").startsWith("data:image/")) return ref.uri
-        const id = mediaId(ref)
-        if (id) return mediaBrowser ? mediaBrowser.thumbnails[id] || "" : ""
-        const uri = ref.thumb_url || ref.thumbnail_url || ref.uri || ""
-        if (!uri.startsWith("/") && !uri.startsWith("https://") && !uri.startsWith("http://")) return ""
-        return mediaBrowser && uri ? mediaBrowser.mediaUrl(uri) : ""
-    }
-    function shotRatio() {
-        const parts = (document.aspect_ratio || "16:9").split(":").map(Number)
-        return parts.length === 2 && parts[0] > 0 && parts[1] > 0 ? parts[0] / parts[1] : 16 / 9
-    }
-    function sceneName(shot) { return sceneNames[shot.scene_id] || "" }
 
     component DocumentGlyph: Ui.Icon {
         property bool board: false
@@ -132,12 +191,144 @@ Ui.Surface {
     }
     component WorkspaceCheckBox: Ui.Toggle {}
 
+    Connections {
+        target: panel.controller
+        function onChanged() {
+            if (!panel.controller.busy && panel.steps.length > 0) Qt.callLater(panel.advance)
+            if (!panel.controller.busy && panel.voiceNext) { panel.voiceNext = false; Qt.callLater(panel.voiceQueued) }
+        }
+    }
+    CandidatePreview {
+        id: takePlayer
+        objectName: "workspaceTakePlayer"
+        timeline: panel.controller.timeline
+        audioMode: "system"
+        onReadyChanged: if (ready && panel.playingTakeId !== "" && !previewClock.playing) togglePlay()
+    }
+    FrameAnimation {
+        running: takePlayer.previewClock.playing
+        onTriggered: {
+            takePlayer.previewClock.tick()
+            if (takePlayer.previewClock.time >= takePlayer.previewClock.durationMs) { takePlayer.close(); panel.playingTakeId = "" }
+        }
+    }
+    Component.onDestruction: takePlayer.close()
+    // Voices one line at a time. Each saved take reloads the script before the next line starts.
+    ScriptVoicing {
+        id: voicing
+        timeline: panel.controller.timeline
+        onSaved: scriptId => { panel.voiceNext = panel.voiceQueue.length > 0; panel.controller.openScript(scriptId) }
+        onStateChanged: if (state === "failed" || state === "cancelled") { panel.voiceQueue = []; panel.voicingLineId = "" }
+    }
+    LinkDocumentDialog {
+        id: linkDialog
+        controller: panel.picker
+        kind: panel.fixedKind || "scripts"
+        onPicked: id => panel.linkDocument(id)
+        onCreateRequested: panel.createLinkedDocument()
+    }
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Ui.Metrics.lg
+        anchors.margins: Ui.Metrics.md
         spacing: Ui.Metrics.sm
         RowLayout {
+            objectName: "workspaceLinkedHeader"
             Layout.fillWidth: true
+            visible: panel.linkedMode && panel.hasDocument && panel.kind !== "entities"
+            spacing: Ui.Metrics.sm
+            DocumentGlyph { board: panel.documentKind === "storyboards" }
+            Column {
+                Layout.fillWidth: true
+                spacing: Ui.Metrics.micro
+                Ui.Text {
+                    objectName: "workspaceLinkedName"
+                    width: parent.width
+                    text: resource.name || (panel.documentKind === "scripts" ? "Untitled script" : "Untitled storyboard")
+                    role: Ui.Typography.SansLabel
+                    elide: Text.ElideRight
+                }
+                Ui.Text {
+                    width: parent.width
+                    text: (document.shots ? document.shots.length + (document.shots.length === 1 ? " shot" : " shots") : panel.scriptStats.lines + (panel.scriptStats.lines === 1 ? " line" : " lines")) + (workspace.dirty || controller.scriptDirty ? " · Edited" : "")
+                    role: Ui.Typography.SansCaption
+                    tone: Ui.Text.Secondary
+                    elide: Text.ElideRight
+                }
+            }
+            Ui.ToolbarIconButton {
+                objectName: "workspaceChangeLink"
+                iconName: panel.fixedKind === "scripts" ? "link" : "swapHoriz"
+                accessibleName: panel.fixedKind === "scripts" ? "Link a different script" : "Choose a different storyboard"
+                description: accessibleName
+                enabled: !controller.busy && !!panel.picker
+                onClicked: panel.choose()
+            }
+            Ui.ToolbarIconButton {
+                objectName: "workspaceUnlink"
+                visible: panel.fixedKind === "scripts"
+                iconName: "linkOff"
+                accessibleName: "Unlink script"
+                description: accessibleName
+                enabled: !controller.busy && !controller.scriptDirty
+                onClicked: panel.unlinkDocument()
+            }
+        }
+        Ui.Separator { Layout.fillWidth: true; visible: panel.linkedMode && panel.hasDocument && panel.kind !== "entities" }
+        Item {
+            objectName: "workspaceLinkEmpty"
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            visible: panel.linkedMode && !panel.hasDocument && !controller.busy && panel.steps.length === 0
+            Column {
+                anchors.centerIn: parent
+                width: Math.min(parent.width - 2 * Ui.Metrics.lg, Ui.Metrics.dialogCompactWidth)
+                spacing: Ui.Metrics.md
+                Ui.Icon {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    name: panel.fixedKind === "scripts" ? "subtitles" : "gridGoldenratio"
+                    size: Ui.Metrics.iconLg
+                    tone: Ui.Text.Secondary
+                }
+                Ui.Text {
+                    width: parent.width
+                    horizontalAlignment: Text.AlignHCenter
+                    text: panel.fixedKind === "scripts" ? "No script linked" : "No storyboard chosen"
+                    role: Ui.Typography.SansLabel
+                }
+                Ui.Text {
+                    width: parent.width
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                    text: controller.offline ? "Connect to a server to link documents."
+                        : panel.fixedKind === "scripts" ? "Link a script to edit its lines beside the cut."
+                        : "Choose a storyboard to see its shots beside the cut."
+                    role: Ui.Typography.SansCaption
+                    tone: Ui.Text.Secondary
+                }
+                Row {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    spacing: Ui.Metrics.sm
+                    visible: !controller.offline
+                    Ui.EditorButton {
+                        objectName: "workspaceLinkButton"
+                        text: panel.fixedKind === "scripts" ? "Link script…" : "Choose storyboard…"
+                        iconName: panel.fixedKind === "scripts" ? "link" : ""
+                        variant: Ui.EditorButton.Primary
+                        enabled: !!panel.picker
+                        onClicked: panel.choose()
+                    }
+                    Ui.EditorButton {
+                        visible: panel.fixedKind === "scripts"
+                        text: "New script"
+                        iconName: "add"
+                        onClicked: panel.createLinkedDocument()
+                    }
+                }
+            }
+        }
+        RowLayout {
+            Layout.fillWidth: true
+            visible: !panel.linkedMode
             spacing: Ui.Metrics.sm
             Ui.Select {
                 id: documentSelector
@@ -152,6 +343,7 @@ Ui.Surface {
                 onValueCommitted: next => panel.browse(next)
             }
             Ui.Text {
+                objectName: "workspaceTitle"
                 visible: panel.fixedKind !== ""
                 Layout.fillWidth: true
                 role: Ui.Typography.SansLabel
@@ -163,14 +355,14 @@ Ui.Surface {
             id: documentSearch
             objectName: "workspaceSearch"
             Layout.fillWidth: true
-            visible: !resource.id
+            visible: !resource.id && !panel.linkedMode
             placeholderText: panel.kind === "storyboards" ? "Search storyboards" : "Search scripts"
             Accessible.name: placeholderText
         }
         WorkspaceCheckBox {
             id: linked
             text: "Linked to this timeline only"
-            visible: panel.kind === "scripts"
+            visible: panel.kind === "scripts" && !panel.linkedMode
             checked: false
             enabled: !controller.busy
             onToggled: panel.browse("scripts")
@@ -178,14 +370,15 @@ Ui.Surface {
         WorkspaceLabel {
             Layout.fillWidth: true
             text: workspace.error || controller.error
-            visible: text !== ""
+            // With no server, the list message already explains the state.
+            visible: text !== "" && !(panel.linkedMode && controller.offline) && !(controller.offline && !workspace.error && !resource.id)
             tone: Ui.Text.Error
             Accessible.role: Accessible.AlertMessage
         }
-        WorkspaceLabel { visible: controller.busy; text: "Loading documents…" }
+        WorkspaceLabel { visible: controller.busy && !panel.hasDocument; text: "Loading documents…" }
         ColumnLayout {
             Layout.fillWidth: true
-            visible: !!resource.id
+            visible: panel.hasDocument && !panel.linkedMode
             spacing: Ui.Metrics.sm
             RowLayout {
                 Layout.fillWidth: true
@@ -206,10 +399,23 @@ Ui.Surface {
             }
             Ui.Separator { Layout.fillWidth: true }
         }
+        StoryboardBoard {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            visible: panel.showsBoard
+            workspace: panel.workspace
+            controller: panel.controller
+            renders: shotRenders
+            mediaBrowser: panel.mediaBrowser
+            onEditShotRequested: id => panel.selectedShotId = id
+            onEntityRequested: id => { panel.returnId = panel.resource.id; panel.returnKind = panel.documentKind; panel.kind = "entities"; panel.controller.openEntity(id) }
+            onScriptRequested: id => panel.openResource(id, "scripts")
+        }
         ScrollView {
             id: scroll
             Layout.fillWidth: true
             Layout.fillHeight: true
+            visible: (!panel.linkedMode || panel.hasDocument) && !panel.showsBoard
             clip: true
             rightPadding: Ui.Metrics.md
             contentWidth: Math.max(0, width - rightPadding)
@@ -220,15 +426,7 @@ Ui.Surface {
                 Column {
                     width: parent.width
                     spacing: Ui.Metrics.sm
-                    visible: !resource.id
-                    WorkspaceLabel {
-                        objectName: "workspaceTitle"
-                        width: parent.width
-                        text: panel.fixedKind === "storyboards" ? qsTr("Storyboards") : qsTr("Scripts")
-                        tone: Ui.Text.Primary
-                        role: Ui.Typography.SansBody
-
-                    }
+                    visible: !resource.id && !panel.linkedMode
                     WorkspaceLabel {
                         width: parent.width
                         objectName: "workspaceListMessage"
@@ -243,7 +441,7 @@ Ui.Surface {
                     }
                 }
                 Repeater {
-                    model: panel.resourceList
+                    model: panel.linkedMode ? [] : panel.resourceList
                     delegate: Column {
                         required property var modelData
                         width: parent.width
@@ -270,7 +468,7 @@ Ui.Surface {
                 Column {
                     width: parent.width
                     spacing: Ui.Metrics.sm
-                    visible: !!resource.id
+                    visible: panel.hasDocument && (!panel.linkedMode || panel.kind === "entities")
                     WorkspaceButton {
                         objectName: "workspaceBackToDocument"
                         text: panel.kind === "entities" ? "Back to document" : "All " + panel.documentKind
@@ -282,7 +480,7 @@ Ui.Surface {
                     }
                 }
                 Repeater {
-                    model: workspace.linkedResources
+                    model: panel.linkedMode ? [] : workspace.linkedResources
                     delegate: WorkspaceButton {
                         required property var modelData
                         width: parent.width
@@ -291,16 +489,45 @@ Ui.Surface {
                         onClicked: panel.openResource(modelData.id, modelData.kind)
                     }
                 }
-                WorkspaceButton { text: "Open linked script"; visible: !!document.screenplay?.script_id; enabled: !controller.busy; onClicked: panel.openResource(document.screenplay.script_id, "scripts") }
-                WorkspaceButton { text: "Open linked storyboard"; visible: !!resource.storyboardId; enabled: !controller.busy; onClicked: panel.openResource(resource.storyboardId, "storyboards") }
+                WorkspaceButton { text: "Open linked script"; visible: !panel.linkedMode && !!document.screenplay?.script_id; enabled: !controller.busy; onClicked: panel.openResource(document.screenplay.script_id, "scripts") }
+                WorkspaceButton { text: "Open linked storyboard"; visible: !panel.linkedMode && !!resource.storyboardId; enabled: !controller.busy; onClicked: panel.openResource(resource.storyboardId, "storyboards") }
+                Flow {
+                    objectName: "workspaceScriptVoiceBar"
+                    width: parent.width
+                    visible: !!document.sections
+                    spacing: Ui.Metrics.sm
+                    WorkspaceButton {
+                        objectName: "workspaceVoiceAll"
+                        primary: true
+                        text: voicing.busy && panel.voiceQueue.length > 0 ? "Voicing… " + panel.voiceQueue.length + " left" : "Voice all (" + panel.voiceTargets.length + ")"
+                        enabled: !controller.busy && !voicing.busy && panel.voiceTargets.length > 0 && !workspace.dirty
+                        onClicked: panel.voiceAll()
+                    }
+                    WorkspaceButton {
+                        text: "Stop"
+                        visible: voicing.busy
+                        onClicked: { panel.voiceQueue = []; voicing.cancel() }
+                    }
+                    WorkspaceButton {
+                        objectName: "workspaceAddToTimeline"
+                        readonly property bool linked: { controller.result; return controller.scriptOnTimeline() }
+                        text: linked ? "Clips on this timeline" : "Add voice clips to timeline"
+                        enabled: !linked && !controller.busy && !workspace.dirty
+                        onClicked: controller.linkScript(resource.id, true)
+                    }
+                }
+                WorkspaceLabel {
+                    width: parent.width
+                    visible: voicing.error !== ""
+                    text: voicing.error
+                    tone: Ui.Text.Error
+                }
                 Repeater {
                     model: document.sections ? controller.scriptRows : []
                     delegate: Item {
                         id: line
                         required property var modelData
                         readonly property bool isSection: modelData.kind === "section"
-                        readonly property bool narrow: panel.width < TimelineMetrics.trackHeaderWidth * 2
-                        readonly property string speaker: modelData.speakerName || "No speaker"
                         readonly property bool lineDirty: { controller.scriptDraftRevision; return controller.hasScriptLineDraft(modelData.scriptId || "", modelData.id || "") }
                         width: parent.width
                         height: lineContent.implicitHeight + (isSection ? Ui.Metrics.sm : 2 * Ui.Metrics.lg)
@@ -318,21 +545,10 @@ Ui.Surface {
                                 role: Ui.Typography.SansCaption
 
                             }
-                            Row {
-                                visible: !line.isSection && line.narrow
-                                spacing: Ui.Metrics.sm
-                                Rectangle {
-                                    width: Ui.Metrics.iconSm * 2; height: width; radius: Ui.Metrics.radiusPill
-                                    color: "transparent"; border.color: Ui.Theme.statusInfo
-                                    WorkspaceLabel { anchors.centerIn: parent; text: line.speaker.slice(0, 1).toUpperCase(); tone: Ui.Text.Info; role: Ui.Typography.SansBody }
-                                }
-                                WorkspaceLabel { anchors.verticalCenter: parent.verticalCenter; text: line.speaker.toUpperCase(); tone: Ui.Text.Info; role: Ui.Typography.SansCaption }
-                            }
                             RowLayout {
                                 width: parent.width
                                 visible: !line.isSection
                                 spacing: Ui.Metrics.lg
-                                WorkspaceLabel { visible: !line.narrow; Layout.preferredWidth: Ui.Metrics.comfortable * 3; Layout.alignment: Qt.AlignTop; text: line.speaker.toUpperCase(); tone: Ui.Text.Info; role: Ui.Typography.SansCaption }
                                 WorkspaceArea {
                                     Layout.fillWidth: true
                                     objectName: "workspaceScriptLine_" + line.modelData.id
@@ -345,11 +561,118 @@ Ui.Surface {
                                     onTextEdited: controller.setScriptLineDraft(line.modelData.scriptId, line.modelData.id, text)
                                 }
                             }
-                            WorkspaceLabel {
-                                visible: !line.isSection && text !== ""
-                                text: line.modelData.status === "voiced" ? "Voiced" : line.modelData.status === "stale" ? "Voice outdated" : ""
-                                tone: line.modelData.status === "voiced" ? Ui.Text.Success : Ui.Text.Warning
-                                role: Ui.Typography.SansCaption
+                            RowLayout {
+                                width: parent.width
+                                visible: !line.isSection && !line.modelData.draftOrphan
+                                spacing: Ui.Metrics.sm
+                                Ui.Select {
+                                    objectName: "workspaceLineSpeaker_" + line.modelData.id
+                                    Layout.alignment: Qt.AlignTop
+                                    Layout.preferredWidth: Ui.Metrics.comfortable * 4
+                                    options: [{label: "No speaker", value: ""}].concat((document.cast || []).map(member => ({label: member.name || "Unnamed", value: member.id})))
+                                    value: line.modelData.speakerId || ""
+                                    accessibleName: "Speaker"
+                                    enabled: !controller.busy && !workspace.dirty
+                                    onValueCommitted: next => controller.updateScriptLine(line.modelData.id, {speakerId: next || null})
+                                }
+                                WorkspaceArea {
+                                    objectName: "workspaceLineDirection_" + line.modelData.id
+                                    Layout.fillWidth: true
+                                    Layout.alignment: Qt.AlignTop
+                                    wrapMode: TextEdit.Wrap
+                                    value: line.modelData.direction || ""
+                                    placeholderText: "Direction, e.g. warm, slow"
+                                    Accessible.name: "Delivery direction"
+                                    enabled: !controller.busy && !workspace.dirty
+                                    onEditingFinished: if (text.trim() !== (line.modelData.direction || "")) controller.updateScriptLine(line.modelData.id, {direction: text.trim() || null})
+                                }
+                            }
+                            RowLayout {
+                                width: parent.width
+                                visible: !line.isSection && !line.modelData.draftOrphan
+                                spacing: Ui.Metrics.sm
+                                readonly property bool active: panel.voicingLineId === line.modelData.id && voicing.busy
+                                WorkspaceLabel {
+                                    Layout.fillWidth: true
+                                    role: Ui.Typography.SansCaption
+                                    text: parent.active ? "Voicing… " + voicing.state
+                                        : !line.modelData.hasVoice ? "Assign a speaker with a voice"
+                                        : line.modelData.status === "voiced" ? "Voiced" : line.modelData.status === "stale" ? "Voice outdated" : "Not voiced"
+                                    tone: parent.active ? Ui.Text.Info : line.modelData.status === "voiced" ? Ui.Text.Success : Ui.Text.Warning
+                                }
+                                WorkspaceButton {
+                                    objectName: "workspaceVoiceLine_" + line.modelData.id
+                                    quiet: true
+                                    iconName: line.modelData.status === "draft" ? "" : "refresh"
+                                    text: line.modelData.status === "draft" ? "Voice" : "Regenerate"
+                                    enabled: !!line.modelData.hasVoice && (line.modelData.text || "").trim() !== "" && !line.lineDirty && !voicing.busy && !controller.busy && !workspace.dirty
+                                    onClicked: panel.voiceLine(line.modelData.id)
+                                }
+                                WorkspaceButton {
+                                    text: "Recover"
+                                    quiet: true
+                                    visible: panel.voicingLineId === line.modelData.id && voicing.state === "failed" && voicing.error.indexOf("Recover") >= 0
+                                    onClicked: voicing.recover(controller.result, line.modelData.id)
+                                }
+                            }
+                            Repeater {
+                                model: line.isSection ? [] : (line.modelData.takes || [])
+                                delegate: RowLayout {
+                                    id: take
+                                    required property var modelData
+                                    required property int index
+                                    readonly property bool current: modelData.id === line.modelData.currentTakeId
+                                    width: lineContent.width
+                                    spacing: Ui.Metrics.sm
+                                    readonly property bool playing: panel.playingTakeId === modelData.id && takePlayer.previewClock.playing
+                                    Ui.ToolbarIconButton {
+                                        objectName: "workspacePlayTake_" + take.modelData.id
+                                        variant: Ui.EditorButton.Flat
+                                        iconName: take.playing ? "pause" : "playArrow"
+                                        text: take.playing ? "Pause take" : "Play take"
+                                        loading: panel.playingTakeId === take.modelData.id && takePlayer.busy
+                                        enabled: !!take.modelData.assetId
+                                        onClicked: panel.playTake(take.modelData)
+                                    }
+                                    Ui.Icon { visible: take.current; name: "check"; size: Ui.Metrics.iconSm; tone: Ui.Text.Success }
+                                    WorkspaceLabel {
+                                        Layout.fillWidth: true
+                                        role: Ui.Typography.SansCaption
+                                        elide: Text.ElideRight
+                                        wrapMode: Text.NoWrap
+                                        text: "Take " + (take.index + 1) + (take.modelData.durationMs ? " · " + panel.seconds(take.modelData.durationMs) : "")
+                                            + (take.modelData.textSnapshot && take.modelData.textSnapshot !== line.modelData.text ? " · older text" : "")
+                                        tone: take.current ? Ui.Text.Primary : Ui.Text.Secondary
+                                    }
+                                    WorkspaceButton {
+                                        objectName: "workspaceUseTake_" + take.modelData.id
+                                        quiet: true
+                                        visible: !take.current
+                                        text: "Use"
+                                        enabled: !controller.busy && !workspace.dirty
+                                        onClicked: controller.updateScriptLine(line.modelData.id, {currentTakeId: take.modelData.id})
+                                    }
+                                    Ui.ToolbarIconButton {
+                                        variant: Ui.EditorButton.Flat
+                                        iconName: take.modelData.favorite ? "star" : "starBorder"
+                                        text: take.modelData.favorite ? "Remove favorite" : "Favorite"
+                                        enabled: !controller.busy && !workspace.dirty
+                                        onClicked: controller.updateScriptLine(line.modelData.id, {takes: line.modelData.takes.map(item => item.id === take.modelData.id ? Object.assign({}, item, {favorite: !item.favorite}) : item)})
+                                    }
+                                    Ui.ToolbarIconButton {
+                                        objectName: "workspaceDeleteTake_" + take.modelData.id
+                                        variant: Ui.EditorButton.Flat
+                                        iconName: "deleteOutline"
+                                        text: "Delete take"
+                                        enabled: !controller.busy && !workspace.dirty
+                                        onClicked: {
+                                            const rest = line.modelData.takes.filter(item => item.id !== take.modelData.id)
+                                            const fields = {takes: rest}
+                                            if (take.current) fields.currentTakeId = rest.length > 0 ? rest[rest.length - 1].id : null
+                                            controller.updateScriptLine(line.modelData.id, fields)
+                                        }
+                                    }
+                                }
                             }
                             WorkspaceLabel { width: parent.width; visible: !!line.modelData.draftOrphan; text: "This line was removed remotely. Copy its text before discarding the draft."; tone: Ui.Text.Warning }
                             WorkspaceButton { objectName: "workspaceSaveLine_" + line.modelData.id; visible: line.lineDirty; text: "Save line"; primary: true; enabled: !controller.busy && !workspace.dirty && !line.modelData.draftOrphan; onClicked: controller.saveScriptLineDraft(line.modelData.scriptId, line.modelData.id) }
@@ -357,130 +680,6 @@ Ui.Surface {
                     }
                 }
                 WorkspaceButton { text: "Add line"; visible: !!document.sections; enabled: !controller.busy && !controller.scriptDirty && !workspace.dirty; onClicked: controller.addScriptLine() }
-                Flow {
-                    id: shotGrid
-                    objectName: "workspaceShotGrid"
-                    width: parent.width
-                    spacing: Ui.Metrics.md
-                    Repeater {
-                        model: document.shots || []
-                        delegate: Ui.Surface {
-                            id: shot
-                            required property var modelData
-                            required property int index
-                            readonly property bool editing: panel.selectedShotId === modelData.id
-                            readonly property var mediaRef: modelData.keyframe && (modelData.keyframe.uri || modelData.keyframe.asset_id) ? modelData.keyframe : modelData.clip || ({})
-                            readonly property string mediaKey: panel.mediaId(mediaRef)
-                            readonly property bool nearViewport: {
-                                const top = shotGrid.y + shot.y
-                                const offset = scroll.contentItem ? scroll.contentItem.contentY || 0 : 0
-                                return top + shot.height >= offset - scroll.height && top <= offset + 2 * scroll.height
-                            }
-                            width: shotGrid.width >= TimelineMetrics.trackHeaderWidth * 2 ? (shotGrid.width - shotGrid.spacing) / 2 : shotGrid.width
-                            height: shotContent.implicitHeight
-                            selected: editing
-                            clip: true
-                            function loadThumbnail() { if (nearViewport && panel.mediaBrowser && mediaKey) panel.mediaBrowser.requestThumbnail(mediaKey) }
-                            Component.onCompleted: loadThumbnail()
-                            onMediaKeyChanged: loadThumbnail()
-                            onNearViewportChanged: { if (nearViewport) loadThumbnail() }
-                            Column {
-                                id: shotContent
-                                width: parent.width
-                                spacing: Ui.Metrics.none
-                                Ui.Surface {
-                                    variant: Ui.Surface.Canvas
-                                    width: parent.width
-                                    height: width / panel.shotRatio()
-                                    Image {
-                                        id: shotImage
-                                        objectName: "workspaceShotThumbnail_" + shot.modelData.id
-                                        anchors.fill: parent
-                                        source: shot.nearViewport ? panel.thumbnail(shot.mediaRef) : ""
-                                        sourceSize: Qt.size(shot.width * 2, height * 2)
-                                        asynchronous: true
-                                        fillMode: Image.PreserveAspectCrop
-                                    }
-                                    WorkspaceLabel { anchors.centerIn: parent; visible: shotImage.status !== Image.Ready; text: shotImage.status === Image.Loading || (shot.mediaKey && panel.mediaBrowser && panel.mediaBrowser.busy) ? "Loading image…" : "No image" }
-                                }
-                                Column {
-                                    x: Ui.Metrics.lg
-                                    width: parent.width - 2 * Ui.Metrics.lg
-                                    topPadding: Ui.Metrics.lg
-                                    bottomPadding: Ui.Metrics.lg
-                                    spacing: Ui.Metrics.sm
-                                    RowLayout {
-                                        width: parent.width
-                                        WorkspaceLabel {
-                                            Layout.fillWidth: true
-                                            text: (panel.sceneName(shot.modelData) ? panel.sceneName(shot.modelData) + " | " : "") + "Shot " + (shot.index + 1)
-                                            role: Ui.Typography.SansCaption
-                                        }
-                                        WorkspaceLabel { text: (Math.round((shot.modelData.duration_seconds || 0) * 10) / 10) + " s"; visible: (shot.modelData.duration_seconds || 0) > 0; role: Ui.Typography.SansCaption }
-                                    }
-                                    WorkspaceLabel {
-                                        width: parent.width
-                                        text: shot.modelData.action || "No description"
-                                        tone: Ui.Text.Primary
-                                        maximumLineCount: 2
-                                        elide: Text.ElideRight
-                                    }
-                                    WorkspaceButton {
-                                        objectName: "workspaceEditShot_" + shot.modelData.id
-                                        text: shot.editing ? "Close editor" : "Edit shot"
-                                        quiet: true
-                                        enabled: !controller.busy
-                                        onClicked: panel.selectedShotId = shot.editing ? "" : shot.modelData.id
-                                    }
-                                    Column {
-                                        width: parent.width
-                                        visible: shot.editing
-                                        spacing: Ui.Metrics.sm
-                                        Repeater {
-                                            model: [{key:"action",label:"Description"}, {key:"motion",label:"Motion"}, {key:"end_state",label:"End state"}, {key:"sound",label:"Sound"}, {key:"dialogue",label:"Dialogue"}]
-                                            delegate: Column {
-                                                id: shotField
-                                                required property var modelData
-                                                width: parent.width
-                                                spacing: Ui.Metrics.sm
-                                                WorkspaceLabel { text: shotField.modelData.label }
-                                                WorkspaceArea {
-                                                    objectName: "workspaceShot_" + shotField.modelData.key
-                                                    width: parent.width
-                                                    value: shot.modelData[shotField.modelData.key] || ""
-                                                    Accessible.name: shotField.modelData.label
-                                                    enabled: !controller.busy
-                                                    onTextEdited: workspace.patchShot(shot.modelData.id, shotField.modelData.key, text)
-                                                }
-                                            }
-                                        }
-                                        WorkspaceCheckBox { id: shotDetails; text: "Camera and references" }
-                                        Column {
-                                            width: parent.width
-                                            visible: shotDetails.checked
-                                            spacing: Ui.Metrics.sm
-                                            Repeater {
-                                                model: [{key:"framing",label:"Framing"}, {key:"angle",label:"Angle"}, {key:"movement",label:"Camera movement"}, {key:"lens",label:"Lens"}]
-                                                delegate: Column {
-                                                    id: cameraField
-                                                    required property var modelData
-                                                    width: parent.width
-                                                    spacing: Ui.Metrics.sm
-                                                    WorkspaceLabel { text: cameraField.modelData.label }
-                                                    WorkspaceField { width: parent.width; value: (shot.modelData.camera || {})[cameraField.modelData.key] || ""; Accessible.name: cameraField.modelData.label; enabled: !controller.busy; onTextEdited: workspace.patchShot(shot.modelData.id, "camera." + cameraField.modelData.key, text) }
-                                                }
-                                            }
-                                            WorkspaceLabel { text: "Entity IDs" }
-                                            WorkspaceArea { width: parent.width; value: workspace.jsonDraft(shot.modelData.id, "entity_ids", shot.modelData.entity_ids || []); Accessible.name: "Shot entity IDs"; enabled: !controller.busy; onTextEdited: workspace.setJsonDraft(shot.modelData.id, "entity_ids", text) }
-                                            WorkspaceLabel { text: "Media references" }
-                                            WorkspaceArea { width: parent.width; value: workspace.jsonDraft(shot.modelData.id, "production.references", (shot.modelData.production || {}).references || []); Accessible.name: "Media references"; enabled: !controller.busy; onTextEdited: workspace.setJsonDraft(shot.modelData.id, "production.references", text) }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
                 Column {
                     width: parent.width
                     spacing: Ui.Metrics.sm
@@ -518,7 +717,7 @@ Ui.Surface {
                         }
                     }
                 }
-                WorkspaceCheckBox { id: metadata; text: "Document details"; visible: !!resource.id }
+                WorkspaceCheckBox { id: metadata; text: "Document details"; visible: panel.hasDocument }
                 Column {
                     width: parent.width
                     spacing: Ui.Metrics.sm
@@ -564,6 +763,30 @@ Ui.Surface {
                     }
                 }
             }
+        }
+    }
+    ShotWorkflow {
+        id: shotRenders
+        objectName: "shotRenders"
+        timeline: panel.controller.timeline
+        onSaved: board => panel.controller.openStoryboard(board.id)
+    }
+    // The shot editor covers the board while a shot is open.
+    Loader {
+        objectName: "shotEditorLoader"
+        anchors.fill: parent
+        z: Ui.Metrics.layerOverlay
+        active: panel.selectedShotId !== "" && panel.documentKind === "storyboards" && panel.hasDocument
+        sourceComponent: ShotEditor {
+            workspace: panel.workspace
+            controller: panel.controller
+            mediaBrowser: panel.mediaBrowser
+            renders: shotRenders
+            shotId: panel.selectedShotId
+            Component.onCompleted: forceActiveFocus()
+            onCloseRequested: panel.selectedShotId = ""
+            onShotChangeRequested: id => panel.selectedShotId = id
+            onScriptRequested: (scriptId, lineId) => { if (scriptId !== "") panel.openResource(scriptId, "scripts") }
         }
     }
     Ui.Dialog {

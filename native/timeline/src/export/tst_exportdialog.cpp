@@ -14,10 +14,15 @@ extern "C" {
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
 #include "playback/PlaybackClock.h"
+#include "preview/SceneEval.h"
 #include <QGuiApplication>
 #include <QElapsedTimer>
 #include <QFileInfo>
 #include <QFile>
+#include <QImage>
+#include <QJsonArray>
+#include <QJsonDocument>
+#include <QJsonObject>
 #include <QQuickItem>
 #include <functional>
 #include <QJSValue>
@@ -32,6 +37,172 @@ extern "C" {
 class ExportDialogTest : public QObject {
     Q_OBJECT
 private slots:
+    void refusesUnavailableServerOriginal() {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        QImage proxy(16, 16, QImage::Format_RGBA8888);
+        proxy.fill(Qt::blue);
+        const QString proxyPath = dir.filePath("proxy.png");
+        QVERIFY(proxy.save(proxyPath));
+        const QJsonObject raw{{"width", 16}, {"height", 16}, {"fps", 1},
+            {"tracks", QJsonArray{QJsonObject{{"id", "v"}, {"type", "video"}}}},
+            {"clips", QJsonArray{QJsonObject{{"id", "c"}, {"trackId", "v"},
+                {"mediaType", "image"}, {"durationMs", 1000}, {"status", "generated"},
+                {"currentAssetId", QString(32, u'a')}}}}};
+        auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
+        QVERIFY(parsed.timeline);
+        parsed.timeline->clips.front().mediaPath = proxyPath.toStdString();
+        TimelineModel model;
+        model.setTimeline(std::move(*parsed.timeline));
+        ExportController controller;
+        controller.setTimeline(&model);
+        QSignalSpy finished(&controller, &ExportController::finished);
+        controller.start(dir.filePath("unsafe.zip"), "png_sequence");
+        QCOMPARE(finished.count(), 1);
+        QVERIFY(!finished.first().first().toBool());
+        QVERIFY(controller.error().contains("original media"));
+        QVERIFY(!QFile::exists(dir.filePath("unsafe.zip")));
+    }
+    void audioOnlyExportAllowsMissingPictureOriginal() {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString audioPath = QDir(QStringLiteral(NT_EXPORT_FIXTURES)).filePath("media/tone-440-48k-mono.wav");
+        QVERIFY(QFile::exists(audioPath));
+        const QJsonObject raw{{"width", 64}, {"height", 48}, {"fps", 3},
+            {"tracks", QJsonArray{QJsonObject{{"id", "v"}, {"type", "video"}}}},
+            {"clips", QJsonArray{QJsonObject{{"id", "c"}, {"trackId", "v"},
+                {"mediaType", "video"}, {"durationMs", 1000}, {"status", "generated"},
+                {"currentAssetId", QString(32, u'a')}, {"audioPath", audioPath}}}}};
+        auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
+        QVERIFY(parsed.timeline);
+        TimelineModel model;
+        model.setTimeline(std::move(*parsed.timeline));
+        ExportController controller;
+        controller.setTimeline(&model);
+        controller.setExecutable(QStringLiteral(NT_EXPORT_BINARY));
+        QSignalSpy finished(&controller, &ExportController::finished);
+        const QString output = dir.filePath("audio.wav");
+        controller.start(output, "wav");
+        QTRY_VERIFY_WITH_TIMEOUT(!finished.empty(), 60000);
+        QVERIFY2(finished.first().first().toBool(), qPrintable(controller.error()));
+        QVERIFY(QFileInfo(output).size() > 0);
+    }
+    void snapshotRendersOriginalPicture() {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        const QString originalPath = QDir(QStringLiteral(NT_EXPORT_FIXTURES)).filePath("media/rgb-solid-720p.mp4");
+        const QString proxyPath = QDir(QStringLiteral(NT_EXPORT_FIXTURES)).filePath("media/colorbars-bt709-full.mp4");
+        QVERIFY(QFile::exists(originalPath));
+        QVERIFY(QFile::exists(proxyPath));
+        const QJsonObject raw{{"width", 64}, {"height", 48}, {"fps", 3},
+            {"tracks", QJsonArray{QJsonObject{{"id", "v"}, {"type", "video"}}}},
+            {"clips", QJsonArray{QJsonObject{{"id", "c"}, {"trackId", "v"},
+                {"mediaType", "video"}, {"status", "generated"}, {"sourceType", "imported"},
+                {"currentAssetId", QString(32, u'a')}, {"durationMs", 1000},
+                {"width", 1280}, {"height", 720},
+                {"mediaPath", proxyPath}, {"originalMediaPath", originalPath}}}}};
+        auto parsed = nt::parseTimelineJson(QJsonDocument(raw).toJson());
+        QVERIFY(parsed.timeline);
+        TimelineModel model;
+        model.setTimeline(std::move(*parsed.timeline));
+        const auto snapshot = nt::exporting::exportSnapshot(model);
+        QCOMPARE(snapshot.value("clips").toArray().first().toObject().value("mediaPath").toString(), originalPath);
+        const auto exportDoc = nt::parseTimelineJson(QJsonDocument(snapshot).toJson());
+        QVERIFY(exportDoc.timeline);
+        QCOMPARE(QString::fromStdString(exportDoc.timeline->clips.front().mediaPath), originalPath);
+        QCOMPARE(nt::activeLayersAt(*exportDoc.timeline, 0).size(), size_t{1});
+        auto render = [&](QJsonObject document, const QString& name) -> QImage {
+            const QString snapshotPath = dir.filePath(name + ".json");
+            QFile snapshotFile(snapshotPath);
+            if (!snapshotFile.open(QIODevice::WriteOnly) || snapshotFile.write(QJsonDocument(document).toJson()) < 0) return {};
+            snapshotFile.close();
+            const QString archivePath = dir.filePath(name + ".zip");
+            QProcess process;
+            process.start(QStringLiteral(NT_EXPORT_BINARY),
+                {snapshotPath, "--export", archivePath, "--format", "png_sequence", "--json"});
+            if (!process.waitForFinished(60000) || process.exitCode() != 0) return {};
+            QFile archive(archivePath);
+            if (!archive.open(QIODevice::ReadOnly)) return {};
+            const QByteArray bytes = archive.readAll();
+            if (!bytes.startsWith("PK\003\004") || bytes.size() < 30) return {};
+            const auto u16 = [&](int offset) {
+                return static_cast<int>(static_cast<quint8>(bytes.at(offset))) |
+                    (static_cast<int>(static_cast<quint8>(bytes.at(offset + 1))) << 8);
+            };
+            const auto u32 = [&](int offset) {
+                return static_cast<quint32>(u16(offset)) | (static_cast<quint32>(u16(offset + 2)) << 16);
+            };
+            const int imageOffset = 30 + u16(26) + u16(28);
+            return QImage::fromData(bytes.mid(imageOffset, u32(18)), "PNG");
+        };
+        const QImage actual = render(snapshot, "selected-original");
+        QVERIFY(!actual.isNull());
+        const QImage directServerExport = render(raw, "direct-server");
+        QVERIFY(!directServerExport.isNull());
+        QCOMPARE(actual, directServerExport);
+        auto direct = snapshot;
+        auto clips = direct.value("clips").toArray();
+        auto clip = clips.first().toObject();
+        clip.insert("mediaPath", proxyPath);
+        clip.remove("originalMediaPath");
+        clips[0] = clip;
+        direct.insert("clips", clips);
+        const QImage proxyFrame = render(direct, "proxy-control");
+        QVERIFY(!proxyFrame.isNull());
+        QVERIFY(actual != proxyFrame);
+    }
+    void relativeMatteSurvivesOriginalPictureSelection() {
+        QTemporaryDir dir;
+        QVERIFY(dir.isValid());
+        for (const auto& [name, color] : std::array<std::pair<const char*, QColor>, 3>{
+                 {{"proxy.png", Qt::blue}, {"original.png", Qt::red}, {"matte.png", Qt::black}}}) {
+            QImage image(64, 48, QImage::Format_RGBA8888);
+            image.fill(color);
+            QVERIFY(image.save(dir.filePath(name)));
+        }
+        const QJsonObject matte{{"mediaPath", "matte.png"}, {"status", "ready"}};
+        const QJsonObject clip{{"id", "c"}, {"trackId", "v"}, {"mediaType", "image"},
+            {"status", "generated"}, {"sourceType", "imported"}, {"durationMs", 1000},
+            {"width", 64}, {"height", 48}, {"mediaPath", "proxy.png"},
+            {"originalMediaPath", "original.png"}, {"generatedMatte", matte}};
+        const QJsonObject document{{"width", 64}, {"height", 48}, {"fps", 1}, {"durationMs", 1000},
+            {"tracks", QJsonArray{QJsonObject{{"id", "v"}, {"type", "video"}}}},
+            {"clips", QJsonArray{clip}}};
+        auto render = [&](const QJsonObject& source, const QString& name) -> QImage {
+            const QString input = dir.filePath(name + ".json");
+            QFile file(input);
+            if (!file.open(QIODevice::WriteOnly) || file.write(QJsonDocument(source).toJson()) < 0) return {};
+            file.close();
+            const QString output = dir.filePath(name + ".zip");
+            QProcess process;
+            process.start(QStringLiteral(NT_EXPORT_BINARY), {input, "--export", output,
+                "--format", "png_sequence", "--json"});
+            if (!process.waitForFinished(60000) || process.exitCode() != 0) return {};
+            QFile archive(output);
+            if (!archive.open(QIODevice::ReadOnly)) return {};
+            const QByteArray bytes = archive.readAll();
+            if (!bytes.startsWith("PK\003\004") || bytes.size() < 30) return {};
+            const auto u16 = [&](int i) { return int(quint8(bytes.at(i))) | (int(quint8(bytes.at(i + 1))) << 8); };
+            const int start = 30 + u16(26) + u16(28);
+            const quint32 size = quint32(u16(18)) | (quint32(u16(20)) << 16);
+            return QImage::fromData(bytes.mid(start, size), "PNG");
+        };
+        const QImage relative = render(document, "relative");
+        QVERIFY(!relative.isNull());
+        auto absolute = document;
+        auto clips = absolute.value("clips").toArray();
+        auto absoluteClip = clips.first().toObject();
+        auto absoluteMatte = absoluteClip.value("generatedMatte").toObject();
+        absoluteMatte.insert("mediaPath", dir.filePath("matte.png"));
+        absoluteClip.insert("generatedMatte", absoluteMatte);
+        clips[0] = absoluteClip;
+        absolute.insert("clips", clips);
+        const QImage expected = render(absolute, "absolute");
+        QVERIFY(!expected.isNull());
+        QCOMPARE(relative, expected);
+        const QColor pixel = relative.pixelColor(32, 24);
+        QVERIFY2(pixel.red() < 30 && pixel.green() < 30 && pixel.blue() < 30, qPrintable(pixel.name()));
+    }
     void cancelExportDuringAudio() {
         if (!avio_find_protocol_name("tcp://127.0.0.1:1")) { QSKIP("FFmpeg has no TCP protocol"); }
         QTemporaryDir dir;

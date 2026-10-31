@@ -116,6 +116,24 @@ std::optional<double> linkedShotRenderSeconds(const QJsonObject& shot, const QJs
     }
     return total > 0 ? std::optional<double>(std::ceil(total / 1000)) : std::nullopt;
 }
+QString composeShotPrompt(const QJsonObject& board, const QJsonObject& shot, const QString& kind) {
+    auto mode = shot.value("render_mode").toString();
+    if (mode != "direct" && mode != "reference") { mode = "keyframe"; }
+    const auto camera = shot.value("camera").toObject();
+    QStringList parts;
+    const auto add = [&parts](const QString& text, const QString& suffix = {}) { if (!text.trimmed().isEmpty()) { parts.append(text.trimmed() + suffix); } };
+    if (kind == "video" && mode == "keyframe") { add(shot.value("motion").toString()); add(shot.value("action").toString()); }
+    else {
+        add(shot.value("action").toString()); add(camera.value("framing").toString(), " shot"); add(camera.value("angle").toString()); add(camera.value("lens").toString(), " lens");
+        for (const auto& value : board.value("screenplay").toObject().value("scenes").toArray()) {
+            const auto scene = value.toObject(); if (scene.value("id") == shot.value("scene_id")) { add(scene.value("lighting").toString()); break; }
+        }
+        if (kind == "video") { add(shot.value("motion").toString()); }
+    }
+    if (kind == "video") { add(camera.value("movement").toString()); add(camera.value("equipment").toString()); }
+    if (kind == "image" || mode != "keyframe") { add(board.value("style").toString()); }
+    return parts.join(", ");
+}
 ShotRenderPlan planShotRender(const QJsonObject& response, const QString& shotId, const QString& kind, const QJsonObject& model, const QJsonArray& entityLibrary, std::optional<double> linkedDurationSeconds) {
     ShotRenderPlan plan;
     const auto resolved = shotIdOf(response, shotId);
@@ -141,20 +159,7 @@ ShotRenderPlan planShotRender(const QJsonObject& response, const QString& shotId
     if (!requirement.value("protected_inputs").toArray().isEmpty()) { plan.error = "This generation route cannot prove protected source fidelity. Materialize protected assets and exact values as editable Timeline layers instead."; return plan; }
     const auto strategy = requirement.value("media_strategy").toString();
     if (kind == "video" && strategy == "still_motion_graphics") { plan.error = "still_motion_graphics forbids video generation. Materialize editable Timeline layers instead."; return plan; }
-    const auto camera = plan.shot.value("camera").toObject();
-    QStringList parts;
-    const auto add = [&parts](const QString& text, const QString& suffix = {}) { if (!text.trimmed().isEmpty()) { parts.append(text.trimmed() + suffix); } };
-    if (kind == "video" && mode == "keyframe") { add(plan.shot.value("motion").toString()); add(plan.shot.value("action").toString()); }
-    else {
-        add(plan.shot.value("action").toString()); add(camera.value("framing").toString(), " shot"); add(camera.value("angle").toString()); add(camera.value("lens").toString(), " lens");
-        for (const auto& value : board.value("screenplay").toObject().value("scenes").toArray()) {
-            const auto scene = value.toObject(); if (scene.value("id") == plan.shot.value("scene_id")) { add(scene.value("lighting").toString()); break; }
-        }
-        if (kind == "video") { add(plan.shot.value("motion").toString()); }
-    }
-    if (kind == "video") { add(camera.value("movement").toString()); add(camera.value("equipment").toString()); }
-    if (kind == "image" || mode != "keyframe") { add(board.value("style").toString()); }
-    QString prompt = parts.join(", ");
+    QString prompt = composeShotPrompt(board, plan.shot, kind);
     const auto productionPrompt = prompt;
     if (kind == "video") {
         const auto direction = plan.shot.value("production").toObject().value("local_direction").toString();

@@ -20,15 +20,17 @@ Item {
     readonly property bool filtered: browser.searchText !== "" || browser.typeFilter !== "" || browser.tagFilter !== "" || browser.favoritesOnly
     // AssetGridContent uses calculateGridDimensions with assetItemSize=2.
     readonly property int itemSpacing: Ui.Metrics.xs
-    readonly property int columns: Math.max(1, Math.min(100, Math.floor((width + itemSpacing) / (84 + itemSpacing))))
-    readonly property real itemSize: Math.min(Math.floor((width - itemSpacing * (columns + 1)) / columns), 84 * 1.1)
+    // The view sits inside a margin of itemSpacing, so columns divide its inner width.
+    readonly property real innerWidth: Math.max(0, width - 2 * itemSpacing)
+    readonly property int columns: Math.max(1, Math.min(100, Math.floor((innerWidth + itemSpacing) / (84 + itemSpacing))))
+    readonly property real itemSize: Math.min(Math.floor(innerWidth / columns - itemSpacing), 84 * 1.1)
 
     GridView {
         id: tiles
         anchors.fill: parent
         anchors.margins: grid.itemSpacing
         clip: true
-        cellWidth: (grid.width - grid.itemSpacing) / grid.columns
+        cellWidth: grid.innerWidth / grid.columns
         cellHeight: grid.itemSize + grid.itemSpacing
         model: grid.browser.assets
         ScrollBar.vertical: Ui.ScrollBar {}

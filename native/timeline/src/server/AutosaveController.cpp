@@ -107,15 +107,22 @@ AutosaveController::AutosaveController(SaveTarget target, QUndoStack* undo, Docu
 AutosaveController::~AutosaveController() {
     m_changes.reset();
     // Fetch workers own their inputs and result and delete themselves after
-    // finishing. Never spend a second quit budget waiting on stalled I/O.
-    const auto waitMs = m_quitDeadline
-        ? static_cast<unsigned long>(m_quitDeadline->remainingTime()) : 2000UL;
-    if (m_fetchWorker && !m_fetchWorker->wait(waitMs)) {
-        qCWarning(syncLog, "sync: fetch worker still running after %lu ms shutdown wait", waitMs);
+    // finishing. Both workers share one shutdown wait budget.
+    const QDeadlineTimer deadline = m_quitDeadline.value_or(QDeadlineTimer(2000));
+    if (m_fetchWorker) m_fetchWorker->requestInterruption();
+    if (m_restoreWorker) m_restoreWorker->requestInterruption();
+    const auto remaining = [&deadline] { return static_cast<unsigned long>(std::max<qint64>(0, deadline.remainingTime())); };
+    if (m_fetchWorker && !m_fetchWorker->wait(remaining())) {
+        qCWarning(syncLog, "sync: fetch worker still running after shutdown wait");
     } else if (m_fetchWorker) {
         // A finished worker's deleteLater never runs once the event loop has
         // stopped at quit, so delete it here.
         delete m_fetchWorker.data();
+    }
+    if (m_restoreWorker && !m_restoreWorker->wait(remaining())) {
+        qCWarning(syncLog, "sync: restore media worker still running after shutdown wait");
+    } else if (m_restoreWorker) {
+        delete m_restoreWorker.data();
     }
 }
 
@@ -166,6 +173,8 @@ void AutosaveController::externalChanged(QString event, QString updatedAt, QJson
         m_deleted = true;
         m_pendingExternal = false;
         m_fetched.reset();
+        m_fetchedLeases.clear();
+        m_externalConflicts.clear();
         m_timer.stop();
         m_retry.stop();
         keepConflictCopy();
@@ -213,6 +222,7 @@ void AutosaveController::processExternal() {
         const bool recovery = m_recovering;
         const bool applied = applyFetched();
         m_fetched.reset();
+        m_fetchedLeases.clear();
         m_fetching = false;
         m_recovering = false;
         if (applied) {
@@ -263,7 +273,8 @@ void AutosaveController::fetchExternal(bool recovery) {
     const QString cacheRoot = QFileInfo(m_target.backupDir).fileName() == u"timelines"
         ? QDir::cleanPath(m_target.backupDir + QStringLiteral("/../../.."))
         : m_target.backupDir; // standalone library callers can supply a plain backup folder
-    const ServerOpenOptions options{m_target.server, m_target.timelineId, cacheRoot, m_target.token, true};
+    const ServerOpenOptions options{m_target.server, m_target.timelineId, cacheRoot, m_target.token,
+        true, m_target.expectedInstance};
     auto result = std::make_shared<ServerOpenResult>();
     const QPointer<AutosaveController> guard(this);
     ++liveWorkers;
@@ -303,6 +314,7 @@ void AutosaveController::fetchExternal(bool recovery) {
             return;
         }
         guard->m_fetched = std::move(result->timeline);
+        guard->m_fetchedLeases = std::move(result->mediaLeases);
         guard->processExternal();
     }, Qt::QueuedConnection);
     connect(worker, &QThread::finished, worker, &QObject::deleteLater);
@@ -401,7 +413,7 @@ bool AutosaveController::applyFetched() {
         if (conflict.id.isEmpty()) {
             conflict.id = conflict.kind;
         }
-        ExternalConflict candidate{conflict, {}};
+        ExternalConflict candidate{conflict, {}, {}};
         if (conflict.kind == u"document") {
             candidate.media = resolved.clips;
         } else if (conflict.kind == u"clip") {
@@ -409,6 +421,7 @@ bool AutosaveController::applyFetched() {
                 candidate.media.push_back(*clip);
             }
         }
+        if (!candidate.media.empty()) candidate.mediaLeases = m_fetchedLeases;
         m_externalConflicts.removeIf([&](const ExternalConflict& old) {
             return old.unit.id == conflict.id && old.unit.kind == conflict.kind;
         });
@@ -653,7 +666,8 @@ bool AutosaveController::restoreEarlierCopy(QObject* timeline) {
         emit stateChanged();
         return false;
     };
-    if (!timeline || earlierCopy().isEmpty() || m_saving || currentHash() != m_committedHash) {
+    if (!timeline || earlierCopy().isEmpty() || m_saving || m_restoringEarlier ||
+        currentHash() != m_committedHash) {
         return fail(QStringLiteral("The earlier copy cannot be restored during an edit or save."));
     }
     QFile file(earlierCopy());
@@ -668,18 +682,93 @@ bool AutosaveController::restoreEarlierCopy(QObject* timeline) {
         (!raw.value("id").toString().isEmpty() && raw.value("id").toString() != m_target.timelineId)) {
         return fail(QStringLiteral("The earlier copy is not a copy of this timeline."));
     }
-    const QJsonObject payload{{QStringLiteral("document"), documentForSave(raw)}};
-    quint64 token = 0;
-    const bool invoked = QMetaObject::invokeMethod(timeline, "applyEdit", Qt::DirectConnection,
-        Q_RETURN_ARG(quint64, token), Q_ARG(QString, QStringLiteral("restoreDocument")), Q_ARG(QJsonObject, payload));
-    if (!invoked || token == 0) return fail(QStringLiteral("The earlier copy made no change or could not be restored."));
+    const auto apply = [this, timeline, &fail, &raw](const nt::Timeline* resolved, const QJsonObject& mediaReport) {
+        if (resolved) {
+            for (const auto& media : resolved->clips) sync::registerMedia(timeline, media);
+        }
+        const QJsonObject payload{{QStringLiteral("document"), documentForSave(raw)}};
+        quint64 token = 0;
+        const bool invoked = QMetaObject::invokeMethod(timeline, "applyEdit", Qt::DirectConnection,
+            Q_RETURN_ARG(quint64, token), Q_ARG(QString, QStringLiteral("restoreDocument")), Q_ARG(QJsonObject, payload));
+        if (!invoked || token == 0) return fail(QStringLiteral("The earlier copy made no change or could not be restored."));
+        const auto missing = mediaReport.value("missingAssets").toArray();
+        const auto rejected = mediaReport.value("rejectedMedia").toArray();
+        if (!missing.isEmpty() || !rejected.isEmpty()) {
+            m_earlierCopyError = QStringLiteral("The document was restored, but %1 media file(s) could not be loaded. The affected clips show placeholders.")
+                .arg(missing.size() + rejected.size());
+        } else {
+            m_earlierCopyError.clear();
+        }
+        emit stateChanged();
+        return true;
+    };
+    bool needsMedia = false;
+    for (const auto& value : raw.value("clips").toArray()) {
+        const auto clip = value.toObject();
+        if (!clip.value("currentAssetId").toString().isEmpty() ||
+            !clip.value("generatedMatte").toObject().value("assetId").toString().isEmpty()) {
+            needsMedia = true;
+            break;
+        }
+    }
+    if (!needsMedia) return apply(nullptr, {});
+
+    const QString cacheRoot = QFileInfo(m_target.backupDir).fileName() == u"timelines"
+        ? QDir::cleanPath(m_target.backupDir + QStringLiteral("/../../..")) : m_target.backupDir;
+    const ServerOpenOptions options{m_target.server, m_target.timelineId, cacheRoot,
+        m_target.token, true, m_target.expectedInstance};
+    const QByteArray startingHash = currentHash();
+    const QPointer<AutosaveController> guard(this);
+    const QPointer<QObject> target(timeline);
+    auto result = std::make_shared<ServerOpenResult>();
+    m_restoringEarlier = true;
     m_earlierCopyError.clear();
+    auto* worker = QThread::create([options, raw, result] {
+        *result = resolveTimelineDocumentMedia(options, raw);
+    });
+    connect(worker, &QThread::finished, this, [guard, target, result, raw, startingHash] {
+        if (!guard) return;
+        guard->m_restoringEarlier = false;
+        if (!target || guard->m_saving || guard->currentHash() != startingHash) {
+            guard->m_earlierCopyError = QStringLiteral("The timeline changed while loading earlier media. Restore the copy again.");
+            emit guard->stateChanged();
+            return;
+        }
+        if (!result->timeline) {
+            guard->m_earlierCopyError = QStringLiteral("The earlier document could not be restored: %1").arg(result->error);
+            emit guard->stateChanged();
+            return;
+        }
+        for (const auto& media : result->timeline->clips) sync::registerMedia(target.data(), media);
+        const QJsonObject payload{{QStringLiteral("document"), documentForSave(raw)}};
+        quint64 token = 0;
+        const bool invoked = QMetaObject::invokeMethod(target.data(), "applyEdit", Qt::DirectConnection,
+            Q_RETURN_ARG(quint64, token), Q_ARG(QString, QStringLiteral("restoreDocument")), Q_ARG(QJsonObject, payload));
+        if (!invoked || token == 0) {
+            guard->m_earlierCopyError = QStringLiteral("The earlier copy made no change or could not be restored.");
+        } else {
+            const auto missing = result->report.value("missingAssets").toArray();
+            const auto rejected = result->report.value("rejectedMedia").toArray();
+            guard->m_earlierCopyError = missing.isEmpty() && rejected.isEmpty() ? QString() :
+                QStringLiteral("The document was restored, but %1 media file(s) could not be loaded. The affected clips show placeholders.")
+                    .arg(missing.size() + rejected.size());
+        }
+        emit guard->stateChanged();
+    }, Qt::QueuedConnection);
+    connect(worker, &QThread::finished, worker, &QObject::deleteLater);
+    m_restoreWorker = worker;
+    worker->start();
     emit stateChanged();
     return true;
 }
 
 bool AutosaveController::discardEarlierCopy() {
     if (earlierCopy().isEmpty()) return false;
+    if (m_restoringEarlier) {
+        m_earlierCopyError = QStringLiteral("Wait for the earlier copy's media to finish loading before discarding it.");
+        emit stateChanged();
+        return false;
+    }
     if (!QFile::remove(earlierCopy())) {
         m_earlierCopyError = QStringLiteral("Could not delete the earlier copy: %1").arg(earlierCopy());
         emit stateChanged();

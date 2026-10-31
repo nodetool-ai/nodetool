@@ -100,6 +100,79 @@ private slots:
         QCOMPARE(result.resource.value("document").toObject().value("screenplay"), board().value("document").toObject().value("screenplay"));
         QVERIFY(!patchDocument(board(), "entityIds", QJsonArray{entityId.left(12)}).ok());
     }
+    void shotDraftSetsAndClearsFieldsInOneEdit() {
+        const auto result = applyShotDraft(board(), shotId, QJsonObject{{"action", "A person runs"}, {"slug", "Run"}, {"duration_seconds", 4.5},
+            {"duration_source", "manual"}, {"camera", QJsonObject{{"framing", "wide"}}}, {"render_mode", "direct"}, {"notes", QJsonValue::Null}});
+        QVERIFY2(result.ok(), qPrintable(result.error));
+        const auto edited = shot(result.resource);
+        QCOMPARE(edited.value("action").toString(), QString("A person runs")); QCOMPARE(edited.value("slug").toString(), QString("Run"));
+        QCOMPARE(edited.value("camera").toObject(), (QJsonObject{{"framing", "wide"}})); QCOMPARE(edited.value("render_mode").toString(), QString("direct"));
+        QCOMPARE(edited.value("future").toString(), QString("retained")); QVERIFY(!edited.contains("notes"));
+        const auto cleared = applyShotDraft(result.resource, shotId, QJsonObject{{"camera", QJsonValue::Null}, {"slug", QJsonValue::Null}});
+        QVERIFY(cleared.ok()); QVERIFY(!shot(cleared.resource).contains("camera")); QVERIFY(!shot(cleared.resource).contains("slug"));
+        QVERIFY(!applyShotDraft(board(), shotId, QJsonObject{{"status", "rendered"}}).ok());
+        QVERIFY(!applyShotDraft(board(), shotId, QJsonObject{{"duration_seconds", -1}}).ok());
+        QVERIFY(!applyShotDraft(board(), shotId, QJsonObject{{"render_mode", "other"}}).ok());
+    }
+    void nudgeSwapsWithinSceneAndRenumbers() {
+        QJsonArray shots;
+        for (const auto& [id, scene] : {std::pair{"a", "one"}, {"b", "one"}, {"c", "two"}}) { shots.append(QJsonObject{{"id", id}, {"scene_id", scene}, {"index", int(shots.size())}}); }
+        const QJsonObject source{{"id", "board"}, {"document", QJsonObject{{"shots", shots}}}};
+        const auto order = [](const QJsonObject& resource) { QStringList ids; for (const auto& value : resource.value("document").toObject().value("shots").toArray()) { ids.append(value.toObject().value("id").toString() + QString::number(value.toObject().value("index").toInt())); } return ids; };
+        const auto later = nudgeShot(source, "a", 1);
+        QVERIFY(later.ok()); QCOMPARE(order(later.resource), (QStringList{"b0", "a1", "c2"}));
+        QVERIFY(!nudgeShot(later.resource, "a", 1).ok());
+        QVERIFY(!nudgeShot(source, "c", -1).ok());
+    }
+    void removingSelectedTakePromotesTheNextOne() {
+        const QJsonObject source{{"id", "board"}, {"document", QJsonObject{{"shots", QJsonArray{QJsonObject{{"id", "s"}, {"status", "keyframe_ready"},
+            {"keyframe", QJsonObject{{"asset_id", "one"}}}, {"keyframe_versions", QJsonArray{QJsonObject{{"asset_id", "one"}}, QJsonObject{{"asset_id", "two"}}}}}}}}}};
+        const auto promoted = removeShotVersion(source, "s", "image", 0);
+        QVERIFY(promoted.ok());
+        QCOMPARE(shot(promoted.resource).value("keyframe").toObject().value("asset_id").toString(), QString("two"));
+        const auto empty = removeShotVersion(promoted.resource, "s", "image", 0);
+        QVERIFY(empty.ok()); QVERIFY(shot(empty.resource).value("keyframe").isNull());
+        QCOMPARE(shot(empty.resource).value("status").toString(), QString("planned"));
+        QVERIFY(!removeShotVersion(empty.resource, "s", "image", 0).ok());
+        const QJsonObject clips{{"id", "board"}, {"document", QJsonObject{{"shots", QJsonArray{QJsonObject{{"id", "s"}, {"status", "rendered"}, {"keyframe", QJsonObject{{"asset_id", "k"}}},
+            {"clip", QJsonObject{{"asset_id", "v"}}}}}}}}};
+        const auto noClip = removeShotVersion(clips, "s", "video", 0);
+        QVERIFY(noClip.ok()); QCOMPARE(shot(noClip.resource).value("status").toString(), QString("keyframe_ready"));
+        QCOMPARE(shot(noClip.resource).value("clip_versions").toArray(), QJsonArray{});
+    }
+    void boardEditsInsertDuplicateRemoveAndMoveShots() {
+        QJsonArray shots;
+        for (const auto& [id, scene] : {std::pair{"a", "one"}, {"b", "one"}, {"c", "two"}}) { shots.append(QJsonObject{{"id", id}, {"scene_id", scene}, {"index", int(shots.size())}, {"action", QString(id).toUpper()}}); }
+        const QJsonObject source{{"id", "board"}, {"name", "Film"}, {"document", QJsonObject{{"shots", shots}}}};
+        const auto order = [](const QJsonObject& resource) { QStringList ids; for (const auto& value : resource.value("document").toObject().value("shots").toArray()) { const auto shot = value.toObject(); ids.append(shot.value("id").toString() + ":" + shot.value("scene_id").toString() + QString::number(shot.value("index").toInt())); } return ids; };
+        const auto inserted = insertShot(source, "a", "n");
+        QVERIFY(inserted.ok()); QCOMPARE(order(inserted.resource), (QStringList{"a:one0", "n:one1", "b:one2", "c:two3"}));
+        QCOMPARE(insertShot(source, "", "z").resource.value("document").toObject().value("shots").toArray().last().toObject().value("scene_id").toString(), QString("two"));
+        auto annotated = source; auto document = annotated.value("document").toObject(); auto list = document.value("shots").toArray();
+        auto first = list.first().toObject(); first.insert("script_line_ids", QJsonArray{"line"}); first.insert("covered_by", QJsonObject{{"shot_id", "x"}}); list[0] = first;
+        document.insert("shots", list); annotated.insert("document", document);
+        const auto copied = duplicateShot(annotated, "a", "copy");
+        QVERIFY(copied.ok()); QCOMPARE(order(copied.resource), (QStringList{"a:one0", "copy:one1", "b:one2", "c:two3"}));
+        const auto copy = copied.resource.value("document").toObject().value("shots").toArray().at(1).toObject();
+        QCOMPARE(copy.value("action").toString(), QString("A")); QVERIFY(!copy.contains("script_line_ids")); QVERIFY(!copy.contains("covered_by"));
+        QCOMPARE(copy.value("duration_source").toString(), QString("manual"));
+        const auto removed = removeShot(copied.resource, "a");
+        QVERIFY(removed.ok()); QCOMPARE(order(removed.resource), (QStringList{"copy:one0", "b:one1", "c:two2"}));
+        const auto moved = moveShot(source, "a", "two", 1);
+        QVERIFY(moved.ok()); QCOMPARE(order(moved.resource), (QStringList{"b:one0", "c:two1", "a:two2"}));
+        QVERIFY(!removeShot(source, "missing").ok());
+    }
+    void boardSettingsChangeNameAndDocumentFields() {
+        const QJsonObject source{{"id", "board"}, {"name", "Film"}, {"document", QJsonObject{{"shots", QJsonArray{}}, {"brief", ""}}}};
+        const auto named = patchBoard(source, "name", "New film");
+        QVERIFY(named.ok()); QCOMPARE(named.resource.value("name").toString(), QString("New film"));
+        QVERIFY(!patchBoard(source, "name", "  ").ok());
+        const auto styled = patchBoard(source, "style", "noir");
+        QVERIFY(styled.ok()); QCOMPARE(styled.resource.value("document").toObject().value("style").toString(), QString("noir"));
+        QVERIFY(patchBoard(source, "aspectRatio", "9:16").ok());
+        QVERIFY(!patchBoard(source, "aspectRatio", "wide").ok());
+        QVERIFY(!patchBoard(source, "shots", QJsonArray{}).ok());
+    }
 };
 QTEST_GUILESS_MAIN(StoryDraftTest)
 #include "tst_storydrafts.moc"

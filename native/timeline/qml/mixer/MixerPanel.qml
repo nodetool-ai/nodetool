@@ -9,8 +9,10 @@ Item {
         while(at && at.timeline === undefined) at=at.parent
         return at
     }
+    // A dock tab is open while it is shown, so only the undocked slot follows the toolbar toggle.
+    readonly property bool docked: !!parent && !!parent.dock
     width: editor ? editor.width : 0
-    implicitHeight: AutomationUIState.mixerOpen ? 300 : 0
-    visible: AutomationUIState.mixerOpen
+    implicitHeight: docked || AutomationUIState.mixerOpen ? 300 : 0
+    visible: docked || AutomationUIState.mixerOpen
     MixerView { anchors.fill: parent; timeline: AutomationUIState.timeline }
 }

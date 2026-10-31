@@ -45,7 +45,15 @@ void AssistController::setModel(TimelineModel* model) {
         connect(model, &TimelineModel::timelineChanged, this, invalidate);
         connect(model, &TimelineModel::markersChanged, this, invalidate);
         connect(model->undoStack(), &QUndoStack::indexChanged, this, [invalidate](int) { invalidate(); });
-        connect(model, &TimelineModel::documentReplaced, this, [this]() { if (m_cancelled) { m_cancelled->store(true); } m_result.clear(); m_scriptRevisions.clear(); m_pendingCommitId.clear(); emit changed(); });
+        m_timelineId = model->timeline().raw.value("id").toString();
+        // A sync of the same timeline also replaces the document. Keep the open resource unless the timeline changed.
+        connect(model, &TimelineModel::documentReplaced, this, [this]() {
+            if (m_cancelled) { m_cancelled->store(true); }
+            const auto id = m_model ? m_model->timeline().raw.value("id").toString() : QString{};
+            if (id != m_timelineId || id.isEmpty()) { m_result.clear(); m_scriptRevisions.clear(); m_pendingCommitId.clear(); }
+            m_timelineId = id;
+            emit changed();
+        });
     }
     emit scriptDraftsChanged(); emit changed();
 }
@@ -235,7 +243,8 @@ bool AssistController::call(bool write, const QString& procedure, const QJsonObj
             };
         }
     }
-    if (!m_model || !transport) { m_error = "Connect to a server to use linked documents."; emit changed(); return false; }
+    m_offline = !m_model || !transport;
+    if (m_offline) { m_error = "Connect to a server to use linked documents."; emit changed(); return false; }
     if (m_busy) { return false; }
     const auto observed = m_model->timeline().raw;
     auto mediaResolver = m_mediaResolver;
@@ -461,9 +470,52 @@ bool AssistController::saveScript(const QJsonObject& script) {
     if (script.value("updatedAt").toString().isEmpty()) { return false; }
     return call(true, "scripts.update", {{"id", script.value("id")}, {"document", script.value("document")}, {"baseUpdatedAt", script.value("updatedAt")}});
 }
+namespace {
+QJsonObject mergeFields(QJsonObject target, const QJsonObject& fields) {
+    for (auto it = fields.begin(); it != fields.end(); ++it) {
+        if (it.value().isNull() || it.value().isUndefined()) { target.remove(it.key()); } else { target.insert(it.key(), it.value()); }
+    }
+    return target;
+}
+}
+bool AssistController::scriptOnTimeline() const {
+    const auto id = m_result.toMap().value("timelineId").toString();
+    return m_model && !id.isEmpty() && id == m_model->timeline().raw.value("id").toString();
+}
+bool AssistController::updateScriptLine(const QString& lineId, const QJsonObject& fields) {
+    auto script = QJsonObject::fromVariantMap(m_result.toMap());
+    if (m_busy || lineId.isEmpty() || !script.value("document").toObject().contains("sections")) { return false; }
+    auto document = script.value("document").toObject(); auto sections = document.value("sections").toArray();
+    bool found = false;
+    for (qsizetype i = 0; i < sections.size(); ++i) {
+        auto section = sections.at(i).toObject(); auto lines = section.value("lines").toArray();
+        for (qsizetype j = 0; j < lines.size(); ++j) {
+            if (lines.at(j).toObject().value("id").toString() != lineId) { continue; }
+            lines[j] = mergeFields(lines.at(j).toObject(), fields); found = true;
+        }
+        section.insert("lines", lines); sections[i] = section;
+    }
+    if (!found) { return false; }
+    document.insert("sections", sections); script.insert("document", document);
+    return saveScript(script);
+}
+bool AssistController::updateScriptSpeaker(const QString& speakerId, const QJsonObject& fields) {
+    auto script = QJsonObject::fromVariantMap(m_result.toMap());
+    if (m_busy || speakerId.isEmpty()) { return false; }
+    auto document = script.value("document").toObject(); auto cast = document.value("cast").toArray();
+    bool found = false;
+    for (qsizetype i = 0; i < cast.size(); ++i) {
+        if (cast.at(i).toObject().value("id").toString() == speakerId) { cast[i] = mergeFields(cast.at(i).toObject(), fields); found = true; }
+    }
+    if (!found) { return false; }
+    document.insert("cast", cast); script.insert("document", document);
+    return saveScript(script);
+}
 bool AssistController::saveStoryboard(const QJsonObject& storyboard) {
     if (storyboard.value("updatedAt").toString().isEmpty()) { return false; }
-    return call(true, "storyboards.update", {{"id", storyboard.value("id")}, {"document", storyboard.value("document")}, {"baseUpdatedAt", storyboard.value("updatedAt")}});
+    QJsonObject input{{"id", storyboard.value("id")}, {"document", storyboard.value("document")}, {"baseUpdatedAt", storyboard.value("updatedAt")}};
+    if (!storyboard.value("name").toString().trimmed().isEmpty()) { input.insert("name", storyboard.value("name")); }
+    return call(true, "storyboards.update", input);
 }
 
 bool AssistController::listContextResources(const QString& kind, bool linkedOnly) {

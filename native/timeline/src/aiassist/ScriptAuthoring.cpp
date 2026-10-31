@@ -117,7 +117,7 @@ QJsonArray scriptPanelRows(const QJsonObject& script, const QJsonObject& timelin
             line.insert("kind", "line"); line.insert("sectionId", section.value("id")); line.insert("showSpeaker", showSpeaker && !speaker.isEmpty());
             line.insert("speakerName", speaker.value("name").toString());
             if (speaker.contains("color")) { line.insert("speakerColor", speaker.value("color")); }
-            line.insert("status", status); line.insert("canVoice", status != "voiced" && !line.value("text").toString().trimmed().isEmpty());
+            line.insert("status", status); line.insert("hasVoice", effectiveVoice(line, speaker).isObject()); line.insert("canVoice", status != "voiced" && !line.value("text").toString().trimmed().isEmpty());
             line.insert("clipId", clip.value("id").isUndefined() ? QJsonValue::Null : clip.value("id"));
             if (!clip.isEmpty()) { line.insert("clipStartMs", clip.value("startMs")); }
             rows.append(line);

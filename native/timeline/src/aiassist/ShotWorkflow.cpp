@@ -379,6 +379,12 @@ bool ShotWorkflow::link(const QJsonObject& board, const QString& clipId, const Q
     return m_timeline->applyEdit("shot.link", {{"clipId", clipId}, {"boardId", board.value("id")}, {"shotId", *resolved}}) != 0;
 }
 bool ShotWorkflow::unlink(const QString& clipId) { return m_timeline && !busy() && m_timeline->applyEdit("shot.link", {{"clipId", clipId}, {"unlink", true}}) != 0; }
+QString ShotWorkflow::prompt(const QJsonObject& document, const QJsonObject& shot, const QString& kind) const {
+    auto text = nt::aiassist::composeShotPrompt(document, shot, kind);
+    const auto direction = shot.value("production").toObject().value("local_direction").toString();
+    if (kind == "video" && !direction.trimmed().isEmpty()) { text += "\n\n" + direction; }
+    return text;
+}
 void ShotWorkflow::cancel() {
     if ((m_state == "rendering" || m_state == "recovering") && m_transport.ready()) { m_transport.send("cancel_generation", {{"request_ids", QJsonArray{m_requestId}}}, id()); }
     m_stopQueue = true;
