@@ -15,7 +15,7 @@ import {
   type WebSocketConnection,
   type WebSocketReceiveFrame
 } from "../src/websocket-client-session.js";
-import { Asset } from "@nodetool-ai/models";
+import { Asset, initTestDb, Prediction } from "@nodetool-ai/models";
 import type {
   TextToImageParams,
   ImageToImageParams,
@@ -154,7 +154,13 @@ async function runOne(
   ws.queue.push({ type: "websocket.message", text: JSON.stringify(frame) });
   ws.queue.push({ type: "websocket.disconnect" });
   await runner.receiveMessages();
-  return decodeFrame(ws, 0);
+  for (let index = 0; index < Math.max(ws.sentBytes.length, ws.sentText.length); index++) {
+    const reply = decodeFrame(ws, index);
+    if (reply.type === "rpc_response" && reply.request_id === frame.request_id) {
+      return reply;
+    }
+  }
+  throw new Error(`No RPC response for ${String(frame.request_id)}`);
 }
 
 describe("generate_media RPC (text-to-image)", () => {
@@ -433,7 +439,9 @@ describe("generate_media RPC (video modes)", () => {
     ws.queue.length = 0;
   });
 
-  it("routes a source asset through imageToVideo with the requested duration", async () => {
+  it.each([false, true])("routes a source asset through imageToVideo with presets %j", async (withPreset) => {
+    initTestDb();
+    const preset_ids = withPreset ? ["camera.dolly-in"] : undefined;
     configureAssets(["srcv-1"]);
     const runner = await makeRunner(ws, makeProvider);
 
@@ -446,6 +454,7 @@ describe("generate_media RPC (video modes)", () => {
         model: "fal-ai/kling/v2",
         prompt: "slow push in",
         source_asset_id: "srcv-1",
+        preset_ids,
         aspect_ratio: "16:9",
         duration: 5
       }
@@ -456,7 +465,7 @@ describe("generate_media RPC (video modes)", () => {
     expect(t2vCalls).toHaveLength(0);
     expect(i2vCalls).toHaveLength(1);
     expect(i2vCalls[0].image).toEqual(REF_BYTES["srcv-1"]);
-    expect(i2vCalls[0].params.prompt).toBe("slow push in");
+    expect(i2vCalls[0].params.prompt).toBe(preset_ids ? "slow push in The camera dollies smoothly toward the subject." : "slow push in");
     expect(i2vCalls[0].params.durationSeconds).toBe(5);
     expect(i2vCalls[0].params.aspectRatio).toBe("16:9");
 
@@ -1050,4 +1059,96 @@ describe("music generation RPC", () => {
       await runner.disconnect();
     }
   });
+});
+
+
+describe("generate_media presets", () => {
+  beforeEach(() => {
+    initTestDb();
+  });
+  it.each([
+    "fal-ai/kling-video/v3/pro/text-to-video",
+    "dreamina_seedance_45_pro"
+  ])("compiles and records a preset for %s", async (model) => {
+    const ws = new MockWebSocket();
+    const textToVideo = vi.fn(
+      async (_params: TextToVideoParams) => new Uint8Array([1])
+    );
+    const runner = await makeRunner(ws, async () => ({ textToVideo }) as never);
+    const out = await runOne(ws, runner, {
+      command: "generate_media",
+      request_id: "preset-rpc",
+      data: {
+        mode: "video",
+        provider: "fake",
+        model,
+        prompt: "a cat",
+        preset_ids: ["camera.dolly-in"]
+      }
+    });
+    expect(out.error).toBeUndefined();
+    expect(textToVideo.mock.calls[0][0].prompt).toBe(
+      "a cat The camera dollies smoothly toward the subject."
+    );
+    const [rows] = await Prediction.paginate("1", {});
+    expect(rows[0].preset_ids).toEqual(["camera.dolly-in"]);
+    expect(rows[0].preset_warnings).toEqual([]);
+    await runner.disconnect();
+  });
+  it("preserves the prompt without preset_ids", async () => {
+    const ws = new MockWebSocket();
+    const textToVideo = vi.fn(
+      async (_params: TextToVideoParams) => new Uint8Array([1])
+    );
+    const runner = await makeRunner(ws, async () => ({ textToVideo }) as never);
+    await runOne(ws, runner, {
+      command: "generate_media",
+      request_id: "plain-rpc",
+      data: {
+        mode: "video",
+        provider: "fake",
+        model: "video",
+        prompt: "a cat"
+      }
+    });
+    expect(textToVideo.mock.calls[0][0].prompt).toMatchInlineSnapshot(
+      `"a cat"`
+    );
+    await runner.disconnect();
+  });
+  it.each([
+    [["camera.missing"], "Unknown preset: camera.missing"],
+    [
+      ["camera.dolly-in", "camera.orbit"],
+      "Presets camera.dolly-in and camera.orbit cannot combine"
+    ],
+    [
+      ["camera.dolly-in", "camera.orbit", "camera.crane-up", "camera.dolly-in"],
+      "Too big"
+    ]
+  ])(
+    "rejects an invalid stack %j before calling the provider",
+    async (preset_ids, message) => {
+      const ws = new MockWebSocket();
+      const textToVideo = vi.fn();
+      const runner = await makeRunner(
+        ws,
+        async () => ({ textToVideo }) as never
+      );
+      const out = await runOne(ws, runner, {
+        command: "generate_media",
+        request_id: "bad-preset",
+        data: {
+          mode: "video",
+          provider: "fake",
+          model: "video",
+          prompt: "a cat",
+          preset_ids
+        }
+      });
+      expect(out.error).toMatchObject({ message: expect.stringContaining(message) });
+      expect(textToVideo).not.toHaveBeenCalled();
+      await runner.disconnect();
+    }
+  );
 });

@@ -215,6 +215,7 @@ export const generateMediaDataSchema = z
     provider: z.string().optional(),
     model: z.string().optional(),
     prompt: z.string().optional(),
+    preset_ids: z.array(z.string().min(1)).max(3).optional(),
     capability: z.literal("reference_to_video").optional(),
     reference_asset_ids: z.array(z.string().trim().min(1)).optional(),
     entity_ids: z.array(z.string().trim().min(1)).optional(),

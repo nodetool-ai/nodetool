@@ -28,6 +28,8 @@ import {
 } from "../lib/wire-values.js";
 import { storeAssetWithThumbnail } from "../lib/thumbnail.js";
 import {
+  compileMediaPresets,
+  mediaPresetSettings,
   createGenerationRun,
   generateSpeechBytes,
   generateMusicBytes
@@ -3390,9 +3392,16 @@ export class ChatTurnHandler {
       // Entity expansion and provider resolution are part of the guarded
       // setup. A missing entity or provider must follow the same error path as
       // a provider call and leave a durable assistant failure row.
+      const sourceVideoImage = mode === "video"
+        ? await this.deps.resolveSourceImageBytes(data, mediaGeneration, userId) : null;
+      const presetMode = mode === "video" && sourceVideoImage?.length ? "image_to_video" : mode;
+      const presets = compileMediaPresets(mediaGeneration.preset_ids, providerId, modelId, presetMode, prompt);
+      const settings = mediaPresetSettings(presets, presetMode);
+      mediaGeneration = { ...mediaGeneration, ...settings,
+        ...(typeof settings.duration_seconds === "number" && { duration: settings.duration_seconds }) };
       const { prompt: expandedPrompt, referenceImages } =
         await expandEntitiesForGeneration(
-          prompt,
+          presets.prompt,
           this.deps.entityRefResolver(userId)
         );
       const entityImageBytes = await this.deps.resolveEntityReferenceImages(
@@ -3410,6 +3419,7 @@ export class ChatTurnHandler {
         seamAssetId,
         storeAsset: storeMediaAsset
       } = createGenerationRun({
+        presets,
         userId,
         providerId,
         modelId,
@@ -3451,6 +3461,9 @@ export class ChatTurnHandler {
           prompt: expandedPrompt,
           width,
           height,
+          ...(typeof settings.seed === "number" && { seed: settings.seed }),
+          ...(typeof settings.aspect_ratio === "string" && { aspectRatio: settings.aspect_ratio }),
+          ...(typeof settings.resolution === "string" && { resolution: settings.resolution }),
           signal
         };
 
@@ -3488,6 +3501,9 @@ export class ChatTurnHandler {
                       prompt: expandedPrompt,
                       targetWidth: width ?? null,
                       targetHeight: height ?? null,
+                      ...(typeof settings.seed === "number" && { seed: settings.seed }),
+                      ...(typeof settings.aspect_ratio === "string" && { aspectRatio: settings.aspect_ratio }),
+                      ...(typeof settings.resolution === "string" && { resolution: settings.resolution }),
                       signal: abort
                     },
                     variations
@@ -3574,11 +3590,7 @@ export class ChatTurnHandler {
         // route to image-to-video so the image actually reaches the provider.
         // Many "video" models (e.g. fal-ai/stable-video) in fact require an
         // image and reject a text-only request with an opaque 422.
-        const sourceBytes = await this.deps.resolveSourceImageBytes(
-          data,
-          mediaGeneration,
-          userId
-        );
+        const sourceBytes = sourceVideoImage;
         const videoParams = {
           prompt: expandedPrompt,
           aspect_ratio: aspectRatio,
@@ -3598,7 +3610,7 @@ export class ChatTurnHandler {
                     aspectRatio,
                     resolution,
                     durationSeconds: duration,
-                    numInferenceSteps: null,
+                    numInferenceSteps: isNumber(mediaGeneration.num_inference_steps) ? mediaGeneration.num_inference_steps : null,
                     signal: abort
                   })
               )
@@ -3613,6 +3625,7 @@ export class ChatTurnHandler {
                     aspectRatio,
                     resolution,
                     durationSeconds: duration,
+                    numInferenceSteps: isNumber(mediaGeneration.num_inference_steps) ? mediaGeneration.num_inference_steps : null,
                     signal: abort
                   })
               );
@@ -3723,6 +3736,7 @@ export class ChatTurnHandler {
                 aspectRatio,
                 resolution,
                 durationSeconds: duration,
+                numInferenceSteps: isNumber(mediaGeneration.num_inference_steps) ? mediaGeneration.num_inference_steps : null,
                 useReferenceVideoAudio,
                 signal: abort
               }
@@ -3944,7 +3958,10 @@ export class ChatTurnHandler {
             targetHeight: targetHeight ?? null,
             strength: strength ?? null,
             numInferenceSteps: numInferenceSteps ?? null,
-            signal
+            signal,
+            ...(typeof settings.seed === "number" && { seed: settings.seed }),
+            ...(typeof settings.aspect_ratio === "string" && { aspectRatio: settings.aspect_ratio }),
+            ...(typeof settings.resolution === "string" && { resolution: settings.resolution }),
           };
           if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq)
             return;

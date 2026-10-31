@@ -25,6 +25,7 @@ import type {
  */
 export interface MediaGenerationRequest {
   mode: MediaMode;
+  preset_ids?: string[];
   provider?: string | null;
   model?: string | null;
   width?: number | null;

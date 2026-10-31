@@ -41,6 +41,7 @@ import type { RunJobRequest } from "./job-execution.js";
 
 const log = createLogger("nodetool.websocket.runner");
 const referenceMediaDataSchema = generateMediaDataSchema.pick({
+  preset_ids: true,
   timeline_context: true,
   capability: true,
   reference_asset_ids: true,
@@ -1007,6 +1008,7 @@ export class CommandRouter {
           language,
           instructions,
           audioFormat,
+          presetIds: references.preset_ids,
           capability: references.capability,
           referenceAssetIds: references.reference_asset_ids,
           entityIds: references.entity_ids,

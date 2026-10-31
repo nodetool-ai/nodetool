@@ -42,6 +42,8 @@ export interface GenerationActivity {
   /** The request id, chat message id or prediction id. */
   id: string;
   channel: GenerationActivityChannel;
+  preset_ids?: string[];
+  preset_warnings?: string[];
   status: GenerationActivityStatus;
   kind: GenerationMediaKind;
   /** The prompt as sent, when there was one. */

@@ -11,7 +11,7 @@ import { describe, it, expect, beforeEach, beforeAll, vi } from "vitest";
 import { mkdtempSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { initTestDb, Message } from "@nodetool-ai/models";
+import { initTestDb, Message, Prediction } from "@nodetool-ai/models";
 import { noMediaModelSelectedMessage } from "@nodetool-ai/protocol";
 import {
   makeChatTurnHarness,
@@ -846,5 +846,69 @@ describe("retake and extend", () => {
     expect(
       (assistant.content as Array<Record<string, unknown>>)[0].type
     ).toBe("video");
+  });
+});
+
+
+describe("chat media presets", () => {
+  beforeEach(() => {
+    initTestDb();
+  });
+  it.each([
+    "fal-ai/kling-video/v3/pro/text-to-video",
+    "dreamina_seedance_45_pro"
+  ])("compiles for %s and persists provenance", async (model) => {
+    const textToVideo = vi.fn(async () => PNG);
+    const harness = makeChatTurnHarness({
+      session: { resolveProvider: async () => fakeProvider({ textToVideo }) }
+    });
+    await harness.handler.handleChatMessage(
+      mediaTurn("t-presets", {
+        mode: "video",
+        provider: "mock",
+        model,
+        preset_ids: ["camera.dolly-in"]
+      })
+    );
+    expect(textToVideo).toHaveBeenCalledWith(
+      expect.objectContaining({
+        prompt:
+          "a red fox in snow The camera dollies smoothly toward the subject."
+      })
+    );
+    const [rows] = await Prediction.paginate(
+      harness.session.requireUserId(),
+      {}
+    );
+    expect(rows[0].preset_ids).toEqual(["camera.dolly-in"]);
+    expect(rows[0].preset_warnings).toEqual([]);
+  });
+  it.each([
+    [["camera.missing"], "Unknown preset: camera.missing"],
+    [
+      ["camera.dolly-in", "camera.orbit"],
+      "Presets camera.dolly-in and camera.orbit cannot combine"
+    ],
+    [
+      ["camera.dolly-in", "camera.orbit", "camera.crane-up", "camera.dolly-in"],
+      "Too big"
+    ]
+  ])("rejects invalid chat stack %j", async (preset_ids, message) => {
+    const textToVideo = vi.fn(async () => PNG);
+    const harness = makeChatTurnHarness({
+      session: { resolveProvider: async () => fakeProvider({ textToVideo }) }
+    });
+    await harness.handler.handleChatMessage(
+      mediaTurn("t-bad-presets", {
+        mode: "video",
+        provider: "mock",
+        model: "video",
+        preset_ids
+      })
+    );
+    expect(harness.session.messagesOfType("error")[0].message).toContain(
+      message
+    );
+    expect(textToVideo).not.toHaveBeenCalled();
   });
 });

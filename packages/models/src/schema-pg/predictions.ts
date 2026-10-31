@@ -88,6 +88,8 @@ export const predictions = pgTable(
     hardware: text("hardware"),
     input_size: integer("input_size"),
     output_size: integer("output_size"),
+    preset_ids: jsonText<string[]>()("preset_ids"),
+    preset_warnings: jsonText<string[]>()("preset_warnings"),
     parameters: jsonText<Record<string, unknown>>()("parameters"),
     metadata: jsonText<Record<string, unknown>>()("metadata")
   },
