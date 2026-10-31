@@ -450,8 +450,9 @@ Json Session::step(const Json &input) {
           throw Error("command_error", "Unknown health entity");
         }
         (*e)["gameplay"]["health"] =
-            e->value("gameplay", Json::object()).value("health", 100.) +
-            c.at("amount").get<double>();
+            std::clamp(e->value("gameplay", Json::object()).value("health", 100.) +
+                           c.at("amount").get<double>(),
+                       0., 1'000'000.);
       } else if (kind == "emit") {
         nextEvents.push_back(c);
       } else if (kind == "transition") {
@@ -767,6 +768,10 @@ Json Session::baseFrame() const {
         const auto current = chain.back(); chain.pop_back();
         const auto &definition = *definitions.at(current);
         auto local = definition.at("transform");
+        const auto visual = definition.value("visualOverride", Json::object());
+        for (const auto *property : {"rotation", "scaleX", "scaleY"}) {
+          if (visual.contains(property)) { local[property] = visual.at(property); }
+        }
         const auto parent = definition.value("parentId", std::string{});
         if (!parent.empty()) {
           const auto &p = worldTransforms.at(parent);
@@ -818,7 +823,11 @@ Json Session::baseFrame() const {
           if (velocity != 0) { entity["sprite"]["flipX"] = (velocity < 0) != facesLeft || entity.at("sprite").value("flipX", false); }
         }
         const auto visual = entity.value("visualOverride", Json::object());
-        for (auto property = visual.begin(); property != visual.end(); ++property) { entity["sprite"][property.key()] = property.value(); }
+        for (auto property = visual.begin(); property != visual.end(); ++property) {
+          if (property.key() != "rotation" && property.key() != "scaleX" && property.key() != "scaleY") {
+            entity["sprite"][property.key()] = property.value();
+          }
+        }
       }
       if (!selectedCamera && entity.contains("camera2d")) {
         selectedCamera = true;

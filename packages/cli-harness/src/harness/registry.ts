@@ -2572,7 +2572,7 @@ export const SURFACES: SurfaceEntry[] = [
     title: "Native game service, CLI, and agent capabilities",
     harnesses: ["native-game-service"],
     paths: [
-      "packages/game-runtime/src/native", "packages/game-runtime/tests/native-cpp.test.ts", "packages/game-runtime/tests/native-editor-client.test.ts",
+      "packages/game-runtime/src/native", "packages/game-runtime/tests/native-cpp.test.ts", "packages/game-runtime/tests/native-editor-client.test.ts", "packages/game-runtime/tests/native-frame-commands.test.ts",
       "packages/cli-game/src/commands/game-native-cpp.ts", "packages/cli-game/tests/game-native-cpp.test.ts",
       "packages/agents/src/capabilities/native-cpp-game", "packages/agents/tests/capabilities-native-cpp-game.test.ts",
       "scripts/check-native-game-service.mjs"
@@ -2617,7 +2617,7 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/game-runtime/src/native.ts", "packages/cli-game/src/commands/game-native-cpp.ts", "packages/agents/src/capabilities/native-cpp-game",
       "packages/game-renderer/src/native-cpp/", "packages/game-renderer/src/standalone-native-player.ts",
       "packages/game-renderer/scripts/bundle-native-browser.mjs", "packages/game-renderer/tests/native-browser",
-      "packages/game-renderer/scripts/check-native-browser-host.mjs",
+      "packages/game-renderer/scripts/check-native-browser-host.mjs", "packages/game-renderer/tests/native-frame-commands.test.ts",
       "packages/game-renderer/scripts/generate-native-postfx.mjs", "packages/game-renderer/tests/native-post3d.test.ts",
       "packages/game-renderer/tests/fixtures/native-bsdf-reference/", "packages/game-renderer/tests/fixtures/native-normal-reference/",
       "packages/game-renderer/tests/fixtures/nativeBsdfReference.mjs", "packages/game-renderer/tests/fixtures/nativeNormalReference.mjs",

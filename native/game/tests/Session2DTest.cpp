@@ -215,7 +215,7 @@ int main() {
       const auto committed = spawned.snapshot();
       const auto &runtimeChild = committed.at("entities")[0];
       require(result.at("entities").size() == 3 && runtimeChild.at("id") == "child" && runtimeChild.at("parentId") == "parent", "Spawn can reference a live parent in both dimensions");
-      require(result.at("entities")[1].at("gameplay").at("health") == -100, "Spawn validation preserves runtime gameplay state");
+      require(result.at("entities")[1].at("gameplay").at("health") == 0, "Spawn validation preserves bounded runtime health after overkill");
       const auto &liveTransform = result.at("entities")[1].at("transform");
       require((std::string(dimension) == "2d" ? liveTransform.at("x").get<double>() : liveTransform.at("position")[0].get<double>()) > 0, "Spawn validation preserves runtime movement");
       if (std::string(dimension) == "2d") {

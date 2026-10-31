@@ -58,7 +58,8 @@ export class NativeJsonSaveHost {
     for (const request of fresh) {
       this.pending += 1;
       this.chain = this.chain.then(async () => {
-        if (epoch !== this.epoch) { return; }
+        // Reset invalidates load delivery, not writes from an already committed tick.
+        if (request.kind === "load" && epoch !== this.epoch) { return; }
         let data: NativeJsonSaveRecord["data"] | null = null;
         let diagnostic: string | undefined;
         try {
