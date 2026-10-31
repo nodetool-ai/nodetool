@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -41,19 +42,24 @@ const mockSecrets = [
   { key: "HIGGSFIELD_API_KEY_SECRET", is_configured: false },
   { key: "OPENROUTER_API_KEY", is_configured: false }
 ];
+const mockUpdateSecret = jest.fn();
+const mockValidateSecret = jest.fn();
+const mockDeleteSecret = jest.fn();
 jest.mock("../../../stores/SecretsStore", () => ({
   __esModule: true,
   default: <T,>(
     selector: (state: {
       secrets: unknown[];
       updateSecret: jest.Mock;
+      validateSecret: jest.Mock;
       deleteSecret: jest.Mock;
     }) => T
   ) =>
     selector({
       secrets: mockSecrets,
-      updateSecret: jest.fn(),
-      deleteSecret: jest.fn()
+      updateSecret: mockUpdateSecret,
+      validateSecret: mockValidateSecret,
+      deleteSecret: mockDeleteSecret
     })
 }));
 jest.mock("../../../stores/NotificationStore", () => ({
@@ -67,6 +73,13 @@ import { APIKeysTabContent } from "../APIKeysTab";
 
 describe("APIKeysTabContent on a hosted deployment", () => {
   beforeEach(() => {
+    jest.clearAllMocks();
+    mockUpdateSecret.mockResolvedValue(undefined);
+    mockValidateSecret.mockResolvedValue({
+      status: "valid",
+      valid: true,
+      message: "OpenRouter accepted the key."
+    });
     (useOAuthConnection as jest.MockedFunction<typeof useOAuthConnection>)
       .mockReturnValue({
         label: "",
@@ -141,5 +154,59 @@ describe("APIKeysTabContent on a hosted deployment", () => {
     );
 
     expect(screen.getAllByText("OpenRouter")).toHaveLength(1);
+  });
+
+  it("validates a pasted single-field API key before saving and blocks rejected keys unless confirmed", async () => {
+    const user = userEvent.setup();
+    mockValidateSecret.mockResolvedValue({
+      status: "invalid",
+      valid: false,
+      message: "OpenRouter rejected the key (401)."
+    });
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } }
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider theme={mockTheme}>
+          <APIKeysTabContent />
+        </ThemeProvider>
+      </QueryClientProvider>
+    );
+
+    const openRouterCard = screen.getByRole("article", { name: "OpenRouter" });
+    await user.click(
+      within(openRouterCard).getByRole("button", { name: "Connect" })
+    );
+
+    const dialog = screen.getByRole("dialog");
+    const input = within(dialog).getByLabelText("API key");
+    await user.click(input);
+    await user.paste("  k-or-v1-missing-leading-s  ");
+    await user.click(
+      within(dialog).getByRole("button", { name: "Connect" })
+    );
+
+    await waitFor(() =>
+      expect(mockValidateSecret).toHaveBeenCalledWith(
+        "OPENROUTER_API_KEY",
+        "k-or-v1-missing-leading-s"
+      )
+    );
+    expect(mockUpdateSecret).not.toHaveBeenCalled();
+    expect(
+      within(dialog).getByText(/rejected the key/i)
+    ).toBeInTheDocument();
+
+    // Clicking "Save anyway" persists the trimmed key if the user insists.
+    await user.click(
+      within(dialog).getByRole("button", { name: /save anyway/i })
+    );
+    await waitFor(() =>
+      expect(mockUpdateSecret).toHaveBeenCalledWith(
+        "OPENROUTER_API_KEY",
+        "k-or-v1-missing-leading-s"
+      )
+    );
   });
 });

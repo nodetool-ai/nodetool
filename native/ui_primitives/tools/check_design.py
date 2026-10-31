@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Audit native QML object types and presentation bindings against its inventory."""
 import argparse
+import json
 from dataclasses import dataclass, field
 from pathlib import Path
 import re
@@ -76,11 +77,33 @@ def tokenize(text):
         # A JavaScript regular expression is opaque, including character
         # classes and brace quantifiers. Division remains punctuation.
         if text[position] == '/' and not text.startswith(('//', '/*'), position) and tokens and tokens[-1].value in {'(', '=', ',', ':', 'return', '!', '?', ';'}:
-            match = re.match(r'/((?:\\.|\[(?:\\.|[^\]\\])*\]|[^/\\\n])*)/[a-z]*', text[position:])
-            if match:
-                tokens.append(Token('regex', match.group(), line))
-                position += len(match.group())
-                continue
+            end = position + 1
+            in_class = False
+            while end < len(text) and text[end] not in '\r\n':
+                char = text[end]
+                if char == '\\':
+                    if end + 1 >= len(text) or text[end + 1] in '\r\n':
+                        break
+                    end += 2
+                    continue
+                if char == '/' and not in_class:
+                    end += 1
+                    while end < len(text) and 'a' <= text[end] <= 'z':
+                        end += 1
+                    tokens.append(Token('regex', text[position:end], line))
+                    position = end
+                    break
+                if char == '[':
+                    in_class = True
+                elif char == ']':
+                    in_class = False
+                end += 1
+            else:
+                end = len(text)
+            if position != end:
+                errors.append((line, 'Unterminated regular expression'))
+                break
+            continue
         match = TOKEN.match(text, position)
         if match is None:
             errors.append((line, 'Unsupported token'))
@@ -442,14 +465,19 @@ def read_manifest(path):
             current = {}
             manifest[kind].append(current)
             continue
-        match = re.fullmatch(r'(\w+)\s*=\s*("(?:\\.|[^"\\])*"|\[(?:\s*"(?:\\.|[^"\\])*"\s*,?)*\])', line)
-        if current is None or match is None:
+        key, separator, value = line.partition('=')
+        key = key.strip()
+        if current is None or not separator or re.fullmatch(r'\w+', key) is None:
             raise ValueError('{}:{}: unsupported inventory syntax'.format(path, line_number))
-        import json
-        key, value = match.groups()
+        try:
+            value = json.loads(value)
+        except ValueError as error:
+            raise ValueError('{}:{}: unsupported inventory syntax'.format(path, line_number)) from error
+        if not isinstance(value, str) and not (isinstance(value, list) and all(isinstance(item, str) for item in value)):
+            raise ValueError('{}:{}: inventory values must be strings or string arrays'.format(path, line_number))
         if key in current:
             raise ValueError('{}:{}: duplicate inventory key'.format(path, line_number))
-        current[key] = json.loads(value)
+        current[key] = value
     return manifest
 
 

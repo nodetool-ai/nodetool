@@ -57,6 +57,7 @@ Item {
 
     Ui.NumberField {
         id: numberField
+        previewWhileTyping: false
         objectName: "inspectorNumericField"
         anchors.fill: parent
         visible: !!root.scrub

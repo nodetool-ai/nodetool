@@ -15,6 +15,7 @@ public:
     QVariantMap document() const;
     Q_INVOKABLE bool apply(const QString& action, const QJsonObject& payload);
     Q_INVOKABLE void beginGesture(const QString& action, const QJsonObject& payload);
+    Q_INVOKABLE void cancelGesture();
     Q_INVOKABLE void preview(const QJsonObject& payload);
     Q_INVOKABLE void commit(const QString& action, const QJsonObject& payload);
     Q_INVOKABLE bool easingReadable(const QString& value) const;
@@ -24,7 +25,6 @@ signals:
 private:
     QJsonObject withSourceCaps(QJsonObject payload) const;
     QPointer<TimelineModel> m_model;
-    void cancelGesture();
     QJsonArray m_lastPreview;
     QJsonObject m_before;
     QJsonObject m_payload;

@@ -1,5 +1,5 @@
 set(modules timeline_qml nodetool_ui_primitives nodetool_chat nodetool_model_picker tst_providerdialog)
-set(themes Theme Theme ChatMetrics ModelPickerMetrics Theme)
+set(themes TimelineMetrics Theme ChatMetrics ModelPickerMetrics TimelineVisuals)
 set(entries "")
 foreach(index RANGE 0 4)
     list(GET modules ${index} module)

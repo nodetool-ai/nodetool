@@ -433,7 +433,7 @@ describe("settings router", () => {
       const caller = createCaller(makeCtx());
       const result = await caller.settings.secrets.upsert({
         key: "OPENAI_API_KEY",
-        value: "sk-123",
+        value: "  sk-123\n",
         description: "my key"
       });
       expect(Secret.upsert).toHaveBeenCalledWith({

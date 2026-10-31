@@ -44,7 +44,12 @@ private slots:
         review.setReadCall([&reads](const QString& procedure, const QJsonObject& input) {
             ++reads;
             if (procedure != "scripts.get" || input.value("id") != "script") { return nt::server::QueryResult{{}, {"Unexpected read", "BAD_REQUEST", {}, 400}}; }
-            return nt::server::QueryResult{QJsonObject{{"id", "script"}, {"updatedAt", "s1"}, {"document", QJsonObject{{"sections", QJsonArray{QJsonObject{{"lines", QJsonArray{QJsonObject{{"id", "line"}, {"currentTakeId", "take"}, {"pauseAfterMs", 500}, {"takes", QJsonArray{QJsonObject{{"id", "take"}, {"assetId", "speech"}, {"durationMs", 6500}}}}}}}}}}}}}, {}};
+            const QJsonObject take{{"id", "take"}, {"assetId", "speech"}, {"durationMs", 6500}};
+            const QJsonObject line{{"id", "line"}, {"currentTakeId", "take"}, {"pauseAfterMs", 500}, {"takes", QJsonArray{take}}};
+            const QJsonObject section{{"lines", QJsonArray{line}}};
+            const QJsonObject document{{"sections", QJsonArray{section}}};
+            const QJsonObject script{{"id", "script"}, {"updatedAt", "s1"}, {"document", document}};
+            return nt::server::QueryResult{script, {}};
         });
         const QJsonObject selected{{"id", "model"}, {"provider", "provider"}};
         const auto source = board(true);

@@ -21,9 +21,9 @@ target_link_libraries(nodetool_ui_primitives PUBLIC Qt6::Core Qt6::Gui Qt6::Qml 
 target_include_directories(nodetool_ui_primitives PRIVATE private)
 qt_add_resources(nodetool_ui_primitives ui_fonts PREFIX /qt/qml/NodeTool/UiPrimitives/fonts
     BASE resources/fonts FILES
-    resources/fonts/inter-latin-400-normal.woff2 resources/fonts/inter-latin-500-normal.woff2
-    resources/fonts/inter-latin-600-normal.woff2 resources/fonts/jetbrains-mono-latin-400-normal.woff2
-    resources/fonts/jetbrains-mono-latin-500-normal.woff2 resources/fonts/jetbrains-mono-latin-600-normal.woff2)
+    resources/fonts/inter-latin-400-normal.ttf resources/fonts/inter-latin-500-normal.ttf
+    resources/fonts/inter-latin-600-normal.ttf resources/fonts/jetbrains-mono-latin-400-normal.ttf
+    resources/fonts/jetbrains-mono-latin-500-normal.ttf resources/fonts/jetbrains-mono-latin-600-normal.ttf)
 file(GLOB ui_provider_icons CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/resources/icons/providers/*.svg")
 qt_add_resources(nodetool_ui_primitives ui_provider_icons
     PREFIX /qt/qml/NodeTool/UiPrimitives/providers
@@ -59,6 +59,8 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR AND BUILD_TESTING)
     target_link_libraries(ui_accessibility_tests PRIVATE Qt6::Test)
     nodetool_use_ui_primitives(ui_accessibility_tests)
     add_test(NAME ui_accessibility_tests COMMAND ui_accessibility_tests)
+    # Keep Windows test tools attached to standard output for CTest.
+    set_target_properties(ui_gallery ui_primitives_tests ui_accessibility_tests PROPERTIES WIN32_EXECUTABLE FALSE)
     set_tests_properties(ui_gallery_smoke ui_primitives_tests ui_accessibility_tests PROPERTIES
         ENVIRONMENT "QT_QPA_PLATFORM=offscreen;QT_QUICK_BACKEND=software")
 endif()

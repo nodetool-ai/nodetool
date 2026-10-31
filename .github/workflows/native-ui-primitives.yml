@@ -22,6 +22,7 @@ env:
   QT_VERSION: "6.12.0"
   QT_QPA_PLATFORM: offscreen
   QT_QUICK_BACKEND: software
+  QT_FORCE_STDERR_LOGGING: "1"
 
 jobs:
   standalone:
@@ -83,6 +84,8 @@ jobs:
             "qt.qt6.$qtv.addons.qtwebsockets.win64_msvc2022_64"
           echo "QT_PREFIX=$RUNNER_TEMP/qt/$QT_VERSION/msvc2022_64" >> "$GITHUB_ENV"
           echo "$RUNNER_TEMP/qt/$QT_VERSION/msvc2022_64/bin" >> "$GITHUB_PATH"
+          # The offscreen FreeType backend does not discover Windows system fonts.
+          echo "QT_QPA_FONTDIR=$WINDIR/Fonts" >> "$GITHUB_ENV"
 
       - name: Check native design and dependencies
         run: |
@@ -99,6 +102,51 @@ jobs:
 
       - name: Test native controls
         run: ctest --test-dir native/ui_primitives/build --output-on-failure
+
+      - name: Diagnose Windows process startup
+        if: failure() && runner.os == 'Windows'
+        continue-on-error: true
+        timeout-minutes: 3
+        run: |
+          python - <<'PYTHON' | tee "$RUNNER_TEMP/native-ui-windows-startup.log"
+          import ctypes
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          build = Path('native/ui_primitives/build').resolve()
+          qt = Path(os.environ['QT_PREFIX']).resolve()
+          environment = {**os.environ, 'QT_DEBUG_PLUGINS': '1'}
+          def inspect(command):
+              print('COMMAND:', command, flush=True)
+              try:
+                  result = subprocess.run(command, cwd=build, env=environment,
+                                          capture_output=True, encoding='utf-8', errors='replace', timeout=30)
+                  print('EXIT:', result.returncode, 'HEX:', hex(result.returncode & 0xffffffff), flush=True)
+                  print(result.stdout[-12000:], result.stderr[-12000:], flush=True)
+              except (OSError, subprocess.TimeoutExpired) as error:
+                  print(type(error).__name__ + ':', error, flush=True)
+          inspect([str(qt / 'bin/qtpaths.exe'), '--qt-version'])
+          tests = json.loads(subprocess.check_output(
+              ['ctest', '--test-dir', str(build), '--show-only=json-v1'], text=True))
+          for test in tests['tests']:
+              command = test['command']
+              report = build / (test['name'] + '.startup.txt')
+              if test['name'] != 'ui_gallery_smoke':
+                  command = command + ['-o', str(report) + ',txt']
+              inspect(command)
+              if report.is_file():
+                  print(report.read_text(encoding='utf-8', errors='replace'), flush=True)
+          with os.add_dll_directory(str(qt / 'bin')):
+              for name in ['Qt6Core', 'Qt6Gui', 'Qt6Qml', 'Qt6Quick', 'Qt6QuickControls2',
+                           'Qt6Svg', 'Qt6Test', 'Qt6QuickTest']:
+                  try:
+                      ctypes.WinDLL(str(qt / 'bin' / (name + '.dll')))
+                      print('LOAD OK:', name, flush=True)
+                  except OSError as error:
+                      print('LOAD FAILED:', name, error, flush=True)
+          inspect(['dumpbin', '/DEPENDENTS', str(qt / 'bin/Qt6Core.dll')])
+          PYTHON
 
       - name: Verify isolated module and chat hosts
         run: python native/ui_primitives/tools/check_isolated_build.py --qt-prefix "$QT_PREFIX"
@@ -146,4 +194,6 @@ jobs:
           name: native-ui-${{ matrix.os }}
           path: |
             native/ui_primitives/build/Testing/Temporary/
+            native/ui_primitives/build/*.startup.txt
             native/ui_primitives/build/gallery-captures/
+            ${{ runner.temp }}/native-ui-windows-startup.log

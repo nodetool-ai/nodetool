@@ -5,6 +5,7 @@ import NodeTool.UiPrimitives as Ui
 // Timeline tool labels collapse to icons when the toolbar is narrow.
 Ui.ToolbarIconButton {
     id: button
+    focusPolicy: Qt.TabFocus
     property string label: ""
     property string shortcut: ""
     property bool compact: false

@@ -29,10 +29,13 @@ increase either height. `providerEntry` selects a provider logo in place of
 `Qt.AlignRight`. `iconTone` and `textTone` accept the semantic tones of
 `Ui.Text`. Shortcut text is display only; the host owns accelerator registration.
 
-The bundled Inter and JetBrains Mono files cover Latin subsets. The regular
+The bundled Inter and JetBrains Mono files use TrueType so native and offscreen
+Qt font engines can load the same faces. They were decompressed from the WOFF2
+fonts with `woff2_decompress` and cover Latin subsets. The regular
 faces include U+0301 combining acute but not the tested U+0105, U+0416,
 U+03A9, U+4E2D, U+0645, or U+1F600 samples. Qt selects installed platform
-fallback fonts for missing glyphs. A macOS offscreen sample selected SF Arabic,
+fallback fonts for missing glyphs. Windows offscreen runs set `QT_QPA_FONTDIR`
+to `%WINDIR%/Fonts` so the FreeType backend can discover those fonts. A macOS offscreen sample selected SF Arabic,
 Apple Simplified Chinese, and Apple Color Emoji. Fallback family, shaping,
 emoji presentation, and coverage vary by platform. Test each translation and input method on its
 target system; these samples do not describe every glyph in a script. See
@@ -79,6 +82,8 @@ a numeric `value`, `displayValue`, `unit`, `from`, `to`, and `stepSize`. Fields
 also accept `accessibleName`, `readOnly`, `enabled`, `valid`, `errorText`, and
 `density`. TextField accepts `suffix`. All emit `editStarted()`,
 `valuePreviewed(value)`, `valueCommitted(value)`, and `editCanceled()`.
+`NumberField.previewWhileTyping` defaults to true. Set it to false to defer
+typed drafts until commit while retaining arrow-key previews.
 `cancelEdit()` discards the draft. Invalid focus loss cancels and restores the
 latest authoritative value. Hosts roll back previewed document changes.
 

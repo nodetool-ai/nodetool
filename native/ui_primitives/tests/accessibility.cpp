@@ -19,7 +19,7 @@ private slots:
         const QList<int> weights = {400, 500, 600};
         for (const auto &family : families) {
             for (const int weight : weights) {
-                const QString path = QStringLiteral(":/qt/qml/NodeTool/UiPrimitives/fonts/%1-latin-%2-normal.woff2").arg(family).arg(weight);
+                const QString path = QStringLiteral(":/qt/qml/NodeTool/UiPrimitives/fonts/%1-latin-%2-normal.ttf").arg(family).arg(weight);
                 const int id = QFontDatabase::addApplicationFont(path);
                 QVERIFY2(id >= 0, qPrintable(path));
                 const QStringList names = QFontDatabase::applicationFontFamilies(id);
@@ -96,7 +96,7 @@ Item {
         QVERIFY(mono.pixelSize() > 0);
     }
     void fallbackIsResolved() {
-        QVERIFY(QFontDatabase::addApplicationFont(QStringLiteral(":/qt/qml/NodeTool/UiPrimitives/fonts/inter-latin-400-normal.woff2")) >= 0);
+        QVERIFY(QFontDatabase::addApplicationFont(QStringLiteral(":/qt/qml/NodeTool/UiPrimitives/fonts/inter-latin-400-normal.ttf")) >= 0);
         QFont font(QStringLiteral("Inter"));
         font.setPixelSize(18);
         QTextLayout layout(QString::fromUtf8("A中م😀"), font);

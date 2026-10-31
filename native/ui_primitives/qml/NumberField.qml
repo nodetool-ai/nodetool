@@ -13,6 +13,7 @@ Basic.TextField {
     property bool valid: true
     property string errorText: ""
     property int density: Ui.EditorButton.Standard
+    property bool previewWhileTyping: true
     property bool editing: false
     property real editBaseline: 0
     readonly property bool draftValid: text.trim() !== "" && Number.isFinite(Number(text)) && Number(text) >= from && Number(text) <= to
@@ -46,7 +47,7 @@ Basic.TextField {
         const next = Number(text); editing = false
         if (next !== editBaseline) valueCommitted(next); else editCanceled()
     }
-    onTextEdited: { begin(); if (isValidDraft()) valuePreviewed(Number(text)) }
+    onTextEdited: { begin(); if (previewWhileTyping && isValidDraft()) valuePreviewed(Number(text)) }
     onDisplayValueChanged: if (!editing) text = displayValue
     onActiveFocusChanged: if (!activeFocus) { if (valid && isValidDraft()) finishEdit(); else cancelEdit() }
     onEnabledChanged: if (!enabled) cancelEdit()

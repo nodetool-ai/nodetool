@@ -90,7 +90,7 @@ TestCase {
     }
     function test_longMessageIsReadableInBoundedSections() {
         testDriver.longHistory("a")
-        wait(80)
+        tryVerify(function() { return findVisible(panel, "message_long") !== null })
         const message = findVisible(panel, "message_long")
         verify(message !== null)
         verify(findText(message, "Section 1 of 3 · Plain text") !== null)
