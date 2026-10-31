@@ -432,6 +432,19 @@ TestCase {
         keyClick(Qt.Key_Up); compare(numberPreview.count, 1); compare(numberCommit.count, 1)
         compare(numberCommit.signalArguments[0][0], 6)
     }
+    function test_number_deferred_typing() {
+        number.previewWhileTyping = false
+        number.value = 5
+        numberPreview.clear(); numberCommit.clear()
+        number.forceActiveFocus(); number.selectAll(); keyClick(Qt.Key_7)
+        compare(numberPreview.count, 0); compare(numberCommit.count, 0)
+        keyClick(Qt.Key_Return)
+        compare(numberCommit.count, 1); compare(numberCommit.signalArguments[0][0], 7)
+        numberPreview.clear(); numberCommit.clear()
+        keyClick(Qt.Key_Up)
+        compare(numberPreview.count, 1); compare(numberCommit.count, 1)
+        number.previewWhileTyping = true
+    }
     function test_area_programmatic() {
         areaStart.clear(); area.forceActiveFocus(); area.text = "programmatic"
         compare(areaStart.count, 0)

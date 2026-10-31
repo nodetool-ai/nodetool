@@ -65,7 +65,7 @@ private:
 private slots:
     void init() { QTest::failOnWarning(QRegularExpression(".*")); }
     void initTestCase() {
-        const auto fontId = QFontDatabase::addApplicationFont(QStringLiteral(":/qt/qml/NodeTool/UiPrimitives/fonts/inter-latin-400-normal.woff2"));
+        const auto fontId = QFontDatabase::addApplicationFont(QStringLiteral(":/qt/qml/NodeTool/UiPrimitives/fonts/inter-latin-400-normal.ttf"));
         QVERIFY(fontId >= 0);
         const auto families = QFontDatabase::applicationFontFamilies(fontId);
         QVERIFY(!families.isEmpty());

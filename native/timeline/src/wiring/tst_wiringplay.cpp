@@ -158,7 +158,11 @@ private slots:
             }
             for (auto* child : target->childItems()) { self(self, child); }
         };
-        inspect(inspect, sheet);
+        auto* dialog = sheet->findChild<QObject*>("shortcutsDialog");
+        QVERIFY(dialog);
+        auto* content = dialog->property("contentItem").value<QQuickItem*>();
+        QVERIFY(content);
+        inspect(inspect, content);
         QVERIFY2(remaining.isEmpty(), qPrintable("Missing available rows: " + QStringList(remaining.begin(), remaining.end()).join(", ")));
     }
 };
