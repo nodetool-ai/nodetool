@@ -77,6 +77,7 @@ export function supportsReasoningEffort(
     case "openai":
       return openaiSupportsEffort(model);
     case "gemini":
+    case "gemini_vertex":
       return geminiSupportsEffort(model);
     default:
       return false;

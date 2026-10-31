@@ -467,7 +467,9 @@ describe("GeminiProvider", () => {
     const models = await provider.getAvailableLanguageModels();
 
     expect(fetchFn).toHaveBeenCalledTimes(1);
-    expect(fetchFn.mock.calls[0][0]).toContain("/models?key=test-key");
+    expect(fetchFn.mock.calls[0][0]).toContain("/models?pageSize=1000");
+    expect(fetchFn.mock.calls[0][0]).not.toContain("key=");
+    expect(fetchFn.mock.calls[0][1].headers["x-goog-api-key"]).toBe("test-key");
     expect(models).toEqual([
       { id: "gemini-2.0-flash", name: "Gemini 2.0 Flash", provider: "gemini" }
     ]);

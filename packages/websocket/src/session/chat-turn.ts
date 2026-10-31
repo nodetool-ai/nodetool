@@ -268,7 +268,8 @@ function geminiFailureSummary(
   error: unknown,
   providerId: string
 ): GeminiFailureSummary | null {
-  if (providerId.toLowerCase() !== "gemini") {
+  const id = providerId.toLowerCase();
+  if (id !== "gemini" && id !== "gemini_vertex") {
     return null;
   }
   const text = error instanceof Error ? error.message : "";

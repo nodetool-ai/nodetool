@@ -25,6 +25,7 @@ export const GENAI_PROVIDER_MAP: Readonly<Record<string, string>> = {
   claude_agent_sdk: "anthropic",
   "claude-agent-sdk": "anthropic",
   gemini: "google",
+  gemini_vertex: "google",
   google: "google",
   mistral: "mistral",
   groq: "groq",

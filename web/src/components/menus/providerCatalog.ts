@@ -70,8 +70,12 @@ export interface ProviderMeta {
    * to its filesystem. Hidden on hosted deployments, where it can't complete.
    */
   localOnly?: boolean;
-  /** Multi-field credentials (e.g. login + password). Single-field providers omit this. */
-  fields?: Array<{ key: string; label: string; secret?: boolean }>;
+  /**
+   * Multi-field credentials (e.g. login + password). Single-field providers
+   * omit this. An `optional` field may stay empty; the card counts as
+   * connected once every other field is set.
+   */
+  fields?: Array<{ key: string; label: string; secret?: boolean; optional?: boolean }>;
   /** One copied value that is parsed into the separately stored credential fields. */
   combinedCredential?: {
     label: string;
@@ -190,6 +194,25 @@ export const PROVIDER_META: ProviderMeta[] = [
     section: "popular",
     docsUrl: "https://ai.google.dev/docs",
     icon: geminiColorIcon
+  },
+  {
+    // Gemini through Vertex AI: billed to a Google Cloud project instead of
+    // an AI Studio key. A local install can leave both credentials empty and
+    // use `gcloud auth application-default login`.
+    key: "GOOGLE_CLOUD_PROJECT",
+    providerId: PROVIDER_IDS.GEMINI_VERTEX,
+    name: "Gemini (Google Cloud)",
+    description: "Gemini on Vertex AI, billed to your Google Cloud project.",
+    section: "popular",
+    docsUrl: "https://cloud.google.com/vertex-ai/generative-ai/docs/start/gcp-auth",
+    icon: geminiColorIcon,
+    note: "Paste a service account key or a Vertex AI API key. On this computer you can instead run `gcloud auth application-default login` and leave both empty.",
+    fields: [
+      { key: "GOOGLE_CLOUD_PROJECT", label: "Project ID" },
+      { key: "GOOGLE_CLOUD_LOCATION", label: "Location (default: global)", optional: true },
+      { key: "GOOGLE_VERTEX_CREDENTIALS", label: "Service account key (JSON)", secret: true, optional: true },
+      { key: "GOOGLE_VERTEX_API_KEY", label: "Vertex AI API key", secret: true, optional: true }
+    ]
   },
   {
     key: "GROQ_API_KEY",

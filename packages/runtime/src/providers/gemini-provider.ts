@@ -1,4 +1,4 @@
-import type { Chunk } from "@nodetool-ai/protocol";
+import { PROVIDER_IDS, type Chunk, type ProviderId } from "@nodetool-ai/protocol";
 import { createLogger } from "@nodetool-ai/config";
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import { geminiContextExceeded } from "./context-exceeded.js";
@@ -227,7 +227,7 @@ function geminiThinkingConfig(
   return { thinkingBudget: budgets[effort] };
 }
 
-interface GeminiProviderOptions {
+export interface GeminiProviderOptions {
   fetchFn?: typeof fetch;
   /** Delay between Files API polls — overridden in tests to run them back to back. */
   sleepFn?: (ms: number) => Promise<void>;
@@ -336,6 +336,8 @@ interface GeminiVideoOperation {
       generatedSamples?: Array<{ video?: { uri?: string } }>;
     };
     generatedVideos?: Array<{ video?: { uri?: string } }>;
+    /** Vertex AI returns the video inline when no storage bucket is given. */
+    videos?: Array<{ bytesBase64Encoded?: string; gcsUri?: string }>;
   };
 }
 
@@ -847,17 +849,22 @@ export class GeminiProvider extends BaseProvider {
   }
 
   readonly apiKey: string;
-  private _fetch: typeof fetch;
+  protected readonly _fetch: typeof fetch;
   private _sleep: (ms: number) => Promise<void>;
 
+  /**
+   * `providerId` is set only by a subclass that reaches the same models through
+   * another endpoint and authenticates itself (see {@link GeminiVertexProvider}).
+   */
   constructor(
     secrets: { GEMINI_API_KEY?: string },
-    options: GeminiProviderOptions = {}
+    options: GeminiProviderOptions = {},
+    providerId: ProviderId = PROVIDER_IDS.GEMINI
   ) {
-    super("gemini");
+    super(providerId);
 
-    const apiKey = secrets.GEMINI_API_KEY;
-    if (!apiKey) {
+    const apiKey = secrets.GEMINI_API_KEY ?? "";
+    if (!apiKey && providerId === PROVIDER_IDS.GEMINI) {
       throw new Error("GEMINI_API_KEY is required");
     }
 
@@ -868,8 +875,51 @@ export class GeminiProvider extends BaseProvider {
       ((ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)));
   }
 
-  getContainerEnv() {
+  getContainerEnv(): Record<string, string> {
     return { GEMINI_API_KEY: this.apiKey };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Endpoint. The Gemini Developer API (AI Studio) is the default; Vertex AI
+  // overrides these to use its own host, resource paths, and credentials.
+  // ---------------------------------------------------------------------------
+
+  /** URL of an API resource or collection, e.g. `models` or `interactions`. */
+  protected apiUrl(path: string): string {
+    return `${GEMINI_API_BASE}/${path}`;
+  }
+
+  /** URL of a method on a model, e.g. `generateContent`. */
+  protected modelUrl(
+    model: string,
+    method: string,
+    query: Record<string, string> = {}
+  ): string {
+    const search = new URLSearchParams(query).toString();
+    const url = this.apiUrl(`models/${model}:${method}`);
+    return search ? `${url}?${search}` : url;
+  }
+
+  /** Headers that authenticate one request. */
+  protected async authHeaders(): Promise<Record<string, string>> {
+    return { "x-goog-api-key": this.apiKey };
+  }
+
+  /** Whether a media URI is served by this API and needs its credentials. */
+  protected isApiHost(hostname: string): boolean {
+    return hostname === "generativelanguage.googleapis.com";
+  }
+
+  /** Fetch the current state of a long-running Veo operation. */
+  protected async fetchVideoOperation(
+    _modelId: string,
+    operationName: string,
+    signal?: AbortSignal
+  ): Promise<Response> {
+    return this._fetch(this.apiUrl(operationName), {
+      headers: await this.authHeaders(),
+      signal
+    });
   }
 
   async hasToolSupport(_model: string): Promise<boolean> {
@@ -894,14 +944,11 @@ export class GeminiProvider extends BaseProvider {
     let pageToken: string | undefined;
     try {
       do {
-        const query = new URLSearchParams({
-          key: this.apiKey,
-          pageSize: "1000"
-        });
+        const query = new URLSearchParams({ pageSize: "1000" });
         if (pageToken) query.set("pageToken", pageToken);
-        const response = await this._fetch(
-          `${GEMINI_API_BASE}/models?${query}`
-        );
+        const response = await this._fetch(this.apiUrl(`models?${query}`), {
+          headers: await this.authHeaders()
+        });
         if (!response.ok) return [];
         const payload = decodeGeminiModelsPage(await response.json());
         items.push(...(payload.models ?? []));
@@ -1120,15 +1167,16 @@ export class GeminiProvider extends BaseProvider {
    * is ACTIVE — Gemini rejects a `fileData` part that references a file still
    * being processed. Returns the file's uri.
    */
-  private async uploadFileToGemini(
+  protected async uploadFileToGemini(
     bytes: Uint8Array,
     mimeType: string
   ): Promise<string> {
     const startResp = await this._fetch(
-      `${GEMINI_UPLOAD_BASE}?key=${this.apiKey}`,
+      GEMINI_UPLOAD_BASE,
       {
         method: "POST",
         headers: {
+          ...(await this.authHeaders()),
           "X-Goog-Upload-Protocol": "resumable",
           "X-Goog-Upload-Command": "start",
           "X-Goog-Upload-Header-Content-Length": String(bytes.length),
@@ -1185,8 +1233,8 @@ export class GeminiProvider extends BaseProvider {
         );
       }
       await this._sleep(GEMINI_FILE_POLL_INTERVAL_MS);
-      const pollResp = await this._fetch(`${GEMINI_API_BASE}/${fileName}`, {
-        headers: { "x-goog-api-key": this.apiKey }
+      const pollResp = await this._fetch(this.apiUrl(fileName), {
+        headers: await this.authHeaders()
       });
       if (!pollResp.ok) {
         const errText = await pollResp.text();
@@ -1558,11 +1606,14 @@ export class GeminiProvider extends BaseProvider {
 
     log.debug("Gemini request", { model });
 
-    const url = `${GEMINI_API_BASE}/models/${model}:generateContent?key=${this.apiKey}`;
+    const url = this.modelUrl(model, "generateContent");
     this.recordRequestPayload(body);
     const response = await this._fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(await this.authHeaders())
+      },
       body: JSON.stringify(body),
       signal: args.signal
     });
@@ -1658,11 +1709,14 @@ export class GeminiProvider extends BaseProvider {
 
     log.debug("Gemini request", { model });
 
-    const url = `${GEMINI_API_BASE}/models/${model}:streamGenerateContent?alt=sse&key=${this.apiKey}`;
+    const url = this.modelUrl(model, "streamGenerateContent", { alt: "sse" });
     this.recordRequestPayload(body);
     const response = await this._fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(await this.authHeaders())
+      },
       body: JSON.stringify(body),
       signal: args.signal
     });
@@ -2018,10 +2072,13 @@ export class GeminiProvider extends BaseProvider {
         body.outputDimensionality = dimensions;
       }
 
-      const url = `${GEMINI_API_BASE}/models/${model}:embedContent?key=${this.apiKey}`;
+      const url = this.modelUrl(model, "embedContent");
       const response = await this._fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+        "Content-Type": "application/json",
+        ...(await this.authHeaders())
+      },
         body: JSON.stringify(body)
       });
 
@@ -2079,10 +2136,13 @@ export class GeminiProvider extends BaseProvider {
         generationConfig
       };
 
-      const url = `${GEMINI_API_BASE}/models/${modelId}:generateContent?key=${this.apiKey}`;
+      const url = this.modelUrl(modelId, "generateContent");
       const response = await this._fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+        "Content-Type": "application/json",
+        ...(await this.authHeaders())
+      },
         body: JSON.stringify(body)
       });
 
@@ -2165,10 +2225,13 @@ export class GeminiProvider extends BaseProvider {
       generationConfig
     };
 
-    const url = `${GEMINI_API_BASE}/models/${modelId}:generateContent?key=${this.apiKey}`;
+    const url = this.modelUrl(modelId, "generateContent");
     const response = await this._fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(await this.authHeaders())
+      },
       body: JSON.stringify(body)
     });
 
@@ -2226,10 +2289,13 @@ export class GeminiProvider extends BaseProvider {
       }
     };
 
-    const url = `${GEMINI_API_BASE}/models/${model}:generateContent?key=${this.apiKey}`;
+    const url = this.modelUrl(model, "generateContent");
     const response = await this._fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(await this.authHeaders())
+      },
       body: JSON.stringify(body)
     });
 
@@ -2329,10 +2395,13 @@ export class GeminiProvider extends BaseProvider {
       }
     };
 
-    const url = `${GEMINI_API_BASE}/models/${model}:generateContent?key=${this.apiKey}`;
+    const url = this.modelUrl(model, "generateContent");
     const response = await this._fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(await this.authHeaders())
+      },
       body: JSON.stringify(body)
     });
 
@@ -2401,11 +2470,12 @@ export class GeminiProvider extends BaseProvider {
       : "no reason given by the provider";
     return new ContentFilterRefusal(
       `Veo filtered every generated video for this prompt: ${detail}`,
-      { provider: "gemini", model: modelId, reasons }
+      { provider: this.provider, model: modelId, reasons }
     );
   }
 
   private async waitForVideoOperation(
+    modelId: string,
     operation: GeminiVideoOperation,
     timeoutSeconds?: number | null,
     signal?: AbortSignal
@@ -2433,10 +2503,11 @@ export class GeminiProvider extends BaseProvider {
       if (!current.name) {
         throw new Error("No operation name for polling");
       }
-      const pollResp = await this._fetch(`${GEMINI_API_BASE}/${current.name}`, {
-        headers: { "x-goog-api-key": this.apiKey },
+      const pollResp = await this.fetchVideoOperation(
+        modelId,
+        current.name,
         signal
-      });
+      );
       if (!pollResp.ok) {
         const errText = await pollResp.text();
         throw new Error(`Poll failed ${pollResp.status}: ${errText}`);
@@ -2453,7 +2524,7 @@ export class GeminiProvider extends BaseProvider {
       // guidelines"), so the refusal has to be recognized here too.
       if (isContentFilterRefusal(current.error.message)) {
         throw new ContentFilterRefusal(current.error.message, {
-          provider: "gemini"
+          provider: this.provider
         });
       }
       throw new Error(
@@ -2468,10 +2539,9 @@ export class GeminiProvider extends BaseProvider {
     signal?: AbortSignal
   ): Promise<Uint8Array> {
     const hostname = new URL(uri).hostname;
-    const headers =
-      hostname === "generativelanguage.googleapis.com"
-        ? { "x-goog-api-key": this.apiKey }
-        : undefined;
+    const headers = this.isApiHost(hostname)
+      ? await this.authHeaders()
+      : undefined;
     const response = await safeFetch(uri, { headers, signal }, 5, this._fetch);
     if (!response.ok) {
       throw new Error(`Gemini media download failed: ${response.status}`);
@@ -2492,12 +2562,12 @@ export class GeminiProvider extends BaseProvider {
     const signal = combineSignals(options.signal, options.timeoutSeconds);
     this.recordRequestPayload(body);
     const response = await this._fetch(
-      `${GEMINI_API_BASE}/models/${modelId}:predictLongRunning`,
+      this.modelUrl(modelId, "predictLongRunning"),
       {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "x-goog-api-key": this.apiKey
+          ...(await this.authHeaders())
         },
         body: JSON.stringify(body),
         signal
@@ -2510,10 +2580,13 @@ export class GeminiProvider extends BaseProvider {
     }
 
     const operation = await this.waitForVideoOperation(
+      modelId,
       (await response.json()) as GeminiVideoOperation,
       options.timeoutSeconds,
       signal
     );
+    const inlineVideo = operation.response?.videos?.[0]?.bytesBase64Encoded;
+    if (inlineVideo) return new Uint8Array(Buffer.from(inlineVideo, "base64"));
     const videoUri = this.getVideoUri(operation);
     if (!videoUri) {
       const refusal = this.videoContentFilterRefusal(operation, modelId);
@@ -2531,11 +2604,11 @@ export class GeminiProvider extends BaseProvider {
     signal?: AbortSignal
   ): Promise<GeminiInteraction> {
     this.recordRequestPayload(body);
-    const response = await this._fetch(`${GEMINI_API_BASE}/interactions`, {
+    const response = await this._fetch(this.apiUrl("interactions"), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "x-goog-api-key": this.apiKey
+        ...(await this.authHeaders())
       },
       body: JSON.stringify(body),
       signal
@@ -2544,7 +2617,7 @@ export class GeminiProvider extends BaseProvider {
       const errText = await response.text();
       if (isContentFilterRefusal(errText)) {
         throw new ContentFilterRefusal(errText, {
-          provider: "gemini",
+          provider: this.provider,
           model: modelId
         });
       }
