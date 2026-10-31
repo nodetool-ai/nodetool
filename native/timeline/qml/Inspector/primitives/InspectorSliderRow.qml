@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import NodeTool.Timeline
 import NodeTool.UiPrimitives as Ui
 
 Item {
@@ -21,8 +22,16 @@ Item {
 
     RowLayout {
         anchors.fill: parent
-        spacing: Ui.Metrics.sm
-        Ui.Text { text: root.label; role: Ui.Typography.SansLabel; tone: Ui.Text.Secondary }
+        anchors.leftMargin: Ui.Metrics.xs
+        anchors.rightMargin: Ui.Metrics.xs
+        spacing: Ui.Metrics.md
+        Ui.Text {
+            Layout.preferredWidth: InspectorTokens.sliderLabelWidth
+            text: root.label
+            elide: Text.ElideRight
+            role: Ui.Typography.SansLabel
+            tone: Ui.Text.Secondary
+        }
         Ui.Slider {
             id: slider
             Layout.fillWidth: true
@@ -41,6 +50,11 @@ Item {
             onValueCommitted: value => root.change(value)
             onEditCanceled: root.canceled()
         }
-        Ui.Text { text: root.display; role: Ui.Typography.MonoLabel; tone: Ui.Text.Secondary }
+        Ui.Text {
+            Layout.preferredWidth: InspectorTokens.sliderValueWidth
+            text: root.display
+            horizontalAlignment: Text.AlignRight
+            role: Ui.Typography.MonoLabel
+        }
     }
 }

@@ -25,7 +25,7 @@ Item {
         Ui.Separator { width: parent.width }
         RowLayout {
             width: parent.width
-            spacing: Ui.Metrics.micro
+            spacing: Ui.Metrics.xs
             Ui.ToolbarIconButton {
                 id: reorder
                 objectName: "effectsReorder_" + root.effectId
@@ -80,6 +80,7 @@ Item {
                 objectName: "effectsExpand_" + root.effectId
                 Layout.fillWidth: true
                 variant: Ui.EditorButton.Flat
+                density: Ui.EditorButton.Compact
                 contentAlignment: Qt.AlignLeft
                 text: root.name
                 trailingIconName: root.expanded ? "arrowDropDown" : "navigateNext"

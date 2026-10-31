@@ -51,11 +51,13 @@ Rectangle {
     readonly property var timelineModel: inspector.timeline
     readonly property bool groupSelected: inspector.clip.mediaType === "group"
     Flickable {
+        id: viewport
         objectName: "inspectorViewport"
         anchors.fill: parent
         anchors.leftMargin: Ui.Metrics.lg
         anchors.rightMargin: Ui.Metrics.lg
         anchors.topMargin: Ui.Metrics.md
+        contentWidth: width
         contentHeight: content.height + Ui.Metrics.xl * 2
         clip: true
         ScrollBar.vertical: Ui.ScrollBar {
@@ -64,7 +66,9 @@ Rectangle {
         }
         Column {
             id: content
-            width: parent.width - scrollBar.width
+            // The viewport's width, not the content item's: that one follows
+            // the children and let the rows run past the right margin.
+            width: viewport.width - scrollBar.width
             Column {
                 width: parent.width
                 visible: root.selection.length === 0

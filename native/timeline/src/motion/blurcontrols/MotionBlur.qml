@@ -59,7 +59,7 @@ InspectorSection {
         InspectorRow {
             id: fieldRow
             required property var modelData
-            width: root.width
+            width: parent ? parent.width : 0
             label: modelData.label
             InspectorPillInput {
                 objectName: "motionBlur_" + fieldRow.modelData.key

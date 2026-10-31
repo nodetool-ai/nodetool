@@ -17,6 +17,7 @@
 #include "motion/capturedeadline/CaptureDeadline.h"
 #include "model/TimelineJson.h"
 #include "model/TimelineModel.h"
+#include "edit/ClipGestureController.h"
 #include "motion/mattes/MatteResolver.h"
 #include "playback/PlaybackClock.h"
 #include "preview/PreviewCompositor.h"
@@ -703,6 +704,9 @@ int main(int argc, char** argv) {
         QStringLiteral("DIR"));
     const QCommandLineOption shotOpt(QStringLiteral("screenshot"), QStringLiteral("Save a window grab and exit"),
                                      QStringLiteral("PATH"));
+    const QCommandLineOption selectOpt(QStringLiteral("select"),
+                                       QStringLiteral("Select the clip with this id at start (for --screenshot)"),
+                                       QStringLiteral("ID"));
     const QCommandLineOption warmupOpt(QStringLiteral("warmup"),
                                        QStringLiteral("Bench frames rendered at t=0 and excluded from every measurement"),
                                        QStringLiteral("N"), QStringLiteral("30"));
@@ -765,7 +769,7 @@ int main(int argc, char** argv) {
                                       QStringLiteral("Print the 2000 waveform peaks of FILE as JSON and exit"),
                                       QStringLiteral("FILE"));
     parser.addOption(peaksOpt);
-    parser.addOptions({benchOpt, framesOpt, sizeOpt, seekOpt, playOpt, shotOpt, warmupOpt, budgetOpt, noVsyncOpt, realtimeOpt, stillsOpt, stillFramesOpt, backgroundOpt, playStillsOpt, decodeOpt, decoderOpt, teardownOpt, hideTestOpt, onTopOpt, scrubOpt, scrubOutOpt, jsonOpt});
+    parser.addOptions({benchOpt, framesOpt, sizeOpt, seekOpt, playOpt, shotOpt, selectOpt, warmupOpt, budgetOpt, noVsyncOpt, realtimeOpt, stillsOpt, stillFramesOpt, backgroundOpt, playStillsOpt, decodeOpt, decoderOpt, teardownOpt, hideTestOpt, onTopOpt, scrubOpt, scrubOutOpt, jsonOpt});
     const QCommandLineOption chatOpt(QStringLiteral("chat"), QStringLiteral("Open the native chat panel"));
     parser.addOption(chatOpt);
     parser.process(app);
@@ -1087,6 +1091,15 @@ int main(int argc, char** argv) {
             app.exit(!image.isNull() && image.save(path) ? 0 : 1);
         });
         captureTimer->start(100);
+    }
+
+    if (parser.isSet(selectOpt)) {
+        auto* gestures = view.rootObject()->findChild<ClipGestureController*>();
+        if (!gestures) {
+            std::fprintf(stderr, "error: --select: no clip gesture controller in the scene\n");
+            return 1;
+        }
+        gestures->setSelection({parser.value(selectOpt)});
     }
 
     auto* compositor = view.rootObject()->findChild<PreviewCompositor*>(QStringLiteral("previewCompositor"));

@@ -20,6 +20,7 @@ Item {
         spacing: Ui.Metrics.sm
         Item {
             visible: root.checkable
+            Layout.alignment: Qt.AlignVCenter
             implicitWidth: checkbox.implicitWidth
             implicitHeight: checkbox.implicitHeight
             Ui.CheckBox {
@@ -34,8 +35,10 @@ Item {
         }
         Ui.Icon {
             visible: root.icon !== ""
+            Layout.alignment: Qt.AlignVCenter
             name: root.icon
-            size: Ui.Metrics.iconSm
+            size: Ui.Metrics.iconXs
+            tone: root.checkable && !root.checked ? Ui.Text.Disabled : Ui.Text.Secondary
         }
         Ui.Text {
             Layout.fillWidth: true

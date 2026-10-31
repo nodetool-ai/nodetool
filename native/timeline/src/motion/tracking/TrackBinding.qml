@@ -93,7 +93,7 @@ InspectorSection {
         delegate: InspectorRow {
             required property string modelData
             id: offsetRow
-            width: root.width; label: modelData === "offsetX" ? "Offset X" : "Offset Y"
+            width: parent ? parent.width : 0; label: modelData === "offsetX" ? "Offset X" : "Offset Y"
             InspectorPillInput {
                 objectName: offsetRow.modelData; unit: "px"; ariaLabel: offsetRow.label
                 value: String(root.binding?.offset?.[offsetRow.modelData === "offsetX" ? "x" : "y"] ?? 0)
@@ -110,7 +110,7 @@ InspectorSection {
             property bool activeGesture: false
             property int gestureCancellation: 0
             objectName: "follow" + modelData
-            width: root.width; label: modelData === "scale" ? "Scale" : "Smoothing"
+            width: parent ? parent.width : 0; label: modelData === "scale" ? "Scale" : "Smoothing"
             min: 0; max: modelData === "scale" ? 4 : 1; step: 0.01; origin: modelData === "scale" ? 1 : 0
             value: root.binding?.[modelData] ?? origin; display: value.toFixed(2); disabled: root.locked
             onGestureStarted: { activeGesture = true; identity = root.clip.id; root.begin(); gestureCancellation = root.cancellation }

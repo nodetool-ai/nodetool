@@ -17,11 +17,8 @@ Column {
     InspectorRow {
         id: propertyRow
         width: parent.width
-        label: "      " + root.row.label
-        KeyframeButton {
-            parent: propertyRow
-            x: Ui.Metrics.xs
-            anchors.verticalCenter: parent.verticalCenter
+        label: root.row.label
+        leading: KeyframeButton {
             text: "◷"
             active: root.state.keyframed
             enabled: !root.controller.locked && root.controller.playheadMs >= 0

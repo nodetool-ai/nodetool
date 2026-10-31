@@ -50,7 +50,7 @@ InspectorSection {
             property bool activeGesture: false
             property int gestureCancellation: 0
             objectName: "borderRadiusSlider"
-            width: root.width
+            width: parent ? parent.width : 0
             label: "Radius"
             min: 0
             max: 500

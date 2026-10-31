@@ -52,7 +52,7 @@ InspectorSection {
         InspectorRow {
             id: repeatRow
             required property var modelData
-            width: root.width; label: modelData.label
+            width: parent ? parent.width : 0; label: modelData.label
             InspectorPillInput { objectName: "motionRepeater_" + repeatRow.modelData.key; value: String((root.clip.repeater || {})[repeatRow.modelData.key] ?? (repeatRow.modelData.key === "columns" ? (root.clip.repeater || {}).count : 0)); ariaLabel: repeatRow.modelData.label; disabled: root.locked; scrub: ({step:1,min:repeatRow.modelData.min,max:repeatRow.modelData.max})
                 property string gestureOwner: ""
                 onGestureStarted: { gestureOwner = root.clip.id; root.begin() }
@@ -66,7 +66,7 @@ InspectorSection {
         InspectorRow {
             id: vectorRow
             required property var modelData
-            width: root.width; label: modelData.label
+            width: parent ? parent.width : 0; label: modelData.label
             InspectorPillInput { value: String(((root.clip.repeater || {})[vectorRow.modelData.key] || {})[vectorRow.modelData.axis] ?? 0); ariaLabel: vectorRow.modelData.label; disabled: root.locked
                 onCommit: raw => { const n = Number(raw); if (raw.trim() && Number.isFinite(n)) root.vector("repeater",vectorRow.modelData.key,vectorRow.modelData.axis,n,"") }
             }
@@ -78,7 +78,7 @@ InspectorSection {
         InspectorRow {
             id: echoRow
             required property var modelData
-            width: root.width; label: modelData.label
+            width: parent ? parent.width : 0; label: modelData.label
             InspectorPillInput { objectName:"motionEcho_" + echoRow.modelData.key; value: String((root.clip.temporalEcho || {})[echoRow.modelData.key]); ariaLabel: echoRow.modelData.label; disabled: root.locked
                 onCommit: raw => { const n = Number(raw); if (raw.trim() && Number.isFinite(n) && ((echoRow.modelData.key === "copies" && Number.isInteger(n) && n >= 1 && n <= 32) || (echoRow.modelData.key === "intervalMs" && n > 0) || (echoRow.modelData.key === "opacityDecay" && n >= 0 && n <= 1))) root.nested("temporalEcho",echoRow.modelData.key,n,"") }
             }
@@ -91,7 +91,7 @@ InspectorSection {
         Column {
             id: linkRow
             required property int index
-            width: root.width
+            width: parent ? parent.width : 0
             readonly property var item: root.links[index] || ({})
             InspectorRow { width: parent.width; label: "Target"; InspectorSelect { label:"Target"; value:linkRow.item.target; options:root.channels; disabled:root.locked; onChange: next => root.link(linkRow.index,"target",next,"") } }
             InspectorRow { width: parent.width; visible: linkRow.item.kind !== "wiggle"; label:"Source clip"; InspectorSelect { label:"Source clip"; value:linkRow.item.sourceClipId || ""; options:root.clipOptions; disabled:root.locked; onChange:next => root.link(linkRow.index,"sourceClipId",next,"") } }

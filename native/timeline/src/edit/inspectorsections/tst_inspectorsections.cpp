@@ -16,6 +16,7 @@
 #include <QQuickItem>
 #include <QQuickWindow>
 #include <QtTest>
+#include <functional>
 #include <memory>
 
 namespace {
@@ -85,7 +86,17 @@ private slots:
         auto* panel = e.inspector(); QVERIFY(panel);
         QTRY_VERIFY(findItem(panel, "testInspectorSection"));
         if (const auto screenshot = qEnvironmentVariable("NT_INSPECTOR_SCREENSHOT"); !screenshot.isEmpty()) {
-            QVERIFY(e.window.grabWindow().save(screenshot));
+            // Every section open, cropped to the panel: a layout review image.
+            const std::function<void(QQuickItem*)> openAll = [&](QQuickItem* item) {
+                if (item->property("defaultOpen").isValid()) item->setProperty("open", true);
+                for (auto* child : item->childItems()) openAll(child);
+            };
+            openAll(panel);
+            e.window.resize(1280, 4000);
+            e.root()->setHeight(4000);
+            QTest::qWait(300);
+            const QRectF area = panel->mapRectToScene(QRectF(0, 0, panel->width(), panel->height()));
+            QVERIFY(e.window.grabWindow().copy(area.toRect()).save(screenshot));
         }
         auto* probe = findItem(panel, "testInspectorSection");
         auto* transform = section(panel, "Transform"); QVERIFY(transform);
