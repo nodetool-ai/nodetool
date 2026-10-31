@@ -3,14 +3,14 @@ import { refusePackInstallsInProcess } from "@nodetool-ai/pack-manager/packs/ins
 import { configureCliPackHost, registerPackCommands, loadInstalledCommandFeature } from "@nodetool-ai/pack-manager";
 import { z } from "zod";
 import { Command } from "commander";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
 import { resolve, join, extname } from "node:path";
 import { createMinimalServer, OPTIONAL_FEATURE_CATALOG } from "@nodetool-ai/server-minimal";
 import { createCoreExecutionHost } from "@nodetool-ai/nodes-core";
 import { OpenAITextProvider } from "@nodetool-ai/runtime-core";
 import { createSqliteRepository } from "@nodetool-ai/database-sqlite";
-import { decrypt } from "@nodetool-ai/security-core";
+import { decrypt, encrypt } from "@nodetool-ai/security-core";
 import { COMMAND_FEATURES } from "./commandFeatures.js";
 import { featureRecovery } from "@nodetool-ai/server-features";
 import { cliFailureSchema } from "./errors.js";
@@ -20,6 +20,49 @@ export interface CliOptions {
   readonly argv?: readonly string[];
   readonly stdout?: (value: string) => void;
   readonly fetch?: typeof fetch;
+}
+/** Default model for `nodetool text` when neither --model nor NODETOOL_TEXT_MODEL is set. */
+export const DEFAULT_TEXT_MODEL = "gpt-4.1-mini";
+/** Local single-user ID shared with the desktop app and the installed command features. */
+export const DEFAULT_LOCAL_USER_ID = "1";
+const QUICK_START = `
+Quick start (only OPENAI_API_KEY is required; no server, no packs):
+  nodetool info                                 show configured provider keys
+  nodetool text "Write a haiku about rivers"    one-shot completion (default model ${DEFAULT_TEXT_MODEL})
+  echo "Summarize this" | nodetool text -m gpt-4.1 --system "Be brief"
+  nodetool nodes --example > flow.json          workflow using only built-in nodes
+  nodetool run flow.json --params '{"topic":"rivers"}'
+  nodetool packs list                           optional features (chat, agents, media nodes)
+
+Environment: OPENAI_API_KEY, OPENAI_BASE_URL (any OpenAI-compatible endpoint),
+NODETOOL_TEXT_MODEL, NODETOOL_DATA_DIR (default ./nodetool-data), NODETOOL_USER_ID
+(default "${DEFAULT_LOCAL_USER_ID}"), SECRETS_MASTER_KEY (only for the encrypted secret store
+and serve), NODETOOL_API_URL and NODETOOL_API_TOKEN (only for server commands).
+Commands marked "Requires ... feature" need \`nodetool packs add <feature> --yes\`.
+`;
+/** A two-node-input workflow that runs on the built-in nodes with only OPENAI_API_KEY. */
+export function exampleWorkflow(model: string): unknown {
+  return {
+    name: "Haiku",
+    graph: {
+      nodes: [
+        { id: "topic", type: "nodetool.input.StringInput", properties: { name: "topic", value: "autumn" } },
+        { id: "prompt", type: "nodetool.text.Template", properties: { string: "Write a haiku about {{ topic }}." } },
+        { id: "llm", type: "openai.text.ChatComplete", properties: { model } },
+        { id: "result", type: "nodetool.output.Output", properties: { name: "haiku" } }
+      ],
+      edges: [
+        { source: "topic", sourceHandle: "output", target: "prompt", targetHandle: "topic" },
+        { source: "prompt", sourceHandle: "output", target: "llm", targetHandle: "prompt" },
+        { source: "llm", sourceHandle: "output", target: "result", targetHandle: "value" }
+      ]
+    }
+  };
+}
+async function readStdin(): Promise<string> {
+  let value = "";
+  for await (const bytes of process.stdin) value += String(bytes);
+  return value;
 }
 function isAuthoredSource(file: string): boolean {
   return [".ts", ".js", ".mts", ".mjs", ".cts", ".cjs"].includes(extname(file).toLowerCase());
@@ -36,11 +79,13 @@ export function createProgram(options: CliOptions = {}): Command {
     output(`${text.success ? text.data : JSON.stringify(value, null, 2)}\n`);
   };
   const version = z.object({ version: z.string() }).parse(JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8"))).version;
-  const program = new Command("nodetool").description("Authenticated workflow execution server and client").version(version);
+  const program = new Command("nodetool").description("NodeTool workflow runner, LLM client and execution server").version(version);
   program.configureOutput({ writeOut: output });
+  program.addHelpText("after", QUICK_START);
   program.option("--api-url <url>", "Server URL", env.NODETOOL_API_URL ?? "http://127.0.0.1:7777").option("--token <token>", "Authentication token (or NODETOOL_API_TOKEN)", env.NODETOOL_API_TOKEN);
   const directory = (): string => resolve(env.NODETOOL_DATA_DIR ?? "./nodetool-data");
-  const owner = (): string => { if (!env.NODETOOL_USER_ID) throw new Error("Set NODETOOL_USER_ID for local execution"); return env.NODETOOL_USER_ID; };
+  const owner = (): string => env.NODETOOL_USER_ID || DEFAULT_LOCAL_USER_ID;
+  const hasToken = (): boolean => Boolean(program.opts<{ token?: string }>().token);
   async function request(path: string, init: RequestInit = {}): Promise<Response> {
     const flags = program.opts<{ apiUrl: string; token?: string }>();
     if (!flags.token) throw new Error("Set NODETOOL_API_TOKEN or --token");
@@ -49,7 +94,8 @@ export function createProgram(options: CliOptions = {}): Command {
     const response = await transport(url, { ...init, headers: { authorization: `Bearer ${flags.token}`, ...init.headers }, redirect: "error" });
     if (!response.ok) {
       const text = await response.text();
-      const error = new Error(`Server returned ${response.status}: ${text}`);
+      const hint = response.status === 404 ? ` (is ${flags.apiUrl} a server started with \`nodetool serve\`? Another app may own that port; set NODETOOL_API_URL or --api-url)` : "";
+      const error = new Error(`Server returned ${response.status}${hint}: ${text}`);
       let payload: unknown;
       try { payload = JSON.parse(text); } catch { throw error; }
       const structured = cliFailureSchema.safeParse(payload);
@@ -70,19 +116,49 @@ export function createProgram(options: CliOptions = {}): Command {
     const wrapper = z.record(z.string(), z.unknown()).safeParse(document);
     return wrapper.success && "graph" in wrapper.data ? wrapper.data.graph : document;
   }
-  async function provider(): Promise<OpenAITextProvider> {
-    const userId = owner();
+  function requireMasterKey(purpose: string): string {
     const masterKey = env.SECRETS_MASTER_KEY;
-    if (!masterKey) throw new Error("Set SECRETS_MASTER_KEY to read tenant secrets");
+    if (!masterKey || masterKey.length < 32) {
+      throw new Error(`Set SECRETS_MASTER_KEY (at least 32 characters, e.g. \`export SECRETS_MASTER_KEY="$(openssl rand -base64 32)"\`) to ${purpose}. Keep it: secrets stored with one key cannot be read with another.`);
+    }
+    return masterKey;
+  }
+  async function withLocalRepository<T>(operate: (repository: ReturnType<typeof createSqliteRepository>) => Promise<T>): Promise<T> {
     await mkdir(directory(), { recursive: true });
     const repository = createSqliteRepository(join(directory(), "nodetool.db"));
-    try {
-      const secret = (await repository.list("secrets", userId)).find(row => row.key === "OPENAI_API_KEY");
-      if (!secret) throw new Error("Configure OPENAI_API_KEY in this user's secrets first");
-      const configuration: { apiKey: string; baseURL?: string; fetch: typeof globalThis.fetch } = { fetch: transport, apiKey: decrypt(masterKey, userId, z.string().parse(secret.encrypted_value)) };
-      if (env.OPENAI_BASE_URL) configuration.baseURL = env.OPENAI_BASE_URL;
-      return new OpenAITextProvider(configuration);
-    } finally { await repository.close(); }
+    try { return await operate(repository); } finally { await repository.close(); }
+  }
+  /** Read a secret from the local encrypted store, when one exists and a master key is configured. */
+  async function storedSecret(key: string): Promise<string | undefined> {
+    const masterKey = env.SECRETS_MASTER_KEY;
+    if (!masterKey || !existsSync(join(directory(), "nodetool.db"))) return undefined;
+    const userId = owner();
+    return withLocalRepository(async repository => {
+      const secret = (await repository.list("secrets", userId)).find(row => row.key === key);
+      return secret ? decrypt(masterKey, userId, z.string().parse(secret.encrypted_value)) : undefined;
+    });
+  }
+  /** Stored tenant secret first, then the process environment. */
+  async function provider(): Promise<OpenAITextProvider> {
+    const apiKey = (await storedSecret("OPENAI_API_KEY")) ?? env.OPENAI_API_KEY;
+    if (!apiKey) {
+      throw new Error("No OpenAI API key: export OPENAI_API_KEY (or store it with `nodetool secrets set OPENAI_API_KEY`, which needs SECRETS_MASTER_KEY). Set OPENAI_BASE_URL to use another OpenAI-compatible endpoint.");
+    }
+    const configuration: { apiKey: string; baseURL?: string; fetch: typeof globalThis.fetch } = { fetch: transport, apiKey };
+    if (env.OPENAI_BASE_URL) configuration.baseURL = env.OPENAI_BASE_URL;
+    return new OpenAITextProvider(configuration);
+  }
+  /** NODETOOL_TOKENS maps tokens to users; a single NODETOOL_API_TOKEN serves NODETOOL_USER_ID. */
+  function serverTokens(): Record<string, string> {
+    if (env.NODETOOL_TOKENS) {
+      let parsed: unknown;
+      try { parsed = JSON.parse(env.NODETOOL_TOKENS); } catch { parsed = undefined; }
+      const tokens = z.record(z.string().min(1), z.string().min(1)).safeParse(parsed);
+      if (!tokens.success || Object.keys(tokens.data).length === 0) throw new Error("NODETOOL_TOKENS must be a JSON object mapping bearer tokens to user IDs, e.g. {\"<token>\":\"1\"}");
+      return tokens.data;
+    }
+    if (env.NODETOOL_API_TOKEN) return { [env.NODETOOL_API_TOKEN]: owner() };
+    throw new Error("Set NODETOOL_API_TOKEN (at least 32 characters, e.g. `export NODETOOL_API_TOKEN=\"$(openssl rand -hex 32)\"`) so clients can authenticate, or NODETOOL_TOKENS for several users. Local commands (text, run, nodes, secrets) do not need a server.");
   }
   function executionHost(): ReturnType<typeof createCoreExecutionHost> {
     const nodeFeatures: Record<string, string[]> = {};
@@ -150,7 +226,14 @@ export function createProgram(options: CliOptions = {}): Command {
     printTable(Object.entries(data.environment).map(([variable, value]) => ({ variable, value })));
     output("\n");
   });
-  program.command("run <file>").description("Execute a saved workflow JSON file locally").option("--params <json>", "Workflow parameters", "{}").action(async (file: string, flags: { params: string }) => executeFile(file, flags.params));
+  program.command("nodes").description("List the built-in node types usable by `run` without installing packs (JSON)").option("--example", "Print a runnable example workflow instead").option("-m, --model <id>", "Model for the example workflow", env.NODETOOL_TEXT_MODEL ?? DEFAULT_TEXT_MODEL).action((flags: { example?: boolean; model: string }) => {
+    if (flags.example) { print(exampleWorkflow(flags.model)); return; }
+    print({
+      note: "Workflow JSON is {nodes:[{id,type,properties}],edges:[{source,sourceHandle,target,targetHandle}]} (optionally wrapped as {graph}). Wire an output name into an input name; dynamic-input nodes accept any targetHandle. Nodes from packs need `nodetool packs add <pack>`; `nodetool nodes --example` prints a complete workflow.",
+      nodes: executionHost().describe()
+    });
+  });
+  program.command("run <file>").description("Execute a saved workflow JSON file locally (see `nodetool nodes`)").option("--params <json>", "Workflow parameters", "{}").action(async (file: string, flags: { params: string }) => executeFile(file, flags.params));
   program.command("validate <file>").description("Validate a native JSON workflow or explicitly installed authored-source workflow").action(async (file: string) => {
     if (await delegateAuthoredSource(file)) { return; }
     const document = await fileJson(file);
@@ -182,12 +265,22 @@ export function createProgram(options: CliOptions = {}): Command {
   assets.command("get <id>").action(async (id: string) => print(await json(`/api/assets/${segment(id)}`)));
   assets.command("download <id> <file>").action(async (id: string, file: string) => { const response = await request(`/api/storage/${segment(id)}`); await writeFile(file, Buffer.from(await response.arrayBuffer())); });
   assets.command("delete <id>").action(async (id: string) => print(await json(`/api/assets/${segment(id)}`, "DELETE")));
-  const secrets = program.command("secrets");
-  secrets.command("list").action(async () => print(await json("/api/secrets")));
-  secrets.command("set <key>").alias("store").description("Read a secret value from stdin").action(async (key: string) => {
-    let value = "";
-    for await (const bytes of process.stdin) value += String(bytes);
-    print(await json("/api/secrets", "POST", { key, value: value.replace(/\r?\n$/, "") }));
+  const secrets = program.command("secrets").description("Manage encrypted secrets: on the server with a token, otherwise in the local store (needs SECRETS_MASTER_KEY)");
+  secrets.command("list").description("List secret names (never values)").action(async () => {
+    if (hasToken()) { print(await json("/api/secrets")); return; }
+    print(await withLocalRepository(async repository => (await repository.list("secrets", owner())).map(({ encrypted_value: _encrypted, ...metadata }) => metadata)));
+  });
+  secrets.command("set <key>").alias("store").description("Read a secret value from stdin, e.g. printf %s \"$OPENAI_API_KEY\" | nodetool secrets set OPENAI_API_KEY").action(async (key: string) => {
+    if (process.stdin.isTTY) throw new Error("Pipe the secret value on stdin, e.g. printf %s \"$VALUE\" | nodetool secrets set KEY");
+    const value = (await readStdin()).replace(/\r?\n$/, "");
+    if (hasToken()) { print(await json("/api/secrets", "POST", { key, value })); return; }
+    const masterKey = requireMasterKey("store secrets locally");
+    const userId = owner();
+    print(await withLocalRepository(async repository => {
+      const existing = (await repository.list("secrets", userId)).find(secret => secret.key === key);
+      const { encrypted_value: _encrypted, ...metadata } = await repository.put("secrets", userId, { ...existing, key, description: existing?.description ?? "", encrypted_value: encrypt(masterKey, userId, value) });
+      return metadata;
+    }));
   });
   const openAIProvider = { id: "openai", name: "OpenAI-compatible", capabilities: ["text", "models"], installed: true };
   const providers = program.command("providers").description("Inspect installed remote provider capabilities");
@@ -217,19 +310,32 @@ export function createProgram(options: CliOptions = {}): Command {
       await feature.run((options.argv ?? process.argv).slice(2));
     });
   }
-  program.command("text <prompt>").requiredOption("--model <id>").action(async (prompt: string, flags: { model: string }) => {
-    const controller = new AbortController();
-    const abort = (): void => controller.abort();
-    process.once("SIGINT", abort);
-    try {
-      for await (const chunk of (await provider()).stream({ model: flags.model, messages: [{ role: "user", content: prompt }], signal: controller.signal })) {
-        if (!chunk.done) { output(chunk.text); }
-      }
-      output("\n");
-    } finally { process.removeListener("SIGINT", abort); }
-  });
+  program.command("text [prompt]").description("Stream one completion from an OpenAI-compatible model (prompt from argument or stdin; uses OPENAI_API_KEY)")
+    .option("-m, --model <id>", "Model ID (or NODETOOL_TEXT_MODEL)", env.NODETOOL_TEXT_MODEL ?? DEFAULT_TEXT_MODEL)
+    .option("-s, --system <text>", "System prompt")
+    .option("--json", "Print one JSON object {model,text,usage} instead of streaming text")
+    .action(async (argument: string | undefined, flags: { model: string; system?: string; json?: boolean }) => {
+      const prompt = argument === undefined || argument === "-" ? process.stdin.isTTY ? "" : await readStdin() : argument;
+      if (!prompt.trim()) throw new Error("Provide a prompt argument or pipe one on stdin");
+      const messages: { role: "system" | "user"; content: string }[] = [];
+      if (flags.system) messages.push({ role: "system", content: flags.system });
+      messages.push({ role: "user", content: prompt });
+      const controller = new AbortController();
+      const abort = (): void => controller.abort();
+      process.once("SIGINT", abort);
+      try {
+        let text = "";
+        let usage: unknown = null;
+        for await (const chunk of (await provider()).stream({ model: flags.model, messages, signal: controller.signal })) {
+          if (chunk.done) { usage = chunk.usage; continue; }
+          if (flags.json) { text += chunk.text; } else { output(chunk.text); }
+        }
+        if (flags.json) { print({ model: flags.model, text, usage }); } else { output("\n"); }
+      } finally { process.removeListener("SIGINT", abort); }
+    });
   program.command("serve").description("Start the minimal execution server with explicitly configured server features.").option("--host <host>", "Listen address", env.HOST ?? "127.0.0.1").option("--port <port>", "Listen port", env.PORT ?? "7777").action(async (flags: { host: string; port: string }) => {
-    const tokens = z.record(z.string(), z.string()).parse(JSON.parse(env.NODETOOL_TOKENS ?? "null"));
+    const masterKey = requireMasterKey("start the server (it encrypts tenant secrets)");
+    const tokens = serverTokens();
     type ConfiguredFeature = NonNullable<Parameters<typeof createMinimalServer>[0]["features"]>[number];
     type Feature = Awaited<ReturnType<ConfiguredFeature["load"]>>;
     const features: ConfiguredFeature[] = [];
@@ -247,13 +353,17 @@ export function createProgram(options: CliOptions = {}): Command {
       } });
     }
     refusePackInstallsInProcess("serve");
-    const configuration: { directory: string; masterKey: string; tokens: Record<string, string>; features: ConfiguredFeature[]; openAIBaseURL?: string } = { directory: directory(), masterKey: env.SECRETS_MASTER_KEY ?? "", tokens, features };
+    const configuration: { directory: string; masterKey: string; tokens: Record<string, string>; features: ConfiguredFeature[]; openAIBaseURL?: string } = { directory: directory(), masterKey, tokens, features };
     if (env.OPENAI_BASE_URL) { configuration.openAIBaseURL = env.OPENAI_BASE_URL; }
     const app = await createMinimalServer(configuration);
     const close = (): void => { void app.close().catch(() => { process.exitCode = 1; }); };
     process.once("SIGINT", close); process.once("SIGTERM", close);
     try { print({ url: await app.listen({ host: flags.host, port: Number(flags.port) }) }); }
-    catch (error) { await app.close(); throw error; }
+    catch (error) {
+      await app.close();
+      if (error instanceof Error && "code" in error && error.code === "EADDRINUSE") throw new Error(`Port ${flags.port} is already in use (the NodeTool desktop app uses 7777). Pass --port or set PORT, and point clients at it with NODETOOL_API_URL.`);
+      throw error;
+    }
   });
   program.command("feature <id> [args...]").description("Run a command from one explicitly installed command feature").helpOption(false).allowUnknownOption().allowExcessArguments().action(async (featureId: string) => {
     const feature = await loadInstalledCommandFeature(import.meta.url, featureId);
@@ -267,7 +377,7 @@ export function createProgram(options: CliOptions = {}): Command {
   const native = new Set(program.commands.map(command => command.name()));
   for (const [name, featureId] of Object.entries(COMMAND_FEATURES)) {
     if (native.has(name)) { continue; }
-    program.command(name).description(`Requires the independently installed ${featureId} feature`).helpOption(false).allowUnknownOption().allowExcessArguments().action(async () => {
+    program.command(name).description(`Requires the ${featureId} feature (nodetool packs add ${featureId} --yes)`).helpOption(false).allowUnknownOption().allowExcessArguments().action(async () => {
       const feature = await loadInstalledCommandFeature(import.meta.url, featureId);
       await feature.run((options.argv ?? process.argv).slice(2));
     });
