@@ -94,8 +94,16 @@ Rectangle {
             RowLayout {
                 Layout.fillWidth: true
                 LibraryLabel { Layout.fillWidth: true; text: "Library"; color: Theme.textPrimary; font.weight: Font.Medium }
-                LibraryButton { text: "Refresh"; enabled: browserModel.configured && !browserModel.busy; onClicked: browserModel.refresh() }
-                LibraryButton { objectName: "assetImportButton"; text: "Import"; enabled: browserModel.configured; onClicked: files.open() }
+                LibraryButton { text: "Refresh"; iconPath: Icons.refresh; iconOnly: true; enabled: browserModel.configured && !browserModel.busy; onClicked: browserModel.refresh() }
+                LibraryButton {
+                    objectName: "libraryCreateFolder"
+                    text: "New folder"
+                    iconPath: Icons.createNewFolder
+                    iconOnly: true
+                    enabled: browserModel.configured && !browserModel.busy
+                    onClicked: explorer.ask("Create folder", "Create a folder in the current Library folder.", "", value => browserModel.createFolder(value))
+                }
+                LibraryButton { objectName: "assetImportButton"; text: "Import"; iconPath: Icons.fileUpload; iconOnly: true; enabled: browserModel.configured; onClicked: files.open() }
             }
             RowLayout {
                 Layout.fillWidth: true
@@ -108,7 +116,7 @@ Rectangle {
                 onAccepted: { searchDelay.stop(); browserModel.searchText = text }
                 Timer { id: searchDelay; interval: 250; onTriggered: browserModel.searchText = search.text }
             }
-                LibraryButton { objectName: "libraryFiltersButton"; text: "Filters"; checkable: true; checked: explorer.filtersExpanded; onClicked: explorer.filtersExpanded = checked }
+                LibraryButton { objectName: "libraryFiltersButton"; text: "Filters"; iconPath: Icons.tune; iconOnly: true; checkable: true; checked: explorer.filtersExpanded; onClicked: explorer.filtersExpanded = checked }
             }
             RowLayout {
                 visible: explorer.filtersExpanded
@@ -132,7 +140,7 @@ Rectangle {
                 onAccepted: { tagDelay.stop(); browserModel.tagFilter = text.trim() }
                 Timer { id: tagDelay; interval: 250; onTriggered: browserModel.tagFilter = tagSearch.text.trim() }
             }
-            ComboBox {
+            PanelSelect {
                 palette.button: Theme.backgroundPaper
                 palette.buttonText: Theme.textPrimary
                 palette.base: Theme.backgroundPaper
@@ -153,17 +161,19 @@ Rectangle {
             }
             RowLayout {
                 Layout.fillWidth: true
-                LibraryButton { objectName: "assetFolderUp"; text: "Up"; enabled: browserModel.folderId !== ""; onClicked: { explorer.clearFilters(); browserModel.goUp() } }
+                visible: browserModel.folderId !== ""
+                LibraryButton { objectName: "assetFolderUp"; text: "Up"; iconPath: Icons.arrowUpward; iconOnly: true; visible: browserModel.folderId !== ""; enabled: browserModel.folderId !== ""; onClicked: { explorer.clearFilters(); browserModel.goUp() } }
                 Flickable {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: Theme.toolbarHeight
+                    Layout.preferredHeight: Theme.controlSm
+                    visible: browserModel.folderId !== ""
                     contentWidth: crumbs.implicitWidth
                     contentHeight: height
                     clip: true
                     Row {
                         id: crumbs
                         spacing: Theme.spacingXs
-                        LibraryButton { text: "Library"; onClicked: explorer.navigateFolder("") }
+                        LibraryButton { objectName: "libraryRootBreadcrumb"; text: "Library root"; iconPath: Icons.home; iconOnly: true; onClicked: explorer.navigateFolder("") }
                         Repeater {
                             model: browserModel.breadcrumbs.filter(row => row.id !== "")
                             LibraryButton {
@@ -174,12 +184,7 @@ Rectangle {
                         }
                     }
                 }
-                LibraryButton {
-                    objectName: "libraryCreateFolder"
-                    text: "+ Folder"
-                    enabled: browserModel.configured && !browserModel.busy
-                    onClicked: explorer.ask("Create folder", "Create a folder in the current Library folder.", "", value => browserModel.createFolder(value))
-                }
+
             }
             LibraryLabel { Layout.fillWidth: true; visible: !browserModel.configured; text: "Open a server timeline to browse and import assets." }
             LibraryLabel { Layout.fillWidth: true; visible: browserModel.error !== ""; text: browserModel.error; color: Theme.error }
@@ -379,7 +384,7 @@ Rectangle {
         background: Rectangle { color: Theme.backgroundPaper; border.color: Theme.divider; radius: Theme.radiusMd }
         contentItem: ColumnLayout {
             LibraryLabel { Layout.fillWidth: true; text: "Choose a destination folder, or move to the Library root." }
-            ComboBox {
+            PanelSelect {
                 palette.button: Theme.backgroundPaper
                 palette.buttonText: Theme.textPrimary
                 palette.base: Theme.backgroundPaper

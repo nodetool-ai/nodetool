@@ -34,12 +34,12 @@ Item {
                 color: activation.checked ? Theme.primary : "transparent"
                 border.width: 1
                 border.color: activation.checked ? Theme.primary : Theme.overlayStrong
-                Text { anchors.centerIn: parent; text: activation.checked ? "✓" : ""; color: Theme.textPrimary; font.pixelSize: Theme.fontSizeSmaller }
+                Icon { anchors.centerIn: parent; visible: activation.checked; path: Icons.check; color: Theme.textPrimary; size: Theme.fontSizeSmaller }
             }
             Accessible.name: root.title + " enabled"
             onClicked: root.checkedChangedByUser(checked)
         }
-        Text { visible: text !== ""; text: root.icon; color: Theme.textSecondary; font.pixelSize: Theme.fontSizeSmall }
+        Icon { visible: !!root.icon; path: root.icon; color: Theme.textSecondary; size: Theme.iconSm }
         Text {
             Layout.fillWidth: true
             text: root.title.toUpperCase()
@@ -51,15 +51,14 @@ Item {
             font.letterSpacing: Theme.fontSizeSmaller * 0.06
         }
         Text { text: root.meta; color: Theme.textSecondary; font.family: Theme.monoFamily; font.pixelSize: Theme.fontSizeSmaller }
-        Controls.ToolButton {
+        PanelButton {
             visible: !!root.action
             enabled: visible && !root.action.disabled
-            text: root.action ? root.action.icon || "" : ""
+            text: root.action ? root.action.label : ""
+            iconPath: root.action ? root.action.icon || "" : ""
+            iconOnly: true
             implicitWidth: Theme.controlXs
             implicitHeight: Theme.controlXs
-            Accessible.name: root.action ? root.action.label : ""
-            background: Rectangle { color: parent.hovered ? Theme.actionHover : "transparent"; radius: Theme.radiusSm }
-            contentItem: Text { text: parent.text; color: Theme.textSecondary; font.pixelSize: Theme.iconXs; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
             onClicked: {
                 root.actionTriggered()
                 if (root.action.onClick) root.action.onClick()

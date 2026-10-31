@@ -1,6 +1,6 @@
 // nt-panel: slot=bottom id=activity order=95 title="Activity"
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import NodeTool.Timeline
 
@@ -30,15 +30,15 @@ Rectangle {
     Component.onCompleted: bindTimeline()
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Theme.spacingMd
+        anchors.margins: Theme.spacingLg
         spacing: Theme.spacingMd
         Flow {
             Layout.fillWidth: true
             spacing: Theme.spacingMd
-            Label { text: "Background activity"; color: Theme.textPrimary; font.pixelSize: Theme.fontSizeSmall; font.weight: Font.Medium }
-            Button { objectName: "activityRefresh"; text: panel.controller.busy ? "Refreshing…" : "Refresh"; enabled: !panel.controller.busy; onClicked: panel.controller.refresh(); Accessible.name: "Refresh background activity" }
+            Label { font.family: Theme.sansFamily; text: "Background activity"; color: Theme.textPrimary; font.pixelSize: Theme.fontSizeSmall; font.weight: Font.Medium }
+            PanelButton { objectName: "activityRefresh"; text: panel.controller.busy ? "Refreshing…" : "Refresh"; iconPath: Icons.refresh; iconOnly: true; enabled: !panel.controller.busy; onClicked: panel.controller.refresh(); Accessible.name: "Refresh background activity" }
         }
-        Label {
+        Label { font.family: Theme.sansFamily;
             Layout.fillWidth: true
             text: panel.controller.scopeLabel
             color: Theme.textSecondary
@@ -48,10 +48,10 @@ Rectangle {
         RowLayout {
             Layout.fillWidth: true
             spacing: Theme.spacingMd
-            TextField { id: search; objectName: "activitySearch"; Layout.fillWidth: true; Layout.minimumWidth: 0; placeholderText: "Search activity"; Accessible.name: "Search activity"; selectByMouse: true }
-            ComboBox { id: stateFilter; objectName: "activityFilter"; model: ["All", "Active", "Failures"]; Accessible.name: "Filter activity by state" }
+            PanelField { id: search; objectName: "activitySearch"; Layout.fillWidth: true; Layout.minimumWidth: 0; placeholderText: "Search activity"; Accessible.name: "Search activity"; selectByMouse: true }
+            PanelSelect { id: stateFilter; objectName: "activityFilter"; model: ["All", "Active", "Failures"]; Accessible.name: "Filter activity by state" }
         }
-        Label {
+        Label { font.family: Theme.sansFamily;
             objectName: "activityError"
             Layout.fillWidth: true
             visible: !!text
@@ -61,7 +61,7 @@ Rectangle {
             font.pixelSize: Theme.fontSizeSmall
             Accessible.role: Accessible.AlertMessage
         }
-        Label {
+        Label { font.family: Theme.sansFamily;
             Layout.fillWidth: true
             visible: !!panel.controller.lastUpdated
             text: "Server checked: " + panel.controller.lastUpdated
@@ -77,7 +77,7 @@ Rectangle {
             clip: true
             spacing: Theme.spacingMd
             model: panel.filteredRows
-            ScrollBar.vertical: ScrollBar {}
+            ScrollBar.vertical: PanelScrollBar {}
             delegate: Rectangle {
                 id: card
                 required property var modelData
@@ -92,14 +92,26 @@ Rectangle {
                     id: content
                     anchors { left: parent.left; right: parent.right; top: parent.top; margins: Theme.spacingMd }
                     spacing: Theme.spacingXs
-                    Label { Layout.fillWidth: true; text: card.modelData.title; color: Theme.textPrimary; wrapMode: Text.Wrap; font.pixelSize: Theme.fontSizeSmall; font.weight: Font.Medium }
-                    Label { Layout.fillWidth: true; text: card.modelData.source + (card.modelData.stale ? " (last known)" : "") + " · " + card.modelData.kind + " · " + card.modelData.status; color: card.modelData.status === "failed" ? Theme.error : Theme.textSecondary; wrapMode: Text.Wrap; font.pixelSize: Theme.fontSizeSmaller }
+                    Label { font.family: Theme.sansFamily; Layout.fillWidth: true; text: card.modelData.title; color: Theme.textPrimary; wrapMode: Text.Wrap; font.pixelSize: Theme.fontSizeSmall; font.weight: Font.Medium }
+                    Label { font.family: Theme.sansFamily; Layout.fillWidth: true; text: card.modelData.source + (card.modelData.stale ? " (last known)" : "") + " · " + card.modelData.kind + " · " + card.modelData.status; color: card.modelData.status === "failed" ? Theme.error : Theme.textSecondary; wrapMode: Text.Wrap; font.pixelSize: Theme.fontSizeSmaller }
                     TextEdit { objectName: "activityId_" + card.index; Layout.fillWidth: true; text: card.modelData.id; color: Theme.textSecondary; readOnly: true; selectByMouse: true; wrapMode: TextEdit.WrapAnywhere; font.family: Theme.monoFamily; font.pixelSize: Theme.fontSizeSmaller; Accessible.name: "Activity ID " + text }
-                    Label { Layout.fillWidth: true; visible: !!text; text: card.modelData.detail || ""; color: Theme.textSecondary; wrapMode: Text.Wrap; font.pixelSize: Theme.fontSizeSmaller }
-                    ProgressBar { objectName: "activityProgress_" + card.index; Layout.fillWidth: true; visible: card.modelData.progress >= 0; value: Math.max(0, Math.min(1, card.modelData.progress)); Accessible.name: "Reported progress" }
-                    Label { Layout.fillWidth: true; text: "Cost: " + card.modelData.cost; color: Theme.textSecondary; wrapMode: Text.Wrap; font.pixelSize: Theme.fontSizeSmaller }
-                    Label { Layout.fillWidth: true; visible: !!text; text: card.modelData.updatedAt || ""; color: Theme.textSecondary; wrapMode: Text.Wrap; font.pixelSize: Theme.fontSizeSmaller }
-                    Button {
+                    Label { font.family: Theme.sansFamily; Layout.fillWidth: true; visible: !!text; text: card.modelData.detail || ""; color: Theme.textSecondary; wrapMode: Text.Wrap; font.pixelSize: Theme.fontSizeSmaller }
+                    ProgressBar {
+                        id: progress
+                        objectName: "activityProgress_" + card.index
+                        Layout.fillWidth: true
+                        visible: card.modelData.progress >= 0
+                        value: Math.max(0, Math.min(1, card.modelData.progress))
+                        Accessible.name: "Reported progress"
+                        implicitHeight: Theme.spacingXs
+                        background: Rectangle { color: Theme.actionSelected; radius: Theme.radiusXs }
+                        contentItem: Item {
+                            Rectangle { width: parent.width * progress.visualPosition; height: parent.height; color: Theme.primary; radius: Theme.radiusXs }
+                        }
+                    }
+                    Label { font.family: Theme.sansFamily; Layout.fillWidth: true; text: "Cost: " + card.modelData.cost; color: Theme.textSecondary; wrapMode: Text.Wrap; font.pixelSize: Theme.fontSizeSmaller }
+                    Label { font.family: Theme.sansFamily; Layout.fillWidth: true; visible: !!text; text: card.modelData.updatedAt || ""; color: Theme.textSecondary; wrapMode: Text.Wrap; font.pixelSize: Theme.fontSizeSmaller }
+                    PanelButton {
                         objectName: "activityCancel_" + card.index
                         text: "Cancel"
                         visible: !!card.modelData.cancellable
@@ -117,7 +129,7 @@ Rectangle {
                 width: parent.width
                 visible: activityList.count === 0
                 spacing: Theme.spacingMd
-                Label {
+                Label { font.family: Theme.sansFamily;
                     objectName: "activityEmpty"
                     Layout.fillWidth: true
                     text: panel.controller.busy ? "Loading activity…" : panel.allRows.length ? "No activity matches this filter." : panel.controller.error ? "Activity could not be refreshed. Retry when the server is available." : "No background activity yet. Renders, proxies, and generations appear here."
@@ -126,7 +138,7 @@ Rectangle {
                     horizontalAlignment: Text.AlignHCenter
                     font.pixelSize: Theme.fontSizeSmall
                 }
-                Button {
+                PanelButton {
                     Layout.alignment: Qt.AlignHCenter
                     visible: !panel.controller.busy
                     text: panel.allRows.length ? "Clear filters" : "Refresh activity"
@@ -137,6 +149,6 @@ Rectangle {
                 }
             }
         }
-        Button { objectName: "activityMore"; visible: panel.controller.hasMore; enabled: !panel.controller.busy; text: "Load older activity"; onClicked: panel.controller.loadMore() }
+        PanelButton { objectName: "activityMore"; visible: panel.controller.hasMore; enabled: !panel.controller.busy; text: "Load older activity"; onClicked: panel.controller.loadMore() }
     }
 }

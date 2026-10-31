@@ -61,7 +61,24 @@ const ICONS = {
   close: "Close",
   arrowDropDown: "ArrowDropDown",
   undo: "Undo",
-  redo: "Redo"
+  redo: "Redo",
+  closeOutlined: "CloseOutlined",
+  moreVert: "MoreVert",
+  refresh: "Refresh",
+  tune: "Tune",
+  createNewFolder: "CreateNewFolder",
+  fileUpload: "FileUpload",
+  home: "Home",
+  arrowUpward: "ArrowUpward",
+  playlistAdd: "PlaylistAddOutlined",
+  forum: "ForumOutlined",
+  sunny: "WbSunnyOutlined",
+  restartAlt: "RestartAltOutlined",
+  autoAwesome: "AutoAwesomeOutlined",
+  check: "Check",
+  powerSettingsNew: "PowerSettingsNew",
+  star: "Star",
+  starBorder: "StarBorder"
 };
 
 // The exports map hides package.json; an icon resolves to the package root.

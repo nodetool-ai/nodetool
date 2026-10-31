@@ -21,30 +21,30 @@ Item {
                 delegate: Rectangle {
                     required property var modelData
                     width: rows.width; height: 20; color: Theme.actionHover; radius: Theme.radiusSm
-                    Controls.ToolButton {
+                    PanelButton {
                         objectName: "bypass-" + modelData.id
-                        width: 20; height: 20; text: "⏻"
-                        palette.buttonText: modelData.enabled ? Theme.success : Theme.textDisabled
+                        width: 20; height: 20; text: (modelData.enabled ? "Bypass " : "Enable ") + effectName.text; iconOnly: true; iconPath: Icons.powerSettingsNew
+                        checked: !!modelData.enabled
                         Accessible.name: (modelData.enabled?"Bypass ":"Enable ")+effectName.text
                         onClicked: root.toggle(modelData.id,!modelData.enabled)
                     }
-                    Controls.ToolButton {
+                    PanelButton {
                         id: effectName; objectName: "open-effect-"+modelData.id
                         x: 22; width: parent.width-22; height: 20
                         text: ({gain:"Gain",eq3:"3-Band EQ",filter:"Filter",compressor:"Compressor"})[modelData.type] || modelData.type
                         font.family: Theme.sansFamily; font.pixelSize: Theme.fontSizeSmaller
-                        palette.buttonText: modelData.enabled ? Theme.textPrimary : Theme.textDisabled
+                        opacity: modelData.enabled ? 1 : 0.38
                         onClicked: root.open(modelData.id,effectName)
                     }
                 }
             }
         }
-        Controls.ScrollBar.vertical: Controls.ScrollBar {}
+        Controls.ScrollBar.vertical: PanelScrollBar {}
     }
-    Controls.ToolButton {
+    PanelButton {
         id: addButton; objectName: "add-effect-" + root.channelId
         y: list.height + (root.effects.length ? Theme.spacingMicro : 0)
-        width: parent.width; height: 20; text: "+"
+        width: parent.width; height: 20; text: "Add effect"; iconPath: Icons.add; iconOnly: true
         Accessible.name: "Add effect to " + root.channel
         background: Rectangle { color: addButton.hovered?Theme.actionSelected:"transparent"; border.color: Theme.divider; radius: Theme.radiusSm }
         onClicked: addMenu.open()

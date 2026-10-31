@@ -73,6 +73,7 @@ extern "C" {
 #include <QQmlContext>
 #include <QQmlEngine>
 #include <QQuickItem>
+#include <QQuickStyle>
 #include <QQuickRenderControl>
 #include <QQuickRenderTarget>
 #include <QQuickView>
@@ -674,6 +675,7 @@ int main(int argc, char** argv) {
         qputenv("QSG_RHI_PROFILE", "1");  // GPU timestamps for lastCompletedGpuTime
     }
 
+    QQuickStyle::setStyle(QStringLiteral("Basic"));
     QGuiApplication app(argc, argv);
     app.setApplicationName(QStringLiteral("nodetool-timeline"));
 

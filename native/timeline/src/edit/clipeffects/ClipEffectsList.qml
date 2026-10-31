@@ -16,7 +16,7 @@ InspectorSection {
     readonly property string identity: JSON.stringify(listed.map(effect => effect.id))
     property string expandedId: ""
     title: "Effects"
-    icon: "✧"
+    icon: Icons.autoAwesome
     meta: listed.length ? listed.filter(effect => effect.enabled).length + "/" + listed.length + " active" : ""
     defaultOpen: false
     open: ClipEffectsUi.folds.effects ?? false

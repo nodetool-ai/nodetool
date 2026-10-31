@@ -27,7 +27,7 @@ Rectangle {
                 }
             }
         }
-        Controls.ScrollBar.horizontal: Controls.ScrollBar {}
+        Controls.ScrollBar.horizontal: PanelScrollBar {}
     }
     Text {
         visible: root.channelTracks.length===0; x: Theme.spacingMd; width: channels.width-2*Theme.spacingMd
