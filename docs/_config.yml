@@ -292,6 +292,19 @@ exclude:
   - plans/external-asset-refs.md
   - plans/generation-recovery.md
   - plans/native-game-3d-upgrade.md
+  - plans/native-game-cpp-port.md
+  - plans/native-game-cpp-inventory.md
+  - plans/native-game-cpp-verification.md
+  - plans/native-game-cpp-astra-review.md
+  - plans/native-game-cpp-final-checks.json
+  - plans/native-game-cpp-browser-bench.json
+  - plans/native-game-cpp-2d-bench.json
+  - plans/native-game-bsdf-verification.md
+  - plans/native-game-bsdf-verification.json
+  - plans/native-game-postfx-verification.md
+  - plans/native-game-postfx-verification.json
+  - plans/native-game-blacksite-visual-parity.md
+  - plans/native-game-blacksite-qa.json
   - plans/provider-webhooks.md
   - superpowers/
   # Marketing-site audits. They cite repository source under marketing/ and
