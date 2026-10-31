@@ -4,6 +4,7 @@ import QtQuick
 import NodeTool.Timeline
 import "../../src/edit/inspectorsections" as Sections
 import "primitives/InspectorPrimitivesHelpers.js" as Helpers
+import NodeTool.UiPrimitives as Ui
 
 Column {
     id: root
@@ -12,7 +13,7 @@ Column {
     required property string labelPrefix
     required property string namePrefix
     readonly property var fill: editor.style[field]
-    spacing: Theme.spacingXs
+    spacing: Ui.Metrics.xs
     function typeChange(type) {
         if (type === "none") {
             editor.set(field, undefined);

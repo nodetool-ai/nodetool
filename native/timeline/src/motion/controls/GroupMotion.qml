@@ -3,13 +3,14 @@ import QtQuick
 import NodeTool.Timeline
 import "../tracking" as Tracking
 import "../blurcontrols" as Blur
+import NodeTool.UiPrimitives as Ui
 Column {
     id: root
     objectName: "groupMotion"
     required property var timelineModel
     required property var gestures
     required property ClipInspectorController controller
-    spacing: Theme.spacingXs
+    spacing: Ui.Metrics.xs
     MotionFields { objectName: "groupMotionFields"; width: parent.width; controller: root.controller }
     BorderRadius { objectName: "groupBorderRadius"; width: parent.width; timelineModel: root.timelineModel; gestures: root.gestures; controller: root.controller }
     AdvancedMotion { objectName: "groupAdvancedMotion"; width: parent.width; timelineModel: root.timelineModel; gestures: root.gestures; controller: root.controller }

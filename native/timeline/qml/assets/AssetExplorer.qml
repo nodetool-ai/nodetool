@@ -3,10 +3,12 @@ import QtQuick.Controls
 import QtQuick.Dialogs
 import QtQuick.Layouts
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 import "AssetContext.js" as Context
 
-Rectangle {
+Ui.Surface {
     id: explorer
+    variant: Ui.Surface.Canvas
     objectName: "assetExplorer"
     property var timeline: null
     property alias browser: browserModel
@@ -24,10 +26,9 @@ Rectangle {
         preview.closePreview()
     })
     readonly property var selectedAsset: grid.selectedAsset
-    implicitWidth: Theme.trackHeaderWidth
+    implicitWidth: TimelineMetrics.trackHeaderWidth
     width: implicitWidth
-    height: parent && parent.parent ? parent.parent.height : Theme.trackHeight * 9
-    color: Theme.backgroundDefault
+    height: parent && parent.parent ? parent.parent.height : TimelineMetrics.trackHeight * 9
     clip: true
 
     AssetBrowser {
@@ -57,11 +58,13 @@ Rectangle {
         const loaded = tags && typeof tags.join === "function" ? tags.join(", ") : ""
         if (row.id !== tagAssetId || tagDraft === tagBaseText || tagDraft === loaded) {
             tagAssetId = row.id; tagBaseText = loaded; tagDraft = loaded
+            tagEditor.cancelEdit()
         }
     }
     function ask(title, explanation, value, callback, destructive = false, needsValue = true) {
         action.title = title; action.explanation = explanation; action.initialValue = value
         action.actionLabel = title; action.destructive = destructive; action.needsValue = needsValue
+        action.returnFocusTo = explorer.Window.window ? explorer.Window.window.activeFocusItem : null
         explorer.actionCallback = callback; action.open()
     }
     function renameSelected() {
@@ -85,25 +88,25 @@ Rectangle {
     ScrollView {
         id: libraryScroll
         anchors.fill: parent
-        anchors.margins: Theme.spacingMd
-        contentWidth: availableWidth
+        anchors.margins: Ui.Metrics.md
+        contentWidth: width
+        ScrollBar.vertical: Ui.ScrollBar {}
         clip: true
         ColumnLayout {
-            width: libraryScroll.availableWidth
-            spacing: Theme.spacingSm
+            width: libraryScroll.width
+            spacing: Ui.Metrics.sm
             RowLayout {
                 Layout.fillWidth: true
-                LibraryLabel { Layout.fillWidth: true; text: "Library"; color: Theme.textPrimary; font.weight: Font.Medium }
-                LibraryButton { text: "Refresh"; iconPath: Icons.refresh; iconOnly: true; enabled: browserModel.configured && !browserModel.busy; onClicked: browserModel.refresh() }
+                LibraryLabel { Layout.fillWidth: true; text: "Library"; tone: Ui.Text.Primary }
+                LibraryButton { iconName: "refresh"; accessibleName: "Refresh"; enabled: browserModel.configured && !browserModel.busy; onClicked: browserModel.refresh() }
                 LibraryButton {
                     objectName: "libraryCreateFolder"
-                    text: "New folder"
-                    iconPath: Icons.createNewFolder
-                    iconOnly: true
+                    iconName: "createNewFolder"
+                    accessibleName: "New folder"
                     enabled: browserModel.configured && !browserModel.busy
                     onClicked: explorer.ask("Create folder", "Create a folder in the current Library folder.", "", value => browserModel.createFolder(value))
                 }
-                LibraryButton { objectName: "assetImportButton"; text: "Import"; iconPath: Icons.fileUpload; iconOnly: true; enabled: browserModel.configured; onClicked: files.open() }
+                LibraryButton { objectName: "assetImportButton"; iconName: "fileUpload"; accessibleName: "Import"; enabled: browserModel.configured; onClicked: files.open() }
             }
             RowLayout {
                 Layout.fillWidth: true
@@ -116,7 +119,7 @@ Rectangle {
                 onAccepted: { searchDelay.stop(); browserModel.searchText = text }
                 Timer { id: searchDelay; interval: 250; onTriggered: browserModel.searchText = search.text }
             }
-                LibraryButton { objectName: "libraryFiltersButton"; text: "Filters"; iconPath: Icons.tune; iconOnly: true; checkable: true; checked: explorer.filtersExpanded; onClicked: explorer.filtersExpanded = checked }
+                LibraryButton { objectName: "libraryFiltersButton"; iconName: "tune"; accessibleName: "Filters"; checkable: true; checked: explorer.filtersExpanded; onClicked: explorer.filtersExpanded = checked }
             }
             RowLayout {
                 visible: explorer.filtersExpanded
@@ -140,40 +143,29 @@ Rectangle {
                 onAccepted: { tagDelay.stop(); browserModel.tagFilter = text.trim() }
                 Timer { id: tagDelay; interval: 250; onTriggered: browserModel.tagFilter = tagSearch.text.trim() }
             }
-            PanelSelect {
-                palette.button: Theme.backgroundPaper
-                palette.buttonText: Theme.textPrimary
-                palette.base: Theme.backgroundPaper
-                palette.text: Theme.textPrimary
-                palette.window: Theme.backgroundPaper
-                palette.windowText: Theme.textPrimary
-                palette.highlight: Theme.primary
-                palette.highlightedText: Theme.textPrimary
+            Ui.Select {
                 id: types
                 objectName: "libraryTypeFilter"
                 Layout.fillWidth: true
-                model: ["All types", "Images", "Video", "Audio", "Folders", "Other"]
-                Accessible.name: "Asset type"
-                font.family: Theme.sansFamily
-                font.pixelSize: Theme.fontSizeSmall
-                currentIndex: ["", "image", "video", "audio", "folder", "other"].indexOf(browserModel.typeFilter)
-                onActivated: browserModel.typeFilter = ["", "image", "video", "audio", "folder", "other"][currentIndex]
+                options: [{label:"All types",value:""},{label:"Images",value:"image"},{label:"Video",value:"video"},{label:"Audio",value:"audio"},{label:"Folders",value:"folder"},{label:"Other",value:"other"}]
+                value: browserModel.typeFilter
+                accessibleName: "Asset type"
+                onValueCommitted: next => browserModel.typeFilter = next
             }
             RowLayout {
                 Layout.fillWidth: true
                 visible: browserModel.folderId !== ""
-                LibraryButton { objectName: "assetFolderUp"; text: "Up"; iconPath: Icons.arrowUpward; iconOnly: true; visible: browserModel.folderId !== ""; enabled: browserModel.folderId !== ""; onClicked: { explorer.clearFilters(); browserModel.goUp() } }
+                LibraryButton { objectName: "assetFolderUp"; iconName: "arrowUpward"; accessibleName: "Up"; enabled: browserModel.folderId !== ""; onClicked: { explorer.clearFilters(); browserModel.goUp() } }
                 Flickable {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: Theme.controlSm
-                    visible: browserModel.folderId !== ""
+                    Layout.preferredHeight: Ui.Metrics.compact
                     contentWidth: crumbs.implicitWidth
                     contentHeight: height
                     clip: true
                     Row {
                         id: crumbs
-                        spacing: Theme.spacingXs
-                        LibraryButton { objectName: "libraryRootBreadcrumb"; text: "Library root"; iconPath: Icons.home; iconOnly: true; onClicked: explorer.navigateFolder("") }
+                        spacing: Ui.Metrics.xs
+                        LibraryButton { objectName: "libraryRootBreadcrumb"; iconName: "home"; accessibleName: "Library root"; onClicked: explorer.navigateFolder("") }
                         Repeater {
                             model: browserModel.breadcrumbs.filter(row => row.id !== "")
                             LibraryButton {
@@ -187,7 +179,7 @@ Rectangle {
 
             }
             LibraryLabel { Layout.fillWidth: true; visible: !browserModel.configured; text: "Open a server timeline to browse and import assets." }
-            LibraryLabel { Layout.fillWidth: true; visible: browserModel.error !== ""; text: browserModel.error; color: Theme.error }
+            LibraryLabel { Layout.fillWidth: true; visible: browserModel.error !== ""; text: browserModel.error; tone: Ui.Text.Error }
             LibraryButton { visible: browserModel.error !== ""; text: "Retry loading"; enabled: !browserModel.busy; onClicked: browserModel.refresh() }
             LibraryLabel { visible: browserModel.busy; text: "Loading Library…" }
             LibraryLabel { Layout.fillWidth: true; visible: grid.filtered; text: "Filters search across all folders." }
@@ -200,12 +192,12 @@ Rectangle {
                 id: grid
                 objectName: "libraryGrid"
                 Layout.fillWidth: true
-                Layout.preferredHeight: Math.max(Theme.trackHeight * 2, explorer.height - Theme.toolbarHeight * (explorer.filtersExpanded ? 10 : 8))
-                Layout.minimumHeight: Theme.trackHeight
+                Layout.preferredHeight: Math.max(TimelineMetrics.trackHeight * 2, explorer.height - Ui.Metrics.comfortable * (explorer.filtersExpanded ? 10 : 8))
+                Layout.minimumHeight: TimelineMetrics.trackHeight
                 browser: browserModel
                 navigateFolder: id => explorer.navigateFolder(id)
                 onPreviewRequested: row => explorer.showPreview(row)
-                onActionsRequested: row => { selectedId = row.id; assetMenu.popup() }
+                onActionsRequested: row => { selectedId = row.id; assetMenu.returnFocusTo = explorer.Window.window ? explorer.Window.window.activeFocusItem : null; assetMenu.popup() }
                 onImportRequested: files.open()
                 onClearFiltersRequested: explorer.clearFilters()
             }
@@ -220,7 +212,7 @@ Rectangle {
                 }
                 LibraryButton {
                     text: "Actions"
-                    onClicked: assetMenu.popup()
+                    onClicked: { assetMenu.returnFocusTo = explorer.Window.window ? explorer.Window.window.activeFocusItem : null; assetMenu.popup() }
                 }
                 LibraryButton {
                     text: explorer.selectedAsset && explorer.selectedAsset.content_type === "folder" ? "Open" : "Preview"
@@ -240,7 +232,7 @@ Rectangle {
                 ColumnLayout {
                     id: details
                     width: parent.width
-                    spacing: Theme.spacingSm
+                    spacing: Ui.Metrics.sm
                     LibraryLabel {
                         Layout.fillWidth: true
                         text: {
@@ -259,8 +251,8 @@ Rectangle {
                         id: tagEditor
                         objectName: "libraryTagEditor"
                         Layout.fillWidth: true
-                        Accessible.name: "Asset tags"
-                        text: explorer.tagDraft
+                        accessibleName: "Asset tags"
+                        value: explorer.tagDraft
                         onTextEdited: explorer.tagDraft = text
                     }
                     RowLayout {
@@ -282,7 +274,7 @@ Rectangle {
                         Layout.fillWidth: true
                         text: explorer.selectedAsset && explorer.selectedAsset.offline ? "The original file is offline." : ""
                         visible: text !== ""
-                        color: Theme.warning
+                        tone: Ui.Text.Warning
                     }
                     LibraryButton {
                         id: moreMetadata
@@ -299,21 +291,19 @@ Rectangle {
                         Layout.fillWidth: true
                         text: explorer.selectedAsset && explorer.selectedAsset.metadata ? JSON.stringify(explorer.selectedAsset.metadata, null, 2) : ""
                         visible: moreMetadata.checked && text !== "" && text !== "{}"
-                        font.family: Theme.monoFamily
-                        font.pixelSize: Theme.fontSizeSmaller
+                        role: Ui.Typography.MonoCaption
                         wrapMode: Text.WrapAnywhere
                     }
                     LibraryLabel {
                         Layout.fillWidth: true
                         text: explorer.selectedAsset ? "ID: " + explorer.selectedAsset.id : ""
                         visible: moreMetadata.checked
-                        font.family: Theme.monoFamily
-                        font.pixelSize: Theme.fontSizeSmaller
+                        role: Ui.Typography.MonoCaption
                         wrapMode: Text.WrapAnywhere
                     }
                 }
             }
-            CheckBox {
+            Ui.Toggle {
                 objectName: "libraryPreviewAudio"
                 visible: preview.visible && (preview.mediaType === "audio" || preview.mediaType === "video")
                 text: "Preview audio"
@@ -346,8 +336,8 @@ Rectangle {
                         ColumnLayout {
                             required property var modelData
                             Layout.fillWidth: true
-                            LibraryLabel { Layout.fillWidth: true; text: modelData.name + " · " + modelData.status; color: modelData.status === "failed" ? Theme.error : Theme.textPrimary }
-                            LibraryLabel { Layout.fillWidth: true; visible: modelData.error !== ""; text: modelData.error || ""; color: Theme.error }
+                            LibraryLabel { Layout.fillWidth: true; text: modelData.name + " · " + modelData.status; tone: modelData.status === "failed" ? Ui.Text.Error : Ui.Text.Primary }
+                            LibraryLabel { Layout.fillWidth: true; visible: modelData.error !== ""; text: modelData.error || ""; tone: Ui.Text.Error }
                             LibraryButton { visible: modelData.status === "failed"; text: "Retry import"; onClicked: browserModel.retryImport(modelData.id) }
                         }
                     }
@@ -356,14 +346,14 @@ Rectangle {
             }
         }
     }
-    Menu {
+    Ui.ContextMenu {
         id: assetMenu
-        MenuItem { text: "Rename"; enabled: !!explorer.selectedAsset && !browserModel.busy; onTriggered: explorer.renameSelected() }
-        MenuItem { text: "Move to folder…"; enabled: !!explorer.selectedAsset && !browserModel.busy; onTriggered: moveDialog.open() }
+        Ui.MenuItem { text: "Rename"; enabled: !!explorer.selectedAsset && !browserModel.busy; onTriggered: explorer.renameSelected() }
+        Ui.MenuItem { text: "Move to folder…"; enabled: !!explorer.selectedAsset && !browserModel.busy; onTriggered: moveDialog.open() }
 
 
-        MenuSeparator {}
-        MenuItem { text: "Delete from server…"; enabled: !!explorer.selectedAsset && !browserModel.busy; onTriggered: explorer.deleteSelected() }
+        Ui.Separator {}
+        Ui.MenuItem { text: "Delete from server…"; enabled: !!explorer.selectedAsset && !browserModel.busy; onTriggered: explorer.deleteSelected() }
     }
 
     AssetBrowser {
@@ -371,40 +361,31 @@ Rectangle {
         timeline: explorer.timeline
         typeFilter: "folder"
     }
-    Dialog {
+    Ui.Dialog {
         id: moveDialog
         property string movingId: ""
+        property string destinationId: ""
         title: "Move asset"
-        parent: Overlay.overlay
-        anchors.centerIn: parent
-        width: Math.min(Theme.trackHeaderWidth, parent ? parent.width - Theme.spacingXl * 2 : Theme.trackHeaderWidth)
-        height: Math.min(implicitHeight, parent ? parent.height - Theme.spacingXl * 2 : implicitHeight)
-        modal: true
-        onOpened: { movingId = grid.selectedId; destinationBrowser.refresh() }
-        background: Rectangle { color: Theme.backgroundPaper; border.color: Theme.divider; radius: Theme.radiusMd }
-        contentItem: ColumnLayout {
+        width: Math.min(TimelineMetrics.trackHeaderWidth, parent ? parent.width - Ui.Metrics.xl * 2 : TimelineMetrics.trackHeaderWidth)
+        height: Math.min(implicitHeight, parent ? parent.height - Ui.Metrics.xl * 2 : implicitHeight)
+        onOpened: { movingId = grid.selectedId; destinationId = ""; destinationBrowser.refresh() }
+        ColumnLayout {
+            width: parent.width
             LibraryLabel { Layout.fillWidth: true; text: "Choose a destination folder, or move to the Library root." }
-            PanelSelect {
-                palette.button: Theme.backgroundPaper
-                palette.buttonText: Theme.textPrimary
-                palette.base: Theme.backgroundPaper
-                palette.text: Theme.textPrimary
-                palette.window: Theme.backgroundPaper
-                palette.windowText: Theme.textPrimary
-                palette.highlight: Theme.primary
-                palette.highlightedText: Theme.textPrimary
+            Ui.Select {
                 id: moveTarget
                 Layout.fillWidth: true
-                Accessible.name: "Destination folder"
-                textRole: "name"
-                model: [{id: "", name: "Library root"}].concat(destinationBrowser.assets.filter(row => row.id !== moveDialog.movingId))
+                options: [{id:"",name:"Library root"}].concat(destinationBrowser.assets.filter(row => row.id !== moveDialog.movingId)).map(row => ({label:row.name,value:row.id}))
+                value: moveDialog.destinationId
+                accessibleName: "Destination folder"
+                onValueCommitted: next => moveDialog.destinationId = next
             }
             LibraryLabel { Layout.fillWidth: true; visible: destinationBrowser.busy; text: "Loading folders…" }
-            LibraryLabel { Layout.fillWidth: true; visible: destinationBrowser.error !== ""; text: destinationBrowser.error; color: Theme.error }
-        }
-        footer: DialogButtonBox {
-            LibraryButton { text: "Cancel"; onClicked: moveDialog.close() }
-            LibraryButton { text: "Move"; enabled: !destinationBrowser.busy && !browserModel.busy; onClicked: { browserModel.moveAsset(moveDialog.movingId, moveTarget.model[moveTarget.currentIndex].id); moveDialog.close() } }
+            LibraryLabel { Layout.fillWidth: true; visible: destinationBrowser.error !== ""; text: destinationBrowser.error; tone: Ui.Text.Error }
+            RowLayout {
+                LibraryButton { text: "Cancel"; onClicked: moveDialog.close() }
+                LibraryButton { text: "Move"; enabled: !destinationBrowser.busy && !browserModel.busy; onClicked: { browserModel.moveAsset(moveDialog.movingId, moveDialog.destinationId); moveDialog.close() } }
+            }
         }
     }
 
@@ -420,9 +401,9 @@ Rectangle {
         Rectangle {
             anchors.fill: parent
             visible: fileDrop.containsDrag
-            color: Theme.actionSelected
-            border.color: Theme.primary
-            LibraryLabel { anchors.centerIn: parent; text: "Drop files here"; color: Theme.textPrimary }
+            color: Ui.Theme.actionSelected
+            border.color: Ui.Theme.accentPrimary
+            LibraryLabel { anchors.centerIn: parent; text: "Drop files here"; tone: Ui.Text.Primary }
         }
     }
 }

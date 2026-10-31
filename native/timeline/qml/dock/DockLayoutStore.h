@@ -3,6 +3,7 @@
 #include <QJSEngine>
 #include <QVariantMap>
 #include <QtQmlIntegration/qqmlintegration.h>
+#include <optional>
 
 class DockLayoutStore : public QObject {
     Q_OBJECT
@@ -22,6 +23,8 @@ public:
     Q_INVOKABLE void switchWorkspace(int index);
     Q_INVOKABLE void resetWorkspace();
     Q_INVOKABLE void resizeRegion(const QString& region, double size, double width, double height);
+    Q_INVOKABLE void beginResize();
+    Q_INVOKABLE void finishResize(bool canceled);
     Q_INVOKABLE QVariantMap displaySizes(double width, double height, const QVariantMap& requested) const;
 signals:
     void changed();
@@ -31,6 +34,7 @@ private:
     void persist();
     QJSEngine m_engine;
     QVariantMap m_layout;
+    std::optional<QVariantMap> m_resizeStart;
     QString m_workspace = "Editing";
     QVariantMap m_workspaces;
     QVariantList m_panels;

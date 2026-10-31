@@ -1,3 +1,4 @@
+#include <QAccessible>
 #include <QGuiApplication>
 #include <QQuickItem>
 #include <QQuickWindow>
@@ -88,11 +89,34 @@ FxKnob { def: ({id:"gain", label:"Gain", min:-1, max:1, def:0, curve:"lin"}); va
             QCOMPARE(knob->width(), expected);
         }
     }
+    void cancelOnDisable() {
+        QQmlEngine engine;
+        QQmlComponent component(&engine);
+        component.setData(R"(import QtQuick
+import NodeTool.Timeline
+FxKnob { def: ({id:"gain", min:-1, max:1, def:0, curve:"lin"}); value: 0 })", QUrl());
+        std::unique_ptr<QObject> object(component.create());
+        QVERIFY2(object, qPrintable(component.errorString()));
+        auto *knob = qobject_cast<QQuickItem *>(object.get());
+        QVERIFY(knob);
+        QQuickWindow window; window.resize(240, 200); knob->setParentItem(window.contentItem());
+        knob->setPosition({70, 60}); window.show(); QVERIFY(QTest::qWaitForWindowExposed(&window));
+        QSignalSpy ended(object.get(), SIGNAL(gestureEnd()));
+        QSignalSpy canceled(object.get(), SIGNAL(gestureCanceled()));
+        const QPoint point(90, 80);
+        QTest::mousePress(&window, Qt::LeftButton, Qt::NoModifier, point);
+        QTest::mouseMove(&window, point - QPoint(0, 10));
+        knob->setEnabled(false);
+        QCOMPARE(canceled.count(), 1);
+        QCOMPARE(ended.count(), 0);
+        QTest::mouseRelease(&window, Qt::LeftButton, Qt::NoModifier, point - QPoint(0, 10));
+    }
     void offscreenAppearance() {
         QQmlEngine engine; QQmlComponent component(&engine);
         component.setData(R"(import QtQuick
 import NodeTool.Timeline
-Rectangle { width:360; height:160; color:Theme.backgroundDefault
+import NodeTool.UiPrimitives as Ui
+Rectangle { width:360; height:160; color:Ui.Theme.surfaceCanvas
  Row { x:20; y:12; spacing:20
   FxKnob { size:"lg"; label:"GAIN"; value:.25; accent:"a"; def:({min:-1,max:1,def:0}) }
   FxKnob { size:"md"; label:"TONE"; value:.7; accent:"b"; def:({min:0,max:1,def:0}) }
@@ -137,13 +161,16 @@ FxStepper { objectName:"stepper"; y:30; def: ({options:["A","B","C"]}); value:0;
         QCOMPARE(power->property("on").toBool(), false);
         power->forceActiveFocus(); QTest::keyClick(&window, Qt::Key_Space);
         QCOMPARE(power->property("on").toBool(), true);
-        auto* ring = power->findChild<QQuickItem*>("focusRing");
-        QVERIFY(ring);
-        auto* border = ring->property("border").value<QObject*>();
-        QVERIFY(border); QCOMPARE(border->property("width").toDouble(), 1.);
-        QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier, {9,39});
+        QVERIFY(power->hasActiveFocus());
+        auto* accessible = QAccessible::queryAccessibleInterface(power);
+        QVERIFY(accessible); QCOMPARE(accessible->role(), QAccessible::CheckBox);
+        QVERIFY(accessible->state().checked);
+        auto* previous = stepper->findChild<QQuickItem*>("fx-step-previous");
+        auto* next = stepper->findChild<QQuickItem*>("fx-step-next");
+        QVERIFY(previous); QVERIFY(next);
+        QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier, previous->mapToScene({previous->width()/2, previous->height()/2}).toPoint());
         QCOMPARE(stepper->property("value").toInt(), 2);
-        QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier, {89,39});
+        QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier, next->mapToScene({next->width()/2, next->height()/2}).toPoint());
         QCOMPARE(stepper->property("value").toInt(), 0);
     }
 };

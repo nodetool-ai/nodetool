@@ -84,8 +84,12 @@ cp licenses/LGPL-3.0.txt "$lic/Qt-LGPL-3.0.txt"
 cp licenses/GPL-3.0.txt "$lic/Qt-GPL-3.0.txt"  # the LGPL v3 adds its terms to the GPL v3
 cp "$ffsrc/COPYING.LGPLv2.1" "$lic/FFmpeg-LGPL-2.1.txt"
 awk '/^This software is available as a choice/{f=1} f' third_party/miniaudio.h > "$lic/miniaudio.txt"
-cp fonts/LICENSE-Inter.txt "$lic/Inter-OFL-1.1.txt"
-cp fonts/LICENSE-JetBrainsMono.txt "$lic/JetBrainsMono-OFL-1.1.txt"
+cp ../ui_primitives/resources/licenses/LICENSE-Inter.txt "$lic/Inter-OFL-1.1.txt"
+cp ../ui_primitives/resources/licenses/LICENSE-JetBrainsMono.txt "$lic/JetBrainsMono-OFL-1.1.txt"
+cp ../ui_primitives/resources/licenses/LICENSE-MUI.txt "$lic/MUI-MIT.txt"
+cp ../ui_primitives/resources/licenses/LICENSE-Material-Icons.txt "$lic/Material-Icons-Apache-2.0.txt"
+cp ../ui_primitives/resources/licenses/MATERIAL-ICONS.md "$lic/Material-Icons-notice.md"
+cp ../ui_primitives/resources/icons/providers/README.md "$lic/Provider-Icons-notice.md"
 cp third_party/yoga/LICENSE "$lic/Yoga-MIT.txt"
 for f in "$lic"/*.txt; do [[ -s "$f" ]] || { echo "error: empty licence $f" >&2; exit 1; }; done
 # The corresponding source of the LGPL libraries. FFmpeg: the exact source
@@ -146,6 +150,7 @@ python3 scripts/macho-deps.py notices "$app" --brew-prefix "$(brew --prefix)" "$
     echo "miniaudio 0.11.22 (public domain or MIT No Attribution, licenses/miniaudio.txt), compiled in."
     echo "Yoga 3.2.1 (MIT), compiled in (licenses/Yoga-MIT.txt)."
     echo "Inter and JetBrains Mono (SIL Open Font License 1.1), embedded."
+    echo "MUI icons (MIT), Material Icons (Apache 2.0), and provider icons: see licenses/."
 } > "$src/SOURCES.txt"
 
 # install_name_tool invalidated the linker's ad-hoc signatures: renew them

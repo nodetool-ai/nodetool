@@ -2,27 +2,32 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Dialogs
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 EffectEditor {
     id: editor
-    spacing: Theme.spacingXs
+    spacing: Ui.Metrics.xs
     Row {
-        spacing: Theme.spacingMd
-        Text {
+        spacing: Ui.Metrics.md
+        Ui.Text {
             width: 70; anchors.verticalCenter: parent.verticalCenter
             text: TrackEffectsReference.data.strings.chromaKeyColor
-            color: Theme.textSecondary; font.family: Theme.sansFamily; font.pixelSize: Theme.fontSizeSmaller
+            tone: Ui.Text.Secondary; role: Ui.Typography.SansCaption
         }
-        Button {
-            width: 32; height: 24
-            enabled: !editor.disabled
-            Accessible.name: TrackEffectsReference.data.strings.chromaKeyColor
-            background: Rectangle { color: editor.effect.keyColor; radius: Theme.radiusXs; border.width: 1; border.color: Theme.divider }
-            onClicked: { picker.selectedColor = editor.effect.keyColor; picker.open() }
+        Item {
+            width: Ui.Metrics.standard; height: Ui.Metrics.standard
+            Ui.ToolbarIconButton {
+                id: swatchButton
+                anchors.fill: parent
+                enabled: !editor.disabled
+                accessibleName: TrackEffectsReference.data.strings.chromaKeyColor
+                onClicked: { picker.selectedColor = editor.effect.keyColor; picker.open() }
+            }
+            Rectangle { anchors.centerIn: parent; width: Ui.Metrics.iconSm; height: width; radius: Ui.Metrics.micro; color: editor.effect.keyColor; border.width: Ui.Metrics.border; border.color: Ui.Theme.borderControl }
         }
-        Text {
+        Ui.Text {
             text: editor.effect.keyColor.toUpperCase()
             anchors.verticalCenter: parent.verticalCenter
-            color: Theme.textPrimary; font.family: Theme.sansFamily; font.pixelSize: Theme.fontSizeSmaller
+            tone: Ui.Text.Primary; role: Ui.Typography.SansCaption
         }
     }
     ColorDialog {
@@ -35,5 +40,6 @@ EffectEditor {
         disabled: editor.disabled
         onPreview: patch => editor.preview(patch)
         onCommit: patch => editor.commit(patch)
+            onEditCanceled: editor.editCanceled()
     }
 }

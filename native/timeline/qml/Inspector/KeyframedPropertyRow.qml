@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Layouts
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 Column {
     id: root
     required property ClipInspectorController controller
@@ -12,14 +13,14 @@ Column {
         return controller.rowState(row.id)
     }
     readonly property bool fieldDisabled: controller.locked || (state.keyframed && controller.playheadMs < 0)
-    spacing: Theme.spacingMicro
+    spacing: Ui.Metrics.micro
     InspectorRow {
         id: propertyRow
         width: parent.width
         label: "      " + root.row.label
         KeyframeButton {
             parent: propertyRow
-            x: Theme.spacingXs
+            x: Ui.Metrics.xs
             anchors.verticalCenter: parent.verticalCenter
             text: "◷"
             active: root.state.keyframed
@@ -44,13 +45,14 @@ Column {
                 onGestureStarted: root.controller.beginGesture()
                 onPreview: raw => { if (raw.trim() !== "" && Number.isFinite(Number(raw))) root.controller.preview(payload(raw)) }
                 onCommit: raw => { if (raw.trim() !== "" && Number.isFinite(Number(raw))) root.controller.commit(payload(raw)); else root.controller.cancelGesture() }
+                onCanceled: root.controller.cancelGesture()
             }
         }
     }
     RowLayout {
         width: parent.width
         visible: root.state.keyframed
-        spacing: Theme.spacingXs
+        spacing: Ui.Metrics.xs
         KeyframeLane {
             Layout.fillWidth: true
             controller: root.controller

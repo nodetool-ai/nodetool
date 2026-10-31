@@ -5,6 +5,7 @@
 // x deletes it.
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 Rectangle {
     id: ruler
@@ -18,8 +19,8 @@ Rectangle {
     signal deleteMarkerRequested(string markerId)
 
     objectName: "timeRuler"
-    height: Theme.rulerHeight
-    color: Theme.backgroundPaper
+    height: TimelineMetrics.rulerHeight
+    color: Ui.Theme.surfacePanel
     clip: true
     Accessible.role: Accessible.Canvas
     Accessible.name: ruler.viewState.rulerMode === "bars"
@@ -30,19 +31,18 @@ Rectangle {
         id: canvas
         objectName: "rulerCanvas"
         width: parent.width
-        height: parent.height - 1
+        height: parent.height - Ui.Metrics.border
         timeline: ruler.timeline
         rulerMode: ruler.viewState.rulerMode
         gridDivision: ruler.viewState.gridDivision
         msPerPx: ruler.viewState.msPerPx
         scrollLeftPx: ruler.viewState.scrollLeftPx
         fps: ruler.fps
-        background: Theme.backgroundPaper
-        textColor: Theme.textSecondary
-        tickColor: Theme.divider
-        font.family: Theme.monoFamily
-        font.pixelSize: Theme.fontSizeSmaller
-        markerColor: Theme.primary
+        background: Ui.Theme.surfacePanel
+        textColor: Ui.Theme.textSecondary
+        tickColor: Ui.Theme.borderSubtle
+        font: Ui.Typography.font(Ui.Typography.MonoCaption)
+        markerColor: Ui.Theme.accentPrimary
         rangeInMs: ruler.viewState.rangeInMs
         rangeOutMs: ruler.viewState.rangeOutMs
         markers: ruler.markers
@@ -52,8 +52,8 @@ Rectangle {
     Rectangle {
         anchors.bottom: parent.bottom
         width: parent.width
-        height: 1
-        color: Theme.divider
+        height: Ui.Metrics.border
+        color: Ui.Theme.borderSubtle
     }
 
     MouseArea {
@@ -100,43 +100,43 @@ Rectangle {
                          && contentPx <= ruler.viewState.scrollLeftPx + ruler.width + 200
                 x: contentPx - 1
                 height: 14                                  // MARKER_FLAG_HEIGHT_PX
-                width: Math.min(140, flagRow.implicitWidth + 2 * Theme.spacingXs)
-                color: modelData.color ? modelData.color : Theme.primary
-                topRightRadius: Theme.radiusXs
-                bottomRightRadius: Theme.radiusXs
+                width: Math.min(140, flagRow.implicitWidth + 2 * Ui.Metrics.xs)
+                color: modelData.color ? modelData.color : Ui.Theme.accentPrimary
+                topRightRadius: Ui.Metrics.micro
+                bottomRightRadius: Ui.Metrics.micro
                 Row {
                     id: flagRow
-                    x: Theme.spacingXs
+                    x: Ui.Metrics.xs
                     height: parent.height
-                    spacing: Theme.spacingMicro
-                    Text {
+                    spacing: Ui.Metrics.micro
+                    Ui.Text {
                         id: flagLabel
                         objectName: "markerLabel"
                         anchors.verticalCenter: parent.verticalCenter
-                        width: Math.min(implicitWidth, 140 - 2 * Theme.spacingXs - (deleteText.visible ? deleteText.implicitWidth + Theme.spacingMicro : 0))
+                        width: Math.min(implicitWidth, 140 - 2 * Ui.Metrics.xs - (deleteText.visible ? deleteText.implicitWidth + Ui.Metrics.micro : 0))
                         elide: Text.ElideRight
                         text: flag.label
-                        color: "#ffffff"                    // primary.contrastText
-                        font.family: Theme.monoFamily
-                        font.pixelSize: Theme.fontSizeSmaller
+                        role: Ui.Typography.MonoCaption
+                        tone: Ui.Text.OnAccent
                     }
-                    Text {
+                    Ui.ToolbarIconButton {
                         id: deleteText
                         objectName: "markerDelete"
-                        visible: flagHover.hovered
+                        visible: flagHover.hovered || activeFocus
                         anchors.verticalCenter: parent.verticalCenter
-                        text: "\u00d7"
-                        color: "#ffffff"
-                        font.family: Theme.monoFamily
-                        font.pixelSize: Theme.fontSizeSmaller
-                        TapHandler { onTapped: ruler.deleteMarkerRequested(flag.modelData.id) }
+                        width: Ui.Metrics.small
+                        height: Ui.Metrics.small
+                        iconName: "close"
+                        iconTone: Ui.Text.OnAccent
+                        accessibleName: "Delete marker " + flag.label
+                        onClicked: ruler.deleteMarkerRequested(flag.modelData.id)
                     }
                 }
                 HoverHandler { id: flagHover; cursorShape: Qt.PointingHandCursor }
                 // The seek target reaches 20 px down (MARKER_HIT_HEIGHT_PX).
                 MouseArea {
                     objectName: "markerSeek"
-                    width: flagLabel.width + Theme.spacingXs
+                    width: flagLabel.width + Ui.Metrics.xs
                     height: 20
                     onClicked: ruler.seekRequested(flag.modelData.timeMs)
                 }

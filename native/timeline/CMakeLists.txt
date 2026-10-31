@@ -14,7 +14,7 @@ include(cmake/Sanitizers.cmake)
 
 # GuiPrivate carries the include path of the semi-public QRhi API (<rhi/qrhi.h>).
 set(QT_NO_PRIVATE_MODULE_WARNING ON)
-find_package(Qt6 6.12 REQUIRED COMPONENTS Core Gui GuiPrivate Qml Quick QuickControls2 ShaderTools Test)
+find_package(Qt6 6.12 REQUIRED COMPONENTS Svg Core Gui GuiPrivate Qml Quick QuickControls2 ShaderTools Test QuickTest)
 # QRhi through GuiPrivate is only compatible within one Qt minor version, so
 # the build accepts the tested 6.12 only.
 if(Qt6_VERSION VERSION_GREATER_EQUAL 6.13)
@@ -163,7 +163,12 @@ endforeach()
 
 include(src/app/QmlDiscovery.cmake)
 
-add_subdirectory(../model-picker ${CMAKE_CURRENT_BINARY_DIR}/model-picker)
+if(NOT TARGET nodetool_ui_primitives)
+    add_subdirectory(../ui_primitives ${CMAKE_CURRENT_BINARY_DIR}/ui_primitives)
+endif()
+if(NOT TARGET nodetool_model_picker)
+    add_subdirectory(../model-picker ${CMAKE_CURRENT_BINARY_DIR}/model-picker)
+endif()
 
 # Model and scene evaluation: no GUI, shared by the app and the tests.
 add_library(timeline_core STATIC ${NT_core})
@@ -215,7 +220,6 @@ target_compile_options(nodetool-timeline PRIVATE ${NT_WARNINGS})
 target_link_libraries(nodetool-timeline PRIVATE
     ${NT_APP_PLATFORM_LIBS} timeline_core timeline_decode Qt6::Gui Qt6::GuiPrivate Qt6::Qml Qt6::Quick Qt6::QuickControls2 PkgConfig::FFMPEG)
 
-set_source_files_properties(qml/Theme.qml qml/Icons.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 # Compile the QML module once. Whole-archive linkage preserves its generated
 # type/resource initializers and C++ registrars without a runtime plugin file.
 # App-only registrations stay in NT_app and remain specific to each host.
@@ -249,6 +253,7 @@ function(nt_add_timeline_qml target)
     get_target_property(host_sources ${target} SOURCES)
     list(REMOVE_ITEM host_sources ${NT_qml})
     set_property(TARGET ${target} PROPERTY SOURCES "${host_sources}")
+    nodetool_use_ui_primitives(${target})
     target_link_libraries(${target} PRIVATE "$<LINK_LIBRARY:WHOLE_ARCHIVE,timeline_qml>"
         nodetool_model_pickerplugin nodetool_chatplugin)
 endfunction()
@@ -299,6 +304,9 @@ endif()
 nt_sanitizer_test_checks()
 # Visual Studio does not emit compile_commands.json.
 if(CMAKE_GENERATOR MATCHES "Ninja|Makefiles")
+    add_test(NAME shared_qml_build_fixtures COMMAND ${CMAKE_COMMAND}
+        -DNT_BUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}
+        -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/tests/SharedQmlBuildTest.cmake)
     add_test(NAME shared_qml_build COMMAND ${CMAKE_COMMAND}
         -DNT_BUILD_DIR=${CMAKE_CURRENT_BINARY_DIR}
         -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/tests/SharedQmlBuild.cmake)

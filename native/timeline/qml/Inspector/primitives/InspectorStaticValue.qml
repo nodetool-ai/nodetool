@@ -1,15 +1,14 @@
 import QtQuick
-import QtQuick.Controls
 import NodeTool.Timeline
-Text {
+import NodeTool.UiPrimitives as Ui
+Ui.Text {
+    id: root
     property string value: ""
     text: value
-    font.family: Theme.monoFamily
-    font.pixelSize: Theme.fontSizeSmall
-    color: Theme.textSecondary
+    role: Ui.Typography.MonoLabel
+    tone: Ui.Text.Secondary
     width: Math.min(implicitWidth, InspectorTokens.staticValueMaxWidth)
     elide: Text.ElideRight
-    ToolTip.visible: hover.hovered
-    ToolTip.text: value
+    Ui.Tooltip { trigger: root; visible: hover.hovered; text: root.value }
     HoverHandler { id: hover }
 }

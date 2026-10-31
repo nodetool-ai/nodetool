@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
 import "../../src/edit/inspectorsections" as Sections
+import NodeTool.UiPrimitives as Ui
 
 InspectorSection {
     id: root
@@ -293,7 +294,7 @@ InspectorSection {
             scrub: ({
                     step: 1
                 })
-            minWidth: Theme.controlXs + InspectorTokens.controlXl - Theme.spacingXs
+            minWidth: Ui.Metrics.small + InspectorTokens.controlXl - Ui.Metrics.xs
         }
         TextStyleNumber {
             objectName: "textShadowY"
@@ -305,7 +306,7 @@ InspectorSection {
             scrub: ({
                     step: 1
                 })
-            minWidth: Theme.controlXs + InspectorTokens.controlXl - Theme.spacingXs
+            minWidth: Ui.Metrics.small + InspectorTokens.controlXl - Ui.Metrics.xs
         }
     }
     InspectorToggleRow {

@@ -1,9 +1,8 @@
-// ToolbarDivider (ui_primitives/Toolbar.tsx): a 1 px rule, icon-high.
 import QtQuick
-import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 Rectangle {
-    width: 1
-    height: Theme.iconSm
-    color: Theme.divider
+    width: Ui.Metrics.border
+    height: Ui.Metrics.iconSm
+    color: Ui.Theme.borderSubtle
 }

@@ -22,7 +22,7 @@ private slots:
         qmlRegisterType<ActivityController>("NodeTool.Timeline", 1, 0, "ActivityController");
         qmlRegisterType<LocalActivity>("NodeTool.Timeline", 1, 0, "LocalActivity");
         qmlRegisterUncreatableType<TimelineModel>("NodeTool.Timeline", 1, 0, "TimelineModel", "Created by C++");
-        qmlRegisterSingletonType(QUrl::fromLocalFile(QStringLiteral(NT_ACTIVITY_SOURCE "/qml/Theme.qml")), "NodeTool.Timeline", 1, 0, "Theme");
+        qmlRegisterSingletonType(QUrl::fromLocalFile(QStringLiteral(NT_ACTIVITY_SOURCE "/qml/TimelineVisuals.qml")), "NodeTool.Timeline", 1, 0, "TimelineVisuals");
         auto model = std::make_unique<TimelineModel>();
         QPointer<TimelineModel> retained(model.get());
         QJSEngine::ObjectOwnership ownership = QJSEngine::CppOwnership;

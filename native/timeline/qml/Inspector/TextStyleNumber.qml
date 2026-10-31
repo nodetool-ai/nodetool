@@ -36,4 +36,5 @@ InspectorPillInput {
     onGestureStarted: editor.begin()
     onPreview: raw => write(raw, true)
     onCommit: raw => write(raw, false)
+    onCanceled: editor.edits.cancelGesture()
 }

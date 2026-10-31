@@ -382,6 +382,21 @@ describe("docs pointers resolve", () => {
 });
 
 describe("harness gate", () => {
+  it.each([
+    "native/ui_primitives/qml/EditorButton.qml",
+    "native/chat/qml/ChatComposer.qml",
+    "native/model-picker/qml/ModelPicker.qml",
+    "native/timeline/qml/Tracks/ToolButton.qml",
+    "native/timeline/src/ui/Tempo/TempoToolbar.qml",
+    "native/timeline/src/edit/clipeffects/EffectFields.qml"
+  ])("selects native design contracts and Qt interaction coverage for %s", (file) => {
+    const plan = planGate([file]);
+    expect(plan.surfaces.map((surface) => surface.id)).toContain("native-ui-primitives");
+    expect(plan.checks.map((entry) => entry.harnessId)).toContain("native-ui-design");
+    expect(plan.manual.map((entry) => entry.harnessId)).toContain("native-ui-interactions");
+    expect(plan.unmappedFiles).toEqual([]);
+  });
+
   it("reports native chat verification as manual work requiring Qt", () => {
     const plan = planGate(["native/chat/src/runtime/ChatSession.cpp"]);
     expect(plan.surfaces.map((surface) => surface.id)).toEqual(["native-chat"]);
@@ -550,10 +565,10 @@ describe("harness gate", () => {
     expect(plan.checks).toEqual([]);
   });
 
-  it("selfchecks are keyless npm/node commands from the repo root", () => {
+  it("selfchecks are keyless commands from the repo root", () => {
     for (const h of HARNESSES) {
       if (!h.selfcheck) continue;
-      expect(h.selfcheck.command, h.id).toMatch(/^(npm|node) /);
+      expect(h.selfcheck.command, h.id).toMatch(/^(npm|node|python3) /);
     }
   });
 });

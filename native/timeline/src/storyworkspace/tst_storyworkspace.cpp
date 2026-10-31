@@ -1,3 +1,4 @@
+#include <QFontInfo>
 #include "storyworkspace/StoryWorkspace.h"
 #include "model/TimelineJson.h"
 #include <QJsonArray>
@@ -38,7 +39,7 @@ private slots:
     void mountedBrowseListsAndOpensResources() {
         QFETCH(QString, kind);
         QFETCH(bool, empty);
-        qmlRegisterSingletonType(QUrl::fromLocalFile(QStringLiteral(NT_STORY_SOURCE "/qml/Theme.qml")), "NodeTool.StoryWorkspaceTest", 1, 0, "Theme");
+        qmlRegisterSingletonType(QUrl::fromLocalFile(QStringLiteral(NT_STORY_SOURCE "/qml/TimelineMetrics.qml")), "NodeTool.StoryWorkspaceTest", 1, 0, "TimelineMetrics");
         TimelineModel model; model.setTimeline(timeline());
         AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
         StoryWorkspace workspace; workspace.setController(&controller);
@@ -74,8 +75,13 @@ private slots:
         };
         auto* browse = findItem(item, "workspaceDocumentKind", findItem);
         QVERIFY(browse);
-        const int kindIndex = kind == "storyboards" ? 1 : 0;
-        QVERIFY(QMetaObject::invokeMethod(browse, "activated", Q_ARG(int, kindIndex)));
+        auto* heading = findItem(item, "workspaceTitle", findItem);
+        QVERIFY(heading);
+        QCOMPARE(QFontInfo(qvariant_cast<QFont>(heading->property("font"))).family(), QStringLiteral("Inter"));
+        browse->forceActiveFocus();
+        QTest::keyClick(&window, Qt::Key_Space);
+        if (kind == "storyboards") QTest::keyClick(&window, Qt::Key_Down);
+        QTest::keyClick(&window, Qt::Key_Return);
         QTRY_VERIFY(!controller.busy()); QCOMPARE(called, kind + ".list");
         QCOMPARE(controller.result().metaType().id(), QMetaType::QVariantList);
         if (empty) {
@@ -87,11 +93,15 @@ private slots:
             QVERIFY(row->isVisible()); QCOMPARE(row->property("text").toString(), QString("Listed document"));
             auto* search = findItem(item, "workspaceSearch", findItem);
             QVERIFY(search);
-            search->setProperty("text", "missing");
+            search->forceActiveFocus();
+            for (const QChar letter : QStringLiteral("missing")) QTest::keyClick(&window, static_cast<Qt::Key>(letter.toUpper().unicode()));
             QTRY_VERIFY(!findItem(item, "workspaceResource_" + resourceId, findItem));
-            search->setProperty("text", "listed");
+            for (int index = 0; index < 7; ++index) QTest::keyClick(&window, Qt::Key_Backspace);
+            for (const QChar letter : QStringLiteral("listed")) QTest::keyClick(&window, static_cast<Qt::Key>(letter.toUpper().unicode()));
             QTRY_VERIFY((row = findItem(item, "workspaceResource_" + resourceId, findItem)));
-            QVERIFY(QMetaObject::invokeMethod(row, "clicked")); QTRY_VERIFY(!controller.busy());
+            const auto rowPoint = row->mapToScene({row->width() / 2, row->height() / 2}).toPoint();
+            QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier, rowPoint);
+            QTRY_VERIFY(!controller.busy());
             QCOMPARE(called, kind + ".get"); QCOMPARE(openedId, resourceId);
             QCOMPARE(workspace.resource().value("id").toString(), resourceId);
             if (kind == "scripts") {
@@ -107,7 +117,7 @@ private slots:
         item->setParentItem(nullptr);
     }
     void mountedNarrowEditorKeepsFocusAndSavesThroughF10() {
-        qmlRegisterSingletonType(QUrl::fromLocalFile(QStringLiteral(NT_STORY_SOURCE "/qml/Theme.qml")), "NodeTool.StoryWorkspaceTest", 1, 0, "Theme");
+        qmlRegisterSingletonType(QUrl::fromLocalFile(QStringLiteral(NT_STORY_SOURCE "/qml/TimelineMetrics.qml")), "NodeTool.StoryWorkspaceTest", 1, 0, "TimelineMetrics");
         TimelineModel model; model.setTimeline(timeline());
         AssistController controller; controller.setModel(&model); controller.setProperty("documentOnly", true);
         StoryWorkspace workspace; workspace.setController(&controller);
@@ -142,26 +152,31 @@ private slots:
         };
         auto* editShot = findItem(item, "workspaceEditShot_shot", findItem);
         QVERIFY(editShot);
-        QVERIFY(QMetaObject::invokeMethod(editShot, "clicked"));
+        qobject_cast<QQuickItem*>(editShot)->forceActiveFocus();
+        QTest::keyClick(&window, Qt::Key_Space);
         QTRY_VERIFY((field = findItem(item, "workspaceShot_action", findItem)));
         QVERIFY(field->property("visible").toBool());
-        field->setProperty("text", "Mounted edit");
-        QVERIFY(QMetaObject::invokeMethod(field, "textEdited"));
-        QVERIFY(workspace.dirty()); QCOMPARE(action(workspace), QString("Mounted edit"));
+        qobject_cast<QQuickItem*>(field.data())->forceActiveFocus();
+        QTest::keyClick(&window, Qt::Key_A, Qt::ControlModifier);
+        for (const QChar letter : QStringLiteral("mounted edit")) {
+            QTest::keyClick(&window, static_cast<Qt::Key>(letter.toUpper().unicode()),
+                letter.isUpper() ? Qt::ShiftModifier : Qt::NoModifier);
+        }
+        QVERIFY(workspace.dirty()); QCOMPARE(action(workspace), QString("mounted edit"));
         QCoreApplication::processEvents(); QVERIFY(field); // A keystroke must not rebuild the focused delegate.
         auto* save = findItem(item, "workspaceSave", findItem); QVERIFY(save); QVERIFY(save->property("enabled").toBool());
-        QVERIFY(QMetaObject::invokeMethod(save, "clicked")); QTRY_VERIFY(!controller.busy());
+        qobject_cast<QQuickItem*>(save)->forceActiveFocus(); QTest::keyClick(&window, Qt::Key_Space); QTRY_VERIFY(!controller.busy());
         QCOMPARE(writes, 1); QVERIFY(!workspace.dirty()); QCOMPARE(model.undoStack()->count(), 0);
         auto* scripts = findItem(item, "workspaceDocumentKind", findItem); QVERIFY(scripts);
-        QVERIFY(QMetaObject::invokeMethod(scripts, "activated", Q_ARG(int, 0))); QTRY_VERIFY(!controller.busy());
+        qobject_cast<QQuickItem*>(scripts)->forceActiveFocus(); QTest::keyClick(&window, Qt::Key_Space); QTest::keyClick(&window, Qt::Key_Up); QTest::keyClick(&window, Qt::Key_Return); QTRY_VERIFY(!controller.busy());
         QVERIFY(!controller.error().isEmpty());
         auto* inspect = findItem(item, "workspaceInspectEntity", findItem); QVERIFY(inspect);
-        QVERIFY(QMetaObject::invokeMethod(inspect, "clicked")); QTRY_VERIFY(!controller.busy());
+        qobject_cast<QQuickItem*>(inspect)->forceActiveFocus(); QTest::keyClick(&window, Qt::Key_Space); QTRY_VERIFY(!controller.busy());
         QCOMPARE(called, QString("assets.get"));
         auto* back = findItem(item, "workspaceBackToDocument", findItem); QVERIFY(back);
-        QVERIFY(QMetaObject::invokeMethod(back, "clicked")); QTRY_VERIFY(!controller.busy());
+        qobject_cast<QQuickItem*>(back)->forceActiveFocus(); QTest::keyClick(&window, Qt::Key_Space); QTRY_VERIFY(!controller.busy());
         QCOMPARE(called, QString("storyboards.get")); // A failed script browse must not change the return document's kind.
-        QCOMPARE(action(workspace), QString("Mounted edit"));
+        QCOMPARE(action(workspace), QString("mounted edit"));
         QTest::qWait(50);
         const auto image = window.grabWindow(); QVERIFY(!image.isNull());
         QVERIFY(image.save(QDir::tempPath() + "/o5-workspace-narrow.png"));

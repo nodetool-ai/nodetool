@@ -5,6 +5,7 @@ function(nt_activity_tests)
         src/activity/local/LocalActivity.h src/activity/local/LocalActivity.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp)
+    nodetool_use_ui_primitives(tst_activity)
     target_compile_definitions(tst_activity PRIVATE NT_ACTIVITY_SOURCE="${CMAKE_CURRENT_SOURCE_DIR}")
     target_link_libraries(tst_activity PRIVATE timeline_core timeline_server Qt6::Gui Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Test)
     add_test(NAME tst_activity COMMAND tst_activity)

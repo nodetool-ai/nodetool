@@ -1,6 +1,7 @@
 import QtQuick
 import QtTest
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 Item {
     id: host
@@ -62,7 +63,7 @@ Item {
             const transform = findItem(panel, item => item.title === "Transform" && item.open !== undefined)
             verify(transform)
             verify(transform.visible)
-            mouseClick(transform, transform.width / 2, Theme.spacingXs + Theme.controlXs / 2)
+            mouseClick(transform, transform.width / 2, Ui.Metrics.xs + Ui.Metrics.small / 2)
             tryCompare(position, "visible", true)
             compare(position.disabled, false)
             compare(position.value, "0")

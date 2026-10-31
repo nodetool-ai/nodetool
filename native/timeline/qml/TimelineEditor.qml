@@ -5,6 +5,7 @@ import QtQuick.Controls.Basic as Controls
 import QtQuick.Layouts
 import NodeTool.Timeline
 import "assets/AssetContext.js" as Context
+import NodeTool.UiPrimitives as Ui
 
 Controls.Control {
     id: root
@@ -29,21 +30,20 @@ Controls.Control {
     }
     readonly property var availablePanels: dockPanels.filter(panel => panel.id !== "source" || !!SourceViewerState.asset.id).map(panel => panel.id)
     padding: 0
-    font.family: Theme.sansFamily
-    font.pixelSize: Theme.fontSizeSmall
-    palette.window: Theme.backgroundPaper
-    palette.base: Theme.backgroundDefault
-    palette.alternateBase: Theme.backgroundPaper
-    palette.button: Theme.backgroundPaper
-    palette.buttonText: Theme.textPrimary
-    palette.text: Theme.textPrimary
-    palette.windowText: Theme.textPrimary
-    palette.placeholderText: Theme.textSecondary
-    palette.highlight: Theme.primary
-    palette.highlightedText: Theme.textPrimary
-    palette.mid: Theme.divider
-    palette.dark: Theme.divider
-    background: Rectangle { color: Theme.backgroundDefault }
+    font: Ui.Typography.font(Ui.Typography.SansBody)
+    palette.window: Ui.Theme.surfacePanel
+    palette.base: Ui.Theme.surfaceCanvas
+    palette.alternateBase: Ui.Theme.surfacePanel
+    palette.button: Ui.Theme.surfacePanel
+    palette.buttonText: Ui.Theme.textPrimary
+    palette.text: Ui.Theme.textPrimary
+    palette.windowText: Ui.Theme.textPrimary
+    palette.placeholderText: Ui.Theme.textSecondary
+    palette.highlight: Ui.Theme.accentPrimary
+    palette.highlightedText: Ui.Theme.textOnAccent
+    palette.mid: Ui.Theme.borderSubtle
+    palette.dark: Ui.Theme.borderSubtle
+    background: Rectangle { color: Ui.Theme.surfaceCanvas }
     focus: true
     Keys.onSpacePressed: root.clock.toggle()
     Keys.forwardTo: tracksHost.item ? [tracksHost.item] : []
@@ -72,7 +72,7 @@ Controls.Control {
         spacing: 0
         RowLayout {
             Layout.fillWidth: true
-            spacing: Theme.spacingMd
+            spacing: Ui.Metrics.md
             DocumentBar {
                 Layout.fillWidth: true
                 timeline: root.timeline
@@ -82,16 +82,12 @@ Controls.Control {
                 visible: root.chatSession !== null
                 label: root.chatOpen ? qsTr("Close chat") : qsTr("Chat")
                 activeFocusOnTab: true
-                Keys.onReturnPressed: root.toggleChat()
-                Keys.onEnterPressed: root.toggleChat()
-                Keys.onSpacePressed: event => { root.toggleChat(); event.accepted = true }
-                Accessible.onPressAction: root.toggleChat()
                 onClicked: root.toggleChat()
             }
             DockLayoutMenu {
                 store: layoutStore
                 panels: root.dockPanels
-                Layout.rightMargin: Theme.spacingMd
+                Layout.rightMargin: Ui.Metrics.md
             }
         }
         SaveBanners { Layout.fillWidth: true; autosave: root.saver }
@@ -137,6 +133,5 @@ Controls.Control {
         id: shortcuts
         anchors.fill: parent
         gestures: tracksHost.item ? tracksHost.item.gestures : null
-        onOpenChanged: if (!open) root.forceActiveFocus()
     }
 }

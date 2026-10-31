@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 InspectorSection {
     id: root
     required property ClipInspectorController controller
@@ -46,7 +47,7 @@ InspectorSection {
     function remove(id) { controller.write({action:"animations",animations:animations.filter(a => a.id !== id)}) }
     RowLayout {
         width: parent.width
-        spacing: Theme.spacingMd
+        spacing: Ui.Metrics.md
         InspectorSelect {
             Layout.fillWidth: true
             label: "New animation role"
@@ -63,7 +64,7 @@ InspectorSection {
             disabled: root.controller.locked
             onChange: next => root.newPreset = next
         }
-        Button {
+        Ui.EditorButton {
             text: "+ Add"
             enabled: !root.controller.locked
             onClicked: {
@@ -72,15 +73,15 @@ InspectorSection {
             }
         }
     }
-    Text {
+    Ui.Text {
         width: parent.width
         visible: root.inOutSpan > (root.controller.clip.durationMs || 0)
         text: "In and out together run " + root.inOutSpan + "ms, past the clip's " + root.controller.clip.durationMs + "ms. They overlap in the middle."
-        color: Theme.warning
-        font.pixelSize: Theme.fontSizeSmall
+        role: Ui.Typography.SansLabel
+        tone: Ui.Text.Warning
         wrapMode: Text.WordWrap
     }
-    Text { width: parent.width; visible: root.animations.length === 0; text: "Add an entrance, exit, emphasis, or loop preset."; color: Theme.textSecondary; font.pixelSize: Theme.fontSizeSmall; wrapMode: Text.WordWrap }
+    Ui.Text { width: parent.width; visible: root.animations.length === 0; text: "Add an entrance, exit, emphasis, or loop preset."; role: Ui.Typography.SansLabel; tone: Ui.Text.Secondary; wrapMode: Text.WordWrap }
     Repeater {
         model: root.editorIds
         KeyframeClipAnimationEditor {

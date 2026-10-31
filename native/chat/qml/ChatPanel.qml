@@ -2,141 +2,123 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import NodeTool.UiPrimitives as Ui
 
-Control {
+Item {
     id: root
-    palette.window: ChatTheme.background
-    palette.base: ChatTheme.paper
-    palette.button: ChatTheme.paper
-    palette.text: ChatTheme.text
-    palette.windowText: ChatTheme.text
-    palette.buttonText: ChatTheme.text
-    palette.highlight: ChatTheme.primary
-    palette.highlightedText: ChatTheme.text
-    font.family: ChatTheme.sans
-    font.pixelSize: ChatTheme.label
     property var session: null
-    readonly property bool narrow: width < ChatTheme.narrow
+    readonly property bool narrow: width < ChatMetrics.narrow
     property var scrollPositions: ({})
+    property bool threadPickerActive: false
+    onNarrowChanged: if (!narrow) threadPickerActive = false
     objectName: "chatPanel"
-    Rectangle {
-        anchors.fill: parent
-        color: ChatTheme.background
-    }
+    Ui.Surface { anchors.fill: parent; variant: Ui.Surface.Canvas }
     ColumnLayout {
         anchors.fill: parent
-        spacing: 0
+        spacing: Ui.Metrics.none
         RowLayout {
             Layout.fillWidth: true
-            Layout.margins: ChatTheme.md
-            Label {
+            Layout.margins: Ui.Metrics.md
+            Ui.Text {
+                objectName: "chatConnectionStatus"
+                role: Ui.Typography.SansCaption
                 Layout.fillWidth: true
                 text: root.session ? root.session.connectionStatus : qsTr("Disconnected")
-                color: ChatTheme.muted
-                font.pixelSize: ChatTheme.caption
+                tone: Ui.Text.Secondary
             }
-            ChatButton {
-                flat: true
+            Ui.EditorButton {
+                variant: Ui.EditorButton.Flat
                 text: qsTr("Reconnect")
                 visible: !!root.session && root.session.connectionStatus === "disconnected" && root.session.selectedThreadId.length > 0
                 onClicked: root.session.resumeConnection()
             }
-            ChatButton {
-                flat: true
-                glyph: "⚙"
+            Ui.ToolbarIconButton {
+                id: connectionButton
+                variant: Ui.EditorButton.Flat
+                iconName: "settings"
                 text: qsTr("Connection")
                 onClicked: connection.open()
             }
         }
-        Label {
+        Ui.Text {
+            role: Ui.Typography.SansLabel
             Layout.fillWidth: true
-            Layout.margins: ChatTheme.md
+            Layout.margins: Ui.Metrics.md
             visible: text.length > 0
             text: root.session ? root.session.error : ""
-            color: ChatTheme.error
+            tone: Ui.Text.Error
             wrapMode: Text.WordWrap
             Accessible.role: Accessible.AlertMessage
         }
-        Loader {
+        RowLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            sourceComponent: root.narrow ? narrowContent : wideContent
-        }
-    }
-    Component {
-        id: wideContent
-        RowLayout {
-            spacing: 0
-            ThreadList {
-                Layout.preferredWidth: ChatTheme.sidebar
+            spacing: Ui.Metrics.none
+            Loader {
+                Layout.preferredWidth: ChatMetrics.sidebar
                 Layout.fillHeight: true
-                session: root.session
+                active: !root.narrow
+                visible: active
+                sourceComponent: ThreadList { session: root.session }
             }
-            Rectangle {
+            Ui.Separator {
                 Layout.fillHeight: true
-                width: 1
-                color: ChatTheme.divider
+                visible: !root.narrow
+                orientation: Qt.Vertical
             }
-            ConversationView {
+            Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                session: root.session
-                scrollPositions: root.scrollPositions
-            }
-        }
-    }
-    Component {
-        id: narrowContent
-        StackView {
-            id: navigation
-            initialItem: ConversationView {
-                session: root.session
-                scrollPositions: root.scrollPositions
-                showBack: true
-                onBackRequested: navigation.push(threadPicker)
-            }
-            Component {
-                id: threadPicker
-                ThreadList {
+                ConversationView {
+                    anchors.fill: parent
+                    visible: !root.narrow || !root.threadPickerActive
                     session: root.session
-                    onThreadOpened: navigation.pop()
+                    scrollPositions: root.scrollPositions
+                    showBack: root.narrow
+                    onBackRequested: root.threadPickerActive = true
+                }
+                Loader {
+                    anchors.fill: parent
+                    active: root.narrow && root.threadPickerActive
+                    sourceComponent: ThreadList {
+                        session: root.session
+                        onThreadOpened: root.threadPickerActive = false
+                    }
                 }
             }
         }
     }
-    Dialog {
+    Ui.Dialog {
         id: connection
         title: qsTr("Connect to NodeTool")
-        anchors.centerIn: parent
-        width: Math.min(root.width - ChatTheme.xl * 2, 440)
-        modal: true
-        standardButtons: Dialog.Close
+        width: Math.min(root.width - Ui.Metrics.xl * 2, 440)
+        returnFocusTo: connectionButton
         ColumnLayout {
             width: parent.width
-            Label {
+            Ui.Text {
+                role: Ui.Typography.SansLabel
                 text: qsTr("Server address")
-                color: ChatTheme.text
             }
-            TextField {
+            Ui.TextField {
                 id: server
                 Layout.fillWidth: true
-                text: "http://localhost:7777"
-                Accessible.name: qsTr("Server address")
+                value: "http://localhost:7777"
+                accessibleName: qsTr("Server address")
                 selectByMouse: true
             }
-            Label {
+            Ui.Text {
+                role: Ui.Typography.SansLabel
                 text: qsTr("Access token")
-                color: ChatTheme.text
             }
-            TextField {
+            Ui.TextField {
                 id: token
                 Layout.fillWidth: true
                 echoMode: TextInput.Password
-                Accessible.name: qsTr("Access token")
+                accessibleName: qsTr("Access token")
                 placeholderText: qsTr("Leave empty for local authentication")
             }
             RowLayout {
-                ChatButton {
+                Ui.EditorButton {
                     text: qsTr("Connect")
                     enabled: !!root.session && server.text.length > 0
                     onClicked: {
@@ -145,7 +127,7 @@ Control {
                         connection.close();
                     }
                 }
-                ChatButton {
+                Ui.EditorButton {
                     text: qsTr("Disconnect")
                     enabled: !!root.session
                     onClicked: {
@@ -154,6 +136,7 @@ Control {
                         connection.close();
                     }
                 }
+                Ui.EditorButton { text: qsTr("Close"); onClicked: connection.close() }
             }
         }
     }

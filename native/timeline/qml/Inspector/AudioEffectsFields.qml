@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
 import "AudioEffectsKnobs.js" as Effects
+import NodeTool.UiPrimitives as Ui
 
 Column {
     id: root
@@ -10,7 +11,7 @@ Column {
     property string clipId: ""
     property double generation: 0
     signal patch(var patch)
-    spacing: Theme.spacingMicro
+    spacing: Ui.Metrics.micro
     InspectorRow {
         visible: root.effect.type === "filter"
         width: parent.width
@@ -52,6 +53,7 @@ Column {
                 patch[modelData.key] = value
                 root.patch(patch)
             }
+            onCanceled: gesture = null
         }
     }
 }

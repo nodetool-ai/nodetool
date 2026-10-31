@@ -2,8 +2,9 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
-Rectangle {
+Ui.Surface {
     id: root
     objectName: "assetPreview"
     property var browser: null
@@ -11,9 +12,8 @@ Rectangle {
     property string audioMode: "none"
     readonly property string mediaType: browser && asset ? browser.mediaType(asset) : ""
     readonly property bool supported: ["image", "video", "audio"].indexOf(mediaType) >= 0
-    implicitHeight: Theme.toolbarHeight * 7
+    implicitHeight: Ui.Metrics.comfortable * 7
     visible: asset !== null
-    color: Theme.backgroundPaper
     clip: true
 
     function loadPreview() {
@@ -54,24 +54,22 @@ Rectangle {
     FrameAnimation { running: root.visible && review.previewClock.playing; onTriggered: review.previewClock.tick() }
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Theme.spacingMd
-        spacing: Theme.spacingMd
+        anchors.margins: Ui.Metrics.md
+        spacing: Ui.Metrics.md
         RowLayout {
             Layout.fillWidth: true
-            Label {
+            Ui.Text {
                 Layout.fillWidth: true
                 text: root.asset ? String(root.asset.name || "Preview") : "Preview"
                 elide: Text.ElideRight
-                color: Theme.textPrimary
-                font.family: Theme.sansFamily
-                font.pixelSize: Theme.fontSizeSmall
+                role: Ui.Typography.SansLabel
             }
-            PanelButton { objectName: "assetPreviewClose"; text: "Close"; onClicked: root.closePreview() }
+            Ui.EditorButton { objectName: "assetPreviewClose"; text: "Close"; onClicked: root.closePreview() }
         }
         Item {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.minimumHeight: Theme.toolbarHeight * 2
+            Layout.minimumHeight: Ui.Metrics.comfortable * 2
             PreviewCompositor {
                 objectName: "assetPreviewPicture"
                 anchors.fill: parent
@@ -79,7 +77,7 @@ Rectangle {
                 timeline: review.previewTimeline
                 clock: review.previewClock
             }
-            Label {
+            Ui.Text {
                 anchors.centerIn: parent
                 width: parent.width
                 wrapMode: Text.Wrap
@@ -89,12 +87,11 @@ Rectangle {
                     : review.error !== "" ? review.error
                     : review.ready && root.mediaType === "audio" ? "Audio preview"
                     : review.ready ? "" : "Preview could not be opened. Retry to load the media."
-                color: review.error !== "" ? Theme.error : Theme.textSecondary
-                font.family: Theme.sansFamily
-                font.pixelSize: Theme.fontSizeSmall
+                role: Ui.Typography.SansLabel
+                tone: review.error !== "" ? Ui.Text.Error : Ui.Text.Secondary
             }
         }
-        PanelButton {
+        Ui.EditorButton {
             objectName: "assetPreviewRetry"
             visible: root.supported && !review.busy && !review.ready
             text: "Retry preview"
@@ -103,27 +100,25 @@ Rectangle {
         RowLayout {
             Layout.fillWidth: true
             visible: review.ready && root.mediaType !== "image"
-            PanelButton {
+            Ui.EditorButton {
                 objectName: "assetPreviewPlay"
-                iconPath: review.previewClock.playing ? Icons.pause : Icons.playArrow
-                iconOnly: true
-                text: review.previewClock.playing ? "Pause" : "Play"
+                iconName: review.previewClock.playing ? "pause" : "playArrow"
+                accessibleName: review.previewClock.playing ? "Pause" : "Play"
                 onClicked: review.togglePlay()
             }
-            Slider {
+            Ui.Slider {
                 objectName: "assetPreviewSeek"
                 Layout.fillWidth: true
                 from: 0
                 to: Math.max(1, review.previewClock.durationMs)
                 value: review.previewClock.time
-                onMoved: review.previewClock.seek(value)
-                Accessible.name: "Preview time"
+                onValuePreviewed: next => review.previewClock.seek(next)
+                accessibleName: "Preview time"
             }
-            Label {
+            Ui.Text {
                 text: (review.previewClock.time / 1000).toFixed(1) + " / " + (review.previewClock.durationMs / 1000).toFixed(1) + " s"
-                color: Theme.textSecondary
-                font.family: Theme.monoFamily
-                font.pixelSize: Theme.fontSizeSmaller
+                role: Ui.Typography.MonoCaption
+                tone: Ui.Text.Secondary
             }
         }
     }

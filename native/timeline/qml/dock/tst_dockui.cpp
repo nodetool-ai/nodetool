@@ -1,5 +1,6 @@
 #include "DockLayoutStore.h"
 #include "app/PanelRegistry.h"
+#include "app/Preferences/PreferencesSettings.h"
 #include "edit/ClipGestureController.h"
 #include "model/TimelineJson.h"
 #include "playback/PlaybackClock.h"
@@ -88,6 +89,45 @@ private slots:
         QVERIFY2(dock, "TimelineEditor must render DockCanvas");
         auto* store = editor->findChild<DockLayoutStore*>();
         QVERIFY(store);
+        // Resize feedback must be visible before releasing the pointer, without
+        // synchronously saving preferences for every motion event.
+        for (const auto& region : {QStringLiteral("left"), QStringLiteral("right"), QStringLiteral("bottom")}) {
+            auto* handle = named(root, "dockResize_" + region);
+            QVERIFY(handle);
+            QVERIFY(handle->isVisible());
+            const auto extent = (region + "Extent").toUtf8();
+            const double before = dock->property(extent.constData()).toDouble();
+            const auto saved = nt::app::openTimelinePreferences()->value("nodetool.timeline-layout.v1");
+            const auto start = handle->mapToScene({handle->width() / 2, handle->height() / 2}).toPoint();
+            const QPoint delta = region == "bottom" ? QPoint(0, 40) : QPoint(region == "left" ? -40 : 40, 0);
+            mouse(QEvent::MouseButtonPress, start, Qt::LeftButton, Qt::LeftButton);
+            mouse(QEvent::MouseMove, start + delta, Qt::NoButton, Qt::LeftButton);
+            render();
+            QCOMPARE(dock->property(extent.constData()).toDouble(), before - 40);
+            QCOMPARE(nt::app::openTimelinePreferences()->value("nodetool.timeline-layout.v1"), saved);
+            mouse(QEvent::MouseMove, start + delta / 2, Qt::NoButton, Qt::LeftButton);
+            render();
+            QCOMPARE(dock->property(extent.constData()).toDouble(), before - 20);
+            mouse(QEvent::MouseButtonRelease, start + delta / 2, Qt::LeftButton, Qt::NoButton);
+            render();
+            DockLayoutStore restored;
+            QCOMPARE(restored.layout().value("sizes").toMap().value(region).toDouble(), before - 20);
+            const auto committed = nt::app::openTimelinePreferences()->value("nodetool.timeline-layout.v1");
+            const auto cancelStart = handle->mapToScene({handle->width() / 2, handle->height() / 2}).toPoint();
+            mouse(QEvent::MouseButtonPress, cancelStart, Qt::LeftButton, Qt::LeftButton);
+            mouse(QEvent::MouseMove, cancelStart + delta, Qt::NoButton, Qt::LeftButton);
+            render();
+            QCOMPARE(dock->property(extent.constData()).toDouble(), before - 60);
+            QTest::keyClick(&window, Qt::Key_Escape);
+            render();
+            QCOMPARE(dock->property(extent.constData()).toDouble(), before - 20);
+            mouse(QEvent::MouseButtonRelease, cancelStart + delta, Qt::LeftButton, Qt::NoButton);
+            render();
+            QCOMPARE(dock->property(extent.constData()).toDouble(), before - 20);
+            QCOMPARE(nt::app::openTimelinePreferences()->value("nodetool.timeline-layout.v1"), committed);
+            store->resizeRegion(region, before, dock->width(), dock->height());
+            render();
+        }
         for (const auto& slot : {"left", "right", "bottom", "overlay"}) {
             QVERIFY(named(root, "panelSlot_" + QString::fromLatin1(slot)));
         }
@@ -150,7 +190,7 @@ private slots:
             QCOMPARE(inspector->isVisible(), inspectorVisible);
             QVERIFY(program->isVisible());
             QVERIFY(program->width() > 0);
-            QCOMPARE(tracks->height(), double(bottomSizes[i] - 28));
+            QCOMPARE(tracks->height() + named(root, "dockTab_tracks")->height(), double(bottomSizes[i]));
             QCOMPARE(dock->property("rightExtent").toInt(), rightSizes[i]);
             if (inspectorVisible) { QCOMPARE(inspector->width(), double(rightSizes[i])); }
             QCOMPARE(named(root, "tracksRegion"), tracks);
@@ -207,7 +247,7 @@ private slots:
         render();
         auto* scriptAction = named(window.contentItem(), "dockWorkspace_Script");
         QVERIFY(scriptAction);
-        QVERIFY2(scriptAction->width() > 0 && scriptAction->height() > 0, "Workspace menu items must be laid out");
+        QTRY_VERIFY2(scriptAction->width() > 0 && scriptAction->height() > 0, "Workspace menu items must be laid out");
         click(scriptAction);
         render();
         QCOMPARE(store->workspace(), QString("Script"));
@@ -245,6 +285,24 @@ private slots:
         QVERIFY(source->isVisible());
         QVERIFY(source->width() > 0);
         QVERIFY(std::abs(program->width() / source->width() - 1.6) < 0.001);
+        auto* pairHandle = named(root, "dockResizeGroups_viewport_0");
+        QVERIFY(pairHandle);
+        const double programWidth = program->width(), sourceWidth = source->width();
+        const auto pairStart = pairHandle->mapToScene({pairHandle->width() / 2, pairHandle->height() / 2}).toPoint();
+        const auto savedPair = nt::app::openTimelinePreferences()->value("nodetool.timeline-layout.v1");
+        mouse(QEvent::MouseButtonPress, pairStart, Qt::LeftButton, Qt::LeftButton);
+        mouse(QEvent::MouseMove, pairStart + QPoint(30, 0), Qt::NoButton, Qt::LeftButton);
+        render();
+        QVERIFY(std::abs(program->width() - programWidth - 30) < 0.001);
+        QVERIFY(std::abs(source->width() - sourceWidth + 30) < 0.001);
+        QCOMPARE(nt::app::openTimelinePreferences()->value("nodetool.timeline-layout.v1"), savedPair);
+        mouse(QEvent::MouseButtonRelease, pairStart + QPoint(30, 0), Qt::LeftButton, Qt::NoButton);
+        render();
+        DockLayoutStore restoredPair;
+        QCOMPARE(restoredPair.layout(), store->layout());
+        QCOMPARE(named(root, "previewCompositor"), monitor);
+        QCOMPARE(monitor->parentItem()->parentItem()->parentItem(), program);
+        QCOMPARE(named(root, "sourceViewer"), source);
         QVERIFY(QMetaObject::invokeMethod(dock, "toggleMaximize", Q_ARG(QVariant, QVariant(QStringLiteral("viewport-source")))));
         render();
         QVERIFY(!program->isVisible());

@@ -1,6 +1,8 @@
 import QtQuick
 import NodeTool.Timeline
-Rectangle {
+import NodeTool.UiPrimitives as Ui
+
+Item {
     id: root
     property string value: ""
     property string unit: ""
@@ -9,23 +11,21 @@ Rectangle {
     property bool disabled: false
     property bool allowEmpty: false
     property bool grow: false
-    property real minWidth: InspectorTokens.controlXl + Theme.controlXs
+    property real minWidth: InspectorTokens.rowControlMinWidth
     property var scrub: null
     property string size: "small"
     property string draft: value
     property bool typed: false
-    property bool stepping: false
     signal gestureStarted()
     signal preview(string value)
     signal commit(string value)
+    signal canceled()
+
     implicitWidth: minWidth
-    implicitHeight: size === "small" ? InspectorTokens.controlSm : Theme.toolbarHeight
-    color: Theme.backgroundDefault
-    border.width: 1
-    border.color: input.activeFocus ? Theme.primary : Theme.overlay
-    radius: Theme.radiusSm
-    opacity: disabled ? 0.5 : 1
-    onValueChanged: if (!input.activeFocus || !typed) draft = value
+    implicitHeight: size === "small" ? Ui.Metrics.compact : Ui.Metrics.comfortable
+    onValueChanged: if (!numberField.editing && !textField.editing && !drag.moved) draft = value
+    onDisabledChanged: if (disabled && drag.moved) cancelGesture()
+
     function multiplier(modifiers) {
         return modifiers & Qt.ShiftModifier ? 10 : modifiers & Qt.AltModifier ? 0.1 : 1
     }
@@ -45,77 +45,71 @@ Rectangle {
         draft = value
         typed = false
     }
-    function endStep() {
-        if (!stepping) return
-        stepping = false
-        finishGesture()
+    function cancelGesture() {
+        const fieldEditing = numberField.editing || textField.editing
+        drag.moved = false
+        numberField.cancelEdit()
+        textField.cancelEdit()
+        draft = value
+        typed = false
+        if (!fieldEditing) canceled()
     }
-    TextInput {
-        id: input
-        anchors.left: parent.left
-        anchors.right: suffix.left
-        anchors.verticalCenter: parent.verticalCenter
-        anchors.leftMargin: Theme.spacingMd
-        anchors.rightMargin: root.unit ? Theme.spacingMicro : 0
-        text: root.draft
-        color: Theme.textPrimary
-        selectionColor: Theme.primary
-        font.family: Theme.sansFamily
-        font.pixelSize: Theme.fontSizeSmall
+
+    Ui.NumberField {
+        id: numberField
+        objectName: "inspectorNumericField"
+        anchors.fill: parent
+        visible: !!root.scrub
+        enabled: visible && !root.disabled
+        accessibleName: root.ariaLabel
+        density: root.size === "small" ? Ui.EditorButton.Compact : Ui.EditorButton.Comfortable
+        value: Number.isFinite(Number(root.value)) ? Number(root.value) : 0
+        displayValue: root.value
+        unit: root.unit
+        from: root.scrub && root.scrub.min !== undefined ? root.scrub.min : -Infinity
+        to: root.scrub && root.scrub.max !== undefined ? root.scrub.max : Infinity
+        stepSize: root.scrub ? root.scrub.step : 1
         horizontalAlignment: TextInput.AlignRight
-        selectByMouse: true
-        enabled: !root.disabled
-        activeFocusOnTab: true
-        Accessible.name: root.ariaLabel
-        onTextEdited: { root.typed = true; root.draft = text }
-        onActiveFocusChanged: {
-            if (!activeFocus) {
-                root.endStep()
-                root.commitDraft()
-            }
-        }
-        onAccepted: root.forceActiveFocus()
-        Keys.onEscapePressed: { root.endStep(); root.typed = false; root.draft = root.value; root.stepping = false; root.forceActiveFocus() }
-        Keys.onPressed: event => {
-            if (!root.scrub || (event.key !== Qt.Key_Up && event.key !== Qt.Key_Down)) return
-            const current = parseFloat(root.draft)
-            const base = Number.isFinite(current) ? current : parseFloat(root.value)
-            if (!Number.isFinite(base)) return
-            event.accepted = true
-            if (!root.stepping) { root.stepping = true; root.gestureStarted() }
-            const factor = root.multiplier(event.modifiers)
-            root.draft = root.stepped(base + (event.key === Qt.Key_Up ? 1 : -1) * root.scrub.step * factor, factor)
+        onEditStarted: root.gestureStarted()
+        onValuePreviewed: next => {
+            root.draft = root.stepped(next, 1)
             root.preview(root.draft)
         }
-        Keys.onReleased: event => {
-            if ((event.key === Qt.Key_Up || event.key === Qt.Key_Down) && !event.isAutoRepeat) {
-                root.endStep()
-                event.accepted = true
-            }
+        onValueCommitted: next => {
+            const nextValue = root.draft.trim() !== "" ? root.draft : root.stepped(next, 1)
+            root.commit(nextValue)
+            root.draft = root.value
+            root.typed = false
         }
-        Text {
-            anchors.fill: parent
-            text: root.placeholder
-            visible: !input.text && !input.activeFocus
-            horizontalAlignment: Text.AlignRight
-            color: Theme.textDisabled
-            font: input.font
+        onEditCanceled: { root.draft = root.value; root.typed = false; root.canceled() }
+        onTextChanged: if (editing) { root.draft = text; root.typed = true }
+    }
+
+    Ui.TextField {
+        id: textField
+        anchors.fill: parent
+        visible: !root.scrub
+        enabled: visible && !root.disabled
+        accessibleName: root.ariaLabel
+        density: root.size === "small" ? Ui.EditorButton.Compact : Ui.EditorButton.Comfortable
+        value: root.value
+        suffix: root.unit
+        placeholderText: root.placeholder
+        horizontalAlignment: TextInput.AlignRight
+        onValuePreviewed: next => { root.draft = next; root.typed = true }
+        onValueCommitted: next => {
+            if (root.allowEmpty || next.trim() !== "") root.commit(next)
+            else root.canceled()
+            root.draft = root.value
+            root.typed = false
         }
+        onEditCanceled: { root.draft = root.value; root.typed = false; root.canceled() }
     }
-    Text {
-        id: suffix
-        anchors.right: parent.right
-        anchors.rightMargin: Theme.spacingMd
-        anchors.verticalCenter: parent.verticalCenter
-        text: root.unit
-        color: Theme.textSecondary
-        font.family: Theme.monoFamily
-        font.pixelSize: Theme.fontSizeSmall
-    }
+
     MouseArea {
         id: drag
         anchors.fill: parent
-        enabled: !!root.scrub && !input.activeFocus && !root.disabled
+        enabled: !!root.scrub && !numberField.activeFocus && !root.disabled
         preventStealing: true
         cursorShape: Qt.SizeHorCursor
         property real startX: 0
@@ -126,7 +120,7 @@ Rectangle {
             if (!pressed || !Number.isFinite(startValue)) return
             const dx = mouse.x - startX
             if (!moved) {
-                if (Math.abs(dx) < 3) return
+                if (Math.abs(dx) < Ui.Metrics.micro) return
                 moved = true
                 root.gestureStarted()
             }
@@ -136,8 +130,8 @@ Rectangle {
         }
         onReleased: {
             if (moved) { moved = false; root.finishGesture() }
-            else { input.forceActiveFocus(); input.selectAll() }
+            else { numberField.forceActiveFocus(); numberField.selectAll() }
         }
-        onCanceled: if (moved) { moved = false; root.finishGesture() }
+        onCanceled: if (moved) root.cancelGesture()
     }
 }

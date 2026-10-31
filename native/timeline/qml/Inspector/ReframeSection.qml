@@ -25,7 +25,7 @@ Item {
     property real zoom: 1
     onClipIdChanged: { focusX = 0.5; focusY = 0.5; zoom = 1 }
     width: implicitWidth
-    implicitWidth: clip ? Theme.trackHeaderWidth : 0
+    implicitWidth: clip ? TimelineMetrics.trackHeaderWidth : 0
     implicitHeight: clip ? section.implicitHeight : 0
     visible: !!clip
     ReframeController { id: edits; model: root.timelineModel }
@@ -68,36 +68,45 @@ Item {
         }
         InspectorSliderRow {
             objectName: "reframeFocusX"
+            property real editBaseline: value
             width: parent.width
             label: "Focus X"
             value: root.focusX
             display: Math.round(value * 100) + "%"
             min: 0; max: 1; step: 0.01; origin: 0.5
             disabled: root.locked
+            onGestureStarted: editBaseline = root.focusX
             onPreview: value => root.focusX = value
             onChange: value => root.focusX = value
+            onCanceled: root.focusX = editBaseline
         }
         InspectorSliderRow {
             objectName: "reframeFocusY"
+            property real editBaseline: value
             width: parent.width
             label: "Focus Y"
             value: root.focusY
             display: Math.round(value * 100) + "%"
             min: 0; max: 1; step: 0.01; origin: 0.5
             disabled: root.locked
+            onGestureStarted: editBaseline = root.focusY
             onPreview: value => root.focusY = value
             onChange: value => root.focusY = value
+            onCanceled: root.focusY = editBaseline
         }
         InspectorSliderRow {
             objectName: "reframeZoom"
+            property real editBaseline: value
             width: parent.width
             label: "Zoom"
             value: root.zoom
             display: value.toFixed(2) + "×"
             min: 1; max: 4; step: 0.01; origin: 1
             disabled: root.locked
+            onGestureStarted: editBaseline = root.zoom
             onPreview: value => root.zoom = value
             onChange: value => root.zoom = value
+            onCanceled: root.zoom = editBaseline
         }
         ReframeButton {
             objectName: "reframeAdd"

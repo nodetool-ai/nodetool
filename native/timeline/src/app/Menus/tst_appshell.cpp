@@ -15,9 +15,11 @@
 #include <QJsonArray>
 #include <QJSValue>
 #include <QQuickView>
+#include <QSettings>
 #include <QSignalSpy>
 #include <QTemporaryDir>
 #include <QtTest>
+#include <limits>
 using namespace nt::app;
 class TestAppShell : public QObject {
     Q_OBJECT
@@ -160,6 +162,43 @@ private slots:
         store.setCacheFolder("");
         QCOMPARE(store.cacheFolder(), QString());
     }
+    void appearancePreferences() {
+        Preferences store;
+        QCOMPARE(store.themePreference(), QString("System"));
+        QCOMPARE(store.uiScale(), 1.0);
+        QCOMPARE(store.textScale(), 1.0);
+        QCOMPARE(store.motionPreference(), QString("System"));
+        QVERIFY(!store.reducedMotion());
+        QSignalSpy changed(&store, &Preferences::changed);
+        store.setThemePreference("Light");
+        store.setUiScale(1.25);
+        store.setTextScale(1.5);
+        store.setMotionPreference("Reduce");
+        QCOMPARE(changed.size(), 4);
+        Preferences loaded;
+        QCOMPARE(loaded.themePreference(), QString("Light"));
+        QCOMPARE(loaded.uiScale(), 1.25);
+        QCOMPARE(loaded.textScale(), 1.5);
+        QCOMPARE(loaded.motionPreference(), QString("Reduce"));
+        QVERIFY(loaded.reducedMotion());
+        store.setThemePreference("invalid");
+        store.setUiScale(2.01);
+        store.setUiScale(std::numeric_limits<double>::quiet_NaN());
+        store.setTextScale(0.99);
+        store.setMotionPreference("invalid");
+        QCOMPARE(changed.size(), 4);
+        QSettings raw(qEnvironmentVariable("NODETOOL_TIMELINE_PREFERENCES"), QSettings::IniFormat);
+        raw.setValue("appearance/themePreference", "invalid");
+        raw.setValue("appearance/uiScale", "nan");
+        raw.setValue("appearance/textScale", 3.0);
+        raw.setValue("appearance/motionPreference", "invalid");
+        raw.sync();
+        Preferences corrupted;
+        QCOMPARE(corrupted.themePreference(), QString("System"));
+        QCOMPARE(corrupted.uiScale(), 1.0);
+        QCOMPARE(corrupted.textScale(), 1.0);
+        QCOMPARE(corrupted.motionPreference(), QString("System"));
+    }
     void cacheEnvironment() {
         const auto folder = qgetenv("NODETOOL_TIMELINE_CACHE_DIR");
         const auto budget = qgetenv("NODETOOL_TIMELINE_CACHE_BUDGET_MB");
@@ -226,9 +265,17 @@ private slots:
         QVERIFY(!dialog->property("visible").toBool());
         QTest::keyClick(&view, Qt::Key_Comma, Qt::ControlModifier);
         QTRY_VERIFY(dialog->property("visible").toBool());
-        for (const QString name : {"keyboardLayout", "cacheFolder", "resetCacheFolder", "cacheBudgetMb", "decoderMode", "audioDevice"}) {
+        if (const auto screenshot = qEnvironmentVariable("NT_PREFERENCES_SCREENSHOT"); !screenshot.isEmpty()) {
+            QVERIFY(view.grabWindow().save(screenshot));
+        }
+        for (const QString name : {"themePreference", "uiScale", "textScale", "motionPreference",
+                                   "keyboardLayout", "cacheFolder", "resetCacheFolder", "cacheBudgetMb", "decoderMode", "audioDevice"}) {
             QVERIFY2(dialog->findChild<QObject*>(name), qPrintable(name));
         }
+        QVERIFY(QMetaObject::invokeMethod(dialog->findChild<QObject*>("themePreference"), "change", Q_ARG(QString, "Light")));
+        QVERIFY(QMetaObject::invokeMethod(dialog->findChild<QObject*>("uiScale"), "change", Q_ARG(QString, "1.25")));
+        QVERIFY(QMetaObject::invokeMethod(dialog->findChild<QObject*>("textScale"), "change", Q_ARG(QString, "1.5")));
+        QVERIFY(QMetaObject::invokeMethod(dialog->findChild<QObject*>("motionPreference"), "change", Q_ARG(QString, "Reduce")));
         auto* keyboard = dialog->findChild<QObject*>("keyboardLayout");
         QVERIFY(QMetaObject::invokeMethod(keyboard, "change", Q_ARG(QString, "premiere")));
         QCOMPARE(Preferences().keyboardLayout(), QString("premiere"));
@@ -241,6 +288,10 @@ private slots:
         QCOMPARE(loaded.cacheBudgetMb(), qint64(1024));
         QCOMPARE(loaded.decoderMode(), QString("hw"));
         QCOMPARE(loaded.audioDevice(), QString("Test audio"));
+        QCOMPARE(loaded.themePreference(), QString("Light"));
+        QCOMPARE(loaded.uiScale(), 1.25);
+        QCOMPARE(loaded.textScale(), 1.5);
+        QCOMPARE(loaded.motionPreference(), QString("Reduce"));
         const auto* folder = dialog->findChild<QObject*>("cacheFolder");
         auto* input = folder->findChild<QQuickItem*>();
         QVERIFY(input);

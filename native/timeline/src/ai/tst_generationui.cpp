@@ -8,6 +8,7 @@
 #include "playback/PlaybackClock.h"
 
 #include <QGuiApplication>
+#include <QInputMethodEvent>
 #include <QQmlComponent>
 #include <QQmlEngine>
 #include <QQuickItem>
@@ -51,6 +52,8 @@ private slots:
         QQuickWindow window;
         window.resize(1200, 800);
         root->setParentItem(window.contentItem());
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
         const std::function<QQuickItem*(QQuickItem*)> findEntry = [&](QQuickItem* item) -> QQuickItem* {
             if (item->objectName() == "generateButton") return item;
             for (auto* child : item->childItems()) if (auto* found = findEntry(child)) return found;
@@ -93,25 +96,33 @@ private slots:
         QTRY_VERIFY(findNamed(section, QStringLiteral("workflowInput_prompt")));
         auto* promptInput = findNamed(section, QStringLiteral("workflowInput_prompt"));
         QCOMPARE(promptInput->property("text").toString(), QStringLiteral("default"));
-        promptInput->setProperty("text", QStringLiteral("edited"));
-        QVERIFY(QMetaObject::invokeMethod(promptInput, "editingFinished"));
+        promptInput->forceActiveFocus();
+        QTest::keyClick(&window, Qt::Key_End);
+        for (int index = 0; index < 7; ++index) QTest::keyClick(&window, Qt::Key_Backspace);
+        for (const QChar letter : QStringLiteral("edited")) QTest::keyClick(&window, static_cast<Qt::Key>(letter.toUpper().unicode()));
+        QTest::keyClick(&window, Qt::Key_Return);
         QTRY_COMPARE(timeline.clipsJson().first().toObject().value("paramOverrides").toObject().value("prompt").toString(), QStringLiteral("edited"));
         QCOMPARE(timeline.undoStack()->count(), 1);
         timeline.undoStack()->undo();
         QVERIFY(!timeline.clipsJson().first().toObject().value("paramOverrides").toObject().contains("prompt"));
         QTRY_VERIFY(findNamed(section, QStringLiteral("workflowInputJson_image")));
         auto* imageInput = findNamed(section, QStringLiteral("workflowInputJson_image"));
-        imageInput->setProperty("text", QStringLiteral(R"({"type":"image","asset_id":"image-id"})"));
+        imageInput->forceActiveFocus();
+        QInputMethodEvent imageText;
+        imageText.setCommitString(QStringLiteral(R"({"type":"image","asset_id":"image-id"})"));
+        QCoreApplication::sendEvent(imageInput, &imageText);
         auto* applyInput = findNamed(section, QStringLiteral("workflowInputApply_image"));
         QVERIFY(applyInput);
-        QVERIFY(QMetaObject::invokeMethod(applyInput, "clicked"));
+        applyInput->forceActiveFocus();
+        QTest::keyClick(&window, Qt::Key_Space);
         QTRY_COMPARE(timeline.clipsJson().first().toObject().value("paramOverrides").toObject().value("image").toObject().value("asset_id").toString(), QStringLiteral("image-id"));
         QTRY_VERIFY(findNamed(section, QStringLiteral("workflowCost")));
         auto* cost = findNamed(section, QStringLiteral("workflowCost"));
         QTRY_VERIFY(cost->property("text").toString().contains(QStringLiteral("$0.25")));
         auto* review = findNamed(section, QStringLiteral("inspectorReviewTakes"));
         QVERIFY(review);
-        QVERIFY(QMetaObject::invokeMethod(review, "clicked"));
+        review->forceActiveFocus();
+        QTest::keyClick(&window, Qt::Key_Space);
         auto* dialog = toolbar->findChild<QObject*>("generateDialog");
         QVERIFY(dialog);
         QTRY_VERIFY(dialog->property("visible").toBool());
@@ -183,9 +194,14 @@ private slots:
         QQuickWindow window;
         window.resize(800, 800);
         item->setParentItem(window.contentItem());
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
         auto* entry = object->findChild<QObject*>("generateButton");
         QVERIFY(entry);
-        QVERIFY(QMetaObject::invokeMethod(entry, "clicked"));
+        auto* entryItem = qobject_cast<QQuickItem*>(entry);
+        QVERIFY(entryItem);
+        entryItem->forceActiveFocus();
+        QTest::keyClick(&window, Qt::Key_Space);
         auto* dialog = object->findChild<QObject*>("generateDialog");
         QVERIFY(dialog);
         QTRY_VERIFY(dialog->property("visible").toBool());
@@ -233,19 +249,34 @@ private slots:
         clips.replace(0, imageClip);
         QVERIFY(timeline.replaceClips(clips));
         QTRY_VERIFY(regenerate->property("visible").toBool());
-        mode->setProperty("currentIndex", 2);
+        auto* modeItem = qobject_cast<QQuickItem*>(mode);
+        QVERIFY(modeItem);
+        modeItem->forceActiveFocus();
+        QTest::keyClick(&window, Qt::Key_Space);
+        QTest::keyClick(&window, Qt::Key_Down);
+        QTest::keyClick(&window, Qt::Key_Down);
+        QTest::keyClick(&window, Qt::Key_Return);
         QTRY_COMPARE(duration->property("currentText").toString(), QString("30"));
-        mode->setProperty("currentIndex", 0);
+        modeItem->forceActiveFocus();
+        QTest::keyClick(&window, Qt::Key_Space);
+        QTest::keyClick(&window, Qt::Key_Home);
+        QTest::keyClick(&window, Qt::Key_Return);
         auto* pick = object->findChild<QObject*>("pickGenerationReferences");
         QVERIFY(pick);
-        QVERIFY(QMetaObject::invokeMethod(pick, "clicked"));
+        auto* pickItem = qobject_cast<QQuickItem*>(pick);
+        QVERIFY(pickItem);
+        pickItem->forceActiveFocus();
+        QTest::keyClick(&window, Qt::Key_Space);
         auto* picker = object->findChild<QObject*>("referencePicker");
         QVERIFY(picker);
         QTRY_VERIFY(picker->property("visible").toBool());
         QVERIFY(QMetaObject::invokeMethod(picker, "close"));
         auto* entityButton = object->findChild<QObject*>("pickGenerationEntities");
         QVERIFY(entityButton);
-        QVERIFY(QMetaObject::invokeMethod(entityButton, "clicked"));
+        auto* entityButtonItem = qobject_cast<QQuickItem*>(entityButton);
+        QVERIFY(entityButtonItem);
+        entityButtonItem->forceActiveFocus();
+        QTest::keyClick(&window, Qt::Key_Space);
         auto* entityPicker = object->findChild<QObject*>("entityPicker");
         QVERIFY(entityPicker);
         QTRY_VERIFY(entityPicker->property("visible").toBool());
@@ -270,7 +301,10 @@ private slots:
         QVERIFY(previewPlay);
         clock.play();
         QVERIFY(clock.playing());
-        QVERIFY(QMetaObject::invokeMethod(previewPlay, "clicked"));
+        auto* previewPlayItem = qobject_cast<QQuickItem*>(previewPlay);
+        QVERIFY(previewPlayItem);
+        previewPlayItem->forceActiveFocus();
+        QTest::keyClick(&window, Qt::Key_Space);
         QVERIFY(!clock.playing());
         QVERIFY(QMetaObject::invokeMethod(dialog, "close"));
         item->setParentItem(nullptr);

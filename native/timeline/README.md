@@ -196,12 +196,9 @@ opening a device. See [Audio](#audio-m3).
 
 ## Tracks UI (M2)
 
-The tracks region copies `web/src/components/timeline/Tracks/` component by
-component (`TracksRegion`, `TimeRuler`, `TrackHeader`, `TrackLane`, `Clip`,
-`ClipBody`, `Playhead`, `TimelineZoomControls`, `TimelineScrollbar`), with the
-web theme tokens in `qml/Theme.qml`, the web fonts (Inter, JetBrains Mono,
-OFL, in `fonts/`) and the Material icon paths in `qml/Icons.qml`
-(`node scripts/extract-icons.mjs` regenerates it).
+The tracks region uses the native [UI primitives](../ui_primitives/README.md)
+for shared typography, colors, controls, and icons. Timeline geometry and
+visual data remain in `TimelineMetrics.qml` and `TimelineVisuals.qml`.
 
 - Zoom and pan (D29): `src/ui/TimelineWheel` holds the wheel, pinch, scroll
   bar and anchored-zoom math of `timelineWheel.ts`, `TimelineScrollbar.tsx`

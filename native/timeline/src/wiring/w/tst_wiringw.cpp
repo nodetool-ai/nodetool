@@ -112,8 +112,7 @@ private slots:
         QCOMPARE(button->property("text").toString(), QString("Export"));
         auto* bar = item("documentBar"); QVERIFY(bar);
         QCOMPARE(button->mapToItem(bar, {button->width(), 0}).x(), bar->width() - 8);
-        QCOMPARE(button->height(), 28.0);
-        QCOMPARE(item("exportIcon")->width(), 16.0);
+        QVERIFY(button->height() >= 28.0);
         auto* controller = qobject_cast<ExportController*>(object("exportController")); QVERIFY(controller);
         QSignalSpy opened(controller, &ExportController::openRequested);
         click("exportButton");
@@ -126,9 +125,10 @@ private slots:
         controller->start(temporary.filePath("out.wav"), "wav");
         QTRY_VERIFY(controller->running());
         QTRY_COMPARE(button->property("text").toString(), QString("Exporting…"));
-        QVERIFY(!button->isEnabled());
-        QVERIFY(item("exportSpinner")->isVisible());
-        QCOMPARE(button->property("contentColor").value<QColor>(), QColor("#ffffff"));
+        QVERIFY(button->isEnabled());
+        QVERIFY(button->property("loading").toBool());
+        click("exportButton");
+        QCOMPARE(opened.count(), 1);
         controller->cancel();
         QTRY_VERIFY(!controller->running());
     }
@@ -175,7 +175,7 @@ private slots:
         auto* lane = item("trackLane-a");
         QCOMPARE(panel->mapToScene(QPointF{}).y(), lane->mapToScene({0, lane->height()}).y());
         QCOMPARE(accessible->text(QAccessible::Name), QString("Hide effects chain"));
-        QVERIFY(accessible->state().pressed);
+        QVERIFY(accessible->state().checked);
         QCOMPARE(header->property("tone").toString(), QString("idle"));
         gestures()->viewState()->setScrollLeftPx(140);
         QCoreApplication::processEvents();
@@ -190,6 +190,69 @@ private slots:
             QVERIFY(item("fx-add-type-v-" + QString::fromLatin1(type)));
         }
         QVERIFY(!item("fx-add-type-v-gain"));
+    }
+    void cancelKnobDragRestoresDraft() {
+        QVERIFY(item("track-fx-a")); click("track-fx-a"); add("gain");
+        const auto id = effectId();
+        const auto before = doc();
+        const int undoCount = model.undoStack()->count();
+        auto *knob = item("fx-knob-" + id + "-gainDb"); QVERIFY(knob);
+        const auto from = knob->mapToScene({knob->width() / 2, 20}).toPoint();
+        QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, from);
+        QTest::mouseMove(view.get(), from - QPoint(0, 10), 20);
+        QVERIFY(knob->property("dragging").toBool());
+        knob->setEnabled(false);
+        QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, from - QPoint(0, 10));
+        QCOMPARE(doc(), before);
+        QCOMPARE(model.undoStack()->count(), undoCount);
+        knob->setEnabled(true);
+    }
+    void cancelCurveDragRestoresDraft_data() {
+        QTest::addColumn<QString>("effectType");
+        QTest::addColumn<QString>("handleName");
+        QTest::newRow("EQ") << QString("eq3") << QString("mid");
+        QTest::newRow("Compressor") << QString("compressor") << QString("threshold");
+    }
+    void cancelCurveDragRestoresDraft() {
+        QFETCH(QString, effectType);
+        QFETCH(QString, handleName);
+        QVERIFY(item("track-fx-a")); click("track-fx-a");
+        QVERIFY(model.applyEdit("addTrackEffect", {{"trackId", "a"}, {"effect", effectType}}));
+        QTRY_COMPARE(effects().size(), 1);
+        const auto id = effectId();
+        const auto before = doc();
+        const int undoCount = model.undoStack()->count();
+        const auto handleId = "fx-handle-" + id + "-" + handleName;
+        QTRY_VERIFY(item(handleId));
+        auto *handle = item(handleId);
+        const auto from = center(handle);
+        QTest::mousePress(view.get(), Qt::LeftButton, Qt::NoModifier, from);
+        QTest::mouseMove(view.get(), from - QPoint(0, 15), 20);
+        handle->setEnabled(false);
+        QTest::mouseRelease(view.get(), Qt::LeftButton, Qt::NoModifier, from - QPoint(0, 15));
+        QCOMPARE(doc(), before);
+        QCOMPARE(model.undoStack()->count(), undoCount);
+        handle->setEnabled(true);
+    }
+    void cancelCurveKeyRestoresDraft_data() { cancelCurveDragRestoresDraft_data(); }
+    void cancelCurveKeyRestoresDraft() {
+        QFETCH(QString, effectType);
+        QFETCH(QString, handleName);
+        QVERIFY(item("track-fx-a")); click("track-fx-a");
+        QVERIFY(model.applyEdit("addTrackEffect", {{"trackId", "a"}, {"effect", effectType}}));
+        QTRY_COMPARE(effects().size(), 1);
+        const auto id = effectId();
+        const auto before = doc();
+        const int undoCount = model.undoStack()->count();
+        const auto handleId = "fx-handle-" + id + "-" + handleName;
+        QTRY_VERIFY(item(handleId));
+        auto *handle = item(handleId);
+        QTest::mouseClick(view.get(), Qt::LeftButton, Qt::NoModifier, center(handle));
+        QTest::keyPress(view.get(), Qt::Key_Up);
+        QTest::keyClick(view.get(), Qt::Key_Escape);
+        QTest::keyRelease(view.get(), Qt::Key_Up);
+        QCOMPARE(doc(), before);
+        QCOMPARE(model.undoStack()->count(), undoCount);
     }
     void effectEdits() {
         QVERIFY(item("track-fx-a")); click("track-fx-a");

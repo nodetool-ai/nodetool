@@ -1,6 +1,8 @@
 import QtQuick
+import QtQuick.Window
 import QtQuick.Controls as Controls
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 ToolButton {
     id: root
@@ -8,46 +10,43 @@ ToolButton {
     required property var panels
     objectName: "dockLayoutMenu"
     label: store.workspace
-    iconPath: Icons.arrowDropDown
-    onClicked: menu.popup()
-    Controls.Menu {
-        id: menu
-        implicitWidth: Math.max(180, contentChildren.reduce((size, item) => Math.max(size, item.implicitWidth), 0)) + leftPadding + rightPadding
+    iconName: "arrowDropDown"
+    onClicked: layoutPopup.openAt(root)
+    Ui.ContextMenu {
+        id: layoutPopup
+        objectName: "dockWorkspacePopup"
+        width: Math.min(root.Window.window ? root.Window.window.width : TimelineMetrics.dockMenuWidth, TimelineMetrics.dockMenuWidth)
         popupType: Controls.Popup.Item
-        y: root.height
-        font.family: Theme.sansFamily
-        font.pixelSize: Theme.fontSizeSmall
-        palette.window: Theme.backgroundPaper
-        palette.text: Theme.textPrimary
-        palette.windowText: Theme.textPrimary
-        palette.highlight: Theme.actionSelected
-        palette.highlightedText: Theme.textPrimary
-        background: Rectangle { color: Theme.backgroundPaper; border.color: Theme.divider; radius: Theme.radiusLg }
-        Controls.MenuItem { text: "Workspaces"; enabled: false }
+        Ui.MenuItem { text: "Workspaces"; enabled: false }
         Instantiator {
-            onObjectAdded: (index, object) => menu.insertItem(index + 1, object)
-            onObjectRemoved: (index, object) => menu.removeItem(object)
+            onObjectAdded: (index, object) => layoutPopup.insertItem(index + 1, object)
+            onObjectRemoved: (index, object) => layoutPopup.removeItem(object)
             model: root.store.workspaces
-            delegate: Controls.MenuItem {
+            delegate: Ui.MenuItem {
                 required property string modelData
                 required property int index
+                width: layoutPopup.availableWidth
+                height: implicitHeight
                 objectName: "dockWorkspace_" + modelData
-                text: modelData + "    Alt+Shift+" + (index + 1)
+                text: modelData
+                shortcutText: "Alt+Shift+" + (index + 1)
                 checkable: true
                 checked: root.store.workspace === modelData
                 onTriggered: root.store.switchWorkspace(index)
             }
         }
-        Controls.MenuSeparator {}
-        Controls.MenuItem { objectName: "dockResetWorkspace"; text: "Reset to saved layout"; onTriggered: root.store.resetWorkspace() }
-        Controls.MenuSeparator {}
-        Controls.MenuItem { text: "Panels"; enabled: false }
+        Controls.MenuSeparator { contentItem: Ui.Separator {} }
+        Ui.MenuItem { objectName: "dockResetWorkspace"; text: "Reset to saved layout"; onTriggered: root.store.resetWorkspace() }
+        Controls.MenuSeparator { contentItem: Ui.Separator {} }
+        Ui.MenuItem { text: "Panels"; enabled: false }
         Instantiator {
-            onObjectAdded: (index, object) => menu.addItem(object)
-            onObjectRemoved: (index, object) => menu.removeItem(object)
+            onObjectAdded: (index, object) => layoutPopup.addItem(object)
+            onObjectRemoved: (index, object) => layoutPopup.removeItem(object)
             model: root.panels
-            delegate: Controls.MenuItem {
+            delegate: Ui.MenuItem {
                 required property var modelData
+                width: layoutPopup.availableWidth
+                height: implicitHeight
                 objectName: "dockToggle_" + modelData.id
                 text: modelData.title
                 checkable: true

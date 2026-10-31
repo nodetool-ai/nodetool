@@ -7,12 +7,13 @@ import QtQuick
 import QtQuick.Controls
 import NodeTool.Timeline
 import "../../src/edit/inspectorsections" as Sections
+import NodeTool.UiPrimitives as Ui
 Rectangle {
     id: root
     objectName: "timelineInspector"
     implicitWidth: 360
     implicitHeight: parent && parent.parent ? parent.parent.height : 480
-    color: Theme.backgroundDefault
+    color: Ui.Theme.surfaceCanvas
     function editorAbove() {
         let item = parent
         while (item) {
@@ -52,12 +53,12 @@ Rectangle {
     Flickable {
         objectName: "inspectorViewport"
         anchors.fill: parent
-        anchors.leftMargin: Theme.spacingLg
-        anchors.rightMargin: Theme.spacingLg
-        anchors.topMargin: Theme.spacingMd
-        contentHeight: content.height + Theme.spacingXl * 2
+        anchors.leftMargin: Ui.Metrics.lg
+        anchors.rightMargin: Ui.Metrics.lg
+        anchors.topMargin: Ui.Metrics.md
+        contentHeight: content.height + Ui.Metrics.xl * 2
         clip: true
-        ScrollBar.vertical: PanelScrollBar {
+        ScrollBar.vertical: Ui.ScrollBar {
             id: scrollBar
             objectName: "inspectorScrollBar"
         }
@@ -68,40 +69,39 @@ Rectangle {
             Column {
                 width: parent.width
                 visible: root.selection.length === 0
-                topPadding: Theme.spacingXl
-                spacing: Theme.spacingMd
-                Text { width: parent.width; text: "No selection"; horizontalAlignment: Text.AlignHCenter; color: Theme.textPrimary; font.family: Theme.sansFamily; font.pixelSize: Theme.fontSizeSmall }
-                Text { width: parent.width; text: "Select a clip on the timeline to edit its properties."; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap; color: Theme.textSecondary; font.family: Theme.sansFamily; font.pixelSize: Theme.fontSizeSmall }
+                topPadding: Ui.Metrics.xl
+                spacing: Ui.Metrics.md
+                Ui.Text { width: parent.width; text: "No selection"; horizontalAlignment: Text.AlignHCenter; role: Ui.Typography.SansLabel }
+                Ui.Text { width: parent.width; text: "Select a clip on the timeline to edit its properties."; horizontalAlignment: Text.AlignHCenter; wrapMode: Text.WordWrap; role: Ui.Typography.SansLabel; tone: Ui.Text.Secondary }
             }
             Column {
                 width: parent.width
                 visible: root.selection.length > 1
-                spacing: Theme.spacingMd
+                spacing: Ui.Metrics.md
                 InspectorHeader {
                     objectName: "multiSelectionHeader"
                     width: parent.width
                     eyebrow: root.selection.length + " clips"
-                    actions: [{icon:Icons.deleteOutline, label:"Delete selection", variant:"danger"}]
+                    actions: [{icon:"deleteOutline", label:"Delete selection", variant:"danger"}]
                     onActionTriggered: label => {
                         if (label === "Delete selection" && root.timelineModel) root.timelineModel.applyEdit("deleteSelected", {selectedIds:root.selection})
                     }
                 }
                 Column {
-                    x: Theme.spacingMicro
+                    x: Ui.Metrics.micro
                     width: parent.width - x * 2
-                    spacing: Theme.spacingMd
+                    spacing: Ui.Metrics.md
                     Sections.InspectorActionButton {
                         objectName: "groupSelectedClips"
                         text: "Group selected clips"
                         onClicked: { if (root.timelineModel) root.timelineModel.applyEdit("groupClips", {selectedIds:root.selection, linked:!root.gestures || root.gestures.linkedSelection !== false}) }
                     }
-                    Text {
+                    Ui.Text {
                         objectName: "groupSelectionHelp"
                         width: parent.width
                         text: "Grouping parents these clips to one group clip: it moves, trims and fades them together. Per-field editing of several clips at once is not yet supported."
-                        color: Theme.textSecondary
-                        font.family: Theme.sansFamily
-                        font.pixelSize: Theme.fontSizeSmall
+                        role: Ui.Typography.SansLabel
+                        tone: Ui.Text.Secondary
                         wrapMode: Text.WordWrap
                     }
                 }
@@ -119,14 +119,14 @@ Rectangle {
                     if (clip.width && clip.height) parts.push(clip.width+"×"+clip.height)
                     return parts
                 }
-                accentColor: Theme.clipAccent(inspector.clip.mediaType || "video")
+                accentColor: TimelineVisuals.clipAccent(inspector.clip.mediaType || "video")
             }
             // Keep section instances alive without a selection. Extension
             // sections own their selection logic, including a zero height.
             Column {
                 width: parent.width
                 visible: !!inspector.clip.id && !root.groupSelected
-                spacing: Theme.spacingXs
+                spacing: Ui.Metrics.xs
                 Sections.RegisteredInspectorSections {
                     width: parent.width
                     beforeRender: true

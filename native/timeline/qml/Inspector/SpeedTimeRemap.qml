@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import NodeTool.Timeline
 import "primitives"
+import NodeTool.UiPrimitives as Ui
 
 InspectorSection {
     id: root
@@ -69,14 +70,13 @@ InspectorSection {
         else { edits.commit("setClipTimeRemap", next); gestureFrames = null }
     }
     onCheckedChangedByUser: next => run(next ? "enable" : "disable")
-    Text {
+    Ui.Text {
         width: parent.width
         visible: root.frames === undefined
         text: "Enable the remap to drive the source position with a curve instead of a speed. It replaces Speed for this clip."
         wrapMode: Text.WordWrap
-        font.family: Theme.sansFamily
-        font.pixelSize: Theme.fontSizeSmaller
-        color: Theme.textSecondary
+        role: Ui.Typography.SansCaption
+        tone: Ui.Text.Secondary
     }
     Repeater {
         model: root.frames ? root.frames.length : 0
@@ -84,16 +84,16 @@ InspectorSection {
             id: row
             required property int index
             readonly property var frame: root.frames && root.frames[index] ? root.frames[index] : ({t:0, sourceMs:0})
-            spacing: Theme.spacingMicro
+            spacing: Ui.Metrics.micro
             width: parent.width
             Row {
-                spacing: Theme.spacingMicro
+                spacing: Ui.Metrics.micro
                 InspectorPillInput {
                     objectName: "remapTime" + row.index
                     property bool scrubbing: false
                     property string previewValue: ""
                     value: scrubbing ? previewValue : Number(row.frame.t).toFixed(2)
-                    minWidth: Theme.controlXs * 2 + Theme.spacingXs
+                    minWidth: Ui.Metrics.small * 2 + Ui.Metrics.xs
                     ariaLabel: "Time remap keyframe " + (row.index + 1) + " time"
                     scrub: ({step: 0.01, min: 0, max: 1})
                     disabled: root.locked
@@ -103,13 +103,14 @@ InspectorSection {
                     }
                     onPreview: raw => { previewValue = raw; root.patch(row.index, "t", raw, "preview") }
                     onCommit: raw => { root.patch(row.index, "t", raw, "commit"); scrubbing = false }
+                    onCanceled: { edits.cancelGesture(); scrubbing = false; root.duplicate = false; root.gestureFrames = null }
                 }
                 InspectorPillInput {
                     property bool scrubbing: false
                     property string previewValue: ""
                     value: scrubbing ? previewValue : String(row.frame.sourceMs)
                     unit: "ms"
-                    minWidth: Theme.toolbarHeight * 2
+                    minWidth: TimelineMetrics.toolbarHeight * 2
                     ariaLabel: "Time remap keyframe " + (row.index + 1) + " source time"
                     scrub: ({step: 10, min: 0})
                     disabled: root.locked
@@ -119,24 +120,21 @@ InspectorSection {
                     }
                     onPreview: raw => { previewValue = raw; root.patch(row.index, "sourceMs", raw, "preview") }
                     onCommit: raw => { root.patch(row.index, "sourceMs", raw, "commit"); scrubbing = false }
+                    onCanceled: { edits.cancelGesture(); scrubbing = false; root.duplicate = false; root.gestureFrames = null }
                 }
                 InspectorPillInput {
                     value: row.frame.easing ?? ""
                     placeholder: "linear"
                     allowEmpty: true
-                    minWidth: Theme.controlXs * 4
+                    minWidth: Ui.Metrics.small * 4
                     ariaLabel: "Time remap keyframe " + (row.index + 1) + " easing"
                     disabled: root.locked
                     onCommit: raw => root.patch(row.index, "easing", raw, "commit")
                 }
-                Button {
-                    text: "×"
-                    implicitWidth: Theme.controlXs
-                    implicitHeight: Theme.controlXs
+                Ui.ToolbarIconButton {
+                    iconName: "close"
                     enabled: !root.locked
-                    Accessible.name: "Delete time remap keyframe " + (row.index + 1)
-                    ToolTip.text: Accessible.name
-                    ToolTip.visible: hovered
+                    accessibleName: "Delete time remap keyframe " + (row.index + 1)
                     onClicked: {
                         root.duplicate = false
                         const p = root.payload("remove"); p.index = row.index
@@ -144,48 +142,44 @@ InspectorSection {
                     }
                 }
             }
-            Text {
+            Ui.Text {
                 width: parent.width
                 visible: !!row.frame.easing && !edits.easingReadable(row.frame.easing)
                 text: "Not an easing this build reads; plays linear"
                 wrapMode: Text.WordWrap
-                font.family: Theme.sansFamily
-                font.pixelSize: Theme.fontSizeSmaller
-                color: Theme.textSecondary
+                role: Ui.Typography.SansCaption
+                tone: Ui.Text.Secondary
             }
         }
     }
-    Text {
+    Ui.Text {
         width: parent.width
         visible: root.duplicate
         text: "Another keyframe already sits at that time. Keyframe times must differ."
         wrapMode: Text.WordWrap
-        font.family: Theme.sansFamily
-        font.pixelSize: Theme.fontSizeSmaller
-        color: Theme.textSecondary
+        role: Ui.Typography.SansCaption
+        tone: Ui.Text.Secondary
     }
-    Text {
+    Ui.Text {
         width: parent.width
         visible: root.frames !== undefined
         text: "Columns are time (0..1 across the clip), source position, and easing: linear, easeIn, easeOut, easeInOut, easeOutBack, easeOutElastic, easeOutBounce, cubic-bezier(x1,y1,x2,y2) or spring(stiffness,damping,mass)"
         wrapMode: Text.WordWrap
-        font.family: Theme.sansFamily
-        font.pixelSize: Theme.fontSizeSmaller
-        color: Theme.textSecondary
+        role: Ui.Typography.SansCaption
+        tone: Ui.Text.Secondary
     }
-    Text {
+    Ui.Text {
         width: parent.width
         visible: root.frames !== undefined
         text: "Source times may descend, which plays the clip backwards. Split and trim refuse a remapped clip until the remap is baked."
         wrapMode: Text.WordWrap
-        font.family: Theme.sansFamily
-        font.pixelSize: Theme.fontSizeSmaller
-        color: Theme.textSecondary
+        role: Ui.Typography.SansCaption
+        tone: Ui.Text.Secondary
     }
     Row {
         visible: root.frames !== undefined
-        spacing: Theme.spacingMd
-        Button { text: "Add keyframe"; enabled: !root.locked; onClicked: root.run("add") }
-        Button { text: "Clear"; flat: true; enabled: !root.locked; onClicked: root.run("clear") }
+        spacing: Ui.Metrics.md
+        Ui.EditorButton { text: "Add keyframe"; enabled: !root.locked; onClicked: root.run("add") }
+        Ui.EditorButton { text: "Clear"; variant: Ui.EditorButton.Flat; enabled: !root.locked; onClicked: root.run("clear") }
     }
 }

@@ -16,6 +16,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 Rectangle {
     id: region
@@ -30,11 +31,11 @@ Rectangle {
     property bool followPlayhead: true
     // The `?` key and the help button ask the editor for the shortcut sheet.
     signal shortcutsRequested()
-    readonly property int headerWidth: Theme.trackHeaderWidth
-    readonly property double lanesHeight: Math.max(0, height - Theme.toolbarHeight - Theme.rulerHeight - Theme.scrollbarHeight)
+    readonly property int headerWidth: TimelineMetrics.trackHeaderWidth
+    readonly property double lanesHeight: Math.max(0, height - TimelineMetrics.toolbarHeight - TimelineMetrics.rulerHeight - TimelineMetrics.scrollbarHeight)
 
     objectName: "tracksRegion"
-    color: Theme.backgroundDefault
+    color: Ui.Theme.surfaceCanvas
     clip: true
 
     function focusTrackResize(id) {
@@ -77,20 +78,20 @@ Rectangle {
         id: toolbar
         objectName: "timelineToolbar"
         width: parent.width
-        height: Theme.toolbarHeight
-        color: Theme.backgroundPaper
+        height: TimelineMetrics.toolbarHeight
+        color: Ui.Theme.surfacePanel
         Rectangle {
             anchors.bottom: parent.bottom
             width: parent.width
-            height: 1
-            color: Theme.divider
+            height: Ui.Metrics.border
+            color: Ui.Theme.borderSubtle
         }
         // nextToolbarFit: the labelled row switches to icons once it overflows,
         // and back once the bar is as wide as the labelled row needed.
         property bool narrow: false
         property double neededWidth: 0
-        readonly property double available: width - Theme.spacingMd - Theme.spacingLg
-        readonly property double rowWidth: toolRow.width + toolbar.rightWidth + Theme.spacingXl
+        readonly property double available: width - Ui.Metrics.md - Ui.Metrics.lg
+        readonly property double rowWidth: toolRow.width + toolbar.rightWidth + Ui.Metrics.xl
         readonly property double rightWidth: rightGroup.width
         function refit() {
             if (available <= 0) return
@@ -102,30 +103,42 @@ Rectangle {
         }
         onAvailableChanged: refit()
         onRowWidthChanged: refit()
-        z: 5                                            // tooltips over the ruler
-        ToolToggle {
-            id: toolRow
-            x: Theme.spacingMd
-            anchors.verticalCenter: parent.verticalCenter
-            gestures: clipGestures
-            timeline: region.timeline
-            viewState: view
-            compact: toolbar.narrow
-            followPlayhead: region.followPlayhead
-            onFollowPlayheadChanged: region.followPlayhead = followPlayhead
+        z: TimelineMetrics.toolbarLayer                 // tooltips over the ruler
+        Flickable {
+            id: toolViewport
+            objectName: "timelineToolViewport"
+            x: Ui.Metrics.md
+            width: Math.max(0, rightGroup.x - x - Ui.Metrics.xs)
+            height: parent.height
+            contentWidth: toolRow.width
+            contentHeight: height
+            flickableDirection: Flickable.HorizontalFlick
+            boundsBehavior: Flickable.StopAtBounds
+            interactive: contentWidth > width
+            clip: true
+            ToolToggle {
+                id: toolRow
+                anchors.verticalCenter: parent.verticalCenter
+                gestures: clipGestures
+                timeline: region.timeline
+                viewState: view
+                compact: toolbar.narrow
+                followPlayhead: region.followPlayhead
+                onFollowPlayheadChanged: region.followPlayhead = followPlayhead
+            }
         }
         Row {
             id: rightGroup
             anchors.right: parent.right
-            anchors.rightMargin: Theme.spacingLg
+            anchors.rightMargin: Ui.Metrics.lg
             anchors.verticalCenter: parent.verticalCenter
-            spacing: 2
+            spacing: Ui.Metrics.micro
             ToolButton {
                 objectName: "helpButton"
                 anchors.verticalCenter: parent.verticalCenter
                 label: "Keyboard shortcuts"
                 iconOnly: true
-                iconPath: Icons.helpOutline
+                iconName: "helpOutline"
                 onClicked: region.shortcutsRequested()
             }
             TimelineZoomControls {
@@ -141,35 +154,33 @@ Rectangle {
     Rectangle {
         id: tracksHeader
         objectName: "tracksSectionHeader"
-        y: Theme.toolbarHeight
+        y: TimelineMetrics.toolbarHeight
         width: region.headerWidth
-        height: Theme.rulerHeight
-        color: Theme.backgroundPaper
+        height: TimelineMetrics.rulerHeight
+        color: Ui.Theme.surfacePanel
         Rectangle {
             anchors.bottom: parent.bottom
             width: parent.width
-            height: 1
-            color: Theme.divider
+            height: Ui.Metrics.border
+            color: Ui.Theme.borderSubtle
         }
         Row {
             id: headerContent
-            x: Theme.spacingLg
+            x: Ui.Metrics.lg
             height: parent.height - 1
-            spacing: Theme.spacingSm
-            Text {
+            spacing: Ui.Metrics.sm
+            Ui.Text {
                 id: eyebrow
                 anchors.verticalCenter: parent.verticalCenter
                 text: "TRACKS"
-                color: Theme.textSecondary
-                font.family: Theme.sansFamily
-                font.pixelSize: Theme.fontSizeSmaller
-                font.letterSpacing: 0.06 * Theme.fontSizeSmaller
+                role: Ui.Typography.SansCaption
+                tone: Ui.Text.Secondary
             }
             Row {
                 id: headerActions
                 objectName: "trackHeaderActions"
                 anchors.verticalCenter: parent.verticalCenter
-                spacing: Theme.spacingSm
+                spacing: Ui.Metrics.sm
                 Repeater {
                     model: TrackHeaderActions.items()
                     delegate: Loader {
@@ -182,29 +193,27 @@ Rectangle {
         // marginLeft: auto pushes the slider, the count and the add button right.
         Row {
             anchors.right: parent.right
-            anchors.rightMargin: Theme.spacingLg
+            anchors.rightMargin: Ui.Metrics.lg
             height: parent.height - 1
-            spacing: Theme.spacingSm
+            spacing: Ui.Metrics.sm
             TrackHeightSlider {
                 anchors.verticalCenter: parent.verticalCenter
-                width: Math.max(0, Math.min(96, tracksHeader.width - headerContent.width - 3 * Theme.spacingLg - countChip.width - addTrack.width - 3 * Theme.spacingSm))
+                width: Math.max(0, Math.min(Ui.Metrics.standard * 3, tracksHeader.width - headerContent.width - 3 * Ui.Metrics.lg - countChip.width - addTrack.width - 3 * Ui.Metrics.sm))
                 viewState: view
             }
             Rectangle {
                 id: countChip
                 anchors.verticalCenter: parent.verticalCenter
-                width: Math.max(18, countText.implicitWidth + 2 * Theme.spacingSm)
-                height: 16
-                radius: Theme.radiusSm
-                color: Theme.actionHover
-                Text {
+                width: Math.max(Ui.Metrics.iconMd, countText.implicitWidth + 2 * Ui.Metrics.sm)
+                height: Ui.Metrics.iconSm
+                radius: Ui.Metrics.xs
+                color: Ui.Theme.actionHover
+                Ui.Text {
                     id: countText
                     anchors.centerIn: parent
                     text: rowModel.trackCount
-                    color: Theme.textSecondary
-                    font.family: Theme.monoFamily
-                    font.pixelSize: Theme.fontSizeSmaller
-                    font.weight: Font.DemiBold
+                    role: Ui.Typography.MonoCaption
+                    tone: Ui.Text.Secondary
                 }
             }
             AddTrackButton {
@@ -218,7 +227,7 @@ Rectangle {
     TimeRuler {
         id: ruler
         x: region.headerWidth
-        y: Theme.toolbarHeight
+        y: TimelineMetrics.toolbarHeight
         width: region.width - region.headerWidth
         viewState: view
         gestures: clipGestures
@@ -234,7 +243,7 @@ Rectangle {
     Item {
         id: headerColumn
         objectName: "headerColumn"
-        y: Theme.toolbarHeight + Theme.rulerHeight
+        y: TimelineMetrics.toolbarHeight + TimelineMetrics.rulerHeight
         width: region.headerWidth
         height: region.lanesHeight
         clip: true
@@ -269,6 +278,25 @@ Rectangle {
                             if (entry && entry.objectName === "trackMenu-remove") { entry.triggered() }
                         }
                     }
+                    function openKeyboardMenu() {
+                        if (region.renamingTrackId === header.trackId) return
+                        headerMenu.trackId = header.trackId
+                        headerMenu.trackName = header.name
+                        headerMenu.trackType = header.trackType
+                        headerMenu.openAt(header)
+                    }
+                    activeFocusOnTab: true
+                    Accessible.role: Accessible.Grouping
+                    Accessible.name: "Track " + header.name + " actions"
+                    Accessible.expandable: true
+                    Accessible.expanded: headerMenu.visible && headerMenu.trackId === header.trackId
+                    Keys.onMenuPressed: event => { header.openKeyboardMenu(); event.accepted = true }
+                    Keys.onPressed: event => {
+                        if (event.key === Qt.Key_F10 && (event.modifiers & Qt.ShiftModifier)) {
+                            header.openKeyboardMenu()
+                            event.accepted = true
+                        }
+                    }
                     y: rowTop
                     width: region.headerWidth - 1
                     SlotItems {
@@ -286,44 +314,43 @@ Rectangle {
                         acceptedButtons: Qt.RightButton
                         enabled: region.renamingTrackId !== header.trackId
                         onClicked: mouse => {
+                            header.forceActiveFocus(Qt.MouseFocusReason)
+                            headerMenu.returnFocusTo = header
                             const point = header.mapToItem(region, mouse.x, mouse.y)
                             headerMenu.openFor(header.trackId, header.name, header.trackType, point.x, point.y)
                         }
                     }
                     Loader {
                         active: region.renamingTrackId === header.trackId
-                        x: Theme.spacingMd + Theme.iconSm + Theme.controlXs + Theme.spacingMd + Theme.spacingMicro
-                        y: Theme.spacingXs
-                        width: Math.min(151, header.width - x - Theme.controlXs - Theme.spacingMd)
-                        height: Theme.controlXs + Theme.spacingMicro
-                        sourceComponent: TextInput {
+                        x: Ui.Metrics.md + Ui.Metrics.iconSm + Ui.Metrics.small + Ui.Metrics.md + Ui.Metrics.micro
+                        y: Ui.Metrics.xs
+                        width: Math.min(Ui.Metrics.small * 6 + Ui.Metrics.sm, header.width - x - Ui.Metrics.small - Ui.Metrics.md)
+                        height: Ui.Metrics.compact
+                        sourceComponent: Ui.TextField {
                             id: nameInput
                             objectName: "trackRename-" + header.trackId
-                            text: header.name
-                            color: Theme.textPrimary
-                            font.family: Theme.sansFamily
-                            font.pixelSize: Theme.fontSizeSmall
-                            font.weight: Font.Medium
-                            verticalAlignment: TextInput.AlignVCenter
+                            value: header.name
+                            density: Ui.EditorButton.Compact
                             selectByMouse: true
                             clip: true
-                            Accessible.name: "Track name: " + header.name
+                            accessibleName: "Track name: " + header.name
                             property bool finished: false
-                            function finish(cancel) {
+                            function finish(cancel, proposed) {
                                 if (finished) return
                                 finished = true
                                 const id = header.trackId
                                 const original = header.name
-                                const next = text.trim()
+                                const next = (proposed === undefined ? text : proposed).trim()
                                 region.renamingTrackId = ""
                                 if (!cancel && next !== "" && next !== original)
                                     region.timeline.applyEdit("setTrackName", { trackId: id, name: next })
                             }
                             Component.onCompleted: Qt.callLater(() => { forceActiveFocus(); selectAll() })
+                            onValueCommitted: value => finish(false, value)
                             onAccepted: finish(false)
                             onActiveFocusChanged: if (!activeFocus) finish(false)
+                            onEditCanceled: finish(true)
                             Keys.onEscapePressed: finish(true)
-                            Rectangle { anchors.fill: parent; z: -1; color: Theme.backgroundDefault }
                         }
                     }
                 }
@@ -334,16 +361,16 @@ Rectangle {
             visible: clipGestures.trackDropY >= 0
             y: clipGestures.trackDropY - view.scrollTopPx
             width: parent.width
-            height: 2
-            color: Theme.primary
-            z: 3
+            height: Ui.Metrics.focus
+            color: Ui.Theme.accentPrimary
+            z: TimelineMetrics.clipOverlayLayer
         }
         // borderRight: 1px divider.
         Rectangle {
             anchors.right: parent.right
-            width: 1
+            width: Ui.Metrics.border
             height: parent.height
-            color: Theme.divider
+            color: Ui.Theme.borderSubtle
         }
     }
 
@@ -365,7 +392,7 @@ Rectangle {
         id: lanesArea
         objectName: "lanesViewport"
         x: region.headerWidth
-        y: Theme.toolbarHeight + Theme.rulerHeight
+        y: TimelineMetrics.toolbarHeight + TimelineMetrics.rulerHeight
         width: region.width - region.headerWidth
         height: region.lanesHeight
         clip: true
@@ -436,7 +463,7 @@ Rectangle {
         MouseArea {
             objectName: "handZoomArea"
             anchors.fill: parent
-            z: 3
+            z: TimelineMetrics.clipOverlayLayer
             enabled: clipGestures.activeTool === "hand" || clipGestures.activeTool === "zoom"
             acceptedButtons: Qt.LeftButton
             cursorShape: clipGestures.activeTool === "hand" ? (pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor)
@@ -467,22 +494,21 @@ Rectangle {
             objectName: "snapGuide"
             visible: clipGestures.snapGuideMs >= 0
             x: clipGestures.snapGuideMs / view.msPerPx - view.scrollLeftPx
-            width: 1
+            width: Ui.Metrics.border
             height: parent.height
-            color: Theme.warning
+            color: Ui.Theme.statusWarning
         }
 
-        Text {
+        Ui.Text {
             objectName: "tracksEmptyHint"
             visible: region.timeline.clipCount === 0
             anchors.centerIn: parent
-            width: parent.width - 2 * Theme.spacingXl
+            width: parent.width - 2 * Ui.Metrics.xl
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.WordWrap
             text: "Drag media here from the Library, or add a track to start."
-            color: Theme.textSecondary
-            font.family: Theme.sansFamily
-            font.pixelSize: Theme.fontSizeSmaller
+            role: Ui.Typography.SansCaption
+            tone: Ui.Text.Secondary
         }
     }
 
@@ -498,12 +524,12 @@ Rectangle {
     TimelineGestureArea {
         id: gestures
         objectName: "timelineGestureArea"
-        y: Theme.toolbarHeight
+        y: TimelineMetrics.toolbarHeight
         width: region.width
-        height: region.height - Theme.toolbarHeight
+        height: region.height - TimelineMetrics.toolbarHeight
         viewState: view
         rulerTop: 0
-        rowsTop: Theme.rulerHeight
+        rowsTop: TimelineMetrics.rulerHeight
         lanesLeft: region.headerWidth
     }
 
@@ -511,9 +537,9 @@ Rectangle {
     // columns.
     Item {
         x: region.headerWidth
-        y: Theme.toolbarHeight
+        y: TimelineMetrics.toolbarHeight
         width: region.width - region.headerWidth
-        height: Theme.rulerHeight + region.lanesHeight
+        height: TimelineMetrics.rulerHeight + region.lanesHeight
         clip: true
         Playhead {
             height: parent.height
@@ -522,7 +548,7 @@ Rectangle {
             fps: region.timeline.fps
             endMs: region.timeline.contentEndMs
             viewportWidthPx: parent.width
-            grabTopPx: Theme.rulerHeight
+            grabTopPx: TimelineMetrics.rulerHeight
             passthroughRoot: lanesArea
             follow: region.followPlayhead
         }

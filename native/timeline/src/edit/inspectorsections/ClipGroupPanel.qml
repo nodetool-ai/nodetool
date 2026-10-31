@@ -3,6 +3,7 @@ import QtQuick
 import NodeTool.Timeline
 import "../clipeffects" as Effects
 import "../../motion/controls" as Motion
+import NodeTool.UiPrimitives as Ui
 Column {
     id: root
     objectName: "clipGroupPanel"
@@ -11,7 +12,7 @@ Column {
     required property var controller
     readonly property var clip: controller.clip
     readonly property var members: (edits.document.clips || []).filter(c => c.parentId === clip.id)
-    spacing: Theme.spacingXs
+    spacing: Ui.Metrics.xs
     InspectorEdits { id: edits; model: root.timelineModel }
     InspectorSection {
         width: parent.width
@@ -22,7 +23,7 @@ Column {
             InspectorPillInput {
                 objectName: "groupName"
                 value: root.clip.name || ""
-                minWidth: InspectorTokens.staticValueMaxWidth - Theme.spacingXl - Theme.spacingXs
+                minWidth: InspectorTokens.staticValueMaxWidth - Ui.Metrics.xl - Ui.Metrics.xs
                 ariaLabel: "Group name"
                 onCommit: raw => { const name = raw.trim(); if (name) edits.apply("patchClip", {clipId:root.clip.id, patch:{name}}) }
             }

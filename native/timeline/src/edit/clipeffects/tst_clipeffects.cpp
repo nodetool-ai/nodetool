@@ -29,7 +29,7 @@ QQuickItem* find(QQuickItem* root, const QString& name) {
 }
 QQuickItem* resetAction(QQuickItem* root) {
     if (!root) { return nullptr; }
-    if (root->inherits("QQuickAbstractButton") && root->property("text").toString() == "Reset color") { return root; }
+    if (root->inherits("QQuickAbstractButton") && root->property("accessibleName").toString() == "Reset color") { return root; }
     for (auto* child : root->childItems()) {
         if (auto* found = resetAction(child)) { return found; }
     }

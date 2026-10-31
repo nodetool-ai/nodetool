@@ -1,3 +1,7 @@
-import NodeTool.Timeline
+import QtQuick
+import NodeTool.UiPrimitives as Ui
 
-PanelField {}
+Ui.TextField {
+    accessibleName: placeholderText
+    selectByMouse: true
+}

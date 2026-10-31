@@ -14,7 +14,7 @@ Item {
     readonly property var clip: controller ? controller.clip : reader.clip
     property var gesture: null
     visible: !!clip.id && (clip.mediaType === "audio" || clip.mediaType === "midi")
-    implicitWidth: visible ? Theme.trackHeaderWidth : 0
+    implicitWidth: visible ? TimelineMetrics.trackHeaderWidth : 0
     implicitHeight: visible ? section.implicitHeight : 0
     width: implicitWidth
     height: implicitHeight
@@ -46,7 +46,7 @@ Item {
         id: section
         width: parent.width
         title: "Audio"
-        icon: Icons.volumeUpOutlined
+        icon: "volumeUp"
         InspectorSliderRow {
             objectName: "audioVolume"
             width: parent.width
@@ -60,6 +60,7 @@ Item {
             onGestureStarted: root.begin("volumeDb")
             onPreview: value => root.preview("volumeDb", value)
             onChange: value => root.commit("volumeDb", value)
+            onCanceled: root.gesture = null
         }
         InspectorRow {
             width: parent.width
@@ -73,6 +74,7 @@ Item {
                 onGestureStarted: root.begin("fadeInMs")
                 onPreview: text => { const ms = Helpers.parseSeconds(text); if (ms !== null) root.preview("fadeInMs", ms) }
                 onCommit: text => root.commitSeconds("fadeInMs", text)
+                onCanceled: root.gesture = null
             }
             InspectorSelect {
                 objectName: "audioFadeInShape"
@@ -94,6 +96,7 @@ Item {
                 onGestureStarted: root.begin("fadeOutMs")
                 onPreview: text => { const ms = Helpers.parseSeconds(text); if (ms !== null) root.preview("fadeOutMs", ms) }
                 onCommit: text => root.commitSeconds("fadeOutMs", text)
+                onCanceled: root.gesture = null
             }
             InspectorSelect {
                 objectName: "audioFadeOutShape"

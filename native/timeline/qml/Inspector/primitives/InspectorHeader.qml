@@ -1,41 +1,36 @@
 import QtQuick
-import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 Item {
     id: root
     property string eyebrow: ""
     property var actions: []
     signal actionTriggered(string label)
-    implicitHeight: InspectorTokens.controlMd
+    implicitHeight: Ui.Metrics.standard
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: Theme.spacingXs
-        anchors.rightMargin: Theme.spacingXs
-        spacing: Theme.spacingMd
-        Text {
+        anchors.leftMargin: Ui.Metrics.xs
+        anchors.rightMargin: Ui.Metrics.xs
+        spacing: Ui.Metrics.md
+        Ui.Text {
             Layout.fillWidth: true
             text: root.eyebrow.toUpperCase()
-            color: Theme.textSecondary
-            font.family: Theme.sansFamily
-            font.pixelSize: Theme.fontSizeSmaller
-            font.weight: Font.Medium
-            font.letterSpacing: Theme.fontSizeSmaller * 0.06
+            tone: Ui.Text.Secondary
+            role: Ui.Typography.SansCaption
             elide: Text.ElideRight
         }
         Row {
-            spacing: Theme.spacingMicro
+            spacing: Ui.Metrics.micro
             Repeater {
                 model: root.actions
-                PanelButton {
+                Ui.ToolbarIconButton {
                     required property var modelData
-                    width: Theme.controlXs
-                    height: Theme.controlXs
-                    text: modelData.label
-                    iconPath: modelData.icon || ""
-                    iconOnly: true
-                    destructive: modelData.variant === "danger"
+                    iconName: modelData.icon || ""
                     enabled: !modelData.disabled
+                    accessibleName: modelData.label
+                    description: modelData.label
+                    iconTone: modelData.variant === "danger" ? Ui.Text.Error : Ui.Text.Secondary
                     onClicked: {
                         root.actionTriggered(modelData.label)
                         if (modelData.onClick) modelData.onClick()

@@ -35,8 +35,7 @@ class TestFClipboard : public QObject {
     }
   private slots:
     void initTestCase() {
-        qmlRegisterSingletonType(QUrl::fromLocalFile(QStringLiteral(NT_QML_DIR) + "/Theme.qml"), "NodeTool.Timeline", 1,
-                                 0, "Theme");
+        qmlRegisterSingletonType(QUrl::fromLocalFile(QStringLiteral(NT_QML_DIR) + "/TimelineVisuals.qml"), "NodeTool.Timeline", 1, 0, "TimelineVisuals");
     }
     void rubberBand() {
         QQmlEngine engine;
@@ -172,13 +171,15 @@ class TestFClipboard : public QObject {
         if (check == "tokens") {
             auto *from = object->findChild<QObject *>("fromCaption");
             QVERIFY(from);
-            QCOMPARE(QQmlProperty(from, "font.pixelSize").read().toInt(), 11);
-            QCOMPARE(from->property("color").value<QColor>().rgba(),
-                     QColor::fromRgbF(247.0 / 255, 248.0 / 255, 248.0 / 255, 0.38).rgba());
+            QQmlComponent theme(&engine);
+            theme.setData("import QtQuick\nimport NodeTool.UiPrimitives as Ui\nQtObject { property color sample: Ui.Theme.textDisabled; property int captionRole: Ui.Typography.SansCaption; property int titleRole: Ui.Typography.SansTitle }", QUrl());
+            std::unique_ptr<QObject> themeValue(theme.create());
+            QVERIFY2(themeValue, qPrintable(theme.errorString()));
+            QCOMPARE(from->property("color").value<QColor>(), themeValue->property("sample").value<QColor>());
             auto *title = object->findChild<QObject *>("dialogTitle");
             QVERIFY(title);
-            QCOMPARE(QQmlProperty(title, "font.pixelSize").read().toInt(), 18);
-            QCOMPARE(object->property("leftPadding").toDouble(), 24);
+            QCOMPARE(from->property("role").toInt(), themeValue->property("captionRole").toInt());
+            QCOMPARE(title->property("role").toInt(), themeValue->property("titleRole").toInt());
             return;
         }
         QSignalSpy chosen(object.get(), SIGNAL(groupsChosen(QVariant)));
@@ -190,7 +191,8 @@ class TestFClipboard : public QObject {
         if (check == "close") {
             auto *close = findItem(window.contentItem(), "closeButton");
             QVERIFY(close);
-            QCOMPARE(close->property("text").toString(), QString("×"));
+            QCOMPARE(close->property("iconName").toString(), QString("close"));
+            QCOMPARE(close->property("accessibleName").toString(), QString("Close"));
             QTest::mouseClick(&window, Qt::LeftButton, Qt::NoModifier,
                               close->mapToScene(QPointF(close->width() / 2, close->height() / 2)).toPoint());
             QTRY_VERIFY(!object->property("visible").toBool());
@@ -237,9 +239,8 @@ class TestFClipboard : public QObject {
                                     .arg(object->property("height").toDouble())));
         auto *opacity = findItem(window.contentItem(), "group-opacity");
         QVERIFY(opacity);
-        auto *indicator = opacity->property("indicator").value<QQuickItem *>();
-        QVERIFY(indicator);
-        QCOMPARE(indicator->property("color").value<QColor>().rgba(), QColor("#3d68a8").rgba());
+        QVERIFY(opacity->property("checked").toBool());
+        QCOMPARE(opacity->property("accessibleName").toString(), QString("Opacity and blend mode"));
     }
     void undo_data() {
         QTest::addColumn<QString>("action");

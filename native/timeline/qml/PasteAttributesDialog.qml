@@ -1,8 +1,9 @@
 import QtQuick
 import QtQuick.Controls
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
-Dialog {
+Ui.Dialog {
     id: dialog
     property var source: ({})
     property var targets: []
@@ -65,69 +66,32 @@ Dialog {
     }
     title: "Paste attributes"
     modal: true
-    width: Math.min(600, parent ? parent.width - 4 * Theme.spacingXl : 600) // web Dialog maxWidth="sm"
-    x: parent ? (parent.width - width) / 2 : 0
-    y: parent ? (parent.height - height) / 2 : 0
-    height: Math.min(implicitHeight, parent ? Math.max(0, parent.height - 4 * Theme.spacingXl) : implicitHeight)
-    padding: Theme.spacingXl
-    leftPadding: Theme.spacingXl + Theme.spacingMd
-    rightPadding: Theme.spacingXl + Theme.spacingMd
+    width: Math.min(Ui.Metrics.dialogWidth, parent ? parent.width - 4 * Ui.Metrics.xl : Ui.Metrics.dialogWidth)
+    height: Math.min(implicitHeight, parent ? Math.max(0, parent.height - 4 * Ui.Metrics.xl) : implicitHeight)
     focus: true
     closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-    font.family: Theme.sansFamily
-    font.pixelSize: Theme.fontSizeSmall
-    palette.text: Theme.textPrimary
-    palette.windowText: Theme.textPrimary
-    palette.buttonText: Theme.textPrimary
-    palette.highlight: Theme.primary
-    background: Rectangle {
-        color: Theme.backgroundPaper
-        radius: Theme.radiusLg
-        border.color: Theme.divider
-        border.width: 1
-    }
     header: Item {
-        implicitHeight: titleText.implicitHeight + 2 * Theme.spacingLg
-        Text {
+        implicitHeight: titleText.implicitHeight + 2 * Ui.Metrics.lg
+        Ui.Text {
             id: titleText
             objectName: "dialogTitle"
-            x: Theme.spacingXl + Theme.spacingMd
+            x: Ui.Metrics.xl
             anchors.verticalCenter: parent.verticalCenter
             text: dialog.title
-            color: Theme.textPrimary
-            font.family: Theme.sansFamily
-            font.pixelSize: 18 // fontSizeBig, ThemeNodetool.tsx
-            font.weight: Font.DemiBold
+            role: Ui.Typography.SansTitle
         }
-        Button {
+        Ui.ToolbarIconButton {
             objectName: "closeButton"
             anchors.right: parent.right
-            anchors.rightMargin: Theme.spacingXl + Theme.spacingMd
+            anchors.rightMargin: Ui.Metrics.xl
             anchors.verticalCenter: parent.verticalCenter
-            width: Theme.controlXs
-            height: Theme.controlXs
-            text: "×"
-            Accessible.name: "Close"
-            ToolTip.text: "Close"
-            ToolTip.visible: hovered
+            iconName: "close"
+            accessibleName: "Close"
             onClicked: dialog.close()
-            contentItem: Text {
-                text: parent.text
-                color: Theme.textSecondary
-                horizontalAlignment: Text.AlignHCenter
-                verticalAlignment: Text.AlignVCenter
-                font.pixelSize: Theme.iconSm
-            }
-            background: Rectangle {
-                color: parent.hovered ? Theme.actionHover : "transparent"
-                radius: Theme.radiusSm
-            }
         }
-        Rectangle {
+        Ui.Separator {
             anchors.bottom: parent.bottom
             width: parent.width
-            height: 1
-            color: Theme.divider
         }
     }
     contentItem: ScrollView {
@@ -141,111 +105,54 @@ Dialog {
         Column {
             id: contentColumn
             width: attributeScroll.availableWidth
-            spacing: Theme.spacingSm
-            Text {
+            spacing: Ui.Metrics.sm
+            Ui.Text {
                 objectName: "fromCaption"
                 text: "From \"" + (dialog.source.name ?? "") + "\""
-                color: Theme.textDisabled
-                font.family: Theme.sansFamily
-                font.pixelSize: Theme.fontSizeSmaller
+                role: Ui.Typography.SansCaption
+                tone: Ui.Text.Disabled
                 width: parent.width
                 wrapMode: Text.Wrap
             }
-            Text {
+            Ui.Text {
                 objectName: "emptyCaption"
                 visible: dialog.availableGroups.length === 0
                 text: "The copied clip has nothing these clips can take."
-                color: Theme.textSecondary
-                font.family: Theme.sansFamily
-                font.pixelSize: Theme.fontSizeSmaller
+                role: Ui.Typography.SansCaption
+                tone: Ui.Text.Secondary
                 width: parent.width
                 wrapMode: Text.Wrap
             }
             Repeater {
                 model: dialog.availableGroups
-                delegate: CheckBox {
+                delegate: Ui.CheckBox {
                     id: optionBox
                     width: contentColumn.width
                     required property string modelData
                     objectName: "group-" + modelData
                     text: dialog.labels[modelData]
-                    checked: dialog.chosenGroups.includes(modelData)
-                    onClicked: dialog.toggleGroup(modelData)
-                    font.family: Theme.sansFamily
-                    font.pixelSize: Theme.fontSizeNormal
-                    font.weight: Font.Normal
-                    implicitHeight: Math.max(Theme.toolbarHeight + Theme.spacingMicro, contentItem.implicitHeight)
-                    padding: 0
-                    spacing: Theme.spacingMd
-                    indicator: Rectangle {
-                        implicitWidth: Theme.controlXs - Theme.spacingXs
-                        implicitHeight: implicitWidth
-                        y: (optionBox.height - height) / 2
-                        radius: Theme.radiusXs
-                        color: optionBox.checked ? Theme.primary : Theme.backgroundPaper
-                        border.width: 2
-                        border.color: optionBox.checked ? Theme.primary : Theme.textSecondary
-                        Text {
-                            anchors.centerIn: parent
-                            visible: optionBox.checked
-                            text: "✓"
-                            color: Theme.textPrimary
-                            font.pixelSize: Theme.iconSm
-                            font.weight: Font.Medium
-                        }
-                    }
-                    contentItem: Text {
-                        text: optionBox.text
-                        font: optionBox.font
-                        color: Theme.textPrimary
-                        leftPadding: optionBox.indicator.width + optionBox.spacing
-                        verticalAlignment: Text.AlignVCenter
-                        wrapMode: Text.Wrap
-                        lineHeight: 1.5
-                    }
+                    Binding { target: optionBox; property: "checked"; value: dialog.chosenGroups.includes(optionBox.modelData) }
+                    onCheckedChangedByUser: dialog.toggleGroup(modelData)
                 }
             }
         }
     }
     footer: Row {
-        spacing: Theme.spacingMd
-        padding: Theme.spacingLg
-        leftPadding: Theme.spacingXl + Theme.spacingMd
-        rightPadding: Theme.spacingXl + Theme.spacingMd
+        spacing: Ui.Metrics.md
+        padding: Ui.Metrics.lg
         layoutDirection: Qt.RightToLeft
-        Button {
+        Ui.EditorButton {
             id: pasteButton
             objectName: "pasteButton"
             text: "Paste"
             enabled: dialog.chosenGroups.length > 0
+            variant: Ui.EditorButton.Primary
             onClicked: dialog.confirm()
-            Keys.onReturnPressed: dialog.confirm()
-            Keys.onEnterPressed: dialog.confirm()
-            font.family: Theme.sansFamily
-            font.pixelSize: Theme.fontSizeSmall
-            font.weight: Font.Medium
-            implicitHeight: Theme.toolbarHeight
-            leftPadding: Theme.spacingXl
-            rightPadding: Theme.spacingXl
-            background: Rectangle {
-                color: parent.enabled ? Theme.primary : Theme.actionDisabled
-                radius: Theme.radiusSm
-            }
         }
-        Button {
+        Ui.EditorButton {
             objectName: "cancelButton"
             text: "Cancel"
             onClicked: dialog.close()
-            font.family: Theme.sansFamily
-            font.pixelSize: Theme.fontSizeSmall
-            font.weight: Font.Medium
-            implicitHeight: Theme.toolbarHeight
-            leftPadding: Theme.spacingXl
-            rightPadding: Theme.spacingXl
-            background: Rectangle {
-                color: parent.hovered ? Theme.actionHover : "transparent"
-                radius: Theme.radiusSm
-            }
         }
     }
 }

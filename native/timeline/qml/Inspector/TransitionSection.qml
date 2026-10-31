@@ -2,6 +2,7 @@ import QtQuick
 import NodeTool.Timeline
 import "primitives"
 import "primitives/InspectorPrimitivesHelpers.js" as Helpers
+import NodeTool.UiPrimitives as Ui
 
 Item {
     id: root
@@ -82,6 +83,7 @@ Item {
                 onGestureStarted: { const payload = root.durationPayload(value); if (payload) edits.beginGesture("setTransitionDuration", payload) }
                 onPreview: raw => { const payload = root.durationPayload(raw); if (payload) edits.preview(payload) }
                 onCommit: raw => { const payload = root.durationPayload(raw); if (payload) edits.commit("setTransitionDuration", payload) }
+                onCanceled: edits.cancelGesture()
             }
         }
         InspectorColour {
@@ -117,6 +119,7 @@ Item {
             disabled: root.locked
             onGestureStarted: { if (!root.locked && root.transition) edits.beginGesture("setClipTransition", {clipId: root.clip.id, patch: {softness: value}}) }
             onPreview: softness => { if (!root.locked && root.transition) edits.preview({patch: {softness}}) }
+            onCanceled: edits.cancelGesture()
             onChange: softness => { if (!root.locked && root.transition) edits.commit("setClipTransition", {clipId: root.clip.id, patch: {softness}}) }
         }
         TransitionEasingField {
@@ -127,15 +130,14 @@ Item {
             controller: edits
             onChange: easing => root.patchField({easing})
         }
-        Text {
+        Ui.Text {
             objectName: "transitionCaption"
             width: parent.width
             text: root.clip && root.clip.locked ? "Unlock the clip to edit its transition."
                 : root.trackLocked ? "Unlock the track to edit this transition." : root.hints[root.mode]
             wrapMode: Text.WordWrap
-            color: Theme.textSecondary
-            font.family: Theme.sansFamily
-            font.pixelSize: Theme.fontSizeSmaller
+            role: Ui.Typography.SansCaption
+            tone: Ui.Text.Secondary
         }
     }
 }

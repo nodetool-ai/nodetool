@@ -84,6 +84,9 @@ private slots:
         e.gestures()->setSelection({"b"});
         auto* panel = e.inspector(); QVERIFY(panel);
         QTRY_VERIFY(findItem(panel, "testInspectorSection"));
+        if (const auto screenshot = qEnvironmentVariable("NT_INSPECTOR_SCREENSHOT"); !screenshot.isEmpty()) {
+            QVERIFY(e.window.grabWindow().save(screenshot));
+        }
         auto* probe = findItem(panel, "testInspectorSection");
         auto* transform = section(panel, "Transform"); QVERIFY(transform);
         auto* animate = section(panel, "Animate"); QVERIFY(animate);
@@ -268,6 +271,38 @@ private slots:
             e.model.undoStack()->redo(); QCOMPARE(e.model.documentJson(), after);
             e.model.undoStack()->undo();
         }
+    }
+
+    void timingKeyboardCancelRestoresPreviewWithoutUndo() {
+        Editor e; QVERIFY2(e.object, qPrintable(e.error));
+        QVERIFY(QTest::qWaitForWindowExposed(&e.window));
+        auto* dockStore = e.root()->findChild<QObject*>("dockLayoutStore"); QVERIFY(dockStore);
+        QVERIFY(QMetaObject::invokeMethod(dockStore, "dispatch", Q_ARG(QVariantMap,
+            (QVariantMap{{"type", "reveal"}, {"panelId", "inspector"}}))));
+        e.gestures()->setSelection({"b"});
+        QTRY_COMPARE(e.inspector()->findChild<QObject*>("clipInspectorController")->property("clipId").toString(), QString("b"));
+        auto* timing = findItem(e.inspector(), "inspectorTiming"); QVERIFY(timing);
+        timing->setProperty("open", true);
+        auto* duration = findItem(timing, "timingDuration"); QVERIFY(duration);
+        QTRY_VERIFY(duration->isVisible());
+        auto* field = findItem(duration, "inspectorNumericField"); QVERIFY(field);
+        const auto before = e.model.documentJson();
+        const auto undoCount = e.model.undoStack()->count();
+        field->forceActiveFocus();
+        QVERIFY2(field->hasActiveFocus(), "Duration number field did not receive focus");
+        QSignalSpy previews(duration, SIGNAL(preview(QString)));
+        QTest::keyPress(&e.window, Qt::Key_Up);
+        QVERIFY2(e.model.documentJson() != before, qPrintable(QStringLiteral("preview count=%1 field enabled=%2 text=%3")
+            .arg(previews.count()).arg(field->isEnabled()).arg(field->property("text").toString())));
+        QCOMPARE(e.model.undoStack()->count(), undoCount);
+        QTest::keyClick(&e.window, Qt::Key_Escape);
+        QCOMPARE(e.model.documentJson(), before);
+        QCOMPARE(e.model.undoStack()->count(), undoCount);
+        QTest::keyRelease(&e.window, Qt::Key_Up);
+        QTest::keyClick(&e.window, Qt::Key_Up);
+        QCOMPARE(e.model.undoStack()->count(), undoCount + 1);
+        e.model.undoStack()->undo();
+        QCOMPARE(e.model.documentJson(), before);
     }
 
     void selectionChangeDuringScrub() {

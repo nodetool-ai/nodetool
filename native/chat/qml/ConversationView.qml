@@ -2,8 +2,9 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import NodeTool.UiPrimitives as Ui
 
-Page {
+Item {
     id: root
     required property var session
     property bool showBack: false
@@ -63,44 +64,48 @@ Page {
         });
         previousThread = session.selectedThreadId;
     }
-    background: Rectangle {
-        color: ChatTheme.background
-    }
-    header: RowLayout {
-        ChatButton {
+    Ui.Surface { anchors.fill: parent; variant: Ui.Surface.Canvas }
+    RowLayout {
+        id: conversationHeader
+        anchors.left: parent.left
+        anchors.right: parent.right
+        Ui.EditorButton {
             visible: root.showBack
             text: qsTr("Chats")
-            flat: true
+            variant: Ui.EditorButton.Flat
             onClicked: root.backRequested()
         }
-        Label {
+        Ui.Text {
+            role: Ui.Typography.SansBody
             Layout.fillWidth: true
             text: qsTr("Chat")
             visible: !root.showBack
-            leftPadding: ChatTheme.lg
-            color: ChatTheme.text
-            font.pixelSize: ChatTheme.body
+            Layout.leftMargin: Ui.Metrics.lg
         }
         Item { Layout.fillWidth: true; visible: root.showBack }
-        ChatButton {
+        Ui.ToolbarIconButton {
             visible: root.showBack
-            flat: true
-            glyph: "+"
+            variant: Ui.EditorButton.Flat
+            iconName: "add"
             text: qsTr("New chat")
             enabled: !!root.session && root.session.connectionStatus === "connected"
             onClicked: root.session.createThread()
         }
-        Label {
+        Ui.Text {
+            role: Ui.Typography.SansLabel
             text: root.session && root.session.turnStatus !== "idle" ? root.session.turnStatus : ""
-            color: ChatTheme.muted
-            rightPadding: ChatTheme.lg
+            tone: Ui.Text.Secondary
+            Layout.rightMargin: Ui.Metrics.lg
         }
     }
     ColumnLayout {
-        anchors.fill: parent
-        anchors.margins: ChatTheme.xl
-        spacing: ChatTheme.md
-        ChatButton {
+        anchors.top: conversationHeader.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        anchors.margins: Ui.Metrics.xl
+        spacing: Ui.Metrics.md
+        Ui.EditorButton {
             text: qsTr("Load earlier messages")
             visible: !!root.session && root.session.hasMoreHistory
             enabled: root.session && root.session.connectionStatus === "connected"
@@ -115,10 +120,10 @@ Page {
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
-            spacing: ChatTheme.md
+            spacing: Ui.Metrics.md
             reuseItems: true
             model: root.session ? root.session.messages : null
-            ScrollBar.vertical: ScrollBar {}
+            ScrollBar.vertical: Ui.ScrollBar {}
             onMovementEnded: {
                 root.followBottom = atYEnd;
                 root.captureAnchor();
@@ -148,7 +153,7 @@ Page {
                 MessageDelegate {
                     id: turn
                     anchors.horizontalCenter: parent.horizontalCenter
-                    width: Math.min(parent.width, ChatTheme.columnWidth)
+                    width: Math.min(parent.width, ChatMetrics.columnWidth)
                     messageId: parent.messageId
                     role: parent.role
                     text: parent.text
@@ -161,42 +166,42 @@ Page {
             ColumnLayout {
                 anchors.centerIn: parent
                 visible: !!root.session && root.session.historyLoading
-                spacing: ChatTheme.md
-                BusyIndicator {
+                spacing: Ui.Metrics.md
+                Ui.BusyIndicator {
                     objectName: "chatHistoryLoadingIndicator"
                     Layout.alignment: Qt.AlignHCenter
                     running: parent.visible
-                    Accessible.name: qsTr("Loading conversation")
+                    accessibleName: qsTr("Loading conversation")
                 }
-                Label {
+                Ui.Text {
+                    role: Ui.Typography.SansLabel
                     objectName: "chatHistoryLoadingLabel"
                     text: qsTr("Loading conversation…")
-                    color: ChatTheme.muted
+                    tone: Ui.Text.Secondary
                 }
             }
             ColumnLayout {
                 anchors.centerIn: parent
-                width: parent.width - ChatTheme.xl * 2
+                width: parent.width - Ui.Metrics.xl * 2
                 visible: messages.count === 0 && !(root.session && root.session.historyLoading)
-                spacing: ChatTheme.xl
-                Label {
+                spacing: Ui.Metrics.xl
+                Ui.Text {
+                    role: Ui.Typography.SansTitle
                     objectName: "chatHistoryEmptyPrompt"
                     Layout.fillWidth: true
                     text: qsTr("What do you want to create?")
-                    font.pixelSize: ChatTheme.title
-                    font.weight: Font.DemiBold
                     wrapMode: Text.WordWrap
                     horizontalAlignment: Text.AlignHCenter
-                    color: ChatTheme.text
                 }
-                Label {
+                Ui.Text {
+                    role: Ui.Typography.SansLabel
                     Layout.fillWidth: true
                     text: root.session && root.session.selectedThreadId ? qsTr("Describe what you want to make below.") : qsTr("Start a new chat to work with an agent.")
                     wrapMode: Text.WordWrap
                     horizontalAlignment: Text.AlignHCenter
-                    color: ChatTheme.muted
+                    tone: Ui.Text.Secondary
                 }
-                ChatButton {
+                Ui.EditorButton {
                     Layout.alignment: Qt.AlignHCenter
                     visible: !root.session || !root.session.selectedThreadId
                     text: qsTr("New chat")
@@ -205,7 +210,7 @@ Page {
                 }
             }
         }
-        ChatButton {
+        Ui.EditorButton {
             Layout.alignment: Qt.AlignHCenter
             visible: !root.followBottom
             text: qsTr("Latest messages")
@@ -216,7 +221,7 @@ Page {
         }
         ChatComposer {
             Layout.fillWidth: true
-            Layout.maximumWidth: ChatTheme.columnWidth
+            Layout.maximumWidth: ChatMetrics.columnWidth
             Layout.alignment: Qt.AlignHCenter
             visible: !!root.session && !!root.session.selectedThreadId
             session: root.session

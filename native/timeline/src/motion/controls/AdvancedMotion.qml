@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls as Controls
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 InspectorSection {
     id: root
     property var timelineModel: null
@@ -83,8 +84,8 @@ InspectorSection {
             }
         }
     }
-    Controls.Button { objectName:"motionAddLink"; text: "Add link"; enabled: !root.locked && root.links.length < 32 && root.clipOptions.length > 0; onClicked: root.write("animationLinks",root.links.concat([{target:"positionX",sourceClipId:root.clipOptions[0].value,source:"positionX"}]),"") }
-    Controls.Button { objectName:"motionAddWiggle"; text: "Add wiggle"; enabled: !root.locked && root.links.length < 32; onClicked: root.write("animationLinks",root.links.concat([{target:"positionX",kind:"wiggle",amplitude:10,frequencyHz:1}]),"") }
+    Ui.EditorButton { objectName:"motionAddLink"; text: "Add link"; enabled: !root.locked && root.links.length < 32 && root.clipOptions.length > 0; onClicked: root.write("animationLinks",root.links.concat([{target:"positionX",sourceClipId:root.clipOptions[0].value,source:"positionX"}]),"") }
+    Ui.EditorButton { objectName:"motionAddWiggle"; text: "Add wiggle"; enabled: !root.locked && root.links.length < 32; onClicked: root.write("animationLinks",root.links.concat([{target:"positionX",kind:"wiggle",amplitude:10,frequencyHz:1}]),"") }
     Repeater {
         model: Array.from({length:Number(root.linkIdentity.split(":").pop())}, (_,i) => root.linkIdentity + ":" + i)
         Column {
@@ -107,7 +108,7 @@ InspectorSection {
                 }
             }
             InspectorToggleRow { width: parent.width; visible: linkRow.item.kind !== "wiggle"; label:"Loop"; checked:!!linkRow.item.loop; disabled:root.locked; onChange: next => root.link(linkRow.index,"loop",next,"") }
-            Controls.Button { text:"Remove"; enabled:!root.locked; onClicked:root.write("animationLinks",root.links.filter((_,i) => i !== linkRow.index),"") }
+            Ui.EditorButton { text:"Remove"; enabled:!root.locked; onClicked:root.write("animationLinks",root.links.filter((_,i) => i !== linkRow.index),"") }
         }
     }
 }

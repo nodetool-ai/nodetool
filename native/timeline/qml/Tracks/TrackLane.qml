@@ -6,6 +6,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 Rectangle {
     id: lane
@@ -25,7 +26,7 @@ Rectangle {
 
     objectName: "trackLane-" + trackId
     height: rowHeight
-    color: Theme.backgroundDefault
+    color: Ui.Theme.surfaceCanvas
     opacity: trackVisible ? 1 : 0.55
     clip: true
 
@@ -64,9 +65,9 @@ Rectangle {
         x: (gap.startMs ?? 0) / lane.viewState.msPerPx
         width: ((gap.endMs ?? 0) - (gap.startMs ?? 0)) / lane.viewState.msPerPx
         height: parent.height
-        color: Qt.rgba(Theme.primary.r, Theme.primary.g, Theme.primary.b, 0.18)
-        border.width: 1
-        border.color: Theme.primary
+        color: Qt.rgba(Ui.Theme.accentPrimary.r, Ui.Theme.accentPrimary.g, Ui.Theme.accentPrimary.b, 0.18)
+        border.width: Ui.Metrics.border
+        border.color: Ui.Theme.accentPrimary
     }
 
     TrackLaneContextMenu {
@@ -90,6 +91,6 @@ Rectangle {
         anchors.bottom: parent.bottom
         width: parent.width
         height: 1
-        color: Theme.divider
+        color: Ui.Theme.borderSubtle
     }
 }

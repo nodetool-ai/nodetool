@@ -1,9 +1,9 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
-import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
-Dialog {
+Ui.Dialog {
     id: dialog
     property string explanation: ""
     property string fieldLabel: "Name"
@@ -12,51 +12,50 @@ Dialog {
     property bool needsValue: true
     property bool destructive: false
     signal confirmed(string value)
-    modal: true
-    focus: true
-    parent: Overlay.overlay
-    anchors.centerIn: parent
-    width: Math.min(Theme.trackHeaderWidth + Theme.spacingXl * 4, parent ? parent.width - Theme.spacingXl * 2 : Theme.trackHeaderWidth)
-    height: Math.min(implicitHeight, parent ? parent.height - Theme.spacingXl * 2 : implicitHeight)
-    padding: Theme.spacingXl
-    font.family: Theme.sansFamily
-    font.pixelSize: Theme.fontSizeSmall
-    closePolicy: Popup.CloseOnEscape
-    onOpened: { input.text = initialValue; if (needsValue) input.forceActiveFocus() }
+    width: Math.min(384 * Ui.Theme.uiScale, parent ? parent.width - Ui.Metrics.xl * 2 : 0)
+    height: Math.min(implicitHeight, parent ? parent.height - Ui.Metrics.xl * 2 : implicitHeight)
+    onOpened: { input.value = initialValue; if (needsValue) input.forceActiveFocus() }
     function submit() {
         if (needsValue && input.text.trim() === "") return
         confirmed(input.text.trim())
         close()
     }
-    background: Rectangle { color: Theme.backgroundPaper; border.color: Theme.divider; radius: Theme.radiusMd }
-    contentItem: ScrollView {
-        implicitHeight: body.implicitHeight
-        clip: true
-        contentWidth: availableWidth
-        ColumnLayout {
-            id: body
-            width: parent.width
-            spacing: Theme.spacingMd
-            LibraryLabel { Layout.fillWidth: true; text: dialog.explanation }
-            LibraryLabel { visible: dialog.needsValue; text: dialog.fieldLabel + " (required)" }
-            LibraryField {
-                id: input
-                objectName: "libraryActionInput"
-                visible: dialog.needsValue
-                Layout.fillWidth: true
-                Accessible.name: dialog.fieldLabel
-                onAccepted: dialog.submit()
+    ColumnLayout {
+        anchors.fill: parent
+        spacing: Ui.Metrics.md
+        ScrollView {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            implicitHeight: body.implicitHeight
+            clip: true
+            contentWidth: availableWidth
+            ScrollBar.vertical: Ui.ScrollBar {}
+            ColumnLayout {
+                id: body
+                width: parent.width
+                spacing: Ui.Metrics.md
+                LibraryLabel { Layout.fillWidth: true; text: dialog.explanation }
+                LibraryLabel { visible: dialog.needsValue; text: dialog.fieldLabel + " (required)" }
+                LibraryField {
+                    id: input
+                    objectName: "libraryActionInput"
+                    visible: dialog.needsValue
+                    Layout.fillWidth: true
+                    accessibleName: dialog.fieldLabel
+                    onAccepted: dialog.submit()
+                }
+                LibraryLabel { visible: dialog.needsValue && input.text.trim() === ""; text: "Enter " + dialog.fieldLabel.toLowerCase() + " to continue." }
             }
-            LibraryLabel { visible: dialog.needsValue && input.text.trim() === ""; text: "Enter " + dialog.fieldLabel.toLowerCase() + " to continue." }
         }
-    }
-    footer: DialogButtonBox {
-        LibraryButton { text: "Cancel"; onClicked: dialog.close() }
-        LibraryButton {
-            text: dialog.actionLabel
-            destructive: dialog.destructive
-            enabled: !dialog.needsValue || input.text.trim() !== ""
-            onClicked: dialog.submit()
+        RowLayout {
+            Layout.alignment: Qt.AlignRight
+            LibraryButton { text: "Cancel"; onClicked: dialog.close() }
+            LibraryButton {
+                text: dialog.actionLabel
+                destructive: dialog.destructive
+                enabled: !dialog.needsValue || input.text.trim() !== ""
+                onClicked: dialog.submit()
+            }
         }
     }
 }

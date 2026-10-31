@@ -74,6 +74,7 @@ InspectorSection {
             onGestureStarted: { root.gestureClip = root.clip; const p = root.durationPayload(value); if (p) edits.beginGesture("trimClipEnd", p) }
             onPreview: raw => { const p = root.durationPayload(raw); if (p) edits.preview(p) }
             onCommit: raw => { const p = root.durationPayload(raw); if (p) edits.commit("trimClipEnd", p); else edits.cancelGesture(); root.gestureClip = null }
+            onCanceled: { edits.cancelGesture(); root.gestureClip = null }
         }
     }
     InspectorCaption { objectName: "timingLockHint"; visible: !root.groupMode && !!root.lockHint; text: root.lockHint }
@@ -91,6 +92,7 @@ InspectorSection {
             onGestureStarted: { const p = root.speedPayload(value); if (p) edits.beginGesture("setClipSpeed", p) }
             onPreview: raw => { const p = root.speedPayload(raw); if (p) edits.preview(p) }
             onCommit: raw => { const p = root.speedPayload(raw); if (p) edits.commit("setClipSpeed", p); else edits.cancelGesture(); root.gestureClip = null }
+            onCanceled: { edits.cancelGesture(); root.gestureClip = null }
         }
     }
     InspectorCaption { visible: !root.groupMode && root.remapped; text: "Time Remap sets this clip's speed." }

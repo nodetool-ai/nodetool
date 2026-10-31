@@ -238,6 +238,18 @@ describe("buildPlan", () => {
     ]);
   });
 
+  it.each([
+    "native/ui_primitives/qml/EditorButton.qml",
+    "native/ui_primitives/CMakeLists.txt",
+    "native/ui_primitives/tools/check_design.py"
+  ])("selects the native UI checks for %s", (file) => {
+    expect(plan([file]).globalFiles).toEqual([]);
+    expect(plan([file]).steps).toEqual([
+      { label: "native UI: design contracts", command: "python3", args: ["native/ui_primitives/tools/check_design.py", "--strict"] },
+      { label: "native UI: dependency boundaries", command: "python3", args: ["native/ui_primitives/tools/check_dependencies.py"] }
+    ]);
+  });
+
   it("runs each check once and still runs the owning workspaces", () => {
     expect(
       labels([

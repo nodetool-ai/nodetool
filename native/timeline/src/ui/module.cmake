@@ -8,10 +8,6 @@ nt_sources(app
     src/ui/UiBench.h
     src/ui/UiBench.cpp
 )
-nt_qml_files(qml/Theme.qml)
-nt_qml_files(qml/Icons.qml)
-nt_qml_files(qml/Icon.qml)
-nt_qml_files(qml/TransportButton.qml)
 nt_qml_files(qml/Tracks/TracksRegion.qml)
 nt_qml_files(qml/Tracks/TimeRuler.qml)
 nt_qml_files(qml/Tracks/TrackHeader.qml)
@@ -22,8 +18,6 @@ nt_qml_files(qml/Tracks/ClipBody.qml)
 nt_qml_files(qml/Tracks/FadeRamp.qml)
 nt_qml_files(qml/Tracks/Playhead.qml)
 nt_qml_files(qml/Tracks/TimelineZoomControls.qml)
-nt_qml_files(qml/Tracks/ZoomStepButton.qml)
-nt_qml_files(qml/Tracks/CompactSlider.qml)
 nt_qml_files(qml/Tracks/TrackHeightSlider.qml)
 nt_qml_files(qml/Tracks/TimelineScrollbar.qml)
 nt_qml_files(qml/Tracks/ToolButton.qml)
@@ -80,11 +74,3 @@ function(nt_ui_tests)
 
 endfunction()
 nt_tests(nt_ui_tests)
-
-nt_qml_files(
-    qml/controls/PanelButton.qml
-    qml/controls/PanelField.qml
-    qml/controls/PanelTextArea.qml
-    qml/controls/PanelSelect.qml
-    qml/controls/PanelScrollBar.qml
-)

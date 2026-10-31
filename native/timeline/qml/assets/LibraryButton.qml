@@ -1,3 +1,9 @@
-import NodeTool.Timeline
+import QtQuick
+import NodeTool.UiPrimitives as Ui
 
-PanelButton {}
+Ui.EditorButton {
+    property bool destructive: false
+    density: Ui.EditorButton.Compact
+    variant: destructive ? Ui.EditorButton.Destructive : Ui.EditorButton.Default
+    accessibleName: text
+}

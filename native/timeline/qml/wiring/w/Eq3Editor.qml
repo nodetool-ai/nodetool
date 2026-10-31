@@ -1,76 +1,80 @@
 import QtQuick
 import QtQuick.Controls
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 EffectEditor {
     id: editor
-    spacing: Theme.spacingMd
+    spacing: Ui.Metrics.md
     Eq3Curve {
         width: parent.width
         effect: editor.effect
         disabled: editor.disabled
         onPreview: patch => editor.preview(patch)
         onCommit: patch => editor.commit(patch)
+            onEditCanceled: editor.editCanceled()
     }
     Row {
         width: parent.width
-        spacing: Theme.spacingXs
+        spacing: Ui.Metrics.xs
         Repeater {
             model: ["low", "mid", "high"]
             delegate: Rectangle {
                 id: tile
                 required property string modelData
                 required property int index
-                width: (parent.width - 2 * Theme.spacingXs) / 3
-                height: 52
-                color: Theme.backgroundPaper
-                radius: Theme.radiusXs
-                border.width: 1; border.color: Theme.divider
-                Rectangle { width: parent.width; height: 2; color: [Theme.info,Theme.success,Theme.warning][tile.index] }
+                width: (parent.width - 2 * Ui.Metrics.xs) / 3
+                height: Math.max(52, tileDetails.implicitHeight + Ui.Metrics.sm * 2)
+                color: Ui.Theme.surfacePanel
+                radius: Ui.Metrics.micro
+                border.width: Ui.Metrics.border; border.color: Ui.Theme.borderSubtle
+                Rectangle { width: parent.width; height: 2; color: [Ui.Theme.statusInfo,Ui.Theme.statusSuccess,Ui.Theme.statusWarning][tile.index] }
                 Column {
-                    x: Theme.spacingMd; y: Theme.spacingXs
-                    width: parent.width - 2 * Theme.spacingMd
-                    spacing: Theme.spacingMicro
+                    id: tileDetails
+                    x: Ui.Metrics.md; y: Ui.Metrics.xs
+                    width: parent.width - 2 * Ui.Metrics.md
+                    spacing: Ui.Metrics.micro
                     Item {
-                        width: parent.width; height: 12
-                        Text {
+                        width: parent.width; height: Ui.Typography.pixelSize(Ui.Typography.SansLabel) * 1.35
+                        Ui.Text {
                             anchors.left: parent.left
                             text: [TrackEffectsReference.data.strings.eq.lowShelf, TrackEffectsReference.data.strings.eq.midPeak, TrackEffectsReference.data.strings.eq.highShelf][tile.index]
-                            color: Theme.textSecondary; font.pixelSize: Theme.fontSizeSmaller; font.family: Theme.sansFamily
+                            tone: Ui.Text.Secondary; role: Ui.Typography.SansCaption
                         }
-                        Text {
+                        Ui.Text {
                             anchors.right: parent.right
                             text: (editor.effect[tile.modelData + "GainDb"] >= 0 ? "+" : "") + editor.effect[tile.modelData + "GainDb"].toFixed(1) + " dB"
-                            color: Theme.textPrimary; font.pixelSize: Theme.fontSizeSmaller; font.family: Theme.sansFamily; font.weight: Font.Medium
+                            tone: Ui.Text.Primary; role: Ui.Typography.SansLabel
                         }
                     }
                     Item {
-                        width: parent.width; height: 12
-                        Text { text: TrackEffectsReference.data.strings.frequencyShort; color: Theme.textSecondary; font.pixelSize: Theme.fontSizeSmaller; font.family: Theme.sansFamily }
-                        Text {
+                        width: parent.width; height: Ui.Typography.pixelSize(Ui.Typography.SansLabel) * 1.35
+                        Ui.Text { text: TrackEffectsReference.data.strings.frequencyShort; tone: Ui.Text.Secondary; role: Ui.Typography.SansCaption }
+                        Ui.Text {
                             anchors.right: parent.right
                             readonly property real hz: editor.effect[tile.modelData + "Freq"]
                             text: hz >= 1000 ? (hz / 1000).toFixed(hz >= 10000 ? 1 : 2) + " kHz" : Math.round(hz) + " Hz"
-                            color: Theme.textPrimary; font.pixelSize: Theme.fontSizeSmaller; font.family: Theme.sansFamily; font.weight: Font.Medium
+                            tone: Ui.Text.Primary; role: Ui.Typography.SansLabel
                         }
                     }
                     Item {
                         visible: tile.index === 1
-                        width: parent.width; height: 12
-                        Text { text: TrackEffectsReference.data.strings.q; color: Theme.textSecondary; font.pixelSize: Theme.fontSizeSmaller; font.family: Theme.sansFamily }
-                        Text {
+                        width: parent.width; height: Ui.Typography.pixelSize(Ui.Typography.SansLabel) * 1.35
+                        Ui.Text { text: TrackEffectsReference.data.strings.q; tone: Ui.Text.Secondary; role: Ui.Typography.SansCaption }
+                        Ui.Text {
                             anchors.right: parent.right
                             text: Number(editor.effect.midQ).toFixed(2)
-                            color: Theme.textPrimary; font.pixelSize: Theme.fontSizeSmaller; font.family: Theme.sansFamily; font.weight: Font.Medium
+                            tone: Ui.Text.Primary; role: Ui.Typography.SansLabel
                         }
                     }
                 }
             }
         }
     }
-    Text {
+    Ui.Text {
+        id: hint
         text: TrackEffectsReference.data.strings.eq.curveHint
-        color: Theme.textSecondary; font.family: Theme.sansFamily; font.pixelSize: Theme.fontSizeSmaller
-        ToolTip.visible: hintHover.hovered; ToolTip.delay: 500; ToolTip.text: TrackEffectsReference.data.strings.eq.curveHelp
+        tone: Ui.Text.Secondary; role: Ui.Typography.SansCaption
+        Ui.Tooltip { trigger: hint; visible: hintHover.hovered; text: TrackEffectsReference.data.strings.eq.curveHelp }
         HoverHandler { id: hintHover }
     }
 }
