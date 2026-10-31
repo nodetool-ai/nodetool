@@ -232,7 +232,7 @@ jobs:
             | tee "$RUNNER_TEMP/render.log"
           grep -q "Creating QRhi with backend Vulkan" "$RUNNER_TEMP/render.log" ||
             { echo "::error::the render tests did not run on Vulkan"; exit 1; }
-          grep -A1 "Physical device [0-9]*: 'llvmpipe" "$RUNNER_TEMP/render.log" | grep -q "using this physical device" ||
+          grep -A1 "Physical device [0-9]*: 'llvmpipe" "$RUNNER_TEMP/render.log" | grep "using this physical device" > /dev/null ||
             { echo "::error::the render tests did not run on lavapipe"; exit 1; }
 
       - name: Test (headless, Windows)
@@ -247,7 +247,7 @@ jobs:
             | tee "$RUNNER_TEMP/render.log"
           grep -q "Creating QRhi with backend D3D11" "$RUNNER_TEMP/render.log" ||
             { echo "::error::the render tests did not run on D3D11"; exit 1; }
-          grep -A1 "Adapter [0-9]*: 'Microsoft Basic Render Driver'" "$RUNNER_TEMP/render.log" | grep -q "using this adapter" ||
+          grep -A1 "Adapter [0-9]*: 'Microsoft Basic Render Driver'" "$RUNNER_TEMP/render.log" | grep "using this adapter" > /dev/null ||
             { echo "::error::the render tests did not run on WARP"; exit 1; }
 
       - name: Diagnose Linux matte crash
