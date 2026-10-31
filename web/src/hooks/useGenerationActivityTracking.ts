@@ -53,8 +53,18 @@ const readRecord = (value: unknown): Record<string, unknown> =>
     ? (value as Record<string, unknown>)
     : {};
 
-const readAssetIds = (value: unknown): string[] =>
+const readStrings = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter(isString) : [];
+
+const readAssetIds = readStrings;
+
+/** A `generate_media` request's settings: everything but the prompt. */
+const readRequestSettings = (
+  data: Record<string, unknown>
+): Record<string, unknown> => {
+  const { prompt: _prompt, ...settings } = data;
+  return settings;
+};
 
 /** The active workspace tab, which is where a request was started from. */
 const activeTabSource = (): GenerationActivitySource | null => {
@@ -108,9 +118,10 @@ export const generationFromCommand = (
     if (!id) {
       return null;
     }
-    return {
+    const generation: GenerationActivity = {
       id,
       channel: "rpc",
+      request: readRequestSettings(data),
       status: "generating",
       kind: mediaKindOf(readString(data.mode)),
       prompt: readString(data.prompt),
@@ -122,6 +133,11 @@ export const generationFromCommand = (
       assetIds: [],
       error: null
     };
+    const presetIds = readStrings(data.preset_ids);
+    if (presetIds.length > 0) {
+      generation.preset_ids = presetIds;
+    }
+    return generation;
   }
   if (message.command === "chat_message") {
     const media = readRecord(data.media_generation);

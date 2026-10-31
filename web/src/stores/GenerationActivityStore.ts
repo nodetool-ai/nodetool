@@ -38,11 +38,19 @@ export interface GenerationActivitySource {
   title: string;
 }
 
+/**
+ * The settings a `generate_media` request carried, without its prompt: mode,
+ * provider, model, size, duration, seed and presets. A retake sends them again.
+ */
+export type GenerationRequestSettings = Record<string, unknown>;
+
 export interface GenerationActivity {
   /** The request id, chat message id or prediction id. */
   id: string;
   channel: GenerationActivityChannel;
   preset_ids?: string[];
+  /** Set for a `generate_media` request. */
+  request?: GenerationRequestSettings;
   preset_warnings?: string[];
   status: GenerationActivityStatus;
   kind: GenerationMediaKind;

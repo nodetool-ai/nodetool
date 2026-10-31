@@ -81,6 +81,32 @@ describe("generationFromCommand", () => {
     });
   });
 
+  it("keeps the request's settings and presets for a retake", () => {
+    const generation = generationFromCommand(
+      {
+        command: "generate_media",
+        request_id: "req-2",
+        data: {
+          mode: "video",
+          prompt: "dolly in",
+          provider: "fake",
+          model: "wan",
+          seed: 9,
+          preset_ids: ["camera.arc"]
+        }
+      },
+      null
+    );
+    expect(generation?.preset_ids).toEqual(["camera.arc"]);
+    expect(generation?.request).toEqual({
+      mode: "video",
+      provider: "fake",
+      model: "wan",
+      seed: 9,
+      preset_ids: ["camera.arc"]
+    });
+  });
+
   it("reads a media chat turn and skips a text one", () => {
     expect(
       generationFromCommand(

@@ -8794,7 +8794,8 @@
         "script": "Neues Skript",
         "jsscript": "Neues JS-Skript",
         "skill": "Neuer Skill",
-        "model3d": "Neues 3D-Modell"
+        "model3d": "Neues 3D-Modell",
+        "create": "Bilder und Videos erstellen"
       },
       "templates": {
         "markdown": "Markdown (.md)",
@@ -19149,5 +19150,49 @@
     "title": "Kamera-Presets",
     "done": "Fertig",
     "remove": "{{name}} entfernen"
+  },
+  "create_view": {
+    "title": "Erstellen",
+    "promptLabel": "Beschreibe, was entstehen soll",
+    "generate": "Generieren",
+    "takesHeader": "Takes pro Durchlauf",
+    "takes_one": "{{count}} Take",
+    "takes_other": "{{count}} Takes",
+    "placeholder": {
+      "image": "Ein Leuchtturm in der Dämmerung, Filmstill",
+      "video": "Langsame Kamerafahrt auf einen Leuchtturm in der Dämmerung"
+    },
+    "blocker": {
+      "noPrompt": "Schreibe einen Prompt, um zu generieren.",
+      "noModel": {
+        "image": "Wähle ein Bildmodell, um zu generieren.",
+        "video": "Wähle ein Videomodell, um zu generieren."
+      }
+    },
+    "sendFailed": "{{sent}} von {{count}} Takes gestartet. Die übrigen haben NodeTool nicht erreicht. Prüfe die Verbindung und versuche es erneut.",
+    "retakeFailed": "Wiederholung nicht möglich: {{reason}}",
+    "olderFailed": "Ältere Ergebnisse konnten nicht geladen werden.",
+    "gridLabel": "Generierungen",
+    "empty": {
+      "title": "Noch nichts erstellt",
+      "description": "Schreibe oben einen Prompt und drücke Generieren. Deine Bilder und Videos erscheinen hier, die neuesten zuerst.",
+      "action": "Prompt schreiben"
+    },
+    "item": {
+      "open": "{{title}} öffnen",
+      "download": "Herunterladen",
+      "downloadLabel": "{{title}} herunterladen",
+      "retake": "Mit denselben Einstellungen wiederholen",
+      "retakeLabel": "{{title}} mit denselben Einstellungen wiederholen",
+      "sendToTimeline": "An Timeline senden",
+      "sendToTimelineLabel": "{{title}} an eine Timeline senden",
+      "openAsWorkflow": "Als Workflow öffnen",
+      "openAsWorkflowLabel": "{{title}} als Workflow öffnen",
+      "loadFailed": "Das Ergebnis konnte nicht geladen werden: {{reason}}",
+      "downloaded": "{{name}} heruntergeladen",
+      "downloadFailed": "Download nicht möglich: {{reason}}",
+      "workflowName": "Create-Workflow",
+      "workflowFailed": "Workflow konnte nicht erstellt werden: {{reason}}"
+    }
   }
 }

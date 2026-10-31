@@ -8794,7 +8794,8 @@
         "script": "New script",
         "jsscript": "New JS script",
         "skill": "New skill",
-        "model3d": "New 3D model"
+        "model3d": "New 3D model",
+        "create": "Create images and videos"
       },
       "templates": {
         "markdown": "Markdown (.md)",
@@ -19149,5 +19150,49 @@
     "title": "Camera presets",
     "done": "Done",
     "remove": "Remove {{name}}"
+  },
+  "create_view": {
+    "title": "Create",
+    "promptLabel": "Describe what to create",
+    "generate": "Generate",
+    "takesHeader": "Takes per press",
+    "takes_one": "{{count}} take",
+    "takes_other": "{{count}} takes",
+    "placeholder": {
+      "image": "A lighthouse at dusk, film still",
+      "video": "Slow dolly in on a lighthouse at dusk"
+    },
+    "blocker": {
+      "noPrompt": "Write a prompt to generate.",
+      "noModel": {
+        "image": "Pick an image model to generate.",
+        "video": "Pick a video model to generate."
+      }
+    },
+    "sendFailed": "Started {{sent}} of {{count}} takes. The rest did not reach NodeTool. Check your connection and try again.",
+    "retakeFailed": "Could not retake: {{reason}}",
+    "olderFailed": "Older renders could not be loaded.",
+    "gridLabel": "Generations",
+    "empty": {
+      "title": "Nothing created yet",
+      "description": "Write a prompt above and press Generate. Your images and videos appear here, newest first.",
+      "action": "Write a prompt"
+    },
+    "item": {
+      "open": "Open {{title}}",
+      "download": "Download",
+      "downloadLabel": "Download {{title}}",
+      "retake": "Retake with the same settings",
+      "retakeLabel": "Retake {{title}} with the same settings",
+      "sendToTimeline": "Send to timeline",
+      "sendToTimelineLabel": "Send {{title}} to a timeline",
+      "openAsWorkflow": "Open as workflow",
+      "openAsWorkflowLabel": "Open {{title}} as a workflow",
+      "loadFailed": "Could not load the result: {{reason}}",
+      "downloaded": "Downloaded {{name}}",
+      "downloadFailed": "Could not download: {{reason}}",
+      "workflowName": "Create workflow",
+      "workflowFailed": "Could not build a workflow: {{reason}}"
+    }
   }
 }

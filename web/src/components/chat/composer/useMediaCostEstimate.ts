@@ -52,9 +52,18 @@ function megapixelsFor(resolution: "1K" | "2K" | "4K", aspectRatio: string) {
   return Math.round(((width * height) / 1_000_000) * 100) / 100;
 }
 
+export interface MediaCostEstimateOptions {
+  /** Requests started together, each priced alike. Default 1. */
+  requests?: number;
+  /** Images asked of each request, in place of the composer's variations. */
+  variations?: number;
+}
+
 export function useMediaCostEstimate(
-  mode: MediaMode
+  mode: MediaMode,
+  options: MediaCostEstimateOptions = {}
 ): MediaCostEstimate | null {
+  const { requests = 1, variations } = options;
   const image = useMediaGenerationStore((s) => s.image);
   const imageEdit = useMediaGenerationStore((s) => s.imageEdit);
   const video = useMediaGenerationStore((s) => s.video);
@@ -76,7 +85,7 @@ export function useMediaCostEstimate(
             resolution: image.resolution,
             megapixels: megapixelsFor(image.resolution, image.aspectRatio)
           },
-          quantity: image.variations
+          quantity: variations ?? image.variations
         };
       }
       if (mode === "image_edit") {
@@ -89,7 +98,7 @@ export function useMediaCostEstimate(
               imageEdit.aspectRatio
             )
           },
-          quantity: imageEdit.variations
+          quantity: variations ?? imageEdit.variations
         };
       }
       if (mode === "video") {
@@ -144,19 +153,31 @@ export function useMediaCostEstimate(
     if (!price || price.declined || !Number.isFinite(price.unit_price)) {
       return null;
     }
-    const total = price.unit_price * job.quantity;
+    const quantity = job.quantity * requests;
+    const total = price.unit_price * quantity;
     if (!(total > 0)) {
       return null;
     }
     return {
       label: formatUsd(total),
       total,
-      quantity: job.quantity,
+      quantity,
       breakdown: price.breakdown,
       assumptions: price.assumptions,
       warnings: price.warnings
     };
-  }, [mode, image, imageEdit, video, imageToVideo, referenceToVideo, audio, music]);
+  }, [
+    mode,
+    requests,
+    variations,
+    image,
+    imageEdit,
+    video,
+    imageToVideo,
+    referenceToVideo,
+    audio,
+    music
+  ]);
 }
 
 export default useMediaCostEstimate;
