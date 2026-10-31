@@ -287,7 +287,7 @@ Acceptance:
 
 Size: 1 week, mostly render and review time.
 
-Status: tooling done, previews pending.
+Status: done for the 40 camera presets and 17 image-to-video effects, published from 480p draft renders. The three image-edit effects have no preview yet.
 
 - Add `scripts/presets/render-previews.mjs`: for each preset without a current
   preview, build the eject graph, run it with `nodetool run` against a fixed
