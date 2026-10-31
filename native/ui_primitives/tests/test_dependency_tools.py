@@ -5,6 +5,8 @@ import json
 import os
 from pathlib import Path
 import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -187,6 +189,26 @@ class DependencyTests(unittest.TestCase):
                         isolation.assert_clean_runtime_log(log)
             log.write_text('Offscreen smoke completed')
             isolation.assert_clean_runtime_log(log)
+
+    @unittest.skipUnless(sys.platform.startswith('linux') and shutil.which('objdump')
+                         and shutil.which('cmake') and shutil.which('ninja'), 'Linux ELF tools required')
+    def test_isolated_path_can_inspect_runtime_dependencies(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            qt = root / 'qt'
+            (qt / 'bin').mkdir(parents=True)
+            environment = isolation.restricted_environment(root, qt)
+            script = root / 'dependencies.cmake'
+            script.write_text('file(GET_RUNTIME_DEPENDENCIES EXECUTABLES "{}" '
+                              'RESOLVED_DEPENDENCIES_VAR libraries UNRESOLVED_DEPENDENCIES_VAR missing)\n'
+                              'if(NOT libraries OR missing)\n'
+                              'message(FATAL_ERROR "Runtime dependency scan failed: ${{missing}}")\n'
+                              'endif()\n'.format(Path(sys.executable).resolve().as_posix()))
+            result = subprocess.run(['cmake', '-P', str(script)], env=environment,
+                                    capture_output=True, text=True, timeout=30)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            for name in isolation.BLOCKED_TOOLS:
+                self.assertIsNone(shutil.which(name, path=environment['PATH']))
 
     @unittest.skipIf(shutil.which('cmake') is None or shutil.which('ninja') is None, 'CMake/Ninja required')
     def test_isolated_path_does_not_expose_node(self):
