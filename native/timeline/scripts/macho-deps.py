@@ -123,17 +123,19 @@ def otool(args, path):
 
 def install_name(path):
     lines = otool(["-D"], path).splitlines()
-    return lines[1].strip() if len(lines) > 1 else None
+    return next((line.strip() for line in lines if line.strip() and not line.rstrip().endswith(":")), None)
 
 
 def linked(path):
     own = install_name(path)
     deps = []
-    for line in otool(["-L"], path).splitlines()[1:]:
+    for line in otool(["-L"], path).splitlines():
+        if " (compatibility" not in line:
+            continue
         dep = line.strip().split(" (compatibility")[0].strip()
         if dep and dep != own:
             deps.append(dep)
-    return deps
+    return list(dict.fromkeys(deps))
 
 
 def rpaths(path):
@@ -145,7 +147,7 @@ def rpaths(path):
                 if line.startswith("path "):
                     out.append(line[5:].rsplit(" (offset ", 1)[0])
                     break
-    return out
+    return list(dict.fromkeys(out))
 
 
 def inside(bundle, path):

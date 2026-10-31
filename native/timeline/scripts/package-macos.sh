@@ -41,12 +41,13 @@ app=$(cd "$app" && pwd -P)
 # kegs (qtbase, qtdeclarative, ...) whose frameworks link each other by
 # absolute paths, and some libraries keep their Cellar rpaths. Point every
 # absolute reference at the copy in Contents/Frameworks (@rpath), and drop
-# every rpath outside the bundle. A reference with no copy fails the script.
+# every rpath outside the bundle. Missing application/framework dependencies
+# fail here. Broken plug-ins reach the pruning and final dependency audit below.
 frameworks="$app/Contents/Frameworks"
 missing=0
 while IFS= read -r f; do
     file -b "$f" | grep -q "Mach-O" || continue
-    id=$(otool -D "$f" | tail -n +2)  # a dylib's own install name, listed first by otool -L
+    id=$(otool -D "$f" | sed -E '/:$/d; /^[[:space:]]*$/d; s/^[[:space:]]+//' | sort -u)  # a dylib's own install name, listed first by otool -L
     while IFS= read -r dep; do
         case "$dep" in /System/* | /usr/lib/* | @*) continue ;; esac
         if [[ "$dep" == *.framework/* ]]; then
@@ -58,11 +59,13 @@ while IFS= read -r f; do
             install_name_tool -id "@rpath/$rel" "$f" 2> /dev/null
         elif [[ -e "$frameworks/$rel" ]]; then
             install_name_tool -change "$dep" "@rpath/$rel" "$f" 2> /dev/null
+        elif [[ "$f" == "$app/Contents/PlugIns/"* || "$f" == "$app/Contents/Resources/qml/"* ]]; then
+            echo "prune candidate: $(basename "$f") needs missing $dep" >&2
         else
             echo "error: $(basename "$f") needs $dep, which the bundle does not have" >&2
             missing=1
         fi
-    done < <(otool -L "$f" | tail -n +2 | sed -E 's/^[[:space:]]+//; s/ \(compatibility.*$//')
+    done < <(otool -L "$f" | tail -n +2 | sed -E '/ \(compatibility/!d; s/^[[:space:]]+//; s/ \(compatibility.*$//')
 done < <(find "$app" -type f)
 [[ $missing == 0 ]] || exit 1
 # Every rpath that leaves the bundle goes, and so does every plug-in whose

@@ -87,11 +87,13 @@ class QtPackagingSelectionTest(unittest.TestCase):
             stubs = r'''
 file() { echo Mach-O; }
 otool() {
-    if [[ "$1" == -D ]]; then
-        printf '%s:\n@rpath/QtCore.framework/Versions/A/QtCore\n' "$2"
-    else
-        printf '%s:\n\t%s (compatibility version 6.0.0, current version 6.12.0)\n' "$2" "$DEPENDENCY"
-    fi
+    for arch in x86_64 arm64; do
+        if [[ "$1" == -D ]]; then
+            printf '%s (architecture %s):\n@rpath/QtCore.framework/Versions/A/QtCore\n' "$2" "$arch"
+        else
+            printf '%s (architecture %s):\n\t%s (compatibility version 6.0.0, current version 6.12.0)\n' "$2" "$arch" "$DEPENDENCY"
+        fi
+    done
 }
 install_name_tool() { printf '%s\n' "$@" >> "$CAPTURE"; }
 app=$APP
@@ -104,9 +106,45 @@ app=$APP
             self.assertIn(str(dependency), capture.read_text().splitlines())
             self.assertIn("@rpath/QtCore.framework/Versions/A/QtCore", capture.read_text().splitlines())
 
+    def test_optional_plugins_reach_pruning_but_missing_frameworks_fail(self):
+        for location, expected in [("PlugIns/sqldrivers/libqsqlpsql.dylib", 0),
+                                   ("Frameworks/QtCore.framework/Versions/A/QtCore", 1)]:
+            with self.subTest(location=location), tempfile.TemporaryDirectory() as directory:
+                app = Path(directory) / "Timeline.app"
+                unit = app / "Contents" / location
+                unit.parent.mkdir(parents=True)
+                unit.write_text("Mach-O fixture")
+                script = Path(__file__).with_name("package-macos.sh").read_text()
+                rewrite = 'frameworks="$app/Contents/Frameworks"' + script.split(
+                    'frameworks="$app/Contents/Frameworks"', 1)[1].split("# Every rpath", 1)[0]
+                stubs = r'''
+file() { echo Mach-O; }
+otool() {
+    if [[ "$1" == -D ]]; then
+        printf '%s:\n@rpath/fixture\n' "$2"
+    else
+        printf '%s:\n\t/missing/libpq.dylib (compatibility version 1.0.0, current version 1.0.0)\n' "$2"
+    fi
+}
+app=$APP
+'''
+                result = subprocess.run(["bash", "-euo", "pipefail", "-c", stubs + rewrite],
+                                        env={**os.environ, "APP": str(app)}, capture_output=True, text=True)
+                self.assertEqual(result.returncode, expected, result.stderr)
+                self.assertIn("prune candidate" if expected == 0 else "error:", result.stderr)
+
+    def test_universal_dependencies_skip_architecture_headers_and_own_id(self):
+        own = "@rpath/QtCore.framework/Versions/A/QtCore"
+        dependency = "@rpath/QtGui.framework/Versions/A/QtGui"
+        ids = "".join(f"QtCore (architecture {arch}):\n{own}\n" for arch in ["x86_64", "arm64"])
+        links = "".join(f"QtCore (architecture {arch}):\n\t{own} (compatibility version 6.0.0, current version 6.12.0)\n\t{dependency} (compatibility version 6.0.0, current version 6.12.0)\n" for arch in ["x86_64", "arm64"])
+        with patch.object(macho, "otool", side_effect=lambda args, path: ids if args == ["-D"] else links):
+            self.assertEqual(macho.install_name("fixture"), own)
+            self.assertEqual(macho.linked("fixture"), [dependency])
+
     def test_rpaths_preserve_spaces(self):
         output = "Load command 1\n          cmd LC_RPATH\n      cmdsize 80\n         path /tmp/NodeTool Timeline.app/Contents/Frameworks (offset 12)\n"
-        with patch.object(macho, "otool", return_value=output):
+        with patch.object(macho, "otool", return_value=output * 2):
             self.assertEqual(macho.rpaths("fixture"), ["/tmp/NodeTool Timeline.app/Contents/Frameworks"])
 
     def test_configure_uses_selected_sdk_before_homebrew(self):

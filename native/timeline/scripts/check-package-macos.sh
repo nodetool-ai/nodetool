@@ -34,10 +34,10 @@ while IFS= read -r f; do
     file -b "$f" | grep -q "Mach-O" && machos+=("$f")
 done < <(find "$app" -type f)
 bad_links=$(for f in "${machos[@]}"; do
-    otool -L "$f" | tail -n +2 | sed -E 's/^[[:space:]]+//; s/ \(compatibility.*$//' |
+    otool -L "$f" | tail -n +2 | sed -E '/ \(compatibility/!d; s/^[[:space:]]+//; s/ \(compatibility.*$//' |
         grep -E -v '^(/System/|/usr/lib/|@rpath/|@executable_path/|@loader_path/)' | sed "s|^|$(basename "$f"): |"
     # A relative reference that still names a build machine path.
-    otool -L "$f" | tail -n +2 | sed -E 's/^[[:space:]]+//; s/ \(compatibility.*$//' | grep -E '/opt/homebrew|/usr/local|/Users/|/private/' |
+    otool -L "$f" | tail -n +2 | sed -E '/ \(compatibility/!d; s/^[[:space:]]+//; s/ \(compatibility.*$//' | grep -E '/opt/homebrew|/usr/local|/Users/|/private/' |
         sed "s|^|$(basename "$f"): |"
 done)
 bad_rpaths=$(for f in "${machos[@]}"; do
