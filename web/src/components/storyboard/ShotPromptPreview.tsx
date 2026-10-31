@@ -21,7 +21,12 @@ import {
   shotRenderMode
 } from "@nodetool-ai/protocol";
 
+import { presetText } from "../../utils/presetText";
+import { presetCatalog } from "./cameraOptions";
+import { previewShotCamera } from "./shotCameraPresets";
+
 import {
+  AlertBanner,
   Box,
   Caption,
   CollapsibleSection,
@@ -42,6 +47,8 @@ interface ShotPromptPreviewProps {
   style: string;
   /** Names of the cast the render attaches as references. */
   castNames: string[];
+  /** The model the clip renders with; the camera presets compile for its family. */
+  videoModelId?: string | null;
 }
 
 const promptSx = {
@@ -80,17 +87,36 @@ const ShotPromptPreviewInner: React.FC<ShotPromptPreviewProps> = ({
   shot,
   scene,
   style,
-  castNames
+  castNames,
+  videoModelId
 }) => {
   const { t } = useTranslation();
   const mode = shotRenderMode(shot);
+  const presetIds = shot.camera?.preset_ids;
+  const camera = useMemo(
+    () => previewShotCamera(presetIds, videoModelId, mode, presetCatalog),
+    [presetIds, videoModelId, mode]
+  );
   const { still, clip } = useMemo(
     () => ({
       still: keyframePrompt(shot, { scene, style }),
-      clip: clipPromptFor(shot, { scene, style }, mode)
+      clip: clipPromptFor(
+        shot,
+        {
+          scene,
+          style,
+          ...(camera.compiled && { compiledCamera: camera.compiled })
+        },
+        mode
+      )
     }),
-    [shot, scene, style, mode]
+    [shot, scene, style, mode, camera.compiled]
   );
+  const fallbackNames = camera.fallbackIds
+    .map((id) => presetCatalog.getPreset(id))
+    .filter((preset) => preset !== undefined)
+    .map((preset) => presetText(t, preset).name)
+    .join(", ");
 
   return (
     <CollapsibleSection
@@ -131,6 +157,40 @@ const ShotPromptPreviewInner: React.FC<ShotPromptPreviewProps> = ({
           )}
           text={clip}
         />
+        {camera.compiled && (
+          <PromptBlock
+            label={t("screens4_18.storyboard.shotPromptPreview.cameraClause")}
+            copyLabel={t(
+              "screens4_18.storyboard.shotPromptPreview.copyPrompt",
+              {
+                promptType: t(
+                  "screens4_18.storyboard.shotPromptPreview.cameraClause"
+                )
+              }
+            )}
+            emptyText={t(
+              "screens4_18.storyboard.shotPromptPreview.emptyPrompt"
+            )}
+            text={camera.compiled.clause}
+          />
+        )}
+        {camera.fallbackIds.length > 0 && (
+          <AlertBanner severity="warning" compact>
+            {t("screens4_18.storyboard.shotPromptPreview.defaultFallback", {
+              names: fallbackNames,
+              model: videoModelId || t(
+                "screens4_18.storyboard.shotPromptPreview.noVideoModel"
+              )
+            })}
+          </AlertBanner>
+        )}
+        {camera.error && (
+          <AlertBanner severity="warning" compact>
+            {t("screens4_18.storyboard.shotPromptPreview.cameraError", {
+              message: camera.error
+            })}
+          </AlertBanner>
+        )}
         {castNames.length > 0 && (
           <Caption color="secondary">
             {t(

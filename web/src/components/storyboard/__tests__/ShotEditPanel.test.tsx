@@ -8,7 +8,13 @@
  * to put every edited field back, which a mocked `updateShot` cannot show.
  */
 import React from "react";
-import { act, render, screen, within } from "@testing-library/react";
+import {
+  act,
+  render,
+  screen,
+  waitForElementToBeRemoved,
+  within
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import type { Scene, Shot } from "@nodetool-ai/protocol";
@@ -285,7 +291,7 @@ describe("ShotEditPanel fields (criterion 14)", () => {
     await typeInto("Shot duration in seconds", "7");
     await choose("Shot size", "Wide");
     await choose("Camera angle", "Low angle");
-    await choose("Camera movement", "Pan left");
+    await typeInto("Camera movement", "pan left");
     await choose("Camera equipment", "Steadicam");
     await choose("Focal length", "35mm");
     await userEvent.click(screen.getByText("Advanced"));
@@ -315,6 +321,48 @@ describe("ShotEditPanel fields (criterion 14)", () => {
       }
     });
   }, 30_000);
+
+  it("opens a pre-preset board with its movement card selected and unsaved", async () => {
+    seed([baseShot({ camera: { movement: "slow push in" } })]);
+    renderPanel();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Browse presets" })
+    );
+    const dialog = await screen.findByRole("dialog");
+    expect(
+      within(dialog).getByRole("option", { name: "dolly in" })
+    ).toHaveAttribute("aria-selected", "true");
+    // Looking at the card is not an edit: nothing to save, nothing written.
+    expect(
+      screen.getByRole("button", { name: "Save", hidden: true })
+    ).toBeDisabled();
+    expect(storedShot().camera).toEqual({ movement: "slow push in" });
+  });
+
+  it("saves two stacked presets as preset_ids and the joined names", async () => {
+    seed([baseShot()]);
+    renderPanel();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Browse presets" })
+    );
+    const dialog = await screen.findByRole("dialog");
+    await userEvent.click(
+      within(dialog).getByRole("option", { name: "dolly in" })
+    );
+    await userEvent.click(
+      within(dialog).getByRole("option", { name: "handheld" })
+    );
+    await userEvent.click(within(dialog).getByRole("button", { name: "Done" }));
+    await waitForElementToBeRemoved(() => screen.queryByRole("dialog"));
+    await userEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(storedShot().camera).toEqual({
+      movement: "dolly in, handheld",
+      preset_ids: ["camera.dolly-in", "camera.handheld"]
+    });
+  });
 
   it("puts every edited field back with a single undo", async () => {
     seed([baseShot()]);
