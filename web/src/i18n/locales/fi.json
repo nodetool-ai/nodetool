@@ -8794,7 +8794,8 @@
         "script": "Uusi skripti",
         "jsscript": "Uusi JS-skripti",
         "skill": "Uusi taito",
-        "model3d": "Uusi 3D-malli"
+        "model3d": "Uusi 3D-malli",
+        "create": "Luo kuvia ja videoita"
       },
       "templates": {
         "markdown": "Markdown (.md)",
@@ -19149,5 +19150,49 @@
     "title": "Kameran esiasetukset",
     "done": "Valmis",
     "remove": "Poista {{name}}"
+  },
+  "create_view": {
+    "title": "Luo",
+    "promptLabel": "Kuvaile, mitä luodaan",
+    "generate": "Luo",
+    "takesHeader": "Otoksia kerralla",
+    "takes_one": "{{count}} otos",
+    "takes_other": "{{count}} otosta",
+    "placeholder": {
+      "image": "Majakka hämärässä, still-kuva elokuvasta",
+      "video": "Hidas lähestyvä kameraliike majakkaan hämärässä"
+    },
+    "blocker": {
+      "noPrompt": "Kirjoita kehote ennen luomista.",
+      "noModel": {
+        "image": "Valitse kuvamalli ennen luomista.",
+        "video": "Valitse videomalli ennen luomista."
+      }
+    },
+    "sendFailed": "{{sent}}/{{count}} otosta käynnistyi. Loput eivät tavoittaneet NodeToolia. Tarkista yhteys ja yritä uudelleen.",
+    "retakeFailed": "Uusinta ei onnistunut: {{reason}}",
+    "olderFailed": "Vanhempia tuloksia ei voitu ladata.",
+    "gridLabel": "Luodut",
+    "empty": {
+      "title": "Mitään ei ole vielä luotu",
+      "description": "Kirjoita kehote ylös ja paina Luo. Kuvasi ja videosi näkyvät tässä, uusimmat ensin.",
+      "action": "Kirjoita kehote"
+    },
+    "item": {
+      "open": "Avaa {{title}}",
+      "download": "Lataa",
+      "downloadLabel": "Lataa {{title}}",
+      "retake": "Uusi samoilla asetuksilla",
+      "retakeLabel": "Uusi {{title}} samoilla asetuksilla",
+      "sendToTimeline": "Lähetä aikajanalle",
+      "sendToTimelineLabel": "Lähetä {{title}} aikajanalle",
+      "openAsWorkflow": "Avaa työnkulkuna",
+      "openAsWorkflowLabel": "Avaa {{title}} työnkulkuna",
+      "loadFailed": "Tulosta ei voitu ladata: {{reason}}",
+      "downloaded": "{{name}} ladattu",
+      "downloadFailed": "Lataus ei onnistunut: {{reason}}",
+      "workflowName": "Create-työnkulku",
+      "workflowFailed": "Työnkulkua ei voitu luoda: {{reason}}"
+    }
   }
 }

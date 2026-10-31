@@ -96,10 +96,16 @@ interface ModeChipsProps {
   mode: MediaMode;
   /** Lets the composer open the mode's model picker when a send is refused. */
   openModelPickerRef: React.Ref<ModelPickerHandle>;
+  /**
+   * Leave out the image variations chip. The Create view counts takes itself
+   * and asks each request for one image.
+   */
+  hideVariations?: boolean;
 }
 
 interface ClusterProps {
   openModelPickerRef: React.Ref<ModelPickerHandle>;
+  hideVariations?: boolean;
 }
 
 const NO_PRESETS: string[] = [];
@@ -172,7 +178,7 @@ function MusicModeChips({ openModelPickerRef }: ClusterProps) {
   );
 }
 
-function ImageModeChips({ openModelPickerRef }: ClusterProps) {
+function ImageModeChips({ openModelPickerRef, hideVariations }: ClusterProps) {
   const { t } = useTranslation();
   const params = useMediaGenerationStore((s) => s.image);
   const setParams = useMediaGenerationStore((s) => s.setImageParams);
@@ -214,15 +220,17 @@ function ImageModeChips({ openModelPickerRef }: ClusterProps) {
         options={aspectOptions}
         onChange={(aspectRatio) => setParams({ aspectRatio })}
       />
-      <OptionChip
-        menu="option"
-        icon={<AppsIcon fontSize="small" />}
-        label={`${params.variations}`}
-        header={t("i18n-next54.composer.numberOfVariations")}
-        value={params.variations}
-        options={VARIATIONS_OPTIONS}
-        onChange={(variations) => setParams({ variations })}
-      />
+      {!hideVariations && (
+        <OptionChip
+          menu="option"
+          icon={<AppsIcon fontSize="small" />}
+          label={`${params.variations}`}
+          header={t("i18n-next54.composer.numberOfVariations")}
+          value={params.variations}
+          options={VARIATIONS_OPTIONS}
+          onChange={(variations) => setParams({ variations })}
+        />
+      )}
     </>
   );
 }
@@ -706,9 +714,18 @@ function AudioModeChips({ openModelPickerRef }: ClusterProps) {
   );
 }
 
-export function ModeChips({ mode, openModelPickerRef }: ModeChipsProps) {
+export function ModeChips({
+  mode,
+  openModelPickerRef,
+  hideVariations
+}: ModeChipsProps) {
   if (mode === "image") {
-    return <ImageModeChips openModelPickerRef={openModelPickerRef} />;
+    return (
+      <ImageModeChips
+        openModelPickerRef={openModelPickerRef}
+        hideVariations={hideVariations}
+      />
+    );
   }
   if (mode === "image_edit") {
     return <ImageEditModeChips openModelPickerRef={openModelPickerRef} />;

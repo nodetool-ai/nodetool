@@ -8794,7 +8794,8 @@
         "script": "新建脚本",
         "jsscript": "新建 JS 脚本",
         "skill": "新建技能",
-        "model3d": "新建 3D 模型"
+        "model3d": "新建 3D 模型",
+        "create": "创作图像和视频"
       },
       "templates": {
         "markdown": "Markdown (.md)",
@@ -19149,5 +19150,49 @@
     "title": "镜头预设",
     "done": "完成",
     "remove": "移除 {{name}}"
+  },
+  "create_view": {
+    "title": "创作",
+    "promptLabel": "描述要创作的内容",
+    "generate": "生成",
+    "takesHeader": "每次生成的条数",
+    "takes_one": "{{count}} 条",
+    "takes_other": "{{count}} 条",
+    "placeholder": {
+      "image": "黄昏中的灯塔，电影剧照",
+      "video": "镜头缓缓推向黄昏中的灯塔"
+    },
+    "blocker": {
+      "noPrompt": "请先写下提示词再生成。",
+      "noModel": {
+        "image": "请先选择图像模型再生成。",
+        "video": "请先选择视频模型再生成。"
+      }
+    },
+    "sendFailed": "已启动 {{count}} 条中的 {{sent}} 条，其余未能送达 NodeTool。请检查网络连接后重试。",
+    "retakeFailed": "无法重拍：{{reason}}",
+    "olderFailed": "无法加载较早的结果。",
+    "gridLabel": "生成记录",
+    "empty": {
+      "title": "还没有创作内容",
+      "description": "在上方写下提示词并点击“生成”。图像和视频会显示在这里，最新的在前。",
+      "action": "写提示词"
+    },
+    "item": {
+      "open": "打开 {{title}}",
+      "download": "下载",
+      "downloadLabel": "下载 {{title}}",
+      "retake": "用相同设置重拍",
+      "retakeLabel": "用相同设置重拍 {{title}}",
+      "sendToTimeline": "发送到时间线",
+      "sendToTimelineLabel": "将 {{title}} 发送到时间线",
+      "openAsWorkflow": "作为工作流打开",
+      "openAsWorkflowLabel": "将 {{title}} 作为工作流打开",
+      "loadFailed": "无法加载结果：{{reason}}",
+      "downloaded": "已下载 {{name}}",
+      "downloadFailed": "无法下载：{{reason}}",
+      "workflowName": "创作工作流",
+      "workflowFailed": "无法生成工作流：{{reason}}"
+    }
   }
 }

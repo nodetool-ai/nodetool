@@ -118,4 +118,20 @@ describe("OpenMenu create into the selected project", () => {
       projectId: "p1"
     });
   });
+
+  it("opens the Create view as one global tab, next to the chat modes", async () => {
+    const user = userEvent.setup();
+    renderOpenMenu();
+    await user.click(screen.getByText("Create images and videos"));
+
+    await waitFor(() =>
+      expect(mockOpenMenu.openTab).toHaveBeenCalledWith({
+        type: "create",
+        ref: "create",
+        mode: "view",
+        title: "Create"
+      })
+    );
+    expect(mockOpenMenu.createNewThread).not.toHaveBeenCalled();
+  });
 });

@@ -479,6 +479,62 @@ export class TextFilePage {
   }
 }
 
+/** The Create view, opened from the New menu. */
+export class CreatePage {
+  constructor(private readonly page: Page) {}
+
+  /** Start the image model on the hermetic provider's, as Settings would. */
+  async seedImageModel(): Promise<void> {
+    await this.page.addInitScript(() => {
+      window.localStorage.setItem(
+        "nodetool-media-generation",
+        JSON.stringify({
+          state: {
+            image: {
+              model: {
+                type: "image_model",
+                id: "test-image-model",
+                provider: "openai",
+                name: "Test Image Model",
+                path: ""
+              },
+              resolution: "1K",
+              aspectRatio: "1:1",
+              variations: 1
+            }
+          },
+          version: 5
+        })
+      );
+    });
+  }
+
+  /** New → Create images and videos, from the workspace home. */
+  async open(): Promise<void> {
+    await goto(this.page, "/workspace");
+    await this.page.getByRole("button", { name: "Open or create a tab" }).click();
+    await this.page.getByRole("menuitem", { name: /Create images and videos/ }).click();
+    await this.prompt().waitFor({ state: "visible", timeout: 30_000 });
+  }
+
+  prompt(): Locator {
+    return this.page.getByRole("textbox", { name: "Describe what to create" });
+  }
+
+  async generate(prompt: string): Promise<void> {
+    await this.prompt().fill(prompt);
+    await this.page.getByRole("button", { name: "Generate" }).click();
+  }
+
+  /** The finished tiles, by the prompt each was made from. */
+  tile(prompt: string): Locator {
+    return this.page
+      .getByTestId("create-grid-item")
+      .filter({ hasText: prompt })
+      .filter({ has: this.page.getByRole("button", { name: /^Retake / }) });
+  }
+}
+
 /** Home actions must work at their first painted positions, without scrolling. */
 export class HomePage {
   constructor(private readonly page: Page) {}
