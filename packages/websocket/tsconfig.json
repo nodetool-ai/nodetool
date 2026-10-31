@@ -93,6 +93,9 @@
       "path": "../protocol"
     },
     {
+      "path": "../presets"
+    },
+    {
       "path": "../replicate-nodes"
     },
     {
