@@ -249,7 +249,21 @@ function base64Url(bytes: Uint8Array): string {
   return Buffer.from(bytes).toString("base64url");
 }
 
-function base64UrlJson(value: object): string {
+interface JwtHeader {
+  alg: "RS256";
+  typ: "JWT";
+  kid?: string;
+}
+
+interface JwtClaims {
+  iss: string;
+  scope: string;
+  aud: string;
+  iat: number;
+  exp: number;
+}
+
+function base64UrlJson(value: JwtHeader | JwtClaims): string {
   return Buffer.from(JSON.stringify(value), "utf8").toString("base64url");
 }
 
@@ -259,10 +273,10 @@ export async function signServiceAccountAssertion(
   audience: string,
   issuedAtS: number
 ): Promise<string> {
-  const header = credentials.private_key_id
+  const header: JwtHeader = credentials.private_key_id
     ? { alg: "RS256", typ: "JWT", kid: credentials.private_key_id }
     : { alg: "RS256", typ: "JWT" };
-  const claims = {
+  const claims: JwtClaims = {
     iss: credentials.client_email,
     scope: GOOGLE_CLOUD_PLATFORM_SCOPE,
     aud: audience,
