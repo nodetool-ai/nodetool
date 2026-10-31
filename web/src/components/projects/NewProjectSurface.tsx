@@ -219,6 +219,9 @@ const MODEL_CARD_ID = "model3d";
  */
 const EXAMPLES_CARD_ID = "examples";
 
+/** The Effects card's id; it opens the Effects gallery, not a guided flow. */
+const EFFECTS_CARD_ID = "effects";
+
 const CREATION_ICONS: Record<EntryFlowId | typeof MODEL_CARD_ID, React.ReactNode> = {
   image: <ImageOutlinedIcon />,
   video: <VideocamOutlinedIcon />,
@@ -1688,6 +1691,13 @@ const NewProjectSurface = ({
         ? t("pass3_32.projects.home.disabled.waitForCurrentWork")
         : undefined
     };
+    const effectsCard: CreationTypeCard = {
+      id: EFFECTS_CARD_ID,
+      title: t("pass3_32.projects.home.createCards.effects.title"),
+      description: t("pass3_32.projects.home.createCards.effects.description"),
+      icon: <AutoAwesomeOutlinedIcon />,
+      accent: "var(--palette-secondary-main)"
+    };
     const examplesCard: CreationTypeCard = {
       id: EXAMPLES_CARD_ID,
       title: t("pass3_32.projects.home.createCards.examples.title"),
@@ -1699,6 +1709,7 @@ const NewProjectSurface = ({
       primary: PRIMARY_CREATION_IDS.map((id) => flowCard(id, true)),
       more: [
         examplesCard,
+        effectsCard,
         ...MORE_CREATION_IDS.map((id) => flowCard(id, false)),
         modelCard
       ]
@@ -1712,6 +1723,10 @@ const NewProjectSurface = ({
     }
     if (id === EXAMPLES_CARD_ID) {
       openExamplesTab("workflows");
+      return;
+    }
+    if (id === EFFECTS_CARD_ID) {
+      openPageTab("effects");
       return;
     }
     handleEntryCard(id);

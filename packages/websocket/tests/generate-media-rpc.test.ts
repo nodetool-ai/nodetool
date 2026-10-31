@@ -486,6 +486,42 @@ describe("generate_media RPC (video modes)", () => {
     await runner.disconnect();
   });
 
+  it("runs an effect on a picture with no prompt of its own", async () => {
+    initTestDb();
+    configureAssets(["srcv-fx"]);
+    const runner = await makeRunner(ws, makeProvider);
+    const out = await runOne(ws, runner, {
+      command: "generate_media",
+      request_id: "gv-fx",
+      data: {
+        mode: "video",
+        provider: "fake",
+        model: "fal-ai/kling/v2",
+        source_asset_id: "srcv-fx",
+        preset_ids: ["effect.levitate"]
+      }
+    });
+    expect(out.error).toBeUndefined();
+    expect(i2vCalls).toHaveLength(1);
+    expect(i2vCalls[0].params.prompt).toContain("levitate and float upward in zero gravity");
+    expect(i2vCalls[0].params.prompt.startsWith(" ")).toBe(false);
+    await runner.disconnect();
+  });
+
+  it("still requires a prompt when no preset is named", async () => {
+    initTestDb();
+    configureAssets(["srcv-np"]);
+    const runner = await makeRunner(ws, makeProvider);
+    const out = await runOne(ws, runner, {
+      command: "generate_media",
+      request_id: "gv-np",
+      data: { mode: "video", provider: "fake", model: "fal-ai/kling/v2", source_asset_id: "srcv-np" }
+    });
+    expect(out.error).toMatchObject({ message: expect.stringContaining("prompt is required") });
+    expect(i2vCalls).toHaveLength(0);
+    await runner.disconnect();
+  });
+
   it("keeps text-to-video when no source asset is given", async () => {
     const runner = await makeRunner(ws, makeProvider);
 

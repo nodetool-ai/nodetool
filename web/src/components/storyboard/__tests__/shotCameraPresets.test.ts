@@ -1,4 +1,4 @@
-import { presetCatalog } from "../cameraOptions";
+import { presetCatalog } from "../../../lib/presets/catalog";
 import {
   draftPatchForPresets,
   presetModeForRender,

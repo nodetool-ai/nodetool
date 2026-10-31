@@ -1,0 +1,32 @@
+{
+  "id": "effect.molten-gold",
+  "version": 1,
+  "kind": "effect",
+  "name": "Molten gold",
+  "description": "Animates the subject to transform into flowing molten gold.",
+  "tags": [
+    "effect",
+    "liquid",
+    "metal"
+  ],
+  "slot": "effect",
+  "modes": [
+    "image_to_video"
+  ],
+  "inputs": [
+    "image"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "transform into flowing molten gold"
+  ],
+  "prompt": {
+    "default": "The subject begins still, then proceeds to transform into flowing molten gold. Bright liquid metal runs and pools with warm highlights. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+    "kling": "The subject begins still, then proceeds to transform into flowing molten gold. Bright liquid metal runs and pools with warm highlights. Physically accurate motion, steady locked camera.",
+    "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to transform into flowing molten gold. Bright liquid metal runs and pools with warm highlights. Physically accurate motion.",
+    "veo": "The subject begins still, then proceeds to transform into flowing molten gold. Bright liquid metal runs and pools with warm highlights. Cinematic lighting, realistic physics, locked camera.",
+    "wan": "The subject begins still, then proceeds to transform into flowing molten gold. Bright liquid metal runs and pools with warm highlights. Locked camera, smooth realistic motion, high detail."
+  },
+  "params": {}
+}

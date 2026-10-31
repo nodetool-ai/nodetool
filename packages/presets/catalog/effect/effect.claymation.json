@@ -1,0 +1,28 @@
+{
+  "id": "effect.claymation",
+  "version": 1,
+  "kind": "effect",
+  "name": "Claymation",
+  "description": "Edits the photo to restyle it as a handmade claymation scene with visible fingerprints in the clay.",
+  "tags": [
+    "effect",
+    "stylize",
+    "craft"
+  ],
+  "slot": "effect",
+  "modes": [
+    "image_edit"
+  ],
+  "inputs": [
+    "image"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "restyle it as a handmade claymation scene with visible fingerprints in the clay"
+  ],
+  "prompt": {
+    "default": "Edit the image to restyle it as a handmade claymation scene with visible fingerprints in the clay. Keep the composition and subject identical."
+  },
+  "params": {}
+}

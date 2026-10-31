@@ -38,7 +38,7 @@ describe("catalogue", () => {
     expect(catalog.byAlias("dolly")).toBeUndefined();
     expect(catalog.getPreset("missing")).toBeUndefined();
     expect(catalog.filter({ kind: "camera", mode: "video" }).length).toBeGreaterThan(0);
-    expect(catalog.filter({ kind: "effect" })).toEqual([]);
+    expect(catalog.filter({ kind: "effect" })).toHaveLength(20);
     expect(catalog.filter({ mode: "image" })).toEqual([]);
   });
   it("rejects duplicate ids and aliases across presets", () => {

@@ -8,9 +8,7 @@
  * opening a select never silently rewrites a value it does not recognise.
  */
 
-import { createCatalog } from "@nodetool-ai/presets";
-import presetData from "@nodetool-ai/presets/preset-catalog.json";
-
+import { CAMERA_PRESETS } from "../../lib/presets/catalog";
 import type { SelectOption } from "../ui_primitives";
 
 export const FRAMING_OPTIONS = [
@@ -48,12 +46,6 @@ export const ANGLE_OPTIONS = [
   "worm's eye",
   "dutch angle"
 ] as const;
-
-/** The one catalogue instance the storyboard editors share. */
-export const presetCatalog = createCatalog(presetData);
-
-/** Every camera preset, in catalogue order. */
-export const CAMERA_PRESETS = presetCatalog.filter({ kind: "camera" });
 
 const cameraPresets = CAMERA_PRESETS;
 

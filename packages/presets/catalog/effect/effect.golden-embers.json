@@ -1,0 +1,32 @@
+{
+  "id": "effect.golden-embers",
+  "version": 1,
+  "kind": "effect",
+  "name": "Golden embers",
+  "description": "Animates the subject to ignite in rising golden embers and heat shimmer.",
+  "tags": [
+    "effect",
+    "fire",
+    "particles"
+  ],
+  "slot": "effect",
+  "modes": [
+    "image_to_video"
+  ],
+  "inputs": [
+    "image"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "ignite in rising golden embers and heat shimmer"
+  ],
+  "prompt": {
+    "default": "The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. Sparks drift upward through warm heat distortion. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+    "kling": "The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. Sparks drift upward through warm heat distortion. Physically accurate motion, steady locked camera.",
+    "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. Sparks drift upward through warm heat distortion. Physically accurate motion.",
+    "veo": "The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. Sparks drift upward through warm heat distortion. Cinematic lighting, realistic physics, locked camera.",
+    "wan": "The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. Sparks drift upward through warm heat distortion. Locked camera, smooth realistic motion, high detail."
+  },
+  "params": {}
+}

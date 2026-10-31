@@ -1575,6 +1575,17 @@ describe("NewProjectSurface", () => {
     expect(await screen.findByRole("group", { name: "Start with a guided flow" })).toBeInTheDocument();
   });
 
+  it("offers an Effects card that opens the gallery instead of a guided flow", async () => {
+    renderSurface();
+    // renderSurface opens the full list of creation types.
+    await userEvent.click(
+      screen.getByRole("button", { name: /^Add an effect to a photo Turn one picture into a short effect clip/ })
+    );
+    expect(openPageTab).toHaveBeenCalledWith("effects");
+    expect(createStoryboard).not.toHaveBeenCalled();
+    expect(createProject).not.toHaveBeenCalled();
+  });
+
   it("starts a guided card in the current project without a destination dialog", async () => {
     renderSurface();
     await userEvent.click(

@@ -1,0 +1,32 @@
+{
+  "id": "effect.hydraulic-press",
+  "version": 1,
+  "kind": "effect",
+  "name": "Hydraulic press",
+  "description": "Animates the subject to compress under a studio hydraulic press.",
+  "tags": [
+    "effect",
+    "crush",
+    "studio"
+  ],
+  "slot": "effect",
+  "modes": [
+    "image_to_video"
+  ],
+  "inputs": [
+    "image"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "compress under a studio hydraulic press"
+  ],
+  "prompt": {
+    "default": "The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+    "kling": "The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. Physically accurate motion, steady locked camera.",
+    "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. Physically accurate motion.",
+    "veo": "The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. Cinematic lighting, realistic physics, locked camera.",
+    "wan": "The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. Locked camera, smooth realistic motion, high detail."
+  },
+  "params": {}
+}

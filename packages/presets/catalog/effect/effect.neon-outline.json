@@ -1,0 +1,32 @@
+{
+  "id": "effect.neon-outline",
+  "version": 1,
+  "kind": "effect",
+  "name": "Neon outline",
+  "description": "Animates the subject to light up in pulsing neon tube outlines.",
+  "tags": [
+    "effect",
+    "glow",
+    "stylize"
+  ],
+  "slot": "effect",
+  "modes": [
+    "image_to_video"
+  ],
+  "inputs": [
+    "image"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "light up in pulsing neon tube outlines"
+  ],
+  "prompt": {
+    "default": "The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges in a dark room. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+    "kling": "The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges in a dark room. Physically accurate motion, steady locked camera.",
+    "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges in a dark room. Physically accurate motion.",
+    "veo": "The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges in a dark room. Cinematic lighting, realistic physics, locked camera.",
+    "wan": "The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges in a dark room. Locked camera, smooth realistic motion, high detail."
+  },
+  "params": {}
+}

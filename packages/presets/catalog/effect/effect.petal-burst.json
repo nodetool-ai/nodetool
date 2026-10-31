@@ -1,0 +1,32 @@
+{
+  "id": "effect.petal-burst",
+  "version": 1,
+  "kind": "effect",
+  "name": "Petal burst",
+  "description": "Animates the subject to burst into a cloud of velvet botanical petals.",
+  "tags": [
+    "effect",
+    "botanical",
+    "particles"
+  ],
+  "slot": "effect",
+  "modes": [
+    "image_to_video"
+  ],
+  "inputs": [
+    "image"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "burst into a cloud of velvet botanical petals"
+  ],
+  "prompt": {
+    "default": "The subject begins still, then proceeds to burst into a cloud of velvet botanical petals. Petals tumble and fan out in slow motion. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+    "kling": "The subject begins still, then proceeds to burst into a cloud of velvet botanical petals. Petals tumble and fan out in slow motion. Physically accurate motion, steady locked camera.",
+    "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to burst into a cloud of velvet botanical petals. Petals tumble and fan out in slow motion. Physically accurate motion.",
+    "veo": "The subject begins still, then proceeds to burst into a cloud of velvet botanical petals. Petals tumble and fan out in slow motion. Cinematic lighting, realistic physics, locked camera.",
+    "wan": "The subject begins still, then proceeds to burst into a cloud of velvet botanical petals. Petals tumble and fan out in slow motion. Locked camera, smooth realistic motion, high detail."
+  },
+  "params": {}
+}

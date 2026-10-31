@@ -60,3 +60,11 @@ replaces equipment. Move-only selections keep equipment.
 `cameraPresetIdsForMovement(movement, catalog)` resolves a legacy movement
 through `byAlias` to zero or one camera preset ids for UI preselection. It
 never changes stored boards or opts free-text shots into preset rendering.
+
+Effect presets (`kind: "effect"`, slot `effect`) take an image and run in mode
+`image_to_video` or `image_edit`. The first alias of an image-to-video effect is
+the phrase the Effects Gallery template inserts after "proceeds to". After
+editing `catalog/effect/`, rebuild this package and run
+`node scripts/presets/sync-effects-template.mjs` to update the template's
+options. The same script with `--check` runs in this package's tests and fails
+on drift.

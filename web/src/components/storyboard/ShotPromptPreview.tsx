@@ -22,7 +22,7 @@ import {
 } from "@nodetool-ai/protocol";
 
 import { presetText } from "../../utils/presetText";
-import { presetCatalog } from "./cameraOptions";
+import { presetCatalog } from "../../lib/presets/catalog";
 import { previewShotCamera } from "./shotCameraPresets";
 
 import {

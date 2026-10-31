@@ -6331,6 +6331,10 @@
           "model3d": {
             "title": "3D model",
             "description": "A blank 3D model to edit by hand. No AI provider needed."
+          },
+          "effects": {
+            "title": "Add an effect to a photo",
+            "description": "Turn one picture into a short effect clip"
           }
         },
         "allTypes": {
@@ -15867,7 +15871,8 @@
         "workspaces": "Workspaces",
         "entities": "Entities",
         "memory": "Memory",
-        "settings": "Settings"
+        "settings": "Settings",
+        "effects": "Effects"
       }
     },
     "script": {
@@ -18878,7 +18883,8 @@
       "timeline": "Timeline",
       "model3d": "3D model",
       "script": "Script"
-    }
+    },
+    "openAsWorkflow": "Open as workflow"
   },
   "shareDocument": {
     "description": "Anyone signed in to this server who opens a view or edit link gets the role assigned to that link. Viewers can open the document. Editors can also save changes. Only you can delete it or change who has access. Revoking a link stops new people from joining. People who already joined remain listed below.",
@@ -19136,6 +19142,88 @@
         "name": "zoom out",
         "description": "Lens zooms out from a fixed camera position."
       }
+    },
+    "effect": {
+      "bioluminescent-dissolve": {
+        "name": "Bioluminescent dissolve",
+        "description": "Animates the subject to dissolve into swirling bioluminescent particles."
+      },
+      "claymation": {
+        "name": "Claymation",
+        "description": "Edits the photo to restyle it as a handmade claymation scene with visible fingerprints in the clay."
+      },
+      "confetti-burst": {
+        "name": "Confetti burst",
+        "description": "Animates the subject to explode into slow-motion colorful confetti."
+      },
+      "electric-arcs": {
+        "name": "Electric arcs",
+        "description": "Animates the subject to crackle with high-voltage blue electric arcs."
+      },
+      "frost-crystals": {
+        "name": "Frost crystals",
+        "description": "Animates the subject to freeze rapidly in branching frost and ice crystals."
+      },
+      "glass-shatter": {
+        "name": "Glass shatter",
+        "description": "Animates the subject to shatter into slow-motion crystalline glass fragments."
+      },
+      "golden-embers": {
+        "name": "Golden embers",
+        "description": "Animates the subject to ignite in rising golden embers and heat shimmer."
+      },
+      "hydraulic-press": {
+        "name": "Hydraulic press",
+        "description": "Animates the subject to compress under a studio hydraulic press."
+      },
+      "levitate": {
+        "name": "Levitate",
+        "description": "Animates the subject to levitate and float upward in zero gravity."
+      },
+      "liquid-chrome": {
+        "name": "Liquid chrome",
+        "description": "Animates the subject to melt into mirror-polished liquid chrome."
+      },
+      "marble-petrify": {
+        "name": "Marble petrify",
+        "description": "Animates the subject to petrify into veined Carrara marble sculpture."
+      },
+      "metallic-balloon": {
+        "name": "Metallic balloon",
+        "description": "Animates the subject to inflate like a glossy metallic balloon and lift off."
+      },
+      "molten-gold": {
+        "name": "Molten gold",
+        "description": "Animates the subject to transform into flowing molten gold."
+      },
+      "neon-outline": {
+        "name": "Neon outline",
+        "description": "Animates the subject to light up in pulsing neon tube outlines."
+      },
+      "origami-fold": {
+        "name": "Origami fold",
+        "description": "Animates the subject to fold itself into crisp origami paper."
+      },
+      "petal-burst": {
+        "name": "Petal burst",
+        "description": "Animates the subject to burst into a cloud of velvet botanical petals."
+      },
+      "smoke-vanish": {
+        "name": "Smoke vanish",
+        "description": "Animates the subject to dissolve into drifting smoke and vanish."
+      },
+      "snow-blanket": {
+        "name": "Snow blanket",
+        "description": "Edits the photo to cover the scene in a fresh blanket of soft snow with gentle snowfall."
+      },
+      "tilt-shift-miniature": {
+        "name": "Tilt-shift miniature",
+        "description": "Edits the photo to restyle it as a tilt-shift miniature model with shallow focus and saturated colors."
+      },
+      "underwater-caustics": {
+        "name": "Underwater drift",
+        "description": "Animates the subject to drift underwater with slow caustic light ripples."
+      }
     }
   },
   "shot_camera_field": {
@@ -19143,5 +19231,50 @@
     "title": "Camera presets",
     "done": "Done",
     "remove": "Remove {{name}}"
+  },
+  "effectsGallery": {
+    "title": "Effects",
+    "subtitle": "Pick a picture, then an effect. The result appears here and in Generations.",
+    "noEffect": "No effect chosen",
+    "apply": "Apply effect",
+    "applying": "Applying…",
+    "effects": "Effects",
+    "source": {
+      "zoneLabel": "Picture for the effect",
+      "dropHint": "Drop a picture here",
+      "choose": "Choose picture",
+      "replace": "Replace picture",
+      "previewAlt": "Picture to apply the effect to",
+      "notImage": "That file is not a picture. Use a PNG, JPG or WebP file.",
+      "uploadFailed": "The picture could not be uploaded. Check your connection and try again."
+    },
+    "model": {
+      "video": "Video model",
+      "image": "Image model",
+      "choose": "Choose a model to apply the effect.",
+      "estimated": "About {{estimate}} per result.",
+      "noEstimate": "No price is listed for this model."
+    },
+    "reason": {
+      "needPicture": "Add a picture to apply an effect.",
+      "needEffect": "Pick an effect below.",
+      "needVideoModel": "Choose a video model.",
+      "needImageModel": "Choose an image model."
+    },
+    "result": {
+      "running": "Applying {{effect}}. A video can take a few minutes. You can leave this tab, and the result also appears in Generations.",
+      "done": "{{effect}} is ready.",
+      "alt": "Result of {{effect}}",
+      "failed": "The effect did not finish and no result came back. Try again or choose another model.",
+      "failedWithReason": "The effect did not finish: {{reason}} Try again or choose another model.",
+      "tryAgain": "Try again",
+      "emptyTitle": "Your result appears here",
+      "emptyPickEffect": "Pick an effect below, then choose Apply effect.",
+      "emptyAddPicture": "Add a picture, then pick an effect."
+    },
+    "card": {
+      "actions": "{{name}} actions",
+      "openAsWorkflow": "Open as workflow"
+    }
   }
 }

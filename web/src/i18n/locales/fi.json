@@ -6331,6 +6331,10 @@
           "model3d": {
             "title": "3D-malli",
             "description": "Tyhjä 3D-malli käsin muokattavaksi. Tekoälypalveluntarjoajaa ei tarvita."
+          },
+          "effects": {
+            "title": "Lisää kuvaan tehoste",
+            "description": "Tee yhdestä kuvasta lyhyt tehostevideo"
           }
         },
         "allTypes": {
@@ -15867,7 +15871,8 @@
         "workspaces": "Työtilat",
         "entities": "Entiteetit",
         "memory": "Muisti",
-        "settings": "Asetukset"
+        "settings": "Asetukset",
+        "effects": "Tehosteet"
       }
     },
     "script": {
@@ -18878,7 +18883,8 @@
       "timeline": "Aikajana",
       "model3d": "3D-malli",
       "script": "Käsikirjoitus"
-    }
+    },
+    "openAsWorkflow": "Avaa työnkulkuna"
   },
   "shareDocument": {
     "description": "Kuka tahansa tälle palvelimelle kirjautunut, joka avaa katselu- tai muokkauslinkin, saa linkille määritetyn roolin. Katselijat voivat avata asiakirjan. Muokkaajat voivat myös tallentaa muutoksia. Vain sinä voit poistaa sen tai muuttaa, kenellä on pääsy. Linkin kumoaminen estää uusia henkilöitä liittymästä. Jo liittyneet henkilöt pysyvät alla olevassa luettelossa.",
@@ -19136,6 +19142,88 @@
         "name": "zoom out",
         "description": "Lens zooms out from a fixed camera position."
       }
+    },
+    "effect": {
+      "bioluminescent-dissolve": {
+        "name": "Bioluminescent dissolve",
+        "description": "Animates the subject to dissolve into swirling bioluminescent particles."
+      },
+      "claymation": {
+        "name": "Claymation",
+        "description": "Edits the photo to restyle it as a handmade claymation scene with visible fingerprints in the clay."
+      },
+      "confetti-burst": {
+        "name": "Confetti burst",
+        "description": "Animates the subject to explode into slow-motion colorful confetti."
+      },
+      "electric-arcs": {
+        "name": "Electric arcs",
+        "description": "Animates the subject to crackle with high-voltage blue electric arcs."
+      },
+      "frost-crystals": {
+        "name": "Frost crystals",
+        "description": "Animates the subject to freeze rapidly in branching frost and ice crystals."
+      },
+      "glass-shatter": {
+        "name": "Glass shatter",
+        "description": "Animates the subject to shatter into slow-motion crystalline glass fragments."
+      },
+      "golden-embers": {
+        "name": "Golden embers",
+        "description": "Animates the subject to ignite in rising golden embers and heat shimmer."
+      },
+      "hydraulic-press": {
+        "name": "Hydraulic press",
+        "description": "Animates the subject to compress under a studio hydraulic press."
+      },
+      "levitate": {
+        "name": "Levitate",
+        "description": "Animates the subject to levitate and float upward in zero gravity."
+      },
+      "liquid-chrome": {
+        "name": "Liquid chrome",
+        "description": "Animates the subject to melt into mirror-polished liquid chrome."
+      },
+      "marble-petrify": {
+        "name": "Marble petrify",
+        "description": "Animates the subject to petrify into veined Carrara marble sculpture."
+      },
+      "metallic-balloon": {
+        "name": "Metallic balloon",
+        "description": "Animates the subject to inflate like a glossy metallic balloon and lift off."
+      },
+      "molten-gold": {
+        "name": "Molten gold",
+        "description": "Animates the subject to transform into flowing molten gold."
+      },
+      "neon-outline": {
+        "name": "Neon outline",
+        "description": "Animates the subject to light up in pulsing neon tube outlines."
+      },
+      "origami-fold": {
+        "name": "Origami fold",
+        "description": "Animates the subject to fold itself into crisp origami paper."
+      },
+      "petal-burst": {
+        "name": "Petal burst",
+        "description": "Animates the subject to burst into a cloud of velvet botanical petals."
+      },
+      "smoke-vanish": {
+        "name": "Smoke vanish",
+        "description": "Animates the subject to dissolve into drifting smoke and vanish."
+      },
+      "snow-blanket": {
+        "name": "Snow blanket",
+        "description": "Edits the photo to cover the scene in a fresh blanket of soft snow with gentle snowfall."
+      },
+      "tilt-shift-miniature": {
+        "name": "Tilt-shift miniature",
+        "description": "Edits the photo to restyle it as a tilt-shift miniature model with shallow focus and saturated colors."
+      },
+      "underwater-caustics": {
+        "name": "Underwater drift",
+        "description": "Animates the subject to drift underwater with slow caustic light ripples."
+      }
     }
   },
   "shot_camera_field": {
@@ -19143,5 +19231,50 @@
     "title": "Kameran esiasetukset",
     "done": "Valmis",
     "remove": "Poista {{name}}"
+  },
+  "effectsGallery": {
+    "title": "Tehosteet",
+    "subtitle": "Valitse kuva ja sitten tehoste. Tulos näkyy tässä ja Generoinneissa.",
+    "noEffect": "Tehostetta ei ole valittu",
+    "apply": "Käytä tehostetta",
+    "applying": "Käytetään…",
+    "effects": "Tehosteet",
+    "source": {
+      "zoneLabel": "Tehosteen kuva",
+      "dropHint": "Pudota kuva tähän",
+      "choose": "Valitse kuva",
+      "replace": "Vaihda kuva",
+      "previewAlt": "Kuva, johon tehoste käytetään",
+      "notImage": "Tiedosto ei ole kuva. Käytä PNG-, JPG- tai WebP-tiedostoa.",
+      "uploadFailed": "Kuvaa ei voitu ladata. Tarkista yhteys ja yritä uudelleen."
+    },
+    "model": {
+      "video": "Videomalli",
+      "image": "Kuvamalli",
+      "choose": "Valitse malli tehosteen käyttämiseksi.",
+      "estimated": "Noin {{estimate}} tulosta kohden.",
+      "noEstimate": "Tälle mallille ei ole hintaa."
+    },
+    "reason": {
+      "needPicture": "Lisää kuva käyttääksesi tehostetta.",
+      "needEffect": "Valitse tehoste alta.",
+      "needVideoModel": "Valitse videomalli.",
+      "needImageModel": "Valitse kuvamalli."
+    },
+    "result": {
+      "running": "Käytetään tehostetta {{effect}}. Video voi kestää muutaman minuutin. Voit poistua tältä välilehdeltä, ja tulos näkyy myös Generoinneissa.",
+      "done": "{{effect}} on valmis.",
+      "alt": "Tehosteen {{effect}} tulos",
+      "failed": "Tehoste ei valmistunut eikä tulosta tullut. Yritä uudelleen tai valitse toinen malli.",
+      "failedWithReason": "Tehoste ei valmistunut: {{reason}} Yritä uudelleen tai valitse toinen malli.",
+      "tryAgain": "Yritä uudelleen",
+      "emptyTitle": "Tulos näkyy tässä",
+      "emptyPickEffect": "Valitse tehoste alta ja valitse sitten Käytä tehostetta.",
+      "emptyAddPicture": "Lisää kuva ja valitse sitten tehoste."
+    },
+    "card": {
+      "actions": "{{name}}: toiminnot",
+      "openAsWorkflow": "Avaa työnkulkuna"
+    }
   }
 }

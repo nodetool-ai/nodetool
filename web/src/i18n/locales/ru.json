@@ -6503,6 +6503,10 @@
           "model3d": {
             "title": "3D-модель",
             "description": "Пустая 3D-модель для ручного редактирования. AI-провайдер не нужен."
+          },
+          "effects": {
+            "title": "Добавить эффект к фото",
+            "description": "Превратите одно изображение в короткий клип с эффектом"
           }
         },
         "allTypes": {
@@ -16419,7 +16423,8 @@
         "workspaces": "Рабочие области",
         "entities": "Сущности",
         "memory": "Память",
-        "settings": "Настройки"
+        "settings": "Настройки",
+        "effects": "Эффекты"
       }
     },
     "script": {
@@ -19492,7 +19497,8 @@
       "timeline": "Таймлайн",
       "model3d": "3D-модель",
       "script": "Сценарий"
-    }
+    },
+    "openAsWorkflow": "Открыть как рабочий процесс"
   },
   "shareDocument": {
     "description": "Любой вошедший на этот сервер пользователь, открывший ссылку для просмотра или редактирования, получает роль, назначенную этой ссылке. Зрители могут открывать документ. Редакторы также могут сохранять изменения. Только вы можете удалить его или изменить доступ. Отзыв ссылки не позволяет присоединиться новым людям. Уже присоединившиеся остаются в списке ниже.",
@@ -19750,6 +19756,88 @@
         "name": "zoom out",
         "description": "Lens zooms out from a fixed camera position."
       }
+    },
+    "effect": {
+      "bioluminescent-dissolve": {
+        "name": "Bioluminescent dissolve",
+        "description": "Animates the subject to dissolve into swirling bioluminescent particles."
+      },
+      "claymation": {
+        "name": "Claymation",
+        "description": "Edits the photo to restyle it as a handmade claymation scene with visible fingerprints in the clay."
+      },
+      "confetti-burst": {
+        "name": "Confetti burst",
+        "description": "Animates the subject to explode into slow-motion colorful confetti."
+      },
+      "electric-arcs": {
+        "name": "Electric arcs",
+        "description": "Animates the subject to crackle with high-voltage blue electric arcs."
+      },
+      "frost-crystals": {
+        "name": "Frost crystals",
+        "description": "Animates the subject to freeze rapidly in branching frost and ice crystals."
+      },
+      "glass-shatter": {
+        "name": "Glass shatter",
+        "description": "Animates the subject to shatter into slow-motion crystalline glass fragments."
+      },
+      "golden-embers": {
+        "name": "Golden embers",
+        "description": "Animates the subject to ignite in rising golden embers and heat shimmer."
+      },
+      "hydraulic-press": {
+        "name": "Hydraulic press",
+        "description": "Animates the subject to compress under a studio hydraulic press."
+      },
+      "levitate": {
+        "name": "Levitate",
+        "description": "Animates the subject to levitate and float upward in zero gravity."
+      },
+      "liquid-chrome": {
+        "name": "Liquid chrome",
+        "description": "Animates the subject to melt into mirror-polished liquid chrome."
+      },
+      "marble-petrify": {
+        "name": "Marble petrify",
+        "description": "Animates the subject to petrify into veined Carrara marble sculpture."
+      },
+      "metallic-balloon": {
+        "name": "Metallic balloon",
+        "description": "Animates the subject to inflate like a glossy metallic balloon and lift off."
+      },
+      "molten-gold": {
+        "name": "Molten gold",
+        "description": "Animates the subject to transform into flowing molten gold."
+      },
+      "neon-outline": {
+        "name": "Neon outline",
+        "description": "Animates the subject to light up in pulsing neon tube outlines."
+      },
+      "origami-fold": {
+        "name": "Origami fold",
+        "description": "Animates the subject to fold itself into crisp origami paper."
+      },
+      "petal-burst": {
+        "name": "Petal burst",
+        "description": "Animates the subject to burst into a cloud of velvet botanical petals."
+      },
+      "smoke-vanish": {
+        "name": "Smoke vanish",
+        "description": "Animates the subject to dissolve into drifting smoke and vanish."
+      },
+      "snow-blanket": {
+        "name": "Snow blanket",
+        "description": "Edits the photo to cover the scene in a fresh blanket of soft snow with gentle snowfall."
+      },
+      "tilt-shift-miniature": {
+        "name": "Tilt-shift miniature",
+        "description": "Edits the photo to restyle it as a tilt-shift miniature model with shallow focus and saturated colors."
+      },
+      "underwater-caustics": {
+        "name": "Underwater drift",
+        "description": "Animates the subject to drift underwater with slow caustic light ripples."
+      }
     }
   },
   "shot_camera_field": {
@@ -19757,5 +19845,50 @@
     "title": "Пресеты камеры",
     "done": "Готово",
     "remove": "Убрать {{name}}"
+  },
+  "effectsGallery": {
+    "title": "Эффекты",
+    "subtitle": "Выберите изображение, затем эффект. Результат появится здесь и в разделе «Генерации».",
+    "noEffect": "Эффект не выбран",
+    "apply": "Применить эффект",
+    "applying": "Применяется…",
+    "effects": "Эффекты",
+    "source": {
+      "zoneLabel": "Изображение для эффекта",
+      "dropHint": "Перетащите изображение сюда",
+      "choose": "Выбрать изображение",
+      "replace": "Заменить изображение",
+      "previewAlt": "Изображение, к которому применяется эффект",
+      "notImage": "Этот файл не является изображением. Используйте файл PNG, JPG или WebP.",
+      "uploadFailed": "Не удалось загрузить изображение. Проверьте подключение и повторите попытку."
+    },
+    "model": {
+      "video": "Видеомодель",
+      "image": "Модель изображений",
+      "choose": "Выберите модель, чтобы применить эффект.",
+      "estimated": "Около {{estimate}} за результат.",
+      "noEstimate": "Для этой модели цена не указана."
+    },
+    "reason": {
+      "needPicture": "Добавьте изображение, чтобы применить эффект.",
+      "needEffect": "Выберите эффект ниже.",
+      "needVideoModel": "Выберите видеомодель.",
+      "needImageModel": "Выберите модель изображений."
+    },
+    "result": {
+      "running": "Применяется эффект «{{effect}}». Видео может создаваться несколько минут. Можно покинуть эту вкладку: результат появится и в разделе «Генерации».",
+      "done": "Эффект «{{effect}}» готов.",
+      "alt": "Результат эффекта «{{effect}}»",
+      "failed": "Эффект не завершился, результата нет. Повторите попытку или выберите другую модель.",
+      "failedWithReason": "Эффект не завершился: {{reason}} Повторите попытку или выберите другую модель.",
+      "tryAgain": "Повторить",
+      "emptyTitle": "Здесь появится результат",
+      "emptyPickEffect": "Выберите эффект ниже, затем нажмите «Применить эффект».",
+      "emptyAddPicture": "Добавьте изображение, затем выберите эффект."
+    },
+    "card": {
+      "actions": "Действия: {{name}}",
+      "openAsWorkflow": "Открыть как рабочий процесс"
+    }
   }
 }

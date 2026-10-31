@@ -1,0 +1,28 @@
+{
+  "id": "effect.snow-blanket",
+  "version": 1,
+  "kind": "effect",
+  "name": "Snow blanket",
+  "description": "Edits the photo to cover the scene in a fresh blanket of soft snow with gentle snowfall.",
+  "tags": [
+    "effect",
+    "weather",
+    "stylize"
+  ],
+  "slot": "effect",
+  "modes": [
+    "image_edit"
+  ],
+  "inputs": [
+    "image"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "cover the scene in a fresh blanket of soft snow with gentle snowfall"
+  ],
+  "prompt": {
+    "default": "Edit the image to cover the scene in a fresh blanket of soft snow with gentle snowfall. Keep the composition and subject identical."
+  },
+  "params": {}
+}

@@ -1,0 +1,32 @@
+{
+  "id": "effect.origami-fold",
+  "version": 1,
+  "kind": "effect",
+  "name": "Origami fold",
+  "description": "Animates the subject to fold itself into crisp origami paper.",
+  "tags": [
+    "effect",
+    "paper",
+    "transform"
+  ],
+  "slot": "effect",
+  "modes": [
+    "image_to_video"
+  ],
+  "inputs": [
+    "image"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "fold itself into crisp origami paper"
+  ],
+  "prompt": {
+    "default": "The subject begins still, then proceeds to fold itself into crisp origami paper. Creases form in sequence until the paper shape is complete. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+    "kling": "The subject begins still, then proceeds to fold itself into crisp origami paper. Creases form in sequence until the paper shape is complete. Physically accurate motion, steady locked camera.",
+    "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to fold itself into crisp origami paper. Creases form in sequence until the paper shape is complete. Physically accurate motion.",
+    "veo": "The subject begins still, then proceeds to fold itself into crisp origami paper. Creases form in sequence until the paper shape is complete. Cinematic lighting, realistic physics, locked camera.",
+    "wan": "The subject begins still, then proceeds to fold itself into crisp origami paper. Creases form in sequence until the paper shape is complete. Locked camera, smooth realistic motion, high detail."
+  },
+  "params": {}
+}

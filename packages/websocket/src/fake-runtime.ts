@@ -41,9 +41,13 @@ import {
   type LanguageModel,
   type ProviderCapability,
   type TTSModel,
+  type VideoModel,
   type ImageToImageParams,
+  type ImageToVideoParams,
   type ProviderStreamItem,
-  type TextToImageParams
+  type TextToImageParams,
+  type TextToVideoParams,
+  FakeProvider as RuntimeFakeProvider
 } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { NodeExecutor } from "@nodetool-ai/kernel";
@@ -189,15 +193,24 @@ export function assertValidFakeChunk(chunk: unknown): void {
  */
 const FAKE_MODEL_CATALOG: Record<
   string,
-  { language: string[]; image: string[]; speech: string[] }
+  { language: string[]; image: string[]; speech: string[]; video: string[] }
 > = {
   openai: {
     language: ["Test Chat Model"],
     image: ["Test Image Model"],
-    speech: ["Test Voice Model"]
+    speech: ["Test Voice Model"],
+    video: ["Test Video Model"]
   },
-  anthropic: { language: ["Test Assistant Model"], image: [], speech: [] }
+  anthropic: {
+    language: ["Test Assistant Model"],
+    image: [],
+    speech: [],
+    video: []
+  }
 };
+
+/** The runtime's no-cost fake, which owns the playable test clip. */
+const CLIP_SOURCE = new RuntimeFakeProvider({ includeLanguageModels: false });
 
 /** Voices the fake speech model offers. */
 const FAKE_VOICES = ["alloy", "verse"];
@@ -270,6 +283,17 @@ export class FakeProvider extends ScriptedProvider {
     );
   }
 
+  override async getAvailableVideoModels(): Promise<VideoModel[]> {
+    return (FAKE_MODEL_CATALOG[this.fakeProviderId]?.video ?? []).map(
+      (name) => ({
+        id: modelId(name),
+        name,
+        provider: this.fakeProviderId,
+        supportedTasks: ["text_to_video", "image_to_video"]
+      })
+    );
+  }
+
   override async getAvailableTTSModels(): Promise<TTSModel[]> {
     return (FAKE_MODEL_CATALOG[this.fakeProviderId]?.speech ?? []).map(
       (name) => ({
@@ -288,8 +312,23 @@ export class FakeProvider extends ScriptedProvider {
       ...((catalog?.image.length ?? 0) > 0
         ? (["text_to_image", "image_to_image"] as const)
         : []),
-      ...((catalog?.speech.length ?? 0) > 0 ? (["text_to_speech"] as const) : [])
+      ...((catalog?.speech.length ?? 0) > 0 ? (["text_to_speech"] as const) : []),
+      ...((catalog?.video.length ?? 0) > 0
+        ? (["text_to_video", "image_to_video"] as const)
+        : [])
     ];
+  }
+
+  /** A two-second clip that plays, so a video generation has a result to show. */
+  override async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {
+    return CLIP_SOURCE.textToVideo(params);
+  }
+
+  override async imageToVideo(
+    image: Uint8Array,
+    params: ImageToVideoParams
+  ): Promise<Uint8Array> {
+    return CLIP_SOURCE.imageToVideo(image, params);
   }
 
   /** Speech is silence whose length follows the text. */

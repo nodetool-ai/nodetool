@@ -1,0 +1,32 @@
+{
+  "id": "effect.underwater-caustics",
+  "version": 1,
+  "kind": "effect",
+  "name": "Underwater drift",
+  "description": "Animates the subject to drift underwater with slow caustic light ripples.",
+  "tags": [
+    "effect",
+    "water",
+    "light"
+  ],
+  "slot": "effect",
+  "modes": [
+    "image_to_video"
+  ],
+  "inputs": [
+    "image"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "drift underwater with slow caustic light ripples"
+  ],
+  "prompt": {
+    "default": "The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+    "kling": "The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. Physically accurate motion, steady locked camera.",
+    "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. Physically accurate motion.",
+    "veo": "The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. Cinematic lighting, realistic physics, locked camera.",
+    "wan": "The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. Locked camera, smooth realistic motion, high detail."
+  },
+  "params": {}
+}

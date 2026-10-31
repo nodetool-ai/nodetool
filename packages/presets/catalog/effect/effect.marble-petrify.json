@@ -1,0 +1,32 @@
+{
+  "id": "effect.marble-petrify",
+  "version": 1,
+  "kind": "effect",
+  "name": "Marble petrify",
+  "description": "Animates the subject to petrify into veined Carrara marble sculpture.",
+  "tags": [
+    "effect",
+    "stone",
+    "transform"
+  ],
+  "slot": "effect",
+  "modes": [
+    "image_to_video"
+  ],
+  "inputs": [
+    "image"
+  ],
+  "stackable": false,
+  "conflicts": [],
+  "aliases": [
+    "petrify into veined Carrara marble sculpture"
+  ],
+  "prompt": {
+    "default": "The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. High-speed studio cinematography, physically accurate reflections and particle motion, locked camera.",
+    "kling": "The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. Physically accurate motion, steady locked camera.",
+    "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. Physically accurate motion.",
+    "veo": "The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. Cinematic lighting, realistic physics, locked camera.",
+    "wan": "The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. Locked camera, smooth realistic motion, high detail."
+  },
+  "params": {}
+}

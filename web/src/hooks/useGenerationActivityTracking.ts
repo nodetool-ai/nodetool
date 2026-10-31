@@ -108,9 +108,13 @@ export const generationFromCommand = (
     if (!id) {
       return null;
     }
+    const presetIds = Array.isArray(data.preset_ids)
+      ? data.preset_ids.filter(isString)
+      : [];
     return {
       id,
       channel: "rpc",
+      ...(presetIds.length > 0 && { preset_ids: presetIds }),
       status: "generating",
       kind: mediaKindOf(readString(data.mode)),
       prompt: readString(data.prompt),
@@ -140,9 +144,13 @@ export const generationFromCommand = (
             .filter(isString)
             .join(" ")
         : null;
+    const presetIds = Array.isArray(media.preset_ids)
+      ? media.preset_ids.filter(isString)
+      : [];
     return {
       id,
       channel: "chat",
+      ...(presetIds.length > 0 && { preset_ids: presetIds }),
       status: "generating",
       kind: mediaKindOf(mode),
       prompt: prompt || null,
@@ -209,9 +217,13 @@ const handlePrediction = (message: WebSocketMessage): void => {
     }
     const workflowId = readString(message.workflow_id);
     const params = readRecord(message.params);
+    const presetIds = Array.isArray(message.preset_ids)
+      ? message.preset_ids.filter(isString)
+      : [];
     store.start({
       id,
       channel: "prediction",
+      ...(presetIds.length > 0 && { preset_ids: presetIds }),
       status: "generating",
       kind: mediaKindOf(readString(message.capability)),
       prompt: readString(params.prompt),

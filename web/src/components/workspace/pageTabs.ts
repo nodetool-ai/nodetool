@@ -11,6 +11,7 @@ export type PageTabKey =
   | "collections"
   | "workspaces"
   | "entities"
+  | "effects"
   | "memory"
   | "settings";
 
@@ -24,6 +25,7 @@ export const PAGE_TAB_TITLES = {
   collections: "Collections",
   workspaces: "Workspaces",
   entities: "Entities",
+  effects: "Effects",
   memory: "Memory",
   settings: "Settings"
 } satisfies Record<PageTabKey, string>;
