@@ -147,7 +147,7 @@ const secretsRouter = router({
       const upsertInput: Parameters<typeof Secret.upsert>[0] = {
         userId: ctx.userId,
         key: input.key,
-        value: input.value
+        value: input.value.trim()
       };
       if (input.description !== undefined) {
         upsertInput.description = input.description;
@@ -410,7 +410,7 @@ export const settingsRouter = router({
           await Secret.upsert({
             userId: ctx.userId,
             key,
-            value: String(value ?? ""),
+            value: String(value ?? "").trim(),
             description: `Secret for ${key}`
           });
           clearSecretCache(ctx.userId, key);
