@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls as Controls
 import QtQuick.Layouts
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 Item {
     id: root
@@ -21,66 +22,45 @@ Item {
         return null
     }
 
-    component ConflictAction: Controls.Button {
-        id: action
-        implicitHeight: InspectorTokens.controlSm
-        leftPadding: Theme.spacingMd
-        rightPadding: Theme.spacingMd
-        font.family: Theme.sansFamily
-        font.pixelSize: Theme.fontSizeSmall
-        background: Rectangle {
-            radius: Theme.radiusSm
-            color: action.hovered || action.activeFocus ? Theme.actionSelected : Theme.backgroundPaper
-            border.color: action.activeFocus ? Theme.warning : Theme.divider
-        }
-        contentItem: Text {
-            text: action.text
-            font: action.font
-            color: action.enabled ? Theme.warningLight : Theme.textDisabled
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-        }
+    component ConflictAction: Ui.EditorButton {
+        density: Ui.EditorButton.Compact
+        textTone: Ui.Text.Warning
     }
 
     // The overlay fills the editor. Only the buttons below take pointer input.
-    Rectangle {
+    Ui.Surface {
         objectName: "externalConflictsWarning"
         anchors.top: parent.top
         width: parent.width
-        height: rows.implicitHeight + Theme.spacingLg * 2
-        color: Theme.backgroundPaper
-        border.color: Theme.warning
+        height: rows.implicitHeight + Ui.Metrics.lg * 2
         ColumnLayout {
             id: rows
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
-            anchors.margins: Theme.spacingLg
-            spacing: Theme.spacingSm
-            Text {
+            anchors.margins: Ui.Metrics.lg
+            spacing: Ui.Metrics.sm
+            Ui.Text {
                 Layout.fillWidth: true
                 text: root.conflicts.length === 1
                     ? "1 change made outside the editor conflicts with your edits."
                     : root.conflicts.length + " changes made outside the editor conflict with your edits."
                 wrapMode: Text.WordWrap
-                color: Theme.warningLight
-                font.family: Theme.sansFamily
-                font.pixelSize: Theme.fontSizeNormal
-                font.weight: Font.Medium
+                tone: Ui.Text.Warning
+                role: Ui.Typography.SansBody
             }
             Repeater {
                 model: root.conflicts
                 RowLayout {
                     required property var modelData
                     Layout.fillWidth: true
-                    spacing: Theme.spacingMd
-                    Text {
+                    spacing: Ui.Metrics.md
+                    Ui.Text {
                         Layout.fillWidth: true
                         text: modelData.label + ": " + modelData.reason
                         wrapMode: Text.WordWrap
-                        color: Theme.warningLight
-                        font.family: Theme.sansFamily
-                        font.pixelSize: Theme.fontSizeSmall
+                        tone: Ui.Text.Warning
+                        role: Ui.Typography.SansLabel
                     }
                     ConflictAction {
                         objectName: "acceptExternalConflict-" + modelData.id

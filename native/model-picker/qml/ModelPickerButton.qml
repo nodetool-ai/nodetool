@@ -1,7 +1,7 @@
 import QtQuick
-import QtQuick.Controls
+import NodeTool.UiPrimitives as Ui
 
-Button {
+Ui.EditorButton {
     id: button
     required property var catalog
     property string placeholder: qsTr("Select model")
@@ -14,11 +14,14 @@ Button {
             const name = catalog && catalog.selectedModelId === selectedId && catalog.selectedProvider === selectedProvider
                        ? (catalog.selectedModel.name || selectedId) : selectedId
             const unavailable = catalog && catalog.loaded && !catalog.loading && !catalog.hasAvailable(selectedId, selectedProvider)
-            return name + (selectedProvider ? " · " + selectedProvider : "") + (unavailable ? qsTr(" (Unavailable)") : "") + " ⌄"
+            return name + (selectedProvider ? " · " + selectedProvider : "") + (unavailable ? qsTr(" (Unavailable)") : "")
         }
-        return catalog && catalog.loading ? qsTr("Loading models…") : placeholder + " ⌄"
+        return catalog && catalog.loading ? qsTr("Loading models…") : placeholder
     }
-    Accessible.name: qsTr("Choose model")
+    accessibleName: qsTr("Choose model")
+    trailingIconName: "arrowDropDown"
+    menuButton: true
+    menuExpanded: picker.visible
     onClicked: picker.openAt(button)
     ModelPicker {
         id: picker

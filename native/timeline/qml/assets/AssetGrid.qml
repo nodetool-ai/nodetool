@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 Item {
     id: grid
@@ -18,7 +19,7 @@ Item {
     }
     readonly property bool filtered: browser.searchText !== "" || browser.typeFilter !== "" || browser.tagFilter !== "" || browser.favoritesOnly
     // AssetGridContent uses calculateGridDimensions with assetItemSize=2.
-    readonly property int itemSpacing: Theme.spacingXs
+    readonly property int itemSpacing: Ui.Metrics.xs
     readonly property int columns: Math.max(1, Math.min(100, Math.floor((width + itemSpacing) / (84 + itemSpacing))))
     readonly property real itemSize: Math.min(Math.floor((width - itemSpacing * (columns + 1)) / columns), 84 * 1.1)
 
@@ -30,7 +31,7 @@ Item {
         cellWidth: (grid.width - grid.itemSpacing) / grid.columns
         cellHeight: grid.itemSize + grid.itemSpacing
         model: grid.browser.assets
-        ScrollBar.vertical: ScrollBar {}
+        ScrollBar.vertical: Ui.ScrollBar {}
         delegate: AssetItem {
             required property var modelData
             asset: modelData
@@ -46,26 +47,22 @@ Item {
     }
     Column {
         anchors.centerIn: parent
-        width: parent.width - 2 * Theme.spacingLg
+        width: parent.width - 2 * Ui.Metrics.lg
         visible: tiles.count === 0 && !grid.browser.busy && grid.browser.configured
-        spacing: Theme.spacingMd
-        Text {
+        spacing: Ui.Metrics.md
+        Ui.Text {
             width: parent.width
             text: grid.filtered ? "No matching assets" : "This folder is empty"
             horizontalAlignment: Text.AlignHCenter
-            color: Theme.textPrimary
-            font.family: Theme.sansFamily
-            font.pixelSize: Theme.fontSizeSmall
-            font.weight: Font.Medium
+            role: Ui.Typography.SansLabel
         }
-        Text {
+        Ui.Text {
             width: parent.width
             text: grid.filtered ? "No assets match the current Library filters. Clear filters or choose another folder." : "Drop files here or use Import to add assets."
             wrapMode: Text.WordWrap
             horizontalAlignment: Text.AlignHCenter
-            color: Theme.textSecondary
-            font.family: Theme.sansFamily
-            font.pixelSize: Theme.fontSizeSmaller
+            role: Ui.Typography.SansCaption
+            tone: Ui.Text.Secondary
         }
         LibraryButton {
             anchors.horizontalCenter: parent.horizontalCenter

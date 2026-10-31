@@ -1,11 +1,11 @@
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
+import NodeTool.UiPrimitives as Ui
 
-Popup {
+Ui.Popover {
     id: picker
     required property var catalog
-    property Item trigger: null
     property string currentId: catalog ? catalog.selectedModelId : ""
     property string currentProvider: catalog ? catalog.selectedProvider : ""
     property string highlightedId: ""
@@ -15,22 +15,16 @@ Popup {
     signal useServerDefaultRequested()
     signal selected(var model)
     objectName: "sharedModelPicker"
-    parent: Overlay.overlay
     enabled: !!catalog
     modal: true
     focus: true
-    padding: 0
-    width: Math.min(ModelPickerTheme.width, parent ? Math.max(0, parent.width - ModelPickerTheme.margin * 2) : ModelPickerTheme.width)
-    height: Math.min(ModelPickerTheme.height, parent ? Math.max(0, parent.height - ModelPickerTheme.margin * 2) : ModelPickerTheme.height)
-    readonly property bool narrow: width < ModelPickerTheme.narrowWidth
-    readonly property color paper: ModelPickerTheme.paper
-    readonly property color textColor: ModelPickerTheme.text
-    readonly property color muted: ModelPickerTheme.muted
-    readonly property color divider: ModelPickerTheme.divider
-    readonly property color accent: ModelPickerTheme.accent
+    width: Math.min(ModelPickerMetrics.width, parent ? Math.max(0, parent.width - Ui.Metrics.md * 2) : ModelPickerMetrics.width)
+    height: Math.min(ModelPickerMetrics.height, parent ? Math.max(0, parent.height - Ui.Metrics.md * 2) : ModelPickerMetrics.height)
+    readonly property bool narrow: width < ModelPickerMetrics.narrowWidth
     function openAt(item) {
         if (!catalog) return
-        trigger = item
+        anchor = item
+        returnFocusTo = item
         highlightedId = currentId
         highlightedProvider = currentProvider
         if (catalog) catalog.reload()
@@ -67,149 +61,94 @@ Popup {
             return
         }
     }
-    function positionAt(item) {
-        if (parent && item) {
-            const point = item.mapToItem(parent, 0, 0)
-            x = Math.max(ModelPickerTheme.margin, Math.min(point.x, parent.width - width - ModelPickerTheme.margin))
-            const below = point.y + item.height + 4
-            const above = point.y - height - 4
-            const target = below + height + ModelPickerTheme.margin <= parent.height ? below : above >= ModelPickerTheme.margin ? above : below
-            y = Math.max(ModelPickerTheme.margin, Math.min(target, parent.height - height - ModelPickerTheme.margin))
-        }
-    }
-    onWidthChanged: { if (visible && trigger) positionAt(trigger) }
-    onHeightChanged: { if (visible && trigger) positionAt(trigger) }
     onOpened: searchField.forceActiveFocus()
-    onClosed: { if (trigger) trigger.forceActiveFocus() }
     Connections {
         target: picker.catalog ? picker.catalog.results : null
         ignoreUnknownSignals: true
         function onModelReset() { Qt.callLater(picker.restoreHighlight) }
     }
-    background: Rectangle { color: picker.paper; radius: ModelPickerTheme.radius; border.color: picker.divider }
-    component ActionButton: Button {
-        id: action
-        flat: true
-        font.pixelSize: 13
-        font.weight: Font.Medium
-        background: Rectangle {
-            color: action.highlighted ? ModelPickerTheme.selected : action.hovered ? ModelPickerTheme.hover : "transparent"
-            radius: ModelPickerTheme.radius
-        }
-        contentItem: Text {
-            text: action.text
-            color: picker.textColor
-            font: action.font
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-            elide: Text.ElideRight
-        }
+    component ActionButton: Ui.EditorButton {
+        variant: Ui.EditorButton.Flat
+        density: Ui.EditorButton.Compact
     }
-    component ProviderAction: Button {
+    component ProviderAction: Ui.EditorButton {
         id: navAction
         required property string providerId
         property bool compact: false
+        objectName: "provider_" + providerId + (compact ? "_compact" : "_rail")
         text: providerId === "All" && !compact ? qsTr("All models") : picker.catalog ? picker.catalog.providerLabel(providerId) : ""
-        highlighted: !!picker.catalog && picker.catalog.group === providerId
-        flat: true
-        hoverEnabled: true
-        padding: ModelPickerTheme.navInset
-        implicitHeight: compact ? ModelPickerTheme.navChipHeight : ModelPickerTheme.navRowHeight
-        implicitWidth: navContent.implicitWidth + leftPadding + rightPadding
-        font.pixelSize: ModelPickerTheme.navFontSize
-        font.weight: Font.Medium
-        background: Rectangle {
-            color: navAction.highlighted ? ModelPickerTheme.selected : navAction.hovered ? ModelPickerTheme.hover : "transparent"
-            radius: ModelPickerTheme.radius
-            border.width: navAction.activeFocus ? ModelPickerTheme.navFocusWidth : 0
-            border.color: picker.accent
-        }
-        contentItem: RowLayout {
-            id: navContent
-            spacing: ModelPickerTheme.navGap
-            ModelPickerNavIcon {
-                entry: navAction.providerId
-                size: navAction.compact ? ModelPickerTheme.navChipIconSize : ModelPickerTheme.navIconSize
-                Layout.preferredWidth: size
-                Layout.preferredHeight: size
-            }
-            Label {
-                text: navAction.text
-                color: picker.textColor
-                font: navAction.font
-                horizontalAlignment: Text.AlignLeft
-                verticalAlignment: Text.AlignVCenter
-                elide: Text.ElideRight
-                Layout.fillWidth: !navAction.compact
-            }
-        }
+        active: !!picker.catalog && picker.catalog.group === providerId
+        variant: Ui.EditorButton.Flat
+        density: Ui.EditorButton.Compact
+        contentAlignment: Qt.AlignLeft
+        iconName: providerId === "All" ? "all" : providerId === "Favorites" ? "favorites" : providerId === "Recent" ? "recent" : ""
+        providerEntry: iconName === "" ? providerId : ""
         onClicked: picker.catalog.group = providerId
     }
-    contentItem: ColumnLayout {
-        spacing: 0
+    ColumnLayout {
+        anchors.fill: parent
+        spacing: Ui.Metrics.none
         RowLayout {
             Layout.fillWidth: true
-            Layout.margins: 12
-            spacing: 8
-            TextField {
+            Layout.margins: Ui.Metrics.lg
+            spacing: Ui.Metrics.md
+            Ui.TextField {
                 id: searchField
                 objectName: "modelPickerSearch"
                 Layout.fillWidth: true
                 placeholderText: qsTr("Search models")
-                placeholderTextColor: picker.muted
-                text: picker.catalog ? picker.catalog.search : ""
-                color: picker.textColor
-                Accessible.name: qsTr("Search models")
-                onTextEdited: picker.catalog.search = text
+                value: picker.catalog ? picker.catalog.search : ""
+                accessibleName: qsTr("Search models")
+                onValuePreviewed: next => picker.catalog.search = next
                 Keys.onDownPressed: picker.moveHighlight(1)
                 Keys.onUpPressed: picker.moveHighlight(-1)
                 Keys.onReturnPressed: picker.commitCurrent()
                 Keys.onEscapePressed: picker.close()
-                background: Rectangle { color: ModelPickerTheme.field; radius: ModelPickerTheme.radius; border.color: searchField.activeFocus ? picker.accent : picker.divider }
             }
             ActionButton {
                 objectName: "modelPickerRefresh"
-                text: "↻"
+                iconName: "refresh"
+                display: AbstractButton.IconOnly
                 Layout.preferredWidth: 32
-                Accessible.name: qsTr("Refresh models")
+                accessibleName: qsTr("Refresh models")
                 onClicked: picker.catalog.reload()
             }
         }
-        Rectangle { Layout.fillWidth: true; height: 1; color: picker.divider }
-        Label {
+        Ui.Separator { Layout.fillWidth: true }
+        Ui.Text { role: Ui.Typography.SansLabel;
             Layout.fillWidth: true
-            Layout.leftMargin: 12
-            Layout.rightMargin: 12
+            Layout.leftMargin: Ui.Metrics.lg
+            Layout.rightMargin: Ui.Metrics.lg
             visible: !!picker.catalog && (picker.catalog.loading || picker.catalog.error !== "")
             text: picker.catalog ? (picker.catalog.loading ? qsTr("Loading models…") : picker.catalog.error) : ""
-            color: picker.catalog && picker.catalog.error !== "" ? ModelPickerTheme.warning : picker.muted
+            tone: picker.catalog && picker.catalog.error !== "" ? Ui.Text.Warning : Ui.Text.Secondary
             wrapMode: Text.Wrap
         }
         RowLayout {
             visible: !!picker.catalog && picker.catalog.needsProviderSetup && !picker.catalog.loading
             Layout.fillWidth: true
-            Layout.leftMargin: 12
-            Layout.rightMargin: 12
-            Label { text: qsTr("Connect an AI provider to use more models"); color: picker.textColor; Layout.fillWidth: true; wrapMode: Text.Wrap }
+            Layout.leftMargin: Ui.Metrics.lg
+            Layout.rightMargin: Ui.Metrics.lg
+            Ui.Text { role: Ui.Typography.SansLabel; text: qsTr("Connect an AI provider to use more models"); Layout.fillWidth: true; wrapMode: Text.Wrap }
             ActionButton { text: qsTr("Add API key"); onClicked: picker.addProvidersRequested() }
         }
         ColumnLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            spacing: 0
+            spacing: Ui.Metrics.none
             RowLayout {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                spacing: 0
+                spacing: Ui.Metrics.none
                 ScrollView {
-                    Layout.preferredWidth: picker.narrow ? 0 : ModelPickerTheme.railWidth
+                    Layout.preferredWidth: picker.narrow ? 0 : ModelPickerMetrics.railWidth
                     Layout.fillHeight: true
                     visible: !picker.narrow
                     clip: true
                     contentWidth: availableWidth
                     Column {
-                        x: ModelPickerTheme.navRailGutter
-                        width: parent.width - ModelPickerTheme.navRailGutter * 2
+                        x: Ui.Metrics.sm
+                        width: parent.width - Ui.Metrics.sm * 2
                         Repeater {
                             model: ["All", "Favorites", "Recent"]
                             delegate: ProviderAction {
@@ -218,33 +157,23 @@ Popup {
                                 width: parent.width
                             }
                         }
-                        Label {
+                        Ui.Text { role: Ui.Typography.SansCaption;
                             visible: !!picker.catalog && picker.catalog.cloudProviders.length > 0
-                            width: parent.width
+                            x: Ui.Metrics.md
+                            width: parent.width - Ui.Metrics.md * 2
                             text: qsTr("CLOUD")
-                            color: picker.muted
-                            leftPadding: ModelPickerTheme.navInset
-                            topPadding: ModelPickerTheme.navInset
-                            bottomPadding: ModelPickerTheme.navGap / 2
-                            font.pixelSize: ModelPickerTheme.eyebrowFontSize
-                            font.weight: Font.Normal
-                            font.letterSpacing: ModelPickerTheme.eyebrowFontSize * 0.06
+                            tone: Ui.Text.Secondary
                         }
                         Repeater {
                             model: picker.catalog ? picker.catalog.cloudProviders : null
                             delegate: ProviderAction { required property string modelData; providerId: modelData; width: parent.width }
                         }
-                        Label {
+                        Ui.Text { role: Ui.Typography.SansCaption;
                             visible: !!picker.catalog && picker.catalog.localProviders.length > 0
-                            width: parent.width
+                            x: Ui.Metrics.md
+                            width: parent.width - Ui.Metrics.md * 2
                             text: qsTr("LOCAL")
-                            color: picker.muted
-                            leftPadding: ModelPickerTheme.navInset
-                            topPadding: ModelPickerTheme.navInset
-                            bottomPadding: ModelPickerTheme.navGap / 2
-                            font.pixelSize: ModelPickerTheme.eyebrowFontSize
-                            font.weight: Font.Normal
-                            font.letterSpacing: ModelPickerTheme.eyebrowFontSize * 0.06
+                            tone: Ui.Text.Secondary
                         }
                         Repeater {
                             model: picker.catalog ? picker.catalog.localProviders : null
@@ -252,38 +181,39 @@ Popup {
                         }
                     }
                 }
-                Rectangle { visible: !picker.narrow; width: 1; Layout.fillHeight: true; color: picker.divider }
+                Ui.Separator { visible: !picker.narrow; orientation: Qt.Vertical; Layout.fillHeight: true }
                 ColumnLayout {
                     Layout.fillWidth: true
                     Layout.fillHeight: true
-                    spacing: 0
+                    spacing: Ui.Metrics.none
                     ScrollView {
                         visible: picker.narrow
                         Layout.fillWidth: true
-                        Layout.preferredHeight: ModelPickerTheme.navRowHeight + ModelPickerTheme.navInset
-                        contentHeight: ModelPickerTheme.navRowHeight + ModelPickerTheme.navInset
+                        Layout.preferredHeight: Ui.Metrics.standard + Ui.Metrics.md
+                        contentHeight: Ui.Metrics.standard + Ui.Metrics.md
                         Row {
-                            x: ModelPickerTheme.navInset
-                            y: ModelPickerTheme.navInset / 2
-                            spacing: ModelPickerTheme.navGap
+                            x: Ui.Metrics.md
+                            y: Ui.Metrics.md / 2
+                            spacing: Ui.Metrics.md
                             Repeater {
                                 model: ["All", "Favorites", "Recent"].concat(picker.catalog ? picker.catalog.providers : [])
                                 delegate: ProviderAction {
                                     required property string modelData
                                     providerId: modelData
                                     compact: true
+                                    width: Math.min(implicitWidth, picker.width - Ui.Metrics.xl * 2)
                                 }
                             }
                         }
                     }
-                    Label {
+                    Ui.Text { role: Ui.Typography.SansLabel;
                         visible: !!picker.catalog && !picker.catalog.loading && modelList.count === 0
                         Layout.fillWidth: true
                         Layout.fillHeight: true
                         horizontalAlignment: Text.AlignHCenter
                         verticalAlignment: Text.AlignVCenter
                         wrapMode: Text.Wrap
-                        color: picker.muted
+                        tone: Ui.Text.Secondary
                         text: !picker.catalog ? "" : picker.catalog.error !== "" ? qsTr("Unable to load models. Refresh to try again.") :
                               picker.catalog.search !== "" ? qsTr("No matching models") : qsTr("No models available")
                     }
@@ -300,8 +230,9 @@ Popup {
                         Keys.onUpPressed: picker.moveHighlight(-1)
                         Keys.onReturnPressed: picker.commitCurrent()
                         Keys.onEscapePressed: picker.close()
-                        delegate: Rectangle {
+                        delegate: Ui.ListRow {
                             id: row
+                            objectName: "choose_" + provider + "_" + modelId
                             required property int index
                             required property string modelId
                             required property string provider
@@ -313,77 +244,50 @@ Popup {
                             required property bool current
                             required property bool available
                             width: modelList.width
-                            height: ModelPickerTheme.rowHeight
-                            color: modelList.currentIndex === index ? ModelPickerTheme.selected : "transparent"
+                            height: ModelPickerMetrics.rowHeight
+                            active: modelList.currentIndex === index
+                            accessibleName: name + (available ? "" : qsTr(", unavailable"))
+                            onClicked: if (available) picker.choose(modelId, provider)
                             opacity: available ? 1 : 0.5
                             RowLayout {
-                                z: 1
                                 anchors.fill: parent
-                                anchors.leftMargin: 12
-                                anchors.rightMargin: 8
-                                spacing: 6
-                                Label { text: row.modelId === picker.currentId && row.provider === picker.currentProvider ? "✓" : ""; color: picker.accent; Layout.preferredWidth: 16 }
-                                Label { text: row.name; color: picker.textColor; elide: Text.ElideRight; Layout.fillWidth: true }
-                                Label { text: (picker.catalog ? picker.catalog.providerLabel(row.provider) : row.provider) + (row.executionLabel ? " · " + row.executionLabel : ""); color: picker.muted; elide: Text.ElideRight; Layout.maximumWidth: 128; font.pixelSize: 11 }
-                                ActionButton {
+                                anchors.leftMargin: Ui.Metrics.lg
+                                anchors.rightMargin: Ui.Metrics.md
+                                spacing: Ui.Metrics.sm
+                                Ui.Icon { name: "check"; opacity: row.modelId === picker.currentId && row.provider === picker.currentProvider ? 1 : 0; Layout.preferredWidth: Ui.Metrics.iconSm; Layout.preferredHeight: Ui.Metrics.iconSm }
+                                Ui.Text { objectName: "model_label_" + row.provider + "_" + row.modelId; role: Ui.Typography.SansLabel; text: row.name; elide: Text.ElideRight; Layout.fillWidth: true }
+                                Ui.Text { role: Ui.Typography.SansCaption; text: (picker.catalog ? picker.catalog.providerLabel(row.provider) : row.provider) + (row.executionLabel ? " · " + row.executionLabel : ""); tone: Ui.Text.Secondary; elide: Text.ElideRight; Layout.maximumWidth: 128;}
+                                Ui.ToolbarIconButton {
                                     objectName: "favorite_" + row.provider + "_" + row.modelId
-                                    text: row.favorite ? "★" : "☆"
-                                    Layout.preferredWidth: 28
-                                    Accessible.name: row.favorite ? qsTr("Remove favorite") : qsTr("Add favorite")
+                                    iconName: row.favorite ? "star" : "favoriteOutline"
+                                    accessibleName: row.favorite ? qsTr("Remove favorite") : qsTr("Add favorite")
+                                    checkable: true
+                                    checked: row.favorite
                                     onClicked: picker.catalog.toggleFavorite(row.modelId, row.provider)
                                 }
-                                ActionButton {
+                                Ui.ToolbarIconButton {
                                     objectName: "default_" + row.provider + "_" + row.modelId
-                                    highlighted: row.isDefault
-                                    Layout.preferredWidth: 28
-                                    Accessible.name: row.isDefault ? qsTr("Remove default") : qsTr("Set default")
+                                    iconName: "pushPin"
+                                    accessibleName: row.isDefault ? qsTr("Remove default") : qsTr("Set default")
+                                    checkable: true
+                                    checked: row.isDefault
                                     onClicked: picker.catalog.setDefault(row.modelId, row.provider)
-                                    contentItem: Canvas {
-                                        id: pinGlyph
-                                        implicitWidth: 16
-                                        implicitHeight: 16
-                                        property bool active: row.isDefault
-                                        onActiveChanged: requestPaint()
-                                        onPaint: {
-                                            const ctx = getContext("2d")
-                                            ctx.reset()
-                                            ctx.strokeStyle = active ? picker.textColor : picker.muted
-                                            ctx.lineWidth = 1.5
-                                            ctx.beginPath()
-                                            ctx.moveTo(5, 2)
-                                            ctx.lineTo(11, 2)
-                                            ctx.lineTo(10, 6)
-                                            ctx.lineTo(12, 9)
-                                            ctx.lineTo(4, 9)
-                                            ctx.lineTo(6, 6)
-                                            ctx.closePath()
-                                            ctx.stroke()
-                                            ctx.beginPath()
-                                            ctx.moveTo(8, 9)
-                                            ctx.lineTo(8, 15)
-                                            ctx.stroke()
-                                        }
-                                    }
                                 }
                             }
-                            MouseArea {
-                                objectName: "choose_" + row.provider + "_" + row.modelId
-                                anchors.fill: parent
-                                enabled: row.available
-                                onClicked: picker.choose(row.modelId, row.provider)
-                            }
+
                         }
                     }
                 }
             }
         }
-        Rectangle { Layout.fillWidth: true; height: 1; color: picker.divider }
+        Ui.Separator { Layout.fillWidth: true }
         RowLayout {
+            objectName: "modelPickerFooter"
             Layout.fillWidth: true
-            Layout.margins: 8
-            ActionButton { objectName: "modelPickerServerDefault"; visible: picker.allowServerDefault; text: qsTr("Server default"); onClicked: picker.useServerDefaultRequested() }
-            Label { text: qsTr("Missing a provider?"); color: picker.muted; Layout.fillWidth: true }
-            ActionButton { text: qsTr("Add providers"); onClicked: picker.addProvidersRequested() }
+            Layout.margins: Ui.Metrics.md
+            ActionButton { objectName: "modelPickerServerDefault"; visible: picker.allowServerDefault; Layout.fillWidth: picker.narrow; text: qsTr("Server default"); onClicked: picker.useServerDefaultRequested() }
+            Ui.Text { role: Ui.Typography.SansLabel; visible: !picker.narrow; text: qsTr("Missing a provider?"); tone: Ui.Text.Secondary; Layout.fillWidth: true }
+            ActionButton { Layout.fillWidth: picker.narrow; text: qsTr("Add providers"); onClicked: picker.addProvidersRequested() }
         }
     }
     function choose(id, provider) {

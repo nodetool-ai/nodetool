@@ -1,11 +1,12 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 Column {
     id: root
     required property ClipInspectorController controller
     width: parent ? parent.width : 360
-    spacing: Theme.spacingMicro
+    spacing: Ui.Metrics.micro
     InspectorSection {
         width: parent.width
         title: "Render"
@@ -40,6 +41,7 @@ Column {
                 onGestureStarted: root.controller.beginGesture()
                 onPreview: next => root.controller.preview(payload(next))
                 onChange: next => root.controller.commit(payload(next))
+                onCanceled: root.controller.cancelGesture()
             }
         }
         Repeater {

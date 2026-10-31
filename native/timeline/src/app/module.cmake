@@ -2,8 +2,6 @@ nt_sources(app src/app/CliModes.h src/app/CliModes.cpp src/app/UploadAssetCli.cp
 nt_qml_sources(src/app/PanelRegistry.h src/app/PanelRegistry.cpp
     src/app/MenuRegistry.h src/app/MenuRegistry.cpp src/app/BuiltinEdits.cpp)
 nt_qml_files(qml/TimelineEditor.qml)
-nt_sources(qml_resources
-    fonts/inter-latin-400-normal.woff2 fonts/inter-latin-500-normal.woff2 fonts/inter-latin-600-normal.woff2 fonts/jetbrains-mono-latin-400-normal.woff2 fonts/jetbrains-mono-latin-500-normal.woff2 fonts/jetbrains-mono-latin-600-normal.woff2)
 
 function(nt_app_tests)
     # The comparison helpers of scripts/plan-conformance.mjs (node:test).

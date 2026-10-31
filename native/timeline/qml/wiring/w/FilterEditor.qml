@@ -1,9 +1,10 @@
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 EffectEditor {
     id: editor
-    spacing: Theme.spacingXs
-    Text { text: TrackEffectsReference.data.strings.mode; color: Theme.textSecondary; font.family: Theme.sansFamily; font.pixelSize: Theme.fontSizeSmaller }
+    spacing: Ui.Metrics.xs
+    Ui.Text { text: TrackEffectsReference.data.strings.mode; tone: Ui.Text.Secondary; role: Ui.Typography.SansCaption }
     FxStepper {
         enabled: !editor.disabled
         def: ({options: [TrackEffectsReference.data.strings.filter.lowPass, TrackEffectsReference.data.strings.filter.highPass, TrackEffectsReference.data.strings.filter.bandPass]})
@@ -16,5 +17,6 @@ EffectEditor {
         disabled: editor.disabled
         onPreview: patch => editor.preview(patch)
         onCommit: patch => editor.commit(patch)
+            onEditCanceled: editor.editCanceled()
     }
 }

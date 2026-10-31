@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls as Controls
 import NodeTool.Timeline
 import "automationTargets.js" as Targets
+import NodeTool.UiPrimitives as Ui
 Rectangle {
     id: root
     property TimelineModel timeline: null
@@ -21,7 +22,7 @@ Rectangle {
     property var gestureGeneration: 0
     objectName: "automation-lane-" + lane.id
     implicitHeight: 56; height: implicitHeight
-    color: Theme.backgroundDefault; clip: true; activeFocusOnTab: true
+    color: Ui.Theme.surfaceCanvas; clip: true; activeFocusOnTab: true
     Accessible.role: Accessible.Grouping
     Accessible.name: "Automation lane: " + (spec ? spec.group + " " + spec.label : "Removed device")
     AutomationController { id: controller; timeline: root.timeline; trackId: root.track.id || "" }
@@ -50,6 +51,7 @@ Rectangle {
         dragging=false
         controller.setPoints(lane.id,next,gestureGeneration)
     }
+    function cancel() { if (dragging) { dragging = false; draft = []; curve.requestPaint() } }
     onActiveFocusChanged: if (!activeFocus) finish()
     onPointsChanged: curve.requestPaint()
     onWidthChanged: curve.requestPaint()
@@ -58,6 +60,7 @@ Rectangle {
     onOnChanged: curve.requestPaint()
     Connections { target: root.timeline; function onDocumentReplaced() { root.dragging=false; root.selected=-1 } }
     Keys.onPressed: event => {
+        if (event.key === Qt.Key_Escape && dragging) { cancel(); event.accepted = true; return }
         if (event.key === Qt.Key_Delete || event.key === Qt.Key_Backspace) {
             removeAt(selected); event.accepted=true
         }
@@ -69,7 +72,7 @@ Rectangle {
             var ps=root.points, vertices=[]
             if(ps.length) vertices=controller.call("automationBreakpoints",[ps,0,{maxStepMs:Math.max(1,root.msPerPx*3)}])
             if (!vertices.length) vertices=[{timeMs:0,value:root.spec?root.spec.value:0}]
-            var stroke=root.on?Theme.primary:Theme.textDisabled
+            var stroke=root.on?Ui.Theme.accentPrimary:Ui.Theme.textDisabled
             ctx.beginPath()
             if (ps.length) {
                 vertices.forEach(function(p,i){ var x=p.timeMs/root.msPerPx,y=root.yOf(p.value); if(i===0)ctx.moveTo(x,y);else ctx.lineTo(x,y) })
@@ -92,16 +95,16 @@ Rectangle {
             required property int index
             x: modelData.timeMs/root.msPerPx-width/2; y: root.yOf(modelData.value)-height/2
             width: 9; height: 9; radius: width/2
-            color: !root.on ? Theme.textDisabled : index === root.selected ? Theme.textPrimary : Theme.primary
-            border.color: index === root.selected ? Theme.primary : Theme.backgroundDefault; border.width: index === root.selected ? 2 : 1
+            color: !root.on ? Ui.Theme.textDisabled : index === root.selected ? Ui.Theme.textPrimary : Ui.Theme.accentPrimary
+            border.color: index === root.selected ? Ui.Theme.accentPrimary : Ui.Theme.surfaceCanvas; border.width: index === root.selected ? Ui.Metrics.focus : Ui.Metrics.border
         }
     }
     Rectangle {
         visible: root.dragging && root.selected>=0 && root.spec !== null
         x: root.selected>=0 && root.points[root.selected] ? root.points[root.selected].timeMs/root.msPerPx+9 : 0
         y: root.selected>=0 && root.points[root.selected] ? Math.max(0,Math.min(38,root.yOf(root.points[root.selected].value)-9)) : 0
-        width: readout.implicitWidth+2*Theme.spacingXs; height: 18; radius: Theme.radiusSm; color: Theme.backgroundPaper
-        Text { id: readout; anchors.centerIn: parent; text: root.spec && root.points[root.selected] ? Targets.format(root.spec,root.points[root.selected].value) : ""; color: Theme.textPrimary; font.family: Theme.monoFamily; font.pixelSize: Theme.fontSizeSmaller }
+        width: readout.implicitWidth+2*Ui.Metrics.xs; height: 18; radius: Ui.Metrics.xs; color: Ui.Theme.surfacePanel
+        Ui.Text { id: readout; anchors.centerIn: parent; text: root.spec && root.points[root.selected] ? Targets.format(root.spec,root.points[root.selected].value) : ""; role: Ui.Typography.MonoCaption }
     }
     MouseArea {
         anchors.fill: parent; acceptedButtons: Qt.LeftButton | Qt.RightButton
@@ -129,19 +132,14 @@ Rectangle {
             root.draft=controller.call("moveAutomationPoint",[root.draft,root.selected,time,root.valueAtY(event.y)])
         }
         onReleased: root.finish()
-        onCanceled: root.finish()
+        onCanceled: root.cancel()
         onDoubleClicked: event => { root.dragging=false; root.removeAt(root.hitIndex(event.x,event.y)) }
     }
-    Controls.Menu {
-            palette.window: Theme.backgroundPaper; palette.windowText: Theme.textPrimary
-            palette.base: Theme.backgroundDefault; palette.text: Theme.textPrimary
-            palette.highlight: Theme.actionSelected; palette.highlightedText: Theme.textPrimary
-            font.family: Theme.sansFamily; font.pixelSize: Theme.fontSizeSmall; font.weight: Font.Medium
+    Ui.ContextMenu {
         id: easingMenu
         Repeater {
             model: [{value:"linear",label:"Linear"},{value:"easeIn",label:"Ease in"},{value:"easeOut",label:"Ease out"},{value:"easeInOut",label:"Ease in/out"},{value:"hold",label:"Hold"}]
-            delegate: Controls.MenuItem {
-                    implicitHeight: 28
+            delegate: Ui.MenuItem {
                 required property var modelData
                 objectName: "automation-easing-"+modelData.value
                 text: modelData.label; checkable: true
@@ -149,9 +147,9 @@ Rectangle {
                 onTriggered: root.setEasing(modelData.value)
             }
         }
-        Controls.MenuSeparator {}
-        Controls.MenuItem { implicitHeight: 28; text: "Delete point"; onTriggered: root.removeAt(root.selected) }
+        Controls.MenuSeparator { contentItem: Ui.Separator {} }
+        Ui.MenuItem { text: "Delete point"; iconName: "deleteOutline"; iconTone: Ui.Text.Error; textTone: Ui.Text.Error; onTriggered: root.removeAt(root.selected) }
     }
-    Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.divider }
-    Rectangle { anchors.fill: parent; color: "transparent"; border.width: root.activeFocus ? 1 : 0; border.color: Theme.primary }
+    Ui.Separator { anchors.bottom: parent.bottom; width: parent.width }
+    Rectangle { anchors.fill: parent; color: "transparent"; border.width: root.activeFocus ? Ui.Metrics.border : 0; border.color: Ui.Theme.accentPrimary }
 }

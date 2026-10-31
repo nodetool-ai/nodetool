@@ -15,8 +15,8 @@
 // (`keptCopy`) or why it is missing (`recoveryError`). The named copy always
 // contains the current document, including fields stripped by the server.
 import QtQuick
-import QtQuick.Controls as Controls
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 Column {
     id: banners
@@ -47,26 +47,11 @@ Column {
         return null
     }
 
-    component RecoveryAction: Controls.Button {
-        id: action
-        implicitHeight: InspectorTokens.controlSm
-        leftPadding: Theme.spacingMd
-        rightPadding: Theme.spacingMd
-        font.family: Theme.sansFamily
-        font.pixelSize: Theme.fontSizeSmall
-        background: Rectangle {
-            radius: Theme.radiusSm
-            color: action.hovered || action.activeFocus ? Theme.actionSelected : "transparent"
-            border.width: 1
-            border.color: action.activeFocus ? Theme.warning : Theme.divider
-        }
-        contentItem: Text {
-            text: action.text
-            font: action.font
-            color: action.enabled ? Theme.warningLight : Theme.textDisabled
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-        }
+    component RecoveryAction: Ui.EditorButton {
+        density: Ui.EditorButton.Compact
+        variant: Ui.EditorButton.Flat
+        textTone: Ui.Text.Warning
+        accessibleName: text
     }
 
     // A new strip warning shows again after a dismissed one.
@@ -80,47 +65,44 @@ Column {
         property bool recoveryActions: false
         signal dismissed()
         width: banners.width
-        height: Math.max(alertIcon.height, textColumn.implicitHeight) + 2 * Theme.spacingSm
+        height: Math.max(alertIcon.height, textColumn.implicitHeight) + 2 * Ui.Metrics.sm
         // MUI's standard warning Alert on the dark palette: the main colour
         // darkened 90 % behind text lightened 60 %.
-        color: Qt.rgba(Theme.warning.r * 0.1, Theme.warning.g * 0.1, Theme.warning.b * 0.1, 1)
-        Icon {
+        color: Ui.Theme.statusWarningSurface
+        Ui.Icon {
             id: alertIcon
-            x: Theme.spacingXl
-            y: Theme.spacingSm + 2
-            size: 22
-            path: Icons.reportProblem
-            color: Theme.warning
+            x: Ui.Metrics.xl
+            y: Ui.Metrics.sm + Ui.Metrics.micro
+            size: Ui.Metrics.iconLg
+            name: "reportProblem"
+            tone: Ui.Text.Warning
         }
         Column {
             id: textColumn
-            x: alertIcon.x + alertIcon.width + Theme.spacingLg
-            y: Theme.spacingSm + 2
-            width: alert.width - x - Theme.spacingXl - (alert.dismissible ? 32 : 0)
-            spacing: Theme.spacingXs
-            Text {
+            x: alertIcon.x + alertIcon.width + Ui.Metrics.lg
+            y: Ui.Metrics.sm + Ui.Metrics.micro
+            width: alert.width - x - Ui.Metrics.xl - (alert.dismissible ? Ui.Metrics.xxxl : 0)
+            spacing: Ui.Metrics.xs
+            Ui.Text {
                 objectName: "alertTitle"
                 width: parent.width
                 wrapMode: Text.WordWrap
                 text: alert.title
-                color: Qt.rgba(1, 0.89, 0.77, 1)
-                font.family: Theme.sansFamily
-                font.pixelSize: Theme.fontSizeNormal
-                font.weight: Font.Medium
+                role: Ui.Typography.SansBody
+                domainColor: Ui.Theme.statusWarningOnSurface
             }
-            Text {
+            Ui.Text {
                 objectName: "alertDetail"
                 visible: alert.detail !== ""
                 width: parent.width
                 wrapMode: Text.WordWrap
                 text: alert.detail
-                color: Qt.rgba(1, 0.89, 0.77, 1)
-                font.family: Theme.sansFamily
-                font.pixelSize: Theme.fontSizeSmall
+                role: Ui.Typography.SansLabel
+                domainColor: Ui.Theme.statusWarningOnSurface
             }
             Row {
                 visible: alert.recoveryActions
-                spacing: Theme.spacingSm
+                spacing: Ui.Metrics.sm
                 RecoveryAction {
                     objectName: "restoreEarlierCopyButton"
                     text: "Restore"
@@ -139,11 +121,11 @@ Column {
         ToolButton {
             visible: alert.dismissible
             anchors.right: parent.right
-            anchors.rightMargin: Theme.spacingMd
-            y: Theme.spacingSm
+            anchors.rightMargin: Ui.Metrics.md
+            y: Ui.Metrics.sm
             label: "Close"
             iconOnly: true
-            iconPath: Icons.close
+            iconName: "close"
             onClicked: alert.dismissed()
         }
     }

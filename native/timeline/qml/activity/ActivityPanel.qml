@@ -3,11 +3,13 @@ import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
-Rectangle {
+Ui.Surface {
     id: panel
+    variant: Ui.Surface.Canvas
     objectName: "activityPanel"
-    color: Theme.backgroundDefault
+    property string filterState: "All"
     property var timeline: null
     property var controller: serverActivity
     property var localController: localActivity
@@ -16,7 +18,7 @@ Rectangle {
         const query = search.text.toLowerCase().trim()
         const matchesText = !query || [row.title, row.id, row.detail, row.kind, row.status, row.source].join(" ").toLowerCase().indexOf(query) >= 0
         const active = ["running", "scheduled", "queued", "pending", "submitted", "processing", "cancelling", "recovering", "needs_attention", "accepted", "submitting", "submission_unknown"].indexOf(row.status) >= 0
-        return matchesText && (stateFilter.currentIndex === 0 || (stateFilter.currentIndex === 1 ? active : row.status === "failed" || row.status === "error" || ["interrupted", "unobserved", "needs_attention", "unavailable"].indexOf(row.status) >= 0))
+        return matchesText && (panel.filterState === "All" || (panel.filterState === "Active" ? active : row.status === "failed" || row.status === "error" || ["interrupted", "unobserved", "needs_attention", "unavailable"].indexOf(row.status) >= 0))
     })
     ActivityController { id: serverActivity; timeline: panel.timeline }
     LocalActivity { id: localActivity; timeline: panel.timeline }
@@ -30,44 +32,41 @@ Rectangle {
     Component.onCompleted: bindTimeline()
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Theme.spacingLg
-        spacing: Theme.spacingMd
+        anchors.margins: Ui.Metrics.md
+        spacing: Ui.Metrics.md
         Flow {
             Layout.fillWidth: true
-            spacing: Theme.spacingMd
-            Label { font.family: Theme.sansFamily; text: "Background activity"; color: Theme.textPrimary; font.pixelSize: Theme.fontSizeSmall; font.weight: Font.Medium }
-            PanelButton { objectName: "activityRefresh"; text: panel.controller.busy ? "Refreshing…" : "Refresh"; iconPath: Icons.refresh; iconOnly: true; enabled: !panel.controller.busy; onClicked: panel.controller.refresh(); Accessible.name: "Refresh background activity" }
+            spacing: Ui.Metrics.md
+            Ui.Text { objectName: "activityTitle"; role: Ui.Typography.SansLabel; text: "Background activity"; }
+            Ui.EditorButton { objectName: "activityRefresh"; iconName: "refresh"; density: Ui.EditorButton.Compact; enabled: !panel.controller.busy; onClicked: panel.controller.refresh(); accessibleName: "Refresh background activity" }
         }
-        Label { font.family: Theme.sansFamily;
+        Ui.Text { role: Ui.Typography.SansCaption;
             Layout.fillWidth: true
             text: panel.controller.scopeLabel
-            color: Theme.textSecondary
-            font.pixelSize: Theme.fontSizeSmaller
+            tone: Ui.Text.Secondary
             wrapMode: Text.Wrap
         }
         RowLayout {
             Layout.fillWidth: true
-            spacing: Theme.spacingMd
-            PanelField { id: search; objectName: "activitySearch"; Layout.fillWidth: true; Layout.minimumWidth: 0; placeholderText: "Search activity"; Accessible.name: "Search activity"; selectByMouse: true }
-            PanelSelect { id: stateFilter; objectName: "activityFilter"; model: ["All", "Active", "Failures"]; Accessible.name: "Filter activity by state" }
+            spacing: Ui.Metrics.md
+            Ui.TextField { id: search; objectName: "activitySearch"; Layout.fillWidth: true; Layout.minimumWidth: 0; placeholderText: "Search activity"; accessibleName: "Search activity"; selectByMouse: true }
+            Ui.Select { id: stateFilter; objectName: "activityFilter"; options: [{label:"All",value:"All"},{label:"Active",value:"Active"},{label:"Failures",value:"Failures"}]; value: panel.filterState; accessibleName: "Filter activity by state"; onValueCommitted: next => panel.filterState = next }
         }
-        Label { font.family: Theme.sansFamily;
+        Ui.Text { role: Ui.Typography.SansLabel;
             objectName: "activityError"
             Layout.fillWidth: true
             visible: !!text
             text: [panel.controller.error, panel.localController.error].filter(value => !!value).join("\n")
-            color: Theme.warning
+            tone: Ui.Text.Warning
             wrapMode: Text.Wrap
-            font.pixelSize: Theme.fontSizeSmall
             Accessible.role: Accessible.AlertMessage
         }
-        Label { font.family: Theme.sansFamily;
+        Ui.Text { role: Ui.Typography.SansCaption;
             Layout.fillWidth: true
             visible: !!panel.controller.lastUpdated
             text: "Server checked: " + panel.controller.lastUpdated
-            color: Theme.textSecondary
+            tone: Ui.Text.Secondary
             wrapMode: Text.Wrap
-            font.pixelSize: Theme.fontSizeSmaller
         }
         ListView {
             id: activityList
@@ -75,48 +74,33 @@ Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
-            spacing: Theme.spacingMd
+            spacing: Ui.Metrics.md
             model: panel.filteredRows
-            ScrollBar.vertical: PanelScrollBar {}
-            delegate: Rectangle {
+            ScrollBar.vertical: Ui.ScrollBar {}
+            delegate: Ui.Surface {
                 id: card
                 required property var modelData
                 required property int index
                 objectName: "activityRow_" + index
                 width: activityList.width
-                height: content.implicitHeight + Theme.spacingXl
-                color: Theme.backgroundPaper
-                radius: Theme.radiusSm
-                border.color: Theme.divider
+                height: content.implicitHeight + Ui.Metrics.xl
                 ColumnLayout {
                     id: content
-                    anchors { left: parent.left; right: parent.right; top: parent.top; margins: Theme.spacingMd }
-                    spacing: Theme.spacingXs
-                    Label { font.family: Theme.sansFamily; Layout.fillWidth: true; text: card.modelData.title; color: Theme.textPrimary; wrapMode: Text.Wrap; font.pixelSize: Theme.fontSizeSmall; font.weight: Font.Medium }
-                    Label { font.family: Theme.sansFamily; Layout.fillWidth: true; text: card.modelData.source + (card.modelData.stale ? " (last known)" : "") + " · " + card.modelData.kind + " · " + card.modelData.status; color: card.modelData.status === "failed" ? Theme.error : Theme.textSecondary; wrapMode: Text.Wrap; font.pixelSize: Theme.fontSizeSmaller }
-                    TextEdit { objectName: "activityId_" + card.index; Layout.fillWidth: true; text: card.modelData.id; color: Theme.textSecondary; readOnly: true; selectByMouse: true; wrapMode: TextEdit.WrapAnywhere; font.family: Theme.monoFamily; font.pixelSize: Theme.fontSizeSmaller; Accessible.name: "Activity ID " + text }
-                    Label { font.family: Theme.sansFamily; Layout.fillWidth: true; visible: !!text; text: card.modelData.detail || ""; color: Theme.textSecondary; wrapMode: Text.Wrap; font.pixelSize: Theme.fontSizeSmaller }
-                    ProgressBar {
-                        id: progress
-                        objectName: "activityProgress_" + card.index
-                        Layout.fillWidth: true
-                        visible: card.modelData.progress >= 0
-                        value: Math.max(0, Math.min(1, card.modelData.progress))
-                        Accessible.name: "Reported progress"
-                        implicitHeight: Theme.spacingXs
-                        background: Rectangle { color: Theme.actionSelected; radius: Theme.radiusXs }
-                        contentItem: Item {
-                            Rectangle { width: parent.width * progress.visualPosition; height: parent.height; color: Theme.primary; radius: Theme.radiusXs }
-                        }
-                    }
-                    Label { font.family: Theme.sansFamily; Layout.fillWidth: true; text: "Cost: " + card.modelData.cost; color: Theme.textSecondary; wrapMode: Text.Wrap; font.pixelSize: Theme.fontSizeSmaller }
-                    Label { font.family: Theme.sansFamily; Layout.fillWidth: true; visible: !!text; text: card.modelData.updatedAt || ""; color: Theme.textSecondary; wrapMode: Text.Wrap; font.pixelSize: Theme.fontSizeSmaller }
-                    PanelButton {
+                    anchors { left: parent.left; right: parent.right; top: parent.top; margins: Ui.Metrics.md }
+                    spacing: Ui.Metrics.xs
+                    Ui.Text { role: Ui.Typography.SansLabel; Layout.fillWidth: true; text: card.modelData.title; wrapMode: Text.Wrap;}
+                    Ui.Text { role: Ui.Typography.SansCaption; Layout.fillWidth: true; text: card.modelData.source + (card.modelData.stale ? " (last known)" : "") + " · " + card.modelData.kind + " · " + card.modelData.status; tone: card.modelData.status === "failed" ? Ui.Text.Error : Ui.Text.Secondary; wrapMode: Text.Wrap;}
+                    Ui.TextArea { objectName: "activityId_" + card.index; Layout.fillWidth: true; value: card.modelData.id; role: Ui.Typography.MonoCaption; variant: Ui.TextArea.Plain; readOnly: true; selectByMouse: true; wrapMode: TextEdit.WrapAnywhere; accessibleName: "Activity ID " + text }
+                    Ui.Text { role: Ui.Typography.SansCaption; Layout.fillWidth: true; visible: !!text; text: card.modelData.detail || ""; tone: Ui.Text.Secondary; wrapMode: Text.Wrap;}
+                    Ui.Progress { objectName: "activityProgress_" + card.index; Layout.fillWidth: true; visible: card.modelData.progress >= 0; value: Math.max(0, Math.min(1, card.modelData.progress)); accessibleName: "Reported progress" }
+                    Ui.Text { role: Ui.Typography.SansCaption; Layout.fillWidth: true; text: "Cost: " + card.modelData.cost; tone: Ui.Text.Secondary; wrapMode: Text.Wrap;}
+                    Ui.Text { role: Ui.Typography.SansCaption; Layout.fillWidth: true; visible: !!text; text: card.modelData.updatedAt || ""; tone: Ui.Text.Secondary; wrapMode: Text.Wrap;}
+                    Ui.EditorButton {
                         objectName: "activityCancel_" + card.index
                         text: "Cancel"
                         visible: !!card.modelData.cancellable
                         enabled: card.modelData.source === "Local" || (!panel.controller.busy && panel.controller.connected)
-                        Accessible.name: "Cancel " + card.modelData.title
+                        accessibleName: "Cancel " + card.modelData.title
                         onClicked: {
                             if (card.modelData.source === "Local") { panel.localController.cancel(card.modelData.id) }
                             else { panel.controller.cancel(card.modelData.id, card.modelData.source) }
@@ -128,27 +112,26 @@ Rectangle {
                 anchors.centerIn: parent
                 width: parent.width
                 visible: activityList.count === 0
-                spacing: Theme.spacingMd
-                Label { font.family: Theme.sansFamily;
+                spacing: Ui.Metrics.md
+                Ui.Text { role: Ui.Typography.SansLabel;
                     objectName: "activityEmpty"
                     Layout.fillWidth: true
                     text: panel.controller.busy ? "Loading activity…" : panel.allRows.length ? "No activity matches this filter." : panel.controller.error ? "Activity could not be refreshed. Retry when the server is available." : "No background activity yet. Renders, proxies, and generations appear here."
-                    color: Theme.textSecondary
+                    tone: Ui.Text.Secondary
                     wrapMode: Text.Wrap
                     horizontalAlignment: Text.AlignHCenter
-                    font.pixelSize: Theme.fontSizeSmall
                 }
-                PanelButton {
+                Ui.EditorButton {
                     Layout.alignment: Qt.AlignHCenter
                     visible: !panel.controller.busy
                     text: panel.allRows.length ? "Clear filters" : "Refresh activity"
                     onClicked: {
-                        if (panel.allRows.length) { search.clear(); stateFilter.currentIndex = 0 }
+                        if (panel.allRows.length) { search.clear(); panel.filterState = "All" }
                         else panel.controller.refresh()
                     }
                 }
             }
         }
-        PanelButton { objectName: "activityMore"; visible: panel.controller.hasMore; enabled: !panel.controller.busy; text: "Load older activity"; onClicked: panel.controller.loadMore() }
+        Ui.EditorButton { objectName: "activityMore"; visible: panel.controller.hasMore; enabled: !panel.controller.busy; text: "Load older activity"; onClicked: panel.controller.loadMore() }
     }
 }

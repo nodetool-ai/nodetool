@@ -750,6 +750,15 @@ private slots:
         QVERIFY2(editor, qPrintable(component.errorString()));
         auto* root = qobject_cast<QQuickItem*>(editor.get());
         QVERIFY(root);
+        QQuickWindow window;
+        window.resize(1400, 900);
+        root->setParentItem(window.contentItem());
+        window.show();
+        QVERIFY(QTest::qWaitForWindowExposed(&window));
+        auto* dockStore = root->findChild<QObject*>("dockLayoutStore");
+        QVERIFY(dockStore);
+        QVERIFY(QMetaObject::invokeMethod(dockStore, "dispatch", Q_ARG(QVariantMap,
+            (QVariantMap{{"type", "reveal"}, {"panelId", "assets"}}))));
         QTRY_VERIFY(itemNamed(root, "assetExplorer"));
         QTRY_VERIFY(itemNamed(root, "assetDropOverlay"));
         QTRY_VERIFY(itemNamed(root, "timelineScriptPanel"));
@@ -1152,12 +1161,12 @@ Item {
         QVERIFY2(child.exitStatus() == QProcess::NormalExit && child.exitCode() == 0, output.constData());
         QCOMPARE(tagWrites, 2);
         const auto saved = rows.first().toObject();
-        QCOMPARE(saved.value("name").toString(), QString("Renamed image"));
+        QCOMPARE(saved.value("name").toString(), QString("renamed image"));
         QVERIFY(saved.value("favorite").toBool());
         QCOMPARE(saved.value("metadata").toObject().value("tags").toArray(), QJsonArray({"hero", "reference"}));
         QCOMPARE(saved.value("metadata").toObject().value("description").toString(), QString("Keep this"));
         QCOMPARE(rows.size(), 3);
-        QCOMPARE(rows.last().toObject().value("name").toString(), QString("References"));
+        QCOMPARE(rows.last().toObject().value("name").toString(), QString("references"));
     }
     void libraryPanelServerSession() {
         if (!qApp->property("libraryProbe").toBool()) { QSKIP("Driven by the isolated libraryPanelFlow subprocess"); }
@@ -1188,14 +1197,18 @@ Item {
         QVERIFY(tags);
         QTRY_COMPARE(panel->property("selectedId").toString(), pictureId);
         QTRY_COMPARE(tags->property("text").toString(), QString("old"));
-        tags->setProperty("text", "hero, reference");
-        QVERIFY(QMetaObject::invokeMethod(tags, "textEdited"));
+        qobject_cast<QQuickItem*>(tags)->forceActiveFocus();
+        QTest::keyClick(&window, Qt::Key_A, Qt::ControlModifier);
+        for (const QChar letter : QStringLiteral("hero, reference")) {
+            QTest::keyClick(&window, static_cast<Qt::Key>(letter.toUpper().unicode()),
+                letter.isUpper() ? Qt::ShiftModifier : Qt::NoModifier);
+        }
         auto* save = panel->findChild<QObject*>("librarySaveTags");
         QVERIFY(save);
-        QVERIFY(QMetaObject::invokeMethod(save, "clicked"));
+        qobject_cast<QQuickItem*>(save)->forceActiveFocus(); QTest::keyClick(&window, Qt::Key_Space);
         QTRY_VERIFY(!browser->busy() && browser->error().contains("Tag write failed"));
         QCOMPARE(tags->property("text").toString(), QString("hero, reference"));
-        QVERIFY(QMetaObject::invokeMethod(save, "clicked"));
+        qobject_cast<QQuickItem*>(save)->forceActiveFocus(); QTest::keyClick(&window, Qt::Key_Space);
         QTRY_VERIFY(!browser->busy() && browser->error().isEmpty());
         QTRY_COMPARE(browser->assets().first().toMap().value("metadata").toMap().value("tags").toStringList(), QStringList({"hero", "reference"}));
         QVERIFY(QMetaObject::invokeMethod(panel, "renameSelected"));
@@ -1203,19 +1216,29 @@ Item {
         auto* input = panel->findChild<QObject*>("libraryActionInput");
         QVERIFY(dialog && input);
         QTRY_VERIFY(dialog->property("opened").toBool());
-        input->setProperty("text", "Renamed image");
-        QVERIFY(QMetaObject::invokeMethod(dialog, "submit"));
-        QTRY_VERIFY(!browser->busy() && browser->assets().first().toMap().value("name").toString() == "Renamed image");
+        qobject_cast<QQuickItem*>(input)->forceActiveFocus();
+        QTest::keyClick(&window, Qt::Key_A, Qt::ControlModifier);
+        for (const QChar letter : QStringLiteral("renamed image")) {
+            QTest::keyClick(&window, static_cast<Qt::Key>(letter.toUpper().unicode()),
+                letter.isUpper() ? Qt::ShiftModifier : Qt::NoModifier);
+        }
+        QTest::keyClick(&window, Qt::Key_Return);
+        QTRY_VERIFY(!browser->busy() && browser->assets().first().toMap().value("name").toString() == "renamed image");
         auto* favorite = panel->findChild<QObject*>("libraryFavorite");
         QVERIFY(favorite);
-        QVERIFY(QMetaObject::invokeMethod(favorite, "clicked"));
+        qobject_cast<QQuickItem*>(favorite)->forceActiveFocus(); QTest::keyClick(&window, Qt::Key_Space);
         QTRY_VERIFY(!browser->busy() && browser->assets().first().toMap().value("favorite").toBool());
         auto* create = panel->findChild<QObject*>("libraryCreateFolder");
         QVERIFY(create);
-        QVERIFY(QMetaObject::invokeMethod(create, "clicked"));
+        qobject_cast<QQuickItem*>(create)->forceActiveFocus(); QTest::keyClick(&window, Qt::Key_Space);
         QTRY_VERIFY(dialog->property("opened").toBool());
-        input->setProperty("text", "References");
-        QVERIFY(QMetaObject::invokeMethod(dialog, "submit"));
+        qobject_cast<QQuickItem*>(input)->forceActiveFocus();
+        QTest::keyClick(&window, Qt::Key_A, Qt::ControlModifier);
+        for (const QChar letter : QStringLiteral("references")) {
+            QTest::keyClick(&window, static_cast<Qt::Key>(letter.toUpper().unicode()),
+                letter.isUpper() ? Qt::ShiftModifier : Qt::NoModifier);
+        }
+        QTest::keyClick(&window, Qt::Key_Return);
         QTRY_VERIFY(!browser->busy() && browser->assets().size() == 3);
         QVERIFY(QMetaObject::invokeMethod(panel, "navigateFolder", Q_ARG(QVariant, QString("33333333333333333333333333333333"))));
         QTRY_VERIFY(!browser->busy() && browser->assets().isEmpty());

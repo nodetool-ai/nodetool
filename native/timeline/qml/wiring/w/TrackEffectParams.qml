@@ -6,6 +6,7 @@ Item {
     property bool disabled: false
     signal preview(var patch)
     signal commit(var patch)
+    signal editCanceled()
     implicitHeight: loader.item ? loader.item.implicitHeight : 0
     Loader {
         id: loader
@@ -32,6 +33,7 @@ Item {
             disabled: root.disabled
             onPreview: patch => root.preview(patch)
             onCommit: patch => root.commit(patch)
+            onEditCanceled: root.editCanceled()
         }
     }
     Component {
@@ -41,6 +43,7 @@ Item {
             disabled: root.disabled
             onPreview: patch => root.preview(patch)
             onCommit: patch => root.commit(patch)
+            onEditCanceled: root.editCanceled()
         }
     }
     Component {
@@ -50,6 +53,7 @@ Item {
             disabled: root.disabled
             onPreview: patch => root.preview(patch)
             onCommit: patch => root.commit(patch)
+            onEditCanceled: root.editCanceled()
         }
     }
     Component {
@@ -59,6 +63,7 @@ Item {
             disabled: root.disabled
             onPreview: patch => root.preview(patch)
             onCommit: patch => root.commit(patch)
+            onEditCanceled: root.editCanceled()
         }
     }
     Component {
@@ -68,6 +73,7 @@ Item {
             disabled: root.disabled
             onPreview: patch => root.preview(patch)
             onCommit: patch => root.commit(patch)
+            onEditCanceled: root.editCanceled()
         }
     }
     Component {
@@ -77,6 +83,7 @@ Item {
             disabled: root.disabled
             onPreview: patch => root.preview(patch)
             onCommit: patch => root.commit(patch)
+            onEditCanceled: root.editCanceled()
         }
     }
     Component {
@@ -86,6 +93,7 @@ Item {
             disabled: root.disabled
             onPreview: patch => root.preview(patch)
             onCommit: patch => root.commit(patch)
+            onEditCanceled: root.editCanceled()
         }
     }
     Component {
@@ -95,6 +103,7 @@ Item {
             disabled: root.disabled
             onPreview: patch => root.preview(patch)
             onCommit: patch => root.commit(patch)
+            onEditCanceled: root.editCanceled()
         }
     }
     Component {
@@ -104,6 +113,7 @@ Item {
             disabled: root.disabled
             onPreview: patch => root.preview(patch)
             onCommit: patch => root.commit(patch)
+            onEditCanceled: root.editCanceled()
         }
     }
 }

@@ -120,6 +120,7 @@ InspectorSection {
                 activeGesture = false
                 if (!stale) root.change(modelData, next)
             }
+            onCanceled: { activeGesture = false; root.cancel() }
         }
     }
     Sections.InspectorActionButton {

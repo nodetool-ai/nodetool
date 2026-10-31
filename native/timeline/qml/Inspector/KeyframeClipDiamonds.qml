@@ -5,6 +5,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 Item {
     id: root
     property string clipId: ""
@@ -16,7 +17,7 @@ Item {
     signal seek(real relativeMs)
     signal move(real fromMs, real toMs)
     property var drag: null
-    z: 3
+    z: TimelineMetrics.clipOverlayLayer
     Repeater {
         model: root.timesMs
         delegate: Item {
@@ -38,9 +39,9 @@ Item {
                 width: 7
                 height: 7
                 rotation: 45
-                color: Theme.primary
-                border.width: 1
-                border.color: Theme.backgroundPaper
+                color: Ui.Theme.accentPrimary
+                border.width: Ui.Metrics.border
+                border.color: Ui.Theme.surfacePanel
             }
             MouseArea {
                 id: pointer

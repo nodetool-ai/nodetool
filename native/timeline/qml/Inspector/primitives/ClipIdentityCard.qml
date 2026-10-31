@@ -1,32 +1,29 @@
 import QtQuick
 import QtQuick.Layouts
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 InspectorCard {
     id: root
     property string name: ""
     property var metadata: []
-    property color accentColor: Theme.secondary
-    Text {
+    property color accentColor: Ui.Theme.accentPrimary
+    Ui.Text {
         width: parent.width
         text: root.name
         wrapMode: Text.WrapAnywhere
-        color: Theme.textPrimary
-        font.family: Theme.sansFamily
-        font.pixelSize: Theme.fontSizeSmall
-        font.weight: Font.Medium
+        role: Ui.Typography.SansLabel
     }
     RowLayout {
         width: parent.width
         visible: root.metadata.length > 0
-        spacing: Theme.spacingSm
-        Rectangle { width: Theme.spacingMd; height: width; radius: width / 2; color: root.accentColor }
-        Text {
+        spacing: Ui.Metrics.sm
+        Rectangle { width: Ui.Metrics.md; height: width; radius: Ui.Metrics.radiusPill; color: root.accentColor }
+        Ui.Text {
             Layout.fillWidth: true
             text: root.metadata.join(" · ")
             wrapMode: Text.Wrap
-            color: Theme.textSecondary
-            font.family: Theme.sansFamily
-            font.pixelSize: Theme.fontSizeSmall
+            role: Ui.Typography.SansLabel
+            tone: Ui.Text.Secondary
         }
     }
 }

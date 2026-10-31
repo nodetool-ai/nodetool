@@ -82,6 +82,13 @@ function websocketTest(name) {
  */
 export const PATH_CHECKS = [
   {
+    path: /^native\/ui_primitives\//,
+    steps: [
+      { label: "native UI: design contracts", command: "python3", args: ["native/ui_primitives/tools/check_design.py", "--strict"] },
+      { label: "native UI: dependency boundaries", command: "python3", args: ["native/ui_primitives/tools/check_dependencies.py"] }
+    ]
+  },
+  {
     path: /^native\/chat\//,
     steps: [{ label: "native chat: build and conformance", command: "node", args: ["native/chat/scripts/check.mjs"] }]
   },

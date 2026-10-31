@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 ColumnLayout {
     id: root
@@ -28,27 +29,25 @@ ColumnLayout {
     onClipIdChanged: if (visible) scriptLoader.openClipScript(clipId)
     ClipInspectorController { id: inspector; timeline: root.timeline; clipId: root.clipId }
     AssistController { id: scriptLoader; timeline: root.timeline }
-    Label { text: "Revise line delivery"; color: Theme.textPrimary; font.weight: Font.DemiBold }
-    Label {
+    Ui.Text { role: Ui.Typography.SansLabel; text: "Revise line delivery"; }
+    Ui.Text { role: Ui.Typography.SansLabel;
         Layout.fillWidth: true
-        color: scriptLoader.error !== "" ? Theme.error : Theme.textSecondary
+        tone: scriptLoader.error !== "" ? Ui.Text.Error : Ui.Text.Secondary
         wrapMode: Text.Wrap
         text: scriptLoader.busy ? "Loading line…" : scriptLoader.error !== "" ? scriptLoader.error :
               !root.line ? "Script line unavailable." : !root.voice ? "Assign a voice to this line first." :
               "Voice: " + (root.voice.voice || "") + " — " + (root.line.text || "")
     }
-    TextArea {
+    Ui.TextArea {
         id: instructions
         objectName: "lineDeliveryInstructions"
         Layout.fillWidth: true
         Layout.preferredHeight: 80
-        color: Theme.textPrimary
         wrapMode: TextEdit.Wrap
         placeholderText: "Describe the delivery"
-        Accessible.name: "Delivery instructions"
-        background: Rectangle { color: Theme.backgroundDefault; border.color: Theme.overlay; radius: Theme.radiusSm }
+        accessibleName: "Delivery instructions"
     }
-    Button {
+    Ui.EditorButton {
         objectName: "lineDeliverySubmit"
         text: "Revise line delivery"
         enabled: root.controller.ready && !root.controller.busy && !inspector.locked && !!root.voice && !scriptLoader.busy

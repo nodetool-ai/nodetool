@@ -1321,9 +1321,32 @@ export const HARNESSES: HarnessEntry[] = [
     capabilities: ["no-db", "interact"],
     docs: "native/chat/README.md"
   },
-  // The native timeline prototype (native/timeline/) needs Qt 6.12 and FFmpeg,
-  // which CI does not install, so none of these has a selfcheck: the gate
-  // lists them as manual work for a change under native/timeline/.
+  {
+    id: "native-ui-design",
+    title: "Native UI presentation and dependency contracts",
+    command:
+      "python3 native/ui_primitives/tools/check_design.py --strict && " +
+      "python3 native/ui_primitives/tools/check_dependencies.py",
+    kind: "static",
+    capabilities: ["no-db"],
+    docs: "native/ui_primitives/README.md",
+    selfcheck: {
+      command:
+        "python3 native/ui_primitives/tools/check_design.py --strict && " +
+        "python3 native/ui_primitives/tools/check_dependencies.py",
+      cost: "cheap"
+    }
+  },
+  {
+    id: "native-ui-interactions",
+    title: "Native UI control interactions and accessibility actions",
+    command: "ctest --test-dir native/ui_primitives/build --output-on-failure",
+    kind: "execution",
+    capabilities: ["no-db", "interact"],
+    docs: "native/ui_primitives/README.md"
+  },
+  // Native timeline checks need Qt and media build artifacts. Dedicated native
+  // CI supplies them. The root gate lists these platform checks as manual work.
   {
     id: "native-timeline-bench",
     title: "Native timeline GPU preview bench (frame timing budget)",
@@ -2452,9 +2475,25 @@ export const SURFACES: SurfaceEntry[] = [
     harnesses: ["native-chat"],
     paths: ["native/chat/"],
     gap:
-      "The native check requires Qt development libraries and CMake, which CI does not install. " +
-      "Run the registered check on a Qt-equipped machine. Installed-artifact, accessibility " +
+      "The native check requires Qt development libraries and CMake. Dedicated native CI supplies them. " +
+      "The root gate lists it as manual work. Installed-artifact, accessibility " +
       "and IME checks remain platform-specific."
+  },
+  {
+    id: "native-ui-primitives",
+    title: "Native Qt presentation library and migrated feature chrome",
+    harnesses: ["native-ui-design", "native-ui-interactions"],
+    paths: [
+      "native/ui_primitives/",
+      "native/chat/qml/",
+      "native/model-picker/qml/",
+      "native/timeline/qml/",
+      "native/timeline/src/"
+    ],
+    gap:
+      "The standalone native-ui-primitives workflow builds and tests with Qt on each supported OS. " +
+      "The root gate runs the Python design checks and lists Qt interaction tests as manual work. " +
+      "Screen-reader, IME and physical mixed-DPI screen checks require platform review."
   },
   {
     id: "native-timeline",
@@ -2472,11 +2511,9 @@ export const SURFACES: SurfaceEntry[] = [
     ],
     paths: ["native/timeline/"],
     gap:
-      "Every check needs a Qt 6.12 and FFmpeg build of native/timeline/, " +
-      "which CI does not install, so the gate lists them as manual work. " +
-      "Closing the gap: a macOS CI job that installs qt and ffmpeg, builds " +
-      "with CMake, and runs ctest, plan-conformance.mjs and the bench budget " +
-      "(the bench needs a display, so a hosted runner with a screen)."
+      "These checks need a Qt and media build of native/timeline/. The dedicated native-timeline " +
+      "workflow provides platform builds, while the root gate lists them as manual work. " +
+      "Hardware decode, physical window behavior and frame budgets still require a reference machine."
   }
 ];
 

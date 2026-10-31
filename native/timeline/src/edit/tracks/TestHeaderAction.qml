@@ -3,5 +3,5 @@ import NodeTool.Timeline
 ToolButton {
     objectName: "trackHeaderAction-testHeaderAction"
     label: "Test action"
-    iconPath: Icons.add
+    iconName: "add"
 }

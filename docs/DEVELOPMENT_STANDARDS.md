@@ -611,6 +611,28 @@ If a rule is not yet enforced by tooling, it is enforced by review. Reviewers sh
 
 ---
 
+## 23. Native Qt UI
+
+Qt Quick presentation follows the
+[native design specification](../native/ui_primitives/DESIGN.md) and uses
+`NodeTool.UiPrimitives`. Native configuration, fonts, icons, and build tooling
+are owned under `native/`. React retains its separate configuration and
+implementation. Neither implementation imports or generates the other's
+presentation configuration.
+
+Feature code supplies content, state, actions, and outer layout. Primitives
+own typography, internal spacing, colors, borders, focus, disabled states,
+and feedback. Keep editor geometry, document colors, networking, persistence,
+and undo policy with their features. Structural Qt layout items remain valid
+feature composition tools.
+
+Preserve editing transactions and existing inspector behavior during
+extraction. Changes to cancellation or focus-loss behavior require interaction
+and undo tests. Follow the [native verification commands](../native/ui_primitives/README.md)
+for the standalone module, isolated builds, design checks, and affected hosts.
+Run GUI checks offscreen. Report platform accessibility and rendering checks
+separately from local automated results.
+
 ## Related Documents
 
 - [Root AGENTS.md](../AGENTS.md) — Quick command reference and base TS/React/Zustand/MUI rules

@@ -15,6 +15,9 @@ on:
   pull_request:
     paths:
       - "native/timeline/**"
+      - "native/ui_primitives/**"
+      - "native/chat/**"
+      - "native/model-picker/**"
       - ".github/workflows/native-timeline.yml"
 
 permissions:

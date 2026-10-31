@@ -1,6 +1,7 @@
 import QtQuick
 import NodeTool.Timeline
 import "DockLayout.js" as Model
+import NodeTool.UiPrimitives as Ui
 
 Item {
     id: root
@@ -12,16 +13,16 @@ Item {
     property var slots: ({})
     property int geometryEpoch: 0
     property string maximizedGroup: ""
-    readonly property real emptyRegionExtent: Theme.spacingXl * 8
+    readonly property real emptyRegionExtent: Ui.Metrics.xl * 8
     property string dragPanel: ""
     property var dragTarget: null
     property int layoutEpoch: store.layoutEpoch
     readonly property real leftExtent: groups("left").length ? sizes.left : 0
     readonly property real rightExtent: groups("right").length ? sizes.right : 0
     readonly property real bottomExtent: groups("bottom").length ? sizes.bottom : 0
-    readonly property real leftGap: leftExtent ? Theme.spacingSm : 0
-    readonly property real rightGap: rightExtent ? Theme.spacingSm : 0
-    readonly property real bottomGap: bottomExtent ? Theme.spacingSm : 0
+    readonly property real leftGap: leftExtent ? Ui.Metrics.sm : 0
+    readonly property real rightGap: rightExtent ? Ui.Metrics.sm : 0
+    readonly property real bottomGap: bottomExtent ? Ui.Metrics.sm : 0
     readonly property var visiblePanels: Model.allGroups(layout).filter(group => !maximizedGroup || group.id === maximizedGroup)
         .map(group => activePanel(group)).filter(id => !!id)
     objectName: "dockCanvas"
@@ -91,7 +92,7 @@ Item {
             const group = slot.groupView
             const local = group.mapFromItem(root, x, y)
             if (local.x < 0 || local.y < 0 || local.x > group.width || local.y > group.height) continue
-            if (local.y < Theme.rulerHeight) {
+            if (local.y < TimelineMetrics.rulerHeight) {
                 dragTarget = {kind: "tab", region: group.region, groupId: id, index: group.tabTarget(local.x, dragPanel)}
             } else {
                 const body = slot.mapFromItem(root, x, y)
@@ -137,11 +138,13 @@ Item {
             objectName: "dockResize_bottom"
             visible: !root.maximizedGroup && root.bottomExtent > 0
             x: 0; y: root.height - root.bottomExtent - height
-            width: center.width; height: Theme.spacingSm
+            width: center.width; height: Ui.Metrics.sm
             vertical: false; invert: true
             value: root.bottomExtent
             minimum: 80; maximum: Math.max(80, Math.min(1000, root.height * 0.75))
             label: "Resize timeline bottom dock panels"
+            onResizeStarted: root.store.beginResize()
+            onResizeFinished: canceled => root.store.finishResize(canceled)
             onResizeRequested: next => root.store.resizeRegion("bottom", next, root.width, root.height)
         }
     }
@@ -152,20 +155,22 @@ Item {
             objectName: "dockResize_" + modelData
             visible: !root.maximizedGroup && (modelData === "left" ? root.leftExtent : root.rightExtent) > 0
             x: modelData === "left" ? root.leftExtent : root.width - root.rightExtent - width
-            width: Theme.spacingSm; height: root.height
+            width: Ui.Metrics.sm; height: root.height
             invert: modelData === "right"
             value: modelData === "left" ? root.leftExtent : root.rightExtent
             maximum: Math.max(100, Math.min(1600, root.width / 3))
             label: "Resize timeline " + modelData + " dock panels"
+            onResizeStarted: root.store.beginResize()
+            onResizeFinished: canceled => root.store.finishResize(canceled)
             onResizeRequested: next => root.store.resizeRegion(modelData, next, root.width, root.height)
         }
     }
     Rectangle {
         visible: !!root.dragTarget
-        z: 2
-        color: Theme.actionSelected
-        border.color: Theme.primary
-        border.width: Theme.spacingMicro
+        z: TimelineMetrics.dockDropLayer
+        color: Ui.Theme.actionSelected
+        border.color: Ui.Theme.accentPrimary
+        border.width: Ui.Metrics.micro
         property var slot: root.dragTarget && root.dragTarget.groupId ? root.slots[root.dragTarget.groupId] : null
         property point point: slot ? root.mapFromItem(slot, 0, 0) : Qt.point(0, 0)
         property string zone: root.dragTarget && root.dragTarget.zone ? root.dragTarget.zone : "center"

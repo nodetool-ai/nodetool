@@ -4,6 +4,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 import NodeTool.ModelPicker
 import "../Tracks" as Tracks
 import "../assets/AssetContext.js" as Context
@@ -18,6 +19,11 @@ Item {
     implicitWidth: button.implicitWidth
     implicitHeight: button.implicitHeight
 
+    property string mediaMode: "Video"
+    property var durationValue: null
+    property string aspectValue: ""
+    property string resolutionValue: ""
+    property string voiceValue: ""
     property var referenceIds: []
     property string previewClipId: ""
     property string previewTakeId: ""
@@ -63,67 +69,67 @@ Item {
             if (root.gestures.clock.playing && generation.previewClock.playing) generation.stopPreview()
         }
     }
-    Tracks.ToolButton {
+    Ui.ToolbarIconButton {
         id: button
         objectName: "generateButton"
-        label: "Generate"
-        compact: root.compact
-        iconPath: "M12 2l1.9 5.8L20 10l-6.1 2.2L12 18l-1.9-5.8L4 10l6.1-2.2L12 2zm7 12 .9 2.1L22 17l-2.1.9L19 20l-.9-2.1L16 17l2.1-.9L19 14z"
+        text: root.compact ? "" : "Generate"
+        accessibleName: "Generate"
+        display: root.compact ? AbstractButton.IconOnly : AbstractButton.TextBesideIcon
+        iconName: "autoAwesome"
         onClicked: {
             root.openReview()
         }
     }
-    Dialog {
+    Ui.Dialog {
         id: entityPicker
         objectName: "entityPicker"
-        parent: Overlay.overlay
-        anchors.centerIn: parent
-        width: Math.min(480, (parent ? parent.width : 0) - 2 * Theme.spacingXl)
-        height: Math.min(500, (parent ? parent.height : 0) - 2 * Theme.spacingXl)
+        width: Math.min(480, (parent ? parent.width : 0) - 2 * Ui.Metrics.xl)
+        height: Math.min(500, (parent ? parent.height : 0) - 2 * Ui.Metrics.xl)
         modal: true
         title: "Choose entities"
-        background: Rectangle { color: Theme.backgroundPaper; border.color: Theme.divider; radius: Theme.radiusMd }
-        contentItem: ColumnLayout {
-            Label { visible: entities.error !== ""; text: entities.error; color: Theme.error; Layout.fillWidth: true; wrapMode: Text.Wrap }
-            Label { visible: !entities.loading && entities.entities.length === 0; text: "No entities available."; color: Theme.textSecondary }
+        returnFocusTo: pickEntities
+        ColumnLayout {
+            anchors.fill: parent
+            Ui.Text { role: Ui.Typography.SansLabel; visible: entities.error !== ""; text: entities.error; tone: Ui.Text.Error; Layout.fillWidth: true; wrapMode: Text.Wrap }
+            Ui.Text { role: Ui.Typography.SansLabel; visible: !entities.loading && entities.entities.length === 0; text: "No entities available."; tone: Ui.Text.Secondary }
             ListView {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
                 model: entities.entities
-                delegate: ItemDelegate {
+                delegate: Ui.EditorButton {
+                    variant: Ui.EditorButton.Flat
+                    contentAlignment: Qt.AlignLeft
                     required property var modelData
                     width: ListView.view.width
                     text: (entities.selectedIds.includes(modelData.id) ? "✓ " : "") + (modelData.name || modelData.id)
                     onClicked: entities.toggleEntity(modelData.id)
                 }
             }
-        }
-        footer: DialogButtonBox {
-            Button { text: "Done"; DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole }
-            onAccepted: entityPicker.close()
+            Ui.EditorButton { text: "Done"; onClicked: entityPicker.close() }
         }
     }
-    Dialog {
+    Ui.Dialog {
         id: referencePicker
         objectName: "referencePicker"
-        parent: Overlay.overlay
-        anchors.centerIn: parent
-        width: Math.min(480, (parent ? parent.width : 0) - 2 * Theme.spacingXl)
-        height: Math.min(500, (parent ? parent.height : 0) - 2 * Theme.spacingXl)
+        width: Math.min(480, (parent ? parent.width : 0) - 2 * Ui.Metrics.xl)
+        height: Math.min(500, (parent ? parent.height : 0) - 2 * Ui.Metrics.xl)
         modal: true
         title: "Choose reference images"
-        background: Rectangle { color: Theme.backgroundPaper; border.color: Theme.divider; radius: Theme.radiusMd }
-        contentItem: ColumnLayout {
-            Button { text: "Up"; visible: referenceBrowser.folderId !== ""; onClicked: referenceBrowser.goUp() }
-            Label { visible: referenceBrowser.error !== ""; text: referenceBrowser.error; color: Theme.error; Layout.fillWidth: true; wrapMode: Text.Wrap }
-            Label { visible: !referenceBrowser.busy && referenceBrowser.assets.length === 0; text: "No assets in this folder."; color: Theme.textSecondary }
+        returnFocusTo: pickReferences
+        ColumnLayout {
+            anchors.fill: parent
+            Ui.EditorButton { text: "Up"; visible: referenceBrowser.folderId !== ""; onClicked: referenceBrowser.goUp() }
+            Ui.Text { role: Ui.Typography.SansLabel; visible: referenceBrowser.error !== ""; text: referenceBrowser.error; tone: Ui.Text.Error; Layout.fillWidth: true; wrapMode: Text.Wrap }
+            Ui.Text { role: Ui.Typography.SansLabel; visible: !referenceBrowser.busy && referenceBrowser.assets.length === 0; text: "No assets in this folder."; tone: Ui.Text.Secondary }
             ListView {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
                 model: referenceBrowser.assets
-                delegate: ItemDelegate {
+                delegate: Ui.EditorButton {
+                    variant: Ui.EditorButton.Flat
+                    contentAlignment: Qt.AlignLeft
                     required property var modelData
                     width: ListView.view.width
                     visible: modelData.content_type === "folder" || String(modelData.content_type || "").startsWith("image/")
@@ -136,60 +142,55 @@ Item {
                     }
                 }
             }
-        }
-        footer: DialogButtonBox {
-            Button { text: "Done"; DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole }
-            onAccepted: referencePicker.close()
+            Ui.EditorButton { text: "Done"; onClicked: referencePicker.close() }
         }
     }
-    Dialog {
+    Ui.Dialog {
         id: dialog
         objectName: "generateDialog"
-        parent: Overlay.overlay
-        anchors.centerIn: parent
-        width: Math.min(580, (parent ? parent.width : 0) - 2 * Theme.spacingXl)
-        height: Math.min(720, (parent ? parent.height : 0) - 2 * Theme.spacingXl)
+        width: Math.min(580, (parent ? parent.width : 0) - 2 * Ui.Metrics.xl)
+        height: Math.min(720, (parent ? parent.height : 0) - 2 * Ui.Metrics.xl)
         modal: true
         focus: true
         title: "Generate"
+        returnFocusTo: button
         closePolicy: Popup.CloseOnEscape
         onClosed: generation.stopPreview()
-        padding: Theme.spacingXl
-        background: Rectangle { color: Theme.backgroundPaper; border.color: Theme.divider; radius: Theme.radiusMd }
 
-        contentItem: ScrollView {
+        ScrollView {
+            anchors.fill: parent
             clip: true
             contentWidth: availableWidth
             ColumnLayout {
                 width: dialog.availableWidth
-                spacing: Theme.spacingMd
+                spacing: Ui.Metrics.md
                 WorkflowClip { timeline: root.timeline; gestures: root.gestures; controller: generation; Layout.fillWidth: true }
                 RegenerateClip { timeline: root.timeline; gestures: root.gestures; controller: generation; Layout.fillWidth: true }
                 LineDelivery { timeline: root.timeline; gestures: root.gestures; controller: generation; Layout.fillWidth: true }
                 ClipOperations { timeline: root.timeline; gestures: root.gestures; controller: generation; Layout.fillWidth: true }
-                Label { text: "New clip"; color: Theme.textPrimary; font.weight: Font.DemiBold }
-                Label { text: "Media"; color: Theme.textSecondary }
-                ComboBox {
+                Ui.Text { role: Ui.Typography.SansLabel; text: "New clip"; }
+                Ui.Text { role: Ui.Typography.SansLabel; text: "Media"; tone: Ui.Text.Secondary }
+                Ui.Select {
                     id: mode
                     objectName: "generationMode"
                     Layout.fillWidth: true
-                    model: ["Video", "Speech", "Music"]
-                    Accessible.name: "Media type"
+                    options: ["Video", "Speech", "Music"].map(choice => ({label: choice, value: choice}))
+                    value: root.mediaMode
+                    accessibleName: "Media type"
+                    onValueCommitted: next => root.mediaMode = next
                 }
-                Label { text: mode.currentIndex === 1 ? "Text" : "Prompt"; color: Theme.textSecondary }
-                TextArea {
+                Ui.Text { role: Ui.Typography.SansLabel; text: mode.currentIndex === 1 ? "Text" : "Prompt"; tone: Ui.Text.Secondary }
+                Ui.TextArea {
                     id: prompt
                     objectName: "generationPrompt"
                     Layout.fillWidth: true
                     Layout.preferredHeight: 100
                     wrapMode: TextEdit.Wrap
-                    color: Theme.textPrimary
                     selectByMouse: true
                     placeholderText: mode.currentIndex === 1 ? "What should the voice say?" : "Describe what to generate"
-                    Accessible.name: mode.currentIndex === 1 ? "Speech text" : "Prompt"
-                    background: Rectangle { color: Theme.backgroundDefault; border.color: Theme.overlay; radius: Theme.radiusSm }
+                    accessibleName: mode.currentIndex === 1 ? "Speech text" : "Prompt"
                 }
-                Label { text: "Model"; color: Theme.textSecondary }
+                Ui.Text { role: Ui.Typography.SansLabel; text: "Model"; tone: Ui.Text.Secondary }
                 ModelPickerButton {
                     id: modelPicker
                     objectName: "generationModel"
@@ -201,90 +202,100 @@ Item {
                         if (dialog) dialog.open()
                     }
                 }
-                Label { visible: catalog.error !== ""; text: catalog.error; color: Theme.error; Layout.fillWidth: true; wrapMode: Text.Wrap }
+                Ui.Text { role: Ui.Typography.SansLabel; visible: catalog.error !== ""; text: catalog.error; tone: Ui.Text.Error; Layout.fillWidth: true; wrapMode: Text.Wrap }
                 RowLayout {
                     Layout.fillWidth: true
                     visible: mode.currentIndex !== 1
-                    Label { text: "Duration (seconds)"; color: Theme.textSecondary }
-                    ComboBox {
+                    Ui.Text { role: Ui.Typography.SansLabel; text: "Duration (seconds)"; tone: Ui.Text.Secondary }
+                    Ui.Select {
                         id: duration
                         objectName: "generationDuration"
-                        model: mode.currentIndex === 2 ? [15, 30, 60, 120] :
+                        readonly property var choices: mode.currentIndex === 2 ? [15, 30, 60, 120] :
                             catalog.constraints.durations && catalog.constraints.durations.length ? catalog.constraints.durations : [2, 3, 4, 5, 6, 8, 10, 12, 15]
-                        currentIndex: {
-                            const preferred = mode.currentIndex === 2 ? 30 : 4
-                            const found = model.indexOf(preferred)
-                            return found >= 0 ? found : 0
-                        }
-                        Accessible.name: "Duration in seconds"
+                        options: choices.map(choice => ({label:String(choice),value:choice}))
+                        value: choices.includes(root.durationValue) ? root.durationValue : choices.includes(mode.currentIndex === 2 ? 30 : 4) ? (mode.currentIndex === 2 ? 30 : 4) : choices[0]
+                        onChoicesChanged: root.durationValue = null
+                        accessibleName: "Duration in seconds"
+                        onValueCommitted: next => root.durationValue = next
                     }
                 }
                 RowLayout {
                     Layout.fillWidth: true
                     visible: mode.currentIndex === 0
-                    Label { text: "Aspect ratio"; color: Theme.textSecondary }
-                    ComboBox {
+                    Ui.Text { role: Ui.Typography.SansLabel; text: "Aspect ratio"; tone: Ui.Text.Secondary }
+                    Ui.Select {
                         id: aspect
                         objectName: "generationAspect"
-                        model: catalog.constraints.aspectRatios && catalog.constraints.aspectRatios.length ? catalog.constraints.aspectRatios : ["21:9", "16:9", "4:3", "1:1", "9:16", "3:4"]
-                        currentIndex: { const found = model.indexOf("16:9"); return found >= 0 ? found : 0 }
-                        Accessible.name: "Aspect ratio"
+                        readonly property var choices: catalog.constraints.aspectRatios && catalog.constraints.aspectRatios.length ? catalog.constraints.aspectRatios : ["21:9", "16:9", "4:3", "1:1", "9:16", "3:4"]
+                        options: choices.map(choice => ({label:String(choice),value:choice}))
+                        value: choices.includes(root.aspectValue) ? root.aspectValue : choices.includes("16:9") ? "16:9" : choices[0]
+                        onChoicesChanged: root.aspectValue = ""
+                        accessibleName: "Aspect ratio"
+                        onValueCommitted: next => root.aspectValue = next
                     }
-                    Label { text: "Resolution"; color: Theme.textSecondary }
-                    ComboBox {
+                    Ui.Text { role: Ui.Typography.SansLabel; text: "Resolution"; tone: Ui.Text.Secondary }
+                    Ui.Select {
                         id: resolution
                         objectName: "generationResolution"
-                        model: catalog.constraints.resolutions && catalog.constraints.resolutions.length ? catalog.constraints.resolutions : ["720p", "1080p", "1440p", "4K"]
-                        currentIndex: { const found = model.indexOf("720p"); return found >= 0 ? found : 0 }
-                        Accessible.name: "Resolution"
+                        readonly property var choices: catalog.constraints.resolutions && catalog.constraints.resolutions.length ? catalog.constraints.resolutions : ["720p", "1080p", "1440p", "4K"]
+                        options: choices.map(choice => ({label:String(choice),value:choice}))
+                        value: choices.includes(root.resolutionValue) ? root.resolutionValue : choices.includes("720p") ? "720p" : choices[0]
+                        onChoicesChanged: root.resolutionValue = ""
+                        accessibleName: "Resolution"
+                        onValueCommitted: next => root.resolutionValue = next
                     }
                 }
-                Label { visible: mode.currentIndex === 1; text: "Voice"; color: Theme.textSecondary }
-                ComboBox {
+                Ui.Text { role: Ui.Typography.SansLabel; visible: mode.currentIndex === 1; text: "Voice"; tone: Ui.Text.Secondary }
+                Ui.Select {
                     id: voice
                     objectName: "generationVoice"
                     visible: mode.currentIndex === 1
                     Layout.fillWidth: true
-                    model: catalog.constraints.voices || []
-                    Accessible.name: "Voice"
+                    readonly property var choices: catalog.constraints.voices || []
+                    options: choices.map(choice => ({label:String(choice),value:choice}))
+                    value: choices.includes(root.voiceValue) ? root.voiceValue : choices[0]
+                    accessibleName: "Voice"
+                    onValueCommitted: next => root.voiceValue = next
                 }
-                Label { visible: mode.currentIndex === 0; text: "References"; color: Theme.textSecondary }
+                Ui.Text { role: Ui.Typography.SansLabel; visible: mode.currentIndex === 0; text: "References"; tone: Ui.Text.Secondary }
                 RowLayout {
                     visible: mode.currentIndex === 0
                     Layout.fillWidth: true
-                    Button {
+                    Ui.EditorButton {
+                        id: pickReferences
                         objectName: "pickGenerationReferences"
                         text: "Add image"
                         onClicked: { referenceBrowser.refresh(); referencePicker.open() }
                     }
-                    Label { text: root.referenceIds.length + " selected"; color: Theme.textSecondary }
-                    Button { text: "Clear"; visible: root.referenceIds.length > 0; onClicked: root.referenceIds = [] }
+                    Ui.Text { role: Ui.Typography.SansLabel; text: root.referenceIds.length + " selected"; tone: Ui.Text.Secondary }
+                    Ui.EditorButton { text: "Clear"; visible: root.referenceIds.length > 0; onClicked: root.referenceIds = [] }
                 }
                 RowLayout {
                     visible: mode.currentIndex === 0
                     Layout.fillWidth: true
-                    Button { objectName: "pickGenerationEntities"; text: "Add entity"; onClicked: { entities.reload(); entityPicker.open() } }
-                    Label { text: entities.selectedIds.length + " selected"; color: Theme.textSecondary }
-                    Button { text: "Clear"; visible: entities.selectedIds.length > 0; onClicked: entities.clear() }
+                    Ui.EditorButton { id: pickEntities; objectName: "pickGenerationEntities"; text: "Add entity"; onClicked: { entities.reload(); entityPicker.open() } }
+                    Ui.Text { role: Ui.Typography.SansLabel; text: entities.selectedIds.length + " selected"; tone: Ui.Text.Secondary }
+                    Ui.EditorButton { text: "Clear"; visible: entities.selectedIds.length > 0; onClicked: entities.clear() }
                 }
-                Label {
+                Ui.Text {
+                    role: Ui.Typography.SansLabel
                     objectName: "generationStatus"
                     Layout.fillWidth: true
                     text: ({ pending: "Queued", queued: "Queued", running: "Generating…", recovering: "Checking generation status…", cancelling: "Cancelling…", completed: "Completed", failed: "Failed", cancelled: "Cancelled", needs_attention: "Needs attention", interrupted: "Interrupted" })[generation.state] || ""
-                    color: Theme.textSecondary
+                    tone: Ui.Text.Secondary
                     wrapMode: Text.Wrap
                 }
-                Label {
+                Ui.Text { role: Ui.Typography.SansLabel;
                     objectName: "generationError"
                     Layout.fillWidth: true
                     visible: generation.error !== ""
                     text: generation.error
-                    color: Theme.error
+                    tone: Ui.Text.Error
                     wrapMode: Text.Wrap
                 }
                 RowLayout {
                     Layout.fillWidth: true
-                    Button {
+                    Ui.EditorButton {
                         objectName: "generationSubmit"
                         text: "Generate"
                         enabled: generation.ready && !generation.busy && prompt.text.trim() !== "" && catalog.selectionAvailable
@@ -295,12 +306,12 @@ Item {
                                 aspect.currentText, resolution.currentText, voice.currentText, root.referenceIds, start, entities.selectedIds)
                         }
                     }
-                    Button { objectName: "generationCancel"; text: "Cancel generation"; visible: generation.busy; onClicked: generation.cancel() }
+                    Ui.EditorButton { objectName: "generationCancel"; text: "Cancel generation"; visible: generation.busy; onClicked: generation.cancel() }
                 }
                 ColumnLayout {
                     Layout.fillWidth: true
                     visible: root.previewTakeId !== ""
-                    Label { text: root.previewUrl.toString() === "" ? "Loading preview…" : "Preview"; color: Theme.textSecondary }
+                    Ui.Text { role: Ui.Typography.SansLabel; text: root.previewUrl.toString() === "" ? "Loading preview…" : "Preview"; tone: Ui.Text.Secondary }
                     PreviewCompositor {
                         objectName: "generationPreview"
                         Layout.fillWidth: true
@@ -312,7 +323,7 @@ Item {
                     FrameAnimation { running: dialog.visible && generation.previewClock.playing; onTriggered: generation.previewClock.tick() }
                     RowLayout {
                         visible: root.previewUrl.toString() !== ""
-                        Button {
+                        Ui.EditorButton {
                             objectName: "generationPreviewPlay"
                             text: generation.previewClock.playing ? "Pause" : "Play"
                             onClicked: {
@@ -320,10 +331,10 @@ Item {
                                 generation.playPreview()
                             }
                         }
-                        Slider { Layout.fillWidth: true; from: 0; to: Math.max(1, generation.previewTimeline.contentEndMs); value: generation.previewClock.time; onMoved: generation.previewClock.seek(value); Accessible.name: "Preview time" }
+                        Ui.Slider { Layout.fillWidth: true; from: 0; to: Math.max(1, generation.previewTimeline.contentEndMs); value: generation.previewClock.time; onValuePreviewed: next => generation.previewClock.seek(next); accessibleName: "Preview time" }
                     }
                 }
-                Label { visible: generation.candidates.length > 0; text: "Review takes"; color: Theme.textPrimary; font.weight: Font.DemiBold }
+                Ui.Text { role: Ui.Typography.SansLabel; visible: generation.candidates.length > 0; text: "Review takes"; }
                 Repeater {
                     model: generation.candidates
                     delegate: ColumnLayout {
@@ -332,18 +343,17 @@ Item {
                         Layout.fillWidth: true
                         RowLayout {
                             Layout.fillWidth: true
-                            TextField {
+                            Ui.TextField {
                                 id: takeLabel
                                 objectName: "generationTakeLabel"
                                 Layout.fillWidth: true
-                                text: takeRow.modelData.label || "Take"
-                                color: Theme.textPrimary
-                                Accessible.name: "Take name"
+                                value: takeRow.modelData.label || "Take"
+                                            accessibleName: "Take name"
                             }
-                            Button { objectName: "renameGenerationTake"; text: "Rename"; enabled: !!takeRow.modelData.recorded && !takeRow.modelData.clipMissing; onClicked: generation.renameTake(takeRow.modelData.clipId, takeRow.modelData.id, takeLabel.text) }
+                            Ui.EditorButton { objectName: "renameGenerationTake"; text: "Rename"; enabled: !!takeRow.modelData.recorded && !takeRow.modelData.clipMissing; onClicked: generation.renameTake(takeRow.modelData.clipId, takeRow.modelData.id, takeLabel.text) }
                         }
                         RowLayout {
-                            Button {
+                            Ui.EditorButton {
                                 objectName: "previewGenerationTake"
                                 text: "Preview"
                                 enabled: takeRow.modelData.status === "success" && !takeRow.modelData.clipMissing
@@ -354,13 +364,16 @@ Item {
                                     root.previewUrl = generation.previewUrl(root.previewClipId, root.previewTakeId)
                                 }
                             }
-                            ComboBox {
+                            Ui.Select {
                                 id: extensionTiming
+                                property string selectedTiming: "Keep cut"
                                 visible: takeRow.modelData.operation === "extension" || takeRow.modelData.source === "extended"
-                                model: ["Keep cut", "Available space", "Ripple"]
-                                Accessible.name: "Extension timing"
+                                options: ["Keep cut", "Available space", "Ripple"].map(choice => ({label:choice,value:choice}))
+                                value: selectedTiming
+                                accessibleName: "Extension timing"
+                                onValueCommitted: next => selectedTiming = next
                             }
-                            Button {
+                            Ui.EditorButton {
                                 objectName: "applyGenerationTake"
                                 text: "Apply"
                                 enabled: takeRow.modelData.status === "success" && !takeRow.modelData.clipMissing && root.previewClipId === takeRow.modelData.clipId
@@ -371,16 +384,13 @@ Item {
                                     else generation.apply(takeRow.modelData.clipId, takeRow.modelData.id)
                                 }
                             }
-                            Button { text: "Delete"; enabled: !takeRow.modelData.recorded || !takeRow.modelData.clipMissing; onClicked: generation.deleteTake(takeRow.modelData.clipId, takeRow.modelData.id) }
-                            Button { objectName: "restoreGenerationClip"; text: "Restore clip"; visible: !!takeRow.modelData.clipMissing; onClicked: generation.restoreClip(takeRow.modelData.clipId) }
+                            Ui.EditorButton { text: "Delete"; enabled: !takeRow.modelData.recorded || !takeRow.modelData.clipMissing; onClicked: generation.deleteTake(takeRow.modelData.clipId, takeRow.modelData.id) }
+                            Ui.EditorButton { objectName: "restoreGenerationClip"; text: "Restore clip"; visible: !!takeRow.modelData.clipMissing; onClicked: generation.restoreClip(takeRow.modelData.clipId) }
                         }
                     }
                 }
+                Ui.EditorButton { text: "Close"; onClicked: dialog.close() }
             }
-        }
-        footer: DialogButtonBox {
-            Button { text: "Close"; DialogButtonBox.buttonRole: DialogButtonBox.RejectRole }
-            onRejected: dialog.close()
         }
     }
 }

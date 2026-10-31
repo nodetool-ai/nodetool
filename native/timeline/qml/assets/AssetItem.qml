@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Window
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 Rectangle {
     id: tile
@@ -24,10 +25,10 @@ Rectangle {
     readonly property bool dropAllowed: !!dragPoint.Drag.target && dragPoint.Drag.target.dropAllowed !== false
     readonly property int dragAction: dragPoint.Drag.target && dragPoint.Drag.target.dropAction === Qt.MoveAction ? Qt.MoveAction : Qt.CopyAction
     readonly property bool folderDropActive: folderDrop.containsDrag && folderDrop.dropAllowed
-    color: folderDropActive ? Theme.actionSelected : Theme.backgroundPaper
-    border.width: selected || activeFocus || folderDropActive ? 2 : 1
-    border.color: selected || activeFocus || folderDropActive ? Theme.primary : Theme.divider
-    radius: Theme.radiusSm
+    color: folderDropActive ? Ui.Theme.actionSelected : Ui.Theme.surfacePanel
+    border.width: selected || activeFocus || folderDropActive ? Ui.Metrics.focus : Ui.Metrics.border
+    border.color: selected || activeFocus || folderDropActive ? Ui.Theme.accentPrimary : Ui.Theme.borderSubtle
+    radius: Ui.Metrics.radiusControl
     clip: true
     activeFocusOnTab: true
     Accessible.role: Accessible.Button
@@ -51,54 +52,51 @@ Rectangle {
     Image {
         id: posterImage
         anchors.fill: parent
-        anchors.margins: 1
+        anchors.margins: Ui.Metrics.border
         source: tile.browser.mediaUrl(tile.poster)
         asynchronous: true
         fillMode: Image.PreserveAspectCrop
         sourceSize: Qt.size(tile.width * 2, tile.height * 2)
         visible: status === Image.Ready
     }
-    Icon {
+    Ui.Icon {
         anchors.centerIn: parent
         visible: !posterImage.visible
-        size: Theme.iconSm * 2
-        path: tile.mediaType === "audio" ? Icons.audiotrack : tile.mediaType === "video" ? Icons.videocam : Icons.layers
-        color: Theme.clipAccent(tile.mediaType)
+        size: Ui.Metrics.iconLg
+        name: tile.mediaType === "audio" ? "audiotrack" : tile.mediaType === "video" ? "videocam" : "layers"
+        domainColor: TimelineVisuals.clipAccent(tile.mediaType)
     }
     Rectangle {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        height: caption.height + 2 * Theme.spacingSm
-        color: Theme.scrim
+        height: caption.height + 2 * Ui.Metrics.sm
+        color: Ui.Theme.scrimMedia
         visible: tile.showCaption
         Column {
             id: caption
-            x: Theme.spacingSm
-            y: Theme.spacingSm
-            width: parent.width - 2 * Theme.spacingSm
-            spacing: Theme.spacingMicro
-            Text {
+            x: Ui.Metrics.sm
+            y: Ui.Metrics.sm
+            width: parent.width - 2 * Ui.Metrics.sm
+            spacing: Ui.Metrics.micro
+            Ui.Text {
                 width: parent.width
                 text: tile.asset.name || ""
                 maximumLineCount: 2
                 wrapMode: Text.WrapAnywhere
                 elide: Text.ElideRight
-                color: Theme.textPrimary
-                font.family: Theme.sansFamily
-                font.pixelSize: Theme.fontSizeSmall
-                font.weight: Font.Medium
+                role: Ui.Typography.SansLabel
+                tone: Ui.Text.OnAccent
             }
-            Text {
+            Ui.Text {
                 visible: !!tile.asset.duration
                 text: {
                     const seconds = Math.floor(tile.asset.duration || 0)
                     const pad = n => String(n).padStart(2, "0")
                     return pad(Math.floor(seconds / 3600)) + ":" + pad(Math.floor(seconds / 60) % 60) + ":" + pad(seconds % 60)
                 }
-                color: Theme.textSecondary
-                font.family: Theme.monoFamily
-                font.pixelSize: Theme.fontSizeSmaller
+                role: Ui.Typography.MonoCaption
+                tone: Ui.Text.OnAccent
             }
         }
     }
@@ -120,57 +118,56 @@ Rectangle {
                 id: dragPreview
                 objectName: "assetDragPreview"
                 readonly property point pointer: tile.mapToItem(parent, mouse.mouseX, mouse.mouseY)
-                x: Math.max(Theme.spacingSm, Math.min(pointer.x + Theme.spacingMd, parent.width - width - Theme.spacingSm))
-                y: Math.max(Theme.spacingSm, Math.min(pointer.y + Theme.spacingMd, parent.height - height - Theme.spacingSm))
-                width: Theme.toolbarHeight * 3
-                height: Theme.toolbarHeight * 2
-                color: Theme.backgroundPaper
-                border.width: 1
-                border.color: tile.dropAllowed ? Theme.primary : Theme.error
-                radius: Theme.radiusSm
+                x: Math.max(Ui.Metrics.sm, Math.min(pointer.x + Ui.Metrics.md, parent.width - width - Ui.Metrics.sm))
+                y: Math.max(Ui.Metrics.sm, Math.min(pointer.y + Ui.Metrics.md, parent.height - height - Ui.Metrics.sm))
+                width: Ui.Metrics.comfortable * 3
+                height: Ui.Metrics.comfortable * 2
+                color: Ui.Theme.surfacePanel
+                border.width: Ui.Metrics.border
+                border.color: tile.dropAllowed ? Ui.Theme.accentPrimary : Ui.Theme.statusError
+                radius: Ui.Metrics.radiusControl
                 clip: true
                 Image {
                     id: dragImage
                     objectName: "assetDragImage"
                     anchors.fill: parent
-                    anchors.margins: 1
+                    anchors.margins: Ui.Metrics.border
                     source: tile.browser.mediaUrl(tile.poster)
                     asynchronous: true
                     sourceSize: Qt.size(dragPreview.width * 2, dragPreview.height * 2)
                     fillMode: Image.PreserveAspectCrop
                 }
-                Icon {
+                Ui.Icon {
                     anchors.centerIn: parent
                     visible: dragImage.status !== Image.Ready
-                    size: Theme.iconSm * 2
-                    path: tile.mediaType === "audio" ? Icons.audiotrack : tile.mediaType === "video" ? Icons.videocam : Icons.layers
-                    color: Theme.clipAccent(tile.mediaType)
+                    size: Ui.Metrics.iconLg
+                    name: tile.mediaType === "audio" ? "audiotrack" : tile.mediaType === "video" ? "videocam" : "layers"
+                    domainColor: TimelineVisuals.clipAccent(tile.mediaType)
                 }
                 Rectangle {
                     anchors.left: parent.left
                     anchors.right: parent.right
                     anchors.bottom: parent.bottom
-                    height: dragName.implicitHeight + 2 * Theme.spacingSm
-                    color: Theme.scrim
-                    Text {
+                    height: dragName.implicitHeight + 2 * Ui.Metrics.sm
+                    color: Ui.Theme.scrimMedia
+                    Ui.Text {
                         id: dragName
                         anchors.fill: parent
-                        anchors.margins: Theme.spacingSm
+                        anchors.margins: Ui.Metrics.sm
                         text: tile.asset.name || "Asset"
                         elide: Text.ElideRight
-                        color: Theme.textPrimary
-                        font.family: Theme.sansFamily
-                        font.pixelSize: Theme.fontSizeSmall
+                        role: Ui.Typography.SansLabel
+                        tone: Ui.Text.OnAccent
                     }
                 }
-                Icon {
+                Ui.Icon {
                     objectName: "assetDragStatus"
                     anchors.top: parent.top
                     anchors.right: parent.right
-                    anchors.margins: Theme.spacingSm
-                    size: Theme.iconSm
-                    path: tile.dropAllowed ? (tile.dragAction === Qt.MoveAction ? Icons.keyboardTab : Icons.add) : Icons.close
-                    color: tile.dropAllowed ? Theme.success : Theme.error
+                    anchors.margins: Ui.Metrics.sm
+                    size: Ui.Metrics.iconSm
+                    name: tile.dropAllowed ? (tile.dragAction === Qt.MoveAction ? "keyboardTab" : "add") : "close"
+                    tone: tile.dropAllowed ? Ui.Text.Success : Ui.Text.Error
                 }
             }
         }

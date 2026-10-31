@@ -5,13 +5,14 @@
 // fullscreen controls are not part of the prototype.
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 Rectangle {
     id: area
     required property TimelineModel timeline
     required property PlaybackClock clock
 
-    color: Theme.backgroundDefault
+    color: Ui.Theme.surfaceCanvas
     clip: true
 
     readonly property real canvasAspect: timeline.canvasWidth / timeline.canvasHeight
@@ -50,96 +51,107 @@ Rectangle {
         objectName: "transportBar"
         y: parent.height - height
         width: parent.width
-        height: Theme.transportHeight
-        color: Theme.backgroundPaper
+        height: TimelineMetrics.transportHeight
+        color: Ui.Theme.surfacePanel
         Rectangle {
             width: parent.width
             height: 1
-            color: Theme.divider
+            color: Ui.Theme.borderSubtle
         }
 
         Row {
             id: buttons
-            x: Theme.spacingMicro
+            x: Ui.Metrics.micro
             anchors.verticalCenter: parent.verticalCenter
-            spacing: Theme.spacingMicro
-            TransportButton {
-                icon: Icons.skipPrevious
+            spacing: Ui.Metrics.micro
+            Ui.ToolbarIconButton {
+                iconName: "skipPrevious"
+                accessibleName: "Go to start"
                 onClicked: area.clock.seek(0)
             }
-            TransportButton {
-                icon: Icons.navigateBefore
-                enabledState: !area.clock.playing
+            Ui.ToolbarIconButton {
+                iconName: "navigateBefore"
+                accessibleName: "Previous frame"
+                enabled: !area.clock.playing
                 onClicked: area.clock.seek(Math.max(0, area.clock.time - area.frameMs))
             }
-            TransportButton {
+            Ui.ToolbarIconButton {
                 objectName: "transportPlay"
-                icon: area.clock.playing ? Icons.pause : Icons.playArrow
-                variant: "primary"
+                iconName: area.clock.playing ? "pause" : "playArrow"
+                accessibleName: area.clock.playing ? "Pause" : "Play"
+                variant: Ui.EditorButton.Primary
                 onClicked: area.clock.toggle()
             }
-            TransportButton {
-                icon: Icons.stop
+            Ui.ToolbarIconButton {
+                iconName: "stop"
+                accessibleName: "Stop"
                 onClicked: {
                     area.clock.pause()
                     area.clock.seek(0)
                 }
             }
-            TransportButton {
-                icon: Icons.repeat
+            Ui.ToolbarIconButton {
+                iconName: "repeat"
                 active: area.clock.loop
+                Accessible.checkable: true
+                Accessible.checked: area.clock.loop
+                accessibleName: "Loop playback"
                 onClicked: area.clock.loop = !area.clock.loop
             }
-            TransportButton {
-                icon: Icons.navigateNext
-                enabledState: !area.clock.playing
+            Ui.ToolbarIconButton {
+                iconName: "navigateNext"
+                accessibleName: "Next frame"
+                enabled: !area.clock.playing
                 onClicked: area.clock.seek(Math.min(area.timeline.contentEndMs, area.clock.time + area.frameMs))
             }
-            TransportButton {
-                icon: Icons.skipNext
+            Ui.ToolbarIconButton {
+                iconName: "skipNext"
+                accessibleName: "Go to end"
                 onClicked: area.clock.seek(area.timeline.contentEndMs)
             }
-            Text {
+            Ui.Text {
                 objectName: "transportTimecode"
                 anchors.verticalCenter: parent.verticalCenter
-                leftPadding: Theme.spacingXs
+                x: Ui.Metrics.xs
                 text: TimelineFormat.playheadTimecode(area.clock.time, area.timeline.fps)
-                color: Theme.textSecondary
-                font.family: Theme.monoFamily
-                font.pixelSize: Theme.fontSizeSmall
-                font.weight: Font.Medium
+                role: Ui.Typography.MonoLabel
+                tone: Ui.Text.Secondary
             }
         }
 
         // The scrubber fills the rest; 12 px padding each side.
-        CompactSlider {
+        Ui.Slider {
             id: scrubber
             objectName: "transportScrubber"
-            x: buttons.x + buttons.width + Theme.spacingMicro + Theme.spacingLg
-            width: Math.max(32, trailing.x - Theme.spacingMicro - Theme.spacingLg - x)
+            property real gestureBaseline: 0
+            x: buttons.x + buttons.width + Ui.Metrics.micro + Ui.Metrics.lg
+            width: Math.max(Ui.Metrics.standard, trailing.x - Ui.Metrics.micro - Ui.Metrics.lg - x)
             anchors.verticalCenter: parent.verticalCenter
             from: 0
             to: Math.max(1, area.timeline.contentEndMs)
             value: area.clock.time
-            onMoved: area.clock.seek(value)
+            onEditStarted: gestureBaseline = area.clock.time
+            onValuePreviewed: value => area.clock.seek(value)
+            onValueCommitted: value => area.clock.seek(value)
+            onEditCanceled: area.clock.seek(gestureBaseline)
+            accessibleName: "Playhead position"
+            density: Ui.EditorButton.Compact
         }
 
         Row {
             id: trailing
-            x: parent.width - width - Theme.spacingMd
+            x: parent.width - width - Ui.Metrics.md
             anchors.verticalCenter: parent.verticalCenter
-            spacing: Theme.spacingMd
-            Text {
+            spacing: Ui.Metrics.md
+            Ui.Text {
                 text: "/" + TimelineFormat.playheadTimecode(area.timeline.contentEndMs, area.timeline.fps)
-                color: Theme.textSecondary
-                font.family: Theme.monoFamily
-                font.pixelSize: Theme.fontSizeSmaller
+                role: Ui.Typography.MonoCaption
+                tone: Ui.Text.Secondary
             }
-            Text {
+            Ui.Text {
                 text: area.timeline.fps + " fps"
-                color: Theme.textSecondary
-                font.family: Theme.monoFamily
-                font.pixelSize: Theme.fontSizeSmaller
+                role: Ui.Typography.MonoCaption
+                tone: Ui.Text.Secondary
             }
         }
     }

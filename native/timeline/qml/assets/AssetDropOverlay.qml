@@ -1,5 +1,6 @@
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 import "AssetContext.js" as Context
 
 Item {
@@ -17,7 +18,7 @@ Item {
     // Coordinates are local to the lanes viewport, matching TrackLane's
     // content-space pointer after applying the view's horizontal scroll.
     function trackAt(y) {
-        if (!region || !browser || y >= region.lanesHeight - Theme.toolbarHeight) return ""
+        if (!region || !browser || y >= region.lanesHeight - TimelineMetrics.toolbarHeight) return ""
         return browser.trackAt(region.rows, y + region.viewState.scrollTopPx)
     }
     function dropAt(asset, x, y) {
@@ -32,7 +33,7 @@ Item {
         objectName: "assetLaneDropArea"
         parent: overlay.region || overlay
         x: overlay.region ? overlay.region.headerWidth : 0
-        y: Theme.toolbarHeight + Theme.rulerHeight
+        y: TimelineMetrics.toolbarHeight + TimelineMetrics.rulerHeight
         width: overlay.region ? overlay.region.width - overlay.region.headerWidth : 0
         height: overlay.region ? overlay.region.lanesHeight : 0
         keys: ["application/x-nodetool-asset"]
@@ -51,52 +52,47 @@ Item {
         Rectangle {
             anchors.fill: parent
             visible: assetDrop.containsDrag
-            color: Theme.actionSelected
-            border.color: Theme.primary
-            border.width: 1
+            color: Ui.Theme.actionSelected
+            border.color: Ui.Theme.accentPrimary
+            border.width: Ui.Metrics.border
             Rectangle {
                 visible: assetDrop.targetTrackId !== ""
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: Math.max(Theme.spacingSm, Math.min(parent.height - height - Theme.spacingSm, assetDrop.drag.y + Theme.spacingSm))
-                width: hint.implicitWidth + 2 * Theme.spacingMd
-                height: hint.implicitHeight + 2 * Theme.spacingSm
-                radius: Theme.radiusSm
-                color: Theme.backgroundPaper
-                Text {
+                y: Math.max(Ui.Metrics.sm, Math.min(parent.height - height - Ui.Metrics.sm, assetDrop.drag.y + Ui.Metrics.sm))
+                width: hint.implicitWidth + 2 * Ui.Metrics.md
+                height: hint.implicitHeight + 2 * Ui.Metrics.sm
+                radius: Ui.Metrics.radiusControl
+                color: Ui.Theme.surfacePanel
+                Ui.Text {
                     id: hint
                     anchors.centerIn: parent
                     text: "Drop onto this track"
-                    color: Theme.textPrimary
-                    font.family: Theme.sansFamily
-                    font.pixelSize: Theme.fontSizeSmall
+                    role: Ui.Typography.SansLabel
                 }
             }
             Rectangle {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                height: Theme.toolbarHeight
-                color: assetDrop.targetTrackId === "" ? Theme.actionSelected : Theme.backgroundPaper
-                border.color: Theme.primary
-                border.width: 1
-                Text {
+                height: TimelineMetrics.toolbarHeight
+                color: assetDrop.targetTrackId === "" ? Ui.Theme.actionSelected : Ui.Theme.surfacePanel
+                border.color: Ui.Theme.accentPrimary
+                border.width: Ui.Metrics.border
+                Ui.Text {
                     anchors.centerIn: parent
                     text: "Drop here to create a track"
-                    color: Theme.textPrimary
-                    font.family: Theme.sansFamily
-                    font.pixelSize: Theme.fontSizeSmall
+                    role: Ui.Typography.SansLabel
                 }
             }
         }
     }
     Timer { id: dismiss; interval: 3000; onTriggered: overlay.warning = "" }
-    Text {
+    Ui.Text {
         anchors.horizontalCenter: parent.horizontalCenter
         y: overlay.region ? overlay.region.mapToItem(overlay, 0, assetDrop.y).y : 0
         text: overlay.warning
         visible: text !== ""
-        color: Theme.warning
-        font.family: Theme.sansFamily
-        font.pixelSize: Theme.fontSizeSmall
+        role: Ui.Typography.SansLabel
+        tone: Ui.Text.Warning
     }
 }

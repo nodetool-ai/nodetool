@@ -3,6 +3,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
 import "../Inspector/AudioFadeShapes.js" as Fades
+import NodeTool.UiPrimitives as Ui
 
 Item {
     id: root
@@ -53,9 +54,9 @@ Item {
             Rectangle {
                 anchors.fill: parent
                 radius: width / 2
-                color: pointer.containsMouse || grip.activeFocus ? Theme.primary : Theme.textPrimary
-                border.width: 1
-                border.color: Theme.backgroundPaper
+                color: pointer.containsMouse || grip.activeFocus ? Ui.Theme.accentPrimary : Ui.Theme.textPrimary
+                border.width: Ui.Metrics.border
+                border.color: Ui.Theme.surfacePanel
                 opacity: root.selected || (root.body && root.body.hovered) || pointer.containsMouse || grip.activeFocus ? 1 : 0
             }
             Timer { id: keyEnd; interval: 400; onTriggered: edits.finishFade() }

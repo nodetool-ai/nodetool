@@ -134,7 +134,12 @@ private slots:
             QTest::keyClick(&window, Qt::Key_Tab);
         }
         QVERIFY(narrowMode->hasActiveFocus());
-        QTRY_VERIFY(narrowMode->mapToItem(viewport, QPointF()).y() >= 0);
+        QTRY_VERIFY2(narrowMode->mapToItem(viewport, QPointF()).y() >= 0,
+            qPrintable(QString("field top=%1 scroll=%2 viewport=%3 content=%4")
+                .arg(narrowMode->mapToItem(viewport, QPointF()).y())
+                .arg(viewport->property("contentY").toReal())
+                .arg(viewport->height())
+                .arg(viewport->property("contentHeight").toReal())));
         QTRY_VERIFY(narrowMode->mapToItem(viewport, QPointF()).y() + narrowMode->height() <= viewport->height());
         window.grabWindow().save("/tmp/nodetool-provider-dialog.png");
         QVERIFY(QMetaObject::invokeMethod(dialog.get(), "requestClose"));

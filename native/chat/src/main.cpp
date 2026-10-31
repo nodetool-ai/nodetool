@@ -1,4 +1,5 @@
 #include "runtime/ChatSession.h"
+#include "appearance/AppearanceSettings.h"
 #include <QCommandLineParser>
 #include <QFile>
 #include <QGuiApplication>
@@ -72,7 +73,10 @@ int main(int argc, char *argv[]) {
                                .toString());
     }
   }
+  nt::chat::AppearanceSettings appearance;
   QQmlApplicationEngine engine;
+  engine.rootContext()->setContextProperty(QStringLiteral("chatAppearance"),
+                                           &appearance);
   engine.rootContext()->setContextProperty(QStringLiteral("chatSession"),
                                            &session);
   QObject::connect(

@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtTest
 import NodeTool.Chat
+import NodeTool.UiPrimitives as Ui
 
 TestCase {
     id: test
@@ -81,7 +82,7 @@ TestCase {
         const send = findChild(panel, "sendMessage")
         verify(input !== null)
         verify(send !== null)
-        verify(Qt.colorEqual(input.selectedTextColor, ChatTheme.text))
+        verify(Qt.colorEqual(input.selectedTextColor, Ui.Theme.textOnAccent))
         compare(input.Accessible.name, "Message")
         compare(send.enabled, false)
         testSession.draft = "Make a film"
@@ -195,14 +196,60 @@ TestCase {
         compare(message.width, 800)
         compare(Math.round(composer.mapToItem(panel, 0, 0).x), Math.round(message.mapToItem(panel, 0, 0).x))
     }
+    function test_themeAndScaleKeepDraftAndOpenPicker() {
+        testSession.draft = "Keep this draft"
+        const chooser = findChild(panel, "chooseChatModel")
+        verify(chooser !== null)
+        chooser.forceActiveFocus()
+        keyClick(Qt.Key_Space)
+        const popup = findChild(test.Window.window.contentItem, "sharedModelPicker")
+        verify(popup !== null)
+        tryCompare(popup, "visible", true)
+        Ui.Theme.preference = Ui.Theme.Light
+        Ui.Theme.uiScale = 1.25
+        Ui.Theme.textScale = 1.5
+        Ui.Theme.reducedMotion = true
+        compare(testSession.draft, "Keep this draft")
+        compare(popup.visible, true)
+        Ui.Theme.preference = Ui.Theme.Dark
+        compare(testSession.draft, "Keep this draft")
+        compare(popup.visible, true)
+        keyClick(Qt.Key_Escape)
+        tryCompare(popup, "visible", false)
+        Ui.Theme.preference = Ui.Theme.System
+        Ui.Theme.uiScale = 1
+        Ui.Theme.textScale = 1
+        Ui.Theme.reducedMotion = false
+    }
+    function test_scaleAcrossBreakpointPreservesOpenPicker() {
+        test.width = 700
+        testSession.draft = "Draft at breakpoint"
+        const chooser = findChild(panel, "chooseChatModel")
+        verify(chooser !== null)
+        chooser.forceActiveFocus()
+        keyClick(Qt.Key_Space)
+        const search = findChild(test.Window.window.contentItem, "modelPickerSearch")
+        verify(search !== null)
+        Ui.Theme.uiScale = 1.25
+        wait(30)
+        const currentSearch = findChild(test.Window.window.contentItem, "modelPickerSearch")
+        verify(currentSearch === search && currentSearch.visible, "Scaling must preserve the open picker")
+        compare(testSession.draft, "Draft at breakpoint")
+        keyClick(Qt.Key_Escape)
+        Ui.Theme.uiScale = 1
+    }
     function test_modelPickerUsesServerDefaultAndRestoresFocus() {
         const chooser = findChild(panel, "chooseChatModel")
         verify(chooser !== null)
         testSession.provider = "test-provider"
         testSession.model = "test-model"
+        compare(chooser.Accessible.expandable, true)
+        compare(chooser.Accessible.expanded, false)
+        compare(chooser.checkable, false)
         chooser.forceActiveFocus()
         keyClick(Qt.Key_Space)
         wait(30)
+        compare(chooser.Accessible.expanded, true)
         const search = findChild(test.Window.window.contentItem, "modelPickerSearch")
         const defaultButton = findChild(test.Window.window.contentItem, "modelPickerServerDefault")
         verify(search !== null)
@@ -212,6 +259,7 @@ TestCase {
         compare(testSession.provider, "")
         compare(testSession.model, "")
         tryCompare(chooser, "activeFocus", true)
+        compare(chooser.Accessible.expanded, false)
     }
     function test_copyActionsWrapInsideNarrowColumn() {
         test.width = 400

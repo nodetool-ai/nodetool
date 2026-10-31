@@ -1,23 +1,23 @@
 import QtQuick
 import QtQuick.Layouts
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 Item {
     id: root
     property string label: ""
     default property alias content: controls.data
-    implicitHeight: Math.max(Theme.controlXs, controls.implicitHeight)
+    implicitHeight: Math.max(Ui.Metrics.compact, controls.implicitHeight)
     RowLayout {
         anchors.fill: parent
-        anchors.leftMargin: Theme.spacingXs
-        anchors.rightMargin: Theme.spacingXs
-        spacing: Theme.spacingSm
-        Text {
+        anchors.leftMargin: Ui.Metrics.xs
+        anchors.rightMargin: Ui.Metrics.xs
+        spacing: Ui.Metrics.sm
+        Ui.Text {
             Layout.fillWidth: true
             text: root.label
             elide: Text.ElideRight
-            color: Theme.textSecondary
-            font.family: Theme.sansFamily
-            font.pixelSize: Theme.fontSizeSmall
+            role: Ui.Typography.SansLabel
+            tone: Ui.Text.Secondary
         }
         Item {
             Layout.minimumWidth: InspectorTokens.rowControlMinWidth
@@ -26,7 +26,7 @@ Item {
             Row {
                 id: controls
                 anchors.right: parent.right
-                spacing: Theme.spacingXs
+                spacing: Ui.Metrics.xs
             }
         }
     }

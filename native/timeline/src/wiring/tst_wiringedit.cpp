@@ -32,13 +32,27 @@ private slots:
         const auto before = doc();
         click("track-delete-v");
         QTRY_VERIFY(item("deleteTrackContent") && item("deleteTrackContent")->isVisible());
+        {
+            QSignalSpy swapped(view.get(), &QQuickWindow::frameSwapped);
+            view->update();
+            QVERIFY(swapped.wait(2000));
+        }
         QCOMPARE(item("deleteTrackContent")->property("text").toString(), QString("Track \"Video\" and all its clips are deleted."));
         QCOMPARE(doc(), before); QCOMPARE(model.undoStack()->count(), 0);
         click("cancelDeleteTrack"); QCOMPARE(doc(), before);
-        click("track-delete-v"); click("confirmDeleteTrack");
+        click("track-delete-v");
+        QTRY_VERIFY(item("deleteTrackContent") && item("deleteTrackContent")->isVisible());
+        {
+            QSignalSpy swapped(view.get(), &QQuickWindow::frameSwapped);
+            view->update();
+            QVERIFY(swapped.wait(2000));
+        }
+        click("confirmDeleteTrack");
+        QTRY_VERIFY(!item("deleteTrackContent") || !item("deleteTrackContent")->isVisible());
         QCOMPARE(model.tracks()->rowCount(), 2); QCOMPARE(model.clipCount(), 3);
         QCOMPARE(model.undoStack()->count(), 1);
-        click("undoButton"); QCOMPARE(doc(), before);
+        click("undoButton");
+        QCOMPARE(doc(), before);
     }
     void reorder() {
         auto* grip = item("trackGrip-v"); QVERIFY(grip);
@@ -91,6 +105,12 @@ private slots:
         const auto before = doc(); click("trackTarget-v");
         QVERIFY(!nt::targeting::TrackTargeting::current().isTargeted("v"));
         QVERIFY(item("trackTarget-v")->property("opacity").toDouble() < 1);
+        auto* targetButton = item("trackTarget-v");
+        targetButton->forceActiveFocus();
+        QTest::keyClick(view.get(), Qt::Key_Space);
+        QVERIFY(nt::targeting::TrackTargeting::current().isTargeted("v"));
+        QTest::keyClick(view.get(), Qt::Key_Space);
+        QVERIFY(!nt::targeting::TrackTargeting::current().isTargeted("v"));
         QCOMPARE(doc(), before); QCOMPARE(model.undoStack()->count(), 0);
         click("timeRuler"); clock.seek(1500);
         QTest::keyClick(view.get(), Qt::Key_S);

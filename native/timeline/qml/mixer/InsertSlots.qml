@@ -1,4 +1,5 @@
 import QtQuick
+import NodeTool.UiPrimitives as Ui
 import QtQuick.Controls as Controls
 import NodeTool.Timeline
 Item {
@@ -10,54 +11,55 @@ Item {
     signal add(var effect)
     signal toggle(string effectId, bool enabled)
     signal open(string effectId, var anchor)
-    implicitHeight: list.height + (effects.length ? Theme.spacingMicro : 0) + 20
+    implicitHeight: list.height + (effects.length ? Ui.Metrics.micro : 0) + Ui.Metrics.compact
     Flickable {
         id: list; width: parent.width; height: Math.min(contentHeight,root.maxListHeight)
         contentHeight: rows.height; clip: true
         Column {
-            id: rows; width: parent.width; spacing: Theme.spacingMicro
+            id: rows; width: parent.width; spacing: Ui.Metrics.micro
             Repeater {
                 model: root.effects
-                delegate: Rectangle {
+                delegate: Ui.Surface {
                     required property var modelData
-                    width: rows.width; height: 20; color: Theme.actionHover; radius: Theme.radiusSm
-                    PanelButton {
+                    width: rows.width; height: Ui.Metrics.compact
+                    Ui.ToolbarIconButton {
                         objectName: "bypass-" + modelData.id
-                        width: 20; height: 20; text: (modelData.enabled ? "Bypass " : "Enable ") + effectName.text; iconOnly: true; iconPath: Icons.powerSettingsNew
+                        width: Ui.Metrics.compact
+                        iconName: "power"
+                        accessibleName: (modelData.enabled ? "Bypass " : "Enable ") + effectName.text
+                        checkable: true
                         checked: !!modelData.enabled
-                        Accessible.name: (modelData.enabled?"Bypass ":"Enable ")+effectName.text
-                        onClicked: root.toggle(modelData.id,!modelData.enabled)
+                        onClicked: root.toggle(modelData.id, !modelData.enabled)
                     }
-                    PanelButton {
-                        id: effectName; objectName: "open-effect-"+modelData.id
-                        x: 22; width: parent.width-22; height: 20
+                    Ui.EditorButton {
+                        id: effectName; objectName: "open-effect-" + modelData.id
+                        x: Ui.Metrics.compact; width: parent.width - x
+                        density: Ui.EditorButton.Compact
+                        variant: Ui.EditorButton.Flat
+                        contentAlignment: Qt.AlignLeft
                         text: ({gain:"Gain",eq3:"3-Band EQ",filter:"Filter",compressor:"Compressor"})[modelData.type] || modelData.type
-                        font.family: Theme.sansFamily; font.pixelSize: Theme.fontSizeSmaller
-                        opacity: modelData.enabled ? 1 : 0.38
-                        onClicked: root.open(modelData.id,effectName)
+                        textTone: modelData.enabled ? Ui.Text.Primary : Ui.Text.Disabled
+                        onClicked: root.open(modelData.id, effectName)
                     }
                 }
             }
         }
-        Controls.ScrollBar.vertical: PanelScrollBar {}
+        Controls.ScrollBar.vertical: Ui.ScrollBar {}
     }
-    PanelButton {
+    Ui.EditorButton {
         id: addButton; objectName: "add-effect-" + root.channelId
-        y: list.height + (root.effects.length ? Theme.spacingMicro : 0)
-        width: parent.width; height: 20; text: "Add effect"; iconPath: Icons.add; iconOnly: true
-        Accessible.name: "Add effect to " + root.channel
-        background: Rectangle { color: addButton.hovered?Theme.actionSelected:"transparent"; border.color: Theme.divider; radius: Theme.radiusSm }
-        onClicked: addMenu.open()
-        Controls.Menu {
-            palette.window: Theme.backgroundPaper; palette.windowText: Theme.textPrimary
-            palette.base: Theme.backgroundDefault; palette.text: Theme.textPrimary
-            palette.highlight: Theme.actionSelected; palette.highlightedText: Theme.textPrimary
-            font.family: Theme.sansFamily; font.pixelSize: Theme.fontSizeSmall; font.weight: Font.Medium
+        y: list.height + (root.effects.length ? Ui.Metrics.micro : 0)
+        width: parent.width; density: Ui.EditorButton.Compact; iconName: "add"
+        accessibleName: "Add effect to " + root.channel
+        menuButton: true
+        menuExpanded: addMenu.visible
+        onClicked: addMenu.openAt(addButton)
+        Ui.ContextMenu {
             id: addMenu
+            returnFocusTo: addButton
             Repeater {
                 model: [{type:"gain",label:"Gain"},{type:"eq3",label:"3-Band EQ"},{type:"filter",label:"Filter"},{type:"compressor",label:"Compressor"}]
-                delegate: Controls.MenuItem {
-                    implicitHeight: 28
+                delegate: Ui.MenuItem {
                     required property var modelData
                     objectName: "add-" + modelData.type + "-" + root.channelId
                     text: modelData.label; onTriggered: root.add(modelData.type)

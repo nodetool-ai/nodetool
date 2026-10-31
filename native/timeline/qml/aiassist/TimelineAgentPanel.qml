@@ -5,11 +5,12 @@ import QtQuick.Layouts
 import NodeTool.Timeline
 import NodeTool.Chat
 import "../assets/AssetContext.js" as Context
+import NodeTool.UiPrimitives as Ui
 
 Rectangle {
     id: panel
     objectName: "timelineAssistantPanel"
-    color: Theme.backgroundDefault
+    color: Ui.Theme.surfaceCanvas
     property var timeline: null
     property var chatSession: typeof nativeChatSession !== "undefined" ? nativeChatSession : null
     property var toolEngine: typeof nativeAssistantTools !== "undefined" ? nativeAssistantTools : null
@@ -30,33 +31,29 @@ Rectangle {
             Layout.fillHeight: true
             sourceComponent: ChatPanel { session: panel.chatSession }
         }
-        Text {
+        Ui.Text {
             visible: panel.toolEngine && panel.toolEngine.error !== ""
             Layout.fillWidth: true
-            Layout.margins: Theme.spacingLg
+            Layout.margins: Ui.Metrics.lg
             text: panel.toolEngine ? panel.toolEngine.error : ""
-            color: Theme.error
             wrapMode: Text.Wrap
-            font.family: Theme.sansFamily
-            font.pixelSize: Theme.fontSizeSmall
+            role: Ui.Typography.SansLabel
+            tone: Ui.Text.Error
         }
         ColumnLayout {
             visible: panel.review.kind !== undefined
             Layout.fillWidth: true
-            Layout.margins: Theme.spacingLg
-            spacing: Theme.spacingSm
-            Text {
+            Layout.margins: Ui.Metrics.lg
+            spacing: Ui.Metrics.sm
+            Ui.Text {
                 text: panel.review.kind === "planCandidate" ? qsTr("Review beat plan") : qsTr("Review production request")
-                color: Theme.textPrimary
-                font.family: Theme.sansFamily
-                font.pixelSize: Theme.fontSizeSmall
+                role: Ui.Typography.SansLabel
             }
-            Text {
+            Ui.Text {
                 Layout.fillWidth: true
                 wrapMode: Text.Wrap
-                color: Theme.textSecondary
-                font.family: Theme.sansFamily
-                font.pixelSize: Theme.fontSizeSmaller
+                role: Ui.Typography.SansCaption
+                tone: Ui.Text.Secondary
                 text: (panel.review.requestCount || 0) + qsTr(" requests")
                     + (panel.review.provider ? " · " + panel.review.provider + " / " + panel.review.model : "")
                     + " · " + (panel.review.costKnown && panel.review.estimatedCredits === 0
@@ -65,50 +62,47 @@ Rectangle {
             Basic.ScrollView {
                 visible: (panel.review.beats || []).length > 0 || (panel.review.requests || []).length > 0
                 Layout.fillWidth: true
-                Layout.preferredHeight: Theme.toolbarHeight * 3
+                Layout.preferredHeight: Ui.Metrics.touch * 3
                 contentWidth: availableWidth
                 Column {
                     width: parent.width
-                    spacing: Theme.spacingXs
+                    spacing: Ui.Metrics.xs
                     Repeater {
                         model: panel.review.beats || []
-                        delegate: Text {
+                        delegate: Ui.Text {
                             required property var modelData
                             width: parent.width
-                            color: Theme.textPrimary
                             wrapMode: Text.Wrap
-                            font.family: Theme.sansFamily
-                            font.pixelSize: Theme.fontSizeSmall
+                            role: Ui.Typography.SansLabel
                             text: (modelData.durationMs / 1000) + qsTr(" s · ") + modelData.prompt
                         }
                     }
                     Repeater {
                         model: panel.review.requests || []
-                        delegate: Text {
+                        delegate: Ui.Text {
                             required property var modelData
                             width: parent.width
-                            color: Theme.textPrimary
                             wrapMode: Text.Wrap
-                            font.family: Theme.sansFamily
-                            font.pixelSize: Theme.fontSizeSmall
+                            role: Ui.Typography.SansLabel
                             text: modelData.kind + " · " + modelData.provider + " / " + modelData.model
                         }
                     }
                 }
             }
             Row {
-                spacing: Theme.spacingSm
-                PanelButton {
+                spacing: Ui.Metrics.sm
+                Ui.EditorButton {
                     visible: panel.review.requiresApproval === true
                     text: panel.review.kind === "planCandidate" ? qsTr("Apply plan") : qsTr("Approve requests")
+                    variant: Ui.EditorButton.Primary
                     onClicked: panel.toolEngine.approvePlanning(true)
                 }
-                PanelButton { text: qsTr("Cancel planning"); onClicked: panel.toolEngine.approvePlanning(false) }
+                Ui.EditorButton { text: qsTr("Cancel planning"); variant: Ui.EditorButton.Flat; onClicked: panel.toolEngine.approvePlanning(false) }
             }
         }
-        PanelButton {
+        Ui.EditorButton {
             visible: !!panel.toolEngine
-            Layout.margins: Theme.spacingLg
+            Layout.margins: Ui.Metrics.lg
             text: qsTr("Recover prepared batch")
             onClicked: panel.toolEngine.recoverPlanning()
         }

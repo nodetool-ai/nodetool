@@ -47,14 +47,17 @@ void DockLayoutStore::persist() {
     settings->sync();
 }
 bool DockLayoutStore::dispatch(const QVariantMap& action) {
+    const auto type = action.value("type").toString();
+    if (m_resizeStart && type != "resize" && type != "resizeGroups") { finishResize(true); }
     const auto next = call("transition", {m_layout, action});
     if (next.isEmpty() || next == m_layout) { return false; }
     m_layout = next;
-    persist();
+    if (!m_resizeStart) { persist(); }
     emit changed();
     return true;
 }
 void DockLayoutStore::registerPanels(const QVariantList& panels) {
+    finishResize(true);
     m_panels = panels;
     const auto next = call("registerMissingPanels", {m_layout, panels});
     if (next.isEmpty() || next == m_layout) { return; }
@@ -64,6 +67,7 @@ void DockLayoutStore::registerPanels(const QVariantList& panels) {
 }
 void DockLayoutStore::switchWorkspace(int index) {
     if (index < 0 || index >= workspaces().size()) { return; }
+    finishResize(true);
     m_workspaces.insert(m_workspace, m_layout);
     const auto name = workspaces()[index];
     const bool saved = m_workspaces.contains(name);
@@ -77,6 +81,7 @@ void DockLayoutStore::switchWorkspace(int index) {
     emit changed();
 }
 void DockLayoutStore::resetWorkspace() {
+    finishResize(true);
     m_layout = call("presetWithExtensions", {m_layout, m_workspace});
     m_layout = call("registerMissingPanels", {m_layout, m_panels});
     if (m_workspace == "Script") m_layout = withScriptPanelSelected(m_layout);
@@ -98,4 +103,15 @@ void DockLayoutStore::resizeRegion(const QString& region, double size, double wi
     const double minimum = bottom ? 80.0 : 100.0;
     const double maximum = std::max(minimum, std::min(bottom ? 1000.0 : 1600.0, bottom ? height * 0.75 : width / 3));
     dispatch({{"type", "resize"}, {"region", region}, {"size", std::clamp(size, minimum, maximum)}});
+}
+void DockLayoutStore::beginResize() {
+    if (!m_resizeStart) { m_resizeStart = m_layout; }
+}
+void DockLayoutStore::finishResize(bool canceled) {
+    if (!m_resizeStart) { return; }
+    const auto initial = std::move(*m_resizeStart);
+    m_resizeStart.reset();
+    if (initial == m_layout) { return; }
+    if (canceled) { m_layout = initial; emit changed(); }
+    else { persist(); }
 }

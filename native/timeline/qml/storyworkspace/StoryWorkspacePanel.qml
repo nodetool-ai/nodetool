@@ -1,12 +1,13 @@
 // nt-panel: slot=left id=script order=35 title="Scripts"
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 import "../assets/AssetContext.js" as Context
 
-Rectangle {
+Ui.Surface {
     id: panel
+    variant: Ui.Surface.Canvas
     objectName: "timelineScriptPanel"
-    color: Theme.backgroundDefault
     property var timeline: null
     function openResource(id) { editor.openResource(id, "scripts") }
     AssistController { id: documents; timeline: panel.timeline; documentOnly: true }

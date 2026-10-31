@@ -3,32 +3,33 @@
 // visible fraction; a thumb drag or a trough click sets the lanes' scroll.
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 Rectangle {
     id: bar
     required property TimelineViewState viewState
     // Left inset so the bar lines up with the lanes (the header width).
-    property double leftInsetPx: Theme.trackHeaderWidth
+    property double leftInsetPx: TimelineMetrics.trackHeaderWidth
 
     // computeScrollThumb(totalWidth, viewport, scrollLeft, trackWidth = viewport)
     readonly property var thumb: viewState.scrollThumb(viewState.totalWidthPx, viewState.viewportWidthPx,
                                                        viewState.scrollLeftPx, viewState.viewportWidthPx)
 
     objectName: "timelineScrollbar"
-    height: Theme.scrollbarHeight
-    color: Theme.backgroundPaper
+    height: TimelineMetrics.scrollbarHeight
+    color: Ui.Theme.surfacePanel
 
     Rectangle {
         width: parent.width
         height: 1
-        color: Theme.divider
+        color: Ui.Theme.borderSubtle
     }
 
     Item {
         id: trough
         objectName: "scrollbarTrough"
         x: bar.leftInsetPx
-        width: Math.max(0, bar.width - bar.leftInsetPx - Theme.spacingSm)
+        width: Math.max(0, bar.width - bar.leftInsetPx - Ui.Metrics.sm)
         height: 8                               // TROUGH_HEIGHT_PX
         anchors.verticalCenter: parent.verticalCenter
 
@@ -43,10 +44,10 @@ Rectangle {
             x: bar.thumb.thumbLeft
             width: bar.thumb.thumbWidth
             height: parent.height
-            radius: Theme.radiusSm
-            color: thumbArea.pressed && bar.thumb.scrollable ? Theme.textPrimary
-                   : thumbArea.containsMouse && bar.thumb.scrollable ? Theme.textSecondary
-                   : Theme.actionDisabled
+            radius: Ui.Metrics.xs
+            color: thumbArea.pressed && bar.thumb.scrollable ? Ui.Theme.textPrimary
+                   : thumbArea.containsMouse && bar.thumb.scrollable ? Ui.Theme.textSecondary
+                   : Ui.Theme.actionDisabled
 
             MouseArea {
                 id: thumbArea

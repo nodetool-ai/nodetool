@@ -1,3 +1,4 @@
+#include <QFontInfo>
 #include <QGuiApplication>
 #include <QFontDatabase>
 #include <QLibraryInfo>
@@ -64,23 +65,15 @@ private:
 private slots:
     void init() { QTest::failOnWarning(QRegularExpression(".*")); }
     void initTestCase() {
-        const auto fontId = QFontDatabase::addApplicationFont(QStringLiteral(NT_ACTIVITY_SOURCE "/fonts/inter-latin-400-normal.woff2"));
+        const auto fontId = QFontDatabase::addApplicationFont(QStringLiteral(":/qt/qml/NodeTool/UiPrimitives/fonts/inter-latin-400-normal.woff2"));
         QVERIFY(fontId >= 0);
         const auto families = QFontDatabase::applicationFontFamilies(fontId);
         QVERIFY(!families.isEmpty());
         QGuiApplication::setFont(QFont(families.first()));
-        for (const auto* name : {"PanelButton", "PanelField", "PanelSelect", "PanelScrollBar"}) {
-            qmlRegisterType(QUrl::fromLocalFile(QStringLiteral(NT_ACTIVITY_SOURCE "/qml/controls/")
-                + QString::fromLatin1(name) + ".qml"), "NodeTool.Timeline", 1, 0, name);
-        }
-        qmlRegisterType(QUrl::fromLocalFile(QStringLiteral(NT_ACTIVITY_SOURCE "/qml/Icon.qml")),
-            "NodeTool.Timeline", 1, 0, "Icon");
-        qmlRegisterSingletonType(QUrl::fromLocalFile(QStringLiteral(NT_ACTIVITY_SOURCE "/qml/Icons.qml")),
-            "NodeTool.Timeline", 1, 0, "Icons");
         qmlRegisterType<ActivityPanelSource>("NodeTool.Timeline", 1, 0, "ActivityController");
         qmlRegisterType<ActivityPanelSource>("NodeTool.Timeline", 1, 0, "LocalActivity");
-        qmlRegisterSingletonType(QUrl::fromLocalFile(QStringLiteral(NT_ACTIVITY_SOURCE "/qml/Theme.qml")),
-            "NodeTool.Timeline", 1, 0, "Theme");
+        qmlRegisterSingletonType(QUrl::fromLocalFile(QStringLiteral(NT_ACTIVITY_SOURCE "/qml/TimelineVisuals.qml")),
+            "NodeTool.Timeline", 1, 0, "TimelineVisuals");
     }
     void mountedNarrowFlow() {
         QObject timeline;
@@ -124,6 +117,9 @@ Item {
         server->lastUpdated = "2026-10-30T12:00:00Z";
         server->update();
         QTRY_VERIFY(find(panel, "activityCancel_0"));
+        auto* title = find(panel, "activityTitle");
+        QVERIFY(title);
+        QCOMPARE(QFontInfo(qvariant_cast<QFont>(title->property("font"))).family(), QStringLiteral("Inter"));
         auto* identity = find(panel, "activityId_0");
         QVERIFY(identity);
         QCOMPARE(identity->property("text").toString(), id);
@@ -136,11 +132,17 @@ Item {
         auto* filter = find(panel, "activityFilter");
         QVERIFY(filter);
         filter->forceActiveFocus();
-        QTest::keyClick(&window, Qt::Key_End);
-        QCOMPARE(filter->property("currentIndex").toInt(), 2);
-        QCOMPARE(filter->property("displayText").toString(), QString("Failures"));
+        QTest::keyClick(&window, Qt::Key_Space);
+        QTest::keyClick(&window, Qt::Key_Down);
+        QTest::keyClick(&window, Qt::Key_Down);
+        QTest::keyClick(&window, Qt::Key_Return);
+        QCOMPARE(panel->property("filterState").toString(), QString("Failures"));
         QTRY_COMPARE(find(panel, "activityList")->property("count").toInt(), 0);
-        filter->setProperty("currentIndex", 1);
+        filter->forceActiveFocus();
+        QTest::keyClick(&window, Qt::Key_Space);
+        QTest::keyClick(&window, Qt::Key_Up);
+        QTest::keyClick(&window, Qt::Key_Return);
+        QCOMPARE(panel->property("filterState").toString(), QString("Active"));
         QTRY_COMPARE(find(panel, "activityList")->property("count").toInt(), 1);
         click(window, find(panel, "activityRefresh"));
         QCOMPARE(server->refreshes, 1);
@@ -153,10 +155,11 @@ Item {
         if (!screenshot.isEmpty()) { QVERIFY(window.grabWindow().save(screenshot)); }
         auto* search = find(panel, "activitySearch");
         QVERIFY(search);
-        search->setProperty("text", "does not match");
+        search->forceActiveFocus();
+        for (const QChar letter : QStringLiteral("does not match")) QTest::keyClick(&window, static_cast<Qt::Key>(letter.toUpper().unicode()));
         QTRY_COMPARE(find(panel, "activityList")->property("count").toInt(), 0);
         QVERIFY(find(panel, "activityEmpty")->property("text").toString().contains("matches"));
-        search->setProperty("text", "");
+        for (int index = 0; index < 14; ++index) QTest::keyClick(&window, Qt::Key_Backspace);
         server->rows.clear();
         local->rows = {row("local-full-id", "Local", "running", true)};
         server->update(); local->update();

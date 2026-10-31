@@ -1,10 +1,16 @@
 import QtQuick
 import QtQuick.Controls.Basic
 import NodeTool.ModelPicker
+import NodeTool.UiPrimitives as Ui
 
 ApplicationWindow {
     id: window
     visible: true
+    property bool testRtl: false
+    property real testTextScale: 1
+    LayoutMirroring.enabled: testRtl
+    LayoutMirroring.childrenInherit: true
+    Binding { target: Ui.Theme; property: "textScale"; value: window.testTextScale }
     width: 800
     height: 620
     color: "#08090A"
@@ -26,13 +32,17 @@ ApplicationWindow {
         property string selectedModelId: ""
         property string selectedProvider: ""
         property bool reorderOnRefresh: false
+        property bool longLabels: false
+        onLongLabelsChanged: {
+            results.setProperty(0, "name", longLabels ? "A long translated model name that must fit in a narrow picker" : "GPT-5")
+        }
         property var selectedModel: ({})
         property var results: ListModel {
             ListElement { modelId: "gpt-5"; provider: "openai"; name: "GPT-5"; detail: "OpenAI · gpt-5"; executionLabel: "API"; favorite: false; isDefault: false; current: false; available: true }
             ListElement { modelId: "unavailable"; provider: "openai"; name: "Unavailable model"; detail: "OpenAI · unavailable"; executionLabel: "unavailable"; favorite: false; isDefault: false; current: false; available: false }
             ListElement { modelId: "claude"; provider: "anthropic"; name: "Claude"; detail: "Anthropic · claude"; executionLabel: "API"; favorite: false; isDefault: false; current: false; available: true }
         }
-        function providerLabel(id) { return id === "openai" ? "OpenAI" : id === "anthropic" ? "Anthropic" : id }
+        function providerLabel(id) { return longLabels ? "A long translated provider name for " + id : id === "openai" ? "OpenAI" : id === "anthropic" ? "Anthropic" : id }
         function reload() {
             if (!reorderOnRefresh) return
             reorderOnRefresh = false
@@ -55,8 +65,8 @@ ApplicationWindow {
             return {id: row.modelId, provider: row.provider, available: row.available}
         }
         function selectModel(id, provider) { selectedModelId = id; selectedProvider = provider; selectedModel = {id: id, provider: provider, name: id} }
-        function toggleFavorite(id, provider) { results.setProperty(id === "gpt-5" ? 0 : 1, "favorite", true) }
-        function setDefault(id, provider) { results.setProperty(id === "gpt-5" ? 0 : 1, "isDefault", true) }
+        function toggleFavorite(id, provider) { const index = id === "gpt-5" ? 0 : 1; results.setProperty(index, "favorite", !results.get(index).favorite) }
+        function setDefault(id, provider) { const index = id === "gpt-5" ? 0 : 1; results.setProperty(index, "isDefault", !results.get(index).isDefault) }
     }
     Button {
         id: trigger

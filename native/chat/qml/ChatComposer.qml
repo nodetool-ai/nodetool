@@ -2,48 +2,39 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import NodeTool.UiPrimitives as Ui
 import QtQuick.Dialogs
 import NodeTool.ModelPicker
 
-Frame {
+Ui.Surface {
     id: root
     required property var session
+    property string previousThread: ""
     readonly property bool running: session && ["loading", "running", "streaming", "sending", "stopping"].indexOf(session.turnStatus) >= 0
-    padding: ChatTheme.md
-    background: Rectangle {
-        color: ChatTheme.background
-        radius: ChatTheme.cardRadius
-        border.color: editor.activeFocus ? ChatTheme.focus : ChatTheme.divider
-    }
+    variant: Ui.Surface.Panel
+    implicitHeight: composerContent.implicitHeight + Ui.Metrics.md * 2
     objectName: "chatComposer"
     function focusEditor() {
         editor.forceActiveFocus();
     }
     ColumnLayout {
-        width: parent.width
-        spacing: ChatTheme.md
+        id: composerContent
+        anchors.fill: parent
+        anchors.margins: Ui.Metrics.md
+        spacing: Ui.Metrics.md
         ScrollView {
             Layout.fillWidth: true
-            Layout.preferredHeight: Math.min(ChatTheme.control * 5, Math.max(ChatTheme.control * 2, editor.implicitHeight))
-            TextArea {
+            Layout.preferredHeight: Math.min(Ui.Metrics.comfortable * 5, Math.max(Ui.Metrics.comfortable * 2, editor.implicitHeight))
+            Ui.TextArea {
                 id: editor
                 objectName: "chatInput"
-                text: root.session ? root.session.draft : ""
+                value: root.session ? root.session.draft : ""
                 placeholderText: qsTr("Describe what you want to make…")
-                color: ChatTheme.text
-                placeholderTextColor: ChatTheme.muted
-                selectionColor: ChatTheme.primary
                 wrapMode: TextEdit.Wrap
                 selectByMouse: true
-                font.family: ChatTheme.sans
-                font.pixelSize: ChatTheme.body
-                Accessible.name: qsTr("Message")
-                padding: ChatTheme.xl
-                background: null
-                onTextChanged: {
-                    if (root.session && root.session.draft !== text) {
-                        root.session.draft = text;
-                    }
+                accessibleName: qsTr("Message")
+                onValuePreviewed: value => {
+                    if (root.session && root.session.draft !== value) root.session.draft = value
                 }
                 // Enter inserts a line. Ctrl/Cmd+Enter submits only after IME composition.
                 Keys.onPressed: event => {
@@ -62,19 +53,21 @@ Frame {
                 id: attachmentRow
                 required property var modelData
                 Layout.fillWidth: true
-                Label {
+                Ui.Text {
+                    role: Ui.Typography.SansLabel
                     Layout.fillWidth: true
                     text: attachmentRow.modelData.name + " · " + attachmentRow.modelData.status
-                    color: ChatTheme.muted
+                    tone: Ui.Text.Secondary
                     elide: Text.ElideMiddle
                 }
-                ProgressBar {
+                Ui.Progress {
+                    accessibleName: qsTr("Attachment upload progress")
                     from: 0
                     to: 100
                     visible: attachmentRow.modelData.status === "uploading"
                     value: attachmentRow.modelData.progress || 0
                 }
-                ChatButton {
+                Ui.EditorButton {
                     text: attachmentRow.modelData.status === "uploading" ? qsTr("Cancel upload") : qsTr("Remove")
                     onClicked: root.session.removeAttachment(attachmentRow.modelData.id)
                 }
@@ -82,35 +75,39 @@ Frame {
         }
         RowLayout {
             Layout.fillWidth: true
-            ChatButton {
+            Ui.ToolbarIconButton {
                 text: qsTr("Attach file")
-                glyph: "+"
-                flat: true
+                iconName: "add"
+                variant: Ui.EditorButton.Flat
                 enabled: !!root.session && !root.running
                 onClicked: fileDialog.open()
             }
-            ChatButton {
-                Layout.maximumWidth: Math.max(ChatTheme.control, root.width - ChatTheme.control * 3)
-                flat: true
+            Ui.EditorButton {
+                Layout.maximumWidth: Math.max(Ui.Metrics.comfortable, root.width - Ui.Metrics.comfortable * 3)
+                variant: Ui.EditorButton.Flat
                 id: modelChooser
                 objectName: "chooseChatModel"
                 text: root.session && root.session.model
-                      ? root.session.model + (root.session.modelCatalog.loaded && !root.session.modelCatalog.selectionAvailable ? qsTr(" (Unavailable)") : "") + " ⌄"
-                      : qsTr("Default model ⌄")
-                Accessible.name: qsTr("Choose provider and model")
-                onClicked: modelPicker.openAt(modelChooser)
+                      ? root.session.model + (root.session.modelCatalog.loaded && !root.session.modelCatalog.selectionAvailable ? qsTr(" (Unavailable)") : "")
+                      : qsTr("Default model")
+                accessibleName: qsTr("Choose provider and model")
+                trailingIconName: "arrowDropDown"
+                menuButton: true
+                menuExpanded: modelPickerLoader.item ? modelPickerLoader.item.visible : false
+                enabled: !!modelPickerLoader.item
+                onClicked: modelPickerLoader.item.openAt(modelChooser)
             }
             Item {
                 Layout.fillWidth: true
             }
 
-            ChatButton {
+            Ui.ToolbarIconButton {
                 objectName: "sendMessage"
                 text: root.running ? qsTr("Stop") : qsTr("Send")
-                glyph: root.running ? "■" : "↑"
-                primary: true
-                Layout.preferredWidth: ChatTheme.xxxl
-                implicitHeight: ChatTheme.xxxl
+                iconName: root.running ? "stop" : "send"
+                variant: Ui.EditorButton.Primary
+                Layout.preferredWidth: Ui.Metrics.xxxl
+                implicitHeight: Ui.Metrics.xxxl
                 enabled: !!root.session && root.session.turnStatus !== "stopping" && (root.running || editor.text.trim().length > 0)
                 onClicked: {
                     if (root.running) {
@@ -123,15 +120,28 @@ Frame {
             }
         }
     }
-    ModelPicker {
-        id: modelPicker
-        catalog: root.session ? root.session.modelCatalog : null
-        allowServerDefault: true
-        onUseServerDefaultRequested: {
-            root.session.useServerDefaultModel()
-            close()
+    Component.onCompleted: previousThread = session ? session.selectedThreadId : ""
+    Connections {
+        target: root.session
+        function onStateChanged() {
+            if (root.session.selectedThreadId !== root.previousThread) {
+                root.previousThread = root.session.selectedThreadId
+                editor.cancelEdit()
+            }
         }
-        onAddProvidersRequested: root.session.openProviderSettings()
+    }
+    Loader {
+        id: modelPickerLoader
+        active: !!root.session && !!root.session.modelCatalog
+        sourceComponent: ModelPicker {
+            catalog: root.session.modelCatalog
+            allowServerDefault: true
+            onUseServerDefaultRequested: {
+                root.session.useServerDefaultModel()
+                close()
+            }
+            onAddProvidersRequested: root.session.openProviderSettings()
+        }
     }
     FileDialog {
         id: fileDialog

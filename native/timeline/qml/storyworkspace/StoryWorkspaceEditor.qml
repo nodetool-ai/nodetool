@@ -3,10 +3,11 @@ import QtQuick.Controls
 import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
-Rectangle {
+Ui.Surface {
     id: panel
-    color: Theme.backgroundDefault
+    variant: Ui.Surface.Canvas
     objectName: "storyWorkspaceEditor"
     required property var controller
     required property var workspace
@@ -104,166 +105,57 @@ Rectangle {
     }
     function sceneName(shot) { return sceneNames[shot.scene_id] || "" }
 
-    component DocumentGlyph: Rectangle {
+    component DocumentGlyph: Ui.Icon {
         property bool board: false
-        width: Theme.iconSm
-        height: Theme.iconSm
-        radius: Theme.radiusXs
-        color: "transparent"
-        border.color: board ? Theme.primary : Theme.warning
-        Repeater {
-            model: parent.board ? 4 : 3
-            Rectangle {
-                required property int index
-                width: parent.board ? Theme.spacingXs : parent.width - 2 * Theme.spacingXs
-                height: parent.board ? Theme.spacingXs : 1
-                x: parent.board ? Theme.spacingMicro + (index % 2) * Theme.spacingSm : Theme.spacingXs
-                y: parent.board ? Theme.spacingMicro + Math.floor(index / 2) * Theme.spacingSm : Theme.spacingXs + index * Theme.spacingXs
-                color: parent.board ? Theme.primary : Theme.warning
-            }
-        }
+        name: board ? "layers" : "subtitles"
+        size: Ui.Metrics.iconSm
+        tone: board ? Ui.Text.Info : Ui.Text.Warning
     }
 
-    component WorkspaceButton: Basic.Button {
-        id: button
+    component WorkspaceButton: Ui.EditorButton {
         property bool primary: false
         property bool leftAligned: false
         property bool quiet: false
-        font.family: Theme.sansFamily
-        font.pixelSize: Theme.fontSizeSmall
-        font.weight: Font.Medium
-        padding: Theme.spacingMd
-        implicitHeight: Theme.toolbarHeight
-        Accessible.name: text
-        contentItem: Text {
-            text: button.text
-            font: button.font
-            color: button.enabled ? Theme.textPrimary : Theme.textDisabled
-            horizontalAlignment: button.leftAligned ? Text.AlignLeft : Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
-            elide: Text.ElideRight
-        }
-        background: Rectangle {
-            color: button.primary && button.enabled ? Theme.primary : button.down ? Theme.actionSelected : button.hovered ? Theme.actionHover : button.quiet ? "transparent" : Theme.backgroundPaper
-            border.color: button.activeFocus ? Theme.primary : button.quiet ? "transparent" : Theme.divider
-            radius: Theme.radiusSm
-        }
+        variant: primary ? Ui.EditorButton.Primary : quiet ? Ui.EditorButton.Flat : Ui.EditorButton.Default
+        contentAlignment: leftAligned ? Qt.AlignLeft : Qt.AlignHCenter
     }
-    component WorkspaceLabel: Text {
-        color: Theme.textSecondary
-        font.family: Theme.sansFamily
-        font.pixelSize: Theme.fontSizeSmall
+    component WorkspaceLabel: Ui.Text {
+        role: Ui.Typography.SansLabel
+        tone: Ui.Text.Secondary
         wrapMode: Text.WordWrap
     }
-    component WorkspaceField: Basic.TextField {
-        id: field
-        color: Theme.textPrimary
-        placeholderTextColor: Theme.textSecondary
-        font.family: Theme.sansFamily
-        font.pixelSize: Theme.fontSizeSmall
-        padding: Theme.spacingMd
-        implicitHeight: Theme.toolbarHeight
-        selectByMouse: true
-        background: Rectangle {
-            color: Theme.backgroundPaper
-            radius: Theme.radiusSm
-            border.color: field.activeFocus ? Theme.primary : Theme.divider
-        }
-    }
-    component WorkspaceArea: Basic.TextArea {
-        id: field
-        color: Theme.textPrimary
-        placeholderTextColor: Theme.textSecondary
-        font.family: Theme.sansFamily
-        font.pixelSize: Theme.fontSizeSmall
-        padding: Theme.spacingMd
+    component WorkspaceField: Ui.TextField { selectByMouse: true }
+    component WorkspaceArea: Ui.TextArea {
         property bool quiet: false
-        implicitHeight: Math.max(Theme.toolbarHeight, contentHeight + topPadding + bottomPadding)
-        wrapMode: TextEdit.Wrap
+        variant: quiet ? Ui.TextArea.Quiet : Ui.TextArea.Field
         selectByMouse: true
-        background: Rectangle {
-            color: field.quiet && !field.hovered && !field.activeFocus ? "transparent" : Theme.backgroundPaper
-            radius: Theme.radiusSm
-            border.color: field.activeFocus ? Theme.primary : field.quiet && !field.hovered ? "transparent" : Theme.divider
-        }
     }
-    component WorkspaceCheckBox: Basic.CheckBox {
-        id: control
-        font.family: Theme.sansFamily
-        font.pixelSize: Theme.fontSizeSmall
-        spacing: Theme.spacingSm
-        padding: 0
-        implicitHeight: Theme.toolbarHeight
-        indicator: Rectangle {
-            x: control.leftPadding
-            y: (control.height - height) / 2
-            width: Theme.iconSm
-            height: Theme.iconSm
-            radius: Theme.radiusXs
-            color: control.checked ? Theme.primary : Theme.backgroundPaper
-            border.color: control.activeFocus ? Theme.primary : Theme.divider
-            Text { anchors.centerIn: parent; text: "✓"; visible: control.checked; color: Theme.textPrimary; font.pixelSize: Theme.fontSizeSmaller }
-        }
-        contentItem: Text {
-            text: control.text
-            font: control.font
-            color: control.enabled ? Theme.textSecondary : Theme.textDisabled
-            leftPadding: control.indicator.width + control.spacing
-            verticalAlignment: Text.AlignVCenter
-            elide: Text.ElideRight
-        }
-    }
+    component WorkspaceCheckBox: Ui.Toggle {}
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: Theme.spacingLg
-        spacing: Theme.spacingSm
+        anchors.margins: Ui.Metrics.lg
+        spacing: Ui.Metrics.sm
         RowLayout {
             Layout.fillWidth: true
-            spacing: Theme.spacingSm
-            Basic.ComboBox {
+            spacing: Ui.Metrics.sm
+            Ui.Select {
                 id: documentSelector
                 objectName: "workspaceDocumentKind"
                 visible: panel.fixedKind === ""
                 Layout.fillWidth: true
-                implicitHeight: Theme.toolbarHeight
-                model: ["Scripts", "Storyboards"]
-                currentIndex: panel.kind === "storyboards" || (panel.kind === "entities" && panel.returnKind === "storyboards") ? 1 : 0
-                Accessible.name: "Document type"
-                font.family: Theme.sansFamily
-                font.pixelSize: Theme.fontSizeSmall
-                palette.button: Theme.backgroundPaper
-                palette.buttonText: Theme.textPrimary
-                palette.base: Theme.backgroundPaper
-                palette.text: Theme.textPrimary
-                palette.window: Theme.backgroundPaper
-                palette.windowText: Theme.textPrimary
-                palette.highlight: Theme.primary
+                Layout.minimumWidth: 0
+                options: [{label: "Scripts", value: "scripts"}, {label: "Storyboards", value: "storyboards"}]
+                value: panel.kind === "storyboards" || (panel.kind === "entities" && panel.returnKind === "storyboards") ? "storyboards" : "scripts"
+                accessibleName: "Document type"
                 enabled: !controller.busy
-                onActivated: index => panel.browse(index === 1 ? "storyboards" : "scripts")
-                background: Rectangle {
-                    color: Theme.backgroundPaper
-                    border.color: documentSelector.activeFocus ? Theme.primary : Theme.divider
-                    radius: Theme.radiusSm
-                }
-                contentItem: Text {
-                    text: documentSelector.displayText
-                    color: Theme.textPrimary
-                    font: documentSelector.font
-                    leftPadding: Theme.spacingMd
-                    rightPadding: documentSelector.indicator.width + Theme.spacingLg
-                    verticalAlignment: Text.AlignVCenter
-                    elide: Text.ElideRight
-                }
+                onValueCommitted: next => panel.browse(next)
             }
-            Text {
+            Ui.Text {
                 visible: panel.fixedKind !== ""
                 Layout.fillWidth: true
+                role: Ui.Typography.SansLabel
                 text: panel.fixedKind === "storyboards" ? qsTr("Storyboards") : qsTr("Scripts")
-                color: Theme.textPrimary
-                font.family: Theme.sansFamily
-                font.pixelSize: Theme.fontSizeSmall
-                font.weight: Font.Medium
             }
             WorkspaceButton { text: "Refresh"; enabled: !controller.busy; onClicked: panel.browse(panel.kind === "entities" ? panel.returnKind : panel.kind) }
         }
@@ -287,52 +179,55 @@ Rectangle {
             Layout.fillWidth: true
             text: workspace.error || controller.error
             visible: text !== ""
-            color: Theme.error
+            tone: Ui.Text.Error
             Accessible.role: Accessible.AlertMessage
         }
         WorkspaceLabel { visible: controller.busy; text: "Loading documents…" }
         ColumnLayout {
             Layout.fillWidth: true
             visible: !!resource.id
-            spacing: Theme.spacingSm
+            spacing: Ui.Metrics.sm
             RowLayout {
                 Layout.fillWidth: true
                 DocumentGlyph { board: panel.documentKind === "storyboards"; visible: panel.kind !== "entities" }
                 WorkspaceLabel {
                     Layout.fillWidth: true
                     text: resource.name || (resource.metadata || {}).nodetool_entity?.name || (panel.documentKind === "scripts" ? "Untitled script" : "Untitled storyboard")
-                    color: Theme.textPrimary
-                    font.pixelSize: Theme.fontSizeNormal
-                    font.weight: Font.DemiBold
+                    tone: Ui.Text.Primary
+                    role: Ui.Typography.SansBody
+
                 }
-                WorkspaceLabel { text: workspace.dirty || controller.scriptDirty ? "Edited" : "Saved"; font.pixelSize: Theme.fontSizeSmaller; color: workspace.dirty || controller.scriptDirty ? Theme.warning : Theme.textSecondary }
+                WorkspaceLabel { text: workspace.dirty || controller.scriptDirty ? "Edited" : "Saved"; role: Ui.Typography.SansCaption; tone: workspace.dirty || controller.scriptDirty ? Ui.Text.Warning : Ui.Text.Secondary }
             }
             WorkspaceLabel {
                 text: document.shots ? document.shots.length + (document.shots.length === 1 ? " shot" : " shots") : panel.scriptStats.lines + (panel.scriptStats.lines === 1 ? " line · " : " lines · ") + panel.scriptStats.words + (panel.scriptStats.words === 1 ? " word" : " words")
                 visible: panel.kind !== "entities"
-                font.pixelSize: Theme.fontSizeSmaller
+                role: Ui.Typography.SansCaption
             }
-            Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.divider }
+            Ui.Separator { Layout.fillWidth: true }
         }
         ScrollView {
             id: scroll
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
-            contentWidth: availableWidth
+            rightPadding: Ui.Metrics.md
+            contentWidth: Math.max(0, width - rightPadding)
+            ScrollBar.vertical: Ui.ScrollBar {}
             Column {
-                width: scroll.availableWidth
-                spacing: Theme.spacingMd
+                width: scroll.contentWidth
+                spacing: Ui.Metrics.md
                 Column {
                     width: parent.width
-                    spacing: Theme.spacingSm
+                    spacing: Ui.Metrics.sm
                     visible: !resource.id
                     WorkspaceLabel {
+                        objectName: "workspaceTitle"
                         width: parent.width
                         text: panel.fixedKind === "storyboards" ? qsTr("Storyboards") : qsTr("Scripts")
-                        color: Theme.textPrimary
-                        font.pixelSize: Theme.fontSizeNormal
-                        font.weight: Font.DemiBold
+                        tone: Ui.Text.Primary
+                        role: Ui.Typography.SansBody
+
                     }
                     WorkspaceLabel {
                         width: parent.width
@@ -352,12 +247,12 @@ Rectangle {
                     delegate: Column {
                         required property var modelData
                         width: parent.width
-                        spacing: Theme.spacingXs
+                        spacing: Ui.Metrics.xs
                         WorkspaceLabel {
                             width: parent.width
                             visible: modelData.showGroup && modelData.dateGroup !== ""
                             text: modelData.dateGroup.toUpperCase()
-                            font.pixelSize: Theme.fontSizeSmaller
+                            role: Ui.Typography.SansCaption
                         }
                         WorkspaceButton {
                             id: documentRow
@@ -368,17 +263,13 @@ Rectangle {
                             quiet: true
                             enabled: !controller.busy
                             onClicked: panel.openResource(modelData.id, panel.kind)
-                            contentItem: RowLayout {
-                                spacing: Theme.spacingSm
-                                DocumentGlyph { board: panel.kind === "storyboards" }
-                                Text { Layout.fillWidth: true; text: documentRow.text; color: Theme.textPrimary; font: documentRow.font; elide: Text.ElideRight }
-                            }
+                            iconName: panel.kind === "storyboards" ? "layers" : "subtitles"
                         }
                     }
                 }
                 Column {
                     width: parent.width
-                    spacing: Theme.spacingSm
+                    spacing: Ui.Metrics.sm
                     visible: !!resource.id
                     WorkspaceButton {
                         objectName: "workspaceBackToDocument"
@@ -404,54 +295,51 @@ Rectangle {
                 WorkspaceButton { text: "Open linked storyboard"; visible: !!resource.storyboardId; enabled: !controller.busy; onClicked: panel.openResource(resource.storyboardId, "storyboards") }
                 Repeater {
                     model: document.sections ? controller.scriptRows : []
-                    delegate: Rectangle {
+                    delegate: Item {
                         id: line
                         required property var modelData
                         readonly property bool isSection: modelData.kind === "section"
-                        readonly property bool narrow: panel.width < Theme.trackHeaderWidth * 2
+                        readonly property bool narrow: panel.width < TimelineMetrics.trackHeaderWidth * 2
                         readonly property string speaker: modelData.speakerName || "No speaker"
                         readonly property bool lineDirty: { controller.scriptDraftRevision; return controller.hasScriptLineDraft(modelData.scriptId || "", modelData.id || "") }
                         width: parent.width
-                        height: lineContent.implicitHeight + (isSection ? Theme.spacingSm : 2 * Theme.spacingLg)
-                        color: isSection ? "transparent" : Theme.backgroundPaper
-                        radius: Theme.radiusMd
-                        border.color: isSection ? "transparent" : Theme.divider
+                        height: lineContent.implicitHeight + (isSection ? Ui.Metrics.sm : 2 * Ui.Metrics.lg)
+                        Ui.Surface { anchors.fill: parent; visible: !line.isSection }
                         Column {
                             id: lineContent
-                            x: line.isSection ? 0 : Theme.spacingLg
-                            y: line.isSection ? 0 : Theme.spacingLg
-                            width: parent.width - (line.isSection ? 0 : 2 * Theme.spacingLg)
-                            spacing: Theme.spacingSm
+                            x: line.isSection ? 0 : Ui.Metrics.lg
+                            y: line.isSection ? 0 : Ui.Metrics.lg
+                            width: parent.width - (line.isSection ? 0 : 2 * Ui.Metrics.lg)
+                            spacing: Ui.Metrics.sm
                             WorkspaceLabel {
                                 width: parent.width
                                 visible: line.isSection
                                 text: (line.modelData.title || "Untitled section").toUpperCase()
-                                font.pixelSize: Theme.fontSizeSmaller
-                                font.weight: Font.Medium
+                                role: Ui.Typography.SansCaption
+
                             }
                             Row {
                                 visible: !line.isSection && line.narrow
-                                spacing: Theme.spacingSm
+                                spacing: Ui.Metrics.sm
                                 Rectangle {
-                                    width: Theme.iconSm * 2; height: width; radius: width / 2
-                                    color: "transparent"; border.color: Theme.info
-                                    WorkspaceLabel { anchors.centerIn: parent; text: line.speaker.slice(0, 1).toUpperCase(); color: Theme.info; font.pixelSize: Theme.fontSizeNormal }
+                                    width: Ui.Metrics.iconSm * 2; height: width; radius: Ui.Metrics.radiusPill
+                                    color: "transparent"; border.color: Ui.Theme.statusInfo
+                                    WorkspaceLabel { anchors.centerIn: parent; text: line.speaker.slice(0, 1).toUpperCase(); tone: Ui.Text.Info; role: Ui.Typography.SansBody }
                                 }
-                                WorkspaceLabel { anchors.verticalCenter: parent.verticalCenter; text: line.speaker.toUpperCase(); color: Theme.info; font.pixelSize: Theme.fontSizeSmaller }
+                                WorkspaceLabel { anchors.verticalCenter: parent.verticalCenter; text: line.speaker.toUpperCase(); tone: Ui.Text.Info; role: Ui.Typography.SansCaption }
                             }
                             RowLayout {
                                 width: parent.width
                                 visible: !line.isSection
-                                spacing: Theme.spacingLg
-                                WorkspaceLabel { visible: !line.narrow; Layout.preferredWidth: Theme.toolbarHeight * 3; Layout.alignment: Qt.AlignTop; text: line.speaker.toUpperCase(); color: Theme.info; font.pixelSize: Theme.fontSizeSmaller }
+                                spacing: Ui.Metrics.lg
+                                WorkspaceLabel { visible: !line.narrow; Layout.preferredWidth: Ui.Metrics.comfortable * 3; Layout.alignment: Qt.AlignTop; text: line.speaker.toUpperCase(); tone: Ui.Text.Info; role: Ui.Typography.SansCaption }
                                 WorkspaceArea {
                                     Layout.fillWidth: true
                                     objectName: "workspaceScriptLine_" + line.modelData.id
                                     quiet: true
-                                    padding: Theme.spacingSm
-                                    font.pixelSize: Theme.fontSizeNormal
+                                    role: Ui.Typography.SansBody
                                     enabled: !controller.busy && !workspace.dirty
-                                    text: line.modelData.text || ""
+                                    value: line.modelData.text || ""
                                     placeholderText: "Write a line…"
                                     Accessible.name: "Script line"
                                     onTextEdited: controller.setScriptLineDraft(line.modelData.scriptId, line.modelData.id, text)
@@ -460,10 +348,10 @@ Rectangle {
                             WorkspaceLabel {
                                 visible: !line.isSection && text !== ""
                                 text: line.modelData.status === "voiced" ? "Voiced" : line.modelData.status === "stale" ? "Voice outdated" : ""
-                                color: line.modelData.status === "voiced" ? Theme.success : Theme.warning
-                                font.pixelSize: Theme.fontSizeSmaller
+                                tone: line.modelData.status === "voiced" ? Ui.Text.Success : Ui.Text.Warning
+                                role: Ui.Typography.SansCaption
                             }
-                            WorkspaceLabel { width: parent.width; visible: !!line.modelData.draftOrphan; text: "This line was removed remotely. Copy its text before discarding the draft."; color: Theme.warning }
+                            WorkspaceLabel { width: parent.width; visible: !!line.modelData.draftOrphan; text: "This line was removed remotely. Copy its text before discarding the draft."; tone: Ui.Text.Warning }
                             WorkspaceButton { objectName: "workspaceSaveLine_" + line.modelData.id; visible: line.lineDirty; text: "Save line"; primary: true; enabled: !controller.busy && !workspace.dirty && !line.modelData.draftOrphan; onClicked: controller.saveScriptLineDraft(line.modelData.scriptId, line.modelData.id) }
                         }
                     }
@@ -473,10 +361,10 @@ Rectangle {
                     id: shotGrid
                     objectName: "workspaceShotGrid"
                     width: parent.width
-                    spacing: Theme.spacingMd
+                    spacing: Ui.Metrics.md
                     Repeater {
                         model: document.shots || []
-                        delegate: Rectangle {
+                        delegate: Ui.Surface {
                             id: shot
                             required property var modelData
                             required property int index
@@ -488,11 +376,9 @@ Rectangle {
                                 const offset = scroll.contentItem ? scroll.contentItem.contentY || 0 : 0
                                 return top + shot.height >= offset - scroll.height && top <= offset + 2 * scroll.height
                             }
-                            width: shotGrid.width >= Theme.trackHeaderWidth * 2 ? (shotGrid.width - shotGrid.spacing) / 2 : shotGrid.width
+                            width: shotGrid.width >= TimelineMetrics.trackHeaderWidth * 2 ? (shotGrid.width - shotGrid.spacing) / 2 : shotGrid.width
                             height: shotContent.implicitHeight
-                            radius: Theme.radiusLg
-                            color: Theme.backgroundPaper
-                            border.color: editing ? Theme.primary : Theme.divider
+                            selected: editing
                             clip: true
                             function loadThumbnail() { if (nearViewport && panel.mediaBrowser && mediaKey) panel.mediaBrowser.requestThumbnail(mediaKey) }
                             Component.onCompleted: loadThumbnail()
@@ -501,11 +387,11 @@ Rectangle {
                             Column {
                                 id: shotContent
                                 width: parent.width
-                                spacing: 0
-                                Rectangle {
+                                spacing: Ui.Metrics.none
+                                Ui.Surface {
+                                    variant: Ui.Surface.Canvas
                                     width: parent.width
                                     height: width / panel.shotRatio()
-                                    color: Theme.backgroundDefault
                                     Image {
                                         id: shotImage
                                         objectName: "workspaceShotThumbnail_" + shot.modelData.id
@@ -518,24 +404,24 @@ Rectangle {
                                     WorkspaceLabel { anchors.centerIn: parent; visible: shotImage.status !== Image.Ready; text: shotImage.status === Image.Loading || (shot.mediaKey && panel.mediaBrowser && panel.mediaBrowser.busy) ? "Loading image…" : "No image" }
                                 }
                                 Column {
-                                    x: Theme.spacingLg
-                                    width: parent.width - 2 * Theme.spacingLg
-                                    topPadding: Theme.spacingLg
-                                    bottomPadding: Theme.spacingLg
-                                    spacing: Theme.spacingSm
+                                    x: Ui.Metrics.lg
+                                    width: parent.width - 2 * Ui.Metrics.lg
+                                    topPadding: Ui.Metrics.lg
+                                    bottomPadding: Ui.Metrics.lg
+                                    spacing: Ui.Metrics.sm
                                     RowLayout {
                                         width: parent.width
                                         WorkspaceLabel {
                                             Layout.fillWidth: true
                                             text: (panel.sceneName(shot.modelData) ? panel.sceneName(shot.modelData) + " | " : "") + "Shot " + (shot.index + 1)
-                                            font.pixelSize: Theme.fontSizeSmaller
+                                            role: Ui.Typography.SansCaption
                                         }
-                                        WorkspaceLabel { text: (Math.round((shot.modelData.duration_seconds || 0) * 10) / 10) + " s"; visible: (shot.modelData.duration_seconds || 0) > 0; font.pixelSize: Theme.fontSizeSmaller }
+                                        WorkspaceLabel { text: (Math.round((shot.modelData.duration_seconds || 0) * 10) / 10) + " s"; visible: (shot.modelData.duration_seconds || 0) > 0; role: Ui.Typography.SansCaption }
                                     }
                                     WorkspaceLabel {
                                         width: parent.width
                                         text: shot.modelData.action || "No description"
-                                        color: Theme.textPrimary
+                                        tone: Ui.Text.Primary
                                         maximumLineCount: 2
                                         elide: Text.ElideRight
                                     }
@@ -549,19 +435,19 @@ Rectangle {
                                     Column {
                                         width: parent.width
                                         visible: shot.editing
-                                        spacing: Theme.spacingSm
+                                        spacing: Ui.Metrics.sm
                                         Repeater {
                                             model: [{key:"action",label:"Description"}, {key:"motion",label:"Motion"}, {key:"end_state",label:"End state"}, {key:"sound",label:"Sound"}, {key:"dialogue",label:"Dialogue"}]
                                             delegate: Column {
                                                 id: shotField
                                                 required property var modelData
                                                 width: parent.width
-                                                spacing: Theme.spacingSm
+                                                spacing: Ui.Metrics.sm
                                                 WorkspaceLabel { text: shotField.modelData.label }
                                                 WorkspaceArea {
                                                     objectName: "workspaceShot_" + shotField.modelData.key
                                                     width: parent.width
-                                                    text: shot.modelData[shotField.modelData.key] || ""
+                                                    value: shot.modelData[shotField.modelData.key] || ""
                                                     Accessible.name: shotField.modelData.label
                                                     enabled: !controller.busy
                                                     onTextEdited: workspace.patchShot(shot.modelData.id, shotField.modelData.key, text)
@@ -572,35 +458,34 @@ Rectangle {
                                         Column {
                                             width: parent.width
                                             visible: shotDetails.checked
-                                            spacing: Theme.spacingSm
+                                            spacing: Ui.Metrics.sm
                                             Repeater {
                                                 model: [{key:"framing",label:"Framing"}, {key:"angle",label:"Angle"}, {key:"movement",label:"Camera movement"}, {key:"lens",label:"Lens"}]
                                                 delegate: Column {
                                                     id: cameraField
                                                     required property var modelData
                                                     width: parent.width
-                                                    spacing: Theme.spacingSm
+                                                    spacing: Ui.Metrics.sm
                                                     WorkspaceLabel { text: cameraField.modelData.label }
-                                                    WorkspaceField { width: parent.width; text: (shot.modelData.camera || {})[cameraField.modelData.key] || ""; Accessible.name: cameraField.modelData.label; enabled: !controller.busy; onTextEdited: workspace.patchShot(shot.modelData.id, "camera." + cameraField.modelData.key, text) }
+                                                    WorkspaceField { width: parent.width; value: (shot.modelData.camera || {})[cameraField.modelData.key] || ""; Accessible.name: cameraField.modelData.label; enabled: !controller.busy; onTextEdited: workspace.patchShot(shot.modelData.id, "camera." + cameraField.modelData.key, text) }
                                                 }
                                             }
                                             WorkspaceLabel { text: "Entity IDs" }
-                                            WorkspaceArea { width: parent.width; text: workspace.jsonDraft(shot.modelData.id, "entity_ids", shot.modelData.entity_ids || []); Accessible.name: "Shot entity IDs"; enabled: !controller.busy; onTextEdited: workspace.setJsonDraft(shot.modelData.id, "entity_ids", text) }
+                                            WorkspaceArea { width: parent.width; value: workspace.jsonDraft(shot.modelData.id, "entity_ids", shot.modelData.entity_ids || []); Accessible.name: "Shot entity IDs"; enabled: !controller.busy; onTextEdited: workspace.setJsonDraft(shot.modelData.id, "entity_ids", text) }
                                             WorkspaceLabel { text: "Media references" }
-                                            WorkspaceArea { width: parent.width; text: workspace.jsonDraft(shot.modelData.id, "production.references", (shot.modelData.production || {}).references || []); Accessible.name: "Media references"; enabled: !controller.busy; onTextEdited: workspace.setJsonDraft(shot.modelData.id, "production.references", text) }
+                                            WorkspaceArea { width: parent.width; value: workspace.jsonDraft(shot.modelData.id, "production.references", (shot.modelData.production || {}).references || []); Accessible.name: "Media references"; enabled: !controller.busy; onTextEdited: workspace.setJsonDraft(shot.modelData.id, "production.references", text) }
                                         }
                                     }
                                 }
                             }
-                            Rectangle { anchors.fill: parent; color: "transparent"; radius: Theme.radiusLg; border.color: shot.editing ? Theme.primary : Theme.divider }
                         }
                     }
                 }
                 Column {
                     width: parent.width
-                    spacing: Theme.spacingSm
+                    spacing: Ui.Metrics.sm
                     visible: workspace.entityIds.length > 0
-                    WorkspaceLabel { text: "Characters and references"; font.weight: Font.Medium }
+                    WorkspaceLabel { text: "Characters and references";  }
                     Repeater {
                         model: workspace.entityIds
                         delegate: WorkspaceButton {
@@ -619,7 +504,7 @@ Rectangle {
                     id: entity
                     property var marker: (resource.metadata || {}).nodetool_entity || ({})
                     width: parent.width
-                    spacing: Theme.spacingSm
+                    spacing: Ui.Metrics.sm
                     visible: !!marker.kind
                     Repeater {
                         model: [{key:"name",label:"Name"}, {key:"descriptor",label:"Descriptor"}, {key:"description",label:"Description"}, {key:"voice_id",label:"Voice ID"}, {key:"reference_asset_id",label:"Reference image ID"}]
@@ -627,49 +512,50 @@ Rectangle {
                             id: entityField
                             required property var modelData
                             width: entity.width
-                            spacing: Theme.spacingSm
+                            spacing: Ui.Metrics.sm
                             WorkspaceLabel { text: entityField.modelData.label }
-                            WorkspaceArea { width: parent.width; text: entity.marker[entityField.modelData.key] || ""; Accessible.name: entityField.modelData.label; enabled: !controller.busy; onTextEdited: workspace.patchEntity(entityField.modelData.key, text === "" && entityField.modelData.key === "reference_asset_id" ? null : text) }
+                            WorkspaceArea { width: parent.width; value: entity.marker[entityField.modelData.key] || ""; Accessible.name: entityField.modelData.label; enabled: !controller.busy; onTextEdited: workspace.patchEntity(entityField.modelData.key, text === "" && entityField.modelData.key === "reference_asset_id" ? null : text) }
                         }
                     }
                 }
                 WorkspaceCheckBox { id: metadata; text: "Document details"; visible: !!resource.id }
                 Column {
                     width: parent.width
-                    spacing: Theme.spacingSm
+                    spacing: Ui.Metrics.sm
                     visible: metadata.visible && metadata.checked
-                    WorkspaceLabel { width: parent.width; text: resource.id || ""; font.family: Theme.monoFamily; wrapMode: Text.WrapAnywhere }
+                    WorkspaceLabel { width: parent.width; text: resource.id || ""; role: Ui.Typography.MonoCaption; wrapMode: Text.WrapAnywhere }
                     Repeater {
                         model: document.cast || []
                         delegate: Column {
                             id: speaker
                             required property var modelData
                             width: parent.width
-                            spacing: Theme.spacingSm
-                            WorkspaceField { width: parent.width; text: speaker.modelData.name || ""; placeholderText: "Character name"; Accessible.name: "Character name"; enabled: !controller.busy && !controller.scriptDirty; onTextEdited: workspace.patchSpeaker(speaker.modelData.id, "name", text) }
-                            WorkspaceField { width: parent.width; text: speaker.modelData.entityId || ""; placeholderText: "Character entity ID"; Accessible.name: "Character entity ID"; enabled: !controller.busy && !controller.scriptDirty; onTextEdited: workspace.patchSpeaker(speaker.modelData.id, "entityId", text === "" ? null : text) }
+                            spacing: Ui.Metrics.sm
+                            WorkspaceField { width: parent.width; value: speaker.modelData.name || ""; placeholderText: "Character name"; Accessible.name: "Character name"; enabled: !controller.busy && !controller.scriptDirty; onTextEdited: workspace.patchSpeaker(speaker.modelData.id, "name", text) }
+                            WorkspaceField { width: parent.width; value: speaker.modelData.entityId || ""; placeholderText: "Character entity ID"; Accessible.name: "Character entity ID"; enabled: !controller.busy && !controller.scriptDirty; onTextEdited: workspace.patchSpeaker(speaker.modelData.id, "entityId", text === "" ? null : text) }
                         }
                     }
-                    WorkspaceArea { width: parent.width; visible: document.shots !== undefined; text: workspace.jsonDraft("", "entityIds", document.entityIds || []); Accessible.name: "Storyboard entity IDs"; enabled: !controller.busy; onTextEdited: workspace.setJsonDraft("", "entityIds", text) }
+                    WorkspaceArea { width: parent.width; visible: document.shots !== undefined; value: workspace.jsonDraft("", "entityIds", document.entityIds || []); Accessible.name: "Storyboard entity IDs"; enabled: !controller.busy; onTextEdited: workspace.setJsonDraft("", "entityIds", text) }
                 }
             }
         }
         ColumnLayout {
             Layout.fillWidth: true
             visible: workspace.dirty || controller.scriptDirty
-            spacing: Theme.spacingSm
-            Rectangle { Layout.fillWidth: true; implicitHeight: 1; color: Theme.divider }
+            spacing: Ui.Metrics.sm
+            Ui.Separator { Layout.fillWidth: true }
             WorkspaceLabel {
                 Layout.fillWidth: true
                 text: workspace.dirty ? "Unsaved document changes" : "Unsaved script lines. Save each edited line."
-                color: Theme.warning
+                tone: Ui.Text.Warning
             }
             RowLayout {
                 Layout.fillWidth: true
-                spacing: Theme.spacingSm
+                spacing: Ui.Metrics.sm
                 WorkspaceButton { Layout.fillWidth: true; text: "Save document"; objectName: "workspaceSave"; primary: true; visible: workspace.dirty; enabled: !controller.busy; onClicked: workspace.save() }
                 WorkspaceButton {
                     Layout.fillWidth: true
+                    id: discardButton
                     text: workspace.dirty ? "Discard changes" : "Discard line drafts"
                     enabled: !controller.busy
                     onClicked: {
@@ -680,19 +566,25 @@ Rectangle {
             }
         }
     }
-    Dialog {
+    Ui.Dialog {
         id: lineDiscardDialog
         title: "Discard unsaved script lines?"
+        width: Math.min(400 * Ui.Theme.uiScale, parent ? parent.width - Ui.Metrics.xl * 2 : 0)
         property string scriptId: ""
-        modal: true
-        standardButtons: Dialog.Discard | Dialog.Cancel
-        onDiscarded: controller.discardScriptDrafts(scriptId)
+        returnFocusTo: discardButton
+        RowLayout {
+            Ui.EditorButton { text: "Discard"; onClicked: { controller.discardScriptDrafts(lineDiscardDialog.scriptId); lineDiscardDialog.close() } }
+            Ui.EditorButton { text: "Cancel"; onClicked: lineDiscardDialog.close() }
+        }
     }
-    Dialog {
+    Ui.Dialog {
         id: discardDialog
         title: "Discard document changes?"
-        modal: true
-        standardButtons: Dialog.Discard | Dialog.Cancel
-        onDiscarded: workspace.discard()
+        width: Math.min(400 * Ui.Theme.uiScale, parent ? parent.width - Ui.Metrics.xl * 2 : 0)
+        returnFocusTo: discardButton
+        RowLayout {
+            Ui.EditorButton { text: "Discard"; onClicked: { workspace.discard(); discardDialog.close() } }
+            Ui.EditorButton { text: "Cancel"; onClicked: discardDialog.close() }
+        }
     }
 }

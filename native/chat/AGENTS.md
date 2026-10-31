@@ -14,9 +14,11 @@ Never save a native projection over server messages. Preserve unknown payloads
 and full resource IDs. Resolve media through the authenticated client boundary.
 Clear protected state on account changes. Advertise only implemented host tools.
 
-Follow the [design system](../../docs/DESIGN.md) and
-[UX guidelines](../../docs/UX_GUIDELINES.md). Keep drafts and scroll state outside
-message delegates. Run GUI tests offscreen, never on the person's desktop.
+Follow the [native design specification](../ui_primitives/DESIGN.md) and
+[UX guidelines](../../docs/UX_GUIDELINES.md). Use `NodeTool.UiPrimitives` for
+chrome and keep chat layout metrics in chat. Embedded chat consumes its host's
+theme settings. Keep drafts and scroll state outside message delegates.
+Run GUI tests offscreen, never on the person's desktop.
 
 Build and verification commands are in [README.md](README.md). Run native tests
 and shared fixture conformance after protocol changes. A passing model benchmark

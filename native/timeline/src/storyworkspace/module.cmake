@@ -12,6 +12,7 @@ function(nt_storyworkspace_tests)
         src/aiassist/AssistController.h src/aiassist/AssistController.cpp src/aiassist/AssistEdits.cpp
         src/model/TimelineModel.h src/model/TimelineModel.cpp
         src/model/TrackListModel.h src/model/TrackListModel.cpp)
+    nodetool_use_ui_primitives(tst_storyworkspace)
     target_link_libraries(tst_storyworkspace PRIVATE timeline_core timeline_server Qt6::WebSockets Qt6::Qml Qt6::Quick Qt6::QuickControls2 Qt6::Gui Qt6::Test)
     target_compile_definitions(tst_storyworkspace PRIVATE NT_STORY_SOURCE="${CMAKE_CURRENT_SOURCE_DIR}")
     add_test(NAME tst_storyworkspace COMMAND tst_storyworkspace)

@@ -1,8 +1,9 @@
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic as Basic
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
-Rectangle {
+Ui.Surface {
     id: effectsPanel
     property bool playheadPassthrough: true
     required property var track
@@ -15,7 +16,7 @@ Rectangle {
     property int dropIndex: -1
     objectName: "track-effects-panel-" + track.id
     implicitHeight: 280
-    color: Theme.backgroundDefault
+    variant: Ui.Surface.Canvas
     function dropPosition(x) {
         for (let i = 0; i < cards.count; ++i) {
             const card = cards.itemAt(i)
@@ -32,62 +33,42 @@ Rectangle {
         if (from < to) --to
         timeline.applyEdit("moveTrackEffect", {trackId: track.id, oldIndex: from, newIndex: to})
     }
-    Rectangle { width: parent.width; height: 1; color: Theme.divider }
-    Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.divider }
+    Ui.Separator { width: parent.width }
+    Ui.Separator { anchors.bottom: parent.bottom; width: parent.width }
     Item {
         id: header
-        x: Theme.spacingLg
-        y: Theme.spacingMd
-        width: parent.width - 2 * Theme.spacingLg
+        x: Ui.Metrics.lg
+        y: Ui.Metrics.md
+        width: parent.width - 2 * Ui.Metrics.lg
         height: add.height
-        Text {
+        Ui.Text {
             anchors.left: parent.left
+            width: Math.max(0, add.x - x - Ui.Metrics.sm)
+            elide: Text.ElideRight
             anchors.verticalCenter: parent.verticalCenter
             text: (effectsPanel.isVideo ? effectsPanel.strings.fxChain : effectsPanel.strings.dspChain) + " - " + effectsPanel.track.name
-            color: Theme.textPrimary
-            font.family: Theme.sansFamily
-            font.pixelSize: Theme.fontSizeSmall
-            font.weight: Font.Medium
+            role: Ui.Typography.SansLabel; tone: Ui.Text.Primary
         }
-        Button {
+        Ui.EditorButton {
             id: add
             objectName: "fx-add-" + effectsPanel.track.id
             anchors.right: parent.right
             text: effectsPanel.strings.add
-            implicitWidth: addRow.width + 2 * Theme.spacingMd
-            implicitHeight: addRow.height + 2 * Theme.spacingXs
-            onClicked: addMenu.popup(add.width - addMenu.width, add.height)
-            background: Rectangle { color: add.hovered ? Qt.lighter(Theme.primary, 1.1) : Theme.primary; radius: Theme.radiusXs }
-            contentItem: Item {
-                Row {
-                    id: addRow
-                    anchors.centerIn: parent
-                    spacing: Theme.spacingXs
-                    Icon { anchors.verticalCenter: parent.verticalCenter; path: Icons.add; size: Theme.iconXs; color: effectsPanel.reference.palette.primaryContrast }
-                    Text { text: add.text; color: effectsPanel.reference.palette.primaryContrast; font.family: Theme.sansFamily; font.pixelSize: Theme.fontSizeSmaller }
-                }
-            }
-            Menu {
+            accessibleName: text
+            iconName: "add"
+            density: Ui.EditorButton.Compact
+            variant: Ui.EditorButton.Primary
+            onClicked: addMenu.openAt(add)
+            Ui.ContextMenu {
                 id: addMenu
                 width: 180
-                padding: Theme.spacingXs
-                background: Rectangle { color: Theme.backgroundPaper; radius: Theme.radiusLg; border.width: 1; border.color: Theme.divider }
                 Instantiator {
                     model: effectsPanel.isVideo ? effectsPanel.reference.videoTypes : effectsPanel.reference.audioTypes.concat(effectsPanel.reference.fableKinds)
-                    delegate: MenuItem {
+                    delegate: Ui.MenuItem {
                         id: entry
                         required property string modelData
                         objectName: "fx-add-type-" + effectsPanel.track.id + "-" + modelData
                         text: effectsPanel.strings.labels[modelData]
-                        height: 28
-                        leftPadding: Theme.spacingMd
-                        rightPadding: Theme.spacingMd
-                        contentItem: Text {
-                            text: entry.text; color: Theme.textPrimary
-                            font.family: Theme.sansFamily; font.pixelSize: Theme.fontSizeSmall; font.weight: Font.Medium
-                            verticalAlignment: Text.AlignVCenter
-                        }
-                        background: Rectangle { color: entry.highlighted ? Theme.actionHover : "transparent"; radius: Theme.radiusSm }
                         onTriggered: {
                             const effect = effectsPanel.reference.fableKinds.includes(modelData) ? TrackEffectsReference.makeFableEffect(modelData) : modelData
                             effectsPanel.timeline.applyEdit("addTrackEffect", {trackId: effectsPanel.track.id, effect: effect})
@@ -99,32 +80,31 @@ Rectangle {
             }
         }
     }
-    Text {
+    Ui.Text {
         objectName: "fx-empty-" + effectsPanel.track.id
         visible: effectsPanel.effects.length === 0
-        x: Theme.spacingLg
-        y: header.y + header.height + Theme.spacingMd
+        x: Ui.Metrics.lg
+        y: header.y + header.height + Ui.Metrics.md
         text: effectsPanel.strings.emptyPrefix + " <b>" + effectsPanel.strings.add + "</b> " + effectsPanel.strings.emptySuffix
         textFormat: Text.RichText
-        color: Theme.textSecondary
-        font.family: Theme.sansFamily
-        font.pixelSize: Theme.fontSizeSmall
+        tone: Ui.Text.Secondary
+        role: Ui.Typography.SansLabel
     }
     Flickable {
         id: rack
-        x: Theme.spacingLg
-        y: header.y + header.height + Theme.spacingMd
-        width: parent.width - 2 * Theme.spacingLg
-        height: parent.height - y - Theme.spacingLg
+        x: Ui.Metrics.lg
+        y: header.y + header.height + Ui.Metrics.md
+        width: parent.width - 2 * Ui.Metrics.lg
+        height: parent.height - y - Ui.Metrics.lg
         clip: true
         contentWidth: devices.width
         contentHeight: height
         boundsBehavior: Flickable.StopAtBounds
         flickableDirection: Flickable.HorizontalFlick
-        ScrollBar.horizontal: ScrollBar { }
+        Basic.ScrollBar.horizontal: Ui.ScrollBar { }
         Row {
             id: devices
-            spacing: Theme.spacingMd
+            spacing: Ui.Metrics.md
             Repeater {
                 id: cards
                 model: effectsPanel.effects

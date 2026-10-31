@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import NodeTool.Timeline
 import "AudioEffectsKnobs.js" as Effects
+import NodeTool.UiPrimitives as Ui
 
 Item {
     id: root
@@ -17,7 +18,7 @@ Item {
     property alias open: section.open
     property string expandedId: ""
     visible: !!clip.id && (clip.mediaType === "audio" || clip.mediaType === "midi")
-    implicitWidth: visible ? Theme.trackHeaderWidth : 0
+    implicitWidth: visible ? TimelineMetrics.trackHeaderWidth : 0
     implicitHeight: visible ? section.implicitHeight : 0
     width: implicitWidth
     height: implicitHeight
@@ -35,23 +36,21 @@ Item {
         id: section
         width: parent.width
         title: "Audio effects"
-        icon: Icons.graphicEq
+        icon: "graphicEq"
         defaultOpen: false
         meta: root.effects.length ? root.effects.filter(effect => effect.enabled).length + "/" + root.effects.length + " active" : ""
-        Button {
+        Ui.EditorButton {
             id: addButton
             objectName: "audioEffectsAdd"
-            implicitHeight: Theme.controlXs
-            flat: true
+            density: Ui.EditorButton.Compact
+            variant: Ui.EditorButton.Flat
             text: "Add effect"
-            font.family: Theme.sansFamily
-            font.pixelSize: Theme.fontSizeSmall
-            onClicked: addMenu.popup()
-            Menu {
+            onClicked: addMenu.openAt(addButton)
+            Ui.ContextMenu {
                 id: addMenu
                 Instantiator {
                     model: Effects.types
-                    delegate: MenuItem {
+                    delegate: Ui.MenuItem {
                         required property string modelData
                         objectName: "audioEffectsAdd-" + modelData
                         text: Effects.labels[modelData]
@@ -62,14 +61,13 @@ Item {
                 }
             }
         }
-        Text {
+        Ui.Text {
             visible: !root.effects.length
             width: parent.width
             text: "Effects play live and render in the export."
             wrapMode: Text.WordWrap
-            color: Theme.textSecondary
-            font.family: Theme.sansFamily
-            font.pixelSize: Theme.fontSizeSmall
+            role: Ui.Typography.SansLabel
+            tone: Ui.Text.Secondary
         }
         Repeater {
             model: root.effects

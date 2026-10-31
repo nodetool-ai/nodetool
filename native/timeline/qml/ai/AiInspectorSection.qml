@@ -1,6 +1,7 @@
 import QtQuick
 import QtQuick.Controls
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 import "../Inspector/primitives" as P
 
 P.InspectorSection {
@@ -21,12 +22,12 @@ P.InspectorSection {
         active: !!root.host && !!root.timelineModel && !!root.gestures
         sourceComponent: Column {
             width: parent.width
-            spacing: Theme.spacingMd
+            spacing: Ui.Metrics.md
             WorkflowClip { width: parent.width; timeline: root.timelineModel; gestures: root.gestures; controller: root.host.generationController }
             RegenerateClip { width: parent.width; timeline: root.timelineModel; gestures: root.gestures; controller: root.host.generationController }
             LineDelivery { width: parent.width; timeline: root.timelineModel; gestures: root.gestures; controller: root.host.generationController }
             ClipOperations { width: parent.width; timeline: root.timelineModel; gestures: root.gestures; controller: root.host.generationController }
-            Button {
+            Ui.EditorButton {
                 objectName: "inspectorReviewTakes"
                 text: "Review takes"
                 onClicked: root.host.openReview()

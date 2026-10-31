@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import NodeTool.UiPrimitives as Ui
 
 ColumnLayout {
     id: root
@@ -13,13 +14,13 @@ ColumnLayout {
     required property string status
     required property var session
     readonly property bool userMessage: role === "user"
-    spacing: ChatTheme.md
+    spacing: Ui.Metrics.md
     objectName: "message_" + messageId
+    Ui.Text { id: userFont; visible: false; role: Ui.Typography.SansBody }
     TextMetrics {
         id: userMetrics
         text: root.userMessage ? root.text.slice(0, 4096) : ""
-        font.family: ChatTheme.sans
-        font.pixelSize: ChatTheme.body
+        font: userFont.font
     }
     function codeBlocks(source) {
         const blocks = [];
@@ -43,7 +44,7 @@ ColumnLayout {
         readonly property int pageSize: 4096
         readonly property int pages: Math.max(1, Math.ceil(sourceText.length / pageSize))
         readonly property string pageText: sourceText.slice(Math.min(page, pages - 1) * pageSize, (Math.min(page, pages - 1) + 1) * pageSize)
-        spacing: ChatTheme.md
+        spacing: Ui.Metrics.md
         function sections() {
             if (!markdown || pages > 1) {
                 return [
@@ -80,24 +81,17 @@ ColumnLayout {
         }
         Repeater {
             model: paged.sections()
-            delegate: TextArea {
+            delegate: Ui.TextArea {
                 required property var modelData
                 Layout.fillWidth: true
-                text: modelData.text
+                value: modelData.text
                 textFormat: !modelData.code && paged.markdown && paged.pages === 1 && !/!\[|<\/?[A-Za-z]/.test(paged.pageText) ? TextEdit.MarkdownText : TextEdit.PlainText
                 readOnly: true
                 selectByMouse: true
                 wrapMode: TextEdit.Wrap
-                padding: paged.userBubble || modelData.code ? ChatTheme.lg : 0
-                color: ChatTheme.text
-                selectionColor: ChatTheme.primary
-                font.family: modelData.code ? ChatTheme.mono : ChatTheme.sans
-                font.pixelSize: modelData.code ? ChatTheme.label : ChatTheme.body
-                background: Rectangle {
-                    color: paged.userBubble ? ChatTheme.bubble : modelData.code ? ChatTheme.paper : "transparent"
-                    radius: ChatTheme.bubbleRadius
-                }
-                Accessible.name: modelData.text
+                role: modelData.code ? Ui.Typography.MonoCode : Ui.Typography.SansBody
+                variant: paged.userBubble ? Ui.TextArea.Bubble : modelData.code ? Ui.TextArea.Code : Ui.TextArea.Plain
+                accessibleName: modelData.text
                 onLinkActivated: link => {
                     if (paged.chatSession) {
                         paged.chatSession.openExternal(link);
@@ -108,20 +102,21 @@ ColumnLayout {
         RowLayout {
             visible: paged.pages > 1
             Layout.fillWidth: true
-            ChatButton {
+            Ui.EditorButton {
                 visible: paged.pages > 1
                 text: qsTr("Previous section")
                 enabled: paged.page > 0
                 onClicked: --paged.page
             }
-            Label {
+            Ui.Text {
+                role: Ui.Typography.SansLabel
                 visible: paged.pages > 1
                 text: qsTr("Section %1 of %2 · Plain text").arg(Math.min(paged.page, paged.pages - 1) + 1).arg(paged.pages)
-                color: ChatTheme.muted
+                tone: Ui.Text.Secondary
                 wrapMode: Text.WordWrap
                 Layout.fillWidth: true
             }
-            ChatButton {
+            Ui.EditorButton {
                 visible: paged.pages > 1
                 text: qsTr("Next section")
                 enabled: paged.page < paged.pages - 1
@@ -132,36 +127,38 @@ ColumnLayout {
             objectName: "messageCopyActions"
             Layout.fillWidth: true
             layoutDirection: root.userMessage ? Qt.RightToLeft : Qt.LeftToRight
-            spacing: ChatTheme.xs
-            ChatButton {
-                flat: true
-                glyph: "⧉"
+            spacing: Ui.Metrics.xs
+            Ui.ToolbarIconButton {
+                variant: Ui.EditorButton.Flat
+                iconName: "copy"
                 text: qsTr("Copy full text")
                 onClicked: paged.chatSession.copyText(paged.sourceText)
             }
             Repeater {
                 model: root.codeBlocks(paged.sourceText)
-                delegate: ChatButton {
+                delegate: Ui.ToolbarIconButton {
                     required property string modelData
                     required property int index
-                    flat: true
-                    glyph: "⧉"
+                    variant: Ui.EditorButton.Flat
+                    iconName: "copy"
                     text: qsTr("Copy code %1").arg(index + 1)
                     onClicked: paged.chatSession.copyText(modelData)
                 }
             }
         }
     }
-    Frame {
+    Item {
+        id: proseContainer
         Layout.fillWidth: !root.userMessage
-        Layout.maximumWidth: root.userMessage ? root.width * (root.width < ChatTheme.narrow ? 0.88 : 0.75) : root.width
+        Layout.maximumWidth: root.userMessage ? root.width * (root.width < ChatMetrics.narrow ? 0.88 : 0.75) : root.width
         Layout.alignment: root.userMessage ? Qt.AlignRight : Qt.AlignLeft
-        implicitWidth: root.userMessage ? Math.min(root.width * (root.width < ChatTheme.narrow ? 0.88 : 0.75), Math.max(ChatTheme.xxxl, Math.ceil(userMetrics.advanceWidth) + ChatTheme.xl * 2)) : root.width
-        padding: root.userMessage ? 0 : ChatTheme.xl
-        background: null
+        implicitWidth: root.userMessage ? Math.min(root.width * (root.width < ChatMetrics.narrow ? 0.88 : 0.75), Math.max(Ui.Metrics.xxxl, Math.ceil(userMetrics.advanceWidth) + Ui.Metrics.xl * 2)) : root.width
+        implicitHeight: prose.implicitHeight + (root.userMessage ? 0 : Ui.Metrics.xl * 2)
         PagedText {
             id: prose
-            width: parent.width
+            x: root.userMessage ? 0 : Ui.Metrics.xl
+            y: x
+            width: parent.width - x * 2
             visible: root.text.length > 0
             sourceText: root.text
             markdown: true
@@ -171,26 +168,23 @@ ColumnLayout {
     }
     Repeater {
         model: root.parts || []
-        delegate: Frame {
+        delegate: Ui.Surface {
             id: partFrame
             required property var modelData
             readonly property var part: modelData
             readonly property string kind: part.type || "unknown"
             Layout.fillWidth: true
-            padding: ChatTheme.md
-            background: Rectangle {
-                color: ChatTheme.paper
-                radius: ChatTheme.radius
-                border.color: ChatTheme.divider
-            }
+            implicitHeight: partContent.implicitHeight + Ui.Metrics.md * 2
             ColumnLayout {
-                width: parent.width
-                spacing: ChatTheme.md
-                Label {
+                id: partContent
+                anchors.fill: parent
+                anchors.margins: Ui.Metrics.md
+                spacing: Ui.Metrics.md
+                Ui.Text {
+                    role: Ui.Typography.SansLabel
                     Layout.fillWidth: true
                     text: partFrame.part.tool_name || partFrame.part.name || partFrame.part.title || partFrame.kind
-                    color: ChatTheme.muted
-                    font.pixelSize: ChatTheme.label
+                    tone: Ui.Text.Secondary
                     wrapMode: Text.WordWrap
                 }
                 PagedText {
@@ -207,7 +201,7 @@ ColumnLayout {
                 }
                 Image {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: Math.min(implicitHeight, ChatTheme.control * 8)
+                    Layout.preferredHeight: Math.min(implicitHeight, Ui.Metrics.comfortable * 8)
                     visible: partFrame.kind === "image" && String(partFrame.part.mediaUrl || "").indexOf("data:image/") === 0
                     source: visible ? partFrame.part.mediaUrl : ""
                     fillMode: Image.PreserveAspectFit
@@ -218,14 +212,14 @@ ColumnLayout {
                 RowLayout {
                     visible: ["tool_approval_request", "plan_approval_request", "secret_request"].indexOf(partFrame.kind) >= 0 && !!partFrame.part.actionId && !!partFrame.part.pending
                     Layout.fillWidth: true
-                    TextField {
+                    Ui.TextField {
                         id: response
                         Layout.fillWidth: true
                         visible: partFrame.kind === "plan_approval_request"
                         placeholderText: qsTr("Feedback (optional)")
-                        Accessible.name: qsTr("Plan feedback")
+                        accessibleName: qsTr("Plan feedback")
                     }
-                    ChatButton {
+                    Ui.EditorButton {
                         visible: partFrame.kind !== "secret_request"
                         text: qsTr("Approve")
                         enabled: !!root.session && root.session.connectionStatus === "connected"
@@ -233,7 +227,7 @@ ColumnLayout {
                             root.session.respondToAction(partFrame.part.actionId, true, response.text);
                         }
                     }
-                    ChatButton {
+                    Ui.EditorButton {
                         text: qsTr("Decline")
                         enabled: !!root.session && root.session.connectionStatus === "connected"
                         onClicked: {
@@ -244,17 +238,17 @@ ColumnLayout {
             }
         }
     }
-    Label {
+    Ui.Text {
+        role: Ui.Typography.SansCaption
         text: root.timestamp
         visible: text.length > 0
-        color: ChatTheme.muted
-        font.pixelSize: ChatTheme.caption
+        tone: Ui.Text.Secondary
         Layout.alignment: root.userMessage ? Qt.AlignRight : Qt.AlignLeft
     }
-    Label {
+    Ui.Text {
+        role: Ui.Typography.SansCaption
         visible: root.status === "error"
         text: root.status
-        color: ChatTheme.error
-        font.pixelSize: ChatTheme.caption
+        tone: Ui.Text.Error
     }
 }

@@ -1,0 +1,149 @@
+name: Native UI primitives
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "native/ui_primitives/**"
+      - "native/chat/**"
+      - "native/model-picker/**"
+      - "native/timeline/qml/**"
+      - "native/timeline/src/**"
+      - ".github/workflows/native-ui-primitives.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-ui-primitives-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  QT_VERSION: "6.12.0"
+  QT_QPA_PLATFORM: offscreen
+  QT_QUICK_BACKEND: software
+
+jobs:
+  standalone:
+    name: Standalone / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2022]
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libgl1-mesa-dev libegl1 libxkbcommon0 libfontconfig1 libxcb-cursor0
+
+      - name: Install build tools (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ninja
+
+      - name: Install build tools (Windows)
+        if: runner.os == 'Windows'
+        run: choco install -y ninja
+
+      - name: Set up MSVC
+        if: runner.os == 'Windows'
+        uses: ilammy/msvc-dev-cmd@0b201ec74fa43914dc39ae48a89fd1d8cb592756 # v1.13.0
+
+      - name: Install Qt (Linux and macOS)
+        if: runner.os != 'Windows'
+        run: |
+          python -m pip install aqtinstall==3.3.0
+          if [[ "$RUNNER_OS" == macOS ]]; then
+            python -m aqt install-qt mac desktop "$QT_VERSION" clang_64 -m qtwebsockets -O "$RUNNER_TEMP/qt"
+            echo "QT_PREFIX=$RUNNER_TEMP/qt/$QT_VERSION/macos" >> "$GITHUB_ENV"
+          else
+            python -m aqt install-qt linux desktop "$QT_VERSION" linux_gcc_64 -m qtwebsockets -O "$RUNNER_TEMP/qt"
+            echo "QT_PREFIX=$RUNNER_TEMP/qt/$QT_VERSION/gcc_64" >> "$GITHUB_ENV"
+          fi
+
+      - name: Install Qt (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          # Qt 6.12 uses a per-toolchain repository unsupported by aqtinstall.
+          qtv=$(echo "$QT_VERSION" | tr -d .)
+          python native/timeline/scripts/fetch-qt.py \
+            "https://download.qt.io/online/qtsdkrepository/windows_x86/desktop/qt6_$qtv/qt6_${qtv}_msvc2022_64" \
+            "$RUNNER_TEMP/qt/$QT_VERSION/msvc2022_64" \
+            "qt.qt6.$qtv.win64_msvc2022_64" \
+            "qt.qt6.$qtv.addons.qtwebsockets.win64_msvc2022_64"
+          echo "QT_PREFIX=$RUNNER_TEMP/qt/$QT_VERSION/msvc2022_64" >> "$GITHUB_ENV"
+          echo "$RUNNER_TEMP/qt/$QT_VERSION/msvc2022_64/bin" >> "$GITHUB_PATH"
+
+      - name: Check native design and dependencies
+        run: |
+          python -m unittest discover -s native/ui_primitives/tests -p 'test_*.py' -v
+          python native/ui_primitives/tools/check_design.py --strict
+          python native/ui_primitives/tools/check_dependencies.py
+
+      - name: Configure and build without backend packages
+        run: |
+          cmake -S native/ui_primitives -B native/ui_primitives/build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="$QT_PREFIX" -DBUILD_TESTING=ON
+          cmake --build native/ui_primitives/build --parallel 2
+          cmake --build native/ui_primitives/build --target nodetool_ui_primitives_qmllint
+
+      - name: Test native controls
+        run: ctest --test-dir native/ui_primitives/build --output-on-failure
+
+      - name: Verify isolated module and chat hosts
+        run: python native/ui_primitives/tools/check_isolated_build.py --qt-prefix "$QT_PREFIX"
+
+      - name: Capture gallery and check flow bounds
+        run: |
+          set -o pipefail
+          mkdir -p native/ui_primitives/build/gallery-captures
+          python - <<'PY'
+          import json
+          import os
+          import platform
+          from pathlib import Path
+          import subprocess
+          import sys
+
+          build = Path('native/ui_primitives/build')
+          executable = build / ('ui_gallery.exe' if os.name == 'nt' else 'ui_gallery')
+          qt_version = subprocess.run([str(executable), '--qt-version'], check=True,
+                                      capture_output=True, text=True).stdout.strip()
+          environment = dict(platform=sys.platform, machine=platform.machine(),
+                             os_version=platform.mac_ver()[0] if sys.platform == 'darwin' else platform.release(),
+                             qpa='offscreen', backend='software', qt_version=qt_version)
+          manifest_path = Path('native/ui_primitives/tests/visual/gallery') / (sys.platform + '-' + platform.machine()) / 'manifest.json'
+          matched = manifest_path.is_file() and json.loads(manifest_path.read_text())['environment'] == environment
+          evidence = dict(environment=environment, reviewed_manifest=str(manifest_path) if matched else None,
+                          pixel_comparison='reviewed references' if matched else 'not available for this environment')
+          (build / 'gallery-captures' / 'environment.json').write_text(json.dumps(evidence, indent=2) + '\n')
+          (build / 'gallery-captures' / 'baseline-mode.txt').write_text('verify' if matched else 'capture')
+          print('Gallery render environment:', json.dumps(environment, sort_keys=True))
+          print('Reviewed pixel baseline:', str(manifest_path) if matched else 'none for this exact environment')
+          PY
+          if [[ "$(cat native/ui_primitives/build/gallery-captures/baseline-mode.txt)" == verify ]]; then
+            python native/ui_primitives/tools/capture_gallery.py --build native/ui_primitives/build --verify \
+              2>&1 | tee native/ui_primitives/build/gallery-captures/gallery-run.log
+          else
+            python native/ui_primitives/tools/capture_gallery.py --build native/ui_primitives/build \
+              2>&1 | tee native/ui_primitives/build/gallery-captures/gallery-run.log
+          fi
+
+      - name: Upload native test evidence
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: native-ui-${{ matrix.os }}
+          path: |
+            native/ui_primitives/build/Testing/Temporary/
+            native/ui_primitives/build/gallery-captures/

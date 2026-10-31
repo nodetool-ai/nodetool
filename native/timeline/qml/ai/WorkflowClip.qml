@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 import NodeTool.ModelPicker
 import "../assets/AssetContext.js" as Context
 
@@ -17,7 +18,7 @@ ColumnLayout {
     property var pickerRow: null
     property string pickerClipId: ""
     visible: clipId !== "" && !!selectedClip.workflowId && !!selectedClip.selectedOutputNodeId
-    spacing: Theme.spacingMd
+    spacing: Ui.Metrics.md
 
     function loadInputs() {
         if (visible && clipId !== "") controller.loadWorkflowInputs(clipId)
@@ -62,8 +63,8 @@ ColumnLayout {
 
     RowLayout {
         Layout.fillWidth: true
-        Label { text: "Workflow: " + (root.selectedClip.name || "Clip"); color: Theme.textSecondary; Layout.fillWidth: true; elide: Text.ElideRight }
-        Button {
+        Ui.Text { role: Ui.Typography.SansLabel; text: "Workflow: " + (root.selectedClip.name || "Clip"); tone: Ui.Text.Secondary; Layout.fillWidth: true; elide: Text.ElideRight }
+        Ui.EditorButton {
             objectName: "generateWorkflowClip"
             text: root.controller.busy ? "Cancel" : "Run workflow"
             enabled: root.controller.ready && !inspector.locked && (root.controller.busy ||
@@ -71,29 +72,29 @@ ColumnLayout {
             onClicked: root.controller.busy ? root.controller.cancel() : root.controller.submitWorkflow(root.clipId)
         }
     }
-    Label {
+    Ui.Text { role: Ui.Typography.SansLabel;
         visible: root.controller.workflowInputClipId === root.clipId && root.controller.workflowInputsLoading
         text: "Loading workflow inputs…"
-        color: Theme.textSecondary
+        tone: Ui.Text.Secondary
     }
     RowLayout {
         visible: root.controller.workflowInputClipId === root.clipId && root.controller.workflowInputsError !== ""
         Layout.fillWidth: true
-        Label { text: root.controller.workflowInputsError; color: Theme.error; wrapMode: Text.Wrap; Layout.fillWidth: true }
-        Button { text: "Retry"; onClicked: root.controller.loadWorkflowInputs(root.clipId) }
+        Ui.Text { role: Ui.Typography.SansLabel; text: root.controller.workflowInputsError; tone: Ui.Text.Error; wrapMode: Text.Wrap; Layout.fillWidth: true }
+        Ui.EditorButton { text: "Retry"; onClicked: root.controller.loadWorkflowInputs(root.clipId) }
     }
-    Label {
+    Ui.Text { role: Ui.Typography.SansLabel;
         visible: root.controller.workflowInputClipId === root.clipId && !root.controller.workflowInputsLoading && root.controller.workflowInputsError === ""
         objectName: "workflowCost"
         text: "Estimated run cost: " + (root.controller.workflowCostLabel || (root.controller.workflowCostDetail === "Estimating cost…" ? "Estimating…" : "Unknown"))
-        color: Theme.textSecondary
+        tone: Ui.Text.Secondary
         wrapMode: Text.Wrap
         Layout.fillWidth: true
     }
-    Label {
+    Ui.Text { role: Ui.Typography.SansLabel;
         visible: root.controller.workflowInputClipId === root.clipId && !!root.controller.workflowCostDetail
         text: root.controller.workflowCostDetail || ""
-        color: Theme.textSecondary
+        tone: Ui.Text.Secondary
         wrapMode: Text.Wrap
         Layout.fillWidth: true
     }
@@ -104,9 +105,9 @@ ColumnLayout {
             required property var modelData
             readonly property var row: modelData
             Layout.fillWidth: true
-            spacing: Theme.spacingXs
-            Label { text: field.row.label || field.row.name; color: Theme.textPrimary; Layout.fillWidth: true; wrapMode: Text.Wrap }
-            Label { visible: !!field.row.description; text: field.row.description || ""; color: Theme.textSecondary; Layout.fillWidth: true; wrapMode: Text.Wrap }
+            spacing: Ui.Metrics.xs
+            Ui.Text { role: Ui.Typography.SansLabel; text: field.row.label || field.row.name; Layout.fillWidth: true; wrapMode: Text.Wrap }
+            Ui.Text { role: Ui.Typography.SansLabel; visible: !!field.row.description; text: field.row.description || ""; tone: Ui.Text.Secondary; Layout.fillWidth: true; wrapMode: Text.Wrap }
             Loader {
                 Layout.fillWidth: true
                 sourceComponent: field.row.kind === "boolean" ? booleanField : field.row.kind === "color" ? colorField : field.row.kind === "select" ? selectField :
@@ -129,13 +130,13 @@ ColumnLayout {
                             required property var modelData
                             required property int index
                             Layout.fillWidth: true
-                            Label {
+                            Ui.Text { role: Ui.Typography.SansLabel;
                                 Layout.fillWidth: true
                                 text: typeof listItem.modelData === "string" ? listItem.modelData : (listItem.modelData && (listItem.modelData.name || listItem.modelData.asset_id || listItem.modelData.uri) || JSON.stringify(listItem.modelData))
-                                color: Theme.textSecondary
+                                tone: Ui.Text.Secondary
                                 elide: Text.ElideRight
                             }
-                            Button {
+                            Ui.EditorButton {
                                 objectName: "workflowInputRemove_" + field.row.name + "_" + listItem.index
                                 text: "Remove"
                                 enabled: !inspector.locked
@@ -149,27 +150,27 @@ ColumnLayout {
                     }
                     RowLayout {
                         Layout.fillWidth: true
-                        TextField {
+                        Ui.TextField {
                             id: listText
                             objectName: "workflowInputListText_" + field.row.name
                             visible: field.row.kind === "text_list"
                             Layout.fillWidth: true
-                            color: Theme.textPrimary
-                            placeholderText: "Add text"
+                                                        placeholderText: "Add text"
                             enabled: !inspector.locked
-                            Accessible.name: (field.row.label || field.row.name) + " text item"
+                            accessibleName: (field.row.label || field.row.name) + " text item"
                         }
-                        Button {
+                        Ui.EditorButton {
                             visible: field.row.kind === "text_list"
                             text: "Add text"
                             enabled: !inspector.locked && listText.text !== ""
                             onClicked: { root.put(field.row, [...listControl.items, listText.text]); listText.clear() }
                         }
-                        Button {
+                        Ui.EditorButton {
+                            id: listAssetButton
                             objectName: "workflowInputListAsset_" + field.row.name
                             text: "Add asset"
                             enabled: !inspector.locked
-                            onClicked: { root.pickerRow = field.row; root.pickerClipId = root.clipId; assetBrowser.refresh(); assetPicker.open() }
+                            onClicked: { root.pickerRow = field.row; root.pickerClipId = root.clipId; assetPicker.returnFocusTo = listAssetButton; assetBrowser.refresh(); assetPicker.open() }
                         }
                     }
                 }
@@ -230,45 +231,41 @@ ColumnLayout {
                         delete next.preset
                         root.put(field.row, next)
                     }
-                    Label { text: "Width"; color: Theme.textSecondary }
-                    TextField {
+                    Ui.Text { role: Ui.Typography.SansLabel; text: "Width"; tone: Ui.Text.Secondary }
+                    Ui.TextField {
                         objectName: "workflowInputWidth_" + field.row.name
                         Layout.fillWidth: true
-                        color: Theme.textPrimary
-                        text: String(sizeControl.sizeValue.width ?? 1024)
+                                                value: String(sizeControl.sizeValue.width ?? 1024)
                         enabled: !inspector.locked
                         inputMethodHints: Qt.ImhDigitsOnly
-                        Accessible.name: (field.row.label || field.row.name) + " width"
-                        onEditingFinished: sizeControl.setDimension("width", text)
+                        accessibleName: (field.row.label || field.row.name) + " width"
+                        onValueCommitted: sizeControl.setDimension("width", text)
                     }
-                    Label { text: "Height"; color: Theme.textSecondary }
-                    TextField {
+                    Ui.Text { role: Ui.Typography.SansLabel; text: "Height"; tone: Ui.Text.Secondary }
+                    Ui.TextField {
                         objectName: "workflowInputHeight_" + field.row.name
                         Layout.fillWidth: true
-                        color: Theme.textPrimary
-                        text: String(sizeControl.sizeValue.height ?? 1024)
+                                                value: String(sizeControl.sizeValue.height ?? 1024)
                         enabled: !inspector.locked
                         inputMethodHints: Qt.ImhDigitsOnly
-                        Accessible.name: (field.row.label || field.row.name) + " height"
-                        onEditingFinished: sizeControl.setDimension("height", text)
+                        accessibleName: (field.row.label || field.row.name) + " height"
+                        onValueCommitted: sizeControl.setDimension("height", text)
                     }
-                    ComboBox {
+                    Ui.Select {
                         objectName: "workflowInputPreset_" + field.row.name
-                        model: sizeControl.presets
-                        textRole: "label"
-                        currentIndex: -1
+                        options: sizeControl.presets.map((preset, index) => ({label:preset.label,value:index}))
+                        value: -1
                         displayText: "Presets"
                         enabled: !inspector.locked
-                        Accessible.name: (field.row.label || field.row.name) + " preset"
-                        onActivated: index => {
+                        accessibleName: (field.row.label || field.row.name) + " preset"
+                        onValueCommitted: index => {
                             const preset = sizeControl.presets[index]
                             const next = Object.assign({}, sizeControl.sizeValue, {width: preset.width, height: preset.height, preset: preset.label})
                             if (sizeControl.locked) sizeControl.aspect = preset.width / preset.height
                             root.put(field.row, next)
-                            currentIndex = -1
                         }
                     }
-                    Button {
+                    Ui.EditorButton {
                         objectName: "workflowInputLock_" + field.row.name
                         text: sizeControl.locked ? "Unlock ratio" : "Lock ratio"
                         enabled: !inspector.locked
@@ -277,7 +274,7 @@ ColumnLayout {
                             sizeControl.locked = !sizeControl.locked
                         }
                     }
-                    Button {
+                    Ui.EditorButton {
                         text: "Swap"
                         enabled: !inspector.locked
                         onClicked: {
@@ -287,7 +284,7 @@ ColumnLayout {
                             root.put(field.row, next)
                         }
                     }
-                    Button { text: "Clear"; enabled: !inspector.locked; onClicked: root.put(field.row, null) }
+                    Ui.EditorButton { text: "Clear"; enabled: !inspector.locked; onClicked: root.put(field.row, null) }
                 }
             }
             Component {
@@ -300,12 +297,13 @@ ColumnLayout {
                     readonly property var pickerCatalog: modelCatalog
                     ModelCatalogController { id: modelCatalog; mode: field.row.kind }
                     Connections { target: root.timeline; function onDocumentReplaced() { modelCatalog.reload() } }
-                    ComboBox {
+                    Ui.Select {
                         objectName: "workflowInputModelScope_" + field.row.name
                         visible: field.row.kind === "huggingface_model"
-                        model: ["Server cache", "Worker cache"]
-                        Accessible.name: "Hugging Face model source"
-                        onActivated: index => modelCatalog.modelScope = index === 0 ? "local" : "worker"
+                        options: [{label:"Server cache",value:"local"},{label:"Worker cache",value:"worker"}]
+                        value: modelCatalog.modelScope
+                        accessibleName: "Hugging Face model source"
+                        onValueCommitted: next => modelCatalog.modelScope = next
                     }
                     ModelPickerButton {
                         id: workflowModel
@@ -345,23 +343,23 @@ ColumnLayout {
                             root.put(field.row, value)
                         }
                     }
-                    Label { visible: modelCatalog.error !== ""; text: modelCatalog.error; color: Theme.error; Layout.fillWidth: true; wrapMode: Text.Wrap }
-                    ComboBox {
+                    Ui.Text { role: Ui.Typography.SansLabel; visible: modelCatalog.error !== ""; text: modelCatalog.error; tone: Ui.Text.Error; Layout.fillWidth: true; wrapMode: Text.Wrap }
+                    Ui.Select {
                         objectName: "workflowInputVoice_" + field.row.name
                         visible: field.row.kind === "tts_model" && modelControl.selectedId !== "" && modelControl.selected.voices && modelControl.selected.voices.length > 0
                         Layout.fillWidth: true
-                        model: modelControl.selected.voices || []
-                        currentIndex: { const index = model.indexOf(modelControl.selected.selected_voice || ""); return index < 0 ? -1 : index }
+                        options: (modelControl.selected.voices || []).map(choice => ({label:String(choice),value:choice}))
+                        value: modelControl.selected.selected_voice || ""
                         enabled: !inspector.locked
-                        Accessible.name: (field.row.label || field.row.name) + " voice"
-                        onActivated: index => root.put(field.row, Object.assign({}, modelControl.selected, {selected_voice: model[index]}))
+                        accessibleName: (field.row.label || field.row.name) + " voice"
+                        onValueCommitted: next => root.put(field.row, Object.assign({}, modelControl.selected, {selected_voice: next}))
                     }
-                    Button { text: "Clear"; enabled: !inspector.locked; onClicked: root.put(field.row, null) }
+                    Ui.EditorButton { text: "Clear"; enabled: !inspector.locked; onClicked: root.put(field.row, null) }
                 }
             }
             Component {
                 id: booleanField
-                CheckBox {
+                Ui.Toggle {
                     objectName: "workflowInput_" + field.row.name
                     text: field.row.label || field.row.name
                     checked: !!field.row.value
@@ -371,38 +369,36 @@ ColumnLayout {
             }
             Component {
                 id: colorField
-                TextField {
+                Ui.TextField {
                     objectName: "workflowInput_" + field.row.name
-                    color: Theme.textPrimary
-                    text: typeof field.row.value === "string" ? field.row.value : (field.row.value && field.row.value.value) || ""
+                                        value: typeof field.row.value === "string" ? field.row.value : (field.row.value && field.row.value.value) || ""
                     enabled: !inspector.locked
                     placeholderText: "#RRGGBB"
-                    Accessible.name: field.row.label || field.row.name
-                    onEditingFinished: root.put(field.row, { type: "color", value: text.trim() === "" ? null : text.trim() })
+                    accessibleName: field.row.label || field.row.name
+                    onValueCommitted: root.put(field.row, { type: "color", value: text.trim() === "" ? null : text.trim() })
                 }
             }
             Component {
                 id: selectField
-                ComboBox {
+                Ui.Select {
                     objectName: "workflowInput_" + field.row.name
-                    model: field.row.options || []
-                    currentIndex: { const index = model.indexOf(field.row.value); return index < 0 ? -1 : index }
+                    options: (field.row.options || []).map(choice => ({label:String(choice),value:choice}))
+                    value: field.row.value
                     enabled: !inspector.locked
-                    Accessible.name: field.row.label || field.row.name
-                    onActivated: index => root.put(field.row, model[index])
+                    accessibleName: field.row.label || field.row.name
+                    onValueCommitted: next => root.put(field.row, next)
                 }
             }
             Component {
                 id: numberField
-                TextField {
+                Ui.TextField {
                     id: numberInput
                     objectName: "workflowInput_" + field.row.name
-                    color: Theme.textPrimary
-                    text: field.row.hasValue ? String(field.row.value) : ""
+                                        value: field.row.hasValue ? String(field.row.value) : ""
                     enabled: !inspector.locked
                     inputMethodHints: Qt.ImhFormattedNumbersOnly
-                    Accessible.name: field.row.label || field.row.name
-                    onEditingFinished: {
+                    accessibleName: field.row.label || field.row.name
+                    onValueCommitted: {
                         if (text.trim() === "") return
                         let value = Number(text)
                         if (!Number.isFinite(value)) { text = field.row.hasValue ? String(field.row.value) : ""; return }
@@ -416,28 +412,26 @@ ColumnLayout {
             Component {
                 id: textField
                 ColumnLayout {
-                    TextField {
+                    Ui.TextField {
                         objectName: "workflowInput_" + field.row.name
                         visible: !field.row.multiline
                         Layout.fillWidth: true
-                        text: field.row.hasValue ? String(field.row.value) : ""
-                        color: Theme.textPrimary
-                        maximumLength: field.row.maxLength > 0 ? field.row.maxLength : 32767
+                        value: field.row.hasValue ? String(field.row.value) : ""
+                                                maximumLength: field.row.maxLength > 0 ? field.row.maxLength : 32767
                         enabled: !inspector.locked
-                        Accessible.name: field.row.label || field.row.name
-                        onEditingFinished: root.put(field.row, text)
+                        accessibleName: field.row.label || field.row.name
+                        onValueCommitted: root.put(field.row, text)
                     }
-                    TextArea {
+                    Ui.TextArea {
                         objectName: "workflowInputMultiline_" + field.row.name
                         visible: !!field.row.multiline
                         Layout.fillWidth: true
                         Layout.preferredHeight: 80
-                        text: field.row.hasValue ? String(field.row.value) : ""
-                        color: Theme.textPrimary
-                        wrapMode: TextEdit.Wrap
+                        value: field.row.hasValue ? String(field.row.value) : ""
+                                                wrapMode: TextEdit.Wrap
                         enabled: !inspector.locked
-                        Accessible.name: field.row.label || field.row.name
-                        onEditingFinished: root.put(field.row, field.row.maxLength > 0 ? text.slice(0, field.row.maxLength) : text)
+                        accessibleName: field.row.label || field.row.name
+                        onValueCommitted: root.put(field.row, field.row.maxLength > 0 ? text.slice(0, field.row.maxLength) : text)
                     }
                 }
             }
@@ -446,19 +440,18 @@ ColumnLayout {
                 ColumnLayout {
                     id: structured
                     property string jsonError: ""
-                    TextArea {
+                    Ui.TextArea {
                         id: jsonInput
                         objectName: "workflowInputJson_" + field.row.name
                         Layout.fillWidth: true
                         Layout.preferredHeight: 70
-                        text: field.row.hasValue ? JSON.stringify(field.row.value, null, 2) : ""
-                        color: Theme.textPrimary
-                        wrapMode: TextEdit.Wrap
+                        value: field.row.hasValue ? JSON.stringify(field.row.value, null, 2) : ""
+                                                wrapMode: TextEdit.Wrap
                         enabled: !inspector.locked
-                        Accessible.name: (field.row.label || field.row.name) + " JSON"
+                        accessibleName: (field.row.label || field.row.name) + " JSON"
                     }
                     RowLayout {
-                        Button {
+                        Ui.EditorButton {
                             objectName: "workflowInputApply_" + field.row.name
                             text: "Apply value"
                             enabled: !inspector.locked
@@ -472,39 +465,40 @@ ColumnLayout {
                                 } catch (error) { structured.jsonError = "Enter a valid JSON value of the expected type." }
                             }
                         }
-                        Button {
+                        Ui.EditorButton {
+                            id: structuredAssetButton
                             visible: root.mediaPickerKind(field.row.kind)
                             text: "Choose asset"
                             enabled: !inspector.locked
-                            onClicked: { root.pickerRow = field.row; root.pickerClipId = root.clipId; assetBrowser.refresh(); assetPicker.open() }
+                            onClicked: { root.pickerRow = field.row; root.pickerClipId = root.clipId; assetPicker.returnFocusTo = structuredAssetButton; assetBrowser.refresh(); assetPicker.open() }
                         }
                     }
-                    Label { visible: structured.jsonError !== ""; text: structured.jsonError; color: Theme.error }
+                    Ui.Text { role: Ui.Typography.SansLabel; visible: structured.jsonError !== ""; text: structured.jsonError; tone: Ui.Text.Error }
                 }
             }
         }
     }
     // The dialog is reparented to the window overlay rather than laid out here.
     // qmllint disable Quick.layout-positioning
-    property var assetPickerPopup: Dialog {
+    property var assetPickerPopup: Ui.Dialog {
         id: assetPicker
         objectName: "workflowInputAssetPicker"
-        parent: Overlay.overlay
-        anchors.centerIn: parent
-        width: Math.min(480, (parent ? parent.width : 0) - 2 * Theme.spacingXl)
-        height: Math.min(500, (parent ? parent.height : 0) - 2 * Theme.spacingXl)
+        width: Math.min(480, (parent ? parent.width : 0) - 2 * Ui.Metrics.xl)
+        height: Math.min(500, (parent ? parent.height : 0) - 2 * Ui.Metrics.xl)
         modal: true
         title: "Choose asset"
-        background: Rectangle { color: Theme.backgroundPaper; border.color: Theme.divider; radius: Theme.radiusMd }
-        contentItem: ColumnLayout {
-            Button { text: "Up"; visible: assetBrowser.folderId !== ""; onClicked: assetBrowser.goUp() }
-            Label { visible: assetBrowser.error !== ""; text: assetBrowser.error; color: Theme.error; Layout.fillWidth: true; wrapMode: Text.Wrap }
+        ColumnLayout {
+            anchors.fill: parent
+            Ui.EditorButton { text: "Up"; visible: assetBrowser.folderId !== ""; onClicked: assetBrowser.goUp() }
+            Ui.Text { role: Ui.Typography.SansLabel; visible: assetBrowser.error !== ""; text: assetBrowser.error; tone: Ui.Text.Error; Layout.fillWidth: true; wrapMode: Text.Wrap }
             ListView {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
                 model: assetBrowser.assets
-                delegate: ItemDelegate {
+                delegate: Ui.EditorButton {
+                    variant: Ui.EditorButton.Flat
+                    contentAlignment: Qt.AlignLeft
                     required property var modelData
                     width: ListView.view.width
                     visible: root.pickerRow && root.assetMatches(modelData, root.pickerRow.kind)
@@ -516,10 +510,7 @@ ColumnLayout {
                     }
                 }
             }
-        }
-        footer: DialogButtonBox {
-            Button { text: "Close"; DialogButtonBox.buttonRole: DialogButtonBox.RejectRole }
-            onRejected: assetPicker.close()
+            Ui.EditorButton { text: "Close"; onClicked: assetPicker.close() }
         }
     }
 }

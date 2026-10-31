@@ -3,6 +3,7 @@ import QtQuick
 import NodeTool.Timeline
 import "ClipEffectsCatalog.js" as Catalog
 import "../inspectorsections" as Sections
+import NodeTool.UiPrimitives as Ui
 
 Column {
     id: root
@@ -11,7 +12,7 @@ Column {
     readonly property var effect: editor.effects.find(effect => effect.id === effectId) || ({})
     readonly property string effectType: effect.type || ""
     readonly property var definitions: Catalog.fields(effectType)
-    spacing: Theme.spacingMicro
+    spacing: Ui.Metrics.micro
     Repeater {
         model: root.definitions
         delegate: Loader {
@@ -59,6 +60,7 @@ Column {
                         patch[rowLoader.modelData.key] = value;
                         root.editor.patch(root.effectId, patch, "commit");
                     }
+                    onCanceled: root.editor.cancel()
                 }
             }
             Component {
@@ -120,7 +122,7 @@ Column {
                         field: "offsetX"
                         fallback: 8
                         unit: "px"
-                        minWidth: Theme.controlXs * 2 + Theme.spacingXl
+                        minWidth: Ui.Metrics.small * 2 + Ui.Metrics.xl
                         ariaLabel: "Drop shadow offset X"
                     }
                     EffectNumber {
@@ -130,7 +132,7 @@ Column {
                         field: "offsetY"
                         fallback: 8
                         unit: "px"
-                        minWidth: Theme.controlXs * 2 + Theme.spacingXl
+                        minWidth: Ui.Metrics.small * 2 + Ui.Metrics.xl
                         ariaLabel: "Drop shadow offset Y"
                     }
                 }
@@ -155,7 +157,7 @@ Column {
                             scrubMinimum: rowLoader.modelData.key === "gamma" ? 0.01 : rowLoader.modelData.key === "gain" ? 0 : undefined
                             numberStep: 0.01
                             fixedDecimals: true
-                            minWidth: Theme.controlXs * 2 + Theme.spacingXs
+                            minWidth: Ui.Metrics.small * 2 + Ui.Metrics.xs
                             ariaLabel: Catalog.name(root.effectType) + " " + rowLoader.modelData.label + " " + modelData
                         }
                     }

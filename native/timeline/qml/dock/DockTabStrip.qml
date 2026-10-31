@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 Rectangle {
     id: root
@@ -8,8 +9,9 @@ Rectangle {
     required property var groupView
     required property var panels
     required property string activeId
-    implicitHeight: Theme.rulerHeight
-    color: Theme.backgroundDefault
+    implicitHeight: Math.max(Ui.Metrics.compact,
+        Ui.Typography.pixelSize(Ui.Typography.SansLabel) * Ui.Typography.lineHeight(Ui.Typography.SansLabel) + 2 * Ui.Metrics.md)
+    color: Ui.Theme.surfaceCanvas
     clip: true
     function insertionIndex(x, dragged) {
         let index = 0
@@ -28,7 +30,7 @@ Rectangle {
         tab.forceActiveFocus()
         tabViewport.contentX = Math.max(0, Math.min(tab.x, tabViewport.contentWidth - tabViewport.width))
     }
-    Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: 1; color: Theme.divider }
+    Rectangle { anchors.bottom: parent.bottom; width: parent.width; height: Ui.Metrics.border; color: Ui.Theme.borderSubtle }
     Flickable {
         id: tabViewport
         width: parent.width - options.width
@@ -51,27 +53,31 @@ Rectangle {
                     readonly property bool selected: root.activeId === panelId
                     readonly property bool closable: panelId !== "program" && panelId !== "tracks"
                     objectName: "dockTab_" + panelId
-                    width: Math.min(200, title.implicitWidth + Theme.spacingMd * 2 + (closable ? Theme.controlXs : 0))
+                    width: Math.min(Ui.Metrics.small * 8 + Ui.Metrics.md,
+                        title.implicitWidth + Ui.Metrics.md * 2 + (closable ? Ui.Metrics.compact : 0))
                     height: root.height
-                    color: selected ? Theme.backgroundPaper : hover.containsMouse ? Theme.actionHover : Theme.backgroundDefault
+                    color: selected ? Ui.Theme.surfacePanel : hover.containsMouse ? Ui.Theme.actionHover : Ui.Theme.surfaceCanvas
                     activeFocusOnTab: selected
                     Accessible.role: Accessible.PageTab
                     Accessible.name: root.dock.title(panelId)
                     Accessible.selected: selected
-                    Text {
+                    Accessible.onPressAction: tab.activate()
+                    function activate() {
+                        root.dock.store.dispatch({type: "activate", panelId: panelId})
+                        forceActiveFocus()
+                    }
+                    Ui.Text {
                         id: title
-                        x: Theme.spacingMd
+                        x: Ui.Metrics.md
                         anchors.verticalCenter: parent.verticalCenter
-                        width: parent.width - x * 2 - (tab.closable ? Theme.controlXs : 0)
+                        width: parent.width - x * 2 - (tab.closable ? Ui.Metrics.compact : 0)
                         text: root.dock.title(tab.panelId)
                         elide: Text.ElideRight
-                        color: tab.selected ? Theme.textPrimary : Theme.textSecondary
-                        font.family: Theme.sansFamily
-                        font.pixelSize: Theme.fontSizeSmall
-                        font.weight: Font.Medium
+                        role: Ui.Typography.SansLabel
+                        tone: tab.selected ? Ui.Text.Primary : Ui.Text.Secondary
                     }
-                    Rectangle { anchors.right: parent.right; width: 1; height: parent.height; color: Theme.divider }
-                    Rectangle { width: parent.width; height: Theme.spacingMicro; color: tab.activeFocus ? Theme.primary : Theme.actionDisabled; visible: tab.selected }
+                    Rectangle { anchors.right: parent.right; width: Ui.Metrics.border; height: parent.height; color: Ui.Theme.borderSubtle }
+                    Rectangle { width: parent.width; height: Ui.Metrics.micro; color: tab.activeFocus ? Ui.Theme.accentPrimary : Ui.Theme.actionDisabled; visible: tab.selected }
                     MouseArea {
                         id: hover
                         anchors.fill: parent
@@ -83,12 +89,12 @@ Rectangle {
                         onPressed: event => {
                             start = mapToItem(root.dock, event.x, event.y)
                             dragged = false
-                            if (event.button === Qt.LeftButton) root.dock.store.dispatch({type: "activate", panelId: tab.panelId})
+                            if (event.button === Qt.LeftButton) tab.activate()
                         }
                         onPositionChanged: event => {
                             if (!pressed || !(pressedButtons & Qt.LeftButton)) return
                             const point = mapToItem(root.dock, event.x, event.y)
-                            if (!dragged && Math.hypot(point.x - start.x, point.y - start.y) >= Theme.spacingXs) {
+                            if (!dragged && Math.hypot(point.x - start.x, point.y - start.y) >= Ui.Metrics.xs) {
                                 dragged = true
                                 root.dock.beginDrag(tab.panelId)
                             }
@@ -102,14 +108,11 @@ Rectangle {
                         }
                         onCanceled: root.dock.cancelDrag()
                     }
-                    PanelButton {
+                    Ui.ToolbarIconButton {
                         anchors.right: parent.right
                         anchors.verticalCenter: parent.verticalCenter
-                        width: Theme.iconSm
-                        height: Theme.iconSm
-                        text: "Close " + root.dock.title(tab.panelId)
-                        iconPath: Icons.closeOutlined
-                        iconOnly: true
+                        iconName: "close"
+                        accessibleName: "Close " + root.dock.title(tab.panelId)
                         visible: tab.closable && (tab.selected || hover.containsMouse)
                         focusPolicy: Qt.NoFocus
                         onClicked: root.dock.store.dispatch({type: "hide", panelId: tab.panelId})
@@ -122,6 +125,7 @@ Rectangle {
                         else if ((event.key === Qt.Key_Delete || event.key === Qt.Key_Backspace) && closable) root.dock.store.dispatch({type: "hide", panelId})
                         else if (event.key === Qt.Key_Menu || (event.key === Qt.Key_F10 && event.modifiers & Qt.ShiftModifier)) root.groupView.openMenu(panelId)
                         else if (event.key === Qt.Key_Space && event.modifiers & Qt.ShiftModifier) root.dock.toggleMaximize(root.groupView.group.id)
+                        else if (event.modifiers === Qt.NoModifier && (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space)) tab.activate()
                         else return
                         event.accepted = true
                     }
@@ -129,12 +133,12 @@ Rectangle {
             }
         }
     }
-    PanelButton {
+    ToolButton {
         id: options
         anchors.right: parent.right
-        text: "Panel options"
+        label: "Panel options"
         iconOnly: true
-        iconPath: Icons.moreVert
+        iconName: "moreVert"
         onClicked: root.groupView.openMenu(root.activeId)
     }
 }

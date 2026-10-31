@@ -6,6 +6,7 @@ import QtQuick.Layouts
 import QtQuick.Dialogs
 import QtCore
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 Item {
     id: root
@@ -76,50 +77,30 @@ Item {
         fileMode: FileDialog.SaveFile
         onAccepted: exportController.start(selectedFile.toString(), root.pendingOptions.format, root.pendingOptions.alpha)
     }
-    Dialog {
+    Ui.Dialog {
         id: exportVideoDialog
         objectName: "exportVideoDialog"
         title: "Export timeline"
         modal: true
-        anchors.centerIn: parent
-        width: Math.min(root.width || Theme.spacingLg * 40, Theme.spacingLg * 40)
-        padding: Theme.spacingXl
-        font.family: Theme.sansFamily
-        font.pixelSize: Theme.fontSizeSmall
-        palette.window: Theme.backgroundPaper
-        palette.windowText: Theme.textPrimary
-        palette.text: Theme.textPrimary
-        palette.button: Theme.backgroundDefault
-        palette.buttonText: Theme.textPrimary
-        palette.highlight: Theme.primary
-        background: Rectangle { color: Theme.backgroundPaper; border.color: Theme.divider; radius: Theme.radiusLg }
+        width: Math.min(root.width || Ui.Metrics.dialogWidth, Ui.Metrics.dialogWidth)
         contentItem: ColumnLayout {
-            spacing: Theme.spacingLg
-            Label { text: "Format"; color: Theme.textPrimary; font.family: Theme.sansFamily; font.pixelSize: Theme.fontSizeSmall }
+            spacing: Ui.Metrics.lg
+            Ui.Text { text: "Format"; role: Ui.Typography.SansLabel }
             InspectorSelect {
                 id: formatSelect
                 objectName: "formatSelect"
                 Layout.fillWidth: true
                 label: "Format"
                 value: root.format
-                options: root.formatOptions
+                options: root.formatOptions.map(option => ({label: option.label, value: option.value, enabled: !option.disabled}))
                 onChange: value => { if (value !== "mp4" || root.mp4Supported) root.format = value }
-                delegate: ItemDelegate {
-                    required property var modelData
-                    width: formatSelect.width
-                    text: modelData.label
-                    enabled: !modelData.disabled
-                    font: formatSelect.font
-                    palette.text: Theme.textPrimary
-                }
             }
-            Label {
+            Ui.Text {
                 Layout.fillWidth: true
                 text: root.formatNotes[root.format] + (root.mp4Supported ? "" : " This browser cannot write MP4, so it is turned off.")
                 wrapMode: Text.WordWrap
-                color: Theme.textSecondary
-                font.pixelSize: Theme.fontSizeSmaller
-                font.family: Theme.sansFamily
+                role: Ui.Typography.SansCaption
+                tone: Ui.Text.Secondary
             }
             InspectorToggleRow {
                 objectName: "alphaSwitch"
@@ -129,20 +110,18 @@ Item {
                 disabled: !root.alphaEnabled
                 onChange: next => root.alpha = next
             }
-            Label {
+            Ui.Text {
                 Layout.fillWidth: true
                 text: root.alphaNotes[root.format]
                 wrapMode: Text.WordWrap
-                color: Theme.textSecondary
-                font.pixelSize: Theme.fontSizeSmaller
-                font.family: Theme.sansFamily
+                role: Ui.Typography.SansCaption
+                tone: Ui.Text.Secondary
             }
         }
-        footer: DialogButtonBox {
-            Button { text: "Cancel"; DialogButtonBox.buttonRole: DialogButtonBox.RejectRole }
-            Button { text: "Export"; DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole }
-            onAccepted: root.confirmExport()
-            onRejected: exportVideoDialog.close()
+        footer: Row {
+            spacing: Ui.Metrics.md
+            Ui.EditorButton { text: "Cancel"; onClicked: exportVideoDialog.close() }
+            Ui.EditorButton { text: "Export"; variant: Ui.EditorButton.Primary; onClicked: root.confirmExport() }
         }
     }
     Rectangle {
@@ -150,36 +129,34 @@ Item {
         anchors.left: parent.left
         anchors.right: parent.right
         visible: exportController.running || exportController.error.length > 0
-        implicitHeight: progressColumn.implicitHeight + Theme.spacingLg * 2
+        implicitHeight: progressColumn.implicitHeight + Ui.Metrics.lg * 2
         height: implicitHeight
-        color: Theme.backgroundPaper
+        color: Ui.Theme.surfacePanel
         ColumnLayout {
             id: progressColumn
             anchors.fill: parent
-            anchors.margins: Theme.spacingLg
-            spacing: Theme.spacingSm
+            anchors.margins: Ui.Metrics.lg
+            spacing: Ui.Metrics.sm
             RowLayout {
                 Layout.fillWidth: true
-                Label {
+                Ui.Text {
                     Layout.fillWidth: true
-                    color: exportController.error ? Theme.error : Theme.textPrimary
-                    font.family: Theme.sansFamily
-                    font.pixelSize: Theme.fontSizeSmall
+                    role: Ui.Typography.SansLabel
+                    tone: exportController.error ? Ui.Text.Error : Ui.Text.Primary
                     text: exportController.error || (exportController.phase === "audio" ? "Mixing audio…"
                         : exportController.phase === "encoding" ? "Encoding frame " + exportController.frame + " / " + exportController.totalFrames
                         : exportController.phase === "finalizing" ? "Finalizing…" : "Preparing…")
                     wrapMode: Text.WordWrap
                 }
-                Label {
+                Ui.Text {
                     visible: exportController.running
                     text: Math.round(exportController.ratio * 100) + "%"
-                    color: Theme.textSecondary
-                    font.family: Theme.monoFamily
-                    font.pixelSize: Theme.fontSizeSmall
+                    role: Ui.Typography.MonoLabel
+                    tone: Ui.Text.Secondary
                 }
-                Button { text: "Cancel"; visible: exportController.running; onClicked: exportController.cancel() }
+                Ui.EditorButton { text: "Cancel"; visible: exportController.running; onClicked: exportController.cancel() }
             }
-            ProgressBar { Layout.fillWidth: true; visible: exportController.running; value: exportController.ratio }
+            Ui.Progress { Layout.fillWidth: true; visible: exportController.running; value: exportController.ratio; accessibleName: "Export progress" }
         }
     }
 }

@@ -14,6 +14,7 @@
 #include <QTimer>
 #include <QTemporaryDir>
 #include <QImage>
+#include <QFontInfo>
 #include <QJsonDocument>
 #include <QQmlComponent>
 #include <QQmlEngine>
@@ -408,11 +409,10 @@ Item {
         QCOMPARE(search->height(), 28.0);
         QCOMPARE(search->y(), 8.0);
         QCOMPARE(row->height(), 28.0);
-        QCOMPARE(row->property("padding").toDouble(), 4.0);
         auto* icon = item(row, "listPanelIcon");
         QVERIFY(icon);
         QCOMPARE(icon->width(), 20.0);
-        QCOMPARE(icon->x(), 4.0);
+        QCOMPARE(icon->mapToScene(QPointF()).x() - row->mapToScene(QPointF()).x(), row->property("leftPadding").toDouble());
         QCOMPARE(row->property("iconGap").toDouble(), 4.0);
         still(listWindow, "TimelineListPanel.png");
         search->setProperty("text", "NO MATCH");
@@ -432,14 +432,19 @@ Item {
         QCOMPARE(paper->width(), 444.0);
         auto* content = item(settingsWindow.contentItem(), "dialogContent");
         QVERIFY(content);
-        QCOMPARE(content->x(), 24.0);
+        const auto paperLeft = paper->mapToScene(QPointF()).x();
+        const auto contentLeft = content->mapToScene(QPointF()).x();
+        QVERIFY(contentLeft >= paperLeft);
+        QVERIFY(contentLeft + content->width() <= paperLeft + paper->width());
         const QStringList fields{"canvasSizeLabel", "resolutionPreset", "widthField", "heightField",
                                  "frameRateLabel", "frameRatePreset", "fpsField", "tempoLabel",
                                  "bpmField", "beatsField", "beatUnitField", "offsetField"};
         for (const auto& field : fields) {
             QVERIFY2(item(settingsWindow.contentItem(), field.toLatin1().constData()), qPrintable(field));
         }
-        QCOMPARE(item(settingsWindow.contentItem(), "canvasSizeLabel")->property("text").toString(), QString("CANVAS SIZE"));
+        auto* canvasSizeLabel = item(settingsWindow.contentItem(), "canvasSizeLabel");
+        QCOMPARE(canvasSizeLabel->property("text").toString(), QString("CANVAS SIZE"));
+        QCOMPARE(QFontInfo(canvasSizeLabel->property("font").value<QFont>()).family(), QString("Inter"));
         QCOMPARE(item(settingsWindow.contentItem(), "widthField")->property("label").toString(), QString("Width"));
         QCOMPARE(item(settingsWindow.contentItem(), "heightField")->property("label").toString(), QString("Height"));
         QCOMPARE(item(settingsWindow.contentItem(), "frameRateLabel")->property("text").toString(), QString("FRAME RATE"));

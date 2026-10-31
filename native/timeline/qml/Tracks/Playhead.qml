@@ -4,6 +4,7 @@
 // touches no model, no lane and not the ruler.
 import QtQuick
 import NodeTool.Timeline
+import NodeTool.UiPrimitives as Ui
 
 Item {
     id: playhead
@@ -11,7 +12,7 @@ Item {
     required property TimelineViewState viewState
     property double fps: 30
     // Height of the band at the top that does not grab (the ruler).
-    property double grabTopPx: Theme.rulerHeight
+    property double grabTopPx: TimelineMetrics.rulerHeight
     // Content end; a drag stops there.
     property double endMs: 0
     // The lanes' viewport width, so the pill stays whole at the edges.
@@ -49,20 +50,20 @@ Item {
     objectName: "playhead"
     x: lineLeftPx - 8                       // HIT_AREA_WIDTH_PX / 2
     width: 16
-    z: 10
+    z: TimelineMetrics.playheadLayer
 
     // The line and its glow (boxShadow 0 0 10px secondary/40%).
     Rectangle {
         anchors.horizontalCenter: parent.horizontalCenter
         width: 7
         height: parent.height
-        color: Qt.rgba(Theme.secondary.r, Theme.secondary.g, Theme.secondary.b, 0.12)
+        color: Qt.rgba(TimelineVisuals.overlay.r, TimelineVisuals.overlay.g, TimelineVisuals.overlay.b, 0.12)
     }
     Rectangle {
         anchors.horizontalCenter: parent.horizontalCenter
         width: 1.5                          // LINE_WIDTH_PX
         height: parent.height
-        color: Theme.secondary
+        color: TimelineVisuals.overlay
         antialiasing: true
     }
 
@@ -71,18 +72,16 @@ Item {
         objectName: "playheadPill"
         y: 4
         height: 20                          // PILL_HEIGHT_PX
-        width: pillText.implicitWidth + 2 * Theme.spacingMd
-        radius: 10
-        color: Theme.secondary
+        width: pillText.implicitWidth + 2 * Ui.Metrics.md
+        radius: height / 2
+        color: TimelineVisuals.overlay
         x: (playhead.width - width) / 2 + Math.round(TimelineFormat.pillShift(playhead.lineLeftPx, width, playhead.viewportWidthPx))
-        Text {
+        Ui.Text {
             id: pillText
             anchors.centerIn: parent
             text: TimelineFormat.playheadTimecode(playhead.clock.time, playhead.fps)
-            color: Theme.secondaryContrast
-            font.family: Theme.monoFamily
-            font.pixelSize: Theme.fontSizeSmaller
-            font.weight: Font.DemiBold
+            role: Ui.Typography.MonoCaption
+            domainColor: TimelineVisuals.overlayContrast
         }
     }
 
@@ -112,5 +111,6 @@ Item {
             const cap = playhead.endMs > 0 ? playhead.endMs : Number.MAX_SAFE_INTEGER
             playhead.clock.seek(Math.max(0, Math.min(cap, startMs + deltaMs)))
         }
+        onCanceled: playhead.clock.seek(startMs)
     }
 }

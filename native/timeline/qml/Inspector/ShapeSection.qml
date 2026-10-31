@@ -4,6 +4,7 @@ import QtQuick
 import NodeTool.Timeline
 import "../../src/edit/inspectorsections" as Sections
 import "primitives/InspectorPrimitivesHelpers.js" as Helpers
+import NodeTool.UiPrimitives as Ui
 
 InspectorSection {
     id: root
@@ -75,7 +76,7 @@ InspectorSection {
                     step: 0.01
                 })
             minimum: -Infinity
-            minWidth: Theme.controlXs + InspectorTokens.controlXl - Theme.spacingXs
+            minWidth: Ui.Metrics.small + InspectorTokens.controlXl - Ui.Metrics.xs
         }
         TextStyleNumber {
             objectName: "shapeY"
@@ -87,7 +88,7 @@ InspectorSection {
                     step: 0.01
                 })
             minimum: -Infinity
-            minWidth: Theme.controlXs + InspectorTokens.controlXl - Theme.spacingXs
+            minWidth: Ui.Metrics.small + InspectorTokens.controlXl - Ui.Metrics.xs
         }
     }
     InspectorRow {
@@ -104,7 +105,7 @@ InspectorSection {
                     step: 0.01
                 })
             minimum: 0
-            minWidth: Theme.controlXs + InspectorTokens.controlXl - Theme.spacingXs
+            minWidth: Ui.Metrics.small + InspectorTokens.controlXl - Ui.Metrics.xs
         }
         TextStyleNumber {
             objectName: "shapeHeight"
@@ -116,7 +117,7 @@ InspectorSection {
                     step: 0.01
                 })
             minimum: 0
-            minWidth: Theme.controlXs + InspectorTokens.controlXl - Theme.spacingXs
+            minWidth: Ui.Metrics.small + InspectorTokens.controlXl - Ui.Metrics.xs
         }
     }
     InspectorRow {
@@ -133,7 +134,7 @@ InspectorSection {
                     step: 0.01
                 })
             minimum: -Infinity
-            minWidth: Theme.controlXs + InspectorTokens.controlXl - Theme.spacingXs
+            minWidth: Ui.Metrics.small + InspectorTokens.controlXl - Ui.Metrics.xs
         }
         TextStyleNumber {
             objectName: "shapeLineY"
@@ -145,7 +146,7 @@ InspectorSection {
                     step: 0.01
                 })
             minimum: -Infinity
-            minWidth: Theme.controlXs + InspectorTokens.controlXl - Theme.spacingXs
+            minWidth: Ui.Metrics.small + InspectorTokens.controlXl - Ui.Metrics.xs
         }
     }
     InspectorRow {
@@ -162,7 +163,7 @@ InspectorSection {
                     step: 0.01
                 })
             minimum: -Infinity
-            minWidth: Theme.controlXs + InspectorTokens.controlXl - Theme.spacingXs
+            minWidth: Ui.Metrics.small + InspectorTokens.controlXl - Ui.Metrics.xs
         }
         TextStyleNumber {
             objectName: "shapeY2"
@@ -174,7 +175,7 @@ InspectorSection {
                     step: 0.01
                 })
             minimum: -Infinity
-            minWidth: Theme.controlXs + InspectorTokens.controlXl - Theme.spacingXs
+            minWidth: Ui.Metrics.small + InspectorTokens.controlXl - Ui.Metrics.xs
         }
     }
     InspectorRow {
@@ -228,6 +229,7 @@ InspectorSection {
         onGestureStarted: styleEdits.begin()
         onPreview: next => styleEdits.set("innerRadius", next, true)
         onChange: next => styleEdits.set("innerRadius", next)
+        onCanceled: styleEdits.edits.cancelGesture()
     }
     InspectorRow {
         width: parent.width
@@ -367,6 +369,7 @@ InspectorSection {
         onGestureStarted: styleEdits.begin()
         onPreview: next => styleEdits.set("trimStart", next, true)
         onChange: next => styleEdits.set("trimStart", next)
+        onCanceled: styleEdits.edits.cancelGesture()
     }
     InspectorSliderRow {
         width: parent.width
@@ -383,5 +386,6 @@ InspectorSection {
         onGestureStarted: styleEdits.begin()
         onPreview: next => styleEdits.set("trimEnd", next, true)
         onChange: next => styleEdits.set("trimEnd", next)
+        onCanceled: styleEdits.edits.cancelGesture()
     }
 }

@@ -72,6 +72,7 @@ InspectorSection {
                 activeGesture = false
                 if (!stale) root.commit(next)
             }
+            onCanceled: { activeGesture = false; root.cancel() }
         }
     }
 }
