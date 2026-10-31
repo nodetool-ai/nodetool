@@ -36,6 +36,7 @@ struct ServedFile {
     int dropAfterBytes = -1;  // > 0: close the connection after this many body bytes
     int dropCount = 0;        // how many of the next GETs drop
     bool wrongTotal = false;  // 206 answers name total + 7
+    bool closeDelimited = false; // finish the body by closing, without Content-Length
     bool ignoreRange = false; // answer 200 to a Range request
     int chunkDelayMs = 0;     // delay between 16 KiB chunks
     QByteArray redirectTo;    // non-empty: answer 302 with this Location
@@ -184,12 +185,13 @@ private:
                                                 '/' + QByteArray::number(f->wrongTotal ? total + 7 : total));
         }
         const QByteArray body = f->data.mid(start);
-        headers.insert("Content-Length", QByteArray::number(body.size()));
+        if (f->closeDelimited) { headers.insert("Connection", "close"); }
+        else { headers.insert("Content-Length", QByteArray::number(body.size())); }
         writeHead(socket, status, status == 206 ? "Partial Content" : "OK", headers);
         if (req.method == "HEAD") return;
 
         qint64 limit = body.size();
-        bool drop = false;
+        bool drop = f->closeDelimited;
         if (f->dropAfterBytes > 0 && f->dropCount > 0) {
             --f->dropCount;
             limit = std::min<qint64>(limit, f->dropAfterBytes);
