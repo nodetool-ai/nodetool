@@ -779,8 +779,9 @@ into one NV12 texture, wrapped as R8 and RG8), VAAPI on Linux
 or none. `HwWindow` picks the graphics API and the shared device. Any
 hardware failure before the first frame falls back to software (D15).
 
-- **macOS package.** `package-macos.sh` builds with the LGPL FFmpeg only
-  (pkg-config sees no other), runs `macdeployqt` with the QML imports,
+- **macOS package.** `package-macos.sh` uses `QT_PREFIX` when set, otherwise
+  Homebrew's Qt. It selects the LGPL FFmpeg through pkg-config and runs
+  `macdeployqt` with the QML imports,
   rewrites the absolute paths that Homebrew's split Qt kegs leave, drops
   every rpath that leaves the bundle and every plug-in or QML module whose
   libraries the bundle does not have (`scripts/macho-deps.py prune`: QtPdf,
@@ -795,7 +796,11 @@ hardware failure before the first frame falls back to software (D15).
   copies get their licence texts (`licenses/third-party/<formula>/`) and
   their source. Each keg's source comes from its install record
   (`sbom.spdx.json`, `.brew/<formula>.rb`), not from the current Homebrew
-  metadata, which can name a newer Qt than the one installed. The bundle has no identity signature and no notarization:
+  metadata, which can name a newer Qt than the one installed. For an official
+  SDK selected through `QT_PREFIX`, notices identify only frameworks and
+  plug-ins present in that SDK. They record its version and the matching
+  official Qt source archive URL and SHA-256. Framework version checks apply
+  to both SDK and Homebrew builds. The bundle has no identity signature and no notarization:
   that is a release step for the owner of a Developer ID.
   `check-package-macos.sh` copies the bundle to a temp folder and fails on
   any library path or rpath outside the bundle and the system, any

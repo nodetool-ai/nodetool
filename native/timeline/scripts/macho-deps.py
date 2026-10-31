@@ -25,7 +25,7 @@ and stay inside the bundle.
                                     plug-in went, and prints what it removed
   macho-deps.py notices BUNDLE --brew-prefix P [--local JSON]... [--default-licence PREFIX=FILE,...]...
                                     maps every Mach-O file of the bundle to the
-                                    Homebrew keg it came from (or to a --local
+                                    Homebrew keg or --qt-sdk it came from (or to a --local
                                     component), copies each keg's licence texts
                                     to Resources/licenses/third-party/<formula>/,
                                     writes Resources/source/components.json and
@@ -261,6 +261,17 @@ def origin_index(prefix):
     return idx
 
 
+
+def qt_sdk_units(prefix):
+    """Names of frameworks and plug-ins actually present in the selected Qt SDK."""
+    names = set()
+    for sub in ("lib", "plugins", "qml"):
+        for root, dirs, files in os.walk(os.path.join(prefix, sub)):
+            names.update(n for n in dirs if n.endswith(".framework"))
+            names.update(n for n in files if n.endswith(".dylib"))
+    return names
+
+
 def keg_record(keg, formula, version):
     """The install-time record of a keg: its source archive, patches, recipe
     and licence texts."""
@@ -305,7 +316,13 @@ def notices(argv):
                     help='JSON: {"name","match" (basename regex),"version","licenses":[...],"source":{"file"}}')
     ap.add_argument("--default-licence", action="append", default=[],
                     help="FORMULA_PREFIX=FILE[,FILE]: licence files (already in licenses/) for kegs that ship none")
+    ap.add_argument("--qt-sdk", help='JSON: {"prefix","version","licenses":[...],"source":{"url","sha256"}}')
     a = ap.parse_args(argv)
+    sdk = json.loads(a.qt_sdk) if a.qt_sdk else None
+    sdk_names = qt_sdk_units(sdk["prefix"]) if sdk else set()
+    if sdk and (not sdk_names or not re.fullmatch(r"[0-9a-f]{64}", sdk["source"].get("sha256", ""))
+                or not sdk["source"].get("url")):
+        ap.error("Qt SDK must contain libraries and name its source URL and SHA-256")
     bundle = os.path.realpath(a.bundle)
     res = os.path.join(bundle, "Contents", "Resources")
     lic_root = os.path.join(res, "licenses")
@@ -324,6 +341,12 @@ def notices(argv):
             c = components.setdefault(local["name"], {"kind": "local", "version": local.get("version"),
                                                       "licenses": list(local["licenses"]), "files": [],
                                                       "source": dict(local["source"])})
+            c["files"].append(unit)
+            continue
+        if name in sdk_names:
+            c = components.setdefault("Qt", {"kind": "qt-sdk", "version": sdk["version"],
+                                               "licenses": list(sdk["licenses"]), "files": [],
+                                               "source": dict(sdk["source"])})
             c["files"].append(unit)
             continue
         origins = idx.get(name, set())
@@ -374,6 +397,12 @@ def notices(argv):
     out = []
     for name in sorted(components):
         c = components[name]
+        if c["kind"] == "qt-sdk":
+            out.append(f"  Qt {c['version']} (official SDK); licences: {', '.join(c['licenses'])}")
+            out.append(f"    source {c['source']['url']}")
+            out.append(f"      sha256 {c['source']['sha256']}")
+            out.append(f"    files: {', '.join(c['files'])}")
+            continue
         if c["kind"] != "homebrew":
             continue
         bottle = "the Homebrew bottle, unmodified" if c.get("pouredFromBottle") else "built from source by Homebrew"
@@ -444,7 +473,7 @@ def notices_check(bundle):
         src = c.get("source") or {}
         if not src.get("sha256") or src["sha256"] not in sources_txt:
             problems.append({"component": name, "reason": "the source checksum is not in SOURCES.txt"})
-        if c.get("kind") == "homebrew" and (not src.get("url") or src["url"] not in sources_txt):
+        if c.get("kind") in ("homebrew", "qt-sdk") and (not src.get("url") or src["url"] not in sources_txt):
             problems.append({"component": name, "reason": "the source URL is not in SOURCES.txt"})
         if c.get("kind") == "local":
             f = os.path.join(res, "source", src.get("file", ""))
