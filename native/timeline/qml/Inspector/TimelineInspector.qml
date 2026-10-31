@@ -57,10 +57,13 @@ Rectangle {
         anchors.topMargin: Theme.spacingMd
         contentHeight: content.height + Theme.spacingXl * 2
         clip: true
-        ScrollBar.vertical: ScrollBar {}
+        ScrollBar.vertical: ScrollBar {
+            id: scrollBar
+            objectName: "inspectorScrollBar"
+        }
         Column {
             id: content
-            width: parent.width
+            width: parent.width - scrollBar.width
             InspectorHeader { width: parent.width; visible: root.selection.length === 0; eyebrow: "Inspector" }
             Column {
                 width: parent.width

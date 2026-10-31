@@ -172,10 +172,12 @@ private slots:
             "(InspectorActionButton|InspectorSectionTitle)\\.qml:.*does not support customization"));
     }
     void registration();
+    void colorGestureUndoReset_data();
     void colorGestureUndoReset();
     void colorRangesAndPointerGesture();
     void catalogue_data();
     void catalogue();
+    void listActionsAndParameterGesture_data();
     void listActionsAndParameterGesture();
     void dragReorder();
     void collapsedRowsReleaseSpace();
@@ -202,8 +204,28 @@ void TestClipEffects::registration() {
         }
     }
 
+void TestClipEffects::colorGestureUndoReset_data() {
+    QTest::addColumn<int>("scrollBarWidth");
+    QTest::newRow("platform-scrollbar") << -1;
+    // The macOS native scrollbar occupies 14 pixels of the viewport.
+    QTest::newRow("wide-scrollbar") << 14;
+}
+
+void TestClipEffects::listActionsAndParameterGesture_data() {
+    colorGestureUndoReset_data();
+}
+
 void TestClipEffects::colorGestureUndoReset() {
         Editor e; QVERIFY2(e.object,qPrintable(e.error));
+        QFETCH(int, scrollBarWidth);
+        if (scrollBarWidth > 0) {
+            auto* scrollBar = e.item("inspectorScrollBar"); QVERIFY(scrollBar);
+            scrollBar->setProperty("implicitWidth", scrollBarWidth);
+            scrollBar->setWidth(scrollBarWidth);
+            scrollBar->setProperty("policy", 2); // ScrollBar.AlwaysOn
+            scrollBar->setProperty("active", true);
+            QCOMPARE(scrollBar->width(), qreal(scrollBarWidth));
+        }
         auto* color = e.item("clipAdjustments"); QVERIFY2(color,"ClipAdjustments must be in the Inspector");
         QVERIFY(QMetaObject::invokeMethod(color, "toggled", Q_ARG(bool, true)));
         const auto original = e.model.documentJson();
@@ -260,6 +282,15 @@ void TestClipEffects::catalogue() {
 
 void TestClipEffects::listActionsAndParameterGesture() {
         Editor e; QVERIFY2(e.object,qPrintable(e.error));
+        QFETCH(int, scrollBarWidth);
+        if (scrollBarWidth > 0) {
+            auto* scrollBar = e.item("inspectorScrollBar"); QVERIFY(scrollBar);
+            scrollBar->setProperty("implicitWidth", scrollBarWidth);
+            scrollBar->setWidth(scrollBarWidth);
+            scrollBar->setProperty("policy", 2); // ScrollBar.AlwaysOn
+            scrollBar->setProperty("active", true);
+            QCOMPARE(scrollBar->width(), qreal(scrollBarWidth));
+        }
         e.patch({{"effects",QJsonArray{
             QJsonObject{{"id","a"},{"type","blur"},{"enabled",true},{"radius",8},{"sigma",2}},
             QJsonObject{{"id","inspector:color"},{"type","color"},{"enabled",true},{"contrast",1.3}},
