@@ -65,6 +65,10 @@ export function nativeCppFrameDigest(value: unknown): string {
     comparable.hostRequests = z.array(z.record(z.string(), z.unknown())).parse(frame.hostRequests)
       .map((request) => Object.fromEntries(Object.entries(request).filter(([name]) => name !== "generation")));
   }
+  if (frame.music !== undefined) {
+    comparable.music = z.array(z.record(z.string(), z.unknown())).parse(frame.music)
+      .map((event) => Object.fromEntries(Object.entries(event).filter(([name]) => name !== "generation")));
+  }
   return createHash("sha256").update(JSON.stringify(comparable)).digest("hex");
 }
 export async function simulateNativeCppGame(input: NativeGameDocument, options: NativeCppRunOptions): Promise<Readonly<Record<string, unknown>>> {

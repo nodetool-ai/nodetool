@@ -23,6 +23,22 @@ describe("native C++ creation and verification", () => {
     expect(nativeCppFrameDigest(first)).not.toBe(nativeCppFrameDigest({ ...first, presentationEvents: [{ generation: 1, data: { generation: 2 } }] }));
   });
 
+  it("normalizes music ownership without ignoring authored data or audio changes", () => {
+    const music = { generation: 1, assetId: "theme", volume: 0.5, data: { generation: 9 } };
+    const first = { generation: 1, music: [music] };
+    expect(nativeCppFrameDigest(first)).toBe(nativeCppFrameDigest({ generation: 2, music: [{ ...music, generation: 2 }] }));
+    expect(nativeCppFrameDigest(first)).not.toBe(nativeCppFrameDigest({ ...first, music: [{ ...music, volume: 0.25 }] }));
+    expect(nativeCppFrameDigest(first)).not.toBe(nativeCppFrameDigest({ ...first, music: [{ ...music, data: { generation: 10 } }] }));
+  });
+
+  it.each(["2d", "3d"] as const)("replays music started after the %s checkpoint", async (dimension) => {
+    const course = dimension === "2d" ? createNativeCpp2dCourse("d".repeat(32)) : createNativeCppCourse("e".repeat(32));
+    const document = nativeGameDocument.parse({ ...course.document, initialSceneId: "music", scenes: [{ id: "music", entities: [{ id: "actor", behaviors: [{ id: "play", scriptId: "music" }] }] }], scripts: [{ id: "music", source: "i=>({commands:i.tick===2?[{kind:\x27audio\x27,assetId:\x27collect-tone\x27,music:true,loop:true}]:[]})" }] });
+    const result = await simulateNativeCppGame(document, { executable, ticks: 4, verifyReplay: true });
+    expect(result.replayVerified).toBe(true);
+    expect(z.object({ music: z.array(z.object({ assetId: z.string() })) }).parse(result.frame).music).toEqual([expect.objectContaining({ assetId: "collect-tone" })]);
+  });
+
   it.each(["2d", "3d"] as const)("records bounded JSON save loads and replays %s source without durable IO", async (dimension) => {
     const source = "i=>({commands:i.tick===0?[{kind:'save',scope:'progress',slot:'slot',data:{version:1,value:7}},{kind:'save',scope:'settings',slot:'slot',data:{version:1,value:2}},{kind:'load',scope:'progress',slot:'slot'},{kind:'load',scope:'settings',slot:'slot'}]:(i.input.loaded||[]).map(r=>({kind:'score',amount:r.data.value}))})";
     const document = nativeGameDocument.parse({ engine: "native-cpp-1", schemaVersion: dimension === "2d" ? 5 : 4, dimension, id: `save-${dimension}`, title: "JSON save fixture", initialSceneId: "scene", scenes: [{ id: "scene", entities: [{ id: "actor", behaviors: [{ id: "behavior", scriptId: "script" }] }] }], scripts: [{ id: "script", source }] });
