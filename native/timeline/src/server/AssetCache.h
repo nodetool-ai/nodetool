@@ -7,8 +7,8 @@
 //
 // `variant` is `original`, `proxy` or `package`; variants never share a
 // file. `version` comes only from API fields (see AssetResolver), so a
-// changed version is a new file, and the older versions of that asset and
-// variant are removed once the new one is in place.
+// changed version is a new file, and unprotected older versions of that asset
+// and variant are removed once the new one is in place.
 //
 // A download writes `<final>.part` and renames it into place only when it
 // has the expected size. `/api/storage` serves `Range` but not `If-Range`,
@@ -31,10 +31,10 @@
 #include <QUrl>
 
 #include <functional>
+#include <map>
 #include <memory>
 #include <mutex>
 #include <optional>
-#include <set>
 
 class QNetworkRequest;
 
@@ -62,6 +62,8 @@ class AssetCache {
 public:
     using Decorate = std::function<void(QNetworkRequest&)>;
     using Recheck = std::function<std::optional<RemoteFile>()>;
+    using OnReady = std::function<void(const QString&)>;
+    using Lease = std::shared_ptr<const QString>;
 
     AssetCache(QString root, QString serverKey, QString userKey, Decorate decorate = {});
 
@@ -70,17 +72,23 @@ public:
     qint64 budgetBytes() const { return m_budgetBytes; }
     // Marks a file the current open uses; eviction keeps it.
     void protect(const QString& path);
+    // A copyable lease keeps a cached file until its last owner releases it.
+    static Lease lease(const QString& path);
+    static void evictRoot(const QString& root, qint64 budget, const QString& justFetched,
+                          const std::function<void()>& afterScan = {}, bool fetchedFolderLocked = false);
 
     QString variantDir(const QString& assetId, const QString& variant) const;
     QString pathFor(const QString& assetId, const QString& variant, const RemoteFile& file) const;
 
     // Blocks until the file is in the cache or the fetch failed. `recheck`
-    // runs only when a partial file is about to be resumed.
+    // runs only when a partial file is about to be resumed. `onReady` runs
+    // while the variant folder remains locked, before budget eviction.
     FetchResult fetch(const QString& assetId, const QString& variant, const RemoteFile& file,
-                      const Recheck& recheck = {}) const;
+                      const Recheck& recheck = {}, const OnReady& onReady = {}) const;
 
 private:
     void evict(const QString& justFetched) const;
+    static bool removeIfUnprotected(const QString& path);
 
     QString m_root;
     QString m_serverKey;
@@ -89,7 +97,7 @@ private:
     qint64 m_budgetBytes = 0;
     struct Protected {
         std::mutex mutex;
-        std::set<QString> paths;
+        std::map<QString, Lease> paths;
     };
     std::shared_ptr<Protected> m_protected = std::make_shared<Protected>();
 };

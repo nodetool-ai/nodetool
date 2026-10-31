@@ -346,6 +346,76 @@ private slots:
         QVERIFY(QFileInfo::exists(d.path));
     }
 
+    void protectedOldVersionSurvivesNewVersion() {
+        m_http->setFile("/version.mp4", ServedFile{pattern(100000, 21)});
+        AssetCache c = cache();
+        const auto old = c.fetch("asset", "original", remote("/version.mp4", "v1", 100000));
+        QVERIFY2(old.ok(), qPrintable(old.error));
+        c.protect(old.path);
+        const auto current = c.fetch("asset", "original", remote("/version.mp4", "v2", 100000));
+        QVERIFY2(current.ok(), qPrintable(current.error));
+        QVERIFY2(QFileInfo::exists(old.path), "a protected old version was deleted during stale cleanup");
+        QVERIFY(QFileInfo::exists(current.path));
+    }
+
+    void protectionAcrossCacheInstancesSurvivesSmallBudget() {
+        m_http->setFile("/first.mp4", ServedFile{pattern(100000, 22)});
+        m_http->setFile("/second.mp4", ServedFile{pattern(100000, 23)});
+        AssetCache first = cache();
+        const auto held = first.fetch("first", "original", remote("/first.mp4", "v1", 100000));
+        QVERIFY2(held.ok(), qPrintable(held.error));
+        first.protect(held.path);
+        AssetCache second = cache();
+        second.setBudgetBytes(100000);
+        const auto fetched = second.fetch("second", "original", remote("/second.mp4", "v1", 100000));
+        QVERIFY2(fetched.ok(), qPrintable(fetched.error));
+        QVERIFY2(QFileInfo::exists(held.path), "another cache instance evicted active media");
+        QVERIFY(QFileInfo::exists(fetched.path));
+    }
+
+    void releasedLeaseAllowsEviction() {
+        for (const char* path : {"/held.mp4", "/new.mp4", "/later.mp4"}) {
+            m_http->setFile(path, ServedFile{pattern(100000, 24)});
+        }
+        AssetCache c = cache();
+        const auto held = c.fetch("held", "original", remote("/held.mp4", "v1", 100000));
+        QVERIFY2(held.ok(), qPrintable(held.error));
+        auto lease = AssetCache::lease(held.path);
+        c.setBudgetBytes(100000);
+        QTest::qWait(20);
+        const auto next = c.fetch("new", "original", remote("/new.mp4", "v1", 100000));
+        QVERIFY2(next.ok(), qPrintable(next.error));
+        QVERIFY(QFileInfo::exists(held.path));
+        lease.reset();
+        QTest::qWait(20);
+        const auto later = c.fetch("later", "original", remote("/later.mp4", "v1", 100000));
+        QVERIFY2(later.ok(), qPrintable(later.error));
+        QVERIFY2(!QFileInfo::exists(held.path), "released media remained pinned");
+    }
+
+    void symlinkedCacheRootSharesProtectionIdentity() {
+#ifdef Q_OS_UNIX
+        m_http->setFile("/alias-held.mp4", ServedFile{pattern(100000, 25)});
+        m_http->setFile("/alias-new.mp4", ServedFile{pattern(100000, 26)});
+        const auto held = cache().fetch("held", "original", remote("/alias-held.mp4", "v1", 100000));
+        QVERIFY2(held.ok(), qPrintable(held.error));
+        QTemporaryDir aliasParent;
+        QVERIFY(aliasParent.isValid());
+        const QString aliasRoot = aliasParent.filePath("cache-alias");
+        QVERIFY(QFile::link(m_dir.path(), aliasRoot));
+        const QString aliasPath = aliasRoot + held.path.mid(m_dir.path().size());
+        QVERIFY(QFileInfo::exists(aliasPath));
+        const auto lease = AssetCache::lease(aliasPath);
+        AssetCache other = cache();
+        other.setBudgetBytes(100000);
+        const auto fetched = other.fetch("new", "original", remote("/alias-new.mp4", "v1", 100000));
+        QVERIFY2(fetched.ok(), qPrintable(fetched.error));
+        QVERIFY2(QFileInfo::exists(held.path), "symlinked path failed to protect the same cache file");
+#else
+        QSKIP("requires a Unix directory symlink");
+#endif
+    }
+
     void contentRangeParse() {
         const auto cr = nt::server::parseContentRange("bytes 100-199/1000");
         QVERIFY(cr);
