@@ -34,6 +34,15 @@ describe('preset preview tooling', () => {
     expect(matches({ ...runRecord(a, 'completed', '2026-01-01'), model: 'changed' }, a)).toBe(false);
     await expect(buildPlan(options(['--ids', 'camera.missing']))).rejects.toThrow('Unknown preset');
   });
+  it('plans an image-edit preset as an edited still on the image model', async () => {
+    const [plan] = await buildPlan(options(['--ids', 'effect.snow-blanket']));
+    expect(plan.mode).toBe('image_edit');
+    expect(plan.model).toBe('dreamina_gpt_image_2_5_sunburst');
+    expect(plan.seed).toBeNull();
+    expect(plan.output_path).toMatch(/\.png$/);
+    expect(plan.workflow.nodes.find(n => n.id === 'generate').type).toBe('nodetool.image.ImageToImage');
+    expect(matches(runRecord(plan, 'completed', '2026-01-01'), plan)).toBe(true);
+  });
   it('writes complete records with a fake provider and skips matching runs', () => fixture(async plan => {
     let calls = 0;
     const fakeProvider = async () => { calls++; return { bytes: Buffer.from('fake video'), credits: 7, cost_usd: 0.01 }; };

@@ -24,5 +24,10 @@
   "prompt": {
     "default": "Edit the image to cover the scene in a fresh blanket of soft snow with gentle snowfall. Keep the composition and subject identical."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.snow-blanket/e205c0572ea962cf6ae3f1ad143c36eed886af5fd1229e7c0e8635e700221987.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.snow-blanket/e205c0572ea962cf6ae3f1ad143c36eed886af5fd1229e7c0e8635e700221987.png",
+    "run": "runs/effect.snow-blanket.json"
+  }
 }

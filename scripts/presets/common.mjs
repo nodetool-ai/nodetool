@@ -9,6 +9,8 @@ import { createCatalog, compilePresets, presetToWorkflow } from '@nodetool-ai/pr
 export const root = fileURLToPath(new URL('../../', import.meta.url));
 export const source = resolve(root, 'scripts/presets/source.jpg');
 export const seed = 20261031;
+/** Image-edit presets render on the model that made the source still. Image edits take no seed. */
+export const EDIT_MODEL = 'dreamina_gpt_image_2_5_sunburst';
 export const prompt = 'A large bronze ring sculpture with a twisted open loop and a green-gold patina on a rough travertine plinth in a sunlit Mediterranean stone courtyard, olive trees in terracotta pots in the foreground, an arched colonnade behind, cypress trees and mountains in the distance, golden late-afternoon light.';
 export function options(args = process.argv.slice(2)) {
   const { values } = parseArgs({ args, options: {
@@ -42,17 +44,27 @@ export async function buildPlan(opts) {
   for (const id of opts.ids ?? []) {
     if (!files.some(({ preset }) => preset.id === id)) { throw new Error(`Unknown preset: ${id}`); }
   }
-  const model = opts.final ? 'dreamina_seedance_45_pro' : 'dreamina_seedance_45_pro_draft';
+  const videoModel = opts.final ? 'dreamina_seedance_45_pro' : 'dreamina_seedance_45_pro_draft';
   const sourceHash = hash(await readFile(source));
-  return files.filter(({ preset }) => (!opts.ids || opts.ids.includes(preset.id)) && preset.modes.includes('image_to_video')).map(({ path, preset }) => {
-    const compiled = compilePresets([preset.id], { catalog: createCatalog([preset]), modelId: model, mode: 'image_to_video', prompt });
-    const workflow = presetToWorkflow(preset, { model: { provider: 'dreamina', id: model }, mode: 'image_to_video' });
+  return files.filter(({ preset }) => !opts.ids || opts.ids.includes(preset.id)).flatMap(({ path, preset }) => {
+    // An image-to-video preset renders a clip. A preset that only edits images
+    // renders the edited still, and publishing turns it into a before-and-after loop.
+    const mode = preset.modes.includes('image_to_video') ? 'image_to_video' : preset.modes.includes('image_edit') ? 'image_edit' : null;
+    if (!mode) { return []; }
+    const model = mode === 'image_edit' ? EDIT_MODEL : videoModel;
+    const compiled = compilePresets([preset.id], { catalog: createCatalog([preset]), modelId: model, mode, prompt });
+    const workflow = presetToWorkflow(preset, { model: { provider: 'dreamina', id: model }, mode });
     const generator = workflow.nodes.find((node) => node.id === 'generate');
-    Object.assign(generator.data, { seed, duration: 4, resolution: opts.resolution ?? (opts.final ? '1080p' : '480p') });
-    return { id: preset.id, path, preset, provider: 'dreamina', model, seed, prompt: compiled.prompt, source_hash: sourceHash,
+    if (mode === 'image_edit') {
+      Object.assign(generator.data, { aspect_ratio: '16:9', resolution: '2K' });
+    } else {
+      Object.assign(generator.data, { seed, duration: 4, resolution: opts.resolution ?? (opts.final ? '1080p' : '480p') });
+    }
+    return [{ id: preset.id, path, preset, mode, provider: 'dreamina', model, seed: mode === 'image_edit' ? null : seed,
+      prompt: compiled.prompt, source_hash: sourceHash,
       workflow, workflow_hash: hash(JSON.stringify({ workflow, sourceHash, prompt })),
       recordPath: resolve(root, 'packages/presets/runs', `${preset.id}.json`),
-      output_path: resolve(opts.outputDir, `${preset.id}-${model}.mp4`) };
+      output_path: resolve(opts.outputDir, `${preset.id}-${model}.${mode === 'image_edit' ? 'png' : 'mp4'}`) }];
   });
 }
 export async function readRecord(path) {

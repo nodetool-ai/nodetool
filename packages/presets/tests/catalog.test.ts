@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -23,6 +23,19 @@ describe("catalogue", () => {
     }
     expect(rows.length).toBeGreaterThan(0);
     expect(createCatalog(rows).presets).toHaveLength(rows.length);
+  });
+  it("ships a rendered preview backed by a run record for every preset", () => {
+    let inspected = 0;
+    for (const kind of readdirSync(new URL("catalog/", root))) {
+      for (const file of readdirSync(new URL(`catalog/${kind}/`, root))) {
+        const preset = presetSchema.parse(readJson(`catalog/${kind}/${file}`));
+        expect(preset.preview?.url, preset.id).toMatch(/^https:\/\/.+\.mp4$/);
+        expect(preset.preview?.poster, preset.id).toMatch(/^https:\/\/.+\.png$/);
+        expect(existsSync(new URL(preset.preview?.run ?? "missing", root)), preset.id).toBe(true);
+        inspected++;
+      }
+    }
+    expect(inspected).toBeGreaterThan(0);
   });
   it("requires default and rejects invalid fragment fields", () => {
     const row = loadCatalog(() => readJson("preset-catalog.json")).presets[0];

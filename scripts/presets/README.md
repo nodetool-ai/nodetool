@@ -35,6 +35,11 @@ and a PNG poster, updates the preset JSON, and regenerates the catalogue. Set
 `--final` when publishing final renders. Review every clip before publishing.
 MP4 looping is controlled by the player.
 
+A preset that only edits images renders the edited still on
+`dreamina_gpt_image_2_5_sunburst` instead of a clip. Image edits take no seed, so
+its run record has `seed: null`. Publishing turns the still into a three-second
+loop that crossfades from the source still to the edit.
+
 Run records live at `packages/presets/runs/<id>.json`. Completed records matching
 the prompt, model, graph, source hash and seed are skipped. Interrupted records
 are retried on the next invocation. Dreamina’s existing pending-job ledger uses

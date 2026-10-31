@@ -1,6 +1,6 @@
 import { readFile, mkdir, writeFile } from 'node:fs/promises';
 import { dirname } from 'node:path';
-import { options, buildPlan, readRecord, matches, atomicJson, isMain, root } from './common.mjs';
+import { options, buildPlan, readRecord, matches, atomicJson, isMain, root, source } from './common.mjs';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 
@@ -15,7 +15,7 @@ export async function publishPlans(plans, { dryRun, encode, upload, regenerate, 
     const key = `presets/${plan.id}/${plan.workflow_hash}`;
     const preview = { url: `${key}.mp4`, poster: `${key}.png`, run: `runs/${plan.id}.json` };
     if (dryRun) { log(JSON.stringify({ input: record.output_path, upload: preview, write: plan.path })); continue; }
-    const media = await encode(record.output_path);
+    const media = plan.mode === 'image_edit' ? await encodeEdit(source, record.output_path) : await encode(record.output_path);
     preview.url = await upload(`${key}.mp4`, media.video, 'video/mp4');
     preview.poster = await upload(`${key}.png`, media.poster, 'image/png');
     await atomicJson(plan.path, { ...plan.preset, preview });
@@ -37,6 +37,44 @@ async function encode(inputPath) {
     return { video: await readFile(outPath), poster };
   }
   throw new Error('No poster frame decoded');
+}
+/**
+ * A three-second before-and-after loop for an image edit: the source still,
+ * a crossfade, then the edited still. The poster is the edited still.
+ */
+export async function encodeEdit(beforePath, afterPath, { width = 1280, height = 720, fps = 30 } = {}) {
+  const { loadCanvas } = await import('@nodetool-ai/runtime');
+  const { openVideoFrameEncoder } = await import('@nodetool-ai/runtime/media');
+  const { createCanvas, loadImage } = await loadCanvas();
+  const [before, after] = await Promise.all([loadImage(await readFile(beforePath)), loadImage(await readFile(afterPath))]);
+  const canvas = createCanvas(width, height);
+  const context = canvas.getContext('2d');
+  const cover = (image, alpha) => {
+    const scale = Math.max(width / image.width, height / image.height);
+    context.globalAlpha = alpha;
+    context.drawImage(image, (width - image.width * scale) / 2, (height - image.height * scale) / 2, image.width * scale, image.height * scale);
+  };
+  const outPath = `${afterPath}.preview.mp4`;
+  const encoder = await openVideoFrameEncoder({ outPath, fps, input: 'png', spec: { codec: 'libx264', pixelFormat: 'yuv420p' },
+    muxerOptions: { movflags: '+faststart' } });
+  try {
+    const frames = 3 * fps;
+    for (let i = 0; i < frames; i++) {
+      // Hold the source for 0.8 s, crossfade for 1.4 s, hold the edit to the end.
+      const t = Math.min(1, Math.max(0, (i / fps - 0.8) / 1.4));
+      cover(before, 1);
+      cover(after, t * t * (3 - 2 * t));
+      await encoder.write(canvas.toBuffer('image/jpeg', 92));
+    }
+    await encoder.finish();
+  } catch (error) {
+    await encoder.abort();
+    throw error;
+  }
+  cover(after, 1);
+  const poster = canvas.toBuffer('image/png');
+  await writeFile(`${afterPath}.poster.png`, poster);
+  return { video: await readFile(outPath), poster };
 }
 export async function main(args) {
   const opts = options(args);

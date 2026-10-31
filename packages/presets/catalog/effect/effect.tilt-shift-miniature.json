@@ -24,5 +24,10 @@
   "prompt": {
     "default": "Edit the image to restyle it as a tilt-shift miniature model with shallow focus and saturated colors. Keep the composition and subject identical."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.tilt-shift-miniature/3e3ec6b8fa64d29ad31ab750be7fbdc5c7317fe9bf25d9117bcfadaaff4c5d98.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.tilt-shift-miniature/3e3ec6b8fa64d29ad31ab750be7fbdc5c7317fe9bf25d9117bcfadaaff4c5d98.png",
+    "run": "runs/effect.tilt-shift-miniature.json"
+  }
 }

@@ -195,7 +195,7 @@ nodetool presets eject <id> --model <model id> --provider <provider> [--mode vid
 
 A preset card shows a short muted loop when the preset has a `preview`. The loops are not in git. They are rendered by NodeTool, uploaded to a public Supabase Storage bucket through the storage adapter, and each preset file stores the `url`, the `poster` and a `run` pointer to its run record.
 
-Previews render on Dreamina through the signed-in Chrome tab, so they are tuned on the `seedance` family. The other families compile from their own fragments but have no preview of their own.
+Previews render on Dreamina through the signed-in Chrome tab, so they are tuned on the `seedance` family. The other families compile from their own fragments but have no preview of their own. An `image_edit` preset renders the edited still on the image model that made the source still, and its preview is a three-second crossfade from the source to the edit.
 
 | Script | Does |
 |---|---|

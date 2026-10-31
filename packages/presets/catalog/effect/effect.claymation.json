@@ -24,5 +24,10 @@
   "prompt": {
     "default": "Edit the image to restyle it as a handmade claymation scene with visible fingerprints in the clay. Keep the composition and subject identical."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.claymation/da17b0101e6b3f38aa135ffbbb7aceb39fc9a09f68d9574bfb14f54b5909844a.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.claymation/da17b0101e6b3f38aa135ffbbb7aceb39fc9a09f68d9574bfb14f54b5909844a.png",
+    "run": "runs/effect.claymation.json"
+  }
 }

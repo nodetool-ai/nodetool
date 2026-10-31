@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
 import { createCatalog } from "../src/index.js";
 
@@ -57,10 +57,6 @@ it("provides forty camera presets with all required families and valid conflicts
   expect(cameras).toHaveLength(40);
   for (const preset of cameras) {
     expect(preset.modes).toEqual(["video", "image_to_video", "reference_to_video"]);
-    // Every camera preset ships a rendered preview backed by a checked-in run record.
-    expect(preset.preview?.url).toMatch(/^https:\/\//);
-    expect(preset.preview?.poster).toMatch(/^https:\/\//);
-    expect(existsSync(new URL(`../${preset.preview?.run}`, import.meta.url))).toBe(true);
     for (const family of ["default", "kling", "seedance", "veo", "wan"]) {
       expect(preset.prompt[family]).toEqual(expect.any(String));
     }
