@@ -27,23 +27,15 @@ Item {
             spacing: Theme.spacingMicro
             Repeater {
                 model: root.actions
-                Controls.ToolButton {
+                PanelButton {
                     required property var modelData
                     width: Theme.controlXs
                     height: Theme.controlXs
-                    text: modelData.icon || ""
+                    text: modelData.label
+                    iconPath: modelData.icon || ""
+                    iconOnly: true
+                    destructive: modelData.variant === "danger"
                     enabled: !modelData.disabled
-                    Accessible.name: modelData.label
-                    Controls.ToolTip.text: modelData.label
-                    Controls.ToolTip.visible: hovered
-                    background: Rectangle { color: parent.hovered ? Theme.actionHover : "transparent"; radius: Theme.radiusSm }
-                    contentItem: Text {
-                        text: parent.text
-                        horizontalAlignment: Text.AlignHCenter
-                        verticalAlignment: Text.AlignVCenter
-                        color: modelData.variant === "danger" ? Theme.error : Theme.textSecondary
-                        font.pixelSize: Theme.iconXs
-                    }
                     onClicked: {
                         root.actionTriggered(modelData.label)
                         if (modelData.onClick) modelData.onClick()

@@ -46,7 +46,7 @@ Item {
         id: section
         width: parent.width
         title: "Audio"
-        icon: Icons.volumeUp
+        icon: Icons.volumeUpOutlined
         InspectorSliderRow {
             objectName: "audioVolume"
             width: parent.width

@@ -86,6 +86,7 @@ Item {
         function test_narrowDockAndDialogStayWithinHost() {
             const panel = mount()
             compare(panel.width, 280)
+            verify(!findChild(panel, "libraryRootBreadcrumb").visible)
             const grid = findChild(panel, "libraryGrid")
             verify(grid)
             verify(grid.width > 0 && grid.width <= panel.width)

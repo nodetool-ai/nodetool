@@ -12,7 +12,7 @@ InspectorSection {
     property var controller: null
     readonly property var clip: editor.clip
     title: "Color"
-    icon: "☼"
+    icon: Icons.sunny
     checkable: true
     checked: editor.color?.enabled ?? false
     checkboxDisabled: editor.locked
@@ -20,7 +20,7 @@ InspectorSection {
     open: ClipEffectsUi.folds.color ?? false
     visible: editor.visual
     action: ({
-            icon: "↺",
+            icon: Icons.restartAlt,
             label: "Reset color",
             disabled: !editor.color || editor.locked,
             onClick: () => editor.resetColor()

@@ -1,11 +1,12 @@
 // Mirrors the web TimelineEditor: document controls above DockCanvas, stable
 // Program and Timeline panels, registered side panels, and editor overlays.
 import QtQuick
+import QtQuick.Controls.Basic as Controls
 import QtQuick.Layouts
 import NodeTool.Timeline
 import "assets/AssetContext.js" as Context
 
-Rectangle {
+Controls.Control {
     id: root
     required property TimelineModel timeline
     required property PlaybackClock clock
@@ -27,7 +28,22 @@ Rectangle {
         return panels
     }
     readonly property var availablePanels: dockPanels.filter(panel => panel.id !== "source" || !!SourceViewerState.asset.id).map(panel => panel.id)
-    color: Theme.backgroundDefault
+    padding: 0
+    font.family: Theme.sansFamily
+    font.pixelSize: Theme.fontSizeSmall
+    palette.window: Theme.backgroundPaper
+    palette.base: Theme.backgroundDefault
+    palette.alternateBase: Theme.backgroundPaper
+    palette.button: Theme.backgroundPaper
+    palette.buttonText: Theme.textPrimary
+    palette.text: Theme.textPrimary
+    palette.windowText: Theme.textPrimary
+    palette.placeholderText: Theme.textSecondary
+    palette.highlight: Theme.primary
+    palette.highlightedText: Theme.textPrimary
+    palette.mid: Theme.divider
+    palette.dark: Theme.divider
+    background: Rectangle { color: Theme.backgroundDefault }
     focus: true
     Keys.onSpacePressed: root.clock.toggle()
     Keys.forwardTo: tracksHost.item ? [tracksHost.item] : []

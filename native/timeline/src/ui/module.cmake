@@ -80,3 +80,11 @@ function(nt_ui_tests)
 
 endfunction()
 nt_tests(nt_ui_tests)
+
+nt_qml_files(
+    qml/controls/PanelButton.qml
+    qml/controls/PanelField.qml
+    qml/controls/PanelTextArea.qml
+    qml/controls/PanelSelect.qml
+    qml/controls/PanelScrollBar.qml
+)

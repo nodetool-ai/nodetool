@@ -57,7 +57,7 @@ Rectangle {
         anchors.topMargin: Theme.spacingMd
         contentHeight: content.height + Theme.spacingXl * 2
         clip: true
-        ScrollBar.vertical: ScrollBar {
+        ScrollBar.vertical: PanelScrollBar {
             id: scrollBar
             objectName: "inspectorScrollBar"
         }
@@ -81,7 +81,7 @@ Rectangle {
                     objectName: "multiSelectionHeader"
                     width: parent.width
                     eyebrow: root.selection.length + " clips"
-                    actions: [{icon:"⌫", label:"Delete selection", variant:"danger"}]
+                    actions: [{icon:Icons.deleteOutline, label:"Delete selection", variant:"danger"}]
                     onActionTriggered: label => {
                         if (label === "Delete selection" && root.timelineModel) root.timelineModel.applyEdit("deleteSelected", {selectedIds:root.selection})
                     }

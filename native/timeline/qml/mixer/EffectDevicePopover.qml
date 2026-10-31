@@ -62,7 +62,7 @@ Controls.Popup {
             Row {
                 width:parent.width
                 Text { width:parent.width-24; text:root.effect?(Targets.EFFECT_LABELS[root.effect.type] || root.effect.type)+" device":"";color:Theme.textPrimary;font.family:Theme.sansFamily;font.pixelSize:Theme.fontSizeSmall }
-                Controls.ToolButton { objectName:"close-effect-popover";width:24;height:24;text:"×";Accessible.name:"Close effect";onClicked:root.close() }
+                PanelButton { objectName:"close-effect-popover";width:Theme.controlXs;height:Theme.controlXs;text:"Close effect";iconPath:Icons.closeOutlined;iconOnly:true;Accessible.name:"Close effect";onClicked:root.close() }
             }
             Loader {
                 width:parent.width; active:root.effect!==null && root.effect.type==="eq3"
@@ -124,7 +124,7 @@ Controls.Popup {
             Column {
                 width:parent.width;visible:root.effect!==null && root.effect.type==="filter";height:visible?48:0
                 Text { text:"Mode";color:Theme.textSecondary;font.family:Theme.sansFamily;font.pixelSize:Theme.fontSizeSmaller }
-                Controls.ComboBox {
+                PanelSelect {
                     objectName:"filter-mode";width:parent.width;height:24;textRole:"label";enabled:root.effect!==null && root.effect.enabled!==false
                     model:[{value:"lowpass",label:"Low-pass"},{value:"highpass",label:"High-pass"},{value:"bandpass",label:"Band-pass"}]
                     currentIndex:root.effect?model.findIndex(m=>m.value===root.effect.mode):0
@@ -146,7 +146,7 @@ Controls.Popup {
                 }
             }
             Text { width:parent.width;visible:root.effect!==null && root.effect.type==="compressor";text:"Drag T = threshold · R = ratio · scroll T = knee";wrapMode:Text.WordWrap;color:Theme.textSecondary;font.family:Theme.sansFamily;font.pixelSize:Theme.fontSizeSmaller }
-            Controls.Button { objectName:"remove-effect";text:"Remove effect";onClicked:{controller.edit(root.trackId===""?"removeMasterEffect":"removeTrackEffect",{effectId:root.effectId});root.close()} }
+            PanelButton { destructive: true; objectName:"remove-effect";text:"Remove effect";onClicked:{controller.edit(root.trackId===""?"removeMasterEffect":"removeTrackEffect",{effectId:root.effectId});root.close()} }
         }
     }
 }

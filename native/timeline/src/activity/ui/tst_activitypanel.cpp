@@ -69,6 +69,14 @@ private slots:
         const auto families = QFontDatabase::applicationFontFamilies(fontId);
         QVERIFY(!families.isEmpty());
         QGuiApplication::setFont(QFont(families.first()));
+        for (const auto* name : {"PanelButton", "PanelField", "PanelSelect", "PanelScrollBar"}) {
+            qmlRegisterType(QUrl::fromLocalFile(QStringLiteral(NT_ACTIVITY_SOURCE "/qml/controls/")
+                + QString::fromLatin1(name) + ".qml"), "NodeTool.Timeline", 1, 0, name);
+        }
+        qmlRegisterType(QUrl::fromLocalFile(QStringLiteral(NT_ACTIVITY_SOURCE "/qml/Icon.qml")),
+            "NodeTool.Timeline", 1, 0, "Icon");
+        qmlRegisterSingletonType(QUrl::fromLocalFile(QStringLiteral(NT_ACTIVITY_SOURCE "/qml/Icons.qml")),
+            "NodeTool.Timeline", 1, 0, "Icons");
         qmlRegisterType<ActivityPanelSource>("NodeTool.Timeline", 1, 0, "ActivityController");
         qmlRegisterType<ActivityPanelSource>("NodeTool.Timeline", 1, 0, "LocalActivity");
         qmlRegisterSingletonType(QUrl::fromLocalFile(QStringLiteral(NT_ACTIVITY_SOURCE "/qml/Theme.qml")),
@@ -127,7 +135,10 @@ Item {
         QCOMPARE(server->cancelledSource, QString("Generation"));
         auto* filter = find(panel, "activityFilter");
         QVERIFY(filter);
-        filter->setProperty("currentIndex", 2);
+        filter->forceActiveFocus();
+        QTest::keyClick(&window, Qt::Key_End);
+        QCOMPARE(filter->property("currentIndex").toInt(), 2);
+        QCOMPARE(filter->property("displayText").toString(), QString("Failures"));
         QTRY_COMPARE(find(panel, "activityList")->property("count").toInt(), 0);
         filter->setProperty("currentIndex", 1);
         QTRY_COMPARE(find(panel, "activityList")->property("count").toInt(), 1);

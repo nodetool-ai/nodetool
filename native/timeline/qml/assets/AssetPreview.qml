@@ -66,7 +66,7 @@ Rectangle {
                 font.family: Theme.sansFamily
                 font.pixelSize: Theme.fontSizeSmall
             }
-            Button { objectName: "assetPreviewClose"; text: "Close"; onClicked: root.closePreview() }
+            PanelButton { objectName: "assetPreviewClose"; text: "Close"; onClicked: root.closePreview() }
         }
         Item {
             Layout.fillWidth: true
@@ -94,7 +94,7 @@ Rectangle {
                 font.pixelSize: Theme.fontSizeSmall
             }
         }
-        Button {
+        PanelButton {
             objectName: "assetPreviewRetry"
             visible: root.supported && !review.busy && !review.ready
             text: "Retry preview"
@@ -103,8 +103,10 @@ Rectangle {
         RowLayout {
             Layout.fillWidth: true
             visible: review.ready && root.mediaType !== "image"
-            Button {
+            PanelButton {
                 objectName: "assetPreviewPlay"
+                iconPath: review.previewClock.playing ? Icons.pause : Icons.playArrow
+                iconOnly: true
                 text: review.previewClock.playing ? "Pause" : "Play"
                 onClicked: review.togglePlay()
             }
