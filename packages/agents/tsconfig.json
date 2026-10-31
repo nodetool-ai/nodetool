@@ -84,6 +84,9 @@
     },
     {
       "path": "../sandbox-runtime"
+    },
+    {
+      "path": "../presets"
     }
   ]
 }

@@ -1,0 +1,57 @@
+{
+  "version": "0.8.4",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/nodetool-ai/nodetool.git",
+    "directory": "packages/presets"
+  },
+  "homepage": "https://nodetool.ai",
+  "bugs": {
+    "url": "https://github.com/nodetool-ai/nodetool/issues"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "name": "@nodetool-ai/presets",
+  "description": "Shared generation preset schemas, model families and deterministic prompt compiler",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist",
+    "catalog",
+    "preset.schema.json",
+    "README.md",
+    "preset-catalog.json"
+  ],
+  "scripts": {
+    "build": "node ../../scripts/build-typescript-workspace.mjs && node scripts/generate.mjs",
+    "test": "node ../../scripts/run-vitest.mjs run",
+    "test:watch": "node ../../scripts/run-vitest.mjs",
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit",
+    "generate:check": "node scripts/generate.mjs --check"
+  },
+  "dependencies": {
+    "@nodetool-ai/protocol": "*",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "typescript": "npm:@typescript/typescript6@6.0.2",
+    "vitest": "^5.0.1",
+    "@nodetool-ai/config": "*"
+  },
+  "exports": {
+    ".": {
+      "nodetool-dev": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./preset-catalog.json": "./dist/preset-catalog.json",
+    "./preset.schema.json": "./preset.schema.json"
+  }
+}

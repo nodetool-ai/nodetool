@@ -1282,17 +1282,19 @@ export const HARNESSES: HarnessEntry[] = [
   },
   {
     id: "shared-services",
-    title: "Shared service libraries (vector store, model pricing)",
+    title: "Shared service libraries (vector store, model pricing, presets)",
     command:
       "npm run test --workspace=packages/vectorstore && " +
-      "npm run test --workspace=packages/model-pricing",
+      "npm run test --workspace=packages/model-pricing && " +
+      "npm run test --workspace=packages/presets",
     kind: "static",
     capabilities: ["no-db"],
     docs: "packages/AGENTS.md",
     selfcheck: {
       command:
         "npm run test --workspace=packages/vectorstore && " +
-        "npm run test --workspace=packages/model-pricing",
+        "npm run test --workspace=packages/model-pricing && " +
+        "npm run test --workspace=packages/presets",
       cost: "cheap"
     }
   },
@@ -2283,7 +2285,7 @@ export const SURFACES: SurfaceEntry[] = [
     id: "shared-services",
     title: "Shared service libraries (vector store, model pricing)",
     harnesses: ["shared-services"],
-    paths: ["packages/vectorstore/", "packages/model-pricing/"]
+    paths: ["packages/vectorstore/", "packages/model-pricing/", "packages/presets/"]
   },
   {
     id: "repo-scripts",

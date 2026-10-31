@@ -1,0 +1,24 @@
+{
+  "id": "camera.dolly-in",
+  "version": 1,
+  "kind": "camera",
+  "name": "Dolly in",
+  "description": "The camera dollies smoothly toward the subject.",
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "stackable": true,
+  "aliases": [
+    "dolly in"
+  ],
+  "prompt": {
+    "default": "The camera dollies smoothly toward the subject.",
+    "kling": "The camera dollies smoothly toward the subject.",
+    "seedance": "The camera dollies smoothly toward the subject.",
+    "veo": "The camera dollies smoothly toward the subject.",
+    "wan": "The camera dollies smoothly toward the subject."
+  }
+}

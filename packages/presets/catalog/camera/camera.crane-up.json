@@ -1,0 +1,24 @@
+{
+  "id": "camera.crane-up",
+  "version": 1,
+  "kind": "camera",
+  "name": "Crane up",
+  "description": "The camera rises vertically to reveal the surroundings.",
+  "slot": "move",
+  "modes": [
+    "video",
+    "image_to_video",
+    "reference_to_video"
+  ],
+  "stackable": true,
+  "aliases": [
+    "crane up"
+  ],
+  "prompt": {
+    "default": "The camera rises vertically to reveal the surroundings.",
+    "kling": "The camera rises vertically to reveal the surroundings.",
+    "seedance": "The camera rises vertically to reveal the surroundings.",
+    "veo": "The camera rises vertically to reveal the surroundings.",
+    "wan": "The camera rises vertically to reveal the surroundings."
+  }
+}

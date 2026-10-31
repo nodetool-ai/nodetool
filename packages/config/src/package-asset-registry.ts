@@ -31,6 +31,7 @@ export interface PackageAssetRef {
 }
 
 export const PACKAGE_RUNTIME_ASSETS: readonly PackageAssetRef[] = [
+  { pkg: "@nodetool-ai/presets", path: "preset-catalog.json" },
   { pkg: "@nodetool-ai/pack-core", path: "index.json" },
   { pkg: "@nodetool-ai/pack-core", path: "nodes.ndjson.gz" },
   { pkg: "@nodetool-ai/atlascloud-nodes", path: "atlascloud-manifest.json" },
