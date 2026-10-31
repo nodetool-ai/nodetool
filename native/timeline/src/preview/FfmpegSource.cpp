@@ -256,7 +256,9 @@ bool openDecoder(Stream& s, const std::string& path, const AVIOInterruptCB* inte
     if (s.hardware) {
         s.ctx->thread_count = 1;  // VideoToolbox decodes on its own threads
     } else {
-        s.ctx->thread_count = 2;  // D14
+        // One thread per core (FFmpeg's automatic count): a seek decodes from
+        // the keyframe to the target, about 3x faster than with 2 threads.
+        s.ctx->thread_count = 0;
         s.ctx->thread_type = FF_THREAD_FRAME;
     }
     const int rc = avcodec_open2(s.ctx.get(), s.o.codec, nullptr);
@@ -335,6 +337,7 @@ FfmpegDecoder::FfmpegDecoder(std::string path, double initialSec, std::optional<
       m_stallAfterPackets(g_testStallAfterPackets.load()),
       m_frameLossAfterFrames(g_testFrameLossAfterFrames.load()),
       m_skipNonReference(qEnvironmentVariable("NT_DECODE_SKIP") != QLatin1String("off")),
+      m_softwareSeeks(qEnvironmentVariable("NT_SEEK_SOFTWARE") != QLatin1String("off")),
       m_targetSec(initialSec),
       m_restartSec(initialSec) {
     beat();
@@ -444,6 +447,10 @@ std::shared_ptr<const MediaFacts> FfmpegDecoder::facts() const {
 
 std::shared_ptr<DecodedFrame> FfmpegDecoder::frameAt(double targetSec) {
     m_targetSec = targetSec;
+    if (targetSec < m_lastTargetSec - kTimestampEpsilonSec || targetSec - m_lastTargetSec > kSeekJumpSec) {
+        m_settling = true;
+    }
+    m_lastTargetSec = targetSec;
     // One snapshot: the pick, whether a later frame is queued, end of
     // stream, and the generation they belong to (F1).
     auto snap = m_ring.pick(targetSec);
@@ -457,6 +464,7 @@ std::shared_ptr<DecodedFrame> FfmpegDecoder::frameAt(double targetSec) {
         if (auto cached = FrameCache::shared().lookup(m_path, targetSec)) {
             m_shown = std::move(cached);
             m_exact = true;
+            m_settling = false;
             m_lastQueued = snap.size;
             m_lastNewest = snap.newestPts;
             return m_shown;
@@ -495,10 +503,13 @@ std::shared_ptr<DecodedFrame> FfmpegDecoder::frameAt(double targetSec) {
 
     const bool pickReady = snap.front && snap.generation == current && snap.front->generation == current &&
                            frameStartsBy(snap.front->ptsSec, targetSec);
-    if (pickReady) {
+    const bool pickExact = pickReady && (snap.frameAfter || snap.eof);
+    // While a seek settles, only the exact pick replaces the shown frame.
+    if (pickReady && (pickExact || !m_settling || !m_shown)) {
         m_shown = snap.front;  // a superseded seek's frame stays until this lands
     }
-    m_exact = pickReady && (snap.frameAfter || snap.eof);
+    if (pickExact) m_settling = false;
+    m_exact = pickExact;
     return m_shown;
 }
 
@@ -541,6 +552,15 @@ void FfmpegDecoder::run() {
     if (!openWithPolicy(mode != DecodeMode::Software)) {
         return;  // rejected or failed: the pool draws a placeholder
     }
+    // Auto with VideoToolbox: a seek decodes to its target in software on
+    // every core (about 3x faster than VideoToolbox, which takes one frame at
+    // a time), and playback goes back to VideoToolbox at the next keyframe.
+    // `parked` holds the decoder not in use.
+    bool hybrid = mode == DecodeMode::Auto && s.hardware && m_softwareSeeks;
+    Stream parked;
+    bool switching = false;            // the software decoder drains before the switch to VideoToolbox
+    int64_t switchKeyTs = 0;           // the keyframe VideoToolbox starts at
+    double switchFloorSec = -1e300;    // frames up to here were queued before the switch
 
     std::unique_ptr<AVPacket, PacketFree> pkt(av_packet_alloc());
     std::unique_ptr<AVFrame, FrameFree> frm(av_frame_alloc());
@@ -599,6 +619,8 @@ void FfmpegDecoder::run() {
     // VideoToolbox failed before its first frame: Auto continues in software
     // from the same position (D15), Hardware fails the clip.
     const auto hardwareFailed = [&](const std::string& reason, long long gen) -> bool {
+        hybrid = false;
+        parked = Stream{};
         if (mode == DecodeMode::Hardware) {
             MediaFacts failed = s.o.facts;
             failed.error = "hardware decode: " + reason;
@@ -628,7 +650,10 @@ void FfmpegDecoder::run() {
                 reason = "GPU import: " + m_importFailure;
                 afterShown = m_importAfterShown;
             }
-            if (s.hardware && mode == DecodeMode::Auto && !afterShown) {
+            if ((s.hardware || hybrid) && mode == DecodeMode::Auto && !afterShown) {
+                hybrid = false;
+                parked = Stream{};
+                switching = false;
                 fallback = reason;
                 if (!reopen(false)) return;
                 m_ring.reset(gen);
@@ -653,6 +678,18 @@ void FfmpegDecoder::run() {
             // From the first packet, a target within the sequential gap
             // decodes through: no seek, which also serves streams with no
             // seek index (a raw Annex-B file).
+            switching = false;
+            switchFloorSec = -1e300;
+            if (hybrid && s.hardware) {
+                if (!parked.ctx && !openDecoder(parked, m_path, &interrupt, false, nullptr)) {
+                    hybrid = false;  // VideoToolbox serves seeks as before
+                    parked = Stream{};
+                } else {
+                    std::swap(s, parked);
+                    m_hardwareActive = false;
+                    ++m_engineSwitches;
+                }
+            }
             const bool decodeThrough = s.fromStart && !s.lastPts && target <= kMaxSequentialGapSec;
             runHasPick = false;
             reseekBackSec = 0.0;
@@ -695,7 +732,35 @@ void FfmpegDecoder::run() {
             return false;
         };
 
+        // The software decoder has drained up to the keyframe: VideoToolbox
+        // continues from it. On a failed seek, software decodes on.
+        const auto finishSwitch = [&]() {
+            switching = false;
+            std::swap(s, parked);
+            if (av_seek_frame(s.o.fmt.get(), s.o.stream->index, switchKeyTs, AVSEEK_FLAG_BACKWARD) >= 0) {
+                avcodec_flush_buffers(s.ctx.get());
+                s.draining = false;
+                s.eof = false;
+                s.fromStart = false;
+                s.lastPts.reset();
+                switchFloorSec = m_ring.newestPts();
+                m_hardwareActive = true;
+                ++m_engineSwitches;
+                return;
+            }
+            std::swap(s, parked);
+            hybrid = false;
+            parked = Stream{};
+            const double keySec = static_cast<double>(switchKeyTs - s.start) * s.tb;
+            if (!seekTo(keySec)) m_stop = true;
+            switchFloorSec = m_ring.newestPts();
+        };
+
         int rc = avcodec_receive_frame(s.ctx.get(), frm.get());
+        if (switching && (rc == AVERROR_EOF || (rc == AVERROR(EAGAIN) && s.draining))) {
+            finishSwitch();
+            continue;
+        }
         if (rc == AVERROR(EAGAIN)) {
             if (s.draining) {
                 s.eof = true;
@@ -717,6 +782,21 @@ void FfmpegDecoder::run() {
                 }
                 if (pkt->stream_index != s.o.stream->index) {
                     av_packet_unref(pkt.get());
+                    continue;
+                }
+                // Playback after a software seek: at a keyframe, drain the
+                // software decoder and switch to VideoToolbox.
+                if (hybrid && !s.hardware && (pkt->flags & AV_PKT_FLAG_KEY) && pkt->pts != AV_NOPTS_VALUE &&
+                    m_targetSec.load() - seekTarget > kSeekJumpSec) {
+                    switchKeyTs = pkt->pts;
+                    av_packet_unref(pkt.get());
+                    switching = true;
+                    const int drain = avcodec_send_packet(s.ctx.get(), nullptr);
+                    if (drain < 0 && drain != AVERROR_EOF) {
+                        finishSwitch();
+                    } else {
+                        s.draining = true;
+                    }
                     continue;
                 }
                 pendingPacket = true;
@@ -828,8 +908,11 @@ void FfmpegDecoder::run() {
             beat();
             continue;
         }
+        if (ptsSec <= switchFloorSec + kTimestampEpsilonSec) {
+            av_frame_unref(frm.get());  // queued already by the software decoder
+            continue;
+        }
         s.lastPts = ptsSec;
-        (void)seekTarget;
 
         auto out = std::make_shared<DecodedFrame>();
         out->generation = gen;

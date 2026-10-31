@@ -154,6 +154,8 @@ public:
     // For tests: seeks started (one per restart), reopens after a failed seek
     // or missing timestamps, and the queue state at the last frameAt().
     long long seeks() const { return m_seekCount.load(); }
+    // Switches between the software seek decoder and VideoToolbox.
+    long long engineSwitches() const { return m_engineSwitches.load(); }
     long long reopens() const { return m_reopenCount.load(); }
     int queuedFrames() const { return m_lastQueued; }
     double newestQueuedPts() const { return m_lastNewest; }
@@ -182,6 +184,8 @@ private:
     // Catch-up skipping of non-reference frames (D19). NT_DECODE_SKIP=off
     // turns it off, for the latency A/B in scripts/window-checks.sh.
     bool m_skipNonReference = true;
+    // Auto mode decodes seeks in software (NT_SEEK_SOFTWARE=off disables).
+    bool m_softwareSeeks = true;
     FrameRing<DecodedFrame> m_ring;
 
     // Requests from the render thread.
@@ -190,6 +194,7 @@ private:
     double m_restartSec;  // target of the newest restart (render thread)
 
     std::atomic<long long> m_seekCount{0};
+    std::atomic<long long> m_engineSwitches{0};
 
     // An import failure for the worker to act on (render thread to worker).
     std::mutex m_importMutex;
@@ -222,6 +227,10 @@ private:
     // Render thread only.
     std::shared_ptr<DecodedFrame> m_shown;
     bool m_exact = false;
+    // A jump of the target (a seek, not playback) holds the shown frame until
+    // the exact pick lands, so the frames decoded on the way never show.
+    bool m_settling = false;
+    double m_lastTargetSec = -1e300;
     int m_lastQueued = 0;
     double m_lastNewest = -1e300;
 

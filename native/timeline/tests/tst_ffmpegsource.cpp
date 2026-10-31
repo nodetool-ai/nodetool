@@ -104,6 +104,13 @@ struct ModeScope {
     ~ModeScope() { setDecodeMode(DecodeMode::Software); }
 };
 
+// Seeks decode with VideoToolbox, as before the software seek decoder: for
+// tests of VideoToolbox failures during a seek.
+struct HardwareSeeksScope {
+    HardwareSeeksScope() { qputenv("NT_SEEK_SOFTWARE", "off"); }
+    ~HardwareSeeksScope() { qunsetenv("NT_SEEK_SOFTWARE"); }
+};
+
 }  // namespace
 
 class TestFfmpegSource : public QObject {
@@ -225,6 +232,27 @@ private slots:
         QVERIFY(f);
         QVERIFY(std::abs(f->ptsSec - 0.933333) < 1e-6);
         QVERIFY(d.exact());
+    }
+
+    // A seek holds the shown frame until the exact pick lands: the frames
+    // decoded on the way to the target never show, so a paused seek does not
+    // play the clip up to the playhead.
+    void seekHoldsFrameUntilExact() {
+        FfmpegDecoder d{FfmpegDecoder::NoWorkerForTest{}};
+        d.testPush(0.0);
+        d.testPush(0.033333);
+        auto f = d.frameAt(0.0);
+        QVERIFY(f && d.exact());
+        QVERIFY(std::abs(f->ptsSec) < 1e-6);
+        d.testPush(0.5);  // decoded on the way to the target
+        f = d.frameAt(0.9);
+        QVERIFY(f);
+        QVERIFY2(std::abs(f->ptsSec) < 1e-6, "a frame before the seek target was shown");
+        d.testPush(0.9);
+        d.testPush(0.933333);
+        f = d.frameAt(0.9);
+        QVERIFY(f && d.exact());
+        QVERIFY(std::abs(f->ptsSec - 0.9) < 1e-6);
     }
 
     // F3: a raw Annex-B stream has no timestamps and no seek index. Opening
@@ -356,9 +384,32 @@ private slots:
         }
     }
 
+    // Auto: a seek decodes to its target in software, and playback from it
+    // goes back to VideoToolbox at the next keyframe with no frame lost.
+    void autoSeekDecodesInSoftwareThenPlaysInHardware() {
+        ModeScope mode(DecodeMode::Auto);
+        FfmpegDecoder d(media("seek-360p30.mp4"), 0.0);
+        QVERIFY(waitExact(d, 0.0));
+        auto f = waitExact(d, 75.0 / 30.0);  // 2.5 s, between keyframes
+        QVERIFY(f);
+        QVERIFY2(!f->hardware, "the seek did not decode in software");
+        QCOMPARE(barcode(*f), 75);
+        bool hardwareAgain = false;
+        for (int frame = 76; frame <= 140; ++frame) {  // through the keyframe at 4 s
+            f = waitExact(d, frame / 30.0);
+            QVERIFY2(f, qPrintable(QStringLiteral("frame %1 never exact").arg(frame)));
+            QCOMPARE(f->hardware ? hardwareBarcode(*f) : barcode(*f), frame);
+            if (f->hardware) hardwareAgain = true;
+            QVERIFY2(!(hardwareAgain && !f->hardware), "playback left VideoToolbox again");
+        }
+        QVERIFY2(hardwareAgain, "playback did not go back to VideoToolbox");
+        QVERIFY(d.engineSwitches() >= 2);
+    }
+
     // M1c: a stream VideoToolbox cannot decode (4:4:4 H.264) falls back to
     // software in Auto, with the reason, and fails the clip in Hardware.
     void hardwareFallback() {
+        HardwareSeeksScope hardwareSeeks;
         {
             ModeScope mode(DecodeMode::Auto);
             FfmpegDecoder d(media("yuv444-untagged-720p.mp4"), 0.0);
@@ -388,6 +439,7 @@ private slots:
     // Metal interop) must not leave the picture missing. FfmpegSource reports
     // it; before the first frame is shown, Auto retries in software.
     void importFailureFallsBackInAuto() {
+        HardwareSeeksScope hardwareSeeks;
         ModeScope mode(DecodeMode::Auto);
         FfmpegSource source(media("seek-360p30.mp4"), 0.0, QSize(640, 360));
         FrameContext ctx;  // no QRhi and no interop: every import fails
@@ -448,6 +500,7 @@ private slots:
     // F3: the same error before the first frame, in Auto, falls back to
     // software (send errors take the same path as receive errors).
     void sendErrorBeforeFirstFrameFallsBack() {
+        HardwareSeeksScope hardwareSeeks;
         ModeScope mode(DecodeMode::Auto);
         setTestDecodeFailureAfterPackets(0);
         FfmpegDecoder d(media("seek-360p30.mp4"), 0.0);
@@ -471,6 +524,7 @@ private slots:
         QTest::newRow("after seek, auto") << 1 << int(DecodeMode::Auto);
     }
     void hardwareSetupFailurePolicy() {
+        HardwareSeeksScope hardwareSeeks;
         QFETCH(int, failingOpen);
         QFETCH(int, mode);
         ModeScope scope(static_cast<DecodeMode>(mode));

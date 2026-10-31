@@ -17,6 +17,9 @@ inline constexpr double kTimestampEpsilonSec = 1e-6;
 // The largest forward step that decodes through instead of seeking
 // (MAX_SEQUENTIAL_GAP_SEC).
 inline constexpr double kMaxSequentialGapSec = 1.0;
+// A forward step of the target larger than this is a seek, not playback (an
+// 8x shuttle at 30 Hz steps 0.27 s).
+inline constexpr double kSeekJumpSec = 0.5;
 // Decode ahead: at most this many frames, and at most this far past the
 // target, whichever is smaller (D16).
 inline constexpr int kMaxFramesAhead = 8;

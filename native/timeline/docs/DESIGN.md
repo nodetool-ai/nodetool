@@ -343,9 +343,14 @@ dialogs, `ExportVideoDialog`, and the gizmo and tracking overlays.
   `seekExact(sourceSec) -> future`. `SyntheticSource` draws test patterns.
   `FfmpegSource` decodes media.
 - **D14.** Software decode first (M1b): `libavformat` demux, `libavcodec`
-  decode, `thread_count` 2 per decoder, `thread_type` frame. Reason: it proves
+  decode, `thread_count` 0 (one thread per core), `thread_type` frame. Reason: it proves
   timing, seeking, and colour before any platform code exists.
 - **D15.** Hardware decode through FFmpeg `hw_device_ctx`:
+  - In Auto, a seek decodes to its target with a second, software decoder
+    on every core. FFmpeg gives VideoToolbox one frame at a time, so this is
+    about 2.5x faster. Playback goes back to VideoToolbox at the next
+    keyframe, after the software decoder drains. `NT_SEEK_SOFTWARE=off`
+    keeps seeks on VideoToolbox.
   - macOS (M1c): VideoToolbox. Request IOSurface-backed NV12 with
     `kCVPixelBufferMetalCompatibilityKey`. `frame->data[3]` is the
     `CVPixelBufferRef`. A `CVMetalTextureCache` built on the `MTLDevice` from
