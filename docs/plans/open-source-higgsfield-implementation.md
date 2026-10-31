@@ -483,27 +483,99 @@ Status: done.
   [docs/AGENTS.md](../AGENTS.md#built-in-capabilities).
 - Mark this plan's tickets done as they land.
 
-## Phase 2 outline
+## Phase 2 tickets
 
-Each item becomes its own ticket set when Phase 1 ships.
+Phase 1 has shipped except P12, so the Phase 2 outline is now these tickets.
+Region edit stays out of scope until a mask track design exists.
 
-1. **Look presets.** `kind: "look"` with slots for body, stock, grade, lighting,
-   era and speed ramp. Board-level `look_preset_ids` on the storyboard document
-   and a per-shot override. Compile into keyframe and clip prompts through the
-   same context hook as P7. Some looks set params, such as `fps` or
-   `negative_prompt`, only for models that accept them.
-2. **Studios on the start page.** `kind: "studio"` presets that point at an
-   existing guided flow, recipe or app and list the presets shown inside it.
-   Start page tiles with outcome names. No new engine.
-3. **Lipsync studio.** Entity, line, voice and lipsync model to a clip. Reuse
-   `voice_script_lines` and the audio-to-video mode. Consent check on any
-   reference image the user marks as a real person.
-4. **`@` entities everywhere.** Reuse `useTextareaAssetMention.tsx` in the
-   storyboard, sketch and timeline prompt boxes. Optional local identity
-   training stays a separate design.
-5. **Video restyle and region edit.** Restyle presets with `modes:
-   ["video_edit"]`. Region edit needs a mask track design and is scoped
-   separately.
+### Dependency graph
+
+```
+P14 Look schema and catalogue ──┬── P15 Looks in storyboard and composer
+                                ├── P16 Studios on the start page
+                                └── P20 Look and restyle previews
+P17 @ entities in prompt boxes
+P18 Lipsync studio ───────────────── P16 (lists it as a studio)
+P19 Video restyle presets ───────── P20
+```
+
+### P14: Look schema and catalogue
+
+- Add the look slots `body`, `stock`, `grade`, `lighting`, `era` and `ramp` to
+  the preset schema. One preset per slot in a stack, as for camera slots.
+- Let a preset scope params to families, so a look can set `fps` or
+  `negative_prompt` only for models that accept them. Params a family does not
+  accept are dropped with a warning, not sent.
+- Write at least 24 look presets in `catalog/look/` with fragments for each
+  tested family. Regenerate `preset-catalog.json`.
+- Looks have no previews until P20. The catalogue test requires previews for
+  camera and effect presets only until then.
+
+Acceptance: compiler tests for a look stacked with camera presets on two
+families, and for a family-scoped param dropped on a model that lacks it.
+
+### P15: Looks in storyboard and composer
+
+- Board-level `look_preset_ids` on the storyboard document and a per-shot
+  override `shot.look_preset_ids`. An empty override inherits the board's.
+- Compile looks into keyframe and clip prompts through `ShotPromptContext`,
+  beside the compiled camera clause. Show the look clause in
+  `ShotPromptPreview.tsx`.
+- A board look picker in the storyboard (next to the board style controls) and
+  a per-shot override in the shot editor, both `PresetPicker` filtered to
+  `kind: "look"`.
+- The composer preset chip offers looks for the modes they list.
+- Agent tool schemas (`edit_storyboard`, storyboard bridge) can set both fields.
+
+Acceptance: render-path test for a board look, a shot override and a camera
+preset on one shot. Store and component tests for both pickers.
+
+### P16: Studios on the start page
+
+- `kind: "studio"` presets. A studio names its target (a guided flow, a
+  starter skill, a surface such as Effects or Lipsync, or an app) and the
+  preset ids it shows inside it. No new engine.
+- Start page tiles with outcome names, read from the studio catalogue, opening
+  the target with its presets preselected where the target supports that.
+
+Acceptance: a test that every studio's target and preset ids resolve.
+Component test for the tiles.
+
+### P17: @ entities in prompt boxes
+
+- Reuse `useTextareaAssetMention.tsx` in the storyboard shot prompt fields,
+  the sketch generation brief and the timeline generation prompt boxes.
+- A mentioned entity is attached the same way the chat composer attaches it.
+
+Acceptance: component tests for one prompt box per surface.
+
+### P18: Lipsync studio
+
+- A surface that takes an entity or image, a line of text, a voice and a
+  lipsync model, and renders a clip: speech first, then the audio-to-video
+  mode. Reuse the speech path behind `voice_script_lines` and the
+  `audio_to_video` mode.
+- A consent check: when the user marks a reference image as a real person, the
+  run requires a confirmation that they have the person's consent, recorded
+  with the generation.
+- Entry from **+ New** and a start page tile. Results land in Generations.
+
+Acceptance: store and component tests for the flow and the consent gate. A
+Playwright test against the fake provider.
+
+### P19: Video restyle presets
+
+- Add `video_edit` to the preset modes. Write at least eight restyle presets.
+- `generate_media` with `video_edit`, the chat retake mode and the agent video
+  edit path accept `preset_ids`. Eject builds a video-edit graph.
+
+Acceptance: compile and eject tests for every restyle preset. Request payload
+test for the retake mode.
+
+### P20: Look and restyle previews
+
+- Render and publish previews for the P14 looks and the P19 restyle presets
+  through `scripts/presets`, then require previews for every kind again.
 
 ## Phase 3 outline
 
