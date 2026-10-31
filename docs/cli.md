@@ -151,6 +151,38 @@ nodetool info
 nodetool info --json
 ```
 
+### `nodetool text [prompt]`
+
+Streams one completion from an OpenAI-compatible model. Needs only
+`OPENAI_API_KEY`: no server, pack, user ID or master key. The prompt comes from
+the argument, or from stdin when it is omitted or `-`.
+
+**Options:**
+
+- `-m, --model <id>` — model ID. Defaults to `NODETOOL_TEXT_MODEL`, then `gpt-4.1-mini`.
+- `-s, --system <text>` — system prompt.
+- `--json` — print `{model, text, usage}` once instead of streaming text.
+
+The key is read from the local encrypted secret store when `SECRETS_MASTER_KEY`
+is set and the store holds `OPENAI_API_KEY`, otherwise from the environment.
+`OPENAI_BASE_URL` selects another OpenAI-compatible endpoint.
+
+```bash
+nodetool text "Write a haiku about rivers"
+git diff | nodetool text --system "Review this diff" --json
+```
+
+### `nodetool nodes`
+
+Prints the built-in node types that `nodetool run` executes without packs, with
+their property and output types, as JSON. `--example` prints a runnable workflow
+(input → template → `openai.text.ChatComplete` → output).
+
+```bash
+nodetool nodes --example > flow.json
+nodetool run flow.json --params '{"topic":"rivers"}'
+```
+
 ### `nodetool serve`
 
 Starts the authenticated lean execution server. It persists workflows, jobs,
@@ -1854,21 +1886,20 @@ Agents reach the same record through `list_generations`, `get_generation`,
 
 ### `nodetool secrets`
 
-Manage encrypted secrets stored in the local database with per-user encryption.
+Manage encrypted secrets. With a token (`--token` or `NODETOOL_API_TOKEN`) the
+commands call the server. Without one they use the local store in
+`NODETOOL_DATA_DIR`, which needs `SECRETS_MASTER_KEY` to write.
 
-**Subcommands:** `list`, `store`, `get`
+**Subcommands:** `list`, `set` (alias `store`). `get` requires the `cli-workflow` feature.
 
 **Examples:**
 
 ```bash
-# List stored secret keys
+# List stored secret keys (never values)
 nodetool secrets list
 
-# Store a secret (prompts for value)
-nodetool secrets store OPENAI_API_KEY
-
-# Retrieve a secret value
-nodetool secrets get OPENAI_API_KEY
+# Store a secret read from stdin
+printf %s "$OPENAI_API_KEY" | nodetool secrets set OPENAI_API_KEY
 ```
 
 ## Provider Sign-In
