@@ -466,7 +466,7 @@ async function runMediaGeneration(
   spec: MediaGeneration
 ): Promise<unknown> {
   const context = run.context;
-  let presetWarnings: string[] = [];
+  let presetWarnings: string[] | undefined;
   const id = randomUUID();
   if (params["preset_ids"] !== undefined) {
     try {
@@ -512,7 +512,7 @@ async function runMediaGeneration(
       };
     }
     return {
-      ...(params["preset_ids"] !== undefined ? { preset_warnings: presetWarnings } : {}),
+      preset_warnings: presetWarnings,
       type: spec.type,
       provider: spec.m.provider,
       model: spec.m.model,
