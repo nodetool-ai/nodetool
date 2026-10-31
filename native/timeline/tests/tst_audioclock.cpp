@@ -13,11 +13,13 @@
 //     (drift 0), while the monotonic clock would be off by 360 ms.
 
 #include "playback/AudioClockFeed.h"
+#include "audio/AvSyncInterpolation.h"
 #include "playback/PlaybackClock.h"
 
 #include <QtTest>
 
 #include <cmath>
+#include <array>
 #include <deque>
 #include <random>
 
@@ -168,6 +170,17 @@ class TstAudioClock : public QObject {
     Q_OBJECT
 
 private slots:
+    void clickInterpolationAfterSingleHeldSample() {
+        const std::array<nt::audio::AvSyncSample, 4> samples{{
+            {143400, 2998, 1, false},
+            {143700, 3000, 2, true},
+            {144300, 3006.25, 2, false},
+            {144600, 3012.5, 2, false}}};
+        const auto click = nt::audio::interpolateAvSyncClick(samples, 144000);
+        QVERIFY(click);
+        QCOMPARE(click->generation, std::uint64_t(2));
+        QCOMPARE(click->clockMs, 3000.0);
+    }
     void rangeEditsUpdatePlayingBounds() {
         std::int64_t now = 0;
         PlaybackClock clock;
