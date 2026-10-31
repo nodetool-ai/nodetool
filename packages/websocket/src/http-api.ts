@@ -42,6 +42,7 @@ import { bootstrapNodeRegistry } from "./node-registry-setup.js";
 import {
   PythonNodeExecutor,
   createPythonBridge,
+  loadMediaModule,
   logPythonWorkerStderr,
   type NodeExecutor,
   type ProcessingContext,
@@ -78,7 +79,6 @@ import {
 } from "./lib/thumbnail.js";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
 import { getAssetAdapter, getTempAdapter } from "./lib/storage.js";
-import { probeHasAudio } from "@nodetool-ai/runtime/media";
 import { extractAudio } from "./lib/media.js";
 import {
   packWorkflowsBundle,
@@ -1763,6 +1763,8 @@ export async function handleExtractAudio(
     // The WAV stays on disk: it is stored from the file and thumbnailed from
     // it, never held in memory whole.
     const wavPath = nodePath.join(dir, "audio.wav");
+    // Loaded on use: the media codecs are an optional runtime package.
+    const { probeHasAudio } = await loadMediaModule();
     if (!(await probeHasAudio(inputPath))) {
       return jsonResponse({ has_audio: false });
     }

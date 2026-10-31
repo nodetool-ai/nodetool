@@ -16,13 +16,13 @@
   },
   "dependencies": {
     "@nodetool-ai/protocol": "*",
-    "typegpu": "^0.11.6",
-    "webgpu": "^0.4.0"
+    "typegpu": "^0.11.6"
   },
   "devDependencies": {
     "@webgpu/types": "^0.1.70",
     "typescript": "npm:@typescript/typescript6@6.0.2",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.1",
+    "webgpu": "^0.4.0"
   },
   "exports": {
     ".": {
@@ -79,5 +79,13 @@
     "blend-modes",
     "compositor",
     "shaders"
-  ]
+  ],
+  "peerDependencies": {
+    "webgpu": "^0.4.0"
+  },
+  "peerDependenciesMeta": {
+    "webgpu": {
+      "optional": true
+    }
+  }
 }

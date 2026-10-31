@@ -1033,7 +1033,9 @@ export type RuntimePackageId =
   | "typescript"
   | "tracing"
   | "rapier"
-  | "esbuild";
+  | "esbuild"
+  | "media-codecs"
+  | "webgpu";
 
 export interface RuntimePackageStatus {
   /** Included in the backend bundle, with no install lifecycle. */

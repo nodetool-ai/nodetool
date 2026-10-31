@@ -24,7 +24,7 @@ import os from "node:os";
 import path from "node:path";
 
 import type { Sharp } from "sharp";
-import { loadSharpOrThrow } from "@nodetool-ai/runtime";
+import { loadMediaModule, loadSharpOrThrow } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
 import {
   assetKeyCandidates,
@@ -34,11 +34,7 @@ import {
 } from "@nodetool-ai/storage";
 import { getAssetAdapter } from "./storage.js";
 import { assetFileNameCandidates, localAssetPath } from "./asset-paths.js";
-import {
-  openFilterComplex,
-  openRgbaFrameReader,
-  type RgbaFrame
-} from "@nodetool-ai/runtime/media";
+import type { RgbaFrame } from "@nodetool-ai/runtime/media";
 import { withTaskSpan } from "@nodetool-ai/runtime/tracing";
 
 const log = createLogger("nodetool.thumbnail");
@@ -123,6 +119,7 @@ async function withSourcePath<T>(
 
 /** The first frame at or after `seekSeconds`, scaled down to the thumbnail width. */
 async function videoFrame(inputPath: string, seekSeconds: number): Promise<RgbaFrame | null> {
+  const { openRgbaFrameReader } = await loadMediaModule();
   const reader = await openRgbaFrameReader({
     filePath: inputPath,
     filter: `scale='min(${THUMB_MAX_DIM},iw)':-2,format=rgba`,
@@ -209,6 +206,7 @@ async function generatePdfThumb(source: ThumbnailSource): Promise<Buffer> {
 async function generateAudioThumb(source: ThumbnailSource): Promise<Buffer> {
   return withTaskSpan("cpu", "audio.thumbnail", {}, () =>
     withSourcePath(source, "nodetool-athumb-", async (inputPath) => {
+      const { openFilterComplex } = await loadMediaModule();
       const run = await openFilterComplex({
         inputs: [{ filePath: inputPath, kind: "audio", label: "0:a" }],
         graph: `[0:a]showwavespic=s=${THUMB_MAX_DIM}x${Math.round(THUMB_MAX_DIM / 2)}:colors=0x4a90e2,format=rgba[out]`,

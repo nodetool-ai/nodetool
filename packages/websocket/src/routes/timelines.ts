@@ -47,7 +47,7 @@ import {
   type PremiereFetchedAsset,
   type PremiereMediaInfo
 } from "../lib/timeline-premiere.js";
-import { probeDurationSec, probeHasAudio } from "@nodetool-ai/runtime/media";
+import { loadMediaModule } from "@nodetool-ai/runtime";
 import { isLocalFileSource, streamZip, type ExportSource } from "../lib/zip-stream.js";
 
 interface RouteOptions {
@@ -114,6 +114,7 @@ async function probeExportSource(
       await writeFile(path, source);
     }
     const info: PremiereMediaInfo = {};
+    const { probeDurationSec, probeHasAudio } = await loadMediaModule();
     const durationSec = await probeDurationSec(path);
     if (durationSec !== null) info.durationMs = Math.round(durationSec * 1000);
     if (isVideo) info.hasAudio = await probeHasAudio(path);

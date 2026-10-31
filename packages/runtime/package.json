@@ -33,9 +33,7 @@
     "ws": "^8.19.0",
     "zod": "^4.4.3",
     "@nodetool-ai/antigravity-cli": "*",
-    "@mediabunny/server": "1.54.0",
     "mediabunny": "1.54.0",
-    "node-av": "^6.1.1",
     "@nodetool-ai/runtime-core": "*",
     "@nodetool-ai/execution-core": "*"
   },
@@ -49,7 +47,9 @@
     "@opentelemetry/core": "^2.10.0",
     "@opentelemetry/resources": "^2.10.0",
     "@opentelemetry/sdk-trace-base": "^2.10.0",
-    "@napi-rs/canvas": "^0.1.65"
+    "@napi-rs/canvas": "^0.1.65",
+    "node-av": "^6.1.1",
+    "@mediabunny/server": "1.54.0"
   },
   "peerDependencies": {
     "js-tiktoken": "^1.0.21",
@@ -58,7 +58,9 @@
     "@opentelemetry/core": "^2.10.0",
     "@opentelemetry/resources": "^2.10.0",
     "@opentelemetry/sdk-trace-base": "^2.10.0",
-    "@napi-rs/canvas": "^0.1.65"
+    "@napi-rs/canvas": "^0.1.65",
+    "node-av": "^6.1.1",
+    "@mediabunny/server": "1.54.0"
   },
   "peerDependenciesMeta": {
     "js-tiktoken": {
@@ -80,6 +82,12 @@
       "optional": true
     },
     "@napi-rs/canvas": {
+      "optional": true
+    },
+    "node-av": {
+      "optional": true
+    },
+    "@mediabunny/server": {
       "optional": true
     }
   },

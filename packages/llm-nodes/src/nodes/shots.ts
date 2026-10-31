@@ -11,8 +11,7 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ImageRef, VideoRef } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { loadMediaRefBytes } from "@nodetool-ai/runtime";
-import { lastFramePng, probeMedia } from "@nodetool-ai/runtime/media";
+import { loadMediaModule, loadMediaRefBytes } from "@nodetool-ai/runtime";
 import type { Screenplay, Shot } from "@nodetool-ai/protocol";
 import { isScreenplay } from "@nodetool-ai/protocol";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
@@ -410,6 +409,7 @@ export class ShotChainNode extends BaseNode {
     const inputPath = path.join(workDir, "clip.mp4");
     try {
       await fs.writeFile(inputPath, bytes);
+      const { lastFramePng, probeMedia } = await loadMediaModule();
       const probe = await probeMedia(inputPath);
       if (!probe.video) return null;
       const frame = await lastFramePng({
