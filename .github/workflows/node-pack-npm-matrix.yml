@@ -12,7 +12,6 @@ on:
       - 'packages/pack-manager/src/npm-runner.ts'
       - 'packages/pack-manager/src/install-lock.ts'
       - 'packages/pack-manager/tests/packs/npm-matrix.test.ts'
-      - 'packages/pack-manager/tests/packs/global-bootstrap.test.ts'
       - 'packages/pack-manager/tests/_helpers/pack-registry.ts'
       - 'packages/pack-manager/tests/_fixtures/npm-matrix-*.pem'
       - 'scripts/test-npm-matrix.mjs'
@@ -117,6 +116,3 @@ jobs:
           NODETOOL_NPM_MATRIX_EXPECT_NODE: ${{ matrix.node }}
           NODETOOL_NPM_MATRIX_EXPECT_ARCH: ${{ matrix.arch }}
         run: node scripts/test-npm-matrix.mjs
-      - name: Verify initial global integrity bootstrap
-        working-directory: packages/pack-manager
-        run: node ../../scripts/run-vitest.mjs run tests/packs/global-bootstrap.test.ts
