@@ -19,8 +19,11 @@ export default {
   testEnvironment: "jsdom",
   testEnvironmentOptions: {
     customExportConditions: ["node", "node-addons"],
-    pretendToBeVisual: true,
-    resources: "usable"
+    // Keep jsdom subresource loading disabled in unit tests. Enabling
+    // `resources: "usable"` fetches real remote images rendered by UI suites,
+    // including Supabase preset previews, and can incur substantial egress.
+    // Tests requiring network resources must use explicit local mocks.
+    pretendToBeVisual: true
   },
   testTimeout: 10000,
   maxWorkers,
