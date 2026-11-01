@@ -52,7 +52,7 @@ Node APIs. Hosts own disk access.
 
 `default` and `local-wan` are explicit family selectors. Local hosts may qualify
 the latter as `local-wan/<model>` or `local-wan:<model>`. Wan2GP's own Wan 2.1
-and 2.2 model ids, listed in `src/wan2gp-models.ts`, also map to `local-wan`.
+and 2.2 model ids, listed in the `localWan` pattern, also map to `local-wan`.
 Provider manifests do not identify local execution, so remote Wan ids keep
 their provider family. See [Local Wan2GP models](../../docs/presets.md#local-wan2gp-models).
 

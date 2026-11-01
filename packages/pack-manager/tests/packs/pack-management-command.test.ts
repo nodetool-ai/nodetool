@@ -23,7 +23,7 @@ describe("nodetool packs command surface", () => {
     expect(load).not.toHaveBeenCalled();
     await expect(command.parseAsync(["node", "nodetool", "packs", "--help"])).rejects.toMatchObject({ code: "commander.helpDisplayed" });
     expect(load).not.toHaveBeenCalled();
-    expect(command.commands[0].commands.map(child => child.name())).toEqual(["list", "add", "remove", "doctor", "why"]);
+    expect(command.commands[0].commands.map(child => child.name())).toEqual(["list", "add", "remove", "doctor", "why", "presets"]);
   });
 
   it.each([{ args: [] }, { args: ["game", "--restore"] }, { args: ["--restore", "--for", "flow.json"] }])("rejects ambiguous or missing add selectors before inventory IO: %j", async ({ args }) => {

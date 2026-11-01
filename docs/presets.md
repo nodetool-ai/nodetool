@@ -9,7 +9,7 @@ description: "Named camera moves, looks and effects that compile to the wording 
 
 A preset is a named, reusable piece of direction for a generation: a camera move such as a dolly zoom, or an effect such as a glass shatter. You pick it by name. NodeTool turns it into the wording the chosen model responds to best, adds it to your prompt, and records which presets made the render.
 
-Presets are data. The catalogue is JSON in `packages/presets/catalog/`, the compiler is the `@nodetool-ai/presets` package, and every surface calls the same compiler: the shot editor, the chat composer, the Effects gallery, the Create view, agent tools and the CLI. The package README, [packages/presets/README.md](../packages/presets/README.md), documents the code API.
+Presets are data. The catalogue is JSON in `packages/presets/catalog/`, the compiler is the `@nodetool-ai/presets` package, and every surface calls the same compiler: the shot editor, the chat composer, the Effects gallery, the Create view, agent tools and the CLI. The package README, [packages/presets/README.md](https://github.com/nodetool-ai/nodetool/blob/main/packages/presets/README.md), documents the code API.
 
 ---
 
@@ -66,7 +66,7 @@ support during compile.
 | `sora`, `minimax`, `ltx`, `local-wan`, `default`, unknown | Dropped | Dropped |
 
 The generic video interfaces in
-[provider types](../packages/runtime/src/providers/types.ts) expose duration and
+[provider types](https://github.com/nodetool-ai/nodetool/blob/main/packages/runtime/src/providers/types.ts) expose duration and
 frame count, but no requested fps. Negative prompts reach some endpoints through
 the FAL, KIE and Replicate adapters, but support varies within a family and by
 mode. The media preset boundary does not forward them. Family membership alone
@@ -101,24 +101,31 @@ presets. Dedicated storyboard and composer look controls follow in P15.
 
 ### Local Wan2GP models
 
-A [Wan2GP](wan2gp.md) model id is the model's `model_type`, such as
-`ti2v_2_2_fastwan`. `modelFamily` maps them as follows:
+A [Wan2GP](wan2gp.md) model id is the model's `model_type`, the stem of its
+`defaults/` file, such as `ti2v_2_2_fastwan`. The `wangp` provider reports it
+unchanged. `modelFamily` maps them as follows:
 
 | Wan2GP family | NodeTool family | How it matches |
 |---|---|---|
-| Wan 2.1 and Wan 2.2, including `uni3c` and `prism` | `local-wan` | Exact ids from the WanGP v19.02 registry, in `packages/presets/src/wan2gp-models.ts` |
+| Wan 2.1 and Wan 2.2, including `uni3c`, `prism` and the Chrono Edit image models | `local-wan` | The exact, case-insensitive `localWan` allowlist in `packages/presets/src/families.ts`: WanGP v19.02 ids plus the legacy `fun_camera` |
 | LTX-2 (`ltx2_*`) | `ltx` | The hosted LTX pattern, which already matches `ltx2` |
 | MiniMax H3 (`minimax_h3_*`) | `minimax` | The H3 pattern, which also accepts `minimax_h3` |
 | Others: Hunyuan, Kandinsky, LongCat, Magi Human, EVOKE, Hy-Nomas, LTX-Video 0.9, JoyAI-Echo, Viggle | none | Default wording with a warning |
 
-Local H3 shares `minimax` with the hosted H3 routes because it is the same
-model line, and it gets the same `minimax-h3-prompting` guide. A finetune a
-user adds to Wan2GP is not in the list and compiles with default wording.
-`packages/presets/tests/wan2gp-models.json` records the 173 video models of
-WanGP v19.02 and the family each compiles to.
+Provider prefixes, arbitrary suffixes, neighbouring versions and finetunes a
+user adds to Wan2GP do not map to `local-wan`. Local H3 shares `minimax` with
+the hosted H3 routes because it is the same model line, and it gets the same
+`minimax-h3-prompting` guide. Local Wan 2.1 and 2.2 do not get the Wan 2.6
+guide, whose shot controls are version-specific.
+`packages/presets/tests/wan2gp-models.json` pins the claimed and excluded ids
+of WanGP v19.02 and the family each of its 173 video models compiles to.
 
-No preset has a `local-wan`, `ltx` or `minimax` fragment yet, so every local
-model compiles with the `default` fragment and the fallback warning below.
+Every camera and effect preset has a `local-wan` fragment. Restyles describe
+the whole frame in the target medium. These fragments compile whatever
+`families` says, and `families` records only tested eligibility, which no
+preset has for `local-wan` yet (P24). No preset has an `ltx` or `minimax`
+fragment, so those models compile with the `default` fragment and the
+fallback warning below.
 
 Presets reach a Wan2GP model through the provider named `wangp`. A NodeTool
 Python worker advertises it when `NODETOOL_PROVIDER_ADAPTER_COMMAND_WANGP` names
@@ -172,6 +179,21 @@ Choose Retake in the chat composer, attach a video and select a restyle from the
 RPC callers use `generate_media` with `mode: "video_edit"` and `preset_ids`. Agents can pass `preset_ids` to `revise_storyboard_clip`.
 
 ## Eject to a workflow
+
+**Open as workflow** is available on Create results, Effects results and restyles in
+Generations, and on a storyboard shot and each of its still and clip takes.
+Storyboard takes keep the composed prompt, model, camera and look preset ids,
+source media, entity references and settings from submission. Ejection uses that
+record, including the different prompts for keyframe, direct and reference clips.
+Editing the shot or catalogue afterwards does not change the ejected take.
+Older takes without exact inputs show an explanation asking you to render a new
+take instead of silently opening a different prompt.
+
+A completed Lipsync studio run also offers **Open as workflow**. It opens an
+editable `TextToSpeech → LipSync → Output` graph with the original line, voice,
+speech model, speed, picture and lipsync model. `LipSync` accepts an image or a
+video. The action uses the completed run, even if you change the studio fields.
+
 
 Any preset can become an ordinary workflow. `presetToWorkflow(preset, { model, mode })` builds the graph from the same compile:
 
@@ -295,7 +317,7 @@ Previews render on Dreamina through the signed-in Chrome tab, so they are tuned 
 | `scripts/presets/publish-previews.mjs` | Encodes a muted loop of up to three seconds and a PNG poster, uploads both, writes `preview` into the preset file and regenerates the catalogue |
 | `scripts/presets/sync-effects-template.mjs` | Rewrites the `Effects Gallery.json` options from the effect presets. `--check` fails on drift |
 
-Use `--dry-run` to see the plan without Chrome or credentials. Rendering is sequential and resumes from the run records after a stall. Review every clip before publishing, and retune or drop a preset whose preview does not show its move. Each run record holds the model, seed and, when the runner reports it, the credits spent. Dreamina credits are not a list price, so do not use them as BYOK cost evidence. The commands, environment variables and the source image license are in [scripts/presets/README.md](../scripts/presets/README.md).
+Use `--dry-run` to see the plan without Chrome or credentials. Rendering is sequential and resumes from the run records after a stall. Review every clip before publishing, and retune or drop a preset whose preview does not show its move. Each run record holds the model, seed and, when the runner reports it, the credits spent. Dreamina credits are not a list price, so do not use them as BYOK cost evidence. The commands, environment variables and the source image license are in [scripts/presets/README.md](https://github.com/nodetool-ai/nodetool/blob/main/scripts/presets/README.md).
 
 ---
 
@@ -303,8 +325,8 @@ Use `--dry-run` to see the plan without Chrome or credentials. Rendering is sequ
 
 - [Storyboard Editor](storyboard-editor.md#edit-a-shot) for camera presets on a shot
 - [Harnesses](harnesses.md#nodetool-presets) for the selfchecks and CLI
-- [Agent Architecture & Tools](AGENTS.md#built-in-capabilities) for the capability table
-- [packages/presets/README.md](../packages/presets/README.md) for the package API
+- [Agent Architecture & Tools](https://github.com/nodetool-ai/nodetool/blob/main/docs/AGENTS.md#built-in-capabilities) for the capability table
+- [packages/presets/README.md](https://github.com/nodetool-ai/nodetool/blob/main/packages/presets/README.md) for the package API
 
 ## Studios
 
@@ -367,3 +389,46 @@ Camera and effective look presets share the three-preset limit. Choose one per s
 The composer uses one Presets picker with Camera, Look and Effect kind filters. This keeps the shared selection limit visible and lets a look combine with a camera move. Only presets supporting the current mode appear.
 
 Agents can set `look_preset_ids` with `edit_storyboard` on `set_board`, `add_shot` or `update_shot`. The frontend bridge exposes the board field through `ui_storyboard_set_style` and shot fields through the add/update tools.
+
+## Community preset packs
+
+Install a local data-only directory with `nodetool packs presets add ./my-pack`.
+Use `nodetool packs presets list` to list installed packs and
+`nodetool packs presets remove <id>` to remove one. These commands use the
+same NodeTool data directory as the server. Reload the web app after changing
+packs. The server and CLI read the current catalogue for each request.
+`nodetool presets list` and the agent preset tools include installed presets.
+
+A directory contains `preset-pack.json` and its declared preset JSON files:
+
+```json
+{
+  "kind": "preset-pack",
+  "id": "my-moves",
+  "version": 1,
+  "presets": ["orbit.json"]
+}
+```
+
+Each preset follows the generation preset schema and requires an `author`.
+Pack ids and preset ids must be unique. Names and aliases cannot shadow another
+preset. Pack presets cannot contain `workflow`, and studio launch targets are
+not supported in packs. Only declared, non-executable regular JSON files are
+accepted. Scripts, binaries, code, symlinks, dependency declarations and npm
+manifests are refused. Installation never invokes npm or runs scripts.
+
+Names are limited to 160 characters, descriptions to 2,048 and each prompt
+clause to 4,096. Prompt fragments are untrusted provider input: they can steer
+or replace the generation prompt. Review a pack before using it. They cannot
+execute application code or supply workflow graphs. They also cannot set `params`
+or `family_params`, so a pack cannot raise a generation's duration, resolution or
+step count. The compiler keeps its three-preset limit. An installed pack that is
+corrupt or collides with another preset is skipped with a logged warning, and the
+built-in catalogue and other packs keep working. If the web app cannot load the
+pack catalogue, it starts with the built-in presets.
+Preview and poster URLs must use HTTPS without credentials and render through
+the normal media components. External preview hosts receive browser requests.
+
+Cards show the author's name. Removing a pack keeps saved board selections,
+but rendering a removed preset reports its unknown id. Reinstall the pack or
+remove that selection before rendering again.

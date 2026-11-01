@@ -143,7 +143,7 @@ Spec: [higgsfield-alternative-gtm.md](higgsfield-alternative-gtm.md)
 
 ### T9: Build Wave 2 interactive mini apps for Camera Move Studio and Effects Gallery
 
-- **Status**: Closed. Superseded by the preset picker and Effects gallery in [open-source-higgsfield-implementation.md](open-source-higgsfield-implementation.md) (P7, P8, P10)
+- **Status**: Closed. Superseded by the preset picker and Effects gallery in [open-source-higgsfield-implementation.md](https://github.com/nodetool-ai/nodetool/blob/main/docs/plans/open-source-higgsfield-implementation.md) (P7, P8, P10)
 - **Blocked by**: T3, T8
 - **Blocks**: None
 - **Description**:

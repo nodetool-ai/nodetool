@@ -44,3 +44,21 @@ describe("preset compilation selfcheck", () => {
     }
   });
 });
+
+it("compiles every camera and effect using its distinct local Wan fragment", () => {
+  const catalog = createCatalog(JSON.parse(readFileSync(new URL("../preset-catalog.json", import.meta.url), "utf8")));
+  const presets = catalog.presets.filter((preset) => preset.kind === "camera" || preset.kind === "effect");
+  expect(presets).toHaveLength(68);
+  expect(presets.filter((preset) => preset.id.startsWith("effect.restyle-"))).toHaveLength(8);
+  for (const preset of presets) {
+    const fragment = preset.prompt["local-wan"];
+    expect(typeof fragment, preset.id).toBe("string");
+    expect(fragment, preset.id).not.toBe(preset.prompt.wan);
+    expect(preset.families ?? [], preset.id).not.toContain("local-wan");
+    for (const mode of preset.modes) {
+      const result = compilePresets([preset.id], { catalog, mode, modelId: "ti2v_2_2_fastwan", prompt: "" });
+      expect(result.prompt, preset.id).toBe(fragment);
+      expect(result.warnings.filter((warning) => warning.includes("using default")), preset.id).toEqual([]);
+    }
+  }
+});

@@ -18,7 +18,7 @@ export class CliFeatureNotInstalledError extends Error {
   readonly code = "FEATURE_NOT_INSTALLED";
   readonly featureIds: readonly string[];
   constructor(featureId: string) {
-    super(`This command requires the ${featureId} feature. Run "nodetool packs add ${featureId}" and restart the command.`);
+    super(`This command requires the ${featureId} feature. Run "nodetool packs add ${featureId} --yes" and restart the command.`);
     this.featureIds = [featureId];
   }
 }

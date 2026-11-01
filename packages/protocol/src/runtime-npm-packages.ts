@@ -19,9 +19,9 @@ export interface RuntimeNpmPackage {
 
 export const RUNTIME_NPM_PACKAGES = {
   imaging: {
-    npmPackages: ["sharp@0.35.5", "@napi-rs/canvas@0.1.100"],
-    packageNames: ["sharp", "@napi-rs/canvas"],
-    description: "Image codecs and canvas rendering.",
+    npmPackages: ["sharp@0.35.5", "@napi-rs/canvas@0.1.100", "@hyzyla/pdfium@2.1.13"],
+    packageNames: ["sharp", "@napi-rs/canvas", "@hyzyla/pdfium"],
+    description: "Image codecs, canvas rendering and PDF page rendering.",
     bundledHosts: ["desktop", "docker"]
   },
   typescript: {
@@ -46,6 +46,21 @@ export const RUNTIME_NPM_PACKAGES = {
     npmPackages: ["@dimforge/rapier3d-compat@0.19.3"],
     packageNames: ["@dimforge/rapier3d-compat"],
     description: "Physics simulation for 3D games.",
+    bundledHosts: ["desktop", "docker"]
+  },
+  "media-codecs": {
+    // @mediabunny/server depends on node-av; both are listed so the pins match.
+    // mediabunny is listed so npm places the version runtime and agents pin
+    // beside the server's peer, instead of the newest release.
+    npmPackages: ["node-av@6.1.1", "@mediabunny/server@1.54.0", "mediabunny@1.54.0"],
+    packageNames: ["node-av", "@mediabunny/server", "mediabunny"],
+    description: "FFmpeg-based audio and video decoding, encoding and filtering.",
+    bundledHosts: ["desktop", "docker"]
+  },
+  webgpu: {
+    npmPackages: ["webgpu@0.4.0"],
+    packageNames: ["webgpu"],
+    description: "GPU rendering on Node through Dawn.",
     bundledHosts: ["desktop", "docker"]
   },
   "transformers-js": {

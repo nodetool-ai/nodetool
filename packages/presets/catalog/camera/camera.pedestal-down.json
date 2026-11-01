@@ -29,7 +29,8 @@
     "kling": "Camera lowers vertically without tilting.",
     "seedance": "Camera lowers vertically without tilting throughout one continuous shot.",
     "veo": "Camera lowers vertically without tilting.",
-    "wan": "Camera lowers vertically without tilting."
+    "wan": "Camera lowers vertically without tilting.",
+    "local-wan": "The level camera descends straight downward. The viewing direction stays horizontal as the subject rises within the frame and lower details become visible. One continuous shot."
   },
   "params": {},
   "preview": {

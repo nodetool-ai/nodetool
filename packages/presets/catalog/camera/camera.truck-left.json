@@ -29,7 +29,8 @@
     "kling": "Camera translates left parallel to the subject.",
     "seedance": "Camera translates left parallel to the subject throughout one continuous shot.",
     "veo": "Camera translates left parallel to the subject.",
-    "wan": "Camera translates left parallel to the subject."
+    "wan": "Camera translates left parallel to the subject.",
+    "local-wan": "The camera slides straight left, parallel to the subject. The subject shifts right in frame and nearby scenery moves faster than the distant background. One continuous shot."
   },
   "params": {},
   "preview": {

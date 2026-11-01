@@ -25,7 +25,8 @@
     "kling": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly.",
     "seedance": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly throughout one continuous shot.",
     "veo": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly.",
-    "wan": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly."
+    "wan": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly.",
+    "local-wan": "The camera glides sideways past a nearby foreground edge. That edge moves quickly across the frame while distant scenery shifts slowly, revealing the subject beyond. One continuous shot."
   },
   "params": {},
   "preview": {

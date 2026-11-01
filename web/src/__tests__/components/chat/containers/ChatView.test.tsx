@@ -5,7 +5,8 @@ import {
   render,
   screen,
   fireEvent,
-  waitFor
+  waitFor,
+  within
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
@@ -87,11 +88,6 @@ jest.mock("../../../../components/chat/thread/ChatThreadView", () => ({
   }
 }));
 
-jest.mock("../../../../components/node/TaskUpdateDisplay", () => ({
-  __esModule: true,
-  default: () => <div data-testid="task-update-display" />
-}));
-
 // The commands ChatView handed to the composer on its last render.
 let latestCommands: ChatCommand[] = [];
 const commandNamed = (name: string): ChatCommand => {
@@ -109,11 +105,13 @@ jest.mock("../../../../components/chat/containers/ChatInputSection", () => ({
     status,
     onSendMessage,
     threadId,
-    commands
+    commands,
+    aboveComposer
   }: {
     status?: string;
     threadId?: string | null;
     commands?: ChatCommand[];
+    aboveComposer?: React.ReactNode;
     onSendMessage: (
       content: MessageContent[],
       prompt: string
@@ -122,6 +120,7 @@ jest.mock("../../../../components/chat/containers/ChatInputSection", () => ({
     latestCommands = commands ?? [];
     return (
       <div data-testid="chat-input-section">
+        {aboveComposer}
         <div>Status: {status}</div>
         <div>Composer thread: {String(threadId)}</div>
         <button
@@ -145,20 +144,6 @@ const renderWithProviders = (component: React.ReactElement) => {
     <ThemeProvider theme={mockTheme}>
       <KeyboardProvider>{component}</KeyboardProvider>
     </ThemeProvider>
-  );
-};
-
-/**
- * `railsFit` reads `breakpoints.up("md")` (a min-width query) and `isMobile`
- * reads `breakpoints.down("sm")` (a max-width one), so one mocked hook has to
- * answer both.
- */
-const setViewport = (viewport: "desktop" | "narrow") => {
-  (useMediaQuery as jest.MockedFunction<typeof useMediaQuery>).mockImplementation(
-    (query) =>
-      String(query).includes("min-width")
-        ? viewport === "desktop"
-        : viewport === "narrow"
   );
 };
 
@@ -532,11 +517,19 @@ describe("ChatView", () => {
       expect(screen.getByTestId("chat-thread-view")).toBeInTheDocument();
     });
 
-    it("shows an active task in the desktop right sidebar", () => {
-      mockedUseMediaQuery.mockReturnValue(true);
+    it("docks the running agent task's steps above the composer", async () => {
       const taskUpdate: TaskUpdate = {
         type: "task_update",
-        task: { id: "task-1", title: "Test task", status: "running" },
+        task: {
+          id: "task-1",
+          title: "Test task",
+          status: "running",
+          steps: [
+            { id: "s1", instructions: "Gather sources", completed: true },
+            { id: "s2", instructions: "Write the summary" }
+          ]
+        },
+        step: { id: "s2", instructions: "Write the summary" },
         event: TaskUpdateEvent.StepStarted
       };
 
@@ -556,75 +549,36 @@ describe("ChatView", () => {
         />
       );
 
-      expect(screen.getByLabelText("Active agent task")).toBeInTheDocument();
-      expect(screen.getByTestId("task-update-display")).toBeInTheDocument();
+      const dock = within(screen.getByTestId("chat-input-section")).getByRole(
+        "region",
+        { name: "Tasks" }
+      );
+      const bar = within(dock).getByRole("button");
+      expect(bar).toHaveTextContent("Write the summary");
+      expect(bar).toHaveTextContent("1/2");
+
+      await userEvent.click(bar);
+      expect(within(dock).getByText("Test task")).toBeInTheDocument();
+      expect(within(dock).getByText("Gather sources")).toBeInTheDocument();
     });
 
-    it("hides and shows the desktop right sidebar from the header", async () => {
-      mockedUseMediaQuery.mockReturnValue(true);
+    it("leaves the finished agent task out of the dock", () => {
       const taskUpdate: TaskUpdate = {
         type: "task_update",
-        task: { id: "task-1", title: "Test task", status: "running" },
-        event: TaskUpdateEvent.StepStarted
+        task: {
+          id: "task-1",
+          title: "Test task",
+          steps: [{ id: "s1", instructions: "Gather sources" }]
+        },
+        event: TaskUpdateEvent.TaskCompleted
       };
 
       renderWithProviders(
-        <ChatView
-          {...baseProps}
-          status="streaming"
-          messages={[
-            {
-              id: "1",
-              type: "message",
-              role: "user",
-              content: [{ type: "text", text: "Test" }]
-            }
-          ]}
-          currentTaskUpdate={taskUpdate}
-        />
-      );
-
-      await userEvent.click(
-        screen.getByRole("button", { name: "Hide side panel" })
-      );
-      expect(
-        screen.queryByLabelText("Active agent task")
-      ).not.toBeInTheDocument();
-
-      await userEvent.click(
-        screen.getByRole("button", { name: "Show side panel" })
-      );
-      expect(screen.getByLabelText("Active agent task")).toBeInTheDocument();
-    });
-
-    it("hides the active task sidebar on narrow screens", () => {
-      const taskUpdate: TaskUpdate = {
-        type: "task_update",
-        task: { id: "task-1", title: "Test task", status: "running" },
-        event: TaskUpdateEvent.StepStarted
-      };
-
-      renderWithProviders(
-        <ChatView
-          {...baseProps}
-          status="streaming"
-          messages={[
-            {
-              id: "1",
-              type: "message",
-              role: "user",
-              content: [{ type: "text", text: "Test" }]
-            }
-          ]}
-          currentTaskUpdate={taskUpdate}
-        />
+        <ChatView {...baseProps} status="connected" currentTaskUpdate={taskUpdate} />
       );
 
       expect(
-        screen.queryByLabelText("Active agent task")
-      ).not.toBeInTheDocument();
-      expect(
-        screen.queryByTestId("task-update-display")
+        screen.queryByRole("region", { name: "Tasks" })
       ).not.toBeInTheDocument();
     });
 
@@ -908,7 +862,7 @@ describe("ChatView", () => {
     });
   });
 
-  describe("Mobile Rails", () => {
+  describe("Task Dock", () => {
     const todoThread = "thread-todos";
 
     const seedTodos = () => {
@@ -925,62 +879,50 @@ describe("ChatView", () => {
       });
     };
 
-    it("offers the rails as tabs and swaps in the todo rail", async () => {
-      setViewport("narrow");
-      seedTodos();
+    it.each([
+      ["desktop", true],
+      ["narrow", false]
+    ])(
+      "shows the todos on the composer beside the conversation (%s)",
+      async (_viewport, wide) => {
+        mockedUseMediaQuery.mockReturnValue(!wide);
+        seedTodos();
 
-      renderWithProviders(
-        <ChatView
-          {...baseProps}
-          threadId={todoThread}
-          messages={[
-            {
-              id: "1",
-              type: "message",
-              role: "user",
-              content: [{ type: "text", text: "Go" }]
-            }
-          ]}
-        />
-      );
+        renderWithProviders(
+          <ChatView
+            {...baseProps}
+            threadId={todoThread}
+            messages={[
+              {
+                id: "1",
+                type: "message",
+                role: "user",
+                content: [{ type: "text", text: "Go" }]
+              }
+            ]}
+          />
+        );
 
-      expect(screen.getByRole("button", { name: "Chat" })).toBeInTheDocument();
-      expect(screen.queryByText("Render the frames")).not.toBeInTheDocument();
+        const dock = within(
+          screen.getByTestId("chat-input-section")
+        ).getByRole("region", { name: "Tasks" });
+        expect(within(dock).getByRole("button")).toHaveTextContent(
+          "Render the frames"
+        );
+        expect(screen.queryByText("Cut the edit")).not.toBeInTheDocument();
+        // The list unfolds in place: the conversation stays on screen.
+        await userEvent.click(within(dock).getByRole("button"));
+        expect(within(dock).getByText("Cut the edit")).toBeInTheDocument();
+        expect(screen.getByTestId("chat-thread-view")).toBeInTheDocument();
+      }
+    );
 
-      await userEvent.click(screen.getByRole("button", { name: "Tasks" }));
-
-      expect(screen.getByText("Render the frames")).toBeInTheDocument();
-      expect(screen.getByText("Cut the edit")).toBeInTheDocument();
-      expect(screen.queryByTestId("chat-thread-view")).not.toBeInTheDocument();
-      // The composer stays put whichever rail is showing.
-      expect(screen.getByTestId("chat-input-section")).toBeInTheDocument();
-    });
-
-    it("leaves the desktop layout without the tabs", () => {
-      setViewport("desktop");
-      seedTodos();
-
-      renderWithProviders(
-        <ChatView
-          {...baseProps}
-          threadId={todoThread}
-          messages={[
-            {
-              id: "1",
-              type: "message",
-              role: "user",
-              content: [{ type: "text", text: "Go" }]
-            }
-          ]}
-        />
-      );
+    it("renders no dock for a thread without todos", () => {
+      renderWithProviders(<ChatView {...baseProps} />);
 
       expect(
-        screen.queryByRole("button", { name: "Tasks" })
+        screen.queryByRole("region", { name: "Tasks" })
       ).not.toBeInTheDocument();
-      expect(screen.getByTestId("chat-thread-view")).toBeInTheDocument();
-      // The rail is still there, on the right, as it always was.
-      expect(screen.getByText("Render the frames")).toBeInTheDocument();
     });
   });
 });

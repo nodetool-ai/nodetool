@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createSqliteRepository } from "@nodetool-ai/database-sqlite";
 import { encrypt } from "@nodetool-ai/security-core";
 import { loadInstalledCommandFeature } from "@nodetool-ai/pack-manager";
-import { createProgram, runCli } from "../src/lean/program.js";
+import { DEFAULT_TEXT_MODEL, createProgram, exampleWorkflow, runCli } from "../src/lean/program.js";
 
 vi.mock("@nodetool-ai/pack-manager", async importOriginal => ({
   ...await importOriginal<typeof import("@nodetool-ai/pack-manager")>(),
@@ -34,6 +34,21 @@ describe("lean execution CLI", () => {
     await createProgram({ env: { OPENAI_API_KEY: "private-fixture", PORT: "8000" }, stdout: value => output.push(value) }).parseAsync(["node", "nodetool", "info", "--json"]);
     expect(JSON.parse(output.join(""))).toMatchObject({ node_version: process.version, platform: process.platform, arch: process.arch, api_keys: { OPENAI_API_KEY: "configured", ANTHROPIC_API_KEY: "not set" }, environment: { PORT: "8000" } });
     expect(output.join("")).not.toContain("private-fixture");
+  });
+  it("reports each provider's credential state by name, including FAL and the claude CLI", async () => {
+    const bin = await mkdtemp(join(tmpdir(), "nodetool-claude-bin-"));
+    try {
+      await writeFile(join(bin, "claude"), "#!/bin/sh\n", { mode: 0o755 });
+      const output: string[] = [];
+      await createProgram({ env: { FAL_KEY: "private-fal", PATH: bin }, stdout: value => output.push(value) }).parseAsync(["node", "nodetool", "info", "--json"]);
+      const providers = JSON.parse(output.join("")).providers;
+      expect(providers).toEqual(expect.arrayContaining([
+        { id: "fal_ai", requires: "FAL_API_KEY", status: "set (env)" },
+        { id: "openai", requires: "OPENAI_API_KEY", status: "not set" },
+        { id: "claude_agent_sdk", requires: "claude CLI", status: "found" }
+      ]));
+      expect(output.join("")).not.toContain("private-fal");
+    } finally { await rm(bin, { recursive: true, force: true }); }
   });
   it("selects one admitted feature for overlapping optional command flags", async () => {
     const run = vi.fn(async (_argv: readonly string[]) => {});
@@ -98,10 +113,22 @@ describe("lean execution CLI", () => {
     expect(loadInstalledCommandFeature).toHaveBeenLastCalledWith(expect.any(String), "cli-models");
     expect(run).toHaveBeenCalledWith(argv.slice(2));
   });
-  it("lists builtin provider metadata without secrets or network access", async () => {
+  it.each([["providers", "list"], ["models", "providers"]])("lists every usable provider with %s %s, without secrets or network access", async (...command) => {
+    const bin = await mkdtemp(join(tmpdir(), "nodetool-claude-bin-"));
+    try {
+      await writeFile(join(bin, "claude"), "#!/bin/sh\n", { mode: 0o755 });
+      const stdout: string[] = [];
+      await createProgram({ env: { OPENAI_API_KEY: "private-openai", FAL_API_KEY: "private-fal", PATH: bin }, stdout: text => stdout.push(text), fetch: async () => { throw new Error("Metadata must be local"); } }).parseAsync(["node", "nodetool", ...command]);
+      const listed: { id: string; source: string }[] = JSON.parse(stdout.join(""));
+      // A source checkout admits every pack, so pack-enabled providers are listed too.
+      expect(listed.filter(state => state.source !== "pack").map(state => state.id)).toEqual(["openai", "fal_ai", "claude_agent_sdk"]);
+      expect(stdout.join("")).not.toContain("private-");
+    } finally { await rm(bin, { recursive: true, force: true }); }
+  });
+  it("omits claude_agent_sdk when the claude CLI is not found", async () => {
     const stdout: string[] = [];
-    await createProgram({ env: {}, stdout: text => stdout.push(text), fetch: async () => { throw new Error("Metadata must be local"); } }).parseAsync(["node", "nodetool", "providers", "list"]);
-    expect(JSON.parse(stdout.join(""))).toEqual([{ id: "openai", name: "OpenAI-compatible", capabilities: ["text", "models"], installed: true }]);
+    await createProgram({ env: { PATH: "" }, stdout: text => stdout.push(text) }).parseAsync(["node", "nodetool", "providers", "list"]);
+    expect(JSON.parse(stdout.join("")).filter((state: { source: string }) => state.source !== "pack")).toEqual([]);
   });
   it("reports an unavailable provider with its explicit installation feature", async () => {
     vi.mocked(loadInstalledCommandFeature).mockRejectedValueOnce(Object.assign(new Error("Install cli-models"), { code: "FEATURE_NOT_INSTALLED", featureIds: ["cli-models"] }));
@@ -155,6 +182,72 @@ describe("lean execution CLI", () => {
       await createProgram({ env: { NODETOOL_USER_ID: "alice" }, stdout: text => stdout.push(text) }).parseAsync(["node", "nodetool", "run", path]);
       expect(JSON.parse(stdout.join(""))).toEqual({ result: ["kept"] });
     } finally { await rm(directory, { recursive: true, force: true }); }
+  });
+  it("streams text from the environment API key with the default model and no other setup", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "nodetool-lean-text-"));
+    try {
+      const calls: Array<{ authorization: string | null; body: { model: string; messages: unknown } }> = [];
+      const stdout: string[] = [];
+      const sse = [
+        `data: ${JSON.stringify({ id: "c", object: "chat.completion.chunk", created: 1, model: "m", choices: [{ index: 0, delta: { content: "hel" }, finish_reason: null }] })}`,
+        `data: ${JSON.stringify({ id: "c", object: "chat.completion.chunk", created: 1, model: "m", choices: [{ index: 0, delta: { content: "lo" }, finish_reason: "stop" }] })}`,
+        `data: ${JSON.stringify({ id: "c", object: "chat.completion.chunk", created: 1, model: "m", choices: [], usage: { prompt_tokens: 3, completion_tokens: 2, total_tokens: 5 } })}`,
+        "data: [DONE]", ""
+      ].join("\n\n");
+      await createProgram({ env: { OPENAI_API_KEY: "env-key", NODETOOL_DATA_DIR: directory }, stdout: text => stdout.push(text), fetch: async (_input, init) => {
+        calls.push({ authorization: new Headers(init?.headers).get("authorization"), body: JSON.parse(String(init?.body)) });
+        return new Response(sse, { headers: { "content-type": "text/event-stream" } });
+      } }).parseAsync(["node", "nodetool", "text", "hi", "--system", "be brief", "--json"]);
+      expect(calls).toHaveLength(1);
+      expect(calls[0]?.authorization).toBe("Bearer env-key");
+      expect(calls[0]?.body).toMatchObject({ model: DEFAULT_TEXT_MODEL, messages: [{ role: "system", content: "be brief" }, { role: "user", content: "hi" }] });
+      expect(JSON.parse(stdout.join(""))).toEqual({ model: DEFAULT_TEXT_MODEL, text: "hello", usage: { inputTokens: 3, outputTokens: 2 } });
+    } finally { await rm(directory, { recursive: true, force: true }); }
+  });
+  it("explains how to supply an API key when none is configured", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "nodetool-lean-nokey-"));
+    try {
+      await expect(createProgram({ env: { NODETOOL_DATA_DIR: directory } }).parseAsync(["node", "nodetool", "text", "hi"])).rejects.toThrow("export OPENAI_API_KEY");
+    } finally { await rm(directory, { recursive: true, force: true }); }
+  });
+  it("prefers the stored tenant secret over the environment key", async () => {
+    const directory = await mkdtemp(join(tmpdir(), "nodetool-lean-stored-"));
+    const masterKey = "0123456789abcdef0123456789abcdef";
+    try {
+      const repository = createSqliteRepository(join(directory, "nodetool.db"));
+      await repository.put("secrets", "1", { key: "OPENAI_API_KEY", description: "", encrypted_value: encrypt(masterKey, "1", "stored-key") });
+      await repository.close();
+      const seen: Array<string | null> = [];
+      await createProgram({ env: { OPENAI_API_KEY: "env-key", SECRETS_MASTER_KEY: masterKey, NODETOOL_DATA_DIR: directory }, stdout: () => {}, fetch: async (_input, init) => {
+        seen.push(new Headers(init?.headers).get("authorization"));
+        return Response.json({ object: "list", data: [] });
+      } }).parseAsync(["node", "nodetool", "models", "list"]);
+      expect(seen).toEqual(["Bearer stored-key"]);
+    } finally { await rm(directory, { recursive: true, force: true }); }
+  });
+  it("prints built-in node descriptions and an example workflow that validates", async () => {
+    const stdout: string[] = [];
+    await createProgram({ env: {}, stdout: text => stdout.push(text) }).parseAsync(["node", "nodetool", "nodes"]);
+    const listed = JSON.parse(stdout.join("")) as { nodes: Array<{ nodeType: string }> };
+    expect(listed.nodes.map(node => node.nodeType)).toEqual(expect.arrayContaining(["nodetool.text.Template", "openai.text.ChatComplete", "nodetool.output.Output"]));
+    const directory = await mkdtemp(join(tmpdir(), "nodetool-lean-example-"));
+    try {
+      const path = join(directory, "flow.json");
+      await writeFile(path, JSON.stringify(exampleWorkflow("fixture-model")));
+      const validated: string[] = [];
+      await createProgram({ env: {}, stdout: text => validated.push(text) }).parseAsync(["node", "nodetool", "validate", path]);
+      expect(JSON.parse(validated.join(""))).toEqual({ valid: true, issues: [] });
+    } finally { await rm(directory, { recursive: true, force: true }); }
+  });
+  it("explains missing server credentials instead of a schema error", async () => {
+    const masterKey = "0123456789abcdef0123456789abcdef";
+    await expect(createProgram({ env: { SECRETS_MASTER_KEY: masterKey } }).parseAsync(["node", "nodetool", "serve"])).rejects.toThrow("Set NODETOOL_API_TOKEN");
+    await expect(createProgram({ env: { SECRETS_MASTER_KEY: masterKey, NODETOOL_TOKENS: "null" } }).parseAsync(["node", "nodetool", "serve"])).rejects.toThrow("NODETOOL_TOKENS must be a JSON object");
+    await expect(createProgram({ env: { NODETOOL_API_TOKEN: "x".repeat(40) } }).parseAsync(["node", "nodetool", "serve"])).rejects.toThrow("Set SECRETS_MASTER_KEY");
+  });
+  it("points 404 responses at the server URL", async () => {
+    const program = createProgram({ env: { NODETOOL_API_TOKEN: "fixture-token" }, fetch: async () => new Response("Not Found", { status: 404 }) });
+    await expect(program.parseAsync(["node", "nodetool", "secrets", "list"])).rejects.toThrow("nodetool serve");
   });
   it("rejects missing credentials before sending requests", async () => {
     let requested = false;

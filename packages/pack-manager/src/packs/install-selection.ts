@@ -1,13 +1,12 @@
-import { realpath } from "node:fs/promises";
 import { readCatalogIndex, type NodeCatalogIndex, type CatalogPack, type PinnedPackage } from "@nodetool-ai/pack-core";
-import { RUNTIME_NPM_PACKAGES, isRuntimeNpmPackageId } from "@nodetool-ai/protocol/runtime-npm-packages";
+import { isRuntimeNpmPackageId } from "@nodetool-ai/protocol/runtime-npm-packages";
 import type { InstallMode } from "./mode.js";
-import { readInstallTree, type TreePackage } from "./install-tree.js";
-
-import { globalBootstrapPins, type GlobalBootstrapPin } from "./global-bootstrap.js";
-import { readDesiredState, type DesiredPackState } from "./install-state.js";
+import { readInstalledPacks } from "./installed.js";
+import { currentProject, readProjectSelection, type PacksProjectSelection } from "./project.js";
+import { readDesiredFor, desiredStateKey, type DesiredPackState } from "./install-state.js";
 export { readDesiredState } from "./install-state.js";
 export type { DesiredPackState } from "./install-state.js";
+
 export interface InstallPacksRequest {
   readonly mode: InstallMode;
   readonly packs: readonly string[];
@@ -17,22 +16,38 @@ export interface InstallPacksRequest {
   readonly signal?: AbortSignal;
   readonly onWarning?: (warning: string) => void;
 }
+
+export type PackOperation = "install" | "remove" | "repair";
+
+/** The pack project a transaction will build, computed from the active one. */
 export interface InstallSelection {
+  /** The per-version pack project directory, `<packs home>/<core version>`. */
   readonly root: string;
+  /** The key of this packs home in the desired-state file. */
+  readonly stateKey: string;
   readonly coreVersion: string;
   readonly mode: "global" | "local";
+  /** Every pack in the new generation, with the packs they require. */
   readonly packs: readonly CatalogPack[];
+  /** Every npm runtime library in the new generation. */
   readonly runtimeLibraries: readonly string[];
   readonly scripts: readonly PinnedPackage[];
+  /** The ids the user asked for. npm installs the closure of these. */
+  readonly requested: PacksProjectSelection;
+  /** The selection recorded in the active generation. */
+  readonly active: PacksProjectSelection;
   readonly previous: DesiredPackState;
   readonly catalog: NodeCatalogIndex;
-  readonly before: readonly TreePackage[];
-  readonly replayLibraries: readonly string[];
+  /** The active generation, or null before the first install. */
+  readonly current: string | null;
   readonly installedIds: readonly string[];
-  readonly initialGlobalLockMissing: boolean;
-  readonly bootstrap?: readonly GlobalBootstrapPin[];
-  readonly mutationPaths?: readonly string[];
+  readonly installedLibraries: readonly string[];
+  /** Installed packs and libraries this transaction removes. */
+  readonly removed: readonly string[];
+  /** Requested removals that stay because another selection requires them. */
+  readonly kept: readonly string[];
 }
+
 export function expandCatalogPacks(catalog: NodeCatalogIndex, ids: readonly string[]): CatalogPack[] {
   const byId = new Map(catalog.packs.map((pack) => [pack.id, pack]));
   const visited = new Set<string>();
@@ -49,32 +64,57 @@ export function expandCatalogPacks(catalog: NodeCatalogIndex, ids: readonly stri
   return result.sort((a, b) => a.id.localeCompare(b.id));
 }
 
-/** Compute all specs that npm will replay. Desired intent alone adds no specs. */
-export async function prepareInstallSelection(request: InstallPacksRequest, options: { readonly allowDirty?: boolean; readonly restoreDesired?: boolean } = {}): Promise<InstallSelection> {
+function sorted(values: Iterable<string>): string[] {
+  return [...new Set(values)].sort();
+}
+
+/**
+ * Compute the selection of the next generation. Install adds the request to
+ * the active selection, remove takes it away, and repair adds the recorded
+ * desired set. The pack closure and runtime libraries follow from the result.
+ */
+export async function prepareInstallSelection(request: InstallPacksRequest, operation: PackOperation = "install"): Promise<InstallSelection> {
   const { mode } = request;
   if (mode.kind !== "global" && mode.kind !== "local") { throw new Error(mode.reason); }
   const catalog = request.catalog ?? readCatalogIndex();
   if (catalog.coreVersion !== mode.coreVersion) { throw new Error("Catalog and CLI versions differ"); }
-  const root = await realpath(mode.installRoot);
-  const previous = (await readDesiredState(request.stateFile))[root] ?? { root, coreVersion: mode.coreVersion, packs: [], runtimeLibraries: [] };
-  if (previous.dirty && !options.allowDirty) { throw new Error("Pack installation is dirty. Run nodetool packs doctor --repair."); }
-  const tree = await readInstallTree(root, mode.kind === "global");
-  const before = tree.packages;
-  const names = new Set(before.map((entry) => entry.name));
-  const installedIds = catalog.packs.filter((pack) => names.has(pack.npm.name)).map((pack) => pack.id);
-  const requested = expandCatalogPacks(catalog, [...request.packs, ...(options.restoreDesired ? previous.packs : [])]);
-  const packs = expandCatalogPacks(catalog, [...installedIds, ...requested.map((pack) => pack.id)]);
-  const byFolder = new Map((catalog.installPins ?? []).map((pin) => [pin.installName ?? pin.name, pin]));
-  const replayLibraries = previous.runtimeLibraries.filter((id) => isRuntimeNpmPackageId(id) && RUNTIME_NPM_PACKAGES[id].packageNames.every((name) => {
-    const pin = byFolder.get(name);
-    return pin && before.some((entry) => entry.path === `node_modules/${name}` && entry.name === pin.name && entry.version === pin.version &&
-      (entry.integrity === pin.integrity || (mode.kind === "global" && tree.missingLock && entry.integrity === undefined)));
-  }));
-  const explicitLibraries = [...(request.runtimeLibraries ?? []), ...(options.restoreDesired ? previous.runtimeLibraries : [])];
-  for (const id of explicitLibraries) { if (!isRuntimeNpmPackageId(id)) { throw new Error(`Runtime library ${id} cannot be installed by npm`); } }
-  const libraries = [...new Set([...replayLibraries, ...explicitLibraries, ...requested.flatMap((pack) => pack.runtimeLibraries).filter(isRuntimeNpmPackageId)])].sort();
+  const stateKey = desiredStateKey(mode);
+  const previous = await readDesiredFor(request.stateFile, mode) ?? { root: stateKey, coreVersion: mode.coreVersion, packs: [], runtimeLibraries: [] };
+  for (const id of request.packs) {
+    if (!catalog.packs.some((pack) => pack.id === id)) { throw new Error(`Unknown node pack: ${id}`); }
+  }
+  for (const id of request.runtimeLibraries ?? []) {
+    if (!isRuntimeNpmPackageId(id)) { throw new Error(`Runtime library ${id} cannot be installed by npm`); }
+  }
+  const current = currentProject(mode.packsRoot);
+  const active: PacksProjectSelection = current ? await readProjectSelection(current) : { coreVersion: mode.coreVersion, packs: [], runtimeLibraries: [] };
+  if (active.coreVersion !== mode.coreVersion) { throw new Error(`Pack project ${current ?? mode.packsRoot} records core version ${active.coreVersion}, not ${mode.coreVersion}`); }
+  const snapshot = readInstalledPacks(mode, catalog, current ? { projectRoot: current } : {});
+  const installedIds = snapshot.packs.map((pack) => pack.id);
+  const installedLibraries = expandLibraries(catalog, active.packs, active.runtimeLibraries);
+  let requested: PacksProjectSelection;
+  if (operation === "remove") {
+    const packs = new Set(request.packs);
+    const libraries = new Set(request.runtimeLibraries ?? []);
+    requested = { coreVersion: mode.coreVersion, packs: active.packs.filter((id) => !packs.has(id)), runtimeLibraries: active.runtimeLibraries.filter((id) => !libraries.has(id)) };
+  } else {
+    const restore = operation === "repair" ? previous : undefined;
+    requested = { coreVersion: mode.coreVersion,
+      packs: sorted([...active.packs, ...request.packs, ...(restore?.requestedPacks ?? restore?.packs ?? [])].filter((id) => catalog.packs.some((pack) => pack.id === id))),
+      runtimeLibraries: sorted([...active.runtimeLibraries, ...(request.runtimeLibraries ?? []), ...(restore?.runtimeLibraries ?? [])].filter(isRuntimeNpmPackageId)) };
+  }
+  const packs = expandCatalogPacks(catalog, requested.packs);
+  const runtimeLibraries = expandLibraries(catalog, requested.packs, requested.runtimeLibraries);
+  const packIds = new Set(packs.map((pack) => pack.id));
+  const libraryIds = new Set(runtimeLibraries);
+  const removed = sorted([...installedIds.filter((id) => !packIds.has(id)), ...installedLibraries.filter((id) => !libraryIds.has(id))]);
+  const kept = operation === "remove" ? sorted([...request.packs.filter((id) => packIds.has(id)), ...(request.runtimeLibraries ?? []).filter((id) => libraryIds.has(id))]) : [];
   const scripts = [...new Map(packs.flatMap((pack) => pack.scriptAllowlist).map((pin) => [JSON.stringify(pin), pin])).values()];
-  return { root, coreVersion: mode.coreVersion, mode: mode.kind, packs, runtimeLibraries: libraries, scripts, previous, catalog, before, replayLibraries, installedIds,
-    initialGlobalLockMissing: mode.kind === "global" && tree.missingLock,
-    bootstrap: mode.kind === "global" && tree.missingLock ? globalBootstrapPins(catalog, before, libraries) : [] };
+  return { root: mode.packsRoot, stateKey, coreVersion: mode.coreVersion, mode: mode.kind, packs, runtimeLibraries, scripts, requested, active, previous, catalog,
+    current, installedIds, installedLibraries, removed, kept };
+}
+
+/** Explicit runtime libraries plus every npm runtime library a selected pack needs. */
+function expandLibraries(catalog: NodeCatalogIndex, packIds: readonly string[], explicit: readonly string[]): string[] {
+  return sorted([...explicit, ...expandCatalogPacks(catalog, packIds).flatMap((pack) => pack.runtimeLibraries)].filter(isRuntimeNpmPackageId));
 }

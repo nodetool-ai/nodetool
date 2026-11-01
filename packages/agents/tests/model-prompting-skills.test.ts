@@ -249,10 +249,12 @@ describe("the model-line prompting table", () => {
     "black-forest-labs/flux-2-dev",
     "bytedance/seedance-1.5-pro",
     "fal-ai/bytedance/seedance/v1/pro/text-to-video",
-    "wan-video/wan-2.5-t2v",
-    // Wan2GP's local Wan models are family local-wan, not the hosted Wan 2.6
-    // line, and have no guide of their own.
+    // Local Wan 2.1/2.2 lacks the Wan 2.6 guide's shot controls.
     "ti2v_2_2_fastwan",
+    "t2v",
+    "i2v_2_2",
+    "wan-video/wan-2.5-t2v",
+    // A digit after h3 names another line, not Wan2GP's local H3.
     "minimax_h30",
     "alibaba/wan-2.7/text-to-video",
     // Kling before the shot list, and Kling Image, which is not the video line

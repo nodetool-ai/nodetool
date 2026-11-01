@@ -70,12 +70,30 @@ it.each([
   expect(modelFamily(id)).toBeNull();
 });
 
-// Every model WanGP v19.02 lists with a video output, and the family each one
-// compiles to. Wan2GP model ids are its `defaults/` file stems, which the
-// `wangp` provider reports unchanged.
+// The WanGP v19.02 registry (616e605). Wan2GP model ids are its `defaults/`
+// file stems, which the `wangp` provider reports unchanged. `wan` keeps the
+// legacy fun_camera id from 362c3467.
 const wan2gp = JSON.parse(readFileSync(new URL("./wan2gp-models.json", import.meta.url), "utf8")) as {
-  models: ReadonlyArray<{ model_type: string; family: string; name: string }>;
+  wan: string[];
+  excluded: string[];
+  video: ReadonlyArray<{ model_type: string; family: string; name: string }>;
 };
+it.each(wan2gp.wan)("maps bare Wan2GP model %s exactly to local-wan", (id) => {
+  expect(modelFamily(id)).toBe("local-wan");
+  expect(modelFamily(id.toUpperCase())).toBe("local-wan");
+  expect(modelFamily(id)).not.toBe("wan");
+  for (const neighbor of [`prefix_${id}`, `${id}_next`, `${id}/route`, `${id}.1`, `wangp/${id}`]) {
+    expect(modelFamily(neighbor)).not.toBe("local-wan");
+  }
+});
+it.each(wan2gp.excluded)("does not claim non-Wan defaults model %s", (id) => {
+  expect(modelFamily(id)).not.toBe("local-wan");
+});
+it.each(["t2v_2_3", "i2v_2_3", "ti2v_2_3_fastwan", "t2v_13B", "fun_camera_13B"])("leaves unlisted Wan neighbors %s unclaimed", (id) => {
+  expect(modelFamily(id)).toBeNull();
+});
+
+// The video models of WanGP v19.02 and the family each one compiles to.
 const WAN2GP_FAMILY: Readonly<Record<string, ModelFamily | null>> = {
   wan: "local-wan",
   wan2_2: "local-wan",
@@ -95,12 +113,12 @@ const WAN2GP_EXCEPTIONS: Readonly<Record<string, ModelFamily | null>> = {
 };
 
 it("reads the recorded WanGP v19.02 video registry", () => {
-  expect(wan2gp.models.length).toBe(173);
-  expect(wan2gp.models.filter((model) => WAN2GP_FAMILY[model.family] === "local-wan").map((model) => model.model_type))
+  expect(wan2gp.video.length).toBe(173);
+  expect(wan2gp.video.filter((model) => WAN2GP_FAMILY[model.family] === "local-wan").map((model) => model.model_type))
     .toEqual(expect.arrayContaining(["t2v_2_2", "i2v_2_2", "ti2v_2_2_fastwan", "uni3c", "prism", "vace_14B"]));
 });
 
-it.each(wan2gp.models.map((model) => [model.model_type, model.family] as const))(
+it.each(wan2gp.video.map((model) => [model.model_type, model.family] as const))(
   "maps Wan2GP model %s (family %s)",
   (modelType, family) => {
     const expected = Object.hasOwn(WAN2GP_EXCEPTIONS, modelType)
@@ -128,7 +146,7 @@ it("matches Wan2GP ids exactly, not as prefixes or substrings", () => {
 });
 
 it("claims no shipped hosted model id for the local Wan2GP families", () => {
-  const local = new Set(wan2gp.models.map((model) => model.model_type.toLowerCase()));
+  const local = new Set(wan2gp.video.map((model) => model.model_type.toLowerCase()));
   let checked = 0;
   for (const provider of ["fal", "kie", "replicate", "higgsfield", "atlascloud", "together", "topaz"]) {
     const source = readFileSync(new URL(`../../${provider}-nodes/src/${provider}-manifest.json`, import.meta.url), "utf8");

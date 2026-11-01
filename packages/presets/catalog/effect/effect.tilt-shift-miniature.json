@@ -22,7 +22,8 @@
     "restyle it as a tilt-shift miniature model with shallow focus and saturated colors"
   ],
   "prompt": {
-    "default": "Edit the image to restyle it as a tilt-shift miniature model with shallow focus and saturated colors. Keep the composition and subject identical."
+    "default": "Edit the image to restyle it as a tilt-shift miniature model with shallow focus and saturated colors. Keep the composition and subject identical.",
+    "local-wan": "The scene becomes a detailed tabletop miniature with tiny crafted objects and saturated colors. A narrow band through the subject is sharp while the foreground and distant background soften strongly."
   },
   "params": {},
   "preview": {

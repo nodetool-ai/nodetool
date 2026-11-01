@@ -36,7 +36,8 @@
     "@nodetool-ai/pack-manager": "*",
     "zod": "^4.1.13",
     "@nodetool-ai/presets": "*",
-    "@nodetool-ai/config": "*"
+    "@nodetool-ai/config": "*",
+    "@nodetool-ai/pack-core": "*"
   },
   "devDependencies": {
     "vitest": "^5.0.1",

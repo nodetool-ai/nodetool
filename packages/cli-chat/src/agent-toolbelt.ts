@@ -18,7 +18,24 @@ import {
   toolForCapabilityName,
   type Tool
 } from "@nodetool-ai/agents";
-import { mcpToolHostDeps } from "@nodetool-ai/websocket";
+import { buildFullRegistry } from "@nodetool-ai/cli-execution/node-registry";
+import { mcpToolHostDeps } from "@nodetool-ai/project-services/mcp-tool-host-deps";
+import {
+  createWorkflowRuntimeEnvironment,
+  type WorkflowRuntimeEnvironment
+} from "@nodetool-ai/project-services/workflow-runtime-environment";
+
+let runtimeEnvironment: Promise<WorkflowRuntimeEnvironment> | null = null;
+
+/** One run environment per process, over the first registry a belt brings. */
+function workflowEnvironment(
+  registry: NodeRegistry | undefined
+): () => Promise<WorkflowRuntimeEnvironment> {
+  return () =>
+    (runtimeEnvironment ??= createWorkflowRuntimeEnvironment(async () =>
+      registry ?? buildFullRegistry()
+    ));
+}
 
 /** Every default tool, de-duplicated by name with the first one winning. */
 export function buildCliToolbelt(
@@ -30,7 +47,11 @@ export function buildCliToolbelt(
     ...getBuiltinTools(),
     ...getApifyTools(),
     ...getSerpApiTools(),
-    ...getAllMcpTools({ providers, registry, ...mcpToolHostDeps() }),
+    ...getAllMcpTools({
+      providers,
+      registry,
+      ...mcpToolHostDeps({ workflowEnvironment: workflowEnvironment(registry) })
+    }),
     toolForCapabilityName("list_collections"),
     toolForCapabilityName("query_collection")
   ]) {

@@ -21,7 +21,8 @@ import { getNodetoolCacheDir } from "@nodetool-ai/config";
 import { Asset } from "@nodetool-ai/models";
 import { getAssetAdapter } from "./storage.js";
 import { localAssetPath, retrieveAssetBytes } from "./asset-paths.js";
-import { decodeAudioChunks, probeMedia } from "@nodetool-ai/runtime/media";
+import type { probeMedia } from "@nodetool-ai/runtime/media";
+import { loadMediaModule } from "@nodetool-ai/runtime";
 import { withTaskSpan } from "@nodetool-ai/runtime/tracing";
 
 /** The count the timeline asks for; also the default. */
@@ -52,7 +53,7 @@ interface AudioProbe {
 async function probeAudio(filePath: string): Promise<AudioProbe | null> {
   let probe: Awaited<ReturnType<typeof probeMedia>>;
   try {
-    probe = await probeMedia(filePath);
+    probe = await (await loadMediaModule()).probeMedia(filePath);
   } catch {
     // Not media: there is no waveform to draw.
     return null;
@@ -149,6 +150,7 @@ async function computePeaks(
   let blockMax = 0;
   let inBlock = 0;
   // Channel 0 only, at the source rate, streamed so a long file is never whole.
+  const { decodeAudioChunks } = await loadMediaModule();
   for await (const { samples } of decodeAudioChunks(filePath, {
     sampleRate: probe.sampleRate,
     filter: "pan=mono|c0=c0"

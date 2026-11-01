@@ -18,14 +18,14 @@
     "@nodetool-ai/models": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
-    "@nodetool-ai/storage": "*",
-    "@hyzyla/pdfium": "^2.1.12"
+    "@nodetool-ai/storage": "*"
   },
   "devDependencies": {
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "vitest": "^5.0.1",
     "@types/node": "^22.0.0",
-    "sharp": "^0.35.3"
+    "sharp": "^0.35.3",
+    "@hyzyla/pdfium": "^2.1.12"
   },
   "exports": {
     ".": {
@@ -98,10 +98,14 @@
     "websocket"
   ],
   "peerDependencies": {
-    "sharp": "^0.35.3"
+    "sharp": "^0.35.3",
+    "@hyzyla/pdfium": "^2.1.12"
   },
   "peerDependenciesMeta": {
     "sharp": {
+      "optional": true
+    },
+    "@hyzyla/pdfium": {
       "optional": true
     }
   }

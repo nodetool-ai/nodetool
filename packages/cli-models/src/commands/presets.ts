@@ -1,9 +1,8 @@
 import { writeFile } from "node:fs/promises";
 import { Command } from "commander";
 import { z } from "zod";
-import { loadPackageAssetJson } from "@nodetool-ai/config";
+import { runtimePresetCatalog } from "@nodetool-ai/pack-core/preset-catalog";
 import {
-  loadCatalog,
   compileMediaPresets,
   presetToWorkflow,
   catalogKindSchema,
@@ -15,13 +14,7 @@ export function registerPresetCommands(program: Command): void {
   const presets = program
     .command("presets")
     .description("Browse presets and studios, compile and eject generation presets");
-  const catalog = () =>
-    loadCatalog(() =>
-      loadPackageAssetJson(
-        { pkg: "@nodetool-ai/presets", path: "preset-catalog.json" },
-        import.meta.url
-      )
-    );
+  const catalog = runtimePresetCatalog;
   const print = (value: unknown): void => {
     process.stdout.write(JSON.stringify(value, null, 2) + "\n");
   };

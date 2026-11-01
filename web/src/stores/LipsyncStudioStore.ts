@@ -1,9 +1,11 @@
+import type { LipsyncWorkflowInputs } from "@nodetool-ai/presets";
 import { create } from "zustand";
 import type { GenerateMediaRequest } from "@nodetool-ai/protocol";
 import { rpcRequest } from "../lib/websocket/rpcRequest";
 import { useLastModelStore } from "./lastModelStore";
 
 interface LipsyncState {
+  completedInputs: LipsyncWorkflowInputs | null;
   sourceAssetId: string | null;
   text: string;
   realPerson: boolean;
@@ -31,6 +33,7 @@ const firstAsset = (answer: { asset_ids?: string[] }): string => {
 };
 
 export const useLipsyncStudioStore = create<LipsyncState>()((set, get) => ({
+  completedInputs: null,
   sourceAssetId: null,
   text: "",
   realPerson: false,
@@ -62,7 +65,7 @@ export const useLipsyncStudioStore = create<LipsyncState>()((set, get) => ({
       real_person: state.realPerson,
       confirmed: state.confirmed
     };
-    set({ status: "speech", error: null, assetIds: [] });
+    set({ status: "speech", error: null, assetIds: [], completedInputs: null });
     try {
       const audioId = firstAsset(
         await rpcRequest(
@@ -101,7 +104,21 @@ export const useLipsyncStudioStore = create<LipsyncState>()((set, get) => ({
         model: video.model,
         provider: video.provider
       });
-      set({ status: "done", assetIds: [videoId] });
+      set({
+        status: "done",
+        assetIds: [videoId],
+        completedInputs: {
+          text: state.text,
+          sourceAssetId: state.sourceAssetId,
+          speech: {
+            provider: speech.provider,
+            model: speech.model,
+            voice: speech.voice,
+            speed: speech.speed
+          },
+          video: { provider: video.provider, model: video.model }
+        }
+      });
     } catch (cause) {
       set({
         status: "failed",

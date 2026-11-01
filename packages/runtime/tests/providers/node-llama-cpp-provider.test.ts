@@ -108,7 +108,7 @@ describe("NodeLlamaCppProvider", () => {
       }).catch((failure: unknown) => failure);
     vi.unstubAllEnvs();
     expect(error).toMatchObject({ details: { missing: "node-llama-cpp", runtimePackage: "node-llama-cpp" } });
-    expect(String(error)).toContain("npm run dev:nodetool -- runtime add node-llama-cpp");
+    expect(String(error)).toContain("npm run dev:nodetool -- packs add node-llama-cpp --yes");
     expect(String(error)).not.toContain("Package Manager");
   });
 

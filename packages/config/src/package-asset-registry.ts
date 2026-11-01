@@ -206,7 +206,7 @@ export const NPM_RUNTIME_RESOURCE_DIRS: readonly {
   { pkg: "@nodetool-ai/agents", sourceDir: SHIPPED_SYSTEM_SKILLS_SOURCE_DIR, distDir: SHIPPED_SYSTEM_SKILLS_BUNDLE_DIR },
   { pkg: "@nodetool-ai/node-sdk", sourceDir: SHIPPED_SANDBOX_PACKS_SOURCE_DIR, distDir: SHIPPED_SANDBOX_PACKS_BUNDLE_DIR },
   { pkg: "@nodetool-ai/timeline", sourceDir: "packages/base-nodes/nodetool/examples/timelines", distDir: "examples/timelines" },
-  { pkg: "@nodetool-ai/websocket", sourceDir: "packages/base-nodes/nodetool/examples/nodetool-base", distDir: "examples/nodetool-base" }
+  { pkg: "@nodetool-ai/project-services", sourceDir: "packages/base-nodes/nodetool/examples/nodetool-base", distDir: "examples/nodetool-base" }
 ];
 
 /** Registry lookup by exact pkg + path. */

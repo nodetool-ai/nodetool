@@ -236,12 +236,17 @@ The worker image must report bridge protocol version 2 or later.
 
 The **Workers** tab in the bottom panel is the main surface:
 
-1. **Manage Profiles** — pick a provider, name, GPU, vCPU, disk (GB), idle
-   timeout, max lifetime, worker image, and token policy, and save a reusable
-   profile. The dialog warns when the provider's API key is missing.
+1. **Set up a worker** — with no profile yet, the empty panel and **Start
+   Worker** open the setup form. When the provider's API key is missing, the
+   form asks for it inline, checks it against the provider (RunPod) and stores
+   it. Verda needs two credentials, so the form links to Settings. A blank
+   name becomes the provider and GPU, such as "RunPod A40". **Create and
+   start** saves the profile and launches a worker in one step. **Manage
+   Profiles** opens the same form with the existing profiles listed.
 2. **Start Worker** — choose a profile and launch an instance. Progress runs
-   `provisioning → running → attached`. **Attach** stays disabled until the
-   worker answers a health probe.
+   `provisioning → running → attached`. A worker started from the panel
+   attaches on its own once it answers a health probe, unless another worker
+   is attached by then. **Attach** stays disabled until the probe answers.
 3. **Instance rows** — each live or paused worker shows its status, uptime, and
    **estimated cost**, with **Attach**, **Detach**, **Resume**, **Stop** (pause),
    and **Terminate** (destroy) actions.

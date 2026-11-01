@@ -31,7 +31,7 @@ import {
   KNOWN_PROVIDERS
 } from "@nodetool-ai/cli-providers";
 import { initDb, migrateSqliteDb } from "@nodetool-ai/models";
-import { initMasterKey } from "@nodetool-ai/security";
+import { initMasterKey, isKeychainBackendMissing } from "@nodetool-ai/security";
 import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { buildFullRegistry } from "@nodetool-ai/cli-execution/node-registry";
@@ -195,12 +195,15 @@ try {
 try {
   await initMasterKey();
 } catch (err) {
-  const msg = err instanceof Error ? err.message : String(err);
-  process.stderr.write(
-    `[chat-cli] Could not unlock the secret store: ${msg}\n` +
-      `[chat-cli] Falling back to environment variables for API keys.\n` +
-      `[chat-cli] Tip: set SECRETS_MASTER_KEY or grant keychain access to enable DB-stored secrets.\n`
-  );
+  // A missing keychain module matters only when a stored secret is read.
+  if (!(err instanceof Error && isKeychainBackendMissing(err))) {
+    const msg = err instanceof Error ? err.message : String(err);
+    process.stderr.write(
+      `[chat-cli] Could not unlock the secret store: ${msg}\n` +
+        `[chat-cli] Falling back to environment variables for API keys.\n` +
+        `[chat-cli] Tip: set SECRETS_MASTER_KEY or grant keychain access to enable DB-stored secrets.\n`
+    );
+  }
 }
 
 // The same persistence a local workflow run gets, for every context this

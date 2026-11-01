@@ -19,7 +19,8 @@
   "conflicts": [],
   "aliases": [],
   "prompt": {
-    "default": "Restyle the video as a comic book animation with bold ink contours, halftone shading and graphic color blocks. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+    "default": "Restyle the video as a comic book animation with bold ink contours, halftone shading and graphic color blocks. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames.",
+    "local-wan": "From the first frame, the entire scene is rebuilt as an animated comic book. Heavy black ink outlines, halftone dot shadows and bold flat color panels build every figure, object and background. The layout and movement follow the source video, with this treatment sustained in every frame."
   },
   "params": {},
   "preview": {

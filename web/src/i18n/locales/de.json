@@ -1,4 +1,9 @@
 {
+  "ejection": {
+    "unavailable": "Die genauen Eingaben dieses älteren Ergebnisses wurden nicht gespeichert. Erstelle eine neue Aufnahme, um sie als Workflow zu öffnen.",
+    "open": "Als Workflow öffnen",
+    "failed": "Workflow konnte nicht geöffnet werden: {{reason}}"
+  },
   "common": {
     "save": "Speichern",
     "cancel": "Abbrechen",
@@ -9374,18 +9379,13 @@
         "title": "Worker-Profile verwalten",
         "create": "Profil erstellen",
         "existingHeading": "Vorhandene Profile",
-        "emptyTitle": "Noch keine Profile",
-        "emptyDescription": "Erstelle unten eins.",
         "deleteAria": "Profil {{name}} löschen",
         "createSection": "Profil erstellen",
         "intro": "Ein Profil ist eine gespeicherte Vorlage. Bei der Bereitstellung wird eine GPU-Instanz gemietet und diese App damit verbunden.",
         "nameLabel": "Name",
-        "nameHelp": "Eine Bezeichnung, an der du diese Vorlage erkennst, z. B. „A40-Bild-Worker“.",
+        "nameHelp": "Optional. Leer lassen, um „{{name}}“ zu verwenden.",
         "providerLabel": "Anbieter",
         "providerHelp": "Hier wird die GPU gemietet. RunPod startet einen dedizierten Pod; Vast wählt das günstigste passende Angebot auf seinem Marktplatz.",
-        "keySeparator": " und ",
-        "missingApiKeyTitle": "{{key}} ist nicht eingerichtet",
-        "missingApiKeyDescription": "Füge den Schlüssel unter Einstellungen → Modelle & Anbieter hinzu, bevor du einen {{provider}}-Worker bereitstellst. Ohne ihn schlägt die Bereitstellung fehl.",
         "gpuLabel": "GPU",
         "runpodGpuHelp": "Welche Maschine gemietet werden soll. Wähle für die Modellinferenz eine GPU oder „Nur CPU“ für einen günstigeren CPU-Pod (z. B. für Daten-/Textknoten). Mehr VRAM ermöglicht größere Modelle.",
         "gpuHelp": "Welche GPU gemietet werden soll. Mehr VRAM ermöglicht größere Modelle. Wähle die kleinste passende GPU, um Kosten zu sparen.",
@@ -9425,7 +9425,10 @@
         "maxLifetimeLabel": "Maximale Laufzeit (Minuten)",
         "maxLifetimeHelp": "Höchstgrenze: In diesem Alter wird der Worker beendet – Pod und Volume werden gelöscht, Modelle gehen verloren. So werden alle Kosten gestoppt. Leer = keine Grenze.",
         "createError": "Profil konnte nicht erstellt werden: {{message}}",
-        "deleteError": "Profil konnte nicht gelöscht werden: {{message}}"
+        "deleteError": "Profil konnte nicht gelöscht werden: {{message}}",
+        "setupTitle": "Worker einrichten",
+        "createAndStart": "Erstellen und starten",
+        "startError": "Das Profil wurde gespeichert, aber der Worker ist nicht gestartet: {{message}}"
       },
       "status": {
         "workerLabel": "Worker: {{name}}",
@@ -9441,13 +9444,18 @@
         "booting": "Startet",
         "bootingEllipsis": "Startet…",
         "bootingHint": "GPU läuft – Worker wird noch geladen",
-        "readyHint": "Worker antwortet – Verbindung kann hergestellt werden"
+        "readyHint": "Worker antwortet – Verbindung kann hergestellt werden",
+        "provisioningHint": "GPU wird gemietet. Das kann einige Minuten dauern.",
+        "bootingAutoAttachHint": "GPU läuft. Der Worker lädt und verbindet sich, sobald er bereit ist.",
+        "attachingHint": "Worker ist bereit. Wird verbunden…"
       },
       "provision": {
         "title": "Worker starten",
-        "confirm": "Bereitstellen",
-        "noProfiles": "Noch keine Worker-Profile. Öffne „Profile verwalten“, um eins zu erstellen.",
-        "profileLabel": "Profil"
+        "confirm": "Starten",
+        "profileLabel": "Profil",
+        "idleSummary_one": "Er verbindet sich mit NodeTool, sobald er bereit ist, und pausiert nach {{count}} Minute Leerlauf.",
+        "idleSummary_other": "Er verbindet sich mit NodeTool, sobald er bereit ist, und pausiert nach {{count}} Minuten Leerlauf.",
+        "noIdleSummary": "Er verbindet sich mit NodeTool, sobald er bereit ist. Dieses Profil hat kein Leerlauf-Timeout, also stoppe den Worker, wenn du fertig bist."
       },
       "instance": {
         "uptime": "Laufzeit: {{value}}",
@@ -9476,7 +9484,8 @@
       },
       "empty": {
         "title": "Keine Worker aktiv",
-        "description": "Starte einen, um eine GPU für deine Graphen zu mieten."
+        "description": "Starte einen, um eine GPU für deine Graphen zu mieten.",
+        "start": "Einen Worker starten"
       },
       "terminate": {
         "title": "Worker beenden?",
@@ -9497,7 +9506,18 @@
         "action": "Worker-Aktion fehlgeschlagen: {{message}}",
         "reconcile": "Worker konnten nicht abgeglichen werden: {{message}}"
       },
-      "panelTitle": "Worker"
+      "panelTitle": "Worker",
+      "apiKey": {
+        "title": "{{provider}}-API-Schlüssel hinzufügen",
+        "description": "Worker laufen über dein {{provider}}-Konto und werden dort abgerechnet. NodeTool prüft den Schlüssel und speichert ihn verschlüsselt.",
+        "settingsDescription": "{{provider}} meldet sich mit einer Client-ID und einem Secret an. Füge beide unter Einstellungen → Modelle & Anbieter hinzu.",
+        "openSettings": "Einstellungen öffnen"
+      },
+      "setup": {
+        "title": "Graphen auf einer gemieteten GPU ausführen",
+        "description": "Verbinde RunPod einmal und wähle eine GPU. NodeTool führt dann deine Python-Nodes darauf aus, und Worker im Leerlauf pausieren von selbst.",
+        "action": "Worker einrichten"
+      }
     }
   },
   "screens4_9": {
@@ -13294,8 +13314,6 @@
       "actions": {
         "copyMarkdown": "Unterhaltung als Markdown kopieren",
         "newChat": "Neuer Chat",
-        "showSidebar": "Seitenleiste einblenden",
-        "hideSidebar": "Seitenleiste ausblenden",
         "scrollToBottom": "Zum Ende scrollen"
       },
       "errors": {
@@ -13307,12 +13325,6 @@
       "notifications": {
         "copiedMessages_one": "{{count}} Nachricht als Markdown kopiert.",
         "copiedMessages_other": "{{count}} Nachrichten als Markdown kopiert."
-      },
-      "mobileRails": {
-        "ariaLabel": "Unterhaltungsbereich",
-        "chat": "Chat",
-        "tasks": "Aufgaben",
-        "task": "Aufgabe"
       },
       "welcome": {
         "suggestions": {
@@ -13332,6 +13344,12 @@
         "connectProviderButton": "Anbieter verbinden",
         "title": "Wie kann ich dir heute helfen?",
         "subtitle": "Frag einfach, füge Dateien hinzu oder starte mit einem dieser Vorschläge:"
+      },
+      "taskDock": {
+        "label": "Aufgaben",
+        "expand": "Alle Aufgaben anzeigen",
+        "collapse": "Aufgabenliste ausblenden",
+        "allDone": "Alle Aufgaben erledigt"
       }
     }
   },
@@ -18186,11 +18204,6 @@
       "thought": "Nachgedacht",
       "thoughtFor": "{{seconds}} s nachgedacht"
     },
-    "sidebar": {
-      "activeTask": "Aktive Agent-Aufgabe",
-      "noTasks": "Noch keine Aufgaben",
-      "noTasksDescription": "Der Agent zeigt hier seinen Plan, während er arbeitet."
-    },
     "thread": {
       "conversation": "Unterhaltung",
       "responding": "Antwortet…",
@@ -18574,11 +18587,6 @@
       "notNow": "Nicht jetzt",
       "saving": "Wird gespeichert…",
       "saveKey": "Schlüssel speichern"
-    },
-    "todoSidebar": {
-      "tasks": "Aufgaben",
-      "noTasks": "Noch keine Aufgaben",
-      "noTasksDescription": "Der Agent zeigt hier seinen Plan, während er arbeitet."
     },
     "codeBlock": {
       "insertIntoEditor": "In den Editor einfügen"
@@ -18966,6 +18974,7 @@
     "fallbackWarning": "Keine angepasste Formulierung für dieses Modell: {{names}}. Stattdessen gilt die Standardformulierung."
   },
   "preset_picker": {
+    "author": "Von {{author}}",
     "searchPlaceholder": "Presets durchsuchen",
     "searchLabel": "Presets durchsuchen",
     "kindLabel": "Preset-Art",
@@ -19538,5 +19547,28 @@
   "startStudios": {
     "title": "Studios",
     "subtitle": "Beginnen Sie mit dem, was Sie machen möchten. Jedes Studio öffnet sich mit ausgewählten Vorlagen."
+  },
+  "onePassword": {
+    "useOnePassword": "1Password verwenden",
+    "title": "Schlüssel aus 1Password verwenden",
+    "connectIntro": "NodeTool liest den Schlüssel bei jeder Verwendung aus der 1Password-App, daher wird er nie in NodeTool gespeichert. Aktiviere in den Einstellungen der 1Password-App die Option zur Integration mit SDKs. Gib dann deinen Kontonamen so ein, wie er oben in der Seitenleiste der App steht.",
+    "accountLabel": "1Password-Konto",
+    "accountPlaceholder": "my.1password.com",
+    "approveHint": "Erlaube NodeTool den Zugriff, wenn die 1Password-App fragt.",
+    "connect": "Verbinden",
+    "connecting": "Warte auf 1Password",
+    "connectFailed": "1Password wurde nicht verbunden: {{message}}",
+    "connectedAs": "Verbunden als {{account}}",
+    "switchAccount": "Anderes Konto verwenden",
+    "loadFailed": "1Password konnte nicht gelesen werden: {{message}}",
+    "vault": "Tresor",
+    "items": "Einträge",
+    "fields": "Felder",
+    "searchItems": "Einträge durchsuchen",
+    "noItems": "Dieser Tresor enthält keine Einträge.",
+    "noItemsMatch": "Keine Einträge entsprechen deiner Suche.",
+    "chooseItem": "Wähle einen Eintrag und dann das Feld mit dem Schlüssel.",
+    "noFields": "Dieser Eintrag hat keine Felder.",
+    "pickedHelp": "Aus 1Password: {{path}}. NodeTool liest ihn bei jeder Verwendung des Schlüssels."
   }
 }

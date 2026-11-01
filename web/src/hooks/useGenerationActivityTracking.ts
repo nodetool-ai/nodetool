@@ -203,7 +203,8 @@ const handlePrediction = (message: WebSocketMessage): void => {
   const store = useGenerationActivityStore.getState();
   const origin = readRecord(message.origin);
   const requestId = readString(origin.request_id);
-  const threadId = readString(origin.thread_id) ?? readString(message.thread_id);
+  const threadId =
+    readString(origin.thread_id) ?? readString(message.thread_id);
   // The request or the media chat turn that caused it is already listed.
   if (requestId && store.generations[requestId]) {
     return;
@@ -235,6 +236,20 @@ const handlePrediction = (message: WebSocketMessage): void => {
     store.start({
       id,
       channel: "prediction",
+      request: {
+        provider: readString(message.provider),
+        mode: (
+          {
+            text_to_image: "image",
+            image_to_image: "image_edit",
+            text_to_video: "video",
+            image_to_video: "image_to_video",
+            reference_to_video: "reference_to_video",
+            video_to_video: "video_edit"
+          } as Record<string, string>
+        )[readString(message.capability) ?? ""],
+        params
+      },
       ...(presetIds.length > 0 && { preset_ids: presetIds }),
       status: "generating",
       kind: mediaKindOf(readString(message.capability)),

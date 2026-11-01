@@ -676,7 +676,6 @@
         "packages/node-catalog/src/**",
         "packages/nodes-utils/src/**",
         "packages/pack-host/src/**",
-        "packages/project-services/src/**",
         "packages/provider-anthropic/src/**",
         "packages/replicate-nodes/src/**",
         "packages/reve-nodes/src/**",

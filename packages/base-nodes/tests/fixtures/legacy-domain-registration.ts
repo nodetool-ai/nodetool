@@ -25846,6 +25846,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           data: null,
           metadata: null
         }
+      },
+      {
+        name: 'image',
+        type: {
+          type: 'image',
+          type_args: []
+        },
+        required: false,
+        title: 'Image',
+        description: 'Optional source picture instead of a video',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: { type: 'image', uri: '' }
       }
     ],
     outputs: [
@@ -25860,6 +25875,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     recommended_models: [],
     inline_fields: [],
     input_fields: [
+      'image',
       'video',
       'audio'
     ],

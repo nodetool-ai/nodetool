@@ -168,6 +168,24 @@ vi.mock("@nodetool-ai/agents", async () => ({
 
 // The belt is the server's: builtins plus the platform tools. The platform
 // half pulls in the websocket package, so the suite answers with the builtins.
+const ledgers: Array<{ options: Record<string, unknown>; settled: boolean; detached: boolean }> = [];
+vi.mock("@nodetool-ai/execution", () => ({
+  attachRunCostLedger: (_context: unknown, options: Record<string, unknown>) => {
+    const entry = { options, settled: false, detached: false };
+    ledgers.push(entry);
+    return Object.assign(
+      () => {
+        entry.detached = true;
+      },
+      {
+        settled: async () => {
+          entry.settled = true;
+        }
+      }
+    );
+  }
+}));
+
 vi.mock("../src/agent-toolbelt.js", async () => {
   const agents = await import("@nodetool-ai/agents");
   return { buildCliToolbelt: () => agents.getBuiltinTools() };
@@ -441,6 +459,24 @@ describe("runStdinMode — direct provider chat", () => {
       workspaceDir: "/tmp"
     });
     expect(processChat).toHaveBeenCalled();
+  });
+
+  it("records the turn's generations in the cost ledger", async () => {
+    // A generation in a chat turn emits prediction messages on the turn's
+    // context. Without a ledger on it, none reached `costs list`.
+    ledgers.length = 0;
+    _nextLines = ["Hello AI"];
+    await runStdinMode({
+      provider: "openai",
+      model: "gpt-4o",
+      workspaceDir: "/tmp"
+    });
+    expect(ledgers).toHaveLength(1);
+    expect(ledgers[0]).toMatchObject({
+      options: { workflowId: null },
+      settled: true,
+      detached: true
+    });
   });
 
   it("runs the turn in CodeAct — the provider sees execute_code and the core tools, not the whole belt", async () => {

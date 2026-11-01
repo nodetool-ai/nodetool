@@ -64,7 +64,10 @@ export function asJson(data: unknown): void {
 export function printKv(rows: Record<string, unknown>): void {
   const list = Object.entries(rows).map(([key, value]) => ({
     key,
-    value: String(value ?? "")
+    value:
+      value !== null && typeof value === "object"
+        ? JSON.stringify(value)
+        : String(value ?? "")
   }));
   printTable(list, ["key", "value"]);
 }

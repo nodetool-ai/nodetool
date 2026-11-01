@@ -38,6 +38,9 @@
       "path": "../execution"
     },
     {
+      "path": "../model-pricing"
+    },
+    {
       "path": "../models"
     },
     {

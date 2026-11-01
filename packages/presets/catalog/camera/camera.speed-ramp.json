@@ -25,7 +25,8 @@
     "kling": "Motion accelerates from normal speed into a rapid burst then eases into slow motion.",
     "seedance": "Motion accelerates from normal speed into a rapid burst then eases into slow motion throughout one continuous shot.",
     "veo": "Motion accelerates from normal speed into a rapid burst then eases into slow motion.",
-    "wan": "Motion accelerates from normal speed into a rapid burst then eases into slow motion."
+    "wan": "Motion accelerates from normal speed into a rapid burst then eases into slow motion.",
+    "local-wan": "The action starts at an ordinary pace, accelerates into a brief fast burst, then eases into slow motion. The same action flows continuously through each speed change. One continuous shot."
   },
   "params": {},
   "preview": {

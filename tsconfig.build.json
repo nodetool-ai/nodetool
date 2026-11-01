@@ -13,6 +13,7 @@
     { "path": "packages/game-runtime" },
     { "path": "packages/game-renderer" },
     { "path": "packages/config" },
+    { "path": "packages/presets" },
     { "path": "packages/auth" },
     { "path": "packages/storage" },
     { "path": "packages/security" },

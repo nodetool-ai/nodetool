@@ -4,8 +4,8 @@
  * commands) without pulling in the heavy deploy stack.
  */
 
-import { initDb } from "@nodetool-ai/models";
-import { initMasterKey } from "@nodetool-ai/security";
+import { initDb, migrateSqliteDb } from "@nodetool-ai/models";
+import { initMasterKey, isKeychainBackendMissing } from "@nodetool-ai/security";
 import { getDefaultDbPath } from "@nodetool-ai/config";
 
 /** Local single-user id used across the TS stack. */
@@ -22,10 +22,15 @@ let ready: Promise<void> | null = null;
  */
 export function setupLocalDb(): Promise<void> {
   ready ??= (async () => {
+    // initDb applies only the baseline schema. Migrate first, or a command
+    // that writes an asset fails on a column added later.
+    await migrateSqliteDb(getDefaultDbPath());
     initDb(getDefaultDbPath());
     try {
       await initMasterKey();
     } catch (err) {
+      // A missing keychain module matters only when a stored secret is read.
+      if (err instanceof Error && isKeychainBackendMissing(err)) return;
       const msg = err instanceof Error ? err.message : String(err);
       process.stderr.write(
         `Could not unlock the secret store: ${msg}\n` +
@@ -38,7 +43,5 @@ export function setupLocalDb(): Promise<void> {
 
 /** Migrate a standalone command database before unlocking its local credentials. */
 export async function setupCliDb(): Promise<void> {
-  const { migrateSqliteDb } = await import("@nodetool-ai/models");
-  await migrateSqliteDb(getDefaultDbPath());
   await setupLocalDb();
 }

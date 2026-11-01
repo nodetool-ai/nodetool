@@ -13,9 +13,20 @@ vi.mock("keytar", () => {
   throw new Error("native module missing");
 });
 
+const logged = vi.hoisted(() => ({ error: vi.fn(), debug: vi.fn() }));
+vi.mock("@nodetool-ai/config", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@nodetool-ai/config")>();
+  return {
+    ...actual,
+    createLogger: () => ({ error: logged.error, warn: vi.fn(), info: vi.fn(), debug: logged.debug })
+  };
+});
+
 import {
   initMasterKey,
+  getMasterKey,
   KeychainAccessError,
+  isKeychainBackendMissing,
   clearMasterKeyCache,
   resetKeytarLoader
 } from "../src/master-key.js";
@@ -46,5 +57,17 @@ describe("loadKeytar — dynamic import failure path", () => {
     expect((error as Error).message).toContain(
       "Allow NodeTool access to the system keychain when prompted."
     );
+    expect(isKeychainBackendMissing(error as Error)).toBe(true);
+    expect(isKeychainBackendMissing(new KeychainAccessError("denied"))).toBe(false);
+  });
+
+  it("prints no error while no secret needs the keychain", async () => {
+    await initMasterKey().catch(() => undefined);
+    expect(logged.error).not.toHaveBeenCalled();
+  });
+
+  it("names the keychain failure and SECRETS_MASTER_KEY when a secret needs the key", async () => {
+    await initMasterKey().catch(() => undefined);
+    expect(() => getMasterKey()).toThrow(/Unable to load system keychain backend[\s\S]*SECRETS_MASTER_KEY/);
   });
 });

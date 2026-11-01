@@ -661,6 +661,32 @@ describe("FalProvider — TTS", () => {
 
     vi.unstubAllGlobals();
   });
+
+  it("fills a required speaker and rejects an unknown voice before the request", async () => {
+    const subscribeMock = vi.fn().mockResolvedValue({
+      data: { audio: { url: "https://fal.ai/out.mp3" } }
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        headers: new Headers(),
+        arrayBuffer: () => Promise.resolve(new Uint8Array([0xff, 0xfb]).buffer)
+      })
+    );
+    const p = createProvider("key");
+    (p as any)._client = { subscribe: subscribeMock };
+
+    await p.textToSpeechEncoded({ text: "hi", model: "fal-ai/vibevoice/0.5b" });
+    expect(subscribeMock.mock.calls[0][1].input.speaker).toBe("Frank");
+
+    await expect(
+      p.textToSpeechEncoded({ text: "hi", model: "fal-ai/vibevoice/0.5b", voice: "Alice" })
+    ).rejects.toThrow(/Frank, Wayne/);
+    expect(subscribeMock).toHaveBeenCalledTimes(1);
+
+    vi.unstubAllGlobals();
+  });
 });
 
 describe("FalProvider — music", () => {

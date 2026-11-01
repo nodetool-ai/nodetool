@@ -1,9 +1,9 @@
 /**
  * `nodetool generate` — generate media from any provider, from the terminal.
  *
- *   nodetool generate fal-ai flux-schnell "a red fox in snow" -o fox.png
+ *   nodetool generate fal_ai flux-schnell "a red fox in snow" -o fox.png
  *   nodetool generate openai gpt-image-1 "a logo" --aspect-ratio 1:1
- *   nodetool generate fal-ai --list-models            # discover model ids
+ *   nodetool generate fal_ai --list-models            # discover model ids
  *
  * Built to be agent-friendly: positional `<provider> <model> <prompt>`, lenient
  * model/provider name matching, `--json` machine output, and a `--list-models`
@@ -13,6 +13,14 @@
  * Heavy deps (runtime providers, DB) load lazily inside the action.
  */
 import type { Command } from "commander";
+import {
+  formatPricedModel,
+  mediaToolCall,
+  parseGenerateKind,
+  priceAndSortModels,
+  runMediaToolCall,
+  type ListedModel
+} from "./generate-media.js";
 import type {
   ImageModel,
   ImageToImageParams,
@@ -33,6 +41,12 @@ interface GenerateCliOptions {
   image?: string[];
   listModels?: boolean;
   json?: boolean;
+  kind?: string;
+  voice?: string;
+  speed?: string;
+  instructions?: string;
+  duration?: string;
+  resolution?: string;
 }
 
 /** Hyphen/space spellings agents are likely to type for an underscored id. */
@@ -127,17 +141,17 @@ function resolveImageModel(
   throw new Error(
     `Model "${input}" not found for ${provider}. ` +
       `Run \`nodetool generate ${provider} --list-models\` to see image model ids. ` +
-      "For video, use nodetool tools list video and nodetool skills read storyboard-core."
+      "For speech or video, pass --kind speech or --kind video."
   );
 }
 
 /** Init the secret DB so encrypted keys resolve; env-only keys work regardless. */
 async function initSecretStore(): Promise<void> {
   try {
-    const { initDb } = await import("@nodetool-ai/models");
+    const { initMigratedDb } = await import("@nodetool-ai/models");
     const { initMasterKey } = await import("@nodetool-ai/security");
     const { getDefaultDbPath } = await import("@nodetool-ai/config");
-    initDb(getDefaultDbPath());
+    await initMigratedDb(getDefaultDbPath());
     try {
       await initMasterKey();
     } catch {
@@ -152,12 +166,22 @@ export function registerGenerateCommand(program: Command): void {
   program
     .command("generate [provider] [model] [prompt...]")
     .description(
-      'Generate an image from any provider (e.g. `generate fal-ai flux-schnell "a fox"`)'
+      "Generate an image, speech or video from any provider (--kind image|speech|video)"
     )
     .addHelpText(
       "after",
-      "\nThis command generates images. For video and stories:\n  nodetool tools list video\n  nodetool skills read storyboard-core\n"
+      `
+Examples:
+  nodetool generate fal_ai flux-schnell "a red fox in snow" -o fox.png
+  nodetool generate openai gpt-4o-mini-tts "Welcome to NodeTool" --kind speech --voice alloy -o hello.mp3
+  nodetool generate fal_ai <video-model-id> "waves at dusk" --kind video --duration 5 -o waves.mp4
+  nodetool generate fal_ai --kind video --list-models   models with catalog prices, cheapest first
+
+Speech and video run the generate_speech and generate_video tools of the cli-chat feature
+(nodetool packs add cli-chat --yes), the same tools as \`nodetool tools call\`.
+`
     )
+    .option("--kind <kind>", "What to generate: image, speech or video", "image")
     .option("-o, --output <path>", "Output file or directory")
     .option("--width <n>", "Image width in pixels")
     .option("--height <n>", "Image height in pixels")
@@ -169,7 +193,12 @@ export function registerGenerateCommand(program: Command): void {
     .option("--guidance <n>", "Guidance scale")
     .option("--strength <n>", "Image-to-image strength (with --image)")
     .option("--image <path...>", "Input image(s) — switches to image-to-image")
-    .option("--list-models", "List the provider's image models and exit")
+    .option("--voice <name>", "Voice for --kind speech")
+    .option("--speed <n>", "Speech speed for --kind speech (e.g. 0.25-4.0)")
+    .option("--instructions <text>", "Delivery direction for --kind speech")
+    .option("--duration <seconds>", "Clip length for --kind video")
+    .option("--resolution <res>", "Resolution for --kind video, e.g. 720p")
+    .option("--list-models", "List the provider's models of --kind with catalog prices, cheapest first, and exit")
     .option("--json", "Print the result as JSON")
     .action(
       async (
@@ -205,7 +234,7 @@ async function run(
     );
   }
 
-  const { listRegisteredProviderIds } = await import("@nodetool-ai/runtime");
+  const { listRegisteredProviderIds, manifestLoadFailures } = await import("@nodetool-ai/runtime");
   const { createProvider, providerSecretKey } = await import("@nodetool-ai/cli-providers");
 
   await initSecretStore();
@@ -233,22 +262,45 @@ async function run(
     );
   }
 
+  const kind = parseGenerateKind(opts.kind);
   const models = await provider
     .getAvailableImageModels()
     .catch(() => []);
+  const kindModels: ListedModel[] =
+    kind === "image"
+      ? // `generate` makes an image from a prompt, so list text-to-image models.
+        models.filter(
+          (m) => !m.supportedTasks?.length || m.supportedTasks.includes("text_to_image")
+        )
+      : await (kind === "speech"
+          ? provider.getAvailableTTSModels()
+          : provider.getAvailableVideoModels()
+        ).catch(() => []);
 
   if (opts.listModels) {
+    const priced = priceAndSortModels(providerId, kindModels);
     if (opts.json) {
-      console.log(JSON.stringify({ provider: providerId, models }, null, 2));
-    } else if (models.length === 0) {
-      console.log(`No image models listed for ${providerId}.`);
+      console.log(JSON.stringify({ provider: providerId, kind, models: priced }, null, 2));
+    } else if (priced.length === 0) {
+      console.log(emptyModelListMessage(providerId, manifestLoadFailures(), kind));
     } else {
-      console.log(`\nImage models for ${providerId} (${models.length}):\n`);
-      for (const m of models)
-        console.log(
-          `  ${m.id}${m.name && m.name !== m.id ? `  — ${m.name}` : ""}`
-        );
+      console.log(
+        `\n${kind[0].toUpperCase()}${kind.slice(1)} models for ${providerId} (${priced.length}), cheapest first; "—" means no catalog price:\n`
+      );
+      for (const m of priced) console.log(formatPricedModel(m));
     }
+    return;
+  }
+
+  if (kind !== "image") {
+    if (!modelArg) {
+      throw new Error(
+        `Model is required. Run \`nodetool generate ${providerId} --kind ${kind} --list-models\` to see options.`
+      );
+    }
+    const text = promptParts.join(" ").trim();
+    if (!text) throw new Error(kind === "speech" ? "Text to speak is required." : "Prompt is required.");
+    await runMediaToolCall(mediaToolCall(kind, providerId, modelArg, text, opts));
     return;
   }
 
@@ -428,4 +480,37 @@ async function writeImages(
     paths.push(full);
   }
   return paths;
+}
+
+/**
+ * The --list-models output for an empty list. A provider whose model list
+ * comes from a node pack's manifest lists nothing when the pack is absent, so
+ * the message names the load failure and the install command.
+ */
+export function emptyModelListMessage(
+  providerId: string,
+  failures: readonly { packageName: string; exportPath: string; error: string }[],
+  kind = "image"
+): string {
+  if (failures.length === 0) {
+    return `No ${kind} models listed for ${providerId}.`;
+  }
+  // Catalog pack ids are the npm name without the scope and "-nodes".
+  const packIds = [
+    ...new Set(
+      failures.map((f) => f.packageName.replace(/^@nodetool-ai\//, "").replace(/-nodes$/, ""))
+    )
+  ];
+  const lines = [
+    `The ${providerId} model list is not installed. Install it with:`,
+    ...packIds.map((id) => `  nodetool packs add ${id} --yes`),
+    "",
+    "Details:"
+  ];
+  for (const failure of failures) {
+    const firstLine = failure.error.split("\n")[0] ?? "";
+    const short = firstLine.length > 160 ? `${firstLine.slice(0, 157)}...` : firstLine;
+    lines.push(`  ${failure.packageName}/${failure.exportPath}: ${short}`);
+  }
+  return lines.join("\n");
 }

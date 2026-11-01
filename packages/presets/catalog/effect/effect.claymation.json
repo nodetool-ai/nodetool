@@ -22,7 +22,8 @@
     "restyle it as a handmade claymation scene with visible fingerprints in the clay"
   ],
   "prompt": {
-    "default": "Edit the image to restyle it as a handmade claymation scene with visible fingerprints in the clay. Keep the composition and subject identical."
+    "default": "Edit the image to restyle it as a handmade claymation scene with visible fingerprints in the clay. Keep the composition and subject identical.",
+    "local-wan": "A handmade plasticine miniature scene, with rounded clay forms, thumbprints and tiny sculpted details across every surface. The image layout is rebuilt entirely from colored clay under soft miniature-set lighting."
   },
   "params": {},
   "preview": {

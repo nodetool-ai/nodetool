@@ -90,7 +90,7 @@ const falPricingRoute: FastifyPluginAsync = async (app) => {
     let apiKey: string | null = null;
     if (secret) {
       try {
-        apiKey = await secret.getDecryptedValue();
+        apiKey = await secret.getResolvedValue();
       } catch (err) {
         console.error("[fal-pricing] decryption failed:", err);
       }

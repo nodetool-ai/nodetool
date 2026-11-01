@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { attachRunCostLedger } from "@nodetool-ai/execution";
 import type { EventEmitter } from "node:events";
 import { Box, Text, useApp, useInput } from "ink";
 import Spinner from "ink-spinner";
@@ -991,6 +992,12 @@ export function App({
       } else {
         const ctx = await createChatContext({ workspaceDir });
         const unsubscribe = ctx.addMessageListener(processEvent);
+        // Generations in the turn emit prediction messages; the ledger turns
+        // them into the rows `costs list` and `generations list` read.
+        const ledger = attachRunCostLedger(ctx, {
+          userId: ctx.userId,
+          workflowId: null
+        });
         try {
           budget = await createCliRunBudget({ costCap, timeout });
           const gate: PermissionGateOptions = {
@@ -1089,6 +1096,8 @@ export function App({
             add("system", attachments.join("\n"));
           }
         } finally {
+          await ledger.settled();
+          ledger();
           unsubscribe();
         }
       }

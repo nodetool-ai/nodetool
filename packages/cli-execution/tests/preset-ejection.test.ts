@@ -70,3 +70,51 @@ describe("preset ejection validation", () => {
     }
   }, 120_000);
 });
+
+describe("recorded graphs", () => {
+  it("validates a recorded storyboard clip and a speech-to-lipsync graph", async () => {
+    const { storyboardRenderToWorkflow, lipsyncToWorkflow } =
+      await import("@nodetool-ai/presets");
+    const graphs = [
+      storyboardRenderToWorkflow({
+        kind: "clip",
+        model: "fake-video",
+        prompt_hash: "base-hash",
+        aspect_ratio: "16:9",
+        style_entity_id: null,
+        recorded_at: "now",
+        camera_preset_ids: ["camera.dolly-in"],
+        look_preset_ids: ["look.fixture"],
+        generation: {
+          mode: "image_to_video",
+          provider: "fake",
+          prompt: "A dancer leaps. Camera pushes in. Soft light.",
+          params: {
+            image: {
+              type: "image",
+              asset_id: "0123456789abcdef0123456789abcdef"
+            },
+            aspect_ratio: "16:9"
+          }
+        }
+      }),
+      lipsyncToWorkflow({
+        text: "Hello",
+        sourceAssetId: "0123456789abcdef0123456789abcdef",
+        speech: { provider: "fake", model: "fake-tts", voice: "alloy" },
+        video: { provider: "fake", model: "fake-video" }
+      })
+    ];
+    for (const [index, graph] of graphs.entries()) {
+      const file = join(dir, `recorded-${index}.json`);
+      writeFileSync(file, JSON.stringify({ graph }));
+      const { report } = await runValidate(file, {
+        loadFromDb: async () => null
+      });
+      expect(
+        report.issues.filter((issue) => issue.severity !== "info")
+      ).toEqual([]);
+      expect(report.ok).toBe(true);
+    }
+  });
+});

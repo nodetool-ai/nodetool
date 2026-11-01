@@ -9,8 +9,9 @@
  *
  * It needs a logged-in `claude` CLI (or `CLAUDE_CODE_OAUTH_TOKEN`) and is
  * skipped without the variable. A task list is what lets a user follow a long
- * turn without reading every tool call, so the check is that the "Tasks" rail
- * appears with more than one item and ends with every item completed.
+ * turn without reading every tool call, so the check is that the task dock
+ * above the composer appears with more than one item and ends with every
+ * item completed.
  */
 
 import { test, expect, FIXTURES } from "./fixtures";
@@ -62,17 +63,19 @@ test.describe("Agent task list", () => {
         "and a short launch post."
     );
 
-    const rail = page.locator("aside.todo-sidebar");
-    await expect(rail).toBeVisible({ timeout: 300_000 });
+    const dock = page.locator("section.task-dock");
+    await expect(dock).toBeVisible({ timeout: 300_000 });
+    // The dock starts collapsed to the current task. Unfold the full list.
+    await dock.locator(".task-dock-bar").click();
     await page.screenshot({
       path: testInfo.outputPath("task-list-in-progress.png")
     });
 
-    const items = rail.locator(".todo-item");
+    const items = dock.locator(".task-dock-item");
     await expect
       .poll(async () => items.count(), { timeout: 60_000 })
       .toBeGreaterThan(1);
-    await expect(rail.locator(".todo-item.completed")).toHaveCount(
+    await expect(dock.locator(".task-dock-item.completed")).toHaveCount(
       await items.count(),
       { timeout: 300_000 }
     );

@@ -531,6 +531,7 @@ export type LipSyncInputs = {
   model?: unknown;
   video?: VideoRef;
   audio?: AudioRef;
+  image?: ImageRef;
 };
 
 export interface LipSyncOutputs {

@@ -56,7 +56,7 @@
     "@nodetool-ai/storage": "*",
     "@nodetool-ai/timeline": "*",
     "@nodetool-ai/vectorstore": "*",
-    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/api": "~1.9.0",
     "@trpc/server": "^11.17.0",
     "fastify": "^5.12.7",
     "fflate": "^0.8.2",
@@ -70,7 +70,8 @@
     "@nodetool-ai/workflow-services": "*",
     "@nodetool-ai/pack-host": "*",
     "@nodetool-ai/project-services": "*",
-    "@nodetool-ai/error-trace-services": "*"
+    "@nodetool-ai/error-trace-services": "*",
+    "@nodetool-ai/pack-core": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

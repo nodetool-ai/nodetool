@@ -41,15 +41,28 @@ const secrets = {
   huggingface: ["HF_TOKEN"]
 };
 
+// Packs whose nodes decode or encode media need "media-codecs" (node-av), and
+// packs that render on the GPU need "webgpu". The default CLI and cli-chat
+// leave both out.
 const runtimeLibraries = {
   "whisper-cpp": ["whisper-cpp"],
-  "transformers-js": ["transformers-js"],
+  "transformers-js": ["transformers-js", "media-codecs"],
   image: ["imaging"],
-  audio: ["imaging"],
-  video: ["imaging"],
-  game: ["imaging", "rapier"],
+  audio: ["imaging", "media-codecs"],
+  video: ["imaging", "media-codecs", "webgpu"],
+  game: ["imaging", "rapier", "media-codecs", "webgpu"],
   document: ["imaging", "pdf-js"],
-  automation: ["imaging"]
+  automation: ["imaging"],
+  blender: ["media-codecs"],
+  topaz: ["media-codecs"]
+};
+
+const featureRuntimeLibraries = {
+  // reliability-harness depends on base-nodes, which registers the video and game packs.
+  "cli-harness": ["media-codecs", "webgpu"],
+  "cli-server": ["media-codecs", "webgpu"],
+  "cli-timeline": ["media-codecs", "webgpu"],
+  "cli-game": ["media-codecs", "webgpu"]
 };
 
 export const CLI_FEATURE_PACKS = [
@@ -57,7 +70,7 @@ export const CLI_FEATURE_PACKS = [
   "cli-server", "cli-apps", "cli-game", "cli-timeline", "cli-sketch", "cli-script"
 ].map(id => ({
   id, npmName: `@nodetool-ai/${id}`, registrar: "feature", kind: "cli-feature",
-  requires: ["cli-workflow", "cli-mcp", "cli-server"].includes(id) ? ["core", "text"] : [], provides: [], runtimeLibraries: [], secrets: []
+  requires: ["cli-workflow", "cli-mcp", "cli-server"].includes(id) ? ["core", "text"] : [], provides: [], runtimeLibraries: featureRuntimeLibraries[id] ?? [], secrets: []
 }));
 
 export const CATALOG_PACKS = [

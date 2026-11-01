@@ -292,6 +292,8 @@ exclude:
   - plans/external-asset-refs.md
   - plans/generation-recovery.md
   - plans/native-game-3d-upgrade.md
+  - plans/open-source-higgsfield.md
+  - plans/open-source-higgsfield-implementation.md
   - plans/provider-webhooks.md
   - superpowers/
   # Marketing-site audits. They cite repository source under marketing/ and

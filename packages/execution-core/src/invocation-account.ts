@@ -18,6 +18,7 @@
 // fallback holder has no per-context isolation, and concurrent invocations
 // would share one account — acceptable only because the supervisor that reads
 // these numbers runs in the kernel, which is Node-only.
+import type { ProviderCost } from "@nodetool-ai/protocol";
 import { AsyncLocalStorage } from "./async-local-storage.js";
 
 export interface InvocationAccount {
@@ -65,6 +66,31 @@ export function recordInvocationCost(usd: number | undefined | null): void {
 export function recordInvocationAsset(): void {
   const account = store.getStore();
   if (account) account.createdAssets = true;
+}
+
+/**
+ * The provider charge one node run reported. Every actor shares one
+ * ProcessingContext and all actors start together, so a single slot on the
+ * context let a downstream node report an upstream node's charge again. The
+ * slot travels with the node's async execution instead.
+ */
+export interface NodeCostSlot {
+  cost: ProviderCost | null;
+}
+
+const nodeCostStore = new AsyncLocalStorage<NodeCostSlot>();
+
+/** Run one node inside its own cost slot. */
+export function inNodeCostSlot<T>(slot: NodeCostSlot, fn: () => Promise<T>): Promise<T> {
+  return nodeCostStore.run(slot, fn);
+}
+
+/** Store a charge in the node slot on the async stack. False when no slot is there. */
+export function setNodeCost(cost: ProviderCost): boolean {
+  const slot = nodeCostStore.getStore();
+  if (!slot) return false;
+  slot.cost = cost;
+  return true;
 }
 
 /** The account for the invocation currently on the async stack, if any. */

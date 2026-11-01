@@ -65,7 +65,7 @@
       "path": "../storage"
     },
     {
-      "path": "../websocket"
+      "path": "../project-services"
     }
   ]
 }

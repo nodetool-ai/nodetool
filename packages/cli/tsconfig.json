@@ -27,6 +27,9 @@
       "path": "../runtime-core"
     },
     {
+      "path": "../runtime"
+    },
+    {
       "path": "../database-sqlite"
     },
     {

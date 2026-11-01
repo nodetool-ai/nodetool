@@ -17,7 +17,7 @@
     "openai": "^6.35.0",
     "@nodetool-ai/config": "*",
     "@nodetool-ai/storage": "*",
-    "@opentelemetry/api": "^1.9.0"
+    "@opentelemetry/api": "~1.9.0"
   },
   "devDependencies": {
     "typescript": "npm:@typescript/typescript6@6.0.2",

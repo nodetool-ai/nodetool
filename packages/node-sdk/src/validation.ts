@@ -27,7 +27,7 @@
 import type { DynamicSlotMeta } from "@nodetool-ai/protocol";
 import type { DeclaredPropertyMetadata } from "./decorators.js";
 import { slotTypeToString, valueIncompatibleWithType } from "./type-compat.js";
-import { isNonEmptyString, isObjectLike, isString } from "./type-predicates.js";
+import { isBoolean, isFiniteNumber, isNonEmptyString, isObjectLike, isString } from "./type-predicates.js";
 
 /** A single validation issue tied to a node property. */
 /**
@@ -40,7 +40,9 @@ export type NodePropertyValidationCode =
   | "unset_model"
   | "unsupported_platform"
   /** An inline dynamic-slot value does not match the slot's declared type. */
-  | "dynamic_type_mismatch";
+  | "dynamic_type_mismatch"
+  /** An inline value cannot be read as the property's declared scalar type. */
+  | "property_type_mismatch";
 
 export interface NodePropertyValidationIssue {
   /** Node id, when known. */
@@ -159,6 +161,25 @@ function toSet(
 }
 
 /**
+ * What a scalar property takes, when its inline value cannot be read as that
+ * type: "four" for an int. Numeric strings and "true"/"false" convert, so they
+ * pass. Unset values and every non-scalar type are left to other checks.
+ */
+function scalarMismatch(typeStr: string, value: unknown): string | null {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeStr === "int" || typeStr === "float") {
+    const n = isString(value) ? Number(value.trim()) : value;
+    const ok = isFiniteNumber(n) && (typeStr === "float" || Number.isInteger(n));
+    return ok ? null : typeStr === "int" ? "a whole number" : "a number";
+  }
+  if (typeStr === "bool") {
+    const ok = isBoolean(value) || value === "true" || value === "false" || value === 0 || value === 1;
+    return ok ? null : "true or false";
+  }
+  return null;
+}
+
+/**
  * Validate property values against declared @prop metadata.
  *
  * Properties whose name appears in `connectedHandles` are skipped because
@@ -194,6 +215,18 @@ export function validateNodeProperties(
         });
         continue;
       }
+    }
+
+    const mismatch = scalarMismatch(typeStr, value);
+    if (mismatch) {
+      issues.push({
+        nodeId: options.nodeId,
+        nodeType: options.nodeType,
+        property: name,
+        code: "property_type_mismatch",
+        message: `Property "${name}" is ${JSON.stringify(value)}, but it takes ${mismatch}.`
+      });
+      continue;
     }
 
     if (isModelType(typeStr) && isUnsetModel(value)) {

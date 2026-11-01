@@ -462,6 +462,16 @@ export class Prediction extends DBModel {
   }
 
   /**
+   * Find a generation for the recovery worker. `parameters` is not loaded and
+   * reads as null, because it can embed megabytes of media. Read the full row
+   * with {@link Prediction.find} when the parameters are needed.
+   */
+  static async findForRecovery(id: string): Promise<Prediction | null> {
+    const row = await DurablePrediction.findForRecovery(id);
+    return row ? new Prediction(row) : null;
+  }
+
+  /**
    * Find one of the caller's own rows. The user id is in the WHERE, so an id
    * that belongs to someone else reads as absent rather than as theirs.
    */

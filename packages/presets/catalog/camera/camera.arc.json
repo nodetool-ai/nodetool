@@ -25,7 +25,8 @@
     "kling": "Camera travels through a gentle quarter-circle around the subject at constant height.",
     "seedance": "Camera travels through a gentle quarter-circle around the subject at constant height throughout one continuous shot.",
     "veo": "Camera travels through a gentle quarter-circle around the subject at constant height.",
-    "wan": "Camera travels through a gentle quarter-circle around the subject at constant height."
+    "wan": "Camera travels through a gentle quarter-circle around the subject at constant height.",
+    "local-wan": "The camera moves slowly along a quarter circle around the subject. The subject stays centered while the background slides sideways, revealing its side. One continuous shot."
   },
   "params": {},
   "preview": {

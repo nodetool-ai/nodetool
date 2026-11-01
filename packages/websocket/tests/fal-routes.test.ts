@@ -26,7 +26,10 @@ import falCreditsRoute from "../src/routes/fal-credits.js";
 import falPricingRoute from "../src/routes/fal-pricing.js";
 import falPricingEstimateRoute from "../src/routes/fal-pricing-estimate.js";
 
-type MockSecret = { getDecryptedValue: () => Promise<string> };
+type MockSecret = {
+  getDecryptedValue: () => Promise<string>;
+  getResolvedValue: () => Promise<string | null>;
+};
 const secretFind = Secret.find as unknown as ReturnType<typeof vi.fn>;
 
 function mockSecret(apiKey: string | null): void {
@@ -36,6 +39,7 @@ function mockSecret(apiKey: string | null): void {
   }
   const stub: MockSecret = {
     getDecryptedValue: vi.fn().mockResolvedValue(apiKey),
+    getResolvedValue: vi.fn().mockResolvedValue(apiKey),
   };
   secretFind.mockResolvedValue(stub);
 }

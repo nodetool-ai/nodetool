@@ -13,7 +13,7 @@ describe("published runtime resource loaders", () => {
     try {
       await symlink(join(root, "node_modules"), join(directory, "node_modules"), "junction");
       const packagePaths = {};
-      for (const name of ["agents", "node-sdk", "timeline", "websocket"]) {
+      for (const name of ["agents", "node-sdk", "timeline", "project-services"]) {
         const source = join(root, "packages", name);
         const packed = spawnSync(process.platform === "win32" ? "npm.cmd" : "npm", [
           "pack", "--dry-run", "--ignore-scripts", "--json"
@@ -37,9 +37,9 @@ describe("published runtime resource loaders", () => {
         if (!packs.shippedPackSearchPaths().some(path => path.startsWith(${JSON.stringify(directory)}))) throw new Error("Missing shipped sandbox packs");
         const timelines = await import(${JSON.stringify(entry("timeline", "examples/node.js"))});
         if (timelines.listExampleTimelines().length === 0) throw new Error("Missing shipped timeline examples");
-        const workflows = await import(${JSON.stringify(entry("websocket", "example-workflows.js"))});
+        const workflows = await import(${JSON.stringify(entry("project-services", "example-workflows.js"))});
         if (!workflows.shippedWorkflowExamplesDir()?.startsWith(${JSON.stringify(directory)})) throw new Error("Missing shipped workflow examples");
-        const catalog = await import(${JSON.stringify(entry("websocket", "mcp-tool-deps.js"))});
+        const catalog = await import(${JSON.stringify(entry("project-services", "mcp-tool-host-deps.js"))});
         const examples = await catalog.createExampleWorkflowCatalog().list({ query: "text" });
         if (examples.length === 0) throw new Error("Missing discoverable text workflow examples");
       `;

@@ -134,5 +134,15 @@ export function createCoreExecutionHost(options: CoreExecutionOptions = {}) {
       return result.outputs;
     } finally { request.signal.removeEventListener('abort',cancel); }
   }
-  return {register,validate,run,nodeTypes:(): readonly string[] => [...definitions.keys()]};
+  /** Describe registered node types so clients can author graphs without the full catalog. */
+  function describe(): readonly { nodeType: string; properties: Record<string,string>; outputs: Record<string,string>; required: readonly string[]; dynamicInputs: boolean }[] {
+    return [...definitions.values()].map(definition => ({
+      nodeType: definition.type.nodeType,
+      properties: {...definition.type.propertyTypes},
+      outputs: {...definition.type.outputs},
+      required: [...(definition.required ?? [])],
+      dynamicInputs: definition.type.supportsDynamicInputs ?? false
+    }));
+  }
+  return {register,validate,run,describe,nodeTypes:(): readonly string[] => [...definitions.keys()]};
 }

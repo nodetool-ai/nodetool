@@ -24,6 +24,20 @@ import {
  */
 export { assetFileNameCandidates, getAssetFileName };
 
+/** The video proxy's manifest file in the owner's folder. */
+export function videoProxyManifestFileName(assetId: string): string {
+  return `${assetId}_proxy.json`;
+}
+
+/** Every file a video proxy can leave in the owner's folder. Asset delete removes them. */
+export function videoProxyFileNames(assetId: string): string[] {
+  return [
+    `${assetId}_proxy.mp4`,
+    `${assetId}_proxy.webm`,
+    videoProxyManifestFileName(assetId)
+  ];
+}
+
 const EXTENSION_TO_INFERRED_TYPE: Record<string, string> = {
   mp3: "audio/mpeg",
   wav: "audio/wav",

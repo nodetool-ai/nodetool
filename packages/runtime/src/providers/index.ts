@@ -29,6 +29,7 @@ export { sniffVideoMime, sniffVideoMimeOrNull } from "./video-mime.js";
 export { sniffMedia, sniffMediaMime, MEDIA_KINDS } from "./media-mime.js";
 export type { MediaKind } from "./media-mime.js";
 export { probeVideoDurationSeconds } from "./video-frames.js";
+export { manifestLoadFailures, type ManifestLoadFailure } from "./manifest-models.js";
 export { mp4DurationSeconds } from "./video-duration.js";
 import { OLLAMA_DEFAULT_URL, LMSTUDIO_DEFAULT_URL } from "./defaults.js";
 import { AnthropicProvider } from "./anthropic-provider.js";

@@ -120,9 +120,22 @@ export function probeMissingFal(bin, appDir, cliOptions) {
   console.log("ok  missing FAL validates properties and fails execution with the pack name");
 }
 
-function assertDesiredSelection(env, root, selected) {
+function packsHome(env) {
+  return join(process.platform === "win32" ? join(env.HOME, "AppData", "Roaming") : env.XDG_DATA_HOME, "nodetool", "packs");
+}
+
+/** The active generation of the one pack project under `<data dir>/nodetool/packs`. */
+function activePackProject(env) {
+  const projects = readdirSync(packsHome(env)).filter(name => existsSync(join(packsHome(env), name, "current.json")));
+  if (projects.length !== 1) { throw new Error(`Expected one pack project, found ${projects.length}`); }
+  const root = join(packsHome(env), projects[0]);
+  return join(root, JSON.parse(readFileSync(join(root, "current.json"), "utf8")).generation);
+}
+
+/** Packs install into `<data dir>/packs`, and the desired set is keyed by that directory. */
+function assertDesiredSelection(env, selected) {
   const data = process.platform === "win32" ? join(env.HOME, "AppData", "Roaming") : env.XDG_DATA_HOME;
-  const state = JSON.parse(readFileSync(join(data, "nodetool", "cli-packs.json"), "utf8"))[realpathSync(root)];
+  const state = JSON.parse(readFileSync(join(data, "nodetool", "cli-packs.json"), "utf8"))[resolve(data, "nodetool", "packs")];
   if (!state || state.dirty || selected.some(id => !state.packs.includes(id))) { throw new Error("Installed selection was not persisted as clean desired state"); }
 }
 
@@ -532,7 +545,11 @@ project and global consumers, each with an empty HOME.
         probeInstalled: () => runFalFixture(realpathSync(bin), appDir, env, run)
       });
       const workflowArgs = ["feature", "cli-workflow"];
-      run(process.execPath, ["--input-type=module", "-e", 'await import("@nodetool-ai/dsl");'], { cwd: appDir, env, timeout: 120_000 });
+      // The workflow feature's DSL dependency lives in the pack project, never in the app.
+      // It loads only through the CLI's resolution hook, which the TypeScript workflow run below exercises.
+      if (!existsSync(join(activePackProject(env), "node_modules", "@nodetool-ai", "dsl", "package.json"))) {
+        throw new Error("The workflow feature did not install @nodetool-ai/dsl into the pack project");
+      }
       const coreWorkflow = JSON.parse(readFileSync(join(ROOT, NO_MODEL_WORKFLOW), "utf8")).graph;
       const tools = await probeMcp(bin, env, appDir, coreWorkflow);
       if (tools === 0) throw new Error("nodetool mcp serve listed no tools");
@@ -570,14 +587,15 @@ project and global consumers, each with an empty HOME.
 
     const codecFixture = join(appDir, "codec-identity.mp4");
     copyFileSync(join(ROOT, "scripts", "fixtures", "codec-identity.mp4"), codecFixture);
-    console.log(run(process.execPath, ["--input-type=module", "-e", codecProbeSource(codecFixture)], { env, cwd: appDir, timeout: 120_000 }).trim());
+    console.log(run(process.execPath, ["--input-type=module", "-e", codecProbeSource(codecFixture)], { env, cwd: activePackProject(env), timeout: 120_000 }).trim());
 
     await probeServe(bin, env, appDir, 120_000, ["server"]);
     console.log("ok  nodetool serve answers /health");
 
     run(bin, ["packs", "add", ...selectedPacks, "--yes"], { ...cliOptions, timeout: 900_000 });
     assertInstalledSelection(run(bin, ["packs", "list", "--json"], cliOptions), selectedPacks);
-    assertDesiredSelection(env, appDir, selectedPacks);
+    assertDesiredSelection(env, selectedPacks);
+    assertCoreOnlyInstall(appDir);
     run(bin, ["packs", "doctor", "--installed", "--json"], cliOptions);
     runFalFixture(realpathSync(bin), appDir, env, run);
     console.log(`ok  actual packs add installed ${selectedPacks.join(", ")} and FAL workflow completed`);
@@ -602,7 +620,8 @@ project and global consumers, each with an empty HOME.
     if (!values["core-only"]) {
       run(process.execPath, [globalEntry, "packs", "add", ...selectedPacks, "--yes"], globalOptions);
       assertInstalledSelection(run(process.execPath, [globalEntry, "packs", "list", "--json"], globalOptions), selectedPacks);
-      assertDesiredSelection(globalEnv, globalRoot, selectedPacks);
+      assertDesiredSelection(globalEnv, selectedPacks);
+      assertCoreOnlyInstall(globalRoot);
       run(process.execPath, [globalEntry, "packs", "doctor", "--installed", "--json"], globalOptions);
       runFalFixture(globalEntry, globalCwd, globalEnv, run);
       console.log("ok  global packed CLI explicitly installs independent command and node packs and executes the FAL workflow");

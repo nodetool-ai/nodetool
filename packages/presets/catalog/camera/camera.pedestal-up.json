@@ -29,7 +29,8 @@
     "kling": "Camera rises vertically without tilting.",
     "seedance": "Camera rises vertically without tilting throughout one continuous shot.",
     "veo": "Camera rises vertically without tilting.",
-    "wan": "Camera rises vertically without tilting."
+    "wan": "Camera rises vertically without tilting.",
+    "local-wan": "The level camera rises straight upward. The viewing direction stays horizontal as the subject moves lower within the frame and higher details become visible. One continuous shot."
   },
   "params": {},
   "preview": {

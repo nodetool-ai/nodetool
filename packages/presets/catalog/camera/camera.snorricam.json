@@ -27,7 +27,8 @@
     "kling": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts.",
     "seedance": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts throughout one continuous shot.",
     "veo": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts.",
-    "wan": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts."
+    "wan": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts.",
+    "local-wan": "A camera attached to the subject faces its face. The face holds a fixed position and size while walking makes the background sway and shift behind it. One continuous shot."
   },
   "params": {},
   "preview": {

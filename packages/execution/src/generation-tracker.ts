@@ -102,10 +102,16 @@ const unlinkedByNode = new Map<string, string[]>();
  */
 export interface GenerationTrackerState {
   readonly receiptCostNodes: Set<string>;
+  /**
+   * Catalog-priced seam rows by the node id their prediction named, waiting
+   * for the node's own charge. A node that reports its charge after the seam
+   * priced the call would otherwise book the same call twice.
+   */
+  readonly seamRows: Map<string, string>;
 }
 
 export function createTrackerState(): GenerationTrackerState {
-  return { receiptCostNodes: new Set() };
+  return { receiptCostNodes: new Set(), seamRows: new Map() };
 }
 
 function nodeKey(jobId: string | null | undefined, nodeId: string): string {
@@ -259,6 +265,7 @@ async function closeRow(
   }
   const stated = receiptCost(msg.receipt);
   if (stated) state.receiptCostNodes.add(msg.node_id);
+  else if (msg.status === "completed" && msg.node_id) state.seamRows.set(msg.node_id, msg.id);
 
   const row = await Prediction.find(msg.id).catch(() => null);
   if (!row) {

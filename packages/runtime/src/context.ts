@@ -34,7 +34,8 @@ import {
 import { AgentMemory } from "./agent-memory.js";
 import {
   recordInvocationAsset,
-  recordInvocationCost
+  recordInvocationCost,
+  setNodeCost
 } from "./invocation-account.js";
 import { VariableChannel } from "./variable-channel.js";
 import { loadMediaRefBytes, type MediaRefValue } from "./media-ref-bytes.js";
@@ -1956,6 +1957,7 @@ export class ProcessingContext {
     >
   ): void {
     this._providerCost = { provider, amount, unit, ...details };
+    setNodeCost(this._providerCost);
     recordInvocationCost(amount);
   }
 
@@ -3661,6 +3663,8 @@ export class ProcessingContext {
         return provider.lipSync(params.video as Uint8Array, {
           model: { id: req.model, name: req.model, provider: req.provider },
           audio: params.audio as Uint8Array,
+          visualMimeType: params.visualMimeType as string | undefined,
+          audioMimeType: params.audioMimeType as string | undefined,
           seed: params.seed as number | undefined
         });
       case "text_to_music":

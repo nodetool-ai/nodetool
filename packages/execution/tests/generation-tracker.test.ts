@@ -108,6 +108,30 @@ describe("generation tracker", () => {
     }
   );
 
+  it("books a node's own charge on its seam row instead of a second row", async () => {
+    const state = createTrackerState();
+    const base = { id: "seam-row", node_id: "fal.text_to_image.FluxSchnell", provider: "fal_ai", model: "fal-ai/flux/schnell" };
+    await recordFromMessage(prediction({ ...base, status: "running" }), OPTIONS, state);
+    await recordFromMessage(prediction({ ...base, status: "completed" }), OPTIONS, state);
+    await recordFromMessage(
+      {
+        type: "node_update",
+        node_id: "img",
+        node_name: "img",
+        node_type: "fal.text_to_image.FluxSchnell",
+        status: "completed",
+        result: null,
+        error: null,
+        provider_cost: { provider: "fal", amount: 0.0024, unit: "USD", quantity: 0.786, unit_price: 0.003 }
+      },
+      OPTIONS,
+      state
+    );
+    const [rows] = await Prediction.paginate(USER);
+    expect(rows).toHaveLength(1);
+    expect(await Prediction.find("seam-row")).toMatchObject({ cost: 0.0024, quantity: 0.786 });
+  });
+
   it("tracks video-to-audio assets and the provider charge through completion", async () => {
     const state = createTrackerState();
     const running = prediction({

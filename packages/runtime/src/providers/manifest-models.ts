@@ -518,6 +518,20 @@ export function inferImageTasks(name: string, id: string): string[] {
 
 const _cache = new Map<string, ManifestNode[]>();
 
+/** A manifest that could not be loaded, so its provider lists no models. */
+export interface ManifestLoadFailure {
+  readonly packageName: string;
+  readonly exportPath: string;
+  readonly error: string;
+}
+
+const _failures = new Map<string, ManifestLoadFailure>();
+
+/** The manifests that failed to load in this process, by package name. */
+export function manifestLoadFailures(): ManifestLoadFailure[] {
+  return [..._failures.values()];
+}
+
 export function loadManifest(
   packageName: string,
   exportPath: string
@@ -536,6 +550,7 @@ export function loadManifest(
   } catch (err) {
     // Stryker disable next-line StringLiteral: diagnostic log, not asserted.
     log.warn(`Could not load ${key}: ${err}`);
+    _failures.set(key, { packageName, exportPath, error: err instanceof Error ? err.message : String(err) });
     _cache.set(key, []);
     return [];
   }
@@ -1295,6 +1310,19 @@ export function isInpaintOnlyEndpoint(id: string): boolean {
   return lower.split(/[/_.-]+/).some((token) => INPAINT_ONLY_TOKENS.has(token));
 }
 
+const NON_IMAGE_TAGS = /\b(audio|speech|stt|tts|transcription|video|music|3d|llm)\b/;
+
+/**
+ * A `dict`-typed entry is an image model only when it reads an image or tags
+ * itself as one, and does not tag itself as audio, video or text. Speech
+ * tools such as silero-vad also return objects.
+ */
+function isImageDictEntry(n: ManifestNode): boolean {
+  const tags = (n.tags ?? []).join(" ").toLowerCase();
+  if (NON_IMAGE_TAGS.test(tags)) return false;
+  return manifestEntryImageInputs(n).length > 0 || /\bimage\b/.test(tags);
+}
+
 /** Pure transform: manifest nodes → deduplicated, task-tagged image models. */
 export function buildImageModels(
   manifest: ManifestNode[],
@@ -1335,8 +1363,7 @@ export function buildImageModels(
     // them under upscale/remove-background/relight/vectorize.
     const qualifies =
       n.outputType === "image" ||
-      // Stryker disable next-line ConditionalExpression,EqualityOperator: tasks is always non-empty (infer* returns >=1, explicit is non-empty), so `tasks.length > 0` is invariantly true here.
-      (n.outputType === "dict" && tasks.length > 0);
+      (n.outputType === "dict" && isImageDictEntry(n));
     if (!qualifies) continue;
     seen.set(id, {
       id,

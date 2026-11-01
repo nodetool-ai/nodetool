@@ -1450,7 +1450,9 @@
                                 "typescript",
                                 "tracing",
                                 "rapier",
-                                "esbuild"
+                                "esbuild",
+                                "media-codecs",
+                                "webgpu"
                               ],
                               "type": "string"
                             }
@@ -2575,7 +2577,9 @@
                             "typescript",
                             "tracing",
                             "rapier",
-                            "esbuild"
+                            "esbuild",
+                            "media-codecs",
+                            "webgpu"
                           ],
                           "type": "string"
                         }

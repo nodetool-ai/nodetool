@@ -32,7 +32,8 @@
     "kling": "Camera dollies smoothly toward the subject with visible depth change.",
     "seedance": "Camera dollies smoothly toward the subject with visible depth change throughout one continuous shot.",
     "veo": "Camera dollies smoothly toward the subject with visible depth change.",
-    "wan": "Camera dollies smoothly toward the subject with visible depth change."
+    "wan": "Camera dollies smoothly toward the subject with visible depth change.",
+    "local-wan": "The camera glides forward toward the subject in one continuous movement. Nearby objects slide past faster than the distant background as the subject grows larger. One continuous shot."
   },
   "params": {},
   "preview": {

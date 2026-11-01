@@ -31,6 +31,7 @@ import {
   ToolbarIconButton,
   UploadButton
 } from "../ui_primitives";
+import OpenRenderAsWorkflow from "./OpenRenderAsWorkflow";
 import ShotHoverToolbar from "./ShotHoverToolbar";
 import ShotRenderDialog, { type ShotRenderStep } from "./ShotRenderDialog";
 import { isShotGenerating } from "./ShotStatusPill";
@@ -265,7 +266,11 @@ const ShotActionsInner: React.FC<ShotActionsProps> = ({
         uploadAsset({
           file,
           onCompleted: (asset) => {
-            setShotKeyframe(boardId, shot.id, mediaRefFromAsset(asset, "image"));
+            setShotKeyframe(
+              boardId,
+              shot.id,
+              mediaRefFromAsset(asset, "image")
+            );
             if (!shot.clip) {
               setShotStatus(boardId, shot.id, "keyframe_ready");
             }
@@ -330,6 +335,11 @@ const ShotActionsInner: React.FC<ShotActionsProps> = ({
         }
         onDelete={readOnly ? undefined : handleOpenDeleteConfirm}
       >
+        {(shot.clip || shot.keyframe) && (
+          <OpenRenderAsWorkflow
+            record={(shot.clip ?? shot.keyframe)?.render_inputs}
+          />
+        )}
         {!readOnly && (
           <>
             {onEdit && (

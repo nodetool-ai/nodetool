@@ -16,6 +16,9 @@
     },
     {
       "path": "../pack-core"
+    },
+    {
+      "path": "../presets"
     }
   ]
 }

@@ -12,6 +12,7 @@
  * whether to fall back (e.g. to a Sharp-based node).
  */
 
+import { missingRuntimePackageError } from "@nodetool-ai/protocol";
 import { createGPUContextFromDevice, type GPUContext } from "./context.js";
 import {
   compositeLayersHeadless,
@@ -97,11 +98,7 @@ export async function createNodeGPUDevice(): Promise<GPUDevice> {
     // neither fails on the explicit checks below rather than here.
     dawn = (await import(/* @vite-ignore */ spec)) as DawnModule;
   } catch (err) {
-    throw new Error(
-      "Node WebGPU support requires the optional 'webgpu' (Dawn) package. " +
-        "Install it with `npm install webgpu`.",
-      { cause: err }
-    );
+    throw missingRuntimePackageError("webgpu", "webgpu", err);
   }
   installWebGPUGlobals(dawn);
   const gpu = dawn.create?.([]);

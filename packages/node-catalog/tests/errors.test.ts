@@ -38,8 +38,8 @@ describe("missing pack error", () => {
 
   it("builds concrete supported-install guidance from the exact actionable closure", () => {
     const error = createMissingPackError("audio", [], { supported: true, reason: null, command: null });
-    expect(error.details.install).toEqual({ supported: true, reason: null, command: "nodetool packs add audio imaging video" });
-    expect(error.message).toContain("nodetool packs add audio imaging video");
+    expect(error.details.install).toEqual({ supported: true, reason: null, command: "nodetool packs add audio imaging video --yes" });
+    expect(error.message).toContain("nodetool packs add audio imaging video --yes");
     const command = createMissingPackError("audio", [], { supported: true, reason: null, command: "nodetool packs add audio video" });
     expect(command.message).toContain("nodetool packs add audio video");
   });

@@ -124,6 +124,16 @@ function record(row: Prediction): Record<string, unknown> {
   };
 }
 
+/**
+ * A direct call that saved its result itself never moves `output_status` off
+ * its "pending" default. Show it as done once the generation completed.
+ */
+function outputCell(row: Prediction): string {
+  const output = row.output_status ?? "";
+  if (output === "pending" && publicGenerationStatus(row) === "completed") return "saved";
+  return output;
+}
+
 function summaryRow(row: Prediction): Record<string, string> {
   return {
     id: row.id,
@@ -133,7 +143,7 @@ function summaryRow(row: Prediction): Record<string, string> {
     capability: row.capability ?? "",
     cost: costCell(row.cost),
     assets: (row.asset_ids ?? []).join(","),
-    output: row.output_status ?? "",
+    output: outputCell(row),
     started: row.started_at ?? row.created_at ?? ""
   };
 }
