@@ -631,6 +631,8 @@ non-`https` preview.
 
 ### P22: Pack authoring and registry
 
+Status: parked. Packs install from a local folder through P21. Resume when there is demand from outside authors.
+
 - `nodetool presets pack init` and `pack validate`, using the same checks as
   installation.
 - Browse and install packs from a registry index at a configured URL. Publishing
@@ -701,6 +703,8 @@ Acceptance: `npm --prefix marketing run seo:check`, `typecheck` and `lint` pass,
 and the generated data is in sync.
 
 ### P27: Shared projects
+
+Status: parked. Waits on a review of the multiplayer design.
 
 Follows [multiplayer-design.md](../multiplayer-design.md). That design is still a
 draft awaiting review, so this ticket starts after that review.
