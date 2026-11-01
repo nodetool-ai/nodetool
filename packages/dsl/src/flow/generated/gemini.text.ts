@@ -7,7 +7,7 @@ import { callNode } from "../guest-core.js";
 // Grounded Search — gemini.text.GroundedSearch
 export type GroundedSearchInputs = {
   query?: string;
-  model?: "gemini-3.5-flash" | "gemini-3.1-pro-preview" | "gemini-3.1-flash-lite" | "gemini-2.5-pro" | "gemini-2.5-flash" | "gemini-2.5-flash-lite";
+  model?: unknown;
 };
 
 export interface GroundedSearchOutputs {
@@ -23,7 +23,7 @@ export function groundedSearch(inputs: GroundedSearchInputs): Promise<GroundedSe
 // Embedding — gemini.text.Embedding
 export type EmbeddingInputs = {
   input?: string;
-  model?: "gemini-embedding-2";
+  model?: unknown;
 };
 
 export interface EmbeddingOutputs {

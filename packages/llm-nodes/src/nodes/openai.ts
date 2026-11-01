@@ -1,3 +1,9 @@
+import { PROVIDER_IDS } from "@nodetool-ai/protocol";
+import {
+  modelIdOf,
+  providerModelProp,
+  type ModelFieldValue
+} from "./provider-model-prop.js";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type {
   StreamingInputs,
@@ -49,13 +55,13 @@ export class EmbeddingNode extends BaseNode {
   @prop({ type: "str", default: "", title: "Input" })
   declare input: string;
 
-  @prop({
-    type: "enum",
-    default: "text-embedding-3-small",
-    title: "Model",
-    values: ["text-embedding-3-large", "text-embedding-3-small"]
-  })
-  declare model: string;
+  @providerModelProp(
+    "embedding_model",
+    PROVIDER_IDS.OPENAI,
+    "text-embedding-3-small",
+    "The model to use."
+  )
+  declare model: ModelFieldValue;
 
   @prop({ type: "int", default: 4096, title: "Chunk Size" })
   declare chunk_size: number;
@@ -63,7 +69,7 @@ export class EmbeddingNode extends BaseNode {
   async process(): Promise<Record<string, unknown>> {
     const apiKey = getApiKey(this._secrets);
     const text = this.input;
-    const model = this.model;
+    const model = modelIdOf(this.model);
     const chunkSize = this.chunk_size;
 
     const chunks: string[] = [];
@@ -260,14 +266,13 @@ export class CreateImageNode extends BaseNode {
   })
   declare prompt: string;
 
-  @prop({
-    type: "enum",
-    default: "gpt-image-1",
-    title: "Model",
-    description: "The model to use for image generation.",
-    values: ["gpt-image-1"]
-  })
-  declare model: string;
+  @providerModelProp(
+    "image_model",
+    PROVIDER_IDS.OPENAI,
+    "gpt-image-1",
+    "The model to use for image generation."
+  )
+  declare model: ModelFieldValue;
 
   @prop({
     type: "enum",
@@ -301,7 +306,7 @@ export class CreateImageNode extends BaseNode {
     const prompt = this.prompt;
     if (!prompt) throw new Error("Prompt cannot be empty");
 
-    const model = this.model;
+    const model = modelIdOf(this.model);
     const size = this.size;
     const quality = this.quality;
     const background = this.background;
@@ -396,14 +401,13 @@ export class EditImageNode extends BaseNode {
   })
   declare prompt: string;
 
-  @prop({
-    type: "enum",
-    default: "gpt-image-1",
-    title: "Model",
-    description: "The model to use for image editing.",
-    values: ["gpt-image-1"]
-  })
-  declare model: string;
+  @providerModelProp(
+    "image_model",
+    PROVIDER_IDS.OPENAI,
+    "gpt-image-1",
+    "The model to use for image editing."
+  )
+  declare model: ModelFieldValue;
 
   @prop({
     type: "enum",
@@ -433,7 +437,7 @@ export class EditImageNode extends BaseNode {
       throw new Error("Input image is required");
     }
 
-    const model = this.model;
+    const model = modelIdOf(this.model);
     const size = this.size;
     const quality = this.quality;
 
@@ -629,13 +633,13 @@ export class TextToSpeechNode extends BaseNode {
   static readonly requiredSettings = ["OPENAI_API_KEY"];
   static readonly autoSaveAsset = true;
 
-  @prop({
-    type: "enum",
-    default: "tts-1",
-    title: "Model",
-    values: ["tts-1", "tts-1-hd", "gpt-4o-mini-tts"]
-  })
-  declare model: string;
+  @providerModelProp(
+    "tts_model",
+    PROVIDER_IDS.OPENAI,
+    "tts-1",
+    "The model to use."
+  )
+  declare model: ModelFieldValue;
 
   @prop({
     type: "enum",
@@ -676,7 +680,7 @@ export class TextToSpeechNode extends BaseNode {
     const apiKey = getApiKey(this._secrets);
     const text = this.input;
     if (!text) throw new Error("Input text cannot be empty");
-    const model = this.model;
+    const model = modelIdOf(this.model);
     const voice = this.voice;
     const speed = this.speed;
     const instructions = this.instructions;
@@ -809,14 +813,13 @@ export class TranscribeNode extends BaseNode {
   static readonly inputFields = ["audio", "prompt"];
   static readonly requiredSettings = ["OPENAI_API_KEY"];
 
-  @prop({
-    type: "enum",
-    default: "whisper-1",
-    title: "Model",
-    description: "The model to use for transcription.",
-    values: ["whisper-1", "gpt-4o-transcribe", "gpt-4o-mini-transcribe"]
-  })
-  declare model: string;
+  @providerModelProp(
+    "asr_model",
+    PROVIDER_IDS.OPENAI,
+    "whisper-1",
+    "The model to use for transcription."
+  )
+  declare model: ModelFieldValue;
 
   @prop({
     type: "audio",
@@ -939,7 +942,7 @@ export class TranscribeNode extends BaseNode {
       throw new Error("Audio input is required");
     }
 
-    const model = this.model;
+    const model = modelIdOf(this.model);
     const language = this.language;
     const timestamps = this.timestamps;
     const promptText = this.prompt;

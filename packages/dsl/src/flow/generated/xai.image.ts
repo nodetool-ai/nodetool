@@ -8,7 +8,7 @@ import type { ImageRef } from "../../types.js";
 // Generate Image — xai.image.GenerateImage
 export type GenerateImageInputs = {
   prompt?: string;
-  model?: string;
+  model?: unknown;
 };
 
 export interface GenerateImageOutputs {

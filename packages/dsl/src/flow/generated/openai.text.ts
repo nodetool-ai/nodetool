@@ -7,7 +7,7 @@ import { callNode } from "../guest-core.js";
 // Embedding — openai.text.Embedding
 export type EmbeddingInputs = {
   input?: string;
-  model?: "text-embedding-3-large" | "text-embedding-3-small";
+  model?: unknown;
   chunk_size?: number;
 };
 
