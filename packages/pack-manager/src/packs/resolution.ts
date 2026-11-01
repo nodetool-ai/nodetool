@@ -45,9 +45,10 @@ export function bareSpecifierName(specifier: string): string | null {
   return parts[0] ?? null;
 }
 
-function within(root: string, path: string): boolean {
+/** Whether `path` lies strictly inside `root`. */
+export function within(root: string, path: string): boolean {
   const inside = relative(root, path);
-  return inside !== "" && inside !== ".." && !inside.startsWith(`..${sep}`) && !isAbsolute(inside);
+  return inside !== "" && inside !== ".." && !inside.startsWith(`..${sep}`) && !isAbsolute(inside); // key-boundary-ok: sep anchors the parent path component on this platform.
 }
 
 /** Whether a package must come from the CLI when the CLI has it. */
