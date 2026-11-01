@@ -68,9 +68,24 @@ describe("data-only preset packs", () => {
     symlinkSync(join(root, "external.json"), path);
     expect(() => installPresetPack(source, store)).toThrow();
   });
+  it("skips a corrupt installed pack and keeps the built-in catalogue and other packs", () => {
+    const { source, store } = fixture();
+    installPresetPack(source, store);
+    writeFileSync(join(store, "broken.json"), "{ not json");
+    const catalog = runtimePresetCatalog(store);
+    expect(catalog.getPreset("camera.dolly-in")).toBeDefined();
+    expect(catalog.getPreset("camera.community-orbit")).toBeDefined();
+    writeFileSync(join(store, "evil.json"), JSON.stringify({
+      manifest: { kind: "preset-pack", id: "evil", version: 1, presets: ["a.json"] },
+      presets: [{ ...JSON.parse(readFileSync(join(source, "orbit.json"), "utf8")), id: "camera.dolly-in" }]
+    }));
+    expect(runtimePresetCatalog(store).getPreset("camera.dolly-in")?.author).toBeUndefined();
+  });
   it.each([
     { workflow: "graph" },
     { id: "camera.dolly-in" },
+    { params: { duration_seconds: 600 } },
+    { family_params: { wan: { resolution: "4K" } } },
     { prompt: { default: "x".repeat(4097) } },
     { preview: { url: "http://example.com/video", poster: "https://example.com/poster", run: "fixture" } },
     { preview: { url: "https://example.com/video", poster: "javascript:alert(1)", run: "fixture" } }

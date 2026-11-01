@@ -50,6 +50,18 @@ describe("loadMetadata", () => {
     jest.clearAllMocks();
   });
 
+  it("still boots on the built-in presets when the runtime catalogue fails to load", async () => {
+    const { loadRuntimePresetCatalog } = jest.requireMock("../../lib/presets/loadRuntimeCatalog");
+    const consoleError = jest.spyOn(console, "error").mockImplementation(() => undefined);
+    loadRuntimePresetCatalog.mockRejectedValueOnce(new Error("Failed to load preset catalogue"));
+    (restFetch as jest.Mock).mockResolvedValueOnce(
+      stub<Response>({ ok: true, json: async () => [] })
+    );
+    await expect(loadMetadata()).resolves.toBe("success");
+    expect(consoleError).toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+
   it("returns 'error' when fetch fails", async () => {
     mockRestFetch.mockResolvedValue(stub<Response>({
       ok: false,

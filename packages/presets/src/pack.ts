@@ -8,8 +8,12 @@ const httpsUrl = z.url().max(2048).refine(value => {
   return url.protocol === "https:" && !url.username && !url.password;
 }, "Pack previews must use https without credentials");
 
-/** Strict data-only subset. Pack data never supplies graphs or launch targets. */
-export const packPresetSchema = presetSchema.omit({ workflow: true }).extend({
+/**
+ * Strict data-only subset. Pack data never supplies graphs or launch targets,
+ * and sets no generation params: a pack must not be able to raise someone's spend.
+ */
+export const packPresetSchema = presetSchema.omit({ workflow: true, family_params: true }).extend({
+  params: z.strictObject({}).default({}),
   name: z.string().min(1).max(160),
   description: z.string().min(1).max(2048),
   author: z.string().min(1).max(160),

@@ -400,8 +400,12 @@ manifests are refused. Installation never invokes npm or runs scripts.
 Names are limited to 160 characters, descriptions to 2,048 and each prompt
 clause to 4,096. Prompt fragments are untrusted provider input: they can steer
 or replace the generation prompt. Review a pack before using it. They cannot
-execute application code or supply workflow graphs. The compiler keeps its
-three-preset limit and forwards only the supported generation parameter keys.
+execute application code or supply workflow graphs. They also cannot set `params`
+or `family_params`, so a pack cannot raise a generation's duration, resolution or
+step count. The compiler keeps its three-preset limit. An installed pack that is
+corrupt or collides with another preset is skipped with a logged warning, and the
+built-in catalogue and other packs keep working. If the web app cannot load the
+pack catalogue, it starts with the built-in presets.
 Preview and poster URLs must use HTTPS without credentials and render through
 the normal media components. External preview hosts receive browser requests.
 

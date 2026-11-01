@@ -84,6 +84,6 @@ describe("open as workflow", () => {
 it("ejects a restyle to VideoToVideo with the source video and original prompt", () => {
   const graph = generationToWorkflowGraph(item({ prompt: "A neon street", presetIds: ["effect.restyle-anime"], request: { mode: "video_edit", provider: "fake", model: "fake-video", source_asset_id: "0123456789abcdef0123456789abcdef" } }));
   expect(graph.nodes.find(n => n.id === "generate")?.type).toBe("nodetool.video.VideoToVideo");
-  expect(graph.nodes.find(n => n.id === "prompt")?.data?.value).toBe("A neon street");
-  expect(graph.nodes.find(n => n.id === "video")?.data?.value).toEqual({ type: "video", asset_id: "0123456789abcdef0123456789abcdef" });
+  expect((graph.nodes.find(n => n.id === "prompt")?.data as Record<string, unknown>).value).toBe("A neon street");
+  expect((graph.nodes.find(n => n.id === "video")?.data as Record<string, unknown>).value).toEqual({ type: "video", asset_id: "0123456789abcdef0123456789abcdef" });
 });
