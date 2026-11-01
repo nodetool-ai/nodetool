@@ -84,7 +84,7 @@ op://<vault>/<item>/[<section>/]<field>
 
 NodeTool reads the item from 1Password when the secret is used, so the key is not stored in NodeTool's database or in a `.env` file. Store a reference anywhere a key goes:
 
-- In Settings, paste `op://Dev/OpenAI/credential` as the OpenAI key. **Test connection** checks the key the reference points to.
+- In Settings, choose **Use 1Password** in a provider's key dialog. The first time, enter your 1Password account name and approve NodeTool in the 1Password app. Then pick the vault, item and field. NodeTool stores the reference, never the key. You can also paste a reference such as `op://Dev/OpenAI/credential`. **Test connection** checks the key the reference points to.
 - On the command line, run `nodetool secrets store OPENAI_API_KEY` and enter the reference.
 - In the environment, set `OPENAI_API_KEY=op://Dev/OpenAI/credential`.
 
@@ -94,7 +94,7 @@ NodeTool ships the [1Password JavaScript SDK](https://developer.1password.com/do
 |---|---|---|
 | 1Password Connect server | `OP_CONNECT_HOST` and `OP_CONNECT_TOKEN` are set | The Connect token |
 | SDK with a service account | `OP_SERVICE_ACCOUNT_TOKEN` is set | The service account token. Use this for servers and Docker. |
-| SDK through the desktop app | `NODETOOL_1PASSWORD_ACCOUNT` is set to the account name shown in the 1Password sidebar, or its UUID | The 1Password app asks you to approve NodeTool, and the approval lasts until 10 minutes of inactivity. Turn on the option to integrate with SDKs in the 1Password app settings first. |
+| SDK through the desktop app | An account is connected in Settings, or `NODETOOL_1PASSWORD_ACCOUNT` is set to the account name shown in the 1Password sidebar, or its UUID | The 1Password app asks you to approve NodeTool, and the approval lasts until 10 minutes of inactivity. Turn on the option to integrate with SDKs in the 1Password app settings first. |
 | 1Password CLI (`op read`) | None of the above | Whatever `op` is signed in with. For installs that already use the CLI. |
 
 | Variable | Default | Effect |

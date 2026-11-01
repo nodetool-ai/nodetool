@@ -82,6 +82,8 @@ describe("sandbox API coverage", () => {
     const mustBeWithheld = [
       "settings.secrets.get",
       "settings.secrets.upsert",
+      "settings.onepassword.connect",
+      "settings.onepassword.fields",
       "customProviders.save",
       "integrations.confirmLink",
       "mcpConfig.install",

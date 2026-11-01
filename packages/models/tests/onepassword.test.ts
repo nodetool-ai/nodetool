@@ -5,19 +5,32 @@ vi.mock("node:child_process", () => ({ execFile: execFileMock }));
 
 const sdkMock = vi.hoisted(() => {
   const resolve = vi.fn();
-  const createClient = vi.fn(async () => ({ secrets: { resolve } }));
+  const vaultsList = vi.fn();
+  const itemsList = vi.fn();
+  const itemsGet = vi.fn();
+  const createClient = vi.fn(async () => ({
+    secrets: { resolve },
+    vaults: { list: vaultsList },
+    items: { list: itemsList, get: itemsGet }
+  }));
   class DesktopAuth {
     constructor(public accountName: string) {}
   }
-  return { resolve, createClient, DesktopAuth };
+  return { resolve, vaultsList, itemsList, itemsGet, createClient, DesktopAuth };
 });
 vi.mock("@1password/sdk", () => ({
   createClient: sdkMock.createClient,
   DesktopAuth: sdkMock.DesktopAuth
 }));
 
+const settingMock = vi.hoisted(() => ({ find: vi.fn() }));
+vi.mock("../src/setting.js", () => ({ Setting: settingMock }));
+
 import {
+  buildOnePasswordReference,
   clearOnePasswordCache,
+  onePasswordAccount,
+  onePasswordBrowser,
   isOnePasswordReference,
   onePasswordBackend,
   parseOnePasswordReference,
@@ -66,6 +79,10 @@ describe("onepassword", () => {
     execFileMock.mockReset();
     sdkMock.resolve.mockReset();
     sdkMock.createClient.mockClear();
+    sdkMock.vaultsList.mockReset();
+    sdkMock.itemsList.mockReset();
+    sdkMock.itemsGet.mockReset();
+    settingMock.find.mockReset();
     for (const key of ENV_KEYS) delete process.env[key];
   });
   afterEach(() => {
@@ -357,6 +374,166 @@ describe("onepassword", () => {
       process.env.SUPABASE_URL = "https://x.supabase.co";
       process.env.SUPABASE_KEY = "anon";
       expect(await resolveUserSecretValue("K", "sk-plain")).toBe("sk-plain");
+    });
+  });
+  describe("desktop account", () => {
+    it("prefers the env var over the stored setting", async () => {
+      process.env.NODETOOL_1PASSWORD_ACCOUNT = " env.1password.com ";
+      settingMock.find.mockResolvedValue({ value: "stored.1password.com" });
+      expect(await onePasswordAccount("u1")).toBe("env.1password.com");
+      expect(settingMock.find).not.toHaveBeenCalled();
+    });
+
+    it("reads the account the user connected in Settings", async () => {
+      settingMock.find.mockResolvedValue({ value: "stored.1password.com" });
+      expect(await onePasswordAccount("u1")).toBe("stored.1password.com");
+      expect(settingMock.find).toHaveBeenCalledWith(
+        "u1",
+        "NODETOOL_1PASSWORD_ACCOUNT"
+      );
+    });
+
+    it("ignores a stored account on a shared server", async () => {
+      process.env.SUPABASE_URL = "https://x.supabase.co";
+      process.env.SUPABASE_KEY = "anon";
+      settingMock.find.mockResolvedValue({ value: "stored.1password.com" });
+      expect(await onePasswordAccount("u1")).toBe("");
+      expect(settingMock.find).not.toHaveBeenCalled();
+    });
+
+    it("treats a missing database as no account", async () => {
+      settingMock.find.mockRejectedValue(new Error("no db"));
+      expect(await onePasswordAccount("u1")).toBe("");
+    });
+  });
+
+  describe("browsing", () => {
+    it("needs a connected account", async () => {
+      settingMock.find.mockResolvedValue(null);
+      await expect(onePasswordBrowser("u1")).rejects.toThrow(
+        /Connect a 1Password account first/
+      );
+    });
+
+    it("refuses a Connect server", async () => {
+      process.env.OP_CONNECT_HOST = "http://connect:8080";
+      process.env.OP_CONNECT_TOKEN = "tok";
+      await expect(onePasswordBrowser("u1")).rejects.toThrow(/Connect server/);
+    });
+
+    it("lists sorted items and fields as references without values", async () => {
+      settingMock.find.mockResolvedValue({ value: "my.1password.com" });
+      sdkMock.vaultsList.mockResolvedValue([{ id: "vlt1", title: "Dev" }]);
+      sdkMock.itemsList.mockResolvedValue([
+        { id: "itm2", title: "Zeta" },
+        { id: "itm1", title: "Alpha" }
+      ]);
+      sdkMock.itemsGet.mockResolvedValue({
+        id: "itm1",
+        title: "Alpha",
+        sections: [{ id: "s1", title: "API" }],
+        fields: [
+          {
+            id: "credential",
+            title: "credential",
+            fieldType: "Concealed",
+            value: "sk-secret"
+          },
+          {
+            id: "f2",
+            title: "key",
+            sectionId: "s1",
+            fieldType: "Concealed",
+            value: "sk-other"
+          }
+        ]
+      });
+      const browser = await onePasswordBrowser("u1");
+      expect(browser.backend).toBe("sdk-desktop");
+      expect((await browser.listItems("vlt1")).map((i) => i.title)).toEqual([
+        "Alpha",
+        "Zeta"
+      ]);
+      const fields = await browser.listFields("vlt1", "itm1");
+      expect(fields).toEqual([
+        {
+          id: "credential",
+          title: "credential",
+          section: null,
+          fieldType: "Concealed",
+          reference: "op://Dev/itm1/credential"
+        },
+        {
+          id: "f2",
+          title: "key",
+          section: "API",
+          fieldType: "Concealed",
+          reference: "op://Dev/itm1/key"
+        }
+      ]);
+      expect(JSON.stringify(fields)).not.toContain("sk-");
+    });
+  });
+
+  describe("building references", () => {
+    const base = {
+      vault: { id: "vlt1", title: "Dev" },
+      vaultTitles: ["Dev", "Private"],
+      item: { id: "itm1", title: "OpenAI" },
+      sectionTitle: null
+    };
+
+    it("uses names when they are unique and fit the syntax", () => {
+      const field = { id: "f1", title: "credential" };
+      expect(
+        buildOnePasswordReference({ ...base, field, fields: [field] })
+      ).toBe("op://Dev/itm1/credential");
+    });
+
+    it("falls back to the vault id when vault names clash or do not fit", () => {
+      const field = { id: "f1", title: "credential" };
+      expect(
+        buildOnePasswordReference({
+          ...base,
+          vaultTitles: ["Dev", "dev"],
+          field,
+          fields: [field]
+        })
+      ).toBe("op://vlt1/itm1/credential");
+      expect(
+        buildOnePasswordReference({
+          ...base,
+          vault: { id: "vlt1", title: "A/B" },
+          vaultTitles: ["A/B"],
+          field,
+          fields: [field]
+        })
+      ).toBe("op://vlt1/itm1/credential");
+    });
+
+    it("adds the section when a field title repeats across sections", () => {
+      const a = { id: "f1", title: "key", sectionId: "s1" };
+      const b = { id: "f2", title: "key", sectionId: "s2" };
+      expect(
+        buildOnePasswordReference({
+          ...base,
+          field: b,
+          fields: [a, b],
+          sectionTitle: "Prod"
+        })
+      ).toBe("op://Dev/itm1/Prod/key");
+    });
+
+    it("uses the field id when the title cannot identify it", () => {
+      const a = { id: "f1", title: "key" };
+      const b = { id: "f2", title: "key" };
+      expect(buildOnePasswordReference({ ...base, field: b, fields: [a, b] })).toBe(
+        "op://Dev/itm1/f2"
+      );
+      const slash = { id: "f3", title: "a/b" };
+      expect(
+        buildOnePasswordReference({ ...base, field: slash, fields: [slash] })
+      ).toBe("op://Dev/itm1/f3");
     });
   });
 });

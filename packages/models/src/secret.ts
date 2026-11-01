@@ -187,7 +187,11 @@ export class Secret extends DBModel {
    * getDecryptedValue().
    */
   async getResolvedValue(): Promise<string | null> {
-    return resolveUserSecretValue(this.key, await this.getDecryptedValue());
+    return resolveUserSecretValue(
+      this.key,
+      await this.getDecryptedValue(),
+      this.user_id
+    );
   }
 
   /** Return a safe dictionary representation without the encrypted value. */

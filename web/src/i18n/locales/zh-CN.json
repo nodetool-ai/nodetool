@@ -18932,5 +18932,28 @@
     "referenceAlt": "参考图 {{index}}",
     "sketchTitle": "Sketch",
     "audio": "音频"
+  },
+  "onePassword": {
+    "useOnePassword": "使用 1Password",
+    "title": "使用 1Password 中的密钥",
+    "connectIntro": "NodeTool 每次使用密钥时都会从 1Password 应用读取，因此密钥不会保存在 NodeTool 中。请在 1Password 应用的设置中开启与 SDK 集成的选项，然后输入应用侧边栏顶部显示的账户名称。",
+    "accountLabel": "1Password 账户",
+    "accountPlaceholder": "my.1password.com",
+    "approveHint": "当 1Password 应用询问时，请允许 NodeTool。",
+    "connect": "连接",
+    "connecting": "正在等待 1Password",
+    "connectFailed": "1Password 未能连接：{{message}}",
+    "connectedAs": "已连接为 {{account}}",
+    "switchAccount": "使用其他账户",
+    "loadFailed": "无法读取 1Password：{{message}}",
+    "vault": "保险库",
+    "items": "项目",
+    "fields": "字段",
+    "searchItems": "搜索项目",
+    "noItems": "此保险库中没有项目。",
+    "noItemsMatch": "没有与搜索匹配的项目。",
+    "chooseItem": "选择一个项目，然后选择存放密钥的字段。",
+    "noFields": "此项目没有字段。",
+    "pickedHelp": "来自 1Password：{{path}}。每次使用密钥时 NodeTool 都会读取它。"
   }
 }

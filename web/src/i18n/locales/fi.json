@@ -18932,5 +18932,28 @@
     "referenceAlt": "Viite {{index}}",
     "sketchTitle": "Sketch",
     "audio": "Ääni"
+  },
+  "onePassword": {
+    "useOnePassword": "Käytä 1Passwordia",
+    "title": "Käytä avainta 1Passwordista",
+    "connectIntro": "NodeTool lukee avaimen 1Password-sovelluksesta aina, kun sitä käytetään, joten avainta ei koskaan tallenneta NodeTooliin. Ota 1Password-sovelluksen asetuksista käyttöön SDK-integraatio. Kirjoita sitten tilisi nimi sellaisena kuin se näkyy sovelluksen sivupalkin yläosassa.",
+    "accountLabel": "1Password-tili",
+    "accountPlaceholder": "my.1password.com",
+    "approveHint": "Hyväksy NodeTool, kun 1Password-sovellus kysyy.",
+    "connect": "Yhdistä",
+    "connecting": "Odotetaan 1Passwordia",
+    "connectFailed": "1Password-yhteys epäonnistui: {{message}}",
+    "connectedAs": "Yhdistetty tilillä {{account}}",
+    "switchAccount": "Käytä toista tiliä",
+    "loadFailed": "1Passwordia ei voitu lukea: {{message}}",
+    "vault": "Holvi",
+    "items": "Kohteet",
+    "fields": "Kentät",
+    "searchItems": "Hae kohteita",
+    "noItems": "Tässä holvissa ei ole kohteita.",
+    "noItemsMatch": "Mikään kohde ei vastaa hakua.",
+    "chooseItem": "Valitse kohde ja sitten kenttä, jossa avain on.",
+    "noFields": "Tässä kohteessa ei ole kenttiä.",
+    "pickedHelp": "1Passwordista: {{path}}. NodeTool lukee sen aina, kun avainta käytetään."
   }
 }

@@ -204,9 +204,18 @@ export {
   resolveOnePasswordReference,
   resolveUserSecretValue,
   userReferencesAllowed,
-  clearOnePasswordCache
+  clearOnePasswordCache,
+  onePasswordAccount,
+  onePasswordBackend,
+  onePasswordBrowser,
+  buildOnePasswordReference,
+  ONEPASSWORD_ACCOUNT_KEY
 } from "./onepassword.js";
-export type { OnePasswordReference } from "./onepassword.js";
+export type {
+  OnePasswordReference,
+  OnePasswordBackendName,
+  OnePasswordFieldOption
+} from "./onepassword.js";
 
 export { Setting } from "./setting.js";
 

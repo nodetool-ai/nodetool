@@ -18932,5 +18932,28 @@
     "referenceAlt": "Referenz {{index}}",
     "sketchTitle": "Sketch",
     "audio": "Ton"
+  },
+  "onePassword": {
+    "useOnePassword": "1Password verwenden",
+    "title": "Schlüssel aus 1Password verwenden",
+    "connectIntro": "NodeTool liest den Schlüssel bei jeder Verwendung aus der 1Password-App, daher wird er nie in NodeTool gespeichert. Aktiviere in den Einstellungen der 1Password-App die Option zur Integration mit SDKs. Gib dann deinen Kontonamen so ein, wie er oben in der Seitenleiste der App steht.",
+    "accountLabel": "1Password-Konto",
+    "accountPlaceholder": "my.1password.com",
+    "approveHint": "Erlaube NodeTool den Zugriff, wenn die 1Password-App fragt.",
+    "connect": "Verbinden",
+    "connecting": "Warte auf 1Password",
+    "connectFailed": "1Password wurde nicht verbunden: {{message}}",
+    "connectedAs": "Verbunden als {{account}}",
+    "switchAccount": "Anderes Konto verwenden",
+    "loadFailed": "1Password konnte nicht gelesen werden: {{message}}",
+    "vault": "Tresor",
+    "items": "Einträge",
+    "fields": "Felder",
+    "searchItems": "Einträge durchsuchen",
+    "noItems": "Dieser Tresor enthält keine Einträge.",
+    "noItemsMatch": "Keine Einträge entsprechen deiner Suche.",
+    "chooseItem": "Wähle einen Eintrag und dann das Feld mit dem Schlüssel.",
+    "noFields": "Dieser Eintrag hat keine Felder.",
+    "pickedHelp": "Aus 1Password: {{path}}. NodeTool liest ihn bei jeder Verwendung des Schlüssels."
   }
 }

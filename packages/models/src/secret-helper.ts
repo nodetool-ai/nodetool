@@ -62,11 +62,14 @@ export function clearAllSecretCache(): void {
  * secretCache holds the reference, not the secret, and the 1Password cache
  * expires, so an item rotated in 1Password is picked up without a restart.
  */
-async function materialize(value: string): Promise<string | null> {
+async function materialize(
+  value: string,
+  userId?: string
+): Promise<string | null> {
   if (!isOnePasswordReference(value)) {
     return value;
   }
-  return resolveOnePasswordReference(value);
+  return resolveOnePasswordReference(value, userId);
 }
 
 /** Get a secret value for a user (resolution order documented at file top). */
@@ -109,14 +112,14 @@ export async function getSecret(
   if (FORCE_ENV_PRIORITY.has(key)) {
     const envVal = process.env[key];
     if (envVal !== undefined) {
-      return materialize(envVal);
+      return materialize(envVal, userId);
     }
   }
 
   const cacheKey = `${resolvedUserId}:${key}`;
   if (secretCache.has(cacheKey)) {
     const cached = secretCache.get(cacheKey) ?? null;
-    return cached === null ? null : materialize(cached);
+    return cached === null ? null : materialize(cached, userId);
   }
 
   if (userId) {
@@ -129,7 +132,7 @@ export async function getSecret(
             return null;
           }
           secretCache.set(cacheKey, value);
-          return materialize(value);
+          return materialize(value, userId);
         }
       }
     } catch (err) {
@@ -152,7 +155,7 @@ export async function getSecret(
           return null;
         }
         secretCache.set(cacheKey, setting.value);
-        return materialize(setting.value);
+        return materialize(setting.value, userId);
       }
     } catch (err) {
       log.error("Setting DB lookup failed", {
@@ -166,7 +169,7 @@ export async function getSecret(
   const envValue = process.env[key];
   if (envValue !== undefined) {
     secretCache.set(cacheKey, envValue);
-    return materialize(envValue);
+    return materialize(envValue, userId);
   }
 
   if (defaultValue !== undefined) {
