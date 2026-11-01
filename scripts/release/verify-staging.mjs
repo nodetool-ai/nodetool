@@ -3,9 +3,9 @@
 import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { parseArgs } from "node:util";
-import { assertCoreOnlyInstall, assertCoreInstallSize, CORE_INSTALL_BUDGET_KIB, cleanEnv } from "../smoke-packed-cli.mjs";
+import { activePackProject, assertCoreOnlyInstall, assertCoreInstallSize, CORE_INSTALL_BUDGET_KIB, cleanEnv } from "../smoke-packed-cli.mjs";
 import { runReleaseCommand, tarballIntegrity } from "./pin-catalog.mjs";
 import { createLimiter, timed } from "./commands.mjs";
 import { runFalFixture } from "../packed-fal-fixture.mjs";
@@ -141,10 +141,14 @@ export async function verifyRegistryInstall(catalog, { run: runCommand = runRele
       cwd: app,
       env
     });
-    // Verify the expanded tree before the independent registration smoke.
-    run("npm", ["audit", "signatures"], { cwd: app, env });
+    // Packs install into the pack project, so verify that tree before the registration smoke.
+    run("npm", ["audit", "signatures"], { cwd: activePackProject(env), env });
     run(cli, ["harness", "--help"], { cwd: app, env });
-    const code = `const { NodeRegistry } = await import('@nodetool-ai/node-sdk');
+    // Pack code loads through the CLI's pack host, which routes shared packages to the CLI.
+    const code = `const { configureCliPackHost, loadCliPackSnapshot } = await import('@nodetool-ai/pack-manager');
+configureCliPackHost(${JSON.stringify(pathToFileURL(join(app, "node_modules/@nodetool-ai/cli/dist/nodetool.js")).href)});
+await loadCliPackSnapshot();
+const { NodeRegistry } = await import('@nodetool-ai/node-sdk');
 const { importPack } = await import('@nodetool-ai/node-catalog');
 const module = await importPack(${JSON.stringify(pack.id)});
 const registry = new NodeRegistry();

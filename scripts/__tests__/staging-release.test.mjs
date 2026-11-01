@@ -243,6 +243,12 @@ it("audits project and global installs before execution and verifies both FAL wo
       mkdirSync(directory, { recursive: true });
       writeFileSync(join(directory, "package.json"), JSON.stringify({ name: "@nodetool-ai/nodes-core", version }));
     }
+    if (args[0] === "packs" && args[1] === "add" && !command.endsWith(".js") && command !== process.execPath) {
+      const data = process.platform === "win32" ? join(options.env.HOME, "AppData", "Roaming") : options.env.XDG_DATA_HOME;
+      const packs = join(data, "nodetool", "packs", version);
+      mkdirSync(join(packs, "g-0-0000000000000000"), { recursive: true });
+      writeFileSync(join(packs, "current.json"), JSON.stringify({ schemaVersion: 1, generation: "g-0-0000000000000000" }));
+    }
     if (args.includes("--version")) { return version; }
     if (command === "du") { return "100 node_modules"; }
     if (args.includes("--import")) {
@@ -264,6 +270,11 @@ it("audits project and global installs before execution and verifies both FAL wo
   expect(calls[3][1]).toEqual(["--version"]);
   expect(calls[4][1]).toEqual(["packs", "add", "cli-workflow", "cli-harness", "fal", "--yes"]);
   expect(calls[5][1]).toEqual(["audit", "signatures"]);
+  // Packs live in the pack project, so the expanded tree is audited there.
+  expect(calls[5][2].cwd).toMatch(/nodetool[\\/]packs[\\/][^\\/]+[\\/]g-0-0000000000000000$/);
+  const probe = calls.find(([, args]) => args[0] === "--input-type=module")[1][2];
+  expect(probe.indexOf("loadCliPackSnapshot()")).toBeGreaterThan(-1);
+  expect(probe.indexOf("loadCliPackSnapshot()")).toBeLessThan(probe.indexOf("@nodetool-ai/node-sdk"));
   const globalInstall = calls.findIndex(([, args]) => args.includes("--global"));
   const projectModules = join(calls[0][2].cwd, "node_modules");
   const globalPrefix = calls[globalInstall][1][calls[globalInstall][1].indexOf("--prefix") + 1];
