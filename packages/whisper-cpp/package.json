@@ -16,10 +16,11 @@
   },
   "dependencies": {
     "@nodetool-ai/config": "*",
+    "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
     "@nodetool-ai/transformers-js-nodes": "*",
-    "@nodetool-ai/node-sdk": "*"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

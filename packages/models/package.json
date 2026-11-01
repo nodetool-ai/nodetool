@@ -39,7 +39,8 @@
     "@nodetool-ai/timeline": "*",
     "better-sqlite3": "^12.8.0",
     "drizzle-orm": "^0.45.2",
-    "postgres": "^3.4.7"
+    "postgres": "^3.4.7",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.8",

@@ -16,12 +16,13 @@
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "0.19.3",
+    "@nodetool-ai/game-renderer": "*",
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
     "sharp": "^0.35.3",
-    "@nodetool-ai/game-renderer": "*"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@nodetool-ai/audio-nodes": "*",

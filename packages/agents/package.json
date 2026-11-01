@@ -35,6 +35,7 @@
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
+    "@nodetool-ai/sandbox-runtime": "*",
     "@nodetool-ai/storage": "*",
     "@nodetool-ai/storyboard": "*",
     "@nodetool-ai/timeline": "*",
@@ -56,7 +57,7 @@
     "papaparse": "^5.5.3",
     "subtitle": "^4.2.2",
     "turndown": "^7.2.2",
-    "@nodetool-ai/sandbox-runtime": "*"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@llamaindex/liteparse": "^1.5.2",
