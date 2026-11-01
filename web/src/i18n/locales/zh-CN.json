@@ -13284,8 +13284,6 @@
       "actions": {
         "copyMarkdown": "将对话复制为 Markdown",
         "newChat": "新建聊天",
-        "showSidebar": "显示侧边栏",
-        "hideSidebar": "隐藏侧边栏",
         "scrollToBottom": "滚动到底部"
       },
       "errors": {
@@ -13297,12 +13295,6 @@
       "notifications": {
         "copiedMessages_other": "已将 {{count}} 条消息复制为 Markdown。",
         "copiedMessages_one": "已将 {{count}} 条消息复制为 Markdown。"
-      },
-      "mobileRails": {
-        "ariaLabel": "对话面板",
-        "chat": "聊天",
-        "tasks": "任务",
-        "task": "任务"
       },
       "welcome": {
         "suggestions": {
@@ -13322,6 +13314,12 @@
         "connectProviderButton": "连接提供商",
         "title": "今天我能帮你做什么？",
         "subtitle": "可以随意提问、添加文件，或从以下示例开始："
+      },
+      "taskDock": {
+        "label": "任务",
+        "expand": "显示全部任务",
+        "collapse": "隐藏任务列表",
+        "allDone": "所有任务已完成"
       }
     }
   },
@@ -18173,11 +18171,6 @@
       "thought": "已思考",
       "thoughtFor": "已思考 {{seconds}} 秒"
     },
-    "sidebar": {
-      "activeTask": "当前代理任务",
-      "noTasks": "暂无任务",
-      "noTasksDescription": "代理工作时会在这里列出计划。"
-    },
     "thread": {
       "conversation": "对话",
       "responding": "正在回复…",
@@ -18561,11 +18554,6 @@
       "notNow": "暂时不用",
       "saving": "正在保存…",
       "saveKey": "保存密钥"
-    },
-    "todoSidebar": {
-      "tasks": "任务",
-      "noTasks": "暂无任务",
-      "noTasksDescription": "代理工作时会在这里列出计划。"
     },
     "codeBlock": {
       "insertIntoEditor": "插入编辑器"
