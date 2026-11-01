@@ -409,12 +409,12 @@ private slots:
                 render();
                 QTRY_VERIFY(!groupMenu->property("visible").toBool());
             };
-            QVERIFY(QMetaObject::invokeMethod(rightGroup, "openMenu", Q_ARG(QVariant, QVariant(QStringLiteral("inspector"))),
-                Q_ARG(QVariant, strip->property("optionsButton")), Q_ARG(QVariant, QVariant(true))));
-            render();
             QQuickItem* strip = inspectorTab;
             while (strip && strip->objectName() != "dockTabStrip") strip = strip->parentItem();
             QVERIFY(strip);
+            QVERIFY(QMetaObject::invokeMethod(rightGroup, "openMenu", Q_ARG(QVariant, QVariant(QStringLiteral("inspector"))),
+                Q_ARG(QVariant, strip->property("optionsButton")), Q_ARG(QVariant, QVariant(true))));
+            render();
             checkMenu("options button", qobject_cast<QQuickItem*>(qvariant_cast<QObject*>(strip->property("optionsButton"))));
             mouse(QEvent::MouseButtonPress, inspectorTab->mapToScene({inspectorTab->width() / 2, inspectorTab->height() / 2}).toPoint(), Qt::RightButton, Qt::RightButton);
             mouse(QEvent::MouseButtonRelease, inspectorTab->mapToScene({inspectorTab->width() / 2, inspectorTab->height() / 2}).toPoint(), Qt::RightButton, Qt::NoButton);
