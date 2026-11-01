@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { setTimeout } from "node:timers/promises";
 
 export const REGISTRY_READINESS_MS = 600_000;
@@ -42,4 +43,15 @@ export async function loadRegistryDist(pin, options) {
     throw new Error(`Registry version identity differs: ${pin.name}@${pin.version}`);
   }
   return manifest.dist;
+}
+
+/** Metadata can propagate before the immutable tarball reaches npm's CDN. */
+export async function verifyRegistryTarball(pin, dist, options) {
+  const response = await loadRegistryResponse(dist.tarball, options);
+  const hash = createHash("sha512");
+  for await (const chunk of response.body) { hash.update(chunk); }
+  const integrity = `sha512-${hash.digest("base64")}`;
+  if (integrity !== pin.integrity) {
+    throw new Error(`Registry tarball integrity differs from release pin: ${pin.name}@${pin.version}`);
+  }
 }

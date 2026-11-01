@@ -10,7 +10,7 @@ import { runReleaseCommand, tarballIntegrity } from "./pin-catalog.mjs";
 import { createLimiter, timed } from "./commands.mjs";
 import { runFalFixture } from "../packed-fal-fixture.mjs";
 import { validateInstallPin } from "./install-pins.mjs";
-import { loadRegistryDist, loadRegistryJson, REGISTRY_READINESS_MS } from "./registry.mjs";
+import { loadRegistryDist, loadRegistryJson, verifyRegistryTarball, REGISTRY_READINESS_MS } from "./registry.mjs";
 
 export const RELEASE_REPOSITORY = "https://github.com/nodetool-ai/nodetool";
 export const RELEASE_WORKFLOW = ".github/workflows/publish.yaml";
@@ -185,6 +185,7 @@ export async function verifyStaging(catalog, artifacts, {
   run = runReleaseCommand,
   loadDist = loadRegistryDist,
   loadAttestations = loadRegistryJson,
+  verifyTarball = verifyRegistryTarball,
   smoke = () => verifyRegistryInstall(catalog, { run })
 } = {}) {
   const pins = stagingPins(catalog, artifacts);
@@ -194,6 +195,7 @@ export async function verifyStaging(catalog, artifacts, {
     const spec = `${pin.name}@${pin.version}`;
     const dist = await loadDist(pin, readiness);
     if (dist.integrity !== pin.integrity) { throw new Error(`Registry integrity differs from release pin: ${spec}`); }
+    await verifyTarball(pin, dist, readiness);
     if (pin.firstParty) {
       if (!dist.attestations?.url || dist.attestations.provenance?.predicateType !== PROVENANCE_TYPE ||
           !hasReleaseProvenance(pin, await loadAttestations(dist.attestations.url, readiness))) {

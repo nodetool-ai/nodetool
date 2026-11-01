@@ -59,10 +59,14 @@ describe("release workflow recovery", () => {
     expect(steps.some(step => step.name === "Recover original published artifacts")).toBe(false);
   });
 
-  it("restores original bytes without installing, rebuilding, packing or publishing", () => {
+  it("installs tooling before restoring original bytes without rebuilding or publishing", () => {
     const steps = selectedSteps(true);
     const commands = steps.map(step => step.run ?? "").join("\n");
-    expect(commands).not.toMatch(/npm ci|bump-version|build:packages|prepare-publish|publish-packages|smoke-packed-cli/);
+    expect(commands).not.toMatch(/bump-version|build:packages|prepare-publish|publish-packages|smoke-packed-cli/);
+    const install = steps.findIndex(step => step.name === "Install dependencies");
+    expect(install).toBeGreaterThan(-1);
+    expect(steps[install].run).toBe("npm ci");
+    expect(steps.findIndex(step => step.name === "Recover original published artifacts")).toBeGreaterThan(install);
     const recovery = steps.find(step => step.name === "Recover original published artifacts");
     expect(recovery.run).toBe('node scripts/release/recover-staging.mjs --original-run-id "$RESUME_ORIGINAL_RUN_ID" --version "$VERSION_NO_V" --tarballs-dir .release-tarballs');
     expect(recovery.env.GH_TOKEN).toBe("${{ github.token }}");
