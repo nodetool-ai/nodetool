@@ -13993,6 +13993,7 @@
       "noRecentAssets": "Noch keine Dateien. Hänge eine an oder ziehe eine hierher.",
       "noAssetsMatch": "Keine passenden Assets.",
       "noSavedAssets": "Noch keine Assets gespeichert.",
+      "noEntitiesMatch": "Keine passenden Entitäten.",
       "entities": "Entitäten",
       "assetSource": "Asset-Quelle",
       "rename": "{{name}} umbenennen",

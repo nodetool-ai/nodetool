@@ -298,6 +298,10 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
   );
   const applyShotDraft = useStoryboardStore((state) => state.applyShotDraft);
   const nudgeShot = useStoryboardStore((state) => state.nudgeShot);
+  const toggleShotEntity = useStoryboardStore(
+    (state) => state.toggleShotEntity
+  );
+  const setEntityIds = useStoryboardStore((state) => state.setEntityIds);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const { generateClip } = useGenerateShot();
   const { data: allEntities } = useEntities();
@@ -357,6 +361,21 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
         .filter((entity) => appliedIds.includes(entity.id))
         .map((entity) => entity.name || t("screens4_16.shotEditPanel.untitledEntity")),
     [boardEntities, appliedIds, t]
+  );
+
+  // An entity picked with `@` in a prompt field joins the board and this shot,
+  // as one picked in the cast field does. Picking one the shot already has
+  // changes nothing: the cast field's toggle would remove it.
+  const handleMentionEntity = useCallback(
+    (entity: Entity) => {
+      if (!boardEntityIds.includes(entity.id)) {
+        setEntityIds(boardId, [...boardEntityIds, entity.id]);
+      }
+      if (!appliedIds.includes(entity.id)) {
+        toggleShotEntity(boardId, shotId, entity.id, appliedIds);
+      }
+    },
+    [boardEntityIds, appliedIds, setEntityIds, toggleShotEntity, boardId, shotId]
   );
   // The prompt preview reads the scene the draft points at, lit the way the
   // draft says: both are saved with the shot.
@@ -886,6 +905,7 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
                 focusDialogue={focusDialogue}
                 onEditInScript={linksLines ? handleEditInScript : undefined}
                 videoModelId={videoModelId}
+                onMentionEntity={handleMentionEntity}
               />
               <Card variant="outlined" padding="normal">
                 <CollapsibleSection

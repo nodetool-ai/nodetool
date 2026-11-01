@@ -73,6 +73,34 @@ describe("useAssetMentionSearch", () => {
     rerender({ q: null });
     expect(result.current.entities).toEqual([]);
   });
+
+  it("runs no asset search and lists no assets when assets are excluded", async () => {
+    mockSearch.mockResolvedValue({
+      assets: [{ id: "file-1", name: "cat.png", content_type: "image/png" }],
+      next_cursor: null
+    });
+    asMock(useEntities).mockReturnValue({
+      data: [
+        { type: "entity", id: "e1", kind: "character", name: "Marta", descriptor: "" }
+      ]
+    });
+
+    jest.useFakeTimers();
+    try {
+      const { result } = renderHook(() =>
+        useAssetMentionSearch("mar", undefined, undefined, false)
+      );
+      await act(async () => {
+        result.current.setActiveTab("saved");
+        await jest.runOnlyPendingTimersAsync();
+      });
+      expect(mockSearch).not.toHaveBeenCalled();
+      expect(result.current.displayedAssets).toEqual([]);
+      expect(result.current.entities.map((e) => e.id)).toEqual(["e1"]);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });
 
 describe("filterEntitiesForMention", () => {

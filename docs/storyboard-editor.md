@@ -105,6 +105,8 @@ Select a card to open the shot inspector under the grid. It repeats **Edit**, **
 | Notes | Text the render should not read as direction |
 | Composition mode, graphic direction | **None**, **Overlay**, **Graphics first**, or **Hybrid** for on-screen text and graphics |
 
+Type `@` in **Description**, **Motion**, or **End** to pick an entity from the library. Its name goes into the text and the entity joins **In this shot**, the same as picking it there. A picked entity also joins the board. It joins the shot at once, even before you save the text.
+
 Title, render mode, notes, and graphics sit under **Advanced**. **Prompts** shows the still prompt and clip prompt the render will send, so you can check them before you spend anything. When the shot has camera presets, the clip prompt shows the camera wording compiled for the board's video model, and a note lists any preset that has no wording tuned for that model. The **Regenerate** button renders a new still. The **More shot actions** menu holds **Render clip** (or **Re-render clip**), **Move earlier in scene**, and **Move later in scene**. A clip in keyframe mode needs a still first.
 
 ### Camera movement presets

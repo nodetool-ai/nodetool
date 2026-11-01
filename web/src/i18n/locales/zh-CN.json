@@ -13993,6 +13993,7 @@
       "noRecentAssets": "还没有文件。附加或拖入一个文件。",
       "noAssetsMatch": "没有匹配的资源。",
       "noSavedAssets": "尚未保存资源。",
+      "noEntitiesMatch": "没有匹配的实体。",
       "entities": "实体",
       "assetSource": "资源来源",
       "rename": "重命名 {{name}}",
