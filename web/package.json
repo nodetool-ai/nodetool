@@ -197,7 +197,7 @@
     "storybook": "^10.4.6",
     "ts-jest": "^29.4.11",
     "typescript": "npm:@typescript/typescript6@6.0.2",
-    "vite": "^8.0.16",
+    "vite": "^6.4.5",
     "vite-plugin-svgr": "^4.5.0"
   }
 }

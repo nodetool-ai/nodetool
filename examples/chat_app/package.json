@@ -41,7 +41,7 @@
     "postcss": "^8.5.23",
     "tailwindcss": "^3.4.17",
     "typescript": "npm:@typescript/typescript6@6.0.2",
-    "vite": "^6.4.2",
+    "vite": "^6.4.5",
     "ws": "^8.18.0"
   }
 }
