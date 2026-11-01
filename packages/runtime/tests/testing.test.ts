@@ -11,11 +11,16 @@ describe("createFakeContext", () => {
     const first = createFakeContext();
     const second = createFakeContext();
     try {
+      const image = await first.context.createAsset({
+        name: "lead.png",
+        contentType: "image/png",
+        content: new Uint8Array([1])
+      });
       const args = {
         kind: "character" as const,
         name: "Lead",
         descriptor: "A red coat",
-        imageAssetId: "1234567890abcdef1234567890abcdef",
+        imageAssetId: image.id,
         source: { key: "lead" }
       };
       const created = await first.context.upsertEntity(args);
