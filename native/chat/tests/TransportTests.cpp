@@ -314,8 +314,7 @@ private slots:
         session.resumeConnection();
         QTRY_COMPARE(session.connectionStatus(), QStringLiteral("connected"));
         QTRY_VERIFY(std::count_if(server.requests.cbegin(), server.requests.cend(), [](const auto& request) { return request.contains("/trpc/messages.list"); }) >= 2);
-        QTest::qWait(30);
-        QVERIFY(!session.historyLoading());
+        QTRY_VERIFY(!session.historyLoading());
         session.setDraft("Send after history reconnected");
         session.send();
         QTRY_COMPARE(server.count("command", "chat_message"), 1);

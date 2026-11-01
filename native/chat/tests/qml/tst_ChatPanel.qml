@@ -237,7 +237,7 @@ TestCase {
     }
     function test_messagesHaveNoCopyButtons() {
         testDriver.codeHistory("a", "int value = 0;\n")
-        wait(80)
+        tryVerify(function() { return findVisible(panel, "message_code") !== null })
         const message = findVisible(panel, "message_code")
         verify(message !== null)
         compare(findText(message, "Copy full text"), null)
