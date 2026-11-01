@@ -27,7 +27,8 @@
     "kling": "Camera rises from ground level toward a low-angle view of the subject.",
     "seedance": "Camera rises from ground level toward a low-angle view of the subject throughout one continuous shot.",
     "veo": "Camera rises from ground level toward a low-angle view of the subject.",
-    "wan": "Camera rises from ground level toward a low-angle view of the subject."
+    "wan": "Camera rises from ground level toward a low-angle view of the subject.",
+    "local-wan": "The camera starts near the ground looking upward at the subject, then rises slowly. The subject towers above the lens as more of its upper body enters view. One continuous shot."
   },
   "params": {},
   "preview": {

@@ -27,7 +27,8 @@
     "kling": "Camera tracks alongside the moving subject at matching speed.",
     "seedance": "Camera tracks alongside the moving subject at matching speed throughout one continuous shot.",
     "veo": "Camera tracks alongside the moving subject at matching speed.",
-    "wan": "Camera tracks alongside the moving subject at matching speed."
+    "wan": "Camera tracks alongside the moving subject at matching speed.",
+    "local-wan": "The camera moves alongside the subject at the same speed. The subject holds its position in frame while the surroundings stream past behind it. One continuous shot."
   },
   "params": {},
   "preview": {

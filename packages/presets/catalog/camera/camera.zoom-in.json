@@ -29,7 +29,8 @@
     "kling": "Lens zooms in from a fixed camera position.",
     "seedance": "Lens zooms in from a fixed camera position throughout one continuous shot.",
     "veo": "Lens zooms in from a fixed camera position.",
-    "wan": "Lens zooms in from a fixed camera position."
+    "wan": "Lens zooms in from a fixed camera position.",
+    "local-wan": "From a fixed viewpoint, the lens slowly zooms closer. The subject grows larger and the edges of the scene gradually leave the frame. One continuous shot."
   },
   "params": {},
   "preview": {

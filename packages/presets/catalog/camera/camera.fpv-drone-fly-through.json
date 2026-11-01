@@ -27,7 +27,8 @@
     "kling": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path.",
     "seedance": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path throughout one continuous shot.",
     "veo": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path.",
-    "wan": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path."
+    "wan": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path.",
+    "local-wan": "The camera flies forward close to the surroundings, banking around obstacles and passing through open gaps. Foreground edges rush past during the continuous flight. One continuous shot."
   },
   "params": {},
   "preview": {

@@ -26,7 +26,8 @@
     "kling": "The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. Physically accurate motion, steady locked camera.",
     "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. Physically accurate motion.",
     "veo": "The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. Cinematic lighting, realistic physics, locked camera.",
-    "wan": "The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. Locked camera, smooth realistic motion, high detail."
+    "wan": "The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. Locked camera, smooth realistic motion, high detail.",
+    "local-wan": "Blue electrical branches flicker over the subject, jumping between points on its surface. Each pulse briefly casts cold blue light onto the nearby surroundings."
   },
   "params": {},
   "preview": {

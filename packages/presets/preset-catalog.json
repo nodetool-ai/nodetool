@@ -26,7 +26,8 @@
       "kling": "Camera travels through a gentle quarter-circle around the subject at constant height.",
       "seedance": "Camera travels through a gentle quarter-circle around the subject at constant height throughout one continuous shot.",
       "veo": "Camera travels through a gentle quarter-circle around the subject at constant height.",
-      "wan": "Camera travels through a gentle quarter-circle around the subject at constant height."
+      "wan": "Camera travels through a gentle quarter-circle around the subject at constant height.",
+      "local-wan": "The camera moves slowly along a quarter circle around the subject. The subject stays centered while the background slides sideways, revealing its side. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -64,7 +65,8 @@
       "kling": "Camera arcs around the subject while the action hangs nearly frozen in time.",
       "seedance": "Camera arcs around the subject while the action hangs nearly frozen in time throughout one continuous shot.",
       "veo": "Camera arcs around the subject while the action hangs nearly frozen in time.",
-      "wan": "Camera arcs around the subject while the action hangs nearly frozen in time."
+      "wan": "Camera arcs around the subject while the action hangs nearly frozen in time.",
+      "local-wan": "The action slows almost to a standstill. The camera circles smoothly around the suspended subject as the surroundings rotate behind it. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -104,7 +106,8 @@
       "kling": "Camera cranes downward and tilts up to keep the subject framed.",
       "seedance": "Camera cranes downward and tilts up to keep the subject framed throughout one continuous shot.",
       "veo": "Camera cranes downward and tilts up to keep the subject framed.",
-      "wan": "Camera cranes downward and tilts up to keep the subject framed."
+      "wan": "Camera cranes downward and tilts up to keep the subject framed.",
+      "local-wan": "The camera descends from above toward eye level, tilting upward gradually to hold the subject in the center as foreground details rise into view. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -144,7 +147,8 @@
       "kling": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear.",
       "seedance": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear throughout one continuous shot.",
       "veo": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear.",
-      "wan": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear."
+      "wan": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear.",
+      "local-wan": "The camera lifts above the subject and gradually points downward. More of the surrounding ground becomes visible as the subject recedes below. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -184,7 +188,8 @@
       "kling": "Lens zooms rapidly into the subject from a fixed camera position.",
       "seedance": "Lens zooms rapidly into the subject from a fixed camera position throughout one continuous shot.",
       "veo": "Lens zooms rapidly into the subject from a fixed camera position.",
-      "wan": "Lens zooms rapidly into the subject from a fixed camera position."
+      "wan": "Lens zooms rapidly into the subject from a fixed camera position.",
+      "local-wan": "A sudden fast lens zoom enlarges the subject from a wide view to a tight close-up. The viewpoint stays fixed and the zoom settles on the subject. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -224,7 +229,8 @@
       "kling": "Lens zooms rapidly out from the subject from a fixed camera position.",
       "seedance": "Lens zooms rapidly out from the subject from a fixed camera position throughout one continuous shot.",
       "veo": "Lens zooms rapidly out from the subject from a fixed camera position.",
-      "wan": "Lens zooms rapidly out from the subject from a fixed camera position."
+      "wan": "Lens zooms rapidly out from the subject from a fixed camera position.",
+      "local-wan": "A sudden fast lens zoom widens from the subject to its surroundings. The viewpoint stays fixed as the subject rapidly becomes smaller in frame. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -267,7 +273,8 @@
       "kling": "Camera dollies smoothly toward the subject with visible depth change.",
       "seedance": "Camera dollies smoothly toward the subject with visible depth change throughout one continuous shot.",
       "veo": "Camera dollies smoothly toward the subject with visible depth change.",
-      "wan": "Camera dollies smoothly toward the subject with visible depth change."
+      "wan": "Camera dollies smoothly toward the subject with visible depth change.",
+      "local-wan": "The camera glides forward toward the subject in one continuous movement. Nearby objects slide past faster than the distant background as the subject grows larger. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -307,7 +314,8 @@
       "kling": "Camera dollies smoothly away from the subject with visible depth change.",
       "seedance": "Camera dollies smoothly away from the subject with visible depth change throughout one continuous shot.",
       "veo": "Camera dollies smoothly away from the subject with visible depth change.",
-      "wan": "Camera dollies smoothly away from the subject with visible depth change."
+      "wan": "Camera dollies smoothly away from the subject with visible depth change.",
+      "local-wan": "The camera glides backward away from the subject. Foreground and background separate in depth as the view widens around the shrinking subject. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -345,7 +353,8 @@
       "kling": "Camera dollies backward while zooming in, holding subject size as the background expands.",
       "seedance": "Camera dollies backward while zooming in, holding subject size as the background expands throughout one continuous shot.",
       "veo": "Camera dollies backward while zooming in, holding subject size as the background expands.",
-      "wan": "Camera dollies backward while zooming in, holding subject size as the background expands."
+      "wan": "Camera dollies backward while zooming in, holding subject size as the background expands.",
+      "local-wan": "The camera moves backward as the lens zooms toward the subject. The subject holds the same size in frame while the background stretches outward behind it. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -381,7 +390,8 @@
       "kling": "Camera rolls gradually around its optical axis, tilting the horizon.",
       "seedance": "Camera rolls gradually around its optical axis, tilting the horizon throughout one continuous shot.",
       "veo": "Camera rolls gradually around its optical axis, tilting the horizon.",
-      "wan": "Camera rolls gradually around its optical axis, tilting the horizon."
+      "wan": "Camera rolls gradually around its optical axis, tilting the horizon.",
+      "local-wan": "The camera slowly rotates around the viewing axis. The horizon tips diagonally while the subject remains at the center of the rotating frame. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -419,7 +429,8 @@
       "kling": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path.",
       "seedance": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path throughout one continuous shot.",
       "veo": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path.",
-      "wan": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path."
+      "wan": "Camera flies forward through gaps and around obstacles in a continuous FPV drone path.",
+      "local-wan": "The camera flies forward close to the surroundings, banking around obstacles and passing through open gaps. Foreground edges rush past during the continuous flight. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -457,7 +468,8 @@
       "kling": "Camera follows behind the moving subject with subtle handheld sway.",
       "seedance": "Camera follows behind the moving subject with subtle handheld sway throughout one continuous shot.",
       "veo": "Camera follows behind the moving subject with subtle handheld sway.",
-      "wan": "Camera follows behind the moving subject with subtle handheld sway."
+      "wan": "Camera follows behind the moving subject with subtle handheld sway.",
+      "local-wan": "The camera follows just behind the moving subject at walking speed. Small uneven steps produce gentle vertical sway while the subject stays clearly framed. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -495,7 +507,8 @@
       "kling": "Camera has gentle irregular handheld sway.",
       "seedance": "Camera has gentle irregular handheld sway throughout one continuous shot.",
       "veo": "Camera has gentle irregular handheld sway.",
-      "wan": "Camera has gentle irregular handheld sway."
+      "wan": "Camera has gentle irregular handheld sway.",
+      "local-wan": "Small irregular camera movements drift gently up, down and sideways, like a person holding a camera while standing still. The subject remains clearly visible. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -533,7 +546,8 @@
       "kling": "Camera rises from ground level toward a low-angle view of the subject.",
       "seedance": "Camera rises from ground level toward a low-angle view of the subject throughout one continuous shot.",
       "veo": "Camera rises from ground level toward a low-angle view of the subject.",
-      "wan": "Camera rises from ground level toward a low-angle view of the subject."
+      "wan": "Camera rises from ground level toward a low-angle view of the subject.",
+      "local-wan": "The camera starts near the ground looking upward at the subject, then rises slowly. The subject towers above the lens as more of its upper body enters view. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -573,7 +587,8 @@
       "kling": "Camera arcs left around the subject at a steady distance.",
       "seedance": "Camera arcs left around the subject at a steady distance throughout one continuous shot.",
       "veo": "Camera arcs left around the subject at a steady distance.",
-      "wan": "Camera arcs left around the subject at a steady distance."
+      "wan": "Camera arcs left around the subject at a steady distance.",
+      "local-wan": "The camera travels left around the subject along a curved path at a steady distance. The subject stays centered while its visible side and background change smoothly. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -613,7 +628,8 @@
       "kling": "Camera arcs right around the subject at a steady distance.",
       "seedance": "Camera arcs right around the subject at a steady distance throughout one continuous shot.",
       "veo": "Camera arcs right around the subject at a steady distance.",
-      "wan": "Camera arcs right around the subject at a steady distance."
+      "wan": "Camera arcs right around the subject at a steady distance.",
+      "local-wan": "The camera travels right around the subject along a curved path at a steady distance. The subject stays centered while the background slides behind it. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -652,7 +668,8 @@
       "kling": "Camera completes a full circle around the subject at a steady distance.",
       "seedance": "Camera completes a full circle around the subject at a steady distance throughout one continuous shot.",
       "veo": "Camera completes a full circle around the subject at a steady distance.",
-      "wan": "Camera completes a full circle around the subject at a steady distance."
+      "wan": "Camera completes a full circle around the subject at a steady distance.",
+      "local-wan": "The camera circles all the way around the subject at a steady height and distance, revealing front, side, back and front again in a continuous shot. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -690,7 +707,8 @@
       "kling": "Camera ascends in a widening spiral while looking down at the subject.",
       "seedance": "Camera ascends in a widening spiral while looking down at the subject throughout one continuous shot.",
       "veo": "Camera ascends in a widening spiral while looking down at the subject.",
-      "wan": "Camera ascends in a widening spiral while looking down at the subject."
+      "wan": "Camera ascends in a widening spiral while looking down at the subject.",
+      "local-wan": "Looking downward at the subject, the camera spirals outward and upward. The ground rotates gently below as the widening view reveals the surroundings. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -730,7 +748,8 @@
       "kling": "The camera stays fixed in one place and turns steadily to the left on its axis, so the whole scene slides to the right across the frame and new parts of the scene enter from the left edge.",
       "seedance": "The camera stays fixed in one place and turns steadily to the left on its axis, so the whole scene slides to the right across the frame and new parts of the scene enter from the left edge. One continuous shot.",
       "veo": "The camera stays fixed in one place and turns steadily to the left on its axis, so the whole scene slides to the right across the frame and new parts of the scene enter from the left edge.",
-      "wan": "The camera stays fixed in one place and turns steadily to the left on its axis, so the whole scene slides to the right across the frame and new parts of the scene enter from the left edge."
+      "wan": "The camera stays fixed in one place and turns steadily to the left on its axis, so the whole scene slides to the right across the frame and new parts of the scene enter from the left edge.",
+      "local-wan": "From a stationary viewpoint, the camera turns slowly left. The scene slides right across the frame while new scenery enters along the left edge. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -770,7 +789,8 @@
       "kling": "Camera pans right from a fixed position.",
       "seedance": "Camera pans right from a fixed position throughout one continuous shot.",
       "veo": "Camera pans right from a fixed position.",
-      "wan": "Camera pans right from a fixed position."
+      "wan": "Camera pans right from a fixed position.",
+      "local-wan": "From a stationary viewpoint, the camera turns slowly right. The scene slides left across the frame while new scenery enters along the right edge. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -806,7 +826,8 @@
       "kling": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly.",
       "seedance": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly throughout one continuous shot.",
       "veo": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly.",
-      "wan": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly."
+      "wan": "Camera slides sideways past a nearby foreground edge, revealing depth as the background shifts more slowly.",
+      "local-wan": "The camera glides sideways past a nearby foreground edge. That edge moves quickly across the frame while distant scenery shifts slowly, revealing the subject beyond. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -846,7 +867,8 @@
       "kling": "Camera lowers vertically without tilting.",
       "seedance": "Camera lowers vertically without tilting throughout one continuous shot.",
       "veo": "Camera lowers vertically without tilting.",
-      "wan": "Camera lowers vertically without tilting."
+      "wan": "Camera lowers vertically without tilting.",
+      "local-wan": "The level camera descends straight downward. The viewing direction stays horizontal as the subject rises within the frame and lower details become visible. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -886,7 +908,8 @@
       "kling": "Camera rises vertically without tilting.",
       "seedance": "Camera rises vertically without tilting throughout one continuous shot.",
       "veo": "Camera rises vertically without tilting.",
-      "wan": "Camera rises vertically without tilting."
+      "wan": "Camera rises vertically without tilting.",
+      "local-wan": "The level camera rises straight upward. The viewing direction stays horizontal as the subject moves lower within the frame and higher details become visible. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -924,7 +947,8 @@
       "kling": "Camera pulls back from a close view to reveal the surroundings.",
       "seedance": "Camera pulls back from a close view to reveal the surroundings throughout one continuous shot.",
       "veo": "Camera pulls back from a close view to reveal the surroundings.",
-      "wan": "Camera pulls back from a close view to reveal the surroundings."
+      "wan": "Camera pulls back from a close view to reveal the surroundings.",
+      "local-wan": "Beginning close to the subject, the camera retreats smoothly into a wide shot. Surrounding scenery progressively enters at the edges and reveals the larger setting. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -962,7 +986,8 @@
       "kling": "Focus shifts smoothly from foreground to background with fixed framing.",
       "seedance": "Focus shifts smoothly from foreground to background with fixed framing throughout one continuous shot.",
       "veo": "Focus shifts smoothly from foreground to background with fixed framing.",
-      "wan": "Focus shifts smoothly from foreground to background with fixed framing."
+      "wan": "Focus shifts smoothly from foreground to background with fixed framing.",
+      "local-wan": "With the camera held still, the sharp foreground gradually softens while the distant background becomes crisp. Framing stays constant throughout the focus change. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -1002,7 +1027,8 @@
       "kling": "Camera slowly pulls away from the subject.",
       "seedance": "Camera slowly pulls away from the subject throughout one continuous shot.",
       "veo": "Camera slowly pulls away from the subject.",
-      "wan": "Camera slowly pulls away from the subject."
+      "wan": "Camera slowly pulls away from the subject.",
+      "local-wan": "The camera retreats very slowly from the subject throughout the shot. The subject gradually becomes smaller as a little more of the surroundings enters view. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -1040,7 +1066,8 @@
       "kling": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts.",
       "seedance": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts throughout one continuous shot.",
       "veo": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts.",
-      "wan": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts."
+      "wan": "Body-mounted camera faces the subject, keeping the face fixed as the background shifts.",
+      "local-wan": "A camera attached to the subject faces its face. The face holds a fixed position and size while walking makes the background sway and shift behind it. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -1076,7 +1103,8 @@
       "kling": "Motion accelerates from normal speed into a rapid burst then eases into slow motion.",
       "seedance": "Motion accelerates from normal speed into a rapid burst then eases into slow motion throughout one continuous shot.",
       "veo": "Motion accelerates from normal speed into a rapid burst then eases into slow motion.",
-      "wan": "Motion accelerates from normal speed into a rapid burst then eases into slow motion."
+      "wan": "Motion accelerates from normal speed into a rapid burst then eases into slow motion.",
+      "local-wan": "The action starts at an ordinary pace, accelerates into a brief fast burst, then eases into slow motion. The same action flows continuously through each speed change. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -1114,7 +1142,8 @@
       "kling": "Camera locked off with fixed framing.",
       "seedance": "Camera locked off with fixed framing throughout one continuous shot.",
       "veo": "Camera locked off with fixed framing.",
-      "wan": "Camera locked off with fixed framing."
+      "wan": "Camera locked off with fixed framing.",
+      "local-wan": "The camera holds exactly the same viewpoint and framing throughout the shot. Motion belongs to the subject and the environment inside the stationary frame. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -1150,7 +1179,8 @@
       "kling": "Camera is stabilized on a Steadicam with smooth floating motion.",
       "seedance": "Camera is stabilized on a Steadicam with smooth floating motion throughout one continuous shot.",
       "veo": "Camera is stabilized on a Steadicam with smooth floating motion.",
-      "wan": "Camera is stabilized on a Steadicam with smooth floating motion."
+      "wan": "Camera is stabilized on a Steadicam with smooth floating motion.",
+      "local-wan": "The camera floats smoothly through the scene at walking speed with a level horizon. The subject remains steadily framed as the surroundings flow past. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -1188,7 +1218,8 @@
       "kling": "The camera pushes forward through a gap between foreground elements that are already in the scene, such as leaves, an archway or a doorway, which sweep past the lens and out of frame to reveal the subject beyond. No new objects appear.",
       "seedance": "The camera pushes forward through a gap between foreground elements that are already in the scene, such as leaves, an archway or a doorway, which sweep past the lens and out of frame to reveal the subject beyond. No new objects appear. One continuous shot.",
       "veo": "The camera pushes forward through a gap between foreground elements that are already in the scene, such as leaves, an archway or a doorway, which sweep past the lens and out of frame to reveal the subject beyond. No new objects appear.",
-      "wan": "The camera pushes forward through a gap between foreground elements that are already in the scene, such as leaves, an archway or a doorway, which sweep past the lens and out of frame to reveal the subject beyond. No new objects appear."
+      "wan": "The camera pushes forward through a gap between foreground elements that are already in the scene, such as leaves, an archway or a doorway, which sweep past the lens and out of frame to reveal the subject beyond. No new objects appear.",
+      "local-wan": "The camera advances through an existing opening in the foreground. Its edges sweep past the lens, uncovering the subject beyond in the same continuous shot. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -1228,7 +1259,8 @@
       "kling": "Camera tilts downward from a fixed position.",
       "seedance": "Camera tilts downward from a fixed position throughout one continuous shot.",
       "veo": "Camera tilts downward from a fixed position.",
-      "wan": "Camera tilts downward from a fixed position."
+      "wan": "Camera tilts downward from a fixed position.",
+      "local-wan": "From a fixed camera position, the lens turns slowly downward. Upper scenery leaves the top of the frame as lower details enter from below. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -1268,7 +1300,8 @@
       "kling": "Camera tilts upward from a fixed position.",
       "seedance": "Camera tilts upward from a fixed position throughout one continuous shot.",
       "veo": "Camera tilts upward from a fixed position.",
-      "wan": "Camera tilts upward from a fixed position."
+      "wan": "Camera tilts upward from a fixed position.",
+      "local-wan": "From a fixed camera position, the lens turns slowly upward. Lower scenery leaves the bottom of the frame as higher details enter from above. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -1306,7 +1339,8 @@
       "kling": "Camera rises straight upward while looking vertically down, widening the view.",
       "seedance": "Camera rises straight upward while looking vertically down, widening the view throughout one continuous shot.",
       "veo": "Camera rises straight upward while looking vertically down, widening the view.",
-      "wan": "Camera rises straight upward while looking vertically down, widening the view."
+      "wan": "Camera rises straight upward while looking vertically down, widening the view.",
+      "local-wan": "The camera looks straight down and rises vertically above the subject. The subject becomes smaller as the ground fills an increasingly wide overhead view. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -1344,7 +1378,8 @@
       "kling": "Camera tracks alongside the moving subject at matching speed.",
       "seedance": "Camera tracks alongside the moving subject at matching speed throughout one continuous shot.",
       "veo": "Camera tracks alongside the moving subject at matching speed.",
-      "wan": "Camera tracks alongside the moving subject at matching speed."
+      "wan": "Camera tracks alongside the moving subject at matching speed.",
+      "local-wan": "The camera moves alongside the subject at the same speed. The subject holds its position in frame while the surroundings stream past behind it. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -1384,7 +1419,8 @@
       "kling": "Camera translates left parallel to the subject.",
       "seedance": "Camera translates left parallel to the subject throughout one continuous shot.",
       "veo": "Camera translates left parallel to the subject.",
-      "wan": "Camera translates left parallel to the subject."
+      "wan": "Camera translates left parallel to the subject.",
+      "local-wan": "The camera slides straight left, parallel to the subject. The subject shifts right in frame and nearby scenery moves faster than the distant background. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -1424,7 +1460,8 @@
       "kling": "Camera translates right parallel to the subject.",
       "seedance": "Camera translates right parallel to the subject throughout one continuous shot.",
       "veo": "Camera translates right parallel to the subject.",
-      "wan": "Camera translates right parallel to the subject."
+      "wan": "Camera translates right parallel to the subject.",
+      "local-wan": "The camera slides straight right, parallel to the subject. The subject shifts left in frame and nearby scenery moves faster than the distant background. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -1462,7 +1499,8 @@
       "kling": "Camera pans rapidly sideways with directional motion blur, then settles.",
       "seedance": "Camera pans rapidly sideways with directional motion blur, then settles throughout one continuous shot.",
       "veo": "Camera pans rapidly sideways with directional motion blur, then settles.",
-      "wan": "Camera pans rapidly sideways with directional motion blur, then settles."
+      "wan": "Camera pans rapidly sideways with directional motion blur, then settles.",
+      "local-wan": "The camera turns rapidly sideways, sweeping the scene into horizontal motion blur, then slows to a steady hold as the view becomes sharp again. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -1502,7 +1540,8 @@
       "kling": "Lens zooms in from a fixed camera position.",
       "seedance": "Lens zooms in from a fixed camera position throughout one continuous shot.",
       "veo": "Lens zooms in from a fixed camera position.",
-      "wan": "Lens zooms in from a fixed camera position."
+      "wan": "Lens zooms in from a fixed camera position.",
+      "local-wan": "From a fixed viewpoint, the lens slowly zooms closer. The subject grows larger and the edges of the scene gradually leave the frame. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -1542,7 +1581,8 @@
       "kling": "Lens zooms out from a fixed camera position.",
       "seedance": "Lens zooms out from a fixed camera position throughout one continuous shot.",
       "veo": "Lens zooms out from a fixed camera position.",
-      "wan": "Lens zooms out from a fixed camera position."
+      "wan": "Lens zooms out from a fixed camera position.",
+      "local-wan": "From a fixed viewpoint, the lens slowly zooms wider. The subject becomes smaller and more of the surrounding scene appears at the frame edges. One continuous shot."
     },
     "params": {},
     "preview": {
@@ -1579,7 +1619,8 @@
       "kling": "The subject begins still, then proceeds to dissolve into swirling bioluminescent particles. Glowing blue-green motes spiral away into darkness. Physically accurate motion, steady locked camera.",
       "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to dissolve into swirling bioluminescent particles. Glowing blue-green motes spiral away into darkness. Physically accurate motion.",
       "veo": "The subject begins still, then proceeds to dissolve into swirling bioluminescent particles. Glowing blue-green motes spiral away into darkness. Cinematic lighting, realistic physics, locked camera.",
-      "wan": "The subject begins still, then proceeds to dissolve into swirling bioluminescent particles. Glowing blue-green motes spiral away into darkness. Locked camera, smooth realistic motion, high detail."
+      "wan": "The subject begins still, then proceeds to dissolve into swirling bioluminescent particles. Glowing blue-green motes spiral away into darkness. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "The subject breaks apart gradually into glowing turquoise particles. Bright motes peel from its edges, spiral outward and drift into the dark as its solid shape disappears."
     },
     "params": {},
     "preview": {
@@ -1612,7 +1653,8 @@
       "restyle it as a handmade claymation scene with visible fingerprints in the clay"
     ],
     "prompt": {
-      "default": "Edit the image to restyle it as a handmade claymation scene with visible fingerprints in the clay. Keep the composition and subject identical."
+      "default": "Edit the image to restyle it as a handmade claymation scene with visible fingerprints in the clay. Keep the composition and subject identical.",
+      "local-wan": "A handmade plasticine miniature scene, with rounded clay forms, thumbprints and tiny sculpted details across every surface. The image layout is rebuilt entirely from colored clay under soft miniature-set lighting."
     },
     "params": {},
     "preview": {
@@ -1649,7 +1691,8 @@
       "kling": "The subject begins still, then proceeds to explode into slow-motion colorful confetti. Paper pieces spin and glitter as they fill the frame. Physically accurate motion, steady locked camera.",
       "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to explode into slow-motion colorful confetti. Paper pieces spin and glitter as they fill the frame. Physically accurate motion.",
       "veo": "The subject begins still, then proceeds to explode into slow-motion colorful confetti. Paper pieces spin and glitter as they fill the frame. Cinematic lighting, realistic physics, locked camera.",
-      "wan": "The subject begins still, then proceeds to explode into slow-motion colorful confetti. Paper pieces spin and glitter as they fill the frame. Locked camera, smooth realistic motion, high detail."
+      "wan": "The subject begins still, then proceeds to explode into slow-motion colorful confetti. Paper pieces spin and glitter as they fill the frame. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "The subject suddenly bursts outward into colorful paper confetti. Individual pieces spin, flutter and fall slowly through the space where the subject stood."
     },
     "params": {},
     "preview": {
@@ -1686,7 +1729,8 @@
       "kling": "The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. Physically accurate motion, steady locked camera.",
       "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. Physically accurate motion.",
       "veo": "The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. Cinematic lighting, realistic physics, locked camera.",
-      "wan": "The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. Locked camera, smooth realistic motion, high detail."
+      "wan": "The subject begins still, then proceeds to crackle with high-voltage blue electric arcs. Branching lightning flickers and lights the scene in cold blue. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "Blue electrical branches flicker over the subject, jumping between points on its surface. Each pulse briefly casts cold blue light onto the nearby surroundings."
     },
     "params": {},
     "preview": {
@@ -1723,7 +1767,8 @@
       "kling": "The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Physically accurate motion, steady locked camera.",
       "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Physically accurate motion.",
       "veo": "The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Cinematic lighting, realistic physics, locked camera.",
-      "wan": "The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Locked camera, smooth realistic motion, high detail."
+      "wan": "The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "Fine white frost starts at the subject's edges and spreads across its surface. Branching ice crystals grow and join together until a thick crystalline coating covers it."
     },
     "params": {},
     "preview": {
@@ -1760,7 +1805,8 @@
       "kling": "The subject begins still, then proceeds to shatter into slow-motion crystalline glass fragments. Fragments catch the light as they scatter outward. Physically accurate motion, steady locked camera.",
       "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to shatter into slow-motion crystalline glass fragments. Fragments catch the light as they scatter outward. Physically accurate motion.",
       "veo": "The subject begins still, then proceeds to shatter into slow-motion crystalline glass fragments. Fragments catch the light as they scatter outward. Cinematic lighting, realistic physics, locked camera.",
-      "wan": "The subject begins still, then proceeds to shatter into slow-motion crystalline glass fragments. Fragments catch the light as they scatter outward. Locked camera, smooth realistic motion, high detail."
+      "wan": "The subject begins still, then proceeds to shatter into slow-motion crystalline glass fragments. Fragments catch the light as they scatter outward. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "The subject fractures into transparent glass shards that separate and scatter outward in slow motion. Sharp facets turn and catch bright reflections as they fall."
     },
     "params": {},
     "preview": {
@@ -1797,7 +1843,8 @@
       "kling": "The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. The subject glows from within like hot coals and the embers grow denser until the end of the shot, sparks drifting upward through warm heat distortion. Physically accurate motion, steady locked camera.",
       "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. The subject glows from within like hot coals and the embers grow denser until the end of the shot, sparks drifting upward through warm heat distortion. Physically accurate motion.",
       "veo": "The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. The subject glows from within like hot coals and the embers grow denser until the end of the shot, sparks drifting upward through warm heat distortion. Cinematic lighting, realistic physics, locked camera.",
-      "wan": "The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. The subject glows from within like hot coals and the embers grow denser until the end of the shot, sparks drifting upward through warm heat distortion. Locked camera, smooth realistic motion, high detail."
+      "wan": "The subject begins still, then proceeds to ignite in rising golden embers and heat shimmer. The subject glows from within like hot coals and the embers grow denser until the end of the shot, sparks drifting upward through warm heat distortion. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "A warm orange glow spreads through the subject. Golden sparks lift from its surface and rise in growing streams while heat ripples shimmer above it."
     },
     "params": {},
     "preview": {
@@ -1834,7 +1881,8 @@
       "kling": "The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. Physically accurate motion, steady locked camera.",
       "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. Physically accurate motion.",
       "veo": "The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. Cinematic lighting, realistic physics, locked camera.",
-      "wan": "The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. Locked camera, smooth realistic motion, high detail."
+      "wan": "The subject begins still, then proceeds to compress under a studio hydraulic press. Material bulges and deforms as the plate lowers. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "A broad metal press plate lowers steadily onto the subject. The subject flattens under its weight, bulging outward along the base as the plate continues downward."
     },
     "params": {},
     "preview": {
@@ -1871,7 +1919,8 @@
       "kling": "The subject begins still, then proceeds to levitate and float upward in zero gravity. Soft contact shadows shrink away as it rises. Physically accurate motion, steady locked camera.",
       "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to levitate and float upward in zero gravity. Soft contact shadows shrink away as it rises. Physically accurate motion.",
       "veo": "The subject begins still, then proceeds to levitate and float upward in zero gravity. Soft contact shadows shrink away as it rises. Cinematic lighting, realistic physics, locked camera.",
-      "wan": "The subject begins still, then proceeds to levitate and float upward in zero gravity. Soft contact shadows shrink away as it rises. Locked camera, smooth realistic motion, high detail."
+      "wan": "The subject begins still, then proceeds to levitate and float upward in zero gravity. Soft contact shadows shrink away as it rises. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "The subject lifts slowly away from the ground and floats upward. A widening gap opens beneath it while its contact shadow becomes softer and fainter."
     },
     "params": {},
     "preview": {
@@ -1908,7 +1957,8 @@
       "kling": "The subject begins still, then proceeds to melt into mirror-polished liquid chrome. Reflections ripple across the molten metal surface. Physically accurate motion, steady locked camera.",
       "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to melt into mirror-polished liquid chrome. Reflections ripple across the molten metal surface. Physically accurate motion.",
       "veo": "The subject begins still, then proceeds to melt into mirror-polished liquid chrome. Reflections ripple across the molten metal surface. Cinematic lighting, realistic physics, locked camera.",
-      "wan": "The subject begins still, then proceeds to melt into mirror-polished liquid chrome. Reflections ripple across the molten metal surface. Locked camera, smooth realistic motion, high detail."
+      "wan": "The subject begins still, then proceeds to melt into mirror-polished liquid chrome. Reflections ripple across the molten metal surface. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "The subject softens into silver liquid metal, sagging and flowing downward. Mirror reflections bend across the moving surface as a chrome puddle spreads below."
     },
     "params": {},
     "preview": {
@@ -1945,7 +1995,8 @@
       "kling": "The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. Physically accurate motion, steady locked camera.",
       "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. Physically accurate motion.",
       "veo": "The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. Cinematic lighting, realistic physics, locked camera.",
-      "wan": "The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. Locked camera, smooth realistic motion, high detail."
+      "wan": "The subject begins still, then proceeds to petrify into veined Carrara marble sculpture. Polished stone spreads over the surface with grey veining. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "White stone spreads gradually across the subject from bottom to top. Thin grey veins form within the smooth marble until the subject stands as a solid polished sculpture."
     },
     "params": {},
     "preview": {
@@ -1982,7 +2033,8 @@
       "kling": "The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. Physically accurate motion, steady locked camera.",
       "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. Physically accurate motion.",
       "veo": "The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. Cinematic lighting, realistic physics, locked camera.",
-      "wan": "The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. Locked camera, smooth realistic motion, high detail."
+      "wan": "The subject begins still, then proceeds to inflate like a glossy metallic balloon and lift off. Taut foil reflections stretch and shift as it rises. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "The subject swells into a rounded foil balloon. Glossy metallic highlights stretch over the inflated surface as it gently lifts from the ground and floats upward."
     },
     "params": {},
     "preview": {
@@ -2019,7 +2071,8 @@
       "kling": "The subject begins still, then proceeds to transform into flowing molten gold. Bright liquid metal runs and pools with warm highlights. Physically accurate motion, steady locked camera.",
       "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to transform into flowing molten gold. Bright liquid metal runs and pools with warm highlights. Physically accurate motion.",
       "veo": "The subject begins still, then proceeds to transform into flowing molten gold. Bright liquid metal runs and pools with warm highlights. Cinematic lighting, realistic physics, locked camera.",
-      "wan": "The subject begins still, then proceeds to transform into flowing molten gold. Bright liquid metal runs and pools with warm highlights. Locked camera, smooth realistic motion, high detail."
+      "wan": "The subject begins still, then proceeds to transform into flowing molten gold. Bright liquid metal runs and pools with warm highlights. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "The subject turns glowing gold and softens into flowing liquid metal. Thick golden streams run down its sides and gather in a bright reflective pool beneath it."
     },
     "params": {},
     "preview": {
@@ -2056,7 +2109,8 @@
       "kling": "The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges and stay lit to the end while the surroundings dim slightly. Nothing else in the scene changes. Physically accurate motion, steady locked camera.",
       "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges and stay lit to the end while the surroundings dim slightly. Nothing else in the scene changes. Physically accurate motion.",
       "veo": "The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges and stay lit to the end while the surroundings dim slightly. Nothing else in the scene changes. Cinematic lighting, realistic physics, locked camera.",
-      "wan": "The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges and stay lit to the end while the surroundings dim slightly. Nothing else in the scene changes. Locked camera, smooth realistic motion, high detail."
+      "wan": "The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges and stay lit to the end while the surroundings dim slightly. Nothing else in the scene changes. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "Luminous cyan and pink lines gradually trace the subject's edges. The completed outline glows steadily with gentle pulses while colored light spills onto the dim surroundings."
     },
     "params": {},
     "preview": {
@@ -2093,7 +2147,8 @@
       "kling": "The subject begins still, then proceeds to fold itself into crisp origami paper. Creases form in sequence until the paper shape is complete. Physically accurate motion, steady locked camera.",
       "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to fold itself into crisp origami paper. Creases form in sequence until the paper shape is complete. Physically accurate motion.",
       "veo": "The subject begins still, then proceeds to fold itself into crisp origami paper. Creases form in sequence until the paper shape is complete. Cinematic lighting, realistic physics, locked camera.",
-      "wan": "The subject begins still, then proceeds to fold itself into crisp origami paper. Creases form in sequence until the paper shape is complete. Locked camera, smooth realistic motion, high detail."
+      "wan": "The subject begins still, then proceeds to fold itself into crisp origami paper. Creases form in sequence until the paper shape is complete. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "The subject becomes colored paper and folds along crisp straight creases. Each fold follows the previous one until a complete angular origami shape stands in its place."
     },
     "params": {},
     "preview": {
@@ -2130,7 +2185,8 @@
       "kling": "The subject begins still, then proceeds to burst into a cloud of velvet botanical petals. Petals tumble and fan out in slow motion. Physically accurate motion, steady locked camera.",
       "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to burst into a cloud of velvet botanical petals. Petals tumble and fan out in slow motion. Physically accurate motion.",
       "veo": "The subject begins still, then proceeds to burst into a cloud of velvet botanical petals. Petals tumble and fan out in slow motion. Cinematic lighting, realistic physics, locked camera.",
-      "wan": "The subject begins still, then proceeds to burst into a cloud of velvet botanical petals. Petals tumble and fan out in slow motion. Locked camera, smooth realistic motion, high detail."
+      "wan": "The subject begins still, then proceeds to burst into a cloud of velvet botanical petals. Petals tumble and fan out in slow motion. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "The subject separates into a cloud of soft flower petals. Petals fan outward, tumble slowly through the air and drift down around the opening space."
     },
     "params": {},
     "preview": {
@@ -2160,7 +2216,8 @@
     "conflicts": [],
     "aliases": [],
     "prompt": {
-      "default": "The source video remade from scratch as a hand-drawn 2D anime film. Every object, the architecture, the plants, the ground and the sky are redrawn with clean ink outlines, flat cel-shaded color and painted backgrounds. Not live action, not a photograph, not CGI. Only the layout, action and camera move of the source video stay the same."
+      "default": "The source video remade from scratch as a hand-drawn 2D anime film. Every object, the architecture, the plants, the ground and the sky are redrawn with clean ink outlines, flat cel-shaded color and painted backgrounds. Not live action, not a photograph, not CGI. Only the layout, action and camera move of the source video stay the same.",
+      "local-wan": "From the first frame, the entire scene is rebuilt as a hand-drawn 2D anime film. Clean ink contours enclose flat cel-shaded colors; architecture, foliage and sky become painted animation backgrounds. The layout and movement follow the source video, with this treatment sustained in every frame."
     },
     "params": {},
     "preview": {
@@ -2190,7 +2247,8 @@
     "conflicts": [],
     "aliases": [],
     "prompt": {
-      "default": "The source video remade from scratch as a stop-motion claymation film on a miniature set. All real materials are replaced with plasticine: foliage becomes lumps of clay, stone and walls become smooth clay slabs, the ground becomes rolled clay and the sky a painted clay backdrop, with chunky simplified shapes and visible fingerprints. Not live action, not a photograph, not CGI. Only the layout, action and camera move of the source video stay the same."
+      "default": "The source video remade from scratch as a stop-motion claymation film on a miniature set. All real materials are replaced with plasticine: foliage becomes lumps of clay, stone and walls become smooth clay slabs, the ground becomes rolled clay and the sky a painted clay backdrop, with chunky simplified shapes and visible fingerprints. Not live action, not a photograph, not CGI. Only the layout, action and camera move of the source video stay the same.",
+      "local-wan": "From the first frame, the entire scene is rebuilt as a stop-motion plasticine film on a miniature set. Chunky clay shapes, finger impressions and sculpted seams replace every surface; trees are clay lumps and the sky is a painted backdrop. The layout and movement follow the source video, with this treatment sustained in every frame."
     },
     "params": {},
     "preview": {
@@ -2220,7 +2278,8 @@
     "conflicts": [],
     "aliases": [],
     "prompt": {
-      "default": "Restyle the video as a comic book animation with bold ink contours, halftone shading and graphic color blocks. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+      "default": "Restyle the video as a comic book animation with bold ink contours, halftone shading and graphic color blocks. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames.",
+      "local-wan": "From the first frame, the entire scene is rebuilt as an animated comic book. Heavy black ink outlines, halftone dot shadows and bold flat color panels build every figure, object and background. The layout and movement follow the source video, with this treatment sustained in every frame."
     },
     "params": {},
     "preview": {
@@ -2250,7 +2309,8 @@
     "conflicts": [],
     "aliases": [],
     "prompt": {
-      "default": "Restyle the video with luminous neon lighting, cyan and magenta highlights, deep violet shadows and reflective surfaces. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+      "default": "Restyle the video with luminous neon lighting, cyan and magenta highlights, deep violet shadows and reflective surfaces. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames.",
+      "local-wan": "From the first frame, the entire scene is rebuilt as a luminous neon-lit film. Cyan edge light and magenta reflections spread across surfaces, with deep violet shadows and glowing colored highlights throughout the setting. The layout and movement follow the source video, with this treatment sustained in every frame."
     },
     "params": {},
     "preview": {
@@ -2280,7 +2340,8 @@
     "conflicts": [],
     "aliases": [],
     "prompt": {
-      "default": "Restyle the video as black-and-white film noir with deep shadows, hard directional light and fine film grain. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+      "default": "Restyle the video as black-and-white film noir with deep shadows, hard directional light and fine film grain. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames.",
+      "local-wan": "From the first frame, the entire scene is rebuilt as a monochrome film noir. Hard side lighting carves bright silver highlights and deep black shadows across the scene, with fine moving film grain. The layout and movement follow the source video, with this treatment sustained in every frame."
     },
     "params": {},
     "preview": {
@@ -2310,7 +2371,8 @@
     "conflicts": [],
     "aliases": [],
     "prompt": {
-      "default": "The source video remade from scratch as a moving oil painting on canvas. Every object, the architecture, the plants, the ground and the sky are built from thick visible impasto brushstrokes, with loose simplified forms, broken color and ridged paint. Not live action, not a photograph, not CGI. Only the layout, action and camera move of the source video stay the same."
+      "default": "The source video remade from scratch as a moving oil painting on canvas. Every object, the architecture, the plants, the ground and the sky are built from thick visible impasto brushstrokes, with loose simplified forms, broken color and ridged paint. Not live action, not a photograph, not CGI. Only the layout, action and camera move of the source video stay the same.",
+      "local-wan": "From the first frame, the entire scene is rebuilt as a moving oil painting on canvas. Thick ridged impasto strokes build every figure, tree, wall and patch of sky with broken colors and loose painted shapes. The layout and movement follow the source video, with this treatment sustained in every frame."
     },
     "params": {},
     "preview": {
@@ -2340,7 +2402,8 @@
     "conflicts": [],
     "aliases": [],
     "prompt": {
-      "default": "Restyle the video as pixel art animation with crisp pixel edges, a limited palette and readable silhouettes. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+      "default": "Restyle the video as pixel art animation with crisp pixel edges, a limited palette and readable silhouettes. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames.",
+      "local-wan": "From the first frame, the entire scene is rebuilt as a pixel art animation. Crisp square pixels, stepped contours and a small consistent color palette construct every silhouette and all background details. The layout and movement follow the source video, with this treatment sustained in every frame."
     },
     "params": {},
     "preview": {
@@ -2370,7 +2433,8 @@
     "conflicts": [],
     "aliases": [],
     "prompt": {
-      "default": "Repaint every frame, from the very first, as a watercolor painting: translucent washes, bleeding pigment edges and visible paper grain, with white paper showing through. No photographic texture remains. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+      "default": "Repaint every frame, from the very first, as a watercolor painting: translucent washes, bleeding pigment edges and visible paper grain, with white paper showing through. No photographic texture remains. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames.",
+      "local-wan": "From the first frame, the entire scene is rebuilt as a moving watercolor illustration on textured paper. Translucent washes, bleeding pigment edges and exposed white paper form every figure, object and background. The layout and movement follow the source video, with this treatment sustained in every frame."
     },
     "params": {},
     "preview": {
@@ -2407,7 +2471,8 @@
       "kling": "The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. Physically accurate motion, steady locked camera.",
       "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. Physically accurate motion.",
       "veo": "The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. Cinematic lighting, realistic physics, locked camera.",
-      "wan": "The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. Locked camera, smooth realistic motion, high detail."
+      "wan": "The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "The subject dissolves from its edges into thick curling smoke. Its solid form disappears completely as the remaining wisps drift away and reveal the space behind it."
     },
     "params": {},
     "preview": {
@@ -2440,7 +2505,8 @@
       "cover the scene in a fresh blanket of soft snow with gentle snowfall"
     ],
     "prompt": {
-      "default": "Edit the image to cover the scene in a fresh blanket of soft snow with gentle snowfall. Keep the composition and subject identical."
+      "default": "Edit the image to cover the scene in a fresh blanket of soft snow with gentle snowfall. Keep the composition and subject identical.",
+      "local-wan": "A thick layer of fresh white snow covers the ground and upward-facing surfaces. Soft snow piles follow the scene's shapes while small flakes fill the air under cool diffuse light."
     },
     "params": {},
     "preview": {
@@ -2473,7 +2539,8 @@
       "restyle it as a tilt-shift miniature model with shallow focus and saturated colors"
     ],
     "prompt": {
-      "default": "Edit the image to restyle it as a tilt-shift miniature model with shallow focus and saturated colors. Keep the composition and subject identical."
+      "default": "Edit the image to restyle it as a tilt-shift miniature model with shallow focus and saturated colors. Keep the composition and subject identical.",
+      "local-wan": "The scene becomes a detailed tabletop miniature with tiny crafted objects and saturated colors. A narrow band through the subject is sharp while the foreground and distant background soften strongly."
     },
     "params": {},
     "preview": {
@@ -2510,7 +2577,8 @@
       "kling": "The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. Physically accurate motion, steady locked camera.",
       "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. Physically accurate motion.",
       "veo": "The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. Cinematic lighting, realistic physics, locked camera.",
-      "wan": "The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. Locked camera, smooth realistic motion, high detail."
+      "wan": "The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. Locked camera, smooth realistic motion, high detail.",
+      "local-wan": "The subject floats gently underwater as slow currents move it. Rippling bands of sunlight travel across its surface and small bubbles rise through the surrounding blue water."
     },
     "params": {},
     "preview": {

@@ -25,7 +25,8 @@
     "kling": "Camera rolls gradually around its optical axis, tilting the horizon.",
     "seedance": "Camera rolls gradually around its optical axis, tilting the horizon throughout one continuous shot.",
     "veo": "Camera rolls gradually around its optical axis, tilting the horizon.",
-    "wan": "Camera rolls gradually around its optical axis, tilting the horizon."
+    "wan": "Camera rolls gradually around its optical axis, tilting the horizon.",
+    "local-wan": "The camera slowly rotates around the viewing axis. The horizon tips diagonally while the subject remains at the center of the rotating frame. One continuous shot."
   },
   "params": {},
   "preview": {

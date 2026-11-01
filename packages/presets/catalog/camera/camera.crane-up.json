@@ -29,7 +29,8 @@
     "kling": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear.",
     "seedance": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear throughout one continuous shot.",
     "veo": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear.",
-    "wan": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear."
+    "wan": "Camera cranes upward and tilts down to keep the subject framed as the surroundings appear.",
+    "local-wan": "The camera lifts above the subject and gradually points downward. More of the surrounding ground becomes visible as the subject recedes below. One continuous shot."
   },
   "params": {},
   "preview": {

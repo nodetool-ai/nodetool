@@ -29,7 +29,8 @@
     "kling": "Camera dollies smoothly away from the subject with visible depth change.",
     "seedance": "Camera dollies smoothly away from the subject with visible depth change throughout one continuous shot.",
     "veo": "Camera dollies smoothly away from the subject with visible depth change.",
-    "wan": "Camera dollies smoothly away from the subject with visible depth change."
+    "wan": "Camera dollies smoothly away from the subject with visible depth change.",
+    "local-wan": "The camera glides backward away from the subject. Foreground and background separate in depth as the view widens around the shrinking subject. One continuous shot."
   },
   "params": {},
   "preview": {

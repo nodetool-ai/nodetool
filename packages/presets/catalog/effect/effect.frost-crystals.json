@@ -26,7 +26,8 @@
     "kling": "The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Physically accurate motion, steady locked camera.",
     "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Physically accurate motion.",
     "veo": "The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Cinematic lighting, realistic physics, locked camera.",
-    "wan": "The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Locked camera, smooth realistic motion, high detail."
+    "wan": "The subject begins still, then proceeds to freeze rapidly in branching frost and ice crystals. Ice spreads across the surface in fine fractal branches. Locked camera, smooth realistic motion, high detail.",
+    "local-wan": "Fine white frost starts at the subject's edges and spreads across its surface. Branching ice crystals grow and join together until a thick crystalline coating covers it."
   },
   "params": {},
   "preview": {

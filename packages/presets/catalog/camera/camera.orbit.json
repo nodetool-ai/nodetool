@@ -28,7 +28,8 @@
     "kling": "Camera completes a full circle around the subject at a steady distance.",
     "seedance": "Camera completes a full circle around the subject at a steady distance throughout one continuous shot.",
     "veo": "Camera completes a full circle around the subject at a steady distance.",
-    "wan": "Camera completes a full circle around the subject at a steady distance."
+    "wan": "Camera completes a full circle around the subject at a steady distance.",
+    "local-wan": "The camera circles all the way around the subject at a steady height and distance, revealing front, side, back and front again in a continuous shot. One continuous shot."
   },
   "params": {},
   "preview": {

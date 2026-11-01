@@ -27,7 +27,8 @@
     "kling": "Camera pulls back from a close view to reveal the surroundings.",
     "seedance": "Camera pulls back from a close view to reveal the surroundings throughout one continuous shot.",
     "veo": "Camera pulls back from a close view to reveal the surroundings.",
-    "wan": "Camera pulls back from a close view to reveal the surroundings."
+    "wan": "Camera pulls back from a close view to reveal the surroundings.",
+    "local-wan": "Beginning close to the subject, the camera retreats smoothly into a wide shot. Surrounding scenery progressively enters at the edges and reveals the larger setting. One continuous shot."
   },
   "params": {},
   "preview": {

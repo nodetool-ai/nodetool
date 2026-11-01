@@ -27,7 +27,8 @@
     "kling": "Camera rises straight upward while looking vertically down, widening the view.",
     "seedance": "Camera rises straight upward while looking vertically down, widening the view throughout one continuous shot.",
     "veo": "Camera rises straight upward while looking vertically down, widening the view.",
-    "wan": "Camera rises straight upward while looking vertically down, widening the view."
+    "wan": "Camera rises straight upward while looking vertically down, widening the view.",
+    "local-wan": "The camera looks straight down and rises vertically above the subject. The subject becomes smaller as the ground fills an increasingly wide overhead view. One continuous shot."
   },
   "params": {},
   "preview": {

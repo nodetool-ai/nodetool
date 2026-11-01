@@ -22,7 +22,8 @@
     "cover the scene in a fresh blanket of soft snow with gentle snowfall"
   ],
   "prompt": {
-    "default": "Edit the image to cover the scene in a fresh blanket of soft snow with gentle snowfall. Keep the composition and subject identical."
+    "default": "Edit the image to cover the scene in a fresh blanket of soft snow with gentle snowfall. Keep the composition and subject identical.",
+    "local-wan": "A thick layer of fresh white snow covers the ground and upward-facing surfaces. Soft snow piles follow the scene's shapes while small flakes fill the air under cool diffuse light."
   },
   "params": {},
   "preview": {

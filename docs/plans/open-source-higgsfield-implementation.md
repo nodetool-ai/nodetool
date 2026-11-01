@@ -641,6 +641,8 @@ work against a local fixture index.
 
 ### P23: Local-first presets
 
+Status: done.
+
 - Map real Wan2GP model ids to the `local-wan` family. The current pattern only
   matches ids that start with `local-wan`, and no Wan2GP model has such an id.
   The [nodetool-wan2gp](https://github.com/nodetool-ai/nodetool-wan2gp) provider

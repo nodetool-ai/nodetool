@@ -26,7 +26,8 @@
     "kling": "The subject begins still, then proceeds to levitate and float upward in zero gravity. Soft contact shadows shrink away as it rises. Physically accurate motion, steady locked camera.",
     "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to levitate and float upward in zero gravity. Soft contact shadows shrink away as it rises. Physically accurate motion.",
     "veo": "The subject begins still, then proceeds to levitate and float upward in zero gravity. Soft contact shadows shrink away as it rises. Cinematic lighting, realistic physics, locked camera.",
-    "wan": "The subject begins still, then proceeds to levitate and float upward in zero gravity. Soft contact shadows shrink away as it rises. Locked camera, smooth realistic motion, high detail."
+    "wan": "The subject begins still, then proceeds to levitate and float upward in zero gravity. Soft contact shadows shrink away as it rises. Locked camera, smooth realistic motion, high detail.",
+    "local-wan": "The subject lifts slowly away from the ground and floats upward. A widening gap opens beneath it while its contact shadow becomes softer and fainter."
   },
   "params": {},
   "preview": {

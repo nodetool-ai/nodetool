@@ -69,3 +69,24 @@ it.each([
   expect(source).toContain(JSON.stringify(id));
   expect(modelFamily(id)).toBeNull();
 });
+
+// defaults/*.json at Wan2GP 362c3467, classified by model names, weights and
+// inherited architectures. Includes legacy fun_camera ids requested by the pack.
+const wan2gp = JSON.parse(readFileSync(new URL("./wan2gp-models.json", import.meta.url), "utf8")) as {
+  wan: string[];
+  excluded: string[];
+};
+it.each(wan2gp.wan)("maps bare Wan2GP model %s exactly to local-wan", (id) => {
+  expect(modelFamily(id)).toBe("local-wan");
+  expect(modelFamily(id.toUpperCase())).toBe("local-wan");
+  expect(modelFamily(id)).not.toBe("wan");
+  for (const neighbor of [`prefix_${id}`, `${id}_next`, `${id}/route`, `${id}.1`, `wangp/${id}`]) {
+    expect(modelFamily(neighbor)).not.toBe("local-wan");
+  }
+});
+it.each(wan2gp.excluded)("does not claim non-Wan defaults model %s", (id) => {
+  expect(modelFamily(id)).not.toBe("local-wan");
+});
+it.each(["t2v_2_3", "i2v_2_3", "ti2v_2_3_fastwan", "t2v_13B", "fun_camera_13B"])("leaves unlisted Wan neighbors %s unclaimed", (id) => {
+  expect(modelFamily(id)).toBeNull();
+});

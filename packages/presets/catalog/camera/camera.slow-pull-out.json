@@ -29,7 +29,8 @@
     "kling": "Camera slowly pulls away from the subject.",
     "seedance": "Camera slowly pulls away from the subject throughout one continuous shot.",
     "veo": "Camera slowly pulls away from the subject.",
-    "wan": "Camera slowly pulls away from the subject."
+    "wan": "Camera slowly pulls away from the subject.",
+    "local-wan": "The camera retreats very slowly from the subject throughout the shot. The subject gradually becomes smaller as a little more of the surroundings enters view. One continuous shot."
   },
   "params": {},
   "preview": {

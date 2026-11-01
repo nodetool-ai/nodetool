@@ -27,7 +27,8 @@
     "kling": "Camera locked off with fixed framing.",
     "seedance": "Camera locked off with fixed framing throughout one continuous shot.",
     "veo": "Camera locked off with fixed framing.",
-    "wan": "Camera locked off with fixed framing."
+    "wan": "Camera locked off with fixed framing.",
+    "local-wan": "The camera holds exactly the same viewpoint and framing throughout the shot. Motion belongs to the subject and the environment inside the stationary frame. One continuous shot."
   },
   "params": {},
   "preview": {

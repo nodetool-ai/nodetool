@@ -19,7 +19,8 @@
   "conflicts": [],
   "aliases": [],
   "prompt": {
-    "default": "Restyle the video as black-and-white film noir with deep shadows, hard directional light and fine film grain. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+    "default": "Restyle the video as black-and-white film noir with deep shadows, hard directional light and fine film grain. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames.",
+    "local-wan": "From the first frame, the entire scene is rebuilt as a monochrome film noir. Hard side lighting carves bright silver highlights and deep black shadows across the scene, with fine moving film grain. The layout and movement follow the source video, with this treatment sustained in every frame."
   },
   "params": {},
   "preview": {
