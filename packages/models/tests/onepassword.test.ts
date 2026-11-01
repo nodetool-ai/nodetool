@@ -3,9 +3,23 @@ import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 const execFileMock = vi.hoisted(() => vi.fn());
 vi.mock("node:child_process", () => ({ execFile: execFileMock }));
 
+const sdkMock = vi.hoisted(() => {
+  const resolve = vi.fn();
+  const createClient = vi.fn(async () => ({ secrets: { resolve } }));
+  class DesktopAuth {
+    constructor(public accountName: string) {}
+  }
+  return { resolve, createClient, DesktopAuth };
+});
+vi.mock("@1password/sdk", () => ({
+  createClient: sdkMock.createClient,
+  DesktopAuth: sdkMock.DesktopAuth
+}));
+
 import {
   clearOnePasswordCache,
   isOnePasswordReference,
+  onePasswordBackend,
   parseOnePasswordReference,
   resolveOnePasswordReference,
   resolveUserSecretValue,
@@ -37,6 +51,8 @@ function cliFails(stderr: string): void {
 const ENV_KEYS = [
   "OP_CONNECT_HOST",
   "OP_CONNECT_TOKEN",
+  "OP_SERVICE_ACCOUNT_TOKEN",
+  "NODETOOL_1PASSWORD_ACCOUNT",
   "NODETOOL_1PASSWORD_CLI",
   "NODETOOL_1PASSWORD_CACHE_TTL_SECONDS",
   "NODETOOL_1PASSWORD_USER_REFERENCES",
@@ -48,6 +64,8 @@ describe("onepassword", () => {
   beforeEach(() => {
     clearOnePasswordCache();
     execFileMock.mockReset();
+    sdkMock.resolve.mockReset();
+    sdkMock.createClient.mockClear();
     for (const key of ENV_KEYS) delete process.env[key];
   });
   afterEach(() => {
@@ -153,6 +171,74 @@ describe("onepassword", () => {
     it("never runs op for a malformed reference", async () => {
       expect(await resolveOnePasswordReference("op://Dev/OpenAI")).toBeNull();
       expect(execFileMock).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("backend selection", () => {
+    it("prefers Connect, then a service account, then the desktop app, then op", () => {
+      expect(onePasswordBackend({})).toBe("cli");
+      expect(onePasswordBackend({ NODETOOL_1PASSWORD_ACCOUNT: "me" })).toBe(
+        "sdk-desktop"
+      );
+      expect(
+        onePasswordBackend({
+          NODETOOL_1PASSWORD_ACCOUNT: "me",
+          OP_SERVICE_ACCOUNT_TOKEN: "ops_x"
+        })
+      ).toBe("sdk-service-account");
+      expect(
+        onePasswordBackend({
+          OP_SERVICE_ACCOUNT_TOKEN: "ops_x",
+          OP_CONNECT_HOST: "http://c",
+          OP_CONNECT_TOKEN: "t"
+        })
+      ).toBe("connect");
+    });
+  });
+
+  describe("SDK backend", () => {
+    it("resolves through a service account without running op", async () => {
+      process.env.OP_SERVICE_ACCOUNT_TOKEN = "ops_token";
+      sdkMock.resolve.mockResolvedValue("sk-sdk");
+      expect(
+        await resolveOnePasswordReference("op://Dev/OpenAI/credential")
+      ).toBe("sk-sdk");
+      expect(sdkMock.createClient).toHaveBeenCalledWith({
+        auth: "ops_token",
+        integrationName: "NodeTool",
+        integrationVersion: "v1.0.0"
+      });
+      expect(sdkMock.resolve).toHaveBeenCalledWith("op://Dev/OpenAI/credential");
+      expect(execFileMock).not.toHaveBeenCalled();
+    });
+
+    it("authenticates through the desktop app for a named account", async () => {
+      process.env.NODETOOL_1PASSWORD_ACCOUNT = "my.1password.com";
+      sdkMock.resolve.mockResolvedValue("sk-desktop");
+      expect(
+        await resolveOnePasswordReference("op://Dev/OpenAI/credential")
+      ).toBe("sk-desktop");
+      const [config] = sdkMock.createClient.mock.calls[0] as unknown as [
+        { auth: InstanceType<typeof sdkMock.DesktopAuth> }
+      ];
+      expect(config.auth).toBeInstanceOf(sdkMock.DesktopAuth);
+      expect(config.auth.accountName).toBe("my.1password.com");
+    });
+
+    it("reuses one client and rebuilds it after a failed read", async () => {
+      process.env.NODETOOL_1PASSWORD_CACHE_TTL_SECONDS = "0";
+      process.env.OP_SERVICE_ACCOUNT_TOKEN = "ops_token";
+      sdkMock.resolve.mockResolvedValue("a");
+      await resolveOnePasswordReference("op://Dev/A/credential");
+      await resolveOnePasswordReference("op://Dev/B/credential");
+      expect(sdkMock.createClient).toHaveBeenCalledTimes(1);
+
+      sdkMock.resolve.mockRejectedValueOnce(new Error("session expired"));
+      expect(
+        await resolveOnePasswordReference("op://Dev/C/credential")
+      ).toBeNull();
+      await resolveOnePasswordReference("op://Dev/D/credential");
+      expect(sdkMock.createClient).toHaveBeenCalledTimes(2);
     });
   });
 

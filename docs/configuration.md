@@ -88,16 +88,19 @@ NodeTool reads the item from 1Password when the secret is used, so the key is no
 - On the command line, run `nodetool secrets store OPENAI_API_KEY` and enter the reference.
 - In the environment, set `OPENAI_API_KEY=op://Dev/OpenAI/credential`.
 
-NodeTool reads 1Password through one of two backends:
+NodeTool ships the [1Password JavaScript SDK](https://developer.1password.com/docs/sdks/), so no separate install is needed. It picks the first backend whose settings are present:
 
 | Backend | Selected when | Authentication |
 |---|---|---|
-| 1Password CLI (`op read`) | `OP_CONNECT_HOST` is unset | The 1Password desktop app integration, or `OP_SERVICE_ACCOUNT_TOKEN` for a server |
 | 1Password Connect server | `OP_CONNECT_HOST` and `OP_CONNECT_TOKEN` are set | The Connect token |
+| SDK with a service account | `OP_SERVICE_ACCOUNT_TOKEN` is set | The service account token. Use this for servers and Docker. |
+| SDK through the desktop app | `NODETOOL_1PASSWORD_ACCOUNT` is set to the account name shown in the 1Password sidebar, or its UUID | The 1Password app asks you to approve NodeTool, and the approval lasts until 10 minutes of inactivity. Turn on the option to integrate with SDKs in the 1Password app settings first. |
+| 1Password CLI (`op read`) | None of the above | Whatever `op` is signed in with. For installs that already use the CLI. |
 
 | Variable | Default | Effect |
 |---|---|---|
-| `NODETOOL_1PASSWORD_CLI` | `op` | Path to the `op` binary |
+| `NODETOOL_1PASSWORD_ACCOUNT` | unset | The 1Password account the desktop app integration signs in to |
+| `NODETOOL_1PASSWORD_CLI` | `op` | Path to the `op` binary, for the CLI backend |
 | `NODETOOL_1PASSWORD_CACHE_TTL_SECONDS` | `300` | How long a read value is kept in memory. An item rotated in 1Password is picked up after this time. |
 | `NODETOOL_1PASSWORD_USER_REFERENCES` | `true` on a local install, `false` on a shared deployment | Whether references stored by users in Settings or with `nodetool secrets store` are read |
 

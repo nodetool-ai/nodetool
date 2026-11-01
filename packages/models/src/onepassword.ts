@@ -6,13 +6,17 @@
  * reference at read time, so the key never sits in nodetool's database or in
  * the process environment.
  *
- * Two backends, chosen from the environment:
+ * The backend is chosen from the environment, first match wins:
  *
  * - Connect server, when `OP_CONNECT_HOST` and `OP_CONNECT_TOKEN` are set.
  *   Read over the Connect REST API.
- * - 1Password CLI otherwise. Runs `op read`, which authenticates with
- *   `OP_SERVICE_ACCOUNT_TOKEN` or the desktop app integration.
- *   `NODETOOL_1PASSWORD_CLI` overrides the `op` binary path.
+ * - 1Password SDK (`@1password/sdk`, a regular dependency) with a service
+ *   account, when `OP_SERVICE_ACCOUNT_TOKEN` is set.
+ * - 1Password SDK through the desktop app, when `NODETOOL_1PASSWORD_ACCOUNT`
+ *   names the account (as shown in the app's sidebar, or its UUID). The app
+ *   asks the user to approve NodeTool once per session.
+ * - 1Password CLI otherwise, for installs that already use `op`. Runs
+ *   `op read`. `NODETOOL_1PASSWORD_CLI` overrides the `op` binary path.
  *
  * Resolved values are cached in memory for `NODETOOL_1PASSWORD_CACHE_TTL_SECONDS`
  * (default 300) so a rotated item is picked up without a restart.
@@ -146,6 +150,7 @@ export async function resolveUserSecretValue(
 export function clearOnePasswordCache(): void {
   cache.clear();
   inflight.clear();
+  sdkClient = null;
 }
 
 function cacheTtlMs(): number {
@@ -196,23 +201,118 @@ async function readReference(reference: string): Promise<string | null> {
     return null;
   }
 
-  const host = process.env["OP_CONNECT_HOST"]?.trim();
-  const token = process.env["OP_CONNECT_TOKEN"]?.trim();
+  const backend = selectBackend();
   try {
-    const value =
-      host && token
-        ? await readViaConnect(parsed, host, token)
-        : await readViaCli(reference);
+    const value = await backend.read(reference, parsed);
     remember(reference, value, cacheTtlMs());
     return value;
   } catch (err) {
     log.error("1Password secret reference could not be read", {
       reference,
-      backend: host && token ? "connect" : "cli",
+      backend: backend.name,
       error: err instanceof Error ? err.message : String(err)
     });
     remember(reference, null, FAILURE_TTL_MS);
     return null;
+  }
+}
+
+/** Which 1Password backend handles reads, chosen from the environment. */
+export type OnePasswordBackendName =
+  | "connect"
+  | "sdk-service-account"
+  | "sdk-desktop"
+  | "cli";
+
+interface Backend {
+  name: OnePasswordBackendName;
+  read(reference: string, parsed: OnePasswordReference): Promise<string>;
+}
+
+/** The backend reads go to, given the current environment. */
+export function onePasswordBackend(
+  env: Record<string, string | undefined> = process.env
+): OnePasswordBackendName {
+  if (env["OP_CONNECT_HOST"]?.trim() && env["OP_CONNECT_TOKEN"]?.trim()) {
+    return "connect";
+  }
+  if (env["OP_SERVICE_ACCOUNT_TOKEN"]?.trim()) {
+    return "sdk-service-account";
+  }
+  if (env["NODETOOL_1PASSWORD_ACCOUNT"]?.trim()) {
+    return "sdk-desktop";
+  }
+  return "cli";
+}
+
+function selectBackend(): Backend {
+  const name = onePasswordBackend();
+  switch (name) {
+    case "connect": {
+      const host = (process.env["OP_CONNECT_HOST"] ?? "").trim();
+      const token = (process.env["OP_CONNECT_TOKEN"] ?? "").trim();
+      return {
+        name,
+        read: (_reference, parsed) => readViaConnect(parsed, host, token)
+      };
+    }
+    case "sdk-service-account":
+    case "sdk-desktop":
+      return { name, read: (reference) => readViaSdk(reference, name) };
+    case "cli":
+      return { name, read: (reference) => readViaCli(reference) };
+  }
+}
+
+interface SdkClient {
+  secrets: { resolve(reference: string): Promise<string> };
+}
+
+/** One SDK client per auth configuration, reused across reads. */
+let sdkClient: { key: string; client: Promise<SdkClient> } | null = null;
+
+const SDK_INTEGRATION_NAME = "NodeTool";
+const SDK_INTEGRATION_VERSION = "v1.0.0";
+
+function sdkClientFor(
+  backend: "sdk-service-account" | "sdk-desktop"
+): Promise<SdkClient> {
+  const token = (process.env["OP_SERVICE_ACCOUNT_TOKEN"] ?? "").trim();
+  const account = (process.env["NODETOOL_1PASSWORD_ACCOUNT"] ?? "").trim();
+  const key =
+    backend === "sdk-service-account" ? `token:${token}` : `desktop:${account}`;
+  if (sdkClient && sdkClient.key === key) {
+    return sdkClient.client;
+  }
+  const client = (async () => {
+    // Loaded on first use: the SDK carries a WebAssembly core that nobody
+    // without a 1Password reference should pay for at startup.
+    const sdk = await import("@1password/sdk");
+    return sdk.createClient({
+      auth:
+        backend === "sdk-service-account"
+          ? token
+          : new sdk.DesktopAuth(account),
+      integrationName: SDK_INTEGRATION_NAME,
+      integrationVersion: SDK_INTEGRATION_VERSION
+    });
+  })();
+  sdkClient = { key, client };
+  return client;
+}
+
+async function readViaSdk(
+  reference: string,
+  backend: "sdk-service-account" | "sdk-desktop"
+): Promise<string> {
+  try {
+    const client = await sdkClientFor(backend);
+    return await client.secrets.resolve(reference);
+  } catch (err) {
+    // A desktop session expires after inactivity and a token can be revoked.
+    // Drop the client so the next read authenticates again.
+    sdkClient = null;
+    throw err;
   }
 }
 
