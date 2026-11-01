@@ -1,11 +1,11 @@
-import { prop } from "@nodetool-ai/node-sdk";
+import { isString, prop } from "@nodetool-ai/node-sdk";
 
 /** A model field's value: a picked model, or a bare id from an older enum field. */
 export type ModelFieldValue = string | { id?: string | null } | null | undefined;
 
 /** The model id a field holds, or an empty string when none is picked. */
 export function modelIdOf(value: ModelFieldValue): string {
-  if (typeof value === "string") return value;
+  if (isString(value)) return value;
   return value?.id ?? "";
 }
 
