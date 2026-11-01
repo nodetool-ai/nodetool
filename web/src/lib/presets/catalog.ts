@@ -1,7 +1,7 @@
 /**
  * The preset catalogue every web surface shares: the storyboard's camera
- * picker, the shot prompt preview and the Effects gallery. One instance, built
- * from the generated `preset-catalog.json`.
+ * picker, the shot prompt preview, the Effects gallery and the start page's
+ * studios. One instance, built from the generated `preset-catalog.json`.
  */
 
 import { createCatalog } from "@nodetool-ai/presets";
@@ -17,3 +17,6 @@ export const EFFECT_PRESETS = presetCatalog.filter({ kind: "effect" });
 
 /** Composer kinds available before the dedicated look controls. */
 export const MEDIA_PRESETS = presetCatalog.presets.filter((preset) => preset.kind !== "look");
+
+/** Every studio, in catalogue order: the start page's outcome tiles. */
+export const STUDIOS = presetCatalog.studios;

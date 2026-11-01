@@ -143,6 +143,7 @@ import RecentChats from "./RecentChats";
 import RecentProjects from "./RecentProjects";
 import ExploreExamples from "./ExploreExamples";
 import StartCreationTypes, { type CreationTypeCard } from "./StartCreationTypes";
+import StartStudios from "./StartStudios";
 import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
 import ReportBugButton from "../support/ReportBugButton";
 import { openExamplesTab, openPageTab } from "../workspace/openPageTab";
@@ -188,6 +189,7 @@ import {
   estimateFromHistory,
   formatEstimate,
   invokedStarter,
+  invokesStarter,
   projectNameFromPrompt,
   promptWithoutStarter,
   rankStarters,
@@ -226,9 +228,6 @@ const MODEL_CARD_ID = "model3d";
  * "Explore all creation types" first, and the examples were not there.
  */
 const EXAMPLES_CARD_ID = "examples";
-
-/** The Effects card's id; it opens the Effects gallery, not a guided flow. */
-const EFFECTS_CARD_ID = "effects";
 
 const CREATION_ICONS: Record<EntryFlowId | typeof MODEL_CARD_ID, React.ReactNode> = {
   image: <ImageOutlinedIcon />,
@@ -1728,13 +1727,6 @@ const NewProjectSurface = ({
         ? t("pass3_32.projects.home.disabled.waitForCurrentWork")
         : undefined
     };
-    const effectsCard: CreationTypeCard = {
-      id: EFFECTS_CARD_ID,
-      title: t("pass3_32.projects.home.createCards.effects.title"),
-      description: t("pass3_32.projects.home.createCards.effects.description"),
-      icon: <AutoAwesomeOutlinedIcon />,
-      accent: "var(--palette-secondary-main)"
-    };
     const examplesCard: CreationTypeCard = {
       id: EXAMPLES_CARD_ID,
       title: t("pass3_32.projects.home.createCards.examples.title"),
@@ -1746,9 +1738,6 @@ const NewProjectSurface = ({
       primary: PRIMARY_CREATION_IDS.map((id) => flowCard(id, true)),
       more: [
         examplesCard,
-        effectsCard,
-        { id: "lipsync", title: t("lipsync.title"), description: t("lipsync.subtitle"),
-          icon: <AutoAwesomeOutlinedIcon />, accent: "var(--palette-secondary-main)" },
         ...MORE_CREATION_IDS.map((id) => flowCard(id, false)),
         modelCard
       ]
@@ -1764,16 +1753,24 @@ const NewProjectSurface = ({
       openExamplesTab("workflows");
       return;
     }
-    if (id === "lipsync") {
-      openPageTab("lipsync");
-      return;
-    }
-    if (id === EFFECTS_CARD_ID) {
-      openPageTab("effects");
-      return;
-    }
     handleEntryCard(id);
   };
+
+  // A skill studio picks its starter, as the starter pill does, but never
+  // lets one go: the tile always means "start from this".
+  const handleStudioSkill = useCallback(
+    (name: string) => {
+      // Before the skill list loads, `starter` cannot see a `/name` already typed.
+      if (invokesStarter(prompt, name)) {
+        promptRef.current?.focus();
+        return;
+      }
+      const next = toggleStarterInPrompt(prompt, starter?.name ?? null, name);
+      pendingCaretRef.current = next.length;
+      setPrompt(next);
+    },
+    [prompt, starter]
+  );
 
   /**
    * The flow's last step wrote stage `done`: hand the finished board its own
@@ -2712,6 +2709,10 @@ const NewProjectSurface = ({
               />
             </Box>
           </FlexColumn>
+
+          {/* Studios name an outcome and open an existing surface with
+              presets chosen. */}
+          <StartStudios onSkill={handleStudioSkill} onFlow={handleCreationCard} />
 
           <RecentProjects />
 

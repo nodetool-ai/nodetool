@@ -19945,6 +19945,48 @@
         "name": "1990s VHS",
         "description": "Use a 1990s VHS transfer finish: limited chroma resolution, slight horizontal color bleed, interlaced edge texture and soft tape noise. Preserve the described scene and wardrobe."
       }
+    },
+    "studio": {
+      "cinematic-shot": {
+        "name": "Cinematic shot",
+        "description": "A film-look video clip from one sentence: a slow push in on tungsten film stock with a teal-and-amber grade."
+      },
+      "film-scene": {
+        "name": "Film a scene",
+        "description": "From one sentence to a storyboard of shots, then rendered stills and clips you can direct shot by shot."
+      },
+      "music-video": {
+        "name": "Music video",
+        "description": "A beat-synced treatment and storyboard cut to your track."
+      },
+      "photo-effects": {
+        "name": "Animate a photo",
+        "description": "Drop in one photo and turn it into a short clip: levitate, burst into petals, melt to gold and more."
+      },
+      "portrait-photo": {
+        "name": "Portrait photo",
+        "description": "A still portrait under a soft Rembrandt key on warm daylight film stock."
+      },
+      "product-ad": {
+        "name": "Product ad",
+        "description": "A finished launch commercial from a product page: storyboard, footage, voice, music and an edited timeline."
+      },
+      "product-hero": {
+        "name": "Product hero shot",
+        "description": "A product turning in a slow orbit, rendered crisp with clean specular highlights."
+      },
+      "talking-head": {
+        "name": "Talking head",
+        "description": "A picture of a person speaking your line in a chosen voice, lip-synced."
+      },
+      "trailer": {
+        "name": "Movie trailer",
+        "description": "A trailer from an idea: a beat sheet and shot list you can rewrite cheaply before rendering."
+      },
+      "ugc-ad": {
+        "name": "Creator testimonial",
+        "description": "A phone-shot creator video for a product: the spoken pitch, captions and a branded end card."
+      }
     }
   },
   "shot_camera_field": {
@@ -20042,6 +20084,10 @@
     "card": {
       "actions": "Действия: {{name}}",
       "openAsWorkflow": "Открыть как рабочий процесс"
+    },
+    "studio": {
+      "showing": "Показаны эффекты студии «{{studio}}».",
+      "showAll": "Показать все эффекты"
     }
   },
   "lipsync": {
@@ -20061,5 +20107,9 @@
     "result": "Результат синхронизации губ",
     "estimate": "Прейскурантная цена видео: {{amount}}. Итоговая стоимость зависит от длины речи. Речь оплачивается отдельно.",
     "noEstimate": "Оценка стоимости недоступна. Речь и видео оплачиваются отдельно."
+  },
+  "startStudios": {
+    "title": "Студии",
+    "subtitle": "Начните с того, что хотите сделать. Каждая студия открывается с выбранными пресетами."
   }
 }

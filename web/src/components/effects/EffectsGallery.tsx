@@ -27,7 +27,7 @@ import {
 } from "../ui_primitives";
 import ModeProviderSetupBanner from "../chat/composer/ModeProviderSetupBanner";
 import { useModeProviderSetup } from "../chat/composer/useModeProviderSetup";
-import { EFFECT_PRESETS } from "../../lib/presets/catalog";
+import { EFFECT_PRESETS, presetCatalog } from "../../lib/presets/catalog";
 import { useOpenPresetAsWorkflow } from "../../hooks/presets/useOpenPresetAsWorkflow";
 import { useEffectsGalleryStore } from "../../stores/EffectsGalleryStore";
 import estimateGenerationCost from "../../utils/generationCostEstimate";
@@ -60,6 +60,8 @@ const EffectsGallery = () => {
     (state) => state.setSourceAssetId
   );
   const selectEffect = useEffectsGalleryStore((state) => state.selectEffect);
+  const studio = useEffectsGalleryStore((state) => state.studio);
+  const showAllEffects = useEffectsGalleryStore((state) => state.showAllEffects);
   const start = useEffectsGalleryStore((state) => state.start);
   const openAsWorkflow = useOpenPresetAsWorkflow();
 
@@ -67,6 +69,18 @@ const EffectsGallery = () => {
     () => EFFECT_PRESETS.find((preset) => preset.id === effectId) ?? null,
     [effectId]
   );
+  // A studio shows its own effects, in its order.
+  const shownEffects = useMemo(
+    () =>
+      studio
+        ? studio.effectIds.flatMap(
+            (id) => EFFECT_PRESETS.find((preset) => preset.id === id) ?? []
+          )
+        : EFFECT_PRESETS,
+    [studio]
+  );
+  const studioEntry = studio ? presetCatalog.getStudio(studio.studioId) : undefined;
+  const studioName = studioEntry ? presetText(t, studioEntry).name : null;
   const mode = effect ? effectModeOf(effect) : DEFAULT_MODE;
   const kind = resultKindOf(mode);
   const { model, pick } = useEffectModel(mode);
@@ -224,14 +238,28 @@ const EffectsGallery = () => {
           </FlexRow>
 
           <FlexColumn gap={GAP.normal}>
-            <SectionHeader title={t("effectsGallery.effects")} />
+            <SectionHeader
+              title={t("effectsGallery.effects")}
+              subtitle={
+                studioName
+                  ? t("effectsGallery.studio.showing", { studio: studioName })
+                  : undefined
+              }
+              action={
+                studio ? (
+                  <EditorButton variant="text" onClick={showAllEffects}>
+                    {t("effectsGallery.studio.showAll")}
+                  </EditorButton>
+                ) : undefined
+              }
+            />
             <AutoGrid
               minItemWidth={CARD_MIN_WIDTH}
               gap={GAP.comfortable}
               role="group"
               aria-label={t("effectsGallery.effects")}
             >
-              {EFFECT_PRESETS.map((preset) => (
+              {shownEffects.map((preset) => (
                 <EffectCard
                   key={preset.id}
                   preset={preset}

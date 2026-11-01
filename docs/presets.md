@@ -2,7 +2,7 @@
 layout: page
 title: "Presets"
 permalink: /presets
-description: "Named camera moves and effects that compile to the wording each video model understands, stack up to three at a time, and eject to an editable workflow."
+description: "Named camera moves, looks and effects that compile to the wording each video model understands, stack up to three at a time, and eject to an editable workflow. Studios open them from the start page."
 ---
 
 **Navigation**: [Docs index](index.md) | [Storyboard Editor](storyboard-editor.md) | [Harnesses](harnesses.md#nodetool-presets) → **Presets**
@@ -18,7 +18,7 @@ Presets are data. The catalogue is JSON in `packages/presets/catalog/`, the comp
 | Field | Meaning |
 |---|---|
 | `id` | `<kind>.<slug>`, for example `camera.dolly-zoom`. Also the file name |
-| `kind` | `camera`, `look`, `effect` or `studio`. The catalogue ships `camera`, `look` and `effect` presets |
+| `kind` | `camera`, `look` or `effect`. A studio is a separate row shape, described in [Studios](#studios) |
 | `slot` | What the preset occupies: `move`, `rig`, `speed`, `look`, `effect`, `body`, `stock`, `grade`, `lighting`, `era` or `ramp` |
 | `modes` | Where it runs: `video`, `image_to_video`, `reference_to_video`, `image` or `image_edit` |
 | `inputs` | What the preset needs from you: `text`, `image` or `video` |
@@ -30,7 +30,7 @@ Presets are data. The catalogue is JSON in `packages/presets/catalog/`, the comp
 | `families` | The families the preset was tested on |
 | `preview`, `workflow`, `author` | Optional. A preview clip and poster, a hand-built workflow to eject instead of a generated one, and a pack author |
 
-The Zod schema in `packages/presets/src/schema.ts` is the source of truth. The same schema is exported as JSON Schema in `packages/presets/preset.schema.json` for pack authors.
+The Zod schema in `packages/presets/src/schema.ts` is the source of truth. `packages/presets/preset.schema.json` exports it as JSON Schema for pack authors. A catalogue row matches one of two shapes, a preset or a studio.
 
 ### Stacking rules
 
@@ -121,8 +121,8 @@ The server compiles, not the client:
 |---|---|
 | Shot editor | The **Movement** field takes free text or opens the camera preset picker. See [Edit a shot](storyboard-editor.md#edit-a-shot) |
 | Chat composer | In the image and video media modes, the preset chip opens the picker for the current mode. It turns to a warning when the chosen model falls back to `default` |
-| Effects gallery | Drop one picture, pick an effect and run it. Open it from the Effects card on the start page or from **+ New** |
-| Create view | A workspace tab with a prompt bar built from the composer chips and a grid of generations. Open it from **+ New** |
+| Effects gallery | Drop one picture, pick an effect and run it. Open it from **+ New**, or from an effects studio on the start page, which shows only that studio's effects until you choose **Show all effects** |
+| Create view | A workspace tab with a prompt bar built from the composer chips and a grid of generations. Open it from **+ New**, or from a Create studio on the start page with its presets on the preset chip |
 | Agent | The `list_presets`, `get_preset` and `compile_presets` capabilities, and `preset_ids` on the media tools |
 | CLI | `nodetool presets` |
 
@@ -204,6 +204,8 @@ Do not edit `preset-catalog.json`, `preset.schema.json` or the locale `preset_ca
 | `packages/presets/tests/compile-all.test.ts` | Any preset that compiles to an empty prompt in any mode for any family. This is the `preset-compilation` selfcheck |
 | `packages/presets/tests/families.test.ts` | A model id from a shipped provider manifest that lands in the wrong family |
 | `packages/presets/tests/effects-template.test.ts` | `Effects Gallery.json` out of sync with the effect presets |
+| `packages/presets/tests/studios.test.ts` | A studio whose preset ids are unknown or do not fit its target, or whose skill or example app does not ship |
+| `web/src/components/projects/__tests__/openStudio.test.ts` | A studio whose target the web cannot open, such as a guided flow that does not exist |
 | `packages/cli-execution` `preset-ejection` | An ejected graph that does not validate |
 | `npm run generate:check --workspace=packages/presets` | Generated catalogue or schema drift |
 | `npm run i18n:presets:check --workspace=web` | A locale out of sync with the catalogue |
@@ -223,14 +225,16 @@ nodetool presets compile <id...> --model <model id> [--provider <provider>] [--m
 nodetool presets eject <id> --model <model id> --provider <provider> [--mode video] [--out graph.json]
 ```
 
+`list --kind studio` lists the studios. `--mode` and `--family` describe generation presets, so either one leaves studios out. `show` reads a preset or a studio. `compile` and `eject` refuse a studio id and name it as a studio.
+
 `compile` prints `{ prompt, params, applied, warnings }` as JSON. Pass `--provider nodetool` to resolve a NodeTool delegate model first. From source, prefix with `npm run dev:nodetool --`.
 
 ## Agent tools
 
 | Capability | Use |
 |---|---|
-| `list_presets` | Filter the catalogue by `kind`, `mode` and `family` |
-| `get_preset` | Read one preset by id |
+| `list_presets` | Filter the catalogue by `kind`, `mode` and `family`. `kind: "studio"` lists the studios |
+| `get_preset` | Read one preset or studio by id |
 | `compile_presets` | Compile up to three ids for a `model` and `mode`, with an optional `provider` and `prompt`. Returns the same result as the CLI |
 
 `generate_image`, `edit_image`, `generate_video` and `animate_image` accept `preset_ids`. The storyboard render capabilities compile each shot's `camera.preset_ids` for the board's video model. `edit_storyboard` can set a shot's `camera.preset_ids`. `compile_presets` returns `{ error }` on an unknown id, a conflicting stack or an unsupported mode, so the agent can correct the call.
@@ -261,10 +265,43 @@ Use `--dry-run` to see the plan without Chrome or credentials. Rendering is sequ
 - [Agent Architecture & Tools](AGENTS.md#built-in-capabilities) for the capability table
 - [packages/presets/README.md](../packages/presets/README.md) for the package API
 
+## Studios
+
+A studio is an outcome-named entry on the start page, such as **Cinematic shot**
+or **Talking head**. It opens a surface that already exists with presets chosen,
+so it adds no engine of its own. Studios live in `packages/presets/catalog/studio/`
+beside the presets and appear in `preset-catalog.json` with `kind: "studio"`.
+
+| Field | Meaning |
+|---|---|
+| `id` | `studio.<slug>`. Also the file name |
+| `name`, `description`, `tags` | The tile's title and line, named for the outcome. Translated in the web locale files like preset names |
+| `target` | Where the studio opens. See the table below |
+| `preset_ids` | The presets the target opens with. Only `create` and `effects` targets take any |
+
+| `target.type` | Opens | Presets |
+|---|---|---|
+| `create` with `mode` `image` or `video` | The Create view in that mode | Up to three camera and look presets for the mode, set on the preset chip. They must stack under the [stacking rules](#stacking-rules) |
+| `effects` | The Effects gallery | Effect ids. The gallery shows only these, with the first chosen, until **Show all effects** |
+| `lipsync` | The Lipsync studio | None |
+| `skill` with `skill` | The start page prompt with `/<skill>` as its starter. The skill must ship in `packages/system-skills/` | None |
+| `flow` with `flow` | A guided flow, as its creation card starts it, for example `storyboard` | None |
+| `app` with `app` | A shipped example mini app from `packages/base-nodes/nodetool/examples/apps/`, in its own tab | None |
+
+`createCatalog` rejects a studio whose preset ids are unknown, are studios, or do
+not fit the target, so `npm run build --workspace=packages/presets` fails on one.
+Studios are kept apart from presets in the catalogue: `getPreset`, `byAlias` and
+`filter` return presets only, `getStudio` and `studios` return studios, and
+`compilePresets` throws on a studio id.
+
+The start page shows the studios in a **Studios** section below the creation
+types. The Effects gallery and the Lipsync studio appear there as studios, and
+**+ New** opens both surfaces directly.
+
 ## Lipsync studio
 
-Open **+ New → Lipsync**, or choose **Lipsync** under the start page's creation
-types. Upload a picture or choose an entity with a saved reference image. Enter
+Open **+ New → Lipsync**, or choose **Talking head** under the start page's
+studios. Upload a picture or choose an entity with a saved reference image. Enter
 a line, choose a speech model and voice, then choose an audio-to-video model.
 **Render lipsync** generates speech first and uses that audio to animate the
 picture. The clip appears in the studio and in **Generations**. Closing the tab

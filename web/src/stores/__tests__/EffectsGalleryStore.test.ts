@@ -23,6 +23,7 @@ describe("EffectsGalleryStore", () => {
     useEffectsGalleryStore.setState({
       sourceAssetId: null,
       effectId: null,
+      studio: null,
       run: { status: "idle", effectId: null, sourceAssetId: null, assetIds: [], error: null }
     });
     useLastModelStore.setState({ byKind: {}, byTask: {} });
@@ -87,5 +88,22 @@ describe("EffectsGalleryStore", () => {
     finishFirst({ asset_ids: ["first"] });
     await first;
     expect(run()).toMatchObject({ status: "done", assetIds: ["second"], effectId: "effect.frost-crystals" });
+  });
+
+  it("scopes the gallery to a studio and chooses its first effect", () => {
+    const store = useEffectsGalleryStore.getState();
+    store.openStudio("studio.a", ["effect.levitate", "effect.petal-burst"]);
+    expect(useEffectsGalleryStore.getState()).toMatchObject({
+      studio: { studioId: "studio.a", effectIds: ["effect.levitate", "effect.petal-burst"] },
+      effectId: "effect.levitate"
+    });
+    // A chosen effect inside the studio stays chosen.
+    store.selectEffect("effect.petal-burst");
+    store.openStudio("studio.a", ["effect.levitate", "effect.petal-burst"]);
+    expect(useEffectsGalleryStore.getState().effectId).toBe("effect.petal-burst");
+    store.showAllEffects();
+    expect(useEffectsGalleryStore.getState()).toMatchObject({ studio: null, effectId: "effect.petal-burst" });
+    store.openStudio("studio.b", []);
+    expect(useEffectsGalleryStore.getState().studio).toBeNull();
   });
 });

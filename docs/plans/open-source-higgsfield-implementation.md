@@ -534,6 +534,8 @@ preset on one shot. Store and component tests for both pickers.
 
 ### P16: Studios on the start page
 
+Status: done.
+
 - `kind: "studio"` presets. A studio names its target (a guided flow, a
   starter skill, a surface such as Effects or Lipsync, or an app) and the
   preset ids it shows inside it. No new engine.
