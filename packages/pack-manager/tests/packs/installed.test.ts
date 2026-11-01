@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import type { CatalogPack, NodeCatalogIndex } from "@nodetool-ai/pack-core";
 import { readInstalledPacks } from "../../src/packs/installed.js";
+import { resolvePackDependency } from "../../src/packs/resolution.js";
 import { classifyInstallLayout, detectInstallMode } from "../../src/packs/mode.js";
 
 const directories: string[] = [];
@@ -153,6 +154,35 @@ describe("installed pack snapshot", () => {
     writePackage(modules, "@nodetool-ai/fal-nodes");
     expect(snapshot.packs).toEqual([]);
     expect(readInstalledPacks(mode, catalog).packs.map((installed) => installed.id)).toEqual(["fal"]);
+  });
+
+  // BUG: npm installs the project with --ignore-scripts, so a native addon a
+  // pack depends on (better-sqlite3 under cli-workflow) stayed unbuilt and the
+  // load check failed, while the CLI already had a built copy.
+  it("loads the CLI's copy of a package whose install script the project skipped", () => {
+    const root = fixture();
+    const modules = projectModules(root);
+    const pack = writePackage(modules, "@nodetool-ai/fal-nodes");
+    writePackage(modules, "native-addon", "2.0.0");
+    writePackage(modules, "built-addon", "1.0.0");
+    writePackage(modules, "plain-lib", "1.0.0");
+    const cliModules = join(root, "node_modules");
+    const cliNative = writePackage(cliModules, "native-addon", "2.0.0");
+    writePackage(cliModules, "built-addon", "1.0.0");
+    writePackage(cliModules, "plain-lib", "1.0.0");
+    writeFileSync(join(modules, ".package-lock.json"), JSON.stringify({ packages: {
+      "node_modules/@nodetool-ai/fal-nodes": { version: "1.2.3" },
+      "node_modules/native-addon": { version: "2.0.0", hasInstallScript: true },
+      "node_modules/built-addon": { version: "1.0.0", hasInstallScript: true },
+      "node_modules/plain-lib": { version: "1.0.0" }
+    } }));
+    const allowed = { ...catalog, packs: catalog.packs.map((entry) => entry.id === "fal"
+      ? { ...entry, scriptAllowlist: [{ name: "built-addon", version: "1.0.0", integrity: "" }] } : entry) };
+    const { resolution } = readInstalledPacks(localMode(root), allowed);
+    expect(resolution?.sharedNames).toEqual(["native-addon"]);
+    expect(resolvePackDependency("native-addon", pack, resolution!)).toBe(cliNative);
+    expect(resolvePackDependency("built-addon", pack, resolution!)).toBe(join(modules, "built-addon"));
+    expect(resolvePackDependency("plain-lib", pack, resolution!)).toBe(join(modules, "plain-lib"));
   });
 
   it("refuses a catalog from a different core release", () => {
