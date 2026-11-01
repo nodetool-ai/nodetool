@@ -19,6 +19,7 @@ import type { BoardRenderContext, CreativeContext, Entity, Shot } from "@nodetoo
 export interface RenderContextSource {
   aspectRatio?: string;
   style?: string;
+  look_preset_ids?: readonly string[];
   entityIds?: readonly string[];
   imageModel?: { id?: string } | null;
   videoModel?: { id?: string } | null;
@@ -87,6 +88,7 @@ export const boardRenderContext = (
     video_model: shot?.clip_model?.id ?? board?.videoModel?.id ?? "",
     style_entity_id: styleEntityId(board?.entityIds, entities),
     style: board?.style ?? "",
+    look_preset_ids: board?.look_preset_ids ?? [],
     scenes: board?.screenplay?.scenes ?? null,
     reference_asset_ids: selected
       .flatMap((entity) => (entity.reference_images ?? []).map(imageAssetId))

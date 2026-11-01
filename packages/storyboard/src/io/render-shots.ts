@@ -280,6 +280,7 @@ export async function renderShots(
     }
     try {
       const params: RenderParams = {
+        ...plan.presetParams,
         prompt: plan.prompt,
         entities: plan.entities,
         aspect_ratio: plan.aspectRatio,

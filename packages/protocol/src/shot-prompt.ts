@@ -52,6 +52,8 @@ export interface ShotPromptContext {
   style?: string;
   /** Model-compiled camera fragment. Replaces movement, and equipment when a rig is selected. */
   compiledCamera?: { clause: string; replacesEquipment: boolean };
+  /** Compiled look fragments apply to stills and clips. */
+  compiledLook?: string;
 }
 
 /** Trimmed, comma-separated, empties dropped. */
@@ -96,7 +98,8 @@ export function keyframePrompt(
     camera?.angle,
     qualified(camera?.lens, "lens"),
     context.scene?.lighting,
-    context.style
+    context.style,
+    context.compiledLook
   ]);
 }
 
@@ -111,7 +114,8 @@ export function clipPrompt(shot: Shot, context: ShotPromptContext = {}): string 
     shot.motion,
     shot.action,
     context.compiledCamera?.clause ?? camera?.movement,
-    context.compiledCamera?.replacesEquipment ? undefined : camera?.equipment
+    context.compiledCamera?.replacesEquipment ? undefined : camera?.equipment,
+    context.compiledLook
   ]);
 }
 
@@ -133,7 +137,8 @@ export function directClipPrompt(
     shot.motion,
     context.compiledCamera?.clause ?? camera?.movement,
     context.compiledCamera?.replacesEquipment ? undefined : camera?.equipment,
-    context.style
+    context.style,
+    context.compiledLook
   ]);
 }
 

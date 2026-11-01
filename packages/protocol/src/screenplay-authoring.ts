@@ -118,6 +118,9 @@ function coerceShot(raw: unknown, index: number): Shot {
   // `scene-N`; nothing else calls coerceShot with a foreign id.
   const sceneId = optionalStr(obj.scene_id);
   if (sceneId) shot.scene_id = sceneId;
+  if (obj.look_preset_ids !== undefined) {
+    shot.look_preset_ids = cameraPresetIdsSchema.parse(obj.look_preset_ids);
+  }
   const camera = coerceCamera(obj.camera);
   if (camera) shot.camera = camera;
   const motion = optionalStr(obj.motion);
@@ -359,6 +362,11 @@ export function buildScreenplaySchema(
             dialogue: { type: "string" },
             narration: { type: "string" },
             duration_seconds: { type: "number" },
+            look_preset_ids: {
+              type: "array",
+              items: { type: "string" },
+              maxItems: 3
+            },
             camera: {
               type: "object",
               additionalProperties: false,

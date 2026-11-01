@@ -19477,5 +19477,14 @@
     "result": "Huulisynkronoinnin tulos",
     "estimate": "Videon listahinta: {{amount}}. Lopullinen hinta riippuu puheen pituudesta. Puhe laskutetaan erikseen.",
     "noEstimate": "Hinta-arviota ei ole saatavilla. Puhe ja video laskutetaan erikseen."
+  },
+  "look_preset_field": {
+    "browse": "Valitse ilme",
+    "title": "Otoksen ilme",
+    "board": "Kuvakäsikirjoituksen ilme",
+    "done": "Valmis",
+    "remove": "Poista {{name}}",
+    "clause": "Ilmeen kehote",
+    "inherit": "Tyhjä valinta käyttää kuvakäsikirjoituksen ilmettä."
   }
 }

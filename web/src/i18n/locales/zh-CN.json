@@ -19477,5 +19477,14 @@
     "result": "口型同步结果",
     "estimate": "视频标价：{{amount}}。最终费用取决于语音长度。语音单独计费。",
     "noEstimate": "暂无价格估算。语音和视频单独计费。"
+  },
+  "look_preset_field": {
+    "browse": "选择风格",
+    "title": "镜头风格",
+    "board": "分镜风格",
+    "done": "完成",
+    "remove": "移除 {{name}}",
+    "clause": "风格提示词",
+    "inherit": "未选择时继承分镜风格。"
   }
 }

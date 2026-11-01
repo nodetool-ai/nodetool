@@ -41,6 +41,7 @@ export interface ShotDraft {
   movement: string;
   /** Preset selection, separate from free-text movement. */
   presetIds: string[];
+  lookPresetIds: string[];
   /** Equipment → `camera.equipment`. */
   equipment: string;
   /** Focal length → `camera.lens`. */
@@ -70,6 +71,7 @@ const DRAFT_KEYS = [
   "angle",
   "movement",
   "presetIds",
+  "lookPresetIds",
   "equipment",
   "lens",
   "notes",
@@ -94,6 +96,7 @@ export const draftFromShot = (shot: Shot, scene: Scene | null): ShotDraft => ({
   angle: shot.camera?.angle ?? "",
   movement: shot.camera?.movement ?? "",
   presetIds: [...(shot.camera?.preset_ids ?? [])],
+  lookPresetIds: [...(shot.look_preset_ids ?? [])],
   equipment: shot.camera?.equipment ?? "",
   lens: shot.camera?.lens ?? "",
   notes: shot.notes ?? "",
@@ -229,6 +232,8 @@ export const shotPatchFromDraft = (draft: ShotDraft): Partial<Shot> => {
     duration_seconds: seconds ?? undefined,
     duration_source: draft.durationSource,
     camera: hasCamera ? camera : undefined,
+    look_preset_ids:
+      draft.lookPresetIds.length > 0 ? [...draft.lookPresetIds] : undefined,
     render_mode: draft.renderMode,
     graphics: draft.graphics,
     motion: orUndefined(draft.motion),
@@ -274,6 +279,10 @@ export const shotPatchFromChangedDraft = (
   if (changed.has("motion")) patch.motion = orUndefined(draft.motion);
   if (changed.has("endState")) patch.end_state = orUndefined(draft.endState);
   if (changed.has("sound")) patch.sound = orUndefined(draft.sound);
+  if (changed.has("lookPresetIds")) {
+    patch.look_preset_ids =
+      draft.lookPresetIds.length > 0 ? [...draft.lookPresetIds] : undefined;
+  }
 
   if (changed.has("presetIds") || CAMERA_KEYS.some((key) => changed.has(key))) {
     const camera = { ...current.camera };

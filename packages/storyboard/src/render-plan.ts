@@ -10,7 +10,7 @@
  * Pure: no provider, no database, no clock.
  */
 
-import { compileCameraPresets, type Catalog } from "@nodetool-ai/presets";
+import { compileShotPresets, type Catalog } from "@nodetool-ai/presets";
 import {
   assertProductionGenerationAllowed,
   currentRenderInputs,
@@ -67,6 +67,7 @@ export interface ShotRenderPlan {
   /** Production requests compiled before spending, one for each requested take. */
   productionCandidates?: CompiledProductionCandidate[];
   preflightError?: string;
+  presetParams?: Record<string, string | number | boolean>;
   aspectRatio: string;
   /** How a clip is produced. Always `"keyframe"` on a stills plan. */
   mode: "keyframe" | "direct" | "reference";
@@ -135,6 +136,7 @@ export function boardRenderContext(
       [...(doc.entityIds ?? [])].reverse().find((id) => styleIds.has(id)) ??
       null,
     style: doc.style,
+    look_preset_ids: doc.look_preset_ids ?? [],
     scenes: doc.screenplay?.scenes ?? null,
     production_reference_asset_ids: doc.creative_context?.reference_bindings?.map((binding) => binding.asset_id) ?? [],
     entity_conditioning_hash: entityConditioningHash(
@@ -244,18 +246,34 @@ export function planShotRenders(
       aspect_ratio: aspectRatio,
       style
     };
-    if (kind === "clip" && shot.camera?.preset_ids?.length && !options.presetCatalog) {
-      throw new Error("Camera presets require a preset catalog when planning clips");
+    const lookPresetIds = shot.look_preset_ids?.length
+      ? shot.look_preset_ids
+      : (doc.look_preset_ids ?? []);
+    if (
+      (lookPresetIds.length ||
+        (kind === "clip" && shot.camera?.preset_ids?.length)) &&
+      !options.presetCatalog
+    ) {
+      throw new Error(
+        "Storyboard presets require a preset catalog when planning renders"
+      );
     }
-    const compiledCamera = kind === "clip" && options.presetCatalog
-      ? compileCameraPresets(shot.camera?.preset_ids, {
+    const compiled = options.presetCatalog
+      ? compileShotPresets(shot, lookPresetIds, {
+          catalog: options.presetCatalog,
           modelId: model.model,
-          mode: mode === "keyframe" ? "image_to_video" : mode === "reference" ? "reference_to_video" : "video",
-          catalog: options.presetCatalog
+          mode:
+            kind === "keyframe"
+              ? "image"
+              : mode === "keyframe"
+                ? "image_to_video"
+                : mode === "reference"
+                  ? "reference_to_video"
+                  : "video"
         })
       : undefined;
     const context = {
-      ...(compiledCamera && { compiledCamera }),
+      ...compiled?.context,
       scene: sceneForShot(shot, doc.screenplay?.scenes),
       style
     };
@@ -354,6 +372,7 @@ export function planShotRenders(
       referenceAssetIds: shotReferenceAssetIds,
       model,
       aspectRatio,
+      presetParams: compiled?.params,
       mode: kind === "keyframe" ? "keyframe" : mode,
       referenceImages,
       sourceKeyframe: shot.keyframe ?? null,

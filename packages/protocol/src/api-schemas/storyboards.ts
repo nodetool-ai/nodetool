@@ -162,6 +162,7 @@ export const storyboardShot = z
     id: z.string(),
     index: z.number(),
     action: z.string(),
+    look_preset_ids: cameraPresetIdsSchema.optional(),
     status: z.string(),
     slug: z.string().optional(),
     motion: z.string().optional(),
@@ -521,6 +522,7 @@ export const storyboardDocument = z.object({
   style: z.string(),
   /** Library entity (asset) ids whose descriptors season every shot prompt. */
   entityIds: z.array(z.string()).default([]),
+  look_preset_ids: cameraPresetIdsSchema.optional(),
   aspectRatio: z.string(),
   setupStage: storyboardSetupStage.default("done"),
   /** Genre sits on the board, not the screenplay: it is picked before one exists. */

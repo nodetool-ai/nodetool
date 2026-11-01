@@ -24,6 +24,7 @@ export interface StoryboardDocument {
   creative_context?: CreativeContext;
   /** Library entity (asset) ids applied to the board's shot prompts. */
   entityIds: string[];
+  look_preset_ids?: string[];
   aspectRatio: string;
   setupStage: StoryboardSetupStage;
   genre: string;

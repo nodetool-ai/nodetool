@@ -19477,5 +19477,14 @@
     "result": "Lipsync result",
     "estimate": "Video list price: {{amount}}. Final cost depends on speech length. Speech is billed separately.",
     "noEstimate": "No price estimate is available. Speech and video are billed separately."
+  },
+  "look_preset_field": {
+    "browse": "Choose look",
+    "title": "Shot look",
+    "board": "Board look",
+    "done": "Done",
+    "remove": "Remove {{name}}",
+    "clause": "Look clause",
+    "inherit": "Empty selection inherits the board look."
   }
 }
