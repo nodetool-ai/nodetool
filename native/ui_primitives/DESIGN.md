@@ -60,6 +60,16 @@ and border.
 | MonoLabel | JetBrains Mono | 13 | 500 | 1.35 |
 | MonoCaption | JetBrains Mono | 11 | 400 | 1.40 |
 
+Proportional line height splits its extra space evenly above and below the
+glyphs, as CSS half-leading does. `Ui.Text` shifts top-aligned text down by half
+the space and moves its bottom edge up by the same amount, so implicit size is
+unchanged and glyphs sit in the middle of the line. `Typography` measures each
+role's natural line height once. An instance that sets its own top or bottom
+padding adds `halfLeading` to keep the shift. Text with another vertical
+alignment needs no shift. Rich text needs none either, because its layout
+ignores the line height. A control that needs its minimum height sets
+`lineHeight: 1`, which removes the extra space.
+
 The bundled fonts are Latin subsets. [The interface guide](README.md) records
 the tested coverage and fallback limits. Use a complete type role for UI text.
 Document-authored fonts and colors remain document data.

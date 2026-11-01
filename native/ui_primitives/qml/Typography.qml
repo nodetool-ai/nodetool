@@ -33,6 +33,20 @@ QtObject {
                           selected.weight === Font.Medium ? 500 : 400
         return cssWeight + " " + selected.pixelSize + 'px "' + selected.family + '"'
     }
+    // One FontMetrics per role, shared by every Text, gives the natural line height that half-leading is split from.
+    readonly property FontMetrics metricsTitle: FontMetrics { font: Typography.font(Typography.SansTitle) }
+    readonly property FontMetrics metricsBody: FontMetrics { font: Typography.font(Typography.SansBody) }
+    readonly property FontMetrics metricsLabel: FontMetrics { font: Typography.font(Typography.SansLabel) }
+    readonly property FontMetrics metricsCaption: FontMetrics { font: Typography.font(Typography.SansCaption) }
+    readonly property FontMetrics metricsCode: FontMetrics { font: Typography.font(Typography.MonoCode) }
+    readonly property FontMetrics metricsStrong: FontMetrics { font: Typography.font(Typography.MonoStrong) }
+    readonly property FontMetrics metricsMonoLabel: FontMetrics { font: Typography.font(Typography.MonoLabel) }
+    readonly property FontMetrics metricsMonoCaption: FontMetrics { font: Typography.font(Typography.MonoCaption) }
+    // Qt's text layout rounds a line up to whole pixels before it applies a proportional line height, so this does too.
+    function naturalHeight(role) {
+        const metrics = [metricsTitle, metricsBody, metricsLabel, metricsCaption, metricsCode, metricsStrong, metricsMonoLabel, metricsMonoCaption]
+        return metrics[role] ? Math.ceil(metrics[role].height) : 0
+    }
     function lineHeight(role) {
         return role === Typography.SansTitle ? 1.30 : role === Typography.SansBody ? 1.45 :
                role === Typography.SansLabel || role === Typography.MonoLabel ? 1.35 :

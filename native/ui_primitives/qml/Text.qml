@@ -12,9 +12,12 @@ Text {
     font.weight: Typography.weight(role)
     lineHeightMode: Text.ProportionalHeight
     lineHeight: Typography.lineHeight(role)
-    // Qt puts the extra line height under each line. Move half of it above,
-    // so the glyphs sit on the vertical center of the text box.
-    readonly property real halfLeading: (lineHeight - 1) * font.pixelSize * 0.5
+    // A proportional line height puts all its extra space under the glyphs. Moving the text down by
+    // half of that space, and the bottom edge up by the same amount, centers the glyphs in the line
+    // as CSS half-leading does, without changing the implicit size.
+    // Qt already centers the glyphs when verticalAlignment is not AlignTop, so only top-aligned text moves.
+    // Rich text is laid out by QTextDocument, which ignores lineHeight, so it has no extra space to shift.
+    readonly property real halfLeading: lineHeightMode === Text.ProportionalHeight && verticalAlignment === Text.AlignTop && textFormat !== Text.RichText ? Math.round((lineHeight - 1) * Typography.naturalHeight(role) / 2) : 0
     topPadding: halfLeading
     bottomPadding: -halfLeading
     color: domainColor !== undefined ? domainColor : tone === 1 ? Theme.textSecondary : tone === 2 ? Theme.textDisabled :

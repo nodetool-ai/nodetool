@@ -13,6 +13,12 @@ TestCase {
     Ui.EditorButton { id: button; text: "Run"; accessibleName: "Run" }
     Ui.EditorButton { id: centeredButton; visible: false; x: 200; y: 120; z: 1000; variant: Ui.EditorButton.Primary; text: "HHH"; accessibleName: "Centered" }
     Ui.Select { id: centeredSelect; visible: false; x: 200; y: 120; z: 1000; width: 120; value: "h"; options: [{label: "HHH", value: "h"}]; accessibleName: "Centered select" }
+    Rectangle { id: textHost; visible: false; x: 200; y: 120; z: 1000; width: 100; color: "white"
+        Ui.Text { id: textProbe; width: parent.width; text: "HHH"; domainColor: "black"; role: Ui.Typography.SansLabel } }
+    Rectangle { id: richHost; visible: false; x: 200; y: 120; z: 1000; width: 100; color: "white"
+        Ui.Text { id: richProbe; width: parent.width; text: "HHH"; textFormat: Text.RichText; domainColor: "black"; role: Ui.Typography.SansLabel } }
+    Rectangle { id: flatHost; visible: false; x: 200; y: 120; z: 1000; width: 100; color: "white"
+        Ui.Text { id: flatProbe; width: parent.width; text: "HHH"; lineHeight: 1; domainColor: "black"; role: Ui.Typography.SansLabel } }
     Basic.Action { id: testAction; text: "Action"; checkable: true }
     Ui.EditorButton { id: actionButton; x: 100; action: testAction; accessibleName: "Action" }
     SignalSpy { id: actionTriggered; target: testAction; signalName: "triggered" }
@@ -339,6 +345,76 @@ TestCase {
         const gaps = inkGaps(centeredSelect, Ui.Metrics.md, Ui.Metrics.md + 30)
         centeredSelect.visible = false
         verify(Math.abs(gaps.above - gaps.below) <= 1, "above " + gaps.above + ", below " + gaps.below)
+    }
+    function test_text_is_centered_in_its_line_data() {
+        const rows = []
+        for (const [name, role] of [["SansLabel", Ui.Typography.SansLabel], ["MonoLabel", Ui.Typography.MonoLabel], ["MonoCode", Ui.Typography.MonoCode]]) {
+            rows.push({tag: name + " one line", role: role, text: "HHH", lines: 1, tall: false})
+            rows.push({tag: name + " two lines", role: role, text: "HHH\nHHH", lines: 2, tall: false})
+            rows.push({tag: name + " centered in a taller box", role: role, text: "HHH", lines: 1, tall: true})
+        }
+        return rows
+    }
+    // The first and last pixel rows that hold dark glyph pixels in textHost.
+    function textInk(host) {
+        const image = grabImage(host)
+        let first = -1, last = -1
+        for (let y = 0; y < Math.round(host.height); ++y) {
+            for (let x = 0; x < Math.round(host.width); ++x) {
+                const pixel = image.pixel(x, y)
+                if (pixel.r + pixel.g + pixel.b > 2.4) continue
+                if (first < 0) first = y
+                last = y
+                break
+            }
+        }
+        return {first: first, last: last}
+    }
+    function test_text_is_centered_in_its_line(data) {
+        textProbe.role = data.role
+        textProbe.text = data.text
+        textProbe.verticalAlignment = data.tall ? Text.AlignVCenter : Text.AlignTop
+        textHost.height = data.tall ? 40 : textProbe.implicitHeight
+        textProbe.height = textHost.height
+        textHost.visible = true
+        waitForRendering(textHost)
+        // Half-leading moves the glyphs without changing the size.
+        compare(textProbe.topPadding + textProbe.bottomPadding, 0)
+        if (!data.tall) compare(textProbe.implicitHeight, textProbe.contentHeight)
+        compare(textProbe.lineCount, data.lines)
+        const ink = textInk(textHost)
+        textHost.visible = false
+        verify(ink.first >= 0)
+        const above = ink.first, below = Math.round(textHost.height) - 1 - ink.last
+        verify(Math.abs(above - below) <= 1, "above " + above + ", below " + below)
+        if (!data.tall) verify(textProbe.topPadding > 0, "the label needs half-leading to test")
+        textProbe.verticalAlignment = Text.AlignTop
+        textProbe.role = Ui.Typography.SansLabel
+    }
+    function test_rich_text_gets_no_half_leading() {
+        // QTextDocument ignores lineHeight, so rich text has no slack and a shift would push it down.
+        compare(richProbe.halfLeading, 0)
+        compare(richProbe.topPadding, 0)
+        compare(richProbe.bottomPadding, 0)
+        richHost.height = richProbe.implicitHeight
+        richProbe.height = richHost.height
+        richHost.visible = true
+        waitForRendering(richHost)
+        const rich = textInk(richHost)
+        richHost.visible = false
+        // The same glyphs in a plain Text with no extra line height start on the same row.
+        compare(flatProbe.topPadding, 0)
+        flatHost.height = flatProbe.implicitHeight
+        flatProbe.height = flatHost.height
+        flatHost.visible = true
+        waitForRendering(flatHost)
+        const flat = textInk(flatHost)
+        flatHost.visible = false
+        verify(rich.first >= 0 && flat.first >= 0)
+        compare(rich.first, flat.first)
+        // Plain text at the role's line height still shifts.
+        textProbe.text = "HHH"
+        verify(textProbe.halfLeading > 0)
     }
     function test_button_text_role() {
         button.textRole = Ui.Typography.MonoCaption

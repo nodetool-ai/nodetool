@@ -19,7 +19,7 @@ Basic.Dialog {
         visible: text !== ""
         role: Typography.SansTitle
         leftPadding: root.padding; rightPadding: root.padding
-        topPadding: root.padding; bottomPadding: root.compactLayout ? Metrics.xs : Metrics.sm
+        topPadding: root.padding + halfLeading; bottomPadding: (root.compactLayout ? Metrics.xs : Metrics.sm) - halfLeading
         elide: Text.ElideRight
     }
     background: Rectangle { color: Theme.surfaceOverlay; radius: Metrics.radiusOverlay; border.width: Metrics.border; border.color: Theme.borderControl }
