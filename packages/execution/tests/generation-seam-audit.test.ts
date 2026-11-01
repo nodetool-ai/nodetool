@@ -62,6 +62,11 @@ const MEDIA_METHODS = [
  * `runGenerationWith` on the context.
  */
 const ALLOWED: ReadonlyArray<{ file: string; why: string }> = [
+  // The hermetic provider itself, delegating to its test clip source.
+  {
+    file: "packages/websocket/src/fake-runtime.ts",
+    why: "fake provider implementation, called through the seam like any provider"
+  },
   // The seam itself.
   { file: "packages/runtime/src/context.ts", why: "the seam's dispatch" },
   // Wrapped in `runGenerationWith` (design § 8, S5/S6).

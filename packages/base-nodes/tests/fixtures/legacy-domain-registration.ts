@@ -22081,6 +22081,21 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         values: undefined,
         json_schema_extra: undefined,
         default: 0
+      },
+      {
+        name: 'seed',
+        type: {
+          type: 'int',
+          type_args: []
+        },
+        required: false,
+        title: 'Seed',
+        description: 'Generation seed. Use -1 for a random seed.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: -1
       }
     ],
     outputs: [
