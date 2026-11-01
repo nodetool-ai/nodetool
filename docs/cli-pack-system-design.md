@@ -12,7 +12,7 @@ built in a new directory and switched into place after verification. Core
 packages and shared-identity libraries still load once per process: a module
 resolution hook sends a pack's imports of them to the CLI's copy. See
 [`nodetool packs`](cli.md#nodetool-packs) and the
-[pack manager](../packages/pack-manager/README.md).
+[pack manager](https://github.com/nodetool-ai/nodetool/blob/main/packages/pack-manager/README.md).
 
 Status: design, not implemented. Scope: the npm package `@nodetool-ai/cli`.
 The desktop app and the Docker image keep their bundled backend.
