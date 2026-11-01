@@ -49,7 +49,7 @@ The picker disables a card that would break a rule and names the preset blocking
 
 `compilePresets(ids, { modelId, mode, prompt, catalog })` returns `{ prompt, params, applied, warnings }`. It is deterministic and has no model call.
 
-1. `modelFamily(modelId)` maps the provider model id to a family: `kling`, `seedance`, `veo`, `wan`, `sora`, `minimax`, `ltx`, `local-wan` or `default`. The same table picks the prompting guide in `MODEL_PROMPTING_SKILLS`, so one list decides both. For the `nodetool` provider, the delegate model resolves first.
+1. `modelFamily(modelId)` maps the provider model id to a family: `kling`, `seedance`, `veo`, `wan`, `sora`, `minimax`, `ltx`, `local-wan` or `default`. [Local Wan2GP models](#local-wan2gp-models) explains the local ids. The same table picks the prompting guide in `MODEL_PROMPTING_SKILLS`, so one list decides both. For the `nodetool` provider, the delegate model resolves first.
 2. For each preset in stack order, the compiler takes the fragment for that family, or `default` when the preset has none.
 3. A string fragment appends to the prompt with a space. An object fragment `{ prefix, suffix, replace }` joins `prefix`, then `replace` (or the current prompt when there is no `replace`), then `suffix`. A `replace` fragment drops the prompt built so far, so use it only for effects that must own the whole instruction.
 4. For each preset, the selected `family_params` entry overrides `params`. There is no default-family fallback for settings. A scoped key absent from both the selected family and shared params is dropped with a warning naming the preset, key and family. Settings outside the mode allowlist in `mediaPresetSettings` are also dropped with a warning before conflict checking. The remaining params merge in stack order. Two presets that set the same key to different values fail the compile with an error naming both.
@@ -98,6 +98,37 @@ ticket.
 Use looks through the CLI, agent preset tools or media requests with
 `preset_ids`. The existing composer picker continues to offer camera and effect
 presets. Dedicated storyboard and composer look controls follow in P15.
+
+### Local Wan2GP models
+
+A [Wan2GP](wan2gp.md) model id is the model's `model_type`, such as
+`ti2v_2_2_fastwan`. `modelFamily` maps them as follows:
+
+| Wan2GP family | NodeTool family | How it matches |
+|---|---|---|
+| Wan 2.1 and Wan 2.2, including `uni3c` and `prism` | `local-wan` | Exact ids from the WanGP v19.02 registry, in `packages/presets/src/wan2gp-models.ts` |
+| LTX-2 (`ltx2_*`) | `ltx` | The hosted LTX pattern, which already matches `ltx2` |
+| MiniMax H3 (`minimax_h3_*`) | `minimax` | The H3 pattern, which also accepts `minimax_h3` |
+| Others: Hunyuan, Kandinsky, LongCat, Magi Human, EVOKE, Hy-Nomas, LTX-Video 0.9, JoyAI-Echo, Viggle | none | Default wording with a warning |
+
+Local H3 shares `minimax` with the hosted H3 routes because it is the same
+model line, and it gets the same `minimax-h3-prompting` guide. A finetune a
+user adds to Wan2GP is not in the list and compiles with default wording.
+`packages/presets/tests/wan2gp-models.json` records the 173 video models of
+WanGP v19.02 and the family each compiles to.
+
+No preset has a `local-wan`, `ltx` or `minimax` fragment yet, so every local
+model compiles with the `default` fragment and the fallback warning below.
+
+Presets reach a Wan2GP model only through a provider named `wangp`. A NodeTool
+Python worker advertises it when `NODETOOL_PROVIDER_ADAPTER_COMMAND_WANGP` names
+an adapter command, as the [combined image](https://github.com/nodetool-ai/nodetool-wan2gp/blob/main/docs/combined-worker.md)
+does. The server then registers `wangp`, and `models.videoByProvider` lists its
+models, so media requests compile presets for them. That adapter runs Wan2GP
+inside the worker. The pack's Wan2GP nodes take a plain prompt and no
+`preset_ids`, so a Wan2GP MCP server you run yourself sees a preset only when
+you paste compiled wording, for example from `nodetool presets compile`, into
+the node's prompt.
 
 ### Fallback warning
 

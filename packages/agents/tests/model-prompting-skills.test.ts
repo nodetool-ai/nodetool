@@ -231,6 +231,9 @@ describe("the model-line prompting table", () => {
     // kie spells H3 with a hyphen.
     ["minimax-h3/reference-to-video", "minimax-h3-prompting"],
     ["minimax/h3-fast/text-to-video", "minimax-h3-prompting"],
+    // Wan2GP's local H3 checkpoints use an underscore.
+    ["minimax_h3_fl2va_pruned", "minimax-h3-prompting"],
+    ["minimax_h3_ref2va_pruned_pdd", "minimax-h3-prompting"],
     ["elevenlabs/v3", "elevenlabs-audio-prompting"],
     ["fal-ai/elevenlabs/music", "elevenlabs-audio-prompting"]
   ])("routes %s to %s", (id, skill) => {
@@ -247,6 +250,10 @@ describe("the model-line prompting table", () => {
     "bytedance/seedance-1.5-pro",
     "fal-ai/bytedance/seedance/v1/pro/text-to-video",
     "wan-video/wan-2.5-t2v",
+    // Wan2GP's local Wan models are family local-wan, not the hosted Wan 2.6
+    // line, and have no guide of their own.
+    "ti2v_2_2_fastwan",
+    "minimax_h30",
     "alibaba/wan-2.7/text-to-video",
     // Kling before the shot list, and Kling Image, which is not the video line
     // at all.

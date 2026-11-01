@@ -13,7 +13,8 @@ the pack itself installs no PyTorch.
 |---|---|
 | `wan2gp.text_to_video.TextToVideo` | Generates a clip from a prompt |
 | `wan2gp.image_to_video.ImageToVideo` | Animates a still image |
-| `wan2gp.generate.Generate` | Runs any Wan2GP model with a settings dict on top of that model's defaults |
+| `wan2gp.generate.Generate` | Runs any Wan2GP model with a settings dict on top of that model's defaults. Takes start and end images, reference images, control, mask and source videos, audio, and a custom file, and returns an image, video, audio or 3D model |
+| `wan2gp.list_models.ListModels` | Lists the models your server offers and the media each one accepts |
 
 ## 1. Run a Wan2GP server
 

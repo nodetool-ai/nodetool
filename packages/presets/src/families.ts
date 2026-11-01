@@ -1,10 +1,14 @@
+import { WAN2GP_WAN_MODEL_TYPES } from "./wan2gp-models.js";
+
 export const MODEL_LINE_PATTERNS = {
   nanoBanana: /nano-banana-pro|gemini-3-pro-image/,
   gptImage: /gpt-image-2(?![.\d]|-5-)/,
   flux: /flux-2[/-]klein/,
   seedance: /seedance-2(?!\d)|dreamina_seedance_(?:40|45)(?!\d)/,
   veo: /veo-?3(?!\d)/,
-  minimax: /minimax[/-]h3(?![a-z0-9.])/,
+  // Hosted routes spell it `minimax/h3` or `minimax-h3`; Wan2GP's local
+  // checkpoints are `minimax_h3_<variant>`.
+  minimax: /minimax[/_-]h3(?![a-z0-9.])/,
   wan: /wan-?2[.-]6(?!\/(?:text-to-image|image-edit))/,
   kling: /kling(?:-video)?[-/]v?(?:2[.-][56]|3(?:\.0)?|o[13])(?![.\d])/,
   hailuo: /hailuo|minimax\/video-01|^[ist]2v-01(?![\d])/,
@@ -30,9 +34,12 @@ const FAMILY_PATTERNS: ReadonlyArray<readonly [ModelFamily, RegExp]> = [
   ["default", /^default$/]
 ];
 
+const LOCAL_WAN_MODEL_TYPES: ReadonlySet<string> = new Set(WAN2GP_WAN_MODEL_TYPES.map((id) => id.toLowerCase()));
+
 /** Return the known video family, or null for an unsupported model. */
 export function modelFamily(modelId: string): ModelFamily | null {
   const id = modelId.toLowerCase();
   if (id.includes("trainer")) { return null; }
+  if (LOCAL_WAN_MODEL_TYPES.has(id)) { return "local-wan"; }
   return FAMILY_PATTERNS.find(([, pattern]) => pattern.test(id))?.[0] ?? null;
 }

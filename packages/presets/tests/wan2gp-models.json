@@ -1,0 +1,870 @@
+{
+  "source": "wangp_models and wangp_model(action=\"capabilities\") on WanGP v19.02, commit 616e605, 1 November 2026. Every model whose main_output includes video.",
+  "models": [
+    {
+      "model_type": "alpha",
+      "family": "wan",
+      "name": "Wan2.1 Alpha v1.0 14B"
+    },
+    {
+      "model_type": "alpha2",
+      "family": "wan",
+      "name": "Wan2.1 Alpha v2.0 14B"
+    },
+    {
+      "model_type": "alpha2_sf",
+      "family": "wan",
+      "name": "Wan2.1 Alpha v2.0 Lightning 14B"
+    },
+    {
+      "model_type": "alpha_sf",
+      "family": "wan",
+      "name": "Wan2.1 Alpha v1.0 Lightning 14B"
+    },
+    {
+      "model_type": "animate",
+      "family": "wan2_2",
+      "name": "Wan2.2 Animate 14B"
+    },
+    {
+      "model_type": "animate2",
+      "family": "wan2_2",
+      "name": "Wan2.2 Animate 2 14B"
+    },
+    {
+      "model_type": "animate2_distilled",
+      "family": "wan2_2",
+      "name": "Wan2.2 Animate 2 14B Distilled"
+    },
+    {
+      "model_type": "bernini",
+      "family": "wan2_2",
+      "name": "Wan2.2 Bernini-R 14B"
+    },
+    {
+      "model_type": "bernini_1.3B",
+      "family": "wan2_2",
+      "name": "Wan2.2 Bernini-R 1.3B"
+    },
+    {
+      "model_type": "evoke_turbo",
+      "family": "evoke",
+      "name": "EVOKE Turbo World 14B"
+    },
+    {
+      "model_type": "fantasy",
+      "family": "wan",
+      "name": "Fantasy Talking 720p 14B"
+    },
+    {
+      "model_type": "flf2v_720p",
+      "family": "wan",
+      "name": "First Last Frame to Video 720p (FLF2V) 14B"
+    },
+    {
+      "model_type": "fun_camera_1.3B",
+      "family": "wan",
+      "name": "Wan2.1 Fun Control-Camera 1.3B"
+    },
+    {
+      "model_type": "fun_inp",
+      "family": "wan",
+      "name": "Fun InP image2video 14B"
+    },
+    {
+      "model_type": "fun_inp_1.3B",
+      "family": "wan",
+      "name": "Fun InP image2video 1.3B"
+    },
+    {
+      "model_type": "hunyuan",
+      "family": "hunyuan",
+      "name": "Hunyuan Video Text2video 720p 13B"
+    },
+    {
+      "model_type": "hunyuan_1_5_480_i2v",
+      "family": "hunyuan_1_5",
+      "name": "Hunyuan Video 1.5  Image2video 480p 8B"
+    },
+    {
+      "model_type": "hunyuan_1_5_480_i2v_step_distilled",
+      "family": "hunyuan_1_5",
+      "name": "Hunyuan Video 1.5  Image2video 480p Step Distilled 8B"
+    },
+    {
+      "model_type": "hunyuan_1_5_480_t2v",
+      "family": "hunyuan_1_5",
+      "name": "Hunyuan Video 1.5  Text2video 480p 8B"
+    },
+    {
+      "model_type": "hunyuan_1_5_480_t2v_lightx2v",
+      "family": "hunyuan_1_5",
+      "name": "Hunyuan Video 1.5 Text2video 480p Lightx2v 8B"
+    },
+    {
+      "model_type": "hunyuan_1_5_i2v",
+      "family": "hunyuan_1_5",
+      "name": "Hunyuan Video 1.5 Image2video 720p 8B"
+    },
+    {
+      "model_type": "hunyuan_1_5_t2v",
+      "family": "hunyuan_1_5",
+      "name": "Hunyuan Video 1.5  Text2video 720p 8B"
+    },
+    {
+      "model_type": "hunyuan_1_5_upsampler",
+      "family": "hunyuan_1_5",
+      "name": "Hunyuan Video 1.5  Upsampler 720p 8B"
+    },
+    {
+      "model_type": "hunyuan_1_5_upsampler_1080",
+      "family": "hunyuan_1_5",
+      "name": "Hunyuan Video 1.5  Upsampler 1080p 8B"
+    },
+    {
+      "model_type": "hunyuan_avatar",
+      "family": "hunyuan",
+      "name": "Hunyuan Video Avatar 720p 13B"
+    },
+    {
+      "model_type": "hunyuan_custom",
+      "family": "hunyuan",
+      "name": "Hunyuan Video Custom 720p 13B"
+    },
+    {
+      "model_type": "hunyuan_custom_audio",
+      "family": "hunyuan",
+      "name": "Hunyuan Video Custom Audio 720p 13B"
+    },
+    {
+      "model_type": "hunyuan_custom_edit",
+      "family": "hunyuan",
+      "name": "Hunyuan Video Custom Edit 720p 13B"
+    },
+    {
+      "model_type": "hunyuan_i2v",
+      "family": "hunyuan",
+      "name": "Hunyuan Video Image2video 720p 13B"
+    },
+    {
+      "model_type": "hunyuan_t2v_accvideo",
+      "family": "hunyuan",
+      "name": "Hunyuan Video Text2video 720p AccVideo 13B"
+    },
+    {
+      "model_type": "hunyuan_t2v_fast",
+      "family": "hunyuan",
+      "name": "Hunyuan Video Text2video 720p FastHunyuan 13B"
+    },
+    {
+      "model_type": "hy_nomas",
+      "family": "hy_nomas",
+      "name": "Hy-Nomas World Model 8B"
+    },
+    {
+      "model_type": "i2v",
+      "family": "wan",
+      "name": "Wan2.1 Image2video 480p 14B"
+    },
+    {
+      "model_type": "i2v_2_2",
+      "family": "wan2_2",
+      "name": "Wan2.2 Image2video 14B"
+    },
+    {
+      "model_type": "i2v_2_2_Enhanced_Lightning_v2",
+      "family": "wan2_2",
+      "name": "Wan2.2 Image2video Enhanced Lightning v2 14B"
+    },
+    {
+      "model_type": "i2v_2_2_Enhanced_Lightning_v2_svi2pro",
+      "family": "wan2_2",
+      "name": "Wan2.2 Image2video SVI 2 Pro Enhanced Lightning v2 14B"
+    },
+    {
+      "model_type": "i2v_2_2_multitalk",
+      "family": "wan2_2",
+      "name": "Wan2.2 Multitalk 14B"
+    },
+    {
+      "model_type": "i2v_2_2_svi2pro",
+      "family": "wan2_2",
+      "name": "Wan2.2 Image2video SVI 2 Pro 14B"
+    },
+    {
+      "model_type": "i2v_720p",
+      "family": "wan",
+      "name": "Wan2.1 Image2video 720p 14B"
+    },
+    {
+      "model_type": "i2v_fusionix",
+      "family": "wan",
+      "name": "Wan2.1 Image2video 480p FusioniX 14B"
+    },
+    {
+      "model_type": "i2v_nvfp4",
+      "family": "wan",
+      "name": "Wan2.1 Image2video 480p 14B NVFP4 Lightx2v 4-step"
+    },
+    {
+      "model_type": "infinitetalk",
+      "family": "wan",
+      "name": "Infinitetalk Single Speaker 480p 14B"
+    },
+    {
+      "model_type": "infinitetalk_multi",
+      "family": "wan",
+      "name": "Infinitetalk Multi Speakers 480p 14B"
+    },
+    {
+      "model_type": "joyai_echo",
+      "family": "ltx2",
+      "name": "LTX-2 2.3 JoyAI-Echo 22B"
+    },
+    {
+      "model_type": "joyai_echo_surgical",
+      "family": "ltx2",
+      "name": "LTX-2 2.3 JoyAI-Echo Surgical 22B"
+    },
+    {
+      "model_type": "k5_lite_i2v",
+      "family": "kandinsky5",
+      "name": "Kandinsky 5 Lite I2V SFT 5s 2B"
+    },
+    {
+      "model_type": "k5_lite_t2v",
+      "family": "kandinsky5",
+      "name": "Kandinsky 5 Lite T2V SFT 5s 2B"
+    },
+    {
+      "model_type": "k5_lite_t2v_10s_distil",
+      "family": "kandinsky5",
+      "name": "Kandinsky 5 Lite T2V Distilled 10s 2B"
+    },
+    {
+      "model_type": "k5_lite_t2v_10s_distil_sparse",
+      "family": "kandinsky5",
+      "name": "Kandinsky 5 Lite T2V Distilled 10s Sparse 2B"
+    },
+    {
+      "model_type": "k5_lite_t2v_5s_distil",
+      "family": "kandinsky5",
+      "name": "Kandinsky 5 Lite T2V Distilled 5s 2B"
+    },
+    {
+      "model_type": "k5_pro_i2v",
+      "family": "kandinsky5",
+      "name": "Kandinsky 5 Pro I2V SFT 5s 19B"
+    },
+    {
+      "model_type": "k5_pro_t2v",
+      "family": "kandinsky5",
+      "name": "Kandinsky 5 Pro T2V SFT 5s 19B"
+    },
+    {
+      "model_type": "k5_pro_t2v_10s_sft",
+      "family": "kandinsky5",
+      "name": "Kandinsky 5 Pro T2V SFT 10s 19B"
+    },
+    {
+      "model_type": "k5_pro_t2v_10s_sft_sparse",
+      "family": "kandinsky5",
+      "name": "Kandinsky 5 Pro T2V SFT 10s Sparse 19B"
+    },
+    {
+      "model_type": "k6_lite_distill",
+      "family": "kandinsky6",
+      "name": "Kandinsky 6 Lite Distilled 3B"
+    },
+    {
+      "model_type": "k6_pro_distill",
+      "family": "kandinsky6",
+      "name": "Kandinsky 6 Pro Distilled 30B"
+    },
+    {
+      "model_type": "kiwi_edit",
+      "family": "wan2_2",
+      "name": "Kiwi Edit Instruct-Reference 5B"
+    },
+    {
+      "model_type": "kiwi_edit_instruct_only",
+      "family": "wan2_2",
+      "name": "Kiwi Edit Instruct-Only 5B"
+    },
+    {
+      "model_type": "kiwi_edit_reference_only",
+      "family": "wan2_2",
+      "name": "Kiwi Edit Reference-Only 5B"
+    },
+    {
+      "model_type": "longcat_avatar",
+      "family": "longcat",
+      "name": "LongCat Avatar Single 13.6B"
+    },
+    {
+      "model_type": "longcat_avatar_multi",
+      "family": "longcat",
+      "name": "LongCat Avatar Multi 13.6B"
+    },
+    {
+      "model_type": "longcat_avatar_v1_5",
+      "family": "longcat",
+      "name": "LongCat Avatar 1.5 Distilled 13.6B"
+    },
+    {
+      "model_type": "longcat_video",
+      "family": "longcat",
+      "name": "LongCat Video 13.6B"
+    },
+    {
+      "model_type": "ltx2_19B",
+      "family": "ltx2",
+      "name": "LTX-2 2.0 Dev 19B"
+    },
+    {
+      "model_type": "ltx2_19B_nvfp4",
+      "family": "ltx2",
+      "name": "LTX-2 2.0 Dev NVFP4 19B"
+    },
+    {
+      "model_type": "ltx2_22B",
+      "family": "ltx2",
+      "name": "LTX-2 2.3 Dev 1.0 22B"
+    },
+    {
+      "model_type": "ltx2_22B_1_1",
+      "family": "ltx2",
+      "name": "LTX-2 2.3 Dev 1.1 22B"
+    },
+    {
+      "model_type": "ltx2_22B_1_1_edit_anything",
+      "family": "ltx2",
+      "name": "LTX-2 2.3 EditAnything Ref V2V Dev 1.1 22B"
+    },
+    {
+      "model_type": "ltx2_22B_distilled",
+      "family": "ltx2",
+      "name": "LTX-2 2.3 Distilled 1.0 22B"
+    },
+    {
+      "model_type": "ltx2_22B_distilled_1_1",
+      "family": "ltx2",
+      "name": "LTX-2 2.3 Distilled 1.1 22B"
+    },
+    {
+      "model_type": "ltx2_22B_distilled_1_1_edit_anything",
+      "family": "ltx2",
+      "name": "LTX-2 2.3 EditAnything Ref V2V Distilled 1.1 22B"
+    },
+    {
+      "model_type": "ltx2_22B_distilled_edit_anything",
+      "family": "ltx2",
+      "name": "LTX-2 2.3 EditAnything Ref V2V Distilled 1.0 22B"
+    },
+    {
+      "model_type": "ltx2_22B_distilled_gguf_q4_k_m",
+      "family": "ltx2",
+      "name": "LTX-2 2.3 Distilled 1.0 GGUF Q4_K_M Light 22B"
+    },
+    {
+      "model_type": "ltx2_22B_distilled_gguf_q6_k",
+      "family": "ltx2",
+      "name": "LTX-2 2.3 Distilled 1.0 GGUF Q6_K Light 22B"
+    },
+    {
+      "model_type": "ltx2_22B_distilled_gguf_q8_0",
+      "family": "ltx2",
+      "name": "LTX-2 2.3 Distilled 1.0 GGUF Q8_0 Light 22B"
+    },
+    {
+      "model_type": "ltx2_22B_edit_anything",
+      "family": "ltx2",
+      "name": "LTX-2 2.3 EditAnything Ref V2V Dev 1.0 22B"
+    },
+    {
+      "model_type": "ltx2_22B_msr",
+      "family": "ltx2",
+      "name": "LTX-2 2.3 MSR Ref V1 Distilled 1.1 22B"
+    },
+    {
+      "model_type": "ltx2_22B_msr_v2",
+      "family": "ltx2",
+      "name": "LTX-2 2.3 MSR Ref V2 Distilled 1.1 22B"
+    },
+    {
+      "model_type": "ltx2_22B_nvfp4",
+      "family": "ltx2",
+      "name": "LTX-2 2.3 Dev NVFP4 1.0 22B"
+    },
+    {
+      "model_type": "ltx2_25_22B",
+      "family": "ltx2",
+      "name": "LTX-2 2.5 Dev 22B"
+    },
+    {
+      "model_type": "ltx2_25_22B_alpha_gen",
+      "family": "ltx2",
+      "name": "LTX-2 2.5 Alpha Gen 22B"
+    },
+    {
+      "model_type": "ltx2_25_22B_distilled",
+      "family": "ltx2",
+      "name": "LTX-2 2.5 Distilled 22B"
+    },
+    {
+      "model_type": "ltx2_25_22B_distilled_nvfp4",
+      "family": "ltx2",
+      "name": "LTX-2 2.5 Distilled NVFP4 22B"
+    },
+    {
+      "model_type": "ltx2_25_22B_layout_to_render",
+      "family": "ltx2",
+      "name": "LTX-2 2.5 Layout to Render 22B"
+    },
+    {
+      "model_type": "ltx2_25_22B_msr",
+      "family": "ltx2",
+      "name": "LTX-2 2.5 MSR Ref Distilled 22B"
+    },
+    {
+      "model_type": "ltx2_distilled",
+      "family": "ltx2",
+      "name": "LTX-2 2.0 Distilled 19B"
+    },
+    {
+      "model_type": "ltx2_distilled_gguf_q4_k_m",
+      "family": "ltx2",
+      "name": "LTX-2 2.0 Distilled GGUF Q4_K_M 19B "
+    },
+    {
+      "model_type": "ltx2_distilled_gguf_q6_k",
+      "family": "ltx2",
+      "name": "LTX-2 2.0 Distilled GGUF Q6_K 19B "
+    },
+    {
+      "model_type": "ltx2_distilled_gguf_q8_0",
+      "family": "ltx2",
+      "name": "LTX-2 2.0 Distilled GGUF Q8_0 19B "
+    },
+    {
+      "model_type": "ltxv_13B",
+      "family": "ltxv",
+      "name": "LTX Video 0.9.8 13B"
+    },
+    {
+      "model_type": "ltxv_distilled",
+      "family": "ltxv",
+      "name": "LTX Video 0.9.8 Distilled 13B"
+    },
+    {
+      "model_type": "lucy_edit",
+      "family": "wan2_2",
+      "name": "Wan2.2 Lucy Edit v1 5B"
+    },
+    {
+      "model_type": "lucy_edit_1_1",
+      "family": "wan2_2",
+      "name": "Wan2.2 Lucy Edit v1.1 5B"
+    },
+    {
+      "model_type": "lucy_edit_fastwan",
+      "family": "wan2_2",
+      "name": "Wan2.2 Lucy Edit v1 FastWan 5B"
+    },
+    {
+      "model_type": "lucy_edit_fastwan_1_1",
+      "family": "wan2_2",
+      "name": "Wan2.2 Lucy Edit v1.1 FastWan 5B"
+    },
+    {
+      "model_type": "lynx",
+      "family": "wan",
+      "name": "Wan2.1 Lynx 14B"
+    },
+    {
+      "model_type": "magi_human",
+      "family": "magi_human",
+      "name": "Magi Human Base 15B"
+    },
+    {
+      "model_type": "magi_human_distill",
+      "family": "magi_human",
+      "name": "Magi Human Distill 15B"
+    },
+    {
+      "model_type": "magi_human_distill_sr1080",
+      "family": "magi_human",
+      "name": "Magi Human Distill 15B SR 1080p"
+    },
+    {
+      "model_type": "magi_human_sr1080",
+      "family": "magi_human",
+      "name": "Magi Human Base 15B SR 1080p"
+    },
+    {
+      "model_type": "minimax_h3_control",
+      "family": "minimax_h3",
+      "name": "MiniMax H3 FL2VA ControlNet-Union 33B"
+    },
+    {
+      "model_type": "minimax_h3_control_pruned",
+      "family": "minimax_h3",
+      "name": "MiniMax H3 FL2VA ControlNet-Union Pruned 20B"
+    },
+    {
+      "model_type": "minimax_h3_fasth3_omni",
+      "family": "minimax_h3",
+      "name": "MiniMax H3 FastH3 Omni 8-Step 20B"
+    },
+    {
+      "model_type": "minimax_h3_fasth3_omni_nvfp4",
+      "family": "minimax_h3",
+      "name": "MiniMax H3 FastH3 Omni NVFP4 QAD 8-Step 20B"
+    },
+    {
+      "model_type": "minimax_h3_fl2va",
+      "family": "minimax_h3",
+      "name": "MiniMax H3 FL2VA 33B"
+    },
+    {
+      "model_type": "minimax_h3_fl2va_pdd",
+      "family": "minimax_h3",
+      "name": "MiniMax H3 FL2VA PDD 8-Step 33B"
+    },
+    {
+      "model_type": "minimax_h3_fl2va_pruned",
+      "family": "minimax_h3",
+      "name": "MiniMax H3 FL2VA Pruned 20B"
+    },
+    {
+      "model_type": "minimax_h3_fl2va_pruned_pdd",
+      "family": "minimax_h3",
+      "name": "MiniMax H3 FL2VA Pruned PDD 8-Step 20B"
+    },
+    {
+      "model_type": "minimax_h3_fl2va_pruned_veda",
+      "family": "minimax_h3",
+      "name": "MiniMax H3 FL2VA Pruned Veda Sparse 20B"
+    },
+    {
+      "model_type": "minimax_h3_fl2va_veda",
+      "family": "minimax_h3",
+      "name": "MiniMax H3 FL2VA Veda Sparse 33B"
+    },
+    {
+      "model_type": "minimax_h3_ref2va",
+      "family": "minimax_h3",
+      "name": "MiniMax H3 Ref2VA 33B"
+    },
+    {
+      "model_type": "minimax_h3_ref2va_pdd",
+      "family": "minimax_h3",
+      "name": "MiniMax H3 Ref2VA PDD 8-Step 33B"
+    },
+    {
+      "model_type": "minimax_h3_ref2va_pruned",
+      "family": "minimax_h3",
+      "name": "MiniMax H3 Ref2VA Pruned 20B"
+    },
+    {
+      "model_type": "minimax_h3_ref2va_pruned_pdd",
+      "family": "minimax_h3",
+      "name": "MiniMax H3 Ref2VA Pruned PDD 8-Step 20B"
+    },
+    {
+      "model_type": "minimax_h3_ref2va_pruned_ptd_refasymopd",
+      "family": "minimax_h3",
+      "name": "MiniMax H3 Ref2VA Pruned PTD RefAsymOPD 8-Step 20B"
+    },
+    {
+      "model_type": "minimax_h3_ref2va_pruned_veda",
+      "family": "minimax_h3",
+      "name": "MiniMax H3 Ref2VA Pruned Veda Sparse 20B"
+    },
+    {
+      "model_type": "minimax_h3_ref2va_ptd_refasymopd",
+      "family": "minimax_h3",
+      "name": "MiniMax H3 Ref2VA PTD RefAsymOPD 8-Step 33B"
+    },
+    {
+      "model_type": "minimax_h3_ref2va_veda",
+      "family": "minimax_h3",
+      "name": "MiniMax H3 Ref2VA Veda Sparse 33B"
+    },
+    {
+      "model_type": "minimax_h3_singularity_v2",
+      "family": "minimax_h3",
+      "name": "MiniMax H3 Singularity V2 Ref2VA 33B"
+    },
+    {
+      "model_type": "minimax_h3_singularity_v2_pruned",
+      "family": "minimax_h3",
+      "name": "MiniMax H3 Singularity V2 Ref2VA Pruned 20B"
+    },
+    {
+      "model_type": "minimax_h3_vdn",
+      "family": "minimax_h3",
+      "name": "MiniMax H3 VDN 8-Step 33B"
+    },
+    {
+      "model_type": "minimax_h3_vdn_pruned",
+      "family": "minimax_h3",
+      "name": "MiniMax H3 FL2VA Pruned VDN 8-Step 20B"
+    },
+    {
+      "model_type": "mocha",
+      "family": "wan",
+      "name": "Wan2.1 MoCha 14B"
+    },
+    {
+      "model_type": "moviigen",
+      "family": "wan",
+      "name": "MoviiGen 1080p 14B"
+    },
+    {
+      "model_type": "multitalk",
+      "family": "wan",
+      "name": "Multitalk 480p 14B"
+    },
+    {
+      "model_type": "multitalk_720p",
+      "family": "wan",
+      "name": "Multitalk 720p 14B"
+    },
+    {
+      "model_type": "ovi",
+      "family": "wan2_2",
+      "name": "Wan2.2 Ovi v1.0 5s 10B"
+    },
+    {
+      "model_type": "ovi_1_1",
+      "family": "wan2_2",
+      "name": "Wan2.2 Ovi v1.1 5s 10B"
+    },
+    {
+      "model_type": "ovi_1_1_10s",
+      "family": "wan2_2",
+      "name": "Wan2.2 Ovi v1.1 10s 10B"
+    },
+    {
+      "model_type": "ovi_1_1_10s_fastwan",
+      "family": "wan2_2",
+      "name": "Wan2.2 Ovi v1.1 FastWan 10s 10B"
+    },
+    {
+      "model_type": "ovi_1_1_fastwan",
+      "family": "wan2_2",
+      "name": "Wan2.2 Ovi v1.1 FastWan 5s 10B"
+    },
+    {
+      "model_type": "ovi_fastwan",
+      "family": "wan2_2",
+      "name": "Wan2.2 Ovi v1.0 FastWan 5s 10B"
+    },
+    {
+      "model_type": "phantom_1.3B",
+      "family": "wan",
+      "name": "Phantom 1.3B"
+    },
+    {
+      "model_type": "phantom_14B",
+      "family": "wan",
+      "name": "Phantom 14B"
+    },
+    {
+      "model_type": "prism",
+      "family": "wan2_2",
+      "name": "Wan2.2 Prism Alpha 14B"
+    },
+    {
+      "model_type": "recam_1.3B",
+      "family": "wan",
+      "name": "ReCamMaster 1.3B"
+    },
+    {
+      "model_type": "scail",
+      "family": "wan",
+      "name": "SCAIL Preview 14B"
+    },
+    {
+      "model_type": "scail2_14B",
+      "family": "wan",
+      "name": "SCAIL-2 14B"
+    },
+    {
+      "model_type": "shotplan_t2v",
+      "family": "wan",
+      "name": "Wan2.1 ShotPlan 14B"
+    },
+    {
+      "model_type": "shotplan_t2v_2_2",
+      "family": "wan2_2",
+      "name": "Wan2.2 ShotPlan 14B"
+    },
+    {
+      "model_type": "sky_df_1.3B",
+      "family": "wan",
+      "name": "SkyReels2 Diffusion Forcing 1.3B"
+    },
+    {
+      "model_type": "sky_df_14B",
+      "family": "wan",
+      "name": "SkyReels2 Diffusion Forcing 540p 14B"
+    },
+    {
+      "model_type": "sky_df_720p_14B",
+      "family": "wan",
+      "name": "SkyReels2 Diffusion Forcing 720p 14B"
+    },
+    {
+      "model_type": "standin",
+      "family": "wan",
+      "name": "Wan2.1 Standin 14B"
+    },
+    {
+      "model_type": "steadydancer",
+      "family": "wan",
+      "name": "Wan2.1 Steady Dancer 14B"
+    },
+    {
+      "model_type": "t2v",
+      "family": "wan",
+      "name": "Wan2.1 Text2video 14B"
+    },
+    {
+      "model_type": "t2v_1.3B",
+      "family": "wan",
+      "name": "Wan2.1 Text2video 1.3B"
+    },
+    {
+      "model_type": "t2v_1.3B_nvfp4",
+      "family": "wan",
+      "name": "Wan2.1 Text2video NVFP4 Lightx2v 4-step 1.3B"
+    },
+    {
+      "model_type": "t2v_2_2",
+      "family": "wan2_2",
+      "name": "Wan2.2 Text2video 14B"
+    },
+    {
+      "model_type": "t2v_fusionix",
+      "family": "wan",
+      "name": "Wan2.1 Text2video FusioniX 14B"
+    },
+    {
+      "model_type": "t2v_nexus_1.3B",
+      "family": "wan",
+      "name": "Wan2.1 Text2video Nexus 1.3B"
+    },
+    {
+      "model_type": "t2v_sf",
+      "family": "wan",
+      "name": "Wan2.1 Text2video Lightning 14B"
+    },
+    {
+      "model_type": "ti2v_2_2",
+      "family": "wan2_2",
+      "name": "Wan2.2 TextImage2video 5B"
+    },
+    {
+      "model_type": "ti2v_2_2_fastwan",
+      "family": "wan2_2",
+      "name": "Wan2.2 TextImage2video FastWan 5B"
+    },
+    {
+      "model_type": "uni3c",
+      "family": "wan",
+      "name": "Wan2.1 Uni3C Camera Control 14B"
+    },
+    {
+      "model_type": "vace_1.3B",
+      "family": "wan",
+      "name": "Vace 1.3B"
+    },
+    {
+      "model_type": "vace_14B",
+      "family": "wan",
+      "name": "Vace 14B"
+    },
+    {
+      "model_type": "vace_14B_2_2",
+      "family": "wan2_2",
+      "name": "Wan2.2 Vace 14B"
+    },
+    {
+      "model_type": "vace_14B_cocktail",
+      "family": "wan",
+      "name": "Vace Cocktail 14B"
+    },
+    {
+      "model_type": "vace_14B_cocktail_2_2",
+      "family": "wan2_2",
+      "name": "Wan2.2 Vace Experimental Cocktail 14B"
+    },
+    {
+      "model_type": "vace_14B_fusionix",
+      "family": "wan",
+      "name": "Vace FusioniX 14B"
+    },
+    {
+      "model_type": "vace_14B_lightning_3p_2_2",
+      "family": "wan2_2",
+      "name": "Wan2.2 Vace Lightning 3 Phases 14B"
+    },
+    {
+      "model_type": "vace_14B_sf",
+      "family": "wan",
+      "name": "Vace Self-Forcing 14B"
+    },
+    {
+      "model_type": "vace_ditto_14B",
+      "family": "wan",
+      "name": "Ditto 14B"
+    },
+    {
+      "model_type": "vace_fun_14B_2_2",
+      "family": "wan2_2",
+      "name": "Wan2.2 Vace Fun 14B"
+    },
+    {
+      "model_type": "vace_fun_14B_cocktail_2_2",
+      "family": "wan2_2",
+      "name": "Wan2.2 Vace Fun Cocktail 14B"
+    },
+    {
+      "model_type": "vace_lynx_14B",
+      "family": "wan",
+      "name": "Vace Lynx 14B"
+    },
+    {
+      "model_type": "vace_multitalk_14B",
+      "family": "wan",
+      "name": "Vace Multitalk FusioniX 14B"
+    },
+    {
+      "model_type": "vace_standin_14B",
+      "family": "wan",
+      "name": "Vace Standin 14B"
+    },
+    {
+      "model_type": "viggle_animate",
+      "family": "minimax_h3",
+      "name": "Viggle-Animate Pruned 20B"
+    },
+    {
+      "model_type": "vista4d",
+      "family": "wan",
+      "name": "Wan2.1 Vista4D 384p 14B"
+    },
+    {
+      "model_type": "vista4d_720p",
+      "family": "wan",
+      "name": "Wan2.1 Vista4D 720p 14B"
+    },
+    {
+      "model_type": "wanmove",
+      "family": "wan",
+      "name": "Wan2.1 Wan-Move 480p 14B"
+    }
+  ]
+}
