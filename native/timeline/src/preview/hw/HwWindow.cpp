@@ -6,6 +6,7 @@
 #include <QQuickGraphicsDevice>
 #include <QQuickWindow>
 #include <QSGRendererInterface>
+#include <QtGlobal>
 
 // A Vulkan scene graph (Linux CI on lavapipe with QSG_RHI_BACKEND=vulkan,
 // or the VAAPI path) needs a QVulkanInstance on the window before
@@ -14,7 +15,6 @@
 #if __has_include(<vulkan/vulkan.h>)
 #define NT_WINDOW_VULKAN 1
 #include <QVulkanInstance>
-#include <QtGlobal>
 #endif
 
 #if NT_HW_D3D11VA
@@ -81,6 +81,7 @@ void selectGraphicsApi(bool) {}
 void prepareWindow(QQuickWindow* window) {
     if (attachVulkan(window)) return;
     if (QQuickWindow::graphicsApi() != QSGRendererInterface::Direct3D11) return;
+    if (qEnvironmentVariableIntValue("QSG_RHI_PREFER_SOFTWARE_RENDERER") != 0) return;
     ID3D11Device* device = nullptr;
     ID3D11DeviceContext* context = nullptr;
     const UINT flags = D3D11_CREATE_DEVICE_BGRA_SUPPORT | D3D11_CREATE_DEVICE_VIDEO_SUPPORT;

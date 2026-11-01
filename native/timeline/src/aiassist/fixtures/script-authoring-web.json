@@ -880,6 +880,7 @@
         "showSpeaker": false,
         "speakerName": "",
         "status": "draft",
+        "hasVoice": false,
         "canVoice": false,
         "clipId": null
       },
@@ -892,6 +893,7 @@
         "showSpeaker": false,
         "speakerName": "",
         "status": "draft",
+        "hasVoice": false,
         "canVoice": false,
         "clipId": null
       },
@@ -922,6 +924,7 @@
         "speakerName": "Alice",
         "speakerColor": "#112233",
         "status": "voiced",
+        "hasVoice": true,
         "canVoice": false,
         "clipId": "clip-voiced",
         "clipStartMs": 500
@@ -952,6 +955,7 @@
         "speakerName": "Alice",
         "speakerColor": "#112233",
         "status": "stale",
+        "hasVoice": true,
         "canVoice": true,
         "clipId": null
       },
@@ -965,6 +969,7 @@
         "showSpeaker": true,
         "speakerName": "Bob",
         "status": "draft",
+        "hasVoice": false,
         "canVoice": true,
         "clipId": null
       },

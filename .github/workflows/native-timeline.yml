@@ -243,6 +243,8 @@ jobs:
         env:
           QSG_RHI_BACKEND: d3d11
           QSG_RHI_PREFER_SOFTWARE_RENDERER: "1"
+          QT_QPA_FONTDIR: ${{ github.workspace }}/native/ui_primitives/resources/fonts
+          QT_FORCE_STDERR_LOGGING: "1"
         run: |
           ctest --test-dir native/timeline/build-ci --output-on-failure --timeout 600 -j 2 -LE render
           QSG_INFO=1 QT_LOGGING_RULES="qt.scenegraph.general=true;qt.rhi.general=true" \
@@ -303,7 +305,13 @@ jobs:
           cp native/timeline/build-ci/nodetool-timeline.exe "$out/"
           windeployqt --release --qmldir native/timeline/qml --no-translations "$out/nodetool-timeline.exe"
           cp "$FFMPEG_LGPL_BIN"/*.dll "$out/"
+          pwsh -NoProfile -File "$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/msbuild/applocal.ps1" \
+            -targetBinary "$out/nodetool-timeline.exe" \
+            -installedDir "$VCPKG_INSTALLATION_ROOT/installed/x64-windows/bin"
           mkdir -p "$out/licenses"
+          for port in harfbuzz freetype zlib bzip2 libpng brotli; do
+            cp "$VCPKG_INSTALLATION_ROOT/installed/x64-windows/share/$port/copyright" "$out/licenses/$port.txt"
+          done
           cp native/timeline/licenses/*.txt native/ui_primitives/resources/licenses/* "$out/licenses/"
           cp native/ui_primitives/resources/icons/providers/README.md "$out/licenses/Provider-Icons-notice.md"
           tmp=$(cygpath -u "$RUNNER_TEMP")

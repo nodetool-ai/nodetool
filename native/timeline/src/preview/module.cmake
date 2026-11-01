@@ -79,6 +79,11 @@ function(nt_preview_tests)
     # checks the backend in their log (.github/workflows/native-timeline.yml).
     # The window-event tests set the offscreen platform in their ENVIRONMENT.
     set_tests_properties(tst_editpreview PROPERTIES LABELS render)
+    if(WIN32)
+        nt_qt_test(tst_d3d11window LIBS timeline_decode Qt6::Quick Qt6::GuiPrivate Qt6::Test)
+        target_sources(tst_d3d11window PRIVATE src/preview/hw/HwWindow.cpp)
+        set_tests_properties(tst_d3d11window PROPERTIES LABELS render)
+    endif()
     # Linux: the VAAPI interop's frame completion marks on a Vulkan QRhi.
     if(UNIX AND NOT APPLE AND Vulkan_FOUND AND LIBVA_FOUND)
         qt_add_executable(tst_vulkaninterop tests/tst_vulkaninterop.cpp)

@@ -6,6 +6,7 @@
 //   Windows  D3D11. prepareWindow() creates the ID3D11Device with
 //            D3D11_CREATE_DEVICE_VIDEO_SUPPORT, which FFmpeg's D3D11VA needs,
 //            and hands it to Qt Quick, so decoder and renderer share it.
+//            Software rendering requests leave device selection to Qt.
 //   Linux    Vulkan when hardware decode is wanted: selectGraphicsApi()
 //            picks it unless QSG_RHI_BACKEND says otherwise, and
 //            prepareWindow() gives the window a Vulkan instance and asks for
