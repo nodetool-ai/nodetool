@@ -196,6 +196,13 @@ export function enumerateAllPendingKeys(
 
 export interface ActorResult {
   outputs: Record<string, unknown>;
+  /**
+   * The committed result of each correlated invocation, one per invocation
+   * key in first-fired order. A fan-out fires a node once per item, so
+   * `outputs` (the last result) holds only the final item. Absent for modes
+   * that do not fire per key.
+   */
+  invocationOutputs?: Record<string, unknown>[];
   error?: string;
   errorDetail?: NodeErrorDetail;
 }
@@ -265,6 +272,13 @@ export class NodeActor {
 
   /** Latest execution result. */
   private _latestResult: Record<string, unknown> | null = null;
+
+  /**
+   * Latest result per invocation key, in first-fired order. Within one key
+   * the last result wins, so a chunk stream still collapses to its final
+   * frame while each fanned-out item keeps its own entry.
+   */
+  private _invocationResults = new Map<string, Record<string, unknown>>();
 
   /** Collected non-null outputs for streaming-output nodes. */
   private _streamingCollectedOutputs: Record<string, unknown> | null = null;
@@ -478,7 +492,11 @@ export class NodeActor {
       "completed",
       skipResult ? undefined : (this._latestResult ?? {})
     );
-    return { outputs: this._latestResult ?? {} };
+    const result: ActorResult = { outputs: this._latestResult ?? {} };
+    if (this._invocationResults.size > 0) {
+      result.invocationOutputs = [...this._invocationResults.values()];
+    }
+    return result;
   }
 
   /**
@@ -492,6 +510,8 @@ export class NodeActor {
    * live-test experience.
    */
   private async _runExecutionMode(): Promise<void> {
+    // A run cancelled before this actor started must not execute the node.
+    if (this._cancelSignal.aborted) return;
     const triggerEvent = this._executionContext?.triggerEvent;
     if (
       this.node.is_trigger &&
@@ -1570,6 +1590,10 @@ export class NodeActor {
   private async _executeWithInputs(
     inputs: Record<string, unknown>
   ): Promise<void> {
+    // Cancel closes the inbox, which ends the scheduler loop with whatever
+    // sticky values it holds. Firing on them would run the node on partial
+    // input after the user stopped the run.
+    if (this._cancelSignal.aborted) return;
     // Merge node properties as defaults — edge inputs override.
     // This matches Python's behavior where process() always receives
     // the node's own property values as baseline inputs.
@@ -1610,6 +1634,7 @@ export class NodeActor {
     );
     if (outputs === SKIPPED) return;
     this._latestResult = outputs;
+    this._commitInvocationResult(outputs);
     await this._sendOutputs(
       this.node.id,
       outputs,
@@ -1618,6 +1643,16 @@ export class NodeActor {
     // Site #1 (RFC §5): correlated process() — one per ready key, so N/run
     // for a generator (the primary 6×-collapse fix).
     this._emitGenerationComplete(outputs, inputs);
+  }
+
+  /** Record one committed invocation result under its invocation key. */
+  private _commitInvocationResult(outputs: Record<string, unknown>): void {
+    const scope = this._correlation?.invocationScope ?? [];
+    const key =
+      scope.length > 0 && this._currentInvocationLineage
+        ? (tryProjectLineageKey(this._currentInvocationLineage, scope) ?? "")
+        : "";
+    this._invocationResults.set(key, outputs);
   }
 
   /**
@@ -1664,6 +1699,7 @@ export class NodeActor {
           case "end_stream":
             this._completeOutputSlots();
             this._latestResult = { ...(this._streamingCollectedOutputs ?? {}) };
+            this._commitInvocationResult(this._latestResult);
             // `end_stream` keeps what the stream produced, so the invocation
             // committed — it just committed early. Skipping the commit marker
             // would hide those outputs from replay and asset autosave, which
@@ -1675,6 +1711,7 @@ export class NodeActor {
         }
       }
       this._latestResult = { ...(this._streamingCollectedOutputs ?? {}) };
+      this._commitInvocationResult(this._latestResult);
       // Site #4 (RFC §5): genProcess stream-end — ONCE per stream, carrying the
       // overwrite-merged _streamingCollectedOutputs. Per-yield partials stay on
       // output_update (chunks); multi-artifact-per-output-slot streaming is OUT
@@ -2017,6 +2054,7 @@ export class NodeActor {
     }
 
     for await (const item of this.inbox.iterInput("__control__")) {
+      if (this._cancelSignal.aborted) break;
       const event = item as ControlEvent;
       if (event.event_type === "stop") {
         break;
