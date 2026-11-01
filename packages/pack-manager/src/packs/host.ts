@@ -1,4 +1,4 @@
-import { existsSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { join } from "node:path";
@@ -10,7 +10,7 @@ import { CliRootNotFoundError, detectInstallMode, detectStandaloneFeatureMode, i
 import { readInstalledPacks, type InstalledPackSnapshot } from "./installed.js";
 import { readDesiredFor } from "./install-state.js";
 import { restoreWarning } from "./management.js";
-import { activatePackResolution } from "./resolution.js";
+import { activatePackResolution, PACKS_CLI_ROOT_ENV, within } from "./resolution.js";
 
 let entryUrl: string | undefined;
 let snapshot: InstalledPackSnapshot | undefined;
@@ -19,6 +19,41 @@ let snapshot: InstalledPackSnapshot | undefined;
 export function loaderContextForSnapshot(value: InstalledPackSnapshot): PackLoaderContext {
   if (value.resolution) { activatePackResolution(value.resolution); }
   return { coreVersion: value.mode.coreVersion, packs: value.packs.map(pack => ({ id: pack.id, packages: [pack, ...pack.providedPackages] })), install: installDetailsForMode(value.mode) };
+}
+
+/**
+ * A feature inside a pack project has no CLI among its ancestors. The CLI that
+ * activated the project names itself in the environment, also for the child
+ * processes it spawns, and owns the entry only when the entry is in its project.
+ */
+function inheritedCliMode(entry: string): InstallMode | null {
+  const cliRoot = process.env[PACKS_CLI_ROOT_ENV];
+  if (!cliRoot) { return null; }
+  let mode: InstallMode;
+  try { mode = detectInstallMode(join(cliRoot, "package.json")); }
+  catch (error) {
+    if (error instanceof CliRootNotFoundError) { return null; }
+    throw error;
+  }
+  if (mode.kind !== "global" && mode.kind !== "local") { return null; }
+  let packsRoot: string;
+  try { packsRoot = realpathSync(mode.packsRoot); }
+  catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") { return null; }
+    throw error;
+  }
+  return within(packsRoot, realpathSync(entry)) ? mode : null;
+}
+
+function standaloneMode(url: string, catalog: NodeCatalogIndex | undefined): InstallMode {
+  const resolver = createRequire(url);
+  try {
+    return detectInstallMode(resolver.resolve("@nodetool-ai/cli"));
+  } catch (cause) {
+    const installedHost = (resolver.resolve.paths("@nodetool-ai/cli") ?? []).some(directory => existsSync(join(directory, "@nodetool-ai/cli")));
+    if (!(cause instanceof Error) || !("code" in cause) || cause.code !== "MODULE_NOT_FOUND" || installedHost) { throw cause; }
+    return detectStandaloneFeatureMode(fileURLToPath(url), catalog ?? readCatalogIndex());
+  }
 }
 
 /** Configure inventory lazily. Reading help does not read install state. */
@@ -31,14 +66,7 @@ export function configureCliPackHost(url: string, options: { readonly catalog?: 
       mode = detectInstallMode(fileURLToPath(url));
     } catch (error) {
       if (!(error instanceof CliRootNotFoundError)) { throw error; }
-      const resolver = createRequire(url);
-      try {
-        mode = detectInstallMode(resolver.resolve("@nodetool-ai/cli"));
-      } catch (cause) {
-        const installedHost = (resolver.resolve.paths("@nodetool-ai/cli") ?? []).some(directory => existsSync(join(directory, "@nodetool-ai/cli")));
-        if (!(cause instanceof Error) || !("code" in cause) || cause.code !== "MODULE_NOT_FOUND" || installedHost) { throw cause; }
-        mode = detectStandaloneFeatureMode(fileURLToPath(url), options.catalog ?? readCatalogIndex());
-      }
+      mode = inheritedCliMode(fileURLToPath(url)) ?? standaloneMode(url, options.catalog);
     }
     snapshot = readInstalledPacks(mode, options.catalog);
     if (mode.kind === "global" || mode.kind === "local") {
