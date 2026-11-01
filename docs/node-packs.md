@@ -70,8 +70,10 @@ nodetool packs add --for workflow.json
 nodetool packs add --restore
 ```
 
-Packs use exact versions and integrity pins from the CLI release. Commands
-support global installations and npm projects. Add `--yes` to confirm an
+Packs use exact versions and integrity pins from the CLI release. They
+install into an npm project in `<data dir>/packs/<core version>/`, so the CLI's
+own directory is never changed and no write access to the global npm prefix is
+needed. Commands support global installations and npm projects. Add `--yes` to confirm an
 installation in a non-interactive terminal. Temporary npx installations and
 development checkouts support diagnostics but refuse installation changes.
 Restart running `nodetool serve` and `nodetool mcp serve` processes after
@@ -80,7 +82,7 @@ adding or removing packs. See [CLI pack commands](cli.md#nodetool-packs).
 Other `nodetool packs` subcommands:
 
 - `nodetool packs remove <ids...>` removes packs and keeps the requirements of the packs that stay.
-- `nodetool packs doctor` checks install mode, versions, integrity, and registration. It takes `--json`, `--installed`, `--pack <ids...>`, and `--repair`.
+- `nodetool packs doctor` checks install mode, versions, integrity, and registration. It takes `--json`, `--installed`, `--pack <ids...>`, and `--repair`, which rebuilds the pack project.
 - `nodetool packs why <node_type|id>` explains which pack owns a node or runtime library.
 - `nodetool packs compile` builds the npm-backed [sandbox modules](sandbox-package-design.md) of installed packs.
 

@@ -22,10 +22,11 @@
   "dependencies": {
     "@nodetool-ai/config": "*",
     "@nodetool-ai/kernel": "*",
+    "@nodetool-ai/pack-core": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
     "acorn": "^8.16.0",
-    "@nodetool-ai/pack-core": "*"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@stryker-mutator/core": "^9.6.1",
