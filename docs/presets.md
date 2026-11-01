@@ -9,7 +9,7 @@ description: "Named camera moves, looks and effects that compile to the wording 
 
 A preset is a named, reusable piece of direction for a generation: a camera move such as a dolly zoom, or an effect such as a glass shatter. You pick it by name. NodeTool turns it into the wording the chosen model responds to best, adds it to your prompt, and records which presets made the render.
 
-Presets are data. The catalogue is JSON in `packages/presets/catalog/`, the compiler is the `@nodetool-ai/presets` package, and every surface calls the same compiler: the shot editor, the chat composer, the Effects gallery, the Create view, agent tools and the CLI. The package README, [packages/presets/README.md](../packages/presets/README.md), documents the code API.
+Presets are data. The catalogue is JSON in `packages/presets/catalog/`, the compiler is the `@nodetool-ai/presets` package, and every surface calls the same compiler: the shot editor, the chat composer, the Effects gallery, the Create view, agent tools and the CLI. The package README, [packages/presets/README.md](https://github.com/nodetool-ai/nodetool/blob/main/packages/presets/README.md), documents the code API.
 
 ---
 
@@ -66,7 +66,7 @@ support during compile.
 | `sora`, `minimax`, `ltx`, `local-wan`, `default`, unknown | Dropped | Dropped |
 
 The generic video interfaces in
-[provider types](../packages/runtime/src/providers/types.ts) expose duration and
+[provider types](https://github.com/nodetool-ai/nodetool/blob/main/packages/runtime/src/providers/types.ts) expose duration and
 frame count, but no requested fps. Negative prompts reach some endpoints through
 the FAL, KIE and Replicate adapters, but support varies within a family and by
 mode. The media preset boundary does not forward them. Family membership alone
@@ -275,7 +275,7 @@ Previews render on Dreamina through the signed-in Chrome tab, so they are tuned 
 | `scripts/presets/publish-previews.mjs` | Encodes a muted loop of up to three seconds and a PNG poster, uploads both, writes `preview` into the preset file and regenerates the catalogue |
 | `scripts/presets/sync-effects-template.mjs` | Rewrites the `Effects Gallery.json` options from the effect presets. `--check` fails on drift |
 
-Use `--dry-run` to see the plan without Chrome or credentials. Rendering is sequential and resumes from the run records after a stall. Review every clip before publishing, and retune or drop a preset whose preview does not show its move. Each run record holds the model, seed and, when the runner reports it, the credits spent. Dreamina credits are not a list price, so do not use them as BYOK cost evidence. The commands, environment variables and the source image license are in [scripts/presets/README.md](../scripts/presets/README.md).
+Use `--dry-run` to see the plan without Chrome or credentials. Rendering is sequential and resumes from the run records after a stall. Review every clip before publishing, and retune or drop a preset whose preview does not show its move. Each run record holds the model, seed and, when the runner reports it, the credits spent. Dreamina credits are not a list price, so do not use them as BYOK cost evidence. The commands, environment variables and the source image license are in [scripts/presets/README.md](https://github.com/nodetool-ai/nodetool/blob/main/scripts/presets/README.md).
 
 ---
 
@@ -283,8 +283,8 @@ Use `--dry-run` to see the plan without Chrome or credentials. Rendering is sequ
 
 - [Storyboard Editor](storyboard-editor.md#edit-a-shot) for camera presets on a shot
 - [Harnesses](harnesses.md#nodetool-presets) for the selfchecks and CLI
-- [Agent Architecture & Tools](AGENTS.md#built-in-capabilities) for the capability table
-- [packages/presets/README.md](../packages/presets/README.md) for the package API
+- [Agent Architecture & Tools](https://github.com/nodetool-ai/nodetool/blob/main/docs/AGENTS.md#built-in-capabilities) for the capability table
+- [packages/presets/README.md](https://github.com/nodetool-ai/nodetool/blob/main/packages/presets/README.md) for the package API
 
 ## Studios
 
@@ -357,12 +357,12 @@ Agents can set `look_preset_ids` with `edit_storyboard` on `set_board`, `add_sho
 
 The `wangp` provider reports bare defaults stems as model ids. Both server
 compilation and web previews use the shared case-insensitive allowlist in
-[`families.ts`](../packages/presets/src/families.ts). It includes Wan-derived
+[`families.ts`](https://github.com/nodetool-ai/nodetool/blob/main/packages/presets/src/families.ts). It includes Wan-derived
 control, talking, editing and distilled variants, plus legacy Fun Camera ids.
 Provider prefixes, arbitrary suffixes, neighboring versions and non-Wan defaults
 such as Hunyuan, LTX, Kandinsky, image and audio models do not map to `local-wan`.
 The complete claimed and excluded defaults are pinned in the
-[Wan2GP fixtures](../packages/presets/tests/wan2gp-models.json).
+[Wan2GP fixtures](https://github.com/nodetool-ai/nodetool/blob/main/packages/presets/tests/wan2gp-models.json).
 
 Every camera and effect has a local fragment with positive motion or material
 instructions. Restyles describe the whole frame in the target medium. These

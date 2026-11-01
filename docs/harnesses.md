@@ -1690,7 +1690,7 @@ Two selfchecks cover the catalogue:
 The gate selects them from the **Generation presets** surface when a file under
 `packages/presets/`, the `Effects Gallery.json` template or
 `scripts/presets/sync-effects-template.mjs` changes. Previews are rendered by
-hand with the scripts in [scripts/presets/README.md](../scripts/presets/README.md)
+hand with the scripts in [scripts/presets/README.md](https://github.com/nodetool-ai/nodetool/blob/main/scripts/presets/README.md)
 and are not a selfcheck.
 
 ### nodetool eval (Agent Evaluation Suites)
