@@ -189,7 +189,7 @@ describe("CapabilityRun secret-availability audit", () => {
   // rather than a resolver — a different option the audit above cannot see.
   it("the server's host deps supply a secret-availability factory", () => {
     const source = readFileSync(
-      join(repoRoot, "packages/websocket/src/mcp-tool-deps.ts"),
+      join(repoRoot, "packages/project-services/src/mcp-tool-host-deps.ts"),
       "utf8"
     );
     expect(source).toContain("secretAvailability: contextSecretAvailability");
