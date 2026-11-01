@@ -28,5 +28,10 @@
     "veo": "Kodak Vision3 5207 250D daylight-negative emulation: warm skin, clear blue skies, fine grain and a long highlight shoulder. Keep the lighting and color response consistent between frames.",
     "wan": "Kodak Vision3 5207 250D daylight-negative emulation: warm skin, clear blue skies, fine grain and a long highlight shoulder. Retain natural subject detail under this visual treatment."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.kodak-5207/6665e7b5f319ebaf7b7fc8877573b82abf390ffccb3ca41932a68776304ff6c5.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.kodak-5207/6665e7b5f319ebaf7b7fc8877573b82abf390ffccb3ca41932a68776304ff6c5.png",
+    "run": "runs/look.kodak-5207.json"
+  }
 }

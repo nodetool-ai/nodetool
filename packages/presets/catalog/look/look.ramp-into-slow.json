@@ -29,5 +29,10 @@
     "veo": "Begin at natural action speed, smoothly decelerate into slow motion at the action peak, then hold slow motion through the end. Keep the same action and camera path. Show a smooth temporal transition with consistent subject identity.",
     "wan": "Begin at natural action speed, smoothly decelerate into slow motion at the action peak, then hold slow motion through the end. Keep the same action and camera path. Gradually vary action speed with continuous subject motion."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.ramp-into-slow/378774877906286d3673c823a4b9c809eeb8a94addd32d06d828a5e42a44a2df.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.ramp-into-slow/378774877906286d3673c823a4b9c809eeb8a94addd32d06d828a5e42a44a2df.png",
+    "run": "runs/look.ramp-into-slow.json"
+  }
 }

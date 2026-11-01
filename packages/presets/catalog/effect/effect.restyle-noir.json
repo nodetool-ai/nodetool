@@ -16,7 +16,15 @@
     "video"
   ],
   "stackable": false,
+  "conflicts": [],
+  "aliases": [],
   "prompt": {
     "default": "Restyle the video as black-and-white film noir with deep shadows, hard directional light and fine film grain. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-noir/e92943d72951a975d9e9cc2bd7b6709af35c90de713ed343490fe9e7067f8789.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-noir/e92943d72951a975d9e9cc2bd7b6709af35c90de713ed343490fe9e7067f8789.png",
+    "run": "runs/effect.restyle-noir.json"
   }
 }

@@ -29,5 +29,10 @@
     "veo": "Start with accelerated action, smoothly settle into slow motion at the midpoint, then accelerate through the finish without cuts or repeated action. Show a smooth temporal transition with consistent subject identity.",
     "wan": "Start with accelerated action, smoothly settle into slow motion at the midpoint, then accelerate through the finish without cuts or repeated action. Gradually vary action speed with continuous subject motion."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.fast-slow-fast/023bbccad371df84d5b9fcc33a1f5dc714924ee1157b193d1f1ac13c69593f9b.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.fast-slow-fast/023bbccad371df84d5b9fcc33a1f5dc714924ee1157b193d1f1ac13c69593f9b.png",
+    "run": "runs/look.fast-slow-fast.json"
+  }
 }

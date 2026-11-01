@@ -11,7 +11,6 @@ describe("look catalogue", () => {
     expect(new Set(looks.map((look) => look.slot))).toEqual(new Set(["body", "stock", "grade", "lighting", "era", "ramp"]));
     for (const look of looks) {
       expect(look.stackable).toBe(true);
-      expect(look.preview).toBeUndefined();
       for (const family of ["default", "kling", "seedance", "veo", "wan"]) {
         expect(look.prompt[family], look.id).toBeTruthy();
       }

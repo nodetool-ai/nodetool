@@ -31,5 +31,10 @@
     "veo": "Teal-and-amber grade: cool cyan shadows against warm skin, neutral whites and controlled saturation in highlights. Keep the lighting and color response consistent between frames.",
     "wan": "Teal-and-amber grade: cool cyan shadows against warm skin, neutral whites and controlled saturation in highlights. Retain natural subject detail under this visual treatment."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.teal-amber/9bb930cd4b149ed4659cce42c921515fc70a899737cadea1c18cb087fd6d95ac.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.teal-amber/9bb930cd4b149ed4659cce42c921515fc70a899737cadea1c18cb087fd6d95ac.png",
+    "run": "runs/look.teal-amber.json"
+  }
 }

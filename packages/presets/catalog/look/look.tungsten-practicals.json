@@ -28,5 +28,10 @@
     "veo": "Light with visible warm tungsten practical bulbs, localized pools of amber light and dim cool ambient fill, retaining detail around each bulb. Keep the lighting and color response consistent between frames.",
     "wan": "Light with visible warm tungsten practical bulbs, localized pools of amber light and dim cool ambient fill, retaining detail around each bulb. Retain natural subject detail under this visual treatment."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.tungsten-practicals/de3b9d492d3d5a0f7af39533ead68619ac99ff46a5c92736b56a44009bdef451.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.tungsten-practicals/de3b9d492d3d5a0f7af39533ead68619ac99ff46a5c92736b56a44009bdef451.png",
+    "run": "runs/look.tungsten-practicals.json"
+  }
 }

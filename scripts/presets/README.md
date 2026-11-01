@@ -40,6 +40,12 @@ A preset that only edits images renders the edited still on
 its run record has `seed: null`. Publishing turns the still into a three-second
 loop that crossfades from the source still to the edit.
 
+Dreamina has no video-to-video mode, so a video restyle (`video_edit`) renders as
+Seedance reference-to-video with the published `camera.dolly-in` preview as its
+reference video. Its run record holds that clip's URL as `source_url`. The graph
+in the record is the reference-to-video graph that rendered it, not the
+`VideoToVideo` graph that eject builds.
+
 Run records live at `packages/presets/runs/<id>.json`. Completed records matching
 the prompt, model, graph, source hash and seed are skipped. Interrupted records
 are retried on the next invocation. Dreamina’s existing pending-job ledger uses

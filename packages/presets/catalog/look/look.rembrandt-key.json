@@ -28,5 +28,10 @@
     "veo": "Light with one soft key forty-five degrees to the face and slightly above eye level, leaving a small triangle on the shadow cheek and minimal fill. Keep the lighting and color response consistent between frames.",
     "wan": "Light with one soft key forty-five degrees to the face and slightly above eye level, leaving a small triangle on the shadow cheek and minimal fill. Retain natural subject detail under this visual treatment."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.rembrandt-key/4cb59fe2baec913737d42b3fae834165fd4d067d63d78abe9ddb7c15b7dbc4ae.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.rembrandt-key/4cb59fe2baec913737d42b3fae834165fd4d067d63d78abe9ddb7c15b7dbc4ae.png",
+    "run": "runs/look.rembrandt-key.json"
+  }
 }

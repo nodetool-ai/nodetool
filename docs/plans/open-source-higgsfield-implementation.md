@@ -592,6 +592,8 @@ test for the retake mode.
 
 ### P20: Look and restyle previews
 
+Status: done. Restyles render as Seedance reference-to-video on the dolly-in preview, because Dreamina has no video-to-video mode.
+
 - Render and publish previews for the P14 looks and the P19 restyle presets
   through `scripts/presets`, then require previews for every kind again.
 

@@ -43,6 +43,16 @@ describe('preset preview tooling', () => {
     expect(plan.workflow.nodes.find(n => n.id === 'generate').type).toBe('nodetool.image.ImageToImage');
     expect(matches(runRecord(plan, 'completed', '2026-01-01'), plan)).toBe(true);
   });
+  it('plans a video restyle as reference-to-video on the published source clip', async () => {
+    const [plan] = await buildPlan(options(['--ids', 'effect.restyle-noir']));
+    expect(plan.mode).toBe('video_edit');
+    expect(plan.model).toBe('dreamina_seedance_45_pro_draft');
+    expect(plan.source_url).toMatch(/^https:\/\/.+camera\.dolly-in\/.+\.mp4$/);
+    expect(plan.workflow.nodes.find(n => n.id === 'generate').type).toBe('nodetool.video.ReferenceToVideo');
+    expect(plan.workflow.nodes.map(n => n.id)).not.toContain('image');
+    expect(plan.workflow.edges.find(e => e.source === 'video').targetHandle).toBe('reference_videos');
+    expect(runRecord(plan, 'completed', '2026-01-01').source_url).toBe(plan.source_url);
+  });
   it('writes complete records with a fake provider and skips matching runs', () => fixture(async plan => {
     let calls = 0;
     const fakeProvider = async () => { calls++; return { bytes: Buffer.from('fake video'), credits: 7, cost_usd: 0.01 }; };

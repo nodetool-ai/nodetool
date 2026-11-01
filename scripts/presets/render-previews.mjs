@@ -1,6 +1,6 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
-import { options, buildPlan, readRecord, matches, atomicJson, runRecord, source, prompt, isMain } from './common.mjs';
+import { options, buildPlan, readRecord, matches, atomicJson, runRecord, source, sourceVideoUrl, prompt, isMain } from './common.mjs';
 
 export async function renderPlans(plans, { dryRun, checkConnection, render, log = console.log }) {
   const pending = [];
@@ -68,12 +68,23 @@ function prepareStorage(outputDir) {
   })();
   return storageReady;
 }
+let sourceVideoBytes = null;
+async function sourceVideo() {
+  if (!sourceVideoBytes) {
+    const response = await fetch(sourceVideoUrl);
+    if (!response.ok) { throw new Error(`Restyle source video: HTTP ${response.status}`); }
+    sourceVideoBytes = Buffer.from(await response.arrayBuffer());
+  }
+  return sourceVideoBytes;
+}
 async function render(plan) {
   await prepareStorage(dirname(plan.output_path));
   const { run } = await import('@nodetool-ai/dsl');
   const { loadMediaRefBytes } = await import('@nodetool-ai/runtime/media-ref-bytes');
-  const image = { type: 'image', data: (await readFile(source)).toString('base64') };
-  const result = await run(plan.workflow, { params: { prompt, image } });
+  const params = plan.mode === 'video_edit'
+    ? { prompt, video: { type: 'video', data: (await sourceVideo()).toString('base64') } }
+    : { prompt, image: { type: 'image', data: (await readFile(source)).toString('base64') } };
+  const result = await run(plan.workflow, { params });
   const bytes = await loadMediaRefBytes(result.result);
   if (!bytes?.length) { throw new Error('Workflow produced no video bytes'); }
   return { bytes };

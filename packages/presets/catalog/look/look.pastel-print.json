@@ -28,5 +28,10 @@
     "veo": "Pastel print grade: lifted black floor, low saturation, peach highlights and soft blue shadows with gentle contrast. Keep the lighting and color response consistent between frames.",
     "wan": "Pastel print grade: lifted black floor, low saturation, peach highlights and soft blue shadows with gentle contrast. Retain natural subject detail under this visual treatment."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.pastel-print/182a090af75fd84b1463d0d632a6d1e8290478005ebefb6aabef8e86c01c4d98.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.pastel-print/182a090af75fd84b1463d0d632a6d1e8290478005ebefb6aabef8e86c01c4d98.png",
+    "run": "runs/look.pastel-print.json"
+  }
 }

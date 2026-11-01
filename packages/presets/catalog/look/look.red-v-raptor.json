@@ -28,5 +28,10 @@
     "veo": "RED V-Raptor rendering: crisp fine texture, dense blacks and clean specular highlights without digital halos. Keep the lighting and color response consistent between frames.",
     "wan": "RED V-Raptor rendering: crisp fine texture, dense blacks and clean specular highlights without digital halos. Retain natural subject detail under this visual treatment."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.red-v-raptor/c0fdac48064512a6e0287d1ccf15ad1daa46edd7ac1cc248011dbacbc443d59c.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.red-v-raptor/c0fdac48064512a6e0287d1ccf15ad1daa46edd7ac1cc248011dbacbc443d59c.png",
+    "run": "runs/look.red-v-raptor.json"
+  }
 }

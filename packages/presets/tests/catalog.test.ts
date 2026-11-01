@@ -30,8 +30,8 @@ describe("catalogue", () => {
     for (const kind of readdirSync(new URL("catalog/", root))) {
       for (const file of readdirSync(new URL(`catalog/${kind}/`, root))) {
         const preset = catalogEntrySchema.parse(readJson(`catalog/${kind}/${file}`));
-        // Studios have no preview. P20 publishes look and video restyle previews.
-        if (preset.kind === "studio" || preset.kind === "look" || preset.modes.includes("video_edit")) { continue; }
+        // Studios open a surface and have no preview.
+        if (preset.kind === "studio") { continue; }
         expect(preset.preview?.url, preset.id).toMatch(/^https:\/\/.+\.mp4$/);
         expect(preset.preview?.poster, preset.id).toMatch(/^https:\/\/.+\.png$/);
         expect(existsSync(new URL(preset.preview?.run ?? "missing", root)), preset.id).toBe(true);

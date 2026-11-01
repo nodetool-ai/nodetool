@@ -16,7 +16,15 @@
     "video"
   ],
   "stackable": false,
+  "conflicts": [],
+  "aliases": [],
   "prompt": {
     "default": "Restyle the video with luminous neon lighting, cyan and magenta highlights, deep violet shadows and reflective surfaces. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-neon/09cab2aeaf87a1a294c98ef0a302a50fbfb270dfa31758c28ddddd7be915ff4a.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-neon/09cab2aeaf87a1a294c98ef0a302a50fbfb270dfa31758c28ddddd7be915ff4a.png",
+    "run": "runs/effect.restyle-neon.json"
   }
 }

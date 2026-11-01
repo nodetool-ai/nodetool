@@ -28,5 +28,10 @@
     "veo": "Bleach-bypass grade: retain silver-like density, reduce color saturation, deepen blacks and preserve bright metallic highlights. Keep the lighting and color response consistent between frames.",
     "wan": "Bleach-bypass grade: retain silver-like density, reduce color saturation, deepen blacks and preserve bright metallic highlights. Retain natural subject detail under this visual treatment."
   },
-  "params": {}
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.bleach-bypass/319cd80d2b47edce864e020cd8faaea9267ba28b6ff3a812d63e982cf0ad36b4.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.bleach-bypass/319cd80d2b47edce864e020cd8faaea9267ba28b6ff3a812d63e982cf0ad36b4.png",
+    "run": "runs/look.bleach-bypass.json"
+  }
 }

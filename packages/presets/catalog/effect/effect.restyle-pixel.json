@@ -16,7 +16,15 @@
     "video"
   ],
   "stackable": false,
+  "conflicts": [],
+  "aliases": [],
   "prompt": {
     "default": "Restyle the video as pixel art animation with crisp pixel edges, a limited palette and readable silhouettes. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+  },
+  "params": {},
+  "preview": {
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-pixel/12ba69da4a3da52999dba98753a2b9efb14b69c59699fcb33720bb87a74f131a.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-pixel/12ba69da4a3da52999dba98753a2b9efb14b69c59699fcb33720bb87a74f131a.png",
+    "run": "runs/effect.restyle-pixel.json"
   }
 }

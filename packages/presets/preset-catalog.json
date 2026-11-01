@@ -2157,8 +2157,16 @@
       "video"
     ],
     "stackable": false,
+    "conflicts": [],
+    "aliases": [],
     "prompt": {
       "default": "Restyle the video as hand-drawn anime with clean ink outlines, cel shading and painted backgrounds. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-anime/db268599861ed27035c5c13d62b943897e3f6133a1b4a33949c5ba3a23873d9c.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-anime/db268599861ed27035c5c13d62b943897e3f6133a1b4a33949c5ba3a23873d9c.png",
+      "run": "runs/effect.restyle-anime.json"
     }
   },
   {
@@ -2179,8 +2187,16 @@
       "video"
     ],
     "stackable": false,
+    "conflicts": [],
+    "aliases": [],
     "prompt": {
       "default": "Restyle the video as clay animation with sculpted forms, tactile surfaces and soft studio lighting. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-clay/898840823890db64176f05922c4e6edc02d5cfff6f3342eed35f7782f5d7fb2d.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-clay/898840823890db64176f05922c4e6edc02d5cfff6f3342eed35f7782f5d7fb2d.png",
+      "run": "runs/effect.restyle-clay.json"
     }
   },
   {
@@ -2201,8 +2217,16 @@
       "video"
     ],
     "stackable": false,
+    "conflicts": [],
+    "aliases": [],
     "prompt": {
       "default": "Restyle the video as a comic book animation with bold ink contours, halftone shading and graphic color blocks. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-comic/75f1841a160587dff7311f3c19e3ddd8fcd7989dbe64b3d93a72be8aa2955fa8.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-comic/75f1841a160587dff7311f3c19e3ddd8fcd7989dbe64b3d93a72be8aa2955fa8.png",
+      "run": "runs/effect.restyle-comic.json"
     }
   },
   {
@@ -2223,8 +2247,16 @@
       "video"
     ],
     "stackable": false,
+    "conflicts": [],
+    "aliases": [],
     "prompt": {
       "default": "Restyle the video with luminous neon lighting, cyan and magenta highlights, deep violet shadows and reflective surfaces. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-neon/09cab2aeaf87a1a294c98ef0a302a50fbfb270dfa31758c28ddddd7be915ff4a.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-neon/09cab2aeaf87a1a294c98ef0a302a50fbfb270dfa31758c28ddddd7be915ff4a.png",
+      "run": "runs/effect.restyle-neon.json"
     }
   },
   {
@@ -2245,8 +2277,16 @@
       "video"
     ],
     "stackable": false,
+    "conflicts": [],
+    "aliases": [],
     "prompt": {
       "default": "Restyle the video as black-and-white film noir with deep shadows, hard directional light and fine film grain. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-noir/e92943d72951a975d9e9cc2bd7b6709af35c90de713ed343490fe9e7067f8789.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-noir/e92943d72951a975d9e9cc2bd7b6709af35c90de713ed343490fe9e7067f8789.png",
+      "run": "runs/effect.restyle-noir.json"
     }
   },
   {
@@ -2267,8 +2307,16 @@
       "video"
     ],
     "stackable": false,
+    "conflicts": [],
+    "aliases": [],
     "prompt": {
       "default": "Restyle the video as animated oil painting with visible brushstrokes, layered pigments and rich canvas texture. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-oil-painting/fde0e17a4dcfc32860b7987eea8879b7910b889d8d3f9ec5668e11a0f4bb23ce.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-oil-painting/fde0e17a4dcfc32860b7987eea8879b7910b889d8d3f9ec5668e11a0f4bb23ce.png",
+      "run": "runs/effect.restyle-oil-painting.json"
     }
   },
   {
@@ -2289,8 +2337,16 @@
       "video"
     ],
     "stackable": false,
+    "conflicts": [],
+    "aliases": [],
     "prompt": {
       "default": "Restyle the video as pixel art animation with crisp pixel edges, a limited palette and readable silhouettes. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-pixel/12ba69da4a3da52999dba98753a2b9efb14b69c59699fcb33720bb87a74f131a.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-pixel/12ba69da4a3da52999dba98753a2b9efb14b69c59699fcb33720bb87a74f131a.png",
+      "run": "runs/effect.restyle-pixel.json"
     }
   },
   {
@@ -2311,8 +2367,16 @@
       "video"
     ],
     "stackable": false,
+    "conflicts": [],
+    "aliases": [],
     "prompt": {
       "default": "Restyle the video as watercolor animation with translucent washes, soft pigment edges and textured paper. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+    },
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-watercolor/426d139a3554f9339a22b0164a40c474661293a023e02a8c184e65d6a16212bb.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-watercolor/426d139a3554f9339a22b0164a40c474661293a023e02a8c184e65d6a16212bb.png",
+      "run": "runs/effect.restyle-watercolor.json"
     }
   },
   {
@@ -2485,7 +2549,12 @@
       "veo": "ARRI Alexa large-format rendering: gentle highlight roll-off, open shadow detail and restrained edge sharpening. Keep the lighting and color response consistent between frames.",
       "wan": "ARRI Alexa large-format rendering: gentle highlight roll-off, open shadow detail and restrained edge sharpening. Retain natural subject detail under this visual treatment."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.arri-alexa/d5e19639298fec14d20e042ed01089c76a75db398f223edecd75f6b2de42e523.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.arri-alexa/d5e19639298fec14d20e042ed01089c76a75db398f223edecd75f6b2de42e523.png",
+      "run": "runs/look.arri-alexa.json"
+    }
   },
   {
     "id": "look.bleach-bypass",
@@ -2517,7 +2586,12 @@
       "veo": "Bleach-bypass grade: retain silver-like density, reduce color saturation, deepen blacks and preserve bright metallic highlights. Keep the lighting and color response consistent between frames.",
       "wan": "Bleach-bypass grade: retain silver-like density, reduce color saturation, deepen blacks and preserve bright metallic highlights. Retain natural subject detail under this visual treatment."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.bleach-bypass/319cd80d2b47edce864e020cd8faaea9267ba28b6ff3a812d63e982cf0ad36b4.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.bleach-bypass/319cd80d2b47edce864e020cd8faaea9267ba28b6ff3a812d63e982cf0ad36b4.png",
+      "run": "runs/look.bleach-bypass.json"
+    }
   },
   {
     "id": "look.bolex-h16",
@@ -2549,7 +2623,12 @@
       "veo": "Bolex H16 16 mm rendering: slight gate weave, compact grain and soft corners with a subtle mechanical exposure flutter. Keep the lighting and color response consistent between frames.",
       "wan": "Bolex H16 16 mm rendering: slight gate weave, compact grain and soft corners with a subtle mechanical exposure flutter. Retain natural subject detail under this visual treatment."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.bolex-h16/ced551c5704acfddbdb4b7548431e944be70fa27e8de998dde577c7fc8cd6a79.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.bolex-h16/ced551c5704acfddbdb4b7548431e944be70fa27e8de998dde577c7fc8cd6a79.png",
+      "run": "runs/look.bolex-h16.json"
+    }
   },
   {
     "id": "look.fast-slow-fast",
@@ -2582,7 +2661,12 @@
       "veo": "Start with accelerated action, smoothly settle into slow motion at the midpoint, then accelerate through the finish without cuts or repeated action. Show a smooth temporal transition with consistent subject identity.",
       "wan": "Start with accelerated action, smoothly settle into slow motion at the midpoint, then accelerate through the finish without cuts or repeated action. Gradually vary action speed with continuous subject motion."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.fast-slow-fast/023bbccad371df84d5b9fcc33a1f5dc714924ee1157b193d1f1ac13c69593f9b.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.fast-slow-fast/023bbccad371df84d5b9fcc33a1f5dc714924ee1157b193d1f1ac13c69593f9b.png",
+      "run": "runs/look.fast-slow-fast.json"
+    }
   },
   {
     "id": "look.fuji-eterna",
@@ -2614,7 +2698,12 @@
       "veo": "Fuji Eterna 400T negative emulation: muted greens, pastel skin tones, low contrast and a cool bias in the shadows. Keep the lighting and color response consistent between frames.",
       "wan": "Fuji Eterna 400T negative emulation: muted greens, pastel skin tones, low contrast and a cool bias in the shadows. Retain natural subject detail under this visual treatment."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.fuji-eterna/38a79e9070432cc4c93426b5066e1c468f957284223e5ff0eef3720d2acc2bc0.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.fuji-eterna/38a79e9070432cc4c93426b5066e1c468f957284223e5ff0eef3720d2acc2bc0.png",
+      "run": "runs/look.fuji-eterna.json"
+    }
   },
   {
     "id": "look.hard-noon",
@@ -2648,7 +2737,12 @@
       "veo": "Light with hard overhead midday sun: short dense shadows, crisp contours and bright pavement bounce beneath the face. Keep the lighting and color response consistent between frames.",
       "wan": "Light with hard overhead midday sun: short dense shadows, crisp contours and bright pavement bounce beneath the face. Retain natural subject detail under this visual treatment."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.hard-noon/0c78963f046ad5dc4eb0f1cdc1f50ef957dd25728c7edc548e2b67f76c9e0509.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.hard-noon/0c78963f046ad5dc4eb0f1cdc1f50ef957dd25728c7edc548e2b67f76c9e0509.png",
+      "run": "runs/look.hard-noon.json"
+    }
   },
   {
     "id": "look.impact-ramp",
@@ -2681,7 +2775,12 @@
       "veo": "Play the action at natural speed, briefly decelerate through the moment of contact, then smoothly return to natural speed without repeating the action. Show a smooth temporal transition with consistent subject identity.",
       "wan": "Play the action at natural speed, briefly decelerate through the moment of contact, then smoothly return to natural speed without repeating the action. Gradually vary action speed with continuous subject motion."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.impact-ramp/d3fe0e901d20caeae0af34226d78e625fbce8323b6aba76316d518b76934ee79.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.impact-ramp/d3fe0e901d20caeae0af34226d78e625fbce8323b6aba76316d518b76934ee79.png",
+      "run": "runs/look.impact-ramp.json"
+    }
   },
   {
     "id": "look.kodak-5207",
@@ -2713,7 +2812,12 @@
       "veo": "Kodak Vision3 5207 250D daylight-negative emulation: warm skin, clear blue skies, fine grain and a long highlight shoulder. Keep the lighting and color response consistent between frames.",
       "wan": "Kodak Vision3 5207 250D daylight-negative emulation: warm skin, clear blue skies, fine grain and a long highlight shoulder. Retain natural subject detail under this visual treatment."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.kodak-5207/6665e7b5f319ebaf7b7fc8877573b82abf390ffccb3ca41932a68776304ff6c5.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.kodak-5207/6665e7b5f319ebaf7b7fc8877573b82abf390ffccb3ca41932a68776304ff6c5.png",
+      "run": "runs/look.kodak-5207.json"
+    }
   },
   {
     "id": "look.kodak-5219",
@@ -2745,7 +2849,12 @@
       "veo": "Kodak Vision3 5219 500T tungsten-negative emulation: warm practical bulbs, cyan shadow separation, fine grain and soft highlight halation. Keep the lighting and color response consistent between frames.",
       "wan": "Kodak Vision3 5219 500T tungsten-negative emulation: warm practical bulbs, cyan shadow separation, fine grain and soft highlight halation. Retain natural subject detail under this visual treatment."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.kodak-5219/809432dc4cf9da485086a58c696c663b31be47e84458fa8532500a2e8e8a0c4d.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.kodak-5219/809432dc4cf9da485086a58c696c663b31be47e84458fa8532500a2e8e8a0c4d.png",
+      "run": "runs/look.kodak-5219.json"
+    }
   },
   {
     "id": "look.kodak-tri-x",
@@ -2780,7 +2889,12 @@
       "veo": "Kodak Tri-X reversal emulation in monochrome: coarse silver grain, bright whites, deep blacks and a short tonal shoulder. Keep the lighting and color response consistent between frames.",
       "wan": "Kodak Tri-X reversal emulation in monochrome: coarse silver grain, bright whites, deep blacks and a short tonal shoulder. Retain natural subject detail under this visual treatment."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.kodak-tri-x/dbc252ff6b6a7d8e0ee7c37daa05c5a46c7a804a159c14ee1bc5879c6cbb8514.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.kodak-tri-x/dbc252ff6b6a7d8e0ee7c37daa05c5a46c7a804a159c14ee1bc5879c6cbb8514.png",
+      "run": "runs/look.kodak-tri-x.json"
+    }
   },
   {
     "id": "look.moonlit-blue",
@@ -2814,7 +2928,12 @@
       "veo": "Light with a broad cool moonlight source from the side, a low fill level and a narrow rim separating the silhouette from the dark background. Keep the lighting and color response consistent between frames.",
       "wan": "Light with a broad cool moonlight source from the side, a low fill level and a narrow rim separating the silhouette from the dark background. Retain natural subject detail under this visual treatment."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.moonlit-blue/b5af4cb297a92526e2ffd7a297e41a51205d37068351bdc0593344f5fd69a2a4.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.moonlit-blue/b5af4cb297a92526e2ffd7a297e41a51205d37068351bdc0593344f5fd69a2a4.png",
+      "run": "runs/look.moonlit-blue.json"
+    }
   },
   {
     "id": "look.new-hollywood-1970s",
@@ -2846,7 +2965,12 @@
       "veo": "Use a 1970s New Hollywood print finish: warm earth tones, subdued blues, visible 35 mm grain and slight halation around practical lights. Preserve the described scene and wardrobe. Keep the lighting and color response consistent between frames.",
       "wan": "Use a 1970s New Hollywood print finish: warm earth tones, subdued blues, visible 35 mm grain and slight halation around practical lights. Preserve the described scene and wardrobe. Retain natural subject detail under this visual treatment."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.new-hollywood-1970s/a2e075da87b7e67e52671fbc50155f74ac720b8a5677729b61777d06b0c2e2d4.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.new-hollywood-1970s/a2e075da87b7e67e52671fbc50155f74ac720b8a5677729b61777d06b0c2e2d4.png",
+      "run": "runs/look.new-hollywood-1970s.json"
+    }
   },
   {
     "id": "look.pastel-print",
@@ -2878,7 +3002,12 @@
       "veo": "Pastel print grade: lifted black floor, low saturation, peach highlights and soft blue shadows with gentle contrast. Keep the lighting and color response consistent between frames.",
       "wan": "Pastel print grade: lifted black floor, low saturation, peach highlights and soft blue shadows with gentle contrast. Retain natural subject detail under this visual treatment."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.pastel-print/182a090af75fd84b1463d0d632a6d1e8290478005ebefb6aabef8e86c01c4d98.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.pastel-print/182a090af75fd84b1463d0d632a6d1e8290478005ebefb6aabef8e86c01c4d98.png",
+      "run": "runs/look.pastel-print.json"
+    }
   },
   {
     "id": "look.ramp-into-slow",
@@ -2911,7 +3040,12 @@
       "veo": "Begin at natural action speed, smoothly decelerate into slow motion at the action peak, then hold slow motion through the end. Keep the same action and camera path. Show a smooth temporal transition with consistent subject identity.",
       "wan": "Begin at natural action speed, smoothly decelerate into slow motion at the action peak, then hold slow motion through the end. Keep the same action and camera path. Gradually vary action speed with continuous subject motion."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.ramp-into-slow/378774877906286d3673c823a4b9c809eeb8a94addd32d06d828a5e42a44a2df.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.ramp-into-slow/378774877906286d3673c823a4b9c809eeb8a94addd32d06d828a5e42a44a2df.png",
+      "run": "runs/look.ramp-into-slow.json"
+    }
   },
   {
     "id": "look.ramp-out-of-slow",
@@ -2944,7 +3078,12 @@
       "veo": "Begin in slow motion, smoothly accelerate to natural action speed halfway through, then hold natural speed. Keep the same action and camera path. Show a smooth temporal transition with consistent subject identity.",
       "wan": "Begin in slow motion, smoothly accelerate to natural action speed halfway through, then hold natural speed. Keep the same action and camera path. Gradually vary action speed with continuous subject motion."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.ramp-out-of-slow/498048608e76b8c201f9769fe976135fb35e21a325024d7418b5af0dcaa8d47d.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.ramp-out-of-slow/498048608e76b8c201f9769fe976135fb35e21a325024d7418b5af0dcaa8d47d.png",
+      "run": "runs/look.ramp-out-of-slow.json"
+    }
   },
   {
     "id": "look.red-v-raptor",
@@ -2976,7 +3115,12 @@
       "veo": "RED V-Raptor rendering: crisp fine texture, dense blacks and clean specular highlights without digital halos. Keep the lighting and color response consistent between frames.",
       "wan": "RED V-Raptor rendering: crisp fine texture, dense blacks and clean specular highlights without digital halos. Retain natural subject detail under this visual treatment."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.red-v-raptor/c0fdac48064512a6e0287d1ccf15ad1daa46edd7ac1cc248011dbacbc443d59c.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.red-v-raptor/c0fdac48064512a6e0287d1ccf15ad1daa46edd7ac1cc248011dbacbc443d59c.png",
+      "run": "runs/look.red-v-raptor.json"
+    }
   },
   {
     "id": "look.rembrandt-key",
@@ -3008,7 +3152,12 @@
       "veo": "Light with one soft key forty-five degrees to the face and slightly above eye level, leaving a small triangle on the shadow cheek and minimal fill. Keep the lighting and color response consistent between frames.",
       "wan": "Light with one soft key forty-five degrees to the face and slightly above eye level, leaving a small triangle on the shadow cheek and minimal fill. Retain natural subject detail under this visual treatment."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.rembrandt-key/4cb59fe2baec913737d42b3fae834165fd4d067d63d78abe9ddb7c15b7dbc4ae.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.rembrandt-key/4cb59fe2baec913737d42b3fae834165fd4d067d63d78abe9ddb7c15b7dbc4ae.png",
+      "run": "runs/look.rembrandt-key.json"
+    }
   },
   {
     "id": "look.silent-1920s",
@@ -3040,7 +3189,12 @@
       "veo": "Use a 1920s silent-cinema finish: monochrome orthochromatic-like tonality, luminous skin, dark reds, mild corner falloff and irregular fine scratches. Preserve the described scene and wardrobe. Keep the lighting and color response consistent between frames.",
       "wan": "Use a 1920s silent-cinema finish: monochrome orthochromatic-like tonality, luminous skin, dark reds, mild corner falloff and irregular fine scratches. Preserve the described scene and wardrobe. Retain natural subject detail under this visual treatment."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.silent-1920s/4f85c76ac2e03a7912567e39e44ea0a659ac51d4b04703868555c4ed67fa43a1.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.silent-1920s/4f85c76ac2e03a7912567e39e44ea0a659ac51d4b04703868555c4ed67fa43a1.png",
+      "run": "runs/look.silent-1920s.json"
+    }
   },
   {
     "id": "look.silver-monochrome",
@@ -3075,7 +3229,12 @@
       "veo": "Neutral black-and-white grade: separate skin and fabric through luminance, hold midtone detail and keep whites free of color tint. Keep the lighting and color response consistent between frames.",
       "wan": "Neutral black-and-white grade: separate skin and fabric through luminance, hold midtone detail and keep whites free of color tint. Retain natural subject detail under this visual treatment."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.silver-monochrome/206b4372f8a8141a4402fae5fba449dc0d344e67fdc84692ba4a879a58f5dab9.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.silver-monochrome/206b4372f8a8141a4402fae5fba449dc0d344e67fdc84692ba4a879a58f5dab9.png",
+      "run": "runs/look.silver-monochrome.json"
+    }
   },
   {
     "id": "look.sony-venice",
@@ -3107,7 +3266,12 @@
       "veo": "Sony Venice full-frame rendering: clean low-light detail, neutral skin tones and fine separation in saturated practical lights. Keep the lighting and color response consistent between frames.",
       "wan": "Sony Venice full-frame rendering: clean low-light detail, neutral skin tones and fine separation in saturated practical lights. Retain natural subject detail under this visual treatment."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.sony-venice/9f79970935c8beb80bd6ae4d5fd28ab3c4171e94005aaebcc8a8c1697ba7d1f8.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.sony-venice/9f79970935c8beb80bd6ae4d5fd28ab3c4171e94005aaebcc8a8c1697ba7d1f8.png",
+      "run": "runs/look.sony-venice.json"
+    }
   },
   {
     "id": "look.teal-amber",
@@ -3142,7 +3306,12 @@
       "veo": "Teal-and-amber grade: cool cyan shadows against warm skin, neutral whites and controlled saturation in highlights. Keep the lighting and color response consistent between frames.",
       "wan": "Teal-and-amber grade: cool cyan shadows against warm skin, neutral whites and controlled saturation in highlights. Retain natural subject detail under this visual treatment."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.teal-amber/9bb930cd4b149ed4659cce42c921515fc70a899737cadea1c18cb087fd6d95ac.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.teal-amber/9bb930cd4b149ed4659cce42c921515fc70a899737cadea1c18cb087fd6d95ac.png",
+      "run": "runs/look.teal-amber.json"
+    }
   },
   {
     "id": "look.technicolor-1950s",
@@ -3177,7 +3346,12 @@
       "veo": "Use a 1950s three-strip dye-transfer print finish: rich reds, separated emerald greens, luminous skin and dense stable blacks. Preserve the described scene and wardrobe. Keep the lighting and color response consistent between frames.",
       "wan": "Use a 1950s three-strip dye-transfer print finish: rich reds, separated emerald greens, luminous skin and dense stable blacks. Preserve the described scene and wardrobe. Retain natural subject detail under this visual treatment."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.technicolor-1950s/665ff5194658a204fd4ce0e85616ac21b59d5be5f6df992b666fc59dff0a07ab.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.technicolor-1950s/665ff5194658a204fd4ce0e85616ac21b59d5be5f6df992b666fc59dff0a07ab.png",
+      "run": "runs/look.technicolor-1950s.json"
+    }
   },
   {
     "id": "look.tungsten-practicals",
@@ -3209,7 +3383,12 @@
       "veo": "Light with visible warm tungsten practical bulbs, localized pools of amber light and dim cool ambient fill, retaining detail around each bulb. Keep the lighting and color response consistent between frames.",
       "wan": "Light with visible warm tungsten practical bulbs, localized pools of amber light and dim cool ambient fill, retaining detail around each bulb. Retain natural subject detail under this visual treatment."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.tungsten-practicals/de3b9d492d3d5a0f7af39533ead68619ac99ff46a5c92736b56a44009bdef451.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.tungsten-practicals/de3b9d492d3d5a0f7af39533ead68619ac99ff46a5c92736b56a44009bdef451.png",
+      "run": "runs/look.tungsten-practicals.json"
+    }
   },
   {
     "id": "look.vhs-1990s",
@@ -3241,7 +3420,12 @@
       "veo": "Use a 1990s VHS transfer finish: limited chroma resolution, slight horizontal color bleed, interlaced edge texture and soft tape noise. Preserve the described scene and wardrobe. Keep the lighting and color response consistent between frames.",
       "wan": "Use a 1990s VHS transfer finish: limited chroma resolution, slight horizontal color bleed, interlaced edge texture and soft tape noise. Preserve the described scene and wardrobe. Retain natural subject detail under this visual treatment."
     },
-    "params": {}
+    "params": {},
+    "preview": {
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.vhs-1990s/595da2d4e951967c5dbb2ac28549860648eaa306f44a15c2bce831c19d7be9a2.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.vhs-1990s/595da2d4e951967c5dbb2ac28549860648eaa306f44a15c2bce831c19d7be9a2.png",
+      "run": "runs/look.vhs-1990s.json"
+    }
   },
   {
     "id": "studio.cinematic-shot",
