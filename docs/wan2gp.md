@@ -54,6 +54,25 @@ worker receives `WAN2GP_MCP_URL` when it starts, so restart NodeTool after
 changing it. A shell `export` does not reach a desktop app opened from the
 Finder or the Start menu. Use the setting or the node's `server_url` there.
 
+## Use presets with your server
+
+The nodes take a plain prompt. To pick your server's models in the chat
+composer, the Create view and ejected preset workflows, where
+[presets](presets.md#local-wan2gp-models) compile for the chosen model, run the
+pack as the `wangp` provider. Set these in the environment NodeTool starts
+from, then restart it:
+
+```bash
+export NODETOOL_PROVIDER_ADAPTER_COMMAND_WANGP=nodetool-wan2gp-provider
+export NODETOOL_PROVIDER_ADAPTER_CAPABILITIES_WANGP=text_to_video,image_to_video,reference_to_video,text_to_image,image_to_image
+export NODETOOL_PROVIDER_ADAPTER_DISPLAY_NAME_WANGP=Wan2GP
+```
+
+The adapter uses the same `WAN2GP_MCP_URL` as the nodes. Settings cannot set
+the three adapter variables yet. The pack's
+[README](https://github.com/nodetool-ai/nodetool-wan2gp#use-your-server-in-the-composer-and-create-view)
+lists what the adapter supports.
+
 ## Combined GPU worker
 
 The pack repository also builds `Dockerfile.combined`, a GPU worker image that
@@ -75,7 +94,12 @@ See [Worker deployment](worker-deployment.md) for remote workers in general.
 ## Licensing
 
 The pack is AGPL-3.0-or-later. Wan2GP has its own license, which limits
-commercial use, and each model has a separate license. The combined image is
+commercial use, and each model has a separate license. MiniMax H3's license
+excludes the European Union, the United Kingdom, South Korea and the United
+States, and LTX-2's requires a paid license above 10 million US dollars in
+annual revenue. The pack's
+[README](https://github.com/nodetool-ai/nodetool-wan2gp#model-licenses)
+summarizes both. The combined image is
 for free, non-monetized use only. Read the pack's
 [NOTICE](https://github.com/nodetool-ai/nodetool-wan2gp/blob/main/NOTICE.md)
 before you redistribute or sell access to it.
