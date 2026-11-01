@@ -98,6 +98,9 @@ function resolveHook(specifier: string, context: ResolveContext, next: NextResol
   } finally { resolving = false; }
 }
 
+/** The CLI root of the active pack resolution, inherited by child processes. */
+export const PACKS_CLI_ROOT_ENV = "NODETOOL_PACKS_CLI_ROOT";
+
 /** Route pack and host module resolution for this process. Repeated calls replace the active project. */
 export function activatePackResolution(resolution: PackResolution): void {
   const projectRoot = realpathSync(resolution.projectRoot);
@@ -115,6 +118,8 @@ export function activatePackResolution(resolution: PackResolution): void {
   }
   active = { ...resolution, projectRoot, cliRoot,
     packNameSet: new Set(resolution.packNames), sharedNameSet: new Set(resolution.sharedNames) };
+  // Features in the project re-detect their host, and some spawn a child that does the same.
+  process.env[PACKS_CLI_ROOT_ENV] = cliRoot;
 }
 
 /** The real root of the package `name` as seen from `directory`, or null. */

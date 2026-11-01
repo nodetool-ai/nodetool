@@ -14,6 +14,7 @@ import type { LoadCheckTarget } from "../../src/packs/installer.js";
 import { verifyPackLoads } from "../../src/packs/installer-load-check.js";
 import { readInstalledPacks } from "../../src/packs/installed.js";
 import { configureCliPackHost, loadCliPackSnapshot } from "../../src/packs/host.js";
+import { PACKS_CLI_ROOT_ENV } from "../../src/packs/resolution.js";
 import { loadInstalledCommandFeature } from "../../src/cli-feature.js";
 
 const exec = promisify(execFile);
@@ -31,7 +32,7 @@ async function fixture(name: string, dependencies: Record<string, string>) {
   const catalog: NodeCatalogIndex = { schemaVersion: 1, coreVersion: "1.0.0", owners: {}, packs: [feature], installPins: [{ name: shared.name, version: shared.version, integrity: shared.integrity, shared: true }] };
   // The host detects its pack project under the data directory, so put the fixture's there.
   const data = join(f.directory, "data");
-  vi.stubEnv("XDG_DATA_HOME", data); vi.stubEnv("APPDATA", data);
+  vi.stubEnv("XDG_DATA_HOME", data); vi.stubEnv("APPDATA", data); vi.stubEnv(PACKS_CLI_ROOT_ENV, undefined);
   const packsRoot = join(data, "nodetool", "packs", "1.0.0");
   const mode = { kind: "global" as const, cliRoot, packsRoot, legacyInstallRoot: cliRoot, coreVersion: "1.0.0", pathStyle: process.platform === "win32" ? "win32" as const : "posix" as const };
   const request = { ...f.request, mode, catalog, packs: [feature.id] };
@@ -59,6 +60,10 @@ it.each(["cli-chat", "cli-mcp", "cli-server"])("a globally installed CLI loads p
   configureCliPackHost(entry, { catalog: f.request.catalog, stateFile: f.request.stateFile });
   const snapshot = await loadCliPackSnapshot();
   expect(snapshot).toMatchObject({ mode: { kind: "global", cliRoot: f.cliRoot }, projectRoot: project });
+  // A feature re-configures the host from its own entry in the project, also in a child it spawns (serve).
+  expect(process.env[PACKS_CLI_ROOT_ENV]).toBe(await realpath(f.cliRoot));
+  configureCliPackHost(pathToFileURL(join(project, "node_modules", manifest.name, "package.json")).href, { catalog: f.request.catalog, stateFile: f.request.stateFile });
+  expect(await loadCliPackSnapshot()).toMatchObject({ mode: { kind: "global", cliRoot: f.cliRoot }, projectRoot: project });
   const runner = await loadInstalledCommandFeature(entry, id, { snapshot, catalog: f.request.catalog });
   await runner.run([]);
   expect(Reflect.get(globalThis, "__nodetoolFixtureHost")).toBe(originalHost);

@@ -49,3 +49,9 @@ A pack's own `node_modules` can hold copies of core packages such as
 
 `require.resolve` bypasses hooks, so load checks use `resolvePackDependency`,
 which applies the same rule.
+
+A command feature installed in the pack project has no CLI among its
+ancestors, yet it configures the pack host from its own entry, sometimes in a
+child process (`nodetool server serve`). Activation records the CLI root in
+`NODETOOL_PACKS_CLI_ROOT`, and the host uses that CLI when the entry lies inside
+its pack project.
