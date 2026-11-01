@@ -1,5 +1,5 @@
 {
-  "coreVersion": "0.8.4",
+  "coreVersion": "0.8.10",
   "installPins": [],
   "owners": {
     "atlascloud.image.Cosmos3SuperTextToImage": "atlascloud",
@@ -3326,7 +3326,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/atlascloud-nodes",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "registerAtlasCloudNodes",
@@ -3345,7 +3345,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/audio-nodes",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "registerAudioNodes",
@@ -3365,7 +3365,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/automation-nodes",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "registerAutomationNodes",
@@ -3384,7 +3384,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/blender-nodes",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "registerBlenderNodes",
@@ -3403,7 +3403,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/cli-admin",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "feature",
@@ -3420,7 +3420,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/cli-apps",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "feature",
@@ -3437,7 +3437,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/cli-chat",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "feature",
@@ -3454,7 +3454,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/cli-game",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "feature",
@@ -3474,7 +3474,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/cli-harness",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "feature",
@@ -3494,7 +3494,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/cli-mcp",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "feature",
@@ -3514,7 +3514,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/cli-models",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "feature",
@@ -3531,7 +3531,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/cli-script",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "feature",
@@ -3548,7 +3548,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/cli-server",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "feature",
@@ -3571,7 +3571,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/cli-sketch",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "feature",
@@ -3588,7 +3588,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/cli-timeline",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "feature",
@@ -3608,7 +3608,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/cli-workflow",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "feature",
@@ -3628,7 +3628,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/code-nodes",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "registerCodeNodes",
@@ -3647,7 +3647,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/core-nodes",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "registerCoreNodes",
@@ -3664,7 +3664,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/data-nodes",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "registerDataNodes",
@@ -3683,7 +3683,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/document-nodes",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "registerDocumentNodes",
@@ -3703,7 +3703,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/elevenlabs-nodes",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "registerElevenLabsNodes",
@@ -3722,7 +3722,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/fal-nodes",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "registerFalNodes",
@@ -3741,7 +3741,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/game-nodes",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [
         "@nodetool-ai/game-renderer"
@@ -3765,7 +3765,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/higgsfield-nodes",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "registerHiggsfieldNodes",
@@ -3785,7 +3785,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/huggingface-nodes",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "registerHuggingFaceNodes",
@@ -3804,7 +3804,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/image-nodes",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "registerImageNodes",
@@ -3823,7 +3823,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/integration-nodes",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "registerIntegrationNodes",
@@ -3847,7 +3847,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/kie-nodes",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "registerKieNodes",
@@ -3866,7 +3866,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/llm-nodes",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "registerLlmNodes",
@@ -3888,7 +3888,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/manimgx-nodes",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "registerManimgxNodes",
@@ -3907,7 +3907,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/minimax-nodes",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "registerMinimaxNodes",
@@ -3926,7 +3926,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/replicate-nodes",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "registerReplicateNodes",
@@ -3945,7 +3945,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/reve-nodes",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "registerReveNodes",
@@ -3964,7 +3964,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/text-nodes",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "registerTextNodes",
@@ -3981,7 +3981,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/together-nodes",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "registerTogetherNodes",
@@ -4000,7 +4000,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/topaz-nodes",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "registerTopazNodes",
@@ -4021,7 +4021,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/transformers-js-nodes",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [
         "@nodetool-ai/transformers-js-provider"
@@ -4045,7 +4045,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/video-nodes",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "registerVideoNodes",
@@ -4068,7 +4068,7 @@
       "npm": {
         "integrity": "",
         "name": "@nodetool-ai/whisper-cpp",
-        "version": "0.8.4"
+        "version": "0.8.10"
       },
       "provides": [],
       "registrar": "registerWhisperCppNodes",

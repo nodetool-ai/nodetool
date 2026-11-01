@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/cli-workflow",
-  "version": "0.8.4",
+  "version": "0.8.10",
   "description": "Independent NodeTool workflow command module",
   "type": "module",
   "engines": {

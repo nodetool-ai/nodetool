@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/runtime-core",
-  "version": "0.8.4",
+  "version": "0.8.10",
   "description": "Lean execution contracts, workspace interface, egress policy and remote text adapter",
   "type": "module",
   "engines": {

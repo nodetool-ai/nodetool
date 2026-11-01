@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/cli-harness",
-  "version": "0.8.4",
+  "version": "0.8.10",
   "description": "Independent NodeTool harness command module",
   "type": "module",
   "engines": {
