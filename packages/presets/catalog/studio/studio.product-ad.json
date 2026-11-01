@@ -1,0 +1,16 @@
+{
+  "id": "studio.product-ad",
+  "version": 1,
+  "kind": "studio",
+  "name": "Product ad",
+  "description": "A finished launch commercial from a product page: storyboard, footage, voice, music and an edited timeline.",
+  "tags": [
+    "ad",
+    "product"
+  ],
+  "target": {
+    "type": "skill",
+    "skill": "launch-commercial"
+  },
+  "preset_ids": []
+}

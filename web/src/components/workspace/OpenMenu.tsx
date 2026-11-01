@@ -22,6 +22,7 @@ import {
 } from "./newDocumentCatalog";
 import { useGuidedFlowStarters } from "./useGuidedFlowStarters";
 import { openPageTab } from "./openPageTab";
+import { useEffectsGalleryStore } from "../../stores/EffectsGalleryStore";
 import { MEDIA_MODES } from "../chat/composer/mediaModes";
 
 interface OpenMenuProps {
@@ -186,6 +187,7 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
           icon={<AutoAwesomeOutlinedIcon fontSize="small" />}
           secondary={t("pass3_32.projects.home.createCards.effects.description")}
           onClick={() => {
+            useEffectsGalleryStore.getState().showAllEffects();
             openPageTab("effects");
             close();
           }}

@@ -48,12 +48,7 @@ import { SPACING } from "./spacing";
 /** Narrowest card the grid lays out, in px. */
 const MIN_CARD_WIDTH = 180;
 
-const KINDS: ReadonlyArray<Preset["kind"]> = [
-  "camera",
-  "look",
-  "effect",
-  "studio"
-];
+const KINDS: ReadonlyArray<Preset["kind"]> = ["camera", "look", "effect"];
 
 export interface PresetPickerProps {
   presets: readonly Preset[];

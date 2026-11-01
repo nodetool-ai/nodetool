@@ -39,9 +39,9 @@ describe("media preset boundary", () => {
   it("keeps only fields the requested mode accepts", () => {
     const catalog = createCatalog([
       {
-        id: "studio.test",
+        id: "look.test",
         version: 1,
-        kind: "studio",
+        kind: "look",
         name: "Test",
         description: "Test settings",
         modes: ["image", "video", "image_edit"],
@@ -56,7 +56,7 @@ describe("media preset boundary", () => {
         }
       }
     ]);
-    const compileFor = (mode: PresetMode) => compilePresets(["studio.test"], {
+    const compileFor = (mode: PresetMode) => compilePresets(["look.test"], {
       catalog,
       mode,
       modelId: "default",

@@ -35,12 +35,27 @@ const IDLE_RUN: EffectRun = {
   error: null
 };
 
+/** The studio the gallery was opened from, and the effects it shows. */
+export interface EffectsStudioScope {
+  studioId: string;
+  effectIds: string[];
+}
+
 interface EffectsGalleryState {
   sourceAssetId: string | null;
   effectId: string | null;
+  /** Null shows every effect. */
+  studio: EffectsStudioScope | null;
   run: EffectRun;
   setSourceAssetId: (assetId: string | null) => void;
   selectEffect: (effectId: string | null) => void;
+  /**
+   * Show only a studio's effects, with the first one chosen unless the chosen
+   * effect is among them. An empty list shows every effect.
+   */
+  openStudio: (studioId: string, effectIds: readonly string[]) => void;
+  /** Show every effect again, keeping the chosen one. */
+  showAllEffects: () => void;
   /**
    * Send one effect request. `remember` records the model once it has
    * produced a result, so the next visit starts on it.
@@ -61,6 +76,7 @@ const reasonOf = (cause: unknown): string =>
 export const useEffectsGalleryStore = create<EffectsGalleryState>()((set) => ({
   sourceAssetId: null,
   effectId: null,
+  studio: null,
   run: IDLE_RUN,
   setSourceAssetId: (sourceAssetId) =>
     set((state) => ({
@@ -73,6 +89,22 @@ export const useEffectsGalleryStore = create<EffectsGalleryState>()((set) => ({
       effectId,
       run: state.run.status === "running" ? state.run : IDLE_RUN
     })),
+  openStudio: (studioId, effectIds) =>
+    set((state) => {
+      if (effectIds.length === 0) {
+        return { studio: null };
+      }
+      const studio = { studioId, effectIds: [...effectIds] };
+      if (state.effectId !== null && effectIds.includes(state.effectId)) {
+        return { studio };
+      }
+      return {
+        studio,
+        effectId: effectIds[0],
+        run: state.run.status === "running" ? state.run : IDLE_RUN
+      };
+    }),
+  showAllEffects: () => set({ studio: null }),
   start: async (request, remember) => {
     current?.abort();
     const controller = new AbortController();

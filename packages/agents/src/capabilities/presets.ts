@@ -3,8 +3,9 @@ import { loadPackageAssetJson } from "@nodetool-ai/config";
 import {
   loadCatalog,
   compileMediaPresets,
+  catalogKindSchema,
+  listCatalog,
   presetModeSchema,
-  presetSchema,
   MODEL_FAMILIES
 } from "@nodetool-ai/presets";
 import type { CapabilityModule } from "./types.js";
@@ -27,23 +28,16 @@ export const module: CapabilityModule = {
         if (spec.name === "list_presets") {
           const filter = z
             .object({
-              kind: presetSchema.shape.kind.optional(),
+              kind: catalogKindSchema.optional(),
               mode: presetModeSchema.optional(),
               family: z.enum(MODEL_FAMILIES).optional()
             })
             .parse(params);
-          return catalog
-            .filter(filter)
-            .filter(
-              (preset) =>
-                !filter.family ||
-                preset.families?.includes(filter.family) ||
-                Object.hasOwn(preset.prompt, filter.family)
-            );
+          return listCatalog(catalog, filter);
         }
         if (spec.name === "get_preset") {
           const id = z.string().parse(params["id"]);
-          const preset = catalog.getPreset(id);
+          const preset = catalog.getPreset(id) ?? catalog.getStudio(id);
           if (!preset) {
             throw new Error(`Unknown preset: ${id}`);
           }

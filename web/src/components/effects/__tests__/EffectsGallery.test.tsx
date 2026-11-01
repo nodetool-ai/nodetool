@@ -97,6 +97,7 @@ describe("EffectsGallery", () => {
     useEffectsGalleryStore.setState({
       sourceAssetId: null,
       effectId: null,
+      studio: null,
       run: { status: "idle", effectId: null, sourceAssetId: null, assetIds: [], error: null }
     });
     useLastModelStore.setState({ byKind: {}, byTask: {} });
@@ -112,6 +113,25 @@ describe("EffectsGallery", () => {
     );
     expect(card("Levitate")).toBeInTheDocument();
     expect(card("Claymation")).toBeInTheDocument();
+  });
+
+  it("shows only a studio's effects until asked for all of them", async () => {
+    useEffectsGalleryStore
+      .getState()
+      .openStudio("studio.photo-effects", ["effect.petal-burst", "effect.levitate"]);
+    renderGallery();
+    const group = screen.getByRole("group", { name: "Effects" });
+    const shown = () =>
+      Array.from(group.querySelectorAll("[data-preset-id]")).map((element) =>
+        element.getAttribute("data-preset-id")
+      );
+    expect(shown()).toEqual(["effect.petal-burst", "effect.levitate"]);
+    expect(
+      screen.getByText("Showing the effects of the Animate a photo studio.")
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Show all effects" }));
+    expect(shown()).toEqual(EFFECT_PRESETS.map((preset) => preset.id));
+    expect(useEffectsGalleryStore.getState().effectId).toBe("effect.petal-burst");
   });
 
   it("is empty with a reason and the next step before anything is chosen", () => {

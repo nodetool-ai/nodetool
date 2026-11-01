@@ -13,9 +13,9 @@ export const fragmentSchema = z.union([
 ]);
 export const presetModeSchema = z.enum(["video", "image_to_video", "reference_to_video", "image", "image_edit", "video_edit"]);
 export const presetSchema = z.strictObject({
-  id: z.string().regex(/^(camera|look|effect|studio)\.[a-z0-9-]+$/),
+  id: z.string().regex(/^(camera|look|effect)\.[a-z0-9-]+$/),
   version: z.literal(1),
-  kind: z.enum(["camera", "look", "effect", "studio"]),
+  kind: z.enum(["camera", "look", "effect"]),
   name: z.string().min(1),
   description: z.string().min(1),
   tags: z.array(z.string()).default([]),

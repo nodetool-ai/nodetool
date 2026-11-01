@@ -1,0 +1,20 @@
+{
+  "id": "studio.cinematic-shot",
+  "version": 1,
+  "kind": "studio",
+  "name": "Cinematic shot",
+  "description": "A film-look video clip from one sentence: a slow push in on tungsten film stock with a teal-and-amber grade.",
+  "tags": [
+    "video",
+    "film"
+  ],
+  "target": {
+    "type": "create",
+    "mode": "video"
+  },
+  "preset_ids": [
+    "camera.dolly-in",
+    "look.kodak-5219",
+    "look.teal-amber"
+  ]
+}

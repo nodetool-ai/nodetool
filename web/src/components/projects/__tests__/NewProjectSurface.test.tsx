@@ -1575,15 +1575,39 @@ describe("NewProjectSurface", () => {
     expect(await screen.findByRole("group", { name: "Start with a guided flow" })).toBeInTheDocument();
   });
 
-  it("offers an Effects card that opens the gallery instead of a guided flow", async () => {
+  it("opens the Effects gallery from its studio instead of a guided flow", async () => {
     renderSurface();
-    // renderSurface opens the full list of creation types.
+    const studios = screen.getByRole("region", { name: "Studios" });
     await userEvent.click(
-      screen.getByRole("button", { name: /^Add an effect to a photo Turn one picture into a short effect clip/ })
+      within(studios).getByRole("button", { name: /^Animate a photo/ })
     );
     expect(openPageTab).toHaveBeenCalledWith("effects");
     expect(createStoryboard).not.toHaveBeenCalled();
     expect(createProject).not.toHaveBeenCalled();
+  });
+
+  it("puts a skill studio's starter in the prompt and keeps it on a second click", async () => {
+    renderSurface();
+    const prompt = screen.getByPlaceholderText(/Describe what you want to create/);
+    await userEvent.type(prompt, "A spot for our desk lamp");
+    const tile = within(screen.getByRole("region", { name: "Studios" })).getByRole(
+      "button",
+      { name: /^Product ad/ }
+    );
+    await userEvent.click(tile);
+    expect(prompt).toHaveValue("/launch-commercial A spot for our desk lamp");
+    await userEvent.click(tile);
+    expect(prompt).toHaveValue("/launch-commercial A spot for our desk lamp");
+  });
+
+  it("starts the storyboard flow from the Film a scene studio", async () => {
+    renderSurface();
+    await userEvent.click(
+      within(screen.getByRole("region", { name: "Studios" })).getByRole("button", {
+        name: /^Film a scene/
+      })
+    );
+    await waitFor(() => expect(createStoryboard).toHaveBeenCalled());
   });
 
   it("starts a guided card in the current project without a destination dialog", async () => {

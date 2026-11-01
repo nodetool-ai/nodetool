@@ -11,7 +11,7 @@ export const presetsSpecs: readonly CapabilitySpec[] = [
   {
     name: "list_presets",
     description:
-      "List generation presets, optionally filtered by kind, mode and model family.",
+      "List generation presets and studios, optionally filtered by kind, mode and model family. A studio (kind studio) names the surface it opens and the preset ids it opens with; mode and family filters list no studios.",
     category: "read",
     userMessage: () => "Listing presets",
     inputSchema: {
@@ -39,7 +39,7 @@ export const presetsSpecs: readonly CapabilitySpec[] = [
   },
   {
     name: "get_preset",
-    description: "Read a generation preset by id.",
+    description: "Read a generation preset or a studio by id.",
     category: "read",
     userMessage: () => "Reading preset",
     inputSchema: {
@@ -50,7 +50,7 @@ export const presetsSpecs: readonly CapabilitySpec[] = [
   },
   {
     name: "compile_presets",
-    description: "Compile up to three presets for a model and mode.",
+    description: "Compile up to three generation presets for a model and mode. Studios do not compile.",
     category: "read",
     userMessage: () => "Compiling presets",
     inputSchema: {

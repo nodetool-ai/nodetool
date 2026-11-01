@@ -1,232 +1,391 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "type": "object",
-  "properties": {
-    "id": {
-      "type": "string",
-      "pattern": "^(camera|look|effect|studio)\\.[a-z0-9-]+$"
-    },
-    "version": {
-      "type": "number",
-      "const": 1
-    },
-    "kind": {
-      "type": "string",
-      "enum": [
-        "camera",
-        "look",
-        "effect",
-        "studio"
-      ]
-    },
-    "name": {
-      "type": "string",
-      "minLength": 1
-    },
-    "description": {
-      "type": "string",
-      "minLength": 1
-    },
-    "tags": {
-      "default": [],
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "slot": {
-      "type": "string",
-      "enum": [
-        "move",
-        "rig",
-        "speed",
-        "look",
-        "effect",
-        "body",
-        "stock",
-        "grade",
-        "lighting",
-        "era",
-        "ramp"
-      ]
-    },
-    "modes": {
-      "minItems": 1,
-      "type": "array",
-      "items": {
-        "type": "string",
-        "enum": [
-          "video",
-          "image_to_video",
-          "reference_to_video",
-          "image",
-          "image_edit",
-          "video_edit"
-        ]
-      }
-    },
-    "inputs": {
-      "default": [
-        "text"
-      ],
-      "type": "array",
-      "items": {
-        "type": "string",
-        "enum": [
-          "text",
-          "image",
-          "video"
-        ]
-      }
-    },
-    "stackable": {
-      "default": false,
-      "type": "boolean"
-    },
-    "conflicts": {
-      "default": [],
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "aliases": {
-      "default": [],
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "prompt": {
-      "type": "object",
-      "propertyNames": {
-        "type": "string"
-      },
-      "additionalProperties": {
-        "anyOf": [
-          {
-            "type": "string"
-          },
-          {
-            "type": "object",
-            "properties": {
-              "prefix": {
-                "type": "string"
-              },
-              "suffix": {
-                "type": "string"
-              },
-              "replace": {
-                "type": "string"
-              }
-            },
-            "additionalProperties": false
-          }
-        ]
-      },
-      "required": [
-        "default"
-      ]
-    },
-    "params": {
-      "default": {},
-      "type": "object",
-      "propertyNames": {
-        "type": "string"
-      },
-      "additionalProperties": {
-        "anyOf": [
-          {
-            "type": "string"
-          },
-          {
-            "type": "number"
-          },
-          {
-            "type": "boolean"
-          }
-        ]
-      }
-    },
-    "family_params": {
-      "type": "object",
-      "propertyNames": {
-        "type": "string",
-        "enum": [
-          "kling",
-          "seedance",
-          "veo",
-          "wan",
-          "sora",
-          "minimax",
-          "ltx",
-          "local-wan",
-          "default"
-        ]
-      },
-      "additionalProperties": {
-        "type": "object",
-        "propertyNames": {
-          "type": "string"
-        },
-        "additionalProperties": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "number"
-            },
-            {
-              "type": "boolean"
-            }
-          ]
-        }
-      }
-    },
-    "families": {
-      "type": "array",
-      "items": {
-        "type": "string"
-      }
-    },
-    "preview": {
+  "oneOf": [
+    {
       "type": "object",
       "properties": {
-        "url": {
+        "id": {
           "type": "string",
-          "format": "uri"
+          "pattern": "^(camera|look|effect)\\.[a-z0-9-]+$"
         },
-        "poster": {
+        "version": {
+          "type": "number",
+          "const": 1
+        },
+        "kind": {
           "type": "string",
-          "format": "uri"
+          "enum": [
+            "camera",
+            "look",
+            "effect"
+          ]
         },
-        "run": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tags": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "slot": {
+          "type": "string",
+          "enum": [
+            "move",
+            "rig",
+            "speed",
+            "look",
+            "effect",
+            "body",
+            "stock",
+            "grade",
+            "lighting",
+            "era",
+            "ramp"
+          ]
+        },
+        "modes": {
+          "minItems": 1,
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "video",
+              "image_to_video",
+              "reference_to_video",
+              "image",
+              "image_edit",
+              "video_edit"
+            ]
+          }
+        },
+        "inputs": {
+          "default": [
+            "text"
+          ],
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "text",
+              "image",
+              "video"
+            ]
+          }
+        },
+        "stackable": {
+          "default": false,
+          "type": "boolean"
+        },
+        "conflicts": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "aliases": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "prompt": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "prefix": {
+                    "type": "string"
+                  },
+                  "suffix": {
+                    "type": "string"
+                  },
+                  "replace": {
+                    "type": "string"
+                  }
+                },
+                "additionalProperties": false
+              }
+            ]
+          },
+          "required": [
+            "default"
+          ]
+        },
+        "params": {
+          "default": {},
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              }
+            ]
+          }
+        },
+        "family_params": {
+          "type": "object",
+          "propertyNames": {
+            "type": "string",
+            "enum": [
+              "kling",
+              "seedance",
+              "veo",
+              "wan",
+              "sora",
+              "minimax",
+              "ltx",
+              "local-wan",
+              "default"
+            ]
+          },
+          "additionalProperties": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string"
+            },
+            "additionalProperties": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "boolean"
+                }
+              ]
+            }
+          }
+        },
+        "families": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "preview": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "format": "uri"
+            },
+            "poster": {
+              "type": "string",
+              "format": "uri"
+            },
+            "run": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "url",
+            "poster",
+            "run"
+          ],
+          "additionalProperties": false
+        },
+        "workflow": {
+          "type": "string"
+        },
+        "author": {
           "type": "string"
         }
       },
       "required": [
-        "url",
-        "poster",
-        "run"
+        "id",
+        "version",
+        "kind",
+        "name",
+        "description",
+        "modes",
+        "prompt"
       ],
       "additionalProperties": false
     },
-    "workflow": {
-      "type": "string"
-    },
-    "author": {
-      "type": "string"
+    {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^studio\\.[a-z0-9-]+$"
+        },
+        "version": {
+          "type": "number",
+          "const": 1
+        },
+        "kind": {
+          "type": "string",
+          "const": "studio"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tags": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "target": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "create"
+                },
+                "mode": {
+                  "type": "string",
+                  "enum": [
+                    "image",
+                    "video"
+                  ]
+                }
+              },
+              "required": [
+                "type",
+                "mode"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "effects"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "lipsync"
+                }
+              },
+              "required": [
+                "type"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "skill"
+                },
+                "skill": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9-]+$"
+                }
+              },
+              "required": [
+                "type",
+                "skill"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "flow"
+                },
+                "flow": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9-]+$"
+                }
+              },
+              "required": [
+                "type",
+                "flow"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "const": "app"
+                },
+                "app": {
+                  "type": "string",
+                  "pattern": "^[a-z0-9-]+$"
+                }
+              },
+              "required": [
+                "type",
+                "app"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "preset_ids": {
+          "default": [],
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "author": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "kind",
+        "name",
+        "description",
+        "target"
+      ],
+      "additionalProperties": false
     }
-  },
-  "required": [
-    "id",
-    "version",
-    "kind",
-    "name",
-    "description",
-    "modes",
-    "prompt"
-  ],
-  "additionalProperties": false
+  ]
 }

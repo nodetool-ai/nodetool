@@ -1,0 +1,16 @@
+{
+  "id": "studio.trailer",
+  "version": 1,
+  "kind": "studio",
+  "name": "Movie trailer",
+  "description": "A trailer from an idea: a beat sheet and shot list you can rewrite cheaply before rendering.",
+  "tags": [
+    "film",
+    "trailer"
+  ],
+  "target": {
+    "type": "app",
+    "app": "trailer-room"
+  },
+  "preset_ids": []
+}

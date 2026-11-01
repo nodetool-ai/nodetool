@@ -12,8 +12,12 @@ Settings with no value for the selected family, or outside the mode's generation
 allowlist, are dropped with warnings before stack conflict checks. See
 [family settings support](../../docs/presets.md#family-settings-support).
 
-`createCatalog(data)` validates an array and exposes `getPreset(id)`,
-`byAlias(text)` and `filter({ kind, mode })`. `loadCatalog(loader)` accepts
+`createCatalog(data)` validates an array of presets and studios. It exposes
+`getPreset(id)`, `byAlias(text)` and `filter({ kind, mode })` for presets, and
+`studios` and `getStudio(id)` for studios. It rejects a studio whose
+`preset_ids` do not fit its `target` (`studioPresetProblem`). `listCatalog(catalog,
+{ kind, mode, family })` returns the rows the CLI and agent listings print.
+`compilePresets` throws on a studio id. See [Studios](../../docs/presets.md#studios). `loadCatalog(loader)` accepts
 a synchronous JSON reader. On the server, use the registered asset:
 
 ```ts
@@ -40,8 +44,10 @@ For a preset with `workflow`, the host must supply the synchronous
 instead of generating nodes. Unsupported modes and missing resolvers throw.
 Video inputs require reference-video mode.
 
-The root entry also exports `presetSchema`, `fragmentSchema`,
-`presetJsonSchema`, `modelFamily` and their types. No source module imports
+The root entry also exports `presetSchema`, `studioSchema`,
+`catalogEntrySchema`, `fragmentSchema`, `presetJsonSchema`,
+`catalogEntryJsonSchema` (the checked-in `preset.schema.json`), `modelFamily`
+and their types. No source module imports
 Node APIs. Hosts own disk access.
 
 `default` and `local-wan` are explicit family selectors. Local hosts may qualify

@@ -26,3 +26,27 @@ it("prints a compiled bullet-time prompt and params for Kling", async () => {
     write.mockRestore();
   }
 });
+it("lists studios by kind and names a studio when asked to eject one", async () => {
+  const write = vi
+    .spyOn(process.stdout, "write")
+    .mockImplementation(() => true);
+  try {
+    const program = new Command();
+    program.exitOverride();
+    registerPresetCommands(program);
+    await program.parseAsync(["presets", "list", "--kind", "studio"], {
+      from: "user"
+    });
+    const rows = JSON.parse(String(write.mock.calls[0]?.[0]));
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.every((row: { kind: string }) => row.kind === "studio")).toBe(true);
+    await expect(
+      program.parseAsync(
+        ["presets", "eject", "studio.cinematic-shot", "--model", "m", "--provider", "p"],
+        { from: "user" }
+      )
+    ).rejects.toThrow("studio.cinematic-shot is a studio");
+  } finally {
+    write.mockRestore();
+  }
+});

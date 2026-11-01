@@ -27,6 +27,8 @@ export async function catalogFiles() {
   const files = [];
   const base = resolve(root, 'packages/presets/catalog');
   for (const kind of await readdir(base)) {
+    // Studios open a surface and have no preview to render.
+    if (kind === 'studio') { continue; }
     for (const name of await readdir(resolve(base, kind))) {
       if (name.endsWith('.json')) {
         const path = resolve(base, kind, name);

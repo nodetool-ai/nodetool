@@ -1,7 +1,7 @@
 import { readdirSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { join } from "node:path";
-import { createCatalog, presetJsonSchema } from "../dist/index.js";
+import { createCatalog, catalogEntryJsonSchema } from "../dist/index.js";
 
 const root = fileURLToPath(new URL("../", import.meta.url));
 const rows = [];
@@ -16,7 +16,7 @@ for (const kind of readdirSync(join(root, "catalog")).sort()) {
 }
 createCatalog(rows);
 mkdirSync(join(root, "dist"), { recursive: true });
-for (const [file, data] of [["preset.schema.json", presetJsonSchema], ["preset-catalog.json", rows]]) {
+for (const [file, data] of [["preset.schema.json", catalogEntryJsonSchema], ["preset-catalog.json", rows]]) {
   const content = `${JSON.stringify(data, null, 2)}\n`;
   if (process.argv.includes("--check")) {
     if (readFileSync(join(root, file), "utf8") !== content) { throw new Error(`Generated file drift: ${file}`); }

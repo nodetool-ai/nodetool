@@ -3242,5 +3242,182 @@
       "wan": "Use a 1990s VHS transfer finish: limited chroma resolution, slight horizontal color bleed, interlaced edge texture and soft tape noise. Preserve the described scene and wardrobe. Retain natural subject detail under this visual treatment."
     },
     "params": {}
+  },
+  {
+    "id": "studio.cinematic-shot",
+    "version": 1,
+    "kind": "studio",
+    "name": "Cinematic shot",
+    "description": "A film-look video clip from one sentence: a slow push in on tungsten film stock with a teal-and-amber grade.",
+    "tags": [
+      "video",
+      "film"
+    ],
+    "target": {
+      "type": "create",
+      "mode": "video"
+    },
+    "preset_ids": [
+      "camera.dolly-in",
+      "look.kodak-5219",
+      "look.teal-amber"
+    ]
+  },
+  {
+    "id": "studio.film-scene",
+    "version": 1,
+    "kind": "studio",
+    "name": "Film a scene",
+    "description": "From one sentence to a storyboard of shots, then rendered stills and clips you can direct shot by shot.",
+    "tags": [
+      "storyboard",
+      "film"
+    ],
+    "target": {
+      "type": "flow",
+      "flow": "storyboard"
+    },
+    "preset_ids": []
+  },
+  {
+    "id": "studio.music-video",
+    "version": 1,
+    "kind": "studio",
+    "name": "Music video",
+    "description": "A beat-synced treatment and storyboard cut to your track.",
+    "tags": [
+      "music",
+      "storyboard"
+    ],
+    "target": {
+      "type": "skill",
+      "skill": "music-video-treatment"
+    },
+    "preset_ids": []
+  },
+  {
+    "id": "studio.photo-effects",
+    "version": 1,
+    "kind": "studio",
+    "name": "Animate a photo",
+    "description": "Drop in one photo and turn it into a short clip: levitate, burst into petals, melt to gold and more.",
+    "tags": [
+      "effect",
+      "image-to-video"
+    ],
+    "target": {
+      "type": "effects"
+    },
+    "preset_ids": [
+      "effect.levitate",
+      "effect.petal-burst",
+      "effect.confetti-burst",
+      "effect.golden-embers",
+      "effect.glass-shatter",
+      "effect.smoke-vanish",
+      "effect.liquid-chrome",
+      "effect.molten-gold"
+    ]
+  },
+  {
+    "id": "studio.portrait-photo",
+    "version": 1,
+    "kind": "studio",
+    "name": "Portrait photo",
+    "description": "A still portrait under a soft Rembrandt key on warm daylight film stock.",
+    "tags": [
+      "image",
+      "portrait"
+    ],
+    "target": {
+      "type": "create",
+      "mode": "image"
+    },
+    "preset_ids": [
+      "look.rembrandt-key",
+      "look.kodak-5207"
+    ]
+  },
+  {
+    "id": "studio.product-ad",
+    "version": 1,
+    "kind": "studio",
+    "name": "Product ad",
+    "description": "A finished launch commercial from a product page: storyboard, footage, voice, music and an edited timeline.",
+    "tags": [
+      "ad",
+      "product"
+    ],
+    "target": {
+      "type": "skill",
+      "skill": "launch-commercial"
+    },
+    "preset_ids": []
+  },
+  {
+    "id": "studio.product-hero",
+    "version": 1,
+    "kind": "studio",
+    "name": "Product hero shot",
+    "description": "A product turning in a slow orbit, rendered crisp with clean specular highlights.",
+    "tags": [
+      "video",
+      "product"
+    ],
+    "target": {
+      "type": "create",
+      "mode": "video"
+    },
+    "preset_ids": [
+      "camera.orbit",
+      "look.red-v-raptor"
+    ]
+  },
+  {
+    "id": "studio.talking-head",
+    "version": 1,
+    "kind": "studio",
+    "name": "Talking head",
+    "description": "A picture of a person speaking your line in a chosen voice, lip-synced.",
+    "tags": [
+      "lipsync",
+      "voice"
+    ],
+    "target": {
+      "type": "lipsync"
+    },
+    "preset_ids": []
+  },
+  {
+    "id": "studio.trailer",
+    "version": 1,
+    "kind": "studio",
+    "name": "Movie trailer",
+    "description": "A trailer from an idea: a beat sheet and shot list you can rewrite cheaply before rendering.",
+    "tags": [
+      "film",
+      "trailer"
+    ],
+    "target": {
+      "type": "app",
+      "app": "trailer-room"
+    },
+    "preset_ids": []
+  },
+  {
+    "id": "studio.ugc-ad",
+    "version": 1,
+    "kind": "studio",
+    "name": "Creator testimonial",
+    "description": "A phone-shot creator video for a product: the spoken pitch, captions and a branded end card.",
+    "tags": [
+      "ad",
+      "ugc"
+    ],
+    "target": {
+      "type": "app",
+      "app": "ugc-product-video"
+    },
+    "preset_ids": []
   }
 ]
