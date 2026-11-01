@@ -230,6 +230,13 @@ export const EDIT_STORYBOARD_SCHEMA: JsonSchema = {
       items: {
         type: "object",
         properties: {
+          look_preset_ids: {
+            type: "array",
+            items: { type: "string" },
+            maxItems: 3,
+            description:
+              "Look ids for set_board or a shot override. Empty shot ids inherit the board. Camera and effective look share a three-preset limit."
+          },
           camera: {
             type: "object",
             properties: {

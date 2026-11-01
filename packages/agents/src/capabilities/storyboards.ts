@@ -589,6 +589,7 @@ const getStoryboard: CapabilityExport = {
       name: row.name,
       brief: doc.brief,
       style: doc.style,
+      look_preset_ids: doc.look_preset_ids ?? [],
       aspect_ratio: doc.aspectRatio,
       image_model: doc.imageModel ?? null,
       video_model: doc.videoModel ?? null,
@@ -607,6 +608,7 @@ const getStoryboard: CapabilityExport = {
           slug: shot.slug,
           action: shot.action,
           camera: shot.camera,
+          look_preset_ids: shot.look_preset_ids ?? [],
           motion: shot.motion,
           end_state: shot.end_state,
           sound: shot.sound,
@@ -1669,6 +1671,7 @@ const SHOT_EDIT_FIELDS = new Set([
   "action",
   "slug",
   "camera",
+  "look_preset_ids",
   "motion",
   "end_state",
   "sound",
@@ -1739,6 +1742,7 @@ function shotTarget(args: Record<string, unknown>, op: string): string {
 
 /** The board fields `set_board` may set. */
 const BOARD_EDIT_FIELDS = new Set([
+  "look_preset_ids",
   "brief",
   "style",
   "aspect_ratio",
@@ -1847,6 +1851,9 @@ function applyShotFields(
   const next: Shot = { ...shot };
   if (args["action"] !== undefined) next.action = String(args["action"]);
   if (args["slug"] !== undefined) next.slug = String(args["slug"]);
+  if (args["look_preset_ids"] !== undefined) {
+    next.look_preset_ids = cameraPresetIdsSchema.parse(args["look_preset_ids"]);
+  }
   if (args["camera"] !== undefined) {
     next.camera = args["camera"] as Shot["camera"];
   }
@@ -2376,6 +2383,11 @@ function applyBoardOp(
               .join("; ")
         );
       }
+      if (args["look_preset_ids"] !== undefined) {
+        doc.look_preset_ids = cameraPresetIdsSchema.parse(
+          args["look_preset_ids"]
+        );
+      }
       if (args["brief"] !== undefined) doc.brief = String(args["brief"]);
       if (args["style"] !== undefined) doc.style = String(args["style"]);
       if (args["aspect_ratio"] !== undefined) {
@@ -2520,7 +2532,9 @@ async function resolveStoryboardEditSources(run: CapabilityRun, ops: readonly Pa
       }
     }
     if (Array.isArray(args["entity_ids"])) {
-      args["entity_ids"] = await Promise.all(args["entity_ids"].map(async (id) => isString(id) ? resolve(id) : id));
+      args["entity_ids"] = await Promise.all(
+        args["entity_ids"].map(async (id) => (isString(id) ? resolve(id) : id))
+      );
     }
   }
   return resolved;

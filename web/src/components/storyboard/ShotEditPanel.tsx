@@ -233,7 +233,9 @@ const formatDraftValue = (
     return notSet;
   }
   if (key === "sceneId") {
-    return sceneOptions.find((option) => option.value === value)?.label ?? notSet;
+    return (
+      sceneOptions.find((option) => option.value === value)?.label ?? notSet
+    );
   }
   if (typeof value === "object") {
     return editedGraphics;
@@ -293,8 +295,14 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
   const boardEntityIds = useStoryboardStore(
     (state) => state.boards[boardId]?.entityIds ?? EMPTY_IDS
   );
+  const boardImageModelId = useStoryboardStore(
+    (state) => state.boards[boardId]?.imageModel?.id
+  );
   const boardStyle = useStoryboardStore(
     (state) => state.boards[boardId]?.style ?? ""
+  );
+  const boardLookIds = useStoryboardStore(
+    (state) => state.boards[boardId]?.look_preset_ids ?? EMPTY_IDS
   );
   const applyShotDraft = useStoryboardStore((state) => state.applyShotDraft);
   const nudgeShot = useStoryboardStore((state) => state.nudgeShot);
@@ -750,6 +758,7 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
     framing: t("screens4_16.shotEditPanel.fields.size"),
     angle: t("screens4_16.shotEditPanel.fields.perspective"),
     movement: t("screens4_16.shotEditPanel.fields.movement"),
+    lookPresetIds: t("look_preset_field.title"),
     presetIds: t("screens4_16.shotEditPanel.fields.movement"),
     equipment: t("screens4_16.shotEditPanel.fields.equipment"),
     lens: t("screens4_16.shotEditPanel.fields.focalLength"),
@@ -877,6 +886,7 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
           <ScrollArea thin sx={formColumnSx}>
             <FlexColumn gap={SPACING.lg}>
               <ShotEditTable
+                boardLookIds={boardLookIds}
                 draft={draft}
                 onChange={setDraft}
                 entities={entityChips}
@@ -926,6 +936,8 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
                 style={boardStyle}
                 castNames={castNames}
                 videoModelId={videoModelId}
+                boardLookIds={boardLookIds}
+                imageModelId={previewShot.still_model?.id ?? boardImageModelId}
               />
               <ShotScriptPanel
                 boardId={boardId}

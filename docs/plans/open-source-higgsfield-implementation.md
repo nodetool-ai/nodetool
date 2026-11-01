@@ -518,6 +518,8 @@ families, and for a family-scoped param dropped on a model that lacks it.
 
 ### P15: Looks in storyboard and composer
 
+Status: done.
+
 - Board-level `look_preset_ids` on the storyboard document and a per-shot
   override `shot.look_preset_ids`. An empty override inherits the board's.
 - Compile looks into keyframe and clip prompts through `ShotPromptContext`,

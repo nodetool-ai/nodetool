@@ -260,3 +260,14 @@ Use `--dry-run` to see the plan without Chrome or credentials. Rendering is sequ
 - [Harnesses](harnesses.md#nodetool-presets) for the selfchecks and CLI
 - [Agent Architecture & Tools](AGENTS.md#built-in-capabilities) for the capability table
 - [packages/presets/README.md](../packages/presets/README.md) for the package API
+
+
+## Storyboard looks
+
+Choose a **Board look** in **Change Style** to apply look presets across a storyboard. **Choose look** in the shot editor sets that shot's override. Clearing the override inherits the board selection. The Prompts preview shows the look compiled for the selected still and video models. A video-only ramp is omitted from still prompts.
+
+Camera and effective look presets share the three-preset limit. Choose one per slot and avoid conflicts. Looks and camera direction compile together for clips. Changing a board look marks inherited renders stale while keeping existing media.
+
+The composer uses one Presets picker with Camera, Look and Effect kind filters. This keeps the shared selection limit visible and lets a look combine with a camera move. Only presets supporting the current mode appear.
+
+Agents can set `look_preset_ids` with `edit_storyboard` on `set_board`, `add_shot` or `update_shot`. The frontend bridge exposes the board field through `ui_storyboard_set_style` and shot fields through the add/update tools.

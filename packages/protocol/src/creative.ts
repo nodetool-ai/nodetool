@@ -363,6 +363,7 @@ export interface RenderInputs {
   render_mode?: ShotRenderMode;
   /** Ordered camera preset selection used for this clip. */
   camera_preset_ids?: string[];
+  look_preset_ids?: string[];
   recorded_at: string;
 }
 
@@ -520,6 +521,8 @@ export interface StoryboardMotionDesign {
 
 /** One shot in a {@link Screenplay}. */
 export interface Shot {
+  /** Empty or absent inherits the board look. */
+  look_preset_ids?: string[];
   production?: ProductionRequirement;
   type: "shot";
   id: string;

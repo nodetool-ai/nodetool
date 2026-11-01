@@ -371,3 +371,82 @@ describe("camera preset render prompts", () => {
     }
   }
 });
+
+describe("storyboard looks", () => {
+  const catalog = createCatalog(
+    JSON.parse(
+      readFileSync(
+        new URL("../../presets/preset-catalog.json", import.meta.url),
+        "utf8"
+      )
+    )
+  );
+  it("inherits board looks, overrides per shot, and compiles alongside camera", () => {
+    const doc = board([
+      shot({
+        id: "inherited",
+        index: 0,
+        camera: { preset_ids: ["camera.dolly-in"] }
+      }),
+      shot({
+        id: "override",
+        index: 1,
+        look_preset_ids: ["look.bleach-bypass"],
+        camera: { preset_ids: ["camera.dolly-in"] }
+      }),
+      shot({ id: "empty", index: 2, look_preset_ids: [] })
+    ]);
+    doc.look_preset_ids = ["look.arri-alexa"];
+    for (const model of ["kling-v3", "seedance-2"]) {
+      for (const kind of ["keyframe", "clip"] as const) {
+        const plans = planShotRenders(doc, [], kind, undefined, {
+          model,
+          presetCatalog: catalog
+        });
+        expect(plans[0].renderInputs.look_preset_ids).toEqual([
+          "look.arri-alexa"
+        ]);
+        expect(plans[1].renderInputs.look_preset_ids).toEqual([
+          "look.bleach-bypass"
+        ]);
+        expect(plans[2].renderInputs.look_preset_ids).toEqual([
+          "look.arri-alexa"
+        ]);
+        expect(plans[0].prompt).not.toBe(plans[1].prompt);
+        expect(plans[0].prompt).toMatch(/Alexa|ARRI|highlight/i);
+        if (kind === "clip") expect(plans[0].prompt).toMatch(/doll(?:y|ies)|forward/i);
+      }
+    }
+  });
+  it("rejects more than three effective camera and look presets together", () => {
+    const doc = board([
+      shot({
+        id: "s",
+        index: 0,
+        camera: { preset_ids: ["camera.dolly-in", "camera.handheld"] }
+      })
+    ]);
+    doc.look_preset_ids = ["look.arri-alexa", "look.bleach-bypass"];
+    expect(() =>
+      planShotRenders(doc, [], "clip", undefined, { presetCatalog: catalog })
+    ).toThrow(/three/);
+  });
+  it("omits video-only ramps from still prompts and records look changes as stale", () => {
+    const doc = board([shot({ id: "s", index: 0 })]);
+    doc.look_preset_ids = ["look.fast-slow-fast"];
+    const [plan] = planShotRenders(doc, [], "keyframe", undefined, {
+      presetCatalog: catalog
+    });
+    expect(plan.prompt).not.toMatch(/ramp|speed/i);
+    const before = currentRenderInputs(
+      doc.shots[0],
+      boardRenderContext(doc, []),
+      "keyframe"
+    );
+    doc.look_preset_ids = ["look.arri-alexa"];
+    expect(
+      currentRenderInputs(doc.shots[0], boardRenderContext(doc, []), "keyframe")
+        .look_preset_ids
+    ).not.toEqual(before.look_preset_ids);
+  });
+});

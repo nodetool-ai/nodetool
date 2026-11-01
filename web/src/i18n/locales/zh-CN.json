@@ -19426,5 +19426,14 @@
       "actions": "{{name}}的操作",
       "openAsWorkflow": "作为工作流打开"
     }
+  },
+  "look_preset_field": {
+    "browse": "选择风格",
+    "title": "镜头风格",
+    "board": "分镜风格",
+    "done": "完成",
+    "remove": "移除 {{name}}",
+    "clause": "风格提示词",
+    "inherit": "未选择时继承分镜风格。"
   }
 }

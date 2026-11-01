@@ -3171,11 +3171,11 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "edit_storyboard",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "aa5ff78655bf",
+    contract: "8053e8c4f655",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",
-      "packages/agents/tests/capabilities-document-rename.test.ts",
+      "packages/agents/tests/capabilities-storyboards-looks.test.ts",
     ],
     evals: [
       {

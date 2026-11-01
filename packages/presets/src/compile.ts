@@ -18,8 +18,22 @@ export interface CompiledPresets {
 }
 
 /** Compile a validated stack in request order, rejecting incompatible presets. */
-export function compilePresets(ids: readonly string[], options: CompileOptions): CompiledPresets {
-  if (ids.length > MAX_PRESET_STACK) { throw new Error("At most three presets can be applied"); }
+export function compilePresets(
+  ids: readonly string[],
+  options: CompileOptions
+): CompiledPresets {
+  const { clauses: _clauses, ...compiled } = compilePresetStack(ids, options);
+  return compiled;
+}
+
+/** Shared compiler with per-preset clauses for storyboard prompt composition. */
+export function compilePresetStack(
+  ids: readonly string[],
+  options: CompileOptions
+): CompiledPresets & { clauses: { id: string; prompt: string }[] } {
+  if (ids.length > MAX_PRESET_STACK) {
+    throw new Error("At most three presets can be applied");
+  }
   const presets = ids.map((id) => {
     const preset = options.catalog.getPreset(id);
     if (!preset) { throw new Error(`Unknown preset: ${id}`); }
@@ -38,6 +52,7 @@ export function compilePresets(ids: readonly string[], options: CompileOptions):
     }
   }
   let prompt = options.prompt;
+  const clauses: { id: string; prompt: string }[] = [];
   const params = new Map<string, string | number | boolean>();
   const owners = new Map<string, string>();
   const warnings: string[] = [];
@@ -49,13 +64,22 @@ export function compilePresets(ids: readonly string[], options: CompileOptions):
     if (!hasFamily) {
       warnings.push(`Preset ${preset.id} has no fragment for ${family ?? options.modelId}, using default`);
     }
+    clauses.push({
+      id: preset.id,
+      prompt:
+        typeof fragment === "string"
+          ? fragment
+          : [fragment.prefix, fragment.replace, fragment.suffix]
+              .filter(Boolean)
+              .join(" ")
+    });
     if (typeof fragment === "string") {
       prompt = [prompt, fragment].filter(Boolean).join(" ");
     } else {
       prompt = [fragment.prefix, fragment.replace ?? prompt, fragment.suffix].filter(Boolean).join(" ");
     }
     const scoped = preset.family_params ?? {};
-    const familyParams = family === null ? {} : scoped[family] ?? {};
+    const familyParams = family === null ? {} : (scoped[family] ?? {});
     const selectedParams = { ...preset.params, ...familyParams };
     for (const key of new Set(Object.values(scoped).flatMap((values) => Object.keys(values)))) {
       if (!Object.hasOwn(selectedParams, key)) {
@@ -77,5 +101,11 @@ export function compilePresets(ids: readonly string[], options: CompileOptions):
       owners.set(key, preset.id);
     }
   }
-  return { prompt, params: Object.fromEntries(params), applied: presets.map((preset) => preset.id), warnings };
+  return {
+    clauses,
+    prompt,
+    params: Object.fromEntries(params),
+    applied: presets.map((preset) => preset.id),
+    warnings
+  };
 }

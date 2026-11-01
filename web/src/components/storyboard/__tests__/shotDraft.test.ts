@@ -65,6 +65,7 @@ describe("draftFromShot", () => {
       angle: "low angle",
       movement: "dolly in",
       presetIds: [],
+      lookPresetIds: [],
       equipment: "dolly",
       lens: "85mm",
       notes: "Do not paint the sky",

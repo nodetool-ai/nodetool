@@ -31,7 +31,7 @@ import { modelFamily } from "@nodetool-ai/presets";
 import type { ShotRenderMode } from "@nodetool-ai/protocol";
 
 import { presetText } from "../../utils/presetText";
-import { CAMERA_PRESETS, presetCatalog } from "../../lib/presets/catalog";
+import { presetCatalog } from "../../lib/presets/catalog";
 import type { ShotDraft } from "./shotDraft";
 import {
   draftPatchForPresets,
@@ -48,6 +48,7 @@ interface ShotMovementFieldProps {
   /** Limits the picker to presets that run in the shot's render mode. */
   renderMode?: ShotRenderMode;
   readOnly?: boolean;
+  boardLookIds?: readonly string[];
 }
 
 const ShotMovementFieldInner: React.FC<ShotMovementFieldProps> = ({
@@ -56,7 +57,8 @@ const ShotMovementFieldInner: React.FC<ShotMovementFieldProps> = ({
   onChange,
   videoModelId,
   renderMode,
-  readOnly
+  readOnly,
+  boardLookIds = []
 }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -139,7 +141,10 @@ const ShotMovementFieldInner: React.FC<ShotMovementFieldProps> = ({
         }
       >
         <PresetPicker
-          presets={CAMERA_PRESETS}
+          presets={presetCatalog.presets}
+          companionIds={
+            draft.lookPresetIds.length ? draft.lookPresetIds : boardLookIds
+          }
           value={selected}
           onChange={handlePresets}
           filter={filter}

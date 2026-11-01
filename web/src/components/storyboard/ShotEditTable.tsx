@@ -35,6 +35,7 @@ import {
   cameraOptions
 } from "./cameraOptions";
 import ShotMovementField from "./ShotMovementField";
+import ShotLookField from "./ShotLookField";
 import {
   isDurationInvalid,
   withDuration,
@@ -58,6 +59,7 @@ interface ShotEditTableProps {
   onEditInScript?: () => void;
   /** The model the clip renders with, so the preset picker marks its family. */
   videoModelId?: string | null;
+  boardLookIds?: readonly string[];
 }
 
 /** Two fields to a row, as the specs read in pairs. */
@@ -85,7 +87,8 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
   readOnly,
   focusDialogue,
   onEditInScript,
-  videoModelId
+  videoModelId,
+  boardLookIds
 }) => {
   const { t, i18n } = useTranslation();
   const set = useCallback(
@@ -258,6 +261,14 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
           />
           <ShotMovementField
             label={t("screens4_16.shotEditTable.movement")}
+            draft={draft}
+            onChange={onChange}
+            boardLookIds={boardLookIds}
+            videoModelId={videoModelId}
+            renderMode={draft.renderMode}
+            readOnly={readOnly}
+          />
+          <ShotLookField
             draft={draft}
             onChange={onChange}
             videoModelId={videoModelId}

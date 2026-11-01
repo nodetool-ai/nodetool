@@ -107,6 +107,10 @@ Select a card to open the shot inspector under the grid. It repeats **Edit**, **
 
 Title, render mode, notes, and graphics sit under **Advanced**. **Prompts** shows the still prompt and clip prompt the render will send, so you can check them before you spend anything. When the shot has camera presets, the clip prompt shows the camera wording compiled for the board's video model, and a note lists any preset that has no wording tuned for that model. The **Regenerate** button renders a new still. The **More shot actions** menu holds **Render clip** (or **Re-render clip**), **Move earlier in scene**, and **Move later in scene**. A clip in keyframe mode needs a still first.
 
+### Look presets
+
+Open **Change Style** and choose a **Board look**. In the shot editor, **Choose look** overrides that selection for one shot. An empty selection inherits the board look. Looks apply to still and clip prompts when they support that generation mode. Video-only speed ramps skip stills. Camera and effective look selections share a three-preset limit. **Prompts** shows the compiled look for the selected models. Changes preserve existing takes and mark affected renders stale.
+
 ### Camera movement presets
 
 The **Movement** field takes typed words or opens a picker of camera presets: named moves such as a dolly zoom or a whip pan, rigs such as handheld or steadicam, and speed ramps. Pick up to three. A preset in each slot (move, rig, speed) can combine. The picker disables a card that conflicts with one already chosen and says which one.

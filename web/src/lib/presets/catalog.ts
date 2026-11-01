@@ -11,9 +11,11 @@ export const presetCatalog = createCatalog(presetData);
 
 /** Every camera preset, in catalogue order. */
 export const CAMERA_PRESETS = presetCatalog.filter({ kind: "camera" });
+/** Every look preset, in catalogue order. */
+export const LOOK_PRESETS = presetCatalog.filter({ kind: "look" });
 
 /** Every effect preset, in catalogue order. */
 export const EFFECT_PRESETS = presetCatalog.filter({ kind: "effect" });
 
-/** Composer kinds available before the dedicated look controls. */
-export const MEDIA_PRESETS = presetCatalog.presets.filter((preset) => preset.kind !== "look");
+/** Composer presets share one stack across camera, look and effect kinds. */
+export const MEDIA_PRESETS = presetCatalog.presets;

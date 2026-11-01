@@ -19426,5 +19426,14 @@
       "actions": "Aktionen für {{name}}",
       "openAsWorkflow": "Als Workflow öffnen"
     }
+  },
+  "look_preset_field": {
+    "browse": "Look wählen",
+    "title": "Shot-Look",
+    "board": "Storyboard-Look",
+    "done": "Fertig",
+    "remove": "{{name}} entfernen",
+    "clause": "Look-Text",
+    "inherit": "Eine leere Auswahl übernimmt den Storyboard-Look."
   }
 }

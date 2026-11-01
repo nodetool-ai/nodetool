@@ -19426,5 +19426,14 @@
       "actions": "{{name}} actions",
       "openAsWorkflow": "Open as workflow"
     }
+  },
+  "look_preset_field": {
+    "browse": "Choose look",
+    "title": "Shot look",
+    "board": "Board look",
+    "done": "Done",
+    "remove": "Remove {{name}}",
+    "clause": "Look clause",
+    "inherit": "Empty selection inherits the board look."
   }
 }

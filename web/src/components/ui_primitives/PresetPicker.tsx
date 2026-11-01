@@ -59,6 +59,8 @@ export interface PresetPickerProps {
   presets: readonly Preset[];
   /** Selected preset ids in stack order. */
   value: string[];
+  /** Presets selected in another field that share this request's stack. */
+  companionIds?: readonly string[];
   onChange: (ids: string[]) => void;
   /** Limits the grid to one kind or generation mode. */
   filter?: PresetFilter;
@@ -80,6 +82,7 @@ const PresetPickerInner = forwardRef<HTMLDivElement, PresetPickerProps>(
     {
       presets,
       value,
+      companionIds,
       onChange,
       filter,
       activeFamily,
@@ -145,10 +148,10 @@ const PresetPickerInner = forwardRef<HTMLDivElement, PresetPickerProps>(
     );
     const selection = useMemo(
       () =>
-        value
+        [...value, ...(companionIds ?? [])]
           .map((id) => byId.get(id))
           .filter((preset): preset is Preset => preset !== undefined),
-      [value, byId]
+      [value, companionIds, byId]
     );
 
     const reasonText = useCallback(

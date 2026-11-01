@@ -19426,5 +19426,14 @@
       "actions": "{{name}}: toiminnot",
       "openAsWorkflow": "Avaa työnkulkuna"
     }
+  },
+  "look_preset_field": {
+    "browse": "Valitse ilme",
+    "title": "Otoksen ilme",
+    "board": "Kuvakäsikirjoituksen ilme",
+    "done": "Valmis",
+    "remove": "Poista {{name}}",
+    "clause": "Ilmeen kehote",
+    "inherit": "Tyhjä valinta käyttää kuvakäsikirjoituksen ilmettä."
   }
 }

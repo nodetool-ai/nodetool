@@ -20,6 +20,8 @@
  * shot status.
  */
 
+import { compileShotPresets } from "@nodetool-ai/presets";
+import { presetCatalog } from "../../lib/presets/catalog";
 import { useCallback } from "react";
 import { assertProductionGenerationAllowed } from "@nodetool-ai/protocol";
 import type {
@@ -115,7 +117,11 @@ const hasReferenceImage = (entities: Entity[]): boolean =>
   entities.some((e) => (e.reference_images?.length ?? 0) > 0);
 
 /** The model-backed changes a shot's current still can go through. */
-export type StillVariantMode = "image_edit" | "inpaint" | "upscale" | "outpaint";
+export type StillVariantMode =
+  | "image_edit"
+  | "inpaint"
+  | "upscale"
+  | "outpaint";
 
 export interface StillVariantRequest {
   mode: StillVariantMode;
@@ -366,7 +372,13 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       const useEditModel =
         hasReferenceImage(entities) &&
         !!stillModel?.supported_tasks?.includes("image_to_image");
+      const compiled = compileShotPresets(shot, board?.look_preset_ids ?? [], {
+        catalog: presetCatalog,
+        modelId: model?.id ?? "",
+        mode: "image"
+      });
       const basePrompt = keyframePrompt(shot, {
+        ...(compiled.context.compiledCamera && { compiledCamera: { ...compiled.context.compiledCamera, clause: "" } }),
         scene: sceneForShot(shot, board?.screenplay?.scenes),
         style
       });
@@ -378,6 +390,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
             : basePrompt;
 
       const data: Record<string, unknown> = {
+        ...(compiled.applied.length > 0 && { preset_ids: compiled.applied }),
         mode: "image",
         prompt,
         aspect_ratio: aspectRatio,
@@ -455,9 +468,20 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         board?.screenplay?.script_id,
         shot
       );
+      const compiled = compileShotPresets(shot, board?.look_preset_ids ?? [], {
+        catalog: presetCatalog,
+        modelId: model?.id ?? "",
+        mode:
+          renderMode === "keyframe"
+            ? "image_to_video"
+            : renderMode === "reference"
+              ? "reference_to_video"
+              : "video"
+      });
       const prompt = clipPromptFor(
         shot,
         {
+          ...(compiled.context.compiledCamera && { compiledCamera: { ...compiled.context.compiledCamera, clause: "" } }),
           scene: sceneForShot(shot, board?.screenplay?.scenes),
           style: board?.style ?? ""
         },
@@ -529,6 +553,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         throw new Error(message);
       }
       const data: Record<string, unknown> = {
+        ...(compiled.applied.length > 0 && { preset_ids: compiled.applied }),
         mode: "video",
         prompt: `${productionCandidates[0]?.snapshot.prompt ?? prompt}${entityTokenSuffix(entities)}`,
         aspect_ratio: aspectRatio,

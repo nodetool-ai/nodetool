@@ -24,6 +24,7 @@ import {
 import { presetText } from "../../utils/presetText";
 import { presetCatalog } from "../../lib/presets/catalog";
 import { previewShotCamera } from "./shotCameraPresets";
+import { compileShotPresets } from "@nodetool-ai/presets";
 
 import {
   AlertBanner,
@@ -49,6 +50,8 @@ interface ShotPromptPreviewProps {
   castNames: string[];
   /** The model the clip renders with; the camera presets compile for its family. */
   videoModelId?: string | null;
+  imageModelId?: string | null;
+  boardLookIds?: readonly string[];
 }
 
 const promptSx = {
@@ -88,7 +91,9 @@ const ShotPromptPreviewInner: React.FC<ShotPromptPreviewProps> = ({
   scene,
   style,
   castNames,
-  videoModelId
+  videoModelId,
+  imageModelId,
+  boardLookIds = []
 }) => {
   const { t } = useTranslation();
   const mode = shotRenderMode(shot);
@@ -97,21 +102,39 @@ const ShotPromptPreviewInner: React.FC<ShotPromptPreviewProps> = ({
     () => previewShotCamera(presetIds, videoModelId, mode, presetCatalog),
     [presetIds, videoModelId, mode]
   );
-  const { still, clip } = useMemo(
-    () => ({
-      still: keyframePrompt(shot, { scene, style }),
-      clip: clipPromptFor(
-        shot,
-        {
-          scene,
-          style,
-          ...(camera.compiled && { compiledCamera: camera.compiled })
-        },
-        mode
-      )
-    }),
-    [shot, scene, style, mode, camera.compiled]
-  );
+  const preview = (() => {
+    try {
+      const still = compileShotPresets(shot, boardLookIds, {
+        catalog: presetCatalog,
+        modelId: imageModelId ?? "",
+        mode: "image"
+      });
+      const clip = compileShotPresets(shot, boardLookIds, {
+        catalog: presetCatalog,
+        modelId: videoModelId ?? "",
+        mode:
+          mode === "keyframe"
+            ? "image_to_video"
+            : mode === "reference"
+              ? "reference_to_video"
+              : "video"
+      });
+      return {
+        still: keyframePrompt(shot, { scene, style, ...still.context }),
+        clip: clipPromptFor(shot, { scene, style, ...clip.context }, mode),
+        look: clip.context.compiledLook ?? still.context.compiledLook,
+        error: undefined
+      };
+    } catch (error) {
+      return {
+        still: "",
+        clip: "",
+        look: undefined,
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+  })();
+  const { still, clip } = preview;
   const fallbackNames = camera.fallbackIds
     .map((id) => presetCatalog.getPreset(id))
     .filter((preset) => preset !== undefined)
@@ -157,6 +180,19 @@ const ShotPromptPreviewInner: React.FC<ShotPromptPreviewProps> = ({
           )}
           text={clip}
         />
+        {preview.look && (
+          <PromptBlock
+            label={t("look_preset_field.clause")}
+            copyLabel={t("look_preset_field.clause")}
+            emptyText=""
+            text={preview.look}
+          />
+        )}
+        {preview.error && (
+          <AlertBanner severity="warning" compact>
+            {preview.error}
+          </AlertBanner>
+        )}
         {camera.compiled && (
           <PromptBlock
             label={t("screens4_18.storyboard.shotPromptPreview.cameraClause")}
