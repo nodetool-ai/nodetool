@@ -42,8 +42,8 @@ registerHooks({ resolve(specifier, context, next) {
     } }));
     const result = runMissing(["jsscript", command, file, "--json"], hook, true);
     expect(result.status, result.stderr).toBe(3);
-    expect(JSON.parse(result.stdout)).toMatchObject({ error: "missing_runtime_package", runtimePackage: "office-documents", missing: "exceljs", reason: "missing", managed: "nodetool runtime add office-documents" });
-    expect(result.stderr).toContain("nodetool runtime add office-documents");
+    expect(JSON.parse(result.stdout)).toMatchObject({ error: "missing_runtime_package", runtimePackage: "office-documents", missing: "exceljs", reason: "missing", managed: "nodetool packs add office-documents --yes" });
+    expect(result.stderr).toContain("nodetool packs add office-documents --yes");
   }, 40000);
   it("keeps an ordinary saved-case assertion failure on exit1", () => {
     const dir = mkdtempSync(join(tmpdir(), "nodetool-script-mismatch-"));

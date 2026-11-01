@@ -34,7 +34,8 @@ import {
 import { AgentMemory } from "./agent-memory.js";
 import {
   recordInvocationAsset,
-  recordInvocationCost
+  recordInvocationCost,
+  setNodeCost
 } from "./invocation-account.js";
 import { VariableChannel } from "./variable-channel.js";
 import { loadMediaRefBytes, type MediaRefValue } from "./media-ref-bytes.js";
@@ -1956,6 +1957,7 @@ export class ProcessingContext {
     >
   ): void {
     this._providerCost = { provider, amount, unit, ...details };
+    setNodeCost(this._providerCost);
     recordInvocationCost(amount);
   }
 

@@ -18,5 +18,6 @@ export {
   isUsingEnvKey,
   setKeytarLoader,
   resetKeytarLoader,
-  KeychainAccessError
+  KeychainAccessError,
+  isKeychainBackendMissing
 } from "./master-key.js";

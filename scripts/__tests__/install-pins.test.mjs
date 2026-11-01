@@ -15,24 +15,31 @@ describe("release install identities", () => {
     const pins = await collectReleaseInstallPins({ runtimePackages: RUNTIME_NPM_PACKAGES, readRegistryMetadata: metadata,
       readInstalledManifest: name => ({ name, version: lock.packages[`node_modules/${name}`].version }) });
     const shared = pins.filter(pin => pin.shared);
-    expect(shared).toHaveLength(2);
+    expect(shared).toHaveLength(1);
     for (const pin of shared) {
       expect(agents.dependencies[pin.name]).toBe(pin.version);
     }
   });
 
-  it("covers every runtime npm target and both actual shared versions in one flat pin table", async () => {
+  it("covers every runtime npm target and the shared version in one flat pin table", async () => {
     const readRegistryMetadata = vi.fn(metadata);
-    const pins = await collectReleaseInstallPins({ runtimePackages: RUNTIME_NPM_PACKAGES, readRegistryMetadata, readInstalledManifest: installed });
+    const runtimeSpec = RUNTIME_NPM_PACKAGES["media-codecs"].npmPackages.find(spec => spec.startsWith("mediabunny@"));
+    const runtimeVersion = runtimeSpec.slice(runtimeSpec.lastIndexOf("@") + 1);
+    const pins = await collectReleaseInstallPins({ runtimePackages: RUNTIME_NPM_PACKAGES, readRegistryMetadata,
+      readInstalledManifest: name => ({ name, version: runtimeVersion }) });
     const targets = runtimeInstallTargets(RUNTIME_NPM_PACKAGES);
     expect(targets.length).toBeGreaterThan(0);
-    expect(pins.map(pin => [pin.installName ?? pin.name, pin.name, pin.version])).toEqual([
-      ...targets.map(pin => [pin.installName ?? pin.name, pin.name, pin.version]),
-      ["mediabunny", "mediabunny", "4.5.6"], ["@mediabunny/server", "@mediabunny/server", "4.5.6"]
-    ]);
+    expect(pins.map(pin => [pin.installName ?? pin.name, pin.name, pin.version])).toEqual(
+      targets.map(pin => [pin.installName ?? pin.name, pin.name, pin.version]));
+    expect(new Set(pins.map(pin => pin.installName ?? pin.name)).size).toBe(pins.length);
     expect(pins.find(pin => pin.installName === "typescript")).toEqual({ name: "@typescript/typescript6", installName: "typescript", version: "6.0.2", integrity: integrity("@typescript/typescript6@6.0.2") });
-    expect(pins.filter(pin => pin.shared).map(pin => pin.name)).toEqual(["mediabunny", "@mediabunny/server"]);
+    expect(pins.filter(pin => pin.shared).map(pin => pin.name)).toEqual(["mediabunny"]);
     expect(readRegistryMetadata.mock.calls).toEqual(pins.map(pin => [pin.name, pin.version]));
+  });
+
+  it("rejects a shared library whose runtime pin differs from the installed version", async () => {
+    await expect(collectReleaseInstallPins({ runtimePackages: RUNTIME_NPM_PACKAGES, readRegistryMetadata: metadata, readInstalledManifest: installed }))
+      .rejects.toThrow(/differs from its runtime pin: mediabunny/);
   });
 
   it("queries only the exact registry identity at the official npm registry", () => {

@@ -1,4 +1,3 @@
-import { vi } from "vitest";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { createServer, type RequestListener } from "node:http";
@@ -11,6 +10,7 @@ import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { findNpmCli, runInstallerNpm, installerNpmVersion } from "../../src/npm-runner.js";
 import type { InstallerOperations } from "../../src/packs/installer.js";
+import { currentProject } from "../../src/packs/project.js";
 import type { NodeCatalogIndex } from "@nodetool-ai/pack-core";
 
 const exec = promisify(execFile);
@@ -47,8 +47,8 @@ export async function setupPackRegistry(conflict = false, options: { readonly tl
       ...(options.optionalDependency && name === "@nodetool-ai/fixture-nodes" ? { optionalDependencies: { "fixture-optional": "1.0.0" } } : {}),
       scripts: { postinstall: "node -e \"require('fs').writeFileSync('SCRIPT_RAN', 'bad')\"" } }));
     const source = name === options.commandFeature?.name
-      ? `exports.feature={descriptor:{id:${JSON.stringify(name.replace("@nodetool-ai/", ""))},apiVersion:1,requires:[],capabilities:["cli:fixture"]},run:async()=>{Reflect.set(globalThis,"__nodetoolFixtureHost",require.resolve("@nodetool-ai/cli"))}};`
-      : "module.exports = {};\n";
+      ? `exports.feature={descriptor:{id:${JSON.stringify(name.replace("@nodetool-ai/", ""))},apiVersion:1,requires:[],capabilities:["cli:fixture"]},run:async()=>{Reflect.set(globalThis,"__nodetoolFixtureHost",require("@nodetool-ai/cli").file)}};`
+      : name === "@nodetool-ai/cli" ? "module.exports = { file: __filename };\n" : "module.exports = {};\n";
     await writeFile(join(path, "index.js"), source);
     const result = await exec(process.execPath, [npm, "pack", "--json", "--ignore-scripts"], { cwd: path });
     const filename: string = JSON.parse(result.stdout)[0].filename;
@@ -95,21 +95,25 @@ export async function setupPackRegistry(conflict = false, options: { readonly tl
   await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
   const address = server.address(); if (!address || typeof address === "string") { throw new Error("Fixture registry missing address"); }
   registry = `${options.tls ? "https" : "http"}://127.0.0.1:${address.port}`;
-  const root = join(directory, "project"); await mkdir(root);
-  await writeFile(join(root, "package.json"), JSON.stringify({ name: "fixture-project", version: "1.0.0", dependencies: { "fixture-baseline": "1.0.0" } }));
+  // A CLI root that is never written to: packs install into their own project.
+  const cliRoot = join(directory, "cli"); await mkdir(cliRoot);
+  await writeFile(join(cliRoot, "package.json"), JSON.stringify({ name: "@nodetool-ai/cli", version: "1.0.0" }));
+  const packsRoot = join(directory, "packs", "1.0.0");
   const run: InstallerOperations["npm"] = (cwd, args, npmOptions) => runInstallerNpm(cwd, [...args, `--registry=${registry}`, `--cache=${join(directory, "cache")}`,
     ...(options.tls ? [`--cafile=${fileURLToPath(caFile)}`] : [])], npmOptions);
-  await run(root, ["install"], { mode: "local" });
-  if (conflict) {
-    await writeFile(join(root, "package.json"), JSON.stringify({ name: "fixture-project", version: "1.0.0", dependencies: { "fixture-baseline": "*" } }));
-  }
   const pinned = tarballs.get("@nodetool-ai/fixture-nodes@1.0.0")!;
   const catalog: NodeCatalogIndex = { schemaVersion: 1, coreVersion: "1.0.0", owners: {}, packs: [{ id: "fixture", kind: "node-pack",
     npm: { name: pinned.name, version: pinned.version, integrity: pinned.integrity }, registrar: "register", provides: [], requires: [], runtimeLibraries: [], secrets: [],
     scriptAllowlist: options.allowScript ? [{ name: pinned.name, version: pinned.version, integrity: pinned.integrity }] : [], installBytes: 1, nodeCount: 0 }] };
-  const request = { mode: { kind: "local" as const, installRoot: root, nodeModulesRoot: join(root, "node_modules"), cliRoot: root, coreVersion: "1.0.0", pathStyle: process.platform === "win32" ? "win32" as const : "posix" as const },
-    packs: ["fixture"], catalog, stateFile: join(directory, "cli-packs.json") };
+  const mode = { kind: "local" as const, cliRoot, packsRoot, legacyInstallRoot: cliRoot, coreVersion: "1.0.0", pathStyle: process.platform === "win32" ? "win32" as const : "posix" as const };
+  const request = { mode, packs: ["fixture"], catalog, stateFile: join(directory, "cli-packs.json") };
   const operations: InstallerOperations = { npmVersion: installerNpmVersion, npm: run,
     loadCheck: async () => { await exec(process.execPath, ["-e", "process.exit(0)"]); } };
-  return { root, request, operations, tarballs, registry, directory, npm, requests, caFile, pauseRequest };
+  /** The active pack project generation. */
+  const project = (): string => {
+    const current = currentProject(packsRoot);
+    if (!current) { throw new Error("No active pack project"); }
+    return current;
+  };
+  return { cliRoot, packsRoot, project, request, operations, tarballs, registry, directory, npm, requests, caFile, pauseRequest, run };
 }

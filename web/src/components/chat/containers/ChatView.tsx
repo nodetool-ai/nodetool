@@ -3,7 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import type { Theme } from "@mui/material/styles";
-import { useCallback, useEffect, useMemo, useRef, useState, memo } from "react";
+import { useCallback, useMemo, useRef, useState, memo } from "react";
 import { useTranslation } from "react-i18next";
 import type { ChatSource } from "@nodetool-ai/protocol";
 import {
@@ -19,7 +19,6 @@ import {
 } from "../../../stores/ApiTypes";
 import AddIcon from "@mui/icons-material/AddOutlined";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import ViewSidebarOutlinedIcon from "@mui/icons-material/ViewSidebarOutlined";
 import {
   FlexColumn,
   FlexRow,
@@ -32,9 +31,7 @@ import ChatThreadView from "../thread/ChatThreadView";
 import { isCompactionMessage } from "../message/CompactionCard";
 import ChatInputSection from "./ChatInputSection";
 import ChatErrorBanner from "./ChatErrorBanner";
-import MobileRailTabs, { type MobileRail } from "./MobileRailTabs";
-import { TodoSidebar } from "../sidebar/TodoSidebar";
-import { TaskUpdateSidebar } from "../sidebar/TaskUpdateSidebar";
+import { TaskDock } from "../composer/TaskDock";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import useMediaGenerationStore from "../../../stores/MediaGenerationStore";
 import ImageGenerationFeed from "../generation/ImageGenerationFeed";
@@ -131,12 +128,6 @@ const styles = (theme: Theme) =>
       width: "100%",
       maxWidth: `${CHAT_COLUMN_MAX_WIDTH}px`,
       alignSelf: "center"
-    },
-    // The rails size themselves for the desktop column; full width is the
-    // only thing that changes when one takes the conversation's place.
-    ".chat-mobile-rail > aside": {
-      width: "100%",
-      borderLeft: "none"
     },
     ".chat-controls": {
       padding: "0",
@@ -401,7 +392,6 @@ const ChatView = ({
   });
   const clearError = useGlobalChatStore((state) => state.clearError);
 
-  const railsFit = useMediaQuery(theme.breakpoints.up("md"));
   // Copying a conversation is a desktop gesture and the button crowds the
   // phone header. New chat stays: the composer has no new-chat action.
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -410,42 +400,12 @@ const ChatView = ({
     [messages]
   );
   const isBusy = status === "loading" || status === "streaming";
-  const hasTaskRail =
-    isBusy && Boolean(currentTaskUpdate) && !hasAgentExecutionMessages;
-  // The header toggle hides the desktop rail to give the conversation the
-  // full width. Phones switch rails with tabs instead.
-  const [railHidden, setRailHidden] = useState(false);
-  const hasDesktopRail = railsFit && (hasTaskRail || todos.length > 0);
-  const showTaskSidebar = railsFit && !railHidden && hasTaskRail;
-  const showTodoSidebar =
-    railsFit && !railHidden && !hasTaskRail && todos.length > 0;
-  const handleToggleRail = useCallback(() => {
-    setRailHidden((hidden) => !hidden);
-  }, []);
-  const railToggleLabel = railHidden
-    ? t("i18n-next23.chat.actions.showSidebar")
-    : t("i18n-next23.chat.actions.hideSidebar");
-
-  const [mobileRail, setMobileRail] = useState<MobileRail>("chat");
-  const mobileRails = useMemo<MobileRail[]>(() => {
-    const rails: MobileRail[] = ["chat"];
-    if (!railsFit && todos.length > 0) {
-      rails.push("todos");
-    }
-    if (!railsFit && hasTaskRail) {
-      rails.push("task");
-    }
-    return rails;
-  }, [todos.length, hasTaskRail, railsFit]);
-  const showMobileRails = mobileRails.length > 1;
-  // A rail whose content went away leaves the conversation hidden behind an
-  // option that is no longer offered.
-  useEffect(() => {
-    if (!mobileRails.includes(mobileRail)) {
-      setMobileRail("chat");
-    }
-  }, [mobileRails, mobileRail]);
-  const activeMobileRail = showMobileRails ? mobileRail : "chat";
+  // The running agent task takes the dock while it runs. An agent_execution
+  // message already renders it inline, so the dock stays on the todos then.
+  const dockTaskUpdate =
+    isBusy && currentTaskUpdate && !hasAgentExecutionMessages
+      ? currentTaskUpdate
+      : null;
 
   const { writeClipboard } = useClipboard();
   const handleCopyConversation = useCallback(async () => {
@@ -680,7 +640,6 @@ const ChatView = ({
     >
       <div className="chat-main">
         {((!isMobile && messages.length > 0 && !mediaCategory) ||
-          hasDesktopRail ||
           (showNewChatButton && onNewChat)) && (
           <FlexRow className="chat-overlay-actions" align="center" gap={SPACING.md}>
             {!isMobile && messages.length > 0 && !mediaCategory && (
@@ -688,15 +647,6 @@ const ChatView = ({
                 onClick={handleCopyConversation}
                 tooltip={t("i18n-next23.chat.actions.copyMarkdown")}
                 icon={<ContentCopyIcon fontSize="small" />}
-              />
-            )}
-            {hasDesktopRail && (
-              <ToolbarIconButton
-                onClick={handleToggleRail}
-                tooltip={railToggleLabel}
-                ariaLabel={railToggleLabel}
-                active={!railHidden}
-                icon={<ViewSidebarOutlinedIcon fontSize="small" />}
               />
             )}
             {showNewChatButton && onNewChat && (
@@ -708,81 +658,52 @@ const ChatView = ({
             )}
           </FlexRow>
         )}
-        {showMobileRails && (
-          <FlexRow
-            justify="center"
-            sx={{
-              width: "100%",
-              maxWidth: `${CHAT_COLUMN_MAX_WIDTH}px`,
-              alignSelf: "center",
-              pb: SPACING.sm
-            }}
-          >
-            <MobileRailTabs
-              value={activeMobileRail}
-              available={mobileRails}
-              onChange={setMobileRail}
+        <div className="chat-thread-container">
+          {mediaCategory === "image" ? (
+            <ImageGenerationFeed
+              messages={messages}
+              status={status}
+              threadId={effectiveThreadId}
+              onResendFrom={canResend ? handleResendFrom : undefined}
             />
-          </FlexRow>
-        )}
-        {activeMobileRail === "chat" ? (
-          <div className="chat-thread-container">
-            {mediaCategory === "image" ? (
-              <ImageGenerationFeed
-                messages={messages}
-                status={status}
-                threadId={effectiveThreadId}
-                onResendFrom={canResend ? handleResendFrom : undefined}
-              />
-            ) : mediaCategory === "video" ? (
-              <VideoGenerationFeed
-                messages={messages}
-                status={status}
-                threadId={effectiveThreadId}
-                onResendFrom={canResend ? handleResendFrom : undefined}
-                onRewindTo={canResend ? handleDeleteTurn : undefined}
-              />
-            ) : mediaCategory === "audio" ? (
-              <AudioGenerationFeed
-                messages={messages}
-                status={status}
-                onResendFrom={canResend ? handleResendFrom : undefined}
-                onRewindTo={canResend ? handleDeleteTurn : undefined}
-              />
-            ) : messages.length > 0 ? (
-              <ChatThreadView
-                threadId={effectiveThreadId}
-                focusMessage={focusMessage}
-                messages={messages}
-                status={status}
-                replayElapsedSeconds={replayElapsedSeconds}
-                progress={progress}
-                total={total}
-                progressMessage={progressMessage}
-                runningToolCallId={runningToolCallId}
-                currentPlanningUpdate={currentPlanningUpdate}
-                currentTaskUpdate={currentTaskUpdate}
-                currentLogUpdate={currentLogUpdate}
-                onInsertCode={onInsertCode}
-                showTaskUpdate={false}
-                externalScroll={externalScroll}
-                onResendFrom={canResend ? handleResendFrom : undefined}
-              />
-            ) : (
-              noMessagesPlaceholder ?? <div style={{ flex: 1 }} />
-            )}
-          </div>
-        ) : (
-          <FlexColumn
-            className="chat-mobile-rail"
-            sx={{ flex: 1, minHeight: 0, width: "100%" }}
-          >
-            {activeMobileRail === "todos" && <TodoSidebar todos={todos} />}
-            {activeMobileRail === "task" && currentTaskUpdate && (
-              <TaskUpdateSidebar taskUpdate={currentTaskUpdate} />
-            )}
-          </FlexColumn>
-        )}
+          ) : mediaCategory === "video" ? (
+            <VideoGenerationFeed
+              messages={messages}
+              status={status}
+              threadId={effectiveThreadId}
+              onResendFrom={canResend ? handleResendFrom : undefined}
+              onRewindTo={canResend ? handleDeleteTurn : undefined}
+            />
+          ) : mediaCategory === "audio" ? (
+            <AudioGenerationFeed
+              messages={messages}
+              status={status}
+              onResendFrom={canResend ? handleResendFrom : undefined}
+              onRewindTo={canResend ? handleDeleteTurn : undefined}
+            />
+          ) : messages.length > 0 ? (
+            <ChatThreadView
+              threadId={effectiveThreadId}
+              focusMessage={focusMessage}
+              messages={messages}
+              status={status}
+              replayElapsedSeconds={replayElapsedSeconds}
+              progress={progress}
+              total={total}
+              progressMessage={progressMessage}
+              runningToolCallId={runningToolCallId}
+              currentPlanningUpdate={currentPlanningUpdate}
+              currentTaskUpdate={currentTaskUpdate}
+              currentLogUpdate={currentLogUpdate}
+              onInsertCode={onInsertCode}
+              showTaskUpdate={false}
+              externalScroll={externalScroll}
+              onResendFrom={canResend ? handleResendFrom : undefined}
+            />
+          ) : (
+            noMessagesPlaceholder ?? <div style={{ flex: 1 }} />
+          )}
+        </div>
 
         {chatError && (
           <FlexColumn
@@ -816,12 +737,11 @@ const ChatView = ({
           hideModelPicker={hideModelPicker}
           threadId={effectiveThreadId}
           mediaCategory={mediaCategory}
+          aboveComposer={
+            <TaskDock todos={todos} taskUpdate={dockTaskUpdate} />
+          }
         />
       </div>
-      {showTaskSidebar && currentTaskUpdate && (
-        <TaskUpdateSidebar taskUpdate={currentTaskUpdate} />
-      )}
-      {showTodoSidebar && <TodoSidebar todos={todos} />}
     </div>
   );
 };

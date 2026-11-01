@@ -46,6 +46,14 @@ export const RUNTIME_PACKAGES = {
     id: "rapier", name: "3D Game Physics", category: "library", versionRange: "*",
     description: RUNTIME_NPM_PACKAGES.rapier.description
   }),
+  "media-codecs": new ElectronRuntimePackage({
+    id: "media-codecs", name: "Audio & Video Codecs", category: "library", versionRange: "*",
+    description: RUNTIME_NPM_PACKAGES["media-codecs"].description
+  }),
+  webgpu: new ElectronRuntimePackage({
+    id: "webgpu", name: "WebGPU (Dawn)", category: "library", versionRange: "*",
+    description: RUNTIME_NPM_PACKAGES.webgpu.description
+  }),
   python: new CondaRuntimePackage({
     id: "python",
     name: "Python",

@@ -24,7 +24,8 @@ vi.mock("@nodetool-ai/models", async (orig) => {
       listForUser: vi.fn(),
       deleteSecret: vi.fn()
     },
-    clearSecretCache: vi.fn()
+    clearSecretCache: vi.fn(),
+    resolveUserSecretValue: vi.fn()
   };
 });
 
@@ -39,7 +40,12 @@ vi.mock("@nodetool-ai/runtime", async (orig) => {
   };
 });
 
-import { Setting, Secret, clearSecretCache } from "@nodetool-ai/models";
+import {
+  Setting,
+  Secret,
+  clearSecretCache,
+  resolveUserSecretValue
+} from "@nodetool-ai/models";
 import {
   clearProviderCache,
   checkCredential,
@@ -77,6 +83,7 @@ function makeSecretStub(opts: {
   description: string;
   toSafeObject: () => Record<string, unknown>;
   getDecryptedValue: () => Promise<string>;
+  getResolvedValue: () => Promise<string | null>;
 } {
   // Mirror the real Secret model: `key` lives at the top level AND appears
   // in toSafeObject(). The router's secrets.list Map is keyed by top-level
@@ -95,6 +102,9 @@ function makeSecretStub(opts: {
       updated_at: "2026-04-17T00:00:00Z"
     }),
     getDecryptedValue: opts.isUnreadable
+      ? vi.fn().mockRejectedValue(new Error("decrypt failed"))
+      : vi.fn().mockResolvedValue(opts.decryptedValue ?? "plain-value"),
+    getResolvedValue: opts.isUnreadable
       ? vi.fn().mockRejectedValue(new Error("decrypt failed"))
       : vi.fn().mockResolvedValue(opts.decryptedValue ?? "plain-value")
   };
@@ -540,6 +550,49 @@ describe("settings router", () => {
       expect(checkCredential).toHaveBeenCalledWith("GROQ_API_KEY", "stored-key");
       expect(res.status).toBe("invalid");
       expect(res.valid).toBe(false);
+    });
+
+    it("probes the value a typed 1Password reference resolves to", async () => {
+      (resolveUserSecretValue as ReturnType<typeof vi.fn>).mockResolvedValue(
+        "sk-from-1password"
+      );
+      mockCheck().mockResolvedValue({
+        status: "valid",
+        message: "OpenAI accepted the key."
+      });
+
+      const caller = createCaller(makeCtx());
+      const res = await caller.settings.secrets.validate({
+        key: "OPENAI_API_KEY",
+        value: "op://Dev/OpenAI/credential"
+      });
+
+      expect(resolveUserSecretValue).toHaveBeenCalledWith(
+        "OPENAI_API_KEY",
+        "op://Dev/OpenAI/credential",
+        "user-1"
+      );
+      expect(checkCredential).toHaveBeenCalledWith(
+        "OPENAI_API_KEY",
+        "sk-from-1password"
+      );
+      expect(res.valid).toBe(true);
+    });
+
+    it("reports an unreadable 1Password reference as invalid", async () => {
+      (resolveUserSecretValue as ReturnType<typeof vi.fn>).mockResolvedValue(
+        null
+      );
+
+      const caller = createCaller(makeCtx());
+      const res = await caller.settings.secrets.validate({
+        key: "OPENAI_API_KEY",
+        value: "op://Dev/OpenAI/credential"
+      });
+
+      expect(res.status).toBe("invalid");
+      expect(res.message).toMatch(/1Password/);
+      expect(checkCredential).not.toHaveBeenCalled();
     });
 
     it("reports a provider with no probe as unverifiable, not valid", async () => {

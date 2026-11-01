@@ -24,6 +24,7 @@ interface SetupOverrides {
   createProfile?: jest.Mock;
   deleteProfile?: jest.Mock;
   apiKeyStatus?: Record<WorkerTarget, boolean>;
+  onStart?: jest.Mock;
 }
 
 const setup = (overrides: SetupOverrides = {}) => {
@@ -39,6 +40,7 @@ const setup = (overrides: SetupOverrides = {}) => {
         createProfile={createProfile}
         deleteProfile={deleteProfile}
         apiKeyStatus={overrides.apiKeyStatus}
+        onStart={overrides.onStart}
       />
     </ThemeProvider>
   );
@@ -65,30 +67,87 @@ describe("WorkerProfilesDialog", () => {
     expect(deleteProfile).toHaveBeenCalledWith("hf-a40");
   });
 
-  it("warns when the selected provider's API key is unavailable", async () => {
+  it("asks for the selected provider's API key inline when it is unavailable", async () => {
     setup({ profiles: [], apiKeyStatus: { runpod: false, vast: false, verda: false } });
 
-    expect(screen.getByText(/No RUNPOD_API_KEY configured/i)).toBeInTheDocument();
+    expect(screen.getByText(/Add your RunPod API key/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/RunPod API key/i)).toBeInTheDocument();
 
-    // Switching to Vast updates the warning to that provider's key.
+    // Switching to Vast asks for that provider's key instead.
     await userEvent.click(screen.getByRole("combobox", { name: /provider/i }));
     await userEvent.click(screen.getByRole("option", { name: /^Vast$/i }));
-    expect(screen.getByText(/No VAST_API_KEY configured/i)).toBeInTheDocument();
+    expect(screen.getByText(/Add your Vast.ai API key/i)).toBeInTheDocument();
+
+    // Verda needs two credentials, so it points at Settings.
+    await userEvent.click(screen.getByRole("combobox", { name: /provider/i }));
+    await userEvent.click(screen.getByRole("option", { name: /^Verda$/i }));
+    expect(screen.getByRole("button", { name: /open settings/i })).toBeInTheDocument();
   });
 
-  it("does not warn when the provider key is available (e.g. via env)", () => {
+  it("does not ask for a key when the provider key is available (e.g. via env)", () => {
     setup({ profiles: [], apiKeyStatus: { runpod: true, vast: true, verda: true } });
-    expect(screen.queryByText(/configured/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Add your/i)).not.toBeInTheDocument();
   });
 
-  it("disables Create until a name is given (image/GPU/idle are prefilled)", async () => {
+  it("opens as a setup form when there are no profiles yet", () => {
     setup({ profiles: [] });
+    expect(screen.getByText("Set up a worker")).toBeInTheDocument();
+    expect(screen.queryByText(/existing profiles/i)).not.toBeInTheDocument();
+  });
+
+  it("names a profile from its provider and GPU when Name is left blank", async () => {
+    const { createProfile } = setup({ profiles: [makeProfile({ name: "RunPod A40" })] });
 
     const create = screen.getByRole("button", { name: /^create profile$/i });
-    expect(create).toBeDisabled();
-
-    await userEvent.type(screen.getByLabelText(/^name$/i), "my-worker");
     expect(create).toBeEnabled();
+    await userEvent.click(create);
+
+    await waitFor(() => expect(createProfile).toHaveBeenCalledTimes(1));
+    // "RunPod A40" is taken, so the suggestion gets a number.
+    expect(createProfile.mock.calls[0][0].name).toBe("RunPod A40 2");
+  });
+
+  it("Create and start saves the profile, starts a worker from it, and closes", async () => {
+    const onStart = jest.fn(async () => undefined);
+    const { createProfile, onClose } = setup({
+      profiles: [],
+      apiKeyStatus: { runpod: true, vast: true, verda: true },
+      onStart
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: /^create and start$/i }));
+
+    await waitFor(() => expect(onStart).toHaveBeenCalledWith("RunPod A40"));
+    expect(createProfile).toHaveBeenCalledTimes(1);
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("keeps the dialog open and explains when the worker does not start", async () => {
+    const onStart = jest.fn(async () => {
+      throw new Error("no capacity");
+    });
+    const { onClose } = setup({
+      profiles: [],
+      apiKeyStatus: { runpod: true, vast: true, verda: true },
+      onStart
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: /^create and start$/i }));
+
+    expect(
+      await screen.findByText(/profile was saved, but the worker did not start: no capacity/i)
+    ).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("disables Create and start until the provider key is available", () => {
+    setup({
+      profiles: [],
+      apiKeyStatus: { runpod: false, vast: true, verda: true },
+      onStart: jest.fn()
+    });
+    expect(screen.getByRole("button", { name: /^create and start$/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /^create profile$/i })).toBeEnabled();
   });
 
   it("creates a RunPod profile from the defaults (image, A40 GPU, 30m idle)", async () => {

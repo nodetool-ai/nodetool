@@ -76,12 +76,15 @@ export function registerDebugCommands(program: Command): void {
       )
   ).action(async (ref: string, opts: DebugCliOptions) => {
     try {
-      const { initDb, Workflow } = await import("@nodetool-ai/models");
+      const { initDb, migrateSqliteDb, Workflow } = await import("@nodetool-ai/models");
       const { initMasterKey } = await import("@nodetool-ai/security");
       const { getDefaultDbPath } = await import("@nodetool-ai/config");
       const { runDebug, runWatchLoop, snapshotDebugReport } =
         await import("@nodetool-ai/cli-execution/debug/index");
 
+      // initDb applies only the baseline schema. Migrate first, or a run
+      // that saves an asset fails on a column added later.
+      await migrateSqliteDb(getDefaultDbPath());
       initDb(getDefaultDbPath());
       try {
         await initMasterKey();

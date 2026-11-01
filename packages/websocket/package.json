@@ -56,7 +56,7 @@
     "@nodetool-ai/storage": "*",
     "@nodetool-ai/timeline": "*",
     "@nodetool-ai/vectorstore": "*",
-    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/api": "~1.9.0",
     "@trpc/server": "^11.17.0",
     "fastify": "^5.12.7",
     "fflate": "^0.8.2",

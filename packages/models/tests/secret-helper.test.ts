@@ -1,4 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
+
+const execFileMock = vi.hoisted(() => vi.fn());
+vi.mock("node:child_process", async (orig) => ({
+  ...(await orig<typeof import("node:child_process")>()),
+  execFile: execFileMock
+}));
 import { setMasterKey } from "@nodetool-ai/security";
 import { initTestDb } from "../src/db.js";
 import { Secret } from "../src/secret.js";
@@ -173,6 +179,100 @@ describe("secret-helper", () => {
     it("returns default when env missing", () => {
       expect(getSecretSync("MISSING", "d")).toBe("d");
       expect(getSecretSync("MISSING")).toBeNull();
+    });
+  });
+
+  describe("1Password references", () => {
+    const REF = "op://Dev/OpenAI/credential";
+
+    beforeEach(() => {
+      execFileMock.mockReset();
+      execFileMock.mockImplementation(
+        (
+          _bin: string,
+          args: string[],
+          _opts: unknown,
+          cb: (e: Error | null, out: string, err: string) => void
+        ) => {
+          cb(null, `resolved:${args[2]}`, "");
+        }
+      );
+    });
+    afterEach(() => {
+      delete process.env.SUPABASE_KEY;
+      delete process.env.NODETOOL_1PASSWORD_USER_REFERENCES;
+    });
+
+    function sharedDeployment(): void {
+      process.env.SUPABASE_URL = "https://x.supabase.co";
+      process.env.SUPABASE_KEY = "anon";
+    }
+
+    it("resolves a reference in the environment", async () => {
+      process.env.TEST_ENV_SECRET = REF;
+      expect(await getSecret("TEST_ENV_SECRET", "user-1")).toBe(
+        `resolved:${REF}`
+      );
+    });
+
+    it("resolves an environment reference on a shared deployment", async () => {
+      sharedDeployment();
+      process.env.TEST_ENV_SECRET = REF;
+      expect(await getSecret("TEST_ENV_SECRET", "user-1")).toBe(
+        `resolved:${REF}`
+      );
+    });
+
+    it("resolves a stored reference on a local install", async () => {
+      await Secret.upsert({ userId: "user-1", key: "DB_KEY", value: REF });
+      expect(await getSecret("DB_KEY", "user-1")).toBe(`resolved:${REF}`);
+      // A cache hit resolves again through the 1Password cache.
+      expect(await getSecret("DB_KEY", "user-1")).toBe(`resolved:${REF}`);
+      expect(execFileMock).toHaveBeenCalledTimes(1);
+    });
+
+    it("resolves a reference saved as a setting", async () => {
+      await Setting.upsert({ userId: "user-1", key: "LLAMA_CPP_URL", value: REF });
+      expect(await getSecret("LLAMA_CPP_URL", "user-1")).toBe(
+        `resolved:${REF}`
+      );
+    });
+
+    it("refuses a stored reference on a shared deployment", async () => {
+      sharedDeployment();
+      await Secret.upsert({ userId: "user-1", key: "DB_KEY", value: REF });
+      expect(await hasSecret("DB_KEY", "user-1")).toBe(false);
+      expect(await getSecret("DB_KEY", "user-1")).toBeNull();
+      expect(execFileMock).not.toHaveBeenCalled();
+    });
+
+    it("resolves stored references on a shared deployment when the operator opts in", async () => {
+      sharedDeployment();
+      process.env.NODETOOL_1PASSWORD_USER_REFERENCES = "true";
+      await Secret.upsert({ userId: "user-1", key: "DB_KEY", value: REF });
+      expect(await getSecret("DB_KEY", "user-1")).toBe(`resolved:${REF}`);
+    });
+
+    it("Secret.getResolvedValue resolves while getDecryptedValue keeps the reference", async () => {
+      await Secret.upsert({ userId: "user-1", key: "DB_KEY", value: REF });
+      const row = await Secret.find("user-1", "DB_KEY");
+      expect(await row?.getDecryptedValue()).toBe(REF);
+      expect(await row?.getResolvedValue()).toBe(`resolved:${REF}`);
+    });
+
+    it("reads as null when 1Password cannot be read", async () => {
+      execFileMock.mockImplementation(
+        (
+          _bin: string,
+          _args: string[],
+          _opts: unknown,
+          cb: (e: Error | null, out: string, err: string) => void
+        ) => {
+          cb(new Error("exit 1"), "", "not signed in");
+        }
+      );
+      process.env.TEST_ENV_SECRET = REF;
+      expect(await getSecret("TEST_ENV_SECRET", "user-1")).toBeNull();
     });
   });
 });

@@ -32,6 +32,40 @@ function defaultOutDir(ref: string): string {
   return resolve(`nodetool-debug/${slug}-${stamp}`);
 }
 
+/**
+ * A run skips a node type it does not know and ignores a value it cannot
+ * read, then reports success. Fold the static check into the verdict so
+ * those graphs do not pass as clean.
+ */
+async function addStaticValidation(
+  verdict: DebugReport["verdict"],
+  ref: string,
+  deps: DebugHarnessDeps,
+  log: (line: string) => void
+): Promise<void> {
+  try {
+    const { runValidate } = await import("../validate/index.js");
+    const { report } = await runValidate(ref, { loadFromDb: deps.loadFromDb });
+    const errors = report.issues.filter((issue) => issue.severity === "error");
+    const notes = report.issues.filter(
+      (issue) => issue.severity === "warning" || issue.code === "unread_output"
+    );
+    if (errors.length > 0) {
+      verdict.ok = false;
+      verdict.issues.unshift(...errors.map((issue) => `Validation: ${issue.message}`));
+      verdict.headline = `Workflow has issues — Validation: ${errors[0]?.message ?? ""}`;
+    }
+    if (notes.length > 0) {
+      verdict.warnings = [
+        ...(verdict.warnings ?? []),
+        ...notes.map((issue) => `Validation: ${issue.message}`)
+      ];
+    }
+  } catch (error) {
+    log(`Static validation skipped: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
 export async function runDebug(
   ref: string,
   options: DebugOptions,
@@ -133,6 +167,7 @@ export async function runDebug(
   }
 
   report.verdict = buildVerdict(report.server, report.browser);
+  await addStaticValidation(report.verdict, ref, deps, log);
 
   await writeFile(
     join(outDir, "report.json"),

@@ -8,6 +8,7 @@ import { findMissingPacks } from "@nodetool-ai/execution/missing-packs";
 import {
   collectSecretRequirementSites,
   validateGraph,
+  type GraphValidationIssue,
   type GraphValidationRegistry,
   type GraphValidationReport,
   type NodeRegistry
@@ -58,6 +59,43 @@ async function sharedRegistry(): Promise<NodeRegistry> {
   return cachedRegistry;
 }
 
+/**
+ * Nodes with outputs that no edge reads. The run drops their result and
+ * still reports success, so name them. Info only: saved graphs keep preview
+ * nodes that nothing reads.
+ */
+export function unreadOutputIssues(
+  graph: { nodes?: unknown; edges?: unknown },
+  registry: { getMetadata?: (type: string) => { outputs: readonly unknown[] } | undefined }
+): GraphValidationIssue[] {
+  const nodes = Array.isArray(graph.nodes) ? graph.nodes : [];
+  const edges = Array.isArray(graph.edges) ? graph.edges : [];
+  if (edges.length === 0) return [];
+  const read = new Set(edges.map((edge: { source?: unknown }) => String(edge?.source ?? "")));
+  const issues: GraphValidationIssue[] = [];
+  for (const node of nodes as { id?: unknown; type?: unknown }[]) {
+    const id = String(node?.id ?? "");
+    const type = String(node?.type ?? "");
+    if (!id || !type || read.has(id)) continue;
+    let meta: { outputs: readonly unknown[] } | undefined;
+    try {
+      meta = registry.getMetadata?.(type);
+    } catch {
+      // A registry view that cannot describe the type leaves it unchecked.
+      continue;
+    }
+    if (!meta || meta.outputs.length === 0) continue;
+    issues.push({
+      severity: "info",
+      code: "unread_output",
+      nodeId: id,
+      nodeType: type,
+      message: `Nothing reads the output of node "${id}", so its result is dropped. Connect it to an Output node or to the next step.`
+    });
+  }
+  return issues;
+}
+
 export async function runValidate(
   ref: string,
   deps: ValidateDeps
@@ -97,9 +135,15 @@ export async function runValidate(
       sites.map((site) => site.key)
     );
   }
-  const report = validateGraph(resolved.graph, registryView, {
+  const graphReport = validateGraph(resolved.graph, registryView, {
     availableSecrets
   });
+  const unread = unreadOutputIssues(resolved.graph, registryView);
+  const report = unread.length === 0 ? graphReport : {
+    ...graphReport,
+    issues: [...graphReport.issues, ...unread],
+    counts: { ...graphReport.counts, info: graphReport.counts.info + unread.length }
+  };
   if (registryView.availability && registryView.catalogEntry) {
     const missing = await findMissingPacks(resolved.graph, {
       availability: (type) => registryView.availability?.(type) ?? "unknown",

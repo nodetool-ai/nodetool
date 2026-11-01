@@ -44,7 +44,7 @@ describe("staging verification", () => {
     const original = [...artifacts, companion];
     const run = fakeRegistry([...original, external, shared]);
     const loadAttestations = vi.fn(async url => attestation(original.find(pin => url.endsWith(encodeURIComponent(pin.name)))));
-    const verified = await verifyStaging(catalog, original, { loadDist: run, loadAttestations, smoke: async () => {} });
+    const verified = await verifyStaging(catalog, original, { verifyTarball: async () => {}, loadDist: run, loadAttestations, smoke: async () => {} });
     expect(verified.map(pin => [pin.name, pin.firstParty])).toEqual([...original.map(pin => [pin.name, true]), [external.name, false], [shared.name, false]]);
     expect(run).toHaveBeenCalledTimes(verified.length);
     expect(new Set(run.mock.calls.map(([, options]) => options.deadline)).size).toBe(1);
@@ -63,31 +63,48 @@ describe("staging verification", () => {
     expect(() => stagingPins(catalog, original)).toThrow("Duplicate release install pin");
     catalog.installPins = [{ ...companion, version: "1.2.4" }];
     const run = vi.fn();
-    await expect(verifyStaging(catalog, original, { loadDist: run, smoke: vi.fn() })).rejects.toThrow("Missing original release install artifact");
+    await expect(verifyStaging(catalog, original, { verifyTarball: async () => {}, loadDist: run, smoke: vi.fn() })).rejects.toThrow("Missing original release install artifact");
     expect(run).not.toHaveBeenCalled();
   });
 
   it("checks every original artifact before the registry install smoke", async () => {
     const run = fakeRegistry();
     const smoke = vi.fn(async () => {});
-    const verified = await verifyStaging(catalogFixture(), artifacts, { loadDist: run, smoke, loadAttestations: async url => attestation(artifacts.find(pkg => url.endsWith(encodeURIComponent(pkg.name)))) });
+    const verified = await verifyStaging(catalogFixture(), artifacts, { verifyTarball: async () => {}, loadDist: run, smoke, loadAttestations: async url => attestation(artifacts.find(pkg => url.endsWith(encodeURIComponent(pkg.name)))) });
     expect(verified.map(pkg => pkg.name)).toEqual(artifacts.map(pkg => pkg.name));
     expect(run).toHaveBeenCalledTimes(artifacts.length);
     expect(smoke).toHaveBeenCalledOnce();
+  });
+
+  it("waits for every tarball before installing and blocks promotion on download failure", async () => {
+    const verifyTarball = vi.fn(async () => { throw new Error("tarball unavailable"); });
+    const smoke = vi.fn();
+    const run = vi.fn();
+    await expect(promoteStaging(catalogFixture(), artifacts, {
+      run,
+      verify: () => verifyStaging(catalogFixture(), artifacts, {
+        loadDist: fakeRegistry(), verifyTarball, smoke
+      })
+    })).rejects.toThrow("tarball unavailable");
+    expect(verifyTarball).toHaveBeenCalledTimes(artifacts.length);
+    expect(verifyTarball.mock.calls.map(([pin]) => pin.name)).toEqual(artifacts.map(pin => pin.name));
+    expect(new Set(verifyTarball.mock.calls.map(([, , options]) => options.deadline)).size).toBe(1);
+    expect(smoke).not.toHaveBeenCalled();
+    expect(run).not.toHaveBeenCalled();
   });
 
   it("rejects a deliberately wrong catalog pin before registry calls", async () => {
     const catalog = catalogFixture();
     catalog.packs[0].npm.integrity = "sha512-wrong";
     const run = vi.fn();
-    await expect(verifyStaging(catalog, artifacts, { loadDist: run })).rejects.toThrow("Catalog pin differs");
+    await expect(verifyStaging(catalog, artifacts, { verifyTarball: async () => {}, loadDist: run })).rejects.toThrow("Catalog pin differs");
     expect(run).not.toHaveBeenCalled();
   });
 
   it("rejects a registry tarball that differs from its pin", async () => {
     const run = vi.fn(async () => ({ integrity: "sha512-wrong" }));
     const smoke = vi.fn();
-    await expect(verifyStaging(catalogFixture(), artifacts, { loadDist: run, smoke })).rejects.toThrow("Registry integrity differs");
+    await expect(verifyStaging(catalogFixture(), artifacts, { verifyTarball: async () => {}, loadDist: run, smoke })).rejects.toThrow("Registry integrity differs");
     expect(run).toHaveBeenCalledTimes(artifacts.length);
     expect(smoke).not.toHaveBeenCalled();
   });
@@ -95,7 +112,7 @@ describe("staging verification", () => {
   it("requires provenance on every first-party artifact", async () => {
     const run = vi.fn(async requested => ({ integrity: artifacts.find(pkg => requested.name === pkg.name).integrity }));
     const smoke = vi.fn();
-    await expect(verifyStaging(catalogFixture(), artifacts, { loadDist: run, smoke })).rejects.toThrow("Missing matching");
+    await expect(verifyStaging(catalogFixture(), artifacts, { verifyTarball: async () => {}, loadDist: run, smoke })).rejects.toThrow("Missing matching");
     expect(run).toHaveBeenCalledTimes(artifacts.length);
     expect(smoke).not.toHaveBeenCalled();
   });
@@ -106,7 +123,7 @@ describe("staging verification", () => {
     catalog.packs[0].scriptAllowlist.push(external);
     const run = fakeRegistry([...artifacts, external]);
     const fetch = vi.fn(async url => attestation(artifacts.find(pkg => url.endsWith(encodeURIComponent(pkg.name)))));
-    const verified = await verifyStaging(catalog, artifacts, { loadDist: run, loadAttestations: fetch, smoke: async () => {} });
+    const verified = await verifyStaging(catalog, artifacts, { verifyTarball: async () => {}, loadDist: run, loadAttestations: fetch, smoke: async () => {} });
     expect(verified.at(-1)).toMatchObject({ ...external, firstParty: false });
     expect(fetch).toHaveBeenCalledTimes(artifacts.length);
   });
@@ -176,7 +193,7 @@ describe("verified promotion", () => {
     catalog.packs[0].npm.integrity = "sha512-wrong";
     const latest = new Map(artifacts.map(pkg => [pkg.name, "1.2.2"]));
     const run = vi.fn(async (_command, args) => { latest.set(args[2].split("@").slice(0, -1).join("@"), version); });
-    await expect(promoteStaging(catalog, artifacts, { verify: () => verifyStaging(catalog, artifacts, { loadDist: fakeRegistry() }), run })).rejects.toThrow("Catalog pin differs");
+    await expect(promoteStaging(catalog, artifacts, { verify: () => verifyStaging(catalog, artifacts, { verifyTarball: async () => {}, loadDist: fakeRegistry() }), run })).rejects.toThrow("Catalog pin differs");
     expect(run).not.toHaveBeenCalled();
     expect([...latest.values()]).toEqual(["1.2.2", "1.2.2", "1.2.2"]);
   });

@@ -19,6 +19,7 @@
  *   /help                             — show available commands
  */
 
+import { attachRunCostLedger } from "@nodetool-ai/execution";
 import readline from "node:readline";
 import type { BaseProvider, Message, RunBudget } from "@nodetool-ai/runtime";
 import { RUN_BUDGET_CONTEXT_KEY } from "@nodetool-ai/runtime";
@@ -30,7 +31,10 @@ import {
   loadCliSkillCatalog
 } from "./chat-codeact.js";
 import { createChatContext } from "./chat-context.js";
-import { budgetStopReason, createCliRunBudget } from "@nodetool-ai/cli-execution/run-budget";
+import {
+  budgetStopReason,
+  createCliRunBudget
+} from "@nodetool-ai/cli-execution/run-budget";
 import { isString } from "@nodetool-ai/cli-common/predicates";
 import {
   PERMISSION_GATE_CONTEXT_KEY,
@@ -47,7 +51,7 @@ import {
   isCodeAction,
   isFormattedTool,
   toolStatusLabel,
-  formatToolResult,
+  formatToolResult
 } from "./tool-format.js";
 
 interface StdinModeOptions {
@@ -303,45 +307,56 @@ export async function runStdinMode(opts: StdinModeOptions): Promise<number> {
     // the turn's bounds off the context rather than opening its own
     // (invariant I-2).
     context.set(RUN_BUDGET_CONTEXT_KEY, budget);
-    const turn = createCliCodeActTurn({
-      tools,
-      context,
-      skillCatalog: await loadCliSkillCatalog(context.userId),
-      onToolCall: ({ name }) => {
-        process.stderr.write(`[tool] ${name}\n`);
-      }
+    // Generations in the turn emit prediction messages; the ledger turns them
+    // into the rows `costs list` and `generations list` read.
+    const ledger = attachRunCostLedger(context, {
+      userId: context.userId,
+      workflowId: null
     });
-    applySystemPrompt(chatHistory, turn.systemPrompt);
-    await processChat({
-      userInput,
-      messages: chatHistory,
-      model: opts.model,
-      provider: prov,
-      context,
-      tools: turn.tools,
-      turnBudget: budget,
-      callbacks: {
-        onChunk: (text) => {
-          process.stdout.write(text);
-        },
-        onToolCall: (tc) => {
-          process.stderr.write(
-            isCodeAction(tc.name)
-              ? `[tool] Run  ${toolStatusLabel(tc.name, tc.args)}\n`
-              : `[tool] ${tc.name}\n`
-          );
-        },
-        onToolResult: (tc, result) => {
-          if (!isFormattedTool(tc.name)) return;
-          const preview = formatToolResult(tc.name, tc.args, result);
-          process.stderr.write(`[result] ${preview.split("\n")[0]}\n`);
+    try {
+      const turn = createCliCodeActTurn({
+        tools,
+        context,
+        skillCatalog: await loadCliSkillCatalog(context.userId),
+        onToolCall: ({ name }) => {
+          process.stderr.write(`[tool] ${name}\n`);
         }
-      }
-    });
-    // A ceiling ended the turn, not the model finishing its answer. Stdout
-    // carries the reply, so the reason goes to stderr beside the tool trace.
-    const stopReason = budgetStopReason(budget);
-    if (stopReason) process.stderr.write(`[stopped] ${stopReason}\n`);
+      });
+      applySystemPrompt(chatHistory, turn.systemPrompt);
+      await processChat({
+        userInput,
+        messages: chatHistory,
+        model: opts.model,
+        provider: prov,
+        context,
+        tools: turn.tools,
+        turnBudget: budget,
+        callbacks: {
+          onChunk: (text) => {
+            process.stdout.write(text);
+          },
+          onToolCall: (tc) => {
+            process.stderr.write(
+              isCodeAction(tc.name)
+                ? `[tool] Run  ${toolStatusLabel(tc.name, tc.args)}\n`
+                : `[tool] ${tc.name}\n`
+            );
+          },
+          onToolResult: (tc, result) => {
+            if (!isFormattedTool(tc.name)) return;
+            const preview = formatToolResult(tc.name, tc.args, result);
+            process.stderr.write(`[result] ${preview.split("\n")[0]}\n`);
+          }
+        }
+      });
+      // A ceiling ended the turn, not the model finishing its answer. Stdout
+      // carries the reply, so the reason goes to stderr beside the tool trace.
+      const stopReason = budgetStopReason(budget);
+      if (stopReason) process.stderr.write(`[stopped] ${stopReason}\n`);
+    } finally {
+      await ledger.settled();
+      ledger();
+    }
   };
 
   let threadId = crypto.randomUUID();

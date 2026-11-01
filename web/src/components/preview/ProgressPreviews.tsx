@@ -24,7 +24,7 @@ import {
   ToolbarIconButton
 } from "../ui_primitives";
 import ExecutionTree from "../execution/ExecutionTree";
-import { TodoSidebar } from "../chat/sidebar/TodoSidebar";
+import { TaskDock } from "../chat/composer/TaskDock";
 import PlanningUpdateDisplay from "../node/PlanningUpdateDisplay";
 import RunGroupButton from "../node/RunGroupButton";
 import { DownloadProgress } from "../hugging_face/DownloadProgress";
@@ -173,8 +173,9 @@ const PreviewProgressStates: React.FC = () => {
           <ExecutionTree state={treeState} onToggleTask={() => undefined} />
         </Section>
         <Section title={t("agentTasks")}>
-          <FlexColumn sx={{ height: 200 }}>
-            <TodoSidebar
+          <FlexColumn>
+            <TaskDock
+              defaultExpanded
               todos={[
                 { content: t("todoReadBrief"), status: "completed" },
                 { content: t("todoDraftShots"), status: "in_progress" },

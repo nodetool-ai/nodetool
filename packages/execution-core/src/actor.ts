@@ -44,6 +44,8 @@ import type {
 import {
   createInvocationAccount,
   inInvocationAccount,
+  inNodeCostSlot,
+  type NodeCostSlot,
   isContentFilterRefusal,
   isRecoverableNodeError,
   providerFailureDetail
@@ -303,6 +305,7 @@ export class NodeActor {
   private _emitMessage: (msg: unknown) => void;
   /** Optional execution context passed into node executors. */
   private _executionContext: ProcessingContext | undefined;
+  private readonly _costSlot: NodeCostSlot = { cost: null };
   /** Control context for controller nodes (injected as _control_context input). */
   private _controlContext: Record<string, unknown> | null;
 
@@ -388,7 +391,7 @@ export class NodeActor {
     return withNodeSpan(
       // Stryker disable next-line ObjectLiteral: OpenTelemetry span attributes are observability, not a behavioural contract
       { nodeId: this.node.id, nodeType: this.node.type },
-      (span) => this._runImpl(span)
+      (span) => inNodeCostSlot(this._costSlot, () => this._runImpl(span))
     );
   }
 
@@ -2175,7 +2178,8 @@ export class NodeActor {
         isObjectValue(this.node.properties)
           ? (this.node.properties as Record<string, unknown>)
           : null,
-      provider_cost: this._executionContext?.getProviderCost?.() ?? null
+      // This node's own charge. The context slot is shared by every actor.
+      provider_cost: this._costSlot.cost
     };
     // Omitted (not null) when absent: every consumer treats a missing
     // detail as "no structured cause", and the reliability goldens pin

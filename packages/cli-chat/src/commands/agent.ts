@@ -23,10 +23,10 @@ import type { BaseProvider, Message } from "@nodetool-ai/runtime";
 import { RUN_BUDGET_CONTEXT_KEY } from "@nodetool-ai/runtime";
 import { PERMISSION_GATE_CONTEXT_KEY } from "@nodetool-ai/agents";
 import { processChat } from "@nodetool-ai/chat";
-import { initDb } from "@nodetool-ai/models";
+import { initMigratedDb } from "@nodetool-ai/models";
 import { getDefaultDbPath, configureLogging } from "@nodetool-ai/config";
 import { type ProcessingMessage } from "@nodetool-ai/protocol";
-import { createProvider, buildConfiguredProviders } from "@nodetool-ai/cli-providers";
+import { createProvider, buildConfiguredProviders, DEFAULT_MODELS } from "@nodetool-ai/cli-providers";
 import { buildFullRegistry } from "@nodetool-ai/cli-execution/node-registry";
 import { buildCliToolbelt } from "../agent-toolbelt.js";
 import {
@@ -201,6 +201,33 @@ function finalAssistantText(messages: Message[]): string | null {
   return null;
 }
 
+/**
+ * What the run was started with, as rules the agent applies to the workflows
+ * and tools it chooses. Without them it picked other language-model
+ * providers and the most expensive media model, and kept workflows only in
+ * the database.
+ */
+export function runPreferences(providerId: string, modelId: string, workspaceDir: string): string {
+  return [
+    "## Run preferences",
+    `- This run uses the ${providerId} provider with model ${modelId}. When a workflow node or tool needs a language model, use {"type":"language_model","provider":"${providerId}","id":"${modelId}"} unless the objective names another one.`,
+    "- Use only the providers the objective names. If it names none for media, ask find_model for the options and pick the cheapest model that does the job.",
+    `- When you create a workflow, also write it as a JSON file in the workspace (${workspaceDir}), so the user can run it with \`nodetool run <file>\`.`
+  ].join("\n");
+}
+
+/** The requested model, else the provider's default model. */
+export function resolveAgentModel(providerId: string, model: string | undefined): string {
+  const modelId = model ?? DEFAULT_MODELS[providerId];
+  if (!modelId) {
+    throw new Error(
+      `No model specified and ${providerId} has no default model. Use --model <id>. ` +
+        `List its models with \`nodetool models list --provider ${providerId}\`.`
+    );
+  }
+  return modelId;
+}
+
 /** Exit code for the process: 0 when the turn finished without an error. */
 export async function runAgentCommand(opts: RunOptions): Promise<number> {
   // Quiet the runtime's INFO logger so it doesn't interleave the trace.
@@ -212,7 +239,7 @@ export async function runAgentCommand(opts: RunOptions): Promise<number> {
 
   // DB for secrets
   try {
-    initDb(getDefaultDbPath());
+    await initMigratedDb(getDefaultDbPath());
   } catch {
     /* fallback to env vars */
   }
@@ -221,9 +248,9 @@ export async function runAgentCommand(opts: RunOptions): Promise<number> {
     throw new Error("No provider specified. Use --provider <id>.");
   }
   const providerId = normalizeProvider(opts.provider);
-  const modelId = opts.model;
-  if (!modelId) {
-    throw new Error("No model specified. Use --model <id>.");
+  const modelId = resolveAgentModel(providerId, opts.model);
+  if (!opts.model) {
+    process.stderr.write(`Using default model ${modelId} for ${providerId} (pass --model to change it).\n`);
   }
 
   // `Number("ten")` is NaN, and a NaN round limit runs no rounds at all: the
@@ -308,6 +335,15 @@ export async function runAgentCommand(opts: RunOptions): Promise<number> {
   });
   context.set(RUN_BUDGET_CONTEXT_KEY, budget);
 
+  // Generations the agent starts — directly or from an `execute_code` action —
+  // emit prediction messages on this context. The ledger turns them into the
+  // rows `costs list` and `generations list` read, as `tools call` does.
+  const { attachRunCostLedger } = await import("@nodetool-ai/execution");
+  const ledger = attachRunCostLedger(context, {
+    userId: context.userId,
+    workflowId: null
+  });
+
   // One belt, every run. A narrowing flag made each invocation its own
   // configuration — the thing YAML configs were removed for — and an agent
   // run that behaves differently from the last one is not reproducible.
@@ -343,7 +379,7 @@ export async function runAgentCommand(opts: RunOptions): Promise<number> {
     }
   });
   const messages: Message[] = [];
-  applySystemPrompt(messages, turn.systemPrompt);
+  applySystemPrompt(messages, `${turn.systemPrompt}\n\n${runPreferences(providerId, modelId, workspaceDir)}`);
 
   let errored = false;
   try {
@@ -386,6 +422,9 @@ export async function runAgentCommand(opts: RunOptions): Promise<number> {
     if (!opts.json) {
       process.stderr.write(chalk.red(`\nagent failed: ${message}\n`));
     }
+  } finally {
+    await ledger.settled();
+    ledger();
   }
 
   const finalText = finalAssistantText(messages);

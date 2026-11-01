@@ -945,6 +945,48 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "SQLite compaction takes a host-wide write lock and rewrites the " +
       "database file. It is an explicit host maintenance operation."
   },
+  "settings.onepassword.connect": {
+    withheld:
+      "Browsing 1Password lists the user's vaults and items with the " +
+      "desktop app's approval, and connecting signs the server in to " +
+      "the user's 1Password account. Sandboxed code must not see or " +
+      "change that account."
+  },
+  "settings.onepassword.disconnect": {
+    withheld:
+      "Browsing 1Password lists the user's vaults and items with the " +
+      "desktop app's approval, and connecting signs the server in to " +
+      "the user's 1Password account. Sandboxed code must not see or " +
+      "change that account."
+  },
+  "settings.onepassword.fields": {
+    withheld:
+      "Browsing 1Password lists the user's vaults and items with the " +
+      "desktop app's approval, and connecting signs the server in to " +
+      "the user's 1Password account. Sandboxed code must not see or " +
+      "change that account."
+  },
+  "settings.onepassword.items": {
+    withheld:
+      "Browsing 1Password lists the user's vaults and items with the " +
+      "desktop app's approval, and connecting signs the server in to " +
+      "the user's 1Password account. Sandboxed code must not see or " +
+      "change that account."
+  },
+  "settings.onepassword.status": {
+    withheld:
+      "Browsing 1Password lists the user's vaults and items with the " +
+      "desktop app's approval, and connecting signs the server in to " +
+      "the user's 1Password account. Sandboxed code must not see or " +
+      "change that account."
+  },
+  "settings.onepassword.vaults": {
+    withheld:
+      "Browsing 1Password lists the user's vaults and items with the " +
+      "desktop app's approval, and connecting signs the server in to " +
+      "the user's 1Password account. Sandboxed code must not see or " +
+      "change that account."
+  },
   "settings.secrets.delete": {
     withheld:
       "There is deliberately no way for sandboxed code to read or " +

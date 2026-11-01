@@ -15,7 +15,9 @@ import {
   cleanupStorage,
   compactStorage,
   getStorageStatus,
-  clearSecretCache
+  clearSecretCache,
+  isOnePasswordReference,
+  resolveUserSecretValue
 } from "@nodetool-ai/models";
 import type { Secret as SecretModel } from "@nodetool-ai/models";
 import {
@@ -24,6 +26,7 @@ import {
   readCredentialEnv
 } from "@nodetool-ai/runtime";
 import { ApiErrorCode } from "../../error-codes.js";
+import { onePasswordRouter } from "./onepassword.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
@@ -179,11 +182,23 @@ const secretsRouter = router({
     .output(secretValidateOutput)
     .mutation(async ({ ctx, input }) => {
       let value = input.value?.trim();
-      if (!value) {
+      if (value && isOnePasswordReference(value)) {
+        value =
+          (await resolveUserSecretValue(input.key, value, ctx.userId)) ??
+          undefined;
+        if (!value) {
+          return {
+            status: "invalid" as const,
+            valid: false,
+            message:
+              "The 1Password reference could not be read on this server."
+          };
+        }
+      } else if (!value) {
         const secret = await Secret.find(ctx.userId, input.key);
         if (secret) {
           try {
-            value = (await secret.getDecryptedValue()) ?? undefined;
+            value = (await secret.getResolvedValue()) ?? undefined;
           } catch {
             // An undecryptable secret is unusable, and saying so is more
             // useful than a decryption stack trace.
@@ -374,5 +389,6 @@ export const settingsRouter = router({
     }),
 
   secrets: secretsRouter,
-  history: historyRouter
+  history: historyRouter,
+  onepassword: onePasswordRouter
 });

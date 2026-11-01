@@ -102,7 +102,7 @@ describe("run_node through the chat tool router", () => {
       stop();
       setPackLoaderContext(undefined);
     }
-    expect(JSON.parse(String(results[0]))).toMatchObject({ error: "missing_pack", packs: [{ id: "game" }], runtimeLibraries: ["imaging", "rapier"], restartRequired: false });
+    expect(JSON.parse(String(results[0]))).toMatchObject({ error: "missing_pack", packs: [{ id: "game" }], runtimeLibraries: ["imaging", "media-codecs", "rapier", "webgpu"], restartRequired: false });
     expect(String(results[1])).toContain("continued");
     expect(resolved).toEqual([LazyInstalled.nodeType, "test.Echo"]);
   });

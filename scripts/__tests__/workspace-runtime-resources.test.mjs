@@ -16,7 +16,7 @@ describe("npm workspace runtime resources", () => {
     ["agents", "_skills", "api-apps/SKILL.md"],
     ["node-sdk", "_sandbox", "sandbox-timeline/package.json"],
     ["timeline", "examples/timelines", null],
-    ["websocket", "examples/nodetool-base", null]
+    ["project-services", "examples/nodetool-base", null]
   ])("stages %s resources inside its published dist", async (name, assetDirectory, sample) => {
     const directory = await mkdtemp(join(tmpdir(), "nodetool-resources-"));
     directories.push(directory);

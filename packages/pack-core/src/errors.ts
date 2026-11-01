@@ -34,7 +34,7 @@ export function createMissingPackError(
   }
   const commandIds = [...new Set([...ids].concat([...runtimeLibraries].filter(isRuntimeNpmPackageId)))].sort();
   const guidance: MissingPackInstall = install.supported && install.command === null
-    ? { ...install, command: commandIds.length ? `nodetool packs add ${commandIds.join(" ")}` : "nodetool packs doctor --installed" }
+    ? { ...install, command: commandIds.length ? `nodetool packs add ${commandIds.join(" ")} --yes` : "nodetool packs doctor --installed" }
     : install;
   return new MissingPackError({
     error: "missing_pack",

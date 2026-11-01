@@ -10,7 +10,7 @@ vi.mock("@nodetool-ai/models", () => ({
   migrateSqliteDb: state.migrate,
   initDb: state.initialize
 }));
-vi.mock("@nodetool-ai/security", () => ({ initMasterKey: state.unlock }));
+vi.mock("@nodetool-ai/security", () => ({ initMasterKey: state.unlock, isKeychainBackendMissing: () => false }));
 vi.mock("@nodetool-ai/config", () => ({ getDefaultDbPath: () => "/fixture/local.sqlite3" }));
 
 beforeEach(() => {
@@ -48,7 +48,7 @@ describe("standalone command database startup", () => {
     await Promise.all([first, setupLocalDb()]);
     expect(state.initialize).toHaveBeenCalledOnce();
     expect(state.unlock).toHaveBeenCalledOnce();
-    expect(state.migrate).not.toHaveBeenCalled();
+    expect(state.migrate).toHaveBeenCalledOnce();
   });
 
   it("does not initialize or unlock credentials after migration fails", async () => {

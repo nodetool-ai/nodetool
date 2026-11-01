@@ -74,6 +74,46 @@ For shared deployments you **must** pre-provision the master key (via the `SECRE
 
    For a container deployment, `nodetool deploy add` and the deploy config generate a `SECRETS_MASTER_KEY` (32 random bytes, base64) in `container.environment` when none is set.
 
+## 1Password Secret References
+
+A secret's value can be a [1Password secret reference](https://developer.1password.com/docs/cli/secret-reference-syntax/) instead of the key itself:
+
+```text
+op://<vault>/<item>/[<section>/]<field>
+```
+
+NodeTool reads the item from 1Password when the secret is used, so the key is not stored in NodeTool's database or in a `.env` file. Store a reference anywhere a key goes:
+
+- In Settings, choose **Use 1Password** in a provider's key dialog. The first time, enter your 1Password account name and approve NodeTool in the 1Password app. Then pick the vault, item and field. NodeTool stores the reference, never the key. You can also paste a reference such as `op://Dev/OpenAI/credential`. **Test connection** checks the key the reference points to.
+- On the command line, run `nodetool secrets store OPENAI_API_KEY` and enter the reference.
+- In the environment, set `OPENAI_API_KEY=op://Dev/OpenAI/credential`.
+
+NodeTool ships the [1Password JavaScript SDK](https://developer.1password.com/docs/sdks/), so no separate install is needed. It picks the first backend whose settings are present:
+
+| Backend | Selected when | Authentication |
+|---|---|---|
+| 1Password Connect server | `OP_CONNECT_HOST` and `OP_CONNECT_TOKEN` are set | The Connect token |
+| SDK with a service account | `OP_SERVICE_ACCOUNT_TOKEN` is set | The service account token. Use this for servers and Docker. |
+| SDK through the desktop app | An account is connected in Settings, or `NODETOOL_1PASSWORD_ACCOUNT` is set to the account name shown in the 1Password sidebar, or its UUID | The 1Password app asks you to approve NodeTool, and the approval lasts until 10 minutes of inactivity. Turn on the option to integrate with SDKs in the 1Password app settings first. |
+| 1Password CLI (`op read`) | None of the above | Whatever `op` is signed in with. For installs that already use the CLI. |
+
+| Variable | Default | Effect |
+|---|---|---|
+| `NODETOOL_1PASSWORD_ACCOUNT` | unset | The 1Password account the desktop app integration signs in to |
+| `NODETOOL_1PASSWORD_CLI` | `op` | Path to the `op` binary, for the CLI backend |
+| `NODETOOL_1PASSWORD_CACHE_TTL_SECONDS` | `300` | How long a read value is kept in memory. An item rotated in 1Password is picked up after this time. |
+| `NODETOOL_1PASSWORD_USER_REFERENCES` | `true` on a local install, `false` on a shared deployment | Whether references stored by users in Settings or with `nodetool secrets store` are read |
+
+Every reference is read with the server's 1Password credentials. On a shared deployment (`SUPABASE_URL` and `SUPABASE_KEY` set), a user who stored a reference could read any item that the server's service account can see. NodeTool therefore ignores references stored by users there and reads only references in the server's environment. Set `NODETOOL_1PASSWORD_USER_REFERENCES=true` only when every user may read every item the service account can see.
+
+A reference that cannot be read counts as an unset secret, and the server log names the reference and the reason. NodeTool never logs the value.
+
+References resolve wherever NodeTool reads a secret through `getSecret()` or `Secret.getResolvedValue()` in `@nodetool-ai/models`. Some code reads an environment variable directly, and `SECRETS_MASTER_KEY` is read before any secret. To cover those, start the server under [`op run`](https://developer.1password.com/docs/cli/reference/commands/run/), which replaces every reference in the environment before NodeTool starts:
+
+```bash
+op run --env-file=.env -- npm run dev:server
+```
+
 ## Storage Backend Selection
 
 The storage backend is selected explicitly by `NODETOOL_STORAGE_BACKEND` (one of `file`, `s3`, or `supabase`; defaults to `file`). It is **not** auto-detected from the presence of S3 or Supabase credentials.

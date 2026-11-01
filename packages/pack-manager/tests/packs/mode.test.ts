@@ -65,8 +65,8 @@ describe("pack install layout classification", () => {
     const bin = join(root, "bin", "nodetool");
     mkdirSync(dirname(bin));
     symlinkSync(entry, bin);
-    expect(detectInstallMode(bin, { globalNodeModulesRoots: [modules] })).toMatchObject({
-      kind: "global", cliRoot, coreVersion: "1.2.3", installRoot: cliRoot, nodeModulesRoot: join(cliRoot, "node_modules")
+    expect(detectInstallMode(bin, { globalNodeModulesRoots: [modules], packsHome: join(root, "packs") })).toMatchObject({
+      kind: "global", cliRoot, coreVersion: "1.2.3", packsRoot: join(root, "packs", "1.2.3"), legacyInstallRoot: cliRoot
     });
   });
 
@@ -74,8 +74,8 @@ describe("pack install layout classification", () => {
     const root = fixture();
     writeFileSync(join(root, "package.json"), JSON.stringify({ [section]: { "@nodetool-ai/cli": "1.2.3" } }));
     const cliRoot = join(root, "node_modules", "@nodetool-ai", "cli");
-    expect(detectInstallMode(cliAt(cliRoot), { globalNodeModulesRoots: [] })).toMatchObject({
-      kind: "local", cliRoot, installRoot: root, nodeModulesRoot: join(root, "node_modules")
+    expect(detectInstallMode(cliAt(cliRoot), { globalNodeModulesRoots: [], packsHome: join(root, "packs") })).toMatchObject({
+      kind: "local", cliRoot, packsRoot: join(root, "packs", "1.2.3"), legacyInstallRoot: root
     });
   });
 
@@ -111,7 +111,7 @@ describe("pack install layout classification", () => {
     vi.stubEnv("npm_config_prefix", undefined);
     vi.stubEnv("NPM_CONFIG_PREFIX", undefined);
     vi.stubEnv("npm_config_userconfig", userConfig);
-    expect(detectInstallMode(entry)).toMatchObject({ kind: "global", installRoot: join(modules, "@nodetool-ai", "cli") });
+    expect(detectInstallMode(entry)).toMatchObject({ kind: "global", legacyInstallRoot: join(modules, "@nodetool-ai", "cli") });
   });
 
   it("respects prefix environment precedence over the configured file", () => {
@@ -167,7 +167,7 @@ describe("pack install layout classification", () => {
     const install = installDetailsForMode(mode);
     expect(install.supported).toBe(kind === "global" || kind === "local");
     expect(install.command).toBeNull();
-    expect(installDetailsForMode(mode, ["video", "game", "video"]).command).toBe(kind === "global" || kind === "local" ? "nodetool packs add game video" : null);
+    expect(installDetailsForMode(mode, ["video", "game", "video"]).command).toBe(kind === "global" || kind === "local" ? "nodetool packs add game video --yes" : null);
     if (kind === "npx") {
       expect(install.reason).toBe('Packs need a global or local install. Run "npm install -g @nodetool-ai/cli" or "npm install @nodetool-ai/cli" in a project.');
     }
@@ -192,7 +192,7 @@ describe("pack install layout classification", () => {
         const payload = JSON.parse(JSON.stringify(error.details));
         assert.equal(payload.install.supported, kind === 'global' || kind === 'local');
         assert.equal(payload.install.reason, kind === 'global' || kind === 'local' ? null : mode.reason);
-        assert.equal(payload.install.command, kind === 'global' || kind === 'local' ? 'nodetool packs add fal' : null);
+        assert.equal(payload.install.command, kind === 'global' || kind === 'local' ? 'nodetool packs add fal --yes' : null);
         assert.ok(!error.message.includes('null'));
       }
     `], { cwd: join(import.meta.dirname, "../../../.."), encoding: "utf8", timeout: 30000 });

@@ -1,5 +1,6 @@
+import { createHash } from "node:crypto";
 import { describe, expect, it, vi } from "vitest";
-import { loadRegistryDist, loadRegistryResponse } from "../release/registry.mjs";
+import { loadRegistryDist, loadRegistryResponse, verifyRegistryTarball } from "../release/registry.mjs";
 
 describe("release registry visibility", () => {
   it("reads an exact version even when the package index is stale", async () => {
@@ -41,5 +42,27 @@ describe("release registry visibility", () => {
       await expect(loadRegistryResponse(url, { fetchImpl })).rejects.toThrow("Unexpected npm registry endpoint");
     }
     expect(fetchImpl).not.toHaveBeenCalled();
+  });
+});
+
+describe("registry tarball readiness", () => {
+  const bytes = Buffer.from("published tarball");
+  const pin = { name: "@nodetool-ai/websocket", version: "0.8.9", integrity: `sha512-${createHash("sha512").update(bytes).digest("base64")}` };
+  const dist = { tarball: "https://registry.npmjs.org/@nodetool-ai/websocket/-/websocket-0.8.9.tgz" };
+
+  it("waits for tarball bytes after metadata becomes visible", async () => {
+    const fetchImpl = vi.fn().mockResolvedValueOnce(new Response("missing", { status: 404 }))
+      .mockResolvedValueOnce(new Response(bytes));
+    const sleep = vi.fn(async () => {});
+    await verifyRegistryTarball(pin, dist, { fetchImpl, sleep });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(fetchImpl.mock.calls[0][0]).toBe(dist.tarball);
+    expect(sleep).toHaveBeenCalledOnce();
+  });
+
+  it("rejects changed bytes without retrying integrity failures", async () => {
+    const fetchImpl = vi.fn(async () => new Response("changed"));
+    await expect(verifyRegistryTarball(pin, dist, { fetchImpl })).rejects.toThrow("tarball integrity differs");
+    expect(fetchImpl).toHaveBeenCalledOnce();
   });
 });

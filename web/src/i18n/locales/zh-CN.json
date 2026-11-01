@@ -9379,18 +9379,13 @@
         "title": "管理工作器配置",
         "create": "创建配置",
         "existingHeading": "现有配置",
-        "emptyTitle": "还没有配置",
-        "emptyDescription": "在下方创建配置。",
         "deleteAria": "删除配置 {{name}}",
         "createSection": "创建配置",
         "intro": "配置是可重复使用的模板。通过它创建工作器会租用一台 GPU 机器并将此应用连接到该机器。",
         "nameLabel": "名称",
-        "nameHelp": "为此模板设置一个便于识别的名称，例如“A40 图像工作器”。",
+        "nameHelp": "可选。留空则使用“{{name}}”。",
         "providerLabel": "提供商",
         "providerHelp": "GPU 的租用来源。RunPod 会启动专用实例；Vast 会从市场中选择符合条件且价格最低的报价。",
-        "keySeparator": " 和 ",
-        "missingApiKeyTitle": "未配置 {{key}}",
-        "missingApiKeyDescription": "创建 {{provider}} 工作器前，请在“设置”→“模型和提供商”中添加该密钥，否则创建会失败。",
         "gpuLabel": "GPU",
         "runpodGpuHelp": "选择要租用的机器。选择 GPU 用于模型推理，或选择“仅 CPU”以使用更便宜的 CPU 实例（例如数据或文本节点）。显存越大，可运行的模型越大。",
         "gpuHelp": "选择要租用的 GPU。显存越大，可运行的模型越大；选择够用的最小规格以节省费用。",
@@ -9430,7 +9425,10 @@
         "maxLifetimeLabel": "最长运行时间（分钟）",
         "maxLifetimeHelp": "运行到此时长后，工作器将被终止，实例和卷都会删除（模型也会丢失），以停止所有费用。留空表示不设上限。",
         "createError": "无法创建配置：{{message}}",
-        "deleteError": "无法删除配置：{{message}}"
+        "deleteError": "无法删除配置：{{message}}",
+        "setupTitle": "设置工作器",
+        "createAndStart": "创建并启动",
+        "startError": "配置已保存，但工作器未能启动：{{message}}"
       },
       "status": {
         "workerLabel": "工作器：{{name}}",
@@ -9446,13 +9444,18 @@
         "booting": "正在启动",
         "bootingEllipsis": "正在启动…",
         "bootingHint": "GPU 已就绪，工作器仍在加载",
-        "readyHint": "工作器已响应，可以连接"
+        "readyHint": "工作器已响应，可以连接",
+        "provisioningHint": "正在租用 GPU，可能需要几分钟。",
+        "bootingAutoAttachHint": "GPU 已就绪。工作器正在加载，就绪后会自动连接。",
+        "attachingHint": "工作器已就绪，正在连接…"
       },
       "provision": {
         "title": "启动工作器",
-        "confirm": "创建",
-        "noProfiles": "还没有工作器配置。打开“管理配置”以创建一个。",
-        "profileLabel": "配置"
+        "confirm": "启动",
+        "profileLabel": "配置",
+        "idleSummary_one": "就绪后会自动连接到 NodeTool，空闲 {{count}} 分钟后暂停。",
+        "idleSummary_other": "就绪后会自动连接到 NodeTool，空闲 {{count}} 分钟后暂停。",
+        "noIdleSummary": "就绪后会自动连接到 NodeTool。此配置没有空闲超时，用完后请停止工作器。"
       },
       "instance": {
         "uptime": "运行时间：{{value}}",
@@ -9481,7 +9484,8 @@
       },
       "empty": {
         "title": "没有运行中的工作器",
-        "description": "启动工作器，为工作流租用 GPU。"
+        "description": "启动工作器，为工作流租用 GPU。",
+        "start": "启动一个工作器"
       },
       "terminate": {
         "title": "终止工作器？",
@@ -9502,7 +9506,18 @@
         "action": "工作器操作失败：{{message}}",
         "reconcile": "无法同步工作器状态：{{message}}"
       },
-      "panelTitle": "工作器"
+      "panelTitle": "工作器",
+      "apiKey": {
+        "title": "添加你的 {{provider}} API 密钥",
+        "description": "工作器在你的 {{provider}} 账户上运行并在那里计费。NodeTool 会先检查密钥，再加密保存。",
+        "settingsDescription": "{{provider}} 使用客户端 ID 和密钥登录。请在“设置 → 模型与提供方”中添加这两项。",
+        "openSettings": "打开设置"
+      },
+      "setup": {
+        "title": "在租用的 GPU 上运行工作流",
+        "description": "连接一次 RunPod 并选择 GPU，NodeTool 就会在上面运行你的 Python 节点，空闲的工作器会自动暂停。",
+        "action": "设置工作器"
+      }
     }
   },
   "screens4_9": {
@@ -13299,8 +13314,6 @@
       "actions": {
         "copyMarkdown": "将对话复制为 Markdown",
         "newChat": "新建聊天",
-        "showSidebar": "显示侧边栏",
-        "hideSidebar": "隐藏侧边栏",
         "scrollToBottom": "滚动到底部"
       },
       "errors": {
@@ -13312,12 +13325,6 @@
       "notifications": {
         "copiedMessages_other": "已将 {{count}} 条消息复制为 Markdown。",
         "copiedMessages_one": "已将 {{count}} 条消息复制为 Markdown。"
-      },
-      "mobileRails": {
-        "ariaLabel": "对话面板",
-        "chat": "聊天",
-        "tasks": "任务",
-        "task": "任务"
       },
       "welcome": {
         "suggestions": {
@@ -13337,6 +13344,12 @@
         "connectProviderButton": "连接提供商",
         "title": "今天我能帮你做什么？",
         "subtitle": "可以随意提问、添加文件，或从以下示例开始："
+      },
+      "taskDock": {
+        "label": "任务",
+        "expand": "显示全部任务",
+        "collapse": "隐藏任务列表",
+        "allDone": "所有任务已完成"
       }
     }
   },
@@ -18191,11 +18204,6 @@
       "thought": "已思考",
       "thoughtFor": "已思考 {{seconds}} 秒"
     },
-    "sidebar": {
-      "activeTask": "当前代理任务",
-      "noTasks": "暂无任务",
-      "noTasksDescription": "代理工作时会在这里列出计划。"
-    },
     "thread": {
       "conversation": "对话",
       "responding": "正在回复…",
@@ -18579,11 +18587,6 @@
       "notNow": "暂时不用",
       "saving": "正在保存…",
       "saveKey": "保存密钥"
-    },
-    "todoSidebar": {
-      "tasks": "任务",
-      "noTasks": "暂无任务",
-      "noTasksDescription": "代理工作时会在这里列出计划。"
     },
     "codeBlock": {
       "insertIntoEditor": "插入编辑器"
@@ -19544,5 +19547,28 @@
   "startStudios": {
     "title": "工作室",
     "subtitle": "从你想做的作品开始。每个工作室打开时都已选好预设。"
+  },
+  "onePassword": {
+    "useOnePassword": "使用 1Password",
+    "title": "使用 1Password 中的密钥",
+    "connectIntro": "NodeTool 每次使用密钥时都会从 1Password 应用读取，因此密钥不会保存在 NodeTool 中。请在 1Password 应用的设置中开启与 SDK 集成的选项，然后输入应用侧边栏顶部显示的账户名称。",
+    "accountLabel": "1Password 账户",
+    "accountPlaceholder": "my.1password.com",
+    "approveHint": "当 1Password 应用询问时，请允许 NodeTool。",
+    "connect": "连接",
+    "connecting": "正在等待 1Password",
+    "connectFailed": "1Password 未能连接：{{message}}",
+    "connectedAs": "已连接为 {{account}}",
+    "switchAccount": "使用其他账户",
+    "loadFailed": "无法读取 1Password：{{message}}",
+    "vault": "保险库",
+    "items": "项目",
+    "fields": "字段",
+    "searchItems": "搜索项目",
+    "noItems": "此保险库中没有项目。",
+    "noItemsMatch": "没有与搜索匹配的项目。",
+    "chooseItem": "选择一个项目，然后选择存放密钥的字段。",
+    "noFields": "此项目没有字段。",
+    "pickedHelp": "来自 1Password：{{path}}。每次使用密钥时 NodeTool 都会读取它。"
   }
 }

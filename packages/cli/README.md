@@ -14,6 +14,38 @@ nodetool --version
 nodetool packs list
 ```
 
+## Run locally with only an API key
+
+Local commands need no server, pack, user ID or master key. The local user ID
+defaults to `1`, as in the desktop app and the command features.
+
+```bash
+export OPENAI_API_KEY=...
+nodetool text "Write a haiku about rivers"
+echo "Summarize this" | nodetool text --model gpt-4.1 --system "Be brief" --json
+nodetool nodes                       # built-in node types, as JSON
+nodetool nodes --example > flow.json # input -> template -> LLM -> output
+nodetool run flow.json --params '{"topic":"rivers"}'
+```
+
+`text`, `run` and `models list` read `OPENAI_API_KEY` from the local encrypted
+store when `SECRETS_MASTER_KEY` is set and the key is stored, and from the
+environment otherwise.
+
+No single provider is required. `nodetool info` shows the credential state of
+each provider (names only, never values), and `nodetool providers list` lists
+the providers usable now: a key is set, an installed pack registers it, or, for
+`claude_agent_sdk`, the `claude` CLI is found. `nodetool text` uses an
+OpenAI-compatible endpoint. To use another provider, install a command feature
+and pick the provider with `-p`:
+
+```bash
+nodetool packs add cli-chat --yes
+nodetool agent run -p claude_agent_sdk --objective "Summarize README.md"   # default model: sonnet
+nodetool packs add cli-workflow --yes
+nodetool generate fal_ai --kind video --list-models                          # priced, cheapest first
+```
+
 ## Start an authenticated server
 
 Generate credentials once, keep them in your secret manager, and reuse the
@@ -22,10 +54,13 @@ master key when restarting against the same database.
 ```bash
 export SECRETS_MASTER_KEY="$(openssl rand -base64 32)"
 export NODETOOL_API_TOKEN="$(openssl rand -hex 32)"
-export NODETOOL_USER_ID=local
-export NODETOOL_TOKENS="$(node -e 'process.stdout.write(JSON.stringify({[process.env.NODETOOL_API_TOKEN]:process.env.NODETOOL_USER_ID}))')"
 nodetool serve --host 127.0.0.1 --port 7777
 ```
+
+A single `NODETOOL_API_TOKEN` authenticates `NODETOOL_USER_ID` (default `1`).
+For several users, set `NODETOOL_TOKENS` to a JSON object that maps each token
+(at least 32 characters) to a user ID. Port 7777 is also the desktop app's
+port; pass `--port` when it is running.
 
 `NODETOOL_DATA_DIR` selects the SQLite, assets and workspace directory. It
 defaults to `./nodetool-data`. Client commands use `NODETOOL_API_URL` and
@@ -49,8 +84,7 @@ nodetool text 'Hello' --model <model-id>
 ```
 
 Secret values are read from stdin and encrypted for the authenticated user.
-Local text calls use `NODETOOL_USER_ID`, the same data directory and master
-key. `OPENAI_BASE_URL` selects a public HTTPS OpenAI-compatible endpoint.
+Without a token, `secrets list` and `secrets set` use the local store instead. `OPENAI_BASE_URL` selects a public HTTPS OpenAI-compatible endpoint.
 
 ```bash
 nodetool validate workflow.json

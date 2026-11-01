@@ -57,9 +57,9 @@ export function registerValidateCommand(program: Command): void {
         let dbReady = false;
         const ensureDb = async () => {
           if (!dbReady) {
-            const { initDb } = await import("@nodetool-ai/models");
+            const { initMigratedDb } = await import("@nodetool-ai/models");
             const { getDefaultDbPath } = await import("@nodetool-ai/config");
-            initDb(getDefaultDbPath());
+            await initMigratedDb(getDefaultDbPath());
             dbReady = true;
           }
         };

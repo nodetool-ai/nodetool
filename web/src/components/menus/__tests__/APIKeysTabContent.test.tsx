@@ -180,7 +180,10 @@ describe("APIKeysTabContent on a hosted deployment", () => {
 
     const dialog = screen.getByRole("dialog");
     const input = within(dialog).getByLabelText("API key");
-    await userEvent.type(input, "  k-or-v1-missing-leading-s  ");
+    // Paste in one input event, as a user would. Typing each character
+    // re-renders the dialog and took most of Jest's 10 s timeout.
+    await userEvent.click(input);
+    await userEvent.paste("  k-or-v1-missing-leading-s  ");
     await userEvent.click(
       within(dialog).getByRole("button", { name: "Connect" })
     );

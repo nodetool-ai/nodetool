@@ -187,25 +187,52 @@ vi.mock("@nodetool-ai/chat", async () => {
   return { processChat: real.processChat };
 });
 
-vi.mock("@nodetool-ai/websocket", () => ({ mcpToolHostDeps: () => ({}) }));
+vi.mock("@nodetool-ai/project-services/mcp-tool-host-deps", () => ({ mcpToolHostDeps: () => ({}) }));
+vi.mock("@nodetool-ai/project-services/workflow-runtime-environment", () => ({ createWorkflowRuntimeEnvironment: () => Promise.resolve({}) }));
 vi.mock("@nodetool-ai/cli-execution/node-registry", () => ({ buildFullRegistry: () => ({}) }));
 vi.mock("../src/chat-context.js", () => ({
   createChatContext: async () => ({
+    userId: "1",
     set: (key: string, value: unknown) => contextVariables.set(key, value),
     registerProvider: () => {}
   })
 }));
 
+/** Every cost ledger the run attached, and whether it was settled and detached. */
+const ledgers: Array<{
+  context: unknown;
+  options: Record<string, unknown>;
+  settled: boolean;
+  detached: boolean;
+}> = [];
+vi.mock("@nodetool-ai/execution", () => ({
+  attachRunCostLedger: (context: unknown, options: Record<string, unknown>) => {
+    const entry = { context, options, settled: false, detached: false };
+    ledgers.push(entry);
+    return Object.assign(
+      () => {
+        entry.detached = true;
+      },
+      {
+        settled: async () => {
+          entry.settled = true;
+        }
+      }
+    );
+  }
+}));
+
 const scriptedCalls: unknown[][] = [];
 vi.mock("@nodetool-ai/cli-providers", () => ({
   buildConfiguredProviders: async () => ({}),
-  createProvider: async () => currentProvider
+  createProvider: async () => currentProvider,
+  DEFAULT_MODELS: { claude_agent_sdk: "sonnet" }
 }));
 
 const { ScriptedProvider, textScript, toolCallScript } = await import(
   "../../runtime/src/providers/scripted-provider.js"
 );
-const { runAgentCommand } = await import("../src/commands/agent.js");
+const { runAgentCommand, resolveAgentModel, runPreferences } = await import("../src/commands/agent.js");
 const { headlessDenialReason } = await import(
   "../../runtime/src/permission-gate.js"
 );
@@ -258,6 +285,7 @@ beforeEach(() => {
   gatedWith.length = 0;
   runGates.length = 0;
   contextVariables.clear();
+  ledgers.length = 0;
 });
 
 describe("nodetool agent run", () => {
@@ -282,6 +310,25 @@ describe("nodetool agent run", () => {
     expect(actionsRun).toEqual(["await nodetool.workflows.list();"]);
     expect(stdout.trim()).toBe("You have three workflows.");
     expect(code).toBe(0);
+  });
+
+  it("records the run's generations in the cost ledger", async () => {
+    // Generations an `execute_code` action starts (generate_image through the
+    // sandbox) emit prediction messages on the run context. Without a ledger
+    // on that context, none of them reached `costs list` or `generations list`.
+    const provider = new ScriptedProvider([textScript("Done.")]);
+
+    const { code } = await runWithCapture(provider, {
+      objective: "make three images"
+    });
+
+    expect(code).toBe(0);
+    expect(ledgers).toHaveLength(1);
+    expect(ledgers[0]!.options).toEqual(
+      expect.objectContaining({ userId: "1", workflowId: null })
+    );
+    expect(ledgers[0]!.settled).toBe(true);
+    expect(ledgers[0]!.detached).toBe(true);
   });
 
   it("puts create_plan and execute_plan on the belt for a plan-shaped objective", async () => {
@@ -444,5 +491,22 @@ describe("the budget a CLI run holds", () => {
       })
     ).rejects.toThrow(/--max-iterations must be an integer/);
     expect(provider.callLog).toHaveLength(0);
+  });
+  it("uses the provider's default model when --model is omitted", () => {
+    expect(resolveAgentModel("claude_agent_sdk", undefined)).toBe("sonnet");
+    expect(resolveAgentModel("claude_agent_sdk", "opus")).toBe("opus");
+  });
+
+  it("tells the agent to use the run's provider and model in what it builds", () => {
+    const text = runPreferences("claude_agent_sdk", "sonnet", "/tmp/ws");
+    expect(text).toContain('"provider":"claude_agent_sdk","id":"sonnet"');
+    expect(text).toContain("cheapest");
+    expect(text).toContain("/tmp/ws");
+  });
+
+  it("names the model listing command when a provider has no default model", () => {
+    expect(() => resolveAgentModel("fal_ai", undefined)).toThrow(
+      "nodetool models list --provider fal_ai"
+    );
   });
 });

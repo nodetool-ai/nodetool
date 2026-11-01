@@ -8,6 +8,11 @@
  * 4. Environment variable
  * 5. Default value
  *
+ * A value found in steps 1-4 may be a 1Password secret reference
+ * (`op://vault/item/field`). It is resolved through 1Password before it is
+ * returned (see onepassword.ts). References stored by users resolve only when
+ * userReferencesAllowed() permits it.
+ *
  * NOTE on encryption compatibility: TS uses AES-256-GCM while Python uses Fernet.
  * Secrets encrypted in Python cannot be decrypted in TS and vice versa.
  * New secrets must be created via the TS endpoints for TS runtime access.
@@ -21,6 +26,12 @@ import {
   GOOGLE_ACCESS_TOKEN_KEY,
   resolveGoogleAccessToken
 } from "./google-token.js";
+import {
+  clearOnePasswordCache,
+  isOnePasswordReference,
+  isRefusedUserReference,
+  resolveOnePasswordReference
+} from "./onepassword.js";
 
 const log = createLogger("nodetool.models.secret-helper");
 
@@ -43,6 +54,22 @@ export function clearSecretCache(userId: string, key: string): void {
 /** Clear all cached secrets. */
 export function clearAllSecretCache(): void {
   secretCache.clear();
+  clearOnePasswordCache();
+}
+
+/**
+ * Turn a raw value into the secret it stands for. Plain values pass through.
+ * secretCache holds the reference, not the secret, and the 1Password cache
+ * expires, so an item rotated in 1Password is picked up without a restart.
+ */
+async function materialize(
+  value: string,
+  userId?: string
+): Promise<string | null> {
+  if (!isOnePasswordReference(value)) {
+    return value;
+  }
+  return resolveOnePasswordReference(value, userId);
 }
 
 /** Get a secret value for a user (resolution order documented at file top). */
@@ -85,13 +112,14 @@ export async function getSecret(
   if (FORCE_ENV_PRIORITY.has(key)) {
     const envVal = process.env[key];
     if (envVal !== undefined) {
-      return envVal;
+      return materialize(envVal, userId);
     }
   }
 
   const cacheKey = `${resolvedUserId}:${key}`;
   if (secretCache.has(cacheKey)) {
-    return secretCache.get(cacheKey) ?? null;
+    const cached = secretCache.get(cacheKey) ?? null;
+    return cached === null ? null : materialize(cached, userId);
   }
 
   if (userId) {
@@ -100,8 +128,11 @@ export async function getSecret(
       if (secret) {
         const value = await secret.getDecryptedValue();
         if (value !== null && value !== undefined) {
+          if (isRefusedUserReference(key, value)) {
+            return null;
+          }
           secretCache.set(cacheKey, value);
-          return value;
+          return materialize(value, userId);
         }
       }
     } catch (err) {
@@ -120,8 +151,11 @@ export async function getSecret(
     try {
       const setting = await Setting.find(userId, key);
       if (setting && setting.value.length > 0) {
+        if (isRefusedUserReference(key, setting.value)) {
+          return null;
+        }
         secretCache.set(cacheKey, setting.value);
-        return setting.value;
+        return materialize(setting.value, userId);
       }
     } catch (err) {
       log.error("Setting DB lookup failed", {
@@ -135,7 +169,7 @@ export async function getSecret(
   const envValue = process.env[key];
   if (envValue !== undefined) {
     secretCache.set(cacheKey, envValue);
-    return envValue;
+    return materialize(envValue, userId);
   }
 
   if (defaultValue !== undefined) {
@@ -180,6 +214,10 @@ export async function hasSecret(
       const secret = await Secret.find(userId, key);
       if (secret) {
         const value = await secret.getDecryptedValue();
+        // Never cache a refused reference: getSecret() trusts cached values.
+        if (isRefusedUserReference(key, value)) {
+          return false;
+        }
         secretCache.set(cacheKey, value);
         return true;
       }
@@ -198,7 +236,8 @@ export async function hasSecret(
 /**
  * Get a secret value synchronously from environment variables only.
  *
- * Does NOT check the database. Use getSecret() for full resolution.
+ * Does NOT check the database or resolve 1Password references. Use
+ * getSecret() for full resolution.
  */
 export function getSecretSync(
   key: string,

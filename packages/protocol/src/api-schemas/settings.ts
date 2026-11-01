@@ -163,3 +163,52 @@ export const cleanupStorageHistoryOutput = z.object({
 export const compactStorageHistoryOutput = z.object({
   status: storageStatus
 });
+
+// ── 1Password connection (Settings picker for op:// references) ─────
+
+export const onePasswordStatusOutput = z.object({
+  /** False where user-stored references are off (a shared server). */
+  available: z.boolean(),
+  /** The backend reads go to. `cli` means nothing is connected. */
+  backend: z.enum(["connect", "sdk-service-account", "sdk-desktop", "cli"]),
+  /** The desktop app account, empty when none is set. */
+  account: z.string(),
+  /** True when the account came from the environment, not Settings. */
+  accountFromEnv: z.boolean(),
+  /** True when the picker can list vaults here. */
+  canBrowse: z.boolean()
+});
+export type OnePasswordStatusOutput = z.infer<typeof onePasswordStatusOutput>;
+
+export const onePasswordConnectInput = z.object({
+  account: z.string().trim().min(1).max(200)
+});
+
+export const onePasswordConnectOutput = z.object({
+  ok: z.boolean(),
+  /** Why the connection failed, in 1Password's words. Empty on success. */
+  message: z.string(),
+  vaultCount: z.number().int().nonnegative()
+});
+export type OnePasswordConnectOutput = z.infer<typeof onePasswordConnectOutput>;
+
+export const onePasswordNamed = z.object({ id: z.string(), title: z.string() });
+export type OnePasswordNamed = z.infer<typeof onePasswordNamed>;
+
+export const onePasswordItemsInput = z.object({
+  vaultId: z.string().min(1).max(100)
+});
+
+export const onePasswordFieldsInput = z.object({
+  vaultId: z.string().min(1).max(100),
+  itemId: z.string().min(1).max(100)
+});
+
+export const onePasswordFieldOption = z.object({
+  id: z.string(),
+  title: z.string(),
+  section: z.string().nullable(),
+  fieldType: z.string(),
+  reference: z.string()
+});
+export type OnePasswordFieldOption = z.infer<typeof onePasswordFieldOption>;
