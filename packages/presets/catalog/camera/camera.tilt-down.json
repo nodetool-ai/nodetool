@@ -29,7 +29,8 @@
     "kling": "Camera tilts downward from a fixed position.",
     "seedance": "Camera tilts downward from a fixed position throughout one continuous shot.",
     "veo": "Camera tilts downward from a fixed position.",
-    "wan": "Camera tilts downward from a fixed position."
+    "wan": "Camera tilts downward from a fixed position.",
+    "local-wan": "From a fixed camera position, the lens turns slowly downward. Upper scenery leaves the top of the frame as lower details enter from below. One continuous shot."
   },
   "params": {},
   "preview": {

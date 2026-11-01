@@ -332,3 +332,25 @@ Camera and effective look presets share the three-preset limit. Choose one per s
 The composer uses one Presets picker with Camera, Look and Effect kind filters. This keeps the shared selection limit visible and lets a look combine with a camera move. Only presets supporting the current mode appear.
 
 Agents can set `look_preset_ids` with `edit_storyboard` on `set_board`, `add_shot` or `update_shot`. The frontend bridge exposes the board field through `ui_storyboard_set_style` and shot fields through the add/update tools.
+
+### Local Wan models
+
+| Family | Model ids |
+| --- | --- |
+| `wan` | Hosted Wan 2.6 video routes |
+| `local-wan` | Exact Wan2GP Wan video defaults stems, including `t2v`, `i2v`, `t2v_2_2`, `i2v_2_2`, `ti2v_2_2` and `ti2v_2_2_fastwan` |
+
+The `wangp` provider reports bare defaults stems as model ids. Both server
+compilation and web previews use the shared case-insensitive allowlist in
+[`families.ts`](../packages/presets/src/families.ts). It includes Wan-derived
+control, talking, editing and distilled variants, plus legacy Fun Camera ids.
+Provider prefixes, arbitrary suffixes, neighboring versions and non-Wan defaults
+such as Hunyuan, LTX, Kandinsky, image and audio models do not map to `local-wan`.
+The complete claimed and excluded defaults are pinned in the
+[Wan2GP fixtures](../packages/presets/tests/wan2gp-models.json).
+
+Every camera and effect has a local fragment with positive motion or material
+instructions. Restyles describe the whole frame in the target medium. These
+fragments compile independently of `families`, which records tested eligibility.
+Local eligibility and rendered previews remain P24 work. Local Wan 2.1/2.2 does
+not select the Wan 2.6 prompting guide, whose shot controls are version-specific.

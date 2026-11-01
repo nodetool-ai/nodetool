@@ -19,7 +19,8 @@
   "conflicts": [],
   "aliases": [],
   "prompt": {
-    "default": "Repaint every frame, from the very first, as a watercolor painting: translucent washes, bleeding pigment edges and visible paper grain, with white paper showing through. No photographic texture remains. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+    "default": "Repaint every frame, from the very first, as a watercolor painting: translucent washes, bleeding pigment edges and visible paper grain, with white paper showing through. No photographic texture remains. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames.",
+    "local-wan": "From the first frame, the entire scene is rebuilt as a moving watercolor illustration on textured paper. Translucent washes, bleeding pigment edges and exposed white paper form every figure, object and background. The layout and movement follow the source video, with this treatment sustained in every frame."
   },
   "params": {},
   "preview": {

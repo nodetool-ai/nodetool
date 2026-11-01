@@ -19,7 +19,8 @@
   "conflicts": [],
   "aliases": [],
   "prompt": {
-    "default": "Restyle the video with luminous neon lighting, cyan and magenta highlights, deep violet shadows and reflective surfaces. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+    "default": "Restyle the video with luminous neon lighting, cyan and magenta highlights, deep violet shadows and reflective surfaces. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames.",
+    "local-wan": "From the first frame, the entire scene is rebuilt as a luminous neon-lit film. Cyan edge light and magenta reflections spread across surfaces, with deep violet shadows and glowing colored highlights throughout the setting. The layout and movement follow the source video, with this treatment sustained in every frame."
   },
   "params": {},
   "preview": {

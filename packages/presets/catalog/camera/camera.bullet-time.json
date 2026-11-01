@@ -27,7 +27,8 @@
     "kling": "Camera arcs around the subject while the action hangs nearly frozen in time.",
     "seedance": "Camera arcs around the subject while the action hangs nearly frozen in time throughout one continuous shot.",
     "veo": "Camera arcs around the subject while the action hangs nearly frozen in time.",
-    "wan": "Camera arcs around the subject while the action hangs nearly frozen in time."
+    "wan": "Camera arcs around the subject while the action hangs nearly frozen in time.",
+    "local-wan": "The action slows almost to a standstill. The camera circles smoothly around the suspended subject as the surroundings rotate behind it. One continuous shot."
   },
   "params": {},
   "preview": {

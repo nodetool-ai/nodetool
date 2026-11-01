@@ -26,7 +26,8 @@
     "kling": "The subject begins still, then proceeds to fold itself into crisp origami paper. Creases form in sequence until the paper shape is complete. Physically accurate motion, steady locked camera.",
     "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to fold itself into crisp origami paper. Creases form in sequence until the paper shape is complete. Physically accurate motion.",
     "veo": "The subject begins still, then proceeds to fold itself into crisp origami paper. Creases form in sequence until the paper shape is complete. Cinematic lighting, realistic physics, locked camera.",
-    "wan": "The subject begins still, then proceeds to fold itself into crisp origami paper. Creases form in sequence until the paper shape is complete. Locked camera, smooth realistic motion, high detail."
+    "wan": "The subject begins still, then proceeds to fold itself into crisp origami paper. Creases form in sequence until the paper shape is complete. Locked camera, smooth realistic motion, high detail.",
+    "local-wan": "The subject becomes colored paper and folds along crisp straight creases. Each fold follows the previous one until a complete angular origami shape stands in its place."
   },
   "params": {},
   "preview": {

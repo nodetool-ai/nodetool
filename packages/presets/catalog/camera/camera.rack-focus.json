@@ -27,7 +27,8 @@
     "kling": "Focus shifts smoothly from foreground to background with fixed framing.",
     "seedance": "Focus shifts smoothly from foreground to background with fixed framing throughout one continuous shot.",
     "veo": "Focus shifts smoothly from foreground to background with fixed framing.",
-    "wan": "Focus shifts smoothly from foreground to background with fixed framing."
+    "wan": "Focus shifts smoothly from foreground to background with fixed framing.",
+    "local-wan": "With the camera held still, the sharp foreground gradually softens while the distant background becomes crisp. Framing stays constant throughout the focus change. One continuous shot."
   },
   "params": {},
   "preview": {

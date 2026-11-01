@@ -26,7 +26,8 @@
     "kling": "The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. Physically accurate motion, steady locked camera.",
     "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. Physically accurate motion.",
     "veo": "The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. Cinematic lighting, realistic physics, locked camera.",
-    "wan": "The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. Locked camera, smooth realistic motion, high detail."
+    "wan": "The subject begins still, then proceeds to drift underwater with slow caustic light ripples. Rippling caustics play across the subject as it floats. Locked camera, smooth realistic motion, high detail.",
+    "local-wan": "The subject floats gently underwater as slow currents move it. Rippling bands of sunlight travel across its surface and small bubbles rise through the surrounding blue water."
   },
   "params": {},
   "preview": {

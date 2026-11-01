@@ -27,7 +27,8 @@
     "kling": "Camera has gentle irregular handheld sway.",
     "seedance": "Camera has gentle irregular handheld sway throughout one continuous shot.",
     "veo": "Camera has gentle irregular handheld sway.",
-    "wan": "Camera has gentle irregular handheld sway."
+    "wan": "Camera has gentle irregular handheld sway.",
+    "local-wan": "Small irregular camera movements drift gently up, down and sideways, like a person holding a camera while standing still. The subject remains clearly visible. One continuous shot."
   },
   "params": {},
   "preview": {

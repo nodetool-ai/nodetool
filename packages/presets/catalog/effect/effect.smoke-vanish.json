@@ -26,7 +26,8 @@
     "kling": "The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. Physically accurate motion, steady locked camera.",
     "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. Physically accurate motion.",
     "veo": "The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. Cinematic lighting, realistic physics, locked camera.",
-    "wan": "The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. Locked camera, smooth realistic motion, high detail."
+    "wan": "The subject begins still, then proceeds to dissolve into drifting smoke and vanish. Dense wisps curl away until nothing remains. Locked camera, smooth realistic motion, high detail.",
+    "local-wan": "The subject dissolves from its edges into thick curling smoke. Its solid form disappears completely as the remaining wisps drift away and reveal the space behind it."
   },
   "params": {},
   "preview": {

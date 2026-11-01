@@ -40,7 +40,7 @@ describe("effects catalogue", () => {
   it("writes family fragments for every image-to-video effect", () => {
     for (const effect of catalog.filter({ kind: "effect", mode: "image_to_video" })) {
       expect(Object.keys(effect.prompt).sort(), effect.id).toEqual(
-        ["default", "kling", "seedance", "veo", "wan"]
+        ["default", "kling", "local-wan", "seedance", "veo", "wan"]
       );
     }
   });

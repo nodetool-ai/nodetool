@@ -29,7 +29,8 @@
     "kling": "Camera pans right from a fixed position.",
     "seedance": "Camera pans right from a fixed position throughout one continuous shot.",
     "veo": "Camera pans right from a fixed position.",
-    "wan": "Camera pans right from a fixed position."
+    "wan": "Camera pans right from a fixed position.",
+    "local-wan": "From a stationary viewpoint, the camera turns slowly right. The scene slides left across the frame while new scenery enters along the right edge. One continuous shot."
   },
   "params": {},
   "preview": {

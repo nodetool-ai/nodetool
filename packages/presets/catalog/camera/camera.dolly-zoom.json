@@ -27,7 +27,8 @@
     "kling": "Camera dollies backward while zooming in, holding subject size as the background expands.",
     "seedance": "Camera dollies backward while zooming in, holding subject size as the background expands throughout one continuous shot.",
     "veo": "Camera dollies backward while zooming in, holding subject size as the background expands.",
-    "wan": "Camera dollies backward while zooming in, holding subject size as the background expands."
+    "wan": "Camera dollies backward while zooming in, holding subject size as the background expands.",
+    "local-wan": "The camera moves backward as the lens zooms toward the subject. The subject holds the same size in frame while the background stretches outward behind it. One continuous shot."
   },
   "params": {},
   "preview": {

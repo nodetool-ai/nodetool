@@ -26,7 +26,8 @@
     "kling": "The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges and stay lit to the end while the surroundings dim slightly. Nothing else in the scene changes. Physically accurate motion, steady locked camera.",
     "seedance": "Locked camera, one continuous shot. The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges and stay lit to the end while the surroundings dim slightly. Nothing else in the scene changes. Physically accurate motion.",
     "veo": "The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges and stay lit to the end while the surroundings dim slightly. Nothing else in the scene changes. Cinematic lighting, realistic physics, locked camera.",
-    "wan": "The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges and stay lit to the end while the surroundings dim slightly. Nothing else in the scene changes. Locked camera, smooth realistic motion, high detail."
+    "wan": "The subject begins still, then proceeds to light up in pulsing neon tube outlines. Glowing tubes trace its edges and stay lit to the end while the surroundings dim slightly. Nothing else in the scene changes. Locked camera, smooth realistic motion, high detail.",
+    "local-wan": "Luminous cyan and pink lines gradually trace the subject's edges. The completed outline glows steadily with gentle pulses while colored light spills onto the dim surroundings."
   },
   "params": {},
   "preview": {

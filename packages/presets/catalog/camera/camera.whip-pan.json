@@ -27,7 +27,8 @@
     "kling": "Camera pans rapidly sideways with directional motion blur, then settles.",
     "seedance": "Camera pans rapidly sideways with directional motion blur, then settles throughout one continuous shot.",
     "veo": "Camera pans rapidly sideways with directional motion blur, then settles.",
-    "wan": "Camera pans rapidly sideways with directional motion blur, then settles."
+    "wan": "Camera pans rapidly sideways with directional motion blur, then settles.",
+    "local-wan": "The camera turns rapidly sideways, sweeping the scene into horizontal motion blur, then slows to a steady hold as the view becomes sharp again. One continuous shot."
   },
   "params": {},
   "preview": {

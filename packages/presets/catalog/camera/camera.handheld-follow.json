@@ -27,7 +27,8 @@
     "kling": "Camera follows behind the moving subject with subtle handheld sway.",
     "seedance": "Camera follows behind the moving subject with subtle handheld sway throughout one continuous shot.",
     "veo": "Camera follows behind the moving subject with subtle handheld sway.",
-    "wan": "Camera follows behind the moving subject with subtle handheld sway."
+    "wan": "Camera follows behind the moving subject with subtle handheld sway.",
+    "local-wan": "The camera follows just behind the moving subject at walking speed. Small uneven steps produce gentle vertical sway while the subject stays clearly framed. One continuous shot."
   },
   "params": {},
   "preview": {

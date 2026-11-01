@@ -29,7 +29,8 @@
     "kling": "Lens zooms rapidly out from the subject from a fixed camera position.",
     "seedance": "Lens zooms rapidly out from the subject from a fixed camera position throughout one continuous shot.",
     "veo": "Lens zooms rapidly out from the subject from a fixed camera position.",
-    "wan": "Lens zooms rapidly out from the subject from a fixed camera position."
+    "wan": "Lens zooms rapidly out from the subject from a fixed camera position.",
+    "local-wan": "A sudden fast lens zoom widens from the subject to its surroundings. The viewpoint stays fixed as the subject rapidly becomes smaller in frame. One continuous shot."
   },
   "params": {},
   "preview": {

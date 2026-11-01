@@ -19,7 +19,8 @@
   "conflicts": [],
   "aliases": [],
   "prompt": {
-    "default": "The source video remade from scratch as a moving oil painting on canvas. Every object, the architecture, the plants, the ground and the sky are built from thick visible impasto brushstrokes, with loose simplified forms, broken color and ridged paint. Not live action, not a photograph, not CGI. Only the layout, action and camera move of the source video stay the same."
+    "default": "The source video remade from scratch as a moving oil painting on canvas. Every object, the architecture, the plants, the ground and the sky are built from thick visible impasto brushstrokes, with loose simplified forms, broken color and ridged paint. Not live action, not a photograph, not CGI. Only the layout, action and camera move of the source video stay the same.",
+    "local-wan": "From the first frame, the entire scene is rebuilt as a moving oil painting on canvas. Thick ridged impasto strokes build every figure, tree, wall and patch of sky with broken colors and loose painted shapes. The layout and movement follow the source video, with this treatment sustained in every frame."
   },
   "params": {},
   "preview": {

@@ -29,7 +29,8 @@
     "kling": "Camera arcs left around the subject at a steady distance.",
     "seedance": "Camera arcs left around the subject at a steady distance throughout one continuous shot.",
     "veo": "Camera arcs left around the subject at a steady distance.",
-    "wan": "Camera arcs left around the subject at a steady distance."
+    "wan": "Camera arcs left around the subject at a steady distance.",
+    "local-wan": "The camera travels left around the subject along a curved path at a steady distance. The subject stays centered while its visible side and background change smoothly. One continuous shot."
   },
   "params": {},
   "preview": {

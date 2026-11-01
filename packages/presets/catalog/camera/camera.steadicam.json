@@ -25,7 +25,8 @@
     "kling": "Camera is stabilized on a Steadicam with smooth floating motion.",
     "seedance": "Camera is stabilized on a Steadicam with smooth floating motion throughout one continuous shot.",
     "veo": "Camera is stabilized on a Steadicam with smooth floating motion.",
-    "wan": "Camera is stabilized on a Steadicam with smooth floating motion."
+    "wan": "Camera is stabilized on a Steadicam with smooth floating motion.",
+    "local-wan": "The camera floats smoothly through the scene at walking speed with a level horizon. The subject remains steadily framed as the surroundings flow past. One continuous shot."
   },
   "params": {},
   "preview": {

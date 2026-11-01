@@ -29,7 +29,8 @@
     "kling": "Camera cranes downward and tilts up to keep the subject framed.",
     "seedance": "Camera cranes downward and tilts up to keep the subject framed throughout one continuous shot.",
     "veo": "Camera cranes downward and tilts up to keep the subject framed.",
-    "wan": "Camera cranes downward and tilts up to keep the subject framed."
+    "wan": "Camera cranes downward and tilts up to keep the subject framed.",
+    "local-wan": "The camera descends from above toward eye level, tilting upward gradually to hold the subject in the center as foreground details rise into view. One continuous shot."
   },
   "params": {},
   "preview": {
