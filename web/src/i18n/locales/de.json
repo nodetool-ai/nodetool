@@ -9364,18 +9364,13 @@
         "title": "Worker-Profile verwalten",
         "create": "Profil erstellen",
         "existingHeading": "Vorhandene Profile",
-        "emptyTitle": "Noch keine Profile",
-        "emptyDescription": "Erstelle unten eins.",
         "deleteAria": "Profil {{name}} löschen",
         "createSection": "Profil erstellen",
         "intro": "Ein Profil ist eine gespeicherte Vorlage. Bei der Bereitstellung wird eine GPU-Instanz gemietet und diese App damit verbunden.",
         "nameLabel": "Name",
-        "nameHelp": "Eine Bezeichnung, an der du diese Vorlage erkennst, z. B. „A40-Bild-Worker“.",
+        "nameHelp": "Optional. Leer lassen, um „{{name}}“ zu verwenden.",
         "providerLabel": "Anbieter",
         "providerHelp": "Hier wird die GPU gemietet. RunPod startet einen dedizierten Pod; Vast wählt das günstigste passende Angebot auf seinem Marktplatz.",
-        "keySeparator": " und ",
-        "missingApiKeyTitle": "{{key}} ist nicht eingerichtet",
-        "missingApiKeyDescription": "Füge den Schlüssel unter Einstellungen → Modelle & Anbieter hinzu, bevor du einen {{provider}}-Worker bereitstellst. Ohne ihn schlägt die Bereitstellung fehl.",
         "gpuLabel": "GPU",
         "runpodGpuHelp": "Welche Maschine gemietet werden soll. Wähle für die Modellinferenz eine GPU oder „Nur CPU“ für einen günstigeren CPU-Pod (z. B. für Daten-/Textknoten). Mehr VRAM ermöglicht größere Modelle.",
         "gpuHelp": "Welche GPU gemietet werden soll. Mehr VRAM ermöglicht größere Modelle. Wähle die kleinste passende GPU, um Kosten zu sparen.",
@@ -9415,7 +9410,10 @@
         "maxLifetimeLabel": "Maximale Laufzeit (Minuten)",
         "maxLifetimeHelp": "Höchstgrenze: In diesem Alter wird der Worker beendet – Pod und Volume werden gelöscht, Modelle gehen verloren. So werden alle Kosten gestoppt. Leer = keine Grenze.",
         "createError": "Profil konnte nicht erstellt werden: {{message}}",
-        "deleteError": "Profil konnte nicht gelöscht werden: {{message}}"
+        "deleteError": "Profil konnte nicht gelöscht werden: {{message}}",
+        "setupTitle": "Worker einrichten",
+        "createAndStart": "Erstellen und starten",
+        "startError": "Das Profil wurde gespeichert, aber der Worker ist nicht gestartet: {{message}}"
       },
       "status": {
         "workerLabel": "Worker: {{name}}",
@@ -9431,13 +9429,18 @@
         "booting": "Startet",
         "bootingEllipsis": "Startet…",
         "bootingHint": "GPU läuft – Worker wird noch geladen",
-        "readyHint": "Worker antwortet – Verbindung kann hergestellt werden"
+        "readyHint": "Worker antwortet – Verbindung kann hergestellt werden",
+        "provisioningHint": "GPU wird gemietet. Das kann einige Minuten dauern.",
+        "bootingAutoAttachHint": "GPU läuft. Der Worker lädt und verbindet sich, sobald er bereit ist.",
+        "attachingHint": "Worker ist bereit. Wird verbunden…"
       },
       "provision": {
         "title": "Worker starten",
-        "confirm": "Bereitstellen",
-        "noProfiles": "Noch keine Worker-Profile. Öffne „Profile verwalten“, um eins zu erstellen.",
-        "profileLabel": "Profil"
+        "confirm": "Starten",
+        "profileLabel": "Profil",
+        "idleSummary_one": "Er verbindet sich mit NodeTool, sobald er bereit ist, und pausiert nach {{count}} Minute Leerlauf.",
+        "idleSummary_other": "Er verbindet sich mit NodeTool, sobald er bereit ist, und pausiert nach {{count}} Minuten Leerlauf.",
+        "noIdleSummary": "Er verbindet sich mit NodeTool, sobald er bereit ist. Dieses Profil hat kein Leerlauf-Timeout, also stoppe den Worker, wenn du fertig bist."
       },
       "instance": {
         "uptime": "Laufzeit: {{value}}",
@@ -9466,7 +9469,8 @@
       },
       "empty": {
         "title": "Keine Worker aktiv",
-        "description": "Starte einen, um eine GPU für deine Graphen zu mieten."
+        "description": "Starte einen, um eine GPU für deine Graphen zu mieten.",
+        "start": "Einen Worker starten"
       },
       "terminate": {
         "title": "Worker beenden?",
@@ -9487,7 +9491,18 @@
         "action": "Worker-Aktion fehlgeschlagen: {{message}}",
         "reconcile": "Worker konnten nicht abgeglichen werden: {{message}}"
       },
-      "panelTitle": "Worker"
+      "panelTitle": "Worker",
+      "apiKey": {
+        "title": "{{provider}}-API-Schlüssel hinzufügen",
+        "description": "Worker laufen über dein {{provider}}-Konto und werden dort abgerechnet. NodeTool prüft den Schlüssel und speichert ihn verschlüsselt.",
+        "settingsDescription": "{{provider}} meldet sich mit einer Client-ID und einem Secret an. Füge beide unter Einstellungen → Modelle & Anbieter hinzu.",
+        "openSettings": "Einstellungen öffnen"
+      },
+      "setup": {
+        "title": "Graphen auf einer gemieteten GPU ausführen",
+        "description": "Verbinde RunPod einmal und wähle eine GPU. NodeTool führt dann deine Python-Nodes darauf aus, und Worker im Leerlauf pausieren von selbst.",
+        "action": "Worker einrichten"
+      }
     }
   },
   "screens4_9": {

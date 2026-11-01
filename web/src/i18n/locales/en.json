@@ -9364,18 +9364,13 @@
         "title": "Manage worker profiles",
         "create": "Create profile",
         "existingHeading": "Existing profiles",
-        "emptyTitle": "No profiles yet",
-        "emptyDescription": "Create one below.",
         "deleteAria": "Delete profile {{name}}",
         "createSection": "Create a profile",
         "intro": "A profile is a saved template. Provisioning it rents one GPU box and connects this app to it.",
         "nameLabel": "Name",
-        "nameHelp": "A label to recognise this template, e.g. “A40 image worker”.",
+        "nameHelp": "Optional. Leave it blank to use “{{name}}”.",
         "providerLabel": "Provider",
         "providerHelp": "Where the GPU is rented. RunPod runs a dedicated pod; Vast picks the cheapest matching offer on its marketplace.",
-        "keySeparator": " and ",
-        "missingApiKeyTitle": "No {{key}} configured",
-        "missingApiKeyDescription": "Add it in Settings → Models & Providers before provisioning a {{provider}} worker — provisioning fails without it.",
         "gpuLabel": "GPU",
         "runpodGpuHelp": "Which machine to rent. Pick a GPU for model inference, or “CPU only” for a cheaper CPU pod (e.g. data/text nodes). More VRAM runs larger models.",
         "gpuHelp": "Which GPU to rent. More VRAM runs larger models; pick the smallest that fits to save money.",
@@ -9415,7 +9410,10 @@
         "maxLifetimeLabel": "Max lifetime (minutes)",
         "maxLifetimeHelp": "Hard cap: at this age the worker is TERMINATED — pod and volume destroyed (models lost) — to stop all billing. Blank = no cap.",
         "createError": "Could not create profile: {{message}}",
-        "deleteError": "Could not delete profile: {{message}}"
+        "deleteError": "Could not delete profile: {{message}}",
+        "setupTitle": "Set up a worker",
+        "createAndStart": "Create and start",
+        "startError": "The profile was saved, but the worker did not start: {{message}}"
       },
       "status": {
         "workerLabel": "Worker: {{name}}",
@@ -9431,13 +9429,18 @@
         "booting": "Booting",
         "bootingEllipsis": "Booting…",
         "bootingHint": "GPU is up — worker is still loading",
-        "readyHint": "Worker is responding — safe to attach"
+        "readyHint": "Worker is responding — safe to attach",
+        "provisioningHint": "Renting the GPU. This can take a few minutes.",
+        "bootingAutoAttachHint": "GPU is up. The worker is loading and attaches when it is ready.",
+        "attachingHint": "Worker is ready. Attaching…"
       },
       "provision": {
         "title": "Start a worker",
-        "confirm": "Provision",
-        "noProfiles": "No worker profiles yet. Open Manage profiles to create one.",
-        "profileLabel": "Profile"
+        "confirm": "Start",
+        "profileLabel": "Profile",
+        "idleSummary_one": "It attaches to NodeTool when it is ready and pauses after {{count}} idle minute.",
+        "idleSummary_other": "It attaches to NodeTool when it is ready and pauses after {{count}} idle minutes.",
+        "noIdleSummary": "It attaches to NodeTool when it is ready. This profile has no idle timeout, so stop the worker when you are done."
       },
       "instance": {
         "uptime": "Uptime: {{value}}",
@@ -9466,7 +9469,8 @@
       },
       "empty": {
         "title": "No workers running",
-        "description": "Start one to rent a GPU for your graphs."
+        "description": "Start one to rent a GPU for your graphs.",
+        "start": "Start a worker"
       },
       "terminate": {
         "title": "Terminate worker?",
@@ -9487,7 +9491,18 @@
         "action": "Worker action failed: {{message}}",
         "reconcile": "Could not reconcile workers: {{message}}"
       },
-      "panelTitle": "Workers"
+      "panelTitle": "Workers",
+      "apiKey": {
+        "title": "Add your {{provider}} API key",
+        "description": "Workers run on your {{provider}} account and bill there. NodeTool checks the key, then stores it encrypted.",
+        "settingsDescription": "{{provider}} signs in with a client id and a secret. Add both in Settings → Models & Providers.",
+        "openSettings": "Open Settings"
+      },
+      "setup": {
+        "title": "Run graphs on a rented GPU",
+        "description": "Connect RunPod once and pick a GPU. NodeTool then runs your Python nodes on it, and idle workers pause on their own.",
+        "action": "Set up a worker"
+      }
     }
   },
   "screens4_9": {

@@ -1,8 +1,4 @@
-import { spawn } from "node:child_process";
 import { join } from "node:path";
-import { readFile, realpath } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
-import { z } from "zod";
 import { getNodetoolDataDir } from "@nodetool-ai/config";
 import { readCatalogIndex, readCatalogNodes, type NodeCatalogIndex } from "@nodetool-ai/pack-core";
 import { RUNTIME_NPM_PACKAGES, isRuntimeNpmPackageId } from "@nodetool-ai/protocol/runtime-npm-packages";
@@ -10,28 +6,19 @@ import type { PackCommandServices, PackDoctorOptions } from "../commands/pack-ma
 import { installWithCommandAuthorization } from "../commands/authorized-pack-install.js";
 import { authorizePackInstallCommand } from "../commands/pack-install-authorization.js";
 import { loadCliPackSnapshot } from "./host.js";
-import { readDesiredState, type InstallPacksRequest } from "./install-selection.js";
-import { installPacks, type InstallerOperations } from "./installer.js";
+import { prepareInstallSelection, type InstallPacksRequest } from "./install-selection.js";
+import { readDesiredFor } from "./install-state.js";
+import { DEFAULT_INSTALLER_OPERATIONS, installPacks, type InstallerOperations } from "./installer.js";
 import { listPackRows, explainPack, requestedInstallIds, restartNotice } from "./management.js";
 import { reportPackInstallation } from "./doctor.js";
 import { assertPackInstallProcessAllowed } from "./install-process.js";
 import { inspectPackInstallLock } from "./doctor-lock.js";
 import { readInstalledPacks, type InstalledPackSnapshot } from "./installed.js";
-import { readInstallTree, assertTreePins, assertSharedIdentities, type TreePackage } from "./install-tree.js";
+import { readInstallTree, type TreePackage } from "./install-tree.js";
+import { projectPins, verifyProjectTree } from "./install-verification.js";
+import { currentProject, projectPointerIssue, readProjectSelection } from "./project.js";
 import { installerNpmVersion } from "../npm-runner.js";
 import { loadInstalledCommandFeature, type WorkflowPackResolver } from "../cli-feature.js";
-
-async function verifyInstalledInChild(cliRoot: string, installRoot: string, ids: readonly string[]): Promise<void> {
-  const entry = fileURLToPath(new URL("./installer-load-check.js", import.meta.url));
-  await new Promise<void>((resolve, reject) => {
-    const child = spawn(process.execPath, [entry, cliRoot, installRoot, ...ids], { shell: false, stdio: ["ignore", "pipe", "pipe"] });
-    let output = "";
-    child.stdout.on("data", (chunk: Buffer) => { output += chunk.toString(); });
-    child.stderr.on("data", (chunk: Buffer) => { output += chunk.toString(); });
-    child.on("error", reject);
-    child.on("close", code => { if (code === 0) { resolve(); } else { reject(new Error(`Installed pack registration failed (${String(code)}): ${output.trim()}`)); } });
-  });
-}
 
 /** Called only inside a packs command. No entrypoint or module import reads desired state. */
 export interface PackCommandServiceOptions {
@@ -48,11 +35,11 @@ export async function createPackCommandServices(context: PackCommandServiceOptio
   const catalog = context.catalog ?? readCatalogIndex();
   const stateFile = context.stateFile ?? join(getNodetoolDataDir(), "cli-packs.json");
   const operations = context.operations;
-  const root = snapshot.mode.kind === "global" || snapshot.mode.kind === "local" ? await realpath(snapshot.mode.installRoot) : null;
-  const state = await readDesiredState(stateFile);
-  const desired = root ? state[root] : undefined;
-  const request = (packs: readonly string[], runtimeLibraries: readonly string[] = []): InstallPacksRequest => ({ mode: snapshot.mode, packs, runtimeLibraries, catalog, stateFile });
-  const tree = async (): Promise<readonly TreePackage[]> => root ? (await readInstallTree(root, snapshot.mode.kind === "global")).packages : [];
+  const mode = snapshot.mode;
+  const managed = mode.kind === "global" || mode.kind === "local" ? mode : null;
+  const desired = managed ? await readDesiredFor(stateFile, managed) : undefined;
+  const request = (packs: readonly string[], runtimeLibraries: readonly string[] = []): InstallPacksRequest => ({ mode, packs, runtimeLibraries, catalog, stateFile });
+  const tree = async (): Promise<readonly TreePackage[]> => snapshot.projectRoot ? readInstallTree(snapshot.projectRoot) : [];
   const runtimeIds = async (): Promise<ReadonlySet<string>> => {
     const installed = await tree();
     const byFolder = new Map((catalog.installPins ?? []).map(pin => [pin.installName ?? pin.name, pin]));
@@ -67,7 +54,9 @@ export async function createPackCommandServices(context: PackCommandServiceOptio
     async add(ids, options) {
       let selected = requestedInstallIds(catalog, ids);
       if (options.restore) {
-        selected = { packs: desired?.packs ?? [], runtimeLibraries: desired?.runtimeLibraries ?? [] };
+        const packIds = new Set(catalog.packs.map(pack => pack.id));
+        selected = { packs: (desired?.requestedPacks ?? desired?.packs ?? []).filter(id => packIds.has(id)),
+          runtimeLibraries: (desired?.runtimeLibraries ?? []).filter(isRuntimeNpmPackageId) };
       } else if (options.for) {
         const resolver = context.resolveWorkflowPacks ?? (await loadInstalledCommandFeature(import.meta.url, "cli-workflow", { snapshot, catalog })).resolveWorkflowPacks;
         if (!resolver) { throw new Error("Configured cli-workflow feature does not provide workflow pack discovery"); }
@@ -102,80 +91,48 @@ export async function createPackCommandServices(context: PackCommandServiceOptio
     },
     async doctor(options: PackDoctorOptions) {
       const issues: Array<{ kind: string; message: string }> = [];
-      const baseline = { ...reportPackInstallation(snapshot), installRoot: root,
-        reason: snapshot.mode.kind === "global" || snapshot.mode.kind === "local" ? null : snapshot.mode.reason,
+      const baseline = { ...reportPackInstallation(snapshot), packsRoot: managed?.packsRoot ?? null, projectRoot: snapshot.projectRoot,
+        reason: mode.kind === "global" || mode.kind === "local" ? null : mode.reason,
         installedPacks: snapshot.packs.map(pack => ({ id: pack.id, npm: pack.npm, version: pack.version })),
         desiredCoreVersion: desired?.coreVersion ?? null };
-      issues.push(...await inspectPackInstallLock(snapshot.mode));
+      issues.push(...await inspectPackInstallLock(mode));
       let npmVersion: string | null = null;
-      if (root) {
-        try { npmVersion = await (operations?.npmVersion ?? installerNpmVersion)(root); }
+      if (managed) {
+        try { npmVersion = await (operations?.npmVersion ?? installerNpmVersion)(managed.packsRoot); }
         catch (error) { issues.push({ kind: "npm", message: error instanceof Error ? error.message : String(error) }); }
+        const pointer = projectPointerIssue(managed.packsRoot);
+        if (pointer) { issues.push({ kind: "project", message: pointer }); }
         try {
-          const { packages: installed, missingLock } = await readInstallTree(root, snapshot.mode.kind === "global");
-          if (missingLock) {
-            issues.push({ kind: "unverified_global_install", message: "This global npm installation has no integrity records yet. Run nodetool packs doctor --repair to authorize verification and establish the pinned baseline." });
+          const project = currentProject(managed.packsRoot);
+          if (project) {
+            const selection = await readProjectSelection(project);
+            const current = await prepareInstallSelection(request([], []), "install");
+            if (selection.coreVersion !== catalog.coreVersion) { throw new Error(`Pack project records core version ${selection.coreVersion}`); }
+            verifyProjectTree(await readInstallTree(project), projectPins(current), catalog.coreVersion);
+            const missing = current.packs.filter(pack => !snapshot.packs.some(entry => entry.id === pack.id)).map(pack => pack.id);
+            if (missing.length) { throw new Error(`Selected packs are not installed: ${missing.join(", ")}`); }
           }
-          const admitted = new Set(snapshot.packs.map(pack => pack.npm));
-          const packs = catalog.packs.filter(pack => admitted.has(pack.npm.name));
-          const byFolder = new Map((catalog.installPins ?? []).map(pin => [pin.installName ?? pin.name, pin]));
-          const requiredPin = (name: string) => {
-            const pin = byFolder.get(name);
-            if (!pin) { throw new Error(`Installed package ${name} has no catalog integrity pin`); }
-            return pin;
-          };
-          const manifestText = await readFile(join(root, "package.json"), "utf8").catch((error: unknown) => {
-            if (error instanceof Error && "code" in error && error.code === "ENOENT") { return "{}"; }
-            throw error;
-          });
-          const manifest = z.object({
-            dependencies: z.record(z.string(), z.string()).optional(),
-            devDependencies: z.record(z.string(), z.string()).optional(),
-            optionalDependencies: z.record(z.string(), z.string()).optional(),
-            peerDependencies: z.record(z.string(), z.string()).optional()
-          }).parse(JSON.parse(manifestText));
-          const declared = new Set(Object.keys({ ...manifest.dependencies, ...manifest.devDependencies,
-            ...manifest.optionalDependencies, ...manifest.peerDependencies }));
-          const selected = new Set(desired?.packs ?? []);
-          // Hoisted transitive node packs do not select their optional runtimes.
-          const libraries = new Set([...(desired?.runtimeLibraries ?? []), ...packs
-            .filter(pack => selected.has(pack.id) || declared.has(pack.npm.name))
-            .flatMap(pack => pack.runtimeLibraries)]);
-          const runtimePins = [...libraries].flatMap(id => {
-            if (!isRuntimeNpmPackageId(id)) { throw new Error(`Unknown desired runtime library: ${id}`); }
-            return RUNTIME_NPM_PACKAGES[id].packageNames.map(name => ({ ...requiredPin(name), installPath: `node_modules/${name}` }));
-          });
-          const installedNames = new Set(installed.map(entry => entry.name));
-          const installedShared = (catalog.installPins ?? []).filter(pin => pin.shared && installedNames.has(pin.name));
-          const pins = [...packs.map(pack => pack.npm), ...packs.flatMap(pack => pack.provides.map(requiredPin)),
-            ...packs.flatMap(pack => pack.scriptAllowlist), ...runtimePins, ...installedShared];
-          const coreNames = new Set(catalog.packs.filter(pack => pack.kind === "core" && installedNames.has(pack.npm.name)).map(pack => pack.npm.name));
-          if (!missingLock) {
-            assertTreePins(installed, installed, pins, coreNames, catalog.coreVersion);
-          }
-          await assertSharedIdentities(installed, installedShared);
         } catch (error) { issues.push({ kind: "integrity", message: error instanceof Error ? error.message : String(error) }); }
-        if (options.installed || options.pack?.length) {
+        if ((options.installed || options.pack?.length) && snapshot.projectRoot) {
           try {
             const ids = options.pack ?? snapshot.packs.map(pack => pack.id);
-            if (operations) { await operations.loadCheck(snapshot.mode, ids); }
-            else { await verifyInstalledInChild(snapshot.mode.cliRoot, root, ids); }
+            await (operations ?? DEFAULT_INSTALLER_OPERATIONS).loadCheck({ cliRoot: mode.cliRoot, projectRoot: snapshot.projectRoot }, ids);
           }
           catch (error) { issues.push({ kind: "registration", message: error instanceof Error ? error.message : String(error) }); }
         }
       }
       if (options.repair) {
-        const repairRequest = request(desired?.packs ?? [], desired?.runtimeLibraries ?? []);
+        const repairRequest = request([], []);
         const authorization = await authorizePackInstallCommand({ request: repairRequest, command: "packs-repair" });
         if (!authorization) { throw new Error("Node pack repair was not authorized"); }
         const { repairPackInstallation } = await import("./repair.js");
         await repairPackInstallation(repairRequest, authorization, operations);
-        process.stderr.write("Node pack installation verified and repaired. Restart running serve and MCP processes.\n");
-        const repaired = reportPackInstallation(readInstalledPacks(snapshot.mode, catalog));
-        return { ...repaired, npmVersion, dirty: false };
+        process.stderr.write("Node pack installation rebuilt and verified. Restart running serve and MCP processes.\n");
+        const repaired = reportPackInstallation(readInstalledPacks(mode, catalog));
+        return { ...repaired, npmVersion };
       }
-      return { ...baseline, healthy: baseline.healthy && issues.length === 0 && !desired?.dirty,
-        npmVersion, dirty: desired?.dirty ?? false, issues: [...baseline.issues, ...issues] };
+      return { ...baseline, healthy: baseline.healthy && issues.length === 0,
+        npmVersion, issues: [...baseline.issues, ...issues] };
     }
   };
 }
