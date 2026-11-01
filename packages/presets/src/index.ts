@@ -1,4 +1,5 @@
 export * from "./schema.js";
+export * from "./studio.js";
 export * from "./families.js";
 export * from "./catalog.js";
 export * from "./compile.js";

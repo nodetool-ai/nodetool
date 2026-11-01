@@ -6,14 +6,15 @@ import {
   loadCatalog,
   compileMediaPresets,
   presetToWorkflow,
+  catalogKindSchema,
+  listCatalog,
   presetModeSchema,
-  presetSchema,
   MODEL_FAMILIES
 } from "@nodetool-ai/presets";
 export function registerPresetCommands(program: Command): void {
   const presets = program
     .command("presets")
-    .description("Browse, compile and eject generation presets");
+    .description("Browse presets and studios, compile and eject generation presets");
   const catalog = () =>
     loadCatalog(() =>
       loadPackageAssetJson(
@@ -32,30 +33,33 @@ export function registerPresetCommands(program: Command): void {
     .action((flags: { kind?: string; mode?: string; family?: string }) => {
       const filter = z
         .object({
-          kind: presetSchema.shape.kind.optional(),
+          kind: catalogKindSchema.optional(),
           mode: presetModeSchema.optional(),
           family: z.enum(MODEL_FAMILIES).optional()
         })
         .parse(flags);
-      print(
-        catalog()
-          .filter(filter)
-          .filter(
-            (preset) =>
-              !filter.family ||
-              preset.families?.includes(filter.family) ||
-              Object.hasOwn(preset.prompt, filter.family)
-          )
-      );
+      print(listCatalog(catalog(), filter));
     });
   const get = (id: string) => {
-    const preset = catalog().getPreset(id);
+    const loaded = catalog();
+    const preset = loaded.getPreset(id);
     if (!preset) {
-      throw new Error(`Unknown preset: ${id}`);
+      throw new Error(
+        loaded.getStudio(id)
+          ? `${id} is a studio: it opens a surface and has no graph to eject`
+          : `Unknown preset: ${id}`
+      );
     }
     return preset;
   };
-  presets.command("show <id>").action((id: string) => print(get(id)));
+  presets.command("show <id>").action((id: string) => {
+    const loaded = catalog();
+    const entry = loaded.getPreset(id) ?? loaded.getStudio(id);
+    if (!entry) {
+      throw new Error(`Unknown preset: ${id}`);
+    }
+    print(entry);
+  });
   presets
     .command("compile <ids...>")
     .requiredOption("--model <id>")

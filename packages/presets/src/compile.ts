@@ -22,6 +22,9 @@ export function compilePresets(ids: readonly string[], options: CompileOptions):
   if (ids.length > MAX_PRESET_STACK) { throw new Error("At most three presets can be applied"); }
   const presets = ids.map((id) => {
     const preset = options.catalog.getPreset(id);
+    if (!preset && options.catalog.getStudio(id)) {
+      throw new Error(`${id} is a studio: it opens a surface and has nothing to compile`);
+    }
     if (!preset) { throw new Error(`Unknown preset: ${id}`); }
     if (!preset.modes.includes(options.mode)) {
       throw new Error(`Preset ${id} does not support mode ${options.mode}`);

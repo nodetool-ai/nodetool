@@ -3,7 +3,7 @@ import { execFileSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { loadPackageAssetJson } from "@nodetool-ai/config";
-import { createCatalog, loadCatalog, presetSchema, presetJsonSchema } from "../src/index.js";
+import { catalogEntryJsonSchema, catalogEntrySchema, createCatalog, loadCatalog, presetSchema, presetJsonSchema } from "../src/index.js";
 
 const root = new URL("../", import.meta.url);
 function readJson(path: string): unknown {
@@ -14,7 +14,7 @@ describe("catalogue", () => {
     const rows = [];
     for (const kind of readdirSync(new URL("catalog/", root))) {
       for (const file of readdirSync(new URL(`catalog/${kind}/`, root))) {
-        const preset = presetSchema.parse(readJson(`catalog/${kind}/${file}`));
+        const preset = catalogEntrySchema.parse(readJson(`catalog/${kind}/${file}`));
         expect(preset.kind).toBe(kind);
         expect(preset.id.startsWith(`${kind}.`)).toBe(true);
         expect(file).toBe(`${preset.id}.json`);
@@ -22,13 +22,14 @@ describe("catalogue", () => {
       }
     }
     expect(rows.length).toBeGreaterThan(0);
-    expect(createCatalog(rows).presets).toHaveLength(rows.length);
+    const catalog = createCatalog(rows);
+    expect(catalog.presets.length + catalog.studios.length).toBe(rows.length);
   });
   it("ships a rendered preview backed by a run record for camera and effect presets", () => {
     let inspected = 0;
     for (const kind of readdirSync(new URL("catalog/", root))) {
       for (const file of readdirSync(new URL(`catalog/${kind}/`, root))) {
-        const preset = presetSchema.parse(readJson(`catalog/${kind}/${file}`));
+        const preset = catalogEntrySchema.parse(readJson(`catalog/${kind}/${file}`));
         if (preset.kind !== "camera" && preset.kind !== "effect") { continue; }
         expect(preset.preview?.url, preset.id).toMatch(/^https:\/\/.+\.mp4$/);
         expect(preset.preview?.poster, preset.id).toMatch(/^https:\/\/.+\.png$/);
@@ -70,6 +71,6 @@ describe("catalogue", () => {
   });
   it("keeps generated JSON Schema and catalogue in sync", () => {
     execFileSync(process.execPath, ["scripts/generate.mjs", "--check"], { cwd: fileURLToPath(root) });
-    expect(readJson("preset.schema.json")).toEqual(presetJsonSchema);
+    expect(readJson("preset.schema.json")).toEqual(catalogEntryJsonSchema);
   });
 });
