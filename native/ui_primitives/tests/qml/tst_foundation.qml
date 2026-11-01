@@ -11,6 +11,8 @@ TestCase {
     Ui.Text { id: label; text: "Sample" }
     property bool desiredButtonEnabled: true
     Ui.EditorButton { id: button; text: "Run"; accessibleName: "Run" }
+    Ui.EditorButton { id: centeredButton; visible: false; x: 200; y: 120; z: 1000; variant: Ui.EditorButton.Primary; text: "HHH"; accessibleName: "Centered" }
+    Ui.Select { id: centeredSelect; visible: false; x: 200; y: 120; z: 1000; width: 120; value: "h"; options: [{label: "HHH", value: "h"}]; accessibleName: "Centered select" }
     Basic.Action { id: testAction; text: "Action"; checkable: true }
     Ui.EditorButton { id: actionButton; x: 100; action: testAction; accessibleName: "Action" }
     SignalSpy { id: actionTriggered; target: testAction; signalName: "triggered" }
@@ -300,6 +302,43 @@ TestCase {
     function test_icon_only_density() {
         Ui.Theme.textScale = 1; compare(iconButton.implicitHeight, 28); compare(iconButton.implicitWidth, 28)
         Ui.Theme.textScale = 2; compare(iconButton.implicitHeight, 28); compare(iconButton.implicitWidth, 28)
+    }
+    function inkGaps(item, left, right) {
+        const image = grabImage(item)
+        const background = image.pixel(left, 3)
+        let first = -1, last = -1
+        for (let y = 3; y < Math.round(item.height) - 3; ++y) {
+            for (let x = left; x < right; ++x) {
+                const pixel = image.pixel(x, y)
+                if (Math.abs(pixel.r - background.r) + Math.abs(pixel.g - background.g) + Math.abs(pixel.b - background.b) < 0.5) continue
+                if (first < 0) first = y
+                last = y
+                break
+            }
+        }
+        verify(first >= 0)
+        return {above: first, below: Math.round(item.height) - 1 - last}
+    }
+    function test_button_label_is_centered_data() {
+        return [{tag: "compact", density: Ui.EditorButton.Compact}, {tag: "standard", density: Ui.EditorButton.Standard},
+                {tag: "comfortable", density: Ui.EditorButton.Comfortable}]
+    }
+    function test_button_label_is_centered(data) {
+        centeredButton.visible = true
+        centeredButton.density = data.density
+        waitForRendering(centeredButton)
+        const label = findChild(centeredButton, "nativeButtonLabel")
+        const left = Math.round(label.mapToItem(centeredButton, 0, 0).x)
+        const gaps = inkGaps(centeredButton, left, left + Math.round(label.width))
+        centeredButton.visible = false
+        verify(Math.abs(gaps.above - gaps.below) <= 1, "above " + gaps.above + ", below " + gaps.below)
+    }
+    function test_select_label_is_centered() {
+        centeredSelect.visible = true
+        waitForRendering(centeredSelect)
+        const gaps = inkGaps(centeredSelect, Ui.Metrics.md, Ui.Metrics.md + 30)
+        centeredSelect.visible = false
+        verify(Math.abs(gaps.above - gaps.below) <= 1, "above " + gaps.above + ", below " + gaps.below)
     }
     function test_button_text_role() {
         button.textRole = Ui.Typography.MonoCaption
