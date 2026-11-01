@@ -21,6 +21,8 @@ import { useInStudio } from "../../studio/StudioContext";
 import { forTasks, STUDIO_STILL_MODELS } from "../../studio/curatedModels";
 
 interface ImageModelSelectProps {
+  /** Only these providers' models are offered. */
+  allowedProviders?: string[];
   onChange: (value: ImageModelValue) => void;
   value: string;
   provider?: string;
@@ -31,6 +33,7 @@ interface ImageModelSelectProps {
 }
 
 const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
+  allowedProviders,
   onChange,
   value,
   provider,
@@ -172,6 +175,7 @@ const ImageModelSelect: React.FC<ImageModelSelectProps> = ({
         disabled={disabled}
       />
       <ImageModelMenuDialog
+        allowedProviders={allowedProviders}
         open={!!anchorEl}
         anchorEl={anchorEl}
         onClose={handleClose}

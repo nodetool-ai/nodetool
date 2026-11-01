@@ -13,6 +13,26 @@
         "file": "sandbox/index.js"
       },
       {
+        "name": "anthropic.text",
+        "kind": "js",
+        "file": "sandbox/generated/anthropic.text.js"
+      },
+      {
+        "name": "claude_code.text",
+        "kind": "js",
+        "file": "sandbox/generated/claude_code.text.js"
+      },
+      {
+        "name": "codex.image",
+        "kind": "js",
+        "file": "sandbox/generated/codex.image.js"
+      },
+      {
+        "name": "codex.text",
+        "kind": "js",
+        "file": "sandbox/generated/codex.text.js"
+      },
+      {
         "name": "gemini.audio",
         "kind": "js",
         "file": "sandbox/generated/gemini.audio.js"
@@ -356,6 +376,26 @@
         "name": "vector",
         "kind": "js",
         "file": "sandbox/generated/vector.js"
+      },
+      {
+        "name": "vertex.audio",
+        "kind": "js",
+        "file": "sandbox/generated/vertex.audio.js"
+      },
+      {
+        "name": "vertex.image",
+        "kind": "js",
+        "file": "sandbox/generated/vertex.image.js"
+      },
+      {
+        "name": "vertex.text",
+        "kind": "js",
+        "file": "sandbox/generated/vertex.text.js"
+      },
+      {
+        "name": "vertex.video",
+        "kind": "js",
+        "file": "sandbox/generated/vertex.video.js"
       },
       {
         "name": "whisper_cpp",

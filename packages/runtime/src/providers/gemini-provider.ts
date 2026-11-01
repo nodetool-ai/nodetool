@@ -922,6 +922,48 @@ export class GeminiProvider extends BaseProvider {
     });
   }
 
+  /**
+   * POST a JSON body to a method on a model, authenticated for this endpoint.
+   * Nodes that build their own Gemini request bodies use it to reach either
+   * the Developer API or Vertex AI with the same code.
+   */
+  async postModel(
+    model: string,
+    method: string,
+    body: unknown,
+    signal?: AbortSignal
+  ): Promise<Response> {
+    return this._fetch(this.modelUrl(model, method), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(await this.authHeaders())
+      },
+      body: JSON.stringify(body),
+      signal
+    });
+  }
+
+  /** The current state of a long-running video operation started with {@link postModel}. */
+  getVideoOperation(
+    model: string,
+    operationName: string,
+    signal?: AbortSignal
+  ): Promise<Response> {
+    return this.fetchVideoOperation(model, operationName, signal);
+  }
+
+  /** Headers for downloading a media URI, when this API serves it. */
+  async mediaHeaders(uri: string): Promise<Record<string, string> | undefined> {
+    let hostname: string;
+    try {
+      hostname = new URL(uri).hostname;
+    } catch {
+      return undefined;
+    }
+    return this.isApiHost(hostname) ? this.authHeaders() : undefined;
+  }
+
   async hasToolSupport(_model: string): Promise<boolean> {
     return true;
   }

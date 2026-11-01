@@ -806,8 +806,8 @@ describe("Gemini nodes resolve asset refs", () => {
 // GEMINI_NODES export
 // ---------------------------------------------------------------------------
 describe("GEMINI_NODES", () => {
-  it("exports all 7 nodes", () => {
-    expect(GEMINI_NODES).toHaveLength(7);
+  it("exports all 7 Gemini nodes and their 7 Vertex AI twins", () => {
+    expect(GEMINI_NODES).toHaveLength(14);
     const types = GEMINI_NODES.map((n) => n.nodeType);
     expect(types).toContain("gemini.text.GroundedSearch");
     expect(types).toContain("gemini.text.Embedding");
