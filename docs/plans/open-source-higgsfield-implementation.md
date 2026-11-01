@@ -664,6 +664,8 @@ id.
 
 ### P24: Local tuning and previews
 
+Status: deferred. First confirm that a preset reaches a Wan2GP generation at all.
+
 Needs a running Wan2GP server. Tune the P23 fragments, render previews on the
 local runtime and add `local-wan` to `families` for each preset that passes.
 
