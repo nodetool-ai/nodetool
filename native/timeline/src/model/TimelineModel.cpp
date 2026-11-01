@@ -245,7 +245,7 @@ bool TimelineModel::applyClips(const QJsonArray& clips, const std::vector<int>& 
     m_timeline = std::make_shared<const nt::Timeline>(std::move(full));
     m_tracks->rebind(m_timeline.get());
     if (transient) {
-        if (!m_transient) m_transient.emplace();
+        if (!m_transient) m_transient.emplace(Transient{});
         m_transient->clipIds.unite(changedIds);
         m_transient->trackIds.unite(changedTracks);
         m_transient->takesChanged = m_transient->takesChanged || takesChanged;
