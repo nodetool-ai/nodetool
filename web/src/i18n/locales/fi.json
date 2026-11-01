@@ -1,4 +1,9 @@
 {
+  "ejection": {
+    "unavailable": "Tämän vanhan tuloksen tarkkoja syötteitä ei tallennettu. Luo uusi otos avataksesi sen työnkulkuna.",
+    "open": "Avaa työnkulkuna",
+    "failed": "Työnkulun avaaminen epäonnistui: {{reason}}"
+  },
   "common": {
     "save": "Tallenna",
     "cancel": "Peruuta",

@@ -38,6 +38,21 @@ import { clipPromptFor, keyframePrompt, sceneForShot } from "./shot-prompt.js";
 /** Submission-time provenance persisted with the durable attachment intent. */
 export const storyboardRenderProvenance = productionTakeMetadata.extend({
   render_inputs: z.object({
+    generation: z
+      .object({
+        mode: z.enum([
+          "image",
+          "image_edit",
+          "video",
+          "image_to_video",
+          "reference_to_video",
+          "video_edit"
+        ]),
+        provider: z.string(),
+        prompt: z.string(),
+        params: z.record(z.string(), z.unknown())
+      })
+      .optional(),
     kind: z.enum(["keyframe", "clip"]),
     prompt_hash: z.string(),
     model: z.string(),

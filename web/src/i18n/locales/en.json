@@ -1,4 +1,9 @@
 {
+  "ejection": {
+    "unavailable": "The exact inputs for this older render were not recorded. Render a new take to open it as a workflow.",
+    "open": "Open as workflow",
+    "failed": "Could not open as workflow: {{reason}}"
+  },
   "common": {
     "save": "Save",
     "cancel": "Cancel",

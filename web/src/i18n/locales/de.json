@@ -1,4 +1,9 @@
 {
+  "ejection": {
+    "unavailable": "Die genauen Eingaben dieses älteren Ergebnisses wurden nicht gespeichert. Erstelle eine neue Aufnahme, um sie als Workflow zu öffnen.",
+    "open": "Als Workflow öffnen",
+    "failed": "Workflow konnte nicht geöffnet werden: {{reason}}"
+  },
   "common": {
     "save": "Speichern",
     "cancel": "Abbrechen",

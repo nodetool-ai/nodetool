@@ -1,4 +1,9 @@
 {
+  "ejection": {
+    "unavailable": "未记录此旧生成结果的确切输入。请生成新版本以作为工作流打开。",
+    "open": "作为工作流打开",
+    "failed": "无法作为工作流打开：{{reason}}"
+  },
   "common": {
     "save": "保存",
     "cancel": "取消",

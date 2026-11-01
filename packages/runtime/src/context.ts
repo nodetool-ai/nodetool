@@ -3661,6 +3661,8 @@ export class ProcessingContext {
         return provider.lipSync(params.video as Uint8Array, {
           model: { id: req.model, name: req.model, provider: req.provider },
           audio: params.audio as Uint8Array,
+          visualMimeType: params.visualMimeType as string | undefined,
+          audioMimeType: params.audioMimeType as string | undefined,
           seed: params.seed as number | undefined
         });
       case "text_to_music":

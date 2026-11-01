@@ -674,6 +674,8 @@ before any bundling.
 
 ### P25: Eject everywhere
 
+Status: done.
+
 - Every generation that used presets can open as a workflow: storyboard stills
   and clips, Create, Effects and restyles. A storyboard render records the camera
   and look ids it compiled, and the shot and its takes offer **Open as workflow**.

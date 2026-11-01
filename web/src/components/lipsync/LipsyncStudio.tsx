@@ -1,3 +1,5 @@
+import { lipsyncToWorkflow } from "@nodetool-ai/presets";
+import { OpenGraphAsWorkflow } from "../storyboard/OpenRenderAsWorkflow";
 import { useEffect, useState } from "react";
 import { useShallow } from "zustand/react/shallow";
 import { useTranslation } from "react-i18next";
@@ -44,6 +46,7 @@ export default function LipsyncStudio() {
   const { t } = useTranslation();
   const state = useLipsyncStudioStore(
     useShallow((s) => ({
+      completedInputs: s.completedInputs,
       sourceAssetId: s.sourceAssetId,
       text: s.text,
       realPerson: s.realPerson,
@@ -250,6 +253,11 @@ export default function LipsyncStudio() {
             <AlertBanner severity="error">
               {t("lipsync.failed", { reason: state.error })}
             </AlertBanner>
+          )}
+          {state.completedInputs && (
+            <OpenGraphAsWorkflow
+              build={() => lipsyncToWorkflow(state.completedInputs!)}
+            />
           )}
           {state.assetIds[0] && (
             <MediaThumbnail

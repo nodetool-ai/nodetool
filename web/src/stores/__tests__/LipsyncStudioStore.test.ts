@@ -53,3 +53,11 @@ it("rejects duplicate submission while speech is pending", async () => {
   await state().start(speech, video);
   expect(rpcRequest).toHaveBeenCalledTimes(1);
 });
+
+it("keeps completed inputs after editing the studio", async () => {
+  (rpcRequest as jest.Mock).mockResolvedValueOnce({ asset_ids: ["audio"] }).mockResolvedValueOnce({ asset_ids: ["video"] });
+  await state().start({ ...speech, speed: 1.25 }, video);
+  state().setText("A different line");
+  state().setSource("another-picture");
+  expect(state().completedInputs).toMatchObject({ text: "Hello", sourceAssetId: "01234567890123456789012345678901", speech: { ...speech, speed: 1.25 }, video });
+});
