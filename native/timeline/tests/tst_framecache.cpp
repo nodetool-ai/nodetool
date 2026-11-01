@@ -19,6 +19,23 @@ class TestFrameCache : public QObject {
     Q_OBJECT
 
 private slots:
+    void doesNotPinWindowsDecoderSurfaces() {
+#ifdef _WIN32
+        FrameCache cache;
+        auto hardware = frameAt(0.0);
+        hardware->hardware = true;
+        std::weak_ptr<DecodedFrame> surface = hardware;
+        cache.insert("gpu", 0.0, hardware, 640 * 360 * 3 / 2, -1.0);
+        hardware.reset();
+        QVERIFY(surface.expired());
+        QCOMPARE(cache.bytes(), size_t(0));
+        cache.insert("software", 0.0, frameAt(0.0), 100, -1.0);
+        cache.insert("software", 1.0, frameAt(1.0), 100, 0.0);
+        QVERIFY(cache.lookup("software", 0.5));
+#else
+        QSKIP("Windows D3D11 surface lifetime");
+#endif
+    }
     // Only a successor from the same decode run proves a pick (review F1:
     // a header frame rate proves no interval).
     void hitNeedsProof() {

@@ -1,4 +1,5 @@
 #include "preview/FrameCache.h"
+#include "preview/FfmpegSource.h"
 
 #include "preview/FrameRing.h"
 
@@ -16,6 +17,13 @@ FrameCache& FrameCache::shared() {
 
 void FrameCache::insert(const std::string& source, double ptsSec, std::shared_ptr<DecodedFrame> frame,
                         size_t bytes, double previousPtsSec) {
+#ifdef _WIN32
+    // D3D11 frames own slots in FFmpeg's fixed decoder surface pool. Keeping
+    // them beyond playback exhausts that pool before the byte budget is hit.
+    if (frame->hardware) {
+        return;
+    }
+#endif
     std::lock_guard lock(m_mutex);
     auto& bySource = m_index[source];
     if (previousPtsSec >= 0.0) {

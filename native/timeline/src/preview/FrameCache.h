@@ -4,6 +4,8 @@
 // decoder's queue, so a paused scrub back over them shows them without a
 // seek. Frames are keyed by media and pts, evicted least recently used first,
 // and the budget (256 MB by default) is shared by every source.
+// Windows hardware frames are not retained: they pin slots in the decoder's
+// fixed D3D11 surface pool. Software frames remain cacheable on Windows.
 //
 // A cached frame is shown only when the cache can prove it is the D17 pick:
 // it starts by the target, and the frame that followed it in presentation
