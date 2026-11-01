@@ -986,10 +986,10 @@ void FfmpegDecoder::run() {
         av_frame_unref(frm.get());
         const double pts = out->ptsSec;
         std::shared_ptr<DecodedFrame> cached = out;
-#if NT_HW_VAAPI
+#if NT_HW_VAAPI || NT_HW_D3D11VA
         if (out->hardware) {
-            // The cache keeps a system-memory copy, not the VA surface
-            // (hw::cacheCopy). Without one, this frame is not cached.
+            // Cache independent storage: system memory for VAAPI, GPU
+            // textures for D3D11. A failed copy leaves playback unaffected.
             cached.reset();
             if (hw::CacheFrame copy = hw::cacheCopy(out->frame)) {
                 cached = std::make_shared<DecodedFrame>();
@@ -1001,6 +1001,7 @@ void FfmpegDecoder::run() {
                 cached->range = out->range;
                 cached->width = out->width;
                 cached->height = out->height;
+                cached->hardware = cached->frame->format == hw::pixelFormat();
             }
         }
 #endif

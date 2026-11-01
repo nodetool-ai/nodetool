@@ -9,7 +9,6 @@
 // as R8 (the luma plane) and as RG8 (the chroma plane). D3D11 picks the
 // plane of an NV12 resource from the view format.
 //
-// Written for M6 and not compiled yet: the development machine is macOS.
 // Header kept free of Windows headers; COM pointers are void* here.
 
 #include <QSize>
@@ -30,6 +29,16 @@ struct AVFrame;
 namespace nt::hw {
 
 class D3D11Interop;
+
+// Independent GPU storage, owned through FFmpeg. Unlike decoder surfaces,
+// these frames may remain in the scrub cache until its budget evicts them.
+struct CacheFrameFree {
+    void operator()(AVFrame* frame) const;
+};
+using CacheFrame = std::unique_ptr<AVFrame, CacheFrameFree>;
+CacheFrame cacheCopy(const AVFrame* frame);
+bool isCacheFrame(const AVFrame* frame);
+bool cacheDeviceMatches(const AVFrame* frame);
 
 // One displayed hardware frame: plane 0 is Y (R8), plane 1 CbCr (RG8), both
 // views of one NV12 texture that the frame owns until it is retired.

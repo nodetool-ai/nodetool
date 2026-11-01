@@ -1,9 +1,9 @@
-// Windows hardware decode (D15, M6): see D3D11Interop.h. Written for M6 and
-// not compiled yet (the development machine is macOS).
+// Windows hardware decode and independent scrub-cache textures (D15, D19).
 
 #include "preview/hw/D3D11Interop.h"
 
 #include "preview/hw/HwInterop.h"
+#include "preview/FrameCache.h"
 
 #include <rhi/qrhi.h>
 
@@ -23,6 +23,52 @@ extern "C" {
 #include <atomic>
 
 namespace nt::hw {
+void CacheFrameFree::operator()(AVFrame* frame) const {
+    av_frame_free(&frame);
+}
+
+CacheFrame cacheCopy(const AVFrame* frame) {
+    if (!frame || frame->format != AV_PIX_FMT_D3D11 || !frame->hw_frames_ctx) return nullptr;
+    auto* texture = reinterpret_cast<ID3D11Texture2D*>(frame->data[0]);
+    D3D11_TEXTURE2D_DESC desc{};
+    texture->GetDesc(&desc);
+    if (desc.Format != DXGI_FORMAT_NV12) return nullptr;
+    auto* source = reinterpret_cast<AVHWFramesContext*>(frame->hw_frames_ctx->data);
+    const auto unref = [](AVBufferRef* ref) { av_buffer_unref(&ref); };
+    std::unique_ptr<AVBufferRef, decltype(unref)> pool(av_hwframe_ctx_alloc(source->device_ref), unref);
+    if (!pool) return nullptr;
+    auto* target = reinterpret_cast<AVHWFramesContext*>(pool->data);
+    target->format = AV_PIX_FMT_D3D11;
+    target->sw_format = AV_PIX_FMT_NV12;
+    target->width = static_cast<int>(desc.Width);
+    target->height = static_cast<int>(desc.Height);
+    target->initial_pool_size = 1;
+    static_cast<AVD3D11VAFramesContext*>(target->hwctx)->BindFlags = D3D11_BIND_SHADER_RESOURCE;
+    if (av_hwframe_ctx_init(pool.get()) < 0) return nullptr;
+    CacheFrame copy(av_frame_alloc());
+    if (!copy || av_hwframe_get_buffer(pool.get(), copy.get(), 0) < 0 ||
+        av_frame_copy_props(copy.get(), frame) < 0) return nullptr;
+    copy->width = frame->width;
+    copy->height = frame->height;
+    auto* device = static_cast<AVD3D11VADeviceContext*>(source->device_ctx->hwctx);
+    // Queue the copy before releasing the source slot. Decoder reuse and
+    // rendering use this same serialized immediate command stream.
+    device->lock(device->lock_ctx);
+    device->device_context->CopySubresourceRegion(
+        reinterpret_cast<ID3D11Texture2D*>(copy->data[0]), 0, 0, 0, 0, texture,
+        static_cast<UINT>(reinterpret_cast<intptr_t>(frame->data[1])), nullptr);
+    device->unlock(device->lock_ctx);
+    return copy;
+}
+
+bool isCacheFrame(const AVFrame* frame) {
+    if (!frame || frame->format != AV_PIX_FMT_D3D11 || !frame->hw_frames_ctx || !frame->data[0]) return false;
+    D3D11_TEXTURE2D_DESC desc{};
+    reinterpret_cast<ID3D11Texture2D*>(frame->data[0])->GetDesc(&desc);
+    return desc.ArraySize == 1 && (desc.BindFlags & D3D11_BIND_SHADER_RESOURCE) &&
+           !(desc.BindFlags & D3D11_BIND_DECODER);
+}
+
 namespace {
 
 std::atomic<int> g_liveFrameRefs{0};
@@ -49,6 +95,15 @@ ID3D11Texture2D* arrayOf(const AVFrame* frame) {
 }
 
 }  // namespace
+
+bool cacheDeviceMatches(const AVFrame* frame) {
+    ID3D11Device* owner = nullptr;
+    arrayOf(frame)->GetDevice(&owner);
+    std::lock_guard lock(g_deviceMutex);
+    const bool matches = !g_sharedDevice || owner == g_sharedDevice;
+    owner->Release();
+    return matches;
+}
 
 void trackCompletion(QRhiCommandBuffer*, long long frameNumber) {
     // Beginning frame N means frame N - 1 was submitted, and the immediate
@@ -98,11 +153,18 @@ std::shared_ptr<D3D11Interop> D3D11Interop::create(QRhi* rhi) {
     context->AddRef();
     interop->m_device = device;
     interop->m_context = context;
+    bool deviceChanged = false;
     {
         std::lock_guard lock(g_deviceMutex);
+        deviceChanged = g_sharedDevice != device;
         if (g_sharedDevice) g_sharedDevice->Release();
         device->AddRef();
         g_sharedDevice = device;
+    }
+    // Never hold the device lock while taking the cache lock. Cache reads
+    // also check device identity during the change and decoder shutdown.
+    if (deviceChanged) {
+        FrameCache::shared().clear();
     }
     return interop;
 }

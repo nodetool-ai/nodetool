@@ -1,5 +1,6 @@
 #include "preview/FrameCache.h"
 #include "preview/FfmpegSource.h"
+#include "preview/hw/HwInterop.h"
 
 #include "preview/FrameRing.h"
 
@@ -17,14 +18,14 @@ FrameCache& FrameCache::shared() {
 
 void FrameCache::insert(const std::string& source, double ptsSec, std::shared_ptr<DecodedFrame> frame,
                         size_t bytes, double previousPtsSec) {
-#ifdef _WIN32
-    // D3D11 frames own slots in FFmpeg's fixed decoder surface pool. Keeping
-    // them beyond playback exhausts that pool before the byte budget is hit.
-    if (frame->hardware) {
+    std::lock_guard lock(m_mutex);
+#if NT_HW_D3D11VA
+    // Decoder-bound D3D11 frames retain slots in FFmpeg's fixed surface pool.
+    // Admit only independent copies belonging to the current renderer device.
+    if (frame->hardware && (!hw::isCacheFrame(frame->frame) || !hw::cacheDeviceMatches(frame->frame))) {
         return;
     }
 #endif
-    std::lock_guard lock(m_mutex);
     auto& bySource = m_index[source];
     if (previousPtsSec >= 0.0) {
         const auto prev = bySource.find(previousPtsSec);
@@ -78,6 +79,12 @@ std::shared_ptr<DecodedFrame> FrameCache::lookup(const std::string& source, doub
     }
     --it;
     const Entry& e = *it->second;
+#if NT_HW_D3D11VA
+    if (e.frame->hardware && !hw::cacheDeviceMatches(e.frame->frame)) {
+        ++m_misses;
+        return nullptr;
+    }
+#endif
     if (e.successorPts < 0.0 || frameStartsBy(e.successorPts, targetSec)) {
         ++m_misses;
         return nullptr;
