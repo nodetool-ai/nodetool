@@ -43,6 +43,8 @@ import { ConfirmDialog } from "../ui_primitives";
 import AntigravityCard from "./AntigravityCard";
 import GoogleWorkspaceCard from "./GoogleWorkspaceCard";
 import { CustomProvidersSection } from "./CustomProvidersSection";
+import { OnePasswordPicker, type OnePasswordPick } from "./OnePasswordPicker";
+import { useOnePasswordStatus } from "../../serverState/useOnePassword";
 
 import {
   PROVIDER_META,
@@ -533,6 +535,16 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [secretToDelete, setSecretToDelete] = useState<SecretResponse | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [onePasswordOpen, setOnePasswordOpen] = useState(false);
+  const [onePasswordLabel, setOnePasswordLabel] = useState<string | null>(null);
+  const onePasswordStatus = useOnePasswordStatus(dialogOpen);
+
+  const handleOnePasswordPick = useCallback((pick: OnePasswordPick) => {
+    setFormValue(pick.reference);
+    setOnePasswordLabel(pick.label);
+    setFormError(null);
+    setRejectedKeyValue(null);
+  }, []);
 
   const addNotification = useNotificationStore((state) => state.addNotification);
   const updateSecret = useSecretsStore((state) => state.updateSecret);
@@ -646,6 +658,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
     const meta = getParentProviderMeta(secret.key);
     setEditingSecret(secret);
     setFormValue("");
+    setOnePasswordLabel(null);
     setFormError(null);
     setRejectedKeyValue(null);
     if (meta?.fields) {
@@ -658,6 +671,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
     const meta = getParentProviderMeta(secret.key);
     setEditingSecret(secret);
     setFormValue("");
+    setOnePasswordLabel(null);
     setFormError(null);
     setRejectedKeyValue(null);
     if (meta?.fields) {
@@ -780,6 +794,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
     setFormValues({});
     setFormError(null);
     setRejectedKeyValue(null);
+    setOnePasswordLabel(null);
   }, []);
 
   const handleCloseDelete = useCallback(() => {
@@ -1021,23 +1036,43 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
                     ))}
                   </>
                 ) : (
-                  <TextInput
-                    label={t("i18n-cont-settings-01.apiKeys.apiKey")}
-                    type="password"
-                    value={formValue}
-                    onChange={(e) => {
-                      setFormValue(e.target.value);
-                      setFormError(null);
-                      setRejectedKeyValue(null);
-                    }}
-                    fullWidth
-                    placeholder={t("i18n-cont-settings-01.apiKeys.apiKeyPlaceholder")}
-                    autoFocus
-                    variant="outlined"
-                    size="small"
-                    helperText={t("i18n-cont-settings-01.apiKeys.apiKeyHelp")}
-                    errorMessage={formError ?? undefined}
-                  />
+                  <FlexColumn gap={SPACING.sm}>
+                    <TextInput
+                      label={t("i18n-cont-settings-01.apiKeys.apiKey")}
+                      // A 1Password reference is not a secret, so it stays readable.
+                      type={formValue.startsWith("op://") ? "text" : "password"}
+                      value={formValue}
+                      onChange={(e) => {
+                        setFormValue(e.target.value);
+                        setOnePasswordLabel(null);
+                        setFormError(null);
+                        setRejectedKeyValue(null);
+                      }}
+                      fullWidth
+                      placeholder={t("i18n-cont-settings-01.apiKeys.apiKeyPlaceholder")}
+                      autoFocus
+                      variant="outlined"
+                      size="small"
+                      helperText={
+                        onePasswordLabel
+                          ? t("onePassword.pickedHelp", { path: onePasswordLabel })
+                          : t("i18n-cont-settings-01.apiKeys.apiKeyHelp")
+                      }
+                      errorMessage={formError ?? undefined}
+                    />
+                    {onePasswordStatus.data?.available && (
+                      <FlexRow justify="flex-start">
+                        <EditorButton
+                          density="compact"
+                          variant="text"
+                          size="small"
+                          onClick={() => setOnePasswordOpen(true)}
+                        >
+                          {t("onePassword.useOnePassword")}
+                        </EditorButton>
+                      </FlexRow>
+                    )}
+                  </FlexColumn>
                 )}
               </FlexColumn>
             </Dialog>
@@ -1045,6 +1080,11 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
         })()}
 
       {/* Delete confirmation */}
+      <OnePasswordPicker
+        open={onePasswordOpen}
+        onClose={() => setOnePasswordOpen(false)}
+        onPick={handleOnePasswordPick}
+      />
       <ConfirmDialog
         open={deleteDialogOpen}
         onClose={handleCloseDelete}

@@ -26,6 +26,7 @@ import {
   readCredentialEnv
 } from "@nodetool-ai/runtime";
 import { ApiErrorCode } from "../../error-codes.js";
+import { onePasswordRouter } from "./onepassword.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
@@ -182,7 +183,9 @@ const secretsRouter = router({
     .mutation(async ({ ctx, input }) => {
       let value = input.value?.trim();
       if (value && isOnePasswordReference(value)) {
-        value = (await resolveUserSecretValue(input.key, value)) ?? undefined;
+        value =
+          (await resolveUserSecretValue(input.key, value, ctx.userId)) ??
+          undefined;
         if (!value) {
           return {
             status: "invalid" as const,
@@ -386,5 +389,6 @@ export const settingsRouter = router({
     }),
 
   secrets: secretsRouter,
-  history: historyRouter
+  history: historyRouter,
+  onepassword: onePasswordRouter
 });

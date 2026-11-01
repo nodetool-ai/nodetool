@@ -18944,5 +18944,28 @@
     "referenceAlt": "Reference {{index}}",
     "sketchTitle": "Sketch",
     "audio": "Audio"
+  },
+  "onePassword": {
+    "useOnePassword": "Use 1Password",
+    "title": "Use a key from 1Password",
+    "connectIntro": "NodeTool reads the key from the 1Password app each time it is used, so the key is never stored in NodeTool. In the 1Password app settings, turn on the option to integrate with SDKs. Then enter your account name as it appears at the top of the app's sidebar.",
+    "accountLabel": "1Password account",
+    "accountPlaceholder": "my.1password.com",
+    "approveHint": "Approve NodeTool when the 1Password app asks.",
+    "connect": "Connect",
+    "connecting": "Waiting for 1Password",
+    "connectFailed": "1Password did not connect: {{message}}",
+    "connectedAs": "Connected as {{account}}",
+    "switchAccount": "Use another account",
+    "loadFailed": "1Password could not be read: {{message}}",
+    "vault": "Vault",
+    "items": "Items",
+    "fields": "Fields",
+    "searchItems": "Search items",
+    "noItems": "This vault has no items.",
+    "noItemsMatch": "No items match your search.",
+    "chooseItem": "Choose an item, then the field that holds the key.",
+    "noFields": "This item has no fields.",
+    "pickedHelp": "From 1Password: {{path}}. NodeTool reads it each time the key is used."
   }
 }

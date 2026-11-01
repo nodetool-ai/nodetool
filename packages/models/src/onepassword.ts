@@ -12,9 +12,10 @@
  *   Read over the Connect REST API.
  * - 1Password SDK (`@1password/sdk`, a regular dependency) with a service
  *   account, when `OP_SERVICE_ACCOUNT_TOKEN` is set.
- * - 1Password SDK through the desktop app, when `NODETOOL_1PASSWORD_ACCOUNT`
- *   names the account (as shown in the app's sidebar, or its UUID). The app
- *   asks the user to approve NodeTool once per session.
+ * - 1Password SDK through the desktop app, when an account is named (as shown
+ *   in the app's sidebar, or its UUID): `NODETOOL_1PASSWORD_ACCOUNT`, or the
+ *   account the user connected in Settings, stored as the Setting of the same
+ *   name. The app asks the user to approve NodeTool once per session.
  * - 1Password CLI otherwise, for installs that already use `op`. Runs
  *   `op read`. `NODETOOL_1PASSWORD_CLI` overrides the `op` binary path.
  *
@@ -24,6 +25,7 @@
 
 import { execFile } from "node:child_process";
 import { createLogger, isAuthEnforced } from "@nodetool-ai/config";
+import { Setting } from "./setting.js";
 
 const log = createLogger("nodetool.models.onepassword");
 
@@ -135,7 +137,8 @@ export function isRefusedUserReference(key: string, value: string): boolean {
  */
 export async function resolveUserSecretValue(
   key: string,
-  value: string
+  value: string,
+  userId?: string
 ): Promise<string | null> {
   if (!isOnePasswordReference(value)) {
     return value;
@@ -143,7 +146,33 @@ export async function resolveUserSecretValue(
   if (isRefusedUserReference(key, value)) {
     return null;
   }
-  return resolveOnePasswordReference(value);
+  return resolveOnePasswordReference(value, userId);
+}
+
+/** Setting (and env var) naming the account the desktop app signs in to. */
+export const ONEPASSWORD_ACCOUNT_KEY = "NODETOOL_1PASSWORD_ACCOUNT";
+
+/**
+ * The 1Password account for desktop app sign-in: the env var, else the
+ * account `userId` connected in Settings. A stored account is honoured only
+ * where user references are, so a shared server never signs in to the
+ * desktop app on a user's say-so.
+ */
+export async function onePasswordAccount(userId?: string): Promise<string> {
+  const fromEnv = process.env[ONEPASSWORD_ACCOUNT_KEY]?.trim();
+  if (fromEnv) {
+    return fromEnv;
+  }
+  if (!userId || !userReferencesAllowed()) {
+    return "";
+  }
+  try {
+    const setting = await Setting.find(userId, ONEPASSWORD_ACCOUNT_KEY);
+    return setting?.value.trim() ?? "";
+  } catch {
+    // No database (env-only CLI runs): there is no stored account.
+    return "";
+  }
 }
 
 /** Clear resolved 1Password values. */
@@ -173,7 +202,8 @@ function cacheTtlMs(): number {
  * log. The value never is.
  */
 export async function resolveOnePasswordReference(
-  reference: string
+  reference: string,
+  userId?: string
 ): Promise<string | null> {
   const now = Date.now();
   const cached = cache.get(reference);
@@ -186,14 +216,17 @@ export async function resolveOnePasswordReference(
     return pending;
   }
 
-  const promise = readReference(reference).finally(() => {
+  const promise = readReference(reference, userId).finally(() => {
     inflight.delete(reference);
   });
   inflight.set(reference, promise);
   return promise;
 }
 
-async function readReference(reference: string): Promise<string | null> {
+async function readReference(
+  reference: string,
+  userId: string | undefined
+): Promise<string | null> {
   const parsed = parseOnePasswordReference(reference);
   if (!parsed) {
     log.error("Malformed 1Password secret reference", { reference });
@@ -201,7 +234,7 @@ async function readReference(reference: string): Promise<string | null> {
     return null;
   }
 
-  const backend = selectBackend();
+  const backend = selectBackend(await onePasswordAccount(userId));
   try {
     const value = await backend.read(reference, parsed);
     remember(reference, value, cacheTtlMs());
@@ -229,9 +262,13 @@ interface Backend {
   read(reference: string, parsed: OnePasswordReference): Promise<string>;
 }
 
-/** The backend reads go to, given the current environment. */
+/**
+ * The backend reads go to, given the environment and the desktop account
+ * (see onePasswordAccount()).
+ */
 export function onePasswordBackend(
-  env: Record<string, string | undefined> = process.env
+  env: Record<string, string | undefined> = process.env,
+  account: string = env[ONEPASSWORD_ACCOUNT_KEY]?.trim() ?? ""
 ): OnePasswordBackendName {
   if (env["OP_CONNECT_HOST"]?.trim() && env["OP_CONNECT_TOKEN"]?.trim()) {
     return "connect";
@@ -239,14 +276,14 @@ export function onePasswordBackend(
   if (env["OP_SERVICE_ACCOUNT_TOKEN"]?.trim()) {
     return "sdk-service-account";
   }
-  if (env["NODETOOL_1PASSWORD_ACCOUNT"]?.trim()) {
+  if (account) {
     return "sdk-desktop";
   }
   return "cli";
 }
 
-function selectBackend(): Backend {
-  const name = onePasswordBackend();
+function selectBackend(account: string): Backend {
+  const name = onePasswordBackend(process.env, account);
   switch (name) {
     case "connect": {
       const host = (process.env["OP_CONNECT_HOST"] ?? "").trim();
@@ -258,7 +295,10 @@ function selectBackend(): Backend {
     }
     case "sdk-service-account":
     case "sdk-desktop":
-      return { name, read: (reference) => readViaSdk(reference, name) };
+      return {
+        name,
+        read: (reference) => readViaSdk(reference, name, account)
+      };
     case "cli":
       return { name, read: (reference) => readViaCli(reference) };
   }
@@ -266,6 +306,24 @@ function selectBackend(): Backend {
 
 interface SdkClient {
   secrets: { resolve(reference: string): Promise<string> };
+  vaults: { list(): Promise<{ id: string; title: string }[]> };
+  items: {
+    list(vaultId: string): Promise<{ id: string; title: string }[]>;
+    get(
+      vaultId: string,
+      itemId: string
+    ): Promise<{
+      id: string;
+      title: string;
+      fields: {
+        id: string;
+        title: string;
+        sectionId?: string;
+        fieldType: string;
+      }[];
+      sections: { id: string; title: string }[];
+    }>;
+  };
 }
 
 /** One SDK client per auth configuration, reused across reads. */
@@ -275,10 +333,10 @@ const SDK_INTEGRATION_NAME = "NodeTool";
 const SDK_INTEGRATION_VERSION = "v1.0.0";
 
 function sdkClientFor(
-  backend: "sdk-service-account" | "sdk-desktop"
+  backend: "sdk-service-account" | "sdk-desktop",
+  account: string
 ): Promise<SdkClient> {
   const token = (process.env["OP_SERVICE_ACCOUNT_TOKEN"] ?? "").trim();
-  const account = (process.env["NODETOOL_1PASSWORD_ACCOUNT"] ?? "").trim();
   const key =
     backend === "sdk-service-account" ? `token:${token}` : `desktop:${account}`;
   if (sdkClient && sdkClient.key === key) {
@@ -288,14 +346,14 @@ function sdkClientFor(
     // Loaded on first use: the SDK carries a WebAssembly core that nobody
     // without a 1Password reference should pay for at startup.
     const sdk = await import("@1password/sdk");
-    return sdk.createClient({
+    return (await sdk.createClient({
       auth:
         backend === "sdk-service-account"
           ? token
           : new sdk.DesktopAuth(account),
       integrationName: SDK_INTEGRATION_NAME,
       integrationVersion: SDK_INTEGRATION_VERSION
-    });
+    })) as unknown as SdkClient;
   })();
   sdkClient = { key, client };
   return client;
@@ -303,17 +361,154 @@ function sdkClientFor(
 
 async function readViaSdk(
   reference: string,
-  backend: "sdk-service-account" | "sdk-desktop"
+  backend: "sdk-service-account" | "sdk-desktop",
+  account: string
 ): Promise<string> {
+  return withSdkClient(backend, account, (client) =>
+    client.secrets.resolve(reference)
+  );
+}
+
+async function withSdkClient<T>(
+  backend: "sdk-service-account" | "sdk-desktop",
+  account: string,
+  run: (client: SdkClient) => Promise<T>
+): Promise<T> {
   try {
-    const client = await sdkClientFor(backend);
-    return await client.secrets.resolve(reference);
+    return await run(await sdkClientFor(backend, account));
   } catch (err) {
     // A desktop session expires after inactivity and a token can be revoked.
-    // Drop the client so the next read authenticates again.
+    // Drop the client so the next call authenticates again.
     sdkClient = null;
     throw err;
   }
+}
+
+// ── Browsing, for the Settings picker ──────────────────────────────
+
+/** A field the picker offers. Never carries the field's value. */
+export interface OnePasswordFieldOption {
+  id: string;
+  title: string;
+  section: string | null;
+  fieldType: string;
+  /** The reference that resolves to this field. */
+  reference: string;
+}
+
+/**
+ * Browse the vaults behind the user's 1Password connection without reading
+ * any secret value. Available only for the SDK backends: Connect and the CLI
+ * are operator setups with their own tooling. Throws when browsing is not
+ * possible here, so callers can say why.
+ */
+export async function onePasswordBrowser(userId: string) {
+  if (!userReferencesAllowed()) {
+    throw new Error("1Password references are turned off on this server.");
+  }
+  const account = await onePasswordAccount(userId);
+  const backend = onePasswordBackend(process.env, account);
+  if (backend !== "sdk-service-account" && backend !== "sdk-desktop") {
+    throw new Error(
+      backend === "connect"
+        ? "Browsing a Connect server is not supported. Type the reference instead."
+        : "Connect a 1Password account first."
+    );
+  }
+  const call = <T>(run: (client: SdkClient) => Promise<T>) =>
+    withSdkClient(backend, account, run);
+  return {
+    backend,
+    account,
+    async listVaults(): Promise<{ id: string; title: string }[]> {
+      const vaults = await call((c) => c.vaults.list());
+      return vaults.map((v) => ({ id: v.id, title: v.title }));
+    },
+    async listItems(vaultId: string): Promise<{ id: string; title: string }[]> {
+      const items = await call((c) => c.items.list(vaultId));
+      return items
+        .map((i) => ({ id: i.id, title: i.title }))
+        .sort((a, b) => a.title.localeCompare(b.title));
+    },
+    async listFields(
+      vaultId: string,
+      itemId: string
+    ): Promise<OnePasswordFieldOption[]> {
+      const [vaults, item] = await Promise.all([
+        call((c) => c.vaults.list()),
+        call((c) => c.items.get(vaultId, itemId))
+      ]);
+      const vault = vaults.find((v) => v.id === vaultId);
+      const sections = new Map(item.sections.map((s) => [s.id, s.title]));
+      return item.fields.map((field) => {
+        const section = field.sectionId
+          ? (sections.get(field.sectionId) ?? null)
+          : null;
+        return {
+          id: field.id,
+          title: field.title,
+          section: section || null,
+          fieldType: field.fieldType,
+          reference: buildOnePasswordReference({
+            vault: { id: vaultId, title: vault?.title ?? "" },
+            vaultTitles: vaults.map((v) => v.title),
+            item: { id: item.id, title: item.title },
+            field,
+            fields: item.fields,
+            sectionTitle: section
+          })
+        };
+      });
+    }
+  };
+}
+
+const NAME_SAFE_RE = new RegExp(`^${SEGMENT}$`);
+
+function nameSafe(name: string): boolean {
+  return name.trim() === name && name !== "" && NAME_SAFE_RE.test(name);
+}
+
+/**
+ * Build the reference for a field: names where they are unambiguous and fit
+ * the reference syntax, so the reference stays readable, otherwise ids.
+ */
+export function buildOnePasswordReference(opts: {
+  vault: { id: string; title: string };
+  vaultTitles: string[];
+  item: { id: string; title: string };
+  field: { id: string; title: string; sectionId?: string };
+  fields: { id: string; title: string; sectionId?: string }[];
+  sectionTitle: string | null;
+}): string {
+  const lower = (s: string) => s.toLowerCase();
+  const vault =
+    nameSafe(opts.vault.title) &&
+    opts.vaultTitles.filter((t) => lower(t) === lower(opts.vault.title))
+      .length === 1
+      ? opts.vault.title
+      : opts.vault.id;
+  // Item titles are not unique within a vault, and listing them all to check
+  // costs a round trip per pick, so items are referenced by id.
+  const item = opts.item.id;
+  const sameTitle = opts.fields.filter(
+    (f) => lower(f.title) === lower(opts.field.title)
+  );
+  if (nameSafe(opts.field.title) && sameTitle.length === 1) {
+    return `op://${vault}/${item}/${opts.field.title}`;
+  }
+  const sameInSection = sameTitle.filter(
+    (f) => f.sectionId === opts.field.sectionId
+  );
+  if (
+    opts.sectionTitle &&
+    nameSafe(opts.sectionTitle) &&
+    nameSafe(opts.field.title) &&
+    sameInSection.length === 1
+  ) {
+    return `op://${vault}/${item}/${opts.sectionTitle}/${opts.field.title}`;
+  }
+  return `op://${vault}/${item}/${opts.field.id}`;
 }
 
 function remember(

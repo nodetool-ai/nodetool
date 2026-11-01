@@ -569,7 +569,8 @@ describe("settings router", () => {
 
       expect(resolveUserSecretValue).toHaveBeenCalledWith(
         "OPENAI_API_KEY",
-        "op://Dev/OpenAI/credential"
+        "op://Dev/OpenAI/credential",
+        "user-1"
       );
       expect(checkCredential).toHaveBeenCalledWith(
         "OPENAI_API_KEY",

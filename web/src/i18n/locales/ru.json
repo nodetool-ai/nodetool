@@ -19558,5 +19558,28 @@
     "referenceAlt": "Референс {{index}}",
     "sketchTitle": "Sketch",
     "audio": "Звук"
+  },
+  "onePassword": {
+    "useOnePassword": "Использовать 1Password",
+    "title": "Ключ из 1Password",
+    "connectIntro": "NodeTool считывает ключ из приложения 1Password при каждом использовании, поэтому ключ никогда не хранится в NodeTool. В настройках приложения 1Password включите интеграцию с SDK. Затем введите имя учётной записи так, как оно показано в верхней части боковой панели приложения.",
+    "accountLabel": "Учётная запись 1Password",
+    "accountPlaceholder": "my.1password.com",
+    "approveHint": "Разрешите доступ NodeTool, когда приложение 1Password спросит.",
+    "connect": "Подключить",
+    "connecting": "Ожидание 1Password",
+    "connectFailed": "Не удалось подключить 1Password: {{message}}",
+    "connectedAs": "Подключено: {{account}}",
+    "switchAccount": "Другая учётная запись",
+    "loadFailed": "Не удалось прочитать 1Password: {{message}}",
+    "vault": "Сейф",
+    "items": "Элементы",
+    "fields": "Поля",
+    "searchItems": "Поиск элементов",
+    "noItems": "В этом сейфе нет элементов.",
+    "noItemsMatch": "Нет элементов, подходящих под запрос.",
+    "chooseItem": "Выберите элемент, затем поле с ключом.",
+    "noFields": "У этого элемента нет полей.",
+    "pickedHelp": "Из 1Password: {{path}}. NodeTool считывает его при каждом использовании ключа."
   }
 }
