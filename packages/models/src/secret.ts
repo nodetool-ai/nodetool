@@ -15,6 +15,7 @@ import {
   initMasterKey
 } from "@nodetool-ai/security";
 import { createLogger } from "@nodetool-ai/config";
+import { resolveUserSecretValue } from "./onepassword.js";
 
 const log = createLogger("nodetool.models.secret");
 
@@ -176,6 +177,17 @@ export class Secret extends DBModel {
         throw fernetErr;
       }
     }
+  }
+
+  /**
+   * Get the value to use at runtime. Same as getDecryptedValue() unless the
+   * stored value is a 1Password reference (`op://...`), which is resolved
+   * through 1Password, or reads as null where references are not allowed.
+   * Settings screens that show or edit the stored value keep
+   * getDecryptedValue().
+   */
+  async getResolvedValue(): Promise<string | null> {
+    return resolveUserSecretValue(this.key, await this.getDecryptedValue());
   }
 
   /** Return a safe dictionary representation without the encrypted value. */

@@ -105,7 +105,7 @@ function userSecretResolver(userId: string) {
     const row = await Secret.find(userId, name);
     if (!row) return null;
     try {
-      return await row.getDecryptedValue();
+      return await row.getResolvedValue();
     } catch {
       // An undecryptable secret reads as unset; the server sees an empty
       // header, which is what the user has to fix by re-entering it.

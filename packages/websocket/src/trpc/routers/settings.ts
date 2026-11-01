@@ -15,7 +15,9 @@ import {
   cleanupStorage,
   compactStorage,
   getStorageStatus,
-  clearSecretCache
+  clearSecretCache,
+  isOnePasswordReference,
+  resolveUserSecretValue
 } from "@nodetool-ai/models";
 import type { Secret as SecretModel } from "@nodetool-ai/models";
 import {
@@ -179,11 +181,21 @@ const secretsRouter = router({
     .output(secretValidateOutput)
     .mutation(async ({ ctx, input }) => {
       let value = input.value?.trim();
-      if (!value) {
+      if (value && isOnePasswordReference(value)) {
+        value = (await resolveUserSecretValue(input.key, value)) ?? undefined;
+        if (!value) {
+          return {
+            status: "invalid" as const,
+            valid: false,
+            message:
+              "The 1Password reference could not be read on this server."
+          };
+        }
+      } else if (!value) {
         const secret = await Secret.find(ctx.userId, input.key);
         if (secret) {
           try {
-            value = (await secret.getDecryptedValue()) ?? undefined;
+            value = (await secret.getResolvedValue()) ?? undefined;
           } catch {
             // An undecryptable secret is unusable, and saying so is more
             // useful than a decryption stack trace.

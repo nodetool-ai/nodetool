@@ -198,6 +198,15 @@ export {
   clearSecretCache,
   clearAllSecretCache
 } from "./secret-helper.js";
+export {
+  isOnePasswordReference,
+  parseOnePasswordReference,
+  resolveOnePasswordReference,
+  resolveUserSecretValue,
+  userReferencesAllowed,
+  clearOnePasswordCache
+} from "./onepassword.js";
+export type { OnePasswordReference } from "./onepassword.js";
 
 export { Setting } from "./setting.js";
 
