@@ -22,9 +22,12 @@ function fixture(body: string, version: "matching" | "wrong"): ReturnType<typeof
     const { readInstalledPacks } = await import(${JSON.stringify(inventory)});
     const { classifyInstallLayout } = await import(${JSON.stringify(mode)});
     const root = mkdtempSync(join(tmpdir(), 'nodetool-installed-loader-'));
-    const packRoot = join(root, 'node_modules', '@nodetool-ai', 'fal-nodes');
-    mkdirSync(packRoot, { recursive: true });
     const coreVersion = catalog.readCatalogIndex().coreVersion;
+    const generation = 'g-0-0000000000000000';
+    const packsRoot = join(root, 'packs', coreVersion);
+    const packRoot = join(packsRoot, generation, 'node_modules', '@nodetool-ai', 'fal-nodes');
+    mkdirSync(packRoot, { recursive: true });
+    writeFileSync(join(packsRoot, 'current.json'), JSON.stringify({ schemaVersion: 1, generation }));
     const version = ${JSON.stringify(version)} === 'matching' ? coreVersion : '0.0.0';
     const nodeType = catalog.readCatalogNodes().find(node => node.pack === 'fal').node_type;
     const sdk = import.meta.resolve('@nodetool-ai/node-sdk');
@@ -40,7 +43,7 @@ function fixture(body: string, version: "matching" | "wrong"): ReturnType<typeof
       if (specifier.startsWith('@nodetool-ai/fal-nodes/')) return { url: pathToFileURL(alternate).href, shortCircuit: true };
       return next(specifier, context);
     } });
-    const snapshot = readInstalledPacks(classifyInstallLayout({ cliRoot: join(root, 'node_modules', '@nodetool-ai', 'cli'), coreVersion, projectHasCli: true }), catalog.readCatalogIndex());
+    const snapshot = readInstalledPacks(classifyInstallLayout({ cliRoot: join(root, 'node_modules', '@nodetool-ai', 'cli'), coreVersion, projectHasCli: true, packsHome: join(root, 'packs') }), catalog.readCatalogIndex());
     catalog.setPackLoaderContext({ coreVersion, packs: snapshot.packs.map(pack => ({ id: pack.id, packages: [pack, ...pack.providedPackages] })), install: { supported: true, reason: null, command: null } });
     try { ${body} } finally { rmSync(root, { recursive: true, force: true }); }
   `], { cwd: resolve(import.meta.dirname, "../../.."), encoding: "utf8", timeout: CHILD_TIMEOUT_MS });

@@ -9,6 +9,8 @@ import {
   type NodeCatalogIndex
 } from "@nodetool-ai/pack-core";
 import { installDetailsForMode, type InstallMode } from "./mode.js";
+import { currentProject } from "./project.js";
+import type { PackResolution } from "./resolution.js";
 
 export interface InstalledPackage {
   readonly npm: string;
@@ -39,6 +41,10 @@ export interface InvalidInstalledPackage {
 
 export interface InstalledPackSnapshot {
   readonly mode: InstallMode;
+  /** The active pack project generation for global and local installs. */
+  readonly projectRoot: string | null;
+  /** How this process resolves modules between the CLI and the pack project. */
+  readonly resolution: PackResolution | null;
   readonly packs: readonly InstalledPack[];
   readonly wrongVersions: readonly WrongVersionPack[];
   readonly invalidPackages: readonly InvalidInstalledPackage[];
@@ -46,10 +52,15 @@ export interface InstalledPackSnapshot {
 
 const installedManifestSchema = z.object({ name: z.string(), version: z.string().min(1) });
 
-/** Read the scoped tree once. Hosts retain this snapshot until an explicit reload. */
+/**
+ * Read the scoped tree once. Hosts retain this snapshot until an explicit
+ * reload. Global and local installs read the active pack project, or
+ * `options.projectRoot` when a load check verifies a staged generation.
+ */
 export function readInstalledPacks(
   mode: InstallMode,
-  catalog: NodeCatalogIndex = readCatalogIndex()
+  catalog: NodeCatalogIndex = readCatalogIndex(),
+  options: { readonly projectRoot?: string } = {}
 ): InstalledPackSnapshot {
   if (mode.coreVersion !== catalog.coreVersion) {
     throw new Error(`Node catalog core version ${catalog.coreVersion} differs from CLI core version ${mode.coreVersion}`);
@@ -57,17 +68,26 @@ export function readInstalledPacks(
   const packs: InstalledPack[] = [];
   const wrongVersions: WrongVersionPack[] = [];
   const invalidPackages: InvalidInstalledPackage[] = [];
-  if (!mode.nodeModulesRoot) {
-    return { mode, packs, wrongVersions, invalidPackages };
-  }
   const paths = mode.pathStyle === "win32" ? win32 : posix;
-  const scope = paths.join(mode.nodeModulesRoot, "@nodetool-ai");
+  const projectRoot = mode.kind === "global" || mode.kind === "local" ? options.projectRoot ?? currentProject(mode.packsRoot) : null;
+  const nodeModulesRoot = mode.kind === "global" || mode.kind === "local"
+    ? (projectRoot ? paths.join(projectRoot, "node_modules") : null) : mode.nodeModulesRoot;
+  const resolution: PackResolution | null = projectRoot ? {
+    cliRoot: mode.cliRoot, projectRoot,
+    packNames: catalog.packs.flatMap((pack) => [pack.npm.name, ...pack.provides]),
+    sharedNames: (catalog.installPins ?? []).filter((pin) => pin.shared).map((pin) => pin.name)
+  } : null;
+  const empty = (): InstalledPackSnapshot => ({ mode, projectRoot, resolution, packs, wrongVersions, invalidPackages });
+  if (!nodeModulesRoot) {
+    return empty();
+  }
+  const scope = paths.join(nodeModulesRoot, "@nodetool-ai");
   let names: string[];
   try {
     names = readdirSync(scope).sort();
   } catch (error) {
     if (error instanceof Error && "code" in error && error.code === "ENOENT") {
-      return { mode, packs, wrongVersions, invalidPackages };
+      return empty();
     }
     throw error;
   }
@@ -110,7 +130,7 @@ export function readInstalledPacks(
     const missingCompanions = pack.provides.filter((npm) => !installed.has(npm));
     if (missingCompanions.length > 0) {
       for (const npm of missingCompanions) {
-        invalidPackages.push({ id: pack.id, npm, packageRoot: paths.join(mode.nodeModulesRoot, npm), reason: `Missing companion package for node pack ${pack.id}` });
+        invalidPackages.push({ id: pack.id, npm, packageRoot: paths.join(nodeModulesRoot, npm), reason: `Missing companion package for node pack ${pack.id}` });
       }
       continue;
     }
@@ -121,7 +141,7 @@ export function readInstalledPacks(
     packs.push({ id: pack.id, ...primary, providedPackages });
   }
   packs.sort((a, b) => a.id.localeCompare(b.id));
-  return { mode, packs, wrongVersions, invalidPackages };
+  return { mode, projectRoot, resolution, packs, wrongVersions, invalidPackages };
 }
 
 /** Apply CLI layout guidance without changing library or server defaults. */

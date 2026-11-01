@@ -2,20 +2,22 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { createRequire } from "node:module";
 import { join } from "node:path";
-import { realpath } from "node:fs/promises";
 import { getNodetoolDataDir } from "@nodetool-ai/config";
 import { loadPackLoaderContext, setPackLoaderContextProvider, type PackLoaderContext } from "@nodetool-ai/pack-core/loader-context";
 import type { NodeCatalogIndex } from "@nodetool-ai/pack-core/types";
 import { readCatalogIndex } from "@nodetool-ai/pack-core/catalog-data";
 import { CliRootNotFoundError, detectInstallMode, detectStandaloneFeatureMode, installDetailsForMode, type InstallMode } from "./mode.js";
 import { readInstalledPacks, type InstalledPackSnapshot } from "./installed.js";
-import { readDesiredState } from "./install-selection.js";
+import { readDesiredFor } from "./install-state.js";
 import { restoreWarning } from "./management.js";
+import { activatePackResolution } from "./resolution.js";
 
 let entryUrl: string | undefined;
 let snapshot: InstalledPackSnapshot | undefined;
 
+/** Every pack import goes through a loader context, so resolution is routed here first. */
 export function loaderContextForSnapshot(value: InstalledPackSnapshot): PackLoaderContext {
+  if (value.resolution) { activatePackResolution(value.resolution); }
   return { coreVersion: value.mode.coreVersion, packs: value.packs.map(pack => ({ id: pack.id, packages: [pack, ...pack.providedPackages] })), install: installDetailsForMode(value.mode) };
 }
 
@@ -40,11 +42,7 @@ export function configureCliPackHost(url: string, options: { readonly catalog?: 
     }
     snapshot = readInstalledPacks(mode, options.catalog);
     if (mode.kind === "global" || mode.kind === "local") {
-      const root = await realpath(mode.installRoot);
-      const desired = (await readDesiredState(options.stateFile ?? join(getNodetoolDataDir(), "cli-packs.json")))[root];
-      if (desired?.dirty) {
-        process.stderr.write('Pack installation is dirty. Run "nodetool packs doctor --repair".\n');
-      }
+      const desired = await readDesiredFor(options.stateFile ?? join(getNodetoolDataDir(), "cli-packs.json"), mode);
       const warning = restoreWarning(snapshot, desired);
       if (warning) { process.stderr.write(warning + "\n"); }
     }

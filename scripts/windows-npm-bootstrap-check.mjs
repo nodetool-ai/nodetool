@@ -25,9 +25,9 @@ try {
   writeFileSync(join(root, ".npmrc"), "registry=https://fixture.invalid/\ncafile=./cert.pem\ncache=./npm-cache\n");
   const version = await installerNpmVersion(root);
   assert.equal(version, process.env["MATRIX_NPM_VERSION"]);
-  assert.equal((await runInstallerNpm(root, ["config", "get", "cafile"], { mode: "local" })).trim(), join(root, "cert.pem"));
-  assert.equal((await runInstallerNpm(root, ["config", "get", "cache"], { mode: "local" })).trim(), join(root, "npm-cache"));
-  await runInstallerNpm(root, ["install", tarball], { mode: "local" });
+  assert.equal((await runInstallerNpm(root, ["config", "get", "cafile"])).trim(), join(root, "cert.pem"));
+  assert.equal((await runInstallerNpm(root, ["config", "get", "cache"])).trim(), join(root, "npm-cache"));
+  await runInstallerNpm(root, ["install", tarball]);
   assert(JSON.parse(readFileSync(join(root, "package.json"), "utf8")).dependencies["native-bootstrap-fixture"]);
   assert.equal(JSON.parse(readFileSync(join(root, "package-lock.json"), "utf8")).packages["node_modules/native-bootstrap-fixture"].version, "1.0.0");
   assert(readdirSync(join(root, "npm-cache/_cacache/content-v2")).length > 0);
@@ -36,7 +36,7 @@ try {
   const packageRoot = join(root, "node_modules/native-bootstrap-fixture");
   assert.throws(() => readFileSync(join(packageRoot, "metadata.json")), { code: "ENOENT" });
   await runNpm(root, ["run", "record"], { mode: "local", scriptPolicy: "user" });
-  await runInstallerNpm(root, ["rebuild", "native-bootstrap-fixture"], { mode: "local", rebuild: true });
+  await runInstallerNpm(root, ["rebuild", "native-bootstrap-fixture"], { rebuild: true });
   const identity = path => { const value = statSync(path, { bigint: true }); assert.notEqual(value.ino, 0n); return [value.dev, value.ino]; };
   for (const target of [root, packageRoot]) {
     const metadata = JSON.parse(readFileSync(join(target, "metadata.json"), "utf8"));

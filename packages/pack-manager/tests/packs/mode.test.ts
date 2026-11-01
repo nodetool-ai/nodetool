@@ -65,8 +65,8 @@ describe("pack install layout classification", () => {
     const bin = join(root, "bin", "nodetool");
     mkdirSync(dirname(bin));
     symlinkSync(entry, bin);
-    expect(detectInstallMode(bin, { globalNodeModulesRoots: [modules] })).toMatchObject({
-      kind: "global", cliRoot, coreVersion: "1.2.3", installRoot: cliRoot, nodeModulesRoot: join(cliRoot, "node_modules")
+    expect(detectInstallMode(bin, { globalNodeModulesRoots: [modules], packsHome: join(root, "packs") })).toMatchObject({
+      kind: "global", cliRoot, coreVersion: "1.2.3", packsRoot: join(root, "packs", "1.2.3"), legacyInstallRoot: cliRoot
     });
   });
 
@@ -74,8 +74,8 @@ describe("pack install layout classification", () => {
     const root = fixture();
     writeFileSync(join(root, "package.json"), JSON.stringify({ [section]: { "@nodetool-ai/cli": "1.2.3" } }));
     const cliRoot = join(root, "node_modules", "@nodetool-ai", "cli");
-    expect(detectInstallMode(cliAt(cliRoot), { globalNodeModulesRoots: [] })).toMatchObject({
-      kind: "local", cliRoot, installRoot: root, nodeModulesRoot: join(root, "node_modules")
+    expect(detectInstallMode(cliAt(cliRoot), { globalNodeModulesRoots: [], packsHome: join(root, "packs") })).toMatchObject({
+      kind: "local", cliRoot, packsRoot: join(root, "packs", "1.2.3"), legacyInstallRoot: root
     });
   });
 
@@ -111,7 +111,7 @@ describe("pack install layout classification", () => {
     vi.stubEnv("npm_config_prefix", undefined);
     vi.stubEnv("NPM_CONFIG_PREFIX", undefined);
     vi.stubEnv("npm_config_userconfig", userConfig);
-    expect(detectInstallMode(entry)).toMatchObject({ kind: "global", installRoot: join(modules, "@nodetool-ai", "cli") });
+    expect(detectInstallMode(entry)).toMatchObject({ kind: "global", legacyInstallRoot: join(modules, "@nodetool-ai", "cli") });
   });
 
   it("respects prefix environment precedence over the configured file", () => {
