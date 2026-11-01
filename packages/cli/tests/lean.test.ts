@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { mkdtemp, writeFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -6,6 +7,8 @@ import { createSqliteRepository } from "@nodetool-ai/database-sqlite";
 import { encrypt } from "@nodetool-ai/security-core";
 import { loadInstalledCommandFeature } from "@nodetool-ai/pack-manager";
 import { DEFAULT_TEXT_MODEL, createProgram, exampleWorkflow, runCli } from "../src/lean/program.js";
+
+const cliVersion = (JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version: string }).version;
 
 vi.mock("@nodetool-ai/pack-manager", async importOriginal => ({
   ...await importOriginal<typeof import("@nodetool-ai/pack-manager")>(),
@@ -159,7 +162,7 @@ describe("lean execution CLI", () => {
     const program = createProgram({ env: {}, stdout: text => output.push(text), fetch: async () => { requested = true; return Response.json({}); } }).exitOverride();
     expect(program.helpInformation()).toContain("workflows");
     await expect(program.parseAsync(["node", "nodetool", "--version"])).rejects.toMatchObject({ code: "commander.version" });
-    expect(output.join("")).toMatch(/^0\.8\.4\n$/);
+    expect(output.join("")).toBe(`${cliVersion}\n`);
     expect(requested).toBe(false);
   });
   it("sends native workflow commands with authenticated HTTP and preserved IDs", async () => {
