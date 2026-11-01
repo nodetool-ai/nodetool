@@ -912,7 +912,7 @@ describe("storyboards capability behaviour", () => {
     expect(result).not.toHaveProperty("error");
     expect(context.runProviderPrediction).toHaveBeenCalledWith(expect.objectContaining({
       capability: "video_to_video",
-      params: expect.objectContaining({ prompt: expect.stringContaining("hand-drawn anime") })
+      params: expect.objectContaining({ prompt: expect.stringContaining("hand-drawn 2D anime") })
     }));
   });
 
