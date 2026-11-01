@@ -225,11 +225,20 @@ describe("pack installer", () => {
     await writeFile(file, "broken"); await expect(readInstallTree(f.root, true)).rejects.toThrow();
     await writeFile(file, '{"packages":{}}'); await expect(readInstallTree(f.root, true)).rejects.toThrow(/stale/);
   });
+  it("ignores hidden-lock integrity drift on unpinned packages but not version or path changes", async () => {
+    const f = await fixture(); await f.add(); const before = await snapshotInstallTree(f.root);
+    const drifted = [{ ...before[0]!, integrity: "sha512-drift" }];
+    expect(() => assertTreePins(before, drifted, [], new Set(), "1.0.0")).not.toThrow();
+    expect(() => assertTreePins([{ ...before[0]!, integrity: undefined }], before, [], new Set(), "1.0.0")).not.toThrow();
+    expect(() => assertTreePins(before, [{ ...before[0]!, version: "1.0.1" }], [], new Set(), "1.0.0")).toThrow(/changed/);
+    expect(() => assertTreePins(before, [{ ...before[0]!, realPath: "/elsewhere" }], [], new Set(), "1.0.0")).toThrow(/changed/);
+    expect(installTreeRestored([{ ...before[0]!, integrity: undefined }], drifted)).toBe(true);
+  });
   it("global baseline exception refuses links and never waives a known integrity", async () => {
     const f = await fixture(); await f.add(); const file = join(f.root, "node_modules/.package-lock.json"); const before = await snapshotInstallTree(f.root);
     expect(installTreeRestored(before, [{ ...before[0], integrity: "different" }], true)).toBe(false);
     expect(installTreeRestored([{ ...before[0], integrity: undefined }], before, true)).toBe(true);
-    expect(() => assertTreePins(before, [{ ...before[0], integrity: "different" }], [], new Set(), "1.0.0", true)).toThrow(/changed/);
+    expect(() => assertTreePins(before, [{ ...before[0], integrity: "different" }], [], new Set([before[0]!.name]), "1.0.0", true)).toThrow(/changed/);
     await unlink(file); await symlink(join(f.root, "node_modules/@nodetool-ai/fixture-nodes"), join(f.root, "node_modules/linked"), "junction");
     await expect(readInstallTree(f.root, true)).rejects.toThrow(/linked package/);
   });
