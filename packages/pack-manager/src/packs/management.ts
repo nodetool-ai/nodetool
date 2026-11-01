@@ -6,7 +6,7 @@ import type { InstalledPackSnapshot } from "./installed.js";
 
 export interface PackListRow {
   readonly id: string;
-  readonly kind: "core" | "node-pack" | "cli-feature" | "runtime-library";
+  readonly kind: "core" | "node-pack" | "cli-feature" | "preset-pack" | "runtime-library";
   readonly installed: boolean;
   readonly version: string | null;
   readonly installBytes: number | null;

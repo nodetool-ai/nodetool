@@ -18971,6 +18971,7 @@
     "fallbackWarning": "No tuned wording for this model: {{names}}. The default wording is used instead."
   },
   "preset_picker": {
+    "author": "By {{author}}",
     "searchPlaceholder": "Search presets",
     "searchLabel": "Search presets",
     "kindLabel": "Preset kind",

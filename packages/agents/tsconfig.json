@@ -87,6 +87,9 @@
     },
     {
       "path": "../presets"
+    },
+    {
+      "path": "../pack-core"
     }
   ]
 }

@@ -45,6 +45,9 @@
     },
     {
       "path": "../config"
+    },
+    {
+      "path": "../pack-core"
     }
   ]
 }

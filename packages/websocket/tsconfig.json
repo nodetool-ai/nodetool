@@ -169,6 +169,9 @@
     },
     {
       "path": "../error-trace-services"
+    },
+    {
+      "path": "../pack-core"
     }
   ]
 }

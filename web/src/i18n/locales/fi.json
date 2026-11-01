@@ -18971,6 +18971,7 @@
     "fallbackWarning": "Tälle mallille ei ole sovitettua muotoilua: {{names}}. Käytössä on oletusmuotoilu."
   },
   "preset_picker": {
+    "author": "Tekijä: {{author}}",
     "searchPlaceholder": "Hae esiasetuksia",
     "searchLabel": "Hae esiasetuksia",
     "kindLabel": "Esiasetuksen tyyppi",

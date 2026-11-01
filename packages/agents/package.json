@@ -58,7 +58,8 @@
     "subtitle": "^4.2.2",
     "turndown": "^7.2.2",
     "@nodetool-ai/sandbox-runtime": "*",
-    "@nodetool-ai/presets": "*"
+    "@nodetool-ai/presets": "*",
+    "@nodetool-ai/pack-core": "*"
   },
   "devDependencies": {
     "@llamaindex/liteparse": "^1.5.2",

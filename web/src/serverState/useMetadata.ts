@@ -1,3 +1,4 @@
+import { loadRuntimePresetCatalog } from "../lib/presets/loadRuntimeCatalog";
 import { NodeTypes } from "@xyflow/react";
 import { restFetch } from "../lib/rest-fetch";
 import { UnifiedModel, NodeMetadata } from "../stores/ApiTypes";
@@ -102,6 +103,7 @@ export const prefetchMetadata = (): void => {
 export const loadMetadata = async (): Promise<"success" | "error"> => {
   // Take the prefetch at most once; later reloads (package changes, etc.)
   // fetch fresh so a consumed response body is never read twice.
+  await loadRuntimePresetCatalog();
   const pending = prefetchedResponse;
   prefetchedResponse = null;
   const baseNodeReady = loadBaseNode();

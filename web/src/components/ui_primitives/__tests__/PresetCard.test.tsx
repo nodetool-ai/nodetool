@@ -36,6 +36,17 @@ describe("PresetCard", () => {
     expect(container.querySelector("img")).toHaveAttribute("src", PREVIEW.poster);
   });
 
+  it("renders untrusted author and preset text as plain text", () => {
+    const author = "<img src=x onerror=alert(1)>";
+    const { container } = renderCard({ preset: makePreset("camera.community", {
+      name: "<script>alert(1)</script>", description: "<b>untrusted</b>", author
+    }) });
+    expect(screen.getByRole("button", { name: "<script>alert(1)</script>" })).toBeInTheDocument();
+    expect(screen.getByText("By " + author)).toBeInTheDocument();
+    expect(container.querySelector("script")).toBeNull();
+    expect(container.querySelector("img")).toBeNull();
+  });
+
   it("plays a muted loop on hover and stops on leave", () => {
     const { container } = renderCard();
     const card = screen.getByRole("button", { name: "dolly" });

@@ -226,6 +226,9 @@ const PresetCardInner = forwardRef<HTMLButtonElement, PresetCardProps>(
                   </Caption>
                 ) : null}
               </FlexRow>
+              {preset.author ? (
+                <Caption color="secondary">{t("preset_picker.author", { author: preset.author })}</Caption>
+              ) : null}
               {families.length > 0 ? (
                 <FlexRow wrap gap={SPACING.xs}>
                   {families.map((family) => (

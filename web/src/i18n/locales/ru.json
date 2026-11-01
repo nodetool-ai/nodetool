@@ -19585,6 +19585,7 @@
     "fallbackWarning": "Для этой модели нет настроенной формулировки: {{names}}. Вместо неё используется стандартная."
   },
   "preset_picker": {
+    "author": "Автор: {{author}}",
     "searchPlaceholder": "Поиск пресетов",
     "searchLabel": "Поиск пресетов",
     "kindLabel": "Тип пресета",

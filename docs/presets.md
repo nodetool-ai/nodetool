@@ -369,3 +369,42 @@ instructions. Restyles describe the whole frame in the target medium. These
 fragments compile independently of `families`, which records tested eligibility.
 Local eligibility and rendered previews remain P24 work. Local Wan 2.1/2.2 does
 not select the Wan 2.6 prompting guide, whose shot controls are version-specific.
+
+## Community preset packs
+
+Install a local data-only directory with `nodetool packs presets add ./my-pack`.
+Use `nodetool packs presets list` to list installed packs and
+`nodetool packs presets remove <id>` to remove one. These commands use the
+same NodeTool data directory as the server. Reload the web app after changing
+packs. The server and CLI read the current catalogue for each request.
+`nodetool presets list` and the agent preset tools include installed presets.
+
+A directory contains `preset-pack.json` and its declared preset JSON files:
+
+```json
+{
+  "kind": "preset-pack",
+  "id": "my-moves",
+  "version": 1,
+  "presets": ["orbit.json"]
+}
+```
+
+Each preset follows the generation preset schema and requires an `author`.
+Pack ids and preset ids must be unique. Names and aliases cannot shadow another
+preset. Pack presets cannot contain `workflow`, and studio launch targets are
+not supported in packs. Only declared, non-executable regular JSON files are
+accepted. Scripts, binaries, code, symlinks, dependency declarations and npm
+manifests are refused. Installation never invokes npm or runs scripts.
+
+Names are limited to 160 characters, descriptions to 2,048 and each prompt
+clause to 4,096. Prompt fragments are untrusted provider input: they can steer
+or replace the generation prompt. Review a pack before using it. They cannot
+execute application code or supply workflow graphs. The compiler keeps its
+three-preset limit and forwards only the supported generation parameter keys.
+Preview and poster URLs must use HTTPS without credentials and render through
+the normal media components. External preview hosts receive browser requests.
+
+Cards show the author's name. Removing a pack keeps saved board selections,
+but rendering a removed preset reports its unknown id. Reinstall the pack or
+remove that selection before rendering again.

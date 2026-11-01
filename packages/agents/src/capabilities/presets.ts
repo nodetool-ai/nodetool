@@ -1,7 +1,6 @@
 import { z } from "zod";
-import { loadPackageAssetJson } from "@nodetool-ai/config";
+import { runtimePresetCatalog } from "@nodetool-ai/pack-core/preset-catalog";
 import {
-  loadCatalog,
   compileMediaPresets,
   catalogKindSchema,
   listCatalog,
@@ -10,14 +9,7 @@ import {
 } from "@nodetool-ai/presets";
 import type { CapabilityModule } from "./types.js";
 import { presetsSpecs } from "./presets.specs.js";
-export function presetCatalog() {
-  return loadCatalog(() =>
-    loadPackageAssetJson(
-      { pkg: "@nodetool-ai/presets", path: "preset-catalog.json" },
-      import.meta.url
-    )
-  );
-}
+export const presetCatalog = runtimePresetCatalog;
 export const module: CapabilityModule = {
   module: "presets",
   exports: presetsSpecs.map((spec) => ({
