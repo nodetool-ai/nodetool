@@ -137,17 +137,14 @@ describe("managed runtime diagnostics", () => {
     expect(desired).toMatchObject({ healthy: false, issues: [expect.objectContaining({ kind: "integrity" })] });
   }, 30_000);
 
-  it("rejects an npm install that rewrites a synthetic compiler integrity pin", async () => {
+  it("accepts an npm install that rewrites an incidental compiler integrity", async () => {
     const f = await compilerFixture("0.28.2");
     vi.spyOn(process.stderr, "write").mockImplementation(() => true);
     await utimes(join(f.root, "node_modules/.package-lock.json"), 0, 0);
-    await expect((await f.service()).add(["fixture"], { yes: true })).rejects.toMatchObject({
-      message: expect.stringContaining("rollback did not restore the tree"),
-      cause: expect.objectContaining({ message: "Install changed an existing package: node_modules/esbuild" })
-    });
+    await expect((await f.service()).add(["fixture"], { yes: true })).resolves.toBeUndefined();
     const lock = JSON.parse(await readFile(join(f.root, "node_modules/.package-lock.json"), "utf8"));
     expect(lock.packages["node_modules/esbuild"]?.integrity).not.toBe("compiler-integrity");
-    expect((await readDesiredState(f.request.stateFile))[f.root].dirty).toBe(true);
+    expect((await readDesiredState(f.request.stateFile))[f.root].dirty).not.toBe(true);
   }, 30_000);
 
   it("requires declared runtimes for independently installed core and node packs", async () => {
