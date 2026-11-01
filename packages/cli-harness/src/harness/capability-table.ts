@@ -20,7 +20,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "list_presets",
     module: "presets",
     impl: "packages/agents/src/capabilities/presets.ts",
-    contract: "8ca515f09ba8",
+    contract: "5e6dfff89d77",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-presets.test.ts",
@@ -30,7 +30,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "get_preset",
     module: "presets",
     impl: "packages/agents/src/capabilities/presets.ts",
-    contract: "b54945a7bfb2",
+    contract: "71dd887aea22",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-presets.test.ts",
@@ -40,7 +40,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "compile_presets",
     module: "presets",
     impl: "packages/agents/src/capabilities/presets.ts",
-    contract: "d2970848c4fa",
+    contract: "48f8dad1ff5d",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-presets.test.ts",
