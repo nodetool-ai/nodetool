@@ -19,12 +19,12 @@
   "conflicts": [],
   "aliases": [],
   "prompt": {
-    "default": "Redraw every frame, from the very first, as hand-drawn 2D anime: clean black ink outlines, flat cel-shaded colors and painted backgrounds. No photographic texture remains. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+    "default": "The source video remade from scratch as a hand-drawn 2D anime film. Every object, the architecture, the plants, the ground and the sky are redrawn with clean ink outlines, flat cel-shaded color and painted backgrounds. Not live action, not a photograph, not CGI. Only the layout, action and camera move of the source video stay the same."
   },
   "params": {},
   "preview": {
-    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-anime/5276f5a454b3626169df07375f1d86b71f2bcbd7edfed300f14dc56dfb85054b.mp4",
-    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-anime/5276f5a454b3626169df07375f1d86b71f2bcbd7edfed300f14dc56dfb85054b-late.png",
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-anime/7b07a72178ff32015dca04a0826f0c8c31866c9ce1257195ddb724b4ee335d5a.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-anime/7b07a72178ff32015dca04a0826f0c8c31866c9ce1257195ddb724b4ee335d5a-late.png",
     "run": "runs/effect.restyle-anime.json"
   }
 }

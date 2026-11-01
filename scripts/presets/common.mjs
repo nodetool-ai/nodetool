@@ -27,7 +27,11 @@ export const SCENE_OVERRIDES = {
   'look.ramp-into-slow': DOVES,
   'look.ramp-out-of-slow': DOVES,
   'look.impact-ramp': `${prompt} A heavy stone ball drops from above onto the gravel beside the plinth and throws up a burst of dust and pebbles. The camera stays locked off.`,
-  'look.bleach-bypass': LOCKED
+  'look.bleach-bypass': LOCKED,
+  // A photoreal scene description pulls a restyle back toward photographs. The source video supplies the scene.
+  'effect.restyle-anime': '',
+  'effect.restyle-clay': '',
+  'effect.restyle-oil-painting': ''
 };
 export function options(args = process.argv.slice(2)) {
   const { values } = parseArgs({ args, options: {

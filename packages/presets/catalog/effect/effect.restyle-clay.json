@@ -19,12 +19,12 @@
   "conflicts": [],
   "aliases": [],
   "prompt": {
-    "default": "Redraw every frame, from the very first, as stop-motion clay animation: every surface is hand-sculpted plasticine with visible fingerprints and rounded forms, lit by soft studio light. No photographic texture remains. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+    "default": "The source video remade from scratch as a stop-motion claymation film on a miniature set. All real materials are replaced with plasticine: foliage becomes lumps of clay, stone and walls become smooth clay slabs, the ground becomes rolled clay and the sky a painted clay backdrop, with chunky simplified shapes and visible fingerprints. Not live action, not a photograph, not CGI. Only the layout, action and camera move of the source video stay the same."
   },
   "params": {},
   "preview": {
-    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-clay/6dd658ecea8886a9812cf632416effe4b82df9eb6cafd8c542a1fb0eaa13d5ac.mp4",
-    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-clay/6dd658ecea8886a9812cf632416effe4b82df9eb6cafd8c542a1fb0eaa13d5ac-late.png",
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-clay/809401009996ca8528142df755fcaefaff864dd35168b456db6494156a22519a.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-clay/809401009996ca8528142df755fcaefaff864dd35168b456db6494156a22519a-late.png",
     "run": "runs/effect.restyle-clay.json"
   }
 }

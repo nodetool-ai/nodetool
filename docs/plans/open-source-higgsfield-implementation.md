@@ -597,20 +597,97 @@ Status: done. Restyles render as Seedance reference-to-video on the dolly-in pre
 - Render and publish previews for the P14 looks and the P19 restyle presets
   through `scripts/presets`, then require previews for every kind again.
 
-## Phase 3 outline
+## Phase 3 tickets
 
-1. **Community preset packs.** A pack is a directory of preset files plus a
-   manifest, installed through the pack manager. Publishing is a pull request
-   to a registry repository. Cards show `author`. Remote packs never carry
-   executable code, and their preview URLs go through the media resolution
-   boundary.
-2. **Local-first presets.** A `local-wan` fragment for every camera and effect
-   preset, tuned and previewed on the local runtime.
-3. **Eject everywhere.** Studios and storyboard renders carry the preset ids,
-   so every run can eject.
-4. **Showcase.** Marketing pages list runs with their preset and model, read
-   from run records.
-5. **Shared projects.** Follows [multiplayer-design.md](../multiplayer-design.md).
+Phase 2 has shipped, so the Phase 3 outline is now these tickets.
+
+### Dependency graph
+
+```
+P21 Preset packs ──── P22 Pack authoring and registry
+P23 Local-first presets ──── P24 Local tuning and previews (needs a Wan2GP server)
+P25 Eject everywhere
+P26 Showcase
+P27 Shared projects (needs the multiplayer design reviewed)
+```
+
+### P21: Preset packs
+
+- A preset pack is a directory of preset files plus a manifest, installed
+  through the pack manager as a new pack kind. It holds data only: installing
+  one runs no scripts, and a pack preset cannot name a `workflow` graph.
+- Pack presets join the catalogue at runtime on the server and in the web, and
+  ids must not collide with the built-in catalogue or another pack. Removing a
+  pack removes its presets. A saved board or request that names a removed preset
+  gets a clear error rather than a silent drop.
+- Cards show `author`. Remote preview URLs must be `https` and go through the
+  media resolution boundary. Agent tools and the CLI list pack presets.
+
+Acceptance: install, list, compile and remove one fixture pack end to end. Tests
+that reject a pack with a script, a `workflow` field, a colliding id or a
+non-`https` preview.
+
+### P22: Pack authoring and registry
+
+- `nodetool presets pack init` and `pack validate`, using the same checks as
+  installation.
+- Browse and install packs from a registry index at a configured URL. Publishing
+  is a pull request to the registry repository. Creating that repository is a
+  separate decision and is not part of this ticket.
+- A guide for pack authors.
+
+Acceptance: `pack validate` fails on each invalid fixture. Browse and install
+work against a local fixture index.
+
+### P23: Local-first presets
+
+- Map real Wan2GP model ids to the `local-wan` family. The current pattern only
+  matches ids that start with `local-wan`, and no Wan2GP model has such an id.
+  The [nodetool-wan2gp](https://github.com/nodetool-ai/nodetool-wan2gp) provider
+  adapter reports provider `wangp` and uses `model_type` as the id: `t2v`, `i2v`,
+  `t2v_2_2`, `i2v_2_2`, `ti2v_2_2`. A Wan2GP server also offers models outside
+  the Wan line, so match only Wan model types.
+- Write a `local-wan` fragment for every camera and effect preset, following the
+  `wan-2-6-prompting` skill. Do not add `local-wan` to a preset's `families`
+  until P24 has tested it.
+
+Acceptance: compile tests for every camera and effect preset on a Wan2GP model
+id.
+
+### P24: Local tuning and previews
+
+Needs a running Wan2GP server. Tune the P23 fragments, render previews on the
+local runtime and add `local-wan` to `families` for each preset that passes.
+This also answers Q3: which Wan2GP model, if any, becomes the local default.
+NodeTool may connect to a Wan2GP server the user runs, but WanGP's license does
+not allow embedding it in a paid product without a separate license, so check
+the [notice](https://github.com/nodetool-ai/nodetool-wan2gp/blob/main/NOTICE.md)
+before any bundling.
+
+### P25: Eject everywhere
+
+- Every generation that used presets can open as a workflow: storyboard stills
+  and clips, Create, Effects and restyles. A storyboard render records the camera
+  and look ids it compiled, and the shot and its takes offer **Open as workflow**.
+- Lipsync runs eject to a speech and lipsync graph.
+
+Acceptance: an ejected graph for a storyboard clip with stacked camera and look
+presets passes `nodetool validate` and matches the prompt the render sent.
+
+### P26: Showcase
+
+- A marketing page lists preset runs with preset and model, generated from
+  `packages/presets/runs` and the catalogue with a `--check` drift mode.
+- The page shows only facts the records hold. It leaves out local paths and
+  Dreamina credits, which are not a list price.
+
+Acceptance: `npm --prefix marketing run seo:check`, `typecheck` and `lint` pass,
+and the generated data is in sync.
+
+### P27: Shared projects
+
+Follows [multiplayer-design.md](../multiplayer-design.md). That design is still a
+draft awaiting review, so this ticket starts after that review.
 
 ## Verification
 

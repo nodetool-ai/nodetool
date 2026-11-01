@@ -20,7 +20,7 @@
         "id": "template",
         "type": "nodetool.text.Template",
         "data": {
-          "string": "{{ prompt }} Redraw every frame, from the very first, as hand-drawn 2D anime: clean black ink outlines, flat cel-shaded colors and painted backgrounds. No photographic texture remains. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+          "string": "{{ prompt }} The source video remade from scratch as a hand-drawn 2D anime film. Every object, the architecture, the plants, the ground and the sky are redrawn with clean ink outlines, flat cel-shaded color and painted backgrounds. Not live action, not a photograph, not CGI. Only the layout, action and camera move of the source video stay the same."
         },
         "position": {
           "x": 380,
@@ -100,16 +100,16 @@
       }
     ]
   },
-  "workflow_hash": "5276f5a454b3626169df07375f1d86b71f2bcbd7edfed300f14dc56dfb85054b",
+  "workflow_hash": "7b07a72178ff32015dca04a0826f0c8c31866c9ce1257195ddb724b4ee335d5a",
   "provider": "dreamina",
   "model": "dreamina_seedance_45_pro_draft",
   "seed": 20261031,
-  "prompt": "A large bronze ring sculpture with a twisted open loop and a green-gold patina on a rough travertine plinth in a sunlit Mediterranean stone courtyard, olive trees in terracotta pots in the foreground, an arched colonnade behind, cypress trees and mountains in the distance, golden late-afternoon light. Redraw every frame, from the very first, as hand-drawn 2D anime: clean black ink outlines, flat cel-shaded colors and painted backgrounds. No photographic texture remains. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames.",
+  "prompt": "The source video remade from scratch as a hand-drawn 2D anime film. Every object, the architecture, the plants, the ground and the sky are redrawn with clean ink outlines, flat cel-shaded color and painted backgrounds. Not live action, not a photograph, not CGI. Only the layout, action and camera move of the source video stay the same.",
   "source_hash": "6355a4c168b5136eb1442682cb678d77b8333929ba76755a5395b953ab6dd700",
   "source_url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.dolly-in/f71a51ff8637b65add4e4fb86cf57aa8ab9bce70cc6024f2c6d903fb5ff5ea90.mp4",
   "credits": null,
   "cost_usd": null,
-  "started_at": "2026-11-01T09:05:26.572Z",
-  "finished_at": "2026-11-01T09:07:19.172Z",
+  "started_at": "2026-11-01T12:30:57.630Z",
+  "finished_at": "2026-11-01T12:32:43.591Z",
   "output_path": "/home/mg/.cache/nodetool/preset-previews/effect.restyle-anime-dreamina_seedance_45_pro_draft.mp4"
 }

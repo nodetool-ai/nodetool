@@ -2160,12 +2160,12 @@
     "conflicts": [],
     "aliases": [],
     "prompt": {
-      "default": "Redraw every frame, from the very first, as hand-drawn 2D anime: clean black ink outlines, flat cel-shaded colors and painted backgrounds. No photographic texture remains. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+      "default": "The source video remade from scratch as a hand-drawn 2D anime film. Every object, the architecture, the plants, the ground and the sky are redrawn with clean ink outlines, flat cel-shaded color and painted backgrounds. Not live action, not a photograph, not CGI. Only the layout, action and camera move of the source video stay the same."
     },
     "params": {},
     "preview": {
-      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-anime/5276f5a454b3626169df07375f1d86b71f2bcbd7edfed300f14dc56dfb85054b.mp4",
-      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-anime/5276f5a454b3626169df07375f1d86b71f2bcbd7edfed300f14dc56dfb85054b-late.png",
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-anime/7b07a72178ff32015dca04a0826f0c8c31866c9ce1257195ddb724b4ee335d5a.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-anime/7b07a72178ff32015dca04a0826f0c8c31866c9ce1257195ddb724b4ee335d5a-late.png",
       "run": "runs/effect.restyle-anime.json"
     }
   },
@@ -2190,12 +2190,12 @@
     "conflicts": [],
     "aliases": [],
     "prompt": {
-      "default": "Redraw every frame, from the very first, as stop-motion clay animation: every surface is hand-sculpted plasticine with visible fingerprints and rounded forms, lit by soft studio light. No photographic texture remains. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+      "default": "The source video remade from scratch as a stop-motion claymation film on a miniature set. All real materials are replaced with plasticine: foliage becomes lumps of clay, stone and walls become smooth clay slabs, the ground becomes rolled clay and the sky a painted clay backdrop, with chunky simplified shapes and visible fingerprints. Not live action, not a photograph, not CGI. Only the layout, action and camera move of the source video stay the same."
     },
     "params": {},
     "preview": {
-      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-clay/6dd658ecea8886a9812cf632416effe4b82df9eb6cafd8c542a1fb0eaa13d5ac.mp4",
-      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-clay/6dd658ecea8886a9812cf632416effe4b82df9eb6cafd8c542a1fb0eaa13d5ac-late.png",
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-clay/809401009996ca8528142df755fcaefaff864dd35168b456db6494156a22519a.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-clay/809401009996ca8528142df755fcaefaff864dd35168b456db6494156a22519a-late.png",
       "run": "runs/effect.restyle-clay.json"
     }
   },
@@ -2310,12 +2310,12 @@
     "conflicts": [],
     "aliases": [],
     "prompt": {
-      "default": "Repaint every frame, from the very first, as a thick oil painting: heavy impasto brushstrokes, layered pigment and visible canvas weave. No photographic texture remains. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+      "default": "The source video remade from scratch as a moving oil painting on canvas. Every object, the architecture, the plants, the ground and the sky are built from thick visible impasto brushstrokes, with loose simplified forms, broken color and ridged paint. Not live action, not a photograph, not CGI. Only the layout, action and camera move of the source video stay the same."
     },
     "params": {},
     "preview": {
-      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-oil-painting/dd596d77ca34af8f1dda6e50b0b2a53e5b25376ee9297812c60590030a92066d.mp4",
-      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-oil-painting/dd596d77ca34af8f1dda6e50b0b2a53e5b25376ee9297812c60590030a92066d-late.png",
+      "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-oil-painting/b7ab6ab130ffde0118b2a0a083f8f1a1c8e2a3456ed34a961f91488a5a89e859.mp4",
+      "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-oil-painting/b7ab6ab130ffde0118b2a0a083f8f1a1c8e2a3456ed34a961f91488a5a89e859-late.png",
       "run": "runs/effect.restyle-oil-painting.json"
     }
   },

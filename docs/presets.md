@@ -132,7 +132,7 @@ Effect cards, camera cards and the picker are `PresetCard` and `PresetPicker` in
 
 ## Video restyles
 
-Choose Retake in the chat composer, attach a video and select a restyle from the preset chip. Anime, watercolor, clay animation, pixel art, oil painting, comic book, film noir and neon treatments preserve source action and timing. These are `effect` presets with `modes: ["video_edit"]` and `inputs: ["video"]`. They are excluded from the image-input Effects gallery.
+Choose Retake in the chat composer, attach a video and select a restyle from the preset chip. Anime, watercolor, clay animation, pixel art, oil painting, comic book, film noir and neon treatments preserve source action and timing. These are `effect` presets with `modes: ["video_edit"]` and `inputs: ["video"]`. They are excluded from the image-input Effects gallery. Keep your own prompt short or leave it empty: it goes ahead of the restyle wording, and a photoreal description pulls the result back toward a photograph.
 
 RPC callers use `generate_media` with `mode: "video_edit"` and `preset_ids`. Agents can pass `preset_ids` to `revise_storyboard_clip`.
 

@@ -49,8 +49,9 @@ in the record is the reference-to-video graph that rendered it, not the
 A look or restyle takes its poster from 2.5 seconds into the clip, because its
 treatment shows better there than in the first frame. `SCENE_OVERRIDES` in
 `common.mjs` gives a preset its own scene when the still courtyard cannot show it:
-the speed ramps add birds or an impact, and a look that reframed the shot adds a
-locked-off camera.
+the speed ramps add birds or an impact, a look that reframed the shot adds a
+locked-off camera, and the reworded restyles send no scene, because a photoreal
+description pulls them back toward a photograph.
 
 Run records live at `packages/presets/runs/<id>.json`. Completed records matching
 the prompt, model, graph, source hash and seed are skipped. Interrupted records

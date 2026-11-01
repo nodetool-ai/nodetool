@@ -19,12 +19,12 @@
   "conflicts": [],
   "aliases": [],
   "prompt": {
-    "default": "Repaint every frame, from the very first, as a thick oil painting: heavy impasto brushstrokes, layered pigment and visible canvas weave. No photographic texture remains. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+    "default": "The source video remade from scratch as a moving oil painting on canvas. Every object, the architecture, the plants, the ground and the sky are built from thick visible impasto brushstrokes, with loose simplified forms, broken color and ridged paint. Not live action, not a photograph, not CGI. Only the layout, action and camera move of the source video stay the same."
   },
   "params": {},
   "preview": {
-    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-oil-painting/dd596d77ca34af8f1dda6e50b0b2a53e5b25376ee9297812c60590030a92066d.mp4",
-    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-oil-painting/dd596d77ca34af8f1dda6e50b0b2a53e5b25376ee9297812c60590030a92066d-late.png",
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-oil-painting/b7ab6ab130ffde0118b2a0a083f8f1a1c8e2a3456ed34a961f91488a5a89e859.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-oil-painting/b7ab6ab130ffde0118b2a0a083f8f1a1c8e2a3456ed34a961f91488a5a89e859-late.png",
     "run": "runs/effect.restyle-oil-painting.json"
   }
 }
