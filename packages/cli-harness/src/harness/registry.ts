@@ -1312,6 +1312,130 @@ export const HARNESSES: HarnessEntry[] = [
         "npm run test --workspace=packages/execution -- execution-session-hydration-audit",
       cost: "cheap"
     }
+  },
+  {
+    id: "native-chat",
+    title: "Native chat model, wire conformance and Qt Quick interactions",
+    command: "node native/chat/scripts/check.mjs",
+    kind: "execution",
+    capabilities: ["no-db", "interact"],
+    docs: "native/chat/README.md"
+  },
+  {
+    id: "native-ui-design",
+    title: "Native UI presentation and dependency contracts",
+    command:
+      "python3 native/ui_primitives/tools/check_design.py --strict && " +
+      "python3 native/ui_primitives/tools/check_dependencies.py",
+    kind: "static",
+    capabilities: ["no-db"],
+    docs: "native/ui_primitives/README.md",
+    selfcheck: {
+      command:
+        "python3 native/ui_primitives/tools/check_design.py --strict && " +
+        "python3 native/ui_primitives/tools/check_dependencies.py",
+      cost: "cheap"
+    }
+  },
+  {
+    id: "native-ui-interactions",
+    title: "Native UI control interactions and accessibility actions",
+    command: "ctest --test-dir native/ui_primitives/build --output-on-failure",
+    kind: "execution",
+    capabilities: ["no-db", "interact"],
+    docs: "native/ui_primitives/README.md"
+  },
+  // Native timeline checks need Qt and media build artifacts. Dedicated native
+  // CI supplies them. The root gate lists these platform checks as manual work.
+  {
+    id: "native-timeline-bench",
+    title: "Native timeline GPU preview bench (frame timing budget)",
+    command:
+      "native/timeline/build/nodetool-timeline native/timeline/fixtures/synthetic-8.json --bench --frames 600 --size 1920x1080 --budget native/timeline/budgets/m1a.json",
+    kind: "execution",
+    capabilities: ["json", "no-db"],
+    docs: "native/timeline/README.md § Bench"
+  },
+  {
+    id: "native-timeline-plan",
+    title: "Native timeline frame plan vs the web scene model",
+    command:
+      "ctest --test-dir native/timeline/build && node native/timeline/scripts/plan-conformance.mjs --json && " +
+      "node native/timeline/scripts/plan-conformance.mjs --examples --json",
+    kind: "static",
+    capabilities: ["json", "no-db"],
+    docs: "native/timeline/README.md § Plan check"
+  },
+  {
+    id: "native-timeline-media",
+    title: "Native timeline media decode: frame numbers, colour vs timeline render, 4-track realtime bench",
+    command:
+      "node native/timeline/scripts/check-frame-numbers.mjs --json && " +
+      "node native/timeline/scripts/compare-golden.mjs native/timeline/fixtures/video-colorbars-bt709-limited.json --frames 0,45 --min-psnr 40 --json && " +
+      "native/timeline/build/nodetool-timeline native/timeline/fixtures/video-4tracks.json --bench --realtime 15 --size 1920x1080 --budget native/timeline/budgets/m1b.json",
+    kind: "execution",
+    capabilities: ["json"],
+    docs: "native/timeline/README.md § Media checks"
+  },
+  {
+    id: "native-timeline-videotoolbox",
+    title: "Native timeline VideoToolbox zero copy: Metal validation, frame numbers, 8-track and 4K benches",
+    command:
+      "native/timeline/scripts/check-metal-validation.sh && " +
+      "node native/timeline/scripts/check-frame-numbers.mjs --decode hw --json && " +
+      "native/timeline/build/nodetool-timeline native/timeline/fixtures/video-8tracks.json --bench --realtime 15 --size 1920x1080 --decode hw --on-top --budget native/timeline/budgets/m1c.json",
+    kind: "execution",
+    capabilities: ["json"],
+    docs: "native/timeline/README.md § Hardware decode"
+  },
+  {
+    id: "native-timeline-scrub",
+    title: "Native timeline scrubbing: seek latency, scrub settle, scrub cache (offscreen)",
+    command:
+      "node --test native/timeline/scripts/check-scrub.test.mjs && " +
+      "node native/timeline/scripts/check-scrub.mjs native/timeline/fixtures/video-scrub-gop.json --max-p95-ms 100 --json && " +
+      "node native/timeline/scripts/check-scrub.mjs native/timeline/fixtures/video-scrub-intra.json --max-p95-ms 30 --json",
+    kind: "execution",
+    capabilities: ["json"],
+    docs: "native/timeline/README.md § Scrub and seek"
+  },
+  {
+    id: "native-timeline-golden",
+    title: "Native timeline golden import (media fixture through timeline render --stills)",
+    command: "node native/timeline/scripts/golden-import.mjs && node native/timeline/scripts/check-group-surfaces.mjs --json",
+    kind: "execution",
+    capabilities: ["json"],
+    docs: "native/timeline/README.md § Golden import"
+  },
+  {
+    id: "native-timeline-server",
+    title: "Native timeline server read and asset cache: examples and fixtures from scratch servers, proxy states, plan, warm open",
+    command:
+      "ctest --test-dir native/timeline/build-m5 -R 'tst_assetcache|tst_serverclient' && " +
+      "node native/timeline/scripts/server-check.mjs --json",
+    kind: "execution",
+    capabilities: ["json"],
+    docs: "native/timeline/README.md § Server open"
+  },
+  {
+    id: "native-timeline-audio",
+    title: "Native timeline audio: fade curves vs TypeScript, mixer vs the web rules, audio-master clock, headless A/V sync (null device, no sound)",
+    command:
+      "ctest --test-dir native/timeline/build -R 'fade|mixer|audioclock|mix_reference|av_sync' && " +
+      "node native/timeline/scripts/check-av-sync.mjs --bin native/timeline/build/nodetool-timeline --json",
+    kind: "execution",
+    capabilities: ["json"],
+    docs: "native/timeline/README.md § Audio"
+  },
+  {
+    id: "native-timeline-package",
+    title: "Native timeline packaging and portability: unsigned macOS bundle check, portable build, Linux hardware path compile",
+    command:
+      "native/timeline/scripts/package-macos.sh && native/timeline/scripts/check-package-macos.sh && " +
+      "native/timeline/scripts/check-portable.sh",
+    kind: "execution",
+    capabilities: ["json"],
+    docs: "native/timeline/README.md § Platforms and packaging (M6)"
   }
 ];
 
@@ -2344,6 +2468,52 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/cli-harness/tests/capability-coverage.test.ts",
       "scripts/sync-capability-coverage.mjs"
     ]
+  },
+  {
+    id: "native-chat",
+    title: "Native chat component (C++/Qt Quick)",
+    harnesses: ["native-chat"],
+    paths: ["native/chat/"],
+    gap:
+      "The native check requires Qt development libraries and CMake. Dedicated native CI supplies them. " +
+      "The root gate lists it as manual work. Installed-artifact, accessibility " +
+      "and IME checks remain platform-specific."
+  },
+  {
+    id: "native-ui-primitives",
+    title: "Native Qt presentation library and migrated feature chrome",
+    harnesses: ["native-ui-design", "native-ui-interactions"],
+    paths: [
+      "native/ui_primitives/",
+      "native/chat/qml/",
+      "native/model-picker/qml/",
+      "native/timeline/qml/",
+      "native/timeline/src/"
+    ],
+    gap:
+      "The standalone native-ui-primitives workflow builds and tests with Qt on each supported OS. " +
+      "The root gate runs the Python design checks and lists Qt interaction tests as manual work. " +
+      "Screen-reader, IME and physical mixed-DPI screen checks require platform review."
+  },
+  {
+    id: "native-timeline",
+    title: "Native timeline prototype (C++/Qt/FFmpeg, native/timeline/)",
+    harnesses: [
+      "native-timeline-plan",
+      "native-timeline-bench",
+      "native-timeline-media",
+      "native-timeline-videotoolbox",
+      "native-timeline-scrub",
+      "native-timeline-golden",
+      "native-timeline-server",
+      "native-timeline-audio",
+      "native-timeline-package"
+    ],
+    paths: ["native/timeline/"],
+    gap:
+      "These checks need a Qt and media build of native/timeline/. The dedicated native-timeline " +
+      "workflow provides platform builds, while the root gate lists them as manual work. " +
+      "Hardware decode, physical window behavior and frame budgets still require a reference machine."
   }
 ];
 

@@ -1,0 +1,547 @@
+{
+  "palette": {
+    "grey400": "#808590",
+    "grey600": "#3A3D44",
+    "primaryContrast": "#fff",
+    "primaryDark": "#2a4d80"
+  },
+  "defaults": {
+    "gain": {
+      "type": "gain",
+      "enabled": true,
+      "gainDb": 0
+    },
+    "eq3": {
+      "type": "eq3",
+      "enabled": true,
+      "lowFreq": 200,
+      "lowGainDb": 0,
+      "midFreq": 1000,
+      "midQ": 1,
+      "midGainDb": 0,
+      "highFreq": 5000,
+      "highGainDb": 0
+    },
+    "filter": {
+      "type": "filter",
+      "enabled": true,
+      "mode": "lowpass",
+      "frequency": 1000,
+      "q": 1
+    },
+    "compressor": {
+      "type": "compressor",
+      "enabled": true,
+      "thresholdDb": -24,
+      "ratio": 4,
+      "attackMs": 3,
+      "releaseMs": 250,
+      "kneeDb": 30
+    },
+    "fable": {
+      "type": "fable",
+      "enabled": true,
+      "kind": "eq",
+      "params": {}
+    },
+    "colorCorrection": {
+      "type": "colorCorrection",
+      "enabled": true,
+      "brightness": 0,
+      "contrast": 1,
+      "saturation": 1,
+      "hue": 0,
+      "temperature": 0,
+      "tint": 0,
+      "shadows": 0,
+      "highlights": 0
+    },
+    "videoBlur": {
+      "type": "videoBlur",
+      "enabled": true,
+      "radius": 4
+    },
+    "sharpen": {
+      "type": "sharpen",
+      "enabled": true,
+      "amount": 0.5,
+      "threshold": 0
+    },
+    "vignette": {
+      "type": "vignette",
+      "enabled": true,
+      "intensity": 0.4,
+      "radius": 0.9,
+      "softness": 0.5
+    },
+    "chromaKey": {
+      "type": "chromaKey",
+      "enabled": true,
+      "keyColor": "#00ff00",
+      "tolerance": 0.2,
+      "softness": 0.1,
+      "spill": 0.5
+    }
+  },
+  "fableDefaults": {
+    "eq": {
+      "type": "fable",
+      "enabled": true,
+      "kind": "eq",
+      "params": {
+        "fx.eq.low": 0,
+        "fx.eq.mid": 0,
+        "fx.eq.mfreq": 900,
+        "fx.eq.high": 0,
+        "fx.eq.lfreq": 120,
+        "fx.eq.m2freq": 2500,
+        "fx.eq.hfreq": 6000,
+        "fx.eq.mid2": 0,
+        "fx.eq.lq": 0.7071067811865476,
+        "fx.eq.ltype": 0,
+        "fx.eq.lon": 1,
+        "fx.eq.mq": 0.9,
+        "fx.eq.mtype": 1,
+        "fx.eq.mon": 1,
+        "fx.eq.m2q": 0.9,
+        "fx.eq.m2type": 1,
+        "fx.eq.m2on": 1,
+        "fx.eq.hq": 0.7071067811865476,
+        "fx.eq.htype": 2,
+        "fx.eq.hon": 1
+      }
+    },
+    "ott": {
+      "type": "fable",
+      "enabled": true,
+      "kind": "ott",
+      "params": {
+        "fx.ott.depth": 0.35,
+        "fx.ott.time": 1,
+        "fx.ott.up": 1,
+        "fx.ott.down": 1
+      }
+    },
+    "comp": {
+      "type": "fable",
+      "enabled": true,
+      "kind": "comp",
+      "params": {
+        "fx.comp.thr": -18,
+        "fx.comp.att": 0.003,
+        "fx.comp.rel": 0.25,
+        "fx.comp.ratio": 4,
+        "fx.comp.schp": 20
+      }
+    },
+    "drive": {
+      "type": "fable",
+      "enabled": true,
+      "kind": "drive",
+      "params": {
+        "fx.drive.amt": 0.3,
+        "fx.drive.mix": 1,
+        "fx.drive.tone": 0,
+        "fx.drive.type": 0
+      }
+    },
+    "lab": {
+      "type": "fable",
+      "enabled": true,
+      "kind": "lab",
+      "params": {
+        "fx.crush.on": 1,
+        "fx.crush.bits": 6,
+        "fx.crush.rate": 6000,
+        "fx.crush.chaos": 0.2,
+        "fx.crush.mix": 1,
+        "fx.reso.on": 0,
+        "fx.reso.note": 48,
+        "fx.reso.chord": 2,
+        "fx.reso.decay": 0.7,
+        "fx.reso.mix": 0.5,
+        "fx.shift.on": 0,
+        "fx.shift.hz": 60,
+        "fx.shift.fb": 0.5,
+        "fx.shift.spread": 0.5,
+        "fx.shift.mix": 0.5,
+        "fx.spray.on": 0,
+        "fx.spray.pitch": 12,
+        "fx.spray.density": 12,
+        "fx.spray.scatter": 0.4,
+        "fx.spray.mix": 0.45,
+        "fx.glitch.on": 0,
+        "fx.glitch.div": 2,
+        "fx.glitch.chance": 0.35,
+        "fx.glitch.drift": 0,
+        "fx.glitch.mix": 1
+      }
+    },
+    "chorus": {
+      "type": "fable",
+      "enabled": true,
+      "kind": "chorus",
+      "params": {
+        "fx.chorus.rate": 0.6,
+        "fx.chorus.depth": 0.5,
+        "fx.chorus.mix": 0.5
+      }
+    },
+    "echo": {
+      "type": "fable",
+      "enabled": true,
+      "kind": "echo",
+      "params": {
+        "fx.delay.time": 0.36,
+        "fx.delay.fb": 0.35,
+        "fx.delay.mix": 0.3,
+        "fx.delay.tone": 4500,
+        "fx.delay.sat": 0.2,
+        "fx.delay.wow": 0.18,
+        "fx.delay.flutter": 0.12,
+        "fx.delay.width": 1,
+        "fx.delay.mode": 0,
+        "fx.delay.sync": 0,
+        "fx.delay.div": 3
+      }
+    },
+    "reverb": {
+      "type": "fable",
+      "enabled": true,
+      "kind": "reverb",
+      "params": {
+        "fx.reverb.size": 0.5,
+        "fx.reverb.mix": 0.3
+      }
+    },
+    "limiter": {
+      "type": "fable",
+      "enabled": true,
+      "kind": "limiter",
+      "params": {
+        "fx.limit.gain": 0,
+        "fx.limit.ceil": -1,
+        "fx.limit.rel": 0.1
+      }
+    }
+  },
+  "strings": {
+    "labels": {
+      "gain": "Gain",
+      "eq3": "3-Band EQ",
+      "filter": "Filter",
+      "compressor": "Compressor",
+      "colorCorrection": "Color",
+      "videoBlur": "Blur",
+      "sharpen": "Sharpen",
+      "vignette": "Vignette",
+      "chromaKey": "Chroma key",
+      "eq": "EQ",
+      "ott": "OTT",
+      "comp": "Compressor",
+      "drive": "Drive",
+      "lab": "Lab",
+      "chorus": "Chorus",
+      "echo": "Tape echo",
+      "reverb": "Reverb",
+      "limiter": "Limiter"
+    },
+    "parameters": {
+      "gainDb": "Gain",
+      "frequency": "Frequency",
+      "q": "Q",
+      "attackMs": "Attack",
+      "releaseMs": "Release",
+      "kneeDb": "Knee",
+      "brightness": "Brightness",
+      "contrast": "Contrast",
+      "saturation": "Saturation",
+      "hue": "Hue",
+      "temperature": "Temperature",
+      "tint": "Tint",
+      "shadows": "Shadows",
+      "highlights": "Highlights",
+      "radius": "Radius",
+      "amount": "Amount",
+      "threshold": "Threshold",
+      "intensity": "Intensity",
+      "softness": "Softness",
+      "tolerance": "Tolerance",
+      "spill": "Spill",
+      "thresholdDb": "Threshold"
+    },
+    "mode": "Mode",
+    "filter": {
+      "lowPass": "Low-pass",
+      "highPass": "High-pass",
+      "bandPass": "Band-pass"
+    },
+    "eq": {
+      "band": "{{band}} band",
+      "bands": {
+        "low": "Low",
+        "mid": "Mid",
+        "high": "High"
+      },
+      "lowShelf": "Low shelf",
+      "midPeak": "Mid peak",
+      "highShelf": "High shelf",
+      "curveHelp": "Drag handles to set frequency & gain. Scroll on the mid handle to change Q.",
+      "curveHint": "Drag bands · scroll mid for Q"
+    },
+    "frequencyShort": "Freq",
+    "q": "Q",
+    "compressor": {
+      "ratio": "Ratio",
+      "curveHelp": "Drag T to set threshold, R to set ratio. Scroll on T to change knee width.",
+      "curveHint": "Drag T = threshold · R = ratio · scroll T = knee"
+    },
+    "chromaKeyColor": "Key color",
+    "reorderHelp": "Drag to reorder, or use Alt + arrow keys",
+    "reorder": "Reorder {{label}} effect",
+    "removeHelp": "Remove effect",
+    "remove": "Remove {{label}} effect",
+    "fxChain": "FX chain",
+    "dspChain": "DSP chain",
+    "add": "Add",
+    "emptyPrefix": "No effects. Click",
+    "emptySuffix": "to insert one."
+  },
+  "widths": {
+    "gain": 200,
+    "eq3": 420,
+    "filter": 240,
+    "compressor": 380,
+    "fable": 320,
+    "colorCorrection": 320,
+    "videoBlur": 220,
+    "sharpen": 240,
+    "vignette": 260,
+    "chromaKey": 280
+  },
+  "fableWidths": {
+    "eq": 440,
+    "ott": 440,
+    "comp": 440,
+    "drive": 320,
+    "lab": 1080,
+    "chorus": 320,
+    "echo": 320,
+    "reverb": 320,
+    "limiter": 320
+  },
+  "knobs": {
+    "gain": [
+      {
+        "key": "gainDb",
+        "label": "Gain",
+        "min": -24,
+        "max": 24,
+        "step": 0.1,
+        "unit": "dB",
+        "digits": 1
+      }
+    ],
+    "eq3": [],
+    "filter": [
+      {
+        "key": "frequency",
+        "label": "Frequency",
+        "min": 20,
+        "max": 20000,
+        "step": 10,
+        "unit": "Hz"
+      },
+      {
+        "key": "q",
+        "label": "Q",
+        "min": 0.1,
+        "max": 20,
+        "step": 0.1,
+        "digits": 1
+      }
+    ],
+    "compressor": [
+      {
+        "key": "attackMs",
+        "label": "Attack",
+        "min": 0,
+        "max": 500,
+        "step": 1,
+        "unit": "ms"
+      },
+      {
+        "key": "releaseMs",
+        "label": "Release",
+        "min": 0,
+        "max": 2000,
+        "step": 1,
+        "unit": "ms"
+      },
+      {
+        "key": "kneeDb",
+        "label": "Knee",
+        "min": 0,
+        "max": 40,
+        "step": 0.5,
+        "unit": "dB",
+        "digits": 1
+      }
+    ],
+    "fable": [],
+    "colorCorrection": [
+      {
+        "key": "brightness",
+        "label": "Brightness",
+        "min": -1,
+        "max": 1,
+        "step": 0.01
+      },
+      {
+        "key": "contrast",
+        "label": "Contrast",
+        "min": 0,
+        "max": 4,
+        "step": 0.01
+      },
+      {
+        "key": "saturation",
+        "label": "Saturation",
+        "min": 0,
+        "max": 4,
+        "step": 0.01
+      },
+      {
+        "key": "hue",
+        "label": "Hue",
+        "min": -180,
+        "max": 180,
+        "step": 1,
+        "unit": "°"
+      },
+      {
+        "key": "temperature",
+        "label": "Temp",
+        "min": -1,
+        "max": 1,
+        "step": 0.01
+      },
+      {
+        "key": "tint",
+        "label": "Tint",
+        "min": -1,
+        "max": 1,
+        "step": 0.01
+      },
+      {
+        "key": "shadows",
+        "label": "Shadows",
+        "min": -1,
+        "max": 1,
+        "step": 0.01
+      },
+      {
+        "key": "highlights",
+        "label": "Highlights",
+        "min": -1,
+        "max": 1,
+        "step": 0.01
+      }
+    ],
+    "videoBlur": [
+      {
+        "key": "radius",
+        "label": "Radius",
+        "min": 0,
+        "max": 40,
+        "step": 0.5,
+        "unit": "px",
+        "digits": 1
+      }
+    ],
+    "sharpen": [
+      {
+        "key": "amount",
+        "label": "Amount",
+        "min": 0,
+        "max": 2,
+        "step": 0.01
+      },
+      {
+        "key": "threshold",
+        "label": "Threshold",
+        "min": 0,
+        "max": 1,
+        "step": 0.01
+      }
+    ],
+    "vignette": [
+      {
+        "key": "intensity",
+        "label": "Intensity",
+        "min": 0,
+        "max": 1,
+        "step": 0.01
+      },
+      {
+        "key": "radius",
+        "label": "Radius",
+        "min": 0.1,
+        "max": 1.5,
+        "step": 0.01
+      },
+      {
+        "key": "softness",
+        "label": "Softness",
+        "min": 0,
+        "max": 1,
+        "step": 0.01
+      }
+    ],
+    "chromaKey": [
+      {
+        "key": "tolerance",
+        "label": "Tolerance",
+        "min": 0,
+        "max": 1,
+        "step": 0.01
+      },
+      {
+        "key": "softness",
+        "label": "Softness",
+        "min": 0,
+        "max": 1,
+        "step": 0.01
+      },
+      {
+        "key": "spill",
+        "label": "Spill",
+        "min": 0,
+        "max": 1,
+        "step": 0.01
+      }
+    ]
+  },
+  "audioTypes": [
+    "gain",
+    "filter"
+  ],
+  "videoTypes": [
+    "colorCorrection",
+    "videoBlur",
+    "sharpen",
+    "vignette",
+    "chromaKey"
+  ],
+  "fableKinds": [
+    "eq",
+    "ott",
+    "comp",
+    "drive",
+    "lab",
+    "chorus",
+    "echo",
+    "reverb",
+    "limiter"
+  ]
+}

@@ -17,6 +17,8 @@ import {
   isNull,
   isNotNull
 } from "drizzle-orm";
+import { isShortResourceId } from "@nodetool-ai/protocol";
+import { z } from "zod";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getPortableDb } from "./db.js";
 import { predictions } from "./schema/predictions.js";
@@ -28,6 +30,22 @@ import {
   type DurableGenerationInput,
   type DurableGenerationTransition
 } from "./durable-generation.js";
+
+const generationCursorSchema = z.object({
+  created_at: z.string().min(1).max(100).refine((value) => Number.isFinite(Date.parse(value))),
+  id: z.string().min(1).max(256)
+}).strict();
+
+function generationCursor(value: string): z.infer<typeof generationCursorSchema> {
+  try {
+    if (value.length > 1024 || !/^[A-Za-z0-9_-]+$/.test(value)) {
+      throw new Error("Invalid cursor encoding");
+    }
+    return generationCursorSchema.parse(JSON.parse(Buffer.from(value, "base64url").toString("utf8")));
+  } catch {
+    throw new RangeError("Invalid generation cursor");
+  }
+}
 
 export { DurableGenerationIdempotencyConflictError } from "./durable-generation.js";
 export type {
@@ -59,6 +77,7 @@ export interface AggregateResult {
 
 /** The filters `Prediction.listGenerations` accepts. */
 export interface GenerationListFilter {
+  projectId?: string;
   status?: string | null;
   provider?: string | null;
   capability?: string | null;
@@ -487,6 +506,22 @@ export class Prediction extends DBModel {
     return row ? new Prediction(row) : null;
   }
 
+  /** Resolve an exact ID or unique short ID inside the caller's project scope. */
+  static async resolveForUser(
+    userId: string,
+    predictionId: string,
+    projectId?: string
+  ): Promise<{ row: Prediction | null; ambiguous: boolean }> {
+    const db = getPortableDb();
+    const scope = and(eq(predictions.user_id, userId), projectId === undefined ? undefined : eq(predictions.project_id, projectId));
+    const exact = await db.select().from(predictions).where(and(scope, eq(predictions.id, predictionId))).limit(1);
+    if (exact[0]) { return { row: new Prediction(exact[0]), ambiguous: false }; }
+    if (!isShortResourceId(predictionId)) { return { row: null, ambiguous: false }; }
+    const matches = await db.select().from(predictions)
+      .where(and(scope, sql`${predictions.id} LIKE ${`${predictionId}%`}`)).limit(2);
+    return { row: matches.length === 1 ? new Prediction(matches[0]) : null, ambiguous: matches.length > 1 };
+  }
+
   /**
    * The caller's generations, newest first, filtered and cursor-paged the way
    * {@link paginate} is. `user_id` is always in the WHERE.
@@ -520,6 +555,8 @@ export class Prediction extends DBModel {
       END`;
       conditions.push(eq(publicStatus, filter.status));
     }
+    if (filter.projectId !== undefined)
+      conditions.push(eq(predictions.project_id, filter.projectId));
     if (filter.provider)
       conditions.push(eq(predictions.provider, filter.provider));
     if (filter.capability)
@@ -530,21 +567,25 @@ export class Prediction extends DBModel {
     if (filter.since)
       conditions.push(gte(predictions.created_at, filter.since));
     if (filter.startKey) {
-      const cursorRow = await Prediction.findForUser(userId, filter.startKey);
-      if (cursorRow?.created_at) {
-        conditions.push(lt(predictions.created_at, cursorRow.created_at));
-      }
+      // Previously emitted cursors named a row. Keep those readable while new
+      // cursors also survive deletion of their anchor row.
+      const legacy = await Prediction.findForUser(userId, filter.startKey);
+      const cursor = legacy?.created_at
+        ? { created_at: legacy.created_at, id: legacy.id }
+        : generationCursor(filter.startKey);
+      conditions.push(sql`(${predictions.created_at} < ${cursor.created_at} OR (${predictions.created_at} = ${cursor.created_at} AND ${predictions.id} < ${cursor.id}))`);
     }
     const rows = await db
       .select()
       .from(predictions)
       .where(and(...conditions))
-      .orderBy(desc(predictions.created_at))
+      .orderBy(desc(predictions.created_at), desc(predictions.id))
       .limit(limit + 1);
     const items = rows.map((r: Record<string, unknown>) => new Prediction(r));
     if (items.length <= limit) return [items, ""];
     items.pop();
-    return [items, items[items.length - 1]?.id ?? ""];
+    const last = items[items.length - 1];
+    return [items, last ? Buffer.from(JSON.stringify({ created_at: last.created_at, id: last.id })).toString("base64url") : ""];
   }
 
   /**

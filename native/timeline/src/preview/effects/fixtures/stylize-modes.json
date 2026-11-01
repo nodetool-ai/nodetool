@@ -1,0 +1,519 @@
+{
+  "id": "seq-stylize-modes",
+  "projectId": "native-prototype",
+  "name": "stylize-modes",
+  "fps": 30,
+  "width": 320,
+  "height": 180,
+  "durationMs": 15000,
+  "tracks": [
+    {
+      "id": "t0",
+      "name": "t0",
+      "type": "video",
+      "index": 0,
+      "visible": true,
+      "locked": false
+    }
+  ],
+  "clips": [
+    {
+      "id": "rgbSplit",
+      "trackId": "t0",
+      "name": "rgbSplit",
+      "startMs": 0,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 320,
+      "height": 180,
+      "mediaPath": "visual-source.png",
+      "effects": [
+        {
+          "id": "stylize-rgbSplit",
+          "type": "stylize",
+          "enabled": true,
+          "mode": "rgbSplit",
+          "amount": 12,
+          "angle": 25
+        }
+      ]
+    },
+    {
+      "id": "radialBlur",
+      "trackId": "t0",
+      "name": "radialBlur",
+      "startMs": 1000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 320,
+      "height": 180,
+      "mediaPath": "visual-source.png",
+      "effects": [
+        {
+          "id": "stylize-radialBlur",
+          "type": "stylize",
+          "enabled": true,
+          "mode": "radialBlur",
+          "amount": 30
+        }
+      ]
+    },
+    {
+      "id": "zoomBlur",
+      "trackId": "t0",
+      "name": "zoomBlur",
+      "startMs": 2000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 320,
+      "height": 180,
+      "mediaPath": "visual-source.png",
+      "effects": [
+        {
+          "id": "stylize-zoomBlur",
+          "type": "stylize",
+          "enabled": true,
+          "mode": "zoomBlur",
+          "amount": 20
+        }
+      ]
+    },
+    {
+      "id": "turbulence",
+      "trackId": "t0",
+      "name": "turbulence",
+      "startMs": 3000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 320,
+      "height": 180,
+      "mediaPath": "visual-source.png",
+      "effects": [
+        {
+          "id": "stylize-turbulence",
+          "type": "stylize",
+          "enabled": true,
+          "mode": "turbulence",
+          "amount": 5,
+          "scale": 7,
+          "seed": 19,
+          "time": 0.3
+        }
+      ]
+    },
+    {
+      "id": "glitch",
+      "trackId": "t0",
+      "name": "glitch",
+      "startMs": 4000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 320,
+      "height": 180,
+      "mediaPath": "visual-source.png",
+      "effects": [
+        {
+          "id": "stylize-glitch",
+          "type": "stylize",
+          "enabled": true,
+          "mode": "glitch",
+          "amount": 3,
+          "scale": 5,
+          "seed": 17,
+          "time": 0.4
+        }
+      ]
+    },
+    {
+      "id": "halftone",
+      "trackId": "t0",
+      "name": "halftone",
+      "startMs": 5000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 320,
+      "height": 180,
+      "mediaPath": "visual-source.png",
+      "effects": [
+        {
+          "id": "stylize-halftone",
+          "type": "stylize",
+          "enabled": true,
+          "mode": "halftone",
+          "amount": 0.8,
+          "scale": 9
+        }
+      ]
+    },
+    {
+      "id": "dither",
+      "trackId": "t0",
+      "name": "dither",
+      "startMs": 6000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 320,
+      "height": 180,
+      "mediaPath": "visual-source.png",
+      "effects": [
+        {
+          "id": "stylize-dither",
+          "type": "stylize",
+          "enabled": true,
+          "mode": "dither",
+          "amount": 30,
+          "seed": 23
+        }
+      ]
+    },
+    {
+      "id": "lightRays",
+      "trackId": "t0",
+      "name": "lightRays",
+      "startMs": 7000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 320,
+      "height": 180,
+      "mediaPath": "visual-source.png",
+      "effects": [
+        {
+          "id": "stylize-lightRays",
+          "type": "stylize",
+          "enabled": true,
+          "mode": "lightRays",
+          "amount": 3,
+          "scale": 2,
+          "angle": 22,
+          "color": "#ffe080"
+        }
+      ]
+    },
+    {
+      "id": "lensFlare",
+      "trackId": "t0",
+      "name": "lensFlare",
+      "startMs": 8000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 320,
+      "height": 180,
+      "mediaPath": "visual-source.png",
+      "effects": [
+        {
+          "id": "stylize-lensFlare",
+          "type": "stylize",
+          "enabled": true,
+          "mode": "lensFlare",
+          "amount": 3,
+          "scale": 2,
+          "angle": 7,
+          "color": "#80c0ff"
+        }
+      ]
+    },
+    {
+      "id": "innerShadow",
+      "trackId": "t0",
+      "name": "innerShadow",
+      "startMs": 9000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 320,
+      "height": 180,
+      "mediaPath": "visual-source.png",
+      "effects": [
+        {
+          "id": "alpha-edges",
+          "type": "chromaKey",
+          "enabled": true,
+          "color": "#00ff00",
+          "tolerance": 0.02,
+          "softness": 0.4,
+          "spill": 0.1
+        },
+        {
+          "id": "stylize-innerShadow",
+          "type": "stylize",
+          "enabled": true,
+          "mode": "innerShadow",
+          "amount": 0.9,
+          "scale": 16,
+          "angle": 35,
+          "color": "#100820"
+        }
+      ]
+    },
+    {
+      "id": "innerGlow",
+      "trackId": "t0",
+      "name": "innerGlow",
+      "startMs": 10000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 320,
+      "height": 180,
+      "mediaPath": "visual-source.png",
+      "effects": [
+        {
+          "id": "alpha-edges",
+          "type": "chromaKey",
+          "enabled": true,
+          "color": "#00ff00",
+          "tolerance": 0.02,
+          "softness": 0.4,
+          "spill": 0.1
+        },
+        {
+          "id": "stylize-innerGlow",
+          "type": "stylize",
+          "enabled": true,
+          "mode": "innerGlow",
+          "amount": 0.9,
+          "scale": 16,
+          "color": "#ffb060"
+        }
+      ]
+    },
+    {
+      "id": "edgeHighlight",
+      "trackId": "t0",
+      "name": "edgeHighlight",
+      "startMs": 11000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 320,
+      "height": 180,
+      "mediaPath": "visual-source.png",
+      "effects": [
+        {
+          "id": "alpha-edges",
+          "type": "chromaKey",
+          "enabled": true,
+          "color": "#00ff00",
+          "tolerance": 0.02,
+          "softness": 0.4,
+          "spill": 0.1
+        },
+        {
+          "id": "stylize-edgeHighlight",
+          "type": "stylize",
+          "enabled": true,
+          "mode": "edgeHighlight",
+          "amount": 0.9,
+          "scale": 16,
+          "angle": -45,
+          "color": "#80c0ff"
+        }
+      ]
+    },
+    {
+      "id": "displacement",
+      "trackId": "t0",
+      "name": "displacement",
+      "startMs": 12000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 320,
+      "height": 180,
+      "mediaPath": "visual-source.png",
+      "effects": [
+        {
+          "id": "stylize-displacement",
+          "type": "stylize",
+          "enabled": true,
+          "mode": "displacement",
+          "amount": 4,
+          "scale": 6,
+          "seed": 27,
+          "time": 1.25
+        }
+      ]
+    },
+    {
+      "id": "gradientWipe",
+      "trackId": "t0",
+      "name": "gradientWipe",
+      "startMs": 13000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 320,
+      "height": 180,
+      "mediaPath": "visual-source.png",
+      "effects": [
+        {
+          "id": "stylize-gradientWipe",
+          "type": "stylize",
+          "enabled": true,
+          "mode": "gradientWipe",
+          "amount": 0.55,
+          "softness": 0.2,
+          "time": 1
+        }
+      ]
+    },
+    {
+      "id": "lightLeakOverlay",
+      "trackId": "t0",
+      "name": "lightLeakOverlay",
+      "startMs": 14000,
+      "durationMs": 1000,
+      "mediaType": "image",
+      "sourceType": "imported",
+      "status": "generated",
+      "locked": false,
+      "versions": [],
+      "inPointMs": 0,
+      "width": 320,
+      "height": 180,
+      "mediaPath": "visual-source.png",
+      "effects": [
+        {
+          "id": "stylize-lightLeakOverlay",
+          "type": "stylize",
+          "enabled": true,
+          "mode": "lightLeakOverlay",
+          "amount": 2,
+          "scale": 2,
+          "time": 0.2,
+          "color": "#ff9840"
+        }
+      ]
+    }
+  ],
+  "markers": [],
+  "createdAt": "2026-10-24T00:00:00.000Z",
+  "updatedAt": "2026-10-24T00:00:00.000Z",
+  "goldenFrames": [
+    {
+      "frame": 0,
+      "criterion": "J1 stylize rgbSplit, PSNR >= 40 dB"
+    },
+    {
+      "frame": 30,
+      "criterion": "J1 stylize radialBlur, PSNR >= 40 dB"
+    },
+    {
+      "frame": 60,
+      "criterion": "J1 stylize zoomBlur, PSNR >= 40 dB"
+    },
+    {
+      "frame": 90,
+      "criterion": "J1 stylize turbulence, PSNR >= 40 dB"
+    },
+    {
+      "frame": 120,
+      "criterion": "J1 stylize glitch, PSNR >= 40 dB"
+    },
+    {
+      "frame": 150,
+      "criterion": "J1 stylize halftone, PSNR >= 40 dB"
+    },
+    {
+      "frame": 180,
+      "criterion": "J1 stylize dither, PSNR >= 40 dB"
+    },
+    {
+      "frame": 210,
+      "criterion": "J1 stylize lightRays, PSNR >= 40 dB"
+    },
+    {
+      "frame": 240,
+      "criterion": "J1 stylize lensFlare, PSNR >= 40 dB"
+    },
+    {
+      "frame": 270,
+      "criterion": "J1 stylize innerShadow, PSNR >= 40 dB with keyed interior alpha edges"
+    },
+    {
+      "frame": 300,
+      "criterion": "J1 stylize innerGlow, PSNR >= 40 dB with keyed interior alpha edges"
+    },
+    {
+      "frame": 330,
+      "criterion": "J1 stylize edgeHighlight, PSNR >= 40 dB with keyed interior alpha edges"
+    },
+    {
+      "frame": 360,
+      "criterion": "J1 stylize displacement, PSNR >= 40 dB"
+    },
+    {
+      "frame": 390,
+      "criterion": "J1 stylize gradientWipe, PSNR >= 40 dB"
+    },
+    {
+      "frame": 420,
+      "criterion": "J1 stylize lightLeakOverlay, PSNR >= 40 dB"
+    }
+  ]
+}

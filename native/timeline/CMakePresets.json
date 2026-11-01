@@ -1,0 +1,131 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 25,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "sanitize",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-sanitize",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_PREFIX_PATH": "$env{QT_PREFIX}",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_CXX_FLAGS": "-fno-omit-frame-pointer",
+        "NT_SANITIZE": "address,undefined"
+      }
+    },
+    {
+      "name": "tsan",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-tsan",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_PREFIX_PATH": "$env{QT_PREFIX}",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_CXX_FLAGS": "-fno-omit-frame-pointer",
+        "NT_SANITIZE": "thread"
+      }
+    },
+    {
+      "name": "fuzz",
+      "generator": "Ninja",
+      "binaryDir": "${sourceDir}/build-fuzz",
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "clang++",
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_PREFIX_PATH": "$env{QT_PREFIX}",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON",
+        "CMAKE_CXX_FLAGS": "-fno-omit-frame-pointer",
+        "NT_FUZZ": "ON"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "sanitize",
+      "configurePreset": "sanitize",
+      "jobs": 3
+    },
+    {
+      "name": "tsan",
+      "configurePreset": "tsan",
+      "jobs": 3
+    },
+    {
+      "name": "fuzz",
+      "configurePreset": "fuzz",
+      "jobs": 3
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "sanitize",
+      "configurePreset": "sanitize",
+      "environment": {
+        "ASAN_OPTIONS": "detect_leaks=1:protect_shadow_gap=0:halt_on_error=1:abort_on_error=0:suppressions=${sourceDir}/tools/sanitizers/asan.supp",
+        "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1:suppressions=${sourceDir}/tools/sanitizers/ubsan.supp",
+        "LSAN_OPTIONS": "suppressions=${sourceDir}/tools/sanitizers/lsan.supp"
+      },
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "jobs": 2,
+        "timeout": 600,
+        "noTestsAction": "error"
+      },
+      "description": "protect_shadow_gap=0 lets the NVIDIA VAAPI driver map CUDA memory."
+    },
+    {
+      "name": "tsan",
+      "configurePreset": "tsan",
+      "environment": {
+        "TSAN_OPTIONS": "halt_on_error=1:second_deadlock_stack=1:suppressions=${sourceDir}/tools/sanitizers/tsan.supp",
+        "NT_NO_HW_DECODE": "1"
+      },
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "jobs": 2,
+        "timeout": 600,
+        "noTestsAction": "error"
+      },
+      "filter": {
+        "include": {
+          "name": "^tst_(sourcepool|ffmpegsource|cpuusage|audioengine|easing|framering|retirequeue|framecache)$"
+        }
+      },
+      "description": "Disable hardware decode because NVIDIA/CUDA threads crash the TSan runtime (thr->slot CHECK)."
+    },
+    {
+      "name": "fuzz",
+      "configurePreset": "fuzz",
+      "environment": {
+        "ASAN_OPTIONS": "detect_leaks=1:protect_shadow_gap=0:halt_on_error=1:abort_on_error=0:suppressions=${sourceDir}/tools/sanitizers/asan.supp",
+        "UBSAN_OPTIONS": "halt_on_error=1:print_stacktrace=1:suppressions=${sourceDir}/tools/sanitizers/ubsan.supp",
+        "LSAN_OPTIONS": "suppressions=${sourceDir}/tools/sanitizers/lsan.supp"
+      },
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "jobs": 2,
+        "timeout": 600,
+        "noTestsAction": "error"
+      },
+      "filter": {
+        "include": {
+          "name": "^fuzz_.*_smoke$"
+        }
+      },
+      "description": "protect_shadow_gap=0 lets the NVIDIA VAAPI driver map CUDA memory."
+    }
+  ]
+}

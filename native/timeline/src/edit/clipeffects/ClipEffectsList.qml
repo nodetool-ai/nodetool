@@ -1,0 +1,137 @@
+pragma ComponentBehavior: Bound
+import QtQuick
+import QtQuick.Controls as Controls
+import NodeTool.Timeline
+import "ClipEffectsCatalog.js" as Catalog
+import "../inspectorsections" as Sections
+import NodeTool.UiPrimitives as Ui
+
+InspectorSection {
+    id: root
+    objectName: "clipEffectsList"
+    property var timelineModel: null
+    property var gestures: null
+    property var controller: null
+    readonly property var clip: effectEdits.clip
+    readonly property var listed: effectEdits.effects.filter(effect => effect.id !== "inspector:color")
+    readonly property string identity: JSON.stringify(listed.map(effect => effect.id))
+    property string expandedId: ""
+    title: "Effects"
+    icon: "autoAwesome"
+    meta: listed.length ? listed.filter(effect => effect.enabled).length + "/" + listed.length + " active" : ""
+    defaultOpen: false
+    open: ClipEffectsUi.folds.effects ?? false
+    visible: effectEdits.visual
+    onToggled: next => ClipEffectsUi.setFold("effects", next)
+    onIdentityChanged: syncRows()
+    Component.onCompleted: syncRows()
+    ClipEffectsEdits {
+        id: effectEdits
+        timelineModel: root.timelineModel
+        controller: root.controller
+    }
+    Connections {
+        target: ClipEffectsUi
+        function onFoldsChanged() {
+            root.open = ClipEffectsUi.folds.effects ?? false;
+        }
+    }
+    ListModel {
+        id: rows
+    }
+    // Parameter previews keep the same delegates and pointer grab. Only IDs
+    // trigger this reconciliation, including an external document replacement.
+    function syncRows() {
+        if (!rows)
+            return;
+        const ids = JSON.parse(identity);
+        const wanted = new Set(ids);
+        for (let i = rows.count - 1; i >= 0; --i) {
+            if (!wanted.has(rows.get(i).effectId))
+                rows.remove(i);
+        }
+        for (let i = 0; i < ids.length; ++i) {
+            if (i < rows.count && rows.get(i).effectId === ids[i])
+                continue;
+            let from = i + 1;
+            while (from < rows.count && rows.get(from).effectId !== ids[i])
+                ++from;
+            if (from < rows.count)
+                rows.move(from, i, 1);
+            else
+                rows.insert(i, {
+                    effectId: ids[i]
+                });
+        }
+    }
+    Sections.InspectorActionButton {
+        id: add
+        objectName: "effectsAdd"
+        text: "Add effect"
+        iconName: "add"
+        outlined: false
+        enabled: !effectEdits.locked
+        Accessible.name: "Add effect"
+        onClicked: {
+            search.text = "";
+            popup.openAt(add);
+        }
+        Ui.Popover {
+            id: popup
+            width: parent ? Math.min(parent.width - 2 * Ui.Metrics.dialogNarrowInset,
+                Math.max(root.width - InspectorTokens.sectionIndent, InspectorTokens.rowControlMinWidth * 2)) : root.width
+            onOpened: search.forceActiveFocus()
+            contentItem: Column {
+                spacing: Ui.Metrics.md
+                Accessible.role: Accessible.Dialog
+                Accessible.name: "Add effect"
+                Ui.TextField {
+                    id: search
+                    objectName: "effectsSearch"
+                    width: parent.width
+                    placeholderText: "Search effects"
+                    accessibleName: "Search effects"
+                    density: Ui.EditorButton.Compact
+                }
+                Column {
+                    width: parent.width
+                    Repeater {
+                        model: Catalog.addableEffects.filter(effect => effect.label.toLowerCase().includes(search.text.trim().toLowerCase()))
+                        delegate: Ui.EditorButton {
+                            required property var modelData
+                            objectName: "effectsAdd_" + modelData.value
+                            width: parent.width
+                            variant: Ui.EditorButton.Flat
+                            contentAlignment: Qt.AlignLeft
+                            text: modelData.label
+                            onClicked: {
+                                root.expandedId = effectEdits.add(modelData.value);
+                                popup.close();
+                                search.text = "";
+                            }
+                        }
+                    }
+                    Sections.InspectorCaption {
+                        width: parent.width
+                        visible: Catalog.addableEffects.filter(effect => effect.label.toLowerCase().includes(search.text.trim().toLowerCase())).length === 0
+                        text: "No matching effects"
+                    }
+                }
+            }
+        }
+    }
+    Sections.InspectorCaption {
+        width: parent.width
+        visible: root.listed.length === 0
+        text: "Add a blur, glow, shadow, vignette, chroma key or grade."
+    }
+    Repeater {
+        model: rows
+        delegate: EffectRow {
+            width: parent.width
+            editor: effectEdits
+            expanded: root.expandedId === effectId
+            onExpand: root.expandedId = expanded ? "" : effectId
+        }
+    }
+}

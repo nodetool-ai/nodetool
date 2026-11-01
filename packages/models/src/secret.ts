@@ -4,7 +4,7 @@
  * Port of Python's `nodetool.models.secret`.
  */
 
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getPortableDb } from "./db.js";
 import { secrets } from "./schema/secrets.js";
@@ -52,6 +52,18 @@ export class Secret extends DBModel {
       .where(and(eq(secrets.user_id, userId), eq(secrets.key, key)))
       .limit(1);
     return row ? new Secret(row) : null;
+  }
+
+  /** Read the requested keys within one caller's secret store. */
+  static async findByKeys(userId: string, keys: readonly string[]): Promise<Secret[]> {
+    if (keys.length === 0) {
+      return [];
+    }
+    const rows = await getPortableDb()
+      .select()
+      .from(secrets)
+      .where(and(eq(secrets.user_id, userId), inArray(secrets.key, [...new Set(keys)])));
+    return rows.map((row) => new Secret(row));
   }
 
   /** Create or update a secret. Encrypts the plaintext value before storing. */

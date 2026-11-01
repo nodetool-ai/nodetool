@@ -1,0 +1,10 @@
+nt_qml_sources(src/providersettings/ProviderSettings.h src/providersettings/ProviderSettings.cpp)
+function(nt_providersettings_tests)
+    qt_add_executable(tst_providersettings src/providersettings/tst_providersettings.cpp
+        src/providersettings/ProviderSettings.h src/providersettings/ProviderSettings.cpp)
+    target_link_libraries(tst_providersettings PRIVATE timeline_core timeline_server Qt6::Qml Qt6::Test)
+    add_test(NAME tst_providersettings COMMAND tst_providersettings)
+    set_tests_properties(tst_providersettings PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+endfunction()
+nt_tests(nt_providersettings_tests)
+include(${CMAKE_CURRENT_SOURCE_DIR}/src/providersettings/ProviderDialogTests.cmake)

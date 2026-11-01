@@ -4,8 +4,9 @@
  * Port of Python's `nodetool.models.job`.
  */
 
-import { eq, and, desc, lt, inArray, notInArray, like } from "drizzle-orm";
+import { eq, and, desc, lt, inArray, notInArray, like, sql } from "drizzle-orm";
 import { isShortResourceId } from "@nodetool-ai/protocol";
+import { z } from "zod";
 import {
   DBModel,
   ModelChangeEvent,
@@ -15,6 +16,21 @@ import {
 import { getPortableDb, getDatabase } from "./db.js";
 import { eraseRunTraceParentForModelDeletion } from "./run-trace.js";
 import { jobs } from "./schema/jobs.js";
+
+const jobCursorSchema = z.object({
+  updated_at: z.string().min(1).max(100).refine((value) => Number.isFinite(Date.parse(value))),
+  id: z.string().min(1).max(256)
+}).strict();
+function jobCursor(value: string): z.infer<typeof jobCursorSchema> {
+  try {
+    if (value.length > 1024 || !/^[A-Za-z0-9_-]+$/.test(value)) {
+      throw new Error("Invalid cursor encoding");
+    }
+    return jobCursorSchema.parse(JSON.parse(Buffer.from(value, "base64url").toString("utf8")));
+  } catch {
+    throw new RangeError("Invalid job cursor");
+  }
+}
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -471,23 +487,23 @@ export class Job extends DBModel {
     if (projectId !== undefined)
       conditions.push(eq(jobs.project_id, projectId));
     if (startKey) {
-      const cursorRow = await Job.get<Job>(startKey);
-      if (cursorRow && cursorRow.user_id === userId) {
-        conditions.push(lt(jobs.updated_at, cursorRow.updated_at));
-      }
+      const legacy = await Job.find(userId, startKey);
+      const cursor = legacy ? { updated_at: legacy.updated_at, id: legacy.id } : jobCursor(startKey);
+      conditions.push(sql`(${jobs.updated_at} < ${cursor.updated_at} OR (${jobs.updated_at} = ${cursor.updated_at} AND ${jobs.id} < ${cursor.id}))`);
     }
 
     const rows = await db
       .select()
       .from(jobs)
       .where(and(...conditions))
-      .orderBy(desc(jobs.updated_at))
+      .orderBy(desc(jobs.updated_at), desc(jobs.id))
       .limit(limit + 1);
 
     const items = rows.map((r: Record<string, unknown>) => new Job(r));
     if (items.length <= limit) return [items, ""];
     items.pop();
-    const cursor = items[items.length - 1]?.id ?? "";
+    const last = items[items.length - 1];
+    const cursor = last ? Buffer.from(JSON.stringify({ updated_at: last.updated_at, id: last.id })).toString("base64url") : "";
     return [items, cursor];
   }
 

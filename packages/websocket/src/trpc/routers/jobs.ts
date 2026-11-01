@@ -8,6 +8,7 @@
  */
 
 import { z } from "zod";
+import { TRPCError } from "@trpc/server";
 import { Job, RunEvent, TriggerRegistration } from "@nodetool-ai/models";
 import type { Job as JobModel } from "@nodetool-ai/models";
 import { ApiErrorCode } from "../../error-codes.js";
@@ -217,11 +218,18 @@ export const jobsRouter = router({
         startKey: input.start_key
       };
       if (input.project_id !== undefined) page.projectId = input.project_id;
-      const [jobs, nextStartKey] = await Job.paginate(ctx.userId, page);
-      return {
-        jobs: jobs.map((j) => toJobResponse(j, input.include_outputs)),
-        next_start_key: nextStartKey || null
-      };
+      try {
+        const [jobs, nextStartKey] = await Job.paginate(ctx.userId, page);
+        return {
+          jobs: jobs.map((j) => toJobResponse(j, input.include_outputs)),
+          next_start_key: nextStartKey || null
+        };
+      } catch (error) {
+        if (error instanceof RangeError) {
+          throw new TRPCError({ code: "BAD_REQUEST", message: error.message });
+        }
+        throw error;
+      }
     }),
 
   get: protectedProcedure

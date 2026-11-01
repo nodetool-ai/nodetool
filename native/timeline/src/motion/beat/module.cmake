@@ -1,0 +1,7 @@
+function(nt_beat_tests)
+    qt_add_executable(tst_beat src/motion/beat/tst_beat.cpp)
+    target_link_libraries(tst_beat PRIVATE timeline_core Qt6::Test)
+    add_test(NAME tst_beat COMMAND tst_beat)
+    add_test(NAME beat_oracle COMMAND node "${CMAKE_CURRENT_SOURCE_DIR}/src/motion/beat/oracle.mjs" $<TARGET_FILE:tst_beat>)
+endfunction()
+nt_tests(nt_beat_tests)
