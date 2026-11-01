@@ -31,7 +31,7 @@
   "params": {},
   "preview": {
     "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.sony-venice/9f79970935c8beb80bd6ae4d5fd28ab3c4171e94005aaebcc8a8c1697ba7d1f8.mp4",
-    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.sony-venice/9f79970935c8beb80bd6ae4d5fd28ab3c4171e94005aaebcc8a8c1697ba7d1f8.png",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.sony-venice/9f79970935c8beb80bd6ae4d5fd28ab3c4171e94005aaebcc8a8c1697ba7d1f8-late.png",
     "run": "runs/look.sony-venice.json"
   }
 }

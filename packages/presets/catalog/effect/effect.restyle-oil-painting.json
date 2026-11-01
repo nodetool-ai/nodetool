@@ -19,12 +19,12 @@
   "conflicts": [],
   "aliases": [],
   "prompt": {
-    "default": "Restyle the video as animated oil painting with visible brushstrokes, layered pigments and rich canvas texture. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+    "default": "Repaint every frame, from the very first, as a thick oil painting: heavy impasto brushstrokes, layered pigment and visible canvas weave. No photographic texture remains. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
   },
   "params": {},
   "preview": {
-    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-oil-painting/fde0e17a4dcfc32860b7987eea8879b7910b889d8d3f9ec5668e11a0f4bb23ce.mp4",
-    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-oil-painting/fde0e17a4dcfc32860b7987eea8879b7910b889d8d3f9ec5668e11a0f4bb23ce.png",
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-oil-painting/dd596d77ca34af8f1dda6e50b0b2a53e5b25376ee9297812c60590030a92066d.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-oil-painting/dd596d77ca34af8f1dda6e50b0b2a53e5b25376ee9297812c60590030a92066d-late.png",
     "run": "runs/effect.restyle-oil-painting.json"
   }
 }

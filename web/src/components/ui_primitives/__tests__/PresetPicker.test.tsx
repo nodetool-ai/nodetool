@@ -106,6 +106,16 @@ describe("PresetPicker", () => {
     ]);
   });
 
+  it("offers only the selected kind's tags and ignores a tag it hides", () => {
+    render(<Harness />);
+    const tags = () => screen.getByRole("group", { name: "Tags" });
+    fireEvent.click(within(tags()).getByText("push"));
+    const kinds = screen.getByRole("group", { name: "Preset kind" });
+    fireEvent.click(within(kinds).getByText("Effect"));
+    expect(screen.queryByRole("group", { name: "Tags" })).not.toBeInTheDocument();
+    expect(screen.getAllByRole("option").map((o) => o.getAttribute("aria-label"))).toEqual(["melt"]);
+  });
+
   it("applies the kind and mode filter props", () => {
     render(<Harness filter={{ kind: "camera", mode: "video" }} />);
     expect(screen.queryByRole("option", { name: "melt" })).toBeNull();

@@ -19532,7 +19532,8 @@
     "done": "Done",
     "remove": "Remove {{name}}",
     "clause": "Look clause",
-    "inherit": "Empty selection inherits the board look."
+    "inherit": "Empty selection inherits the board look.",
+    "inherited": "Using the board look: {{names}}"
   },
   "startStudios": {
     "title": "Studios",

@@ -15,7 +15,7 @@ jest.mock("../../../serverState/useStylePresets", () => ({
   mergeStylePresetEntities: () => []
 }));
 
-const Harness = () => {
+const Harness: React.FC<{ boardLookIds?: readonly string[] }> = ({ boardLookIds }) => {
   const [draft, setDraft] = useState(
     draftFromShot(
       {
@@ -29,7 +29,12 @@ const Harness = () => {
     )
   );
   return (
-    <ShotLookField draft={draft} onChange={setDraft} renderMode="keyframe" />
+    <ShotLookField
+      draft={draft}
+      onChange={setDraft}
+      renderMode="keyframe"
+      boardLookIds={boardLookIds}
+    />
   );
 };
 
@@ -48,6 +53,35 @@ it("selects a shot override and clears it to inherit the board", () => {
   expect(option).toHaveAttribute("aria-selected", "true");
   fireEvent.click(option);
   expect(option).toHaveAttribute("aria-selected", "false");
+});
+
+it("labels the field and names the board looks an empty shot inherits", () => {
+  render(
+    <ThemeProvider theme={mockTheme}>
+      <Harness boardLookIds={["look.arri-alexa", "look.teal-amber"]} />
+    </ThemeProvider>
+  );
+  expect(screen.getByText("Shot look")).toBeVisible();
+  expect(
+    screen.getByText("Using the board look: ARRI Alexa, Teal and amber")
+  ).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Choose look" }));
+  fireEvent.click(screen.getByRole("option", { name: /Bolex H16/ }));
+  expect(screen.queryByText(/Using the board look/)).not.toBeInTheDocument();
+});
+
+it("puts the art style above the board look in the style dialog", () => {
+  useStoryboardStore.getState().ensureBoard("order");
+  render(
+    <ThemeProvider theme={mockTheme}>
+      <BoardStyleDialog boardId="order" open onClose={jest.fn()} />
+    </ThemeProvider>
+  );
+  const artStyle = screen.getByText("Art style");
+  const boardLook = screen.getByText("Board look");
+  expect(
+    artStyle.compareDocumentPosition(boardLook) & Node.DOCUMENT_POSITION_FOLLOWING
+  ).toBeTruthy();
 });
 
 it("writes a board look from the style dialog and supports undo", () => {

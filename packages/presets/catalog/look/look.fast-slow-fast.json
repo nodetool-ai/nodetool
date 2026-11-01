@@ -31,8 +31,8 @@
   },
   "params": {},
   "preview": {
-    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.fast-slow-fast/023bbccad371df84d5b9fcc33a1f5dc714924ee1157b193d1f1ac13c69593f9b.mp4",
-    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.fast-slow-fast/023bbccad371df84d5b9fcc33a1f5dc714924ee1157b193d1f1ac13c69593f9b.png",
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.fast-slow-fast/1a27d500ec24fe29cd3280c5c3775e3902f6306a76822173b3ee2f031d597c40.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.fast-slow-fast/1a27d500ec24fe29cd3280c5c3775e3902f6306a76822173b3ee2f031d597c40-late.png",
     "run": "runs/look.fast-slow-fast.json"
   }
 }

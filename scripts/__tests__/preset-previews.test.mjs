@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { promisify } from 'node:util';
 import { execFile } from 'node:child_process';
-import { buildPlan, options, matches, runRecord, atomicJson } from '../presets/common.mjs';
+import { buildPlan, options, matches, runRecord, atomicJson, prompt } from '../presets/common.mjs';
 import { renderPlans } from '../presets/render-previews.mjs';
 import { publishPlans } from '../presets/publish-previews.mjs';
 
@@ -53,6 +53,13 @@ describe('preset preview tooling', () => {
     expect(plan.workflow.edges.find(e => e.source === 'video').targetHandle).toBe('reference_videos');
     expect(runRecord(plan, 'completed', '2026-01-01').source_url).toBe(plan.source_url);
   });
+  it('renders a speed ramp on a scene with motion and leaves other looks alone', async () => {
+    const [ramp, still] = await buildPlan(options(['--ids', 'look.fast-slow-fast,look.kodak-5219']));
+    expect(ramp.scene).toContain('doves');
+    expect(ramp.prompt).toContain('doves');
+    expect(still.scene).not.toContain('doves');
+    expect(still.scene).toBe(prompt);
+  });
   it('writes complete records with a fake provider and skips matching runs', () => fixture(async plan => {
     let calls = 0;
     const fakeProvider = async () => { calls++; return { bytes: Buffer.from('fake video'), credits: 7, cost_usd: 0.01 }; };
@@ -91,6 +98,24 @@ describe('preset preview tooling', () => {
     expect(regenerated).toBe(true);
     expect(JSON.parse(await readFile(plan.path, 'utf8')).preview.run).toBe('runs/camera.arc.json');
   }));
+  it('publishes a look with a late poster under its own key', async () => {
+    const dir = await mkdtemp(resolve(tmpdir(), 'preset-test-'));
+    try {
+      const [plan] = await buildPlan(options(['--ids', 'look.kodak-5219', '--output-dir', dir]));
+      plan.recordPath = resolve(dir, 'run.json');
+      plan.path = resolve(dir, 'preset.json');
+      await atomicJson(plan.recordPath, runRecord(plan, 'completed', '2026-01-01'));
+      const keys = [];
+      const encodes = [];
+      await publishPlans([plan], {
+        encode: async (_path, encodeOptions) => { encodes.push(encodeOptions); return { video: new Uint8Array([1]), poster: new Uint8Array([2]) }; },
+        upload: async (key) => { keys.push(key); return `https://example.test/${key}`; },
+        regenerate: async () => undefined
+      });
+      expect(encodes).toEqual([{ latePoster: true }]);
+      expect(keys[1]).toMatch(/-late\.png$/);
+    } finally { await rm(dir, { recursive: true, force: true }); }
+  });
   it('both CLI entry points support dry-run without Chrome or credentials', async () => {
     for (const script of ['render', 'publish']) {
       const { stdout } = await promisify(execFile)(process.execPath, [`scripts/presets/${script}-previews.mjs`, '--ids', 'camera.arc', '--dry-run']);

@@ -31,7 +31,7 @@
   "params": {},
   "preview": {
     "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.vhs-1990s/595da2d4e951967c5dbb2ac28549860648eaa306f44a15c2bce831c19d7be9a2.mp4",
-    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.vhs-1990s/595da2d4e951967c5dbb2ac28549860648eaa306f44a15c2bce831c19d7be9a2.png",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.vhs-1990s/595da2d4e951967c5dbb2ac28549860648eaa306f44a15c2bce831c19d7be9a2-late.png",
     "run": "runs/look.vhs-1990s.json"
   }
 }

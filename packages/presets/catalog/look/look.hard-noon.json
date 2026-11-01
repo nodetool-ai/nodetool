@@ -33,7 +33,7 @@
   "params": {},
   "preview": {
     "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.hard-noon/0c78963f046ad5dc4eb0f1cdc1f50ef957dd25728c7edc548e2b67f76c9e0509.mp4",
-    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.hard-noon/0c78963f046ad5dc4eb0f1cdc1f50ef957dd25728c7edc548e2b67f76c9e0509.png",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.hard-noon/0c78963f046ad5dc4eb0f1cdc1f50ef957dd25728c7edc548e2b67f76c9e0509-late.png",
     "run": "runs/look.hard-noon.json"
   }
 }

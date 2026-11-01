@@ -19532,7 +19532,8 @@
     "done": "完成",
     "remove": "移除 {{name}}",
     "clause": "风格提示词",
-    "inherit": "未选择时继承分镜风格。"
+    "inherit": "未选择时继承分镜风格。",
+    "inherited": "使用故事板外观：{{names}}"
   },
   "startStudios": {
     "title": "工作室",

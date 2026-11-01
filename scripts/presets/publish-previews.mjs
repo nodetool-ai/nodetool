@@ -13,17 +13,20 @@ export async function publishPlans(plans, { dryRun, encode, upload, regenerate, 
       continue;
     }
     const key = `presets/${plan.id}/${plan.workflow_hash}`;
-    const preview = { url: `${key}.mp4`, poster: `${key}.png`, run: `runs/${plan.id}.json` };
+    // A look or restyle shows best late in the clip. A new key skips the CDN's copy of an earlier poster.
+    const latePoster = plan.preset.kind === 'look' || plan.mode === 'video_edit';
+    const posterKey = latePoster ? `${key}-late.png` : `${key}.png`;
+    const preview = { url: `${key}.mp4`, poster: posterKey, run: `runs/${plan.id}.json` };
     if (dryRun) { log(JSON.stringify({ input: record.output_path, upload: preview, write: plan.path })); continue; }
-    const media = plan.mode === 'image_edit' ? await encodeEdit(source, record.output_path) : await encode(record.output_path);
+    const media = plan.mode === 'image_edit' ? await encodeEdit(source, record.output_path) : await encode(record.output_path, { latePoster });
     preview.url = await upload(`${key}.mp4`, media.video, 'video/mp4');
-    preview.poster = await upload(`${key}.png`, media.poster, 'image/png');
+    preview.poster = await upload(posterKey, media.poster, 'image/png');
     await atomicJson(plan.path, { ...plan.preset, preview });
     changed = true;
   }
   if (changed) { await regenerate(); }
 }
-async function encode(inputPath) {
+async function encode(inputPath, { latePoster = false } = {}) {
   const { transformMedia, pngFrames, probeMedia } = await import('@nodetool-ai/runtime/media');
   const outPath = `${inputPath}.preview.mp4`;
   await mkdir(dirname(outPath), { recursive: true });
@@ -32,11 +35,11 @@ async function encode(inputPath) {
   await transformMedia({ inputs: [{ filePath: inputPath, toSec: 3 }], outPath,
     video: { filter: 'trim=duration=3,setpts=PTS-STARTPTS' }, audio: null,
     videoEncoder: { codec: 'libx264', pixelFormat: 'yuv420p' }, muxerOptions: { movflags: '+faststart' } });
-  for await (const poster of pngFrames({ filePath: outPath, limit: 1 })) {
-    await writeFile(`${inputPath}.poster.png`, poster);
-    return { video: await readFile(outPath), poster };
-  }
-  throw new Error('No poster frame decoded');
+  let poster = null;
+  for await (const frame of pngFrames({ filePath: outPath, limit: 1, ...(latePoster ? { seekSec: 2.5 } : {}) })) { poster = frame; }
+  if (!poster) { throw new Error('No poster frame decoded'); }
+  await writeFile(`${inputPath}.poster.png`, poster);
+  return { video: await readFile(outPath), poster };
 }
 /**
  * A three-second before-and-after loop for an image edit: the source still,

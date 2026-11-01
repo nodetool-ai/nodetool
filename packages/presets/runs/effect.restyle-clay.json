@@ -20,7 +20,7 @@
         "id": "template",
         "type": "nodetool.text.Template",
         "data": {
-          "string": "{{ prompt }} Restyle the video as clay animation with sculpted forms, tactile surfaces and soft studio lighting. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+          "string": "{{ prompt }} Redraw every frame, from the very first, as stop-motion clay animation: every surface is hand-sculpted plasticine with visible fingerprints and rounded forms, lit by soft studio light. No photographic texture remains. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
         },
         "position": {
           "x": 380,
@@ -100,16 +100,16 @@
       }
     ]
   },
-  "workflow_hash": "898840823890db64176f05922c4e6edc02d5cfff6f3342eed35f7782f5d7fb2d",
+  "workflow_hash": "6dd658ecea8886a9812cf632416effe4b82df9eb6cafd8c542a1fb0eaa13d5ac",
   "provider": "dreamina",
   "model": "dreamina_seedance_45_pro_draft",
   "seed": 20261031,
-  "prompt": "A large bronze ring sculpture with a twisted open loop and a green-gold patina on a rough travertine plinth in a sunlit Mediterranean stone courtyard, olive trees in terracotta pots in the foreground, an arched colonnade behind, cypress trees and mountains in the distance, golden late-afternoon light. Restyle the video as clay animation with sculpted forms, tactile surfaces and soft studio lighting. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames.",
+  "prompt": "A large bronze ring sculpture with a twisted open loop and a green-gold patina on a rough travertine plinth in a sunlit Mediterranean stone courtyard, olive trees in terracotta pots in the foreground, an arched colonnade behind, cypress trees and mountains in the distance, golden late-afternoon light. Redraw every frame, from the very first, as stop-motion clay animation: every surface is hand-sculpted plasticine with visible fingerprints and rounded forms, lit by soft studio light. No photographic texture remains. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames.",
   "source_hash": "6355a4c168b5136eb1442682cb678d77b8333929ba76755a5395b953ab6dd700",
   "source_url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/camera.dolly-in/f71a51ff8637b65add4e4fb86cf57aa8ab9bce70cc6024f2c6d903fb5ff5ea90.mp4",
   "credits": null,
   "cost_usd": null,
-  "started_at": "2026-11-01T06:21:36.728Z",
-  "finished_at": "2026-11-01T06:23:19.503Z",
+  "started_at": "2026-11-01T09:07:19.173Z",
+  "finished_at": "2026-11-01T09:09:05.203Z",
   "output_path": "/home/mg/.cache/nodetool/preset-previews/effect.restyle-clay-dreamina_seedance_45_pro_draft.mp4"
 }

@@ -31,8 +31,8 @@
   },
   "params": {},
   "preview": {
-    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.impact-ramp/d3fe0e901d20caeae0af34226d78e625fbce8323b6aba76316d518b76934ee79.mp4",
-    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.impact-ramp/d3fe0e901d20caeae0af34226d78e625fbce8323b6aba76316d518b76934ee79.png",
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.impact-ramp/52b7bf61b7af74fa4ab0f6265ad979c98b0934a4863082738ca570da3b8d042f.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.impact-ramp/52b7bf61b7af74fa4ab0f6265ad979c98b0934a4863082738ca570da3b8d042f-late.png",
     "run": "runs/look.impact-ramp.json"
   }
 }

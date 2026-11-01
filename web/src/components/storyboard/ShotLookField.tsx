@@ -7,6 +7,7 @@ import {
   EditorButton,
   FlexColumn,
   FlexRow,
+  Label,
   PresetPicker,
   Chip,
   SPACING
@@ -24,6 +25,8 @@ interface ShotLookFieldProps {
   videoModelId?: string | null;
   renderMode: ShotRenderMode;
   readOnly?: boolean;
+  /** The board's looks, which this shot uses until it picks its own. */
+  boardLookIds?: readonly string[];
 }
 
 const ShotLookField: React.FC<ShotLookFieldProps> = ({
@@ -31,7 +34,8 @@ const ShotLookField: React.FC<ShotLookFieldProps> = ({
   onChange,
   videoModelId,
   renderMode,
-  readOnly
+  readOnly,
+  boardLookIds = []
 }) => {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -46,7 +50,21 @@ const ShotLookField: React.FC<ShotLookFieldProps> = ({
   );
   return (
     <FlexColumn gap={SPACING.xs}>
-      <Caption>{t("look_preset_field.inherit")}</Caption>
+      <Label>{t("look_preset_field.title")}</Label>
+      {draft.lookPresetIds.length > 0 ? null : boardLookIds.length > 0 ? (
+        <Caption>
+          {t("look_preset_field.inherited", {
+            names: boardLookIds
+              .map((id) => {
+                const preset = presetCatalog.getPreset(id);
+                return preset ? presetText(t, preset).name : id;
+              })
+              .join(", ")
+          })}
+        </Caption>
+      ) : (
+        <Caption>{t("look_preset_field.inherit")}</Caption>
+      )}
       <FlexRow wrap align="center" gap={SPACING.xs}>
         {draft.lookPresetIds.map((id) => {
           const preset = presetCatalog.getPreset(id);

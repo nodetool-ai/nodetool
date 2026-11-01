@@ -31,7 +31,7 @@
   "params": {},
   "preview": {
     "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.arri-alexa/d5e19639298fec14d20e042ed01089c76a75db398f223edecd75f6b2de42e523.mp4",
-    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.arri-alexa/d5e19639298fec14d20e042ed01089c76a75db398f223edecd75f6b2de42e523.png",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.arri-alexa/d5e19639298fec14d20e042ed01089c76a75db398f223edecd75f6b2de42e523-late.png",
     "run": "runs/look.arri-alexa.json"
   }
 }

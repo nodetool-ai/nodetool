@@ -31,7 +31,7 @@
   "params": {},
   "preview": {
     "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.fuji-eterna/38a79e9070432cc4c93426b5066e1c468f957284223e5ff0eef3720d2acc2bc0.mp4",
-    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.fuji-eterna/38a79e9070432cc4c93426b5066e1c468f957284223e5ff0eef3720d2acc2bc0.png",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.fuji-eterna/38a79e9070432cc4c93426b5066e1c468f957284223e5ff0eef3720d2acc2bc0-late.png",
     "run": "runs/look.fuji-eterna.json"
   }
 }

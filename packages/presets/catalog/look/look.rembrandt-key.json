@@ -31,7 +31,7 @@
   "params": {},
   "preview": {
     "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.rembrandt-key/4cb59fe2baec913737d42b3fae834165fd4d067d63d78abe9ddb7c15b7dbc4ae.mp4",
-    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.rembrandt-key/4cb59fe2baec913737d42b3fae834165fd4d067d63d78abe9ddb7c15b7dbc4ae.png",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.rembrandt-key/4cb59fe2baec913737d42b3fae834165fd4d067d63d78abe9ddb7c15b7dbc4ae-late.png",
     "run": "runs/look.rembrandt-key.json"
   }
 }

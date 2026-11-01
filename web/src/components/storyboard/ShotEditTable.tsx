@@ -293,6 +293,7 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
           <ShotLookField
             draft={draft}
             onChange={onChange}
+            boardLookIds={boardLookIds}
             videoModelId={videoModelId}
             renderMode={draft.renderMode}
             readOnly={readOnly}

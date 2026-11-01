@@ -100,15 +100,15 @@
       }
     ]
   },
-  "workflow_hash": "d3fe0e901d20caeae0af34226d78e625fbce8323b6aba76316d518b76934ee79",
+  "workflow_hash": "52b7bf61b7af74fa4ab0f6265ad979c98b0934a4863082738ca570da3b8d042f",
   "provider": "dreamina",
   "model": "dreamina_seedance_45_pro_draft",
   "seed": 20261031,
-  "prompt": "A large bronze ring sculpture with a twisted open loop and a green-gold patina on a rough travertine plinth in a sunlit Mediterranean stone courtyard, olive trees in terracotta pots in the foreground, an arched colonnade behind, cypress trees and mountains in the distance, golden late-afternoon light. Play the action at natural speed, briefly decelerate through the moment of contact, then smoothly return to natural speed without repeating the action. Keep the speed transition continuous within one shot.",
+  "prompt": "A large bronze ring sculpture with a twisted open loop and a green-gold patina on a rough travertine plinth in a sunlit Mediterranean stone courtyard, olive trees in terracotta pots in the foreground, an arched colonnade behind, cypress trees and mountains in the distance, golden late-afternoon light. A heavy stone ball drops from above onto the gravel beside the plinth and throws up a burst of dust and pebbles. The camera stays locked off. Play the action at natural speed, briefly decelerate through the moment of contact, then smoothly return to natural speed without repeating the action. Keep the speed transition continuous within one shot.",
   "source_hash": "adbf4a2064a6325d86502adc505cd9c7fab33cde19180d0d3281c6f5f15a8267",
   "credits": null,
   "cost_usd": null,
-  "started_at": "2026-11-01T06:43:26.485Z",
-  "finished_at": "2026-11-01T06:45:19.673Z",
+  "started_at": "2026-11-01T09:15:28.374Z",
+  "finished_at": "2026-11-01T09:17:02.614Z",
   "output_path": "/home/mg/.cache/nodetool/preset-previews/look.impact-ramp-dreamina_seedance_45_pro_draft.mp4"
 }

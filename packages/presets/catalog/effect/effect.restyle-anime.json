@@ -19,12 +19,12 @@
   "conflicts": [],
   "aliases": [],
   "prompt": {
-    "default": "Restyle the video as hand-drawn anime with clean ink outlines, cel shading and painted backgrounds. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
+    "default": "Redraw every frame, from the very first, as hand-drawn 2D anime: clean black ink outlines, flat cel-shaded colors and painted backgrounds. No photographic texture remains. Preserve the source subjects, action, camera motion and timing. Keep the visual treatment consistent across frames."
   },
   "params": {},
   "preview": {
-    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-anime/db268599861ed27035c5c13d62b943897e3f6133a1b4a33949c5ba3a23873d9c.mp4",
-    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-anime/db268599861ed27035c5c13d62b943897e3f6133a1b4a33949c5ba3a23873d9c.png",
+    "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-anime/5276f5a454b3626169df07375f1d86b71f2bcbd7edfed300f14dc56dfb85054b.mp4",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-anime/5276f5a454b3626169df07375f1d86b71f2bcbd7edfed300f14dc56dfb85054b-late.png",
     "run": "runs/effect.restyle-anime.json"
   }
 }

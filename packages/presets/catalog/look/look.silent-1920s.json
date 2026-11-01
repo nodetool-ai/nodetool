@@ -31,7 +31,7 @@
   "params": {},
   "preview": {
     "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.silent-1920s/4f85c76ac2e03a7912567e39e44ea0a659ac51d4b04703868555c4ed67fa43a1.mp4",
-    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.silent-1920s/4f85c76ac2e03a7912567e39e44ea0a659ac51d4b04703868555c4ed67fa43a1.png",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.silent-1920s/4f85c76ac2e03a7912567e39e44ea0a659ac51d4b04703868555c4ed67fa43a1-late.png",
     "run": "runs/look.silent-1920s.json"
   }
 }

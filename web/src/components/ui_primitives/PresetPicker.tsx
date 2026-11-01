@@ -109,10 +109,19 @@ const PresetPickerInner = forwardRef<HTMLDivElement, PresetPickerProps>(
     );
     const allTags = useMemo(
       () =>
-        [...new Set(scoped.flatMap((preset) => preset.tags))].sort((a, b) =>
-          a.localeCompare(b)
-        ),
-      [scoped]
+        [
+          ...new Set(
+            scoped
+              .filter((preset) => !kind || preset.kind === kind)
+              .flatMap((preset) => preset.tags)
+          )
+        ].sort((a, b) => a.localeCompare(b)),
+      [scoped, kind]
+    );
+    // A tag the selected kind doesn't offer has no chip to clear it, so it stops filtering.
+    const activeTags = useMemo(
+      () => tags.filter((tag) => allTags.includes(tag)),
+      [tags, allTags]
     );
 
     const visible = useMemo(() => {
@@ -121,7 +130,7 @@ const PresetPickerInner = forwardRef<HTMLDivElement, PresetPickerProps>(
         if (kind && preset.kind !== kind) {
           return false;
         }
-        if (!tags.every((tag) => preset.tags.includes(tag))) {
+        if (!activeTags.every((tag) => preset.tags.includes(tag))) {
           return false;
         }
         if (!needle) {
@@ -135,7 +144,7 @@ const PresetPickerInner = forwardRef<HTMLDivElement, PresetPickerProps>(
           needle
         );
       });
-    }, [scoped, kind, tags, query, t]);
+    }, [scoped, kind, activeTags, query, t]);
 
     const byId = useMemo(
       () => new Map(presets.map((preset) => [preset.id, preset])),
@@ -243,7 +252,7 @@ const PresetPickerInner = forwardRef<HTMLDivElement, PresetPickerProps>(
       [visible, focusCard]
     );
 
-    const filtersActive = query.trim() !== "" || kind !== null || tags.length > 0;
+    const filtersActive = query.trim() !== "" || kind !== null || activeTags.length > 0;
     const clearFilters = useCallback(() => {
       setQuery("");
       setKind(null);

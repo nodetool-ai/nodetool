@@ -31,7 +31,7 @@
   "params": {},
   "preview": {
     "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.kodak-5219/809432dc4cf9da485086a58c696c663b31be47e84458fa8532500a2e8e8a0c4d.mp4",
-    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.kodak-5219/809432dc4cf9da485086a58c696c663b31be47e84458fa8532500a2e8e8a0c4d.png",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/look.kodak-5219/809432dc4cf9da485086a58c696c663b31be47e84458fa8532500a2e8e8a0c4d-late.png",
     "run": "runs/look.kodak-5219.json"
   }
 }

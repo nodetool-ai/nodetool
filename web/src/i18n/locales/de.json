@@ -19532,7 +19532,8 @@
     "done": "Fertig",
     "remove": "{{name}} entfernen",
     "clause": "Look-Text",
-    "inherit": "Eine leere Auswahl übernimmt den Storyboard-Look."
+    "inherit": "Eine leere Auswahl übernimmt den Storyboard-Look.",
+    "inherited": "Verwendet den Storyboard-Look: {{names}}"
   },
   "startStudios": {
     "title": "Studios",

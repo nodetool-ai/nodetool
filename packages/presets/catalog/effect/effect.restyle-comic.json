@@ -24,7 +24,7 @@
   "params": {},
   "preview": {
     "url": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-comic/75f1841a160587dff7311f3c19e3ddd8fcd7989dbe64b3d93a72be8aa2955fa8.mp4",
-    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-comic/75f1841a160587dff7311f3c19e3ddd8fcd7989dbe64b3d93a72be8aa2955fa8.png",
+    "poster": "https://zmytgmyiwfmdajmxjbag.supabase.co/storage/v1/object/public/preset-previews/presets/effect.restyle-comic/75f1841a160587dff7311f3c19e3ddd8fcd7989dbe64b3d93a72be8aa2955fa8-late.png",
     "run": "runs/effect.restyle-comic.json"
   }
 }

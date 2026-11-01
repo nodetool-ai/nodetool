@@ -19532,7 +19532,8 @@
     "done": "Valmis",
     "remove": "Poista {{name}}",
     "clause": "Ilmeen kehote",
-    "inherit": "Tyhjä valinta käyttää kuvakäsikirjoituksen ilmettä."
+    "inherit": "Tyhjä valinta käyttää kuvakäsikirjoituksen ilmettä.",
+    "inherited": "Käyttää kuvakäsikirjoituksen ilmettä: {{names}}"
   },
   "startStudios": {
     "title": "Studiot",
