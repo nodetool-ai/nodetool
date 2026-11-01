@@ -5,6 +5,15 @@ The dependency tiers in this historical plan are superseded by the
 [independently installed command features](cli.md#install-command-features).
 Use those documents for the current installation contract.
 
+The install layout in sections 11 and 14 is also superseded. Packs no longer
+install into the CLI's directory or its npm project. They install into an npm
+project the installer owns, one per core version under `<data dir>/packs/`,
+built in a new directory and switched into place after verification. Core
+packages and shared-identity libraries still load once per process: a module
+resolution hook sends a pack's imports of them to the CLI's copy. See
+[`nodetool packs`](cli.md#nodetool-packs) and the
+[pack manager](../packages/pack-manager/README.md).
+
 Status: design, not implemented. Scope: the npm package `@nodetool-ai/cli`.
 The desktop app and the Docker image keep their bundled backend.
 
@@ -528,6 +537,8 @@ with invalid catalog properties to report those issues without calling
 
 ## 11. Install layout (D1)
 
+Superseded: see the note at the top of this document.
+
 ### 11.1 Install modes
 
 The CLI finds its package root (`cliRoot`, the directory whose `package.json`
@@ -699,6 +710,10 @@ scripts or new runtime libraries. When a restore would run scripts from
 packages not in the previous version's allowlist, the prompt lists them.
 
 ## 14. The installer
+
+Superseded: the plan check, additive verification and in-place rollback below
+are replaced by building a new pack project generation and switching to it.
+See the note at the top of this document.
 
 ### 14.1 npm
 

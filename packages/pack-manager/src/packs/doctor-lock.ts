@@ -9,8 +9,8 @@ export interface PackLockIssue { readonly kind: string; readonly message: string
 
 /** A killed installer can leave a valid tree without a desired-state dirty marker. */
 export async function inspectPackInstallLock(mode: InstallMode): Promise<readonly PackLockIssue[]> {
-  if (!mode.nodeModulesRoot) { return []; }
-  const file = join(mode.nodeModulesRoot, ".nodetool-packs.lock");
+  if (mode.kind !== "global" && mode.kind !== "local") { return []; }
+  const file = join(mode.packsRoot, ".nodetool-packs.lock");
   const issues: PackLockIssue[] = [];
   try {
     await stat(file + ".guard");

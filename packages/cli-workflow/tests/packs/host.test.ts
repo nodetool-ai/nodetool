@@ -25,14 +25,20 @@ function hostFixture(body: string) {
     const root = mkdtempSync(join(tmpdir(), 'nodetool-pack-host-'));
     const version = catalog.readCatalogIndex().coreVersion;
     writeFileSync(join(root, 'package.json'), JSON.stringify({ dependencies: { '@nodetool-ai/cli': version } }));
-    function packageAt(name, packageVersion, code = '') {
-      const dir = join(root, 'node_modules', name);
+    process.env.XDG_DATA_HOME = root;
+    process.env.APPDATA = root;
+    const packsRoot = join(root, 'nodetool', 'packs', version);
+    const project = join(packsRoot, 'g-0-0000000000000000');
+    mkdirSync(project, { recursive: true });
+    writeFileSync(join(packsRoot, 'current.json'), JSON.stringify({ schemaVersion: 1, generation: 'g-0-0000000000000000' }));
+    function packageAt(name, packageVersion, code = '', base = project) {
+      const dir = join(base, 'node_modules', name);
       mkdirSync(join(dir, 'dist'), { recursive: true });
       writeFileSync(join(dir, 'package.json'), JSON.stringify({ name, version: packageVersion, type: 'module', exports: { '.': { import: './dist/index.js' } } }));
       writeFileSync(join(dir, 'dist/index.js'), code);
       return dir;
     }
-    const cli = packageAt('@nodetool-ai/cli', version);
+    const cli = packageAt('@nodetool-ai/cli', version, '', root);
     const entry = join(cli, 'dist/index.js');
     const whisper = packageAt('@nodetool-ai/whisper-cpp', '0.0.0', 'globalThis.rejectedProviderLoads = true; export function registerWhisperCppProviders() {}');
     packageAt('@nodetool-ai/transformers-js-nodes', version, 'globalThis.rejectedProviderLoads = true; export function registerTransformersJsNodes() {}');
@@ -50,9 +56,7 @@ function hostFixture(body: string) {
 describe("CLI installed pack host", () => {
   it("prints an upgrade restore notice once without installing or admitting desired packs", () => {
     const child = hostFixture(`
-      process.env.XDG_DATA_HOME = root;
       const stateDir = join(root, 'nodetool');
-      mkdirSync(stateDir);
       writeFileSync(join(stateDir, 'cli-packs.json'), JSON.stringify({ [root]: {
         root, coreVersion: '0.0.0', packs: ['game'], runtimeLibraries: []
       } }));

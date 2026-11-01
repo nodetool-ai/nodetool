@@ -2,6 +2,7 @@ import { existsSync, readFileSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import { join, posix, win32 } from "node:path";
 import { z } from "zod";
+import { getNodetoolDataDir } from "@nodetool-ai/config";
 import type { MissingPackInstall, NodeCatalogIndex } from "@nodetool-ai/pack-core";
 
 export type InstallPathStyle = "posix" | "win32";
@@ -12,11 +13,19 @@ interface InstallIdentity {
   readonly pathStyle: InstallPathStyle;
 }
 
+/**
+ * Global and local CLIs install packs into one npm project per core version,
+ * `packsRoot`, outside the CLI's own directory. `legacyInstallRoot` is the
+ * directory earlier releases installed into. It only keys older desired state.
+ */
 export type InstallMode = InstallIdentity & (
-  | { readonly kind: "global"; readonly installRoot: string; readonly nodeModulesRoot: string }
-  | { readonly kind: "local"; readonly installRoot: string; readonly nodeModulesRoot: string }
+  | { readonly kind: "global"; readonly packsRoot: string; readonly legacyInstallRoot: string }
+  | { readonly kind: "local"; readonly packsRoot: string; readonly legacyInstallRoot: string }
   | { readonly kind: "npx" | "dev" | "unsupported"; readonly reason: string; readonly nodeModulesRoot: string | null }
 );
+
+/** A CLI install that owns a pack project. */
+export type ManagedInstallMode = Extract<InstallMode, { readonly kind: "global" | "local" }>;
 
 export interface InstallLayout {
   readonly cliRoot: string;
@@ -27,11 +36,19 @@ export interface InstallLayout {
   readonly yarnPnp?: boolean;
   readonly bunGlobalRoots?: readonly string[];
   readonly workspaceRoot?: string;
+  /** Parent of the per-version pack projects. Defaults to `<data dir>/packs`. */
+  readonly packsHome?: string;
 }
 
 export interface InstallModeOptions {
   readonly globalNodeModulesRoots?: readonly string[];
   readonly bunGlobalRoots?: readonly string[];
+  readonly packsHome?: string;
+}
+
+/** The directory that holds one pack project per core version. */
+export function defaultPacksHome(): string {
+  return join(getNodetoolDataDir(), "packs");
 }
 
 const NPX_REASON = 'Packs need a global or local install. Run "npm install -g @nodetool-ai/cli" or "npm install @nodetool-ai/cli" in a project.';
@@ -86,11 +103,12 @@ export function classifyInstallLayout(layout: InstallLayout): InstallMode {
     return { ...identity, kind: "dev", reason: DEV_REASON,
       nodeModulesRoot: layout.workspaceRoot ? paths.join(layout.workspaceRoot, "node_modules") : null };
   }
+  const packsRoot = paths.join(layout.packsHome ?? defaultPacksHome(), layout.coreVersion);
   if (nodeModulesRoot && layout.globalNodeModulesRoots?.some((root) => pathKey(root, pathStyle) === pathKey(nodeModulesRoot, pathStyle))) {
-    return { ...identity, kind: "global", installRoot: cliRoot, nodeModulesRoot: paths.join(cliRoot, "node_modules") };
+    return { ...identity, kind: "global", packsRoot, legacyInstallRoot: cliRoot };
   }
   if (nodeModulesRoot && layout.projectHasCli) {
-    return { ...identity, kind: "local", installRoot: paths.dirname(nodeModulesRoot), nodeModulesRoot };
+    return { ...identity, kind: "local", packsRoot, legacyInstallRoot: paths.dirname(nodeModulesRoot) };
   }
   return { ...identity, kind: "unsupported", reason: "The project does not list @nodetool-ai/cli as a dependency. Install it explicitly in the project or use an npm global install.", nodeModulesRoot };
 }
@@ -235,7 +253,8 @@ export function detectInstallMode(entryPath: string, options: InstallModeOptions
   const layout: InstallLayout = {
     cliRoot, coreVersion, pathStyle: process.platform === "win32" ? "win32" : "posix",
     globalNodeModulesRoots: (options.globalNodeModulesRoots ?? defaultGlobalRoots()).map(canonicalGlobalRoot), projectHasCli, yarnPnp,
-    bunGlobalRoots: options.bunGlobalRoots ?? [paths.join(process.env["BUN_INSTALL"] ?? paths.join(homedir(), ".bun"), "install", "global")]
+    bunGlobalRoots: options.bunGlobalRoots ?? [paths.join(process.env["BUN_INSTALL"] ?? paths.join(homedir(), ".bun"), "install", "global")],
+    packsHome: options.packsHome
   };
   if (workspaceRoot) {
     return classifyInstallLayout({ ...layout, workspaceRoot });
@@ -268,8 +287,10 @@ export function detectStandaloneFeatureMode(entryPath: string, catalog: NodeCata
       projectHasCli: Boolean(project?.dependencies?.["@nodetool-ai/cli"] ?? project?.devDependencies?.["@nodetool-ai/cli"] ?? project?.optionalDependencies?.["@nodetool-ai/cli"])
     });
     const reason = 'Standalone command features cannot install packs. Run "npm install -g @nodetool-ai/cli" or install it in a project, then use "nodetool packs add".';
+    // A standalone feature reads the packages npm installed beside or below it.
+    const nodeModulesRoot = mode.kind === "global" ? paths.join(directory, "node_modules") : mode.kind === "local" ? modules : mode.nodeModulesRoot;
     return { cliRoot: mode.cliRoot, coreVersion: mode.coreVersion, pathStyle: mode.pathStyle,
-      kind: mode.kind === "npx" ? "npx" : "unsupported", nodeModulesRoot: mode.nodeModulesRoot, reason };
+      kind: mode.kind === "npx" ? "npx" : "unsupported", nodeModulesRoot, reason };
   }
   throw new Error(`Cannot find a catalog-admitted standalone command owner for ${entry}`);
 }

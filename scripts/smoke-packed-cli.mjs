@@ -120,9 +120,10 @@ export function probeMissingFal(bin, appDir, cliOptions) {
   console.log("ok  missing FAL validates properties and fails execution with the pack name");
 }
 
-function assertDesiredSelection(env, root, selected) {
+/** Packs install into `<data dir>/packs`, and the desired set is keyed by that directory. */
+function assertDesiredSelection(env, selected) {
   const data = process.platform === "win32" ? join(env.HOME, "AppData", "Roaming") : env.XDG_DATA_HOME;
-  const state = JSON.parse(readFileSync(join(data, "nodetool", "cli-packs.json"), "utf8"))[realpathSync(root)];
+  const state = JSON.parse(readFileSync(join(data, "nodetool", "cli-packs.json"), "utf8"))[resolve(data, "nodetool", "packs")];
   if (!state || state.dirty || selected.some(id => !state.packs.includes(id))) { throw new Error("Installed selection was not persisted as clean desired state"); }
 }
 
@@ -577,7 +578,8 @@ project and global consumers, each with an empty HOME.
 
     run(bin, ["packs", "add", ...selectedPacks, "--yes"], { ...cliOptions, timeout: 900_000 });
     assertInstalledSelection(run(bin, ["packs", "list", "--json"], cliOptions), selectedPacks);
-    assertDesiredSelection(env, appDir, selectedPacks);
+    assertDesiredSelection(env, selectedPacks);
+    assertCoreOnlyInstall(appDir);
     run(bin, ["packs", "doctor", "--installed", "--json"], cliOptions);
     runFalFixture(realpathSync(bin), appDir, env, run);
     console.log(`ok  actual packs add installed ${selectedPacks.join(", ")} and FAL workflow completed`);
@@ -602,7 +604,8 @@ project and global consumers, each with an empty HOME.
     if (!values["core-only"]) {
       run(process.execPath, [globalEntry, "packs", "add", ...selectedPacks, "--yes"], globalOptions);
       assertInstalledSelection(run(process.execPath, [globalEntry, "packs", "list", "--json"], globalOptions), selectedPacks);
-      assertDesiredSelection(globalEnv, globalRoot, selectedPacks);
+      assertDesiredSelection(globalEnv, selectedPacks);
+      assertCoreOnlyInstall(globalRoot);
       run(process.execPath, [globalEntry, "packs", "doctor", "--installed", "--json"], globalOptions);
       runFalFixture(globalEntry, globalCwd, globalEnv, run);
       console.log("ok  global packed CLI explicitly installs independent command and node packs and executes the FAL workflow");

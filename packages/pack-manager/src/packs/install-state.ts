@@ -1,8 +1,9 @@
-import { mkdir, readFile, rename, unlink, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
+import { mkdir, readFile, realpath, rename, unlink, writeFile } from "node:fs/promises";
+import { dirname, resolve } from "node:path";
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { acquireInstallLock } from "../install-lock.js";
+import type { ManagedInstallMode } from "./mode.js";
 
 const desiredSchema = z.object({ root: z.string(), coreVersion: z.string(), packs: z.array(z.string()),
   runtimeLibraries: z.array(z.string()),
@@ -16,6 +17,27 @@ export async function readDesiredState(file: string): Promise<z.infer<typeof sta
     if (error instanceof Error && "code" in error && error.code === "ENOENT") { return {}; }
     throw error;
   }
+}
+
+/** Desired state is keyed by the packs home, which stays the same across core versions. */
+export function desiredStateKey(mode: ManagedInstallMode): string {
+  return resolve(dirname(mode.packsRoot));
+}
+
+/**
+ * The desired set for this packs home. Earlier releases keyed it by the CLI
+ * or project directory they installed into, so that entry is the fallback
+ * that lets an upgraded CLI offer to restore the same packs.
+ */
+export async function readDesiredFor(file: string, mode: ManagedInstallMode): Promise<DesiredPackState | undefined> {
+  const state = await readDesiredState(file);
+  const current = state[desiredStateKey(mode)];
+  if (current) { return current; }
+  const legacy = await realpath(mode.legacyInstallRoot).catch((error: unknown) => {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") { return mode.legacyInstallRoot; }
+    throw error;
+  });
+  return state[legacy];
 }
 
 /** Each root transaction also serializes merging the shared desired-state file. */
