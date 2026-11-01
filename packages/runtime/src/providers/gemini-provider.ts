@@ -311,6 +311,11 @@ interface GeminiModelEntry {
   supportedGenerationMethods?: string[];
 }
 
+function hasMethod(entry: GeminiModelEntry, ...methods: string[]): boolean {
+  const supported = entry.supportedGenerationMethods ?? [];
+  return methods.some((method) => supported.includes(method));
+}
+
 interface GeminiModelsPage {
   models?: GeminiModelEntry[];
   nextPageToken?: string;
@@ -922,6 +927,48 @@ export class GeminiProvider extends BaseProvider {
     });
   }
 
+  /**
+   * POST a JSON body to a method on a model, authenticated for this endpoint.
+   * Nodes that build their own Gemini request bodies use it to reach either
+   * the Developer API or Vertex AI with the same code.
+   */
+  async postModel(
+    model: string,
+    method: string,
+    body: unknown,
+    signal?: AbortSignal
+  ): Promise<Response> {
+    return this._fetch(this.modelUrl(model, method), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...(await this.authHeaders())
+      },
+      body: JSON.stringify(body),
+      signal
+    });
+  }
+
+  /** The current state of a long-running video operation started with {@link postModel}. */
+  getVideoOperation(
+    model: string,
+    operationName: string,
+    signal?: AbortSignal
+  ): Promise<Response> {
+    return this.fetchVideoOperation(model, operationName, signal);
+  }
+
+  /** Headers for downloading a media URI, when this API serves it. */
+  async mediaHeaders(uri: string): Promise<Record<string, string> | undefined> {
+    let hostname: string;
+    try {
+      hostname = new URL(uri).hostname;
+    } catch {
+      return undefined;
+    }
+    return this.isApiHost(hostname) ? this.authHeaders() : undefined;
+  }
+
   async hasToolSupport(_model: string): Promise<boolean> {
     return true;
   }
@@ -939,7 +986,12 @@ export class GeminiProvider extends BaseProvider {
   // Model listing
   // ---------------------------------------------------------------------------
 
-  async getAvailableLanguageModels(): Promise<LanguageModel[]> {
+  /**
+   * Every model the Developer API lists for this key, or null when the
+   * listing fails. Media listings use it to show the models the API serves
+   * now instead of only the ones written into this file.
+   */
+  protected async listModelEntries(): Promise<GeminiModelEntry[] | null> {
     const items: GeminiModelEntry[] = [];
     let pageToken: string | undefined;
     try {
@@ -949,14 +1001,44 @@ export class GeminiProvider extends BaseProvider {
         const response = await this._fetch(this.apiUrl(`models?${query}`), {
           headers: await this.authHeaders()
         });
-        if (!response.ok) return [];
+        if (!response.ok) return null;
         const payload = decodeGeminiModelsPage(await response.json());
         items.push(...(payload.models ?? []));
         pageToken = payload.nextPageToken;
       } while (pageToken);
     } catch {
-      return [];
+      return null;
     }
+    return items;
+  }
+
+  /**
+   * The live listing's models that match `select`, in listing order. A model
+   * this file describes keeps its known metadata. Without a live listing the
+   * known models are returned unchanged.
+   */
+  private async liveModels<T extends { id: string; name: string; provider: string }>(
+    known: T[],
+    select: (entry: GeminiModelEntry, id: string) => boolean,
+    create: (id: string, name: string) => T
+  ): Promise<T[]> {
+    const entries = await this.listModelEntries();
+    if (!entries) return known;
+    const byId = new Map(known.map((model) => [model.id, model]));
+    const seen = new Set<string>();
+    const models: T[] = [];
+    for (const entry of entries) {
+      const id = entry.name?.split("/").pop();
+      if (!id || seen.has(id) || !select(entry, id)) continue;
+      seen.add(id);
+      models.push(byId.get(id) ?? create(id, entry.displayName ?? id));
+    }
+    return models.length > 0 ? models : known;
+  }
+
+  async getAvailableLanguageModels(): Promise<LanguageModel[]> {
+    const items = await this.listModelEntries();
+    if (!items) return [];
 
     const seen = new Set<string>();
     return items
@@ -1847,6 +1929,40 @@ export class GeminiProvider extends BaseProvider {
   // ---------------------------------------------------------------------------
 
   async getAvailableImageModels(): Promise<ImageModel[]> {
+    return this.liveModels(
+      this.knownImageModels(),
+      (entry, id) =>
+        /image/i.test(id) &&
+        hasMethod(entry, "generateContent", "predict"),
+      (id, name) => ({
+        id,
+        name,
+        provider: "gemini",
+        supportedTasks: /^imagen/i.test(id)
+          ? ["text_to_image"]
+          : ["text_to_image", "image_to_image"]
+      })
+    );
+  }
+
+  async getAvailableTTSModels(): Promise<TTSModel[]> {
+    const known = this.knownTTSModels();
+    return this.liveModels(
+      known,
+      (entry, id) => /tts/i.test(id) && hasMethod(entry, "generateContent"),
+      (id, name) => ({ id, name, provider: "gemini", voices: known[0]?.voices })
+    );
+  }
+
+  async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
+    return this.liveModels(
+      this.knownEmbeddingModels(),
+      (entry) => hasMethod(entry, "embedContent"),
+      (id, name) => ({ id, name, provider: "gemini" })
+    );
+  }
+
+  private knownImageModels(): ImageModel[] {
     return [
       {
         id: "gemini-3.1-flash-image",
@@ -1919,7 +2035,7 @@ export class GeminiProvider extends BaseProvider {
     ];
   }
 
-  async getAvailableTTSModels(): Promise<TTSModel[]> {
+  private knownTTSModels(): TTSModel[] {
     const voices = [
       "Zephyr",
       "Puck",
@@ -2029,7 +2145,7 @@ export class GeminiProvider extends BaseProvider {
     ];
   }
 
-  async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
+  private knownEmbeddingModels(): EmbeddingModel[] {
     return [
       {
         id: "gemini-embedding-2",

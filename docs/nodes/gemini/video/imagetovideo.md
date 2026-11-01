@@ -23,7 +23,6 @@ Generate videos from images using Google's Veo models.
 |----------|------|-------------|---------|
 | image | `image` | The image to animate into a video | `{"type":"image","uri":"","asset_id":null,"data"...` |
 | prompt | `str` | Optional text prompt describing the desired animation | `` |
-| model | `enum` | The Veo model to use for video generation | `veo-3.1-generate-preview` |
 | aspect_ratio | `enum` | The aspect ratio of the generated video | `16:9` |
 | negative_prompt | `str` | Negative prompt to guide what to avoid in the video | `` |
 | resolution | `enum` | The output video resolution | `720p` |

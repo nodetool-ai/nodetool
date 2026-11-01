@@ -7,6 +7,9 @@ import {
   getProviderKindForNamespace,
   getNodeProviderId,
   getNodeProviderName,
+  getNamespaceDisplayName,
+  getProviderIdForGateKey,
+  getSettingsKeyForGateKey,
   LOCAL_PROVIDER_ID
 } from "../nodeProvider";
 
@@ -129,6 +132,44 @@ describe("nodeProvider", () => {
 
     it("capitalizes a provider without a key", () => {
       expect(getNodeProviderName("messaging")).toBe("Messaging");
+    });
+  });
+
+  describe("namespaces that share a vendor", () => {
+    it("gate each namespace on its own credential", () => {
+      expect(getRequiredSecretKeyForNamespace("gemini.image")).toBe("GEMINI_API_KEY");
+      expect(getRequiredSecretKeyForNamespace("vertex.image")).toBe("GOOGLE_CLOUD_PROJECT");
+      expect(getRequiredSecretKeyForNamespace("openai.text")).toBe("OPENAI_API_KEY");
+      expect(getRequiredSecretKeyForNamespace("codex.text")).toBe("CODEX_ACCESS_TOKEN");
+      expect(getRequiredSecretKeyForNamespace("anthropic.text")).toBe("ANTHROPIC_API_KEY");
+      expect(getRequiredSecretKeyForNamespace("claude_code.text")).toBe("CLAUDE_SUBSCRIPTION");
+    });
+
+    it("treat the sign-in and Google Cloud namespaces as API providers", () => {
+      for (const ns of ["vertex.audio", "codex.image", "claude_code.text"]) {
+        expect(getProviderKindForNamespace(ns)).toBe("api");
+      }
+    });
+
+    it("map gates without a stored secret to the provider that satisfies them", () => {
+      expect(getProviderIdForGateKey("CODEX_ACCESS_TOKEN")).toBe("codex");
+      expect(getProviderIdForGateKey("CLAUDE_SUBSCRIPTION")).toBe("claude_agent_sdk");
+      expect(getProviderIdForGateKey("GOOGLE_CLOUD_PROJECT")).toBe("gemini_vertex");
+      expect(getProviderIdForGateKey("OPENAI_API_KEY")).toBeNull();
+    });
+
+    it("send the ChatGPT sign-in to the OpenAI settings card", () => {
+      expect(getSettingsKeyForGateKey("CODEX_ACCESS_TOKEN")).toBe("OPENAI_API_KEY");
+      expect(getSettingsKeyForGateKey("CLAUDE_SUBSCRIPTION")).toBe("CLAUDE_SUBSCRIPTION");
+    });
+
+    it("name them so the pairs read apart", () => {
+      expect(getNodeProviderName("vertex")).toBe("Vertex AI");
+      expect(getNodeProviderName("codex")).toBe("Codex");
+      expect(getNodeProviderName("claude_code")).toBe("Claude Code");
+      expect(getNodeProviderName("anthropic")).toBe("Anthropic");
+      expect(getNamespaceDisplayName("vertex")).toBe("Vertex AI");
+      expect(getNamespaceDisplayName("gemini")).toBeNull();
     });
   });
 });

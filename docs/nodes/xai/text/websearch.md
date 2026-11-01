@@ -27,7 +27,6 @@ Answer questions using Grok with xAI Live Search over the web and X.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| model | `str` | The Grok model to use for the search query. | `grok-4` |
 | query | `str` | The question to research using live web/X search. | `` |
 | search_mode | `enum` | auto lets Grok decide when to search, on forces search, off disables it. | `auto` |
 | max_results | `int` | Maximum number of search results to consider. | `10` |

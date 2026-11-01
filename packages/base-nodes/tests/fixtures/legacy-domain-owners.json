@@ -427,6 +427,13 @@
     "gemini.video.ImageToVideo",
     "gemini.audio.TextToSpeech",
     "gemini.audio.Transcribe",
+    "vertex.text.GroundedSearch",
+    "vertex.text.Embedding",
+    "vertex.image.ImageGeneration",
+    "vertex.video.TextToVideo",
+    "vertex.video.ImageToVideo",
+    "vertex.audio.TextToSpeech",
+    "vertex.audio.Transcribe",
     "mistral.text.ChatComplete",
     "mistral.text.CodeComplete",
     "mistral.embeddings.Embedding",
@@ -447,7 +454,11 @@
     "xai.text.ChatComplete",
     "xai.text.WebSearch",
     "xai.vision.ImageToText",
-    "xai.image.GenerateImage"
+    "xai.image.GenerateImage",
+    "codex.text.WebSearch",
+    "codex.image.CreateImage",
+    "anthropic.text.WebSearch",
+    "claude_code.text.WebSearch"
   ],
   "blender": [
     "nodetool.blender.RenderImage",

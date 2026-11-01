@@ -47814,10 +47814,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'query',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'str', type_args: [] },
         required: false,
         title: 'Query',
         description: 'The search query to execute',
@@ -47829,76 +47826,40 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: {
-          type: 'enum',
-          type_args: [],
-          values: [
-            'gemini-3.5-flash',
-            'gemini-3.1-pro-preview',
-            'gemini-3.1-flash-lite',
-            'gemini-2.5-pro',
-            'gemini-2.5-flash',
-            'gemini-2.5-flash-lite'
-          ]
-        },
+        type: { type: 'language_model', type_args: [] },
         required: false,
         title: 'Model',
         description: 'The Gemini model to use for search',
         min: undefined,
         max: undefined,
-        values: [
-          'gemini-3.5-flash',
-          'gemini-3.1-pro-preview',
-          'gemini-3.1-flash-lite',
-          'gemini-2.5-pro',
-          'gemini-2.5-flash',
-          'gemini-2.5-flash-lite'
-        ],
-        json_schema_extra: undefined,
-        default: 'gemini-3.5-flash'
+        values: undefined,
+        json_schema_extra: { allowed_providers: [ 'gemini' ] },
+        default: {
+          type: 'language_model',
+          provider: 'gemini',
+          id: 'gemini-3.5-flash',
+          name: 'gemini-3.5-flash'
+        }
       }
     ],
     outputs: [
       {
         name: 'results',
-        type: {
-          type: 'list',
-          type_args: [
-            {
-              type: 'str',
-              type_args: []
-            }
-          ]
-        }
+        type: { type: 'list', type_args: [ { type: 'str', type_args: [] } ] }
       },
       {
         name: 'sources',
         type: {
           type: 'list',
-          type_args: [
-            {
-              type: 'source',
-              type_args: []
-            }
-          ]
+          type_args: [ { type: 'source', type_args: [] } ]
         }
       },
-      {
-        name: 'text',
-        type: {
-          type: 'str',
-          type_args: []
-        }
-      }
+      { name: 'text', type: { type: 'str', type_args: [] } }
     ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [
-      'query'
-    ],
-    required_settings: [
-      'GEMINI_API_KEY'
-    ],
+    input_fields: [ 'query' ],
+    required_settings: [ 'GEMINI_API_KEY' ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -47918,11 +47879,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: 'text',
     model_packs: undefined,
-    platforms: [
-      'node',
-      'workers',
-      'edge'
-    ],
+    platforms: [ 'node', 'workers', 'edge' ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -47947,10 +47904,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'input',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'str', type_args: [] },
         required: false,
         title: 'Input',
         description: 'The text to embed.',
@@ -47962,42 +47916,27 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: {
-          type: 'enum',
-          type_args: [],
-          values: [
-            'gemini-embedding-2'
-          ]
-        },
+        type: { type: 'embedding_model', type_args: [] },
         required: false,
         title: 'Model',
         description: 'The embedding model to use',
         min: undefined,
         max: undefined,
-        values: [
-          'gemini-embedding-2'
-        ],
-        json_schema_extra: undefined,
-        default: 'gemini-embedding-2'
-      }
-    ],
-    outputs: [
-      {
-        name: 'output',
-        type: {
-          type: 'list',
-          type_args: []
+        values: undefined,
+        json_schema_extra: { allowed_providers: [ 'gemini' ] },
+        default: {
+          type: 'embedding_model',
+          provider: 'gemini',
+          id: 'gemini-embedding-2',
+          name: 'gemini-embedding-2'
         }
       }
     ],
+    outputs: [ { name: 'output', type: { type: 'list', type_args: [] } } ],
     recommended_models: [],
-    inline_fields: [
-      'input'
-    ],
+    inline_fields: [ 'input' ],
     input_fields: [],
-    required_settings: [
-      'GEMINI_API_KEY'
-    ],
+    required_settings: [ 'GEMINI_API_KEY' ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -48017,11 +47956,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [
-      'node',
-      'workers',
-      'edge'
-    ],
+    platforms: [ 'node', 'workers', 'edge' ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -48042,10 +47977,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'prompt',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'str', type_args: [] },
         required: false,
         title: 'Prompt',
         description: 'The text prompt describing the image to generate.',
@@ -48057,38 +47989,24 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: {
-          type: 'enum',
-          type_args: [],
-          values: [
-            'gemini-3.1-flash-image',
-            'gemini-nano-banana-2.1',
-            'gemini-3.1-flash-lite-image',
-            'gemini-3-pro-image',
-            'imagen-4.0-generate-001'
-          ]
-        },
+        type: { type: 'image_model', type_args: [] },
         required: false,
         title: 'Model',
         description: 'The image generation model to use',
         min: undefined,
         max: undefined,
-        values: [
-          'gemini-3.1-flash-image',
-          'gemini-nano-banana-2.1',
-          'gemini-3.1-flash-lite-image',
-          'gemini-3-pro-image',
-          'imagen-4.0-generate-001'
-        ],
-        json_schema_extra: undefined,
-        default: 'gemini-3.1-flash-image'
+        values: undefined,
+        json_schema_extra: { allowed_providers: [ 'gemini' ] },
+        default: {
+          type: 'image_model',
+          provider: 'gemini',
+          id: 'gemini-3.1-flash-image',
+          name: 'gemini-3.1-flash-image'
+        }
       },
       {
         name: 'image',
-        type: {
-          type: 'image',
-          type_args: []
-        },
+        type: { type: 'image', type_args: [] },
         required: false,
         title: 'Image',
         description: 'The image to use as a base for the generation.',
@@ -48110,20 +48028,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           type: 'enum',
           type_args: [],
           values: [
-            '1:1',
-            '1:4',
-            '1:8',
-            '2:3',
-            '3:2',
-            '3:4',
-            '4:1',
-            '4:3',
-            '4:5',
-            '5:4',
-            '8:1',
-            '9:16',
-            '16:9',
-            '21:9'
+            '1:1',  '1:4',  '1:8',
+            '2:3',  '3:2',  '3:4',
+            '4:1',  '4:3',  '4:5',
+            '5:4',  '8:1',  '9:16',
+            '16:9', '21:9'
           ]
         },
         required: false,
@@ -48132,20 +48041,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         min: undefined,
         max: undefined,
         values: [
-          '1:1',
-          '1:4',
-          '1:8',
-          '2:3',
-          '3:2',
-          '3:4',
-          '4:1',
-          '4:3',
-          '4:5',
-          '5:4',
-          '8:1',
-          '9:16',
-          '16:9',
-          '21:9'
+          '1:1',  '1:4',  '1:8',
+          '2:3',  '3:2',  '3:4',
+          '4:1',  '4:3',  '4:5',
+          '5:4',  '8:1',  '9:16',
+          '16:9', '21:9'
         ],
         json_schema_extra: undefined,
         default: '1:1'
@@ -48155,46 +48055,23 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         type: {
           type: 'enum',
           type_args: [],
-          values: [
-            '512px',
-            '1K',
-            '2K',
-            '4K'
-          ]
+          values: [ '512px', '1K', '2K', '4K' ]
         },
         required: false,
         title: 'Resolution',
         description: 'The output image resolution',
         min: undefined,
         max: undefined,
-        values: [
-          '512px',
-          '1K',
-          '2K',
-          '4K'
-        ],
+        values: [ '512px', '1K', '2K', '4K' ],
         json_schema_extra: undefined,
         default: '1K'
       }
     ],
-    outputs: [
-      {
-        name: 'output',
-        type: {
-          type: 'image',
-          type_args: []
-        }
-      }
-    ],
+    outputs: [ { name: 'output', type: { type: 'image', type_args: [] } } ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [
-      'prompt',
-      'image'
-    ],
-    required_settings: [
-      'GEMINI_API_KEY'
-    ],
+    input_fields: [ 'prompt', 'image' ],
+    required_settings: [ 'GEMINI_API_KEY' ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -48214,11 +48091,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [
-      'node',
-      'workers',
-      'edge'
-    ],
+    platforms: [ 'node', 'workers', 'edge' ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -48237,10 +48110,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'prompt',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'str', type_args: [] },
         required: false,
         title: 'Prompt',
         description: 'The text prompt describing the video to generate',
@@ -48252,56 +48122,36 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: {
-          type: 'enum',
-          type_args: [],
-          values: [
-            'veo-3.1-generate-preview',
-            'veo-3.1-fast-generate-preview',
-            'veo-3.1-lite-generate-preview'
-          ]
-        },
+        type: { type: 'video_model', type_args: [] },
         required: false,
         title: 'Model',
         description: 'The Veo model to use for video generation',
         min: undefined,
         max: undefined,
-        values: [
-          'veo-3.1-generate-preview',
-          'veo-3.1-fast-generate-preview',
-          'veo-3.1-lite-generate-preview'
-        ],
-        json_schema_extra: undefined,
-        default: 'veo-3.1-generate-preview'
+        values: undefined,
+        json_schema_extra: { allowed_providers: [ 'gemini' ] },
+        default: {
+          type: 'video_model',
+          provider: 'gemini',
+          id: 'veo-3.1-generate-preview',
+          name: 'veo-3.1-generate-preview'
+        }
       },
       {
         name: 'aspect_ratio',
-        type: {
-          type: 'enum',
-          type_args: [],
-          values: [
-            '16:9',
-            '9:16'
-          ]
-        },
+        type: { type: 'enum', type_args: [], values: [ '16:9', '9:16' ] },
         required: false,
         title: 'Aspect Ratio',
         description: 'The aspect ratio of the generated video',
         min: undefined,
         max: undefined,
-        values: [
-          '16:9',
-          '9:16'
-        ],
+        values: [ '16:9', '9:16' ],
         json_schema_extra: undefined,
         default: '16:9'
       },
       {
         name: 'negative_prompt',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'str', type_args: [] },
         required: false,
         title: 'Negative Prompt',
         description: 'Negative prompt to guide what to avoid in the video',
@@ -48316,43 +48166,23 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         type: {
           type: 'enum',
           type_args: [],
-          values: [
-            '720p',
-            '1080p',
-            '4k'
-          ]
+          values: [ '720p', '1080p', '4k' ]
         },
         required: false,
         title: 'Resolution',
         description: 'The output video resolution',
         min: undefined,
         max: undefined,
-        values: [
-          '720p',
-          '1080p',
-          '4k'
-        ],
+        values: [ '720p', '1080p', '4k' ],
         json_schema_extra: undefined,
         default: '720p'
       }
     ],
-    outputs: [
-      {
-        name: 'output',
-        type: {
-          type: 'video',
-          type_args: []
-        }
-      }
-    ],
+    outputs: [ { name: 'output', type: { type: 'video', type_args: [] } } ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [
-      'prompt'
-    ],
-    required_settings: [
-      'GEMINI_API_KEY'
-    ],
+    input_fields: [ 'prompt' ],
+    required_settings: [ 'GEMINI_API_KEY' ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -48372,11 +48202,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [
-      'node',
-      'workers',
-      'edge'
-    ],
+    platforms: [ 'node', 'workers', 'edge' ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -48395,10 +48221,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'image',
-        type: {
-          type: 'image',
-          type_args: []
-        },
+        type: { type: 'image', type_args: [] },
         required: false,
         title: 'Image',
         description: 'The image to animate into a video',
@@ -48416,10 +48239,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'prompt',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'str', type_args: [] },
         required: false,
         title: 'Prompt',
         description: 'Optional text prompt describing the desired animation',
@@ -48431,56 +48251,36 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: {
-          type: 'enum',
-          type_args: [],
-          values: [
-            'veo-3.1-generate-preview',
-            'veo-3.1-fast-generate-preview',
-            'veo-3.1-lite-generate-preview'
-          ]
-        },
+        type: { type: 'video_model', type_args: [] },
         required: false,
         title: 'Model',
         description: 'The Veo model to use for video generation',
         min: undefined,
         max: undefined,
-        values: [
-          'veo-3.1-generate-preview',
-          'veo-3.1-fast-generate-preview',
-          'veo-3.1-lite-generate-preview'
-        ],
-        json_schema_extra: undefined,
-        default: 'veo-3.1-generate-preview'
+        values: undefined,
+        json_schema_extra: { allowed_providers: [ 'gemini' ] },
+        default: {
+          type: 'video_model',
+          provider: 'gemini',
+          id: 'veo-3.1-generate-preview',
+          name: 'veo-3.1-generate-preview'
+        }
       },
       {
         name: 'aspect_ratio',
-        type: {
-          type: 'enum',
-          type_args: [],
-          values: [
-            '16:9',
-            '9:16'
-          ]
-        },
+        type: { type: 'enum', type_args: [], values: [ '16:9', '9:16' ] },
         required: false,
         title: 'Aspect Ratio',
         description: 'The aspect ratio of the generated video',
         min: undefined,
         max: undefined,
-        values: [
-          '16:9',
-          '9:16'
-        ],
+        values: [ '16:9', '9:16' ],
         json_schema_extra: undefined,
         default: '16:9'
       },
       {
         name: 'negative_prompt',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'str', type_args: [] },
         required: false,
         title: 'Negative Prompt',
         description: 'Negative prompt to guide what to avoid in the video',
@@ -48495,44 +48295,23 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         type: {
           type: 'enum',
           type_args: [],
-          values: [
-            '720p',
-            '1080p',
-            '4k'
-          ]
+          values: [ '720p', '1080p', '4k' ]
         },
         required: false,
         title: 'Resolution',
         description: 'The output video resolution',
         min: undefined,
         max: undefined,
-        values: [
-          '720p',
-          '1080p',
-          '4k'
-        ],
+        values: [ '720p', '1080p', '4k' ],
         json_schema_extra: undefined,
         default: '720p'
       }
     ],
-    outputs: [
-      {
-        name: 'output',
-        type: {
-          type: 'video',
-          type_args: []
-        }
-      }
-    ],
+    outputs: [ { name: 'output', type: { type: 'video', type_args: [] } } ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [
-      'prompt',
-      'image'
-    ],
-    required_settings: [
-      'GEMINI_API_KEY'
-    ],
+    input_fields: [ 'prompt', 'image' ],
+    required_settings: [ 'GEMINI_API_KEY' ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -48552,11 +48331,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [
-      'node',
-      'workers',
-      'edge'
-    ],
+    platforms: [ 'node', 'workers', 'edge' ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -48590,10 +48365,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'text',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'str', type_args: [] },
         required: false,
         title: 'Text',
         description: 'The text to convert to speech.',
@@ -48605,31 +48377,20 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: {
-          type: 'enum',
-          type_args: [],
-          values: [
-            'gemini-3.8-flash-tts',
-            'gemini-3.8-flash-lite-tts',
-            'gemini-3.1-flash-tts-preview',
-            'gemini-2.5-flash-preview-tts',
-            'gemini-2.5-pro-preview-tts'
-          ]
-        },
+        type: { type: 'tts_model', type_args: [] },
         required: false,
         title: 'Model',
         description: 'The text-to-speech model to use',
         min: undefined,
         max: undefined,
-        values: [
-          'gemini-3.8-flash-tts',
-          'gemini-3.8-flash-lite-tts',
-          'gemini-3.1-flash-tts-preview',
-          'gemini-2.5-flash-preview-tts',
-          'gemini-2.5-pro-preview-tts'
-        ],
-        json_schema_extra: undefined,
-        default: 'gemini-3.8-flash-tts'
+        values: undefined,
+        json_schema_extra: { allowed_providers: [ 'gemini' ] },
+        default: {
+          type: 'tts_model',
+          provider: 'gemini',
+          id: 'gemini-3.8-flash-tts',
+          name: 'gemini-3.8-flash-tts'
+        }
       },
       {
         name: 'voice_name',
@@ -48637,36 +48398,16 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           type: 'enum',
           type_args: [],
           values: [
-            'achernar',
-            'achird',
-            'algenib',
-            'algieba',
-            'alnilam',
-            'aoede',
-            'autonoe',
-            'callirrhoe',
-            'charon',
-            'despina',
-            'enceladus',
-            'erinome',
-            'fenrir',
-            'gacrux',
-            'iapetus',
-            'kore',
-            'laomedeia',
-            'leda',
-            'orus',
-            'puck',
-            'pulcherrima',
-            'rasalgethi',
-            'sadachbia',
-            'sadaltager',
-            'schedar',
-            'sulafat',
-            'umbriel',
-            'vindemiatrix',
-            'zephyr',
-            'zubenelgenubi'
+            'achernar',     'achird',     'algenib',
+            'algieba',      'alnilam',    'aoede',
+            'autonoe',      'callirrhoe', 'charon',
+            'despina',      'enceladus',  'erinome',
+            'fenrir',       'gacrux',     'iapetus',
+            'kore',         'laomedeia',  'leda',
+            'orus',         'puck',       'pulcherrima',
+            'rasalgethi',   'sadachbia',  'sadaltager',
+            'schedar',      'sulafat',    'umbriel',
+            'vindemiatrix', 'zephyr',     'zubenelgenubi'
           ]
         },
         required: false,
@@ -48675,46 +48416,23 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         min: undefined,
         max: undefined,
         values: [
-          'achernar',
-          'achird',
-          'algenib',
-          'algieba',
-          'alnilam',
-          'aoede',
-          'autonoe',
-          'callirrhoe',
-          'charon',
-          'despina',
-          'enceladus',
-          'erinome',
-          'fenrir',
-          'gacrux',
-          'iapetus',
-          'kore',
-          'laomedeia',
-          'leda',
-          'orus',
-          'puck',
-          'pulcherrima',
-          'rasalgethi',
-          'sadachbia',
-          'sadaltager',
-          'schedar',
-          'sulafat',
-          'umbriel',
-          'vindemiatrix',
-          'zephyr',
-          'zubenelgenubi'
+          'achernar',     'achird',     'algenib',
+          'algieba',      'alnilam',    'aoede',
+          'autonoe',      'callirrhoe', 'charon',
+          'despina',      'enceladus',  'erinome',
+          'fenrir',       'gacrux',     'iapetus',
+          'kore',         'laomedeia',  'leda',
+          'orus',         'puck',       'pulcherrima',
+          'rasalgethi',   'sadachbia',  'sadaltager',
+          'schedar',      'sulafat',    'umbriel',
+          'vindemiatrix', 'zephyr',     'zubenelgenubi'
         ],
         json_schema_extra: undefined,
         default: 'kore'
       },
       {
         name: 'style_prompt',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'str', type_args: [] },
         required: false,
         title: 'Style Prompt',
         description: "Optional style prompt to control speech characteristics (e.g., 'Say cheerfully', 'Speak with excitement')",
@@ -48725,23 +48443,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: ''
       }
     ],
-    outputs: [
-      {
-        name: 'output',
-        type: {
-          type: 'audio',
-          type_args: []
-        }
-      }
-    ],
+    outputs: [ { name: 'output', type: { type: 'audio', type_args: [] } } ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [
-      'text'
-    ],
-    required_settings: [
-      'GEMINI_API_KEY'
-    ],
+    input_fields: [ 'text' ],
+    required_settings: [ 'GEMINI_API_KEY' ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -48761,11 +48467,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [
-      'node',
-      'workers',
-      'edge'
-    ],
+    platforms: [ 'node', 'workers', 'edge' ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -48791,10 +48493,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'audio',
-        type: {
-          type: 'audio',
-          type_args: []
-        },
+        type: { type: 'audio', type_args: [] },
         required: false,
         title: 'Audio',
         description: 'The audio file to transcribe.',
@@ -48812,34 +48511,24 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: {
-          type: 'enum',
-          type_args: [],
-          values: [
-            'gemini-3.5-flash',
-            'gemini-3.1-flash-lite',
-            'gemini-2.5-flash'
-          ]
-        },
+        type: { type: 'asr_model', type_args: [] },
         required: false,
         title: 'Model',
         description: 'The Gemini model to use for transcription',
         min: undefined,
         max: undefined,
-        values: [
-          'gemini-3.5-flash',
-          'gemini-3.1-flash-lite',
-          'gemini-2.5-flash'
-        ],
-        json_schema_extra: undefined,
-        default: 'gemini-3.5-flash'
+        values: undefined,
+        json_schema_extra: { allowed_providers: [ 'gemini' ] },
+        default: {
+          type: 'asr_model',
+          provider: 'gemini',
+          id: 'gemini-3.5-flash',
+          name: 'gemini-3.5-flash'
+        }
       },
       {
         name: 'prompt',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'str', type_args: [] },
         required: false,
         title: 'Prompt',
         description: 'Instructions for the transcription. You can customize this to request specific formatting or focus.',
@@ -48850,24 +48539,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: 'Transcribe the following audio accurately. Return only the transcription text without any additional commentary.'
       }
     ],
-    outputs: [
-      {
-        name: 'output',
-        type: {
-          type: 'str',
-          type_args: []
-        }
-      }
-    ],
+    outputs: [ { name: 'output', type: { type: 'str', type_args: [] } } ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [
-      'audio',
-      'prompt'
-    ],
-    required_settings: [
-      'GEMINI_API_KEY'
-    ],
+    input_fields: [ 'audio', 'prompt' ],
+    required_settings: [ 'GEMINI_API_KEY' ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -48887,11 +48563,724 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [
-      'node',
-      'workers',
-      'edge'
+    platforms: [ 'node', 'workers', 'edge' ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Grounded Search',
+    description: 'Search the web with Gemini on Vertex AI, grounded in Google Search results, billed to your Google Cloud project.\n' +
+      '    vertex, google cloud, gcp, gemini, search, grounding, web, sources',
+    namespace: 'vertex.text',
+    node_type: 'vertex.text.GroundedSearch',
+    layout: 'default',
+    body: 'content_card',
+    properties: [
+      {
+        name: 'query',
+        type: { type: 'str', type_args: [] },
+        required: false,
+        title: 'Query',
+        description: 'The search query to execute',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'model',
+        type: { type: 'language_model', type_args: [] },
+        required: false,
+        title: 'Model',
+        description: 'The Gemini model that searches.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: { allowed_providers: [ 'gemini_vertex' ] },
+        default: {
+          type: 'language_model',
+          provider: 'gemini_vertex',
+          id: 'gemini-3.5-flash',
+          name: 'gemini-3.5-flash'
+        }
+      }
     ],
+    outputs: [
+      {
+        name: 'results',
+        type: { type: 'list', type_args: [ { type: 'str', type_args: [] } ] }
+      },
+      {
+        name: 'sources',
+        type: {
+          type: 'list',
+          type_args: [ { type: 'source', type_args: [] } ]
+        }
+      },
+      { name: 'text', type: { type: 'str', type_args: [] } }
+    ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [ 'query' ],
+    required_settings: [ 'GOOGLE_CLOUD_PROJECT' ],
+    required_runtimes: [],
+    is_streaming_input: false,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: 'text',
+    model_packs: undefined,
+    platforms: [ 'node', 'workers', 'edge' ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Embedding',
+    description: 'Embed text as a vector with Gemini embedding models on Vertex AI, billed to your Google Cloud project.\n' +
+      '    vertex, google cloud, gcp, gemini, embeddings, similarity, search, clustering',
+    namespace: 'vertex.text',
+    node_type: 'vertex.text.Embedding',
+    layout: 'default',
+    body: 'default',
+    properties: [
+      {
+        name: 'input',
+        type: { type: 'str', type_args: [] },
+        required: false,
+        title: 'Input',
+        description: 'The text to embed.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'model',
+        type: { type: 'embedding_model', type_args: [] },
+        required: false,
+        title: 'Model',
+        description: 'The embedding model.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: { allowed_providers: [ 'gemini_vertex' ] },
+        default: {
+          type: 'embedding_model',
+          provider: 'gemini_vertex',
+          id: 'gemini-embedding-2',
+          name: 'gemini-embedding-2'
+        }
+      }
+    ],
+    outputs: [ { name: 'output', type: { type: 'list', type_args: [] } } ],
+    recommended_models: [],
+    inline_fields: [ 'input' ],
+    input_fields: [],
+    required_settings: [ 'GOOGLE_CLOUD_PROJECT' ],
+    required_runtimes: [],
+    is_streaming_input: false,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [ 'node', 'workers', 'edge' ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Image Generation',
+    description: 'Generate or edit an image with Gemini image models or Imagen on Vertex AI, billed to your Google Cloud project.\n' +
+      '    vertex, google cloud, gcp, gemini, image, generation, nano banana, imagen',
+    namespace: 'vertex.image',
+    node_type: 'vertex.image.ImageGeneration',
+    layout: 'default',
+    body: 'content_card',
+    properties: [
+      {
+        name: 'prompt',
+        type: { type: 'str', type_args: [] },
+        required: false,
+        title: 'Prompt',
+        description: 'The text prompt describing the image to generate.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'model',
+        type: { type: 'image_model', type_args: [] },
+        required: false,
+        title: 'Model',
+        description: 'The image model.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: { allowed_providers: [ 'gemini_vertex' ] },
+        default: {
+          type: 'image_model',
+          provider: 'gemini_vertex',
+          id: 'gemini-3.1-flash-image',
+          name: 'gemini-3.1-flash-image'
+        }
+      },
+      {
+        name: 'image',
+        type: { type: 'image', type_args: [] },
+        required: false,
+        title: 'Image',
+        description: 'The image to use as a base for the generation.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'image',
+          uri: '',
+          asset_id: null,
+          data: null,
+          metadata: null
+        }
+      },
+      {
+        name: 'aspect_ratio',
+        type: {
+          type: 'enum',
+          type_args: [],
+          values: [
+            '1:1',  '1:4',  '1:8',
+            '2:3',  '3:2',  '3:4',
+            '4:1',  '4:3',  '4:5',
+            '5:4',  '8:1',  '9:16',
+            '16:9', '21:9'
+          ]
+        },
+        required: false,
+        title: 'Aspect Ratio',
+        description: 'The aspect ratio of the generated image',
+        min: undefined,
+        max: undefined,
+        values: [
+          '1:1',  '1:4',  '1:8',
+          '2:3',  '3:2',  '3:4',
+          '4:1',  '4:3',  '4:5',
+          '5:4',  '8:1',  '9:16',
+          '16:9', '21:9'
+        ],
+        json_schema_extra: undefined,
+        default: '1:1'
+      },
+      {
+        name: 'resolution',
+        type: {
+          type: 'enum',
+          type_args: [],
+          values: [ '512px', '1K', '2K', '4K' ]
+        },
+        required: false,
+        title: 'Resolution',
+        description: 'The output image resolution',
+        min: undefined,
+        max: undefined,
+        values: [ '512px', '1K', '2K', '4K' ],
+        json_schema_extra: undefined,
+        default: '1K'
+      }
+    ],
+    outputs: [ { name: 'output', type: { type: 'image', type_args: [] } } ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [ 'prompt', 'image' ],
+    required_settings: [ 'GOOGLE_CLOUD_PROJECT' ],
+    required_runtimes: [],
+    is_streaming_input: false,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: true,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [ 'node', 'workers', 'edge' ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Text To Video',
+    description: 'Generate a video from a text prompt with Veo on Vertex AI, billed to your Google Cloud project.\n' +
+      '    vertex, google cloud, gcp, gemini, video, generation, veo, text-to-video',
+    namespace: 'vertex.video',
+    node_type: 'vertex.video.TextToVideo',
+    layout: 'default',
+    body: 'content_card',
+    properties: [
+      {
+        name: 'prompt',
+        type: { type: 'str', type_args: [] },
+        required: false,
+        title: 'Prompt',
+        description: 'The text prompt describing the video to generate',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'model',
+        type: { type: 'video_model', type_args: [] },
+        required: false,
+        title: 'Model',
+        description: 'The Veo model.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: { allowed_providers: [ 'gemini_vertex' ] },
+        default: {
+          type: 'video_model',
+          provider: 'gemini_vertex',
+          id: 'veo-3.1-generate-preview',
+          name: 'veo-3.1-generate-preview'
+        }
+      },
+      {
+        name: 'aspect_ratio',
+        type: { type: 'enum', type_args: [], values: [ '16:9', '9:16' ] },
+        required: false,
+        title: 'Aspect Ratio',
+        description: 'The aspect ratio of the generated video',
+        min: undefined,
+        max: undefined,
+        values: [ '16:9', '9:16' ],
+        json_schema_extra: undefined,
+        default: '16:9'
+      },
+      {
+        name: 'negative_prompt',
+        type: { type: 'str', type_args: [] },
+        required: false,
+        title: 'Negative Prompt',
+        description: 'Negative prompt to guide what to avoid in the video',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'resolution',
+        type: {
+          type: 'enum',
+          type_args: [],
+          values: [ '720p', '1080p', '4k' ]
+        },
+        required: false,
+        title: 'Resolution',
+        description: 'The output video resolution',
+        min: undefined,
+        max: undefined,
+        values: [ '720p', '1080p', '4k' ],
+        json_schema_extra: undefined,
+        default: '720p'
+      }
+    ],
+    outputs: [ { name: 'output', type: { type: 'video', type_args: [] } } ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [ 'prompt' ],
+    required_settings: [ 'GOOGLE_CLOUD_PROJECT' ],
+    required_runtimes: [],
+    is_streaming_input: false,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: true,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [ 'node', 'workers', 'edge' ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Image To Video',
+    description: 'Animate an image into a video with Veo on Vertex AI, billed to your Google Cloud project.\n' +
+      '    vertex, google cloud, gcp, gemini, video, generation, veo, image-to-video',
+    namespace: 'vertex.video',
+    node_type: 'vertex.video.ImageToVideo',
+    layout: 'default',
+    body: 'content_card',
+    properties: [
+      {
+        name: 'image',
+        type: { type: 'image', type_args: [] },
+        required: false,
+        title: 'Image',
+        description: 'The image to animate into a video',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'image',
+          uri: '',
+          asset_id: null,
+          data: null,
+          metadata: null
+        }
+      },
+      {
+        name: 'prompt',
+        type: { type: 'str', type_args: [] },
+        required: false,
+        title: 'Prompt',
+        description: 'Optional text prompt describing the desired animation',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'model',
+        type: { type: 'video_model', type_args: [] },
+        required: false,
+        title: 'Model',
+        description: 'The Veo model.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: { allowed_providers: [ 'gemini_vertex' ] },
+        default: {
+          type: 'video_model',
+          provider: 'gemini_vertex',
+          id: 'veo-3.1-generate-preview',
+          name: 'veo-3.1-generate-preview'
+        }
+      },
+      {
+        name: 'aspect_ratio',
+        type: { type: 'enum', type_args: [], values: [ '16:9', '9:16' ] },
+        required: false,
+        title: 'Aspect Ratio',
+        description: 'The aspect ratio of the generated video',
+        min: undefined,
+        max: undefined,
+        values: [ '16:9', '9:16' ],
+        json_schema_extra: undefined,
+        default: '16:9'
+      },
+      {
+        name: 'negative_prompt',
+        type: { type: 'str', type_args: [] },
+        required: false,
+        title: 'Negative Prompt',
+        description: 'Negative prompt to guide what to avoid in the video',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'resolution',
+        type: {
+          type: 'enum',
+          type_args: [],
+          values: [ '720p', '1080p', '4k' ]
+        },
+        required: false,
+        title: 'Resolution',
+        description: 'The output video resolution',
+        min: undefined,
+        max: undefined,
+        values: [ '720p', '1080p', '4k' ],
+        json_schema_extra: undefined,
+        default: '720p'
+      }
+    ],
+    outputs: [ { name: 'output', type: { type: 'video', type_args: [] } } ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [ 'prompt', 'image' ],
+    required_settings: [ 'GOOGLE_CLOUD_PROJECT' ],
+    required_runtimes: [],
+    is_streaming_input: false,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: true,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [ 'node', 'workers', 'edge' ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Text To Speech',
+    description: 'Generate speech from text with Gemini text-to-speech models on Vertex AI, billed to your Google Cloud project.\n' +
+      '    vertex, google cloud, gcp, gemini, text-to-speech, tts, audio, voice',
+    namespace: 'vertex.audio',
+    node_type: 'vertex.audio.TextToSpeech',
+    layout: 'default',
+    body: 'content_card',
+    properties: [
+      {
+        name: 'text',
+        type: { type: 'str', type_args: [] },
+        required: false,
+        title: 'Text',
+        description: 'The text to convert to speech.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'model',
+        type: { type: 'tts_model', type_args: [] },
+        required: false,
+        title: 'Model',
+        description: 'The text-to-speech model.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: { allowed_providers: [ 'gemini_vertex' ] },
+        default: {
+          type: 'tts_model',
+          provider: 'gemini_vertex',
+          id: 'gemini-3.8-flash-tts',
+          name: 'gemini-3.8-flash-tts'
+        }
+      },
+      {
+        name: 'voice_name',
+        type: {
+          type: 'enum',
+          type_args: [],
+          values: [
+            'achernar',     'achird',     'algenib',
+            'algieba',      'alnilam',    'aoede',
+            'autonoe',      'callirrhoe', 'charon',
+            'despina',      'enceladus',  'erinome',
+            'fenrir',       'gacrux',     'iapetus',
+            'kore',         'laomedeia',  'leda',
+            'orus',         'puck',       'pulcherrima',
+            'rasalgethi',   'sadachbia',  'sadaltager',
+            'schedar',      'sulafat',    'umbriel',
+            'vindemiatrix', 'zephyr',     'zubenelgenubi'
+          ]
+        },
+        required: false,
+        title: 'Voice Name',
+        description: 'The voice to use for speech generation',
+        min: undefined,
+        max: undefined,
+        values: [
+          'achernar',     'achird',     'algenib',
+          'algieba',      'alnilam',    'aoede',
+          'autonoe',      'callirrhoe', 'charon',
+          'despina',      'enceladus',  'erinome',
+          'fenrir',       'gacrux',     'iapetus',
+          'kore',         'laomedeia',  'leda',
+          'orus',         'puck',       'pulcherrima',
+          'rasalgethi',   'sadachbia',  'sadaltager',
+          'schedar',      'sulafat',    'umbriel',
+          'vindemiatrix', 'zephyr',     'zubenelgenubi'
+        ],
+        json_schema_extra: undefined,
+        default: 'kore'
+      },
+      {
+        name: 'style_prompt',
+        type: { type: 'str', type_args: [] },
+        required: false,
+        title: 'Style Prompt',
+        description: "Optional style prompt to control speech characteristics (e.g., 'Say cheerfully', 'Speak with excitement')",
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      }
+    ],
+    outputs: [ { name: 'output', type: { type: 'audio', type_args: [] } } ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [ 'text' ],
+    required_settings: [ 'GOOGLE_CLOUD_PROJECT' ],
+    required_runtimes: [],
+    is_streaming_input: false,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: true,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [ 'node', 'workers', 'edge' ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Transcribe',
+    description: 'Transcribe audio to text with Gemini on Vertex AI, billed to your Google Cloud project.\n' +
+      '    vertex, google cloud, gcp, gemini, transcription, speech-to-text, audio',
+    namespace: 'vertex.audio',
+    node_type: 'vertex.audio.Transcribe',
+    layout: 'default',
+    body: 'content_card',
+    properties: [
+      {
+        name: 'audio',
+        type: { type: 'audio', type_args: [] },
+        required: false,
+        title: 'Audio',
+        description: 'The audio file to transcribe.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: {
+          type: 'audio',
+          uri: '',
+          asset_id: null,
+          data: null,
+          metadata: null
+        }
+      },
+      {
+        name: 'model',
+        type: { type: 'asr_model', type_args: [] },
+        required: false,
+        title: 'Model',
+        description: 'The Gemini model that transcribes.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: { allowed_providers: [ 'gemini_vertex' ] },
+        default: {
+          type: 'asr_model',
+          provider: 'gemini_vertex',
+          id: 'gemini-3.5-flash',
+          name: 'gemini-3.5-flash'
+        }
+      },
+      {
+        name: 'prompt',
+        type: { type: 'str', type_args: [] },
+        required: false,
+        title: 'Prompt',
+        description: 'Instructions for the transcription. You can customize this to request specific formatting or focus.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: 'Transcribe the following audio accurately. Return only the transcription text without any additional commentary.'
+      }
+    ],
+    outputs: [ { name: 'output', type: { type: 'str', type_args: [] } } ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [ 'audio', 'prompt' ],
+    required_settings: [ 'GOOGLE_CLOUD_PROJECT' ],
+    required_runtimes: [],
+    is_streaming_input: false,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [ 'node', 'workers', 'edge' ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -50174,42 +50563,24 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'model',
-        type: {
-          type: 'enum',
-          type_args: [],
-          values: [
-            'mistral-large-latest',
-            'mistral-medium-latest',
-            'mistral-small-latest',
-            'pixtral-large-latest',
-            'codestral-latest',
-            'ministral-8b-latest',
-            'ministral-3b-latest'
-          ]
-        },
+        type: { type: 'language_model', type_args: [] },
         required: false,
         title: 'Model',
         description: 'The Mistral model to use for generation',
         min: undefined,
         max: undefined,
-        values: [
-          'mistral-large-latest',
-          'mistral-medium-latest',
-          'mistral-small-latest',
-          'pixtral-large-latest',
-          'codestral-latest',
-          'ministral-8b-latest',
-          'ministral-3b-latest'
-        ],
-        json_schema_extra: undefined,
-        default: 'mistral-small-latest'
+        values: undefined,
+        json_schema_extra: { allowed_providers: [ 'mistral' ] },
+        default: {
+          type: 'language_model',
+          provider: 'mistral',
+          id: 'mistral-small-latest',
+          name: 'mistral-small-latest'
+        }
       },
       {
         name: 'prompt',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'str', type_args: [] },
         required: false,
         title: 'Prompt',
         description: 'The prompt for text generation',
@@ -50221,10 +50592,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'system_prompt',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'str', type_args: [] },
         required: false,
         title: 'System Prompt',
         description: "Optional system prompt to guide the model's behavior",
@@ -50236,10 +50604,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'temperature',
-        type: {
-          type: 'float',
-          type_args: []
-        },
+        type: { type: 'float', type_args: [] },
         required: false,
         title: 'Temperature',
         description: 'Sampling temperature. Higher values make output more random.',
@@ -50251,10 +50616,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'max_tokens',
-        type: {
-          type: 'int',
-          type_args: []
-        },
+        type: { type: 'int', type_args: [] },
         required: false,
         title: 'Max Tokens',
         description: 'Maximum number of tokens to generate',
@@ -50265,24 +50627,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: 1024
       }
     ],
-    outputs: [
-      {
-        name: 'output',
-        type: {
-          type: 'str',
-          type_args: []
-        }
-      }
-    ],
+    outputs: [ { name: 'output', type: { type: 'str', type_args: [] } } ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [
-      'prompt',
-      'system_prompt'
-    ],
-    required_settings: [
-      'MISTRAL_API_KEY'
-    ],
+    input_fields: [ 'prompt', 'system_prompt' ],
+    required_settings: [ 'MISTRAL_API_KEY' ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -50302,11 +50651,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [
-      'node',
-      'workers',
-      'edge'
-    ],
+    platforms: [ 'node', 'workers', 'edge' ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -50457,10 +50802,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'input',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'str', type_args: [] },
         required: false,
         title: 'Input',
         description: 'The text to embed',
@@ -50472,30 +50814,24 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: {
-          type: 'enum',
-          type_args: [],
-          values: [
-            'mistral-embed'
-          ]
-        },
+        type: { type: 'embedding_model', type_args: [] },
         required: false,
         title: 'Model',
         description: 'The embedding model to use',
         min: undefined,
         max: undefined,
-        values: [
-          'mistral-embed'
-        ],
-        json_schema_extra: undefined,
-        default: 'mistral-embed'
+        values: undefined,
+        json_schema_extra: { allowed_providers: [ 'mistral' ] },
+        default: {
+          type: 'embedding_model',
+          provider: 'mistral',
+          id: 'mistral-embed',
+          name: 'mistral-embed'
+        }
       },
       {
         name: 'chunk_size',
-        type: {
-          type: 'int',
-          type_args: []
-        },
+        type: { type: 'int', type_args: [] },
         required: false,
         title: 'Chunk Size',
         description: 'Size of text chunks for embedding',
@@ -50506,23 +50842,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: 4096
       }
     ],
-    outputs: [
-      {
-        name: 'output',
-        type: {
-          type: 'list',
-          type_args: []
-        }
-      }
-    ],
+    outputs: [ { name: 'output', type: { type: 'list', type_args: [] } } ],
     recommended_models: [],
-    inline_fields: [
-      'input'
-    ],
+    inline_fields: [ 'input' ],
     input_fields: [],
-    required_settings: [
-      'MISTRAL_API_KEY'
-    ],
+    required_settings: [ 'MISTRAL_API_KEY' ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -50542,11 +50866,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [
-      'node',
-      'workers',
-      'edge'
-    ],
+    platforms: [ 'node', 'workers', 'edge' ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -50573,10 +50893,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'image',
-        type: {
-          type: 'image',
-          type_args: []
-        },
+        type: { type: 'image', type_args: [] },
         required: false,
         title: 'Image',
         description: 'The image to analyze',
@@ -50594,10 +50911,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'prompt',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'str', type_args: [] },
         required: false,
         title: 'Prompt',
         description: 'The prompt/question about the image',
@@ -50609,32 +50923,24 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: {
-          type: 'enum',
-          type_args: [],
-          values: [
-            'pixtral-large-latest',
-            'pixtral-12b-2409'
-          ]
-        },
+        type: { type: 'language_model', type_args: [] },
         required: false,
         title: 'Model',
         description: 'The Pixtral model to use for vision tasks',
         min: undefined,
         max: undefined,
-        values: [
-          'pixtral-large-latest',
-          'pixtral-12b-2409'
-        ],
-        json_schema_extra: undefined,
-        default: 'pixtral-large-latest'
+        values: undefined,
+        json_schema_extra: { allowed_providers: [ 'mistral' ] },
+        default: {
+          type: 'language_model',
+          provider: 'mistral',
+          id: 'pixtral-large-latest',
+          name: 'pixtral-large-latest'
+        }
       },
       {
         name: 'temperature',
-        type: {
-          type: 'float',
-          type_args: []
-        },
+        type: { type: 'float', type_args: [] },
         required: false,
         title: 'Temperature',
         description: 'Sampling temperature for response generation',
@@ -50646,10 +50952,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'max_tokens',
-        type: {
-          type: 'int',
-          type_args: []
-        },
+        type: { type: 'int', type_args: [] },
         required: false,
         title: 'Max Tokens',
         description: 'Maximum number of tokens to generate',
@@ -50660,24 +50963,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: 1024
       }
     ],
-    outputs: [
-      {
-        name: 'output',
-        type: {
-          type: 'str',
-          type_args: []
-        }
-      }
-    ],
+    outputs: [ { name: 'output', type: { type: 'str', type_args: [] } } ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [
-      'prompt',
-      'image'
-    ],
-    required_settings: [
-      'MISTRAL_API_KEY'
-    ],
+    input_fields: [ 'prompt', 'image' ],
+    required_settings: [ 'MISTRAL_API_KEY' ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -50697,11 +50987,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [
-      'node',
-      'workers',
-      'edge'
-    ],
+    platforms: [ 'node', 'workers', 'edge' ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -50727,10 +51013,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'image',
-        type: {
-          type: 'image',
-          type_args: []
-        },
+        type: { type: 'image', type_args: [] },
         required: false,
         title: 'Image',
         description: 'The image to extract text from',
@@ -50748,44 +51031,27 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: {
-          type: 'enum',
-          type_args: [],
-          values: [
-            'pixtral-large-latest',
-            'pixtral-12b-2409'
-          ]
-        },
+        type: { type: 'language_model', type_args: [] },
         required: false,
         title: 'Model',
         description: 'The Pixtral model to use for OCR',
         min: undefined,
         max: undefined,
-        values: [
-          'pixtral-large-latest',
-          'pixtral-12b-2409'
-        ],
-        json_schema_extra: undefined,
-        default: 'pixtral-large-latest'
-      }
-    ],
-    outputs: [
-      {
-        name: 'output',
-        type: {
-          type: 'str',
-          type_args: []
+        values: undefined,
+        json_schema_extra: { allowed_providers: [ 'mistral' ] },
+        default: {
+          type: 'language_model',
+          provider: 'mistral',
+          id: 'pixtral-large-latest',
+          name: 'pixtral-large-latest'
         }
       }
     ],
+    outputs: [ { name: 'output', type: { type: 'str', type_args: [] } } ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [
-      'image'
-    ],
-    required_settings: [
-      'MISTRAL_API_KEY'
-    ],
+    input_fields: [ 'image' ],
+    required_settings: [ 'MISTRAL_API_KEY' ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -50805,11 +51071,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [
-      'node',
-      'workers',
-      'edge'
-    ],
+    platforms: [ 'node', 'workers', 'edge' ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -50834,10 +51096,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'input',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'str', type_args: [] },
         required: false,
         title: 'Input',
         description: undefined,
@@ -50849,32 +51108,24 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: {
-          type: 'enum',
-          type_args: [],
-          values: [
-            'text-embedding-3-large',
-            'text-embedding-3-small'
-          ]
-        },
+        type: { type: 'embedding_model', type_args: [] },
         required: false,
         title: 'Model',
-        description: undefined,
+        description: 'The model to use.',
         min: undefined,
         max: undefined,
-        values: [
-          'text-embedding-3-large',
-          'text-embedding-3-small'
-        ],
-        json_schema_extra: undefined,
-        default: 'text-embedding-3-small'
+        values: undefined,
+        json_schema_extra: { allowed_providers: [ 'openai' ] },
+        default: {
+          type: 'embedding_model',
+          provider: 'openai',
+          id: 'text-embedding-3-small',
+          name: 'text-embedding-3-small'
+        }
       },
       {
         name: 'chunk_size',
-        type: {
-          type: 'int',
-          type_args: []
-        },
+        type: { type: 'int', type_args: [] },
         required: false,
         title: 'Chunk Size',
         description: undefined,
@@ -50885,23 +51136,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: 4096
       }
     ],
-    outputs: [
-      {
-        name: 'output',
-        type: {
-          type: 'list',
-          type_args: []
-        }
-      }
-    ],
+    outputs: [ { name: 'output', type: { type: 'list', type_args: [] } } ],
     recommended_models: [],
-    inline_fields: [
-      'input'
-    ],
+    inline_fields: [ 'input' ],
     input_fields: [],
-    required_settings: [
-      'OPENAI_API_KEY'
-    ],
+    required_settings: [ 'OPENAI_API_KEY' ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -50921,11 +51160,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [
-      'node',
-      'workers',
-      'edge'
-    ],
+    platforms: [ 'node', 'workers', 'edge' ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -51149,10 +51384,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'prompt',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'str', type_args: [] },
         required: false,
         title: 'Prompt',
         description: 'The prompt to use.',
@@ -51164,45 +51396,34 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: {
-          type: 'enum',
-          type_args: [],
-          values: [
-            'gpt-image-1'
-          ]
-        },
+        type: { type: 'image_model', type_args: [] },
         required: false,
         title: 'Model',
         description: 'The model to use for image generation.',
         min: undefined,
         max: undefined,
-        values: [
-          'gpt-image-1'
-        ],
-        json_schema_extra: undefined,
-        default: 'gpt-image-1'
+        values: undefined,
+        json_schema_extra: { allowed_providers: [ 'openai' ] },
+        default: {
+          type: 'image_model',
+          provider: 'openai',
+          id: 'gpt-image-1',
+          name: 'gpt-image-1'
+        }
       },
       {
         name: 'size',
         type: {
           type: 'enum',
           type_args: [],
-          values: [
-            '1024x1024',
-            '1536x1024',
-            '1024x1536'
-          ]
+          values: [ '1024x1024', '1536x1024', '1024x1536' ]
         },
         required: false,
         title: 'Size',
         description: 'The size of the image to generate.',
         min: undefined,
         max: undefined,
-        values: [
-          '1024x1024',
-          '1536x1024',
-          '1024x1536'
-        ],
+        values: [ '1024x1024', '1536x1024', '1024x1536' ],
         json_schema_extra: undefined,
         default: '1024x1024'
       },
@@ -51211,22 +51432,14 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         type: {
           type: 'enum',
           type_args: [],
-          values: [
-            'transparent',
-            'opaque',
-            'auto'
-          ]
+          values: [ 'transparent', 'opaque', 'auto' ]
         },
         required: false,
         title: 'Background',
         description: 'The background of the image to generate.',
         min: undefined,
         max: undefined,
-        values: [
-          'transparent',
-          'opaque',
-          'auto'
-        ],
+        values: [ 'transparent', 'opaque', 'auto' ],
         json_schema_extra: undefined,
         default: 'auto'
       },
@@ -51235,43 +51448,23 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         type: {
           type: 'enum',
           type_args: [],
-          values: [
-            'high',
-            'medium',
-            'low'
-          ]
+          values: [ 'high', 'medium', 'low' ]
         },
         required: false,
         title: 'Quality',
         description: 'The quality of the image to generate.',
         min: undefined,
         max: undefined,
-        values: [
-          'high',
-          'medium',
-          'low'
-        ],
+        values: [ 'high', 'medium', 'low' ],
         json_schema_extra: undefined,
         default: 'high'
       }
     ],
-    outputs: [
-      {
-        name: 'output',
-        type: {
-          type: 'image',
-          type_args: []
-        }
-      }
-    ],
+    outputs: [ { name: 'output', type: { type: 'image', type_args: [] } } ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [
-      'prompt'
-    ],
-    required_settings: [
-      'OPENAI_API_KEY'
-    ],
+    input_fields: [ 'prompt' ],
+    required_settings: [ 'OPENAI_API_KEY' ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -51291,11 +51484,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [
-      'node',
-      'workers',
-      'edge'
-    ],
+    platforms: [ 'node', 'workers', 'edge' ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -51315,10 +51504,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'image',
-        type: {
-          type: 'image',
-          type_args: []
-        },
+        type: { type: 'image', type_args: [] },
         required: false,
         title: 'Image',
         description: 'The image to edit.',
@@ -51336,10 +51522,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'mask',
-        type: {
-          type: 'image',
-          type_args: []
-        },
+        type: { type: 'image', type_args: [] },
         required: false,
         title: 'Mask',
         description: 'Optional mask image. White areas will be edited, black areas preserved.',
@@ -51357,10 +51540,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'prompt',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'str', type_args: [] },
         required: false,
         title: 'Prompt',
         description: 'The prompt describing the desired edit.',
@@ -51372,45 +51552,34 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: {
-          type: 'enum',
-          type_args: [],
-          values: [
-            'gpt-image-1'
-          ]
-        },
+        type: { type: 'image_model', type_args: [] },
         required: false,
         title: 'Model',
         description: 'The model to use for image editing.',
         min: undefined,
         max: undefined,
-        values: [
-          'gpt-image-1'
-        ],
-        json_schema_extra: undefined,
-        default: 'gpt-image-1'
+        values: undefined,
+        json_schema_extra: { allowed_providers: [ 'openai' ] },
+        default: {
+          type: 'image_model',
+          provider: 'openai',
+          id: 'gpt-image-1',
+          name: 'gpt-image-1'
+        }
       },
       {
         name: 'size',
         type: {
           type: 'enum',
           type_args: [],
-          values: [
-            '1024x1024',
-            '1536x1024',
-            '1024x1536'
-          ]
+          values: [ '1024x1024', '1536x1024', '1024x1536' ]
         },
         required: false,
         title: 'Size',
         description: 'The size of the output image.',
         min: undefined,
         max: undefined,
-        values: [
-          '1024x1024',
-          '1536x1024',
-          '1024x1536'
-        ],
+        values: [ '1024x1024', '1536x1024', '1024x1536' ],
         json_schema_extra: undefined,
         default: '1024x1024'
       },
@@ -51419,45 +51588,23 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         type: {
           type: 'enum',
           type_args: [],
-          values: [
-            'high',
-            'medium',
-            'low'
-          ]
+          values: [ 'high', 'medium', 'low' ]
         },
         required: false,
         title: 'Quality',
         description: 'The quality of the generated image.',
         min: undefined,
         max: undefined,
-        values: [
-          'high',
-          'medium',
-          'low'
-        ],
+        values: [ 'high', 'medium', 'low' ],
         json_schema_extra: undefined,
         default: 'high'
       }
     ],
-    outputs: [
-      {
-        name: 'output',
-        type: {
-          type: 'image',
-          type_args: []
-        }
-      }
-    ],
+    outputs: [ { name: 'output', type: { type: 'image', type_args: [] } } ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [
-      'prompt',
-      'image',
-      'mask'
-    ],
-    required_settings: [
-      'OPENAI_API_KEY'
-    ],
+    input_fields: [ 'prompt', 'image', 'mask' ],
+    required_settings: [ 'OPENAI_API_KEY' ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -51477,11 +51624,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [
-      'node',
-      'workers',
-      'edge'
-    ],
+    platforms: [ 'node', 'workers', 'edge' ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -51600,27 +51743,20 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'model',
-        type: {
-          type: 'enum',
-          type_args: [],
-          values: [
-            'tts-1',
-            'tts-1-hd',
-            'gpt-4o-mini-tts'
-          ]
-        },
+        type: { type: 'tts_model', type_args: [] },
         required: false,
         title: 'Model',
-        description: undefined,
+        description: 'The model to use.',
         min: undefined,
         max: undefined,
-        values: [
-          'tts-1',
-          'tts-1-hd',
-          'gpt-4o-mini-tts'
-        ],
-        json_schema_extra: undefined,
-        default: 'tts-1'
+        values: undefined,
+        json_schema_extra: { allowed_providers: [ 'openai' ] },
+        default: {
+          type: 'tts_model',
+          provider: 'openai',
+          id: 'tts-1',
+          name: 'tts-1'
+        }
       },
       {
         name: 'voice',
@@ -51628,16 +51764,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           type: 'enum',
           type_args: [],
           values: [
-            'alloy',
-            'ash',
-            'ballad',
-            'coral',
-            'echo',
-            'fable',
-            'onyx',
-            'nova',
-            'sage',
-            'shimmer',
+            'alloy',  'ash',
+            'ballad', 'coral',
+            'echo',   'fable',
+            'onyx',   'nova',
+            'sage',   'shimmer',
             'verse'
           ]
         },
@@ -51647,16 +51778,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         min: undefined,
         max: undefined,
         values: [
-          'alloy',
-          'ash',
-          'ballad',
-          'coral',
-          'echo',
-          'fable',
-          'onyx',
-          'nova',
-          'sage',
-          'shimmer',
+          'alloy',  'ash',
+          'ballad', 'coral',
+          'echo',   'fable',
+          'onyx',   'nova',
+          'sage',   'shimmer',
           'verse'
         ],
         json_schema_extra: undefined,
@@ -51664,10 +51790,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'input',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'str', type_args: [] },
         required: false,
         title: 'Input',
         description: undefined,
@@ -51679,10 +51802,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'speed',
-        type: {
-          type: 'float',
-          type_args: []
-        },
+        type: { type: 'float', type_args: [] },
         required: false,
         title: 'Speed',
         description: undefined,
@@ -51694,10 +51814,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'instructions',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'str', type_args: [] },
         required: false,
         title: 'Instructions',
         description: "Steer the voice's tone, emotion, and delivery (gpt-4o-mini-tts only).",
@@ -51708,23 +51825,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: ''
       }
     ],
-    outputs: [
-      {
-        name: 'output',
-        type: {
-          type: 'audio',
-          type_args: []
-        }
-      }
-    ],
+    outputs: [ { name: 'output', type: { type: 'audio', type_args: [] } } ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [
-      'input'
-    ],
-    required_settings: [
-      'OPENAI_API_KEY'
-    ],
+    input_fields: [ 'input' ],
+    required_settings: [ 'OPENAI_API_KEY' ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -51744,11 +51849,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [
-      'node',
-      'workers',
-      'edge'
-    ],
+    platforms: [ 'node', 'workers', 'edge' ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -51855,34 +51956,24 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'model',
-        type: {
-          type: 'enum',
-          type_args: [],
-          values: [
-            'whisper-1',
-            'gpt-4o-transcribe',
-            'gpt-4o-mini-transcribe'
-          ]
-        },
+        type: { type: 'asr_model', type_args: [] },
         required: false,
         title: 'Model',
         description: 'The model to use for transcription.',
         min: undefined,
         max: undefined,
-        values: [
-          'whisper-1',
-          'gpt-4o-transcribe',
-          'gpt-4o-mini-transcribe'
-        ],
-        json_schema_extra: undefined,
-        default: 'whisper-1'
+        values: undefined,
+        json_schema_extra: { allowed_providers: [ 'openai' ] },
+        default: {
+          type: 'asr_model',
+          provider: 'openai',
+          id: 'whisper-1',
+          name: 'whisper-1'
+        }
       },
       {
         name: 'audio',
-        type: {
-          type: 'audio',
-          type_args: []
-        },
+        type: { type: 'audio', type_args: [] },
         required: false,
         title: 'Audio',
         description: 'The audio file to transcribe (max 25 MB).',
@@ -51904,68 +51995,22 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
           type: 'enum',
           type_args: [],
           values: [
-            'auto_detect',
-            'af',
-            'ar',
-            'hy',
-            'az',
-            'be',
-            'bn',
-            'bs',
-            'bg',
-            'ca',
-            'hr',
-            'cs',
-            'da',
-            'nl',
-            'en',
-            'et',
-            'tl',
-            'fi',
-            'fr',
-            'gl',
-            'de',
-            'el',
-            'gu',
-            'he',
-            'hi',
-            'hu',
-            'is',
-            'id',
-            'it',
-            'ja',
-            'kn',
-            'kk',
-            'ko',
-            'lv',
-            'lt',
-            'mk',
-            'ms',
-            'zh',
-            'mi',
-            'mr',
-            'ne',
-            'no',
-            'fa',
-            'pl',
-            'pt',
-            'pa',
-            'ro',
-            'ru',
-            'sr',
-            'sk',
-            'sl',
-            'es',
-            'sw',
-            'sv',
-            'ta',
-            'te',
-            'th',
-            'tr',
-            'uk',
-            'ur',
-            'vi',
-            'cy'
+            'auto_detect', 'af', 'ar', 'hy',
+            'az',          'be', 'bn', 'bs',
+            'bg',          'ca', 'hr', 'cs',
+            'da',          'nl', 'en', 'et',
+            'tl',          'fi', 'fr', 'gl',
+            'de',          'el', 'gu', 'he',
+            'hi',          'hu', 'is', 'id',
+            'it',          'ja', 'kn', 'kk',
+            'ko',          'lv', 'lt', 'mk',
+            'ms',          'zh', 'mi', 'mr',
+            'ne',          'no', 'fa', 'pl',
+            'pt',          'pa', 'ro', 'ru',
+            'sr',          'sk', 'sl', 'es',
+            'sw',          'sv', 'ta', 'te',
+            'th',          'tr', 'uk', 'ur',
+            'vi',          'cy'
           ]
         },
         required: false,
@@ -51974,78 +52019,29 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         min: undefined,
         max: undefined,
         values: [
-          'auto_detect',
-          'af',
-          'ar',
-          'hy',
-          'az',
-          'be',
-          'bn',
-          'bs',
-          'bg',
-          'ca',
-          'hr',
-          'cs',
-          'da',
-          'nl',
-          'en',
-          'et',
-          'tl',
-          'fi',
-          'fr',
-          'gl',
-          'de',
-          'el',
-          'gu',
-          'he',
-          'hi',
-          'hu',
-          'is',
-          'id',
-          'it',
-          'ja',
-          'kn',
-          'kk',
-          'ko',
-          'lv',
-          'lt',
-          'mk',
-          'ms',
-          'zh',
-          'mi',
-          'mr',
-          'ne',
-          'no',
-          'fa',
-          'pl',
-          'pt',
-          'pa',
-          'ro',
-          'ru',
-          'sr',
-          'sk',
-          'sl',
-          'es',
-          'sw',
-          'sv',
-          'ta',
-          'te',
-          'th',
-          'tr',
-          'uk',
-          'ur',
-          'vi',
-          'cy'
+          'auto_detect', 'af', 'ar', 'hy',
+          'az',          'be', 'bn', 'bs',
+          'bg',          'ca', 'hr', 'cs',
+          'da',          'nl', 'en', 'et',
+          'tl',          'fi', 'fr', 'gl',
+          'de',          'el', 'gu', 'he',
+          'hi',          'hu', 'is', 'id',
+          'it',          'ja', 'kn', 'kk',
+          'ko',          'lv', 'lt', 'mk',
+          'ms',          'zh', 'mi', 'mr',
+          'ne',          'no', 'fa', 'pl',
+          'pt',          'pa', 'ro', 'ru',
+          'sr',          'sk', 'sl', 'es',
+          'sw',          'sv', 'ta', 'te',
+          'th',          'tr', 'uk', 'ur',
+          'vi',          'cy'
         ],
         json_schema_extra: undefined,
         default: 'auto_detect'
       },
       {
         name: 'timestamps',
-        type: {
-          type: 'bool',
-          type_args: []
-        },
+        type: { type: 'bool', type_args: [] },
         required: false,
         title: 'Timestamps',
         description: 'Whether to return timestamps for the generated text.',
@@ -52057,10 +52053,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'prompt',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'str', type_args: [] },
         required: false,
         title: 'Prompt',
         description: "Optional text to guide the model's style or continue a previous audio segment.",
@@ -52072,10 +52065,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'temperature',
-        type: {
-          type: 'float',
-          type_args: []
-        },
+        type: { type: 'float', type_args: [] },
         required: false,
         title: 'Temperature',
         description: 'The sampling temperature between 0 and 1. Higher values like 0.8 will make the output more random, while lower values like 0.2 will make it more focused and deterministic.',
@@ -52087,47 +52077,26 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     outputs: [
-      {
-        name: 'text',
-        type: {
-          type: 'str',
-          type_args: []
-        }
-      },
+      { name: 'text', type: { type: 'str', type_args: [] } },
       {
         name: 'words',
         type: {
           type: 'list',
-          type_args: [
-            {
-              type: 'audio_chunk',
-              type_args: []
-            }
-          ]
+          type_args: [ { type: 'audio_chunk', type_args: [] } ]
         }
       },
       {
         name: 'segments',
         type: {
           type: 'list',
-          type_args: [
-            {
-              type: 'audio_chunk',
-              type_args: []
-            }
-          ]
+          type_args: [ { type: 'audio_chunk', type_args: [] } ]
         }
       }
     ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [
-      'audio',
-      'prompt'
-    ],
-    required_settings: [
-      'OPENAI_API_KEY'
-    ],
+    input_fields: [ 'audio', 'prompt' ],
+    required_settings: [ 'OPENAI_API_KEY' ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -52147,11 +52116,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [
-      'node',
-      'workers',
-      'edge'
-    ],
+    platforms: [ 'node', 'workers', 'edge' ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -52763,25 +52728,24 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'model',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'language_model', type_args: [] },
         required: false,
         title: 'Model',
-        description: 'The Grok model to use (e.g. grok-4, grok-4.3, grok-3, grok-3-mini).',
+        description: 'The Grok model.',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: undefined,
-        default: 'grok-4'
+        json_schema_extra: { allowed_providers: [ 'xai' ] },
+        default: {
+          type: 'language_model',
+          provider: 'xai',
+          id: 'grok-4',
+          name: 'grok-4'
+        }
       },
       {
         name: 'prompt',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'str', type_args: [] },
         required: false,
         title: 'Prompt',
         description: 'The prompt for text generation',
@@ -52793,10 +52757,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'system_prompt',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'str', type_args: [] },
         required: false,
         title: 'System Prompt',
         description: "Optional system prompt to guide the model's behavior",
@@ -52808,10 +52769,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'temperature',
-        type: {
-          type: 'float',
-          type_args: []
-        },
+        type: { type: 'float', type_args: [] },
         required: false,
         title: 'Temperature',
         description: 'Sampling temperature. Higher values make output more random.',
@@ -52823,10 +52781,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'max_tokens',
-        type: {
-          type: 'int',
-          type_args: []
-        },
+        type: { type: 'int', type_args: [] },
         required: false,
         title: 'Max Tokens',
         description: 'Maximum number of tokens to generate',
@@ -52837,24 +52792,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: 1024
       }
     ],
-    outputs: [
-      {
-        name: 'output',
-        type: {
-          type: 'str',
-          type_args: []
-        }
-      }
-    ],
+    outputs: [ { name: 'output', type: { type: 'str', type_args: [] } } ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [
-      'prompt',
-      'system_prompt'
-    ],
-    required_settings: [
-      'XAI_API_KEY'
-    ],
+    input_fields: [ 'prompt', 'system_prompt' ],
+    required_settings: [ 'XAI_API_KEY' ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -52874,11 +52816,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [
-      'node',
-      'workers',
-      'edge'
-    ],
+    platforms: [ 'node', 'workers', 'edge' ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -52903,25 +52841,24 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'model',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'language_model', type_args: [] },
         required: false,
         title: 'Model',
         description: 'The Grok model to use for the search query.',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: undefined,
-        default: 'grok-4'
+        json_schema_extra: { allowed_providers: [ 'xai' ] },
+        default: {
+          type: 'language_model',
+          provider: 'xai',
+          id: 'grok-4',
+          name: 'grok-4'
+        }
       },
       {
         name: 'query',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'str', type_args: [] },
         required: false,
         title: 'Query',
         description: 'The question to research using live web/X search.',
@@ -52933,34 +52870,19 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'search_mode',
-        type: {
-          type: 'enum',
-          type_args: [],
-          values: [
-            'auto',
-            'on',
-            'off'
-          ]
-        },
+        type: { type: 'enum', type_args: [], values: [ 'auto', 'on', 'off' ] },
         required: false,
         title: 'Search Mode',
         description: 'auto lets Grok decide when to search, on forces search, off disables it.',
         min: undefined,
         max: undefined,
-        values: [
-          'auto',
-          'on',
-          'off'
-        ],
+        values: [ 'auto', 'on', 'off' ],
         json_schema_extra: undefined,
         default: 'auto'
       },
       {
         name: 'max_results',
-        type: {
-          type: 'int',
-          type_args: []
-        },
+        type: { type: 'int', type_args: [] },
         required: false,
         title: 'Max Results',
         description: 'Maximum number of search results to consider.',
@@ -52972,34 +52894,16 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       }
     ],
     outputs: [
-      {
-        name: 'output',
-        type: {
-          type: 'str',
-          type_args: []
-        }
-      },
+      { name: 'output', type: { type: 'str', type_args: [] } },
       {
         name: 'citations',
-        type: {
-          type: 'list',
-          type_args: [
-            {
-              type: 'str',
-              type_args: []
-            }
-          ]
-        }
+        type: { type: 'list', type_args: [ { type: 'str', type_args: [] } ] }
       }
     ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [
-      'query'
-    ],
-    required_settings: [
-      'XAI_API_KEY'
-    ],
+    input_fields: [ 'query' ],
+    required_settings: [ 'XAI_API_KEY' ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -53019,11 +52923,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [
-      'node',
-      'workers',
-      'edge'
-    ],
+    platforms: [ 'node', 'workers', 'edge' ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -53049,10 +52949,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'image',
-        type: {
-          type: 'image',
-          type_args: []
-        },
+        type: { type: 'image', type_args: [] },
         required: false,
         title: 'Image',
         description: 'The image to analyze',
@@ -53070,10 +52967,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'prompt',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'str', type_args: [] },
         required: false,
         title: 'Prompt',
         description: 'The prompt/question about the image',
@@ -53085,25 +52979,24 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'language_model', type_args: [] },
         required: false,
         title: 'Model',
         description: 'The Grok vision model to use (e.g. grok-2-vision-1212, grok-4).',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: undefined,
-        default: 'grok-2-vision-1212'
+        json_schema_extra: { allowed_providers: [ 'xai' ] },
+        default: {
+          type: 'language_model',
+          provider: 'xai',
+          id: 'grok-2-vision-1212',
+          name: 'grok-2-vision-1212'
+        }
       },
       {
         name: 'temperature',
-        type: {
-          type: 'float',
-          type_args: []
-        },
+        type: { type: 'float', type_args: [] },
         required: false,
         title: 'Temperature',
         description: 'Sampling temperature for response generation',
@@ -53115,10 +53008,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'max_tokens',
-        type: {
-          type: 'int',
-          type_args: []
-        },
+        type: { type: 'int', type_args: [] },
         required: false,
         title: 'Max Tokens',
         description: 'Maximum number of tokens to generate',
@@ -53129,24 +53019,11 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
         default: 1024
       }
     ],
-    outputs: [
-      {
-        name: 'output',
-        type: {
-          type: 'str',
-          type_args: []
-        }
-      }
-    ],
+    outputs: [ { name: 'output', type: { type: 'str', type_args: [] } } ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [
-      'prompt',
-      'image'
-    ],
-    required_settings: [
-      'XAI_API_KEY'
-    ],
+    input_fields: [ 'prompt', 'image' ],
+    required_settings: [ 'XAI_API_KEY' ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -53166,11 +53043,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [
-      'node',
-      'workers',
-      'edge'
-    ],
+    platforms: [ 'node', 'workers', 'edge' ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined
@@ -53190,10 +53063,7 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     properties: [
       {
         name: 'prompt',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'str', type_args: [] },
         required: false,
         title: 'Prompt',
         description: 'The prompt describing the image to generate.',
@@ -53205,44 +53075,30 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
       },
       {
         name: 'model',
-        type: {
-          type: 'str',
-          type_args: []
-        },
+        type: { type: 'image_model', type_args: [] },
         required: false,
         title: 'Model',
         description: 'The Grok image model to use (e.g. grok-2-image, grok-imagine-image).',
         min: undefined,
         max: undefined,
         values: undefined,
-        json_schema_extra: undefined,
-        default: 'grok-2-image'
+        json_schema_extra: { allowed_providers: [ 'xai' ] },
+        default: {
+          type: 'image_model',
+          provider: 'xai',
+          id: 'grok-2-image',
+          name: 'grok-2-image'
+        }
       }
     ],
     outputs: [
-      {
-        name: 'output',
-        type: {
-          type: 'image',
-          type_args: []
-        }
-      },
-      {
-        name: 'revised_prompt',
-        type: {
-          type: 'str',
-          type_args: []
-        }
-      }
+      { name: 'output', type: { type: 'image', type_args: [] } },
+      { name: 'revised_prompt', type: { type: 'str', type_args: [] } }
     ],
     recommended_models: [],
     inline_fields: [],
-    input_fields: [
-      'prompt'
-    ],
-    required_settings: [
-      'XAI_API_KEY'
-    ],
+    input_fields: [ 'prompt' ],
+    required_settings: [ 'XAI_API_KEY' ],
     required_runtimes: [],
     is_streaming_input: false,
     is_streaming_output: false,
@@ -53262,11 +53118,315 @@ export const LEGACY_DOMAIN_METADATA: NodeMetadata[] = [
     effect: 'external',
     primary_output: undefined,
     model_packs: undefined,
-    platforms: [
-      'node',
-      'workers',
-      'edge'
+    platforms: [ 'node', 'workers', 'edge' ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Web Search',
+    description: "Answer a query from current web pages with OpenAI's web search, on your ChatGPT sign-in instead of an API key.\n" +
+      '    codex, chatgpt, openai, web, search, internet, current, sources',
+    namespace: 'codex.text',
+    node_type: 'codex.text.WebSearch',
+    layout: 'default',
+    body: 'content_card',
+    properties: [
+      {
+        name: 'query',
+        type: { type: 'str', type_args: [] },
+        required: false,
+        title: 'Query',
+        description: 'The question to research on the web.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'model',
+        type: { type: 'language_model', type_args: [] },
+        required: false,
+        title: 'Model',
+        description: 'The Codex model that searches. Leave empty for the first model your ChatGPT plan offers.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: { allowed_providers: [ 'codex' ] },
+        default: { type: 'language_model', provider: 'codex', id: '', name: '' }
+      }
     ],
+    outputs: [
+      { name: 'text', type: { type: 'str', type_args: [] } },
+      { name: 'sources', type: { type: 'list', type_args: [] } }
+    ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [ 'query' ],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: false,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: 'text',
+    model_packs: undefined,
+    platforms: [ 'node', 'workers', 'edge' ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Create Image',
+    description: 'Generate an image with GPT Image on your ChatGPT sign-in instead of an API key.\n' +
+      '    codex, chatgpt, openai, image, generation, gpt-image, text-to-image',
+    namespace: 'codex.image',
+    node_type: 'codex.image.CreateImage',
+    layout: 'default',
+    body: 'content_card',
+    properties: [
+      {
+        name: 'prompt',
+        type: { type: 'str', type_args: [] },
+        required: false,
+        title: 'Prompt',
+        description: 'What the image should show.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'model',
+        type: { type: 'image_model', type_args: [] },
+        required: false,
+        title: 'Model',
+        description: 'The image model.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: { allowed_providers: [ 'codex' ] },
+        default: {
+          type: 'image_model',
+          provider: 'codex',
+          id: 'gpt-image-2',
+          name: 'gpt-image-2'
+        }
+      },
+      {
+        name: 'size',
+        type: {
+          type: 'enum',
+          type_args: [],
+          values: [ 'auto', '1024x1024', '1536x1024', '1024x1536' ]
+        },
+        required: false,
+        title: 'Size',
+        description: 'The image size in pixels, or auto.',
+        min: undefined,
+        max: undefined,
+        values: [ 'auto', '1024x1024', '1536x1024', '1024x1536' ],
+        json_schema_extra: undefined,
+        default: 'auto'
+      },
+      {
+        name: 'quality',
+        type: {
+          type: 'enum',
+          type_args: [],
+          values: [ 'auto', 'low', 'medium', 'high' ]
+        },
+        required: false,
+        title: 'Quality',
+        description: 'Rendering quality. Higher quality takes longer and uses more of your plan.',
+        min: undefined,
+        max: undefined,
+        values: [ 'auto', 'low', 'medium', 'high' ],
+        json_schema_extra: undefined,
+        default: 'auto'
+      }
+    ],
+    outputs: [ { name: 'output', type: { type: 'image', type_args: [] } } ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [ 'prompt' ],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: false,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: true,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: undefined,
+    model_packs: undefined,
+    platforms: [ 'node', 'workers', 'edge' ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Web Search',
+    description: "Answer a query from current web pages with Claude and Anthropic's built-in web search, on your Anthropic API key.\n" +
+      '    anthropic, claude, web, search, internet, current, sources',
+    namespace: 'anthropic.text',
+    node_type: 'anthropic.text.WebSearch',
+    layout: 'default',
+    body: 'content_card',
+    properties: [
+      {
+        name: 'query',
+        type: { type: 'str', type_args: [] },
+        required: false,
+        title: 'Query',
+        description: 'The question to research on the web.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'model',
+        type: { type: 'language_model', type_args: [] },
+        required: false,
+        title: 'Model',
+        description: 'The Claude model that searches and writes the answer.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: { allowed_providers: [ 'anthropic' ] },
+        default: {
+          type: 'language_model',
+          provider: 'anthropic',
+          id: 'claude-sonnet-5-5',
+          name: 'claude-sonnet-5-5'
+        }
+      }
+    ],
+    outputs: [
+      { name: 'text', type: { type: 'str', type_args: [] } },
+      { name: 'sources', type: { type: 'list', type_args: [] } }
+    ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [ 'query' ],
+    required_settings: [ 'ANTHROPIC_API_KEY' ],
+    required_runtimes: [],
+    is_streaming_input: false,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: 'text',
+    model_packs: undefined,
+    platforms: [ 'node', 'workers', 'edge' ],
+    deprecated: undefined,
+    hidden: undefined,
+    replaced_by: undefined
+  },
+  {
+    title: 'Web Search',
+    description: "Answer a query from current web pages with Claude Code's web search, on your Claude Pro or Max subscription.\n" +
+      '    claude code, claude, subscription, web, search, internet, current',
+    namespace: 'claude_code.text',
+    node_type: 'claude_code.text.WebSearch',
+    layout: 'default',
+    body: 'content_card',
+    properties: [
+      {
+        name: 'query',
+        type: { type: 'str', type_args: [] },
+        required: false,
+        title: 'Query',
+        description: 'The question to research on the web.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: undefined,
+        default: ''
+      },
+      {
+        name: 'model',
+        type: { type: 'language_model', type_args: [] },
+        required: false,
+        title: 'Model',
+        description: 'The Claude model that searches and writes the answer.',
+        min: undefined,
+        max: undefined,
+        values: undefined,
+        json_schema_extra: { allowed_providers: [ 'claude_agent_sdk' ] },
+        default: {
+          type: 'language_model',
+          provider: 'claude_agent_sdk',
+          id: 'sonnet',
+          name: 'sonnet'
+        }
+      }
+    ],
+    outputs: [
+      { name: 'text', type: { type: 'str', type_args: [] } },
+      { name: 'sources', type: { type: 'list', type_args: [] } }
+    ],
+    recommended_models: [],
+    inline_fields: [],
+    input_fields: [ 'query' ],
+    required_settings: [],
+    required_runtimes: [],
+    is_streaming_input: false,
+    is_streaming_output: false,
+    input_mode: undefined,
+    output_correlation: undefined,
+    is_controlled: false,
+    is_join_node: undefined,
+    is_trigger: undefined,
+    always_emit_output_updates: undefined,
+    supports_dynamic_inputs: false,
+    allowed_dynamic_slot_types: undefined,
+    supports_dynamic_outputs: undefined,
+    auto_save_asset: undefined,
+    retry_safe: undefined,
+    append_static_inputs: undefined,
+    cache_ttl: undefined,
+    effect: 'external',
+    primary_output: 'text',
+    model_packs: undefined,
+    platforms: [ 'node', 'workers', 'edge' ],
     deprecated: undefined,
     hidden: undefined,
     replaced_by: undefined

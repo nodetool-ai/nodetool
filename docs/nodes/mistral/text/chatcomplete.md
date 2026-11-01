@@ -27,7 +27,6 @@ Generate text using Mistral AI's chat completion models.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| model | `enum` | The Mistral model to use for generation | `mistral-small-latest` |
 | prompt | `str` | The prompt for text generation | `` |
 | system_prompt | `str` | Optional system prompt to guide the model's behavior | `` |
 | temperature | `float` | Sampling temperature. Higher values make output more random. | `0.7` |

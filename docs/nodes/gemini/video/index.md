@@ -5,7 +5,9 @@ title: "gemini.video Nodes"
 
 This namespace contains 2 node(s).
 
-## Available Nodes
+## Nodes
 
-- **[Image To Video](imagetovideo.md)** - Generate videos from images using Google's Veo models.
-- **[Text To Video](texttovideo.md)** - Generate videos from text prompts using Google's Veo models.
+- **[Image To Video](imagetovideo.md)**
+- **[Text To Video](texttovideo.md)**
+
+[Back to all nodes](../../)

@@ -2,7 +2,7 @@ import { useCallback, useMemo } from "react";
 import { isProduction } from "../lib/env";
 import useMetadataStore from "../stores/MetadataStore";
 import useOptionalNodePacksStore from "../stores/OptionalNodePacksStore";
-import { useSecrets } from "./useSecrets";
+import { useCredentialCheck } from "./useCredentialCheck";
 import { isNamespaceHiddenByOptionalPacks } from "../config/optionalNodePacks";
 import { namespaceNeedsMissingKey } from "../utils/providerPacks";
 import { useSettingsStore } from "../stores/SettingsStore";
@@ -37,7 +37,7 @@ const useNamespaceTree = (): NamespaceTree => {
   const enabledPackIds = useOptionalNodePacksStore(
     (state) => state.enabledPackIds
   );
-  const { isApiKeySet } = useSecrets();
+  const { isCredentialSet } = useCredentialCheck();
   const showNodesWithoutKey = useSettingsStore(
     (state) => state.settings.showNodesWithoutKey
   );
@@ -56,9 +56,9 @@ const useNamespaceTree = (): NamespaceTree => {
       if (!requiredSecret) {
         return false;
       }
-      return !isApiKeySet(requiredSecret);
+      return !isCredentialSet(requiredSecret);
     },
-    [isApiKeySet]
+    [isCredentialSet]
   );
 
   // Get unique namespaces and sort them (enabled first, then disabled).
@@ -82,7 +82,7 @@ const useNamespaceTree = (): NamespaceTree => {
       // namespace until its key is set. Locally-run packs are never gated.
       if (
         !showNodesWithoutKey &&
-        namespaceNeedsMissingKey(namespace, isApiKeySet)
+        namespaceNeedsMissingKey(namespace, isCredentialSet)
       ) {
         continue;
       }
@@ -100,7 +100,7 @@ const useNamespaceTree = (): NamespaceTree => {
   }, [
     metadata,
     isNamespaceDisabled,
-    isApiKeySet,
+    isCredentialSet,
     enabledPacks,
     showNodesWithoutKey
   ]);

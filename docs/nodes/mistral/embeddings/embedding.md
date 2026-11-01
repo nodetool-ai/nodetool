@@ -29,7 +29,6 @@ Generate vector embeddings using Mistral AI.
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
 | input | `str` | The text to embed | `` |
-| model | `enum` | The embedding model to use | `mistral-embed` |
 | chunk_size | `int` | Size of text chunks for embedding | `4096` |
 
 ## Outputs

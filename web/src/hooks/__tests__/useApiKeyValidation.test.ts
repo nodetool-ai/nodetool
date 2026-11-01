@@ -3,6 +3,14 @@ import { useApiKeyValidation } from "../useApiKeyValidation";
 import { useSecrets } from "../useSecrets";
 
 jest.mock("../useSecrets");
+jest.mock("../useProviders", () => ({
+  useProviders: () => mockProviders
+}));
+
+let mockProviders: {
+  providers: Array<{ provider: string; capabilities: string[] }>;
+  isLoading: boolean;
+} = { providers: [], isLoading: false };
 
 const mockUseSecrets = useSecrets as jest.MockedFunction<typeof useSecrets>;
 
@@ -17,6 +25,34 @@ const createMockSecrets = (isApiKeySet: (key: string) => boolean, isLoading = fa
 describe("useApiKeyValidation", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockProviders = { providers: [], isLoading: false };
+  });
+
+  describe("sign-in namespaces", () => {
+    it("asks for the ChatGPT sign-in until the Codex provider is offered", () => {
+      mockUseSecrets.mockReturnValue(createMockSecrets(() => false));
+      const { result, rerender } = renderHook(() =>
+        useApiKeyValidation("codex.text")
+      );
+      expect(result.current).toBe("ChatGPT Sign-in");
+
+      mockProviders = {
+        providers: [{ provider: "codex", capabilities: ["generate_message"] }],
+        isLoading: false
+      };
+      rerender();
+      expect(result.current).toBeNull();
+    });
+
+    it("accepts Vertex AI on machine credentials without a stored project", () => {
+      mockUseSecrets.mockReturnValue(createMockSecrets(() => false));
+      mockProviders = {
+        providers: [{ provider: "gemini_vertex", capabilities: [] }],
+        isLoading: false
+      };
+      const { result } = renderHook(() => useApiKeyValidation("vertex.image"));
+      expect(result.current).toBeNull();
+    });
   });
 
   describe("OpenAI namespace", () => {

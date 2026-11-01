@@ -14,7 +14,7 @@ const SHA512 = /^sha512-[A-Za-z0-9+/]{86}==$/;
 const PACKAGE_NAME = /^@nodetool-ai\/[a-z0-9][a-z0-9._-]*$/;
 
 export function originalPublication(run, jobs) {
-  // A stable release starts from its v* tag push, a prerelease rehearsal from a dispatch.
+  // A stable release starts from its v* tag push or a dispatch on main, a prerelease rehearsal from a dispatch.
   const tagPush = run.event === "push" && /^v\d+\.\d+\.\d+$/.test(run.head_branch ?? "");
   if (run.repository?.full_name !== REPOSITORY || run.path !== RELEASE_WORKFLOW ||
       (run.event !== "workflow_dispatch" && !tagPush) || run.status !== "completed" || run.conclusion !== "failure" ||
@@ -76,8 +76,10 @@ export async function restoreOriginalArtifacts(original, names, version, directo
     if (!/^\d+\.\d+\.\d+$/.test(version) || original.ref !== `refs/tags/v${version}`) {
       throw new Error("Stable recovery requires the version of the original release tag");
     }
-  } else if (!/^\d+\.\d+\.\d+-[A-Za-z0-9][A-Za-z0-9.-]*$/.test(version)) {
-    throw new Error("Recovery requires an explicit prerelease version");
+  } else if (!/^\d+\.\d+\.\d+-[A-Za-z0-9][A-Za-z0-9.-]*$/.test(version) &&
+      !(original.ref === "refs/heads/main" && /^\d+\.\d+\.\d+$/.test(version))) {
+    // publish.yaml dispatches stable versions only from main. Provenance below binds every artifact to that run.
+    throw new Error("Recovery of a dispatched run requires an explicit prerelease version, or a stable version dispatched from main");
   }
   if (names.length === 0 || new Set(names).size !== names.length || names.some(name => !PACKAGE_NAME.test(name)) ||
       !names.includes("@nodetool-ai/cli") || !names.includes("@nodetool-ai/node-catalog")) {

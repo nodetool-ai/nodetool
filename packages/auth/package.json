@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/auth",
-  "version": "0.8.4",
+  "version": "0.8.10",
   "type": "module",
   "engines": {
     "node": ">=22.0.0"
@@ -14,8 +14,7 @@
     "test:mutation:stryker": "stryker run",
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
-  "dependencies": {
-  },
+  "dependencies": {},
   "devDependencies": {
     "@stryker-mutator/core": "^9.6.1",
     "@stryker-mutator/vitest-runner": "^9.6.1",

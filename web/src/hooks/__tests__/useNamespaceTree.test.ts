@@ -23,6 +23,10 @@ jest.mock("../useSecrets", () => ({
   useSecrets: jest.fn()
 }));
 
+jest.mock("../useProviders", () => ({
+  useProviders: () => ({ providers: [], isLoading: false })
+}));
+
 describe("useNamespaceTree", () => {
   const mockMetadata = {
     "node1": { namespace: "openai.chat", type: "nodetool.openai.Chat" },
