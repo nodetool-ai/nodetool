@@ -17,7 +17,10 @@ vi.mock("@nodetool-ai/models", async (orig) => {
 import { Secret } from "@nodetool-ai/models";
 import kieCreditsRoute from "../src/routes/kie-credits.js";
 
-type MockSecret = { getDecryptedValue: () => Promise<string> };
+type MockSecret = {
+  getDecryptedValue: () => Promise<string>;
+  getResolvedValue: () => Promise<string | null>;
+};
 const secretFind = Secret.find as unknown as ReturnType<typeof vi.fn>;
 
 function mockSecret(apiKey: string | null): void {
@@ -27,6 +30,7 @@ function mockSecret(apiKey: string | null): void {
   }
   const stub: MockSecret = {
     getDecryptedValue: vi.fn().mockResolvedValue(apiKey),
+    getResolvedValue: vi.fn().mockResolvedValue(apiKey),
   };
   secretFind.mockResolvedValue(stub);
 }

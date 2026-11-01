@@ -173,6 +173,10 @@ const COMMON_EXTERNAL_PACKAGES = [
   // preserves import.meta.url so emscripten-module.wasm resolves next to the
   // package's own JS instead of next to backend/server.mjs.
   "@jitl/quickjs-ng-wasmfile-release-sync",
+  // 1Password SDK, lazy-imported for op:// secret references. Its core reads
+  // core_bg.wasm from its own __dirname, so it must keep its package layout.
+  "@1password/sdk",
+  "@1password/sdk-core",
   // The sandbox compiler bundles npm modules for the QuickJS guest with
   // esbuild's JS API, which refuses to run once inlined (it locates its
   // native binary relative to its own lib/main.js). Staging it keeps that
