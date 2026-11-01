@@ -1,3 +1,9 @@
+import { PROVIDER_IDS } from "@nodetool-ai/protocol";
+import {
+  modelIdOf,
+  providerModelProp,
+  type ModelFieldValue
+} from "./provider-model-prop.js";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ImageRef } from "@nodetool-ai/node-sdk";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
@@ -62,22 +68,13 @@ export class ChatComplete extends BaseNode {
   static readonly inputFields: string[] = ["prompt", "system_prompt"];
   static readonly requiredSettings = ["MISTRAL_API_KEY"];
 
-  @prop({
-    type: "enum",
-    default: "mistral-small-latest",
-    title: "Model",
-    description: "The Mistral model to use for generation",
-    values: [
-      "mistral-large-latest",
-      "mistral-medium-latest",
-      "mistral-small-latest",
-      "pixtral-large-latest",
-      "codestral-latest",
-      "ministral-8b-latest",
-      "ministral-3b-latest"
-    ]
-  })
-  declare model: string;
+  @providerModelProp(
+    "language_model",
+    PROVIDER_IDS.MISTRAL,
+    "mistral-small-latest",
+    "The Mistral model to use for generation"
+  )
+  declare model: ModelFieldValue;
 
   @prop({
     type: "str",
@@ -120,7 +117,7 @@ export class ChatComplete extends BaseNode {
     const prompt = this.prompt;
     if (!prompt) throw new Error("Prompt cannot be empty");
 
-    const model = this.model;
+    const model = modelIdOf(this.model);
     const systemPrompt = this.system_prompt;
     const temperature = this.temperature;
     const maxTokens = this.max_tokens;
@@ -268,14 +265,13 @@ export class Embedding extends BaseNode {
   })
   declare input: string;
 
-  @prop({
-    type: "enum",
-    default: "mistral-embed",
-    title: "Model",
-    description: "The embedding model to use",
-    values: ["mistral-embed"]
-  })
-  declare model: string;
+  @providerModelProp(
+    "embedding_model",
+    PROVIDER_IDS.MISTRAL,
+    "mistral-embed",
+    "The embedding model to use"
+  )
+  declare model: ModelFieldValue;
 
   @prop({
     type: "int",
@@ -292,7 +288,7 @@ export class Embedding extends BaseNode {
     const input = this.input;
     if (!input) throw new Error("Input text cannot be empty");
 
-    const model = this.model;
+    const model = modelIdOf(this.model);
     const chunkSize = this.chunk_size;
 
     const chunks: string[] = [];
@@ -369,14 +365,13 @@ export class ImageToText extends BaseNode {
   })
   declare prompt: string;
 
-  @prop({
-    type: "enum",
-    default: "pixtral-large-latest",
-    title: "Model",
-    description: "The Pixtral model to use for vision tasks",
-    values: ["pixtral-large-latest", "pixtral-12b-2409"]
-  })
-  declare model: string;
+  @providerModelProp(
+    "language_model",
+    PROVIDER_IDS.MISTRAL,
+    "pixtral-large-latest",
+    "The Pixtral model to use for vision tasks"
+  )
+  declare model: ModelFieldValue;
 
   @prop({
     type: "float",
@@ -406,7 +401,7 @@ export class ImageToText extends BaseNode {
     const prompt = this.prompt;
     if (!prompt) throw new Error("Prompt cannot be empty");
 
-    const model = this.model;
+    const model = modelIdOf(this.model);
     const temperature = this.temperature;
     const maxTokens = this.max_tokens;
 
@@ -471,21 +466,20 @@ export class OCR extends BaseNode {
   })
   declare image: ImageRef;
 
-  @prop({
-    type: "enum",
-    default: "pixtral-large-latest",
-    title: "Model",
-    description: "The Pixtral model to use for OCR",
-    values: ["pixtral-large-latest", "pixtral-12b-2409"]
-  })
-  declare model: string;
+  @providerModelProp(
+    "language_model",
+    PROVIDER_IDS.MISTRAL,
+    "pixtral-large-latest",
+    "The Pixtral model to use for OCR"
+  )
+  declare model: ModelFieldValue;
 
   async process(): Promise<OCROutputs> {
     const apiKey = getApiKey(this._secrets);
     const image = this.image;
     if (!image.data && !image.uri) throw new Error("Image is required");
 
-    const model = this.model;
+    const model = modelIdOf(this.model);
     const dataUri = imageToDataUri(image);
 
     const data = await mistralPost(apiKey, "chat/completions", {

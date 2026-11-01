@@ -5,7 +5,7 @@ import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.j
 // Embedding — mistral.embeddings.Embedding
 export type EmbeddingInputs = {
   input?: Connectable<string>;
-  model?: Connectable<"mistral-embed">;
+  model?: Connectable<unknown>;
   chunk_size?: Connectable<number>;
 };
 

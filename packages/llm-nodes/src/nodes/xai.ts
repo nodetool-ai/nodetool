@@ -1,3 +1,9 @@
+import { PROVIDER_IDS } from "@nodetool-ai/protocol";
+import {
+  modelIdOf,
+  providerModelProp,
+  type ModelFieldValue
+} from "./provider-model-prop.js";
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { ImageRef } from "@nodetool-ai/node-sdk";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
@@ -75,14 +81,13 @@ export class ChatComplete extends BaseNode {
   static readonly inputFields: string[] = ["prompt", "system_prompt"];
   static readonly requiredSettings = ["XAI_API_KEY"];
 
-  @prop({
-    type: "str",
-    default: "grok-4",
-    title: "Model",
-    description:
-      "The Grok model to use (e.g. grok-4, grok-4.3, grok-3, grok-3-mini)."
-  })
-  declare model: string;
+  @providerModelProp(
+    "language_model",
+    PROVIDER_IDS.XAI,
+    "grok-4",
+    "The Grok model."
+  )
+  declare model: ModelFieldValue;
 
   @prop({
     type: "str",
@@ -125,7 +130,7 @@ export class ChatComplete extends BaseNode {
     const prompt = this.prompt;
     if (!prompt) throw new Error("Prompt cannot be empty");
 
-    const model = this.model;
+    const model = modelIdOf(this.model);
     const systemPrompt = this.system_prompt;
     const temperature = this.temperature;
     const maxTokens = this.max_tokens;
@@ -167,13 +172,13 @@ export class WebSearch extends BaseNode {
   static readonly inputFields: string[] = ["query"];
   static readonly requiredSettings = ["XAI_API_KEY"];
 
-  @prop({
-    type: "str",
-    default: "grok-4",
-    title: "Model",
-    description: "The Grok model to use for the search query."
-  })
-  declare model: string;
+  @providerModelProp(
+    "language_model",
+    PROVIDER_IDS.XAI,
+    "grok-4",
+    "The Grok model to use for the search query."
+  )
+  declare model: ModelFieldValue;
 
   @prop({
     type: "str",
@@ -208,7 +213,7 @@ export class WebSearch extends BaseNode {
     const query = this.query;
     if (!query) throw new Error("Search query cannot be empty");
 
-    const model = this.model;
+    const model = modelIdOf(this.model);
     const mode = this.search_mode;
     const maxResults = this.max_results;
 
@@ -273,14 +278,13 @@ export class ImageToText extends BaseNode {
   })
   declare prompt: string;
 
-  @prop({
-    type: "str",
-    default: "grok-2-vision-1212",
-    title: "Model",
-    description:
-      "The Grok vision model to use (e.g. grok-2-vision-1212, grok-4)."
-  })
-  declare model: string;
+  @providerModelProp(
+    "language_model",
+    PROVIDER_IDS.XAI,
+    "grok-2-vision-1212",
+    "The Grok vision model to use (e.g. grok-2-vision-1212, grok-4)."
+  )
+  declare model: ModelFieldValue;
 
   @prop({
     type: "float",
@@ -310,7 +314,7 @@ export class ImageToText extends BaseNode {
     const prompt = this.prompt;
     if (!prompt) throw new Error("Prompt cannot be empty");
 
-    const model = this.model;
+    const model = modelIdOf(this.model);
     const temperature = this.temperature;
     const maxTokens = this.max_tokens;
 
@@ -366,21 +370,20 @@ export class GenerateImage extends BaseNode {
   })
   declare prompt: string;
 
-  @prop({
-    type: "str",
-    default: "grok-2-image",
-    title: "Model",
-    description:
-      "The Grok image model to use (e.g. grok-2-image, grok-imagine-image)."
-  })
-  declare model: string;
+  @providerModelProp(
+    "image_model",
+    PROVIDER_IDS.XAI,
+    "grok-2-image",
+    "The Grok image model to use (e.g. grok-2-image, grok-imagine-image)."
+  )
+  declare model: ModelFieldValue;
 
   async process(): Promise<GenerateImageOutputs> {
     const apiKey = getApiKey(this._secrets);
     const prompt = this.prompt;
     if (!prompt) throw new Error("Prompt cannot be empty");
 
-    const model = this.model;
+    const model = modelIdOf(this.model);
 
     // xAI's image endpoint mirrors OpenAI but rejects size/quality/style
     // params — only model, prompt, n and response_format are accepted.

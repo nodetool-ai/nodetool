@@ -281,6 +281,14 @@ export class GeminiVertexProvider extends GeminiProvider {
     return [...ids].sort().map((id) => ({ id, name: id, provider: this.provider }));
   }
 
+  /**
+   * Vertex lists publisher models without their generation methods, so the
+   * media listings keep the Developer API's known models.
+   */
+  protected override async listModelEntries(): Promise<null> {
+    return null;
+  }
+
   override async getAvailableImageModels(): Promise<ImageModel[]> {
     return this.own(await super.getAvailableImageModels());
   }

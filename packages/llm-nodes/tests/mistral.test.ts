@@ -38,7 +38,7 @@ describe("ChatComplete", () => {
 
   it("returns expected defaults", () => {
     const d = new ChatComplete().serialize();
-    expect(d.model).toBe("mistral-small-latest");
+    expect(d.model).toMatchObject({ id: "mistral-small-latest" });
     expect(d.prompt).toBe("");
     expect(d.temperature).toBe(0.7);
     expect(d.max_tokens).toBe(1024);
@@ -178,7 +178,7 @@ describe("Embedding (Mistral)", () => {
   it("returns expected defaults", () => {
     const d = new Embedding().serialize();
     expect(d.input).toBe("");
-    expect(d.model).toBe("mistral-embed");
+    expect(d.model).toMatchObject({ id: "mistral-embed" });
     expect(d.chunk_size).toBe(4096);
   });
 
@@ -247,7 +247,7 @@ describe("ImageToText (Mistral)", () => {
 
   it("returns expected defaults", () => {
     const d = new ImageToText().serialize();
-    expect(d.model).toBe("pixtral-large-latest");
+    expect(d.model).toMatchObject({ id: "pixtral-large-latest" });
     expect(d.temperature).toBe(0.3);
   });
 
@@ -308,7 +308,7 @@ describe("OCR (Mistral)", () => {
 
   it("returns expected defaults", () => {
     const d = new OCR().serialize();
-    expect(d.model).toBe("pixtral-large-latest");
+    expect(d.model).toMatchObject({ id: "pixtral-large-latest" });
   });
 
   it("throws when image has no data or uri", async () => {

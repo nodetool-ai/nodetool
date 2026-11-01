@@ -63,6 +63,35 @@ describe("provider namespaces", () => {
   });
 });
 
+describe("provider model fields", () => {
+  // These models have no listing kind a provider can serve, so they stay enums.
+  const UNLISTED = new Set([
+    "openai.text.Moderation",
+    "openai.agents.RealtimeAgent",
+    "openai.agents.RealtimeTranscription",
+    "openai.agents.LiveAgent"
+  ]);
+  const PROVIDER_ROOTS = ["gemini", "vertex", "openai", "codex", "mistral", "xai", "anthropic", "claude_code"];
+
+  it("pick models from the provider's own listing", () => {
+    const checked: string[] = [];
+    for (const node of ALL_LLM_NODES) {
+      if (!PROVIDER_ROOTS.includes(node.nodeType.split(".")[0])) continue;
+      if (UNLISTED.has(node.nodeType)) continue;
+      const model = node.getDeclaredProperties().find((p) => p.name === "model");
+      if (!model) continue;
+      const options = model.options as {
+        type: string;
+        json_schema_extra?: { allowed_providers?: string[] };
+      };
+      expect(options.type, node.nodeType).toMatch(/_model$/);
+      expect(options.json_schema_extra?.allowed_providers, node.nodeType).toHaveLength(1);
+      checked.push(node.nodeType);
+    }
+    expect(checked.length).toBeGreaterThanOrEqual(30);
+  });
+});
+
 describe("Vertex AI nodes", () => {
   it("send the Gemini request body through the Vertex provider", async () => {
     const provider = vertexProvider(() => json({ embedding: { values: [0.1, 0.2] } }));

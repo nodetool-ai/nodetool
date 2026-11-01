@@ -599,7 +599,11 @@ describe("GeminiProvider – streaming with tool name reverse mapping", () => {
 // ---------------------------------------------------------------------------
 
 describe("GeminiProvider – model listing", () => {
-  const provider = new GeminiProvider({ GEMINI_API_KEY: "k" });
+  // No live listing, so the known models are returned.
+  const provider = new GeminiProvider(
+    { GEMINI_API_KEY: "k" },
+    { fetchFn: async () => new Response("denied", { status: 403 }) }
+  );
 
   it("returns image models", async () => {
     const models = await provider.getAvailableImageModels();

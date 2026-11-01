@@ -5,7 +5,7 @@ import type { AudioRef } from "../types.js";
 
 // Text To Speech — openai.audio.TextToSpeech
 export type TextToSpeechInputs = {
-  model?: Connectable<"tts-1" | "tts-1-hd" | "gpt-4o-mini-tts">;
+  model?: Connectable<unknown>;
   voice?: Connectable<"alloy" | "ash" | "ballad" | "coral" | "echo" | "fable" | "onyx" | "nova" | "sage" | "shimmer" | "verse">;
   input?: Connectable<string>;
   speed?: Connectable<number>;
@@ -36,7 +36,7 @@ export function translate(inputs: TranslateInputs, options?: NodeOptions): NodeW
 
 // Transcribe — openai.audio.Transcribe
 export type TranscribeInputs = {
-  model?: Connectable<"whisper-1" | "gpt-4o-transcribe" | "gpt-4o-mini-transcribe">;
+  model?: Connectable<unknown>;
   audio?: Connectable<AudioRef>;
   language?: Connectable<"auto_detect" | "af" | "ar" | "hy" | "az" | "be" | "bn" | "bs" | "bg" | "ca" | "hr" | "cs" | "da" | "nl" | "en" | "et" | "tl" | "fi" | "fr" | "gl" | "de" | "el" | "gu" | "he" | "hi" | "hu" | "is" | "id" | "it" | "ja" | "kn" | "kk" | "ko" | "lv" | "lt" | "mk" | "ms" | "zh" | "mi" | "mr" | "ne" | "no" | "fa" | "pl" | "pt" | "pa" | "ro" | "ru" | "sr" | "sk" | "sl" | "es" | "sw" | "sv" | "ta" | "te" | "th" | "tr" | "uk" | "ur" | "vi" | "cy">;
   timestamps?: Connectable<boolean>;

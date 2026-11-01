@@ -5,7 +5,7 @@ import { createNode, Connectable, NodeWithOutputs, NodeOptions } from "../core.j
 // Grounded Search — gemini.text.GroundedSearch
 export type GroundedSearchInputs = {
   query?: Connectable<string>;
-  model?: Connectable<"gemini-3.5-flash" | "gemini-3.1-pro-preview" | "gemini-3.1-flash-lite" | "gemini-2.5-pro" | "gemini-2.5-flash" | "gemini-2.5-flash-lite">;
+  model?: Connectable<unknown>;
 };
 
 export interface GroundedSearchOutputs {
@@ -21,7 +21,7 @@ export function groundedSearch(inputs: GroundedSearchInputs, options?: NodeOptio
 // Embedding — gemini.text.Embedding
 export type EmbeddingInputs = {
   input?: Connectable<string>;
-  model?: Connectable<"gemini-embedding-2">;
+  model?: Connectable<unknown>;
 };
 
 export interface EmbeddingOutputs {

@@ -18,7 +18,6 @@ Converts speech to text using OpenAI's speech-to-text API.
 
 | Property | Type | Description | Default |
 |----------|------|-------------|---------|
-| model | `enum` | The model to use for transcription. | `whisper-1` |
 | audio | `audio` | The audio file to transcribe (max 25 MB). | `{"type":"audio","uri":"","asset_id":null,"data"...` |
 | language | `enum` | The language of the input audio | `auto_detect` |
 | timestamps | `bool` | Whether to return timestamps for the generated text. | `false` |

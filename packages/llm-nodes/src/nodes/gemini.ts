@@ -176,21 +176,13 @@ export class GroundedSearchNode extends BaseNode {
   })
   declare query: string;
 
-  @prop({
-    type: "enum",
-    default: "gemini-3.5-flash",
-    title: "Model",
-    description: "The Gemini model to use for search",
-    values: [
-      "gemini-3.5-flash",
-      "gemini-3.1-pro-preview",
-      "gemini-3.1-flash-lite",
-      "gemini-2.5-pro",
-      "gemini-2.5-flash",
-      "gemini-2.5-flash-lite"
-    ]
-  })
-  declare model: GeminiModelValue;
+  @providerModelProp(
+    "language_model",
+    PROVIDER_IDS.GEMINI,
+    "gemini-3.5-flash",
+    "The Gemini model to use for search"
+  )
+  declare model: ModelFieldValue;
 
   async process(
     context?: ProcessingContext
@@ -288,14 +280,13 @@ export class EmbeddingNode extends BaseNode {
   })
   declare input: string;
 
-  @prop({
-    type: "enum",
-    default: "gemini-embedding-2",
-    title: "Model",
-    description: "The embedding model to use",
-    values: ["gemini-embedding-2"]
-  })
-  declare model: GeminiModelValue;
+  @providerModelProp(
+    "embedding_model",
+    PROVIDER_IDS.GEMINI,
+    "gemini-embedding-2",
+    "The embedding model to use"
+  )
+  declare model: ModelFieldValue;
 
   async process(
     context?: ProcessingContext
@@ -358,20 +349,13 @@ export class ImageGenerationNode extends BaseNode {
   })
   declare prompt: string;
 
-  @prop({
-    type: "enum",
-    default: "gemini-3.1-flash-image",
-    title: "Model",
-    description: "The image generation model to use",
-    values: [
-      "gemini-3.1-flash-image",
-      "gemini-nano-banana-2.1",
-      "gemini-3.1-flash-lite-image",
-      "gemini-3-pro-image",
-      "imagen-4.0-generate-001"
-    ]
-  })
-  declare model: GeminiModelValue;
+  @providerModelProp(
+    "image_model",
+    PROVIDER_IDS.GEMINI,
+    "gemini-3.1-flash-image",
+    "The image generation model to use"
+  )
+  declare model: ModelFieldValue;
 
   @prop({
     type: "image",
@@ -575,18 +559,13 @@ export class TextToVideoGeminiNode extends BaseNode {
   })
   declare prompt: string;
 
-  @prop({
-    type: "enum",
-    default: "veo-3.1-generate-preview",
-    title: "Model",
-    description: "The Veo model to use for video generation",
-    values: [
-      "veo-3.1-generate-preview",
-      "veo-3.1-fast-generate-preview",
-      "veo-3.1-lite-generate-preview"
-    ]
-  })
-  declare model: GeminiModelValue;
+  @providerModelProp(
+    "video_model",
+    PROVIDER_IDS.GEMINI,
+    "veo-3.1-generate-preview",
+    "The Veo model to use for video generation"
+  )
+  declare model: ModelFieldValue;
 
   @prop({
     type: "enum",
@@ -696,18 +675,13 @@ export class ImageToVideoGeminiNode extends BaseNode {
   })
   declare prompt: string;
 
-  @prop({
-    type: "enum",
-    default: "veo-3.1-generate-preview",
-    title: "Model",
-    description: "The Veo model to use for video generation",
-    values: [
-      "veo-3.1-generate-preview",
-      "veo-3.1-fast-generate-preview",
-      "veo-3.1-lite-generate-preview"
-    ]
-  })
-  declare model: GeminiModelValue;
+  @providerModelProp(
+    "video_model",
+    PROVIDER_IDS.GEMINI,
+    "veo-3.1-generate-preview",
+    "The Veo model to use for video generation"
+  )
+  declare model: ModelFieldValue;
 
   @prop({
     type: "enum",
@@ -915,20 +889,13 @@ export class TextToSpeechGeminiNode extends BaseNode {
   })
   declare text: string;
 
-  @prop({
-    type: "enum",
-    default: "gemini-3.8-flash-tts",
-    title: "Model",
-    description: "The text-to-speech model to use",
-    values: [
-      "gemini-3.8-flash-tts",
-      "gemini-3.8-flash-lite-tts",
-      "gemini-3.1-flash-tts-preview",
-      "gemini-2.5-flash-preview-tts",
-      "gemini-2.5-pro-preview-tts"
-    ]
-  })
-  declare model: GeminiModelValue;
+  @providerModelProp(
+    "tts_model",
+    PROVIDER_IDS.GEMINI,
+    "gemini-3.8-flash-tts",
+    "The text-to-speech model to use"
+  )
+  declare model: ModelFieldValue;
 
   @prop({
     type: "enum",
@@ -1099,14 +1066,13 @@ export class TranscribeGeminiNode extends BaseNode {
   })
   declare audio: AudioRef;
 
-  @prop({
-    type: "enum",
-    default: "gemini-3.5-flash",
-    title: "Model",
-    description: "The Gemini model to use for transcription",
-    values: ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-2.5-flash"]
-  })
-  declare model: GeminiModelValue;
+  @providerModelProp(
+    "asr_model",
+    PROVIDER_IDS.GEMINI,
+    "gemini-3.5-flash",
+    "The Gemini model to use for transcription"
+  )
+  declare model: ModelFieldValue;
 
   @prop({
     type: "str",

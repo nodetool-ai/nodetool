@@ -471,7 +471,7 @@ describe("Node defaults coverage", () => {
   it("ChatComplete defaults", () => {
     const node = new ChatComplete();
     const d = node.serialize();
-    expect(d.model).toBe("mistral-small-latest");
+    expect(d.model).toMatchObject({ id: "mistral-small-latest" });
     expect(d.prompt).toBe("");
     expect(d.system_prompt).toBe("");
     expect(d.temperature).toBe(0.7);
@@ -491,7 +491,7 @@ describe("Node defaults coverage", () => {
     const node = new Embedding();
     const d = node.serialize();
     expect(d.input).toBe("");
-    expect(d.model).toBe("mistral-embed");
+    expect(d.model).toMatchObject({ id: "mistral-embed" });
     expect(d.chunk_size).toBe(4096);
   });
 
@@ -499,7 +499,7 @@ describe("Node defaults coverage", () => {
     const node = new ImageToText();
     const d = node.serialize();
     expect(d.prompt).toBe("Describe this image in detail.");
-    expect(d.model).toBe("pixtral-large-latest");
+    expect(d.model).toMatchObject({ id: "pixtral-large-latest" });
     expect(d.temperature).toBe(0.3);
     expect(d.max_tokens).toBe(1024);
   });
@@ -507,7 +507,7 @@ describe("Node defaults coverage", () => {
   it("OCR defaults", () => {
     const node = new OCR();
     const d = node.serialize();
-    expect(d.model).toBe("pixtral-large-latest");
+    expect(d.model).toMatchObject({ id: "pixtral-large-latest" });
   });
 
   it("imageToDataUri throws when image has no data or uri", async () => {

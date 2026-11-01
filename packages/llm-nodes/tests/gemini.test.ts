@@ -37,7 +37,7 @@ describe("GroundedSearchNode", () => {
     const node = new GroundedSearchNode();
     const d = node.serialize();
     expect(d.query).toBe("");
-    expect(d.model).toBe("gemini-3.5-flash");
+    expect(d.model).toMatchObject({ id: "gemini-3.5-flash" });
   });
 
   it("throws without API key", async () => {
@@ -167,7 +167,7 @@ describe("EmbeddingNode (Gemini)", () => {
     const node = new EmbeddingNode();
     const d = node.serialize();
     expect(d.input).toBe("");
-    expect(d.model).toBe("gemini-embedding-2");
+    expect(d.model).toMatchObject({ id: "gemini-embedding-2" });
   });
 
   it("throws without API key", async () => {
@@ -222,7 +222,7 @@ describe("ImageGenerationNode", () => {
     const node = new ImageGenerationNode();
     const d = node.serialize();
     expect(d.prompt).toBe("");
-    expect(d.model).toBe("gemini-3.1-flash-image");
+    expect(d.model).toMatchObject({ id: "gemini-3.1-flash-image" });
     expect(d.aspect_ratio).toBe("1:1");
     expect(d.resolution).toBe("1K");
   });
@@ -339,7 +339,7 @@ describe("TextToVideoGeminiNode", () => {
     const node = new TextToVideoGeminiNode();
     const d = node.serialize();
     expect(d.prompt).toBe("");
-    expect(d.model).toBe("veo-3.1-generate-preview");
+    expect(d.model).toMatchObject({ id: "veo-3.1-generate-preview" });
     expect(d.aspect_ratio).toBe("16:9");
     expect(d.resolution).toBe("720p");
   });
@@ -550,7 +550,7 @@ describe("ImageToVideoGeminiNode", () => {
     const node = new ImageToVideoGeminiNode();
     const d = node.serialize();
     expect(d.prompt).toBe("");
-    expect(d.model).toBe("veo-3.1-generate-preview");
+    expect(d.model).toMatchObject({ id: "veo-3.1-generate-preview" });
     expect(d.resolution).toBe("720p");
   });
 
@@ -615,7 +615,7 @@ describe("TextToSpeechGeminiNode", () => {
     const node = new TextToSpeechGeminiNode();
     const d = node.serialize();
     expect(d.text).toBe("");
-    expect(d.model).toBe("gemini-3.8-flash-tts");
+    expect(d.model).toMatchObject({ id: "gemini-3.8-flash-tts" });
     expect(d.voice_name).toBe("kore");
   });
 
@@ -702,7 +702,7 @@ describe("TranscribeGeminiNode", () => {
   it("returns expected defaults", () => {
     const node = new TranscribeGeminiNode();
     const d = node.serialize();
-    expect(d.model).toBe("gemini-3.5-flash");
+    expect(d.model).toMatchObject({ id: "gemini-3.5-flash" });
   });
 
   it("throws when audio is not provided", async () => {

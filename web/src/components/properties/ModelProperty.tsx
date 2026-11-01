@@ -28,7 +28,7 @@ import ConnectedBadge from "./ConnectedBadge";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { SPACING, getSpacingPx } from "../ui_primitives";
-import { isObjectLike } from "../../utils/typePredicates";
+import { isObjectLike, isString } from "../../utils/typePredicates";
 
 const styles = (theme: Theme) =>
   css({
@@ -115,6 +115,16 @@ const ModelProperty = (props: PropertyProps) => {
     return [provider];
   }, [declaredProviders, props.property.default]);
 
+  // Workflows saved before a node's model field became a picker store the
+  // model as a plain id string. Read it as a model of the locked provider.
+  const modelValue = useMemo(
+    () =>
+      isString(props.value)
+        ? { id: props.value, provider: lockedProviders?.[0] }
+        : props.value,
+    [props.value, lockedProviders]
+  );
+
   const modelClass = useMemo(
     () => `model-type-${modelType.replace(/\./g, "-")}`,
     [modelType]
@@ -137,8 +147,8 @@ const ModelProperty = (props: PropertyProps) => {
       return (
         <LanguageModelSelect
           onChange={props.onChange}
-          value={props.value?.id || ""}
-          provider={props.value?.provider}
+          value={modelValue?.id || ""}
+          provider={modelValue?.provider}
           allowedProviders={lockedProviders}
           recommendedModels={recommendedModels}
           modelPacks={modelPacks}
@@ -148,8 +158,8 @@ const ModelProperty = (props: PropertyProps) => {
       return (
         <EmbeddingModelSelect
           onChange={props.onChange}
-          value={props.value?.id || ""}
-          provider={props.value?.provider}
+          value={modelValue?.id || ""}
+          provider={modelValue?.provider}
           allowedProviders={lockedProviders}
           recommendedModels={recommendedModels}
           modelPacks={modelPacks}
@@ -160,8 +170,8 @@ const ModelProperty = (props: PropertyProps) => {
         <ImageModelSelect
           onChange={props.onChange}
           allowedProviders={declaredProviders}
-          value={props.value?.id || ""}
-          provider={props.value?.provider}
+          value={modelValue?.id || ""}
+          provider={modelValue?.provider}
           task={imageTask}
           recommendedModels={recommendedModels}
           modelPacks={modelPacks}
@@ -200,8 +210,8 @@ const ModelProperty = (props: PropertyProps) => {
         <ASRModelSelect
           onChange={props.onChange}
           allowedProviders={declaredProviders}
-          value={props.value?.id || ""}
-          provider={props.value?.provider}
+          value={modelValue?.id || ""}
+          provider={modelValue?.provider}
           recommendedModels={recommendedModels}
           modelPacks={modelPacks}
         />
@@ -211,8 +221,8 @@ const ModelProperty = (props: PropertyProps) => {
         <VideoModelSelect
           onChange={props.onChange}
           allowedProviders={declaredProviders}
-          value={props.value?.id || ""}
-          provider={props.value?.provider}
+          value={modelValue?.id || ""}
+          provider={modelValue?.provider}
           task={videoTask}
           recommendedModels={recommendedModels}
           modelPacks={modelPacks}
@@ -222,16 +232,16 @@ const ModelProperty = (props: PropertyProps) => {
       return (
         <RerankModelSelect
           onChange={props.onChange}
-          value={props.value?.id || ""}
-          provider={props.value?.provider}
+          value={modelValue?.id || ""}
+          provider={modelValue?.provider}
         />
       );
     } else if (modelType === "model_3d_model") {
       return (
         <Model3DModelSelect
           onChange={props.onChange}
-          value={props.value?.id || ""}
-          provider={props.value?.provider}
+          value={modelValue?.id || ""}
+          provider={modelValue?.provider}
           task={model3dTask}
         />
       );
@@ -262,7 +272,7 @@ const ModelProperty = (props: PropertyProps) => {
       );
     }
     return null;
-  }, [modelType, props.nodeType, props.onChange, props.value, imageTask, videoTask, model3dTask, recommendedModels, modelPacks, lockedProviders, declaredProviders]);
+  }, [modelType, props.nodeType, props.onChange, props.value, modelValue, imageTask, videoTask, model3dTask, recommendedModels, modelPacks, lockedProviders, declaredProviders]);
 
   if (isConnected) {
     return (
