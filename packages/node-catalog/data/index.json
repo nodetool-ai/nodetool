@@ -3885,7 +3885,9 @@
       "runtimeLibraries": [],
       "scriptAllowlist": [],
       "secrets": [
+        "ANTHROPIC_API_KEY",
         "GEMINI_API_KEY",
+        "GOOGLE_CLOUD_PROJECT",
         "MISTRAL_API_KEY",
         "OPENAI_API_KEY",
         "XAI_API_KEY"
