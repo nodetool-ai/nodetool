@@ -297,6 +297,41 @@ describe("model execution on SQLite and PostgreSQL", () => {
     });
   }, DIALECT_TEST_TIMEOUT_MS);
 
+  it("compares metadata without object key order and preserves CAS and null semantics", async () => {
+    await onBothDialects(async () => {
+      const metadata = { keep: 1, nodetool_entity: { kind: "character", name: "Mara", descriptor: { z: 1, a: [{ y: 2, x: 3 }] } } };
+      const asset = await Asset.create<Asset>({ user_id: OWNER, metadata });
+      const raw = await executeRaw(`SELECT metadata FROM nodetool_assets WHERE id = '${asset.id}'`);
+      const stored = raw.rows[0]!.metadata;
+      expect(typeof stored).toBe("string");
+      expect(JSON.stringify(JSON.parse(String(stored)))).toBe(stored);
+      const expected = { nodetool_entity: { descriptor: { a: [{ x: 3, y: 2 }], z: 1 }, name: "Mara", kind: "character" }, keep: 1 };
+      asset.metadata = { saved: true };
+      expect(await asset.saveIfMetadataMatches({ ...expected, keep: 2 })).toBe(false);
+      expect(await asset.saveIfMetadataMatches(null)).toBe(false);
+      expect(await asset.saveIfMetadataMatches(expected)).toBe(true);
+      expect(await asset.saveIfMetadataMatches(expected)).toBe(false);
+      const empty = await Asset.create<Asset>({ user_id: OWNER, metadata: null });
+      empty.metadata = {};
+      expect(await empty.saveIfMetadataMatches({})).toBe(false);
+      expect(await empty.saveIfMetadataMatches(null)).toBe(true);
+      expect(await empty.saveIfMetadataMatches(null)).toBe(false);
+      empty.metadata = null;
+      expect(await empty.saveIfMetadataMatches({})).toBe(true);
+      expect(await empty.saveIfMetadataMatches(null)).toBe(true);
+      const rival = await Asset.get<Asset>(asset.id);
+      expect(rival).not.toBeNull();
+      asset.metadata = { winner: "first" };
+      rival!.metadata = { winner: "second" };
+      const writes = await Promise.all([
+        asset.saveIfMetadataMatches({ saved: true }),
+        rival!.saveIfMetadataMatches({ saved: true })
+      ]);
+      expect(writes.filter(Boolean)).toHaveLength(1);
+      return { empty: (await Asset.get<Asset>(empty.id))?.metadata };
+    });
+  }, DIALECT_TEST_TIMEOUT_MS);
+
   it("finishes a storyboard and updates its timeline using serialized document text", async () => {
     await onBothDialects(async () => {
       const board = await Storyboard.create<Storyboard>({ user_id: OWNER });
