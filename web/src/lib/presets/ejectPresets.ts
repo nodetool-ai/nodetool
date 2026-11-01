@@ -75,16 +75,16 @@ export const ejectPresetIds = (
     catalog: presetCatalog,
     modelId: model.id,
     mode,
-    prompt: ""
+    prompt: "{{ prompt }}"
   });
-  const stacked: Preset = {
-    ...first,
-    prompt: { default: compiled.prompt },
-    params: compiled.params
-  };
-  return {
-    graph: presetToWorkflow(stacked, { model, mode }),
-    preset: first,
-    mode
-  };
+  const graph = presetToWorkflow(first, { model, mode });
+  const template = graph.nodes.find((node) => node.id === "template");
+  if (template) {
+    template.data.string = compiled.prompt;
+  }
+  const generate = graph.nodes.find((node) => node.id === "generate");
+  if (generate) {
+    generate.data = { ...generate.data, ...compiled.params };
+  }
+  return { graph, preset: first, mode };
 };

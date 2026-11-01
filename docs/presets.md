@@ -138,6 +138,21 @@ RPC callers use `generate_media` with `mode: "video_edit"` and `preset_ids`. Age
 
 ## Eject to a workflow
 
+**Open as workflow** is available on Create results, Effects results and restyles in
+Generations, and on a storyboard shot and each of its still and clip takes.
+Storyboard takes keep the composed prompt, model, camera and look preset ids,
+source media, entity references and settings from submission. Ejection uses that
+record, including the different prompts for keyframe, direct and reference clips.
+Editing the shot or catalogue afterwards does not change the ejected take.
+Older takes without exact inputs show an explanation asking you to render a new
+take instead of silently opening a different prompt.
+
+A completed Lipsync studio run also offers **Open as workflow**. It opens an
+editable `TextToSpeech → LipSync → Output` graph with the original line, voice,
+speech model, speed, picture and lipsync model. `LipSync` accepts an image or a
+video. The action uses the completed run, even if you change the studio fields.
+
+
 Any preset can become an ordinary workflow. `presetToWorkflow(preset, { model, mode })` builds the graph from the same compile:
 
 ```

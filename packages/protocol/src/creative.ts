@@ -348,6 +348,19 @@ export interface CameraDirection {
  * stale.
  */
 export interface RenderInputs {
+  /** Exact composed prompt and graph-compatible settings submitted for this take. */
+  generation?: {
+    mode:
+      | "image"
+      | "image_edit"
+      | "video"
+      | "image_to_video"
+      | "reference_to_video"
+      | "video_edit";
+    provider: string;
+    prompt: string;
+    params: Record<string, unknown>;
+  };
   kind: "keyframe" | "clip";
   /** sha-256 of the composed base prompt. Camera preset selection is recorded separately. */
   prompt_hash: string;

@@ -39,7 +39,8 @@ const PRESET_MODES: ReadonlySet<string> = new Set<PresetMode>([
   "image_to_video",
   "reference_to_video",
   "image",
-  "image_edit"
+  "image_edit",
+  "video_edit"
 ]);
 
 interface WorkflowModel {
@@ -64,7 +65,12 @@ const workflowTarget = (
   ) {
     return null;
   }
-  return { mode: mode as PresetMode, model: { provider, id: model } };
+  return {
+    mode: (mode === "video" && request.source_asset_id
+      ? "image_to_video"
+      : mode) as PresetMode,
+    model: { provider, id: model }
+  };
 };
 
 /**
@@ -111,6 +117,29 @@ export const generationToWorkflowGraph = (item: CreateFeedItem): Graph => {
       } else if (node.id === "generate") {
         node.data = { ...node.data, ...compiled.params };
       }
+    }
+  }
+  const promptInput = ejected.nodes.find((node) => node.id === "prompt");
+  if (promptInput) promptInput.data.value = item.prompt ?? "";
+  const generate = ejected.nodes.find((node) => node.id === "generate");
+  if (generate && item.request) {
+    for (const key of [
+      "aspect_ratio",
+      "resolution",
+      "seed",
+      "width",
+      "height"
+    ] as const) {
+      if (item.request[key] !== undefined)
+        generate.data[key] = item.request[key];
+    }
+    if (item.request.duration !== undefined)
+      generate.data.duration_seconds = item.request.duration;
+    if (typeof item.request.source_asset_id === "string") {
+      const type = target.mode === "video_edit" ? "video" : "image";
+      const input = ejected.nodes.find((node) => node.id === type);
+      if (input)
+        input.data.value = { type, asset_id: item.request.source_asset_id };
     }
   }
   return {

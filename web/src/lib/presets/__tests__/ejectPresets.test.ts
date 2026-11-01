@@ -56,3 +56,9 @@ it("ejects video restyles and keeps them out of the image Effects gallery", () =
   expect(result?.graph.nodes.find(node => node.id === "generate")?.type).toBe("nodetool.video.VideoToVideo");
   expect(EFFECT_PRESETS.some(preset => preset.modes.includes("video_edit"))).toBe(false);
 });
+
+it("keeps the user prompt variable when ejecting a camera and look stack", () => {
+  const look = presetCatalog.presets.find(p => p.kind === "look" && p.modes.includes("video"))!;
+  const graph = ejectPresetIds(["camera.dolly-in", look.id], "video", MODEL)?.graph;
+  expect(graph?.nodes.find(n => n.id === "template")?.data.string).toContain("{{ prompt }}");
+});

@@ -574,3 +574,68 @@ describe("camera preset dispatch", () => {
     });
   }
 });
+
+// Compare the ejected graph with the actual host request, not another prompt preview.
+describe("recorded render ejection", () => {
+  it.each(["keyframe", "direct", "reference"] as const)(
+    "preserves stacked camera and look prompts for %s clips",
+    async (mode) => {
+      const { storyboardRenderToWorkflow } =
+        await import("@nodetool-ai/presets");
+      const catalog = createCatalog(
+        JSON.parse(
+          readFileSync(
+            new URL("../../presets/preset-catalog.json", import.meta.url),
+            "utf8"
+          )
+        )
+      );
+      const camera = catalog.presets.find(
+        (p) => p.kind === "camera" && p.slot === "move"
+      )!;
+      const look = catalog.presets.find(
+        (p) => p.kind === "look" && p.modes.includes("image")
+      )!;
+      const target = shot({
+        id: "s1",
+        index: 0,
+        action: "A dancer leaps across the street.",
+        camera: { preset_ids: [camera.id] },
+        render_mode: mode,
+        keyframe: { type: "image", asset_id: "still" }
+      });
+      const doc = { ...board([target]), look_preset_ids: [look.id] };
+      const entity: Entity = {
+        type: "entity",
+        id: "person",
+        kind: "character",
+        name: "Dancer",
+        descriptor: "red coat",
+        reference_images: [{ type: "image", asset_id: "reference" }]
+      };
+      target.entity_ids = [entity.id];
+      const { host, state, requests } = fakeHost(doc, {
+        loadMedia: async () => BYTES
+      });
+      const plans = planShotRenders(doc, [entity], "clip", undefined, {
+        presetCatalog: catalog
+      });
+      await renderShots(host, { id: "b1" }, plans, { newId: ids() });
+      expect(requests).toHaveLength(1);
+      const record = state.document.shots[0].clip_versions?.[0]?.render_inputs;
+      expect(record?.camera_preset_ids).toEqual([camera.id]);
+      expect(record?.look_preset_ids).toEqual([look.id]);
+      const graph = storyboardRenderToWorkflow(record);
+      const ejectedPrompt = graph.nodes.find((n) => n.id === "prompt")?.data
+        .value;
+      expect(ejectedPrompt).toBe(requests[0].params.prompt);
+      expect(ejectedPrompt).toContain("A dancer leaps across the street.");
+      expect(() =>
+        expect("deliberately wrong prompt").toBe(requests[0].params.prompt)
+      ).toThrow();
+      expect(() => storyboardRenderToWorkflow(undefined)).toThrow(
+        "exact inputs"
+      );
+    }
+  );
+});
